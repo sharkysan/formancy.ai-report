@@ -16,10 +16,12 @@ without any AI dependency.
 > **Status: started 14 October 2026. Nothing designs or renders a report yet.**
 >
 > What exists is the licence, the pipeline that will prove the packages, and
-> one package: `@formancy/report-spec`, which names the report format and
-> refuses a document it does not read. Next is a renderer experiment: the
-> same adversarial report fixtures through more than one PDF engine, before
-> any editor is built on one of them.
+> one package: `@formancy/report-spec`, which defines the report format,
+> validates a report structurally and hashes it. The format is version 0, a
+> draft: a report written now is not promised to be read by a later release.
+> Nothing reads data into a report or draws one. The PDF engine is chosen by
+> an experiment that runs the same adversarial report fixtures through more
+> than one engine, before any editor is built on one of them.
 
 ## Licence, in one table
 
@@ -49,12 +51,12 @@ own, on Formancy Data's terms and before a lawyer has read them, is decision
 
 | Package | What it is |
 | --- | --- |
-| `@formancy/report-spec` | The report definition format: its name, its version, and the refusal of a document that is not one it reads. No framework, no PDF engine, no Node. |
+| `@formancy/report-spec` | The report definition, version 0 (a draft): its types, structural validation with stable error codes, a canonical hash, page geometry and the one conversion between millimetres and points. A report is a document of its own, not a form ([0007](./docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)). No framework, no PDF engine, no Node. |
 
-Planned and not here: the report model and its commands, the native Angular
-and React builders over one session, the runtime that groups and totals, the
-PDF renderer, the server and its jobs, the PDF viewer, reviewed AI changes, and
-the optional Formancy Data provider.
+Planned and not here: the document commands and their undo history, the
+native Angular and React builders over one session, the runtime that groups
+and totals, the PDF renderer, the server and its jobs, the PDF viewer,
+reviewed AI changes, and the optional Formancy Data provider.
 
 ## How it relates to formancy.ai and Formancy Data
 
