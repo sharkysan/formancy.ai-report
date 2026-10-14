@@ -26,7 +26,7 @@ describe('checkSpecVersion', () => {
   test('refuses a formancy form as not a report, and says it is a form', () => {
     const outcome = checkSpecVersion({ specVersion: '3', id: 'order', title: 'Order', model: { fields: [] } })
     expect(outcome).toMatchObject({ ok: false, code: 'not-a-report' })
-    expect(outcome.ok ? '' : outcome.message).toMatch(/formancy form \(specVersion 3\)/)
+    expect(outcome.ok ? '' : outcome.message).toMatch(/formancy form \(specVersion "3"\)/)
   })
 
   // Nothing without the field is guessed to be a report: not an empty object,
@@ -46,7 +46,7 @@ describe('checkSpecVersion', () => {
     expect(outcome).toEqual({
       ok: false,
       code: 'unsupported-version',
-      message: `reportSpecVersion 99 is not one this package reads; it reads ${REPORT_SPEC_VERSION}`,
+      message: `reportSpecVersion "99" is not one this package reads; it reads "${REPORT_SPEC_VERSION}"`,
     })
   })
 })

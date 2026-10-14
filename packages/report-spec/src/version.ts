@@ -6,7 +6,12 @@
  * Data's generated form spec and bindings versions, and of this package's npm
  * version. Package versions alone cannot say whether two documents are
  * compatible; this can.
+ *
+ * A message here quotes what the document holds, shortened: a version string
+ * is the document's to choose, and a message that echoed it whole would grow
+ * with it.
  */
+import { quote } from './check.js'
 
 /**
  * The format's name. A canonical hash of a report is taken over an envelope
@@ -51,12 +56,12 @@ export function checkSpecVersion(document: unknown): SpecVersionCheck {
     const form = field(document, 'specVersion')
     const message =
       typeof form === 'string'
-        ? `this is a formancy form (specVersion ${form}), not a report definition`
+        ? `this is a formancy form (specVersion ${quote(form)}), not a report definition`
         : 'this is not a report definition: it has no reportSpecVersion string'
     return { ok: false, code: 'not-a-report', message }
   }
   if (version !== REPORT_SPEC_VERSION) {
-    return { ok: false, code: 'unsupported-version', message: `reportSpecVersion ${version} is not one this package reads; it reads ${REPORT_SPEC_VERSION}` }
+    return { ok: false, code: 'unsupported-version', message: `reportSpecVersion ${quote(version)} is not one this package reads; it reads ${quote(REPORT_SPEC_VERSION)}` }
   }
   return { ok: true }
 }

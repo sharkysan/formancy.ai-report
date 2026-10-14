@@ -37,9 +37,11 @@ by a guard from then on.
 
 ## How the pieces fit
 
-Almost nothing is built. `@formancy/report-spec` names the format and refuses
-what it does not read; that is all the product code there is. The package
-path the plan proposes, each package depending only on those before it:
+Almost nothing is built. `@formancy/report-spec` defines the format, validates
+a report structurally and hashes it
+([0007](docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md));
+that is all the product code there is. The package path the plan proposes,
+each package depending only on those before it:
 
 1. `report-spec` -- the versioned definition, structural validation, canonical
    hashing and migrations. No framework, no driver, no PDF engine, no Node.

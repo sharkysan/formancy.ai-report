@@ -46,6 +46,57 @@ read.** `REPORT_FORMAT` and `REPORT_SPEC_VERSION` ('0', the draft) are
 independent of formancy's `specVersion` and of every package version.
 `checkSpecVersion` reads a report of that version. It refuses a formancy form
 as not a report, naming its `specVersion`, and refuses a report of another
-version, naming both versions, rather than reading part of it. It is the
-package that proves the pipeline: build, packaging checks, the licence in the
-tarball and the install gate all run on it. The report model is not here yet.
+version, naming both versions, rather than reading part of it. Both are
+quoted and shortened in the message, because a version string is the
+document's to choose. It is the package that proves the pipeline: build,
+packaging checks, the licence in the tarball and the install gate all run on
+it.
+
+**`@formancy/report-spec` defines the report, validates it and hashes it**
+([0007](docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
+`ReportDefinition` is a document of its own rather than a formancy form with
+pages added, because a form's pages are navigation and its version line is
+formancy's. It is still version '0', the draft: nothing written under it is
+promised to be read by a later release, because the format is being fitted
+to the three starter reports before it freezes. What it holds:
+
+- **Layout.** A page, and five regions of flowing components with no
+  absolute coordinates. Lengths are in points to the hundredth, and a finer
+  one is refused rather than rounded, so one layout has one hash.
+- **One table.** One table over one detail dataset, with one grouping level
+  whose key orders the rows first. Its totals are rows, so a quotation can
+  show a subtotal, a tax line and a total.
+- **Aggregates.** Declared once and printed by id, over the current group or
+  every row, with declared rounding.
+- **Bindings.** Every field reference is one shape. Dataset field,
+  parameter and aggregate ids are formancy field keys, so a form's or Data's
+  key binds unrenamed and CEL reads it with a dot.
+- **Images and currencies from the data.** An image can come from an
+  `image` field: a photo or a signature taken with a form, resolved by the
+  host from an approved id and digest, never an address. A currency can come
+  from a field or a parameter.
+- **Styles.** Print styles are tokens, not CSS, with conditional style
+  rules.
+- **Expressions.** The names an expression reads, in each place, are fixed
+  in the format, because every saved condition is written against them.
+
+What comes with it:
+
+- **`validateReport`** collects every error, each with a JSON Pointer, a
+  stable code and the component it is in. It also refuses a fixed size the
+  page cannot hold, while the author edits rather than at render time. A
+  template is untrusted input even when an administrator wrote it, so it:
+  - never throws;
+  - never runs a getter;
+  - reads every array's length once, before reading an element;
+  - echoes no input into a message or a path.
+- **`reportHash`** hashes only a report the validator reads, over an
+  envelope that names the format, so a form and a report never share a hash
+  and nothing invalid is ever pinned.
+- **`emptyReport`, `walkComponents` and `componentAt`**, the units and the
+  page geometry are written once here, so the editor, the core and the
+  runtime do not each write their own.
+
+**`@formancy/report-spec` now depends on `@formancy/spec` 0.5.0**, at that
+exact version, for `schemaHash`: the report hash uses formancy's
+canonicalisation rather than a second one.

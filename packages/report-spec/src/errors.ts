@@ -1,0 +1,115 @@
+/**
+ * What validation can say is wrong with a report, as stable codes.
+ *
+ * A code is for a program -- the builder links it to a property editor, a
+ * test asserts it -- and the message is for a person. Codes are never
+ * reworded once released; a new rule gets a new code. Each has a refusal
+ * test in `validate.test.ts`, which does not compile while one is missing.
+ */
+export const REPORT_ERROR_CODES = [
+  // The document as a whole.
+  /** Not a report definition at all; a formancy form is named as one. */
+  'not-a-report',
+  /** A report of a version this package does not read. */
+  'unsupported-version',
+  /** A value JSON cannot hold: undefined, NaN, a function, an accessor, an array hole, an object that throws when read. */
+  'not-json',
+  /** More errors were found than are listed. */
+  'too-many-errors',
+
+  // Shape: what a property must be.
+  'wrong-type',
+  'missing-property',
+  /** A property this version does not know; shapes are strict. */
+  'unknown-property',
+  /** A component, inline, format or value of a kind this version does not know. */
+  'unknown-kind',
+  'not-one-of',
+  'out-of-range',
+  'not-an-integer',
+  /** A length finer than the hundredth of a point lengths are stored to. */
+  'too-precise',
+  /** A string, or a property name, past its bound. */
+  'too-long',
+  /** An array past its bound, or a region past its component budget. */
+  'too-many',
+  'too-few',
+  /** A CEL expression that is empty or only whitespace. */
+  'empty-expression',
+
+  // Strings with a syntax.
+  'invalid-id',
+  'invalid-locale',
+  'invalid-color',
+  'invalid-currency',
+  'invalid-digest',
+  /** A parameter default its own type would refuse. */
+  'invalid-default',
+  /** A string that should hold an exact decimal and does not. */
+  'invalid-decimal',
+
+  // Declarations.
+  /** Margins that leave less than MIN_PRINTABLE_PT either way. */
+  'printable-area-too-small',
+  'scale-on-non-decimal',
+  /** Two declarations with one id in one list: styles, fields, parameters, assets, aggregates, or the two datasets. */
+  'duplicate-id',
+
+  // References to what the report declares.
+  'unknown-style',
+  'unknown-dataset',
+  'unknown-field',
+  'unknown-parameter',
+  'unknown-asset',
+  'unknown-aggregate',
+  'unknown-column',
+
+  // Placement and structure.
+  /** A table, page break or keep-together block outside the body and the summary. */
+  'misplaced-flow-component',
+  /** A table or page break inside a columns or keep-together block. */
+  'nested-flow-component',
+  /** A page number or count outside the page header and footer. */
+  'misplaced-page-counter',
+  /** A detail field where there is no current row: outside the table's cells, or in a group header or footer when it is not the field grouped by. */
+  'misplaced-detail-field',
+  /** A group's aggregate outside a group header or footer. */
+  'misplaced-group-aggregate',
+  /** A second table over the detail dataset. */
+  'second-detail-table',
+  'nesting-too-deep',
+  /** Two components with one id, anywhere in the report. */
+  'duplicate-component-id',
+  /** Two columns with one id in one table. */
+  'duplicate-column-id',
+  /** Two cells for one column in one footer row. */
+  'duplicate-footer-cell',
+  /** A field sorted by twice, or sorted by and grouped by: the second key orders nothing. */
+  'duplicate-sort-key',
+  /** A fixed size larger than the page's printable area: an image, a rectangle, a spacer, or the fixed widths of a table or a columns block. */
+  'exceeds-printable-area',
+
+  // Types meeting.
+  /** An aggregate over a field of a type it cannot take. */
+  'aggregate-type-mismatch',
+  /** A number, currency or date format over a value of a type it does not format. */
+  'format-type-mismatch',
+  /** A field or parameter bound where its type does not fit: an image field printed, sorted or grouped by; a field that is not an image drawn as one; a currency that is not a string. */
+  'binding-type-mismatch',
+] as const
+
+export type ReportErrorCode = (typeof REPORT_ERROR_CODES)[number]
+
+export interface ReportError {
+  /** A JSON Pointer (RFC 6901) to what is wrong; '' is the whole document. */
+  readonly path: string
+  readonly code: ReportErrorCode
+  readonly message: string
+  /** The innermost component the error is inside, when it is inside one whose id could be read. */
+  readonly componentId?: string
+}
+
+/** Errors as one line of text, for an exception that has to carry them: each its code, path and message. */
+export function describeErrors(errors: readonly ReportError[]): string {
+  return errors.map((error) => `${error.code} ${error.path}: ${error.message}`).join('; ')
+}
