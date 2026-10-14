@@ -47,6 +47,7 @@ As formancy.ai-data's, set on 2026-10-14:
 | Delete branch on merge | on | A merged branch is deleted by the merge, never by hand (formancy.ai-data 0036) |
 | Ruleset *Protect* | on the default branch: no deletion, no force-push, no bypass, no required check | `main`'s history cannot be rewritten or removed; GOVERNANCE.md says what it does not do |
 | Secret scanning and push protection | on | A credential pushed by mistake is refused or reported |
+| Dependabot alerts, and with them the dependency graph | on | `security.yml`'s dependency review refuses to run without the graph ("Dependency review is not supported on this repository") |
 | Private vulnerability reporting | on | `SECURITY.md` sends reporters to "Report a vulnerability", which exists only when this is on |
 | Label `accessibility` | present | As in formancy.ai and formancy.ai-data |
 | Environment `npm` | deployment policy: tags `v*` only | The only place `NPM_TOKEN` lives (below) |
