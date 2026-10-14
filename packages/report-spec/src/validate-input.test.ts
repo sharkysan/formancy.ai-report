@@ -312,7 +312,8 @@ describe('prototype keys and odd identifiers', () => {
   // property this version does not know, and nothing reaches
   // Object.prototype.
   test('refuses a __proto__ key from JSON.parse without polluting anything', () => {
-    const top = JSON.stringify(richReport()).replace('{', '{"__proto__":{"polluted":true},')
+    // Anchored: the key goes into the outermost object and nowhere else.
+    const top = JSON.stringify(richReport()).replace(/^\{/, '{"__proto__":{"polluted":true},')
     expect(refusals(JSON.parse(top))).toEqual(['unknown-property /__proto__'])
     const style = JSON.stringify(richReport()).replace('"styles":[{', '"styles":[{"__proto__":{"bold":true},')
     expect(refusals(JSON.parse(style))).toEqual(['unknown-property /styles/0/__proto__'])
