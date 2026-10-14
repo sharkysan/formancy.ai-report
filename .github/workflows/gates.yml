@@ -1,0 +1,195 @@
+name: Gates
+
+# The gates every change and every release passes, in one place, as in
+# formancy.ai-data (its 0035): ci.yml calls this on every pull request and
+# every push to main, and release.yml calls it before anything is published,
+# so a release's gate is CI's by construction.
+#
+# Three jobs for now, because three things exist to prove: the build, types,
+# packaging, licences and the repository's guards (`verify`); each package's
+# suite on a runner of its own (`test`); and the packed tarballs in a project
+# that is not this one (`install`). Browser, container and getting-started
+# gates, and the release report that reads every job's results, arrive with
+# the app, the server and the packaging they prove -- not before, so that no
+# job here passes for having nothing to check.
+#
+# A release runs code from here with its own permissions, so third-party
+# actions are pinned to commit hashes, with the tag in a comment, under
+# release.yml's rule; scripts/workflows.test.mjs fails on one that is not.
+on:
+  workflow_call:
+    inputs:
+      release:
+        description: "'' for CI, the tag for a release, dry-run for a rehearsal"
+        type: string
+        default: ''
+    secrets:
+      # Passed by ci.yml and never by release.yml, so a release never uploads
+      # coverage and holds no secret while it runs the gates.
+      CODECOV_TOKEN:
+        required: false
+
+# Read-only, for every job. Nothing in this workflow writes to the repository:
+# the coverage upload authenticates with its own token, the caches are CI's
+# alone and the artefacts the run's. Without this the default token carries
+# whatever the repository's default is, and CodeQL says so, as a
+# missing-workflow-permissions alert per job.
+permissions:
+  contents: read
+
+jobs:
+  # Build, types, packaging, licences and the repository's own guards: the
+  # fast signal. The suites run in the `test` job below, one package per runner.
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # corepack reads the packageManager field, so CI runs the exact pnpm
+      # version the repo pins rather than whatever the runner image ships.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable pnpm
+
+      # CI only. A tag's run may restore a cache a main-branch run saved, and
+      # a cache holds whatever code that job ran left in the store; a release
+      # or a rehearsal installs from the registry against the lockfile
+      # instead, in every job here (workflows.test.mjs).
+      - name: Get pnpm store directory
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        if: inputs.release == ''
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+      - run: pnpm typecheck
+
+      # Packaging correctness (publint + attw) is a release gate, not a nicety:
+      # broken exports maps are the top cause of "doesn't work in my app".
+      - run: pnpm check:pkg
+
+      # Every tarball carries LICENSE.md and NOTICE and declares the
+      # source-available terms rather than the scope's Apache-2.0. On the pull
+      # request rather than only at release, which is the last possible moment
+      # to find out.
+      - run: node scripts/verify-licenses.mjs
+
+      # The repository's own guards: codecov.yml matches its generator, every
+      # CLA signature names the current text, upstream is depended on at exact
+      # versions, no source file is past the 600-line budget, the `test`
+      # job's matrix names every package with a suite, the README says what
+      # LICENSE.md says, and these workflows keep the shape the release
+      # depends on. A guard that is not a gate is a comment.
+      - run: pnpm test:repo
+
+  # Every package's suite, each in a job of its own on its own runner, as in
+  # formancy.ai-data, where nine suites sharing one runner timed out a test
+  # that takes two seconds alone. scripts/ci-test-jobs.test.mjs fails when
+  # this list and the workspace's packages with a `test:coverage` script
+  # disagree, so a new package cannot go untested in CI by being left off it.
+  test:
+    name: test (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      # Every suite reports, rather than the first failure cancelling the rest.
+      fail-fast: false
+      matrix:
+        package: ['@formancy/report-spec']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable pnpm
+
+      - name: Get pnpm store directory
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        if: inputs.release == ''
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      # turbo builds what the package depends on first (`^build`), then runs
+      # its suite and nothing else's. `--force` makes "this job did not replay
+      # a cached result" a property of the command rather than an accident of
+      # a fresh runner; `--summarize` writes the task's own start and end. The
+      # package reaches the command through the environment, never through
+      # `${{ }}` in the script.
+      - run: pnpm exec turbo run test:coverage --filter="$PACKAGE" --force --summarize
+        env:
+          PACKAGE: ${{ matrix.package }}
+      # Skipped, visibly, while the repository has no CODECOV_TOKEN -- a new
+      # repository should not be red for a reason unrelated to its code -- and
+      # in every release, which passes no secret. Once the secret exists the
+      # upload runs and a failed upload fails the job, as upstream: a report
+      # that silently did not arrive is a number nobody can read. Each job
+      # uploads its own package's report; Codecov merges them by commit. A
+      # secret cannot be tested in `if:` directly, so it goes through the
+      # environment.
+      - name: Upload coverage to Codecov
+        if: env.CODECOV_TOKEN != ''
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        # The commit formancy.ai-data pinned for v7.1.1, read from the action's repository on 2026-10-09.
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+
+  # Every job above runs inside the workspace, against the tree it built from --
+  # and a workspace sibling resolves a package through a symlink to its SOURCE
+  # directory. So an exports map that is wrong for a real consumer can be right
+  # for every test in the repository. This packs the tarballs, installs them
+  # into a plain npm project, type-checks it with skipLibCheck OFF and runs it
+  # under Node. Its own job so that `verify` stays the fast signal and a red
+  # "install" says what is wrong. The tarballs it installed and ran are kept as
+  # the run's `release-tarballs`: a release publishes exactly these.
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable pnpm
+
+      - name: Get pnpm store directory
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        if: inputs.release == ''
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      # The tarballs are built output, so there is nothing to pack without this.
+      - run: pnpm build
+
+      - run: node scripts/install-test.mjs --keep-tarballs release-tarballs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-tarballs
+          path: release-tarballs/
+          if-no-files-found: error
+          overwrite: true

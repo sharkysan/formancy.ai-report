@@ -1,0 +1,30 @@
+packages:
+  - "packages/*"
+  # Applications: private, never published, and built by turbo like the rest.
+  # None yet; the Studio shell and the integration playground arrive with the
+  # first editor slice.
+  - "apps/*"
+
+# Packages whose install scripts may run. Nothing else's does.
+allowBuilds:
+  esbuild: true
+
+# Shared dependency versions live here so the packages cannot drift apart.
+# They are formancy.ai-data's, so one machine serves both repositories.
+catalog:
+  # The TypeScript line formancy.ai compiles under: its Angular 22 declares
+  # `typescript: ">=6.0 <6.1"`. The declarations this repository consumes from
+  # @formancy/* were emitted by 6.0.x, and the Angular builder coming here will
+  # need the same line, so there is one version across the repositories.
+  typescript: ~6.0.3
+
+  vitest: ^5.0.1
+  "@vitest/coverage-v8": ^5.0.1
+
+  tsdown: ^0.23.0
+  publint: ^0.3.24
+  "@arethetypeswrong/cli": ^0.18.5
+  "@types/node": ^22.10.0
+
+  # The repository's guards read YAML: the workflows' jobs and matrices.
+  yaml: ^2.9.1

@@ -15,10 +15,11 @@ without any AI dependency.
 
 > **Status: started 14 October 2026. Nothing designs or renders a report yet.**
 >
-> What exists is the licence and this repository. Next come the pipeline that
-> will prove the packages, then a renderer experiment: the same adversarial
-> report fixtures through more than one PDF engine, before any editor is
-> built on one of them.
+> What exists is the licence, the pipeline that will prove the packages, and
+> one package: `@formancy/report-spec`, which names the report format and
+> refuses a document it does not read. Next is a renderer experiment: the
+> same adversarial report fixtures through more than one PDF engine, before
+> any editor is built on one of them.
 
 ## Licence, in one table
 
@@ -40,15 +41,58 @@ terms are Formancy Data's.
 
 <!-- end generated -->
 
+Why a paid module exists beside an Apache-2.0 project, in a repository of its
+own, on Formancy Data's terms and before a lawyer has read them, is decision
+[0001](./docs/decisions/0001-a-paid-module-in-its-own-repository.md).
+
+## Packages
+
+| Package | What it is |
+| --- | --- |
+| `@formancy/report-spec` | The report definition format: its name, its version, and the refusal of a document that is not one it reads. No framework, no PDF engine, no Node. |
+
+Planned and not here: the report model and its commands, the native Angular
+and React builders over one session, the runtime that groups and totals, the
+PDF renderer, the server and its jobs, the PDF viewer, reviewed AI changes, and
+the optional Formancy Data provider.
+
 ## How it relates to formancy.ai and Formancy Data
 
 Report **depends on** the released `@formancy/*` packages and copies none of
-their code. Where it needs a form, it uses one: parameter forms render through
-the formancy renderers, and expressions and exact decimals come from formancy's
-packages. A report is its own document, though, with pages, flowing tables,
-groups and totals that a form does not model. Report never widens the form
-spec to hold them.
+their code ([0002](./docs/decisions/0002-depend-on-upstream-never-copy-it.md)).
+Upstream versions are exact, and a guard refuses a range or a path. Where
+Report needs a form, it uses one: parameter forms render through the formancy
+renderers, and expressions and exact decimals come from formancy's packages.
+A report is its own document, though, with pages, flowing tables, groups and
+totals that a form does not model. Report never widens the form spec to hold
+them.
 
 Formancy Data is optional. Report reads Data's approved datasets through one
 provider package, and only once Data publishes a release. Without Data, a host
 application supplies the data itself. Data never depends on Report.
+
+## Development
+
+Node 22.12 or later, and pnpm through corepack.
+
+```bash
+corepack enable pnpm
+pnpm install
+pnpm build
+pnpm test
+```
+
+The gates CI runs, from `.github/workflows/gates.yml`: `pnpm build`,
+`pnpm typecheck`, `pnpm check:pkg`, `node scripts/verify-licenses.mjs` and
+`pnpm test:repo`; each package's `test:coverage` in a job of its own; and
+`pnpm test:e2e:install`, which packs the packages, installs them into a plain
+npm project and runs it. [`CLAUDE.md`](./CLAUDE.md) says what each is for and
+what the bar is.
+
+## Documents
+
+- [`docs/decisions/`](./docs/decisions/README.md) — every decision somebody could helpfully undo, with what verifies it.
+- [`CHANGELOG.md`](./CHANGELOG.md) — what changed and why.
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`CLA.md`](./CLA.md) — contributions are taken under a CLA, checked on every pull request.
+- [`SECURITY.md`](./SECURITY.md) — how to report a vulnerability, and what this product considers highest risk.
+- [`RELEASING.md`](./RELEASING.md) — releases are cut by the workflow, with provenance and a signed SBOM.

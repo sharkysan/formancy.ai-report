@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Read-only, for every job. Nothing in this workflow writes to the repository:
+# the coverage upload authenticates with its own token and the caches are the
+# runner's. Without this the default token carries whatever the repository's
+# default is, and CodeQL says so, as a missing-workflow-permissions alert per
+# job.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Every gate, in .github/workflows/gates.yml, which release.yml calls too, so
+  # what a pull request passes is what a release passes. The coverage token is
+  # passed by name and nothing else is: `secrets: inherit` would hand the gates
+  # every secret the repository has.
+  gates:
+    uses: ./.github/workflows/gates.yml
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
