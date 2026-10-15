@@ -271,6 +271,10 @@ describe('instants', () => {
   // same canonical spelling makes it comparable with the data's.
   test('canonicalInstant gives the spelling the data check holds', () => {
     expect(canonicalInstant('2026-01-01T08:00:00.500Z')).toBe('2026-01-01T08:00:00.5Z')
+    // Only trailing zeros go: an inner zero is a digit of the time, and a
+    // fraction of zeros alone is no fraction at all.
+    expect(canonicalInstant('2026-01-01T08:00:00.050Z')).toBe('2026-01-01T08:00:00.05Z')
+    expect(canonicalInstant('2026-01-01T08:00:00.000000000Z')).toBe('2026-01-01T08:00:00Z')
     expect(canonicalInstant('not an instant')).toBeUndefined()
   })
 })

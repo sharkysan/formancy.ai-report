@@ -138,10 +138,18 @@ function isClockTime(hour: number, minute: number, second: number): boolean {
   return hour <= 23 && minute <= 59 && second <= 59
 }
 
-/** `fraction` without trailing zeros, with its point, or nothing when nothing is left. */
+/**
+ * `fraction` without trailing zeros, with its point, or nothing when nothing
+ * is left. A loop rather than /0+$/: the instant pattern bounds the fraction
+ * to nine digits, but an anchored repetition is quadratic on many zeros
+ * before a non-zero (CodeQL's js/polynomial-redos), and this needs no bound
+ * to stay linear.
+ */
 function fractionOf(fraction: string | undefined): string {
-  const digits = fraction?.replace(/0+$/, '') ?? ''
-  return digits === '' ? '' : `.${digits}`
+  if (fraction === undefined) return ''
+  let end = fraction.length
+  while (end > 0 && fraction[end - 1] === '0') end -= 1
+  return end === 0 ? '' : `.${fraction.slice(0, end)}`
 }
 
 function readString(raw: unknown): ValueRead<string> {
