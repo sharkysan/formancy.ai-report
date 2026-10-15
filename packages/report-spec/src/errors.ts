@@ -54,6 +54,8 @@ export const REPORT_ERROR_CODES = [
   'scale-on-non-decimal',
   /** Two declarations with one id in one list: styles, fields, parameters, assets, aggregates, or the two datasets. */
   'duplicate-id',
+  /** An id the format gives a meaning of its own: an aggregate called `key`, which `group.key` reads as the value grouped by. */
+  'reserved-id',
 
   // References to what the report declares.
   'unknown-style',

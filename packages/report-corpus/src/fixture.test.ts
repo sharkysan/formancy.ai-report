@@ -62,7 +62,7 @@ describe('expectation', () => {
           text('Summary'),
           { kind: 'paragraph', runs: [{ text: 'Printed on page ' }, { field: 'pageNumber' }] },
           { kind: 'table', id: 'second', columns: [{ width: 'fill', align: 'left' }], header: ['Other'], rows: [{ kind: 'total', cells: ['B-total'] }], emptyText: ' Nothing  here ' },
-          { kind: 'image', asset: { id: 'seal', mediaType: 'image/png', bytes: new Uint8Array() }, width: 10, height: 20 },
+          { kind: 'image', asset: { id: 'seal', mediaType: 'image/png', bytes: new Uint8Array() }, width: 10, height: 20, fit: 'contain' },
         ],
       },
     ],
@@ -113,7 +113,7 @@ describe('expectation', () => {
   // either is not, and one with neither is.
   test('expects no empty page unless the body has a spacer or a rule', () => {
     expect(expectation(document, { maxPagesExpected: 2 }).noEmptyPages).toBe(true)
-    for (const block of [{ kind: 'spacer', height: 10 }, { kind: 'rule' }] as const) {
+    for (const block of [{ kind: 'spacer', height: 10 }, { kind: 'rule', thickness: 0.5 }] as const) {
       expect(expectation({ ...document, body: [...document.body, { kind: 'keepTogether', blocks: [block] }] }, { maxPagesExpected: 2 }).noEmptyPages, block.kind).toBe(false)
     }
   })

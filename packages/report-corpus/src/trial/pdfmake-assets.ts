@@ -21,18 +21,27 @@ export const MAX_ASSET_BYTES = 20 * 1024 * 1024
 /** Pixels a side. */
 export const MAX_ASSET_SIDE = 4096
 
-export function checkImageAsset(asset: ImageAsset): void {
-  const problem = assetProblem(asset)
-  if (problem !== undefined) throw new RenderRefusal('invalid-asset', `the image asset ${asset.id} ${problem}`, asset.id)
+/** An image's size in pixels, as its own header gives it. */
+export interface Pixels {
+  readonly width: number
+  readonly height: number
 }
 
-function assetProblem(asset: ImageAsset): string | undefined {
+/** The asset's size in pixels, once its bytes pass; refused as `invalid-asset`, naming it and why, when they do not. */
+export function checkImageAsset(asset: ImageAsset): Pixels {
+  const read = readAsset(asset)
+  if (typeof read === 'string') throw new RenderRefusal('invalid-asset', `the image asset ${asset.id} ${read}`, asset.id)
+  return read
+}
+
+/** The asset's size in pixels, or what is wrong with it. */
+function readAsset(asset: ImageAsset): Pixels | string {
   const { bytes } = asset
   if (bytes.length > MAX_ASSET_BYTES) return `is ${bytes.length} bytes; the limit is ${MAX_ASSET_BYTES} (20 MB)`
   const isPng = startsWith(bytes, PNG_SIGNATURE)
   const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8
-  if (asset.mediaType === 'image/png') return isPng ? pngProblem(bytes) : `is declared a PNG and is not one${isJpeg ? ': it is a JPEG' : ''}`
-  return isJpeg ? jpegProblem(bytes) : `is declared a JPEG and is not one${isPng ? ': it is a PNG' : ''}`
+  if (asset.mediaType === 'image/png') return isPng ? readPng(bytes) : `is declared a PNG and is not one${isJpeg ? ': it is a JPEG' : ''}`
+  return isJpeg ? readJpeg(bytes) : `is declared a JPEG and is not one${isPng ? ': it is a PNG' : ''}`
 }
 
 function sizeProblem(width: number, height: number): string | undefined {
@@ -71,7 +80,7 @@ interface PngHeader {
   readonly paletted: boolean
 }
 
-function pngProblem(bytes: Uint8Array): string | undefined {
+function readPng(bytes: Uint8Array): Pixels | string {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   let header: PngHeader | undefined
   let palette = false
@@ -100,7 +109,7 @@ function pngProblem(bytes: Uint8Array): string | undefined {
     offset = end
   }
   if (header.paletted && !palette) return 'is paletted and has no palette'
-  return scanlineProblem(header, data)
+  return scanlineProblem(header, data) ?? { width: header.width, height: header.height }
 }
 
 function pngHeader(body: Uint8Array): PngHeader | string {
@@ -150,9 +159,9 @@ const JPEG_FRAMES = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xc
  * standard allows and encoders do not write, are refused with the rest of
  * what is malformed: failing closed costs a JPEG that could have been drawn.
  */
-function jpegProblem(bytes: Uint8Array): string | undefined {
+function readJpeg(bytes: Uint8Array): Pixels | string {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-  let framed = false
+  let pixels: Pixels | undefined
   for (let offset = 2; offset + 4 <= bytes.length; ) {
     const marker = bytes[offset + 1]!
     if (bytes[offset] !== 0xff || marker === 0xff) return `has a malformed segment at byte ${offset}`
@@ -160,13 +169,14 @@ function jpegProblem(bytes: Uint8Array): string | undefined {
     if (length < 2 || offset + 2 + length > bytes.length) return `has a segment that runs past its end at byte ${offset}`
     if (JPEG_FRAMES.has(marker)) {
       if (length < 8) return 'has a frame header of the wrong length'
-      const size = sizeProblem(view.getUint16(offset + 7), view.getUint16(offset + 5))
+      const [width, height] = [view.getUint16(offset + 7), view.getUint16(offset + 5)]
+      const size = sizeProblem(width, height)
       if (size !== undefined) return size
-      framed = true
+      pixels = { width, height }
     }
     if (marker === 0xda) {
-      if (!framed) return 'has image data before its frame header'
-      return bytes[bytes.length - 2] === 0xff && bytes[bytes.length - 1] === 0xd9 ? undefined : 'is cut off: it does not end with an end-of-image marker'
+      if (pixels === undefined) return 'has image data before its frame header'
+      return bytes[bytes.length - 2] === 0xff && bytes[bytes.length - 1] === 0xd9 ? pixels : 'is cut off: it does not end with an end-of-image marker'
     }
     offset += 2 + length
   }

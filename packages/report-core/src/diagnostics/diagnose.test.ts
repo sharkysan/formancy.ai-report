@@ -1,5 +1,5 @@
 import { emptyReport, validateReport } from '@formancy/report-spec'
-import type { ReportDefinition } from '@formancy/report-spec'
+import type { AggregateDef, ReportDefinition, Rounding } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { thawed } from '../snapshot.js'
 import type { Mutable } from '../snapshot.js'
@@ -21,6 +21,9 @@ const CLOSING_WHEN = '/regions/summary/0/visibleWhen/cel'
 const TOTAL_VALUE = '/regions/body/2/totals/1/cells/1/value/expression/cel'
 const AMOUNT_WHEN = '/regions/body/2/columns/3/styleWhen/0/when/cel'
 const GROSS = '/aggregates/2/of/expression/cel'
+const GROUP_HEADER = '/regions/body/2/group/header/2/expression/cel'
+const STATISTICS = '/regions/summary/0/components/1/content/0'
+const GROUP_SUBTOTAL = '/regions/body/2/group/footer/0/cells/2/value'
 
 /** The sample, edited, and checked still valid: diagnostics are about valid reports. */
 function edited(...edits: Edit[]): ReportDefinition {
@@ -70,6 +73,10 @@ const CASES: { readonly [C in DiagnosticCode]: Case } = {
     edit: set(INTRO_WHEN, 'params.draft == false && today() > timestamp("2026-01-01T00:00:00Z")'),
     expected: { path: INTRO_WHEN, componentId: 'intro', position: { start: 25, end: 32 } },
   },
+  // int(double) printed 4.35 as 434 cents, as though it were exact.
+  'expression-inexact': { edit: set(TOTAL_VALUE, 'dec(string(int(double(string(totals.gross)))))'), expected: { path: TOTAL_VALUE, componentId: 'lines', position: { start: 15, end: 43 }, hint: expect.stringContaining('dec(') as string } },
+  // A backtracking pattern can take minutes inside one step of the budget.
+  'expression-unbounded': { edit: set(INTRO_WHEN, 'header.customer.matches("^a+$")'), expected: { path: INTRO_WHEN, componentId: 'intro', position: { start: 0, end: 31 } } },
   // Which parameter size(params) counts depends on nothing the editor can
   // check, and the runtime binds a parameter by its id, never the whole set.
   'expression-dynamic-read': { edit: set(CLOSING_WHEN, 'size(params) > 0 && totals.lines > 0'), expected: { path: CLOSING_WHEN, componentId: 'closing', position: { start: 5, end: 11 } } },
@@ -77,6 +84,12 @@ const CASES: { readonly [C in DiagnosticCode]: Case } = {
   'expression-aggregate-type': { edit: set(GROSS, 'row.sku'), expected: { path: GROSS } },
   // A total that reads itself can never be computed.
   'aggregate-cycle': { edit: set(GROSS, 'row.amount * dec("1.081") + totals.gross'), expected: { path: GROSS, position: { start: 28, end: 40 } } },
+  // A total rounded half-even to one place, then printed whole, is rounded
+  // twice: 2.45 became 2.5 and then 3, where once it is 2.
+  'format-rounds-again': { edit: set(`${STATISTICS}/format`, { kind: 'number', scale: 0, grouping: false }), expected: { path: `${STATISTICS}/format`, componentId: 'statistics' } },
+  // A count has no places: every render refused its rounding, which the
+  // editor said nothing about.
+  'rounding-not-decimal': { edit: set('/aggregates/1/rounding', { scale: 0, mode: 'half-even', increment: '5' }), expected: { path: '/aggregates/1/rounding' } },
   'unused-style': { edit: (report) => report.styles.push({ id: 'spare', bold: true }), expected: { path: '/styles/5' } },
   'unused-asset': { edit: (report) => report.assets.push({ id: 'spare', mediaType: 'image/png', digest: `sha256:${'12'.repeat(32)}` }), expected: { path: '/assets/2' } },
   'unused-parameter': { edit: (report) => report.parameters.push({ id: 'spare', type: 'string', label: 'Spare', required: false }), expected: { path: '/parameters/5' } },
@@ -125,6 +138,15 @@ describe('expression diagnostics', () => {
     const [diagnostic] = at(TOTAL_VALUE, 'totals.gross + group.lines')
     expect(diagnostic).toMatchObject({ code: 'expression-out-of-scope', componentId: 'lines', position: { start: 15, end: 20 } })
     expect(diagnostic?.message).toContain("group's header and footer")
+  })
+
+  // A group header computes with the value its group is keyed by, checked
+  // as the field grouped by: the sample groups by a string field, so the key
+  // joins a string and is no number. Without it, a header could print its
+  // key only as a field, never compare or compute with it.
+  test('reads the group key in a group header, as the type of the field grouped by', () => {
+    expect(at(GROUP_HEADER, '" " + group.key + " (" + string(group.lines) + ")"')).toEqual([])
+    expect(at(GROUP_HEADER, 'string(group.key + 1)').map(({ code }) => code)).toEqual(['expression-type'])
   })
 
   // A parameter, a field and an aggregate are single values, not maps:
@@ -261,12 +283,79 @@ describe('expression diagnostics', () => {
     ])
   })
 
+  // A double reached a printed integer through int(): 4.35 printed as 434
+  // cents, and a sum of such columns was 4 cents short of the exact one,
+  // with no diagnostic. Integer division printed 3 / 2 as 1. Each is
+  // refused where it is written, with what keeps the number exact.
+  test.each([
+    ['a double through int()', TOTAL_VALUE, 'string(int(double(string(totals.gross)) * 100.0))', [['double-call', 11], ['double-literal', 42]]],
+    ['a double in a condition', AMOUNT_WHEN, 'double(string(row.amount)) > 1.5', [['double-call', 0], ['double-literal', 29]]],
+    ['integer division', INTRO_VALUE, 'string(params.copies / 2)', [['integer-division', 21]]],
+  ])('refuses %s, where it is written', (_name, pointer, cel, found) => {
+    const diagnostics = at(pointer, cel)
+    expect(diagnostics.map(({ code, position }) => [code, position?.start])).toEqual(found.map(([, start]) => ['expression-inexact', start]))
+    expect(diagnostics.map(({ hint }) => hint)).toEqual(found.map(([kind]) => expect.stringContaining(kind === 'integer-division' ? 'divide(dec(' : 'dec("') as string))
+  })
+
+  // Exact division, and a remainder, which drops nothing, are what an author
+  // writes instead.
+  test('accepts exact division and a remainder', () => {
+    expect(at(INTRO_VALUE, 'string(divide(dec(params.copies), dec(2), 2)) + string(params.copies % 2)')).toEqual([])
+  })
+
+  // "^(a+)+$" over 29 letters and a b took 39 seconds in one resolve: a
+  // backtracking pattern is one call of a few steps to the budget.
+  test('refuses matches(), whose time no budget bounds', () => {
+    expect(at(INTRO_WHEN, 'header.customer.matches("^(a+)+$")').map(({ code, position }) => [code, position])).toEqual([['expression-unbounded', { start: 0, end: 34 }]])
+  })
+
   // What upstream suggests travels with the error: here, how to write a
   // decimal literal.
   test("passes on upstream's hint", () => {
     const [diagnostic] = at(INTRO_VALUE, 'string(dec(params.copies) * 0.19)')
     expect(diagnostic).toMatchObject({ code: 'expression-type' })
     expect(diagnostic?.hint).toContain('dec("0.19")')
+  })
+})
+
+describe('rounding', () => {
+  /** The codes of the diagnostics for the sample's group subtotal, rounded as `rounding` and printed as `format`. */
+  const printed = (rounding: object | undefined, format: object): string[] =>
+    diagnose(
+      edited(
+        (report) => {
+          const { rounding: _gone, ...subtotal } = report.aggregates[0] as AggregateDef
+          report.aggregates[0] = rounding === undefined ? subtotal : { ...subtotal, rounding: rounding as Rounding }
+        },
+        set(`${GROUP_SUBTOTAL}/format`, format),
+      ),
+    ).map(({ code, path }) => `${code} ${path}`)
+  const chf = (scale: number): object => ({ kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale })
+
+  // The display rounds once more only where it shows fewer places than the
+  // total keeps; at as many or more, it shows the rounded total as it is.
+  // Without a declared rounding the display's is the only one.
+  test.each([
+    ['at the scale the rounding keeps', { scale: 2, mode: 'half-even' }, chf(2), []],
+    ['at more places than the rounding keeps', { scale: 2, mode: 'half-even' }, chf(3), []],
+    ['to 0.05 at two places', { scale: 2, mode: 'half-away-from-zero', increment: '0.05' }, chf(2), []],
+    ['with no rounding declared, at no places', undefined, chf(0), []],
+    ['at fewer places than the rounding keeps', { scale: 2, mode: 'half-even' }, chf(1), [`format-rounds-again ${GROUP_SUBTOTAL}/format`]],
+    ['to 0.05, at one place', { scale: 2, mode: 'half-away-from-zero', increment: '0.05' }, { kind: 'number', scale: 1, grouping: true }, [`format-rounds-again ${GROUP_SUBTOTAL}/format`]],
+  ])('allows or refuses a total printed %s', (_name, rounding, format, codes) => {
+    expect(printed(rounding, format)).toEqual(codes)
+  })
+
+  // A sum of decimals has places to round, and so does one whose type only
+  // the data says, which the runtime rounds as a decimal. An integer, a
+  // date and an instant have none.
+  test.each([
+    ['a sum of decimals', 'subtotal', []],
+    ['a count', 'lines', ['rounding-not-decimal /aggregates/1/rounding']],
+    ['the latest instant', 'latest', ['rounding-not-decimal /aggregates/4/rounding']],
+  ])('allows a rounding on %s, or refuses it', (_name, id, codes) => {
+    const index = sampleReport().aggregates.findIndex((aggregate) => aggregate.id === id)
+    expect(diagnose(edited(set(`/aggregates/${index}/rounding`, { scale: 2, mode: 'half-even' }))).map(({ code, path }) => `${code} ${path}`)).toEqual(codes)
   })
 })
 

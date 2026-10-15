@@ -280,6 +280,17 @@ binding picker and one walk serve the whole format:
   template.
 - A second detail dataset or nested groups without a new format version.
 
+**Added 2026-10-15: a group reads its own key.** report-core's review found
+that a group header could print the field it is grouped by but never compute
+with it: an expression in the group scope read only aggregates. So `group`
+also holds `key` (`GROUP_KEY`), the value the current group is keyed by, of
+the type of the field grouped by and null for the group of rows without one.
+An aggregate may not be called `key` (`reserved-id`), so `group.key` never
+means two things. It is a draft-format addition: `EXPRESSION_NAMES` is
+unchanged, and so is every report that was valid and had no aggregate of
+that name. `validate.test.ts` holds the refusal beside the nearest name that
+is allowed.
+
 ## Alternatives considered
 
 **Extend the formancy form spec with pages and tables.** Refused by 0002 and

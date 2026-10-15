@@ -9,6 +9,7 @@ import type { CellStyle, ImageSchema, LineSchema, TableSchema, TextSchema } from
 import { escapeInlineMarkdown, measureTextHeight } from '@pdfme/schemas/utils'
 import { pageDimensions, RenderRefusal, type Block, type EngineAdapter, type Image, type Paragraph, type RenderOptions, type ResolvedDocument, type Table } from '../document.js'
 import { checkedImages, type Pixels } from './pdfme-assets.js'
+import { isUndrawn, refuseUndrawn } from './undrawn.js'
 
 /**
  * The renderer trial's pdfme adapter: a resolved document as a pdfme
@@ -126,6 +127,7 @@ export const pdfme: EngineAdapter = { name: 'pdfme', version: PDFME_VERSION, ren
 
 async function render(document: ResolvedDocument, options: RenderOptions): Promise<Uint8Array> {
   stopIfCancelled(options.signal)
+  refuseUndrawn(document)
   const created = new Date(document.info.creationDate)
   if (Number.isNaN(created.getTime())) throw new RenderRefusal('unsupported', `the creation date '${document.info.creationDate}' is not an ISO instant`)
   const font = robotoFonts()
@@ -227,6 +229,8 @@ async function region(blocks: readonly Block[], where: 'pageHeader' | 'pageFoote
     if (block.kind === 'table' || block.kind === 'keepTogether' || block.kind === 'pageBreak') {
       throw new RenderRefusal('unsupported', `pdfme repeats only fixed boxes on every page; a ${block.kind} cannot be part of the ${where}`, subject)
     }
+    // `refuseUndrawn` refuses these before a template is built.
+    if (isUndrawn(block)) throw new Error(`a ${block.kind} block reached the pdfme template`)
     const placed =
       block.kind === 'paragraph'
         ? await textBox([block], subject, y, columns, { flowing: false, static: true }, context)
@@ -287,6 +291,11 @@ async function flowingBox(block: Exclude<Block, { kind: 'pageBreak' | 'spacer' }
     case 'image':
     case 'rule':
       return fixedBox(block, subject, y, columns, { static: false }, context)
+    // `refuseUndrawn` refuses these before a template is built.
+    case 'columns':
+    case 'section':
+    case 'rectangle':
+      throw new Error(`a ${block.kind} block reached the pdfme template`)
   }
 }
 

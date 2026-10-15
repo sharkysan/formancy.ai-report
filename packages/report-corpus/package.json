@@ -20,7 +20,8 @@
     "trial": "tsdown && node dist/trial/run.mjs"
   },
   "dependencies": {
-    "pdfjs-dist": "6.4.299"
+    "pdfjs-dist": "6.4.299",
+    "@formancy/report-runtime": "workspace:*"
   },
   "devDependencies": {
     "@pdfme/common": "6.2.4",

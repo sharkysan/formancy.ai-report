@@ -1,4 +1,4 @@
-import type { Block, Paragraph, ParagraphStyle, ResolvedDocument, Table, TableColumn, TableRow } from '../document.js'
+import type { Block, Paragraph, ResolvedDocument, Table, TableColumn, TableRow, TextStyle } from '../document.js'
 import { BODY_SIZE, PAGE, SMALL_SIZE } from './geometry.js'
 
 /**
@@ -10,7 +10,7 @@ import { BODY_SIZE, PAGE, SMALL_SIZE } from './geometry.js'
 /** Fixed, so that a fixture renders to the same PDF every time. */
 const CREATED = '2026-01-01T00:00:00Z'
 
-export function paragraph(text: string, style: ParagraphStyle = {}): Paragraph {
+export function paragraph(text: string, style: TextStyle = {}): Paragraph {
   return { kind: 'paragraph', runs: [{ text }], style: { size: BODY_SIZE, ...style } }
 }
 

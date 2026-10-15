@@ -6,6 +6,7 @@ describe('parameters', () => {
   // Defaults are exact values as strings, typed by the parameter: a default
   // that its own type would refuse would fail on first use, in front of a
   // customer, instead of here. Zero has one spelling, so it has one hash.
+  // The year 0000 is refused: Intl shows it as the year 1, without its era.
   test('a parameter default is read only when its type reads it', () => {
     const samples: Record<string, { valid: unknown[]; invalid: unknown[] }> = {
       string: { valid: ['', 'Zürich'], invalid: [true] },
@@ -13,8 +14,8 @@ describe('parameters', () => {
       decimal: { valid: ['0', '0.0', '-0.5', '-0.05', '1.50', '99999999999999.9999'], invalid: ['1e3', '.5', '1.', '1,5', '-0', '-0.0', '-0.00', '-00.5', 1.5] },
       boolean: { valid: [true, false], invalid: ['true', 0] },
       date: {
-        valid: ['2024-02-29', '2000-02-29', '1999-12-31', '2026-04-30'],
-        invalid: ['2023-02-29', '1900-02-29', '2026-13-01', '2026-04-31', '2026-1-1', '2026-00-10', '2026-01-00'],
+        valid: ['2024-02-29', '2000-02-29', '1999-12-31', '2026-04-30', '0001-01-01'],
+        invalid: ['2023-02-29', '1900-02-29', '2026-13-01', '2026-04-31', '2026-1-1', '2026-00-10', '2026-01-00', '0000-01-01'],
       },
     }
     for (const [type, { valid, invalid }] of Object.entries(samples)) {

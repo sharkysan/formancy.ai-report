@@ -212,6 +212,14 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
   // Two parameters with one id: the host would supply one value and the
   // report would read it as both.
   'duplicate-id': { refuse: set('/parameters/1/id', 'from'), accept: set('/parameters/1/id', 'to'), at: ['/parameters/1/id'] },
+  // In a group's header and footer, group.key is the value grouped by; an
+  // aggregate called key would be read there as one or the other, and an
+  // author could not tell which.
+  'reserved-id': {
+    refuse: set('/aggregates/6', { id: 'key', fn: 'count' }),
+    accept: set('/aggregates/6', { id: 'keys', fn: 'count' }),
+    at: ['/aggregates/6/id'],
+  },
   // A style that does not exist would print in a default the author never
   // chose.
   'unknown-style': { refuse: set('/regions/body/1/style', 'heading'), accept: set('/regions/body/1/style', 'code'), at: ['/regions/body/1/style'] },

@@ -1,0 +1,108 @@
+import type { Content, DynamicContent, TDocumentDefinitions } from 'pdfmake/interfaces.js'
+import { RenderRefusal, type Block, type ResolvedDocument, type Table } from '@formancy/report-runtime'
+import { newBuild, type Build, type Fields, type TablePlan } from './build.js'
+import type { Checked, Measured, Page } from './check.js'
+import { contentOf } from './content.js'
+import { DEFAULT_SIZE, ROBOTO } from './style.js'
+import { checkWords } from './words.js'
+
+/**
+ * The pdfmake document definitions a render hands pdfmake, built from the
+ * resolved document and what was measured: pure, the same in Node and in a
+ * browser, and the one place either entry's definitions come from. What
+ * runs them is the entry's own (`node.ts`, `browser.ts`).
+ *
+ * The page regions: pdfmake draws its header inside the top page margin and
+ * its footer inside the bottom one, and lays the body out between. So
+ * pdfmake's margins are the document's enlarged by each region's measured
+ * height and a 6pt gap, and each region is drawn at the document's own
+ * margin: the header from the top of the printable area down, the footer
+ * ending at its bottom. Nothing of the body can reach into either.
+ */
+
+export const DEFAULT_STYLE = { font: ROBOTO, fontSize: DEFAULT_SIZE }
+
+/** Between the page header and the body, and between the body and the page footer. */
+export const REGION_GAP = 6
+
+/** Space each page region takes from the printable area, its gap to the body included; nothing for a region with no blocks. */
+export interface Regions {
+  readonly header: number
+  readonly footer: number
+}
+
+/** What a measuring pass lays out: one item per thing measured, and the build that holds their images and marks. */
+export interface Measurement {
+  readonly items: readonly Content[]
+  readonly build: Build
+}
+
+/**
+ * The page header and footer that have blocks, each one item, with every
+ * page field printed as the page limit: as many digits as the field can
+ * have. A region that wraps only for some page numbers is measured at its
+ * widest, which is not the same thing, and is not refused.
+ */
+export function regionsMeasurement(document: ResolvedDocument, checked: Checked, maxPages: number): Measurement & { readonly present: readonly (readonly Block[])[] } {
+  const fields: Fields = { pageNumber: maxPages, pageCount: maxPages }
+  const present = [document.pageHeader, document.pageFooter].filter((blocks) => blocks.length > 0)
+  const build = newBuild('measure', checked)
+  return { present, build, items: present.map((blocks): Content => ({ stack: contentOf(blocks, build, checked.page.width, fields) })) }
+}
+
+/** The body's tables and keep-together blocks, each one item laid out at the width it stands at. */
+export function bodyMeasurement(measured: readonly Measured[], checked: Checked): Measurement {
+  const build = newBuild('measure', checked)
+  const items = measured.map(({ block, width }): Content => ({ stack: contentOf([block], build, width), margin: [0, 0, checked.page.width - width, 0] }))
+  return { items, build }
+}
+
+/**
+ * The PDF's definition. pdfmake's own page limit, `maxPagesNumber`, cuts the
+ * document short; the renderer's throws out of the layout instead, from the
+ * function pdfmake calls for each page's background, as the page after the
+ * last one allowed is added. So no more than one page past the limit is ever
+ * laid out, and nothing is written.
+ */
+export function layoutDefinition(
+  document: ResolvedDocument,
+  checked: Checked,
+  regions: Regions,
+  plans: ReadonlyMap<Table, TablePlan>,
+  maxPages: number,
+): TDocumentDefinitions {
+  const page: Page = checked.page
+  const { margins } = page
+  const bodyTop = margins.top + regions.header
+  const bodyBottom = page.paperHeight - margins.bottom - regions.footer
+  const build = newBuild('render', checked, { top: bodyTop, bottom: bodyBottom }, plans)
+  const region = (blocks: readonly Block[], margin: [number, number, number, number]): DynamicContent | undefined => {
+    if (blocks.length === 0) return undefined
+    return (pageNumber, pageCount) => ({ stack: contentOf(blocks, build, page.width, { pageNumber, pageCount }), margin })
+  }
+  const header = region(document.pageHeader, [margins.left, margins.top, margins.right, 0])
+  const footer = region(document.pageFooter, [margins.left, REGION_GAP, margins.right, 0])
+  // Once now, so that their images are in the dictionary before pdfmake reads it.
+  header?.(1, 1, { width: page.paperWidth, height: page.paperHeight, orientation: document.page.orientation })
+  footer?.(1, 1, { width: page.paperWidth, height: page.paperHeight, orientation: document.page.orientation })
+  return {
+    info: { title: document.info.title, creationDate: checked.creationDate },
+    pageSize: { width: page.paperWidth, height: page.paperHeight },
+    pageMargins: [margins.left, bodyTop, margins.right, page.paperHeight - bodyBottom],
+    defaultStyle: DEFAULT_STYLE,
+    content: contentOf(document.body, build, page.width),
+    images: build.images,
+    ...(header === undefined ? {} : { header }),
+    ...(footer === undefined ? {} : { footer }),
+    background: (number) => {
+      // pdfmake has measured every word, and laid out no line yet.
+      if (number === 1) checkWords(build.words)
+      if (number > maxPages) throw new RenderRefusal('too-many-pages', `the report needs more than ${maxPages} pages`)
+      return null
+    },
+    pageBreakBefore: (node, queries) => {
+      const rule = node.headlineLevel === undefined ? undefined : build.rules.get(node.headlineLevel)
+      return rule?.(node, queries) ?? false
+    },
+  }
+}

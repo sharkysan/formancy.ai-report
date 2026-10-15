@@ -27,7 +27,7 @@ const DATA: ExpressionValues = {
   header: { customer: 'ACME', orderedOn: '2026-01-05', currency: 'CHF' },
   row: { site: 'Zürich', sku: 'A-1', quantity: '3', unit_price: '4.1250', amount: '12.38', shippedAt: null, recordedAt: '2026-01-05T10:00:00+01:00', shipped: true },
   totals: { subtotal: '12.38', lines: '1', gross: '13.38278', average: '3.0', latest: '2026-01-05T09:00:00Z' },
-  group: { subtotal: '12.38', lines: '1', gross: '13.38278', average: '3.0', latest: '2026-01-05T09:00:00Z' },
+  group: { subtotal: '12.38', lines: '1', gross: '13.38278', average: '3.0', latest: '2026-01-05T09:00:00Z', key: 'Zürich' },
 }
 
 /** The report never calls the clock or a random draw; these are what evaluate requires to be handed. */
@@ -131,6 +131,13 @@ describe('expressionValues', () => {
     [TOTAL_VALUE, '13.38278'],
   ])('evaluates %s to %s', (pointer, expected) => {
     expect(valueAt(frozenSample(), pointer)).toEqual(expected)
+  })
+
+  // A group header's key is bound as the value of the field grouped by, so
+  // the header computes with the site its rows are for.
+  test('binds the group key in a group header', () => {
+    const report = JSON.parse(JSON.stringify(sampleReport()).replace('\\" (\\" + string(group.lines)', '\\" \\" + group.key + \\" (\\" + string(group.lines)')) as ReportDefinition
+    expect(valueAt(report, '/regions/body/2/group/header/2/expression/cel')).toBe(' Zürich (1)')
   })
 
   // The decimal the binding makes is upstream's own, at the scale written.

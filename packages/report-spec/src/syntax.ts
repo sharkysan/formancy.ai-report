@@ -74,12 +74,16 @@ export const DECIMAL = /^(?:-?[1-9]\d*(?:\.\d+)?|0(?:\.\d+)?|-0\.\d*[1-9]\d*)$/
 
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/
 
-/** Whether `value` is a calendar date written YYYY-MM-DD: 2024-02-29 is one, 2026-02-29 is not. */
+/**
+ * Whether `value` is a calendar date written YYYY-MM-DD: 2024-02-29 is one,
+ * 2026-02-29 is not, and neither is any day of the year 0000, which Intl
+ * shows as the year 1 -- 1 BC without its era -- a year nobody wrote.
+ */
 export function isCalendarDate(value: string): boolean {
   const match = DATE.exec(value)
   if (match === null) return false
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])]
-  if (month < 1 || month > 12 || day < 1) return false
+  if (year < 1 || month < 1 || month > 12 || day < 1) return false
   const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
   const days = month === 2 ? (leap ? 29 : 28) : [4, 6, 9, 11].includes(month) ? 30 : 31
   return day <= days

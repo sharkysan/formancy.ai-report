@@ -201,6 +201,11 @@ function blockContent(block: Block, build: Build, scope: Scope): Content {
       return { stack: [], pageBreak: 'before' }
     case 'keepTogether':
       return { stack: sequence(block.blocks, build, { ...scope, kept: true }), unbreakable: build.mode === 'render' }
+    // The adapter refuses these before building anything (`undrawn.ts`).
+    case 'columns':
+    case 'section':
+    case 'rectangle':
+      throw new Error(`a ${block.kind} block reached the pdfmake content`)
   }
 }
 

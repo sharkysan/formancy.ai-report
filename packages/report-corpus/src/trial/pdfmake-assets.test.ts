@@ -162,7 +162,20 @@ describe('checkImageAsset accepts', () => {
   ])('%s, and pdfmake draws it', async (_, made) => {
     const image = made()
     expect(refusal(image)).toBeUndefined()
-    const pdf = await readPdf(await pdfmakeAdapter.render(documentOf('Image', [{ kind: 'image', asset: image, width: 40, height: 40 }]), { maxPages: 1 }))
+    const pdf = await readPdf(await pdfmakeAdapter.render(documentOf('Image', [{ kind: 'image', asset: image, width: 40, height: 40, fit: 'contain' }]), { maxPages: 1 }))
     expect(pdf.pages.flatMap((page) => page.images)).toHaveLength(1)
+  })
+})
+
+describe('checkImageAsset reads the size', () => {
+  // The adapter draws an image only at its own proportions, which it judges
+  // from the size read here. Width and height read the wrong way round -- a
+  // JPEG's frame header gives the height first -- would refuse every wide
+  // image in a wide box and draw every wide image stretched into a tall one.
+  test.each([
+    ['a PNG', () => asset(encodePng(16, 8, () => [0, 0, 0]))],
+    ['a JPEG', () => asset(jpegOf({ width: 16, height: 8 }), 'image/jpeg')],
+  ])('of %s, 16 wide and 8 tall', (_, made) => {
+    expect(checkImageAsset(made())).toEqual({ width: 16, height: 8 })
   })
 })

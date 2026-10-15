@@ -177,7 +177,7 @@ describe('page regions', () => {
   // A logo in the page header is drawn on every page and must be embedded
   // once: once per page, a report grows by the logo's size for every page.
   test('embeds an image in the page header once, however many pages draw it', async () => {
-    const logo: Image = { kind: 'image', asset: { id: 'logo', mediaType: 'image/png', bytes: encodePng(16, 8, (x) => [x * 16, 0, 0]) }, width: 32, height: 16 }
+    const logo: Image = { kind: 'image', asset: { id: 'logo', mediaType: 'image/png', bytes: encodePng(16, 8, (x) => [x * 16, 0, 0]) }, width: 32, height: 16, fit: 'contain' }
     const document = { ...documentOf('Logo', [ledger('lines', details(1, 120))]), pageHeader: [logo] }
     const bytes = await pdfmakeAdapter.render(document, { maxPages: 10 })
     const pdf = await readPdf(bytes)
@@ -285,7 +285,7 @@ describe('space', () => {
       return pageLines(pdf.pages[0]!).find((line) => lineHas(line, 'Below the rule'))!.top
     }
     const [above, below] = [paragraph('Above the rule'), paragraph('Below the rule')]
-    expect((await topOfBelow([above, { kind: 'rule' }, below])) - (await topOfBelow([above, below]))).toBeCloseTo(RULE_SPACE, 3)
+    expect((await topOfBelow([above, { kind: 'rule', thickness: 0.5 }, below])) - (await topOfBelow([above, below]))).toBeCloseTo(RULE_SPACE, 3)
   })
 })
 
@@ -341,7 +341,7 @@ describe('keeping content together', () => {
   // at the top of a keep-together block, for one.
   test.each([
     ['the table it heads', ledger('lines', details(1, 5))],
-    ['the image it heads', { kind: 'image', asset: { id: 'chart', mediaType: 'image/png', bytes: encodePng(8, 8, () => [0, 90, 0]) }, width: 80, height: 40 } as const],
+    ['the image it heads', { kind: 'image', asset: { id: 'chart', mediaType: 'image/png', bytes: encodePng(16, 8, () => [0, 90, 0]) }, width: 80, height: 40, fit: 'contain' } as const],
     ['the keep-together block it heads', { kind: 'keepTogether', blocks: [{ kind: 'spacer', height: 2 }, paragraph('Kept under the heading'), paragraph('And kept with it')] } as const],
   ] as const)('moves a heading to the next page with %s', async (_, headed) => {
     const document = documentOf('Heading at the foot', [{ kind: 'spacer', height: BODY_HEIGHT - 20 }, heading('Lines'), headed])
@@ -373,7 +373,7 @@ describe('keeping content together', () => {
       heading('Ledger section'),
       heading('Ledger lines'),
       { kind: 'spacer', height: 1 },
-      { kind: 'rule' },
+      { kind: 'rule', thickness: 0.5 },
       ledger('lines', details(1, 5)),
     ])
     const fixture = fixtureOf('headings-at-foot', document, { minPagesExpected: 2, maxPagesExpected: 2 })
@@ -486,7 +486,7 @@ describe('what the adapter refuses before pdfmake sees it', () => {
   // An image drawn larger than the printable area runs past a margin; pdfmake
   // draws it anyway.
   test('an image larger than the printable area', async () => {
-    const image: Image = { kind: 'image', asset: { id: 'banner', mediaType: 'image/png', bytes: encodePng(4, 4, () => [0, 0, 0]) }, width: PRINTABLE_WIDTH + 10, height: 40 }
+    const image: Image = { kind: 'image', asset: { id: 'banner', mediaType: 'image/png', bytes: encodePng(4, 4, () => [0, 0, 0]) }, width: PRINTABLE_WIDTH + 10, height: 40, fit: 'contain' }
     await expect(pdfmakeAdapter.render(documentOf('Wide image', [image]), { maxPages: 5 })).rejects.toMatchObject({ code: 'content-too-large', subject: 'banner' })
     const tall: Image = { ...image, width: 40, height: BODY_HEIGHT + 10 }
     await expect(pdfmakeAdapter.render(documentOf('Tall image', [tall]), { maxPages: 5 })).rejects.toMatchObject({ code: 'content-too-large', subject: 'banner' })
@@ -518,7 +518,7 @@ describe('what the adapter refuses before pdfmake sees it', () => {
       ]),
       'narrow',
     ],
-    ['an image drawn at no size', documentOf('No size', [{ kind: 'image', asset: { id: 'dot', mediaType: 'image/png', bytes: encodePng(2, 2, () => [0, 0, 0]) }, width: 0, height: 10 }]), 'dot'],
+    ['an image drawn at no size', documentOf('No size', [{ kind: 'image', asset: { id: 'dot', mediaType: 'image/png', bytes: encodePng(2, 2, () => [0, 0, 0]) }, width: 0, height: 10, fit: 'contain' }]), 'dot'],
     ['a creation date that is not a date', { ...documentOf('Undated', [paragraph('Body')]), info: { title: 'Undated', creationDate: 'yesterday' } }, 'info.creationDate'],
   ] as const)('%s', async (_, document, subject) => {
     await expect(pdfmakeAdapter.render(document, { maxPages: 5 })).rejects.toMatchObject({ code: 'unsupported', subject })

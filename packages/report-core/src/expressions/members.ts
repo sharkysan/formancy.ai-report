@@ -6,10 +6,11 @@
  * names the runtime binds (0007) -- `params`, `header` and `totals`
  * everywhere, `row` in a table's cells and in what an aggregate reads from
  * each row, `group` in a group's header and footer. Each holds members --
- * a parameter, a field, an aggregate -- read as `<name>.<id>`, and every
- * member is a single value, never a map.
+ * a parameter, a field, an aggregate, a group's key -- read as
+ * `<name>.<id>`, and every member is a single value, never a map.
  */
 import type { DeclaredType } from '@formancy/expressions'
+import { GROUP_KEY, walkComponents } from '@formancy/report-spec'
 import type { AggregateFunction, DatasetContract, FieldType, ReportDefinition } from '@formancy/report-spec'
 
 /**
@@ -73,6 +74,23 @@ export function parametersOf(report: ReportDefinition): ReadonlyMap<string, Expr
   return new Map(
     report.parameters.map((parameter) => [parameter.id, { type: EXPRESSION_TYPES[parameter.type], nullable: !parameter.required && parameter.default === undefined }]),
   )
+}
+
+/**
+ * `group.key`, the value the report's group is keyed by: the field grouped
+ * by, read as its type and null where it may be, since the rows without a
+ * value are a group of their own. Undefined when the report's table does
+ * not group, or groups by a field nothing can read.
+ */
+export function groupKeyOf(report: ReportDefinition): readonly [typeof GROUP_KEY, ExpressionMember] | undefined {
+  for (const { component } of walkComponents(report)) {
+    if (component.kind !== 'table' || component.group === undefined) continue
+    const by = component.group.by.field
+    const field = report.datasets.detail?.fields.find(({ id }) => id === by)
+    const type = readAs(field?.type)
+    return field === undefined || type === undefined ? undefined : [GROUP_KEY, { type, nullable: field.nullable }]
+  }
+  return undefined
 }
 
 /** The image fields of a dataset: drawn, and never read as a value. */

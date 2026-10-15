@@ -294,3 +294,107 @@ their shape:
 What waits for the Studio: a browser gate for layout, contrast and real
 pointers, a check of the README pictures, and a test that mounts both
 builders over one session.
+
+**`@formancy/report-runtime` resolves a report against its data, exactly, or
+refuses it** ([0010](docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)).
+`resolveReport` returns the renderer-neutral document a PDF engine draws, a
+manifest of what it was resolved from, and a preview's warnings; or every
+reason it will not, tagged with the stage that found it, never part of a
+document. Grouping, totals, rounding and formatting are decided here once, so
+that a renderer, a builder or the server never decides them again. What it
+holds:
+
+- **The data contract.** Every value is held to its field's type before
+  anything reads it. A decimal arrives as a canonical string and is refused
+  as a JavaScript number, which has already lost digits; a field the report
+  does not declare is refused, so nothing it does not print rides along into
+  a render, a cache or a log. Missing is not null: a field the data lacks is
+  an error in a final render, never an empty cell.
+- **Final and preview.** A final render refuses data the provider calls
+  incomplete. A preview prints what it has, warns once per missing field,
+  and labels every page and its manifest, so that it is never taken for the
+  report.
+- **Exact totals.** Integers as BigInt, decimals exact; a declared rounding
+  is applied once, to each group's exact total and to the report's apart.
+- **Formatting** through Intl, handed exact digits already rounded half away
+  from zero, never a double. A date prints as the same day in every time
+  zone; only an instant is shown in the zone the host names. A locale or
+  zone the engine lacks is refused rather than replaced by the host's.
+- **Bounds.** 100,000 detail rows, 20,000 steps an expression and 5,000,000
+  a render, 20 MB an image, each asset asked for once and shared.
+
+**`@formancy/report-render-pdf` draws a resolved report with pdfmake, and
+refuses what it cannot draw whole**
+([0005](docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
+[0011](docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+`renderPdf` resolves to the PDF's bytes or rejects with a `RenderRefusal`
+whose code says why; a refused report has no PDF at all. It grew from the
+renderer trial's adapter and draws all of version 0: columns, framed
+sections, rectangles, rules of any weight and colour, styles per row and per
+cell, images fitted to their box. Every fixture of the corpus passes, with
+none excused. Beyond the trial's rules, from a review of its first build:
+
+- **A width is a number.** A fill column handed to pdfmake as `'*'` widened
+  to its longest word, and pushed a table's amounts off the paper while the
+  render succeeded.
+- **A word in a table cell is never broken.** 'CHF 10,612,357.00' broke
+  into '…357.0' and '0', two numbers; a word wider than its column is
+  refused, naming the table, row and column. A paragraph still breaks a
+  long word, over up to 16 lines, and refuses a longer one before pdfmake
+  spends a minute breaking it.
+- **Every character is held to its font.** pdfmake printed a character
+  Roboto lacks as an empty box and U+0000 in the text; CJK, Hebrew, emoji,
+  a tab and an fr-FR amount's narrow no-break space are refused instead,
+  until fallback fonts exist.
+- **A table's closing rows stay with what they close**: a subtotal, a VAT
+  line, a total never stand alone at the top of a page.
+- **Work that grows with the document.** A table's breaks are planned, so a
+  1,600-group table renders in about 4 seconds instead of 60; a body too
+  long for the page limit is refused before pdfmake measures it; an abort
+  from a timer reaches a render between its passes.
+- **Nothing taller than the page**: a rule, a frame, the images' data
+  together.
+
+It runs in Node and has a browser entry, built and tested in Node, that is
+not yet in the package's `exports`.
+
+**`@formancy/report-core` refuses an expression that would print an inexact
+number, and a rounding the runtime would refuse**
+([0009](docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
+A double literal, `double()` and a division with `/` are errors
+(`expression-inexact`), because upstream hands an integer and a double back
+alike: `int(double("4.35") * 100.0)` printed 434 as though it were exact, and
+`3 / 2` printed 1, a rounding nobody declared. `divide(dec(a), dec(b),
+places)` is the exact division. `matches()` is an error
+(`expression-unbounded`): one backtracking pattern took 39 seconds inside a
+single step of the budget. A rounding on a total that has no places
+(`rounding-not-decimal`), and a number format that would round a rounded
+total again (`format-rounds-again`), are errors too: every render refused
+the first while the editor said nothing.
+
+**A group header reads its own key**
+([0007](docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md),
+[0009](docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
+`group.key` is the value the current group is keyed by, typed as the field
+grouped by, so a header can compute with it rather than only print it. An
+aggregate may not be called `key` (`reserved-id`).
+
+**The year 0000 is refused** in a date, a date and time, an instant and a
+parameter's default: Intl prints it as the year 1, without its era, a year
+nobody wrote.
+
+**Three starter reports** in `@formancy/report-corpus`, each proved end to
+end on the PDF it renders: a service inspection with long notes, a framed
+defect, a photo from the data and a sign-off; a Swiss quotation with its
+supplier, line items, subtotal, VAT, cash rounding and total; and an
+equipment register grouped by site. The README shows a page of each, drawn
+from the PDF by PDF.js, and a test holds each picture to the text of its page.
+
+**The README's "Render a report" runs in the install gate**, line for line,
+from the packed packages, on the quotation starter: a test fails when the
+README's lines are not the consumer's.
+
+**`png-js` 1.1.0 is a reviewed licence exception**
+([0006](docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
+It reaches the renderer through pdfmake and PDFKit and declares no licence;
+the LICENSE it ships is MIT.

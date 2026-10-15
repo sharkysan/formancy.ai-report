@@ -1,5 +1,8 @@
+import { RenderRefusal as RuntimeRefusal } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
+import { verifyRefusal } from './checks.js'
 import { pageDimensions, RenderRefusal } from './document.js'
+import { imageInvalid } from './fixtures/images.js'
 
 describe('pageDimensions', () => {
   // Every margin check and every boundary fixture is computed from these
@@ -16,23 +19,12 @@ describe('pageDimensions', () => {
 })
 
 describe('RenderRefusal', () => {
-  // A refusal is told apart from an engine's crash by its class and its code.
-  // If either were lost -- a plain Error, or a code that did not survive the
-  // constructor -- a trial would count a crash as the refusal it expected, or
-  // the refusal as a crash.
-  test('is an Error that keeps its code, its subject and its message', () => {
-    const refusal = new RenderRefusal('invalid-asset', 'asset logo is not a PNG', 'logo')
-    expect(refusal).toBeInstanceOf(Error)
-    expect(refusal).toBeInstanceOf(RenderRefusal)
-    expect(refusal.name).toBe('RenderRefusal')
-    expect(refusal.code).toBe('invalid-asset')
-    expect(refusal.subject).toBe('logo')
-    expect(refusal.message).toBe('asset logo is not a PNG')
-  })
-
-  // A refusal about the whole document names no subject, and says so with
-  // undefined rather than an empty string a check could mistake for a name.
-  test('has no subject when none is given', () => {
-    expect(new RenderRefusal('too-many-pages', 'the report needs 99 pages; the limit is 20').subject).toBeUndefined()
+  // A renderer refuses with the runtime's class, and the checks tell a
+  // refusal from a crash by its class. A class of the corpus's own, however
+  // alike, would make every refusal the renderer gives read as a crash, and
+  // every fixture that expects one fail on a refusal that was right.
+  test("is the runtime's own class, the one the checks recognise", () => {
+    expect(RenderRefusal).toBe(RuntimeRefusal)
+    expect(verifyRefusal(imageInvalid, new RuntimeRefusal('invalid-asset', 'the image asset logo-broken is not a PNG', 'logo-broken'))).toEqual([])
   })
 })

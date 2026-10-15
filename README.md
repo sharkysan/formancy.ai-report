@@ -13,29 +13,31 @@ approved PostgreSQL or SQL Server dataset. An AI can propose changes, which
 are reviewed against the same sample data before they apply. Report works
 without any AI dependency.
 
-> **Status, 15 October 2026: a report can be laid out in a native React or
-> Angular builder. Nothing reads data into a report or renders it yet.**
+> **Status, 15 October 2026: data goes in and a PDF comes out, and a report
+> can be laid out in a native React or Angular builder. The Studio that puts
+> them on one screen, with a PDF preview, is next.**
 >
-> What exists is the licence, the pipeline that proves the packages, and six
-> packages. `@formancy/report-spec` defines the report format, validates a
-> report structurally and hashes it. `@formancy/report-core` edits a report
-> through commands, with undo, says where a component may go, and compiles
-> and diagnoses its expressions as the runtime will.
+> `@formancy/report-spec` defines the report format, validates a report and
+> hashes it. `@formancy/report-core` edits a report through commands, with
+> undo, and diagnoses its expressions as the runtime compiles them.
+> `@formancy/report-runtime` checks the data a host hands it against the
+> report's contracts, computes every total exactly and formats each value
+> for the report's locale, or refuses
+> ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)).
+> `@formancy/report-render-pdf` draws the result with pdfmake, in Node and
+> through a browser entry, and refuses what it cannot draw whole
+> ([0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+> The browser entry, `@formancy/report-render-pdf/browser`, is built and its
+> tests run in Node; nothing has run it in a browser yet.
 > `@formancy/report-builder-core` is the editor model, and
 > `@formancy/report-builder-react` and `@formancy/report-builder-angular`
 > render it natively over one session, held to each other by shared
 > scenarios
-> ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).
-> They are packages a host mounts, not yet a Studio: no browser test runs
-> them, and the Angular package packed from its own directory cannot be
-> imported yet. `@formancy/report-corpus` is private test support:
-> adversarial report fixtures and the checks that prove a rendered PDF
-> against them. The renderer trial ran pdfmake and pdfme through it, and
-> pdfmake renders reports from here on
-> ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
-> [the trial](./docs/renderer-trial.md)). The format is version 0, a draft: a
-> report written now is not promised to be read by a later release. Nothing
-> reads data into a report or draws one.
+> ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md));
+> no browser test runs them yet. `@formancy/report-corpus` is private test
+> support: adversarial fixtures, the three starter reports, and the checks
+> that prove a rendered PDF. The format is version 0, a draft: a report
+> written now is not promised to be read by a later release.
 
 ## Licence, in one table
 
@@ -66,16 +68,58 @@ own, on Formancy Data's terms and before a lawyer has read them, is decision
 | Package | What it is |
 | --- | --- |
 | `@formancy/report-spec` | The report definition, version 0 (a draft): its types, structural validation with stable error codes, a canonical hash, page geometry and the one conversion between millimetres and points. A report is a document of its own, not a form ([0007](./docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)). No framework, no PDF engine, no Node. |
-| `@formancy/report-core` | The editing core: pure commands over a report, also as data for a proposal; a session that commits only what the validator accepts, with exact undo and redo; the places a component may go; and one compilation of every expression, each member checked as its type, which the diagnostics report and the runtime will evaluate. A refused edit changes nothing ([0008](./docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)). No framework, no PDF engine, no Node. |
+| `@formancy/report-core` | The editing core: pure commands over a report, also as data for a proposal; a session that commits only what the validator accepts, with exact undo and redo; the places a component may go; and one compilation of every expression, each member checked as its type, which the diagnostics report and the runtime evaluates. A refused edit changes nothing ([0008](./docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)). No framework, no PDF engine, no Node. |
+| `@formancy/report-runtime` | Resolves a report against its data: every value held to its dataset's contract, exact numbers as strings and never through a JavaScript number, fields the report does not declare refused; totals computed exactly and rounded once as declared; values formatted for the report's locale; a renderer-neutral document, a manifest and, for a preview, its warnings. A final render refuses incomplete data ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)). No framework, no PDF engine, no Node. |
+| `@formancy/report-render-pdf` | Draws a resolved document with pdfmake and Roboto: page header and footer, tables whose header repeats and whose totals stay with their last row, columns, framed sections, images, rules. It refuses what it cannot draw whole -- a page too many, a word wider than its column, a character the font cannot draw -- rather than return a partial PDF ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)). Node, and a browser entry. |
 | `@formancy/report-builder-core` | The editor model both builders render, with no framework: one person's view of a report-core session, and the outline, palette, property fields, design view, drop targets, diagnostics, keys and words derived from it, in English, Swiss German and Swiss French. Several editors share one session and its undo history. Its `report-builder.css` dresses both builders through formancy's workbench variables. `BUILDER_SCENARIOS` is what every builder must do, as data ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)). No framework, no DOM, no Node. |
 | `@formancy/report-builder-react` | The builder for React 19: the workbench's panes over one editor, through `useSyncExternalStore`. Runs every shared scenario in three languages, with axe. |
 | `@formancy/report-builder-angular` | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js, built by ng-packagr. Runs every shared scenario in three languages, with axe; no React in its closure. Its manifest does not yet publish from `dist/`, so packed from its own directory it cannot be imported. |
-| `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)), and the renderer trial's adapters for pdfmake and pdfme. |
+| `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)); the three starter reports; and the renderer trial's adapters for pdfmake and pdfme. |
 
-Planned and not here: the Studio the builders stand in, with its browser
-gates, the runtime that groups and totals, the PDF renderer, the server and
-its jobs, the PDF viewer, reviewed AI changes, and the optional Formancy Data
-provider.
+Planned and not here: the Studio the builders stand in, with its PDF
+preview and browser gates, the server and its jobs, reviewed AI changes,
+and the optional Formancy Data provider.
+
+## Render a report
+
+A host resolves a report against the data it is allowed to show, then
+renders it. Nothing here fetches data or follows an address: the report
+names its datasets and assets, and the host hands over both.
+
+```ts
+import { resolveReport } from '@formancy/report-runtime'
+import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
+
+const resolution = resolveReport(report, data, { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z' })
+if (!resolution.ok) throw new Error(resolution.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
+const pdf: Uint8Array = await renderPdf(resolution.document, { maxPages: 50 })
+```
+
+`resolveReport` refuses, with every reason at once, a report the editor's
+diagnostics refuse, data that breaks its contract, and, in a final render,
+data the provider calls incomplete; it never returns part of a document.
+`renderPdf` rejects with a `RenderRefusal` whose `code` says what stopped it
+-- `too-many-pages`, `content-too-large`, `invalid-asset`, `cancelled` or
+`unsupported` -- and never resolves to a partial PDF. The install gate runs
+these lines, from the packed packages, on the quotation starter below
+(`scripts/install-fixture/consume.ts`).
+
+## What the starters print
+
+The three starter reports, resolved by the runtime from their synthetic
+data, rendered by `report-render-pdf` and drawn by PDF.js. The pictures are
+made by `packages/report-render-pdf/scripts/readme-pictures.ts`, never by
+hand, and `pictures.test.ts` fails when a page no longer prints what its
+picture shows, or a caption quotes what the page does not print.
+
+![The quotation starter, an Offerte: line items in Swiss francs, then Zwischensumme, MWST 8.1 %, Rundung and Total CHF 3'143.00](docs/images/starter-quotation.png)
+
+![The service inspection starter, page 2: the frame headed Defect found, the photo from the data, and the sign-off above Inspector's signature kept with it](docs/images/starter-service-inspection.png)
+
+![The equipment register starter, grouped by site: Basel (12 items) heads its group, and Subtotal Basel 12 closes it](docs/images/starter-grouped-equipment.png)
+
+The Studio, the editor these pictures will show next to, does not exist
+yet; its pictures arrive with it.
 
 ## How it relates to formancy.ai and Formancy Data
 

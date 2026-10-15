@@ -1,0 +1,56 @@
+{
+  "name": "@formancy/report-render-pdf",
+  "version": "0.1.0",
+  "description": "Formancy Report PDF renderer: draws a resolved report with pdfmake, with repeated table headers, page regions, kept-together blocks and embedded fonts, and refuses rather than truncates.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.mts",
+      "default": "./dist/browser.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE.md",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test:coverage": "vitest run --coverage",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check:pkg": "publint && attw --pack . --profile esm-only"
+  },
+  "dependencies": {
+    "@formancy/report-runtime": "workspace:*",
+    "pdfmake": "0.3.11"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "publint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "unrun": "^0.3.1",
+    "vitest": "catalog:",
+    "@formancy/report-corpus": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/pdfmake": "0.3.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
+    "directory": "packages/report-render-pdf"
+  },
+  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "bugs": "https://github.com/sharkysan/formancy.ai-report/issues"
+}

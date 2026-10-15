@@ -151,8 +151,15 @@ one.
   none, an image field read as a value, a name read whole (`size(params)`),
   a call to `now()`, `today()` or `random()`, an aggregate whose expression
   gives what its function cannot total, and aggregates that read their own
-  total. Each comes with the component, the table column where it is in one,
-  and the position in its source.
+  total. And what would make a printed number inexact or a render unbounded:
+  a double -- a literal such as `100.0`, or `double()` -- and a division with
+  `/`, which on integers drops the remainder (`divide(dec(a), dec(b), places)`
+  is the exact one), and a call to `matches()`, whose pattern no step budget
+  bounds. Each comes with the component, the table column where it is in
+  one, and the position in its source. Two more are about totals: a rounding
+  declared on an aggregate that computes an integer, a date or an instant,
+  and a number format that prints a rounded total at fewer places than its
+  rounding keeps, which would round it twice.
 - **Warnings:** an unused style, asset, parameter, field or aggregate, an
   empty body, a text that prints nothing.
 

@@ -57,7 +57,7 @@ async function refusal(rendering: Promise<Uint8Array>): Promise<RenderRefusal> {
 }
 
 function image(asset: ImageAsset, width = 128, height = 64): Image {
-  return { kind: 'image', asset, width, height }
+  return { kind: 'image', asset, width, height, fit: 'contain' }
 }
 
 function png(id: string, bytes: Uint8Array): ImageAsset {
