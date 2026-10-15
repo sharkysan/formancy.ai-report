@@ -45,7 +45,12 @@ lists it.
 Almost nothing is built. `@formancy/report-spec` defines the format, validates
 a report structurally and hashes it
 ([0007](docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
-Beside it, `@formancy/report-corpus` is test support and is never published:
+`@formancy/report-core` changes a report through commands, holds it in a
+session with undo, says where a component may go, and compiles every
+expression for the diagnostics and, later, the runtime
+([0008](docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md),
+[0009](docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
+Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the reader and checks that prove a rendered
 PDF against them, and the renderer trial that chose pdfmake
 ([0005](docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).

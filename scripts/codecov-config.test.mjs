@@ -21,6 +21,6 @@ describe('codecov.yml', () => {
   // never merge with a package of the same name.
   test('names every package that produces coverage', () => {
     const ids = coveredPackages().map((entry) => entry.id)
-    expect(ids).toEqual(['report-corpus', 'report-spec'])
+    expect(ids).toEqual(['report-core', 'report-corpus', 'report-spec'])
   })
 })

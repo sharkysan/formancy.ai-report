@@ -78,7 +78,7 @@ records the tuple it supports in its CHANGELOG section. The first tuple:
 
 | Line | Supported |
 |---|---|
-| Upstream `@formancy/*` | 0.5.0, exact (0002): `@formancy/spec`, for the report hash ([0007](0007-a-report-definition-is-its-own-versioned-document.md)) |
+| Upstream `@formancy/*` | 0.5.0, exact (0002): `@formancy/spec`, for the report hash ([0007](0007-a-report-definition-is-its-own-versioned-document.md)); `@formancy/expressions`, for every expression ([0009](0009-an-expression-is-checked-and-bound-member-by-member.md)) |
 | formancy form spec | none read yet; 1 to 4, as `@formancy/spec` 0.5.0 accepts them, when forms are. Formancy Data 0.1.0 generates 3 |
 | `reportSpecVersion` | "0", the draft |
 | Formancy Data | none until Data publishes 0.1.0; then exactly that release, which the provider is built against |

@@ -64,3 +64,5 @@ only enforcement is "we remember" says so plainly.
 | [0005](0005-pdfmake-renders-reports-behind-one-adapter.md) | pdfmake renders version 1's reports, behind one adapter that refuses rather than truncates; pdfme lost on the corpus, and HTML engines and Prince were not trialled | accepted |
 | [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md) | Every production dependency and every font a published package ships is under a permissive licence; GPL, AGPL, non-commercial and unlicensed are refused | accepted |
 | [0007](0007-a-report-definition-is-its-own-versioned-document.md) | A report definition is its own versioned document, with a flowing body, one detail table, declared aggregates and print styles as tokens | accepted |
+| [0008](0008-edits-are-commands-and-a-refused-edit-changes-nothing.md) | Edits are commands, and a refused edit changes nothing | accepted |
+| [0009](0009-an-expression-is-checked-and-bound-member-by-member.md) | An expression is checked and bound member by member, by one compilation the editor and the runtime share | accepted |
