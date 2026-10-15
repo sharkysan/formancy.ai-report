@@ -31,7 +31,7 @@
 // says anything else -- Apache-2.0, copied from upstream -- is refused, as
 // scripts/verify-licenses.mjs refuses it in the source.
 
-import { copyFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { LICENSE_FIELD, LICENSE_FILES } from './verify-licenses.mjs'
@@ -60,12 +60,24 @@ function published(name, range, versions) {
   return rest
 }
 
+/** The file's contents (text, or bytes with `encoding` null), or an Error saying `missing` when there is no such file. */
+function readOrSay(path, missing, encoding = 'utf8') {
+  try {
+    return readFileSync(path, encoding === null ? undefined : encoding)
+  } catch (error) {
+    if (error?.code === 'ENOENT') throw new Error(missing)
+    throw error
+  }
+}
+
 /** Finalizes `packageDir`'s dist/ in the repository at `root`, and gives the manifest it wrote. */
 export function finalizeAngularDist(packageDir, root = repository) {
   const dist = join(packageDir, 'dist')
   const manifestPath = join(dist, 'package.json')
-  if (!existsSync(manifestPath)) throw new Error(`no dist/package.json in ${packageDir}: ng-packagr has not run`)
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  // Read, not checked and then read: a check before the use is a window in
+  // which the file can change (CodeQL's js/file-system-race), and the read
+  // says the same thing when the file is not there.
+  const manifest = JSON.parse(readOrSay(manifestPath, `no dist/package.json in ${packageDir}: ng-packagr has not run`))
 
   if (manifest.license !== LICENSE_FIELD) {
     throw new Error(`${manifest.name}: license is ${String(manifest.license)}, expected "${LICENSE_FIELD}"`)
@@ -90,9 +102,7 @@ export function finalizeAngularDist(packageDir, root = repository) {
   }
 
   for (const file of LICENSE_FILES) {
-    const source = join(root, file)
-    if (!existsSync(source)) throw new Error(`no ${file} at the repository root`)
-    copyFileSync(source, join(dist, file))
+    writeFileSync(join(dist, file), readOrSay(join(root, file), `no ${file} at the repository root`, null))
   }
 
   // npm packs package.json whatever `files` says; everything else is listed.
