@@ -184,13 +184,12 @@ Studio.
 
 ## What it does not do
 
-- **Packed from its own directory, it cannot be imported.** Its source
-  manifest does not send pnpm to `dist/` (`publishConfig.directory`) and
-  names no entry point in `dist/`, and this package may not edit it here. So
-  `pnpm pack` in the package directory makes a tarball with the code under
-  `package/dist/` and no `exports`, and nothing in the workspace can import
-  the package by name. The tarball packed from `dist/` is correct. The
-  install gate does not import this package yet, so it does not see this.
+- **Nothing draws it in a browser yet.** The install gate compiles it into
+  an Angular host ahead of time with strict templates, links it as the
+  Angular CLI does, draws it on a server with `@angular/platform-server` and
+  bundles it for a browser, at the newest and the oldest Angular 22 its peer
+  range admits. What happens after the markup -- focus, keys, a pointer, a
+  re-render after an edit -- is this package's suite, in jsdom.
 - **Text that is not a number never reaches the editor from a number field.**
   A browser empties an `<input type="number">` holding "tall" before any
   change event fires, so the field says "This cannot be empty." rather than
