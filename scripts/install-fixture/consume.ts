@@ -10,6 +10,10 @@ import { checkSpecVersion, emptyReport, REPORT_FORMAT, REPORT_SPEC_VERSION, repo
 import type { ReportDefinition, ReportError, ReportValidation, SpecVersionCheck, TableComponent, TextComponent } from '@formancy/report-spec'
 import { compileReport, diagnose, expressionValues, insertComponent, nextComponentId, openReportSession, validLocations } from '@formancy/report-core'
 import type { CommandDescriptor, CommandOutcome, CompiledExpression, Diagnostic, ReportCompilation, ReportSession, SessionOpening } from '@formancy/report-core'
+import { actionForKey, createReportEditor, editorText } from '@formancy/report-builder-core'
+import type { EditorAction, EditorOutcome, EditorState, ReportEditor } from '@formancy/report-builder-core'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
 // The published code carries the refusal, not only the source: a formancy
 // form handed over as a report is named as a form, and the version this
@@ -122,6 +126,45 @@ const compiled: CompiledExpression | undefined = compilation.expressions.get('/r
 const bound = compiled === undefined ? undefined : expressionValues(compiled, { totals: { total: '12.50' } })
 if (compilation.diagnostics.length !== 0 || compiled?.reads[0]?.type !== 'decimal' || typeof bound?.totals_total !== 'object') throw new Error('a decimal total was not compiled and bound as a decimal')
 
+// The editor model both builders render, as a host drives it, under Node
+// with no DOM and no framework: report-builder-core ships with report-core
+// and report-spec as dependencies, and its state, its actions, its key map
+// and its words all run here, outside the workspace. The React and Angular
+// builders need a DOM and their framework, which this consumer has neither of.
+const editing: SessionOpening = openReportSession(emptyReport('editor-check', 'Prüfbericht', 'de-CH'))
+if (!editing.ok) throw new Error('the blank report did not open a session for the editor')
+const blankDocument = editing.session.document()
+const editor: ReportEditor = createReportEditor(editing.session, { locale: 'fr-CH' })
+let told = 0
+const unsubscribe = editor.subscribe(() => {
+  told += 1
+})
+const before: EditorState = editor.state()
+if (editor.state() !== before || !Object.isFrozen(before)) throw new Error('the editor state is not one frozen object until something changes')
+const insertion: EditorOutcome = editor.dispatch({ type: 'insert', kind: 'text', target: { region: 'body', index: 0 } })
+const [added] = editing.session.document().regions.body
+const words = added?.kind === 'text' ? added.content[0] : undefined
+// One notification for the insert and the selection it makes; a new text in
+// the report's language, which prints, though the editor speaks French.
+if (!insertion.ok || told !== 1 || editor.state().selection?.id !== added?.id || words?.kind !== 'text' || words.text !== 'Neuer Text') {
+  throw new Error(`the editor did not insert a text as one change: ${JSON.stringify(added)}`)
+}
+// The session keeps a sentence any consumer can show; the editor says it in its own language.
+const french = editorText('fr-CH')
+if (editing.session.undoLabel() !== 'Insert Text' || editor.state().history.undoLabel !== french('history.insert', { kind: french('kind.text') })) {
+  throw new Error(`the step was labelled ${String(editing.session.undoLabel())} in the session and ${String(editor.state().history.undoLabel)} by the editor`)
+}
+const undo: EditorAction | undefined = actionForKey({ key: 'z', ctrlKey: true }, 'outline')
+if (undo === undefined || !editor.dispatch(undo).ok || editing.session.document() !== blankDocument || editor.state().selection !== null) {
+  throw new Error('Ctrl+Z did not undo the insert back to the first snapshot')
+}
+unsubscribe()
+editor.dispose()
+if (editor.listenerCount() !== 0 || editor.dispatch({ type: 'redo' }).ok) throw new Error('a disposed editor kept its listeners or acted')
+// The stylesheet subpath the exports map promises resolves to the file, and it is the workbench's dressing.
+const stylesheet = readFileSync(fileURLToPath(import.meta.resolve('@formancy/report-builder-core/report-builder.css')), 'utf8')
+if (!stylesheet.includes("[data-report-part='canvas']") || !stylesheet.includes('var(--wb-')) throw new Error('report-builder.css is not the editor stylesheet')
+
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved`,
 )

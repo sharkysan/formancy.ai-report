@@ -42,7 +42,7 @@ lists it.
 
 ## How the pieces fit
 
-Almost nothing is built. `@formancy/report-spec` defines the format, validates
+Little is built. `@formancy/report-spec` defines the format, validates
 a report structurally and hashes it
 ([0007](docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
 `@formancy/report-core` changes a report through commands, holds it in a
@@ -50,6 +50,10 @@ session with undo, says where a component may go, and compiles every
 expression for the diagnostics and, later, the runtime
 ([0008](docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md),
 [0009](docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
+`@formancy/report-builder-core` is the editor model over that session, and
+`@formancy/report-builder-react` and `@formancy/report-builder-angular` render
+it natively; `BUILDER_SCENARIOS` in the core is what both must do
+([0012](docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).
 Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the reader and checks that prove a rendered
 PDF against them, and the renderer trial that chose pdfmake
@@ -169,27 +173,41 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
 
 ## The user interface is formancy.ai's concept, applied
 
-There is no UI here yet. When the Studio and the builders arrive, they are
-formancy.ai's concept applied, as Formancy Data's apps are, not a new one:
+The builders exist; the Studio around them does not. Both are formancy.ai's
+concept applied, as Formancy Data's apps are, not a new one
+([0012](docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).
+Each promise, and what holds it now:
 
 - **The same room.** A dark bench, glass panels, violet for what the person
   acts on and teal for what the server did, with the builder's panes from
   `workbench.css` recoloured only through its `--wb-*` variables and not one
-  rule overridden for colour.
+  rule overridden for colour. `report-builder.css` is the only stylesheet the
+  builders have; `report-builder-core`'s `css.test.ts` fails on a colour
+  literal, a variable the workbench lacks, or a selector by anything but the
+  hooks and states both builders render and the workbench's own classes. Setting the Studio's colours is the
+  Studio's.
 - **The page is the document, not the room.** What prints is the report's own
   serialisable styles. The editor's CSS, and the host's, never reach a
-  customer's printed output.
+  customer's printed output. The design view says it is not the PDF, by its
+  name; nothing renders yet for the CSS to reach.
 - **Keyboard first, accessible name only.** Every drag has a keyboard path
-  (formancy.ai 0046). Tests find elements by role and accessible name and
-  nothing else, and axe runs in the suite.
+  (formancy.ai 0046): the place chooser, and `actionForKey` in the core.
+  Tests find elements by role and accessible name and nothing else, and axe
+  runs in each builder's suite over the end of every shared scenario.
 - **Angular and React are both native**, over one report session, and neither
-  depends on the other. The cross-framework test -- edit in Angular, switch to
-  React, undo, switch back -- comes with the first builder.
-- **One shell for every page of the site** (formancy.ai 0106).
-- **A number on a page is derived**, never typed.
+  depends on the other. `BUILDER_SCENARIOS` is the parity contract, and the
+  core's README the structure it finds; both builders run every scenario.
+  Plan 21's switch -- edit in one, switch, undo, switch back -- runs on the
+  model and within each framework. A test mounting both builders at once
+  waits for the Angular package to be importable inside the workspace.
+- **One shell for every page of the site** (formancy.ai 0106). The Studio's.
+- **A number on a page is derived**, never typed: the zoom through `Intl`,
+  every count from the state.
 
-What will hold these, brought with the first UI from formancy.ai-data: the
-browser gates, the palette guard and the README pictures' check.
+What still waits for the Studio, brought from formancy.ai-data: the browser
+gates (layout, the narrow screen, contrast, target sizes, real pointers),
+the palette guard, and the README pictures' check. Until then the pictures
+in the builders' READMEs are taken by hand and held by nothing.
 
 ## Branch names
 

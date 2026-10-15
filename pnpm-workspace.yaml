@@ -8,6 +8,13 @@ packages:
 # Packages whose install scripts may run. Nothing else's does.
 allowBuilds:
   esbuild: true
+  # Transitive through @angular/build and ng-packagr, which the Angular builder
+  # compiles with. Each install script only builds a native addon from source
+  # when no prebuilt one fits; the prebuilt ones arrive as optional packages,
+  # as in formancy.ai-data, so the scripts never run.
+  '@parcel/watcher': false
+  lmdb: false
+  msgpackr-extract: false
 
 # Shared dependency versions live here so the packages cannot drift apart.
 # They are formancy.ai-data's, so one machine serves both repositories.
@@ -20,6 +27,10 @@ catalog:
 
   vitest: ^5.0.1
   "@vitest/coverage-v8": ^5.0.1
+
+  # The accessibility floor, at formancy.ai's catalog version: the builders
+  # are audited against the same rules as formancy's own builders.
+  axe-core: ^4.13.0
 
   tsdown: ^0.23.0
   publint: ^0.3.24

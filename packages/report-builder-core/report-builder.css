@@ -1,0 +1,520 @@
+/*
+ * report-builder.css -- the report-specific parts of the Report editor's
+ * chrome: the design sheet and its region bands, the rulers, the selection,
+ * drop indicators, the outline's rows, the properties and the problems.
+ *
+ * It dresses the INSTRUMENT, never the report. What prints is the report's
+ * own print styles (plan 11.4); nothing here, and nothing a host cascades,
+ * reaches a PDF. The design sheet is a picture for editing on, not a page.
+ *
+ * Three rules hold it, each checked by src/css.test.ts:
+ *
+ * - Colour comes only from the workbench's variables. The host imports
+ *   @formancy/themes' workbench.css, which defines --wb-*, and recolours the
+ *   editor -- a dark bench, the Studio's violet and teal -- by setting those,
+ *   never by overriding a rule here. There are no colour literals, so there
+ *   is no fallback block either: without workbench.css the editor has no
+ *   colours, which is the host's mistake to see at once rather than a second
+ *   palette here to drift from the first.
+ * - It selects by the data-report-part hooks both builders render, their
+ *   data-* states and the tree's own ARIA (parts.ts), never by a React or an
+ *   Angular class, so the two builders are dressed identically.
+ * - The three panes are the workbench's: a builder puts `wb` on its root,
+ *   `wb-pane` on its side panes and `wb-pane wb-canvas` on the middle one.
+ *   This file lays out what is inside them, the bars above and below them,
+ *   and the narrow layout.
+ */
+
+/* ----------------------------------------------------------------- the editor */
+
+/* The workbench's grid gives the three panes their columns. A report
+   editor adds a bar above them -- the report's title and the toolbar -- and
+   one below for the live region, each across every column: the root's
+   children that are no pane. */
+[data-report-part='editor'] {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+[data-report-part='editor'] > :not([data-pane]) {
+  grid-column: 1 / -1;
+}
+
+/* The place chooser floats over the outline pane, so the design view
+   beside it stays in sight with the place being chosen marked on it. */
+[data-report-part='editor'] > [data-pane='outline'] {
+  position: relative;
+}
+
+/* On a narrow screen one pane shows at a time: the one the state's `panel`
+   names, set on the root as data-panel and on each pane as data-pane. */
+@media (max-width: 48rem) {
+  [data-report-part='editor'].wb {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  [data-report-part='editor'][data-panel='outline'] [data-pane]:not([data-pane='outline']),
+  [data-report-part='editor'][data-panel='canvas'] [data-pane]:not([data-pane='canvas']),
+  [data-report-part='editor'][data-panel='properties'] [data-pane]:not([data-pane='properties']),
+  [data-report-part='editor'][data-panel='diagnostics'] [data-pane]:not([data-pane='diagnostics']) {
+    display: none;
+  }
+}
+
+[data-report-part='toolbar'] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* A tool or a palette entry with nothing to act on is aria-disabled, not
+   disabled: it keeps focus, and pressing it says why. It is drawn as the
+   workbench draws a disabled button, hovered or not. */
+[data-report-part='toolbar'] button[aria-disabled='true'],
+[data-report-part='palette-item'][aria-disabled='true'],
+[data-report-part='toolbar'] button[aria-disabled='true']:hover,
+[data-report-part='palette-item'][aria-disabled='true']:hover {
+  border-color: var(--wb-rule);
+  color: var(--wb-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+[data-report-part='zoom'] {
+  min-width: 3.5rem;
+  font: 0.75rem/1 var(--wb-mono);
+  text-align: center;
+  color: var(--wb-ink);
+}
+
+/* The live region is shown, not hidden: a sighted keyboard user needs the
+   same confirmation that an action landed. */
+[data-report-part='status'] {
+  margin: 0;
+  min-height: 1.5rem;
+  padding: 0.375rem 0.75rem;
+  border-block-start: 1px solid var(--wb-rule);
+  font-size: 0.75rem;
+  color: var(--wb-muted);
+}
+
+[data-report-part='status']:empty {
+  border-block-start: none;
+}
+
+/* ---------------------------------------------------------------- the palette */
+
+[data-report-part='palette'] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.375rem;
+}
+
+[data-report-part='palette-item'] {
+  text-align: start;
+}
+
+/* ---------------------------------------------------------------- the outline */
+
+[data-report-part='outline'] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-report-part='outline-region'] {
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+[data-report-part='outline-region'] > [data-report-part='region-label'] {
+  display: block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--wb-muted);
+}
+
+[data-report-part='outline-item'] {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.8125rem;
+  color: var(--wb-ink);
+  cursor: default;
+}
+
+/* Depth as indentation, read from the aria-level the tree sets, so the
+   nesting drawn and the nesting announced cannot disagree. Containers nest
+   four deep and a table's columns one more. */
+[data-report-part='outline-item'][aria-level='2'] { padding-inline-start: 1.5rem; }
+[data-report-part='outline-item'][aria-level='3'] { padding-inline-start: 2.5rem; }
+[data-report-part='outline-item'][aria-level='4'] { padding-inline-start: 3.5rem; }
+[data-report-part='outline-item'][aria-level='5'] { padding-inline-start: 4.5rem; }
+[data-report-part='outline-item'][aria-level='6'] { padding-inline-start: 5.5rem; }
+
+[data-report-part='outline-item'][data-kind='tableColumn'] {
+  font-family: var(--wb-mono);
+  font-size: 0.75rem;
+}
+
+[data-report-part='outline-item'][aria-selected='true'] {
+  background: color-mix(in srgb, var(--wb-signal) 12%, transparent);
+  box-shadow: inset 2px 0 0 var(--wb-signal);
+}
+
+/* CSS has no logical box-shadow: the bar is drawn again where a
+   right-to-left line starts. */
+[data-report-part='outline-item'][aria-selected='true']:dir(rtl) {
+  box-shadow: inset -2px 0 0 var(--wb-signal);
+}
+
+[data-report-part='outline-item']:focus-visible {
+  outline: 2px solid var(--wb-signal);
+  outline-offset: -2px;
+}
+
+/* A count of problems, on an outline row or a canvas box. */
+[data-report-part='badge'] {
+  margin-inline-start: auto;
+  min-width: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  font: 600 0.625rem/1.4 var(--wb-sans);
+  text-align: center;
+  color: var(--wb-surface);
+  background: var(--wb-invalid);
+}
+
+[data-report-part='badge'][data-severity='warning'] {
+  background: var(--wb-caution);
+}
+
+/* ----------------------------------------------------------------- the canvas */
+
+/* The note above, the horizontal ruler over the sheet, the vertical one
+   beside it; the builder sizes each from the state, in pixels. The view
+   fills its pane and scrolls itself: sized to the sheet instead, its own
+   vertical scrollbar took the width the sheet needed, and it scrolled
+   sideways for nothing. Centred only while the sheet fits, so a sheet wider
+   than the pane is scrolled from its left edge, never cut off there. */
+[data-report-part='canvas'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1.25rem max-content;
+  grid-template-rows: auto 1.25rem max-content;
+  grid-template-areas:
+    'note note'
+    'corner across'
+    'down sheet';
+  justify-content: safe center;
+  align-content: start;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem;
+}
+
+[data-report-part='canvas-note'] {
+  grid-area: note;
+  max-width: 40rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  color: var(--wb-muted);
+}
+
+[data-report-part='ruler'] {
+  position: relative;
+  overflow: hidden;
+  font: 0.5625rem/1 var(--wb-mono);
+  color: var(--wb-muted);
+  background: var(--wb-panel);
+}
+
+[data-report-part='ruler'][data-orientation='horizontal'] {
+  grid-area: across;
+  border-block-end: 1px solid var(--wb-rule);
+}
+
+[data-report-part='ruler'][data-orientation='vertical'] {
+  grid-area: down;
+  border-inline-end: 1px solid var(--wb-rule);
+}
+
+[data-report-part='ruler-tick'] {
+  position: absolute;
+  background: var(--wb-rule);
+  white-space: nowrap;
+}
+
+[data-orientation='horizontal'] > [data-report-part='ruler-tick'] {
+  inset-block-end: 0;
+  width: 1px;
+  height: 0.25rem;
+}
+
+[data-orientation='vertical'] > [data-report-part='ruler-tick'] {
+  inset-inline-end: 0;
+  width: 0.25rem;
+  height: 1px;
+}
+
+[data-orientation='horizontal'] > [data-report-part='ruler-tick'][data-major='true'] {
+  height: 0.5rem;
+  background: var(--wb-muted);
+}
+
+[data-orientation='vertical'] > [data-report-part='ruler-tick'][data-major='true'] {
+  width: 0.5rem;
+  background: var(--wb-muted);
+}
+
+/* A tick's label sits beside its line, never across the sheet. */
+[data-report-part='ruler-tick'] > span {
+  position: absolute;
+  inset-block-end: 0.5rem;
+  inset-inline-start: 2px;
+  background: none;
+}
+
+/* Down the side, the label sits just under its line, against the sheet:
+   beside it, a number of three digits ran out of the ruler and was cut. */
+[data-orientation='vertical'] > [data-report-part='ruler-tick'] > span {
+  inset-block-start: 2px;
+  inset-block-end: auto;
+  inset-inline-start: auto;
+  inset-inline-end: 1px;
+}
+
+[data-report-part='sheet'] {
+  grid-area: sheet;
+  position: relative;
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-rule);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--wb-ink) 18%, transparent);
+}
+
+/* A region is a band; where one ends is the region boundary. Its label sits
+   in the gap above it, outside what the band holds. */
+[data-report-part='region'] {
+  position: absolute;
+  outline: 1px dashed var(--wb-rule);
+}
+
+[data-report-part='region'][data-empty='true'] {
+  background: color-mix(in srgb, var(--wb-rule) 25%, transparent);
+}
+
+[data-report-part='region'] > [data-report-part='region-label'] {
+  position: absolute;
+  inset-block-end: 100%;
+  inset-inline-start: 0;
+  font: 600 0.625rem/1.4 var(--wb-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--wb-muted);
+  pointer-events: none;
+}
+
+/* A component's flow box: a design-mode approximation, drawn as an outline
+   so it never reads as printed content. */
+[data-report-part='box'] {
+  position: absolute;
+  box-sizing: border-box;
+  outline: 1px solid color-mix(in srgb, var(--wb-rule) 70%, transparent);
+  cursor: default;
+}
+
+[data-report-part='box'][data-kind='tableColumn'] {
+  outline-style: dotted;
+}
+
+[data-report-part='box'][data-selected='true'] {
+  z-index: 1;
+  outline: 2px solid var(--wb-signal);
+  background: color-mix(in srgb, var(--wb-signal) 8%, transparent);
+}
+
+/* Wider than the space it stands in: marked where it runs over, never
+   clipped, so the author sees what the layout will have to answer for. */
+[data-report-part='box'][data-overflows='true'] {
+  box-shadow: inset -3px 0 0 var(--wb-caution);
+}
+
+[data-report-part='box'][data-dragging='true'] {
+  opacity: 0.4;
+}
+
+[data-report-part='box-label'] {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  max-width: 100%;
+  padding: 0 0.25rem;
+  overflow: hidden;
+  font: 0.625rem/1.4 var(--wb-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--wb-muted);
+  pointer-events: none;
+}
+
+/* A container's label sits at its top end, so the label of the first
+   thing inside it, at the top start, does not cover it. */
+[data-report-part='box']:is([data-kind='section'], [data-kind='columns'], [data-kind='keepTogether'], [data-kind='table']) > [data-report-part='box-label'] {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+}
+
+[data-report-part='box'] > [data-report-part='badge'] {
+  position: absolute;
+  inset-block-start: -0.5rem;
+  inset-inline-end: -0.5rem;
+}
+
+/* Drawn only for the places the session accepts, so an indicator never
+   promises a drop that will be refused. */
+[data-report-part='drop-indicator'] {
+  position: absolute;
+  z-index: 2;
+  background: color-mix(in srgb, var(--wb-signal) 35%, transparent);
+  pointer-events: none;
+}
+
+[data-report-part='drop-indicator'][data-over='true'] {
+  background: var(--wb-signal);
+  box-shadow: 0 0 0 1px var(--wb-signal);
+}
+
+/* -------------------------------------------- choosing a place by keyboard */
+
+[data-report-part='places'] {
+  position: absolute;
+  inset-block-start: 3rem;
+  inset-inline: 1rem;
+  z-index: 10;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 0.75rem;
+  border: 1px solid var(--wb-rule);
+  border-radius: 6px;
+  background: var(--wb-surface);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--wb-ink) 20%, transparent);
+}
+
+[data-report-part='place'] {
+  display: block;
+  width: 100%;
+  margin-block-end: 0.25rem;
+  text-align: start;
+}
+
+/* ------------------------------------------------------------- the properties */
+
+[data-report-part='property'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 9rem);
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  padding-block: 0.5rem;
+  border-block-start: 1px solid var(--wb-rule);
+}
+
+[data-report-part='property'] > label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+[data-report-part='property'] :is(input, select, textarea) {
+  min-width: 0;
+  padding: 0.1875rem 0.375rem;
+  border: 1px solid var(--wb-rule);
+  border-radius: 3px;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--wb-ink);
+  background: var(--wb-surface);
+}
+
+[data-report-part='property'] textarea {
+  grid-column: 1 / -1;
+  min-height: 4rem;
+  resize: vertical;
+}
+
+[data-report-part='property'][data-kind='expression'] :is(input, textarea) {
+  font-family: var(--wb-mono);
+}
+
+[data-report-part='property'][data-kind='boolean'] input {
+  justify-self: end;
+  accent-color: var(--wb-signal);
+}
+
+[data-report-part='property'] :is(input, select, textarea):focus-visible {
+  outline: 2px solid var(--wb-signal);
+  outline-offset: 1px;
+}
+
+[data-report-part='property'] [aria-invalid='true'] {
+  border-color: var(--wb-invalid);
+}
+
+[data-report-part='property-error'] {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--wb-invalid);
+}
+
+/* --------------------------------------------------------------- the problems */
+
+[data-report-part='diagnostics'] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-report-part='diagnostic'] {
+  margin-block-end: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-inline-start: 3px solid var(--wb-invalid);
+  font-size: 0.75rem;
+  color: var(--wb-ink);
+}
+
+[data-report-part='diagnostic'][data-severity='warning'] {
+  border-inline-start-color: var(--wb-caution);
+}
+
+/* The sentence that says there is nothing to list. */
+[data-report-part='diagnostics'] + p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--wb-muted);
+}
+
+[data-report-part='diagnostic'] > button {
+  padding: 0;
+  border: none;
+  font-weight: 600;
+  text-align: start;
+  color: var(--wb-ink);
+  background: none;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-report-part] {
+    transition: none !important;
+  }
+}
