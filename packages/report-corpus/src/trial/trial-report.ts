@@ -291,8 +291,18 @@ function duration(milliseconds: number): string {
   return `${milliseconds < 1 ? milliseconds.toFixed(2) : Math.round(milliseconds)} ms`
 }
 
-/** A Markdown table. A `|` in a cell would end the cell and a line break the row, so the one is escaped and the other flattened. */
+/**
+ * One Markdown table cell. A `|` would end the cell and a line break the row,
+ * so the one is escaped and the other flattened. A backslash is escaped first:
+ * left alone, a reason ending in `\` would turn the escape of a following `|`
+ * into a literal backslash, and the bar would end the cell after all.
+ */
+export function markdownCell(text: string): string {
+  return text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\s*\n\s*/g, ' ')
+}
+
+/** A Markdown table of cells written by `markdownCell`. */
 function table(header: readonly string[], rows: readonly (readonly string[])[]): string[] {
-  const line = (cells: readonly string[]): string => `| ${cells.map((text) => text.replace(/\|/g, '\\|').replace(/\s*\n\s*/g, ' ')).join(' | ')} |`
+  const line = (cells: readonly string[]): string => `| ${cells.map(markdownCell).join(' | ')} |`
   return [line(header), line(header.map(() => '---')), ...rows.map(line)]
 }

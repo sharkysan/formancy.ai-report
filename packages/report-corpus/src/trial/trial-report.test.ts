@@ -7,7 +7,7 @@ import { oneRow } from '../fixtures/one-row.js'
 import { oversized } from '../fixtures/oversized.js'
 import { tallRow } from '../fixtures/tall-row.js'
 import { pdfmakeAdapter } from './pdfmake.js'
-import { judge, median, parseArguments, REGENERATE, trialReport, type Trial } from './trial-report.js'
+import { judge, markdownCell, median, parseArguments, REGENERATE, trialReport, type Trial } from './trial-report.js'
 
 /**
  * The trial's judging and the document it writes. Renders here are real
@@ -260,6 +260,16 @@ describe('the trial document', () => {
       const widths = block.split('\n').map((line) => cells(line).length)
       expect(new Set(widths).size).toBe(1)
     }
+  })
+
+  // A failure reason is an engine's text, so it can hold a backslash before a
+  // bar. Escaped bar first and backslash never, "a\|b" would become "a\\|b",
+  // which Markdown reads as a literal backslash followed by a cell boundary.
+  test('escapes a backslash before it escapes a bar, and flattens line breaks', () => {
+    expect(markdownCell('a|b')).toBe('a\\|b')
+    expect(markdownCell('a\\|b')).toBe('a\\\\\\|b')
+    expect(markdownCell('ends in \\')).toBe('ends in \\\\')
+    expect(markdownCell('one\n  two')).toBe('one two')
   })
 
   // A mean, the first run or a rounded-up time would misstate what was
