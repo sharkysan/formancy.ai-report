@@ -134,7 +134,8 @@ if (compilation.diagnostics.length !== 0 || compiled?.reads[0]?.type !== 'decima
 // with no DOM and no framework: report-builder-core ships with report-core
 // and report-spec as dependencies, and its state, its actions, its key map
 // and its words all run here, outside the workspace. The React and Angular
-// builders need a DOM and their framework, which this consumer has neither of.
+// builders need DOM types and their framework, which this consumer has
+// neither of: react.tsx and angular.ts are theirs.
 const editing: SessionOpening = openReportSession(emptyReport('editor-check', 'Prüfbericht', 'de-CH'))
 if (!editing.ok) throw new Error('the blank report did not open a session for the editor')
 const blankDocument = editing.session.document()

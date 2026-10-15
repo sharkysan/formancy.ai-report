@@ -73,7 +73,7 @@ own, on Formancy Data's terms and before a lawyer has read them, is decision
 | `@formancy/report-render-pdf` | Draws a resolved document with pdfmake and Roboto: page header and footer, tables whose header repeats and whose totals stay with their last row, columns, framed sections, images, rules. It refuses what it cannot draw whole -- a page too many, a word wider than its column, a character the font cannot draw -- rather than return a partial PDF ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)). Node, and a browser entry. |
 | `@formancy/report-builder-core` | The editor model both builders render, with no framework: one person's view of a report-core session, and the outline, palette, property fields, design view, drop targets, diagnostics, keys and words derived from it, in English, Swiss German and Swiss French. Several editors share one session and its undo history. Its `report-builder.css` dresses both builders through formancy's workbench variables. `BUILDER_SCENARIOS` is what every builder must do, as data ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)). No framework, no DOM, no Node. |
 | `@formancy/report-builder-react` | The builder for React 19: the workbench's panes over one editor, through `useSyncExternalStore`. Runs every shared scenario in three languages, with axe. |
-| `@formancy/report-builder-angular` | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js, built by ng-packagr. Runs every shared scenario in three languages, with axe; no React in its closure. Its manifest does not yet publish from `dist/`, so packed from its own directory it cannot be imported. |
+| `@formancy/report-builder-angular` | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js, built by ng-packagr. Runs every shared scenario in three languages, with axe; no React in its closure. It is packed from `dist/`, and the install gate compiles it into an Angular host ahead of time, links it and draws it on a server. |
 | `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)); the three starter reports; and the renderer trial's adapters for pdfmake and pdfme. |
 
 Planned and not here: the Studio the builders stand in, with its PDF
@@ -151,9 +151,17 @@ The gates CI runs, from `.github/workflows/gates.yml`: `pnpm build`,
 `pnpm typecheck`, `pnpm check:pkg`, `node scripts/verify-licenses.mjs`,
 `node scripts/dependency-licences.mjs` and `pnpm test:repo`; each package's
 `test:coverage` in a job of its own; and
-`pnpm test:e2e:install`, which packs the packages, installs them into a plain
-npm project and runs it. [`CLAUDE.md`](./CLAUDE.md) says what each is for and
-what the bar is.
+`pnpm test:e2e:install`, which packs the packages and installs them into
+plain npm projects, one per kind of host, each holding only what that host
+has. Type-checking is strict, with `skipLibCheck` off. A Node program drives
+the packages without a framework end to end. The React builder is checked as
+a browser's code and drawn by React's server renderer, in its development and
+its production build. The Angular builder is compiled into a host ahead of
+time with strict templates, linked as the Angular CLI links it, and drawn by
+Angular's platform-server without the JIT compiler. Each builder is also
+bundled for a browser, and checked at the newest and the oldest release its
+peer range admits. Neither is mounted in a DOM there.
+[`CLAUDE.md`](./CLAUDE.md) says what each is for and what the bar is.
 
 ## Documents
 

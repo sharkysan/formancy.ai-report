@@ -286,10 +286,8 @@ their shape:
   rule both builders follow, or a test.
 - **The Angular package is built by ng-packagr** into `dist/`, and
   `scripts/finalize-angular-dist.mjs` makes ng-packagr's manifest the one
-  that is published. Its source manifest does not yet send pnpm to `dist/`,
-  so packed from its own directory it cannot be imported, and the install
-  gate does not import it yet; it does install and drive
-  `report-builder-core` under Node.
+  that is published; pnpm packs it from `dist/`. The install gate imports
+  it from its tarball, as it does the React builder (below).
 
 What waits for the Studio: a browser gate for layout, contrast and real
 pointers, a check of the README pictures, and a test that mounts both
@@ -393,6 +391,71 @@ from the PDF by PDF.js, and a test holds each picture to the text of its page.
 **The README's "Render a report" runs in the install gate**, line for line,
 from the packed packages, on the quotation starter: a test fails when the
 README's lines are not the consumer's.
+
+**The install gate checks each builder as its host would use it, from its
+tarball.** It installed both builders and imported neither. publint and attw
+read their manifests, but nothing outside the workspace loaded their code or
+checked their declarations against the React or Angular a host installs.
+
+- **A project per kind of host**, holding only what that host has
+  (`scripts/install-hosts.mjs`). In one project shared with the Node
+  consumer, a builder resolves what a browser host lacks: Node's types, or a
+  package it never declared.
+- **Both ends of each peer range.** npm installs the newest release a range
+  admits, so a builder that needs a later API, or carries its own React,
+  passes there. Each builder is also installed with its framework at the
+  range's floor, read from the packed manifest, and the gate prints the
+  versions it installed.
+- **React:** `react.tsx` is type-checked as a browser's code (DOM types, no
+  Node types, `skipLibCheck` off). It draws `<ReportBuilder>` with
+  `react-dom/server` in React's development build, which must say nothing,
+  and in its production build, which is what a host's bundler ships.
+- **Angular, ahead of time.** `angular.ts` is a host's component,
+  `<report-builder [editor]="editor" />`. ngc compiles it with strict
+  templates against the builder's declarations. `build.mjs` bundles it,
+  linking with `@angular/compiler-cli`'s linker as the Angular CLI does, and
+  that linker refuses a library published for a newer Angular. The bundle is
+  then drawn by `@angular/platform-server` without the JIT compiler. While
+  the page lives the editor has one more listener, and none once the
+  application is destroyed.
+- **One statement of the structure.** What both builders draw is held once to
+  report-builder-core's README by `structure.ts`: names from the editor's
+  catalogue, a palette button, outline row, box and problem for each in the
+  state, and every `data-report-part` one `REPORT_PARTS` names.
+- **A browser bundle.** Each builder is bundled for a browser by esbuild, so a
+  Node built-in in its code fails.
+
+Each break below was seen to fail the gate on a tarball broken for it, with
+the unbroken tarballs passing. Each check in `structure.ts` was also seen to
+fail on each builder's real markup, broken once per check. A declaration
+file that renames the `[editor]` mapping fails at ngc (NG8002); one that
+imports a package the builder does not declare (TS2307), or references
+Node's types (TS2688), fails at the type check. Code fails at its run when
+it imports an undeclared package, carries its own React, renames the input
+only at run time (NG0950), keeps its listener on the editor after the
+application is destroyed, or imports Angular's JIT compiler. It also fails
+at its run when it drops a part from a template's imports, which leaves the
+palette undrawn. React's development JSX fails in the production build. An
+API newer than the floor of React's range fails at the floor only. A Node
+built-in fails the browser build. A library declared for a newer Angular is
+refused by the linker, and one published fully compiled leaves the builder
+nothing to link. A manifest with `workspace:` or `catalog:` versions is
+refused by npm. A builder with a peer its host does not install, or no peer
+on its framework, is refused when the gate plans its projects. One whose
+dependency brings Node's types into a browser host's project is refused once
+it is installed.
+
+What it does not show: either builder mounted in a DOM -- focus, keys, a
+pointer, a re-render after an edit -- which is each package's suite, in jsdom.
+A React server render runs no effects, so the React check shows that nothing
+subscribes while drawing, not that unmounting unsubscribes. Angular runs in
+its development mode only. The Angular CLI drives the linker through OXC by
+default; the gate drives the same linker through its Babel plugin.
+
+The gate costs more than twice what it did. On one Windows machine (Node
+24.21, npm 11.19, npm cache warm, 16 October 2026), the gate as it stood
+before this change took 23.0, 20.6 and 19.5 seconds over three runs. This
+one took 52.8, 49.9 and 49.2, with its five projects installed at once.
 
 **`png-js` 1.1.0 is a reviewed licence exception**
 ([0006](docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).

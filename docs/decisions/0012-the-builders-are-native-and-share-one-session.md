@@ -34,7 +34,13 @@
   - `scripts/finalize-angular-dist.test.mjs` holds what the Angular build
     makes of ng-packagr's `dist/package.json`.
   - `pnpm test:e2e:install` installs `report-builder-core`'s tarball into a
-    plain npm project and drives an editor under Node.
+    plain npm project and drives an editor under Node. It installs each
+    builder in a project of its own with only what its host has, at both
+    ends of its peer range, and holds what each draws on a server to the
+    structure the core's README sets out (`scripts/install-fixture/structure.ts`):
+    React's server renderer in its development and production builds, and
+    Angular's platform-server over a host compiled ahead of time and linked
+    without the JIT compiler.
 
   On 15 October 2026 a review compared the two builders' accessible trees
   and behaviour and found them apart in places the scenarios did not

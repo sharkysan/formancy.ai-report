@@ -333,15 +333,23 @@ Locally, run the same commands for what you changed.
 
 `test:e2e:install` is the only gate that looks at the packages from outside:
 - it packs them;
-- installs the tarballs into a plain npm project;
-- type-checks it with `skipLibCheck` **off**;
-- runs it under Node.
+- installs the tarballs into plain npm projects, one per kind of host, each
+  holding only what that host has, and each builder at the newest and the
+  oldest release its peer range admits (`scripts/install-hosts.mjs`);
+- type-checks each consumer with `skipLibCheck` **off**, against its host's
+  types: Node's for the Node packages, the DOM's and not Node's for a builder;
+- runs it: `consume.ts` under Node; `react.tsx` drawn by React's server
+  renderer in its development and production builds; `angular.ts` compiled
+  ahead of time, linked and bundled by `build.mjs`, and drawn by
+  platform-server without the JIT compiler; and each builder bundled for a
+  browser.
 
 That matters because every other gate resolves a package through a symlink to
 its source, so an `exports` map that is wrong for a consumer can be right for
-the whole suite. It needs `pnpm build` first.
-`scripts/install-fixture/consume.ts` is the consumer; a package's public entry
-points belong in it.
+the whole suite. It needs `pnpm build` first. A package's public entry points
+belong in its host's consumer in `scripts/install-fixture/`, and what both
+builders draw is held to report-builder-core's README once, by `structure.ts`
+there.
 
 ## Conventions that live upstream
 
