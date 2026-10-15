@@ -13,15 +13,20 @@ approved PostgreSQL or SQL Server dataset. An AI can propose changes, which
 are reviewed against the same sample data before they apply. Report works
 without any AI dependency.
 
-> **Status: started 14 October 2026. Nothing designs or renders a report yet.**
+> **Status, 15 October 2026: the PDF engine is chosen. Nothing designs or
+> renders a report for you yet.**
 >
-> What exists is the licence, the pipeline that will prove the packages, and
-> one package: `@formancy/report-spec`, which defines the report format,
-> validates a report structurally and hashes it. The format is version 0, a
-> draft: a report written now is not promised to be read by a later release.
-> Nothing reads data into a report or draws one. The PDF engine is chosen by
-> an experiment that runs the same adversarial report fixtures through more
-> than one engine, before any editor is built on one of them.
+> What exists is the licence, the pipeline that proves the packages,
+> `@formancy/report-spec`, which defines the report format, validates a
+> report structurally and hashes it, and `@formancy/report-corpus`, private
+> test support. The format is version 0, a draft: a report written now is
+> not promised to be read by a later release. The corpus holds adversarial
+> report fixtures and the checks that prove a rendered PDF against them. The
+> renderer trial ran pdfmake and pdfme through it, and pdfmake renders
+> reports from here on
+> ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
+> [the trial](./docs/renderer-trial.md)). Nothing reads data into a report or
+> draws one yet.
 
 ## Licence, in one table
 
@@ -52,6 +57,7 @@ own, on Formancy Data's terms and before a lawyer has read them, is decision
 | Package | What it is |
 | --- | --- |
 | `@formancy/report-spec` | The report definition, version 0 (a draft): its types, structural validation with stable error codes, a canonical hash, page geometry and the one conversion between millimetres and points. A report is a document of its own, not a form ([0007](./docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)). No framework, no PDF engine, no Node. |
+| `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)), and the renderer trial's adapters for pdfmake and pdfme. |
 
 Planned and not here: the document commands and their undo history, the
 native Angular and React builders over one session, the runtime that groups
@@ -75,7 +81,7 @@ application supplies the data itself. Data never depends on Report.
 
 ## Development
 
-Node 22.12 or later, and pnpm through corepack.
+Node 22.13 or later, which `pdfjs-dist` 6.4 needs, and pnpm through corepack.
 
 ```bash
 corepack enable pnpm
@@ -85,8 +91,9 @@ pnpm test
 ```
 
 The gates CI runs, from `.github/workflows/gates.yml`: `pnpm build`,
-`pnpm typecheck`, `pnpm check:pkg`, `node scripts/verify-licenses.mjs` and
-`pnpm test:repo`; each package's `test:coverage` in a job of its own; and
+`pnpm typecheck`, `pnpm check:pkg`, `node scripts/verify-licenses.mjs`,
+`node scripts/dependency-licences.mjs` and `pnpm test:repo`; each package's
+`test:coverage` in a job of its own; and
 `pnpm test:e2e:install`, which packs the packages, installs them into a plain
 npm project and runs it. [`CLAUDE.md`](./CLAUDE.md) says what each is for and
 what the bar is.

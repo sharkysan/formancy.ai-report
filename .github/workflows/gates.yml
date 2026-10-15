@@ -82,6 +82,13 @@ jobs:
       # to find out.
       - run: node scripts/verify-licenses.mjs
 
+      # Everything a published package needs in production, and every font
+      # one ships, is under a licence that allows public source and licensed
+      # production use: permissive, never GPL, AGPL, non-commercial or none
+      # (0006). Read from the tree this job installed, so CI sees Linux's
+      # optional platform packages where a Windows machine sees its own.
+      - run: node scripts/dependency-licences.mjs
+
       # The repository's own guards: codecov.yml matches its generator, every
       # CLA signature names the current text, upstream is depended on at exact
       # versions, no source file is past the 600-line budget, the `test`
@@ -103,7 +110,7 @@ jobs:
       # Every suite reports, rather than the first failure cancelling the rest.
       fail-fast: false
       matrix:
-        package: ['@formancy/report-spec']
+        package: ['@formancy/report-spec', '@formancy/report-corpus']
     steps:
       - uses: actions/checkout@v4
 

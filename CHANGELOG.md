@@ -100,3 +100,67 @@ What comes with it:
 **`@formancy/report-spec` now depends on `@formancy/spec` 0.5.0**, at that
 exact version, for `schemaHash`: the report hash uses formancy's
 canonicalisation rather than a second one.
+
+**pdfmake renders reports, chosen by a trial on an adversarial corpus**
+([0005](docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
+[the trial](docs/renderer-trial.md)). `@formancy/report-corpus`, private and
+never published, holds fourteen fixtures, each one way a report goes wrong:
+a row lost at a page break, a header that does not repeat, a group header
+left at the foot of a page, a summary that just fits or just does not, exact
+decimals, text outside ASCII, an invalid image, an oversized job. pdfmake
+0.3.11 and pdfme 6.2.4 each rendered all of them through a trial adapter.
+pdfmake passed every fixture or refused it as the fixture allows; pdfme's
+adapter left a group header last on a page. pdfmake was faster on every
+timed document, and the trial document dates and qualifies every time. The
+adapter keeps its own page limit, measures the page regions and every
+keep-together block and table row before laying out, and checks image bytes
+first, because pdfmake's defaults lose content without saying so. There is
+no renderer package yet; `report-render-pdf` grows from that adapter.
+
+**A rendered report is proved on the PDF it produced**
+([0003](docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)).
+The corpus's checks read the PDF back with PDF.js, never the engine's input
+and never a mocked engine. They hold every row once and in order, with its
+own cells in column order on its own lines, so a value on the wrong row is a
+failure; the column header above the table on every page it reaches; the
+page header above and the footer below the body on every page, numbered; no
+empty page and no heading alone at a page's foot; nothing past a margin or
+over other text; every font embedded and every character drawn; and every
+image at its size. What they cannot see -- rules, borders, clipping, colour,
+glyphs touching beyond their computed boxes -- waits for page images.
+
+**Dependency and font licences are a gate**
+([0006](docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
+`scripts/dependency-licences.mjs` runs in the `verify` job and walks the
+production dependencies of every publishable package as installed, and every
+font they ship. Permissive licences pass; GPL, AGPL, LGPL, SSPL,
+source-available and non-commercial licences, a missing licence and a WITH
+clause nobody has reviewed are refused, with the route the package came in
+by. A font's licence is read from the font's own name table, because a
+package's `license` field says nothing about the fonts it ships: `pdfjs-dist`
+declares Apache-2.0 and ships GPL-licensed Liberation Sans. A repository test
+also holds every publishable package's build to inlining nothing from
+`node_modules`, since the walk never follows a devDependency. Review held this
+until the renderer experiment brought the first third-party PDF libraries.
+
+**Three version lines, each refused when unknown**
+([0004](docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
+formancy's form spec, Report's own format and Formancy Data's contract move
+independently of every package version, and a document says its version
+inside itself. A release records the tuple it supports; the one this release
+is built for:
+
+| Line | Supported |
+|---|---|
+| Upstream `@formancy/*` | 0.5.0, exact: `@formancy/spec`, for the report hash |
+| formancy form spec | none read yet; 1 to 4, as `@formancy/spec` 0.5.0 accepts them, when forms are |
+| `reportSpecVersion` | "0", the draft |
+| Formancy Data | none until Data publishes |
+| Node | 22.13 or later |
+| TypeScript | `~6.0.3` |
+| Angular, React | none built against yet; 22 and 19 with the builders |
+| pnpm | 12.4.2 |
+
+**Node 22.13 or later, up from 22.12.** `pdfjs-dist` 6.4.299, which reads
+every PDF the checks judge, declares `>=22.13.0 || >=24`. `engine-strict` is
+off, so 22.12 still installs; what fails there has not been measured.
