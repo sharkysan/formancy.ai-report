@@ -30,9 +30,21 @@ interface Owner {
   readonly columnId?: string
 }
 
+/** An aggregate printed with a number or currency format: where, and at how many places. */
+export interface PrintedTotal {
+  readonly aggregate: string
+  readonly scale: number
+  /** The JSON Pointer to the format. */
+  readonly path: string
+  readonly componentId?: string
+  readonly columnId?: string
+}
+
 /** Everything the report names, outside expressions, and every expression. */
 export interface ReportParts {
   readonly expressions: readonly ExpressionSite[]
+  /** Every aggregate printed with a format that rounds, in document order. */
+  readonly printedTotals: readonly PrintedTotal[]
   readonly styles: readonly string[]
   readonly assets: readonly string[]
   readonly fields: readonly FieldRef[]
@@ -43,6 +55,7 @@ export interface ReportParts {
 /** What one walk collects into, and the places it is collecting from. */
 class Collector {
   readonly expressions: ExpressionSite[] = []
+  readonly printedTotals: PrintedTotal[] = []
   readonly styles: string[] = []
   readonly assets: string[] = []
   readonly fields: FieldRef[] = []
@@ -76,6 +89,9 @@ class Collector {
     if (inline.kind === 'field') this.fields.push(inline.field)
     if (inline.kind === 'parameter') this.parameters.push(inline.parameter)
     if (inline.kind === 'aggregate') this.aggregates.push(inline.aggregate)
+    if (inline.kind === 'aggregate' && (inline.format?.kind === 'number' || inline.format?.kind === 'currency')) {
+      this.printedTotals.push({ aggregate: inline.aggregate, scale: inline.format.scale, path: `${path}/format`, ...owner })
+    }
     if (inline.kind === 'expression') this.expression(inline.expression, `${path}/expression`, scope, 'computed', owner)
     if ('format' in inline) this.format(inline.format)
   }

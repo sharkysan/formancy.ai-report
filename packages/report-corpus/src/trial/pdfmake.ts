@@ -2,10 +2,11 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import pdfmake from 'pdfmake'
 import type { Content, DynamicContent, TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { pageDimensions, RenderRefusal, type Block, type EngineAdapter, type RenderOptions, type ResolvedDocument, type Table } from '../document.js'
-import { checkImageAsset } from './pdfmake-assets.js'
+import { pageDimensions, RenderRefusal, type Block, type EngineAdapter, type Image, type RenderOptions, type ResolvedDocument, type Table } from '../document.js'
+import { checkImageAsset, type Pixels } from './pdfmake-assets.js'
 import { contentOf, DEFAULT_SIZE, newBuild, PADDING_X, type Fields, type TablePlan } from './pdfmake-content.js'
 import { FIT_SLACK, measure, rowPitches, SENTINEL_ROOM, tablePlan } from './pdfmake-measure.js'
+import { refuseUndrawn } from './undrawn.js'
 
 /**
  * The renderer trial's pdfmake adapter: a `ResolvedDocument` rendered with
@@ -26,6 +27,10 @@ import { FIT_SLACK, measure, rowPitches, SENTINEL_ROOM, tablePlan } from './pdfm
  * margin: the header from the top of the printable area down, the footer
  * ending at its bottom. Nothing of the body can reach into either.
  *
+ * What the document grew after the trial -- columns, sections, rectangles,
+ * fonts and colours, styled table rows -- is refused before anything else,
+ * as the pdfme adapter refuses it (`undrawn.ts`).
+ *
  * Fonts: Roboto 3.014 from pdfmake's own package, embedded and subset by
  * PDFKit. It is licensed under the SIL Open Font License 1.1, which allows
  * embedding in documents. pdfmake reads no other file: its local-access
@@ -44,6 +49,13 @@ const DEFAULT_STYLE = { font: 'Roboto', fontSize: DEFAULT_SIZE }
 
 /** Between the page header and the body, and between the body and the page footer. */
 const REGION_GAP = 6
+
+/**
+ * How far an image's box may be from the image's own proportions and still
+ * be them, in points: half a point, the checks' rounding allowance, and the
+ * pdfme adapter's.
+ */
+const PROPORTION_TOLERANCE = 0.5
 
 /**
  * pdfmake is one configuration per process. It is set again before every
@@ -70,14 +82,16 @@ interface Page {
 async function render(document: ResolvedDocument, options: RenderOptions): Promise<Uint8Array> {
   const { signal, maxPages } = options
   stopIfCancelled(signal)
+  refuseUndrawn(document)
   const creationDate = new Date(document.info.creationDate)
   if (Number.isNaN(creationDate.getTime())) throw new RenderRefusal('unsupported', `the creation date '${document.info.creationDate}' is not a date`, 'info.creationDate')
   const { width: paperWidth, height: paperHeight } = pageDimensions(document.page)
   const { margins } = document.page
   const page: Page = { paperWidth, paperHeight, margins, width: paperWidth - margins.left - margins.right, height: paperHeight - margins.top - margins.bottom }
-  checkBlocks(document.pageHeader, 'pageHeader', 'region', page.width)
-  checkBlocks(document.pageFooter, 'pageFooter', 'region', page.width)
-  checkBlocks(document.body, 'body', 'body', page.width)
+  const drawn: Drawn[] = []
+  checkBlocks(document.pageHeader, 'pageHeader', 'region', page.width, drawn)
+  checkBlocks(document.pageFooter, 'pageFooter', 'region', page.width, drawn)
+  checkBlocks(document.body, 'body', 'body', page.width, drawn)
 
   // pdfmake lays a document out and writes it in one synchronous step, during
   // which no abort can even be delivered: one is seen between passes.
@@ -90,6 +104,7 @@ async function render(document: ResolvedDocument, options: RenderOptions): Promi
       throw new RenderRefusal('content-too-large', `the image ${block.asset.id} is ${block.height} pt tall; the body is ${bodyHeight.toFixed(2)} pt`, block.asset.id)
     }
   }
+  drawn.forEach(checkFit)
   const plans = await measureBody(document, page, bodyHeight, maxPages)
   stopIfCancelled(signal)
   const pdf = await layout(document, page, regions, plans, { creationDate, maxPages })
@@ -207,12 +222,36 @@ async function layout(
 
 type Where = 'body' | 'kept' | 'region'
 
+/** An image the document draws, and its size in pixels. */
+interface Drawn {
+  readonly image: Image
+  readonly pixels: Pixels
+}
+
+/**
+ * pdfmake draws an image at exactly its box, which is what either fit draws
+ * for an image of the box's own proportions, and neither for any other: that
+ * one would be stretched. Refused after the image's size, so that an image
+ * no page can hold is refused as too large, whatever its proportions.
+ */
+function checkFit({ image, pixels }: Drawn): void {
+  const scale = Math.min(image.width / pixels.width, image.height / pixels.height)
+  if (Math.abs(pixels.width * scale - image.width) <= PROPORTION_TOLERANCE && Math.abs(pixels.height * scale - image.height) <= PROPORTION_TOLERANCE) return
+  const { id } = image.asset
+  throw new RenderRefusal(
+    'unsupported',
+    `the image ${id} is ${pixels.width} × ${pixels.height} pixels in a ${image.width} × ${image.height} pt box; the trial adapter draws an image at its box, which is '${image.fit}' only at the image's own proportions`,
+    id,
+  )
+}
+
 /**
  * What the adapter refuses before pdfmake sees it: what pdfmake cannot
  * print, what is malformed, and what is wider than the page. Every image's
- * bytes are checked here (`pdfmake-assets.ts`).
+ * bytes are checked here (`pdfmake-assets.ts`), and each image is collected
+ * in `drawn` with its pixels, for `checkFit` once its height is checked.
  */
-function checkBlocks(blocks: readonly Block[], path: string, where: Where, width: number): void {
+function checkBlocks(blocks: readonly Block[], path: string, where: Where, width: number, drawn: Drawn[]): void {
   blocks.forEach((block, index) => {
     const at = `${path}[${index}]`
     if (block.kind === 'paragraph' && where !== 'region' && block.runs.some((run) => 'field' in run)) {
@@ -222,15 +261,16 @@ function checkBlocks(blocks: readonly Block[], path: string, where: Where, width
       throw new RenderRefusal('unsupported', `${at} is a page break inside a ${where === 'kept' ? 'keep-together block' : 'page region'}`, at)
     }
     if (block.kind === 'image') {
-      checkImageAsset(block.asset)
+      const pixels = checkImageAsset(block.asset)
       const { id } = block.asset
       if (!(block.width > 0 && block.height > 0 && Number.isFinite(block.width) && Number.isFinite(block.height))) {
         throw new RenderRefusal('unsupported', `the image ${id} is drawn ${block.width} × ${block.height} pt`, id)
       }
       if (block.width > width) throw new RenderRefusal('content-too-large', `the image ${id} is ${block.width} pt wide; the printable width is ${width.toFixed(2)} pt`, id)
+      drawn.push({ image: block, pixels })
     }
     if (block.kind === 'table') checkTable(block, width)
-    if (block.kind === 'keepTogether') checkBlocks(block.blocks, `${at}.blocks`, where === 'region' ? 'region' : 'kept', width)
+    if (block.kind === 'keepTogether') checkBlocks(block.blocks, `${at}.blocks`, where === 'region' ? 'region' : 'kept', width, drawn)
   })
 }
 

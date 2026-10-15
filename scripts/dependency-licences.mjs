@@ -61,10 +61,18 @@ const allowedExceptions = new Set(ALLOWED_EXCEPTIONS.map((id) => id.toUpperCase(
 
 /**
  * Reviewed exceptions: `name@version`, or `name@version/path` for one font file,
- * to the licence the evidence shows and where that evidence is. Empty while no
- * published package needs one; `problems` refuses an entry nothing installs.
+ * to the licence the evidence shows and where that evidence is. `problems`
+ * refuses an entry nothing installs, so one outlives its package by no more
+ * than the release that drops it.
+ *
+ * - `png-js@1.1.0` reaches `@formancy/report-render-pdf` through pdfmake and
+ *   PDFKit, and its package.json has no `license` field, as decision 0005
+ *   predicted. The LICENSE file it ships is the MIT License, read on
+ *   2026-10-15.
  */
-export const EXCEPTIONS = Object.freeze({})
+export const EXCEPTIONS = Object.freeze({
+  'png-js@1.1.0': { licence: 'MIT', evidence: 'LICENSE in the tarball: MIT License, Copyright (c) 2017 Devon Govett' },
+})
 
 /** Whether `expression`, an SPDX licence expression, is one the policy allows. Unreadable is refused. */
 export function spdxAllows(expression) {

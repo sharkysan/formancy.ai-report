@@ -156,7 +156,8 @@ export type ValueScope = (typeof VALUE_SCOPES)[number]
  * runtime binds exactly these. `params` maps parameter ids to values,
  * `header` the header dataset's fields, `row` the current detail row's,
  * `totals` each aggregate over every detail row, and `group` each aggregate
- * over the current group's rows.
+ * over the current group's rows and, as `GROUP_KEY`, the value the group
+ * is keyed by.
  *
  * Whether an expression names only these is checked when the runtime
  * compiles it (plan 15's second level), not here: a second, partial CEL
@@ -167,6 +168,15 @@ export const EXPRESSION_NAMES: { readonly [S in ValueScope]: readonly string[] }
   group: ['params', 'header', 'totals', 'group'],
   row: ['params', 'header', 'totals', 'row'],
 }
+
+/**
+ * The member of `group` that is the value the group is keyed by: in a group
+ * header, `group.key` is the site a group of rows by site is for, of the
+ * type of the field grouped by, and null for the group of rows without one.
+ * An aggregate may not take the name (`reserved-id`), so `group.key` never
+ * reads one.
+ */
+export const GROUP_KEY = 'key'
 
 /** A field of the header or the detail dataset: the one way the format refers to one. */
 export interface FieldRef {
@@ -297,7 +307,7 @@ export interface Rounding {
  * - `avg` is rarely exact, so it declares its rounding.
  */
 export interface AggregateDef {
-  /** A field key: what an expression reads it as, `totals.<id>` or `group.<id>`. */
+  /** A field key: what an expression reads it as, `totals.<id>` or `group.<id>`. Never `GROUP_KEY`, which `group` holds already. */
   readonly id: string
   readonly fn: AggregateFunction
   /** Absent only for count. */

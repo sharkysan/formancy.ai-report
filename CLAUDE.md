@@ -42,25 +42,32 @@ lists it.
 
 ## How the pieces fit
 
-Little is built. `@formancy/report-spec` defines the format, validates
-a report structurally and hashes it
+The Studio is not built yet; data in, a PDF out and the builders are.
+`@formancy/report-spec` defines the format, validates a report structurally
+and hashes it
 ([0007](docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
 `@formancy/report-core` changes a report through commands, holds it in a
 session with undo, says where a component may go, and compiles every
-expression for the diagnostics and, later, the runtime
+expression for the diagnostics and the runtime
 ([0008](docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md),
 [0009](docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
+`@formancy/report-runtime` resolves a report against its data into the
+renderer-neutral document, exactly, or refuses it
+([0010](docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)),
+and `@formancy/report-render-pdf` draws that document with pdfmake and
+refuses what it cannot draw whole
+([0005](docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
+[0011](docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 `@formancy/report-builder-core` is the editor model over that session, and
 `@formancy/report-builder-react` and `@formancy/report-builder-angular` render
 it natively; `BUILDER_SCENARIOS` in the core is what both must do
 ([0012](docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).
 Beside them, `@formancy/report-corpus` is test support and is never published:
-the adversarial report fixtures, the reader and checks that prove a rendered
-PDF against them, and the renderer trial that chose pdfmake
-([0005](docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).
-Its pdfmake adapter is what `report-render-pdf` grows from. That is all the
-product code there is. The package path the plan proposes, each package
-depending only on those before it:
+the adversarial report fixtures, the three starter reports, the reader and
+checks that prove a rendered PDF against them, a rasteriser for page images,
+and the renderer trial that chose pdfmake. That is all the product code there
+is. The package path the plan proposes, each package depending only on those
+before it:
 
 1. `report-spec` -- the versioned definition, structural validation, canonical
    hashing and migrations. No framework, no driver, no PDF engine, no Node.

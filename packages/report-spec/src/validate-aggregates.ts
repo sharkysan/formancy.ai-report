@@ -7,7 +7,7 @@ import { all, fieldKey, integer, matches, oneOf, optional, readArray, shape } fr
 import { MAX_AGGREGATES, MAX_SCALE } from './limits.js'
 import { at } from './pointer.js'
 import { DECIMAL } from './syntax.js'
-import { AGGREGATE_FUNCTIONS, ROUNDING_MODES } from './types.js'
+import { AGGREGATE_FUNCTIONS, GROUP_KEY, ROUNDING_MODES } from './types.js'
 import type { AggregateDef, AggregateFunction, FieldType, Rounding } from './types.js'
 import { declare } from './validate-context.js'
 import type { Ctx } from './validate-context.js'
@@ -56,6 +56,8 @@ function readRounding(f: Findings, value: unknown, path: string): Rounding | und
 function readAggregate(c: Ctx, value: unknown, path: string): { id: string | undefined; gives: FieldType | undefined; aggregate: AggregateDef | undefined } {
   const o = shape(c.f, value, path, ['id', 'fn'], ['of', 'rounding'])
   const id = fieldKey(c.f, o?.id, at(path, 'id'))
+  // group.key is the value a group is keyed by; an aggregate of that name would be read there as one or the other.
+  if (id === GROUP_KEY) c.f.report(at(path, 'id'), 'reserved-id', `an aggregate cannot be called ${GROUP_KEY}: in a group's header and footer, group.${GROUP_KEY} is the value the group is keyed by`)
   const fn = oneOf(c.f, o?.fn, at(path, 'fn'), AGGREGATE_FUNCTIONS)
   const of = readRowValue(c, o?.of, at(path, 'of'))
   if (o !== undefined && fn !== undefined && fn !== 'count' && !Object.hasOwn(o, 'of')) {

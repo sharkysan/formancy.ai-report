@@ -185,6 +185,35 @@ is an error at the read that closes the circle.
 **What it forecloses.** Reading a whole name. A future "every parameter"
 needs its own declaration, not `params` read whole.
 
+**Added 2026-10-15: `group.key`.** 0007 now gives a group its key, and this
+record's rules take it as they take any member. `compileReport` declares
+`group.key` with the type the field grouped by is read as -- `dyn` where that
+field may be null -- and only when the report's table groups; `expressionValues`
+binds it like a field of that type. So `" " + group.key` passes in a group
+header over a string field and `group.key + 1` is an `expression-type` error
+there. `members.test.ts` holds the declaration, for a group and for a table
+without one; `diagnose.test.ts` holds the check; `compile-report.test.ts`
+evaluates a group header that reads it.
+
+**Added 2026-10-15: what an expression may not compute with.** The runtime's
+review found two ways a printed number could be inexact with no diagnostic,
+and one call whose time no budget bounds. Upstream hands an integer and a
+double back alike, as a JavaScript number, so `int(double("4.35") * 100.0)`
+printed 434 as an exact integer, and `3 / 2` printed 1, a rounding nobody
+declared; `"aaa…b".matches("^(a+)+$")` took 39 seconds inside one step of
+the budget. So the compiled source is now asked, as the clock is
+(`expressions/exactness.ts`), for every double literal, every `double()`,
+every `/` and every `matches()`, each an error where it is written:
+`expression-inexact`, with `dec("…")` or `divide(dec(a), dec(b), places)`
+as the hint, and `expression-unbounded`. A remainder, `%`, is exact and
+allowed. `exactness.test.ts` holds what is found and what only looks like
+it -- a string, a comment, the type named `double`; `diagnose.test.ts`
+holds the diagnostics. Two more diagnostics come with the runtime's
+rounding rules (0010): `rounding-not-decimal` for a rounding declared on an
+integer, date or instant total, which every render refused while the
+editor said nothing, and `format-rounds-again` for a number format that
+prints a rounded total at fewer places than its rounding keeps.
+
 ## Alternatives considered
 
 **Declare each name as a `map`**, the first version. Rejected: every member

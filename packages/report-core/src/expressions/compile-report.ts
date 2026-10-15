@@ -20,7 +20,7 @@ import { quote } from '../outcome.js'
 import { aggregateOrder, aggregateReads, cycleDiagnostic } from './aggregates.js'
 import { compileSite } from './compile-site.js'
 import type { CompiledExpression, Images, SiteOutcome } from './compile-site.js'
-import { COMPUTES, fieldsOf, imagesOf, parametersOf, readAs, TOTALS } from './members.js'
+import { COMPUTES, fieldsOf, groupKeyOf, imagesOf, parametersOf, readAs, TOTALS } from './members.js'
 import type { ExpressionMember, Members } from './members.js'
 
 export interface ReportCompilation {
@@ -80,7 +80,9 @@ export function compiledSites(report: ReportDefinition, sites: readonly Expressi
   // circle is reported, once, where it closes.
   for (const id of unordered) known.set(id, { type: 'dyn', nullable: true })
   const totals = new Map(report.aggregates.map(({ id }) => [id, known.get(id) as ExpressionMember]))
-  const members: Members = { ...base, totals, group: totals }
+  // A group holds its aggregates and its key; report-spec keeps the key's name from every aggregate.
+  const key = groupKeyOf(report)
+  const members: Members = { ...base, totals, group: key === undefined ? totals : new Map([...totals, key]) }
 
   const expressions = new Map<string, CompiledExpression>()
   const diagnostics: Diagnostic[] = []

@@ -84,7 +84,7 @@ records the tuple it supports in its CHANGELOG section. The first tuple:
 | Formancy Data | none until Data publishes 0.1.0; then exactly that release, which the provider is built against |
 | Node | 22.13 or later |
 | TypeScript | `~6.0.3`, the line the workspace catalog pins |
-| Angular, React | 22 and 19, planned with the builders; nothing here builds against either yet |
+| Angular, React | `@angular/core` ^22 and `react`/`react-dom` ^19, as peers of the builders ([0012](0012-the-builders-are-native-and-share-one-session.md)); the versions each release was tested against are in its CHANGELOG section |
 | pnpm | 12.4.2, the `packageManager` field |
 
 Node is 22.13 rather than the 22.12 that formancy.ai-data runs on because of

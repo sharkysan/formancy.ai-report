@@ -66,6 +66,14 @@ component_management:
       name: packages/report-corpus
       paths:
         - packages/report-corpus/**
+    - component_id: report-render-pdf
+      name: packages/report-render-pdf
+      paths:
+        - packages/report-render-pdf/**
+    - component_id: report-runtime
+      name: packages/report-runtime
+      paths:
+        - packages/report-runtime/**
     - component_id: report-spec
       name: packages/report-spec
       paths:

@@ -28,12 +28,20 @@ export const DIAGNOSTIC_SEVERITIES = {
   'expression-unreadable-field': 'error',
   /** An expression that calls the clock or a random draw, so two renders of the same data could differ. */
   'expression-not-reproducible': 'error',
+  /** An expression that computes with a double, which is not exact, or divides with `/`, which on integers drops the remainder: `dec("…")` and `divide(dec(a), dec(b), places)` keep a number exact. */
+  'expression-inexact': 'error',
+  /** An expression that calls `matches()`, whose backtracking pattern can run for as long as it likes inside one step of the budget. */
+  'expression-unbounded': 'error',
   /** An expression that reads a name whole -- `size(params)`, `row[key]` -- rather than a member by its id: what it reads cannot be checked, and is never bound. */
   'expression-dynamic-read': 'error',
   /** An aggregate's expression that gives a value its function cannot total: a sum of strings, an average of instants. */
   'expression-aggregate-type': 'error',
   /** An aggregate whose expression reads its own total, directly or through other aggregates, or reads one that does: none of them can be computed. */
   'aggregate-cycle': 'error',
+  /** A number or currency format that prints a total at fewer places than its declared rounding keeps, so the total is rounded twice and the second rounding ignores the declared mode. */
+  'format-rounds-again': 'error',
+  /** A rounding declared on an aggregate that computes an integer, a date or an instant, which have no places to round: the runtime refuses it. */
+  'rounding-not-decimal': 'error',
   /** A print style nothing uses. */
   'unused-style': 'warning',
   /** An asset nothing draws. */

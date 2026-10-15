@@ -66,4 +66,6 @@ only enforcement is "we remember" says so plainly.
 | [0007](0007-a-report-definition-is-its-own-versioned-document.md) | A report definition is its own versioned document, with a flowing body, one detail table, declared aggregates and print styles as tokens | accepted |
 | [0008](0008-edits-are-commands-and-a-refused-edit-changes-nothing.md) | Edits are commands, and a refused edit changes nothing | accepted |
 | [0009](0009-an-expression-is-checked-and-bound-member-by-member.md) | An expression is checked and bound member by member, by one compilation the editor and the runtime share | accepted |
+| [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md) | The runtime resolves a report into a renderer-neutral document, exactly, or refuses it: data held to its contract, totals exact and rounded once, values formatted once | accepted |
+| [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md) | `report-render-pdf` draws the whole resolved document with pdfmake, and refuses what it cannot draw whole | accepted |
 | [0012](0012-the-builders-are-native-and-share-one-session.md) | The builders are native, share one session through one editor model, and are held to each other by shared scenarios | accepted |

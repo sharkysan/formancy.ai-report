@@ -1,6 +1,7 @@
 import { emptyReport, EXPRESSION_NAMES, FIELD_TYPES, PARAMETER_TYPES, VALUE_SCOPES } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
+import { thawed } from '../snapshot.js'
 import { frozenSample, sampleReport } from '../test-support.js'
 import { compileReport } from './compile-report.js'
 import { EXPRESSION_TYPES, SCOPE_NAMES } from './members.js'
@@ -46,8 +47,10 @@ describe('the members each name holds', () => {
   // an average a decimal, a sum, minimum or maximum the type it reads -- for
   // an expression, the type the compiler gives it, so a total over an
   // expression is checked like any other. Over no rows only count and sum
-  // have a value.
-  test('totals and group: each aggregate, typed by what it computes, an expression by what it gives', () => {
+  // have a value. A group also holds its key, the value it is keyed by, of
+  // the type of the field grouped by; without it a group header could print
+  // its key only as a field, never compute with it.
+  test('totals and group: each aggregate, typed by what it computes, an expression by what it gives; group its key too', () => {
     const aggregates = [
       ['subtotal', { type: 'decimal', nullable: false }],
       ['lines', { type: 'int', nullable: false }],
@@ -56,7 +59,30 @@ describe('the members each name holds', () => {
       ['latest', { type: 'timestamp', nullable: true }],
     ]
     expect(held(frozenSample(), 'totals')).toEqual(aggregates)
-    expect(held(frozenSample(), 'group')).toEqual(aggregates)
+    expect(held(frozenSample(), 'group')).toEqual([...aggregates, ['key', { type: 'string', nullable: false }]])
+  })
+
+  // The key is the grouped field's value, so it has that field's type and
+  // may be null where the field may: the rows without a value are a group
+  // of their own, keyed by null.
+  test('types the group key as the field grouped by, null where that field may be', () => {
+    const report = thawed(sampleReport())
+    const table = report.regions.body[2]
+    if (table?.kind !== 'table' || table.group === undefined) throw new Error('the sample has moved its table')
+    table.group.by = { dataset: 'detail', field: 'shippedAt' }
+    table.group.header = [{ kind: 'text', text: 'Shipped' }]
+    table.sort = []
+    expect(held(report, 'group').at(-1)).toEqual(['key', { type: 'string', nullable: true }])
+  })
+
+  // A report whose table does not group has no group to key: group holds
+  // the aggregates and nothing else.
+  test('holds no key when the table does not group', () => {
+    const report = thawed(sampleReport())
+    const table = report.regions.body[2]
+    if (table?.kind !== 'table') throw new Error('the sample has moved its table')
+    delete table.group
+    expect(held(report, 'group').map(([id]) => id)).toEqual(['subtotal', 'lines', 'gross', 'average', 'latest'])
   })
 
   // A minimum is the type of what it reads, and null over no rows.

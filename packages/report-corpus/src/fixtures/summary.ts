@@ -73,7 +73,7 @@ export const OVERFLOW = BOUNDARY.max + 2 * lineHeight(BODY_SIZE)
 const FILLER_PIXELS = { id: 'filler', mediaType: 'image/png', bytes: encodePng(1, 10, () => [220, 220, 220]) } as const
 
 function filler(height: number): Image {
-  return { kind: 'image', asset: FILLER_PIXELS, width: height / 10, height }
+  return { kind: 'image', asset: FILLER_PIXELS, width: height / 10, height, fit: 'contain' }
 }
 
 function statementPage(): Block[] {

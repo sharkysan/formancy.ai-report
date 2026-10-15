@@ -26,6 +26,8 @@ import { diagnostic } from '../diagnostics/codes.js'
 import type { Diagnostic, DiagnosticCode, Where } from '../diagnostics/codes.js'
 import type { ExpressionSite } from '../diagnostics/parts.js'
 import { quote } from '../outcome.js'
+import { inexactOperations, unboundedCalls } from './exactness.js'
+import type { InexactKind } from './exactness.js'
 import type { Members, ScopeName } from './members.js'
 import { unreproducibleCalls } from './reproducible.js'
 import { readSpans } from './spans.js'
@@ -229,5 +231,29 @@ export function compileSite(site: ExpressionSite, members: Members, images: Imag
     const message = (name: string): string => `${name}() differs from one render to the next, and a report prints the same from the same data; a date the report needs is a parameter`
     return failed(calls.map(({ name, span }) => diagnostic('expression-not-reproducible', message(name), at(site, exact ? span : undefined))))
   }
+  const inexact = [
+    ...inexactOperations(flat.source, site.kind, variables).map(({ kind, span }) => diagnostic('expression-inexact', INEXACT[kind].message, at(site, exact ? span : undefined, INEXACT[kind].hint))),
+    ...unboundedCalls(flat.source, site.kind, variables).map(({ name, span }) => diagnostic('expression-unbounded', UNBOUNDED(name), at(site, exact ? span : undefined))),
+  ].sort((a, b) => (a.position?.start ?? 0) - (b.position?.start ?? 0))
+  if (inexact.length > 0) return failed(inexact)
   return { ok: true, compiled: { site, program: compiled.program, reads } }
 }
+
+/** What to say of each inexact operation, and what to write instead. */
+const INEXACT: { readonly [K in InexactKind]: { readonly message: string; readonly hint: string } } = {
+  'double-literal': {
+    message: 'a number written with a point or an exponent is a double, which is not exact: 0.1 + 0.2 is not 0.3, and int() of one drops what it lost',
+    hint: 'write it as a decimal, dec("100.0"), to keep it exact',
+  },
+  'double-call': {
+    message: 'double() makes a double, which is not exact: double("4.35") * 100.0 is 434.99999999999994, and int() of it is 434',
+    hint: 'compute with decimals instead: dec("4.35") * dec("100")',
+  },
+  'integer-division': {
+    message: '/ divides integers and drops the remainder, a rounding the report never declares: 3 / 2 is 1, and -3 / 2 is -1',
+    hint: 'divide(dec(a), dec(b), places) keeps it exact, and rounds half away from zero where it says',
+  },
+}
+
+const UNBOUNDED = (name: string): string =>
+  `${name}() runs its pattern on a backtracking engine that a step budget cannot stop: one pattern can take minutes on a short text, and a render cannot be interrupted while it runs`

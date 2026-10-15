@@ -164,8 +164,8 @@ follows would otherwise ship inside `dist` as this repository's own code.
   `{ licence, evidence }`: the licence the evidence shows, and where that
   evidence is. It corrects the metadata, never the policy, so its licence is
   held to the list like any other. It is honoured at that exact version only,
-  and one that nothing installs is refused. The list is empty today, because
-  no published package needs one.
+  and one that nothing installs is refused. The list was empty until
+  2026-10-15, when the renderer arrived (below).
 
 ## Consequences
 
@@ -211,6 +211,15 @@ follows would otherwise ship inside `dist` as this repository's own code.
 - **Formancy Data's packages.** They declare `SEE LICENSE IN LICENSE.md` on
   the same terms as this repository, and as written the guard refuses them.
   `report-data-provider`'s pull request extends this record or supersedes it.
+
+**Added 2026-10-15: the first exception.** `@formancy/report-render-pdf`
+stopped the guard on `png-js` 1.1.0, as predicted above: it reaches the
+renderer through pdfmake and PDFKit, and its package.json has no `license`
+field. The `LICENSE` it ships is the MIT License, Copyright (c) 2017 Devon
+Govett, read that day, and `EXCEPTIONS` records it at that exact version.
+The renderer embeds the four Roboto files the guard reads; the browser
+entry's copy of them in `vfs_fonts.js` is held to the same bytes by the
+renderer's own tests.
 
 ## Alternatives considered
 

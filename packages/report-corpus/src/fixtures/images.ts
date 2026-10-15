@@ -13,6 +13,7 @@ const logo: Image = {
   asset: { id: 'logo', mediaType: 'image/png', bytes: encodePng(64, 32, (x, y) => [x * 4, y * 8, 160]) },
   width: 128,
   height: 64,
+  fit: 'contain',
 }
 const caption = paragraph('The logo above is a 64 × 32 pixel PNG drawn at 128 × 64 points.')
 const document = documentOf('Images', [heading('Images'), logo, caption])
@@ -30,6 +31,7 @@ const broken: Image = {
   asset: { id: 'logo-broken', mediaType: 'image/png', bytes: new TextEncoder().encode('These bytes say they are a PNG. They are not.') },
   width: 128,
   height: 64,
+  fit: 'contain',
 }
 const brokenDocument = documentOf('Invalid image', [heading('Invalid image'), broken])
 

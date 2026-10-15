@@ -14,6 +14,10 @@ import { actionForKey, createReportEditor, editorText } from '@formancy/report-b
 import type { EditorAction, EditorOutcome, EditorState, ReportEditor } from '@formancy/report-builder-core'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { resolveReport } from '@formancy/report-runtime'
+import type { Resolution } from '@formancy/report-runtime'
+import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
+import { quotation, quotationData } from './quotation.js'
 
 // The published code carries the refusal, not only the source: a formancy
 // form handed over as a report is named as a form, and the version this
@@ -165,6 +169,31 @@ if (editor.listenerCount() !== 0 || editor.dispatch({ type: 'redo' }).ok) throw 
 const stylesheet = readFileSync(fileURLToPath(import.meta.resolve('@formancy/report-builder-core/report-builder.css')), 'utf8')
 if (!stylesheet.includes("[data-report-part='canvas']") || !stylesheet.includes('var(--wb-')) throw new Error('report-builder.css is not the editor stylesheet')
 
+// The README's "Render a report", line for line, on the quotation starter:
+// the runtime resolves it from its data, the renderer draws it, and what
+// comes back is a PDF. scripts/readme-example.test.mjs holds the README's
+// lines to these.
+const rendered = await (async () => {
+  const report = quotation
+  const data = quotationData
+  const resolution = resolveReport(report, data, { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z' })
+  if (!resolution.ok) throw new Error(resolution.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
+  const pdf: Uint8Array = await renderPdf(resolution.document, { maxPages: 50 })
+  return pdf
+})()
+if (new TextDecoder().decode(rendered.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation did not render to a PDF')
+
+// A refusal travels as the class a host catches, from the runtime's
+// declaration through the renderer's re-export: a customer's name in a
+// script the embedded font cannot draw is refused, never printed as boxes.
+const unprintable: Resolution = resolveReport(quotation, { ...quotationData, header: { ...quotationData.header, customer: '山田太郎' } }, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
+if (!unprintable.ok) throw new Error(`the quotation with a Japanese customer was refused before rendering: ${unprintable.errors.map((error) => error.code).join(', ')}`)
+const refusal: unknown = await renderPdf(unprintable.document, { maxPages: 50 }).then(
+  () => undefined,
+  (error: unknown) => error,
+)
+if (!(refusal instanceof RenderRefusal) || refusal.code !== 'unsupported') throw new Error(`a character without a glyph was not refused as unsupported: ${String(refusal)}`)
+
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused`,
 )

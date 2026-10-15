@@ -28,9 +28,19 @@
   written by `src/trial/run.ts` from what that run measured. Its times are
   dated evidence, not a gate: nothing fails when they change.
 
+  **Added 2026-10-15: the renderer exists.** `@formancy/report-render-pdf`
+  grew from the pdfmake adapter, and its `src/corpus.test.ts` renders every
+  fixture of the corpus with the same empty list of excused fixtures, in
+  the package's own `test` job; `src/pdfmake.test.ts`, `flow.test.ts`,
+  `refusals.test.ts` and `assets.test.ts` pin the pdfmake behaviours this
+  record lists. The trial's adapters stay in the corpus as the record of
+  the trial. What the renderer adds to this record's rules is
+  [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md).
+
   **Not mechanically enforced:**
-  - **That the renderer is pdfmake.** `@formancy/report-render-pdf` does
-    not exist yet; this record and review hold it until it does.
+  - **That the renderer is pdfmake** -- until 2026-10-15, when
+    `@formancy/report-render-pdf` arrived depending on pdfmake alone; its
+    corpus tests now hold it.
   - **That pdfme stays out of published packages.** It is a devDependency of
     the private corpus. Its own licence is MIT, but
     [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)'s
@@ -192,6 +202,15 @@ lose content without saying so:
   corpus.
 - **pdfme's designer as the builder.** The builder edits the report's
   flowing model (plan section 9), not templates of boxes at fixed positions.
+
+**Amended 2026-10-15, with 0011.** Three of the costs above are smaller in
+the renderer that shipped. The page limit now bounds measuring too, for a
+body whose least height already needs more pages than the limit: it is
+refused before pdfmake is handed it, 100,000 rows against five pages in
+236 ms. An abort is read after the event loop has turned between passes,
+so one from a timer arrives; a pass under way still cannot be stopped. And
+a single line, a rule or a frame taller than the body is refused, where
+the trial drew it past the foot of the page. The rest stand as written.
 
 ## Alternatives considered
 
