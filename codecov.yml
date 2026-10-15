@@ -46,6 +46,10 @@ component_management:
       - type: project
         informational: true
   individual_components:
+    - component_id: report-core
+      name: packages/report-core
+      paths:
+        - packages/report-core/**
     - component_id: report-corpus
       name: packages/report-corpus
       paths:

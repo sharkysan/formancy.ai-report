@@ -152,7 +152,7 @@ is built for:
 
 | Line | Supported |
 |---|---|
-| Upstream `@formancy/*` | 0.5.0, exact: `@formancy/spec`, for the report hash |
+| Upstream `@formancy/*` | 0.5.0, exact: `@formancy/spec`, for the report hash; `@formancy/expressions`, for every expression |
 | formancy form spec | none read yet; 1 to 4, as `@formancy/spec` 0.5.0 accepts them, when forms are |
 | `reportSpecVersion` | "0", the draft |
 | Formancy Data | none until Data publishes |
@@ -164,3 +164,78 @@ is built for:
 **Node 22.13 or later, up from 22.12.** `pdfjs-dist` 6.4.299, which reads
 every PDF the checks judge, declares `>=22.13.0 || >=24`. `engine-strict` is
 off, so 22.12 still installs; what fails there has not been measured.
+
+**`@formancy/report-core` edits a report through commands, and a refused edit
+changes nothing** ([0008](docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)).
+0007 makes the format strict, so an editor has to keep the document valid at
+every step; this is the package that does. It follows formancy's builder
+session rather than reusing its form commands. What it holds:
+
+- **Commands.** Pure functions over a `ReportDefinition` for the title,
+  locale and page; styles, datasets, fields, parameters, assets and
+  aggregates; inserting, removing, moving, updating and duplicating
+  components at any depth; and the table's columns, group, sort and footer
+  rows. A command refuses, with a stable code, what it names and cannot
+  find. It never clamps an index, so a keyboard move and a pointer drop
+  agree. A component's patch is typed by its kind.
+- **Commands as data.** `COMMANDS` and `CommandDescriptor` make each command
+  data, for a proposal. A proposal arrives as JSON from a model:
+  - a removal is `null`, because JSON has no undefined and a removal written
+    as one would arrive as no change at all;
+  - a descriptor whose arguments are too few, too many or of the wrong type
+    is refused with `invalid-arguments` rather than thrown, so a bad
+    operation refuses its proposal whole.
+- **`openReportSession`.** It commits a command's result only when
+  `validateReport` accepts the whole of it, so a refused edit leaves the same
+  document object, revision and history, and notifies nobody.
+  - Committed documents are deeply frozen, so `useSyncExternalStore` and
+    Angular signals can compare by identity.
+  - What an edit did not change keeps its object, matched by id within its
+    list, so an insert at the top of the body does not redraw everything
+    below it.
+  - Undo and redo restore the exact snapshots, labelled, with 200 steps kept
+    by default.
+  - A transaction is one step, validated once at the end. Its callback runs
+    synchronously: an await inside it would commit half a proposal, so an
+    async one does not compile and a promise is refused before anything
+    commits.
+  - An edit bound to a `reportHash` that is no longer current is refused as
+    stale, and a command that edits the session while it runs throws, so no
+    edit is lost under another.
+- **`tryEdit`** gives a transaction's verdict without committing it, from the
+  same draft: what a proposal's review shows before Apply (plan 16).
+- **`locationOf`, `locations` and `validLocations`** tell a builder where a
+  component stands, every place one could go, and the places the validator
+  accepts it in. Drop targets come from asking the validator, so they cannot
+  disagree with what the session then commits.
+- **`diagnose`** lists the errors the runtime would refuse a report for, and
+  warns of unused declarations, an empty body and a text that prints nothing.
+
+**`@formancy/report-core` compiles every expression once, for the editor and
+the runtime** ([0009](docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
+`compileReport` gives the programs, what each reads, the members each name
+holds, the aggregate order and the errors. `expressionValues` binds a
+program's values. If the runtime assembled its own compile options, it could
+accept what the editor refuses, `now()` among them, or bind a value as a
+type the editor never checked it as. What it decides:
+
+- **Every member read is checked as its type.** `params.copies + "x"` is an
+  error, and `row.amount < dec("0")` is fine whichever side the decimal is
+  on.
+- **Decimals are used as decimals.** An exact value is used as what it is:
+  `row.amount * dec("1.081")`. `dec(row.amount)` is a type error, because
+  0.5.0 has no `dec(decimal)`.
+- **Refused, because a report renders the same from the same data:**
+  `now()`, `today()`, `random()`, a name read whole (`size(params)`), and an
+  image field read as a value.
+- **Aggregates are computed in the order they read each other.** One that
+  reads its own total is an error, at the read that closes the circle.
+- **Each error points at the component, the table column and each read**,
+  not at a stretch that covers unrelated text.
+
+**`@formancy/report-core` depends on `@formancy/expressions` 0.5.0**, at that
+exact version, to compile expressions with the compiler the runtime will use
+rather than a second one. Its 0.5.0 declares a variable only by its whole
+name, so each member read is spliced, by its own `rewritePath`, into one
+variable declared with the member's type. A decimal that may be null is
+checked as `dyn`, which 0.5.0 will not test for equality with a decimal.
