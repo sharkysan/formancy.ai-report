@@ -31,17 +31,27 @@ Three things follow, and each has a guard:
 A dependency must allow both public source and licensed production use:
 permissive licences only, no GPL or AGPL, no source-available or
 non-commercial licence. A commercial component needs written redistribution
-rights. Fonts must be licensed for embedding in generated PDFs. Held by review
-until the first third-party runtime dependency arrives with the renderer, and
-by a guard from then on.
+rights. Fonts must be licensed for embedding in generated PDFs.
+`scripts/dependency-licences.mjs` holds this for the production dependencies
+of every publishable package and every font they ship, reading a font's
+licence from the font, and refuses what it cannot read
+([0006](docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
+What it cannot see -- whether a licence's terms are what its identifier says,
+code a package vendors, a font inside a script -- is held by review, and 0006
+lists it.
 
 ## How the pieces fit
 
 Almost nothing is built. `@formancy/report-spec` defines the format, validates
 a report structurally and hashes it
-([0007](docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md));
-that is all the product code there is. The package path the plan proposes,
-each package depending only on those before it:
+([0007](docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
+Beside it, `@formancy/report-corpus` is test support and is never published:
+the adversarial report fixtures, the reader and checks that prove a rendered
+PDF against them, and the renderer trial that chose pdfmake
+([0005](docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).
+Its pdfmake adapter is what `report-render-pdf` grows from. That is all the
+product code there is. The package path the plan proposes, each package
+depending only on those before it:
 
 1. `report-spec` -- the versioned definition, structural validation, canonical
    hashing and migrations. No framework, no driver, no PDF engine, no Node.
@@ -118,15 +128,18 @@ it was measured, on what, and when.
 
 ## A rendered report is proved on the PDF it produced
 
-The rule this repository will hold once there is a renderer, as Formancy Data
-holds its rule about real databases. It becomes decision 0003 with the
-renderer experiment.
+Decision [0003](docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md),
+held as Formancy Data holds its rule about real databases. The corpus's
+checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
 
-- A claim about a report's output is checked on the PDF the chosen engine
-  produced: extracted text for rows and totals, page images for layout and
-  overlap. Not on the engine's input document, and not through a mocked engine.
-- Text extraction alone cannot see overlapping text, and pixels alone cannot
-  prove a total. A layout claim needs both.
+- A claim about a report's output is checked on the PDF the engine produced,
+  read back with PDF.js: its text, and where each run and image is. Not on
+  the engine's input document, and not through a mocked engine.
+- Extracted text alone cannot see text drawn over text, so the checks read
+  each run's box as well. Boxes are computed from baselines, not traced from
+  glyphs: accents that touch, rules, borders, clipping and colour are not
+  seen. Page images are the later addition for those (0003), and pixels
+  alone could never prove a total. A layout claim says which it rests on.
 - Never silently drop, clip or truncate content. A report that cannot fit says
   so in a diagnostic; a production render with incomplete data refuses.
 - Exact values -- decimals, large integers -- travel as strings with their type
@@ -268,7 +281,8 @@ pull request and `release.yml` calls before it publishes, so a release passes
 exactly what CI does:
 
 - **`verify`** runs `pnpm build`, `pnpm typecheck`, `pnpm check:pkg`,
-  `node scripts/verify-licenses.mjs` and `pnpm test:repo` in one job.
+  `node scripts/verify-licenses.mjs`, `node scripts/dependency-licences.mjs`
+  and `pnpm test:repo` in one job.
 - **`test`** runs each package's `test:coverage` in a job of its own.
   `scripts/ci-test-jobs.test.mjs` fails when that list and the workspace
   disagree.

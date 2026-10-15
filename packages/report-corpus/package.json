@@ -1,0 +1,39 @@
+{
+  "name": "@formancy/report-corpus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Test support, never published: the adversarial report fixtures every PDF engine answers to, the reader that proves a rendered PDF against them, and the renderer trial that chose the engine.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test:coverage": "vitest run --coverage",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "trial": "tsdown && node dist/trial/run.mjs"
+  },
+  "dependencies": {
+    "pdfjs-dist": "6.4.299"
+  },
+  "devDependencies": {
+    "@pdfme/common": "6.2.4",
+    "@pdfme/generator": "6.2.4",
+    "@pdfme/pdf-lib": "6.2.4",
+    "@pdfme/schemas": "6.2.4",
+    "@types/node": "catalog:",
+    "@types/pdfmake": "0.3.3",
+    "@vitest/coverage-v8": "catalog:",
+    "pdfmake": "0.3.11",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "unrun": "^0.3.1",
+    "vitest": "catalog:"
+  }
+}
