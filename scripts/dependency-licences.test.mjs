@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -516,20 +516,44 @@ describe('this workspace', () => {
 
   // The walk never follows a devDependency, because no customer installs
   // one. That holds only while no build copies one into what is published:
-  // tsdown inlines a package the code imports at run time and the manifest
-  // does not declare, so a GPL devDependency would ship inside dist as this
-  // repository's own code. Every publishable package's build therefore
-  // inlines nothing from node_modules (`deps.onlyBundle: []`), read from
-  // each build configuration itself, entry by entry.
+  // a bundler inlines a package the code imports at run time and the
+  // manifest does not declare, so a GPL devDependency would ship inside dist
+  // as this repository's own code. Every publishable package's build
+  // therefore inlines nothing from node_modules, held by whatever builds it:
+  // - tsdown's `deps.onlyBundle: []`, read from each build configuration
+  //   itself, entry by entry;
+  // - for an Angular package, which ng-packagr builds and which has no such
+  //   setting, the bundle's own source map, which names every file the
+  //   bundle was made from. That is read from what the build made: in CI,
+  //   where the verify job builds first, and locally once there is a build.
+  // A package built by neither is refused, so a third bundler cannot arrive
+  // unread.
   test("every publishable package's build inlines nothing from node_modules", async () => {
     const { published } = workspaceClosure()
     const packages = readdirSync(join(repo, 'packages')).map((name) => join(repo, 'packages', name))
     const directories = packages.filter((dir) => published.includes(JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).name))
     expect(directories.length).toBeGreaterThan(0)
+    const read = { tsdown: 0, ngPackagr: 0 }
     for (const dir of directories) {
-      const { default: config } = await import(pathToFileURL(join(dir, 'tsdown.config.ts')).href)
-      for (const build of [config].flat()) expect(build.deps?.onlyBundle, dir).toEqual([])
+      if (existsSync(join(dir, 'tsdown.config.ts'))) {
+        const { default: config } = await import(pathToFileURL(join(dir, 'tsdown.config.ts')).href)
+        for (const build of [config].flat()) expect(build.deps?.onlyBundle, dir).toEqual([])
+        read.tsdown += 1
+        continue
+      }
+      expect(existsSync(join(dir, 'ng-package.json')), `${dir} is built by neither tsdown nor ng-packagr`).toBe(true)
+      const bundles = join(dir, 'dist', 'fesm2022')
+      if (!existsSync(bundles) && process.env.CI !== 'true') continue
+      const maps = readdirSync(bundles).filter((name) => name.endsWith('.mjs.map'))
+      expect(maps.length, dir).toBeGreaterThan(0)
+      for (const map of maps) {
+        const { sources } = JSON.parse(readFileSync(join(bundles, map), 'utf8'))
+        expect(sources.length, map).toBeGreaterThan(0)
+        for (const source of sources) expect(join(bundles, source).startsWith(join(dir, 'src')), `${map}: ${source}`).toBe(true)
+      }
+      read.ngPackagr += 1
     }
+    expect(read.tsdown).toBeGreaterThan(0)
   })
 
   // 0006 names the gates step as what holds the rule before every release as

@@ -37,9 +37,19 @@ export function filesUnder(dir) {
   return files
 }
 
-/** The files of a packed tarball's `package/dist/`, as `filesUnder` gives a directory's. */
+/** What every tarball carries beside its build, packed from dist/ or not. */
+const BESIDE_THE_BUILD = new Set(['package/package.json', 'package/README.md', 'package/LICENSE.md', 'package/NOTICE'])
+
+/**
+ * The built files of a packed tarball, as `filesUnder` gives a directory's:
+ * its `package/dist/`, or, for a package packed from its dist/ (an Angular
+ * package, through `publishConfig.directory`), everything in `package/` but
+ * the manifest, the README and the licence files.
+ */
 export function distOfTarball(entries) {
   const files = new Map()
   for (const [path, bytes] of entries) if (path.startsWith('package/dist/')) files.set(path.slice('package/dist/'.length), bytes)
+  if (files.size > 0) return files
+  for (const [path, bytes] of entries) if (path.startsWith('package/') && !BESIDE_THE_BUILD.has(path)) files.set(path.slice('package/'.length), bytes)
   return files
 }

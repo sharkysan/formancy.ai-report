@@ -1,0 +1,68 @@
+{
+  "name": "@formancy/report-builder-angular",
+  "version": "0.1.0",
+  "description": "Formancy Report Studio for Angular: the native report editor over report-builder-core and one report-core session, with signals.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "LICENSE.md",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "directory": "dist",
+    "linkDirectory": false,
+    "access": "public"
+  },
+  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "bugs": "https://github.com/sharkysan/formancy.ai-report/issues",
+  "types": "./dist/types/formancy-report-builder-angular.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/formancy-report-builder-angular.d.ts",
+      "default": "./dist/fesm2022/formancy-report-builder-angular.mjs"
+    }
+  },
+  "scripts": {
+    "build": "ng-packagr -p ng-package.json && node ../../scripts/finalize-angular-dist.mjs .",
+    "test:coverage": "vitest run --coverage",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "check:pkg": "publint ./dist && attw --pack ./dist --profile esm-only"
+  },
+  "dependencies": {
+    "@formancy/report-builder-core": "workspace:*",
+    "@formancy/report-core": "workspace:*",
+    "@formancy/report-spec": "workspace:*",
+    "tslib": "^2.8.0"
+  },
+  "peerDependencies": {
+    "@angular/core": "^22.0.0"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "publint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "@analogjs/vite-plugin-angular": "^2.7.2",
+    "@angular/build": "^22.1.8",
+    "@angular/common": "^22.1.7",
+    "@angular/compiler": "^22.1.7",
+    "@angular/compiler-cli": "^22.1.7",
+    "@angular/core": "^22.1.7",
+    "@angular/platform-browser": "^22.1.7",
+    "@testing-library/angular": "^19.5.0",
+    "axe-core": "catalog:",
+    "dom-accessibility-api": "^0.5.16",
+    "jsdom": "^30.1.0",
+    "ng-packagr": "^22.1.1",
+    "rxjs": "^7.8.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
+    "directory": "packages/report-builder-angular"
+  }
+}

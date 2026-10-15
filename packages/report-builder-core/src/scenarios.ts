@@ -1,0 +1,278 @@
+/**
+ * What each native builder must do, as data: user-visible scenarios that
+ * the React and the Angular builder each run with Testing Library and
+ * user-event, finding every element by its role and accessible name and
+ * nothing else (plan 21, formancy.ai's parity approach).
+ *
+ * One list for both, so neither builder's tests can quietly expect less
+ * than the other's; a framework's runner fails when it skips one, and it
+ * implements every kind of step, because every kind is used. The names come
+ * from the editor's catalogue and from the scenario report's own content,
+ * so the list exists in each of the editor's languages; the frameworks run
+ * the English one, and may run the others.
+ *
+ * A runner opens a session over `report()`, mounts its builder over it in
+ * `locale`, and does each step in order:
+ * - `click`: user-event's click on the element.
+ * - `focus`: moves focus to the element, as tabbing to it would. In the
+ *   outline that selects the row: focus and selection are one.
+ * - `press`: user-event's keyboard, the modifiers held around the key.
+ * - `fill`: clears the field, types the text, and tabs away, which commits.
+ * - `choose`: selects the option with that label in the combobox.
+ * - `present`, `absent`, `focused`: the element is there, is not, has focus.
+ * - `value`: the control's value. `text`: the element's text content holds
+ *   it. The live region is the status with no name; the problems' count is
+ *   the status named by the problems pane.
+ * - `invalid`: `aria-invalid="true"`, and an accessible description saying why.
+ * - `document`: `check` holds of the session's document.
+ */
+import type { ReportDefinition } from '@formancy/report-spec'
+import { PROPERTY_ROLES } from './model.js'
+import { contentLocale, editorText, formatZoom } from './text.js'
+import type { EditorLocale } from './text.js'
+
+/** An element, by its role and its accessible name, and the ARIA states it must have. */
+export interface ScenarioQuery {
+  readonly role: string
+  readonly name: string
+  readonly selected?: boolean
+}
+
+export const SCENARIO_ACTIONS = ['click', 'focus', 'press', 'fill', 'choose'] as const
+export const SCENARIO_EXPECTATIONS = ['present', 'absent', 'focused', 'value', 'text', 'invalid', 'document'] as const
+
+export type KeyModifier = 'Alt' | 'Control' | 'Meta' | 'Shift'
+
+export type ScenarioStep =
+  | ({ readonly do: 'click' | 'focus' } & ScenarioQuery)
+  | { readonly do: 'press'; readonly key: string; readonly modifiers?: readonly KeyModifier[] }
+  | ({ readonly do: 'fill'; readonly text: string } & ScenarioQuery)
+  | ({ readonly do: 'choose'; readonly option: string } & ScenarioQuery)
+  | ({ readonly expect: 'present' | 'absent' | 'focused' | 'invalid' } & ScenarioQuery)
+  | ({ readonly expect: 'value'; readonly value: string } & ScenarioQuery)
+  | ({ readonly expect: 'text'; readonly text: string } & ScenarioQuery)
+  | {
+      readonly expect: 'document'
+      /** What is checked, for the failure message. */
+      readonly says: string
+      readonly check: (report: ReportDefinition) => boolean
+      /** The check is that something stayed as it was, so it holds of the starting report too. */
+      readonly unchanged?: true
+    }
+
+export interface BuilderScenario {
+  readonly name: string
+  readonly locale: EditorLocale
+  /** The report the session opens: a fresh copy each call. */
+  readonly report: () => ReportDefinition
+  readonly steps: readonly ScenarioStep[]
+}
+
+const SCENARIO_REPORT: ReportDefinition = {
+  reportSpecVersion: '0',
+  id: 'site-visit',
+  title: 'Site visit',
+  locale: 'en',
+  page: { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 56.69, bottom: 56.69, left: 56.69 } },
+  styles: [{ id: 'heading', size: 14, bold: true }],
+  datasets: {},
+  parameters: [],
+  assets: [],
+  aggregates: [],
+  regions: {
+    reportHeader: [],
+    pageHeader: [],
+    body: [
+      { id: 'findings', kind: 'text', style: 'heading', content: [{ kind: 'text', text: 'Findings' }] },
+      { id: 'intro', kind: 'text', content: [{ kind: 'text', text: 'Introduction' }] },
+      { id: 'notes', kind: 'section', components: [{ id: 'note', kind: 'text', content: [{ kind: 'text', text: 'Note' }] }] },
+      { id: 'gap', kind: 'spacer', height: 12 },
+    ],
+    pageFooter: [],
+    summary: [],
+  },
+}
+
+/** The report every scenario starts from, or breaks one thing in: a fresh copy. scenarios.test.ts opens it, so it is valid. */
+export function scenarioReport(): ReportDefinition {
+  return JSON.parse(JSON.stringify(SCENARIO_REPORT)) as ReportDefinition
+}
+
+/** The scenario report with the introduction shown only when a parameter nobody declared says so: an error the diagnostics link to it. */
+function brokenReport(): ReportDefinition {
+  const report = scenarioReport()
+  return { ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)) } }
+}
+
+const body = (report: ReportDefinition): string[] => report.regions.body.map((component) => component.id)
+
+const held = (report: ReportDefinition, id: string): string[] => {
+  const found = report.regions.body.find((component) => component.id === id)
+  return found !== undefined && 'components' in found ? found.components.map((component) => component.id) : []
+}
+
+/** The scenarios, their names in `locale`. */
+export function builderScenarios(locale: EditorLocale): readonly BuilderScenario[] {
+  const t = editorText(locale)
+  const region = t('region.body')
+  const spacer = t('kind.spacer')
+  const section = t('kind.section')
+  const height = t('field.withUnit', { label: t('field.height'), unit: t('unit.mm') })
+  const tree = (name: string, selected?: boolean): ScenarioQuery => ({ role: 'treeitem', name, ...(selected === undefined ? {} : { selected }) })
+  const button = (name: string): ScenarioQuery => ({ role: 'button', name })
+  const zoom: ScenarioQuery = { role: 'status', name: t('zoom.label') }
+  /** The live region: the one status with no name. */
+  const said: ScenarioQuery = { role: 'status', name: '' }
+  const problems: ScenarioQuery = { role: 'status', name: t('pane.problems') }
+  const error = (where: string): ScenarioQuery => button(t('problem.item', { severity: t('severity.error'), where }))
+  // What a new text says is in the report's language, which prints, not the editor's.
+  const newText = editorText(contentLocale(scenarioReport().locale))('default.text')
+  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = scenarioReport): BuilderScenario => ({ name, locale, report, steps })
+
+  return [
+    scenario('insert a text into the body by keyboard', [
+      { do: 'focus', ...button(t('kind.text')) },
+      { do: 'press', key: 'Enter' },
+      { expect: 'present', role: 'dialog', name: t('places.insert', { kind: t('kind.text') }) },
+      { do: 'focus', ...button(t('target.after', { where: region, name: spacer })) },
+      { do: 'press', key: 'Enter' },
+      { expect: 'absent', role: 'dialog', name: t('places.insert', { kind: t('kind.text') }) },
+      { expect: 'focused', ...tree(newText, true) },
+      { expect: 'document', says: 'the body ends with a new text', check: (report) => body(report).join() === 'findings,intro,notes,gap,text' },
+    ]),
+    scenario('select in the outline, and walk it with the arrow keys', [
+      { do: 'click', ...tree('Introduction') },
+      { expect: 'focused', ...tree('Introduction', true) },
+      { expect: 'value', role: PROPERTY_ROLES.multiline, name: t('field.text'), value: 'Introduction' },
+      { do: 'press', key: 'ArrowDown' },
+      { expect: 'focused', ...tree(section, true) },
+      { do: 'press', key: 'ArrowRight' },
+      { expect: 'focused', ...tree('Note', true) },
+      { do: 'press', key: 'ArrowLeft' },
+      { expect: 'focused', ...tree(section, true) },
+      { do: 'press', key: 'ArrowUp' },
+      { expect: 'focused', ...tree('Introduction', true) },
+    ]),
+    scenario('focus selects an outline row, and the arrows walk on from it', [
+      { do: 'focus', ...tree('Findings') },
+      { expect: 'focused', ...tree('Findings', true) },
+      { expect: 'value', role: PROPERTY_ROLES.multiline, name: t('field.text'), value: 'Findings' },
+      { do: 'press', key: 'ArrowDown' },
+      { expect: 'focused', ...tree('Introduction', true) },
+    ]),
+    scenario('edit the report’s title', [
+      { expect: 'value', role: PROPERTY_ROLES.text, name: t('field.title'), value: 'Site visit' },
+      { do: 'fill', role: PROPERTY_ROLES.text, name: t('field.title'), text: 'Site visit, Zürich' },
+      { expect: 'document', says: 'the title is the one typed', check: (report) => report.title === 'Site visit, Zürich' },
+      { expect: 'value', role: PROPERTY_ROLES.text, name: t('field.title'), value: 'Site visit, Zürich' },
+    ]),
+    scenario('go back to the report’s own properties from a selection', [
+      { do: 'click', ...tree('Introduction') },
+      { expect: 'absent', role: PROPERTY_ROLES.text, name: t('field.title') },
+      { do: 'click', ...button(t('properties.report')) },
+      { expect: 'focused', role: PROPERTY_ROLES.text, name: t('field.title') },
+      { expect: 'value', role: PROPERTY_ROLES.text, name: t('field.title'), value: 'Site visit' },
+      { expect: 'absent', ...tree('Introduction', true) },
+    ]),
+    scenario('refuse an invalid property, with the error on its field', [
+      { do: 'click', ...tree(spacer) },
+      { do: 'fill', role: PROPERTY_ROLES.length, name: height, text: '400' },
+      { expect: 'invalid', role: PROPERTY_ROLES.length, name: height },
+      { expect: 'document', says: 'the spacer is as tall as it was', unchanged: true, check: (report) => report.regions.body.some((component) => component.id === 'gap' && component.kind === 'spacer' && component.height === 12) },
+    ]),
+    scenario('move a component down and back up by keyboard', [
+      { do: 'click', ...tree('Findings') },
+      { do: 'press', key: 'ArrowDown', modifiers: ['Alt'] },
+      { expect: 'document', says: 'the findings come after the introduction', check: (report) => body(report).join() === 'intro,findings,notes,gap' },
+      { expect: 'focused', ...tree('Findings', true) },
+      { do: 'press', key: 'ArrowUp', modifiers: ['Alt'] },
+      { expect: 'document', says: 'the findings are first again', check: (report) => body(report).join() === 'findings,intro,notes,gap' },
+    ]),
+    scenario('move into a section and out again by keyboard', [
+      { do: 'click', ...tree(spacer) },
+      { do: 'press', key: 'ArrowRight', modifiers: ['Alt'] },
+      { expect: 'document', says: 'the spacer is the section’s last', check: (report) => held(report, 'notes').join() === 'note,gap' },
+      { expect: 'focused', ...tree(spacer, true) },
+      { do: 'press', key: 'ArrowLeft', modifiers: ['Alt'] },
+      { expect: 'document', says: 'the spacer follows the section again', check: (report) => body(report).join() === 'findings,intro,notes,gap' },
+    ]),
+    scenario('move to a place chosen by keyboard', [
+      { do: 'click', ...tree('Findings') },
+      { do: 'focus', ...button(t('action.moveTo')) },
+      { do: 'press', key: 'Enter' },
+      { expect: 'present', role: 'dialog', name: t('places.move', { name: 'Findings' }) },
+      { do: 'focus', ...button(t('target.after', { where: section, name: 'Note' })) },
+      { do: 'press', key: 'Enter' },
+      { expect: 'document', says: 'the findings are in the section, after the note', check: (report) => held(report, 'notes').join() === 'note,findings' },
+      { expect: 'focused', ...tree('Findings', true) },
+    ]),
+    scenario('delete moves focus to the next item, or the one before', [
+      { do: 'click', ...tree('Introduction') },
+      { do: 'press', key: 'Delete' },
+      { expect: 'absent', ...tree('Introduction') },
+      { expect: 'document', says: 'the introduction is gone', check: (report) => !body(report).includes('intro') },
+      { expect: 'focused', ...tree(section, true) },
+      { do: 'click', ...tree(spacer) },
+      { do: 'press', key: 'Delete' },
+      { expect: 'focused', ...tree(section, true) },
+    ]),
+    scenario('duplicate selects the copy', [
+      { do: 'click', ...tree('Introduction') },
+      { do: 'press', key: 'd', modifiers: ['Control'] },
+      { expect: 'document', says: 'a copy follows the introduction', check: (report) => body(report).join() === 'findings,intro,intro-2,notes,gap' },
+      { expect: 'present', ...tree(t('outline.duplicate', { label: 'Introduction', id: 'intro' })) },
+      { expect: 'focused', ...tree(t('outline.duplicate', { label: 'Introduction', id: 'intro-2' }), true) },
+    ]),
+    scenario('undo and redo, from the toolbar and the keyboard', [
+      { do: 'click', ...tree(spacer) },
+      { do: 'press', key: 'Delete' },
+      { expect: 'document', says: 'the spacer is gone', check: (report) => !body(report).includes('gap') },
+      { do: 'click', ...button(t('action.undo')) },
+      { expect: 'present', ...tree(spacer) },
+      { expect: 'document', says: 'the spacer is back', check: (report) => body(report).includes('gap') },
+      { do: 'click', ...button(t('action.redo')) },
+      { expect: 'absent', ...tree(spacer) },
+      { do: 'press', key: 'z', modifiers: ['Control'] },
+      { expect: 'present', ...tree(spacer) },
+    ]),
+    scenario(
+      'a diagnostic links to its component',
+      [
+        { expect: 'present', ...button(t('problem.item', { severity: t('severity.error'), where: 'Introduction' })) },
+        { do: 'click', ...button(t('problem.item', { severity: t('severity.error'), where: 'Introduction' })) },
+        { expect: 'focused', ...tree('Introduction', true) },
+      ],
+      brokenReport,
+    ),
+    scenario('the problems are counted, and said, as they change', [
+      { do: 'click', ...tree('Introduction') },
+      { do: 'fill', role: PROPERTY_ROLES.expression, name: t('field.visibleWhen'), text: 'params.missing' },
+      { expect: 'text', ...problems, text: `${t('pane.problems')} 1` },
+      { expect: 'present', ...error('Introduction') },
+      { do: 'click', ...button(t('action.undo')) },
+      { expect: 'absent', ...error('Introduction') },
+    ]),
+    scenario('a tool with nothing to do keeps focus, and says why', [
+      { do: 'focus', ...button(t('action.undo')) },
+      { do: 'press', key: 'Enter' },
+      { expect: 'focused', ...button(t('action.undo')) },
+      { expect: 'text', ...said, text: t('status.nothingToUndo') },
+      { expect: 'document', says: 'nothing changed', unchanged: true, check: (report) => body(report).join() === 'findings,intro,notes,gap' },
+    ]),
+    scenario('zoom from the toolbar and the keyboard', [
+      { expect: 'text', ...zoom, text: formatZoom(1, locale) },
+      { do: 'click', ...button(t('action.zoomIn')) },
+      { expect: 'text', ...zoom, text: formatZoom(1.25, locale) },
+      { do: 'press', key: '0', modifiers: ['Control'] },
+      { expect: 'text', ...zoom, text: formatZoom(1, locale) },
+    ]),
+    scenario('choose a style from a picker', [
+      { do: 'click', ...tree('Introduction') },
+      { do: 'choose', role: PROPERTY_ROLES.style, name: t('field.style'), option: 'heading' },
+      { expect: 'document', says: 'the introduction has the heading style', check: (report) => report.regions.body.some((component) => component.id === 'intro' && component.style === 'heading') },
+    ]),
+  ]
+}
+
+/** The scenarios every native builder runs: the English ones. */
+export const BUILDER_SCENARIOS: readonly BuilderScenario[] = builderScenarios('en')

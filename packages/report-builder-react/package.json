@@ -1,0 +1,63 @@
+{
+  "name": "@formancy/report-builder-react",
+  "version": "0.1.0",
+  "description": "Formancy Report Studio for React: the native report editor over report-builder-core and one report-core session.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "LICENSE.md",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "bugs": "https://github.com/sharkysan/formancy.ai-report/issues",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test:coverage": "vitest run --coverage",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check:pkg": "publint && attw --pack . --profile esm-only"
+  },
+  "dependencies": {
+    "@formancy/report-builder-core": "workspace:*",
+    "@formancy/report-core": "workspace:*",
+    "@formancy/report-spec": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "publint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "tsdown": "catalog:",
+    "unrun": "^0.3.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "axe-core": "catalog:",
+    "dom-accessibility-api": "^0.5.16",
+    "jsdom": "^30.1.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
+    "directory": "packages/report-builder-react"
+  }
+}

@@ -13,22 +13,29 @@ approved PostgreSQL or SQL Server dataset. An AI can propose changes, which
 are reviewed against the same sample data before they apply. Report works
 without any AI dependency.
 
-> **Status, 15 October 2026: the PDF engine is chosen. Nothing designs or
-> renders a report for you yet.**
+> **Status, 15 October 2026: a report can be laid out in a native React or
+> Angular builder. Nothing reads data into a report or renders it yet.**
 >
-> What exists is the licence, the pipeline that proves the packages, and
-> three packages. `@formancy/report-spec` defines the report format,
-> validates a report structurally and hashes it. `@formancy/report-core`
-> edits a report through commands, with undo, says where a component may go,
-> and compiles and diagnoses its expressions as the runtime will.
-> `@formancy/report-corpus` is private test support: adversarial report
-> fixtures and the checks that prove a rendered PDF against them. The
-> renderer trial ran pdfmake and pdfme through it, and pdfmake renders
-> reports from here on
+> What exists is the licence, the pipeline that proves the packages, and six
+> packages. `@formancy/report-spec` defines the report format, validates a
+> report structurally and hashes it. `@formancy/report-core` edits a report
+> through commands, with undo, says where a component may go, and compiles
+> and diagnoses its expressions as the runtime will.
+> `@formancy/report-builder-core` is the editor model, and
+> `@formancy/report-builder-react` and `@formancy/report-builder-angular`
+> render it natively over one session, held to each other by shared
+> scenarios
+> ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).
+> They are packages a host mounts, not yet a Studio: no browser test runs
+> them, and the Angular package packed from its own directory cannot be
+> imported yet. `@formancy/report-corpus` is private test support:
+> adversarial report fixtures and the checks that prove a rendered PDF
+> against them. The renderer trial ran pdfmake and pdfme through it, and
+> pdfmake renders reports from here on
 > ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
 > [the trial](./docs/renderer-trial.md)). The format is version 0, a draft: a
-> report written now is not promised to be read by a later release. There is
-> no editor on screen yet, and nothing reads data into a report or draws one.
+> report written now is not promised to be read by a later release. Nothing
+> reads data into a report or draws one.
 
 ## Licence, in one table
 
@@ -60,10 +67,13 @@ own, on Formancy Data's terms and before a lawyer has read them, is decision
 | --- | --- |
 | `@formancy/report-spec` | The report definition, version 0 (a draft): its types, structural validation with stable error codes, a canonical hash, page geometry and the one conversion between millimetres and points. A report is a document of its own, not a form ([0007](./docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)). No framework, no PDF engine, no Node. |
 | `@formancy/report-core` | The editing core: pure commands over a report, also as data for a proposal; a session that commits only what the validator accepts, with exact undo and redo; the places a component may go; and one compilation of every expression, each member checked as its type, which the diagnostics report and the runtime will evaluate. A refused edit changes nothing ([0008](./docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)). No framework, no PDF engine, no Node. |
+| `@formancy/report-builder-core` | The editor model both builders render, with no framework: one person's view of a report-core session, and the outline, palette, property fields, design view, drop targets, diagnostics, keys and words derived from it, in English, Swiss German and Swiss French. Several editors share one session and its undo history. Its `report-builder.css` dresses both builders through formancy's workbench variables. `BUILDER_SCENARIOS` is what every builder must do, as data ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)). No framework, no DOM, no Node. |
+| `@formancy/report-builder-react` | The builder for React 19: the workbench's panes over one editor, through `useSyncExternalStore`. Runs every shared scenario in three languages, with axe. |
+| `@formancy/report-builder-angular` | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js, built by ng-packagr. Runs every shared scenario in three languages, with axe; no React in its closure. Its manifest does not yet publish from `dist/`, so packed from its own directory it cannot be imported. |
 | `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)), and the renderer trial's adapters for pdfmake and pdfme. |
 
-Planned and not here: the native Angular and React builders over one
-session, the runtime that groups and totals, the PDF renderer, the server and
+Planned and not here: the Studio the builders stand in, with its browser
+gates, the runtime that groups and totals, the PDF renderer, the server and
 its jobs, the PDF viewer, reviewed AI changes, and the optional Formancy Data
 provider.
 

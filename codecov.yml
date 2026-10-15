@@ -46,6 +46,18 @@ component_management:
       - type: project
         informational: true
   individual_components:
+    - component_id: report-builder-angular
+      name: packages/report-builder-angular
+      paths:
+        - packages/report-builder-angular/**
+    - component_id: report-builder-core
+      name: packages/report-builder-core
+      paths:
+        - packages/report-builder-core/**
+    - component_id: report-builder-react
+      name: packages/report-builder-react
+      paths:
+        - packages/report-builder-react/**
     - component_id: report-core
       name: packages/report-core
       paths:

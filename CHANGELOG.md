@@ -158,7 +158,7 @@ is built for:
 | Formancy Data | none until Data publishes |
 | Node | 22.13 or later |
 | TypeScript | `~6.0.3` |
-| Angular, React | none built against yet; 22 and 19 with the builders |
+| Angular, React | `@angular/core` ^22 and `react`/`react-dom` ^19, as peers of the builders; tested against 22.2.2 and 19.3.1 |
 | pnpm | 12.4.2 |
 
 **Node 22.13 or later, up from 22.12.** `pdfjs-dist` 6.4.299, which reads
@@ -239,3 +239,58 @@ rather than a second one. Its 0.5.0 declares a variable only by its whole
 name, so each member read is spliced, by its own `rewritePath`, into one
 variable declared with the member's type. A decimal that may be null is
 checked as `dyn`, which 0.5.0 will not test for equality with a decimal.
+
+**A report can be designed in a native React or Angular builder, over one
+session** ([0012](docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).
+Three packages arrive, and what holds them to each other is the reason for
+their shape:
+
+- **`@formancy/report-builder-core`** is the editor both builders render:
+  one person's view of a report-core session -- selection, zoom, open
+  pane, drag -- and everything a builder shows, derived from the document
+  once: the outline, the palette, the property fields (a length edited in
+  millimetres, refused in millimetres too), the design view's geometry,
+  the drop targets (report-core's `validLocations`, so a builder never
+  offers a drop the session refuses), the diagnostics, which actions have
+  somewhere to go, and a live region's announcements. Its state is deeply
+  frozen and keeps its identity until something changes. Keys are decided
+  once, in `actionForKey`, with every drag's keyboard path (formancy.ai
+  0046). Every word is in one catalogue, in English, Swiss German and Swiss
+  French. No framework, no DOM, no Node. Several editors share one session:
+  the document and its undo history live only there, so a builder of either
+  framework can be destroyed and another mounted without losing a step.
+  What it puts into a report -- a new text's "New text" -- is in the
+  report's language, because it prints; the session keeps each step's label
+  as an English sentence any reader of it can show, and each editor says it
+  in its own language. `report-builder.css` dresses both builders through
+  formancy's `--wb-*` variables and `data-report-part` hooks, never a
+  framework's class or a colour of its own.
+- **`@formancy/report-builder-react`** and **`@formancy/report-builder-angular`**
+  render that state natively: `useSyncExternalStore`, and signals with
+  `OnPush` and no zone.js. Neither depends on the other, and the Angular
+  package's closure has no React (plan 21). Both render one accessible
+  structure: a region named "Report editor", a toolbar that is one tab
+  stop with buttons for the panes a narrow screen shows one at a time, a
+  tree whose focus is its selection, a place chooser for every drag, a form
+  of properties with a way back to the report's own, a counted and
+  announced list of problems, and a design view of named pictures, labelled
+  as not the PDF.
+- **`BUILDER_SCENARIOS`** is that structure as data: steps that find
+  elements by role and accessible name. Each builder runs every one, in all
+  three languages, with axe over each end state, and the core runs them
+  against the model. A review that compared the two builders found them
+  apart in places the scenarios did not reach -- a narrow screen
+  stuck on the outline, focus lost after deleting the last row, no way back
+  to the report's properties, tools that said nothing, problems never
+  announced, a pointer read a pixel off -- and each is now a scenario, a
+  rule both builders follow, or a test.
+- **The Angular package is built by ng-packagr** into `dist/`, and
+  `scripts/finalize-angular-dist.mjs` makes ng-packagr's manifest the one
+  that is published. Its source manifest does not yet send pnpm to `dist/`,
+  so packed from its own directory it cannot be imported, and the install
+  gate does not import it yet; it does install and drive
+  `report-builder-core` under Node.
+
+What waits for the Studio: a browser gate for layout, contrast and real
+pointers, a check of the README pictures, and a test that mounts both
+builders over one session.

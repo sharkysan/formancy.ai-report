@@ -56,6 +56,21 @@ describe('a packed tarball', () => {
     expect(distHash(filesUnder(dir))).not.toBe(fromTarball)
   })
 
+  // An Angular package packs from its dist/, so its tarball has no
+  // package/dist/: its built files are at package/ itself. Read as an empty
+  // dist, every Angular tarball would hash alike, whatever it held.
+  test('reads the built files of a package packed from its dist/', () => {
+    const packedFromDist = [
+      ['package/package.json', Buffer.from('{"name":"@formancy/report-builder-angular"}')],
+      ['package/LICENSE.md', Buffer.from('terms')],
+      ['package/NOTICE', Buffer.from('notice')],
+      ['package/README.md', Buffer.from('readme')],
+      ['package/fesm2022/a.mjs', Buffer.from('export const a = 1\n')],
+      ['package/types/a.d.ts', Buffer.from('export declare const a: 1\n')],
+    ]
+    expect([...distOfTarball(readTarball(tgz(packedFromDist))).keys()].sort()).toEqual(['fesm2022/a.mjs', 'types/a.d.ts'])
+  })
+
   // A truncated or altered download whose header no longer adds up is not
   // read as an archive with fewer files.
   test('refuses a header that does not hold its checksum', () => {
