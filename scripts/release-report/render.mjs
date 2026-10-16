@@ -6,6 +6,9 @@
 // limitation the run shows cannot be left out by somebody forgetting it, and
 // the line per section saying where it comes from.
 
+import { browserName } from '../browsers.mjs'
+import { unwalked } from './results.mjs'
+
 const code = (text) => `\`${text}\``
 const cell = (text) => String(text ?? '').replaceAll('|', '\\|').replaceAll('\n', ' ')
 const table = (head, rows) => [`| ${head.join(' | ')} |`, `| ${head.map(() => '---').join(' | ')} |`, ...rows.map((row) => `| ${row.map(cell).join(' | ')} |`)].join('\n')
@@ -60,9 +63,15 @@ export function derivedLimitations(report) {
   if (moved.length > 0) sentences.push(`A clean npm install on ${String(testedOn.installedAt).slice(0, 10)} resolved ${prose(moved)}, which no suite ran.`)
   sentences.push(...peerSentences(report))
 
-  // The Studio's browser job is to be called `browser` (plan 23.4); when it
-  // lands, it says which browsers ran, and this sentence goes.
+  // Which browsers the browser job launched, from what the gate and the
+  // pictures recorded; without the job, that none ran at all.
   if (!report.gateJobs.includes('browser')) sentences.push('No browser ran in this run: the builders’ suites ran in jsdom, and the install gate drew them on a server.')
+  else if (testedOn.browsers.length === 0) sentences.push('No browser was launched in this run: the builders’ suites ran in jsdom, and nothing measured what jsdom cannot see.')
+  else {
+    const launched = testedOn.browsers.map((entry) => `${browserName(entry.name)} ${entry.version}`)
+    const by = distinct(testedOn.browsers.flatMap((entry) => entry.by))
+    sentences.push(`${prose(launched)} ${launched.length === 1 ? 'was the only browser' : 'were the only browsers'} launched in this run, by ${prose(by)}; what jsdom cannot see was measured in no other.`)
+  }
 
   const identity = results.buildIdentity
   if (results.install === null) sentences.push("Each package's own suites ran its source; no install gate ran the packed dist/ in this run.")
@@ -94,9 +103,10 @@ function stated(item) {
 /** How one evidence item stood in the run. */
 function evidenceCell(item) {
   if (item.kind === 'document') return stated(item)
-  const what = item.kind === 'job' ? `the ${code(item.value)} job` : code(item.value)
+  const what = item.kind === 'job' ? `the ${code(item.value)} job` : item.kind === 'browserGate' ? `the browser gate of ${code(item.value)}` : code(item.value)
   if (item.local === true) return `${what}: no result outside a gates run`
-  return `${what}: ${item.outcome === 'absent' ? 'did not run' : item.kind === 'job' && item.outcome === 'failed' ? `ended ${String(item.result)}` : item.outcome}`
+  const where = item.missing === undefined ? '' : ` in ${prose(item.missing.map(browserName))}`
+  return `${what}: ${item.outcome === 'absent' ? `did not run${where}` : item.kind === 'job' && item.outcome === 'failed' ? `ended ${String(item.result)}` : item.outcome}`
 }
 
 const GATE_STATE = { passed: 'evidence passed in this run', failed: 'evidence did not pass in this run', stated: 'stated, not exercised by this run', open: 'open' }
@@ -115,8 +125,12 @@ function gatesSection({ gates }) {
 /** Where each section comes from, one line each. */
 const METHOD = [
   ['Subject', 'the GitHub run’s environment (`GITHUB_SHA`, `GITHUB_RUN_ID`), the report job’s `needs`, the root `package.json`’s version, and each job’s results file'],
-  ['Tested on', '`scripts/release-report/tested-on.mjs` over the checkout -- the published manifests, what is installed, `pnpm-workspace.yaml`’s catalog and every workflow’s `setup-node` -- and the install gate’s `test-results/install.json` for what a clean install resolved and what each host installed'],
+  [
+    'Tested on',
+    '`scripts/release-report/tested-on.mjs` over the checkout -- the published manifests, what is installed, `pnpm-workspace.yaml`’s catalog, every workflow’s `setup-node`, and playwright-core’s `browsers.json` for the build Playwright pins -- the install gate’s `test-results/install.json` for what a clean install resolved and what each host installed, and each browser gate’s and pictures’ check’s own record of the browser it launched',
+  ],
   ['Results', 'each package’s `test-results/vitest.json` and `coverage/coverage-summary.json`, turbo’s run summary (`--summarize`), the repository guards’ `test-results/vitest.json`, and the install gate’s `test-results/install.json`'],
+  ['Browser', 'each app’s `test-results/browser-<browser>.json`, which its browser gate writes however it ends, for every browser of `scripts/browsers.mjs`, and its `test-results/pictures.json`, which its pictures’ check writes however it ends, held to the scenes `scripts/pictures/scenes.json` gives the app'],
   ['Build identity', '`scripts/release/dist-hash.mjs` over every published package’s `dist/` in every job, and over each tarball’s built files'],
   ['Release gates', '`docs/release/gates.json`, the report job’s `needs`, and `git log` for a document’s last change'],
   ['Known limitations', 'the fixed sentences of `scripts/release-report/render.mjs` with this run’s facts, then `docs/release/limitations.json`, held to the decision records by hash'],
@@ -148,6 +162,58 @@ function testedOnSection({ testedOn }) {
     `${testedOn.packageManager.name} ${testedOn.packageManager.version}, through corepack (${code(testedOn.packageManager.declared)}). Tools, as the workspace loads them: ${testedOn.tooling
       .map((tool) => `${tool.name} ${versionsOf(tool)}${tool.declared === null ? '' : ` (${code(tool.declared)})`}`)
       .join(', ')}.${testedOn.hostTools.length === 0 ? '' : ` The install hosts checked their consumers with ${prose(testedOn.hostTools)}, \`skipLibCheck\` off.`}`,
+    '',
+    browsersLine(testedOn),
+  ].join('\n')
+}
+
+/** Which browser builds Playwright pins for the gates, and which this run launched, each held to its pin. */
+function browsersLine({ browser, browsers, axe }) {
+  const pins = prose(browser.pins.map((pin) => `${pin.name} ${pin.browserVersion} (revision ${pin.revision}) for ${browserName(pin.browser)}`))
+  const launched = browsers.map((entry) => `${browserName(entry.name)} ${entry.version}${entry.headless === false ? ' headed' : ''}${entry.pin === null ? ' (which no gate here runs)' : entry.version === entry.pin ? '' : ` (not the ${entry.pin} it pins)`}`)
+  return `Browsers: Playwright ${browser.playwright} pins ${pins}; this run launched ${prose(launched) || 'none'}${axe.length === 0 ? '' : `, with axe-core ${prose(axe)} in the page`}.`
+}
+
+/** A launched browser as a cell: its name, version and how it was launched. */
+const launchedCell = (launched) => (launched === null ? 'none' : `${launched.name} ${launched.version}${launched.headless === undefined ? '' : launched.headless ? ', headless' : ', headed'}`)
+
+/**
+ * What jsdom cannot see, measured in a browser: each browser gate in each
+ * browser, with its checks and the passes it planned and made, and each
+ * pictures' check with the scenes it walked.
+ */
+function browserSection({ results }) {
+  const gates = results.browserGates
+  const pictures = results.pictures
+  return [
+    '## Browser',
+    '',
+    "Each app's browser gate, in every browser the gates run in (`scripts/browsers.mjs`), and its README pictures' check, held to every scene `scripts/pictures/scenes.json` gives the app. A check failed, a pass the gate planned and did not make or made with no check in it, a browser launched otherwise than Playwright's pin, a scene not walked or a picture whose page now says something else fails the run.",
+    '',
+    gates.length === 0
+      ? 'No browser gate left results in this run.'
+      : table(
+          ['Browser gate', 'Browser', 'Launched', 'Playwright', 'Checks passed', 'Checks failed', 'Passes made of planned', 'Widths', 'axe-core', 'Wall time'],
+          gates.map((gate) => [
+            gate.gate,
+            browserName(gate.asked),
+            launchedCell(gate.browser),
+            gate.playwright ?? 'not recorded',
+            gate.ok,
+            gate.failed.length + (gate.error === null ? 0 : 1),
+            `${String(gate.passes)} of ${String(gate.planned.length)}`,
+            gate.widths.join(', '),
+            gate.axe ?? 'not recorded',
+            seconds(gate.wallMs),
+          ]),
+        ),
+    '',
+    pictures.length === 0
+      ? "No pictures' check left results in this run."
+      : table(
+          ["Pictures' check", 'Launched', 'Playwright', 'Scenes walked of scenes.json’s', 'Not walked', 'Pictures no longer showing the page', 'Wall time'],
+          pictures.map((check) => [check.app, launchedCell(check.browser), check.playwright ?? 'not recorded', `${String(check.walked.length)} of ${String(check.planned.length)}`, unwalked(check).join(', ') || 'none', check.problems.length, seconds(check.wallMs)]),
+        ),
   ].join('\n')
 }
 
@@ -218,7 +284,7 @@ function closingSection(report) {
 
 /** Every section after the subject. */
 export function renderContent(report) {
-  return [testedOnSection(report), resultsSection(report), identitySection(report), gatesSection(report), closingSection(report)].join('\n\n')
+  return [testedOnSection(report), resultsSection(report), browserSection(report), identitySection(report), gatesSection(report), closingSection(report)].join('\n\n')
 }
 
 /** What is being released, as the subject's first line says it. */

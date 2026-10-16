@@ -250,8 +250,10 @@ What nothing holds yet, said: the palette and `builder.css` are copied from
 `admin.css` by hand, and nothing fails when upstream's move; the gate runs
 Chromium alone, where Formancy Data's runs Firefox and WebKit too; what a
 README picture looks like, and whether a caption's quote is painted in it
-rather than scrolled out of its part, which review alone holds; and the
-builders' own READMEs' pictures, still taken by hand.
+rather than scrolled out of its part, which review alone holds; the
+builders' own READMEs' pictures, still taken by hand; and the two builders'
+accessible trees compared with each other, which no test does, so release
+gate G3 stays open (`docs/release/gates.json`).
 
 ## Branch names
 
@@ -372,6 +374,13 @@ exactly what CI does:
   - a test file the checkout holds did not run in its suite -- a test file
     is known by its name, not by the suite's include, so one renamed past
     the include fails here;
+  - the browser gate failed a check, stopped, made fewer passes than it
+    planned or a pass with no check in it, or the pictures' check did not
+    walk a scene `scripts/pictures/scenes.json` gives the app or found a
+    picture whose page says something else -- each read from the file it
+    writes in the app's `test-results/` -- or either launched another
+    Chromium than Playwright pins, or launched it otherwise than
+    `scripts/browsers.mjs` says;
   - an install host `scripts/install-hosts.mjs` plans was not checked whole,
     or a builder's was not at its range's floor;
   - two builds of one package differ, or a tarball's built files are not
@@ -381,6 +390,9 @@ exactly what CI does:
   A job added to gates.yml needs a collect step and an upload, which the
   workflows test holds, and a reader in
   `scripts/release-report/collect.mjs`, which refuses a job it has none for.
+  The browsers the gates run in are `scripts/browsers.mjs`'s, Chromium
+  alone; a browser added there is one the report expects the gate to have
+  run in.
 
 `scripts/workflows.test.mjs` holds the workflows to their shape:
 - every third-party action is pinned to a commit;

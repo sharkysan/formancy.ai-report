@@ -28,7 +28,9 @@ builds the report from all of them (`scripts/release-report/report.mjs`).
    declared, as its suites ran them, and as each install host resolved
    them, at the newest and the oldest release the range admits; upstream
    `@formancy/*`; Node as each job ran it and the install gate's npm; pnpm;
-   and the tools, TypeScript and PDF.js among them.
+   the Chromium the browser gate and the pictures launched, beside the
+   build the Playwright they ran pins; and the tools, TypeScript and PDF.js
+   among them.
 3. **Results:** a row per package with a suite -- files, tests, what did not
    pass, the task's wall time from turbo, vitest's span, and coverage,
    reported and never gated -- then the repository's guards, and the install
@@ -37,16 +39,27 @@ builds the report from all of them (`scripts/release-report/report.mjs`).
    knows one and not by the suite's own include, which is what is on trial:
    a file in a package with a suite is that package's, any other the
    guards'.
-4. **Build identity:** each published package's tarball as the install gate
+4. **Browser:** each app's browser gate in every browser the gates run in
+   ([`scripts/browsers.mjs`](../../scripts/browsers.mjs), Chromium alone):
+   the browser it launched and how, the Playwright, its checks passed and
+   failed, the passes it made of those it planned, its widths and axe-core;
+   and each app's README pictures' check: the scenes it walked of those
+   [`scenes.json`](../../scripts/pictures/scenes.json) gives the app --
+   read from scenes.json by the report, not from the check -- and the
+   pictures whose page now says something else. Each is read from the
+   file the gate or the check writes in the app's `test-results/` however
+   it ends. The passes a gate planned are its own word: they come from the
+   app's stylesheets, which only the app's gate reads.
+5. **Build identity:** each published package's tarball as the install gate
    packed, installed and ran it, by sha256, and the hash of its built files
    against the `dist/` every job built.
-5. **Release gates:** G1 to G7 and the legal review, from
+6. **Release gates:** G1 to G7 and the legal review, from
    [`gates.json`](gates.json).
-6. **Known limitations:** those the run shows, as fixed sentences with the
+7. **Known limitations:** those the run shows, as fixed sentences with the
    run's facts, then those the decision records state, from
    [`limitations.json`](limitations.json).
-7. **How this report was made:** where each section comes from.
-8. **Problems:** what fails the run. Empty on a green run, and the report
+8. **How this report was made:** where each section comes from.
+9. **Problems:** what fails the run. Empty on a green run, and the report
    says so.
 
 ## What fails it
@@ -57,7 +70,16 @@ package with no suite; a package with no results, no tests, a test that did
 not pass -- skipped is not passed -- a file that failed, or vitest calling
 the run unsuccessful; a test file the checkout holds that its suite did not
 run, whether its include missed it or only part of the suite ran; a coverage
-summary or a turbo task of another run than the suite's `vitest.json`; the
+summary or a turbo task of another run than the suite's `vitest.json`; a
+browser gate that left no results in a browser the gates run in, ended in
+an error, failed a check, planned no pass, made fewer passes than it
+planned or a pass with no check in it, or launched another browser, ran
+another Playwright or launched the browser otherwise -- headed where
+[`scripts/browsers.mjs`](../../scripts/browsers.mjs) launches it headless --
+than the checkout pins; a pictures' check that left no results, ended in an
+error, did not walk a scene `scenes.json` gives its app or walked one it
+does not, found a picture whose page now says something else, or walked in
+another browser than the pin, or launched it otherwise; the
 install gate missing, failed, packing other than one tarball per published
 package, or packing one at another version than the root manifest's; a host
 `scripts/install-hosts.mjs` plans that the gate has no record of, or one it
@@ -114,12 +136,15 @@ which it did not pass.
 the evidence a run must pass, the reason it is open, or both. The plan is a
 working document kept out of the repository, so no gate's wording is here.
 Evidence is a test `file` -- of a package with a suite, or one of the
-repository's guards -- a gates.yml `job`, or a `document`. A gate passes in
-a run when everything but its documents passed; a document is shown as
+repository's guards -- an app's `browserGate`, which passes only in every
+browser the gates run in, with no check failed and every planned pass made
+with a check in it, a gates.yml `job`, or a `document`. A gate passes in a
+run when everything but its documents passed; a document is shown as
 stated, with its last change and how many commits it is behind, and never
-as passed in the run. A gate with a reason is open whatever its evidence,
-and the evidence it has must pass all the same: G3's builders' scenarios run
-in every run, and the cross-framework test it waits for is the Studio's. The
+as passed in the run. A gate with a reason is open whatever its evidence, and the evidence it has
+must pass all the same: G3's builders' scenarios, the Studio's switch across
+the frameworks in jsdom and its browser gate run in every run, and G3 stays
+open because nothing compares the two builders' accessible trees. The
 `legal` gate waits for a lawyer's review of `LICENSE.md`, and
 `scripts/licence-status.test.mjs` fails when it is given evidence, or loses
 its reason, while the licence's version line says no lawyer has reviewed it
@@ -142,9 +167,17 @@ A `vitest.json` of one file, run after the whole suite, fails the report
 for every other test file of its package, which did not run in it. The
 results directory is held to one commit and one run, each key once: a
 collect of another commit, or a CI run's artefacts left beside this
-machine's, fails the report. A gate that rests on a job -- G1 rests on
-`install` -- has no result on a machine, because a job's result is the gates
-run's `needs`: the report says so unless that job is allowed missing, and a
+machine's, fails the report. The browser gate's file and the pictures'
+check's are read on a machine as in CI and held to `--since` like the rest,
+and a gate that rests on a browser gate is judged from that machine's run
+of it. A gate that rests on a job -- G1 rests on `install` -- has no result
+on a machine, because a job's result is the gates run's `needs`: the report
+says so unless that job is allowed missing. `--allow-missing` names
+collect's readers -- `verify`, `browser`, `install` -- whose files a machine
+did not write: collect files each file it did not find under the reader
+that expected it, and the report leaves out those of an allowed reader and
+what rests on it. A file it found and could not use -- from before
+`--since`, another run's -- fails the report whatever is allowed. A
 local report says "local" at the top, names its commit "with uncommitted
 changes" when the tree held any, names what it allowed missing when it is
 partial, and a release refuses it.

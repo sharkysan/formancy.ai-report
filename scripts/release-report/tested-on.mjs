@@ -1,15 +1,17 @@
 // What this checkout is tested with, as far as the tree itself can say (0014;
-// formancy.ai-data 0035's tested-on, without its database images and
-// browsers): every runtime dependency a published package declares and the
-// version the suites load, each peer a builder declares and the version its
-// suites run against, the upstream @formancy/* packages, Node, pnpm, and the
-// tools -- TypeScript and PDF.js among them.
+// formancy.ai-data 0035's tested-on, without its database images): every
+// runtime dependency a published package declares and the version the suites
+// load, each peer a builder declares and the version its suites run against,
+// the upstream @formancy/* packages, Node, pnpm, Playwright and the build it
+// pins for each browser the gates run in, and the tools -- TypeScript and
+// PDF.js among them.
 //
 // Static facts, derived from the manifests and from what is installed;
 // nothing here is typed but the list of tools. What a run actually ran -- the
-// Node of each job, and the React and Angular each install host resolved --
-// comes from that run's results, in the report; this is what the README's
-// generated table and the report's "range -> loaded" columns read.
+// Node of each job, the React and Angular each install host resolved, and the
+// browser the gate launched -- comes from that run's results, in the report;
+// this is what the README's generated table and the report's "range ->
+// loaded" columns read.
 //
 // Run after `pnpm install`. Nothing here needs a build.
 
@@ -17,6 +19,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
+import { BROWSERS, LAUNCH_OPTIONS, PINNED_AS } from '../browsers.mjs'
 import { mustBeInstalled } from '../release/installed.mjs'
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -34,6 +37,8 @@ const TOOLING = [
   { name: 'pdfjs-dist', dir: 'packages/report-corpus' },
   { name: 'jsdom', declared: true },
   { name: 'axe-core', declared: true },
+  // What the browser gate and the pictures drive Chromium with (0013).
+  { name: 'playwright', dir: 'apps/studio' },
 ]
 
 const FIELDS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']
@@ -131,6 +136,32 @@ function tooling(root, packages) {
   })
 }
 
+/**
+ * Playwright as every app with a `test:browser` script loads it, and the
+ * build it pins for each browser of BROWSERS -- the one PINNED_AS names,
+ * which for Chromium launched headless is the headless shell -- read from
+ * playwright-core's browsers.json, which is what `playwright install`
+ * downloads -- and `headless`, how LAUNCH_OPTIONS starts it, since the
+ * headless shell and the full browser are pinned at one version. Throws
+ * when no app has a gate, when the apps load two Playwrights, or when
+ * Playwright pins no such build.
+ */
+function browser(root, packages) {
+  const apps = packages.filter(({ dir, manifest }) => dir.startsWith('apps/') && manifest.scripts?.['test:browser'] !== undefined)
+  if (apps.length === 0) throw new Error('no app has a test:browser script, so no Playwright drives a browser gate')
+  const loaded = apps.map(({ dir }) => ({ dir, found: mustBeInstalled(join(root, dir), 'playwright') }))
+  const versions = [...new Set(loaded.map((entry) => entry.found.version))]
+  if (versions.length > 1) throw new Error(`the browser gates load ${loaded.map((entry) => `Playwright ${entry.found.version} (${entry.dir})`).join(', ')}, and one Playwright pins one build of each browser`)
+  const core = mustBeInstalled(loaded[0].found.dir, 'playwright-core')
+  const builds = JSON.parse(readFileSync(join(core.dir, 'browsers.json'), 'utf8')).browsers
+  const pins = BROWSERS.map((name) => {
+    const build = builds.find((entry) => entry.name === PINNED_AS[name])
+    if (build === undefined) throw new Error(`playwright-core ${core.version} pins no ${String(PINNED_AS[name])}, the build scripts/browsers.mjs says ${name} launches`)
+    return { browser: name, name: build.name, revision: build.revision, browserVersion: build.browserVersion, headless: LAUNCH_OPTIONS.headless }
+  })
+  return { playwright: versions[0], pins }
+}
+
 /** The package manager corepack runs, from the root's `packageManager`: `pnpm@12.4.2` is pnpm 12.4.2, a `+sha…` suffix dropped. */
 function packageManager(manifest) {
   const declared = manifest.packageManager
@@ -156,6 +187,7 @@ export function testedOn(root = repo) {
         .map(({ manifest }) => ({ package: manifest.name, node: manifest.engines.node })),
     },
     packageManager: packageManager(rootManifest),
+    browser: browser(root, packages),
     tooling: tooling(root, packages),
   }
 }

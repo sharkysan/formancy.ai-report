@@ -4,6 +4,7 @@
 //
 //   node scripts/release-report/collect.mjs --job verify
 //   node scripts/release-report/collect.mjs --job test --package @formancy/report-spec
+//   node scripts/release-report/collect.mjs --job browser
 //   node scripts/release-report/collect.mjs --job install
 //   node scripts/release-report/collect.mjs --local --since 2026-10-16T08:00:00Z
 //
@@ -17,19 +18,29 @@
 // `test-results/vitest.json` in `verify`; a package's
 // `test-results/vitest.json` and `coverage/coverage-summary.json`, and
 // turbo's `.turbo/runs/*.json` for the task's own start and end, in `test`;
-// the install gate's `test-results/install.json` in `install`; and in every
-// job, every published package's `dist/` that job built. Beside each suite
-// it lists the test files the checkout holds for it (`git ls-files`), so the
-// report can name one the suite did not run. What it expected and did not
-// find it lists under `missing`, and the report fails on that.
+// in `browser`, each app's browser gate's `test-results/browser-<browser>.json`
+// for every browser of scripts/browsers.mjs, from each app with a
+// `test:browser` script, and its pictures' check's `test-results/pictures.json`
+// from each app with a `test:pictures` script; the install gate's
+// `test-results/install.json` in `install`; and in every job, every
+// published package's `dist/` that job built. Beside each suite it lists the
+// test files the checkout holds for it (`git ls-files`), so the report can
+// name one the suite did not run. A file it expected and did not find it
+// lists under `absent`, with the reader that expected it -- verify, test,
+// browser or install -- so a local report can allow that reader missing, as
+// its banner says; what it found and could not use -- a file from before
+// --since, another run's, a suite turbo replayed or ran without a summary,
+// a gate's file whose browser, asked for or launched, is not the one it is
+// filed under -- under `missing`. The report fails on `absent` unless, on a
+// machine, it allows that reader missing, and on `missing` always.
 //
-// Those three jobs are what gates.yml runs. A job it gains -- the Studio's
-// browser legs -- gets a reader in READERS and a section in the report, as
-// formancy.ai-data's browser gates have; until then collect refuses it, so
-// the job fails rather than uploading results that look like a job with
-// nothing to say.
+// Those four jobs are what gates.yml runs. A job it gains gets a reader in
+// READERS and a section in the report, as the browser job has; until then
+// collect refuses it, so the job fails rather than uploading results that
+// look like a job with nothing to say.
 //
-// `--local` reads every package of one machine at once, the guards and the
+// `--local` reads every package of one machine at once, the guards, the
+// browser gate and the pictures' check of every app that has them, and the
 // install gate. It refuses a results file that started before `--since`,
 // which has no default: a file left by an earlier run read as this one's is
 // the failure local mode has to rule out, and only the person running it
@@ -41,6 +52,7 @@ import { execFileSync } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { BROWSERS } from '../browsers.mjs'
 import { coveredPackages } from '../codecov-config.mjs'
 import { distHash, distOfPackage } from '../release/dist-hash.mjs'
 import { testFilesOf } from './results.mjs'
@@ -68,6 +80,16 @@ export function keyFor({ job, pkg, variant }, covered) {
 /** coveredPackages() with each package's npm name: what keyFor() keys a package's results by. */
 export function namedPackages(root = repo) {
   return coveredPackages(root).map((entry) => ({ ...entry, name: readJson(join(root, entry.path, 'package.json')).name }))
+}
+
+/** The repository path of every workspace app whose manifest has `script`: the apps with a browser gate, or with pictures to check. */
+export function appsWith(root, script) {
+  const folder = join(root, 'apps')
+  if (!existsSync(folder)) return []
+  return readdirSync(folder)
+    .sort()
+    .filter((name) => existsSync(join(folder, name, 'package.json')) && readJson(join(folder, name, 'package.json')).scripts?.[script] !== undefined)
+    .map((name) => `apps/${name}`)
 }
 
 /** Every published package -- under packages/, not private -- with its directory and manifest. */
@@ -138,20 +160,25 @@ const runner = (env) => ({ node: process.version, platform: process.platform, ar
 const READERS = {
   verify: (read) => read.suite('.', null),
   test: (read, { pkg, packages }) => read.suite(packages.find((entry) => entry.name === pkg).path, pkg),
+  browser: (read) => read.browser(),
   install: (read) => read.install(),
 }
 
 /**
  * Everything one job (or, locally, one machine) found. Pure over the files
- * under `root`, the `git` it is given, `env` and `now`.
+ * under `root`, the `git` it is given, `env`, `now` and `browsers`, the
+ * browsers the gates run in.
  */
-export function collect({ root = repo, job, pkg, variant, local = false, since, env = process.env, git = defaultGit, now = () => new Date() }) {
+export function collect({ root = repo, job, pkg, variant, local = false, since, browsers = BROWSERS, env = process.env, git = defaultGit, now = () => new Date() }) {
   if (!local && READERS[job] === undefined) {
     throw new Error(`collect.mjs reads the ${Object.keys(READERS).join(', ').replace(/, (?=[^,]*$)/, ' and ')} jobs, and has no reader for ${String(job)}: a job the report expects results from needs one here`)
   }
   const packages = namedPackages(root)
   const key = local ? 'local' : keyFor({ job, pkg, variant }, packages)
   const missing = []
+  const absent = []
+  /** `file`, which `reader` expected, is not there. */
+  const notFound = (file, reader) => void absent.push({ reader, file })
   const after = local ? time(since) : Number.NEGATIVE_INFINITY
   if (local && Number.isNaN(after)) throw new Error('--local needs --since <ISO instant>: results older than it are refused as stale, and nothing else can say from when')
   const fresh = (path, started, verb = 'started') => {
@@ -166,11 +193,20 @@ export function collect({ root = repo, job, pkg, variant, local = false, since, 
   const iso = (value) => new Date(time(value)).toISOString()
 
   const suites = []
+  const browserGates = []
+  const pictures = []
   let install = null
+  /** A gate's or a check's own results file, parsed, when it is there and from after --since; listed as absent, or as missing, otherwise. */
+  const own = (shown, reader) => {
+    if (!existsSync(join(root, shown))) return notFound(shown, reader)
+    const result = readJson(join(root, shown))
+    return fresh(shown, result.startedAt) ? result : undefined
+  }
   const read = {
     suite(path, name) {
       const shown = slash(join(path, 'test-results', 'vitest.json'))
-      if (!existsSync(join(root, shown))) return void missing.push(shown)
+      // The guards' suite is verify's, a package's its test job's.
+      if (!existsSync(join(root, shown))) return notFound(shown, name === null ? 'verify' : 'test')
       const json = readJson(join(root, shown))
       if (!fresh(shown, json.startTime)) return
       // The suite's wall time and coverage come from two more files, each
@@ -197,17 +233,39 @@ export function collect({ root = repo, job, pkg, variant, local = false, since, 
       const testFiles = testFilesOf(checkout(), path, packages.map((entry) => entry.path))
       suites.push({ package: name, path, ...normaliseSuite(json, root), testFiles, task: task ?? null, coverage })
     },
+    /**
+     * Each app's browser gate in every browser the gates run in, and each
+     * app's pictures' check. A file another browser's run wrote -- its launch
+     * failed, so no browser names itself in it -- would be that browser's
+     * failure under this one's name; one that launched another browser
+     * would be that browser's checks.
+     */
+    browser() {
+      for (const app of appsWith(root, 'test:browser')) {
+        for (const browser of browsers) {
+          const shown = `${app}/test-results/browser-${browser}.json`
+          const result = own(shown, 'browser')
+          if (result === undefined) continue
+          if (result.asked !== browser) missing.push(`${app}’s gate asked for ${result.asked === undefined ? 'no browser' : String(result.asked)} in its ${browser} file: ${shown}`)
+          else if (result.browser != null && result.browser.name !== browser) missing.push(`${app}’s gate launched ${String(result.browser.name)} in its ${browser} file: ${shown}`)
+          else browserGates.push(result)
+        }
+      }
+      for (const app of appsWith(root, 'test:pictures')) {
+        const result = own(`${app}/test-results/pictures.json`, 'browser')
+        if (result !== undefined) pictures.push(result)
+      }
+    },
     install() {
-      const file = join(root, 'test-results', 'install.json')
-      if (!existsSync(file)) return void missing.push('test-results/install.json')
-      const result = readJson(file)
-      if (fresh('test-results/install.json', result.startedAt)) install = result
+      const result = own('test-results/install.json', 'install')
+      if (result !== undefined) install = result
     },
   }
 
   if (local) {
     for (const entry of packages) read.suite(entry.path, entry.name)
     read.suite('.', null)
+    read.browser()
     read.install()
   } else {
     READERS[job](read, { pkg, packages })
@@ -232,9 +290,12 @@ export function collect({ root = repo, job, pkg, variant, local = false, since, 
     // changes is part of which code ran; a CI checkout is the commit.
     ...(local ? { since: new Date(after).toISOString(), dirty: git(['status', '--porcelain']).trim() !== '' } : {}),
     suites,
+    browserGates,
+    pictures,
     install,
     dist,
     tarballs: install?.tarballs ?? [],
+    absent,
     missing,
   }
 }
@@ -261,5 +322,7 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/release-report/coll
   mkdirSync(out, { recursive: true })
   writeFileSync(written, `${JSON.stringify(result, null, 2)}\n`, 'utf8')
   if (process.env.GITHUB_OUTPUT !== undefined) appendFileSync(process.env.GITHUB_OUTPUT, `key=${result.key}\n`)
-  console.log(`${slash(relative(repo, written))}: ${String(result.suites.length)} suite(s), ${result.install === null ? 'no' : 'the'} install gate's record, ${String(result.dist.length)} dist/${result.missing.length === 0 ? '' : `; missing: ${result.missing.join('; ')}`}`)
+  console.log(
+    `${slash(relative(repo, written))}: ${String(result.suites.length)} suite(s), ${String(result.browserGates.length)} browser gate(s), ${String(result.pictures.length)} pictures' check(s), ${result.install === null ? 'no' : 'the'} install gate's record, ${String(result.dist.length)} dist/${result.absent.length === 0 ? '' : `; not found: ${result.absent.map((entry) => entry.file).join('; ')}`}${result.missing.length === 0 ? '' : `; missing: ${result.missing.join('; ')}`}`,
+  )
 }

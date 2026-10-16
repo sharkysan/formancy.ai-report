@@ -8,7 +8,8 @@
 // every version it resolved, with the hosts that resolved each; each
 // builder's peers as declared and as each install host resolved them --
 // React and Angular at the newest and the oldest release their ranges admit;
-// Node as every job ran it.
+// Node as every job ran it; and each browser a browser gate or a pictures'
+// check launched, beside the build Playwright pins for it.
 
 import { installOf } from './results.mjs'
 
@@ -40,7 +41,26 @@ function hostsFor(install, peers) {
   })
 }
 
-/** The run's Tested on: dependencies range -> loaded -> fresh, peers per host, upstream, Node, npm, pnpm and the tools. */
+/**
+ * Every browser the run's browser gates and pictures' checks launched, by
+ * name, version and whether headless, with what launched it and the version
+ * Playwright pins for it (null for a browser no gate here runs, which
+ * problems.mjs fails).
+ */
+function launchedIn(results, browser) {
+  const launches = results.flatMap((result) => [
+    ...(result.browserGates ?? []).filter((gate) => gate.browser != null).map((gate) => ({ ...gate.browser, by: `the browser gate of ${gate.gate}` })),
+    ...(result.pictures ?? []).filter((check) => check.browser != null).map((check) => ({ ...check.browser, by: `the pictures’ check of ${check.app}` })),
+  ])
+  const seen = new Map()
+  for (const { name, version, headless, by } of launches) {
+    const key = `${name} ${version} ${String(headless)}`
+    seen.set(key, { name, version, headless, pin: browser.pins.find((pin) => pin.browser === name)?.browserVersion ?? null, by: distinct([...(seen.get(key)?.by ?? []), by]) })
+  }
+  return [...seen.values()]
+}
+
+/** The run's Tested on: dependencies range -> loaded -> fresh, peers per host, upstream, Node, npm, pnpm, the browsers and the tools. */
 export function testedOnInRun({ results, facts }) {
   const install = installOf(results)
   return {
@@ -57,6 +77,10 @@ export function testedOnInRun({ results, facts }) {
     // What each install host type-checked its consumer with, skipLibCheck off.
     hostTools: distinct((install?.consumers ?? []).flatMap((consumer) => Object.entries(consumer.tools ?? {}).map(([name, version]) => `${name} ${String(version)}`))).sort(),
     packageManager: facts.packageManager,
+    browser: facts.browser,
+    browsers: launchedIn(results, facts.browser),
+    // The axe-core each browser gate injected into the page, as the page reported it.
+    axe: distinct(results.flatMap((result) => (result.browserGates ?? []).map((gate) => gate.axe)).filter((version) => version != null)),
     tooling: facts.tooling,
     runners: [...new Map(results.map((result) => [`${result.runner?.image ?? ''} ${result.runner?.imageVersion ?? ''}`, { image: result.runner?.image ?? null, imageVersion: result.runner?.imageVersion ?? null }])).values()],
   }

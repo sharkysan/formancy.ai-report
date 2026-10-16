@@ -1,6 +1,7 @@
 // The report's results (0014; formancy.ai-data 0035): each package's suite,
-// the repository's guards, the install gate and its hosts, and the build
-// identity of every published package.
+// the repository's guards, each app's browser gate in each browser and its
+// pictures' check, the install gate and its hosts, and the build identity of
+// every published package.
 //
 // Pure over the run's results. Two times are shown for a suite, each named
 // for what it is: the task's wall time from turbo's run summary, and vitest's
@@ -78,17 +79,94 @@ function hostOf(consumer) {
   }
 }
 
-/** Every package's row, the repository's guards, the install gate, what collect missed, and build identity. */
-export function resultsInRun({ results, covered, published }) {
+const wall = (entry) => Date.parse(entry.finishedAt) - Date.parse(entry.startedAt)
+
+/** One browser gate's run in one browser, as the report shows and judges it. */
+function gateRow(gate, job) {
+  return {
+    gate: gate.gate,
+    asked: gate.asked ?? null,
+    job,
+    ok: gate.checks?.ok ?? 0,
+    failed: gate.checks?.failed ?? [],
+    error: gate.error ?? null,
+    widths: gate.widths ?? [],
+    planned: gate.planned ?? [],
+    passes: gate.passes ?? 0,
+    made: (gate.made ?? []).map((entry) => ({ label: entry.label, width: entry.width, checks: entry.checks ?? [] })),
+    browser: gate.browser ?? null,
+    playwright: gate.playwright ?? null,
+    axe: gate.axe ?? null,
+    wallMs: wall(gate),
+  }
+}
+
+/**
+ * One app's pictures' check, as the report shows and judges it: `planned`
+ * is every scene scripts/pictures/scenes.json gives the app, which the
+ * report reads itself rather than take the check's word for.
+ */
+function picturesRow(check, job, planned) {
+  return {
+    app: check.app,
+    job,
+    planned: [...planned],
+    walked: check.walked ?? [],
+    problems: check.problems ?? [],
+    error: check.error ?? null,
+    browser: check.browser ?? null,
+    playwright: check.playwright ?? null,
+    wallMs: wall(check),
+  }
+}
+
+/**
+ * What a browser gate's row says it did not do, which a gate that measured
+ * everything it set out to does: make a check, make one in a pass at a
+ * viewport width, make every pass it planned, and make a check in each pass
+ * it made. The gate walks one journey at every width, so a planned pass not
+ * made, or made with nothing checked in it, is every check of that width
+ * skipped. Each a phrase; none for a gate that did all four. problems.mjs
+ * fails a run on each and gates.mjs a gate's evidence, so the two cannot
+ * disagree. What the gate planned is its own word: its passes come from the
+ * app's stylesheets, read by the app's gate, and only it can say them.
+ */
+export function unmeasured(row) {
+  const made = new Set(row.made.map((entry) => entry.label))
+  const skipped = row.planned.filter((label) => !made.has(label))
+  const empty = row.made.filter((entry) => entry.width !== null && entry.checks.length === 0).map((entry) => `"${String(entry.label)}"`)
+  return [
+    ...(row.ok + row.failed.length === 0 ? ['made no check'] : []),
+    ...(row.passes === 0 ? ['made no pass at a viewport width'] : []),
+    ...(row.planned.length === 0 ? ['planned no pass'] : []),
+    ...(skipped.length === 0 ? [] : [`did not make ${String(skipped.length)} of the ${String(row.planned.length)} passes it planned: ${skipped.map((label) => `"${label}"`).join(', ')}`]),
+    ...(empty.length === 0 ? [] : [`made no check in ${empty.length === 1 ? 'the pass' : 'the passes'} ${empty.join(', ')}`]),
+  ]
+}
+
+/** The scenes of scenes.json a pictures' check was to walk and did not: each a picture held by nobody in this run. */
+export const unwalked = (row) => row.planned.filter((id) => !row.walked.includes(id))
+
+/**
+ * Every package's row, the repository's guards, the browser gates, the
+ * pictures' checks -- each held to `scenes`, scenes.json's scene ids by app
+ * path -- the install gate, what collect did not find (`absent`, by the
+ * reader that expected it) or found and refused (`missing`), and build
+ * identity.
+ */
+export function resultsInRun({ results, covered, published, scenes = {} }) {
   const suites = suitesOf(results)
   const install = installOf(results)
   return {
     packages: covered.map((entry) => suiteRow(suites.filter((suite) => suite.package === entry.name), { ...entry, published: published.includes(entry.name) })),
     repository: suiteRow(suites.filter((suite) => suite.package === null), { name: null, path: '.', published: false }),
+    browserGates: results.flatMap((result) => (result.browserGates ?? []).map((gate) => gateRow(gate, result.key))),
+    pictures: results.flatMap((result) => (result.pictures ?? []).map((check) => picturesRow(check, result.key, scenes[check.app] ?? []))),
     install:
       install === null
         ? null
         : { passed: install.passed === true, error: install.error ?? null, node: install.node, npm: install.npm, resolved: install.resolved ?? [], tarballs: install.tarballs ?? [], hosts: (install.consumers ?? []).map(hostOf) },
+    absent: results.flatMap((result) => (result.absent ?? []).map(({ reader, file }) => ({ job: result.key, reader, file }))),
     missing: results.flatMap((result) => (result.missing ?? []).map((what) => ({ job: result.key, what }))),
     buildIdentity: published.map((name) => {
       const builds = results.flatMap((result) => (result.dist ?? []).filter((entry) => entry.package === name).map((entry) => ({ job: result.key, distHash: entry.distHash })))
@@ -97,6 +175,19 @@ export function resultsInRun({ results, covered, published }) {
       return { package: name, tarball: tarball === null ? null : { file: tarball.file, sha256: tarball.sha256, distHash: tarball.distHash }, builds, identical: hashes.length <= 1 }
     }),
   }
+}
+
+/**
+ * What the run says of `app`'s browser gate, as gate evidence: `failed` when
+ * it failed a check, ended in an error or did not do what unmeasured() asks
+ * in any browser it ran in; `passed` when it ran in every one of `browsers`
+ * and did not; `absent`, with the browsers it is `missing` in, otherwise.
+ */
+export function gateOutcome(rows, app, browsers) {
+  const ran = rows.filter((row) => row.gate === app)
+  if (ran.some((row) => row.error !== null || row.failed.length > 0 || unmeasured(row).length > 0)) return { outcome: 'failed' }
+  const missing = browsers.filter((browser) => !ran.some((row) => row.asked === browser))
+  return missing.length === 0 ? { outcome: 'passed' } : { outcome: 'absent', missing }
 }
 
 /**

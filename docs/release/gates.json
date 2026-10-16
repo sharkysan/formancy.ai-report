@@ -26,9 +26,12 @@
         { "file": "packages/report-builder-react/src/scenarios.test.tsx" },
         { "file": "packages/report-builder-react/src/lifecycle.test.tsx" },
         { "file": "packages/report-builder-angular/src/scenarios.test.ts" },
-        { "file": "packages/report-builder-angular/src/builder.test.ts" }
+        { "file": "packages/report-builder-angular/src/builder.test.ts" },
+        { "file": "apps/studio/src/studio.test.tsx" },
+        { "file": "apps/studio/src/journey.test.tsx" },
+        { "browserGate": "apps/studio" }
       ],
-      "open": "The cross-framework test -- edit in Angular, switch to React, undo, switch back, in one page -- is the Studio's browser test, and has not landed; until it does, the switch is held at the model and within each framework (0012)."
+      "open": "That the two builders offer the same accessible controls is held only where the shared scenarios reach -- each control a scenario finds by role and name, in both builders -- and by every control being named and axe-clean at each state of the Studio's journey; no test compares the two builders' accessible trees with each other, the next step 0012 names. The switch -- edit in Angular, switch to React, undo, switch back -- with the session's subscriptions and the editor's listeners counted after each, is held by the Studio's studio.test.tsx in jsdom, and the switch the other way round by its browser gate in Chromium (0013)."
     },
     {
       "gate": "G4",

@@ -13,7 +13,49 @@ const T0 = Date.parse('2026-10-16T10:00:00Z')
 export const DIST = 'sha256:aaaa111122223333444455556666777788889999aaaabbbbccccddddeeeeffff'
 
 const runner = { node: 'v22.20.0', platform: 'linux', arch: 'x64', image: 'ubuntu24', imageVersion: '20261012.1' }
-const base = (key, job) => ({ schema: 1, job, key, runner, commit: 'c0ffee', run: { id: '42', attempt: '1' }, collectedAt: new Date(T0 + 3_600_000).toISOString(), suites: [], install: null, dist: [], tarballs: [], missing: [] })
+const base = (key, job) => ({ schema: 1, job, key, runner, commit: 'c0ffee', run: { id: '42', attempt: '1' }, collectedAt: new Date(T0 + 3_600_000).toISOString(), suites: [], browserGates: [], pictures: [], install: null, dist: [], tarballs: [], absent: [], missing: [] })
+
+/** The Chromium Playwright pins, and the one the gate launched. */
+export const CHROMIUM = '156.0.8078.4'
+const launched = { name: 'chromium', version: CHROMIUM, headless: true, platform: 'linux', arch: 'x64' }
+/** Two passes of the gate, each making the same checks, as apps/studio/scripts/gate-results.mjs records them. */
+const pass = (label, width) => ({ label, width, height: 900, checks: ['the first Tab reaches the skip link', 'the switch: the builder shown is Angular’s'], failed: [] })
+
+/** The Studio's browser gate in Chromium and its pictures' check, as each writes its file, every check passed and every scene walked. */
+const browserJob = () => ({
+  ...base('browser', 'browser'),
+  browserGates: [
+    {
+      gate: 'apps/studio',
+      asked: 'chromium',
+      startedAt: new Date(T0 + 200_000).toISOString(),
+      finishedAt: new Date(T0 + 380_000).toISOString(),
+      browser: { ...launched },
+      playwright: '1.64.1',
+      axe: '4.14.0',
+      widths: [320, 360],
+      planned: ['reflow, 320', 'phone, 360'],
+      passes: 2,
+      made: [pass('reflow, 320', 320), pass('phone, 360', 360)],
+      checks: { ok: 4, failed: [] },
+      measurements: [],
+    },
+  ],
+  pictures: [
+    {
+      check: 'pictures',
+      app: 'apps/studio',
+      startedAt: new Date(T0 + 400_000).toISOString(),
+      finishedAt: new Date(T0 + 430_000).toISOString(),
+      playwright: '1.64.1',
+      browser: { name: 'chromium', version: CHROMIUM, headless: true },
+      walked: ['studio-react', 'studio-angular'],
+      problems: [],
+    },
+  ],
+  // turbo builds every package the Studio imports before the gate.
+  dist: dist(),
+})
 
 const test = (name) => ({ name, status: 'passed', durationMs: 5 })
 const file = (path, tests) => ({ file: path, status: 'passed', startTime: T0 + 1000, endTime: T0 + 2000, tests })
@@ -91,7 +133,7 @@ export function greenRun() {
     dist: dist(),
   }
   return {
-    results: [verify, spec, pdf, react, corpus, install],
+    results: [verify, spec, pdf, react, corpus, browserJob(), install],
     facts: {
       runtime: [{ package: '@formancy/report-render-pdf', name: 'pdfmake', range: '0.3.11', loaded: '0.3.11' }],
       peers: [
@@ -101,6 +143,7 @@ export function greenRun() {
       upstream: [{ name: '@formancy/spec', version: '0.5.0', declared: '0.5.0', direct: true }],
       node: { engines: '>=22.13.0', ci: [{ workflow: 'gates.yml', job: 'verify', version: '22' }], declared: [] },
       packageManager: { name: 'pnpm', version: '12.4.2', declared: 'pnpm@12.4.2' },
+      browser: { playwright: '1.64.1', pins: [{ browser: 'chromium', name: 'chromium-headless-shell', revision: '1248', browserVersion: CHROMIUM, headless: true }] },
       tooling: [
         { name: 'typescript', declared: '~6.0.3', versions: [{ version: '6.0.3', from: ['.'] }] },
         { name: 'pdfjs-dist', declared: '6.4.299', versions: [{ version: '6.4.299', from: ['packages/report-corpus'] }] },
@@ -123,6 +166,11 @@ export function greenRun() {
       { path: 'packages/report-spec', id: 'report-spec', name: '@formancy/report-spec' },
     ],
     published: [...PUBLISHED],
+    browserApps: ['apps/studio'],
+    pictureApps: ['apps/studio'],
+    browsers: ['chromium'],
+    // What scripts/pictures/scenes.json gives the Studio: the scenes its check must walk.
+    scenes: { 'apps/studio': ['studio-react', 'studio-angular'] },
     register: {
       records: {
         '0011': {
@@ -148,7 +196,7 @@ export function greenRun() {
 }
 
 /** The gates workflow's jobs that leave results, as greenCiRun() runs them. */
-const JOBS = ['verify', 'test', 'install']
+const JOBS = ['verify', 'test', 'browser', 'install']
 /** The register's gates, in its order. */
 const GATE_IDS = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'legal']
 /** A committed document, as a gate's stated evidence would be. */
@@ -157,7 +205,7 @@ export const OPEN = 'Nothing to test yet.'
 const EVIDENCE = {
   G1: { evidence: [{ file: 'scripts/upstream-deps.test.mjs' }] },
   G2: { evidence: [{ file: 'packages/report-render-pdf/src/corpus.test.ts' }] },
-  G3: { evidence: [{ file: 'packages/report-builder-react/src/scenarios.test.tsx' }], open: 'The cross-framework test is the Studio’s, and has not landed.' },
+  G3: { evidence: [{ file: 'packages/report-builder-react/src/scenarios.test.tsx' }, { browserGate: 'apps/studio' }], open: 'Nothing compares the two builders’ accessible trees.' },
   G4: { evidence: [{ document: DOCUMENT }] },
   G5: { open: OPEN },
   G6: { open: OPEN },

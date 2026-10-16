@@ -10,16 +10,22 @@
 // This holds what it would otherwise decide again: which scene is shot, that
 // --check aborts the fonts and shoots nothing, that nothing is written until
 // every scene of the walk has passed, and what each record entry says. Node
-// built-ins only; the app passes in its own Playwright.
+// built-ins and scripts/browsers.mjs only, which says how a gate launches its
+// browser; the app passes in its own Playwright.
 //
 //   node scripts/pictures.mjs                walk every scene; retake those whose text changed, or that have no record or no picture
 //   node scripts/pictures.mjs --all          retake every scene of the app
 //   node scripts/pictures.mjs --scene <id>   retake those scenes (repeatable)
 //   node scripts/pictures.mjs --check        walk every scene, compare each part's text with the record, write nothing
 //   node scripts/pictures.mjs --review <dir> also write each new picture, decoded to PNG, into <dir> outside the repository
+//
+// Except, under --check, what the check found: apps/<app>/test-results/pictures.json,
+// written however the walk ends, for the release report (collect.mjs --job
+// browser). A check that left nothing would look like a check never run.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { LAUNCH_OPTIONS, launchedAs } from '../browsers.mjs'
 import { parse } from '../pictures.mjs'
 import * as camera from './camera.mjs'
 import { announce, checkProblems, entry, IMAGES, lineDiff, pairingProblems, pictureOf, readRecord, readScenes, REPO, stylesheetNotices, withEntry, writeRecord } from './record.mjs'
@@ -131,6 +137,32 @@ const FONTS = /^https:\/\/fonts\.(googleapis|gstatic)\.com\//
 const repositoryFile = (path) => (existsSync(join(REPO, path)) ? readFileSync(join(REPO, path)) : undefined)
 
 /**
+ * What a --check of `app`'s pictures found, as the release report reads it:
+ * when it ran, the Playwright and the browser it walked in, as launchedAs()
+ * records it (null when none launched), the scenes it walked, in walk order,
+ * what the comparison found, and the error that ended the walk before it, if
+ * one did. Which scenes it had to walk is scenes.json's, and the report
+ * reads that file itself: a scene of the app not walked was held by nobody.
+ * The check's own problems are its answer, not an error.
+ */
+export function checkResult({ app, playwright, startedAt, finishedAt, browser = null, walked = [], problems = [], error }) {
+  return {
+    check: 'pictures',
+    app: `apps/${app}`,
+    startedAt,
+    finishedAt,
+    playwright,
+    browser,
+    walked: [...walked],
+    problems: [...problems],
+    ...(error === undefined ? {} : { error }),
+  }
+}
+
+/** Where a --check of `app` leaves its result. */
+export const checkResultFile = (app) => join(REPO, 'apps', app, 'test-results', 'pictures.json')
+
+/**
  * Walks `config.app`'s scenes and does what `argv` asks (see the header).
  *
  * `config`:
@@ -146,11 +178,34 @@ const repositoryFile = (path) => (existsSync(join(REPO, path)) ? readFileSync(jo
  *   - `acts`: `{ <scene id>: async (page, scene) => ({ parts, keepFocus }) }`,
  *     in walk order. An act reaches its state by role and name, asserts what
  *     its caption says, and returns its parts as locators.
+ *
+ * Under --check, what the walk found is written to checkResultFile(app)
+ * however it ends.
  */
 export async function pictures(config, argv = process.argv.slice(2)) {
-  const { app, chromium, playwright, width, css, themes, origin, dist, within, acts } = config
   const scenes = readScenes()
-  const options = appOptions(argv, scenes, app)
+  const options = appOptions(argv, scenes, config.app)
+  const found = { browser: null, walked: [], problems: [], compared: false }
+  if (!options.check) return walk(config, scenes, options, found)
+  const startedAt = new Date().toISOString()
+  let error
+  try {
+    await walk(config, scenes, options, found)
+  } catch (thrown) {
+    // The comparison's own problems are the check's answer; anything thrown before it ended the walk.
+    if (!found.compared) error = thrown instanceof Error ? thrown.message : String(thrown)
+    throw thrown
+  } finally {
+    const file = checkResultFile(config.app)
+    const result = checkResult({ app: config.app, playwright: config.playwright, startedAt, finishedAt: new Date().toISOString(), browser: found.browser, walked: found.walked, problems: found.problems, error })
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, `${JSON.stringify(result, null, 2)}\n`, 'utf8')
+  }
+}
+
+/** The walk itself, for pictures(): `found` gathers what a --check result says. */
+async function walk(config, scenes, options, found) {
+  const { app, chromium, playwright, width, css, themes, origin, dist, within, acts } = config
   const actIds = Object.keys(acts)
   // Before the walk, so an act is never run without the scene it is the picture of.
   const unpaired = pairingProblems({ app, scenes, actIds })
@@ -165,7 +220,10 @@ export async function pictures(config, argv = process.argv.slice(2)) {
   const families = camera.families(readFileSync(join(dist, 'index.html'), 'utf8'))
   const widths = Object.fromEntries(actIds.map((id) => [id, widthOf(scenes.find((scene) => scene.id === id), { width, narrowest })]))
 
-  const browser = await chromium.launch()
+  // As the browser gate launches it, so the two walk the build the report holds both to.
+  const launch = { ...LAUNCH_OPTIONS }
+  const browser = await chromium.launch(launch)
+  found.browser = launchedAs(browser, launch)
   let context
   let page
   try {
@@ -202,6 +260,7 @@ export async function pictures(config, argv = process.argv.slice(2)) {
         // change draws between or over the parts, outside them all, would
         // otherwise pass every check while the picture no longer shows the page.
         if (options.check) await camera.clip(page, parts, { scene: id })
+        found.walked.push(id)
         continue
       }
       shots[id] = { ...(await camera.take(page, parts, { scene: id, families, within, keepFocus })), width: widths[id] }
@@ -219,6 +278,8 @@ export async function pictures(config, argv = process.argv.slice(2)) {
     if (options.check) {
       announce(stylesheetNotices({ app, scenes, record, stylesheet }))
       const problems = checkProblems({ app, scenes, record, actIds, running, playwright, file: repositoryFile })
+      found.problems = problems
+      found.compared = true
       if (problems.length > 0) throw new Error(`the ${app} pictures no longer show what the page shows:\n  ${problems.join('\n  ')}`)
       const count = Object.keys(running).length
       console.log(`${app}: every part of ${String(count)} ${count === 1 ? 'scene' : 'scenes'} says what its picture was recorded saying, and every caption quotes only what its parts say`)

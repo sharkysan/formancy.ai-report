@@ -9,18 +9,26 @@
 // One browser here, Chromium, the one installed for this repository's
 // gates; Data's recorder runs each of three in turn.
 //
+// Beside Data's record, the passes the gate planned, by label, before it
+// made any: the gate walks the same journey at every width, so a pass it
+// planned and did not make is a width measured by nobody, which the release
+// report fails as a check that did not run; and the Playwright that
+// launched the browser, whose pin the report holds the browser's version to.
+//
 // A measurement is an observation on whatever machine ran the gate, never a
 // performance figure.
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { launchedAs } from '../../../scripts/browsers.mjs'
 
-/** A recorder for the gate of `gate`, the app's directory (`apps/studio`), in `browser` (`chromium`). */
-export function gateRecorder(gate, { browser: asked, log = console.log, now = () => new Date() }) {
+/** A recorder for the gate of `gate`, the app's directory (`apps/studio`), in `browser` (`chromium`), launched by `playwright` (its version). */
+export function gateRecorder(gate, { browser: asked, playwright = null, log = console.log, now = () => new Date() }) {
   const startedAt = now().toISOString()
   const failed = []
   const measurements = []
   const made = []
+  let planned = []
   let ok = 0
   let browser = null
   let axe = null
@@ -46,12 +54,16 @@ export function gateRecorder(gate, { browser: asked, log = console.log, now = ()
     },
     /** The browser launched, as it names itself, and how. */
     launched(instance, options) {
-      browser = { name: instance.browserType().name(), version: instance.version(), headless: options.headless ?? true, platform: process.platform, arch: process.arch }
+      browser = { ...launchedAs(instance, options), platform: process.platform, arch: process.arch }
       if (browser.name !== asked) throw new Error(`${gate} asked for ${asked}, and the launch gave ${browser.name} ${browser.version}`)
     },
     /** The axe-core version injected into the page, as the page reports it. */
     axe(version) {
       axe = version ?? null
+    },
+    /** The passes the gate means to make, before it makes one: what a pass not made is held against. */
+    plan(passes) {
+      planned = passes.map((entry) => entry.label)
     },
     /** One pass of the gate, at a viewport: the checks after it are kept under it. */
     pass({ label, width, height }) {
@@ -75,8 +87,10 @@ export function gateRecorder(gate, { browser: asked, log = console.log, now = ()
         startedAt,
         finishedAt: now().toISOString(),
         browser,
+        playwright,
         axe,
         widths: [...new Set(passes.map((entry) => entry.width))],
+        planned: [...planned],
         passes: passes.length,
         made: made.map((entry) => ({ ...entry, checks: [...entry.checks], failed: [...entry.failed] })),
         checks: { ok, failed: [...failed] },

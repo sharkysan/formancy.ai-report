@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 import { coveredPackages } from '../codecov-config.mjs'
 import { gateJobs, readWorkflow } from '../workflows.mjs'
+import { appsWith } from './collect.mjs'
 import { evaluateGates, gatesProblems, readGates } from './gates.mjs'
 
 /**
@@ -18,6 +19,7 @@ const repo = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 const here = {
   covered: coveredPackages(repo).map((entry) => entry.path),
+  browserApps: appsWith(repo, 'test:browser'),
   jobs: gateJobs(readWorkflow(repo)),
   exists: (path) => existsSync(join(repo, path)),
 }
@@ -47,6 +49,8 @@ describe('docs/release/gates.json', () => {
     expect(gates.filter((entry) => entry.evidence !== undefined).map((entry) => entry.gate)).toEqual(['G1', 'G2', 'G3'])
     expect(gates.filter((entry) => entry.open !== undefined).map((entry) => entry.gate)).toEqual(['G3', 'G4', 'G5', 'G6', 'G7', 'legal'])
     expect(gate(gates, 'G1').evidence).toEqual(expect.arrayContaining([{ job: 'install' }, { file: 'scripts/upstream-deps.test.mjs' }, { file: 'scripts/dependency-licences.test.mjs' }]))
+    // G3's switch across the frameworks is the Studio's, in jsdom and in a browser.
+    expect(gate(gates, 'G3').evidence).toEqual(expect.arrayContaining([{ file: 'apps/studio/src/studio.test.tsx' }, { browserGate: 'apps/studio' }]))
   })
 
   // The plan has G1 to G7 and a legal review; a gate dropped from the
@@ -74,10 +78,11 @@ describe('docs/release/gates.json', () => {
   })
 
   // Each other kind names something a run can produce, or a committed file.
-  test('fails a job or a document that is not there, and an unknown kind', () => {
+  test('fails a job, a browser gate or a document that is not there, and an unknown kind', () => {
     expect(problemsWith((gates) => gate(gates, 'G1').evidence.push({ job: 'report' }))).toEqual(["gate G1's evidence: report is not a job of .github/workflows/gates.yml that leaves results"])
+    expect(problemsWith((gates) => gate(gates, 'G3').evidence.push({ browserGate: 'apps/viewer' }))).toEqual(["gate G3's evidence: apps/viewer is not an app with a test:browser script"])
     expect(problemsWith((gates) => gate(gates, 'G2').evidence.push({ document: 'docs/release/figures.md' }))).toEqual(["gate G2's evidence: docs/release/figures.md is not a committed file"])
-    expect(problemsWith((gates) => gate(gates, 'G2').evidence.push({ file: 'a.test.ts', job: 'verify' }))).toEqual([`gate G2's evidence: {"file":"a.test.ts","job":"verify"} is not exactly one of file, job, document`])
+    expect(problemsWith((gates) => gate(gates, 'G2').evidence.push({ file: 'a.test.ts', job: 'verify' }))).toEqual([`gate G2's evidence: {"file":"a.test.ts","job":"verify"} is not exactly one of file, browserGate, job, document`])
   })
 
   // The plan is a working document kept out of the repository; a gate's
@@ -107,6 +112,24 @@ describe('evaluateGates', () => {
     expect(evaluateGates(register, run()).map((entry) => entry.state)).toEqual(['passed', 'passed'])
     expect(evaluateGates(register, run({ needs: { install: { result: 'failure' } } }))[0].evidence[0]).toEqual({ kind: 'job', value: 'install', outcome: 'failed', result: 'failure' })
     expect(evaluateGates(register, run({ fileOutcome: () => 'absent' }))[1]).toMatchObject({ state: 'failed', evidence: [{ kind: 'file', value: 'a.test.ts', outcome: 'absent' }] })
+  })
+
+  // A browser gate is evidence in every browser the gates run in: one that
+  // failed a check, ended in an error or skipped a pass it planned fails the
+  // gate; one that ran in some browsers and not others has not run, and says
+  // in which.
+  test('passes a browser gate only when it ran in every browser and did everything it planned', () => {
+    const row = (asked, change = {}) => ({ gate: 'apps/studio', asked, ok: 3, failed: [], error: null, planned: ['phone, 360'], passes: 1, made: [{ label: 'phone, 360', width: 360, checks: ['a'] }], ...change })
+    const register = { gates: [{ gate: 'G3', evidence: [{ browserGate: 'apps/studio' }] }] }
+    const judged = (browserGates, browsers = ['chromium']) => evaluateGates(register, run({ browserGates, browsers }))[0]
+    expect(judged([row('chromium')])).toMatchObject({ state: 'passed', evidence: [{ kind: 'browserGate', value: 'apps/studio', outcome: 'passed' }] })
+    expect(judged([row('chromium', { failed: ['phone, 360: a: no'] })]).state).toBe('failed')
+    expect(judged([row('chromium', { error: 'the build failed' })]).state).toBe('failed')
+    expect(judged([row('chromium', { planned: ['reflow, 320', 'phone, 360'] })]).state).toBe('failed')
+    // A pass made with nothing checked in it is a width measured by nobody.
+    expect(judged([row('chromium', { made: [{ label: 'phone, 360', width: 360, checks: [] }] })]).state).toBe('failed')
+    expect(judged([row('chromium')], ['chromium', 'firefox'])).toMatchObject({ state: 'failed', evidence: [{ outcome: 'absent', missing: ['firefox'] }] })
+    expect(judged([])).toMatchObject({ state: 'failed', evidence: [{ outcome: 'absent', missing: ['chromium'] }] })
   })
 
   // Locally there are no needs: a job's evidence did not run, which is not a pass.

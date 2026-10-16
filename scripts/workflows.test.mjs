@@ -248,7 +248,7 @@ describe('gates.yml', () => {
   // it cannot see; one that is cancelled must still leave the report to run.
   test('ends in a report that waits for every other job and runs unless cancelled', () => {
     expect([...gates.jobs.report.needs].sort()).toEqual(gateJobs(gates).sort())
-    expect(gateJobs(gates)).toEqual(expect.arrayContaining(['verify', 'test', 'install']))
+    expect(gateJobs(gates)).toEqual(expect.arrayContaining(['verify', 'test', 'browser', 'install']))
     expect(gates.jobs.report.if).toContain('!cancelled()')
     expect(gates.on.workflow_call.inputs.release).toMatchObject({ type: 'string', default: '' })
     expect(gates.on.workflow_call.secrets).toEqual({ CODECOV_TOKEN: { required: false } })
@@ -288,7 +288,7 @@ describe('gates.yml', () => {
   test('gives the report one key per job and package, and no key twice', () => {
     const keys = expectedKeys(gates, namedPackages()).map((entry) => entry.key)
     expect(new Set(keys).size).toBe(keys.length)
-    expect(keys).toEqual(expect.arrayContaining(['verify', 'install']))
+    expect(keys).toEqual(expect.arrayContaining(['verify', 'browser', 'install']))
     expect(keys).not.toContain('test')
     expect(keys.filter((key) => key.startsWith('test-')).sort()).toEqual(namedPackages().map((entry) => `test-${entry.id}`).sort())
   })
@@ -303,6 +303,26 @@ describe('gates.yml', () => {
     }
     expect(changed((workflow) => (workflow.jobs.install.steps = workflow.jobs.install.steps.filter((step) => step.id !== 'collect')))).toThrow('.github/workflows/gates.yml: the install job has no step with id collect, so it leaves nothing for the report')
     expect(changed((workflow) => (collectStep(workflow.jobs.install).run = 'node scripts/release-report/collect.mjs --job verify'))).toThrow('.github/workflows/gates.yml: the install job collects as --job verify, not as itself')
+  })
+
+  // The browser job's results are the files the Studio's gate and its
+  // pictures' check write, so both run before the collect step; the
+  // pictures run when the gate failed, so a red gate does not hide their
+  // answer, and every app's test:pictures is the check, never a retake.
+  // The gate's own files are kept whole beside the results, for whoever
+  // reads a red run.
+  test('runs the Studio’s gate and its pictures’ check before it collects, and keeps their files', () => {
+    const browser = gates.jobs.browser.steps
+    const at = (command) => browser.findIndex((step) => step.run === command)
+    const gate = at('pnpm exec turbo run test:browser --filter=@formancy/report-studio')
+    const pictures = at('pnpm exec turbo run test:pictures --filter=@formancy/report-studio')
+    const collect = browser.indexOf(collectStep(gates.jobs.browser))
+    expect([gate, pictures].every((index) => index !== -1 && index < collect)).toBe(true)
+    expect(browser[pictures].if).toContain('!cancelled()')
+    expect(collectStep(gates.jobs.browser).run).toBe('node scripts/release-report/collect.mjs --job browser')
+    expect(browser.find((step) => step.with?.name === 'browser-results')?.with).toEqual({ name: 'browser-results', path: 'apps/studio/test-results/', 'if-no-files-found': 'error', overwrite: true })
+    const studio = JSON.parse(readFileSync(join(repo, 'apps', 'studio', 'package.json'), 'utf8'))
+    expect(studio.scripts['test:pictures']).toBe('node scripts/pictures.mjs --check')
   })
 
   // Without --force a suite's results could be a cached replay of another

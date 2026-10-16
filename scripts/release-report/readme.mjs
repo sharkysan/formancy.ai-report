@@ -13,6 +13,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { browserName } from '../browsers.mjs'
 import { readBlock, replaceBlock } from '../generated-block.mjs'
 import { testedOn } from './tested-on.mjs'
 
@@ -40,14 +41,16 @@ export function readmeTable(facts) {
     ['Node, the workspace', '', facts.node.engines === null ? 'nothing' : code(facts.node.engines)],
     ['Node, CI', ci.join(', '), ''],
     [facts.packageManager.name, `${facts.packageManager.version}, through corepack`, `${code(facts.packageManager.declared)}, the root's \`packageManager\``],
+    ...facts.browser.pins.map((pin) => [browserName(pin.browser), `${pin.browserVersion}, the ${pin.name} Playwright ${facts.browser.playwright} pins (revision ${pin.revision})`, '']),
     ...facts.tooling.map((tool) => [code(tool.name), versions(tool), tool.declared === null ? '' : code(tool.declared)]),
   ]
+  const launched = facts.browser.pins.length === 1 ? browserName(facts.browser.pins[0].browser) : 'each browser'
   return [
     '| | Tested with | Declared as |',
     '| --- | --- | --- |',
     ...rows.map((row) => `| ${row.map(cell).join(' | ')} |`),
     '',
-    'What a run actually ran -- the Node of each job, and the React and Angular each install host resolved at both ends of the builders’ peer ranges -- is in the release report every CI run produces and every release attaches, signed.',
+    `What a run actually ran -- the Node of each job, the React and Angular each install host resolved at both ends of the builders’ peer ranges, and the ${launched} the browser gate launched -- is in the release report every CI run produces and every release attaches, signed.`,
   ].join('\n')
 }
 

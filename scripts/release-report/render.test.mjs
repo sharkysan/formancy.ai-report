@@ -67,12 +67,19 @@ describe('the limitations a run shows', () => {
     expect(renderContent(report())).toContain('| `pdfmake` | @formancy/report-render-pdf | 0.3.11 | 0.3.11 | 0.3.11 |')
   })
 
-  // The gates run no browser until the Studio's job lands; until then every
-  // report says so, and the job's arrival in gates.yml ends the sentence.
-  test('say no browser ran while the gates have no browser job', () => {
-    const sentence = 'No browser ran in this run: the builders’ suites ran in jsdom, and the install gate drew them on a server.'
-    expect(derivedLimitations(report())).toContain(sentence)
-    expect(derivedLimitations(report((inputs) => inputs.jobs.push('browser')))).not.toContain(sentence)
+  // What jsdom cannot see is measured in the browsers the gate launched and
+  // in no other: the sentence names each, and what launched it, from what
+  // the gate and the pictures recorded. Without the browser job, or with a
+  // job that launched nothing, it says that instead.
+  test('name every browser the run launched, and say so when none was', () => {
+    expect(derivedLimitations(report())).toContain(
+      'Chromium 156.0.8078.4 was the only browser launched in this run, by the browser gate of apps/studio and the pictures’ check of apps/studio; what jsdom cannot see was measured in no other.',
+    )
+    const none = 'No browser was launched in this run: the builders’ suites ran in jsdom, and nothing measured what jsdom cannot see.'
+    expect(derivedLimitations(report((inputs) => (job(inputs, 'browser').browserGates = job(inputs, 'browser').pictures = [])))).toContain(none)
+    const without = 'No browser ran in this run: the builders’ suites ran in jsdom, and the install gate drew them on a server.'
+    expect(derivedLimitations(report((inputs) => (inputs.jobs = inputs.jobs.filter((name) => name !== 'browser'))))).toContain(without)
+    expect(derivedLimitations(report())).not.toContain(without)
   })
 
   // Neither the suites' source-not-dist nor which jobs built what npm
@@ -81,7 +88,7 @@ describe('the limitations a run shows', () => {
     // The jobs named are the ones that built every published package: a
     // test job builds what its package depends on, not the rest.
     const identity = derivedLimitations(report()).find((sentence) => sentence.includes('published dist/'))
-    expect(identity).toBe("Each package's own suites ran its source; the published dist/ was run by the install gate, and each package's is byte-identical to its dist/ built in install and verify, and in every other job that built it (*Build identity* names them).")
+    expect(identity).toBe("Each package's own suites ran its source; the published dist/ was run by the install gate, and each package's is byte-identical to its dist/ built in browser, install and verify, and in every other job that built it (*Build identity* names them).")
     expect(derivedLimitations(report((inputs) => (job(inputs, 'install').install = null)))).toContain("Each package's own suites ran its source; no install gate ran the packed dist/ in this run.")
   })
 })
@@ -92,8 +99,8 @@ describe('the release gates, as a report shows them', () => {
   test('say every open gate as a limitation, with its reason, and whether the evidence it has passed', () => {
     const sentences = derivedLimitations(report())
     expect(sentences).toContain('Release gate `G5` is open: Nothing to test yet.')
-    expect(sentences).toContain('Release gate `G3` is open: The cross-framework test is the Studio’s, and has not landed. The evidence it has passed in this run.')
-    expect(renderContent(report())).toContain('| G3 | open | `packages/report-builder-react/src/scenarios.test.tsx`: passed | The cross-framework test is the Studio’s, and has not landed. |')
+    expect(sentences).toContain('Release gate `G3` is open: Nothing compares the two builders’ accessible trees. The evidence it has passed in this run.')
+    expect(renderContent(report())).toContain('| G3 | open | `packages/report-builder-react/src/scenarios.test.tsx`: passed; the browser gate of `apps/studio`: passed | Nothing compares the two builders’ accessible trees. |')
   })
 
   // A document from another commit is stated, with when it last changed and
@@ -157,7 +164,41 @@ describe('the Markdown', () => {
   test('says how each section was made', () => {
     const markdown = renderContent(report())
     const method = markdown.slice(markdown.indexOf('## How this report was made'), markdown.indexOf('## Problems'))
-    for (const section of ['Subject', 'Tested on', 'Results', 'Build identity', 'Release gates', 'Known limitations', 'Problems']) expect(method).toContain(`- **${section}:**`)
+    for (const section of ['Subject', 'Tested on', 'Results', 'Browser', 'Build identity', 'Release gates', 'Known limitations', 'Problems']) expect(method).toContain(`- **${section}:**`)
+  })
+
+  // The browser a gate measured in, and the Playwright that pins it, are
+  // part of what the run was tested on; a launch other than the pin is said
+  // beside it, not hidden behind the version Playwright names.
+  test('names the browser builds Playwright pins, and each one the run launched', () => {
+    expect(renderContent(report())).toContain('Browsers: Playwright 1.64.1 pins chromium-headless-shell 156.0.8078.4 (revision 1248) for Chromium; this run launched Chromium 156.0.8078.4, with axe-core 4.14.0 in the page.')
+    const other = renderContent(report((inputs) => (job(inputs, 'browser').browserGates[0].browser.version = '155.0.7999.2')))
+    expect(other).toContain('this run launched Chromium 155.0.7999.2 (not the 156.0.8078.4 it pins) and Chromium 156.0.8078.4, with axe-core')
+    // The full browser and the headless shell share a version: a headed launch is said, not folded into the shell's.
+    const headed = renderContent(report((inputs) => (job(inputs, 'browser').browserGates[0].browser.headless = false)))
+    expect(headed).toContain('this run launched Chromium 156.0.8078.4 headed and Chromium 156.0.8078.4, with axe-core')
+  })
+
+  // The Browser section is the gate's and the pictures' own record: every
+  // check passed, every pass made of those planned, every scene walked.
+  // A gate that stopped part way shows it in the row, not only in Problems.
+  test('shows each browser gate with its checks and passes, and each pictures’ check with its scenes', () => {
+    const browser = (markdown) => markdown.slice(markdown.indexOf('## Browser'), markdown.indexOf('## Build identity'))
+    const green = browser(renderContent(report()))
+    expect(green).toContain('| apps/studio | Chromium | chromium 156.0.8078.4, headless | 1.64.1 | 4 | 0 | 2 of 2 | 320, 360 | 4.14.0 | 180.0 s |')
+    expect(green).toContain('| apps/studio | chromium 156.0.8078.4, headless | 1.64.1 | 2 of 2 | none | 0 | 30.0 s |')
+    const stopped = browser(
+      renderContent(
+        report((inputs) => {
+          const gate = job(inputs, 'browser').browserGates[0]
+          Object.assign(gate, { error: 'the paper never settled', passes: 1, made: gate.made.slice(0, 1) })
+          job(inputs, 'browser').pictures[0].walked = ['studio-react']
+        }),
+      ),
+    )
+    expect(stopped).toContain('| 4 | 1 | 1 of 2 |')
+    expect(stopped).toContain('| 1 of 2 | studio-angular | 0 |')
+    expect(browser(renderContent(report((inputs) => (job(inputs, 'browser').browserGates = job(inputs, 'browser').pictures = []))))).toContain("No browser gate left results in this run.\n\nNo pictures' check left results in this run.")
   })
 })
 

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { floorOf } from '../install-hosts.mjs'
-import { buildReport, installPlanOf } from './report.mjs'
+import { readScenes } from '../pictures/record.mjs'
+import { buildReport, installPlanOf, scenesOf } from './report.mjs'
 import { ciJob, copy, DIST, greenCiRun, greenRun, job } from './synthetic-run.mjs'
 import { published } from './tested-on.mjs'
 
@@ -98,11 +99,14 @@ describe('a package’s suite', () => {
     ])
   })
 
-  // What collect expected and did not find -- a turbo summary, a stale
-  // result in local mode -- is not results at all.
+  // What collect expected and did not find, or found and could not use --
+  // a turbo summary, a stale result in local mode -- is not results at all.
   test('whose job missed a file fails the run', () => {
-    expect(withDefect((inputs) => job(inputs, 'test-report-spec').missing.push('packages/report-spec/test-results/vitest.json'))).toEqual([
+    expect(withDefect((inputs) => job(inputs, 'test-report-spec').absent.push({ reader: 'test', file: 'packages/report-spec/test-results/vitest.json' }))).toEqual([
       'test-report-spec: expected and not found: packages/report-spec/test-results/vitest.json',
+    ])
+    expect(withDefect((inputs) => job(inputs, 'test-report-spec').missing.push('a fresh run of @formancy/report-spec#test:coverage: turbo replayed it from its cache'))).toEqual([
+      'test-report-spec: expected and not found: a fresh run of @formancy/report-spec#test:coverage: turbo replayed it from its cache',
     ])
   })
 })
@@ -124,15 +128,16 @@ describe('a published package', () => {
 describe('the repository’s guards', () => {
   // The verify job's suite is the repository's guards; one that left
   // nothing is a run whose guards nobody ran -- unless a local report says
-  // it allowed verify missing.
+  // it allowed verify missing. As collect leaves it: no suite, and its file
+  // not found under the reader that expected it.
   test('fail the run when they left no results, unless verify is allowed missing', () => {
     const without = (allowMissing) =>
       withDefect((inputs) => {
-        job(inputs, 'verify').suites = []
+        Object.assign(job(inputs, 'verify'), { suites: [], absent: [{ reader: 'verify', file: 'test-results/vitest.json' }] })
         inputs.gatesRegister.gates[0].evidence = [{ file: 'packages/report-spec/src/validate.test.ts' }]
         inputs.allowMissing = allowMissing
       })
-    expect(without([])).toEqual(['the repository guards: no results from its suite'])
+    expect(without([])).toEqual(['verify: expected and not found: test-results/vitest.json', 'the repository guards: no results from its suite'])
     expect(without(['verify'])).toEqual([])
   })
 })
@@ -141,7 +146,10 @@ describe('the install gate', () => {
   // The install gate is the only gate that runs the packed packages; a run
   // without its record has not shown that anything published works.
   test('fails the run when it left no results, or did not pass', () => {
-    expect(withDefect((inputs) => (job(inputs, 'install').install = null))).toEqual(['the install gate left no results'])
+    expect(withDefect((inputs) => Object.assign(job(inputs, 'install'), { install: null, absent: [{ reader: 'install', file: 'test-results/install.json' }] }))).toEqual([
+      'install: expected and not found: test-results/install.json',
+      'the install gate left no results',
+    ])
     expect(
       withDefect((inputs) => {
         Object.assign(job(inputs, 'install').install, { passed: false, error: 'react-floor: tsc failed' })
@@ -198,11 +206,12 @@ describe('the install gate', () => {
   })
 
   // A local report may say it did not run the install gate; it says so in
-  // its banner, and a release refuses a partial report.
+  // its banner, and a release refuses a partial report. As collect leaves
+  // it: no record, and its file not found under the install reader.
   test('is allowed missing locally, and only when the report says so', () => {
     expect(
       withDefect((inputs) => {
-        job(inputs, 'install').install = null
+        Object.assign(job(inputs, 'install'), { install: null, absent: [{ reader: 'install', file: 'test-results/install.json' }] })
         inputs.allowMissing = ['install']
       }),
     ).toEqual([])
@@ -217,6 +226,153 @@ describe('the install gate', () => {
   })
 })
 
+describe('the browser gate', () => {
+  const gate = (inputs) => job(inputs, 'browser').browserGates[0]
+  const G3 = 'gate G3: its evidence did not pass in this run: the browser gate of apps/studio did not pass'
+
+  // A check the gate made and that failed is a claim about the page that
+  // does not hold, whatever the job's own result says.
+  test('fails the run when a check failed, and the gate evidence resting on it', () => {
+    expect(
+      withDefect((inputs) => {
+        gate(inputs).checks.failed = ['phone, 360: the first Tab reaches the skip link: focus went to the Starter combobox first']
+      }),
+    ).toEqual(['the browser gate of apps/studio in Chromium failed 1 check(s): phone, 360: the first Tab reaches the skip link: focus went to the Starter combobox first', G3])
+  })
+
+  // A gate that stopped part way made only the checks before it stopped:
+  // the rest were skipped, and skipped is not passed.
+  test('fails the run when it ended in an error, or made fewer passes than it planned', () => {
+    expect(withDefect((inputs) => (gate(inputs).error = 'vite build wrote no apps/studio/dist/index.html'))).toEqual(['the browser gate of apps/studio in Chromium ended with an error: vite build wrote no apps/studio/dist/index.html', G3])
+    expect(
+      withDefect((inputs) => {
+        gate(inputs).made.pop()
+        gate(inputs).passes = 1
+      }),
+    ).toEqual(['the browser gate of apps/studio in Chromium did not make 1 of the 2 passes it planned: "phone, 360"', G3])
+    // A gate that planned nothing measured nothing it can be held to.
+    expect(withDefect((inputs) => (gate(inputs).planned = []))).toEqual(['the browser gate of apps/studio in Chromium planned no pass', G3])
+  })
+
+  // A pass entered and left with nothing checked in it -- or every check
+  // made before the first pass -- is a width measured by nobody, though
+  // the gate made checks and every pass it planned.
+  test('fails the run when a pass it made has no check in it', () => {
+    expect(withDefect((inputs) => (gate(inputs).made[1].checks = []))).toEqual(['the browser gate of apps/studio in Chromium made no check in the pass "phone, 360"', G3])
+    expect(
+      withDefect((inputs) => {
+        const before = { label: null, width: null, height: null, checks: gate(inputs).made.flatMap((entry) => entry.checks), failed: [] }
+        for (const entry of gate(inputs).made) entry.checks = []
+        gate(inputs).made.unshift(before)
+      }),
+    ).toEqual(['the browser gate of apps/studio in Chromium made no check in the passes "reflow, 320", "phone, 360"', G3])
+  })
+
+  // A gate that left nothing is an app nobody measured in a browser; a
+  // local report may say it did not run the gate, as its banner says. As
+  // collect leaves a machine that ran neither the gate nor the pictures: no
+  // results, and both files not found under the browser reader
+  // (collect.test.mjs holds that shape). A file there but from before
+  // --since is refused, allowed or not: it is another run's.
+  test('fails the run when it left no results in a browser the gates run in, unless browser is allowed missing', () => {
+    const notRun = (inputs) =>
+      Object.assign(job(inputs, 'browser'), {
+        browserGates: [],
+        pictures: [],
+        absent: [
+          { reader: 'browser', file: 'apps/studio/test-results/browser-chromium.json' },
+          { reader: 'browser', file: 'apps/studio/test-results/pictures.json' },
+        ],
+      })
+    const none = (allowMissing) =>
+      withDefect((inputs) => {
+        notRun(inputs)
+        inputs.allowMissing = allowMissing
+      })
+    expect(none([])).toEqual([
+      'browser: expected and not found: apps/studio/test-results/browser-chromium.json',
+      'browser: expected and not found: apps/studio/test-results/pictures.json',
+      'the browser gate of apps/studio left no results in Chromium',
+      'the pictures’ check of apps/studio left no results',
+      'gate G3: its evidence did not pass in this run: the browser gate of apps/studio did not run in Chromium',
+    ])
+    expect(none(['browser'])).toEqual([])
+    const stale = 'stale: apps/studio/test-results/browser-chromium.json started 2026-10-15T10:00:00.000Z, before --since'
+    expect(
+      withDefect((inputs) => {
+        notRun(inputs).absent.shift()
+        job(inputs, 'browser').missing.push(stale)
+        inputs.allowMissing = ['browser']
+      }),
+    ).toEqual([`browser: expected and not found: ${stale}`])
+  })
+
+  // What the page was measured in is the browser Playwright pins; another
+  // version, or another Playwright, is a browser the report does not name.
+  test('fails the run when it launched another browser than Playwright pins, or ran another Playwright', () => {
+    expect(withDefect((inputs) => (gate(inputs).browser.version = '155.0.7999.2'))).toEqual(['the browser gate of apps/studio in Chromium launched chromium 155.0.7999.2, not the chromium-headless-shell 156.0.8078.4 Playwright 1.64.1 pins'])
+    expect(withDefect((inputs) => (gate(inputs).playwright = '1.63.0'))).toEqual(['the browser gate of apps/studio in Chromium ran Playwright 1.63.0, where the checkout installs 1.64.1'])
+  })
+
+  // Playwright pins Chromium's headless shell and its full browser at one
+  // version, so a gate launched headed passes the version check while the
+  // report says it measured the shell; how it was launched is what tells.
+  test('fails the run when it launched the browser otherwise than scripts/browsers.mjs, or did not say how', () => {
+    expect(withDefect((inputs) => (gate(inputs).browser.headless = false))).toEqual([
+      'the browser gate of apps/studio in Chromium launched chromium headed, where scripts/browsers.mjs launches it headless: another build than the chromium-headless-shell Playwright 1.64.1 pins',
+    ])
+    expect(withDefect((inputs) => delete gate(inputs).browser.headless)).toEqual([
+      'the browser gate of apps/studio in Chromium did not record whether it launched chromium headless, so whether it ran the chromium-headless-shell Playwright 1.64.1 pins is unknown',
+    ])
+  })
+})
+
+describe('the pictures’ check', () => {
+  const check = (inputs) => job(inputs, 'browser').pictures[0]
+
+  // A picture whose page now says something else shows a Studio that no
+  // longer exists, and the README says it does.
+  test('fails the run when a picture no longer shows what the page shows, or a scene was not walked', () => {
+    expect(withDefect((inputs) => (check(inputs).problems = ['studio-react, part Preview: the page now says something else than its picture']))).toEqual([
+      'the pictures’ check of apps/studio found 1 picture(s) no longer showing what the page shows: studio-react, part Preview: the page now says something else than its picture',
+    ])
+    expect(withDefect((inputs) => check(inputs).walked.pop())).toEqual(['the pictures’ check of apps/studio did not walk studio-angular, which scripts/pictures/scenes.json pictures, so nothing held that picture'])
+  })
+
+  // A check that stopped, or never ran, held no picture at all.
+  test('fails the run when it ended in an error or left no results', () => {
+    expect(withDefect((inputs) => Object.assign(check(inputs), { error: 'studio-angular: the edited line in the PDF never came', walked: ['studio-react'] }))).toEqual([
+      'the pictures’ check of apps/studio ended with an error: studio-angular: the edited line in the PDF never came',
+    ])
+    expect(withDefect((inputs) => (job(inputs, 'browser').pictures = []))).toEqual(['the pictures’ check of apps/studio left no results'])
+  })
+
+  // The pictures are walked in the browser the gate measures, held to the same pin.
+  test('fails the run when it walked in another browser than Playwright pins, or launched it otherwise', () => {
+    expect(withDefect((inputs) => (check(inputs).browser.version = '155.0.7999.2'))).toEqual(['the pictures’ check of apps/studio launched chromium 155.0.7999.2, not the chromium-headless-shell 156.0.8078.4 Playwright 1.64.1 pins'])
+    expect(withDefect((inputs) => (check(inputs).browser.headless = false))).toEqual([
+      'the pictures’ check of apps/studio launched chromium headed, where scripts/browsers.mjs launches it headless: another build than the chromium-headless-shell Playwright 1.64.1 pins',
+    ])
+  })
+
+  // The scenes a check must walk are scenes.json's, which the report reads
+  // itself, as it plans the install hosts itself: a check that walked part
+  // of them and said that part was all it planned -- a writer's bug, or a
+  // file left from before a scene was added -- would otherwise pass.
+  test('fails the run when it did not walk a scene scenes.json gives the app, or walked one it does not', () => {
+    expect(withDefect((inputs) => inputs.scenes['apps/studio'].push('studio-narrow'))).toEqual([
+      'the pictures’ check of apps/studio did not walk studio-narrow, which scripts/pictures/scenes.json pictures, so nothing held that picture',
+    ])
+    expect(withDefect((inputs) => check(inputs).walked.push('studio-gone'))).toEqual([
+      'the pictures’ check of apps/studio walked studio-gone, which scripts/pictures/scenes.json does not give apps/studio: it walked another checkout’s scenes',
+    ])
+    expect(withDefect((inputs) => (inputs.scenes = {}))).toEqual([
+      'the pictures’ check of apps/studio walked studio-react, studio-angular, which scripts/pictures/scenes.json does not give apps/studio: it walked another checkout’s scenes',
+      'the pictures’ check of apps/studio had no scene to walk: scripts/pictures/scenes.json gives apps/studio none',
+    ])
+  })
+})
+
 describe('build identity', () => {
   // Two jobs with different bytes for one package mean the dist/ a
   // dependent's suite ran is not the one npm receives.
@@ -226,7 +382,7 @@ describe('build identity', () => {
       withDefect((inputs) => {
         job(inputs, 'test-report-render-pdf').dist[0].distHash = other
       }),
-    ).toEqual([`@formancy/report-spec: two jobs built different dist/ bytes: verify, test-report-spec, test-report-builder-react, install built ${DIST.slice(0, 19)}; test-report-render-pdf built ${other.slice(0, 19)}`])
+    ).toEqual([`@formancy/report-spec: two jobs built different dist/ bytes: verify, test-report-spec, test-report-builder-react, browser, install built ${DIST.slice(0, 19)}; test-report-render-pdf built ${other.slice(0, 19)}`])
   })
 
   // One number for every package is what a release publishes (bump.mjs); a
@@ -256,7 +412,7 @@ describe('build identity', () => {
       withDefect((inputs) => {
         job(inputs, 'install').install.tarballs[1].distHash = `sha256:${'c'.repeat(64)}`
       }),
-    ).toEqual(['@formancy/report-render-pdf: the dist/ in its tarball differs from the dist/ built in verify, install'])
+    ).toEqual(['@formancy/report-render-pdf: the dist/ in its tarball differs from the dist/ built in verify, browser, install'])
   })
 })
 
@@ -303,6 +459,19 @@ describe('the install plan', () => {
   })
 })
 
+describe('the pictures’ scenes', () => {
+  // Read from scenes.json by the scene's app, as the app's script walks
+  // them: a scene filed under another app, or none for an app with a
+  // pictures' check, would hold that check to nothing.
+  test('are every scene scenes.json gives each app, in its order', () => {
+    const scenes = readScenes()
+    const plan = scenesOf(scenes, ['apps/studio'])
+    expect(plan['apps/studio']).toEqual(scenes.filter((scene) => scene.app === 'studio').map((scene) => scene.id))
+    expect(plan['apps/studio'].length).toBeGreaterThan(0)
+    expect(scenesOf(scenes, ['apps/nothing'])).toEqual({ 'apps/nothing': [] })
+  })
+})
+
 describe('a local report', () => {
   // On a machine the results directory holds whatever was put there: a
   // collect of another commit, or a CI run's artefacts left beside this
@@ -311,10 +480,10 @@ describe('a local report', () => {
   // to the run (artefacts.mjs); this holds a local report to one.
   test('fails when its results are of more than one commit or run, or hold one key twice', () => {
     expect(withDefect((inputs) => (job(inputs, 'install').commit = 'decaf'))).toEqual([
-      'the results are of 2 commits, where a report is of one: c0ffee (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus); decaf (install)',
+      'the results are of 2 commits, where a report is of one: c0ffee (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus, browser); decaf (install)',
     ])
     expect(withDefect((inputs) => (job(inputs, 'install').run.id = null))).toEqual([
-      'the results are of 2 runs, where a report is of one: run 42 (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus); a machine (install)',
+      'the results are of 2 runs, where a report is of one: run 42 (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus, browser); a machine (install)',
     ])
     expect(withDefect((inputs) => inputs.results.push(structuredClone(job(inputs, 'verify'))))).toEqual(['the results hold verify 2 times, where a run leaves each key once'])
   })
@@ -333,7 +502,7 @@ describe('a green CI run', () => {
     const report = buildReport(greenCiRun())
     expect(report.problems).toEqual([])
     expect(report.subject).toMatchObject({ version: '0.1.0', release: null, commit: 'c0ffee', run: { id: '42' } })
-    expect(report.subject.jobs.map((entry) => entry.key)).toEqual(['verify', 'test-report-spec', 'test-report-render-pdf', 'test-report-builder-react', 'test-report-corpus', 'install'])
+    expect(report.subject.jobs.map((entry) => entry.key)).toEqual(['verify', 'test-report-spec', 'test-report-render-pdf', 'test-report-builder-react', 'test-report-corpus', 'browser', 'install'])
   })
 })
 
@@ -342,6 +511,17 @@ describe('the run', () => {
   // look green; the job's own result is the last word.
   test('fails when a job of the gates ended other than success', () => {
     expect(ciDefect((inputs) => (inputs.needs.verify.result = 'failure'))).toEqual(['the verify job ended failure'])
+  })
+
+  // The browser job is a job of the run like any other: when it left no
+  // artefact, the report says so, and says what it then has no record of.
+  test('fails when the browser job left no artefact, naming what it has no record of', () => {
+    expect(ciDefect((inputs) => (inputs.artefacts = inputs.artefacts.filter((entry) => entry.name !== 'release-results-browser')))).toEqual([
+      'browser: its job left no artefact release-results-browser',
+      'the browser gate of apps/studio left no results in Chromium',
+      'the pictures’ check of apps/studio left no results',
+      'gate G3: its evidence did not pass in this run: the browser gate of apps/studio did not run in Chromium',
+    ])
   })
 
   // A job missing from the report's needs is one whose end it never waited for.
@@ -415,11 +595,11 @@ describe('the release gates', () => {
     expect(local(['install'])).toEqual([])
   })
 
-  // A gate partly evidenced -- G3, whose cross-framework test is the
-  // Studio's -- stays open; its evidence still has to pass.
+  // A gate partly evidenced -- G3, whose builders' trees nothing compares
+  // -- stays open; its evidence still has to pass.
   test('keep a gate with a reason open, and fail it when the evidence it has did not pass', () => {
     const report = buildReport(greenCiRun())
-    expect(report.gates.find((entry) => entry.gate === 'G3')).toMatchObject({ state: 'open', evidence: [{ kind: 'file', outcome: 'passed' }] })
+    expect(report.gates.find((entry) => entry.gate === 'G3')).toMatchObject({ state: 'open', evidence: [{ kind: 'file', outcome: 'passed' }, { kind: 'browserGate', value: 'apps/studio', outcome: 'passed' }] })
     expect(
       ciDefect((inputs) => {
         const file = ciJob(inputs, 'test-report-builder-react').suites[0].files[0]

@@ -118,9 +118,14 @@ holds and what fails it). In short:
   the suites loaded them and as a clean install resolved them; each
   builder's React or Angular as declared, as its suites ran it, and as each
   install host resolved it at both ends of its peer range; upstream
-  `@formancy/*`; Node, pnpm, TypeScript and PDF.js;
+  `@formancy/*`; Node, pnpm, TypeScript and PDF.js; the Chromium the browser
+  gate launched and the Playwright that pins it;
 - each package's results, held to every test file the checkout holds for
   it;
+- the Studio's browser gate, held to every pass it planned and a check in
+  each, and its README pictures' check, held to every scene
+  `scripts/pictures/scenes.json` gives the Studio, each launched as
+  `scripts/browsers.mjs` launches the build Playwright pins;
 - the install gate host by host, held to the hosts it plans;
 - each tarball's built files against the `dist/` every job built;
 - the release gates from [`gates.json`](docs/release/gates.json);
@@ -134,6 +139,7 @@ To build one on a machine, from that machine's own runs:
 since=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 pnpm build && pnpm test:repo
 pnpm exec turbo run test:coverage --force --summarize   # every package, fresh, with its wall time
+pnpm test:browser && pnpm test:pictures                  # the Studio in Chromium, and its README pictures
 node scripts/install-test.mjs
 node scripts/release-report/collect.mjs --local --since "$since"
 node scripts/release-report/report.mjs --local --allow-missing install
@@ -145,7 +151,14 @@ run that wrote its suite's results, and every test file of a package must
 have run: a report after one file run alone fails, by design. `--allow-missing
 install` is for G1, which rests on the install job, and a job's result exists
 only in a gates run; the install gate's own record is read whatever it
-allows. A release refuses a local report.
+allows. The browser gate needs Chromium once on the machine (`pnpm --filter
+@formancy/report-studio exec playwright install chromium`); its file and the
+pictures' check's are read as in CI, and G3, which rests on the browser gate,
+is judged from them. On a machine that did not run them, `--allow-missing
+install,browser` (or `verify`) allows each of those readers' files not
+found, and what rests on them, and the banner says so; a file that is there
+from before `--since` is refused all the same -- run it again or remove it.
+A release refuses a local report.
 
 ## Rehearsing
 

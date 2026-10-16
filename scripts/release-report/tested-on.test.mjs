@@ -1,6 +1,8 @@
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
+import { BROWSERS, LAUNCH_OPTIONS, PINNED_AS } from '../browsers.mjs'
+import { installed } from '../release/installed.mjs'
 import { readmeTable, stale } from './readme.mjs'
 import { published, testedOn, workspace } from './tested-on.mjs'
 
@@ -49,6 +51,21 @@ describe('testedOn()', () => {
     for (const entry of direct) expect(entry.version, entry.name).toBe(entry.declared)
   })
 
+  // The browser gate's claims are about the browser Playwright pins: a gate
+  // run is held to that build's version, so a pin the lookup missed would
+  // hold every run to nothing. Read from the Playwright the Studio loads,
+  // one build for each browser the gates run in.
+  test('names the Playwright the browser gates load, and the build it pins for each browser they run in', () => {
+    const studio = installed(join(repo, 'apps', 'studio'), 'playwright')
+    expect(facts.browser.playwright).toBe(studio.version)
+    expect(facts.browser.pins.map((pin) => [pin.browser, pin.name, pin.headless])).toEqual(BROWSERS.map((browser) => [browser, PINNED_AS[browser], LAUNCH_OPTIONS.headless]))
+    for (const pin of facts.browser.pins) {
+      expect(pin.browserVersion, pin.name).toMatch(/^\d+\.\d+/)
+      expect(pin.revision, pin.name).toMatch(/^\d+$/)
+    }
+    expect(readmeTable(facts)).toContain(`| Chromium | ${facts.browser.pins[0].browserVersion}, the chromium-headless-shell Playwright ${studio.version} pins (revision ${facts.browser.pins[0].revision}) |  |`)
+  })
+
   // A lookup that found nothing would render an empty row that equals
   // itself, and the README test below would pass on a table of blanks.
   test('finds a version for every tool and every package it names', () => {
@@ -84,6 +101,6 @@ describe('the README block', () => {
     const table = readmeTable(facts)
     const react = facts.peers.find((entry) => entry.name === 'react')
     expect(table).toContain(`| \`react\`, a peer of \`${react.package}\` | ${react.loaded}, in its suites | \`${react.range}\` |`)
-    expect(table).toContain('is in the release report every CI run produces and every release attaches, signed.')
+    expect(table).toContain('and the Chromium the browser gate launched -- is in the release report every CI run produces and every release attaches, signed.')
   })
 })

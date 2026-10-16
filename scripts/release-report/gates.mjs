@@ -5,32 +5,35 @@
 // wording: the report prints the gate's id with its evidence, and a key other
 // than `gate`, `evidence` and `open` fails here.
 //
-// Evidence comes in three kinds:
+// Evidence comes in four kinds:
 //
 //   { "file": "<repo-relative test file>" }   every test in it passed in this run
+//   { "browserGate": "<app dir>" }             that app's browser gate in every browser the gates run in: no failed check, no error, every planned pass made with a check in it
 //   { "job": "<gates.yml job id>" }            that job's result in the report's needs is success
 //   { "document": "<committed file>" }         stated: shown with its last change, never as passed
 //
 // A gate with evidence and no reason is "passed" in a run when everything but
 // its documents passed, and "stated" when its only evidence is documents. A
 // gate with a reason is "open": with evidence too, it is partly evidenced --
-// G3, whose builders' scenarios run here and whose cross-framework test is
-// the Studio's -- and that evidence must pass all the same. A gate whose
-// evidence did not pass is "failed", which fails the run. The report never
-// says a gate is met.
+// G3, whose switch across the frameworks and whose scenarios run here, and
+// whose equivalence of the builders' accessible trees nothing compares --
+// and that evidence must pass all the same. A gate whose evidence did not
+// pass is "failed", which fails the run. The report never says a gate is
+// met.
 //
-// The Studio's browser gates add a kind of their own when they arrive, as
-// formancy.ai-data's `browserGate` is.
+// A browser gate is judged as formancy.ai-data's `browserGate` is, from the
+// gate's own results file (results.mjs's gateOutcome), so on a machine it is
+// judged from that machine's run of the gate, unlike a job.
 
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { isRunTest } from './results.mjs'
+import { gateOutcome, isRunTest } from './results.mjs'
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 export const GATES_REGISTER = 'docs/release/gates.json'
-export const KINDS = ['file', 'job', 'document']
+export const KINDS = ['file', 'browserGate', 'job', 'document']
 /** The plan's gates, in its order: G1 to G7 (plan 25.1), then the legal review it keeps open until done (plan 25.2). */
 export const GATES = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'legal']
 
@@ -50,9 +53,11 @@ export function evidenceKind(item) {
 }
 
 /** Why one evidence item cannot be judged, or undefined when it can. */
-function itemProblem({ kind, value }, { covered, jobs, exists }) {
+function itemProblem({ kind, value }, { covered, browserApps = [], jobs, exists }) {
   if (kind === 'file') {
     if (!isRunTest(String(value), { covered, exists })) return `${String(value)} is not a test file of a package with a suite or of the repository's guards`
+  } else if (kind === 'browserGate') {
+    if (!browserApps.includes(value)) return `${String(value)} is not an app with a test:browser script`
   } else if (kind === 'job') {
     if (!jobs.includes(value)) return `${String(value)} is not a job of .github/workflows/gates.yml that leaves results`
   } else if (typeof value !== 'string' || !exists(value)) {
@@ -63,9 +68,9 @@ function itemProblem({ kind, value }, { covered, jobs, exists }) {
 
 /**
  * What is wrong with `register`, as sentences. Pure: `covered` is the paths
- * of the packages with a test:coverage script, `jobs` the gates workflow's
- * jobs that leave results, and `exists(path)` whether a repository path is a
- * file.
+ * of the packages with a test:coverage script, `browserApps` the paths of
+ * the apps with a test:browser script, `jobs` the gates workflow's jobs that
+ * leave results, and `exists(path)` whether a repository path is a file.
  */
 export function gatesProblems(register, context) {
   const problems = []
@@ -93,6 +98,10 @@ export function gatesProblems(register, context) {
 /** What a run says of one evidence item: passed, failed or absent; a document is stated, with its history. */
 function outcomeOf({ kind, value }, run) {
   if (kind === 'file') return { outcome: run.fileOutcome(value) }
+  // Failed in any browser is failed, and so is a run that skipped a pass;
+  // passed is passed in every browser the gates run in, and absent, naming
+  // them, while one has not run.
+  if (kind === 'browserGate') return gateOutcome(run.browserGates ?? [], value, run.browsers ?? [])
   if (kind === 'job') {
     // A job's result is what the report job's `needs` say; a machine has none.
     if (run.needs === null) return { outcome: 'absent', local: true }
@@ -105,8 +114,10 @@ function outcomeOf({ kind, value }, run) {
 /**
  * Each gate as this run leaves it: `{ gate, state, evidence, open? }`, with
  * state `passed`, `failed`, `stated` or `open`. Pure. `run` gives
- * `fileOutcome(file)`, its `needs` (null locally), and `documents`: each
- * document's last change, `{ sha, date, behind }`, or null when git has none.
+ * `fileOutcome(file)`, the run's `browserGates` (results.mjs's rows), the
+ * `browsers` the gates run in, its `needs` (null locally), and `documents`:
+ * each document's last change, `{ sha, date, behind }`, or null when git
+ * has none.
  */
 export function evaluateGates(register, run) {
   return (register?.gates ?? []).map((entry) => {

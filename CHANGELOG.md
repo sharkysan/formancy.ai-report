@@ -521,8 +521,10 @@ the run was tested on -- every runtime dependency as published, as the
 suites loaded it and as a clean install resolved it; each builder's React or
 Angular as declared, as its suites ran it and as each install host
 installed it at both ends of its peer range; upstream `@formancy/*`; Node,
-pnpm, TypeScript and PDF.js -- each package's results, the tarballs by
-sha256 against the `dist/` every job built, the release gates, and the known
+pnpm, TypeScript and PDF.js; the Chromium the browser gate launched beside
+the build the Playwright it ran pins -- each package's results, the Studio's
+browser gate and its README pictures' check, the tarballs by sha256 against
+the `dist/` every job built, the release gates, and the known
 limitations: those the run shows, then a register with an entry for every
 decision record, held to each record by hash. A suite is held to every test
 file the checkout holds for it, known by its name rather than by the suite's
@@ -530,17 +532,26 @@ own include, because a file renamed past the include, or an include
 narrowed, would otherwise stop running with every count still green. The
 install gate is held to every host `scripts/install-hosts.mjs` plans, each
 step done and each builder's framework resolved, at its range's floor where
-it should be, rather than to the one flag the gate writes. A published
+it should be, rather than to the one flag the gate writes. The browser
+gate is held to every pass it planned, each with a check in it, and the
+pictures' check to every scene `scripts/pictures/scenes.json` gives the
+Studio, read from that file rather than from the check, each from the file
+it writes however it ends, because a gate that stopped part way passes every
+check it reached. Both are held to the Chromium build Playwright pins,
+launched headless as `scripts/browsers.mjs` says, because Playwright pins
+the headless shell and the full browser at one version. A published
 package with no suite fails the run too. What 0004's table above says
 a release was tested against is now derived from the run that gates it, in
 the report and in the release body, because a version typed here could name
 one no run tested; the table stays as what this release is built for.
 
 The gates are the plan's, in `docs/release/gates.json`: G1 and G2 rest on
-evidence each run must pass; G3 rests on the builders' scenarios and stays
-open until the Studio's cross-framework test lands; G4 to G7 belong to later
-releases; and the legal review stays open while `LICENSE.md` says no lawyer
-has read it, which `scripts/licence-status.test.mjs` now holds. In a
+evidence each run must pass; G3 rests on the builders' scenarios, the
+Studio's switch across the frameworks over one session and its browser
+gate, and stays open because no test compares the two builders' accessible
+trees with each other; G4 to G7 belong to later releases; and the legal
+review stays open while `LICENSE.md` says no lawyer has read it, which
+`scripts/licence-status.test.mjs` now holds. In a
 release, `check` refuses a report that is not this run's, green and whole,
 and tarballs that are not the ones the report says the install gate ran,
 before it pins anything; `publish` refuses anything else again, then signs

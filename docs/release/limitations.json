@@ -285,12 +285,8 @@
       ]
     },
     "0012": {
-      "reviewed": "sha256:418a57d018782c04751f367c3fd6e5c055c7b3a235a5e6ccafdf03de86627022",
+      "reviewed": "sha256:d771c01f78dddc430d6bec18897697d26f4aaa26c068952ec0ef824e174fe2a3",
       "limitations": [
-        {
-          "area": "builders",
-          "says": "No test mounts both builders over one session: plan 21's switch between them is held at the model and within each framework."
-        },
         {
           "area": "builders",
           "says": "A touch device gets no drag in the Angular builder, which binds HTML drag and drop, and the two builders' drag thresholds differ."
@@ -305,12 +301,33 @@
         },
         {
           "area": "testing",
-          "says": "No browser runs the builders' suites: layout, contrast and real pointers are not tested, and the builders' README pictures are taken by hand."
+          "says": "The builders' own suites run in jsdom: layout, contrast, target size and a real pointer's drag are measured only through the Studio, in Chromium, and the pictures in the builders' own READMEs are taken by hand."
+        }
+      ]
+    },
+    "0013": {
+      "reviewed": "sha256:d6b72248249e3899a74330693b9d08e809022fa6094445067f015d0dbefd0e80",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "No PDF viewer is published: the Studio's PDF.js viewer stays inside the private app, so a host shows a report's PDF with a viewer of its own."
+        },
+        {
+          "area": "builders",
+          "says": "A host that wants formancy.ai's admin look for the builder copies the Studio's builder.css rules as well as the --wb-* variables; the variables alone give the workbench's own shapes in the room's colours."
+        },
+        {
+          "area": "testing",
+          "says": "The browser gate measures the Studio in Chromium alone, so layout, contrast, target size and a pointer's drag are not measured in Firefox or WebKit."
+        },
+        {
+          "area": "testing",
+          "says": "A README picture of the Studio is held to the text its parts show, not to its pixels, so a change of colour or layout alone, or a quoted line scrolled out of its part, is seen only by looking."
         }
       ]
     },
     "0014": {
-      "reviewed": "sha256:0ab75eb7dea6c169707a363c235a18a5cb19951785097afcc14d22ccce46cf1c",
+      "reviewed": "sha256:cb0e7fa5829afe5bbaaa9d4d7d6078053d5e6ec31a373c022513d4d091d17087",
       "limitations": [
         {
           "area": "release",

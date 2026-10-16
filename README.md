@@ -229,6 +229,7 @@ report, signed
 | --- | --- | --- |
 | `@formancy/expressions` | 0.5.0 | `0.5.0` |
 | `@formancy/spec` | 0.5.0 | `0.5.0` |
+| `@formancy/themes` | 0.5.0 | `0.5.0` |
 | `tslib`, by `@formancy/report-builder-angular` | 2.8.1 | `^2.8.0` |
 | `pdfmake`, by `@formancy/report-render-pdf` | 0.3.11 | `0.3.11` |
 | `@angular/core`, a peer of `@formancy/report-builder-angular` | 22.2.2, in its suites | `^22.0.0` |
@@ -237,13 +238,15 @@ report, signed
 | Node, the workspace |  | `>=22.13.0` |
 | Node, CI | 22 |  |
 | pnpm | 12.4.2, through corepack | `pnpm@12.4.2`, the root's `packageManager` |
+| Chromium | 156.0.8078.4, the chromium-headless-shell Playwright 1.64.1 pins (revision 1248) |  |
 | `typescript` | 6.0.3 | `~6.0.3` |
 | `vitest` | 5.0.4 | `^5.0.1` |
 | `pdfjs-dist` | 6.4.299 | `6.4.299` |
 | `jsdom` | 30.1.2 |  |
 | `axe-core` | 4.14.0 |  |
+| `playwright` | 1.64.1 | `^1.63.0` |
 
-What a run actually ran -- the Node of each job, and the React and Angular each install host resolved at both ends of the builders’ peer ranges -- is in the release report every CI run produces and every release attaches, signed.
+What a run actually ran -- the Node of each job, the React and Angular each install host resolved at both ends of the builders’ peer ranges, and the Chromium the browser gate launched -- is in the release report every CI run produces and every release attaches, signed.
 
 <!-- end generated -->
 

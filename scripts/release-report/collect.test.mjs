@@ -182,7 +182,7 @@ describe('a test job’s results', () => {
   test('list a suite that left no results', () => {
     const root = workspace()
     rmSync(join(root, 'packages/report-spec/test-results'), { recursive: true })
-    expect(collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine })).toMatchObject({ suites: [], missing: ['packages/report-spec/test-results/vitest.json'] })
+    expect(collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine })).toMatchObject({ suites: [], absent: [{ reader: 'test', file: 'packages/report-spec/test-results/vitest.json' }], missing: [] })
   })
 })
 
@@ -193,18 +193,76 @@ describe('the verify and install jobs’ results', () => {
     const root = workspace()
     expect(collect({ root, job: 'verify', ...machine }).suites.map((suite) => [suite.package, suite.path, suite.files[0].file])).toEqual([[null, '.', 'scripts/check-cla.test.mjs']])
     const install = collect({ root, job: 'install', ...machine })
-    expect(install).toMatchObject({ key: 'install', suites: [], install: { passed: true, npm: '10.9.0' }, tarballs: [], missing: [] })
+    expect(install).toMatchObject({ key: 'install', suites: [], install: { passed: true, npm: '10.9.0' }, tarballs: [], absent: [], missing: [] })
     rmSync(join(root, 'test-results/install.json'))
-    expect(collect({ root, job: 'install', ...machine })).toMatchObject({ install: null, missing: ['test-results/install.json'] })
+    expect(collect({ root, job: 'install', ...machine })).toMatchObject({ install: null, absent: [{ reader: 'install', file: 'test-results/install.json' }], missing: [] })
   })
 
-  // A job gates.yml gains -- the Studio's browser legs -- needs a reader
+  // A job gates.yml gains -- a container gate, one day -- needs a reader
   // here before it can say anything; collecting nothing for it would upload
   // results that look like a job with nothing to report.
   test('refuse a job it has no reader for', () => {
-    expect(() => collect({ root: workspace(), job: 'browser', variant: 'chromium', ...machine })).toThrow(
-      'collect.mjs reads the verify, test and install jobs, and has no reader for browser: a job the report expects results from needs one here',
+    expect(() => collect({ root: workspace(), job: 'container', ...machine })).toThrow(
+      'collect.mjs reads the verify, test, browser and install jobs, and has no reader for container: a job the report expects results from needs one here',
     )
+  })
+})
+
+/** The Studio, with a browser gate and pictures, and the file each wrote: its gate in Chromium, and its pictures' check. */
+function withStudio(root) {
+  put(root, 'apps/studio/package.json', { name: '@formancy/report-studio', private: true, scripts: { 'test:browser': 'node scripts/browser-test.mjs', 'test:pictures': 'node scripts/pictures.mjs --check' } })
+  const gate = { gate: 'apps/studio', asked: 'chromium', startedAt: at(30), finishedAt: at(33), browser: { name: 'chromium', version: '156.0.8078.4', headless: true }, playwright: '1.64.1', planned: ['phone, 360'], passes: 1, made: [], checks: { ok: 3, failed: [] } }
+  put(root, 'apps/studio/test-results/browser-chromium.json', gate)
+  put(root, 'apps/studio/test-results/pictures.json', { check: 'pictures', app: 'apps/studio', startedAt: at(34), finishedAt: at(35), planned: ['studio-react'], walked: ['studio-react'], problems: [] })
+  return root
+}
+
+describe('the browser job’s results', () => {
+  // The browser job runs every app's gate and pictures' check; the report
+  // judges each from the file it wrote, so the job's results carry them,
+  // under one key, `browser`, which gates.yml's collect step gives.
+  test('keep each app’s gate in every browser the gates run in, and its pictures’ check', () => {
+    const result = collect({ root: withStudio(workspace()), job: 'browser', ...machine })
+    expect(result).toMatchObject({ key: 'browser', job: 'browser', suites: [], install: null, absent: [], missing: [] })
+    expect(result.browserGates.map((gate) => [gate.gate, gate.asked, gate.browser.version, gate.planned])).toEqual([['apps/studio', 'chromium', '156.0.8078.4', ['phone, 360']]])
+    expect(result.pictures.map((check) => [check.app, check.walked])).toEqual([['apps/studio', ['studio-react']]])
+    // The job builds what the Studio imports, so its dist/ is held to every other job's.
+    expect(result.dist.map((entry) => entry.package)).toEqual(['@formancy/report-builder-angular', '@formancy/report-spec'])
+  })
+
+  // A gate that left nothing -- the build failed before it wrote, or a
+  // browser was added to scripts/browsers.mjs that the gate does not run --
+  // and a pictures' check that left nothing are listed, so the report says
+  // what is missing rather than that the app has no gate.
+  test('list a gate in a browser, or a pictures’ check, that left no results', () => {
+    const root = withStudio(workspace())
+    rmSync(join(root, 'apps/studio/test-results/pictures.json'))
+    expect(collect({ root, job: 'browser', browsers: ['chromium', 'firefox'], ...machine }).absent).toEqual([
+      { reader: 'browser', file: 'apps/studio/test-results/browser-firefox.json' },
+      { reader: 'browser', file: 'apps/studio/test-results/pictures.json' },
+    ])
+  })
+
+  // A file filed under one browser and written by another browser's run, or
+  // by a run that launched another, would be that browser's checks reported
+  // as this one's.
+  test('refuse a gate’s file whose browser, asked for or launched, is not the one it is filed under', () => {
+    const root = withStudio(workspace())
+    const file = 'apps/studio/test-results/browser-chromium.json'
+    put(root, file, { gate: 'apps/studio', asked: 'firefox', startedAt: at(30), browser: null })
+    expect(collect({ root, job: 'browser', ...machine })).toMatchObject({ browserGates: [], missing: [`apps/studio’s gate asked for firefox in its chromium file: ${file}`] })
+    put(root, file, { gate: 'apps/studio', asked: 'chromium', startedAt: at(30), browser: { name: 'webkit', version: '27.2' } })
+    expect(collect({ root, job: 'browser', ...machine })).toMatchObject({ browserGates: [], missing: [`apps/studio’s gate launched webkit in its chromium file: ${file}`] })
+  })
+
+  // On a machine, the gate's file is whatever its last run left: yesterday's
+  // green gate read as today's would report checks nobody made.
+  test('are read on a machine too, and refused from before --since', () => {
+    const fresh = collect({ root: withStudio(workspace()), local: true, since: at(-1), ...machine, env: {} })
+    expect([fresh.browserGates.length, fresh.pictures.length]).toEqual([1, 1])
+    const stale = collect({ root: withStudio(workspace()), local: true, since: at(34), ...machine, env: {} })
+    expect([stale.browserGates.length, stale.pictures.length]).toEqual([0, 1])
+    expect(stale.missing).toEqual(expect.arrayContaining([`stale: apps/studio/test-results/browser-chromium.json started ${at(30)}, before --since`]))
   })
 })
 
@@ -224,7 +282,36 @@ describe('local results', () => {
   test('expect every package with a suite, the repository’s guards and the install gate', () => {
     const result = collect({ root: workspace(), local: true, since: at(-1), ...machine, env: {} })
     expect(result.suites.map((suite) => suite.path)).toEqual(['packages/report-spec', '.'])
-    expect(result.missing).toEqual(['packages/report-builder-angular/test-results/vitest.json', 'packages/report-corpus/test-results/vitest.json'])
+    expect(result.absent).toEqual([
+      { reader: 'test', file: 'packages/report-builder-angular/test-results/vitest.json' },
+      { reader: 'test', file: 'packages/report-corpus/test-results/vitest.json' },
+    ])
+  })
+
+  // A local report may allow verify, browser or install missing, as its
+  // banner says; it can only tell which file is whose when each is filed
+  // under the reader that expected it. Without that, a gate not run on the
+  // machine fails the report that says it allowed it -- and with the reader
+  // taken from the file's path, a file renamed would fall to another reader.
+  // A file of an allowed reader that is there but stale is still refused.
+  test('file each file not found under the reader that expected it, and refuse a stale one however it is allowed', () => {
+    const root = withStudio(workspace())
+    for (const file of ['test-results/vitest.json', 'test-results/install.json', 'apps/studio/test-results/browser-chromium.json', 'apps/studio/test-results/pictures.json']) rmSync(join(root, file))
+    const result = collect({ root, local: true, since: at(-1), ...machine, env: {} })
+    expect(result.absent).toEqual([
+      { reader: 'test', file: 'packages/report-builder-angular/test-results/vitest.json' },
+      { reader: 'test', file: 'packages/report-corpus/test-results/vitest.json' },
+      { reader: 'verify', file: 'test-results/vitest.json' },
+      { reader: 'browser', file: 'apps/studio/test-results/browser-chromium.json' },
+      { reader: 'browser', file: 'apps/studio/test-results/pictures.json' },
+      { reader: 'install', file: 'test-results/install.json' },
+    ])
+    expect(result.missing).toEqual([])
+    // The gate's file is there, from before --since: refused, not absent.
+    const stale = collect({ root: withStudio(workspace()), local: true, since: at(31), ...machine, env: {} })
+    expect(stale.absent.map((entry) => entry.reader)).toEqual(['test', 'test'])
+    expect(stale.browserGates).toEqual([])
+    expect(stale.missing).toContain(`stale: apps/studio/test-results/browser-chromium.json started ${at(30)}, before --since`)
   })
 
   // A fresh vitest.json beside yesterday's turbo summary and coverage would

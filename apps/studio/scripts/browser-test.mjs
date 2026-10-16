@@ -47,13 +47,16 @@
 //
 // `pnpm --filter @formancy/report-studio test:browser`, after `pnpm build`
 // has built the packages the Studio imports. Each check is printed and kept
-// in test-results/browser-chromium.json (gate-results.mjs).
+// in test-results/browser-chromium.json (gate-results.mjs), with the passes
+// planned, which the release report reads (collect.mjs --job browser).
 
 import { existsSync, readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { readPdf } from '@formancy/report-corpus'
 import { chromium } from 'playwright'
 import { build, preview } from 'vite'
+import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
 import { app, audit, describeFocus, drawnPages, fontProblem, fromTheTop, measureWidth, passes, rulesOnThePaper } from './gate-page.mjs'
 import { gateRecorder } from './gate-results.mjs'
 
@@ -514,20 +517,21 @@ async function pass(gate, browser, url, { label, width, height, refuseFonts = fa
 }
 
 async function main() {
-  const gate = gateRecorder('apps/studio', { browser: 'chromium' })
+  const gate = gateRecorder('apps/studio', { browser: 'chromium', playwright: createRequire(import.meta.url)('playwright/package.json').version })
   let server
   let browser
   try {
+    const list = passes()
+    gate.plan(list)
     await build({ root: app, logLevel: 'warn' })
     if (!existsSync(join(dist, 'index.html'))) throw new Error('vite build wrote no apps/studio/dist/index.html')
     server = await preview({ root: app, logLevel: 'warn' })
     const [url] = server.resolvedUrls?.local ?? []
     if (url === undefined) throw new Error('vite preview gave no local address')
     console.log(`the built Studio, served by vite preview at ${url}`)
-    const options = { headless: true }
+    const options = { ...LAUNCH_OPTIONS }
     browser = await chromium.launch(options)
     gate.launched(browser, options)
-    const list = passes()
     for (const each of list) await pass(gate, browser, url, each)
     const failures = gate.failures()
     if (failures.length > 0) throw new Error(`${String(failures.length)} browser check(s) failed:\n  ${failures.join('\n  ')}`)

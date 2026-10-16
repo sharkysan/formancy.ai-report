@@ -11,7 +11,7 @@
 //
 // and on one machine, after collect.mjs --local --since <ISO instant>:
 //
-//   node scripts/release-report/report.mjs --local [--allow-missing verify,install]
+//   node scripts/release-report/report.mjs --local [--allow-missing verify,browser,install]
 //
 // It writes release-report/release-report.json and release-report.md and
 // exits 1 when anything in `problems` fails the run; both files are written
@@ -25,11 +25,13 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { BROWSERS } from '../browsers.mjs'
 import { HOSTS, planProjects } from '../install-hosts.mjs'
+import { readScenes } from '../pictures/record.mjs'
 import { bodySection, releaseBody } from '../release-notes.mjs'
 import { expectedKeys, gateJobs, readWorkflow } from '../workflows.mjs'
 import { artefactProblems, readArtefacts, resultsOf } from './artefacts.mjs'
-import { namedPackages } from './collect.mjs'
+import { appsWith, namedPackages } from './collect.mjs'
 import { evaluateGates, evidenceKind, gatesProblems, readGates } from './gates.mjs'
 import { readRecords, readRegister, registerProblems, statedLimitations } from './limitations.mjs'
 import { contentProblems, localResultsProblems, needsProblems, releaseGateProblems } from './problems.mjs'
@@ -75,6 +77,14 @@ export function installPlanOf(manifests) {
 }
 
 /**
+ * The scenes each of `apps` (repository paths, `apps/studio`) must walk in
+ * its pictures' check: every scene `scenes` (scripts/pictures/scenes.json)
+ * gives it, by id, in the file's order. A check is held to these, as the
+ * install gate to installPlanOf(), and not to its own list.
+ */
+export const scenesOf = (scenes, apps) => Object.fromEntries(apps.map((app) => [app, scenes.filter((scene) => `apps/${scene.app}` === app).map((scene) => scene.id)]))
+
+/**
  * The release body, and what is wrong with it: on a tag, the tag must be the
  * version every package is at and the changelog must have its section; on a
  * rehearsal, that version's section or Unreleased; and the body must fit
@@ -104,8 +114,11 @@ function releaseOf(report, { release = '', version, changelog, run, repository }
  * (workflows.mjs's expectedKeys), the report job's `needs`, and the `run`.
  * Both: `jobs` (gates.yml's jobs that leave results), `facts` (testedOn()),
  * `covered` (packages with a suite, `{ path, id, name }`), `published`
- * (names), `installPlan` (installPlanOf()), the limitations `register` and
- * decision `records`,
+ * (names), `browserApps` and `pictureApps` (the paths of the apps with a
+ * `test:browser` and a `test:pictures` script), `browsers` (the browsers
+ * the gates run in), `scenes` (scenesOf() for the picture apps),
+ * `installPlan` (installPlanOf()), the limitations
+ * `register` and decision `records`,
  * `gatesRegister` and each document's history in `documents`, `exists` for a
  * repository path, the `repository` URL, the `commit` its links name,
  * `version` (the root manifest's), `release`, `changelog` and `generatedAt`.
@@ -121,20 +134,21 @@ export function buildReport(inputs) {
     subject: subjectOf(inputs, results),
     gateJobs: [...inputs.jobs],
     testedOn: testedOnInRun({ results, facts }),
-    results: resultsInRun({ results, covered, published: inputs.published }),
+    results: resultsInRun({ results, covered, published: inputs.published, scenes: inputs.scenes }),
     limitations: {
       registerProblems: registerProblems(register, records, { covered: covered.map((entry) => entry.path), exists }),
       stated: statedLimitations({ register, records, outcome, repository, commit }),
     },
   }
-  report.gates = evaluateGates(inputs.gatesRegister, { fileOutcome: outcome, needs: ci ? inputs.needs : null, documents: inputs.documents ?? {} })
+  const { browserApps, pictureApps, browsers } = inputs
+  report.gates = evaluateGates(inputs.gatesRegister, { fileOutcome: outcome, browserGates: report.results.browserGates, browsers, needs: ci ? inputs.needs : null, documents: inputs.documents ?? {} })
   const { problems: releaseProblems, ...release } = releaseOf(report, inputs)
   report.release = release
   report.problems = [
     ...(ci ? needsProblems(inputs.needs, inputs.jobs) : []),
     ...(ci ? artefactProblems(inputs.artefacts, { expected: inputs.expected, commit, runId: inputs.run.id }) : localResultsProblems(results)),
-    ...contentProblems(report, { published: inputs.published, installPlan: inputs.installPlan, allowMissing }),
-    ...gatesProblems(inputs.gatesRegister, { covered: covered.map((entry) => entry.path), jobs: inputs.jobs, exists }).map((problem) => `docs/release/gates.json: ${problem}`),
+    ...contentProblems(report, { published: inputs.published, installPlan: inputs.installPlan, browserApps, pictureApps, browsers, allowMissing }),
+    ...gatesProblems(inputs.gatesRegister, { covered: covered.map((entry) => entry.path), browserApps, jobs: inputs.jobs, exists }).map((problem) => `docs/release/gates.json: ${problem}`),
     ...releaseGateProblems(report.gates, allowMissing),
     ...releaseProblems,
   ]
@@ -173,6 +187,7 @@ function documentHistory(root, path) {
 /** Everything `buildReport` needs, read from the checkout at `root`, the results under `resultsDir` and, in CI, the environment. */
 export function loadInputs(root, resultsDir, { ci = false, allowMissing = [], env = process.env } = {}) {
   const packages = published(root)
+  const pictureApps = appsWith(root, 'test:pictures')
   const workflow = readWorkflow(root)
   const gatesRegister = readGates(root)
   const documents = Object.fromEntries(
@@ -187,6 +202,10 @@ export function loadInputs(root, resultsDir, { ci = false, allowMissing = [], en
     facts: testedOn(root),
     covered: namedPackages(root),
     published: packages.map(({ manifest }) => manifest.name),
+    browserApps: appsWith(root, 'test:browser'),
+    pictureApps,
+    browsers: [...BROWSERS],
+    scenes: scenesOf(readScenes(), pictureApps),
     installPlan: installPlanOf(new Map(packages.map(({ manifest }) => [manifest.name, manifest]))),
     register: readRegister(root),
     records: readRecords(root),

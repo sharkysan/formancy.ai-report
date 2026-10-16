@@ -1,10 +1,17 @@
 // What fails the report (0014; formancy.ai-data 0035), for what it shows of
-// results, the install gate, build identity, the release gates and the
-// limitations: one sentence each, written into the report's `problems` and
-// making the job exit 1. Both files are still written, so a red run says why.
+// results, the browser gate and the pictures' check, the install gate, build
+// identity, the release gates and the limitations: one sentence each, written
+// into the report's `problems` and making the job exit 1. Both files are
+// still written, so a red run says why.
 //
 // Pure over a built report. `allowMissing` names what a local, partial
-// report may lack (verify, install); CI allows none.
+// report may lack (verify, browser, install), each a reader of collect.mjs:
+// a file that reader did not find, what rests on its job and, for browser,
+// a gate or a pictures' check that left nothing are not problems. A file it
+// found and refused still is. CI allows none.
+
+import { browserName } from '../browsers.mjs'
+import { unmeasured, unwalked } from './results.mjs'
 
 const list = (items, most = 5) => (items.length <= most ? items.join('; ') : `${items.slice(0, most).join('; ')}; and ${String(items.length - most)} more`)
 
@@ -76,6 +83,88 @@ function installProblems(report, published, allowMissing, plan) {
   return problems
 }
 
+const mode = (headless) => (headless ? 'headless' : 'headed')
+
+/**
+ * What `which` launched, against the build Playwright pins for that browser
+ * (testedOn's `browser`): one Playwright does not pin, another version,
+ * launched otherwise than scripts/browsers.mjs launches it -- Chromium's
+ * headless shell and its full browser are pinned at one version, so only
+ * how it was launched says which build ran -- or another Playwright than the
+ * checkout installs.
+ */
+function launchProblems(which, launched, ranPlaywright, { playwright, pins }, browsers) {
+  const problems = []
+  const pin = pins.find((entry) => entry.browser === launched.name)
+  if (pin === undefined) problems.push(`${which} launched ${launched.name} ${launched.version}, which no gate here runs: the gates run ${browsers.map(browserName).join(', ')}`)
+  else {
+    if (launched.version !== pin.browserVersion) problems.push(`${which} launched ${launched.name} ${launched.version}, not the ${pin.name} ${pin.browserVersion} Playwright ${playwright} pins`)
+    if (typeof launched.headless !== 'boolean') problems.push(`${which} did not record whether it launched ${launched.name} headless, so whether it ran the ${pin.name} Playwright ${playwright} pins is unknown`)
+    else if (launched.headless !== pin.headless) problems.push(`${which} launched ${launched.name} ${mode(launched.headless)}, where scripts/browsers.mjs launches it ${mode(pin.headless)}: another build than the ${pin.name} Playwright ${playwright} pins`)
+  }
+  if (ranPlaywright !== null && ranPlaywright !== playwright) problems.push(`${which} ran Playwright ${ranPlaywright}, where the checkout installs ${playwright}`)
+  return problems
+}
+
+
+/**
+ * Every app with a `test:browser` script has its gate in every browser the
+ * gates run in (`browsers`): present, no error, no failed check, every pass
+ * it planned made with a check in it, and the browser it launched the build
+ * Playwright pins for that browser. A check that never ran is skipped, and
+ * skipped is not passed, as in a suite.
+ */
+function gateProblems(report, { browserApps, browsers, allowMissing }) {
+  const problems = []
+  const gates = report.results.browserGates
+  for (const app of browserApps) {
+    for (const browser of browsers) {
+      if (!allowMissing.includes('browser') && !gates.some((gate) => gate.gate === app && gate.asked === browser)) problems.push(`the browser gate of ${app} left no results in ${browserName(browser)}`)
+    }
+  }
+  for (const gate of gates) {
+    const which = `the browser gate of ${gate.gate} in ${browserName(gate.asked)}`
+    if (gate.error !== null) problems.push(`${which} ended with an error: ${gate.error}`)
+    if (gate.failed.length > 0) problems.push(`${which} failed ${String(gate.failed.length)} check(s): ${list(gate.failed)}`)
+    // One that ended in an error stopped where it stopped, for the reason it gives.
+    if (gate.error === null) for (const what of unmeasured(gate)) problems.push(`${which} ${what}`)
+    if (gate.browser === null) {
+      if (gate.error === null) problems.push(`${which} says no browser was launched`)
+      continue
+    }
+    problems.push(...launchProblems(which, gate.browser, gate.playwright, report.testedOn.browser, browsers))
+  }
+  return problems
+}
+
+/**
+ * Every app with a `test:pictures` script has its pictures' check: present,
+ * no error, every scene scenes.json gives the app walked and no other,
+ * nothing found -- a part that says something else than its picture, or a
+ * caption that quotes what its parts do not say -- and the browser it walked
+ * in the build Playwright pins. The scenes are scenes.json's, read by the
+ * report (results.mjs's `planned`), not the check's word for them.
+ */
+function picturesProblems(report, { pictureApps, browsers, allowMissing }) {
+  const problems = []
+  const checks = report.results.pictures
+  for (const app of pictureApps) {
+    if (!allowMissing.includes('browser') && !checks.some((check) => check.app === app)) problems.push(`the pictures’ check of ${app} left no results`)
+  }
+  for (const check of checks) {
+    const which = `the pictures’ check of ${check.app}`
+    if (check.error !== null) problems.push(`${which} ended with an error: ${check.error}`)
+    if (check.problems.length > 0) problems.push(`${which} found ${String(check.problems.length)} picture(s) no longer showing what the page shows: ${list(check.problems)}`)
+    const skipped = unwalked(check)
+    if (check.error === null && skipped.length > 0) problems.push(`${which} did not walk ${skipped.join(', ')}, which scripts/pictures/scenes.json pictures, so nothing held ${skipped.length === 1 ? 'that picture' : 'those pictures'}`)
+    const strays = check.walked.filter((id) => !check.planned.includes(id))
+    if (strays.length > 0) problems.push(`${which} walked ${strays.join(', ')}, which scripts/pictures/scenes.json does not give ${check.app}: it walked another checkout’s scenes`)
+    if (check.planned.length === 0) problems.push(`${which} had no scene to walk: scripts/pictures/scenes.json gives ${check.app} none`)
+    if (check.browser !== null) problems.push(...launchProblems(which, check.browser, check.playwright, report.testedOn.browser, browsers))
+  }
+  return problems
+}
+
 /** One `dist/` per published package, whichever job built it and in the tarball npm receives. */
 function identityProblems(report) {
   const problems = []
@@ -137,40 +226,50 @@ export function needsProblems(needs, jobs) {
   })
 }
 
-/** How an evidence item that did not pass is said. */
+/** How an evidence item that did not pass is said; a browser gate that did not run in a browser names it. */
 const unpassed = (item) => {
-  const what = item.kind === 'job' ? `the ${item.value} job` : item.value
+  const what = item.kind === 'job' ? `the ${item.value} job` : item.kind === 'browserGate' ? `the browser gate of ${item.value}` : item.value
   if (item.local === true) return `${what} has no result outside a gates run`
-  return `${what} ${item.outcome === 'absent' ? 'did not run' : item.kind === 'job' ? `ended ${String(item.result)}` : 'did not pass'}`
+  const where = item.missing === undefined ? '' : ` in ${item.missing.map(browserName).join(', ')}`
+  return `${what} ${item.outcome === 'absent' ? `did not run${where}` : item.kind === 'job' ? `ended ${String(item.result)}` : 'did not pass'}`
 }
 
 /**
  * Each gate whose evidence did not pass in this run. Locally, where there is
- * no `needs`, a job's evidence cannot pass: what `allowMissing` names is
- * left out, as the partial banner says.
+ * no `needs`, a job's evidence cannot pass, and a browser gate may not have
+ * run: what `allowMissing` names is left out, as the partial banner says.
  */
 export function releaseGateProblems(gates, allowMissing = []) {
   return gates
     .filter((gate) => gate.state === 'failed')
     .flatMap((gate) => {
-      const allowed = (item) => item.outcome === 'absent' && item.kind === 'job' && allowMissing.includes(item.value)
+      const allowed = (item) => item.outcome === 'absent' && ((item.kind === 'job' && allowMissing.includes(item.value)) || (item.kind === 'browserGate' && allowMissing.includes('browser')))
       const items = gate.evidence.filter((item) => item.kind !== 'document' && item.outcome !== 'passed' && !allowed(item))
       return items.length === 0 ? [] : [`gate ${String(gate.gate)}: its evidence did not pass in this run: ${list(items.map(unpassed))}`]
     })
 }
 
 /**
- * Every problem of what the run shows: what collect missed, the suites, the
- * install gate and its hosts against `installPlan`, build identity and the
+ * Every problem of what the run shows: what collect did not find or
+ * refused, the suites, the browser gate of each of `browserApps` in each of
+ * `browsers` and the pictures' check of each of `pictureApps`, the install
+ * gate and its hosts against `installPlan`, build identity and the
  * limitations.
  */
-export function contentProblems(report, { published, installPlan, allowMissing = [] }) {
+export function contentProblems(report, { published, installPlan, browserApps = [], pictureApps = [], browsers = [], allowMissing = [] }) {
   return [
+    // A file its reader expected and did not find; on a machine, not a
+    // problem for a reader the report allows missing, as its banner says.
+    // What was found and refused -- stale, another run's, another browser's
+    // -- stays one whatever is allowed: it is a file this run did not write.
+    ...report.results.absent.filter(({ reader }) => !allowMissing.includes(reader)).map(({ job, file }) => `${job}: expected and not found: ${file}`),
     ...report.results.missing.map(({ job, what }) => `${job}: expected and not found: ${what}`),
     // A published package with no test:coverage script has no row at all.
     ...published.filter((name) => !report.results.packages.some((row) => row.package === name)).map((name) => `${name} is published and has no suite: it has no test:coverage script, so no job runs its tests`),
     ...report.results.packages.flatMap(suiteProblems),
     ...(report.results.repository.present || !allowMissing.includes('verify') ? suiteProblems(report.results.repository) : []),
+    ...gateProblems(report, { browserApps, browsers, allowMissing }),
+    ...picturesProblems(report, { pictureApps, browsers, allowMissing }),
     ...installProblems(report, published, allowMissing, installPlan),
     ...identityProblems(report),
     ...limitationProblems(report),

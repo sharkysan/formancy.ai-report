@@ -195,6 +195,8 @@ jobs:
         with:
           name: release-results-${{ steps.collect.outputs.key }}
           path: release-results/
+          if-no-files-found: error
+          overwrite: true
 
   # What jsdom cannot see in the Studio, measured in Chromium: layout down to
   # 320 pixels, the keyboard's path, axe with contrast and target size
@@ -259,9 +261,28 @@ jobs:
 
       # The pictures, walked on the page the gate measured. They were taken
       # on another machine; --check compares their text alone, with the web
-      # fonts refused, so the platform's look does not enter it.
+      # fonts refused, so the platform's look does not enter it. Run when the
+      # gate failed too, so a red gate does not hide the pictures' answer;
+      # the job fails all the same.
       - run: pnpm exec turbo run test:pictures --filter=@formancy/report-studio
+        if: ${{ !cancelled() }}
 
+      # What the gate and the pictures' check found, for the report: each
+      # writes its own file under apps/studio/test-results however its run
+      # ends (browser-chromium.json, pictures.json), and the dist/ of every
+      # published package turbo built for the Studio.
+      - name: Keep what this job found, for the report
+        id: collect
+        if: ${{ !cancelled() }}
+        run: node scripts/release-report/collect.mjs --job browser
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: release-results-${{ steps.collect.outputs.key }}
+          path: release-results/
+          if-no-files-found: error
+          overwrite: true
+      # The gate's and the check's own files, whole, for whoever reads a red run.
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -327,12 +348,15 @@ jobs:
 
   # The release report (0014), built from what every job above found: what
   # this run was tested on -- Node, pnpm, TypeScript, upstream @formancy/*,
-  # pdfmake, and the React and Angular each install host resolved -- every
-  # package's results, the build identity of what a release publishes, the
-  # release gates and the known limitations. It fails the run on anything in
-  # its problems -- a job that ended other than success, an artefact
-  # missing, twice or another run's, a test skipped or failed, a tarball
-  # whose dist/ is not every job's -- and writes the report either way, into
+  # pdfmake, the React and Angular each install host resolved, and the
+  # Chromium the browser gate launched with the Playwright that pins it --
+  # every package's results, the browser gate's checks and the pictures'
+  # check, the build identity of what a release publishes, the release gates
+  # and the known limitations. It fails the run on anything in its problems
+  # -- a job that ended other than success, an artefact missing, twice or
+  # another run's, a test skipped or failed, a browser check failed or a
+  # pass it planned not made, a tarball whose dist/ is not every job's --
+  # and writes the report either way, into
   # the job summary and the `release-report` artefact. For a release or a
   # rehearsal it also writes the release body, and fails here, before
   # anything is published, when the body has no changelog section or is
@@ -343,7 +367,7 @@ jobs:
   # checkout keeps the whole history, for a document's last change when a
   # gate's evidence is a document.
   report:
-    needs: [verify, test, install]
+    needs: [verify, test, browser, install]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
