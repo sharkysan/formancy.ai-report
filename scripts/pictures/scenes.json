@@ -4,12 +4,15 @@
     "app": "studio",
     "placement": "inline",
     "title": "The quotation in the React builder",
-    "caption": "The quotation starter in the React builder: the workbench's outline, design view and properties over one report session. Beside it the Preview, the session's document resolved against the starter's synthetic data by `@formancy/report-runtime`, printed in the page by `@formancy/report-render-pdf/browser` and drawn by PDF.js on white paper, down to “Total CHF 3'143.00” ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)). The builder's own diagnostics name a print style the starter declares and nothing uses: “style \"strong\" is used by no component, column or row”.",
+    "caption": "The quotation starter in the React builder: the workbench's outline, design view and properties over one report session. Beside it the Preview, the session's document resolved against the starter's synthetic data by `@formancy/report-runtime`, printed in the page by `@formancy/report-render-pdf/browser` and drawn by PDF.js on white paper, down to “Total CHF 3'143.00” ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).",
     "alt": "The Studio: a bar with the starter picker on Quotation and the builder switch on React; the React builder's toolbar, outline, design view and report properties; and the Preview, “Preview: printed.”, with the Offerte on white paper.",
     "quotes": {
-      "Total CHF 3'143.00": ["Preview"],
-      "style \"strong\" is used by no component, column or row": ["Builder"],
-      "Preview: printed.": ["Preview"]
+      "Total CHF 3'143.00": [
+        "Preview"
+      ],
+      "Preview: printed.": [
+        "Preview"
+      ]
     }
   },
   {
@@ -20,7 +23,10 @@
     "caption": "The quotation's payment line edited in React to “Zahlbar innert 10 Tagen netto.”, then the switch moved to Angular. The Angular builder draws the same editor over the same session, so the edit is there, still selected, and so is its Undo; the Preview prints the edited line. Switching frameworks keeps the document, its history, the selection and the zoom ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).",
     "alt": "The Studio with the builder switch on Angular: the Angular builder with Undo offered and the edited line “Zahlbar innert 10 Tagen netto.” selected in its design view and open in its properties, and the Preview printing the same line on white paper.",
     "quotes": {
-      "Zahlbar innert 10 Tagen netto.": ["Builder", "Preview"]
+      "Zahlbar innert 10 Tagen netto.": [
+        "Builder",
+        "Preview"
+      ]
     }
   },
   {
@@ -31,8 +37,12 @@
     "caption": "The equipment register with its Category column set to show the description instead. The builder says what that leaves behind before anything is rendered: “field \"category\" of the detail dataset is neither printed, drawn, ordered by, totalled nor read, and would be fetched for nothing”. A warning renders as written, so the Preview still prints the register grouped by site, with “Basel (12 items)” heading its group ([0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).",
     "alt": "The builder and the Preview: the outline of the equipment register with the Category column selected, its value set to Description, a warning in the builder's problems, and the register printed on white paper, grouped by site.",
     "quotes": {
-      "field \"category\" of the detail dataset is neither printed, drawn, ordered by, totalled nor read, and would be fetched for nothing": ["Builder"],
-      "Basel (12 items)": ["Preview"]
+      "field \"category\" of the detail dataset is neither printed, drawn, ordered by, totalled nor read, and would be fetched for nothing": [
+        "Builder"
+      ],
+      "Basel (12 items)": [
+        "Preview"
+      ]
     }
   },
   {
@@ -43,9 +53,16 @@
     "caption": "The Book value column given the condition `row.value > 1000`, which reads a row where a column's condition has none. The builder marks it as an error, and the runtime refuses to print the preview rather than guess: “Preview: refused by the runtime, 1 problem.”, with its reason, “row has a value only in a table's cells and what an aggregate reads from each row”. Its button, “Select Book value”, pressed with Enter, selected the column and put the keyboard on its outline row, with the condition in its properties ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)).",
     "alt": "The builder with the Book value row of the outline selected and focused, its properties showing the condition and an error in the builder's problems, beside the Preview saying it was refused by the runtime, with the reason and a button “Select Book value”.",
     "quotes": {
-      "Preview: refused by the runtime, 1 problem.": ["Preview"],
-      "row has a value only in a table's cells and what an aggregate reads from each row": ["Preview", "Builder"],
-      "Select Book value": ["Preview"]
+      "Preview: refused by the runtime, 1 problem.": [
+        "Preview"
+      ],
+      "row has a value only in a table's cells and what an aggregate reads from each row": [
+        "Preview",
+        "Builder"
+      ],
+      "Select Book value": [
+        "Preview"
+      ]
     }
   },
   {
@@ -57,7 +74,9 @@
     "caption": "At 390 pixels wide, the service inspection starter as the Studio opens. The bar's controls take a line each, the builder shows one pane at a time, chosen from its toolbar, and the Preview follows under it with each page at the width there is, “Page 1 of 2” and the next; nothing scrolls sideways, which the Studio's browser gate measures down to 320 pixels.",
     "alt": "The Studio at a phone's width: the bar with the starter picker on Service inspection and the builder switch on React, the builder showing its toolbar and the outline, and under it the Preview with both pages of the service inspection report.",
     "quotes": {
-      "Page 1 of 2": ["Preview"]
+      "Page 1 of 2": [
+        "Preview"
+      ]
     }
   }
 ]

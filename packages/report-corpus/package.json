@@ -24,6 +24,7 @@
     "@formancy/report-runtime": "workspace:*"
   },
   "devDependencies": {
+    "@formancy/report-core": "workspace:*",
     "@pdfme/common": "6.2.4",
     "@pdfme/generator": "6.2.4",
     "@pdfme/pdf-lib": "6.2.4",

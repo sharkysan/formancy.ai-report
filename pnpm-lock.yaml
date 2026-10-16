@@ -522,6 +522,9 @@ importers:
         specifier: 6.4.299
         version: 6.4.299
     devDependencies:
+      '@formancy/report-core':
+        specifier: workspace:*
+        version: link:../report-core
       '@pdfme/common':
         specifier: 6.2.4
         version: 6.2.4
