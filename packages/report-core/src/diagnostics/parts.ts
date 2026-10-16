@@ -123,6 +123,9 @@ const READERS: { readonly [K in ComponentKind]: Reader<K> } = {
     if (image.source.kind === 'asset') into.assets.push(image.source.asset)
     else into.fields.push(image.source.field)
   },
+  // What a QR code encodes is what its content prints, read as a
+  // paragraph's in the same place.
+  qrCode: (code, path, into) => into.inlines(code.content, `${path}/content`, 'report', { componentId: code.id }),
   line: NOTHING,
   rectangle: NOTHING,
   spacer: NOTHING,

@@ -52,6 +52,7 @@ function oneList<C extends Extract<Component, { readonly components: readonly Co
 const CONTAINERS: { readonly [K in ComponentKind]: Holding<Extract<Component, { kind: K }>> | undefined } = {
   text: undefined,
   image: undefined,
+  qrCode: undefined,
   line: undefined,
   rectangle: undefined,
   spacer: undefined,

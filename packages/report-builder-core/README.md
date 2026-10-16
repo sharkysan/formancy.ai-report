@@ -70,15 +70,18 @@ is running counts as part of it, so listeners still hear once.
   table's columns under it. Each row has its kind, its id, its depth,
   whether it is selected, how many diagnostics are about it and the worst
   of their severities, and whether it is wider than the space it stands
-  in. Its label is what a person calls it: a text by what it prints, a
-  bound run by what it binds. Labels are unique in the report, so each can
+  in. Its label is what a person calls it: a text by what it prints, a QR
+  code by its kind and what it encodes ("QR code: https://…"), a bound run
+  by what it binds. Labels are unique in the report, so each can
   be an accessible name; where two would read the same, each gets its id.
 - **`selection`**: a component, or one column of a table.
 - **`palette`**: every kind the format has, with the default component
   inserting it would put in. Its id comes from `nextComponentId` and its
-  size fits the printable area. What it says -- a new text's "New text" --
-  is in the report's language, because it prints: two editors in two
-  languages inserting into one report put in the same words
+  size fits the printable area: a QR code's 30 mm square is held to
+  report-spec's `squareRoom`, the shorter side. What it says -- a new
+  text's "New text", the address a new QR code encodes -- is in the
+  report's language, because it prints: two
+  editors in two languages inserting into one report put in the same words
   (`contentLocale`). Where the report lacks what a kind needs (an image
   with nothing to draw, a table with no detail dataset), the entry says
   what to declare first.
@@ -92,7 +95,10 @@ is running counts as part of it, so listeners still hear once.
   is stored in points and edited in millimetres, converted with
   report-spec's `mmToPt`; a length given back as it was shown is left
   alone, and a length too large for the page is refused in millimetres,
-  with the room the margins leave.
+  with the room the margins leave: for a QR code's size, `squareRoom`'s,
+  against which report-spec measures a square. A QR code's
+  content is edited run by run as a text's is, and each of its levels of
+  error correction says the share of the code it restores.
 - **`canvas`**: the design view. It is one sheet as wide as the page, with
   the regions as bands and each component's flow box in its band, in points
   and in pixels, with the same severity and overflow its outline row has.
@@ -343,8 +349,9 @@ framework's class. Its test reads the file and fails on:
 
 Every label a builder shows is in `src/text.ts`, in English, Swiss German
 and Swiss French: `editorText(locale)` fills one, and `formatZoom` writes a
-percentage as the language does. A test fails when the three languages
-differ in their messages or placeholders.
+percentage as the language does, by Intl, as the share a QR code's level
+restores is written. A test fails when the three languages differ in their
+messages or placeholders.
 
 The session keeps each step's label as an English sentence ("Delete
 Spacer"), which any reader of the session can show: a host's toolbar, a
@@ -359,7 +366,8 @@ the other's steps in English.
 - **The canvas is not the PDF.** It is a design-mode approximation for
   selecting and placing. A text's height comes from a rule of thumb
   (average character width, 10 pt when no style sets a size). A table is
-  drawn as one row of each kind it has. Every region is one flow on one
+  drawn as one row of each kind it has. A QR code is drawn as the square
+  it prints, with no modules in it. Every region is one flow on one
   sheet, without pagination. The renderer measures text and lays out
   pages, and the PDF preview shows what prints.
 - **Not every property is editable yet.** These need editors of their own,
@@ -368,8 +376,9 @@ the other's steps in English.
     cells;
   - conditional style rules (`styleWhen`);
   - value formats;
-  - adding or removing a run in a text, or a column in a columns block or
-    a table (a table column can be duplicated and deleted);
+  - adding or removing a run in a text or a QR code's content, or a column
+    in a columns block or a table (a table column can be duplicated and
+    deleted);
   - declarations: styles, datasets, parameters, assets, aggregates.
 
   Each of these is a report-core command already. What is missing is the

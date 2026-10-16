@@ -1,6 +1,6 @@
 # 0011 — `report-render-pdf` draws the whole resolved document with pdfmake, and refuses what it cannot draw whole
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-render-pdf`, run by its
@@ -163,6 +163,18 @@ document's -- and adds these.
 
 **What it forecloses.** A second engine (0005), and breaking a word in a
 table cell.
+
+**Added 2026-10-17: QR codes.** The resolved document gains a `qrCode`
+block, and the renderer draws it as [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)
+decides. uqr 0.1.3 encodes it once, when the document is checked, and it
+is drawn in vectors as a square exactly its size. It is refused as
+`content-too-large` when no version holds its text, when its modules would
+be smaller than 0.4 mm, and where an image of its size would be. Its text
+is encoded, never printed, so it is not held to a face: an emoji or a
+character Roboto lacks is refused in printed text and encoded in a code.
+`blocks.test.ts` does not read it back, because to PDF.js a code is neither
+text nor an image. `qr.test.ts` decodes it with ZXing from the page PDF.js
+draws, and reads its square from the PDF's content stream.
 
 ## Alternatives considered
 

@@ -9,10 +9,11 @@
  * the message a refused value shows is the validator's (0008). Only what
  * cannot become a value at all -- "tall" for a number -- is refused here.
  */
-import { mmToPt, ptToMm } from '@formancy/report-spec'
-import type { Component, ComponentKind, FieldRef, Inline, PrintStyle, ReportDefinition, TableColumn } from '@formancy/report-spec'
+import { mmToPt, ptToMm, QR_ERROR_CORRECTION } from '@formancy/report-spec'
+import type { Component, ComponentKind, FieldRef, Inline, PrintStyle, QrErrorCorrection, ReportDefinition, TableColumn } from '@formancy/report-spec'
 import type { PropertyKind, PropertyOption } from './model.js'
-import type { EditorText, MessageId } from './text.js'
+import { formatPercent } from './text.js'
+import type { EditorLocale, EditorText, MessageId } from './text.js'
 
 /** What a field makes of what was typed: a value at `at` (its key unless it says), nothing changed, or why it cannot be one. */
 export type Written =
@@ -166,10 +167,12 @@ function booleanField(key: string, words: FieldWords, stored: boolean | undefine
   }
 }
 
-/** What fields are built from: the report, the editor's words, and what each name reads where the thing stands. */
+/** What fields are built from: the report, the editor's words and language, and what each name reads where the thing stands. */
 export interface FieldContext {
   readonly report: ReportDefinition
   readonly t: EditorText
+  /** For a number an option's words hold, written as the language writes it. */
+  readonly locale: EditorLocale
   /** Whether a detail field has a value where the thing stands: a table's cell. */
   readonly row: boolean
 }
@@ -219,20 +222,32 @@ function runField(run: Inline, key: string, words: FieldWords, context: FieldCon
   }
 }
 
+/** A content's runs, a field each: a lone run named by what it is, one of several by its place and kind. */
+function contentFields(content: readonly Inline[], context: FieldContext): FieldSpec[] {
+  const single = content.length === 1
+  return content.flatMap((run, index) => {
+    const words: FieldWords = single ? (run.kind === 'text' ? { id: 'field.text' } : { id: `run.${run.kind}` }) : { id: 'field.part', n: index + 1, run: run.kind }
+    return runField(run, `/content/${index}`, words, context) ?? []
+  })
+}
+
 const ALIGN_OPTIONS = (t: EditorText) => (['left', 'center', 'right'] as const).map((align) => ({ value: align, label: t(`option.${align}`), stored: align }))
+
+/**
+ * The share of a QR code each level of error correction restores, as
+ * ISO/IEC 18004 gives it (about 7, 15, 25 and 30 %): what a level's option
+ * says, so a sturdier code can be weighed against a denser one.
+ */
+const RESTORES: { readonly [L in QrErrorCorrection]: number } = { L: 0.07, M: 0.15, Q: 0.25, H: 0.3 }
+
+const LEVEL_OPTIONS = ({ t, locale }: FieldContext) =>
+  QR_ERROR_CORRECTION.map((level) => ({ value: level, label: t(`option.errorCorrection${level}`, { share: formatPercent(RESTORES[level], locale) }), stored: level }))
 
 type Fields<C> = (component: C, context: FieldContext) => FieldSpec[]
 
 /** Each kind's own fields, in the order the panel shows them; the ones every component has follow. */
 const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { kind: K }>> } = {
-  text: (component, context) => {
-    const single = component.content.length === 1
-    const runs = component.content.flatMap((run, index) => {
-      const words: FieldWords = single ? (run.kind === 'text' ? { id: 'field.text' } : { id: `run.${run.kind}` }) : { id: 'field.part', n: index + 1, run: run.kind }
-      return runField(run, `/content/${index}`, words, context) ?? []
-    })
-    return [...runs, booleanField('/keepWithNext', { id: 'field.keepWithNext' }, component.keepWithNext)]
-  },
+  text: (component, context) => [...contentFields(component.content, context), booleanField('/keepWithNext', { id: 'field.keepWithNext' }, component.keepWithNext)],
   image: (component, { report, t }) => {
     const assets = report.assets.map((asset) => ({ value: `asset:${asset.id}`, label: t('option.asset', { id: asset.id }), stored: { kind: 'asset', asset: asset.id } }))
     const images = (report.datasets.header?.fields ?? [])
@@ -247,6 +262,11 @@ const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { 
       choiceField('/fit', { id: 'field.fit' }, 'select', fits, component.fit),
     ]
   },
+  qrCode: (component, context) => [
+    ...contentFields(component.content, context),
+    lengthField('/size', { id: 'field.size' }, component.size, 'required'),
+    choiceField('/errorCorrection', { id: 'field.errorCorrection' }, 'select', LEVEL_OPTIONS(context), component.errorCorrection),
+  ],
   line: (component) => [pointsField('/thickness', { id: 'field.thickness' }, component.thickness, true), colorField('/color', { id: 'field.color' }, component.color)],
   rectangle: (component) => [
     lengthField('/width', { id: 'field.width' }, component.width, 'required'),

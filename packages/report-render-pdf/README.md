@@ -80,6 +80,22 @@ Every block of the resolved document:
   the image at its proportions, as large as the box allows, centred in it;
   `cover` fills the box, centred, and is clipped to it. A JPEG is fitted by
   the size it is shown at, after its Exif orientation.
+- **QR codes** (ISO/IEC 18004), encoded by [uqr](https://github.com/unjs/uqr)
+  in the smallest version that holds their text at the level asked for,
+  never a higher level, and drawn in vectors as a square exactly their size:
+  white, with the quiet zone of four modules inside it, and the dark
+  modules one black path over it, filled once, so that no viewer draws a
+  light line where two rows meet inside a pixel. The square is an SVG,
+  which pdfmake places as it places an image: a path in a pdfmake 0.3.11
+  canvas is never moved to where the canvas stands. Its text is never
+  printed, so it is not held to the font: umlauts, the euro sign and emoji
+  are encoded as UTF-8, and text of digits or capitals alone in the denser
+  modes for them. Each code is encoded once, when the document is checked,
+  and that symbol is the one every pass and every page draws. A heading
+  kept with the next block is kept with a code as with an image. What a
+  large code adds to a render's time and to the PDF, and what the one fill
+  costs against a rectangle for each run, is measured in
+  [0020](../../docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md).
 - **Rules**, at their thickness and colour, across the width they stand in,
   with 3 pt above and below.
 - **Rectangles**, filled, outlined or both, their outline drawn inside the
@@ -101,10 +117,27 @@ Every block of the resolved document:
 | Code | When |
 |---|---|
 | `too-many-pages` | The report needs more pages than `maxPages`. pdfmake's own limit would return the first pages as though they were all of it. A body whose least height already needs more is refused before pdfmake measures it. |
-| `content-too-large` | Something no page can hold: a keep-together block, an image, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; page regions that leave no body. |
+| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs. |
 | `invalid-asset` | An image's bytes are not the PNG or JPEG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side. |
 | `cancelled` | The signal was aborted. |
-| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep. |
+| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep. |
+
+## QR codes
+
+A code is refused, naming it by its id, rather than drawn as one that may
+not scan:
+
+| Code | When |
+|---|---|
+| `content-too-large` | Its text is longer than any QR code holds at its level: in byte mode, 2953 bytes at L down to 1273 at H (ISO/IEC 18004, table 7). Past 7089 characters, the digits version 40 holds at L and the most any code holds, it is refused unencoded; a character is a code point, an emoji one. |
+| `content-too-large` | Its modules would be smaller than **0.4 mm**. ISO/IEC 18004 leaves the module size to the application; SIX's Swiss Implementation Guidelines for the QR-bill, version 2.3, section 6.3, require 0.4 mm when printing, taken here as what a printer prints and a phone reads reliably. The same guidelines print a QR-bill's largest code, version 25, at 46 mm without its quiet zone, modules of 0.393 mm: here it is refused. The message names the smallest square that text needs. |
+| `content-too-large` | It is wider than where it stands, or taller than the body, as an image is. |
+| `unsupported` | Its size is not a positive finite number, its level is not one of L, M, Q and H, or its text is not a string or holds half a surrogate pair. |
+
+Empty text is drawn as what it is: a version 1 symbol of no data. ZXing,
+which the tests read codes with, reports no code in it at all. Of the
+runtime's documents, only a preview holds one: it refuses a final render
+whose code has a value that is null, or prints nothing.
 
 ## Fonts
 
@@ -158,6 +191,12 @@ Each PDF embeds the subset of each face it uses.
   corrupt scan inside a well-formed JPEG reaches the PDF. A PNG's image data
   is inflated and checked; data with bytes after its zlib stream is refused,
   as the Compression Streams standard refuses it.
+- **Mark a QR code's text as UTF-8.** uqr writes no ECI designator, and
+  ISO/IEC 18004 reads byte mode as ISO/IEC 8859-1 unless one says
+  otherwise, so a reader that keeps to that default reads an umlaut as two
+  Latin-1 characters. ZXing, which the tests read codes with, reads them
+  as UTF-8, as the tests show for umlauts, the euro sign and an emoji; what
+  every phone does, nothing here shows.
 
 ## Tests
 
@@ -169,8 +208,11 @@ These are the tests decision 0005 names. Each block kind is read back from
 the PDF it produced: its text and images with PDF.js, through the corpus's
 reader, and its lines, rectangles, clips and text colours from the PDF's own
 content streams (`src/testing/drawing.ts`), which PDF.js's text does not
-show. `starters.test.ts` resolves the three starters with the runtime and
-proves their PDFs, swept across page ends.
+show. A QR code is read as a scanner reads it: the page drawn by PDF.js and
+decoded by ZXing (`readCodes` in the corpus), for its text, its bytes, its
+level, its version and where it stands. `starters.test.ts` resolves the
+three starters with the runtime and proves their PDFs, swept across page
+ends.
 
 `scripts/readme-pictures.ts` draws the repository README's pictures of the
 starters with PDF.js, and `pictures.test.ts` holds each to the text of the

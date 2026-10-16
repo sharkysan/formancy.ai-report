@@ -5,6 +5,7 @@
  */
 import { TestBed } from '@angular/core/testing'
 import { createReportEditor, PROPERTY_KINDS, PROPERTY_ROLES } from '@formancy/report-builder-core'
+import { COMPONENT_KINDS, walkComponents } from '@formancy/report-spec'
 import { fireEvent, screen } from '@testing-library/angular'
 import { afterEach, describe, expect, test } from 'vitest'
 import { mountBuilder, mountScenarioBuilder } from './test-mount'
@@ -46,8 +47,10 @@ describe('the properties pane', () => {
       await settle()
       await check()
     }
-    // The report holds every kind there is, or this proved less than it says.
+    // The report holds every kind there is, or this proved less than it says:
+    // every kind of field, and every kind of component the format has.
     expect(kinds).toEqual(new Set(PROPERTY_KINDS))
+    expect(new Set(walkComponents(richSession().document()).map(({ component }) => component.kind))).toEqual(new Set(COMPONENT_KINDS))
     // About twenty selections and a dozen audits: 7.2 s in a full parallel
     // run on a Windows laptop on 15 October 2026, which a runner fourteen
     // times slower (vitest.config.ts) would take past 100 s.

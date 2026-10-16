@@ -253,6 +253,16 @@ export function richReport(): ReportDefinition {
           ],
         },
         { id: 'seal-image', kind: 'image', source: { kind: 'asset', asset: 'seal' }, width: 200, height: 150, fit: 'cover' },
+        {
+          id: 'order-code',
+          kind: 'qrCode',
+          content: [
+            { kind: 'text', text: 'Orders for ' },
+            { kind: 'field', field: header('customer') },
+          ],
+          size: 85.04,
+          errorCorrection: 'Q',
+        },
       ],
     },
     provenance: { kind: 'dataset', dataset: 'order-lines' },

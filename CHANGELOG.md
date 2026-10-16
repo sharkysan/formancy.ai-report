@@ -10,6 +10,69 @@ later.
 
 ## Unreleased
 
+**A report can print a QR code**
+([0020](docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
+A report often carries a code a phone opens: a link to the record it
+prints, or a reference to pay or look up by. Version 0 could print one
+only as an image the host encoded and approved as an asset. pdfmake's own
+`qr` node rounds a module down to whole points: it would draw the
+palette's 30 mm code at 20.5 mm, and a code too small for its modules as
+nothing, without a word.
+
+- **`@formancy/report-spec`:**
+  - A `qrCode` component. `content` is runs, as a paragraph's, one at
+    least, since a code of none encodes nothing. `size` is the side of the
+    square in points, its quiet zone inside it. `errorCorrection` is one
+    of `QR_ERROR_CORRECTION`: L, M, Q or H.
+  - It stands wherever an image may, and its size is held to
+    `squareRoom`, the shorter side of the printable area, which the
+    builders read too, so that they never offer or name another room.
+  - A page number or count in it is refused as `misplaced-page-counter`,
+    because its content is resolved before pages are counted.
+  - The format stays at version `'0'`, the draft. **0.1.0 refuses a
+    report that holds a QR code**, whole, as `unknown-kind`, rather than
+    print it without the code.
+- **`@formancy/report-core`:** a new code is named `qr-code`. An
+  expression in its content is compiled and diagnosed as a paragraph's
+  in its place.
+- **`@formancy/report-runtime`:** a `QrCode` block, holding the text the
+  content prints, formatted as a paragraph's runs are. A final render
+  refuses a code with a value that is null in its content, as
+  `no-qr-value`, or whose content prints nothing, as `empty-qr-code`: a
+  paragraph prints null as nothing and a reader sees the gap, but a code
+  that encoded less scans as some other reference. A preview encodes it as
+  it resolves.
+- **`@formancy/report-render-pdf`:**
+  - It depends on **uqr 0.1.3**, under the MIT licence, at that exact
+    version. uqr encodes each code once.
+  - Each code is drawn in vectors, as a square exactly its size with its
+    quiet zone of four modules inside, and its dark modules one path,
+    filled once. A fill for each run left light lines between rows where
+    PDF.js drew them; the path takes about twice the bytes, and more time,
+    as 0020 measures. It is an SVG, because pdfmake 0.3.11 never moves a
+    canvas path to where its canvas stands.
+  - It refuses as `content-too-large`: text no version holds at the
+    level, text past 7089 characters, counted as code points, modules
+    finer than 0.4 mm, with the size the text needs, and a code wider or
+    taller than where it stands. It refuses a malformed code as
+    `unsupported`.
+  - 0.4 mm is the minimum of SIX's QR-bill guidelines (version 2.3,
+    section 6.3), taken as a general one. The largest code those
+    guidelines print, version 25 at 46 mm, has modules of 0.393 mm, and a
+    QR code that size is refused: this is not a QR-bill.
+  - The code marks no character set. ZXing reads its UTF-8, and a reader
+    that keeps to the standard's Latin-1 default does not.
+- **`@formancy/report-builder-core` and both builders:**
+  - QR code in the palette: a 30 mm square at level M, encoding
+    https://formancy.ai/report/.
+  - Its content is edited run by run, and its size in millimetres.
+  - Each level is named with the share of the code it restores, in
+    three languages.
+- **The tests read each code back from the PDF as a scanner does.** They
+  use zxing-wasm 3.1.5, in the private corpus alone, from its own
+  WebAssembly file, and fetch nothing. Codes side by side are read from
+  the left, their tops compared to the nearest point.
+
 **A person hides the panes whose room the design view needs**
 ([0019](docs/decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md)).
 On the demo, in a window 1536px wide, which is a 1920 screen at 125 %, the

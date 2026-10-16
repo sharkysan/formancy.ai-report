@@ -64,10 +64,14 @@ them. Every value is held to its field's type before anything reads it:
 
 A field the report does not declare is refused: a report never carries what
 it does not print. Null prints as nothing; a field the data lacks is an
-error in a final render, never an empty cell. A final render refuses data
-the provider calls incomplete. A **preview** prints what it has, warns once
-for each field it lacks, labels every page as a preview of incomplete data,
-and says so in its manifest. The host's objects are read once, as data: a
+error in a final render, never an empty cell. A QR code is the exception: a
+final render refuses one with a value that is null in its content
+(`no-qr-value`), or whose content prints nothing (`empty-qr-code`), since
+a scanner cannot see the gap a reader would. A final render refuses data
+the provider calls incomplete. A **preview** prints what it has, encodes a
+QR code as its content resolves, warns once for each field it lacks,
+labels every page as a preview of incomplete data, and says so in its
+manifest. The host's objects are read once, as data: a
 getter is never run, and a proxy that throws is refused.
 
 ## What else is exported
@@ -87,6 +91,9 @@ the renderer's contract, declared here so that no engine defines them.
 - **Format with one engine's results everywhere.** Grouping marks, month
   names and currency symbols are the engine's ICU's, so the same report can
   print differently on two engines.
+- **Encode a QR code.** It hands the engine the text a QR code's content
+  prints, formatted as a paragraph with the same content prints it; the
+  engine encodes and draws it.
 - **Compile once per render.** Each expression is compiled twice: once by
   `diagnose`, once to evaluate.
 

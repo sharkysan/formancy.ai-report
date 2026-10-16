@@ -99,7 +99,7 @@ describe('moveComponent', () => {
     ['to the end', 'intro', { region: 'body', index: 4 }, 'body', ['gap', 'lines', 'keep', 'break', 'intro']],
     ['into a container', 'gap', { region: 'body', parent: 'keep', index: 2 }, 'body:keep', ['box', 'note', 'gap']],
     ['out of a container', 'note', { region: 'body', index: 0 }, 'body', ['note', 'intro', 'gap', 'lines', 'keep', 'break']],
-    ['to another region', 'rule', { region: 'summary', index: 0 }, 'summary', ['rule', 'closing', 'seal-image']],
+    ['to another region', 'rule', { region: 'summary', index: 0 }, 'summary', ['rule', 'closing', 'seal-image', 'order-code']],
     ['between columns', 'title', { region: 'reportHeader', parent: 'heading', column: 0, index: 1 }, 'reportHeader:heading:0', ['logo-image', 'title']],
   ] as const)('moves a component %s', (_name, id, location, where, ids) => {
     const report = frozenSample()
@@ -210,10 +210,10 @@ describe('duplicateComponent', () => {
 })
 
 describe('nextComponentId', () => {
-  // The palette names a new component by its kind. Two kinds are written in
-  // camelCase, which is no identifier, so each kind is written as one:
-  // pageBreak as page-break. Without that, the palette would throw for a
-  // page break and a keep-together block, and for nothing else.
+  // The palette names a new component by its kind. A kind written in
+  // camelCase is no identifier, so each kind is written as one: pageBreak as
+  // page-break, qrCode as qr-code. Without that, the palette would throw for
+  // a page break, a keep-together block and a QR code, and for nothing else.
   test.each(COMPONENT_KINDS)('names a new %s after its kind, as an identifier', (kind) => {
     const id = nextComponentId(frozenSample(), kind)
     expect(isIdentifier(id)).toBe(true)

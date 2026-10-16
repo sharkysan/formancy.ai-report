@@ -12,6 +12,7 @@ export type {
   PageBreak,
   PageSetup,
   Paragraph,
+  QrCode,
   Rectangle,
   RefusalCode,
   RenderOptions,
@@ -27,7 +28,10 @@ export type {
 export type { Expectation, ExpectedCell, ExpectedImage, ExpectedRefusal, ExpectedRow, ExpectedTable, Fixture } from './fixture.js'
 export { ALL_FIXTURES } from './fixtures/all.js'
 export { readPdf } from './read-pdf.js'
-export { rasterPage } from './raster.js'
+export { rasterPage, rasterPixels } from './raster.js'
+export type { PagePixels } from './raster.js'
+export { readCodes } from './codes.js'
+export type { PdfCode } from './codes.js'
 export {
   equipmentData,
   equipmentRows,

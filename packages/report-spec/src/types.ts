@@ -356,6 +356,28 @@ export interface ImageComponent extends ComponentBase {
   readonly fit: ImageFit
 }
 
+/**
+ * How much of a QR code may be lost and its content still read: ISO/IEC
+ * 18004's four levels, which restore about 7, 15, 25 and 30 % of the
+ * codewords. A higher level holds less content in the same square.
+ */
+export const QR_ERROR_CORRECTION = ['L', 'M', 'Q', 'H'] as const
+export type QrErrorCorrection = (typeof QR_ERROR_CORRECTION)[number]
+
+/**
+ * A QR code of the text its content prints, drawn as a square of fixed
+ * size. The content is read once, as a paragraph's in the same place is,
+ * and resolved whole before there are pages: it never holds a page number
+ * or count, in any region.
+ */
+export interface QrCodeComponent extends ComponentBase {
+  readonly kind: 'qrCode'
+  readonly content: readonly Inline[]
+  /** The side of the square in points, the quiet zone around the modules included. */
+  readonly size: number
+  readonly errorCorrection: QrErrorCorrection
+}
+
 export interface LineComponent extends ComponentBase {
   readonly kind: 'line'
   readonly thickness: number
@@ -482,12 +504,13 @@ export interface KeepTogetherComponent extends ComponentBase {
   readonly components: readonly Component[]
 }
 
-export const COMPONENT_KINDS = ['text', 'image', 'line', 'rectangle', 'spacer', 'columns', 'section', 'table', 'pageBreak', 'keepTogether'] as const
+export const COMPONENT_KINDS = ['text', 'image', 'qrCode', 'line', 'rectangle', 'spacer', 'columns', 'section', 'table', 'pageBreak', 'keepTogether'] as const
 export type ComponentKind = (typeof COMPONENT_KINDS)[number]
 
 export type Component =
   | TextComponent
   | ImageComponent
+  | QrCodeComponent
   | LineComponent
   | RectangleComponent
   | SpacerComponent

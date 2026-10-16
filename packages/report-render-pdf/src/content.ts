@@ -2,6 +2,7 @@ import type { Content, CustomTableLayout } from 'pdfmake/interfaces.js'
 import type { Block, Columns, Image, ImageAsset, Inline, Paragraph, Rectangle, Rule, Section } from '@formancy/report-runtime'
 import { base64 } from './bytes.js'
 import { startsOnPage, type Build, type Fields } from './build.js'
+import { qrContent } from './qr.js'
 import { DEFAULT_SIZE, textProperties } from './style.js'
 import { tableContent } from './table.js'
 import { columnWidths } from './widths.js'
@@ -88,6 +89,8 @@ function sequence(given: readonly Block[], build: Build, scope: Scope): Content[
 interface Anchor {
   readonly text?: unknown
   readonly image?: unknown
+  /** A QR code: the one thing the renderer draws as an SVG (`qr.ts`). */
+  readonly svg?: unknown
   readonly stack?: readonly Anchor[]
   readonly columns?: readonly Anchor[]
   readonly table?: { readonly body: readonly (readonly Anchor[])[] }
@@ -95,7 +98,7 @@ interface Anchor {
   headlineLevel?: number
 }
 
-/** The first node of `node` that prints text, or an image when no text comes first: where pdfmake records the content's start. */
+/** The first node of `node` that prints text, or an image or a QR code when no text comes first: where pdfmake records the content's start. */
 function anchorOf(node: Anchor): Anchor | undefined {
   const inner = node.stack ?? node.columns ?? node.table?.body.flat()
   if (inner !== undefined) {
@@ -107,15 +110,15 @@ function anchorOf(node: Anchor): Anchor | undefined {
   }
   // A paragraph's text is an array of runs, and the renderer keeps nothing with a paragraph that prints nothing.
   const printsText = typeof node.text === 'string' ? node.text.trim() !== '' : Array.isArray(node.text)
-  return printsText || node.image !== undefined ? node : undefined
+  return printsText || node.image !== undefined || node.svg !== undefined ? node : undefined
 }
 
 /**
  * Where the block a keep-with-next paragraph at `index` stays with starts:
- * the anchor of the next block that prints text or an image, past spacers,
- * rules, rectangles and other keep-with-next paragraphs, so that a run of
- * headings moves as one. None when a page break or the end of the list comes
- * first: a heading over nothing is not kept with anything.
+ * the anchor of the next block that prints text, an image or a QR code,
+ * past spacers, rules, rectangles and other keep-with-next paragraphs, so
+ * that a run of headings moves as one. None when a page break or the end of
+ * the list comes first: a heading over nothing is not kept with anything.
  */
 function keptWith(blocks: readonly Block[], contents: readonly Content[], index: number): Anchor | undefined {
   for (let next = index + 1; next < blocks.length; next++) {
@@ -135,6 +138,9 @@ function blockContent(block: Block, build: Build, scope: Scope): Content {
       return tableContent(block, build, scope)
     case 'image':
       return imageContent(block, build)
+    case 'qrCode':
+      // check.ts encodes every QR code before anything is built.
+      return qrContent(build.codes.get(block)!, block.size)
     case 'rule':
       return ruleContent(block, scope.width)
     case 'rectangle':

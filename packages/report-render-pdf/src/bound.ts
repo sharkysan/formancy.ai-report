@@ -19,9 +19,9 @@ import { PADDING_Y, TABLE_SIZE } from './table.js'
  * refused: a line of text is one line of its size, however it wraps; a
  * table row one line of its largest text and its padding, without its rule;
  * an image, a rectangle and a rule their own height, without the space
- * around a rule; a frame its border and padding once. A spacer and a page
- * break count nothing, since a spacer at the foot of a page gives up its
- * space, and a page region is not body.
+ * around a rule, and a QR code its side; a frame its border and padding
+ * once. A spacer and a page break count nothing, since a spacer at the foot
+ * of a page gives up its space, and a page region is not body.
  */
 export function leastHeight(blocks: readonly Block[]): number {
   return blocks.reduce((sum, block) => sum + least(block), 0)
@@ -36,6 +36,8 @@ function least(block: Block): number {
     case 'image':
     case 'rectangle':
       return block.height
+    case 'qrCode':
+      return block.size
     case 'rule':
       return block.thickness
     case 'spacer':

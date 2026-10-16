@@ -347,9 +347,9 @@ describe('selection', () => {
     expect(seen.map((selection) => (selection?.column === undefined ? selection?.id : `${selection.id}/${selection.column}`))).toEqual(order)
     expect(editor.dispatch({ type: 'selectNext' })).toMatchObject({ ok: false, code: 'at-edge' })
     ok(editor.dispatch({ type: 'selectPrevious' }))
-    expect(editor.state().selection).toEqual({ id: 'page-of' })
-    ok(editor.dispatch({ type: 'selectLast' }))
     expect(editor.state().selection).toEqual({ id: 'signature-image' })
+    ok(editor.dispatch({ type: 'selectLast' }))
+    expect(editor.state().selection).toEqual({ id: 'order-code' })
   })
 
   // Down from nothing starts at the top, and up from nothing at the bottom,
@@ -360,7 +360,7 @@ describe('selection', () => {
     expect(first.state().selection).toEqual({ id: 'heading' })
     const last = editorOver().editor
     ok(last.dispatch({ type: 'selectPrevious' }))
-    expect(last.state().selection).toEqual({ id: 'signature-image' })
+    expect(last.state().selection).toEqual({ id: 'order-code' })
   })
 
   // A selection of something that is not there would leave the properties
@@ -524,6 +524,8 @@ describe('delete and duplicate', () => {
     expect(editor.state().selection).toEqual({ id: 'keep' })
     ok(editor.dispatch({ type: 'select', id: 'signature-image' }))
     ok(editor.dispatch({ type: 'delete' }))
+    expect(editor.state().selection).toEqual({ id: 'order-code' })
+    ok(editor.dispatch({ type: 'delete' }))
     expect(editor.state().selection).toBeNull()
   })
 
@@ -599,7 +601,7 @@ describe('insert and move to a place', () => {
   test('move puts a component at the place and keeps it selected', () => {
     const { editor, session } = editorOver()
     ok(editor.dispatch({ type: 'move', id: 'intro', target: { region: 'summary', index: 1 } }))
-    expect(session.document().regions.summary.map((component) => component.id)).toEqual(['signature-image', 'intro'])
+    expect(session.document().regions.summary.map((component) => component.id)).toEqual(['signature-image', 'intro', 'order-code'])
     expect(editor.state().selection).toEqual({ id: 'intro' })
     expect(editor.dispatch({ type: 'move', id: 'missing', target: { region: 'body', index: 0 } })).toMatchObject({ ok: false, code: 'not-found' })
   })

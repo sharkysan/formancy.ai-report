@@ -8,9 +8,10 @@
  */
 import { all, flag, identifier, kindOf, matches, oneOf, optional, points, readArray, readList, readObject, reference, shape, strictKeys, width } from './check.js'
 import { MAX_COLUMNS, MAX_NESTING_DEPTH, MAX_REGION_COMPONENTS, MIN_COLUMNS } from './limits.js'
+import { squareRoom } from './page.js'
 import { at } from './pointer.js'
 import { COLOR } from './syntax.js'
-import { COMPONENT_KINDS, IMAGE_FITS, IMAGE_SOURCE_KINDS } from './types.js'
+import { COMPONENT_KINDS, IMAGE_FITS, IMAGE_SOURCE_KINDS, QR_ERROR_CORRECTION } from './types.js'
 import type { Border, ColumnSlot, Component, ComponentBase, ComponentKind, ImageSource, ImageSourceKind, RegionName, Width } from './types.js'
 import { resolve, withinPage } from './validate-context.js'
 import type { Ctx } from './validate-context.js'
@@ -76,6 +77,15 @@ function sized(c: Ctx, value: unknown, path: string, side: 'width' | 'height', w
   return length
 }
 
+/**
+ * A square's side, checked against the shorter side of the printable area
+ * (`squareRoom`): a square that fits that way fits the other, and one that
+ * fits neither is reported once, on the side that is short.
+ */
+function square(c: Ctx, value: unknown, path: string, what: string): number | undefined {
+  return sized(c, value, path, c.printable === undefined ? 'width' : squareRoom(c.printable).side, what)
+}
+
 type SourceReader = (c: Ctx, o: Record<string, unknown>, path: string, region: RegionName) => ImageSource | undefined
 
 const SOURCES: { readonly [K in ImageSourceKind]: { readonly required: readonly string[]; readonly read: SourceReader } } = {
@@ -133,6 +143,16 @@ const KINDS: { readonly [K in ComponentKind]: KindRule<Extract<Component, { kind
       const fit = oneOf(c.f, o.fit, at(path, 'fit'), IMAGE_FITS)
       if (base === undefined || source === undefined || imageWidth === undefined || height === undefined || fit === undefined) return undefined
       return { ...base, kind: 'image', source, width: imageWidth, height, fit }
+    },
+  },
+  qrCode: {
+    required: ['content', 'size', 'errorCorrection'],
+    read: (c, o, path, scope, base) => {
+      const content = readInlines(c, o.content, at(path, 'content'), { region: scope.region, reads: 'report', encoded: true }, 1)
+      const size = square(c, o.size, at(path, 'size'), 'this QR code')
+      const errorCorrection = oneOf(c.f, o.errorCorrection, at(path, 'errorCorrection'), QR_ERROR_CORRECTION)
+      if (base === undefined || content === undefined || size === undefined || errorCorrection === undefined) return undefined
+      return { ...base, kind: 'qrCode', content, size, errorCorrection }
     },
   },
   line: {

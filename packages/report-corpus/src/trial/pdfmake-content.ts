@@ -205,6 +205,7 @@ function blockContent(block: Block, build: Build, scope: Scope): Content {
     case 'columns':
     case 'section':
     case 'rectangle':
+    case 'qrCode':
       throw new Error(`a ${block.kind} block reached the pdfmake content`)
   }
 }

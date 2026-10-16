@@ -27,7 +27,7 @@
  * definition's to validate and the renderer's to refuse. These types do not
  * hold it.
  */
-import type { Alignment, AssetMediaType, Border, FontFamily, ImageFit, Margins, Orientation, PageSizeName, Width } from '@formancy/report-spec'
+import type { Alignment, AssetMediaType, Border, FontFamily, ImageFit, Margins, Orientation, PageSizeName, QrErrorCorrection, Width } from '@formancy/report-spec'
 
 /**
  * A run of text, or a number only the engine knows when it lays out the
@@ -150,6 +150,32 @@ export interface Image {
   readonly fit: ImageFit
 }
 
+/**
+ * A QR code (ISO/IEC 18004): `text`, encoded as UTF-8 at the error
+ * correction level asked for, drawn dark on white in a square `size` points
+ * a side, whose quiet zone of four modules lies inside that square. `text`
+ * is what the component's content prints, formatted as a paragraph's runs
+ * are; it never holds a page number or count, which report-spec refuses in
+ * a QR code. In a final render it holds every value its content reads and
+ * is never empty: the runtime refuses a run whose value is null, and
+ * content that prints nothing, as `no-qr-value` and `empty-qr-code`. In a
+ * preview it is what the content resolves to, a value that is null as
+ * nothing, and it can be empty, which an engine draws as a symbol of no
+ * data. Which version of the symbol holds the text, and so how large a
+ * module is, is the engine's to work out: text no version holds at the
+ * level, or modules too small to print, are refused as `content-too-large`,
+ * naming the code by `id`, never drawn as a code that does not scan.
+ */
+export interface QrCode {
+  readonly kind: 'qrCode'
+  /** The component's id, which a refusal names as its subject. */
+  readonly id: string
+  readonly text: string
+  /** Points: the side of the square, quiet zone included. */
+  readonly size: number
+  readonly errorCorrection: QrErrorCorrection
+}
+
 /** A horizontal line across the width it is given: the printable area's, or its column's. */
 export interface Rule {
   readonly kind: 'rule'
@@ -227,7 +253,7 @@ export interface Section {
   readonly padding?: number
 }
 
-export type Block = Paragraph | Table | Image | Rule | Rectangle | Spacer | PageBreak | KeepTogether | Columns | Section
+export type Block = Paragraph | Table | Image | QrCode | Rule | Rectangle | Spacer | PageBreak | KeepTogether | Columns | Section
 
 export interface PageSetup {
   readonly size: PageSizeName

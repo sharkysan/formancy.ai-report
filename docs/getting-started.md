@@ -343,10 +343,11 @@ holds the tab for each of pdfmake's passes. The page bound is yours to
 choose: a report that needs more pages is refused as `too-many-pages`, and
 one whose least height already needs more is refused before pdfmake lays
 out anything. The bytes are the other cost. In the Studio's production
-build of 16 October 2026, the chunk holding the runtime and the renderer's
-browser entry, pdfmake and its fonts among them, was 1,895 kB and 838 kB
-gzipped, as Vite reported it; the Studio loads that chunk with the first
-preview, through `import()`, rather than with the page.
+build of 17 October 2026, the chunk holding the runtime and the renderer's
+browser entry, pdfmake and its fonts and uqr, the QR code encoder, among
+them, was 1,909 kB and 843 kB gzipped, as Vite reported it; the Studio
+loads that chunk with the first preview, through `import()`, rather than
+with the page.
 
 **Showing the PDF is the page's choice.** Section 4 hands the bytes to the
 browser's own viewer in an `<iframe>`; a download link takes the same bytes.

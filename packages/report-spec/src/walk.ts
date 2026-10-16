@@ -29,6 +29,7 @@ const NONE: ChildLists = []
 const CHILDREN: { readonly [K in ComponentKind]: (component: Extract<Component, { kind: K }>) => ChildLists } = {
   text: () => NONE,
   image: () => NONE,
+  qrCode: () => NONE,
   line: () => NONE,
   rectangle: () => NONE,
   spacer: () => NONE,

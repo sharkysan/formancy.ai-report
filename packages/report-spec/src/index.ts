@@ -22,6 +22,7 @@ export {
   PAGE_SIZE_NAMES,
   PARAMETER_TYPES,
   PROVENANCE_KINDS,
+  QR_ERROR_CORRECTION,
   REGION_NAMES,
   ROUNDING_MODES,
   SORT_DIRECTIONS,
@@ -81,6 +82,8 @@ export type {
   PrintStyle,
   Provenance,
   ProvenanceKind,
+  QrCodeComponent,
+  QrErrorCorrection,
   RectangleComponent,
   RegionName,
   Regions,
@@ -143,5 +146,5 @@ export { emptyReport } from './empty.js'
 export { componentAt, walkComponents } from './walk.js'
 export type { ComponentLocation } from './walk.js'
 export { MILLIMETRES_PER_INCH, mmToPt, POINTS_PER_INCH, ptToMm, roundPt } from './units.js'
-export { PAGE_SIZES, pageDimensions, printableArea } from './page.js'
+export { PAGE_SIZES, pageDimensions, printableArea, squareRoom } from './page.js'
 export type { PageDimensions } from './page.js'

@@ -1,10 +1,12 @@
-import { emptyReport } from '@formancy/report-spec'
-import type { Component, FieldRef, Regions, ReportDefinition } from '@formancy/report-spec'
+import { emptyReport, validateReport } from '@formancy/report-spec'
+import type { Component, FieldRef, Inline, Regions, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { ReportData } from './data.js'
 import { MAX_ASSET_BYTES } from './document.js'
-import type { Block, Image, ResolvedDocument } from './document.js'
-import type { ImageResolver } from './render-context.js'
+import type { Block, Image, QrCode, ResolvedDocument } from './document.js'
+import { lowerRegions } from './lower.js'
+import type { ImageResolver, Render } from './render-context.js'
+import { Problems } from './resolve-errors.js'
 import { resolveReport } from './resolve.js'
 import type { ResolveOptions } from './resolve.js'
 
@@ -177,6 +179,7 @@ describe('blocks', () => {
       { id: 'frame', kind: 'section', border: { thickness: 1, color: '#b00020' }, fill: '#fff0f0', padding: 6, components: [words('framed', 'Framed')] },
       { id: 'break', kind: 'pageBreak' },
       { id: 'kept', kind: 'keepTogether', components: [words('one', 'One'), words('two', 'Two')] },
+      { id: 'code', kind: 'qrCode', content: [{ kind: 'text', text: 'https://formancy.ai/report/' }], size: 85.04, errorCorrection: 'M' },
     ]
     const paragraph = (text: string): Block => ({ kind: 'paragraph', runs: [{ text }] })
     expect(lowered(body(...components)).body).toEqual([
@@ -188,7 +191,124 @@ describe('blocks', () => {
       { kind: 'section', blocks: [paragraph('Framed')], border: { thickness: 1, color: '#b00020' }, fill: '#fff0f0', padding: 6 },
       { kind: 'pageBreak' },
       { kind: 'keepTogether', blocks: [paragraph('One'), paragraph('Two')] },
+      { kind: 'qrCode', id: 'code', text: 'https://formancy.ai/report/', size: 85.04, errorCorrection: 'M' },
     ])
+  })
+})
+
+describe('QR codes', () => {
+  const qr = (id: string, content: readonly Inline[]): Component => ({ id, kind: 'qrCode', content, size: 85.04, errorCorrection: 'Q' })
+  const printed = (block: Block | undefined): string => (block?.kind === 'paragraph' ? block.runs.map((run) => ('text' in run ? run.text : '')).join('') : `<${block?.kind}>`)
+
+  // A QR code is scanned to the text a paragraph with its content prints:
+  // the same formats for the same locale, the same values from the same
+  // places. If the two ever formatted a date or an amount apart, the code
+  // beside a printed reference would scan as something else.
+  test('encodes what a paragraph with its content prints, formatted as it is', () => {
+    const content: Inline[] = [
+      { kind: 'text', text: 'Visit to ' },
+      { kind: 'field', field: header('customer') },
+      { kind: 'text', text: ', ' },
+      { kind: 'field', field: header('visitedOn'), format: { kind: 'date', style: 'long' } },
+      { kind: 'text', text: ', ' },
+      { kind: 'field', field: header('amount'), format: { kind: 'currency', currency: { kind: 'parameter', parameter: 'currency' }, scale: 2 } },
+      { kind: 'text', text: ', ' },
+      { kind: 'expression', expression: { cel: 'string(header.amount * dec("2"))' } },
+    ]
+    const [paragraph, code] = lowered(body({ id: 'line', kind: 'text', content }, qr('visit-code', content)), {}, data({ customer: 'Bäckerei Müller AG' })).body
+    const chf = new Intl.NumberFormat('en', { style: 'currency', currency: 'CHF', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format('1234.50')
+    expect(code).toEqual({ kind: 'qrCode', id: 'visit-code', text: `Visit to Bäckerei Müller AG, October 15, 2026, ${chf}, 2469.00`, size: 85.04, errorCorrection: 'Q' })
+    expect((code as QrCode).text).toBe(printed(paragraph))
+  })
+
+  // A preview whose data lacks a field encodes nothing for it, as a
+  // paragraph prints nothing for it, and says so once; the final render
+  // refuses the same data, so no code printed for real misses a value.
+  test('encodes nothing for a value a preview lacks, says so, and is refused for it in a final render', () => {
+    const { customer: _customer, ...lacking } = data().header as Record<string, unknown>
+    const code = qr('order-code', [{ kind: 'text', text: 'Order for ' }, { kind: 'field', field: header('customer') }, { kind: 'expression', expression: { cel: '" by " + header.customer' } }])
+    const outcome = resolveReport(probe(body(code)), { ...data(), header: lacking }, { ...OPTIONS, mode: 'preview' })
+    expect(outcome.ok && outcome.document.body).toEqual([{ kind: 'qrCode', id: 'order-code', text: 'Order for ', size: 85.04, errorCorrection: 'Q' }])
+    expect(outcome.ok && outcome.warnings.map((warning) => `${warning.stage} ${warning.code} ${warning.path}`)).toEqual([
+      'data missing-field /header/customer',
+      'evaluation missing-value /regions/body/0/content/2/expression/cel',
+    ])
+    expect(refusals(body(code), {}, { ...data(), header: lacking })).toEqual(['data missing-field /header/customer'])
+  })
+
+  /** The probe with two values a final render may hold as null: a header field that is nullable, and a parameter neither required nor defaulted. */
+  function nullable(regions: Partial<Regions>): ReportDefinition {
+    const report = probe(regions)
+    const visit = report.datasets.header as NonNullable<ReportDefinition['datasets']['header']>
+    return {
+      ...report,
+      datasets: { ...report.datasets, header: { ...visit, fields: [...visit.fields, { id: 'reference', type: 'string', label: 'Reference', nullable: true }] } },
+      parameters: [...report.parameters, { id: 'branch', type: 'string', label: 'Branch', required: false }],
+    }
+  }
+  const reference = (id: string): Component => qr(id, [{ kind: 'text', text: 'REF-' }, { kind: 'field', field: header('reference') }, { kind: 'text', text: '/' }, { kind: 'parameter', parameter: 'branch' }])
+
+  // A paragraph prints a value that is null as nothing, and a reader sees
+  // the gap. A code is scanned, not read: one that encoded less than its
+  // content scans as some other reference, and nothing on the page says
+  // so. A final render refuses it, naming the code and the run, as it
+  // refuses an amount whose currency has no value: a field's and a
+  // parameter's alike.
+  test('is refused in a final render for a run with no value, naming the code and the run', () => {
+    const outcome = resolveReport(nullable(body(reference('pay-code'))), data({ reference: null }), OPTIONS)
+    expect(outcome.ok ? [] : outcome.errors).toMatchObject([
+      { stage: 'resolve', code: 'no-qr-value', path: '/regions/body/0/content/1', componentId: 'pay-code' },
+      { stage: 'resolve', code: 'no-qr-value', path: '/regions/body/0/content/3', componentId: 'pay-code' },
+    ])
+    // With both values, the same code is drawn.
+    const whole = resolveReport(nullable(body(reference('pay-code'))), data({ reference: '42' }), { ...OPTIONS, parameters: { branch: 'ZH' } })
+    expect(whole.ok && whole.document.body).toEqual([{ kind: 'qrCode', id: 'pay-code', text: 'REF-42/ZH', size: 85.04, errorCorrection: 'Q' }])
+  })
+
+  // A code of nothing is a symbol of no data, which a scanner reads as no
+  // code at all, in a square the page keeps for it. A final render refuses
+  // content that prints nothing, whether its runs are empty text or a value
+  // that is the empty string, naming the code.
+  test('is refused in a final render when its content prints nothing', () => {
+    const empty = resolveReport(probe(body(qr('blank-code', [{ kind: 'text', text: '' }]))), data(), OPTIONS)
+    expect(empty.ok ? [] : empty.errors).toMatchObject([{ stage: 'resolve', code: 'empty-qr-code', path: '/regions/body/0/content', componentId: 'blank-code' }])
+    const unnamed = resolveReport(probe(body(qr('customer-code', [{ kind: 'field', field: header('customer') }]))), data({ customer: '' }), OPTIONS)
+    expect(unnamed.ok ? [] : unnamed.errors).toMatchObject([{ stage: 'resolve', code: 'empty-qr-code', path: '/regions/body/0/content', componentId: 'customer-code' }])
+  })
+
+  // A preview is for looking at a report before its data is final. Refused
+  // for a value it does not have yet, a template whose reference is still
+  // empty could not be previewed at all. It encodes the runs as they
+  // resolve, as a paragraph prints them: nothing for a null, and the empty
+  // text when that is all there is.
+  test('is drawn as it resolves in a preview, a value that is null as nothing', () => {
+    const preview: ResolveOptions = { ...OPTIONS, mode: 'preview' }
+    const partial = resolveReport(nullable(body(reference('pay-code'))), data({ reference: null }), preview)
+    expect(partial.ok && partial.document.body).toEqual([{ kind: 'qrCode', id: 'pay-code', text: 'REF-/', size: 85.04, errorCorrection: 'Q' }])
+    const empty = resolveReport(probe(body(qr('blank-code', [{ kind: 'text', text: '' }]))), data(), preview)
+    expect(empty.ok && empty.document.body).toEqual([{ kind: 'qrCode', id: 'blank-code', text: '', size: 85.04, errorCorrection: 'Q' }])
+  })
+
+  // report-spec refuses a page number or count in a code, which is encoded
+  // once, before there are pages. Were one to reach the runtime all the
+  // same, joined as the empty text it would encode a code without its page
+  // number, and nothing would say so. Lowering it throws instead.
+  test('throws on a page counter in its content, never encoding it as nothing', () => {
+    const report = probe({ pageFooter: [qr('page-code', [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }])] })
+    expect(validateReport(report)).toMatchObject({ valid: false, errors: [{ code: 'misplaced-page-counter', path: '/regions/pageFooter/0/content/1' }] })
+    // Only what lowering a page footer of one code reads: the report, the header, the parameters, the totals and the styles.
+    const render = { report, data: { header: {} }, params: {}, totals: { report: new Map() }, styles: new Map(), problems: new Problems(), preview: false } as unknown as Render
+    expect(() => lowerRegions(render)).toThrow('the QR code page-code holds a pageNumber at /regions/pageFooter/0/content/1')
+  })
+
+  // A code that encoded less than its content would scan as some other
+  // reference: a value its format cannot show refuses the report, naming
+  // the code and the run, as it does in a paragraph.
+  test('refuses a value its content cannot format, naming the code', () => {
+    const code = qr('pay-code', [{ kind: 'field', field: header('amount'), format: { kind: 'currency', currency: { kind: 'parameter', parameter: 'currency' }, scale: 2 } }])
+    const outcome = resolveReport(probe(body(code)), data(), { ...OPTIONS, parameters: { currency: 'chf' } })
+    // An array matches only an array of its length: this is the one error.
+    expect(outcome.ok ? [] : outcome.errors).toMatchObject([{ stage: 'format', code: 'invalid-currency', path: '/regions/body/0/content/0', componentId: 'pay-code' }])
   })
 })
 

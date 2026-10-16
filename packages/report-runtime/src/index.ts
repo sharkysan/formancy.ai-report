@@ -10,6 +10,7 @@ export type {
   PageBreak,
   PageSetup,
   Paragraph,
+  QrCode,
   Rectangle,
   RefusalCode,
   ResolvedDocument,

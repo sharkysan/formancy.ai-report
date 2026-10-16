@@ -66,7 +66,7 @@ clamps when what it names is not there:
   `updateComponent` (a patch typed per kind; the id and kind never change),
   `duplicateComponent` (fresh ids for the copy and all it holds), and
   `nextComponentId`, which also names a new component after its kind:
-  `pageBreak` gives `page-break`;
+  `pageBreak` gives `page-break`, `qrCode` gives `qr-code`;
 - **the table:** `insertColumn`, `removeColumn` (with its footer cells),
   `moveColumn`, `updateColumn`, `setGroup`, `setSort`, and the footer rows
   under the table and under each group, row by row and cell by cell.
@@ -142,6 +142,9 @@ proposal's review shows before Apply.
 - the order to compute the aggregates in;
 - its errors.
 
+An expression in a QR code's content is compiled as one in a paragraph in
+its place is: in the report's scope, its diagnostics naming the code.
+
 `diagnose(report)` lists those errors, then the warnings. The runtime refuses
 a report with an error, so the editor and the runtime cannot disagree about
 one.
@@ -186,7 +189,7 @@ What this does not do:
   decimal and a `dyn`, so it cannot be written directly; ordering works.
 - **`has()` on a member.** Every member is bound, null when it has no value,
   so `!= null` is the way to ask.
-- **Layout.** Whether a keep-together block fits a page, or a column its
-  width, is the renderer's to say.
+- **Layout.** Whether a keep-together block fits a page, a column its width,
+  or a QR code's content its square, is the renderer's to say.
 
 Source-available, not open source: see [`LICENSE.md`](../../LICENSE.md).
