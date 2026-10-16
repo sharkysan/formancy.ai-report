@@ -413,6 +413,8 @@ exactly what CI does:
   waits for all of them;
 - `release.yml` checks the report before it pins, publishes only what its
   `check` job pinned, and signs and attaches the report beside the SBOM;
+- `check` makes the SBOM from the tarballs it pinned, installed by npm
+  outside the checkout, and installs no workspace;
 - in `publish`, only the npm step holds the token or runs npm, and it comes
   after both signatures;
 - nothing in a workflow a release runs sets `continue-on-error`.

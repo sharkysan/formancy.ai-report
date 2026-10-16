@@ -85,8 +85,9 @@ export function notesProblems(notes) {
 }
 
 /**
- * The SBOM against the report: every runtime dependency and every upstream
- * package a published package declares is named, and every one the report
+ * The SBOM against the report: every package this release publishes is
+ * named at its version; every runtime dependency, and every upstream package
+ * a consumer's install of them brings, is named; and every one the report
  * names, transitive upstream packages included, is named at the version the
  * suites loaded.
  */
@@ -99,8 +100,16 @@ export function sbomReportProblems(report, sbom) {
   const note = (name, version) => loaded.set(name, new Set([...(loaded.get(name) ?? []), version]))
   for (const entry of runtime) note(entry.name, entry.loaded)
   for (const entry of upstream) note(entry.name, entry.version)
-  for (const name of [...new Set([...runtime.map((entry) => entry.name), ...upstream.filter((entry) => entry.direct).map((entry) => entry.name)])]) {
+  // What a consumer's install of the published packages brings: their
+  // runtime dependencies, and every upstream package it installs -- not one
+  // only the private Studio or a test declares.
+  for (const name of [...new Set([...runtime.map((entry) => entry.name), ...upstream.filter((entry) => entry.shipped).map((entry) => entry.name)])]) {
     if (!components.some((component) => component.name === name)) problems.push(`the SBOM names no ${name}, which a published package depends on`)
+  }
+  // And, first of all, what this release publishes, at its version.
+  const version = report.subject?.version
+  for (const { package: name } of report.results?.buildIdentity ?? []) {
+    if (!components.some((component) => component.name === name && component.version === version)) problems.push(`the SBOM names no ${name} ${String(version)}, which this release publishes`)
   }
   for (const component of components) {
     const versions = loaded.get(component.name)

@@ -32,13 +32,16 @@ function green() {
       testedOn: {
         runtime: [{ name: 'pdfmake', loaded: '0.3.11' }],
         upstream: [
-          { name: '@formancy/spec', version: '0.5.0', direct: true },
-          { name: '@formancy/expressions', version: '0.5.0', direct: false },
+          { name: '@formancy/spec', version: '0.5.0', direct: true, shipped: true },
+          { name: '@formancy/expressions', version: '0.5.0', direct: false, shipped: true },
+          { name: '@formancy/themes', version: '0.5.0', direct: true, shipped: false },
         ],
       },
     },
     tarballs,
-    sbom: { components: ['pkg:npm/pdfmake@0.3.11', 'pkg:npm/%40formancy/spec@0.5.0', 'pkg:npm/%40formancy/report-spec@0.1.0', 'pkg:npm/tslib@2.8.1'].map((purl) => ({ purl })) },
+    sbom: {
+      components: ['pkg:npm/pdfmake@0.3.11', 'pkg:npm/%40formancy/spec@0.5.0', 'pkg:npm/%40formancy/report-spec@0.1.0', 'pkg:npm/%40formancy/report-render-pdf@0.1.0', 'pkg:npm/%40formancy/expressions@0.5.0', 'pkg:npm/tslib@2.8.1'].map((purl) => ({ purl })),
+    },
   }
 }
 
@@ -115,8 +118,8 @@ describe('the release body', () => {
 describe('the SBOM', () => {
   // An inventory naming another pdfmake than the suites ran describes a
   // release nobody tested; one that leaves out the engine that draws every
-  // PDF, or an upstream package the packages depend on, omits what a
-  // customer installs.
+  // PDF, or an upstream package the packages depend on -- declared, or
+  // brought by another upstream package -- omits what a customer installs.
   test('is refused with another version than the suites loaded, or without a runtime dependency or an upstream package', () => {
     const { report, sbom } = green()
     expect(sbomReportProblems(report, sbom)).toEqual([])
@@ -125,6 +128,27 @@ describe('the SBOM', () => {
     expect(sbomReportProblems(report, replaced(1, 'pkg:npm/%40formancy/spec@0.4.0'))).toEqual(['the SBOM names @formancy/spec 0.4.0, where the suites loaded 0.5.0'])
     expect(sbomReportProblems(report, { components: sbom.components.slice(1) })).toEqual(['the SBOM names no pdfmake, which a published package depends on'])
     expect(sbomReportProblems(report, { components: sbom.components.filter((component) => !component.purl.includes('spec@0.5.0')) })).toEqual(['the SBOM names no @formancy/spec, which a published package depends on'])
+    expect(sbomReportProblems(report, { components: sbom.components.filter((component) => !component.purl.includes('expressions')) })).toEqual(['the SBOM names no @formancy/expressions, which a published package depends on'])
+  })
+
+  // The v0.1.0 tag's run was refused for asking an SBOM of what ships for
+  // @formancy/themes, which only the private Studio declares: a check that
+  // asks for what no consumer installs fails every SBOM that is right.
+  test('is not asked for an upstream package no published package installs', () => {
+    const { report, sbom } = green()
+    expect(sbom.components.some((component) => component.purl.includes('themes'))).toBe(false)
+    expect(sbomReportProblems(report, sbom)).toEqual([])
+  })
+
+  // The v0.1.0 tag's first SBOM was cdxgen's reading of the workspace: it
+  // named vitest and Playwright as required, left out tslib, and named none
+  // of the packages being published, which an SBOM of a release describes
+  // first.
+  test('is refused without each published package, at the version this release publishes', () => {
+    const { report, sbom } = green()
+    expect(sbomReportProblems(report, { components: sbom.components.filter((component) => !component.purl.includes('report-render-pdf')) })).toEqual(['the SBOM names no @formancy/report-render-pdf 0.1.0, which this release publishes'])
+    const older = { components: sbom.components.map((component) => (component.purl.includes('report-spec') ? { purl: 'pkg:npm/%40formancy/report-spec@0.0.9' } : component)) }
+    expect(sbomReportProblems(report, older)).toEqual(['the SBOM names no @formancy/report-spec 0.1.0, which this release publishes'])
   })
 
   // Both spellings a package URL gives a scoped name.

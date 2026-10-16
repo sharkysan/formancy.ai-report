@@ -149,13 +149,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node alone: the checks below import nothing but Node's own modules,
+      # and the workspace is not installed, so nothing reads it in place of
+      # what ships.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: corepack enable pnpm
-
-      # cdxgen reads the installed tree.
-      - run: pnpm install --frozen-lockfile
 
       - uses: actions/download-artifact@v4
         with:
@@ -175,24 +174,35 @@ jobs:
 
       # A bill of materials for what actually ships, so a customer -- or an
       # auditor -- can answer "what is in this" without resolving it
-      # themselves. --required-only because an SBOM for a released artefact
-      # should describe the artefact, not the workbench.
+      # themselves. It describes the artefact, not the workbench: the
+      # tarballs pinned above, installed by npm into a project of their own
+      # outside the checkout as a consumer installs them, with no lifecycle
+      # script run and the peers left to the host that brings them, and
+      # --required-only. cdxgen reading the workspace named its test tools as
+      # required and left out tslib, which the Angular builder installs; the
+      # v0.1.0 tag's first run was refused for it.
       - name: Generate a CycloneDX SBOM
         id: sbom
         env:
           RELEASE: ${{ needs.tag.outputs.release }}
           VERSION: ${{ needs.tag.outputs.version }}
         run: |
+          mkdir "${RUNNER_TEMP}/formancy-report-sbom"
+          cd "${RUNNER_TEMP}/formancy-report-sbom"
+          printf '{ "name": "formancy-report", "version": "%s", "private": true }\n' "${VERSION}" > package.json
+          npm install --ignore-scripts --legacy-peer-deps --no-audit --no-fund "${GITHUB_WORKSPACE}"/release-tarballs/*.tgz
           npx --yes @cyclonedx/cdxgen@12.8.4 \
             --type javascript \
             --required-only \
-            --output "formancy-report-${RELEASE}-sbom.cdx.json" \
+            --output "${GITHUB_WORKSPACE}/formancy-report-${RELEASE}-sbom.cdx.json" \
             --project-name formancy-report \
             --project-version "${VERSION}" \
             .
 
-      # The SBOM is one, names every runtime dependency and upstream package
-      # the report names, and names each at the version the suites loaded.
+      # The SBOM is one, names every package this release publishes at its
+      # version, every runtime dependency and every upstream package their
+      # install brings, and each the report names at the version the suites
+      # loaded.
       - name: The SBOM names what the suites loaded, and is pinned
         id: sbom-checked
         env:

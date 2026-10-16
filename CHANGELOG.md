@@ -178,7 +178,10 @@ It brings:
 - **Workflows.** `gates.yml` with a `verify` job, a `test` job per package and
   an `install` job, called by `ci.yml` and by a `release.yml` that publishes
   only the tarballs the install gate ran, pinned by hash, with provenance and
-  a signed SBOM. CodeQL and dependency review run in `security.yml`.
+  a signed SBOM. The SBOM describes what a consumer installs, made from those
+  tarballs as npm installs them, without the peers a host brings
+  ([0017](docs/decisions/0017-the-sbom-describes-what-a-consumer-installs.md)).
+  CodeQL and dependency review run in `security.yml`.
 - **Guards under `pnpm test:repo`**, each watched failing first: the licence
   field and files of every package, exact upstream versions, a generated
   `codecov.yml`, the README's licence sentence generated from `LICENSE.md`,

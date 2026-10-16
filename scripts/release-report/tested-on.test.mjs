@@ -51,6 +51,23 @@ describe('testedOn()', () => {
     for (const entry of direct) expect(entry.version, entry.name).toBe(entry.declared)
   })
 
+  // The release's SBOM is held to the upstream packages marked shipped
+  // (verify-publish.mjs), and it describes what a consumer's install of the
+  // published packages holds. One only the private Studio declares would be
+  // asked of an SBOM that rightly leaves it out -- the v0.1.0 tag's run was
+  // refused for @formancy/themes -- and one a published package reaches
+  // through another upstream package would not be asked for at all.
+  test('marks shipped the upstream packages a published package installs, directly or through another, and no other', () => {
+    const shipped = facts.upstream.filter((entry) => entry.shipped).map((entry) => entry.name)
+    const declaredUpstream = published(repo).flatMap(({ manifest }) => Object.keys(manifest.dependencies ?? {}).filter((name) => name.startsWith('@formancy/') && !local.has(name)))
+    expect(declaredUpstream.length).toBeGreaterThan(0)
+    expect(shipped).toEqual(expect.arrayContaining(declaredUpstream))
+    // @formancy/data-client, which the provider declares, brings @formancy/data-core.
+    expect(shipped).toContain('@formancy/data-core')
+    // The Studio's, which is private: the themes are a host's to install.
+    expect(facts.upstream.find((entry) => entry.name === '@formancy/themes')).toMatchObject({ direct: true, shipped: false })
+  })
+
   // The browser gate's claims are about the browser Playwright pins: a gate
   // run is held to that build's version, so a pin the lookup missed would
   // hold every run to nothing. Read from the Playwright the Studio loads,

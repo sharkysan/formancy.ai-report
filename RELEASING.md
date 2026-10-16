@@ -77,10 +77,15 @@ anything that cannot be taken back:
      or that lack `LICENSE.md` or `NOTICE`. It refuses a body that is missing
      or too long.
    - It pins the sha256 of the report, the body and every tarball as its
-     outputs. Only then does it generate a CycloneDX SBOM, which it refuses
-     unless it is one, names every runtime dependency and upstream package
-     the report names, and names each at the version the suites loaded; and
-     pins that too.
+     outputs. Only then does it generate a CycloneDX SBOM, from those
+     tarballs installed by npm in a directory outside the checkout, with no
+     lifecycle script and no peer, so that it describes what a consumer
+     installs and not the workspace
+     ([0017](docs/decisions/0017-the-sbom-describes-what-a-consumer-installs.md)).
+     It refuses the SBOM unless it is one, names every published package at
+     the release's version, every runtime dependency and every upstream
+     package their install brings, and names each at the version the suites
+     loaded; and pins that too.
 
    This job is not one that can write nothing. Every job of a run can write
    to the run's artefacts, this one uploads the SBOM, and cdxgen's own
