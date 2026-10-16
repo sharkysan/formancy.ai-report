@@ -60,7 +60,9 @@ jobs:
       # The root manifest: scripts/bump.mjs moves every manifest to one version.
       - name: The version the packages say
         id: version
-        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       # The tag is the claim; this checks the repository agrees with it. A tag
       # that says v0.1.0 on a tree that says 0.2.0 would publish the wrong
