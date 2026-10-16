@@ -183,6 +183,29 @@ describe('release.yml', () => {
   })
 
   // Every job of a run can write to its artefacts, `check` included, and
+  // cdxgen reading the workspace named vitest and Playwright as required,
+  // left out tslib, which the Angular builder installs, and named none of
+  // the packages published: the v0.1.0 tag's run was refused for it. The
+  // SBOM describes what a consumer installs: the tarballs `check` pinned,
+  // installed by npm in a project outside the checkout, with no lifecycle
+  // script run and the peers left to the host; and the workspace is not
+  // installed in `check` at all, so nothing can read it by mistake.
+  test('makes the SBOM from the pinned tarballs, installed by npm outside the checkout', () => {
+    const check = release.jobs.check
+    const lines = String(check.steps.find((step) => step.id === 'sbom').run)
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line !== '')
+    const at =(pattern) => lines.findIndex((line) => pattern.test(line))
+    expect(lines.find((line) => line.startsWith('npm install'))).toBe('npm install --ignore-scripts --legacy-peer-deps --no-audit --no-fund "${GITHUB_WORKSPACE}"/release-tarballs/*.tgz')
+    expect(at(/^cd "\$\{RUNNER_TEMP\}\//)).toBeGreaterThanOrEqual(0)
+    expect(at(/^cd "\$\{RUNNER_TEMP\}\//)).toBeLessThan(at(/^npm install /))
+    expect(at(/^npm install /)).toBeLessThan(at(/cdxgen@/))
+    expect(lines).toContain('--required-only \\')
+    expect(lines.at(-1)).toBe('.')
+    expect(check.steps.filter((step) => /pnpm/.test(String(step.run)))).toEqual([])
+  })
+
   // cdxgen, which `check` runs, has dependencies nothing locks. So `check`
   // holds the report to this run and pins it and the tarballs before cdxgen
   // runs, the SBOM after it is checked against the report, and `publish`

@@ -102,9 +102,14 @@ commit, run, release or version, partial, local, or with problems -- a
 report directory holding anything but the report and the body, a tarball
 that is not byte for byte the one the report says the install gate
 installed, and a body that is missing or too long. It pins the report and
-the tarballs by sha256 before cdxgen runs, then refuses an SBOM that leaves
-out a runtime dependency or an upstream package the report names, or names
-one at another version than the suites loaded, and pins the SBOM. The
+the tarballs by sha256 before cdxgen runs. It makes the SBOM from those
+tarballs, installed by npm outside the checkout with no lifecycle script and
+no peer
+([0017](../decisions/0017-the-sbom-describes-what-a-consumer-installs.md)),
+then refuses one that leaves out a published package at the release's
+version, a runtime dependency or an upstream package a consumer's install
+brings, or names one at another version than the suites loaded, and pins
+the SBOM. The
 `publish` job refuses anything it downloaded that is not what was pinned,
 and the report again, before it signs the SBOM and the report and before
 npm receives anything (`scripts/release/pins.mjs`, `publish.mjs`).

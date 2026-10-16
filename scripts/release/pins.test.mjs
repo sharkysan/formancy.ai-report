@@ -107,7 +107,7 @@ describe('the command line, as the release runs it', () => {
       problems: [],
       subject: { version: '0.1.0', release: 'v0.1.0', commit: 'c0ffee', run: { id: '42' } },
       results: { buildIdentity: [{ package: SPEC.name }], install: { tarballs: [{ name: SPEC.name, file: 'formancy-report-spec-0.1.0.tgz', sha256: createHash('sha256').update(bytes).digest('hex') }] } },
-      testedOn: { runtime: [], upstream: [{ name: '@formancy/spec', version: '0.5.0', direct: true }] },
+      testedOn: { runtime: [], upstream: [{ name: '@formancy/spec', version: '0.5.0', direct: true, shipped: true }] },
     }
     mkdirSync(join(dir, 'release-report'))
     mkdirSync(join(dir, 'release-tarballs'))
@@ -115,7 +115,7 @@ describe('the command line, as the release runs it', () => {
     writeFileSync(join(dir, 'release-report', 'release-report.md'), '# Release report\n')
     writeFileSync(join(dir, 'release-report', 'RELEASE_NOTES.md'), '## 0.1.0\n\nThe first.\n')
     writeFileSync(join(dir, 'release-tarballs', 'formancy-report-spec-0.1.0.tgz'), bytes)
-    writeFileSync(join(dir, 'sbom.cdx.json'), JSON.stringify({ bomFormat: 'CycloneDX', components: [{ purl: 'pkg:npm/%40formancy/spec@0.5.0' }] }))
+    writeFileSync(join(dir, 'sbom.cdx.json'), JSON.stringify({ bomFormat: 'CycloneDX', components: [{ purl: 'pkg:npm/%40formancy/report-spec@0.1.0' }, { purl: 'pkg:npm/%40formancy/spec@0.5.0' }] }))
     return dir
   }
   const RUN = { GITHUB_SHA: 'c0ffee', GITHUB_RUN_ID: '42' }

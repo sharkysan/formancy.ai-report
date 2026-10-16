@@ -5,7 +5,11 @@
   register before that comparison: since it was added later that day
   ([0012](0012-the-builders-are-native-and-share-one-session.md)'s
   *Verified by*), G3 rests on its evidence alone, and no gate of the
-  register is partly evidenced.
+  register is partly evidenced. Its SBOM is no longer cdxgen's reading of
+  the workspace, which the v0.1.0 tag's run refused for leaving out tslib:
+  it is made from the published tarballs as npm installs them, and held to
+  what a consumer installs
+  ([0017](0017-the-sbom-describes-what-a-consumer-installs.md)).
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `report` job in `.github/workflows/gates.yml`, which

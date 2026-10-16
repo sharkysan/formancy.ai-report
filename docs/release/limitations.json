@@ -332,15 +332,11 @@
       ]
     },
     "0014": {
-      "reviewed": "sha256:21f96c5e94988496671b374f592e984f70517dd0626f139f5e18fe2a01294f6c",
+      "reviewed": "sha256:db3b1c1ac9a2c252213a9c2086de81e69a0e51293075b286350ce3207391c31c",
       "limitations": [
         {
           "area": "release",
           "says": "A release names what its own run tested: a dependency version, a framework release or a Node that no job of that run used was not tested, and nothing in the product refuses it."
-        },
-        {
-          "area": "release",
-          "says": "The SBOM is what cdxgen finds in the installed tree, held only to name every runtime dependency and upstream package the report names, at the version the suites loaded."
         },
         {
           "area": "release",
@@ -385,6 +381,16 @@
         {
           "area": "testing",
           "says": "The Formancy Data provider has run against a server that answers Data 0.1.0's routes in Data's shapes, never against a real Data server, its policy or its databases."
+        }
+      ]
+    },
+    "0017": {
+      "reviewed": "sha256:0142ad19ec1565b8c360ef1959b36e00610a0eabf72647e78ace2c1e8d2dee21",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "The SBOM names the published packages and what npm installed with them during the release's run, without the peers a host brings; past the runtime dependencies and upstream packages the release report names, each version in it is what npm resolved then, which no suite ran.",
+          "heldBy": "scripts/release-report/verify-publish.test.mjs"
         }
       ]
     }
