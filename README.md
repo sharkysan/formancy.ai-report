@@ -22,11 +22,13 @@ true; of its prose, a guard holds the files it names, its install lines and
 its links, and review the rest
 ([0015](./docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
 
-> **Status, 16 October 2026: data goes in and a PDF comes out, a report can
-> be laid out in a native React or Angular builder, and the Studio puts
-> them on one screen with the real PDF beside them:
+> **Status, 16 October 2026: 0.1.0, a developer preview, is ready to
+> release and not yet published.** Data goes in and a PDF comes out. A
+> report can be laid out in a native React or Angular builder. The Studio
+> puts both builders on one screen with the real PDF beside them:
 > `pnpm --filter @formancy/report-studio dev`, once `pnpm build` has built
-> the packages.**
+> the packages. What 0.1.0 holds and leaves out is in
+> [the changelog](./CHANGELOG.md#010--2026-10-16).
 >
 > `@formancy/report-spec` defines the report format, validates a report and
 > hashes it. `@formancy/report-core` edits a report through commands, with

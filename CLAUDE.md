@@ -245,15 +245,16 @@ What holds this section:
   `test:pictures` in the same CI job: every picture is whole parts of a
   state the page reaches, and a caption quotes only text those parts hold
   (formancy.ai-data 0038).
+- **The two builders' accessible trees, compared with each other**:
+  `apps/studio/src/parity.test.tsx` in jsdom, over every starter in three
+  languages, and the browser gate's `gate-parity.mjs` in Chromium. Release
+  gate G3 rests on them (`docs/release/gates.json`).
 
 What nothing holds yet, said: the palette and `builder.css` are copied from
 `admin.css` by hand, and nothing fails when upstream's move; the gate runs
-Chromium alone, where Formancy Data's runs Firefox and WebKit too; what a
-README picture looks like, and whether a caption's quote is painted in it
-rather than scrolled out of its part, which review alone holds; the
-builders' own READMEs' pictures, still taken by hand; and the two builders'
-accessible trees compared with each other, which no test does, so release
-gate G3 stays open (`docs/release/gates.json`).
+Chromium alone, where Formancy Data's runs Firefox and WebKit too; and what
+a README picture looks like, and whether a caption's quote is painted in it
+rather than scrolled out of its part, which review alone holds.
 
 ## Branch names
 
