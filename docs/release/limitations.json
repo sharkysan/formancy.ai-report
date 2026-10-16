@@ -1,0 +1,347 @@
+{
+  "$comment": "What each decision record's costs say a user, integrator or operator of a release will meet, one sentence each, or why the record has none. Held to the records by scripts/release-report/limitations.test.mjs: 'reviewed' is the sha256 of the record as it was read, so any edit to a record -- a status line naming a later record included -- fails until it is read again and stamped with 'node scripts/release-report/limitations.mjs --stamp NNNN'. A line can outlive its truth until its record changes; 'heldBy' names a test that shows it still holds, and the release report fails a run in which that test did not pass. The wording is held by review.",
+  "records": {
+    "0001": {
+      "reviewed": "sha256:5ef26e53c4f3f0829de703541707f3d2a70030e88e6fc2ceda68c5b7d1147fc3",
+      "limitations": [
+        {
+          "area": "licence",
+          "says": "Running Formancy Report in production needs a paid licence, and redistributing it inside another product a separate agreement; reading, evaluating, developing and testing it are free."
+        },
+        {
+          "area": "licence",
+          "says": "The `@formancy` scope mixes formancy's Apache-2.0 packages with this module's source-available ones, so a dependency audit reads each package's licence rather than its scope."
+        },
+        {
+          "area": "licence",
+          "says": "No lawyer has reviewed the licence; until one has, it is a statement of intent made carefully, and a customer's production agreement is the document that governs."
+        }
+      ]
+    },
+    "0002": {
+      "reviewed": "sha256:b90b94a94b228896bf4d783577b943e563323d5ab985d9f5363fbee8bf2579ed",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "The published packages depend on upstream `@formancy/*` at exact versions, so an upstream fix reaches an installation only through a release of this module that moves the version.",
+          "heldBy": "scripts/upstream-deps.test.mjs"
+        },
+        {
+          "area": "data",
+          "says": "There is no Formancy Data provider until Data publishes a release, so a host supplies a report's data itself."
+        }
+      ]
+    },
+    "0003": {
+      "reviewed": "sha256:6352b17e4c58b812d9e9398e8260cf6a96490e088fc314c1caf1addd5d7d680a",
+      "limitations": [
+        {
+          "area": "testing",
+          "says": "A claim about a rendered PDF rests on its text and images as PDF.js reads them back, so a rule or border through a row, a shape over a line, a clipped glyph or white text on white is not seen until page images are compared."
+        },
+        {
+          "area": "testing",
+          "says": "A text run's box is computed from its baseline and font size, not traced from its glyphs, so an accent that reaches past its box into the line below is not seen."
+        }
+      ]
+    },
+    "0004": {
+      "reviewed": "sha256:c0ac2d0ba405ecd41499556b2773329259d1a70e891396adaf4ebb2bc18278fe",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "The report format is version \"0\", a draft: nothing written under it is promised to be read by a later release, and a report written now may need re-authoring or migrating when the format freezes."
+        },
+        {
+          "area": "format",
+          "says": "A report of any other `reportSpecVersion` is refused whole, naming both versions, so a document from a newer release fails loudly in an older reader.",
+          "heldBy": "packages/report-spec/src/version.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "The workspace's Node floor of 22.13 is advisory, and what fails on an older Node has not been measured."
+        }
+      ]
+    },
+    "0005": {
+      "reviewed": "sha256:0c0116b4a21325980d3814cb218b3af9661788b6863741b593b69cd2b60a2fbc",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "pdfmake's fonts and access policies are global to a process, so a host that uses pdfmake for something of its own finds the renderer's configuration in place after every report."
+        },
+        {
+          "area": "rendering",
+          "says": "pdfmake keeps rows whole per table, not per row, so one row that cannot be kept whole lets every multi-line row in its table split across pages."
+        },
+        {
+          "area": "rendering",
+          "says": "A spacer that does not fit what is left of a page becomes a page break and loses its space, a page-region line that wraps only for some page numbers is not refused, and a run of keep-with-next headings before a page break or the end of the document is not kept together."
+        },
+        {
+          "area": "rendering",
+          "says": "A JPEG is checked to its structure only; its scan data is never decoded before it is embedded."
+        }
+      ]
+    },
+    "0006": {
+      "reviewed": "sha256:e617477da697e72d38c0e932e4f1b5e714beefa1cb860240fd362c962429fcea",
+      "limitations": [
+        {
+          "area": "licence",
+          "says": "A dependency's licence is read from its declared identifier and a font's from its name table, so code a package vendors under a licence of its own, a font inside a script, and terms that are not what their identifier says are not seen."
+        },
+        {
+          "area": "licence",
+          "says": "The dependency guard reads the tree this repository installed, not what a customer's install resolves: a range resolved afresh, or another platform's optional package, is judged only where CI installs it."
+        },
+        {
+          "area": "licence",
+          "says": "The dependency inventory review owed before the first paid release is still owed; until it is done, the guard's allow-list is the only check."
+        }
+      ]
+    },
+    "0007": {
+      "reviewed": "sha256:2b6eda80b0c6b2dc31d6a955a058205cc8de124e86d431b619340effa5c61186",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "Version 0 has no positioned elements: a letterhead with a logo at exact coordinates in the page header cannot be drawn, and columns only approximate it."
+        },
+        {
+          "area": "format",
+          "says": "A report has one detail table over one dataset, with one grouping level, and draws images from its header only, so two lists, subtotals within subtotals, or a photo per row cannot be expressed."
+        },
+        {
+          "area": "format",
+          "says": "Names an expression reads follow formancy's field keys and every other id is lower case with hyphens, so an author meets two id syntaxes."
+        },
+        {
+          "area": "format",
+          "says": "A null value prints as nothing; a placeholder such as n/a has to be written as an expression."
+        },
+        {
+          "area": "format",
+          "says": "Print styles are a small vocabulary of tokens, so a host's theme does not carry over into a report."
+        },
+        {
+          "area": "format",
+          "says": "A report with one unknown property or a length finer than a hundredth of a point is refused whole, so an editor has to keep the document valid at every step.",
+          "heldBy": "packages/report-spec/src/validate.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "The bounds on a report's size are chosen, not measured, so lowering one later would refuse reports that are valid now."
+        },
+        {
+          "area": "format",
+          "says": "A report's hash rests on `@formancy/spec`'s canonicalisation, so a change there changes every stored hash.",
+          "heldBy": "packages/report-spec/src/hash.test.ts"
+        }
+      ]
+    },
+    "0008": {
+      "reviewed": "sha256:5ceeb953e2e5b4568eb73ba8d5a042c14110fc41d43e7131e9f525f1a85307a1",
+      "limitations": [
+        {
+          "area": "editing",
+          "says": "Every commit validates and compares the whole report, so a keystroke in a property field pays a cost that grows with the report, and that cost is not measured."
+        },
+        {
+          "area": "editing",
+          "says": "The session keeps 200 undo steps unless told otherwise, each a whole snapshot, and drops the oldest past them; 200 is chosen, not measured."
+        },
+        {
+          "area": "editing",
+          "says": "Renaming a style that components use takes a transaction -- a new style, the components changed and the old style removed -- because no single command passes through an invalid report."
+        },
+        {
+          "area": "editing",
+          "says": "In a patch, `null` removes a value and `undefined` changes nothing."
+        },
+        {
+          "area": "editing",
+          "says": "A listener that throws makes the edit's caller see the exception after the edit has happened, and the outcome it would have returned is lost."
+        },
+        {
+          "area": "editing",
+          "says": "Snapshots do not merge, so two people editing one draft conflict, and the second save is refused by its hash.",
+          "heldBy": "packages/report-core/src/session.test.ts"
+        }
+      ]
+    },
+    "0009": {
+      "reviewed": "sha256:f461957988ff03265b83619ee7219e88e59e0c0848b7e2b3f6d2c96e4e4a28e9",
+      "limitations": [
+        {
+          "area": "runtime",
+          "says": "An expression is checked against the types of what it reads, so `dec(row.amount)` is a type error when the amount already is a decimal."
+        },
+        {
+          "area": "runtime",
+          "says": "A decimal that may be null cannot be compared with `==`; equality is written as two orderings."
+        },
+        {
+          "area": "runtime",
+          "says": "`has()` on a member is refused: every member is bound, null when empty, so `!= null` asks instead."
+        },
+        {
+          "area": "runtime",
+          "says": "`now()`, `today()` and `random()` are refused in every expression, because a report renders the same from the same data.",
+          "heldBy": "packages/report-core/src/expressions/reproducible.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A diagnostic's position is left out past a read written longer than plainly, such as `row[\"amount\"]`."
+        },
+        {
+          "area": "editing",
+          "says": "Every keystroke compiles every expression, and what that costs is not measured."
+        }
+      ]
+    },
+    "0010": {
+      "reviewed": "sha256:d12dfbbc91853c850932ada7ff1d0c7d89fecc52db8cf60f2941e8a2bea1b9ad",
+      "limitations": [
+        {
+          "area": "runtime",
+          "says": "Division, a double literal, `double()` and `matches()` are refused in expressions; an author writes `divide(dec(a), dec(b), places)` and `dec(\"…\")` instead.",
+          "heldBy": "packages/report-core/src/expressions/exactness.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A field the report does not declare is refused, so a host sends exactly what the report reads.",
+          "heldBy": "packages/report-runtime/src/data.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A decimal travels only as a string, and one sent as a JavaScript number is refused.",
+          "heldBy": "packages/report-runtime/src/values.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A render reads at most 100,000 detail rows, and a final render refuses data its provider calls incomplete."
+        },
+        {
+          "area": "data",
+          "says": "An image's bytes are not checked against their digest: the host's lookup is trusted to return what the digest pins."
+        },
+        {
+          "area": "runtime",
+          "says": "A declared rounding is applied once to each group's total and once to the report's, so rounded subtotals need not add up to the rounded total."
+        },
+        {
+          "area": "runtime",
+          "says": "Grouping marks, currency symbols and month names are the JavaScript engine's ICU's, so the same report can print differently on two engines."
+        },
+        {
+          "area": "runtime",
+          "says": "The expression budget was measured on one machine, and on another a render within it takes what that machine takes."
+        },
+        {
+          "area": "runtime",
+          "says": "An expression cannot read an image field, not even to ask whether it is null."
+        },
+        {
+          "area": "runtime",
+          "says": "A preview's label is English, whatever the report's locale."
+        }
+      ]
+    },
+    "0011": {
+      "reviewed": "sha256:d526e55974e96d7f89ad74cd9055818e5489c3b0cc525a0941992bf74062f316",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "One font, Roboto: CJK, Hebrew, Arabic, Thai, emoji and fr-FR amounts are refused, as are the `serif` and `mono` families.",
+          "heldBy": "packages/report-render-pdf/src/glyphs.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A word wider than its table column is refused, never broken: the template gives the column the width, or the text goes in a paragraph.",
+          "heldBy": "packages/report-render-pdf/src/widths.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A render cannot be stopped while pdfmake lays out a pass; a host that must stop one at once runs it in a worker it can terminate, and none is built."
+        },
+        {
+          "area": "rendering",
+          "says": "The renderer reads pdfmake internals that are not its API, at one exact pdfmake version, so a pdfmake upgrade reaches an installation only through a release of this module whose tests ran on it.",
+          "heldBy": "packages/report-render-pdf/src/pdfmake.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A kept block's first and last rows are named destinations in the PDF, two to a block."
+        },
+        {
+          "area": "rendering",
+          "says": "A table inside a frame, or one whose rows may split across pages, is laid out once per page break rather than planned."
+        },
+        {
+          "area": "rendering",
+          "says": "A body that fits its least height but not its real one is measured whole before it is refused."
+        }
+      ]
+    },
+    "0012": {
+      "reviewed": "sha256:d771c01f78dddc430d6bec18897697d26f4aaa26c068952ec0ef824e174fe2a3",
+      "limitations": [
+        {
+          "area": "builders",
+          "says": "A touch device gets no drag in the Angular builder, which binds HTML drag and drop, and the two builders' drag thresholds differ."
+        },
+        {
+          "area": "builders",
+          "says": "The session's step labels are English sentences, whatever language its editors speak."
+        },
+        {
+          "area": "builders",
+          "says": "Where the shared scenarios stop -- the exact tab order, each framework's pointer gesture -- the builders are held to each other by their own tests and by the core's README, which nothing executes."
+        },
+        {
+          "area": "testing",
+          "says": "The builders' own suites run in jsdom: layout, contrast, target size and a real pointer's drag are measured only through the Studio, in Chromium, and the pictures in the builders' own READMEs are taken by hand."
+        }
+      ]
+    },
+    "0013": {
+      "reviewed": "sha256:d6b72248249e3899a74330693b9d08e809022fa6094445067f015d0dbefd0e80",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "No PDF viewer is published: the Studio's PDF.js viewer stays inside the private app, so a host shows a report's PDF with a viewer of its own."
+        },
+        {
+          "area": "builders",
+          "says": "A host that wants formancy.ai's admin look for the builder copies the Studio's builder.css rules as well as the --wb-* variables; the variables alone give the workbench's own shapes in the room's colours."
+        },
+        {
+          "area": "testing",
+          "says": "The browser gate measures the Studio in Chromium alone, so layout, contrast, target size and a pointer's drag are not measured in Firefox or WebKit."
+        },
+        {
+          "area": "testing",
+          "says": "A README picture of the Studio is held to the text its parts show, not to its pixels, so a change of colour or layout alone, or a quoted line scrolled out of its part, is seen only by looking."
+        }
+      ]
+    },
+    "0014": {
+      "reviewed": "sha256:cb0e7fa5829afe5bbaaa9d4d7d6078053d5e6ec31a373c022513d4d091d17087",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "A release names what its own run tested: a dependency version, a framework release or a Node that no job of that run used was not tested, and nothing in the product refuses it."
+        },
+        {
+          "area": "release",
+          "says": "The SBOM is what cdxgen finds in the installed tree, held only to name every runtime dependency and upstream package the report names, at the version the suites loaded."
+        },
+        {
+          "area": "release",
+          "says": "The publish job has never run; until the first tag, the workflows test holds its shape and not its behaviour."
+        }
+      ]
+    }
+  }
+}

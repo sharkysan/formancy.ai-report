@@ -1,5 +1,6 @@
 // A gzipped ustar archive written by hand, for the tests of what reads one:
-// tarball.mjs, pins.mjs and publish.mjs. Test support only. Every
+// tarball.mjs, pins.mjs, publish.mjs and the release report's
+// verify-publish.mjs. Test support only. Every
 // field the reader depends on is one the test sets; a real packer's output is
 // read by the install gate in every run.
 

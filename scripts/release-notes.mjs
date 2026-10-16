@@ -1,19 +1,16 @@
-// The body of a GitHub release: one version's section of CHANGELOG.md.
-// formancy.ai-data adds what its release report says the release was tested
-// on (its 0035); that summary arrives here with the report.
+// The body of a GitHub release: one version's section of CHANGELOG.md, and
+// what the release report says the release was tested on (0014;
+// formancy.ai-data 0035).
 //
 // GitHub refuses a release body over 125,000 characters, and the changelog
-// grows by a long paragraph a change. So the body is one section, never the
-// whole file, and it is built and measured in release.yml's `check` job,
-// before anything is published: a body too long, or a version with no
-// section, fails that job rather than the last step of a release, after npm
-// already holds the version.
+// grows by a long paragraph a change. So the body is one section and the
+// report's summary, never the whole file, and it is built and measured in
+// the gates workflow's report job, before anything is published: a body too
+// long, or a version with no section, fails that job rather than the last
+// step of a release, after npm already holds the version.
 //
-//   node scripts/release-notes.mjs --release <tag|dry-run> --version <x.y.z> <output file>
-//
-// Held by scripts/release-notes.test.mjs.
-
-import { readFileSync, writeFileSync } from 'node:fs'
+// Used by scripts/release-report/report.mjs, which writes the body a release
+// attaches, and held by scripts/release-notes.test.mjs. Node's built-ins only.
 
 /** The most characters GitHub accepts in a release body. */
 export const BODY_LIMIT = 125_000
@@ -67,29 +64,14 @@ export function bodySection(changelog, { release, version }) {
 }
 
 /**
- * The release body: `section` of the changelog and nothing else. Throws when
- * the section is missing or the body is over BODY_LIMIT.
+ * The release body: `section` of the changelog, then what the release was
+ * tested on, as the report summarises it. Throws when the section is missing
+ * or the body is over BODY_LIMIT.
  */
-export function releaseBody(changelog, section) {
-  const body = `${releaseNotes(changelog, section)}\n`
+export function releaseBody(changelog, section, summary) {
+  const body = `${releaseNotes(changelog, section)}\n\n## What this release was tested on\n\n${summary.trim()}\n`
   if (body.length > BODY_LIMIT) {
     throw new Error(`the release body is ${String(body.length)} characters, over the ${String(BODY_LIMIT)} GitHub accepts`)
   }
   return body
-}
-
-if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/release-notes.mjs')) {
-  const argv = process.argv.slice(2)
-  const option = (name) => (argv.includes(name) ? argv[argv.indexOf(name) + 1] : undefined)
-  const release = option('--release')
-  const version = option('--version')
-  const out = argv.at(-1)
-  if (release === undefined || version === undefined || out === undefined || out.startsWith('--') || out === version || out === release) {
-    throw new Error('usage: release-notes.mjs --release <tag|dry-run> --version <x.y.z> <output file>')
-  }
-  const changelog = readFileSync('CHANGELOG.md', 'utf8')
-  const section = bodySection(changelog, { release, version })
-  const notes = releaseBody(changelog, section)
-  writeFileSync(out, notes, 'utf8')
-  console.log(`release notes: ${String(notes.length)} characters for ${section} -> ${out}`)
 }

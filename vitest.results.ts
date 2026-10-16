@@ -10,10 +10,13 @@ import { configDefaults } from 'vitest/config'
  * reporter vitest adds on CI, and with it every failure's annotation on the
  * pull request.
  *
- * The JSON is what a release report reads once there is one -- formancy.ai-data
- * 0035's shape, which arrives here with packaging. Until then nothing reads
- * it, and it is written anyway so that a run already leaves what the report
- * will need.
+ * The JSON is what the release report reads (0014;
+ * scripts/release-report/collect.mjs): each file's and each test's status
+ * and times. Written to `test-results/`, which turbo never caches, so a
+ * report never reads an earlier run's results replayed as this one's. A
+ * test's `meta` is written as vitest writes it and left out when collected:
+ * nothing here declares shared cases, as formancy.ai-data's adapters do, so
+ * nothing reads it.
  */
 export const reporters: NonNullable<NonNullable<ViteUserConfig['test']>['reporters']> = [
   ...configDefaults.reporters,

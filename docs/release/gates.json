@@ -1,0 +1,57 @@
+{
+  "$comment": "The release gates as the delivery plan names them, G1 to G7 and its legal review, each with the evidence a run must pass, the reason it is open, or both. The plan is a working document kept out of the repository, so no gate's wording is here: the report prints the id and its evidence. Read by scripts/release-report/report.mjs; held by scripts/release-report/gates.test.mjs, and the legal gate by scripts/licence-status.test.mjs. A document is stated evidence and never counts as passed in a run. A gate with a reason is open whatever its evidence, and the evidence it has must pass all the same. 0.1.0's gates are G1, G2 and G3 (plan 23.4); the rest belong to later releases.",
+  "gates": [
+    {
+      "gate": "G1",
+      "evidence": [
+        { "job": "install" },
+        { "file": "scripts/upstream-deps.test.mjs" },
+        { "file": "scripts/dependency-licences.test.mjs" },
+        { "file": "packages/report-builder-angular/src/dependencies.test.ts" }
+      ]
+    },
+    {
+      "gate": "G2",
+      "evidence": [
+        { "file": "packages/report-render-pdf/src/corpus.test.ts" },
+        { "file": "packages/report-render-pdf/src/starters.test.ts" },
+        { "file": "packages/report-corpus/src/checks.test.ts" }
+      ]
+    },
+    {
+      "gate": "G3",
+      "evidence": [
+        { "file": "packages/report-builder-core/src/scenarios.test.ts" },
+        { "file": "packages/report-builder-core/src/editor-shared.test.ts" },
+        { "file": "packages/report-builder-react/src/scenarios.test.tsx" },
+        { "file": "packages/report-builder-react/src/lifecycle.test.tsx" },
+        { "file": "packages/report-builder-angular/src/scenarios.test.ts" },
+        { "file": "packages/report-builder-angular/src/builder.test.ts" },
+        { "file": "apps/studio/src/studio.test.tsx" },
+        { "file": "apps/studio/src/journey.test.tsx" },
+        { "browserGate": "apps/studio" }
+      ],
+      "open": "That the two builders offer the same accessible controls is held only where the shared scenarios reach -- each control a scenario finds by role and name, in both builders -- and by every control being named and axe-clean at each state of the Studio's journey; no test compares the two builders' accessible trees with each other, the next step 0012 names. The switch -- edit in Angular, switch to React, undo, switch back -- with the session's subscriptions and the editor's listeners counted after each, is held by the Studio's studio.test.tsx in jsdom, and the switch the other way round by its browser gate in Chromium (0013)."
+    },
+    {
+      "gate": "G4",
+      "open": "A later release: there is no Formancy Data provider until Data publishes a release (0002), and Data's snapshot export, which the gate's complete snapshot needs, is not built."
+    },
+    {
+      "gate": "G5",
+      "open": "A later release: there is no report server, job, storage or publication yet, so nothing exists to test."
+    },
+    {
+      "gate": "G6",
+      "open": "A later release: no AI proposal workflow is built; report-core's commands as data (0008) are its groundwork, not its evidence."
+    },
+    {
+      "gate": "G7",
+      "open": "A later release: it needs an installation guide for a server, support capacity and a customer-accepted paid pilot, none of which exists yet."
+    },
+    {
+      "gate": "legal",
+      "open": "Needs a lawyer: LICENSE.md says at the top that no lawyer has reviewed it (0001), and CLA.md has not been reviewed either."
+    }
+  ]
+}

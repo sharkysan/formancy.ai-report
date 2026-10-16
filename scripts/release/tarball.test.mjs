@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { afterEach, describe, expect, test } from 'vitest'
-import { distHash, distOfTarball, filesUnder } from './dist-hash.mjs'
+import { distHash, distOfPackage, distOfTarball, filesUnder } from './dist-hash.mjs'
 import { readTarball } from './tarball.mjs'
 import { header, tgz } from './test-archive.mjs'
 
@@ -69,6 +69,26 @@ describe('a packed tarball', () => {
       ['package/types/a.d.ts', Buffer.from('export declare const a: 1\n')],
     ]
     expect([...distOfTarball(readTarball(tgz(packedFromDist))).keys()].sort()).toEqual(['fesm2022/a.mjs', 'types/a.d.ts'])
+  })
+
+  // The release report holds that tarball's built files to the dist/ every
+  // job built. That dist/ holds the manifest finalize-angular-dist.mjs
+  // writes, which pnpm rewrites again when it packs, and the licence files:
+  // hashed whole on disk, it would never equal the tarball's.
+  test("hashes a package packed from its dist/ alike from disk and from its tarball", () => {
+    const dir = mkdtempSync(join(tmpdir(), 'formancy-report-dist-'))
+    dirs.push(dir)
+    const built = { 'fesm2022/a.mjs': 'export const a = 1\n', 'types/a.d.ts': 'export declare const a: 1\n' }
+    for (const [path, text] of Object.entries({ ...built, 'package.json': '{"name":"x","version":"0.1.0"}', 'LICENSE.md': 'terms', NOTICE: 'notice', 'README.md': 'readme' })) {
+      mkdirSync(dirname(join(dir, 'dist', path)), { recursive: true })
+      writeFileSync(join(dir, 'dist', path), text)
+    }
+    const packed = tgz([['package/package.json', Buffer.from('{"name":"x","version":"0.1.0","dependencies":{"y":"0.1.0"}}')], ...Object.entries(built).map(([path, text]) => [`package/${path}`, Buffer.from(text)])])
+    const fromTarball = distHash(distOfTarball(readTarball(packed)))
+    expect(distHash(distOfPackage(dir, { publishConfig: { directory: 'dist' } }))).toBe(fromTarball)
+    // A package packed from its source directory keeps every file of dist/.
+    expect([...distOfPackage(dir, {}).keys()]).toContain('package.json')
+    expect(distOfPackage(join(dir, 'nowhere'), {})).toBeUndefined()
   })
 
   // A truncated or altered download whose header no longer adds up is not

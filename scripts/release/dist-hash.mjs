@@ -1,6 +1,7 @@
 // One hash for a package's built `dist/`, so a tarball can be compared with the
-// dist/ a job built (formancy.ai-data 0035). The install gate records it for
-// every tarball it packs, for the release report that arrives with packaging.
+// dist/ a job built (0014; formancy.ai-data 0035). The install gate records it
+// for every tarball it packs, and every job for every dist/ it built; the
+// release report holds the two to each other.
 //
 // sha256 over the sorted lines `relative/path\0<sha256 of the file>\n`, one
 // per file: the same files with the same bytes give the same hash wherever
@@ -39,6 +40,20 @@ export function filesUnder(dir) {
 
 /** What every tarball carries beside its build, packed from dist/ or not. */
 const BESIDE_THE_BUILD = new Set(['package/package.json', 'package/README.md', 'package/LICENSE.md', 'package/NOTICE'])
+
+/**
+ * The built files of the workspace package in `dir`, as `distOfTarball`
+ * reads them from its tarball: its `dist/`, less, for a package packed from
+ * its dist/ (`publishConfig.directory`), what the tarball carries beside the
+ * build -- a manifest pnpm rewrites when it packs, and the licence files.
+ * Undefined when it has no dist/.
+ */
+export function distOfPackage(dir, manifest) {
+  const files = filesUnder(join(dir, 'dist'))
+  if (files === undefined || manifest.publishConfig?.directory !== 'dist') return files
+  for (const path of BESIDE_THE_BUILD) files.delete(path.slice('package/'.length))
+  return files
+}
 
 /**
  * The built files of a packed tarball, as `filesUnder` gives a directory's:

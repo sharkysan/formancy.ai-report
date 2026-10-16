@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
 import { digest, REPO } from './record.mjs'
-import { appOptions, notShot, reasonToShoot, widthOf } from './session.mjs'
+import { appOptions, checkResult, checkResultFile, notShot, reasonToShoot, widthOf } from './session.mjs'
 
 /**
  * What an app's pictures script decides before and between its scenes,
@@ -89,5 +89,37 @@ describe('what a scene that is not shot is said to be', () => {
   test("by default the record's, and under --check walked", () => {
     expect(line([])).toBe("its text is the record's, so it is not retaken")
     expect(line(['--check'])).toBe('walked')
+  })
+})
+
+describe('what a check leaves for the release report', () => {
+  const ran = { app: 'studio', playwright: '1.64.1', startedAt: '2026-10-16T10:00:00.000Z', finishedAt: '2026-10-16T10:01:00.000Z' }
+
+  // The report holds a check's walk to every scene scenes.json gives its
+  // app, read from scenes.json itself: a scene the walk never reached was
+  // held by nobody. So the result says which scenes were walked, in walk
+  // order, and plans nothing of its own that the report could believe.
+  test('lists the scenes it walked, and the error only when one ended it', () => {
+    const stopped = checkResult({ ...ran, browser: { name: 'chromium', version: '156.0.8078.4', headless: true }, walked: ['studio-react'], error: 'studio-narrow: the printed preview never came' })
+    expect(stopped).toEqual({
+      check: 'pictures',
+      app: 'apps/studio',
+      startedAt: ran.startedAt,
+      finishedAt: ran.finishedAt,
+      playwright: '1.64.1',
+      browser: { name: 'chromium', version: '156.0.8078.4', headless: true },
+      walked: ['studio-react'],
+      problems: [],
+      error: 'studio-narrow: the printed preview never came',
+    })
+    // A check whose answer is its problems ended as a check does, not in an error.
+    const found = checkResult({ ...ran, walked: ['studio-react', 'studio-narrow'], problems: ['studio-react, part Preview: the page now says something else'] })
+    expect(found).not.toHaveProperty('error')
+    expect(found.browser).toBeNull()
+  })
+
+  // Where collect.mjs --job browser looks for it: beside the app's gate's file.
+  test("is written into the app's test-results", () => {
+    expect(checkResultFile('studio')).toBe(join(REPO, 'apps', 'studio', 'test-results', 'pictures.json'))
   })
 })

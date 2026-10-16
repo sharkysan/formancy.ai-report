@@ -1,6 +1,6 @@
 # 0004 — Three version lines, each refused when unknown
 
-- **Status:** accepted
+- **Status:** accepted; the tuple a release was tested with is derived from the run that gated it, by [0014](0014-a-release-report-is-derived-from-the-run-that-gated-it.md)
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `packages/report-spec/src/version.test.ts`, which proves

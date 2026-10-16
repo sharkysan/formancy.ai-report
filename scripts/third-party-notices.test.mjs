@@ -560,7 +560,17 @@ describe('the packages and apps this repository builds', () => {
   // names it among its build's inputs (its turbo.json), read here as turbo
   // resolves them. The apps are found by the plugins their configs load: the
   // Studio, today.
-  test('each app that writes the notices builds again when the plugin changes', async () => {
+  //
+  // A timeout catches a hang; it does not time anything. Loading the
+  // Studio's config loads what it imports, and the Angular plugin brings
+  // Angular's compiler toolchain with it, before turbo is asked anything.
+  // Measured on 2026-10-16 on a Windows 11 workstation (i9-10900K): in a
+  // warm process, importing @analogjs/vite-plugin-angular alone took 1.1 s,
+  // the whole config 1.7 s and turbo's dry run 0.4 to 0.6 s, and the case
+  // 1.9 to 2.0 s with every other guard beside it; the first run after a
+  // rebase and an install, with those files cold, passed vitest's 5 s
+  // default and was failed for it. 60 s is that warm case thirty times over.
+  test('each app that writes the notices builds again when the plugin changes', { timeout: 60_000 }, async () => {
     const apps = []
     for (const name of readdirSync(join(repo, 'apps')).sort()) {
       const file = join(repo, 'apps', name, 'vite.config.ts')

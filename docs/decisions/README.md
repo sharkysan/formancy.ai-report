@@ -60,7 +60,7 @@ only enforcement is "we remember" says so plainly.
 | [0001](0001-a-paid-module-in-its-own-repository.md) | A paid module lives in its own repository, under Formancy Data's terms, in force before a lawyer has read them | accepted |
 | [0002](0002-depend-on-upstream-never-copy-it.md) | Depend on released upstream packages at exact versions; never copy them | accepted |
 | [0003](0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md) | A rendered report is proved on the PDF it produced, read back with PDF.js; never on the engine's input, never through a mocked engine | accepted |
-| [0004](0004-three-version-lines-each-refused-when-unknown.md) | Three version lines -- formancy's form spec, Report's format, Formancy Data's contract -- each refused when unknown; package versions alone establish nothing | accepted |
+| [0004](0004-three-version-lines-each-refused-when-unknown.md) | Three version lines -- formancy's form spec, Report's format, Formancy Data's contract -- each refused when unknown; package versions alone establish nothing | accepted; extended by 0014 |
 | [0005](0005-pdfmake-renders-reports-behind-one-adapter.md) | pdfmake renders version 1's reports, behind one adapter that refuses rather than truncates; pdfme lost on the corpus, and HTML engines and Prince were not trialled | accepted |
 | [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md) | Every production dependency and every font a published package ships is under a permissive licence; GPL, AGPL, non-commercial and unlicensed are refused | accepted |
 | [0007](0007-a-report-definition-is-its-own-versioned-document.md) | A report definition is its own versioned document, with a flowing body, one detail table, declared aggregates and print styles as tokens | accepted |
@@ -70,3 +70,4 @@ only enforcement is "we remember" says so plainly.
 | [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md) | `report-render-pdf` draws the whole resolved document with pdfmake, and refuses what it cannot draw whole | accepted |
 | [0012](0012-the-builders-are-native-and-share-one-session.md) | The builders are native, share one session through one editor model, and are held to each other by shared scenarios | accepted; its untested parts held by 0013's Studio |
 | [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md) | The Studio is formancy.ai's room with a report builder in it, its PDF.js viewer stays inside it, and its README pictures are taken by a script | accepted |
+| [0014](0014-a-release-report-is-derived-from-the-run-that-gated-it.md) | A release report is derived from the run that gated the release, and says what it did not test | accepted |

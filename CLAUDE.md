@@ -250,8 +250,10 @@ What nothing holds yet, said: the palette and `builder.css` are copied from
 `admin.css` by hand, and nothing fails when upstream's move; the gate runs
 Chromium alone, where Formancy Data's runs Firefox and WebKit too; what a
 README picture looks like, and whether a caption's quote is painted in it
-rather than scrolled out of its part, which review alone holds; and the
-builders' own READMEs' pictures, still taken by hand.
+rather than scrolled out of its part, which review alone holds; the
+builders' own READMEs' pictures, still taken by hand; and the two builders'
+accessible trees compared with each other, which no test does, so release
+gate G3 stays open (`docs/release/gates.json`).
 
 ## Branch names
 
@@ -362,19 +364,61 @@ exactly what CI does:
   A change to what a picture shows is retaken with `node
   scripts/pictures.mjs`, never by hand.
 - **`install`** runs `pnpm test:e2e:install`.
+- **`report`** builds the release report from what every job above
+  collected
+  ([0014](docs/decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md),
+  [`docs/release/`](docs/release/README.md)). It fails the run when:
+  - a job ended other than success or left no results;
+  - a published package has no suite;
+  - a test or a file was skipped or failed;
+  - a test file the checkout holds did not run in its suite -- a test file
+    is known by its name, not by the suite's include, so one renamed past
+    the include fails here;
+  - the browser gate failed a check, stopped, made fewer passes than it
+    planned or a pass with no check in it, or the pictures' check did not
+    walk a scene `scripts/pictures/scenes.json` gives the app or found a
+    picture whose page says something else -- each read from the file it
+    writes in the app's `test-results/` -- or either launched another
+    Chromium than Playwright pins, or launched it otherwise than
+    `scripts/browsers.mjs` says;
+  - an install host `scripts/install-hosts.mjs` plans was not checked whole,
+    or a builder's was not at its range's floor;
+  - two builds of one package differ, or a tarball's built files are not
+    every job's;
+  - a release gate's evidence or a limitation's `heldBy` test did not pass.
+
+  A job added to gates.yml needs a collect step and an upload, which the
+  workflows test holds, and a reader in
+  `scripts/release-report/collect.mjs`, which refuses a job it has none for.
+  The browsers the gates run in are `scripts/browsers.mjs`'s, Chromium
+  alone; a browser added there is one the report expects the gate to have
+  run in.
 
 `scripts/workflows.test.mjs` holds the workflows to their shape:
 - every third-party action is pinned to a commit;
 - no `${{ }}` appears inside a script;
 - a release restores no cache;
-- `release.yml` publishes only what its `check` job pinned.
+- every gates job collects and uploads under its own key, and the report
+  waits for all of them;
+- `release.yml` checks the report before it pins, publishes only what its
+  `check` job pinned, and signs and attaches the report beside the SBOM;
+- in `publish`, only the npm step holds the token or runs npm, and it comes
+  after both signatures;
+- nothing in a workflow a release runs sets `continue-on-error`.
 
 Locally, run the same commands for what you changed.
 
-`pnpm test:repo` also fails until two things are done:
+`pnpm test:repo` also fails until these are done:
 - After `LICENSE.md` changes, run `node scripts/licence-status.mjs --write`.
 - After a package is added, run `node scripts/codecov-config.mjs --write`, and
   add the package to the `test` job's matrix.
+- A new decision record needs its entry in `docs/release/limitations.json`:
+  the costs a user, integrator or operator meets, or why it has none. An
+  edited one needs a re-read and
+  `node scripts/release-report/limitations.mjs --stamp NNNN`, and that
+  includes a Status line naming a later record.
+- After a dependency, a peer or a tool of the published packages changes,
+  run `node scripts/release-report/readme.mjs --write`.
 
 `test:e2e:install` is the only gate that looks at the packages from outside:
 - it packs them;

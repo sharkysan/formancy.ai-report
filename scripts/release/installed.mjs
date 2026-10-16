@@ -1,5 +1,6 @@
-// Which version of a package Node loads from a directory (formancy.ai-data 0035):
-// the install gate records every @formancy/* package a clean install resolved.
+// Which version of a package Node loads from a directory (0014; formancy.ai-data
+// 0035): the install gate records what a clean install resolved, and the
+// release report's tested-on.mjs what the suites load.
 //
 // Node's own lookup for a bare specifier: from `fromDir` up, the first
 // `node_modules/<name>/package.json`. It reads that manifest's `version` and

@@ -1,13 +1,14 @@
 // npm receives exactly the tarballs the install gate installed and ran, and
-// release.yml's `check` job pinned -- formancy.ai-data's publish step (its
-// 0035), holding the tarballs to `check`'s pins rather than to a release
-// report, which arrives here with packaging:
+// release.yml's `check` job held to the release report and pinned (0014;
+// formancy.ai-data 0035's publish step):
 //
-//   node scripts/release/publish.mjs --tarballs release-tarballs
+//   node scripts/release/publish.mjs --tarballs release-tarballs --report release-report
 //
-// with NODE_AUTH_TOKEN, NPM_CONFIG_PROVENANCE and CHECKED -- what `check`
-// pinned -- set. Before the first `npm publish` it refuses, all at once, a
-// downloaded tarball `check` did not pin or pinned otherwise: the artefact
+// with NODE_AUTH_TOKEN, NPM_CONFIG_PROVENANCE, RELEASE, VERSION and CHECKED --
+// what `check` pinned -- set. Before the first `npm publish` it refuses, all
+// at once, a downloaded file `check` did not pin or pinned otherwise, a
+// report that is not this run's, green and whole, and a tarball whose sha256
+// is not the one the report says the install gate installed: the artefact
 // store is written by every job of the run, and the step that holds the npm
 // token takes nobody's word for what it was handed. Then, per tarball, in the
 // order their own manifests' dependencies give -- report-spec before what
@@ -27,7 +28,8 @@
 import { createHash } from 'node:crypto'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { basename, join, resolve } from 'node:path'
-import { filesIn, pinProblems } from './pins.mjs'
+import { reportProblems } from '../release-report/verify-publish.mjs'
+import { filesIn, pinProblems, readReport, sha256 } from './pins.mjs'
 import { readTarball } from './tarball.mjs'
 
 const FIELDS = ['dependencies', 'peerDependencies', 'optionalDependencies']
@@ -65,18 +67,25 @@ export function decide({ name, version, integrity }, registered) {
 
 /**
  * The tarballs to publish, in the order they go in: `files` are what this job
- * downloaded, `[{ path, bytes }]`, and `checked` what `check` pinned of them.
- * Throws, naming every problem, unless each file is what `check` pinned.
+ * downloaded, `[{ path, bytes }]` -- the report's directory and the tarballs
+ * -- `checked` what `check` pinned of them, `report` the release report, and
+ * the rest this run's. Throws, naming every problem, unless each file is what
+ * `check` pinned, the report is this run's, green and whole, and each
+ * tarball is the one the report says the install gate installed.
  */
-export function toPublish({ files, checked }) {
-  const problems = pinProblems(checked, files)
-  if (problems.length > 0) throw new Error(`publish.mjs publishes nothing:\n${problems.map((problem) => `  - ${problem}`).join('\n')}`)
+export function toPublish({ files, report, checked, release, version, commit, runId }) {
+  const problems = [...pinProblems(checked, files), ...reportProblems(report, { release, version, commit, runId })]
+  const gate = new Map((report.results?.install?.tarballs ?? []).map((entry) => [entry.file, entry]))
   const tarballs = files
     .filter(({ path }) => path.endsWith('.tgz'))
     .map(({ path, bytes }) => {
+      const file = basename(path)
+      const hash = sha256(bytes)
+      if (gate.get(file)?.sha256 !== hash) problems.push(`${file} is not the tarball the install gate installed and ran: sha256 ${hash}, recorded ${String(gate.get(file)?.sha256)}`)
       const manifest = JSON.parse(readTarball(bytes).get('package/package.json')?.toString('utf8') ?? '{}')
-      return { file: basename(path), name: manifest.name, version: manifest.version, manifest, integrity: integrityOf(bytes) }
+      return { file, name: manifest.name, version: manifest.version, manifest, integrity: integrityOf(bytes) }
     })
+  if (problems.length > 0) throw new Error(`publish.mjs publishes nothing:\n${problems.map((problem) => `  - ${problem}`).join('\n')}`)
   return publishOrder(tarballs).map((name) => tarballs.find((entry) => entry.name === name))
 }
 
@@ -90,13 +99,26 @@ function registered(name, version) {
   return answer.stdout.trim() === '' ? undefined : JSON.parse(answer.stdout)
 }
 
+// `node scripts/release/publish.mjs --tarballs <dir> --report <dir>`
 if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/release/publish.mjs')) {
   const argv = process.argv.slice(2)
-  const at = argv.indexOf('--tarballs')
-  const value = at === -1 ? undefined : argv[at + 1]
-  if (value === undefined || value === '') throw new Error('publish.mjs needs --tarballs <dir>')
-  const dir = resolve(value)
-  const order = toPublish({ files: filesIn(dir), checked: process.env.CHECKED })
+  const option = (name) => {
+    const value = argv.includes(name) ? argv[argv.indexOf(name) + 1] : undefined
+    if (value === undefined || value === '') throw new Error(`publish.mjs needs ${name} <dir>`)
+    return value
+  }
+  for (const name of ['GITHUB_SHA', 'GITHUB_RUN_ID', 'RELEASE', 'VERSION']) if (!process.env[name]) throw new Error(`publish.mjs holds the report to this run, and ${name} is not set`)
+  const dir = resolve(option('--tarballs'))
+  const reportDir = resolve(option('--report'))
+  const order = toPublish({
+    files: [...filesIn(reportDir), ...filesIn(dir)],
+    report: readReport(reportDir),
+    checked: process.env.CHECKED,
+    release: process.env.RELEASE,
+    version: process.env.VERSION,
+    commit: process.env.GITHUB_SHA,
+    runId: process.env.GITHUB_RUN_ID,
+  })
   for (const tarball of order) {
     if (decide(tarball, registered(tarball.name, tarball.version)) === 'skip') {
       console.log(`${tarball.name}@${tarball.version}: already on npm with these bytes, skipped`)
