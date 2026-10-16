@@ -50,6 +50,8 @@ export const REPORT_PARTS = [
   'diagnostic',
   /** The live region that says what an action did. */
   'status',
+  /** The button in a side pane's header that hides that pane. */
+  'hide-pane',
 ] as const
 
 export type ReportPart = (typeof REPORT_PARTS)[number]
@@ -77,6 +79,8 @@ export const REPORT_ATTRIBUTES = [
   'data-major',
   /** On the root: the pane a narrow layout shows, the state's `panel`. */
   'data-panel',
+  /** On the root, when any pane is hidden: the state's `hidden`, the panes' names in one space-separated list. */
+  'data-hidden',
   /** On each pane: which one it is, one of `EDITOR_PANELS`. */
   'data-pane',
   // The tree's own ARIA, which the stylesheet reads rather than a copy of

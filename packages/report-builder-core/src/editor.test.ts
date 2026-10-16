@@ -74,6 +74,10 @@ describe('state', () => {
     ok(editor.dispatch({ type: 'openPanel', panel: 'canvas' }))
     ok(editor.dispatch({ type: 'updateDrag', over: 1 }))
     expect(editor.state()).toBe(state)
+    ok(editor.dispatch({ type: 'hidePanel', panel: 'outline' }))
+    const hidden = editor.state()
+    ok(editor.dispatch({ type: 'hidePanel', panel: 'outline' }))
+    expect(editor.state()).toBe(hidden)
   })
 
   // Each builder keys a problem's element by this, so a problem listed
@@ -220,6 +224,7 @@ describe('subscribe and dispose', () => {
     expect(editor.dispatch({ type: 'insert', kind: 'chart', target: { region: 'body', index: 0 } } as never)).toMatchObject({ ok: false, code: 'unavailable' })
     expect(editor.dispatch({ type: 'startDrag', subject: { kind: 'chart' } } as never)).toMatchObject({ ok: false, code: 'unavailable' })
     expect(editor.dispatch({ type: 'openPanel', panel: 'settings' } as never)).toMatchObject({ ok: false, code: 'invalid-value' })
+    expect(editor.dispatch({ type: 'hidePanel', panel: 'settings' } as never)).toMatchObject({ ok: false, code: 'invalid-value' })
     expect(session.revision()).toBe(0)
   })
 
@@ -246,12 +251,50 @@ describe('editor-local state', () => {
     ok(editor.dispatch({ type: 'select', id: 'intro' }))
     ok(editor.dispatch({ type: 'setZoom', zoom: 2 }))
     ok(editor.dispatch({ type: 'openPanel', panel: 'properties' }))
+    ok(editor.dispatch({ type: 'hidePanel', panel: 'outline' }))
     ok(editor.dispatch({ type: 'startDrag', subject: { kind: 'text' } }))
     ok(editor.dispatch({ type: 'cancelDrag' }))
     expect(session.revision()).toBe(0)
     expect(session.document()).toBe(document)
     expect(session.canUndo()).toBe(false)
     expect(editor.state().panel).toBe('properties')
+    expect(editor.state().hidden).toEqual(['outline'])
+  })
+
+  // A person who needs the room hides the panes beside the design view; the
+  // toolbar's pane tools are how a hidden pane comes back, so showing one is
+  // opening it, and the live region says where it went.
+  test('hides a side pane, says so, and opening it from the toolbar shows it again', () => {
+    const { editor } = editorOver()
+    expect(editor.state().hidden).toEqual([])
+    ok(editor.dispatch({ type: 'hidePanel', panel: 'outline' }))
+    expect(editor.state().hidden).toEqual(['outline'])
+    expect(editor.state().status.text).toBe(editorText('en')('status.paneHidden', { pane: editorText('en')('pane.outline') }))
+    ok(editor.dispatch({ type: 'openPanel', panel: 'outline' }))
+    expect(editor.state().hidden).toEqual([])
+    expect(editor.state().panel).toBe('outline')
+  })
+
+  // The order a builder draws them in, whatever order they were hidden in,
+  // so the attribute report-builder.css reads is one string per set.
+  test('lists the hidden panes in the order they stand in', () => {
+    const { editor } = editorOver()
+    ok(editor.dispatch({ type: 'hidePanel', panel: 'diagnostics' }))
+    ok(editor.dispatch({ type: 'hidePanel', panel: 'outline' }))
+    ok(editor.dispatch({ type: 'hidePanel', panel: 'properties' }))
+    expect(editor.state().hidden).toEqual(['outline', 'properties', 'diagnostics'])
+  })
+
+  // With nothing but the design view left to hide, an editor would be a
+  // toolbar over nothing; and a narrow layout shows the pane `panel` names,
+  // so a hidden one there would leave the screen empty.
+  test('never hides the design view, and a narrow layout’s pane, once hidden, gives way to it', () => {
+    const { editor } = editorOver()
+    expect(editor.dispatch({ type: 'hidePanel', panel: 'canvas' } as never)).toMatchObject({ ok: false, code: 'invalid-value' })
+    ok(editor.dispatch({ type: 'openPanel', panel: 'properties' }))
+    ok(editor.dispatch({ type: 'hidePanel', panel: 'properties' }))
+    expect(editor.state().panel).toBe('canvas')
+    expect(editor.state().hidden).toEqual(['properties'])
   })
 
   // A zoom tool with nowhere to go is marked unavailable by both builders

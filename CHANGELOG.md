@@ -8,6 +8,36 @@ Loosely [Keep a Changelog](https://keepachangelog.com), with reasons attached â€
 a line that says only *what* changed is rarely the line you need six months
 later.
 
+## Unreleased
+
+**A person hides the panes whose room the design view needs**
+([0019](docs/decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md)).
+On the demo, in a window 1536px wide, which is a 1920 screen at 125 %, the
+design view was 395px of a page 846px wide, and nothing could be closed:
+the toolbar's pane buttons choose what a narrow screen shows, and did
+nothing visible there.
+
+- **`@formancy/report-builder-core`:** a `hidePanel` action and the
+  state's `hidden`. `openPanel` shows a hidden pane again. The design view
+  cannot be hidden, and the pane a narrow layout shows never is.
+  `HIDEABLE_PANELS` lists the others.
+- **Both builders:**
+  - Each side pane's header has a Hide: Hide Outline, Hide Properties,
+    Hide Problems. It leaves the pane out and puts the keyboard in the
+    design view.
+  - The toolbar's pane buttons bring a pane back.
+  - `report-builder.css` lays the grid out without the hidden panes, read
+    from the root's `data-hidden`.
+- **A container's label in the design view** is drawn above the boxes
+  inside it. Under them, axe could not tell the colour behind it, which
+  showed once the design view held a whole page.
+- **The Studio:**
+  - A Preview toggle in the bar. A hidden Preview prints nothing.
+  - The Preview stands beside the builder only in windows over 2052px,
+    where the design view holds an A4 page at 100 % whole. Narrower, it is
+    under the builder, and at 1536px the design view is 839px.
+  - The README's pictures are taken at 2100px for it.
+
 ## 0.1.0 â€” 2026-10-16
 
 **The first release, a developer preview.** It is for evaluating Formancy

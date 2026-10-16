@@ -35,6 +35,9 @@ describe('the toolbar', () => {
     expect(document.activeElement).toBe(button(t('action.undo')))
     await user.keyboard('{End}')
     expect(document.activeElement).toBe(button(t('pane.problems')))
+    // Out of the toolbar, the next stop is the outline's: its Hide, then the palette.
+    await user.tab()
+    expect(document.activeElement).toBe(button(t('action.hidePane', { pane: t('pane.outline') })))
     await user.tab()
     expect(document.activeElement).toBe(button(t('kind.text')))
   })

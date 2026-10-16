@@ -47,6 +47,27 @@
   position: relative;
 }
 
+/* A hidden pane (the root's data-hidden) is not drawn, so the grid is the
+   workbench's columns without it -- the Studio's styles.test.tsx holds
+   them to workbench.css -- and the third column goes with both its halves.
+   The narrow layout's grid, as heavy and later, wins over these. */
+[data-report-part='editor'].wb:where([data-hidden~='outline']) {
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
+}
+
+[data-report-part='editor'].wb:where([data-hidden~='properties'][data-hidden~='diagnostics']) {
+  grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
+}
+
+[data-report-part='editor'].wb:where([data-hidden~='outline'][data-hidden~='properties'][data-hidden~='diagnostics']) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* A pane's Hide, at the end of its header, away from the name it hides. */
+[data-report-part='hide-pane'] {
+  margin-inline-start: auto;
+}
+
 /* On a narrow screen one pane shows at a time: the one the state's `panel`
    names, set on the root as data-panel and on each pane as data-pane. */
 @media (max-width: 48rem) {
@@ -421,8 +442,11 @@
 }
 
 /* A container's label sits at its top end, so the label of the first
-   thing inside it, at the top start, does not cover it. */
+   thing inside it, at the top start, does not cover it; and above the
+   boxes inside it, the selected one's too, where axe could not tell the
+   colour behind it (0019). The drop indicators, drawn later, stay above. */
 [data-report-part='box']:is([data-kind='section'], [data-kind='columns'], [data-kind='keepTogether'], [data-kind='table']) > [data-report-part='box-label'] {
+  z-index: 2;
   inset-inline-start: auto;
   inset-inline-end: 0;
 }

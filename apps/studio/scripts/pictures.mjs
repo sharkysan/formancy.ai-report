@@ -150,7 +150,10 @@ try {
     app: 'studio',
     chromium,
     playwright: require('playwright/package.json').version,
-    width: 1600,
+    // Past narrow.css's widest breakpoint, which the camera holds it to: the
+    // Preview beside the builder, as the captions say, and the design view
+    // holding the page whole (0019).
+    width: 2100,
     css: { directory: join(app, 'src'), entry: 'studio.css' },
     themes: manifest.dependencies['@formancy/themes'],
     origin: ORIGIN,

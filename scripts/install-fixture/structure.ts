@@ -9,7 +9,7 @@
  * The checks say what in the markup is wrong and never stop at the first, so
  * one run names every difference.
  */
-import { createReportEditor, editorText, REPORT_PARTS } from '@formancy/report-builder-core'
+import { createReportEditor, editorText, HIDEABLE_PANELS, REPORT_PARTS } from '@formancy/report-builder-core'
 import type { EditorState, ReportEditor, ReportPart } from '@formancy/report-builder-core'
 import { openReportSession } from '@formancy/report-core'
 import { emptyReport } from '@formancy/report-spec'
@@ -108,6 +108,16 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   for (const pane of [t('pane.outline'), t('pane.canvas'), t('pane.properties'), t('pane.problems')]) {
     expect(tools.some((tool) => spokenText(tool) === pane), `the toolbar has no button named ${pane}`)
   }
+
+  // A Hide in each side pane the state shows, named after it as the toolbar
+  // names the pane, which is how a person gives the design view the room.
+  const paneNames = { outline: t('pane.outline'), properties: t('pane.properties'), diagnostics: t('pane.problems') }
+  const hides = parts('hide-pane')
+  const named = HIDEABLE_PANELS.filter((panel) => !state.hidden.includes(panel)).map((panel) => t('action.hidePane', { pane: paneNames[panel] }))
+  expect(
+    hides.length === named.length && hides.every((hide, at) => hide.tag === 'button' && nameOf(hide) === named[at] && spokenText(hide) === t('action.hide')),
+    `the panes shown have not each a ${t('action.hide')} named ${named.join(', ')}`,
+  )
 
   // The palette: a group with a button per entry the state offers, each named
   // by its label, so no kind the editor offers is missing or misnamed.

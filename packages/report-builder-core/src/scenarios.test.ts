@@ -4,7 +4,8 @@
  * renders it: a toolbar of buttons, the palette's buttons, a dialog of places
  * while a keyboard chooses one, a tree of the outline whose focus is its
  * selection, a field per property with a button back to the report's own,
- * a button per diagnostic and a status counting them, and the live region.
+ * a button per diagnostic and a status counting them, a button hiding each
+ * side pane, nothing of a pane that is hidden, and the live region.
  *
  * It is the third reading of that contract, on purpose and only here: it
  * shows that every name a scenario looks for is one the state gives, and that
@@ -18,8 +19,8 @@ import { describe, expect, test } from 'vitest'
 import { createReportEditor } from './editor.js'
 import type { ReportEditor } from './editor.js'
 import { actionForKey } from './keys.js'
-import type { EditorAction, EditorState, OutlineNode } from './model.js'
-import { PROPERTY_ROLES } from './model.js'
+import type { EditorAction, EditorState, HideablePanel, OutlineNode } from './model.js'
+import { HIDEABLE_PANELS, PROPERTY_ROLES } from './model.js'
 import { BUILDER_SCENARIOS, builderScenarios, SCENARIO_ACTIONS, SCENARIO_EXPECTATIONS, scenarioReport } from './scenarios.js'
 import type { BuilderScenario, ScenarioQuery, ScenarioStep } from './scenarios.js'
 import { EDITOR_LOCALES, editorText } from './text.js'
@@ -61,9 +62,16 @@ function toolbar(t: EditorText, state: EditorState): Map<string, EditorAction | 
   ])
 }
 
+/** A side pane's name, as its tool in the toolbar and its Hide say it. */
+const paneName = (t: EditorText, panel: HideablePanel): string => t(panel === 'diagnostics' ? 'pane.problems' : panel === 'outline' ? 'pane.outline' : 'pane.properties')
+
+/** Whether the state draws the pane: every pane, but those hidden. */
+const shown = (state: EditorState, panel: HideablePanel): boolean => !state.hidden.includes(panel)
+
 /** Every button the state shows, by name, and what activating it dispatches. */
 function buttons(t: EditorText, state: EditorState): Map<string, EditorAction | undefined> {
   const found = toolbar(t, state)
+  for (const panel of HIDEABLE_PANELS) if (shown(state, panel)) found.set(t('action.hidePane', { pane: paneName(t, panel) }), { type: 'hidePanel', panel })
   const choosing = state.drag?.via === 'keyboard' ? state.drag : null
   if (choosing !== null) {
     for (const target of state.dropTargets) {
@@ -71,19 +79,19 @@ function buttons(t: EditorText, state: EditorState): Map<string, EditorAction | 
       found.set(target.label, 'kind' in subject ? { type: 'insert', kind: subject.kind, target: target.location } : { type: 'move', id: subject.id, target: target.location })
     }
     found.set(t('places.cancel'), { type: 'cancelDrag' })
-  } else {
+  } else if (shown(state, 'outline')) {
     for (const entry of state.palette) found.set(entry.label, { type: 'startDrag', subject: { kind: entry.kind }, via: 'keyboard' })
   }
-  for (const entry of state.diagnostics) found.set(entry.label, entry.target === null ? { type: 'select', id: null } : { type: 'select', ...entry.target })
+  if (shown(state, 'diagnostics')) for (const entry of state.diagnostics) found.set(entry.label, entry.target === null ? { type: 'select', id: null } : { type: 'select', ...entry.target })
   // Back to the report's own properties, shown while something else is selected.
-  if (state.selection !== null) found.set(t('properties.report'), { type: 'select', id: null })
+  if (state.selection !== null && shown(state, 'properties')) found.set(t('properties.report'), { type: 'select', id: null })
   return found
 }
 
 /** What a status says: the zoom's readout, the problems' count, or -- the one with no name -- the live region. */
 function statusText(t: EditorText, state: EditorState, name: string): string | undefined {
   if (name === t('zoom.label')) return state.zoomLabel
-  if (name === t('pane.problems')) return state.diagnostics.length === 0 ? name : `${name} ${state.diagnostics.length}`
+  if (name === t('pane.problems')) return !shown(state, 'diagnostics') ? undefined : state.diagnostics.length === 0 ? name : `${name} ${state.diagnostics.length}`
   return name === '' ? state.status.text : undefined
 }
 
@@ -133,6 +141,8 @@ class Driver {
     const first = this.state.properties.fields[0]
     // Back at the report's properties, focus is on the first of them.
     if (query.name === this.t('properties.report') && first !== undefined) this.focused = { role: PROPERTY_ROLES[first.kind], name: first.label }
+    // A pane hidden takes its Hide with it; focus goes to the design view that took its room.
+    else if (action?.type === 'hidePanel') this.focused = { role: 'region', name: this.t('canvas.label') }
     else if (selects || (choosing && action?.type === 'cancelDrag')) this.focusSelection()
     else if (action?.type === 'startDrag') this.focused = null
     else this.focused = { role: 'button', name: query.name }
@@ -148,9 +158,11 @@ class Driver {
     const state = this.state
     switch (query.role) {
       case 'tree':
-        return query.name === this.t('pane.outline')
+        return query.name === this.t('pane.outline') && shown(state, 'outline')
       case 'treeitem':
-        return nodes(state).some((node) => node.label === query.name && (query.selected === undefined || node.selected === query.selected))
+        return shown(state, 'outline') && nodes(state).some((node) => node.label === query.name && (query.selected === undefined || node.selected === query.selected))
+      case 'region':
+        return query.name === this.t('canvas.label')
       case 'dialog':
         return state.drag?.via === 'keyboard' && state.drag.title === query.name
       case 'button':
@@ -158,7 +170,7 @@ class Driver {
       case 'status':
         return statusText(this.t, state, query.name) !== undefined
       default:
-        return state.properties.fields.some((field) => field.label === query.name && PROPERTY_ROLES[field.kind] === query.role)
+        return shown(state, 'properties') && state.properties.fields.some((field) => field.label === query.name && PROPERTY_ROLES[field.kind] === query.role)
     }
   }
 

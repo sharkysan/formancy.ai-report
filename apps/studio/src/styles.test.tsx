@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createReportEditor, scenarioReport } from '@formancy/report-builder-core'
@@ -53,6 +54,9 @@ function rulesOf(file: string, text: string): Rule[] {
   style.remove()
   return found
 }
+
+/** A stylesheet a package exports, without its comments, as a host's bundler resolves it. */
+const exported = (specifier: string): string => readFileSync(createRequire(import.meta.url).resolve(specifier), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
 
 /** Every style rule of the Studio's stylesheets, with its file. */
 const rules = (): Rule[] => files().flatMap((file) => rulesOf(file, readFileSync(join(styles, file), 'utf8')))
@@ -155,6 +159,26 @@ describe("the Studio's stylesheets", () => {
     expect(reaching(studio, inside)).toEqual([])
     // A guard on the guard: builder.css's rules do reach the builder drawn here.
     expect(reaching(rules().filter((rule) => rule.file === 'styles/builder.css'), inside).length).toBeGreaterThan(0)
+  })
+
+  // report-builder.css lays the builder out without a pane the person hid
+  // by giving the workbench's grid fewer columns (0019). Each must be the
+  // workbench's own columns without the hidden ones: a width typed apart
+  // from workbench.css drifts from it, and a column left in puts the design
+  // view in the outline's width. Read as text, because jsdom's CSS object
+  // model drops grid properties it does not know.
+  test('lay the builder out without a hidden pane in the workbench’s own columns', () => {
+    const tracks = [...exported('@formancy/themes/workbench.css').matchAll(/(?:^|\})\s*\.wb\s*\{[^}]*grid-template-columns:\s*([^;]+);/g)].map((match) => (match[1] ?? '').match(/minmax\([^)]*\)/g) ?? [])
+    expect(tracks).toHaveLength(1)
+    const columns = tracks[0] ?? []
+    expect(columns).toHaveLength(3)
+    const grids = [...exported('@formancy/report-builder-core/report-builder.css').matchAll(/\[data-report-part='editor'\]\.wb:where\(((?:\[data-hidden~='[a-z]+'\])+)\)\s*\{\s*grid-template-columns:\s*([^;]+);/g)]
+    expect(grids).toHaveLength(3)
+    for (const [, condition = '', written = ''] of grids) {
+      const hidden = [...condition.matchAll(/'([a-z]+)'/g)].map((match) => match[1])
+      const kept = columns.filter((_, at) => !(at === 0 && hidden.includes('outline')) && !(at === 2 && hidden.includes('properties') && hidden.includes('diagnostics')))
+      expect(written.trim(), hidden.join(' ')).toBe(kept.join(' '))
+    }
   })
 
   // The paper is what prints. A rule of the room's on a page's canvas or on

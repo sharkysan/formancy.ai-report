@@ -22,8 +22,8 @@ import type { Edit, Planned } from './edits.js'
 import { clampZoom, zoomedIn, zoomedOut } from './geometry.js'
 import { shownLabel, stepLabel } from './history.js'
 import { columnKey, kindLabel } from './labels.js'
-import { EDITOR_PANELS } from './model.js'
-import type { DragSubject, DropTarget, EditorAction, EditorActionType, EditorOutcome, EditorRefusalCode, EditorState, Selection } from './model.js'
+import { EDITOR_PANELS, HIDEABLE_PANELS } from './model.js'
+import type { DragSubject, DropTarget, EditorAction, EditorActionType, EditorOutcome, EditorRefusalCode, EditorState, HideablePanel, Selection } from './model.js'
 import { selectionKey } from './outline.js'
 import { fieldLabel, fieldsOf, pageRoomMessage, propertyCommand, propertyTarget, refusalMessage } from './properties.js'
 import { fieldWords } from './property-fields.js'
@@ -61,6 +61,9 @@ export interface ReportEditor {
 
 const DONE: EditorOutcome = Object.freeze({ ok: true })
 
+/** Each pane that can be hidden, by the message that names it: the diagnostics are the problems. */
+const PANE_NAMES = { outline: 'pane.outline', properties: 'pane.properties', diagnostics: 'pane.problems' } as const satisfies Record<HideablePanel, string>
+
 type Handlers = { readonly [T in EditorActionType]: (action: Extract<EditorAction, { readonly type: T }>) => EditorOutcome }
 
 export function createReportEditor(session: ReportSession, options: ReportEditorOptions = {}): ReportEditor {
@@ -71,6 +74,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     selection: null,
     zoom: start === undefined || !Number.isFinite(start) ? 1 : clampZoom(start),
     panel: 'outline',
+    hidden: [],
     drag: null,
     errors: new Map(),
     status: { text: '', sequence: 0 },
@@ -146,6 +150,11 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
 
   function announce(text: string): Partial<Local> {
     return { status: { text, sequence: local.status.sequence + 1 } }
+  }
+
+  /** A pane's name, as its tool in the toolbar says it. */
+  function paneName(panel: HideablePanel): string {
+    return t(PANE_NAMES[panel])
   }
 
   function refuse(code: EditorRefusalCode, text: string, refusal?: Extract<CommandOutcome, { ok: false }>): EditorOutcome {
@@ -391,7 +400,16 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     },
     openPanel: (action) => {
       if (!(EDITOR_PANELS as readonly string[]).includes(action.panel)) return refuse('invalid-value', t('input.option'))
-      setLocal({ panel: action.panel })
+      const shown = local.hidden.filter((panel) => panel !== action.panel)
+      setLocal({ panel: action.panel, ...(shown.length === local.hidden.length ? {} : { hidden: shown }) })
+      return DONE
+    },
+    hidePanel: (action) => {
+      if (!(HIDEABLE_PANELS as readonly string[]).includes(action.panel)) return refuse('invalid-value', t('input.option'))
+      if (local.hidden.includes(action.panel)) return DONE
+      const hidden = HIDEABLE_PANELS.filter((panel) => panel === action.panel || local.hidden.includes(panel))
+      // The pane a narrow layout shows is never one that is hidden.
+      setLocal({ hidden, ...(local.panel === action.panel ? { panel: 'canvas' } : {}), ...announce(t('status.paneHidden', { pane: paneName(action.panel) })) })
       return DONE
     },
   }

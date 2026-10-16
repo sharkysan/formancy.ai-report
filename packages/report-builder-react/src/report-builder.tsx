@@ -18,7 +18,7 @@
 import { useCallback, useId, useLayoutEffect, useMemo, useRef } from 'react'
 import type { KeyboardEvent, ReactElement } from 'react'
 import { actionForKey, editorText } from '@formancy/report-builder-core'
-import type { DiagnosticEntry, DragSubject, DropTarget, EditorAction, EditorOutcome, EditorPanel, ReportEditor, Selection } from '@formancy/report-builder-core'
+import type { DiagnosticEntry, DragSubject, DropTarget, EditorAction, EditorOutcome, EditorPanel, HideablePanel, ReportEditor, Selection } from '@formancy/report-builder-core'
 import type { ComponentKind } from '@formancy/report-spec'
 import { Canvas } from './canvas.js'
 import { Diagnostics } from './diagnostics.js'
@@ -184,9 +184,25 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
 
   const choosing = state.drag?.via === 'keyboard' ? state.drag : null
   const count = state.diagnostics.length
+  const shows = (panel: HideablePanel): boolean => !state.hidden.includes(panel)
+
+  /** A side pane's Hide, named after the pane; the design view takes its room and the keyboard. */
+  const hide = (panel: HideablePanel, name: string): ReactElement => (
+    <button type="button" data-report-part="hide-pane" aria-label={t('action.hidePane', { pane: name })} onClick={() => act({ type: 'hidePanel', panel }, 'canvas')}>
+      {t('action.hide')}
+    </button>
+  )
 
   return (
-    <section ref={root} aria-label={t('editor.label')} className="wb" data-report-part="editor" data-panel={state.panel} onKeyDown={onKeyDown}>
+    <section
+      ref={root}
+      aria-label={t('editor.label')}
+      className="wb"
+      data-report-part="editor"
+      data-panel={state.panel}
+      data-hidden={state.hidden.length === 0 ? undefined : state.hidden.join(' ')}
+      onKeyDown={onKeyDown}
+    >
       {/* A bar across the panes: report-builder.css spans every root child that is no pane. */}
       <div className="wb-pane">
         <header>
@@ -196,15 +212,21 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
       </div>
 
       {/* The place dialog floats over this pane: the canvas beside it stays
-          in view, with the place the dialog's focus is on marked. */}
-      <section className="wb-pane" data-pane="outline">
-        <header>{t('pane.outline')}</header>
-        <div className="wb-body">
-          <Palette state={state} t={t} ids={ids} drag={drag} place={place} />
-          <Outline state={state} t={t} ids={ids} tree={tree} drag={drag} act={act} />
-        </div>
-        {choosing === null ? null : <Places state={state} drag={choosing} t={t} ids={ids} act={act} choose={choose} cancel={cancelPlaces} />}
-      </section>
+          in view, with the place the dialog's focus is on marked. Opening
+          the dialog shows the pane, were it hidden. */}
+      {shows('outline') ? (
+        <section className="wb-pane" data-pane="outline">
+          <header>
+            <span>{t('pane.outline')}</span>
+            {hide('outline', t('pane.outline'))}
+          </header>
+          <div className="wb-body">
+            <Palette state={state} t={t} ids={ids} drag={drag} place={place} />
+            <Outline state={state} t={t} ids={ids} tree={tree} drag={drag} act={act} />
+          </div>
+          {choosing === null ? null : <Places state={state} drag={choosing} t={t} ids={ids} act={act} choose={choose} cancel={cancelPlaces} />}
+        </section>
+      ) : null}
 
       <section className="wb-pane wb-canvas" data-pane="canvas">
         <header>{t('pane.canvas')}</header>
@@ -216,40 +238,53 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
       {/* The properties and the problems share the third column. On a narrow
           screen report-builder.css shows the one pane `data-panel` names, so
           this column says it is whichever of its two is asked for, and each
-          half carries its own name for the other to be hidden by. */}
-      <section className="wb-pane" data-pane={state.panel === 'diagnostics' ? 'diagnostics' : 'properties'}>
-        <header data-pane="properties">
-          <span>{state.properties.heading}</span>
-          {state.selection === null ? null : (
-            <button type="button" onClick={() => act({ type: 'select', id: null }, 'properties')}>
-              {t('properties.report')}
-            </button>
-          )}
-        </header>
-        <div ref={fields} className="wb-body" data-pane="properties">
-          <Properties state={state} ids={ids} act={act} />
-        </div>
-        <header data-pane="diagnostics">
-          {/* A status, so a change in how many problems there are is said
-              without taking the person's place: "Problems 2". Named in
-              words, never after its own heading, which the Studio sets in
-              capitals that Chromium would put in the name. */}
-          <div role="status" aria-label={t('pane.problems')}>
-            <span>{t('pane.problems')}</span>
-            {count === 0 ? null : (
-              <>
-                {' '}
-                <span data-report-part="badge" data-severity={state.diagnostics.some((entry) => entry.severity === 'error') ? 'error' : 'warning'}>
-                  {count}
-                </span>
-              </>
-            )}
-          </div>
-        </header>
-        <div className="wb-body" data-pane="diagnostics">
-          <Diagnostics state={state} t={t} ids={ids} list={problemList} follow={follow} />
-        </div>
-      </section>
+          half carries its own name for the other to be hidden by. Each half
+          hides alone; the column goes with the second. */}
+      {shows('properties') || shows('diagnostics') ? (
+        <section className="wb-pane" data-pane={state.panel === 'diagnostics' || !shows('properties') ? 'diagnostics' : 'properties'}>
+          {shows('properties') ? (
+            <>
+              <header data-pane="properties">
+                <span>{state.properties.heading}</span>
+                {state.selection === null ? null : (
+                  <button type="button" onClick={() => act({ type: 'select', id: null }, 'properties')}>
+                    {t('properties.report')}
+                  </button>
+                )}
+                {hide('properties', t('pane.properties'))}
+              </header>
+              <div ref={fields} className="wb-body" data-pane="properties">
+                <Properties state={state} ids={ids} act={act} />
+              </div>
+            </>
+          ) : null}
+          {shows('diagnostics') ? (
+            <>
+              <header data-pane="diagnostics">
+                {/* A status, so a change in how many problems there are is said
+                    without taking the person's place: "Problems 2". Named in
+                    words, never after its own heading, which the Studio sets in
+                    capitals that Chromium would put in the name. */}
+                <div role="status" aria-label={t('pane.problems')}>
+                  <span>{t('pane.problems')}</span>
+                  {count === 0 ? null : (
+                    <>
+                      {' '}
+                      <span data-report-part="badge" data-severity={state.diagnostics.some((entry) => entry.severity === 'error') ? 'error' : 'warning'}>
+                        {count}
+                      </span>
+                    </>
+                  )}
+                </div>
+                {hide('diagnostics', t('pane.problems'))}
+              </header>
+              <div className="wb-body" data-pane="diagnostics">
+                <Diagnostics state={state} t={t} ids={ids} list={problemList} follow={follow} />
+              </div>
+            </>
+          ) : null}
+        </section>
+      ) : null}
 
       <div className="wb-pane">
         {/* The editor's announcements. Each is a new child, so the same words

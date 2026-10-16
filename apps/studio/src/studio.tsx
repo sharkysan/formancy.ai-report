@@ -1,9 +1,10 @@
 /**
  * The Studio: formancy.ai's room, with a report builder in it.
  *
- * One shell (formancy.ai 0106): a bar with the wordmark, the starter picker
- * and the framework switch; under it the builder -- the workbench's three
- * panes -- and the Preview, the real PDF on white paper. The picker opens a
+ * One shell (formancy.ai 0106): a bar with the wordmark, the starter picker,
+ * the framework switch and the Preview's toggle; under it the builder --
+ * the workbench's three panes, whose side panes each hide from their own
+ * header -- and the Preview, the real PDF on white paper. The picker opens a
  * starter's session, kept while the page lives (`workspace.ts`); the switch
  * shows the React or the Angular builder over the same editor
  * (`builder/builder-pane.tsx`); the Preview prints whatever the session
@@ -23,11 +24,15 @@ import type { StudioStarter } from './starters/codec.js'
 import { starterLabel } from './starters/starters.js'
 import type { Workspace } from './workspace.js'
 
+/** The Preview's id, for the bar's toggle to say what it shows and hides. */
+const PREVIEW = 'studio-preview'
+
 const same = (selection: Selection | null, target: ProblemTarget): boolean => selection !== null && selection.id === target.id && selection.column === target.column
 
 export function Studio({ starters, workspace, images }: { starters: readonly StudioStarter[]; workspace: Workspace; images: ImageResolver }): ReactElement {
   const [starterId, setStarterId] = useState(starters[0]?.id ?? '')
   const [framework, setFramework] = useState<Framework>('react')
+  const [previewing, setPreviewing] = useState(true)
   const builder = useRef<HTMLDivElement>(null)
   const opened = workspace.open(starterId)
   const { editor } = opened
@@ -70,15 +75,20 @@ export function Studio({ starters, workspace, images }: { starters: readonly Stu
           </select>
         </div>
         <Segmented legend="Builder" name="framework" className="framework" options={FRAMEWORKS} value={framework} onChange={setFramework} />
+        {/* Hidden, the Preview is not drawn and prints nothing; shown again,
+            it prints what the session holds then. */}
+        <button type="button" className="tool" aria-pressed={previewing} aria-controls={previewing ? PREVIEW : undefined} onClick={() => setPreviewing(!previewing)}>
+          Preview
+        </button>
         <p id={proves} className="proves">
           Shows {opened.starter.proves}.
         </p>
       </header>
-      <main id="studio-main" tabIndex={-1} className="studio-main">
+      <main id="studio-main" tabIndex={-1} className="studio-main" data-preview={previewing ? undefined : 'hidden'}>
         <div ref={builder} className="studio-builder">
           <BuilderPane key={starterId} framework={framework} editor={editor} />
         </div>
-        <PreviewPane key={starterId} opened={opened} images={images} select={select} />
+        {previewing ? <PreviewPane key={starterId} id={PREVIEW} opened={opened} images={images} select={select} /> : null}
       </main>
     </div>
   )

@@ -308,8 +308,12 @@ export interface Availability {
 }
 
 export const EDITOR_PANELS = ['outline', 'canvas', 'properties', 'diagnostics'] as const
-/** Which pane a narrow layout shows. A wide one shows them all and ignores it. */
+/** Which pane a narrow layout shows. A wide one shows every pane not hidden and ignores it. */
 export type EditorPanel = (typeof EDITOR_PANELS)[number]
+
+/** The panes a person may hide to give the design view their room: every one but the design view. */
+export const HIDEABLE_PANELS = ['outline', 'properties', 'diagnostics'] as const satisfies readonly EditorPanel[]
+export type HideablePanel = (typeof HIDEABLE_PANELS)[number]
 
 /** The latest announcement for the builder's live region; `sequence` counts them, so saying the same twice is still two. */
 export interface Announcement {
@@ -337,6 +341,12 @@ export interface EditorState {
   readonly dropTargets: readonly DropTarget[]
   readonly can: Availability
   readonly panel: EditorPanel
+  /**
+   * The panes the person hid, in the order they stand in. A builder draws
+   * none of them; opening one shows it again. Never `panel`, so a narrow
+   * layout always has its pane.
+   */
+  readonly hidden: readonly HideablePanel[]
   readonly status: Announcement
 }
 
@@ -369,7 +379,9 @@ export type EditorAction =
   | { readonly type: 'updateDrag'; readonly over: number | null }
   | { readonly type: 'drop' }
   | { readonly type: 'cancelDrag' }
+  /** Shows the pane: the one a narrow layout shows, and one that was hidden drawn again. */
   | { readonly type: 'openPanel'; readonly panel: EditorPanel }
+  | { readonly type: 'hidePanel'; readonly panel: HideablePanel }
 
 export type EditorActionType = EditorAction['type']
 

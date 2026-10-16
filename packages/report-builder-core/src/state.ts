@@ -25,6 +25,7 @@ import type {
   DropTarget,
   EditorPanel,
   EditorState,
+  HideablePanel,
   HistoryState,
   PaletteEntry,
   Selection,
@@ -42,6 +43,7 @@ export interface Local {
   readonly selection: Selection | null
   readonly zoom: number
   readonly panel: EditorPanel
+  readonly hidden: readonly HideablePanel[]
   readonly drag: { readonly subject: DragSubject; readonly via: 'pointer' | 'keyboard'; readonly over: number | null } | null
   /** Values refused for the selection's fields, by key. */
   readonly errors: ReadonlyMap<string, FieldError>
@@ -219,6 +221,7 @@ export function buildState(derived: Derived, session: SessionView, local: Local,
     dropTargets: placing.dropTargets,
     can: availability(report, local.selection, local.zoom),
     panel: local.panel,
+    hidden: local.hidden,
     status: local.status,
   })
 }
