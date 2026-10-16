@@ -196,6 +196,40 @@ entries stay even when a release never happens.
 The publish job has never run. `scripts/workflows.test.mjs` holds its shape;
 the first tag is the first time it runs.
 
+## The demo on formancy.ai
+
+Cloudflare deploys the Studio at https://formancy.ai/report/ on every push
+to `main`, through Workers Builds
+([0018](docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
+The Worker `formancy-report-studio` is connected to this repository. It
+builds with `pnpm build` and deploys with `node scripts/demo.mjs`, the two
+halves of `pnpm demo:deploy`, with the settings in
+[REPO-METADATA.md](.github/REPO-METADATA.md#the-demos-worker-on-cloudflare).
+So the demo is main's Studio, not the latest release's, and a release
+needs nothing more for it.
+
+`node scripts/demo.mjs` refuses:
+- a checkout with changes;
+- a Worker config in `apps/studio/wrangler.json` that is not the demo's;
+- a built page that asks for a file by an absolute path.
+
+Then it deploys with the pinned Wrangler, with the commit in the
+deployment's message. A failed build leaves the last deployment serving.
+Its log is on the Worker's page in Cloudflare's dashboard, and nothing in
+this repository reads it. After a deploy, open the address and see a
+starter print.
+
+By hand, from a clean checkout, with a Cloudflare login that can edit
+Workers on formancy.ai's zone:
+
+```bash
+npx --yes wrangler@4.146.0 login     # once per machine
+pnpm demo:deploy
+```
+
+`node scripts/demo.mjs --dry-run`, after `pnpm build`, does everything but
+the upload, with no login.
+
 ## Provenance
 
 `npm publish --provenance` under `id-token: write` makes npm record a

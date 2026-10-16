@@ -17,6 +17,10 @@ test-results/
 /release-results/
 /release-report/
 /release-tarballs/
+# The demo's deploy (scripts/demo.mjs, 0018): the build staged under the
+# demo's path, removed after each deploy, and Wrangler's own state.
+/apps/studio/.cloudflare/
+.wrangler/
 .idea/
 .pnpm-store/
 

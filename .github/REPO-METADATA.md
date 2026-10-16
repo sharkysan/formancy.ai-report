@@ -54,8 +54,33 @@ As formancy.ai-data's, set on 2026-10-14:
 
 ## Website
 
-Not yet. Nothing is live for Report, and the *About* field stays empty until
-something is.
+https://formancy.ai/report/, the Studio's demo
+([0018](../docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)), once it answers there:
+
+```bash
+gh repo edit sharkysan/formancy.ai-report --homepage https://formancy.ai/report/
+```
+
+## The demo's Worker on Cloudflare
+
+The demo is a Cloudflare Worker connected to this repository by Workers
+Builds, as formancy.ai's site is connected to its own (0018). Its settings
+are in Cloudflare's dashboard, under the Worker's *Settings › Build*, where
+nothing here can read them. `scripts/demo.test.mjs` holds the Worker, the
+root directory, the branch and the two commands below to
+`apps/studio/wrangler.json` and `pnpm demo:deploy`. Review holds the rest.
+
+| Setting | Value | Why |
+|---|---|---|
+| Worker | `formancy-report-studio` | The name `apps/studio/wrangler.json` gives it |
+| Git repository | `sharkysan/formancy.ai-report` | |
+| Production branch | `main` | The demo is main's Studio |
+| Builds for non-production branches | off | A branch's build would upload a version of the Worker from code no review has merged |
+| Root directory | `/` | The workspace's root, where its lockfile is and `pnpm build` builds every package the Studio imports |
+| Build command | `pnpm build` | |
+| Deploy command | `node scripts/demo.mjs` | It stages the build under `/report/` and runs the pinned Wrangler with `apps/studio/wrangler.json` |
+| Build variables | none | Node from `.node-version`; pnpm the version `packageManager` names, which the image's pnpm switches to |
+| API token | the one Workers Builds generates | No Cloudflare token is held in GitHub |
 
 ## Secrets the workflows expect
 

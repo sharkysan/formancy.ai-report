@@ -36,8 +36,9 @@ its links, and review the rest
 > release and not yet published.** Data goes in and a PDF comes out, from
 > a host's JSON or, best-effort, from a Formancy Data 0.1.0 server. A
 > report can be laid out in a native React or Angular builder. The Studio
-> puts both builders on one screen with the real PDF beside them, and
-> `pnpm demo` runs it ([Try it](#try-it)). What 0.1.0 holds and leaves out
+> puts both builders on one screen with the real PDF beside them. It is
+> online at https://formancy.ai/report/, and `pnpm demo` runs it from a
+> clone ([Try it](#try-it)). What 0.1.0 holds and leaves out
 > is in
 > [the changelog](./CHANGELOG.md#010--2026-10-16).
 >
@@ -63,9 +64,10 @@ its links, and review the rest
 > scenarios and by their accessible trees, compared in the Studio in jsdom
 > and in Chromium
 > ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).
-> The Studio, `apps/studio`, is private: it switches between the two
-> builders over one session and previews the PDF the session prints, in
-> formancy.ai's room; its browser gate measures it in Chromium alone
+> The Studio, `apps/studio`, is never published as a package: it switches
+> between the two builders over one session and previews the PDF the
+> session prints, in formancy.ai's room; its browser gate measures it in
+> Chromium alone
 > ([0013](./docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).
 > `@formancy/report-corpus` is private test support: adversarial fixtures,
 > the three starter reports, and the checks that prove a rendered PDF. The
@@ -75,7 +77,9 @@ its links, and review the rest
 ## Try it
 
 The Studio is the editor in the picture above, with both builders and the
-PDF they print. It runs from a clone, with Node 22.13 or later and corepack:
+PDF they print. It is online at https://formancy.ai/report/, beside
+formancy.ai's playground, and runs from a clone, with Node 22.13 or later
+and corepack:
 
 ```bash
 git clone https://github.com/sharkysan/formancy.ai-report.git
@@ -86,15 +90,23 @@ pnpm demo
 ```
 
 `pnpm demo` builds the packages and the Studio, then serves the built
-Studio with `vite preview` at http://localhost:4394, the way the browser
-gate serves it. Pick a starter or a blank report, edit it in the React or
-the Angular builder, and the Preview prints the PDF in the page, Download
-PDF included. The starters' data is synthetic and built in: the gate fails
-when the page fetches anything but the built Studio and its web fonts.
+Studio with `vite preview` at http://localhost:4394. Pick a starter or a
+blank report, edit it in the React or the Angular builder, and the Preview
+prints the PDF in the page, Download PDF included. The starters' data is
+synthetic and built in: the gate fails when the page fetches anything but
+the built Studio and its web fonts.
+
+formancy.ai/report/ serves the same build, from a Cloudflare Worker of its
+own beside formancy.ai's site, and the browser gate serves it under
+`/report/` as formancy.ai does. Cloudflare builds and deploys it on every
+push to `main`, as [RELEASING.md](./RELEASING.md#the-demo-on-formancyai)
+says. So it is main's Studio, which can be ahead of the latest release,
+and nothing in this repository checks what the address serves
+([0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
 
 ## The Studio
 
-`apps/studio` is the playground, private and never published. It opens the
+`apps/studio` is the playground, never published as a package. It opens the
 three starters, and a blank report, in the React or the Angular builder,
 over one report session per starter, and previews the PDF the renderer
 prints from that session: in the page, on white paper, through
@@ -173,7 +185,7 @@ needs a Data production licence as well as Report's
 | `@formancy/report-builder-core` | The editor model both builders render, with no framework: one person's view of a report-core session, and the outline, palette, property fields, design view, drop targets, diagnostics, keys and words derived from it, in English, Swiss German and Swiss French. Several editors share one session and its undo history. Its `report-builder.css` dresses both builders through formancy's workbench variables. `BUILDER_SCENARIOS` is what every builder must do, as data ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)). No framework, no DOM, no Node. |
 | `@formancy/report-builder-react` | The builder for React 19: the workbench's panes over one editor, through `useSyncExternalStore`. Runs every shared scenario in three languages, with axe. |
 | `@formancy/report-builder-angular` | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js, built by ng-packagr. Runs every shared scenario in three languages, with axe; no React in its closure. It is packed from `dist/`, and the install gate compiles it into an Angular host ahead of time, links it and draws it on a server. |
-| `apps/studio` (`@formancy/report-studio`) | The playground, private and never published: the starters and a blank report in either builder over one session per starter, the PDF the session prints previewed by PDF.js on white paper, and every problem printing found linked to its component. The PDF.js viewer lives here and nowhere published ([0013](./docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)). Its browser gate and its README pictures' check run in CI's `browser` job. |
+| `apps/studio` (`@formancy/report-studio`) | The playground, never published as a package and online at formancy.ai/report/ ([0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)): the starters and a blank report in either builder over one session per starter, the PDF the session prints previewed by PDF.js on white paper, and every problem printing found linked to its component. The PDF.js viewer lives here and nowhere published ([0013](./docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)). Its browser gate and its README pictures' check run in CI's `browser` job. |
 | `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)); the three starter reports; and the renderer trial's adapters for pdfmake and pdfme. |
 
 Planned and not here: the server and its jobs, reviewed AI changes, a

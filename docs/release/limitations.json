@@ -393,6 +393,16 @@
           "heldBy": "scripts/release-report/verify-publish.test.mjs"
         }
       ]
+    },
+    "0018": {
+      "reviewed": "sha256:b7094e7e5b8e172f94257d8e55b74e4fc670a43224f546b22d630822561c7cbb",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "The Studio at formancy.ai/report/ is main's, built and deployed by Cloudflare on every push to main without waiting for that commit's CI, so it can show what no release holds yet; nothing in this repository checks that a build deployed or what the address serves.",
+          "heldBy": "scripts/demo.test.mjs"
+        }
+      ]
     }
   }
 }

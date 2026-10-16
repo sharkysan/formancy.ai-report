@@ -74,9 +74,11 @@ it natively; `BUILDER_SCENARIOS` in the core is what both must do
 Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the three starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
-and the renderer trial that chose pdfmake. `apps/studio` is the private
+and the renderer trial that chose pdfmake. `apps/studio` is the
 playground that puts both builders and a PDF.js preview on one page
-([0013](docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md));
+([0013](docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)),
+never published as a package and served at formancy.ai/report/
+([0018](docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md));
 the PDF.js viewer lives there and in no published package. That is all the
 product code there is. The package path the plan proposes, each package depending only on those
 before it:
@@ -244,7 +246,8 @@ What holds this section:
   says at the commit the test pins, and the same as every other copy.
 - **The browser gate**, `apps/studio/scripts/browser-test.mjs`, run as
   `pnpm --filter @formancy/report-studio test:browser` in CI's `browser`
-  job, for what jsdom cannot see: in Chromium, no sideways scroll and
+  job, for what jsdom cannot see, with the Studio served under `/report/`
+  as formancy.ai serves it: in Chromium, no sideways scroll and
   nothing past either edge down to 320 pixels, the first Tab on the skip
   link and the next into the content, axe's colour-contrast and
   target-size rules at every starter in both builders, each PDF drawn on
