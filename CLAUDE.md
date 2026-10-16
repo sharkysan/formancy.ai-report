@@ -42,7 +42,7 @@ lists it.
 
 ## How the pieces fit
 
-The Studio is not built yet; data in, a PDF out and the builders are.
+Data in, a PDF out, the builders and the Studio around them are built.
 `@formancy/report-spec` defines the format, validates a report structurally
 and hashes it
 ([0007](docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
@@ -65,8 +65,11 @@ it natively; `BUILDER_SCENARIOS` in the core is what both must do
 Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the three starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
-and the renderer trial that chose pdfmake. That is all the product code there
-is. The package path the plan proposes, each package depending only on those
+and the renderer trial that chose pdfmake. `apps/studio` is the private
+playground that puts both builders and a PDF.js preview on one page
+([0013](docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md));
+the PDF.js viewer lives there and in no published package. That is all the
+product code there is. The package path the plan proposes, each package depending only on those
 before it:
 
 1. `report-spec` -- the versioned definition, structural validation, canonical
@@ -180,41 +183,75 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
 
 ## The user interface is formancy.ai's concept, applied
 
-The builders exist; the Studio around them does not. Both are formancy.ai's
-concept applied, as Formancy Data's apps are, not a new one
-([0012](docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).
-Each promise, and what holds it now:
+The builders and the Studio around them are formancy.ai's concept applied,
+as Formancy Data's apps are, not a new one
+([0012](docs/decisions/0012-the-builders-are-native-and-share-one-session.md),
+[0013](docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).
 
 - **The same room.** A dark bench, glass panels, violet for what the person
-  acts on and teal for what the server did, with the builder's panes from
+  acts on and teal for what the system did, with the builder's panes from
   `workbench.css` recoloured only through its `--wb-*` variables and not one
-  rule overridden for colour. `report-builder.css` is the only stylesheet the
-  builders have; `report-builder-core`'s `css.test.ts` fails on a colour
-  literal, a variable the workbench lacks, or a selector by anything but the
-  hooks and states both builders render and the workbench's own classes. Setting the Studio's colours is the
-  Studio's.
-- **The page is the document, not the room.** What prints is the report's own
-  serialisable styles. The editor's CSS, and the host's, never reach a
+  rule overridden for colour. The Studio wears `admin.css`'s variables,
+  copied into `apps/studio/src/styles/room.css` under the marking comment,
+  not a palette of its own; its `styles/builder.css` gives the panes the
+  admin's geometry without a colour. `report-builder.css` is the only
+  stylesheet the builders have.
+- **The page is the document, not the room.** What prints is the report's
+  own serialisable styles. The editor's CSS, and the host's, never reach a
   customer's printed output. The design view says it is not the PDF, by its
-  name; nothing renders yet for the CSS to reach.
+  name; the Studio's Preview is the PDF itself, drawn by PDF.js on white
+  paper, and no rule of the room's reaches it.
 - **Keyboard first, accessible name only.** Every drag has a keyboard path
   (formancy.ai 0046): the place chooser, and `actionForKey` in the core.
-  Tests find elements by role and accessible name and nothing else, and axe
-  runs in each builder's suite over the end of every shared scenario.
+  Tests find elements by role and accessible name and nothing else; where
+  the accessibility tree cannot answer -- which framework drew the builder,
+  a stylesheet's reach, a canvas's pixels -- a test reads the DOM, and its
+  header says which and why.
 - **Angular and React are both native**, over one report session, and neither
   depends on the other. `BUILDER_SCENARIOS` is the parity contract, and the
   core's README the structure it finds; both builders run every scenario.
-  Plan 21's switch -- edit in one, switch, undo, switch back -- runs on the
-  model and within each framework. A test mounting both builders at once
-  waits for the Angular package to be importable inside the workspace.
-- **One shell for every page of the site** (formancy.ai 0106). The Studio's.
+- **One shell for every page of the site** (formancy.ai 0106). The Studio's
+  bar is that shell for the playground.
 - **A number on a page is derived**, never typed: the zoom through `Intl`,
   every count from the state.
 
-What still waits for the Studio, brought from formancy.ai-data: the browser
-gates (layout, the narrow screen, contrast, target sizes, real pointers),
-the palette guard, and the README pictures' check. Until then the pictures
-in the builders' READMEs are taken by hand and held by nothing.
+What holds this section:
+
+- **The builders' stylesheet**, `report-builder-core`'s `css.test.ts`: no
+  colour literal, no variable the workbench lacks, and no selector but the
+  hooks and states both builders render and the workbench's own classes.
+- **The scenarios**, run by each builder with axe over the end of every
+  one, in three languages, and by the core against the model alone.
+- **Plan 21's switch across the frameworks**, `apps/studio/src/studio.test.tsx`:
+  edit in Angular, switch, undo in React, switch back, with no listener or
+  subscription left behind; and the Studio's `journey.test.tsx`, axe and a
+  name on every control at every state of both builders.
+- **The Studio's stylesheets**, `apps/studio/src/styles.test.tsx`: no colour
+  on a rule that names the builder, no Studio rule but `builder.css`'s
+  inside the builder, and nothing on the paper but its own rules.
+- **The palette guard**, `scripts/palette.test.mjs` in `pnpm test:repo`:
+  every stylesheet that copies `admin.css`'s variables says what admin.css
+  says at the commit the test pins, and the same as every other copy.
+- **The browser gate**, `apps/studio/scripts/browser-test.mjs`, run as
+  `pnpm --filter @formancy/report-studio test:browser` in CI's `browser`
+  job, for what jsdom cannot see: in Chromium, no sideways scroll and
+  nothing past either edge down to 320 pixels, the first Tab on the skip
+  link and the next into the content, axe's colour-contrast and
+  target-size rules at every starter in both builders, each PDF drawn on
+  white with the text it prints, the framework switch, a real pointer's
+  drag, the place chooser, and no rule of the page's on the paper.
+- **The README's pictures**, `scripts/pictures/readme.test.mjs` in
+  `pnpm test:repo` and the Studio's `pictures.mjs --check` as
+  `test:pictures` in the same CI job: every picture is whole parts of a
+  state the page reaches, and a caption quotes only text those parts hold
+  (formancy.ai-data 0038).
+
+What nothing holds yet, said: the palette and `builder.css` are copied from
+`admin.css` by hand, and nothing fails when upstream's move; the gate runs
+Chromium alone, where Formancy Data's runs Firefox and WebKit too; what a
+README picture looks like, and whether a caption's quote is painted in it
+rather than scrolled out of its part, which review alone holds; and the
+builders' own READMEs' pictures, still taken by hand.
 
 ## Branch names
 
@@ -316,6 +353,14 @@ exactly what CI does:
 - **`test`** runs each package's `test:coverage` in a job of its own.
   `scripts/ci-test-jobs.test.mjs` fails when that list and the workspace
   disagree.
+- **`browser`** runs the Studio's browser gate and its README pictures'
+  check in Chromium, as `pnpm exec turbo run test:browser` and
+  `test:pictures` for `@formancy/report-studio`, which build what they
+  measure first. Locally, `pnpm build`, `pnpm --filter
+  @formancy/report-studio exec playwright install chromium` once, then
+  `pnpm --filter @formancy/report-studio test:browser` and `test:pictures`.
+  A change to what a picture shows is retaken with `node
+  scripts/pictures.mjs`, never by hand.
 - **`install`** runs `pnpm test:e2e:install`.
 
 `scripts/workflows.test.mjs` holds the workflows to their shape:

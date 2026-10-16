@@ -1,0 +1,55 @@
+/* -------------------------------------------------------------- builder
+ *
+ * The builder in the room's geometry: formancy.ai's apps/admin/src/admin.css
+ * (v0.5.0, e3c5967) dresses the workbench's panes with these rules, and the
+ * Studio carries them so that its builder and the admin's are one tool in
+ * two places. Without them the panes keep workbench.css's own shapes --
+ * 3px buttons beside the bar's pills, pane names in sentence case beside
+ * the room's mono labels.
+ *
+ * Shape, type and spacing only. Every colour declaration of admin.css's
+ * rules is left out -- the header's faint wash, the transparent panes, the
+ * canvas's dot grid -- because the builder's colours come from the --wb-*
+ * variables room.css sets and from nothing else: styles.test.tsx fails on
+ * a colour declared on any rule that names the builder. Each selector is
+ * admin.css's, narrowed only where this builder differs:
+ *
+ * - `.wb-pane[data-pane] > header` is admin.css's `.wb-pane > header` for
+ *   the four panes; the bar with the report's title and the toolbar is a
+ *   `.wb-pane` too, with no data-pane, and keeps its title as the
+ *   document's name, not a pane's.
+ * - The header's own buttons and badge say what they say, not in capitals.
+ */
+
+/* A pane's name: mono, small, tracked and in capitals, as the room's own
+   labels (Starter, Builder) and the admin's panes. Wrapped rather than run
+   into the next pane when a narrow column holds a button too. */
+.wb-pane[data-pane] > header {
+  flex-wrap: wrap;
+  row-gap: 0.375rem;
+  font-family: var(--wb-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.wb-pane[data-pane] > header :is(button, [data-report-part='badge']) {
+  font-family: var(--wb-sans);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* A region's name in the outline, said as a pane's name is: the same small
+   label, not a third style beside the room's and the panes'. */
+[data-report-part='outline-region'] > [data-report-part='region-label'] {
+  font-family: var(--wb-mono);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+}
+
+/* Every button in a pane a pill, as the bar's and the Preview's are. */
+.wb-pane button,
+.wb-tools button {
+  border-radius: 999px;
+}

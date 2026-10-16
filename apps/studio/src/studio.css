@@ -1,0 +1,34 @@
+/*
+ * The Studio's chrome: formancy.ai's admin and formancy.ai-data's Studio,
+ * extended with a report builder and a PDF preview -- not a palette of its
+ * own.
+ *
+ * The same room: a dark bench, glass panels, violet for what a person acts
+ * on and teal for what the system did. The variables in styles/room.css are
+ * copied from formancy.ai's apps/admin/src/admin.css (v0.5.0, e3c5967),
+ * unchanged, under the comment that marks them as the copy, because an
+ * application's stylesheet is not a package this repository could depend
+ * on; scripts/palette.test.mjs holds every copy to that commit's values.
+ * The faces are admin.css's -- Archivo, IBM Plex Sans and Mono, at its
+ * weights -- delivered as formancy.ai-data's apps deliver them, from Google
+ * Fonts (index.html), not self-hosted as the admin has served them since
+ * its 0154: @fontsource is no dependency here yet.
+ *
+ * The builder's panes are the workbench's (@formancy/themes' workbench.css)
+ * dressed by report-builder.css. The room sets their geometry --
+ * styles/builder.css, admin.css's own rules for the workbench without
+ * their colours -- and leaves their colours to the --wb-* variables
+ * room.css sets: no rule of the Studio's declares a colour on the builder,
+ * and none but builder.css's reaches inside it (styles.test.tsx). The
+ * Preview's paper is the document's: white, PDF.js's drawing of the PDF,
+ * and every rule that names an element ends in `:where(:not(.paper *))`.
+ *
+ * In cascade order, one file per reason to change, narrow screens last so
+ * their rules win. Vite inlines each import into one stylesheet.
+ */
+@import './styles/room.css';
+@import './styles/controls.css';
+@import './styles/shell.css';
+@import './styles/builder.css';
+@import './styles/preview.css';
+@import './styles/narrow.css';

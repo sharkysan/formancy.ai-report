@@ -1,0 +1,98 @@
+/* ---------------------------------------------------------------- shell
+ *
+ * The bar, and under it the builder beside the Preview: both fill the
+ * window, and each scrolls inside itself. narrow.css stacks them.
+ */
+
+.studio {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  height: 100dvh;
+  padding: 0.75rem;
+}
+
+.studio-bar,
+.studio-builder,
+.studio-preview {
+  min-width: 0;
+  border: 1px solid var(--edge-strong);
+  border-radius: 16px;
+  background: var(--glass);
+  backdrop-filter: blur(14px);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 5%) inset,
+    0 30px 70px -40px rgb(0 0 0 / 90%);
+}
+
+.studio-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  padding: 0.625rem 1rem;
+}
+
+/* The wordmark, as formancy.ai-data's Studio sets its own: the product's
+   name in Archivo, and no mark -- the site's mark is the admin's SVG, which
+   no package carries, and a mark drawn here would be a third. */
+.wordmark {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.starter {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+/* What the starter shows, on a line of its own under the controls. */
+.proves {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* The builder takes what the Preview leaves. Its three panes hold an
+   outline and properties at the workbench's widths and a design view
+   between them; the Preview, a fraction of the row, took the design view
+   down to a strip a sentence did not fit (a 307px view at 1600px), where
+   a column of its own width leaves the design view the most the row has. */
+.studio-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 28rem);
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+/* The heading-less target of the skip link takes focus only to start Tab there. */
+.studio-main:focus {
+  outline: none;
+}
+
+/* The builder fills its panel; its panes, colours and narrow layout are the
+   workbench's and report-builder.css's, set only through --wb-*. */
+.studio-builder {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.builder-mount {
+  flex: 1;
+  min-height: 0;
+}
+
+.builder-note {
+  margin: 0;
+  padding: 1rem;
+  color: var(--muted);
+}

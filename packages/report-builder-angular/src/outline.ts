@@ -7,8 +7,8 @@
  * `aria-setsize` -- as formancy's builder's structure tree does -- so a
  * row's accessible name is its own label and never its children's too.
  * One row is a tab stop, the selected one, else the first; with no rows the
- * tree itself is, so a keyboard learns there is nothing rather than skipping
- * it. Focus and selection are one: focus moving to a row selects it, and
+ * tree itself is, empty and described by the builder's sentence that says
+ * so, so a keyboard learns there is nothing rather than skipping it. Focus and selection are one: focus moving to a row selects it, and
  * every action that selects moves focus to its row. The keys (arrows, Home
  * and End, Alt with an arrow to move, Delete, Ctrl+D) are the root's,
  * decided by report-builder-core's `actionForKey`. Each region is a group
@@ -46,11 +46,18 @@ function rows(nodes: readonly OutlineNode[], into: Row[] = []): Row[] {
     role: 'tree',
     'data-report-part': 'outline',
     '[attr.aria-label]': 't()("pane.outline")',
-    '[attr.tabindex]': 'stop() === undefined ? 0 : null',
+    // With rows, focus from a script only: where it goes when an action
+    // leaves nothing selected, since a row given focus would select itself.
+    '[attr.tabindex]': 'stop() === undefined ? 0 : -1',
+    '[attr.aria-describedby]': 'stop() === undefined ? root.outlineEmpty : null',
     '(dragover)': 'over($event)',
     '(drop)': 'root.putDown($event)',
   },
+  // With no row at all the tree holds nothing: a tree owns rows, and a
+  // region's name with none under it is not one. The builder says, beside
+  // it, that it is empty (root.outlineEmpty).
   template: `
+    @if (stop() !== undefined) {
     @for (region of regions(); track region.region) {
       <div role="group" data-report-part="outline-region" [attr.aria-label]="region.label">
         <span data-report-part="region-label" aria-hidden="true">{{ region.label }}</span>
@@ -84,6 +91,7 @@ function rows(nodes: readonly OutlineNode[], into: Row[] = []): Row[] {
           <span>{{ t()('outline.empty') }}</span>
         }
       </div>
+    }
     }
   `,
 })

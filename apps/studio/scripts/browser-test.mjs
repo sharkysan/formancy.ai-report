@@ -1,0 +1,550 @@
+// What jsdom cannot see in the Studio, measured in the browser it is given.
+//
+// formancy.ai-data's apps/studio/scripts/browser-test.mjs, applied to this
+// Studio as CLAUDE.md asks. The suite in src/ runs in jsdom, which applies no
+// CSS, resolves no media queries, lays nothing out, has no canvas for PDF.js
+// and no streams for pdfmake, so these claims the Studio makes could only be
+// checked by hand:
+//
+//   - nothing scrolls sideways and nothing is past either edge, in every
+//     state, from the side-by-side layout down to a 320px phone;
+//   - the keyboard path: from the top of the page the first Tab reaches the
+//     skip link, on screen, and Enter on it puts the keyboard on <main>,
+//     where the next Tab reaches its first control; and Enter on a refusal's
+//     "Select …" button puts the keyboard on its component's outline row,
+//     selected, in the React builder and in the Angular one;
+//   - axe's default rules and its target-size rule find nothing, and
+//     contrast and target size were measured, in each state: every starter
+//     in React and in Angular with its preview printed, a refusal by the
+//     runtime and one by the renderer;
+//   - the preview really prints in the page: the renderer's browser entry
+//     and PDF.js, nothing fetched but the built files and the web fonts;
+//     every page of each starter drawn on white paper with ink on it, its
+//     text layer holding every line docs/images/pictures.json says that
+//     page prints, and the Download PDF link a PDF;
+//   - the framework switch keeps the document and its history: an edit made
+//     in React is in the Angular builder with its Undo, undone there the PDF
+//     follows, and back in React the Redo is offered; and the first moment
+//     the paper says it is no longer busy after the edit, its text layer and
+//     the Download PDF -- read back with PDF.js in Node -- both hold the edit;
+//   - in each builder: a pointer drags a palette entry onto an outline row
+//     and the component is inserted there, selected and focused; Enter on a
+//     palette entry opens the place chooser with the keyboard on its first
+//     place, and Escape puts the keyboard back on the entry; Final renders a
+//     final PDF and back; and the Preview's Zoom in redraws every page
+//     larger, on white, with ink;
+//   - the design view's note is never cut by its pane;
+//   - no rule of the page's stylesheets selects an element on the paper but
+//     the paper's own, so what is shown is what prints;
+//   - every web font the built page asks for had loaded by the end of each
+//     pass, and in the pass that refuses them, none had.
+//
+// Against the page `vite build` writes, served by `vite preview` on the port
+// vite.config.ts fixes, which fails rather than wander when the port is
+// taken. Asserted as numbers and computed results, never screenshots.
+// Chromium only, the browser installed for this repository's gates: Data's
+// gate also runs Firefox and WebKit, and nothing here has.
+//
+// `pnpm --filter @formancy/report-studio test:browser`, after `pnpm build`
+// has built the packages the Studio imports. Each check is printed and kept
+// in test-results/browser-chromium.json (gate-results.mjs).
+
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { readPdf } from '@formancy/report-corpus'
+import { chromium } from 'playwright'
+import { build, preview } from 'vite'
+import { app, audit, describeFocus, drawnPages, fontProblem, fromTheTop, measureWidth, passes, rulesOnThePaper } from './gate-page.mjs'
+import { gateRecorder } from './gate-results.mjs'
+
+const dist = join(app, 'dist')
+const repo = join(app, '..', '..')
+
+/** How long a state may take to come: Playwright's default, which every wait below runs under. */
+const WITHIN = 30_000
+
+/**
+ * What each starter's pictured page prints, as report-render-pdf's
+ * pictures.test.ts holds it to the PDF the renderer writes in Node: the
+ * lines PDF.js read on that page, top to bottom.
+ */
+const PICTURED = JSON.parse(readFileSync(join(repo, 'docs', 'images', 'pictures.json'), 'utf8'))
+
+/** The quotation's payment line, and what the switch check makes of it. */
+const PAYMENT = 'Zahlbar innert 30 Tagen netto.'
+const EDITED = 'Zahlbar innert 10 Tagen netto.'
+
+const editorOf = (page) => page.getByRole('region', { name: 'Report editor', exact: true })
+const previewOf = (page) => page.getByRole('region', { name: 'Preview', exact: true })
+
+/** Each pane button's pane, as the builders mark it (`data-pane`). */
+const PANES = { Outline: 'outline', 'Design view': 'canvas', Properties: 'properties', Problems: 'diagnostics' }
+
+/**
+ * The builder's pane that holds `probe`, shown: below report-builder.css's
+ * one-pane tier only the pane chosen from the toolbar is drawn, and the
+ * others are not in the accessibility tree at all. Whether the pane is
+ * drawn is read from the DOM, by the hook the stylesheet hides it by,
+ * because the probe may not be drawn yet when it is: zoneless Angular
+ * draws a selection's fields a frame after the click, and a pane button
+ * pressed in that frame moved the keyboard into the first field while the
+ * next step typed into another.
+ */
+async function showing(editor, pane, probe) {
+  const drawn = await editor.locator(`[data-pane="${PANES[pane]}"]`).first().isVisible()
+  if (!drawn) await editor.getByRole('toolbar', { name: 'Report tools', exact: true }).getByRole('button', { name: pane, exact: true }).click()
+  await probe.waitFor()
+  return probe
+}
+
+/** Null once `locator` is there, within a few seconds -- zoneless Angular draws a frame or two after the click -- or why not. */
+const present = (locator, what) =>
+  locator.waitFor({ timeout: 5_000 }).then(
+    () => null,
+    () => `no ${what}`,
+  )
+
+/** The outline row named `name`, shown and selected with a click. */
+async function selectRow(editor, name) {
+  await (await showing(editor, 'Outline', editor.getByRole('tree', { name: 'Outline', exact: true }))).getByRole('treeitem', { name, exact: true }).click()
+}
+
+/** The selected component's field named `name`, given `value` and left with Tab, as a person commits it; until the editor says it changed. */
+async function setField(editor, name, value) {
+  const field = await showing(editor, 'Properties', editor.getByRole('textbox', { name, exact: true }))
+  await field.fill(value)
+  await field.press('Tab')
+  await editor.getByRole('status').filter({ hasText: `Changed ${name}.` }).waitFor()
+}
+
+/** The starter whose corpus id is `id`, opened from the picker by its option's value. */
+async function open(page, id) {
+  await page.getByRole('combobox', { name: 'Starter', exact: true }).selectOption(id)
+}
+
+/** The builder the switch names, once drawn: Angular's is bootstrapped after the click, and says so until it has started. */
+async function builder(page, name) {
+  await page.getByRole('group', { name: 'Builder', exact: true }).getByRole('radio', { name, exact: true }).check()
+  await page.getByText('Starting the Angular builder…').waitFor({ state: 'hidden' })
+  await editorOf(page).waitFor()
+}
+
+/**
+ * A pointer drag from `source` to `position` on `target`, as a person makes
+ * one. Both are scrolled into view before the press, so nothing scrolls
+ * between the press and the release; then the pointer moves in steps, as a
+ * hand does. Chromium starts an HTML drag (Angular's builder, 0012) only once
+ * the pointer has moved some way with the button held, and in the headless
+ * shell on Linux one jump from the press to the target never started it:
+ * locator.dragTo passed on Windows and inserted nothing on CI.
+ */
+async function drag(page, source, target, position) {
+  await source.scrollIntoViewIfNeeded()
+  await target.scrollIntoViewIfNeeded()
+  const from = await source.boundingBox()
+  const to = await target.boundingBox()
+  if (from === null || to === null) throw new Error('a drag needs both ends drawn')
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+  await page.mouse.down()
+  for (let step = 1; step <= 12; step += 1) {
+    const share = step / 12
+    await page.mouse.move(from.x + from.width / 2 + (to.x + position.x - (from.x + from.width / 2)) * share, from.y + from.height / 2 + (to.y + position.y - (from.y + from.height / 2)) * share)
+  }
+  await page.mouse.move(to.x + position.x, to.y + position.y)
+  await page.mouse.up()
+}
+
+/** Until the Preview says `outcome` with nothing newer on its way, and, once printed, PDF.js has the PDF and has laid out its pages. */
+async function settled(page, outcome = /^Preview: printed(, with \d+ warnings?)?\.$/) {
+  await previewOf(page).getByRole('status').filter({ hasText: outcome }).waitFor()
+  if (!outcome.test('Preview: printed.')) return
+  await page.waitForFunction(() => {
+    const paper = document.querySelector('.paper')
+    return paper !== null && paper.getAttribute('aria-busy') === 'false' && paper.querySelectorAll('.paper-page canvas').length > 0
+  }, undefined, { timeout: WITHIN })
+}
+
+/** Until a line of the PDF's text layer is `line`: what an edit's render is waited for by. */
+async function untilLine(page, line) {
+  const deadline = Date.now() + WITHIN
+  for (;;) {
+    const pages = await drawnPages(page, { within: 0 })
+    if (pages.some((sheet) => sheet.lines.includes(line))) return
+    if (Date.now() > deadline) throw new Error(`no line of the PDF became "${line}" in ${String(WITHIN)} ms`)
+    await page.waitForTimeout(100)
+  }
+}
+
+/**
+ * Enter on `pressed`, as a keyboard user presses it; then whether
+ * `expected` has the focus once the Studio has drawn what the press asked
+ * for, which `focusWhenDrawn` waits up to 30 frames for. In a browser
+ * because where focus goes when a framework redraws is the browser's to say.
+ */
+async function focusAfterEnter(page, pressed, expected) {
+  await pressed.focus()
+  await page.keyboard.press('Enter')
+  const deadline = Date.now() + 2_000
+  for (;;) {
+    if ((await expected.count()) === 1 && (await expected.evaluate((element) => element === document.activeElement))) return null
+    if (Date.now() > deadline) return `the focus is on ${await describeFocus(page)}`
+    await page.waitForTimeout(50)
+  }
+}
+
+/**
+ * The design view's note, which says the view is not the PDF, as the page
+ * paints it: how much of its width an ancestor that scrolls cuts off. Null
+ * when the design view is not shown (one pane at a time, below 48rem).
+ */
+function noteCut(page) {
+  return page.evaluate(() => {
+    const note = document.querySelector("[data-report-part='canvas-note']")
+    if (note === null || note.getClientRects().length === 0) return null
+    const own = note.getBoundingClientRect()
+    let [left, right] = [own.left, own.right]
+    for (let ancestor = note.parentElement; ancestor !== null && ancestor !== document.documentElement; ancestor = ancestor.parentElement) {
+      if (getComputedStyle(ancestor).overflowX === 'visible') continue
+      const box = ancestor.getBoundingClientRect()
+      ;[left, right] = [Math.max(left, box.left), Math.min(right, box.right)]
+    }
+    return Math.max(0, Math.round(own.width - Math.max(0, right - left)))
+  })
+}
+
+/** The layout, the colours and the targets of the state the page is in, said under `state`. */
+async function measured(gate, page, state) {
+  const { check } = gate
+  const width = await measureWidth(page)
+  check(`${state}: no sideways scroll`, width.overflow > 0 ? `${String(width.overflow)}px of horizontal overflow` : null)
+  check(`${state}: nothing past either edge`, width.past.length === 0 ? null : width.past.join('; '))
+  // The pane scrolls the sheet, and the gate's edges count what it paints;
+  // a sentence it cuts is read by nobody, so it wraps to the pane instead.
+  const cut = await noteCut(page)
+  check(`${state}: the design view's note is not cut by its pane`, cut === null || cut === 0 ? null : `${String(cut)}px of it is cut off`)
+  await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined))
+  const result = await audit(page)
+  gate.axe(result.axe)
+  check(`${state}: axe's default rules and target size find nothing`, result.violations.length === 0 ? null : result.violations.join('; '))
+  check(`${state}: contrast and target size measured, over something`, result.measured.length === 2 ? null : `only ${result.measured.join(', ') || 'nothing'}`)
+  check(`${state}: the contrast of every text in view decided, but PDF.js's text over the PDF`, result.undecided.length === 0 ? null : `undecided: ${result.undecided.join('; ')}`)
+  gate.measure({ name: `${state}: texts whose contrast axe could not decide because their pane had scrolled them out of view`, value: result.hidden, unit: 'texts' })
+}
+
+/** The printed preview of a pictured starter, held to what its picture's page prints. */
+async function paperChecks(gate, page, state, picture) {
+  const { check } = gate
+  const pages = await drawnPages(page, { within: WITHIN })
+  const said = await previewOf(page).getByRole('group', { name: 'Pages', exact: true }).innerText()
+  check(`${state}: PDF.js laid out every page the viewer counts`, said.includes(`of ${String(pages.length)}`) ? null : `${String(pages.length)} pages drawn, and the viewer says "${said.replaceAll(/\s+/g, ' ')}"`)
+  const poor = pages.filter((sheet) => !(sheet.white > 0.5 && sheet.ink > 0.001)).map((sheet) => `page ${String(sheet.number)}: ${(sheet.white * 100).toFixed(1)}% white, ${(sheet.ink * 100).toFixed(2)}% ink`)
+  check(`${state}: every page drawn on white paper, with ink on it`, pages.length > 0 && poor.length === 0 ? null : poor.join('; ') || 'no page was drawn')
+  const lines = pages.find((sheet) => sheet.number === picture.page)?.lines ?? []
+  const missing = picture.lines.filter((line) => !lines.includes(line))
+  const extra = lines.filter((line) => !picture.lines.includes(line))
+  check(
+    `${state}: page ${String(picture.page)}'s text layer holds the ${String(picture.lines.length)} lines pictures.json says it prints, and no other`,
+    missing.length === 0 && extra.length === 0 ? null : `missing ${JSON.stringify(missing.slice(0, 4))}, extra ${JSON.stringify(extra.slice(0, 4))}`,
+  )
+  const head = await previewOf(page)
+    .getByRole('link', { name: 'Download PDF', exact: true })
+    .evaluate(async (link) => new TextDecoder().decode((await (await fetch(link.href)).arrayBuffer()).slice(0, 5)))
+  check(`${state}: Download PDF is a PDF`, head === '%PDF-' ? null : `it begins ${JSON.stringify(head)}`)
+}
+
+/** The paper's own rules reach it, and nothing else's: checked once per pass, on a page PDF.js has drawn. */
+async function paperRules(gate, page) {
+  const paper = await rulesOnThePaper(page)
+  gate.check('the paper: no rule of the page selects anything on it but the paper’s own', paper.reached.length === 0 && paper.broken.length === 0 ? null : [...paper.reached, ...paper.broken.map((selector) => `${selector} could not be matched`)].slice(0, 6).join('; '))
+  const missing = ['canvas', 'span', 'div'].filter((tag) => !paper.tags.includes(tag))
+  gate.check('which matched every rule against a drawn page and its text layer', paper.rules > 100 && paper.own > 0 && missing.length === 0 ? null : `${String(paper.rules)} rules, ${String(paper.own)} of the paper's own, and no ${missing.join(', ')} on the paper`)
+  const strangers = paper.unread.filter((href) => !href.startsWith('https://fonts.googleapis.com/'))
+  gate.check('and read every stylesheet but Google Fonts’', strangers.length === 0 ? null : `could not read ${strangers.join(', ')}`)
+}
+
+/** From the top of the page: the skip link, on screen, then <main>, then its first control. */
+async function keyboard(gate, page) {
+  const { check } = gate
+  await fromTheTop(page)
+  await page.keyboard.press('Tab')
+  const skip = page.getByRole('link', { name: 'Skip to the builder', exact: true })
+  const shown = await skip.evaluate((link) => {
+    const box = link.getBoundingClientRect()
+    return { focused: link === document.activeElement, onScreen: box.top >= 0 && box.left >= 0 && box.right <= document.documentElement.clientWidth }
+  })
+  check('the first Tab reaches the skip link', shown.focused ? null : `focus went to ${await describeFocus(page)} first`)
+  check('which is on screen while it has focus', shown.onScreen ? null : 'it stayed off screen')
+  const skipAudit = await audit(page, skip)
+  check('the skip link, shown: axe finds nothing', skipAudit.violations.length === 0 ? null : skipAudit.violations.join('; '))
+  await page.keyboard.press('Enter')
+  const main = page.getByRole('main')
+  check('Enter on it puts the keyboard on <main>', (await main.evaluate((element) => element === document.activeElement)) ? null : `the focus is on ${await describeFocus(page)}`)
+  await page.keyboard.press('Tab')
+  const into = await main.evaluate((element) => {
+    const tabbable = [...element.querySelectorAll('*')].filter((each) => each.tabIndex >= 0 && !each.disabled && each.getClientRects().length > 0)
+    return tabbable[0] === document.activeElement
+  })
+  check('and the next Tab reaches the first control in it', into ? null : `the focus is on ${await describeFocus(page)}`)
+}
+
+/**
+ * After an edit: the paper busy while the render is on its way, then the
+ * first frame it is not -- what its text layer holds then, and where
+ * Download PDF points then -- and the bytes at that address, read in Node.
+ * A paper that settled on the earlier PDF, or a link to bytes the paper
+ * does not show, is found here.
+ */
+async function firstSettled(page) {
+  await page.waitForFunction(() => document.querySelector('.paper')?.getAttribute('aria-busy') === 'true', undefined, { timeout: WITHIN })
+  const handle = await page.waitForFunction(
+    () => {
+      const paper = document.querySelector('.paper')
+      if (paper === null || paper.getAttribute('aria-busy') !== 'false') return null
+      const text = [...paper.querySelectorAll('.paper-text span')].map((span) => span.textContent ?? '').join(' ')
+      const link = [...document.querySelectorAll('a[download]')].find((anchor) => anchor.textContent.trim() === 'Download PDF')
+      return { text: text.replace(/\s+/g, ' '), href: link?.href ?? null }
+    },
+    undefined,
+    { timeout: WITHIN },
+  )
+  const { text, href } = await handle.jsonValue()
+  const bytes = href === null ? [] : await page.evaluate(async (address) => [...new Uint8Array(await (await fetch(address)).arrayBuffer())], href)
+  const read = bytes.length === 0 ? { pages: [] } : await readPdf(new Uint8Array(bytes))
+  return { text, downloaded: read.pages.flatMap((each) => each.items.map((item) => item.text)).join(' ').replace(/\s+/g, ' ') }
+}
+
+/**
+ * Plan 21's switch in a real browser: an edit in React, the switch, Undo
+ * in Angular, the switch back. The quotation's payment line, which prints,
+ * so the PDF is held to the session too.
+ */
+async function frameworkSwitch(gate, page) {
+  const { check } = gate
+  const editor = editorOf(page)
+  await open(page, 'quotation')
+  await settled(page)
+  await selectRow(editor, PAYMENT)
+  await setField(editor, 'Text', EDITED)
+  const first = await firstSettled(page)
+  check('the edit: once the paper is no longer busy, its pages show the edit', first.text.includes(EDITED) ? null : `the text layer then held ${first.text.includes(PAYMENT) ? `the line before the edit, "${PAYMENT}"` : 'neither line'}`)
+  check('and Download PDF gives that PDF, read back with PDF.js', first.downloaded.includes(EDITED) ? null : `the download ${first.downloaded === '' ? 'was empty' : 'does not hold the edit'}`)
+  await untilLine(page, EDITED)
+  await builder(page, 'Angular')
+  const angular = await editor.evaluate((element) => element.closest('report-builder') !== null)
+  check('the switch: the builder shown is Angular’s', angular ? null : 'the region "Report editor" is not inside <report-builder>')
+  const outline = () => showing(editor, 'Outline', editor.getByRole('tree', { name: 'Outline', exact: true }))
+  check('and the edit made in React is in it', await present((await outline()).getByRole('treeitem', { name: EDITED, exact: true }), `outline row "${EDITED}"`))
+  const undo = editor.getByRole('button', { name: 'Undo', exact: true })
+  check('and so is its history: Undo is offered', await present(editor.getByRole('button', { name: 'Undo', exact: true, disabled: false }), 'Undo that is not disabled'))
+  await undo.click()
+  await untilLine(page, PAYMENT).then(
+    () => check('undone in Angular, the PDF prints the line as it was', null),
+    (error) => check('undone in Angular, the PDF prints the line as it was', error.message),
+  )
+  await builder(page, 'React')
+  const back = await editor.evaluate((element) => element.closest('report-builder') === null)
+  check('switched back, the builder shown is React’s', back ? null : 'the region "Report editor" is still inside <report-builder>')
+  check('and it shows the line as Angular left it', await present((await outline()).getByRole('treeitem', { name: PAYMENT, exact: true }), `outline row "${PAYMENT}"`))
+  check('and offers Redo of the edit made before the switch', await present(editor.getByRole('button', { name: 'Redo', exact: true, disabled: false }), 'Redo that is not disabled'))
+}
+
+/**
+ * A refusal in the state the page is in, measured, and its "Select …"
+ * button pressed with Enter: `edit` brings the refusal, `outcome` is what
+ * the status then says, `away` a row selected before the press so the
+ * button has somewhere to take the builder, `target` the row it should.
+ */
+async function refusal(gate, page, { state, edit, outcome, away, button, target }) {
+  const editor = editorOf(page)
+  await open(page, 'grouped-equipment')
+  await settled(page)
+  await edit(editor)
+  await settled(page, outcome)
+  await selectRow(editor, away)
+  await measured(gate, page, state)
+  const pressed = previewOf(page).getByRole('list', { name: 'Why the preview was not printed', exact: true }).getByRole('button', { name: button, exact: true })
+  const row = editor.getByRole('treeitem', { name: target, exact: true, selected: true })
+  gate.check(`${state}: Enter on "${button}" puts the keyboard on its outline row, selected`, await focusAfterEnter(page, pressed, row))
+  await editor.getByRole('button', { name: 'Undo', exact: true }).click()
+  await settled(page)
+}
+
+/**
+ * What a person does with a pointer, the place chooser, the Final switch
+ * and the Preview's zoom, in the builder `framework` names, on the service
+ * inspection; each undone, so the next starts where the starters left off.
+ */
+async function interactions(gate, page, framework) {
+  const { check } = gate
+  const editor = editorOf(page)
+  await open(page, 'service-inspection')
+  await settled(page)
+
+  // A pointer: a palette entry dragged onto the upper half of an outline row
+  // lands before it. React binds pointer events, Angular HTML drag and drop
+  // (0012), and Playwright drives both as a mouse. The row is the report
+  // header's second, in view without scrolling the pane: a pane scrolled
+  // between the press and the move is a drag Playwright makes and a person
+  // does not.
+  const outline = await showing(editor, 'Outline', editor.getByRole('tree', { name: 'Outline', exact: true }))
+  const rows = await outline.getByRole('treeitem').count()
+  const entry = editor.getByRole('group', { name: 'Insert', exact: true }).getByRole('button', { name: 'Spacer', exact: true })
+  await drag(page, entry, outline.getByRole('treeitem').nth(1), { x: 24, y: 4 })
+  const dropped = outline.getByRole('treeitem', { name: 'Spacer (spacer)', exact: true, selected: true })
+  check(`${framework}: a palette entry a pointer drags onto a row is inserted there, selected`, await present(dropped, 'selected row "Spacer (spacer)"'))
+  const after = await outline.getByRole('treeitem').count()
+  check(`${framework}: and nothing else is`, after === rows + 1 ? null : `${String(rows)} rows before, ${String(after)} after`)
+  const onDropped = (await dropped.count()) === 1 && (await dropped.evaluate((element) => element === document.activeElement))
+  check(`${framework}: and the keyboard is on its row`, onDropped ? null : `the focus is on ${await describeFocus(page)}`)
+  // Undone only when the drop changed something: a failed drop leaves Undo
+  // disabled, and clicking it would end the gate on a timeout instead of
+  // letting the checks after this one report.
+  if (after !== rows) {
+    await editor.getByRole('button', { name: 'Undo', exact: true }).click()
+    await settled(page)
+  }
+
+  // The place chooser, the keyboard's path for every drag (formancy.ai 0046).
+  const text = editor.getByRole('group', { name: 'Insert', exact: true }).getByRole('button', { name: 'Text', exact: true })
+  await text.focus()
+  await page.keyboard.press('Enter')
+  const chooser = editor.getByRole('dialog', { name: 'Insert Text: choose a place', exact: true })
+  check(`${framework}: Enter on a palette entry opens the place chooser`, await present(chooser, 'place chooser'))
+  const onFirst = (await chooser.count()) === 1 && (await chooser.evaluate((dialog) => dialog.querySelector('button') === document.activeElement))
+  check(`${framework}: with the keyboard on its first place`, onFirst ? null : `the focus is on ${await describeFocus(page)}`)
+  await page.keyboard.press('Escape')
+  const closed = await chooser.waitFor({ state: 'detached', timeout: 5_000 }).then(
+    () => null,
+    () => 'the chooser is still open',
+  )
+  check(`${framework}: Escape closes it`, closed)
+  check(`${framework}: and puts the keyboard back on the palette entry`, (await text.evaluate((element) => element === document.activeElement)) ? null : `the focus is on ${await describeFocus(page)}`)
+
+  // Final, and back: the switch reaches the runtime, and the status says which printed.
+  const final = previewOf(page).getByRole('checkbox', { name: 'Final', exact: true })
+  await final.check()
+  const finalPrinted = await settled(page, /^Final render: printed(, with \d+ warnings?)?\.$/).then(
+    () => null,
+    (error) => error.message,
+  )
+  check(`${framework}: Final prints a final render`, finalPrinted)
+  await final.uncheck()
+  await settled(page)
+
+  // The Preview's zoom: every page drawn again, larger, on white, with ink.
+  const firstPage = previewOf(page).getByRole('group', { name: /^Page 1 of \d+$/ })
+  const before = await firstPage.evaluate((sheet) => sheet.getBoundingClientRect().width)
+  await previewOf(page).getByRole('group', { name: 'Zoom', exact: true }).getByRole('button', { name: 'Zoom in', exact: true }).click()
+  await settled(page)
+  const zoomed = await drawnPages(page, { within: WITHIN })
+  const larger = await firstPage.evaluate((sheet) => sheet.getBoundingClientRect().width)
+  const drawnLarger = larger > before && zoomed.length > 0 && zoomed.every((sheet) => sheet.white > 0.5 && sheet.ink > 0.001)
+  check(`${framework}: the Preview's Zoom in draws every page larger, on white, with ink`, drawnLarger ? null : `page 1 was ${String(before)}px wide and is ${String(larger)}px, with ${String(zoomed.length)} pages drawn`)
+  await previewOf(page).getByRole('button', { name: 'Fit width', exact: true }).click()
+  await settled(page)
+}
+
+/** One pass: the whole journey at one viewport. */
+async function pass(gate, browser, url, { label, width, height, refuseFonts = false }) {
+  gate.pass({ label, width, height })
+  const page = await browser.newPage({ viewport: { width, height } })
+  page.setDefaultTimeout(WITHIN)
+  const origin = new URL(url).origin
+  const elsewhere = new Set()
+  page.on('request', (request) => {
+    const address = request.url()
+    if (!address.startsWith(`${origin}/`) && !/^(blob|data):/.test(address) && !/^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(address)) elsewhere.add(address)
+  })
+  if (refuseFonts) await page.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, (route) => route.abort())
+  try {
+    await page.goto(url, { waitUntil: 'load' })
+    const picker = page.getByRole('combobox', { name: 'Starter', exact: true })
+    await picker.waitFor()
+    await keyboard(gate, page)
+    const starters = await picker.locator('option').evaluateAll((options) => options.map((option) => ({ id: option.value, label: option.textContent })))
+    const unlisted = PICTURED.filter((picture) => !starters.some((starter) => starter.id === picture.starter))
+    gate.check('the picker offers every starter pictures.json pictures', unlisted.length === 0 ? null : `no ${unlisted.map((picture) => picture.starter).join(', ')}`)
+    let ruled = false
+    for (const framework of ['React', 'Angular']) {
+      await builder(page, framework)
+      for (const { id, label: name } of starters) {
+        await open(page, id)
+        await settled(page)
+        const state = `${name}, ${framework}`
+        const picture = PICTURED.find((each) => each.starter === id)
+        if (picture !== undefined) await paperChecks(gate, page, state, picture)
+        if (picture !== undefined && !ruled) {
+          await paperRules(gate, page)
+          ruled = true
+        }
+        await measured(gate, page, state)
+      }
+      await interactions(gate, page, framework)
+      if (framework === 'React') await frameworkSwitch(gate, page)
+    }
+    await refusal(gate, page, {
+      state: 'refused by the runtime, Angular',
+      edit: async (editor) => {
+        await selectRow(editor, 'Book value')
+        await setField(editor, 'Show only when', 'row.value > 1000')
+      },
+      outcome: /^Preview: refused by the runtime, 1 problem\.$/,
+      away: 'Tag',
+      button: 'Select Book value',
+      target: 'Book value',
+    })
+    await builder(page, 'React')
+    await refusal(gate, page, {
+      state: 'not drawn by the renderer, React',
+      edit: async (editor) => {
+        // A word wider than its column: the renderer refuses it rather than break it or let it run over.
+        await selectRow(editor, 'Tag')
+        await setField(editor, 'Heading', 'Inventarnummernkennzeichnung')
+      },
+      outcome: /^Preview: not drawn by the renderer\.$/,
+      away: 'Description',
+      button: 'Select Table',
+      target: 'Table',
+    })
+    gate.check(refuseFonts ? 'with the web fonts refused, none loaded' : 'every web font the page asks for loaded', await fontProblem(page, { dist, refused: refuseFonts }))
+    gate.check('the page fetched nothing but the built Studio and the web fonts: the PDFs were printed in it', elsewhere.size === 0 ? null : [...elsewhere].slice(0, 4).join(', '))
+  } finally {
+    await page.close()
+  }
+}
+
+async function main() {
+  const gate = gateRecorder('apps/studio', { browser: 'chromium' })
+  let server
+  let browser
+  try {
+    await build({ root: app, logLevel: 'warn' })
+    if (!existsSync(join(dist, 'index.html'))) throw new Error('vite build wrote no apps/studio/dist/index.html')
+    server = await preview({ root: app, logLevel: 'warn' })
+    const [url] = server.resolvedUrls?.local ?? []
+    if (url === undefined) throw new Error('vite preview gave no local address')
+    console.log(`the built Studio, served by vite preview at ${url}`)
+    const options = { headless: true }
+    browser = await chromium.launch(options)
+    gate.launched(browser, options)
+    const list = passes()
+    for (const each of list) await pass(gate, browser, url, each)
+    const failures = gate.failures()
+    if (failures.length > 0) throw new Error(`${String(failures.length)} browser check(s) failed:\n  ${failures.join('\n  ')}`)
+    console.log(`\nbrowser checks passed: the Studio's whole journey in ${String(list.length)} passes, from ${String(Math.min(...list.map((each) => each.width)))} to ${String(Math.max(...list.map((each) => each.width)))}px wide, for the layout, focus, colour and printing facts jsdom cannot represent`)
+  } catch (error) {
+    gate.error(error)
+    throw error
+  } finally {
+    await browser?.close()
+    await server?.close()
+    gate.write(app)
+  }
+}
+
+try {
+  await main()
+} catch (error) {
+  console.error(`\nthe Studio's browser gate failed: ${error instanceof Error ? error.message : String(error)}`)
+  process.exitCode = 1
+}

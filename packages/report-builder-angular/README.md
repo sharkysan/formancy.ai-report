@@ -176,11 +176,15 @@ fires for the steps the scenarios take, using Testing Library's `fireEvent`.
 It does not type keystroke by keystroke, follow a pointer's path, or activate
 on Space's key up.
 
-What the tests do not show: layout, colour and contrast, which jsdom does not
-compute; drag and drop with a real pointer, which is dispatched as synthetic
-events; and focus as a real browser moves it on Tab. The browser gates and the README
-pictures, taken by a script and held to the text they show, arrive with the
-Studio.
+What this package's tests do not show: layout, colour and contrast, which
+jsdom does not compute; drag and drop with a real pointer, which is
+dispatched as synthetic events; and focus as a real browser moves it on Tab.
+The Studio's browser gate (`apps/studio/scripts/browser-test.mjs`) measures
+those in Chromium for this builder in the Studio's page, a real pointer's
+drag included, and the root README's pictures of it are taken by a script
+and held to the text they show
+([0013](../../docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md));
+a host's own page is its own to measure.
 
 ## What it does not do
 

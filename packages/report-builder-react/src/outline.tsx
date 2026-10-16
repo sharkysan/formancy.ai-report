@@ -1,6 +1,7 @@
 /**
  * The outline: the report as an ARIA tree, a group per region and a row per
- * component or table column.
+ * component or table column; with no row at all, an empty tree and the
+ * sentence that says so.
  *
  * Rows are flat within their region and nest by `aria-level`, which is also
  * what report-builder.css indents by, so the nesting drawn and the nesting
@@ -53,9 +54,26 @@ export function Outline({ state, t, ids, tree, drag, act }: OutlineProps): React
   const all = regions.flatMap((region) => region.rows)
   // The tree's one tab stop: the selected row, else the first; the tree itself when it has none.
   const stop = all.find((row) => row.node.selected)?.node.key ?? all[0]?.node.key
+  const empty = `${ids}-outline-empty`
+
+  // With no row at all the tree holds nothing -- a tree owns rows, and a
+  // region's name with none under it is not one -- and is itself the tab
+  // stop, described by the sentence beside it. With rows it still takes
+  // focus from a script, never from Tab: where focus goes when an action
+  // leaves nothing selected, since focusing a row would select it.
+  if (stop === undefined) {
+    return (
+      <>
+        <div ref={tree} role="tree" aria-label={t('pane.outline')} aria-describedby={empty} data-report-part="outline" tabIndex={0} />
+        <p id={empty} data-report-part="outline-empty">
+          {t('outline.empty')}
+        </p>
+      </>
+    )
+  }
 
   return (
-    <div ref={tree} role="tree" aria-label={t('pane.outline')} data-report-part="outline" tabIndex={stop === undefined ? 0 : undefined}>
+    <div ref={tree} role="tree" aria-label={t('pane.outline')} data-report-part="outline" tabIndex={-1}>
       {regions.map(({ region, rows: list }) => {
         const label = `${ids}-region-${region.region}`
         return (

@@ -26,6 +26,7 @@
  * - `invalid`: `aria-invalid="true"`, and an accessible description saying why.
  * - `document`: `check` holds of the session's document.
  */
+import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { PROPERTY_ROLES } from './model.js'
 import { contentLocale, editorText, formatZoom } from './text.js'
@@ -104,6 +105,11 @@ function brokenReport(): ReportDefinition {
   return { ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)) } }
 }
 
+/** A report with nothing in any region: the outline has no row to be a tab stop. */
+function blankReport(): ReportDefinition {
+  return emptyReport('blank', 'Blank', 'en')
+}
+
 const body = (report: ReportDefinition): string[] => report.regions.body.map((component) => component.id)
 
 const held = (report: ReportDefinition, id: string): string[] => {
@@ -118,6 +124,7 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
   const spacer = t('kind.spacer')
   const section = t('kind.section')
   const height = t('field.withUnit', { label: t('field.height'), unit: t('unit.mm') })
+  const outline: ScenarioQuery = { role: 'tree', name: t('pane.outline') }
   const tree = (name: string, selected?: boolean): ScenarioQuery => ({ role: 'treeitem', name, ...(selected === undefined ? {} : { selected }) })
   const button = (name: string): ScenarioQuery => ({ role: 'button', name })
   const zoom: ScenarioQuery = { role: 'status', name: t('zoom.label') }
@@ -223,6 +230,31 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
       { expect: 'present', ...tree(t('outline.duplicate', { label: 'Introduction', id: 'intro' })) },
       { expect: 'focused', ...tree(t('outline.duplicate', { label: 'Introduction', id: 'intro-2' }), true) },
     ]),
+    // Undo takes the copy away and leaves nothing selected. Focus that went
+    // to the first row would select it -- focus and selection are one in the
+    // outline -- and the next Delete would delete a component the person
+    // never chose; it goes to the tree itself instead.
+    scenario('undo a duplicate, and Delete then deletes nothing', [
+      { do: 'click', ...tree('Introduction') },
+      { do: 'press', key: 'd', modifiers: ['Control'] },
+      { expect: 'document', says: 'a copy follows the introduction', check: (report) => body(report).join() === 'findings,intro,intro-2,notes,gap' },
+      { do: 'press', key: 'z', modifiers: ['Control'] },
+      { expect: 'focused', ...outline },
+      { expect: 'absent', ...tree('Findings', true) },
+      { do: 'press', key: 'Delete' },
+      { expect: 'document', says: 'nothing was deleted', check: (report) => body(report).join() === 'findings,intro,notes,gap' },
+    ]),
+    // A tree with no row in it is still the outline's one tab stop, and says
+    // it holds nothing; the regions' names, with no row under them, are no
+    // tree's children (axe's aria-required-children: a tree owns rows).
+    scenario('an empty report’s outline is one tab stop, and says it is empty', [
+      { expect: 'present', ...outline },
+      { do: 'focus', ...outline },
+      { expect: 'focused', ...outline },
+      { do: 'press', key: 'ArrowDown' },
+      { expect: 'text', ...said, text: t('outline.empty') },
+      { expect: 'focused', ...outline },
+    ], blankReport),
     scenario('undo and redo, from the toolbar and the keyboard', [
       { do: 'click', ...tree(spacer) },
       { do: 'press', key: 'Delete' },

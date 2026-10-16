@@ -208,7 +208,9 @@ describe('the outline', () => {
   // Deleting the last row leaves a tree with no rows. Focus left with the
   // row would land on the page, outside the editor's keys: the next Ctrl+Z
   // would reach nothing and Tab would skip the empty tree. The tree itself
-  // takes focus and is a tab stop, and Ctrl+Z there brings the row back.
+  // takes focus and is a tab stop, and Ctrl+Z there brings the row back --
+  // unselected, as the editor leaves it, with focus still on the tree: a row
+  // given focus would select itself, which no key asked for.
   test('keeps focus in an emptied tree, where Ctrl+Z still undoes', async () => {
     const report = scenarioReport()
     const { settle } = await mountBuilder(createReportEditor(sessionOver({ ...report, styles: [], regions: { ...report.regions, body: [{ id: 'gap', kind: 'spacer', height: 12 }] } })))
@@ -221,13 +223,16 @@ describe('the outline', () => {
     expect(tree.tabIndex).toBe(0)
     press('z', ['Control'])
     await settle()
-    expect(document.activeElement).toBe(screen.getByRole('treeitem', { name: 'Spacer', selected: true }))
+    expect(screen.getByRole('treeitem', { name: 'Spacer', selected: false })).toBeTruthy()
+    expect(document.activeElement).toBe(tree)
     expect(announced()).toBe('Undone: Delete Spacer.')
   })
 
   // Undo of an insert takes away the row that had focus, and the selection
   // with it. Focus that went with the row would land on the page, where the
-  // next arrow key scrolls it instead of walking the outline.
+  // next arrow key scrolls it instead of walking the outline; focus put on
+  // the first row would select it, and the next Delete would delete the
+  // findings nobody chose. It goes to the tree itself.
   test('keeps focus in the tree when undo takes away the focused row', async () => {
     const { settle } = await mountScenarioBuilder()
     screen.getByRole('button', { name: 'Text' }).focus()
@@ -239,7 +244,8 @@ describe('the outline', () => {
     press('z', ['Control'])
     await settle()
     expect(screen.queryByRole('treeitem', { name: 'New text' })).toBeNull()
-    expect(document.activeElement).toBe(screen.getByRole('treeitem', { name: 'Findings' }))
+    expect(document.activeElement).toBe(screen.getByRole('tree', { name: 'Outline' }))
+    expect(screen.getByRole('treeitem', { name: 'Findings', selected: false })).toBeTruthy()
   })
 
   // Clicking the row already selected changes nothing in the state. The

@@ -169,7 +169,8 @@ so the choices are made here.
 - **The editor's root:** a `region` named `editor.label`, with
   `data-report-part="editor"`, the workbench's `wb` class, and `data-panel`
   set to the state's `panel`. Its children, in order:
-  - a bar holding the report's title and the toolbar;
+  - a bar holding the report's title (`data-report-part="title"`) and the
+    toolbar;
   - the outline pane (`data-pane="outline"`): the palette, then the tree,
     with the place chooser floating over them;
   - the design view's pane (`data-pane="canvas"`, also `wb-canvas`);
@@ -200,19 +201,28 @@ so the choices are made here.
 - **The place chooser:** while `drag.via` is `'keyboard'`, a dialog named
   `drag.title`, floating over the outline pane, which `openPanel` shows. It
   holds a button per drop target named by its label, and a Cancel button.
-  Focus goes to the first place, or to Cancel when there is none, and the
-  dialog is then described by `drag.nowhere`. The place a button stands for
-  is marked on the canvas while the button has focus. Choosing a place
-  moves focus to the selected outline row; Cancel and Escape move it back
-  to what opened the chooser.
+  When the builder opens it, focus goes to the first place, or to Cancel
+  when there is none, and the dialog is then described by `drag.nowhere`;
+  a chooser the builder only draws -- the drag is the editor's, so one
+  opened in another builder over the same editor outlives it -- leaves
+  focus where it is. The place a button stands for is marked on the canvas
+  while the button has focus. Choosing a place moves focus to the selected
+  outline row; Cancel and Escape move it back to what opened the chooser,
+  or, when another builder opened it, to the palette entry of what is
+  being placed, else the selected outline row, else the tree.
 - **The outline:** `role="tree"` named `pane.outline`, with a group per
   region named by its label. Each row is a `treeitem` named by its label,
   with `aria-level` set to depth + 1, `aria-posinset`, `aria-setsize` and
   `aria-selected`, described by its problem count and, when it overflows,
   by `canvas.overflow`. One row is a tab stop -- the selected one, else the
-  first -- and the tree itself is when it has no rows. Focus and selection
-  are one: focus moving to a row selects it, and every action that selects
-  moves focus to its row.
+  first. With no row in any region the tree is empty -- a tree owns rows,
+  and a region's name with none under it is not one -- and is itself the
+  tab stop, described by `outline.empty` in a paragraph beside it
+  (`data-report-part="outline-empty"`). Focus and selection are one: focus
+  moving to a row selects it, and every action that selects moves focus to
+  its row. An action in the outline that leaves nothing selected -- an undo
+  of an insert -- moves focus to the tree itself, never to a row, which
+  would select itself and give the next Delete something nobody chose.
 - **The properties:** a `form` named by `properties.heading`, one native
   control per field, labelled by the field's label, with the role
   `PROPERTY_ROLES` gives and `required` where the field is. A text field

@@ -157,16 +157,17 @@ describe('the place dialog', () => {
   })
 
   // A dialog with no place in it says so, and leaves the keyboard on its
-  // one way out rather than on nothing. No report reached here has a
+  // one way out rather than on nothing: the builder that opens it focuses
+  // its first button, which is then Cancel. No report reached here has a
   // component with nowhere else to go, so the dialog is drawn over a state
-  // that says so.
-  test('with nowhere to go says so, focus on Cancel', () => {
+  // that says so, and holds what the builder's focus lands on.
+  test('with nowhere to go says so, Cancel its first button', () => {
     const state = createReportEditor(sessionOver(scenarioReport())).state()
     const drag = { subject: { id: 'gap' }, via: 'keyboard', over: null, title: t('places.move', { name: t('kind.spacer') }), nowhere: t('places.none', { name: t('kind.spacer') }) } as const
     render(<Places state={{ ...state, drag, dropTargets: [] }} drag={drag} t={t} ids="places" act={() => undefined} choose={() => undefined} cancel={() => undefined} />)
     const dialog = screen.getByRole('dialog', { name: drag.title })
     expect(computeAccessibleDescription(dialog)).toBe(drag.nowhere)
-    expect(document.activeElement).toBe(button(t('places.cancel')))
+    expect(dialog.querySelector('button')).toBe(button(t('places.cancel')))
   })
 
   // An entry the report cannot hold yet is found, said to be unavailable,

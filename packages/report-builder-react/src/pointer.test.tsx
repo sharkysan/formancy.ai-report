@@ -131,6 +131,23 @@ describe('a pointer drag', () => {
     expect(screen.getByRole('dialog', { name: t('places.insert', { kind: t('kind.text') }) })).toBeTruthy()
   })
 
+  // A drag that ends away from where it began ends in no click on the entry
+  // it began on, so the click it would have swallowed never comes. Swallowed
+  // instead was the next activation of any entry -- Enter on a palette entry,
+  // the keyboard's path to the place dialog, opened nothing. A key or a new
+  // press after a drop is a person's next act, not the drag's.
+  test('dropped elsewhere, leaves the next keyboard press of an entry a press', async () => {
+    const mounted = mount(scenarioReport())
+    await pickUp(mounted, screen.getByRole('button', { name: t('kind.spacer') }))
+    const place = t('target.after', { where: t('region.body'), name: 'Introduction' })
+    await mounted.user.pointer({ target: canvas(), coords: centre(target(mounted.editor, place)) })
+    await mounted.user.pointer({ keys: '[/MouseLeft]', target: canvas() })
+    expect(body(mounted)).toBe('findings,intro,spacer,notes,gap')
+    screen.getByRole('button', { name: t('kind.text') }).focus()
+    await mounted.user.keyboard('{Enter}')
+    expect(screen.getByRole('dialog', { name: t('places.insert', { kind: t('kind.text') }) })).toBeTruthy()
+  })
+
   // Escape ends a pointer drag as it ends the keyboard's; the release that
   // follows drops nothing.
   test('is cancelled by Escape', async () => {

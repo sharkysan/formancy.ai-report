@@ -17,7 +17,7 @@ import { injectEditorState } from './editor-state'
 
 /** Where focus goes once what an action changed has rendered. */
 export type FocusAfter =
-  /** The selected outline row, which focus follows (the tree pattern); the tree itself when it has no rows. */
+  /** The selected outline row, which focus follows (the tree pattern); the tree itself when nothing is selected. */
   | { readonly to: 'selection' }
   /** The first place in the place chooser that has just opened, or its Cancel when there is none. */
   | { readonly to: 'places' }
@@ -47,6 +47,14 @@ const PANE_FOCUS: Readonly<Record<EditorPanel, readonly string[]>> = {
   diagnostics: ['[data-report-part="diagnostics"]'],
 }
 
+/**
+ * Where focus goes after an action in the outline: the selected row, else
+ * the tree itself -- never the first row, which focus would select, so that
+ * after an undo that leaves nothing selected the next Delete deletes nothing
+ * the person did not choose.
+ */
+const SELECTION_FOCUS: readonly string[] = ['[role="treeitem"][aria-selected="true"]', '[role="tree"]']
+
 @Directive({
   selector: '[reportEditor]',
   host: {
@@ -66,6 +74,8 @@ export class ReportEditorRoot {
   readonly t = computed<EditorText>(() => editorText(this.state().locale))
   /** Unique on the page, so the ids tying a label or a description to its control are too. */
   readonly id = `report-editor-${String((roots += 1))}`
+  /** The sentence beside an outline with no row, which describes the empty tree. */
+  readonly outlineEmpty = `${this.id}-outline-empty`
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef)
   private focusAfter: FocusAfter | null = null
@@ -130,9 +140,24 @@ export class ReportEditorRoot {
    * it is, because a pointer never moved it.
    */
   cancelPlacing(): void {
-    const back = this.opener
+    const keyboard = this.state().drag?.via === 'keyboard'
+    const back = this.opener ?? (keyboard ? this.placedFrom() : null)
     this.opener = null
     this.dispatch({ type: 'cancelDrag' }, back === null ? undefined : { to: 'element', element: back })
+  }
+
+  /**
+   * Where a keyboard's chooser goes back to when this builder did not open
+   * it -- the drag is the editor's and outlives a builder, so a Studio that
+   * switches frameworks draws it here: the palette entry of what is being
+   * placed, else the selected outline row, else the tree. Never nothing,
+   * which would leave the keyboard on the page.
+   */
+  private placedFrom(): HTMLElement | null {
+    const subject = this.state().drag?.subject
+    const root = this.host.nativeElement
+    const entry = subject !== undefined && 'kind' in subject ? root.querySelector<HTMLElement>(`[data-report-part="palette-item"][data-kind="${subject.kind}"]`) : null
+    return entry ?? root.querySelector<HTMLElement>(SELECTION_FOCUS.join(', '))
   }
 
   /** A pointer's drag let go of anywhere but a place: it ends, and nothing changes. After a drop there is none left to end. */
@@ -170,7 +195,7 @@ export class ReportEditorRoot {
         ? focus.element
         : focus.to === 'places'
           ? root.querySelector<HTMLElement>('[data-report-part="places"] button')
-          : first(PANE_FOCUS[focus.to === 'pane' ? focus.panel : 'outline'])
+          : first(focus.to === 'pane' ? PANE_FOCUS[focus.panel] : SELECTION_FOCUS)
     element?.focus()
   }
 }

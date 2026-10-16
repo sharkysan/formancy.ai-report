@@ -1,0 +1,210 @@
+/* -------------------------------------------------------------- preview
+ *
+ * The Preview pane is the room's; the paper in it is the document's. The
+ * pages are PDF.js's drawing of the PDF, white, and every rule of the
+ * Studio that names an element rather than a class of its own ends in
+ * `:where(:not(.paper *))`, so nothing of the room reaches a page.
+ */
+
+.studio-preview {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.preview-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  padding: 0.75rem 1rem;
+  border-block-end: 1px solid var(--edge);
+}
+
+.preview-head h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* What the system did: teal once printed, the warm colour when it was not. */
+.preview-status {
+  flex-basis: 100%;
+  margin: 0;
+  min-height: 1.5em;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.preview-status[data-outcome='printed'] {
+  color: var(--server);
+}
+
+.preview-status:is([data-outcome='refused'], [data-outcome='not-drawn']) {
+  color: var(--warn);
+}
+
+.studio-preview > .problem-box {
+  margin: 0.75rem 1rem 0;
+}
+
+/* Each problem: the stage and code that found it, the sentence, and the
+   component it is about, one press away. */
+.problems {
+  display: grid;
+  gap: 0.375rem;
+  max-height: 40%;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  overflow: auto;
+  list-style: none;
+  border-block-end: 1px solid var(--edge);
+}
+
+.problems li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+  padding-inline-start: 0.625rem;
+  border-inline-start: 2px solid var(--invalid);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.problems li[data-severity='warning'] {
+  border-inline-start-color: var(--warn);
+}
+
+.problems code {
+  color: var(--muted);
+}
+
+.problems .quiet {
+  min-height: 2rem;
+  margin-inline-start: auto;
+}
+
+.viewer {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.viewer-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.625rem 1rem;
+  border-block-end: 1px solid var(--edge);
+}
+
+.tool-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.tool-value {
+  min-width: 3.5rem;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.download {
+  margin-inline-start: auto;
+}
+
+/* The drafting table the pages lie on: the admin's canvas, a faint dot grid. */
+.paper {
+  display: grid;
+  flex: 1;
+  justify-content: safe center;
+  align-content: start;
+  gap: 1.25rem;
+  min-height: 0;
+  padding: 1.25rem;
+  overflow: auto;
+  background-color: rgb(5 7 14 / 40%);
+  background-image: radial-gradient(rgb(255 255 255 / 7%) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* A page: white, the PDF's own, lit as the admin lights its sheet. */
+.paper-page {
+  position: relative;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 12%),
+    0 30px 80px -30px rgb(139 123 255 / 45%);
+  color-scheme: only light;
+}
+
+.paper-page canvas {
+  display: block;
+}
+
+/* Out of date while the latest edit renders: said by the status, and by a
+   teal rule along the table's top edge -- the system at work -- never by
+   dimming the page, which would show paper the PDF does not have. */
+.viewer[data-stale='true'] .paper {
+  box-shadow: inset 0 2px 0 var(--server);
+}
+
+/* PDF.js's text layer: the page's text, transparent, over the canvas, where
+   the browser can select and find it. The rules PDF.js's TextLayer expects
+   of its container (pdfjs-dist's web/pdf_viewer.css, `.textLayer`), as
+   few as it needs: that stylesheet's other rules dress PDF.js's own viewer,
+   which the Studio does not use. */
+.paper-text {
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: clip;
+  line-height: 1;
+  text-align: initial;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+}
+
+.paper-text :is(span, br) {
+  position: absolute;
+  color: transparent;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.paper-text > :not(.markedContent),
+.paper-text .markedContent span:not(.markedContent) {
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+
+  z-index: 1;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.paper-text .markedContent {
+  display: contents;
+}
+
+.paper-text ::selection {
+  background: rgb(0 0 255 / 25%);
+}

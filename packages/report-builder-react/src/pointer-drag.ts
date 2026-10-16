@@ -37,7 +37,7 @@ export interface DropZones {
 export interface PointerDrag {
   /** Watches a press on something that can be dragged; it becomes a drag once it moves. */
   press(event: ReactPointerEvent<HTMLElement>, subject: DragSubject): void
-  /** True, once, for the click a drag ended in: that click must not also select or open what it ended on. */
+  /** True, once, for the click a drag ended in, before any key or press: that click must not also select or open what it ended on. */
   swallowClick(): boolean
   /** Remembers which node an outline row draws, so a drag over the row can find the places beside it. */
   row(element: HTMLElement | null, node: OutlineNode): void
@@ -121,13 +121,25 @@ export function usePointerDrag(editor: ReportEditor, zones: DropZones, placed: (
       if (release()) editor.dispatch({ type: 'cancelDrag' })
     }
 
+    // The click a drop ends in comes straight after the release, with no key
+    // or press between. A drop that ended away from where it began ends in
+    // no click on what it began on; a key or a new press then is the
+    // person's next act, whose click is theirs to keep.
+    function forget(): void {
+      swallow.current = false
+    }
+
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
     window.addEventListener('pointercancel', onCancel)
+    window.addEventListener('keydown', forget, true)
+    window.addEventListener('pointerdown', forget, true)
     return () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onCancel)
+      window.removeEventListener('keydown', forget, true)
+      window.removeEventListener('pointerdown', forget, true)
       // A drag in flight belongs to the builder that started it.
       if (release()) editor.dispatch({ type: 'cancelDrag' })
     }

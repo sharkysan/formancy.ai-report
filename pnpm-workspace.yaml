@@ -1,8 +1,7 @@
 packages:
   - "packages/*"
-  # Applications: private, never published, and built by turbo like the rest.
-  # None yet; the Studio shell and the integration playground arrive with the
-  # first editor slice.
+  # Applications: private, never published, and built by turbo like the rest:
+  # the Studio (apps/studio, decision 0013).
   - "apps/*"
 
 # Packages whose install scripts may run. Nothing else's does.
@@ -31,6 +30,11 @@ catalog:
   # The accessibility floor, at formancy.ai's catalog version: the builders
   # are audited against the same rules as formancy's own builders.
   axe-core: ^4.13.0
+
+  # The Studio's browser gates and its README pictures, measured in Chromium:
+  # what jsdom cannot see -- layout, focus, colour. formancy.ai-data's
+  # catalog version, so one browser revision serves both repositories.
+  playwright: ^1.63.0
 
   tsdown: ^0.23.0
   publint: ^0.3.24

@@ -102,10 +102,10 @@ class Driver {
     return this.editor.state()
   }
 
-  /** The selected node's tree item, which focus follows in the outline. */
+  /** The selected node's tree item, which focus follows in the outline; the tree itself when nothing is selected. */
   private focusSelection(): void {
     const selected = nodes(this.state).find((node) => node.selected)
-    this.focused = selected === undefined ? null : { role: 'treeitem', name: selected.label }
+    this.focused = selected === undefined ? { role: 'tree', name: this.t('pane.outline') } : { role: 'treeitem', name: selected.label }
   }
 
   private dispatch(action: EditorAction | undefined, what: string): void {
@@ -147,6 +147,8 @@ class Driver {
   private present(query: ScenarioQuery): boolean {
     const state = this.state
     switch (query.role) {
+      case 'tree':
+        return query.name === this.t('pane.outline')
       case 'treeitem':
         return nodes(state).some((node) => node.label === query.name && (query.selected === undefined || node.selected === query.selected))
       case 'dialog':
@@ -173,7 +175,7 @@ class Driver {
         case 'press': {
           const modifiers = new Set(step.modifiers ?? [])
           if (step.key === 'Enter' && this.focused !== null) return this.activate(this.focused)
-          const where = this.focused?.role === 'treeitem' ? 'outline' : 'editor'
+          const where = this.focused?.role === 'treeitem' || this.focused?.role === 'tree' ? 'outline' : 'editor'
           const press = { key: step.key, altKey: modifiers.has('Alt'), ctrlKey: modifiers.has('Control'), metaKey: modifiers.has('Meta'), shiftKey: modifiers.has('Shift') }
           this.dispatch(actionForKey(press, where, this.state.drag !== null), `the key ${step.key}`)
           if (where === 'outline') this.focusSelection()
