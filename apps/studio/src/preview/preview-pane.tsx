@@ -57,7 +57,7 @@ function Problems({ problems, label, select }: { problems: readonly PreviewProbl
   )
 }
 
-export function PreviewPane({ opened, images, select }: { opened: Opened; images: ImageResolver; select: (target: ProblemTarget) => void }): ReactElement {
+export function PreviewPane({ id, opened, images, select }: { id: string; opened: Opened; images: ImageResolver; select: (target: ProblemTarget) => void }): ReactElement {
   const [mode, setMode] = useState<DataMode>('preview')
   const { shown, rendering, fault } = usePreview(opened, images, mode)
   const { outline } = useEditorState(opened.editor)
@@ -68,7 +68,7 @@ export function PreviewPane({ opened, images, select }: { opened: Opened; images
     outcome === undefined ? [] : outcome.kind === 'printed' ? runtimeProblems(outcome.warnings, 'warning', outline) : outcome.kind === 'refused' ? runtimeProblems(outcome.errors, 'error', outline) : [renderProblem(outcome.refusal, outline)]
 
   return (
-    <section className="studio-preview" aria-labelledby={heading}>
+    <section id={id} className="studio-preview" aria-labelledby={heading}>
       <header className="preview-head">
         <h2 id={heading}>Preview</h2>
         <label className="check">

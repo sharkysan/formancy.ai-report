@@ -252,7 +252,9 @@ What holds this section:
   link and the next into the content, axe's colour-contrast and
   target-size rules at every starter in both builders, each PDF drawn on
   white with the text it prints, the framework switch, a real pointer's
-  drag, the place chooser, and no rule of the page's on the paper.
+  drag, the place chooser, a pane and the Preview hidden and shown again,
+  the design view holding a page at 100 % wherever the Preview stands
+  beside it, and no rule of the page's on the paper.
 - **The README's pictures**, `scripts/pictures/readme.test.mjs` in
   `pnpm test:repo` and the Studio's `pictures.mjs --check` as
   `test:pictures` in the same CI job: every picture is whole parts of a

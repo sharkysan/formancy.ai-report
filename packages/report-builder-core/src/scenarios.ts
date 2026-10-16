@@ -298,6 +298,32 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
       { do: 'press', key: '0', modifiers: ['Control'] },
       { expect: 'text', ...zoom, text: formatZoom(1, locale) },
     ]),
+    // A side pane hidden for the room goes from the page and from what a
+    // screen reader finds; the keyboard lands in the design view that took
+    // its room, the live region says how to bring it back, and the
+    // toolbar's tool does.
+    scenario('hide the outline for the design view, and show it again from the toolbar', [
+      { do: 'click', ...button(t('action.hidePane', { pane: t('pane.outline') })) },
+      { expect: 'absent', ...outline },
+      { expect: 'focused', role: 'region', name: t('canvas.label') },
+      { expect: 'text', ...said, text: t('status.paneHidden', { pane: t('pane.outline') }) },
+      { do: 'click', ...button(t('pane.outline')) },
+      { expect: 'present', ...outline },
+      { expect: 'present', ...button(t('action.hidePane', { pane: t('pane.outline') })) },
+    ]),
+    // The third column holds two panes: each hides alone, and the column
+    // goes with the second, as nothing is left in it.
+    scenario('hide the properties and the problems, and show the problems again', [
+      { do: 'click', ...button(t('action.hidePane', { pane: t('pane.properties') })) },
+      { expect: 'absent', role: PROPERTY_ROLES.text, name: t('field.title') },
+      { expect: 'present', ...problems },
+      { do: 'click', ...button(t('action.hidePane', { pane: t('pane.problems') })) },
+      { expect: 'absent', ...problems },
+      { expect: 'present', ...outline },
+      { do: 'click', ...button(t('pane.problems')) },
+      { expect: 'present', ...problems },
+      { expect: 'absent', role: PROPERTY_ROLES.text, name: t('field.title') },
+    ]),
     scenario('choose a style from a picker', [
       { do: 'click', ...tree('Introduction') },
       { do: 'choose', role: PROPERTY_ROLES.style, name: t('field.style'), option: 'heading' },

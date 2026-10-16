@@ -50,7 +50,7 @@ describe('the breakpoints', () => {
   // stacked one under a wide caption. The narrow picture is of the
   // narrowest tier, where the bar's controls take a line each.
   test("are read from the Studio's stylesheet as its gate inlines it", () => {
-    expect(widestBreakpoint(studio, 'studio.css')).toBe(1440)
+    expect(widestBreakpoint(studio, 'studio.css')).toBe(2052)
     expect(narrowestBreakpoint(studio, 'studio.css')).toBe(640)
   })
 

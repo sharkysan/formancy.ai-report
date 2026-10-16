@@ -3,15 +3,21 @@
  * Only `@media (max-width: Nrem)`, as formancy.ai-data's apps write them.
  * Last in the cascade, so its rules win.
  *
- * Below 90rem the builder and the Preview do not both fit beside each
- * other with a design view worth having, so they stack: the builder at a
- * useful height, the Preview under it, and the page scrolls rather than
- * two panes each scrolling inside a sliver. Below 48rem report-builder.css
- * shows one of the builder's panes at a time, chosen from its toolbar.
- * Below 40rem the gutters tighten and the bar's controls take a line each.
+ * Up to 128.25rem the builder and the Preview do not both fit beside each
+ * other with a design view that holds a page, so they stack: the builder
+ * at a useful height and the whole width, the Preview under it, and the
+ * page scrolls rather than the design view showing a strip of the sheet.
+ * Measured in Chromium on 16 October 2026: beside the Preview and both
+ * side panes, the design view holds an A4 page at 100 % whole in a 2052px
+ * window and is 2px short at 2049px; at 1536px, under the 90rem this was,
+ * it was 395px wide. The browser gate checks the first width beside each
+ * other. Below 48rem
+ * report-builder.css shows one of the builder's panes at a time, chosen
+ * from its toolbar. Below 40rem the gutters tighten and the bar's controls
+ * take a line each.
  */
 
-@media (max-width: 90rem) {
+@media (max-width: 128.25rem) {
   .studio {
     grid-template-rows: auto auto;
     height: auto;

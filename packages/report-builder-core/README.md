@@ -117,6 +117,10 @@ is running counts as part of it, so listeners still hear once.
   still sends them, so the editor says why nothing happened.
 - **`status`**: the latest announcement for the live region, numbered so
   that saying the same words twice is still two announcements.
+- **`panel`** and **`hidden`**: the pane a narrow layout shows, and the
+  side panes the person hid to give the design view their room, in the
+  order they stand in. The design view is never hidden, and `panel` is
+  never a hidden pane, so a narrow layout always has one to show.
 
 ## Actions
 
@@ -142,7 +146,8 @@ session's do.
 | `undo`, `redo` | Through the session. |
 | `setZoom`, `zoomIn`, `zoomOut` | Clamped to `MIN_ZOOM` to `MAX_ZOOM`; the two steps go through `ZOOM_STEPS`. |
 | `startDrag`, `updateDrag`, `drop`, `cancelDrag` | Pointer drag as a state machine. `targetNear` and `targetBeside` turn a pointer position or an outline row into a target. |
-| `openPanel` | The pane a narrow layout shows. |
+| `openPanel` | The pane a narrow layout shows, and a hidden pane shown again. |
+| `hidePanel` | Hides the outline, the properties or the problems, and says how to show it again; refused for the design view. A narrow layout's pane, hidden, gives way to the design view. |
 
 Every pointer gesture has a keyboard path (formancy.ai 0046). `actionForKey`
 gives the keys:
@@ -169,8 +174,9 @@ the review that compared them found each difference only by reading both;
 so the choices are made here.
 
 - **The editor's root:** a `region` named `editor.label`, with
-  `data-report-part="editor"`, the workbench's `wb` class, and `data-panel`
-  set to the state's `panel`. Its children, in order:
+  `data-report-part="editor"`, the workbench's `wb` class, `data-panel`
+  set to the state's `panel`, and, while any pane is hidden, `data-hidden`
+  set to the state's `hidden`, space-separated. Its children, in order:
   - a bar holding the report's title (`data-report-part="title"`) and the
     toolbar;
   - the outline pane (`data-pane="outline"`): the palette, then the tree,
@@ -183,7 +189,16 @@ so the choices are made here.
 
   Each pane has the workbench's `wb-pane` class, and so do the bars, which
   stand in no pane: `report-builder.css` spans every child that is no pane
-  across the columns, so on a narrow screen neither bar is hidden.
+  across the columns, so on a narrow screen neither bar is hidden. A pane
+  in `hidden` is not drawn at all; the third column is not drawn when both
+  its halves are hidden, and says it is `diagnostics` when only its
+  properties are.
+- **A Hide in each side pane's header:** a button with the text
+  `action.hide`, named `action.hidePane` with the pane's name (Hide
+  Outline, Hide Properties, Hide Problems, as the toolbar names the panes),
+  with `data-report-part="hide-pane"`. It dispatches `hidePanel` and puts
+  focus on the design view, which took the pane's room; the toolbar's
+  button for the pane shows it again.
 - **A toolbar:** `role="toolbar"` named `toolbar.label`, one tab stop, the
   arrow keys, Home and End moving between its buttons the way the page
   reads (→ is the previous tool under `dir="rtl"`); an arrow held with
@@ -192,7 +207,8 @@ so the choices are made here.
   Zoom out, Zoom in and Actual size, with an `<output>` named Zoom showing
   `zoomLabel` (`aria-live="off"`, because the live region says it), and
   four buttons named after the panes -- Outline, Design view, Properties,
-  Problems -- each dispatching `openPanel` and taking focus into its pane.
+  Problems -- each dispatching `openPanel` and taking focus into its pane,
+  which shows it again if it was hidden.
   A tool with nowhere to go (`can`, `history`) is `aria-disabled`, stays
   focusable, and is still sent, so the live region says why; Move to… with
   nothing but a table's column selected opens nothing.
@@ -308,9 +324,9 @@ rule here; those it found are the naming rule above and the problems' key.
 `@formancy/report-builder-core/report-builder.css` dresses what is specific
 to reports: the bars above and below the panes, the sheet, its region
 bands, rulers, the selection, drop indicators, outline rows, badges, an
-unavailable tool, property rows, the problems list, and the one-pane
-layout on a narrow screen. The host imports `@formancy/themes`'
-`workbench.css` first.
+unavailable tool, property rows, the problems list, the grid without the
+panes the person hid, and the one-pane layout on a narrow screen. The host
+imports `@formancy/themes`' `workbench.css` first.
 
 The stylesheet takes colour only from the workbench's `--wb-*` variables,
 with no colour literal and no fallback. A Studio recolours the editor by

@@ -12,7 +12,7 @@
  */
 import { afterEveryRender, computed, Directive, ElementRef, inject, input } from '@angular/core'
 import { actionForKey, editorText } from '@formancy/report-builder-core'
-import type { DragSubject, DropTarget, EditorAction, EditorOutcome, EditorPanel, EditorText, KeyScope, ReportEditor } from '@formancy/report-builder-core'
+import type { DragSubject, DropTarget, EditorAction, EditorOutcome, EditorPanel, EditorText, HideablePanel, KeyScope, ReportEditor } from '@formancy/report-builder-core'
 import { injectEditorState } from './editor-state'
 
 /** Where focus goes once what an action changed has rendered. */
@@ -63,6 +63,7 @@ const SELECTION_FOCUS: readonly string[] = ['[role="treeitem"][aria-selected="tr
     class: 'wb',
     '[attr.aria-label]': 't()("editor.label")',
     '[attr.data-panel]': 'state().panel',
+    '[attr.data-hidden]': 'hidden()',
     '(keydown)': 'keydown($event)',
   },
 })
@@ -76,6 +77,8 @@ export class ReportEditorRoot {
   readonly id = `report-editor-${String((roots += 1))}`
   /** The sentence beside an outline with no row, which describes the empty tree. */
   readonly outlineEmpty = `${this.id}-outline-empty`
+  /** The panes the person hid, as report-builder.css reads them; no attribute when none is. */
+  protected readonly hidden = computed(() => (this.state().hidden.length === 0 ? null : this.state().hidden.join(' ')))
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef)
   private focusAfter: FocusAfter | null = null
@@ -165,9 +168,14 @@ export class ReportEditorRoot {
     if (this.state().drag?.via === 'pointer') this.cancelPlacing()
   }
 
-  /** Shows `panel` on a narrow screen and takes focus into it, so the pane that appears is where the keyboard is. */
+  /** Shows `panel` -- on a narrow screen, or hidden -- and takes focus into it, so the pane that appears is where the keyboard is. */
   showPane(panel: EditorPanel): void {
     this.dispatch({ type: 'openPanel', panel }, { to: 'pane', panel })
+  }
+
+  /** Hides `panel`; its Hide goes with it, so focus goes to the design view that took its room. */
+  hidePane(panel: HideablePanel): void {
+    this.dispatch({ type: 'hidePanel', panel }, { to: 'pane', panel: 'canvas' })
   }
 
   protected keydown(event: KeyboardEvent): void {

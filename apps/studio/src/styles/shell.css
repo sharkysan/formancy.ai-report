@@ -72,6 +72,11 @@
   min-height: 0;
 }
 
+/* The Preview hidden from the bar: the builder takes the row. */
+.studio-main[data-preview='hidden'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 /* The heading-less target of the skip link takes focus only to start Tab there. */
 .studio-main:focus {
   outline: none;

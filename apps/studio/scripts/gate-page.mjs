@@ -32,9 +32,8 @@ const breakpointsOf = (css) => [...css.matchAll(/@media\s*\(\s*max-width:\s*([\d
  * one pane at a time, one pixel past each, where the wider layout is at its
  * narrowest; a breakpoint added to either is measured without anybody
  * editing this. Then the reflow width, the same with the web fonts refused,
- * a phone, the laptop the stacked layout ends at, and the side-by-side
- * layout made tall, so the rows its panes scroll at 900 px are in view and
- * axe can decide their contrast.
+ * a phone, a laptop, and the side-by-side layout made tall, so the rows
+ * its panes scroll at 900 px are in view and axe can decide their contrast.
  *
  * The first pass in each layout report-builder.css draws the builder in is
  * marked `parity`: there the two builders' accessible trees are compared

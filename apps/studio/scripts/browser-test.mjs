@@ -68,6 +68,7 @@ import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { app, audit, describeFocus, drawnPages, fontProblem, fromTheTop, measureWidth, passes, rulesOnThePaper } from './gate-page.mjs'
 import { builderParity } from './gate-parity.mjs'
 import { gateRecorder } from './gate-results.mjs'
+import { roomChecks } from './gate-room.mjs'
 import { builder, editorOf, open, showing } from './gate-steps.mjs'
 
 const dist = join(app, 'dist')
@@ -422,6 +423,9 @@ async function interactions(gate, page, framework) {
   check(`${framework}: the Preview's Zoom in draws every page larger, on white, with ink`, drawnLarger ? null : `page 1 was ${String(before)}px wide and is ${String(larger)}px, with ${String(zoomed.length)} pages drawn`)
   await previewOf(page).getByRole('button', { name: 'Fit width', exact: true }).click()
   await settled(page)
+
+  // The room made for the design view: a pane hidden and shown, the Preview hidden and shown.
+  await roomChecks(gate, page, framework, { preview: previewOf(page), settled })
 }
 
 /** One pass: the whole journey at one viewport, then, where `parity` marks it, the two builders compared (gate-parity.mjs). */

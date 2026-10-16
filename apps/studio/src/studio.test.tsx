@@ -250,6 +250,30 @@ describe('the Studio', () => {
     expect(screen.queryByRole('list', { name: 'Why the preview was not printed' })).toBeNull()
   })
 
+  // The Preview is the widest thing beside the design view. Hidden, it
+  // gives the builder the row and prints nothing while it is away; the
+  // bar's toggle, which says whether it is shown, brings it back printing
+  // what the session holds now.
+  test('hides the Preview from the bar, and shows it again printing the latest edit', async () => {
+    const { user } = mount()
+    await screen.findByText('Preview: printed.')
+    const toggle = screen.getByRole('button', { name: 'Preview', pressed: true })
+    expect(toggle.getAttribute('aria-controls')).toBe(screen.getByRole('region', { name: 'Preview' }).id)
+    await user.click(toggle)
+    expect(screen.queryByRole('region', { name: 'Preview' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Preview', pressed: false })).toBe(toggle)
+    const asked = seen.requests.length
+    await user.clear(title())
+    await user.type(title(), 'Hidden while edited')
+    await user.tab()
+    expect(seen.requests.length).toBe(asked)
+    expect(await violations()).toEqual([])
+    await user.click(toggle)
+    await screen.findByText('Preview: printed.')
+    expect(seen.requests.at(-1)?.title).toBe('Hidden while edited')
+    expect(screen.getByRole('button', { name: 'Preview', pressed: true })).toBe(toggle)
+  })
+
   // The first Tab says where the keyboard can go: past the bar, into the
   // builder, which takes focus so the next Tab starts there.
   test('offers a skip link into the builder first', async () => {

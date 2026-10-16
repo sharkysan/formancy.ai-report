@@ -1,7 +1,7 @@
 export { createReportEditor } from './editor.js'
 export type { ReportEditor, ReportEditorOptions } from './editor.js'
 
-export { EDITOR_PANELS, EDITOR_REFUSAL_CODES, PROPERTY_KINDS, PROPERTY_ROLES } from './model.js'
+export { EDITOR_PANELS, EDITOR_REFUSAL_CODES, HIDEABLE_PANELS, PROPERTY_KINDS, PROPERTY_ROLES } from './model.js'
 export type {
   Announcement,
   Availability,
@@ -20,6 +20,7 @@ export type {
   EditorPanel,
   EditorRefusalCode,
   EditorState,
+  HideablePanel,
   HistoryState,
   OutlineNode,
   OutlineRegion,

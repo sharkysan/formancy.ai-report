@@ -55,6 +55,17 @@ async function emptyHooks(): Promise<Set<string | null>> {
   return new Set([...root.querySelectorAll('[data-report-part]')].map((element) => element.getAttribute('data-report-part')))
 }
 
+/** The data attributes of the root of a builder whose outline the person hid. */
+async function hiddenRoot(): Promise<string[]> {
+  TestBed.resetTestingModule()
+  const mounted = await mountBuilder(createReportEditor(sessionOver(scenarioReport())))
+  click(screen.getByRole('button', { name: 'Hide Outline' }))
+  await mounted.settle()
+  const root = mounted.fixture.nativeElement as HTMLElement
+  expect(root.getAttribute('data-hidden')).toBe('outline')
+  return root.getAttributeNames().filter((name) => name.startsWith('data-'))
+}
+
 describe('the stylesheet’s hooks', () => {
   // A part report-builder.css dresses that this builder does not render is
   // a piece drawn unstyled here and styled in React; a part it renders that
@@ -72,6 +83,8 @@ describe('the stylesheet’s hooks', () => {
   test('set only the states the stylesheet selects by, and all of them', async () => {
     const root = await everything()
     const used = new Set([root, ...root.querySelectorAll('*')].flatMap((element) => element.getAttributeNames().filter((name) => name.startsWith('data-'))))
+    // The panes the person hid are on the root, which `everything` has none of.
+    for (const name of await hiddenRoot()) used.add(name)
     const listed = REPORT_ATTRIBUTES.filter((name) => name.startsWith('data-'))
     expect(used).toEqual(new Set(listed))
   })

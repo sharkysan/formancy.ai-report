@@ -18,10 +18,15 @@
  *   half carries its own name for the other to be hidden by;
  * - a bar with the live region.
  *
+ * Each side pane's header has a Hide, named after the pane, which gives the
+ * design view its room and the keyboard. A pane the state says is hidden
+ * is not drawn, and the third column goes when both its halves are.
+ *
  * A host that wants another arrangement puts `[reportEditor]` on its own
  * element and the parts inside it, as this template does.
  */
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
+import type { HideablePanel } from '@formancy/report-builder-core'
 import { ReportCanvas } from './canvas'
 import { ReportOutline } from './outline'
 import { ReportPalette } from './palette'
@@ -44,46 +49,59 @@ import { ReportToolbar } from './toolbar'
         <div reportToolbar></div>
       </header>
     </div>
-    <section class="wb-pane" data-pane="outline">
-      <header>{{ t()('pane.outline') }}</header>
-      <div class="wb-body">
-        <div reportPalette></div>
-        <div reportOutline></div>
-        @if (empty()) {
-          <p data-report-part="outline-empty" [id]="root.outlineEmpty">{{ t()('outline.empty') }}</p>
-        }
-      </div>
-      <div reportPlaces></div>
-    </section>
+    @if (shows('outline')) {
+      <section class="wb-pane" data-pane="outline">
+        <header>
+          <span>{{ t()('pane.outline') }}</span>
+          <button type="button" data-report-part="hide-pane" [attr.aria-label]="t()('action.hidePane', { pane: t()('pane.outline') })" (click)="root.hidePane('outline')">{{ t()('action.hide') }}</button>
+        </header>
+        <div class="wb-body">
+          <div reportPalette></div>
+          <div reportOutline></div>
+          @if (empty()) {
+            <p data-report-part="outline-empty" [id]="root.outlineEmpty">{{ t()('outline.empty') }}</p>
+          }
+        </div>
+        <div reportPlaces></div>
+      </section>
+    }
     <section class="wb-pane wb-canvas" data-pane="canvas">
       <header>{{ t()('pane.canvas') }}</header>
       <div class="wb-body">
         <section reportCanvas></section>
       </div>
     </section>
-    <section class="wb-pane" [attr.data-pane]="state().panel === 'diagnostics' ? 'diagnostics' : 'properties'">
-      <header data-pane="properties">
-        <span>{{ state().properties.heading }}</span>
-        @if (state().selection !== null) {
-          <button type="button" (click)="root.dispatch({ type: 'select', id: null }, { to: 'pane', panel: 'properties' })">{{ t()('properties.report') }}</button>
+    @if (shows('properties') || shows('diagnostics')) {
+      <section class="wb-pane" [attr.data-pane]="state().panel === 'diagnostics' || !shows('properties') ? 'diagnostics' : 'properties'">
+        @if (shows('properties')) {
+          <header data-pane="properties">
+            <span>{{ state().properties.heading }}</span>
+            @if (state().selection !== null) {
+              <button type="button" (click)="root.dispatch({ type: 'select', id: null }, { to: 'pane', panel: 'properties' })">{{ t()('properties.report') }}</button>
+            }
+            <button type="button" data-report-part="hide-pane" [attr.aria-label]="t()('action.hidePane', { pane: t()('pane.properties') })" (click)="root.hidePane('properties')">{{ t()('action.hide') }}</button>
+          </header>
+          <div class="wb-body" data-pane="properties">
+            <form reportProperties></form>
+          </div>
         }
-      </header>
-      <div class="wb-body" data-pane="properties">
-        <form reportProperties></form>
-      </div>
-      <header data-pane="diagnostics">
-        <!-- A status, so a change in how many problems there are is said
-             without taking the person's place: "Problems 2". Named in
-             words, never after its own heading, which the Studio sets in
-             capitals that Chromium would put in the name. -->
-        <div role="status" [attr.aria-label]="t()('pane.problems')">
-          <span>{{ t()('pane.problems') }}</span>{{ count() > 0 ? ' ' : '' }}@if (count() > 0) {<span data-report-part="badge" [attr.data-severity]="severity()">{{ count() }}</span>}
-        </div>
-      </header>
-      <div class="wb-body" data-pane="diagnostics">
-        <div reportProblems></div>
-      </div>
-    </section>
+        @if (shows('diagnostics')) {
+          <header data-pane="diagnostics">
+            <!-- A status, so a change in how many problems there are is said
+                 without taking the person's place: "Problems 2". Named in
+                 words, never after its own heading, which the Studio sets in
+                 capitals that Chromium would put in the name. -->
+            <div role="status" [attr.aria-label]="t()('pane.problems')">
+              <span>{{ t()('pane.problems') }}</span>{{ count() > 0 ? ' ' : '' }}@if (count() > 0) {<span data-report-part="badge" [attr.data-severity]="severity()">{{ count() }}</span>}
+            </div>
+            <button type="button" data-report-part="hide-pane" [attr.aria-label]="t()('action.hidePane', { pane: t()('pane.problems') })" (click)="root.hidePane('diagnostics')">{{ t()('action.hide') }}</button>
+          </header>
+          <div class="wb-body" data-pane="diagnostics">
+            <div reportProblems></div>
+          </div>
+        }
+      </section>
+    }
     <div class="wb-pane">
       <p reportStatus></p>
     </div>
@@ -98,4 +116,9 @@ export class ReportBuilder {
   protected readonly empty = computed(() => this.state().outline.every((region) => region.nodes.length === 0))
   /** What colour the count is: an error's, when any problem is one. */
   protected readonly severity = computed(() => (this.state().diagnostics.some((entry) => entry.severity === 'error') ? 'error' : 'warning'))
+
+  /** Whether the pane is drawn: every one the person has not hidden. */
+  protected shows(panel: HideablePanel): boolean {
+    return !this.state().hidden.includes(panel)
+  }
 }

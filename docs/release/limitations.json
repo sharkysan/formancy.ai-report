@@ -403,6 +403,23 @@
           "heldBy": "scripts/demo.test.mjs"
         }
       ]
+    },
+    "0019": {
+      "reviewed": "sha256:0cd2bd2a7275e7ab84a7772bf19e7ae6437788e0cc3d6148586e32eea6afb84d",
+      "limitations": [
+        {
+          "area": "builders",
+          "says": "A pane hidden in a builder, and the Studio's Preview, stay hidden only while the editor lives: nothing remembers them, and a reload or a new editor shows every pane."
+        },
+        {
+          "area": "builders",
+          "says": "A pane is hidden whole or shown at the workbench's width, never resized."
+        },
+        {
+          "area": "builders",
+          "says": "The Studio shows the Preview beside the builder only in a window over 2052px wide; narrower, it is under the builder and the page scrolls to it."
+        }
+      ]
     }
   }
 }
