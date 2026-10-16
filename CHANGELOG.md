@@ -8,7 +8,42 @@ Loosely [Keep a Changelog](https://keepachangelog.com), with reasons attached â€
 a line that says only *what* changed is rarely the line you need six months
 later.
 
-## Unreleased
+## 0.1.0 â€” 2026-10-16
+
+**The first release, a developer preview.** It is for evaluating Formancy
+Report and building against it. It is not for reports a business keeps: the
+report format is version "0", a draft, and a report written under it is not
+promised to be read by a later release
+([0004](docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
+
+Seven packages are published at 0.1.0: `@formancy/report-spec`,
+`report-core`, `report-runtime`, `report-render-pdf`, `report-builder-core`,
+`report-builder-react` and `report-builder-angular`. They are under the
+Formancy Report Source-Available Licence, which no lawyer has reviewed yet
+([0001](docs/decisions/0001-a-paid-module-in-its-own-repository.md)).
+
+They depend on two packages at exact versions:
+- formancy's `@formancy/expressions` 0.5.0;
+- pdfmake 0.3.11.
+
+The React builder takes React 19 as a peer, and the Angular builder takes
+Angular 22. The install gate installs each builder and draws it at both ends
+of its range. The Studio, `apps/studio`, and the test corpus stay private.
+
+Not in this release:
+- **The Formancy Data provider.** It waits for a released Formancy Data, so
+  a host supplies a report's data itself
+  ([0002](docs/decisions/0002-depend-on-upstream-never-copy-it.md)).
+- **A published PDF viewer.** PDF.js ships a font under GPL-2.0 with a
+  font-embedding exception, and the dependency-licence gate refuses that in a
+  published package
+  ([0006](docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
+  The Studio previews with it.
+- **What release gates G4 to G7 ask for.** That is a complete Data
+  snapshot, a report server, the AI proposal workflow, and a paid pilot.
+
+The release report that this release's run builds lists, under "Known
+limitations", what each decision record says a user will meet.
 
 **A getting-started guide, whose code the install gate compiles and runs**
 ([0015](docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
