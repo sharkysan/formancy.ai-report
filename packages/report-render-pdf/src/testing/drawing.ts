@@ -3,8 +3,9 @@ import { inflateSync } from 'node:zlib'
 /**
  * What a page draws besides its text's words and its images' boxes, read
  * from the PDF's own content streams: the lines and rectangles it strokes
- * and fills, with their colour and weight, the clips it sets, and the colour
- * and font each run of text is shown in. The corpus's reader sees text and
+ * and fills, with their colour and weight and which of them were painted
+ * together, the clips it sets, and the colour and font each run of text is
+ * shown in. The corpus's reader sees text and
  * images through PDF.js and nothing drawn as a vector path (0003), which is
  * what a rule, a rectangle and a section's frame are.
  *
@@ -15,6 +16,7 @@ import { inflateSync } from 'node:zlib'
  * and in from its left, as the corpus's reader gives them.
  */
 
+/** One subpath of a path the page paints: a rectangle (`re`), or lines from a point (`m`, `l`). */
 export interface Shape {
   readonly kind: 'rect' | 'line'
   /** The box of the path itself, before any stroke's width. */
@@ -26,6 +28,8 @@ export interface Shape {
   readonly fill?: string
   readonly stroke?: string
   readonly lineWidth: number
+  /** Which painting operator on the page drew it, from 0: shapes with the same number were one path, filled or stroked at once. */
+  readonly paint: number
 }
 
 export interface Shown {
@@ -42,7 +46,7 @@ export interface DrawnPage {
   readonly number: number
   readonly shapes: readonly Shape[]
   /** Rectangles set as clipping paths. */
-  readonly clips: readonly Omit<Shape, 'fill' | 'stroke' | 'lineWidth'>[]
+  readonly clips: readonly Omit<Shape, 'fill' | 'stroke' | 'lineWidth' | 'paint'>[]
   readonly text: readonly Shown[]
 }
 
@@ -94,12 +98,13 @@ interface State {
 
 function interpret(content: string, height: number, fonts: ReadonlyMap<string, string>): Omit<DrawnPage, 'number'> {
   const shapes: Shape[] = []
-  const clips: Omit<Shape, 'fill' | 'stroke' | 'lineWidth'>[] = []
+  const clips: Omit<Shape, 'fill' | 'stroke' | 'lineWidth' | 'paint'>[] = []
   const shown: Shown[] = []
   const stack: State[] = []
   let state: State = { ctm: [1, 0, 0, 1, 0, 0], fill: '#000000', stroke: '#000000', lineWidth: 1 }
   let path: { kind: 'rect' | 'line'; points: [number, number][] }[] = []
   let clip = false
+  let paints = 0
   let textMatrix: Matrix = [1, 0, 0, 1, 0, 0]
   let font = { name: '', size: 0 }
   let operands: string[] = []
@@ -110,8 +115,9 @@ function interpret(content: string, height: number, fonts: ReadonlyMap<string, s
       const ys = each.points.map(([, y]) => height - y)
       const box = { kind: each.kind, x: Math.min(...xs), top: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) }
       if (clip) clips.push(box)
-      if (fill || stroke) shapes.push({ ...box, ...(fill ? { fill: state.fill } : {}), ...(stroke ? { stroke: state.stroke } : {}), lineWidth: state.lineWidth })
+      if (fill || stroke) shapes.push({ ...box, ...(fill ? { fill: state.fill } : {}), ...(stroke ? { stroke: state.stroke } : {}), lineWidth: state.lineWidth, paint: paints })
     }
+    if (fill || stroke) paints++
     path = []
     clip = false
   }

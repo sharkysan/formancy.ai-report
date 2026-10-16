@@ -139,7 +139,8 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     keptTogetherByRoom: false,
     minPagesExpected: 1,
     noOrphanedHeaders: true,
-    noEmptyPages: !flatten(document.body).some((block) => block.kind === 'spacer' || block.kind === 'rule' || block.kind === 'rectangle'),
+    // A page of these alone prints nothing the corpus's checks see: no text, and no image.
+    noEmptyPages: !flatten(document.body).some((block) => block.kind === 'spacer' || block.kind === 'rule' || block.kind === 'rectangle' || block.kind === 'qrCode'),
     allTextInsidePrintable: true,
     noOverlaps: true,
     fontsEmbedded: true,

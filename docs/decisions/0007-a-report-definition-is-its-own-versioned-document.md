@@ -1,6 +1,6 @@
 # 0007 — A report definition is its own versioned document, with a flowing body, one detail table, declared aggregates and print styles as tokens
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `@formancy/report-spec` tests that fail when it is
@@ -290,6 +290,21 @@ means two things. It is a draft-format addition: `EXPRESSION_NAMES` is
 unchanged, and so is every report that was valid and had no aggregate of
 that name. `validate.test.ts` holds the refusal beside the nearest name that
 is allowed.
+
+**Added 2026-10-17: a QR code.** A component of kind `qrCode` prints its
+content as a QR code, as [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)
+decides. `content` is runs, one at least, that read what a paragraph in
+its place reads.
+`size` is the side of a square in points, its quiet zone inside it.
+`errorCorrection` is one of ISO/IEC 18004's levels L, M, Q and H. It
+stands wherever an image may, and its size is held to the shorter side of
+the printable area. A page number or count is refused anywhere in it
+(`misplaced-page-counter`), because its content is resolved once, before
+pages are counted. It is a draft-format addition: `reportSpecVersion` is
+unchanged, and so is every report that was valid. A release that predates
+the kind, 0.1.0 among them, refuses a report that holds one as
+`unknown-kind`, and never skips it. `validate-qr-code.test.ts` holds the
+shape, the placement and the refusals.
 
 ## Alternatives considered
 

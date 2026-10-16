@@ -4,9 +4,10 @@
  *
  * `sampleReport` is one valid report that holds every component kind, every
  * expression site, every declaration kind and every table feature, and uses
- * each thing it declares, so that diagnosing it finds nothing. A test breaks
- * one thing in it and shows that exactly that is reported, and a command
- * test edits it and shows what changed and what did not.
+ * each thing it declares, so that diagnosing it finds nothing; that it holds
+ * every kind, `reportParts`' test holds. A test breaks one thing in it and
+ * shows that exactly that is reported, and a command test edits it and shows
+ * what changed and what did not.
  */
 import { validateReport } from '@formancy/report-spec'
 import type { FieldRef, ReportDefinition } from '@formancy/report-spec'
@@ -229,6 +230,17 @@ const REPORT: ReportDefinition = {
         ],
       },
       { id: 'seal-image', kind: 'image', source: { kind: 'asset', asset: 'seal' }, width: 200, height: 150, fit: 'cover' },
+      {
+        id: 'order-code',
+        kind: 'qrCode',
+        content: [
+          { kind: 'text', text: 'Orders for ' },
+          { kind: 'field', field: header('customer') },
+          { kind: 'expression', expression: { cel: '" from " + params.from' } },
+        ],
+        size: 85.04,
+        errorCorrection: 'Q',
+      },
     ],
   },
   provenance: { kind: 'dataset', dataset: 'order-lines' },

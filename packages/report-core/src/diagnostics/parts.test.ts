@@ -1,3 +1,5 @@
+import { COMPONENT_KINDS, walkComponents } from '@formancy/report-spec'
+import type { TextComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { frozenSample, sampleReport } from '../test-support.js'
 import { expressionSites, reportParts } from './parts.js'
@@ -38,6 +40,7 @@ describe('expressionSites', () => {
       'report computed lines /regions/body/2/totals/1/cells/1/value/expression/cel',
       'report visible closing /regions/summary/0/visibleWhen/cel',
       'report computed statistics /regions/summary/0/components/1/content/3/expression/cel',
+      'report computed order-code /regions/summary/2/content/2/expression/cel',
       'row computed - /aggregates/2/of/expression/cel',
     ])
   })
@@ -62,6 +65,16 @@ describe('a bare table', () => {
 })
 
 describe('reportParts', () => {
+  // READERS is total by type, but a reader that throws, or misses what its
+  // kind holds, shows only on a report that holds that kind. The sample is
+  // that report for every test here; a kind added to the format and not to
+  // the sample would be read by none of them.
+  test('reads a report that holds every component kind', () => {
+    const report = frozenSample()
+    expect(new Set(walkComponents(report).map(({ component }) => component.kind))).toEqual(new Set(COMPONENT_KINDS))
+    expect(() => reportParts(report)).not.toThrow()
+  })
+
   // What the report uses is what the unused-declaration warnings are
   // measured against: every style, asset, field, parameter and aggregate
   // named anywhere outside an expression.
@@ -86,5 +99,25 @@ describe('reportParts', () => {
         'detail.recordedAt',
       ]),
     )
+  })
+})
+
+describe('a QR code', () => {
+  // A QR code encodes what its content prints, read as a paragraph in its
+  // place is read: the fields, parameters and aggregates it names are used,
+  // and an expression in it is compiled in the report's scope and named
+  // after the code. Read any other way, an expression in it would go
+  // unchecked until a render refused it, and a declaration only it names
+  // would be called unused.
+  test('is read as a text with the same content in its place is', () => {
+    const report = sampleReport()
+    const code = report.regions.summary[2]
+    if (code?.kind !== 'qrCode') throw new Error('the sample has no QR code at the end of its summary')
+    const { size: _size, errorCorrection: _errorCorrection, ...shared } = code
+    const asText: TextComponent = { ...shared, kind: 'text' }
+    const swapped = { ...report, regions: { ...report.regions, summary: [...report.regions.summary.slice(0, 2), asText] } }
+    const parts = reportParts(report)
+    expect(parts).toEqual(reportParts(swapped))
+    expect(parts.expressions).toContainEqual({ cel: '" from " + params.from', scope: 'report', kind: 'computed', path: '/regions/summary/2/content/2/expression/cel', componentId: 'order-code' })
   })
 })

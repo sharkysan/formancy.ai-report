@@ -9,7 +9,7 @@
  */
 import { setLocale, setPage, setTitle, updateColumn, updateComponent } from '@formancy/report-core'
 import type { Command, ComponentPatch, Diagnostic, PagePatch, Refusal } from '@formancy/report-core'
-import { printableArea, ptToMm } from '@formancy/report-spec'
+import { printableArea, ptToMm, squareRoom } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { columnKey, kindLabel } from './labels.js'
 import type { PropertyField, PropertyPanel, Selection } from './model.js'
@@ -17,7 +17,7 @@ import { columnFields, componentFields, fieldWords, reportFields } from './prope
 import type { FieldSpec } from './property-fields.js'
 import { selected } from './selection.js'
 import type { Selected } from './selection.js'
-import type { EditorText } from './text.js'
+import type { EditorLocale, EditorText } from './text.js'
 
 /** What the properties pane edits: the report, or what is selected. */
 export type PropertyTarget = { readonly kind: 'report'; readonly path: '' } | Selected
@@ -27,14 +27,14 @@ export function propertyTarget(report: ReportDefinition, selection: Selection | 
   return selection === null ? { kind: 'report', path: '' } : selected(report, selection)
 }
 
-export function fieldsOf(target: PropertyTarget, report: ReportDefinition, t: EditorText): FieldSpec[] {
+export function fieldsOf(target: PropertyTarget, report: ReportDefinition, t: EditorText, locale: EditorLocale): FieldSpec[] {
   switch (target.kind) {
     case 'report':
       return reportFields(report, t)
     case 'component':
-      return componentFields(target.component, { report, t, row: false })
+      return componentFields(target.component, { report, t, locale, row: false })
     case 'column':
-      return columnFields(target.column, { report, t, row: true })
+      return columnFields(target.column, { report, t, locale, row: true })
   }
 }
 
@@ -146,8 +146,10 @@ export interface Written {
 export function pageRoomMessage(refusal: Refusal, path: string, written: Written, t: EditorText, format: (value: number) => string): string | undefined {
   const error = refusal.errors?.find((candidate) => within(candidate.path, path))
   if (error?.code !== 'exceeds-printable-area' || written.spec.unit !== 'mm' || typeof written.value !== 'number') return undefined
-  // Which side the validator measured is the property's own name: a height, or a width.
-  const room = printableArea(written.report.page)[error.path.endsWith('/height') ? 'height' : 'width']
+  // Which side the validator measured is the property's own name: a height,
+  // a width, or a square's size, which it measures against `squareRoom`.
+  const area = printableArea(written.report.page)
+  const room = error.path.endsWith('/height') ? area.height : error.path.endsWith('/size') ? squareRoom(area).length : area.width
   return t('input.exceedsPage', { value: format(ptToMm(written.value)), room: format(ptToMm(room)), unit: t('unit.mm') })
 }
 

@@ -71,7 +71,7 @@ export const REPORT_ERROR_CODES = [
   'misplaced-flow-component',
   /** A table or page break inside a columns or keep-together block. */
   'nested-flow-component',
-  /** A page number or count outside the page header and footer. */
+  /** A page number or count outside the page header and footer, or anywhere in a QR code's content. */
   'misplaced-page-counter',
   /** A detail field where there is no current row: outside the table's cells, or in a group header or footer when it is not the field grouped by. */
   'misplaced-detail-field',
@@ -88,7 +88,7 @@ export const REPORT_ERROR_CODES = [
   'duplicate-footer-cell',
   /** A field sorted by twice, or sorted by and grouped by: the second key orders nothing. */
   'duplicate-sort-key',
-  /** A fixed size larger than the page's printable area: an image, a rectangle, a spacer, or the fixed widths of a table or a columns block. */
+  /** A fixed size larger than the page's printable area: an image, a QR code, a rectangle, a spacer, or the fixed widths of a table or a columns block. */
   'exceeds-printable-area',
 
   // Types meeting.

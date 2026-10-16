@@ -44,6 +44,8 @@ const UNDRAWN: readonly (readonly [string, ResolvedDocument, string])[] = [
   ['a section', documentOf('Section', [paragraph('Before'), { kind: 'section', blocks: [paragraph('Framed')], border: { thickness: 1, color: '#000000' } }]), 'body[1]'],
   ['a rectangle in the page footer', { ...documentOf('Rectangle', [paragraph('Body')]), pageFooter: [paragraph('Footer'), { kind: 'rectangle', width: 40, height: 10, fill: '#cccccc' }] }, 'pageFooter[1]'],
   ['a rectangle in a keep-together block', documentOf('Kept rectangle', [{ kind: 'keepTogether', blocks: [paragraph('Kept'), { kind: 'rectangle', width: 40, height: 10 }] }]), 'body[0].blocks[1]'],
+  ['a QR code', documentOf('QR code', [paragraph('Before'), { kind: 'qrCode', id: 'order-code', text: 'https://formancy.ai/report/', size: 85.04, errorCorrection: 'M' }]), 'body[1]'],
+  ['a QR code in the page header', { ...documentOf('Header code', [paragraph('Body')]), pageHeader: [{ kind: 'qrCode', id: 'header-code', text: 'A-1', size: 40, errorCorrection: 'L' }] }, 'pageHeader[0]'],
   ['a paragraph in the serif font', documentOf('Serif', [paragraph('Set in serif', { font: 'serif' })]), 'body[0]'],
   ['a paragraph in the mono font, in the page header', { ...documentOf('Mono', [paragraph('Body')]), pageHeader: [paragraph('Set in mono', { font: 'mono' })] }, 'pageHeader[0]'],
   ['a paragraph in colour', documentOf('Colour', [paragraph('Printed in red', { color: '#c00000' })]), 'body[0]'],

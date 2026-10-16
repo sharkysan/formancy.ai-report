@@ -13,8 +13,8 @@
  *
  * In a table, the table's resolved style is the base of every row: the
  * header's `headerStyle`, a group header's, a footer row's own, and each
- * column's style and rules over a detail cell. An image, a line, a
- * rectangle, a spacer and a page break print no text; a style on one is
+ * column's style and rules over a detail cell. An image, a QR code, a line,
+ * a rectangle, a spacer and a page break print no text; a style on one is
  * read for its rules' conditions, and changes nothing.
  */
 import type { PrintStyle, StyleRule } from '@formancy/report-spec'

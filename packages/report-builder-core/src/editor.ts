@@ -319,7 +319,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     const report = current().report
     // The editor keeps its selection one the document has, so there is a target.
     const target = propertyTarget(report, local.selection) as NonNullable<ReturnType<typeof propertyTarget>>
-    const spec = fieldsOf(target, report, t).find((candidate) => candidate.key === key)
+    const spec = fieldsOf(target, report, t, locale).find((candidate) => candidate.key === key)
     if (spec === undefined) return refuse('not-found', t('status.notFound', { name: key }))
     const label = fieldLabel(spec, t)
     const written = spec.write(value)

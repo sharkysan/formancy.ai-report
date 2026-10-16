@@ -1,7 +1,8 @@
-import { RenderRefusal, type Block, type Columns, type Image, type ImageAsset, type KeepTogether, type Rectangle, type ResolvedDocument, type Section, type Table, type TextStyle } from '@formancy/report-runtime'
+import { RenderRefusal, type Block, type Columns, type Image, type ImageAsset, type KeepTogether, type QrCode, type Rectangle, type ResolvedDocument, type Section, type Table, type TextStyle } from '@formancy/report-runtime'
 import { checkImageAsset, MAX_IMAGE_DATA, type Pixels } from './assets.js'
 import { frameOf, RULE_GAP } from './content.js'
 import { codePoint, faceOf, missingGlyph, type Glyphs } from './glyphs.js'
+import { qrSymbol, type QrSymbol } from './qr.js'
 import { COLOR, FONTS, LINE_FACTOR } from './style.js'
 import { KIND_BOLD, PADDING_X, PADDING_Y } from './table.js'
 import { fillWidth, fixedWidth } from './widths.js'
@@ -17,7 +18,8 @@ import { fillWidth, fixedWidth } from './widths.js'
  * The walk also collects what can only be judged once the page regions are
  * measured -- whatever is too tall for any page's body -- and what the body
  * pass measures: its tables and keep-together blocks, each at the width it
- * stands at.
+ * stands at. It encodes every QR code, once, and what it encodes is what
+ * every pass draws (`qr.ts`).
  */
 
 /** The paper and its printable area, in points. */
@@ -65,6 +67,8 @@ export interface Checked {
   readonly creationDate: Date
   /** Every image's size in pixels, as it is shown. */
   readonly pixels: ReadonlyMap<ImageAsset, Pixels>
+  /** Every QR code's symbol, encoded once. */
+  readonly codes: ReadonlyMap<QrCode, QrSymbol>
   /** In the body: judged against its height once the regions are measured. */
   readonly tall: readonly Tall[]
   /** Where each paragraph stands, for a refusal about its words to name. */
@@ -88,6 +92,7 @@ interface Walk {
   readonly glyphs: Glyphs
   readonly paths: Map<Block, string>
   readonly images: { readonly image: Image; readonly at: string }[]
+  readonly codes: Map<QrCode, QrSymbol>
   readonly tall: Tall[]
   readonly measured: Measured[]
 }
@@ -98,7 +103,7 @@ export async function checkDocument(document: ResolvedDocument, glyphs: Glyphs):
   // The title goes into the PDF's metadata, never onto a page, so it is held to being text and not to the font.
   if (typeof document.info.title !== 'string') throw new RenderRefusal('unsupported', 'the title is not text', 'info.title')
   const page = pageOf(document.page)
-  const walk: Walk = { glyphs, paths: new Map(), images: [], tall: [], measured: [] }
+  const walk: Walk = { glyphs, paths: new Map(), images: [], codes: new Map(), tall: [], measured: [] }
   const top: Omit<Place, 'region'> = { kept: false, column: false, width: page.width, inset: 0, depth: 0 }
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true }, walk)
   checkBlocks(document.pageFooter, 'pageFooter', { ...top, region: true }, walk)
@@ -112,7 +117,7 @@ export async function checkDocument(document: ResolvedDocument, glyphs: Glyphs):
     if (data > MAX_IMAGE_DATA) throw new RenderRefusal('content-too-large', `the images up to ${image.asset.id} hold ${data} bytes of image data; a render may hold ${MAX_IMAGE_DATA}`, image.asset.id)
     pixels.set(image.asset, read)
   }
-  return { page, creationDate, pixels, tall: walk.tall, paths: walk.paths, measured: walk.measured }
+  return { page, creationDate, pixels, codes: walk.codes, tall: walk.tall, paths: walk.paths, measured: walk.measured }
 }
 
 function pageOf(setup: ResolvedDocument['page']): Page {
@@ -160,6 +165,9 @@ function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
     case 'image':
       checkImage(block, place, walk)
       walk.images.push({ image: block, at })
+      return
+    case 'qrCode':
+      checkQrCode(block, place, walk)
       return
     case 'rule':
       if (!(block.thickness > 0 && Number.isFinite(block.thickness))) throw new RenderRefusal('unsupported', `${at} is a rule ${block.thickness} pt thick`, at)
@@ -281,6 +289,15 @@ function checkImage(image: Image, place: Place, walk: Walk): void {
   }
   if (image.width > place.width) throw new RenderRefusal('content-too-large', `the image ${id} is ${image.width} pt wide; it stands ${place.width.toFixed(2)} pt wide`, id)
   tall(walk, place, image.height, `the image ${id}`, id)
+}
+
+/** A QR code is a square that stands where an image may: no wider than where it stands, no taller than the body. */
+function checkQrCode(code: QrCode, place: Place, walk: Walk): void {
+  const { id, size } = code
+  if (!(size > 0 && Number.isFinite(size))) throw new RenderRefusal('unsupported', `the QR code ${id} is drawn ${size} pt a side`, id)
+  if (size > place.width) throw new RenderRefusal('content-too-large', `the QR code ${id} is ${size} pt wide; it stands ${place.width.toFixed(2)} pt wide`, id)
+  walk.codes.set(code, qrSymbol(code))
+  tall(walk, place, size, `the QR code ${id}`, id)
 }
 
 function checkRectangle(rectangle: Rectangle, at: string, place: Place, walk: Walk): void {

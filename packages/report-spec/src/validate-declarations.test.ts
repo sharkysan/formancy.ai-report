@@ -141,13 +141,14 @@ describe('provenance', () => {
 
 describe('the page and its lengths', () => {
   // Landscape swaps the page's sides before the margins are taken off: the
-  // same margins can fit one way and not the other.
+  // same margins can fit one way and not the other. These leave 81.89
+  // points of height, less than the seal's 150 and the QR code's 85.04.
   test('the printable area is measured on the page as oriented', () => {
     const tall = edited((r) => {
       setAt(r, '/page/margins/top', 380)
       setAt(r, '/page/margins/bottom', 380)
     })
-    expect(refusals(tall)).toEqual(['exceeds-printable-area /regions/summary/1/height'])
+    expect(refusals(tall)).toEqual(['exceeds-printable-area /regions/summary/1/height', 'exceeds-printable-area /regions/summary/2/size'])
     const wide = edited((r) => {
       setAt(r, '/page/orientation', 'landscape')
       setAt(r, '/page/margins/top', 380)

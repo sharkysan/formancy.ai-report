@@ -60,6 +60,7 @@ const HEADER_BINDINGS = [
   '/regions/body/0/content/1/field',
   '/regions/body/2/columns/2/value/format/currency/field',
   '/regions/summary/0/components/2/source/field',
+  '/regions/summary/2/content/1/field',
 ]
 
 interface Case {
@@ -234,6 +235,7 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
       set('/regions/body/0/content/1', { kind: 'text', text: 'today' }),
       set('/regions/body/2/columns/2/value/format/currency', { kind: 'code', code: 'CHF' }),
       set('/regions/summary/0/components/2/source', { kind: 'asset', asset: 'seal' }),
+      set('/regions/summary/2/content/1', { kind: 'text', text: 'customer' }),
     ),
     at: HEADER_BINDINGS.map((binding) => `${binding}/dataset`),
   },
@@ -276,7 +278,7 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
   // A page break in a page footer would break every page, forever.
   'misplaced-flow-component': {
     refuse: set('/regions/pageFooter/1', { id: 'late-break', kind: 'pageBreak' }),
-    accept: set('/regions/summary/2', { id: 'late-break', kind: 'pageBreak' }),
+    accept: set('/regions/summary/3', { id: 'late-break', kind: 'pageBreak' }),
     at: ['/regions/pageFooter/1'],
   },
   // A page break inside a keep-together block contradicts it, and inside a
@@ -312,16 +314,16 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
   // answer yet.
   'second-detail-table': {
     refuse: (report) => {
-      setAt(report, '/regions/summary/2', { ...(getAt(report, '/regions/body/2') as object), id: 'lines-again' })
+      setAt(report, '/regions/summary/3', { ...(getAt(report, '/regions/body/2') as object), id: 'lines-again' })
       return report
     },
     accept: (report) => {
       const table = getAt(report, '/regions/body/2')
       removeAt(report, '/regions/body/2')
-      setAt(report, '/regions/summary/2', table)
+      setAt(report, '/regions/summary/3', table)
       return report
     },
-    at: ['/regions/summary/2'],
+    at: ['/regions/summary/3'],
   },
   // Containers nest at most MAX_NESTING_DEPTH deep, which bounds the work of
   // every later stage that walks them; the bound itself is allowed.

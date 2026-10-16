@@ -20,8 +20,9 @@
     "trial": "tsdown && node dist/trial/run.mjs"
   },
   "dependencies": {
+    "@formancy/report-runtime": "workspace:*",
     "pdfjs-dist": "6.4.299",
-    "@formancy/report-runtime": "workspace:*"
+    "zxing-wasm": "3.1.5"
   },
   "devDependencies": {
     "@formancy/report-core": "workspace:*",

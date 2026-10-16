@@ -73,7 +73,7 @@ describe('the page', () => {
       ['pageHeader', 'Page header', 1],
       ['body', 'Body', 9],
       ['pageFooter', 'Page footer', 1],
-      ['summary', 'Summary', 1],
+      ['summary', 'Summary', 2],
     ])
   })
 })
@@ -175,6 +175,20 @@ describe('the canvas', () => {
     const { editor } = editorOver({ ...report, regions: { ...report.regions, reportHeader: [narrow, ...report.regions.reportHeader.slice(1)] } })
     expect(boxOf(editor.state().canvas.boxes, 'logo-image').overflows).toBe(true)
     expect(boxOf(editor.state().canvas.boxes, 'title').overflows).toBe(false)
+  })
+
+  // A QR code prints as a square of its size, whatever it encodes, so its
+  // box is that square and no estimate; one wider than its column is
+  // flagged as an image is, not drawn narrower than it prints.
+  test('draws a QR code as its square, and flags one wider than its column', () => {
+    const report = richReport()
+    const code = { id: 'code', kind: 'qrCode', content: [{ kind: 'text', text: 'x' }], size: 80, errorCorrection: 'M' } as const
+    const side = { id: 'side', kind: 'columns', columns: [{ width: 60, components: [code] }, { width: 'fill', components: [] }] } as const
+    const { editor } = editorOver({ ...report, regions: { ...report.regions, body: [...report.regions.body, side] } })
+    const { boxes } = editor.state().canvas
+    expect(boxOf(boxes, 'order-code')).toMatchObject({ pt: { width: 85.04, height: 85.04 }, overflows: false })
+    expect(boxOf(boxes, 'code')).toMatchObject({ pt: { width: 80, height: 80 }, overflows: true })
+    expect(boxOf(boxes, 'side').pt.height).toBe(80)
   })
 
   // A larger font, or more words, is a taller text: the estimate is a rule

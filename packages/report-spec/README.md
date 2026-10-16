@@ -28,8 +28,11 @@ if (!outcome.valid) {
 - anything a shape does not have, and every reference to something the
   report does not declare;
 - a value standing where it has none: a detail field outside the table's
-  cells, a page number outside the page header and footer;
-- a fixed size the page cannot hold.
+  cells, a page number outside the page header and footer or anywhere in a
+  QR code, whose content is resolved before there are pages;
+- a QR code of no runs, which would encode nothing;
+- a fixed size the page cannot hold, a QR code's square measured against
+  `squareRoom`.
 
 It reports up to `MAX_ERRORS` errors and says when there were more. It
 checks structure only: whether an expression compiles, and whether the
@@ -51,16 +54,19 @@ validator refuses: only a valid report has a hash.
 ## Start, find and measure
 
 ```ts
-import { componentAt, emptyReport, mmToPt, printableArea, walkComponents } from '@formancy/report-spec'
+import { componentAt, emptyReport, mmToPt, printableArea, squareRoom, walkComponents } from '@formancy/report-spec'
 
 const blank = emptyReport('site-visit', 'Site visit', 'de-CH') // A4 portrait, 20 mm margins
 const margin = mmToPt(15) // 42.52: lengths are points, stored to the hundredth
 const { width } = printableArea(blank.page) // what the margins leave
+const { side, length } = squareRoom(printableArea(blank.page)) // the largest square, a QR code's room
 for (const { component, path, depth } of walkComponents(blank)) console.log(depth, path, component.id)
 componentAt(blank, 'title') // where a component is, by id: the path its errors use
 ```
 
 `REPORT_SPEC_VERSION` is `0`, the draft: nothing written under it is promised
-to be read by a later release.
+to be read by a later release. Nor by an earlier one: a kind the draft gains
+is refused as `unknown-kind` by a release that predates it, never skipped. A
+report with a `qrCode` is refused so by 0.1.0.
 
 Source-available, not open source: see [`LICENSE.md`](../../LICENSE.md).

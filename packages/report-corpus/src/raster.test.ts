@@ -1,6 +1,6 @@
 import { inflateSync } from 'node:zlib'
 import { describe, expect, test } from 'vitest'
-import { rasterPage } from './raster.js'
+import { rasterPage, rasterPixels } from './raster.js'
 import { pdfmakePdf } from './testing/pdfmake.js'
 
 /** A PNG's size and its pixels, as RGBA rows: enough of a decoder to read back what `rasterPage` drew. */
@@ -50,5 +50,28 @@ describe('rasterPage', () => {
   test.each([0, 2, 1.5])('refuses page %s of a one-page PDF', async (page) => {
     const pdf = await pdfmakePdf({ content: ['One page'] })
     await expect(rasterPage(pdf, page, 1)).rejects.toThrow(RangeError)
+  })
+})
+
+describe('rasterPixels', () => {
+  // A reader of codes handed pixels of another drawing than the page's, at
+  // another scale or in another layout than RGBA rows, would read something
+  // else or nothing: the pixels are rasterPage's page, each one of them.
+  test('gives the page rasterPage draws, pixel for pixel, as RGBA rows at its scale', async () => {
+    const pdf = await pdfmakePdf({ pageSize: 'A4', content: [{ canvas: [{ type: 'rect', x: 0, y: 0, w: 100, h: 50, color: '#000000' }], absolutePosition: { x: 100, y: 100 } }] })
+    const { data, width, height } = await rasterPixels(pdf, 1, 2)
+    expect([width, height]).toEqual([Math.ceil(595.28 * 2), Math.ceil(841.89 * 2)])
+    expect(data).toBeInstanceOf(Uint8ClampedArray)
+    expect(data.length).toBe(width * height * 4)
+    const png = decode(await rasterPage(pdf, 1, 2))
+    const differing = Array.from({ length: height }, (_, y) => y).find((y) => Array.from({ length: width }, (_, x) => x).some((x) => png.pixel(x, y).some((channel, at) => channel !== data[(y * width + x) * 4 + at])))
+    expect(differing).toBeUndefined()
+    expect([...data.subarray((250 * width + 300) * 4, (250 * width + 300) * 4 + 4)]).toEqual([0, 0, 0, 255])
+  })
+
+  // As rasterPage: a page that is not there is the caller's mistake.
+  test.each([0, 2, 1.5])('refuses page %s of a one-page PDF', async (page) => {
+    const pdf = await pdfmakePdf({ content: ['One page'] })
+    await expect(rasterPixels(pdf, page, 1)).rejects.toThrow(RangeError)
   })
 })

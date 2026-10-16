@@ -15,6 +15,7 @@
  */
 import { createReportEditor, editorText, PROPERTY_KINDS } from '@formancy/report-builder-core'
 import type { EditorState, OutlineNode } from '@formancy/report-builder-core'
+import { COMPONENT_KINDS, walkComponents } from '@formancy/report-spec'
 import type { FieldRef, ReportDefinition } from '@formancy/report-spec'
 import { cleanup, isInaccessible, screen, within } from '@testing-library/react'
 import { computeAccessibleDescription, computeAccessibleName } from 'dom-accessibility-api'
@@ -102,7 +103,10 @@ function everyKind(): ReportDefinition {
         { id: 'break', kind: 'pageBreak' },
       ],
       pageFooter: [{ id: 'page-of', kind: 'text', content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }] }],
-      summary: [{ id: 'signature-image', kind: 'image', source: { kind: 'field', field: header('signature') }, width: 150, height: 50, fit: 'contain' }],
+      summary: [
+        { id: 'signature-image', kind: 'image', source: { kind: 'field', field: header('signature') }, width: 150, height: 50, fit: 'contain' },
+        { id: 'order-code', kind: 'qrCode', content: [{ kind: 'text', text: 'Orders for ' }, { kind: 'field', field: header('customer') }], size: 85.04, errorCorrection: 'Q' },
+      ],
     },
   }
 }
@@ -138,8 +142,10 @@ function unnamed(): string[] {
 describe('every part of the builder', () => {
   // The audit below covers every kind of property control only if some row
   // of this report shows each; a kind no row shows would be a control drawn
-  // in no audit.
+  // in no audit. A kind of component the report lacks -- one the format
+  // gained after it was written -- would be a row and a panel drawn in none.
   test('is drawn for this report: every kind of component, every kind of property', () => {
+    expect(new Set(walkComponents(everyKind()).map(({ component }) => component.kind))).toEqual(new Set(COMPONENT_KINDS))
     expect(ROWS.length).toBeGreaterThan(15)
     expect(new Set(ROWS.flatMap((row) => row.kinds))).toEqual(new Set(PROPERTY_KINDS))
   })

@@ -111,6 +111,7 @@ function idsOf(report: ReportDefinition): Set<string> {
 const NAMED_AFTER: { readonly [K in ComponentKind]: string } = {
   text: 'text',
   image: 'image',
+  qrCode: 'qr-code',
   line: 'line',
   rectangle: 'rectangle',
   spacer: 'spacer',

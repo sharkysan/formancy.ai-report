@@ -14,7 +14,7 @@
 import type { Component, ComponentKind, RegionName } from '@formancy/report-spec'
 import type { Block, TextStyle } from './document.js'
 import { imageBlock } from './images.js'
-import { runOf } from './inlines.js'
+import { encodedText, runOf } from './inlines.js'
 import { tableBlock } from './lower-table.js'
 import { holds, reportScope } from './render-context.js'
 import type { Render, Scope } from './render-context.js'
@@ -46,6 +46,10 @@ const LOWER: { readonly [K in ComponentKind]: Lowerer<K> } = {
     return { kind: 'paragraph', runs, ...optional('style', style), ...(text.keepWithNext === true ? { keepWithNext: true } : {}) }
   },
   image: (image, { render, path }) => imageBlock(render, image, path),
+  qrCode: (code, { render, scope, path }) => {
+    const text = encodedText(render, scope, code.content, path, code.id)
+    return text === undefined ? undefined : { kind: 'qrCode', id: code.id, text, size: code.size, errorCorrection: code.errorCorrection }
+  },
   line: (line) => ({ kind: 'rule', thickness: line.thickness, ...optional('color', line.color) }),
   rectangle: (rectangle) => ({ kind: 'rectangle', width: rectangle.width, height: rectangle.height, ...optional('fill', rectangle.fill), ...optional('stroke', rectangle.stroke) }),
   spacer: (spacer) => ({ kind: 'spacer', height: spacer.height }),

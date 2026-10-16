@@ -30,6 +30,10 @@ export const RESOLVE_ERROR_CODES = [
   'rounding-not-decimal',
   /** A total over values that cannot be totalled together: a sum of text, a minimum of a number and a date. */
   'aggregate-value-type',
+  /** In a final render, a run of a QR code's content whose value is null: the code would scan as less than its content, and nothing on the page would say so. */
+  'no-qr-value',
+  /** In a final render, a QR code whose content prints nothing: a symbol of no data, which a scanner reads as no code. */
+  'empty-qr-code',
   /** More errors were found than are listed. */
   'too-many-errors',
 ] as const

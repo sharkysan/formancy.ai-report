@@ -82,6 +82,7 @@ describe('the outline', () => {
       break: 'Page break',
       'page-of': 'Page [page] of [pages]',
       'signature-image': 'Image: Signature',
+      'order-code': 'QR code: Orders for [Customer]',
     })
   })
 
@@ -122,6 +123,20 @@ describe('the outline', () => {
     const empty = { id: 'blank', kind: 'text', content: [{ kind: 'text', text: '   ' }] } as const
     const { editor } = editorOver({ ...report, regions: { ...report.regions, body: [empty, ...report.regions.body] } })
     expect(editor.state().outline[2]?.nodes[0]?.label).toBe('Text')
+  })
+
+  // A QR code is named by what it encodes, as a text by what it prints,
+  // but says it is a code: a text and a code of the same words would
+  // otherwise be one name for two rows. One whose only run is empty text,
+  // which report-spec allows and a final render refuses, would be
+  // "QR code: ", a name that trails off.
+  test('labels a QR code by its kind and what it encodes, or its kind alone', () => {
+    const report: ReportDefinition = richReport()
+    const link = { id: 'link', kind: 'qrCode', content: [{ kind: 'text', text: 'https://example.com/a/' }, { kind: 'parameter', parameter: 'from' }], size: 60, errorCorrection: 'M' } as const
+    const blank = { id: 'blank', kind: 'qrCode', content: [{ kind: 'text', text: '' }], size: 60, errorCorrection: 'M' } as const
+    const { editor } = editorOver({ ...report, regions: { ...report.regions, summary: [link, blank] } })
+    expect(editor.state().outline[4]?.nodes.map((node) => node.label)).toEqual(['QR code: https://example.com/a/[From]', 'QR code'])
+    expect(editorOver({ ...report, regions: { ...report.regions, summary: [link] } }, { locale: 'fr-CH' }).editor.state().outline[4]?.nodes[0]?.label).toBe('Code QR : https://example.com/a/[From]')
   })
 
   // The selected row is the one `aria-selected` marks and focus goes to.

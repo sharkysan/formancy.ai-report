@@ -34,11 +34,11 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:6352b17e4c58b812d9e9398e8260cf6a96490e088fc314c1caf1addd5d7d680a",
+      "reviewed": "sha256:feeae00bb453fd18c869aad842ffbde1fe23fdce65e767ddd2744eecc22b0779",
       "limitations": [
         {
           "area": "testing",
-          "says": "A claim about a rendered PDF rests on its text and images as PDF.js reads them back, so a rule or border through a row, a shape over a line, a clipped glyph or white text on white is not seen until page images are compared."
+          "says": "A claim about a rendered PDF rests on its text and images as PDF.js reads them back, and its QR codes as ZXing decodes the page PDF.js draws, so a rule or border through a row, a shape over a line, a clipped glyph or white text on white is not seen until page images are compared."
         },
         {
           "area": "testing",
@@ -103,7 +103,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:2b6eda80b0c6b2dc31d6a955a058205cc8de124e86d431b619340effa5c61186",
+      "reviewed": "sha256:cd25b86cd2abe3ed24298e0b481e534990e3530e4f23f389fa2f9bab8c3b8bb6",
       "limitations": [
         {
           "area": "format",
@@ -250,11 +250,11 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:d526e55974e96d7f89ad74cd9055818e5489c3b0cc525a0941992bf74062f316",
+      "reviewed": "sha256:218f5c2491f52bf3f680d028eb48dbaf855f5ff769f30be4e4a337311898b368",
       "limitations": [
         {
           "area": "rendering",
-          "says": "One font, Roboto: CJK, Hebrew, Arabic, Thai, emoji and fr-FR amounts are refused, as are the `serif` and `mono` families.",
+          "says": "One font, Roboto: CJK, Hebrew, Arabic, Thai, emoji and fr-FR amounts are refused in printed text, as are the `serif` and `mono` families.",
           "heldBy": "packages/report-render-pdf/src/glyphs.test.ts"
         },
         {
@@ -418,6 +418,55 @@
         {
           "area": "builders",
           "says": "The Studio shows the Preview beside the builder only in a window over 2052px wide; narrower, it is under the builder and the page scrolls to it."
+        }
+      ]
+    },
+    "0020": {
+      "reviewed": "sha256:c7bbbcf24027bc2314baff1da9531c569ca670522ee24bfd06dac4391ef31fb6",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A report that holds a QR code is refused whole by 0.1.0, which does not know the kind, so a report saved with one opens only in a release that has it."
+        },
+        {
+          "area": "format",
+          "says": "A QR code takes no colour or fill of its own, holds no page number or count, and cannot stand in a table's cells, so a coloured code or a code per row cannot be written.",
+          "heldBy": "packages/report-spec/src/validate-qr-code.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A QR code is drawn black on white, square and without a logo, its error correction level the only choice, and its version, mask and mode the encoder's."
+        },
+        {
+          "area": "format",
+          "says": "A QR code is not a Swiss QR-bill: neither the bill's Swiss cross nor its payment part is drawn, and the syntax of what a code holds is not checked."
+        },
+        {
+          "area": "runtime",
+          "says": "In a preview, a QR code whose content lacks a value, or holds one that is null, encodes what is left and is not marked as a preview's, so it can scan to a shorter reference than the final render, which refuses it.",
+          "heldBy": "packages/report-runtime/src/lower.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A QR code's modules are never drawn finer than 0.4 mm, the minimum of SIX's QR-bill guidelines (version 2.3, section 6.3) taken as a general one and measured on no printer or phone, so a small square with long text is refused where some printers might have printed it, and so is the largest code those guidelines print, at 0.393 mm a module.",
+          "heldBy": "packages/report-render-pdf/src/qr.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A QR code marks no character set: ZXing reads its text as UTF-8, but a reader that keeps to ISO/IEC 18004's default of ISO/IEC 8859-1 reads an umlaut or the euro sign as other characters."
+        },
+        {
+          "area": "rendering",
+          "says": "What a QR code encodes is not in the PDF's text, so search, copy and a screen reader find nothing there unless the template prints it beside the code."
+        },
+        {
+          "area": "release",
+          "says": "The renderer depends on uqr 0.1.3 at an exact version, and on that version's behaviour, such as the error it throws for text too long, so a fix to the QR encoder reaches an installation only through a release of this module whose tests ran on it.",
+          "heldBy": "packages/report-render-pdf/src/qr.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "That a QR code scans is shown by ZXing reading the page as PDF.js draws it, never by a phone's camera or a printed page."
         }
       ]
     }

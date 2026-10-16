@@ -1,6 +1,6 @@
 # 0003 — A rendered report is proved on the PDF it produced
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which reads QR codes from the page's pixels
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `packages/report-corpus`, whose suite runs in its own job of
@@ -113,6 +113,18 @@ says that it rests on positions.
 
 **What it forecloses.** An engine-free suite for claims about output, and a
 report proved by snapshotting what was handed to the engine.
+
+**Added 2026-10-17: a QR code is read from the page's pixels.** To PDF.js
+a QR code is neither text nor an image, so nothing above could say what a
+drawn code says. [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md) reads it as a
+scanner does: the corpus's `rasterPixels` gives the page as PDF.js draws
+it, and `readCodes` decodes every code on it with ZXing (zxing-wasm), for
+its text, its bytes, its level, its version and where it stands. That is
+decoding, not the comparison of page images this record leaves for later:
+nothing compares a page with an approved picture, and what is neither
+text, an image nor a code is still not seen. `src/codes.test.ts` holds the
+reader, and `src/raster.test.ts` holds `rasterPixels` to `rasterPage`'s
+page, pixel for pixel.
 
 ## Alternatives considered
 

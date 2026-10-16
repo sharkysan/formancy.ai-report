@@ -74,7 +74,8 @@ it natively; `BUILDER_SCENARIOS` in the core is what both must do
 Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the three starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
-and the renderer trial that chose pdfmake. `apps/studio` is the
+`readCodes`, which decodes the QR codes a page prints with ZXing from the
+pixels PDF.js draws, and the renderer trial that chose pdfmake. `apps/studio` is the
 playground that puts both builders and a PDF.js preview on one page
 ([0013](docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)),
 never published as a package and served at formancy.ai/report/
@@ -171,6 +172,12 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
   glyphs: accents that touch, rules, borders, clipping and colour are not
   seen. Page images are the later addition for those (0003), and pixels
   alone could never prove a total. A layout claim says which it rests on.
+- A QR code is neither text nor an image to PDF.js, so it is proved from the
+  page's pixels: `rasterPixels` draws the page with PDF.js and `readCodes`
+  (`packages/report-corpus/src/codes.ts`) decodes every code on it with ZXing,
+  for its text, bytes, level, version and place
+  ([0020](docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md),
+  extending 0003). That is decoding, not a comparison of page images.
 - Never silently drop, clip or truncate content. A report that cannot fit says
   so in a diagnostic; a production render with incomplete data refuses.
 - Exact values -- decimals, large integers -- travel as strings with their type

@@ -5,7 +5,7 @@
  * Kinds are tables, not switches, as components are: an inline, format or
  * currency source added to its list without a reader here does not compile.
  */
-import { all, flag, integer, kindOf, matches, oneOf, optional, quote, readArray, readObject, reference, shape, strictKeys, text } from './check.js'
+import { all, flag, integer, kindOf, matches, oneOf, optional, quote, readArray, readList, readObject, reference, shape, strictKeys, text } from './check.js'
 import type { Findings } from './check.js'
 import { MAX_EXPRESSION_LENGTH, MAX_INLINES, MAX_SCALE, MAX_STYLE_RULES, MAX_TEXT_LENGTH } from './limits.js'
 import { at } from './pointer.js'
@@ -35,6 +35,8 @@ export interface InlineScope {
   readonly reads: ValueScope
   /** In a group header or footer, the detail field grouped by, when the dataset declares it. */
   readonly groupBy?: string | undefined
+  /** The runs are a QR code's content: resolved whole, once, before there are pages to count. */
+  readonly encoded?: true
 }
 
 /** The regions drawn once per page, the only ones in which a page number or count has a value. */
@@ -197,9 +199,16 @@ function readCheckedFormat(c: Ctx, value: unknown, path: string, scope: InlineSc
   return format
 }
 
-/** A page number or count, and whether it stands where it has a value. A table never stands in a page region, so its cells are refused by region too. */
+/**
+ * A page number or count, and whether it stands where it has a value: in
+ * the page header and footer, printed. A table never stands in a page
+ * region, so its cells are refused by region too; a QR code's content is
+ * resolved before there are pages, so it is refused in every region.
+ */
 function readCounter(c: Ctx, path: string, scope: InlineScope, kind: 'pageNumber' | 'pageCount'): Inline {
-  if (!PAGE_REGIONS.includes(scope.region)) {
+  if (scope.encoded) {
+    c.f.report(path, 'misplaced-page-counter', "a QR code's content is resolved once, before pages are counted, so a page number or count has no value in it")
+  } else if (!PAGE_REGIONS.includes(scope.region)) {
     c.f.report(path, 'misplaced-page-counter', `page numbers and counts have a value only in the page header and footer, not in the ${scope.region}`)
   }
   return { kind }
@@ -276,8 +285,9 @@ export function readInline(c: Ctx, value: unknown, path: string, scope: InlineSc
   return rule.read(c, o, path, scope)
 }
 
-export function readInlines(c: Ctx, value: unknown, path: string, scope: InlineScope): readonly Inline[] | undefined {
-  const items = readArray(c.f, value, path, MAX_INLINES)
+/** Runs, at least `min` of them: none is an empty line in a paragraph, and nothing at all in a QR code. */
+export function readInlines(c: Ctx, value: unknown, path: string, scope: InlineScope, min = 0): readonly Inline[] | undefined {
+  const items = readList(c.f, value, path, min, MAX_INLINES)
   return items && all(items.map((item, index) => readInline(c, item, at(path, index), scope)))
 }
 

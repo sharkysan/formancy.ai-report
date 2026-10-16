@@ -57,6 +57,7 @@ const EN = {
   'region.summary': 'Summary',
   'kind.text': 'Text',
   'kind.image': 'Image',
+  'kind.qrCode': 'QR code',
   'kind.line': 'Line',
   'kind.rectangle': 'Rectangle',
   'kind.spacer': 'Spacer',
@@ -97,6 +98,7 @@ const EN = {
   'palette.needsImage': 'Declare an image asset, or an image field of the header data, first.',
   'palette.needsDetail': 'Declare a detail dataset with a field to show first.',
   'default.text': 'New text',
+  'default.qrCode': 'https://formancy.ai/report/',
   'default.emptyText': 'No rows.',
 
   // The properties pane.
@@ -119,6 +121,8 @@ const EN = {
   'field.width': 'Width',
   'field.height': 'Height',
   'field.fit': 'Fit',
+  'field.size': 'Size',
+  'field.errorCorrection': 'Error correction',
   'field.thickness': 'Thickness',
   'field.color': 'Colour',
   'field.fill': 'Fill colour',
@@ -148,6 +152,10 @@ const EN = {
   'option.landscape': 'Landscape',
   'option.contain': 'Fit inside',
   'option.cover': 'Fill and crop',
+  'option.errorCorrectionL': 'Low ({share})',
+  'option.errorCorrectionM': 'Medium ({share})',
+  'option.errorCorrectionQ': 'Quartile ({share})',
+  'option.errorCorrectionH': 'High ({share})',
   'option.left': 'Left',
   'option.center': 'Centre',
   'option.right': 'Right',
@@ -241,6 +249,7 @@ const DE_CH: Catalogue = {
   'region.summary': 'Zusammenfassung',
   'kind.text': 'Text',
   'kind.image': 'Bild',
+  'kind.qrCode': 'QR-Code',
   'kind.line': 'Linie',
   'kind.rectangle': 'Rechteck',
   'kind.spacer': 'Abstand',
@@ -273,6 +282,7 @@ const DE_CH: Catalogue = {
   'palette.needsImage': 'Erfassen Sie zuerst ein Bild-Asset oder ein Bildfeld der Kopfdaten.',
   'palette.needsDetail': 'Erfassen Sie zuerst einen Detail-Datensatz mit einem anzeigbaren Feld.',
   'default.text': 'Neuer Text',
+  'default.qrCode': 'https://formancy.ai/report/',
   'default.emptyText': 'Keine Zeilen.',
   'properties.report': 'Bericht',
   'properties.heading': '{kind}: {name}',
@@ -293,6 +303,8 @@ const DE_CH: Catalogue = {
   'field.width': 'Breite',
   'field.height': 'Höhe',
   'field.fit': 'Einpassen',
+  'field.size': 'Grösse',
+  'field.errorCorrection': 'Fehlerkorrektur',
   'field.thickness': 'Stärke',
   'field.color': 'Farbe',
   'field.fill': 'Füllfarbe',
@@ -322,6 +334,10 @@ const DE_CH: Catalogue = {
   'option.landscape': 'Querformat',
   'option.contain': 'Ganz zeigen',
   'option.cover': 'Füllen und beschneiden',
+  'option.errorCorrectionL': 'Niedrig ({share})',
+  'option.errorCorrectionM': 'Mittel ({share})',
+  'option.errorCorrectionQ': 'Quartil ({share})',
+  'option.errorCorrectionH': 'Hoch ({share})',
   'option.left': 'Links',
   'option.center': 'Zentriert',
   'option.right': 'Rechts',
@@ -402,6 +418,7 @@ const FR_CH: Catalogue = {
   'region.summary': 'Résumé',
   'kind.text': 'Texte',
   'kind.image': 'Image',
+  'kind.qrCode': 'Code QR',
   'kind.line': 'Ligne',
   'kind.rectangle': 'Rectangle',
   'kind.spacer': 'Espacement',
@@ -434,6 +451,7 @@ const FR_CH: Catalogue = {
   'palette.needsImage': 'Déclarez d’abord une ressource image ou un champ image des données d’en-tête.',
   'palette.needsDetail': 'Déclarez d’abord un jeu de données de détail avec un champ à afficher.',
   'default.text': 'Nouveau texte',
+  'default.qrCode': 'https://formancy.ai/report/',
   'default.emptyText': 'Aucune ligne.',
   'properties.report': 'Rapport',
   'properties.heading': `{kind}${NB}: {name}`,
@@ -454,6 +472,8 @@ const FR_CH: Catalogue = {
   'field.width': 'Largeur',
   'field.height': 'Hauteur',
   'field.fit': 'Ajustement',
+  'field.size': 'Taille',
+  'field.errorCorrection': 'Correction d’erreur',
   'field.thickness': 'Épaisseur',
   'field.color': 'Couleur',
   'field.fill': 'Couleur de remplissage',
@@ -483,6 +503,10 @@ const FR_CH: Catalogue = {
   'option.landscape': 'Paysage',
   'option.contain': 'Ajuster à l’intérieur',
   'option.cover': 'Remplir et rogner',
+  'option.errorCorrectionL': 'Faible ({share})',
+  'option.errorCorrectionM': 'Moyenne ({share})',
+  'option.errorCorrectionQ': 'Quartile ({share})',
+  'option.errorCorrectionH': 'Élevée ({share})',
   'option.left': 'Gauche',
   'option.center': 'Centré',
   'option.right': 'Droite',
@@ -563,7 +587,10 @@ export function contentLocale(reportLocale: string): EditorLocale {
   return EDITOR_LOCALES.find((locale) => locale.split('-')[0] === language) ?? 'en'
 }
 
-/** A zoom as the person's language writes a percentage, by Intl: 125% in all three, where Germany's German would write 125 %. */
-export function formatZoom(zoom: number, locale: EditorLocale): string {
-  return new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }).format(zoom)
+/** A share as the person's language writes a percentage, by Intl: 125% in all three, where Germany's German would write 125 %. */
+export function formatPercent(share: number, locale: EditorLocale): string {
+  return new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }).format(share)
 }
+
+/** A zoom, written as every other share is. */
+export const formatZoom: (zoom: number, locale: EditorLocale) => string = formatPercent

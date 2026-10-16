@@ -6,11 +6,11 @@ import nodePdfmake from 'pdfmake'
 import browserPdfmake from 'pdfmake/build/pdfmake.js'
 import vfs from 'pdfmake/build/vfs_fonts.js'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { ALL_FIXTURES, readPdf, verify, verifyRefusal } from '@formancy/report-corpus'
+import { ALL_FIXTURES, readCodes, readPdf, verify, verifyRefusal } from '@formancy/report-corpus'
 import { afterAll, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
 import { renderPdf as renderInBrowser } from './browser.js'
 import { renderPdf as renderInNode } from './node.js'
-import { fixture, TIMEOUT } from './testing/documents.js'
+import { documentOf, fixture, paragraph, TIMEOUT } from './testing/documents.js'
 
 /**
  * The browser entry, run here in Node: pdfmake's browser build with its
@@ -96,6 +96,25 @@ describe('the browser entry', () => {
     expect(await pages(inBrowser)).toEqual(await pages(inNode))
   }, TIMEOUT)
 
+  // The corpus's fixtures hold no QR code, which the trial's engines did
+  // not draw. A code the browser encoded or placed otherwise than Node
+  // would scan to something else in a preview than in the PDF a server
+  // sends: the same definitions, in the body and in the page footer, and
+  // the same code read back from both.
+  test('hands pdfmake the definitions the Node entry does for QR codes, which read back the same', async () => {
+    const document = { ...documentOf('Codes', [paragraph('Pay with the code'), { kind: 'qrCode', id: 'payment', text: 'Grüezi 9,99 € 🧾', size: 90, errorCorrection: 'Q' } as const]), pageFooter: [{ kind: 'qrCode', id: 'footer', text: 'INV-2026-0042', size: 40, errorCorrection: 'M' } as const] }
+    const options = { maxPages: 5 }
+    const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
+    const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(document, options))
+    expect(inBrowser).toEqual(inNode)
+    const codes = await readCodes(await renderInBrowser(document, options), 1)
+    expect(codes.map(({ text, ecLevel }) => ({ text, ecLevel }))).toEqual([
+      { text: 'Grüezi 9,99 € 🧾', ecLevel: 'Q' },
+      { text: 'INV-2026-0042', ecLevel: 'M' },
+    ])
+    expect(codes).toEqual(await readCodes(await renderInNode(document, options), 1))
+  }, TIMEOUT)
+
   // A browser preview that differs from itself on every render cannot be
   // compared with anything.
   test('renders the same document to the same bytes', async () => {
@@ -145,6 +164,6 @@ describe('the browser entry', () => {
       for (const [, specifier] of source.matchAll(/^export (?!type )[^'"]*from '([^']+)'/gm)) external.add(specifier!)
     }
     visit('browser.ts', new Set())
-    expect([...external].sort()).toEqual(['@formancy/report-runtime', 'pdfmake/build/pdfmake.js', 'pdfmake/build/vfs_fonts.js'])
+    expect([...external].sort()).toEqual(['@formancy/report-runtime', 'pdfmake/build/pdfmake.js', 'pdfmake/build/vfs_fonts.js', 'uqr'])
   })
 })

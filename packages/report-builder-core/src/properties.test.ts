@@ -1,8 +1,9 @@
-import { COMPONENT_KINDS, componentAt } from '@formancy/report-spec'
-import type { Component, ComponentKind } from '@formancy/report-spec'
+import { COMPONENT_KINDS, componentAt, emptyReport, mmToPt, ptToMm, validateReport } from '@formancy/report-spec'
+import type { Component, ComponentKind, PageSettings, QrCodeComponent, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { EditorOutcome, PropertyField } from './model.js'
 import { PROPERTY_KINDS, PROPERTY_ROLES } from './model.js'
+import { defaultComponent } from './palette.js'
 import { editorOver, richReport } from './test-support.js'
 
 function ok(outcome: EditorOutcome): void {
@@ -19,6 +20,7 @@ function field(fields: readonly PropertyField[], key: string): PropertyField {
 const OF_KIND: { readonly [K in ComponentKind]: string } = {
   text: 'intro',
   image: 'logo-image',
+  qrCode: 'order-code',
   line: 'rule',
   rectangle: 'box',
   spacer: 'gap',
@@ -192,6 +194,7 @@ describe('a component’s properties', () => {
     expect(keys('title')).toEqual(['/content/0/text', '/content/1', '/keepWithNext'])
     expect(keys('kept')).toEqual(['/content/0/expression', '/keepWithNext'])
     expect(keys('logo-image')).toEqual(['/source', '/width', '/height', '/fit'])
+    expect(keys('order-code')).toEqual(['/content/0/text', '/content/1', '/size', '/errorCorrection'])
     expect(keys('rule')).toEqual(['/thickness', '/color'])
     expect(keys('box')).toEqual(['/width', '/height', '/fill', '/stroke'])
     expect(keys('gap')).toEqual(['/height'])
@@ -301,6 +304,96 @@ describe('a component’s properties', () => {
     ])
     ok(editor.dispatch({ type: 'setProperty', key: '/source', value: 'field:header:signature' }))
     expect(componentAt(session.document(), 'logo-image')?.component).toMatchObject({ source: { kind: 'field', field: { dataset: 'header', field: 'signature' } } })
+  })
+
+  // A QR code's content is edited run by run as a text's is, its square as
+  // one length, and its level as one of the four the format has. Each
+  // level says the share of the code it restores, written as the editor's
+  // language writes a percentage, by Intl: a hand-written "7 %" is the
+  // German of Germany, not Switzerland's.
+  test('edit a QR code’s content, its size and its level', () => {
+    const { editor, session } = editorOver(richReport(), { locale: 'de-CH' })
+    ok(editor.dispatch({ type: 'select', id: 'order-code' }))
+    const fields = editor.state().properties.fields
+    expect(fields.map((candidate) => [candidate.label, candidate.kind, candidate.value]).slice(0, -2)).toEqual([
+      ['Teil 1: Text', 'multiline', 'Orders for '],
+      ['Teil 2: Feld', 'binding', 'field:header:customer'],
+      ['Grösse (mm)', 'length', '30'],
+      ['Fehlerkorrektur', 'select', 'Q'],
+    ])
+    const percent = (share: number) => new Intl.NumberFormat('de-CH', { style: 'percent' }).format(share)
+    expect(field(fields, '/errorCorrection').options).toEqual([
+      { value: 'L', label: `Niedrig (${percent(0.07)})` },
+      { value: 'M', label: `Mittel (${percent(0.15)})` },
+      { value: 'Q', label: `Quartil (${percent(0.25)})` },
+      { value: 'H', label: `Hoch (${percent(0.3)})` },
+    ])
+    ok(editor.dispatch({ type: 'setProperty', key: '/content/0/text', value: 'https://example.com/orders/' }))
+    ok(editor.dispatch({ type: 'setProperty', key: '/size', value: '25' }))
+    ok(editor.dispatch({ type: 'setProperty', key: '/errorCorrection', value: 'H' }))
+    expect(componentAt(session.document(), 'order-code')?.component).toEqual({
+      id: 'order-code',
+      kind: 'qrCode',
+      content: [{ kind: 'text', text: 'https://example.com/orders/' }, { kind: 'field', field: { dataset: 'header', field: 'customer' } }],
+      size: 70.87,
+      errorCorrection: 'H',
+    })
+    expect(editor.dispatch({ type: 'setProperty', key: '/errorCorrection', value: 'X' })).toMatchObject({ ok: false, code: 'invalid-value' })
+  })
+
+  // The options' words are English's too, and Swiss French's, each from
+  // its own catalogue.
+  test('name a QR code’s levels in each language', () => {
+    for (const [locale, labels] of [
+      ['en', ['Low', 'Medium', 'Quartile', 'High']],
+      ['fr-CH', ['Faible', 'Moyenne', 'Quartile', 'Élevée']],
+    ] as const) {
+      const { editor } = editorOver(richReport(), { locale })
+      ok(editor.dispatch({ type: 'select', id: 'order-code' }))
+      const percent = (share: number) => new Intl.NumberFormat(locale, { style: 'percent' }).format(share)
+      const expected = [0.07, 0.15, 0.25, 0.3].map((share, index) => `${labels[index] as string} (${percent(share)})`)
+      expect(field(editor.state().properties.fields, '/errorCorrection').options?.map((option) => option.label), locale).toEqual(expected)
+    }
+  })
+
+  // A square is measured against the shorter side of what the margins
+  // leave, as the validator measures it. Said against the width on a page
+  // whose height is shorter, the refusal would name more room than there
+  // is -- "100 mm is more than the 170 mm" -- and read as no reason at all.
+  test('say a QR code too large for the page against the side that is short', () => {
+    const report = richReport()
+    const { editor } = editorOver({ ...report, page: { ...report.page, margins: { ...report.page.margins, top: 300, bottom: 300 } } })
+    ok(editor.dispatch({ type: 'select', id: 'order-code' }))
+    expect(editor.dispatch({ type: 'setProperty', key: '/size', value: '100' })).toMatchObject({ ok: false, code: 'refused' })
+    expect(field(editor.state().properties.fields, '/size').error).toBe('100 mm is more than the 85.33 mm the margins leave.')
+  })
+
+  // The palette sizes a new code, and this pane names the room a refused
+  // size lacks; the validator decides which sizes stand. Were either
+  // builder to measure a square its own way -- against the width on a page
+  // whose height is shorter -- it would offer a code the validator refuses,
+  // or name room there is not. Both are held to the largest size the
+  // validator accepts: upright, where the width is short, and landscape,
+  // where the height is.
+  test('hold a QR code to the room the validator gives it, in the palette and here alike', () => {
+    const pages: readonly PageSettings[] = [
+      { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 260, bottom: 56.69, left: 260 } },
+      { size: 'A4', orientation: 'landscape', margins: { top: 260, right: 42.52, bottom: 260, left: 42.52 } },
+    ]
+    const millimetres = new Intl.NumberFormat('en', { maximumFractionDigits: 2 })
+    for (const page of pages) {
+      const blank = emptyReport('square', 'Square', 'en')
+      const withCode = (size: number): ReportDefinition => ({ ...blank, page, regions: { ...blank.regions, body: [{ id: 'code', kind: 'qrCode', content: [{ kind: 'text', text: 'A' }], size, errorCorrection: 'M' }] } })
+      // Where 30 mm does not fit, the palette's default is the largest square the validator accepts.
+      const { size } = defaultComponent(withCode(50), 'qrCode') as QrCodeComponent
+      expect(size, page.orientation).toBeLessThan(mmToPt(30))
+      expect([validateReport(withCode(size)).valid, validateReport(withCode(Math.round((size + 0.01) * 100) / 100)).valid], page.orientation).toEqual([true, false])
+      // And it is the room this pane names for a size too large.
+      const { editor } = editorOver(withCode(50))
+      ok(editor.dispatch({ type: 'select', id: 'code' }))
+      expect(editor.dispatch({ type: 'setProperty', key: '/size', value: '100' })).toMatchObject({ ok: false, code: 'refused' })
+      expect(field(editor.state().properties.fields, '/size').error, page.orientation).toBe(`100 mm is more than the ${millimetres.format(ptToMm(size))} mm the margins leave.`)
+    }
   })
 
   // An expression with an error the runtime would refuse shows it where

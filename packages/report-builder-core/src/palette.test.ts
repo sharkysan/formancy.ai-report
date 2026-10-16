@@ -1,9 +1,10 @@
 import { nextComponentId, validLocations } from '@formancy/report-core'
-import { COMPONENT_KINDS, emptyReport } from '@formancy/report-spec'
+import { COMPONENT_KINDS, emptyReport, mmToPt } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
+import { defaultComponent } from './palette.js'
 import { editorOver, richReport } from './test-support.js'
-import { contentLocale, editorText } from './text.js'
+import { contentLocale, EDITOR_LOCALES, editorText } from './text.js'
 
 describe('the palette', () => {
   // Every kind the format has is offered, in the format's order, named in
@@ -13,7 +14,7 @@ describe('the palette', () => {
     const { editor } = editorOver(richReport(), { locale: 'de-CH' })
     const { palette } = editor.state()
     expect(palette.map((entry) => entry.kind)).toEqual([...COMPONENT_KINDS])
-    expect(palette.map((entry) => entry.label)).toEqual(['Text', 'Bild', 'Linie', 'Rechteck', 'Abstand', 'Spalten', 'Abschnitt', 'Tabelle', 'Seitenumbruch', 'Zusammenhalten'])
+    expect(palette.map((entry) => entry.label)).toEqual(['Text', 'Bild', 'QR-Code', 'Linie', 'Rechteck', 'Abstand', 'Spalten', 'Abschnitt', 'Tabelle', 'Seitenumbruch', 'Zusammenhalten'])
   })
 
   // A new component's id is report-core's, so two builders inserting the
@@ -94,7 +95,8 @@ describe('the palette', () => {
   })
 
   // A default sized for an A4 page would not fit the smallest page the
-  // format allows, and every insert of it would be refused.
+  // format allows, and every insert of it would be refused. A QR code is a
+  // square, so it is held to the shorter side: here the height.
   test('sizes a default box to fit the printable area', () => {
     const blank = emptyReport('tight', 'Tight', 'en')
     const tight: ReportDefinition = {
@@ -103,9 +105,20 @@ describe('the palette', () => {
       page: { size: 'A4', orientation: 'portrait', margins: { top: 380, bottom: 380, left: 250, right: 250 } },
     }
     const { editor } = editorOver(tight)
-    for (const kind of ['image', 'rectangle'] as const) {
+    for (const kind of ['image', 'qrCode', 'rectangle'] as const) {
       const entry = editor.state().palette.find((candidate) => candidate.kind === kind)
       expect(validLocations(tight, entry?.component as NonNullable<NonNullable<typeof entry>['component']>).length, kind).toBeGreaterThan(0)
     }
+  })
+
+  // A new QR code encodes the Studio's address, not nothing: a code that
+  // encoded nothing would scan as no code at all, and report-spec refuses
+  // one with no runs. The square is 30 mm, the level M. The address is the
+  // same in every catalogue, so no language changes what a new code scans
+  // to.
+  test('starts a QR code as the Studio’s address in a 30 mm square at level M', () => {
+    const address = 'https://formancy.ai/report/'
+    expect(defaultComponent({ ...richReport(), locale: 'en' }, 'qrCode')).toEqual({ id: 'qr-code', kind: 'qrCode', content: [{ kind: 'text', text: address }], size: mmToPt(30), errorCorrection: 'M' })
+    expect(EDITOR_LOCALES.map((locale) => editorText(locale)('default.qrCode'))).toEqual(EDITOR_LOCALES.map(() => address))
   })
 })
