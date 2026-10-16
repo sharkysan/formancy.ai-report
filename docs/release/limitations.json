@@ -395,11 +395,11 @@
       ]
     },
     "0018": {
-      "reviewed": "sha256:2d4031841def30c0fce141892abfb752f95166b196e16f9e076df1f63ae98554",
+      "reviewed": "sha256:b7094e7e5b8e172f94257d8e55b74e4fc670a43224f546b22d630822561c7cbb",
       "limitations": [
         {
           "area": "release",
-          "says": "The Studio at formancy.ai/report/ is deployed by hand, so it can be an older Studio than the latest release's; the deployment names its commit, and nothing checks which it is.",
+          "says": "The Studio at formancy.ai/report/ is main's, built and deployed by Cloudflare on every push to main without waiting for that commit's CI, so it can show what no release holds yet; nothing in this repository checks that a build deployed or what the address serves.",
           "heldBy": "scripts/demo.test.mjs"
         }
       ]

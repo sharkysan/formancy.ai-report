@@ -1,4 +1,4 @@
-# 0018 — The Studio's demo is served at formancy.ai/report/, by a Worker of its own
+# 0018 — The Studio's demo is served at formancy.ai/report/, by a Worker of its own that Cloudflare deploys from main
 
 - **Status:** accepted
 - **Date:** 2026-10-16
@@ -14,9 +14,14 @@
     - The deploy refuses a built page that asks for a file by an absolute
       path.
     - The browser gate serves the Studio under the demo's path.
+    - The Workers Builds settings `.github/REPO-METADATA.md` records are
+      the demo's Worker, and their build and deploy commands are
+      `pnpm demo:deploy`'s two halves.
+    - `.node-version`, the Node that Workers Builds picks, is the one
+      every gate and the release run on.
 
-    Each refusal was watched failing against a configuration check that
-    accepted everything.
+    Each was watched failing first. The configuration's refusals failed
+    against a check that accepted everything.
   - **The browser gate, `apps/studio/scripts/browser-test.mjs`, in CI's
     `browser` job.** Every check of the Studio runs with the Studio served
     under `/report/`. The gate also checks that the page fetched nothing
@@ -37,13 +42,15 @@ carries. So any static host can serve it.
 
 formancy.ai's website is one static deployment from formancy.ai's own
 repository: the site at `/`, the playground at `/playground/`. A Cloudflare
-Worker named `formancy-ai` serves it, with static assets (formancy.ai's
-README, "Build formancy.ai"). That repository is Apache-2.0. This one is
-not, which is why it is separate
-([0001](0001-a-paid-module-in-its-own-repository.md)).
+Worker named `formancy-ai` serves it, with static assets. Cloudflare's
+Workers Builds builds and deploys it from that repository with a build
+command and a deploy command (formancy.ai's README, "Build formancy.ai").
+That repository is Apache-2.0. This one is not, which is why it is
+separate ([0001](0001-a-paid-module-in-its-own-repository.md)).
 
 The rightsholder chose formancy.ai, beside the playground, over GitHub
-Pages.
+Pages. They asked for the demo to be deployed automatically, by a new
+Worker connected to this repository.
 
 ## Decision
 
@@ -69,14 +76,24 @@ the path read from the Worker's config, so every check is a check of the
 build as formancy.ai serves it. The check on what the page fetched is held
 to that path.
 
-**The rightsholder deploys it by hand,** with `pnpm demo:deploy`. The
-command:
-- builds, then checks the config and the built page;
-- runs Wrangler at a pinned version, with its telemetry off;
-- refuses a checkout with uncommitted changes, so the deployment's message
-  names the commit it holds.
+**Cloudflare deploys it from `main`, on every push.** Workers Builds
+connects the Worker to this repository, as formancy.ai's site is connected
+to its own. Its settings, recorded in `.github/REPO-METADATA.md`, are:
+- **Root directory:** the repository's root.
+- **Build command:** `pnpm build`.
+- **Deploy command:** `node scripts/demo.mjs`.
+- **Branches:** no build for any branch but `main`.
 
-Nothing in CI deploys it. RELEASING.md says when to deploy.
+Those two commands are `pnpm demo:deploy`, the same command run by hand.
+`scripts/demo.mjs`:
+- checks the config and the built page;
+- refuses a checkout with uncommitted changes, so the deployment's
+  message names the commit it holds;
+- runs Wrangler at a pinned version, with its telemetry off.
+
+Workers Builds generates its own API token. Workers Builds picks Node from
+`.node-version`, and the pnpm its image carries runs the version
+`packageManager` names.
 
 ## Consequences
 
@@ -86,15 +103,30 @@ Nothing in CI deploys it. RELEASING.md says when to deploy.
   playground.
 - **The gated build in the served shape.** The browser gate runs the build
   under `/report/`, as formancy.ai serves it, not only at a root.
+- **No Cloudflare token in GitHub.** No credential able to change
+  formancy.ai's zone is held by this repository or its workflows.
 - **formancy.ai untouched.** Its repository, its build and its Worker carry
   none of this repository's code, so its licence stays true without
   qualification.
 
 **What it costs.**
-- **Deployed by hand.** Nothing checks that what formancy.ai/report/ serves
-  is main's or the latest release's. The deployment's message names its
-  commit, and Cloudflare's dashboard shows it. A forgotten deploy leaves an
-  older Studio online.
+- **Main's Studio, not the release's.** The demo is what `main` holds, so
+  it can show what no release has published yet.
+- **No wait for CI.** Workers Builds deploys a push to `main` without
+  waiting for that commit's CI. Every commit reaches `main` through a pull
+  request merged on a green run, but the merge commit's own run goes
+  alongside the deploy, not before it.
+- **Settings outside the repository.** The Worker's build settings are in
+  Cloudflare's dashboard. A test holds the commands that REPO-METADATA.md
+  records to `pnpm demo:deploy`, but nothing reads what the dashboard
+  holds.
+- **Another build machine.** Workers Builds builds on Cloudflare's image,
+  not GitHub's runner. The Node major and the pnpm are the gates', and the
+  lockfile is the same, but the machine is another.
+- **Failures are seen only in Cloudflare.** A failed build leaves the last
+  deployment serving, and its log is in Cloudflare's dashboard. Nothing in
+  this repository checks that a deploy happened or what the address
+  serves.
 - **A public page that asks Google for its fonts.** formancy.ai's site and
   playground do the same, so a visitor's browser sends Google their
   address. The Studio still says `noindex`, as it did as a local app.
@@ -103,19 +135,25 @@ Nothing in CI deploys it. RELEASING.md says when to deploy.
   rightsholder's account. Nothing here reads them. The Worker sets no
   header of its own, and neither does formancy.ai's site.
 - **Chromium alone,** like the gate.
-- **The routing is checked only once deployed.** Nothing in CI asks
-  Cloudflare anything. The precedence of the routes over formancy.ai's
-  Worker is Cloudflare's documented behaviour. Whether formancy.ai/report/
-  answers is checked by hand after a deploy.
 
-**What it forecloses.** Nothing that cannot be undone: deleting the Worker
-gives `/report/` back to formancy.ai's 404.
+**What it forecloses.** Nothing that cannot be undone. Disconnecting the
+repository stops the deploys. Deleting the Worker gives `/report/` back to
+formancy.ai's 404.
 
 ## Alternatives considered
 
+**A job in `ci.yml` that deploys after the gates of the same run.**
+Rejected. It would deploy only a commit whose own gates passed, which
+Workers Builds does not wait for. But it puts a token able to change
+formancy.ai's zone into a GitHub environment, and it deploys this site
+otherwise than formancy.ai's.
+
+**Deploy by hand after each release.** Rejected as the only way. The demo
+would fall behind whenever a deploy was forgotten. `pnpm demo:deploy`
+stays for a deploy outside the pushes.
+
 **GitHub Pages, at sharkysan.github.io/formancy.ai-report/.** Not chosen.
-It is a second address for the product beside its website, though one that
-a workflow could deploy with no secret.
+It is a second address for the product beside its website.
 
 **Copy the built Studio into formancy.ai's build, as its playground is.**
 Rejected. It would put this repository's code into an Apache-2.0
@@ -129,7 +167,3 @@ playground, and it is a second hostname for one site.
 **Build with `base: '/report/'`.** Rejected. `pnpm demo` would have to
 serve under `/report/` as well, and the built page would hold the path the
 config already says. The relative base is right in both places.
-
-**Deploy from CI on each release.** Not now. It needs a Cloudflare token in
-the repository, a secret that can change formancy.ai's zone, for a page
-that changes once a release.

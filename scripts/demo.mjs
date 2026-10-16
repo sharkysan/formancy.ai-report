@@ -22,11 +22,14 @@
 // build is staged under that path in apps/studio/.cloudflare, the directory
 // the config names, and the staging is removed afterwards.
 //
-// Deploying needs a Cloudflare login that can edit Workers on formancy.ai's
-// zone, `npx --yes <WRANGLER> login` once, and a clean checkout: the
-// deployment's message names the commit it is, and a change not committed
-// would be deployed under a commit that does not hold it. Nothing here runs
-// in CI, which has no Cloudflare account.
+// Cloudflare's Workers Builds runs this on every push to main, as the
+// deploy command after `pnpm build` (.github/REPO-METADATA.md), with the
+// API token it generates. By hand it needs a Cloudflare login that can edit
+// Workers on formancy.ai's zone, `npx --yes <WRANGLER> login` once. Either
+// way it needs a clean checkout: the deployment's message names the commit
+// it is, and a change not committed would be deployed under a commit that
+// does not hold it. GitHub's workflows hold no Cloudflare token and never
+// run it.
 
 import { spawnSync } from 'node:child_process'
 import { cpSync, existsSync, readFileSync, rmSync } from 'node:fs'

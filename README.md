@@ -98,11 +98,10 @@ the built Studio and its web fonts.
 
 formancy.ai/report/ serves the same build, from a Cloudflare Worker of its
 own beside formancy.ai's site, and the browser gate serves it under
-`/report/` as formancy.ai does. It is deployed by hand with
-`pnpm demo:deploy`, as
-[RELEASING.md](./RELEASING.md#the-demo-on-formancyai) says, so it can be
-behind the latest release, and nothing but a look after a deploy checks
-what the address serves
+`/report/` as formancy.ai does. Cloudflare builds and deploys it on every
+push to `main`, as [RELEASING.md](./RELEASING.md#the-demo-on-formancyai)
+says. So it is main's Studio, which can be ahead of the latest release,
+and nothing in this repository checks what the address serves
 ([0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
 
 ## The Studio

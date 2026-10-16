@@ -39,9 +39,10 @@ Data's and formancy.ai's READMEs open with one, and Report's first was
 below its whole Status. The Studio is also online at
 https://formancy.ai/report/, beside formancy.ai's playground, so it can be
 tried without a clone. A Cloudflare Worker of its own serves it, apart from
-formancy.ai's Apache-2.0 site, and it is deployed by hand. The Studio is now
-built with a relative base, and its browser gate serves it under `/report/`
-as formancy.ai does
+formancy.ai's Apache-2.0 site, and Cloudflare deploys it from `main` on every
+push, as it deploys formancy.ai's site, with no Cloudflare token in GitHub.
+The Studio is now built with a relative base, and its browser gate serves
+it under `/report/` as formancy.ai does
 ([0018](docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
 
 Not in this release:

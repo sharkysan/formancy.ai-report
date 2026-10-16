@@ -133,6 +133,30 @@ describe('the demo on formancy.ai (0018)', () => {
     expect(WRANGLER).toMatch(/^wrangler@\d+\.\d+\.\d+$/)
   })
 
+  // Cloudflare's Workers Builds runs the commands its dashboard holds, which
+  // nothing here can read; REPO-METADATA.md records them. Recorded apart
+  // from `pnpm demo:deploy`, the two would drift, and the demo deployed on
+  // a push to main would be built or checked otherwise than one deployed by
+  // hand.
+  test("REPO-METADATA.md's Workers Builds settings are pnpm demo:deploy's halves, for the demo's Worker", () => {
+    const metadata = readFileSync(join(repo, '.github', 'REPO-METADATA.md'), 'utf8')
+    const setting = (name) => new RegExp(`^\\| ${name} \\| \`([^\`]+)\` \\|`, 'm').exec(metadata)?.[1]
+    expect(setting('Worker')).toBe(wrangler.name)
+    expect(setting('Root directory')).toBe('/')
+    expect(setting('Production branch')).toBe('main')
+    expect(`${String(setting('Build command'))} && ${String(setting('Deploy command'))}`).toBe(root.scripts['demo:deploy'])
+  })
+
+  // Workers Builds picks Node from .node-version and defaults to another
+  // major; without it the demo would be built on a Node no gate builds on.
+  test('Cloudflare builds the demo on the Node every gate and the release run on', () => {
+    const pinned = readFileSync(join(repo, '.node-version'), 'utf8').trim()
+    const workflows = ['gates.yml', 'release.yml'].map((file) => readFileSync(join(repo, '.github', 'workflows', file), 'utf8'))
+    const versions = workflows.flatMap((text) => [...text.matchAll(/node-version: (\S+)/g)].map((match) => match[1]))
+    expect(versions.length).toBeGreaterThan(0)
+    for (const each of versions) expect(each).toBe(pinned)
+  })
+
   // A Wrangler bumped in the script and not in RELEASING.md would have the
   // rightsholder log in with one version and deploy with another.
   test('RELEASING.md names only the Wrangler the deploy runs', () => {
