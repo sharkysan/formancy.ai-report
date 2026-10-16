@@ -684,6 +684,11 @@ The first release that freezes the format makes it `'1'`.
   `pnpm --filter @formancy/report-studio dev`. It opens three starter
   reports, and a blank one, in either builder over one session, beside the
   PDF the session prints ([README](../README.md#the-studio)).
+- **Your data from Formancy Data**: `@formancy/report-data-provider` reads
+  a report's header and lines from a Formancy Data 0.1.0 server, as the
+  person whose token your page holds, labelled best-effort. Running it in
+  production needs a Data licence too
+  ([its README](../packages/report-data-provider/README.md#read-a-reports-data)).
 - **The package READMEs**, for everything this guide leaves out: the
   commands that edit a report as data, the expressions, groups and formats,
   the builders' keyboard and what each one renders.
