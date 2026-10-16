@@ -20,6 +20,7 @@
     "check:pkg": "turbo run check:pkg"
   },
   "devDependencies": {
+    "marked": "catalog:",
     "turbo": "2.11.2",
     "typescript": "catalog:",
     "vitest": "catalog:",

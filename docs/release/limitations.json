@@ -342,6 +342,19 @@
           "says": "The publish job has never run; until the first tag, the workflows test holds its shape and not its behaviour."
         }
       ]
+    },
+    "0015": {
+      "reviewed": "sha256:6c9a7833359f2f947f35fd1e792b18c60975071f40f2d4eb8e913b2367ddb02f",
+      "limitations": [
+        {
+          "area": "testing",
+          "says": "The getting-started guide's pages are compiled, drawn on a server and bundled for a browser by the install gate, never mounted in one: the React page's preview effect, the PDF in its iframe, a press of Save and the Angular entry's bootstrap are not run."
+        },
+        {
+          "area": "testing",
+          "says": "The guide's angular.json lines and the server routes its pages call are checked by nothing, and its Angular page has no preview."
+        }
+      ]
     }
   }
 }

@@ -43,3 +43,8 @@ catalog:
 
   # The repository's guards read YAML: the workflows' jobs and matrices.
   yaml: ^2.9.1
+
+  # The guide's blocks are read as GitHub reads Markdown, nested in lists and
+  # quotes and never inside an HTML comment, so the gate compiles the code a
+  # reader sees (0015).
+  marked: ^18.1.1

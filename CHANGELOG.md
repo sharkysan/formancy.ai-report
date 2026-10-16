@@ -10,6 +10,33 @@ later.
 
 ## Unreleased
 
+**A getting-started guide, whose code the install gate compiles and runs**
+([0015](docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
+`docs/getting-started.md` takes an application developer from an empty npm
+project to a quotation printed as a PDF in Node and in a browser, and to the
+editor in a React page that saves and previews and in an Angular page that
+saves. Prose code drifts silently, so every block of it is handed to the
+install gate against the packed packages: the Node program must write a PDF
+and print exactly the
+lines the guide shows, the React page has a project of its own that also
+installs the renderer -- the builder's own project still holds only what the
+builder declares -- and the Angular page is compiled into the Angular
+builder's projects, each page drawn on a server and bundled for a browser at
+both ends of its builder's peer range. That also installs the renderer's
+browser entry from its tarball, type-checks it against the DOM's types and
+bundles it for a browser, which nothing did before. The guide is read as
+GitHub reads it, with marked: a fence in a list item or a quote is code and
+is compiled, a fence inside an HTML comment, which no reader sees, is not,
+and an indented block or an untagged install or output block is refused.
+The guide sets a reader's Node project up as the gate sets up its own --
+ES modules, the tools at the gate's ranges, and a `tsconfig.json` with the
+gate's compiler settings, which now include `exactOptionalPropertyTypes` and
+`noUncheckedIndexedAccess` in every host -- and names, before each block,
+the file it goes in. A guard in `pnpm test:repo` fails when a block escapes
+the gate, a file goes unnamed, an install line names what the gate does not
+install, or a link or anchor no longer resolves. The gate takes longer: 51.2
+s before and 65.4 s after on one machine, one run each.
+
 **Every starter opens with nothing in the problems pane.** The quotation
 declared a print style, `strong`, that nothing used, so the first thing the
 Studio showed a new author was a warning about it, and the README's picture

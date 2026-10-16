@@ -18,22 +18,36 @@ import { elementsIn, spokenText } from './markup.js'
 import type { MarkupElement } from './markup.js'
 
 /**
- * A Swiss German editor over a report with one problem to draw, and one text
- * inserted and selected, so the properties are a component's and not the
- * report's. Swiss German, so every name checked is the catalogue's and none
- * is English by accident.
+ * The report the builders are drawn over: a blank one whose body holds a
+ * text that prints the clock, which a report may not -- a problem to draw,
+ * on its row, on its box and in the problems' list and count. Its outline
+ * is flat, and not empty, which is what structureProblems reads.
  */
-export function editorToDraw(): ReportEditor {
-  // A text that prints the clock, which a report may not: a problem to draw,
-  // on its row, on its box and in the problems' list and count.
+export function reportToDraw(): ReportDefinition {
   const blank: ReportDefinition = emptyReport('builder-check', 'Prüfbericht', 'de-CH')
   const clock: TextComponent = { id: 'clock', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'string(now())' } }] }
-  const opening = openReportSession({ ...blank, regions: { ...blank.regions, body: [clock] } })
-  if (!opening.ok) throw new Error('the report did not open a session')
-  const editor = createReportEditor(opening.session, { locale: 'de-CH' })
+  return { ...blank, regions: { ...blank.regions, body: [clock] } }
+}
+
+/**
+ * `editor`, over reportToDraw(), with one text inserted after the clock and
+ * selected, so the properties drawn are a component's and not the report's.
+ */
+export function insertAndSelect(editor: ReportEditor): ReportEditor {
   if (!editor.dispatch({ type: 'insert', kind: 'text', target: { region: 'body', index: 1 } }).ok) throw new Error('the editor did not insert a text')
   if (editor.state().diagnostics.length === 0) throw new Error('the clock was not diagnosed, so there is no problem to see drawn')
   return editor
+}
+
+/**
+ * A Swiss German editor over reportToDraw(), with a text inserted and
+ * selected. Swiss German, so every name checked is the catalogue's and none
+ * is English by accident.
+ */
+export function editorToDraw(): ReportEditor {
+  const opening = openReportSession(reportToDraw())
+  if (!opening.ok) throw new Error('the report did not open a session')
+  return insertAndSelect(createReportEditor(opening.session, { locale: 'de-CH' }))
 }
 
 /**

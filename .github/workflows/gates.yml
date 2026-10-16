@@ -14,10 +14,11 @@ name: Gates
 # package's suite on a runner of its own (`test`); the Studio in a real
 # browser, and the README's pictures of it held to the text they show
 # (`browser`); and the packed tarballs in projects that are not this one
-# (`install`). Container and getting-started gates arrive with the server
-# and the guide they prove -- not before, so that no job here passes for
-# having nothing to check. A job added here is one the report expects
-# results from: it needs a collect step, and collect.mjs a reader for it.
+# (`install`), which also compiles and runs docs/getting-started.md's code
+# (0015). A container gate arrives with the server it proves -- not before,
+# so that no job here passes for having nothing to check. A job added here
+# is one the report expects results from: it needs a collect step, and
+# collect.mjs a reader for it.
 #
 # A release runs code from here with its own permissions, so third-party
 # actions are pinned to commit hashes, with the tag in a comment, under

@@ -74,7 +74,7 @@ const expect = (holds: boolean, what: string): void => {
 
 // The builder draws one element and no wrapper: the editor's own <section>.
 const [root] = page.children
-if (page.children.length !== 1 || typeof root === 'string' || root.tag !== 'section') throw new Error('the markup is not one editor root, a <section>')
+if (page.children.length !== 1 || root === undefined || typeof root === 'string' || root.tag !== 'section') throw new Error('the markup is not one editor root, a <section>')
 wrong.push(...structureProblems(root, state))
 
 // Drawing changed nothing, and subscribed to nothing. The server renderer

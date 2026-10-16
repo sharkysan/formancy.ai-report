@@ -25,6 +25,12 @@
  * and what it cannot. Neither builder is mounted in a DOM here: no focus, no
  * key, no pointer, no re-render after an edit.
  *
+ * **The guide's code too** (0015). docs/getting-started.md's blocks are read
+ * once, by getting-started.mjs, before anything is packed -- a block the
+ * gate would not run fails it there -- and written into the `guide/`
+ * directory of each host that builds them, where that host's type-check
+ * covers them and its `guide-*` runner runs them.
+ *
  * It does **not** talk to npm about these packages, so it says nothing about
  * the registry copy; the frameworks and tools come from the registry.
  *
@@ -33,8 +39,9 @@
  * every `@formancy/*` package and every runtime dependency of a packed
  * package that a clean `npm install` resolved, each tarball's name, sha256,
  * npm integrity and the hash of its `dist/`, and, per consumer, the framework
- * it was installed beside, the tools that checked it, how far it got and
- * what each step said -- what the release report reads (0014). With
+ * it was installed beside, the tools that checked it, the guide's modules
+ * it was given and the line each of their blocks opens on, how far it got
+ * and what each step said -- what the release report reads (0014). With
  * `--keep-tarballs <dir>` the tarballs are copied there before the work
  * directory goes, so the release publishes exactly these.
  */
@@ -45,7 +52,8 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { planProjects } from './install-hosts.mjs'
+import { readGuide } from './getting-started.mjs'
+import { GUIDE_HOSTS, planProjects } from './install-hosts.mjs'
 import { distHash, distOfTarball } from './release/dist-hash.mjs'
 import { installed } from './release/installed.mjs'
 import { integrityOf } from './release/publish.mjs'
@@ -154,15 +162,29 @@ function describeTarball(name, file) {
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`
 
 /**
+ * Writes what the guide gives `project`'s kind into its `guide/` directory:
+ * each module, and the lines its program is shown printing. Answers what
+ * install.json records of it.
+ */
+function writeGuide(project, dir, guide) {
+  const given = guide.get(project.guide.kind)
+  mkdirSync(join(dir, 'guide'))
+  for (const [file, code] of given.files) writeFileSync(join(dir, 'guide', file), `${code}\n`)
+  if (given.output !== null) writeFileSync(join(dir, 'guide', 'output.txt'), `${given.output}\n`)
+  return { kind: project.guide.kind, files: [...given.files.keys()], blocks: given.blocks }
+}
+
+/**
  * Installs `project` in a directory of its own under `work` and runs its
  * steps in order, filling `entry` in as each passes. Answers what to print.
  */
-async function check(project, entry, tarballs, runtime) {
+async function check(project, entry, tarballs, runtime, guide) {
   const dir = join(work, project.name)
   mkdirSync(dir, { recursive: true })
   // The fixture is copied rather than generated: TypeScript inside a template
   // literal inside a script is the shape that cost upstream two broken attempts.
   cpSync(join(here, 'install-fixture'), dir, { recursive: true })
+  if (project.guide !== null) entry.guide = writeGuide(project, dir, guide)
   writeFileSync(
     join(dir, 'package.json'),
     json({
@@ -191,6 +213,7 @@ async function check(project, entry, tarballs, runtime) {
 
   const framework = Object.entries(entry.installed).map(([name, version]) => `${name} ${String(version)}`).join(', ')
   const lines = [`\n${project.name}: ${project.consumer}${framework === '' ? '' : `, beside ${framework}`}`]
+  if (entry.guide !== null) lines.push(`  the guide's ${entry.guide.kind} blocks, from lines ${entry.guide.blocks.join(', ')} of docs/getting-started.md, in guide/${entry.guide.files.join(', guide/')}`)
   for (const [at, step] of project.steps.entries()) {
     const said = (await inProject(step.command, dir, step.env)).trim()
     entry.steps[at].done = true
@@ -209,6 +232,10 @@ const record = { startedAt: new Date().toISOString(), node: process.version, npm
 let failure
 
 try {
+  // Read before anything is packed: a guide block the gate would not run
+  // fails here, without waiting for npm.
+  const guide = readGuide(readFileSync(join(repo, 'docs', 'getting-started.md'), 'utf8'), GUIDE_HOSTS)
+
   const packages = publishable()
   // A walk that finds none has gone wrong, and a test over zero packages
   // passes by having nothing to check.
@@ -238,11 +265,11 @@ try {
   const projects = planProjects(manifests)
   // The packed packages' own dependencies, which a clean install resolves afresh.
   const runtime = [...new Set([...manifests.values()].flatMap((manifest) => Object.keys(manifest.dependencies ?? {})).filter((name) => !name.startsWith('@formancy/')))].sort()
-  record.consumers = projects.map(({ name, consumer, at, steps }) => ({ project: name, consumer, at, npmInstalled: false, installed: {}, tools: {}, resolved: [], steps: steps.map((step) => ({ step: step.name, done: false, said: null })) }))
+  record.consumers = projects.map(({ name, consumer, at, steps }) => ({ project: name, consumer, at, npmInstalled: false, installed: {}, tools: {}, resolved: [], guide: null, steps: steps.map((step) => ({ step: step.name, done: false, said: null })) }))
   console.log(`installing ${String(projects.length)} projects into plain npm projects, each with what its host has, and checking each…`)
 
   // At once: most of the time is npm's, waiting on the network.
-  const outcomes = await Promise.allSettled(projects.map((project, at) => check(project, record.consumers[at], tarballs, runtime)))
+  const outcomes = await Promise.allSettled(projects.map((project, at) => check(project, record.consumers[at], tarballs, runtime, guide)))
   const failed = []
   for (const [at, outcome] of outcomes.entries()) {
     if (outcome.status === 'fulfilled') console.log(outcome.value)
