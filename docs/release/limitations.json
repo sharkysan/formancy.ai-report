@@ -285,7 +285,7 @@
       ]
     },
     "0012": {
-      "reviewed": "sha256:d771c01f78dddc430d6bec18897697d26f4aaa26c068952ec0ef824e174fe2a3",
+      "reviewed": "sha256:60b75d6b5adf19e4fd6ccb68bb751beae05da18710f0d31c1901425c7d38574f",
       "limitations": [
         {
           "area": "builders",
@@ -297,7 +297,11 @@
         },
         {
           "area": "builders",
-          "says": "Where the shared scenarios stop -- the exact tab order, each framework's pointer gesture -- the builders are held to each other by their own tests and by the core's README, which nothing executes."
+          "says": "Where the shared scenarios and the Studio's comparison of the two builders' accessible trees stop -- each framework's pointer gesture, a state neither takes the builders to -- the builders are held to each other by their own tests and by the core's README, which nothing executes."
+        },
+        {
+          "area": "testing",
+          "says": "The two builders' accessible trees are compared in jsdom and in Chromium alone, at the states the Studio's parity test and its browser gate take them to, so a difference only Firefox or WebKit computes, or one at a state neither reaches, is found by nobody."
         },
         {
           "area": "testing",
@@ -327,7 +331,7 @@
       ]
     },
     "0014": {
-      "reviewed": "sha256:cb0e7fa5829afe5bbaaa9d4d7d6078053d5e6ec31a373c022513d4d091d17087",
+      "reviewed": "sha256:21f96c5e94988496671b374f592e984f70517dd0626f139f5e18fe2a01294f6c",
       "limitations": [
         {
           "area": "release",

@@ -75,10 +75,13 @@ export function Outline({ state, t, ids, tree, drag, act }: OutlineProps): React
   return (
     <div ref={tree} role="tree" aria-label={t('pane.outline')} data-report-part="outline" tabIndex={-1}>
       {regions.map(({ region, rows: list }) => {
-        const label = `${ids}-region-${region.region}`
         return (
-          <div key={region.region} role="group" aria-labelledby={label} data-report-part="outline-region">
-            <span id={label} data-report-part="region-label">
+          // Named in the editor's words, not after the label drawn in it:
+          // Chromium would put report-builder.css's capitals into that name,
+          // "BODY". The label is hidden from the tree, which would read it
+          // again as a text among the group's rows.
+          <div key={region.region} role="group" aria-label={region.label} data-report-part="outline-region">
+            <span data-report-part="region-label" aria-hidden="true">
               {region.label}
             </span>
             {list.length === 0 ? <span>{t('outline.empty')}</span> : null}

@@ -148,12 +148,18 @@ runs.
   named, with every row of every kind selected in turn; the editor is a
   landmark with everything inside it (axe's `region` rule); boxes and places
   are pictures named as the outline and the chooser name them; rows say
-  where they stand among their siblings.
+  where they stand among their siblings. Each group, the form, the list,
+  the statuses and the place chooser are named in the editor's words, never
+  after text on the page, which Chromium would read in the stylesheet's
+  capitals; jsdom applies no stylesheet, so that test reads from the DOM
+  how each name is given. The Studio compares this tree with the React
+  builder's, in jsdom and in Chromium.
 - **The builder's life:** destroyed and made again, given another editor, and
   plan 21's switch over one session.
 - **Keyboard, panes, pointer and properties** behaviour beyond the
-  scenarios. Each property of every component kind is found by its role and
-  name, and axe runs on each selection in turn.
+  scenarios, the keyboard kept on a problem when another is listed before
+  it among them. Each property of every component kind is found by its role
+  and name, and axe runs on each selection in turn.
 - **The stylesheet's hooks:** the parts rendered are exactly `REPORT_PARTS`,
   the `data-*` states are exactly those `REPORT_ATTRIBUTES` lists, and the
   classes are only the workbench's.

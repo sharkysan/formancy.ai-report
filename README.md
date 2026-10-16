@@ -43,7 +43,8 @@ its links, and review the rest
 > `@formancy/report-builder-core` is the editor model, and
 > `@formancy/report-builder-react` and `@formancy/report-builder-angular`
 > render it natively over one session, held to each other by shared
-> scenarios
+> scenarios and by their accessible trees, compared in the Studio in jsdom
+> and in Chromium
 > ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).
 > The Studio, `apps/studio`, is private: it switches between the two
 > builders over one session and previews the PDF the session prints, in

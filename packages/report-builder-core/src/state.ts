@@ -132,12 +132,29 @@ function canvasOf(derived: Derived, local: Local, t: EditorText): Canvas {
   }
 }
 
+/**
+ * Each diagnostic's key: its code, its path and, in an expression, its
+ * characters -- what it is, not where it stands in the list. Two that
+ * report-core says alike are told apart by their order, the second and
+ * later numbered, so the first keeps the key it would have alone.
+ */
+export function diagnosticKeys(diagnostics: readonly Diagnostic[]): string[] {
+  const seen = new Map<string, number>()
+  return diagnostics.map(({ code, path, position }) => {
+    const key = `${code} ${path}${position === undefined ? '' : ` ${String(position.start)}-${String(position.end)}`}`
+    const count = (seen.get(key) ?? 0) + 1
+    seen.set(key, count)
+    return count === 1 ? key : `${key} ${String(count)}`
+  })
+}
+
 function diagnosticEntries(derived: Derived, t: EditorText): DiagnosticEntry[] {
-  return derived.diagnostics.map((diagnostic) => {
+  const keys = diagnosticKeys(derived.diagnostics)
+  return derived.diagnostics.map((diagnostic, at) => {
     const { componentId, columnId } = diagnostic
     const target: Selection | null = componentId === undefined ? null : columnId === undefined ? { id: componentId } : { id: componentId, column: columnId }
     const where = target === null ? t('problem.report') : (derived.labels.get(selectionKey(target)) ?? componentId ?? '')
-    return { severity: diagnostic.severity, code: diagnostic.code, message: diagnostic.message, where, label: t('problem.item', { severity: t(`severity.${diagnostic.severity}`), where }), target }
+    return { key: keys[at] as string, severity: diagnostic.severity, code: diagnostic.code, message: diagnostic.message, where, label: t('problem.item', { severity: t(`severity.${diagnostic.severity}`), where }), target }
   })
 }
 

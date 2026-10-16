@@ -7,6 +7,10 @@
  *
  * The list is not a tab stop of its own: the toolbar's Problems button
  * moves focus to it, so what is said first is how many there are.
+ *
+ * Each entry is tracked by what it is (`DiagnosticEntry.key`), never by its
+ * place in the list: a problem listed before the one the keyboard is on
+ * leaves that one's button, and the keyboard, on the problem they were on.
  */
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import type { DiagnosticEntry } from '@formancy/report-builder-core'
@@ -17,7 +21,7 @@ import { ReportEditorRoot } from './root'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ul data-report-part="diagnostics" tabindex="-1" [attr.aria-label]="t()('pane.problems')">
-      @for (entry of state().diagnostics; track $index) {
+      @for (entry of state().diagnostics; track entry.key) {
         <li data-report-part="diagnostic" [attr.data-severity]="entry.severity">
           <button type="button" [attr.aria-describedby]="message($index)" (click)="follow(entry)">{{ entry.label }}</button>
           <div [id]="message($index)">{{ entry.message }}</div>

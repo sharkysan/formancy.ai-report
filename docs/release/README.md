@@ -142,9 +142,12 @@ with a check in it, a gates.yml `job`, or a `document`. A gate passes in a
 run when everything but its documents passed; a document is shown as
 stated, with its last change and how many commits it is behind, and never
 as passed in the run. A gate with a reason is open whatever its evidence, and the evidence it has
-must pass all the same: G3's builders' scenarios, the Studio's switch across
-the frameworks in jsdom and its browser gate run in every run, and G3 stays
-open because nothing compares the two builders' accessible trees. The
+must pass all the same. G3 has no reason: its builders' scenarios, the
+Studio's switch across the frameworks in jsdom, the two builders'
+accessible trees compared side by side in jsdom, and the browser gate,
+which runs the switch the other way and compares the trees in Chromium,
+all run in every run, and G3 passes in a run only when every one of them
+did. The
 `legal` gate waits for a lawyer's review of `LICENSE.md`, and
 `scripts/licence-status.test.mjs` fails when it is given evidence, or loses
 its reason, while the licence's version line says no lawyer has reviewed it

@@ -1,10 +1,11 @@
 /**
  * The keyboard and focus, beyond what the shared scenarios ask: the
  * toolbar's one tab stop, a tool with nothing to act on, the place dialog's
- * way out, the panes a narrow screen switches between, and the live region.
+ * way out, the panes a narrow screen switches between, the live region, and
+ * the problem the keyboard is on when another is listed before it.
  */
 import { createReportEditor, editorText, scenarioReport } from '@formancy/report-builder-core'
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { computeAccessibleDescription } from 'dom-accessibility-api'
 import { afterEach, describe, expect, test } from 'vitest'
@@ -228,6 +229,30 @@ describe('the outline', () => {
     expect(document.activeElement).toBe(screen.getByRole('treeitem', { name: 'Introduction', selected: true }))
     await user.click(button(t('problem.item', { severity: t('severity.error'), where: 'Article' })))
     expect(document.activeElement).toBe(screen.getByRole('treeitem', { name: 'Article', selected: true }))
+  })
+})
+
+describe('the problems', () => {
+  // A problem found while the keyboard is on another -- a field committed
+  // as Tab lands on the list, or an edit from another editor over the
+  // session -- may be listed before it. Each problem's button stays its own
+  // element, keyed by what it is: keyed by its place, the button under the
+  // keyboard was drawn afresh and the keyboard dropped to the page, where
+  // the Angular builder's stayed on the button now naming the new problem.
+  // The browser gate's comparison of the two builders found it.
+  test('keeps the keyboard on the problem it is on when another is listed before it', () => {
+    const report = scenarioReport()
+    const { editor } = mount({ ...report, styles: [...report.styles, { id: 'unused', size: 9 }] })
+    const warning = button(t('problem.item', { severity: t('severity.warning'), where: t('problem.report') }))
+    act(() => warning.focus())
+    act(() => {
+      editor.dispatch({ type: 'select', id: 'intro' })
+      editor.dispatch({ type: 'setProperty', key: '/visibleWhen', value: 'params.missing' })
+    })
+    const problems = within(screen.getByRole('list', { name: t('pane.problems') })).getAllByRole('button')
+    expect(problems.map((problem) => problem.textContent)).toEqual([t('problem.item', { severity: t('severity.error'), where: 'Introduction' }), warning.textContent])
+    expect(document.activeElement).toBe(warning)
+    expect(warning.isConnected).toBe(true)
   })
 })
 

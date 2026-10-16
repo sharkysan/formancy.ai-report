@@ -99,7 +99,9 @@ is running counts as part of it, so listeners still hear once.
   It also carries rulers in millimetres. It is labelled as not the PDF,
   because it is not; see *What it does not do*.
 - **`diagnostics`**: report-core's `diagnose()`, each entry linked to the
-  component or column it is about.
+  component or column it is about, with a `key` of what it is -- its code,
+  where it points and which characters -- unique in the list and the same
+  while it is listed.
 - **`history`**: whether undo and redo can run, and what they would take
   back.
 - **`drag`** and **`dropTargets`**: while something is being placed, the
@@ -237,6 +239,8 @@ so the choices are made here.
   the count is announced; then a list named `pane.problems`, with one
   button per diagnostic named by its label and described by its message.
   Activating one selects what it is about and focuses that outline row.
+  Each entry is keyed by its `key`, so a problem listed before the one the
+  keyboard is on leaves the keyboard on the problem it was on.
 - **The canvas:** a region named `canvas.label`, one tab stop so a
   keyboard can scroll it, with the note that says it is not the PDF. Each
   box is an `img` named by its label; a click selects it and moves focus to
@@ -245,6 +249,18 @@ so the choices are made here.
   sheet's padding edge, inside its border, as the targets are placed.
 - **A live region** (`role="status"`, unnamed) showing `status.text`, each
   announcement a new element.
+
+**A name the builder gives is in the editor's words**, as `aria-label`:
+the region, the toolbar, a region's group, the form, the problems' count
+and list, the place chooser and the canvas. Never `aria-labelledby` after
+text on the page: Chromium puts a stylesheet's `text-transform` into a name
+it takes from text, and `report-builder.css` draws a region's label in
+capitals, so a group named after its label was "BODY" in Chromium where the
+other builder's was "Body". Where the same words are drawn inside what
+they name, as a region's label is in its group, they are hidden from the
+tree, which would read them a second time. A control named by its own text
+-- a button, a row, an option -- and a field named by its `<label>` are
+named as HTML names them.
 
 Every piece carries a `data-report-part` from `REPORT_PARTS`, and its
 states use `REPORT_ATTRIBUTES`; a badge's colour is the row's or box's
@@ -275,6 +291,17 @@ Here the scenarios run against the model alone, through a headless reading
 of the contract above. That shows every name they look for is one the
 state gives. Focus, roles and what is visible are for the framework runs to
 show.
+
+Where the scenarios stop, the two builders' whole accessible trees are
+compared with each other, in the Studio
+([0012](../../docs/decisions/0012-the-builders-are-native-and-share-one-session.md)):
+side by side over one editor in jsdom, in all three languages, at each
+state of a walk by the editor's own actions (`apps/studio/src/parity.test.tsx`);
+and in Chromium, in the Studio's browser gate, for every starter at each
+state the same steps bring each builder to, as Playwright's snapshot and
+as Chromium's own tree read them (`apps/studio/scripts/gate-parity.mjs`).
+A difference either finds is fixed in the builder that is wrong, or made a
+rule here; those it found are the naming rule above and the problems' key.
 
 ## The stylesheet
 

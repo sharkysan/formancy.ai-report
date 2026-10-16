@@ -4,6 +4,10 @@
  * selects what it is about, and the builder moves focus to its outline row;
  * one about the report as a whole selects nothing, which shows the report's
  * own properties.
+ *
+ * Each entry is keyed by what it is (`DiagnosticEntry.key`), never by its
+ * place in the list: a problem listed before the one the keyboard is on
+ * leaves that one's button, and the keyboard, where they were.
  */
 import type { ReactElement, Ref } from 'react'
 import type { DiagnosticEntry, EditorState, EditorText } from '@formancy/report-builder-core'
@@ -12,21 +16,20 @@ export interface DiagnosticsProps {
   readonly state: EditorState
   readonly t: EditorText
   readonly ids: string
-  /** The element whose text names the list: the pane's heading. */
-  readonly heading: string
   readonly list: Ref<HTMLUListElement>
   readonly follow: (entry: DiagnosticEntry) => void
 }
 
-export function Diagnostics({ state, t, ids, heading, list, follow }: DiagnosticsProps): ReactElement {
+export function Diagnostics({ state, t, ids, list, follow }: DiagnosticsProps): ReactElement {
   return (
     <>
-      {/* Not a tab stop: the problems pane's button moves focus here, to say how many there are. */}
-      <ul ref={list} aria-labelledby={heading} data-report-part="diagnostics" tabIndex={-1}>
+      {/* Not a tab stop: the problems pane's button moves focus here, to say
+          how many there are. Named in words, as the pane's heading says. */}
+      <ul ref={list} aria-label={t('pane.problems')} data-report-part="diagnostics" tabIndex={-1}>
         {state.diagnostics.map((entry, at) => {
           const message = `${ids}-problem-${at}`
           return (
-            <li key={`${at}-${entry.code}`} data-report-part="diagnostic" data-severity={entry.severity}>
+            <li key={entry.key} data-report-part="diagnostic" data-severity={entry.severity}>
               <button type="button" aria-describedby={message} onClick={() => follow(entry)}>
                 {entry.label}
               </button>

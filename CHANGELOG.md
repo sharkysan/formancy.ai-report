@@ -37,6 +37,51 @@ the gate, a file goes unnamed, an install line names what the gate does not
 install, or a link or anchor no longer resolves. The gate takes longer: 51.2
 s before and 65.4 s after on one machine, one run each.
 
+**The two builders' accessible trees are compared with each other, and the
+differences that found are gone**
+([0012](docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).
+The shared scenarios held the React and the Angular builder to each other
+only where a scenario finds a control by role and name; what else each
+drew -- a description, a state, a name as a real browser computes it --
+nothing compared, and release gate G3 asks for equivalent accessible
+controls. The Studio now compares them twice. Its suite mounts both
+builders side by side over one editor and requires the same tree at each
+state of a walk by the editor's own actions -- every kind placed, a row of
+each kind selected, a problem, a refusal, undo, each pane -- over every
+starter, in all three languages. Its browser
+gate walks each builder through the same states of every starter in
+Chromium -- the place chooser, a selection, a problem, a refusal, undo,
+each pane, in the one-pane layout and the side-by-side one -- and requires
+the same Playwright snapshot and the same tree Chromium itself computes,
+leaving out only ids and wrappers that say nothing (`accessible-tree.mjs`
+says which, and a test holds it). What it found, each now a test in the
+builder that was wrong and seen to fail first:
+
+- **A name after text on the page.** The React builder named its
+  outline's region groups, its properties form and its problems' list after
+  a heading drawn on the page, and Chromium puts a stylesheet's
+  `text-transform` into such a name: "BODY", "TEXT: NOTE", "PROBLEMS", where
+  the Angular builder's said "Body". Both builders named the problems'
+  count and the place chooser that way. Every such name is now
+  `aria-label` in the editor's words, a rule in report-builder-core's
+  README, and the browser gate fails on any name in either builder that the
+  page's `text-transform` changes.
+- **A region's label read twice.** The React builder left it in the tree as
+  text inside its group; it is hidden there, as Angular's was.
+- **The keyboard moved by a new problem.** A problem listed before the one
+  the keyboard was on dropped the keyboard to the page in React, and in
+  Angular left it on the same button now naming the new problem. Each
+  problem's element is now kept by what it is: `DiagnosticEntry.key`, new
+  in report-builder-core's state.
+
+With plan 21's switch across the frameworks and the subscriptions it
+leaves already held by the Studio, gate G3 rests on its evidence and has
+no open reason. The comparison costs time: on one Windows 11 workstation
+on 16 October 2026 the browser gate took 253 s, 163 s before it, and the
+jsdom comparison 18.6 s run alone. The README's pictures were retaken by
+the script: their recorded text lost the region labels React read twice,
+and no picture changed.
+
 **Every starter opens with nothing in the problems pane.** The quotation
 declared a print style, `strong`, that nothing used, so the first thing the
 Studio showed a new author was a warning about it, and the README's picture

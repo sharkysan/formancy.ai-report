@@ -1,14 +1,15 @@
 # 0012 — The builders are native, share one session through one editor model, and are held to each other by shared scenarios
 
-- **Status:** accepted; its *What holds nothing yet*, and the costs *No
-  test mounts both builders* and *No browser in the suites*, describe
-  2026-10-15. Since [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)
+- **Status:** accepted; the costs *No test mounts both builders* and *No
+  browser in the suites* describe 2026-10-15. Since [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)
   the Studio's `studio.test.tsx` runs plan 21's switch across the two
   frameworks over one session in jsdom, its `journey.test.tsx` audits both
   builders at every state, its browser gate measures layout, contrast,
   target size and a real pointer's drag in Chromium, and its README
-  pictures are checked; the builders' own READMEs' pictures are still taken
-  by hand.
+  pictures are checked. Since 2026-10-16 the two builders' accessible trees
+  are compared with each other, in jsdom and in Chromium, the step this
+  record named next; *Verified by* and *What holds nothing yet* say what
+  holds them now.
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** each package's `test:coverage` job in CI, the `verify` job
@@ -50,16 +51,48 @@
     Angular's platform-server over a host compiled ahead of time and linked
     without the JIT compiler.
 
+  - The two builders' accessible trees, compared with each other in the
+    Studio. Its `parity.test.tsx` mounts both side by side over one editor
+    and takes the editor through its states by its own actions -- every
+    kind of component placed, one row of each kind selected, a move's
+    chooser, a problem, a refusal, undo and redo, each pane -- over every
+    starter, in all three languages, and at each requires the two trees,
+    as dom-accessibility-api reads them, to be the same. Its browser gate
+    (`apps/studio/scripts/gate-parity.mjs`) walks each builder, on a page of
+    its own, through the same states by the same steps, for every starter,
+    in the one-pane layout and the side-by-side one, and requires the same
+    Playwright snapshot and the same Chromium tree -- every role, name,
+    description, value and state, normalised only as `accessible-tree.mjs`
+    says and `scripts/accessible-tree.test.mjs` holds -- and no name in
+    either that changes with the page's `text-transform`. Measured on
+    16 October 2026 on one Windows 11 workstation (Intel i9-10900K, Node
+    24.21.0), once each: the gate took 253 s with the walk in its two
+    layouts and 163 s before it, and the parity test 18.6 s in the
+    Studio's suite run alone.
+
   On 15 October 2026 a review compared the two builders' accessible trees
   and behaviour and found them apart in places the scenarios did not
   reach. Each became a scenario, a shared rule in the core's README, or a
   test in the builder that lacked it; each fix was reverted on its own and
-  its test seen to fail, and each file was byte-identical afterwards.
+  its test seen to fail, and each file was byte-identical afterwards. On
+  16 October 2026 the comparison found them apart where the review had not
+  looked, and in Chromium alone: the React builder named its outline's
+  groups, its form and its problems' list after text on the page, which
+  Chromium reads in the stylesheet's capitals ("BODY" where Angular's said
+  "Body"), and left each region's label in the tree as text; both named
+  the problems' count and the place chooser the same way, "PROBLEMS" in
+  both; and a problem listed before the one the keyboard was on moved the
+  keyboard -- to the page in React, onto the new problem in Angular. Each
+  became a rule in the core's README (a name is the editor's words; a
+  problem's element is keyed by what it is, `DiagnosticEntry.key`) and a
+  test in each builder, seen to fail before its fix; the comparisons were
+  seen to fail on the builders as they were.
 
-  What holds nothing yet: a test that mounts both builders over one session
-  (the Angular package cannot be imported by name inside the workspace until
-  its manifest points into `dist/`), a browser gate for layout, contrast and
-  real pointers, and a check of the README pictures.
+  What holds nothing yet: the pictures in the builders' own READMEs, taken
+  by hand; a pointer's gesture, which each framework binds differently
+  (*What it costs*) and no comparison reaches; and a state neither the
+  Studio's parity test nor its gate takes the builders to, a pointer's drag
+  under way among them.
 
 ## Context
 
@@ -154,7 +187,9 @@ two native bindings, and parity asserted by user-visible behaviour.
   the core's README, which nothing executes. The review that found the
   builders apart found each difference by reading both.
 - **The contract is prose where the scenarios stop.** A choice written only
-  in the core's README drifts the way prose does.
+  in the core's README drifts the way prose does. Since the two builders'
+  trees are compared, one builder drifting from the other is found; both
+  drifting together from the README is not.
 - **No test mounts both builders.** Plan 21's critical test runs at the
   model and within each framework, not across them, until the Angular
   package can be imported inside the workspace.
@@ -197,9 +232,12 @@ what a person meets.
 
 **A parity check over a serialised accessible tree of both builders.**
 Stronger than the scenarios: it would have found the differences the review
-found by hand. Not done yet, because it needs both builders mounted
-in one test, which waits for the Angular manifest; it is the next step, not
-a rejected one.
+found by hand. Not done on 15 October 2026, because it needed both builders
+mounted in one test, which waited for the Angular manifest; it was the next
+step, not a rejected one, and since 16 October 2026 the Studio, which
+mounts both, takes it (*Verified by*). It is beside the scenarios, not in
+place of them: a tree compared says the two builders agree, and only a
+scenario says what either does.
 
 **Each builder's own stylesheet.** Rejected: two stylesheets drift, and a
 Studio would recolour two sets of rules.

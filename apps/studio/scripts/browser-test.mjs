@@ -37,7 +37,12 @@
 //   - no rule of the page's stylesheets selects an element on the paper but
 //     the paper's own, so what is shown is what prints;
 //   - every web font the built page asks for had loaded by the end of each
-//     pass, and in the pass that refuses them, none had.
+//     pass, and in the pass that refuses them, none had;
+//   - the two builders' accessible trees are the same, in every starter and
+//     in each state the same steps bring each builder to, as Playwright's
+//     snapshot reads them and as Chromium's own tree does, once in each
+//     layout the builder is drawn in; and no name in either changes with
+//     the page's text-transform (gate-parity.mjs).
 //
 // Against the page `vite build` writes, served by `vite preview` on the port
 // vite.config.ts fixes, which fails rather than wander when the port is
@@ -58,7 +63,9 @@ import { chromium } from 'playwright'
 import { build, preview } from 'vite'
 import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
 import { app, audit, describeFocus, drawnPages, fontProblem, fromTheTop, measureWidth, passes, rulesOnThePaper } from './gate-page.mjs'
+import { builderParity } from './gate-parity.mjs'
 import { gateRecorder } from './gate-results.mjs'
+import { builder, editorOf, open, showing } from './gate-steps.mjs'
 
 const dist = join(app, 'dist')
 const repo = join(app, '..', '..')
@@ -77,28 +84,7 @@ const PICTURED = JSON.parse(readFileSync(join(repo, 'docs', 'images', 'pictures.
 const PAYMENT = 'Zahlbar innert 30 Tagen netto.'
 const EDITED = 'Zahlbar innert 10 Tagen netto.'
 
-const editorOf = (page) => page.getByRole('region', { name: 'Report editor', exact: true })
 const previewOf = (page) => page.getByRole('region', { name: 'Preview', exact: true })
-
-/** Each pane button's pane, as the builders mark it (`data-pane`). */
-const PANES = { Outline: 'outline', 'Design view': 'canvas', Properties: 'properties', Problems: 'diagnostics' }
-
-/**
- * The builder's pane that holds `probe`, shown: below report-builder.css's
- * one-pane tier only the pane chosen from the toolbar is drawn, and the
- * others are not in the accessibility tree at all. Whether the pane is
- * drawn is read from the DOM, by the hook the stylesheet hides it by,
- * because the probe may not be drawn yet when it is: zoneless Angular
- * draws a selection's fields a frame after the click, and a pane button
- * pressed in that frame moved the keyboard into the first field while the
- * next step typed into another.
- */
-async function showing(editor, pane, probe) {
-  const drawn = await editor.locator(`[data-pane="${PANES[pane]}"]`).first().isVisible()
-  if (!drawn) await editor.getByRole('toolbar', { name: 'Report tools', exact: true }).getByRole('button', { name: pane, exact: true }).click()
-  await probe.waitFor()
-  return probe
-}
 
 /** Null once `locator` is there, within a few seconds -- zoneless Angular draws a frame or two after the click -- or why not. */
 const present = (locator, what) =>
@@ -118,18 +104,6 @@ async function setField(editor, name, value) {
   await field.fill(value)
   await field.press('Tab')
   await editor.getByRole('status').filter({ hasText: `Changed ${name}.` }).waitFor()
-}
-
-/** The starter whose corpus id is `id`, opened from the picker by its option's value. */
-async function open(page, id) {
-  await page.getByRole('combobox', { name: 'Starter', exact: true }).selectOption(id)
-}
-
-/** The builder the switch names, once drawn: Angular's is bootstrapped after the click, and says so until it has started. */
-async function builder(page, name) {
-  await page.getByRole('group', { name: 'Builder', exact: true }).getByRole('radio', { name, exact: true }).check()
-  await page.getByText('Starting the Angular builder…').waitFor({ state: 'hidden' })
-  await editorOf(page).waitFor()
 }
 
 /**
@@ -447,8 +421,8 @@ async function interactions(gate, page, framework) {
   await settled(page)
 }
 
-/** One pass: the whole journey at one viewport. */
-async function pass(gate, browser, url, { label, width, height, refuseFonts = false }) {
+/** One pass: the whole journey at one viewport, then, where `parity` marks it, the two builders compared (gate-parity.mjs). */
+async function pass(gate, browser, url, { label, width, height, refuseFonts = false, parity = false }) {
   gate.pass({ label, width, height })
   const page = await browser.newPage({ viewport: { width, height } })
   page.setDefaultTimeout(WITHIN)
@@ -459,12 +433,13 @@ async function pass(gate, browser, url, { label, width, height, refuseFonts = fa
     if (!address.startsWith(`${origin}/`) && !/^(blob|data):/.test(address) && !/^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(address)) elsewhere.add(address)
   })
   if (refuseFonts) await page.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, (route) => route.abort())
+  let starters = []
   try {
     await page.goto(url, { waitUntil: 'load' })
     const picker = page.getByRole('combobox', { name: 'Starter', exact: true })
     await picker.waitFor()
     await keyboard(gate, page)
-    const starters = await picker.locator('option').evaluateAll((options) => options.map((option) => ({ id: option.value, label: option.textContent })))
+    starters = await picker.locator('option').evaluateAll((options) => options.map((option) => ({ id: option.value, label: option.textContent })))
     const unlisted = PICTURED.filter((picture) => !starters.some((starter) => starter.id === picture.starter))
     gate.check('the picker offers every starter pictures.json pictures', unlisted.length === 0 ? null : `no ${unlisted.map((picture) => picture.starter).join(', ')}`)
     let ruled = false
@@ -513,6 +488,10 @@ async function pass(gate, browser, url, { label, width, height, refuseFonts = fa
     gate.check('the page fetched nothing but the built Studio and the web fonts: the PDFs were printed in it', elsewhere.size === 0 ? null : [...elsewhere].slice(0, 4).join(', '))
   } finally {
     await page.close()
+  }
+  if (parity) {
+    gate.check('the picker offers starters for the two builders to be compared in', starters.length > 0 ? null : 'it offers none, so no tree would be compared')
+    await builderParity(gate, browser, url, { starters, viewport: { width, height }, refuseFonts })
   }
 }
 

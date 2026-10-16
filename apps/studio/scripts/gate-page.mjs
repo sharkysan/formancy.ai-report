@@ -35,12 +35,22 @@ const breakpointsOf = (css) => [...css.matchAll(/@media\s*\(\s*max-width:\s*([\d
  * a phone, the laptop the stacked layout ends at, and the side-by-side
  * layout made tall, so the rows its panes scroll at 900 px are in view and
  * axe can decide their contrast.
+ *
+ * The first pass in each layout report-builder.css draws the builder in is
+ * marked `parity`: there the two builders' accessible trees are compared
+ * (gate-parity.mjs). Only report-builder.css's own breakpoints change which
+ * panes the builder's tree holds, so once per layout compares every tree
+ * the widths give, and a breakpoint added to it is compared without anybody
+ * editing this.
  */
 export function passes() {
   const studio = breakpointsOf(inlined(join(app, 'src', 'studio.css')))
   const builder = breakpointsOf(readFileSync(require.resolve('@formancy/report-builder-core/report-builder.css'), 'utf8'))
   if (studio.length === 0 || builder.length === 0) throw new Error('found no max-width breakpoint in src/studio.css or report-builder.css, so the widths below measure nothing')
   const widest = Math.max(...studio)
+  // The builder's layout at a width: which of its max-width rules apply there.
+  const layout = (width) => builder.filter((px) => width <= px).join()
+  const compared = new Set()
   return [
     // WCAG 2.2 SC 1.4.10, Reflow: 320 CSS pixels with no horizontal scrolling.
     { label: 'reflow, 320', width: 320, height: 900 },
@@ -50,7 +60,11 @@ export function passes() {
     ...[...new Set([...studio, ...builder])].sort((a, b) => a - b).map((px) => ({ label: `one past the ${String(px)}px breakpoint`, width: px + 1, height: 900 })),
     { label: 'laptop, 1440', width: 1440, height: 900 },
     { label: 'side by side, 2400 high', width: widest + 1, height: 2400 },
-  ]
+  ].map((entry) => {
+    if (compared.has(layout(entry.width))) return entry
+    compared.add(layout(entry.width))
+    return { ...entry, parity: true }
+  })
 }
 
 /**

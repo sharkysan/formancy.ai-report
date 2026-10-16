@@ -25,13 +25,14 @@ export interface PlacesProps {
 }
 
 export function Places({ state, drag, t, ids, act, choose, cancel }: PlacesProps): ReactElement {
-  const title = `${ids}-places`
   const nowhere = `${ids}-nowhere`
 
   return (
     // A floating pane of the workbench, so its buttons are the workbench's.
-    <div role="dialog" aria-labelledby={title} aria-describedby={drag.nowhere === undefined ? undefined : nowhere} data-report-part="places" className="wb-pane">
-      <header id={title}>{drag.title}</header>
+    // Named in the editor's words, as the header says, never after the
+    // header, whose name a host's stylesheet could set in capitals.
+    <div role="dialog" aria-label={drag.title} aria-describedby={drag.nowhere === undefined ? undefined : nowhere} data-report-part="places" className="wb-pane">
+      <header>{drag.title}</header>
       {drag.nowhere === undefined ? null : (
         <p id={nowhere} className="wb-problem">
           {drag.nowhere}

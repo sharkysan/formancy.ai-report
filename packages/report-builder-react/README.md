@@ -73,8 +73,8 @@ and go without losing anything, and two builders can share one session:
   half of the switch is the Angular builder's to show.
 - **Two builders on one page** stay in step: an edit in one shows in the
   other, and each keeps its own selection. No element id is minted twice
-  (`useId`). A duplicated id would name the second builder's form and list
-  by the first builder's headings, and a test fails on exactly that.
+  (`useId`). A duplicated id would label the second builder's fields with
+  the first builder's labels, and a test fails on exactly that.
 
 ## What it renders
 
@@ -174,11 +174,15 @@ jsdom with Testing Library and user-event:
   row is selected in turn, so every kind of property control is drawn and
   audited. Every element with a role a person operates or reads must have
   a name. A test fails if no row of that report shows some kind of
-  property.
+  property. Each group, the form, the list, the statuses and the dialog
+  are named in the editor's words, never after text on the page, which
+  Chromium would read in the stylesheet's capitals; jsdom applies no
+  stylesheet, so that test reads from the DOM how each name is given.
 - **The keyboard, focus and the pointer** beyond the scenarios: the
   toolbar's tab stop and its arrows, focus after each action, the dialog's
   way out, the panes, a text field's own keys, every pointer drag above,
-  the pointer read inside the sheet's border.
+  the pointer read inside the sheet's border, and the keyboard kept on a
+  problem when another is listed before it.
 - **One session, many builders**, as above.
 
 Each guard was watched failing with the code it guards removed. Among
@@ -195,7 +199,8 @@ new child, the sheet's border, and a modified arrow taken by the toolbar.
   editor's own pixel geometry. The Studio's browser gate
   (`apps/studio/scripts/browser-test.mjs`) measures them in Chromium for
   this builder in the Studio's page, a real pointer's drag from the
-  palette included, and the root README's pictures of it are taken by a
+  palette included, and compares its accessible tree with the Angular
+  builder's; the root README's pictures of it are taken by a
   script and held to the text they show
   ([0013](../../docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md));
   a host's own page is its own to measure.

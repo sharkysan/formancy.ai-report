@@ -4,6 +4,7 @@ import type { Component, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test, vi } from 'vitest'
 import { createReportEditor } from './editor.js'
 import type { EditorOutcome, EditorState, OutlineNode } from './model.js'
+import { diagnosticKeys } from './state.js'
 import { editorText } from './text.js'
 import { countingSession, editorOver, richReport, sessionOver } from './test-support.js'
 
@@ -73,6 +74,37 @@ describe('state', () => {
     ok(editor.dispatch({ type: 'openPanel', panel: 'canvas' }))
     ok(editor.dispatch({ type: 'updateDrag', over: 1 }))
     expect(editor.state()).toBe(state)
+  })
+
+  // Each builder keys a problem's element by this, so a problem listed
+  // before the one the keyboard is on leaves that one's element, and the
+  // keyboard, where they were. Keyed by their place in the list, the
+  // Angular builder's focused button became the new problem's under the
+  // keyboard, and the React builder's was drawn afresh with the keyboard
+  // dropped to the page: the browser gate's comparison of the two found it.
+  test('keys each diagnostic by what it is, and keeps the key while it is listed', () => {
+    const report = richReport()
+    const { editor } = editorOver({ ...report, styles: [...report.styles, { id: 'unused', size: 9 }] })
+    const before = editor.state().diagnostics
+    expect(before.map((entry) => entry.label)).toContain('Warning: Report')
+    ok(editor.dispatch({ type: 'select', id: 'intro' }))
+    ok(editor.dispatch({ type: 'setProperty', key: '/visibleWhen', value: 'params.missing' }))
+    const after = editor.state().diagnostics
+    // The new problem is listed before the one that was there: the case the key is for.
+    expect(after.map((entry) => entry.label).indexOf('Error: Introduction')).toBeLessThan(after.map((entry) => entry.label).indexOf('Warning: Report'))
+    for (const entry of before) expect(after.find((each) => each.key === entry.key), entry.label).toMatchObject({ label: entry.label, message: entry.message })
+    expect(new Set(after.map((entry) => entry.key)).size).toBe(after.length)
+  })
+
+  // A key two problems shared would be one element for both: React draws
+  // one and warns, Angular's @for refuses the list. Two that report-core
+  // says alike -- the same code at the same place -- are told apart by
+  // their order, and the first keeps the key it would have alone.
+  test('keys two diagnostics alike in what report-core says apart', () => {
+    const alike = { severity: 'warning', code: 'unused-style', message: 'The style "a" is not used.', path: '/styles/0' } as const
+    const other = { ...alike, path: '/styles/1' }
+    expect(diagnosticKeys([alike, other, alike])).toEqual([diagnosticKeys([alike])[0], diagnosticKeys([other])[0], `${String(diagnosticKeys([alike])[0])} 2`])
+    expect(diagnosticKeys([{ ...alike, position: { start: 0, end: 3 } }, { ...alike, position: { start: 4, end: 7 } }])).toEqual(['unused-style /styles/0 0-3', 'unused-style /styles/0 4-7'])
   })
 
   // A builder in another language shows another language: the state says

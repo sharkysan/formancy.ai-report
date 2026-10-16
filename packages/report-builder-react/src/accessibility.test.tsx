@@ -8,11 +8,15 @@
  * it is sure of, and says nothing of a control named by an empty string
  * when the markup gives it a way to be named; so every element with a role
  * a person operates or reads is also asked its name.
+ *
+ * One test reads the DOM, and says why: how a name is given, which jsdom's
+ * names cannot show, because jsdom applies no stylesheet and Chromium puts
+ * one's text-transform into a name taken from text on the page.
  */
 import { createReportEditor, editorText, PROPERTY_KINDS } from '@formancy/report-builder-core'
 import type { EditorState, OutlineNode } from '@formancy/report-builder-core'
 import type { FieldRef, ReportDefinition } from '@formancy/report-spec'
-import { cleanup, screen } from '@testing-library/react'
+import { cleanup, isInaccessible, screen, within } from '@testing-library/react'
 import { computeAccessibleDescription, computeAccessibleName } from 'dom-accessibility-api'
 import { afterEach, describe, expect, test } from 'vitest'
 import { mount, sessionOver, violations } from './test-support.js'
@@ -169,6 +173,35 @@ describe('every part of the builder', () => {
     mount({ ...report, regions: { ...report.regions, body: [...report.regions.body, side] } } as ReportDefinition)
     const rectangles = screen.getAllByRole('treeitem').filter((row) => computeAccessibleDescription(row) === t('canvas.overflow'))
     expect(rectangles.map((row) => computeAccessibleName(row))).toEqual(['Rectangle (wide)'])
+  })
+
+  // Chromium puts a stylesheet's text-transform into a name it takes from
+  // text on the page: report-builder.css draws a region's label in capitals,
+  // and the Studio a pane's heading, so a group, the form and the list named
+  // by aria-labelledby after them were "BODY", "TEXT: NOTE" and "PROBLEMS"
+  // in Chromium, where the Angular builder's, named in words, were not --
+  // the browser gate's comparison of the two builders' trees found it. And a
+  // region's label left in the tree was read a second time inside its group,
+  // a text among the rows. jsdom applies no stylesheet, so its names read
+  // the same however they are given: this reads from the DOM how each is.
+  test('names its groups, form, list, statuses and dialog in its own words, never by another element’s text', async () => {
+    const report = everyKind()
+    const { editor, user } = mount({ ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)) } })
+    await user.click(screen.getByRole('treeitem', { name: 'Note' }))
+    await user.click(screen.getByRole('button', { name: t('action.moveTo') }))
+    const { outline, properties } = editor.state()
+    const named = [
+      ...outline.map((region) => ({ role: 'group', name: region.label })),
+      { role: 'form', name: properties.heading },
+      { role: 'list', name: t('pane.problems') },
+      { role: 'status', name: t('pane.problems') },
+      { role: 'dialog', name: t('places.move', { name: 'Note' }) },
+    ]
+    for (const { role, name } of named) expect(screen.getByRole(role, { name }), `${role} ${name}`).toBeTruthy()
+    const builder = screen.getByRole('region', { name: t('editor.label') })
+    expect([...builder.querySelectorAll('[aria-labelledby]')].map((element) => element.outerHTML.slice(0, 80))).toEqual([])
+    const tree = screen.getByRole('tree', { name: t('pane.outline') })
+    expect(outline.flatMap((region) => within(tree).queryAllByText(region.label)).filter((element) => !isInaccessible(element)).map((element) => element.outerHTML)).toEqual([])
   })
 
   // A table's column has no place to be moved to on its own, so the tool
