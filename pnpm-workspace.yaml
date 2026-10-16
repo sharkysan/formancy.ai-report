@@ -48,3 +48,13 @@ catalog:
   # quotes and never inside an HTML comment, so the gate compiles the code a
   # reader sees (0015).
   marked: ^18.1.1
+
+# Releases adopted on the day they were published, each at its exact
+# version, as formancy.ai-data 0055 does; pnpm's minimum release age would
+# otherwise hold them back for a day. scripts/upstream-deps.mjs refuses an
+# exemption outside upstream, for a name or a range, or for a version the
+# lockfile no longer installs. Formancy Data 0.1.0, published on
+# 2026-10-16, for report-data-provider (0016).
+minimumReleaseAgeExclude:
+  - '@formancy/data-client@0.1.0'
+  - '@formancy/data-core@0.1.0'

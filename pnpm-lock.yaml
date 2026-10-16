@@ -568,6 +568,40 @@ importers:
         specifier: 'catalog:'
         version: 5.0.4(@types/node@22.20.5)(@vitest/coverage-v8@5.0.4)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(less@4.9.1(supports-color@8.1.1))(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
 
+  packages/report-data-provider:
+    dependencies:
+      '@formancy/data-client':
+        specifier: 0.1.0
+        version: 0.1.0
+      '@formancy/report-runtime':
+        specifier: workspace:*
+        version: link:../report-runtime
+      '@formancy/report-spec':
+        specifier: workspace:*
+        version: link:../report-spec
+    devDependencies:
+      '@arethetypeswrong/cli':
+        specifier: 'catalog:'
+        version: 0.18.5
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 5.0.4(vitest@5.0.4)
+      publint:
+        specifier: 'catalog:'
+        version: 0.3.25
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.1(@arethetypeswrong/core@0.18.5)(publint@0.3.25)(typescript@6.0.3)(unrun@0.3.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      unrun:
+        specifier: ^0.3.1
+        version: 0.3.1
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.4(@types/node@22.20.5)(@vitest/coverage-v8@5.0.4)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(less@4.9.1(supports-color@8.1.1))(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
+
   packages/report-render-pdf:
     dependencies:
       '@formancy/report-runtime':
@@ -1144,6 +1178,12 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@formancy/data-client@0.1.0':
+    resolution: {integrity: sha512-t7R3lF81H+hQ/i/piPpuFQle+eUKz1B3uQAWq0IdeIdE5uy/pqc93OLwTFoyglcW2Mc/jfbu+X3eqrjEzrzFQg==}
+
+  '@formancy/data-core@0.1.0':
+    resolution: {integrity: sha512-2LYf/U8JaGy76to3iiykGaw71Du1BEFQUDWXMl1f0Na3E7nkaADegFutJjBKCzgyPgQbNRoc1n0Uo5tNgSrnIw==}
 
   '@formancy/expressions@0.5.0':
     resolution: {integrity: sha512-LsKq3ZZ7zDZu8/c3ENaH0qBBHR+XxPKdIeYr8FJ2B71ZLT2UQSlyLSo06IuVy3yHvy2wU8x4Xb7kAxpV4b3kEQ==}
@@ -4452,6 +4492,15 @@ snapshots:
   '@exodus/bytes@1.16.0(@noble/hashes@2.4.0)':
     optionalDependencies:
       '@noble/hashes': 2.4.0
+
+  '@formancy/data-client@0.1.0':
+    dependencies:
+      '@formancy/data-core': 0.1.0
+      '@formancy/spec': 0.5.0
+
+  '@formancy/data-core@0.1.0':
+    dependencies:
+      '@formancy/spec': 0.5.0
 
   '@formancy/expressions@0.5.0':
     dependencies:

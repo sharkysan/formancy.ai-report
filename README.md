@@ -23,7 +23,8 @@ its links, and review the rest
 ([0015](./docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
 
 > **Status, 16 October 2026: 0.1.0, a developer preview, is ready to
-> release and not yet published.** Data goes in and a PDF comes out. A
+> release and not yet published.** Data goes in and a PDF comes out, from
+> a host's JSON or, best-effort, from a Formancy Data 0.1.0 server. A
 > report can be laid out in a native React or Angular builder. The Studio
 > puts both builders on one screen with the real PDF beside them:
 > `pnpm --filter @formancy/report-studio dev`, once `pnpm build` has built
@@ -42,6 +43,10 @@ its links, and review the rest
 > ([0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 > The browser entry, `@formancy/report-render-pdf/browser`, prints every
 > starter in the Studio, in Chromium.
+> `@formancy/report-data-provider` reads a report's data from a Formancy
+> Data 0.1.0 server, as the person whose token the host supplies, labelled
+> best-effort
+> ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
 > `@formancy/report-builder-core` is the editor model, and
 > `@formancy/report-builder-react` and `@formancy/report-builder-angular`
 > render it natively over one session, held to each other by shared
@@ -123,6 +128,12 @@ Why a paid module exists beside an Apache-2.0 project, in a repository of its
 own, on Formancy Data's terms and before a lawyer has read them, is decision
 [0001](./docs/decisions/0001-a-paid-module-in-its-own-repository.md).
 
+`@formancy/report-data-provider` depends on Formancy Data's
+`@formancy/data-client`, which is under the Formancy Data Source-Available
+Licence on the same terms. A host that runs the provider in production
+needs a Data production licence as well as Report's
+([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+
 ## Packages
 
 | Package | What it is |
@@ -131,6 +142,7 @@ own, on Formancy Data's terms and before a lawyer has read them, is decision
 | `@formancy/report-core` | The editing core: pure commands over a report, also as data for a proposal; a session that commits only what the validator accepts, with exact undo and redo; the places a component may go; and one compilation of every expression, each member checked as its type, which the diagnostics report and the runtime evaluates. A refused edit changes nothing ([0008](./docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)). No framework, no PDF engine, no Node. |
 | `@formancy/report-runtime` | Resolves a report against its data: every value held to its dataset's contract, exact numbers as strings and never through a JavaScript number, fields the report does not declare refused; totals computed exactly and rounded once as declared; values formatted for the report's locale; a renderer-neutral document, a manifest and, for a preview, its warnings. A final render refuses incomplete data ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)). No framework, no PDF engine, no Node. |
 | `@formancy/report-render-pdf` | Draws a resolved document with pdfmake and Roboto: page header and footer, tables whose header repeats and whose totals stay with their last row, columns, framed sections, images, rules. It refuses what it cannot draw whole -- a page too many, a word wider than its column, a character the font cannot draw -- rather than return a partial PDF ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)). Node, and a browser entry. |
+| `@formancy/report-data-provider` | Reads a report's data from a Formancy Data 0.1.0 server through `@formancy/data-client`, with the person's own token. It reads the header's one record, the lines fifty a page and each lookup's label, and checks the binding, the fields the person may read and the parent before it reads a record. Its data is labelled best-effort, because Data 0.1.0 has no snapshot. Running it in production needs a Formancy Data production licence too ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). No framework, no Node. |
 | `@formancy/report-builder-core` | The editor model both builders render, with no framework: one person's view of a report-core session, and the outline, palette, property fields, design view, drop targets, diagnostics, keys and words derived from it, in English, Swiss German and Swiss French. Several editors share one session and its undo history. Its `report-builder.css` dresses both builders through formancy's workbench variables. `BUILDER_SCENARIOS` is what every builder must do, as data ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)). No framework, no DOM, no Node. |
 | `@formancy/report-builder-react` | The builder for React 19: the workbench's panes over one editor, through `useSyncExternalStore`. Runs every shared scenario in three languages, with axe. |
 | `@formancy/report-builder-angular` | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js, built by ng-packagr. Runs every shared scenario in three languages, with axe; no React in its closure. It is packed from `dist/`, and the install gate compiles it into an Angular host ahead of time, links it and draws it on a server. |
@@ -138,7 +150,7 @@ own, on Formancy Data's terms and before a lawyer has read them, is decision
 | `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)); the three starter reports; and the renderer trial's adapters for pdfmake and pdfme. |
 
 Planned and not here: the server and its jobs, reviewed AI changes, a
-published PDF viewer, and the optional Formancy Data provider.
+published PDF viewer, and a consistent read from Formancy Data.
 
 ## Render a report
 
@@ -192,9 +204,15 @@ A report is its own document, though, with pages, flowing tables, groups and
 totals that a form does not model. Report never widens the form spec to hold
 them.
 
-Formancy Data is optional. Report reads Data's approved datasets through one
-provider package, and only once Data publishes a release. Without Data, a host
-application supplies the data itself. Data never depends on Report.
+Formancy Data is optional. Report reads a published Data form's records
+through one package, `@formancy/report-data-provider`, at exactly Data
+0.1.0. It does so as the person whose token the host supplies, so Data's
+policy decides every answer. The data is best-effort: Data 0.1.0 has no
+snapshot, so the header, each page and each label are read at different
+moments
+([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+Without Data, a host application supplies the data itself. Data never
+depends on Report.
 
 ## Development
 
@@ -245,6 +263,8 @@ report, signed
 
 | | Tested with | Declared as |
 | --- | --- | --- |
+| `@formancy/data-client` | 0.1.0 | `0.1.0` |
+| `@formancy/data-core` (transitive) | 0.1.0 |  |
 | `@formancy/expressions` | 0.5.0 | `0.5.0` |
 | `@formancy/spec` | 0.5.0 | `0.5.0` |
 | `@formancy/themes` | 0.5.0 | `0.5.0` |

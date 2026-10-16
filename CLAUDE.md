@@ -17,8 +17,10 @@ Three things follow, and each has a guard:
   dependencies at **exact** released versions; `scripts/upstream-deps.mjs`
   refuses a range, a `workspace:` link or a path
   ([0002](docs/decisions/0002-depend-on-upstream-never-copy-it.md)). That
-  includes Formancy Data's packages, so Report has no Data dependency until
-  Data publishes one. A generic improvement goes upstream through that
+  includes Formancy Data's packages: `report-data-provider` depends on
+  `@formancy/data-client` at exactly 0.1.0, and nothing else depends on
+  Data ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+  A generic improvement goes upstream through that
   repository's own contribution rules, not into a patched copy here.
 - **Every package declares the source-available licence**, never Apache-2.0.
   `scripts/verify-licenses.mjs` refuses a manifest that says otherwise and a
@@ -30,8 +32,11 @@ Three things follow, and each has a guard:
 
 A dependency must allow both public source and licensed production use:
 permissive licences only, no GPL or AGPL, no source-available or
-non-commercial licence. A commercial component needs written redistribution
-rights. Fonts must be licensed for embedding in generated PDFs.
+non-commercial licence. The one exception is Formancy Data's packages, on
+this repository's terms from the same rightsholder: they are admitted for
+`report-data-provider` alone, at an exact version, with the licence file a
+review read (`FORMANCY_DATA`, 0006 as 0016 extends it). A commercial
+component needs written redistribution rights. Fonts must be licensed for embedding in generated PDFs.
 `scripts/dependency-licences.mjs` holds this for the production dependencies
 of every publishable package and every font they ship, reading a font's
 licence from the font, and refuses what it cannot read
@@ -58,6 +63,10 @@ and `@formancy/report-render-pdf` draws that document with pdfmake and
 refuses what it cannot draw whole
 ([0005](docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
 [0011](docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+`@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
+through `@formancy/data-client`, as the person whose token the host
+supplies, labelled best-effort
+([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
 `@formancy/report-builder-core` is the editor model over that session, and
 `@formancy/report-builder-react` and `@formancy/report-builder-angular` render
 it natively; `BUILDER_SCENARIOS` in the core is what both must do
@@ -85,7 +94,8 @@ before it:
 6. `report-server-core` / `report-server`, `report-client`, `report-viewer`,
    `report-ai`.
 7. `report-data-provider` -- the only package allowed to depend on Formancy
-   Data's contracts, and only once Data has released them.
+   Data's contracts, at the exact release it was built against (0016);
+   `scripts/dependency-licences.mjs` refuses Data reached from any other.
 
 A package arrives with the decision record that says what it may import. When
 this map goes stale, the rename is the edit to make here.

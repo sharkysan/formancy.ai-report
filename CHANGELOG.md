@@ -16,24 +16,28 @@ report format is version "0", a draft, and a report written under it is not
 promised to be read by a later release
 ([0004](docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
 
-Seven packages are published at 0.1.0: `@formancy/report-spec`,
-`report-core`, `report-runtime`, `report-render-pdf`, `report-builder-core`,
-`report-builder-react` and `report-builder-angular`. They are under the
+Eight packages are published at 0.1.0: `@formancy/report-spec`,
+`report-core`, `report-runtime`, `report-render-pdf`,
+`report-data-provider`, `report-builder-core`, `report-builder-react` and
+`report-builder-angular`. They are under the
 Formancy Report Source-Available Licence, which no lawyer has reviewed yet
 ([0001](docs/decisions/0001-a-paid-module-in-its-own-repository.md)).
 
-They depend on two packages at exact versions:
+They depend on three packages at exact versions:
 - formancy's `@formancy/expressions` 0.5.0;
-- pdfmake 0.3.11.
+- pdfmake 0.3.11;
+- Formancy Data's `@formancy/data-client` 0.1.0, for the Data provider
+  alone. It is under Data's source-available licence, so running the
+  provider in production needs a Data production licence too.
 
 The React builder takes React 19 as a peer, and the Angular builder takes
 Angular 22. The install gate installs each builder and draws it at both ends
 of its range. The Studio, `apps/studio`, and the test corpus stay private.
 
 Not in this release:
-- **The Formancy Data provider.** It waits for a released Formancy Data, so
-  a host supplies a report's data itself
-  ([0002](docs/decisions/0002-depend-on-upstream-never-copy-it.md)).
+- **A consistent read from Formancy Data.** The provider's data is
+  best-effort until Data has a snapshot export
+  ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
 - **A published PDF viewer.** PDF.js ships a font under GPL-2.0 with a
   font-embedding exception, and the dependency-licence gate refuses that in a
   published package
@@ -44,6 +48,35 @@ Not in this release:
 
 The release report that this release's run builds lists, under "Known
 limitations", what each decision record says a user will meet.
+
+**A Formancy Data provider, which reads Data 0.1.0 best-effort**
+([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+Formancy Data 0.1.0 was published on 16 October 2026.
+`@formancy/report-data-provider` reads a report's data from it through
+`@formancy/data-client` at exactly that release, with the person's own
+token. It reads the header's one record, the detail rows fifty a page, and
+each lookup's label.
+
+Before it reads a record, it checks:
+- the binding;
+- the fields the person may read;
+- the list;
+- the parent, through the person's menu.
+
+A refusal anywhere hands over nothing. Its data is labelled `best-effort`:
+Data 0.1.0 has no snapshot, so the header, each page and each label are
+read at different moments, and every render's manifest says so.
+
+The licence guard admits Data's two packages, for the provider alone. Each
+is admitted at its exact version and with the licence file the review
+read. 0006 had said this pull request would have to decide that
+([0006](docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
+
+The install gate reads the quotation starter's data from a server that
+answers Data 0.1.0's routes, using the `@formancy/data-client` that npm
+installs. It requires the quotation's own data back, rendered. That server
+is a fixture, and nothing here has run the provider against a real Data
+server.
 
 **A getting-started guide, whose code the install gate compiles and runs**
 ([0015](docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
@@ -270,7 +303,7 @@ is built for:
 | Upstream `@formancy/*` | 0.5.0, exact: `@formancy/spec`, for the report hash; `@formancy/expressions`, for every expression |
 | formancy form spec | none read yet; 1 to 4, as `@formancy/spec` 0.5.0 accepts them, when forms are |
 | `reportSpecVersion` | "0", the draft |
-| Formancy Data | none until Data publishes |
+| Formancy Data | 0.1.0, exact: `@formancy/data-client`, depended on by `@formancy/report-data-provider` alone ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) |
 | Node | 22.13 or later |
 | TypeScript | `~6.0.3` |
 | Angular, React | `@angular/core` ^22 and `react`/`react-dom` ^19, as peers of the builders; tested against 22.2.2 and 19.3.1 |

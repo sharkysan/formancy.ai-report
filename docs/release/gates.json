@@ -40,7 +40,7 @@
     },
     {
       "gate": "G4",
-      "open": "A later release: there is no Formancy Data provider until Data publishes a release (0002), and Data's snapshot export, which the gate's complete snapshot needs, is not built."
+      "open": "A later release: the Formancy Data provider reads Data 0.1.0 best-effort (0016), and Data's snapshot export, which the gate's complete snapshot needs, is not built."
     },
     {
       "gate": "G5",

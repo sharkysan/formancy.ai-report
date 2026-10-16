@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // The browser's globals, as @formancy/data-client's own check has them:
+    // its declarations name AbortSignal, and a host runs the provider in a
+    // page or in Node, which declares the same. No @types/node, so a `node:`
+    // import in src is a compile error rather than a review finding.
+    "lib": ["ES2023", "DOM"],
+    "types": []
+  },
+  "include": ["src/**/*.ts"]
+}

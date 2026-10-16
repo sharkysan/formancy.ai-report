@@ -33,6 +33,7 @@
 // `verify` job in gates.yml, and by `scripts/dependency-licences.test.mjs`
 // against fixtures and the real tree.
 
+import { createHash } from 'node:crypto'
 import { closeSync, openSync, readdirSync, readFileSync, readSync, realpathSync, statSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -72,6 +73,35 @@ const allowedExceptions = new Set(ALLOWED_EXCEPTIONS.map((id) => id.toUpperCase(
  */
 export const EXCEPTIONS = Object.freeze({
   'png-js@1.1.0': { licence: 'MIT', evidence: 'LICENSE in the tarball: MIT License, Copyright (c) 2017 Devon Govett' },
+})
+
+/**
+ * Formancy Data's packages, admitted for the one package allowed to depend
+ * on them (0006, extended 2026-10-16): `name@version` to the sha256 of the
+ * `LICENSE.md` their `SEE LICENSE IN` pointer names, as the review read it,
+ * and the package whose dependency they may be. Data is on this
+ * repository's terms under its own name, from the same rightsholder, so a
+ * customer licenses the two together; it is still a source-available
+ * licence, which the policy refuses from anybody else. Not a correction of
+ * metadata, as an exception is: a second set of terms, read, at one
+ * version. `problems` refuses an admission nothing installs.
+ *
+ * - Data 0.1.0, published 2026-10-16: `data-client` and the `data-core` it
+ *   depends on ship the same `LICENSE.md`, the Formancy Data Source-Available
+ *   Licence Version 1.1, in force from 11 October 2026 -- byte for byte the
+ *   file at Data's tag v0.1.0, read that day.
+ */
+export const FORMANCY_DATA = Object.freeze({
+  '@formancy/data-client@0.1.0': {
+    licenceFile: 'sha256:329ae16264e73a3f429611267bfa3263c99eda5d6e2b419f223b2cc64536b8d4',
+    for: '@formancy/report-data-provider',
+    evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026',
+  },
+  '@formancy/data-core@0.1.0': {
+    licenceFile: 'sha256:329ae16264e73a3f429611267bfa3263c99eda5d6e2b419f223b2cc64536b8d4',
+    for: '@formancy/report-data-provider',
+    evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026',
+  },
 })
 
 /** Whether `expression`, an SPDX licence expression, is one the policy allows. Unreadable is refused. */
@@ -265,9 +295,29 @@ function resolveFrom(directory, name) {
 }
 
 /**
+ * The `sha256:` digest of the file a `SEE LICENSE IN <file>` licence points
+ * at in `directory`, null when there is no such file in the package itself,
+ * and undefined for any other licence. Only a file name is read: a pointer
+ * into another directory points at nothing this package ships.
+ */
+function pointedFile(directory, licence) {
+  const pointer = /^SEE LICEN[CS]E IN (.+)$/i.exec(licence ?? '')
+  if (pointer === null) return undefined
+  const file = pointer[1].trim()
+  if (file === '.' || file === '..' || /[\\/]/.test(file)) return null
+  try {
+    return `sha256:${createHash('sha256').update(readFileSync(join(directory, file))).digest('hex')}`
+  } catch (error) {
+    if (error.code === 'ENOENT' || error.code === 'EISDIR') return null
+    throw error
+  }
+}
+
+/**
  * Every package `start` needs in production, itself first: `{ name, version,
- * licence, dir, via, sibling, fonts }`, `via` naming the packages between the
- * start and it. A required dependency that is not installed is `{ name,
+ * licence, licenceFile, dir, via, sibling, fonts }`, `via` naming the
+ * packages between the start and it, and `licenceFile` what `pointedFile`
+ * says of its licence. A required dependency that is not installed is `{ name,
  * missing: true, via }`, and so is a peer not marked optional in
  * `peerDependenciesMeta`, with `peer: true`: npm 7 and later installs such a
  * peer for a customer, though this workspace, with `auto-install-peers`
@@ -282,7 +332,8 @@ export function closure(start, siblings = new Set()) {
     if (seen.has(directory)) return
     seen.add(directory)
     const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'))
-    found.push({ name: manifest.name, version: manifest.version, licence: declaredLicence(manifest), dir: directory, via, sibling: siblings.has(directory), fonts: fontsIn(directory) })
+    const licence = declaredLicence(manifest)
+    found.push({ name: manifest.name, version: manifest.version, licence, licenceFile: pointedFile(directory, licence), dir: directory, via, sibling: siblings.has(directory), fonts: fontsIn(directory) })
     const path = [...via, manifest.name]
     const required = Object.keys(manifest.dependencies ?? {}).filter((name) => !manifest.optionalDependencies?.[name])
     const others = new Map([
@@ -306,14 +357,37 @@ export function closure(start, siblings = new Set()) {
 }
 
 /**
+ * Whether `item` is a Formancy Data package `data` admits: at that exact
+ * version, pointing at its licence file, a string naming what is wrong when
+ * the file or the route is not the one admitted, and false when no
+ * admission names it, so the policy judges it.
+ */
+function admission(item, id, route, data) {
+  if (!Object.hasOwn(data, id) || item.licence !== LICENSE_FIELD) return false
+  const admitted = data[id]
+  if (item.licenceFile !== admitted.licenceFile) {
+    return `${id}'s LICENSE.md is ${item.licenceFile ?? 'missing'}, not the Formancy Data licence the review read (${admitted.licenceFile}) (${route})`
+  }
+  // The package that depends on Data: the last on the route before the
+  // first Data package, so Data's own dependencies on each other are
+  // allowed and a package reaching Data past the provider is not.
+  const names = new Set(Object.keys(data).map((key) => key.slice(0, key.lastIndexOf('@'))))
+  const path = [...item.via, item.name]
+  const dependent = path[path.findIndex((name) => names.has(name)) - 1]
+  return dependent === admitted.for || `${id} is admitted for ${admitted.for} alone, and ${String(dependent)} depends on it (${route})`
+}
+
+/**
  * What is wrong with these closures under the policy, each named once with the
  * route to it. `exceptions` replace what a package or a font file says with
  * what a review found, at that exact version, and are refused when nothing
- * here installs them.
+ * here installs them. `data` admits Formancy Data's packages, and is refused
+ * the same way.
  */
-export function problems(entries, exceptions = EXCEPTIONS) {
+export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA) {
   const found = new Set()
   const used = new Set()
+  const admitted = new Set()
   const judge = (key, declared, source, route, refusal) => {
     const exception = Object.hasOwn(exceptions, key) ? exceptions[key] : undefined
     if (exception !== undefined) used.add(key)
@@ -328,8 +402,11 @@ export function problems(entries, exceptions = EXCEPTIONS) {
       continue
     }
     const id = `${item.name}@${item.version}`
+    const verdict = item.sibling ? false : admission(item, id, route, data)
+    if (verdict !== false) admitted.add(id)
+    if (typeof verdict === 'string') found.add(verdict)
     // A workspace package is passed over only when it declares this repository's terms; one that says otherwise is judged like anyone's.
-    if (!(item.sibling && item.licence === LICENSE_FIELD)) judge(id, item.licence, 'its package.json', route, `${id} declares no licence (${route})`)
+    else if (verdict === false && !(item.sibling && item.licence === LICENSE_FIELD)) judge(id, item.licence, 'its package.json', route, `${id} declares no licence (${route})`)
     for (const font of item.fonts) {
       const refusal = font.readable
         ? `${id}/${font.path} is a font whose name table names no licence the policy allows: "${font.description ?? ''}" (${route})`
@@ -339,6 +416,9 @@ export function problems(entries, exceptions = EXCEPTIONS) {
   }
   for (const key of Object.keys(exceptions)) {
     if (!used.has(key)) found.add(`exception ${key} names nothing a published package installs; remove it`)
+  }
+  for (const key of Object.keys(data)) {
+    if (!admitted.has(key)) found.add(`Formancy Data admission ${key} names nothing a published package installs; remove it`)
   }
   return [...found]
 }
