@@ -39,7 +39,8 @@ It brings:
   workflows' shape.
 
 Left out until there is something for them to prove: Formancy Data's release
-report, browser and container gates, and third-party notices in built apps.
+report and container gates. Its browser gate, its README pictures' check and
+its third-party notices in built apps came with the Studio.
 
 **`@formancy/report-spec` names the report format and refuses what it does not
 read.** `REPORT_FORMAT` and `REPORT_SPEC_VERSION` ('0', the draft) are
@@ -461,3 +462,43 @@ one took 52.8, 49.9 and 49.2, with its five projects installed at once.
 ([0006](docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
 It reaches the renderer through pdfmake and PDFKit and declares no licence;
 the LICENSE it ships is MIT.
+
+**The Studio: the starters in both builders, with the real PDF beside them**
+([0013](docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).
+`apps/studio`, private and never published, opens each starter and a blank
+report in the React or the Angular builder over one session per starter,
+and previews the PDF the session prints: resolved by the runtime, rendered
+in the page by `@formancy/report-render-pdf/browser`, and drawn by PDF.js on
+white paper, with Download PDF giving the bytes on the paper. A refusal is
+listed with a button that selects its component. `pnpm --filter
+@formancy/report-studio dev` serves it on port 4394. It wears formancy.ai's
+admin palette, copied under the mark Formancy Data uses and pinned to
+admin.css at e3c5967 by the palette guard, with the builder's panes
+recoloured only through `--wb-*` and given the admin's geometry without its
+colours; and the README's pictures of it are taken by a script and held to
+the text they show, as Formancy Data's are. The PDF.js viewer stays inside
+the app, because 0006 refuses `pdfjs-dist`'s Liberation Sans in a published
+closure. The fonts come from Google Fonts, as in Formancy Data's apps, not
+self-hosted as formancy.ai's admin serves them.
+
+**Two new gates in CI's `browser` job.** The Studio's browser gate measures
+in Chromium what jsdom cannot: layout from 320 pixels up, the keyboard's
+path, axe with contrast and target size, every starter's PDF drawn on white,
+the framework switch, a pointer's drag, the place chooser, Final and the
+Preview's zoom. The README pictures' check walks the same page again. The
+Studio's own suite joins the `test` matrix and `codecov.yml`.
+
+**The builders: three fixes the Studio found, each a shared scenario or a
+test in both builders.** An undo that leaves nothing selected -- of a
+duplicate, of an insert -- now puts focus on the outline's tree rather than
+on its first row, which focus selected, so the next Delete deleted a
+component nobody chose. An empty report's outline is an empty tree with a
+sentence beside it saying so, where it held region groups with no rows,
+which axe refuses (`aria-required-children`). A place chooser drawn by a
+builder that did not open it -- after a framework switch, the drag is the
+editor's -- no longer takes the keyboard when it is drawn, and Cancel or
+Escape in it lands on the palette entry of what was being placed instead
+of on the page. In React, a pointer drag that dropped away from where it
+began no longer swallows the next keyboard press of a palette entry. The
+report's title is a hook of its own, `data-report-part="title"`, drawn on
+one line in the text colour, and the design view's note wraps to its pane.

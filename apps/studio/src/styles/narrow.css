@@ -1,0 +1,68 @@
+/* ------------------------------------------------------- narrow screens
+ *
+ * Only `@media (max-width: Nrem)`, as formancy.ai-data's apps write them.
+ * Last in the cascade, so its rules win.
+ *
+ * Below 90rem the builder and the Preview do not both fit beside each
+ * other with a design view worth having, so they stack: the builder at a
+ * useful height, the Preview under it, and the page scrolls rather than
+ * two panes each scrolling inside a sliver. Below 48rem report-builder.css
+ * shows one of the builder's panes at a time, chosen from its toolbar.
+ * Below 40rem the gutters tighten and the bar's controls take a line each.
+ */
+
+@media (max-width: 90rem) {
+  .studio {
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .studio-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .studio-builder {
+    height: max(32rem, calc(100dvh - 6rem));
+  }
+
+  .paper {
+    flex: none;
+    overflow: auto hidden;
+  }
+}
+
+@media (max-width: 40rem) {
+  .studio {
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .studio-bar {
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+  }
+
+  .starter,
+  .framework {
+    flex-basis: 100%;
+  }
+
+  .starter select {
+    flex: 1;
+  }
+
+  .preview-head,
+  .viewer-tools,
+  .problems {
+    padding-inline: 0.75rem;
+  }
+
+  .paper {
+    padding: 0.75rem;
+  }
+
+  .download {
+    margin-inline-start: 0;
+  }
+}

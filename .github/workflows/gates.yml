@@ -5,13 +5,14 @@ name: Gates
 # every push to main, and release.yml calls it before anything is published,
 # so a release's gate is CI's by construction.
 #
-# Three jobs for now, because three things exist to prove: the build, types,
+# Four jobs, because four things exist to prove: the build, types,
 # packaging, licences and the repository's guards (`verify`); each package's
-# suite on a runner of its own (`test`); and the packed tarballs in a project
-# that is not this one (`install`). Browser, container and getting-started
-# gates, and the release report that reads every job's results, arrive with
-# the app, the server and the packaging they prove -- not before, so that no
-# job here passes for having nothing to check.
+# suite on a runner of its own (`test`); the Studio in a real browser, and
+# the README's pictures of it held to the text they show (`browser`); and
+# the packed tarballs in a project that is not this one (`install`).
+# Container and getting-started gates, and the release report that reads
+# every job's results, arrive with the server and the packaging they prove
+# -- not before, so that no job here passes for having nothing to check.
 #
 # A release runs code from here with its own permissions, so third-party
 # actions are pinned to commit hashes, with the tag in a comment, under
@@ -110,7 +111,7 @@ jobs:
       # Every suite reports, rather than the first failure cancelling the rest.
       fail-fast: false
       matrix:
-        package: ['@formancy/report-spec', '@formancy/report-core', '@formancy/report-runtime', '@formancy/report-render-pdf', '@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-builder-angular', '@formancy/report-corpus']
+        package: ['@formancy/report-spec', '@formancy/report-core', '@formancy/report-runtime', '@formancy/report-render-pdf', '@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-builder-angular', '@formancy/report-corpus', '@formancy/report-studio']
     steps:
       - uses: actions/checkout@v4
 
@@ -157,6 +158,80 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
+
+  # What jsdom cannot see in the Studio, measured in Chromium: layout down to
+  # 320 pixels, the keyboard's path, axe with contrast and target size
+  # measured, the PDF printed in the page and drawn by PDF.js on white paper,
+  # the framework switch, a pointer's drag, and no rule of the room's on the
+  # paper (apps/studio/scripts/browser-test.mjs). Then the README's pictures,
+  # walked again and held to the text they were recorded showing, and every
+  # caption to what its parts say (0013, formancy.ai-data 0038). One job, as
+  # formancy.ai-data's browser and pictures jobs are in theirs, and Chromium
+  # only: the one browser this repository's gates have measured.
+  #
+  # Pinned, not ubuntu-latest, for formancy.ai-data's reason: the fallback
+  # fonts and the system libraries Chromium draws with are the image's, and a
+  # label that moved would move what the gate measures with no change here.
+  # ubuntu-latest was ubuntu-24.04 on 2026-10-12 (formancy.ai-data). The
+  # thirty minutes are not measured on CI: the gate took 2 m 53 s on a
+  # Windows 11 workstation (i9-10900K) on 2026-10-16, before the pictures.
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable pnpm
+
+      - name: Get pnpm store directory
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        if: inputs.release == ''
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      # Cached by the lockfile, which pins the playwright version the browser
+      # revision is tied to; in CI only, as the store is.
+      - name: Cache the chromium download
+        uses: actions/cache@v4
+        if: inputs.release == ''
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('pnpm-lock.yaml') }}
+
+      # No `--with-deps`, for formancy.ai's reason, which formancy.ai-data's
+      # gates keep: it runs apt-get for libraries the hosted runner already
+      # ships, and on formancy.ai that once sat for nineteen minutes until the
+      # job timed out. If a library is ever missing, Chromium fails to launch
+      # and says which; the step timeout is the backstop.
+      - run: pnpm --filter @formancy/report-studio exec playwright install chromium
+        timeout-minutes: 5
+
+      # turbo builds the packages the Studio imports and the Studio itself
+      # first (turbo.json's `dependsOn`); the gate then builds and serves the
+      # page it measures. Never cached: a replayed pass measured nothing.
+      - run: pnpm exec turbo run test:browser --filter=@formancy/report-studio
+
+      # The pictures, walked on the page the gate measured. They were taken
+      # on another machine; --check compares their text alone, with the web
+      # fonts refused, so the platform's look does not enter it.
+      - run: pnpm exec turbo run test:pictures --filter=@formancy/report-studio
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: browser-results
+          path: apps/studio/test-results/
+          if-no-files-found: error
+          overwrite: true
 
   # Every job above runs inside the workspace, against the tree it built from --
   # and a workspace sibling resolves a package through a symlink to its SOURCE

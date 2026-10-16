@@ -1,0 +1,154 @@
+/* ------------------------------------------------------------- controls
+ *
+ * The Studio's own controls, outside the builder: formancy.ai-data's, in
+ * the same room. Each rule selects the Studio's own class, never an
+ * element: the builder's buttons and selects are the workbench's, dressed
+ * by builder.css, and a rule for every select -- formancy.ai-data's Studio
+ * has no builder, so it has one -- dressed the builder's property selects
+ * as the bar's (styles.test.tsx).
+ */
+
+/* A pill: the room's quiet action. */
+.tool,
+.quiet {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--edge-strong);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 4%);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8125rem;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tool:hover:not([aria-disabled='true']),
+.quiet:hover {
+  border-color: var(--client);
+}
+
+/* Nothing to do: aria-disabled, so it keeps focus and a keyboard pressing
+   Next page on the last page stays where it is. */
+.tool[aria-disabled='true'] {
+  color: var(--muted);
+  background: transparent;
+  cursor: not-allowed;
+}
+
+/* A setting that is on: violet, the colour of what the person acts on. */
+.tool[aria-pressed='true'] {
+  border-color: var(--client);
+  background: rgb(139 123 255 / 18%);
+}
+
+/* The starter picker: the Studio's one select. */
+.starter select {
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.375rem 2rem 0.375rem 0.75rem;
+  border: 1px solid var(--edge-strong);
+  border-radius: 10px;
+  background: rgb(5 7 14 / 60%);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+
+.starter select:focus-visible {
+  outline: none;
+  border-color: var(--client);
+  box-shadow: 0 0 0 4px rgb(139 123 255 / 22%);
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.check input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--client);
+}
+
+/* One choice of a few: a single track with the options flush inside it, the
+   checked one filled. Native radios laid over each option, so arrows move
+   the choice and the group is one Tab stop. formancy.ai-data's host page's
+   control. */
+.choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choice legend {
+  float: left;
+  padding: 0;
+}
+
+.segmented {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 3px;
+  border: 1px solid var(--edge-strong);
+  border-radius: 999px;
+}
+
+.segment {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: calc(2.5rem - 8px);
+  padding: 0 calc(0.875rem + 2px);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.segment input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: 999px;
+  opacity: 0;
+  cursor: pointer;
+  appearance: none;
+}
+
+.segment:hover {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+/* The checked one's transparent border is what forced colours draw, so it
+   differs there too. */
+.segment:has(input:checked) {
+  padding: 0 0.875rem;
+  border: 2px solid transparent;
+  background: var(--client);
+  color: #06050d;
+}
+
+.segment:has(input:focus-visible) {
+  outline: 2px solid var(--server);
+  outline-offset: 2px;
+}

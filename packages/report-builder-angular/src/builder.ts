@@ -8,8 +8,9 @@
  *
  * - a bar with the report's title and the toolbar, which on a narrow screen
  *   is what switches between the panes, so it stands in none of them;
- * - the palette over the outline, with the place chooser floating over
- *   them while a keyboard chooses a place;
+ * - the palette over the outline -- with no row in it, an empty tree and
+ *   the sentence that says so -- with the place chooser floating over them
+ *   while a keyboard chooses a place;
  * - the design view;
  * - the properties and the problems, sharing the third column. On a narrow
  *   screen report-builder.css shows the one pane the state's `panel` names,
@@ -39,7 +40,7 @@ import { ReportToolbar } from './toolbar'
   template: `
     <div class="wb-pane">
       <header>
-        <span>{{ state().document.title }}</span>
+        <span data-report-part="title">{{ state().document.title }}</span>
         <div reportToolbar></div>
       </header>
     </div>
@@ -48,6 +49,9 @@ import { ReportToolbar } from './toolbar'
       <div class="wb-body">
         <div reportPalette></div>
         <div reportOutline></div>
+        @if (empty()) {
+          <p data-report-part="outline-empty" [id]="root.outlineEmpty">{{ t()('outline.empty') }}</p>
+        }
       </div>
       <div reportPlaces></div>
     </section>
@@ -89,6 +93,8 @@ export class ReportBuilder {
   protected readonly t = this.root.t
   protected readonly problems = `${this.root.id}-problems`
   protected readonly count = computed(() => this.state().diagnostics.length)
+  /** No row in any region: the outline is an empty tree, and this says so beside it. */
+  protected readonly empty = computed(() => this.state().outline.every((region) => region.nodes.length === 0))
   /** What colour the count is: an error's, when any problem is one. */
   protected readonly severity = computed(() => (this.state().diagnostics.some((entry) => entry.severity === 'error') ? 'error' : 'warning'))
 }

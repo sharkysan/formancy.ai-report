@@ -11,6 +11,8 @@
 export const REPORT_PARTS = [
   /** The editor's root, which also carries the workbench's `wb` grid. */
   'editor',
+  /** The report's title, in the bar above the panes. */
+  'title',
   'toolbar',
   /** The zoom readout, an `<output>` named "Zoom". */
   'zoom',
@@ -20,6 +22,8 @@ export const REPORT_PARTS = [
   /** One region's group in the outline's tree. */
   'outline-region',
   'outline-item',
+  /** The sentence beside an outline with no row, which describes the empty tree. */
+  'outline-empty',
   /** The count of diagnostics on an outline row or a canvas box. */
   'badge',
   'canvas',

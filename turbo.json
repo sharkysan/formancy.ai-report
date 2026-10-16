@@ -18,6 +18,14 @@
     },
     "check:pkg": {
       "dependsOn": ["build"]
+    },
+    "test:browser": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "test:pictures": {
+      "dependsOn": ["build"],
+      "cache": false
     }
   }
 }

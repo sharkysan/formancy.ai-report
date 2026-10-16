@@ -8,7 +8,7 @@
  * subscription that would re-render a component nobody shows.
  */
 import { createReportEditor, editorText, scenarioReport } from '@formancy/report-builder-core'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { afterEach, describe, expect, test } from 'vitest'
 import { ReportBuilder } from './report-builder.js'
@@ -83,6 +83,33 @@ describe('a builder that comes and goes', () => {
 })
 
 describe('two builders on one session', () => {
+  // A place dialog is the editor's drag, so it outlives the builder that
+  // opened it: a Studio that switches frameworks draws it again in the next
+  // builder, which never saw what opened it. Drawing it must not pull the
+  // keyboard out of the control the person is using, and Escape in it must
+  // not drop the keyboard on the page: it goes to the palette entry of what
+  // was being placed, in the pane the dialog floated over.
+  test('drawn again, a place dialog leaves focus where it is, and Escape lands on its palette entry', async () => {
+    const editor = createReportEditor(sessionOver(scenarioReport()))
+    const user = userEvent.setup()
+    const first = render(<ReportBuilder editor={editor} />)
+    await user.click(screen.getByRole('button', { name: en('kind.text') }))
+    first.unmount()
+
+    const elsewhere = document.body.appendChild(document.createElement('button'))
+    elsewhere.textContent = 'Angular'
+    elsewhere.focus()
+    render(<ReportBuilder editor={editor} />)
+    const dialog = screen.getByRole('dialog', { name: en('places.insert', { kind: en('kind.text') }) })
+    expect(document.activeElement).toBe(elsewhere)
+
+    act(() => within(dialog).getByRole('button', { name: en('places.cancel') }).focus())
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: en('kind.text') }))
+    elsewhere.remove()
+  })
+
   // The Studio may show a report twice -- two people's views, or a React
   // and an Angular builder side by side. Each edit is the session's, so
   // both show it at once; each selection is its editor's, so neither

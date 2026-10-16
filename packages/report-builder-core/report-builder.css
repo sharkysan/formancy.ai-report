@@ -62,6 +62,24 @@
   }
 }
 
+/* The report's name, in the bar above the panes: the document named in the
+   text colour, on one line, as the admin's title bar names its form. A long
+   name is cut with an ellipsis rather than wrapped a word a line beside the
+   toolbar; the element still holds the whole name. It keeps its width and
+   the toolbar wraps beside it, up to a share of the bar a phone can spare. */
+[data-report-part='title'] {
+  flex: none;
+  max-width: min(16rem, 40%);
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--wb-ink);
+}
+
 [data-report-part='toolbar'] {
   display: flex;
   flex-wrap: wrap;
@@ -122,6 +140,24 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* With no row in it the tree is empty, and is the tab stop: drawn as a
+   place to land, with the sentence beside it saying it is empty. */
+[data-report-part='outline']:empty {
+  min-height: 1.5rem;
+}
+
+[data-report-part='outline']:focus-visible {
+  outline: 2px solid var(--wb-signal);
+  outline-offset: 2px;
+}
+
+[data-report-part='outline-empty'] {
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--wb-muted);
 }
 
 [data-report-part='outline-region'] {
@@ -208,6 +244,8 @@
 [data-report-part='canvas'] {
   flex: 1 1 auto;
   min-width: 0;
+  /* The pane's width, for the note to wrap to (below). */
+  container-type: inline-size;
   display: grid;
   grid-template-columns: 1.25rem max-content;
   grid-template-rows: auto 1.25rem max-content;
@@ -222,9 +260,12 @@
   padding: 1rem;
 }
 
+/* Wrapped to the pane, not to the sheet's width: in a pane narrower than
+   the sheet, a note as wide as the sheet ran past the pane's edge and was
+   read only by scrolling. 100cqi is the view's width inside its padding. */
 [data-report-part='canvas-note'] {
   grid-area: note;
-  max-width: 40rem;
+  max-width: min(40rem, 100cqi);
   margin: 0 0 0.75rem;
   font-size: 0.75rem;
   color: var(--wb-muted);
@@ -331,6 +372,8 @@
   box-sizing: border-box;
   outline: 1px solid color-mix(in srgb, var(--wb-rule) 70%, transparent);
   cursor: default;
+  /* Its own size, set from the state, for its label to ask (below). */
+  container-type: size;
 }
 
 [data-report-part='box'][data-kind='tableColumn'] {
@@ -365,6 +408,16 @@
   white-space: nowrap;
   color: var(--wb-muted);
   pointer-events: none;
+}
+
+/* A box shorter than its label -- a line, a thin rule -- draws no label:
+   one drawn anyway ran over the next box's label, and the two read as
+   neither (axe could not tell the colour behind either). The box is still
+   drawn, and named, and its row in the outline says what it is. */
+@container (height < 0.875rem) {
+  [data-report-part='box-label'] {
+    display: none;
+  }
 }
 
 /* A container's label sits at its top end, so the label of the first

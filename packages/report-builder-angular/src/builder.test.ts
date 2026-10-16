@@ -7,7 +7,7 @@
 import { TestBed } from '@angular/core/testing'
 import { createReportEditor } from '@formancy/report-builder-core'
 import { setTitle } from '@formancy/report-core'
-import { screen } from '@testing-library/angular'
+import { screen, within } from '@testing-library/angular'
 import { afterEach, describe, expect, test } from 'vitest'
 import { mountBuilder } from './test-mount'
 import { countingSession, scenarioSession } from './test-support'
@@ -44,6 +44,33 @@ describe('a builder destroyed and made again', () => {
     expect(tree('Introduction')).toBeTruthy()
     second.fixture.destroy()
     expect(editor.listenerCount()).toBe(before)
+  })
+
+  // A keyboard's place chooser is the editor's drag, so it outlives the
+  // builder that opened it: a Studio that switches frameworks draws it in
+  // the next builder, which never saw what opened it. Drawing it must leave
+  // the keyboard where the person is, and Cancel in it must not drop the
+  // keyboard on the page: it goes to the palette entry of what was being
+  // placed, in the pane the chooser floated over.
+  test('drawing a chooser another builder opened, leaves focus alone, and Cancel lands on its palette entry', async () => {
+    const editor = createReportEditor(scenarioSession())
+    const first = await mountBuilder(editor)
+    click(screen.getByRole('button', { name: 'Text' }))
+    await first.settle()
+    first.fixture.destroy()
+    TestBed.resetTestingModule()
+
+    const elsewhere = document.body.appendChild(document.createElement('button'))
+    elsewhere.textContent = 'React'
+    elsewhere.focus()
+    const second = await mountBuilder(editor)
+    const dialog = screen.getByRole('dialog', { name: 'Insert Text: choose a place' })
+    expect(document.activeElement).toBe(elsewhere)
+    click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    await second.settle()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Text' }))
+    elsewhere.remove()
   })
 
   // Plan 21's switch, as far as one framework goes: edit in a builder, put

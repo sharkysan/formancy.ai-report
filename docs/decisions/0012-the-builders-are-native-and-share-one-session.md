@@ -1,6 +1,14 @@
 # 0012 — The builders are native, share one session through one editor model, and are held to each other by shared scenarios
 
-- **Status:** accepted
+- **Status:** accepted; its *What holds nothing yet*, and the costs *No
+  test mounts both builders* and *No browser in the suites*, describe
+  2026-10-15. Since [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)
+  the Studio's `studio.test.tsx` runs plan 21's switch across the two
+  frameworks over one session in jsdom, its `journey.test.tsx` audits both
+  builders at every state, its browser gate measures layout, contrast,
+  target size and a real pointer's drag in Chromium, and its README
+  pictures are checked; the builders' own READMEs' pictures are still taken
+  by hand.
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** each package's `test:coverage` job in CI, the `verify` job

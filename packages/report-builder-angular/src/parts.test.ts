@@ -10,6 +10,7 @@
  */
 import { TestBed } from '@angular/core/testing'
 import { createReportEditor, EDITOR_PANELS, REPORT_ATTRIBUTES, REPORT_PARTS, scenarioReport, WORKBENCH_CLASSES } from '@formancy/report-builder-core'
+import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { screen, within } from '@testing-library/angular'
 import { afterEach, describe, expect, test } from 'vitest'
@@ -46,6 +47,14 @@ async function everything(): Promise<HTMLElement> {
   return mounted.fixture.nativeElement as HTMLElement
 }
 
+/** The hooks of the builder over a report with nothing in it: the sentence beside an empty outline, which a report with rows never shows. */
+async function emptyHooks(): Promise<Set<string | null>> {
+  TestBed.resetTestingModule()
+  const mounted = await mountBuilder(createReportEditor(sessionOver(emptyReport('blank', 'Blank', 'en'))))
+  const root = mounted.fixture.nativeElement as HTMLElement
+  return new Set([...root.querySelectorAll('[data-report-part]')].map((element) => element.getAttribute('data-report-part')))
+}
+
 describe('the stylesheet’s hooks', () => {
   // A part report-builder.css dresses that this builder does not render is
   // a piece drawn unstyled here and styled in React; a part it renders that
@@ -53,6 +62,8 @@ describe('the stylesheet’s hooks', () => {
   test('are every part report-builder-core lists, and no other', async () => {
     const root = await everything()
     const rendered = new Set([root, ...root.querySelectorAll('[data-report-part]')].map((element) => element.getAttribute('data-report-part')))
+    expect(rendered.has('outline-empty')).toBe(false)
+    for (const part of await emptyHooks()) rendered.add(part)
     expect(rendered).toEqual(new Set(REPORT_PARTS))
   })
 

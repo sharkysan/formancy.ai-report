@@ -39,8 +39,12 @@ export interface ReportBuilderProps {
   readonly editor: ReportEditor
 }
 
-/** Where focus goes once the result of an action is drawn: the selection's outline row, the element that opened the place dialog, or a pane. */
-type FocusAfter = 'selection' | 'opener' | EditorPanel
+/**
+ * Where focus goes once the result of an action is drawn: the selection's
+ * outline row, the place dialog this builder has just opened, the element
+ * that opened it, or a pane.
+ */
+type FocusAfter = 'selection' | 'places' | 'opener' | EditorPanel
 
 /** A field that keeps its own keys: Ctrl+Z in it undoes typing, not the report, and its arrows move its caret. A checkbox has no typing to undo. */
 function keepsItsKeys(element: EventTarget): boolean {
@@ -58,21 +62,40 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
   const sheet = useRef<HTMLDivElement>(null)
   const fields = useRef<HTMLDivElement>(null)
   const problemList = useRef<HTMLUListElement>(null)
+  const root = useRef<HTMLElement>(null)
   const opener = useRef<HTMLElement | null>(null)
+  /** What the place dialog was placing when it closed, for focus to find its palette entry. */
+  const closed = useRef<DragSubject | null>(null)
   const wanted = useRef<FocusAfter | null>(null)
 
   const focus = useCallback((where: FocusAfter): void => {
+    const selectedRow = (): HTMLElement | null => tree.current?.querySelector<HTMLElement>('[role="treeitem"][aria-selected="true"]') ?? null
     switch (where) {
+      // After an action that leaves nothing selected -- an undo of an
+      // insert -- the tree itself: a row given focus would select itself,
+      // and the next Delete would delete what nobody chose.
       case 'selection':
-      case 'outline': {
-        const rows = tree.current
-        const row = rows?.querySelector<HTMLElement>('[role="treeitem"][aria-selected="true"]') ?? rows?.querySelector<HTMLElement>('[role="treeitem"][tabindex="0"]')
-        return (row ?? rows)?.focus()
-      }
-      case 'opener':
-        opener.current?.focus()
+        return (selectedRow() ?? tree.current)?.focus()
+      // Shown from the toolbar: the tree's tab stop, as Tab would reach it.
+      case 'outline':
+        return (selectedRow() ?? tree.current?.querySelector<HTMLElement>('[role="treeitem"][tabindex="0"]') ?? tree.current)?.focus()
+      case 'places':
+        return root.current?.querySelector<HTMLElement>('[data-report-part="places"] button')?.focus()
+      // What opened the place dialog; when another builder opened it -- the
+      // drag outlived the builder that started it -- the palette entry of
+      // what is being placed, or what is being moved, which stay in the
+      // outline pane the dialog floated over.
+      case 'opener': {
+        const subject = closed.current
+        const from =
+          opener.current ??
+          (subject !== null && 'kind' in subject ? root.current?.querySelector<HTMLElement>(`[data-report-part="palette-item"][data-kind="${subject.kind}"]`) : null) ??
+          selectedRow() ??
+          tree.current
         opener.current = null
-        return
+        closed.current = null
+        return from?.focus()
+      }
       case 'canvas':
         return canvas.current?.focus()
       case 'properties':
@@ -112,14 +135,32 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
     const action = actionForKey(event, inTree ? 'outline' : 'editor', state.drag !== null)
     if (action === undefined) return
     event.preventDefault()
-    const closing = action.type === 'cancelDrag' && state.drag?.via === 'keyboard'
-    act(action, inTree ? 'selection' : closing ? 'opener' : undefined)
+    if (action.type === 'cancelDrag' && state.drag?.via === 'keyboard') return cancelPlaces()
+    act(action, inTree ? 'selection' : undefined)
   }
 
-  /** Opens the place dialog for `subject`, focus to return to `from`. It floats over the outline pane, so that is the pane a narrow screen shows. */
+  /**
+   * Opens the place dialog for `subject`, focus to return to `from`, and
+   * puts focus on its first place. Only here: a dialog that opened in
+   * another builder -- the drag is the editor's, and outlives a builder --
+   * is drawn by this one without taking the keyboard from where it is. It
+   * floats over the outline pane, so that is the pane a narrow screen shows.
+   */
   function openPlaces(subject: DragSubject, from: HTMLElement): void {
     opener.current = from
-    if (act({ type: 'startDrag', subject, via: 'keyboard' }).ok) act({ type: 'openPanel', panel: 'outline' })
+    if (!act({ type: 'startDrag', subject, via: 'keyboard' }).ok) {
+      opener.current = null
+      return
+    }
+    act({ type: 'openPanel', panel: 'outline' })
+    // The drag began, so the dialog is drawn next: focus goes there then.
+    wanted.current = 'places'
+  }
+
+  /** Closes the place dialog, Cancel or Escape, focus back to what opened it. */
+  function cancelPlaces(): void {
+    closed.current = editor.state().drag?.subject ?? null
+    act({ type: 'cancelDrag' }, 'opener')
   }
 
   function place(kind: ComponentKind, from: HTMLElement): void {
@@ -147,11 +188,11 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
   const count = state.diagnostics.length
 
   return (
-    <section aria-label={t('editor.label')} className="wb" data-report-part="editor" data-panel={state.panel} onKeyDown={onKeyDown}>
+    <section ref={root} aria-label={t('editor.label')} className="wb" data-report-part="editor" data-panel={state.panel} onKeyDown={onKeyDown}>
       {/* A bar across the panes: report-builder.css spans every root child that is no pane. */}
       <div className="wb-pane">
         <header>
-          <span>{state.document.title}</span>
+          <span data-report-part="title">{state.document.title}</span>
           <Toolbar state={state} t={t} act={act} placeSelection={placeSelection} showPane={(pane) => act({ type: 'openPanel', panel: pane }, pane)} />
         </header>
       </div>
@@ -164,7 +205,7 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
           <Palette state={state} t={t} ids={ids} drag={drag} place={place} />
           <Outline state={state} t={t} ids={ids} tree={tree} drag={drag} act={act} />
         </div>
-        {choosing === null ? null : <Places state={state} drag={choosing} t={t} ids={ids} act={act} choose={choose} cancel={() => act({ type: 'cancelDrag' }, 'opener')} />}
+        {choosing === null ? null : <Places state={state} drag={choosing} t={t} ids={ids} act={act} choose={choose} cancel={cancelPlaces} />}
       </section>
 
       <section className="wb-pane wb-canvas" data-pane="canvas">

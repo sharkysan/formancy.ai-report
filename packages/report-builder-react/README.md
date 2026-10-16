@@ -98,12 +98,12 @@ keyboard path came first.
 | The outline | Alt+→, Alt+← | Moves it into the container before it, or out of its own. |
 | The outline | Delete, Backspace | Deletes it. Focus goes to the next row, else the one before, else the tree. |
 | The outline | Ctrl+D (⌘D) | Duplicates it, and selects the copy. |
-| Anywhere but a text field | Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z | Undoes, redoes. |
+| Anywhere but a text field | Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z | Undoes, redoes. In the outline, focus goes to the selected row, else to the tree itself, never to a row nothing selected. |
 | Anywhere but a text field | Ctrl and +, −, 0 | Zooms in, out, to actual size. |
 | The toolbar | ← →, Home, End | Moves between tools. The toolbar is one tab stop. → is "next" in a left-to-right page and "previous" under `dir="rtl"`; with Ctrl, Alt or ⌘ held the arrow is the browser's. |
 | A palette entry, Move to… | Enter, Space | Opens the place dialog. Focus goes to its first place. |
 | The place dialog | Enter on a place | Inserts or moves there. Focus goes to the row. |
-| The place dialog | Escape, Cancel | Closes it. Focus goes back to what opened it. |
+| The place dialog | Escape, Cancel | Closes it. Focus goes back to what opened it; for a dialog another builder over the same editor opened, to the palette entry of what is placed, else the selected row, else the tree. |
 | A single-line field | Enter | Commits the value, and stays in the field. |
 | A text field | Escape | Gives back what the report holds. |
 
@@ -189,12 +189,16 @@ new child, the sheet's border, and a modified arrow taken by the toolbar.
 
 ## What it does not do
 
-- **No browser runs in the suite.** jsdom has no layout, so these are not
-  tested: the three-pane and narrow layouts, scrolling, contrast and
-  target sizes. Neither are pointer positions in real pixels: the pointer
-  tests place the pointer by the editor's own pixel geometry. The browser gates and
-  the README pictures, taken by a script and held to the text they show,
-  arrive with the Studio.
+- **No browser runs in this package's suite.** jsdom has no layout, so
+  the suite does not test the three-pane and narrow layouts, scrolling,
+  contrast or target sizes, and its pointer tests place the pointer by the
+  editor's own pixel geometry. The Studio's browser gate
+  (`apps/studio/scripts/browser-test.mjs`) measures them in Chromium for
+  this builder in the Studio's page, a real pointer's drag from the
+  palette included, and the root README's pictures of it are taken by a
+  script and held to the text they show
+  ([0013](../../docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md));
+  a host's own page is its own to measure.
 - **The place dialog's "nowhere" sentence** shows when a component has
   nowhere else to go. No report tried here has such a component. The test
   draws the dialog over a state that says so.
