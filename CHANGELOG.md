@@ -33,6 +33,10 @@ They depend on three packages at exact versions:
 The React builder takes React 19 as a peer, and the Angular builder takes
 Angular 22. The install gate installs each builder and draws it at both ends
 of its range. The Studio, `apps/studio`, and the test corpus stay private.
+`pnpm demo` builds the packages and serves the Studio from a clone, as its
+browser gate serves it, and the README opens with a picture of it, taken by
+the same script as the others: Data's and formancy.ai's READMEs open with
+one, and Report's first was below its whole Status.
 
 Not in this release:
 - **A consistent read from Formancy Data.** The provider's data is

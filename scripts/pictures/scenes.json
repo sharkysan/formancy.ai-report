@@ -2,7 +2,7 @@
   {
     "id": "studio-react",
     "app": "studio",
-    "placement": "inline",
+    "placement": "hero",
     "title": "The quotation in the React builder",
     "caption": "The quotation starter in the React builder: the workbench's outline, design view and properties over one report session. Beside it the Preview, the session's document resolved against the starter's synthetic data by `@formancy/report-runtime`, printed in the page by `@formancy/report-render-pdf/browser` and drawn by PDF.js on white paper, down to “Total CHF 3'143.00” ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).",
     "alt": "The Studio: a bar with the starter picker on Quotation and the builder switch on React; the React builder's toolbar, outline, design view and report properties; and the Preview, “Preview: printed.”, with the Offerte on white paper.",

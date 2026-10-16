@@ -6,6 +6,7 @@ import { entry, pictureOf, REPO, serialize } from './record.mjs'
 import {
   END,
   guardProblems,
+  HERO_LINE,
   integrityProblems,
   LINE,
   linkProblems,
@@ -83,9 +84,9 @@ describe("the repository's README pictures", () => {
 })
 
 /*
- * A small repository: two inline scenes and two `more` scenes after them,
- * of one app, and one of another. Its snapshot lines are written by hand in
- * the shapes Playwright prints.
+ * A small repository: the hero, an inline scene and two `more` scenes after
+ * it, of one app, and one of another. Its snapshot lines are written by hand
+ * in the shapes Playwright prints.
  */
 const LOOK = { platform: 'win32-x64', playwright: '1.64.1', chromium: '156.0.8078.4', fonts: { Archivo: 'v25', 'IBM Plex Mono': 'v20', 'IBM Plex Sans': 'v23' } }
 const SETTINGS = { width: 1600, height: 900, deviceScaleFactor: 2, locale: 'en-US', timezoneId: 'UTC' }
@@ -93,7 +94,7 @@ const LINK = './docs/decisions/0010-the-runtime-resolves-a-report-into-a-rendere
 
 function scenes() {
   return [
-    { id: 'studio-react', app: 'studio', placement: 'inline', title: 'React', caption: `Down to “Total CHF 3'143.00” ([0010](${LINK})).`, alt: 'The Studio, “Preview: printed.”', quotes: { "Total CHF 3'143.00": ['Preview'], 'Preview: printed.': ['Preview'] } },
+    { id: 'studio-react', app: 'studio', placement: 'hero', title: 'React', caption: `Down to “Total CHF 3'143.00” ([0010](${LINK})).`, alt: 'The Studio, “Preview: printed.”', quotes: { "Total CHF 3'143.00": ['Preview'], 'Preview: printed.': ['Preview'] } },
     { id: 'studio-refusal', app: 'studio', placement: 'inline', title: 'Refused', caption: 'Its button, “Select Book value”.', alt: 'The Preview.', quotes: { 'Select Book value': ['Preview'] } },
     { id: 'studio-narrow', app: 'studio', placement: 'more', title: 'Narrow', width: 390, caption: '“Page 1 of 2” and the next.', alt: 'The Studio, narrow.', quotes: { 'Page 1 of 2': ['Preview'] } },
     { id: 'studio-blank', app: 'studio', placement: 'more', title: 'Blank', caption: '“the body holds nothing”.', alt: 'The builder.', quotes: { 'the body holds nothing': ['Builder'] } },
@@ -120,7 +121,7 @@ function fixture() {
     const width = scene.width ?? 1600
     record[scene.id] = entry(scene.id, { captured: '2026-10-16', settings: { ...SETTINGS, width }, clip: { x: 0, y: 0, width, height: 400 }, picture, look: structuredClone(LOOK), data: 'the starters', stylesheet: 'sha256 0', text: TEXT[scene.id] })
   }
-  const skeleton = ['# Formancy Report', '', 'Intro.', '', '## The Studio', '', START('studio'), END, '', '## A viewer', '', START('viewer'), END, ''].join('\n')
+  const skeleton = ['# Formancy Report', '', 'Intro.', '', START('hero'), END, '', '## The Studio', '', START('studio'), END, '', '## A viewer', '', START('viewer'), END, ''].join('\n')
   return {
     scenes: list,
     record,
@@ -147,15 +148,11 @@ describe('each check, on a small repository', () => {
   // The format README.md shows, pinned: the picture at its recorded CSS width
   // with its alt, the italic caption, a run of `more` scenes folded into one
   // <details> whose summary is their titles, and the line that says how the
-  // pictures are taken and held.
+  // pictures are taken and held. The hero is not in its app's region.
   test('renders a region in the order scenes.json gives, with runs of more scenes folded', () => {
     const { scenes: list, record } = fixture()
     expect(render(list, record).studio).toBe(
       [
-        '<img src="./docs/images/readme/studio-react.webp" width="1600" alt="The Studio, “Preview: printed.”">',
-        '',
-        `*Down to “Total CHF 3'143.00” ([0010](${LINK})).*`,
-        '',
         '<img src="./docs/images/readme/studio-refusal.webp" width="1600" alt="The Preview.">',
         '',
         '*Its button, “Select Book value”.*',
@@ -178,12 +175,44 @@ describe('each check, on a small repository', () => {
     )
   })
 
-  // The line every region ends with names the commands that hold the
+  // The README opens with a picture of the editor, as formancy.ai's and
+  // Formancy Data's do: a hero left in its app's region would put the first
+  // picture of the editor below the whole Status, where a reader who stops
+  // at the top never sees one.
+  test('renders the hero in a region of its own, ending with the line that says how it is held', () => {
+    const { scenes: list, record } = fixture()
+    expect(Object.keys(render(list, record))).toEqual(['hero', 'studio', 'viewer'])
+    expect(render(list, record).hero).toBe(
+      [
+        '<img src="./docs/images/readme/studio-react.webp" width="1600" alt="The Studio, “Preview: printed.”">',
+        '',
+        `*Down to “Total CHF 3'143.00” ([0010](${LINK})).*`,
+        '',
+        HERO_LINE,
+      ].join('\n'),
+    )
+  })
+
+  // The hero's line sends the reader to the section that says how the
+  // pictures are taken and what nothing checks. An anchor is no file, so the
+  // link check does not read it: a heading renamed would leave the line
+  // pointing nowhere, and this reads the heading the anchor is made from.
+  test("ends the hero with a line whose anchor is a heading of README.md's", () => {
+    const anchors = [...HERO_LINE.matchAll(/\]\(#([^)]+)\)/g)].map((match) => match[1])
+    expect(anchors).toEqual(['the-studio'])
+    const headings = readFileSync(join(REPO, 'README.md'), 'utf8')
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith('## '))
+      .map((line) => line.slice(3).trim().toLowerCase().replaceAll(/[^a-z0-9 -]/g, '').replaceAll(' ', '-'))
+    expect(headings).toContain('the-studio')
+  })
+
+  // The line every app's region ends with names the commands that hold the
   // pictures, and the CI job that runs them; a script renamed or dropped
   // from a manifest, or a job that no longer runs the check, would leave
   // the README naming a check nobody runs. Read from the manifests and from
   // gates.yml, so a rename fails here.
-  test('ends each region with a line naming commands and a CI job that exist', () => {
+  test("ends each app's region with a line naming commands and a CI job that exist", () => {
     const studio = JSON.parse(readFileSync(join(REPO, 'apps', 'studio', 'package.json'), 'utf8'))
     const root = JSON.parse(readFileSync(join(REPO, 'package.json'), 'utf8'))
     const named = [...LINE.matchAll(/`([^`]+)`/g)].map((match) => match[1])
@@ -308,17 +337,29 @@ describe('each check, on a small repository', () => {
     state.scenes[0].id = 'Studio React'
     state.scenes[3].id = 'studio-narrow'
     state.scenes[2].alt = 'The Studio at `390`.'
-    state.scenes[1].placement = 'hero'
+    state.scenes[1].placement = 'banner'
     state.scenes[2].width = '390'
     state.scenes[4].title = ''
     expect(shapeProblems(state)).toEqual([
       'the scene id "Studio React" is not [a-z0-9-]+',
-      'studio-refusal: placement "hero" is none of inline, more',
+      'studio-refusal: placement "banner" is none of hero, inline, more',
       "studio-narrow's alt has Markdown in it, which an alt shows as written",
       'studio-narrow: width "390" is not a whole number of CSS pixels',
       'the scene id studio-narrow is used twice',
       'viewer-page has no title',
     ])
+  })
+
+  // No hero would open the README with no picture of the editor, which is
+  // what that region exists for; two would put two pictures where the
+  // README opens with one.
+  test('shape: no hero, and two', () => {
+    const none = fixture()
+    none.scenes[0].placement = 'inline'
+    expect(shapeProblems(none)).toEqual(['scenes.json must have exactly one hero scene, the picture README.md opens with; it has 0'])
+    const two = fixture()
+    two.scenes[1].placement = 'hero'
+    expect(shapeProblems(two)).toEqual(['scenes.json must have exactly one hero scene, the picture README.md opens with; it has 2'])
   })
 
   // A <details> summary lists its `more` scenes' titles with commas, so a
@@ -334,7 +375,7 @@ describe('each check, on a small repository', () => {
     const state = fixture()
     state.scenes.splice(4, 1)
     expect(guardProblems(state)).toEqual(['apps/viewer/scripts/pictures.mjs takes no scene of scenes.json, so its check would compare nothing'])
-    expect(shapeProblems({ ...state, scenes: [] })).toEqual(['scenes.json has no scene, so the README shows no picture and nothing is checked'])
+    expect(shapeProblems({ ...state, scenes: [] })).toEqual(['scenes.json has no scene, so the README shows no picture and nothing is checked', 'scenes.json must have exactly one hero scene, the picture README.md opens with; it has 0'])
   })
 
   // A render that drew no picture would be written into README.md and then
