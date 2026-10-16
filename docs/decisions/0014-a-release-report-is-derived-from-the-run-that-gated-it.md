@@ -160,9 +160,10 @@
   the floor; that a test is in a file named as vitest names one, which is
   what a test file is known by here; that the passes a browser gate planned
   are every width its app's stylesheets call for, which only the gate
-  derives and the report takes as written; and the publish job's behaviour,
-  which has never run: the workflows test holds its shape until the first
-  tag.
+  derives and the report takes as written; and the publish job's behaviour
+  beyond the one run it has had, 0.1.0's on 16 October 2026, where every
+  step succeeded: a `publish` run again over versions npm already holds has
+  never run, and the workflows test holds its shape.
 
 ## Context
 

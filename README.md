@@ -32,8 +32,11 @@ true; of its prose, a guard holds the files it names, its install lines and
 its links, and review the rest
 ([0015](./docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
 
-> **Status, 16 October 2026: 0.1.0, a developer preview, is ready to
-> release and not yet published.** Data goes in and a PDF comes out, from
+> **Status, 16 October 2026: 0.1.0, a developer preview, is released.**
+> Its eight packages are on npm, with provenance, and
+> [the GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.1.0)
+> carries the signed SBOM and release report of the run that published
+> them. Data goes in and a PDF comes out, from
 > a host's JSON or, best-effort, from a Formancy Data 0.1.0 server. A
 > report can be laid out in a native React or Angular builder. The Studio
 > puts both builders on one screen with the real PDF beside them. It is

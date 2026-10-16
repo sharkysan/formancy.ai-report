@@ -5,8 +5,8 @@ and nowhere else. A release built on a laptop cannot carry provenance — the
 attestation is a statement *by GitHub* about which workflow, at which commit,
 produced a tarball, and only the workflow can make it.
 
-Nothing has been released yet. The workflow follows Formancy Data's, release
-report included
+The first release, 0.1.0, was cut on 16 October 2026. The workflow follows
+Formancy Data's, release report included
 ([0014](docs/decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md),
 [`docs/release/`](docs/release/README.md)), without its server image, which
 arrives here with the server it describes.
@@ -178,6 +178,26 @@ commit renders the body that will be released.
 
 Agents ask before dispatching it, and never tag or publish.
 
+## If the run fails before `publish`
+
+Nothing is signed or published until `publish` runs, so the tag names a
+commit no release holds. Fix the cause on `main` through a pull request,
+then move the tag to `main` and push it again:
+
+```bash
+git fetch origin
+git tag -d v0.1.0
+git push origin :refs/tags/v0.1.0
+git tag -a v0.1.0 origin/main -m "Formancy Report 0.1.0"
+git push origin v0.1.0
+```
+
+0.1.0's first tag stopped in `check`, which refused the SBOM, and was moved
+to the commit that fixed it
+([0017](docs/decisions/0017-the-sbom-describes-what-a-consumer-installs.md)).
+Once `publish` has started, a tag is never moved: npm and Rekor may already
+hold what it named.
+
 ## If a step after npm fails
 
 Only the GitHub release comes after npm. Run the failed `publish` job again.
@@ -193,8 +213,11 @@ entries stay even when a release never happens.
 | `npm-publish` | each version number on npm, forever | the registry; any one of the packages | the signatures |
 | `github-release` | nothing: a release can be edited or deleted | the GitHub API | npm |
 
-The publish job has never run. `scripts/workflows.test.mjs` holds its shape;
-the first tag is the first time it runs.
+The publish job has run once, for 0.1.0, and every step of it succeeded.
+So the path above, a `publish` run again over versions npm already holds,
+has never run: `scripts/workflows.test.mjs` holds the job's shape, and
+`scripts/release/publish.test.mjs` what it decides about a version the
+registry holds.
 
 ## The demo on formancy.ai
 
