@@ -30,12 +30,13 @@
  *
  * **What it leaves behind.** `test-results/install.json` at the root, written
  * however the gate ends: whether it passed, the Node and npm it ran under,
- * every `@formancy/*` package a clean `npm install` resolved, each tarball's
- * name, sha256, npm integrity and the hash of its `dist/` -- what a release
- * report reads, once there is one (formancy.ai-data 0035) -- and, per
- * consumer, the framework it was installed beside, how far it got and what
- * each step said. With `--keep-tarballs <dir>` the tarballs are copied there
- * before the work directory goes, so the release publishes exactly these.
+ * every `@formancy/*` package and every runtime dependency of a packed
+ * package that a clean `npm install` resolved, each tarball's name, sha256,
+ * npm integrity and the hash of its `dist/`, and, per consumer, the framework
+ * it was installed beside, the tools that checked it, how far it got and
+ * what each step said -- what the release report reads (0014). With
+ * `--keep-tarballs <dir>` the tarballs are copied there before the work
+ * directory goes, so the release publishes exactly these.
  */
 import { createHash } from 'node:crypto'
 import { execFile } from 'node:child_process'
@@ -117,16 +118,15 @@ const inProject = (command, cwd, env) => (command[0] === 'node' ? run('node', co
 
 /**
  * Every `@formancy/*` package a project's `npm install` resolved, this
- * repository's and upstream's, by version. Read right after the install,
- * because the projects are deleted at the end. formancy.ai-data also records
- * each runtime dependency its report's *Tested on* names; that list arrives
- * here with the report.
+ * repository's and upstream's, and each of `runtime` -- the packed packages'
+ * own dependencies -- it resolved, by version: the report's *Tested on* sets
+ * them beside the versions the suites loaded. Read right after the install,
+ * because the projects are deleted at the end.
  */
-function resolvedIn(project) {
+function resolvedIn(project, runtime) {
   const scope = join(project, 'node_modules', '@formancy')
-  if (!existsSync(scope)) return []
-  return readdirSync(scope)
-    .map((name) => `@formancy/${name}`)
+  const upstream = existsSync(scope) ? readdirSync(scope).map((name) => `@formancy/${name}`) : []
+  return [...upstream, ...runtime]
     .flatMap((name) => {
       const found = installed(project, name)
       return found === undefined ? [] : [{ name, version: found.version }]
@@ -157,7 +157,7 @@ const json = (value) => `${JSON.stringify(value, null, 2)}\n`
  * Installs `project` in a directory of its own under `work` and runs its
  * steps in order, filling `entry` in as each passes. Answers what to print.
  */
-async function check(project, entry, tarballs) {
+async function check(project, entry, tarballs, runtime) {
   const dir = join(work, project.name)
   mkdirSync(dir, { recursive: true })
   // The fixture is copied rather than generated: TypeScript inside a template
@@ -180,8 +180,9 @@ async function check(project, entry, tarballs) {
   // test exists to avoid.
   await run('npm', ['install', '--no-audit', '--no-fund', '--loglevel', 'error'], dir)
   entry.npmInstalled = true
-  entry.resolved = resolvedIn(dir)
+  entry.resolved = resolvedIn(dir, runtime)
   entry.installed = Object.fromEntries(Object.keys(project.framework).map((name) => [name, installed(dir, name)?.version ?? null]))
+  entry.tools = Object.fromEntries(Object.keys(project.tools).map((name) => [name, installed(dir, name)?.version ?? null]))
 
   // What a builder's project is apart for. Anything that brings Node's types
   // into it -- a dependency of the builder's, or of a tool -- lets a builder
@@ -233,12 +234,15 @@ try {
   record.npm = (await run('npm', ['--version'], work)).trim()
 
   // Planned from the manifests the tarballs carry, which are what npm reads.
-  const projects = planProjects(new Map([...tarballs].map(([name, file]) => [name, manifestOf(file)])))
-  record.consumers = projects.map(({ name, consumer, at, steps }) => ({ project: name, consumer, at, npmInstalled: false, installed: {}, resolved: [], steps: steps.map((step) => ({ step: step.name, done: false, said: null })) }))
+  const manifests = new Map([...tarballs].map(([name, file]) => [name, manifestOf(file)]))
+  const projects = planProjects(manifests)
+  // The packed packages' own dependencies, which a clean install resolves afresh.
+  const runtime = [...new Set([...manifests.values()].flatMap((manifest) => Object.keys(manifest.dependencies ?? {})).filter((name) => !name.startsWith('@formancy/')))].sort()
+  record.consumers = projects.map(({ name, consumer, at, steps }) => ({ project: name, consumer, at, npmInstalled: false, installed: {}, tools: {}, resolved: [], steps: steps.map((step) => ({ step: step.name, done: false, said: null })) }))
   console.log(`installing ${String(projects.length)} projects into plain npm projects, each with what its host has, and checking each…`)
 
   // At once: most of the time is npm's, waiting on the network.
-  const outcomes = await Promise.allSettled(projects.map((project, at) => check(project, record.consumers[at], tarballs)))
+  const outcomes = await Promise.allSettled(projects.map((project, at) => check(project, record.consumers[at], tarballs, runtime)))
   const failed = []
   for (const [at, outcome] of outcomes.entries()) {
     if (outcome.status === 'fulfilled') console.log(outcome.value)

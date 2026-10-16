@@ -509,3 +509,43 @@ of on the page. In React, a pointer drag that dropped away from where it
 began no longer swallows the next keyboard press of a palette entry. The
 report's title is a hook of its own, `data-report-part="title"`, drawn on
 one line in the text colour, and the design view's note wraps to its pane.
+
+**Every run of the gates ends in a release report, and a release publishes
+only what its own report passed**
+([0014](docs/decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md),
+[docs/release/](docs/release/README.md)). Formancy Data's release report,
+ported and fitted to what this repository has. Every job of `gates.yml`
+collects what it found and uploads it; a last `report` job builds the report
+from all of them and fails the run on anything it cannot show. It says what
+the run was tested on -- every runtime dependency as published, as the
+suites loaded it and as a clean install resolved it; each builder's React or
+Angular as declared, as its suites ran it and as each install host
+installed it at both ends of its peer range; upstream `@formancy/*`; Node,
+pnpm, TypeScript and PDF.js -- each package's results, the tarballs by
+sha256 against the `dist/` every job built, the release gates, and the known
+limitations: those the run shows, then a register with an entry for every
+decision record, held to each record by hash. A suite is held to every test
+file the checkout holds for it, known by its name rather than by the suite's
+own include, because a file renamed past the include, or an include
+narrowed, would otherwise stop running with every count still green. The
+install gate is held to every host `scripts/install-hosts.mjs` plans, each
+step done and each builder's framework resolved, at its range's floor where
+it should be, rather than to the one flag the gate writes. A published
+package with no suite fails the run too. What 0004's table above says
+a release was tested against is now derived from the run that gates it, in
+the report and in the release body, because a version typed here could name
+one no run tested; the table stays as what this release is built for.
+
+The gates are the plan's, in `docs/release/gates.json`: G1 and G2 rest on
+evidence each run must pass; G3 rests on the builders' scenarios and stays
+open until the Studio's cross-framework test lands; G4 to G7 belong to later
+releases; and the legal review stays open while `LICENSE.md` says no lawyer
+has read it, which `scripts/licence-status.test.mjs` now holds. In a
+release, `check` refuses a report that is not this run's, green and whole,
+and tarballs that are not the ones the report says the install gate ran,
+before it pins anything; `publish` refuses anything else again, then signs
+the report beside the SBOM and attaches both to the GitHub release, whose
+body is the changelog section and the report's summary. The install gate now
+records each host's tools and the runtime dependencies a clean install
+resolved, for the report. Not yet run on GitHub: the first pull request is
+the report job's first run, and the first tag `publish`'s.

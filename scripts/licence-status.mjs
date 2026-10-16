@@ -24,9 +24,10 @@
 // has reviewed it. Any other throws rather than rendering a guess -- a
 // draft's, because the licence is in force and a LICENSE.md put back to a
 // draft must fail rather than re-render; a reviewed licence's, because what
-// the documents say of one is decided when it exists. In formancy.ai-data the
-// release gate that waits for that review is held open by this script too;
-// that check arrives here with the release report's gates register.
+// the documents say of one is decided when it exists. Because the one line it
+// reads says no lawyer has reviewed the text, the legal gate of
+// docs/release/gates.json, which waits for that review, must stay open, and
+// `gateProblems` says when it is not (0014; formancy.ai-data's gate 10).
 //
 // Node's built-ins only.
 
@@ -42,6 +43,8 @@ export const GENERATOR = 'scripts/licence-status.mjs'
 export const LICENCE = 'LICENSE.md'
 /** The document that must hold the block, whichever others do. */
 const REQUIRED = 'README.md'
+/** The release gate that waits for a lawyer's review of LICENSE.md. */
+const LEGAL_GATE = 'legal'
 
 const MONTHS = 'January|February|March|April|May|June|July|August|September|October|November|December'
 const VERSION_LINE = new RegExp(`^\\*\\*Version (\\d+(?:\\.\\d+)?) — in force from (\\d{1,2} (?:${MONTHS}) \\d{4})\\. Not reviewed by a lawyer\\.\\*\\*$`)
@@ -108,6 +111,22 @@ export function stale(root = repo) {
     const body = render(licence, linkFrom(file))
     return readBlock(current, GENERATOR) === body ? [] : [{ file, current, next: replaceBlock(current, GENERATOR, body, { from: LICENCE }) }]
   })
+}
+
+/**
+ * What is wrong with the gates register (docs/release/gates.json, parsed)
+ * against a licence no lawyer has reviewed -- the only one `readLicence`
+ * reads: the legal gate must be there, open, and with no evidence, which
+ * would let a run pass it. Whether its reason names the review is not read
+ * here.
+ */
+export function gateProblems(register) {
+  const gate = (register.gates ?? []).find((entry) => entry.gate === LEGAL_GATE)
+  const why = `${LICENCE} says no lawyer has reviewed it, and that review is what the gate waits for`
+  if (gate === undefined) return [`the ${LEGAL_GATE} gate is not in docs/release/gates.json`]
+  if (gate.evidence !== undefined) return [`the ${LEGAL_GATE} gate has evidence, but ${why}: give it its open reason back, and nothing else`]
+  if (typeof gate.open !== 'string' || gate.open.trim() === '') return [`the ${LEGAL_GATE} gate has no reason it is open, but ${why}`]
+  return []
 }
 
 // `node scripts/licence-status.mjs [--write]`

@@ -362,19 +362,51 @@ exactly what CI does:
   A change to what a picture shows is retaken with `node
   scripts/pictures.mjs`, never by hand.
 - **`install`** runs `pnpm test:e2e:install`.
+- **`report`** builds the release report from what every job above
+  collected
+  ([0014](docs/decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md),
+  [`docs/release/`](docs/release/README.md)). It fails the run when:
+  - a job ended other than success or left no results;
+  - a published package has no suite;
+  - a test or a file was skipped or failed;
+  - a test file the checkout holds did not run in its suite -- a test file
+    is known by its name, not by the suite's include, so one renamed past
+    the include fails here;
+  - an install host `scripts/install-hosts.mjs` plans was not checked whole,
+    or a builder's was not at its range's floor;
+  - two builds of one package differ, or a tarball's built files are not
+    every job's;
+  - a release gate's evidence or a limitation's `heldBy` test did not pass.
+
+  A job added to gates.yml needs a collect step and an upload, which the
+  workflows test holds, and a reader in
+  `scripts/release-report/collect.mjs`, which refuses a job it has none for.
 
 `scripts/workflows.test.mjs` holds the workflows to their shape:
 - every third-party action is pinned to a commit;
 - no `${{ }}` appears inside a script;
 - a release restores no cache;
-- `release.yml` publishes only what its `check` job pinned.
+- every gates job collects and uploads under its own key, and the report
+  waits for all of them;
+- `release.yml` checks the report before it pins, publishes only what its
+  `check` job pinned, and signs and attaches the report beside the SBOM;
+- in `publish`, only the npm step holds the token or runs npm, and it comes
+  after both signatures;
+- nothing in a workflow a release runs sets `continue-on-error`.
 
 Locally, run the same commands for what you changed.
 
-`pnpm test:repo` also fails until two things are done:
+`pnpm test:repo` also fails until these are done:
 - After `LICENSE.md` changes, run `node scripts/licence-status.mjs --write`.
 - After a package is added, run `node scripts/codecov-config.mjs --write`, and
   add the package to the `test` job's matrix.
+- A new decision record needs its entry in `docs/release/limitations.json`:
+  the costs a user, integrator or operator meets, or why it has none. An
+  edited one needs a re-read and
+  `node scripts/release-report/limitations.mjs --stamp NNNN`, and that
+  includes a Status line naming a later record.
+- After a dependency, a peer or a tool of the published packages changes,
+  run `node scripts/release-report/readme.mjs --write`.
 
 `test:e2e:install` is the only gate that looks at the packages from outside:
 - it packs them;

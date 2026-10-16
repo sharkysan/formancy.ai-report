@@ -3,7 +3,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 import { readBlock } from './generated-block.mjs'
-import { GENERATOR, linkFrom, readLicence, render, stale } from './licence-status.mjs'
+import { GENERATOR, gateProblems, linkFrom, readLicence, render, stale } from './licence-status.mjs'
+import { readGates } from './release-report/gates.mjs'
 
 /**
  * What a document says of the licence's state, derived from LICENSE.md
@@ -104,9 +105,24 @@ describe('the repository', () => {
 
   // The only version line this script reads says no lawyer has reviewed the
   // licence, so while this passes nothing here may claim a review happened.
-  // formancy.ai-data also holds its release gate for that review open from
-  // here; that check arrives with the gates register.
   test('reads LICENSE.md as a licence in force that no lawyer has reviewed', () => {
     expect(readLicence(readFileSync(join(repo, 'LICENSE.md'), 'utf8'))).toMatchObject({ version: '1', section: 9, address: 'info@formancy.ai' })
+  })
+
+  // The legal gate of docs/release/gates.json waits for a lawyer's review of
+  // LICENSE.md. The only version line this script reads says no lawyer has
+  // reviewed it, and readLicence throws on any other, so while this passes
+  // the release report must not show that gate as anything but open: given
+  // evidence, it would pass in a run; without its reason, it would be no
+  // gate at all. As formancy.ai-data holds its gate 10. That the reason
+  // names the review is held by review, not here.
+  test('keeps the legal gate open while the licence says no lawyer has reviewed it', () => {
+    expect(() => readLicence(readFileSync(join(repo, 'LICENSE.md'), 'utf8'))).not.toThrow()
+    expect(gateProblems(readGates(repo))).toEqual([])
+    expect(gateProblems({ gates: [{ gate: 'legal', evidence: [{ document: 'LICENSE.md' }], open: 'Needs a lawyer.' }] })).toEqual([
+      'the legal gate has evidence, but LICENSE.md says no lawyer has reviewed it, and that review is what the gate waits for: give it its open reason back, and nothing else',
+    ])
+    expect(gateProblems({ gates: [{ gate: 'legal' }] })).toEqual(['the legal gate has no reason it is open, but LICENSE.md says no lawyer has reviewed it, and that review is what the gate waits for'])
+    expect(gateProblems({ gates: [] })).toEqual(['the legal gate is not in docs/release/gates.json'])
   })
 })
