@@ -82,6 +82,10 @@ component_management:
       name: packages/report-spec
       paths:
         - packages/report-spec/**
+    - component_id: app-pages
+      name: apps/pages
+      paths:
+        - apps/pages/**
     - component_id: app-studio
       name: apps/studio
       paths:

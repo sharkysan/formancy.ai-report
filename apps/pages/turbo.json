@@ -1,0 +1,25 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      // The build reads files outside this package (scripts/inputs.mjs):
+      // the changelog, the licence, the Worker's config, the Studio's page
+      // and stylesheets, docs/images, the published packages' manifests,
+      // and the repository's scripts it imports. Without them here, an edit
+      // to one alone would replay a cached dist/ that says what it said
+      // before; scripts/inputs.test.mjs holds every file read to this list.
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/CHANGELOG.md",
+        "$TURBO_ROOT$/LICENSE.md",
+        "$TURBO_ROOT$/apps/studio/index.html",
+        "$TURBO_ROOT$/apps/studio/wrangler.json",
+        "$TURBO_ROOT$/apps/studio/src/styles/*.css",
+        "$TURBO_ROOT$/docs/images/**",
+        "$TURBO_ROOT$/packages/*/package.json",
+        "$TURBO_ROOT$/scripts/*.mjs"
+      ]
+    }
+  }
+}

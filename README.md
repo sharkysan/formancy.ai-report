@@ -32,7 +32,7 @@ true; of its prose, a guard holds the files it names, its install lines and
 its links, and review the rest
 ([0015](./docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
 
-> **Status, 16 October 2026: 0.1.0, a developer preview, is released.**
+> **Status, 17 October 2026: 0.1.0, a developer preview, is released.**
 > Its eight packages are on npm, with provenance, and
 > [the GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.1.0)
 > carries the signed SBOM and release report of the run that published
@@ -41,7 +41,9 @@ its links, and review the rest
 > report can be laid out in a native React or Angular builder. The Studio
 > puts both builders on one screen with the real PDF beside them. It is
 > online at https://formancy.ai/report/, and `pnpm demo` runs it from a
-> clone ([Try it](#try-it)). What 0.1.0 holds and leaves out
+> clone ([Try it](#try-it)). Beside it, the product's pages say what
+> Formancy Report is, in German, French, Italian and English. What 0.1.0
+> holds and leaves out
 > is in
 > [the changelog](./CHANGELOG.md#010--2026-10-16).
 >
@@ -106,6 +108,13 @@ push to `main`, as [RELEASING.md](./RELEASING.md#the-demo-on-formancyai)
 says. So it is main's Studio, which can be ahead of the latest release,
 and nothing in this repository checks what the address serves
 ([0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
+
+The same Worker serves the product's pages beside the Studio, each in
+German, French, Italian and English: https://formancy.ai/report/en/ and its
+translations, and a page for healthcare. They are static HTML, prerendered
+by `apps/pages` when `pnpm build` runs, and the release and the licence's
+terms they state are read from this repository's files then
+([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)).
 
 ## The Studio
 
@@ -196,6 +205,7 @@ needs a Data production licence as well as Report's
 | `@formancy/report-builder-react` | The builder for React 19: the workbench's panes over one editor, through `useSyncExternalStore`. Runs every shared scenario in three languages, with axe. |
 | `@formancy/report-builder-angular` | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js, built by ng-packagr. Runs every shared scenario in three languages, with axe; no React in its closure. It is packed from `dist/`, and the install gate compiles it into an Angular host ahead of time, links it and draws it on a server. |
 | `apps/studio` (`@formancy/report-studio`) | The playground, never published as a package and online at formancy.ai/report/ ([0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)): the starters and a blank report in either builder over one session per starter, the PDF the session prints previewed by PDF.js on white paper, and every problem printing found linked to its component. The PDF.js viewer lives here and nowhere published ([0013](./docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)). Its browser gate and its README pictures' check run in CI's `browser` job. |
+| `apps/pages` (`@formancy/report-pages`) | The product's pages, never published as a package: what Formancy Report is, and a page for healthcare, each in German, French, Italian and English, prerendered to static HTML with their sitemap and served beside the Studio at formancy.ai/report/<lang>/ ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)). Its suite reads every page back as a crawler does and holds its head, its translations, its links, its words and the sitemap. |
 | `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)), and a reader that decodes the QR codes a page prints with ZXing; the three starter reports; and the renderer trial's adapters for pdfmake and pdfme. |
 
 Planned and not here: the server and its jobs, reviewed AI changes, a
@@ -277,7 +287,7 @@ pnpm test
 The gates CI runs, from `.github/workflows/gates.yml`: `pnpm build`,
 `pnpm typecheck`, `pnpm check:pkg`, `node scripts/verify-licenses.mjs`,
 `node scripts/dependency-licences.mjs` and `pnpm test:repo`; each package's
-`test:coverage`, the Studio's included, in a job of its own; the Studio's
+`test:coverage`, the Studio's and the pages' included, in a job of its own; the Studio's
 browser gate and its README pictures' check, in Chromium (`pnpm test:browser`
 and `pnpm test:pictures`, after `pnpm build` and `pnpm --filter
 @formancy/report-studio exec playwright install chromium`); and

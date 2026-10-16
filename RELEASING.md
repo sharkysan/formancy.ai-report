@@ -229,18 +229,26 @@ builds with `pnpm build` and deploys with `node scripts/demo.mjs`, the two
 halves of `pnpm demo:deploy`, with the settings in
 [REPO-METADATA.md](.github/REPO-METADATA.md#the-demos-worker-on-cloudflare).
 So the demo is main's Studio, not the latest release's, and a release
-needs nothing more for it.
+needs nothing more for it. The product's pages ride the same deploy,
+beside the Studio
+([0021](docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)).
+They name the release the changelog's newest version heading names, so
+they name a release from the moment its commit reaches `main`, before step
+6 has published it.
 
 `node scripts/demo.mjs` refuses:
 - a checkout with changes;
 - a Worker config in `apps/studio/wrangler.json` that is not the demo's;
-- a built page that asks for a file by an absolute path.
+- a missing build, the Studio's or the pages';
+- a path both builds hold;
+- a built page of either that asks for a file by an absolute path.
 
 Then it deploys with the pinned Wrangler, with the commit in the
 deployment's message. A failed build leaves the last deployment serving.
 Its log is on the Worker's page in Cloudflare's dashboard, and nothing in
 this repository reads it. After a deploy, open the address and see a
-starter print.
+starter print, and open https://formancy.ai/report/en/ and its language
+switcher.
 
 By hand, from a clean checkout, with a Cloudflare login that can edit
 Workers on formancy.ai's zone:

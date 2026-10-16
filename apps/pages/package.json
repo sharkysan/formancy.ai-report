@@ -1,0 +1,29 @@
+{
+  "name": "@formancy/report-pages",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The pages that tell search engines and people what Formancy Report does, in German, French, Italian and English, prerendered to static HTML and served under formancy.ai/report/ beside the Studio. Never published.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "scripts": {
+    "build": "vite build --ssr src/render.tsx --outDir dist-ssr && node scripts/prerender.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:coverage": "vitest run --coverage",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "catalog:",
+    "jsdom": "^30.1.0",
+    "typescript": "catalog:",
+    "vite": "^8.3.0",
+    "vitest": "catalog:"
+  }
+}

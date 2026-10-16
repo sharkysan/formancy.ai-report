@@ -80,8 +80,14 @@ playground that puts both builders and a PDF.js preview on one page
 ([0013](docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)),
 never published as a package and served at formancy.ai/report/
 ([0018](docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md));
-the PDF.js viewer lives there and in no published package. That is all the
-product code there is. The package path the plan proposes, each package depending only on those
+the PDF.js viewer lives there and in no published package. `apps/pages` is
+the product's pages, prerendered to static HTML in German, French, Italian
+and English, never published as a package and served beside the Studio at
+formancy.ai/report/<lang>/
+([0021](docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)):
+the facts they state about the release and the licence are read from
+`CHANGELOG.md` and `LICENSE.md` when they are built, and `src/groups.ts`
+is the list of pages. That is all the product code there is. The package path the plan proposes, each package depending only on those
 before it:
 
 1. `report-spec` -- the versioned definition, structural validation, canonical
@@ -214,7 +220,9 @@ as Formancy Data's apps are, not a new one
   copied into `apps/studio/src/styles/room.css` under the marking comment,
   not a palette of its own; its `styles/builder.css` gives the panes the
   admin's geometry without a colour. `report-builder.css` is the only
-  stylesheet the builders have.
+  stylesheet the builders have. The product's pages import the Studio's
+  room, controls, bar and narrow rules rather than copy them, and their
+  own rules state no colour (0021).
 - **The page is the document, not the room.** What prints is the report's
   own serialisable styles. The editor's CSS, and the host's, never reach a
   customer's printed output. The design view says it is not the PDF, by its
@@ -262,6 +270,11 @@ What holds this section:
   drag, the place chooser, a pane and the Preview hidden and shown again,
   the design view holding a page at 100 % wherever the Preview stands
   beside it, and no rule of the page's on the paper.
+- **The pages' stylesheet**, `apps/pages/src/stylesheet.test.ts`: it
+  imports the Studio's `room.css` first and only the Studio's stylesheets,
+  and declares no colour and no variable of its own. The pages' checks,
+  `apps/pages/src/checks/`, hold each page's head, links, words and
+  sitemap (0021).
 - **The README's pictures**, `scripts/pictures/readme.test.mjs` in
   `pnpm test:repo` and the Studio's `pictures.mjs --check` as
   `test:pictures` in the same CI job: every picture is whole parts of a
@@ -274,7 +287,9 @@ What holds this section:
 
 What nothing holds yet, said: the palette and `builder.css` are copied from
 `admin.css` by hand, and nothing fails when upstream's move; the gate runs
-Chromium alone, where Formancy Data's runs Firefox and WebKit too; and what
+Chromium alone, where Formancy Data's runs Firefox and WebKit too; no gate
+measures the product's pages in a browser, whose reflow and contrast were
+measured by hand (0021); and what
 a README picture looks like, and whether a caption's quote is painted in it
 rather than scrolled out of its part, which review alone holds.
 

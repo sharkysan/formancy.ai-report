@@ -1,0 +1,338 @@
+/*
+ * The pages' stylesheet: formancy.ai's room as the Studio wears it, and the
+ * Studio's bar as the shell (0021). The room -- the admin's variables, the
+ * page, the skip link, the eyebrow -- the pills, the bar and its narrow
+ * rules are the Studio's own files, imported, never copied: the admin's
+ * palette has one copy here, the Studio's room.css, and when
+ * @formancy/themes ships the room both will import that instead.
+ *
+ * Below the imports, the pages' own rules: their layout, and colours only
+ * through the room's variables -- no colour of their own, which
+ * stylesheet.test.ts holds. scripts/inputs.mjs inlines the imports at build
+ * time, as Vite inlines the Studio's, and the page links the one file.
+ */
+@import '../../studio/src/styles/room.css';
+@import '../../studio/src/styles/controls.css';
+@import '../../studio/src/styles/shell.css';
+@import '../../studio/src/styles/narrow.css';
+
+/* ---------------------------------------------------------------- shell */
+
+.site {
+  display: grid;
+  /* Its one column may be narrower than a long word, which then wraps
+     rather than widening the page. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: 0.75rem;
+}
+
+.wordmark {
+  color: inherit;
+  text-decoration: none;
+}
+
+.site-nav ul,
+.languages ul,
+.crumbs ol,
+.actions,
+.foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quiet[aria-current='page'] {
+  border-color: var(--client);
+}
+
+.languages {
+  margin-inline-start: auto;
+}
+
+.languages a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-decoration: none;
+}
+
+.languages a:hover {
+  color: var(--text);
+}
+
+/* The page's own language: violet, the colour of what the person chose. */
+.languages a[aria-current='page'] {
+  border-color: var(--client);
+  color: var(--text);
+}
+
+.crumbs {
+  padding: 0 1rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.crumbs li + li::before {
+  content: '/';
+  margin-inline-end: 0.5rem;
+}
+
+.crumbs a {
+  color: var(--text);
+}
+
+.site-main:focus {
+  outline: none;
+}
+
+/* ---------------------------------------------------------------- text */
+
+.site-main a:not([class]),
+.site-foot a {
+  color: color-mix(in srgb, var(--client) 70%, var(--text));
+  text-underline-offset: 0.2em;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  overflow-wrap: break-word;
+}
+
+h1 {
+  max-width: 24ch;
+  margin: 0.75rem 0 1rem;
+  font-size: clamp(2rem, 1.25rem + 3.2vw, 3.5rem);
+  font-weight: 750;
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font-size: clamp(1.5rem, 1.15rem + 1.4vw, 2.125rem);
+  font-weight: 700;
+}
+
+h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 650;
+}
+
+p {
+  max-width: 68ch;
+}
+
+.lead {
+  color: var(--muted);
+  font-size: 1.125rem;
+}
+
+/* ------------------------------------------------------------- sections */
+
+.hero,
+.band {
+  padding: 2rem 1rem;
+}
+
+.hero {
+  padding-top: 3rem;
+}
+
+/* A glass panel, as the bar is one. */
+.panel,
+.card {
+  border: 1px solid var(--edge-strong);
+  border-radius: 16px;
+  background: var(--glass);
+  backdrop-filter: blur(14px);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  padding: 1.25rem;
+}
+
+.card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------- actions */
+
+.actions {
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+/* The page's one action that matters: violet, filled. */
+.action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  background: var(--client);
+  color: var(--ground);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.action:hover {
+  background: color-mix(in srgb, var(--client) 80%, var(--text));
+}
+
+/* The room's pill, wrapping where a long label meets a narrow screen. */
+.actions .quiet,
+.band .quiet {
+  min-height: 2.75rem;
+  padding-block: 0.5rem;
+  white-space: normal;
+}
+
+/* -------------------------------------------------------------- figures */
+
+.figure {
+  margin: 2rem 0 0;
+}
+
+.figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--edge-strong);
+  border-radius: 12px;
+}
+
+.figure figcaption {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
+}
+
+.figures .figure {
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------- terms */
+
+.terms {
+  width: 100%;
+  margin: 1rem 0;
+  border-collapse: collapse;
+}
+
+.terms caption {
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: start;
+}
+
+.terms th,
+.terms td {
+  padding: 0.625rem 0.75rem 0.625rem 0;
+  border-bottom: 1px solid var(--edge);
+  text-align: start;
+  vertical-align: top;
+}
+
+.terms th[scope='row'] {
+  font-weight: 400;
+}
+
+.terms td {
+  font-weight: 600;
+}
+
+.links {
+  display: grid;
+  gap: 0.375rem;
+  padding-inline-start: 1.25rem;
+}
+
+/* A status that will change: amber, what the room says with a warning. */
+.band strong {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------- footer */
+
+.site-foot {
+  padding: 2rem 1rem;
+  border-top: 1px solid var(--edge);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.foot-links {
+  gap: 0.5rem 1.5rem;
+}
+
+.notice {
+  font-size: 0.8125rem;
+}
+
+/* -------------------------------------------------------- narrow screens
+ *
+ * Only `@media (max-width: Nrem)`, as the Studio writes them, and last so
+ * their rules win. Below 40rem, the Studio's narrow.css tightens the bar;
+ * here the gutters tighten with it and the language switcher takes a line
+ * of its own.
+ */
+
+@media (max-width: 40rem) {
+  .site {
+    padding: 0.5rem;
+  }
+
+  .hero,
+  .band,
+  .site-foot {
+    padding-inline: 0.75rem;
+  }
+
+  .hero {
+    padding-top: 1.5rem;
+  }
+
+  .languages {
+    flex-basis: 100%;
+    margin-inline-start: 0;
+  }
+
+  /* A German heading word can be wider than a phone: hyphenated where the
+     browser knows how, broken where it does not. */
+  h1,
+  h2 {
+    hyphens: auto;
+  }
+}

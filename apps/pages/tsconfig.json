@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    // The build's inputs are read by scripts/inputs.mjs, in Node and outside
+    // the bundle, beside the repository's scripts it imports; the suite
+    // imports it as the prerender does, typed from its JSDoc, not checked.
+    "allowJs": true,
+    "checkJs": false,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

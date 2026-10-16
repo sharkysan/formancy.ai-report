@@ -21,6 +21,9 @@ test-results/
 # demo's path, removed after each deploy, and Wrangler's own state.
 /apps/studio/.cloudflare/
 .wrangler/
+# The pages' renderer, compiled for Node by their build and removed by its
+# prerender once the pages are written (0021); left only by a build cut short.
+/apps/pages/dist-ssr/
 .idea/
 .pnpm-store/
 

@@ -76,11 +76,32 @@ root directory, the branch and the two commands below to
 | Git repository | `sharkysan/formancy.ai-report` | |
 | Production branch | `main` | The demo is main's Studio |
 | Builds for non-production branches | off | A branch's build would upload a version of the Worker from code no review has merged |
-| Root directory | `/` | The workspace's root, where its lockfile is and `pnpm build` builds every package the Studio imports |
+| Root directory | `/` | The workspace's root, where its lockfile is and `pnpm build` builds every package the Studio imports, and the product's pages |
 | Build command | `pnpm build` | |
-| Deploy command | `node scripts/demo.mjs` | It stages the build under `/report/` and runs the pinned Wrangler with `apps/studio/wrangler.json` |
+| Deploy command | `node scripts/demo.mjs` | It stages the Studio's build and the pages' build under `/report/` and runs the pinned Wrangler with `apps/studio/wrangler.json` (0021) |
 | Build variables | none | Node from `.node-version`; pnpm the version `packageManager` names, which the image's pnpm switches to |
 | API token | the one Workers Builds generates | No Cloudflare token is held in GitHub |
+
+## Search engines
+
+The product's pages, served beside the Studio
+([0021](../docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)),
+list themselves in https://formancy.ai/report/sitemap.xml. A search engine
+learns of a sitemap from the site's robots.txt or from its owner, and
+formancy.ai's robots.txt is formancy.ai's repository's, not this one's. So
+one of these is done by hand, once, by whoever holds formancy.ai's Google
+Search Console property:
+
+- **Google Search Console**, property formancy.ai: *Sitemaps*, add
+  `https://formancy.ai/report/sitemap.xml`, submit, and read back that it
+  was fetched.
+- **Or formancy.ai's robots.txt**, in that repository: a line
+  `Sitemap: https://formancy.ai/report/sitemap.xml`, and no `Disallow`
+  that covers `/report/`.
+
+Nothing in this repository can do either, or check that a search engine
+has read the sitemap or indexed a page. The Studio itself, at
+`/report/`, says `noindex` and stays out of the sitemap.
 
 ## Secrets the workflows expect
 
