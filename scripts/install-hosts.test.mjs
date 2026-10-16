@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
 import { floorOf, planProjects } from './install-hosts.mjs'
 
@@ -34,10 +35,13 @@ const manifests = new Map([
   ['@formancy/report-core', { dependencies: { '@formancy/report-spec': '0.1.0' } }],
   ['@formancy/report-builder-core', { dependencies: { '@formancy/report-core': '0.1.0', '@formancy/report-spec': '0.1.0' } }],
   ['@formancy/report-runtime', { dependencies: { '@formancy/report-core': '0.1.0', '@formancy/report-spec': '0.1.0', decimal: '1.0.0' } }],
+  ['@formancy/report-render-pdf', { dependencies: { '@formancy/report-runtime': '0.1.0', pdfmake: '0.3.11' } }],
   ['@formancy/report-builder-react', { dependencies: { '@formancy/report-builder-core': '0.1.0' }, peerDependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' } }],
   ['@formancy/report-builder-angular', { dependencies: { '@formancy/report-builder-core': '0.1.0', tslib: '^2.8.0' }, peerDependencies: { '@angular/core': '^22.0.0' } }],
 ])
 const named = (name) => planProjects(manifests).find((project) => project.name === name)
+/** The workbench release the Studio declares, which the guide's pages install. */
+const themes = JSON.parse(readFileSync(new URL('../apps/studio/package.json', import.meta.url), 'utf8')).dependencies['@formancy/themes']
 
 describe('the projects the gate installs', () => {
   // A project for every host and both ends of each builder's range; one
@@ -47,6 +51,8 @@ describe('the projects the gate installs', () => {
       'node: consume.ts',
       'react: react.tsx',
       'react-floor: react.tsx',
+      'react-app: guide-react.tsx',
+      'react-app-floor: guide-react.tsx',
       'angular: angular.ts',
       'angular-floor: angular.ts',
     ])
@@ -58,7 +64,27 @@ describe('the projects the gate installs', () => {
   test('install a builder with only the packages it declares, transitively, and the Node host with the rest', () => {
     expect(named('react')?.packages).toEqual(['@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-core', '@formancy/report-spec'])
     expect(named('angular-floor')?.packages).toEqual(['@formancy/report-builder-angular', '@formancy/report-builder-core', '@formancy/report-core', '@formancy/report-spec'])
-    expect(named('node')?.packages).toEqual(['@formancy/report-builder-core', '@formancy/report-core', '@formancy/report-runtime', '@formancy/report-spec'])
+    expect(named('node')?.packages).toEqual(['@formancy/report-builder-core', '@formancy/report-core', '@formancy/report-render-pdf', '@formancy/report-runtime', '@formancy/report-spec'])
+  })
+
+  // The guide's React page previews in the browser, so it installs the
+  // renderer beside the builder, each with what it declares, and the
+  // workbench's stylesheet -- in a project of its own, so that the builder's
+  // own project still refuses an import of the renderer it never declared.
+  test("install the guide's React page with the builder, the renderer and the Studio's workbench release, at both ends of React's range", () => {
+    expect(named('react-app')?.packages).toEqual(['@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-core', '@formancy/report-render-pdf', '@formancy/report-runtime', '@formancy/report-spec'])
+    expect(named('react-app-floor')?.framework).toEqual({ react: '19.0.0', 'react-dom': '19.0.0', '@types/react': '~19.0.0', '@types/react-dom': '~19.0.0', '@formancy/themes': themes })
+    expect(named('react')?.packages).not.toContain('@formancy/report-render-pdf')
+    expect(named('react')?.framework).not.toHaveProperty(['@formancy/themes'])
+    expect(named('react-app')?.guide?.kind).toBe('react')
+    expect(named('angular-floor')?.guide?.kind).toBe('angular')
+  })
+
+  // Without the renderer packed, the page would be installed without it and
+  // fail in a way that names the guide rather than the missing tarball.
+  test("refuse to plan the guide's React page without the renderer", () => {
+    const unpacked = new Map([...manifests].filter(([name]) => name !== '@formancy/report-render-pdf'))
+    expect(() => planProjects(unpacked)).toThrow(/report-render-pdf was not packed, so the react-app host/)
   })
 
   // Installed from the range alone, npm takes the newest release, and a
@@ -80,6 +106,7 @@ describe('the projects the gate installs', () => {
       '@angular/platform-browser': version,
       '@angular/platform-server': version,
       rxjs: '^7.8.1',
+      '@formancy/themes': themes,
     })
     expect(named('angular')?.framework).toEqual(angular('^22.0.0'))
     expect(named('angular-floor')?.framework).toEqual(angular('22.0.0'))

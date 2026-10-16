@@ -13,6 +13,15 @@ approved PostgreSQL or SQL Server dataset. An AI can propose changes, which
 are reviewed against the same sample data before they apply. Report works
 without any AI dependency.
 
+**Start with [the getting-started guide](./docs/getting-started.md)**: a
+quotation printed as a PDF in Node and in a browser, the editor in a React
+page that saves and previews, and in an Angular page. The install gate
+compiles its code against the packed packages and runs it, or bundles it
+for a browser where it needs one, so its code fails CI when it stops being
+true; of its prose, a guard holds the files it names, its install lines and
+its links, and review the rest
+([0015](./docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
+
 > **Status, 16 October 2026: data goes in and a PDF comes out, a report can
 > be laid out in a native React or Angular builder, and the Studio puts
 > them on one screen with the real PDF beside them:
@@ -211,7 +220,13 @@ its production build. The Angular builder is compiled into a host ahead of
 time with strict templates, linked as the Angular CLI links it, and drawn by
 Angular's platform-server without the JIT compiler. Each builder is also
 bundled for a browser, and checked at the newest and the oldest release its
-peer range admits. Neither is mounted in a DOM there.
+peer range admits. Neither is mounted in a DOM there. The same gate builds
+[the getting-started guide](./docs/getting-started.md)'s code: its Node
+program is run and must print what the guide shows, its React page has a
+project of its own that also installs the renderer, and its Angular page is
+compiled into the Angular builder's projects; each page is drawn on a server
+and bundled for a browser, at both ends of its builder's peer range
+([0015](./docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
 [`CLAUDE.md`](./CLAUDE.md) says what each is for and what the bar is.
 
 Every run of the gates ends in a release report of what that run was tested
@@ -252,6 +267,7 @@ What a run actually ran -- the Node of each job, the React and Angular each inst
 
 ## Documents
 
+- [`docs/getting-started.md`](./docs/getting-started.md) — from an empty npm project to a PDF and the editor in your page. The install gate compiles every block of its code against the packed packages and runs it, or bundles it for a browser, and `scripts/getting-started.test.mjs` fails when a block escapes the gate or imports a package the guide never says to install.
 - [`docs/decisions/`](./docs/decisions/README.md) — every decision somebody could helpfully undo, with what verifies it.
 - [`CHANGELOG.md`](./CHANGELOG.md) — what changed and why.
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`CLA.md`](./CLA.md) — contributions are taken under a CLA, checked on every pull request.

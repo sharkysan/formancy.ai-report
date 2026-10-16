@@ -431,7 +431,16 @@ Locally, run the same commands for what you changed.
   renderer in its development and production builds; `angular.ts` compiled
   ahead of time, linked and bundled by `build.mjs`, and drawn by
   platform-server without the JIT compiler; and each builder bundled for a
-  browser.
+  browser;
+- compiles and runs `docs/getting-started.md` (0015): every block of code in
+  the guide names its host in its fence (`ts guide=node`, `tsx guide=react
+  file=main.tsx`), and the gate writes the blocks into that host's project
+  -- `node`, the `react-app` hosts, `angular` -- type-checks them, runs the
+  Node program against the output the guide shows, draws the pages on a
+  server and bundles them for a browser. `scripts/getting-started.test.mjs`
+  fails when a block names no host, a file is not named in the prose before
+  its block, an install line names what the gate does not install, or a
+  link or anchor no longer resolves.
 
 That matters because every other gate resolves a package through a symlink to
 its source, so an `exports` map that is wrong for a consumer can be right for

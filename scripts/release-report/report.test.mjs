@@ -449,6 +449,8 @@ describe('the install plan', () => {
       ['node', null],
       ['react', 'newest'],
       ['react-floor', 'floor'],
+      ['react-app', 'newest'],
+      ['react-app-floor', 'floor'],
       ['angular', 'newest'],
       ['angular-floor', 'floor'],
     ])

@@ -15,7 +15,24 @@
  * Everything here is derived from the packed manifests. A peer range is
  * read for both ends, and the packages a builder declares, transitively,
  * are what its project installs.
+ *
+ * Three hosts also build what docs/getting-started.md builds (0015): the
+ * Node host its program, the Angular host its page, and a React page of its
+ * own, `react-app`, which previews in the browser and so installs the
+ * renderer beside the builder. The guide's blocks are written into each
+ * host's `guide/` directory by getting-started.mjs's reading, type-checked
+ * with the rest of the host's code, run by the host's `guide` runner, and,
+ * for a page, bundled for a browser every one.
  */
+import { readFileSync } from 'node:fs'
+
+/**
+ * The workbench release the builders are dressed with: the one the Studio
+ * declares, whose browser gate and pictures show the two stylesheets
+ * together. The guide's pages install it, as the guide tells a host to.
+ */
+const THEMES = JSON.parse(readFileSync(new URL('../apps/studio/package.json', import.meta.url), 'utf8')).dependencies?.['@formancy/themes']
+if (typeof THEMES !== 'string') throw new Error('apps/studio/package.json declares no @formancy/themes, so no workbench release is the one to install')
 
 /** The TypeScript the workspace pins; a consumer on another major is its own question. */
 const TYPESCRIPT = '~6.0.3'
@@ -29,7 +46,7 @@ const ESBUILD = '^0.28.0'
  * declaration file reach a consumer unnoticed, and the published
  * declaration files are precisely what is on trial here.
  */
-const STRICT = { strict: true, skipLibCheck: false }
+const STRICT = { strict: true, exactOptionalPropertyTypes: true, noUncheckedIndexedAccess: true, skipLibCheck: false }
 /** A browser host's code: the DOM, and no Node. */
 const BROWSER = { lib: ['ES2023', 'DOM', 'DOM.Iterable'], types: [] }
 
@@ -38,33 +55,48 @@ const together = (spec) => spec
 /** DefinitelyTyped publishes a release line per minor with patches of its own: at the floor, the floor's line. */
 const typesOf = (spec, at) => (at === 'floor' ? `~${spec.split('.').slice(0, 2).join('.')}.0` : spec)
 
+/** React's types, on React's own release line at either end. */
+const REACT_TYPES = { '@types/react': ['react', typesOf], '@types/react-dom': ['react-dom', typesOf] }
+
 /**
  * The hosts, in the order the gate reports them. `node` takes every
  * package that is no host's builder. Each builder's host lists the peers
- * its builder must declare, what follows them, and what it runs, in order.
- * A command whose program is not `node` is a binary installed in the
- * project.
+ * its builder must declare, what follows them, and what it runs, in order;
+ * `with` names packages it installs beside the builder, each with what it
+ * declares. A command whose program is not `node` is a binary installed in
+ * the project.
+ *
+ * `guide` is the part of docs/getting-started.md a host builds: the `kind`
+ * a block's `guide=` names, the `entry` module its blocks go to unless they
+ * name a file, the `runner` that runs that entry, whether the runner
+ * compares what it `prints` with the guide's output blocks, and whether
+ * every module is `bundled` for a browser.
  */
 export const HOSTS = {
   // A Node program with no DOM and no framework: what it imports -- every
   // package but the builders -- must need no DOM type, and only Node's.
   node: {
     consumer: 'consume.ts',
+    guide: { kind: 'node', entry: 'quotation.ts', runner: 'guide-node.ts', prints: true, bundled: false },
     tools: { '@types/node': '^22.10.0', typescript: TYPESCRIPT, tsx: TSX },
     tsconfig: {
       file: 'tsconfig.consume.json',
-      content: { compilerOptions: { ...STRICT, target: 'ES2023', module: 'NodeNext', moduleResolution: 'nodenext', lib: ['ES2023'], types: ['node'], noEmit: true }, include: ['consume.ts'] },
+      content: {
+        compilerOptions: { ...STRICT, target: 'ES2023', module: 'NodeNext', moduleResolution: 'nodenext', lib: ['ES2023'], types: ['node'], noEmit: true },
+        include: ['consume.ts', 'guide-node.ts', 'guide'],
+      },
     },
     steps: [
       { name: 'type-check', command: ['tsc', '-p', 'tsconfig.consume.json'] },
       { name: 'run', command: ['tsx', '--tsconfig', 'tsconfig.consume.json', 'consume.ts'] },
+      { name: 'guide: run', command: ['tsx', '--tsconfig', 'tsconfig.consume.json', 'guide-node.ts'] },
     ],
   },
   react: {
     builder: '@formancy/report-builder-react',
     consumer: 'react.tsx',
     peers: ['react', 'react-dom'],
-    follows: { '@types/react': ['react', typesOf], '@types/react-dom': ['react-dom', typesOf] },
+    follows: REACT_TYPES,
     tools: { typescript: TYPESCRIPT, tsx: TSX, esbuild: ESBUILD },
     // Its own tsconfig for tsx too: without `jsx: react-jsx`, tsx compiles
     // react.tsx to React.createElement, and it dies on "React is not defined".
@@ -82,15 +114,49 @@ export const HOSTS = {
       { name: 'browser build', command: ['node', 'build.mjs', '--platform', 'browser', '--exports', '@formancy/report-builder-react'] },
     ],
   },
+  // The guide's React page: the builder, and the renderer's browser entry
+  // its preview prints with, each with what it declares, and the
+  // workbench's stylesheet -- what the guide's install lines name -- beside
+  // React. Apart from `react`, which holds only what the builder declares,
+  // so that a builder importing the renderer without declaring it still
+  // fails there. A browser's code: the DOM's types, no Node's, and the
+  // module resolution a bundler has; `css.d.ts` says of a stylesheet
+  // import what a bundler's client types say.
+  'react-app': {
+    builder: '@formancy/report-builder-react',
+    with: ['@formancy/report-render-pdf'],
+    consumer: 'guide-react.tsx',
+    guide: { kind: 'react', entry: 'report-page.tsx', runner: 'guide-react.tsx', prints: false, bundled: true },
+    peers: ['react', 'react-dom'],
+    follows: REACT_TYPES,
+    fixed: { '@formancy/themes': THEMES },
+    tools: { typescript: TYPESCRIPT, tsx: TSX, esbuild: ESBUILD },
+    tsconfig: {
+      file: 'tsconfig.react-app.json',
+      content: {
+        compilerOptions: { ...STRICT, ...BROWSER, target: 'ES2023', module: 'preserve', moduleResolution: 'bundler', jsx: 'react-jsx', noEmit: true },
+        include: ['guide-react.tsx', 'guide', 'css.d.ts'],
+      },
+    },
+    steps: [
+      { name: 'type-check', command: ['tsc', '-p', 'tsconfig.react-app.json'] },
+      // Development, where React says what it objects to.
+      { name: 'guide: run', command: ['tsx', '--tsconfig', 'tsconfig.react-app.json', 'guide-react.tsx'], env: { NODE_ENV: 'development' } },
+      { name: 'guide: browser build', command: ['node', 'build.mjs', '--platform', 'browser', '--modules', 'guide', '--tsconfig', 'tsconfig.react-app.json'] },
+    ],
+  },
+  // The guide's Angular page needs nothing the builder does not declare but
+  // the workbench's stylesheet, so the builder's own host builds it too.
   angular: {
     builder: '@formancy/report-builder-angular',
     consumer: 'angular.ts',
+    guide: { kind: 'angular', entry: 'report-page.ts', runner: 'guide-angular.ts', prints: false, bundled: true },
     peers: ['@angular/core'],
     // compiler-cli compiles the host and links the builder, which needs the
     // compiler; common and the two platforms draw it on a server.
     follows: Object.fromEntries(['common', 'compiler', 'compiler-cli', 'platform-browser', 'platform-server'].map((name) => [`@angular/${name}`, ['@angular/core', together]])),
-    // What @angular/core's declarations import.
-    fixed: { rxjs: '^7.8.1' },
+    // What @angular/core's declarations import, and the stylesheet the guide's page lists.
+    fixed: { rxjs: '^7.8.1', '@formancy/themes': THEMES },
     tools: { typescript: TYPESCRIPT, esbuild: ESBUILD },
     // What an Angular CLI project compiles with, as far as it bears on what
     // is checked: strict templates, and the module resolution a bundler has.
@@ -98,7 +164,7 @@ export const HOSTS = {
       file: 'tsconfig.angular.json',
       content: {
         compilerOptions: { ...STRICT, ...BROWSER, target: 'ES2022', module: 'preserve', moduleResolution: 'bundler', outDir: 'out' },
-        files: ['angular.ts'],
+        include: ['angular.ts', 'guide-angular.ts', 'guide'],
         angularCompilerOptions: { strictTemplates: true, strictInjectionParameters: true, strictInputAccessModifiers: true },
       },
     },
@@ -107,9 +173,15 @@ export const HOSTS = {
       { name: 'server build', command: ['node', 'build.mjs', '--platform', 'node', '--entry', 'out/angular.js', '--outfile', 'out/angular.server.mjs', '--link', '@formancy/report-builder-angular'] },
       { name: 'run', command: ['node', 'out/angular.server.mjs'] },
       { name: 'browser build', command: ['node', 'build.mjs', '--platform', 'browser', '--exports', '@formancy/report-builder-angular', '--link', '@formancy/report-builder-angular'] },
+      { name: 'guide: server build', command: ['node', 'build.mjs', '--platform', 'node', '--entry', 'out/guide-angular.js', '--outfile', 'out/guide-angular.server.mjs', '--link', '@formancy/report-builder-angular'] },
+      { name: 'guide: run', command: ['node', 'out/guide-angular.server.mjs'] },
+      { name: 'guide: browser build', command: ['node', 'build.mjs', '--platform', 'browser', '--modules', 'out/guide', '--link', '@formancy/report-builder-angular'] },
     ],
   },
 }
+
+/** What docs/getting-started.md is built by: each host's guide, the order of HOSTS. */
+export const GUIDE_HOSTS = Object.values(HOSTS).flatMap((host) => (host.guide === undefined ? [] : [host.guide]))
 
 /**
  * The version `range` starts from. Only a range with one floor this can
@@ -162,13 +234,16 @@ export function planProjects(manifests) {
   if (orphans.length > 0) throw new Error(`no host installs ${orphans.join(', ')}, which declares peers; give it one in install-hosts.mjs`)
 
   return Object.entries(HOSTS).flatMap(([kind, host]) => {
-    const common = { host: kind, consumer: host.consumer, tools: host.tools, tsconfig: host.tsconfig, steps: host.steps }
+    const common = { host: kind, consumer: host.consumer, guide: host.guide ?? null, tools: host.tools, tsconfig: host.tsconfig, steps: host.steps }
     if (host.builder === undefined) {
       return [{ name: kind, at: null, packages: [...manifests.keys()].filter((name) => !builders.has(name)).sort(), framework: {}, ...common }]
     }
     const manifest = manifests.get(host.builder)
     if (manifest === undefined) throw new Error(`${host.builder} was not packed, so its host has nothing to check`)
-    const packages = closureOf(host.builder, manifests)
+    const beside = host.with ?? []
+    const unpacked = beside.filter((name) => !manifests.has(name))
+    if (unpacked.length > 0) throw new Error(`${unpacked.join(', ')} was not packed, so the ${kind} host would be checked without it`)
+    const packages = [...new Set([host.builder, ...beside].flatMap((name) => closureOf(name, manifests)))].sort()
     return ['newest', 'floor'].map((at) => ({ name: at === 'floor' ? `${kind}-floor` : kind, at, packages, framework: frameworkOf(host, manifest, at), ...common }))
   })
 }
