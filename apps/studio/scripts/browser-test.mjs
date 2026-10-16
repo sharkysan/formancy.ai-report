@@ -129,6 +129,31 @@ async function builder(page, name) {
   await editorOf(page).waitFor()
 }
 
+/**
+ * A pointer drag from `source` to `position` on `target`, as a person makes
+ * one. Both are scrolled into view before the press, so nothing scrolls
+ * between the press and the release; then the pointer moves in steps, as a
+ * hand does. Chromium starts an HTML drag (Angular's builder, 0012) only once
+ * the pointer has moved some way with the button held, and in the headless
+ * shell on Linux one jump from the press to the target never started it:
+ * locator.dragTo passed on Windows and inserted nothing on CI.
+ */
+async function drag(page, source, target, position) {
+  await source.scrollIntoViewIfNeeded()
+  await target.scrollIntoViewIfNeeded()
+  const from = await source.boundingBox()
+  const to = await target.boundingBox()
+  if (from === null || to === null) throw new Error('a drag needs both ends drawn')
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+  await page.mouse.down()
+  for (let step = 1; step <= 12; step += 1) {
+    const share = step / 12
+    await page.mouse.move(from.x + from.width / 2 + (to.x + position.x - (from.x + from.width / 2)) * share, from.y + from.height / 2 + (to.y + position.y - (from.y + from.height / 2)) * share)
+  }
+  await page.mouse.move(to.x + position.x, to.y + position.y)
+  await page.mouse.up()
+}
+
 /** Until the Preview says `outcome` with nothing newer on its way, and, once printed, PDF.js has the PDF and has laid out its pages. */
 async function settled(page, outcome = /^Preview: printed(, with \d+ warnings?)?\.$/) {
   await previewOf(page).getByRole('status').filter({ hasText: outcome }).waitFor()
@@ -364,15 +389,20 @@ async function interactions(gate, page, framework) {
   const outline = await showing(editor, 'Outline', editor.getByRole('tree', { name: 'Outline', exact: true }))
   const rows = await outline.getByRole('treeitem').count()
   const entry = editor.getByRole('group', { name: 'Insert', exact: true }).getByRole('button', { name: 'Spacer', exact: true })
-  await entry.dragTo(outline.getByRole('treeitem').nth(1), { targetPosition: { x: 24, y: 4 } })
+  await drag(page, entry, outline.getByRole('treeitem').nth(1), { x: 24, y: 4 })
   const dropped = outline.getByRole('treeitem', { name: 'Spacer (spacer)', exact: true, selected: true })
   check(`${framework}: a palette entry a pointer drags onto a row is inserted there, selected`, await present(dropped, 'selected row "Spacer (spacer)"'))
   const after = await outline.getByRole('treeitem').count()
   check(`${framework}: and nothing else is`, after === rows + 1 ? null : `${String(rows)} rows before, ${String(after)} after`)
   const onDropped = (await dropped.count()) === 1 && (await dropped.evaluate((element) => element === document.activeElement))
   check(`${framework}: and the keyboard is on its row`, onDropped ? null : `the focus is on ${await describeFocus(page)}`)
-  await editor.getByRole('button', { name: 'Undo', exact: true }).click()
-  await settled(page)
+  // Undone only when the drop changed something: a failed drop leaves Undo
+  // disabled, and clicking it would end the gate on a timeout instead of
+  // letting the checks after this one report.
+  if (after !== rows) {
+    await editor.getByRole('button', { name: 'Undo', exact: true }).click()
+    await settled(page)
+  }
 
   // The place chooser, the keyboard's path for every drag (formancy.ai 0046).
   const text = editor.getByRole('group', { name: 'Insert', exact: true }).getByRole('button', { name: 'Text', exact: true })
