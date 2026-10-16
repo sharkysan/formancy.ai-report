@@ -332,7 +332,7 @@
       ]
     },
     "0014": {
-      "reviewed": "sha256:db3b1c1ac9a2c252213a9c2086de81e69a0e51293075b286350ce3207391c31c",
+      "reviewed": "sha256:aae21ca229f7048def987a78f49015234abfdeadd631d67f3f220e83a1a90079",
       "limitations": [
         {
           "area": "release",
@@ -340,7 +340,7 @@
         },
         {
           "area": "release",
-          "says": "The publish job has never run; until the first tag, the workflows test holds its shape and not its behaviour."
+          "says": "The publish job has run once, for 0.1.0, where every step succeeded; run again over versions npm already holds, which is how a release recovers from a failed GitHub release, it has never run, and the workflows test holds its shape and not its behaviour."
         }
       ]
     },
