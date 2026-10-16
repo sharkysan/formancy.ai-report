@@ -63,10 +63,15 @@ jobs:
       # CI only. A tag's run may restore a cache a main-branch run saved, and
       # a cache holds whatever code that job ran left in the store; a release
       # or a rehearsal installs from the registry against the lockfile
-      # instead, in every job here (workflows.test.mjs).
+      # instead, in every job here (workflows.test.mjs). The store's path is
+      # assigned before it is written out, so a pnpm that cannot start fails
+      # this step with its own message, never the cache step with an empty
+      # path.
       - name: Get pnpm store directory
         id: pnpm-store
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+        run: |
+          store=$(pnpm store path --silent)
+          echo "path=${store}" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         if: inputs.release == ''
         with:
@@ -147,7 +152,9 @@ jobs:
 
       - name: Get pnpm store directory
         id: pnpm-store
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+        run: |
+          store=$(pnpm store path --silent)
+          echo "path=${store}" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         if: inputs.release == ''
         with:
@@ -228,7 +235,9 @@ jobs:
 
       - name: Get pnpm store directory
         id: pnpm-store
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+        run: |
+          store=$(pnpm store path --silent)
+          echo "path=${store}" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         if: inputs.release == ''
         with:
@@ -314,7 +323,9 @@ jobs:
 
       - name: Get pnpm store directory
         id: pnpm-store
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+        run: |
+          store=$(pnpm store path --silent)
+          echo "path=${store}" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         if: inputs.release == ''
         with:
@@ -384,7 +395,9 @@ jobs:
 
       - name: Get pnpm store directory
         id: pnpm-store
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+        run: |
+          store=$(pnpm store path --silent)
+          echo "path=${store}" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         if: inputs.release == ''
         with:

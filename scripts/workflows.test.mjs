@@ -379,6 +379,19 @@ describe('gates.yml', () => {
     }
   })
 
+  // bash -e stops for a command that fails on a line of its own or in an
+  // assignment, never for one inside another command's argument: `echo
+  // "path=$(pnpm store path)"` succeeds with an empty output when pnpm
+  // fails, and a later step fails for a reason that is not the cause. Main's
+  // CI on 2026-10-16 said "Input required and not supplied: path" in the
+  // cache step where corepack had timed out downloading pnpm.
+  test('runs no command inside an echo, here or in the release, where its failure would be lost', () => {
+    for (const workflow of [gates, release]) {
+      const hidden = steps(workflow).filter(({ step }) => /^\s*echo\b[^\n]*\$\(/m.test(String(step.run ?? '')))
+      expect(hidden.map(({ job, step }) => `${job}: ${step.name ?? step.run}`)).toEqual([])
+    }
+  })
+
   // gates.yml is code a release runs with its permissions, and a tag is a
   // pointer whoever owns the action can move.
   test('pins every third-party action to a commit, here and in the release', () => {

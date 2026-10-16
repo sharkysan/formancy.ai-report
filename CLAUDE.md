@@ -420,7 +420,8 @@ exactly what CI does:
   outside the checkout, and installs no workspace;
 - in `publish`, only the npm step holds the token or runs npm, and it comes
   after both signatures;
-- nothing in a workflow a release runs sets `continue-on-error`.
+- nothing in a workflow a release runs sets `continue-on-error`, or runs a
+  command inside an `echo`, where bash would lose its failure.
 
 Locally, run the same commands for what you changed.
 
