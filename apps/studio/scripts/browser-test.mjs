@@ -133,7 +133,8 @@ async function drag(page, source, target, position) {
   const to = await target.boundingBox()
   if (from === null || to === null) throw new Error('a drag needs both ends drawn')
   const { width, height } = page.viewportSize() ?? { width: 0, height: 0 }
-  const seen = (box) => box.x >= 0 && box.y >= 0 && box.x + box.width <= width && box.y + box.height <= height
+  // A pixel either way for a layout in fractions of one: scrolled to the top, a box can stand a third of a pixel above it.
+  const seen = (box) => box.x >= -1 && box.y >= -1 && box.x + box.width <= width + 1 && box.y + box.height <= height + 1
   const at = (box) => `${String(Math.round(box.x))},${String(Math.round(box.y))} ${String(Math.round(box.width))}x${String(Math.round(box.height))}`
   if (!seen(from) || !seen(to)) throw new Error(`a drag needs both ends in view at once, and in ${String(width)}x${String(height)} the source is at ${at(from)} and the target at ${at(to)}`)
   const under = (x, y) =>
