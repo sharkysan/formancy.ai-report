@@ -112,19 +112,36 @@ async function setField(editor, name, value) {
 
 /**
  * A pointer drag from `source` to `position` on `target`, as a person makes
- * one. Both are scrolled into view before the press, so nothing scrolls
- * between the press and the release; then the pointer moves in steps, as a
- * hand does. Chromium starts an HTML drag (Angular's builder, 0012) only once
- * the pointer has moved some way with the button held, and in the headless
- * shell on Linux one jump from the press to the target never started it:
- * locator.dragTo passed on Windows and inserted nothing on CI.
+ * one. Both are in view before the press, so nothing scrolls between the
+ * press and the release: the source at the top of the window, and the
+ * target, below it, scrolled into view only if it is not then. Scrolled
+ * into view one after the other, a target past the fold took the source
+ * above the window's top and the press missed it -- on CI, at 320 pixels
+ * with the web fonts refused, where Linux's fallback is wider. Two ends
+ * that cannot be in view at once are said, with where they are. Then the
+ * pointer moves in steps, as a hand does. Chromium starts an HTML drag
+ * (Angular's builder, 0012) only once the pointer has moved some way with
+ * the button held, and in the headless shell on Linux one jump from the
+ * press to the target never started it: locator.dragTo passed on Windows
+ * and inserted nothing on CI. Returns where the press and the release were,
+ * and what was under each, for a drag that placed nothing to say so.
  */
 async function drag(page, source, target, position) {
-  await source.scrollIntoViewIfNeeded()
+  await source.evaluate((element) => element.scrollIntoView({ block: 'start', inline: 'nearest' }))
   await target.scrollIntoViewIfNeeded()
   const from = await source.boundingBox()
   const to = await target.boundingBox()
   if (from === null || to === null) throw new Error('a drag needs both ends drawn')
+  const { width, height } = page.viewportSize() ?? { width: 0, height: 0 }
+  const seen = (box) => box.x >= 0 && box.y >= 0 && box.x + box.width <= width && box.y + box.height <= height
+  const at = (box) => `${String(Math.round(box.x))},${String(Math.round(box.y))} ${String(Math.round(box.width))}x${String(Math.round(box.height))}`
+  if (!seen(from) || !seen(to)) throw new Error(`a drag needs both ends in view at once, and in ${String(width)}x${String(height)} the source is at ${at(from)} and the target at ${at(to)}`)
+  const under = (x, y) =>
+    page.evaluate(([px, py]) => {
+      const element = document.elementFromPoint(px, py)
+      return element === null ? 'nothing' : `<${element.tagName.toLowerCase()}> "${(element.getAttribute('aria-label') ?? element.textContent ?? '').trim().slice(0, 40)}"`
+    }, [x, y])
+  const said = `pressed at ${at(from)} on ${await under(from.x + from.width / 2, from.y + from.height / 2)}, released at ${String(Math.round(to.x + position.x))},${String(Math.round(to.y + position.y))} on ${await under(to.x + position.x, to.y + position.y)}`
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
   await page.mouse.down()
   for (let step = 1; step <= 12; step += 1) {
@@ -133,6 +150,7 @@ async function drag(page, source, target, position) {
   }
   await page.mouse.move(to.x + position.x, to.y + position.y)
   await page.mouse.up()
+  return said
 }
 
 /** Until the Preview says `outcome` with nothing newer on its way, and, once printed, PDF.js has the PDF and has laid out its pages. */
@@ -370,9 +388,10 @@ async function interactions(gate, page, framework) {
   const outline = await showing(editor, 'Outline', editor.getByRole('tree', { name: 'Outline', exact: true }))
   const rows = await outline.getByRole('treeitem').count()
   const entry = editor.getByRole('group', { name: 'Insert', exact: true }).getByRole('button', { name: 'Spacer', exact: true })
-  await drag(page, entry, outline.getByRole('treeitem').nth(1), { x: 24, y: 4 })
+  const dragged = await drag(page, entry, outline.getByRole('treeitem').nth(1), { x: 24, y: 4 })
   const dropped = outline.getByRole('treeitem', { name: 'Spacer (spacer)', exact: true, selected: true })
-  check(`${framework}: a palette entry a pointer drags onto a row is inserted there, selected`, await present(dropped, 'selected row "Spacer (spacer)"'))
+  const inserted = await present(dropped, 'selected row "Spacer (spacer)"')
+  check(`${framework}: a palette entry a pointer drags onto a row is inserted there, selected`, inserted === null ? null : `${inserted}: ${dragged}`)
   const after = await outline.getByRole('treeitem').count()
   check(`${framework}: and nothing else is`, after === rows + 1 ? null : `${String(rows)} rows before, ${String(after)} after`)
   const onDropped = (await dropped.count()) === 1 && (await dropped.evaluate((element) => element === document.activeElement))
