@@ -41,7 +41,6 @@ const REPORT: ReportDefinition = {
     { id: 'address', size: 10 },
     { id: 'small', size: 8, color: '#555555' },
     { id: 'footer', size: 8, align: 'center' },
-    { id: 'strong', bold: true },
     { id: 'grand', size: 10.5, bold: true },
     { id: 'sender', size: 8, color: '#555555' },
   ],

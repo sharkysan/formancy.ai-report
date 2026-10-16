@@ -10,6 +10,13 @@ later.
 
 ## Unreleased
 
+**Every starter opens with nothing in the problems pane.** The quotation
+declared a print style, `strong`, that nothing used, so the first thing the
+Studio showed a new author was a warning about it, and the README's picture
+showed it too. The style is gone, and a corpus test now fails on any
+diagnostic a starter raises, warnings included. The pictures were taken again
+by the script.
+
 **Formancy Report is source-available, on Formancy Data's terms, and the
 licence is in force before a lawyer has read it** ([0001](docs/decisions/0001-a-paid-module-in-its-own-repository.md)).
 Free to read, fork, evaluate, develop and test, including in companies and

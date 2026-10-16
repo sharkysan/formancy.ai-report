@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { diagnose } from '@formancy/report-core'
 import { checkReport, resolveReport } from '@formancy/report-runtime'
 import type { ImageResolver } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
@@ -17,6 +18,14 @@ describe('the starters', () => {
   test.each(STARTERS.map((starter) => [starter.id, starter] as const))('%s validates and has no diagnostic errors', (_id, starter) => {
     const outcome = checkReport(starter.report)
     expect(outcome.ok ? [] : outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`)).toEqual([])
+  })
+
+  // Nor with a warning: a starter is what the Studio opens first, and a
+  // warning there -- a style no component uses, say -- is the first thing a
+  // new author sees and the README's pictures show. report-core's diagnose is
+  // the list the builders' problems pane draws.
+  test.each(STARTERS.map((starter) => [starter.id, starter] as const))('%s opens with no warning in the problems pane', (_id, starter) => {
+    expect(diagnose(starter.report).map((diagnostic) => `${diagnostic.severity} ${diagnostic.code} ${diagnostic.path}: ${diagnostic.message}`)).toEqual([])
   })
 
   // Each starter's own data renders in a final render, with nothing a
