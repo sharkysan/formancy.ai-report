@@ -33,10 +33,16 @@ They depend on three packages at exact versions:
 The React builder takes React 19 as a peer, and the Angular builder takes
 Angular 22. The install gate installs each builder and draws it at both ends
 of its range. The Studio, `apps/studio`, and the test corpus stay private.
-`pnpm demo` builds the packages and serves the Studio from a clone, as its
-browser gate serves it, and the README opens with a picture of it, taken by
-the same script as the others: Data's and formancy.ai's READMEs open with
-one, and Report's first was below its whole Status.
+`pnpm demo` builds the packages and serves the Studio from a clone, and the
+README opens with a picture of it, taken by the same script as the others:
+Data's and formancy.ai's READMEs open with one, and Report's first was
+below its whole Status. The Studio is also online at
+https://formancy.ai/report/, beside formancy.ai's playground, so it can be
+tried without a clone. A Cloudflare Worker of its own serves it, apart from
+formancy.ai's Apache-2.0 site, and it is deployed by hand. The Studio is now
+built with a relative base, and its browser gate serves it under `/report/`
+as formancy.ai does
+([0018](docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
 
 Not in this release:
 - **A consistent read from Formancy Data.** The provider's data is

@@ -196,6 +196,29 @@ entries stay even when a release never happens.
 The publish job has never run. `scripts/workflows.test.mjs` holds its shape;
 the first tag is the first time it runs.
 
+## The demo on formancy.ai
+
+The Studio at https://formancy.ai/report/ is deployed by hand, after a
+release, from its tag. It needs a Cloudflare login that can edit Workers on
+formancy.ai's zone
+([0018](docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)):
+
+```bash
+git switch --detach v0.1.0
+pnpm install --frozen-lockfile
+npx --yes wrangler@4.146.0 login     # once per machine
+pnpm demo:deploy
+git switch main
+```
+
+`pnpm demo:deploy` builds, then refuses a checkout with changes, a Worker
+config in `apps/studio/wrangler.json` that is not the demo's, and a built
+page that asks for a file by an absolute path. Then it deploys with the
+pinned Wrangler, with the commit in the deployment's message. `node
+scripts/demo.mjs --dry-run`, after `pnpm build`, does everything but the
+upload, with no login. Nothing in CI deploys the demo or reads what the
+address serves: open it after a deploy and see a starter print.
+
 ## Provenance
 
 `npm publish --provenance` under `id-token: write` makes npm record a

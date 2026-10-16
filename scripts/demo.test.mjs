@@ -2,18 +2,21 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
+import { configProblems, demoBase, demoUrl, indexProblems, readDemoConfig, WRANGLER } from './demo.mjs'
 
 /**
  * README.md's "Try it": the commands that run the Studio as a demo, held to
- * the manifests and the Studio's Vite config they depend on. Prose names a
- * script and a port; neither breaks when a manifest or the config moves, so
- * this does.
+ * the manifests and the Studio's Vite config they depend on, and the demo
+ * on formancy.ai held to the Worker's config. Prose names a script, a port
+ * and an address; none breaks when a manifest or a config moves, so this
+ * does.
  */
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..')
 const readme = readFileSync(join(repo, 'README.md'), 'utf8').replaceAll('\r\n', '\n')
 const root = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8'))
 const studio = JSON.parse(readFileSync(join(repo, 'apps', 'studio', 'package.json'), 'utf8'))
 const config = readFileSync(join(repo, 'apps', 'studio', 'vite.config.ts'), 'utf8')
+const wrangler = readDemoConfig()
 
 /** The text under `## <title>`, up to the next heading of that level. */
 function section(title) {
@@ -71,5 +74,80 @@ describe("README.md's Try it", () => {
     const named = [...readme.matchAll(/(?:localhost:|\bport )(\d{2,5})\b/g)].map((match) => Number(match[1]))
     expect(named.length).toBeGreaterThan(0)
     for (const each of named) expect(each).toBe(preview)
+  })
+
+  // A route moved in the Worker's config would leave the README sending a
+  // reader to formancy.ai's 404 while the demo answered somewhere else.
+  test("sends a reader to the address the demo's Worker is routed at", () => {
+    expect(tryIt).toContain(demoUrl(wrangler))
+  })
+})
+
+describe('the demo on formancy.ai (0018)', () => {
+  const base = { ...wrangler, routes: wrangler.routes.map((route) => ({ ...route })), assets: { ...wrangler.assets } }
+
+  // The Worker as committed: the built Studio at one path of formancy.ai, and
+  // at no address beside it.
+  test("the Studio's Wrangler config serves the built Studio at /report/ of formancy.ai and nowhere else", () => {
+    expect(configProblems(wrangler)).toEqual([])
+    expect(demoBase(wrangler)).toBe('/report/')
+    expect(demoUrl(wrangler)).toBe('https://formancy.ai/report/')
+  })
+
+  // Each would put the demo somewhere the README and the gate do not say, or
+  // put more than the built Studio there: a workers.dev address beside the
+  // route, a route on another site, code at the edge, a path without its
+  // slash answered by formancy.ai's 404, or the staging directory another
+  // than the one the deploy fills.
+  test.each([
+    ['a workers.dev address', { ...base, workers_dev: true }, 'workers_dev'],
+    ['a preview address per version', { ...base, preview_urls: true }, 'preview_urls'],
+    ['code that runs at the edge', { ...base, main: 'worker.js' }, 'main'],
+    ['a route on another zone', { ...base, routes: [{ pattern: 'formancy.ai/report/*', zone_name: 'example.com' }, base.routes[1]] }, 'zone'],
+    ['no route for the path without its slash', { ...base, routes: [base.routes[0]] }, 'formancy.ai/report'],
+    ['a route for the whole site', { ...base, routes: [{ pattern: 'formancy.ai/*', zone_name: 'formancy.ai' }, { pattern: 'formancy.ai', zone_name: 'formancy.ai' }] }, 'path'],
+    ['a custom domain', { ...base, routes: [...base.routes, { pattern: 'report.formancy.ai', custom_domain: true }] }, 'custom_domain'],
+    ['assets staged elsewhere', { ...base, assets: { ...base.assets, directory: './dist' } }, '.cloudflare'],
+    ['no redirect from /report to /report/', { ...base, assets: { ...base.assets, html_handling: 'none' } }, 'auto-trailing-slash'],
+  ])('refuses %s', (_name, config, says) => {
+    const problems = configProblems(config)
+    expect(problems.length).toBeGreaterThan(0)
+    expect(problems.join('\n')).toContain(says)
+  })
+
+  // A page built with an absolute base asks formancy.ai for /assets/…, the
+  // site's own directory: the demo is a blank page while every log says it
+  // deployed (formancy.ai's README, "Build formancy.ai"). The gate would see
+  // it; the deploy refuses it before anything is uploaded.
+  test('refuses a built page that asks for a file by an absolute path, and only that', () => {
+    expect(indexProblems('<script type="module" crossorigin src="./assets/index-a.js"></script><link rel="stylesheet" crossorigin href="./assets/index-b.css">')).toEqual([])
+    expect(indexProblems('<link rel="icon" href="data:," /><link href="https://fonts.googleapis.com/css2?family=Archivo" rel="stylesheet" />')).toEqual([])
+    expect(indexProblems('<script type="module" crossorigin src="/assets/index-a.js"></script>')).toEqual(['src="/assets/index-a.js"'])
+    expect(indexProblems('<link rel="modulepreload" crossorigin href="/report/assets/c.js">')).toEqual(['href="/report/assets/c.js"'])
+  })
+
+  // The deploy is the root's script, after the same build `pnpm demo` makes,
+  // and with the Wrangler the record names, never whatever npx finds newest.
+  test('is deployed by the root script, after the build, with a pinned Wrangler', () => {
+    expect(root.scripts['demo:deploy']).toBe('pnpm build && node scripts/demo.mjs')
+    expect(WRANGLER).toMatch(/^wrangler@\d+\.\d+\.\d+$/)
+  })
+
+  // A Wrangler bumped in the script and not in RELEASING.md would have the
+  // rightsholder log in with one version and deploy with another.
+  test('RELEASING.md names only the Wrangler the deploy runs', () => {
+    const releasing = readFileSync(join(repo, 'RELEASING.md'), 'utf8')
+    const named = [...releasing.matchAll(/\bwrangler@[\w.-]+/g)].map((match) => match[0])
+    expect(named.length).toBeGreaterThan(0)
+    for (const each of named) expect(each).toBe(WRANGLER)
+  })
+
+  // The gate measuring the Studio at the root of its origin would pass a
+  // build that is a blank page under /report/; served under the demo's
+  // path, every check of it is a check of the demo as formancy.ai serves it.
+  test('the browser gate serves the built Studio under the path the demo is served at', () => {
+    const gate = readFileSync(join(repo, 'apps', 'studio', 'scripts', 'browser-test.mjs'), 'utf8')
+    expect(gate).toMatch(/import \{[^}]*\bdemoBase\b[^}]*\} from '\.\.\/\.\.\/\.\.\/scripts\/demo\.mjs'/)
+    expect(gate).toContain('await preview({ root: app, base: demoBase(readDemoConfig())')
   })
 })

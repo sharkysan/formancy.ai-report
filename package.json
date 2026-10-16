@@ -18,7 +18,8 @@
     "test:pictures": "turbo run test:pictures",
     "typecheck": "turbo run typecheck",
     "check:pkg": "turbo run check:pkg",
-    "demo": "pnpm build && pnpm --filter @formancy/report-studio preview"
+    "demo": "pnpm build && pnpm --filter @formancy/report-studio preview",
+    "demo:deploy": "pnpm build && node scripts/demo.mjs"
   },
   "devDependencies": {
     "marked": "catalog:",

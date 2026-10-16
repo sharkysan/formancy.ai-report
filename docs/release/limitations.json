@@ -393,6 +393,16 @@
           "heldBy": "scripts/release-report/verify-publish.test.mjs"
         }
       ]
+    },
+    "0018": {
+      "reviewed": "sha256:2d4031841def30c0fce141892abfb752f95166b196e16f9e076df1f63ae98554",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "The Studio at formancy.ai/report/ is deployed by hand, so it can be an older Studio than the latest release's; the deployment names its commit, and nothing checks which it is.",
+          "heldBy": "scripts/demo.test.mjs"
+        }
+      ]
     }
   }
 }

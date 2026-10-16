@@ -26,6 +26,12 @@ const TSCONFIG = (): string => fileURLToPath(new URL('./tsconfig.angular.json', 
  * Node and handed to the page as one module (src/starters/plugin.ts).
  */
 export default defineConfig({
+  // Relative, so one build is right wherever it is served: at the root of
+  // `vite preview` for `pnpm demo`, and under formancy.ai's /report/, where
+  // the demo is and where the browser gate serves it (0018). Vite's default
+  // writes /assets/…, which under /report/ is formancy.ai's own directory:
+  // the page loads and its script does not. The dev server takes it as /.
+  base: './',
   plugins: [
     react(),
     angular({

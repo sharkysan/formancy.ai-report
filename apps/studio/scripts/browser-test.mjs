@@ -46,7 +46,9 @@
 //
 // Against the page `vite build` writes, served by `vite preview` on the port
 // vite.config.ts fixes, which fails rather than wander when the port is
-// taken. Asserted as numbers and computed results, never screenshots.
+// taken, and under the path the demo on formancy.ai is served at
+// (scripts/demo.mjs, 0018). Asserted as numbers and computed results, never
+// screenshots.
 // Chromium only, the browser installed for this repository's gates: Data's
 // gate also runs Firefox and WebKit, and nothing here has.
 //
@@ -62,6 +64,7 @@ import { readPdf } from '@formancy/report-corpus'
 import { chromium } from 'playwright'
 import { build, preview } from 'vite'
 import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
+import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { app, audit, describeFocus, drawnPages, fontProblem, fromTheTop, measureWidth, passes, rulesOnThePaper } from './gate-page.mjs'
 import { builderParity } from './gate-parity.mjs'
 import { gateRecorder } from './gate-results.mjs'
@@ -426,11 +429,10 @@ async function pass(gate, browser, url, { label, width, height, refuseFonts = fa
   gate.pass({ label, width, height })
   const page = await browser.newPage({ viewport: { width, height } })
   page.setDefaultTimeout(WITHIN)
-  const origin = new URL(url).origin
   const elsewhere = new Set()
   page.on('request', (request) => {
     const address = request.url()
-    if (!address.startsWith(`${origin}/`) && !/^(blob|data):/.test(address) && !/^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(address)) elsewhere.add(address)
+    if (!address.startsWith(url) && !/^(blob|data):/.test(address) && !/^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(address)) elsewhere.add(address)
   })
   if (refuseFonts) await page.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, (route) => route.abort())
   let starters = []
@@ -504,7 +506,11 @@ async function main() {
     gate.plan(list)
     await build({ root: app, logLevel: 'warn' })
     if (!existsSync(join(dist, 'index.html'))) throw new Error('vite build wrote no apps/studio/dist/index.html')
-    server = await preview({ root: app, logLevel: 'warn' })
+    // Under the path formancy.ai serves the demo at (0018), so every check
+    // below is of the build as the demo is served: a file asked for by an
+    // absolute path is outside it, and the check on what the page fetched
+    // names it.
+    server = await preview({ root: app, base: demoBase(readDemoConfig()), logLevel: 'warn' })
     const [url] = server.resolvedUrls?.local ?? []
     if (url === undefined) throw new Error('vite preview gave no local address')
     console.log(`the built Studio, served by vite preview at ${url}`)
