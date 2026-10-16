@@ -141,9 +141,10 @@ describe('two builders on one session', () => {
   })
 
   // Two builders on one page mint no id twice. axe only asks for a review of
-  // a duplicated id, so this holds it by what a duplicate would break: the
-  // second builder's form and list would be named by the first builder's
-  // headings, in the first builder's language.
+  // a duplicated id, so this holds it by what a duplicate would break: a
+  // field is labelled through its id, so the second builder's first field
+  // would be unnamed and the first builder's named twice, in two languages.
+  // The forms and the lists are named in words, which no id lends.
   test('name their own parts, never each other’s', async () => {
     const session = sessionOver(scenarioReport())
     render(
@@ -155,7 +156,7 @@ describe('two builders on one session', () => {
     await userEvent.setup().click(screen.getAllByRole('treeitem', { name: 'Introduction' })[0] as HTMLElement)
     expect(screen.getByRole('form', { name: `${en('kind.text')}: Introduction` })).toBeTruthy()
     expect(screen.getByRole('form', { name: de('properties.report') })).toBeTruthy()
-    expect(screen.getByRole('list', { name: en('pane.problems') })).toBeTruthy()
-    expect(screen.getByRole('list', { name: de('pane.problems') })).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: en('field.text') })).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: de('field.title') })).toBeTruthy()
   })
 })

@@ -183,8 +183,6 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
   }
 
   const choosing = state.drag?.via === 'keyboard' ? state.drag : null
-  const heading = `${ids}-properties`
-  const problems = `${ids}-problems`
   const count = state.diagnostics.length
 
   return (
@@ -221,7 +219,7 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
           half carries its own name for the other to be hidden by. */}
       <section className="wb-pane" data-pane={state.panel === 'diagnostics' ? 'diagnostics' : 'properties'}>
         <header data-pane="properties">
-          <span id={heading}>{state.properties.heading}</span>
+          <span>{state.properties.heading}</span>
           {state.selection === null ? null : (
             <button type="button" onClick={() => act({ type: 'select', id: null }, 'properties')}>
               {t('properties.report')}
@@ -229,13 +227,15 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
           )}
         </header>
         <div ref={fields} className="wb-body" data-pane="properties">
-          <Properties state={state} ids={ids} heading={heading} act={act} />
+          <Properties state={state} ids={ids} act={act} />
         </div>
         <header data-pane="diagnostics">
           {/* A status, so a change in how many problems there are is said
-              without taking the person's place: "Problems 2". */}
-          <div role="status" aria-labelledby={problems}>
-            <span id={problems}>{t('pane.problems')}</span>
+              without taking the person's place: "Problems 2". Named in
+              words, never after its own heading, which the Studio sets in
+              capitals that Chromium would put in the name. */}
+          <div role="status" aria-label={t('pane.problems')}>
+            <span>{t('pane.problems')}</span>
             {count === 0 ? null : (
               <>
                 {' '}
@@ -247,7 +247,7 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
           </div>
         </header>
         <div className="wb-body" data-pane="diagnostics">
-          <Diagnostics state={state} t={t} ids={ids} heading={problems} list={problemList} follow={follow} />
+          <Diagnostics state={state} t={t} ids={ids} list={problemList} follow={follow} />
         </div>
       </section>
 

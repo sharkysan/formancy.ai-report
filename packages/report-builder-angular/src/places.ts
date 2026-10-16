@@ -27,12 +27,14 @@ import { ReportEditorRoot } from './root'
     '[class.wb-pane]': 'choosing() !== null',
     '[hidden]': 'choosing() === null',
     '[attr.role]': 'choosing() === null ? null : "dialog"',
-    '[attr.aria-labelledby]': 'choosing() === null ? null : title',
+    // Named in the editor's words, as the header says, never after the
+    // header, whose name a host's stylesheet could set in capitals.
+    '[attr.aria-label]': 'choosing()?.title ?? null',
     '[attr.aria-describedby]': 'choosing()?.nowhere === undefined ? null : nowhere',
   },
   template: `
     @if (choosing(); as drag) {
-      <header [id]="title">{{ drag.title }}</header>
+      <header>{{ drag.title }}</header>
       @if (drag.nowhere !== undefined) {
         <p class="wb-problem" [id]="nowhere">{{ drag.nowhere }}</p>
       }
@@ -52,7 +54,6 @@ export class ReportPlaces {
     const drag = this.state().drag
     return drag?.via === 'keyboard' ? drag : null
   })
-  protected readonly title = `${this.root.id}-places`
   protected readonly nowhere = `${this.root.id}-nowhere`
 
   protected show(target: DropTarget): void {

@@ -16,8 +16,6 @@ import type { EditorAction, EditorState, EditorText, PropertyField } from '@form
 export interface PropertiesProps {
   readonly state: EditorState
   readonly ids: string
-  /** The element whose text names the form: the pane's heading. */
-  readonly heading: string
   readonly act: (action: EditorAction) => void
 }
 
@@ -94,9 +92,11 @@ function Control(props: ControlProps): ReactElement {
   }
 }
 
-export function Properties({ state, ids, heading, act }: PropertiesProps): ReactElement {
+export function Properties({ state, ids, act }: PropertiesProps): ReactElement {
   return (
-    <form aria-labelledby={heading} data-report-part="properties" onSubmit={(event) => event.preventDefault()}>
+    // Named in words, as the pane's heading says, never after the heading,
+    // which a stylesheet sets in capitals that Chromium would put in the name.
+    <form aria-label={state.properties.heading} data-report-part="properties" onSubmit={(event) => event.preventDefault()}>
       {state.properties.fields.map((field, at) => {
         const id = `${ids}-field-${at}`
         const error = `${id}-error`

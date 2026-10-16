@@ -226,6 +226,14 @@ export interface Canvas {
 
 /** A diagnostic as the editor lists it, linked to what it is about. */
 export interface DiagnosticEntry {
+  /**
+   * Which diagnostic this is, unique in the list and the same while it is
+   * listed: its code, where it points and, in an expression, which
+   * characters. A builder keys the entry's element by it, so a problem
+   * listed before another leaves the other's element, and the keyboard on
+   * it, where they were.
+   */
+  readonly key: string
   readonly severity: DiagnosticSeverity
   readonly code: DiagnosticCode
   /** report-core's sentence, in the author's terms. */

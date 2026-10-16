@@ -15,9 +15,9 @@
 // A gate with evidence and no reason is "passed" in a run when everything but
 // its documents passed, and "stated" when its only evidence is documents. A
 // gate with a reason is "open": with evidence too, it is partly evidenced --
-// G3, whose switch across the frameworks and whose scenarios run here, and
-// whose equivalence of the builders' accessible trees nothing compares --
-// and that evidence must pass all the same. A gate whose evidence did not
+// as G3 was while its switch across the frameworks and its scenarios ran
+// here and nothing compared the builders' accessible trees (0012) -- and
+// that evidence must pass all the same. A gate whose evidence did not
 // pass is "failed", which fails the run. The report never says a gate is
 // met.
 //

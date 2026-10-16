@@ -68,9 +68,10 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   /**
    * The name assistive technology gives `element` from its attributes: the
    * text of what `aria-labelledby` points to, else its `aria-label`. The
-   * README asks for a name, not for one way of giving it, and the builders
-   * name some things each way; a labelledby whose ids do not line up names
-   * nothing.
+   * README asks for the editor's words in `aria-label`, which each
+   * builder's own suite holds; a labelledby is still read here, so a name
+   * given the other way is checked for what it says, and one whose ids do
+   * not line up names nothing.
    */
   const nameOf = (element: MarkupElement | undefined): string | undefined => {
     const ids = attribute(element, 'aria-labelledby')?.split(' ')

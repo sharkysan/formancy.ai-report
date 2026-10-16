@@ -293,6 +293,27 @@ describe('the problems', () => {
     expect(document.activeElement).toBe(problem)
   })
 
+  // A problem found while the keyboard is on another -- a field committed
+  // as Tab lands on the list, or an edit from another editor over the
+  // session -- may be listed before it. Each problem's button stays its own
+  // element, tracked by what it is: tracked by its place, the button under
+  // the keyboard was kept and given the new problem's name, so the keyboard
+  // was on a problem it never went to, where the React builder's dropped it
+  // to the page. The browser gate's comparison of the two builders found it.
+  test('keep the keyboard on the problem it is on when another is listed before it', async () => {
+    const report = scenarioReport()
+    const { editor, settle } = await mountBuilder(createReportEditor(sessionOver({ ...report, styles: [...report.styles, { id: 'unused', size: 9 }] })))
+    const warning = screen.getByRole('button', { name: 'Warning: Report' })
+    warning.focus()
+    editor.dispatch({ type: 'select', id: 'intro' })
+    editor.dispatch({ type: 'setProperty', key: '/visibleWhen', value: 'params.missing' })
+    await settle()
+    const problems = within(screen.getByRole('list', { name: 'Problems' })).getAllByRole('button')
+    expect(problems.map((problem) => problem.textContent)).toEqual(['Error: Introduction', 'Warning: Report'])
+    expect(document.activeElement).toBe(warning)
+    expect(warning.textContent).toBe('Warning: Report')
+  })
+
   // With nothing wrong, an empty list says nothing; the sentence says so.
   test('say so when there are none', async () => {
     await mountScenarioBuilder()

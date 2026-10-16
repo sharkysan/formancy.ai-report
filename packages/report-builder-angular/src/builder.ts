@@ -73,9 +73,11 @@ import { ReportToolbar } from './toolbar'
       </div>
       <header data-pane="diagnostics">
         <!-- A status, so a change in how many problems there are is said
-             without taking the person's place: "Problems 2". -->
-        <div role="status" [attr.aria-labelledby]="problems">
-          <span [id]="problems">{{ t()('pane.problems') }}</span>{{ count() > 0 ? ' ' : '' }}@if (count() > 0) {<span data-report-part="badge" [attr.data-severity]="severity()">{{ count() }}</span>}
+             without taking the person's place: "Problems 2". Named in
+             words, never after its own heading, which the Studio sets in
+             capitals that Chromium would put in the name. -->
+        <div role="status" [attr.aria-label]="t()('pane.problems')">
+          <span>{{ t()('pane.problems') }}</span>{{ count() > 0 ? ' ' : '' }}@if (count() > 0) {<span data-report-part="badge" [attr.data-severity]="severity()">{{ count() }}</span>}
         </div>
       </header>
       <div class="wb-body" data-pane="diagnostics">
@@ -91,7 +93,6 @@ export class ReportBuilder {
   protected readonly root = inject(ReportEditorRoot)
   protected readonly state = this.root.state
   protected readonly t = this.root.t
-  protected readonly problems = `${this.root.id}-problems`
   protected readonly count = computed(() => this.state().diagnostics.length)
   /** No row in any region: the outline is an empty tree, and this says so beside it. */
   protected readonly empty = computed(() => this.state().outline.every((region) => region.nodes.length === 0))

@@ -29,9 +29,14 @@
         { "file": "packages/report-builder-angular/src/builder.test.ts" },
         { "file": "apps/studio/src/studio.test.tsx" },
         { "file": "apps/studio/src/journey.test.tsx" },
+        { "file": "apps/studio/src/parity.test.tsx" },
+        { "file": "scripts/accessible-tree.test.mjs" },
+        { "file": "packages/report-builder-react/src/accessibility.test.tsx" },
+        { "file": "packages/report-builder-react/src/keyboard.test.tsx" },
+        { "file": "packages/report-builder-angular/src/accessibility.test.ts" },
+        { "file": "packages/report-builder-angular/src/keyboard.test.ts" },
         { "browserGate": "apps/studio" }
-      ],
-      "open": "That the two builders offer the same accessible controls is held only where the shared scenarios reach -- each control a scenario finds by role and name, in both builders -- and by every control being named and axe-clean at each state of the Studio's journey; no test compares the two builders' accessible trees with each other, the next step 0012 names. The switch -- edit in Angular, switch to React, undo, switch back -- with the session's subscriptions and the editor's listeners counted after each, is held by the Studio's studio.test.tsx in jsdom, and the switch the other way round by its browser gate in Chromium (0013)."
+      ]
     },
     {
       "gate": "G4",

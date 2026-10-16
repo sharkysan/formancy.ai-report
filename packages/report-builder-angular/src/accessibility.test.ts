@@ -10,15 +10,19 @@
  * of, and says nothing of a control named by an empty string when the
  * markup gives it a way to be named; so every element with a role a person
  * operates or reads is also asked its name.
+ *
+ * One test reads the DOM, and says why: how a name is given, which jsdom's
+ * names cannot show, because jsdom applies no stylesheet and Chromium puts
+ * one's text-transform into a name taken from text on the page.
  */
 import { TestBed } from '@angular/core/testing'
-import { createReportEditor } from '@formancy/report-builder-core'
+import { createReportEditor, scenarioReport } from '@formancy/report-builder-core'
 import { screen, within } from '@testing-library/angular'
 import axe from 'axe-core'
 import { computeAccessibleName } from 'dom-accessibility-api'
 import { afterEach, describe, expect, test } from 'vitest'
 import { mountBuilder, mountScenarioBuilder } from './test-mount'
-import { audit, richSession } from './test-support'
+import { audit, richSession, sessionOver } from './test-support'
 import { click } from './test-user'
 
 afterEach(() => {
@@ -90,6 +94,34 @@ describe('the accessible tree', () => {
     await mountScenarioBuilder()
     expect(screen.getByRole('button', { name: 'Image' }).getAttribute('aria-disabled')).toBe('true')
     expect(screen.getByRole('button', { name: 'Text' }).getAttribute('aria-disabled')).toBeNull()
+  })
+
+  // Chromium puts a stylesheet's text-transform into a name it takes from
+  // text on the page: the Studio sets a pane's heading in capitals, so the
+  // problems' count, named by aria-labelledby after its heading, was
+  // "PROBLEMS" in Chromium, in this builder and in React's alike -- the
+  // browser gate's reading of Chromium's tree found it, where the two
+  // builders' trees were compared. jsdom applies no stylesheet, so its names
+  // read the same however they are given: this reads from the DOM how each
+  // is, with the place chooser, which was named after its header too, open.
+  test('names its groups, form, list, statuses and dialog in its own words, never by another element’s text', async () => {
+    const report = scenarioReport()
+    const { editor, settle } = await mountBuilder(createReportEditor(sessionOver({ ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)) } })))
+    click(screen.getByRole('treeitem', { name: 'Note' }))
+    await settle()
+    click(screen.getByRole('button', { name: 'Move to…' }))
+    await settle()
+    const { outline, properties } = editor.state()
+    const named = [
+      ...outline.map((region) => ({ role: 'group', name: region.label })),
+      { role: 'form', name: properties.heading },
+      { role: 'list', name: 'Problems' },
+      { role: 'status', name: 'Problems' },
+      { role: 'dialog', name: 'Move Note: choose a place' },
+    ]
+    for (const { role, name } of named) expect(screen.getByRole(role, { name }), `${role} ${name}`).toBeTruthy()
+    const builder = screen.getByRole('region', { name: 'Report editor' })
+    expect([...builder.querySelectorAll('[aria-labelledby]')].map((element) => element.outerHTML.slice(0, 80))).toEqual([])
   })
 
   // Every row of a report holding every kind, named and audited with a

@@ -41,16 +41,20 @@ describe('docs/release/gates.json', () => {
   })
 
   // The 0.1.0 gates rest on what this repository can run; the rest wait,
-  // each for a reason, and the cross-framework test is the Studio's. Read
+  // each for a reason, and the cross-framework tests are the Studio's. Read
   // from the committed register, so a gate closed by an edit here, or given
   // evidence it does not have, changes this test with it.
-  test('rests G1, G2 and G3 on evidence, and keeps G3, G4 to G7 and the legal review open', () => {
+  test('rests G1, G2 and G3 on evidence, and keeps G4 to G7 and the legal review open', () => {
     const gates = readGates(repo).gates
     expect(gates.filter((entry) => entry.evidence !== undefined).map((entry) => entry.gate)).toEqual(['G1', 'G2', 'G3'])
-    expect(gates.filter((entry) => entry.open !== undefined).map((entry) => entry.gate)).toEqual(['G3', 'G4', 'G5', 'G6', 'G7', 'legal'])
+    expect(gates.filter((entry) => entry.open !== undefined).map((entry) => entry.gate)).toEqual(['G4', 'G5', 'G6', 'G7', 'legal'])
     expect(gate(gates, 'G1').evidence).toEqual(expect.arrayContaining([{ job: 'install' }, { file: 'scripts/upstream-deps.test.mjs' }, { file: 'scripts/dependency-licences.test.mjs' }]))
-    // G3's switch across the frameworks is the Studio's, in jsdom and in a browser.
-    expect(gate(gates, 'G3').evidence).toEqual(expect.arrayContaining([{ file: 'apps/studio/src/studio.test.tsx' }, { browserGate: 'apps/studio' }]))
+    // G3, plan 25.1's three clauses: the switch across the frameworks and the
+    // subscriptions it leaves, the Studio's in jsdom and in a browser; and the
+    // two builders' accessible trees compared, side by side in jsdom and by
+    // the browser gate's parity walk in Chromium. Without the comparison, G3
+    // passed on a claim nothing checked.
+    expect(gate(gates, 'G3').evidence).toEqual(expect.arrayContaining([{ file: 'apps/studio/src/studio.test.tsx' }, { file: 'apps/studio/src/parity.test.tsx' }, { browserGate: 'apps/studio' }]))
   })
 
   // The plan has G1 to G7 and a legal review; a gate dropped from the

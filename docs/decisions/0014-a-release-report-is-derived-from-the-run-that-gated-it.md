@@ -1,6 +1,11 @@
 # 0014 — A release report is derived from the run that gated the release, and says what it did not test
 
-- **Status:** accepted
+- **Status:** accepted. Where it says G3 is open, partly evidenced, because
+  nothing compares the two builders' accessible trees, it describes the
+  register before that comparison: since it was added later that day
+  ([0012](0012-the-builders-are-native-and-share-one-session.md)'s
+  *Verified by*), G3 rests on its evidence alone, and no gate of the
+  register is partly evidenced.
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `report` job in `.github/workflows/gates.yml`, which
