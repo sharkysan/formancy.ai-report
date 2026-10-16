@@ -17,7 +17,8 @@
     "test:browser": "turbo run test:browser",
     "test:pictures": "turbo run test:pictures",
     "typecheck": "turbo run typecheck",
-    "check:pkg": "turbo run check:pkg"
+    "check:pkg": "turbo run check:pkg",
+    "demo": "pnpm build && pnpm --filter @formancy/report-studio preview"
   },
   "devDependencies": {
     "marked": "catalog:",
