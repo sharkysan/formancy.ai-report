@@ -66,6 +66,10 @@ component_management:
       name: packages/report-corpus
       paths:
         - packages/report-corpus/**
+    - component_id: report-data-provider
+      name: packages/report-data-provider
+      paths:
+        - packages/report-data-provider/**
     - component_id: report-render-pdf
       name: packages/report-render-pdf
       paths:

@@ -28,7 +28,8 @@
         },
         {
           "area": "data",
-          "says": "There is no Formancy Data provider until Data publishes a release, so a host supplies a report's data itself."
+          "says": "Report reads Formancy Data only at the release its provider was built against, 0.1.0, so a Data upgrade reaches a host only through a release of this module that moves the version.",
+          "heldBy": "scripts/upstream-deps.test.mjs"
         }
       ]
     },
@@ -85,7 +86,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:e617477da697e72d38c0e932e4f1b5e714beefa1cb860240fd362c962429fcea",
+      "reviewed": "sha256:a209f87597f63c61a35b55923f3b42d1c43062bc6a9378bea7c6e30423ab8fdb",
       "limitations": [
         {
           "area": "licence",
@@ -357,6 +358,33 @@
         {
           "area": "testing",
           "says": "The guide's angular.json lines and the server routes its pages call are checked by nothing, and its Angular page has no preview."
+        }
+      ]
+    },
+    "0016": {
+      "reviewed": "sha256:08b7e417b53faa0ee9e5ab9bbc7bd9cf195979e79acb7e3f42407d5397b74576",
+      "limitations": [
+        {
+          "area": "data",
+          "says": "Data read through the Formancy Data provider is best-effort: the header, each page of lines and each label are read at different moments, so a line changed between two pages can be printed twice or not at all, and every render's manifest says best-effort.",
+          "heldBy": "packages/report-data-provider/src/read.test.ts"
+        },
+        {
+          "area": "licence",
+          "says": "Running the Formancy Data provider in production needs a Formancy Data production licence as well as Report's, because it depends on Data's source-available packages."
+        },
+        {
+          "area": "data",
+          "says": "A float column, a repeater's rows and an image field cannot be printed from Formancy Data, and a lookup whose label the person may not see refuses the whole report rather than print nothing.",
+          "heldBy": "packages/report-data-provider/src/read.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A report of many lines takes one list request for every 50 of them and one label request for every 50 distinct values of each lookup, each asking Data's policy again; how long that takes has not been measured."
+        },
+        {
+          "area": "testing",
+          "says": "The Formancy Data provider has run against a server that answers Data 0.1.0's routes in Data's shapes, never against a real Data server, its policy or its databases."
         }
       ]
     }

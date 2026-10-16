@@ -1,6 +1,6 @@
 # 0006 — Dependencies and fonts allow public source and licensed production
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `scripts/dependency-licences.mjs`, run as a step of
@@ -58,6 +58,24 @@
     was added for it. The first truncated font never reached that check.
   - **The command:** not exiting 1, and the step removed from `gates.yml`.
   - **Bundling:** `report-spec`'s `onlyBundle` removed.
+
+  **Formancy Data** (added 2026-10-16). A Data package is admitted when
+  three things hold:
+  - it is at its exact version;
+  - the file its pointer names is the one the review read;
+  - it is reached from the provider alone.
+
+  It is refused when any of these differs:
+  - at another version, where the unused admission is named too;
+  - with another file, or with none;
+  - from another package;
+  - when it declares another licence, which is then judged.
+
+  An admission nothing installs is refused. On the real tree, the
+  provider's closure holds `@formancy/data-client` and
+  `@formancy/data-core` 0.1.0, each with the file read, and nothing else
+  reaches them. The rules were watched failing one at a time, as 0016
+  lists.
 
   **On the real tree,** the workspace passes and the walk finds
   `@formancy/report-spec`. The command exits 0 here and 1 on a tree with a
@@ -220,6 +238,29 @@ Govett, read that day, and `EXCEPTIONS` records it at that exact version.
 The renderer embeds the four Roboto files the guard reads; the browser
 entry's copy of them in `vfs_fonts.js` is held to the same bytes by the
 renderer's own tests.
+
+**Added 2026-10-16: Formancy Data's packages, admitted for the provider.**
+`@formancy/report-data-provider` stopped the guard on
+`@formancy/data-client` 0.1.0 and `@formancy/data-core` 0.1.0, as predicted
+above, because both declare `SEE LICENSE IN LICENSE.md`.
+
+They are admitted by `FORMANCY_DATA` in the script, not as exceptions.
+Data's terms are source-available, which the policy refuses from anybody
+else, and an exception may not record a licence the list refuses. The
+exception is narrow because the rightsholder and the terms are this
+repository's own.
+
+An admission has these rules:
+- it is keyed to an exact version;
+- it holds only when the digest of the file the pointer names is the one
+  the review read, the Formancy Data Source-Available Licence Version 1.1;
+- it holds only when the package that depends on Data is the provider;
+- one that nothing installs is refused.
+
+To make that comparable, the walk now records the digest of the file
+behind every `SEE LICENSE IN` pointer it meets. Why the provider may
+depend on Data, and what that costs a customer, is
+[0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md).
 
 ## Alternatives considered
 

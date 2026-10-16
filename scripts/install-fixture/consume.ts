@@ -17,6 +17,10 @@ import { fileURLToPath } from 'node:url'
 import { resolveReport } from '@formancy/report-runtime'
 import type { Resolution } from '@formancy/report-runtime'
 import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
+import { readReportData } from '@formancy/report-data-provider'
+import type { DataBinding, ProviderRead } from '@formancy/report-data-provider'
+import { createDataClient } from '@formancy/data-client'
+import type { PublishedForm } from '@formancy/data-client'
 import { quotation, quotationData } from './quotation.js'
 
 // The published code carries the refusal, not only the source: a formancy
@@ -195,6 +199,55 @@ const refusal: unknown = await renderPdf(unprintable.document, { maxPages: 50 })
 )
 if (!(refusal instanceof RenderRefusal) || refusal.code !== 'unsupported') throw new Error(`a character without a glyph was not refused as unsupported: ${String(refusal)}`)
 
+// The Data provider, from its tarball, with @formancy/data-client at the
+// exact release it pins, from the registry: the quotation read from a data
+// server answering Formancy Data 0.1.0's routes -- its header as one
+// record, its lines as that record's children, every value as Data spells
+// it -- must be the quotation's own data, and render. The client checks
+// every reply's shape, so a reply Data would not send fails here. The
+// packages/report-data-provider README's example is these lines
+// (scripts/readme-example.test.mjs).
+const { header: quotationHeader = {}, detail: quotationLines = [] } = quotationData
+const dataServer = 'https://data.invalid'
+const quotationToken = 'q-1'
+const formOf = (id: string, keys: readonly string[]): PublishedForm => ({
+  form: { specVersion: '3', id, title: id, model: { fields: keys.map((key) => (key === 'quotation' ? { key, type: 'select', label: key, optionsSource: 'quotations' } : { key, type: 'text', label: key })) } },
+  operations: ['read'],
+  readable: [...keys],
+  list: { searchable: [], sortable: [...keys] },
+  deleting: null,
+})
+const lineKeys = ['quotation', ...Object.keys(quotationLines[0] ?? {})]
+const dataRoutes: Readonly<Record<string, unknown>> = {
+  'GET /v1/forms': { forms: [{ id: 'quotation', title: 'Quotations', operations: ['read'], children: [{ form: 'quotation-line', field: 'quotation' }] }] },
+  'GET /v1/forms/quotation': formOf('quotation', Object.keys(quotationHeader)),
+  'GET /v1/forms/quotation-line': formOf('quotation-line', lineKeys),
+  'POST /v1/forms/quotation/records/read': { record: quotationToken, version: '1', answers: quotationHeader },
+  'POST /v1/forms/quotation-line/records/list': { rows: quotationLines.map((line, index) => ({ record: `l-${String(index)}`, version: '1', answers: { quotation: quotationToken, ...line } })), hasMore: false },
+}
+Object.assign(globalThis, {
+  fetch: (input: string, init: RequestInit): Promise<Response> => {
+    const route = `${init.method ?? 'GET'} ${input.slice(dataServer.length)}`
+    const body = Object.hasOwn(dataRoutes, route) ? dataRoutes[route] : { code: 'not-found', message: 'No such route.' }
+    return Promise.resolve(new Response(JSON.stringify(body), { status: Object.hasOwn(dataRoutes, route) ? 200 : 404, headers: { 'content-type': 'application/json' } }))
+  },
+})
+const fromData = await (async () => {
+  // The host's own sign-in, whose token Data's policy reads on every request.
+  const session = { token: (): string => 'install-check' }
+  const client = createDataClient({ token: () => session.token(), base: dataServer })
+  const binding: DataBinding = { header: { form: 'quotation', record: quotationToken }, detail: { form: 'quotation-line', parent: 'header' } }
+  const provided: ProviderRead = await readReportData(client, quotation, binding, { cap: 5000 })
+  if (!provided.ok) throw new Error(provided.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
+  const resolution = resolveReport(quotation, provided.data, { mode: 'final', creationDate: '2026-10-16T08:00:00Z' })
+  if (!resolution.ok) throw new Error(resolution.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
+  if (JSON.stringify([provided.data.header, provided.data.detail]) !== JSON.stringify([quotationHeader, quotationLines]) || resolution.manifest.consistency !== 'best-effort') {
+    throw new Error("the quotation read from Data is not the quotation's own data, read best-effort")
+  }
+  return renderPdf(resolution.document, { maxPages: 50 })
+})()
+if (new TextDecoder().decode(fromData.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation read from Data did not render to a PDF')
+
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
 )

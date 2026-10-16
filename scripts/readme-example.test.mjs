@@ -38,3 +38,17 @@ describe("the README's \"Render a report\"", () => {
     expect(exampleLines('## Another\n\n```ts\nconst a = 1\n```\n', 'Render a report')).toBeUndefined()
   })
 })
+
+describe("the Data provider's README, \"Read a report's data\"", () => {
+  // The same rule for the provider's example: a reader copies it into a
+  // host that talks to a real data server, so every line of it is a line
+  // the install gate runs, from the packed provider and the data-client
+  // release it pins, against a server answering Data 0.1.0's routes.
+  test('is code the install gate runs, line for line', () => {
+    const readme = readFileSync(join(root, 'packages/report-data-provider/README.md'), 'utf8').replaceAll('\r\n', '\n')
+    const lines = exampleLines(readme, "Read a report's data")
+    const consumer = new Set(readFileSync(join(root, 'scripts/install-fixture/consume.ts'), 'utf8').replaceAll('\r\n', '\n').split('\n').map((line) => line.trim()))
+    expect(lines?.length).toBeGreaterThan(5)
+    expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
+  })
+})
