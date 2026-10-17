@@ -10,47 +10,19 @@
  * browser fetches by itself as the page loads -- every address but an
  * <a>'s -- is the site's own (0023).
  */
+import { headingAnchors } from '../../../../scripts/heading-anchors.mjs'
 import { FORMANCY, FORMANCY_DATA, FORMANCY_HEALTH } from '../links.js'
 import type { Built, Read } from './read.js'
 import { read } from './read.js'
 
-/** A fence's opening or closing line in Markdown: three backticks or tildes or more, indented by three spaces at most. */
-const FENCE = /^ {0,3}(`{3,}|~{3,})/
-
-/** An ATX heading, its text without the closing hashes. */
-const HEADING = /^ {0,3}#{1,6}[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*$/
-
 /**
- * The anchors GitHub gives the headings of the Markdown `text`: each `#`
- * heading outside a fenced block, a link in it read as its words, the text
- * lowercased, everything but letters, digits, marks, spaces, hyphens and
- * underscores dropped, each space a hyphen, and -1, -2 after an anchor
- * already taken. A heading underlined rather than marked, and an anchor
- * written as HTML, are not read, and a link to one is refused.
+ * The anchors GitHub gives a Markdown file's headings, as the repository
+ * reads them once for every check that follows a link into one
+ * (scripts/heading-anchors.mjs): the architecture's guard and the
+ * getting-started guide's read the same. An anchor written as HTML is not
+ * read, and a link to one is refused. Exported for the suite's own cases.
  */
-export function headingAnchors(text: string): ReadonlySet<string> {
-  const anchors = new Set<string>()
-  const taken = new Map<string, number>()
-  let fence: string | undefined
-  for (const line of text.replaceAll('\r\n', '\n').split('\n')) {
-    const marker = FENCE.exec(line)?.[1]
-    if (marker !== undefined && (fence === undefined || (marker[0] === fence[0] && marker.length >= fence.length))) {
-      fence = fence === undefined ? marker : undefined
-      continue
-    }
-    const heading = fence === undefined ? HEADING.exec(line)?.[1] : undefined
-    if (heading === undefined) continue
-    const base = heading
-      .replaceAll(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .toLowerCase()
-      .replaceAll(/[^\p{L}\p{N}\p{M}\s_-]/gu, '')
-      .replaceAll(/\s/g, '-')
-    const count = taken.get(base) ?? 0
-    taken.set(base, count + 1)
-    anchors.add(count === 0 ? base : `${base}-${String(count)}`)
-  }
-  return anchors
-}
+export { headingAnchors }
 
 export function linkProblems({ site, inputs, exists, text }: Built): string[] {
   const problems: string[] = []

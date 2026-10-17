@@ -10,6 +10,47 @@ later.
 
 ## Unreleased
 
+**The architecture is documented, in arc42's sections, as formancy.ai's
+is** ([`docs/README.md`](docs/README.md),
+[0026](docs/decisions/0026-the-architecture-is-documented-in-arc42s-sections-held-to-the-repository-by-a-guard.md)). The rightsholder asked that
+every change be documented, and the architecture had no document beyond
+the decision records: nothing said in one place what each package may
+import, how a report goes from data to a PDF, what a host needs, or what
+each gate proves and does not.
+
+- **`docs/architecture/`**: introduction and goals, constraints, context,
+  strategy, building blocks, runtime view, deployment, cross-cutting
+  concepts, quality requirements, verification, risks and debt, and a
+  glossary, each linking the records behind what it states and naming the
+  test or gate that holds a claim where one does. It describes `main` as of
+  the EPC QR code
+  ([0025](docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)),
+  which it places beside the QR-bill wherever the sections describe a
+  payment code, and says "planned" only where the README or a record does.
+  The quality goals are not ranked, because no record ranks them.
+- **`scripts/architecture.test.mjs`**, in `pnpm test:repo`: it fails when
+  a section or the entry is missing; when a workspace package or app,
+  read from `pnpm-workspace.yaml`'s globs and each manifest, has no row in
+  the building blocks' table, or its row names other dependencies, peers
+  or packages from elsewhere than its manifest declares; when a decision
+  record is linked from no section; when a relative link there reaches no
+  file, or a fragment no heading GitHub would anchor; and when a path
+  written there as code names nothing the checkout holds. So a new
+  package, dependency or record, or a renamed file the sections name,
+  fails the guard until the architecture says so. The table names no
+  versions, because a typed version is wrong after the next upgrade and
+  nothing would fail; the README's generated table has them. Each rule was
+  watched failing with its defect planted. What a section says about a
+  record, and which layer a package stands in, are held by review.
+- **GitHub's heading anchors are read once**, by `scripts/heading-anchors.mjs`,
+  for the architecture's guard, the getting-started guide's and the product
+  pages' link check. Each had its own copy, and on a heading with a link
+  and an entity in it the three gave three anchors, so a link one passed
+  another could refuse.
+- **`CLAUDE.md`** asks for the architecture section a change touches, as
+  formancy.ai's does, and the README's documents start from
+  `docs/README.md`.
+
 **A report can print an EPC QR code, which a banking app pays a SEPA
 credit transfer from**
 ([0025](docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).

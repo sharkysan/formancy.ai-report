@@ -724,6 +724,10 @@
           "says": "That an EPC QR code is paid is not tested: its code is read by ZXing from the page PDF.js draws, never by a banking app, no code has been printed, and the EPC's guidelines are informative, so a bank need not read one at all."
         }
       ]
+    },
+    "0026": {
+      "reviewed": "sha256:dc98cada680c3e94dd7e1460382713b6e41d274e572061300b545fd95093cf85",
+      "none": "It decides how the repository documents its architecture and what holds those documents in pnpm test:repo; its costs fall on a contributor's pull request, and nothing in a published package, a release or the Studio changes with it."
     }
   }
 }

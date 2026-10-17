@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { lexer } from 'marked'
 import { describe, expect, test } from 'vitest'
 import { fencedBlocks, importedPackages, readGuide } from './getting-started.mjs'
+import { headingAnchors } from './heading-anchors.mjs'
 import { GUIDE_HOSTS, HOSTS, planProjects } from './install-hosts.mjs'
 
 /**
@@ -42,24 +43,6 @@ const linksIn = (token) => [...(token.type === 'link' ? [token.href] : []), ...[
 
 /** The guide's relative links: everything but an address with a scheme. */
 const guideLinks = (markdown) => lexer(markdown).flatMap((token) => linksIn(token)).filter((href) => !/^[a-z][a-z0-9+.-]*:/i.test(href))
-
-/**
- * The anchors GitHub gives a Markdown file's headings: the text lowercased,
- * everything but letters, digits, spaces, hyphens and underscores dropped,
- * spaces as hyphens, and -1, -2 after a slug already taken.
- */
-function headingSlugs(markdown) {
-  const seen = new Map()
-  const slugs = new Set()
-  for (const token of lexer(markdown)) {
-    if (token.type !== 'heading') continue
-    const base = token.text.toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, '').replace(/\s/g, '-')
-    const count = seen.get(base) ?? 0
-    seen.set(base, count + 1)
-    slugs.add(count === 0 ? base : `${base}-${String(count)}`)
-  }
-  return slugs
-}
 
 /** The relative modules a fixture runner imports, statically or with import(), by specifier. */
 const runnerImports = (runner) => [...readFileSync(join(fixture, runner), 'utf8').matchAll(/^import\s[^'"]*['"](\.[^'"]+)['"]|\bimport\(\s*['"](\.[^'"]+)['"]\s*\)/gm)].map((match) => match[1] ?? match[2])
@@ -147,7 +130,7 @@ describe('docs/getting-started.md', () => {
         return [`${href}: no such file`]
       }
       if (anchor === undefined || anchor === '' || !file.endsWith('.md')) return []
-      return headingSlugs(target).has(anchor) ? [] : [`${href}: no such heading`]
+      return headingAnchors(target).has(anchor) ? [] : [`${href}: no such heading`]
     })
     expect(guideLinks(guide).length).toBeGreaterThan(5)
     expect(broken).toEqual([])

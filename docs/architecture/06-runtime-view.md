@@ -1,0 +1,252 @@
+# 6. Runtime view
+
+The main flows, end to end. The first two are what the design is arranged
+around: an edit that cannot leave the document invalid, and a render that
+cannot return part of a PDF.
+
+## 6.1 An edit, from a key to both builders
+
+```
+a person presses Ctrl+D on an outline row
+   │
+   ▼
+builder ──▶ actionForKey(press, 'outline')      decided once, in report-builder-core
+   │              └─▶ { type: 'duplicate' }
+   ▼
+editor.dispatch(action) ──▶ session.apply: report-core's duplicateComponent
+   ├─ the edit carries a hash that is not the document's ──▶ stale-document;
+   │                                                        nothing changes
+   ▼
+the command, a pure function, runs on the frozen snapshot itself
+   ├─ refused by its own preconditions ──▶ nothing changes
+   ▼
+validateReport(result)
+   ├─ refused ──▶ nothing changes: not the document, its identity, the revision,
+   │              the history; no listener hears of it
+   ▼
+commit the validator's copy, deeply frozen, sharing every part that did not
+change with the snapshot before it; one labelled undo step, and none when
+nothing changed
+   │
+   ▼
+listeners, synchronously ──▶ the editor derives its state again: outline, design
+   │                         view, properties, and the diagnostics of compileReport
+   ├──▶ React: useSyncExternalStore re-renders what changed identity
+   └──▶ Angular: the state's signal changes, and OnPush marks what read it
+```
+
+A refused edit is the same object, the same revision and the same history,
+and `session.test.ts` holds each way an edit can be refused to that
+([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)).
+The keyboard is the first path, not the alternative: the drag is a second
+way to the same commands, its targets the places `validLocations` found by
+trying each ([formancy.ai 0046](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0046-keyboard-before-drag.md),
+[0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)).
+
+## 6.2 A render, from data to bytes
+
+```
+host: resolveReport(report, data, { mode, parameters, images, creationDate, timeZone })
+   │
+   ▼
+validate the report again, compile every expression     it arrives as untrusted input
+   ├─ an error the editor's diagnostics would give ──▶ refused
+   ▼
+check the data: one header record and one detail list, each value held to its
+field's type, a field the report does not declare refused, MAX_DETAIL_ROWS
+   ├─ final, and a field missing or the data incomplete ──▶ refused
+   ├─ preview ──▶ go on: nothing printed for it, one warning per field
+   ▼
+evaluate conditions and expressions        fixed capabilities; EXPRESSION_STEP_BUDGET
+   │                                       each, RENDER_STEP_BUDGET a render
+   ▼
+order and group the rows; compute each aggregate exactly, then round it once
+   ▼
+format every value for the locale          Intl handed exact digits, never a double
+   ▼
+images through the host's lookup, by id and digest, once each
+   ▼
+a QR-bill's texts, and an EPC QR code's, resolved and held to their code's
+rules; the EPC QR code's payload written (6.7)
+   │
+   ▼
+ResolvedDocument + manifest (+ a preview's warnings)        every reason, or none
+   │
+   ▼
+renderPdf(document, { maxPages, signal })
+   ├─ before pdfmake sees it: a glyph per character, nothing malformed or
+   │ wider than where it stands, each asset's bytes, a bill, each code
+   │ encoded once and held to its square ────────────────────▶ RenderRefusal
+   ├─ a bill or a captioned EPC QR code: Liberation Sans read, and in a
+   │ browser its chunk imported
+   ├─ measure the page regions; the body's margins follow
+   ├─ a block of fixed height taller than the body ──────────▶ content-too-large
+   ├─ least height already past maxPages ────────────────────▶ too-many-pages
+   ├─ measure kept blocks and table rows; one no page holds ─▶ content-too-large
+   ├─ plan where each table breaks
+   ├─ lay out the PDF; a page past maxPages ─────────────────▶ too-many-pages
+   │       in every pass, a word wider than its column ──────▶ content-too-large
+   │       an abort is read between passes ──────────────────▶ cancelled
+   ▼
+Uint8Array
+```
+
+The runtime never returns part of a document and the renderer never
+resolves to part of a PDF
+([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md),
+[0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+Every value reaching the renderer is already the string it prints, so the
+renderer has no total to round twice. The PDF's creation date is the one the
+host passed, so one document renders to the same bytes every time
+([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).
+
+## 6.3 A read from Formancy Data
+
+```
+host: a data client, carrying the person's token
+   │
+   ▼
+readReportData(client, report, binding, { cap, signal })
+   ├─ the report valid, the cap within MAX_DETAIL_ROWS?
+   ├─ every declared dataset bound, and nothing else?
+   ├─ every declared field one this person may read, and none an image?
+   ├─ the detail form offers this person a list; its parent is one field?
+   │       any no ──▶ refused, before a single record is read
+   ▼
+the header's record
+the detail rows, a page at a time, until Data says none follow or the cap is reached
+each lookup's labels, distinct tokens, a page of them a request
+   │       a label this person may not see ──▶ refused, whole
+   ▼
+ReportData, its consistency 'best-effort' ──▶ resolveReport, as in 6.2
+```
+
+Every request runs Data's policy again, so the provider is exactly as
+authorised as the token. The header, each page and each label are read at
+different moments: a row inserted between two pages can be printed twice or
+not at all, which is what `best-effort` and the manifest say
+([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+
+## 6.4 Switching frameworks over one session
+
+```
+the Studio: one session and one editor per starter, made when it is first picked
+   │
+   ├─ Angular builder mounted over the editor ──▶ an edit ──▶ the session commits
+   │
+   ├─ the switch moved to React
+   │     Angular builder destroyed ──▶ its subscription ends; the editor stays
+   │     React builder mounted over the SAME editor
+   │
+   └─ Undo, in React ──▶ the snapshot that stood before the Angular edit
+```
+
+The session holds the document and its history; the editor holds the
+selection, the zoom and the open pane; a builder holds nothing that must
+outlive it, so switching keeps all three
+([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)).
+`apps/studio/src/studio.test.tsx` runs this in jsdom, with no listener or
+subscription left behind, and the browser gate runs it the other way in
+Chromium.
+
+## 6.5 The Studio's preview
+
+```
+an edit commits
+   │
+   ▼
+latest(): the request waits a moment for the next one; a newer one aborts the
+          render under way, whose result is then delivered to nobody
+   │
+   ▼
+preview(): resolveReport, in the mode the Preview is in ──▶ renderPdf from
+           '@formancy/report-render-pdf/browser', up to PREVIEW_PAGE_LIMIT pages
+   ├─ refused by the runtime ──▶ every reason, each with a button that selects
+   │                             the component it is about
+   ├─ refused by the renderer ──▶ its code and what it names
+   ▼
+PDF.js draws each page on white paper with its text layer; Download PDF gives
+the bytes those pages were drawn from
+```
+
+The Preview makes the same two calls a host makes, with nothing decided in
+the Studio ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).
+A render the renderer cannot stop mid-pass finishes into nothing rather
+than replacing a newer one.
+
+## 6.6 A Swiss QR-bill, from a literal to the slip
+
+```
+the definition's payment part, an IBAN written in it
+   │
+   ▼
+validateReport: SIX's rules over every literal text ──▶ invalid-qr-bill, on the field
+   │            a page not A4 in portrait, or a top margin past
+   │            the slip's top ─────────────────────────────▶ payment-part-page
+   ▼
+resolveReport: each text read as a paragraph's in the report's scope
+   ├─ final, and a run null ──────────────────────────▶ no-qr-value
+   ├─ what it resolved to breaks a rule ──────────────▶ invalid-qr-bill, the field and
+   │                                                    the rule, never the value
+   ▼
+QrBill: the payload in SIX's order, the headings in the slip's language, every
+        value written as the slip prints it
+   ▼
+renderPdf: checks again what would draw another slip; the Swiss QR Code encoded
+           once, at level M and version 25 at most
+   ▼
+the slip, 210 by 105 mm across the foot of the last page in place of its footer,
+in Liberation Sans; on a page of its own when the last page has too little room
+```
+
+The validator and the runtime call the same functions in report-spec's
+`qr-bill.ts`, and the IBAN's check digits and the creditor reference in
+`payment-reference.ts`, which the EPC QR code's rules read too, so the
+editor and a render cannot read SIX differently. A preview whose bill
+breaks a rule is refused too, because a code that scans as a bill no bank
+pays has no drawing worth showing
+([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)).
+
+## 6.7 An EPC QR code, from a field to the payload
+
+```
+an epcQrCode where a QR code may stand, an IBAN written in it
+   │
+   ▼
+validateReport: the EPC's rules over each literal text ─▶ invalid-epc-qr-code, on the field
+   │            the same for a reference and a text both; a BIC the IBAN does
+   │            not go with, or none where one is needed; literal texts
+   │            already past the EPC's bytes; a captioned square no version
+   │            prints in
+   ▼
+resolveReport: each text read as a paragraph's in the report's scope
+   ├─ its condition does not hold ───────────────────▶ neither drawn nor checked
+   ├─ an optional text empty, blank or null ─────────▶ its element left unused
+   ├─ final, and a null run cuts a text short ───────▶ no-qr-value
+   ├─ preview, a required text without a value ──────▶ invalid-epc-qr-code
+   ├─ what it resolved to breaks a rule ─────────────▶ invalid-epc-qr-code, the field and
+   │                                                   the rule, never the value
+   ▼
+EpcQrCode: report-spec's epcPayload of the checked texts, held to EPC_MAX_BYTES
+   ▼
+renderPdf: the payload encoded once by uqr, at level M and EPC_MAX_VERSION at most
+   ├─ past the EPC's bytes, or modules its square cannot print ─▶ content-too-large,
+   │                                              naming the code, never its payload
+   ├─ no caption: drawn as a QR code of its payload is, held to the same floor
+   ├─ Austria's caption: the PSA's frame, at the least version the PSA's modules
+   │  allow in its square, or the payload's own when larger; "Zahlen mit Code"
+   │  in Liberation Sans up its right side
+   ▼
+the code in its square, where the template put it
+```
+
+The validator and the runtime call the same functions in report-spec's
+`epc-payload.ts`, and read one table of the code's texts, `EPC_TEXT_FIELDS`,
+for what each is called and whether it may be left out, so the editor and a
+render cannot read the EPC differently. The payload is written once, by the
+runtime. The renderer encodes the string it is handed and decides only what
+drawing decides — the version, the modules, the frame — by report-spec's
+`epc-print.ts`, which reaches it through the runtime. A preview whose code
+breaks a rule is refused, as a bill's is: it would scan as a transfer no
+bank makes
+([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).

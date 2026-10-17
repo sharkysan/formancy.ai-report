@@ -61,8 +61,11 @@ What the tests show about the browser entry, run in Node: for every fixture
 in the corpus it hands pdfmake the definitions the Node entry does, its PDFs
 pass the corpus's checks, it places every run and image where the Node entry
 does, and it reaches no Node module. What they do not show is the browser
-build in a browser. That is the Studio's browser gate's to check, and it
-does not exist yet.
+build in a browser. That is the Studio's browser gate's to check:
+`apps/studio/scripts/browser-test.mjs`, in CI's `browser` job, prints
+every starter through this entry in Chromium and reads its text back, and
+no other browser runs it
+([0013](../../docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).
 
 pdfmake is one configuration per process, or per page in a browser: fonts
 and access policies are global to it. The renderer sets its own again

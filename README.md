@@ -399,6 +399,7 @@ What a run actually ran -- the Node of each job, the React and Angular each inst
 ## Documents
 
 - [`docs/getting-started.md`](./docs/getting-started.md) — from an empty npm project to a PDF and the editor in your page. The install gate compiles every block of its code against the packed packages and runs it, or bundles it for a browser, and `scripts/getting-started.test.mjs` fails when a block escapes the gate or imports a package the guide never says to install.
+- [`docs/README.md`](./docs/README.md) — the architecture, in arc42's sections: what each package and app is, what it may import, how a report goes from data to a PDF, what a host needs, and what each gate proves and does not. `scripts/architecture.test.mjs` fails when a section is missing, a package or app has no row in the building blocks or a row naming other dependencies than its manifest, a decision record is cited by no section, or a link or a path written as code there lands nowhere.
 - [`docs/decisions/`](./docs/decisions/README.md) — every decision somebody could helpfully undo, with what verifies it.
 - [`CHANGELOG.md`](./CHANGELOG.md) — what changed and why.
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`CLA.md`](./CLA.md) — contributions are taken under a CLA, checked on every pull request.

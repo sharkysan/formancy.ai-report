@@ -139,6 +139,15 @@ in the same pull request as the code, not in a follow-up:
   `superseded by NNNN` or `reversed` rather than editing it away. A decision
   that depends on another repository's record cites it as `formancy.ai 0003`
   or `formancy.ai-data 0035`.
+- **Architecture** (`docs/architecture/`, arc42, entered from
+  [`docs/README.md`](docs/README.md)) — the section the change touches:
+  building blocks for a new package, app or module and what it may import,
+  the runtime view for a new flow, the deployment view for what is published
+  or served and what a host needs, cross-cutting concepts, quality
+  requirements, verification for a new gate, and risks and debt for anything
+  accepted rather than fixed. A new decision record is linked from the
+  section it bears on, not only listed in the index
+  ([0026](docs/decisions/0026-the-architecture-is-documented-in-arc42s-sections-held-to-the-repository-by-a-guard.md)).
 
 Keep the voice of the existing documents: say what it costs and what it does
 not do, and never claim more than a test shows.
@@ -155,7 +164,11 @@ and the document says what. Three shapes, in order of preference:
 2. **Check it.** `scripts/codecov-config.test.mjs` fails when the committed
    file is not what the generator produces; `scripts/check-cla.test.mjs` fails
    when `CLA.md` changes under a signature; `scripts/upstream-deps.test.mjs`
-   fails on an inexact upstream version. All of them run as `pnpm test:repo`,
+   fails on an inexact upstream version; `scripts/architecture.test.mjs`
+   fails on a missing arc42 section, a package or app without its row in the
+   building blocks or a row whose dependencies are not its manifest's, a
+   decision record no section links, and a link or a path written as code in
+   the architecture that lands nowhere. All of them run as `pnpm test:repo`,
    and CI runs that — **a guard that is not a gate is a comment.**
 3. **Measure it.** Below.
 
@@ -467,6 +480,11 @@ Locally, run the same commands for what you changed.
 - After `LICENSE.md` changes, run `node scripts/licence-status.mjs --write`.
 - After a package is added, run `node scripts/codecov-config.mjs --write`, and
   add the package to the `test` job's matrix.
+- A new package or app, or a changed dependency or peer, needs its row in
+  `docs/architecture/05-building-blocks.md` naming, as code, what its
+  manifest declares; a new decision record, a link from the section it
+  bears on; and a file the architecture names as code, renamed, its new
+  name there.
 - A new decision record needs its entry in `docs/release/limitations.json`:
   the costs a user, integrator or operator meets, or why it has none. An
   edited one needs a re-read and
