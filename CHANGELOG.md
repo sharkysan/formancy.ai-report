@@ -10,6 +10,42 @@ later.
 
 ## Unreleased
 
+**The product has pages a search engine can read, in German, French,
+Italian and English**
+([0021](docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)).
+The rightsholder asked for pages people search for and find, with
+examples, for invoices and for healthcare. The Studio is drawn by a script,
+in English, and says `noindex`, so a search engine found nothing to read.
+
+- **`apps/pages`, never published:** the product page,
+  `/report/<lang>/`, and the healthcare page, `/report/de/gesundheitswesen/`,
+  `/report/fr/sante/`, `/report/it/sanita/` and `/report/en/healthcare/`.
+  - Static HTML, prerendered at build time. No script runs on a page, so a
+    reader without JavaScript, and a crawler, reads all of it.
+  - Each page names its translations as alternates, with English as the
+    default, and `/report/sitemap.xml` lists them all.
+  - A shared link shows the page's title and description, through Open
+    Graph and X's card, and the product page's link the quotation
+    starter's picture. The healthcare page's shows none: no picture here
+    is of a healthcare document.
+  - The release and its date, and the licence's version and terms, are
+    read from `CHANGELOG.md` and `LICENSE.md` when the pages are built. A
+    row of the licence's table that changes stops the build until it is
+    translated.
+  - The pages import the Studio's stylesheets, its room among them, and
+    have no colour of their own.
+  - The healthcare page says what works today, formancy's forms and
+    Report's PDFs, and that Formancy Health is in development with
+    nothing released, dated 17 October 2026.
+  - The invoice pages come with the QR-bill and EPC features, not before.
+- **`scripts/demo.mjs`** stages the pages beside the Studio under
+  `/report/`. It refuses a path both builds hold, and a page of either
+  that asks for a file by an absolute path. The Studio stays at
+  `/report/`, with its `noindex`.
+- **One step is the rightsholder's:** the sitemap is submitted in Google
+  Search Console, or named in formancy.ai's robots.txt, which this
+  repository does not own (`.github/REPO-METADATA.md`).
+
 **A report can print a QR code**
 ([0020](docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
 A report often carries a code a phone opens: a link to the record it
@@ -72,6 +108,8 @@ nothing, without a word.
   use zxing-wasm 3.1.5, in the private corpus alone, from its own
   WebAssembly file, and fetch nothing. Codes side by side are read from
   the left, their tops compared to the nearest point.
+
+  repository does not own (`.github/REPO-METADATA.md`).
 
 **A person hides the panes whose room the design view needs**
 ([0019](docs/decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md)).

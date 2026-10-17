@@ -395,7 +395,7 @@
       ]
     },
     "0018": {
-      "reviewed": "sha256:b7094e7e5b8e172f94257d8e55b74e4fc670a43224f546b22d630822561c7cbb",
+      "reviewed": "sha256:8e8b13ce6e667e0691f0ac457c47e921688cfa9d14ba81f8d0726a140fcee562",
       "limitations": [
         {
           "area": "release",
@@ -467,6 +467,28 @@
         {
           "area": "testing",
           "says": "That a QR code scans is shown by ZXing reading the page as PDF.js draws it, never by a phone's camera or a printed page."
+        }
+      ]
+    },
+    "0021": {
+      "reviewed": "sha256:679a36c6e8ec7ae52f9d6515e5bffb13d65fbbd1e80d30c8135ffae15813eaf2",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "The pages at formancy.ai/report/<lang>/ are main's, deployed with the Studio, and name the changelog's newest release from the moment its release commit reaches main, before the tag has published the packages.",
+          "heldBy": "apps/pages/scripts/inputs.test.mjs"
+        },
+        {
+          "area": "release",
+          "says": "Nothing in this repository submits the pages' sitemap to a search engine or checks that formancy.ai's robots.txt lets them be crawled: the rightsholder submits it in Google Search Console by hand."
+        },
+        {
+          "area": "testing",
+          "says": "The pages' reflow down to 320 pixels and their colour contrast were measured in Chromium by hand, not by a gate, so a change to the pages or to the Studio's stylesheets they import is not measured in a browser in CI."
+        },
+        {
+          "area": "testing",
+          "says": "What a page says of the product, beyond the facts it reads from the repository's files, and whether a translation says what the English says, are held by review, not by a test."
         }
       ]
     }

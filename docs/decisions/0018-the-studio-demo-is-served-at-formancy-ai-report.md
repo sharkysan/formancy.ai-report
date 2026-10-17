@@ -1,6 +1,6 @@
 # 0018 — The Studio's demo is served at formancy.ai/report/, by a Worker of its own that Cloudflare deploys from main
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0021](0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md), whose pages its Worker serves beside the Studio
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**

@@ -1,8 +1,9 @@
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { describe, expect, test } from 'vitest'
-import { configProblems, demoBase, demoUrl, indexProblems, readDemoConfig, WRANGLER } from './demo.mjs'
+import { afterAll, describe, expect, test } from 'vitest'
+import { BUILDS, configProblems, demoBase, demoUrl, indexProblems, readDemoConfig, stageDemo, WRANGLER } from './demo.mjs'
 
 /**
  * README.md's "Try it": the commands that run the Studio as a demo, held to
@@ -173,5 +174,73 @@ describe('the demo on formancy.ai (0018)', () => {
     const gate = readFileSync(join(repo, 'apps', 'studio', 'scripts', 'browser-test.mjs'), 'utf8')
     expect(gate).toMatch(/import \{[^}]*\bdemoBase\b[^}]*\} from '\.\.\/\.\.\/\.\.\/scripts\/demo\.mjs'/)
     expect(gate).toContain('await preview({ root: app, base: demoBase(readDemoConfig())')
+  })
+})
+
+describe('what the deploy stages (0018, 0021)', () => {
+  const made = []
+  afterAll(() => {
+    for (const directory of made) rmSync(directory, { recursive: true, force: true })
+  })
+
+  /** A directory holding `files`, each path with its text. */
+  function tree(files) {
+    const directory = mkdtempSync(join(tmpdir(), 'formancy-report-demo-'))
+    made.push(directory)
+    for (const [path, text] of Object.entries(files)) {
+      mkdirSync(dirname(join(directory, path)), { recursive: true })
+      writeFileSync(join(directory, path), text)
+    }
+    return directory
+  }
+
+  /** Every file under `directory`, as a path from it with forward slashes. */
+  const listed = (directory) =>
+    readdirSync(directory, { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => relative(directory, join(entry.parentPath, entry.name)).replaceAll('\\', '/'))
+      .sort()
+
+  const studio = () => tree({ 'index.html': '<script type="module" src="./assets/index-a.js"></script>', 'assets/index-a.js': '' })
+  const pages = (extra = {}) => tree({ 'en/index.html': '<link rel="stylesheet" href="../site/pages.css">', 'sitemap.xml': '<urlset/>', 'site/pages.css': '', ...extra })
+
+  // One Worker serves both, from one directory: the Studio's page at the
+  // demo's path, where 0018 put it, and the pages beside it under their
+  // languages. A deploy that staged the Studio alone would serve every
+  // page as formancy.ai's 404.
+  test("puts the Studio's build and the pages' build under the demo's path, the Studio's page at its root", () => {
+    const into = tree({})
+    stageDemo([studio(), pages()], join(into, 'report'))
+    expect(listed(into)).toEqual(['report/assets/index-a.js', 'report/en/index.html', 'report/index.html', 'report/site/pages.css', 'report/sitemap.xml'])
+  })
+
+  // A path both builds write would be served from whichever was copied
+  // last: the Studio's page replaced by a page's, or a stylesheet by the
+  // other's. Refused before anything is staged, naming the path.
+  test('refuses a path both builds hold, naming it, and stages nothing', () => {
+    const into = tree({})
+    expect(() => stageDemo([studio(), pages({ 'index.html': '<title>a page</title>' })], join(into, 'report'))).toThrow(/index\.html is in both/)
+    expect(existsSync(join(into, 'report'))).toBe(false)
+  })
+
+  // Every page of either build, not only the Studio's: under the demo's
+  // path, a page that asks for /site/pages.css is answered by formancy.ai's
+  // own site, and loads without its stylesheet.
+  test('refuses a page of either build that asks for a file by an absolute path', () => {
+    const into = tree({})
+    expect(() => stageDemo([studio(), pages({ 'de/index.html': '<link rel="stylesheet" href="/site/pages.css">' })], join(into, 'report'))).toThrow(/de\/index\.html asks for a file by an absolute path: href="\/site\/pages\.css"/)
+    expect(existsSync(join(into, 'report'))).toBe(false)
+  })
+
+  // The deploy stages exactly the two apps' builds, each from where its own
+  // build writes it and each known by a file it always writes: a build
+  // left out would be missing from the demo, and one staged from a stale
+  // directory would serve what no build of this commit made.
+  test("stages the Studio's build and the pages' build, each where its app's build writes it", () => {
+    expect(BUILDS).toEqual([
+      { app: 'apps/studio', writes: 'index.html' },
+      { app: 'apps/pages', writes: 'sitemap.xml' },
+    ])
+    for (const { app } of BUILDS) expect(JSON.parse(readFileSync(join(repo, app, 'package.json'), 'utf8')).scripts.build).toBeDefined()
   })
 })

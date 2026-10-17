@@ -1,5 +1,6 @@
-// `pnpm demo:deploy`: the built Studio, put on formancy.ai at the path the
-// Worker's config, apps/studio/wrangler.json, routes to it (0018).
+// `pnpm demo:deploy`: the built Studio, and the pages beside it, put on
+// formancy.ai at the path the Worker's config, apps/studio/wrangler.json,
+// routes to it (0018, 0021).
 //
 //   pnpm demo:deploy                 build, check, deploy with the Cloudflare login Wrangler holds
 //   node scripts/demo.mjs --dry-run  check and let Wrangler check what it would upload, after `pnpm build`; uploads nothing
@@ -16,11 +17,16 @@
 //
 // The Studio is built with a relative base, so the one build is right at
 // the root of `vite preview` and under `/report/`; the browser gate serves
-// it under the path read from here, and this refuses a built page that asks
+// it under the path read from here. The pages (apps/pages, 0021) are
+// prerendered HTML that links by relative paths too: each under its
+// language, `<lang>/` and `<lang>/<slug>/`, beside the Studio's page, with
+// their sitemap at the root. This refuses a page of either build that asks
 // for a file by an absolute path, which formancy.ai would answer from its
-// own site. Static assets are found by the request's whole path, so the
-// build is staged under that path in apps/studio/.cloudflare, the directory
-// the config names, and the staging is removed afterwards.
+// own site, and a path both builds hold, which would be served from
+// whichever was copied last. Static assets are found by the request's
+// whole path, so both builds are staged under that path in
+// apps/studio/.cloudflare, the directory the config names, and the staging
+// is removed afterwards.
 //
 // Cloudflare's Workers Builds runs this on every push to main, as the
 // deploy command after `pnpm build` (.github/REPO-METADATA.md), with the
@@ -32,8 +38,8 @@
 // run it.
 
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, readFileSync, rmSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { cpSync, existsSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -45,6 +51,16 @@ const HOST = 'formancy.ai'
 
 /** The directory the config gives Wrangler, where the build is staged under the demo's path. */
 const STAGE = './.cloudflare'
+
+/**
+ * The builds the demo serves, in the order they are staged: each app's
+ * `dist/`, known by a file its build always writes. The Studio's page is
+ * the demo's own; the pages stand beside it (0021).
+ */
+export const BUILDS = [
+  { app: 'apps/studio', writes: 'index.html' },
+  { app: 'apps/pages', writes: 'sitemap.xml' },
+]
 
 /**
  * Wrangler, at an exact version older than two weeks when it was chosen
@@ -115,6 +131,36 @@ export function indexProblems(html) {
   return [...html.matchAll(/\b(?:src|href)="\/(?!\/)[^"]*"/g)].map((match) => match[0])
 }
 
+/** Every file under `directory`, as a path from it with forward slashes. */
+function filesOf(directory) {
+  return readdirSync(directory, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => relative(directory, join(entry.parentPath, entry.name)).replaceAll('\\', '/'))
+    .sort()
+}
+
+/**
+ * `builds`, directories, copied into `into`, which the demo's path names:
+ * after refusing, all at once and before anything is copied, a path two of
+ * them hold and a page of any of them that asks for a file by an absolute
+ * path (indexProblems).
+ */
+export function stageDemo(builds, into) {
+  const problems = []
+  const held = new Set()
+  for (const build of builds) {
+    for (const file of filesOf(build)) {
+      if (held.has(file)) problems.push(`${file} is in both builds, and would be served from whichever was staged last`)
+      held.add(file)
+      if (!file.endsWith('.html')) continue
+      const absolute = indexProblems(readFileSync(join(build, file), 'utf8'))
+      if (absolute.length > 0) problems.push(`${file} asks for a file by an absolute path: ${absolute.join(', ')}, which formancy.ai answers from its own site`)
+    }
+  }
+  if (problems.length > 0) throw new Error(`the builds cannot be staged together:\n  ${problems.join('\n  ')}`)
+  for (const build of builds) cpSync(build, into, { recursive: true, force: false, errorOnExist: true })
+}
+
 /**
  * A command's output, without its last newline; a command that fails stops
  * the deploy. Wrangler is told not to send Cloudflare its usage telemetry.
@@ -141,16 +187,18 @@ function main(args) {
   if (problems.length > 0) throw new Error(`apps/studio/wrangler.json is not the demo's:\n  ${problems.join('\n  ')}`)
   const changed = run('git', ['status', '--porcelain'])
   if (changed !== '' && !dryRun) throw new Error(`the checkout has changes, and the deployment would name a commit that does not hold them; commit them first:\n${changed}`)
-  const dist = join(app, 'dist')
-  if (!existsSync(join(dist, 'index.html'))) throw new Error('apps/studio/dist/index.html is not there: run `pnpm build` first, or `pnpm demo:deploy`, which does')
-  const absolute = indexProblems(readFileSync(join(dist, 'index.html'), 'utf8'))
-  if (absolute.length > 0) throw new Error(`the built page asks for files by an absolute path, which formancy.ai answers from its own site: ${absolute.join(', ')}`)
+  for (const { app: built, writes } of BUILDS) {
+    if (!existsSync(join(repo, built, 'dist', writes))) throw new Error(`${built}/dist/${writes} is not there: run \`pnpm build\` first, or \`pnpm demo:deploy\`, which does`)
+  }
   const commit = run('git', ['rev-parse', 'HEAD'])
   const stage = join(app, STAGE)
   const base = demoBase(config)
   rmSync(stage, { recursive: true, force: true })
   try {
-    cpSync(dist, join(stage, base), { recursive: true })
+    stageDemo(
+      BUILDS.map(({ app: built }) => join(repo, built, 'dist')),
+      join(stage, base),
+    )
     const deploy = ['--yes', WRANGLER, 'deploy', '--config', 'apps/studio/wrangler.json', '--message', `formancy.ai-report@${commit}`, ...(dryRun ? ['--dry-run'] : [])]
     run('npx', deploy, { stdio: 'inherit' })
   } finally {
