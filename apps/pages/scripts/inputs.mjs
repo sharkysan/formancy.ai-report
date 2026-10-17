@@ -24,7 +24,13 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 /** The changelog's version headings, as the release workflow writes them: `## 0.1.0 — 2026-10-16`. */
 const RELEASE = /^## (\d+\.\d+\.\d+) — (\d{4}-\d{2}-\d{2})$/m
 
-/** The anchor GitHub gives a Markdown heading: lower case, punctuation gone, each space a hyphen. */
+/**
+ * The anchor GitHub gives a release heading, which holds digits, dots, a
+ * dash and spaces alone: lower case, punctuation gone, each space a hyphen.
+ * Not the rule for any heading, which reads Markdown
+ * (scripts/heading-anchors.mjs) and would bring a parser into the build; the
+ * pages' link check holds the link made from this to that rule.
+ */
 const anchorOf = (heading) => heading.toLowerCase().replaceAll(/[^\p{L}\p{N}\s-]/gu, '').replaceAll(' ', '-')
 
 /** The newest release CHANGELOG.md records: its version, its date, and the anchor of its heading. */

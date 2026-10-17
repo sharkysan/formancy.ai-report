@@ -1,0 +1,125 @@
+# 9. Quality requirements
+
+Each requirement is stated so that it can fail, and names what fails when it
+does. A quality goal nothing can fail is a preference.
+
+## 9.1 Quality tree
+
+```
+Formancy Report
+├── A correct PDF                                       ← whole and exact, or refused
+│   ├── every row once, in order, nothing cut
+│   ├── totals exact, rounded once as declared
+│   └── a QR code, a QR-bill and an EPC QR code that decode as written
+├── Agreement                                           ← the editor and the runtime
+│   ├── the editor refuses what the runtime would, in an expression or a literal
+│   └── the two builders do the same things
+├── Safety                                              ← fail closed; untrusted input
+│   ├── an unknown version, kind or property refused whole
+│   ├── input read without running anything, and bounded
+│   └── nothing reaches the network but the provider, through the host's client
+├── Accessibility
+│   ├── every control reachable by keyboard, role and name
+│   └── axe clean; contrast and target size measured in Chromium
+├── Licensability
+│   └── every production dependency and font file, as the guard reads them,
+│       allows licensed production
+└── Maintainability
+    ├── no source file past the size budget
+    └── what a document states is derived or checked
+```
+
+## 9.2 Scenarios, and what holds each
+
+| # | Scenario | Measure | Held by |
+|---|---|---|---|
+| Q1 | A table runs across pages | Every row once and in order, each with its own cells; the column header on every page; no group header alone at a page's foot; nothing past a margin; no text over text — judged on the PDF | The corpus's checks (`report-corpus/src/checks.test.ts`), run on every fixture by `report-render-pdf/src/corpus.test.ts` with no fixture excused ([0003](../decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md), [0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)) |
+| Q2 | A job needs more pages than its limit | Refused as `too-many-pages`, never the first pages returned as though they were all | The `oversized` fixture through `corpus.test.ts`; `bounds.test.ts` for a body refused before pdfmake measures it ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
+| Q3 | A text holds a character no embedded face can draw | Refused as `unsupported`, naming the block and the code point | `report-render-pdf/src/glyphs.test.ts` ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
+| Q4 | Data hands a decimal as a JavaScript number | Refused; a decimal arrives only as a canonical string | `report-runtime/src/values.test.ts`, `data.test.ts` ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
+| Q5 | A total is declared with a rounding | Computed exactly, rounded once, never through a double | `report-runtime/src/totals.test.ts`, `decimal.test.ts` ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
+| Q6 | An expression calls `now()`, divides with `/`, or writes a double | An error where it is written, in the editor and in the render alike | `report-core/src/expressions/reproducible.test.ts`, `exactness.test.ts`, `diagnostics/diagnose.test.ts` ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) |
+| Q7 | Data carries a field the report does not declare | Refused, so it rides into no render, cache or log | `report-runtime/src/data.test.ts` ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
+| Q8 | A final render lacks a value, or the provider calls the data incomplete | Refused; a preview prints and labels every page instead | `report-runtime/src/data.test.ts`, `resolve.test.ts` ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
+| Q9 | A report of another `reportSpecVersion`, or a formancy form, is opened | Refused whole, naming both versions | `report-spec/src/version.test.ts` ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md)) |
+| Q10 | A report holds getters, proxies that throw, `__proto__` keys or values JSON cannot hold | Refused without running any of it, and no message echoes a value | `report-spec/src/validate-input.test.ts` ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
+| Q11 | An edit is refused — by its command, by the validator, or as stale | The same document object, the same revision and history; no listener notified | `report-core/src/session.test.ts` ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)) |
+| Q12 | The same scenario runs in both builders | Both pass every one of `BUILDER_SCENARIOS`, in three languages, with axe at the end; their accessible trees compared with each other, in jsdom and in Chromium | Each builder's scenarios, React's `scenarios.test.tsx` and Angular's `scenarios.test.ts`; `apps/studio/src/parity.test.tsx`; the browser gate's `gate-parity.mjs` — release gate G3 ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
+| Q13 | Edit in Angular, switch to React, undo | The edit is undone; no listener or subscription is left behind | `apps/studio/src/studio.test.tsx`, and the browser gate the other way ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
+| Q14 | A QR code's modules would be finer than 0.4 mm | Refused, the message naming the square that would do; codes that are drawn decode, read by ZXing from the page's pixels | `report-render-pdf/src/qr.test.ts` ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)) |
+| Q15 | A QR-bill's IBAN is mistyped, as a literal or in the data | `invalid-qr-bill` on the field, from the same function in the editor and the render; SIX's own examples decoded byte for byte from the page | `report-spec/src/qr-bill.test.ts`, `report-runtime/src/qr-bill.test.ts`, `report-render-pdf/src/qr-bill.test.ts` ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)) |
+| Q16 | An EPC QR code's IBAN is mistyped, as a literal or in the data, or its data makes its payload too long | `invalid-epc-qr-code` on the field, from the same functions in the editor and the render, its check digits the QR-bill's own; the EPC's own examples decoded byte for byte from the page as the runtime wrote them | `report-spec/src/epc-payload.test.ts`, `payment-reference.test.ts`, `validate-epc-qr-code.test.ts`, `report-runtime/src/lower-epc-qr-code.test.ts`, `report-render-pdf/src/epc-qr-code.test.ts` ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
+| Q17 | An EPC QR code in Austria's frame is given a square its modules cannot print in | Refused in the same words by the validator and the renderer, from report-spec's one rule, which reaches the renderer through the runtime | `report-spec/src/epc-print.test.ts`, `validate-epc-qr-code.test.ts`, `report-render-pdf/src/epc-qr-code.test.ts`, and the install gate's `consume.ts` (0025) |
+| Q18 | A GPL, non-commercial or unlicensed package, or an unreadable font, reaches a published package | The `verify` job fails, naming it and the route it came in by | `scripts/dependency-licences.mjs` and its test ([0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)) |
+| Q19 | An upstream dependency is declared as a range or a path | `pnpm test:repo` fails | `scripts/upstream-deps.test.mjs` ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)) |
+| Q20 | A package's `exports` are wrong for a consumer, or it imports what it does not declare | The install gate fails in a plain project for that kind of host | `pnpm test:e2e:install` — release gate G1 ([0015](../decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)) |
+| Q21 | The Studio is narrowed to 320 pixels, or asks another origin for anything | No sideways scroll and nothing past either edge; any request outside the built Studio fails a pass | `apps/studio/scripts/browser-test.mjs` ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), [0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)) |
+| Q22 | A decision record, a package or a dependency is added, or a test this architecture names is renamed, and the architecture is not changed with it | `pnpm test:repo` fails | `scripts/architecture.test.mjs` ([0026](../decisions/0026-the-architecture-is-documented-in-arc42s-sections-held-to-the-repository-by-a-guard.md)) |
+
+## 9.3 Bounds, and how each was chosen
+
+Every bound the code enforces is a named constant, so this table names the
+constant and where its value and its reason are written, rather than
+repeating the number. A measured figure is dated and names its machine.
+
+| Bound | Where | How it was chosen |
+|---|---|---|
+| Steps an expression may take, and a render in all | `EXPRESSION_STEP_BUDGET`, `RENDER_STEP_BUDGET` in `report-runtime/src/evaluate.ts` | The render's budget measured on 15 October 2026 on an Intel i9-10900K under Node 24.21, binding included: about 5 to 6.5 seconds of evaluation on that machine ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)). Another machine's seconds are not measured |
+| Detail rows | `MAX_DETAIL_ROWS`, `report-runtime/src/data.ts` | Chosen, not derived, as its comment says: at the renderer trial's 48 rows a page it is over 2,000 pages, so it bounds the runtime's own checking, sorting and totalling before a page is laid out. At the bound, checking rows of nine fields took a median of 1.5 seconds and ordering them 0.5, on 15 October 2026 on that machine |
+| An image's bytes | `MAX_ASSET_BYTES`, `report-runtime/src/document.ts`, which the renderer reads too | The renderer trial's limit, as its comment says; nothing measured behind it ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
+| An image's pixels, and image data per render | `MAX_ASSET_SIDE`, `MAX_IMAGE_DATA`, `report-render-pdf/src/assets.ts` | Two of the largest images an asset may be, once inflated; what PDFKit took to embed one, two and four of them is measured beside the constant, on 15 October 2026, on that machine ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
+| A definition's arrays, strings and numbers | `report-spec/src/limits.ts`, each with its reason | Chosen, not measured: lowering one later refuses reports that were valid ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
+| Undo steps | `DEFAULT_HISTORY_LIMIT`, `report-core/src/session.ts` | Chosen, not measured ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)) |
+| The Studio's preview pages | `PREVIEW_PAGE_LIMIT`, `apps/studio/src/preview/pipeline.ts` | Chosen, not measured, so an edit that would print hundreds of pages is refused rather than freeze the tab |
+| A QR code's smallest module | `MIN_MODULE`, `report-render-pdf/src/qr.ts` | Borrowed from SIX's QR-bill guidelines; nothing here printed a code or scanned one with a phone ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)) |
+| An EPC QR code's payload | `EPC_MAX_BYTES`, `report-spec/src/epc-payload.ts`; `EPC_MAX_VERSION`, `report-spec/src/epc-print.ts` | The EPC's own (EPC069-12, 2.1 and 2.2), not chosen here. The validator counts what literal texts write, and the runtime the whole payload once its data is known ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
+| A captioned EPC QR code's modules | `EPC_CAPTION_MODULE`, `report-spec/src/epc-print.ts` | Austria's PSA's widths, which come with its frame; a code without the caption keeps `MIN_MODULE`. The squares a captioned code prints in follow from them, and `epc-print.test.ts` finds where they end by trying squares a hundredth of a point apart (0025) |
+| A new EPC payment code's square | `EPC_SIDE`, `report-builder-core/src/palette.ts` | The least whole millimetre in which every payload the EPC allows prints, with the frame and without, as its comment says; the euro invoice's square is the same, for the same reason (0025) |
+
+What renders have measured, on that one machine under Node 24.21, each on
+one day, with the runs its record describes, and held by nothing:
+
+- a table of 1,600 groups of three rows in 3.4 to 4.4 seconds, and 100,000
+  rows refused against five pages in 236 ms, on 15 October 2026
+  ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md));
+- a version 40 QR code adding 72.2 to 73.5 kB and taking a render from 12 to
+  15 ms to 136 to 207 ms, on 17 October 2026
+  ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md));
+- the invoice starter with its QR-bill in 263 to 300 ms and 53,730 bytes,
+  against 70 to 82 ms and 23,985 bytes without it, on 17 October 2026
+  ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md));
+- the euro invoice starter with its EPC QR code in 86 to 116 ms and 31,487
+  bytes, with Austria's caption in 114 to 135 ms and 38,207 bytes, against
+  74 to 81 ms and 26,348 bytes with a spacer of the code's height in its
+  place, on 17 October 2026
+  ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+
+**What is not measured, said.** What a commit costs — the whole report
+validated and diagnosed again on every edit, a keystroke in a property field
+included — what `validLocations` costs when a drag starts, and what
+compiling every expression per keystroke costs. The records name the
+benchmark that would hold them and say it is not built
+([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md),
+[0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
+No render time is a gate: short of a test's timeout, a render that becomes
+slower fails nothing.
+
+## 9.4 Quality attributes not pursued yet
+
+Stated because an unstated non-goal reads as an oversight:
+
+- **Collaborative editing.** Snapshots do not merge; two people editing one
+  draft conflict, and the second save is refused by its hash
+  ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)).
+- **A consistent read from Formancy Data.** Best-effort until Data has a
+  snapshot export ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+- **Stopping a render mid-pass.** It needs a worker that can be killed, and
+  none is built ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+- **Text Roboto has no glyphs for** — CJK, Hebrew, Arabic, Thai, emoji.
+  Refused until fallback fonts the licence policy allows are embedded and
+  tested
+  ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+- **Positioned elements and a second detail table.** Each is a format change
+  ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
+- **An accessible PDF.** Nothing decides or tests how assistive technology
+  reads a generated PDF ([§8.9](08-crosscutting-concepts.md#89-accessibility)).
