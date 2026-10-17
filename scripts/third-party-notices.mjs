@@ -48,6 +48,11 @@
 // end: the CSS step removes a chunk that held only stylesheets, and moves its
 // rules into a stylesheet of their own, by the time the bundle is written.
 //
+// A build that copies a package's files rather than bundling them -- the
+// product pages' faces (0023) -- has no bundler to place them: it names the
+// packages itself, and `copiedNotices` writes their notices as the plugin
+// writes a bundle's.
+//
 // Node built-ins only, as in formancy.ai-data, where a gate that runs from a
 // checkout with nothing installed imports NOTICES_FILE from here.
 
@@ -131,9 +136,9 @@ function licenceFiles(directory, prefix, id) {
  * name, version and licence, the licence and notice files at its root, then
  * those in each directory of `within` -- the directories between its root
  * and a bundled file of it -- in path order. `problems` says why it cannot be
- * listed as it ships.
+ * listed as it ships; `how` says how its files reach the build.
  */
-function readPackage(directory, within) {
+function readPackage(directory, within, how = 'bundled') {
   let manifest
   try {
     manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'))
@@ -150,10 +155,13 @@ function readPackage(directory, within) {
     files.push(...found.files)
   }
   if (problems.length === 0 && !own.files.some((file) => file.licence && file.text.trim() !== '')) {
-    problems.push(`${id} is bundled and ships no licence text: no file at its root whose name begins LICENSE, LICENCE or COPYING, and is not a script or data, holds any`)
+    problems.push(`${id} is ${how} and ships no licence text: no file at its root whose name begins LICENSE, LICENCE or COPYING, and is not a script or data, holds any`)
   }
   return { id, name: String(manifest.name), version: String(manifest.version), declared: manifest.license, files, problems }
 }
+
+/** Packages in the order the notices list them: by name, then by version. */
+const byNameAndVersion = (a, b) => (a.name === b.name ? (a.version < b.version ? -1 : 1) : a.name < b.name ? -1 : 1)
 
 /**
  * The `embedded` notices, each with its text read: the file named is
@@ -231,31 +239,43 @@ function bundledPackages(ids, { workspace, own, embedded }) {
   for (const notice of notices.notices) {
     if (!carried.has(notice)) problems.push(`the notice for ${notice.package}'s ${notice.file} (${notice.name}) names a file this build does not bundle: the reviewed list in the app's config is out of date`)
   }
-  const order = (a, b) => (a.name === b.name ? (a.version < b.version ? -1 : 1) : a.name < b.name ? -1 : 1)
-  return { packages: [...packages.values()].sort(order), problems }
+  return { packages: [...packages.values()].sort(byNameAndVersion), problems }
 }
 
 const RULE = '-'.repeat(80)
 
-/** The notices file's text: what it is, then each package with its files' texts. */
-function noticesText(packages) {
-  const lines = [
-    'Third-party notices',
-    '',
-    'The packages below are bundled into the files beside this one. Each is',
-    'listed once, by name and version, with the licence its package.json',
-    'declares, and is followed by its licence and notice files as it ships',
-    'them: those at its root, and those in any directory between there and a',
-    'file of it that is bundled, named by their path in the package. Where a',
-    'bundled file carries somebody else\'s work that its package ships no',
-    'licence text for -- fonts inside a script -- that work\'s notice follows,',
-    'named by the file that carries it.',
-    '',
-    "The rest of this build is not listed: the Formancy Report repository's own",
-    "code, under the terms of that repository's LICENSE.md and NOTICE, which are",
-    'at the root of its source, not beside this file; and the helpers the',
-    'bundler writes into its output itself.',
-  ]
+/** What a bundle's notices say of themselves. */
+const BUNDLED = [
+  'The packages below are bundled into the files beside this one. Each is',
+  'listed once, by name and version, with the licence its package.json',
+  'declares, and is followed by its licence and notice files as it ships',
+  'them: those at its root, and those in any directory between there and a',
+  'file of it that is bundled, named by their path in the package. Where a',
+  'bundled file carries somebody else\'s work that its package ships no',
+  'licence text for -- fonts inside a script -- that work\'s notice follows,',
+  'named by the file that carries it.',
+  '',
+  "The rest of this build is not listed: the Formancy Report repository's own",
+  "code, under the terms of that repository's LICENSE.md and NOTICE, which are",
+  'at the root of its source, not beside this file; and the helpers the',
+  'bundler writes into its output itself.',
+]
+
+/** What the notices of the files a build copies say of themselves. */
+const COPIED = [
+  'The packages below ship files that this build copies, as they ship them,',
+  'beside this one. Each is listed once, by name and version, with the',
+  'licence its package.json declares, and is followed by the licence and',
+  'notice files at its root, as it ships them.',
+  '',
+  "The rest of this build is not listed: the Formancy Report repository's own",
+  "work, under the terms of that repository's LICENSE.md and NOTICE, which are",
+  'at the root of its source, not beside this file.',
+]
+
+/** The notices file's text: what it is, as `intro` says, then each package with its files' texts. */
+function noticesText(packages, intro) {
+  const lines = ['Third-party notices', '', ...intro]
   for (const found of packages) {
     lines.push('', RULE, `${found.name} ${found.version}`)
     if (typeof found.declared === 'string') lines.push(`Declared licence: ${found.declared}`)
@@ -263,6 +283,26 @@ function noticesText(packages) {
     for (const file of found.files) lines.push('', `== ${file.name} ==`, '', file.text)
   }
   return `${lines.join('\n')}\n`
+}
+
+/**
+ * The notices for the packages at `directories` -- each an installed
+ * package's directory, named once or more, in any order -- whose files a
+ * build copies rather than bundles: each listed once, in name and version
+ * order, as the plugin lists a bundled one, with the licence and notice
+ * files at its root. Throws, naming every package that cannot be listed as
+ * it ships.
+ */
+export function copiedNotices(directories) {
+  const packages = new Map()
+  const problems = []
+  for (const directory of new Set(directories)) {
+    const found = readPackage(directory, new Set(), 'copied')
+    problems.push(...found.problems)
+    if (found.problems.length === 0) packages.set(found.id, found)
+  }
+  if (problems.length > 0) throw new Error(`${NOTICES_FILE} cannot be written:\n- ${problems.join('\n- ')}`)
+  return noticesText([...packages.values()].sort(byNameAndVersion), COPIED)
 }
 
 /**
@@ -312,7 +352,7 @@ export function thirdPartyNotices({ workspace, ownModules = [], embedded = [] } 
       const found = bundledPackages(ids, { workspace: workspace ?? fileURLToPath(new URL('..', import.meta.url)), own, embedded })
       problems.push(...found.problems)
       if (problems.length > 0) this.error(`${NOTICES_FILE} cannot be written:\n- ${problems.join('\n- ')}`)
-      this.emitFile({ type: 'asset', fileName: NOTICES_FILE, source: new TextEncoder().encode(noticesText(found.packages)) })
+      this.emitFile({ type: 'asset', fileName: NOTICES_FILE, source: new TextEncoder().encode(noticesText(found.packages, BUNDLED)) })
     },
   }
 }

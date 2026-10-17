@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { declaredFamilies } from '../../../scripts/web-fonts.mjs'
 
 export const app = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -180,7 +181,8 @@ export async function fromTheTop(page) {
  * first, and a pseudo-element is matched as the element it hangs off. What
  * the paper inherits -- the font, the line height -- it would inherit from
  * any host page; that is not a rule selecting it. A stylesheet the page
- * cannot read is named, and only Google Fonts' may be one.
+ * cannot read is named: every one is the Studio's own, from its own origin
+ * (0023), so none may be.
  */
 export function rulesOnThePaper(page) {
   return page.evaluate(() => {
@@ -305,25 +307,16 @@ export async function drawnPages(page, { within }) {
   }
 }
 
-/** The families the built page asks Google Fonts for, from dist/index.html. */
-export function declaredFamilies(dist) {
-  const html = readFileSync(join(dist, 'index.html'), 'utf8')
-  const families = []
-  for (const [, href] of html.matchAll(/href="(https:\/\/fonts\.googleapis\.com\/css2?\?[^"]*)"/g)) {
-    for (const value of new URLSearchParams(href.replaceAll('&amp;', '&').slice(href.indexOf('?') + 1)).getAll('family')) families.push(value.split(':')[0])
-  }
-  return [...new Set(families)]
-}
-
 /**
- * Whether every family the page asks for loaded -- or, in the pass that
- * refuses them, none did -- once `document.fonts` has nothing pending: a
- * state measured before a late family swapped in would measure the
- * fallback. Null when it holds.
+ * Whether every family the page asks for -- each one an @font-face of the
+ * built stylesheets declares (scripts/web-fonts.mjs) -- loaded, or, in the
+ * pass that refuses the font files, none did, once `document.fonts` has
+ * nothing pending: a state measured before a late family swapped in would
+ * measure the fallback. Null when it holds.
  */
 export async function fontProblem(page, { dist, refused }) {
   const families = declaredFamilies(dist)
-  if (families.length === 0) return 'the built page asks Google Fonts for nothing; the gate reads its families from dist/index.html'
+  if (families.length === 0) return "no stylesheet of the built Studio declares a face; the gate reads its families from dist's @font-face rules"
   const loaded = await page.evaluate(async () => {
     await document.fonts.ready
     return [...new Set([...document.fonts].filter((face) => face.status === 'loaded').map((face) => face.family.replaceAll(/["']/g, '')))]

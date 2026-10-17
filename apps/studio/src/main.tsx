@@ -8,6 +8,10 @@ import { createRoot } from 'react-dom/client'
 import '@formancy/themes/workbench.css'
 import '@formancy/report-builder-core/report-builder.css'
 import './studio.css'
+// The faces, from this build (0023). fonts.css @imports their stylesheets,
+// which are then no modules; the notices plugin lists their packages by the
+// font files the build writes from them.
+import './styles/fonts.css'
 import encoded from 'virtual:formancy-report-starters'
 import { decodeStarters } from './starters/codec.js'
 import { imagesOf, studioStarters } from './starters/starters.js'

@@ -1,6 +1,7 @@
 # 0013 — The Studio is formancy.ai's room with a report builder in it, its PDF.js viewer stays inside it, and its README pictures are taken by a script
 
-- **Status:** accepted
+- **Status:** accepted; its faces are the build's own since [0023](0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md),
+  not Google's, and the browser gate allows no request to another site
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**

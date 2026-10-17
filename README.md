@@ -98,8 +98,9 @@ pnpm demo
 Studio with `vite preview` at http://localhost:4394. Pick a starter or a
 blank report, edit it in the React or the Angular builder, and the Preview
 prints the PDF in the page, Download PDF included. The starters' data is
-synthetic and built in: the gate fails when the page fetches anything but
-the built Studio and its web fonts.
+synthetic and built in, and the Studio's faces are its own files: the
+gate fails when the page fetches anything, or hints at a connection,
+outside the built Studio ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
 
 formancy.ai/report/ serves the same build, from a Cloudflare Worker of its
 own beside formancy.ai's site, and the browser gate serves it under
@@ -115,6 +116,9 @@ translations, and a page for healthcare. They are static HTML, prerendered
 by `apps/pages` when `pnpm build` runs, and the release and the licence's
 terms they state are read from this repository's files then
 ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)).
+They serve their own copies of the Studio's faces, and their checks refuse
+anything a page's HTML or stylesheet would have a browser fetch from
+another site, read from the files: no gate opens the pages in a browser ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
 
 ## The Studio
 
@@ -205,7 +209,7 @@ needs a Data production licence as well as Report's
 | `@formancy/report-builder-react` | The builder for React 19: the workbench's panes over one editor, through `useSyncExternalStore`. Runs every shared scenario in three languages, with axe. |
 | `@formancy/report-builder-angular` | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js, built by ng-packagr. Runs every shared scenario in three languages, with axe; no React in its closure. It is packed from `dist/`, and the install gate compiles it into an Angular host ahead of time, links it and draws it on a server. |
 | `apps/studio` (`@formancy/report-studio`) | The playground, never published as a package and online at formancy.ai/report/ ([0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)): the starters and a blank report in either builder over one session per starter, the PDF the session prints previewed by PDF.js on white paper, and every problem printing found linked to its component. The PDF.js viewer lives here and nowhere published ([0013](./docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)). Its browser gate and its README pictures' check run in CI's `browser` job. |
-| `apps/pages` (`@formancy/report-pages`) | The product's pages, never published as a package: what Formancy Report is, and a page for healthcare, each in German, French, Italian and English, prerendered to static HTML with their sitemap and served beside the Studio at formancy.ai/report/<lang>/ ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)). Its suite reads every page back as a crawler does and holds its head, its translations, its links, its words and the sitemap, and holds the files the build writes to be those pages. |
+| `apps/pages` (`@formancy/report-pages`) | The product's pages, never published as a package: what Formancy Report is, and a page for healthcare, each in German, French, Italian and English, prerendered to static HTML with their sitemap and served beside the Studio at formancy.ai/report/<lang>/ ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)). Its suite reads every page back as a crawler does and holds its head, its translations, its links, its words and the sitemap, holds the files the build writes to be those pages, and holds every file a page's HTML and stylesheet have the browser fetch to be the site's own, its faces included ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)). |
 | `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)), and a reader that decodes the QR codes a page prints with ZXing; the three starter reports; and the renderer trial's adapters for pdfmake and pdfme. |
 
 Planned and not here: the server and its jobs, reviewed AI changes, a

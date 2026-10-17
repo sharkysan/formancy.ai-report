@@ -7,13 +7,17 @@
 // scripts it imports: the demo's address is scripts/demo.mjs's reading of
 // the Worker's route, and the licence's state is scripts/licence-status.mjs's
 // reading of LICENSE.md, the one the README's sentence is generated from.
+// The faces are the Studio's fonts.css's, served from the pages' own copies
+// of the Fontsource packages (0023), with the notices
+// scripts/third-party-notices.mjs writes for copied files.
 //
 // Node's built-ins and the repository's own scripts only.
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { demoUrl, readDemoConfig } from '../../../scripts/demo.mjs'
 import { readLicence } from '../../../scripts/licence-status.mjs'
+import { copiedNotices } from '../../../scripts/third-party-notices.mjs'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -57,14 +61,6 @@ function isoDay(date) {
   return `${year}-${String(number).padStart(2, '0')}-${day.padStart(2, '0')}`
 }
 
-/** The one Google Fonts stylesheet `html` loads: the Studio's faces, at its weights. */
-export function fontsOf(html) {
-  const found = [...html.matchAll(/href="(https:\/\/fonts\.googleapis\.com\/css2\?[^"]+)"/g)].map((match) => match[1].replaceAll('&amp;', '&'))
-  if (found.length === 0) throw new Error("apps/studio/index.html loads no Google Fonts stylesheet, so the pages have no faces to load")
-  if (found.length > 1) throw new Error(`apps/studio/index.html loads ${String(found.length)} Google Fonts stylesheets, and the pages load one`)
-  return found[0]
-}
-
 /**
  * The pixel size of a PNG, from its IHDR, or of a WebP with an extended
  * header, from its VP8X: the two kinds docs/images holds, as its scripts
@@ -81,22 +77,73 @@ export function imageSize(bytes) {
   throw new Error('the picture is neither a PNG nor a WebP whose size this reads')
 }
 
+/** Where the pages' stylesheet names the copy of a face's file: beside it, in this directory. */
+const FONTS = 'fonts/'
+
+/** An import of an installed package's stylesheet: the package, then the file in it. */
+const PACKAGE_IMPORT = /^((?:@[\w.-]+\/)?[\w.-]+)\/([\w./-]+\.css)$/
+
 /**
- * The stylesheet `file`, with each `@import './…';` or `@import '../…';`
- * replaced by the file it names, in order, and every comment removed: what
- * Vite makes of the Studio's. `read` hears every file read. Refuses any
- * other @import: one by URL or by package would be resolved by the
- * browser, under /report/, where it is not.
+ * The stylesheet `file`, with each `@import` replaced by the file it names,
+ * in order, and every comment removed: what Vite makes of the Studio's.
+ *
+ * - `@import './…';` or `'../…'` is a file beside the one importing it.
+ * - `@import '<package>/<file>.css';` is a stylesheet of an installed
+ *   package -- a face's, Fontsource's (0023) -- found in `packages`, the
+ *   pages' own node_modules, never beside the importing file, so what the
+ *   pages serve is what their package.json names. Each url() in it names a
+ *   file the package ships, a font; it is rewritten to name the font's copy
+ *   beside the pages' stylesheet, under fonts/, and the copy is said in
+ *   `fonts`: its url(), and the file and package it is copied from.
+ *
+ * `read` hears every file read. Refuses any other @import -- one by URL
+ * would be fetched by the browser from wherever it names -- a package the
+ * pages do not depend on, a url() naming a file its package does not ship,
+ * and two packages shipping one file name, which would be copied over each
+ * other.
+ *
+ * @param {string} file
+ * @param {{ readonly read?: (file: string) => void, readonly packages?: string }} [options]
+ * @returns {{ css: string, fonts: { href: string, from: string, directory: string }[] }}
  */
-export function bundleStylesheet(file, read = () => {}) {
-  read(file)
+export function bundleStylesheet(file, { read = () => {}, packages } = {}) {
+  const fonts = new Map()
+  const css = inline(file, { read, packages, fonts }, undefined)
+  return { css: css.replaceAll(/\n{3,}/g, '\n\n'), fonts: [...fonts.values()].map(({ href, from, directory }) => ({ href, from, directory })) }
+}
+
+/** `file` inlined for bundleStylesheet; `owner` is the package it belongs to, when it is a package's. */
+function inline(file, context, owner) {
+  context.read(file)
   const text = readFileSync(file, 'utf8')
     .replaceAll('\r\n', '\n')
     .replaceAll(/^[ \t]*\/\*[\s\S]*?\*\/[ \t]*\n/gm, '')
     .replaceAll(/\/\*[\s\S]*?\*\//g, '')
-  const inlined = text.replaceAll(/^@import\s+(['"])(\.\.?\/[^'"]+\.css)\1;\n?/gm, (_, _quote, path) => bundleStylesheet(resolve(dirname(file), path), read))
+  const own = owner === undefined ? text : copiedFonts(text, file, owner, context.fonts)
+  const inlined = own.replaceAll(/^@import\s+(['"])([^'"]+)\1;\n?/gm, (whole, _quote, path) => {
+    if (/^\.\.?\//.test(path)) return inline(resolve(dirname(file), path), context, owner)
+    const found = PACKAGE_IMPORT.exec(path)
+    if (found === null) return whole
+    const [, name, inside] = found
+    const directory = context.packages === undefined ? undefined : join(context.packages, name)
+    if (directory === undefined || !existsSync(join(directory, 'package.json'))) throw new Error(`${file} imports ${path}, and ${name} is not a package the pages depend on`)
+    return inline(join(directory, inside), context, { name, directory })
+  })
   if (/@import/.test(inlined)) throw new Error(`${file} has an @import it does not inline`)
-  return inlined.replaceAll(/\n{3,}/g, '\n\n')
+  return inlined
+}
+
+/** `text`, the package `owner`'s stylesheet at `file`, with each url() naming its copy under FONTS, each copy added to `fonts`. */
+function copiedFonts(text, file, owner, fonts) {
+  return text.replaceAll(/url\((['"]?)([^'")]+)\1\)/g, (_, quote, href) => {
+    const from = resolve(dirname(file), href)
+    if (!from.startsWith(`${owner.directory}${sep}`) || !existsSync(from) || !statSync(from).isFile()) throw new Error(`${file} names ${href}, which ${owner.name} does not ship`)
+    const name = basename(from)
+    const known = fonts.get(name)
+    if (known !== undefined && known.from !== from) throw new Error(`${name} is shipped by ${known.package} and by ${owner.name}, and the pages would copy one over the other`)
+    fonts.set(name, { href: `${FONTS}${name}`, from, directory: owner.directory, package: owner.name })
+    return `url(${quote}${FONTS}${name}${quote})`
+  })
 }
 
 /** The value `css` gives the custom property `name` in its first `:root`. */
@@ -125,7 +172,10 @@ function published(repo, read) {
 /**
  * Everything the renderer needs from the repository at `repo`, with the
  * pictures `pictures` names (paths under docs/images), and `read`: every
- * file read, as a path from the repository root, for turbo's inputs.
+ * file read, as a path from the repository root, for turbo's inputs -- of
+ * an installed package, the stylesheets inlined, and not the manifest and
+ * licence the notices read, which turbo hashes with the package through
+ * the lockfile all the same.
  *
  * @param {string} repo
  * @param {{ readonly pictures?: readonly string[] }} [options]
@@ -144,14 +194,15 @@ export function readInputs(repo, { pictures = [] } = {}) {
   if (site === undefined) throw new Error("apps/studio/wrangler.json routes no path of formancy.ai, so the pages have no address")
   const licenceText = text('LICENSE.md')
   const licence = readLicence(licenceText)
-  const stylesheet = bundleStylesheet(join(repo, 'apps', 'pages', 'src', 'pages.css'), note)
+  const { css: stylesheet, fonts } = bundleStylesheet(join(repo, 'apps', 'pages', 'src', 'pages.css'), { read: note, packages: join(repo, 'apps', 'pages', 'node_modules') })
   const recorded = JSON.parse(text('docs/images/pictures.json'))
   return {
     site,
     ...published(repo, note),
     release: releaseOf(text('CHANGELOG.md')),
     licence: { version: licence.version, date: isoDay(licence.date), address: licence.address, terms: licenceTermsOf(licenceText) },
-    fonts: fontsOf(text('apps/studio/index.html')),
+    fonts: fonts.map((font) => ({ href: font.href, from: relative(repo, font.from).replaceAll('\\', '/') })),
+    notices: copiedNotices(fonts.map((font) => font.directory)),
     ground: rootValue(stylesheet, '--ground'),
     stylesheet,
     pictures: pictures.map((name) => {

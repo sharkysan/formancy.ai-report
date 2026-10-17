@@ -6,6 +6,7 @@
  */
 import type { PageGroup } from '../pages.js'
 import { bodyProblems, structuredDataProblems } from './body.js'
+import { fileProblems } from './files.js'
 import { headProblems, pageSetProblems, sitemapProblems } from './head.js'
 import { linkProblems } from './links.js'
 import type { Built } from './read.js'
@@ -21,6 +22,7 @@ export function siteProblems(built: Built, groups: readonly PageGroup[]): string
     ...bodyProblems(built),
     ...structuredDataProblems(built, groups),
     ...linkProblems(built),
+    ...fileProblems(built),
     ...wordingProblems(built),
   ]
 }

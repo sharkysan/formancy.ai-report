@@ -4,16 +4,17 @@ import { tmpdir } from 'node:os'
 import { dirname, join, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, test } from 'vitest'
-import { bundleStylesheet, fontsOf, imageSize, licenceTermsOf, readInputs, releaseOf } from './inputs.mjs'
+import { familiesOf } from '../../../scripts/web-fonts.mjs'
+import { bundleStylesheet, imageSize, licenceTermsOf, readInputs, releaseOf } from './inputs.mjs'
 
 /**
  * What the pages are built from, read from the repository rather than typed
  * into them (CLAUDE.md, "Derive it"): the release and its date from the
  * changelog, the licence's terms from LICENSE.md, the address from the
- * Worker's route, the fonts from the Studio's page, the pictures' sizes from
- * the files, and the stylesheet from the Studio's room. Each reader refuses
- * what it cannot read, so a document that changed shape fails the build
- * instead of putting a guess on a page.
+ * Worker's route, the faces from the Studio's fonts.css, the pictures' sizes
+ * from the files, and the stylesheet from the Studio's room. Each reader
+ * refuses what it cannot read, so a document that changed shape fails the
+ * build instead of putting a guess on a page.
  */
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const made = []
@@ -48,16 +49,22 @@ describe("the licence's terms the pages state", () => {
   })
 })
 
-describe('the fonts the pages load', () => {
-  // The pages wear the Studio's faces, at its weights; read from its page,
-  // a face the Studio changes changes here, and a page that loads two
-  // stylesheets of Google Fonts, or none, is refused rather than guessed at.
-  test("are the one Google Fonts stylesheet the Studio's page loads", () => {
-    const studio = readFileSync(join(repo, 'apps', 'studio', 'index.html'), 'utf8')
-    expect(fontsOf(studio)).toMatch(/^https:\/\/fonts\.googleapis\.com\/css2\?family=Archivo.*&family=IBM\+Plex\+Mono.*&family=IBM\+Plex\+Sans.*&display=swap$/)
-    expect(() => fontsOf('<link rel="stylesheet" href="./a.css" />')).toThrow(/no Google Fonts stylesheet/)
-    const twice = '<link href="https://fonts.googleapis.com/css2?family=A" rel="stylesheet" /><link href="https://fonts.googleapis.com/css2?family=B" rel="stylesheet" />'
-    expect(() => fontsOf(twice)).toThrow(/2 Google Fonts stylesheets/)
+describe('the faces the pages serve (0023)', () => {
+  // The pages wear the Studio's faces, at its weights, from the Studio's
+  // fonts.css, so a face the Studio changes changes here; and they serve
+  // them from their own copies, so no page asks another site for one. Each
+  // font file the stylesheet names is copied out of the pages' own
+  // Fontsource package and named beside the stylesheet; none is left named
+  // where the package keeps it, which under /report/site/ is nowhere.
+  test("are the Studio's fonts.css's, copied from the pages' own packages", () => {
+    const { fonts, stylesheet } = readInputs(repo)
+    expect(fonts.length).toBeGreaterThan(0)
+    for (const font of fonts) {
+      expect(font.from).toMatch(/^apps\/pages\/node_modules\/@fontsource(-variable)?\/[\w-]+\/files\/[\w-]+\.woff2?$/)
+      expect({ font: font.href, named: stylesheet.includes(`url(${font.href})`) }).toEqual({ font: font.href, named: true })
+    }
+    expect(stylesheet).not.toMatch(/https?:|url\(\.\/files\//)
+    expect(familiesOf(stylesheet).sort()).toEqual(['Archivo Variable', 'IBM Plex Mono', 'IBM Plex Sans'])
   })
 })
 
@@ -94,16 +101,66 @@ describe("the pages' stylesheet", () => {
       'studio/more.css': '.skip { top: 0; }\n',
     })
     const read = []
-    const css = bundleStylesheet(join(root, 'pages', 'src', 'pages.css'), (file) => read.push(file))
+    const { css, fonts } = bundleStylesheet(join(root, 'pages', 'src', 'pages.css'), { read: (file) => read.push(file) })
     expect(css).toBe(':root {\n  --text: #eef1f8;\n}\n.skip { top: 0; }\n.page { color: var(--text); }\n')
+    expect(fonts).toEqual([])
     expect(read.map((file) => file.slice(root.length + 1).replaceAll('\\', '/'))).toEqual(['pages/src/pages.css', 'studio/room.css', 'studio/more.css'])
   })
 
-  // An import by URL or by package would be fetched or resolved by the
-  // browser, under /report/, where it is not: refused, naming it.
-  test('refuses an import it cannot inline', () => {
-    const root = tree({ 'a.css': "@import url('https://example.com/b.css');\n" })
-    expect(() => bundleStylesheet(join(root, 'a.css'))).toThrow(/an @import it does not inline/)
+  /** A Fontsource-shaped package in `modules`: its manifest, and its stylesheet naming a WOFF2 and a WOFF of one subset, both shipped. */
+  const face = (modules, name, file) => ({
+    [`${modules}/${name}/package.json`]: JSON.stringify({ name, version: '5.3.0', license: 'OFL-1.1' }),
+    [`${modules}/${name}/400.css`]: `/* ${file} */\n@font-face {\n  font-family: 'Face';\n  src: url(./files/${file}.woff2) format('woff2'), url(./files/${file}.woff) format('woff');\n}\n`,
+    [`${modules}/${name}/files/${file}.woff2`]: 'woff2',
+    [`${modules}/${name}/files/${file}.woff`]: 'woff',
+  })
+
+  // The faces arrive as the Studio's do (0023): the Studio's fonts.css
+  // imports Fontsource's stylesheets by package. Inlined, each url() is
+  // rewritten to the copy beside the pages' stylesheet, and the file it
+  // names is said, to be copied there; left as the package wrote it,
+  // ./files/ under /report/site/ is nothing. The package is the pages' own
+  // dependency, found in their node_modules and never the Studio's, so
+  // the pages' package.json says what they serve.
+  test("inlines a package's stylesheet from the pages' own packages, and names each font it names beside the stylesheet", () => {
+    const root = tree({
+      'pages/src/pages.css': "@import '../../studio/fonts.css';\n.page { font-family: 'Face'; }\n",
+      'studio/fonts.css': "/* the faces */\n@import 'face/400.css';\n",
+      ...face('pages/node_modules', 'face', 'face-latin-400-normal'),
+      ...face('studio/node_modules', 'face', 'the-studios-copy'),
+    })
+    const read = []
+    const { css, fonts } = bundleStylesheet(join(root, 'pages', 'src', 'pages.css'), { read: (file) => read.push(file), packages: join(root, 'pages', 'node_modules') })
+    expect(css).toBe("@font-face {\n  font-family: 'Face';\n  src: url(fonts/face-latin-400-normal.woff2) format('woff2'), url(fonts/face-latin-400-normal.woff) format('woff');\n}\n.page { font-family: 'Face'; }\n")
+    const relative = (file) => file.slice(root.length + 1).replaceAll('\\', '/')
+    expect(fonts.map((font) => ({ href: font.href, from: relative(font.from) }))).toEqual([
+      { href: 'fonts/face-latin-400-normal.woff2', from: 'pages/node_modules/face/files/face-latin-400-normal.woff2' },
+      { href: 'fonts/face-latin-400-normal.woff', from: 'pages/node_modules/face/files/face-latin-400-normal.woff' },
+    ])
+    expect(read.map(relative)).toEqual(['pages/src/pages.css', 'studio/fonts.css', 'pages/node_modules/face/400.css'])
+  })
+
+  // An import by URL would be fetched by the browser, under /report/; a
+  // package the pages do not depend on is a face served from nobody's
+  // dependency; a url() naming a file its package does not ship is a face
+  // that never loads; and two packages shipping one file name would be
+  // copied over each other. Each is refused, naming it.
+  test('refuses an import it cannot inline, a package that is not the pages’, a font that is not there, and two fonts of one name', () => {
+    const root = tree({
+      'a.css': "@import url('https://example.com/b.css');\n",
+      'b.css': "@import 'missing/400.css';\n",
+      'c.css': "@import 'gone/400.css';\n",
+      'd.css': "@import 'face/400.css';\n@import 'twin/400.css';\n",
+      'node_modules/gone/package.json': JSON.stringify({ name: 'gone', version: '1.0.0' }),
+      'node_modules/gone/400.css': "@font-face { font-family: 'Gone'; src: url(./files/gone.woff2); }\n",
+      ...face('node_modules', 'face', 'same'),
+      ...face('node_modules', 'twin', 'same'),
+    })
+    const packages = join(root, 'node_modules')
+    expect(() => bundleStylesheet(join(root, 'a.css'), { packages })).toThrow(/an @import it does not inline/)
+    expect(() => bundleStylesheet(join(root, 'b.css'), { packages })).toThrow(/imports missing\/400\.css, and missing is not a package the pages depend on/)
+    expect(() => bundleStylesheet(join(root, 'c.css'), { packages })).toThrow(/names \.\/files\/gone\.woff2, which gone does not ship/)
+    expect(() => bundleStylesheet(join(root, 'd.css'), { packages })).toThrow(/same\.woff2 is shipped by face and by twin/)
   })
 })
 
@@ -123,7 +180,8 @@ describe('the inputs as the repository holds them', () => {
     expect(inputs.pictures).toEqual([
       expect.objectContaining({ name: 'starter-quotation.png', from: 'docs/images/starter-quotation.png', width: 745, height: 1053, lines: expect.arrayContaining(["Total CHF 3'143.00"]) }),
     ])
-    expect(inputs.read).toEqual(expect.arrayContaining(['CHANGELOG.md', 'LICENSE.md', 'apps/studio/index.html', 'apps/studio/wrangler.json', 'apps/studio/src/styles/room.css', 'docs/images/pictures.json', 'docs/images/starter-quotation.png']))
+    expect(inputs.read).toEqual(expect.arrayContaining(['CHANGELOG.md', 'LICENSE.md', 'apps/studio/wrangler.json', 'apps/studio/src/styles/room.css', 'apps/studio/src/styles/fonts.css', 'docs/images/pictures.json', 'docs/images/starter-quotation.png']))
+    expect(inputs.notices).toContain('@fontsource/ibm-plex-sans 5.3.0')
   })
 
   // A picture the site names and the repository does not hold stops the
@@ -158,5 +216,16 @@ describe("turbo's cache of the pages' build", () => {
     const outside = [...read, ...scripts].filter((path) => !path.startsWith('apps/pages/'))
     expect(outside.length).toBeGreaterThan(5)
     expect(outside.filter((path) => !hashed.has(path))).toEqual([])
+    // The faces' stylesheets and files are read from the pages' own
+    // node_modules, which turbo does not hash as inputs: it folds the
+    // pages' dependencies, as the lockfile resolves them, into the task's
+    // hash instead (`hashOfExternalDependencies`). So each such file must
+    // be a package the pages' package.json names.
+    expect(task?.hashOfExternalDependencies).toMatch(/^[0-9a-f]+$/)
+    const manifest = JSON.parse(readFileSync(join(repo, 'apps', 'pages', 'package.json'), 'utf8'))
+    const installed = read.filter((path) => path.startsWith('apps/pages/node_modules/'))
+    expect(installed.length).toBeGreaterThan(0)
+    const packageOf = (path) => /^apps\/pages\/node_modules\/((?:@[\w-]+\/)?[\w-]+)\//.exec(path)?.[1]
+    expect(installed.filter((path) => !Object.hasOwn(manifest.dependencies ?? {}, packageOf(path) ?? ''))).toEqual([])
   })
 })

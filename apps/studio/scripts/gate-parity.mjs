@@ -42,6 +42,7 @@
 // checks to write for it.
 
 import { decode } from '../../../scripts/pictures/aria-text.mjs'
+import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
 import { difference, treeLines } from './accessible-tree.mjs'
 import { builder, editorOf, open, showing } from './gate-steps.mjs'
 
@@ -190,7 +191,7 @@ async function settled(page, cdp) {
 async function walked(browser, url, { id, framework, viewport, refuseFonts }) {
   const page = await browser.newPage({ viewport })
   page.setDefaultTimeout(30_000)
-  if (refuseFonts) await page.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, (route) => route.abort())
+  if (refuseFonts) await page.route(FONT_FILE, (route) => route.abort())
   const cdp = await page.context().newCDPSession(page)
   const reached = new Map()
   try {

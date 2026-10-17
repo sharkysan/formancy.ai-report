@@ -1,7 +1,7 @@
 /**
  * The whole site, rendered from its inputs: every page group in every
- * language as static HTML, the sitemap, the stylesheet, and the pictures
- * to copy (0021). Pure: it reads no file, so the suite checks the site
+ * language as static HTML, the sitemap, the stylesheet, and the faces and
+ * pictures to copy, with the faces' notices (0021, 0023). Pure: it reads no file, so the suite checks the site
  * scripts/prerender.mjs renders, and scripts/write-site.test.mjs holds the
  * files written to disk to be that site.
  */
@@ -13,7 +13,7 @@ import type { SiteInputs } from './inputs.js'
 import { DEFAULT_LANGUAGE, formatDay, frenchSpaces, LANGUAGES } from './languages.js'
 import type { Language } from './languages.js'
 import type { PageContext, PageGroup } from './pages.js'
-import { pathOf, picturePath, relativeHref, STYLESHEET } from './pages.js'
+import { besideStylesheet, NOTICES, pathOf, picturePath, relativeHref, STYLESHEET } from './pages.js'
 import { sitemap } from './sitemap.js'
 
 export { PICTURES }
@@ -89,6 +89,8 @@ export function renderSite(inputs: SiteInputs, groups: readonly PageGroup[] = GR
       ...pages.map((page) => ({ path: page.file, text: page.html })),
       { path: 'sitemap.xml', text: sitemap(pages) },
       { path: STYLESHEET, text: inputs.stylesheet },
+      ...inputs.fonts.map((font) => ({ path: besideStylesheet(font.href), from: font.from })),
+      { path: NOTICES, text: inputs.notices },
       ...inputs.pictures.map((picture) => ({ path: picturePath(picture.name), from: picture.from })),
     ],
   }

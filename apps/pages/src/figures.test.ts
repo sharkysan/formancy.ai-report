@@ -27,10 +27,15 @@ describe('the pictures (0021)', () => {
   })
 
   // Copied, never redrawn: every picture the site serves is a file of
-  // docs/images, copied at build time, and nothing else is a picture.
+  // docs/images, copied at build time, and nothing else is a picture. The
+  // only other files copied are the faces, under site/fonts/, from the
+  // pages' own packages (0023).
   test('are copied from docs/images, each one the site shows', () => {
-    const copied = renderSite(inputs).files.flatMap((file) => ('from' in file ? [file.from] : []))
-    expect(copied).toEqual(PICTURES.map((name) => `docs/images/${name}`))
+    const copied = renderSite(inputs).files.flatMap((file) => ('from' in file ? [file] : []))
+    const faces = copied.filter((file) => file.path.startsWith('site/fonts/'))
+    expect(copied.filter((file) => !faces.includes(file)).map((file) => file.from)).toEqual(PICTURES.map((name) => `docs/images/${name}`))
+    expect(faces.length).toBeGreaterThan(0)
+    expect(faces.filter((file) => !file.from.startsWith('apps/pages/node_modules/@fontsource'))).toEqual([])
   })
 })
 

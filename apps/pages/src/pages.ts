@@ -66,7 +66,7 @@ export interface PageContext {
 
 /**
  * The site's own files, beside the pages and never under a language: the
- * stylesheet and the pictures. Under the demo's path, beside the Studio's
+ * stylesheet, the faces it names and their notices, and the pictures. Under the demo's path, beside the Studio's
  * `assets/`, which is the Studio's alone (scripts/demo.mjs refuses a path
  * both builds hold).
  */
@@ -74,6 +74,12 @@ export const FILES = 'site/'
 
 /** The site path of the stylesheet. */
 export const STYLESHEET = `${FILES}pages.css`
+
+/** The site path of a file the stylesheet names by a relative url(): a face's, `fonts/…`. */
+export const besideStylesheet = (href: string): string => `${STYLESHEET.slice(0, STYLESHEET.lastIndexOf('/') + 1)}${href}`
+
+/** The site path of the notices for the faces' files, as the Studio's build writes its own at its root (0023). */
+export const NOTICES = `${FILES}THIRD-PARTY-NOTICES.txt`
 
 /** The site path a picture under docs/images is served at. */
 export const picturePath = (name: string): string => `${FILES}${name.slice(name.lastIndexOf('/') + 1)}`

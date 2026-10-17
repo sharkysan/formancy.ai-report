@@ -311,7 +311,7 @@
       ]
     },
     "0013": {
-      "reviewed": "sha256:d6b72248249e3899a74330693b9d08e809022fa6094445067f015d0dbefd0e80",
+      "reviewed": "sha256:213e6b5e7c905b4b46f1f23d157a9e12beb04c8799b6b8b7330d2cd430391b26",
       "limitations": [
         {
           "area": "rendering",
@@ -395,7 +395,7 @@
       ]
     },
     "0018": {
-      "reviewed": "sha256:8e8b13ce6e667e0691f0ac457c47e921688cfa9d14ba81f8d0726a140fcee562",
+      "reviewed": "sha256:7fcafe0647cd5c1e6da27afa0caa35ca1e142dc36b4310992e8e7fb0b76a5e1e",
       "limitations": [
         {
           "area": "release",
@@ -471,7 +471,7 @@
       ]
     },
     "0021": {
-      "reviewed": "sha256:679a36c6e8ec7ae52f9d6515e5bffb13d65fbbd1e80d30c8135ffae15813eaf2",
+      "reviewed": "sha256:5a279d6d8e0f8b5fba016e69afd719c73c1342c5d4caff4e5567f052668ca463",
       "limitations": [
         {
           "area": "release",
@@ -489,6 +489,23 @@
         {
           "area": "testing",
           "says": "What a page says of the product, beyond the facts it reads from the repository's files, and whether a translation says what the English says, are held by review, not by a test."
+        }
+      ]
+    },
+    "0023": {
+      "reviewed": "sha256:396cf1d85ca9ff616a09d10a938a01896d1501ac810c3616c070d5ab136b4876",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "The Studio and the product pages at formancy.ai/report/ each serve their own copy of their faces, 887,348 bytes in 59 files per build on 2026-10-17, fallbacks for browsers without WOFF2 among them, so a reader who goes from a page to the Studio fetches the faces again."
+        },
+        {
+          "area": "release",
+          "says": "A reader with a font named Archivo installed sees the Studio's and the pages' headings in it, perhaps without its width axis, because the room's stack names Archivo before the Archivo Variable the build serves."
+        },
+        {
+          "area": "testing",
+          "says": "That a product page asks no other site for anything rests on the suite reading its HTML and stylesheet, not on a browser watching its requests, which only the Studio has."
         }
       ]
     }

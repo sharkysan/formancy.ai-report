@@ -10,6 +10,40 @@ later.
 
 ## Unreleased
 
+**The Studio and the product pages serve their own faces, and ask no
+other site for anything**
+([0023](docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
+They took Archivo and IBM Plex from Google Fonts, so every reader's
+browser told Google its address before a word was drawn. The pages are
+for readers in Switzerland, Germany and Austria, one of them in
+healthcare. The Landgericht München I held such a transfer without
+consent unlawful on 20 January 2022 (3 O 17493/20). formancy.ai's own
+pages stopped doing it in its 0154.
+
+- **The faces are Fontsource's packages**, at admin.css's weights:
+  `@fontsource-variable/archivo` with its width axis,
+  `@fontsource/ibm-plex-sans` and `@fontsource/ibm-plex-mono`, each at
+  5.3.0, under the OFL. The Studio imports them through
+  `src/styles/fonts.css`, and the pages import that file and copy the
+  font files into `site/fonts/` from their own packages.
+- **The faces' notices travel with them**: in the Studio's
+  `THIRD-PARTY-NOTICES.txt`, and in the pages' new
+  `site/THIRD-PARTY-NOTICES.txt`.
+- **What it costs**, measured on 17 October 2026: 887,348 bytes in 59
+  font files in each build. A reader's browser fetches only the subsets
+  the text uses: in Chromium, 190,724 bytes in six files for the Studio
+  up to its starter picker, 151,832 in four for a product page in German
+  or French. A reader with a font named Archivo installed
+  sees the headings in it, since the room's stack names Archivo first.
+- **The browser gate fails on any request outside the built Studio**, a
+  connection hint to another host included, where it allowed Google's.
+  The pages' checks refuse a stylesheet, a font, a hint or a picture
+  that a page's HTML or stylesheet names on another site; no gate opens
+  the pages in a browser.
+- **The README pictures were retaken.** The faces from the build differ
+  from Google's files by antialiasing in a few hundred pixels per
+  picture; the text each picture shows is unchanged.
+
 **The product has pages a search engine can read, in German, French,
 Italian and English**
 ([0021](docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)).
