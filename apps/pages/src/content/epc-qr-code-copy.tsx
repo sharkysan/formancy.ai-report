@@ -3,7 +3,9 @@
  * decision 0025 makes and its tests hold, or one the euro invoice's samples
  * make and theirs hold, and says no more than it: each card's tests are
  * listed beside the cards, in `CARD_EVIDENCE` (epc-qr-code.tsx), and the
- * limits are 0025's costs and 0028's. The release the status names is read
+ * limits are 0025's costs and 0028's, and 0027's where one says what an
+ * e-invoice is: its XML written by the runtime, for Germany alone, and no
+ * PDF that carries it (the renderer refuses one). The release the status names is read
  * from the changelog and handed in, never typed; the day the samples' rates
  * and registers were read is `EURO_SAMPLES_READ`.
  *
@@ -139,7 +141,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         'Der BIC wird nur für ein Konto ausserhalb des EWR verlangt. Die Bank einer zahlenden Person ausserhalb des EWR, etwa in der Schweiz, kann ihn trotzdem brauchen; das leere BIC-Feld der Builder sagt es.',
         'Wo der Code steht, bestimmt die Vorlage: Den Platz am unteren Seitenrand, den die PSA verlangt, kann das Format nicht festhalten, und ein Code in der Fusszeile steht auf jeder Seite. Der Rahmen ist eine Option, und ein Code ohne ihn wird nicht an den Modulbreiten der PSA gemessen.',
         'Nichts zwingt eine Vorlage, die Angaben neben den Code zu drucken; die Beispiele tun es.',
-        'Das PDF ist keine E-Rechnung: weder XRechnung noch ZUGFeRD, Factur-X oder FatturaPA. Wo ein Land die E-Rechnung verlangt, ist das PDF höchstens eine Kopie, wie das italienische Beispiel mit dem Hinweis Copia di cortesia sagt.',
+        'Das PDF ist keine E-Rechnung: weder XRechnung noch ZUGFeRD, Factur-X oder FatturaPA. Im Quellcode schreibt Formancy Report zwar schon das XML einer Rechnung nach ZUGFeRD oder Factur-X im Profil EN 16931, allein für Deutschland (Frankreich ist nicht abgedeckt), doch bettet es noch nichts in ein PDF ein: Der Renderer lehnt eine solche Rechnung ab. Wo ein Land die E-Rechnung verlangt, ist das PDF höchstens eine Kopie, wie das italienische Beispiel mit dem Hinweis Copia di cortesia sagt.',
         'Die Beispiele sind keine Steuerberatung: Die Steuersätze darin sind die Normalsätze des Tages, an dem sie gelesen wurden, und ob ein Beispiel alles trägt, was das Rechnungsrecht seines Landes verlangt, hat niemand geprüft.',
         'Noch keine Banking-App hat diese Codes gescannt: Die Tests lesen den Code mit ZXing aus der Zeichnung von PDF.js, und gedruckt wurde noch keiner. Die Richtlinien des EPC sind eine Empfehlung, und eine Bank muss einen Code nicht lesen.',
       ],
@@ -227,7 +229,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         "Le BIC n'est exigé que pour un compte hors de l'EEE. La banque d'une personne qui paie hors de l'EEE, en Suisse par exemple, peut en avoir besoin tout de même ; le champ BIC vide des builders le dit.",
         "L'emplacement du code est celui que choisit le modèle : le bas de la page que demande la PSA, le format ne peut pas l'imposer, et un code dans le pied de page s'imprime sur chaque page. Le cadre est une option, et un code sans cadre n'est pas mesuré aux largeurs de module de la PSA.",
         "Rien n'oblige un modèle à imprimer les données à côté du code ; les exemples le font.",
-        "Le PDF n'est pas une facture électronique : ni XRechnung, ni ZUGFeRD, ni Factur-X, ni FatturaPA. Là où un pays exige la facture électronique, le PDF n'en est au mieux qu'une copie, comme le dit l'exemple italien avec la mention Copia di cortesia.",
+        "Le PDF n'est pas une facture électronique : ni XRechnung, ni ZUGFeRD, ni Factur-X, ni FatturaPA. Dans le code source, Formancy Report écrit certes déjà le XML d'une facture ZUGFeRD ou Factur-X au profil EN 16931, pour la seule Allemagne (la France n'est pas couverte), mais rien ne l'intègre encore dans un PDF : le moteur de rendu refuse une telle facture. Là où un pays exige la facture électronique, le PDF n'en est au mieux qu'une copie, comme le dit l'exemple italien avec la mention Copia di cortesia.",
         "Les exemples ne sont pas un conseil fiscal : leurs taux sont les taux normaux du jour où ils ont été lus, et personne n'a vérifié qu'un exemple porte tout ce que le droit de la facturation de son pays exige.",
         "Aucune application bancaire n'a encore scanné ces codes : les tests lisent le code avec ZXing dans le dessin de PDF.js, et aucun n'a encore été imprimé. Les directives de l'EPC ne sont qu'une recommandation, et une banque n'est pas tenue de lire un code.",
       ],
@@ -315,7 +317,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         'Il BIC è richiesto solo per un conto fuori dal SEE. La banca di chi paga fuori dal SEE, in Svizzera per esempio, può averne bisogno comunque; il campo BIC vuoto dei builder lo dice.',
         "Dove sta il codice lo decide il modello: il margine inferiore della pagina che chiede la PSA, il formato non lo può fissare, e un codice nel piè di pagina si stampa su ogni pagina. La cornice è un'opzione, e un codice senza cornice non è misurato sulle larghezze dei moduli della PSA.",
         'Niente obbliga un modello a stampare i dati accanto al codice; gli esempi lo fanno.',
-        "Il PDF non è una fattura elettronica: né XRechnung, né ZUGFeRD, né Factur-X, né FatturaPA. Dove un paese esige la fattura elettronica, il PDF ne è al massimo una copia, come dice l'esempio italiano con la dicitura Copia di cortesia.",
+        "Il PDF non è una fattura elettronica: né XRechnung, né ZUGFeRD, né Factur-X, né FatturaPA. Nel codice sorgente Formancy Report scrive sì già l'XML di una fattura ZUGFeRD o Factur-X nel profilo EN 16931, solo per la Germania (la Francia non è coperta), ma niente lo incorpora ancora in un PDF: il renderer rifiuta una fattura del genere. Dove un paese esige la fattura elettronica, il PDF ne è al massimo una copia, come dice l'esempio italiano con la dicitura Copia di cortesia.",
         'Gli esempi non sono una consulenza fiscale: le loro aliquote sono quelle ordinarie del giorno in cui sono state lette, e nessuno ha verificato che un esempio porti tutto ciò che il diritto della fatturazione del suo paese richiede.',
         "Nessuna app bancaria ha ancora scansionato questi codici: i test leggono il codice con ZXing dal disegno di PDF.js, e nessuno è ancora stato stampato. Le linee guida dell'EPC sono solo una raccomandazione, e una banca non è tenuta a leggere un codice.",
       ],
@@ -403,7 +405,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         "The BIC is asked for only where the account is outside the EEA. A payer's bank outside the EEA, in Switzerland say, may need it all the same; the builders' empty BIC field says so.",
         "Where the code stands is the template's choice: the foot of the page the PSA asks for is not one the format can pin, and a code in the page footer prints on every page. The frame is an option, and a code without it is not held to the PSA's module widths.",
         'Nothing makes a template print the details beside the code; the samples do.',
-        'The PDF is no e-invoice: no XRechnung, ZUGFeRD, Factur-X or FatturaPA. Where a country requires e-invoices, the PDF is at most a copy, as the Italian sample says with its notice Copia di cortesia.',
+        'The PDF is no e-invoice: no XRechnung, ZUGFeRD, Factur-X or FatturaPA. In the source code, Formancy Report already writes the XML of a ZUGFeRD or Factur-X invoice in the EN 16931 profile, for Germany alone (France is not covered), but nothing embeds it in a PDF yet: the renderer refuses such an invoice. Where a country requires e-invoices, the PDF is at most a copy, as the Italian sample says with its notice Copia di cortesia.',
         "The samples are no tax advice: their rates are the standard rates of the day they were read, and nobody checked that a sample carries everything its country's invoicing law asks.",
         "No banking app has scanned these codes yet: the tests read the code with ZXing from PDF.js's drawing, and none has been printed. The EPC's guidelines are informative only, and a bank need not read a code at all.",
       ],

@@ -75,6 +75,15 @@ reference are `payment-reference.ts`, which the QR-bill's rules read too;
 the runtime writes the payload, and the renderer draws Austria's caption
 in the same Liberation Sans
 ([0025](docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+A report's e-invoice runs through all four and stops at the last: the
+block is report-spec's `e-invoice.ts` and EN 16931's rules its
+`en16931.ts`, with the closed code lists, which the validator applies to
+literals and the runtime to data, and the account rule is the EPC QR
+code's; the core binds `invoice`, `vatBasis` and `vatAmount` in an
+e-invoice alone; the runtime computes the totals once, in
+`e-invoice-totals.ts`, and writes the CII XML, in `cii.ts`; and the
+renderer refuses every e-invoice until it draws the PDF/A-3 that embeds
+one ([0027](docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
@@ -87,7 +96,8 @@ Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
 `readCodes`, which decodes the QR codes a page prints with ZXing from the
-pixels PDF.js draws, and the renderer trial that chose pdfmake. `apps/studio` is the
+pixels PDF.js draws, the e-invoice samples and a reader of their XML by
+namespace, and the renderer trial that chose pdfmake. `apps/studio` is the
 playground that puts both builders and a PDF.js preview on one page
 ([0013](docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)),
 never published as a package and served at formancy.ai/report/
@@ -429,6 +439,19 @@ exactly what CI does:
   A change to what a picture shows is retaken with `node
   scripts/pictures.mjs`, never by hand.
 - **`install`** runs `pnpm test:e2e:install`.
+- **`e-invoice`** runs `node scripts/e-invoice.mjs --java <path>` after
+  `pnpm build`, on the Java the register names (0027): Mustang and
+  KoSIT's validator, fetched by URL into `.e-invoice-cache/` and refused unless each SHA-256
+  is the one `docs/release/e-invoice-tools.json` registers, judge the XML
+  the runtime writes of each e-invoice sample and refuse each control, and
+  report-spec's code lists and rule ids are held to the schematrons they
+  run. A warning fails it unless `scripts/e-invoice/accepted.json` accepts
+  it, with its reason, in that file. Locally it needs a Java at least as
+  new as each JAR's `java` in the register.
+  A change to a tool, the corpus or a control is recorded for the judges'
+  tests with `--record`, never by hand: a run fails where the recorded
+  corpus is not the one it judged, and a recording holds no path of the
+  machine it was made on.
 - **`report`** builds the release report from what every job above
   collected
   ([0014](docs/decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md),
@@ -448,6 +471,11 @@ exactly what CI does:
     `scripts/browsers.mjs` says;
   - an install host `scripts/install-hosts.mjs` plans was not checked whole,
     or a builder's was not at its range's floor;
+  - the e-invoice gate failed, ran a tool at another version, of other
+    bytes by the hash it measured, or reporting another version of itself
+    than its register pins, ran in CI on a Java of another major version
+    than the register names, or judged a file otherwise than its corpus
+    expects;
   - two builds of one package differ, or a tarball's built files are not
     every job's;
   - a release gate's evidence or a limitation's `heldBy` test did not pass.

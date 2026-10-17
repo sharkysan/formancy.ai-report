@@ -272,7 +272,7 @@ describe('gates.yml', () => {
   // it cannot see; one that is cancelled must still leave the report to run.
   test('ends in a report that waits for every other job and runs unless cancelled', () => {
     expect([...gates.jobs.report.needs].sort()).toEqual(gateJobs(gates).sort())
-    expect(gateJobs(gates)).toEqual(expect.arrayContaining(['verify', 'test', 'browser', 'install']))
+    expect(gateJobs(gates)).toEqual(expect.arrayContaining(['verify', 'test', 'browser', 'install', 'e-invoice']))
     expect(gates.jobs.report.if).toContain('!cancelled()')
     expect(gates.on.workflow_call.inputs.release).toMatchObject({ type: 'string', default: '' })
     expect(gates.on.workflow_call.secrets).toEqual({ CODECOV_TOKEN: { required: false } })
@@ -312,7 +312,7 @@ describe('gates.yml', () => {
   test('gives the report one key per job and package, and no key twice', () => {
     const keys = expectedKeys(gates, namedPackages()).map((entry) => entry.key)
     expect(new Set(keys).size).toBe(keys.length)
-    expect(keys).toEqual(expect.arrayContaining(['verify', 'browser', 'install']))
+    expect(keys).toEqual(expect.arrayContaining(['verify', 'browser', 'install', 'e-invoice']))
     expect(keys).not.toContain('test')
     expect(keys.filter((key) => key.startsWith('test-')).sort()).toEqual(namedPackages().map((entry) => `test-${entry.id}`).sort())
   })
@@ -347,6 +347,29 @@ describe('gates.yml', () => {
     expect(browser.find((step) => step.with?.name === 'browser-results')?.with).toEqual({ name: 'browser-results', path: 'apps/studio/test-results/', 'if-no-files-found': 'error', overwrite: true })
     const studio = JSON.parse(readFileSync(join(repo, 'apps', 'studio', 'package.json'), 'utf8'))
     expect(studio.scripts['test:pictures']).toBe('node scripts/pictures.mjs --check')
+  })
+
+  // The e-invoice gate judges the corpus the runtime writes as built, so it
+  // runs after the build; on the Java its register names, set up by an
+  // action pinned to a commit as a third party's is, since a moved tag would
+  // change the JDK the gate's verdict rests on; with the tools' cache keyed
+  // on the register, so a pin moved is a fresh download; and before it
+  // collects. Its own files are kept whole beside the results, for whoever
+  // reads a red run.
+  test('runs the e-invoice gate after the build, on the register’s Java, and keeps its files', () => {
+    const steps = gates.jobs['e-invoice'].steps
+    const at = (find) => steps.findIndex(find)
+    const build = at((step) => step.run === 'pnpm build')
+    const java = at((step) => String(step.uses).startsWith('actions/setup-java@'))
+    const gate = at((step) => step.run === 'node scripts/e-invoice.mjs --java "$JAVA_HOME/bin/java"')
+    const collect = steps.indexOf(collectStep(gates.jobs['e-invoice']))
+    expect([build, java, gate, collect].map((index) => index !== -1)).toEqual([true, true, true, true])
+    expect([build < gate, java < gate, gate < collect]).toEqual([true, true, true])
+    const { runtime } = JSON.parse(readFileSync(join(repo, 'docs', 'release', 'e-invoice-tools.json'), 'utf8'))
+    expect(steps[java].uses).toMatch(/^actions\/setup-java@[0-9a-f]{40}$/)
+    expect(steps[java].with).toEqual({ distribution: runtime.distribution, 'java-version': String(runtime.java) })
+    expect(steps.find((step) => String(step.uses).startsWith('actions/cache') && step.with?.path === '.e-invoice-cache')?.with.key).toBe("e-invoice-tools-${{ hashFiles('docs/release/e-invoice-tools.json') }}")
+    expect(steps.find((step) => step.with?.name === 'e-invoice-results')?.with).toEqual({ name: 'e-invoice-results', path: 'test-results/e-invoice.json\ntest-results/e-invoice/\n', 'if-no-files-found': 'error', overwrite: true })
   })
 
   // Without --force a suite's results could be a cached replay of another

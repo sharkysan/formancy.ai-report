@@ -82,7 +82,7 @@ const REGISTRY_EXAMPLES = [
 ]
 
 const OUTSIDE_SEPA = 'is not the IBAN of an account in SEPA: its country is not one EPC409-09 lists'
-const QR_IBAN = "is a QR-IBAN, which SIX keeps for QR-bills in francs paid with a QR reference (SIX's QR-bill guidelines 2.8, 2.10), and an EPC QR code pays in euro with none"
+const QR_IBAN = "is a QR-IBAN, which SIX keeps for QR-bills in francs paid with a QR reference (SIX's QR-bill guidelines 2.8, 2.10), and a SEPA credit transfer in euro carries none"
 const NOT_AN_IBAN = 'is not an IBAN: two letters for its country, two check digits, then letters or digits'
 
 describe('the IBAN', () => {

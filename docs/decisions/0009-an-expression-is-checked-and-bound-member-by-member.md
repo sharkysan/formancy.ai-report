@@ -1,6 +1,6 @@
 # 0009 — An expression is checked and bound member by member, by one compilation the editor and the runtime share
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which binds an e-invoice's totals member by member, in a report that is one and in no other
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-core`, run by its
@@ -213,6 +213,30 @@ rounding rules (0010): `rounding-not-decimal` for a rounding declared on an
 integer, date or instant total, which every render refused while the
 editor said nothing, and `format-rounds-again` for a number format that
 prints a rounded total at fewer places than its rounding keeps.
+
+**Added 2026-10-17: an e-invoice's totals.** In a report that carries an
+e-invoice ([0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)),
+`compileReport` declares `invoice`, `vatBasis` and `vatAmount` member by
+member, as it declares `totals`: each document total a decimal, never
+null; `invoice.paid` only where a paid amount is declared, read as the
+paid amount's expression gives it, and as `dyn` where that expression does
+not compile, so that its fault is said once; and `vatBasis.<id>` and
+`vatAmount.<id>` for each declared category, which may be null. In any
+other report the three hold nothing, and a read of one is
+`expression-unknown-name`. Nor are they read where they are computed from
+-- an aggregate's expression, the e-invoice's own, the columns that print
+a line -- which would be a circle no render closes. The e-invoice's dates,
+its paid amount, its line codes and the named columns are each held to
+the type their business term is written as, by report-spec's tables, as
+`expression-type`. And `e-invoice-total-unprinted`, an error, says when a
+total the XML holds is printed by no text or table, and
+`e-invoice-format-differs`, an error, when a run that reads one, or a
+column that prints a line, shows it otherwise than the XML holds it: at
+fewer than two places, in another currency, a name in another case. The
+runtime binds the very totals it writes into the XML (0010).
+`expressions/e-invoice.test.ts` holds the members and where they are
+refused, and `diagnostics/e-invoice.test.ts` the totals a page must print
+and how.
 
 ## Alternatives considered
 

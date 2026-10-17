@@ -9,7 +9,10 @@
   the workspace, which the v0.1.0 tag's run refused for leaving out tslib:
   it is made from the published tarballs as npm installs them, and held to
   what a consumer installs
-  ([0017](0017-the-sbom-describes-what-a-consumer-installs.md)).
+  ([0017](0017-the-sbom-describes-what-a-consumer-installs.md)). The
+  gates have a fifth job, the e-invoice gate, whose results the report
+  reads, shows and fails a run on
+  ([0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `report` job in `.github/workflows/gates.yml`, which
@@ -359,6 +362,30 @@ setting; and whether "Verified by" paths resolve.
 **What it forecloses:** publishing on evidence another workflow produced;
 publishing bytes no gate installed; and a release body, a tuple of tested
 versions or a report typed by hand.
+
+**Added 2026-10-17: the e-invoice gate.** `gates.yml` gains a fifth job
+that leaves results, `e-invoice`, as [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)
+decides: Mustang and KoSIT's validator over the XML the runtime writes of
+the corpus's e-invoice samples and over controls. collect.mjs reads its
+`test-results/e-invoice.json` under a reader of its own, `e-invoice`, in
+CI and on a machine, so `--allow-missing` names it beside `verify`,
+`browser` and `install`, and the report waits for the job. The report
+gains a section after the browser's: the Java and the tools the gate ran,
+and every file of its corpus, a sample or a control, with each tool's
+verdict. It fails the run when the gate left no results, did not pass,
+recorded a tool other than `docs/release/e-invoice-tools.json` pins -- by
+version, by the SHA-256 the gate measured of the bytes it ran, or, for
+each JAR, by the version the tool reported of itself -- ran in CI on a
+Java of another major version than the register names, judged no sample
+every tool must accept or made no control a tool must refuse, or has a
+tool's verdict missing or other than its corpus expects on a file. It
+reads the register itself and holds the gate's measurements and the
+tools' own words to it, not the gate's `passed`; a machine's run is shown
+on its Java and not held to one. The Java's vendor is not the report's to
+hold: `workflows.test.mjs` holds the job's `actions/setup-java` to the
+register's distribution. Its summary line says whether the e-invoice gate
+passed. `collect.test.mjs`, `report.test.mjs`, `render.test.mjs` and
+`workflows.test.mjs` hold it.
 
 ## Alternatives considered
 

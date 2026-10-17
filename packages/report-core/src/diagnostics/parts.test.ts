@@ -1,7 +1,7 @@
 import { COMPONENT_KINDS, QR_BILL_ADDRESS_RULES, walkComponents } from '@formancy/report-spec'
-import type { EpcQrCodeComponent, Inline, ReportDefinition, SwissQrBill, TextComponent } from '@formancy/report-spec'
+import type { EpcQrCodeComponent, Expression, FacturXInvoice, Inline, ReportDefinition, SwissQrBill, TextComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
-import { frozenSample, sampleReport } from '../test-support.js'
+import { eInvoiceSample, frozenSample, sampleReport } from '../test-support.js'
 import { expressionSites, reportParts } from './parts.js'
 import type { ExpressionSite } from './parts.js'
 
@@ -260,6 +260,132 @@ describe('a payment part', () => {
     const parts = reportParts(named)
     expect(parts.parameters).toContain('copies')
     expect(parts.aggregates).toContain('gross')
+    expect(parts.fields).toContainEqual({ dataset: 'header', field: 'customer' })
+  })
+})
+
+describe('an e-invoice', () => {
+  /** The invoice a report holds. */
+  const invoiceOf = (report: ReportDefinition): FacturXInvoice => report.eInvoice as FacturXInvoice
+  /** Each site as its scope, its kind, its component, its path, its term and the types it may give. */
+  const said = ({ scope, kind, path, term, componentId }: ExpressionSite): string => `${scope} ${kind} ${componentId ?? '-'} ${path} ${term?.what ?? '-'}: ${term?.types?.join('|') ?? '-'}`
+
+  // An expression the walk missed would be written into the XML checked by
+  // nobody. Derived from the document, so a place the format adds to the
+  // e-invoice fails here until the walk knows it.
+  test('finds every expression in a report that is one', () => {
+    const report = eInvoiceSample()
+    expect(expressionSites(report).map(({ path }) => path).sort()).toEqual(celPointers(report).sort())
+  })
+
+  // Its texts and dates are read in the report's scope, as a payment
+  // part's, and its line codes in each row's, as an aggregate's; it stands
+  // in no component. Each says the term it gives the XML, so the core
+  // types it and keeps the totals out of it. After the payment part,
+  // before the aggregates.
+  test("reads its own in the report's scope and its line codes in each row's, each with its term", () => {
+    const sites = expressionSites(eInvoiceSample())
+    expect(sites.filter(({ path }) => path.startsWith('/eInvoice/')).map(said)).toEqual([
+      'report computed - /eInvoice/number/1/expression/cel a text of the e-invoice: -',
+      'report computed - /eInvoice/issued/cel the issue date (BT-2): date',
+      'report computed - /eInvoice/delivered/cel the delivery date (BT-72): date',
+      "report computed - /eInvoice/period/start/cel the invoicing period's start (BT-73): date",
+      "report computed - /eInvoice/period/end/cel the invoicing period's end (BT-74): date",
+      'row computed - /eInvoice/lines/unit/expression/cel the unit of measure (BT-130): string',
+      "row computed - /eInvoice/lines/vat/expression/cel the line's VAT category (BT-151): string",
+      'report computed - /eInvoice/payment/remittance/1/expression/cel a text of the e-invoice: -',
+      'report computed - /eInvoice/due/cel the payment due date (BT-9): date',
+      'report computed - /eInvoice/paid/cel the paid amount (BT-113): decimal',
+    ])
+    const last = sites.map(({ path }) => path.startsWith('/eInvoice/')).lastIndexOf(true)
+    expect(sites.slice(last + 1).map(({ path }) => path)).toEqual(['/aggregates/2/of/expression/cel'])
+  })
+
+  // The XML is written from what the named columns print, so each one's
+  // value says the term it is, and the core holds it to that term's type.
+  // Every other column of the table is the page's own.
+  test("gives each column that prints a line's term that term, and no other", () => {
+    const report = eInvoiceSample()
+    const table = report.regions.body[2]
+    if (table?.kind !== 'table') throw new Error('the sample has moved its table')
+    const columns = table.columns.map((column) => ({ ...column, value: { kind: 'expression', expression: { cel: `row.${column.id}` } } as const }))
+    const computed: ReportDefinition = { ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component === table ? { ...table, columns } : component)) } }
+    expect(expressionSites(computed).filter(({ path }) => /^\/regions\/body\/2\/columns\/\d+\/value\//.test(path)).map(said)).toEqual([
+      'row computed lines /regions/body/2/columns/0/value/expression/cel the item name (BT-153): string',
+      'row computed lines /regions/body/2/columns/1/value/expression/cel the invoiced quantity (BT-129): integer|decimal',
+      'row computed lines /regions/body/2/columns/2/value/expression/cel the item net price (BT-146): integer|decimal',
+      'row computed lines /regions/body/2/columns/3/value/expression/cel the line net amount (BT-131): integer|decimal',
+      'row computed lines /regions/body/2/columns/4/value/expression/cel -: -',
+    ])
+  })
+
+  // Every text an e-invoice holds is read, each part of both parties among
+  // them: with an expression everywhere one may stand, the sites found are
+  // every expression the e-invoice holds, found without knowing the
+  // format. A text the walk left out would be one nobody checks.
+  test('reads every text and every expression it holds', () => {
+    const report = eInvoiceSample()
+    const run = (at: string): Inline[] => [{ kind: 'expression', expression: { cel: `"${at}"` } }]
+    const value = (at: string): Expression => ({ cel: `"${at}"` })
+    const address = (party: string): FacturXInvoice['seller']['address'] => ({
+      line1: run(`${party} line1`),
+      line2: run(`${party} line2`),
+      postalCode: run(`${party} post code`),
+      city: run(`${party} city`),
+      country: run(`${party} country`),
+    })
+    const invoice = invoiceOf(report)
+    const everywhere: ReportDefinition = {
+      ...report,
+      eInvoice: {
+        ...invoice,
+        number: run('number'),
+        issued: value('issued'),
+        seller: { name: run('seller'), vatId: run('seller vat'), taxNumber: run('tax number'), legalId: { id: run('seller id'), scheme: '0088' }, address: address('seller') },
+        buyer: { name: run('buyer'), vatId: run('buyer vat'), legalId: { id: run('buyer id') }, address: address('buyer') },
+        buyerReference: run('reference'),
+        delivered: value('delivered'),
+        period: { start: value('start'), end: value('end') },
+        vat: [...invoice.vat, { id: 'exempt', code: 'E', rate: '0', reason: run('reason') }],
+        lines: { ...invoice.lines, id: { kind: 'expression', expression: value('id') }, unit: { kind: 'expression', expression: value('unit') }, vat: { kind: 'expression', expression: value('vat') } },
+        payment: { means: '58', iban: run('iban'), bic: run('bic'), accountName: run('account'), remittance: run('remittance') },
+        due: value('due'),
+        terms: run('terms'),
+        paid: value('paid'),
+      },
+    }
+    const found = expressionSites(everywhere).filter(({ path }) => path.startsWith('/eInvoice/'))
+    expect(found.map(({ path }) => path).sort()).toEqual(celPointers(everywhere.eInvoice, '/eInvoice').sort())
+    expect(found.every(({ scope, kind, componentId, term, path }) => scope === (path.startsWith('/eInvoice/lines/') ? 'row' : 'report') && kind === 'computed' && componentId === undefined && term !== undefined)).toBe(true)
+  })
+
+  // An e-invoice needs no expression of its own but its issue date: one
+  // whose line codes are fields and that has no other date, no paid amount
+  // and only literal texts is read for what it holds.
+  test('is read for what it holds when it holds only what it must', () => {
+    const report = eInvoiceSample()
+    const { delivered: _delivered, period: _period, payment: _payment, due: _due, paid: _paid, ...bare } = invoiceOf(report)
+    const sku = { kind: 'field', field: { dataset: 'detail', field: 'sku' } } as const
+    const minimal: ReportDefinition = { ...report, eInvoice: { ...bare, number: [{ kind: 'text', text: 'RE-1' }], lines: { ...bare.lines, unit: sku, vat: sku } } }
+    expect(expressionSites(minimal).filter(({ path }) => path.startsWith('/eInvoice/')).map(({ path }) => path)).toEqual(['/eInvoice/issued/cel'])
+  })
+
+  // What its texts and its line codes name is used: a field read only as
+  // a line's identifier -- the sample names `shipped` nowhere else -- or a
+  // parameter printed only in a party's name, is no unused declaration.
+  test('collects what its texts and its line codes name', () => {
+    const report = eInvoiceSample()
+    const invoice = invoiceOf(report)
+    const parts = reportParts({
+      ...report,
+      eInvoice: {
+        ...invoice,
+        seller: { ...invoice.seller, name: [{ kind: 'parameter', parameter: 'copies' }] },
+        lines: { ...invoice.lines, id: { kind: 'field', field: { dataset: 'detail', field: 'shipped' } } },
+      },
+    })
+    expect(parts.parameters).toContain('copies')
+    expect(parts.fields).toContainEqual({ dataset: 'detail', field: 'shipped' })
     expect(parts.fields).toContainEqual({ dataset: 'header', field: 'customer' })
   })
 })

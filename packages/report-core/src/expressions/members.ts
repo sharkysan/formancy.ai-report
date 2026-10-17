@@ -5,9 +5,12 @@
  * The names are the format's: `EXPRESSION_NAMES` lists, for each scope, the
  * names the runtime binds (0007) -- `params`, `header` and `totals`
  * everywhere, `row` in a table's cells and in what an aggregate reads from
- * each row, `group` in a group's header and footer. Each holds members --
- * a parameter, a field, an aggregate, a group's key -- read as
- * `<name>.<id>`, and every member is a single value, never a map.
+ * each row, `group` in a group's header and footer. A report that is an
+ * e-invoice binds `invoice`, `vatBasis` and `vatAmount` besides, wherever
+ * `totals` is but where they are computed from (`e-invoice.ts`). Each name
+ * holds members -- a parameter, a field, an aggregate, a group's key, a
+ * total of the e-invoice -- read as `<name>.<id>`, and every member is a
+ * single value, never a map.
  */
 import type { DeclaredType } from '@formancy/expressions'
 import { GROUP_KEY, walkComponents } from '@formancy/report-spec'
@@ -48,8 +51,8 @@ export interface ExpressionMember {
   readonly nullable: boolean
 }
 
-/** Every name the format binds, in some scope. A test holds this to the union of `EXPRESSION_NAMES`. */
-export const SCOPE_NAMES = ['params', 'header', 'row', 'totals', 'group'] as const
+/** Every name the format binds, in some scope or in an e-invoice. A test holds this to the union of `EXPRESSION_NAMES` and `E_INVOICE_NAMES`. */
+export const SCOPE_NAMES = ['params', 'header', 'row', 'totals', 'group', 'invoice', 'vatBasis', 'vatAmount'] as const
 
 export type ScopeName = (typeof SCOPE_NAMES)[number]
 

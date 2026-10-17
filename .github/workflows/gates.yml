@@ -9,13 +9,15 @@ name: Gates
 # builds the release report from all of them and fails the run on anything
 # its `problems` list (scripts/release-report/report.mjs).
 #
-# Four jobs leave results, because four things exist to prove: the build,
+# Five jobs leave results, because five things exist to prove: the build,
 # types, packaging, licences and the repository's guards (`verify`); each
 # package's suite on a runner of its own (`test`); the Studio in a real
 # browser, and the README's pictures of it held to the text they show
-# (`browser`); and the packed tarballs in projects that are not this one
+# (`browser`); the packed tarballs in projects that are not this one
 # (`install`), which also compiles and runs docs/getting-started.md's code
-# (0015). A container gate arrives with the server it proves -- not before,
+# (0015); and the e-invoice XML the runtime writes, judged by the validators
+# a receiver runs (`e-invoice`, 0027). A container gate arrives with the
+# server it proves -- not before,
 # so that no job here passes for having nothing to check. A job added here
 # is one the report expects results from: it needs a collect step, and
 # collect.mjs a reader for it.
@@ -358,18 +360,116 @@ jobs:
           if-no-files-found: error
           overwrite: true
 
+  # The e-invoice gate (0027): Mustang and KoSIT's validator with its
+  # XRechnung configuration, at the releases docs/release/e-invoice-tools.json
+  # pins, each fetched by URL and refused unless its SHA-256 is the
+  # registered one, then run, with Java's HTTP and HTTPS proxies at a dead
+  # port (a raw socket is not caught), over the CII XML the runtime writes
+  # of every e-invoice sample of the corpus, and over controls broken one
+  # named way each, which every tool must refuse for exactly that; and
+  # report-spec's closed code lists and the rule ids its refusals name, held
+  # to the schematrons those tools run (scripts/e-invoice.mjs). An error
+  # fails the job; a warning or a notice fails it unless
+  # scripts/e-invoice/accepted.json accepts it in that file. Its own job,
+  # because it needs a Java and downloads of its own, and a red "e-invoice"
+  # says which kind of wrong it is.
+  #
+  # The twenty minutes are not measured on CI. The job installs the
+  # workspace and builds every package before the gate, as verify does in
+  # its fifteen; on a Windows 11 workstation (i9-10900K) on 2026-10-17 that
+  # build took 34 s uncached, and the gate itself 44 s on Zulu 25 with its
+  # downloads and, from the cache, 28 to 30 s on Zulu 25 and 37 to 40 s on
+  # Temurin 17. The bound is for an install, a download or a runner having a
+  # bad day, not for the work, until three green runs give a slowest time
+  # to triple.
+  e-invoice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable pnpm
+
+      - name: Get pnpm store directory
+        id: pnpm-store
+        run: |
+          store=$(pnpm store path --silent)
+          echo "path=${store}" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        if: inputs.release == ''
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      # The corpus is resolved by the runtime as built, not by its source.
+      - run: pnpm build
+
+      # The register's runtime: Mustang's and KoSIT's JARs need Java 11 (their
+      # classes are version 55), and the gate passed on Temurin 17.0.20.1 on
+      # 2026-10-17. A third-party action in all but name, pinned like one: the
+      # commit of v6.0.1, read from the action's repository that day, as
+      # formancy.ai-health pins it.
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # CI only, like the pnpm store, and keyed on the register: a cached
+      # download is used only once its SHA-256 is the registered one, and a
+      # release fetches everything from where the register says.
+      - uses: actions/cache@v4
+        if: inputs.release == ''
+        with:
+          path: .e-invoice-cache
+          key: e-invoice-tools-${{ hashFiles('docs/release/e-invoice-tools.json') }}
+
+      - run: node scripts/e-invoice.mjs --java "$JAVA_HOME/bin/java"
+
+      # What this job found, for the report: the gate's own results file,
+      # which it writes however its run ends, and the dist/ of every
+      # published package this job built.
+      - name: Keep what this job found, for the report
+        id: collect
+        if: ${{ !cancelled() }}
+        run: node scripts/release-report/collect.mjs --job e-invoice
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: release-results-${{ steps.collect.outputs.key }}
+          path: release-results/
+          if-no-files-found: error
+          overwrite: true
+      # The results, the corpus as written and every tool's own output, whole,
+      # for whoever reads a red run.
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: e-invoice-results
+          path: |
+            test-results/e-invoice.json
+            test-results/e-invoice/
+          if-no-files-found: error
+          overwrite: true
+
   # The release report (0014), built from what every job above found: what
   # this run was tested on -- Node, pnpm, TypeScript, upstream @formancy/*,
   # pdfmake, the React and Angular each install host resolved, and the
   # Chromium the browser gate launched with the Playwright that pins it --
   # every package's results, the browser gate's checks and the pictures'
-  # check, the build identity of what a release publishes, the release gates
-  # and the known limitations. It fails the run on anything in its problems
-  # -- a job that ended other than success, an artefact missing, twice or
-  # another run's, a test skipped or failed, a browser check failed or a
-  # pass it planned not made, a tarball whose dist/ is not every job's --
-  # and writes the report either way, into
-  # the job summary and the `release-report` artefact. For a release or a
+  # check, the e-invoice gate's verdicts, the build identity of what a
+  # release publishes, the release gates and the known limitations. It
+  # fails the run on anything in its problems -- a job that ended other
+  # than success, an artefact missing, twice or another run's, a test
+  # skipped or failed, a browser check failed or a pass it planned not made,
+  # a file the e-invoice gate judged otherwise than its corpus expects, a
+  # tarball whose dist/ is not every job's -- and writes the report either
+  # way, into the job summary and the `release-report` artefact. For a release or a
   # rehearsal it also writes the release body, and fails here, before
   # anything is published, when the body has no changelog section or is
   # longer than GitHub accepts.
@@ -379,7 +479,7 @@ jobs:
   # checkout keeps the whole history, for a document's last change when a
   # gate's evidence is a document.
   report:
-    needs: [verify, test, browser, install]
+    needs: [verify, test, browser, install, e-invoice]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15

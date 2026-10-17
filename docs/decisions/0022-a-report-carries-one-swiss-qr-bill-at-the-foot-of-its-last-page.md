@@ -1,6 +1,6 @@
 # 0022 — A report carries one Swiss QR-bill at the foot of its last page, held to SIX's rules by one set of checks and printed in the Liberation Sans the renderer ships
 
-- **Status:** accepted; extended by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which shares its IBAN check digits and creditor reference with the EPC QR code and prints that code's caption in its Liberation Sans
+- **Status:** accepted; extended by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which shares its IBAN check digits and creditor reference with the EPC QR code and prints that code's caption in its Liberation Sans, and by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which holds a QR-bill printed with an e-invoice to the e-invoice's currency, account and amount due
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -631,6 +631,21 @@ slip is no longer the one text in Liberation Sans: an EPC QR code's
 caption, "Zahlen mit Code", prints in its regular face, from the same
 files, which the browser entry imports from the same chunk with the first
 bill or captioned code a page prints.
+
+**Added 2026-10-17: a QR-bill printed with an e-invoice.** A report that
+carries an e-invoice ([0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md))
+is one invoice, its page and its XML, so its QR-bill asks for what the XML
+says. The validator refuses a bill in another currency than the
+e-invoice's, euro; a literal account other than the e-invoice's payment
+account (BT-84), compared once each code's own rule has written it; and a
+bill in a report whose e-invoice names no account. The runtime refuses a
+bill whose amount, once resolved, is not the amount due (BT-115), or whose
+account read from the data is not BT-84, as `invalid-e-invoice` on the
+bill; a bill with no amount, left to the payer, is taken. BT-84 is held
+to the EPC QR code's account rule (0025), which refuses a QR-IBAN, as
+this record's pairing refuses one for a bill in euro, so the two refuse
+the same bills. Nothing else of this record changes. `validate-e-invoice.test.ts` and `lower-e-invoice.test.ts`
+hold it.
 
 ## Alternatives considered
 

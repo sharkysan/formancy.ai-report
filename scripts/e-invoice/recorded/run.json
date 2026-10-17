@@ -1,0 +1,37 @@
+{
+  "$comment": "A run of the e-invoice gate, recorded by `node scripts/e-invoice.mjs --record` once it passed: the corpus it wrote (corpus/), Mustang's report and log on each file (mustang/), KoSIT's report on each and its console (kosit/), and how each run ended. Every output is recorded with the line ends the repository keeps and without the machine's path to the repository, and the console without its results table, whose cells wrap each path across lines (scripts/e-invoice/record.mjs). The judges' tests and the corpus's read it, so that every rule is held on what the pinned tools wrote and not on what somebody thought they would; it is recorded again when a tool, the corpus or a control changes. `research` is one output recorded by hand on 17 October 2026, kept for what no run of the gate produces: Mustang 2.26.0's report on a PDF -- a FeRD sample, EN16931_Einfach.pdf, run without --no-notices and without the gate's encoding options -- with its seven XRechnung notices.",
+  "recordedAt": "2026-10-17T17:29:38.502Z",
+  "machine": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v24.21.0",
+    "java": "25.0.4.1"
+  },
+  "tools": {
+    "mustang": "2.26.0",
+    "kosit": "1.6.3",
+    "xrechnung-configuration": "2026-08-31"
+  },
+  "samples": [
+    "e-invoice",
+    "e-invoice-reverse-charge",
+    "e-invoice-exempt-paid"
+  ],
+  "mustang": {
+    "e-invoice.xml": 0,
+    "e-invoice-reverse-charge.xml": 0,
+    "e-invoice-exempt-paid.xml": 0,
+    "control-schema.xml": 4294967295,
+    "control-br-co-14.xml": 4294967295,
+    "control-br-co-17.xml": 4294967295,
+    "control-br-27.xml": 4294967295,
+    "control-br-cl-23.xml": 4294967295,
+    "control-malformed.xml": 4294967295
+  },
+  "kosit": {
+    "status": 6
+  },
+  "research": {
+    "EN16931_Einfach.report.xml": "Mustang 2.26.0 on Java 25 (Zulu 25.0.4.1), Windows 11, 17 October 2026 09:17, `--action validate --disable-file-logging --source EN16931_Einfach.pdf`, without the gate's encoding options, so that Mustang wrote its two ü in the console's code page, Windows-1252, under a declaration of UTF-8; re-encoded to UTF-8 on 17 October 2026, which changed those two characters' bytes and nothing else"
+  }
+}

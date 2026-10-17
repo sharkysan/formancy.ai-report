@@ -46,13 +46,24 @@ import type { Starter } from './starter.js'
  * `euro-invoice-words.ts` holds each language's words; and this file the
  * one report they are put into. The German is the starter, and its JSON is
  * what it was before the samples were made (`euro-samples.test.ts`).
+ *
+ * The e-invoice samples (`e-invoice.ts`, 0027) are the German firm's
+ * invoices to German businesses. Their page, styles, head, table and bank
+ * details are the parts this file exports, put together with Germany's
+ * billing and words, so that two invoices of one firm cannot drift apart.
  */
+
+type Component = ReportDefinition['regions']['body'][number]
+type Inline = Extract<Component, { kind: 'text' }>['content'][number]
+type Expression = NonNullable<Component['visibleWhen']>
+type TableComponent = Extract<Component, { kind: 'table' }>
 
 const header = (field: string) => ({ dataset: 'header', field }) as const
 const detail = (field: string) => ({ dataset: 'detail', field }) as const
-const EUR = { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } as const
+export const EUR = { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } as const
 const text = (value: string) => [{ kind: 'text', text: value }] as const
-const dated = (label: string, field: string) => [{ kind: 'text', text: label }, { kind: 'field', field: header(field), format: { kind: 'date', style: 'medium' } }] as const
+/** A label and a date of the header, as the invoice's head prints it. */
+export const dated = (label: string, field: string) => [{ kind: 'text', text: label }, { kind: 'field', field: header(field), format: { kind: 'date', style: 'medium' } }] as const
 
 /** The fields of an address line in the country's order, `between` each: a space, or a comma and a space where a country writes "Calle Mayor, 12". */
 const joined = (parts: readonly AddressPart[], between = ' ') => parts.flatMap((part, index) => [...(index === 0 ? [] : [{ kind: 'text', text: between } as const]), { kind: 'field', field: header(part) } as const])
@@ -76,10 +87,25 @@ const ADDRESS_PARTS: readonly string[] = ['street', 'buildingNumber', 'postcode'
 const printsField = (billing: EuroBilling, field: string): boolean => !ADDRESS_PARTS.includes(field) || [...billing.address.street, ...billing.address.town].some((part) => part === field)
 
 /** The line at the head of the invoice: the firm, its address in its country's order, its VAT number, and what else its country asks a company's invoice to say of it. */
-const sender = (billing: EuroBilling, words: EuroWords): string => [billing.firm.name, ...billing.firm.address, `${words.vatNumber} ${billing.firm.vatNumber}`, ...(billing.firm.legal ?? [])].join(' · ')
+export const sender = (billing: EuroBilling, words: EuroWords): Component => ({
+  id: 'sender',
+  kind: 'text',
+  style: 'sender',
+  content: text([billing.firm.name, ...billing.firm.address, `${words.vatNumber} ${billing.firm.vatNumber}`, ...(billing.firm.legal ?? [])].join(' · ')),
+})
+
+/** The customer's name and address, as the window of an envelope shows them, in the order the country writes the parts of each line. */
+export const recipient = (billing: EuroBilling): Component[] => [
+  { id: 'customer', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('customer') }] },
+  { id: 'street', kind: 'text', style: 'address', content: joined(billing.address.street, billing.address.comma === true ? ', ' : ' ') },
+  { id: 'city', kind: 'text', style: 'address', content: joined(billing.address.town) },
+]
+
+/** The page every edition prints on. */
+export const EURO_PAGE: ReportDefinition['page'] = { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 56.69, bottom: 56.69, left: 56.69 } }
 
 /** The styles every edition prints with. */
-const STYLES: ReportDefinition['styles'] = [
+export const EURO_STYLES: ReportDefinition['styles'] = [
   { id: 'title', size: 16, bold: true },
   { id: 'address', size: 10 },
   { id: 'grand', size: 10.5, bold: true },
@@ -124,7 +150,7 @@ function datasets(billing: EuroBilling, labels: EuroWords['labels']): ReportDefi
 /** The head of the invoice: whom it is from, the customer's address, and the heading over its number and dates. */
 function reportHeader(billing: EuroBilling, words: EuroWords): ReportDefinition['regions']['reportHeader'] {
   return [
-    { id: 'sender', kind: 'text', style: 'sender', content: text(sender(billing, words)) },
+    sender(billing, words),
     { id: 'sender-gap', kind: 'spacer', height: 12 },
     {
       id: 'addresses',
@@ -132,11 +158,7 @@ function reportHeader(billing: EuroBilling, words: EuroWords): ReportDefinition[
       columns: [
         {
           width: 'fill',
-          components: [
-            { id: 'customer', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('customer') }] },
-            { id: 'street', kind: 'text', style: 'address', content: joined(billing.address.street, billing.address.comma === true ? ', ' : ' ') },
-            { id: 'city', kind: 'text', style: 'address', content: joined(billing.address.town) },
-          ],
+          components: recipient(billing),
         },
         {
           width: 190,
@@ -154,8 +176,8 @@ function reportHeader(billing: EuroBilling, words: EuroWords): ReportDefinition[
   ]
 }
 
-/** The table of the lines it bills, its net amount, the tax at the country's rate, and the total. */
-function positions(billing: EuroBilling, words: EuroWords, share: string): ReportDefinition['regions']['body'][number] {
+/** The table of the lines it bills, headed in the country's words, and the rows under it, if any. */
+export function positions(words: EuroWords, totals: TableComponent['totals']): TableComponent {
   const { columns } = words
   return {
     id: 'positions',
@@ -170,41 +192,47 @@ function positions(billing: EuroBilling, words: EuroWords, share: string): Repor
       { id: 'amount', header: columns[5], width: 84, align: 'right', value: { kind: 'field', field: detail('amount'), format: EUR } },
     ],
     sort: [{ field: detail('article'), direction: 'asc' }],
-    totals: [
-      {
-        cells: [
-          { column: 'article', value: { kind: 'text', text: words.net } },
-          { column: 'amount', value: { kind: 'aggregate', aggregate: 'subtotal', over: 'report', format: EUR } },
-        ],
-      },
-      {
-        cells: [
-          { column: 'article', value: { kind: 'text', text: words.vat(billing.rate) } },
-          { column: 'amount', value: { kind: 'expression', expression: { cel: `round(totals.subtotal * dec("${share}"), 2)` }, format: EUR } },
-        ],
-      },
-      {
-        cells: [
-          { column: 'article', value: { kind: 'text', text: words.total } },
-          { column: 'amount', value: { kind: 'aggregate', aggregate: 'total', over: 'report', format: EUR } },
-        ],
-        style: 'grand',
-      },
-    ],
+    ...(totals === undefined ? {} : { totals }),
     emptyText: words.empty,
     repeatHeader: true,
   }
 }
 
+/** The rows under the table: its net amount, the tax at the country's rate, and the total. */
+function taxTotals(billing: EuroBilling, words: EuroWords, share: string): NonNullable<TableComponent['totals']> {
+  return [
+    {
+      cells: [
+        { column: 'article', value: { kind: 'text', text: words.net } },
+        { column: 'amount', value: { kind: 'aggregate', aggregate: 'subtotal', over: 'report', format: EUR } },
+      ],
+    },
+    {
+      cells: [
+        { column: 'article', value: { kind: 'text', text: words.vat(billing.rate) } },
+        { column: 'amount', value: { kind: 'expression', expression: { cel: `round(totals.subtotal * dec("${share}"), 2)` }, format: EUR } },
+      ],
+    },
+    {
+      cells: [
+        { column: 'article', value: { kind: 'text', text: words.total } },
+        { column: 'amount', value: { kind: 'aggregate', aggregate: 'total', over: 'report', format: EUR } },
+      ],
+      style: 'grand',
+    },
+  ]
+}
+
 /**
- * The payment details beside the code that pays the invoice. The heading
- * first and the code at the left of its details: in the design view a
- * container's label sits at its top end and a component's at its top
- * start, so a code at the top of a column at the right end would have its
- * label over the columns' and the block's, which neither a reader nor axe
- * could tell apart.
+ * The payment details beside the code that pays the invoice, the code
+ * asking for `amount` and the details printing it by `printed`. The
+ * heading first and the code at the left of its details: in the design
+ * view a container's label sits at its top end and a component's at its
+ * top start, so a code at the top of a column at the right end would have
+ * its label over the columns' and the block's, which neither a reader nor
+ * axe could tell apart.
  */
-function payment(billing: EuroBilling, words: EuroWords): ReportDefinition['regions']['summary'][number] {
+export function payment(billing: EuroBilling, words: EuroWords, amount: Expression, printed: Inline): Component {
   const { bank } = words
   const { firm, caption } = billing
   return {
@@ -226,7 +254,7 @@ function payment(billing: EuroBilling, words: EuroWords): ReportDefinition['regi
                 beneficiary: text(firm.name),
                 iban: text(billing.iban),
                 bic: text(billing.bic),
-                amount: { cel: 'totals.total' },
+                amount,
                 reference: [{ kind: 'field', field: header('reference') }],
                 information: [{ kind: 'text', text: words.information }, { kind: 'field', field: header('number') }],
                 // Last, and only where asked, so that a code without it keeps the keys and the JSON it had.
@@ -241,7 +269,7 @@ function payment(billing: EuroBilling, words: EuroWords): ReportDefinition['regi
               { id: 'paid-to', kind: 'text', content: text(`${bank.paidTo}${firm.name}`) },
               { id: 'paid-iban', kind: 'text', content: text(`${bank.iban}${billing.iban}`) },
               { id: 'paid-bic', kind: 'text', content: text(`${bank.bic}${billing.bic}`) },
-              { id: 'paid-amount', kind: 'text', content: [{ kind: 'text', text: bank.amount }, { kind: 'aggregate', aggregate: 'total', over: 'report', format: EUR }] },
+              { id: 'paid-amount', kind: 'text', content: [{ kind: 'text', text: bank.amount }, printed] },
               { id: 'paid-reference', kind: 'text', content: [{ kind: 'text', text: bank.reference }, { kind: 'field', field: header('reference') }] },
               { id: 'scan-gap', kind: 'spacer', height: 6 },
               { id: 'scan', kind: 'text', style: 'sender', content: text(bank.scan) },
@@ -274,7 +302,7 @@ function summary(billing: EuroBilling, words: EuroWords): ReportDefinition['regi
           { id: notice.id, kind: 'text', content: text(notice.text) },
         ] as const),
     { id: 'payment-gap', kind: 'spacer', height: 18 },
-    payment(billing, words),
+    payment(billing, words, { cel: 'totals.total' }, { kind: 'aggregate', aggregate: 'total', over: 'report', format: EUR }),
   ]
 }
 
@@ -286,8 +314,8 @@ function report(billing: EuroBilling, words: EuroWords): ReportDefinition {
     id: billing.id,
     title: words.title,
     locale: billing.locale,
-    page: { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 56.69, bottom: 56.69, left: 56.69 } },
-    styles: STYLES,
+    page: EURO_PAGE,
+    styles: EURO_STYLES,
     datasets: datasets(billing, words.labels),
     parameters: [],
     assets: [],
@@ -298,7 +326,7 @@ function report(billing: EuroBilling, words: EuroWords): ReportDefinition {
     regions: {
       pageHeader: [],
       reportHeader: reportHeader(billing, words),
-      body: [positions(billing, words, share)],
+      body: [positions(words, taxTotals(billing, words, share))],
       summary: summary(billing, words),
       pageFooter: [],
     },

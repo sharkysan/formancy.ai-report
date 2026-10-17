@@ -69,6 +69,15 @@ would anybody find out?" ([`CLAUDE.md`](../../CLAUDE.md)). So:
   nobody would find out until a bank refused a payment
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
   [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+- **An e-invoice's totals are computed once, for the page and its XML.**
+  The runtime computes them (`e-invoice-totals.ts`), the table prints the
+  very values each line was read as, the page reads the totals by name,
+  and the XML is written from the same values. A page that says another
+  VAT amount than its XML may be a further invoice under § 14c UStG, so
+  the two are one computation rather than two that agree. EN 16931's rules
+  are one set of functions in report-spec (`en16931.ts`), as the payment
+  codes' are, and the e-invoice's account is held by the EPC QR code's rule
+  ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 - **The builders render; the model decides.** Keys, drop targets, words and
   what is available are the editor model's, and each builder binds them in
   its own framework. The binding is written twice on purpose; the behaviour

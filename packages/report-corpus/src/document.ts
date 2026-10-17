@@ -24,6 +24,7 @@ export type {
   Block,
   Columns,
   ColumnSlot,
+  EInvoiceFile,
   EpcQrCode,
   Image,
   ImageAsset,

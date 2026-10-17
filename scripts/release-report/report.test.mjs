@@ -226,6 +226,73 @@ describe('the install gate', () => {
   })
 })
 
+describe('the e-invoice gate', () => {
+  const gate = (inputs) => job(inputs, 'e-invoice').eInvoice
+  // The only gate that runs the validators a receiver of an invoice runs: a
+  // run without its results, or whose results failed, shows nothing of the
+  // XML a final render writes.
+  test('fails the run when it left no results, or did not pass', () => {
+    expect(withDefect((inputs) => Object.assign(job(inputs, 'e-invoice'), { eInvoice: null, absent: [{ reader: 'e-invoice', file: 'test-results/e-invoice.json' }] }))).toEqual([
+      'e-invoice: expected and not found: test-results/e-invoice.json',
+      'the e-invoice gate left no results',
+    ])
+    expect(withDefect((inputs) => Object.assign(gate(inputs), { passed: false, problems: ['KoSIT exited 0, where it rejects one file per control and the corpus has 1'] }))).toEqual(['the e-invoice gate did not pass: KoSIT exited 0, where it rejects one file per control and the corpus has 1'])
+  })
+
+  // The gate's own `passed` is one flag its writer sets, and this does not
+  // rest on it: a file a tool judged otherwise than the corpus expects, a
+  // verdict missing, or a corpus without a sample or a control fails the
+  // run whatever the flag says.
+  test('fails the run when a file was judged otherwise than its corpus expects, though the gate says it passed', () => {
+    expect(withDefect((inputs) => (gate(inputs).kosit[1].verdict = 'not as expected'))).toEqual(['the e-invoice gate’s kosit judged control-br-27.xml otherwise than its corpus expects'])
+    expect(withDefect((inputs) => (gate(inputs).mustang = gate(inputs).mustang.slice(1)))).toEqual(['the e-invoice gate has no mustang verdict on e-invoice.xml'])
+    expect(withDefect((inputs) => (gate(inputs).corpus = gate(inputs).corpus.slice(1)))).toEqual(['the e-invoice gate judged no sample every tool must accept'])
+    expect(withDefect((inputs) => (gate(inputs).corpus = gate(inputs).corpus.slice(0, 1)))).toEqual(['the e-invoice gate made no control mustang must refuse', 'the e-invoice gate made no control kosit must refuse'])
+  })
+
+  // The tools are the register's, read by the report itself as the install
+  // plan is: a gate that ran another release, or other bytes under the
+  // pin's version, ran another oracle than the one this checkout names.
+  test('fails the run when it ran a tool other than docs/release/e-invoice-tools.json pins', () => {
+    expect(withDefect((inputs) => (gate(inputs).tools[0].version = '2.25.0'))).toEqual(['the e-invoice gate ran mustang 2.25.0, where docs/release/e-invoice-tools.json pins 2.26.0'])
+    expect(withDefect((inputs) => (gate(inputs).tools[1].sha256 = 'ff'.repeat(32)))).toEqual(['the e-invoice gate ran kosit 1.6.3 of other bytes than docs/release/e-invoice-tools.json pins'])
+    expect(withDefect((inputs) => gate(inputs).tools.pop())).toEqual(['the e-invoice gate recorded no xrechnung-configuration, which docs/release/e-invoice-tools.json pins'])
+  })
+
+  // The gate records the version each tool reported of itself -- Mustang
+  // in every report, KoSIT on its console -- beside the bytes it hashed
+  // after running them. A tool that reports another release than the pin,
+  // or no release at all, ran as another oracle, whatever its file's name
+  // says; the configuration reports none and is held by its bytes alone.
+  test('fails the run when a tool reported another version of itself, or none', () => {
+    expect(withDefect((inputs) => (gate(inputs).tools[0].reported = ['2.26.0', '2.25.0']))).toEqual(['the e-invoice gate’s mustang reported itself as 2.26.0, 2.25.0, where docs/release/e-invoice-tools.json pins 2.26.0'])
+    expect(withDefect((inputs) => (gate(inputs).tools[0].reported = []))).toEqual(['the e-invoice gate recorded no version mustang reported of itself, which docs/release/e-invoice-tools.json pins as 2.26.0'])
+    expect(withDefect((inputs) => (gate(inputs).tools[1].reported = '1.6.2'))).toEqual(['the e-invoice gate’s kosit reported itself as 1.6.2, where docs/release/e-invoice-tools.json pins 1.6.3'])
+    expect(withDefect((inputs) => (gate(inputs).tools[1].reported = null))).toEqual(['the e-invoice gate recorded no version kosit reported of itself, which docs/release/e-invoice-tools.json pins as 1.6.3'])
+  })
+
+  // In CI the gate runs on the Java the register names, which
+  // actions/setup-java installs: one that ran on another would be judged
+  // on a JVM nobody pinned. A machine runs the Java it has, and the report
+  // shows it without holding it.
+  test('fails a CI run whose gate ran on a Java of another major version than the register names, and shows a machine’s', () => {
+    expect(ciDefect((inputs) => (ciJob(inputs, 'e-invoice').eInvoice.java = { version: '21.0.9', major: 21 }))).toEqual(['the e-invoice gate ran on Java 21, where docs/release/e-invoice-tools.json has CI run it on Eclipse Temurin 17'])
+    expect(withDefect((inputs) => (gate(inputs).java = { version: '25.0.4.1', major: 25 }))).toEqual([])
+  })
+
+  // A local report may say it did not run the gate, which needs a Java; it
+  // says so in its banner, and only what it allows is left out.
+  test('is allowed missing locally, and only when the report says so', () => {
+    const without = (allowMissing) =>
+      withDefect((inputs) => {
+        Object.assign(job(inputs, 'e-invoice'), { eInvoice: null, absent: [{ reader: 'e-invoice', file: 'test-results/e-invoice.json' }] })
+        inputs.allowMissing = allowMissing
+      })
+    expect(without(['e-invoice'])).toEqual([])
+    expect(without(['install'])).toEqual(['e-invoice: expected and not found: test-results/e-invoice.json', 'the e-invoice gate left no results'])
+  })
+})
+
 describe('the browser gate', () => {
   const gate = (inputs) => job(inputs, 'browser').browserGates[0]
   const G3 = 'gate G3: its evidence did not pass in this run: the browser gate of apps/studio did not pass'
@@ -482,10 +549,10 @@ describe('a local report', () => {
   // to the run (artefacts.mjs); this holds a local report to one.
   test('fails when its results are of more than one commit or run, or hold one key twice', () => {
     expect(withDefect((inputs) => (job(inputs, 'install').commit = 'decaf'))).toEqual([
-      'the results are of 2 commits, where a report is of one: c0ffee (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus, browser); decaf (install)',
+      'the results are of 2 commits, where a report is of one: c0ffee (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus, browser, e-invoice); decaf (install)',
     ])
     expect(withDefect((inputs) => (job(inputs, 'install').run.id = null))).toEqual([
-      'the results are of 2 runs, where a report is of one: run 42 (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus, browser); a machine (install)',
+      'the results are of 2 runs, where a report is of one: run 42 (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus, browser, e-invoice); a machine (install)',
     ])
     expect(withDefect((inputs) => inputs.results.push(structuredClone(job(inputs, 'verify'))))).toEqual(['the results hold verify 2 times, where a run leaves each key once'])
   })
@@ -504,7 +571,7 @@ describe('a green CI run', () => {
     const report = buildReport(greenCiRun())
     expect(report.problems).toEqual([])
     expect(report.subject).toMatchObject({ version: '0.1.0', release: null, commit: 'c0ffee', run: { id: '42' } })
-    expect(report.subject.jobs.map((entry) => entry.key)).toEqual(['verify', 'test-report-spec', 'test-report-render-pdf', 'test-report-builder-react', 'test-report-corpus', 'browser', 'install'])
+    expect(report.subject.jobs.map((entry) => entry.key)).toEqual(['verify', 'test-report-spec', 'test-report-render-pdf', 'test-report-builder-react', 'test-report-corpus', 'browser', 'install', 'e-invoice'])
   })
 })
 

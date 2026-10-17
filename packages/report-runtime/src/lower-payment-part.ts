@@ -21,8 +21,10 @@
  * - **The amount** is a decimal, or null for the payer to fill in. Any
  *   other value is refused by its type, and a decimal is written with its
  *   own digits, never rounded: one with more than two places is refused.
+ * - **Printed with an e-invoice**, it asks for the amount due and to be
+ *   paid to the e-invoice's account (`e-invoice-payable.ts`).
  */
-import { decimalToString } from '@formancy/expressions'
+import { decimalFromString, decimalToString } from '@formancy/expressions'
 import {
   checkQrBillAccount,
   checkQrBillAdditionalInformation,
@@ -36,6 +38,7 @@ import {
 } from '@formancy/report-spec'
 import type { Expression, Inline, PaymentPart, PaymentPartKind, QrBillAddress, QrBillCheck, QrBillTextRule, SwissQrBill } from '@formancy/report-spec'
 import type { QrBill } from './document.js'
+import { checkPayable } from './e-invoice-payable.js'
 import { joinedText } from './inlines.js'
 import type { Encoder } from './inlines.js'
 import { qrBillPart } from './qr-bill.js'
@@ -110,6 +113,10 @@ function swissQrBill(lowering: Lowering, bill: SwissQrBill): QrBill | undefined 
   // What two texts break together, each already held to its own rules.
   const together = message === undefined || billing === undefined ? undefined : checkQrBillAdditionalInformation(message, billing)
   if (together !== undefined) refuse(lowering, `${PATH}/message`, together)
+  if (account !== undefined && sum !== undefined) {
+    const asked = { said: PART.said, code: 'the QR-bill', amountPath: `${PATH}/amount`, accountPath: `${PATH}/account` }
+    checkPayable(lowering.render, asked, sum === null ? null : decimalFromString(sum), account.iban)
+  }
   const pairing = account === undefined || reference === undefined ? [] : qrBillPairing(account.qrIban ? 'qrIban' : 'iban', reference?.type ?? 'NON', bill.currency)
   for (const { field, rule } of pairing) refuse(lowering, `${PATH}/${field}`, rule)
   if (together !== undefined || pairing.length > 0) return undefined

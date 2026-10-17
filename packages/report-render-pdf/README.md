@@ -140,7 +140,7 @@ Every block of the resolved document:
 | `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below). |
 | `invalid-asset` | An image's bytes are not the PNG or JPEG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side. |
 | `cancelled` | The signal was aborted. |
-| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below). |
+| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice, which this release does not draw (below). |
 
 ## QR codes
 
@@ -292,6 +292,23 @@ What the slip does not do:
   `QR_BILL_SIZE` at `QR_BILL_TOP`. The renderer decides only what drawing
   decides: the lines an address and the additional information print,
   each section's height, an amount's printed form, and the code's 997.
+
+## E-invoices
+
+A document that carries an e-invoice, `document.eInvoice`, as
+[0027](../../docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md) decides, is refused as
+`unsupported`, naming `eInvoice`, in either entry, and pdfmake never sees
+it. An e-invoice is drawn as a PDF/A-3 with its XML embedded, which this
+release does not write; and in Germany the XML a hybrid invoice embeds is
+the invoice, so a plain PDF of one would be a picture of the invoice
+handed over as though it were the invoice. A preview is drawn: the runtime
+writes the XML only in a final render, and a preview carries none.
+
+One whose XML is not text, or whose file name, conformance level or
+relationship is not report-spec's (`FACTUR_X`, `FACTUR_X_PROFILES`,
+handed on by the runtime), is refused for that first, so that it stays
+refused once e-invoices are drawn. A refusal never quotes the XML, which
+holds names, accounts and VAT identifiers.
 
 ## Fonts
 

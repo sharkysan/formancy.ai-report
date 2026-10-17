@@ -1,0 +1,5 @@
+[Fatal Error] :270:1: XML document structures must start and end within the same entity.
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - No XML part provided
+[main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Fatal Error 8: File does not look like PDF nor XML (contains neither %PDF nor <?xml)
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - File does not look like PDF nor XML (contains neither %PDF nor <?xml)
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:null Profile:null Version:null Took:100ms Errors:[8] ErrorIDs: []

@@ -1,0 +1,32 @@
+KoSIT Validator version 1.6.3
+Loading scenarios from  file:///{repository}/.e-invoice-cache/xrechnung-configuration/2026-08-31/unpacked/scenarios.xml
+Using repository  file:///{repository}/.e-invoice-cache/xrechnung-configuration/2026-08-31/unpacked/
+
+Loaded "Validator Configuration XRechnung 3.0.2" by Coordination Office for IT Standards (KoSIT) from 2026-09-02 
+The following scenarios are available:
+  * EN16931 XRechnung (UBL Invoice)
+  * EN16931 XRechnung Extension (UBL Invoice)
+  * EN16931 XRechnung CVD (UBL Invoice)
+  * EN16931 XRechnung (UBL CreditNote)
+  * EN16931 XRechnung CVD (UBL CreditNote)
+  * EN16931 XRechnung (CII)
+  * EN16931 XRechnung Extension (CII)
+  * EN16931 XRechnung CVD (CII)
+  * EN16931 (UBL Invoice)
+  * EN16931 (UBL CreditNote)
+  * EN16931 (CII)
+
+
+Processing of 9 objects started
+Processing of 9 objects completed in 722ms
+Results:
+[The results table is left out of the record: it names every file by its path, wrapping it across lines no replacement can follow, and each file’s report, recorded beside this, says what its row said.]
+Acceptable:  3  Rejected:  6  Processing errors:  1
+
+
+##############################
+#     Validation failed!     #
+##############################
+Error on line 270 column 1 of control-malformed.xml:
+  SXXP0003   Error reported by XML parser: XML document structures must start and end within
+  the same entity.

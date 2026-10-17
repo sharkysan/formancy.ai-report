@@ -47,6 +47,15 @@ export const RESOLVE_ERROR_CODES = [
    * breaks it, from the same rules.
    */
   'invalid-epc-qr-code',
+  /**
+   * An e-invoice a rule of EN 16931's breaks once its data has resolved it
+   * -- a text, a date, a line's term, a row with none -- or a payment code
+   * that asks for another amount or account than it names. The code
+   * report-spec gives a literal that breaks it, from the same rules.
+   */
+  'invalid-e-invoice',
+  /** A warning, never an error: a preview of an e-invoice, which writes no XML and is not the invoice. */
+  'e-invoice-preview',
   /** More errors were found than are listed. */
   'too-many-errors',
 ] as const
@@ -78,6 +87,11 @@ export function placed(place: { readonly componentId?: string | undefined; reado
     ...(place.columnId === undefined ? {} : { columnId: place.columnId }),
     ...(place.row === undefined ? {} : { row: place.row }),
   }
+}
+
+/** A type as a message says what a value is: "a decimal", "an integer". */
+export function aType(type: string): string {
+  return `${/^[aeiou]/.test(type) ? 'an' : 'a'} ${type}`
 }
 
 export function fromReport(error: ReportError): RuntimeError {

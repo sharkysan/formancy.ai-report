@@ -66,6 +66,7 @@ function workspace() {
   put(root, 'packages/report-corpus/dist/index.mjs', 'export {}\n')
   put(root, 'test-results/vitest.json', vitest(root, 'scripts/check-cla.test.mjs'))
   put(root, 'test-results/install.json', { startedAt: at(20), finishedAt: at(25), passed: true, node: 'v22.20.0', npm: '10.9.0', resolved: [], tarballs: [], consumers: [] })
+  put(root, 'test-results/e-invoice.json', { gate: 'e-invoice', startedAt: at(40), finishedAt: at(41), java: { version: '17.0.20.1', major: 17 }, tools: [], corpus: [], mustang: [], kosit: [], problems: [], passed: true })
   put(root, '.turbo/runs/one.json', { execution: { startTime: T0 - 5000 }, tasks: [{ taskId: '@formancy/report-spec#test:coverage', execution: { startTime: T0 - 4000, endTime: T0 + 9000 }, cache: { status: 'MISS' } }] })
   return root
 }
@@ -203,8 +204,30 @@ describe('the verify and install jobs’ results', () => {
   // results that look like a job with nothing to report.
   test('refuse a job it has no reader for', () => {
     expect(() => collect({ root: workspace(), job: 'container', ...machine })).toThrow(
-      'collect.mjs reads the verify, test, browser and install jobs, and has no reader for container: a job the report expects results from needs one here',
+      'collect.mjs reads the verify, test, browser, install and e-invoice jobs, and has no reader for container: a job the report expects results from needs one here',
     )
+  })
+})
+
+describe('the e-invoice job’s results', () => {
+  // The e-invoice gate writes its own results file however its run ends,
+  // and the report judges the gate from it; the job's results carry it
+  // under the job's own key. A gate that never wrote it -- the build failed
+  // before it ran -- is listed, so the report says what is missing rather
+  // than that there was nothing to judge.
+  test('keep the gate’s record, and list it when it left none', () => {
+    const root = workspace()
+    expect(collect({ root, job: 'e-invoice', ...machine })).toMatchObject({ key: 'e-invoice', job: 'e-invoice', suites: [], install: null, eInvoice: { passed: true, java: { major: 17 } }, absent: [], missing: [] })
+    rmSync(join(root, 'test-results/e-invoice.json'))
+    expect(collect({ root, job: 'e-invoice', ...machine })).toMatchObject({ eInvoice: null, absent: [{ reader: 'e-invoice', file: 'test-results/e-invoice.json' }], missing: [] })
+  })
+
+  // On a machine the file is whatever the gate's last run left.
+  test('are read on a machine too, and refused from before --since', () => {
+    expect(collect({ root: workspace(), local: true, since: at(-1), ...machine, env: {} }).eInvoice).toMatchObject({ passed: true })
+    const stale = collect({ root: workspace(), local: true, since: at(45), ...machine, env: {} })
+    expect(stale.eInvoice).toBeNull()
+    expect(stale.missing).toContain(`stale: test-results/e-invoice.json started ${at(40)}, before --since`)
   })
 })
 

@@ -8,9 +8,10 @@
  * finds nothing; that it holds every kind, `reportParts`' test holds. A
  * test breaks one thing in it and shows that exactly that is reported, and
  * a command test edits it and shows what changed and what did not.
+ * `eInvoiceSample` is that report as an e-invoice, for the same use.
  */
 import { validateReport } from '@formancy/report-spec'
-import type { FieldRef, ReportDefinition } from '@formancy/report-spec'
+import type { Component, DatasetContract, FacturXInvoice, FieldRef, Inline, ReportDefinition } from '@formancy/report-spec'
 import type { CommandOutcome, Refusal } from './outcome.js'
 
 const header = (field: string): FieldRef => ({ dataset: 'header', field })
@@ -292,12 +293,119 @@ const REPORT: ReportDefinition = {
   provenance: { kind: 'dataset', dataset: 'order-lines' },
 }
 
-/** A fresh, mutable copy of the sample report, checked valid. */
-export function sampleReport(): ReportDefinition {
-  const copy = JSON.parse(JSON.stringify(REPORT)) as ReportDefinition
+/** A fresh, mutable copy of `report`, checked valid. */
+function checked(report: ReportDefinition): ReportDefinition {
+  const copy = JSON.parse(JSON.stringify(report)) as ReportDefinition
   const outcome = validateReport(copy)
   if (!outcome.valid) throw new Error(`the sample report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path}`).join(', ')}`)
   return copy
+}
+
+/** A fresh, mutable copy of the sample report, checked valid. */
+export function sampleReport(): ReportDefinition {
+  return checked(REPORT)
+}
+
+/** Runs of one literal text. */
+const said = (text: string): readonly Inline[] => [{ kind: 'text', text }]
+
+/** A run that prints what `cel` gives. */
+const computed = (cel: string): Inline => ({ kind: 'expression', expression: { cel } })
+
+/**
+ * The sample's table as an e-invoice's lines, in two standard-rated
+ * categories, with an expression at every place the e-invoice holds one:
+ * its number, its dates, its paid amount, and the unit and the category
+ * of each line.
+ */
+const INVOICE: FacturXInvoice = {
+  kind: 'facturX',
+  profile: 'en16931',
+  type: '380',
+  currency: 'EUR',
+  number: [{ kind: 'text', text: 'RE-' }, computed('header.customer')],
+  issued: { cel: 'header.orderedOn' },
+  seller: {
+    name: said('Muster & Söhne GmbH'),
+    vatId: said('DE 123 456 789'),
+    address: { line1: said('Industriestraße 7'), postalCode: said('50735'), city: said('Köln'), country: said('DE') },
+  },
+  buyer: {
+    name: [{ kind: 'field', field: header('customer') }],
+    address: { line1: said('Ring 1'), postalCode: said('1010'), city: said('Wien'), country: said('AT') },
+  },
+  delivered: { cel: 'params.from' },
+  period: { start: { cel: 'params.from' }, end: { cel: 'header.orderedOn' } },
+  vat: [
+    { id: 'standard', code: 'S', rate: '19' },
+    { id: 'reduced', code: 'S', rate: '7' },
+  ],
+  lines: {
+    table: 'lines',
+    name: 'sku',
+    quantity: 'qty',
+    netPrice: 'price',
+    netAmount: 'amount',
+    id: { kind: 'field', field: detail('sku') },
+    unit: { kind: 'expression', expression: { cel: '"H87"' } },
+    vat: { kind: 'expression', expression: { cel: 'row.quantity > 10 ? "reduced" : "standard"' } },
+  },
+  payment: { means: '58', iban: said('DE71 1102 2033 0123 4567 89'), remittance: [{ kind: 'text', text: 'Rechnung ' }, computed('header.customer')] },
+  due: { cel: 'header.orderedOn' },
+  paid: { cel: 'params.threshold' },
+}
+
+/**
+ * What prints every total the e-invoice's XML holds, the reduced rate's
+ * only where a line is in it: a component of the summary each.
+ */
+const PRINTED_TOTALS: readonly Component[] = [
+  {
+    id: 'invoice-totals',
+    kind: 'text',
+    content: [
+      { kind: 'text', text: 'Netto ' },
+      computed('invoice.taxBasisTotal'),
+      { kind: 'text', text: ', 19 % auf ' },
+      computed('vatBasis.standard'),
+      { kind: 'text', text: ': ' },
+      computed('vatAmount.standard'),
+      { kind: 'text', text: ', MwSt. ' },
+      computed('invoice.taxTotal'),
+      { kind: 'text', text: ', brutto ' },
+      computed('invoice.grandTotal'),
+      { kind: 'text', text: ', bezahlt ' },
+      computed('invoice.paid'),
+      { kind: 'text', text: ', fällig ' },
+      computed('invoice.duePayable'),
+    ],
+  },
+  {
+    id: 'reduced-rate',
+    kind: 'text',
+    visibleWhen: { cel: 'vatAmount.reduced != null' },
+    content: [{ kind: 'text', text: '7 % auf ' }, computed('vatBasis.reduced'), { kind: 'text', text: ': ' }, computed('vatAmount.reduced')],
+  },
+]
+
+/**
+ * The sample as an e-invoice, checked valid: its table prints the lines,
+ * its EPC QR code asks for the amount due, and its summary ends with the
+ * totals. Without its QR-bill, which asks for francs to a QR-IBAN, and an
+ * e-invoice in euro to an IBAN refuses both; and its prices in euro, as
+ * the e-invoice is, where the sample reads their currency from the header,
+ * whose field it then drops. Every pointer into the rest is the sample's.
+ */
+export function eInvoiceSample(): ReportDefinition {
+  const { paymentPart: _bill, ...report } = REPORT
+  const summary = report.regions.summary.map((component) => (component.kind === 'epcQrCode' ? { ...component, amount: { cel: 'invoice.duePayable' } } : component))
+  const euro = { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } as const
+  const body = report.regions.body.map((component) =>
+    component.kind === 'table' ? { ...component, columns: component.columns.map((column) => (column.id === 'price' ? { ...column, value: { ...column.value, format: euro } } : column)) } : component,
+  ) as Component[]
+  const header = report.datasets.header as DatasetContract
+  const datasets = { ...report.datasets, header: { ...header, fields: header.fields.filter(({ id }) => id !== 'currency') } }
+  return checked({ ...report, datasets, regions: { ...report.regions, body, summary: [...summary, ...PRINTED_TOTALS] }, eInvoice: INVOICE })
 }
 
 /** `value`, every object and array in it frozen: a command that writes to its input throws on it. */

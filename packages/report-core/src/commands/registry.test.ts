@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest'
 import type { RefusalCode } from '../outcome.js'
 import { openReportSession } from '../session.js'
 import type { ReportSession } from '../session.js'
-import { accepted, frozenSample, refused, sampleReport } from '../test-support.js'
+import { accepted, eInvoiceSample, frozenSample, refused, sampleReport } from '../test-support.js'
 import * as components from './components.js'
 import * as declarations from './declarations.js'
 import * as document from './document.js'
@@ -11,9 +11,8 @@ import { ARGUMENTS, COMMANDS, describedCommand } from './registry.js'
 import type { CommandDescriptor, CommandName } from './registry.js'
 import * as table from './table.js'
 
-/** The sample, with a style and an asset nothing uses, so that removing one is an edit the validator accepts. */
-function base(): ReportDefinition {
-  const report = sampleReport()
+/** `report` -- the sample unless another is given -- with a style and an asset nothing uses, so that removing one is an edit the validator accepts. */
+function base(report: ReportDefinition = sampleReport()): ReportDefinition {
   return {
     ...report,
     styles: [...report.styles, { id: 'spare', italic: true }],
@@ -21,8 +20,8 @@ function base(): ReportDefinition {
   }
 }
 
-function open(): ReportSession {
-  const opening = openReportSession(base())
+function open(report?: ReportDefinition): ReportSession {
+  const opening = openReportSession(base(report))
   if (!opening.ok) throw new Error('the base report did not open')
   return opening.session
 }
@@ -100,6 +99,29 @@ describe('the payment part', () => {
     expect(before).toBeDefined()
     session.apply(descriptor)
     expect(session.document().paymentPart).toBe(before)
+  })
+})
+
+describe('the e-invoice', () => {
+  /** Each example, run on the e-invoice sample: a replacement is that sample, renamed. */
+  const examples = DESCRIPTORS.map((descriptor): CommandDescriptor => (descriptor.command === 'replaceDocument' ? { command: 'replaceDocument', args: [{ ...eInvoiceSample(), title: 'Pasted' }] } : descriptor))
+
+  /** What refuses an example on the e-invoice sample besides what refuses it on `base()`: its lines are printed by the column the example removes. */
+  const REFUSED: { readonly [N in CommandName]?: RefusalCode } = { removeDataset: 'invalid-document', removeColumn: 'invalid-document' }
+
+  // No command edits the e-invoice yet, and none may drop or change it:
+  // an edit to a title that lost the report's e-invoice would render a
+  // page whose XML is gone, and say nothing. Every command, run on a
+  // report that is one, is the edit its example is, refused only where
+  // the e-invoice's lines need what it removes, and leaves the very
+  // e-invoice it found.
+  test.each(examples)('$command keeps it as it was', (descriptor) => {
+    const session = open(eInvoiceSample())
+    const before = session.document().eInvoice
+    expect(before).toBeDefined()
+    const outcome = session.apply(descriptor)
+    expect(outcome.ok ? 'accepted' : outcome.code).toBe(REFUSED[descriptor.command] ?? 'accepted')
+    expect(session.document().eInvoice).toBe(before)
   })
 })
 

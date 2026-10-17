@@ -2,6 +2,7 @@ import { RenderRefusal, type Block, type Columns, type EpcQrCode, type Image, ty
 import { checkImageAsset, MAX_IMAGE_DATA, type Pixels } from './assets.js'
 import { frameOf, RULE_GAP } from './content.js'
 import { epcSymbol } from './epc.js'
+import { refuseEInvoice } from './e-invoice.js'
 import { codePoint, faceOf, missingGlyph, type Glyphs } from './glyphs.js'
 import { qrSymbol, type QrSymbol } from './qr.js'
 import { COLOR, FONTS, LINE_FACTOR } from './style.js'
@@ -11,8 +12,9 @@ import { fillWidth, fixedWidth } from './widths.js'
 /**
  * What the renderer refuses before pdfmake sees the document: what pdfmake
  * cannot print, what is malformed, what stands where it cannot be laid out,
- * what is wider than where it stands, and text with a character the face
- * it prints in has no glyph for (`glyphs.ts`). Every refusal names where the
+ * what is wider than where it stands, text with a character the face it
+ * prints in has no glyph for (`glyphs.ts`), and an e-invoice, which this
+ * release does not draw (`e-invoice.ts`). Every refusal names where the
  * problem is -- `body[2].blocks[0]`, a table's id, an asset's id -- and none
  * of them is a partial render: a document that is refused has drawn nothing.
  *
@@ -106,6 +108,8 @@ export async function checkDocument(document: ResolvedDocument, glyphs: Glyphs):
   if (Number.isNaN(creationDate.getTime())) throw new RenderRefusal('unsupported', `the creation date '${document.info.creationDate}' is not a date`, 'info.creationDate')
   // The title goes into the PDF's metadata, never onto a page, so it is held to being text and not to the font.
   if (typeof document.info.title !== 'string') throw new RenderRefusal('unsupported', 'the title is not text', 'info.title')
+  // An e-invoice is drawn as a PDF/A-3, which this release does not write: refused, never drawn as a plain PDF (`e-invoice.ts`).
+  if (document.eInvoice !== undefined) refuseEInvoice(document.eInvoice)
   const page = pageOf(document.page)
   const walk: Walk = { glyphs, paths: new Map(), images: [], codes: new Map(), captioned: false, tall: [], measured: [] }
   const top: Omit<Place, 'region'> = { kept: false, column: false, width: page.width, inset: 0, depth: 0 }

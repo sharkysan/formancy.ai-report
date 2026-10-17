@@ -1,6 +1,6 @@
 # 0010 — The runtime resolves a report into a renderer-neutral document, exactly, or refuses it
 
-- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too, and by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which writes an EPC QR code's payload and refuses one the EPC's rules refuse
+- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which writes an EPC QR code's payload and refuses one the EPC's rules refuse, and by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which computes an e-invoice's totals once for the page and its XML, writes the XML, and refuses one EN 16931's rules refuse
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-runtime`, run by its
@@ -202,6 +202,32 @@ And one of its own: an optional text the data gives empty, blank or null
 leaves its element unused, in a final render as in a preview, where a
 blank literal one is refused by the validator.
 `lower-epc-qr-code.test.ts` holds it.
+
+**Added 2026-10-17: an e-invoice.** The document gains `eInvoice`, the
+file a PDF embeds, as [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)
+decides: the CII XML of a Factur-X invoice, which the runtime writes, and
+the name, the relationship and the conformance level report-spec gives it,
+so that the renderer decides none of them. Two of this record's rules
+gain a stage between them. **The totals are computed once**: after the
+table's named columns are read, once a row, and before anything that
+reads a total is lowered, `e-invoice-totals.ts` computes EN 16931's
+totals and VAT breakdown in `Decimal`, each category's VAT rounded once,
+half away from zero, and binds them as `invoice`, `vatBasis` and
+`vatAmount`; the table prints the very value read for the XML, and the
+XML is written from the very totals the page reads. **A preview is
+labelled always**: a preview of an e-invoice writes no XML and warns
+`e-invoice-preview`, so every page carries a label, complete data or not,
+`E_INVOICE_PREVIEW_LABEL` where nothing else is lacking and
+`PREVIEW_LABEL` where data is. Each text, date and line term is held to
+report-spec's EN 16931 rules once the data has resolved it, as
+`invalid-e-invoice`, never quoting the value; a table of no rows is
+refused in a final render, and a QR-bill or an EPC QR code printed with
+it asks for the amount due and the e-invoice's account. A line's net
+amount and a paid amount are whole cents, never rounded. The XML has no
+bound of its own: `MAX_DETAIL_ROWS` bounds it, and 0027 records what that
+costs. `e-invoice-totals.test.ts`, `e-invoice-lines.test.ts`,
+`e-invoice-terms.test.ts`, `lower-e-invoice.test.ts` and `cii.test.ts`
+hold it.
 
 ## Alternatives considered
 

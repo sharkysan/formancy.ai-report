@@ -53,7 +53,12 @@ if (resolution.ok) {
   resolved it (`resolve`, `invalid-epc-qr-code`): an IBAN, a BIC or none
   where the account needs one, a name, a reference, a text, an amount, or a
   payload past 331 bytes, named by the code, the field and the rule, never
-  by the value.
+  by the value;
+- an e-invoice that breaks one of EN 16931's rules once its data has
+  resolved it (`resolve`, `invalid-e-invoice`): a text, a date, a line's
+  term, a table of no rows in a final render, or a payment code that asks
+  for another amount or account than the e-invoice names, each named by
+  where it stands, its business term and its rule, never by the value.
 
 It never returns part of a document.
 
@@ -137,6 +142,66 @@ or null for the payer to fill in, written as short as it can be --
 with a third decimal is refused. The whole payload is at most 331 bytes in
 UTF-8, counted in bytes, not in characters.
 
+## An e-invoice
+
+A report's `eInvoice` (report-spec's, [0027](../../docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) resolves to the document's
+`eInvoice`: the CII XML of a Factur-X 1.09.2 / ZUGFeRD 2.5.2 invoice in the
+EN 16931 profile, and what the renderer embeds it as, `fileName`,
+`relationship` and `conformanceLevel`, report-spec's `FACTUR_X` and
+`FACTUR_X_PROFILES` [S].
+
+- **The lines are the table's.** Each row of the table the e-invoice names
+  is a line. The four columns it names -- the item, the quantity, the net
+  price and the net amount -- are read once for every row, before the
+  totals, and the table prints the value kept, so the page and the XML read
+  one evaluation of each line, in the order the table prints them. The
+  line's identifier, unit and VAT category are read from each row. A net
+  amount is refused unless it is its quantity times its net price, rounded
+  once to the cent, as EN 16931 defines it and Mustang recomputes it; a
+  line identifier unless no earlier line has it; and a quantity or a net
+  price that its column's format prints at fewer places than it has.
+- **The totals are computed once, here** (`e-invoice-totals.ts`), in
+  `Decimal`: the sum of the lines, each category's basis, its tax -- the
+  basis times the rate over 100, rounded once to two places, half away from
+  zero, per category and never per line -- the VAT, the total with it, and
+  the amount due: the total less what was paid. The page reads them as
+  `invoice`, `vatBasis` and `vatAmount`, the very values the XML is written
+  from; a category no line is in is null, and has no breakdown in the XML.
+- **Every text is held to EN 16931's rules**, report-spec's functions, the
+  ones its validator applies to a literal, once the data has resolved it:
+  a code from its closed list, a VAT identifier's prefix, an IBAN and a
+  BIC, a day on the calendar, a net price not below zero, a net amount of
+  whole cents, never rounded, a category the invoice declares, a character
+  XML can hold, and no white space a token collapses in an identifier or a
+  code the XML writes as one. An optional text that prints nothing is left out; a needed one is
+  refused by the rule that needs it; one that prints something around a
+  null is refused as cut short. What only the whole says -- the seller's
+  and the buyer's identifiers, the time of supply, an exempt category's
+  reason -- is said of the categories the lines are in.
+- **A payment code printed with it** -- the QR-bill, an EPC QR code -- asks
+  for the amount due, or leaves the amount to the payer, and to be paid to
+  the e-invoice's account, compared by value once both have resolved.
+- **The XML** is written one way (`xml.ts`, `cii.ts`, `cii-parties.ts`):
+  its declaration, no byte order mark, a line feed after each line, two
+  spaces a level, each element in the profile XSD's order at the path
+  CEN's binding gives its term, amounts at two places from their own
+  digits, dates as format 102. Text is escaped, a carriage return as a
+  reference so that a parser gives it back; a character XML 1.0 cannot hold
+  is refused where it is read. The same report and data are the same
+  bytes.
+- **A preview is not the invoice.** It prints the totals of what it has,
+  takes a term it has no value for as one it lacks and holds what the data
+  does give to the rules; it writes no XML, warns `e-invoice-preview`, and
+  labels every page, `E_INVOICE_PREVIEW_LABEL` where nothing else is
+  lacking and `PREVIEW_LABEL` where data is.
+
+At `MAX_DETAIL_ROWS` the XML is large: 100,000 lines of short names wrote
+117,280,919 bytes, 1,173 a line, and `resolveReport` took a median of 5.4
+seconds, against 2.0 for the same report and rows without the e-invoice;
+10,000 lines wrote 11,710,910 bytes in a median of 0.44 seconds, against
+0.23 (five runs each, from the built package, Node 24.21.0, an Intel
+i9-10900K, 17 October 2026). The e-invoice has no bound of its own yet.
+
 ## What else is exported
 
 Each stage is exported for a host or a tool that needs one alone:
@@ -156,9 +221,12 @@ version the EPC allows; `qrSymbolModules`
 and `epcModule`, the modules a symbol has and the side of one in a square;
 and `EPC_FRAME`, `EPC_CAPTION`, `EPC_CAPTION_MODULE`, `epcLeastVersion`
 and `epcCaptionBreak`, Austria's frame and caption, the modules' widths
-they are printed at and the least version that prints them. An
-engine depends on the runtime alone, and draws and refuses by the one
-decision the editor refuses by.
+they are printed at and the least version that prints them. And of how an
+e-invoice is embedded: `FACTUR_X`, the file's name and media type and the
+XMP's namespace, prefix, document type and version, and
+`FACTUR_X_PROFILES`, each profile's specification identifier,
+conformance level and relationship [S]. An engine depends on the runtime
+alone, and draws and refuses by the one decision the editor refuses by.
 
 ## What it does not do
 
@@ -169,6 +237,9 @@ decision the editor refuses by.
 - **Format with one engine's results everywhere.** Grouping marks, month
   names and currency symbols are the engine's ICU's, so the same report can
   print differently on two engines.
+- **Embed an e-invoice, or make a PDF/A.** It writes the XML and names the
+  file; the engine is to embed it, and this release's refuses every
+  e-invoice instead, as `eInvoice` above says.
 - **Encode a QR code.** It hands the engine the text a QR code's content
   prints, formatted as a paragraph with the same content prints it, and a
   QR-bill's and an EPC QR code's payloads; the engine encodes and draws

@@ -33,11 +33,12 @@ either.
 `reportSpecVersion` is `'0'`, and nothing written under it is promised to a
 later release: a report written now may need re-authoring or migrating when
 the format freezes. The additions since 0.1.0 — the QR code, the payment
-part and the EPC QR code — went into the same draft version, and 0.1.0
-refuses a report that uses any of them, whole
+part, the EPC QR code and the e-invoice — went into the same draft version,
+and 0.1.0 refuses a report that uses any of them, whole
 ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md),
 [0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md),
-[0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+[0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
+[0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 
 ### The renderer leans on pdfmake's defaults and internals
 
@@ -88,9 +89,31 @@ day's table gave it, and sell parts because a home's maintenance takes a
 reduced rate in some of their countries; they print the mentions France's
 administration asks of a company's invoice, and not those the other
 countries' laws may ask. None is an e-invoice, and the Italian says it is a
-courtesy copy of one. Nothing reads a rate or a law again, and none of it
-is a tax adviser's reading
-([0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+courtesy copy of one. The e-invoice samples' German law -- firewood at 7 %,
+heating installed for a builder reverse-charged, an instalment's interest
+exempt -- was read once in the UStG and not in the UStAE, and they do not
+claim that a given case is so. Nothing reads a rate or a law again, and
+none of it is a tax adviser's reading
+([0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
+[0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+
+### An e-invoice rests on readings, and on two validators
+
+The Factur-X 1.09.2 / ZUGFeRD 2.5.2 specification sits behind a
+registration nobody here has made: what a Factur-X PDF says of its XML,
+the relationship, the conformance level and the XMP's values, rests on a
+transcription of it, and the release's XSD and schematron on Mustang's
+copies of FeRD's. report-spec's rules follow CEN's artefacts 1.3.17, and
+the pinned tools run 1.3.16, so where the two differ the tools decide, and
+a rule renamed in a later release fails the gate until the ids are read
+again. The e-invoice is made for Germany: France's XP Z12-012 was not read,
+and no French platform's acceptance of the file is known. Its codes come
+from lists narrower than CEN's, which are the rightsholder's to widen, and
+whether copying them out of CEN's EUPL-1.2 artefacts is acceptable is the
+rightsholder's question. Nothing checks that what an invoice states is
+right: a wrong rate, a wrong exemption reason or another seller's VAT
+identifier passes every rule
+([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 
 ### Codes nobody scanned, and bills nobody paid
 
@@ -155,13 +178,19 @@ its own.
 | **No viewer to install** | Publishing one waits for a reviewed exception for `pdfjs-dist`'s fonts, or a viewer that leaves PDF.js to the host ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)) | A host shows the PDF with a viewer of its own |
 | **A label over a label in the design view** | A container's label sits at its top end and a component's at its top start, so a component at the top of a narrow column at a container's right end has its label printed over the container's. The euro invoice's code first stood so, and the browser gate's axe could not tell the colour behind the labels ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) | The starter was laid out otherwise; nothing keeps an author from the layout it left |
 | **Two picture manifests** | The browser gate holds `pictures.json` to the starters the picker offers, and the samples are not starters ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)) | A third list of pictures is a third manifest, or a change to the gate |
+| **An e-invoice is written, not drawn** | The PDF/A-3 that embeds the XML is the next step, and until it lands the renderer refuses every e-invoice rather than draw it as a plain PDF ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) | A final render's XML stays in the resolved document and no PDF carries it. A renderer that predates `eInvoice`, 0.1.0's among them, would draw a resolved e-invoice as a plain PDF, which only two runtimes in one install could hand it, since the packages pin each other exactly |
+| **An e-invoice is written in the definition** | Neither builder edits one, and every command keeps it as it was (`report-core/src/commands/registry.test.ts`); the Studio offers none of the corpus's e-invoice samples (0027) | An author writes the block, its lines' named columns and its VAT categories by hand |
+| **Every host carries the e-invoice** | `validateReport` reads an e-invoice in every report, and the runtime imports its writer statically (0027) | Bundled minified from each package's source, report-spec, report-core and report-runtime grew from 145,932 to 194,092 bytes, measured with esbuild 0.28.2 on 17 October 2026, whether a host's reports have an e-invoice or not |
+| **The XML has no bound of its own** | It is written before a page is counted, so only `MAX_DETAIL_ROWS` bounds it; a bound of its own is the rightsholder's to choose (0027) | At 100,000 lines the XML held 117,280,919 bytes, and resolving took a median of 5.4 s against 2.0 s without it, over five runs from the built package on Node 24.21.0 and an Intel i9-10900K on 17 October 2026 |
 | **Liberation Sans, twice in the package** | The Node entry reads TrueType files and the browser entry imports them as base64, for the slip and for an EPC QR code's caption ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) | The renderer's tarball went from 268,045 bytes unpacked at 0.1.0 to 2,307,611, as `npm pack --dry-run` reported on 17 October 2026 |
 
 ## 11.4 Planned, and not built
 
-From the README and the open release gates, and nothing more: the server
-and its jobs, storage and publication; reviewed AI changes, whose groundwork
-is commands as data ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md));
+From the README and the open release gates, and nothing more: the PDF/A-3
+an e-invoice is drawn as, which embeds the XML the runtime writes
+([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md));
+the server and its jobs, storage and publication; reviewed AI changes,
+whose groundwork is commands as data ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md));
 a published PDF viewer; and a consistent read from Formancy Data, which
 waits for Data's snapshot export. The format's own plan names positioned
 elements in the page header and footer

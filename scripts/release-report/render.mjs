@@ -130,6 +130,7 @@ const METHOD = [
     '`scripts/release-report/tested-on.mjs` over the checkout -- the published manifests, what is installed, `pnpm-workspace.yaml`’s catalog, every workflow’s `setup-node`, and playwright-core’s `browsers.json` for the build Playwright pins -- the install gate’s `test-results/install.json` for what a clean install resolved and what each host installed, and each browser gate’s and pictures’ check’s own record of the browser it launched',
   ],
   ['Results', 'each package’s `test-results/vitest.json` and `coverage/coverage-summary.json`, turbo’s run summary (`--summarize`), the repository guards’ `test-results/vitest.json`, and the install gate’s `test-results/install.json`'],
+  ['E-invoice gate', '`test-results/e-invoice.json`, which `scripts/e-invoice.mjs` writes however its run ends, held to the tools `docs/release/e-invoice-tools.json` pins'],
   ['Browser', 'each app’s `test-results/browser-<browser>.json`, which its browser gate writes however it ends, for every browser of `scripts/browsers.mjs`, and its `test-results/pictures.json`, which its pictures’ check writes however it ends, held to the scenes `scripts/pictures/scenes.json` gives the app'],
   ['Build identity', '`scripts/release/dist-hash.mjs` over every published package’s `dist/` in every job, and over each tarball’s built files'],
   ['Release gates', '`docs/release/gates.json`, the report job’s `needs`, and `git log` for a document’s last change'],
@@ -217,6 +218,28 @@ function browserSection({ results }) {
   ].join('\n')
 }
 
+/** What the corpus expects of a file, as the e-invoice section says it. */
+const expected = (file) => (file.kind === 'sample' ? 'a sample, to accept' : 'a control, to refuse')
+
+/**
+ * The e-invoice gate: the Java and the tools it ran, and every file of its
+ * corpus with each tool's verdict on it.
+ */
+function eInvoiceSection({ results }) {
+  const gate = results.eInvoice
+  const tools = gate === null ? [] : gate.tools.map((tool) => `${tool.id} ${String(tool.version)}`)
+  return [
+    '## E-invoice gate',
+    '',
+    'Mustang and KoSIT’s validator, at the releases `docs/release/e-invoice-tools.json` pins, over the CII XML the runtime writes of each e-invoice sample of the corpus, and over controls broken one named way each, with Java’s HTTP and HTTPS proxies at a dead port; and report-spec’s code lists and rule ids held to the schematrons they run (`scripts/e-invoice.mjs`). A file a tool judged otherwise than the corpus expects, a tool other than the pin, or a list or a rule the schematrons do not hold fails the run.',
+    '',
+    gate === null
+      ? 'The e-invoice gate left no results in this run.'
+      : `The e-invoice gate ${gate.passed ? 'passed' : 'failed'} on Java ${String(gate.java?.version ?? 'that it did not record')}, with ${prose(tools) || 'no tool recorded'}, Mustang in ${String(gate.seconds?.mustang ?? '?')} s and KoSIT in ${String(gate.seconds?.kosit ?? '?')} s:`,
+    ...(gate === null ? [] : ['', table(['File', 'Is', 'Mustang', 'KoSIT'], gate.files.map((file) => [file.file, expected(file), file.mustang ?? 'not judged', file.kosit ?? 'not judged']))]),
+  ].join('\n')
+}
+
 const pct = (coverage) => (coverage === null ? '' : ['lines', 'branches', 'functions', 'statements'].map((metric) => (coverage[metric] === null ? '-' : String(coverage[metric]))).join(' / '))
 const yesNo = (value) => (value ? 'yes' : 'no')
 
@@ -284,7 +307,7 @@ function closingSection(report) {
 
 /** Every section after the subject. */
 export function renderContent(report) {
-  return [testedOnSection(report), resultsSection(report), browserSection(report), identitySection(report), gatesSection(report), closingSection(report)].join('\n\n')
+  return [testedOnSection(report), resultsSection(report), browserSection(report), eInvoiceSection(report), identitySection(report), gatesSection(report), closingSection(report)].join('\n\n')
 }
 
 /** What is being released, as the subject's first line says it. */
@@ -321,11 +344,11 @@ export function renderSummary(report, { section = null, link = null } = {}) {
   const packages = report.results.packages.filter((row) => row.present)
   const passed = packages.reduce((total, row) => total + row.passed, 0)
   const tests = packages.reduce((total, row) => total + row.tests, 0)
-  const { install } = report.results
+  const { install, eInvoice } = report.results
   return [
     ...(link === null ? [] : [`The full report of the run that gated this: ${link}`, '']),
     ...(section === null ? [] : [`The notes above are CHANGELOG.md’s ${code(section)} section.`, '']),
-    `${String(passed)} of ${String(tests)} tests passed across ${String(packages.length)} packages; the install gate ${install === null ? 'left no results' : install.passed ? 'passed' : 'failed'}.`,
+    `${String(passed)} of ${String(tests)} tests passed across ${String(packages.length)} packages; the install gate ${install === null ? 'left no results' : install.passed ? 'passed' : 'failed'}; the e-invoice gate ${eInvoice === null ? 'left no results' : eInvoice.passed ? 'passed' : 'failed'}.`,
     '',
     ...derivedLimitations(report).map((sentence) => `- ${sentence}`),
   ].join('\n')

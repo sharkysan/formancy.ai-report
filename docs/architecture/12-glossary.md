@@ -16,6 +16,8 @@ reasonably misread.
 | **Design view** | The builder's drawing of the page, for selecting and placing. It is not the PDF and says so: text heights are a rule of thumb and nothing is paginated |
 | **Diagnostic** | An error or a warning about a valid report. An error is what the runtime would refuse it for; a warning renders as written ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) |
 | **Editor** | What `createReportEditor` returns: one person's view of a session — the selection, the zoom, the open and hidden panes, a drag. Not the builder that draws it ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md), [0019](../decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md)) |
+| **E-invoice** | `eInvoice`: at most one EN 16931 invoice, at the report's own level and in no region, which a final render writes as Factur-X 1.09.2 / ZUGFeRD 2.5.2 CII XML, in the EN 16931 profile, from the values its page prints. Its lines are the rows of the table over the detail dataset. No PDF carries it yet: the renderer refuses it ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) |
+| **EN 16931** | The European standard for an e-invoice's content, its business terms (BT), groups (BG) and rules (BR), as CEN/TC 434's CII artefacts give them; CII is UN/CEFACT's Cross Industry Invoice, the XML it is written in (0027) |
 | **EPC QR code** | `epcQrCode`: the code a banking app initiates a SEPA credit transfer from, as the European Payments Council's guidelines, EPC069-12, define it. A component that stands wherever a QR code may, not a payment part; its payload is written by the runtime from texts held to report-spec's rules, and Austria's frame and caption are an option. The builders call it "EPC payment code" ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | **Final** and **preview** | The two modes of a render. A final render is the report and refuses what the data lacks; a preview prints what it has and, when it lacks anything, says so on every page ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | **Fixture** | A resolved document an engine must render or refuse, with what its PDF must show, derived from the document itself |
@@ -32,7 +34,7 @@ reasonably misread.
 | **Resolved document** | `ResolvedDocument`: a report after the runtime has read its data, every value the string it prints and every length a point. The renderer's only input ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | **Room** | formancy.ai's admin look, which the Studio wears: a dark bench, glass panels, violet for what the person acts on and teal for what the system did ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)) |
 | **Run** | One piece of a text's content, of one of report-spec's `INLINE_KINDS`: a literal, a bound field, a parameter, an expression, an aggregate, the page number or the page count |
-| **Sample** | One of the invoice's four editions in the corpus, in German, French, Italian and English. Not a starter: the Studio's picker does not offer the other three ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)) |
+| **Sample** | A report the corpus holds that the Studio's picker does not offer: the invoice in French, Italian and English beside its German starter ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)), the euro invoice from six more countries beside its German starter ([0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)), and the e-invoice's three (0027) |
 | **SEPA** | The Single Euro Payments Area: the countries and territories a SEPA credit transfer reaches, as the EPC's list EPC409-09 gives them, and which of them are in the EEA, the European Economic Area. `sepa.ts` is that list as one table, with each country's IBAN length; an EPC QR code pays an IBAN of one of them and of nowhere else ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | **Session** | What `openReportSession` returns: one report, its revision and its undo history, shared by every editor over it ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)) |
 | **Slip** | A QR-bill's receipt and payment part as SIX lays them out, 210 by 105 mm across the foot of the last page ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)) |
@@ -44,7 +46,7 @@ reasonably misread.
 ## Words used for two things
 
 **"Gate"** is three things, and the documents say which. A *job* of
-`gates.yml` — `verify`, `test`, `browser`, `install`, `report`; the
+`gates.yml` — `verify`, `test`, `browser`, `install`, `e-invoice`, `report`; the
 Studio's *browser gate*, a script that runs inside the `browser` job; and a
 *release gate*, G1 to G7, which a run's evidence passes or which stays open.
 

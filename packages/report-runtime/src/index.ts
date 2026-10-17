@@ -3,6 +3,7 @@ export type {
   Block,
   Columns,
   ColumnSlot,
+  EInvoiceFile,
   EpcQrCode,
   Image,
   ImageAsset,
@@ -43,7 +44,7 @@ export type { OrderedRow, OrderedTable, OrderKey, RowGroup } from './sort-group.
 export { CAPABILITIES, EVALUATION_ERROR_CODES, EXPRESSION_STEP_BUDGET, prepareExpressions, RENDER_STEP_BUDGET } from './evaluate.js'
 export type { ConditionEvaluation, Evaluation, EvaluationError, EvaluationErrorCode, ExpressionsPreparation, ReportExpressions } from './evaluate.js'
 
-export { resolveReport, PREVIEW_LABEL } from './resolve.js'
+export { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, resolveReport } from './resolve.js'
 export type { RenderManifest, Resolution, ResolveOptions } from './resolve.js'
 export { checkReport } from './report-check.js'
 export type { ReportCheck } from './report-check.js'
@@ -70,3 +71,12 @@ export type { QrBillPageBreak } from '@formancy/report-spec'
  */
 export { EPC_CAPTION, EPC_CAPTION_MODULE, EPC_FRAME, EPC_MAX_BYTES, EPC_MAX_VERSION, epcCaptionBreak, epcLeastVersion, epcModule, qrSymbolModules } from '@formancy/report-spec'
 export type { EpcCaption } from '@formancy/report-spec'
+/**
+ * What report-spec decides of how an e-invoice is embedded, handed on as
+ * the QR-bill's decisions are, so that an engine embeds and describes the
+ * file by the one decision [S]: its name and media type, the XMP
+ * extension's namespace and prefix, the document type and version it
+ * states, and each profile's conformance level and relationship.
+ */
+export { FACTUR_X, FACTUR_X_PROFILES } from '@formancy/report-spec'
+export type { FacturXProfileTerms } from '@formancy/report-spec'

@@ -1,6 +1,9 @@
 # 0028 — The euro invoice comes as samples from six countries of the euro, each selling parts at its country's standard VAT rate, and an EPC QR code page in each language shows them
 
-- **Status:** accepted
+- **Status:** accepted; extended by
+  [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
+  whose runtime writes an e-invoice's XML that no PDF carries yet, as this
+  record's page now says
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -443,6 +446,25 @@ from its two words.
 
 **What it forecloses.** Nothing that cannot be undone. The samples could
 become starters, and the page could gain a sample.
+
+**Added 2026-10-18: an e-invoice's XML.** Since
+[0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)
+the runtime writes the CII XML of a ZUGFeRD or Factur-X invoice in the EN
+16931 profile, made for Germany alone, in a final render of a report that
+carries one; the renderer refuses that render's document, so no PDF
+carries the XML, and draws its preview, which writes none and is labelled
+on every page as no e-invoice. "No e-invoice" above still holds of the
+euro invoice's samples, which carry none, and nothing here writes
+XRechnung or FatturaPA; of Formancy Report it no longer holds whole. As
+"A limit another change will outdate" asks, the page says so again: in
+each of its languages the sentence that says the PDF is no e-invoice now
+says too that Formancy Report's source already writes that XML, for
+Germany alone, and that nothing embeds it in a PDF yet, because the
+renderer refuses one. Nothing fails when those words go stale either.
+This record's register was read again and left as it was: its one line on
+e-invoices speaks of the samples, which carry none, and 0027's register
+says what an e-invoice costs. The change that draws the PDF/A-3 must say
+so again on the page and here.
 
 ## Alternatives considered
 

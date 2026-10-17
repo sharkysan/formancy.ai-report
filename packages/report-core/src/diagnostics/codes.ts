@@ -16,11 +16,11 @@ export const DIAGNOSTIC_SEVERITIES = {
   'expression-syntax': 'error',
   /** An expression past a structural limit of `@formancy/expressions`: too deep, too many nodes, too long a list. */
   'expression-limit': 'error',
-  /** An expression whose types do not meet, each member read as the type it is declared: an integer parameter added to a string, a decimal field compared with an integer, a decimal converted with dec() again; or a QR-bill's or an EPC QR code's amount that gives anything but a decimal or null. */
+  /** An expression whose types do not meet, each member read as the type it is declared: an integer parameter added to a string, a decimal field compared with an integer, a decimal converted with dec() again; a QR-bill's or an EPC QR code's amount that gives anything but a decimal or null; or an e-invoice's date, paid amount or line term that gives what its term is not. */
   'expression-type': 'error',
   /** An expression its place does not allow: a condition that is not a boolean, a function its kind forbids. */
   'expression-policy': 'error',
-  /** An expression that reads a name, or a member of one, that nothing declares, or a member of a single value. */
+  /** An expression that reads a name, or a member of one, that nothing declares, or a member of a single value; or an e-invoice's total where there is none, or where it is computed from. */
   'expression-unknown-name': 'error',
   /** An expression that reads `row` or `group` where there is no row or group. */
   'expression-out-of-scope': 'error',
@@ -42,6 +42,10 @@ export const DIAGNOSTIC_SEVERITIES = {
   'format-rounds-again': 'error',
   /** A rounding declared on an aggregate that computes an integer, a date or an instant, which have no places to round: the runtime refuses it. */
   'rounding-not-decimal': 'error',
+  /** A total an e-invoice's XML holds -- a document total, or a declared VAT category's basis or amount -- that no text or table of the page prints: the page would show another invoice than the one it carries. */
+  'e-invoice-total-unprinted': 'error',
+  /** A format that prints what an e-invoice's XML holds otherwise: a total or a line's net amount at fewer than two places, or in another currency than the e-invoice's; a line's net price in another currency; a line's name in another case. The page would show another invoice than the one it carries. */
+  'e-invoice-format-differs': 'error',
   /** A print style nothing uses. */
   'unused-style': 'warning',
   /** An asset nothing draws. */

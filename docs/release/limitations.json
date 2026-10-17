@@ -103,7 +103,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:665cc5cf98545009874afcbefd6ca813d95cf5da64da314a3bafa640352bfb3d",
+      "reviewed": "sha256:ca6c76df41554b654af567419a9a3663c182354f384ddd1d33c401880b8fcf85",
       "limitations": [
         {
           "area": "format",
@@ -172,7 +172,7 @@
       ]
     },
     "0009": {
-      "reviewed": "sha256:f461957988ff03265b83619ee7219e88e59e0c0848b7e2b3f6d2c96e4e4a28e9",
+      "reviewed": "sha256:8898dc29a5dc084076257f87b26d50700da475d294d066dad99f1f4dd1c13604",
       "limitations": [
         {
           "area": "runtime",
@@ -202,7 +202,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:41020fac0282ea732a83c799dd017a96e6b29298b1d2004564f8519df47f2a34",
+      "reviewed": "sha256:ce709d5a0b0683a27d1735eb351c782b005fe066c12111ca9e5dcf08584ef2b9",
       "limitations": [
         {
           "area": "runtime",
@@ -250,7 +250,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:8bbeeedd1649cfc3ea11fb5d3ebbcd432ab2aefa1c25089130d97ac15b15ebe5",
+      "reviewed": "sha256:f03d55d1ae5267210f97b7b6705359c60794f5411c022fb83a8d0a7a4cf958f3",
       "limitations": [
         {
           "area": "rendering",
@@ -332,7 +332,7 @@
       ]
     },
     "0014": {
-      "reviewed": "sha256:aae21ca229f7048def987a78f49015234abfdeadd631d67f3f220e83a1a90079",
+      "reviewed": "sha256:3d7bdfa99c62af30a0b1bb139cfadeb003ef584c563a1b453cc3a4458c6316a5",
       "limitations": [
         {
           "area": "release",
@@ -493,7 +493,7 @@
       ]
     },
     "0022": {
-      "reviewed": "sha256:5498b5195cd63daecd531a00d7ea6d59312f85fde124ad878993811310700856",
+      "reviewed": "sha256:65e38a9c9579ce20a0e7109998def2a4e6330e4f06200490a98df37dbe0c0867",
       "limitations": [
         {
           "area": "format",
@@ -623,7 +623,7 @@
       ]
     },
     "0025": {
-      "reviewed": "sha256:5aabd44b0f8153cd8c3b7fb2a530e3ed4182b97d54849a457cbc862046115489",
+      "reviewed": "sha256:52b59acf97e9ccfe73af7f9057109fb1e683bbfbca75acd583f80bf47e8d4bd0",
       "limitations": [
         {
           "area": "format",
@@ -729,8 +729,176 @@
       "reviewed": "sha256:dc98cada680c3e94dd7e1460382713b6e41d274e572061300b545fd95093cf85",
       "none": "It decides how the repository documents its architecture and what holds those documents in pnpm test:repo; its costs fall on a contributor's pull request, and nothing in a published package, a release or the Studio changes with it."
     },
+    "0027": {
+      "reviewed": "sha256:58deb068873c400446b338ddd6f3d0844cbebe116a53dccb877acd310d06b7e8",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A report with an e-invoice is refused whole by 0.1.0, as `unknown-property`, so a report saved with one opens only in a release that has it."
+        },
+        {
+          "area": "format",
+          "says": "An e-invoice is EN 16931's profile of Factur-X 1.09.2 / ZUGFeRD 2.5.2 alone, a commercial invoice (380) in euro with the VAT categories S, E and AE and no allowances or charges, so a credit note, another currency, a 0 % supply EN 16931 codes Z, an intra-EU supply, XRechnung and a structured Skonto cannot be invoiced, and a discount is written as a line of negative quantity at a positive price.",
+          "heldBy": "packages/report-spec/src/validate-e-invoice.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An e-invoice's units, countries, VAT prefixes and schemes come from closed lists that someone chose, narrower than CEN's and held to CEN's 1.3.17 and the pinned 1.3.16 lists on 17 October 2026, so a code CEN takes and the lists do not, a packaging unit, Northern Ireland's XI or a seller's country outside Europe, is refused.",
+          "heldBy": "packages/report-spec/src/en16931.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An e-invoice's lines are printed by four columns of the table over the detail dataset, its name, quantity, net price and net amount, none of which, nor the table, may be hidden, so an invoice that shows no unit price cannot be an e-invoice.",
+          "heldBy": "packages/report-spec/src/validate-e-invoice.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "The title of a report with an e-invoice cannot hold `&`, `<` or `>`, which its page can print.",
+          "heldBy": "packages/report-spec/src/validate-e-invoice.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An e-invoice's payment account and its BIC are held to the EPC QR code's IBAN and BIC rules for a credit transfer (30) as for a SEPA credit transfer (58), so a credit transfer to an account or a bank outside SEPA is refused.",
+          "heldBy": "packages/report-spec/src/en16931.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A standard rated VAT category's rate is 0.5 or more, since BR-CO-17 rounds a rate below it to 0 and then wants a tax that rounds to 0.",
+          "heldBy": "packages/report-spec/src/en16931.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "The seller's and the buyer's street, post code and city are needed, as § 14 Abs. 4 Satz 1 Nr. 1 UStG asks, where EN 16931 needs only the country, so an address without a post code cannot be written.",
+          "heldBy": "packages/report-spec/src/en16931.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An invoice number, a registration identifier, a post code, a BIC or a line's identifier holding a tab, a line break, two spaces in a row or a space at either end is refused, never trimmed, since the XML writes each as a token a schema-aware reader collapses, so data padded with blanks is refused.",
+          "heldBy": "packages/report-spec/src/en16931.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "Nothing checks that a payment code's BIC is an e-invoice's, an e-invoice's VAT identifiers past their country prefix, that a rate is the right one for a line, or that an exemption reason says what the law says, so an invoice wrong in what it states can pass every rule."
+        },
+        {
+          "area": "format",
+          "says": "An e-invoice is made for Germany: France's XP Z12-012 was not read, the buyer's SIREN is the only one of its four mandatory details the XML holds, and no French platform's acceptance of the file is known."
+        },
+        {
+          "area": "format",
+          "says": "What a Factur-X PDF says of its XML, the relationship `Alternative`, the conformance level and the XMP's namespace, prefix and values, rests on a transcription of the Factur-X 1.09.2 specification and not on the specification, whose registration nobody here has made, and the release's XSD and schematron are Mustang 2.26.0's copies of FeRD's, which sit behind the same registration."
+        },
+        {
+          "area": "editing",
+          "says": "In a report with an e-invoice the editing core refuses a page that prints none of a total the XML holds, or that prints a total or a line's net amount at fewer than two places or in another currency, a net price in another currency, or an item's name in another case, but sees only that a run reads a total and its format, not what else the run prints with it or whether its condition holds.",
+          "heldBy": "packages/report-core/src/diagnostics/e-invoice.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "An e-invoice's totals cannot be read in an aggregate, in the e-invoice's own texts or in the columns that print its lines, so its remittance information cannot quote the amount due.",
+          "heldBy": "packages/report-core/src/expressions/e-invoice.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "The editing core types an e-invoice's dates as text, so an expression that gives a string that is no date passes its diagnostics and is refused only when the report renders.",
+          "heldBy": "packages/report-runtime/src/e-invoice-terms.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Neither builder edits an e-invoice, which is written in the report's definition, and the Studio offers none of the corpus's e-invoice samples.",
+          "heldBy": "packages/report-corpus/src/starters/e-invoice.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "An e-invoice's VAT is rounded once per category, half away from zero, so an ERP that rounds each line's VAT may differ from it by up to half a cent a line.",
+          "heldBy": "packages/report-runtime/src/e-invoice-totals.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "An e-invoice's line net amounts and its paid amount are whole cents and never rounded, so a template rounds where it computes a line.",
+          "heldBy": "packages/report-spec/src/en16931.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "An e-invoice's line net amount is refused unless it is its quantity times its net price rounded once to the cent, in a preview too, so a price per hundred, a line discount or an amount rounded otherwise cannot be written.",
+          "heldBy": "packages/report-runtime/src/e-invoice-lines.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "An e-invoice's line identifier is refused where an earlier line has it, and a quantity or a net price where its column prints fewer places than the data gives, so an article number shared by two lines cannot be a line's identifier and a column cannot round what the XML holds.",
+          "heldBy": "packages/report-runtime/src/e-invoice-lines.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "Neither a due date nor payment terms is asked of an e-invoice with an amount due, which CEN's 1.3.15 refused as BR-CO-25 and its 1.3.16 does not, so a receiver that validates against 1.3.15 refuses such a file."
+        },
+        {
+          "area": "runtime",
+          "says": "A QR-bill printed with an e-invoice asks for euro, so one paid to a QR-IBAN with a QR reference, which SIX keeps for francs, cannot be printed with one.",
+          "heldBy": "packages/report-spec/src/validate-e-invoice.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "Every host that bundles report-spec, report-core and report-runtime carries the e-invoice's rules and writer, whether its reports have one or not: measured on 17 October 2026 with esbuild 0.28.2 from each package's source, they grew from 145,932 to 194,092 bytes minified and from 49,511 to 65,008 gzipped."
+        },
+        {
+          "area": "runtime",
+          "says": "A preview of an e-invoice writes no XML, warns that it writes none and labels every page, so only a final render writes the invoice.",
+          "heldBy": "packages/report-runtime/src/lower-e-invoice.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A QR-bill or an EPC QR code printed with an e-invoice is refused unless it asks for the amount due, or leaves the amount to the payer, and asks to be paid to the e-invoice's account.",
+          "heldBy": "packages/report-runtime/src/lower-e-invoice.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "An e-invoice with an invoicing period and no delivery date writes the delivery element the XSD requires empty, which Mustang's schematron warns of as PEPPOL-EN16931-R008.",
+          "heldBy": "packages/report-runtime/src/cii.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "An e-invoice's XML has no bound but the 100,000 detail rows a render reads at most: at that many lines it held 117,280,919 bytes, and resolving took a median of 5.4 s against 2.0 s without it, over five runs from the built package on Node 24.21.0 and an Intel i9-10900K on 17 October 2026."
+        },
+        {
+          "area": "rendering",
+          "says": "This release draws no e-invoice: the renderer refuses every document with one as `unsupported`, so a final render writes the XML into the resolved document and no PDF carries it.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A renderer that predates e-invoices, 0.1.0's among them, would draw a resolved e-invoice as a plain PDF, which only two runtimes in one install could hand it, since the packages pin each other exactly."
+        },
+        {
+          "area": "testing",
+          "says": "An e-invoice's page is held to its XML for the corpus's three samples alone, on the document the runtime resolved and on no PDF, and only those samples go through Mustang and KoSIT, so a customer's template is held by the rules and by the check that each total is printed.",
+          "heldBy": "packages/report-corpus/src/starters/e-invoice.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The e-invoice gate's Mustang 2.26.0 and KoSIT 1.6.3 run CEN's 1.3.16 artefacts, where report-spec's rules follow 1.3.17, and on 17 October 2026 the gate had run on Windows alone, on Zulu 25 and Temurin 17, never in CI, where the release report holds it to the register's Java major version and a machine's run is held to none."
+        },
+        {
+          "area": "testing",
+          "says": "The e-invoice gate needs a Java at least as new as each JAR's `java` in its register and about 70 MB of downloads, each pinned by its SHA-256, so a release of Mustang or KoSIT reaches the gate only through a change to its register.",
+          "heldBy": "scripts/e-invoice/registers.test.mjs"
+        },
+        {
+          "area": "licence",
+          "says": "The e-invoice's closed lists hold codes copied out of CEN/TC 434's EUPL-1.2 artefacts, and the gate's recorded KoSIT and Mustang reports quote CEN's rule texts, and whether either is acceptable under 0006 is the rightsholder's open question."
+        },
+        {
+          "area": "licence",
+          "says": "The e-invoice gate's downloads carry works under their own licences, Saxon, veraPDF under the GPL or the MPL, and CEN's EUPL-1.2 schematron, which run in CI, were not reviewed one by one, and no package carries."
+        },
+        {
+          "area": "licence",
+          "says": "The ZUGFeRD and Factur-X marks are AWV e.V.'s, and whether naming them, as the e-invoice samples' title and the code do, meets their owner's conditions has not been read."
+        }
+      ]
+    },
     "0028": {
-      "reviewed": "sha256:a91d68cb5e470303cac4552fc4c4e532e2457662baac54a6bc877c93292c2ea0",
+      "reviewed": "sha256:015a6d55799549b8ec3a63cbe4f407a0debbec82b9308868119da0ab48daf0b7",
       "limitations": [
         {
           "area": "release",

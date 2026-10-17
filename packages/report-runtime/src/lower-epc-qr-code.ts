@@ -35,11 +35,14 @@
  *   two places is refused.
  * - **The payload** is report-spec's `epcPayload` of the checked texts,
  *   held to the EPC's 331 bytes in UTF-8, which only the whole can break.
+ * - **Printed with an e-invoice**, it asks for the amount due and to be
+ *   paid to the e-invoice's account (`e-invoice-payable.ts`).
  */
-import { decimalToString } from '@formancy/expressions'
+import { decimalFromString, decimalToString } from '@formancy/expressions'
 import { checkEpcAmount, checkEpcField, checkEpcPayload, EPC_TEXT_FIELDS, epcBlank, epcPairing, epcPayload } from '@formancy/report-spec'
 import type { EpcQrCodeComponent, EpcTextField } from '@formancy/report-spec'
 import type { EpcQrCode } from './document.js'
+import { checkPayable } from './e-invoice-payable.js'
 import { joinedText } from './inlines.js'
 import type { Encoder } from './inlines.js'
 import { valueOf } from './render-context.js'
@@ -117,6 +120,10 @@ export function epcQrCodeBlock(render: Render, scope: Scope, code: EpcQrCodeComp
   // What the IBAN and the BIC break together, each already held to its own rules: a BIC that prints nothing is none.
   const pairing = epcPairing(iban?.text, bic === undefined ? undefined : bic.text === '' ? null : bic.text)
   for (const { field, rule } of pairing) refuse(lowering, `${path}/${field}`, `${rule}${bic?.lacking === true ? LACKED : ''}`)
+  if (iban !== undefined && sum !== undefined) {
+    const asked = { said: lowering.encoder.said, code: 'the EPC QR code', componentId: code.id, amountPath: `${path}/amount`, accountPath: `${path}/iban` }
+    checkPayable(render, asked, sum === '' ? null : decimalFromString(sum), iban.text)
+  }
   if (pairing.length > 0 || bic === undefined || beneficiary === undefined || iban === undefined || sum === undefined || reference === undefined || text === undefined || information === undefined) return undefined
   const payload = epcPayload({
     bic: bic.text,

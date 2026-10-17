@@ -3,7 +3,7 @@ import { RenderRefusal, type Block, type Columns, type EpcQrCode, type QrCode, t
 /**
  * What the document grew after the renderer trial, which neither trial
  * adapter draws: columns, sections, rectangles, QR codes and EPC QR codes,
- * a payment part, fonts but the sans, colour, rules of another weight or
+ * a payment part, an e-invoice to embed, fonts but the sans, colour, rules of another weight or
  * colour, and table rows and cells with styles of their own or running
  * across the table. Both adapters refuse it here, as `unsupported` and
  * naming where it stands, before they
@@ -28,10 +28,11 @@ export function isUndrawn(block: Block): block is Undrawn {
   return block.kind === 'columns' || block.kind === 'section' || block.kind === 'rectangle' || block.kind === 'qrCode' || block.kind === 'epcQrCode'
 }
 
-/** Refuses the first thing in `document` that neither trial adapter draws: a payment part, then what the page regions and the body hold. */
+/** Refuses the first thing in `document` that neither trial adapter draws: a payment part, an e-invoice, then what the page regions and the body hold. */
 export function refuseUndrawn(document: ResolvedDocument): void {
   const bill = document.paymentPart === undefined ? undefined : { message: 'the document has a payment part', subject: 'paymentPart' }
-  const problem = bill ?? problemIn(document.pageHeader, 'pageHeader') ?? problemIn(document.pageFooter, 'pageFooter') ?? problemIn(document.body, 'body')
+  const invoice = document.eInvoice === undefined ? undefined : { message: 'the document carries an e-invoice to embed', subject: 'eInvoice' }
+  const problem = bill ?? invoice ?? problemIn(document.pageHeader, 'pageHeader') ?? problemIn(document.pageFooter, 'pageFooter') ?? problemIn(document.body, 'body')
   if (problem !== undefined) throw new RenderRefusal('unsupported', `${problem.message}; the trial's document had no such thing, and neither trial adapter draws it`, problem.subject)
 }
 

@@ -44,7 +44,15 @@ if (!outcome.valid) {
   and a text together, a BIC its IBAN does not go with or none where one is
   needed, literal texts already past 331 bytes, or, with Austria's caption,
   a size in which no version prints the modules the PSA allows with a
-  symbol as tall as the caption beside it.
+  symbol as tall as the caption beside it;
+- an e-invoice that EN 16931's rules, or this version's narrower ones,
+  refuse where it is written (`invalid-e-invoice`), each refusal naming the
+  business term and the rule: a literal text, code or rate that breaks its
+  rule; parties, a time of supply, a period or VAT categories that cannot
+  make a valid invoice; lines that are not what the table over the detail
+  dataset prints; a QR-bill or an EPC QR code that asks to be paid to
+  another account, or a QR-bill in another currency; or a title holding
+  `&`, `<` or `>`.
 
 A message names the field and the rule, and never quotes a payment code's
 text. It reports up to `MAX_ERRORS` errors and says when there were more.
@@ -161,6 +169,95 @@ What they do not check:
   write alone;
 - that a bank's app accepts the code, which nothing here can show.
 
+## An e-invoice
+
+A report may carry one e-invoice, `eInvoice`: an EN 16931 invoice, which the
+runtime writes as Factur-X 1.09.2 / ZUGFeRD 2.5.2 CII in the EN 16931 profile
+([0027](../../docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)). It is of kind `facturX`, type 380, in euro, its VAT categories
+standard rated, exempt or reverse-charged, with no allowances or charges: a
+discount is a line of negative quantity at a positive price. Its seller, its
+buyer, their addresses and its payment instructions are runs, as a
+paragraph's, read in the report's scope and written into the XML, so none
+holds a page number or count; its dates and its paid amount are
+expressions. Its lines are the rows of the table over the detail dataset:
+`lines` names that table and the four columns that print each line's name,
+quantity, net price and net amount, so the page and the XML read one
+evaluation of each line, and reads the line's identifier, unit and VAT
+category from each row.
+
+```ts
+import { checkCountryCode, checkEInvoiceDecimal, checkEInvoiceText, checkVatIdentifier, checkVatRate, FACTUR_X, FACTUR_X_PROFILES, sellerIdentificationBreaks, vatCategoryBreaks } from '@formancy/report-spec'
+
+checkCountryCode('UK') // { ok: false, rule: "is not a country code of those this release takes, a list narrower than ISO 3166-1's (BR-CL-14)" }
+checkVatIdentifier('DE 123 456 789') // { ok: true, value: 'DE123456789' }
+checkEInvoiceText('BT-1', ' ') // { ok: false, rule: 'is empty, and an e-invoice needs it (BR-02)' }
+checkEInvoiceText('BT-84', 'DE83 0123 4567 0012 3456 78') // { ok: true, value: 'DE83012345670012345678' }: the EPC QR code's account rule
+checkEInvoiceDecimal('BT-131', '10.500') // { ok: true, value: '10.50' }
+checkEInvoiceDecimal('BT-131', '10.505') // { ok: false, rule: 'is not a whole number of cents, ... (BR-DEC-23)' }: never rounded
+checkEInvoiceDecimal('BT-146', '-1') // { ok: false, rule: 'is negative, and a net price never is: ... (BR-27)' }
+checkVatRate('S', '19.00') // { ok: true, value: '19' }: compared by value
+checkVatRate('S', '0.4') // { ok: false, rule: 'is below 0.5, which BR-CO-17 rounds to 0, ... (BR-CO-17)' }
+checkEInvoiceText('BT-37', ' ') // { ok: false, rule: 'is empty, and a German invoice gives the full address ... (§ 14 Abs. 4 Satz 1 Nr. 1 UStG)' }
+checkEInvoiceText('BT-1', 'RE-2026  0820') // { ok: false, rule: 'holds white space the XML would not keep: ...' }: a token
+vatCategoryBreaks([{ code: 'S', rate: '19' }, { code: 'S', rate: '19.00' }]) // [{ index: 1, field: 'rate', rule: '... (BR-S-08)' }]
+sellerIdentificationBreaks({ vatId: false, taxNumber: true, legalId: false }, ['S']) // ['the seller has neither a VAT identifier (BT-31) nor a legal registration identifier (BT-30), ... (BR-CO-26)']
+FACTUR_X_PROFILES.en16931.guideline // 'urn:cen.eu:en16931:2017': BT-24
+FACTUR_X.fileName // 'factur-x.xml'
+```
+
+`en16931.ts` holds EN 16931's rules as functions over text, each answering
+the value the XML is written with or the rule broken, named by its business
+term and its business rule and never by the value. The validator applies
+them to a literal; the runtime applies the same functions to what the data
+resolves a text to, and names its refusals by the same tables,
+`E_INVOICE_TEXTS`, `E_INVOICE_DECIMALS` and `E_INVOICE_DATES`, and
+reads which term each text is by where it stands from one table,
+`E_INVOICE_TEXT_TERMS`, as each line term names its own; a date
+the data resolved is held to a day on the calendar by `checkEInvoiceDate`,
+since the editing core types a date term as any text.
+`EN16931_RULES` is every rule they name, and the e-invoice gate holds each
+to a fatal rule of its pinned schematron. Two things they hold are not
+CEN's: the seller's and the buyer's street, post code and city, which
+§ 14 Abs. 4 Satz 1 Nr. 1 UStG asks for (`FULL_ADDRESS`), where CEN asks
+only the country; and an identifier or a code the XSD types as a token,
+which holds no tab, line break, double space or space at either end, since
+a schema-aware reader collapses them. The payment account and its BIC are
+the EPC QR code's rules. The totals and the VAT breakdown are not here: the
+runtime computes them once.
+
+A report that is an e-invoice gives its expressions three names beside
+`EXPRESSION_NAMES`'s, and no other report has them (`E_INVOICE_NAMES`):
+`invoice`, whose members `INVOICE_TOTALS` names by business term, and
+`vatBasis` and `vatAmount`, each declared category's taxable and tax
+amount by its id (`VAT_BREAKDOWN`). Whether an expression reads them
+where it may is the editing core's to check, as every name is.
+`E_INVOICE_LINE_COLUMNS` and `E_INVOICE_LINE_CODES` say which types of
+field each term of a line is read from: the validator holds a field to
+them, and the editing core an expression.
+
+The codes come from closed lists that someone chose, narrower than CEN's,
+and held to CEN's 1.3.17 and the pinned 1.3.16 lists on 17 October 2026:
+`UNIT_CODES`, the units of UN/ECE Recommendation 20 a German invoice
+counts, times, weighs and measures in; `COUNTRY_CODES`, the
+EU's members, the EEA's, Switzerland and the United Kingdom; `VAT_PREFIXES`,
+those and Greece's `EL`, which CEN's 1.3.16 takes and its 1.3.17 does not;
+and `SCHEME_IDS`, SIREN, SIRET, D-U-N-S and GLN. A rate is a percentage
+below 100 with two decimals at most, and a standard rate 0.5 or more, which
+BR-CO-17 would otherwise round to 0. `FACTUR_X` and `FACTUR_X_PROFILES` are
+the names the PDF carries -- the file, its relationship and the XMP's values
+-- which rest on a transcription of the specification, not on the
+specification itself, until the owner's copy is read.
+
+What they do not check:
+
+- that a VAT identifier is one its country issued, past its prefix;
+- that a rate is one a country applies, or the right one for a line;
+- that an exemption reason says what the law says;
+- the amount a payment code asks for, which is an expression: the render
+  compares it with the amount due;
+- an account, a date or a total read from the data, before a render;
+- France's rules (BR-FR), and XRechnung's.
+
 ## Hash
 
 ```ts
@@ -191,6 +288,6 @@ componentAt(blank, 'title') // where a component is, by id: the path its errors 
 to be read by a later release. Nor by an earlier one: a kind the draft gains
 is refused as `unknown-kind` by a release that predates it, never skipped. A
 report with a `qrCode` or an `epcQrCode` is refused so by 0.1.0, and one
-with a `paymentPart` as `unknown-property`.
+with a `paymentPart` or an `eInvoice` as `unknown-property`.
 
 Source-available, not open source: see [`LICENSE.md`](../../LICENSE.md).
