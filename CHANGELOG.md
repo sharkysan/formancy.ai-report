@@ -24,6 +24,10 @@ in English, and says `noindex`, so a search engine found nothing to read.
     reader without JavaScript, and a crawler, reads all of it.
   - Each page names its translations as alternates, with English as the
     default, and `/report/sitemap.xml` lists them all.
+  - A shared link shows the page's title and description, through Open
+    Graph and X's card, and the product page's link the quotation
+    starter's picture. The healthcare page's shows none: no picture here
+    is of a healthcare document.
   - The release and its date, and the licence's version and terms, are
     read from `CHANGELOG.md` and `LICENSE.md` when the pages are built. A
     row of the licence's table that changes stops the build until it is

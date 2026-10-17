@@ -12,9 +12,12 @@
     - a group missing in a language;
     - `<html lang>` that is not the page's language;
     - a title over 60 characters, a description outside 70 to 160, and
-      two pages sharing a title;
+      two pages sharing a title or a description;
     - a canonical that is not the page's own address;
     - alternates without x-default, or not named back;
+    - Open Graph whose address, title or description is not the page's,
+      and X's card missing, or asking for a large picture on a page that
+      names none;
     - a sitemap that misses a page, lists one that is not built, or
       gives other alternates than the page's head;
     - a second h1, content that is not in the HTML, a script that is not
@@ -26,13 +29,27 @@
     - a link to a page, a file or an id that is not built, to a file this
       repository does not hold, to a package it does not publish, to
       another mail address, or over http;
-    - "open source" without a denial, HL7 or FHIR named without HL7's
-      notice word for word, and an amount of money.
+    - "open source" with no negation directly before it, in each
+      language, and each denial the pages may say it with; HL7 or FHIR
+      named without HL7's notice word for word; and an amount of money,
+      with its currency's code, sign or name, before the number or after.
 
     The open-source check passed a page that called the product open
     source when it was first written: a heading and the next paragraph
     were read as one sentence, and the paragraph's denial counted for the
-    heading. It reads each block on its own now.
+    heading. It reads each block on its own now. Review then found it
+    passing a sentence with a denial anywhere in it, "It is open source,
+    no strings attached.", and the price check passing an amount by its
+    currency's name, "500 Franken", or as "SFr. 500". Each case failed
+    before its fix. The checks of two pages sharing a description and of
+    Open Graph's title and description were watched failing with each
+    taken out.
+  - **`apps/pages/scripts/write-site.test.mjs`.** The build's writer, run
+    into a temporary directory, writes every page of the site the suite
+    checks with the same HTML, the sitemap, the stylesheet and the
+    pictures, byte for byte, and nothing else, and leaves nothing of an
+    earlier build. Watched failing with the text written as Latin-1 and
+    the directory not emptied first.
   - **`apps/pages/src/stylesheet.test.ts`.** pages.css imports the
     Studio's `room.css` first, imports nothing but the Studio's
     stylesheets, and declares no colour and no custom property of its own.
@@ -107,8 +124,9 @@ yet.
 **Static HTML, prerendered at build time.** `apps/pages`, private and
 never published, renders every page once with React's
 `renderToStaticMarkup`. `vite build --ssr` compiles the renderer for Node,
-and `scripts/prerender.mjs` runs it and writes the HTML. A page holds its
-whole content. Its one script is its JSON-LD, which no browser runs.
+`scripts/prerender.mjs` runs it, and `scripts/write-site.mjs` writes what
+it makes into `dist/`, emptied first. A page holds its whole content. Its
+one script is its JSON-LD, which no browser runs.
 
 **The addresses.** Each language's product page is `/report/<lang>/`. A
 topic page is `/report/<lang>/<slug>/`, its slug a word of that language:
@@ -124,6 +142,14 @@ English as x-default. Its canonical address is its own. A language
 switcher links the four. `/report/sitemap.xml` lists every page with its
 alternates. The German is written as Switzerland writes it, with ss for ß.
 The alternates name languages, not regions.
+
+**A shared link.** A page's Open Graph gives its title, description,
+address and locale, and X's card the card's kind. The product page's
+picture is the quotation starter's, and its card is the large picture's.
+The healthcare page names no picture, and its card is the summary. The
+pictures here are the Studio and the three starters: a building-services
+firm's quotation, a service inspection and an equipment register. None of
+them is a healthcare document.
 
 **The page set is data.** `src/groups.ts` lists the page groups: the
 product page, then the healthcare page. A group added there is built in
@@ -162,7 +188,8 @@ or names it in formancy.ai's robots.txt
 
 **The words.**
 - Written to sell, and no further than a document here goes.
-- Source-available, and "open source" only where it is denied.
+- Source-available, and "open source" only where a negation directly
+  before it denies it.
 - No price.
 - HL7's notice word for word on any page that names HL7 or FHIR.
 - Formancy Health in development, with nothing released, and dated.
@@ -203,9 +230,12 @@ or names it in formancy.ai's robots.txt
   formancy.ai's robots.txt lets them be crawled.
 - **Google Fonts, as the Studio.** A reader's browser asks Google for the
   faces.
-- **Large pictures.** The Studio's picture is a 263 KB WebP, 4200 pixels
-  wide, for every screen. Nothing here makes smaller copies, because no
-  image tool is a dependency.
+- **Large pictures.** The Studio's picture is the README's WebP, 4200
+  pixels wide and 264 KB on 17 October 2026, for every screen. Nothing
+  here makes smaller copies, because no image tool is a dependency.
+- **A healthcare link shared without a picture.** Until a picture of a
+  healthcare document exists here, its card is the summary, with no
+  picture.
 
 **What it forecloses.** Nothing that cannot be undone. Without the group
 list and the staging, `/report/<lang>/` answers 404 again.

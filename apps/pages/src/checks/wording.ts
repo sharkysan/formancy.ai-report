@@ -1,6 +1,6 @@
 /**
  * What a page may say, where a rule can be read off the words: "open
- * source" only where it is denied (CLAUDE.md, "Never call it open
+ * source" only where a negation governs it (CLAUDE.md, "Never call it open
  * source"); HL7's notice, word for word, on a page that names HL7 or FHIR;
  * and no price -- no amount of money but the ones a starter's picture
  * prints, which its description quotes. What a sentence claims is review's.
@@ -11,19 +11,33 @@ import { HL7_NOTICE } from '../shell.js'
 import type { Built } from './read.js'
 import { metaOf, read, textOf } from './read.js'
 
-/** The words that deny, in each language, as the sentence "… not open source" would use them. */
-const word = (words: string): RegExp => new RegExp(`(?<!\\p{L})(?:${words})(?!\\p{L})`, 'iu')
-const DENIES: Readonly<Record<Language, RegExp>> = {
-  de: word('nicht|kein|keine|keiner'),
-  fr: word('pas|non|ni|jamais'),
-  it: word('non|né|mai'),
-  en: word('not|no|never|nor'),
+/**
+ * A negation that governs the words after it, in each language, as "… not
+ * open source" uses it: the text before the phrase ends in it, with nothing
+ * between them but Italian's "è" ("non è open source"), and English's
+ * contractions ("isn't") among them. A denial anywhere else in the
+ * sentence denies something else -- "It is open source, no strings
+ * attached" -- and the sentence still says it.
+ */
+const governs = (words: string): RegExp => new RegExp(`(?<!\\p{L})(?:${words})\\s+$`, 'iu')
+const NEGATED: Readonly<Record<Language, RegExp>> = {
+  de: governs('nicht|kein|keine|keinen|keinem|keiner|keines|nie|niemals'),
+  fr: governs('pas|non|ni|jamais'),
+  it: governs('non(?:\\s+è)?|né|mai'),
+  en: governs("not|never|no|nor|\\p{L}+n['’]t"),
 }
 
-const OPEN_SOURCE = /\bopen[\s-]?source\b/i
+const OPEN_SOURCE = /(?<!\p{L})open[\s-]?source(?!\p{L})/giu
 const NAMES_HL7 = /\b(?:HL7|FHIR)\b/
-/** An amount of money: a currency beside a number, either way round. */
-const MONEY = /(?:\b(?:CHF|EUR|USD|GBP|Fr\.)|[€$£])\s?\d|\d[\d'’.,]*\s?(?:\b(?:CHF|EUR|USD|GBP)\b|[€$£])/
+
+/** A currency written before an amount: its code, the Swiss franc's abbreviations, or its sign. */
+const BEFORE = String.raw`CHF|EUR|USD|GBP|S?Fr\.|€|\$|£`
+/** A currency written after an amount: as before it, or by its name or its hundredth's, in any of the four languages. */
+const AFTER = String.raw`CHF|EUR|USD|GBP|S?Fr\.?|Franken|francs?|franchi|franco|Rappen|centimes?|centesimi|euros?|cents?|dollars?|dollari|€|\$|£`
+/** A number as an amount is written: 500, 3'143.00, 1,000.50, and Switzerland's 500.– for whole francs. */
+const AMOUNT = String.raw`\d[\d'’.,]*(?:[.,][–-])?`
+/** An amount of money: a currency beside a number, either way round, a space between them or none. */
+const MONEY = new RegExp(String.raw`(?<!\p{L})(?:${BEFORE})\s*${AMOUNT}|${AMOUNT}\s*(?:${AFTER})(?!\p{L})`, 'iu')
 
 /** Every quote a picture's description holds: the document's own words, an amount among them. */
 const QUOTES = [STUDIO, ...STARTERS].flatMap((figure) => figure.quotes)
@@ -44,7 +58,8 @@ export function wordingProblems({ site }: Built): string[] {
     const described = [...document.querySelectorAll('img[alt]')].map((image) => image.getAttribute('alt') ?? '')
 
     for (const sentence of [...said, ...described].flatMap((text) => text.split(/(?<=[.!?:;])\s+/))) {
-      if (OPEN_SOURCE.test(sentence) && !DENIES[page.language].test(sentence)) say(`calls it open source: "${sentence}"`)
+      const undenied = [...sentence.matchAll(OPEN_SOURCE)].some((phrase) => !NEGATED[page.language].test(sentence.slice(0, phrase.index)))
+      if (undenied) say(`calls it open source: "${sentence}"`)
     }
 
     const notice = [...document.querySelectorAll('footer p')].some((paragraph) => textOf(paragraph) === HL7_NOTICE)

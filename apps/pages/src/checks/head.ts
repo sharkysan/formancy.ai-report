@@ -76,6 +76,13 @@ export function headProblems(built: Built): string[] {
     if (collapsed(og('og:title')[0]) !== title) say('og:title is not its title')
     if (og('og:description')[0] !== description) say('og:description is not its description')
     if (og('og:locale')[0] !== LANGUAGE[page.language].og) say(`og:locale is ${String(og('og:locale')[0])}, not ${LANGUAGE[page.language].og}`)
+    // X's card, the one part of a shared link Open Graph has no tag for:
+    // the large picture's where the page names a picture, the summary where
+    // it names none. For the title, the description and the picture, X
+    // falls back to Open Graph's, held above.
+    const card = metaOf(document, 'name', 'twitter:card')
+    const kind = og('og:image').length > 0 ? 'summary_large_image' : 'summary'
+    if (card.length !== 1 || card[0] !== kind) say(`twitter:card is ${JSON.stringify(card)}, not ["${kind}"]`)
   }
   const twice = (values: string[], what: string): void => {
     for (const value of new Set(values)) if (values.filter((each) => each === value).length > 1) problems.push(`two pages share the ${what} "${value}"`)

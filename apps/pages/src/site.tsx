@@ -1,8 +1,9 @@
 /**
  * The whole site, rendered from its inputs: every page group in every
  * language as static HTML, the sitemap, the stylesheet, and the pictures
- * to copy (0021). Pure: it reads no file, so the suite checks exactly what
- * scripts/prerender.mjs writes.
+ * to copy (0021). Pure: it reads no file, so the suite checks the site
+ * scripts/prerender.mjs renders, and scripts/write-site.test.mjs holds the
+ * files written to disk to be that site.
  */
 import { renderToStaticMarkup } from 'react-dom/server'
 import { PICTURES } from './content/figures.js'

@@ -47,6 +47,14 @@ describe('the page set and the head', () => {
     expect(problemsOf(twice)).toContain(`two pages share the title "${title}"`)
   })
 
+  // Two pages with one description: the results show the same words under
+  // both, and a reader cannot tell which page answers the search.
+  test('two pages with one description', () => {
+    const description = /<meta name="description" content="([^"]*)"/.exec(site.pages[0]?.html ?? '')?.[1] ?? ''
+    const twice = editing('fr/index.html', (html) => html.replace(/<meta name="description" content="[^"]*"/, `<meta name="description" content="${description}"`))
+    expect(problemsOf(twice)).toContain(`two pages share the description "${description}"`)
+  })
+
   // A canonical address other than the page's own tells a search engine to
   // index that address instead, and this page not at all.
   test('a canonical address that is not the page’s own', () => {
@@ -71,6 +79,21 @@ describe('the page set and the head', () => {
   test('Open Graph that is not the page’s', () => {
     const shared = editing('de/index.html', (html) => html.replace('<meta property="og:url" content="https://formancy.ai/report/de/"', '<meta property="og:url" content="https://formancy.ai/report/en/"'))
     expect(problemsOf(shared)).toContain('de/index.html: og:url is https://formancy.ai/report/en/, not its address')
+    const titled = editing('fr/sante/index.html', (html) => html.replace(/<meta property="og:title" content="[^"]*"/, '<meta property="og:title" content="Formancy Report"'))
+    expect(problemsOf(titled)).toContain('fr/sante/index.html: og:title is not its title')
+    const described = editing('it/index.html', (html) => html.replace(/<meta property="og:description" content="[^"]*"/, '<meta property="og:description" content="Report PDF progettati in Angular e React, con totali esatti e una anteprima che è il PDF."'))
+    expect(problemsOf(described)).toContain('it/index.html: og:description is not its description')
+  })
+
+  // A shared link's card: twitter:card is the one thing X reads that Open
+  // Graph has no word for, and a page without it leaves the card's kind to
+  // X; a large picture's card on a page that names no picture asks for a
+  // picture there is not.
+  test("a shared link's card that is missing, or asks for a picture the page does not name", () => {
+    const missing = editing('de/index.html', (html) => html.replace('<meta name="twitter:card" content="summary_large_image"/>', ''))
+    expect(problemsOf(missing)).toContain('de/index.html: twitter:card is [], not ["summary_large_image"]')
+    const large = editing('en/healthcare/index.html', (html) => html.replace('<meta name="twitter:card" content="summary"/>', '<meta name="twitter:card" content="summary_large_image"/>'))
+    expect(problemsOf(large)).toContain('en/healthcare/index.html: twitter:card is ["summary_large_image"], not ["summary"]')
   })
 })
 
@@ -172,6 +195,35 @@ describe('the words', () => {
     expect(said).toContain('de/index.html: calls it open source: "Formancy Report ist Open Source"')
   })
 
+  // A denial counts only where it governs the phrase. A "no" or a "nicht"
+  // elsewhere in the sentence denies something else, and the sentence
+  // still calls it open source: the check passed every one of these once.
+  test.each([
+    ['en/index.html', 'Source-available, not open source', 'It is open source, no strings attached.'],
+    ['de/index.html', 'Source-available, nicht Open Source', 'Formancy Report ist Open Source, und nicht nur für Entwickler'],
+    ['fr/index.html', 'Source-available, pas open source', 'Formancy Report est open source, et pas seulement pour les développeurs'],
+    ['it/index.html', 'Source-available, non open source', 'Formancy Report è open source, e non solo per gli sviluppatori'],
+  ])('"open source" in %s, beside a denial of something else', (file, from, to) => {
+    expect(problemsOf(editing(file, (html) => html.replace(from, to)))).toContain(`${file}: calls it open source: "${to}"`)
+  })
+
+  // The denials a page says it with, in each language, the negation
+  // directly before the phrase: a check that refused these would leave
+  // the licence's heading no way to say what the product is not.
+  test.each([
+    ['en/index.html', 'Formancy Report is not open source', 'Source-available, not open source'],
+    ['en/index.html', 'Formancy Report isn’t open source', 'Source-available, not open source'],
+    ['de/index.html', 'Formancy Report ist nicht Open Source', 'Source-available, nicht Open Source'],
+    ['de/index.html', 'Formancy Report ist kein Open Source', 'Source-available, nicht Open Source'],
+    ['de/index.html', 'Formancy Report ist keine Open-Source-Software', 'Source-available, nicht Open Source'],
+    ['fr/index.html', "Formancy Report n'est pas open source", 'Source-available, pas open source'],
+    ['fr/index.html', 'Un logiciel source-available, non open source', 'Source-available, pas open source'],
+    ['it/index.html', 'Formancy Report non è open source', 'Source-available, non open source'],
+    ['it/index.html', 'Un software source-available, non open source', 'Source-available, non open source'],
+  ])('"open source" denied in %s: "%s"', (file, sentence, from) => {
+    expect(problemsOf(editing(file, (html) => html.replace(from, sentence)))).not.toContain('calls it open source')
+  })
+
   // HL7 International asks every page naming its marks to carry its
   // notice; a page that names FHIR without it uses the marks as HL7 does
   // not allow.
@@ -185,5 +237,25 @@ describe('the words', () => {
   test('an amount of money no picture prints', () => {
     const priced = editing('en/index.html', (html) => html.replace('Running it in production needs a paid licence.', 'Running it in production costs CHF 990 a year.'))
     expect(problemsOf(priced)).toMatch(/en\/index\.html: states an amount of money no picture prints: ".*CHF 990/)
+  })
+
+  // A price is as often written with the currency's name as with its
+  // code, before the number or after it, in the page's own language: the
+  // check once passed each of the first six.
+  test.each([
+    ['de/index.html', '500 Franken', 'braucht es eine kostenpflichtige Lizenz.', 'kostet es 500 Franken im Jahr.'],
+    ['fr/index.html', '500 francs', 'nécessite une licence payante.', 'coûte 500 francs par an.'],
+    ['fr/index.html', '500 euros', 'nécessite une licence payante.', 'coûte 500 euros par an.'],
+    ['it/index.html', '500 euro', 'richiede una licenza a pagamento.', 'costa 500 euro all’anno.'],
+    ['it/index.html', '500 franchi', 'richiede una licenza a pagamento.', 'costa 500 franchi all’anno.'],
+    ['de/index.html', 'SFr. 500', 'braucht es eine kostenpflichtige Lizenz.', 'kostet es SFr. 500 im Jahr.'],
+    ['de/index.html', 'CHF 500.–', 'braucht es eine kostenpflichtige Lizenz.', 'kostet es CHF 500.– im Jahr.'],
+    ['fr/index.html', 'Fr. 500', 'nécessite une licence payante.', 'coûte Fr. 500 par an.'],
+    ['it/index.html', '€ 500', 'richiede una licenza a pagamento.', 'costa € 500 all’anno.'],
+  ])('an amount written in %s as "%s"', (file, amount, from, to) => {
+    const said = problemsOf(editing(file, (html) => html.replace(from, to)))
+      .split('\n')
+      .filter((problem) => problem.startsWith(`${file}: states an amount of money`))
+    expect(said).toEqual([expect.stringContaining(amount)])
   })
 })
