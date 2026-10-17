@@ -302,7 +302,11 @@ decoded by ZXing (`readCodes` in the corpus), for its text, its bytes, its
 level, its version and where it stands. `starters.test.ts` resolves the
 starters with the runtime and proves their PDFs: plan 7's three swept
 across page ends, and the invoice down to its bill's code, decoded from
-the page and asking for the total the page prints. `qr-bill.test.ts` and
+the page and asking for the total the page prints. `samples.test.ts` does
+the same for the corpus's invoice samples, the invoice in German, French,
+Italian and English: one page each, its totals in its locale's format, its
+slip's headings in its language and in no other's, and its code asking for
+the total it prints. `qr-bill.test.ts` and
 `qr-bill-pages.test.ts` prove a QR-bill's slip on its PDF: SIX's
 examples, resolved by the runtime, decoded byte for byte; every heading
 and value read back where SIX puts it, at its size and in its face; the
@@ -311,8 +315,8 @@ the content stream, and the cross from the pixels too; and the page the
 slip goes on.
 
 `scripts/readme-pictures.ts` draws the repository README's pictures of the
-starters with PDF.js, and `pictures.test.ts` holds each to the text of the
-page it was drawn from:
+starters and of the invoice samples with PDF.js, and `pictures.test.ts`
+holds each to the text of the page it was drawn from:
 
 ```bash
 pnpm --filter @formancy/report-render-pdf exec unrun scripts/readme-pictures.ts

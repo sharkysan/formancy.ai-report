@@ -1,19 +1,22 @@
-import { GROUPED_EQUIPMENT, INVOICE, QUOTATION, rasterPage, readPdf, SERVICE_INSPECTION, STARTER_IMAGES, type Starter } from '@formancy/report-corpus'
+import { GROUPED_EQUIPMENT, INVOICE, INVOICE_EN, INVOICE_FR, INVOICE_IT, QUOTATION, rasterPage, readPdf, SERVICE_INSPECTION, STARTER_IMAGES, type Starter } from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import { renderPdf } from '../node.js'
 import { pageLines } from './lines.js'
 
 /**
- * The README's pictures: a page of each starter, resolved by the
- * runtime, rendered by this package and drawn by PDF.js (`rasterPage`).
- * `scripts/readme-pictures.ts` writes them to `docs/images/` with a
- * manifest; `pictures.test.ts` holds each picture to the text of the page
- * it was drawn from, and the README's caption of it to that text.
+ * The README's pictures: a page of each starter, and of each invoice
+ * sample, resolved by the runtime, rendered by this package and drawn by
+ * PDF.js (`rasterPage`). `scripts/readme-pictures.ts` writes them to
+ * `docs/images/` with a manifest for each list, `pictures.json` for the
+ * starters' and `samples.json` for the samples'; `pictures.test.ts` holds
+ * each picture to the text of the page it was drawn from, and the
+ * README's caption of it to that text.
  */
 
 export interface PictureSpec {
   /** The file under `docs/images/`. */
   readonly file: string
+  /** The starter, or the sample in a starter's shape, it is a page of. */
   readonly starter: Starter
   readonly page: number
   /** The picture's caption, its alt text in the README. */
@@ -50,6 +53,37 @@ export const PICTURES: readonly PictureSpec[] = [
     page: 1,
     caption: "The invoice starter, a Rechnung: its line items, then Zwischensumme, MWST 8.1 % and Total CHF 1'416.52, and across the foot of the page its QR-bill, the Empfangsschein and the Zahlteil with its Swiss QR Code, each for CHF 1 416.52",
     shows: ['Rechnung', "Total CHF 1'416.52", 'Empfangsschein', 'Zahlteil', 'CHF 1 416.52'],
+  },
+]
+
+/**
+ * The invoice samples' pictures, in the order of `INVOICE_SAMPLES`, but
+ * the German's: that sample is the invoice starter, whose picture is in
+ * `PICTURES`. They have a manifest of their own because the Studio's
+ * browser gate holds every picture `pictures.json` lists to a starter its
+ * picker offers, and the samples are not offered there.
+ */
+export const SAMPLE_PICTURES: readonly PictureSpec[] = [
+  {
+    file: 'invoice-fr.png',
+    starter: INVOICE_FR,
+    page: 1,
+    caption: "The invoice in French, a Facture: its line items, then Sous-total, TVA 8,1 % and Total 1'416.52 CHF, and across the foot of the page its QR-bill, the Récépissé and the Section paiement with its Swiss QR Code, each for CHF 1 416.52",
+    shows: ['Facture', 'Sous-total', 'TVA 8,1 %', "Total 1'416.52 CHF", 'Récépissé', 'Section paiement', 'CHF 1 416.52'],
+  },
+  {
+    file: 'invoice-it.png',
+    starter: INVOICE_IT,
+    page: 1,
+    caption: 'The invoice in Italian, a Fattura: its line items, then Subtotale, IVA 8,1 % and Totale CHF 1416.52, and across the foot of the page its QR-bill, the Ricevuta and the Sezione pagamento with its Swiss QR Code, each for CHF 1 416.52',
+    shows: ['Fattura', 'Subtotale', 'IVA 8,1 %', 'Totale CHF 1416.52', 'Ricevuta', 'Sezione pagamento', 'CHF 1 416.52'],
+  },
+  {
+    file: 'invoice-en.png',
+    starter: INVOICE_EN,
+    page: 1,
+    caption: "The invoice in English, an Invoice: its line items, then Subtotal, VAT 8.1% and Total CHF 1'416.52, and across the foot of the page its QR-bill, the Receipt and the Payment part with its Swiss QR Code, each for CHF 1 416.52",
+    shows: ['Invoice', 'Subtotal', 'VAT 8.1%', "Total CHF 1'416.52", 'Receipt', 'Payment part', 'CHF 1 416.52'],
   },
 ]
 

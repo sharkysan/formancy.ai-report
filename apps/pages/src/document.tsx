@@ -16,8 +16,9 @@ import { scriptJson, structuredData } from './structured-data.js'
 
 export function Document({ page, alternates }: { readonly page: PageContext; readonly alternates: readonly (readonly [string, string])[] }): ReactElement {
   const meta = page.group.meta[page.language]
-  const image = page.group.image === undefined ? undefined : page.inputs.pictures.find((picture) => picture.name === page.group.image)
-  if (page.group.image !== undefined && image === undefined) throw new Error(`${page.group.id}'s picture ${page.group.image} is not among the site's pictures`)
+  const named = typeof page.group.image === 'string' ? page.group.image : page.group.image?.[page.language]
+  const image = named === undefined ? undefined : page.inputs.pictures.find((picture) => picture.name === named)
+  if (named !== undefined && image === undefined) throw new Error(`${page.group.id}'s picture ${named} is not among the site's pictures`)
   const { Body } = page.group
   return (
     <html lang={page.language} dir="ltr">

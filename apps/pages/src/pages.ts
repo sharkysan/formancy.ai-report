@@ -28,8 +28,8 @@ export interface PageGroup {
   readonly teaser?: Readonly<Record<Language, Teaser>>
   /** HL7's trademark notice, which a page naming HL7 or FHIR carries in its footer. */
   readonly hl7Notice?: true
-  /** Its picture for a shared link: one of the site's pictures, under docs/images. */
-  readonly image?: string
+  /** Its picture for a shared link: one of the site's pictures, under docs/images, the same in every language or one for each. */
+  readonly image?: string | Readonly<Record<Language, string>>
   readonly Body: (props: { readonly page: PageContext }) => ReactElement
 }
 

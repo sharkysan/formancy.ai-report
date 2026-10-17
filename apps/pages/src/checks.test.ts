@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { siteProblems } from './checks/index.js'
+import { headingAnchors } from './checks/links.js'
 import { GROUPS } from './groups.js'
 import { HL7_NOTICE } from './shell.js'
 import type { Site } from './site.js'
@@ -155,6 +156,18 @@ describe('the body', () => {
     expect(problemsOf(elsewhere)).toContain("en/healthcare/index.html: the language switcher's de link goes to https://formancy.ai/report/de/, not https://formancy.ai/report/de/gesundheitswesen/")
   })
 
+  // groups.ts says every topic page is linked from the product page as
+  // well as from the bar: the bar is a list of names, and a topic only the
+  // bar names is a page a reader of the product page is never told about.
+  // Its teaser dropped from the German product page, the QR-bill page is
+  // still in the bar, and the check must say what the content lost.
+  test('a topic page the product page does not introduce', () => {
+    const untold = editing('de/index.html', (html) => html.replace(/<section class="band" aria-labelledby="topic-qr-bill">[\s\S]*?<\/section>/, ''))
+    const said = problemsOf(untold)
+    expect(said).toContain("de/index.html: its content does not link to qr-bill's page https://formancy.ai/report/de/qr-rechnung/")
+    expect(said).not.toContain('healthcare')
+  })
+
   // JSON-LD that does not parse is ignored whole; one that describes
   // another page, or offers a price, says what the page does not.
   test('JSON-LD that does not parse, or describes something else', () => {
@@ -184,6 +197,30 @@ describe('the links', () => {
     ['a site nobody chose', 'href="https://github.com/sharkysan/formancy.ai-data"', 'href="http://example.com/"', 'de/index.html: <a> names http://example.com/: not https'],
   ])('%s', (_name, from, to, said) => {
     expect(problemsOf(editing('de/index.html', (html) => html.replace(from, to)))).toContain(said)
+  })
+
+  // A link to a heading of a repository file is checked for the file
+  // above, and for the heading nowhere: a heading renamed would leave the
+  // link landing at the top of a long README, every check green. The
+  // QR-bill page links two headings by hand, and the product page the
+  // changelog's release heading, whose anchor inputs.mjs derives.
+  test('a heading the file it names does not have', () => {
+    const renamed = editing('en/swiss-qr-bill/index.html', (html) => html.replace('report-spec/README.md#a-qr-bill', 'report-spec/README.md#no-such-heading'))
+    expect(problemsOf(renamed)).toContain(
+      'en/swiss-qr-bill/index.html: <a> names https://github.com/sharkysan/formancy.ai-report/blob/main/packages/report-spec/README.md#no-such-heading: #no-such-heading is no heading of packages/report-spec/README.md',
+    )
+    const release = editing('de/index.html', (html) => html.replace(`CHANGELOG.md#${inputs.release.anchor}`, 'CHANGELOG.md#010-2026-10-16'))
+    expect(problemsOf(release)).toContain('de/index.html: <a> names https://github.com/sharkysan/formancy.ai-report/blob/main/CHANGELOG.md#010-2026-10-16: #010-2026-10-16 is no heading of CHANGELOG.md')
+  })
+
+  // The anchors as GitHub gives them, which the check above reads: a line
+  // of a fenced block is code, a shell comment in a README's example among
+  // them, and a heading said twice takes -1 the second time. Read
+  // otherwise, a link to a comment would pass, and one to the second of two
+  // headings fail.
+  test("a heading's anchor, as GitHub gives it", () => {
+    const markdown = ['# The QR-bill', '', '```bash', '# not a heading', '~~~', '## still code', '```', '', '## A QR-bill', '## A QR-bill #', '### `paymentPart`, its [fields](#fields) and Grösse'].join('\n')
+    expect([...headingAnchors(markdown)]).toEqual(['the-qr-bill', 'a-qr-bill', 'a-qr-bill-1', 'paymentpart-its-fields-and-grösse'])
   })
 })
 
@@ -289,6 +326,21 @@ describe('the words', () => {
   test('an amount of money no picture prints', () => {
     const priced = editing('en/index.html', (html) => html.replace('Running it in production needs a paid licence.', 'Running it in production costs CHF 990 a year.'))
     expect(problemsOf(priced)).toMatch(/en\/index\.html: states an amount of money no picture prints: ".*CHF 990/)
+  })
+
+  // A picture's description is its figure's, whose quotes figures.test.ts
+  // holds to what the picture prints, and only there are the document's
+  // amounts its own words. Read as such on every page, as they were, the
+  // German sample's description rewritten on the English page to price a
+  // licence at CHF 1 416.52 passed every check, and so did that amount in
+  // a paragraph of the page.
+  test("a picture described otherwise than its figure, and a figure's amount outside its description", () => {
+    const described = editing('en/swiss-qr-bill/index.html', (html) => html.replace(/(<img src="\.\.\/\.\.\/site\/starter-invoice\.png") alt="[^"]*"/, `$1 alt="An invoice for Total CHF 1'416.52 and a licence at CHF 1 416.52"`))
+    const said = problemsOf(described)
+    expect(said).toContain('en/swiss-qr-bill/index.html: describes ../../site/starter-invoice.png otherwise than its figure does')
+    expect(said).toMatch(/en\/swiss-qr-bill\/index\.html: states an amount of money no picture prints: ".*CHF 1'416\.52/)
+    const written = editing('en/swiss-qr-bill/index.html', (html) => html.replace('<h2 id="samples">', '<p>Each licence is CHF 1 416.52 a year.</p><h2 id="samples">'))
+    expect(problemsOf(written)).toMatch(/en\/swiss-qr-bill\/index\.html: states an amount of money no picture prints: ".*CHF 1 416\.52/)
   })
 
   // A price is as often written with the currency's name as with its

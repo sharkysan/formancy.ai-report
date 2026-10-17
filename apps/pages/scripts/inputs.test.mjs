@@ -184,6 +184,21 @@ describe('the inputs as the repository holds them', () => {
     expect(inputs.notices).toContain('@fontsource/ibm-plex-sans 5.3.0')
   })
 
+  // The invoice samples' pictures are recorded in docs/images/samples.json,
+  // apart from the starters' pictures.json, which the Studio's browser gate
+  // holds to the starters its picker offers. Read from pictures.json alone,
+  // a sample's picture has no lines, and every quote of it on the QR-bill
+  // page fails figures.test.ts; the build is told it read the file, so an
+  // edit to it builds the pages again.
+  test("give a sample's picture the lines docs/images/samples.json records", () => {
+    const inputs = readInputs(repo, { pictures: ['invoice-fr.png', 'starter-invoice.png'] })
+    expect(inputs.pictures).toEqual([
+      expect.objectContaining({ name: 'invoice-fr.png', from: 'docs/images/invoice-fr.png', width: 745, height: 1053, lines: expect.arrayContaining(["Total 1'416.52 CHF", 'Récépissé Section paiement']) }),
+      expect.objectContaining({ name: 'starter-invoice.png', lines: expect.arrayContaining(["Total CHF 1'416.52", 'Empfangsschein Zahlteil']) }),
+    ])
+    expect(inputs.read).toEqual(expect.arrayContaining(['docs/images/pictures.json', 'docs/images/samples.json']))
+  })
+
   // A picture the site names and the repository does not hold stops the
   // build, rather than a page with a broken image.
   test('refuses a picture the repository does not hold', () => {

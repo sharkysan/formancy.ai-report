@@ -23,12 +23,18 @@ describe('the site the build writes (0021)', () => {
 
   // The URL scheme 0021 sets, as addresses: a slug renamed would move a
   // page every search engine has indexed, and leave the old address a 404.
-  test('is the product page and the healthcare page, in German, French, Italian and English, at the addresses 0021 gives them', () => {
+  // The QR-bill page's slugs are what a reader searches for in each
+  // language (0024): QR-Rechnung, facture QR, fattura QR, Swiss QR-bill.
+  test('is the product page, the QR-bill page and the healthcare page, in German, French, Italian and English, at the addresses 0021 and 0024 give them', () => {
     expect(site.pages.map((page) => page.url)).toEqual([
       'https://formancy.ai/report/de/',
       'https://formancy.ai/report/fr/',
       'https://formancy.ai/report/it/',
       'https://formancy.ai/report/en/',
+      'https://formancy.ai/report/de/qr-rechnung/',
+      'https://formancy.ai/report/fr/facture-qr/',
+      'https://formancy.ai/report/it/fattura-qr/',
+      'https://formancy.ai/report/en/swiss-qr-bill/',
       'https://formancy.ai/report/de/gesundheitswesen/',
       'https://formancy.ai/report/fr/sante/',
       'https://formancy.ai/report/it/sanita/',

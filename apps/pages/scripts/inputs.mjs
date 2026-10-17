@@ -169,6 +169,9 @@ function published(repo, read) {
   return { packages: manifests.map((manifest) => manifest.name), repository: homepages[0] }
 }
 
+/** The manifests of the pictures under docs/images that report-render-pdf's scripts/readme-pictures.ts writes. */
+const PICTURE_MANIFESTS = ['docs/images/pictures.json', 'docs/images/samples.json']
+
 /**
  * Everything the renderer needs from the repository at `repo`, with the
  * pictures `pictures` names (paths under docs/images), and `read`: every
@@ -195,7 +198,11 @@ export function readInputs(repo, { pictures = [] } = {}) {
   const licenceText = text('LICENSE.md')
   const licence = readLicence(licenceText)
   const { css: stylesheet, fonts } = bundleStylesheet(join(repo, 'apps', 'pages', 'src', 'pages.css'), { read: note, packages: join(repo, 'apps', 'pages', 'node_modules') })
-  const recorded = JSON.parse(text('docs/images/pictures.json'))
+  // The lines each picture's page prints, as report-render-pdf's
+  // pictures.test.ts holds them to the PDF: the starters' in pictures.json,
+  // the invoice samples' in samples.json, which the Studio's browser gate
+  // does not read, since the samples are not starters its picker offers.
+  const recorded = PICTURE_MANIFESTS.flatMap((manifest) => JSON.parse(text(manifest)))
   return {
     site,
     ...published(repo, note),

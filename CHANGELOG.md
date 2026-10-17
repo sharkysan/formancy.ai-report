@@ -10,6 +10,57 @@ later.
 
 ## Unreleased
 
+**The Swiss QR-bill has a page in four languages, and the invoice comes
+as samples in French, Italian and English**
+([0024](docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)).
+The rightsholder asked for pages that promote the invoices, and for
+template samples in European languages. The pages had nothing on the
+QR-bill, and the invoice existed in German alone.
+
+- **The corpus's `INVOICE_SAMPLES`:** the invoice starter, unchanged and
+  still the German sample, and the same invoice in French, Italian and
+  English. Each bills the same work from an invented firm of its region,
+  in its own words, with its amounts and dates in fr-CH, it-CH or en-CH
+  and the slip's headings in SIX's words for its language. They are not
+  starters, so the Studio's picker, pictures and browser gate are what
+  they were. report-render-pdf's `samples.test.ts` proves each on the PDF
+  it printed, down to the code decoded from the page asking for the
+  total it prints.
+- **Their pictures** are `docs/images/invoice-fr.png`, `invoice-it.png`
+  and `invoice-en.png`, in a manifest of their own,
+  `docs/images/samples.json`: the browser gate holds every picture
+  `pictures.json` lists to a starter its picker offers. The German
+  sample's picture is the starter's. The README shows all four.
+- **The QR-bill page**, `/report/de/qr-rechnung/`, `/report/fr/facture-qr/`,
+  `/report/it/fattura-qr/` and `/report/en/swiss-qr-bill/`: what 0022's
+  bill does and what it does not, SIX's paper for a bill sent on paper
+  among the latter, the four samples with the page's own language first,
+  how to try it, and where it stands. A shared link to it shows its own
+  language's sample. The product page introduces it, as it does the
+  healthcare page, and a new check fails a product page that does not
+  link a topic page from its content.
+- **Its status names the release it was written against, and is said
+  where a reader starts.** The hero and the product page's teaser say the
+  bill is in no release yet, and the try-it text that the guide installs
+  0.1.0, which refuses a report with one: said at the foot alone, it
+  came after a reader had left for the guide. The pages refuse to render
+  once the changelog names a release after 0.1.0, naming the three
+  sentences, so the release commit fails the pages' suite until they are
+  written again.
+- **The pages read the lines of both manifests**, so a sample's
+  description quotes what its picture prints. The wording check reads a
+  picture's quotes as the document's own words, rather than as a price,
+  in that picture's own description alone, and fails a picture described
+  otherwise than its figure: it excused every figure's amounts on every
+  page.
+- **A link to a heading of a repository file is checked for the
+  heading**, by the anchors GitHub gives the file's headings: the QR-bill
+  page links two READMEs' sections, and a renamed heading would have
+  left the link landing at the top of the file, every check green.
+- **Each invoice sample's report has its own id**; the four shared the
+  starter's, and a host that keys reports by id would have taken them for
+  one.
+
 **A decimal's spelling is read in time linear in its length.** In 0.1.0,
 `report-spec`'s validator and `report-runtime`'s data check read a negative
 decimal under one -- `-0.5` -- with a pattern that tried every split of its

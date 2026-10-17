@@ -20,6 +20,12 @@ node scripts/bump.mjs 0.1.0
 # 2. Rename "## Unreleased" in CHANGELOG.md to the version's heading, and say
 #    what is knowingly missing. What the release was tested with is the
 #    release report's, from the run that gates it; the body carries it.
+#    The QR-bill page says the bill is in no release yet, and the pages
+#    refuse to render until its status names the new version: say whether
+#    the release has the bill in the three sentences of
+#    apps/pages/src/content/qr-bill-copy.tsx that say where it stands --
+#    `unreleased`, `tryIt.text` and `status.text` -- and set
+#    QR_BILL_STATUS in qr-bill.tsx beside it (0024).
 
 # 3. Verify locally — the workflow runs these again, but finding out here is cheaper
 pnpm build && pnpm typecheck && pnpm test:coverage && pnpm check:pkg && pnpm test:repo
