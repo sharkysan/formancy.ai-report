@@ -43,6 +43,7 @@ describe('walkComponents', () => {
       'summary 1 signature-image',
       'summary 0 seal-image',
       'summary 0 order-code',
+      'summary 0 payment-code',
     ])
   })
 

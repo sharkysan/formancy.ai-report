@@ -68,6 +68,13 @@ report-spec's `qr-bill.ts`, which the validator applies to literals and the
 runtime to data; the core compiles its amount; and the renderer draws the
 slip in the Liberation Sans it ships in its `fonts` directory
 ([0022](docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)).
+An EPC QR code, a component, runs through all four the same way: the EPC's
+rules are report-spec's `epc-payload.ts`, its countries `sepa.ts` and its
+print `epc-print.ts`, and the IBAN's check digits and the creditor
+reference are `payment-reference.ts`, which the QR-bill's rules read too;
+the runtime writes the payload, and the renderer draws Austria's caption
+in the same Liberation Sans
+([0025](docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort

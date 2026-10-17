@@ -9,7 +9,10 @@
  * a mistyped IBAN where it is written; the runtime applies them to every
  * text once the data has resolved it. Two copies could disagree about
  * which bills are valid, and nobody would find out until a bank refused
- * one.
+ * one. An IBAN's check digits and a creditor reference are every payment
+ * code's (`payment-reference.ts`): an EPC QR code's are checked by the same
+ * functions, and what stays here is the QR-bill's own -- its accounts of
+ * Switzerland and Liechtenstein, its QR reference.
  *
  * The rules are version 2.3's, in force since 21 November 2025, and one of
  * version 2.4's, valid from 14 November 2026: a QR-IBAN and a QR reference
@@ -24,19 +27,13 @@
 import { mmToPt, roundPt } from './units.js'
 import { PAGE_SIZES, type PageDimensions } from './page.js'
 import type { QrBillAddress, QrBillCurrency } from './payment-part.js'
+import { checkCreditorReference, checkIbanCheckDigits, no, ok, withoutSpaces } from './payment-reference.js'
+import type { PaymentCheck } from './payment-reference.js'
 import { DECIMAL } from './syntax.js'
 import type { PageSettings } from './types.js'
 
-/** What a check made of a text it accepts, or the rule the text breaks. */
-export type QrBillCheck<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly rule: string }
-
-function ok<T>(value: T): QrBillCheck<T> {
-  return { ok: true, value }
-}
-
-function no(rule: string): QrBillCheck<never> {
-  return { ok: false, rule }
-}
+/** What a check made of a text it accepts, or the rule the text breaks: every payment code's `PaymentCheck`. */
+export type QrBillCheck<T> = PaymentCheck<T>
 
 /**
  * The slip: the receipt and the payment part, 210 by 105 mm (IG 3.1),
@@ -87,33 +84,23 @@ export function qrBillPageBreak(page: PageSettings, above = 0): QrBillPageBreak 
   return { field: 'topMargin', rule: `${what} ${said} pt down the page, past the top of the QR-bill's slip at ${QR_BILL_TOP.toFixed(2)} pt, 105 mm above the paper's foot` }
 }
 
-/** Every space, which a person writes into an IBAN or a reference to read it, and which the code never holds. */
-const SPACES = /\s+/g
-
-/**
- * A text's remainder modulo 97, each letter read as the two digits ISO
- * 7064 gives it (A is 10, Z is 35), digit by digit: never as one number,
- * which a 25-character reference is too long to be exactly.
- */
-function mod97(text: string): number {
-  let remainder = 0
-  for (const character of text) {
-    const value = Number.parseInt(character, 36)
-    remainder = (remainder * (value < 10 ? 10 : 100) + value) % 97
-  }
-  return remainder
-}
-
-/** ISO 13616 and ISO 11649 check the same way: the first four characters moved to the end, and the remainder modulo 97 is 1. */
-function checksOut(text: string): boolean {
-  return mod97(`${text.slice(4)}${text.slice(0, 4)}`) === 1
-}
-
 /** An IBAN of Switzerland or Liechtenstein: the country, two check digits, the five-digit institution and twelve digits or capitals. */
 const IBAN = /^(?:CH|LI)\d{2}(\d{5})[0-9A-Z]{12}$/
 
 /** The institutions whose IBANs are QR-IBANs (IG 2.8). */
 const QR_IID = { first: 30000, last: 31999 }
+
+/**
+ * Whether `iban`, an IBAN without spaces, is a QR-IBAN: of Switzerland or
+ * Liechtenstein, its institution a QR-IID, "used only for the procedure
+ * with a QR reference in the QR-bill" (IG 2.8). The EPC QR code's rules
+ * refuse one by this range (`epc-payload.ts`), which is SIX's and stays
+ * here.
+ */
+export function isQrIban(iban: string): boolean {
+  const institution = IBAN.exec(iban)?.[1]
+  return institution !== undefined && Number(institution) >= QR_IID.first && Number(institution) <= QR_IID.last
+}
 
 export interface QrBillAccount {
   /** The IBAN as the code holds it: 21 characters, no spaces. */
@@ -124,12 +111,11 @@ export interface QrBillAccount {
 
 /** The account: an IBAN or a QR-IBAN of Switzerland or Liechtenstein (IG Table 8, IBAN), its spaces dropped. */
 export function checkQrBillAccount(text: string): QrBillCheck<QrBillAccount> {
-  const iban = text.replace(SPACES, '')
-  const match = IBAN.exec(iban)
-  if (match === null) return no('is not an IBAN of Switzerland or Liechtenstein: CH or LI, two check digits and 17 digits or capitals, 21 characters without spaces')
-  if (!checksOut(iban)) return no('has check digits that do not match the rest of it (ISO 13616: the IBAN modulo 97 is 1)')
-  const institution = Number(match[1])
-  return ok({ iban, qrIban: institution >= QR_IID.first && institution <= QR_IID.last })
+  const iban = withoutSpaces(text)
+  if (!IBAN.test(iban)) return no('is not an IBAN of Switzerland or Liechtenstein: CH or LI, two check digits and 17 digits or capitals, 21 characters without spaces')
+  const checked = checkIbanCheckDigits(iban)
+  if (!checked.ok) return checked
+  return ok({ iban, qrIban: isQrIban(iban) })
 }
 
 /** The recursive modulo 10 of IG Annex B, row by row: the carry after each digit. */
@@ -153,27 +139,21 @@ export interface QrBillReference {
 
 const QR_REFERENCE_LENGTH = 27
 
-/** A creditor reference: RF, two check digits and from one to 21 letters or digits (ISO 11649), in any case. */
-const CREDITOR_REFERENCE = /^RF\d{2}[0-9A-Z]{1,21}$/i
-
 /**
  * The reference: a QR reference of 27 digits, the last its check digit
  * (IG 2.12.1, Annex B), or a creditor reference (IG Table 8, Ref), its
  * spaces dropped.
  */
 export function checkQrBillReference(text: string): QrBillCheck<QrBillReference> {
-  const reference = text.replace(SPACES, '')
+  const reference = withoutSpaces(text)
   if (/^\d+$/.test(reference)) {
     if (reference.length !== QR_REFERENCE_LENGTH) return no(`is a QR reference of ${reference.length} digits; a QR reference has ${QR_REFERENCE_LENGTH}`)
     if (/^0+$/.test(reference)) return no('is a QR reference of zeros only, which SIX does not allow (IG 2.12.1)')
     if (qrCheckDigit(reference.slice(0, -1)) !== Number(reference.at(-1))) return no('ends in a digit that is not its check digit (IG Annex B: modulo 10, recursive)')
     return ok({ type: 'QRR', reference })
   }
-  if (!CREDITOR_REFERENCE.test(reference)) {
-    return no('is neither a QR reference, 27 digits, nor a creditor reference, RF, two check digits and up to 21 letters or digits')
-  }
-  if (!checksOut(reference)) return no('has check digits that do not match the rest of it (ISO 11649: the reference modulo 97 is 1)')
-  return ok({ type: 'SCOR', reference })
+  const creditor = checkCreditorReference(reference, 'is neither a QR reference, 27 digits, nor a creditor reference, RF, two check digits and up to 21 letters or digits')
+  return creditor.ok ? ok({ type: 'SCOR', reference: creditor.value }) : creditor
 }
 
 /** What a text of the bill may hold: whether it must, how many characters, and a syntax it must have when it is not empty. */

@@ -1,6 +1,6 @@
 # 0011 — `report-render-pdf` draws the whole resolved document with pdfmake, and refuses what it cannot draw whole
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, and by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, and by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-render-pdf`, run by its
@@ -189,6 +189,19 @@ refused as `unsupported` or `content-too-large`, naming `paymentPart` and
 the field and never a value; information taller than its section is
 refused, never shrunk. `qr-bill.test.ts` and `qr-bill-pages.test.ts` prove
 it on the PDF.
+
+**Added 2026-10-17: EPC QR codes.** The resolved document gains an
+`epcQrCode` block, and the renderer draws it as
+[0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)
+decides: encoded once by uqr at level M and version 13 at most, drawn as a
+QR code without a caption, and with Austria's caption inside the PSA's
+frame, "Zahlen mit Code" up its right side. The caption is the second text
+that prints in Liberation Sans: the slip and the caption print in it, and
+*One font* above holds for every other text. A code the renderer cannot
+draw as the EPC and the PSA print one is refused as `content-too-large`
+or `unsupported`, naming the code and never its payload, and a caption
+whose face the SVG converter cannot open fails the render rather than
+print in another face. `epc-qr-code.test.ts` proves it on the PDF.
 
 ## Alternatives considered
 

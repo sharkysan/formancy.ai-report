@@ -361,6 +361,36 @@ describe("a QR-bill's amount", () => {
   })
 })
 
+describe("an EPC QR code's amount", () => {
+  const AMOUNT = '/regions/summary/3/amount/cel'
+
+  // The EPC's amount is a decimal in euro (EPC069-12 2.2, AT-T002), and
+  // null leaves it for the payer, by the one rule a QR-bill's is held to:
+  // what passes here is what the runtime can write after `EUR`.
+  test('is a decimal, or null', () => {
+    for (const cel of ['totals.subtotal', 'dec("12.30")', 'round(totals.gross, 2)', 'null', 'params.threshold']) {
+      expect(diagnose(edited(set(AMOUNT, cel))), cel).toEqual([])
+    }
+  })
+
+  // Refused as anything else, in words that name the EPC QR code, not a
+  // QR-bill, and on the code itself: a report holding both would
+  // otherwise send the author to the bill, and the editor could not open
+  // the code's properties from the diagnostic.
+  test('is refused as anything else, naming the code it is the amount of', () => {
+    expect(diagnose(edited(set(AMOUNT, 'params.copies')))).toEqual([
+      {
+        severity: 'error',
+        code: 'expression-type',
+        message: "an EPC QR code's amount is a decimal, or null to leave it for the payer, and this expression gives int",
+        path: AMOUNT,
+        componentId: 'payment-code',
+        hint: 'dec() makes a decimal of an integer, or of a string of digits',
+      },
+    ])
+  })
+})
+
 describe('rounding', () => {
   /** The codes of the diagnostics for the sample's group subtotal, rounded as `rounding` and printed as `format`. */
   const printed = (rounding: object | undefined, format: object): string[] =>

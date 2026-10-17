@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto'
 import { diagnose } from '@formancy/report-core'
-import { checkReport, resolveReport } from '@formancy/report-runtime'
+import { checkReport, EPC_MAX_VERSION, epcCaptionBreak, epcModule, resolveReport } from '@formancy/report-runtime'
 import type { ImageResolver } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
+import { epcCodes } from '../fixture.js'
+import { EURO_INVOICE, euroInvoiceData, euroInvoiceLines } from './euro-invoice.js'
 import { equipmentRows } from './grouped-equipment.js'
 import { STARTER_IMAGES, STARTERS } from './index.js'
 import { INVOICE, invoiceData, invoiceLines } from './invoice.js'
@@ -36,10 +38,11 @@ describe('the starters', () => {
     expect(outcome.ok ? outcome.warnings : outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`)).toEqual([])
   })
 
-  // Plan 7's three and the invoice with its QR-bill are four different
-  // proofs; two with one id would be one proof counted twice.
-  test('are four, each with its own id', () => {
-    expect(STARTERS.map(({ id }) => id)).toEqual(['service-inspection', 'quotation', 'grouped-equipment', 'invoice'])
+  // Plan 7's three, the invoice with its QR-bill and the invoice with its
+  // EPC code are five different proofs; two with one id would be one proof
+  // counted twice.
+  test('are five, each with its own id', () => {
+    expect(STARTERS.map(({ id }) => id)).toEqual(['service-inspection', 'quotation', 'grouped-equipment', 'invoice', 'euro-invoice'])
   })
 })
 
@@ -114,3 +117,61 @@ describe('the invoice', () => {
   })
 })
 
+
+describe('the euro invoice', () => {
+  /** `numerator / denominator`, both positive, rounded half away from zero to a whole number. */
+  const halfAway = (numerator: bigint, denominator: bigint): bigint => (2n * numerator + denominator) / (2n * denominator)
+  const cents = (amount: string): bigint => BigInt(amount.replace('.', ''))
+  /** An amount as the code writes it: EUR, then the euros and as many cents as are not zero (PSA v3.0 5's "as short as possible"). */
+  const epcAmount = (amount: bigint): string => {
+    const rest = amount % 100n
+    return rest === 0n ? `EUR${amount / 100n}` : `EUR${amount / 100n}.${String(rest).padStart(2, '0').replace(/0$/, '')}`
+  }
+  const resolved = (data = euroInvoiceData()) => {
+    const outcome = resolveReport(EURO_INVOICE.report, data, { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z' })
+    if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
+    return epcCodes(outcome.document.body)
+  }
+
+  // The code's amount is the report's own total, never a second sum: the
+  // net amount of the lines plus the tax rounded to the cent, computed
+  // here in BigInt from the data and not by the runtime. A code that
+  // asked for another amount than the table prints would be paid wrongly,
+  // and a reference read from the wrong field would be booked to another
+  // invoice; the code's text is compared whole, element by element in the
+  // EPC's order (EPC069-12 v3.1 2.2), its BIC making it version 001.
+  test('is paid by one EPC code for its exact total, by the reference and with the note its data names', () => {
+    const net = euroInvoiceLines().reduce((sum, line) => sum + cents(line.amount as string), 0n)
+    const total = net + halfAway(net * 19n, 100n)
+    expect(resolved().map((code) => code.payload.split('\n'))).toEqual([
+      ['BCD', '001', '1', 'SCT', 'FMNCDEF0XXX', 'Formancy Haustechnik GmbH', 'DE83012345670012345678', epcAmount(total), '', 'RF7220260815', '', 'Rechnung RE-2026-0815'],
+    ])
+    // Another invoice's reference -- the EPC's own sample's -- and number are that invoice's.
+    const data = euroInvoiceData()
+    const other = resolved({ ...data, header: { ...data.header, reference: 'RF18 5390 0754 7034', number: 'RE-2026-0816' } })
+    expect(other.map((code) => code.payload.split('\n').slice(9))).toEqual([['RF18539007547034', '', 'Rechnung RE-2026-0816']])
+  })
+
+  // The account and the BIC are invented and must stay so: an account a
+  // bank keeps, in a starter anyone may print and scan, would invite a
+  // payment to somebody. Its bank code starts with 0, as none in the
+  // Bundesbank's Bankleitzahlendatei does, and the BIC's location has a 0
+  // for its second character, which marks a test BIC (euro-invoice.ts says
+  // where each was read).
+  test('pays an account no bank keeps, through a test BIC', () => {
+    const [code] = resolved()
+    const [bic, , iban] = code?.payload.split('\n').slice(4, 7) ?? []
+    expect([iban?.slice(0, 2), iban?.charAt(4), bic?.charAt(7)]).toEqual(['DE', '0', '0'])
+  })
+
+  // Its square prints every payload the EPC allows, up to version 13's 331
+  // bytes, with Austria's frame or without, as a new code's in the builders
+  // does (0025): an invoice made from this one, with a longer name or a
+  // note of its own, is never refused by the length of its data alone. In
+  // 30 mm a payload past 287 bytes would be, and past 251 with the frame.
+  test('prints its code in a square that holds every payload the EPC allows, with the frame or without', () => {
+    const [code] = resolved()
+    const floor = (0.4 * 72) / 25.4
+    expect(code && [epcModule(code.size, EPC_MAX_VERSION, undefined) >= floor, epcCaptionBreak(code.size, EPC_MAX_VERSION)]).toEqual([true, undefined])
+  })
+})

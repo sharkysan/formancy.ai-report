@@ -1,6 +1,6 @@
 # 0010 — The runtime resolves a report into a renderer-neutral document, exactly, or refuses it
 
-- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too
+- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too, and by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which writes an EPC QR code's payload and refuses one the EPC's rules refuse
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-runtime`, run by its
@@ -187,6 +187,21 @@ Its amount is a decimal or null, written from its own digits and never
 rounded: one with a third decimal is refused, so the rounding stays where
 the total is computed, once. `lower-payment-part.test.ts` and
 `qr-bill.test.ts` hold it.
+
+**Added 2026-10-17: an EPC QR code.** The document gains an `epcQrCode`
+block, as [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)
+decides: the code's id, its square, its caption when asked for, and the
+payload the EPC defines, written by the runtime from the code's texts, so
+that the renderer formats nothing. Each text is read as a paragraph's,
+then held to report-spec's EPC rules, as `invalid-epc-qr-code`. Its amount
+is a decimal or null, written from its own digits as short as it can be,
+and never rounded. The QR-bill's two exceptions to this record's rules
+hold for it: a null run that cuts a text short refuses a final render,
+and a preview whose code then lacks a text the EPC requires is refused.
+And one of its own: an optional text the data gives empty, blank or null
+leaves its element unused, in a final render as in a preview, where a
+blank literal one is refused by the validator.
+`lower-epc-qr-code.test.ts` holds it.
 
 ## Alternatives considered
 

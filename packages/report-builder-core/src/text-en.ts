@@ -42,6 +42,7 @@ export const EN = {
   'kind.text': 'Text',
   'kind.image': 'Image',
   'kind.qrCode': 'QR code',
+  'kind.epcQrCode': 'EPC payment code',
   'kind.line': 'Line',
   'kind.rectangle': 'Rectangle',
   'kind.spacer': 'Spacer',
@@ -85,6 +86,7 @@ export const EN = {
   'palette.needsDetail': 'Declare a detail dataset with a field to show first.',
   'default.text': 'New text',
   'default.qrCode': 'https://formancy.ai/report/',
+  'default.epcBeneficiary': 'Name of the beneficiary',
   'default.emptyText': 'No rows.',
 
   // The properties pane.
@@ -103,12 +105,25 @@ export const EN = {
   'field.keepWithNext': 'Keep with next',
   'field.text': 'Text',
   'field.part': 'Part {n}: {kind}',
+  'field.textPart': '{name}, part {n}: {kind}',
   'field.source': 'Image',
   'field.width': 'Width',
   'field.height': 'Height',
   'field.fit': 'Fit',
   'field.size': 'Size',
   'field.errorCorrection': 'Error correction',
+  // An EPC payment code's texts, each one element of the code (EPC069-12
+  // v3.1 2.2); the remittance text is the unstructured remittance
+  // information, and the note the beneficiary to originator information.
+  'field.beneficiary': 'Beneficiary',
+  'field.iban': 'IBAN',
+  'field.bic': 'BIC',
+  'field.amount': 'Amount',
+  'field.purpose': 'Purpose code',
+  'field.reference': 'RF creditor reference',
+  'field.remittance': 'Remittance text',
+  'field.information': 'Note to the payer',
+  'field.caption': 'Caption',
   'field.thickness': 'Thickness',
   'field.color': 'Colour',
   'field.fill': 'Fill colour',
@@ -134,6 +149,10 @@ export const EN = {
   'run.pageCount': 'Page count',
   'option.none': 'None',
   'option.fill': 'Empty: fills the rest',
+  // An empty BIC is a code without one, which an account in the EEA takes;
+  // the EPC keeps it mandatory where a bank outside the EEA takes part
+  // (EPC069-12 v3.1 2.2), the payer's among them.
+  'option.noBic': 'Empty: none, which a payer’s bank outside the EEA may need',
   'option.portrait': 'Portrait',
   'option.landscape': 'Landscape',
   'option.contain': 'Fit inside',
@@ -142,6 +161,8 @@ export const EN = {
   'option.errorCorrectionM': 'Medium ({share})',
   'option.errorCorrectionQ': 'Quartile ({share})',
   'option.errorCorrectionH': 'High ({share})',
+  'option.noCaption': 'Code alone',
+  'option.zahlenMitCode': 'Frame and “Zahlen mit Code” (Austria)',
   'option.left': 'Left',
   'option.center': 'Centre',
   'option.right': 'Right',

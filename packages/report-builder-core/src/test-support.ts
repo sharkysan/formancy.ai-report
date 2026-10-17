@@ -93,6 +93,21 @@ const RICH: ReportDefinition = {
     summary: [
       { id: 'signature-image', kind: 'image', source: { kind: 'field', field: header('signature') }, width: 150, height: 50, fit: 'contain' },
       { id: 'order-code', kind: 'qrCode', content: [{ kind: 'text', text: 'Orders for ' }, { kind: 'field', field: header('customer') }], size: 85.04, errorCorrection: 'Q' },
+      // The EPC's first example (EPC069-12 v3.1 2.3), its BIC, name, IBAN
+      // and purpose, paying the report's total, with a remittance text of
+      // two runs where the example has a reference, in Austria's frame.
+      {
+        id: 'pay-code',
+        kind: 'epcQrCode',
+        size: 85.04,
+        beneficiary: [{ kind: 'text', text: 'Franz Mustermänn' }],
+        iban: [{ kind: 'text', text: 'DE71 1102 2033 0123 4567 89' }],
+        bic: [{ kind: 'text', text: 'BHBLDEHHXXX' }],
+        amount: { cel: 'totals.total' },
+        purpose: 'GDDS',
+        text: [{ kind: 'text', text: 'Orders for ' }, { kind: 'field', field: header('customer') }],
+        caption: 'zahlenMitCode',
+      },
     ],
   },
 }
@@ -136,9 +151,15 @@ export function richBill(): PaymentPart {
   }
 }
 
-/** The rich report with `richBill` for its payment part, checked valid. */
+/**
+ * The rich report with `richBill` for its payment part, checked valid. An
+ * invoice is paid by its bill or by an EPC code, so it holds no EPC code,
+ * and its regions stand on the page above the slip.
+ */
 export function billedReport(): ReportDefinition {
-  const report = { ...richReport(), paymentPart: richBill() }
+  const rich = richReport()
+  const summary = rich.regions.summary.filter((component) => component.kind !== 'epcQrCode')
+  const report = { ...rich, regions: { ...rich.regions, summary }, paymentPart: richBill() }
   const outcome = validateReport(report)
   if (!outcome.valid) throw new Error(`the billed report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path}`).join(', ')}`)
   return report

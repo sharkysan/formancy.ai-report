@@ -3,6 +3,7 @@ export type {
   Block,
   Columns,
   ColumnSlot,
+  EpcQrCode,
   Image,
   ImageAsset,
   Inline,
@@ -60,3 +61,12 @@ export type { ReportDefinition } from '@formancy/report-spec'
  */
 export { checkQrBillAmount, MAX_QR_BILL_ADDITIONAL_INFORMATION, QR_BILL_CURRENCIES, QR_BILL_SIZE, QR_BILL_TOP, qrBillPageBreak } from '@formancy/report-spec'
 export type { QrBillPageBreak } from '@formancy/report-spec'
+/**
+ * What report-spec decides of how an EPC QR code is printed, handed on as
+ * the QR-bill's decisions are: the most bytes and the largest version the
+ * EPC allows, the modules a symbol of a version has, the side of a module in a square, and
+ * Austria's frame, caption and modules' widths, with the least version a
+ * captioned code is drawn at and the rule a captioned code breaks.
+ */
+export { EPC_CAPTION, EPC_CAPTION_MODULE, EPC_FRAME, EPC_MAX_BYTES, EPC_MAX_VERSION, epcCaptionBreak, epcLeastVersion, epcModule, qrSymbolModules } from '@formancy/report-spec'
+export type { EpcCaption } from '@formancy/report-spec'

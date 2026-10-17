@@ -1,5 +1,5 @@
 import type { Node, NodeQueries } from 'pdfmake/interfaces.js'
-import type { Block, ImageAsset, QrCode, Table, TableRow } from '@formancy/report-runtime'
+import type { Block, EpcQrCode, ImageAsset, QrCode, Table, TableRow } from '@formancy/report-runtime'
 import type { Pixels } from './assets.js'
 import type { KeepBlock } from './breaks.js'
 import type { QrSymbol } from './qr.js'
@@ -64,8 +64,8 @@ export interface Build {
   readonly plans: ReadonlyMap<Table, TablePlan>
   /** Each image's size in pixels, as the asset checks read it. */
   readonly pixels: ReadonlyMap<ImageAsset, Pixels>
-  /** Each QR code's symbol, as the checks encoded it. */
-  readonly codes: ReadonlyMap<QrCode, QrSymbol>
+  /** Each QR code's and EPC QR code's symbol, as the checks encoded it. */
+  readonly codes: ReadonlyMap<QrCode | EpcQrCode, QrSymbol>
   /** Filled in: each asset's key in pdfmake's image dictionary, and the dictionary. */
   readonly imageKeys: Map<ImageAsset, string>
   readonly images: Record<string, string>
@@ -83,7 +83,7 @@ export interface Build {
 
 export function newBuild(
   mode: Build['mode'],
-  checked: { readonly pixels: ReadonlyMap<ImageAsset, Pixels>; readonly codes: ReadonlyMap<QrCode, QrSymbol>; readonly paths: ReadonlyMap<Block, string> },
+  checked: { readonly pixels: ReadonlyMap<ImageAsset, Pixels>; readonly codes: ReadonlyMap<QrCode | EpcQrCode, QrSymbol>; readonly paths: ReadonlyMap<Block, string> },
   body: { readonly top: number; readonly bottom: number } = { top: 0, bottom: 0 },
   plans: ReadonlyMap<Table, TablePlan> = new Map(),
 ): Build {

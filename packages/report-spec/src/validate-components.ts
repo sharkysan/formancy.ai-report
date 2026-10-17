@@ -14,6 +14,7 @@ import { COLOR } from './syntax.js'
 import { COMPONENT_KINDS, IMAGE_FITS, IMAGE_SOURCE_KINDS, QR_ERROR_CORRECTION } from './types.js'
 import type { Border, ColumnSlot, Component, ComponentBase, ComponentKind, ImageSource, ImageSourceKind, RegionName, Width } from './types.js'
 import { resolve, withinPage } from './validate-context.js'
+import { EPC_QR_CODE_OPTIONAL, EPC_QR_CODE_REQUIRED, readEpcQrCode } from './validate-epc-qr-code.js'
 import type { Ctx } from './validate-context.js'
 import { readExpression, readFieldRef, readInlines, readStyleRef, readStyleRules } from './validate-inline.js'
 import { checkFixedWidths, readTable, TABLE_OPTIONAL, TABLE_REQUIRED } from './validate-table.js'
@@ -154,6 +155,11 @@ const KINDS: { readonly [K in ComponentKind]: KindRule<Extract<Component, { kind
       if (base === undefined || content === undefined || size === undefined || errorCorrection === undefined) return undefined
       return { ...base, kind: 'qrCode', content, size, errorCorrection }
     },
+  },
+  epcQrCode: {
+    required: EPC_QR_CODE_REQUIRED,
+    optional: EPC_QR_CODE_OPTIONAL,
+    read: (c, o, path, scope, base) => readEpcQrCode(c, o, path, scope.region, base, square(c, o.size, at(path, 'size'), 'this EPC QR code')),
   },
   line: {
     required: ['thickness'],

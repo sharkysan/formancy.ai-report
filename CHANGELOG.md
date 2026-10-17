@@ -10,6 +10,126 @@ later.
 
 ## Unreleased
 
+**A report can print an EPC QR code, which a banking app pays a SEPA
+credit transfer from**
+([0025](docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+A euro invoice can be paid by a banking app that reads a code printed on
+it, the code the EPC's guidelines EPC069-12, version 3.1, define. A
+report could print one only as a QR code whose content the template
+wrote out element by element, and nothing checked it: an IBAN typed
+wrong, an amount in the report's locale's format, or a payload past the
+331 bytes the EPC allows would have printed a code no app pays, or one
+that pays someone else.
+
+- **`@formancy/report-spec`:**
+  - An `epcQrCode` component, standing wherever a QR code may: its
+    `size`; `beneficiary` and `iban`, runs; an optional `bic`, `reference`
+    or `text` -- never both -- and `information`, runs; `amount`, an
+    expression; `purpose`, four capital letters; and `caption:
+    'zahlenMitCode'`, Austria's frame. Each text is read as a paragraph's
+    in the report's scope, and a page number or count is refused in every
+    one, since all are encoded before there are pages.
+  - The EPC's rules, as functions over text: `checkEpcIban`,
+    `checkEpcBic`, `epcPairing`, `checkEpcReference`, `checkEpcText` with
+    `EPC_BENEFICIARY_RULE`, `EPC_TEXT_RULE` and `EPC_INFORMATION_RULE`,
+    `checkEpcField` over the one table of the code's texts,
+    `EPC_TEXT_FIELDS`, and `epcBlank`, `checkEpcPurpose`,
+    `checkEpcAmount`, `epcPayload`, `checkEpcPayload`, `EPC_MAX_BYTES` and
+    `utf8Length`; and how a code is printed:
+    `EPC_MAX_VERSION`, `qrSymbolModules`, `epcModule`, `EPC_FRAME`,
+    `EPC_CAPTION`, `EPC_CAPTION_MODULE`, `epcLeastVersion` and
+    `epcCaptionBreak`.
+  - An IBAN is of a country of SEPA, of that country's length, with its
+    check digits right, and no QR-IBAN, which SIX keeps for QR-bills in
+    francs: a transfer in euro to one is not credited. A BIC is of the
+    account's country, and is required for an account outside the EEA, as
+    the EPC still requires it there. Which countries those are is one
+    table, recorded from the EPC's list, EPC409-09 version 8.0, with the
+    lengths python-stdnum's copy of release 101 of SWIFT's IBAN Registry
+    gives; SWIFT's own file was not read. A creditor reference is written
+    in capitals, as the IBAN is, since the payer may not change it.
+  - A blank literal text is refused, as the text left out: an element the
+    code holds has one character at least, and a second spelling of an
+    absent one would hash apart from it.
+  - The validator applies the rules to literal texts as
+    `invalid-epc-qr-code`, and the runtime the same functions to data, so
+    the editor and the render cannot read the EPC two ways. A refusal names
+    the field and the rule, never the text, which may be a person's name or
+    account.
+  - **The IBAN's check digits and the creditor reference are the
+    QR-bill's own**, moved out of its rules into one module both codes
+    read: a second copy could disagree about which account is typed right.
+    `QrBillCheck` is now the shared `PaymentCheck`.
+  - The format stays at version `'0'`. **0.1.0 refuses a report with an
+    EPC QR code**, whole, as `unknown-kind`.
+- **`@formancy/report-core`:** a new code is named `epc-qr-code`. Its texts
+  are compiled in the report's scope, and its amount must give a decimal
+  or null, by the one rule a QR-bill's amount is held to; the error names
+  the code it is the amount of, and the code's id.
+- **`@formancy/report-runtime`:**
+  - An `EpcQrCode` block, holding the EPC's payload: SCT in euro in UTF-8,
+    version `001` with a BIC and `002` without, every element up to the
+    last a line and nothing after it. The EPC's first example is written
+    byte for byte.
+  - The amount is written as short as it can be, `EUR12.3`, as Austria's
+    PSA asks, from the decimal's own digits, and never rounded: one with a
+    third decimal is refused, so the template rounds where it computes the
+    total.
+  - Every text is held to the EPC's rules once the data has resolved it,
+    a null that cuts one short refuses a final render, and a preview that
+    lacks a text the EPC requires is refused. An optional text the data
+    gives empty, blank or null is left out of the code, in a final render
+    as in a preview: a nullable field's null is how data says "none".
+  - It hands on report-spec's print decisions an engine draws by, as
+    report-spec's own objects, as it does the QR-bill's.
+- **`@formancy/report-render-pdf`:**
+  - An EPC QR code is encoded by uqr at level M, never past version 13,
+    and without a caption is drawn exactly as a QR code is, held to the
+    same 0.4 mm floor.
+  - With `caption: 'zahlenMitCode'` it is drawn as Austria's PSA prints
+    one: modules of 15 to 20 mil, a frame with rounded corners four
+    modules from the symbol on the left, above and below, and "Zahlen mit
+    Code" up its right side, beside the frame's line there, in the
+    Liberation Sans the package ships. Where a short payload would print
+    modules wider than 20 mil, the version is raised, rather than refusing
+    the code, and it scans to the same bytes: otherwise one template would
+    print one invoice and refuse the next by the length of its data. A
+    captioned square is 68.06 to 118.6 pt (24.0 to 41.8 mm).
+  - It refuses a payload past 331 bytes, modules outside the floor or the
+    PSA's widths, and a caption it cannot draw in Liberation Sans, naming
+    the code and never its payload.
+- **`@formancy/report-builder-core` and both builders:** "EPC payment
+  code" in the palette, a 32 mm square paying the report's language's
+  "Name of the beneficiary" to `DE36 0000 0000 0000 0000 00`, an account
+  no bank keeps, with no amount and no frame. 32 mm, not a QR code's 30:
+  it is the least whole millimetre in which every payload the EPC allows
+  prints, with the frame and without, and in 30 mm a template would
+  refuse an invoice by the length of its data alone. Its fields follow
+  the code's elements, each text on one line, since a line break would
+  end its element, and an optional text is added by typing it and removed
+  by emptying it; an empty BIC says that a payer's bank outside the EEA
+  may need one. A shared scenario inserts one by keyboard and types its
+  account.
+- **`@formancy/report-corpus`:** `readPdf` gives every text run its angle
+  and a turned run its true box, and `lines` keeps a turned run apart, so
+  the caption is never read as part of the line beside it.
+- **A fifth starter, "Rechnung mit SEPA-Zahlcode"**, a German heating
+  firm's invoice in euro, in the corpus and the Studio. Its code pays the
+  invoice's exact total by a creditor reference read from the data, and
+  its page prints the beneficiary, the IBAN, the BIC, the amount and the
+  reference beside the code, as the EPC means a code to be printed, in a
+  32 mm square, as a new code's. The code stands at the left of the
+  details, under their heading: at the top of a narrow column at the
+  block's right end, the design view printed its label over its
+  container's, and the browser gate could read neither. Its account and
+  BIC are invented, and are no bank's. The README shows its page.
+- **The install gate prints an EPC QR code**, with Austria's caption, from
+  the packed packages, on a report whose lines are euros -- nothing ties
+  the code's amount to euro, and a total in francs would be asked for as
+  so many euros -- finds Liberation Sans in the PDF, and holds the
+  caption's size rule to one set of words in the validator and the
+  renderer.
+
 **The Swiss QR-bill has a page in four languages, and the invoice comes
 as samples in French, Italian and English**
 ([0024](docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)).

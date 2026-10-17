@@ -34,6 +34,8 @@ export async function render(engine: Engine, document: ResolvedDocument, options
   stopIfCancelled(signal)
   const checked = await checkDocument(document, await engine.glyphs())
   const bill = document.paymentPart === undefined ? undefined : checkBill(document.paymentPart, document.page, await engine.billGlyphs())
+  // An EPC QR code's caption prints in Liberation Sans too, which a browser loads only when asked; its words are the PSA's, which the face has glyphs for.
+  if (checked.captioned) await engine.billGlyphs()
   await stopIfCancelledSoon(signal)
   const regions = await measureRegions(engine, document, checked, maxPages)
   await stopIfCancelledSoon(signal)

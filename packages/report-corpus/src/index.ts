@@ -26,6 +26,7 @@ export type {
   TextStyle,
 } from './document.js'
 export type { Expectation, ExpectedCell, ExpectedImage, ExpectedRefusal, ExpectedRow, ExpectedTable, Fixture } from './fixture.js'
+export { epcCodes } from './fixture.js'
 export { ALL_FIXTURES } from './fixtures/all.js'
 export { readPdf } from './read-pdf.js'
 export { rasterPage, rasterPixels } from './raster.js'
@@ -35,6 +36,9 @@ export type { PdfCode } from './codes.js'
 export {
   equipmentData,
   equipmentRows,
+  EURO_INVOICE,
+  euroInvoiceData,
+  euroInvoiceLines,
   GROUPED_EQUIPMENT,
   INSPECTION_PHOTO,
   inspectionData,

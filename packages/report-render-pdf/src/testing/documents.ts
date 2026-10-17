@@ -139,8 +139,8 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     keptTogetherByRoom: false,
     minPagesExpected: 1,
     noOrphanedHeaders: true,
-    // A page of these alone prints nothing the corpus's checks see: no text, and no image.
-    noEmptyPages: !flatten(document.body).some((block) => block.kind === 'spacer' || block.kind === 'rule' || block.kind === 'rectangle' || block.kind === 'qrCode'),
+    // A page of these alone prints nothing the corpus's checks see: no text, and no image. An EPC QR code's caption is text, but the code need not have one.
+    noEmptyPages: !flatten(document.body).some((block) => ['spacer', 'rule', 'rectangle', 'qrCode', 'epcQrCode'].includes(block.kind)),
     allTextInsidePrintable: true,
     noOverlaps: true,
     fontsEmbedded: true,

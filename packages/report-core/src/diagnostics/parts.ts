@@ -37,9 +37,12 @@ export interface ExpressionSite {
   readonly componentId?: string
   /** The table column it belongs to, for a column's value, condition or style rule. */
   readonly columnId?: string
-  /** A QR-bill's amount, which is a decimal, or null to leave it for the payer. */
-  readonly amount?: true
+  /** What the expression is the amount of, when it is a payment code's -- a decimal, or null to leave it for the payer. */
+  readonly amount?: PaymentAmount
 }
+
+/** The payment codes an amount is printed in, as a message names each. */
+export type PaymentAmount = 'a QR-bill' | 'an EPC QR code'
 
 /** What an expression belongs to: a component, and within a table a column. */
 interface Owner {
@@ -117,9 +120,14 @@ class Collector {
     for (const [index, inline] of inlines.entries()) this.inline(inline, `${path}/${index}`, scope, owner)
   }
 
-  /** A QR-bill's amount: a value, read in the report's scope. */
-  amount(expression: Expression | undefined, path: string): void {
-    if (expression !== undefined) this.expressions.push({ cel: expression.cel, scope: 'report', kind: 'computed', path: `${path}/cel`, amount: true })
+  /** A payment code's amount: a value, read in the report's scope. */
+  amount(expression: Expression | undefined, path: string, of: PaymentAmount, owner: Owner): void {
+    if (expression !== undefined) this.expressions.push({ cel: expression.cel, scope: 'report', kind: 'computed', path: `${path}/cel`, ...owner, amount: of })
+  }
+
+  /** A text a code holds, read as a paragraph's in the report's scope; absent, it holds none. */
+  optionalInlines(inlines: readonly Inline[] | undefined, path: string, owner: Owner): void {
+    if (inlines !== undefined) this.inlines(inlines, path, 'report', owner)
   }
 
   /** Each part of an address, in the order the code holds them; a party absent holds none. */
@@ -156,6 +164,17 @@ const READERS: { readonly [K in ComponentKind]: Reader<K> } = {
   // What a QR code encodes is what its content prints, read as a
   // paragraph's in the same place.
   qrCode: (code, path, into) => into.inlines(code.content, `${path}/content`, 'report', { componentId: code.id }),
+  // What an EPC QR code encodes, in the order its payload holds it: each
+  // text read as a paragraph's in its place, its amount as a value, all
+  // named after the code.
+  epcQrCode: (code, path, into) => {
+    const owner = { componentId: code.id }
+    into.optionalInlines(code.bic, `${path}/bic`, owner)
+    into.inlines(code.beneficiary, `${path}/beneficiary`, 'report', owner)
+    into.inlines(code.iban, `${path}/iban`, 'report', owner)
+    into.amount(code.amount, `${path}/amount`, 'an EPC QR code', owner)
+    for (const key of ['reference', 'text', 'information'] as const) into.optionalInlines(code[key], `${path}/${key}`, owner)
+  },
   line: NOTHING,
   rectangle: NOTHING,
   spacer: NOTHING,
@@ -199,12 +218,9 @@ const PAYMENT_PARTS: { readonly [K in PaymentPartKind]: PartReader<K> } = {
   swissQrBill: (bill, path, into) => {
     into.inlines(bill.account, `${path}/account`, 'report', {})
     into.address(bill.creditor, `${path}/creditor`)
-    into.amount(bill.amount, `${path}/amount`)
+    into.amount(bill.amount, `${path}/amount`, 'a QR-bill', {})
     into.address(bill.debtor, `${path}/debtor`)
-    for (const key of ['reference', 'message', 'billingInformation'] as const) {
-      const runs = bill[key]
-      if (runs !== undefined) into.inlines(runs, `${path}/${key}`, 'report', {})
-    }
+    for (const key of ['reference', 'message', 'billingInformation'] as const) into.optionalInlines(bill[key], `${path}/${key}`, {})
   },
 }
 

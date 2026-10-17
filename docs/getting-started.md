@@ -317,9 +317,10 @@ refusals and the same pages. What differs is pdfmake's build and where the
 fonts come from: pdfmake's browser build, with Roboto from pdfmake's
 `vfs_fonts.js`, the four font files as base64 inside a script, so the page's
 bundle carries them. A report with a Swiss QR-bill prints its slip in
-Liberation Sans, which the entry imports from a chunk of its own the first
-time a document has a bill, so a bundler that splits dynamic imports keeps
-it out of a page that prints none. Nothing in it touches a file system or
+Liberation Sans, and one with an EPC QR code in Austria's frame its
+caption, which the entry imports from a chunk of its own the first time a
+document has either, so a bundler that splits dynamic imports keeps it out
+of a page that prints neither. Nothing in it touches a file system or
 follows an address.
 
 In `print.ts`, a preview prints the report against sample data:

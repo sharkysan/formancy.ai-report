@@ -3,8 +3,8 @@
  * The product page first, which is each language's root; then the topic
  * pages, each linked from every page's bar and from the product page. An
  * invoice page comes with the change that builds its feature, and not
- * before: the Swiss QR-bill's came after its slip (0022, 0024); SEPA's EPC
- * code's comes with the code.
+ * before: the Swiss QR-bill's came after its slip (0022, 0024), and SEPA's
+ * EPC code's comes after the code (0025).
  */
 import { HEALTHCARE_GROUP } from './content/healthcare.js'
 import { PRODUCT_GROUP } from './content/product.js'

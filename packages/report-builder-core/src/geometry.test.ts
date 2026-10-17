@@ -73,7 +73,7 @@ describe('the page', () => {
       ['pageHeader', 'Page header', 1],
       ['body', 'Body', 9],
       ['pageFooter', 'Page footer', 1],
-      ['summary', 'Summary', 2],
+      ['summary', 'Summary', 3],
     ])
   })
 })

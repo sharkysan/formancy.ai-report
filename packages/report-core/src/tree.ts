@@ -53,6 +53,7 @@ const CONTAINERS: { readonly [K in ComponentKind]: Holding<Extract<Component, { 
   text: undefined,
   image: undefined,
   qrCode: undefined,
+  epcQrCode: undefined,
   line: undefined,
   rectangle: undefined,
   spacer: undefined,

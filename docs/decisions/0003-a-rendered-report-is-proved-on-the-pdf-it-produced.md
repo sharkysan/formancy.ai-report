@@ -1,6 +1,6 @@
 # 0003 — A rendered report is proved on the PDF it produced
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which reads QR codes from the page's pixels
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which reads QR codes from the page's pixels, and by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which reads a run turned on the page
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `packages/report-corpus`, whose suite runs in its own job of
@@ -125,6 +125,19 @@ nothing compares a page with an approved picture, and what is neither
 text, an image nor a code is still not seen. `src/codes.test.ts` holds the
 reader, and `src/raster.test.ts` holds `rasterPixels` to `rasterPage`'s
 page, pixel for pixel.
+
+**Added 2026-10-17: a run turned on the page.** An EPC QR code's caption
+reads from bottom to top
+([0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+Read as an upright run, its box would lie across the page from where it
+starts, over whatever stands to its right. `readPdf` now gives every run
+its angle, counter-clockwise from the page's x-axis to the hundredth of a
+degree, and a turned run the box its letters' box turns into, still
+computed from its baseline and its size: a quarter turn is its size wide
+and its advance tall. A run across the page keeps the box it had. `lines`
+makes a run that does not read across the page a line of its own, after
+the lines that do, so that a caption is never joined to the text beside
+it. `src/read-pdf.test.ts` and `src/lines.test.ts` hold both.
 
 ## Alternatives considered
 

@@ -106,7 +106,8 @@ export async function runStep(step: ScenarioStep, { user, session }: Mounted): P
       case 'fill': {
         const element = find(step)
         await user.clear(element)
-        await user.type(element, step.text)
+        // Filling a field with nothing is clearing it: user-event has no keys to type for an empty text, and refuses one.
+        if (step.text !== '') await user.type(element, step.text)
         return user.tab()
       }
       case 'choose':

@@ -4,7 +4,7 @@ import type { PdfPage, PdfTextItem } from './read-pdf.js'
 
 /** A run as the reader reports it: a box one font size tall, its bottom a fifth of that below the baseline. */
 function run(text: string, x: number, baseline: number, size = 10, width = text.length * size * 0.5): PdfTextItem {
-  return { text, x, top: baseline + 0.2 * size - size, bottom: baseline + 0.2 * size, width, height: size }
+  return { text, x, top: baseline + 0.2 * size - size, bottom: baseline + 0.2 * size, width, height: size, angle: 0 }
 }
 
 function page(...items: PdfTextItem[]): PdfPage {
@@ -28,6 +28,20 @@ describe('pageLines', () => {
   test('keeps runs of different sizes on one baseline together', () => {
     const lines = pageLines(page(run('Total', 50, 200, 7), run('1830.00', 150, 200, 20)))
     expect(lines.map((line) => line.text)).toEqual(['Total 1830.00'])
+  })
+
+  // A caption that reads up the page beside a code does not share a line
+  // with the text that happens to stand where its box ends: joined to it,
+  // an IBAN printed beside the code would read "DE71 ... Zahlen mit Code"
+  // and match no line the report prints. A turned run is a line of its
+  // own, after the lines that read across the page.
+  test('reads a run that does not read across the page as a line of its own', () => {
+    const caption: PdfTextItem = { text: 'Zahlen mit Code', x: 494.4, top: 690, bottom: 741.36, width: 7, height: 51.36, angle: 90 }
+    // Its box ends where that line's baseline is, a fifth of an em above it.
+    const iban = run('DE71 1102 2033 0123 4567 89', 300, caption.bottom - 0.2 * caption.height)
+    const lines = pageLines(page(caption, iban, run('Above', 50, 600)))
+    expect(lines.map((line) => line.text)).toEqual(['Above', 'DE71 1102 2033 0123 4567 89', 'Zahlen mit Code'])
+    expect(lines[2]).toMatchObject({ top: 690, bottom: 741.36 })
   })
 
   // Two lines of one column, a line's pitch apart, are read top to bottom

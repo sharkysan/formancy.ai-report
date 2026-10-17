@@ -128,6 +128,32 @@ export {
 } from './qr-bill.js'
 export type { QrBillAccount, QrBillCheck, QrBillPageBreak, QrBillPairingBreak, QrBillReference, QrBillReferenceType, QrBillTextRule } from './qr-bill.js'
 
+export type { PaymentCheck } from './payment-reference.js'
+
+export { EPC_CAPTIONS } from './epc-qr-code.js'
+export type { EpcCaption, EpcQrCodeComponent } from './epc-qr-code.js'
+export {
+  checkEpcAmount,
+  checkEpcBic,
+  checkEpcField,
+  checkEpcIban,
+  checkEpcPayload,
+  checkEpcPurpose,
+  checkEpcReference,
+  checkEpcText,
+  EPC_BENEFICIARY_RULE,
+  EPC_INFORMATION_RULE,
+  EPC_MAX_BYTES,
+  EPC_TEXT_FIELDS,
+  EPC_TEXT_RULE,
+  epcBlank,
+  epcPairing,
+  epcPayload,
+  utf8Length,
+} from './epc-payload.js'
+export type { EpcPairingBreak, EpcPayloadFields, EpcTextField, EpcTextFieldRule, EpcTextRule } from './epc-payload.js'
+export { EPC_CAPTION, EPC_CAPTION_MODULE, EPC_FRAME, EPC_MAX_VERSION, epcCaptionBreak, epcLeastVersion, epcModule, qrSymbolModules } from './epc-print.js'
+
 export { validateReport } from './validate.js'
 export type { ReportValidation } from './validate.js'
 export { REPORT_ERROR_CODES } from './errors.js'

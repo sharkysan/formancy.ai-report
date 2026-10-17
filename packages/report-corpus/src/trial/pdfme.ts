@@ -296,6 +296,7 @@ async function flowingBox(block: Exclude<Block, { kind: 'pageBreak' | 'spacer' }
     case 'section':
     case 'rectangle':
     case 'qrCode':
+    case 'epcQrCode':
       throw new Error(`a ${block.kind} block reached the pdfme template`)
   }
 }

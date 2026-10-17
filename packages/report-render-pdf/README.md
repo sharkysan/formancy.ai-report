@@ -39,19 +39,20 @@ document's own (`info.creationDate`), and nothing else in the file varies.
 
 | Entry | pdfmake | Fonts |
 |---|---|---|
-| `@formancy/report-render-pdf` | the Node build | the four Roboto files in pdfmake's package, and for a QR-bill's slip the two Liberation Sans files in this package's `fonts`, read from disk |
-| `@formancy/report-render-pdf/browser` | the browser build, `pdfmake/build/pdfmake.js` | the same Roboto, from pdfmake's `build/vfs_fonts.js`, and the same Liberation Sans from a chunk of the build's own, imported the first time a document has a bill |
+| `@formancy/report-render-pdf` | the Node build | the four Roboto files in pdfmake's package, and for a QR-bill's slip and an EPC QR code's caption the two Liberation Sans files in this package's `fonts`, read from disk |
+| `@formancy/report-render-pdf/browser` | the browser build, `pdfmake/build/pdfmake.js` | the same Roboto, from pdfmake's `build/vfs_fonts.js`, and the same Liberation Sans from a chunk of the build's own, imported the first time a document has a bill or a captioned EPC QR code |
 
 The two entries share everything but the build of pdfmake and where the
 fonts come from: the checks, the measuring passes and the document
 definitions are one module both import. The browser entry touches no file
 system and imports no `node:` module. Liberation Sans reaches it through a
 dynamic import alone, so an app's bundler puts it in a chunk that a host
-which never prints a bill never loads. An import that fails is not kept:
-the bill it failed for rejects with its error, and the next bill imports
-the chunk again; once it has loaded, no bill imports it again. The Node
-entry keeps its reads of the font files the same way, so a file it could
-not open just then fails the render that asked for it and no render after.
+which never prints a bill or a captioned EPC QR code never loads, which a
+test holds. An import that fails is not kept: the document it failed for
+rejects with its error, and the next bill or caption imports the chunk
+again; once it has loaded, nothing imports it again. The Node entry keeps
+its reads of the font files the same way, so a file it could not open just
+then fails the render that asked for it and no render after.
 Whether a browser fetches a chunk again after a failure, or a chunk a
 deploy removed is still there, is not the renderer's to decide: a page
 reload is.
@@ -105,6 +106,10 @@ Every block of the resolved document:
   large code adds to a render's time and to the PDF, and what the one fill
   costs against a rectangle for each run, is measured in
   [0020](../../docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md).
+- **EPC QR codes** (EPC069-12 version 3.1), the code a SEPA credit
+  transfer is initiated from: the runtime's payload encoded as a QR code's
+  text is, at level M and in version 13 at most, and drawn as a QR code
+  is, or in Austria's frame with "Zahlen mit Code" beside it (below).
 - **Rules**, at their thickness and colour, across the width they stand in,
   with 3 pt above and below.
 - **Rectangles**, filled, outlined or both, their outline drawn inside the
@@ -129,10 +134,10 @@ Every block of the resolved document:
 | Code | When |
 |---|---|
 | `too-many-pages` | The report needs more pages than `maxPages`, a QR-bill's page included. pdfmake's own limit would return the first pages as though they were all of it. A body whose least height already needs more, the room a bill's slip keeps included, is refused before pdfmake measures it. |
-| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; a QR-bill the slip cannot hold (below). |
+| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below). |
 | `invalid-asset` | An image's bytes are not the PNG or JPEG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side. |
 | `cancelled` | The signal was aborted. |
-| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below). |
+| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below). |
 
 ## QR codes
 
@@ -150,6 +155,72 @@ Empty text is drawn as what it is: a version 1 symbol of no data. ZXing,
 which the tests read codes with, reports no code in it at all. Of the
 runtime's documents, only a preview holds one: it refuses a final render
 whose code has a value that is null, or prints nothing.
+
+## EPC QR codes
+
+An `epcQrCode` block's payload, which the runtime has written and held to
+the EPC's rules, is encoded by uqr as UTF-8 at level M, its level never
+raised (`boostEcc: false`), in a symbol of version 13 at most (EPC069-12
+2.1), once, when the document is checked. The renderer formats and checks nothing of what the payload says;
+it decides how the code is drawn. Why it is drawn so, and what that costs,
+is [0025](../../docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md).
+
+- **Without a caption** it is drawn exactly as a `qrCode` of its payload at
+  level M is: the same square, quiet zone and modules, held to the same
+  0.4 mm floor. The EPC gives no size, and no frame.
+- **With `caption: 'zahlenMitCode'`** it is drawn as Austria's PSA prints
+  one ("QR-Code und BCD Definition", version 3.0, section 5), inside its
+  square: modules from 15 to 20 mil (0.381 to 0.508 mm); a frame half a
+  module wide, its corners rounded by two modules, its inner edge four
+  modules from the symbol on the left, above and below, and its outer edge
+  on the square's left and right; and "Zahlen mit Code" at 7 pt in
+  Liberation Sans, reading from bottom to top up the right side, beyond
+  four modules and in a band of 7 pt, its baseline on the frame's right
+  line, which runs along the band's outer edge and is broken a module
+  beyond each end of the caption. The caption is centred on the
+  symbol and no longer than it, and is text a reader finds. Down, the
+  frame is the symbol and nine modules, and stands in the middle of the
+  square's height.
+- **The version.** Without a caption, the smallest that holds the payload.
+  With one, the least whose modules are at most 20 mil and whose symbol is
+  as tall as the caption, or the payload's own when that is larger: in a
+  30 mm square, the EPC's first example, version 6, would have modules of
+  0.556 mm, and is drawn in version 8 at 0.479 mm. A larger version of the
+  same payload at the same level scans to the same bytes.
+- **What the frame and the caption take.** In a 30 mm square (85.04 pt),
+  measured on the PDF on 17 October 2026: across, 8.5 modules and the
+  caption's 7 pt band, 18.54 pt, so that the symbol is 78.2 % of the side;
+  down, nine modules, and 3.16 pt of the square white above the frame and
+  below it.
+- **At the corners** the PSA's own figure reaches into the quiet zone: a
+  frame four modules from the symbol with corners rounded by two comes
+  within 3.49 modules of both of the symbol's edges at each corner, 4.93
+  from the corner straight, and so half a module into the square of four
+  modules ISO/IEC 18004 keeps quiet. Along the sides the four are white.
+- **The square that prints every payload**, up to version 13's 331 bytes,
+  with the caption and without, is 32 mm (90.71 pt) or more: version 13's
+  modules are 0.416 mm in it without the caption and 0.381 mm with it. A
+  30 mm square refuses a payload past 287 bytes without the caption and
+  past 251 with it. The builders' new code is 32 mm for this.
+
+The EPC's and the PSA's rules the renderer refuses by are report-spec's,
+handed on by the runtime (`EPC_MAX_BYTES`, `EPC_MAX_VERSION`, `epcModule`,
+`EPC_FRAME`, `EPC_CAPTION`, `epcLeastVersion`, `epcCaptionBreak`); the 0.4
+mm floor and a square wider than where it stands are the renderer's own,
+as for every QR code. The caption's length, 51.36 pt, is its advance in
+Liberation Sans, which a test holds to the PDF. A refusal names the code by its id and never quotes the payload:
+
+| Code | When |
+|---|---|
+| `content-too-large` | A payload of more than 331 bytes: refused unencoded when it is longer than that in characters, and once the encoder finds no version up to 13 holds it otherwise. |
+| `content-too-large` | Without a caption, modules smaller than 0.4 mm, the message naming the square the payload needs. |
+| `content-too-large` | With the caption, a square in which no version prints, below 68.06 pt or above 118.6 pt, refused before encoding; or a payload whose version has modules under 15 mil in its square. |
+| `content-too-large` | It is wider than where it stands, or taller than the body, as a QR code is. |
+| `unsupported` | Its size is not a positive finite number, its caption is not one the renderer knows, or its payload is not a string or holds half a surrogate pair. |
+
+pdfmake's SVG converter draws the caption, and where it cannot open a face
+it warns and draws the text in the face it drew in last: the renderer
+fails the render instead, as an engine's failure and not a refusal.
 
 ## QR-bills
 
@@ -243,11 +314,13 @@ Each PDF embeds the subset of each face it uses.
   fr-FR amount, which Intl groups with a narrow no-break space (U+202F)
   that Roboto lacks. Swiss amounts, de-CH and fr-CH alike, print.
 
-A QR-bill's slip, and nothing else, prints in **Liberation Sans 2.1.5**,
-regular and bold, under the SIL Open Font License 1.1: SIX allows Arial,
-Frutiger, Helvetica and Liberation Sans on a slip, and Roboto is none of
-them. The package ships the two font files in `fonts`, with their licence
-and authors, and the guard reads their licence from the files. The browser
+A QR-bill's slip and an EPC QR code's caption, and nothing else, print in
+**Liberation Sans 2.1.5**, regular and bold, under the SIL Open Font
+License 1.1: SIX allows Arial, Frutiger, Helvetica and Liberation Sans on a
+slip, and Roboto is none of them; for "Zahlen mit Code" the PSA's figure
+says "Font family Arial o.s. non-serifs". The package ships the two font
+files in `fonts`, with their licence and authors, and the guard reads
+their licence from the files. The browser
 entry's copy is base64 in a chunk the build makes of them, held to their
 bytes by a test. Both faces map every character SIX allows in a bill (IG
 4.1.1), which a test holds too.
@@ -301,12 +374,19 @@ show. A QR code is read as a scanner reads it: the page drawn by PDF.js and
 decoded by ZXing (`readCodes` in the corpus), for its text, its bytes, its
 level, its version and where it stands. `starters.test.ts` resolves the
 starters with the runtime and proves their PDFs: plan 7's three swept
-across page ends, and the invoice down to its bill's code, decoded from
-the page and asking for the total the page prints. `samples.test.ts` does
-the same for the corpus's invoice samples, the invoice in German, French,
-Italian and English: one page each, its totals in its locale's format, its
-slip's headings in its language and in no other's, and its code asking for
-the total it prints. `qr-bill.test.ts` and
+across page ends, the invoice down to its bill's code, decoded from the
+page and asking for the total the page prints, and the euro invoice down
+to its EPC QR code, decoded from the page, asking for that total and
+standing beside the payment details it holds, each printed in plain
+text. `samples.test.ts` does the same for the corpus's invoice samples,
+the invoice in German, French, Italian and English: one page each, its
+totals in its locale's format, its slip's headings in its language and in
+no other's, and its code asking for the total it prints.
+`epc-qr-code.test.ts` proves EPC QR codes on their PDF: the EPC's
+examples decoded byte for byte at level M, and 331 bytes in version 13;
+the caption read back by PDF.js, its text, its turn, its face and its
+length; the frame from the content stream; and the quiet zone, the
+frame's line and the caption from the pixels. `qr-bill.test.ts` and
 `qr-bill-pages.test.ts` prove a QR-bill's slip on its PDF: SIX's
 examples, resolved by the runtime, decoded byte for byte; every heading
 and value read back where SIX puts it, at its size and in its face; the

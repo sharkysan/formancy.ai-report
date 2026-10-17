@@ -66,7 +66,8 @@ clamps when what it names is not there:
   `updateComponent` (a patch typed per kind; the id and kind never change),
   `duplicateComponent` (fresh ids for the copy and all it holds), and
   `nextComponentId`, which also names a new component after its kind:
-  `pageBreak` gives `page-break`, `qrCode` gives `qr-code`;
+  `pageBreak` gives `page-break`, `qrCode` gives `qr-code`, `epcQrCode`
+  gives `epc-qr-code`;
 - **the table:** `insertColumn`, `removeColumn` (with its footer cells),
   `moveColumn`, `updateColumn`, `setGroup`, `setSort`, and the footer rows
   under the table and under each group, row by row and cell by cell.
@@ -147,13 +148,15 @@ proposal's review shows before Apply.
 - its errors.
 
 An expression in a QR code's content is compiled as one in a paragraph in
-its place is: in the report's scope, its diagnostics naming the code. A
-payment part's texts are read the same way, in the report's scope, and its
-diagnostics name no component, only the path: the bill stands in none. Its
-amount is compiled as a value that must give a decimal or null. One that
-may be null is checked as `dyn`, which may be either, and the render checks
-what it holds. An integer or a string is a type error, with `dec()` as the
-hint.
+its place is: in the report's scope, its diagnostics naming the code. An
+EPC QR code's texts are read the same way, in the order its payload holds
+them, and named after the code. A payment part's texts are read the same
+way too, in the report's scope, and its diagnostics name no component,
+only the path: the bill stands in none. A payment code's amount, a
+QR-bill's or an EPC QR code's, is compiled as a value that must give a
+decimal or null, by one rule for both. One that may be null is checked as
+`dyn`, which may be either, and the render checks what it holds. An integer
+or a string is a type error, with `dec()` as the hint.
 
 `diagnose(report)` lists those errors, then the warnings. The runtime refuses
 a report with an error, so the editor and the runtime cannot disagree about
@@ -201,10 +204,10 @@ What this does not do:
   so `!= null` is the way to ask.
 - **Layout.** Whether a keep-together block fits a page, a column its width,
   or a QR code's content its square, is the renderer's to say.
-- **A QR-bill's values.** Whether an amount has two decimals at most, and
-  whether what a field puts in a bill is an IBAN, a reference or an address
-  SIX allows, depends on the data. The runtime checks them with
-  `@formancy/report-spec`'s rules, the ones the validator applies to a
-  literal.
+- **A payment code's values.** Whether an amount has two decimals at
+  most, and whether what a field puts in a QR-bill or an EPC QR code is an
+  IBAN, a reference or a name its rules allow, depends on the data. The
+  runtime checks them with `@formancy/report-spec`'s rules, the ones the
+  validator applies to a literal.
 
 Source-available, not open source: see [`LICENSE.md`](../../LICENSE.md).

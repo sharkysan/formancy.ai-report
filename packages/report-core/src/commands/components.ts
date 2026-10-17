@@ -112,6 +112,7 @@ const NAMED_AFTER: { readonly [K in ComponentKind]: string } = {
   text: 'text',
   image: 'image',
   qrCode: 'qr-code',
+  epcQrCode: 'epc-qr-code',
   line: 'line',
   rectangle: 'rectangle',
   spacer: 'spacer',

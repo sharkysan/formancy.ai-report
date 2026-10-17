@@ -13,10 +13,11 @@ export interface Engine {
   /** Roboto's four faces, which a report's own text prints in. */
   readonly glyphs: () => Promise<Glyphs>
   /**
-   * Liberation Sans's two faces, which a QR-bill's slip prints in: read
-   * the first time a document has a payment part, and in a browser loaded
-   * then, so that a host that never prints a bill never loads them. Once
-   * they are read, `run` has them for a document that prints them.
+   * Liberation Sans's two faces, which a QR-bill's slip and an EPC QR
+   * code's caption print in: read the first time a document has a payment
+   * part or a captioned code, and in a browser loaded then, so that a host
+   * that never prints either never loads them. Once they are read, `run`
+   * has them for a document that prints them.
    */
   readonly billGlyphs: () => Promise<BillGlyphs>
 }

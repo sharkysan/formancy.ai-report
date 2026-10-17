@@ -106,6 +106,18 @@ const RICH: ReportDefinition = {
     summary: [
       { id: 'signature-image', kind: 'image', source: { kind: 'field', field: header('signature') }, width: 150, height: 50, fit: 'contain' },
       { id: 'order-code', kind: 'qrCode', content: [{ kind: 'text', text: 'Orders for ' }, { kind: 'field', field: header('customer') }], size: 85.04, errorCorrection: 'Q' },
+      {
+        id: 'pay-code',
+        kind: 'epcQrCode',
+        size: 85.04,
+        beneficiary: [{ kind: 'text', text: 'Franz Mustermänn' }],
+        iban: [{ kind: 'text', text: 'DE71 1102 2033 0123 4567 89' }],
+        bic: [{ kind: 'text', text: 'BHBLDEHHXXX' }],
+        amount: { cel: 'totals.total' },
+        purpose: 'GDDS',
+        text: [{ kind: 'text', text: 'Orders for ' }, { kind: 'field', field: header('customer') }],
+        caption: 'zahlenMitCode',
+      },
     ],
   },
 }

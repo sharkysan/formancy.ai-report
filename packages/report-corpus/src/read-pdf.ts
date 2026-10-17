@@ -27,9 +27,16 @@ export interface PdfBox {
  * size apart (a line's pitch is at least 1.15 em in both fonts) while still
  * reaching below the baseline far enough to catch a footer drawn into the
  * last line's descenders.
+ *
+ * That is a run that reads across the page. A run turned on the page -- an
+ * EPC QR code's caption reads from bottom to top -- has the box that box
+ * turns into: one turned a quarter turn is its font size wide and its
+ * advance tall.
  */
 export interface PdfTextItem extends PdfBox {
   readonly text: string
+  /** Which way its baseline runs, in degrees counter-clockwise from the page's x-axis, to the hundredth: 0 across the page, 90 up it. */
+  readonly angle: number
 }
 
 export interface PdfPage {
@@ -124,12 +131,22 @@ async function textItems(page: PDFPageProxy, viewport: PageViewport): Promise<Pd
   return items
 }
 
+/**
+ * A run's box: its advance along its baseline, from a fifth of its size
+ * below the baseline to the rest of it above, turned as the run is, and
+ * the box on the page that holds it. Across the page that is the box
+ * `PdfTextItem` describes, exactly: a turn of 0 has a cosine of 1 and a
+ * sine of 0.
+ */
 function textBox(item: TextItem, viewport: PageViewport): PdfTextItem {
-  const [, , c, d, e, f] = item.transform as [number, number, number, number, number, number]
+  const [a, b, c, d, e, f] = item.transform as [number, number, number, number, number, number]
   const size = Math.hypot(c, d)
-  const [x, baseline] = viewport.convertToViewportPoint(e, f) as [number, number]
-  const bottom = baseline + DESCENT * size
-  return { text: item.str, x, top: bottom - size, bottom, width: item.width, height: size }
+  const angle = Math.round((Math.atan2(b, a) * 18000) / Math.PI) / 100
+  const [cos, sin] = [Math.cos((angle * Math.PI) / 180), Math.sin((angle * Math.PI) / 180)]
+  const corners = [0, item.width].flatMap((along) => [-DESCENT * size, (1 - DESCENT) * size].map((up) => viewport.convertToViewportPoint(e + along * cos - up * sin, f + along * sin + up * cos) as [number, number]))
+  const [x, top] = [Math.min(...corners.map(([across]) => across)), Math.min(...corners.map(([, down]) => down))]
+  const [width, height] = [Math.abs(item.width * cos) + Math.abs(size * sin), Math.abs(item.width * sin) + Math.abs(size * cos)]
+  return { text: item.str, x, top, bottom: top + height, width, height, angle }
 }
 
 type Matrix = readonly [number, number, number, number, number, number]
