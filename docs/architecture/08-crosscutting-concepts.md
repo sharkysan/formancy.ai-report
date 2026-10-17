@@ -213,6 +213,11 @@ Several sets of words, and they are kept apart:
   page in each ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)),
   and so is the invoice, as the corpus's samples
   ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)).
+  The euro invoice's samples are in German for Austria, French, Italian,
+  Spanish, Dutch and English for Ireland, each in its locale; Spanish and
+  Dutch are seen only as pictures, since no page is in either. The German
+  pages are Switzerland's spelling, and are read by Germans and Austrians
+  ([0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
   No native speaker's review of the translations is recorded.
 
 Body text prints in Roboto alone, so a script Roboto lacks — CJK, Hebrew,

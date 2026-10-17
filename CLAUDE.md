@@ -316,7 +316,7 @@ What nothing holds yet, said: the palette and `builder.css` are copied from
 `admin.css` by hand, and nothing fails when upstream's move; the gate runs
 Chromium alone, where Formancy Data's runs Firefox and WebKit too; no gate
 measures the product's pages in a browser, whose reflow and contrast were
-measured by hand (0021); and what
+measured by hand when each page arrived (0021, 0024, 0028); and what
 a README picture looks like, and whether a caption's quote is painted in it
 rather than scrolled out of its part, which review alone holds.
 

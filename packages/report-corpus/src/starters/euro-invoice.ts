@@ -1,4 +1,8 @@
 import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
+import { EURO_COUNTRIES } from './euro-invoice-countries.js'
+import type { AddressPart, EuroBilling, EuroCountry, WholeRate } from './euro-invoice-countries.js'
+import { EURO_WORDS } from './euro-invoice-words.js'
+import type { EuroWords } from './euro-invoice-words.js'
 import { lineAmount } from './quotation.js'
 import type { Starter } from './starter.js'
 
@@ -25,38 +29,24 @@ import type { Starter } from './starter.js'
  * letters must also say (GmbHG section 35a) nobody here checked, and the
  * starter does not claim it.
  *
- * The totals are the QR-bill invoice's, at 19 %: the net amount is the
- * exact sum of the line amounts; the tax line is an expression over it,
- * rounded to the cent; the total is declared as a sum of each amount times
- * 1.19, rounded once to the cent, which is the net amount plus the printed
- * tax, as the net amount is a whole number of cents. The code's amount is
- * that total, the one aggregate, and the payment details print it too, so
- * what the table says, what the details say and what the code asks for
- * cannot differ.
+ * The totals are the QR-bill invoice's, at the country's rate: the net
+ * amount is the exact sum of the line amounts; the tax line is an
+ * expression over it, rounded to the cent; the total is declared as a sum
+ * of each amount times one plus the rate, rounded once to the cent, which
+ * is the net amount plus the printed tax, as the net amount is a whole
+ * number of cents. The code's amount is that total, the one aggregate, and
+ * the payment details print it too, so that what the table says, what the
+ * details say and what the code asks for cannot differ.
  *
- * Every party and number is invented, and none is anybody's:
- * - the account is a German IBAN of bank code 01234567, where every bank
- *   code in the Bundesbank's Bankleitzahlendatei valid from 7 September to
- *   6 December 2026 starts with a digit from 1 to 8 (13,760 records, read
- *   on 17 October 2026); its check digits, 83, are ISO 13616's, computed
- *   in BigInt from the account and the country and checked by report-spec;
- * - the BIC is a test BIC: a 0 as its location's second character marks
- *   one that the live network does not route to (ISO 9362, as Wikipedia's
- *   article on it gives it; SWIFT's text was not read), and no bank in the
- *   Bundesbank's file has its four letters;
- * - the reference is an ISO 11649 creditor reference of the invoice's
- *   number, its check digits computed as the IBAN's are;
- * - the VAT number is the format's well-known sample, DE123456789, whose
- *   last digit is not the check digit ISO 7064's MOD 11,10 gives the eight
- *   before it, so that no business has it;
- * - the customer is the name and address the German identity card's
- *   specimen bears.
+ * The same report is made for Austria, France, Italy, Spain, the
+ * Netherlands and Ireland, as samples (`EURO_INVOICE_SAMPLES`), which sell
+ * the boiler's parts rather than maintain it:
+ * `euro-invoice-countries.ts` holds whom each bills, at what rate and to
+ * which account, and where each account and rate was read;
+ * `euro-invoice-words.ts` holds each language's words; and this file the
+ * one report they are put into. The German is the starter, and its JSON is
+ * what it was before the samples were made (`euro-samples.test.ts`).
  */
-
-/** The firm the invoice is from and the code pays: one spelling of each, for the code and for what is printed beside it. */
-const COMPANY = 'Formancy Haustechnik GmbH'
-const IBAN = 'DE83 0123 4567 0012 3456 78'
-const BIC = 'FMNCDEF0XXX'
 
 const header = (field: string) => ({ dataset: 'header', field }) as const
 const detail = (field: string) => ({ dataset: 'detail', field }) as const
@@ -64,233 +54,332 @@ const EUR = { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 
 const text = (value: string) => [{ kind: 'text', text: value }] as const
 const dated = (label: string, field: string) => [{ kind: 'text', text: label }, { kind: 'field', field: header(field), format: { kind: 'date', style: 'medium' } }] as const
 
-const REPORT: ReportDefinition = {
-  reportSpecVersion: '0',
-  id: 'euro-invoice',
-  title: 'Rechnung mit SEPA-Zahlcode',
-  locale: 'de-DE',
-  page: { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 56.69, bottom: 56.69, left: 56.69 } },
-  styles: [
-    { id: 'title', size: 16, bold: true },
-    { id: 'address', size: 10 },
-    { id: 'grand', size: 10.5, bold: true },
-    { id: 'sender', size: 8, color: '#555555' },
-    { id: 'heading', size: 10, bold: true },
-  ],
-  datasets: {
+/** The fields of an address line in the country's order, `between` each: a space, or a comma and a space where a country writes "Calle Mayor, 12". */
+const joined = (parts: readonly AddressPart[], between = ' ') => parts.flatMap((part, index) => [...(index === 0 ? [] : [{ kind: 'text', text: between } as const]), { kind: 'field', field: header(part) } as const])
+
+/**
+ * The two decimals a whole rate is written as, by its digits and never by
+ * a number: the tax's share of the net amount, `0.19`, and the total's
+ * factor, `1.19`.
+ */
+const shares = (rate: WholeRate): readonly [share: string, factor: string] => [`0.${rate}`, `1.${rate}`]
+
+/** The fields of the data that hold the customer's address. */
+const ADDRESS_PARTS: readonly string[] = ['street', 'buildingNumber', 'postcode', 'city'] satisfies readonly AddressPart[]
+
+/**
+ * Whether the country's invoice prints the field: an address part it
+ * leaves out -- Ireland's postcode, as its customer has no Eircode -- is
+ * neither in its dataset nor in its data, since a field nothing prints is
+ * one the editor warns would be fetched for nothing.
+ */
+const printsField = (billing: EuroBilling, field: string): boolean => !ADDRESS_PARTS.includes(field) || [...billing.address.street, ...billing.address.town].some((part) => part === field)
+
+/** The line at the head of the invoice: the firm, its address in its country's order, its VAT number, and what else its country asks a company's invoice to say of it. */
+const sender = (billing: EuroBilling, words: EuroWords): string => [billing.firm.name, ...billing.firm.address, `${words.vatNumber} ${billing.firm.vatNumber}`, ...(billing.firm.legal ?? [])].join(' · ')
+
+/** The styles every edition prints with. */
+const STYLES: ReportDefinition['styles'] = [
+  { id: 'title', size: 16, bold: true },
+  { id: 'address', size: 10 },
+  { id: 'grand', size: 10.5, bold: true },
+  { id: 'sender', size: 8, color: '#555555' },
+  { id: 'heading', size: 10, bold: true },
+]
+
+/** The invoice's two datasets, labelled in the country's words: its header, without an address part the country does not print, and its lines. */
+function datasets(billing: EuroBilling, labels: EuroWords['labels']): ReportDefinition['datasets'] {
+  return {
     header: {
       id: 'invoice',
-      fields: [
-        { id: 'number', type: 'string', label: 'Rechnungsnummer', nullable: false },
-        { id: 'issuedOn', type: 'date', label: 'Rechnungsdatum', nullable: false },
-        { id: 'servedOn', type: 'date', label: 'Leistungsdatum', nullable: false },
-        { id: 'dueOn', type: 'date', label: 'Zahlbar bis', nullable: false },
-        { id: 'customer', type: 'string', label: 'Kunde', nullable: false },
-        { id: 'street', type: 'string', label: 'Straße', nullable: false },
-        { id: 'buildingNumber', type: 'string', label: 'Hausnummer', nullable: false },
-        { id: 'postcode', type: 'string', label: 'PLZ', nullable: false },
-        { id: 'city', type: 'string', label: 'Ort', nullable: false },
-        { id: 'reference', type: 'string', label: 'Referenz', nullable: false },
-      ],
+      fields: (
+        [
+          { id: 'number', type: 'string', label: labels.number, nullable: false },
+          { id: 'issuedOn', type: 'date', label: labels.issuedOn, nullable: false },
+          { id: 'servedOn', type: 'date', label: labels.servedOn, nullable: false },
+          { id: 'dueOn', type: 'date', label: labels.dueOn, nullable: false },
+          { id: 'customer', type: 'string', label: labels.customer, nullable: false },
+          { id: 'street', type: 'string', label: labels.street, nullable: false },
+          { id: 'buildingNumber', type: 'string', label: labels.buildingNumber, nullable: false },
+          { id: 'postcode', type: 'string', label: labels.postcode, nullable: false },
+          { id: 'city', type: 'string', label: labels.city, nullable: false },
+          { id: 'reference', type: 'string', label: labels.reference, nullable: false },
+        ] as const
+      ).filter((field) => printsField(billing, field.id)),
     },
     detail: {
       id: 'invoice-lines',
       fields: [
-        { id: 'article', type: 'string', label: 'Artikel', nullable: false },
-        { id: 'description', type: 'string', label: 'Beschreibung', nullable: false },
-        { id: 'quantity', type: 'decimal', label: 'Menge', nullable: false, scale: 2 },
-        { id: 'unit', type: 'string', label: 'Einheit', nullable: false },
-        { id: 'unitPrice', type: 'decimal', label: 'Einzelpreis', nullable: false, scale: 2 },
-        { id: 'amount', type: 'decimal', label: 'Betrag', nullable: false, scale: 2 },
+        { id: 'article', type: 'string', label: labels.article, nullable: false },
+        { id: 'description', type: 'string', label: labels.description, nullable: false },
+        { id: 'quantity', type: 'decimal', label: labels.quantity, nullable: false, scale: 2 },
+        { id: 'unit', type: 'string', label: labels.unit, nullable: false },
+        { id: 'unitPrice', type: 'decimal', label: labels.unitPrice, nullable: false, scale: 2 },
+        { id: 'amount', type: 'decimal', label: labels.amount, nullable: false, scale: 2 },
       ],
     },
-  },
-  parameters: [],
-  assets: [],
-  aggregates: [
-    { id: 'subtotal', fn: 'sum', of: { kind: 'field', field: detail('amount') } },
-    { id: 'total', fn: 'sum', of: { kind: 'expression', expression: { cel: 'row.amount * dec("1.19")' } }, rounding: { scale: 2, mode: 'half-away-from-zero' } },
-  ],
-  regions: {
-    pageHeader: [],
-    reportHeader: [
-      { id: 'sender', kind: 'text', style: 'sender', content: text(`${COMPANY} · Industriestraße 7 · 50735 Köln · USt-IdNr. DE123456789`) },
-      { id: 'sender-gap', kind: 'spacer', height: 12 },
+  }
+}
+
+/** The head of the invoice: whom it is from, the customer's address, and the heading over its number and dates. */
+function reportHeader(billing: EuroBilling, words: EuroWords): ReportDefinition['regions']['reportHeader'] {
+  return [
+    { id: 'sender', kind: 'text', style: 'sender', content: text(sender(billing, words)) },
+    { id: 'sender-gap', kind: 'spacer', height: 12 },
+    {
+      id: 'addresses',
+      kind: 'columns',
+      columns: [
+        {
+          width: 'fill',
+          components: [
+            { id: 'customer', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('customer') }] },
+            { id: 'street', kind: 'text', style: 'address', content: joined(billing.address.street, billing.address.comma === true ? ', ' : ' ') },
+            { id: 'city', kind: 'text', style: 'address', content: joined(billing.address.town) },
+          ],
+        },
+        {
+          width: 190,
+          components: [
+            { id: 'title', kind: 'text', style: 'title', content: text(words.heading) },
+            { id: 'number', kind: 'text', content: [{ kind: 'text', text: words.numberIs }, { kind: 'field', field: header('number') }] },
+            { id: 'issued-on', kind: 'text', content: dated(words.issuedOnIs, 'issuedOn') },
+            { id: 'served-on', kind: 'text', content: dated(words.servedOnIs, 'servedOn') },
+            { id: 'due-on', kind: 'text', content: dated(words.dueOnIs, 'dueOn') },
+          ],
+        },
+      ],
+    },
+    { id: 'head-gap', kind: 'spacer', height: 18 },
+  ]
+}
+
+/** The table of the lines it bills, its net amount, the tax at the country's rate, and the total. */
+function positions(billing: EuroBilling, words: EuroWords, share: string): ReportDefinition['regions']['body'][number] {
+  const { columns } = words
+  return {
+    id: 'positions',
+    kind: 'table',
+    dataset: 'detail',
+    columns: [
+      { id: 'article', header: columns[0], width: 96, align: 'left', value: { kind: 'field', field: detail('article') } },
+      { id: 'description', header: columns[1], width: 'fill', align: 'left', value: { kind: 'field', field: detail('description') } },
+      { id: 'quantity', header: columns[2], width: 50, align: 'right', value: { kind: 'field', field: detail('quantity'), format: { kind: 'number', scale: 2, grouping: true } } },
+      { id: 'unit', header: columns[3], width: 52, align: 'left', value: { kind: 'field', field: detail('unit') } },
+      { id: 'unit-price', header: columns[4], width: 76, align: 'right', value: { kind: 'field', field: detail('unitPrice'), format: EUR } },
+      { id: 'amount', header: columns[5], width: 84, align: 'right', value: { kind: 'field', field: detail('amount'), format: EUR } },
+    ],
+    sort: [{ field: detail('article'), direction: 'asc' }],
+    totals: [
       {
-        id: 'addresses',
+        cells: [
+          { column: 'article', value: { kind: 'text', text: words.net } },
+          { column: 'amount', value: { kind: 'aggregate', aggregate: 'subtotal', over: 'report', format: EUR } },
+        ],
+      },
+      {
+        cells: [
+          { column: 'article', value: { kind: 'text', text: words.vat(billing.rate) } },
+          { column: 'amount', value: { kind: 'expression', expression: { cel: `round(totals.subtotal * dec("${share}"), 2)` }, format: EUR } },
+        ],
+      },
+      {
+        cells: [
+          { column: 'article', value: { kind: 'text', text: words.total } },
+          { column: 'amount', value: { kind: 'aggregate', aggregate: 'total', over: 'report', format: EUR } },
+        ],
+        style: 'grand',
+      },
+    ],
+    emptyText: words.empty,
+    repeatHeader: true,
+  }
+}
+
+/**
+ * The payment details beside the code that pays the invoice. The heading
+ * first and the code at the left of its details: in the design view a
+ * container's label sits at its top end and a component's at its top
+ * start, so a code at the top of a column at the right end would have its
+ * label over the columns' and the block's, which neither a reader nor axe
+ * could tell apart.
+ */
+function payment(billing: EuroBilling, words: EuroWords): ReportDefinition['regions']['summary'][number] {
+  const { bank } = words
+  const { firm, caption } = billing
+  return {
+    id: 'payment',
+    kind: 'keepTogether',
+    components: [
+      { id: 'bank-heading', kind: 'text', style: 'heading', content: text(bank.heading) },
+      {
+        id: 'payment-details',
         kind: 'columns',
         columns: [
           {
+            width: 90.71,
+            components: [
+              {
+                id: 'payment-code',
+                kind: 'epcQrCode',
+                size: 90.71,
+                beneficiary: text(firm.name),
+                iban: text(billing.iban),
+                bic: text(billing.bic),
+                amount: { cel: 'totals.total' },
+                reference: [{ kind: 'field', field: header('reference') }],
+                information: [{ kind: 'text', text: words.information }, { kind: 'field', field: header('number') }],
+                // Last, and only where asked, so that a code without it keeps the keys and the JSON it had.
+                ...(caption === undefined ? {} : { caption }),
+              },
+            ],
+          },
+          { width: 12, components: [] },
+          {
             width: 'fill',
             components: [
-              { id: 'customer', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('customer') }] },
-              { id: 'street', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('street') }, { kind: 'text', text: ' ' }, { kind: 'field', field: header('buildingNumber') }] },
-              { id: 'city', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('postcode') }, { kind: 'text', text: ' ' }, { kind: 'field', field: header('city') }] },
-            ],
-          },
-          {
-            width: 190,
-            components: [
-              { id: 'title', kind: 'text', style: 'title', content: text('Rechnung') },
-              { id: 'number', kind: 'text', content: [{ kind: 'text', text: 'Rechnungsnummer: ' }, { kind: 'field', field: header('number') }] },
-              { id: 'issued-on', kind: 'text', content: dated('Rechnungsdatum: ', 'issuedOn') },
-              { id: 'served-on', kind: 'text', content: dated('Leistungsdatum: ', 'servedOn') },
-              { id: 'due-on', kind: 'text', content: dated('Zahlbar bis: ', 'dueOn') },
-            ],
-          },
-        ],
-      },
-      { id: 'head-gap', kind: 'spacer', height: 18 },
-    ],
-    body: [
-      {
-        id: 'positions',
-        kind: 'table',
-        dataset: 'detail',
-        columns: [
-          { id: 'article', header: 'Artikel', width: 96, align: 'left', value: { kind: 'field', field: detail('article') } },
-          { id: 'description', header: 'Beschreibung', width: 'fill', align: 'left', value: { kind: 'field', field: detail('description') } },
-          { id: 'quantity', header: 'Menge', width: 50, align: 'right', value: { kind: 'field', field: detail('quantity'), format: { kind: 'number', scale: 2, grouping: true } } },
-          { id: 'unit', header: 'Einheit', width: 52, align: 'left', value: { kind: 'field', field: detail('unit') } },
-          { id: 'unit-price', header: 'Einzelpreis', width: 76, align: 'right', value: { kind: 'field', field: detail('unitPrice'), format: EUR } },
-          { id: 'amount', header: 'Betrag', width: 84, align: 'right', value: { kind: 'field', field: detail('amount'), format: EUR } },
-        ],
-        sort: [{ field: detail('article'), direction: 'asc' }],
-        totals: [
-          {
-            cells: [
-              { column: 'article', value: { kind: 'text', text: 'Nettobetrag' } },
-              { column: 'amount', value: { kind: 'aggregate', aggregate: 'subtotal', over: 'report', format: EUR } },
-            ],
-          },
-          {
-            cells: [
-              { column: 'article', value: { kind: 'text', text: 'Umsatzsteuer 19 %' } },
-              { column: 'amount', value: { kind: 'expression', expression: { cel: 'round(totals.subtotal * dec("0.19"), 2)' }, format: EUR } },
-            ],
-          },
-          {
-            cells: [
-              { column: 'article', value: { kind: 'text', text: 'Rechnungsbetrag' } },
-              { column: 'amount', value: { kind: 'aggregate', aggregate: 'total', over: 'report', format: EUR } },
-            ],
-            style: 'grand',
-          },
-        ],
-        emptyText: 'Keine Positionen.',
-        repeatHeader: true,
-      },
-    ],
-    summary: [
-      { id: 'summary-gap', kind: 'spacer', height: 12 },
-      {
-        id: 'terms',
-        kind: 'text',
-        content: [
-          { kind: 'text', text: 'Bitte überweisen Sie den Rechnungsbetrag bis zum ' },
-          { kind: 'field', field: header('dueOn'), format: { kind: 'date', style: 'long' } },
-          { kind: 'text', text: ' auf das unten genannte Konto und geben Sie dabei die Referenz an.' },
-        ],
-      },
-      { id: 'terms-gap', kind: 'spacer', height: 6 },
-      { id: 'retention', kind: 'text', content: text('Sie sind gesetzlich verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige Unterlage zwei Jahre lang aufzubewahren (§ 14b Abs. 1 Satz 5 UStG).') },
-      { id: 'payment-gap', kind: 'spacer', height: 18 },
-      // The heading first and the code at the left of its details: in the
-      // design view a container's label sits at its top end and a
-      // component's at its top start, so a code at the top of a column at
-      // the right end would have its label over the columns' and the
-      // block's, which neither a reader nor axe could tell apart.
-      {
-        id: 'payment',
-        kind: 'keepTogether',
-        components: [
-          { id: 'bank-heading', kind: 'text', style: 'heading', content: text('Bankverbindung') },
-          {
-            id: 'payment-details',
-            kind: 'columns',
-            columns: [
-              {
-                width: 90.71,
-                components: [
-                  {
-                    id: 'payment-code',
-                    kind: 'epcQrCode',
-                    size: 90.71,
-                    beneficiary: text(COMPANY),
-                    iban: text(IBAN),
-                    bic: text(BIC),
-                    amount: { cel: 'totals.total' },
-                    reference: [{ kind: 'field', field: header('reference') }],
-                    information: [{ kind: 'text', text: 'Rechnung ' }, { kind: 'field', field: header('number') }],
-                  },
-                ],
-              },
-              { width: 12, components: [] },
-              {
-                width: 'fill',
-                components: [
-                  { id: 'paid-to', kind: 'text', content: text(`Empfänger: ${COMPANY}`) },
-                  { id: 'paid-iban', kind: 'text', content: text(`IBAN: ${IBAN}`) },
-                  { id: 'paid-bic', kind: 'text', content: text(`BIC: ${BIC}`) },
-                  { id: 'paid-amount', kind: 'text', content: [{ kind: 'text', text: 'Betrag: ' }, { kind: 'aggregate', aggregate: 'total', over: 'report', format: EUR }] },
-                  { id: 'paid-reference', kind: 'text', content: [{ kind: 'text', text: 'Referenz: ' }, { kind: 'field', field: header('reference') }] },
-                  { id: 'scan-gap', kind: 'spacer', height: 6 },
-                  { id: 'scan', kind: 'text', style: 'sender', content: text('Oder scannen Sie den Code links mit Ihrer Banking-App.') },
-                ],
-              },
+              { id: 'paid-to', kind: 'text', content: text(`${bank.paidTo}${firm.name}`) },
+              { id: 'paid-iban', kind: 'text', content: text(`${bank.iban}${billing.iban}`) },
+              { id: 'paid-bic', kind: 'text', content: text(`${bank.bic}${billing.bic}`) },
+              { id: 'paid-amount', kind: 'text', content: [{ kind: 'text', text: bank.amount }, { kind: 'aggregate', aggregate: 'total', over: 'report', format: EUR }] },
+              { id: 'paid-reference', kind: 'text', content: [{ kind: 'text', text: bank.reference }, { kind: 'field', field: header('reference') }] },
+              { id: 'scan-gap', kind: 'spacer', height: 6 },
+              { id: 'scan', kind: 'text', style: 'sender', content: text(bank.scan) },
             ],
           },
         ],
       },
     ],
-    pageFooter: [],
-  },
-  provenance: { kind: 'blank' },
+  }
 }
 
-/** Description, unit, quantity and unit price, each quantity and price exact to the cent. */
-const ITEMS: readonly (readonly [string, string, string, string])[] = [
-  ['Wartung Gastherme', 'Pausch.', '1.00', '189.00'],
-  ['Arbeitszeit Techniker', 'h', '2.75', '76.00'],
-  ['Umwälzpumpe getauscht', 'Stk', '1.00', '312.00'],
-  ['Ausdehnungsgefäß 25 l', 'Stk', '1.00', '148.00'],
-  ['Zündelektrode mit Dichtung', 'Stk', '1.00', '31.50'],
-  ['Heizungswasser nachgefüllt', 'l', '12.50', '1.85'],
-  ['Anfahrt Köln', 'Pausch.', '1.00', '39.00'],
-]
-
-/** The invoice's line items, `H-3001` up, given in the reverse of the order the report prints them in. */
-export function euroInvoiceLines(): Record<string, string>[] {
-  return ITEMS.map(([description, unit, quantity, unitPrice], index) => ({ article: `H-${3001 + index}`, description, quantity, unit, unitPrice, amount: lineAmount(quantity, unitPrice) })).reverse()
-}
-
-/** The invoice: its header, with a creditor reference of its number, and its line items. */
-export function euroInvoiceData(): ReportData {
-  const detail = euroInvoiceLines()
-  return {
-    header: {
-      number: 'RE-2026-0815',
-      issuedOn: '2026-10-15',
-      servedOn: '2026-10-08',
-      dueOn: '2026-10-29',
-      customer: 'Erika Mustermann',
-      street: 'Heidestraße',
-      buildingNumber: '17',
-      postcode: '51147',
-      city: 'Köln',
-      reference: 'RF72 2026 0815',
+/** Under the table: the terms, the notice its law asks for, and the payment details beside the code that pays it. */
+function summary(billing: EuroBilling, words: EuroWords): ReportDefinition['regions']['summary'] {
+  const { notice } = words
+  return [
+    { id: 'summary-gap', kind: 'spacer', height: 12 },
+    {
+      id: 'terms',
+      kind: 'text',
+      content: [
+        { kind: 'text', text: words.terms[0] },
+        { kind: 'field', field: header('dueOn'), format: { kind: 'date', style: 'long' } },
+        { kind: 'text', text: words.terms[1] },
+      ],
     },
+    ...(notice === undefined
+      ? []
+      : [
+          { id: 'terms-gap', kind: 'spacer', height: 6 },
+          { id: notice.id, kind: 'text', content: text(notice.text) },
+        ] as const),
+    { id: 'payment-gap', kind: 'spacer', height: 18 },
+    payment(billing, words),
+  ]
+}
+
+/** The invoice's report in the country's words, rate and account. */
+function report(billing: EuroBilling, words: EuroWords): ReportDefinition {
+  const [share, factor] = shares(billing.rate)
+  return {
+    reportSpecVersion: '0',
+    id: billing.id,
+    title: words.title,
+    locale: billing.locale,
+    page: { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 56.69, bottom: 56.69, left: 56.69 } },
+    styles: STYLES,
+    datasets: datasets(billing, words.labels),
+    parameters: [],
+    assets: [],
+    aggregates: [
+      { id: 'subtotal', fn: 'sum', of: { kind: 'field', field: detail('amount') } },
+      { id: 'total', fn: 'sum', of: { kind: 'expression', expression: { cel: `row.amount * dec("${factor}")` } }, rounding: { scale: 2, mode: 'half-away-from-zero' } },
+    ],
+    regions: {
+      pageHeader: [],
+      reportHeader: reportHeader(billing, words),
+      body: [positions(billing, words, share)],
+      summary: summary(billing, words),
+      pageFooter: [],
+    },
+    provenance: { kind: 'blank' },
+  }
+}
+
+/** The country's line items, its article numbers up from its first, given in the reverse of the order the report prints them in. */
+function lines(billing: EuroBilling, words: EuroWords): Record<string, string>[] {
+  return words.items
+    .map(([description, unit], index) => {
+      const [quantity, unitPrice] = billing.work[index] as readonly [string, string]
+      return { article: `${billing.articles.prefix}-${billing.articles.first + index}`, description, quantity, unit, unitPrice, amount: lineAmount(quantity, unitPrice) }
+    })
+    .reverse()
+}
+
+/** The country's data: its header, with its customer and a creditor reference of its number, and its line items. */
+function data(billing: EuroBilling, words: EuroWords): ReportData {
+  const detail = lines(billing, words)
+  const { customer } = billing
+  const header = {
+    number: billing.number,
+    issuedOn: billing.issuedOn,
+    servedOn: billing.servedOn,
+    dueOn: billing.dueOn,
+    customer: customer.name,
+    street: customer.street,
+    buildingNumber: customer.buildingNumber,
+    postcode: customer.postalCode,
+    city: customer.town,
+    reference: billing.reference,
+  }
+  return {
+    header: Object.fromEntries(Object.entries(header).filter(([field]) => printsField(billing, field))),
     detail,
     completeness: { complete: true, captured: detail.length },
     consistency: 'host-captured',
   }
 }
 
-export const EURO_INVOICE: Starter = {
-  id: 'euro-invoice',
-  title: 'Rechnung mit SEPA-Zahlcode',
-  proves: 'an EPC QR code: a SEPA credit transfer of the invoice’s exact total in euro, by a creditor reference read from the data, beside the payment details it holds, printed in plain text',
-  report: REPORT,
-  data: euroInvoiceData(),
-  parameters: {},
+/**
+ * The euro invoice of `country`, with its data. Refused while the country
+ * bills another number of lines than its words describe, since a line
+ * without its words would be dropped, and its amount from the total.
+ */
+function euroInvoice(country: EuroCountry): Starter {
+  const [billing, words] = [EURO_COUNTRIES[country], EURO_WORDS[country]]
+  if (billing.work.length !== words.items.length) throw new Error(`the euro invoice from ${country} bills ${billing.work.length} lines, and its words describe ${words.items.length}`)
+  return { id: billing.id, title: words.title, proves: words.proves, report: report(billing, words), data: data(billing, words), parameters: {} }
 }
+
+/** The invoice's line items, `H-3001` up, given in the reverse of the order the report prints them in. */
+export function euroInvoiceLines(): Record<string, string>[] {
+  return lines(EURO_COUNTRIES.DE, EURO_WORDS.DE)
+}
+
+/** The invoice: its header, with a creditor reference of its number, and its line items. */
+export function euroInvoiceData(): ReportData {
+  return data(EURO_COUNTRIES.DE, EURO_WORDS.DE)
+}
+
+export const EURO_INVOICE: Starter = euroInvoice('DE')
+
+/** The euro invoice from Austria, in the PSA's frame: a sample, which the Studio's picker does not offer. A sample has a starter's shape. */
+export const EURO_INVOICE_AT: Starter = euroInvoice('AT')
+
+/** The euro invoice from France: a sample. */
+export const EURO_INVOICE_FR: Starter = euroInvoice('FR')
+
+/** The euro invoice from Italy, a courtesy copy: a sample. */
+export const EURO_INVOICE_IT: Starter = euroInvoice('IT')
+
+/** The euro invoice from Spain: a sample. */
+export const EURO_INVOICE_ES: Starter = euroInvoice('ES')
+
+/** The euro invoice from the Netherlands: a sample. */
+export const EURO_INVOICE_NL: Starter = euroInvoice('NL')
+
+/** The euro invoice from Ireland: a sample. */
+export const EURO_INVOICE_IE: Starter = euroInvoice('IE')
+
+/** The euro invoice from Germany, Austria, France, Italy, Spain, the Netherlands and Ireland: the German is the starter, and the others are samples of it. */
+export const EURO_INVOICE_SAMPLES: readonly Starter[] = [EURO_INVOICE, EURO_INVOICE_AT, EURO_INVOICE_FR, EURO_INVOICE_IT, EURO_INVOICE_ES, EURO_INVOICE_NL, EURO_INVOICE_IE]

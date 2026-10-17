@@ -30,8 +30,12 @@ it is embedded
 Each check was given a real PDF that shows the fault it looks for, and was
 watched failing with itself removed (`report-corpus/src/checks.test.ts`).
 The renderer runs every fixture of the corpus with none excused
-(`report-render-pdf/src/corpus.test.ts`), and every starter and invoice
-sample (`starters.test.ts`, `samples.test.ts`). The same corpus chose the
+(`report-render-pdf/src/corpus.test.ts`), and every starter and each
+sample of both invoices (`starters.test.ts`, `samples.test.ts`,
+`report-render-pdf/src/euro-samples.test.ts`); the corpus's own
+`starters/euro-samples.test.ts` states each euro sample's rate, account,
+parties and words, and recomputes its total in BigInt
+([0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)). The same corpus chose the
 engine ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
 [`../renderer-trial.md`](../renderer-trial.md)).
 
@@ -51,7 +55,7 @@ on it unchanged
 | The editing core: its texts and its amount compiled in the report's scope | `report-core/src/diagnostics/parts.test.ts`, `diagnose.test.ts` | The same two |
 | The runtime, on data | `report-runtime/src/lower-payment-part.test.ts`, `qr-bill.test.ts` | `report-runtime/src/lower-epc-qr-code.test.ts` |
 | The renderer, on the PDF it produced: the code decoded from the pixels, the text read back | `report-render-pdf/src/qr-bill.test.ts`, `qr-bill-pages.test.ts` | `report-render-pdf/src/epc-qr-code.test.ts`, which also reads the caption, the frame and the quiet zone from the PDF's text, its drawing and its pixels |
-| A starter, its code decoded by `readCodes` and asking for the total the page prints | The invoice, in `report-render-pdf/src/starters.test.ts` | The euro invoice, in the same file, with the details the code holds read beside it; `report-corpus/src/starters/starters.test.ts` holds its payload to a total recomputed in BigInt |
+| A starter, its code decoded by `readCodes` and asking for the total the page prints | The invoice, in `report-render-pdf/src/starters.test.ts` | The euro invoice, in the same file, with the details the code holds read beside it; `report-corpus/src/starters/starters.test.ts` holds its payload to a total recomputed in BigInt; and its six samples, in `report-render-pdf/src/euro-samples.test.ts`, each in its locale |
 | The builders | `report-builder-core/src/payment-part.test.ts` | `report-builder-core/src/epc-qr-code.test.ts`, and the scenario "insert an EPC payment code, and type its account", run by the core, React and Angular |
 | The browser entry's Liberation Sans | `report-render-pdf/src/browser.test.ts` | The same, which holds the chunk to loading only for a bill or a captioned code |
 | The packed packages | The install gate's `consume.ts` | The same |
@@ -122,7 +126,10 @@ later releases and say why, and the legal gate waits for a lawyer
   (`scripts/browsers.mjs`), where Formancy Data's run Firefox and WebKit too.
 - **The product's pages are read, not opened.** Their checks read the HTML
   and stylesheets the build writes; their reflow and contrast were measured
-  by hand, once ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)).
+  by hand in Chromium when each page arrived, all of them again with the
+  EPC QR code page ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md),
+  [0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
+  [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
 - **No real Formancy Data server.** The provider's tests and the install gate
   run against a stand-in that answers 0.1.0's routes in Data's shapes, with
   no database and no policy ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).

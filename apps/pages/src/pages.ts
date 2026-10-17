@@ -30,7 +30,27 @@ export interface PageGroup {
   readonly hl7Notice?: true
   /** Its picture for a shared link: one of the site's pictures, under docs/images, the same in every language or one for each. */
   readonly image?: string | Readonly<Record<Language, string>>
+  /** Where the page says its feature stands, for a page whose feature no release had when it was written. */
+  readonly status?: PageStatus
   readonly Body: (props: { readonly page: PageContext }) => ReactElement
+}
+
+/**
+ * Where a page says its feature stands (0024): the day it was last said,
+ * and the newest release then, which did not have it. A release
+ * CHANGELOG.md names after this one may have it, so the site refuses to
+ * render until somebody says whether it does (0028). The rest is what the
+ * refusal names: the feature, the file whose sentences say where it
+ * stands, those sentences, and the constant that holds this, to change
+ * with them.
+ */
+export interface PageStatus {
+  readonly asOf: string
+  readonly release: string
+  readonly feature: string
+  readonly copy: string
+  readonly sentences: string
+  readonly constant: string
 }
 
 export interface Teaser {

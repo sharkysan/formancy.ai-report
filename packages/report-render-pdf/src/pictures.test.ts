@@ -2,13 +2,13 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { INVOICE_SAMPLES, STARTERS } from '@formancy/report-corpus'
+import { EURO_INVOICE_SAMPLES, INVOICE_SAMPLES, STARTERS } from '@formancy/report-corpus'
 import { describe, expect, test } from 'vitest'
 import { TIMEOUT } from './testing/documents.js'
 import { picture, PICTURES, SAMPLE_PICTURES, type PictureSpec } from './testing/pictures.js'
 
 /**
- * The README's pictures of the starters and of the invoice samples, held
+ * The README's pictures of the starters and of both invoices' samples, held
  * to the text they show. Each was drawn by `scripts/readme-pictures.ts`
  * from a page this package rendered, and the manifest beside it records
  * the lines PDF.js read on that page: `pictures.json` for the starters',
@@ -58,15 +58,17 @@ describe("the README's pictures", () => {
     expect(new Set(PICTURES.map((spec) => spec.starter.id))).toEqual(new Set(STARTERS.map((starter) => starter.id)))
   })
 
-  // The pages show the invoice in each language it is a sample in: a
-  // sample without a picture is one nobody sees printed. And the Studio's
-  // browser gate holds every picture pictures.json lists to a starter its
-  // picker offers, so a sample listed there, which the picker does not
-  // offer, would fail it; the German sample is the starter, pictured once.
-  test('show a page of every invoice sample, the starters in pictures.json and the samples in samples.json', () => {
-    expect(INVOICE_SAMPLES.filter((sample) => ![...PICTURES, ...SAMPLE_PICTURES].some((spec) => spec.starter === sample)).map((sample) => sample.id)).toEqual([])
+  // The pages show each invoice in each language and country it is a
+  // sample of: a sample without a picture is one nobody sees printed. And
+  // the Studio's browser gate holds every picture pictures.json lists to a
+  // starter its picker offers, so a sample listed there, which the picker
+  // does not offer, would fail it; each German sample is its starter,
+  // pictured once.
+  test('show a page of every sample of either invoice, the starters in pictures.json and the samples in samples.json', () => {
+    const everySample = [...INVOICE_SAMPLES, ...EURO_INVOICE_SAMPLES]
+    expect(everySample.filter((sample) => ![...PICTURES, ...SAMPLE_PICTURES].some((spec) => spec.starter === sample)).map((sample) => sample.id)).toEqual([])
     expect(PICTURES.filter((spec) => !STARTERS.includes(spec.starter)).map((spec) => spec.file)).toEqual([])
-    expect(SAMPLE_PICTURES.filter((spec) => STARTERS.includes(spec.starter) || !INVOICE_SAMPLES.includes(spec.starter)).map((spec) => spec.file)).toEqual([])
+    expect(SAMPLE_PICTURES.filter((spec) => STARTERS.includes(spec.starter) || !everySample.includes(spec.starter)).map((spec) => spec.file)).toEqual([])
   })
 
   const listed = (list: readonly PictureSpec[], manifest: readonly Entry[]) => list.map((spec) => [spec.file, spec, manifest] as const)

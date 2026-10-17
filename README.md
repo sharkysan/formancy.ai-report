@@ -57,6 +57,12 @@ its links, and review the rest
 > ([0025](./docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
 > No release has them yet, and 0.1.0 refuses a report that holds any of
 > them. The Studio's two invoice starters carry a bill and an EPC QR code.
+> Each code has a page among the product's pages, showing its invoice as
+> the corpus's samples: the QR-bill's in French, Italian and English
+> ([0024](./docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)),
+> the EPC QR code's from Austria, France, Italy, Spain, the Netherlands
+> and Ireland
+> ([0028](./docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
 >
 > `@formancy/report-spec` defines the report format, validates a report and
 > hashes it. `@formancy/report-core` edits a report through commands, with
@@ -124,11 +130,13 @@ and nothing in this repository checks what the address serves
 The same Worker serves the product's pages beside the Studio, each in
 German, French, Italian and English: https://formancy.ai/report/en/ and its
 translations, a page for the Swiss QR-bill with the invoice in all four
-languages, and a page for healthcare. They are static HTML, prerendered
+languages, a page for the EPC QR code with the euro invoice from each of
+its samples' countries, and a page for healthcare. They are static HTML, prerendered
 by `apps/pages` when `pnpm build` runs, and the release and the licence's
 terms they state are read from this repository's files then
 ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md),
-[0024](./docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)).
+[0024](./docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
+[0028](./docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
 They serve their own copies of the Studio's faces, and their checks refuse
 anything a page's HTML or stylesheet would have a browser fetch from
 another site, read from the files: no gate opens the pages in a browser ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
@@ -222,8 +230,8 @@ needs a Data production licence as well as Report's
 | `@formancy/report-builder-react` | The builder for React 19: the workbench's panes over one editor, through `useSyncExternalStore`. Runs every shared scenario in three languages, with axe. |
 | `@formancy/report-builder-angular` | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js, built by ng-packagr. Runs every shared scenario in three languages, with axe; no React in its closure. It is packed from `dist/`, and the install gate compiles it into an Angular host ahead of time, links it and draws it on a server. |
 | `apps/studio` (`@formancy/report-studio`) | The playground, never published as a package and online at formancy.ai/report/ ([0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)): the starters and a blank report in either builder over one session per starter, the PDF the session prints previewed by PDF.js on white paper, and every problem printing found linked to its component. The PDF.js viewer lives here and nowhere published ([0013](./docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)). Its browser gate and its README pictures' check run in CI's `browser` job. |
-| `apps/pages` (`@formancy/report-pages`) | The product's pages, never published as a package: what Formancy Report is, a page for the Swiss QR-bill that shows the invoice samples' pictures, and a page for healthcare, each in German, French, Italian and English, prerendered to static HTML with their sitemap and served beside the Studio at formancy.ai/report/<lang>/ ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md), [0024](./docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)). Its suite reads every page back as a crawler does and holds its head, its translations, its links, its words and the sitemap, holds the files the build writes to be those pages, and holds every file a page's HTML and stylesheet have the browser fetch to be the site's own, its faces included ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)). |
-| `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)), and a reader that decodes the QR codes a page prints with ZXing; the starter reports, among them an invoice with a Swiss QR-bill and one with an EPC QR code, and the QR-bill invoice in French, Italian and English as samples; and the renderer trial's adapters for pdfmake and pdfme. |
+| `apps/pages` (`@formancy/report-pages`) | The product's pages, never published as a package: what Formancy Report is, a page for the Swiss QR-bill that shows the invoice samples' pictures, a page for the EPC QR code that shows the euro invoice samples', and a page for healthcare, each in German, French, Italian and English, prerendered to static HTML with their sitemap and served beside the Studio at formancy.ai/report/<lang>/ ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md), [0024](./docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md), [0028](./docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)). A page whose code no release has says so against the release it was written for, and the site refuses to render once the changelog names a later one. Its suite reads every page back as a crawler does and holds its head, its translations, its links, its words and the sitemap, holds the files the build writes to be those pages, and holds every file a page's HTML and stylesheet have the browser fetch to be the site's own, its faces included ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)). |
+| `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)), and a reader that decodes the QR codes a page prints with ZXing; the starter reports, among them an invoice with a Swiss QR-bill and one with an EPC QR code, and as samples the QR-bill invoice in French, Italian and English and the euro invoice from Austria, France, Italy, Spain, the Netherlands and Ireland; and the renderer trial's adapters for pdfmake and pdfme. |
 
 Planned and not here: the server and its jobs, reviewed AI changes, a
 published PDF viewer, and a consistent read from Formancy Data.
@@ -296,6 +304,38 @@ mm square, in which every payload the EPC allows prints, with Austria's
 frame or without. Nothing makes a template print those details: the EPC
 means it, and this starter does
 ([0025](./docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+
+The euro invoice starter is the German of the corpus's euro invoice
+samples, `EURO_INVOICE_SAMPLES`, one report made for each country. The
+others, from Austria, France, Italy, Spain, the Netherlands and Ireland,
+sell the boiler's parts to a private customer rather than maintain it: a
+home's maintenance takes a reduced rate in France and Ireland, by the
+French administration's and Revenue's own pages, and in Italy by
+secondary sources, where a sale of parts takes the standard rate by this
+repository's reading, not a tax adviser's. So they bill other lines than
+the starter. Each is from an invented firm of its country, at its
+country's standard VAT rate as the EU's Your Europe table gave it on 17
+October 2026, in words no native speaker has reviewed, with its amounts
+and dates as its locale prints them; the Austrian one wears Austria's
+frame. Each account's check digits are right, and where its country's
+register could be read that day, no bank keeps its bank code: the Italian
+and Irish registers could not be. What each country's invoicing law asks
+of an invoice is not all printed, and the record says what is known to be
+missing. Their pictures are recorded in `docs/images/samples.json`,
+beside the invoice's samples
+([0028](./docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+
+![The euro invoice from Austria, a Rechnung: the boiler's parts, then Nettobetrag, USt 20 % and Gesamtbetrag € 629,44, and under them the Bankverbindung, IBAN: AT93 8012 3000 1234 5678, beside the EPC QR code in Austria's frame, Zahlen mit Code up its side](docs/images/euro-invoice-at.png)
+
+![The euro invoice from France, a Facture: the boiler's parts, then Total HT, TVA 20 % and Total TTC 629,44 €, and under them the Coordonnées bancaires, IBAN : FR76 0123 4000 1200 0123 4567 880, beside the EPC QR code that pays it](docs/images/euro-invoice-fr.png)
+
+![The euro invoice from Italy, a Fattura: the boiler's parts, then Imponibile, IVA 22% and Totale fattura 639,93 €, the notice Copia di cortesia, and under them the Coordinate bancarie, IBAN: IT53 N000 0000 0120 0001 2345 678, beside the EPC QR code that pays it](docs/images/euro-invoice-it.png)
+
+![The euro invoice from Spain, a Factura: the boiler's parts, then Base imponible, IVA 21 % and Total factura 634,68 €, and under them the Datos bancarios, IBAN: ES25 0000 0012 7000 1234 5678, beside the EPC QR code that pays it](docs/images/euro-invoice-es.png)
+
+![The euro invoice from the Netherlands, a Factuur: the boiler's parts, then Totaal excl. btw, Btw 21% and Totaal incl. btw € 634,68, and under them the Bankgegevens, IBAN: NL17 FMNC 0123 4567 89, beside the EPC QR code that pays it](docs/images/euro-invoice-nl.png)
+
+![The euro invoice from Ireland, an Invoice: the boiler's parts, then Subtotal, VAT 23% and Total due €645.17, and under them the Bank details, IBAN: IE30 FMNC 0000 0012 3456 78, beside the EPC QR code that pays it](docs/images/euro-invoice-ie.png)
 
 The Studio shows the starters' pages beside the editor, printed in the
 page from the session; its pictures are [above](#the-studio).

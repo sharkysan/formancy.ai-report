@@ -362,4 +362,32 @@ describe('the words', () => {
       .filter((problem) => problem.startsWith(`${file}: states an amount of money`))
     expect(said).toEqual([expect.stringContaining(amount)])
   })
+
+  // 0025 keeps the name some German banks give the EPC QR code off
+  // everything here: who owns it, and what rules come with it, nothing here
+  // found. A page is where it would come back -- it is the word a German
+  // reader searches for -- and on a page it is in every crawl: in a
+  // sentence, in a slug, in a picture's description. Each spelling below
+  // passed every check before this one: the entity because the HTML writes
+  // the C as one, which a crawler reads as the letter, and the hyphens and
+  // the invisible characters because a page shows the two words joined by
+  // them, which a pattern of a plain hyphen or a space never matched.
+  //
+  // The name is put together here from its two words, so that this file,
+  // and the test names the release report collects from it, never spell
+  // it: 0025 keeps it off everything here, its tests' names included.
+  const [giro, code] = ['Giro', 'Code']
+  test.each([
+    ['in a sentence', 'de/index.html', 'Source-available, nicht Open Source', `Rechnungen mit ${giro}${code}`, `${giro}${code}`],
+    ['in a slug', 'de/index.html', '<a class="quiet" href="gesundheitswesen/">', `<a class="quiet" href="${giro.toLowerCase()}${code.toLowerCase()}/">`, `${giro.toLowerCase()}${code.toLowerCase()}`],
+    ['in lower case, with a hyphen', 'fr/facture-qr/index.html', 'ce que Formancy Report ne peut pas vérifier.', `comme un ${giro}-${code.toLowerCase()}.`, `${giro}-${code.toLowerCase()}`],
+    ["in a picture's description", 'en/index.html', 'alt="The quotation starter', `alt="A ${giro.toUpperCase()}${code.toUpperCase()} beside the quotation starter`, `${giro.toUpperCase()}${code.toUpperCase()}`],
+    ['with a letter written as an entity', 'it/index.html', 'Source-available, non open source', `Fatture con ${giro}&#67;${code.slice(1)}`, `${giro}${code}`],
+    ['with a non-breaking hyphen', 'de/index.html', 'Source-available, nicht Open Source', `Rechnungen mit ${giro}‑${code}`, `${giro}‑${code}`],
+    ['with a soft hyphen', 'en/index.html', 'alt="The quotation starter', `alt="A ${giro}­${code} beside the quotation starter`, `${giro}­${code}`],
+    ['with a zero-width space', 'fr/facture-qr/index.html', 'ce que Formancy Report ne peut pas vérifier.', `comme un ${giro}​${code}.`, `${giro}​${code}`],
+    ['with an en dash', 'it/index.html', 'Source-available, non open source', `Fatture con ${giro} – ${code}`, `${giro} – ${code}`],
+  ])("the bank's name for the code, %s", (_name, file, from, to, found) => {
+    expect(problemsOf(editing(file, (html) => html.replace(from, to)))).toContain(`${file}: names "${found}", the name 0025 keeps off every page: who owns it, and what rules come with it, nothing here found`)
+  })
 })

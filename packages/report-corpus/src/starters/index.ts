@@ -5,7 +5,7 @@ import { QUOTATION } from './quotation.js'
 import { INSPECTION_PHOTO, SERVICE_INSPECTION } from './service-inspection.js'
 import type { Starter, StarterImage } from './starter.js'
 
-export { EURO_INVOICE, euroInvoiceData, euroInvoiceLines } from './euro-invoice.js'
+export { EURO_INVOICE, EURO_INVOICE_AT, EURO_INVOICE_ES, EURO_INVOICE_FR, EURO_INVOICE_IE, EURO_INVOICE_IT, EURO_INVOICE_NL, EURO_INVOICE_SAMPLES, euroInvoiceData, euroInvoiceLines } from './euro-invoice.js'
 export { equipmentData, equipmentRows, GROUPED_EQUIPMENT } from './grouped-equipment.js'
 export { INVOICE, INVOICE_EN, INVOICE_FR, INVOICE_IT, INVOICE_SAMPLES, invoiceData, invoiceLines } from './invoice.js'
 export { lineAmount, QUOTATION, quotationData, quotationLines } from './quotation.js'

@@ -1,6 +1,9 @@
 # 0024 — The invoice comes in four languages as samples beside the starters, with a manifest of their own, and a QR-bill page in each language shows them
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0028](0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
+  whose euro invoice samples share `samples.json`, and whose site checks
+  every page's status before it renders any, the QR-bill page's in this
+  record's words
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

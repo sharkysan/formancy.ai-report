@@ -385,6 +385,13 @@ text. `samples.test.ts` does the same for the corpus's invoice samples,
 the invoice in German, French, Italian and English: one page each, its
 totals in its locale's format, its slip's headings in its language and in
 no other's, and its code asking for the total it prints.
+`euro-samples.test.ts` does it for the euro invoice's samples, the
+starter and the invoice from Austria, France, Italy, Spain, the
+Netherlands and Ireland: one page each, its totals as `Intl` formats its
+locale at the rate the test states, its code decoded at level M asking
+for the total it prints, with the payment details beside it, and
+Austria's caption on the Austrian sample alone
+([0028](../../docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
 `epc-qr-code.test.ts` proves EPC QR codes on their PDF: the EPC's
 examples decoded byte for byte at level M, and 331 bytes in version 13;
 the caption read back by PDF.js, its text, its turn, its face and its
@@ -398,7 +405,7 @@ the content stream, and the cross from the pixels too; and the page the
 slip goes on.
 
 `scripts/readme-pictures.ts` draws the repository README's pictures of the
-starters and of the invoice samples with PDF.js, and `pictures.test.ts`
+starters and of both invoices' samples with PDF.js, and `pictures.test.ts`
 holds each to the text of the page it was drawn from:
 
 ```bash

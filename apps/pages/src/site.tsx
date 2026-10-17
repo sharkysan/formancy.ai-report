@@ -66,8 +66,29 @@ function contextOf(inputs: SiteInputs, group: PageGroup, language: Language, gro
   }
 }
 
-/** The site `groups` make -- every one of them, in every language -- from `inputs`. */
+/**
+ * What each page whose status `inputs` outdates must say again, a sentence
+ * for each: a page's status was written against the release the changelog
+ * named then (0024), and a later one may have its feature.
+ */
+function staleStatuses(inputs: SiteInputs, groups: readonly PageGroup[]): string[] {
+  const { version } = inputs.release
+  return groups.flatMap(({ status }) =>
+    status === undefined || status.release === version
+      ? []
+      : [`the ${status.feature} page's status was written when ${status.release} was the newest release, and CHANGELOG.md now names ${version}: say whether that release has the ${status.feature} in each sentence of ${status.copy} that says where it stands -- ${status.sentences} -- then change ${status.constant} with them`],
+  )
+}
+
+/**
+ * The site `groups` make -- every one of them, in every language -- from
+ * `inputs`. Refused, before any page renders, while a page's status is
+ * stale, every such page named in one error, so a release commit meets
+ * them all at once (0028).
+ */
 export function renderSite(inputs: SiteInputs, groups: readonly PageGroup[] = GROUPS): Site {
+  const stale = staleStatuses(inputs, groups)
+  if (stale.length > 0) throw new Error(stale.join('\n'))
   const pages = groups.flatMap((group) =>
     LANGUAGES.map((language): BuiltPage => {
       const page = contextOf(inputs, group, language, groups)

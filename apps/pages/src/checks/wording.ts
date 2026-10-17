@@ -2,10 +2,11 @@
  * What a page may say, where a rule can be read off the words: "open
  * source" only where a negation governs it (CLAUDE.md, "Never call it open
  * source"); HL7's notice, word for word, on a page that names HL7 or FHIR;
- * every picture described as its figure describes it; and no price -- no
+ * every picture described as its figure describes it; no price -- no
  * amount of money but the ones a picture of a starter or an invoice sample
- * prints, which its own description quotes. What a sentence claims is
- * review's.
+ * prints, which its own description quotes; and not the name some German
+ * banks give the EPC QR code, anywhere in a page (0025). What a sentence
+ * claims is review's.
  */
 import { FIGURES } from '../content/figures.js'
 import type { Language } from '../languages.js'
@@ -40,6 +41,16 @@ const AFTER = String.raw`CHF|EUR|USD|GBP|S?Fr\.?|Franken|francs?|franchi|franco|
 const AMOUNT = String.raw`\d[\d'’.,]*(?:[.,][–-])?`
 /** An amount of money: a currency beside a number, either way round, a space between them or none. */
 const MONEY = new RegExp(String.raw`(?<!\p{L})(?:${BEFORE})\s*${AMOUNT}|${AMOUNT}\s*(?:${AFTER})(?!\p{L})`, 'iu')
+
+/**
+ * The name some German banks give the EPC QR code, in any case, its two
+ * words joined, or apart by any run of spaces, dashes or hyphens of any
+ * kind, underscores and invisible format characters -- a soft hyphen, a
+ * zero-width space -- and inside a longer word: 0025 keeps it, and its
+ * logo, off everything here, since who owns it, and what rules come with
+ * it, nothing here found. A page names the code by what it is.
+ */
+const BANKS_NAME = /giro[\s\p{Pd}\p{Cf}_]*code/iu
 
 /** A file's name, the last part of its path or address. */
 const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1)
@@ -89,6 +100,14 @@ export function wordingProblems({ site }: Built): string[] {
       const money = MONEY.exec(text)
       if (money !== null) say(`states an amount of money no picture prints: "${text.slice(Math.max(0, money.index - 30), money.index + 20)}"`)
     }
+
+    // Read wherever a crawler reads a word: the source as served, and the
+    // text and every attribute as the DOM decodes them -- an address, a
+    // description, a title -- so that an entity spelling a letter hides
+    // nothing.
+    const attributes = [...document.querySelectorAll('*')].flatMap((element) => element.getAttributeNames().map((name) => element.getAttribute(name) ?? ''))
+    const named = [page.html, document.documentElement.textContent ?? '', ...attributes].map((text) => BANKS_NAME.exec(text)?.[0]).find((found) => found !== undefined)
+    if (named !== undefined) say(`names "${named}", the name 0025 keeps off every page: who owns it, and what rules come with it, nothing here found`)
   }
   return problems
 }

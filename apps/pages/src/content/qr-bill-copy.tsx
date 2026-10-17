@@ -35,7 +35,12 @@ export interface QrBillCopy {
     readonly text: (version: string) => string
     readonly links: { readonly studio: string; readonly spec: string; readonly renderer: string; readonly decision: string; readonly guide: string }
   }
-  readonly limits: { readonly heading: string; readonly items: readonly string[] }
+  readonly limits: {
+    readonly heading: string
+    readonly items: readonly string[]
+    /** The link's words, after the limits, to the EPC QR code page: for a reader whose invoice is paid by a SEPA transfer in euro (0028). */
+    readonly epc: string
+  }
   readonly status: {
     readonly heading: string
     /** Where the QR-bill stands: `version` is the changelog's newest release, `date` the day it was last said. */
@@ -120,6 +125,8 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         'Text wird nie verkleinert, damit er passt: Angaben, die nicht in ihren Abschnitt passen, werden abgelehnt.',
         'Noch keine Banking-App hat diese Rechnungen gescannt: Die Tests lesen den Code mit ZXing aus der Zeichnung von PDF.js, und auf Papier gedruckt wurde noch kein Zahlteil.',
       ],
+      // Not reviewed by a native speaker, as the rest of this page's German (0028).
+      epc: 'Für eine SEPA-Überweisung in Euro: der EPC-QR-Code',
     },
     status: {
       heading: 'Stand',
@@ -201,6 +208,8 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         "Le texte n'est jamais réduit pour tenir : une information qui dépasse la hauteur de sa section est refusée.",
         "Aucune application bancaire n'a encore scanné ces factures : les tests lisent le code avec ZXing dans le dessin de PDF.js, et aucune section paiement n'a encore été imprimée sur papier.",
       ],
+      // Not reviewed by a native speaker, as the rest of this page's French (0028).
+      epc: 'Pour un virement SEPA en euros : le QR code SEPA',
     },
     status: {
       heading: 'État',
@@ -282,6 +291,8 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         "Il testo non viene mai rimpicciolito: un'informazione che non sta nella sua sezione viene rifiutata.",
         'Nessuna app bancaria ha ancora scansionato queste fatture: i test leggono il codice con ZXing dal disegno di PDF.js, e nessuna sezione pagamento è ancora stata stampata su carta.',
       ],
+      // Not reviewed by a native speaker, as the rest of this page's Italian (0028).
+      epc: 'Per un bonifico SEPA in euro: il QR code SEPA',
     },
     status: {
       heading: 'Stato',
@@ -363,6 +374,8 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         'Text is never shrunk to fit: information taller than its section is refused.',
         "No banking app has scanned these bills yet: the tests read the code with ZXing from PDF.js's drawing, and no slip has been printed on paper.",
       ],
+      // Not reviewed by a native speaker, as the rest of this page's English (0028).
+      epc: 'For a SEPA credit transfer in euro: the EPC QR code',
     },
     status: {
       heading: 'Status',
