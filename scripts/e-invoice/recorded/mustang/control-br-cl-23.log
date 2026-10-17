@@ -1,0 +1,7 @@
+[main] INFO com.helger.schematron.xslt.SchematronResourceXSLTCache - Compiling XSLT instance [cpPath=/xslt/ZF_250/FACTUR-X_EN16931.xslt; urlResolved=true; URL=jar:file:/{repository}/.e-invoice-cache/mustang/2.26.0/Mustang-CLI-2.26.0.jar!/xslt/ZF_250/FACTUR-X_EN16931.xslt]
+[main] INFO com.helger.schematron.api.xslt.AbstractSchematronXSLTBasedResource - Applying Schematron XSLT on XML instance
+[main] INFO org.mustangproject.validator.XMLValidator - FailedAssert 
+	Value of '@unitCode' is not allowed.
+[main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 4: 
+	Value of '@unitCode' is not allowed. [ID FX-SCH-A-000613] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:5C07E8E38739BB3FA698B4041866C064145D1F55 Profile:urn:cen.eu:en16931:2017 Version:2 Took:2203ms Errors:[4] ErrorIDs: [FX-SCH-A-000613]

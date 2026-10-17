@@ -9,6 +9,9 @@ coverage/
 !.env.example
 .DS_Store
 *.log
+# Except the e-invoice gate's recorded runs, the input of its judges' tests
+# (0027): written with `node scripts/e-invoice.mjs --record`, and committed.
+!/scripts/e-invoice/recorded/**/*.log
 .vitest-reports/
 test-results/
 # The release report's inputs and output (0014): each job's collected

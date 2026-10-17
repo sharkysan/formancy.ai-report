@@ -47,8 +47,8 @@ function withInvoice(patch: (invoice: EInvoice) => EInvoice, fields: readonly st
 
 const xmlOf = (report: ReportDefinition, data: ReportData): string => resolved(report, data).document.eInvoice?.xml ?? ''
 
-/** A refusal at `path`, its message ending as `ends`. */
-const refusal = (path: string, ends: string) => expect.objectContaining({ stage: 'resolve', code: 'invalid-e-invoice', path, message: expect.stringMatching(new RegExp(`^the e-invoice: .*${ends.replace(/[()]/g, '\\$&')}$`)) })
+/** A refusal at `path`, its message ending as `ends`, every character of which is matched as itself. */
+const refusal = (path: string, ends: string) => expect.objectContaining({ stage: 'resolve', code: 'invalid-e-invoice', path, message: expect.stringMatching(new RegExp(`^the e-invoice: .*${ends.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')}$`)) })
 
 describe("an e-invoice's texts", () => {
   // Each needed text the data gives as nothing is refused by the rule that
