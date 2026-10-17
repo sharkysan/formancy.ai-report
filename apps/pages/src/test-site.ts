@@ -3,7 +3,7 @@
  * read from this checkout by scripts/inputs.mjs, as the prerender reads
  * them, and the checks' view of it.
  */
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readInputs } from '../scripts/inputs.mjs'
@@ -19,7 +19,7 @@ export const inputs: SiteInputs = readInputs(repo, { pictures: PICTURES })
 export const site: Site = renderSite(inputs)
 
 /** `site` as the checks see it, with this checkout's files. */
-export const builtOf = (each: Site, using: SiteInputs = inputs): Built => ({ site: each, inputs: using, exists: (path) => existsSync(join(repo, path)) })
+export const builtOf = (each: Site, using: SiteInputs = inputs): Built => ({ site: each, inputs: using, exists: (path) => existsSync(join(repo, path)), text: (path) => readFileSync(join(repo, path), 'utf8') })
 
 /**
  * `site` with the file at `path` -- a page or another text file -- edited

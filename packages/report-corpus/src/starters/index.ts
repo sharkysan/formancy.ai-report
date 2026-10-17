@@ -5,7 +5,7 @@ import { INSPECTION_PHOTO, SERVICE_INSPECTION } from './service-inspection.js'
 import type { Starter, StarterImage } from './starter.js'
 
 export { equipmentData, equipmentRows, GROUPED_EQUIPMENT } from './grouped-equipment.js'
-export { INVOICE, invoiceData, invoiceLines } from './invoice.js'
+export { INVOICE, INVOICE_EN, INVOICE_FR, INVOICE_IT, INVOICE_SAMPLES, invoiceData, invoiceLines } from './invoice.js'
 export { lineAmount, QUOTATION, quotationData, quotationLines } from './quotation.js'
 export { INSPECTION_PHOTO, inspectionData, inspectionNotes, SERVICE_INSPECTION } from './service-inspection.js'
 export type { Starter, StarterImage } from './starter.js'

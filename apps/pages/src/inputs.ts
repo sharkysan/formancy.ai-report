@@ -22,7 +22,7 @@ export interface SiteInputs {
   readonly ground: string
   /** src/pages.css with the Studio's stylesheets it imports inlined, the faces' among them, each url() naming its copy. */
   readonly stylesheet: string
-  /** The pictures the site names, each with its size and, for a starter's page, the lines it prints. */
+  /** The pictures the site names, each with its size and, for a starter's or an invoice sample's page, the lines it prints. */
   readonly pictures: readonly Picture[]
   /** Every file read, as a path from the repository's root: of an installed package, the stylesheets inlined. */
   readonly read: readonly string[]
@@ -42,6 +42,6 @@ export interface Picture {
   readonly from: string
   readonly width: number
   readonly height: number
-  /** The lines docs/images/pictures.json says its page prints; none for a picture of the Studio. */
+  /** The lines docs/images/pictures.json, or samples.json for an invoice sample, says its page prints; none for a picture of the Studio. */
   readonly lines: readonly string[]
 }

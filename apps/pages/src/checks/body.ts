@@ -2,8 +2,9 @@
  * What a reader -- a person, a screen reader, a crawler -- meets in a
  * page's body, held for every page: one h1, the content in the HTML itself
  * with no script to run, pictures described and sized, links that say
- * where they go, a language switcher that reaches every translation, and
- * JSON-LD that parses and describes the page it is on.
+ * where they go, a language switcher that reaches every translation, a
+ * product page that introduces every topic page, and JSON-LD that parses
+ * and describes the page it is on.
  */
 import { LANGUAGES } from '../languages.js'
 import type { PageGroup } from '../pages.js'
@@ -73,6 +74,24 @@ function switcherProblems(page: Read, pages: readonly Read[]): string[] {
     if (marked !== (language === page.language)) say(`the language switcher's ${language} link is ${marked ? '' : 'not '}marked as the page's own`)
   }
   if (links.length !== LANGUAGES.length) say(`the language switcher has ${String(links.length)} links, not ${String(LANGUAGES.length)}`)
+  return problems
+}
+
+/**
+ * Every topic page introduced by its language's product page, as groups.ts
+ * says: a link to it in the product page's content, not only in the bar,
+ * which names the topics and says nothing of them.
+ */
+export function topicProblems({ site }: Built, groups: readonly PageGroup[]): string[] {
+  const problems: string[] = []
+  const root = groups.find(isRoot)
+  for (const page of site.pages.map(read)) {
+    if (page.group !== root?.id) continue
+    const linked = new Set([...page.document.querySelectorAll('main a[href]')].map((link) => new URL(link.getAttribute('href') ?? '', page.url).href))
+    for (const topic of site.pages.filter((each) => each.group !== root.id && each.language === page.language)) {
+      if (!linked.has(topic.url)) problems.push(`${page.file}: its content does not link to ${topic.group}'s page ${topic.url}`)
+    }
+  }
   return problems
 }
 

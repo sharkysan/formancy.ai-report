@@ -7,11 +7,13 @@
 import type { SiteInputs } from '../inputs.js'
 import type { BuiltPage, Site } from '../site.js'
 
-/** What every check is handed: the site, the inputs it was rendered from, and whether a repository path is a file. */
+/** What every check is handed: the site, the inputs it was rendered from, whether a repository path is a file, and a file's text. */
 export interface Built {
   readonly site: Site
   readonly inputs: SiteInputs
   readonly exists: (path: string) => boolean
+  /** The text of the repository file at `path`, one `exists` holds: read for a link to one of its headings. */
+  readonly text: (path: string) => string
 }
 
 /** A page with its parsed document. */

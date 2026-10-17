@@ -120,10 +120,12 @@ and nothing in this repository checks what the address serves
 
 The same Worker serves the product's pages beside the Studio, each in
 German, French, Italian and English: https://formancy.ai/report/en/ and its
-translations, and a page for healthcare. They are static HTML, prerendered
+translations, a page for the Swiss QR-bill with the invoice in all four
+languages, and a page for healthcare. They are static HTML, prerendered
 by `apps/pages` when `pnpm build` runs, and the release and the licence's
 terms they state are read from this repository's files then
-([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)).
+([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md),
+[0024](./docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)).
 They serve their own copies of the Studio's faces, and their checks refuse
 anything a page's HTML or stylesheet would have a browser fetch from
 another site, read from the files: no gate opens the pages in a browser ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
@@ -217,8 +219,8 @@ needs a Data production licence as well as Report's
 | `@formancy/report-builder-react` | The builder for React 19: the workbench's panes over one editor, through `useSyncExternalStore`. Runs every shared scenario in three languages, with axe. |
 | `@formancy/report-builder-angular` | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js, built by ng-packagr. Runs every shared scenario in three languages, with axe; no React in its closure. It is packed from `dist/`, and the install gate compiles it into an Angular host ahead of time, links it and draws it on a server. |
 | `apps/studio` (`@formancy/report-studio`) | The playground, never published as a package and online at formancy.ai/report/ ([0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)): the starters and a blank report in either builder over one session per starter, the PDF the session prints previewed by PDF.js on white paper, and every problem printing found linked to its component. The PDF.js viewer lives here and nowhere published ([0013](./docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)). Its browser gate and its README pictures' check run in CI's `browser` job. |
-| `apps/pages` (`@formancy/report-pages`) | The product's pages, never published as a package: what Formancy Report is, and a page for healthcare, each in German, French, Italian and English, prerendered to static HTML with their sitemap and served beside the Studio at formancy.ai/report/<lang>/ ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)). Its suite reads every page back as a crawler does and holds its head, its translations, its links, its words and the sitemap, holds the files the build writes to be those pages, and holds every file a page's HTML and stylesheet have the browser fetch to be the site's own, its faces included ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)). |
-| `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)), and a reader that decodes the QR codes a page prints with ZXing; the starter reports, an invoice with a Swiss QR-bill among them; and the renderer trial's adapters for pdfmake and pdfme. |
+| `apps/pages` (`@formancy/report-pages`) | The product's pages, never published as a package: what Formancy Report is, a page for the Swiss QR-bill that shows the invoice samples' pictures, and a page for healthcare, each in German, French, Italian and English, prerendered to static HTML with their sitemap and served beside the Studio at formancy.ai/report/<lang>/ ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md), [0024](./docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)). Its suite reads every page back as a crawler does and holds its head, its translations, its links, its words and the sitemap, holds the files the build writes to be those pages, and holds every file a page's HTML and stylesheet have the browser fetch to be the site's own, its faces included ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)). |
+| `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)), and a reader that decodes the QR codes a page prints with ZXing; the starter reports, an invoice with a Swiss QR-bill among them, and that invoice in French, Italian and English as samples; and the renderer trial's adapters for pdfmake and pdfme. |
 
 Planned and not here: the server and its jobs, reviewed AI changes, a
 published PDF viewer, and a consistent read from Formancy Data.
@@ -252,9 +254,9 @@ these lines, from the packed packages, on the quotation starter below
 The starter reports, resolved by the runtime from their synthetic data,
 rendered by `report-render-pdf` and drawn by PDF.js. The pictures are made
 by `packages/report-render-pdf/scripts/readme-pictures.ts`, never by hand,
-and `pictures.test.ts` fails when a starter has no picture, when a page no
-longer prints what its picture shows, or when a caption quotes what the
-page does not print.
+and `pictures.test.ts` fails when a starter or an invoice sample has no
+picture, when a page no longer prints what its picture shows, or when a
+caption quotes what the page does not print.
 
 ![The quotation starter, an Offerte: line items in Swiss francs, then Zwischensumme, MWST 8.1 %, Rundung and Total CHF 3'143.00](docs/images/starter-quotation.png)
 
@@ -264,8 +266,22 @@ page does not print.
 
 ![The invoice starter, a Rechnung: its line items, then Zwischensumme, MWST 8.1 % and Total CHF 1'416.52, and across the foot of the page its QR-bill, the Empfangsschein and the Zahlteil with its Swiss QR Code, each for CHF 1 416.52](docs/images/starter-invoice.png)
 
-The Studio shows the same pages beside the editor, printed in the page
-from the session; its pictures are [above](#the-studio).
+The invoice starter is the German of four samples of one invoice in the
+corpus, `INVOICE_SAMPLES`. The others bill the same work in French, Italian
+and English, each from an invented firm of its region, in its own words,
+with its amounts and dates as its locale prints them and the slip's
+headings in SIX's words for its language. Their pictures' manifest is
+`docs/images/samples.json`, apart from the starters' `pictures.json`, which
+the Studio's browser gate holds to the starters its picker offers.
+
+![The invoice in French, a Facture: its line items, then Sous-total, TVA 8,1 % and Total 1'416.52 CHF, and across the foot of the page its QR-bill, the Récépissé and the Section paiement with its Swiss QR Code, each for CHF 1 416.52](docs/images/invoice-fr.png)
+
+![The invoice in Italian, a Fattura: its line items, then Subtotale, IVA 8,1 % and Totale CHF 1416.52, and across the foot of the page its QR-bill, the Ricevuta and the Sezione pagamento with its Swiss QR Code, each for CHF 1 416.52](docs/images/invoice-it.png)
+
+![The invoice in English, an Invoice: its line items, then Subtotal, VAT 8.1% and Total CHF 1'416.52, and across the foot of the page its QR-bill, the Receipt and the Payment part with its Swiss QR Code, each for CHF 1 416.52](docs/images/invoice-en.png)
+
+The Studio shows the starters' pages beside the editor, printed in the
+page from the session; its pictures are [above](#the-studio).
 
 ## How it relates to formancy.ai and Formancy Data
 

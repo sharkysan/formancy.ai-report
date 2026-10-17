@@ -1,7 +1,10 @@
 # 0021 — The product's pages are static HTML in four languages, built here and served beside the Studio at formancy.ai/report/
 
 - **Status:** accepted; its faces are the pages' own copies since [0023](0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md),
-  not Google's, and no page asks another site for anything
+  not Google's, and no page asks another site for anything; extended by
+  [0024](0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
+  the QR-bill page and the invoice samples' pictures, and checks of a
+  link's heading and of a picture's description against its figure
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

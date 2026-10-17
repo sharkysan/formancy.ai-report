@@ -1,4 +1,6 @@
 import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
+import { ENGLISH, FRENCH, GERMAN, ITALIAN } from './invoice-words.js'
+import type { Edition, Party } from './invoice-words.js'
 import { lineAmount } from './quotation.js'
 import type { Starter } from './starter.js'
 
@@ -24,6 +26,12 @@ import type { Starter } from './starter.js'
  * The rate is the template's, as the quotation's is. The account and the
  * reference are SIX's own example QR-IBAN and QR reference (IG 2.4, Annex
  * A), which no bank books; the creditor and the customer are invented.
+ *
+ * The same report is made in French, Italian and English too, as samples
+ * (`INVOICE_SAMPLES`): `invoice-words.ts` holds each language's words and
+ * parties, and this file the one report they are put into, so that the
+ * four differ in nothing but what they say and whom they bill. The German
+ * is the starter.
  */
 
 const header = (field: string) => ({ dataset: 'header', field }) as const
@@ -31,182 +39,181 @@ const detail = (field: string) => ({ dataset: 'detail', field }) as const
 const CHF = { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 2 } as const
 const text = (value: string) => [{ kind: 'text', text: value }] as const
 
-const REPORT: ReportDefinition = {
-  reportSpecVersion: '0',
-  id: 'invoice',
-  title: 'Rechnung mit QR-Zahlteil',
-  locale: 'de-CH',
-  page: { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 56.69, bottom: 56.69, left: 56.69 } },
-  styles: [
-    { id: 'title', size: 16, bold: true },
-    { id: 'address', size: 10 },
-    { id: 'grand', size: 10.5, bold: true },
-    { id: 'sender', size: 8, color: '#555555' },
-  ],
-  datasets: {
-    header: {
-      id: 'invoice',
-      fields: [
-        { id: 'number', type: 'string', label: 'Nummer', nullable: false },
-        { id: 'issuedOn', type: 'date', label: 'Datum', nullable: false },
-        { id: 'dueOn', type: 'date', label: 'Zahlbar bis', nullable: false },
-        { id: 'customer', type: 'string', label: 'Kunde', nullable: false },
-        { id: 'street', type: 'string', label: 'Strasse', nullable: false },
-        { id: 'buildingNumber', type: 'string', label: 'Hausnummer', nullable: false },
-        { id: 'postcode', type: 'string', label: 'PLZ', nullable: false },
-        { id: 'city', type: 'string', label: 'Ort', nullable: false },
-        { id: 'reference', type: 'string', label: 'QR-Referenz', nullable: false },
-      ],
-    },
-    detail: {
-      id: 'invoice-lines',
-      fields: [
-        { id: 'article', type: 'string', label: 'Artikel', nullable: false },
-        { id: 'description', type: 'string', label: 'Beschreibung', nullable: false },
-        { id: 'quantity', type: 'decimal', label: 'Menge', nullable: false, scale: 2 },
-        { id: 'unit', type: 'string', label: 'Einheit', nullable: false },
-        { id: 'unitPrice', type: 'decimal', label: 'Einzelpreis', nullable: false, scale: 2 },
-        { id: 'amount', type: 'decimal', label: 'Betrag', nullable: false, scale: 2 },
-      ],
-    },
-  },
-  parameters: [],
-  assets: [],
-  aggregates: [
-    { id: 'subtotal', fn: 'sum', of: { kind: 'field', field: detail('amount') } },
-    { id: 'total', fn: 'sum', of: { kind: 'expression', expression: { cel: 'row.amount * dec("1.081")' } }, rounding: { scale: 2, mode: 'half-away-from-zero' } },
-  ],
-  regions: {
-    pageHeader: [],
-    reportHeader: [
-      { id: 'sender', kind: 'text', style: 'sender', content: text('Formancy Haustechnik AG · Industriestrasse 7 · 3052 Zollikofen · CHE-123.456.789 MWST') },
-      { id: 'sender-gap', kind: 'spacer', height: 12 },
-      {
-        id: 'addresses',
-        kind: 'columns',
-        columns: [
-          {
-            width: 'fill',
-            components: [
-              { id: 'customer', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('customer') }] },
-              { id: 'street', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('street') }, { kind: 'text', text: ' ' }, { kind: 'field', field: header('buildingNumber') }] },
-              { id: 'city', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('postcode') }, { kind: 'text', text: ' ' }, { kind: 'field', field: header('city') }] },
-            ],
-          },
-          {
-            width: 190,
-            components: [
-              { id: 'title', kind: 'text', style: 'title', content: text('Rechnung') },
-              { id: 'number', kind: 'text', content: [{ kind: 'text', text: 'Nummer: ' }, { kind: 'field', field: header('number') }] },
-              { id: 'issued-on', kind: 'text', content: [{ kind: 'text', text: 'Datum: ' }, { kind: 'field', field: header('issuedOn'), format: { kind: 'date', style: 'medium' } }] },
-              { id: 'due-on', kind: 'text', content: [{ kind: 'text', text: 'Zahlbar bis: ' }, { kind: 'field', field: header('dueOn'), format: { kind: 'date', style: 'medium' } }] },
-            ],
-          },
+/** The line at the head of the invoice: the firm, its address, and its UID as the VAT number it is. */
+const sender = (firm: Party, vatNumber: string): string => `${firm.name} · ${firm.street} ${firm.buildingNumber} · ${firm.postalCode} ${firm.town} · CHE-123.456.789 ${vatNumber}`
+
+/** The invoice's report in the edition's words, its slip in the edition's language. */
+function report(edition: Edition): ReportDefinition {
+  const { labels, columns, creditor } = edition
+  return {
+    reportSpecVersion: '0',
+    id: edition.id,
+    title: edition.title,
+    locale: edition.locale,
+    page: { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 56.69, bottom: 56.69, left: 56.69 } },
+    styles: [
+      { id: 'title', size: 16, bold: true },
+      { id: 'address', size: 10 },
+      { id: 'grand', size: 10.5, bold: true },
+      { id: 'sender', size: 8, color: '#555555' },
+    ],
+    datasets: {
+      header: {
+        id: 'invoice',
+        fields: [
+          { id: 'number', type: 'string', label: labels.number, nullable: false },
+          { id: 'issuedOn', type: 'date', label: labels.issuedOn, nullable: false },
+          { id: 'dueOn', type: 'date', label: labels.dueOn, nullable: false },
+          { id: 'customer', type: 'string', label: labels.customer, nullable: false },
+          { id: 'street', type: 'string', label: labels.street, nullable: false },
+          { id: 'buildingNumber', type: 'string', label: labels.buildingNumber, nullable: false },
+          { id: 'postcode', type: 'string', label: labels.postcode, nullable: false },
+          { id: 'city', type: 'string', label: labels.city, nullable: false },
+          { id: 'reference', type: 'string', label: labels.reference, nullable: false },
         ],
       },
-      { id: 'head-gap', kind: 'spacer', height: 18 },
-    ],
-    body: [
-      {
-        id: 'positions',
-        kind: 'table',
-        dataset: 'detail',
-        columns: [
-          { id: 'article', header: 'Artikel', width: 82, align: 'left', value: { kind: 'field', field: detail('article') } },
-          { id: 'description', header: 'Beschreibung', width: 'fill', align: 'left', value: { kind: 'field', field: detail('description') } },
-          { id: 'quantity', header: 'Menge', width: 50, align: 'right', value: { kind: 'field', field: detail('quantity'), format: { kind: 'number', scale: 2, grouping: true } } },
-          { id: 'unit', header: 'Einheit', width: 58, align: 'left', value: { kind: 'field', field: detail('unit') } },
-          { id: 'unit-price', header: 'Preis', width: 82, align: 'right', value: { kind: 'field', field: detail('unitPrice'), format: CHF } },
-          { id: 'amount', header: 'Betrag', width: 92, align: 'right', value: { kind: 'field', field: detail('amount'), format: CHF } },
+      detail: {
+        id: 'invoice-lines',
+        fields: [
+          { id: 'article', type: 'string', label: labels.article, nullable: false },
+          { id: 'description', type: 'string', label: labels.description, nullable: false },
+          { id: 'quantity', type: 'decimal', label: labels.quantity, nullable: false, scale: 2 },
+          { id: 'unit', type: 'string', label: labels.unit, nullable: false },
+          { id: 'unitPrice', type: 'decimal', label: labels.unitPrice, nullable: false, scale: 2 },
+          { id: 'amount', type: 'decimal', label: labels.amount, nullable: false, scale: 2 },
         ],
-        sort: [{ field: detail('article'), direction: 'asc' }],
-        totals: [
-          {
-            cells: [
-              { column: 'article', value: { kind: 'text', text: 'Zwischensumme' } },
-              { column: 'amount', value: { kind: 'aggregate', aggregate: 'subtotal', over: 'report', format: CHF } },
-            ],
-          },
-          {
-            cells: [
-              { column: 'article', value: { kind: 'text', text: 'MWST 8.1 %' } },
-              { column: 'amount', value: { kind: 'expression', expression: { cel: 'round(totals.subtotal * dec("0.081"), 2)' }, format: CHF } },
-            ],
-          },
-          {
-            cells: [
-              { column: 'article', value: { kind: 'text', text: 'Total' } },
-              { column: 'amount', value: { kind: 'aggregate', aggregate: 'total', over: 'report', format: CHF } },
-            ],
-            style: 'grand',
-          },
-        ],
-        emptyText: 'Keine Positionen.',
-        repeatHeader: true,
       },
-    ],
-    summary: [
-      { id: 'summary-gap', kind: 'spacer', height: 12 },
-      { id: 'terms', kind: 'text', content: [{ kind: 'text', text: 'Bitte bezahlen Sie bis ' }, { kind: 'field', field: header('dueOn'), format: { kind: 'date', style: 'long' } }, { kind: 'text', text: ' mit dem QR-Zahlteil unten.' }] },
-    ],
-    pageFooter: [],
-  },
-  paymentPart: {
-    kind: 'swissQrBill',
-    language: 'de',
-    account: text('CH44 3199 9123 0008 8901 2'),
-    creditor: {
-      name: text('Formancy Haustechnik AG'),
-      street: text('Industriestrasse'),
-      buildingNumber: text('7'),
-      postalCode: text('3052'),
-      town: text('Zollikofen'),
-      country: text('CH'),
     },
-    currency: 'CHF',
-    amount: { cel: 'totals.total' },
-    debtor: {
-      name: [{ kind: 'field', field: header('customer') }],
-      street: [{ kind: 'field', field: header('street') }],
-      buildingNumber: [{ kind: 'field', field: header('buildingNumber') }],
-      postalCode: [{ kind: 'field', field: header('postcode') }],
-      town: [{ kind: 'field', field: header('city') }],
-      country: text('CH'),
+    parameters: [],
+    assets: [],
+    aggregates: [
+      { id: 'subtotal', fn: 'sum', of: { kind: 'field', field: detail('amount') } },
+      { id: 'total', fn: 'sum', of: { kind: 'expression', expression: { cel: 'row.amount * dec("1.081")' } }, rounding: { scale: 2, mode: 'half-away-from-zero' } },
+    ],
+    regions: {
+      pageHeader: [],
+      reportHeader: [
+        { id: 'sender', kind: 'text', style: 'sender', content: text(sender(creditor, edition.vatNumber)) },
+        { id: 'sender-gap', kind: 'spacer', height: 12 },
+        {
+          id: 'addresses',
+          kind: 'columns',
+          columns: [
+            {
+              width: 'fill',
+              components: [
+                { id: 'customer', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('customer') }] },
+                { id: 'street', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('street') }, { kind: 'text', text: ' ' }, { kind: 'field', field: header('buildingNumber') }] },
+                { id: 'city', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('postcode') }, { kind: 'text', text: ' ' }, { kind: 'field', field: header('city') }] },
+              ],
+            },
+            {
+              width: 190,
+              components: [
+                { id: 'title', kind: 'text', style: 'title', content: text(edition.heading) },
+                { id: 'number', kind: 'text', content: [{ kind: 'text', text: edition.numberIs }, { kind: 'field', field: header('number') }] },
+                { id: 'issued-on', kind: 'text', content: [{ kind: 'text', text: edition.issuedOnIs }, { kind: 'field', field: header('issuedOn'), format: { kind: 'date', style: 'medium' } }] },
+                { id: 'due-on', kind: 'text', content: [{ kind: 'text', text: edition.dueOnIs }, { kind: 'field', field: header('dueOn'), format: { kind: 'date', style: 'medium' } }] },
+              ],
+            },
+          ],
+        },
+        { id: 'head-gap', kind: 'spacer', height: 18 },
+      ],
+      body: [
+        {
+          id: 'positions',
+          kind: 'table',
+          dataset: 'detail',
+          columns: [
+            { id: 'article', header: columns[0], width: 82, align: 'left', value: { kind: 'field', field: detail('article') } },
+            { id: 'description', header: columns[1], width: 'fill', align: 'left', value: { kind: 'field', field: detail('description') } },
+            { id: 'quantity', header: columns[2], width: 50, align: 'right', value: { kind: 'field', field: detail('quantity'), format: { kind: 'number', scale: 2, grouping: true } } },
+            { id: 'unit', header: columns[3], width: 58, align: 'left', value: { kind: 'field', field: detail('unit') } },
+            { id: 'unit-price', header: columns[4], width: 82, align: 'right', value: { kind: 'field', field: detail('unitPrice'), format: CHF } },
+            { id: 'amount', header: columns[5], width: 92, align: 'right', value: { kind: 'field', field: detail('amount'), format: CHF } },
+          ],
+          sort: [{ field: detail('article'), direction: 'asc' }],
+          totals: [
+            {
+              cells: [
+                { column: 'article', value: { kind: 'text', text: edition.subtotal } },
+                { column: 'amount', value: { kind: 'aggregate', aggregate: 'subtotal', over: 'report', format: CHF } },
+              ],
+            },
+            {
+              cells: [
+                { column: 'article', value: { kind: 'text', text: edition.vat } },
+                { column: 'amount', value: { kind: 'expression', expression: { cel: 'round(totals.subtotal * dec("0.081"), 2)' }, format: CHF } },
+              ],
+            },
+            {
+              cells: [
+                { column: 'article', value: { kind: 'text', text: edition.total } },
+                { column: 'amount', value: { kind: 'aggregate', aggregate: 'total', over: 'report', format: CHF } },
+              ],
+              style: 'grand',
+            },
+          ],
+          emptyText: edition.empty,
+          repeatHeader: true,
+        },
+      ],
+      summary: [
+        { id: 'summary-gap', kind: 'spacer', height: 12 },
+        { id: 'terms', kind: 'text', content: [{ kind: 'text', text: edition.terms[0] }, { kind: 'field', field: header('dueOn'), format: { kind: 'date', style: 'long' } }, { kind: 'text', text: edition.terms[1] }] },
+      ],
+      pageFooter: [],
     },
-    reference: [{ kind: 'field', field: header('reference') }],
-    message: [{ kind: 'text', text: 'Rechnung ' }, { kind: 'field', field: header('number') }],
-  },
-  provenance: { kind: 'blank' },
+    paymentPart: {
+      kind: 'swissQrBill',
+      language: edition.language,
+      account: text('CH44 3199 9123 0008 8901 2'),
+      creditor: {
+        name: text(creditor.name),
+        street: text(creditor.street),
+        buildingNumber: text(creditor.buildingNumber),
+        postalCode: text(creditor.postalCode),
+        town: text(creditor.town),
+        country: text('CH'),
+      },
+      currency: 'CHF',
+      amount: { cel: 'totals.total' },
+      debtor: {
+        name: [{ kind: 'field', field: header('customer') }],
+        street: [{ kind: 'field', field: header('street') }],
+        buildingNumber: [{ kind: 'field', field: header('buildingNumber') }],
+        postalCode: [{ kind: 'field', field: header('postcode') }],
+        town: [{ kind: 'field', field: header('city') }],
+        country: text('CH'),
+      },
+      reference: [{ kind: 'field', field: header('reference') }],
+      message: [{ kind: 'text', text: edition.message }, { kind: 'field', field: header('number') }],
+    },
+    provenance: { kind: 'blank' },
+  }
 }
 
-/** Description, unit, quantity and unit price, each quantity and price exact to the centime. */
-const ITEMS: readonly (readonly [string, string, string, string])[] = [
-  ['Wartung Lüftungsanlage, Grundpauschale', 'Pausch.', '1.00', '480.00'],
-  ['Ersatzfilter F7 für Monoblock', 'Stk', '6.00', '38.50'],
-  ['Arbeitszeit Servicetechniker', 'h', '3.75', '128.00'],
-  ['Dichtungsband EPDM', 'm', '12.50', '4.35'],
-  ['Fahrzeugpauschale Region Bern', 'Pausch.', '1.00', '65.00'],
-]
-
-/** The invoice's line items, `R-2001` up, given in the reverse of the order the report prints them in. */
-export function invoiceLines(): Record<string, string>[] {
-  return ITEMS.map(([description, unit, quantity, unitPrice], index) => ({ article: `R-${2001 + index}`, description, quantity, unit, unitPrice, amount: lineAmount(quantity, unitPrice) })).reverse()
+/** The edition's line items, its article numbers from 2001 up, given in the reverse of the order the report prints them in. */
+function lines(edition: Edition): Record<string, string>[] {
+  return edition.items.map(([description, unit, quantity, unitPrice], index) => ({ article: `${edition.articles}-${2001 + index}`, description, quantity, unit, unitPrice, amount: lineAmount(quantity, unitPrice) })).reverse()
 }
 
-/** The invoice: its header, with SIX's example QR reference, and its line items. */
-export function invoiceData(): ReportData {
-  const detail = invoiceLines()
+/** The edition's data: its header, with its customer and its QR reference, and its line items. */
+function data(edition: Edition): ReportData {
+  const detail = lines(edition)
+  const { customer } = edition
   return {
     header: {
-      number: 'R-2026-0731',
+      number: edition.number,
       issuedOn: '2026-10-15',
       dueOn: '2026-11-14',
-      customer: 'Bäckerei Müller AG',
-      street: 'Hauptstrasse',
-      buildingNumber: '12',
-      postcode: '3011',
-      city: 'Bern',
-      reference: '210000000003139471430009017',
+      customer: customer.name,
+      street: customer.street,
+      buildingNumber: customer.buildingNumber,
+      postcode: customer.postalCode,
+      city: customer.town,
+      reference: edition.reference,
     },
     detail,
     completeness: { complete: true, captured: detail.length },
@@ -214,11 +221,29 @@ export function invoiceData(): ReportData {
   }
 }
 
-export const INVOICE: Starter = {
-  id: 'invoice',
-  title: 'Rechnung mit QR-Zahlteil',
-  proves: 'a Swiss QR-bill: the receipt and the payment part at the foot of the last page, paying the invoice’s exact total by a QR reference read from the data',
-  report: REPORT,
-  data: invoiceData(),
-  parameters: {},
+/** The invoice in the edition's language, with its data. */
+const invoice = (edition: Edition): Starter => ({ id: edition.id, title: edition.title, proves: edition.proves, report: report(edition), data: data(edition), parameters: {} })
+
+/** The invoice's line items, `R-2001` up, given in the reverse of the order the report prints them in. */
+export function invoiceLines(): Record<string, string>[] {
+  return lines(GERMAN)
 }
+
+/** The invoice: its header, with SIX's example QR reference, and its line items. */
+export function invoiceData(): ReportData {
+  return data(GERMAN)
+}
+
+export const INVOICE: Starter = invoice(GERMAN)
+
+/** The invoice in French, for Romandy: a sample, which the Studio's picker does not offer. A sample has a starter's shape. */
+export const INVOICE_FR: Starter = invoice(FRENCH)
+
+/** The invoice in Italian, for Ticino: a sample. */
+export const INVOICE_IT: Starter = invoice(ITALIAN)
+
+/** The invoice in English, from a firm in Basel: a sample. */
+export const INVOICE_EN: Starter = invoice(ENGLISH)
+
+/** The invoice in German, French, Italian and English, each with its slip in its language: the German is the starter, and the others are samples of it. */
+export const INVOICE_SAMPLES: readonly Starter[] = [INVOICE, INVOICE_FR, INVOICE_IT, INVOICE_EN]

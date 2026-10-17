@@ -5,7 +5,7 @@
  * (checks.test.ts), as well as the site the build writes (site.test.ts).
  */
 import type { PageGroup } from '../pages.js'
-import { bodyProblems, structuredDataProblems } from './body.js'
+import { bodyProblems, structuredDataProblems, topicProblems } from './body.js'
 import { fileProblems } from './files.js'
 import { headProblems, pageSetProblems, sitemapProblems } from './head.js'
 import { linkProblems } from './links.js'
@@ -20,6 +20,7 @@ export function siteProblems(built: Built, groups: readonly PageGroup[]): string
     ...headProblems(built),
     ...sitemapProblems(built),
     ...bodyProblems(built),
+    ...topicProblems(built, groups),
     ...structuredDataProblems(built, groups),
     ...linkProblems(built),
     ...fileProblems(built),
