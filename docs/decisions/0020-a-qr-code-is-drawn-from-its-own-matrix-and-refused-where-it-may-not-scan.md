@@ -1,6 +1,6 @@
 # 0020 — A QR code is drawn from its own matrix, exactly its size, and refused where it may not scan
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's Swiss QR Code at SIX's size
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -354,6 +354,16 @@ gap; a scanner does not. A preview encodes them as they resolve.
 **What it forecloses.** pdfmake's own `qr` node, and a `qrCode` drawn
 finer than 0.4 mm. The format addition is a draft's, and nothing else here
 cannot be undone.
+
+**Added 2026-10-17: the QR-bill.** [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md) is the later record the costs
+above leave the bill's code to. A QR-bill's Swiss QR Code is not a
+`qrCode`. It is encoded by the same uqr at level M, version 25 at most,
+and drawn as the same SVG, its dark modules one path filled once. It is
+46 mm square without a quiet zone of its own, with the Swiss cross over
+its centre, and is not held to this record's 0.4 mm floor. A `qrCode`
+still is: `qr.test.ts`'s case of version 25 at 46 mm still refuses it.
+And a `qrCode` is still not a QR-bill: it draws no cross, and nothing
+checks what its content holds. A bill is a report's payment part.
 
 ## Alternatives considered
 

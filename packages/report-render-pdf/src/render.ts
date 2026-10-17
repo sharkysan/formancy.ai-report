@@ -1,12 +1,14 @@
-import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { RenderRefusal, type Block, type ResolvedDocument, type Table } from '@formancy/report-runtime'
+import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces.js'
+import { RenderRefusal, type Block, type PageSetup, type ResolvedDocument, type Table } from '@formancy/report-runtime'
+import { checkBill, refusePage, type CheckedBill } from './bill.js'
 import { refuseOversized } from './bound.js'
 import type { TablePlan } from './build.js'
-import { checkDocument, refuseTall, type Checked } from './check.js'
-import { bodyMeasurement, DEFAULT_STYLE, layoutDefinition, REGION_GAP, regionsMeasurement, type Regions } from './definition.js'
+import { checkDocument, refuseTall, type Checked, type Page } from './check.js'
+import { bodyMeasurement, DEFAULT_STYLE, layoutDefinition, REGION_GAP, regionsMeasurement, slipReservation, type Regions } from './definition.js'
 import type { Engine } from './engine.js'
-import { FIT_SLACK, measure, rowPitches, SENTINEL_ROOM, tablePlan } from './measure.js'
+import { FIT_SLACK, measure, rowPitches, SENTINEL_LINE, SENTINEL_ROOM, tablePlan } from './measure.js'
 import type { RenderOptions } from './options.js'
+import { ABOVE_SLIP, informationContent, PAYMENT_PART, RECEIPT } from './slip.js'
 
 /**
  * A resolved document rendered with pdfmake, refused rather than truncated,
@@ -19,9 +21,11 @@ import type { RenderOptions } from './options.js'
  * (`measure.ts`), because pdfmake loses what does not fit where it must
  * without saying so. The third is the PDF, laid out again by pdfmake for
  * each page break a keep-with-next or table rule asks for. Before them the
- * renderer refuses what it cannot draw (`check.ts`); between them it
- * decides the page margins, refuses what cannot fit on any page or within
- * the page limit (`bound.ts`), and chooses how each table breaks.
+ * renderer refuses what it cannot draw (`check.ts`, and `bill.ts` for a
+ * QR-bill); between them it decides the page margins, refuses what cannot
+ * fit on any page or within the page limit (`bound.ts`), and chooses how
+ * each table breaks. A document with a QR-bill has two passes more, one for
+ * each part of its slip, which measure their information (`measureSlip`).
  */
 
 export async function render(engine: Engine, document: ResolvedDocument, options: RenderOptions): Promise<Uint8Array> {
@@ -29,18 +33,45 @@ export async function render(engine: Engine, document: ResolvedDocument, options
   if (!Number.isSafeInteger(maxPages) || maxPages < 1) throw new RangeError(`maxPages must be a whole number of pages, at least 1; it is ${String(maxPages)}`)
   stopIfCancelled(signal)
   const checked = await checkDocument(document, await engine.glyphs())
+  const bill = document.paymentPart === undefined ? undefined : checkBill(document.paymentPart, document.page, await engine.billGlyphs())
   await stopIfCancelledSoon(signal)
   const regions = await measureRegions(engine, document, checked, maxPages)
   await stopIfCancelledSoon(signal)
   const bodyHeight = checked.page.height - regions.header - regions.footer
   if (bodyHeight <= 0) throw new RenderRefusal('content-too-large', `the page header and footer leave no room for the body (${bodyHeight.toFixed(2)} pt)`)
+  if (bill !== undefined) await measureSlip(engine, bill, checked.page, document.page, regions)
   refuseTall(checked.tall, bodyHeight)
-  refuseOversized(document.body, bodyHeight, maxPages)
+  refuseOversized(document.body, bodyHeight, maxPages, bill === undefined ? 0 : slipReservation(checked.page, regions))
   const plans = await measureBody(engine, checked, bodyHeight, maxPages)
   await stopIfCancelledSoon(signal)
-  const pdf = await engine.run(layoutDefinition(document, checked, regions, plans, maxPages))
+  const pdf = await engine.run(layoutDefinition(document, checked, regions, plans, maxPages, bill))
   await stopIfCancelledSoon(signal)
   return pdf
+}
+
+/** How much taller than its section a slip's information may lay out and still fit: rounding, not layout. */
+const SECTION_SLACK = 0.01
+
+/**
+ * Refuses a QR-bill's slip that cannot be drawn whole where SIX puts it: on
+ * a page whose top margin, with the header under it and the instruction to
+ * separate over the slip, reaches into it, by report-spec's rule
+ * (`refusePage`); or with information taller than its section (SG 6),
+ * which would run into the section below it or off the paper. Each part's
+ * information is laid out as the slip lays it out (`slip.ts`), on a sheet
+ * as tall as its section and the three sentinels around it: what does not
+ * fit on the sheet is taller than the section, and pdfmake's next page
+ * refuses it.
+ */
+async function measureSlip(engine: Engine, bill: CheckedBill, page: Page, setup: PageSetup, regions: Regions): Promise<void> {
+  refusePage(setup, regions.header + ABOVE_SLIP)
+  for (const part of [PAYMENT_PART, RECEIPT]) {
+    const { width, height, millimetres } = part.information
+    const refusal = (): RenderRefusal => new RenderRefusal('content-too-large', `${part.name}'s information is taller than its section: SIX gives it ${millimetres} mm (${height.toFixed(2)} pt)`, 'paymentPart')
+    const item: Content = { stack: informationContent(bill.bill, part), margin: [0, 0, page.paperWidth - width, 0] }
+    const sheet = { width: page.paperWidth, height: height + 3 * SENTINEL_LINE + SECTION_SLACK, left: 0, right: 0 }
+    await measure(engine, sheet, [item], resources({}), refusal, [])
+  }
 }
 
 /**

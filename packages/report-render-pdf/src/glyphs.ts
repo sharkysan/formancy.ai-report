@@ -24,6 +24,12 @@ export type Face = 'normal' | 'bold' | 'italics' | 'bolditalics'
 /** The characters each face has a glyph for, by code point. */
 export type Glyphs = Readonly<Record<Face, ReadonlySet<number>>>
 
+/** The two faces of Liberation Sans a QR-bill's slip prints in (`style.ts`): its values, and its titles and headings. */
+export type BillFace = 'normal' | 'bold'
+
+/** The characters each of them has a glyph for. */
+export type BillGlyphs = Readonly<Record<BillFace, ReadonlySet<number>>>
+
 /** The face text in this weight and slant prints in. */
 export function faceOf(bold: boolean, italic: boolean): Face {
   return bold ? (italic ? 'bolditalics' : 'bold') : italic ? 'italics' : 'normal'

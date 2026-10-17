@@ -10,6 +10,134 @@ later.
 
 ## Unreleased
 
+**A report can carry a Swiss QR-bill**
+([0022](docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)).
+A Swiss invoice is paid by its QR-bill, the receipt and the payment part
+at the foot of its page, and a report could print one only as an image the
+host drew. SIX fixes where the slip stands, the faces it prints in, its
+headings, its code's size and what that code may hold: a component in a
+region could keep none of it, and Roboto is not one of the faces.
+
+- **`@formancy/report-spec`:**
+  - `paymentPart`, at the report's level and in no region: a
+    `swissQrBill` with its language, one of SIX's five; the account; the
+    creditor's and, optionally, the debtor's structured address; CHF or
+    EUR; an amount, an expression; and an optional reference, message and
+    billing information. Each text is runs, read as a paragraph's in the
+    report's scope, and a page number or count is refused in every one.
+  - A report with one is on an A4 page in portrait, and its top margin
+    reaches no lower than the slip's top, or it is refused as
+    `payment-part-page`, on `/page` or on `/page/margins/top`: the page
+    header and the body start at the top margin, and one past the slip's
+    top would print the invoice into it.
+  - SIX's rules, as functions over text: `checkQrBillAccount`,
+    `checkQrBillReference`, `checkQrBillText` with `QR_BILL_ADDRESS_RULES`,
+    `QR_BILL_MESSAGE_RULE` and `QR_BILL_BILLING_RULE`,
+    `checkQrBillAdditionalInformation`, `qrBillPairing` and
+    `checkQrBillAmount`; `QR_BILL_SIZE`, the slip's 210 by 105 mm;
+    `QR_BILL_TOP`, its top, 544.25 pt down the A4 page; and
+    `qrBillPageBreak`, the page rule, which the validator applies to the
+    page and the renderer to the page with what it measures above the
+    slip.
+  - The validator applies them to a text of literal runs, as
+    `invalid-qr-bill`, and the runtime applies the same functions to data,
+    so the editor and the render cannot read SIX two ways. A refusal names
+    the field and the rule, never the text, which may be a person's name
+    or account.
+  - The rules are version 2.3's, and version 2.4's QR-IBAN and QR
+    reference for CHF only. 2.4 is valid from 14 November 2026, and a bill
+    printed now may be paid after it, so a EUR bill to a QR-IBAN is
+    refused already.
+  - The format stays at version `'0'`. **0.1.0 refuses a report with a
+    payment part**, whole, as `unknown-property`.
+- **`@formancy/report-core`:**
+  - A bill's texts are compiled in the report's scope.
+  - Its amount must give a decimal or null; an integer or a string is an
+    error, with `dec()` as the hint.
+  - Every command keeps the bill as it was, and none edits it yet.
+- **`@formancy/report-runtime`:**
+  - The document's `paymentPart`, a `QrBill`: the code's payload in SIX's
+    order, and every text the slip prints, its headings in the slip's
+    language and its values grouped as SIX prints them.
+  - Every text is held to SIX's rules once the data has resolved it, as
+    `invalid-qr-bill`, and a null in one refuses a final render.
+  - **A preview refuses a bill SIX would refuse**, where any other missing
+    value prints as nothing: its code would scan as a bill no bank pays.
+  - The amount is never rounded. One with a third decimal is refused, so
+    the template rounds where it computes the total.
+  - It hands on report-spec's six QR-bill decisions an engine draws by,
+    as report-spec's own objects: `QR_BILL_SIZE`, `QR_BILL_TOP`,
+    `qrBillPageBreak` with its type `QrBillPageBreak`,
+    `QR_BILL_CURRENCIES`, `checkQrBillAmount` and
+    `MAX_QR_BILL_ADDITIONAL_INFORMATION`. The renderer depends on the
+    runtime alone, and a copy of any of them in it could put the slip a
+    hair from where the editor draws its band, or refuse a page the editor
+    took, and nobody would find out.
+- **`@formancy/report-render-pdf`:**
+  - The slip: SIX's receipt and payment part across the foot of the last
+    page, in place of its page footer, or on a page of its own when the
+    body leaves no room. Its code is at level M, version 25 at most, 46 mm
+    square with the Swiss cross. Every heading and value stands where
+    SIX's Style Guide puts it, blank fields are marked by their corners,
+    and the line across carries the instruction above it and the line
+    down a scissors symbol, as SIX's guidelines (3.7) ask of each line.
+    The symbol is drawn as paths, since Liberation Sans has no glyph for
+    it; its size and place are manuelbl's generator's.
+  - **It ships Liberation Sans 2.1.5**, regular and bold, under the SIL
+    Open Font License 1.1, in a new `fonts` directory: SIX allows Arial,
+    Frutiger, Helvetica and Liberation Sans on a slip, and Roboto is none
+    of them. The browser entry imports them from a chunk of its own the
+    first time a document has a bill. The fonts are in the tarball twice,
+    as TrueType and as base64, and it grows from 268,045 bytes unpacked at
+    0.1.0 to 2,307,611 on 17 October 2026, as npm counted them.
+  - It refuses a bill it cannot draw as SIX prints one as `unsupported` or
+    `content-too-large`, naming `paymentPart`. Information taller than its
+    section is refused, not shrunk. Where the refusal is one of SIX's
+    rules -- the page, the currencies, the amount's range, the longest
+    value -- it is report-spec's, through the runtime, so what the editor
+    accepts and what the renderer draws cannot part: a top margin past
+    the slip's top is refused in the editor's words, and one that the page
+    header and the instruction above the slip push into it by the same
+    rule.
+  - **A font that could not be read once is read again by the next
+    render**, and a font that was read is still read once. In 0.1.0 one
+    failed read of the fonts' glyphs -- in Node, a font file the process
+    could not open just then -- was kept, and every later render in the
+    process failed with it. In a browser the same holds for the QR-bill's
+    fonts chunk, which a dropped network or a deploy that replaced it
+    would otherwise have made fail every bill until the page reloaded.
+    Whether a browser fetches a chunk again after a failure is the
+    browser's, and a chunk a deploy removed still fails until a reload.
+  - A QR-bill's code is not held to a `qrCode`'s 0.4 mm floor: SIX prints
+    it at 46 mm, 0.393 mm a module at version 25.
+- **`@formancy/report-builder-core` and both builders:**
+  - The design view draws a band the slip's size at the sheet's foot,
+    named "Payment part" in the editor's language: the canvas's
+    `paymentPart`, `null` without a bill, which both builders draw as the
+    `payment-part` part, dressed by the region bands' rules.
+  - A report with a bill opens, edits and undoes without losing it.
+  - Letter, landscape, or a top margin past the slip, is refused, with
+    the reason on the field. A page header or the instruction to separate
+    reaching into the slip is refused only by a render, which alone
+    measures them. Nothing edits the bill yet.
+- **A fourth starter, the invoice "Rechnung mit QR-Zahlteil"**, in the
+  corpus and the Studio. Its bill pays the invoice's exact total by a QR
+  reference read from the data. The README shows its page.
+- **`NOTICE` names Liberation Sans**, its copyright and its licence, which
+  travels beside the fonts as `fonts/LICENSE-LiberationSans.txt`.
+- **The Studio's `THIRD-PARTY-NOTICES.txt` carries Liberation Sans's
+  licence**, under `@formancy/report-render-pdf`, for the chunk its fonts
+  are bundled in. The notices plugin now takes a notice for a file of this
+  repository's own packages.
+- **The licence guard reads Liberation Sans 2's sentence**, "Licensed
+  under the SIL Open Font License, Version 1.1", as OFL-1.1, at that
+  version exactly
+  ([0006](docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
+  Without it the guard refused the renderer's own fonts.
+- **The install gate prints a bill** from the packed packages and finds
+  Liberation Sans in the PDF. A tarball without its `fonts` would print
+  every other report and fail only a host's bill; the gate fails it.
+
 **The Studio and the product pages serve their own faces, and ask no
 other site for anything**
 ([0023](docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).

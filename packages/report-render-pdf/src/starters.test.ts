@@ -3,8 +3,11 @@ import {
   GROUPED_EQUIPMENT,
   INSPECTION_PHOTO,
   inspectionData,
+  INVOICE,
+  invoiceData,
   QUOTATION,
   quotationData,
+  readCodes,
   readPdf,
   SERVICE_INSPECTION,
   STARTER_IMAGES,
@@ -20,7 +23,7 @@ import { fixtureOf, normalise, TIMEOUT, type Stated } from './testing/documents.
 import { lineHas, pageLines, type Line } from './testing/lines.js'
 
 /**
- * The three starters of plan 7, end to end: each definition resolved by the
+ * The three starters of plan 7 and the invoice with its QR-bill, end to end: each definition resolved by the
  * runtime against its synthetic data, rendered by pdfmake, and proved on the
  * PDF it produced, read back with PDF.js (0003) -- never on the document the
  * renderer was given. The corpus's checks prove the layout: every row once
@@ -288,5 +291,46 @@ describe('the equipment register', () => {
     const pdf = await printed(preview.document)
     expect(verify(fixtureOf('grouped-equipment-preview', preview.document, { maxPagesExpected: 4 }), pdf)).toEqual([])
     expect(pdf.pages.map((page) => pageLines(page)[0]?.text)).toEqual(pdf.pages.map(() => PREVIEW_LABEL))
+  }, TIMEOUT)
+})
+
+describe('the invoice', () => {
+  const data = invoiceData()
+  const lines = [...(data.detail as Record<string, string>[])].sort((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1))
+  const chf = (amount: bigint): string => francs('de-CH', amount)
+  /** An amount as SIX's slip prints it: a space between thousands, a point and two places (IG 3.5.3). */
+  const slipAmount = (amount: bigint): string => decimal(amount).replace(/\B(?=(\d{3})+\.)/g, ' ')
+
+  // The independent reference: the subtotal is the sum of the supplied
+  // amounts; VAT is 8.1 % of it, rounded half away to the centime; the
+  // total is the two, to the centime, as a bill is paid.
+  const subtotal = lines.reduce((sum, line) => sum + cents(line['amount'] as string), 0n)
+  const vat = halfAway(subtotal * 81n, 1000n)
+  const total = subtotal + vat
+
+  // An invoice is paid by its slip: every line item once, in article order
+  // though the data sent them the other way round, and the totals exactly
+  // what the reference computes, on the one page whose foot the receipt
+  // and the payment part take; and the code, decoded from the page's
+  // pixels, asks for exactly the total the table prints, which the receipt
+  // and the payment part print too. A bill that asked for another amount
+  // than the invoice states would be paid wrongly, and nothing on the page
+  // would show it.
+  test('prints its lines and totals, and a QR-bill on the same page for exactly the printed total', async () => {
+    const document = resolved(INVOICE, data)
+    const bytes = await renderPdf(document, { maxPages: 20 })
+    const pdf = await readPdf(bytes)
+    expect(pdf.pages).toHaveLength(1)
+    const found = lines.map((line) => startingWith(pdf, line['article'] as string))
+    expect(found.map((each) => each.length)).toEqual(lines.map(() => 1))
+    expect(found.map(([line], index) => line !== undefined && lineHas(line, chf(cents(lines[index]?.['amount'] as string))))).toEqual(lines.map(() => true))
+    expect(startingWith(pdf, 'Zwischensumme').map((line) => line.text)).toEqual([`Zwischensumme ${chf(subtotal)}`])
+    expect(startingWith(pdf, 'MWST 8.1 %').map((line) => line.text)).toEqual([`MWST 8.1 % ${chf(vat)}`])
+    expect(startingWith(pdf, 'Total').map((line) => line.text)).toEqual([`Total ${chf(total)}`])
+    const codes = await readCodes(bytes, 1)
+    expect(codes.map((code) => code.text)).toEqual([document.paymentPart?.payload])
+    expect(codes[0]?.text.split('\n').slice(18, 20)).toEqual([decimal(total), 'CHF'])
+    expect(pdf.pages[0]?.items.filter((item) => item.text === slipAmount(total)).length).toBe(2)
+    for (const heading of ['Empfangsschein', 'Zahlteil']) expect(pdf.pages[0]?.items.some((item) => item.text === heading), heading).toBe(true)
   }, TIMEOUT)
 })

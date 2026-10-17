@@ -94,6 +94,45 @@ describe("pdfmake's positions, which the table rules read", () => {
   })
 })
 
+describe("pdfmake's footer, which a QR-bill's slip is drawn as", () => {
+  // The slip is the last page's footer (definition.ts): pdfmake lays the
+  // footer out once every page is, knowing their count, in a box as tall as
+  // the bottom margin, and content placed absolutely above that box's top
+  // has the room down to the paper's foot. Were pdfmake to stop calling the
+  // footer with the count, or to measure that room from the box, a slip
+  // would be drawn on the wrong page or lose its lower lines without a
+  // word; this fails first.
+  test('lays out content placed above the footer’s top on the last page, with the room down to the paper’s foot', async () => {
+    await renderPdf(fixture('one-row').document, { maxPages: 5 })
+    const lines = Array.from({ length: 30 }, (_, index) => ({ text: `Slip line ${index}`, fontSize: 10, lineHeight: 1 }))
+    const calls: (readonly [number, number])[] = []
+    const bytes = await pdfmake
+      .createPdf({
+        pageSize: { width: 595.28, height: 841.89 },
+        pageMargins: [40, 40, 40, 40],
+        content: [{ text: 'Body', pageBreak: 'after' }, { text: 'More' }],
+        defaultStyle: { font: 'Roboto' },
+        footer: (page, count) => {
+          calls.push([page, count])
+          return page === count ? { stack: lines, absolutePosition: { x: 40, y: -320 } } : null
+        },
+      })
+      .getBuffer()
+    expect(calls).toEqual([
+      [1, 2],
+      [2, 2],
+    ])
+    const pdf = await readPdf(new Uint8Array(bytes))
+    expect(pdf.pages[0]!.items.filter((item) => item.text.startsWith('Slip line'))).toEqual([])
+    const drawn = pdf.pages[1]!.items.filter((item) => item.text.startsWith('Slip line'))
+    expect(drawn).toHaveLength(30)
+    // Roboto's line is 2400 of its 2048 units, its ascender 1900: the first line's top 320 pt above the footer's, at 841.89 - 40.
+    const baseline = (item: (typeof drawn)[number]): number => item.bottom - 0.2 * item.height
+    expect(baseline(drawn[0]!)).toBeCloseTo(841.89 - 40 - 320 + (1900 / 2048) * 10, 2)
+    expect(baseline(drawn[29]!) - baseline(drawn[0]!)).toBeCloseTo(29 * (2400 / 2048) * 10, 2)
+  })
+})
+
 describe('reading the PDF out of PDFKit', () => {
   // pdfmake's own getBuffer waits for the end of the stream and never
   // listens for an error, so a stream that fails would leave the render

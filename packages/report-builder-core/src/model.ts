@@ -196,6 +196,18 @@ export interface CanvasRegion {
   readonly px: Box
 }
 
+/**
+ * Where a report's payment part prints: a Swiss QR-bill's slip, the receipt
+ * and the payment part, across the foot of the report's last page. Drawn as
+ * a band the slip's size at the sheet's foot, below every region, and named
+ * as SIX names the part. The slip itself is the renderer's to draw.
+ */
+export interface CanvasPaymentPart {
+  readonly label: string
+  readonly pt: Box
+  readonly px: Box
+}
+
 export interface RulerTick {
   /** CSS pixels from the sheet's edge. */
   readonly at: number
@@ -206,7 +218,8 @@ export interface RulerTick {
 
 /**
  * The design view: one sheet as wide as the page, the regions stacked on it
- * as bands, each component's flow box inside its band. A design-mode
+ * as bands, each component's flow box inside its band, and a payment part's
+ * band at the sheet's foot. A design-mode
  * approximation for selecting and placing things -- text measured by a rule
  * of thumb, a table as one row of each kind -- and never the PDF, which the
  * renderer lays out (plan 8).
@@ -220,6 +233,8 @@ export interface Canvas {
   readonly scale: number
   readonly sheet: { readonly pt: Box; readonly px: Box }
   readonly regions: readonly CanvasRegion[]
+  /** The payment part's band, for a report that has one; null for one that has none. */
+  readonly paymentPart: CanvasPaymentPart | null
   readonly boxes: readonly CanvasBox[]
   readonly rulers: { readonly horizontal: readonly RulerTick[]; readonly vertical: readonly RulerTick[] }
 }

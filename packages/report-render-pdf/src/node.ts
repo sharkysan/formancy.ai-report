@@ -1,19 +1,23 @@
 import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import pdfmake from 'pdfmake'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import type { ResolvedDocument } from '@formancy/report-runtime'
-import { collect, glyphsOnce, type Engine, type PdfStream } from './engine.js'
+import { BILL_FACES, collect, FACES, glyphsOnce, type Engine, type PdfStream } from './engine.js'
 import type { RenderOptions } from './options.js'
 import { render } from './render.js'
+import { LIBERATION_SANS } from './style.js'
 
 /**
  * The renderer in Node: pdfmake's Node build, reading Roboto 3.014 from the
- * four font files in pdfmake's own package -- which the dependency-licence
- * guard reads as OFL-1.1 (0006) -- and no other file, and no address at all.
- * The renderer reads the same four files once, for the characters they have
- * glyphs for (`glyphs.ts`).
+ * four font files in pdfmake's own package, and Liberation Sans 2.1.5, for
+ * a QR-bill's slip, from the two in this package's `fonts` directory -- all
+ * of which the dependency-licence guard reads as OFL-1.1 (0006) -- and no
+ * other file, and no address at all. The renderer reads the same files
+ * once, for the characters they have glyphs for (`glyphs.ts`): Roboto's
+ * for the first document, Liberation Sans's for the first with a bill.
  *
  * pdfmake is one configuration per process. It is set again before every
  * document, in the same synchronous step as `createPdf`, which reads it, so
@@ -26,10 +30,13 @@ import { render } from './render.js'
 const require = createRequire(import.meta.url)
 const pdfmakeDirectory = path.dirname(require.resolve('pdfmake/package.json'))
 const roboto = (file: string): string => path.join(pdfmakeDirectory, 'fonts', 'Roboto', file).split(path.sep).join('/')
+/** One of this package's own fonts, in its `fonts` directory, which stands beside `dist` as beside `src`. */
+const own = (file: string): string => fileURLToPath(new URL(`../fonts/${file}`, import.meta.url)).split(path.sep).join('/')
 const FONTS = {
   Roboto: { normal: roboto('Roboto-Regular.ttf'), bold: roboto('Roboto-Medium.ttf'), italics: roboto('Roboto-Italic.ttf'), bolditalics: roboto('Roboto-MediumItalic.ttf') },
+  [LIBERATION_SANS]: { normal: own('LiberationSans-Regular.ttf'), bold: own('LiberationSans-Bold.ttf') },
 }
-const FONT_FILES: ReadonlySet<string> = new Set(Object.values(FONTS.Roboto))
+const FONT_FILES: ReadonlySet<string> = new Set([...Object.values(FONTS.Roboto), ...Object.values(FONTS[LIBERATION_SANS])])
 
 async function run(definition: TDocumentDefinitions): Promise<Uint8Array> {
   pdfmake.setFonts(FONTS)
@@ -39,7 +46,11 @@ async function run(definition: TDocumentDefinitions): Promise<Uint8Array> {
 }
 
 /** pdfmake in Node, and the glyphs of the very font files it embeds. */
-const engine: Engine = { run, glyphs: glyphsOnce(async (face) => new Uint8Array(await readFile(FONTS.Roboto[face]))) }
+const engine: Engine = {
+  run,
+  glyphs: glyphsOnce(FACES, async (face) => new Uint8Array(await readFile(FONTS.Roboto[face]))),
+  billGlyphs: glyphsOnce(BILL_FACES, async (face) => new Uint8Array(await readFile(FONTS[LIBERATION_SANS][face]))),
+}
 
 /**
  * Renders `document` to a PDF, or rejects with a `RenderRefusal` saying why

@@ -148,7 +148,7 @@ const KINDS: { readonly [K in ComponentKind]: KindRule<Extract<Component, { kind
   qrCode: {
     required: ['content', 'size', 'errorCorrection'],
     read: (c, o, path, scope, base) => {
-      const content = readInlines(c, o.content, at(path, 'content'), { region: scope.region, reads: 'report', encoded: true }, 1)
+      const content = readInlines(c, o.content, at(path, 'content'), { region: scope.region, reads: 'report', encoded: 'a QR code' }, 1)
       const size = square(c, o.size, at(path, 'size'), 'this QR code')
       const errorCorrection = oneOf(c.f, o.errorCorrection, at(path, 'errorCorrection'), QR_ERROR_CORRECTION)
       if (base === undefined || content === undefined || size === undefined || errorCorrection === undefined) return undefined

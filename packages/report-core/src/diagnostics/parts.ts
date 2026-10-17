@@ -1,14 +1,29 @@
 /**
  * The parts of a report the diagnostics read: every expression, with the
  * scope its place gives it and what it is for, and every style, asset,
- * field, parameter and aggregate named outside an expression.
+ * field, parameter and aggregate named outside an expression -- in the
+ * components and in the payment part.
  *
  * One walk, so that where an expression stands is decided once: the
  * diagnostics and `compileReport`, which the runtime compiles a report with,
  * both take its sites from here.
  */
-import { walkComponents } from '@formancy/report-spec'
-import type { Component, ComponentKind, Expression, FieldRef, Format, Inline, ReportDefinition, StyleRule, TableFooterRow, ValueScope } from '@formancy/report-spec'
+import { QR_BILL_ADDRESS_RULES, walkComponents } from '@formancy/report-spec'
+import type {
+  Component,
+  ComponentKind,
+  Expression,
+  FieldRef,
+  Format,
+  Inline,
+  PaymentPart,
+  PaymentPartKind,
+  QrBillAddress,
+  ReportDefinition,
+  StyleRule,
+  TableFooterRow,
+  ValueScope,
+} from '@formancy/report-spec'
 
 /** An expression and how to compile it: the names its scope binds, and the policy of what it is for. */
 export interface ExpressionSite {
@@ -22,6 +37,8 @@ export interface ExpressionSite {
   readonly componentId?: string
   /** The table column it belongs to, for a column's value, condition or style rule. */
   readonly columnId?: string
+  /** A QR-bill's amount, which is a decimal, or null to leave it for the payer. */
+  readonly amount?: true
 }
 
 /** What an expression belongs to: a component, and within a table a column. */
@@ -100,6 +117,19 @@ class Collector {
     for (const [index, inline] of inlines.entries()) this.inline(inline, `${path}/${index}`, scope, owner)
   }
 
+  /** A QR-bill's amount: a value, read in the report's scope. */
+  amount(expression: Expression | undefined, path: string): void {
+    if (expression !== undefined) this.expressions.push({ cel: expression.cel, scope: 'report', kind: 'computed', path: `${path}/cel`, amount: true })
+  }
+
+  /** Each part of an address, in the order the code holds them; a party absent holds none. */
+  address(address: QrBillAddress | undefined, path: string): void {
+    for (const part of Object.keys(QR_BILL_ADDRESS_RULES) as (keyof QrBillAddress)[]) {
+      const runs = address?.[part]
+      if (runs !== undefined) this.inlines(runs, `${path}/${part}`, 'report', {})
+    }
+  }
+
   footer(rows: readonly TableFooterRow[] | undefined, path: string, scope: ValueScope, owner: Owner): void {
     for (const [index, row] of (rows ?? []).entries()) {
       for (const [at, cell] of row.cells.entries()) this.inline(cell.value, `${path}/${index}/cells/${at}/value`, scope, owner)
@@ -157,7 +187,28 @@ const READERS: { readonly [K in ComponentKind]: Reader<K> } = {
   },
 }
 
-/** Every expression and every name the report holds, in document order, the aggregates' expressions last. */
+type PartReader<K extends PaymentPartKind> = (part: Extract<PaymentPart, { kind: K }>, path: string, into: Collector) => void
+
+/**
+ * What each kind of payment part holds. A table over every kind, as
+ * READERS is. A bill stands in no component: its texts are read as a
+ * paragraph's in the report's scope, named by their paths alone, in the
+ * order the code holds them.
+ */
+const PAYMENT_PARTS: { readonly [K in PaymentPartKind]: PartReader<K> } = {
+  swissQrBill: (bill, path, into) => {
+    into.inlines(bill.account, `${path}/account`, 'report', {})
+    into.address(bill.creditor, `${path}/creditor`)
+    into.amount(bill.amount, `${path}/amount`)
+    into.address(bill.debtor, `${path}/debtor`)
+    for (const key of ['reference', 'message', 'billingInformation'] as const) {
+      const runs = bill[key]
+      if (runs !== undefined) into.inlines(runs, `${path}/${key}`, 'report', {})
+    }
+  },
+}
+
+/** Every expression and every name the report holds, in document order -- the components, then the payment part -- the aggregates' expressions last. */
 export function reportParts(report: ReportDefinition): ReportParts {
   const into = new Collector()
   for (const { component, path } of walkComponents(report)) {
@@ -167,6 +218,7 @@ export function reportParts(report: ReportDefinition): ReportParts {
     into.rules(component.styleWhen, `${path}/styleWhen`, 'report', owner)
     ;(READERS[component.kind] as Reader<ComponentKind>)(component as never, path, into)
   }
+  if (report.paymentPart !== undefined) (PAYMENT_PARTS[report.paymentPart.kind] as PartReader<PaymentPartKind>)(report.paymentPart, '/paymentPart', into)
   for (const [index, aggregate] of report.aggregates.entries()) {
     // What an aggregate reads, it reads from each detail row.
     if (aggregate.of?.kind === 'field') into.fields.push(aggregate.of.field)

@@ -364,17 +364,18 @@
 }
 
 /* A region is a band; where one ends is the region boundary. Its label sits
-   in the gap above it, outside what the band holds. */
-[data-report-part='region'] {
+   in the gap above it, outside what the band holds. The payment part's band
+   is drawn as one, tinted as an empty one: room the slip takes. */
+:is([data-report-part='region'], [data-report-part='payment-part']) {
   position: absolute;
   outline: 1px dashed var(--wb-rule);
 }
 
-[data-report-part='region'][data-empty='true'] {
+:is([data-report-part='region'][data-empty='true'], [data-report-part='payment-part']) {
   background: color-mix(in srgb, var(--wb-rule) 25%, transparent);
 }
 
-[data-report-part='region'] > [data-report-part='region-label'] {
+:is([data-report-part='region'], [data-report-part='payment-part']) > [data-report-part='region-label'] {
   position: absolute;
   inset-block-end: 100%;
   inset-inline-start: 0;

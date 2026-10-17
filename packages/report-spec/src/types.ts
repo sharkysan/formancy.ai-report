@@ -20,6 +20,7 @@
  * The vocabularies are `const` lists, and each union type is derived from
  * its list, so the type and the validator's list cannot disagree.
  */
+import type { PaymentPart } from './payment-part.js'
 import type { REPORT_SPEC_VERSION } from './version.js'
 
 export const PAGE_SIZE_NAMES = ['A4', 'Letter'] as const
@@ -561,5 +562,7 @@ export interface ReportDefinition {
   readonly assets: readonly AssetRef[]
   readonly aggregates: readonly AggregateDef[]
   readonly regions: Regions
+  /** A slip to pay the report by, printed at the foot of its last page: a Swiss QR-bill. Absent, the report has none. */
+  readonly paymentPart?: PaymentPart
   readonly provenance?: Provenance
 }

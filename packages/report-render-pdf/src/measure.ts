@@ -2,6 +2,7 @@ import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { keepBlocks, keptBlocks } from './breaks.js'
 import type { RowKind, TablePlan } from './build.js'
 import type { Engine } from './engine.js'
+import { LINE_FACTOR } from './style.js'
 import { checkWords, type WordRoom } from './words.js'
 import { PADDING_Y, RULE } from './table.js'
 
@@ -43,6 +44,9 @@ const sentinel = (index: number): Content => ({ text: '.', fontSize: 1, headline
 
 /** Room left on the measuring page for the sentinels: each is one line of one-point text, 1.17pt in Roboto. */
 export const SENTINEL_ROOM = 2
+
+/** A sentinel's height exactly: one line of one-point Roboto, for a page that must hold its items and nothing more. */
+export const SENTINEL_LINE = LINE_FACTOR
 
 /**
  * Lays `items` out on one page `height` tall, between those side margins,

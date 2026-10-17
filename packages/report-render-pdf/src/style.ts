@@ -14,8 +14,27 @@ import type { TextStyle } from '@formancy/report-runtime'
  * Medium, the heaviest face pdfmake ships, and italic its italic.
  */
 
-/** pdfmake's name for the one family the renderer embeds. */
+/** pdfmake's name for the family a report's own text prints in. */
 export const ROBOTO = 'Roboto'
+
+/**
+ * pdfmake's name for Liberation Sans 2.1.5, under the SIL Open Font License
+ * 1.1, which the package ships in its `fonts` directory: the family a
+ * QR-bill's slip prints in, and nothing else. SIX allows Arial, Frutiger,
+ * Helvetica and Liberation Sans on a slip (IG 3.4), and Roboto is none of
+ * them. Regular and bold; SIX allows no italics.
+ */
+export const LIBERATION_SANS = 'LiberationSans'
+
+/**
+ * Liberation Sans's ascender and its line, ascender less descender, as
+ * multiples of the font size: 1854 and 2288 of its 2048 units per em, from
+ * its `hhea` table, Arial's metrics. pdfmake sets a line's baseline its
+ * ascender below the line's top, and lays the line out its line tall times
+ * the node's `lineHeight`.
+ */
+export const LIBERATION_ASCENDER = 1854 / 2048
+export const LIBERATION_LINE = 2288 / 2048
 
 /** The font each token prints in; a token without one is refused. */
 export const FONTS: Readonly<Partial<Record<NonNullable<TextStyle['font']>, string>>> = { sans: ROBOTO }

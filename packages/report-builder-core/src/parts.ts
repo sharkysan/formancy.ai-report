@@ -35,7 +35,10 @@ export const REPORT_PARTS = [
   'sheet',
   /** One region's band on the sheet. */
   'region',
+  /** A band's label: a region's, or the payment part's. */
   'region-label',
+  /** The payment part's band, at the sheet's foot, labelled as a region's band is. */
+  'payment-part',
   /** A component's or a table column's box on the sheet. */
   'box',
   'box-label',

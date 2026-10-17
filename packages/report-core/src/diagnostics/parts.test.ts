@@ -1,5 +1,5 @@
-import { COMPONENT_KINDS, walkComponents } from '@formancy/report-spec'
-import type { TextComponent } from '@formancy/report-spec'
+import { COMPONENT_KINDS, QR_BILL_ADDRESS_RULES, walkComponents } from '@formancy/report-spec'
+import type { Inline, ReportDefinition, SwissQrBill, TextComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { frozenSample, sampleReport } from '../test-support.js'
 import { expressionSites, reportParts } from './parts.js'
@@ -24,7 +24,8 @@ describe('expressionSites', () => {
   // Each expression is compiled against the names its place binds and with
   // the policy of what it is for (0007's scopes; plan 15). One in a table's
   // column names the column too, so the editor opens that column's
-  // properties rather than the whole table's.
+  // properties rather than the whole table's; one in the payment part names
+  // no component, and comes after every component's.
   test('gives each expression its scope, its kind, and the component and column it is in', () => {
     const said = ({ path, scope, kind, componentId, columnId }: ExpressionSite): string => `${scope} ${kind} ${componentId ?? '-'}${columnId === undefined ? '' : `/${columnId}`} ${path}`
     expect(expressionSites(frozenSample()).map(said)).toEqual([
@@ -41,6 +42,8 @@ describe('expressionSites', () => {
       'report visible closing /regions/summary/0/visibleWhen/cel',
       'report computed statistics /regions/summary/0/components/1/content/3/expression/cel',
       'report computed order-code /regions/summary/2/content/2/expression/cel',
+      'report computed - /paymentPart/amount/cel',
+      'report computed - /paymentPart/message/1/expression/cel',
       'row computed - /aggregates/2/of/expression/cel',
     ])
   })
@@ -119,5 +122,79 @@ describe('a QR code', () => {
     const parts = reportParts(report)
     expect(parts).toEqual(reportParts(swapped))
     expect(parts.expressions).toContainEqual({ cel: '" from " + params.from', scope: 'report', kind: 'computed', path: '/regions/summary/2/content/2/expression/cel', componentId: 'order-code' })
+  })
+})
+
+describe('a payment part', () => {
+  // A QR-bill's texts are read as a paragraph's in the report's scope, and
+  // its amount as a value, compiled where it stands and named by its path:
+  // the bill stands in no component. Read any other way, an expression in
+  // a bill would go unchecked until a render refused it, and a field only
+  // the bill prints would be called unused.
+  test("is read in the report's scope, its amount as the bill's amount", () => {
+    const parts = reportParts(frozenSample())
+    expect(parts.expressions.filter(({ path }) => path.startsWith('/paymentPart/'))).toEqual([
+      { cel: 'totals.subtotal', scope: 'report', kind: 'computed', path: '/paymentPart/amount/cel', amount: true },
+      { cel: '" for " + header.customer', scope: 'report', kind: 'computed', path: '/paymentPart/message/1/expression/cel' },
+    ])
+  })
+
+  // Every text a bill holds is read, each part of both addresses among
+  // them: with an expression in each, the sites found are every expression
+  // the document holds, found without knowing the format. A text the walk
+  // left out would be one nobody checks.
+  test('reads every text it holds, and every part of both addresses', () => {
+    const report = sampleReport()
+    const run = (at: string): Inline[] => [{ kind: 'expression', expression: { cel: `"${at}"` } }]
+    const address = (party: string) => Object.fromEntries(Object.keys(QR_BILL_ADDRESS_RULES).map((part) => [part, run(`${party} ${part}`)]))
+    const bill = report.paymentPart as SwissQrBill
+    const everywhere: ReportDefinition = {
+      ...report,
+      paymentPart: {
+        ...bill,
+        account: run('account'),
+        creditor: address('creditor') as unknown as SwissQrBill['creditor'],
+        debtor: address('debtor') as unknown as SwissQrBill['creditor'],
+        reference: run('reference'),
+        message: run('message'),
+        billingInformation: run('billing'),
+      },
+    }
+    const found = expressionSites(everywhere).filter(({ path }) => path.startsWith('/paymentPart/'))
+    expect(found.map(({ path }) => path).sort()).toEqual(celPointers(everywhere.paymentPart, '/paymentPart').sort())
+    expect(found).toHaveLength(17)
+    expect(found.every(({ scope, kind, componentId }) => scope === 'report' && kind === 'computed' && componentId === undefined)).toBe(true)
+  })
+
+  // A bill needs only its language, its account, its creditor and its
+  // currency: SIX's third example has no amount, no debtor, no reference
+  // and no message. A walk that read an absent text as present would throw
+  // on the commonest donation slip there is.
+  test('is read for what it holds when it holds only what it must', () => {
+    const report = sampleReport()
+    const { amount: _amount, debtor: _debtor, reference: _reference, message: _message, billingInformation: _billing, ...bare } = report.paymentPart as SwissQrBill
+    const parts = reportParts({ ...report, paymentPart: { ...bare, account: [{ kind: 'expression', expression: { cel: 'header.customer' } }] } })
+    expect(parts.expressions.filter(({ path }) => path.startsWith('/paymentPart/')).map(({ path }) => path)).toEqual(['/paymentPart/account/0/expression/cel'])
+  })
+
+  // What the bill's texts name is used: a header field, a parameter and an
+  // aggregate named nowhere else are no unused declarations.
+  test('collects what its texts name', () => {
+    const report = sampleReport()
+    const bill = report.paymentPart as SwissQrBill
+    const named: ReportDefinition = {
+      ...report,
+      paymentPart: {
+        ...bill,
+        message: [
+          { kind: 'parameter', parameter: 'copies' },
+          { kind: 'aggregate', aggregate: 'gross', over: 'report' },
+        ],
+      },
+    }
+    const parts = reportParts(named)
+    expect(parts.parameters).toContain('copies')
+    expect(parts.aggregates).toContain('gross')
+    expect(parts.fields).toContainEqual({ dataset: 'header', field: 'customer' })
   })
 })

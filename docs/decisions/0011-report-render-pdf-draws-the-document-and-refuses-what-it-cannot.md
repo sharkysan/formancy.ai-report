@@ -1,6 +1,6 @@
 # 0011 — `report-render-pdf` draws the whole resolved document with pdfmake, and refuses what it cannot draw whole
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, and by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-render-pdf`, run by its
@@ -25,8 +25,7 @@
     before them across a sweep of page ends, and a table's breaks planned,
     laying a 400-group table out at most three times, with the same bytes
     as the rules alone produce.
-  - `starters.test.ts`: the three starters end to end, swept across page
-    ends.
+  - `starters.test.ts`: the starters end to end, swept across page ends.
   - `pdfmake.test.ts` pins each pdfmake 0.3.11 behaviour the renderer reads
     or works around, `_minWidth` and node positions among them.
   - `browser.test.ts`: the browser entry hands pdfmake the Node entry's
@@ -175,6 +174,21 @@ character Roboto lacks is refused in printed text and encoded in a code.
 `blocks.test.ts` does not read it back, because to PDF.js a code is neither
 text nor an image. `qr.test.ts` decodes it with ZXing from the page PDF.js
 draws, and reads its square from the PDF's content stream.
+
+**Added 2026-10-17: a QR-bill's slip.** The resolved document gains a
+`paymentPart`, and the renderer draws it as [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md) decides: SIX's receipt
+and payment part, 210 by 105 mm across the foot of the last page, in place
+of that page's footer, the body keeping its room at its end. Its Swiss QR
+Code is encoded once by the same uqr, at level M and version 25 at most,
+and drawn 46 mm square with the Swiss cross. Its text is in a second
+face, Liberation Sans 2.1.5, which the package ships under the OFL, since
+SIX allows Arial, Frutiger, Helvetica and Liberation Sans and Roboto is
+none of them. The slip alone prints in it: *One font* above still holds
+for every other text. A bill the slip cannot draw as SIX prints one is
+refused as `unsupported` or `content-too-large`, naming `paymentPart` and
+the field and never a value; information taller than its section is
+refused, never shrunk. `qr-bill.test.ts` and `qr-bill-pages.test.ts` prove
+it on the PDF.
 
 ## Alternatives considered
 

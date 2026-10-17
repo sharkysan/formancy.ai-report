@@ -6,8 +6,8 @@
  * is on trial is that the published entry points resolve, with the types that
  * shipped.
  */
-import { checkSpecVersion, emptyReport, REPORT_FORMAT, REPORT_SPEC_VERSION, reportHash, validateReport, walkComponents } from '@formancy/report-spec'
-import type { ReportDefinition, ReportError, ReportValidation, SpecVersionCheck, TableComponent, TextComponent } from '@formancy/report-spec'
+import { checkSpecVersion, emptyReport, QR_BILL_TOP, qrBillPageBreak, REPORT_FORMAT, REPORT_SPEC_VERSION, reportHash, validateReport, walkComponents } from '@formancy/report-spec'
+import type { ReportDefinition, ReportError, ReportValidation, SpecVersionCheck, SwissQrBill, TableComponent, TextComponent } from '@formancy/report-spec'
 import { compileReport, diagnose, expressionValues, insertComponent, nextComponentId, openReportSession, validLocations } from '@formancy/report-core'
 import type { CommandDescriptor, CommandOutcome, CompiledExpression, Diagnostic, ReportCompilation, ReportSession, SessionOpening } from '@formancy/report-core'
 import { actionForKey, createReportEditor, editorText } from '@formancy/report-builder-core'
@@ -15,7 +15,8 @@ import type { EditorAction, EditorOutcome, EditorState, ReportEditor } from '@fo
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolveReport } from '@formancy/report-runtime'
-import type { Resolution } from '@formancy/report-runtime'
+import { QR_BILL_TOP as RUNTIME_QR_BILL_TOP, qrBillPageBreak as runtimeQrBillPageBreak } from '@formancy/report-runtime'
+import type { QrBill, Resolution } from '@formancy/report-runtime'
 import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
 import { readReportData } from '@formancy/report-data-provider'
 import type { DataBinding, ProviderRead } from '@formancy/report-data-provider'
@@ -199,6 +200,51 @@ const refusal: unknown = await renderPdf(unprintable.document, { maxPages: 50 })
 )
 if (!(refusal instanceof RenderRefusal) || refusal.code !== 'unsupported') throw new Error(`a character without a glyph was not refused as unsupported: ${String(refusal)}`)
 
+// The quotation as a bill: a Swiss QR-bill for its total across the foot of
+// its last page, its account and reference SIX's own examples. The slip
+// prints in the Liberation Sans the renderer ships in its `fonts`
+// directory, which the Node entry reads beside its own `dist`. Every test
+// in the workspace reads those files from the source tree, so a tarball
+// without them, or an entry that looked elsewhere, would render every other
+// report and refuse a bill only in a host; here it fails.
+const text = (value: string): [{ kind: 'text'; text: string }] => [{ kind: 'text', text: value }]
+const header = (field: string): [{ kind: 'field'; field: { dataset: 'header'; field: string } }] => [{ kind: 'field', field: { dataset: 'header', field } }]
+const bill: SwissQrBill = {
+  kind: 'swissQrBill',
+  language: 'de',
+  account: text('CH44 3199 9123 0008 8901 2'),
+  creditor: { name: text('Formancy Haustechnik AG'), street: text('Industriestrasse'), buildingNumber: text('7'), postalCode: text('3052'), town: text('Zollikofen'), country: text('CH') },
+  currency: 'CHF',
+  amount: { cel: 'totals.total' },
+  debtor: { name: header('customer'), street: header('street'), postalCode: header('postcode'), town: header('city'), country: text('CH') },
+  reference: text('21 00000 00003 13947 14300 09017'),
+}
+const billed: ReportDefinition = { ...quotation, paymentPart: bill }
+const billedValidation: ReportValidation = validateReport(billed)
+if (!billedValidation.valid) throw new Error(`the quotation with a bill was refused: ${billedValidation.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
+const billedResolution: Resolution = resolveReport(billed, quotationData, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
+if (!billedResolution.ok) throw new Error(`the quotation with a bill did not resolve: ${billedResolution.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
+const resolvedBill: QrBill | undefined = billedResolution.document.paymentPart
+if (resolvedBill?.payload.split('\n')[3] !== 'CH4431999123000889012') throw new Error("the bill's code does not hold its account")
+const billPdf = await renderPdf(billedResolution.document, { maxPages: 50 })
+const faces = new TextDecoder('latin1').decode(billPdf).match(/\/BaseFont \/[A-Z]{6}\+LiberationSans(?:-Bold)?\b/g) ?? []
+if (new Set(faces.map((face) => face.slice(face.indexOf('+') + 1))).size !== 2) throw new Error(`the bill did not print in both faces of Liberation Sans: ${faces.join(', ')}`)
+
+// The slip's place and its page's rule reach the renderer through the
+// runtime as report-spec's own, so that the editor and a render refuse a
+// page by one rule: a top margin past the slip's top, in the same words. A
+// runtime whose dist carried a copy of report-spec would hand on a second
+// rule, which nothing in the workspace would see.
+if (runtimeQrBillPageBreak !== qrBillPageBreak || RUNTIME_QR_BILL_TOP !== QR_BILL_TOP) throw new Error("the runtime does not hand on report-spec's own QR-bill page rule")
+const crowded: ReportDefinition = { ...billed, page: { ...billed.page, margins: { ...billed.page.margins, top: QR_BILL_TOP + 1 } } }
+const crowdedValidation: ReportValidation = validateReport(crowded)
+const editorSays = crowdedValidation.valid ? undefined : crowdedValidation.errors.find((error: ReportError) => error.path === '/page/margins/top')?.message
+const renderSays = await renderPdf({ ...billedResolution.document, page: crowded.page }, { maxPages: 50 }).then(
+  () => undefined,
+  (error: unknown) => (error instanceof RenderRefusal ? error.message : String(error)),
+)
+if (editorSays === undefined || editorSays !== renderSays) throw new Error(`a top margin in the slip was refused differently: ${String(editorSays)}; ${String(renderSays)}`)
+
 // The Data provider, from its tarball, with @formancy/data-client at the
 // exact release it pins, from the registry: the quotation read from a data
 // server answering Formancy Data 0.1.0's routes -- its header as one
@@ -249,5 +295,5 @@ const fromData = await (async () => {
 if (new TextDecoder().decode(fromData.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation read from Data did not render to a PDF')
 
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
 )

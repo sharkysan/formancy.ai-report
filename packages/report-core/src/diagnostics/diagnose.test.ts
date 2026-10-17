@@ -318,6 +318,49 @@ describe('expression diagnostics', () => {
   })
 })
 
+describe("a QR-bill's amount", () => {
+  const AMOUNT = '/paymentPart/amount/cel'
+
+  // The code holds the amount as a decimal of two places (IG Table 8,
+  // Amt), and null leaves it for the payer to fill in. A value that may be
+  // null -- a parameter with no default -- is checked by the render, which
+  // sees it. Each of these is an amount the runtime can write.
+  test('is a decimal, or null', () => {
+    for (const cel of ['totals.subtotal', 'dec("1949.75")', 'round(totals.gross, 2)', 'null', 'params.threshold']) {
+      expect(diagnose(edited(set(AMOUNT, cel))), cel).toEqual([])
+    }
+  })
+
+  // An integer, a string, a boolean or an instant has no place in the
+  // amount: every render would refuse it, and the editor says so where it
+  // is written, naming what it gives, with the way to a decimal where there
+  // is one.
+  test('is refused as anything else, saying what it gives', () => {
+    for (const [cel, type, hint] of [
+      ['params.copies', 'int', true],
+      ['header.customer', 'string', true],
+      ['params.draft', 'bool', false],
+      ['timestamp("2026-01-01T00:00:00Z")', 'timestamp', false],
+    ] as const) {
+      expect(diagnose(edited(set(AMOUNT, cel))), cel).toEqual([
+        {
+          severity: 'error',
+          code: 'expression-type',
+          message: `a QR-bill's amount is a decimal, or null to leave it for the payer, and this expression gives ${type}`,
+          path: AMOUNT,
+          ...(hint ? { hint: 'dec() makes a decimal of an integer, or of a string of digits' } : {}),
+        },
+      ])
+    }
+  })
+
+  // A double is not exact, which is said first and as itself: 12.50 is
+  // the commonest way to write an amount, and the commonest mistake.
+  test('is never a double', () => {
+    expect(diagnose(edited(set(AMOUNT, '12.50'))).map(({ code, path }) => `${code} ${path}`)).toEqual([`expression-inexact ${AMOUNT}`])
+  })
+})
+
 describe('rounding', () => {
   /** The codes of the diagnostics for the sample's group subtotal, rounded as `rounding` and printed as `format`. */
   const printed = (rounding: object | undefined, format: object): string[] =>

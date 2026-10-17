@@ -3,9 +3,11 @@ import vfs from 'pdfmake/build/vfs_fonts.js'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import type { ResolvedDocument } from '@formancy/report-runtime'
 import { fromBase64 } from './bytes.js'
-import { collect, glyphsOnce, type Engine, type PdfStream } from './engine.js'
+import { BILL_FACES, collect, FACES, glyphsOf, glyphsOnce, loadOnce, type Engine, type PdfStream } from './engine.js'
+import type { BillFace } from './glyphs.js'
 import type { RenderOptions } from './options.js'
 import { render } from './render.js'
+import { LIBERATION_SANS } from './style.js'
 
 export { REFUSAL_CODES, RenderRefusal } from '@formancy/report-runtime'
 export type { RefusalCode, ResolvedDocument } from '@formancy/report-runtime'
@@ -19,6 +21,14 @@ export type { RenderOptions } from './options.js'
  * touches a file system: the fonts are pdfmake's virtual files, and every
  * address is denied.
  *
+ * A QR-bill's slip prints in Liberation Sans 2.1.5, whose two faces come as
+ * base64 in a module of their own (`bill-fonts.ts`), the very bytes of this
+ * package's `fonts` directory, which a test holds too. It is imported the
+ * first time a document has a payment part, and never otherwise: the build
+ * makes it a chunk of its own, and an app's bundler loads that chunk only
+ * when a bill asks for it. An import that failed is not kept: the bill it
+ * failed for fails, and the next bill imports the chunk again.
+ *
  * Everything but the fonts and the build is the Node entry's own
  * (`render.ts`), so the two hand pdfmake the same definitions.
  *
@@ -29,19 +39,40 @@ export type { RenderOptions } from './options.js'
  */
 
 const FILES = { normal: 'Roboto-Regular.ttf', bold: 'Roboto-Medium.ttf', italics: 'Roboto-Italic.ttf', bolditalics: 'Roboto-MediumItalic.ttf' } as const
+const BILL_FILES = { normal: 'LiberationSans-Regular.ttf', bold: 'LiberationSans-Bold.ttf' } as const
 const own = (file: string): string => `formancy-report-render-pdf/${file}`
 
+/** Liberation Sans's faces as base64, once a document with a bill has loaded them. */
+let billFonts: Readonly<Record<BillFace, string>> | undefined
+
+/**
+ * Liberation Sans's glyphs, from the faces in the chunk that carries them:
+ * imported by the first document with a bill and kept once they have been
+ * read, and imported again by the next bill after an import that failed,
+ * which would otherwise fail every bill until the page reloaded (`loadOnce`).
+ */
+const billGlyphs = loadOnce(async () => {
+  const { LIBERATION_SANS: faces } = await import('./bill-fonts.js')
+  const glyphs = await glyphsOf(BILL_FACES, async (face) => fromBase64(faces[face]))
+  billFonts = faces
+  return glyphs
+})
+
 function fontFiles(): Record<string, string> {
-  return Object.fromEntries(
-    Object.values(FILES).map((file) => {
-      const data = vfs[file]
-      if (data === undefined) throw new Error(`pdfmake's vfs_fonts.js has no ${file}`)
-      return [own(file), data]
-    }),
-  )
+  const roboto = Object.values(FILES).map((file) => {
+    const data = vfs[file]
+    if (data === undefined) throw new Error(`pdfmake's vfs_fonts.js has no ${file}`)
+    return [own(file), data] as const
+  })
+  const loaded = billFonts
+  const liberation = loaded === undefined ? [] : BILL_FACES.map((face) => [own(BILL_FILES[face]), loaded[face]] as const)
+  return Object.fromEntries([...roboto, ...liberation])
 }
 
-const FONTS = { Roboto: { normal: own(FILES.normal), bold: own(FILES.bold), italics: own(FILES.italics), bolditalics: own(FILES.bolditalics) } }
+const FONTS = {
+  Roboto: { normal: own(FILES.normal), bold: own(FILES.bold), italics: own(FILES.italics), bolditalics: own(FILES.bolditalics) },
+  [LIBERATION_SANS]: { normal: own(BILL_FILES.normal), bold: own(BILL_FILES.bold) },
+}
 
 async function run(definition: TDocumentDefinitions): Promise<Uint8Array> {
   pdfmake.addVirtualFileSystem(fontFiles())
@@ -51,7 +82,11 @@ async function run(definition: TDocumentDefinitions): Promise<Uint8Array> {
 }
 
 /** pdfmake's browser build, and the glyphs of the very virtual files it embeds. */
-const engine: Engine = { run, glyphs: glyphsOnce((face) => Promise.resolve(fromBase64(vfs[FILES[face]] as string))) }
+const engine: Engine = {
+  run,
+  glyphs: glyphsOnce(FACES, (face) => Promise.resolve(fromBase64(vfs[FILES[face]] as string))),
+  billGlyphs,
+}
 
 /**
  * Renders `document` to a PDF in a browser, or rejects with a

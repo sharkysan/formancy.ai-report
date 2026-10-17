@@ -2,9 +2,9 @@ import { RenderRefusal, type Block, type Columns, type QrCode, type Rectangle, t
 
 /**
  * What the document grew after the renderer trial, which neither trial
- * adapter draws: columns, sections, rectangles, QR codes, fonts but the
- * sans, colour, rules of another weight or colour, and table rows and cells
- * with styles of their own or running across the table. Both adapters
+ * adapter draws: columns, sections, rectangles, QR codes, a payment part,
+ * fonts but the sans, colour, rules of another weight or colour, and table
+ * rows and cells with styles of their own or running across the table. Both adapters
  * refuse it here, as `unsupported` and naming where it stands, before they
  * build anything: a block skipped or a style ignored would print a report
  * that is not the one asked for, with nothing to say so.
@@ -27,9 +27,10 @@ export function isUndrawn(block: Block): block is Undrawn {
   return block.kind === 'columns' || block.kind === 'section' || block.kind === 'rectangle' || block.kind === 'qrCode'
 }
 
-/** Refuses the first thing in `document` that neither trial adapter draws, in the page regions and then the body. */
+/** Refuses the first thing in `document` that neither trial adapter draws: a payment part, then what the page regions and the body hold. */
 export function refuseUndrawn(document: ResolvedDocument): void {
-  const problem = problemIn(document.pageHeader, 'pageHeader') ?? problemIn(document.pageFooter, 'pageFooter') ?? problemIn(document.body, 'body')
+  const bill = document.paymentPart === undefined ? undefined : { message: 'the document has a payment part', subject: 'paymentPart' }
+  const problem = bill ?? problemIn(document.pageHeader, 'pageHeader') ?? problemIn(document.pageFooter, 'pageFooter') ?? problemIn(document.body, 'body')
   if (problem !== undefined) throw new RenderRefusal('unsupported', `${problem.message}; the trial's document had no such thing, and neither trial adapter draws it`, problem.subject)
 }
 

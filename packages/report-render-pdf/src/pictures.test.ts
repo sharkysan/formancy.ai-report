@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { STARTERS } from '@formancy/report-corpus'
 import { describe, expect, test } from 'vitest'
 import { TIMEOUT } from './testing/documents.js'
 import { picture, PICTURES } from './testing/pictures.js'
@@ -41,6 +42,13 @@ describe("the README's pictures", () => {
   // nothing holds.
   test('are every picture the script draws, each listed once', () => {
     expect(manifest.map(({ file, starter, page }) => [file, starter, page])).toEqual(PICTURES.map((spec) => [spec.file, spec.starter.id, spec.page]))
+  })
+
+  // The README's "What the starters print" shows a page of each: a starter
+  // added to the corpus without one is a report the README says nothing
+  // of, and a reader never sees printed.
+  test('show a page of every starter', () => {
+    expect(new Set(PICTURES.map((spec) => spec.starter.id))).toEqual(new Set(STARTERS.map((starter) => starter.id)))
   })
 
   test.each(PICTURES.map((spec) => [spec.file, spec] as const))('%s shows the page it was drawn from', async (file, spec) => {

@@ -11,10 +11,11 @@
  * warning. In a final render a missing field never gets this far: the data
  * check refuses it.
  *
- * A QR code is the one place a value that prints as nothing is refused: in
- * a final render, a run of its content whose value is null, or content that
- * prints nothing at all (`encodedText` in `inlines.ts`). A preview encodes
- * them as they resolve, as a paragraph prints them.
+ * A code is the one place a value that prints as nothing is refused: in a
+ * final render, a run whose value is null in a QR code's content or a
+ * QR-bill's text (`joinedText` in `inlines.ts`), and a QR code's content
+ * that prints nothing at all. A preview encodes them as they resolve, as a
+ * paragraph prints them.
  */
 import type { ExpressionValues } from '@formancy/report-core'
 import type { FieldRef, FieldType, ParameterType, ReportDefinition } from '@formancy/report-spec'

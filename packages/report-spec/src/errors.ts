@@ -47,6 +47,13 @@ export const REPORT_ERROR_CODES = [
   'invalid-default',
   /** A string that should hold an exact decimal and does not. */
   'invalid-decimal',
+  /**
+   * A text of a QR-bill that no data can change, which SIX's rules for the
+   * QR-bill refuse: an account, a reference, a part of an address, the
+   * message or the billing information; or an account, a reference and a
+   * currency that do not go together.
+   */
+  'invalid-qr-bill',
 
   // Declarations.
   /** Margins that leave less than MIN_PRINTABLE_PT either way. */
@@ -71,7 +78,7 @@ export const REPORT_ERROR_CODES = [
   'misplaced-flow-component',
   /** A table or page break inside a columns or keep-together block. */
   'nested-flow-component',
-  /** A page number or count outside the page header and footer, or anywhere in a QR code's content. */
+  /** A page number or count outside the page header and footer, or anywhere in what a QR code or a QR-bill encodes. */
   'misplaced-page-counter',
   /** A detail field where there is no current row: outside the table's cells, or in a group header or footer when it is not the field grouped by. */
   'misplaced-detail-field',
@@ -90,6 +97,8 @@ export const REPORT_ERROR_CODES = [
   'duplicate-sort-key',
   /** A fixed size larger than the page's printable area: an image, a QR code, a rectangle, a spacer, or the fixed widths of a table or a columns block. */
   'exceeds-printable-area',
+  /** A payment part on a page it is not printed on: a QR-bill is printed across the foot of an A4 page in portrait, below the top margin. */
+  'payment-part-page',
 
   // Types meeting.
   /** An aggregate over a field of a type it cannot take. */

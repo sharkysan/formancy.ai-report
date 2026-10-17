@@ -3,11 +3,11 @@
  * published entry never reaches it.
  *
  * `sampleReport` is one valid report that holds every component kind, every
- * expression site, every declaration kind and every table feature, and uses
- * each thing it declares, so that diagnosing it finds nothing; that it holds
- * every kind, `reportParts`' test holds. A test breaks one thing in it and
- * shows that exactly that is reported, and a command test edits it and shows
- * what changed and what did not.
+ * expression site, every declaration kind, every table feature and a
+ * payment part, and uses each thing it declares, so that diagnosing it
+ * finds nothing; that it holds every kind, `reportParts`' test holds. A
+ * test breaks one thing in it and shows that exactly that is reported, and
+ * a command test edits it and shows what changed and what did not.
  */
 import { validateReport } from '@formancy/report-spec'
 import type { FieldRef, ReportDefinition } from '@formancy/report-spec'
@@ -242,6 +242,35 @@ const REPORT: ReportDefinition = {
         errorCorrection: 'Q',
       },
     ],
+  },
+  // SIX's second example (IG 2.4, Annex A), its debtor and its message read
+  // from the data and its amount from a total.
+  paymentPart: {
+    kind: 'swissQrBill',
+    language: 'de',
+    account: [{ kind: 'text', text: 'CH44 3199 9123 0008 8901 2' }],
+    creditor: {
+      name: [{ kind: 'text', text: 'Max Muster & Söhne' }],
+      street: [{ kind: 'text', text: 'Musterstrasse' }],
+      buildingNumber: [{ kind: 'text', text: '123' }],
+      postalCode: [{ kind: 'text', text: '8000' }],
+      town: [{ kind: 'text', text: 'Seldwyla' }],
+      country: [{ kind: 'text', text: 'CH' }],
+    },
+    currency: 'CHF',
+    amount: { cel: 'totals.subtotal' },
+    debtor: {
+      name: [{ kind: 'field', field: header('customer') }],
+      postalCode: [{ kind: 'text', text: '8000' }],
+      town: [{ kind: 'text', text: 'Seldwyla' }],
+      country: [{ kind: 'text', text: 'CH' }],
+    },
+    reference: [{ kind: 'text', text: '21 00000 00003 13947 14300 09017' }],
+    message: [
+      { kind: 'text', text: 'Order' },
+      { kind: 'expression', expression: { cel: '" for " + header.customer' } },
+    ],
+    billingInformation: [{ kind: 'text', text: '//S1/10/1234/11/201021' }],
   },
   provenance: { kind: 'dataset', dataset: 'order-lines' },
 }

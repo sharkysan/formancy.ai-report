@@ -44,7 +44,11 @@ if (resolution.ok) {
 - a value a format cannot show, a locale or time zone the engine lacks
   (`format`);
 - an image the host has no bytes for, or bytes past 20 MB, and a total that
-  cannot be computed (`resolve`).
+  cannot be computed (`resolve`);
+- a QR-bill that breaks one of SIX's rules once its data has resolved it
+  (`resolve`, `invalid-qr-bill`): an account, a reference, an address part,
+  a message or an amount, named by the field and the rule, never by the
+  value.
 
 It never returns part of a document.
 
@@ -64,15 +68,32 @@ them. Every value is held to its field's type before anything reads it:
 
 A field the report does not declare is refused: a report never carries what
 it does not print. Null prints as nothing; a field the data lacks is an
-error in a final render, never an empty cell. A QR code is the exception: a
-final render refuses one with a value that is null in its content
-(`no-qr-value`), or whose content prints nothing (`empty-qr-code`), since
-a scanner cannot see the gap a reader would. A final render refuses data
-the provider calls incomplete. A **preview** prints what it has, encodes a
-QR code as its content resolves, warns once for each field it lacks,
-labels every page as a preview of incomplete data, and says so in its
-manifest. The host's objects are read once, as data: a
-getter is never run, and a proxy that throws is refused.
+error in a final render, never an empty cell. A code is the exception: a
+final render refuses a value that is null in a QR code's content or in a
+QR-bill's text (`no-qr-value`), and a QR code whose content prints nothing
+(`empty-qr-code`), since a scanner cannot see the gap a reader would. A
+final render refuses data the provider calls incomplete. A **preview**
+prints what it has, encodes a QR code as its content resolves, warns once
+for each field it lacks, labels every page as a preview of incomplete
+data, and says so in its manifest. A QR-bill is held to SIX's rules in a
+preview too: one that a missing value leaves without a text SIX requires
+is refused, and the error says the preview lacked a value for it, since
+its code would scan as a bill no bank pays. The host's objects are read
+once, as data: a getter is never run, and a proxy that throws is refused.
+
+## A QR-bill
+
+A report's payment part resolves to the document's `paymentPart`
+([0022](../../docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)): the
+Swiss QR Code's payload, in the order of SIX's Table 8, and every text its
+slip prints -- the headings in its language, the account, the reference
+and the amount grouped as SIX prints them, the addresses line by line. The
+rules a text is held to are report-spec's, the same functions its
+validator applies to a literal. An amount is a decimal, or null for the
+payer to fill in, and is never rounded: one with a third decimal is
+refused. The bill has no "do not use for payment" variant and no
+alternative procedure, and its ultimate creditor is empty, as SIX keeps it
+for later use.
 
 ## What else is exported
 
@@ -81,6 +102,14 @@ Each stage is exported for a host or a tool that needs one alone:
 `prepareExpressions`, `createFormatter`, `orderTable` and the decimal
 arithmetic. The document's types, `RenderRefusal` and `REFUSAL_CODES` are
 the renderer's contract, declared here so that no engine defines them.
+What report-spec decides of a QR-bill that an engine needs to draw its
+slip is handed on as report-spec's own objects: `QR_BILL_SIZE` and
+`QR_BILL_TOP`, the slip's size and place; `qrBillPageBreak` and its type
+`QrBillPageBreak`, the page it is printed on; `QR_BILL_CURRENCIES`;
+`checkQrBillAmount`, the amounts a bill pays; and
+`MAX_QR_BILL_ADDITIONAL_INFORMATION`, the longest value SIX allows. An
+engine depends on the runtime alone, and draws and refuses by the one
+decision the editor refuses by.
 
 ## What it does not do
 
@@ -92,8 +121,9 @@ the renderer's contract, declared here so that no engine defines them.
   names and currency symbols are the engine's ICU's, so the same report can
   print differently on two engines.
 - **Encode a QR code.** It hands the engine the text a QR code's content
-  prints, formatted as a paragraph with the same content prints it; the
-  engine encodes and draws it.
+  prints, formatted as a paragraph with the same content prints it, and a
+  QR-bill's payload; the engine encodes and draws them, and lays the slip
+  out.
 - **Compile once per render.** Each expression is compiled twice: once by
   `diagnose`, once to evaluate.
 

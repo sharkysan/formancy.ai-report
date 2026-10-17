@@ -27,7 +27,7 @@
  * definition's to validate and the renderer's to refuse. These types do not
  * hold it.
  */
-import type { Alignment, AssetMediaType, Border, FontFamily, ImageFit, Margins, Orientation, PageSizeName, QrErrorCorrection, Width } from '@formancy/report-spec'
+import type { Alignment, AssetMediaType, Border, FontFamily, ImageFit, Margins, Orientation, PageSizeName, QrBillCurrency, QrErrorCorrection, Width } from '@formancy/report-spec'
 
 /**
  * A run of text, or a number only the engine knows when it lays out the
@@ -266,6 +266,61 @@ export interface PageSetup {
   readonly margins: Margins
 }
 
+/**
+ * The headings a QR-bill's slip prints, in its language: SIX's own words
+ * (IG Annex C), which "must not be changed".
+ */
+export interface QrBillHeadings {
+  readonly paymentPart: string
+  readonly receipt: string
+  /** "Account / Payable to". */
+  readonly account: string
+  readonly reference: string
+  readonly additionalInformation: string
+  /** "Payable by", or, for a bill without a debtor, "Payable by (name/address)" over the blank field. */
+  readonly payableBy: string
+  readonly currency: string
+  readonly amount: string
+  readonly acceptancePoint: string
+  /** "Separate before paying in": the instruction above the line a PDF's slip is cut along. */
+  readonly separate: string
+}
+
+/**
+ * A Swiss QR-bill: its receipt and its payment part, 210 by 105 mm across
+ * the foot of an A4 page, the report's last (report-spec's `QR_BILL_SIZE`).
+ * Where it falls, and a page of its own when the body leaves no room for
+ * it, is the engine's to lay out.
+ *
+ * Everything in it is resolved and checked by SIX's rules (report-spec's
+ * `qr-bill.ts`): `payload` is the Swiss QR Code's text, which the engine
+ * encodes at level M, and every other text is what the slip prints, exactly
+ * as it prints, the values grouped as SIX groups them. An engine formats,
+ * groups, translates and checks nothing of it; it draws the headings, the
+ * values, the blank fields where a value is null, the code and the cross.
+ * The engine draws the receipt's texts from the same values, but for
+ * `additionalInformation`, which a receipt never prints (IG 3.6).
+ */
+export interface QrBill {
+  readonly kind: 'swissQrBill'
+  /** The Swiss QR Code's elements in IG Table 8's order, each on its own line, separated by a line feed and not ended by one: at most 997 characters. */
+  readonly payload: string
+  readonly headings: QrBillHeadings
+  /** The IBAN in blocks of four: "CH44 3199 9123 0008 8901 2". */
+  readonly account: string
+  /** The creditor's address, line by line: the name, the street and building number, the postal code and town. */
+  readonly creditor: readonly string[]
+  /** The QR reference or creditor reference in SIX's blocks, or null for a bill without one. */
+  readonly reference: string | null
+  /** The message, then the billing information, each that is there, on a line of its own; empty prints no heading. */
+  readonly additionalInformation: readonly string[]
+  /** The debtor's address, line by line; null prints the blank field for the payer to write in. */
+  readonly debtor: readonly string[] | null
+  readonly currency: QrBillCurrency
+  /** The amount with a space between thousands and two decimals: "1 949.75"; null prints the blank field for the payer to write in. */
+  readonly amount: string | null
+}
+
 export interface ResolvedDocument {
   readonly info: {
     readonly title: string
@@ -284,6 +339,8 @@ export interface ResolvedDocument {
    * summary that must stay on one page is a keep-together block.
    */
   readonly body: readonly Block[]
+  /** The slip the report is paid by, at the foot of its last page; absent, it has none. Never a block: it stands at a place SIX fixes, outside the printable area. */
+  readonly paymentPart?: QrBill
 }
 
 export const REFUSAL_CODES = ['too-many-pages', 'content-too-large', 'invalid-asset', 'cancelled', 'unsupported'] as const

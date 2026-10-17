@@ -9,7 +9,7 @@
  * role and accessible name everywhere else.
  */
 import { TestBed } from '@angular/core/testing'
-import { createReportEditor, EDITOR_PANELS, REPORT_ATTRIBUTES, REPORT_PARTS, scenarioReport, WORKBENCH_CLASSES } from '@formancy/report-builder-core'
+import { BUILDER_SCENARIOS, createReportEditor, EDITOR_PANELS, REPORT_ATTRIBUTES, REPORT_PARTS, scenarioReport, WORKBENCH_CLASSES } from '@formancy/report-builder-core'
 import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { screen, within } from '@testing-library/angular'
@@ -24,13 +24,16 @@ afterEach(() => {
 
 /**
  * The scenario report with what the rarer hooks need: a condition on a
- * parameter nobody declared (a diagnostic, and its badge) and a rectangle
- * wider than the column it stands in (an overflow).
+ * parameter nobody declared (a diagnostic, and its badge), a rectangle
+ * wider than the column it stands in (an overflow), and a payment part (its
+ * band), the one a scenario's report has.
  */
 function everythingReport(): ReportDefinition {
   const report = scenarioReport()
+  const paymentPart = BUILDER_SCENARIOS.map((scenario) => scenario.report().paymentPart).find((bill) => bill !== undefined)
+  if (paymentPart === undefined) throw new Error('no scenario has a report with a payment part')
   const body = report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component))
-  return { ...report, regions: { ...report.regions, body: [...body, { id: 'side', kind: 'columns', columns: [{ width: 100, components: [{ id: 'wide', kind: 'rectangle', width: 150, height: 20 }] }, { width: 'fill', components: [] }] }] } }
+  return { ...report, paymentPart, regions: { ...report.regions, body: [...body, { id: 'side', kind: 'columns', columns: [{ width: 100, components: [{ id: 'wide', kind: 'rectangle', width: 150, height: 20 }] }, { width: 'fill', components: [] }] }] } }
 }
 
 /** The builder showing every hook at once: a refused field, a move being placed by keyboard, a place pointed at, a problem. */

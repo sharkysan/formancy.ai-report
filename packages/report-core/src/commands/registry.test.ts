@@ -33,7 +33,8 @@ const HEADER = sampleReport().datasets.header ?? { id: 'none', fields: [] }
 const EXAMPLES: { readonly [N in CommandName]: { readonly descriptor: Extract<CommandDescriptor, { command: N }>; readonly refusedAs?: RefusalCode } } = {
   setTitle: { descriptor: { command: 'setTitle', args: ['Orders'] } },
   setLocale: { descriptor: { command: 'setLocale', args: ['de-DE'] } },
-  setPage: { descriptor: { command: 'setPage', args: [{ orientation: 'landscape', margins: { left: 30 } }] } },
+  // The sample's QR-bill is printed on A4 in portrait, so its page keeps both.
+  setPage: { descriptor: { command: 'setPage', args: [{ size: 'A4', margins: { left: 30 } }] } },
   replaceDocument: { descriptor: { command: 'replaceDocument', args: [{ ...sampleReport(), title: 'Pasted' }] } },
   putStyle: { descriptor: { command: 'putStyle', args: ['airy', { size: 14 }] } },
   removeStyle: { descriptor: { command: 'removeStyle', args: ['spare'] } },
@@ -85,6 +86,20 @@ describe('COMMANDS', () => {
       .sort()
     expect(Object.keys(COMMANDS).sort()).toEqual(exported)
     for (const name of exported) expect(COMMANDS[name as keyof typeof COMMANDS]).toBe({ ...document, ...declarations, ...components, ...table }[name as 'setTitle'])
+  })
+})
+
+describe('the payment part', () => {
+  // No command edits the payment part yet, and none may drop it: an edit
+  // to a title that lost the report's QR-bill would send an invoice
+  // nobody can pay, and say nothing. Every command, run on a report that
+  // holds one, leaves the very bill it found.
+  test.each(DESCRIPTORS)('$command keeps it as it was', (descriptor) => {
+    const session = open()
+    const before = session.document().paymentPart
+    expect(before).toBeDefined()
+    session.apply(descriptor)
+    expect(session.document().paymentPart).toBe(before)
   })
 })
 

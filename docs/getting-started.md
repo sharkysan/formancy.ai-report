@@ -287,7 +287,7 @@ if (!inFinal.ok) for (const error of inFinal.errors) console.log(`final: refused
 const inPreview = resolveReport(quotation, cut, { mode: 'preview', creationDate })
 if (inPreview.ok) console.log(`preview: ${String(inPreview.manifest.completeness.captured)} lines, every page headed "${PREVIEW_LABEL}"`)
 
-// A customer's name in a script Roboto, the one font, has no glyphs for.
+// A customer's name in a script Roboto, the one font a report's text prints in, has no glyphs for.
 const named = resolveReport(quotation, { ...data, header: { ...data.header, customer: '山田商事' } }, { mode: 'final', creationDate })
 if (named.ok) {
   await renderPdf(named.document, { maxPages: 50 }).catch((error: unknown) => {
@@ -316,8 +316,11 @@ The browser has the same renderer under another entry point,
 refusals and the same pages. What differs is pdfmake's build and where the
 fonts come from: pdfmake's browser build, with Roboto from pdfmake's
 `vfs_fonts.js`, the four font files as base64 inside a script, so the page's
-bundle carries them. Nothing in it touches a file system or follows an
-address.
+bundle carries them. A report with a Swiss QR-bill prints its slip in
+Liberation Sans, which the entry imports from a chunk of its own the first
+time a document has a bill, so a bundler that splits dynamic imports keeps
+it out of a page that prints none. Nothing in it touches a file system or
+follows an address.
 
 In `print.ts`, a preview prints the report against sample data:
 
@@ -345,9 +348,11 @@ one whose least height already needs more is refused before pdfmake lays
 out anything. The bytes are the other cost. In the Studio's production
 build of 17 October 2026, the chunk holding the runtime and the renderer's
 browser entry, pdfmake and its fonts and uqr, the QR code encoder, among
-them, was 1,909 kB and 843 kB gzipped, as Vite reported it; the Studio
+them, was 1,922 kB and 849 kB gzipped, as Vite reported it; the Studio
 loads that chunk with the first preview, through `import()`, rather than
-with the page.
+with the page. Liberation Sans's chunk was 1,100 kB and 519 kB gzipped,
+loaded with the first preview of a report with a bill and never
+otherwise.
 
 **Showing the PDF is the page's choice.** Section 4 hands the bytes to the
 browser's own viewer in an `<iframe>`; a download link takes the same bytes.
@@ -682,7 +687,7 @@ The first release that freezes the format makes it `'1'`.
 ## Where to go next
 
 - **The Studio**, in a checkout of this repository: `pnpm build`, then
-  `pnpm --filter @formancy/report-studio dev`. It opens three starter
+  `pnpm --filter @formancy/report-studio dev`. It opens the starter
   reports, and a blank one, in either builder over one session, beside the
   PDF the session prints ([README](../README.md#the-studio)).
 - **Your data from Formancy Data**: `@formancy/report-data-provider` reads

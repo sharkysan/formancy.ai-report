@@ -121,6 +121,19 @@ describe('report-builder.css', () => {
     for (const name of classes) expect(Object.values(WORKBENCH_CLASSES), name).toContain(name)
   })
 
+  // The payment part's band is placed by the left, top, width and height
+  // the state gives it, which only an absolutely positioned box obeys:
+  // undressed, it would stand in the sheet's flow over the report header,
+  // whatever its numbers said. It is drawn as a region's band is, by the
+  // same rules -- placed, outlined, its label above it -- and tinted as an
+  // empty one is: room nothing in the regions may take.
+  test('dresses the payment part’s band by every rule that dresses a region’s', () => {
+    const selectors = [...RULES.matchAll(/([^{}]+)\{/g)].map((match) => (match[1] ?? '').trim())
+    const regions = selectors.filter((selector) => selector.includes("[data-report-part='region']"))
+    expect(regions.length).toBeGreaterThanOrEqual(3)
+    for (const selector of regions) expect(selector).toContain("[data-report-part='payment-part']")
+  })
+
   // The source-size guard counts stylesheets; the editor's chrome is the
   // report-specific part only, and the workbench has the rest.
   test('stays under the source-size budget', () => {

@@ -2,7 +2,7 @@
   "name": "@formancy/report-studio",
   "version": "0.1.0",
   "private": true,
-  "description": "Formancy Report Studio, the playground: edit the three starter reports in the React and the Angular builder over one session, and preview the real PDF. Never published.",
+  "description": "Formancy Report Studio, the playground: edit the starter reports in the React and the Angular builder over one session, and preview the real PDF. Never published.",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "scripts": {

@@ -61,6 +61,8 @@ const HEADER_BINDINGS = [
   '/regions/body/2/columns/2/value/format/currency/field',
   '/regions/summary/0/components/2/source/field',
   '/regions/summary/2/content/1/field',
+  '/paymentPart/debtor/name/0/field',
+  '/paymentPart/message/1/field',
 ]
 
 interface Case {
@@ -121,8 +123,9 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
   // a skipped block is silently missing content (fail closed).
   'unknown-kind': { refuse: set('/regions/body/1/kind', 'chart'), accept: set('/regions/body/1/kind', 'spacer'), at: ['/regions/body/1/kind'] },
   // A page size the renderer has no dimensions for would print at a default
-  // size the author never chose.
-  'not-one-of': { refuse: set('/page/size', 'A3'), accept: set('/page/size', 'Letter'), at: ['/page/size'] },
+  // size the author never chose. Letter is one, for a report without the
+  // fixture's QR-bill, which is printed on A4.
+  'not-one-of': { refuse: set('/page/size', 'A3'), accept: both(remove('/paymentPart'), set('/page/size', 'Letter')), at: ['/page/size'] },
   // A 3.99pt font is below the smallest size the format allows; 4 is the
   // boundary and is allowed.
   'out-of-range': { refuse: set('/styles/1/size', 3.99), accept: set('/styles/1/size', 4), at: ['/styles/1/size'] },
@@ -187,6 +190,14 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
     accept: set('/parameters/0/default', '2028-02-29'),
     at: ['/parameters/0/default'],
   },
+  // An IBAN with one digit typed wrong pays nobody, or somebody else: in a
+  // literal no data can change, it is refused where it is written, not by
+  // the payer's bank. Another QR-IBAN, as literal, is accepted.
+  'invalid-qr-bill': {
+    refuse: set('/paymentPart/account/0/text', 'CH44 3199 9123 0008 8901 3'),
+    accept: set('/paymentPart/account/0/text', 'CH64 3196 1000 0044 2155 7'),
+    at: ['/paymentPart/account'],
+  },
   // A rounding increment is an exact decimal; '.05' is a spelling a
   // decimal parser may read, or not.
   'invalid-decimal': {
@@ -236,6 +247,8 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
       set('/regions/body/2/columns/2/value/format/currency', { kind: 'code', code: 'CHF' }),
       set('/regions/summary/0/components/2/source', { kind: 'asset', asset: 'seal' }),
       set('/regions/summary/2/content/1', { kind: 'text', text: 'customer' }),
+      set('/paymentPart/debtor/name/0', { kind: 'text', text: 'Simon Muster' }),
+      set('/paymentPart/message/1', { kind: 'text', text: '15.10.2020' }),
     ),
     at: HEADER_BINDINGS.map((binding) => `${binding}/dataset`),
   },
@@ -367,6 +380,14 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
     refuse: set('/regions/summary/1/width', 510.25),
     accept: set('/regions/summary/1/width', 510.24),
     at: ['/regions/summary/1/width'],
+  },
+  // A QR-bill is printed across the foot of an A4 page in portrait (IG
+  // 3.1): on a landscape page it is not at the page's foot, and on Letter
+  // it does not span the page. Without a bill, landscape is the author's.
+  'payment-part-page': {
+    refuse: set('/page/orientation', 'landscape'),
+    accept: both(remove('/paymentPart'), set('/page/orientation', 'landscape')),
+    at: ['/page'],
   },
   // A sum of site names is not a number.
   'aggregate-type-mismatch': {

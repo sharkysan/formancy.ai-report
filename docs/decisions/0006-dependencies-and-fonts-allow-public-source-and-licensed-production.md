@@ -1,6 +1,6 @@
 # 0006 — Dependencies and fonts allow public source and licensed production
 
-- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider
+- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider, and by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which reads Liberation Sans 2's licence sentence
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `scripts/dependency-licences.mjs`, run as a step of
@@ -261,6 +261,21 @@ To make that comparable, the walk now records the digest of the file
 behind every `SEE LICENSE IN` pointer it meets. Why the provider may
 depend on Data, and what that costs a customer, is
 [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md).
+
+**Added 2026-10-17: Liberation Sans 2's sentence.**
+`@formancy/report-render-pdf` now ships Liberation Sans 2.1.5, the face a
+Swiss QR-bill's slip prints in ([0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)). Its name tables say "Licensed
+under the SIL Open Font License, Version 1.1", shorter than the sentence
+the OFL's FAQ suggests, so the guard refused the renderer's own fonts.
+It now reads that sentence too as OFL-1.1, at version 1.1 exactly: a
+1.0, which the policy does not allow, or a 1.10 is read as nothing.
+Liberation Sans 1, whose sentence is "Licensed under the Liberation Fonts
+license", is still refused, and so is `pdfjs-dist`'s copy of it.
+`dependency-licences.test.mjs` holds the sentence, the versions it is not,
+and the renderer's two files read as OFL-1.1 at Version 2.1.5. The
+browser entry's copy of them, base64 in a chunk of its build, is a font
+inside a script, which the guard does not see; the renderer's
+`browser.test.ts` holds it to the files' bytes.
 
 ## Alternatives considered
 

@@ -113,6 +113,7 @@ function canvasOf(derived: Derived, local: Local, t: EditorText): Canvas {
     scale: local.zoom * PX_PER_PT,
     sheet: { pt: layout.sheet, px: toPx(layout.sheet, local.zoom) },
     regions: layout.regions.map(({ region, box, empty }) => ({ region, label: regionLabel(region, t), empty, pt: box, px: toPx(box, local.zoom) })),
+    paymentPart: layout.paymentPart === null ? null : { label: t('canvas.paymentPart'), pt: layout.paymentPart, px: toPx(layout.paymentPart, local.zoom) },
     boxes: layout.parts.map((part) => {
       const severity = severities.get(part.key)
       return {

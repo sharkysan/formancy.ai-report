@@ -6,9 +6,11 @@
  * and pagination. It stacks each region's components as one flow on one
  * sheet, measures a text by a rule of thumb and a table as one row of each
  * kind, so a one-row design surface stands for what may print as many pages.
+ * A payment part, which prints at the foot of the last page, is a band at
+ * the sheet's foot, below all of them.
  * Every number in it is a rule of thumb named below, not a measurement.
  */
-import { pageDimensions, printableArea, REGION_NAMES, walkComponents } from '@formancy/report-spec'
+import { pageDimensions, printableArea, QR_BILL_SIZE, REGION_NAMES, walkComponents } from '@formancy/report-spec'
 import type { Component, Inline, Margins, RegionName, ReportDefinition, Width } from '@formancy/report-spec'
 import { columnKey } from './labels.js'
 import type { Box, PageGeometry, PartKind, RulerTick } from './model.js'
@@ -85,6 +87,8 @@ export interface LaidPart {
 export interface Layout {
   readonly sheet: Box
   readonly regions: readonly { readonly region: RegionName; readonly box: Box; readonly empty: boolean }[]
+  /** The payment part's band, for a report that has one: the slip's size, across the sheet's foot. */
+  readonly paymentPart: Box | null
   /** Every component and table column, in the walk's order. */
   readonly parts: readonly LaidPart[]
   /** Each list a component may be put in -- a region, a container, a column of a columns block -- by `listKey`. */
@@ -198,10 +202,16 @@ export function layoutReport(report: ReportDefinition): Layout {
     regions.push({ region, box: { x: margins.left, y, width: printable.width, height }, empty: list.length === 0 })
     y += height + BAND_GAP
   }
-  const bottom = y - BAND_GAP + margins.bottom
+  const end = y - BAND_GAP
+  // The slip prints across the paper's foot, below the last page's content
+  // and over its bottom margin, so the band ends where the sheet does: at
+  // the page's foot, or lower, a gap below the regions, when they reach it.
+  const slip = report.paymentPart === undefined ? null : QR_BILL_SIZE
+  const height = hundredths(Math.max(page.height, slip === null ? end + margins.bottom : end + BAND_GAP + slip.height))
   return {
-    sheet: { x: 0, y: 0, width: page.width, height: hundredths(Math.max(page.height, bottom)) },
+    sheet: { x: 0, y: 0, width: page.width, height },
     regions: regions.map((region) => ({ ...region, box: rounded(region.box) })),
+    paymentPart: slip === null ? null : rounded({ x: 0, y: height - slip.height, width: slip.width, height: slip.height }),
     parts: parts.map((part) => ({ ...part, box: rounded(part.box) })),
     lists: new Map([...lists].map(([key, box]) => [key, rounded(box)])),
   }

@@ -1,8 +1,8 @@
 /**
  * The design view: one sheet as wide as the page, the regions as bands on
- * it, each component's box in its band, rulers in millimetres along two
- * sides. Every size and position is the state's, in pixels at the zoom; this
- * only draws them.
+ * it, each component's box in its band, a payment part's band at its foot,
+ * rulers in millimetres along two sides. Every size and position is the
+ * state's, in pixels at the zoom; this only draws them.
  *
  * It is labelled as not the PDF, because it is not (plan 8). Each box is a
  * picture of where a component stands -- `role="img"`, named by its label,
@@ -69,6 +69,19 @@ import { ReportEditorRoot } from './root'
           (dragstart)="drag(box, $event)"
           (dragend)="root.dragEnded()"
         ><span data-report-part="box-label">{{ box.label }}</span>@if (box.problems > 0) {<span data-report-part="badge" [attr.data-severity]="box.severity ?? null" aria-hidden="true">{{ box.problems }}</span>}</div>
+      }
+      <!-- Where a payment part's slip prints, below every region: a picture
+           named as SIX names the part, as a box is named by its label. -->
+      @if (canvas().paymentPart; as band) {
+        <div
+          role="img"
+          data-report-part="payment-part"
+          [attr.aria-label]="band.label"
+          [style.left.px]="band.px.x"
+          [style.top.px]="band.px.y"
+          [style.width.px]="band.px.width"
+          [style.height.px]="band.px.height"
+        ><span data-report-part="region-label">{{ band.label }}</span></div>
       }
       <!-- Drawn only for the places the session accepts, named as the place
            chooser names them; the one under the pointer, or focused in the

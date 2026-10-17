@@ -31,16 +31,17 @@ import type { Ctx } from './validate-context.js'
 
 /** Where a value is read: the region decides page counters, the scope decides detail fields and a group's aggregates. */
 export interface InlineScope {
-  readonly region: RegionName
+  /** The region the runs stand in, or the payment part, which stands in none. */
+  readonly region: RegionName | 'paymentPart'
   readonly reads: ValueScope
   /** In a group header or footer, the detail field grouped by, when the dataset declares it. */
   readonly groupBy?: string | undefined
-  /** The runs are a QR code's content: resolved whole, once, before there are pages to count. */
-  readonly encoded?: true
+  /** What the runs are encoded in, when they are: resolved whole, once, before there are pages to count. */
+  readonly encoded?: 'a QR code' | 'a QR-bill'
 }
 
 /** The regions drawn once per page, the only ones in which a page number or count has a value. */
-const PAGE_REGIONS: readonly RegionName[] = ['pageHeader', 'pageFooter']
+const PAGE_REGIONS: readonly InlineScope['region'][] = ['pageHeader', 'pageFooter']
 
 export function readExpression(f: Findings, value: unknown, path: string): Expression | undefined {
   const o = shape(f, value, path, ['cel'])
@@ -202,12 +203,13 @@ function readCheckedFormat(c: Ctx, value: unknown, path: string, scope: InlineSc
 /**
  * A page number or count, and whether it stands where it has a value: in
  * the page header and footer, printed. A table never stands in a page
- * region, so its cells are refused by region too; a QR code's content is
- * resolved before there are pages, so it is refused in every region.
+ * region, so its cells are refused by region too; what a QR code or a
+ * QR-bill encodes is resolved before there are pages, so it is refused in
+ * every region.
  */
 function readCounter(c: Ctx, path: string, scope: InlineScope, kind: 'pageNumber' | 'pageCount'): Inline {
-  if (scope.encoded) {
-    c.f.report(path, 'misplaced-page-counter', "a QR code's content is resolved once, before pages are counted, so a page number or count has no value in it")
+  if (scope.encoded !== undefined) {
+    c.f.report(path, 'misplaced-page-counter', `what ${scope.encoded} encodes is resolved once, before pages are counted, so a page number or count has no value in it`)
   } else if (!PAGE_REGIONS.includes(scope.region)) {
     c.f.report(path, 'misplaced-page-counter', `page numbers and counts have a value only in the page header and footer, not in the ${scope.region}`)
   }

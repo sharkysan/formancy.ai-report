@@ -10,7 +10,7 @@
 import { openReportSession } from '@formancy/report-core'
 import type { ReportSession } from '@formancy/report-core'
 import { validateReport } from '@formancy/report-spec'
-import type { FieldRef, ReportDefinition } from '@formancy/report-spec'
+import type { FieldRef, PaymentPart, ReportDefinition } from '@formancy/report-spec'
 import { createReportEditor } from './editor.js'
 import type { ReportEditor, ReportEditorOptions } from './editor.js'
 
@@ -103,6 +103,45 @@ export function richReport(): ReportDefinition {
   const outcome = validateReport(copy)
   if (!outcome.valid) throw new Error(`the rich report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path}`).join(', ')}`)
   return copy
+}
+
+/**
+ * A Swiss QR-bill for the rich report: SIX's second example (IG 2.4, Annex
+ * A), a QR-IBAN with a QR reference, its debtor read from the header and its
+ * amount the report's total.
+ */
+export function richBill(): PaymentPart {
+  return {
+    kind: 'swissQrBill',
+    language: 'de',
+    account: [{ kind: 'text', text: 'CH44 3199 9123 0008 8901 2' }],
+    creditor: {
+      name: [{ kind: 'text', text: 'Max Muster & Söhne' }],
+      street: [{ kind: 'text', text: 'Musterstrasse' }],
+      buildingNumber: [{ kind: 'text', text: '123' }],
+      postalCode: [{ kind: 'text', text: '8000' }],
+      town: [{ kind: 'text', text: 'Seldwyla' }],
+      country: [{ kind: 'text', text: 'CH' }],
+    },
+    currency: 'CHF',
+    amount: { cel: 'totals.total' },
+    debtor: {
+      name: [{ kind: 'field', field: header('customer') }],
+      postalCode: [{ kind: 'text', text: '8000' }],
+      town: [{ kind: 'text', text: 'Seldwyla' }],
+      country: [{ kind: 'text', text: 'CH' }],
+    },
+    reference: [{ kind: 'text', text: '21 00000 00003 13947 14300 09017' }],
+    message: [{ kind: 'text', text: 'Orders' }],
+  }
+}
+
+/** The rich report with `richBill` for its payment part, checked valid. */
+export function billedReport(): ReportDefinition {
+  const report = { ...richReport(), paymentPart: richBill() }
+  const outcome = validateReport(report)
+  if (!outcome.valid) throw new Error(`the billed report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path}`).join(', ')}`)
+  return report
 }
 
 /** A session over `report`; fails the test when it does not open. */

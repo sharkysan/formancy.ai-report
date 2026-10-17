@@ -63,6 +63,11 @@ and `@formancy/report-render-pdf` draws that document with pdfmake and
 refuses what it cannot draw whole
 ([0005](docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
 [0011](docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+A report's Swiss QR-bill runs through all four: SIX's rules are
+report-spec's `qr-bill.ts`, which the validator applies to literals and the
+runtime to data; the core compiles its amount; and the renderer draws the
+slip in the Liberation Sans it ships in its `fonts` directory
+([0022](docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
@@ -72,7 +77,7 @@ supplies, labelled best-effort
 it natively; `BUILDER_SCENARIOS` in the core is what both must do
 ([0012](docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).
 Beside them, `@formancy/report-corpus` is test support and is never published:
-the adversarial report fixtures, the three starter reports, the reader and
+the adversarial report fixtures, the starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
 `readCodes`, which decodes the QR codes a page prints with ZXing from the
 pixels PDF.js draws, and the renderer trial that chose pdfmake. `apps/studio` is the

@@ -37,8 +37,10 @@
     `Verified by` lists, over the Studio's scenes.
   - `apps/studio/src/notices.test.ts` and `scripts/third-party-notices.test.mjs`
     (formancy.ai-data 0046): the built Studio's `THIRD-PARTY-NOTICES.txt`
-    names every package its bundle holds, PDF.js among them, and Roboto's
-    OFL under pdfmake's entry.
+    names every package its bundle holds, PDF.js among them, Roboto's
+    OFL under pdfmake's entry, and Liberation Sans's under
+    `@formancy/report-render-pdf`'s, for the chunk its fonts are bundled in
+    ([0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)).
   - `scripts/dependency-licences.mjs` (the `verify` job) reads the
     production closure of every package that is not private; the Studio is
     private, so `pdfjs-dist` and its Liberation Sans are in no published

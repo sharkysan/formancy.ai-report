@@ -298,7 +298,7 @@ describe('QR codes', () => {
     expect(validateReport(report)).toMatchObject({ valid: false, errors: [{ code: 'misplaced-page-counter', path: '/regions/pageFooter/0/content/1' }] })
     // Only what lowering a page footer of one code reads: the report, the header, the parameters, the totals and the styles.
     const render = { report, data: { header: {} }, params: {}, totals: { report: new Map() }, styles: new Map(), problems: new Problems(), preview: false } as unknown as Render
-    expect(() => lowerRegions(render)).toThrow('the QR code page-code holds a pageNumber at /regions/pageFooter/0/content/1')
+    expect(() => lowerRegions(render)).toThrow('component page-code holds a pageNumber at /regions/pageFooter/0/content/1')
   })
 
   // A code that encoded less than its content would scan as some other

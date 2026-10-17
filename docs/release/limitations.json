@@ -86,7 +86,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:a209f87597f63c61a35b55923f3b42d1c43062bc6a9378bea7c6e30423ab8fdb",
+      "reviewed": "sha256:91ab16b1cc2a6d2cf50c7fa61c34c173859a91cfe9485b69bc12f050b17f3965",
       "limitations": [
         {
           "area": "licence",
@@ -103,7 +103,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:cd25b86cd2abe3ed24298e0b481e534990e3530e4f23f389fa2f9bab8c3b8bb6",
+      "reviewed": "sha256:5d492fce5628c032d9eedc261b58a8fb39878647a8994205d9a74ae436153dc0",
       "limitations": [
         {
           "area": "format",
@@ -202,7 +202,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:d12dfbbc91853c850932ada7ff1d0c7d89fecc52db8cf60f2941e8a2bea1b9ad",
+      "reviewed": "sha256:467bb54758b4f66a363a236626e7f8bf104f31d541c06f9ae88c1ab629dddb33",
       "limitations": [
         {
           "area": "runtime",
@@ -250,11 +250,11 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:218f5c2491f52bf3f680d028eb48dbaf855f5ff769f30be4e4a337311898b368",
+      "reviewed": "sha256:078a5d376e202bb9c859de25a9c53ea0e5bb7c317aa103b9918f918629124d12",
       "limitations": [
         {
           "area": "rendering",
-          "says": "One font, Roboto: CJK, Hebrew, Arabic, Thai, emoji and fr-FR amounts are refused in printed text, as are the `serif` and `mono` families.",
+          "says": "One font, Roboto, for everything but a QR-bill's slip: CJK, Hebrew, Arabic, Thai, emoji and fr-FR amounts are refused in printed text, as are the `serif` and `mono` families.",
           "heldBy": "packages/report-render-pdf/src/glyphs.test.ts"
         },
         {
@@ -311,7 +311,7 @@
       ]
     },
     "0013": {
-      "reviewed": "sha256:213e6b5e7c905b4b46f1f23d157a9e12beb04c8799b6b8b7330d2cd430391b26",
+      "reviewed": "sha256:52a696cbf1f22722cc41998c644ce000a9fc162b305124feb434225db881b60a",
       "limitations": [
         {
           "area": "rendering",
@@ -422,7 +422,7 @@
       ]
     },
     "0020": {
-      "reviewed": "sha256:c7bbbcf24027bc2314baff1da9531c569ca670522ee24bfd06dac4391ef31fb6",
+      "reviewed": "sha256:1b490aad961d7197bdeb18800199ea8ee58f1c17cf0c6097e5f6d9fdeb67b251",
       "limitations": [
         {
           "area": "format",
@@ -439,7 +439,7 @@
         },
         {
           "area": "format",
-          "says": "A QR code is not a Swiss QR-bill: neither the bill's Swiss cross nor its payment part is drawn, and the syntax of what a code holds is not checked."
+          "says": "A QR code component is not a Swiss QR-bill: it draws no Swiss cross and nothing checks the syntax of what it holds; a bill is a report's payment part (0022)."
         },
         {
           "area": "runtime",
@@ -448,7 +448,7 @@
         },
         {
           "area": "rendering",
-          "says": "A QR code's modules are never drawn finer than 0.4 mm, the minimum of SIX's QR-bill guidelines (version 2.3, section 6.3) taken as a general one and measured on no printer or phone, so a small square with long text is refused where some printers might have printed it, and so is the largest code those guidelines print, at 0.393 mm a module.",
+          "says": "A QR code component's modules are never drawn finer than 0.4 mm, the minimum of SIX's QR-bill guidelines (version 2.3, section 6.3) taken as a general one and measured on no printer or phone, so a small square with long text is refused where some printers might have printed it, and so is a component the size of the largest code those guidelines print, at 0.393 mm a module, which a QR-bill's own code is drawn at (0022).",
           "heldBy": "packages/report-render-pdf/src/qr.test.ts"
         },
         {
@@ -489,6 +489,90 @@
         {
           "area": "testing",
           "says": "What a page says of the product, beyond the facts it reads from the repository's files, and whether a translation says what the English says, are held by review, not by a test."
+        }
+      ]
+    },
+    "0022": {
+      "reviewed": "sha256:e9d8450bd7c70e09e21801e6af7418cb1179b3651aed9399af4c08e854a9eaad",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A report with a payment part is refused whole by 0.1.0, as `unknown-property`, so a report saved with a QR-bill opens only in a release that has one."
+        },
+        {
+          "area": "format",
+          "says": "A report carries at most one QR-bill, printed at the foot of its last page and only on an A4 page in portrait, with its top margin above the slip's top, so a report of several invoices cannot carry one for each.",
+          "heldBy": "packages/report-spec/src/validate-payment-part.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A QR-bill has no ultimate creditor, no alternative procedures and no bill \"not for payment\", and a EUR bill to a QR-IBAN with a QR reference, which version 2.3 of SIX's guidelines allows until November 2027, is refused under version 2.4's rule.",
+          "heldBy": "packages/report-spec/src/qr-bill.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A QR-bill's country is checked as two capital letters, not against the codes ISO 3166-1 assigns, its billing information only for the // and the two characters naming its syntax it begins with, its postal codes not for a country's prefix, which SIX forbids, and nothing checks that the account is the creditor's."
+        },
+        {
+          "area": "builders",
+          "says": "Neither builder edits a QR-bill: the design view shows where its slip prints, the bill is written in the report's definition, and its diagnostics are listed as the report's, with no row to select."
+        },
+        {
+          "area": "builders",
+          "says": "The editor refuses a top margin that reaches into a QR-bill's slip and nothing more: a page header, or the 10.24 pt line of the instruction to separate, reaching into it is refused only when the report renders, by the same rule, since only a render measures them.",
+          "heldBy": "packages/report-render-pdf/src/qr-bill-pages.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A QR-bill's amount is never rounded: one with more than two decimals is refused, so the template rounds the total it asks for.",
+          "heldBy": "packages/report-spec/src/qr-bill.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A preview is refused when the values it lacks leave its QR-bill breaking one of SIX's rules, where any other missing value prints as nothing and is warned of.",
+          "heldBy": "packages/report-runtime/src/lower-payment-part.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A null in a QR-bill's debtor refuses a final render, so whether a bill names its payer is the template's choice and never a row's."
+        },
+        {
+          "area": "runtime",
+          "says": "A QR-bill's amount that may be null is typed by the editor as a value of either kind, so a nullable integer field passes its diagnostics and is refused only when the report renders."
+        },
+        {
+          "area": "rendering",
+          "says": "A QR-bill's text is printed at SIX's recommended sizes and never shrunk, so an address or a message taller than its section is refused rather than printed smaller.",
+          "heldBy": "packages/report-render-pdf/src/qr-bill-pages.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A QR-bill whose texts SIX's rules accept is still refused by the renderer when its code's UTF-8 is longer than the 997 bytes SIX's largest code holds, a long bill of accented letters or euro signs, since the editor and the runtime count characters and not bytes.",
+          "heldBy": "packages/report-render-pdf/src/qr-bill-pages.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A QR-bill's billing information is printed beside its message whenever it has one, since nothing can tell whether it holds personal data."
+        },
+        {
+          "area": "rendering",
+          "says": "Where SIX gives no figure the slip is this module's choice: the Swiss cross as schoero's generator draws SIX's logo, the scissors symbol's drawing, its size and place after manuelbl's generator, the lines' weight, the instruction's size and place, and a foreign country's printed form."
+        },
+        {
+          "area": "rendering",
+          "says": "The renderer's package carries Liberation Sans twice, as TrueType for Node and as base64 for the browser, which took it from 268,045 bytes unpacked at 0.1.0 to 2,307,611 on 17 October 2026."
+        },
+        {
+          "area": "rendering",
+          "says": "A browser host gets Liberation Sans as a chunk of 1.1 MB, 519 kB gzipped, loaded with its first QR-bill, or in every page if its bundler does not split dynamic imports; a host that bundles the Node entry copies the font files beside it. A chunk that failed to load is asked for again by the next bill, but whether the browser fetches it again is the browser's, and a chunk a deploy removed fails every bill until the page reloads."
+        },
+        {
+          "area": "rendering",
+          "says": "A QR-bill makes a render slower and larger: the invoice starter took 263 to 300 ms and 53,730 bytes, against 70 to 82 ms and 23,985 bytes without its bill, on one machine on 17 October 2026."
+        },
+        {
+          "area": "testing",
+          "says": "That a QR-bill is paid is not tested: its code is read by ZXing from the page PDF.js draws, never by a bank's scanner or a banking app, and no slip has been printed."
         }
       ]
     },

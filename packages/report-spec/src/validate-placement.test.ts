@@ -218,7 +218,9 @@ describe('what fits on the page', () => {
       expect(refusals(edited((r) => setAt(r, pointer, fits))), pointer).toEqual([])
       expect(refusals(edited((r) => setAt(r, pointer, exceeds))), pointer).toEqual([`exceeds-printable-area ${pointer}`])
     }
+    // Without the fixture's QR-bill, which is printed on A4 in portrait only.
     const landscape = edited((r) => {
+      removeAt(r, '/paymentPart')
       setAt(r, '/page/orientation', 'landscape')
       setAt(r, '/regions/summary/1/width', 700)
     })

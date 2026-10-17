@@ -109,6 +109,25 @@ export type {
   Width,
 } from './types.js'
 
+export { PAYMENT_PART_KINDS, QR_BILL_CURRENCIES, QR_BILL_LANGUAGES } from './payment-part.js'
+export type { PaymentPart, PaymentPartKind, QrBillAddress, QrBillCurrency, QrBillLanguage, SwissQrBill } from './payment-part.js'
+export {
+  checkQrBillAccount,
+  checkQrBillAdditionalInformation,
+  checkQrBillAmount,
+  checkQrBillReference,
+  checkQrBillText,
+  MAX_QR_BILL_ADDITIONAL_INFORMATION,
+  QR_BILL_ADDRESS_RULES,
+  QR_BILL_BILLING_RULE,
+  QR_BILL_MESSAGE_RULE,
+  QR_BILL_SIZE,
+  QR_BILL_TOP,
+  qrBillPageBreak,
+  qrBillPairing,
+} from './qr-bill.js'
+export type { QrBillAccount, QrBillCheck, QrBillPageBreak, QrBillPairingBreak, QrBillReference, QrBillReferenceType, QrBillTextRule } from './qr-bill.js'
+
 export { validateReport } from './validate.js'
 export type { ReportValidation } from './validate.js'
 export { REPORT_ERROR_CODES } from './errors.js'

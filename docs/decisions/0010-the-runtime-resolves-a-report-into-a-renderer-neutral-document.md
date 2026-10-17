@@ -1,6 +1,6 @@
 # 0010 — The runtime resolves a report into a renderer-neutral document, exactly, or refuses it
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-runtime`, run by its
@@ -32,7 +32,7 @@
     double, a division, `matches()`, a rounding on an integer, a format
     that rounds a total again.
   - **End to end**, `@formancy/report-render-pdf`'s `starters.test.ts`
-    resolves the three starters and proves the PDFs they print, totals
+    resolves the starters and proves the PDFs they print, totals
     recomputed apart from the runtime in plain BigInt.
 
   On 15 October 2026 each rule added after review -- the year 0000, the
@@ -168,6 +168,25 @@ document.
   rounds or totals.
 - **Truncating to fit**: a capped capture is a preview, never a final
   report.
+
+**Added 2026-10-17: a QR-bill.** The document gains `paymentPart`, a
+`QrBill` beside the body and never a block of it, as [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md) decides: the
+Swiss QR Code's payload and every text the slip prints, its headings in
+the slip's language and its values grouped as SIX prints them, so that the
+renderer formats nothing. Its texts are read as a paragraph's in the
+report's scope, then held to report-spec's QR-bill rules, as
+`invalid-qr-bill`. Two of this record's rules have an exception there:
+- **Null.** A null run in a bill's text refuses a final render, as in a
+  QR code's content
+  ([0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
+- **Preview.** A value a preview lacks prints as nothing there too, but a
+  preview whose bill then breaks one of SIX's rules is refused, saying it
+  lacked the value: the code would scan as a bill no bank pays.
+
+Its amount is a decimal or null, written from its own digits and never
+rounded: one with a third decimal is refused, so the rounding stays where
+the total is computed, once. `lower-payment-part.test.ts` and
+`qr-bill.test.ts` hold it.
 
 ## Alternatives considered
 

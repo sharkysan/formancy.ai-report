@@ -5,7 +5,8 @@
  * while a keyboard chooses one, a tree of the outline whose focus is its
  * selection, a field per property with a button back to the report's own,
  * a button per diagnostic and a status counting them, a button hiding each
- * side pane, nothing of a pane that is hidden, and the live region.
+ * side pane, nothing of a pane that is hidden, a picture of each box and of
+ * the payment part's band on the canvas, and the live region.
  *
  * It is the third reading of that contract, on purpose and only here: it
  * shows that every name a scenario looks for is one the state gives, and that
@@ -163,6 +164,8 @@ class Driver {
         return shown(state, 'outline') && nodes(state).some((node) => node.label === query.name && (query.selected === undefined || node.selected === query.selected))
       case 'region':
         return query.name === this.t('canvas.label')
+      case 'img':
+        return [state.canvas.paymentPart?.label, ...state.canvas.boxes.map((box) => box.label)].includes(query.name)
       case 'dialog':
         return state.drag?.via === 'keyboard' && state.drag.title === query.name
       case 'button':

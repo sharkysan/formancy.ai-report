@@ -3,6 +3,7 @@ import angular from '@analogjs/vite-plugin-angular'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { thirdPartyNotices } from '../../scripts/third-party-notices.mjs'
+import { EMBEDDED_NOTICES } from './src/embedded-notices.ts'
 import { starters, STARTERS_MODULE } from './src/starters/plugin.ts'
 
 /**
@@ -43,21 +44,8 @@ export default defineConfig({
     // the licence and notice files it ships; a package with no licence text,
     // or code the plugin cannot place, stops the build (formancy.ai-data
     // 0046). The starters' module is the corpus's synthetic data, this
-    // repository's own. pdfmake's vfs_fonts.js carries Roboto's four fonts
-    // as base64, and pdfmake's package ships only its own MIT licence, so
-    // the OFL that Roboto asks to travel with it is named here; the Studio's
-    // notices.test.ts holds that file to the fonts' own name tables.
-    thirdPartyNotices({
-      ownModules: [STARTERS_MODULE],
-      embedded: [
-        {
-          package: 'pdfmake',
-          file: 'build/vfs_fonts.js',
-          name: 'Roboto, under the SIL Open Font License 1.1',
-          from: fileURLToPath(new URL('./notices/roboto-ofl.txt', import.meta.url)),
-        },
-      ],
-    }),
+    // repository's own; the fonts inside scripts are src/embedded-notices.ts'.
+    thirdPartyNotices({ ownModules: [STARTERS_MODULE], embedded: EMBEDDED_NOTICES }),
   ],
   // The Angular builder is linked from the workspace, and Vite optimises
   // only what comes from node_modules unless told: optimised, the Angular
@@ -69,12 +57,14 @@ export default defineConfig({
   // server and apps, on a machine that runs both repositories.
   server: { port: 4394, strictPort: true },
   preview: { port: 4394, strictPort: true },
-  // Measured with `vite build` on 2026-10-16: the renderer's chunk is
-  // 1,895.0 kB minified, 837.9 kB gzipped -- pdfmake's browser build, and
-  // Roboto's four fonts in it as base64 -- and loads with the first
-  // preview, as PDF.js's 429.9 kB and the Angular builder's 150.1 kB load
-  // when first needed; the page's own chunk, React and the React builder
-  // with the editor model, is 577.7 kB. The limit is the largest with a
-  // little room, so a dependency that grows any of them still warns.
+  // Measured with `vite build` (Vite 8.3.4) on 2026-10-17: the renderer's
+  // chunk is 1,922.2 kB minified, 848.8 kB gzipped -- pdfmake's browser
+  // build, and Roboto's four fonts in it as base64 -- and loads with the
+  // first preview, as PDF.js's 430.0 kB and the Angular builder's 151.7 kB
+  // load when first needed, and Liberation Sans's chunk, 1,100.3 kB and
+  // 518.7 kB gzipped, with the first preview of a report with a QR-bill;
+  // the page's own chunk, React and the React builder with the editor
+  // model, is 599.7 kB. The limit is the largest with a little room, so a
+  // dependency that grows any of them still warns.
   build: { chunkSizeWarningLimit: 1950 },
 })
