@@ -256,9 +256,9 @@ describe('the amount', () => {
   // October 2026), which a hostile value could make arbitrarily long.
   test('is refused in time linear in its length, however it fails', () => {
     const hostile = `-0.${'1'.repeat(200_000)}x`
-    const started = performance.now()
+    const started = Date.now()
     expect(broken(checkQrBillAmount(hostile))).toBe('is not a decimal')
-    expect(performance.now() - started).toBeLessThan(1000)
+    expect(Date.now() - started).toBeLessThan(1000)
   })
 
   // "between 0.01 and 999,999,999.99" (IG Table 8, Amt). Zero is the "do

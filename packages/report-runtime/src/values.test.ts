@@ -145,9 +145,9 @@ describe('decimals', () => {
   // its length.
   test('refuse a hostile spelling in time linear in its length', () => {
     const hostile = `-0.${'1'.repeat(MAX_STRING_LENGTH - 4)}x`
-    const started = performance.now()
+    const started = Date.now()
     for (let row = 0; row < 20; row += 1) expect(refusal('decimal', hostile)).toBe('invalid-decimal')
-    expect(performance.now() - started).toBeLessThan(1000)
+    expect(Date.now() - started).toBeLessThan(1000)
   })
 
   // A value with more places than the contract declares is not the value
