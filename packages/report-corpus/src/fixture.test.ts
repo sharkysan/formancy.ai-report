@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import type { Block, ResolvedDocument } from './document.js'
-import { expectation, footerPattern } from './fixture.js'
+import { epcCodes, expectation, footerPattern } from './fixture.js'
 
 const page = { size: 'A4', orientation: 'portrait', margins: { top: 36, right: 40, bottom: 36, left: 40 } } as const
 const text = (value: string): Block => ({ kind: 'paragraph', runs: [{ text: value }] })
@@ -123,5 +123,24 @@ describe('expectation', () => {
   test('lets the fixture state what is not derived, or say it otherwise', () => {
     const stated = expectation(document, { maxPagesExpected: 1, keys: ['word0001'], outcome: 'refuse', refusal: { code: 'too-many-pages' } })
     expect(stated).toMatchObject({ keys: ['word0001'], outcome: 'refuse', refusal: { code: 'too-many-pages' } })
+  })
+})
+
+describe('epcCodes', () => {
+  const code = (id: string): Block => ({ kind: 'epcQrCode', id, payload: `BCD ${id}`, size: 85.04 })
+
+  // A code stands where its author put it: beside the payment details in a
+  // column, framed in a section, kept with its heading. A walk that missed
+  // a container would find no code in an invoice that prints one, and a
+  // test of its payload would pass over nothing.
+  test('finds every EPC code, inside columns, sections and keep-together blocks, in document order', () => {
+    const blocks: Block[] = [
+      code('first'),
+      { kind: 'columns', columns: [{ width: 'fill', blocks: [text('details')] }, { width: 85.04, blocks: [code('in-column')] }] },
+      { kind: 'section', blocks: [{ kind: 'keepTogether', blocks: [text('heading'), code('kept-in-section')] }] },
+      text('after'),
+    ]
+    expect(epcCodes(blocks).map((block) => block.id)).toEqual(['first', 'in-column', 'kept-in-section'])
+    expect(epcCodes([text('none')])).toEqual([])
   })
 })

@@ -20,6 +20,7 @@
  * The vocabularies are `const` lists, and each union type is derived from
  * its list, so the type and the validator's list cannot disagree.
  */
+import type { EpcQrCodeComponent } from './epc-qr-code.js'
 import type { PaymentPart } from './payment-part.js'
 import type { REPORT_SPEC_VERSION } from './version.js'
 
@@ -505,13 +506,14 @@ export interface KeepTogetherComponent extends ComponentBase {
   readonly components: readonly Component[]
 }
 
-export const COMPONENT_KINDS = ['text', 'image', 'qrCode', 'line', 'rectangle', 'spacer', 'columns', 'section', 'table', 'pageBreak', 'keepTogether'] as const
+export const COMPONENT_KINDS = ['text', 'image', 'qrCode', 'epcQrCode', 'line', 'rectangle', 'spacer', 'columns', 'section', 'table', 'pageBreak', 'keepTogether'] as const
 export type ComponentKind = (typeof COMPONENT_KINDS)[number]
 
 export type Component =
   | TextComponent
   | ImageComponent
   | QrCodeComponent
+  | EpcQrCodeComponent
   | LineComponent
   | RectangleComponent
   | SpacerComponent

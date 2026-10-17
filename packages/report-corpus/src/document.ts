@@ -24,6 +24,7 @@ export type {
   Block,
   Columns,
   ColumnSlot,
+  EpcQrCode,
   Image,
   ImageAsset,
   Inline,

@@ -15,6 +15,7 @@ import type { Component, ComponentKind, RegionName } from '@formancy/report-spec
 import type { Block, TextStyle } from './document.js'
 import { imageBlock } from './images.js'
 import { encodedText, runOf } from './inlines.js'
+import { epcQrCodeBlock } from './lower-epc-qr-code.js'
 import { tableBlock } from './lower-table.js'
 import { holds, reportScope } from './render-context.js'
 import type { Render, Scope } from './render-context.js'
@@ -50,6 +51,7 @@ const LOWER: { readonly [K in ComponentKind]: Lowerer<K> } = {
     const text = encodedText(render, scope, code.content, path, code.id)
     return text === undefined ? undefined : { kind: 'qrCode', id: code.id, text, size: code.size, errorCorrection: code.errorCorrection }
   },
+  epcQrCode: (code, { render, scope, path }) => epcQrCodeBlock(render, scope, code, path),
   line: (line) => ({ kind: 'rule', thickness: line.thickness, ...optional('color', line.color) }),
   rectangle: (rectangle) => ({ kind: 'rectangle', width: rectangle.width, height: rectangle.height, ...optional('fill', rectangle.fill), ...optional('stroke', rectangle.stroke) }),
   spacer: (spacer) => ({ kind: 'spacer', height: spacer.height }),

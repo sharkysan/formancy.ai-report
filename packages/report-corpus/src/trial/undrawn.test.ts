@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { RenderRefusal, type Image, type QrBill, type ResolvedDocument, type Table } from '../document.js'
+import { RenderRefusal, type EpcQrCode, type Image, type QrBill, type ResolvedDocument, type Table } from '../document.js'
 import { details, documentOf, ledger, paragraph, totalRow } from '../fixtures/build.js'
 import { encodePng } from '../fixtures/png.js'
 import { lineHas, pageLines } from '../lines.js'
@@ -46,6 +46,9 @@ const BILL: QrBill = {
   amount: null,
 }
 
+/** An EPC QR code as the runtime resolves one: an account and its owner alone, framed and captioned as Austria's PSA asks. */
+const EPC: EpcQrCode = { kind: 'epcQrCode', id: 'pay-code', payload: ['BCD', '002', '1', 'SCT', '', 'Max Muster', 'DE89370400440532013000'].join('\n'), size: 85.04, caption: 'zahlenMitCode' }
+
 /** The corpus's ledger of three rows, with `patch` laid over it. */
 function table(patch: Partial<Table>): Table {
   return { ...ledger('lines', details(1, 3)), ...patch }
@@ -72,6 +75,11 @@ const UNDRAWN: readonly (readonly [string, ResolvedDocument, string])[] = [
   ['a QR code', documentOf('QR code', [paragraph('Before'), { kind: 'qrCode', id: 'order-code', text: 'https://formancy.ai/report/', size: 85.04, errorCorrection: 'M' }]), 'body[1]'],
   // A slip left out would print an invoice nobody can pay by, and say nothing.
   ['a payment part', { ...documentOf('Bill', [paragraph('Invoice')]), paymentPart: BILL }, 'paymentPart'],
+  // A code left out would print an invoice without the code it is paid
+  // by, and say nothing; one drawn as a plain QR code would lose its frame
+  // and the level and version a bank's app reads.
+  ['an EPC QR code', documentOf('EPC QR code', [paragraph('Before'), EPC]), 'body[1]'],
+  ['an EPC QR code in a keep-together block', documentOf('Kept EPC QR code', [{ kind: 'keepTogether', blocks: [paragraph('Pay by code'), EPC] }]), 'body[0].blocks[1]'],
   ['a QR code in the page header', { ...documentOf('Header code', [paragraph('Body')]), pageHeader: [{ kind: 'qrCode', id: 'header-code', text: 'A-1', size: 40, errorCorrection: 'L' }] }, 'pageHeader[0]'],
   ['a paragraph in the serif font', documentOf('Serif', [paragraph('Set in serif', { font: 'serif' })]), 'body[0]'],
   ['a paragraph in the mono font, in the page header', { ...documentOf('Mono', [paragraph('Body')]), pageHeader: [paragraph('Set in mono', { font: 'mono' })] }, 'pageHeader[0]'],

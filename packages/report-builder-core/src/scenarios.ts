@@ -27,7 +27,7 @@
  * - `document`: `check` holds of the session's document.
  */
 import { emptyReport } from '@formancy/report-spec'
-import type { ReportDefinition } from '@formancy/report-spec'
+import type { EpcQrCodeComponent, ReportDefinition } from '@formancy/report-spec'
 import { PROPERTY_ROLES } from './model.js'
 import { contentLocale, editorText, formatZoom } from './text.js'
 import type { EditorLocale } from './text.js'
@@ -143,6 +143,12 @@ function blankReport(): ReportDefinition {
 
 const body = (report: ReportDefinition): string[] => report.regions.body.map((component) => component.id)
 
+/** Whether the body has an EPC payment code whose text at `key` is `text`, one literal run, or, for undefined, absent. */
+const codeHas = (report: ReportDefinition, key: 'iban' | 'bic', text: string | undefined): boolean => {
+  const code = report.regions.body.find((component): component is EpcQrCodeComponent => component.kind === 'epcQrCode')
+  return code !== undefined && JSON.stringify(code[key]) === JSON.stringify(text === undefined ? undefined : [{ kind: 'text', text }])
+}
+
 const held = (report: ReportDefinition, id: string): string[] => {
   const found = report.regions.body.find((component) => component.id === id)
   return found !== undefined && 'components' in found ? found.components.map((component) => component.id) : []
@@ -165,6 +171,9 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
   const error = (where: string): ScenarioQuery => button(t('problem.item', { severity: t('severity.error'), where }))
   // What a new text says is in the report's language, which prints, not the editor's.
   const newText = editorText(contentLocale(scenarioReport().locale))('default.text')
+  const newCode = t('label.kindDetail', { kind: t('kind.epcQrCode'), detail: editorText(contentLocale(scenarioReport().locale))('default.epcBeneficiary') })
+  const iban: ScenarioQuery = { role: PROPERTY_ROLES.text, name: t('field.iban') }
+  const bic: ScenarioQuery = { role: PROPERTY_ROLES.text, name: t('field.bic') }
   const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = scenarioReport): BuilderScenario => ({ name, locale, report, steps })
 
   return [
@@ -375,6 +384,28 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
       ],
       billedReport,
     ),
+    // A payment code is inserted as any kind is, and its account typed where
+    // it is written: an IBAN whose check digits are wrong is refused on its
+    // field, and the code still pays the account it did. An optional text
+    // -- the BIC -- is added by typing it into its empty field, and removed
+    // by emptying it, as every optional property is.
+    scenario('insert an EPC payment code, and type its account', [
+      { do: 'focus', ...button(t('kind.epcQrCode')) },
+      { do: 'press', key: 'Enter' },
+      { do: 'focus', ...button(t('target.after', { where: region, name: spacer })) },
+      { do: 'press', key: 'Enter' },
+      { expect: 'focused', ...tree(newCode, true) },
+      { do: 'fill', ...iban, text: 'DE71 1102 2033 0123 4567 88' },
+      { expect: 'invalid', ...iban },
+      { expect: 'document', says: 'the new code pays the account it started with', check: (report) => codeHas(report, 'iban', 'DE36 0000 0000 0000 0000 00') },
+      { do: 'fill', ...iban, text: 'DE71 1102 2033 0123 4567 89' },
+      { expect: 'document', says: 'the code pays the IBAN typed, with no BIC', check: (report) => codeHas(report, 'iban', 'DE71 1102 2033 0123 4567 89') && codeHas(report, 'bic', undefined) },
+      { do: 'fill', ...bic, text: 'BHBLDEHHXXX' },
+      { expect: 'document', says: 'the code holds the BIC typed', check: (report) => codeHas(report, 'bic', 'BHBLDEHHXXX') },
+      { do: 'fill', ...bic, text: '' },
+      { expect: 'document', says: 'the code holds no BIC again', check: (report) => codeHas(report, 'bic', undefined) },
+      { expect: 'value', ...bic, value: '' },
+    ]),
     scenario('choose a style from a picker', [
       { do: 'click', ...tree('Introduction') },
       { do: 'choose', role: PROPERTY_ROLES.style, name: t('field.style'), option: 'heading' },

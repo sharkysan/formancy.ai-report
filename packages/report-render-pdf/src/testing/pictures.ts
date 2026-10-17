@@ -1,4 +1,4 @@
-import { GROUPED_EQUIPMENT, INVOICE, INVOICE_EN, INVOICE_FR, INVOICE_IT, QUOTATION, rasterPage, readPdf, SERVICE_INSPECTION, STARTER_IMAGES, type Starter } from '@formancy/report-corpus'
+import { EURO_INVOICE, GROUPED_EQUIPMENT, INVOICE, INVOICE_EN, INVOICE_FR, INVOICE_IT, QUOTATION, rasterPage, readPdf, SERVICE_INSPECTION, STARTER_IMAGES, type Starter } from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import { renderPdf } from '../node.js'
 import { pageLines } from './lines.js'
@@ -53,6 +53,13 @@ export const PICTURES: readonly PictureSpec[] = [
     page: 1,
     caption: "The invoice starter, a Rechnung: its line items, then Zwischensumme, MWST 8.1 % and Total CHF 1'416.52, and across the foot of the page its QR-bill, the Empfangsschein and the Zahlteil with its Swiss QR Code, each for CHF 1 416.52",
     shows: ['Rechnung', "Total CHF 1'416.52", 'Empfangsschein', 'Zahlteil', 'CHF 1 416.52'],
+  },
+  {
+    file: 'starter-euro-invoice.png',
+    starter: EURO_INVOICE,
+    page: 1,
+    caption: 'The euro invoice starter, a German Rechnung: its line items in euro, then Nettobetrag, Umsatzsteuer 19 % and Rechnungsbetrag 1.132,44 €, and under them the Bankverbindung, IBAN: DE83 0123 4567 0012 3456 78, beside the EPC QR code that pays it',
+    shows: ['Rechnung', 'Nettobetrag', 'Umsatzsteuer 19 %', 'Rechnungsbetrag 1.132,44 €', 'Bankverbindung', 'IBAN: DE83 0123 4567 0012 3456 78'],
   },
 ]
 

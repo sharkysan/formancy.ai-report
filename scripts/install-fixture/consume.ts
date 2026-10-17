@@ -7,7 +7,8 @@
  * shipped.
  */
 import { checkSpecVersion, emptyReport, QR_BILL_TOP, qrBillPageBreak, REPORT_FORMAT, REPORT_SPEC_VERSION, reportHash, validateReport, walkComponents } from '@formancy/report-spec'
-import type { ReportDefinition, ReportError, ReportValidation, SpecVersionCheck, SwissQrBill, TableComponent, TextComponent } from '@formancy/report-spec'
+import { EPC_CAPTION, EPC_MAX_BYTES, epcCaptionBreak, epcLeastVersion } from '@formancy/report-spec'
+import type { EpcQrCodeComponent, ReportDefinition, ReportError, ReportValidation, SpecVersionCheck, SwissQrBill, TableComponent, TextComponent } from '@formancy/report-spec'
 import { compileReport, diagnose, expressionValues, insertComponent, nextComponentId, openReportSession, validLocations } from '@formancy/report-core'
 import type { CommandDescriptor, CommandOutcome, CompiledExpression, Diagnostic, ReportCompilation, ReportSession, SessionOpening } from '@formancy/report-core'
 import { actionForKey, createReportEditor, editorText } from '@formancy/report-builder-core'
@@ -16,7 +17,8 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolveReport } from '@formancy/report-runtime'
 import { QR_BILL_TOP as RUNTIME_QR_BILL_TOP, qrBillPageBreak as runtimeQrBillPageBreak } from '@formancy/report-runtime'
-import type { QrBill, Resolution } from '@formancy/report-runtime'
+import { EPC_CAPTION as RUNTIME_EPC_CAPTION, EPC_MAX_BYTES as RUNTIME_EPC_MAX_BYTES, epcCaptionBreak as runtimeEpcCaptionBreak, epcLeastVersion as runtimeEpcLeastVersion } from '@formancy/report-runtime'
+import type { EpcQrCode, QrBill, ReportData, Resolution } from '@formancy/report-runtime'
 import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
 import { readReportData } from '@formancy/report-data-provider'
 import type { DataBinding, ProviderRead } from '@formancy/report-data-provider'
@@ -245,6 +247,57 @@ const renderSays = await renderPdf({ ...billedResolution.document, page: crowded
 )
 if (editorSays === undefined || editorSays !== renderSays) throw new Error(`a top margin in the slip was refused differently: ${String(editorSays)}; ${String(renderSays)}`)
 
+// A euro invoice paid by a SEPA credit transfer: an EPC QR code for its
+// total at the end of its summary, in Austria's frame with "Zahlen mit
+// Code". The code asks for euro, and nothing ties the value its amount
+// reads to euro (0025): it stands on a report whose lines are euros -- the
+// install check's own, read as a German invoice's -- and never on the
+// quotation, whose total in francs it would ask for as so many euros. Its
+// payload is the EPC's elements in their order, its BIC making it version
+// 001 and its amount written as short as it can be. The caption prints in
+// the Liberation Sans of the package's `fonts`, which a host that prints
+// codes and never a bill reaches only through a captioned code: a tarball
+// or an entry that lost them would print every other report and refuse
+// only that one.
+const epcCode: EpcQrCodeComponent = {
+  id: 'pay-code',
+  kind: 'epcQrCode',
+  size: 85.04,
+  beneficiary: text('Formancy Haustechnik GmbH'),
+  iban: text('DE83 0123 4567 0012 3456 78'),
+  bic: text('FMNCDEF0XXX'),
+  amount: { cel: 'totals.total' },
+  reference: text('RF72 2026 0815'),
+  caption: 'zahlenMitCode',
+}
+const paid: ReportDefinition = { ...report, id: 'euro-invoice', title: 'Rechnung', locale: 'de-DE', regions: { ...report.regions, summary: [epcCode] } }
+const euroLines: ReportData = { detail: [{ amount: '951.63' }, { amount: '180.81' }], completeness: { complete: true, captured: 2 }, consistency: 'host-captured' }
+const paidValidation: ReportValidation = validateReport(paid)
+if (!paidValidation.valid) throw new Error(`the euro invoice with an EPC QR code was refused: ${paidValidation.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
+const paidResolution: Resolution = resolveReport(paid, euroLines, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
+if (!paidResolution.ok) throw new Error(`the euro invoice with an EPC QR code did not resolve: ${paidResolution.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
+const resolvedCode = paidResolution.document.body.find((block): block is EpcQrCode => block.kind === 'epcQrCode')
+const payload = ['BCD', '001', '1', 'SCT', 'FMNCDEF0XXX', 'Formancy Haustechnik GmbH', 'DE83012345670012345678', 'EUR1132.44', '', 'RF7220260815'].join('\n')
+if (resolvedCode?.payload !== payload || resolvedCode.caption !== 'zahlenMitCode') throw new Error(`the EPC QR code does not hold the euro invoice's payment: ${JSON.stringify(resolvedCode?.payload)}`)
+const paidPdf = await renderPdf(paidResolution.document, { maxPages: 50 })
+if (!/\/BaseFont \/[A-Z]{6}\+LiberationSans\b/.test(new TextDecoder('latin1').decode(paidPdf))) throw new Error("the EPC QR code's caption did not print in the package's Liberation Sans")
+
+// The EPC's print rules reach the renderer through the runtime as
+// report-spec's own, as the QR-bill's do: a captioned square too small for
+// any version is refused by the validator and by the renderer in the same
+// words. A runtime whose dist carried a copy would hand on a second rule.
+if (runtimeEpcCaptionBreak !== epcCaptionBreak || runtimeEpcLeastVersion !== epcLeastVersion || RUNTIME_EPC_CAPTION !== EPC_CAPTION || RUNTIME_EPC_MAX_BYTES !== EPC_MAX_BYTES) {
+  throw new Error("the runtime does not hand on report-spec's own EPC QR code print rules")
+}
+const cramped: ReportDefinition = { ...paid, regions: { ...paid.regions, summary: [{ ...epcCode, size: 68.05 }] } }
+const crampedValidation: ReportValidation = validateReport(cramped)
+const specSays = crampedValidation.valid ? undefined : crampedValidation.errors.find((error: ReportError) => error.path.endsWith('/size'))?.message
+const drawerSays = await renderPdf({ ...paidResolution.document, body: paidResolution.document.body.map((block) => (block.kind === 'epcQrCode' ? { ...block, size: 68.05 } : block)) }, { maxPages: 50 }).then(
+  () => undefined,
+  (error: unknown) => (error instanceof RenderRefusal ? error.message : String(error)),
+)
+if (specSays === undefined || drawerSays?.endsWith(specSays) !== true) throw new Error(`a captioned square too small was refused differently: ${String(specSays)}; ${String(drawerSays)}`)
+
 // The Data provider, from its tarball, with @formancy/data-client at the
 // exact release it pins, from the registry: the quotation read from a data
 // server answering Formancy Data 0.1.0's routes -- its header as one
@@ -295,5 +348,5 @@ const fromData = await (async () => {
 if (new TextDecoder().decode(fromData.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation read from Data did not render to a PDF')
 
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
 )

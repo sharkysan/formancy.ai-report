@@ -71,18 +71,27 @@ is running counts as part of it, so listeners still hear once.
   whether it is selected, how many diagnostics are about it and the worst
   of their severities, and whether it is wider than the space it stands
   in. Its label is what a person calls it: a text by what it prints, a QR
-  code by its kind and what it encodes ("QR code: https://…"), a bound run
-  by what it binds. Labels are unique in the report, so each can
-  be an accessible name; where two would read the same, each gets its id.
+  code by its kind and what it encodes ("QR code: https://…"), an EPC
+  payment code by its kind and whom it pays ("EPC payment code: Franz
+  Mustermänn"), a bound run by what it binds. Labels are unique in the
+  report, so each can be an accessible name; where two would read the
+  same, each gets its id.
 - **`selection`**: a component, or one column of a table.
 - **`palette`**: every kind the format has, with the default component
   inserting it would put in. Its id comes from `nextComponentId` and its
-  size fits the printable area: a QR code's 30 mm square is held to
-  report-spec's `squareRoom`, the shorter side. What it says -- a new
-  text's "New text", the address a new QR code encodes -- is in the
-  report's language, because it prints: two
-  editors in two languages inserting into one report put in the same words
-  (`contentLocale`). Where the report lacks what a kind needs (an image
+  size fits the printable area: a QR code's 30 mm square, and an EPC
+  payment code's 32 mm, the least in which every payload the EPC allows
+  prints with the frame and without, are held to report-spec's
+  `squareRoom`, the shorter side. What it
+  says -- a new text's "New text", the address a new QR code encodes, the
+  name a new EPC payment code pays -- is in the report's language, because
+  it prints: two editors in two languages inserting into one report put in
+  the same words (`contentLocale`). A new EPC payment code pays `DE36 0000
+  0000 0000 0000 00`, the IBAN of bank code 00000000, which no bank keeps:
+  every bank code in the Bundesbank's register starts with a digit from 1
+  to 8 (read on 17 October 2026), so a code inserted and never edited pays
+  nobody. It has no amount, which the payer fills in, and no frame, which
+  is Austria's option. Where the report lacks what a kind needs (an image
   with nothing to draw, a table with no detail dataset), the entry says
   what to declare first.
 - **`properties`**: the fields of the selection, or of the report when
@@ -99,6 +108,20 @@ is running counts as part of it, so listeners still hear once.
   against which report-spec measures a square. A QR code's
   content is edited run by run as a text's is, and each of its levels of
   error correction says the share of the code it restores.
+  An EPC payment code's fields follow the order the code holds its
+  elements (EPC069-12 2.2): the beneficiary, the IBAN, the BIC, the amount,
+  the purpose code, the RF creditor reference, the remittance text and the
+  note to the payer, then its square and its caption, the code alone or
+  Austria's frame with "Zahlen mit Code". Each text is edited run by run,
+  one line each, since a line break would end its element of the code; a
+  run of several is named by the text it is part of ("Remittance text,
+  part 2: Field"). An optional text that is absent, or one literal run, is
+  one field: typed into, it becomes that run, and emptied, it is removed,
+  as every optional property is, and the code leaves its element empty.
+  Whether an IBAN's check digits are right, a BIC goes with the IBAN or a
+  reference stands beside a text is report-spec's to say when the edit is
+  applied, on the field typed in, in its words, which never quote the
+  value.
 - **`canvas`**: the design view. It is one sheet as wide as the page, with
   the regions as bands and each component's flow box in its band, in points
   and in pixels, with the same severity and overflow its outline row has.
@@ -312,8 +335,11 @@ the report's properties from a selection, refuse an invalid property with
 its error visible, move by keyboard, delete with focus moving on,
 duplicate, undo and redo, follow a diagnostic to its component, count the
 problems as they change, press a tool with nothing to do, zoom, choose
-a style, and open a report with a payment part, whose band is drawn and
-which an edit, and a page refused for it, leave whole.
+a style, open a report with a payment part, whose band is drawn and
+which an edit, and a page refused for it, leave whole, and insert an EPC
+payment code by keyboard, its IBAN refused on its field when its check
+digits are wrong, and its BIC added by typing it and removed by emptying
+it.
 
 Each framework's test runs every scenario with Testing Library, and fails
 when one is skipped. The scenarios use every kind of step, so each runner
@@ -383,8 +409,9 @@ the other's steps in English.
 - **The canvas is not the PDF.** It is a design-mode approximation for
   selecting and placing. A text's height comes from a rule of thumb
   (average character width, 10 pt when no style sets a size). A table is
-  drawn as one row of each kind it has. A QR code is drawn as the square
-  it prints, with no modules in it. Every region is one flow on one
+  drawn as one row of each kind it has. A QR code and an EPC payment code
+  are drawn as the square each prints, with no modules in it, and no frame
+  or caption. Every region is one flow on one
   sheet, without pagination. The renderer measures text and lays out
   pages, and the PDF preview shows what prints.
 - **A payment part is shown, not edited.** The editor opens a report with
@@ -402,9 +429,11 @@ the other's steps in English.
     cells;
   - conditional style rules (`styleWhen`);
   - value formats;
-  - adding or removing a run in a text or a QR code's content, or a column
-    in a columns block or a table (a table column can be duplicated and
-    deleted);
+  - adding or removing a run in a text, a QR code's content or an EPC
+    payment code's text, a text of several runs or a bound one included
+    (only an optional text that is absent or one literal run is added by
+    typing it and removed by emptying it), or a column in a columns block
+    or a table (a table column can be duplicated and deleted);
   - declarations: styles, datasets, parameters, assets, aggregates.
 
   Each of these is a report-core command already. What is missing is the
@@ -412,7 +441,9 @@ the other's steps in English.
 - **The validator's and the diagnostics' sentences are English.**
   report-spec and report-core word them; a translation keyed by their codes
   is a later step. The one the editor words itself is a length too large
-  for the page. The editor's own words are in all three languages.
+  for the page. The editor's own words are in all three languages. So an
+  EPC payment code's square refused as too small for its frame is said in
+  points, as report-spec says it, in a field edited in millimetres.
 - **A layout's overflow is flagged, not judged.** A box wider than its column
   is marked, and whether the renderer clips, scales or refuses it is the
   renderer's to say.

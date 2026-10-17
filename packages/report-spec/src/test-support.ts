@@ -263,6 +263,25 @@ export function richReport(): ReportDefinition {
           size: 85.04,
           errorCorrection: 'Q',
         },
+        // The EPC's first sample (EPC069-12 2.3), literal where its account
+        // is, its amount a total and its information computed, in Austria's
+        // frame.
+        {
+          id: 'payment-code',
+          kind: 'epcQrCode',
+          size: 85.04,
+          beneficiary: [{ kind: 'text', text: 'Franz Mustermänn' }],
+          iban: [{ kind: 'text', text: 'DE71 1102 2033 0123 4567 89' }],
+          bic: [{ kind: 'text', text: 'BHBLDEHHXXX' }],
+          amount: { cel: 'totals.subtotal' },
+          purpose: 'GDDS',
+          reference: [{ kind: 'text', text: 'RF18 5390 0754 7034' }],
+          information: [
+            { kind: 'text', text: 'Orders from ' },
+            { kind: 'expression', expression: { cel: 'params.region' } },
+          ],
+          caption: 'zahlenMitCode',
+        },
       ],
     },
     // SIX's second example (IG 2.4, Annex A): a QR-IBAN and a QR reference,

@@ -27,7 +27,7 @@
  * definition's to validate and the renderer's to refuse. These types do not
  * hold it.
  */
-import type { Alignment, AssetMediaType, Border, FontFamily, ImageFit, Margins, Orientation, PageSizeName, QrBillCurrency, QrErrorCorrection, Width } from '@formancy/report-spec'
+import type { Alignment, AssetMediaType, Border, EpcCaption, FontFamily, ImageFit, Margins, Orientation, PageSizeName, QrBillCurrency, QrErrorCorrection, Width } from '@formancy/report-spec'
 
 /**
  * A run of text, or a number only the engine knows when it lays out the
@@ -176,6 +176,36 @@ export interface QrCode {
   readonly errorCorrection: QrErrorCorrection
 }
 
+/**
+ * An EPC QR code (EPC069-12 v3.1): the code a SEPA credit transfer is
+ * initiated from, drawn dark on white in a square `size` points a side.
+ * `payload` is its text, every element resolved and held to the EPC's
+ * rules (report-spec's `epc-payload.ts`): the engine encodes it as UTF-8
+ * at level M, in a symbol of version 13 at most (EPC069-12 2.1), and
+ * formats, checks and changes nothing of it. A payload no such symbol
+ * holds, or modules too small to print, are refused as
+ * `content-too-large`, naming the code by `id`, never drawn at another
+ * level or in a larger version, which a bank's app need not read.
+ *
+ * Without a caption the code is drawn as a QR code is, its quiet zone of
+ * four modules inside its square. With one, Austria's frame and the words
+ * "Zahlen mit Code" are drawn inside the square too (PSA v3.0 5), as
+ * report-spec's `epc-print.ts` lays them out and bounds the modules'
+ * width; the engine, which knows the version, refuses a code whose
+ * modules are outside those bounds.
+ */
+export interface EpcQrCode {
+  readonly kind: 'epcQrCode'
+  /** The component's id, which a refusal names as its subject. */
+  readonly id: string
+  /** The EPC's elements in EPC069-12 2.2's order, each on its own line, separated by a line feed and not ended by one: at most 331 bytes in UTF-8. */
+  readonly payload: string
+  /** Points: the side of the square, the quiet zone, and the frame and caption when there are any, inside it. */
+  readonly size: number
+  /** Austria's frame and caption; absent, the code is drawn alone. */
+  readonly caption?: EpcCaption
+}
+
 /** A horizontal line across the width it is given: the printable area's, or its column's. */
 export interface Rule {
   readonly kind: 'rule'
@@ -253,7 +283,7 @@ export interface Section {
   readonly padding?: number
 }
 
-export type Block = Paragraph | Table | Image | QrCode | Rule | Rectangle | Spacer | PageBreak | KeepTogether | Columns | Section
+export type Block = Paragraph | Table | Image | QrCode | EpcQrCode | Rule | Rectangle | Spacer | PageBreak | KeepTogether | Columns | Section
 
 export interface PageSetup {
   readonly size: PageSizeName

@@ -1,6 +1,6 @@
 # 0022 — A report carries one Swiss QR-bill at the foot of its last page, held to SIX's rules by one set of checks and printed in the Liberation Sans the renderer ships
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which shares its IBAN check digits and creditor reference with the EPC QR code and prints that code's caption in its Liberation Sans
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -615,6 +615,22 @@ SIX's examples, which no bank books.
 
 **What it forecloses.** A bill as a component in a region, and a slip
 drawn in a face SIX does not list. The format addition is a draft's.
+
+**Added 2026-10-17: the EPC QR code.** [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md) reads two of this
+record's checks. The remainder modulo 97, an IBAN's check digits by it,
+and the creditor reference moved out of `qr-bill.ts` into report-spec's
+`payment-reference.ts`, which both codes' rules read; `QrBillCheck` is
+its `PaymentCheck`. What is the QR-bill's alone -- Switzerland's and
+Liechtenstein's accounts, the QR-IBAN, the QR reference and the pairing --
+stays in `qr-bill.ts`, and `qr-bill.test.ts` passes unchanged. The EPC's
+rules read the QR-IBAN's range there, through `isQrIban`, which
+`checkQrBillAccount` reads too, and refuse a QR-IBAN as an EPC QR code's
+account. The validator's reading of a payment code's text runs moved to
+`validate-payment-text.ts`, which both codes' validators call. And the
+slip is no longer the one text in Liberation Sans: an EPC QR code's
+caption, "Zahlen mit Code", prints in its regular face, from the same
+files, which the browser entry imports from the same chunk with the first
+bill or captioned code a page prints.
 
 ## Alternatives considered
 

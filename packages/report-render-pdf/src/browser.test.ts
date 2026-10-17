@@ -25,6 +25,15 @@ import { documentOf, fixture, paragraph, TIMEOUT } from './testing/documents.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 
+/** EPC069-12 v3.1's first example, in a 30 mm square with Austria's caption. */
+const EPC_CODE = {
+  kind: 'epcQrCode',
+  id: 'pay-code',
+  payload: ['BCD', '001', '1', 'SCT', 'BHBLDEHHXXX', 'Franz Mustermänn', 'DE71110220330123456789', 'EUR12.3', 'GDDS', 'RF18539007547034'].join('\n'),
+  size: 85.04,
+  caption: 'zahlenMitCode',
+} as const
+
 // The browser build warns, under Node, that it has no local-access policy to
 // set: a browser has no local files for it to guard. Silenced here, and held
 // to being that warning and no other.
@@ -133,6 +142,27 @@ describe('the browser entry', () => {
     expect((await readPdf(browserBytes)).pages).toEqual((await readPdf(nodeBytes)).pages)
   }, TIMEOUT)
 
+  // An EPC QR code's caption is text in Liberation Sans, which pdfmake's
+  // SVG converter draws from the font table. A browser that drew it
+  // otherwise than Node, or in another face, would show a payer another
+  // code in the Studio's preview than the PDF a server sends: the same
+  // definitions, the same code read back, the caption in Liberation Sans,
+  // and every run where Node puts it.
+  test('hands pdfmake the definitions the Node entry does for a captioned EPC QR code, which prints the same', async () => {
+    const document = documentOf('EPC', [paragraph('Zahlbar ohne Abzug'), EPC_CODE])
+    const options = { maxPages: 5 }
+    const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
+    const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(document, options))
+    expect(inBrowser).toEqual(inNode)
+    const [nodeBytes, browserBytes] = [await renderInNode(document, options), await renderInBrowser(document, options)]
+    expect((await readCodes(browserBytes, 1)).map(({ text }) => text)).toEqual([EPC_CODE.payload])
+    expect(await readCodes(browserBytes, 1)).toEqual(await readCodes(nodeBytes, 1))
+    const read = await readPdf(browserBytes)
+    expect(read.pages).toEqual((await readPdf(nodeBytes)).pages)
+    expect(read.pages[0]!.items.filter((item) => item.angle === 90).map((item) => item.text)).toEqual(['Zahlen mit Code'])
+    expect(read.fonts.map((font) => font.name.replace(/^[A-Z]{6}\+/, '')).sort()).toEqual(['LiberationSans', 'Roboto-Regular'])
+  }, TIMEOUT)
+
   // A browser preview that differs from itself on every render cannot be
   // compared with anything.
   test('renders the same document to the same bytes', async () => {
@@ -178,12 +208,13 @@ describe('the browser entry', () => {
 
   // A browser has no `node:` modules and no Node build of pdfmake: a value
   // import of either anywhere the browser entry reaches breaks every app
-  // that bundles it. And the slip's fonts, over a megabyte as
-  // base64, reach an app only through an import made the first time a
-  // document has a payment part: imported statically, every host's bundle
-  // would carry them, a host that never prints a bill among them. Read
-  // from the sources, following each relative import.
-  test('reaches no Node module and no Node build of pdfmake, and Liberation Sans only when a bill asks for it', () => {
+  // that bundles it. And the slip's fonts, over a megabyte as base64,
+  // reach an app only through an import made the first time a document has
+  // a payment part or a captioned EPC QR code: imported statically, every
+  // host's bundle would carry them, a host that never prints either among
+  // them. Read from the sources, following each relative import; that the
+  // import is made only then is held below.
+  test('reaches no Node module and no Node build of pdfmake, and Liberation Sans only through an import of its own', () => {
     const reach = (entry: string): { readonly files: Set<string>; readonly external: Set<string>; readonly dynamic: Set<string> } => {
       const [files, external, dynamic] = [new Set<string>(), new Set<string>(), new Set<string>()]
       const visit = (file: string): void => {
@@ -237,6 +268,48 @@ describe('the slip’s fonts in a browser', () => {
     vi.doUnmock('./bill-fonts.js')
     const document = bill()
     expect((await readCodes(await renderPdf(document, { maxPages: 5 }), 1)).map(({ text }) => text)).toEqual([document.paymentPart!.payload])
+  }, TIMEOUT)
+
+  // A host that prints neither a bill nor a captioned EPC QR code never
+  // loads the chunk, whose megabyte it would fetch for nothing: a page of
+  // text, and an EPC QR code without its caption, print in Roboto alone.
+  // The first captioned code is what loads it. Counted by the getter, as
+  // below.
+  test('are never loaded by a document with neither a bill nor a captioned EPC QR code', async () => {
+    let loads = 0
+    const { LIBERATION_SANS } = await import('./bill-fonts.js')
+    const renderPdf = await freshEntry(() => ({
+      get LIBERATION_SANS() {
+        loads += 1
+        return LIBERATION_SANS
+      },
+    }))
+    const { caption: _caption, ...uncaptioned } = EPC_CODE
+    await renderPdf(documentOf('Text', [paragraph('Invoice 2026-0042')]), { maxPages: 5 })
+    const read = await readPdf(await renderPdf(documentOf('EPC', [uncaptioned]), { maxPages: 5 }))
+    expect(read.fonts.map((font) => font.name.replace(/^[A-Z]{6}\+/, ''))).toEqual(['Roboto-Regular'])
+    expect(loads).toBe(0)
+    await renderPdf(documentOf('EPC', [EPC_CODE]), { maxPages: 5 })
+    expect(loads).toBe(1)
+  }, TIMEOUT)
+
+  // A host that prints EPC QR codes and never a bill still prints their
+  // captions in Liberation Sans: the first captioned code loads the chunk,
+  // as the first bill does. Not loaded, the face is not in pdfmake's
+  // virtual files, and the caption is not drawn in it.
+  test('are loaded by the first captioned EPC QR code, though no bill asks for them', async () => {
+    let loads = 0
+    const { LIBERATION_SANS } = await import('./bill-fonts.js')
+    const renderPdf = await freshEntry(() => ({
+      get LIBERATION_SANS() {
+        loads += 1
+        return LIBERATION_SANS
+      },
+    }))
+    const read = await readPdf(await renderPdf(documentOf('EPC', [EPC_CODE]), { maxPages: 5 }))
+    expect(loads).toBe(1)
+    expect(read.pages[0]!.items.filter((item) => item.angle === 90).map((item) => item.text)).toEqual(['Zahlen mit Code'])
+    expect(read.fonts.map((font) => font.name)).toContainEqual(expect.stringMatching(/\+LiberationSans$/))
   }, TIMEOUT)
 
   // A chunk imported for every bill would decode and parse two fonts each

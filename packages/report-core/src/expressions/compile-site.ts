@@ -237,15 +237,16 @@ export function compileSite(site: ExpressionSite, members: Members, images: Imag
   ].sort((a, b) => (a.position?.start ?? 0) - (b.position?.start ?? 0))
   if (inexact.length > 0) return failed(inexact)
   const type = compiled.program.resultType
-  if (site.amount === true && !AMOUNTS.has(type)) {
+  if (site.amount !== undefined && !AMOUNTS.has(type)) {
     const hint = type === 'int' || type === 'string' ? 'dec() makes a decimal of an integer, or of a string of digits' : undefined
-    return failed([diagnostic('expression-type', `a QR-bill's amount is a decimal, or null to leave it for the payer, and this expression gives ${type}`, at(site, undefined, hint))])
+    return failed([diagnostic('expression-type', `${site.amount}'s amount is a decimal, or null to leave it for the payer, and this expression gives ${type}`, at(site, undefined, hint))])
   }
   return { ok: true, compiled: { site, program: compiled.program, reads } }
 }
 
 /**
- * What a QR-bill's amount may give: a decimal, null, or a value that may be
+ * What a payment code's amount -- a QR-bill's, an EPC QR code's -- may
+ * give: one rule for both. A decimal, null, or a value that may be
  * either -- a decimal that may be null is checked as `dyn` -- which the
  * render, seeing the value, checks again.
  */

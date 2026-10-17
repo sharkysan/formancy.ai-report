@@ -1,6 +1,6 @@
 # 0007 — A report definition is its own versioned document, with a flowing body, one detail table, declared aggregates and print styles as tokens
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, and by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part, and by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which adds the EPC QR code
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `@formancy/report-spec` tests that fail when it is
@@ -321,6 +321,23 @@ addition: `reportSpecVersion` is unchanged, and so is every report that
 was valid. A release that predates it, 0.1.0 among them, refuses a report
 with a payment part as `unknown-property`. `validate-payment-part.test.ts`
 and `qr-bill.test.ts` hold the shape, the page and the rules.
+
+**Added 2026-10-17: an EPC QR code.** A component of kind `epcQrCode`
+prints the code a SEPA credit transfer is initiated from, as
+[0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)
+decides. Its beneficiary, IBAN, BIC, reference, text and information are
+runs, read as a paragraph's in its place; its amount is an expression,
+its purpose a literal, its size a square held as a QR code's is, and its
+caption Austria's frame or none. It stands wherever a QR code may, and a
+page number or count is refused in every text. Unlike a QR-bill it is a
+component: the EPC prescribes no slip and no place. The EPC's rules for
+what it holds are applied to a text of literal runs here, as
+`invalid-epc-qr-code`, by the functions the runtime applies to data. It is
+a draft-format addition: `reportSpecVersion` is unchanged, and so is every
+report that was valid. A release that predates the kind, 0.1.0 among them,
+refuses a report that holds one as `unknown-kind`.
+`validate-epc-qr-code.test.ts` and `epc-payload.test.ts` hold the shape,
+the placement and the rules.
 
 ## Alternatives considered
 

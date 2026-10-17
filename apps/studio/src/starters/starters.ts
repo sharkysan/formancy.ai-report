@@ -1,7 +1,7 @@
 /**
  * The reports the Studio opens: the corpus's starters, plan 7's three
- * (R19) and the invoice with its QR-bill, each with its synthetic data, and
- * a blank report to build from nothing.
+ * (R19), the invoice with its QR-bill and the invoice with its EPC QR code,
+ * each with its synthetic data, and a blank report to build from nothing.
  */
 import type { ImageResolver } from '@formancy/report-runtime'
 import { emptyReport } from '@formancy/report-spec'

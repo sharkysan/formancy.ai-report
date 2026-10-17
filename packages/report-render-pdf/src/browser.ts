@@ -21,13 +21,15 @@ export type { RenderOptions } from './options.js'
  * touches a file system: the fonts are pdfmake's virtual files, and every
  * address is denied.
  *
- * A QR-bill's slip prints in Liberation Sans 2.1.5, whose two faces come as
- * base64 in a module of their own (`bill-fonts.ts`), the very bytes of this
- * package's `fonts` directory, which a test holds too. It is imported the
- * first time a document has a payment part, and never otherwise: the build
+ * A QR-bill's slip and an EPC QR code's caption print in Liberation Sans
+ * 2.1.5, whose two faces come as base64 in a module of their own
+ * (`bill-fonts.ts`), the very bytes of this package's `fonts` directory,
+ * which a test holds too. It is imported the first time a document has a
+ * payment part or a captioned EPC QR code, and never otherwise: the build
  * makes it a chunk of its own, and an app's bundler loads that chunk only
- * when a bill asks for it. An import that failed is not kept: the bill it
- * failed for fails, and the next bill imports the chunk again.
+ * when a bill or a caption asks for it. An import that failed is not kept:
+ * the document it failed for fails, and the next one imports the chunk
+ * again.
  *
  * Everything but the fonts and the build is the Node entry's own
  * (`render.ts`), so the two hand pdfmake the same definitions.
@@ -42,14 +44,15 @@ const FILES = { normal: 'Roboto-Regular.ttf', bold: 'Roboto-Medium.ttf', italics
 const BILL_FILES = { normal: 'LiberationSans-Regular.ttf', bold: 'LiberationSans-Bold.ttf' } as const
 const own = (file: string): string => `formancy-report-render-pdf/${file}`
 
-/** Liberation Sans's faces as base64, once a document with a bill has loaded them. */
+/** Liberation Sans's faces as base64, once a document with a bill or a captioned code has loaded them. */
 let billFonts: Readonly<Record<BillFace, string>> | undefined
 
 /**
  * Liberation Sans's glyphs, from the faces in the chunk that carries them:
- * imported by the first document with a bill and kept once they have been
- * read, and imported again by the next bill after an import that failed,
- * which would otherwise fail every bill until the page reloaded (`loadOnce`).
+ * imported by the first document with a bill or a captioned code and kept
+ * once they have been read, and imported again by the next such document
+ * after an import that failed, which would otherwise fail every bill and
+ * caption until the page reloaded (`loadOnce`).
  */
 const billGlyphs = loadOnce(async () => {
   const { LIBERATION_SANS: faces } = await import('./bill-fonts.js')

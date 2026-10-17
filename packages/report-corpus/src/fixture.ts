@@ -1,4 +1,4 @@
-import type { Block, Inline, RefusalCode, ResolvedDocument, Table, TableRow } from './document.js'
+import type { Block, EpcQrCode, Inline, RefusalCode, ResolvedDocument, Table, TableRow } from './document.js'
 
 /**
  * A fixture is a document an engine must render, or refuse, and what the PDF
@@ -157,6 +157,15 @@ export function flatten(blocks: readonly Block[]): Block[] {
 
 export function tables(blocks: readonly Block[]): Table[] {
   return flatten(blocks).filter((block) => block.kind === 'table')
+}
+
+/** Every EPC QR code among `blocks`, inside every container -- a column, a section, a keep-together block -- in document order. */
+export function epcCodes(blocks: readonly Block[]): EpcQrCode[] {
+  return blocks.flatMap((block): EpcQrCode[] => {
+    if (block.kind === 'epcQrCode') return [block]
+    if (block.kind === 'columns') return block.columns.flatMap((column) => epcCodes(column.blocks))
+    return 'blocks' in block ? epcCodes(block.blocks) : []
+  })
 }
 
 /** A paragraph's text when it has no page fields, with its whitespace as a line of extracted text has it. */

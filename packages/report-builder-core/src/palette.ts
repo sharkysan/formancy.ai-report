@@ -22,6 +22,22 @@ import type { EditorText, MessageId } from './text.js'
 const BOX = { image: { width: 100, height: 50 }, rectangle: { width: 100, height: 40 } } as const
 /** A new QR code's side, its quiet zone included, in points, when the printable area has room for it both ways: 30 mm. */
 const QR_SIDE = mmToPt(30)
+/**
+ * A new EPC payment code's, likewise: 32 mm, the least whole millimetre in
+ * which every payload the EPC allows prints, up to version 13's 331 bytes,
+ * with Austria's frame and without -- in 30 mm the longest are refused, by
+ * the length of the data alone (0025).
+ */
+const EPC_SIDE = mmToPt(32)
+/**
+ * What a new EPC payment code pays to until the author says: the IBAN of
+ * bank code 00000000, which no bank keeps -- every bank code in the
+ * Bundesbank's Bankleitzahlendatei starts with a digit from 1 to 8 -- so a
+ * code inserted and never edited pays nobody. Its check digits are right
+ * (ISO 13616), or the insert would be refused; and it is the same in every
+ * language, so no editor changes whom a new code pays.
+ */
+const NO_ACCOUNT = 'DE36 0000 0000 0000 0000 00'
 /** A new rule's thickness, in points: a hairline that prints. */
 const RULE = 0.5
 /** A new spacer's height, in points: about a line of body text. */
@@ -59,6 +75,12 @@ const DEFAULTS: { readonly [K in ComponentKind]: (report: ReportDefinition, word
     return { source, width: Math.min(BOX.image.width, room.width), height: Math.min(BOX.image.height, room.height), fit: 'contain' }
   },
   qrCode: (report, words) => ({ content: [{ kind: 'text', text: words('default.qrCode') }], size: Math.min(QR_SIDE, squareRoom(printableArea(report.page)).length), errorCorrection: 'M' }),
+  // No amount, which the payer fills in, and no frame, which is Austria's to ask for.
+  epcQrCode: (report, words) => ({
+    size: Math.min(EPC_SIDE, squareRoom(printableArea(report.page)).length),
+    beneficiary: [{ kind: 'text', text: words('default.epcBeneficiary') }],
+    iban: [{ kind: 'text', text: NO_ACCOUNT }],
+  }),
   line: () => ({ thickness: RULE }),
   rectangle: (report) => {
     const room = printableArea(report.page)

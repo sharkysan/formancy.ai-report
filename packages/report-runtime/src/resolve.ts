@@ -11,7 +11,8 @@
  * 3. the aggregates, exactly, over every row (`totals.ts`);
  * 4. the regions, lowered component by component (`lower.ts`), tables row
  *    by row (`lower-table.ts`), images through the host's lookup
- *    (`images.ts`);
+ *    (`images.ts`), an EPC QR code's every text held to the EPC's rules
+ *    (`lower-epc-qr-code.ts`);
  * 5. the payment part, its every text held to SIX's rules
  *    (`lower-payment-part.ts`).
  *

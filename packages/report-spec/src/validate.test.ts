@@ -198,6 +198,14 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
     accept: set('/paymentPart/account/0/text', 'CH64 3196 1000 0044 2155 7'),
     at: ['/paymentPart/account'],
   },
+  // An IBAN with one digit typed wrong pays nobody, or somebody else: in
+  // an EPC QR code's literal, it is refused where it is written. Another
+  // German account, as literal, is accepted.
+  'invalid-epc-qr-code': {
+    refuse: set('/regions/summary/3/iban/0/text', 'DE71 1102 2033 0123 4567 88'),
+    accept: set('/regions/summary/3/iban/0/text', 'DE89 3704 0044 0532 0130 00'),
+    at: ['/regions/summary/3/iban'],
+  },
   // A rounding increment is an exact decimal; '.05' is a spelling a
   // decimal parser may read, or not.
   'invalid-decimal': {
@@ -291,7 +299,7 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
   // A page break in a page footer would break every page, forever.
   'misplaced-flow-component': {
     refuse: set('/regions/pageFooter/1', { id: 'late-break', kind: 'pageBreak' }),
-    accept: set('/regions/summary/3', { id: 'late-break', kind: 'pageBreak' }),
+    accept: set('/regions/summary/4', { id: 'late-break', kind: 'pageBreak' }),
     at: ['/regions/pageFooter/1'],
   },
   // A page break inside a keep-together block contradicts it, and inside a
@@ -327,16 +335,16 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
   // answer yet.
   'second-detail-table': {
     refuse: (report) => {
-      setAt(report, '/regions/summary/3', { ...(getAt(report, '/regions/body/2') as object), id: 'lines-again' })
+      setAt(report, '/regions/summary/4', { ...(getAt(report, '/regions/body/2') as object), id: 'lines-again' })
       return report
     },
     accept: (report) => {
       const table = getAt(report, '/regions/body/2')
       removeAt(report, '/regions/body/2')
-      setAt(report, '/regions/summary/3', table)
+      setAt(report, '/regions/summary/4', table)
       return report
     },
-    at: ['/regions/summary/3'],
+    at: ['/regions/summary/4'],
   },
   // Containers nest at most MAX_NESTING_DEPTH deep, which bounds the work of
   // every later stage that walks them; the bound itself is allowed.

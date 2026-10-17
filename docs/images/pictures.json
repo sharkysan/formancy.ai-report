@@ -202,5 +202,46 @@
       "CHF 1 416.52",
       "Annahmestelle"
     ]
+  },
+  {
+    "file": "starter-euro-invoice.png",
+    "starter": "euro-invoice",
+    "page": 1,
+    "scale": 1.25,
+    "sha256": "cc0979368846ece8f721edfe8e2bfc5cf557887a41593787fe0a6aa4c72ca58f",
+    "caption": "The euro invoice starter, a German Rechnung: its line items in euro, then Nettobetrag, Umsatzsteuer 19 % and Rechnungsbetrag 1.132,44 €, and under them the Bankverbindung, IBAN: DE83 0123 4567 0012 3456 78, beside the EPC QR code that pays it",
+    "lines": [
+      "Formancy Haustechnik GmbH · Industriestraße 7 · 50735 Köln · USt-IdNr. DE123456789",
+      "Erika Mustermann",
+      "Rechnung",
+      "Heidestraße 17",
+      "Rechnungsnummer: RE-2026-0815",
+      "51147 Köln",
+      "Rechnungsdatum: 15.10.2026",
+      "Leistungsdatum: 08.10.2026",
+      "Zahlbar bis: 29.10.2026",
+      "Artikel Beschreibung Menge Einheit Einzelpreis Betrag",
+      "H-3001 Wartung Gastherme 1,00 Pausch. 189,00 € 189,00 €",
+      "H-3002 Arbeitszeit Techniker 2,75 h 76,00 € 209,00 €",
+      "H-3003 Umwälzpumpe getauscht 1,00 Stk 312,00 € 312,00 €",
+      "H-3004 Ausdehnungsgefäß 25 l 1,00 Stk 148,00 € 148,00 €",
+      "H-3005 Zündelektrode mit Dichtung 1,00 Stk 31,50 € 31,50 €",
+      "H-3006 Heizungswasser nachgefüllt 12,50 l 1,85 € 23,13 €",
+      "H-3007 Anfahrt Köln 1,00 Pausch. 39,00 € 39,00 €",
+      "Nettobetrag 951,63 €",
+      "Umsatzsteuer 19 % 180,81 €",
+      "Rechnungsbetrag 1.132,44 €",
+      "Bitte überweisen Sie den Rechnungsbetrag bis zum 29. Oktober 2026 auf das unten genannte Konto und",
+      "geben Sie dabei die Referenz an.",
+      "Sie sind gesetzlich verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige",
+      "Unterlage zwei Jahre lang aufzubewahren (§ 14b Abs. 1 Satz 5 UStG).",
+      "Bankverbindung",
+      "Empfänger: Formancy Haustechnik GmbH",
+      "IBAN: DE83 0123 4567 0012 3456 78",
+      "BIC: FMNCDEF0XXX",
+      "Betrag: 1.132,44 €",
+      "Referenz: RF72 2026 0815",
+      "Oder scannen Sie den Code links mit Ihrer Banking-App."
+    ]
   }
 ]

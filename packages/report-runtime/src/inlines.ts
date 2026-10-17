@@ -10,10 +10,10 @@
  * and null prints as nothing (0007). A page counter stays a field the
  * engine fills in, since only it knows the pages.
  *
- * A QR code's content, and each text of a QR-bill, is read run by run as a
- * paragraph's is, and joined into the one text the code encodes
- * (`joinedText`), where a value that prints as nothing is refused in a
- * final render.
+ * A QR code's content, and each text of a QR-bill or an EPC QR code, is
+ * read run by run as a paragraph's is, and joined into the one text the
+ * code encodes (`joinedText`), where a value that prints as nothing is
+ * refused in a final render.
  */
 import type { Inline as ReportInline } from '@formancy/report-spec'
 import type { Inline } from './document.js'
@@ -69,15 +69,22 @@ export function runOf(render: Render, scope: Scope, inline: ReportInline, path: 
   return run && { text: run.text }
 }
 
-/** What holds runs a code encodes, as an error names it: a QR code's component, or the payment part. */
+/** What holds runs a code encodes, as an error names it: a QR code's or an EPC QR code's component, or the payment part. */
 export interface Encoder {
   /** How an error's message names it: "component pay-code", "the payment part". */
   readonly said: string
-  /** The component, for a QR code. */
+  /** The component, for a code that is one. */
   readonly componentId?: string
-  /** What the runs are encoded in: "a QR code", "a QR-bill". */
-  readonly code: 'a QR code' | 'a QR-bill'
+  /** What the runs are encoded in. */
+  readonly code: keyof typeof SCANNED_AS
 }
+
+/** What a code of less than its runs would scan as, by what they are encoded in. */
+const SCANNED_AS = {
+  'a QR code': 'some other text',
+  'a QR-bill': 'some other bill',
+  'an EPC QR code': 'some other transfer',
+} as const
 
 /** What runs encoded in a code join to, and whether a run of them had a value that is null, which a preview prints as nothing. */
 export interface Encoded {
@@ -97,28 +104,37 @@ export interface Encoded {
  * did. A page counter has no value before there are pages, and
  * report-spec refuses one in a code; one that reaches here all the same
  * throws, never encoded as nothing.
+ *
+ * `unused` is given for a text its code may leave out, and says whether
+ * the text the runs print leaves its element unused. A text that does,
+ * nulls and all -- a nullable field's way of saying "none" -- is no text
+ * rather than one cut short, and a final render takes it as a preview
+ * does; one whose other runs print something is still refused.
  */
-export function joinedText(render: Render, scope: Scope, runs: readonly ReportInline[], path: string, encoder: Encoder): Encoded | undefined {
+export function joinedText(render: Render, scope: Scope, runs: readonly ReportInline[], path: string, encoder: Encoder, unused?: (text: string) => boolean): Encoded | undefined {
   const texts: string[] = []
+  const nulls: string[] = []
   let refused = false
-  let lacking = false
   for (const [index, inline] of runs.entries()) {
     const at = `${path}/${index}`
     if (inline.kind === 'pageNumber' || inline.kind === 'pageCount') {
       throw new RangeError(`${encoder.said} holds a ${inline.kind} at ${at}, which has no value before there are pages; report-spec refuses it`)
     }
     const run = inline.kind === 'text' ? { value: undefined, text: inline.text } : printed(render, scope, inline, at, encoder)
-    if (run?.value === null && !render.preview) {
-      const without = encoder.code === 'a QR code' ? 'some other text' : 'some other bill'
-      render.problems.error({ stage: 'resolve', code: 'no-qr-value', path: at, message: `${encoder.said}: this run has no value, and ${encoder.code} without it would scan as ${without}`, ...placed(encoder) })
-      refused = true
-    } else if (run === undefined) refused = true
+    if (run === undefined) refused = true
     else {
-      lacking ||= run.value === null
+      if (run.value === null) nulls.push(at)
       texts.push(run.text)
     }
   }
-  return refused ? undefined : { text: texts.join(''), lacking }
+  const text = texts.join('')
+  if (!render.preview && nulls.length > 0 && unused?.(text) !== true) {
+    for (const at of nulls) {
+      render.problems.error({ stage: 'resolve', code: 'no-qr-value', path: at, message: `${encoder.said}: this run has no value, and ${encoder.code} without it would scan as ${SCANNED_AS[encoder.code]}`, ...placed(encoder) })
+    }
+    return undefined
+  }
+  return refused ? undefined : { text, lacking: render.preview && nulls.length > 0 }
 }
 
 /**

@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:feeae00bb453fd18c869aad842ffbde1fe23fdce65e767ddd2744eecc22b0779",
+      "reviewed": "sha256:8bb7d42e4ae2e3695ae80685577d16387dbfb24d7dd751861ab49ac7b1ab3ae8",
       "limitations": [
         {
           "area": "testing",
@@ -103,7 +103,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:5d492fce5628c032d9eedc261b58a8fb39878647a8994205d9a74ae436153dc0",
+      "reviewed": "sha256:665cc5cf98545009874afcbefd6ca813d95cf5da64da314a3bafa640352bfb3d",
       "limitations": [
         {
           "area": "format",
@@ -202,7 +202,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:467bb54758b4f66a363a236626e7f8bf104f31d541c06f9ae88c1ab629dddb33",
+      "reviewed": "sha256:41020fac0282ea732a83c799dd017a96e6b29298b1d2004564f8519df47f2a34",
       "limitations": [
         {
           "area": "runtime",
@@ -250,11 +250,11 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:078a5d376e202bb9c859de25a9c53ea0e5bb7c317aa103b9918f918629124d12",
+      "reviewed": "sha256:8bbeeedd1649cfc3ea11fb5d3ebbcd432ab2aefa1c25089130d97ac15b15ebe5",
       "limitations": [
         {
           "area": "rendering",
-          "says": "One font, Roboto, for everything but a QR-bill's slip: CJK, Hebrew, Arabic, Thai, emoji and fr-FR amounts are refused in printed text, as are the `serif` and `mono` families.",
+          "says": "One font, Roboto, for everything but a QR-bill's slip and an EPC QR code's caption: CJK, Hebrew, Arabic, Thai, emoji and fr-FR amounts are refused in printed text, as are the `serif` and `mono` families.",
           "heldBy": "packages/report-render-pdf/src/glyphs.test.ts"
         },
         {
@@ -422,7 +422,7 @@
       ]
     },
     "0020": {
-      "reviewed": "sha256:1b490aad961d7197bdeb18800199ea8ee58f1c17cf0c6097e5f6d9fdeb67b251",
+      "reviewed": "sha256:41691becf6ba4b1799967a2fdd85e3eadf12f761082277c4f358a7899196a02d",
       "limitations": [
         {
           "area": "format",
@@ -439,7 +439,7 @@
         },
         {
           "area": "format",
-          "says": "A QR code component is not a Swiss QR-bill: it draws no Swiss cross and nothing checks the syntax of what it holds; a bill is a report's payment part (0022)."
+          "says": "A QR code component is neither a Swiss QR-bill nor an EPC QR code: it draws no Swiss cross and no frame, and nothing checks the syntax of what it holds; a bill is a report's payment part (0022), and a SEPA credit transfer's code an `epcQrCode` (0025)."
         },
         {
           "area": "runtime",
@@ -493,7 +493,7 @@
       ]
     },
     "0022": {
-      "reviewed": "sha256:e9d8450bd7c70e09e21801e6af7418cb1179b3651aed9399af4c08e854a9eaad",
+      "reviewed": "sha256:5498b5195cd63daecd531a00d7ea6d59312f85fde124ad878993811310700856",
       "limitations": [
         {
           "area": "format",
@@ -564,7 +564,7 @@
         },
         {
           "area": "rendering",
-          "says": "A browser host gets Liberation Sans as a chunk of 1.1 MB, 519 kB gzipped, loaded with its first QR-bill, or in every page if its bundler does not split dynamic imports; a host that bundles the Node entry copies the font files beside it. A chunk that failed to load is asked for again by the next bill, but whether the browser fetches it again is the browser's, and a chunk a deploy removed fails every bill until the page reloads."
+          "says": "A browser host gets Liberation Sans as a chunk of 1.1 MB, 519 kB gzipped, loaded with its first QR-bill or captioned EPC QR code (0025), or in every page if its bundler does not split dynamic imports; a host that bundles the Node entry copies the font files beside it. A chunk that failed to load is asked for again by the next bill or captioned code, but whether the browser fetches it again is the browser's, and a chunk a deploy removed fails every bill and captioned code until the page reloads."
         },
         {
           "area": "rendering",
@@ -619,6 +619,109 @@
           "area": "testing",
           "says": "The invoice samples print their amounts, quantities and dates as the ICU data of the Node that renders them formats fr-CH, it-CH and en-CH, so a Node whose ICU formats them otherwise fails the samples' pictures, and then the QR-bill page's quotes, until the pictures are taken again.",
           "heldBy": "packages/report-render-pdf/src/pictures.test.ts"
+        }
+      ]
+    },
+    "0025": {
+      "reviewed": "sha256:d42196c6021d70a81c8c6845532627dc2ebe00ad18beb87a683858bec9b57a38",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A report that holds an EPC QR code is refused whole by 0.1.0, which does not know the kind, so a report saved with one opens only in a release that has it."
+        },
+        {
+          "area": "format",
+          "says": "An EPC QR code pays a SEPA credit transfer in euro and nothing else: no instant transfer, no other currency, no character set but UTF-8, and no structured reference but an ISO 11649 creditor reference, so a Belgian structured communication goes in its text.",
+          "heldBy": "packages/report-spec/src/epc-payload.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An EPC QR code's amount is a decimal with no currency, and nothing checks that the value a template binds to it is in euro, so a total the report prints in francs is asked for as so many euros."
+        },
+        {
+          "area": "format",
+          "says": "An EPC QR code's purpose is four capital letters, not checked against ISO 20022's purpose codes, and its BIC may hold digits among its first four characters on the EPC's alphanumeric data type alone, which nothing here checked against ISO 9362."
+        },
+        {
+          "area": "format",
+          "says": "Which countries an EPC QR code pays to, and each one's IBAN length, is a table recorded on 17 October 2026 from EPC409-09 version 8.0 and, for the lengths, python-stdnum's copy of release 101 of SWIFT's IBAN Registry, whose own file was not read, so a country joining SEPA or a length the registry changes reaches an installation only through a release of this module.",
+          "heldBy": "packages/report-spec/src/sepa.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An account's place is read from its IBAN's country, so an EPC QR code paying a French IBAN of a bank in Saint Pierre and Miquelon, which is outside the EEA, is taken without the BIC the EPC asks for there, and one of a bank in New Caledonia, French Polynesia or Wallis and Futuna, which EPC409-09 does not list, as a transfer within SEPA."
+        },
+        {
+          "area": "format",
+          "says": "An EPC QR code needs a BIC only for an account outside the EEA, though the EPC keeps it mandatory wherever a bank outside the EEA takes part, the payer's among them, so a code without one may be refused by a payer's bank in Switzerland or Britain."
+        },
+        {
+          "area": "format",
+          "says": "An EPC QR code's BIC is refused when it is of another country than its IBAN, an inference from EPC409-09's territory codes that neither EPC document states, so an account whose bank's BIC is another country's is refused.",
+          "heldBy": "packages/report-spec/src/epc-payload.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An EPC QR code refuses a QR-IBAN, by SIX's rule that one is paid by a QR-bill in francs with a QR reference, not by the EPC's.",
+          "heldBy": "packages/report-spec/src/epc-payload.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "Nothing in the format pins an EPC QR code to the lower edge of the last page, where Austria's PSA asks for it: a code in the page footer prints on every page, and one in the summary where the body ends."
+        },
+        {
+          "area": "format",
+          "says": "Nothing checks that a template prints an EPC QR code's beneficiary, IBAN and amount beside it in plain text, as the EPC means the code to be printed, and the code carries no bank's or scheme's brand name or logo."
+        },
+        {
+          "area": "runtime",
+          "says": "An EPC QR code's amount is never rounded: one with more than two decimals is refused, so the template rounds the total it asks for.",
+          "heldBy": "packages/report-runtime/src/lower-epc-qr-code.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "An optional text of an EPC QR code that the data gives empty, blank or null is left out of the code rather than refused, in a final render as in a preview, so a missing BIC is no BIC and a missing reference a code without one, where a QR-bill's optional texts refuse a null in a final render.",
+          "heldBy": "packages/report-runtime/src/lower-epc-qr-code.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A preview is refused when the values it lacks leave an EPC QR code without a text the EPC requires, where any other missing value prints as nothing and is warned of.",
+          "heldBy": "packages/report-runtime/src/lower-epc-qr-code.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "An EPC QR code is held to the EPC's 331 bytes once its data is known, so a code whose data makes it too long is refused by the render, not by the editor."
+        },
+        {
+          "area": "rendering",
+          "says": "Austria's frame and \"Zahlen mit Code\" are an option: a code without them is held to the 0.4 mm floor of every QR code and to no largest module, where the PSA asks 15 to 20 mil of every code it prints, and a code with them may have modules as fine as 0.381 mm.",
+          "heldBy": "packages/report-render-pdf/src/epc-qr-code.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A captioned EPC QR code is printed only in a square of 68.06 to 118.6 pt (24.0 to 41.8 mm), and at a version raised until its modules are at most 20 mil, so its symbol can be larger than its payload needs.",
+          "heldBy": "packages/report-spec/src/epc-print.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The frame around a captioned EPC QR code reaches half a module into ISO/IEC 18004's quiet zone at its corners, as the PSA's own figure does, and the frame's line, its place and the caption's size are this module's choices within the bounds the PSA gives.",
+          "heldBy": "packages/report-render-pdf/src/epc-qr-code.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "An EPC QR code makes a render slower and larger: the euro invoice starter took 86 to 116 ms and 31,487 bytes with its code, 114 to 135 ms and 38,207 bytes with Austria's caption, and 74 to 81 ms and 26,348 bytes without the code, on one machine on 17 October 2026."
+        },
+        {
+          "area": "builders",
+          "says": "In the builders an EPC QR code's text of several runs, or a bound one, cannot be removed and no run can be added, a square too small for the frame is refused in points in a field edited in millimetres, and the German and French names of its fields, and what its empty BIC field says, are no native speaker's."
+        },
+        {
+          "area": "builders",
+          "says": "In the builders' design view a component at the top of a narrow column at a container's right end, an EPC QR code beside its details among them, has its label printed over the container's, so that neither can be read."
+        },
+        {
+          "area": "testing",
+          "says": "That an EPC QR code is paid is not tested: its code is read by ZXing from the page PDF.js draws, never by a banking app, no code has been printed, and the EPC's guidelines are informative, so a bank need not read one at all."
         }
       ]
     }

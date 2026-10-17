@@ -54,6 +54,15 @@ export const REPORT_ERROR_CODES = [
    * currency that do not go together.
    */
   'invalid-qr-bill',
+  /**
+   * An EPC QR code the EPC's guidelines refuse where it is written: a
+   * literal IBAN, BIC, name, reference, text, information or purpose that
+   * breaks its rule; a BIC an IBAN does not go with, or none where one is
+   * needed; a reference and a text together; literal texts that pass 331
+   * bytes alone; or, with Austria's caption, a size in which no version
+   * prints the modules the PSA allows.
+   */
+  'invalid-epc-qr-code',
 
   // Declarations.
   /** Margins that leave less than MIN_PRINTABLE_PT either way. */
@@ -78,7 +87,7 @@ export const REPORT_ERROR_CODES = [
   'misplaced-flow-component',
   /** A table or page break inside a columns or keep-together block. */
   'nested-flow-component',
-  /** A page number or count outside the page header and footer, or anywhere in what a QR code or a QR-bill encodes. */
+  /** A page number or count outside the page header and footer, or anywhere in what a QR code, an EPC QR code or a QR-bill encodes. */
   'misplaced-page-counter',
   /** A detail field where there is no current row: outside the table's cells, or in a group header or footer when it is not the field grouped by. */
   'misplaced-detail-field',

@@ -151,6 +151,7 @@ export function layoutReport(report: ReportDefinition): Layout {
       case 'rectangle':
         return record(component.height, component.width, component.width > width)
       case 'qrCode':
+      case 'epcQrCode':
         return record(component.size, component.size, component.size > width)
       case 'line':
         return record(component.thickness + 2 * RULE_ROOM)

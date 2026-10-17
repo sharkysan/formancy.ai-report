@@ -29,20 +29,27 @@ if (!outcome.valid) {
   report does not declare;
 - a value standing where it has none: a detail field outside the table's
   cells, a page number outside the page header and footer or anywhere in a
-  QR code or a QR-bill, whose content is resolved before there are pages;
+  QR code, an EPC QR code or a QR-bill, whose content is resolved before
+  there are pages;
 - a QR code of no runs, which would encode nothing;
-- a fixed size the page cannot hold, a QR code's square measured against
-  `squareRoom`;
+- a fixed size the page cannot hold, a QR code's and an EPC QR code's
+  square measured against `squareRoom`;
 - a payment part on a page other than A4 in portrait, or whose top margin
   reaches past the slip's top (`QR_BILL_TOP`, 544.25 pt), refused as
   `payment-part-page` on `/page` or `/page/margins/top`; and a text of its
   QR-bill, written in literal runs, that SIX's rules refuse
-  (`invalid-qr-bill`). The message names the field and the rule, and never
-  quotes the text.
+  (`invalid-qr-bill`);
+- an EPC QR code that the EPC's rules refuse where it is written
+  (`invalid-epc-qr-code`): a literal text that breaks its rule, a reference
+  and a text together, a BIC its IBAN does not go with or none where one is
+  needed, literal texts already past 331 bytes, or, with Austria's caption,
+  a size in which no version prints the modules the PSA allows with a
+  symbol as tall as the caption beside it.
 
-It reports up to `MAX_ERRORS` errors and says when there were more. It
-checks structure, and what a QR-bill's literal texts say: whether an
-expression compiles, what a bill's data resolves to, and whether the
+A message names the field and the rule, and never quotes a payment code's
+text. It reports up to `MAX_ERRORS` errors and says when there were more.
+It checks structure, and what a payment code's literal texts say: whether
+an expression compiles, what a code's data resolves to, and whether the
 rendered output fits, are the runtime's and the renderer's questions.
 
 ## A QR-bill
@@ -88,6 +95,72 @@ refused only by a render, in the same words. What they do not check:
   no pattern tells from a country whose codes begin with letters;
 - the code's 997 characters, which only the whole bill has.
 
+## An EPC QR code
+
+A component, `epcQrCode`, prints the code a SEPA credit transfer is
+initiated from: the European Payments Council's EPC069-12, version 3.1
+([0025](../../docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+It stands wherever a QR code may; Austria's PSA asks for the lower edge of
+the page, where the author puts it. Its beneficiary, IBAN, BIC, reference,
+text and information are runs, as a paragraph's; its amount is an
+expression; its purpose is four capital letters; and its `caption`,
+`'zahlenMitCode'`, draws Austria's frame and "Zahlen mit Code" inside its
+square. A reference and a text are never both given.
+
+```ts
+import { checkEpcAmount, checkEpcField, checkEpcIban, checkEpcReference, epcCaptionBreak, epcLeastVersion, epcPairing, epcPayload } from '@formancy/report-spec'
+
+checkEpcIban('de71 1102 2033 0123 4567 89') // { ok: true, value: 'DE71110220330123456789' }
+checkEpcIban('FO2000400440116243') // { ok: false, rule: 'is not the IBAN of an account in SEPA: ...' }
+checkEpcIban('CH44 3199 9123 0008 8901 2') // { ok: false, rule: 'is a QR-IBAN, which SIX keeps for QR-bills in francs ...' }
+checkEpcReference('rf18 5390 0754 7034') // { ok: true, value: 'RF18539007547034' }: the QR-bill's own check, then capitals
+checkEpcField('information', ' ') // { ok: false, rule: 'is blank, and an element the code holds has one character at least ...' }
+checkEpcAmount('184.60') // { ok: true, value: '184.6' }: as short as it can be written
+epcPairing('CH9300762011623852957', null) // [{ field: 'bic', rule: "an account outside the EEA is paid to with its bank's BIC: ..." }]
+epcPayload({ bic: 'BHBLDEHHXXX', beneficiary: 'Franz Mustermänn', iban: 'DE71110220330123456789', amount: '12.3', purpose: 'GDDS', reference: 'RF18539007547034' })
+// 'BCD\n001\n1\nSCT\nBHBLDEHHXXX\nFranz Mustermänn\n...\nRF18539007547034': the EPC's first sample, byte for byte
+epcCaptionBreak(68.05) // 'with the caption, a code needs a square of at least 68.06 pt, and this one is 68.05 pt: ...'
+epcLeastVersion(85.04, 'zahlenMitCode') // 8: version 7's modules would be 0.515 mm
+```
+
+What the code holds is SCT in euro, in UTF-8, at most 331 bytes, version
+002 without a BIC and 001 with one. An IBAN is of a country of SEPA, of
+its length and with its check digits right, and no QR-IBAN, which SIX
+keeps for QR-bills in francs; a BIC is of a bank in SEPA, of the IBAN's
+country -- this module's inference from EPC409-09's territory codes --
+and given for an account outside the EEA. Which countries those are, and
+each IBAN's length, is one table, recorded from EPC409-09 version 8.0 and,
+for the lengths, python-stdnum's copy of release 101 of SWIFT's IBAN
+Registry; SWIFT's own file was not read. The IBAN's check digits and the
+creditor reference are checked by the QR-bill's own functions, and the
+QR-IBAN's range is the QR-bill's; the IBAN and the reference are written
+in capitals. An amount is from 0.01 to 999999999.99, never rounded, and
+written as the PSA writes one: `EUR45`, `EUR184.6`. A free text holds no
+control character or line break, which would end its line of the code.
+No text is blank: `checkEpcField` refuses a blank name or IBAN as needed,
+and a blank optional text as the text left out, by `EPC_TEXT_FIELDS`, the
+one table of the code's texts the validator and the runtime read.
+With the caption, `epcModule` and `epcCaptionBreak` hold the modules to
+15 to 20 mil and the symbol to at least the caption's length, 51.36 pt in
+Liberation Sans at 7 pt, since the caption stands beside it: the validator
+refuses a size in which no version does both, which leaves squares of
+68.06 to 118.6 pt, and the renderer the version it encodes. A payload too
+short for its square is drawn in a larger version of itself, from
+`epcLeastVersion`, rather than refused.
+
+What they do not check:
+
+- a purpose code against ISO 20022's list, beyond four capitals;
+- that the amount a template binds is in euro: it is a decimal, and has no
+  currency;
+- that a payer's bank is in the EEA, where a code without a BIC may be
+  refused outside it;
+- a structured reference other than a creditor reference: a Belgian
+  structured communication is refused, and goes in the text;
+- the payload's bytes before a render, beyond what the literal texts
+  write alone;
+- that a bank's app accepts the code, which nothing here can show.
+
 ## Hash
 
 ```ts
@@ -117,7 +190,7 @@ componentAt(blank, 'title') // where a component is, by id: the path its errors 
 `REPORT_SPEC_VERSION` is `0`, the draft: nothing written under it is promised
 to be read by a later release. Nor by an earlier one: a kind the draft gains
 is refused as `unknown-kind` by a release that predates it, never skipped. A
-report with a `qrCode` is refused so by 0.1.0, and one with a `paymentPart`
-as `unknown-property`.
+report with a `qrCode` or an `epcQrCode` is refused so by 0.1.0, and one
+with a `paymentPart` as `unknown-property`.
 
 Source-available, not open source: see [`LICENSE.md`](../../LICENSE.md).

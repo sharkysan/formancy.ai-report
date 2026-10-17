@@ -75,16 +75,25 @@ export function qrSymbol(code: QrCode): QrSymbol {
   const characters = text.length > MAX_CHARACTERS ? codePoints(text) : text.length
   if (characters > MAX_CHARACTERS) throw new RenderRefusal('content-too-large', `the QR code ${id} holds ${characters} characters; no QR code holds more than ${MAX_CHARACTERS}`, id)
   const modules = encoded(text, errorCorrection, id)
-  const count = modules.length + 2 * QUIET_ZONE
+  refuseFineModules({ modules }, size, `the QR code ${id}`, 'its text', id)
+  return { modules }
+}
+
+/**
+ * Refuses `symbol` drawn in a square of `size` with its quiet zone when its
+ * modules would be finer than 0.4 mm, naming the square `holds` needs:
+ * the floor every code drawn with a quiet zone is held to (0020).
+ */
+export function refuseFineModules(symbol: QrSymbol, size: number, what: string, holds: string, id: string): void {
+  const count = symbol.modules.length + 2 * QUIET_ZONE
   const smallest = count * MIN_MODULE
   if (size < smallest) {
     throw new RenderRefusal(
       'content-too-large',
-      `the QR code ${id} is ${size} pt a side, which makes the ${count} modules across its symbol and quiet zone ${(size / count).toFixed(2)} pt each; the smallest module is 0.4 mm (${MIN_MODULE.toFixed(2)} pt), so its text needs a square of at least ${(Math.ceil(smallest * 100) / 100).toFixed(2)} pt`,
+      `${what} is ${size} pt a side, which makes the ${count} modules across its symbol and quiet zone ${(size / count).toFixed(2)} pt each; the smallest module is 0.4 mm (${MIN_MODULE.toFixed(2)} pt), so ${holds} needs a square of at least ${(Math.ceil(smallest * 100) / 100).toFixed(2)} pt`,
       id,
     )
   }
-  return { modules }
 }
 
 /** The symbol uqr encodes, without its quiet zone; refused when no version holds the text, which uqr 0.1.3 says with this error and no other. */
@@ -120,7 +129,7 @@ export function qrContent(symbol: QrSymbol, size: number): ContentSvg {
 }
 
 /** The symbol's dark modules as one path's subpaths, a rectangle for each run of them in a row, `offset` modules in from the square's corner. */
-function darkRuns(symbol: QrSymbol, offset: number): string {
+export function darkRuns(symbol: QrSymbol, offset: number): string {
   const runs: string[] = []
   symbol.modules.forEach((row, y) => {
     for (let x = 0; x < row.length; x++) {

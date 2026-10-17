@@ -4,10 +4,11 @@
  * never name one component two ways.
  *
  * A text is named by what it prints, a bound run by the name of what it
- * binds, a QR code by its kind and what it encodes; anything else by its
- * kind and what it draws. Where two would read the same, each says its id,
- * because a label is also an accessible name and two rows with one name
- * cannot be told apart by a screen reader or found by a test.
+ * binds, a QR code by its kind and what it encodes, an EPC payment code by
+ * its kind and whom it pays; anything else by its kind and what it draws.
+ * Where two would read the same, each says its id, because a label is also
+ * an accessible name and two rows with one name cannot be told apart by a
+ * screen reader or found by a test.
  */
 import { walkComponents } from '@formancy/report-spec'
 import type { Component, Inline, RegionName, ReportDefinition } from '@formancy/report-spec'
@@ -80,6 +81,9 @@ export function componentLabel(component: Component, report: ReportDefinition, t
       const detail = printedText(component.content, report, t)
       return detail === '' ? kind : t('label.kindDetail', { kind, detail })
     }
+    // report-spec refuses a beneficiary of nothing but blanks, so there is always a name.
+    case 'epcQrCode':
+      return t('label.kindDetail', { kind, detail: printedText(component.beneficiary, report, t) })
     default:
       return kind
   }

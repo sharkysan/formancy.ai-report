@@ -21,6 +21,7 @@ const OF_KIND: { readonly [K in ComponentKind]: string } = {
   text: 'intro',
   image: 'logo-image',
   qrCode: 'order-code',
+  epcQrCode: 'pay-code',
   line: 'rule',
   rectangle: 'box',
   spacer: 'gap',
@@ -195,6 +196,7 @@ describe('a component’s properties', () => {
     expect(keys('kept')).toEqual(['/content/0/expression', '/keepWithNext'])
     expect(keys('logo-image')).toEqual(['/source', '/width', '/height', '/fit'])
     expect(keys('order-code')).toEqual(['/content/0/text', '/content/1', '/size', '/errorCorrection'])
+    expect(keys('pay-code')).toEqual(['/beneficiary/0/text', '/iban/0/text', '/bic', '/amount', '/purpose', '/reference', '/text/0/text', '/text/1', '/information', '/size', '/caption'])
     expect(keys('rule')).toEqual(['/thickness', '/color'])
     expect(keys('box')).toEqual(['/width', '/height', '/fill', '/stroke'])
     expect(keys('gap')).toEqual(['/height'])

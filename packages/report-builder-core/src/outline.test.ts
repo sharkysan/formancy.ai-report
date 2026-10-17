@@ -83,6 +83,7 @@ describe('the outline', () => {
       'page-of': 'Page [page] of [pages]',
       'signature-image': 'Image: Signature',
       'order-code': 'QR code: Orders for [Customer]',
+      'pay-code': 'EPC payment code: Franz Mustermänn',
     })
   })
 

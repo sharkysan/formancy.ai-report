@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
-import { readCodes, readPdf } from '@formancy/report-corpus'
+import { epcCodes, readCodes, readPdf } from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import { afterAll, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
 import { decodeStarters, encodeStarters } from '../starters/codec.js'
@@ -50,7 +50,7 @@ describe('the preview pipeline', () => {
     if (outcome.kind !== 'printed') throw new Error(`${id} was not printed: ${JSON.stringify(outcome)}`)
     const pdf = await readPdf(outcome.pdf)
     expect(pdf.pages.length).toBeGreaterThan(0)
-    const titles: Readonly<Record<string, string>> = { 'service-inspection': 'Service inspection', quotation: 'Offerte', 'grouped-equipment': 'Equipment register', invoice: 'Rechnung' }
+    const titles: Readonly<Record<string, string>> = { 'service-inspection': 'Service inspection', quotation: 'Offerte', 'grouped-equipment': 'Equipment register', invoice: 'Rechnung', 'euro-invoice': 'Rechnung' }
     if (id !== 'blank') expect(pdf.pages.flatMap((page) => page.items.map((item) => item.text)).join(' ')).toContain(titles[id] ?? `(no title for ${id})`)
     expect(outcome.manifest.mode).toBe('preview')
   })
@@ -73,6 +73,24 @@ describe('the preview pipeline', () => {
     const printed = pdf.pages[0]?.items.map((item) => item.text).join(' ') ?? ''
     for (const words of ['Empfangsschein', 'Zahlteil', bill.amount ?? '(no amount)']) expect(printed).toContain(words)
     expect((await readCodes(outcome.pdf, 1)).map((code) => code.text)).toEqual([bill.payload])
+  })
+
+  // The euro invoice's EPC code is drawn by the browser entry the page
+  // uses, as the Node entry draws it: read from the pixels PDF.js draws,
+  // it is the payload the runtime resolved, on the invoice's one page,
+  // beside the payment details the page prints. A browser entry that drew
+  // no code, or another, would show a Studio invoice a banking app could
+  // not pay, or would pay wrongly.
+  test('prints the euro invoice with its EPC code, the payload the runtime resolved', async () => {
+    const invoice = request('euro-invoice')
+    const outcome = await preview(invoice, new AbortController().signal)
+    if (outcome.kind !== 'printed') throw new Error(`the euro invoice was not printed: ${JSON.stringify(outcome)}`)
+    const resolved = resolveReport(invoice.report, invoice.starter.data, { mode: 'preview', parameters: invoice.starter.parameters, creationDate: CREATED })
+    if (!resolved.ok) throw new Error('the euro invoice was refused')
+    const pdf = await readPdf(outcome.pdf)
+    expect(pdf.pages).toHaveLength(1)
+    expect(pdf.pages[0]?.items.map((item) => item.text).join(' ')).toContain('Bankverbindung')
+    expect((await readCodes(outcome.pdf, 1)).map((code) => code.text)).toEqual(epcCodes(resolved.document.body).map((code) => code.payload))
   })
 
   // What the runtime refuses comes back as its errors, each with its stage

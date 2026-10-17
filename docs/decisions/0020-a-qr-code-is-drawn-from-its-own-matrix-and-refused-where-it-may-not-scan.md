@@ -1,6 +1,6 @@
 # 0020 — A QR code is drawn from its own matrix, exactly its size, and refused where it may not scan
 
-- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's Swiss QR Code at SIX's size
+- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's Swiss QR Code at SIX's size, and by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code as a QR code, or at the PSA's widths in Austria's frame
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -364,6 +364,16 @@ its centre, and is not held to this record's 0.4 mm floor. A `qrCode`
 still is: `qr.test.ts`'s case of version 25 at 46 mm still refuses it.
 And a `qrCode` is still not a QR-bill: it draws no cross, and nothing
 checks what its content holds. A bill is a report's payment part.
+
+**Added 2026-10-17: the EPC QR code.** [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)'s `epcQrCode` is
+not a `qrCode` either: its payload is written by the runtime from fields
+the EPC's rules check. It is encoded by the same uqr at level M, version
+13 at most, and drawn as the same SVG. Without Austria's caption it is
+drawn as a `qrCode` of its payload at M is, and held to this record's
+0.4 mm floor. With the caption it is held to the PSA's 15 to 20 mil
+instead, inside the PSA's frame, so its modules may be as fine as 0.381
+mm. A `qrCode` still checks nothing of what its content holds: a SEPA
+payload written into one is not an EPC QR code, and nothing says so.
 
 ## Alternatives considered
 

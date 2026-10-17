@@ -1,5 +1,5 @@
 import { COMPONENT_KINDS, componentAt, isIdentifier, walkComponents } from '@formancy/report-spec'
-import type { Component, ReportDefinition, TextComponent } from '@formancy/report-spec'
+import type { Component, EpcQrCodeComponent, ReportDefinition, TextComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { Location } from '../tree.js'
 import { accepted, frozenSample, idsIn, refused, sampleReport } from '../test-support.js'
@@ -55,6 +55,7 @@ describe('insertComponent', () => {
   test.each([
     ['a parent the report lacks', { region: 'body', parent: 'nowhere', index: 0 }, 'not-found'],
     ['a parent that holds nothing', { region: 'body', parent: 'intro', index: 0 }, 'not-a-container'],
+    ['an EPC QR code, which holds nothing', { region: 'summary', parent: 'payment-code', index: 0 }, 'not-a-container'],
     ['a parent in another region', { region: 'summary', parent: 'keep', index: 0 }, 'invalid-location'],
     ['a column with no parent', { region: 'body', column: 0, index: 0 }, 'invalid-location'],
     ['a column of a block that is not columns', { region: 'body', parent: 'keep', column: 0, index: 0 }, 'invalid-location'],
@@ -99,7 +100,7 @@ describe('moveComponent', () => {
     ['to the end', 'intro', { region: 'body', index: 4 }, 'body', ['gap', 'lines', 'keep', 'break', 'intro']],
     ['into a container', 'gap', { region: 'body', parent: 'keep', index: 2 }, 'body:keep', ['box', 'note', 'gap']],
     ['out of a container', 'note', { region: 'body', index: 0 }, 'body', ['note', 'intro', 'gap', 'lines', 'keep', 'break']],
-    ['to another region', 'rule', { region: 'summary', index: 0 }, 'summary', ['rule', 'closing', 'seal-image', 'order-code']],
+    ['to another region', 'rule', { region: 'summary', index: 0 }, 'summary', ['rule', 'closing', 'seal-image', 'order-code', 'payment-code']],
     ['between columns', 'title', { region: 'reportHeader', parent: 'heading', column: 0, index: 1 }, 'reportHeader:heading:0', ['logo-image', 'title']],
   ] as const)('moves a component %s', (_name, id, location, where, ids) => {
     const report = frozenSample()
@@ -173,6 +174,20 @@ describe('updateComponent', () => {
     // @ts-expect-error -- the id is not part of a patch
     expect(updateComponent(report, 'intro', 'text', { id: 'other' }).ok).toBe(false)
   })
+
+  // An EPC QR code is edited as every component is: a text replaced, an
+  // optional one removed with null, its purpose and caption set, and what
+  // the patch does not name kept. Its IBAN is required, so a patch cannot
+  // remove it.
+  test('edits an EPC QR code field by field, keeping the rest', () => {
+    const report = frozenSample()
+    const iban = [{ kind: 'text', text: 'AT61 1904 3002 3457 3201' }] as const
+    const next = accepted(updateComponent(report, 'payment-code', 'epcQrCode', { iban, bic: null, purpose: 'SALA', caption: 'zahlenMitCode' }))
+    const { bic: _bic, ...rest } = componentAt(sampleReport(), 'payment-code')?.component as EpcQrCodeComponent
+    expect(componentAt(next, 'payment-code')?.component).toEqual({ ...rest, iban, purpose: 'SALA', caption: 'zahlenMitCode' })
+    // @ts-expect-error -- the IBAN is required, so it cannot be removed
+    expect(updateComponent(report, 'payment-code', 'epcQrCode', { iban: null }).ok).toBe(true)
+  })
 })
 
 describe('duplicateComponent', () => {
@@ -203,6 +218,15 @@ describe('duplicateComponent', () => {
     expect(idsIn(twice.regions.body)).toEqual(['intro', 'gap', 'gap-3', 'gap-2', 'lines', 'keep', 'box', 'note', 'break'])
   })
 
+  // A copy of an EPC QR code is the code with a fresh id, every text, its
+  // amount, its purpose and its caption kept: a copy that lost its BIC or
+  // its reference would pay to the same account by another code.
+  test('copies an EPC QR code with every field it holds', () => {
+    const outcome = duplicateComponent(frozenSample(), 'payment-code')
+    expect(outcome.ok && outcome.id).toBe('payment-code-2')
+    expect(componentAt(accepted(outcome), 'payment-code-2')?.component).toEqual({ ...componentAt(sampleReport(), 'payment-code')?.component, id: 'payment-code-2' })
+  })
+
   test('refuses a component the report lacks', () => {
     // Duplicating a stale selection is refused rather than copying nothing.
     expect(refused(duplicateComponent(frozenSample(), 'nowhere')).code).toBe('not-found')
@@ -218,6 +242,13 @@ describe('nextComponentId', () => {
     const id = nextComponentId(frozenSample(), kind)
     expect(isIdentifier(id)).toBe(true)
     expect(id.replaceAll('-', '')).toBe(kind.toLowerCase())
+  })
+
+  // Each word of a camelCase kind is a word of the id, as the README
+  // says: an EPC QR code is epc-qr-code, never epcqrcode, which an author
+  // reading the outline would not read as three words.
+  test('writes each word of a kind apart', () => {
+    expect(['pageBreak', 'qrCode', 'epcQrCode', 'keepTogether'].map((kind) => nextComponentId(frozenSample(), kind))).toEqual(['page-break', 'qr-code', 'epc-qr-code', 'keep-together'])
   })
 
   // The palette names a new component by its kind; the first free id wins.

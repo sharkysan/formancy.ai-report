@@ -1,5 +1,5 @@
 import { COMPONENT_KINDS, QR_BILL_ADDRESS_RULES, walkComponents } from '@formancy/report-spec'
-import type { Inline, ReportDefinition, SwissQrBill, TextComponent } from '@formancy/report-spec'
+import type { EpcQrCodeComponent, Inline, ReportDefinition, SwissQrBill, TextComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { frozenSample, sampleReport } from '../test-support.js'
 import { expressionSites, reportParts } from './parts.js'
@@ -42,6 +42,8 @@ describe('expressionSites', () => {
       'report visible closing /regions/summary/0/visibleWhen/cel',
       'report computed statistics /regions/summary/0/components/1/content/3/expression/cel',
       'report computed order-code /regions/summary/2/content/2/expression/cel',
+      'report computed payment-code /regions/summary/3/amount/cel',
+      'report computed payment-code /regions/summary/3/information/1/expression/cel',
       'report computed - /paymentPart/amount/cel',
       'report computed - /paymentPart/message/1/expression/cel',
       'row computed - /aggregates/2/of/expression/cel',
@@ -118,10 +120,73 @@ describe('a QR code', () => {
     if (code?.kind !== 'qrCode') throw new Error('the sample has no QR code at the end of its summary')
     const { size: _size, errorCorrection: _errorCorrection, ...shared } = code
     const asText: TextComponent = { ...shared, kind: 'text' }
-    const swapped = { ...report, regions: { ...report.regions, summary: [...report.regions.summary.slice(0, 2), asText] } }
+    const swapped = { ...report, regions: { ...report.regions, summary: [...report.regions.summary.slice(0, 2), asText, ...report.regions.summary.slice(3)] } }
     const parts = reportParts(report)
     expect(parts).toEqual(reportParts(swapped))
     expect(parts.expressions).toContainEqual({ cel: '" from " + params.from', scope: 'report', kind: 'computed', path: '/regions/summary/2/content/2/expression/cel', componentId: 'order-code' })
+  })
+})
+
+describe('an EPC QR code', () => {
+  /** The sample with its EPC QR code replaced by what `change` makes of it. */
+  function withCode(change: (code: EpcQrCodeComponent) => EpcQrCodeComponent): ReportDefinition {
+    const report = sampleReport()
+    const code = report.regions.summary[3]
+    if (code?.kind !== 'epcQrCode') throw new Error('the sample has no EPC QR code at the end of its summary')
+    return { ...report, regions: { ...report.regions, summary: [...report.regions.summary.slice(0, 3), change(code)] } }
+  }
+
+  // Its texts are read as a paragraph's in its place, in the report's
+  // scope, and its amount as a value, each named after the code: the
+  // editor opens the code's properties for either. Read any other way, an
+  // expression in a code would go unchecked until a render refused it.
+  test("is read in the report's scope, its amount as the code's amount, named after the code", () => {
+    expect(reportParts(frozenSample()).expressions.filter(({ componentId }) => componentId === 'payment-code')).toEqual([
+      { cel: 'totals.subtotal', scope: 'report', kind: 'computed', path: '/regions/summary/3/amount/cel', componentId: 'payment-code', amount: 'an EPC QR code' },
+      { cel: '" for " + header.customer', scope: 'report', kind: 'computed', path: '/regions/summary/3/information/1/expression/cel', componentId: 'payment-code' },
+    ])
+  })
+
+  // Every text a code holds is read: with an expression in each, the sites
+  // found are every expression the code holds, found without knowing the
+  // format, in the order its payload holds them. A text the walk left out
+  // would be one nobody checks.
+  test('reads every text it holds, in the order its payload holds them', () => {
+    const run = (at: string): Inline[] => [{ kind: 'expression', expression: { cel: `"${at}"` } }]
+    const everywhere = withCode(({ reference: _reference, ...code }) => ({
+      ...code,
+      bic: run('bic'),
+      beneficiary: run('beneficiary'),
+      iban: run('iban'),
+      text: run('text'),
+      information: run('information'),
+    }))
+    const found = expressionSites(everywhere).filter(({ componentId }) => componentId === 'payment-code')
+    expect(found.map(({ path }) => path)).toEqual(['bic', 'beneficiary', 'iban', 'amount', 'text', 'information'].map((key) => (key === 'amount' ? '/regions/summary/3/amount/cel' : `/regions/summary/3/${key}/0/expression/cel`)))
+    expect(found.map(({ path }) => path).sort()).toEqual(celPointers(everywhere.regions.summary[3], '/regions/summary/3').sort())
+    const withReference = withCode((code) => ({ ...code, reference: run('reference') }))
+    expect(expressionSites(withReference).map(({ path }) => path)).toContain('/regions/summary/3/reference/0/expression/cel')
+  })
+
+  // A code needs only its size, its beneficiary and its IBAN: one without
+  // an amount, a BIC or any remittance is read for what it holds.
+  test('is read for what it holds when it holds only what it must', () => {
+    const bare = withCode(({ bic: _bic, amount: _amount, purpose: _purpose, reference: _reference, information: _information, ...code }) => code)
+    expect(expressionSites(bare).filter(({ componentId }) => componentId === 'payment-code')).toEqual([])
+  })
+
+  // What its texts name is used: a parameter and an aggregate named
+  // nowhere else are no unused declarations.
+  test('collects what its texts name', () => {
+    const parts = reportParts(
+      withCode((code) => ({
+        ...code,
+        beneficiary: [{ kind: 'parameter', parameter: 'copies' }],
+        information: [{ kind: 'aggregate', aggregate: 'gross', over: 'report' }],
+      })),
+    )
+    expect(parts.parameters).toContain('copies')
+    expect(parts.aggregates).toContain('gross')
   })
 })
 
@@ -134,7 +199,7 @@ describe('a payment part', () => {
   test("is read in the report's scope, its amount as the bill's amount", () => {
     const parts = reportParts(frozenSample())
     expect(parts.expressions.filter(({ path }) => path.startsWith('/paymentPart/'))).toEqual([
-      { cel: 'totals.subtotal', scope: 'report', kind: 'computed', path: '/paymentPart/amount/cel', amount: true },
+      { cel: 'totals.subtotal', scope: 'report', kind: 'computed', path: '/paymentPart/amount/cel', amount: 'a QR-bill' },
       { cel: '" for " + header.customer', scope: 'report', kind: 'computed', path: '/paymentPart/message/1/expression/cel' },
     ])
   })

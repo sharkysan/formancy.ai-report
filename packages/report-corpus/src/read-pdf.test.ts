@@ -1,4 +1,4 @@
-import { concatTransformationMatrix, drawObject, PDFDocument, popGraphicsState, pushGraphicsState } from '@pdfme/pdf-lib'
+import { concatTransformationMatrix, degrees, drawObject, PDFDocument, popGraphicsState, pushGraphicsState, StandardFonts } from '@pdfme/pdf-lib'
 import { describe, expect, test } from 'vitest'
 import { encodePng } from './fixtures/png.js'
 import { readPdf } from './read-pdf.js'
@@ -39,6 +39,35 @@ describe('readPdf', () => {
     expect(item!.top).toBeCloseTo(item!.bottom - 10, 5)
     expect(item!.height).toBe(10)
     expect(item!.width).toBeGreaterThan(20)
+  })
+
+  // A caption set from bottom to top -- an EPC QR code's "Zahlen mit
+  // Code" (PSA v3.0 5) -- is a run whose baseline runs up the page. Read
+  // as an upright run, its box would lie across the page from where it
+  // starts, over whatever stands to its right, and nothing could say which
+  // way it reads. Its angle is counted counter-clockwise from the page's
+  // x-axis, and its box is the one its letters' box turns into: from its
+  // start up the page by its advance, its letters' tops to the left.
+  test('reads which way each run reads, and boxes a turned run where it stands', async () => {
+    const document = await PDFDocument.create()
+    const font = await document.embedFont(StandardFonts.Helvetica)
+    const page = document.addPage([595.28, 841.89])
+    page.drawText('upright', { x: 100, y: 700, size: 10, font })
+    page.drawText('Zahlen mit Code', { x: 300, y: 400, size: 7, font, rotate: degrees(90) })
+    page.drawText('downward', { x: 400, y: 400, size: 10, font, rotate: degrees(-90) })
+    const [upright, up, down] = (await readPdf(await document.save())).pages[0]!.items
+    expect(upright).toMatchObject({ text: 'upright', angle: 0, x: expect.closeTo(100, 3), height: 10 })
+    const advance = font.widthOfTextAtSize('Zahlen mit Code', 7)
+    expect(up).toMatchObject({ text: 'Zahlen mit Code', angle: 90 })
+    expect(up!.x).toBeCloseTo(300 - 0.8 * 7, 3)
+    expect(up!.width).toBeCloseTo(7, 3)
+    expect(up!.bottom).toBeCloseTo(841.89 - 400, 3)
+    expect(up!.top).toBeCloseTo(841.89 - 400 - advance, 3)
+    expect(up!.height).toBeCloseTo(advance, 3)
+    // Read top to bottom, its letters' tops to the right.
+    expect(down).toMatchObject({ text: 'downward', angle: -90 })
+    expect(down!.x).toBeCloseTo(400 - 0.2 * 10, 3)
+    expect(down!.top).toBeCloseTo(841.89 - 400, 3)
   })
 
   // pdfjs inserts a space item as wide as the gap between two table cells,

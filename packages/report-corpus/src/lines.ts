@@ -30,8 +30,14 @@ const SAME_LINE = 0.3
  */
 const WORD_GAP = 0.15
 
+/**
+ * The page's lines, top to bottom, and after them each run that does not
+ * read across the page as a line of its own: a caption up the side of a
+ * code shares no baseline with the text beside it.
+ */
 export function pageLines(page: PdfPage): Line[] {
-  const byBaseline = [...page.items].sort((a, b) => baselineOf(a) - baselineOf(b) || a.x - b.x)
+  const across = page.items.filter((item) => item.angle === 0)
+  const byBaseline = across.sort((a, b) => baselineOf(a) - baselineOf(b) || a.x - b.x)
   const lines: PdfTextItem[][] = []
   for (const item of byBaseline) {
     const current = lines.at(-1)
@@ -42,7 +48,7 @@ export function pageLines(page: PdfPage): Line[] {
       lines.push([item])
     }
   }
-  return lines.map(line)
+  return [...lines, ...page.items.filter((item) => item.angle !== 0).map((item) => [item])].map(line)
 }
 
 function line(items: PdfTextItem[]): Line {

@@ -2,6 +2,7 @@ import type { Content, CustomTableLayout } from 'pdfmake/interfaces.js'
 import type { Block, Columns, Image, ImageAsset, Inline, Paragraph, Rectangle, Rule, Section } from '@formancy/report-runtime'
 import { base64 } from './bytes.js'
 import { startsOnPage, type Build, type Fields } from './build.js'
+import { epcContent } from './epc.js'
 import { qrContent } from './qr.js'
 import { DEFAULT_SIZE, textProperties } from './style.js'
 import { tableContent } from './table.js'
@@ -89,7 +90,7 @@ function sequence(given: readonly Block[], build: Build, scope: Scope): Content[
 interface Anchor {
   readonly text?: unknown
   readonly image?: unknown
-  /** A QR code: the one thing the renderer draws as an SVG (`qr.ts`). */
+  /** A QR code or an EPC QR code: what the renderer draws as an SVG (`qr.ts`, `epc.ts`). */
   readonly svg?: unknown
   readonly stack?: readonly Anchor[]
   readonly columns?: readonly Anchor[]
@@ -141,6 +142,9 @@ function blockContent(block: Block, build: Build, scope: Scope): Content {
     case 'qrCode':
       // check.ts encodes every QR code before anything is built.
       return qrContent(build.codes.get(block)!, block.size)
+    case 'epcQrCode':
+      // And every EPC QR code.
+      return epcContent(build.codes.get(block)!, block)
     case 'rule':
       return ruleContent(block, scope.width)
     case 'rectangle':

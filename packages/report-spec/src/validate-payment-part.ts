@@ -6,11 +6,11 @@
  * QR code, so they read what a paragraph in the summary reads and never a
  * page number or count. A text of literal runs prints the same in every
  * render, so `qr-bill.ts`'s rules are applied to it here, where it is
- * written; any other is checked by the runtime with the same rules, once
- * the data has resolved it.
+ * written, as `validate-payment-text.ts` reads every payment code's texts;
+ * any other is checked by the runtime with the same rules, once the data
+ * has resolved it.
  */
-import { kindOf, oneOf, optional, readArray, readObject, shape, strictKeys } from './check.js'
-import { MAX_INLINES } from './limits.js'
+import { kindOf, oneOf, optional, readObject, shape, strictKeys } from './check.js'
 import { PAYMENT_PART_KINDS, QR_BILL_CURRENCIES, QR_BILL_LANGUAGES } from './payment-part.js'
 import type { PaymentPart, PaymentPartKind, QrBillAddress, SwissQrBill } from './payment-part.js'
 import { at } from './pointer.js'
@@ -28,11 +28,12 @@ import {
 import type { QrBillCheck, QrBillPageBreak, QrBillTextRule } from './qr-bill.js'
 import type { Inline, PageSettings } from './types.js'
 import type { Ctx } from './validate-context.js'
-import { readExpression, readInlines } from './validate-inline.js'
-import type { InlineScope } from './validate-inline.js'
+import { readExpression } from './validate-inline.js'
+import { readPaymentText, unquoted } from './validate-payment-text.js'
+import type { PaymentScope, PaymentText } from './validate-payment-text.js'
 
 /** Where a bill's runs are read: in the report's scope, encoded in its QR code. */
-const SCOPE: InlineScope = { region: 'paymentPart', reads: 'report', encoded: 'a QR-bill' }
+const SCOPE: PaymentScope = { region: 'paymentPart', reads: 'report', encoded: 'a QR-bill' }
 
 /**
  * Where each rule of the page is reported: the A4 rule on the page, whose
@@ -41,54 +42,9 @@ const SCOPE: InlineScope = { region: 'paymentPart', reads: 'report', encoded: 'a
  */
 const PAGE_FIELDS: { readonly [F in QrBillPageBreak['field']]: string } = { page: '/page', topMargin: '/page/margins/top' }
 
-/** The text runs make when every one is literal; undefined when any is read from data, or there are none, which is refused as too few. */
-function literal(runs: readonly Inline[]): string | undefined {
-  if (runs.length === 0) return undefined
-  let text = ''
-  for (const run of runs) {
-    if (run.kind !== 'text') return undefined
-    text += run.text
-  }
-  return text
-}
-
-/** A text of the bill: its runs, and what SIX's rule made of them when they are literal and it accepted them. */
-interface Text<T> {
-  readonly runs: readonly Inline[] | undefined
-  readonly checked: T | undefined
-}
-
-/**
- * A string where the bill expects runs, a run or an address, refused as
- * the wrong type without the quote the shared readers give a string they
- * find: written out, it is an IBAN, a name or a street, which may be a
- * person's.
- */
-function unquoted(c: Ctx, path: string, expected: string): undefined {
-  c.f.report(path, 'wrong-type', `expected ${expected}, found a string, which is not quoted: what a QR-bill holds may be a person's`)
-  return undefined
-}
-
-/** The runs at `path`, one at least, read as a paragraph's are; a string in their place, or in a run's, refused unquoted. */
-function readRuns(c: Ctx, value: unknown, path: string): readonly Inline[] | undefined {
-  const items = typeof value === 'string' ? unquoted(c, path, 'an array') : readArray(c.f, value, path, MAX_INLINES)
-  const strings = items?.flatMap((item, index) => (typeof item === 'string' ? [index] : [])) ?? []
-  for (const index of strings) unquoted(c, at(path, index), 'an object')
-  return items === undefined || strings.length > 0 ? undefined : readInlines(c, items, path, SCOPE, 1)
-}
-
-/**
- * The runs at `path`, one at least, and the rule `check` applied to them
- * when they are literal, refused as `what` breaking it. Absent, nothing is
- * said: whether it may be is the shape's question.
- */
-function readText<T>(c: Ctx, value: unknown, path: string, what: string, check: (text: string) => QrBillCheck<T>): Text<T> {
-  const runs = readRuns(c, value, path)
-  const text = runs && literal(runs)
-  if (text === undefined) return { runs, checked: undefined }
-  const outcome = check(text)
-  if (!outcome.ok) c.f.report(path, 'invalid-qr-bill', `${what} ${outcome.rule}`)
-  return { runs, checked: outcome.ok ? outcome.value : undefined }
+/** A text of the bill, read as every payment code's is, and refused as `invalid-qr-bill` when SIX's rule refuses it. */
+function readText<T>(c: Ctx, value: unknown, path: string, what: string, check: (text: string) => QrBillCheck<T>): PaymentText<T> {
+  return readPaymentText(c, value, path, SCOPE, 'invalid-qr-bill', what, check)
 }
 
 type AddressPart = keyof QrBillAddress
@@ -99,7 +55,7 @@ const OPTIONAL_PARTS = ADDRESS_PARTS.filter(([, rule]) => !rule.required).map(([
 
 /** A party's address, each part read in the order the code holds them and held to its rule. */
 function readAddress(c: Ctx, value: unknown, path: string, party: 'creditor' | 'debtor'): QrBillAddress | undefined {
-  const o = typeof value === 'string' ? unquoted(c, path, 'an object') : shape(c.f, value, path, REQUIRED_PARTS, OPTIONAL_PARTS)
+  const o = typeof value === 'string' ? unquoted(c, path, 'an object', SCOPE) : shape(c.f, value, path, REQUIRED_PARTS, OPTIONAL_PARTS)
   if (o === undefined) return undefined
   const address: Partial<Record<AddressPart, readonly Inline[]>> = {}
   let whole = true

@@ -1,5 +1,8 @@
 import {
+  epcCodes,
   equipmentData,
+  EURO_INVOICE,
+  euroInvoiceData,
   GROUPED_EQUIPMENT,
   INSPECTION_PHOTO,
   inspectionData,
@@ -23,7 +26,7 @@ import { fixtureOf, normalise, TIMEOUT, type Stated } from './testing/documents.
 import { lineHas, pageLines, type Line } from './testing/lines.js'
 
 /**
- * The three starters of plan 7 and the invoice with its QR-bill, end to end: each definition resolved by the
+ * The three starters of plan 7, the invoice with its QR-bill and the invoice with its EPC code, end to end: each definition resolved by the
  * runtime against its synthetic data, rendered by pdfmake, and proved on the
  * PDF it produced, read back with PDF.js (0003) -- never on the document the
  * renderer was given. The corpus's checks prove the layout: every row once
@@ -332,5 +335,59 @@ describe('the invoice', () => {
     expect(codes[0]?.text.split('\n').slice(18, 20)).toEqual([decimal(total), 'CHF'])
     expect(pdf.pages[0]?.items.filter((item) => item.text === slipAmount(total)).length).toBe(2)
     for (const heading of ['Empfangsschein', 'Zahlteil']) expect(pdf.pages[0]?.items.some((item) => item.text === heading), heading).toBe(true)
+  }, TIMEOUT)
+})
+
+describe('the euro invoice', () => {
+  const data = euroInvoiceData()
+  const lines = [...(data.detail as Record<string, string>[])].sort((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1))
+  /** An amount in euro as Intl prints it for a German reader, handed the exact decimal string. */
+  const eur = (amount: bigint): string => normalise(new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(decimal(amount) as Intl.StringNumericLiteral))
+  /** An IBAN or a creditor reference as a person reads it: in groups of four. */
+  const grouped = (code: string): string => code.replace(/(.{4})(?=.)/g, '$1 ')
+
+  // The independent reference: the net amount is the sum of the supplied
+  // amounts; the tax is 19 % of it, rounded half away to the cent; the
+  // total is the two, to the cent, as a transfer is paid.
+  const net = lines.reduce((sum, line) => sum + cents(line['amount'] as string), 0n)
+  const tax = halfAway(net * 19n, 100n)
+  const total = net + tax
+
+  // An invoice paid by its code: every line item once, in article order
+  // though the data sent them the other way round, and the totals exactly
+  // what the reference computes, on its one page. The code, decoded from
+  // the page's pixels, is the payload the runtime resolved, at level M and
+  // a version the EPC allows, asking for the total the table prints; and
+  // the payment details beside it print in plain text what it holds --
+  // whom it pays, the IBAN, the BIC, the amount, the reference -- which is
+  // how EPC069-12 means a code to be printed, so that the payer can compare
+  // what the banking app read. A code that paid another amount or another
+  // account than the page says would be paid wrongly, and only a reader
+  // who decoded it would know.
+  test('prints its lines and totals, and an EPC code for exactly the printed total beside the details it holds', async () => {
+    const document = resolved(EURO_INVOICE, data)
+    const bytes = await renderPdf(document, { maxPages: 20 })
+    const pdf = await readPdf(bytes)
+    expect(pdf.pages).toHaveLength(1)
+    const found = lines.map((line) => startingWith(pdf, line['article'] as string))
+    expect(found.map((each) => each.length)).toEqual(lines.map(() => 1))
+    expect(found.map(([line], index) => line !== undefined && lineHas(line, eur(cents(lines[index]?.['amount'] as string))))).toEqual(lines.map(() => true))
+    expect(startingWith(pdf, 'Nettobetrag').map((line) => line.text)).toEqual([`Nettobetrag ${eur(net)}`])
+    expect(startingWith(pdf, 'Umsatzsteuer 19 %').map((line) => line.text)).toEqual([`Umsatzsteuer 19 % ${eur(tax)}`])
+    expect(startingWith(pdf, 'Rechnungsbetrag').map((line) => line.text)).toEqual([`Rechnungsbetrag ${eur(total)}`])
+    const codes = await readCodes(bytes, 1)
+    expect(codes.map((code) => [code.text, code.ecLevel])).toEqual(epcCodes(document.body).map((resolved) => [resolved.payload, 'M']))
+    const [code] = codes as [(typeof codes)[number]]
+    expect(code.version).toBeLessThanOrEqual(13)
+    const [, , , , bic, name, iban, amount, , reference] = code.text.split('\n')
+    expect(amount).toBe(`EUR${decimal(total).replace(/\.?0+$/, '')}`)
+    const details = [`Empfänger: ${name}`, `IBAN: ${grouped(iban as string)}`, `BIC: ${bic}`, `Betrag: ${eur(total)}`, `Referenz: ${grouped(reference as string)}`]
+    expect(details.map((words) => startingWith(pdf, words).map((line) => line.text))).toEqual(details.map((words) => [words]))
+    // In the left half of the page, below the totals, and each detail
+    // beside it: right of the symbol, and within its height.
+    const beside = details.flatMap((words) => startingWith(pdf, words)).filter((line) => line.x > code.x + code.width && line.bottom > code.top && line.top < code.bottom)
+    expect(beside.map((line) => line.text)).toEqual(details)
+    expect(code.x + code.width).toBeLessThan((pdf.pages[0]?.width as number) / 2)
+    expect(code.top).toBeGreaterThan(startingWith(pdf, 'Rechnungsbetrag')[0]?.bottom as number)
   }, TIMEOUT)
 })
