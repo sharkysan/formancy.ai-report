@@ -1,6 +1,9 @@
 # 0025 — A report prints an EPC QR code for a SEPA credit transfer, held to the EPC's rules by one set of checks beside the QR-bill's, and framed as Austria's PSA frames one where the author asks
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0028](0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
+  its euro invoice's samples from six more countries and a page for the
+  code, whose wording check refuses the name this record keeps off
+  everything here
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

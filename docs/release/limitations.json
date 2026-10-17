@@ -471,7 +471,7 @@
       ]
     },
     "0021": {
-      "reviewed": "sha256:70e57564d7acfe1c0ff17ef439e816eb20b6f6150cee2624fddeb4537af8786a",
+      "reviewed": "sha256:ac9398258b908fe3601117b765779bb5f107503ce3e24daa995b6599a5c8ce99",
       "limitations": [
         {
           "area": "release",
@@ -594,7 +594,7 @@
       ]
     },
     "0024": {
-      "reviewed": "sha256:0b85f23a80e24e7a4e8668fbe9545290b112d102170909d3c529a4975f245b1e",
+      "reviewed": "sha256:4c8729b2b8769ea10f189860766f1c72a974e0d8857621c9048550ef07e94cfe",
       "limitations": [
         {
           "area": "release",
@@ -623,7 +623,7 @@
       ]
     },
     "0025": {
-      "reviewed": "sha256:d42196c6021d70a81c8c6845532627dc2ebe00ad18beb87a683858bec9b57a38",
+      "reviewed": "sha256:5aabd44b0f8153cd8c3b7fb2a530e3ed4182b97d54849a457cbc862046115489",
       "limitations": [
         {
           "area": "format",
@@ -728,6 +728,59 @@
     "0026": {
       "reviewed": "sha256:dc98cada680c3e94dd7e1460382713b6e41d274e572061300b545fd95093cf85",
       "none": "It decides how the repository documents its architecture and what holds those documents in pnpm test:repo; its costs fall on a contributor's pull request, and nothing in a published package, a release or the Studio changes with it."
+    },
+    "0028": {
+      "reviewed": "sha256:a91d68cb5e470303cac4552fc4c4e532e2457662baac54a6bc877c93292c2ea0",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "The EPC QR code page, formancy.ai/report/en/epc-qr-code/ and its translations, says the code is in no release, and the pages refuse to render once CHANGELOG.md names a release after 0.1.0, naming it with every other page whose status that release outdates, so a release commit fails the pages' suite until each such page's status is written again.",
+          "heldBy": "apps/pages/src/epc-qr-code.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "Of the euro invoice's samples, only the German one is a starter the Studio offers: the Austrian, French, Italian, Spanish, Dutch and Irish samples are shown on the EPC QR code page as pictures, and live in report-corpus, which is never published.",
+          "heldBy": "packages/report-corpus/src/starters/euro-samples.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "The euro invoice's samples are no tax advice: each prints its country's standard VAT rate as the EU's Your Europe table gave it on 17 October 2026, nothing reads the rates again, that a sale of parts takes that rate is this module's reading and no tax adviser's, and they may lack what their countries' invoicing law asks: none states a legal guarantee of conformity, the Spanish holds at most as a simplified invoice, without its customer's NIF, the Italian gives no codice fiscale, and the Italian, Dutch and Austrian no company register's number."
+        },
+        {
+          "area": "rendering",
+          "says": "The euro invoice's samples are PDFs and no e-invoice: none is an XRechnung, ZUGFeRD, Factur-X or FatturaPA, the Italian sample says it is a courtesy copy of an electronic invoice, and the Spanish one prints no Verifactu code."
+        },
+        {
+          "area": "release",
+          "says": "The pages refuse the name some German banks give the EPC QR code, in any case, its two words joined or apart by spaces, dashes, hyphens or invisible characters, so a reader who searches for that name finds no page of the site by it.",
+          "heldBy": "apps/pages/src/checks.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "The EPC QR code page names the Studio's starter \"Euro invoice\", its picker's \"Starter\" and its palette's \"EPC payment code\" as words nothing here reads, and its hero opens the Studio at its first starter, not at the euro invoice."
+        },
+        {
+          "area": "testing",
+          "says": "The euro invoice's samples print their amounts and dates as the ICU data of the Node that renders them formats de-AT, fr-FR, it-IT, es-ES, nl-NL and en-IE, so a Node whose ICU formats them otherwise fails the samples' pictures, and then the EPC QR code page's quotes, until the pictures are taken again.",
+          "heldBy": "packages/report-render-pdf/src/pictures.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The euro invoice samples' words in German for Austria, French, Italian, Spanish, Dutch and English, and the EPC QR code page's in German, French, Italian and English, are no native speaker's, and nobody here reads the Spanish or the Dutch."
+        },
+        {
+          "area": "testing",
+          "says": "The Italian and Irish samples' accounts are known only to have the right check digits: the Banca d'Italia's register and a list of Irish sort codes could not be read on 17 October 2026, so nothing shows that no bank keeps their bank codes, as the Austrian, French, Spanish and Dutch registers showed for theirs."
+        },
+        {
+          "area": "testing",
+          "says": "The euro invoice samples' firms, customers and addresses are invented, and nobody checked that no business is at those addresses; that each VAT number fails its country's check was computed once, on 17 October 2026, and no test holds it."
+        },
+        {
+          "area": "testing",
+          "says": "The EPC QR code page's reflow down to 320 pixels and its colour contrast were measured in Chromium by hand on 17 October 2026, with every other page's, and by no gate, so a later change to a page is measured in a browser by nobody."
+        }
+      ]
     }
   }
 }

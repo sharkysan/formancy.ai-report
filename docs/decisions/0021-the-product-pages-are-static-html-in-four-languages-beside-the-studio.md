@@ -4,7 +4,11 @@
   not Google's, and no page asks another site for anything; extended by
   [0024](0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
   the QR-bill page and the invoice samples' pictures, and checks of a
-  link's heading and of a picture's description against its figure
+  link's heading and of a picture's description against its figure; and
+  by [0028](0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
+  the EPC QR code page, a word check refusing the name 0025 keeps off
+  everything here, and every page's status read by the site before it
+  renders any
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
 import { siteProblems } from './checks/index.js'
 import { GROUPS } from './groups.js'
+import { renderSite } from './site.js'
 import { builtOf, inputs, repo, site } from './test-site.js'
 
 /**
@@ -25,7 +26,10 @@ describe('the site the build writes (0021)', () => {
   // page every search engine has indexed, and leave the old address a 404.
   // The QR-bill page's slugs are what a reader searches for in each
   // language (0024): QR-Rechnung, facture QR, fattura QR, Swiss QR-bill.
-  test('is the product page, the QR-bill page and the healthcare page, in German, French, Italian and English, at the addresses 0021 and 0024 give them', () => {
+  // The EPC QR code page's are the standard's name in German and English,
+  // and in French and Italian the transfer's, which a reader there meets
+  // on every payment (0028): two languages share a slug, at two addresses.
+  test('is the product page, the QR-bill page, the EPC QR code page and the healthcare page, in German, French, Italian and English, at the addresses 0021, 0024 and 0028 give them', () => {
     expect(site.pages.map((page) => page.url)).toEqual([
       'https://formancy.ai/report/de/',
       'https://formancy.ai/report/fr/',
@@ -35,10 +39,38 @@ describe('the site the build writes (0021)', () => {
       'https://formancy.ai/report/fr/facture-qr/',
       'https://formancy.ai/report/it/fattura-qr/',
       'https://formancy.ai/report/en/swiss-qr-bill/',
+      'https://formancy.ai/report/de/epc-qr-code/',
+      'https://formancy.ai/report/fr/qr-code-sepa/',
+      'https://formancy.ai/report/it/qr-code-sepa/',
+      'https://formancy.ai/report/en/epc-qr-code/',
       'https://formancy.ai/report/de/gesundheitswesen/',
       'https://formancy.ai/report/fr/sante/',
       'https://formancy.ai/report/it/sanita/',
       'https://formancy.ai/report/en/healthcare/',
+    ])
+  })
+
+  // A page whose feature is in no release says so, against the release
+  // the changelog named when it was written (0024). With two such pages,
+  // each refusing on its own as the QR-bill page once did, a release
+  // commit would rewrite the QR-bill page's sentences, build again, and
+  // only then meet the EPC QR code page's refusal. The site reads every
+  // page's status before it renders any, and says each in one error. Each
+  // line is matched whole, to the constant it names: matched only to its
+  // start, a page's line could drop a sentence to say again, or name a
+  // constant that is not there, and qr-bill.test.ts's patterns, which the
+  // EPC QR code page's line matches too, would not see it.
+  test('refuses to render, in one error, every page whose status a later release outdates', () => {
+    const released = { ...inputs, release: { ...inputs.release, version: '0.2.0', anchor: '020--2026-11-02' } }
+    let said = ''
+    try {
+      renderSite(released)
+    } catch (error) {
+      said = error instanceof Error ? error.message : String(error)
+    }
+    expect(said.split('\n')).toEqual([
+      "the QR-bill page's status was written when 0.1.0 was the newest release, and CHANGELOG.md now names 0.2.0: say whether that release has the QR-bill in each sentence of qr-bill-copy.tsx that says where it stands -- `unreleased`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change QR_BILL_STATUS with them",
+      "the EPC QR code page's status was written when 0.1.0 was the newest release, and CHANGELOG.md now names 0.2.0: say whether that release has the EPC QR code in each sentence of epc-qr-code-copy.tsx that says where it stands -- `unreleased`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change EPC_QR_CODE_STATUS with them",
     ])
   })
 

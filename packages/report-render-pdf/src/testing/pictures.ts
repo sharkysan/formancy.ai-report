@@ -1,4 +1,23 @@
-import { EURO_INVOICE, GROUPED_EQUIPMENT, INVOICE, INVOICE_EN, INVOICE_FR, INVOICE_IT, QUOTATION, rasterPage, readPdf, SERVICE_INSPECTION, STARTER_IMAGES, type Starter } from '@formancy/report-corpus'
+import {
+  EURO_INVOICE,
+  EURO_INVOICE_AT,
+  EURO_INVOICE_ES,
+  EURO_INVOICE_FR,
+  EURO_INVOICE_IE,
+  EURO_INVOICE_IT,
+  EURO_INVOICE_NL,
+  GROUPED_EQUIPMENT,
+  INVOICE,
+  INVOICE_EN,
+  INVOICE_FR,
+  INVOICE_IT,
+  QUOTATION,
+  rasterPage,
+  readPdf,
+  SERVICE_INSPECTION,
+  STARTER_IMAGES,
+  type Starter,
+} from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import { renderPdf } from '../node.js'
 import { pageLines } from './lines.js'
@@ -64,8 +83,9 @@ export const PICTURES: readonly PictureSpec[] = [
 ]
 
 /**
- * The invoice samples' pictures, in the order of `INVOICE_SAMPLES`, but
- * the German's: that sample is the invoice starter, whose picture is in
+ * The samples' pictures: the invoice's, in the order of `INVOICE_SAMPLES`,
+ * then the euro invoice's, in the order of `EURO_INVOICE_SAMPLES`, each
+ * but the German's: those samples are the starters, whose pictures are in
  * `PICTURES`. They have a manifest of their own because the Studio's
  * browser gate holds every picture `pictures.json` lists to a starter its
  * picker offers, and the samples are not offered there.
@@ -91,6 +111,48 @@ export const SAMPLE_PICTURES: readonly PictureSpec[] = [
     page: 1,
     caption: "The invoice in English, an Invoice: its line items, then Subtotal, VAT 8.1% and Total CHF 1'416.52, and across the foot of the page its QR-bill, the Receipt and the Payment part with its Swiss QR Code, each for CHF 1 416.52",
     shows: ['Invoice', 'Subtotal', 'VAT 8.1%', "Total CHF 1'416.52", 'Receipt', 'Payment part', 'CHF 1 416.52'],
+  },
+  {
+    file: 'euro-invoice-at.png',
+    starter: EURO_INVOICE_AT,
+    page: 1,
+    caption: "The euro invoice from Austria, a Rechnung: the boiler's parts, then Nettobetrag, USt 20 % and Gesamtbetrag € 629,44, and under them the Bankverbindung, IBAN: AT93 8012 3000 1234 5678, beside the EPC QR code in Austria's frame, Zahlen mit Code up its side",
+    shows: ['Rechnung', 'Nettobetrag', 'USt 20 %', 'Gesamtbetrag € 629,44', 'Bankverbindung', 'IBAN: AT93 8012 3000 1234 5678', 'Zahlen mit Code'],
+  },
+  {
+    file: 'euro-invoice-fr.png',
+    starter: EURO_INVOICE_FR,
+    page: 1,
+    caption: "The euro invoice from France, a Facture: the boiler's parts, then Total HT, TVA 20 % and Total TTC 629,44 €, and under them the Coordonnées bancaires, IBAN : FR76 0123 4000 1200 0123 4567 880, beside the EPC QR code that pays it",
+    shows: ['Facture', 'Total HT', 'TVA 20 %', 'Total TTC 629,44 €', 'Coordonnées bancaires', 'IBAN : FR76 0123 4000 1200 0123 4567 880'],
+  },
+  {
+    file: 'euro-invoice-it.png',
+    starter: EURO_INVOICE_IT,
+    page: 1,
+    caption: "The euro invoice from Italy, a Fattura: the boiler's parts, then Imponibile, IVA 22% and Totale fattura 639,93 €, the notice Copia di cortesia, and under them the Coordinate bancarie, IBAN: IT53 N000 0000 0120 0001 2345 678, beside the EPC QR code that pays it",
+    shows: ['Fattura', 'Imponibile', 'IVA 22%', 'Totale fattura 639,93 €', 'Copia di cortesia', 'Coordinate bancarie', 'IBAN: IT53 N000 0000 0120 0001 2345 678'],
+  },
+  {
+    file: 'euro-invoice-es.png',
+    starter: EURO_INVOICE_ES,
+    page: 1,
+    caption: "The euro invoice from Spain, a Factura: the boiler's parts, then Base imponible, IVA 21 % and Total factura 634,68 €, and under them the Datos bancarios, IBAN: ES25 0000 0012 7000 1234 5678, beside the EPC QR code that pays it",
+    shows: ['Factura', 'Base imponible', 'IVA 21 %', 'Total factura 634,68 €', 'Datos bancarios', 'IBAN: ES25 0000 0012 7000 1234 5678'],
+  },
+  {
+    file: 'euro-invoice-nl.png',
+    starter: EURO_INVOICE_NL,
+    page: 1,
+    caption: "The euro invoice from the Netherlands, a Factuur: the boiler's parts, then Totaal excl. btw, Btw 21% and Totaal incl. btw € 634,68, and under them the Bankgegevens, IBAN: NL17 FMNC 0123 4567 89, beside the EPC QR code that pays it",
+    shows: ['Factuur', 'Totaal excl. btw', 'Btw 21%', 'Totaal incl. btw € 634,68', 'Bankgegevens', 'IBAN: NL17 FMNC 0123 4567 89'],
+  },
+  {
+    file: 'euro-invoice-ie.png',
+    starter: EURO_INVOICE_IE,
+    page: 1,
+    caption: "The euro invoice from Ireland, an Invoice: the boiler's parts, then Subtotal, VAT 23% and Total due €645.17, and under them the Bank details, IBAN: IE30 FMNC 0000 0012 3456 78, beside the EPC QR code that pays it",
+    shows: ['Invoice', 'Subtotal', 'VAT 23%', 'Total due €645.17', 'Bank details', 'IBAN: IE30 FMNC 0000 0012 3456 78'],
   },
 ]
 

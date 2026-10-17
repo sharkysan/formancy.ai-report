@@ -74,10 +74,23 @@ core's README says beyond them — where a choice is one no scenario can see
 
 Grouping marks, currency symbols and month names come from the JavaScript
 engine's ICU, so the same report can print differently under another Node,
-and an ICU that changes how fr-CH groups an amount fails the samples'
-pictures and then the pages' quotes until they are taken again
+and an ICU that changes how fr-CH groups an amount, or where de-AT, nl-NL
+or en-IE put the euro sign, fails the samples' pictures and then the pages'
+quotes until they are taken again
 ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md),
-[0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)).
+[0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
+[0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+
+### Tax and invoicing law nobody here checks
+
+The euro invoice's samples print each country's standard VAT rate as one
+day's table gave it, and sell parts because a home's maintenance takes a
+reduced rate in some of their countries; they print the mentions France's
+administration asks of a company's invoice, and not those the other
+countries' laws may ask. None is an e-invoice, and the Italian says it is a
+courtesy copy of one. Nothing reads a rate or a law again, and none of it
+is a tax adviser's reading
+([0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
 
 ### Codes nobody scanned, and bills nobody paid
 
@@ -137,7 +150,7 @@ its own.
 | **English where a person reads it** | The session's undo labels, the validator's and the diagnostics' sentences, and the preview's label are English ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) | A German or French builder shows an English sentence for a refusal the validator words, and an EPC payment code's square too small for its frame is refused in points, in a field edited in millimetres ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | **Properties without an editor** | A table's sort, its group and total rows and its footer cells, conditional styles, value formats, a run added to or removed from a text, a QR code's content or an EPC QR code's text (only an optional text that is absent, or one literal run, is typed in and emptied out), a column added to or removed from a columns block or added to a table, and the declarations have commands and no property kind to edit them ([`report-builder-core`'s README](../../packages/report-builder-core/README.md#what-it-does-not-do)) | Written in the definition instead |
 | **A payment part is shown, not edited** | No command edits it, and every command keeps it as it was (`report-core/src/commands/registry.test.ts`); the builders draw where its slip prints, with no outline row and no properties ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)) | A QR-bill is written in the definition |
-| **The QR-bill page's status, by hand at every release** | The page says which release holds the bill, and the pages refuse to render once the changelog names a release the status does not ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)) | A release commit fails `pnpm build` and the pages' suite until its three sentences are written again (`RELEASING.md`, step 2) |
+| **Each payment code page's status, by hand at every release** | The QR-bill page and the EPC QR code page each say which release holds their code, and the site refuses to render once the changelog names a release a status does not ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md), [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)) | A release commit fails `pnpm build` and the pages' suite until each page's three sentences are written again, every stale page named in one error (`RELEASING.md`, step 2) |
 | **Data's contract version is not read** | [0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md) decided the provider would check the version Data states and refuse one it was not built against; the provider that arrived reads Data through a client of exactly 0.1.0 and reads no version ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) | A Data that changes its replies is refused as `unexpected` by the client's shape checks, or by its server, and the refusal names no version |
 | **No viewer to install** | Publishing one waits for a reviewed exception for `pdfjs-dist`'s fonts, or a viewer that leaves PDF.js to the host ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)) | A host shows the PDF with a viewer of its own |
 | **A label over a label in the design view** | A container's label sits at its top end and a component's at its top start, so a component at the top of a narrow column at a container's right end has its label printed over the container's. The euro invoice's code first stood so, and the browser gate's axe could not tell the colour behind the labels ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) | The starter was laid out otherwise; nothing keeps an author from the layout it left |

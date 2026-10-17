@@ -197,10 +197,15 @@ QR codes with ZXing
 [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
 `starters/` holds the starter reports with their synthetic data, the
 invoice with its QR-bill and the euro invoice with its EPC QR code among
-them (`starters/euro-invoice.ts`), and the invoice's samples in four
-languages
+them (`starters/euro-invoice.ts`), and both invoices' samples: the
+QR-bill's in four languages
 ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
-0025).
+0025), and the euro invoice from Austria, France, Italy, Spain, the
+Netherlands and Ireland beside its German starter, one report made for
+each country from the words it prints (`starters/euro-invoice-words.ts`)
+and from whom it bills, at what rate and to which account, each source
+cited and dated (`starters/euro-invoice-countries.ts`)
+([0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
 `trial/` keeps the renderer trial's adapters for pdfmake and pdfme as the
 record of the trial
 ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).
@@ -219,11 +224,16 @@ Its `scripts/` hold the browser gate and the README pictures' walk.
 
 **`apps/pages`** is the product's pages, prerendered by React's
 `renderToStaticMarkup` into static HTML in German, French, Italian and
-English. `src/groups.ts` is the list of pages; `scripts/inputs.mjs` reads
+English. `src/groups.ts` is the list of pages, among them a page for each
+payment code that shows its invoice's samples; `scripts/inputs.mjs` reads
 the release, the licence's terms and the faces from this repository's files
 when it builds; `src/checks/` hold every page's head, links, words and
 sitemap ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md),
 [0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
+A page whose code no release has carries its status, written against the
+release then, and `src/site.tsx` reads every page's before it renders any
+([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
+[0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
 
 ### The repository's scripts
 

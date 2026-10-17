@@ -10,6 +10,69 @@ later.
 
 ## Unreleased
 
+**The EPC QR code has a page in four languages, and the euro invoice
+comes as samples from Austria, France, Italy, Spain, the Netherlands and
+Ireland**
+([0028](docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+A reader who looked for the code in their language found no page, and the
+one euro invoice showed Germany's words, rate and account alone.
+
+- **The corpus's `EURO_INVOICE_SAMPLES`:** the euro invoice starter,
+  unchanged and still the German sample, and six samples in de-AT, fr-FR,
+  it-IT, es-ES, nl-NL and en-IE. Each sells the starter's boiler parts to
+  a private customer, from an invented firm of its country, at its
+  country's standard VAT rate as the EU's Your Europe table gave it on 17
+  October 2026, in words no native speaker has reviewed. They sell parts
+  rather than the starter's maintenance because France and Ireland tax a
+  home's maintenance at a reduced rate, as the French administration's
+  and Revenue's own pages say, and Italy does too by secondary sources:
+  the standard rate printed on that work would have been wrong there.
+  Each writes its firm and its customer's address as its country does; the
+  French prints the legal form, share capital and SIREN France's
+  administration asks of a company's invoice. The Austrian sample wears
+  Austria's frame and "Zahlen mit Code", and no other does; the Italian
+  says it is a courtesy copy of the electronic invoice, and where its
+  customer finds the original. What else each country's invoicing law
+  asks, nobody here checked whole, and decision 0028 says what is known to
+  be missing.
+- **Their accounts pay nobody, as far as could be read.** Each IBAN's
+  check digits are right, the national ones as well as ISO 13616's. The
+  German, Austrian, French, Spanish and Dutch ones are of a bank code their
+  countries' registers, read the same day, give no bank. The Italian and
+  Irish registers could not be read, and those two accounts claim nothing
+  more than their check digits.
+- **They are proved on their PDFs** by report-render-pdf's
+  `euro-samples.test.ts`: one page each, every amount as `Intl` formats
+  its locale, and the code decoded from the page asking for the total it
+  prints, beside the details it holds. They are not starters, so the
+  Studio's picker, pictures and browser gate are what they were.
+- **Their pictures** are `docs/images/euro-invoice-at.png`,
+  `euro-invoice-fr.png`, `euro-invoice-it.png`, `euro-invoice-es.png`,
+  `euro-invoice-nl.png` and `euro-invoice-ie.png`, in
+  `docs/images/samples.json` beside the QR-bill invoice's samples. The
+  README shows each.
+- **The EPC QR code page**, `/report/de/epc-qr-code/`,
+  `/report/fr/qr-code-sepa/`, `/report/it/qr-code-sepa/` and
+  `/report/en/epc-qr-code/`: what 0025's code does, each card resting on
+  tests the page's suite holds to the checkout, what it does not do, the
+  euro invoice from each country with the page's own language's first, how
+  to try it, and
+  where it stands, with a link to the record that cites where each rate
+  and register was read. It and the QR-bill page link each other: one for
+  an invoice to an account in Switzerland or Liechtenstein, in francs or
+  euro, the other for one paid by a SEPA transfer in euro.
+- **The site checks every page's status before it renders any,** and
+  names each stale page in one error: with two pages each refusing on its
+  own, a release commit would have met the second only after fixing the
+  first. The EPC QR code page's status refuses a release after 0.1.0, as
+  the QR-bill page's does.
+- **The pages refuse the name some German banks give the code,** in any
+  case, its two words joined or apart by spaces, dashes, hyphens or
+  invisible characters, in a page's source, its text and its attributes:
+  0025 keeps it off everything here, its owner and its rules unknown, and
+  nothing held that on the pages.
+- **RELEASING.md**'s second step names both pages' statuses.
+
 **The architecture is documented, in arc42's sections, as formancy.ai's
 is** ([`docs/README.md`](docs/README.md),
 [0026](docs/decisions/0026-the-architecture-is-documented-in-arc42s-sections-held-to-the-repository-by-a-guard.md)). The rightsholder asked that
