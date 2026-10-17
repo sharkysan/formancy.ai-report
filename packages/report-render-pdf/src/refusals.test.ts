@@ -1,7 +1,10 @@
 import pdfmake from 'pdfmake'
+import browserPdfmake from 'pdfmake/build/pdfmake.js'
 import { readPdf } from '@formancy/report-corpus'
-import type { Block, Image, ResolvedDocument, Section, TableColumn } from '@formancy/report-runtime'
+import { FACTUR_X, FACTUR_X_PROFILES } from '@formancy/report-runtime'
+import type { Block, EInvoiceFile, Image, ResolvedDocument, Section, TableColumn } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
+import { renderPdf as renderInBrowser } from './browser.js'
 import { MAX_DEPTH } from './check.js'
 import { renderPdf } from './node.js'
 import { BODY_HEIGHT, details, documentOf, ledger, paragraph, PRINTABLE_WIDTH } from './testing/documents.js'
@@ -188,6 +191,79 @@ describe('what is malformed', () => {
     let body: Block = paragraph('At the bottom')
     for (let depth = 0; depth <= MAX_DEPTH + 1; depth++) body = { kind: 'section', blocks: [body] }
     expect(await refusal(documentOf('Deep', [body]))).toMatchObject({ code: 'unsupported', message: expect.stringContaining(`nested more than ${MAX_DEPTH} blocks deep`) })
+  })
+})
+
+describe('an e-invoice', () => {
+  /**
+   * An e-invoice as the runtime hands one on: its XML, here cut short, and
+   * the name, relationship and conformance level report-spec gives the EN
+   * 16931 profile. The buyer's name in it stands for what the XML holds of
+   * people: a name, an account, a VAT identifier.
+   */
+  const FILE: EInvoiceFile = {
+    xml: '<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice><ram:Name>Erika Mustermann</ram:Name></rsm:CrossIndustryInvoice>\n',
+    fileName: FACTUR_X.fileName,
+    relationship: FACTUR_X_PROFILES.en16931.relationship,
+    conformanceLevel: FACTUR_X_PROFILES.en16931.conformanceLevel,
+  }
+  const invoiced = (eInvoice: unknown): ResolvedDocument => ({ ...documentOf('E-invoice', [paragraph('Rechnung')]), eInvoice: eInvoice as EInvoiceFile })
+  const ENTRIES = [
+    ['in Node', renderPdf],
+    ['in a browser', renderInBrowser],
+  ] as const
+  const refused = async (render: (typeof ENTRIES)[number][1], document: ResolvedDocument): Promise<unknown> =>
+    render(document, { maxPages: 5 }).then(
+      () => 'rendered',
+      (error: unknown) => error,
+    )
+
+  // In Germany the XML a hybrid invoice embeds is the invoice. This release
+  // writes no PDF/A-3, which an e-invoice is drawn as, so a PDF of one would
+  // be a picture of an invoice without the invoice, handed over as though it
+  // were one: it is refused, in either entry, rather than drawn plain.
+  test.each(ENTRIES)('is refused %s, as a PDF/A-3 this release does not draw', async (_, render) => {
+    expect(await refused(render, invoiced(FILE))).toMatchObject({ code: 'unsupported', subject: 'eInvoice', message: 'an e-invoice is drawn as PDF/A-3, which this release does not do' })
+  })
+
+  // A file from a runtime that names it otherwise than this renderer knows
+  // -- another name, relationship or conformance level, or no XML at all --
+  // would be embedded as something its reader does not look for. It is
+  // refused for that, before anything else, so that once e-invoices are
+  // drawn it stays refused; and a refusal names what is unknown, never the
+  // XML, which holds people's names and accounts.
+  test.each([
+    ['no file at all', null, 'the e-invoice is not a file the renderer knows'],
+    ['text in place of a file', FILE.xml, 'the e-invoice is not a file the renderer knows'],
+    ['XML that is not text', { ...FILE, xml: new TextEncoder().encode(FILE.xml) }, "the e-invoice's XML is not text"],
+    ['another file name', { ...FILE, fileName: 'zugferd-invoice.xml' }, 'the e-invoice is embedded under a file name the renderer does not know'],
+    ['a conformance level of another profile', { ...FILE, conformanceLevel: 'EXTENDED' }, 'the e-invoice states a conformance level the renderer does not know'],
+    ['a relationship its profile does not have', { ...FILE, relationship: 'Data' }, 'the e-invoice is related to the PDF otherwise than a file of its conformance level is'],
+    ['a conformance level named like a property of every object', { ...FILE, conformanceLevel: 'constructor' }, 'the e-invoice states a conformance level the renderer does not know'],
+  ] as const)('with %s is refused as one the renderer does not know', async (_, eInvoice, message) => {
+    for (const [, render] of ENTRIES) {
+      const error = await refused(render, invoiced(eInvoice))
+      expect(error).toMatchObject({ code: 'unsupported', subject: 'eInvoice', message })
+      expect(String((error as Error).message)).not.toContain('Mustermann')
+    }
+  })
+
+  // A refused e-invoice reaches neither entry's pdfmake: no PDF of it,
+  // partial or plain, exists anywhere.
+  test('writes no PDF in either entry', async () => {
+    const spies = [vi.spyOn(pdfmake, 'createPdf'), vi.spyOn(browserPdfmake, 'createPdf')]
+    try {
+      for (const [, render] of ENTRIES) await expect(render(invoiced(FILE), { maxPages: 5 })).rejects.toMatchObject({ code: 'unsupported', subject: 'eInvoice' })
+      for (const spy of spies) expect(spy).not.toHaveBeenCalled()
+    } finally {
+      for (const spy of spies) spy.mockRestore()
+    }
+  })
+
+  // The document without it is drawn: the refusal is the e-invoice's, and
+  // not the page's that carries it.
+  test('leaves the same document without one drawn', async () => {
+    for (const [, render] of ENTRIES) expect(await refused(render, documentOf('E-invoice', [paragraph('Rechnung')]))).toBe('rendered')
   })
 })
 

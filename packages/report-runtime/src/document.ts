@@ -27,7 +27,7 @@
  * definition's to validate and the renderer's to refuse. These types do not
  * hold it.
  */
-import type { Alignment, AssetMediaType, Border, EpcCaption, FontFamily, ImageFit, Margins, Orientation, PageSizeName, QrBillCurrency, QrErrorCorrection, Width } from '@formancy/report-spec'
+import type { Alignment, AssetMediaType, Border, EpcCaption, FacturXProfileTerms, FontFamily, ImageFit, Margins, Orientation, PageSizeName, QrBillCurrency, QrErrorCorrection, Width } from '@formancy/report-spec'
 
 /**
  * A run of text, or a number only the engine knows when it lays out the
@@ -351,6 +351,26 @@ export interface QrBill {
   readonly amount: string | null
 }
 
+/**
+ * The e-invoice a PDF carries: its XML, which the runtime wrote from the
+ * very values the page prints (0027), and what the renderer embeds it as
+ * [S] -- the file's name, its `/AFRelationship` and the XMP's
+ * `fx:ConformanceLevel`. The values are report-spec's `FACTUR_X` and
+ * `FACTUR_X_PROFILES`, handed on so an engine reads the one decision; one
+ * an engine does not know it refuses as `unsupported`, never embedded
+ * under another name. Only a final render writes one: a preview is not the
+ * invoice. An engine encodes the XML as UTF-8 and changes nothing of it.
+ */
+export interface EInvoiceFile {
+  /** The CII XML, with its declaration: the invoice itself. */
+  readonly xml: string
+  /** The embedded file's name: `factur-x.xml`. */
+  readonly fileName: string
+  readonly relationship: FacturXProfileTerms['relationship']
+  /** `EN 16931`. */
+  readonly conformanceLevel: string
+}
+
 export interface ResolvedDocument {
   readonly info: {
     readonly title: string
@@ -371,6 +391,8 @@ export interface ResolvedDocument {
   readonly body: readonly Block[]
   /** The slip the report is paid by, at the foot of its last page; absent, it has none. Never a block: it stands at a place SIX fixes, outside the printable area. */
   readonly paymentPart?: QrBill
+  /** The e-invoice the PDF embeds, in a final render of a report that is one; absent, the PDF carries none. */
+  readonly eInvoice?: EInvoiceFile
 }
 
 export const REFUSAL_CODES = ['too-many-pages', 'content-too-large', 'invalid-asset', 'cancelled', 'unsupported'] as const

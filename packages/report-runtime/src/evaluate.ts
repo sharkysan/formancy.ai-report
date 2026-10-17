@@ -207,8 +207,8 @@ class Evaluator implements ReportExpressions {
     const { site } = compiled
     const aggregateId = site.path.startsWith('/aggregates/') ? this.#aggregates[Number(site.path.split('/')[2])] : undefined
     const place = [
-      // The payment part stands in no component, and is named as one would be.
-      site.path.startsWith('/paymentPart/') ? 'the payment part' : undefined,
+      // The payment part and the e-invoice stand in no component, and are named as one would be.
+      site.path.startsWith('/paymentPart/') ? 'the payment part' : site.path.startsWith('/eInvoice/') ? 'the e-invoice' : undefined,
       site.componentId === undefined ? undefined : `component ${site.componentId}`,
       site.columnId === undefined ? undefined : `column ${site.columnId}`,
       aggregateId === undefined ? undefined : `aggregate ${aggregateId}`,

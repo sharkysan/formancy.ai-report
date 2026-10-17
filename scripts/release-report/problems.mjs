@@ -1,11 +1,12 @@
 // What fails the report (0014; formancy.ai-data 0035), for what it shows of
-// results, the browser gate and the pictures' check, the install gate, build
+// results, the browser gate and the pictures' check, the install gate, the
+// e-invoice gate, build
 // identity, the release gates and the limitations: one sentence each, written
 // into the report's `problems` and making the job exit 1. Both files are
 // still written, so a red run says why.
 //
 // Pure over a built report. `allowMissing` names what a local, partial
-// report may lack (verify, browser, install), each a reader of collect.mjs:
+// report may lack (verify, browser, install, e-invoice), each a reader of collect.mjs:
 // a file that reader did not find, what rests on its job and, for browser,
 // a gate or a pictures' check that left nothing are not problems. A file it
 // found and refused still is. CI allows none.
@@ -79,6 +80,48 @@ function installProblems(report, published, allowMissing, plan) {
   // tarball at another is found on the pull request rather than at the tag.
   for (const tarball of install.tarballs) {
     if (tarball.version !== report.subject.version) problems.push(`the install gate packed ${tarball.name} ${String(tarball.version)}, where every published package is at the root manifest’s version, ${report.subject.version}`)
+  }
+  return problems
+}
+
+/** The versions a tool reported of itself, as the gate records them: a list of Mustang's reports', KoSIT's one from its console, or none. */
+const reportedVersions = (reported) => (Array.isArray(reported) ? reported : typeof reported === 'string' ? [reported] : [])
+
+/**
+ * The e-invoice gate passed; ran exactly the tools `register.tools`
+ * (docs/release/e-invoice-tools.json, which the report reads itself) by
+ * version, by the SHA-256 the gate measured of the bytes it ran and, for
+ * each JAR, by the version the tool reported of itself; in CI, on the Java
+ * `register.runtime` names; judged at least one sample every tool must
+ * accept and one control each must refuse; and has every tool's verdict on
+ * every file as its corpus expects. Its own `passed` is one flag its writer
+ * sets, and the rest does not rest on it.
+ */
+function eInvoiceProblems(report, register, allowMissing, ci) {
+  const gate = report.results.eInvoice
+  if (gate === null) return allowMissing.includes('e-invoice') ? [] : ['the e-invoice gate left no results']
+  const problems = []
+  if (!gate.passed) problems.push(`the e-invoice gate did not pass: ${gate.problems.length === 0 ? 'no problem was recorded' : list(gate.problems)}`)
+  for (const pin of register.tools ?? []) {
+    const ran = gate.tools.find((tool) => tool.id === pin.id)
+    const reported = reportedVersions(ran?.reported)
+    if (ran === undefined) problems.push(`the e-invoice gate recorded no ${pin.id}, which docs/release/e-invoice-tools.json pins`)
+    else if (ran.version !== pin.version) problems.push(`the e-invoice gate ran ${pin.id} ${String(ran.version)}, where docs/release/e-invoice-tools.json pins ${pin.version}`)
+    else if (ran.sha256 !== pin.sha256) problems.push(`the e-invoice gate ran ${pin.id} ${pin.version} of other bytes than docs/release/e-invoice-tools.json pins`)
+    // A JAR runs, and says what it is; the configuration is read, and is held by its bytes.
+    else if (pin.java !== null && reported.length === 0) problems.push(`the e-invoice gate recorded no version ${pin.id} reported of itself, which docs/release/e-invoice-tools.json pins as ${pin.version}`)
+    else if (pin.java !== null && reported.some((version) => version !== pin.version)) problems.push(`the e-invoice gate’s ${pin.id} reported itself as ${reported.join(', ')}, where docs/release/e-invoice-tools.json pins ${pin.version}`)
+  }
+  const runtime = register.runtime
+  if (ci && runtime !== undefined && gate.java?.major !== runtime.java) problems.push(`the e-invoice gate ran on Java ${String(gate.java?.major)}, where docs/release/e-invoice-tools.json has CI run it on ${runtime.name} ${String(runtime.java)}`)
+  const judges = ['mustang', 'kosit']
+  if (!gate.files.some((file) => file.kind === 'sample' && judges.every((judge) => file.expect[judge] === 'accepted'))) problems.push('the e-invoice gate judged no sample every tool must accept')
+  for (const judge of judges) if (!gate.files.some((file) => file.kind === 'control' && Array.isArray(file.expect[judge]))) problems.push(`the e-invoice gate made no control ${judge} must refuse`)
+  for (const file of gate.files) {
+    for (const judge of judges) {
+      if (file[judge] === null) problems.push(`the e-invoice gate has no ${judge} verdict on ${file.file}`)
+      else if (file[judge] !== 'as expected') problems.push(`the e-invoice gate’s ${judge} judged ${file.file} otherwise than its corpus expects`)
+    }
   }
   return problems
 }
@@ -253,10 +296,11 @@ export function releaseGateProblems(gates, allowMissing = []) {
  * Every problem of what the run shows: what collect did not find or
  * refused, the suites, the browser gate of each of `browserApps` in each of
  * `browsers` and the pictures' check of each of `pictureApps`, the install
- * gate and its hosts against `installPlan`, build identity and the
- * limitations.
+ * gate and its hosts against `installPlan`, the e-invoice gate against the
+ * tools `eInvoiceTools` pins and, where `ci`, the Java it names, build
+ * identity and the limitations.
  */
-export function contentProblems(report, { published, installPlan, browserApps = [], pictureApps = [], browsers = [], allowMissing = [] }) {
+export function contentProblems(report, { published, installPlan, eInvoiceTools = { tools: [] }, browserApps = [], pictureApps = [], browsers = [], allowMissing = [], ci = false }) {
   return [
     // A file its reader expected and did not find; on a machine, not a
     // problem for a reader the report allows missing, as its banner says.
@@ -271,6 +315,7 @@ export function contentProblems(report, { published, installPlan, browserApps = 
     ...gateProblems(report, { browserApps, browsers, allowMissing }),
     ...picturesProblems(report, { pictureApps, browsers, allowMissing }),
     ...installProblems(report, published, allowMissing, installPlan),
+    ...eInvoiceProblems(report, eInvoiceTools, allowMissing, ci),
     ...identityProblems(report),
     ...limitationProblems(report),
   ]

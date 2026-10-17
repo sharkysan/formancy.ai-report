@@ -16,7 +16,10 @@ The pieces, each a package:
   Swiss QR-bill, and the EPC's for an EPC QR code, which a banking app
   initiates a SEPA credit transfer from
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
-  [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md));
+  [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)),
+  and EN 16931's for an e-invoice, whose XML the runtime writes and no PDF
+  carries yet
+  ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md));
 - an **editing core**: commands, a session with exact undo, and one
   compilation of every expression
   ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md),
@@ -63,10 +66,10 @@ rendered PDF against them. [Building blocks](05-building-blocks.md) has each.
 is only on `main` is the README's *Status* paragraph, which is dated; what
 each release held is [the changelog](../../CHANGELOG.md).
 
-Planned and not built, as the README says: the server and its jobs,
-reviewed AI changes, a published PDF viewer, and a consistent read from
-Formancy Data. Each later release gate is open in
-[`gates.json`](../release/gates.json) with the reason. Nothing below
+Planned and not built, as the README says: the PDF/A-3 an e-invoice is
+drawn as, the server and its jobs, reviewed AI changes, a published PDF
+viewer, and a consistent read from Formancy Data. Each later release gate
+is open in [`gates.json`](../release/gates.json) with the reason. Nothing below
 describes them as though they existed.
 
 ## Quality goals
@@ -74,7 +77,7 @@ describes them as though they existed.
 | Goal | What it means concretely |
 |---|---|
 | **Whole and exact, or refused** | A PDF holds every row once, in order, with nothing cut; a total is computed exactly and rounded once, as declared; a value never passes through a JavaScript number. What cannot be drawn whole is refused with a reason, never returned in part ([0003](../decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md), [0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
-| **The editor and the runtime read a report alike** | One validator, one compilation of each expression, one reading of SIX's rules and one of the EPC's, each called from both sides, so the two cannot disagree about an expression or a literal ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)). What only a render measures — a glyph, a word's width, the pages, a page header reaching into a QR-bill's slip — an EPC QR code whose data makes its payload too long, and a nullable integer as a payment code's amount are refused at render, not in the editor (0022, 0025) |
+| **The editor and the runtime read a report alike** | One validator, one compilation of each expression, one reading of SIX's rules, one of the EPC's and one of EN 16931's, each called from both sides, so the two cannot disagree about an expression or a literal ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)). What only a render measures — a glyph, a word's width, the pages, a page header reaching into a QR-bill's slip — an EPC QR code whose data makes its payload too long, and a nullable integer as a payment code's amount are refused at render, not in the editor (0022, 0025) |
 | **Fail closed** | A version, a kind or a property a reader does not know is refused whole, never skipped ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md), [formancy.ai 0022](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0022-fail-open-fail-closed.md)) |
 | **Untrusted input stays input** | Templates, expressions, data, fonts and images are read without running anything, bounded, and never followed to an address ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md), [0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | **Native in both frameworks, reachable by keyboard and by name** | Two builders written natively over one model, held to each other by shared scenarios and by their accessible trees ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |

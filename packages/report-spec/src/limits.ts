@@ -69,6 +69,14 @@ export const MAX_ASSETS = 64
 /** Aggregates: each is a pass over the detail rows, per group and once overall. */
 export const MAX_AGGREGATES = 32
 
+/**
+ * VAT categories an e-invoice declares, each a VAT breakdown (BG-23) its
+ * XML writes and a basis and an amount its page reads. Germany's two rates,
+ * an exempt category and a reverse-charged one take four; eight is twice
+ * that, and a list of breakdowns no invoice prints is refused unread.
+ */
+export const MAX_VAT_CATEGORIES = 8
+
 /** Inline runs in one paragraph or group header. A paragraph with more bindings than this is a table. */
 export const MAX_INLINES = 64
 

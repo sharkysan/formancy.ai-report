@@ -9,19 +9,24 @@
  * 2. the options, the parameters and the data, each checked, and every
  *    error of the three listed together (`parameters.ts`, `data.ts`);
  * 3. the aggregates, exactly, over every row (`totals.ts`);
- * 4. the regions, lowered component by component (`lower.ts`), tables row
+ * 4. the e-invoice's lines, read once, and its totals and its terms, where
+ *    the report is one (`lower-e-invoice.ts`);
+ * 5. the regions, lowered component by component (`lower.ts`), tables row
  *    by row (`lower-table.ts`), images through the host's lookup
  *    (`images.ts`), an EPC QR code's every text held to the EPC's rules
  *    (`lower-epc-qr-code.ts`);
- * 5. the payment part, its every text held to SIX's rules
- *    (`lower-payment-part.ts`).
+ * 6. the payment part, its every text held to SIX's rules
+ *    (`lower-payment-part.ts`);
+ * 7. the e-invoice's XML, in a final render (`cii.ts`).
  *
  * It refuses rather than prints a wrong report: any error at any stage, and
  * the result is the errors, never a partial document. A preview may run on
  * data the provider calls incomplete or that lacks a field; it says so in
  * the manifest and in its warnings, and its every page carries
  * `PREVIEW_LABEL`, so that a preview printed or passed on is never taken for
- * the report. A final render refuses such data.
+ * the report. A final render refuses such data. A preview of an e-invoice
+ * writes no XML, and is labelled whatever its data:
+ * `E_INVOICE_PREVIEW_LABEL` where nothing else is lacking.
  */
 import { decimalToString } from '@formancy/expressions'
 import type { Decimal } from '@formancy/expressions'
@@ -31,6 +36,7 @@ import { checkData } from './data.js'
 import type { Completeness, Consistency, DataMode, ReportData } from './data.js'
 import type { Paragraph, ResolvedDocument } from './document.js'
 import { createFormatter } from './format.js'
+import { eInvoiceFile, resolveEInvoice } from './lower-e-invoice.js'
 import { lowerPaymentPart } from './lower-payment-part.js'
 import { lowerRegions } from './lower.js'
 import { checkParameters } from './parameters.js'
@@ -77,7 +83,10 @@ export type Resolution =
 /** What every page of a preview that lacks data says, at the top of its page header. */
 export const PREVIEW_LABEL = 'Preview of incomplete data: not a final report'
 
-const LABEL: Paragraph = { kind: 'paragraph', runs: [{ text: PREVIEW_LABEL }], style: { size: 8, bold: true, color: '#b00020' } }
+/** What every page of a preview of an e-invoice says when it lacks nothing else: it writes no XML, and is not the invoice. */
+export const E_INVOICE_PREVIEW_LABEL = 'Preview: not an e-invoice, and not a final report'
+
+const label = (text: string): Paragraph => ({ kind: 'paragraph', runs: [{ text }], style: { size: 8, bold: true, color: '#b00020' } })
 
 /** Each parameter's value as the format writes one. */
 function writtenParameters(values: CheckedParameters): Record<string, string | boolean | null> {
@@ -129,21 +138,26 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
   }
   const totals = computeTotals(inputs)
   if (totals === undefined) return { ok: false, errors: problems.errors() }
-  const render = { ...inputs, totals }
+  const invoice = valid.eInvoice === undefined ? undefined : resolveEInvoice({ ...inputs, totals }, valid.eInvoice)
+  if (valid.eInvoice !== undefined && invoice === undefined) return { ok: false, errors: problems.errors() }
+  const render = { ...inputs, totals, ...(invoice === undefined ? {} : { invoice: invoice.reads }) }
   const regions = lowerRegions(render)
   const paymentPart = lowerPaymentPart(render)
+  const eInvoice = invoice === undefined || valid.eInvoice === undefined ? undefined : eInvoiceFile(render, invoice, valid.eInvoice)
   if (problems.failed) return { ok: false, errors: problems.errors() }
 
   const { completeness, consistency } = checkedData.data
   const warnings = problems.warnings()
-  const labelled = preview && (!completeness.complete || warnings.length > 0)
+  const lacking = !completeness.complete || warnings.some(({ code }) => code !== 'e-invoice-preview')
+  const labelled = !preview ? undefined : lacking ? PREVIEW_LABEL : invoice === undefined ? undefined : E_INVOICE_PREVIEW_LABEL
   const document: ResolvedDocument = {
     info: { title: valid.title, creationDate },
     page: valid.page,
-    pageHeader: labelled ? [LABEL, ...regions.pageHeader] : regions.pageHeader,
+    pageHeader: labelled === undefined ? regions.pageHeader : [label(labelled), ...regions.pageHeader],
     pageFooter: regions.pageFooter,
     body: regions.body,
     ...(paymentPart === undefined ? {} : { paymentPart }),
+    ...(eInvoice === undefined ? {} : { eInvoice }),
   }
   const manifest: RenderManifest = {
     reportHash: reportHash(valid),

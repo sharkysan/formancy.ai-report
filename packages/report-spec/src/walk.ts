@@ -5,7 +5,7 @@
  */
 import { at } from './pointer.js'
 import { REGION_NAMES } from './types.js'
-import type { Component, ComponentKind, RegionName, ReportDefinition } from './types.js'
+import type { Component, ComponentKind, RegionName, Regions, ReportDefinition } from './types.js'
 
 export interface ComponentLocation {
   readonly component: Component
@@ -47,6 +47,11 @@ function childLists(component: Component): ChildLists {
 
 /** Every component in the report: regions in the order a reader meets them, each depth-first, a container before what it holds. */
 export function walkComponents(report: ReportDefinition): readonly ComponentLocation[] {
+  return walkRegions(report.regions)
+}
+
+/** Every component in `regions`, as `walkComponents` finds them: for a validation that has read the regions and not yet the whole report. */
+export function walkRegions(regions: Regions): readonly ComponentLocation[] {
   const found: ComponentLocation[] = []
   const visit = (components: readonly Component[], region: RegionName, path: string, depth: number): void => {
     for (const [index, component] of components.entries()) {
@@ -55,7 +60,7 @@ export function walkComponents(report: ReportDefinition): readonly ComponentLoca
       for (const [suffix, children] of childLists(component)) visit(children, region, `${where}${suffix}`, depth + 1)
     }
   }
-  for (const region of REGION_NAMES) visit(report.regions[region], region, at('/regions', region), 0)
+  for (const region of REGION_NAMES) visit(regions[region], region, at('/regions', region), 0)
   return found
 }
 

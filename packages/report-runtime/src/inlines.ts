@@ -13,7 +13,13 @@
  * A QR code's content, and each text of a QR-bill or an EPC QR code, is
  * read run by run as a paragraph's is, and joined into the one text the
  * code encodes (`joinedText`), where a value that prints as nothing is
- * refused in a final render.
+ * refused in a final render. An e-invoice's texts are read the same way
+ * (`readRuns`), and held to its own rules.
+ *
+ * A column that prints a term of an e-invoice's lines is read once for
+ * every row before anything is lowered, since the totals are computed from
+ * it (`e-invoice-lines.ts`); the table prints the value kept then, never
+ * one read again, so that the page and the XML hold one evaluation.
  */
 import type { Inline as ReportInline } from '@formancy/report-spec'
 import type { Inline } from './document.js'
@@ -31,10 +37,10 @@ export interface Owner {
 }
 
 /** A run whose value is read: anything but literal text and a page counter. */
-type BoundInline = Exclude<ReportInline, { kind: 'text' | 'pageNumber' | 'pageCount' }>
+export type BoundInline = Exclude<ReportInline, { kind: 'text' | 'pageNumber' | 'pageCount' }>
 
-/** The value `inline` prints, read in `scope`; undefined when its evaluation failed, which is recorded. */
-function valueAt(render: Render, scope: Scope, inline: BoundInline, path: string): TypedValue | null | undefined {
+/** The value `inline`, at `path`, reads in `scope`, unformatted; undefined when its evaluation failed, which is recorded. */
+export function inlineValue(render: Pick<Render, 'report' | 'data' | 'params' | 'expressions' | 'problems' | 'preview' | 'totals'>, scope: Scope, inline: BoundInline, path: string): TypedValue | null | undefined {
   switch (inline.kind) {
     case 'field':
       return fieldValue(render, scope.record, inline.field)
@@ -50,9 +56,17 @@ function valueAt(render: Render, scope: Scope, inline: BoundInline, path: string
   }
 }
 
+/** What the e-invoice kept of the detail row `row` for the column value at `path`: the value, null among them; or undefined where it kept nothing. */
+function kept(render: Render, path: string, row: number | undefined): { readonly value: TypedValue | null } | undefined {
+  const column = row === undefined ? undefined : render.invoice?.columns.get(path)
+  // Every row was read: one that could not be has refused the render before anything is lowered.
+  return column === undefined ? undefined : { value: column[row as number] as TypedValue | null }
+}
+
 /** The value `inline` reads in `scope`, and the text it prints; undefined when either could not be had, which is recorded. */
 function printed(render: Render, scope: Scope, inline: BoundInline, path: string, owner: Owner): { readonly value: TypedValue | null; readonly text: string } | undefined {
-  const value = valueAt(render, scope, inline, path)
+  const read = kept(render, path, scope.row)
+  const value = read === undefined ? inlineValue(render, scope, inline, path) : read.value
   if (value === undefined) return undefined
   const formatted = render.formatter.format(value, inline.format, scope.currency)
   if (formatted.ok) return { value, text: formatted.text }
@@ -92,18 +106,49 @@ export interface Encoded {
   readonly lacking: boolean
 }
 
+/** What runs print, read as a paragraph's: their text, the paths of those whose value is null, and whether one could not be read, which is recorded. */
+export interface ReadRuns {
+  readonly text: string
+  readonly nulls: readonly string[]
+  readonly refused: boolean
+}
+
 /**
- * The text `runs`, at `path`, join to when they are encoded in a code:
- * read in `scope` run by run as a paragraph's runs are, so that the two
- * never format a value apart. Undefined when a run is refused, which is
+ * The runs at `path`, read in `scope` run by run as a paragraph's are, so
+ * that what a code or an e-invoice holds and what a paragraph prints never
+ * format a value apart. A page counter has no value before there are
+ * pages, and report-spec refuses one wherever runs are read so; one that
+ * reaches here all the same throws, naming what holds it, never read as
+ * nothing.
+ */
+export function readRuns(render: Render, scope: Scope, runs: readonly ReportInline[], path: string, owner: Owner & { readonly said: string }): ReadRuns {
+  const texts: string[] = []
+  const nulls: string[] = []
+  let refused = false
+  for (const [index, inline] of runs.entries()) {
+    const at = `${path}/${index}`
+    if (inline.kind === 'pageNumber' || inline.kind === 'pageCount') {
+      throw new RangeError(`${owner.said} holds a ${inline.kind} at ${at}, which has no value before there are pages; report-spec refuses it`)
+    }
+    const run = inline.kind === 'text' ? { value: undefined, text: inline.text } : printed(render, scope, inline, at, owner)
+    if (run === undefined) refused = true
+    else {
+      if (run.value === null) nulls.push(at)
+      texts.push(run.text)
+    }
+  }
+  return { text: texts.join(''), nulls, refused }
+}
+
+/**
+ * The text `runs`, at `path`, join to when they are encoded in a code,
+ * read as `readRuns` reads them. Undefined when a run is refused, which is
  * recorded, naming `encoder`.
  *
  * A final render refuses a run whose value is null: a code of less than
  * its content scans as some other text, and the page does not say so. A
  * preview encodes it as nothing, as a paragraph prints it, and says it
- * did. A page counter has no value before there are pages, and
- * report-spec refuses one in a code; one that reaches here all the same
- * throws, never encoded as nothing.
+ * did.
  *
  * `unused` is given for a text its code may leave out, and says whether
  * the text the runs print leaves its element unused. A text that does,
@@ -112,22 +157,7 @@ export interface Encoded {
  * does; one whose other runs print something is still refused.
  */
 export function joinedText(render: Render, scope: Scope, runs: readonly ReportInline[], path: string, encoder: Encoder, unused?: (text: string) => boolean): Encoded | undefined {
-  const texts: string[] = []
-  const nulls: string[] = []
-  let refused = false
-  for (const [index, inline] of runs.entries()) {
-    const at = `${path}/${index}`
-    if (inline.kind === 'pageNumber' || inline.kind === 'pageCount') {
-      throw new RangeError(`${encoder.said} holds a ${inline.kind} at ${at}, which has no value before there are pages; report-spec refuses it`)
-    }
-    const run = inline.kind === 'text' ? { value: undefined, text: inline.text } : printed(render, scope, inline, at, encoder)
-    if (run === undefined) refused = true
-    else {
-      if (run.value === null) nulls.push(at)
-      texts.push(run.text)
-    }
-  }
-  const text = texts.join('')
+  const { text, nulls, refused } = readRuns(render, scope, runs, path, encoder)
   if (!render.preview && nulls.length > 0 && unused?.(text) !== true) {
     for (const at of nulls) {
       render.problems.error({ stage: 'resolve', code: 'no-qr-value', path: at, message: `${encoder.said}: this run has no value, and ${encoder.code} without it would scan as ${SCANNED_AS[encoder.code]}`, ...placed(encoder) })

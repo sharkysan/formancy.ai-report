@@ -1,9 +1,9 @@
 /**
  * The texts a payment code holds, read one way for every code -- a
- * QR-bill's, an EPC QR code's: runs, one at least, read as a paragraph's
- * in the report's scope and encoded in the code; and, when every run is
- * literal, the text they make held to the code's own rule where it is
- * written.
+ * QR-bill's, an EPC QR code's, and an e-invoice's, the XML a payment is
+ * made from: runs, one at least, read as a paragraph's in the report's
+ * scope and encoded in the code; and, when every run is literal, the text
+ * they make held to the code's own rule where it is written.
  *
  * A text of literal runs prints the same in every render, so its code's
  * rule is applied to it here; any other is checked by the runtime with the
@@ -20,7 +20,7 @@ import { readInlines } from './validate-inline.js'
 import type { InlineScope } from './validate-inline.js'
 
 /** Where a payment code's runs are read: in the report's scope, encoded in the code it names. */
-export type PaymentScope = InlineScope & { readonly reads: 'report'; readonly encoded: 'a QR-bill' | 'an EPC QR code' }
+export type PaymentScope = InlineScope & { readonly reads: 'report'; readonly encoded: 'a QR-bill' | 'an EPC QR code' | 'an e-invoice' }
 
 /** The text runs make when every one is literal; undefined when any is read from data, or there are none, which is refused as too few. */
 export function literal(runs: readonly Inline[]): string | undefined {

@@ -25,8 +25,8 @@ a v* tag pushed
    ├─ tag          decides once whether this run publishes; refuses a tag the
    │               manifests' version disagrees with
    ├─ npm-token    the token is set and accepted, checked beside the gates
-   ├─ gates        verify · test · browser · install ──▶ report, which fails the
-   │               run on anything it cannot show
+   ├─ gates        verify · test · browser · install · e-invoice ──▶ report, which
+   │               fails the run on anything it cannot show
    ▼
 check              read-only, no secret: the report is this run's, green and whole;
    │               the tarballs are byte for byte the ones the install gate ran;
@@ -56,6 +56,23 @@ again, every such page named in one error, as RELEASING.md's second step
 says
 ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
 [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+
+## The e-invoice gate's tools
+
+Nothing published carries them, and no host needs them. The `e-invoice`
+job fetches Mustang, KoSIT's validator and its XRechnung configuration from
+the URLs `docs/release/e-invoice-tools.json` registers, each refused unless
+its SHA-256 is the one registered there, into a cache directory that
+`.gitignore` names; CI keeps that cache under the register's hash, a
+release fetches everything again, and a cached file is checked by its hash
+where it is used. The tools run on the Java the register names, which the
+job installs, with Java's HTTP and HTTPS proxies pointed at a dead port (a
+raw socket is not caught), and the release report holds that Java's major
+version and each tool to the register's, by the hash the gate measured and
+the version the tool reported of itself. On a machine the gate runs on the
+Java it is handed, which must be at least as new as each JAR's `java` in
+the register, and the report shows that one
+([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 
 ## The demo
 
@@ -126,6 +143,15 @@ deploy happened or what the address serves.
   [0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)).
 - **A PDF viewer of its own**, if it shows the PDF in a page
   ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).
+- **For an e-invoice:** no release prints one, and 0.1.0 refuses a report
+  that holds one. On `main` a final render writes the CII XML into the
+  resolved document, `document.eInvoice.xml`, and the renderer refuses that
+  document, so nothing embeds the XML in a PDF and a host gets no PDF of
+  an e-invoice; a preview prints, labelled on every page as no e-invoice.
+  A host that bundles report-spec, report-core and report-runtime carries
+  the e-invoice's rules and writer whether its reports have one or not,
+  which 0027 measures
+  ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 - **For the provider:** a Formancy Data 0.1.0 server and a data client
   carrying the person's token
   ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).

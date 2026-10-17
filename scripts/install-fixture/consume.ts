@@ -8,7 +8,8 @@
  */
 import { checkSpecVersion, emptyReport, QR_BILL_TOP, qrBillPageBreak, REPORT_FORMAT, REPORT_SPEC_VERSION, reportHash, validateReport, walkComponents } from '@formancy/report-spec'
 import { EPC_CAPTION, EPC_MAX_BYTES, epcCaptionBreak, epcLeastVersion } from '@formancy/report-spec'
-import type { EpcQrCodeComponent, ReportDefinition, ReportError, ReportValidation, SpecVersionCheck, SwissQrBill, TableComponent, TextComponent } from '@formancy/report-spec'
+import { FACTUR_X, FACTUR_X_PROFILES } from '@formancy/report-spec'
+import type { EpcQrCodeComponent, FacturXInvoice, ReportDefinition, ReportError, ReportValidation, SpecVersionCheck, SwissQrBill, TableComponent, TextComponent } from '@formancy/report-spec'
 import { compileReport, diagnose, expressionValues, insertComponent, nextComponentId, openReportSession, validLocations } from '@formancy/report-core'
 import type { CommandDescriptor, CommandOutcome, CompiledExpression, Diagnostic, ReportCompilation, ReportSession, SessionOpening } from '@formancy/report-core'
 import { actionForKey, createReportEditor, editorText } from '@formancy/report-builder-core'
@@ -18,7 +19,8 @@ import { fileURLToPath } from 'node:url'
 import { resolveReport } from '@formancy/report-runtime'
 import { QR_BILL_TOP as RUNTIME_QR_BILL_TOP, qrBillPageBreak as runtimeQrBillPageBreak } from '@formancy/report-runtime'
 import { EPC_CAPTION as RUNTIME_EPC_CAPTION, EPC_MAX_BYTES as RUNTIME_EPC_MAX_BYTES, epcCaptionBreak as runtimeEpcCaptionBreak, epcLeastVersion as runtimeEpcLeastVersion } from '@formancy/report-runtime'
-import type { EpcQrCode, QrBill, ReportData, Resolution } from '@formancy/report-runtime'
+import { E_INVOICE_PREVIEW_LABEL, FACTUR_X as RUNTIME_FACTUR_X, FACTUR_X_PROFILES as RUNTIME_FACTUR_X_PROFILES } from '@formancy/report-runtime'
+import type { EInvoiceFile, EpcQrCode, Paragraph, QrBill, ReportData, Resolution } from '@formancy/report-runtime'
 import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
 import { readReportData } from '@formancy/report-data-provider'
 import type { DataBinding, ProviderRead } from '@formancy/report-data-provider'
@@ -298,6 +300,163 @@ const drawerSays = await renderPdf({ ...paidResolution.document, body: paidResol
 )
 if (specSays === undefined || drawerSays?.endsWith(specSays) !== true) throw new Error(`a captioned square too small was refused differently: ${String(specSays)}; ${String(drawerSays)}`)
 
+// An e-invoice (0027): a German invoice of its own, since the corpus's
+// samples are never packed, whose two lines are at 19 % and at 7 %. The
+// runtime computes its totals once, for the page and for the CII XML it
+// writes, and the renderer refuses it whole, since this release draws no
+// PDF/A-3 and a plain PDF of a German e-invoice would be the picture
+// without the invoice. A runtime that lost the XML writer, a renderer that
+// lost the refusal -- and printed the picture -- or a hand-on of the
+// file's names that is a copy rather than report-spec's own fails here,
+// outside the workspace. The consumer has no XML parser, so the XML is
+// read by its elements' text, which the runtime writes one way.
+const headerField = (field: string): { kind: 'field'; field: { dataset: 'header'; field: string } } => ({ kind: 'field', field: { dataset: 'header', field } })
+const lineField = (field: string): { kind: 'field'; field: { dataset: 'detail'; field: string } } => ({ kind: 'field', field: { dataset: 'detail', field } })
+const euro = { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } as const
+const total = (id: string, label: string, cel: string): TextComponent => ({ id, kind: 'text', content: [{ kind: 'text', text: label }, { kind: 'expression', expression: { cel }, format: euro }] })
+const invoiceBlock: FacturXInvoice = {
+  kind: 'facturX',
+  profile: 'en16931',
+  type: '380',
+  currency: 'EUR',
+  number: [headerField('number')],
+  issued: { cel: 'header.issuedOn' },
+  seller: {
+    name: text('Formancy Haustechnik GmbH'),
+    vatId: text('DE123456789'),
+    address: { line1: text('Industriestraße 7'), postalCode: text('50735'), city: text('Köln'), country: text('DE') },
+  },
+  buyer: { name: [headerField('customer')], address: { line1: [headerField('street')], postalCode: [headerField('postcode')], city: [headerField('city')], country: text('DE') } },
+  delivered: { cel: 'header.servedOn' },
+  vat: [
+    { id: 'standard', code: 'S', rate: '19' },
+    { id: 'reduced', code: 'S', rate: '7' },
+  ],
+  lines: { table: 'positions', name: 'item', quantity: 'quantity', netPrice: 'price', netAmount: 'amount', id: lineField('article'), unit: lineField('unitCode'), vat: lineField('vat') },
+  payment: { means: '58', iban: text('DE83 0123 4567 0012 3456 78'), bic: text('FMNCDEF0XXX') },
+}
+const positions: TableComponent = {
+  id: 'positions',
+  kind: 'table',
+  dataset: 'detail',
+  columns: [
+    { id: 'item', header: 'Leistung', width: 'fill', align: 'left', value: lineField('item') },
+    { id: 'quantity', header: 'Menge', width: 60, align: 'right', value: lineField('quantity') },
+    { id: 'price', header: 'Einzelpreis', width: 80, align: 'right', value: { ...lineField('price'), format: euro } },
+    { id: 'amount', header: 'Betrag', width: 80, align: 'right', value: { ...lineField('amount'), format: euro } },
+  ],
+  emptyText: 'Keine Positionen.',
+  repeatHeader: true,
+}
+const invoiced: ReportDefinition = {
+  reportSpecVersion: REPORT_SPEC_VERSION,
+  id: 'install-e-invoice',
+  title: 'Rechnung',
+  locale: 'de-DE',
+  page: report.page,
+  styles: [],
+  datasets: {
+    header: {
+      id: 'invoice',
+      fields: [
+        { id: 'number', type: 'string', label: 'Rechnungsnummer', nullable: false },
+        { id: 'issuedOn', type: 'date', label: 'Rechnungsdatum', nullable: false },
+        { id: 'servedOn', type: 'date', label: 'Leistungsdatum', nullable: false },
+        { id: 'customer', type: 'string', label: 'Kunde', nullable: false },
+        { id: 'street', type: 'string', label: 'Straße', nullable: false },
+        { id: 'postcode', type: 'string', label: 'PLZ', nullable: false },
+        { id: 'city', type: 'string', label: 'Ort', nullable: false },
+      ],
+    },
+    detail: {
+      id: 'invoice-lines',
+      fields: [
+        { id: 'article', type: 'string', label: 'Artikel', nullable: false },
+        { id: 'item', type: 'string', label: 'Leistung', nullable: false },
+        { id: 'quantity', type: 'decimal', label: 'Menge', nullable: false, scale: 2 },
+        { id: 'unitCode', type: 'string', label: 'Einheit (UN/ECE)', nullable: false },
+        { id: 'price', type: 'decimal', label: 'Einzelpreis', nullable: false, scale: 2 },
+        { id: 'amount', type: 'decimal', label: 'Betrag', nullable: false, scale: 2 },
+        { id: 'vat', type: 'string', label: 'Umsatzsteuer', nullable: false },
+      ],
+    },
+  },
+  parameters: [],
+  assets: [],
+  aggregates: [],
+  regions: {
+    reportHeader: [{ id: 'title', kind: 'text', content: [{ kind: 'text', text: 'Rechnung ' }, headerField('number')] }],
+    pageHeader: [],
+    body: [positions],
+    pageFooter: [],
+    // Every total the XML holds, printed by the names the runtime binds them to: report-core refuses an e-invoice whose page leaves one out.
+    summary: [
+      total('net', 'Nettobetrag ', 'invoice.taxBasisTotal'),
+      { id: 'vat-standard', kind: 'text', content: [{ kind: 'text', text: 'Umsatzsteuer 19 % auf ' }, { kind: 'expression', expression: { cel: 'vatBasis.standard' }, format: euro }, { kind: 'text', text: ': ' }, { kind: 'expression', expression: { cel: 'vatAmount.standard' }, format: euro }] },
+      { id: 'vat-reduced', kind: 'text', content: [{ kind: 'text', text: 'Umsatzsteuer 7 % auf ' }, { kind: 'expression', expression: { cel: 'vatBasis.reduced' }, format: euro }, { kind: 'text', text: ': ' }, { kind: 'expression', expression: { cel: 'vatAmount.reduced' }, format: euro }] },
+      total('vat-total', 'Umsatzsteuer gesamt ', 'invoice.taxTotal'),
+      total('grand', 'Rechnungsbetrag ', 'invoice.grandTotal'),
+    ],
+  },
+  eInvoice: invoiceBlock,
+}
+const invoiceData: ReportData = {
+  header: { number: 'RE-2026-0901', issuedOn: '2026-10-16', servedOn: '2026-10-12', customer: 'Gasthaus Zur Linde GmbH', street: 'Venloer Straße 210', postcode: '50823', city: 'Köln' },
+  detail: [
+    { article: 'H-1', item: 'Wartung Gas-Brennwertkessel', quantity: '1.00', unitCode: 'LS', price: '245.00', amount: '245.00', vat: 'standard' },
+    { article: 'H-2', item: 'Kaminholz Buche, ofenfertig', quantity: '250.00', unitCode: 'KGM', price: '0.38', amount: '95.00', vat: 'reduced' },
+  ],
+  completeness: { complete: true, captured: 2 },
+  consistency: 'host-captured',
+}
+const invoicedValidation: ReportValidation = validateReport(invoiced)
+if (!invoicedValidation.valid) throw new Error(`the e-invoice was refused: ${invoicedValidation.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
+// 0.1.0's validator refuses the block as unknown-property; this one reads it, and names the rule a literal breaks without quoting it: a seller's country outside the closed list.
+const stuck: ReportValidation = validateReport({ ...invoiced, eInvoice: { ...invoiceBlock, seller: { ...invoiceBlock.seller, address: { ...invoiceBlock.seller.address, country: text('UK') } } } })
+if (stuck.valid || !stuck.errors.some((error: ReportError) => error.code === 'invalid-e-invoice' && error.path.startsWith('/eInvoice/seller/address/country') && error.message.includes('BR-CL-14') && !error.message.includes('UK'))) {
+  throw new Error(`a seller's country outside the list was not refused by its rule: ${stuck.valid ? 'valid' : stuck.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
+}
+const invoicedResolution: Resolution = resolveReport(invoiced, invoiceData, { mode: 'final', creationDate: '2026-10-16T08:00:00Z' })
+if (!invoicedResolution.ok) throw new Error(`the e-invoice did not resolve: ${invoicedResolution.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
+const file: EInvoiceFile | undefined = invoicedResolution.document.eInvoice
+if (file === undefined || !file.xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice ')) throw new Error('a final render of the e-invoice wrote no CII XML')
+// The file's names reach the renderer through the runtime as report-spec's own, as the QR-bill's rules do: a copy would be a second decision.
+if (RUNTIME_FACTUR_X !== FACTUR_X || RUNTIME_FACTUR_X_PROFILES !== FACTUR_X_PROFILES) throw new Error("the runtime does not hand on report-spec's own Factur-X names")
+if (file.fileName !== FACTUR_X.fileName || file.conformanceLevel !== FACTUR_X_PROFILES.en16931.conformanceLevel || file.relationship !== FACTUR_X_PROFILES.en16931.relationship) {
+  throw new Error(`the e-invoice is named otherwise than report-spec names it: ${file.fileName}, ${file.conformanceLevel}, ${file.relationship}`)
+}
+// Net 340.00; VAT 245.00 x 19 % = 46.55 and 95.00 x 7 % = 6.65, rounded once per category; with VAT 393.20.
+const xmlSays = (element: string): string[] => [...file.xml.matchAll(new RegExp(`<ram:${element}(?: [^>]*)?>([^<]*)</ram:${element}>`, 'g'))].map((match) => match[1] ?? '')
+const written = {
+  guideline: xmlSays('ID')[0],
+  number: xmlSays('ID')[1],
+  basis: xmlSays('BasisAmount'),
+  tax: xmlSays('CalculatedAmount'),
+  taxTotal: xmlSays('TaxTotalAmount'),
+  grandTotal: xmlSays('GrandTotalAmount'),
+  due: xmlSays('DuePayableAmount'),
+}
+const expected = { guideline: 'urn:cen.eu:en16931:2017', number: 'RE-2026-0901', basis: ['245.00', '95.00'], tax: ['46.55', '6.65'], taxTotal: ['53.20'], grandTotal: ['393.20'], due: ['393.20'] }
+if (JSON.stringify(written) !== JSON.stringify(expected)) throw new Error(`the e-invoice's XML does not hold its totals: ${JSON.stringify(written)}`)
+// The page prints the total the XML holds, from the one value the runtime bound.
+const printed = invoicedResolution.document.body.filter((block): block is Paragraph => block.kind === 'paragraph').map((block) => block.runs.map((run) => ('text' in run ? run.text : '')).join(''))
+const grandLine = printed.find((line) => line.startsWith('Rechnungsbetrag '))
+if (grandLine === undefined || !grandLine.includes((written.grandTotal[0] ?? '').replace('.', ','))) throw new Error(`the page does not print the XML's total: ${String(grandLine)}`)
+const drawnInvoice = await renderPdf(invoicedResolution.document, { maxPages: 50 }).then(
+  () => undefined,
+  (error: unknown) => error,
+)
+if (!(drawnInvoice instanceof RenderRefusal) || drawnInvoice.code !== 'unsupported' || drawnInvoice.subject !== 'eInvoice' || drawnInvoice.message !== 'an e-invoice is drawn as PDF/A-3, which this release does not do') {
+  throw new Error(`a document with an e-invoice was not refused as one this release does not draw: ${String(drawnInvoice)}`)
+}
+// A preview writes no XML, warns, and is labelled as not the invoice on every page; that, the renderer draws.
+const previewed: Resolution = resolveReport(invoiced, invoiceData, { mode: 'preview', creationDate: '2026-10-16T08:00:00Z' })
+if (!previewed.ok || previewed.document.eInvoice !== undefined || !previewed.warnings.some((warning) => warning.code === 'e-invoice-preview')) throw new Error('a preview of the e-invoice wrote its XML, or did not warn')
+const [previewLabel] = previewed.document.pageHeader
+if (previewLabel?.kind !== 'paragraph' || previewLabel.runs.map((run) => ('text' in run ? run.text : '')).join('') !== E_INVOICE_PREVIEW_LABEL) throw new Error('a preview of the e-invoice is not labelled as not the invoice')
+const invoicePreview = await renderPdf(previewed.document, { maxPages: 50 })
+if (new TextDecoder().decode(invoicePreview.subarray(0, 5)) !== '%PDF-') throw new Error('the preview of the e-invoice did not render to a PDF')
+
 // The Data provider, from its tarball, with @formancy/data-client at the
 // exact release it pins, from the registry: the quotation read from a data
 // server answering Formancy Data 0.1.0's routes -- its header as one
@@ -348,5 +507,5 @@ const fromData = await (async () => {
 if (new TextDecoder().decode(fromData.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation read from Data did not render to a PDF')
 
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; an e-invoice validated, a country outside its list was refused by its rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, the renderer refused it, and its labelled preview rendered to a ${invoicePreview.length}-byte PDF; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
 )

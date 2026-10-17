@@ -20,6 +20,7 @@ import { quote } from '../outcome.js'
 import { aggregateOrder, aggregateReads, cycleDiagnostic } from './aggregates.js'
 import { compileSite } from './compile-site.js'
 import type { CompiledExpression, Images, SiteOutcome } from './compile-site.js'
+import { invoiceMembers, paidMember } from './e-invoice.js'
 import { COMPUTES, fieldsOf, groupKeyOf, imagesOf, parametersOf, readAs, TOTALS } from './members.js'
 import type { ExpressionMember, Members } from './members.js'
 
@@ -37,6 +38,9 @@ export interface ReportCompilation {
 /** The CEL types a member can be declared as, of all the types an expression can give. */
 const SCALARS: ReadonlySet<string> = new Set<DeclaredType>(['bool', 'int', 'double', 'decimal', 'string', 'timestamp', 'dyn'])
 
+/** Where an e-invoice's paid amount stands: `invoice.paid` is what it gives. */
+const PAID = '/eInvoice/paid/cel'
+
 /** Every expression in `report` -- a report the validator accepts -- compiled where it stands. */
 export function compileReport(report: ReportDefinition): ReportCompilation {
   return compiledSites(report, expressionSites(report))
@@ -51,7 +55,11 @@ export function compiledSites(report: ReportDefinition, sites: readonly Expressi
   const { order, unordered } = aggregateOrder(report, reads)
   const cyclic = new Set(unordered)
   const known = new Map<string, ExpressionMember>()
-  const base = { params: parametersOf(report), header: fieldsOf(report.datasets.header), row: fieldsOf(report.datasets.detail) }
+  const invoiced = report.eInvoice !== undefined
+  // What is compiled before the e-invoice's totals are known -- an
+  // aggregate's expression, the paid amount -- cannot read them, and finds
+  // them empty.
+  const base = { params: parametersOf(report), header: fieldsOf(report.datasets.header), row: fieldsOf(report.datasets.detail), ...invoiceMembers(undefined, undefined) }
   const outcomes = new Map<string, SiteOutcome>()
 
   /** What `aggregate` computes, its expression compiled against the totals before it; and why it cannot be computed, when it cannot. */
@@ -61,7 +69,7 @@ export function compiledSites(report: ReportDefinition, sites: readonly Expressi
       return COMPUTES[aggregate.fn](readAs(report.datasets.detail?.fields.find(({ id }) => id === read)?.type))
     }
     const site = siteOf(index)
-    const outcome = compileSite(site, { ...base, totals: known, group: known }, images)
+    const outcome = compileSite(site, { ...base, totals: known, group: known }, images, invoiced)
     outcomes.set(site.path, outcome)
     if (!outcome.ok) return COMPUTES[aggregate.fn](undefined)
     const result = outcome.compiled.program.resultType
@@ -82,12 +90,19 @@ export function compiledSites(report: ReportDefinition, sites: readonly Expressi
   const totals = new Map(report.aggregates.map(({ id }) => [id, known.get(id) as ExpressionMember]))
   // A group holds its aggregates and its key; report-spec keeps the key's name from every aggregate.
   const key = groupKeyOf(report)
-  const members: Members = { ...base, totals, group: key === undefined ? totals : new Map([...totals, key]) }
+  const group = key === undefined ? totals : new Map([...totals, key])
+  // The paid amount reads none of the e-invoice's totals, and invoice.paid
+  // is what it gives: it is compiled before the members that hold it, as
+  // an aggregate's expression is, and that compilation is the one kept.
+  const paid = byPath.get(PAID)
+  const paidOutcome = paid === undefined ? undefined : compileSite(paid, { ...base, totals, group }, images, invoiced)
+  if (paidOutcome !== undefined) outcomes.set(PAID, paidOutcome)
+  const members: Members = { ...base, totals, group, ...invoiceMembers(report.eInvoice, paidOutcome === undefined ? undefined : paidMember(paidOutcome)) }
 
   const expressions = new Map<string, CompiledExpression>()
   const diagnostics: Diagnostic[] = []
   for (const site of sites) {
-    const outcome = outcomes.get(site.path) ?? compileSite(site, members, images)
+    const outcome = outcomes.get(site.path) ?? compileSite(site, members, images, invoiced)
     const aggregate = site.path.startsWith('/aggregates/') ? report.aggregates[Number(site.path.split('/')[2])]?.id : undefined
     if (aggregate !== undefined && cyclic.has(aggregate)) diagnostics.push(cycleDiagnostic(aggregate, site, reads, cyclic))
     else if (outcome.ok) expressions.set(site.path, outcome.compiled)

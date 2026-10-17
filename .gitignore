@@ -17,6 +17,9 @@ test-results/
 /release-results/
 /release-report/
 /release-tarballs/
+# The e-invoice gate's downloads (scripts/e-invoice.mjs, 0027): each tool
+# the register pins, checked by its SHA-256 where it is used, never committed.
+/.e-invoice-cache/
 # The demo's deploy (scripts/demo.mjs, 0018): the build staged under the
 # demo's path, removed after each deploy, and Wrangler's own state.
 /apps/studio/.cloudflare/

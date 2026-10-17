@@ -20,10 +20,12 @@ L2     report-runtime          every value decided once        no framework, no 
 L1     report-core             commands · session · compileReport · @formancy/expressions
 ────────────────────────────────────────────────────────────────────────────────────────────
 L0     report-spec             the format · validation · hash · @formancy/spec
-                               the payment codes' rules: SIX's and the EPC's
+                               the payment codes' rules: SIX's and the EPC's;
+                               EN 16931's, for an e-invoice
 
 beside report-corpus           private test support: the fixtures, the PDF reader and its
-                               checks, readCodes, the starters and samples; over the runtime
+                               checks, readCodes, the starters and samples, a reader of the
+                               e-invoice's XML; over the runtime
 ```
 
 Each row's three middle columns are its manifest's: what it depends on
@@ -39,11 +41,11 @@ the upstream packages' and the peers' ranges.
 | `@formancy/report-core` | `report-spec` | `@formancy/expressions` | — | Those two and nothing else, with the same compile-time rule ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [formancy.ai 0008](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0008-layered-packages.md)) |
 | `@formancy/report-runtime` | `report-core`, `report-spec` | `@formancy/expressions` | — | No framework, no PDF engine, no Node, by the same rule; report-core for the one compilation it shares with the editor ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | `@formancy/report-builder-core` | `report-core`, `report-spec` | — | — | Those two, nothing else; no framework, no DOM, no Node ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
-| `@formancy/report-render-pdf` | `report-runtime` | `pdfmake`, `uqr` | — | Of this repository's packages, the runtime alone, which re-exports what the renderer needs of the format: report-spec's own rules for the slip and for how an EPC QR code prints ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)). A resolved document and approved bytes in, never a database or an address ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)) |
+| `@formancy/report-render-pdf` | `report-runtime` | `pdfmake`, `uqr` | — | Of this repository's packages, the runtime alone, which re-exports what the renderer needs of the format: report-spec's own rules for the slip and for how an EPC QR code prints ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)), and the names an e-invoice's file is embedded by ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)). A resolved document and approved bytes in, never a database or an address ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)) |
 | `@formancy/report-data-provider` | `report-runtime`, `report-spec` | `@formancy/data-client` | — | The only package that may depend on Formancy Data; `scripts/dependency-licences.mjs` refuses Data reached from any other ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). The DOM's globals and no `@types/node`, so a `node:` import does not compile |
 | `@formancy/report-builder-react` | `report-builder-core`, `report-core`, `report-spec` | — | `react`, `react-dom` | The core packages and React, never Angular or the other builder ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
 | `@formancy/report-builder-angular` | `report-builder-core`, `report-core`, `report-spec` | `tslib` | `@angular/core` | The core packages and Angular; `src/dependencies.test.ts` fails on React anywhere in its closure ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
-| `@formancy/report-corpus` | `report-runtime` | `pdfjs-dist`, `zxing-wasm` | — | Private, never published: test support ([0003](../decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)) |
+| `@formancy/report-corpus` | `report-runtime` | `pdfjs-dist`, `zxing-wasm`, `saxes` | — | Private, never published: test support ([0003](../decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)). saxes reads the XML the runtime writes, a parser that is not the writer, in the corpus's tests and, resolved from the corpus, in the e-invoice gate's scripts (0027) |
 | `apps/studio` (`@formancy/report-studio`) | `report-spec`, `report-core`, `report-runtime`, `report-render-pdf`, `report-builder-core`, `report-builder-react`, `report-builder-angular`: every package but the provider; and `report-corpus`, for its starters | `react`, `react-dom`, `@angular/core`, `@angular/common`, `@angular/platform-browser`, `rxjs`, `pdfjs-dist`, `@formancy/themes`, and the faces: `@fontsource-variable/archivo`, `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono` | — | Private; the PDF.js viewer lives here and in no published package ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)), and its faces are its own copies ([0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)) |
 | `apps/pages` (`@formancy/report-pages`) | — | `react` and `react-dom`, for the server renderer, and the faces: `@fontsource-variable/archivo`, `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono` | — | Private; the Studio's stylesheets by import, and facts read from the repository's files when it builds ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)) |
 
@@ -73,7 +75,7 @@ The format, and nothing that evaluates it
 |---|---|
 | `types.ts` | `ReportDefinition` at `reportSpecVersion` `'0'`, the draft: page, five regions, components, datasets, parameters, assets, aggregates, styles, provenance |
 | `version.ts` | Whether a document is a report this package reads at all, before anything about what it holds; a form or another version is refused naming both ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md)) |
-| `validate.ts` and `validate-*.ts` | Structural validation, every error with a JSON Pointer and a stable code (`errors.ts`): declarations, components and where each may stand, inlines and formats, the table, aggregates, the payment part and the EPC QR code, the texts of both read by `validate-payment-text.ts`. Kinds are tables, not switches |
+| `validate.ts` and `validate-*.ts` | Structural validation, every error with a JSON Pointer and a stable code (`errors.ts`): declarations, components and where each may stand, inlines and formats, the table, aggregates, the payment part, the EPC QR code and the e-invoice, the texts of all three read by `validate-payment-text.ts`. Kinds are tables, not switches |
 | `check.ts` | Reading untrusted input once, through property descriptors, so a getter never runs and a value cannot answer differently when asked again |
 | `limits.ts` | Every bound a definition is held to, each with its reason |
 | `units.ts`, `page.ts` | The one conversion between millimetres and points, and the page geometry the validator, the builder's rulers and the renderer read |
@@ -82,6 +84,7 @@ The format, and nothing that evaluates it
 | `payment-reference.ts` | What both payment codes check alike: the remainder modulo 97, an IBAN's check digits by it, and the creditor reference. `qr-bill.ts` and `epc-payload.ts` both read it; what only one code allows stays with that code's rules (0022, [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | `epc-qr-code.ts`, `epc-payload.ts`, `sepa.ts` | The EPC QR code: its component; the EPC's rules for each of its fields, and its payload, as functions over text; and the countries of SEPA as one table, each with its IBAN's length and whether it is in the EEA. What the validator applies to literals and the runtime to data (0025) |
 | `epc-print.ts` | How an EPC QR code prints: a module's side in its square, and, with Austria's caption, the frame, the caption, the modules' widths and the least version that prints. The validator asks it of a square, and the renderer of the version it encoded (0025) |
+| `e-invoice.ts`, `en16931.ts` | The e-invoice: its block at the report's level, the names the page reads its totals by (`E_INVOICE_NAMES`), the names its file is embedded by (`FACTUR_X`, `FACTUR_X_PROFILES`), and the closed lists its codes come from (`UNIT_CODES`, `COUNTRY_CODES`, `VAT_PREFIXES`, `SCHEME_IDS`); and EN 16931's rules for each of its terms as functions over text, named by the business term and the rule and never by the value. What the validator applies to literals, as `invalid-e-invoice`, and the runtime to data. Its payment account and BIC are held by the EPC QR code's rules, `checkEpcIban` and `checkEpcBic`; `validate-e-invoice-report.ts` holds what it says of the report around it: its lines what the table over the detail dataset prints, a payment code paid to its account, a title a PDF/A's metadata can hold ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) |
 | `walk.ts` | The one walk of the components that the core's commands, the builder's outline and the runtime share |
 
 ### `@formancy/report-core` (L1)
@@ -96,8 +99,8 @@ the result ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-chang
 | `draft.ts` | Several commands as one edit, and `tryEdit`: the verdict on a draft without committing it, which a proposal's review would show |
 | `commands/` | Pure commands on the document, the components, the declarations and the table; `registry.ts` makes each a descriptor a proposal can carry, its arguments checked before it runs |
 | `locations.ts`, `tree.ts` | Where a component stands, and `validLocations`: the places it may go, found by trying each |
-| `expressions/` | `compileReport`: every expression compiled where it stands, each member checked as its type, the clock, doubles, division and `matches()` refused, and the order aggregates are computed in ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) |
-| `diagnostics/` | What an editor shows about a valid report: the errors the runtime would refuse it for, and warnings an author probably wants |
+| `expressions/` | `compileReport`: every expression compiled where it stands, each member checked as its type, the clock, doubles, division and `matches()` refused, and the order aggregates are computed in ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)). In a report with an e-invoice, and in no other, `invoice`, `vatBasis` and `vatAmount` are bound wherever `totals` is, and refused where they are computed from (`expressions/e-invoice.ts`, 0027) |
+| `diagnostics/` | What an editor shows about a valid report: the errors the runtime would refuse it for, and warnings an author probably wants; in an e-invoice, a total the XML holds that the page does not print, or prints otherwise than the XML holds it (`diagnostics/e-invoice.ts`, 0027) |
 
 ### `@formancy/report-runtime` (L2)
 
@@ -115,7 +118,9 @@ Each stage is a module, and each decides its question once:
 | `lower.ts`, `lower-table.ts`, `images.ts` | The components lowered to blocks; images through the host's lookup, once per render |
 | `qr-bill.ts`, `lower-payment-part.ts` | A QR-bill's payload and every text its slip prints, held to report-spec's rules once the data has resolved them ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)) |
 | `lower-epc-qr-code.ts` | An EPC QR code's payload: each text read as a paragraph's and held to report-spec's rules once the data has resolved it, an optional one that prints nothing left unused, and the whole held to the EPC's bytes ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
-| `document.ts` | The renderer-neutral document, the refusal codes, and `MAX_ASSET_BYTES` |
+| `lower-e-invoice.ts`, `e-invoice-lines.ts`, `e-invoice-totals.ts`, `e-invoice-terms.ts`, `e-invoice-payable.ts` | An e-invoice, after the aggregates and before anything is lowered: its lines read once from the rows of the table that prints them, the table printing the very values kept; its totals and VAT breakdown computed once, in `Decimal`, each category's VAT rounded once and never per line; its other terms held to report-spec's rules once the data has resolved them; and, while the codes are lowered, a payment code printed with it held to the amount due and the account ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) |
+| `cii.ts`, `cii-parties.ts`, `xml.ts` | The CII XML a final render writes from those values, each element in the profile XSD's order and at the path CEN's binding gives its term, written one way, so that the same report and data are the same bytes. A preview writes none (0027) |
+| `document.ts` | The renderer-neutral document, the refusal codes, and `MAX_ASSET_BYTES`; and an e-invoice's file: its XML, with the name, relationship and conformance level it is to be embedded by |
 
 ### `@formancy/report-render-pdf` (L3)
 
@@ -135,6 +140,7 @@ It is a package boundary, not an engine interface: there is one engine.
 | `breaks.ts`, `table.ts`, `table-rules.ts` | Where a table's pages break, planned from measured heights, so a group header stays with its first row and totals with the last |
 | `qr.ts` | A QR code encoded once by uqr and drawn as one vector path ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)) |
 | `bill.ts`, `slip.ts`, `bill-fonts.ts` | A QR-bill's slip as SIX lays it out, in the Liberation Sans the package ships in `fonts/`; `bill-fonts.ts` is those faces for the browser entry's chunk ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)) |
+| `e-invoice.ts` | A document with an e-invoice, refused by `checkDocument` as `unsupported`, naming `eInvoice`, in both entries and before pdfmake sees it: an e-invoice is drawn as a PDF/A-3, which this release does not write. What it does not know of the file, its name, relationship or conformance level, it refuses first, in words of its own, so that those refusals outlive the next step ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) |
 | `epc.ts` | An EPC QR code encoded once by uqr at level M and drawn as a QR code is; with Austria's caption, in the PSA's frame at the least version that prints, the caption in the same Liberation Sans, laid out by report-spec's `epc-print.ts` ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 
 ### `@formancy/report-data-provider` (L3)
@@ -197,8 +203,8 @@ QR codes with ZXing
 [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
 `starters/` holds the starter reports with their synthetic data, the
 invoice with its QR-bill and the euro invoice with its EPC QR code among
-them (`starters/euro-invoice.ts`), and both invoices' samples: the
-QR-bill's in four languages
+them (`starters/euro-invoice.ts`), and the samples of those two: the
+QR-bill's invoice in four languages
 ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
 0025), and the euro invoice from Austria, France, Italy, Spain, the
 Netherlands and Ireland beside its German starter, one report made for
@@ -206,6 +212,14 @@ each country from the words it prints (`starters/euro-invoice-words.ts`)
 and from whom it bills, at what rate and to which account, each source
 cited and dated (`starters/euro-invoice-countries.ts`)
 ([0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+Beside them, three e-invoice samples, not starters: the German euro
+invoice's firm invoicing German businesses, put together from the parts of
+the euro invoice's head, table and bank details that
+`starters/euro-invoice.ts` exports, with Germany's billing and words
+(`starters/e-invoice.ts`,
+[0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+`testing/cii.ts` reads the XML the runtime writes of them back with saxes,
+by namespace, for their tests.
 `trial/` keeps the renderer trial's adapters for pdfmake and pdfme as the
 record of the trial
 ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).

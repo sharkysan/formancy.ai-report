@@ -63,6 +63,16 @@ export const REPORT_ERROR_CODES = [
    * prints the modules the PSA allows.
    */
   'invalid-epc-qr-code',
+  /**
+   * An e-invoice that EN 16931's rules, or this version's narrower ones,
+   * refuse where it is written, each refusal naming the business term and
+   * the rule: a literal text, code or rate that breaks its rule; a seller,
+   * a buyer, a time of supply, a period or VAT categories that cannot make
+   * a valid invoice; lines that are not what the table over the detail
+   * dataset prints; a QR-bill or an EPC QR code that asks to be paid
+   * otherwise than the e-invoice says; or a title its PDF/A cannot hold.
+   */
+  'invalid-e-invoice',
 
   // Declarations.
   /** Margins that leave less than MIN_PRINTABLE_PT either way. */
@@ -87,7 +97,7 @@ export const REPORT_ERROR_CODES = [
   'misplaced-flow-component',
   /** A table or page break inside a columns or keep-together block. */
   'nested-flow-component',
-  /** A page number or count outside the page header and footer, or anywhere in what a QR code, an EPC QR code or a QR-bill encodes. */
+  /** A page number or count outside the page header and footer, or anywhere in what a QR code, an EPC QR code, a QR-bill or an e-invoice encodes. */
   'misplaced-page-counter',
   /** A detail field where there is no current row: outside the table's cells, or in a group header or footer when it is not the field grouped by. */
   'misplaced-detail-field',

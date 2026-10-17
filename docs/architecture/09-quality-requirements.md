@@ -13,7 +13,8 @@ Formancy Report
 │   └── a QR code, a QR-bill and an EPC QR code that decode as written
 ├── Agreement                                           ← the editor and the runtime
 │   ├── the editor refuses what the runtime would, in an expression or a literal
-│   └── the two builders do the same things
+│   ├── the two builders do the same things
+│   └── an e-invoice's page prints the totals its XML holds, from one computation
 ├── Safety                                              ← fail closed; untrusted input
 │   ├── an unknown version, kind or property refused whole
 │   ├── input read without running anything, and bounded
@@ -50,11 +51,13 @@ Formancy Report
 | Q15 | A QR-bill's IBAN is mistyped, as a literal or in the data | `invalid-qr-bill` on the field, from the same function in the editor and the render; SIX's own examples decoded byte for byte from the page | `report-spec/src/qr-bill.test.ts`, `report-runtime/src/qr-bill.test.ts`, `report-render-pdf/src/qr-bill.test.ts` ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)) |
 | Q16 | An EPC QR code's IBAN is mistyped, as a literal or in the data, or its data makes its payload too long | `invalid-epc-qr-code` on the field, from the same functions in the editor and the render, its check digits the QR-bill's own; the EPC's own examples decoded byte for byte from the page as the runtime wrote them | `report-spec/src/epc-payload.test.ts`, `payment-reference.test.ts`, `validate-epc-qr-code.test.ts`, `report-runtime/src/lower-epc-qr-code.test.ts`, `report-render-pdf/src/epc-qr-code.test.ts` ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | Q17 | An EPC QR code in Austria's frame is given a square its modules cannot print in | Refused in the same words by the validator and the renderer, from report-spec's one rule, which reaches the renderer through the runtime | `report-spec/src/epc-print.test.ts`, `validate-epc-qr-code.test.ts`, `report-render-pdf/src/epc-qr-code.test.ts`, and the install gate's `consume.ts` (0025) |
-| Q18 | A GPL, non-commercial or unlicensed package, or an unreadable font, reaches a published package | The `verify` job fails, naming it and the route it came in by | `scripts/dependency-licences.mjs` and its test ([0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)) |
-| Q19 | An upstream dependency is declared as a range or a path | `pnpm test:repo` fails | `scripts/upstream-deps.test.mjs` ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)) |
-| Q20 | A package's `exports` are wrong for a consumer, or it imports what it does not declare | The install gate fails in a plain project for that kind of host | `pnpm test:e2e:install` — release gate G1 ([0015](../decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)) |
-| Q21 | The Studio is narrowed to 320 pixels, or asks another origin for anything | No sideways scroll and nothing past either edge; any request outside the built Studio fails a pass | `apps/studio/scripts/browser-test.mjs` ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), [0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)) |
-| Q22 | A decision record, a package or a dependency is added, or a test this architecture names is renamed, and the architecture is not changed with it | `pnpm test:repo` fails | `scripts/architecture.test.mjs` ([0026](../decisions/0026-the-architecture-is-documented-in-arc42s-sections-held-to-the-repository-by-a-guard.md)) |
+| Q18 | An e-invoice's page leaves out a total its XML holds, or prints one at fewer than two places or in another currency | `e-invoice-total-unprinted` or `e-invoice-format-differs`, an error where it is written; the page and the XML read the very values of one computation, each category's VAT rounded once and never per line, held against an independent BigInt reading of EN 16931 | `report-core/src/diagnostics/e-invoice.test.ts`, `report-runtime/src/e-invoice-totals.test.ts`, and the samples' page against their XML in `report-corpus/src/starters/e-invoice.test.ts` ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) |
+| Q19 | A report with an e-invoice is rendered, final or as a preview | A final render writes the XML or is refused, and one that wrote none and recorded no reason throws as a defect; the renderer refuses the document as `unsupported` rather than draw it without its XML; a preview writes none and is labelled on every page | `report-runtime/src/lower-e-invoice.test.ts`, `report-render-pdf/src/refusals.test.ts` (0027) |
+| Q20 | A GPL, non-commercial or unlicensed package, or an unreadable font, reaches a published package | The `verify` job fails, naming it and the route it came in by | `scripts/dependency-licences.mjs` and its test ([0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)) |
+| Q21 | An upstream dependency is declared as a range or a path | `pnpm test:repo` fails | `scripts/upstream-deps.test.mjs` ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)) |
+| Q22 | A package's `exports` are wrong for a consumer, or it imports what it does not declare | The install gate fails in a plain project for that kind of host | `pnpm test:e2e:install` — release gate G1 ([0015](../decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)) |
+| Q23 | The Studio is narrowed to 320 pixels, or asks another origin for anything | No sideways scroll and nothing past either edge; any request outside the built Studio fails a pass | `apps/studio/scripts/browser-test.mjs` ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), [0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)) |
+| Q24 | A decision record, a package or a dependency is added, or a test this architecture names is renamed, and the architecture is not changed with it | `pnpm test:repo` fails | `scripts/architecture.test.mjs` ([0026](../decisions/0026-the-architecture-is-documented-in-arc42s-sections-held-to-the-repository-by-a-guard.md)) |
 
 ## 9.3 Bounds, and how each was chosen
 
@@ -92,7 +95,13 @@ one day, with the runs its record describes, and held by nothing:
   bytes, with Austria's caption in 114 to 135 ms and 38,207 bytes, against
   74 to 81 ms and 26,348 bytes with a spacer of the code's height in its
   place, on 17 October 2026
-  ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+  ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md));
+- an e-invoice of 100,000 lines, which only `MAX_DETAIL_ROWS` bounds,
+  writing 117,280,919 bytes of XML and resolving in a median of 5.4 s
+  against 2.0 s without it, and one of 10,000 lines 11,710,910 bytes in
+  0.44 s against 0.23 s, five runs each from the built package under Node
+  24.21.0, on 17 October 2026
+  ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 
 **What is not measured, said.** What a commit costs — the whole report
 validated and diagnosed again on every edit, a keystroke in a property field

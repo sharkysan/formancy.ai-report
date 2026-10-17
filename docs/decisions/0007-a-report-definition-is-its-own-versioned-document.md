@@ -1,6 +1,6 @@
 # 0007 — A report definition is its own versioned document, with a flowing body, one detail table, declared aggregates and print styles as tokens
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part, and by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which adds the EPC QR code
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which adds the EPC QR code, and by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which adds an e-invoice and the names its totals are read by
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `@formancy/report-spec` tests that fail when it is
@@ -338,6 +338,32 @@ report that was valid. A release that predates the kind, 0.1.0 among them,
 refuses a report that holds one as `unknown-kind`.
 `validate-epc-qr-code.test.ts` and `epc-payload.test.ts` hold the shape,
 the placement and the rules.
+
+**Added 2026-10-17: an e-invoice, and three names.** A report may carry
+one EN 16931 invoice, `eInvoice`, at its own level and in no region, as
+[0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)
+decides: the runtime writes it as Factur-X CII from the values the page
+prints. Its texts are runs, read as a paragraph's in the report's scope,
+and a page number or count is refused in every one; its dates and its
+paid amount are expressions. Its lines are the rows of the table over
+the detail dataset, and four of its columns, which no condition may hide,
+print each line's name, quantity, net price and net amount; the line's
+identifier, unit and VAT category are read from each row. EN 16931's rules
+are applied to a text of literal runs here, as `invalid-e-invoice`, by
+the functions the runtime applies to data, and its codes come from closed
+lists. The expression environment gains three names, and only in a
+report that carries one: `invoice`, `vatBasis` and `vatAmount`
+(`E_INVOICE_NAMES`), the totals the runtime computes once for the page and
+the XML. So an expression no longer reads exactly the names
+`EXPRESSION_NAMES` lists: `EXPRESSION_NAMES` is unchanged, and in a report
+that is an e-invoice an expression reads `E_INVOICE_NAMES` beside them;
+in any other, one of the three is unknown, as before. A report that
+carries an e-invoice has a title without `&`, `<` or `>`. It is a
+draft-format addition: `reportSpecVersion` is unchanged, and so is every
+report that was valid and had no `eInvoice`. A release that predates it,
+0.1.0 among them, refuses a report with one as `unknown-property`.
+`validate-e-invoice.test.ts` and `en16931.test.ts` hold the shape, the
+lists and the rules, and `en16931.test.ts` holds the two name lists apart.
 
 ## Alternatives considered
 

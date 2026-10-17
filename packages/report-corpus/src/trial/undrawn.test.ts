@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { RenderRefusal, type EpcQrCode, type Image, type QrBill, type ResolvedDocument, type Table } from '../document.js'
+import { RenderRefusal, type EInvoiceFile, type EpcQrCode, type Image, type QrBill, type ResolvedDocument, type Table } from '../document.js'
 import { details, documentOf, ledger, paragraph, totalRow } from '../fixtures/build.js'
 import { encodePng } from '../fixtures/png.js'
 import { lineHas, pageLines } from '../lines.js'
@@ -46,6 +46,9 @@ const BILL: QrBill = {
   amount: null,
 }
 
+/** An e-invoice as the runtime hands one on, its XML cut short: neither adapter reads it. */
+const E_INVOICE: EInvoiceFile = { xml: '<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice/>\n', fileName: 'factur-x.xml', relationship: 'Alternative', conformanceLevel: 'EN 16931' }
+
 /** An EPC QR code as the runtime resolves one: an account and its owner alone, framed and captioned as Austria's PSA asks. */
 const EPC: EpcQrCode = { kind: 'epcQrCode', id: 'pay-code', payload: ['BCD', '002', '1', 'SCT', '', 'Max Muster', 'DE89370400440532013000'].join('\n'), size: 85.04, caption: 'zahlenMitCode' }
 
@@ -75,6 +78,9 @@ const UNDRAWN: readonly (readonly [string, ResolvedDocument, string])[] = [
   ['a QR code', documentOf('QR code', [paragraph('Before'), { kind: 'qrCode', id: 'order-code', text: 'https://formancy.ai/report/', size: 85.04, errorCorrection: 'M' }]), 'body[1]'],
   // A slip left out would print an invoice nobody can pay by, and say nothing.
   ['a payment part', { ...documentOf('Bill', [paragraph('Invoice')]), paymentPart: BILL }, 'paymentPart'],
+  // An e-invoice left out would print a plain PDF of an invoice whose XML
+  // is the invoice, and say nothing: the buyer would hold a picture.
+  ['an e-invoice', { ...documentOf('E-invoice', [paragraph('Invoice')]), eInvoice: E_INVOICE }, 'eInvoice'],
   // A code left out would print an invoice without the code it is paid
   // by, and say nothing; one drawn as a plain QR code would lose its frame
   // and the level and version a bank's app reads.

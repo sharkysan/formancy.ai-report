@@ -16,7 +16,12 @@
  * QR-bill's or an EPC QR code's text (`joinedText` in `inlines.ts`), and a
  * QR code's content that prints nothing at all. A preview encodes them as they resolve, as a
  * paragraph prints them.
+ *
+ * A report that is an e-invoice reads three more names wherever `totals`
+ * is read -- `invoice`, `vatBasis` and `vatAmount` -- once its totals are
+ * computed (`lower-e-invoice.ts`), before anything is lowered.
  */
+import type { Decimal } from '@formancy/expressions'
 import type { ExpressionValues } from '@formancy/report-core'
 import type { FieldRef, FieldType, ParameterType, ReportDefinition } from '@formancy/report-spec'
 import type { CheckedData, CheckedRecord } from './data.js'
@@ -56,6 +61,23 @@ export interface Totals {
   over(rows: readonly OrderedRow[]): AggregateValues
 }
 
+/**
+ * What a render that is an e-invoice computed before it lowered anything
+ * (`lower-e-invoice.ts`), for lowering to read.
+ */
+export interface InvoiceReads {
+  /** What `invoice`, `vatBasis` and `vatAmount` hold. */
+  readonly names: ExpressionValues
+  /**
+   * Each value a column that prints a term of each line gave, by the path
+   * of the column's value, one for each detail row by its index in the
+   * data: what the table prints, so that it prints what the XML holds.
+   */
+  readonly columns: ReadonlyMap<string, readonly (TypedValue | null)[]>
+  /** What a payment code printed with the e-invoice may ask for: the amount due (BT-115), and the payment account (BT-84) once its rule took it, undefined where none did. */
+  readonly payable: { readonly amount: Decimal; readonly account: string | undefined }
+}
+
 /** One resolution's inputs, checked, and what it collects. */
 export interface Render {
   /** The copy validation read. */
@@ -70,6 +92,8 @@ export interface Render {
   /** Each print style, by id, as the document's style. */
   readonly styles: ReadonlyMap<string, TextStyle>
   readonly totals: Totals
+  /** What the e-invoice computed before lowering, where the report is one. */
+  readonly invoice?: InvoiceReads
 }
 
 /** Where a value is read: what its expressions are handed, where its currency comes from, and what an error there names. */
@@ -94,9 +118,14 @@ function headerOf(render: Pick<Render, 'data'>): CheckedRecord {
   return render.data.header ?? {}
 }
 
-export function reportScope(render: Pick<Render, 'params' | 'data'>, totals: AggregateValues): Scope {
+/** The e-invoice's names, read wherever `totals` is, once they are computed; none in a report that is no e-invoice. */
+function invoiceNames(render: Pick<Render, 'invoice'>): ExpressionValues {
+  return render.invoice?.names ?? {}
+}
+
+export function reportScope(render: Pick<Render, 'params' | 'data' | 'invoice'>, totals: AggregateValues): Scope {
   const header = headerOf(render)
-  return { values: { params: render.params, header, totals: raw(totals) }, currency: { params: render.params, header } }
+  return { values: { params: render.params, header, totals: raw(totals), ...invoiceNames(render) }, currency: { params: render.params, header } }
 }
 
 /**
@@ -109,7 +138,7 @@ export function groupScope(render: Render, group: RowGroup, aggregates: Aggregat
   const header = headerOf(render)
   const key = Object.hasOwn(record, by) ? { key: group.key } : {}
   return {
-    values: { params: render.params, header, totals: raw(render.totals.report), group: { ...raw(aggregates), ...key } },
+    values: { params: render.params, header, totals: raw(render.totals.report), group: { ...raw(aggregates), ...key }, ...invoiceNames(render) },
     currency: { params: render.params, header, row: record },
     group: aggregates,
     record,
@@ -117,10 +146,10 @@ export function groupScope(render: Render, group: RowGroup, aggregates: Aggregat
 }
 
 /** One detail row: the report's values, and the row's as `row`. */
-export function rowScope(render: Pick<Render, 'params' | 'data'>, totals: AggregateValues, row: OrderedRow): Scope {
+export function rowScope(render: Pick<Render, 'params' | 'data' | 'invoice'>, totals: AggregateValues, row: OrderedRow): Scope {
   const header = headerOf(render)
   return {
-    values: { params: render.params, header, totals: raw(totals), row: row.record },
+    values: { params: render.params, header, totals: raw(totals), row: row.record, ...invoiceNames(render) },
     currency: { params: render.params, header, row: row.record },
     record: row.record,
     row: row.index,

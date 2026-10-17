@@ -1,0 +1,46 @@
+{
+  "$comment": "The tools the e-invoice gate runs over the XML the runtime writes (0027), each fetched from its release's asset and refused unless its SHA-256 is the one here. Each hash and size was read from GitHub's digest of the asset and from a download of it, which agreed, on 17 October 2026 at 14:36 UTC. `java` is the oldest Java a JAR runs on, from its manifest's Build-Jdk-Spec and its classes' versions, read the same day; `runtime` is the Java CI runs the gate on, which must run every JAR, and `distribution` its name to actions/setup-java. `licence` is a tool's own. Each download carries other works under their own licences, which nobody here reviewed one by one -- Saxon in both JARs, veraPDF and CEN/TC 434's EUPL-1.2 schematron in Mustang's, the same schematron in the configuration: they run in CI and no package carries them (0027). Read by scripts/e-invoice.mjs; held by scripts/e-invoice/registers.test.mjs. A new release is adopted by changing all of its entry in one commit, with a CHANGELOG line saying why.",
+  "tools": [
+    {
+      "id": "mustang",
+      "name": "Mustang CLI",
+      "version": "2.26.0",
+      "released": "2026-08-25",
+      "url": "https://github.com/ZUGFeRD/mustangproject/releases/download/core-2.26.0/Mustang-CLI-2.26.0.jar",
+      "sha256": "42d7868cb68264874a7b8cab4c3587b03b23ccc7cd72373da917f66758bb9736",
+      "bytes": 59163641,
+      "java": 11,
+      "licence": "Apache-2.0"
+    },
+    {
+      "id": "kosit",
+      "name": "KoSIT validator",
+      "version": "1.6.3",
+      "released": "2026-08-20",
+      "url": "https://github.com/itplr-kosit/validator/releases/download/v1.6.3/validator-1.6.3-standalone.jar",
+      "sha256": "799e64befca97d4080e03608c80b85dd5a5ecc5f4ae4f35d1116ec2855b9a7c9",
+      "bytes": 10648594,
+      "java": 11,
+      "licence": "Apache-2.0"
+    },
+    {
+      "id": "xrechnung-configuration",
+      "name": "KoSIT's validator configuration for XRechnung",
+      "version": "2026-08-31",
+      "xrechnung": "3.0.2",
+      "released": "2026-09-02",
+      "url": "https://github.com/itplr-kosit/validator-configuration-xrechnung/releases/download/v2026-08-31/xrechnung-3.0.2-validator-configuration-2026-08-31.zip",
+      "sha256": "2530cd107c414511c5d0462ec10f886910395abfca820db82e83d70bf01221a8",
+      "bytes": 499607,
+      "java": null,
+      "licence": "Apache-2.0"
+    }
+  ],
+  "runtime": {
+    "name": "Eclipse Temurin",
+    "distribution": "temurin",
+    "java": 17,
+    "licence": "GPL-2.0-only WITH Classpath-exception-2.0",
+    "installedBy": "actions/setup-java"
+  }
+}

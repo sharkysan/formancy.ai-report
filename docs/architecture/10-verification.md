@@ -60,6 +60,23 @@ on it unchanged
 | The browser entry's Liberation Sans | `report-render-pdf/src/browser.test.ts` | The same, which holds the chunk to loading only for a bill or a captioned code |
 | The packed packages | The install gate's `consume.ts` | The same |
 
+**An e-invoice, on its XML and not yet on a PDF.** No PDF carries an
+e-invoice, so 0003's proof on the PDF waits for the step that draws one,
+and the page is held to its XML on the document the runtime resolved
+([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)):
+
+| Where | What holds it |
+|---|---|
+| The rules, over text, and the closed lists | `report-spec/src/en16931.test.ts` |
+| The validator, on the block and the report around it | `validate-e-invoice.test.ts` |
+| The editing core: the names, and what the page must print | `report-core/src/expressions/e-invoice.test.ts`, `report-core/src/diagnostics/e-invoice.test.ts` |
+| The runtime: the totals against a BigInt reading of EN 16931, the lines, the terms, the preview, the XML's bytes and its escaping | `e-invoice-totals.test.ts`, `e-invoice-lines.test.ts`, `e-invoice-terms.test.ts`, `lower-e-invoice.test.ts`, `cii.test.ts`, `xml.test.ts` |
+| The renderer, refusing every e-invoice in both entries, pdfmake never called | `report-render-pdf/src/refusals.test.ts` |
+| The samples: their XML against a BigInt computation of their data, and each line, total row, head and bank detail the page resolved to against the XML the same render wrote | `report-corpus/src/starters/e-invoice.test.ts` |
+| The XML read by a parser that is not the writer, every term at the path CEN's binding gives it | `report-corpus/src/e-invoice-xml.test.ts`, through `testing/cii.ts` |
+| The samples' XML judged by the tools a receiver runs | The `e-invoice` gate (§10.2) |
+| The packed packages | The install gate's `consume.ts`: an e-invoice validated, resolved to its XML, refused by the renderer, and its preview drawn |
+
 **What it does not see.** A rule or a border through a row, a shape over a
 line, a clipped glyph, white text on white: none is text or an image to
 PDF.js. A run's box is computed from its baseline and font size, so an
@@ -81,7 +98,8 @@ a release passes exactly what CI passes.
 | `test` | Each package's and app's `test:coverage`, one job each | Each suite passes on a runner of its own. Coverage is reported to Codecov and gated nowhere | A package's suite runs its source, not the `dist` that ships ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)) |
 | `browser` | The Studio's `test:browser`, with the build served under `/report/` as formancy.ai serves it, and `test:pictures`, with it served at the root of an origin nothing resolves; both in Chromium | What jsdom cannot see: no sideways scroll down to 320 pixels, the first Tab on the skip link, axe's contrast and target size at every starter in both builders, every starter's PDF drawn on white with the text it prints, the switch between frameworks, a real pointer's drag, a pane and the Preview hidden and shown again, the two builders' accessible trees compared, and no request or connection hint to any other origin; the README's pictures say what their page says ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), [0019](../decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md), [0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)) | Firefox and WebKit; the product's pages, which no gate opens in a browser; what a picture looks like |
 | `install` | `pnpm test:e2e:install` | The packed tarballs install into plain npm projects, one per kind of host; every entry resolves; the types check with `skipLibCheck` off against that host's types alone; the Node packages run end to end; each builder is drawn on a server and bundled for a browser, at the newest and the oldest release its peer range admits; the getting-started guide's code is compiled and run ([0015](../decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)) | A builder mounted in a DOM — no focus, key, pointer or re-render there; the registry's copy of a package |
-| `report` | `node scripts/release-report/report.mjs` | Every job above left results of this run; no test or test file was skipped or missed by its suite; every planned browser pass was made; every planned install host was checked whole; two builds of a package agree; each release gate's evidence and each limitation's `heldBy` test passed ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)) | Whether a limitation's sentence is still true: the register's fence detects a record's change, not its meaning |
+| `e-invoice` | `pnpm build`, then `node scripts/e-invoice.mjs --java "$JAVA_HOME/bin/java"`, on the Java the register names | Mustang and KoSIT's validator, at the releases `docs/release/e-invoice-tools.json` pins and refused unless each SHA-256 is the registered one, accept the XML the runtime writes of each e-invoice sample, KoSIT in its scenario `EN16931 (CII)`, and refuse each control, broken one named way, with exactly the messages expected, Java's HTTP and HTTPS proxies pointed at a dead port (a raw socket is not caught); a warning or a notice fails the run unless `scripts/e-invoice/accepted.json` accepts it with its reason; report-spec's closed lists and rule ids are held to the schematrons the tools run; a run fails where the corpus recorded in `scripts/e-invoice/recorded/` for the judges' tests is not the one it judged ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) | A customer's template, since only the samples are judged; a PDF, since none carries the XML; CEN's release 1.3.17, which report-spec's rules follow, since the pinned tools run 1.3.16; that a receiver takes the file. On 17 October 2026 it had passed on Windows, on Zulu 25 and Temurin 17, and had not run in CI |
+| `report` | `node scripts/release-report/report.mjs` | Every job above left results of this run; no test or test file was skipped or missed by its suite; every planned browser pass was made; every planned install host was checked whole; the e-invoice gate judged every file as its corpus expects, each tool at its register's version and bytes and, in CI, on the register's Java major version; two builds of a package agree; each release gate's evidence and each limitation's `heldBy` test passed ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md), 0027) | Whether a limitation's sentence is still true: the register's fence detects a record's change, not its meaning |
 
 Beside them: `cla.yml` holds every commit author of a pull request to a
 signature on the CLA as it stands (`scripts/check-cla.mjs`), and
@@ -105,6 +123,7 @@ that describe the repository rather than a package. Among them:
 | `palette.test.mjs` | A copy of admin.css's variables says other than admin.css at the pinned commit ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)) |
 | `pictures/readme.test.mjs` | A README picture's caption quotes what the parts its capture recorded in `docs/images/readme/captured.json` do not say, or a picture's bytes are not the ones captured ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)) |
 | `release-report/limitations.test.mjs` | A record has no register entry, or changed since it was read ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)) |
+| `e-invoice/*.test.mjs` | A module of the e-invoice gate stops doing its part: the judges, over the run recorded in `scripts/e-invoice/recorded/`; the registers and the accepted warnings; the cache's hash check; the corpus and its controls; the reader of the tools' XML; the unzip; the recording, which holds no path of the machine it ran on (0027) |
 | `source-size.test.mjs` | A source file passes 600 lines |
 | `architecture.test.mjs` | A section of these documents is missing; a workspace package or app has no row in [the building blocks](05-building-blocks.md), or its row names other dependencies than its manifest; a decision record is cited by no section; a relative link here does not reach a file or a heading GitHub would give it; or a path written here as code names nothing the checkout holds ([0026](../decisions/0026-the-architecture-is-documented-in-arc42s-sections-held-to-the-repository-by-a-guard.md)) |
 | `heading-anchors.test.mjs` | The one reading of GitHub's heading anchors, which this guard, the guide's and the product pages' link check share, gives one of its fixture headings another anchor than the one written beside it |
@@ -139,6 +158,12 @@ later releases and say why, and the legal gate waits for a lawyer
   ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md),
   [0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
   [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+- **No e-invoice drawn, and none received.** The XML is judged by two
+  validators and read back by a parser; no PDF carries it, nothing here has
+  handed the file to a receiver, an ERP or a platform, and a customer's
+  template goes through neither tool, only through the rules and the check
+  that each total is printed
+  ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 - **Copied by hand.** The palette and the builder's geometry are copied
   from formancy.ai's admin.css, and nothing fails when upstream moves
   ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).

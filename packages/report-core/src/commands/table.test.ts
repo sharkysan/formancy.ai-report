@@ -1,7 +1,8 @@
 import { componentAt } from '@formancy/report-spec'
 import type { ReportDefinition, TableColumn, TableComponent, TableFooterRow } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
-import { accepted, frozen, frozenSample, refused } from '../test-support.js'
+import { openReportSession } from '../session.js'
+import { accepted, eInvoiceSample, frozen, frozenSample, refused } from '../test-support.js'
 import { updateComponent } from './components.js'
 import {
   insertColumn,
@@ -178,5 +179,34 @@ describe('footer rows', () => {
     ['footer rows of a component that is not a table', (report: ReportDefinition) => removeFooterRow(report, 'intro', 'totals', 0), 'kind-mismatch'],
   ] as const)('refuse %s', (_name, command, code) => {
     expect(refused(command(frozenSample())).code).toBe(code)
+  })
+})
+
+describe('a column that prints an e-invoice line', () => {
+  /** The validator's errors for an edit to the e-invoice sample, as code and path; none when the session commits it. */
+  function errorsOf(edit: (report: ReportDefinition) => ReturnType<typeof removeColumn>): string[] {
+    const opening = openReportSession(eInvoiceSample())
+    if (!opening.ok) throw new Error('the e-invoice sample did not open')
+    const outcome = opening.session.apply(edit)
+    return outcome.ok ? [] : refused(outcome).errors?.map(({ code, path }) => `${code} ${path}`) ?? [refused(outcome).code]
+  }
+
+  // The XML is written from what the named columns print. A column
+  // removed would leave a line term with nothing to print it; a column
+  // that may be hidden would print an invoice whose lines the XML holds
+  // and its page does not. The session refuses either, with the
+  // validator's reason, and commits nothing.
+  test.each([
+    ['removed', (report: ReportDefinition) => removeColumn(report, 'lines', 'amount'), ['unknown-column /eInvoice/lines/netAmount']],
+    ['hidden', (report: ReportDefinition) => updateColumn(report, 'lines', 'qty', { visibleWhen: { cel: 'params.draft' } }), ['invalid-e-invoice /eInvoice/lines/quantity']],
+    ['given a literal text', (report: ReportDefinition) => updateColumn(report, 'lines', 'sku', { value: { kind: 'text', text: 'Item' } }), ['invalid-e-invoice /eInvoice/lines/name']],
+  ])('is refused when %s', (_change, edit, errors) => {
+    expect(errorsOf(edit)).toEqual(errors)
+  })
+
+  // A column the e-invoice does not name is the page's own.
+  test('is only one the e-invoice names: another may be hidden or removed', () => {
+    expect(errorsOf((report) => updateColumn(report, 'lines', 'shipped-at', { visibleWhen: { cel: 'params.draft' } }))).toEqual([])
+    expect(errorsOf((report) => removeColumn(report, 'lines', 'shipped-at'))).toEqual([])
   })
 })

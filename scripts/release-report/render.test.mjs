@@ -164,7 +164,7 @@ describe('the Markdown', () => {
   test('says how each section was made', () => {
     const markdown = renderContent(report())
     const method = markdown.slice(markdown.indexOf('## How this report was made'), markdown.indexOf('## Problems'))
-    for (const section of ['Subject', 'Tested on', 'Results', 'Browser', 'Build identity', 'Release gates', 'Known limitations', 'Problems']) expect(method).toContain(`- **${section}:**`)
+    for (const section of ['Subject', 'Tested on', 'Results', 'Browser', 'E-invoice gate', 'Build identity', 'Release gates', 'Known limitations', 'Problems']) expect(method).toContain(`- **${section}:**`)
   })
 
   // The browser a gate measured in, and the Playwright that pins it, are
@@ -202,6 +202,22 @@ describe('the Markdown', () => {
   })
 })
 
+describe('the e-invoice gate', () => {
+  // The section is the gate's own record: the Java and the tools it ran,
+  // and each file with what the corpus expects of it and what each tool's
+  // judge said, so a red run shows which file and which tool in the row.
+  test('shows the Java, the tools, and every file with each tool’s verdict', () => {
+    const section = (markdown) => markdown.slice(markdown.indexOf('## E-invoice gate'), markdown.indexOf('## Build identity'))
+    const green = section(renderContent(report()))
+    expect(green).toContain('The e-invoice gate passed on Java 17.0.20.1, with mustang 2.26.0, kosit 1.6.3 and xrechnung-configuration 2026-08-31, Mustang in 20.8 s and KoSIT in 6.3 s:')
+    expect(green).toContain('| e-invoice.xml | a sample, to accept | as expected | as expected |')
+    expect(green).toContain('| control-br-27.xml | a control, to refuse | as expected | as expected |')
+    const red = section(renderContent(report((inputs) => (job(inputs, 'e-invoice').eInvoice.kosit[1].verdict = 'not as expected'))))
+    expect(red).toContain('| control-br-27.xml | a control, to refuse | as expected | not as expected |')
+    expect(section(renderContent(report((inputs) => (job(inputs, 'e-invoice').eInvoice = null))))).toContain('The e-invoice gate left no results in this run.')
+  })
+})
+
 describe('the subject and the summary', () => {
   // A report that does not say which run, commit and release it is of
   // cannot be told apart from another one.
@@ -223,6 +239,6 @@ describe('the subject and the summary', () => {
     const summary = renderSummary(report(), { section: 'Unreleased', link: 'https://example.invalid/report.md' })
     expect(summary).toContain('The full report of the run that gated this: https://example.invalid/report.md')
     expect(summary).toContain('The notes above are CHANGELOG.md’s `Unreleased` section.')
-    expect(summary).toContain('6 of 6 tests passed across 4 packages; the install gate passed.')
+    expect(summary).toContain('6 of 6 tests passed across 4 packages; the install gate passed; the e-invoice gate passed.')
   })
 })

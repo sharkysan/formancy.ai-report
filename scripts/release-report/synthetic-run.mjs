@@ -13,7 +13,7 @@ const T0 = Date.parse('2026-10-16T10:00:00Z')
 export const DIST = 'sha256:aaaa111122223333444455556666777788889999aaaabbbbccccddddeeeeffff'
 
 const runner = { node: 'v22.20.0', platform: 'linux', arch: 'x64', image: 'ubuntu24', imageVersion: '20261012.1' }
-const base = (key, job) => ({ schema: 1, job, key, runner, commit: 'c0ffee', run: { id: '42', attempt: '1' }, collectedAt: new Date(T0 + 3_600_000).toISOString(), suites: [], browserGates: [], pictures: [], install: null, dist: [], tarballs: [], absent: [], missing: [] })
+const base = (key, job) => ({ schema: 1, job, key, runner, commit: 'c0ffee', run: { id: '42', attempt: '1' }, collectedAt: new Date(T0 + 3_600_000).toISOString(), suites: [], browserGates: [], pictures: [], install: null, eInvoice: null, dist: [], tarballs: [], absent: [], missing: [] })
 
 /** The Chromium Playwright pins, and the one the gate launched. */
 export const CHROMIUM = '156.0.8078.4'
@@ -55,6 +55,50 @@ const browserJob = () => ({
   ],
   // turbo builds every package the Studio imports before the gate.
   dist: dist(),
+})
+
+/** The e-invoice gate's tools, as docs/release/e-invoice-tools.json pins them: each JAR with the oldest Java it runs on, the configuration with none. */
+const E_INVOICE_TOOLS = [
+  { id: 'mustang', version: '2.26.0', sha256: 'aa'.repeat(32), java: 11 },
+  { id: 'kosit', version: '1.6.3', sha256: 'bb'.repeat(32), java: 11 },
+  { id: 'xrechnung-configuration', version: '2026-08-31', sha256: 'cc'.repeat(32), java: null },
+]
+
+/** What the gate records it ran: each tool's bytes as it hashed them, and the version each JAR reported of itself. */
+const E_INVOICE_RAN = [
+  { id: 'mustang', version: '2.26.0', sha256: 'aa'.repeat(32), reported: ['2.26.0'] },
+  { id: 'kosit', version: '1.6.3', sha256: 'bb'.repeat(32), reported: '1.6.3' },
+  { id: 'xrechnung-configuration', version: '2026-08-31', sha256: 'cc'.repeat(32) },
+]
+
+/** The e-invoice gate's record, as scripts/e-invoice.mjs writes it: a sample both tools accepted and a control both refused, each as its corpus expects. */
+const eInvoiceJob = () => ({
+  ...base('e-invoice', 'e-invoice'),
+  eInvoice: {
+    gate: 'e-invoice',
+    startedAt: new Date(T0 + 500_000).toISOString(),
+    finishedAt: new Date(T0 + 545_000).toISOString(),
+    java: { version: '17.0.20.1', major: 17 },
+    tools: E_INVOICE_RAN.map((tool) => structuredClone(tool)),
+    corpus: [
+      { file: 'e-invoice.xml', sample: 'e-invoice', expect: { mustang: 'accepted', kosit: 'accepted' } },
+      { file: 'control-br-27.xml', from: 'e-invoice.xml', why: 'a negative net price', expect: { mustang: ['error 4 BR-27', 'warning 10'], kosit: ['error val-sch.1 BR-27'] } },
+    ],
+    mustang: [
+      { file: 'e-invoice.xml', verdict: 'as expected' },
+      { file: 'control-br-27.xml', verdict: 'as expected' },
+    ],
+    kosit: [
+      { file: 'e-invoice.xml', verdict: 'as expected' },
+      { file: 'control-br-27.xml', verdict: 'as expected' },
+    ],
+    seconds: { mustang: 20.8, kosit: 6.3, total: 44.3 },
+    problems: [],
+    passed: true,
+  },
+  // Its job builds every package as verify does; left out here, as the
+  // corpus suite's is, so no build-identity case names one job more.
+  dist: [],
 })
 
 const test = (name) => ({ name, status: 'passed', durationMs: 5 })
@@ -133,7 +177,7 @@ export function greenRun() {
     dist: dist(),
   }
   return {
-    results: [verify, spec, pdf, react, corpus, browserJob(), install],
+    results: [verify, spec, pdf, react, corpus, browserJob(), install, eInvoiceJob()],
     facts: {
       runtime: [{ package: '@formancy/report-render-pdf', name: 'pdfmake', range: '0.3.11', loaded: '0.3.11' }],
       peers: [
@@ -169,6 +213,8 @@ export function greenRun() {
     browserApps: ['apps/studio'],
     pictureApps: ['apps/studio'],
     browsers: ['chromium'],
+    // What docs/release/e-invoice-tools.json pins: the tools the e-invoice gate must have run.
+    eInvoiceTools: { tools: E_INVOICE_TOOLS.map((tool) => ({ ...tool })), runtime: { name: 'Eclipse Temurin', distribution: 'temurin', java: 17 } },
     // What scripts/pictures/scenes.json gives the Studio: the scenes its check must walk.
     scenes: { 'apps/studio': ['studio-react', 'studio-angular'] },
     register: {
@@ -196,7 +242,7 @@ export function greenRun() {
 }
 
 /** The gates workflow's jobs that leave results, as greenCiRun() runs them. */
-const JOBS = ['verify', 'test', 'browser', 'install']
+const JOBS = ['verify', 'test', 'browser', 'install', 'e-invoice']
 /** The register's gates, in its order. */
 const GATE_IDS = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'legal']
 /** A committed document, as a gate's stated evidence would be. */

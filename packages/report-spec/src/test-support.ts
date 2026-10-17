@@ -7,9 +7,11 @@
  * function, every table feature and a payment part, so that a refusal
  * test can break exactly one rule by editing it at one JSON Pointer and
  * show that the rule refuses that edit and nothing around it.
+ * `eInvoiceReport` is that report as an e-invoice, for the same use.
  */
+import type { FacturXInvoice } from './e-invoice.js'
 import type { ReportError } from './errors.js'
-import type { FieldRef, ReportDefinition } from './types.js'
+import type { DatasetContract, FieldRef, Inline, ReportDefinition } from './types.js'
 import { validateReport } from './validate.js'
 
 const header = (field: string): FieldRef => ({ dataset: 'header', field })
@@ -316,6 +318,81 @@ export function richReport(): ReportDefinition {
     },
     provenance: { kind: 'dataset', dataset: 'order-lines' },
   }
+}
+
+/** Runs of one literal text. */
+const said = (text: string): readonly Inline[] => [{ kind: 'text', text }]
+
+/**
+ * An e-invoice over `richReport`'s table, using every term the format has:
+ * the seller's literal, the buyer's read from the data where it can be,
+ * four categories of three codes, a delivery date and a period, and
+ * payment to the account the report's EPC QR code pays.
+ */
+export function facturXInvoice(): FacturXInvoice {
+  return {
+    kind: 'facturX',
+    profile: 'en16931',
+    type: '380',
+    currency: 'EUR',
+    number: [{ kind: 'text', text: 'RE-' }, { kind: 'expression', expression: { cel: 'header.customer' } }],
+    issued: { cel: 'header.orderedOn' },
+    seller: {
+      name: said('Muster & Söhne GmbH'),
+      vatId: said('DE 123 456 789'),
+      taxNumber: said('201/113/40209'),
+      legalId: { id: said('HRB 12345') },
+      address: { line1: said('Industriestraße 7'), line2: said('Hof 2'), postalCode: said('50735'), city: said('Köln'), country: said('DE') },
+    },
+    buyer: {
+      name: [{ kind: 'field', field: header('customer') }],
+      vatId: [{ kind: 'parameter', parameter: 'region' }],
+      legalId: { id: said('4012345000009'), scheme: '0088' },
+      address: { line1: [{ kind: 'parameter', parameter: 'region' }], postalCode: said('1010'), city: said('Wien'), country: said('AT') },
+    },
+    buyerReference: said('PO-4711'),
+    delivered: { cel: 'params.from' },
+    period: { start: { cel: 'params.from' }, end: { cel: 'header.orderedOn' } },
+    vat: [
+      { id: 'standard', code: 'S', rate: '19' },
+      { id: 'reduced', code: 'S', rate: '7.00' },
+      { id: 'exempt', code: 'E', rate: '0', reason: said('Steuerfrei nach § 4 Nr. 14 UStG') },
+      { id: 'reverse', code: 'AE', rate: '0', reason: said('Steuerschuldnerschaft des Leistungsempfängers') },
+    ],
+    lines: {
+      table: 'lines',
+      name: 'sku',
+      quantity: 'qty',
+      netPrice: 'price',
+      netAmount: 'amount',
+      id: { kind: 'field', field: detail('sku') },
+      unit: { kind: 'field', field: detail('unit') },
+      vat: { kind: 'expression', expression: { cel: 'row.vat' } },
+    },
+    payment: {
+      means: '58',
+      iban: said('DE71 1102 2033 0123 4567 89'),
+      bic: said('BHBLDEHHXXX'),
+      accountName: said('Franz Mustermänn'),
+      remittance: [{ kind: 'text', text: 'Rechnung ' }, { kind: 'expression', expression: { cel: 'header.customer' } }],
+    },
+    due: { cel: 'header.orderedOn' },
+    terms: said('Zahlbar innerhalb von 14 Tagen ohne Abzug'),
+    paid: { cel: 'params.threshold' },
+  }
+}
+
+/**
+ * `richReport` as an e-invoice: without its QR-bill, which is in francs and
+ * paid to a QR-IBAN, and with each detail row's unit and VAT category, the
+ * fields appended so that every pointer into the rest is `richReport`'s.
+ */
+export function eInvoiceReport(): ReportDefinition {
+  const { paymentPart: _bill, ...report } = richReport()
+  // richReport declares its detail dataset, which its table reads.
+  const lines = report.datasets.detail as DatasetContract
+  const fields = [...lines.fields, { id: 'unit', type: 'string', label: 'Unit', nullable: false } as const, { id: 'vat', type: 'string', label: 'VAT', nullable: false } as const]
+  return { ...report, datasets: { ...report.datasets, detail: { ...lines, fields } }, eInvoice: facturXInvoice() }
 }
 
 /** A deep copy of JSON data, as something the tests may edit freely. */

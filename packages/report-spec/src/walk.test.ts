@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { getAt, richReport } from './test-support.js'
+import { eInvoiceReport, getAt, richReport } from './test-support.js'
 import { COMPONENT_KINDS } from './types.js'
 import { componentAt, walkComponents } from './walk.js'
 
@@ -60,6 +60,20 @@ describe('walkComponents', () => {
   test('finds every component the report holds', () => {
     const report = richReport()
     expect(walkComponents(report).map(({ component }) => component.id).sort()).toEqual(componentsIn(report).sort())
+  })
+})
+
+describe('walkComponents over an e-invoice', () => {
+  // An e-invoice is no component and holds none: its line table is the
+  // report's own, which the walk already visits. Were a part of it ever
+  // component-shaped, the core's commands would find a component the
+  // validator never read as one, or the walk would miss one it did.
+  test('finds no component in the e-invoice, and the same ones as in the report without it', () => {
+    const report = eInvoiceReport()
+    const { eInvoice, ...plain } = report
+    expect(componentsIn(eInvoice)).toEqual([])
+    expect(walkComponents(report).map(({ path }) => path)).toEqual(walkComponents(plain).map(({ path }) => path))
+    expect(componentAt(report, eInvoice?.lines.table ?? '')?.component.kind).toBe('table')
   })
 })
 

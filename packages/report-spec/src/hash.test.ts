@@ -1,7 +1,7 @@
 import { schemaHash } from '@formancy/spec'
 import { describe, expect, test } from 'vitest'
 import { reportHash } from './hash.js'
-import { richReport } from './test-support.js'
+import { eInvoiceReport, richReport } from './test-support.js'
 import type { ReportDefinition } from './types.js'
 import { REPORT_FORMAT } from './version.js'
 
@@ -70,6 +70,20 @@ describe('reportHash', () => {
     const report = richReport()
     expect(reportHash(reversed(report) as ReportDefinition)).toBe(reportHash(report))
     expect(JSON.stringify(reversed(report))).not.toBe(JSON.stringify(report))
+  })
+
+  // An e-invoice is part of the template a hash names, and its keys are
+  // canonicalised as every object's: a rate edited from 7.00 to 7 is
+  // another template, written another way, and keys in another order are
+  // the same one.
+  test("names a report's e-invoice, whatever the order of its keys", () => {
+    const report = eInvoiceReport()
+    const { eInvoice, ...without } = report
+    expect(reportHash(reversed(report) as ReportDefinition)).toBe(reportHash(report))
+    expect(reportHash(without)).not.toBe(reportHash(report))
+    expect(eInvoice?.vat[1]?.rate).toBe('7.00')
+    const rate = JSON.parse(JSON.stringify(report).replace('"rate":"7.00"', '"rate":"7"')) as ReportDefinition
+    expect(reportHash(rate)).not.toBe(reportHash(report))
   })
 
   // A hash that missed a one-character edit would let a changed template

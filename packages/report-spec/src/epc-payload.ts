@@ -43,6 +43,10 @@ const IBAN = /^[A-Za-z]{2}\d{2}[A-Za-z0-9]+$/
  * reference (SIX's QR-bill guidelines 2.8, 2.10): a transfer in euro with
  * a creditor reference or none is not one it is credited by. That rule is
  * SIX's, not the EPC's, and its range is the QR-bill's (`isQrIban`).
+ *
+ * An e-invoice's payment account (BT-84) is held by this rule too
+ * (`en16931.ts`): every credit transfer it writes is paid in euro, and an
+ * invoice that prints an EPC QR code beside it names one account.
  */
 export function checkEpcIban(text: string): PaymentCheck<string> {
   const written = withoutSpaces(text)
@@ -53,7 +57,7 @@ export function checkEpcIban(text: string): PaymentCheck<string> {
   if (iban.length !== country.length) return no(`is ${iban.length} characters long, and an IBAN of its country has ${country.length} (SWIFT's IBAN Registry)`)
   const checked = checkIbanCheckDigits(iban)
   if (checked.ok && isQrIban(iban)) {
-    return no("is a QR-IBAN, which SIX keeps for QR-bills in francs paid with a QR reference (SIX's QR-bill guidelines 2.8, 2.10), and an EPC QR code pays in euro with none")
+    return no("is a QR-IBAN, which SIX keeps for QR-bills in francs paid with a QR reference (SIX's QR-bill guidelines 2.8, 2.10), and a SEPA credit transfer in euro carries none")
   }
   return checked
 }

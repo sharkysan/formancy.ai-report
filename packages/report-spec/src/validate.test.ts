@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { REPORT_ERROR_CODES } from './errors.js'
 import type { ReportError, ReportErrorCode } from './errors.js'
 import { MAX_ASSETS, MAX_ERRORS, MAX_LABEL_LENGTH, MAX_NESTING_DEPTH } from './limits.js'
-import { editable, getAt, removeAt, richReport, setAt } from './test-support.js'
+import { editable, eInvoiceReport, getAt, removeAt, richReport, setAt } from './test-support.js'
 import { validateReport } from './validate.js'
 
 /** Edits a document in place and returns what to validate. */
@@ -205,6 +205,24 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
     refuse: set('/regions/summary/3/iban/0/text', 'DE71 1102 2033 0123 4567 88'),
     accept: set('/regions/summary/3/iban/0/text', 'DE89 3704 0044 0532 0130 00'),
     at: ['/regions/summary/3/iban'],
+  },
+  // "Two capitals" takes UK, which ISO 3166-1 and CEN's BR-CL-14 do not:
+  // an e-invoice to a British buyer written UK is refused by every
+  // validator, so a literal one is refused where it is written. The case
+  // starts from the fixture as an e-invoice, which has no QR-bill in
+  // francs; another country of the list is accepted.
+  'invalid-e-invoice': {
+    refuse: () => {
+      const report = editable(eInvoiceReport())
+      setAt(report, '/eInvoice/buyer/address/country/0/text', 'UK')
+      return report
+    },
+    accept: () => {
+      const report = editable(eInvoiceReport())
+      setAt(report, '/eInvoice/buyer/address/country/0/text', 'GB')
+      return report
+    },
+    at: ['/eInvoice/buyer/address/country'],
   },
   // A rounding increment is an exact decimal; '.05' is a spelling a
   // decimal parser may read, or not.

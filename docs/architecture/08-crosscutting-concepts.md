@@ -16,6 +16,7 @@ passes through a JavaScript number, as in Formancy Data
 | Totals | Computed exactly and rounded once, to the exact total, as declared: each group's and the report's apart, so rounded subtotals need not add up to the rounded total ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | Printing | Intl is handed the exact digits, already rounded half away from zero to the places shown. A format that would round a rounded total again is a diagnostic ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) |
 | A payment code's amount | A QR-bill's and an EPC QR code's alike: written from its own digits and never rounded; a third decimal is refused, so rounding stays where the total is computed. An EPC QR code's is written as short as it can be, as Austria's PSA asks ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
+| An e-invoice's totals | Computed once, in `Decimal`, from the very values the table prints: each VAT category's tax is its basis times its rate over 100, rounded once, half away from zero, and never per line; a line's net amount and a paid amount are whole cents, refused rather than rounded, and a net amount other than its quantity times its net price rounded once is refused; a rate is compared by value, so `19` and `19.00` are one rate. The XML writes each amount from its own digits at two places, and the page reads the totals by name, so that it prints what the XML holds ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) |
 | Lengths | Points, on the hundredth of a point; a finer one is refused, not rounded, so one layout has one stored value and one hash ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
 
 ## 8.2 Refusals
@@ -37,11 +38,22 @@ half done behind it. Each layer has its own kind:
 A version, a component kind or a property a release does not know is refused
 whole, never skipped: the field ignored could be the one that hides a row or
 changes a total ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md)).
-So 0.1.0 refuses a report with a QR code, a payment part or an EPC QR code,
-though each is an addition to the same draft version
+So 0.1.0 refuses a report with a QR code, a payment part, an EPC QR code or
+an e-invoice, though each is an addition to the same draft version
 ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md),
 [0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
-[0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+[0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
+[0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+And the renderer refuses every e-invoice, whole, rather than draw it as a
+plain PDF without the XML that, in Germany, is the invoice (0027).
+
+**A code is read from a closed list.** An e-invoice's units, countries, VAT
+prefixes and schemes are lists someone chose (`UNIT_CODES`,
+`COUNTRY_CODES`, `VAT_PREFIXES`, `SCHEME_IDS`), narrower than CEN's and held
+to CEN's by the e-invoice gate. A code outside them is refused, though CEN
+might take it, because a check of the code's shape would pass `UK` or
+`Stk`, which every validator refuses, and only after the render was called
+final (0027).
 
 **A message never quotes a value.** A refusal names the field, the rule and
 the place, never the text that broke it: the data and the bill are the
@@ -53,6 +65,9 @@ names the code, the field and the rule, from the validator and the runtime
 alike; and the renderer names the code by its id, never its payload (0025).
 A string written where a payment code expects runs is refused unquoted,
 where the shared readers quote what they find (`validate-payment-text.ts`).
+An e-invoice holds names, addresses, accounts and VAT identifiers, so
+`invalid-e-invoice` names the business term and the rule, never the value,
+and the renderer's refusals of an e-invoice never quote its XML (0027).
 
 ## 8.3 Final and preview
 
@@ -78,6 +93,13 @@ data gives empty, blank or null is not missing: its element is left unused,
 in a final render as in a preview, because a nullable field's null is how
 data says "none"
 ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+
+An e-invoice is not written by a preview. Its XML is the invoice, so a
+preview writes none, warns `e-invoice-preview`, and labels every page,
+complete data or not: "Preview: not an e-invoice, and not a final report",
+or a preview of incomplete data's label where it lacks something. A final
+render writes the XML or refuses
+([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 
 ## 8.4 Untrusted input
 
@@ -122,6 +144,11 @@ Rows with equal keys keep the provider's order
 ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
 The hash is taken over a canonical form, so key order never changes it
 ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
+An e-invoice's XML is written one way and reads no clock, so the same
+report and data are the same bytes, which
+`report-runtime/src/lower-e-invoice.test.ts` holds, and
+`report-runtime/src/cii.test.ts` pins those bytes
+([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 
 What it does not cover: the characters Intl prints are the engine's ICU's,
 so the same report can print differently under another Node
@@ -179,6 +206,17 @@ anything:
   review read its MIT licence on 17 October 2026, and the guard judges it
   by pdfmake's field alone
   ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
+- **What the e-invoice gate runs, and what was copied from it.** Its
+  downloads carry works under their own licences -- Saxon in both, veraPDF
+  under the GPL or the MPL in Mustang's, CEN/TC 434's EUPL-1.2 schematron
+  in Mustang's and in KoSIT's configuration -- which nobody here reviewed
+  one by one. They run in CI and no package carries them, so 0006, which
+  governs what a package ships, does not reach them. But report-spec's
+  closed lists hold codes copied out of CEN's EUPL-1.2 lists, and the gate's
+  recorded reports quote CEN's rule texts; whether either is acceptable
+  under 0006 is the rightsholder's open question. The ZUGFeRD and Factur-X
+  marks are AWV e.V.'s, and their conditions have not been read
+  ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 
 A built app carries the licence and notice texts of everything it bundles
 (`scripts/third-party-notices.mjs`, after

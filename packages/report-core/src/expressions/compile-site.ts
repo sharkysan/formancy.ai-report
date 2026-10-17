@@ -15,17 +15,21 @@
  *
  * What a scope does not bind, a member nothing declares, a member of a
  * single value and an image field read as a value are found first, from
- * the paths the parser says the expression reads. The clock and a random
- * draw, which the compiler allows, are refused last (plan 15).
+ * the paths the parser says the expression reads; so is an e-invoice's
+ * total read where it cannot be (`e-invoice.ts`). The clock and a random
+ * draw, which the compiler allows, are refused last (plan 15), and then
+ * what its place needs it to give: a payment code's amount, an
+ * e-invoice's term.
  */
 import { compile, parse, referencedPaths, rewritePath } from '@formancy/expressions'
 import type { DeclaredType, ExpressionError, ExpressionErrorKind, Program, SourceSpan, VariableDeclarations } from '@formancy/expressions'
-import { EXPRESSION_NAMES, VALUE_SCOPES } from '@formancy/report-spec'
+import { E_INVOICE_NAMES, EXPRESSION_NAMES, VALUE_SCOPES } from '@formancy/report-spec'
 import type { ValueScope } from '@formancy/report-spec'
 import { diagnostic } from '../diagnostics/codes.js'
 import type { Diagnostic, DiagnosticCode, Where } from '../diagnostics/codes.js'
 import type { ExpressionSite } from '../diagnostics/parts.js'
 import { quote } from '../outcome.js'
+import { invoiceRefusal, termBreak } from './e-invoice.js'
 import { inexactOperations, unboundedCalls } from './exactness.js'
 import type { InexactKind } from './exactness.js'
 import type { Members, ScopeName } from './members.js'
@@ -85,6 +89,9 @@ const MEMBERS_ARE: { readonly [N in ScopeName]: string } = {
   row: 'field of the detail dataset',
   totals: 'aggregate',
   group: 'aggregate',
+  invoice: 'total of the e-invoice',
+  vatBasis: 'VAT category of the e-invoice',
+  vatAmount: 'VAT category of the e-invoice',
 }
 
 /** A read path's parts: the name it starts with, the member a dot names after it, and anything else after that. */
@@ -127,13 +134,29 @@ function eachRead(site: ExpressionSite, path: string, code: DiagnosticCode, mess
   return spans.length === 0 ? [diagnostic(code, message, at(site))] : spans.map((span) => diagnostic(code, message, at(site, span)))
 }
 
-/** The diagnostics for a read of `path` that the scope's names and their members do not allow; none for one they do. */
-function readProblems(site: ExpressionSite, path: string, members: Members, images: Images): Diagnostic[] {
+/** What the expression at a site reads: the names its scope binds, and the e-invoice's where it may read them, or why it cannot. */
+interface Names {
+  readonly names: readonly string[]
+  /** Why the e-invoice's names are not read here, said after the name; undefined where they are. */
+  readonly refusal: string | undefined
+}
+
+const INVOICE_NAMES: readonly string[] = E_INVOICE_NAMES
+
+/** The names `site` reads, in a report that is an e-invoice when `invoiced` says so. */
+function namesAt(site: ExpressionSite, invoiced: boolean): Names {
+  const refusal = invoiceRefusal(site, invoiced)
+  return { names: refusal === undefined ? [...EXPRESSION_NAMES[site.scope], ...INVOICE_NAMES] : EXPRESSION_NAMES[site.scope], refusal }
+}
+
+/** The diagnostics for a read of `path` that the site's names and their members do not allow; none for one they do. */
+function readProblems(site: ExpressionSite, path: string, members: Members, images: Images, { names, refusal }: Names): Diagnostic[] {
   const { name, member, rest } = pathParts(path)
-  if (!EXPRESSION_NAMES[site.scope].includes(name)) {
+  if (refusal !== undefined && INVOICE_NAMES.includes(name)) return eachRead(site, name, 'expression-unknown-name', `${name} ${refusal}`)
+  if (!names.includes(name)) {
     const scopes = VALUE_SCOPES.filter((scope) => EXPRESSION_NAMES[scope].includes(name))
     if (scopes.length > 0) return eachRead(site, name, 'expression-out-of-scope', `${name} has a value only in ${scopes.map((scope) => WHERE[scope]).join(' and ')}`)
-    return eachRead(site, name, 'expression-unknown-name', `${quote(name)} is not a name an expression reads; here it reads ${EXPRESSION_NAMES[site.scope].join(', ')}`)
+    return eachRead(site, name, 'expression-unknown-name', `${quote(name)} is not a name an expression reads; here it reads ${names.join(', ')}`)
   }
   // A whole read -- size(params) -- is found once every member read is
   // spliced, when what still reads the name reads it whole.
@@ -195,10 +218,10 @@ function refused(site: ExpressionSite, error: ExpressionError, source: string, r
  * since every read of a member by its id is spliced away. Positions only
  * when `source` is the author's, character for character.
  */
-function wholeReads(site: ExpressionSite, paths: readonly string[], source: string): Diagnostic[] {
+function wholeReads(site: ExpressionSite, paths: readonly string[], source: string, names: readonly string[]): Diagnostic[] {
   const exact = source.length === site.cel.length
   return paths
-    .filter((path) => EXPRESSION_NAMES[site.scope].includes(path))
+    .filter((path) => names.includes(path))
     .flatMap((name) =>
       readSpans(source, name).map((span) =>
         diagnostic('expression-dynamic-read', `${name} is read whole; an expression reads each ${MEMBERS_ARE[name as ScopeName]} by its id, as ${name}.<id>`, at(site, exact ? span : undefined)),
@@ -207,20 +230,23 @@ function wholeReads(site: ExpressionSite, paths: readonly string[], source: stri
 }
 
 /**
- * `site` compiled against what its scope binds in this report, or every
- * reason it cannot be: a read its scope does not allow, each where it is;
- * the compiler's first error; or each call to the clock or a random draw.
+ * `site` compiled against what its scope binds in this report -- a report
+ * that is an e-invoice when `invoiced` says so -- or every reason it
+ * cannot be: a read its scope does not allow, each where it is; the
+ * compiler's first error; each call to the clock or a random draw; or a
+ * value its place does not take.
  */
-export function compileSite(site: ExpressionSite, members: Members, images: Images): SiteOutcome {
+export function compileSite(site: ExpressionSite, members: Members, images: Images, invoiced: boolean): SiteOutcome {
   const parsed = parse(site.cel)
   if (!parsed.ok) return failed([refused(site, parsed.error, site.cel, [])])
   const paths = referencedPaths(parsed.ast)
-  const problems = paths.flatMap((path) => readProblems(site, path, members, images))
+  const names = namesAt(site, invoiced)
+  const problems = paths.flatMap((path) => readProblems(site, path, members, images, names))
   if (problems.length > 0) return failed(problems)
   const reads = readsOf(paths, members)
   const flat = flattened(site, reads)
   if (!('source' in flat)) return failed([flat])
-  const whole = wholeReads(site, paths, flat.source)
+  const whole = wholeReads(site, paths, flat.source, names.names)
   if (whole.length > 0) return failed(whole)
   const variables: VariableDeclarations = Object.fromEntries(reads.map((read) => [read.variable, read.nullable ? 'dyn' : read.type]))
   const compiled = compile(flat.source, { kind: site.kind, variables })
@@ -241,6 +267,8 @@ export function compileSite(site: ExpressionSite, members: Members, images: Imag
     const hint = type === 'int' || type === 'string' ? 'dec() makes a decimal of an integer, or of a string of digits' : undefined
     return failed([diagnostic('expression-type', `${site.amount}'s amount is a decimal, or null to leave it for the payer, and this expression gives ${type}`, at(site, undefined, hint))])
   }
+  const broken = termBreak(site, type)
+  if (broken !== undefined) return failed([diagnostic('expression-type', broken.message, at(site, undefined, broken.hint))])
   return { ok: true, compiled: { site, program: compiled.program, reads } }
 }
 

@@ -141,6 +141,9 @@ holds and what fails it). In short:
   `scripts/pictures/scenes.json` gives the Studio, each launched as
   `scripts/browsers.mjs` launches the build Playwright pins;
 - the install gate host by host, held to the hosts it plans;
+- the e-invoice gate's tools, held to the versions and bytes
+  [`e-invoice-tools.json`](docs/release/e-invoice-tools.json) pins, and
+  each tool's verdict on every file of its corpus;
 - each tarball's built files against the `dist/` every job built;
 - the release gates from [`gates.json`](docs/release/gates.json);
 - the known limitations: the run's, then those the decision records state,
@@ -155,6 +158,7 @@ pnpm build && pnpm test:repo
 pnpm exec turbo run test:coverage --force --summarize   # every package, fresh, with its wall time
 pnpm test:browser && pnpm test:pictures                  # the Studio in Chromium, and its README pictures
 node scripts/install-test.mjs
+node scripts/e-invoice.mjs --java "$JAVA_HOME/bin/java"   # Mustang and KoSIT over the e-invoice samples' XML
 node scripts/release-report/collect.mjs --local --since "$since"
 node scripts/release-report/report.mjs --local --allow-missing install
 ```
@@ -168,10 +172,13 @@ only in a gates run; the install gate's own record is read whatever it
 allows. The browser gate needs Chromium once on the machine (`pnpm --filter
 @formancy/report-studio exec playwright install chromium`); its file and the
 pictures' check's are read as in CI, and G3, which rests on the browser gate,
-is judged from them. On a machine that did not run them, `--allow-missing
-install,browser` (or `verify`) allows each of those readers' files not
-found, and what rests on them, and the banner says so; a file that is there
-from before `--since` is refused all the same -- run it again or remove it.
+is judged from them. The e-invoice gate needs a Java at least as new as
+each JAR's `java` in `docs/release/e-invoice-tools.json`, and fetches its
+tools into `.e-invoice-cache/` the first time. On a machine that did not
+run them, `--allow-missing install,browser,e-invoice` (or `verify`)
+allows each of those readers' files not found, and what rests on them,
+and the banner says so; a file that is there from before `--since` is
+refused all the same -- run it again or remove it.
 A release refuses a local report.
 
 ## Rehearsing

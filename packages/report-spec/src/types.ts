@@ -20,6 +20,7 @@
  * The vocabularies are `const` lists, and each union type is derived from
  * its list, so the type and the validator's list cannot disagree.
  */
+import type { EInvoice } from './e-invoice.js'
 import type { EpcQrCodeComponent } from './epc-qr-code.js'
 import type { PaymentPart } from './payment-part.js'
 import type { REPORT_SPEC_VERSION } from './version.js'
@@ -566,5 +567,7 @@ export interface ReportDefinition {
   readonly regions: Regions
   /** A slip to pay the report by, printed at the foot of its last page: a Swiss QR-bill. Absent, the report has none. */
   readonly paymentPart?: PaymentPart
+  /** The EN 16931 invoice the report is, written as Factur-X from what its page prints. Absent, the report is none. */
+  readonly eInvoice?: EInvoice
   readonly provenance?: Provenance
 }

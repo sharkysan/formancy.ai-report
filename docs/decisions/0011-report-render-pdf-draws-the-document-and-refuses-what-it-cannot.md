@@ -1,6 +1,6 @@
 # 0011 — `report-render-pdf` draws the whole resolved document with pdfmake, and refuses what it cannot draw whole
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, and by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption, and by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which refuses every e-invoice until it draws the PDF/A-3 that carries one
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-render-pdf`, run by its
@@ -202,6 +202,20 @@ draw as the EPC and the PSA print one is refused as `content-too-large`
 or `unsupported`, naming the code and never its payload, and a caption
 whose face the SVG converter cannot open fails the render rather than
 print in another face. `epc-qr-code.test.ts` proves it on the PDF.
+
+**Added 2026-10-17: an e-invoice, refused.** The resolved document gains
+`eInvoice`, the XML a PDF embeds, as [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)
+decides. An e-invoice is drawn as a PDF/A-3 with its XML embedded, which
+this release does not write, and in Germany the XML a hybrid invoice
+embeds is the invoice, so a plain PDF of one would be the picture without
+the invoice. So `checkDocument` refuses every document with an e-invoice,
+in both entries and before pdfmake sees it, as `unsupported`, naming
+`eInvoice`: first what it does not know -- a file that is not one, XML
+that is not text, a file name, a conformance level or a relationship
+that is not report-spec's -- and then the rest, as a PDF/A-3 this release
+does not draw. No refusal quotes the XML. A preview carries no XML, and
+is drawn. The next step lifts the last refusal and draws the PDF/A-3b.
+`refusals.test.ts` holds it.
 
 ## Alternatives considered
 

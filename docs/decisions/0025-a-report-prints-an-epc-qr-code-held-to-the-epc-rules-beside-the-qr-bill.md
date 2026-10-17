@@ -1,6 +1,9 @@
 # 0025 — A report prints an EPC QR code for a SEPA credit transfer, held to the EPC's rules by one set of checks beside the QR-bill's, and framed as Austria's PSA frames one where the author asks
 
-- **Status:** accepted; extended by [0028](0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
+- **Status:** accepted; extended by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
+  which holds an e-invoice's payment account to its account rule, and an
+  EPC QR code printed with an e-invoice to the e-invoice's account and
+  amount due, and by [0028](0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
   its euro invoice's samples from six more countries and a page for the
   code, whose wording check refuses the name this record keeps off
   everything here
@@ -694,6 +697,25 @@ offers it as "Euro invoice", its id `euro-invoice`.
 **What it forecloses.** An EPC QR code as a report's payment part, and its
 caption in a face the renderer does not ship. The format addition is a
 draft's.
+
+**Added 2026-10-17: an e-invoice's account, and a code printed with one.**
+[0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)
+holds an e-invoice's payment account (BT-84) to this record's IBAN rule,
+`checkEpcIban`, for a SEPA credit transfer (58) and a credit transfer
+(30) alike: an invoice that prints an EPC QR code beside its XML names
+one account, held by one rule. So the rule's refusal of a QR-IBAN no
+longer speaks of the code alone: "a SEPA credit transfer in euro carries
+none". An EPC QR code printed with an e-invoice asks to be paid to that
+account, refused by the validator where both are literal and by the
+runtime where either is read from the data, and is refused where the
+e-invoice names no account; and it asks for the amount due (BT-115), or
+leaves the amount to the payer, which the runtime compares once both have
+resolved, as `invalid-e-invoice` on the code. The cost this record states
+of the amount, a decimal with no currency, holds less there: an e-invoice
+is in euro, and its code's amount is held to the e-invoice's. Every other
+rule of this record is as it was. `epc-payload.test.ts` passes on the new
+words, and `validate-e-invoice.test.ts` and `lower-e-invoice.test.ts`
+hold the rest.
 
 ## Alternatives considered
 

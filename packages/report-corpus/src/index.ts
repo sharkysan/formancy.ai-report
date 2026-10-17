@@ -34,6 +34,11 @@ export type { PagePixels } from './raster.js'
 export { readCodes } from './codes.js'
 export type { PdfCode } from './codes.js'
 export {
+  E_INVOICE,
+  E_INVOICE_EXEMPT_PAID,
+  E_INVOICE_REVERSE_CHARGE,
+  E_INVOICE_SAMPLES,
+  eInvoiceData,
   equipmentData,
   equipmentRows,
   EURO_INVOICE,
@@ -46,6 +51,7 @@ export {
   EURO_INVOICE_SAMPLES,
   euroInvoiceData,
   euroInvoiceLines,
+  exemptPaidData,
   GROUPED_EQUIPMENT,
   INSPECTION_PHOTO,
   inspectionData,
@@ -61,6 +67,7 @@ export {
   QUOTATION,
   quotationData,
   quotationLines,
+  reverseChargeData,
   SERVICE_INSPECTION,
   STARTER_IMAGES,
   STARTERS,

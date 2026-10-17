@@ -156,8 +156,8 @@ describe('the euro invoice', () => {
   // bank keeps, in a starter anyone may print and scan, would invite a
   // payment to somebody. Its bank code starts with 0, as none in the
   // Bundesbank's Bankleitzahlendatei does, and the BIC's location has a 0
-  // for its second character, which marks a test BIC (euro-invoice.ts says
-  // where each was read).
+  // for its second character, which marks a test BIC
+  // (euro-invoice-countries.ts says where each was read).
   test('pays an account no bank keeps, through a test BIC', () => {
     const [code] = resolved()
     const [bic, , iban] = code?.payload.split('\n').slice(4, 7) ?? []

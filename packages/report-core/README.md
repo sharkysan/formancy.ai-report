@@ -72,9 +72,11 @@ clamps when what it names is not there:
   `moveColumn`, `updateColumn`, `setGroup`, `setSort`, and the footer rows
   under the table and under each group, row by row and cell by cell.
 
-No command edits a report's payment part yet, its Swiss QR-bill, and every
-one keeps it as it was: the very object, through every edit. `replaceDocument`
-takes it with the rest of the document.
+No command edits a report's payment part yet, its Swiss QR-bill, or its
+e-invoice, and every one keeps each as it was: the very object, through
+every edit. `replaceDocument` takes them with the rest of the document. An
+edit that would leave an e-invoice's line with no column to print it, or
+with a column that may be hidden, is refused with the validator's reason.
 
 A patch removes an optional property with `null`, and `setGroup` and `setSort`
 remove theirs with `null`, never with `undefined`: a proposal carries its
@@ -158,6 +160,36 @@ decimal or null, by one rule for both. One that may be null is checked as
 `dyn`, which may be either, and the render checks what it holds. An integer
 or a string is a type error, with `dec()` as the hint.
 
+An e-invoice ([0027](../../docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) is read as a payment part is: its texts in the
+report's scope, named by their paths alone. Its dates and its paid amount
+are values there, and the codes of each line -- its identifier, its unit
+and its VAT category -- are values in each row's scope, as what an
+aggregate reads from a row. Each is held to the term the XML writes it as:
+
+- a date is a text, as a date field is read;
+- the paid amount is a decimal;
+- an identifier is a text or an integer, and a unit or a category a text.
+
+The four columns that print a line's name, quantity, net price and net
+amount are held to their terms too, wherever they compute one: a text for
+the name, an integer or a decimal for the others. Each type comes from
+report-spec's tables, which the validator holds a field to.
+
+In a report that is an e-invoice, and in no other, every place that reads
+`totals` also reads the totals the runtime computes once for the page and
+the XML:
+
+- `invoice.lineTotal`, `taxBasisTotal`, `taxTotal`, `grandTotal` and
+  `duePayable`, each a decimal, never null;
+- `invoice.paid`, where a paid amount is declared, null where it may be;
+- `vatBasis.<id>` and `vatAmount.<id>` for each declared category, null
+  when no line is in it.
+
+They are not read where they are computed from, which would be a circle
+no render could close: an aggregate's expression, the e-invoice's own, and
+the columns that print a line. A read there is `expression-unknown-name`,
+as one in any other report is.
+
 `diagnose(report)` lists those errors, then the warnings. The runtime refuses
 a report with an error, so the editor and the runtime cannot disagree about
 one.
@@ -175,7 +207,19 @@ one.
   one, and the position in its source. Two more are about totals: a rounding
   declared on an aggregate that computes an integer, a date or an instant,
   and a number format that prints a rounded total at fewer places than its
-  rounding keeps, which would round it twice.
+  rounding keeps, which would round it twice. And one is about an
+  e-invoice: a total its XML holds that no text or table of the page
+  prints (`e-invoice-total-unprinted`). Each of these is held: the total
+  without VAT, `invoice.taxBasisTotal` or `invoice.lineTotal`; the VAT
+  total; the total with VAT; and each declared category's basis and amount.
+  The paid amount and the amount due are held too where a paid amount is
+  declared. And one prints what the XML holds otherwise
+  (`e-invoice-format-differs`): a run that reads a total, or the column of
+  a line's net amount, at fewer than two places or in another currency
+  than the e-invoice's, named as a code; the column of a net price in
+  another currency; the column of an item's name in upper or lower case.
+  A quantity's and a price's places are the data's, and the runtime holds
+  them row by row.
 - **Warnings:** an unused style, asset, parameter, field or aggregate, an
   empty body, a text that prints nothing.
 
@@ -209,5 +253,17 @@ What this does not do:
   IBAN, a reference or a name its rules allow, depends on the data. The
   runtime checks them with `@formancy/report-spec`'s rules, the ones the
   validator applies to a literal.
+- **An e-invoice's values.** A date is held to be a text, not to be a
+  date: `header.customer` passes where `params.copies` does not. Whether
+  each text is a calendar date, an amount a whole number of cents, or a
+  line's category one the e-invoice declares, the runtime checks with the
+  same rules, once the data has resolved it.
+- **What a page prints beside a total.** `e-invoice-total-unprinted` and
+  `e-invoice-format-differs` are the template's, not the data's: a run
+  behind a condition counts as printing what it reads, a run that reads a
+  total counts whatever it computes from it, and every declared category
+  is held, since which ones the lines use is known only at render. A
+  condition, a style rule, a QR code and a payment code's amount print
+  nothing.
 
 Source-available, not open source: see [`LICENSE.md`](../../LICENSE.md).

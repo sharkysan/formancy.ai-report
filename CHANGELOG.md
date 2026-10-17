@@ -10,6 +10,172 @@ later.
 
 ## Unreleased
 
+**A report can carry an EN 16931 e-invoice, whose Factur-X / ZUGFeRD XML
+the runtime writes from the values its page prints; this release draws no
+PDF of one yet**
+([0027](docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+From 1 January 2027 a German seller above EUR 800,000 of turnover must
+issue e-invoices to German businesses, and from 1 January 2028 every
+seller must, where both are established in Germany and but for an invoice
+of 250 euro or less, a ticket and a small business's invoice; a ZUGFeRD
+PDF in the EN 16931 profile counts, and in it the embedded XML is the
+invoice. A report printed the picture alone, and an
+XML written beside it would have been a second computation of the same
+totals, and a picture that says something else than its XML may be a
+further invoice under § 14c UStG, as the BMF's letter of 15 October 2025
+says. So the page and the XML now read one
+evaluation of each line and one computation of each total. The PDF/A-3
+that embeds the XML is the next step; until it lands, the renderer refuses
+every e-invoice rather than print the picture without the invoice.
+
+- **`@formancy/report-spec`:**
+  - An `eInvoice` block at the report's level: kind `facturX`, the EN 16931
+    profile, a commercial invoice (380) in euro, its seller, buyer, dates,
+    VAT categories, lines, payment instructions, terms and paid amount.
+    Its texts are runs, read as a paragraph's in the report's scope, and a
+    page number or count is refused in every one, since the XML is written
+    before there are pages.
+  - **Its lines are the table's:** `lines` names the table over the detail
+    dataset and the four columns that print each line's name, quantity,
+    net price and net amount, none of which may be hidden, so that the
+    page and the XML read one evaluation of each line. A line's
+    identifier, unit and VAT category are codes read from each row.
+  - EN 16931's rules as functions over text (`en16931.ts`), which the
+    validator applies to literals as `invalid-e-invoice` and the runtime to
+    data, each refusal naming the business term and the rule and never the
+    value: a name, an IBAN or a VAT identifier is personal data.
+  - Units, countries, VAT prefixes and schemes come from closed lists
+    (`UNIT_CODES`, `COUNTRY_CODES`, `VAT_PREFIXES`, `SCHEME_IDS`), each
+    chosen, narrower than CEN's and held to its lists: a shape check would
+    pass `UK` or `Stk`, which every validator refuses after the render was
+    called final.
+  - VAT categories S, E and AE, at most `MAX_VAT_CATEGORIES`, rates compared
+    by value; no allowances and no charges, so a discount is a line of
+    negative quantity at a positive price, since a negative net price is
+    refused (BR-27). A net amount is a whole number of cents and never
+    rounded. A standard rate is 0.5 or more, since BR-CO-17 rounds a lower
+    one to 0 and both pinned validators then refuse its tax. A German
+    invoice says when it was supplied, and gives the seller's and the
+    buyer's street, post code and city, as § 14 Abs. 4 Satz 1 Nr. 1 UStG
+    asks, which EN 16931 does not.
+  - An identifier or a code the XSD types as a token -- the invoice
+    number, the registration identifiers, the post codes, the BIC, a
+    line's identifier -- holds no tab, line break, double space or space at
+    either end: a schema-aware reader collapses them, and would read
+    another identifier than the page prints.
+  - **The payment account is held to the EPC QR code's IBAN rule**, and
+    its BIC to its BIC rule, so an invoice that prints a code beside its
+    XML names one account and one bank by one rule each; the IBAN rule's
+    refusal of a QR-IBAN now says "a SEPA credit transfer in euro carries
+    none". A QR-bill or an EPC QR code printed with an
+    e-invoice is paid to its account, and a QR-bill in its currency.
+  - The title of a report with an e-invoice may not hold `&`, `<` or `>`:
+    the next step writes it into a PDF/A's metadata, where pdfkit does not
+    escape it. Its page may print them.
+  - `FACTUR_X` and `FACTUR_X_PROFILES`, the names the PDF will carry,
+    resting on a transcription of the Factur-X 1.09.2 specification until
+    the specification itself, behind a registration, is read.
+  - The format stays at version `'0'`. **0.1.0 refuses a report with an
+    e-invoice**, whole, as `unknown-property`.
+  - The validator reads an e-invoice in every report, so a host that
+    bundles report-spec, report-core and report-runtime carries its rules
+    and its writer whether its reports have one or not: 145,932 bytes
+    minified grew to 194,092, measured on 17 October 2026 (0027 says how).
+- **`@formancy/report-core`:** in a report with an e-invoice, and in no
+  other, every place that reads `totals` reads `invoice`, `vatBasis` and
+  `vatAmount`, the totals the runtime computes for the page and the XML;
+  they are refused where they are computed from. The e-invoice's dates, its
+  paid amount, its line codes and the named columns are typed by their
+  business terms. A new error, `e-invoice-total-unprinted`, refuses a page
+  that leaves out a total the XML holds, since a picture without the VAT
+  is not the invoice; another, `e-invoice-format-differs`, one that prints
+  a total or a line's net amount at fewer than two places or in another
+  currency, a net price in another currency, or an item's name in another
+  case, since a page of 872 € over an XML of 871.63 is two invoices. Every
+  command keeps the e-invoice as it was. The exported `Members` type now
+  requires `invoice`, `vatBasis` and `vatAmount` maps, and `SCOPE_NAMES`
+  holds the three names, so code outside the repository that builds a
+  `Members` value must add them. `ExpressionSite` gains an optional
+  `format`, the format a run prints its expression with.
+- **`@formancy/report-runtime`:**
+  - EN 16931's totals and VAT breakdown computed once, in `Decimal`
+    (`e-invoice-totals.ts`): each category's VAT rounded once, half away
+    from zero, never per line. The table prints the very value the XML is
+    written from, and the names are bound to the very totals.
+  - The CII XML of a Factur-X 1.09.2 / ZUGFeRD 2.5.2 invoice in the EN 16931
+    profile, in `document.eInvoice` with the name, relationship and
+    conformance level the renderer will embed it by. It is written one way,
+    so the same report and data are the same bytes.
+  - Every text, date and line term held to EN 16931's rules once the data
+    resolves it, and a final render with no lines refused. A line's net
+    amount is refused unless it is its quantity times its net price,
+    rounded once to the cent, as EN 16931 defines it and Mustang
+    recomputes it; a line identifier an earlier line has is refused, since
+    it is each line's own; and a quantity or a net price its column prints
+    at fewer places than the data gives is refused, since the page would
+    round what the XML does not. A QR-bill or an EPC QR code printed with
+    an e-invoice must ask for the amount due, or leave it to the payer. A
+    final render that wrote no XML and recorded no reason throws, as a
+    defect, rather than hand on a document a renderer would draw as a
+    plain PDF.
+  - A preview writes no XML, warns `e-invoice-preview` and labels every page
+    "Preview: not an e-invoice, and not a final report"
+    (`E_INVOICE_PREVIEW_LABEL`): a complete preview would otherwise look
+    like the invoice. A preview that lacks data keeps `PREVIEW_LABEL`.
+  - The XML has no bound but the 100,000 detail rows a render reads at
+    most: at that many lines it was 117 MB, measured on 17 October 2026
+    from the built package, the median of five runs, on Node 24.21.0 and
+    an Intel i9-10900K.
+- **`@formancy/report-render-pdf`:** a document with an e-invoice is refused
+  as `unsupported`, naming `eInvoice`, in both entries and before pdfmake
+  sees it, as a PDF/A-3 this release does not draw; one whose file name,
+  conformance level or relationship it does not know is refused for that
+  first, so that the refusal outlives the next step.
+- **`@formancy/report-corpus`:** three e-invoice samples, not starters, the
+  euro invoice's firm invoicing German businesses: at 19 % and 7 % paid by
+  SEPA credit transfer; reverse charge with an invoicing period; and an
+  exempt line, a discount line and a payment on account. Their XML is held
+  to a BigInt computation, and each line and total the page resolves to the
+  XML. A line's identifier is its position: the article number the table
+  prints is the seller's own, which two lines of one article would share.
+  saxes 6.0.0 (ISC) reads the XML in the corpus's tests and, through the
+  corpus, in the e-invoice gate's scripts; the corpus is never published.
+- **A gate of its own, `e-invoice`:** Mustang 2.26.0 and KoSIT's validator
+  1.6.3 with its XRechnung configuration of 2026-08-31, each fetched by URL
+  and refused unless its SHA-256 is the one `docs/release/e-invoice-tools.json`
+  registers, run on the Java the register names, with Java's HTTP and
+  HTTPS proxies pointed at a dead port (a raw socket is not caught), over
+  the samples' XML and controls each broken one named way, a standard rate
+  of 0.49 % that breaks BR-CO-17 among them; and report-spec's code lists
+  and rule ids held to
+  the schematrons they run. A warning fails it unless
+  `scripts/e-invoice/accepted.json` accepts it with its reason, and a run
+  fails where the corpus recorded for the judges' tests is not the one it
+  judged; a recording holds no path of the machine it was made on. The
+  release report reads its verdicts and fails a run on them, holding each
+  tool to its register by the hash the gate measured and the version the
+  tool reported of itself, and the Java's major version in CI to the
+  register's. The tools run in CI and no package carries them.
+- **The install gate validates and resolves an e-invoice** of its own from
+  the packed packages, reads its XML for the totals its page prints, sees
+  the renderer refuse it, and draws its labelled preview.
+- **The EPC QR code page's limits say what an e-invoice is now**, in its
+  four languages: the PDF is still no e-invoice, and the runtime writes the
+  XML of a ZUGFeRD or Factur-X invoice, for Germany alone, which nothing
+  embeds in a PDF yet, since the renderer refuses one. The page said only
+  the first, which 0028 had said a change that builds an e-invoice must say
+  again; a paragraph added to 0028 says the same, its costs left as they
+  were written, and its register was read again and holds. The new words
+  are no native speaker's.
+- **The architecture's sections place it**
+  ([`docs/architecture/`](docs/README.md#architecture)): EN 16931,
+  Factur-X / ZUGFeRD and the UStG among the constraints, its modules and
+  saxes in the building blocks, its flow from the table to the XML in the
+  runtime view, the gate's tools in the deployment view, exact totals and
+  closed lists among the cross-cutting concepts, a page that differs from
+  its XML and the XML's measured cost among the quality requirements, the
+  gate in verification, and what 0027 accepts in risks and debt.
+
 **The EPC QR code has a page in four languages, and the euro invoice
 comes as samples from Austria, France, Italy, Spain, the Netherlands and
 Ireland**

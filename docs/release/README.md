@@ -50,17 +50,27 @@ builds the report from all of them (`scripts/release-report/report.mjs`).
    file the gate or the check writes in the app's `test-results/` however
    it ends. The passes a gate planned are its own word: they come from the
    app's stylesheets, which only the app's gate reads.
-5. **Build identity:** each published package's tarball as the install gate
+5. **E-invoice gate:** the Java and the tools the e-invoice gate ran --
+   Mustang, KoSIT's validator and its configuration, each held by the
+   report to the version and the SHA-256
+   [`e-invoice-tools.json`](e-invoice-tools.json) pins, by the hash the
+   gate measured of the bytes it ran and, for each JAR, the version the
+   tool reported of itself; and in CI the Java, to the one the register
+   names, where a machine's is shown and not held -- and every file of its
+   corpus, a sample every tool must accept or a control each must refuse,
+   with each tool's verdict on it
+   ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+6. **Build identity:** each published package's tarball as the install gate
    packed, installed and ran it, by sha256, and the hash of its built files
    against the `dist/` every job built.
-6. **Release gates:** G1 to G7 and the legal review, from
+7. **Release gates:** G1 to G7 and the legal review, from
    [`gates.json`](gates.json).
-7. **Known limitations:** those the run shows, as fixed sentences with the
+8. **Known limitations:** those the run shows, as fixed sentences with the
    run's facts, then those the decision records state, from
    [`limitations.json`](limitations.json).
-8. **How this report was made:** where each section comes from.
-9. **Problems:** what fails the run. Empty on a green run, and the report
-   says so.
+9. **How this report was made:** where each section comes from.
+10. **Problems:** what fails the run. Empty on a green run, and the report
+    says so.
 
 ## What fails it
 
@@ -85,7 +95,12 @@ package, or packing one at another version than the root manifest's; a host
 `scripts/install-hosts.mjs` plans that the gate has no record of, or one it
 recorded and nobody planned; a host with its install or a step unfinished; a
 builder's host that resolved no framework, or at the floor one other than
-its peer range's floor; a published package whose `dist/` no job recorded,
+its peer range's floor; the e-invoice gate leaving no results, failing, or
+recording a tool at another version or of other bytes than
+[`e-invoice-tools.json`](e-invoice-tools.json) pins, judging no sample
+every tool must accept or making no control a tool must refuse, or
+missing a tool's verdict on a file or having one other than its corpus
+expects; a published package whose `dist/` no job recorded,
 so its tarball is compared with nothing; two builds of one package that
 differ, or a tarball whose built files are not every job's; a gate whose
 evidence did not pass, or a limitation whose `heldBy` test did not; either
@@ -181,10 +196,11 @@ and a gate that rests on a browser gate is judged from that machine's run
 of it. A gate that rests on a job -- G1 rests on `install` -- has no result
 on a machine, because a job's result is the gates run's `needs`: the report
 says so unless that job is allowed missing. `--allow-missing` names
-collect's readers -- `verify`, `browser`, `install` -- whose files a machine
-did not write: collect files each file it did not find under the reader
-that expected it, and the report leaves out those of an allowed reader and
-what rests on it. A file it found and could not use -- from before
+collect's readers -- `verify`, `browser`, `install`, `e-invoice` -- whose
+files a machine did not write: collect files each file it did not find
+under the reader that expected it, and the report leaves out those of an
+allowed reader and what rests on it. The e-invoice gate's file is read on a
+machine as in CI, and needs a Java there. A file it found and could not use -- from before
 `--since`, another run's -- fails the report whatever is allowed. A
 local report says "local" at the top, names its commit "with uncommitted
 changes" when the tree held any, names what it allowed missing when it is

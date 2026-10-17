@@ -31,13 +31,13 @@ import type { Ctx } from './validate-context.js'
 
 /** Where a value is read: the region decides page counters, the scope decides detail fields and a group's aggregates. */
 export interface InlineScope {
-  /** The region the runs stand in, or the payment part, which stands in none. */
-  readonly region: RegionName | 'paymentPart'
+  /** The region the runs stand in, or the payment part or the e-invoice, which stand in none. */
+  readonly region: RegionName | 'paymentPart' | 'eInvoice'
   readonly reads: ValueScope
   /** In a group header or footer, the detail field grouped by, when the dataset declares it. */
   readonly groupBy?: string | undefined
   /** What the runs are encoded in, when they are: resolved whole, once, before there are pages to count. */
-  readonly encoded?: 'a QR code' | 'an EPC QR code' | 'a QR-bill'
+  readonly encoded?: 'a QR code' | 'an EPC QR code' | 'a QR-bill' | 'an e-invoice'
 }
 
 /** The regions drawn once per page, the only ones in which a page number or count has a value. */
@@ -204,8 +204,8 @@ function readCheckedFormat(c: Ctx, value: unknown, path: string, scope: InlineSc
  * A page number or count, and whether it stands where it has a value: in
  * the page header and footer, printed. A table never stands in a page
  * region, so its cells are refused by region too; what a QR code, an EPC
- * QR code or a QR-bill encodes is resolved before there are pages, so it is
- * refused in every region.
+ * QR code, a QR-bill or an e-invoice encodes is resolved before there are
+ * pages, so it is refused in every region.
  */
 function readCounter(c: Ctx, path: string, scope: InlineScope, kind: 'pageNumber' | 'pageCount'): Inline {
   if (scope.encoded !== undefined) {

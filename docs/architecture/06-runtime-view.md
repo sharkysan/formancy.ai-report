@@ -62,12 +62,17 @@ evaluate conditions and expressions        fixed capabilities; EXPRESSION_STEP_B
    ▼
 order and group the rows; compute each aggregate exactly, then round it once
    ▼
+an e-invoice's lines, read once from its table's rows; its totals computed
+once; its other terms held to EN 16931's rules (6.8)
+   ▼
 format every value for the locale          Intl handed exact digits, never a double
    ▼
 images through the host's lookup, by id and digest, once each
    ▼
 a QR-bill's texts, and an EPC QR code's, resolved and held to their code's
 rules; the EPC QR code's payload written (6.7)
+   ▼
+in a final render, an e-invoice's CII XML, written from those values (6.8)
    │
    ▼
 ResolvedDocument + manifest (+ a preview's warnings)        every reason, or none
@@ -77,6 +82,7 @@ renderPdf(document, { maxPages, signal })
    ├─ before pdfmake sees it: a glyph per character, nothing malformed or
    │ wider than where it stands, each asset's bytes, a bill, each code
    │ encoded once and held to its square ────────────────────▶ RenderRefusal
+   │ and any e-invoice, until a PDF/A-3 is drawn ────────────▶ unsupported
    ├─ a bill or a captioned EPC QR code: Liberation Sans read, and in a
    │ browser its chunk imported
    ├─ measure the page regions; the body's margins follow
@@ -250,3 +256,60 @@ drawing decides — the version, the modules, the frame — by report-spec's
 breaks a rule is refused, as a bill's is: it would scan as a transfer no
 bank makes
 ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+
+## 6.8 An e-invoice, from the table to the XML
+
+```
+the definition's eInvoice: its lines the table over the detail dataset, named
+with the four columns that print each line's name, quantity, net price and
+net amount
+   │
+   ▼
+validateReport: EN 16931's rules over each literal ─────▶ invalid-e-invoice, the term
+   │                                                      and the rule, never the value
+   │            a named column, the table or what holds it
+   │            hidden; a payment code paid to another
+   │            account; a title holding &, < or > ─────▶ refused
+   ▼
+compileReport: invoice, vatBasis and vatAmount bound wherever totals is, in a
+   │           report with an e-invoice alone; read where they are computed
+   │           from ────────────────────────────────────▶ expression-unknown-name
+   │           a total the XML holds unprinted, or printed
+   │           otherwise ───────────────────────────────▶ e-invoice-total-unprinted,
+   │                                                      e-invoice-format-differs
+   ▼
+resolveReport, after the aggregates and before anything is lowered:
+   ├─ each row's four terms read once, by the columns that print them; the
+   │  table prints the very values kept
+   ├─ a net amount other than its quantity times its net price, rounded once,
+   │  a line identifier an earlier line has, a quantity or a net price its
+   │  column prints at fewer places than it has ────────▶ invalid-e-invoice
+   ├─ the totals and the VAT breakdown, once, in Decimal: each category's VAT
+   │  rounded once, half away from zero, never per line; bound for the page
+   ├─ every other term, once the data has resolved it, held to the same rules
+   ▼
+resolveReport, while the page and its payment part are lowered:
+   ├─ a QR-bill or an EPC QR code asking for another amount than the amount
+   │  due, or another account ──────────────────────────▶ invalid-e-invoice
+   ▼
+resolveReport, once they are lowered:
+   ├─ preview ──▶ no XML; e-invoice-preview; every page labelled
+   ▼
+final: the CII XML from those very values ──────────────▶ document.eInvoice
+   ▼
+renderPdf ──────────────────────────────────────────────▶ unsupported, naming eInvoice
+```
+
+The validator and the runtime call the same functions in report-spec's
+`en16931.ts`, named by one table for each kind of term, so the editor and a
+render cannot read EN 16931 differently, and an e-invoice's account is held
+by the EPC QR code's rule. The page and the XML read one evaluation of each
+line and one computation of each total: the names the page prints are bound
+to the very totals the XML is written from, and the editing core refuses a
+page that leaves one out or prints it otherwise. A final render writes the
+XML or refuses; one that wrote none and recorded no reason throws, as a
+defect. No PDF carries the XML yet: the renderer refuses the document, so
+the XML stays in the resolved document, where the install gate and the
+e-invoice gate read it, until the next step draws the PDF/A-3 that embeds
+it
+([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).

@@ -1,4 +1,4 @@
-import { emptyReport, EXPRESSION_NAMES, FIELD_TYPES, PARAMETER_TYPES, VALUE_SCOPES } from '@formancy/report-spec'
+import { E_INVOICE_NAMES, emptyReport, EXPRESSION_NAMES, FIELD_TYPES, PARAMETER_TYPES, VALUE_SCOPES } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { thawed } from '../snapshot.js'
@@ -106,10 +106,11 @@ describe('the members each name holds', () => {
 })
 
 describe('SCOPE_NAMES', () => {
-  // A name the format adds to EXPRESSION_NAMES must say what it holds here,
-  // or an expression in that scope would read nothing under it.
-  test('are every name the format binds, in every scope', () => {
-    const names = new Set(VALUE_SCOPES.flatMap((scope) => EXPRESSION_NAMES[scope]))
+  // A name the format adds to EXPRESSION_NAMES, or to the names a report
+  // that is an e-invoice binds besides, must say what it holds here, or an
+  // expression in that scope would read nothing under it.
+  test('are every name the format binds, in every scope and in an e-invoice', () => {
+    const names = new Set([...VALUE_SCOPES.flatMap((scope) => EXPRESSION_NAMES[scope]), ...E_INVOICE_NAMES])
     expect([...names].sort()).toEqual([...SCOPE_NAMES].sort())
   })
 })

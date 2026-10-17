@@ -11,7 +11,7 @@
 //
 // and on one machine, after collect.mjs --local --since <ISO instant>:
 //
-//   node scripts/release-report/report.mjs --local [--allow-missing verify,browser,install]
+//   node scripts/release-report/report.mjs --local [--allow-missing verify,browser,install,e-invoice]
 //
 // It writes release-report/release-report.json and release-report.md and
 // exits 1 when anything in `problems` fails the run; both files are written
@@ -26,6 +26,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BROWSERS } from '../browsers.mjs'
+import { readRegisters } from '../e-invoice/registers.mjs'
 import { HOSTS, planProjects } from '../install-hosts.mjs'
 import { readScenes } from '../pictures/record.mjs'
 import { bodySection, releaseBody } from '../release-notes.mjs'
@@ -117,7 +118,7 @@ function releaseOf(report, { release = '', version, changelog, run, repository }
  * (names), `browserApps` and `pictureApps` (the paths of the apps with a
  * `test:browser` and a `test:pictures` script), `browsers` (the browsers
  * the gates run in), `scenes` (scenesOf() for the picture apps),
- * `installPlan` (installPlanOf()), the limitations
+ * `installPlan` (installPlanOf()), `eInvoiceTools` (docs/release/e-invoice-tools.json), the limitations
  * `register` and decision `records`,
  * `gatesRegister` and each document's history in `documents`, `exists` for a
  * repository path, the `repository` URL, the `commit` its links name,
@@ -147,7 +148,7 @@ export function buildReport(inputs) {
   report.problems = [
     ...(ci ? needsProblems(inputs.needs, inputs.jobs) : []),
     ...(ci ? artefactProblems(inputs.artefacts, { expected: inputs.expected, commit, runId: inputs.run.id }) : localResultsProblems(results)),
-    ...contentProblems(report, { published: inputs.published, installPlan: inputs.installPlan, browserApps, pictureApps, browsers, allowMissing }),
+    ...contentProblems(report, { published: inputs.published, installPlan: inputs.installPlan, eInvoiceTools: inputs.eInvoiceTools, browserApps, pictureApps, browsers, allowMissing, ci }),
     ...gatesProblems(inputs.gatesRegister, { covered: covered.map((entry) => entry.path), browserApps, jobs: inputs.jobs, exists }).map((problem) => `docs/release/gates.json: ${problem}`),
     ...releaseGateProblems(report.gates, allowMissing),
     ...releaseProblems,
@@ -207,6 +208,7 @@ export function loadInputs(root, resultsDir, { ci = false, allowMissing = [], en
     browsers: [...BROWSERS],
     scenes: scenesOf(readScenes(), pictureApps),
     installPlan: installPlanOf(new Map(packages.map(({ manifest }) => [manifest.name, manifest]))),
+    eInvoiceTools: readRegisters(root).tools,
     register: readRegister(root),
     records: readRecords(root),
     gatesRegister,

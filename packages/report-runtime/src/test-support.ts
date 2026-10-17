@@ -6,9 +6,13 @@
  * every type and whose parameters have every type, with an expression that
  * can fail at render time -- a quantity divided by a parameter -- so a test
  * can show where a failure is reported. `sampleData` is data it accepts.
+ *
+ * `invoiceReport` is a German invoice that is an e-invoice, whose buyer,
+ * dates and lines are read from the data, every field nullable, so that a
+ * test can hand it a null; `invoiceData` is data it accepts.
  */
 import { validateReport } from '@formancy/report-spec'
-import type { FieldRef, ReportDefinition } from '@formancy/report-spec'
+import type { Component, FieldRef, Inline, ReportDefinition } from '@formancy/report-spec'
 import type { ReportData } from './data.js'
 
 const header = (field: string): FieldRef => ({ dataset: 'header', field })
@@ -168,6 +172,169 @@ export function sampleRow(overrides: Record<string, unknown> = {}): Record<strin
 export function sampleData(rows: readonly Record<string, unknown>[] = [sampleRow()]): ReportData {
   return {
     header: { customer: 'Muster AG', orderedOn: '2026-01-01', currency: 'CHF', reference: '42', signature: null },
+    detail: rows,
+    completeness: { complete: true, captured: rows.length },
+    consistency: 'host-captured',
+  }
+}
+
+/** Runs of one literal text. */
+const said = (text: string): readonly Inline[] => [{ kind: 'text', text }]
+
+/** A run that prints what `cel` gives, in euro. */
+const euro = (cel: string): Inline => ({ kind: 'expression', expression: { cel }, format: { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } })
+
+/** What prints every total the e-invoice's XML holds: the total without VAT, each category's basis and tax where a line is in it, the VAT and the total with it. */
+const PRINTED_TOTALS: readonly Component[] = [
+  { id: 'net', kind: 'text', content: [{ kind: 'text', text: 'Netto ' }, euro('invoice.taxBasisTotal')] },
+  ...(['standard', 'reduced', 'exempt'] as const).map(
+    (id): Component => ({
+      id: `vat-${id}`,
+      kind: 'text',
+      visibleWhen: { cel: `vatAmount.${id} != null` },
+      content: [{ kind: 'text', text: `${id} ` }, euro(`vatBasis.${id}`), { kind: 'text', text: ': ' }, euro(`vatAmount.${id}`)],
+    }),
+  ),
+  { id: 'vat', kind: 'text', content: [{ kind: 'text', text: 'MwSt. ' }, euro('invoice.taxTotal')] },
+  { id: 'gross', kind: 'text', content: [{ kind: 'text', text: 'Brutto ' }, euro('invoice.grandTotal')] },
+]
+
+const EUR = { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } as const
+
+const INVOICE: ReportDefinition = {
+  reportSpecVersion: '0',
+  id: 'rechnung',
+  title: 'Rechnung',
+  locale: 'de-DE',
+  page: { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 42.52, bottom: 56.69, left: 42.52 } },
+  styles: [],
+  datasets: {
+    header: {
+      id: 'invoice-header',
+      fields: [
+        { id: 'number', type: 'string', label: 'Number', nullable: true },
+        { id: 'issuedOn', type: 'date', label: 'Issued on', nullable: true },
+        { id: 'deliveredOn', type: 'date', label: 'Delivered on', nullable: true },
+        { id: 'buyer', type: 'string', label: 'Buyer', nullable: true },
+        { id: 'street', type: 'string', label: 'Street', nullable: true },
+        { id: 'postalCode', type: 'string', label: 'Post code', nullable: true },
+        { id: 'city', type: 'string', label: 'City', nullable: true },
+        { id: 'country', type: 'string', label: 'Country', nullable: true },
+        { id: 'buyerVatId', type: 'string', label: 'Buyer VAT ID', nullable: true },
+        { id: 'dueOn', type: 'date', label: 'Due on', nullable: true },
+      ],
+    },
+    detail: {
+      id: 'invoice-lines',
+      fields: [
+        { id: 'position', type: 'integer', label: 'Position', nullable: true },
+        { id: 'item', type: 'string', label: 'Item', nullable: true },
+        { id: 'quantity', type: 'decimal', label: 'Quantity', nullable: true },
+        { id: 'unit', type: 'string', label: 'Unit', nullable: true },
+        { id: 'price', type: 'decimal', label: 'Price', nullable: true },
+        { id: 'amount', type: 'decimal', label: 'Amount', nullable: true },
+        { id: 'vat', type: 'string', label: 'VAT', nullable: true },
+      ],
+    },
+  },
+  parameters: [],
+  assets: [],
+  aggregates: [],
+  regions: {
+    reportHeader: [{ id: 'heading', kind: 'text', content: [{ kind: 'text', text: 'Rechnung ' }, { kind: 'field', field: header('number') }] }],
+    pageHeader: [],
+    body: [
+      {
+        id: 'lines',
+        kind: 'table',
+        dataset: 'detail',
+        columns: [
+          { id: 'pos', header: 'Pos.', width: 30, align: 'right', value: { kind: 'field', field: detail('position') } },
+          { id: 'item', header: 'Artikel', width: 'fill', align: 'left', value: { kind: 'field', field: detail('item') } },
+          { id: 'qty', header: 'Menge', width: 50, align: 'right', value: { kind: 'field', field: detail('quantity') } },
+          { id: 'price', header: 'Preis', width: 70, align: 'right', value: { kind: 'field', field: detail('price'), format: EUR } },
+          { id: 'amount', header: 'Betrag', width: 80, align: 'right', value: { kind: 'field', field: detail('amount'), format: EUR } },
+        ],
+        sort: [{ field: detail('position'), direction: 'asc' }],
+        emptyText: 'Keine Positionen.',
+        repeatHeader: true,
+      },
+    ],
+    pageFooter: [],
+    summary: PRINTED_TOTALS,
+  },
+  eInvoice: {
+    kind: 'facturX',
+    profile: 'en16931',
+    type: '380',
+    currency: 'EUR',
+    number: [{ kind: 'field', field: header('number') }],
+    issued: { cel: 'header.issuedOn' },
+    seller: {
+      name: said('Muster & Söhne GmbH'),
+      vatId: said('DE 123 456 789'),
+      address: { line1: said('Industriestraße 7'), postalCode: said('50735'), city: said('Köln'), country: said('DE') },
+    },
+    buyer: {
+      name: [{ kind: 'field', field: header('buyer') }],
+      vatId: [{ kind: 'field', field: header('buyerVatId') }],
+      address: {
+        line1: [{ kind: 'field', field: header('street') }],
+        postalCode: [{ kind: 'field', field: header('postalCode') }],
+        city: [{ kind: 'field', field: header('city') }],
+        country: [{ kind: 'field', field: header('country') }],
+      },
+    },
+    delivered: { cel: 'header.deliveredOn' },
+    vat: [
+      { id: 'standard', code: 'S', rate: '19' },
+      { id: 'reduced', code: 'S', rate: '7.00' },
+      { id: 'exempt', code: 'E', rate: '0', reason: said('Steuerfrei nach § 4 Nr. 14 UStG') },
+    ],
+    lines: {
+      table: 'lines',
+      name: 'item',
+      quantity: 'qty',
+      netPrice: 'price',
+      netAmount: 'amount',
+      id: { kind: 'field', field: detail('position') },
+      unit: { kind: 'field', field: detail('unit') },
+      vat: { kind: 'field', field: detail('vat') },
+    },
+    payment: { means: '58', iban: said('DE83 0123 4567 0012 3456 78'), remittance: [{ kind: 'text', text: 'Rechnung ' }, { kind: 'field', field: header('number') }] },
+    due: { cel: 'header.dueOn' },
+  },
+}
+
+/** A fresh, mutable copy of the invoice report, checked valid. */
+export function invoiceReport(): ReportDefinition {
+  const copy = JSON.parse(JSON.stringify(INVOICE)) as ReportDefinition
+  const outcome = validateReport(copy)
+  if (!outcome.valid) throw new Error(`the invoice report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join(', ')}`)
+  return copy
+}
+
+/** One line the invoice report accepts, every term present; `overrides` replace or add terms. */
+export function invoiceRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return { position: '1', item: 'Schrauben M6', quantity: '100', unit: 'H87', price: '0.25', amount: '25.00', vat: 'standard', ...overrides }
+}
+
+/** Data the invoice report accepts in a final render: a buyer in Vienna and `rows`, complete; `header` replaces or adds header fields. */
+export function invoiceData(rows: readonly Record<string, unknown>[] = [invoiceRow()], header: Record<string, unknown> = {}): ReportData {
+  return {
+    header: {
+      number: 'RE-2026-0042',
+      issuedOn: '2026-10-17',
+      deliveredOn: '2026-10-15',
+      buyer: 'Bäckerei Huber GmbH',
+      street: 'Ring 1',
+      postalCode: '1010',
+      city: 'Wien',
+      country: 'AT',
+      buyerVatId: 'ATU12345678',
+      dueOn: '2026-10-31',
+      ...header,
+    },
     detail: rows,
     completeness: { complete: true, captured: rows.length },
     consistency: 'host-captured',

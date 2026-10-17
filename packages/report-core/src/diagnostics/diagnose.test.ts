@@ -3,7 +3,7 @@ import type { AggregateDef, ReportDefinition, Rounding } from '@formancy/report-
 import { describe, expect, test } from 'vitest'
 import { thawed } from '../snapshot.js'
 import type { Mutable } from '../snapshot.js'
-import { sampleReport, setAt } from '../test-support.js'
+import { eInvoiceSample, sampleReport, setAt } from '../test-support.js'
 import { DIAGNOSTIC_CODES, DIAGNOSTIC_SEVERITIES } from './codes.js'
 import type { Diagnostic, DiagnosticCode } from './codes.js'
 import { diagnose } from './diagnose.js'
@@ -90,6 +90,28 @@ const CASES: { readonly [C in DiagnosticCode]: Case } = {
   // A count has no places: every render refused its rounding, which the
   // editor said nothing about.
   'rounding-not-decimal': { edit: set('/aggregates/1/rounding', { scale: 0, mode: 'half-even', increment: '5' }), expected: { path: '/aggregates/1/rounding' } },
+  // A total the XML holds and the page does not print: the page shows
+  // another invoice than the one it carries. The sample made the e-invoice
+  // sample, its reduced rate's amount printed by nothing.
+  'e-invoice-total-unprinted': {
+    edit: (report) => {
+      delete report.paymentPart
+      Object.assign(report, thawed(eInvoiceSample()))
+      setAt(report, '/regions/summary/5/content/3', { kind: 'text', text: '-' })
+    },
+    expected: { path: '/eInvoice/vat/1' },
+  },
+  // A total the XML holds to the cent, printed at no places: 871.63 on
+  // the file and 872 on the page, two invoices. The e-invoice sample, its
+  // total with VAT printed whole.
+  'e-invoice-format-differs': {
+    edit: (report) => {
+      delete report.paymentPart
+      Object.assign(report, thawed(eInvoiceSample()))
+      setAt(report, '/regions/summary/4/content/9/format', { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 0 })
+    },
+    expected: { path: '/regions/summary/4/content/9/format', componentId: 'invoice-totals' },
+  },
   'unused-style': { edit: (report) => report.styles.push({ id: 'spare', bold: true }), expected: { path: '/styles/5' } },
   'unused-asset': { edit: (report) => report.assets.push({ id: 'spare', mediaType: 'image/png', digest: `sha256:${'12'.repeat(32)}` }), expected: { path: '/assets/2' } },
   'unused-parameter': { edit: (report) => report.parameters.push({ id: 'spare', type: 'string', label: 'Spare', required: false }), expected: { path: '/parameters/5' } },
