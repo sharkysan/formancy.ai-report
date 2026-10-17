@@ -107,7 +107,7 @@ function wrongType(expected: string, raw: unknown): { readonly ok: false; readon
 const INTEGER = /^(?:0|-?[1-9]\d*)$/
 
 /** An exact decimal: an integer, optionally a point and at least one digit; no negative zero (report-spec's `DECIMAL`). */
-const DECIMAL = /^(?:-?[1-9]\d*(?:\.\d+)?|0(?:\.\d+)?|-0\.\d*[1-9]\d*)$/
+const DECIMAL = /^(?:-?[1-9]\d*(?:\.\d+)?|0(?:\.\d+)?|-0\.0*[1-9]\d*)$/
 
 /** An asset's content digest: SHA-256, lower-case hex (report-spec's `DIGEST`). */
 const DIGEST = /^sha256:[0-9a-f]{64}$/

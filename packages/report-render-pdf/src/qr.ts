@@ -114,18 +114,108 @@ function encoded(text: string, level: QrCode['errorCorrection'], id: string): bo
  * places an image.
  */
 export function qrContent(symbol: QrSymbol, size: number): ContentSvg {
-  const { modules } = symbol
-  const across = modules.length + 2 * QUIET_ZONE
+  const across = symbol.modules.length + 2 * QUIET_ZONE
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${across} ${across}"><rect width="${across}" height="${across}" fill="#ffffff"/><path d="${darkRuns(symbol, QUIET_ZONE)}" fill="#000000"/></svg>`
+  return { svg, width: size, height: size }
+}
+
+/** The symbol's dark modules as one path's subpaths, a rectangle for each run of them in a row, `offset` modules in from the square's corner. */
+function darkRuns(symbol: QrSymbol, offset: number): string {
   const runs: string[] = []
-  modules.forEach((row, y) => {
+  symbol.modules.forEach((row, y) => {
     for (let x = 0; x < row.length; x++) {
       if (!row[x]) continue
       const start = x
       while (row[x + 1] === true) x++
       const length = x + 1 - start
-      runs.push(`M${QUIET_ZONE + start} ${QUIET_ZONE + y}h${length}v1h-${length}z`)
+      runs.push(`M${offset + start} ${offset + y}h${length}v1h-${length}z`)
     }
   })
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${across} ${across}"><rect width="${across}" height="${across}" fill="#ffffff"/><path d="${runs.join('')}" fill="#000000"/></svg>`
+  return runs.join('')
+}
+
+/** Millimetres in points. */
+const mm = (value: number): number => (value * 72) / 25.4
+
+/**
+ * The most characters a Swiss QR Code holds, its line feeds included: 997
+ * (IG 6.2), which is what version 25 holds at level M in byte mode. A
+ * payload of more is refused before it is encoded.
+ */
+export const SWISS_MAX_CHARACTERS = 997
+
+/** The largest version SIX allows (IG 6.2): 117 modules a side. */
+const SWISS_MAX_VERSION = 25
+
+/** A Swiss QR Code's side, without a quiet zone, whatever its version (IG 6.4): its modules are this over theirs. */
+export const SWISS_CODE_SIZE = mm(46)
+
+/**
+ * A QR-bill's Swiss QR Code (IG 6), or the refusal that says why it is not
+ * drawn: its payload as UTF-8 at level M (6.1), in the smallest version that
+ * holds it (6.4), and never past version 25 (6.2). A payload of more than
+ * 997 characters is refused unencoded; one whose UTF-8 is more than version
+ * 25 holds, once the encoder finds none does. Every refusal names the
+ * payment part, and none quotes the payload: it holds names and accounts.
+ *
+ * SIX prints the code at 46 mm whatever its version, so a module is 46 mm
+ * over the symbol's modules, 0.393 mm at version 25: finer than the 0.4 mm
+ * a `qrCode` is held to, which is SIX's own figure for print (6.3). SIX's
+ * size is drawn, not the floor (0020's generic minimum does not apply).
+ */
+export function swissSymbol(payload: unknown): QrSymbol {
+  const refuse = (code: 'unsupported' | 'content-too-large', what: string): RenderRefusal => new RenderRefusal(code, `the payment part's Swiss QR Code ${what}`, 'paymentPart')
+  if (typeof payload !== 'string') throw refuse('unsupported', 'holds something that is not text')
+  const lone = /\p{Cs}/u.exec(payload)?.[0]
+  if (lone !== undefined) throw refuse('unsupported', `holds ${codePoint(lone.charCodeAt(0))}, half of a surrogate pair without the other, which has no UTF-8`)
+  const characters = payload.length > SWISS_MAX_CHARACTERS ? codePoints(payload) : payload.length
+  if (characters > SWISS_MAX_CHARACTERS) throw refuse('content-too-large', `holds ${characters} characters; SIX allows ${SWISS_MAX_CHARACTERS}`)
+  try {
+    return { modules: encode(payload, { ecc: 'M', border: 0, boostEcc: false, maxVersion: SWISS_MAX_VERSION }).data }
+  } catch (error) {
+    if (!(error instanceof RangeError && error.message === 'Data too long')) throw error
+    throw refuse('content-too-large', `holds ${new TextEncoder().encode(payload).length} bytes, more than version ${SWISS_MAX_VERSION} holds at level M, the largest code SIX allows`)
+  }
+}
+
+/**
+ * The Swiss cross over the code's centre (IG 6.4.2), in millimetres: SIX's
+ * logo, as schoero's generator draws it, is a white square of 7 mm, a black
+ * square of 6 mm on it, and a white cross on that, its arms 7/6 mm wide and
+ * 35/9 mm from end to end. manuelbl's draws the same black square and cross
+ * on modules it clears, rather than on a white square.
+ */
+const CROSS = { white: 7, black: 6, arm: 7 / 6, span: 35 / 9 } as const
+
+/**
+ * The Swiss QR Code's square, 46 mm a side, without a quiet zone of its own:
+ * the slip leaves 5 mm unprinted around it (IG 3.5.2, 6.4.1). White, its
+ * dark modules in black as one path filled once, as a `qrCode`'s are, and
+ * over them the Swiss cross: its white square, its black square, and its
+ * white cross, one path. Drawn in modules and scaled to the side.
+ */
+export function swissCodeContent(symbol: QrSymbol): ContentSvg {
+  const across = symbol.modules.length
+  const unit = across / 46
+  const centre = across / 2
+  const square = (side: number, fill: string): string => `<rect x="${centre - (side * unit) / 2}" y="${centre - (side * unit) / 2}" width="${side * unit}" height="${side * unit}" fill="${fill}"/>`
+  const [arm, span] = [(CROSS.arm * unit) / 2, (CROSS.span * unit) / 2]
+  const corners: readonly (readonly [number, number])[] = [
+    [-arm, -span],
+    [arm, -span],
+    [arm, -arm],
+    [span, -arm],
+    [span, arm],
+    [arm, arm],
+    [arm, span],
+    [-arm, span],
+    [-arm, arm],
+    [-span, arm],
+    [-span, -arm],
+    [-arm, -arm],
+  ]
+  const cross = `M${corners.map(([x, y]) => `${centre + x} ${centre + y}`).join('L')}z`
+  const size = SWISS_CODE_SIZE
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${across} ${across}"><rect width="${across}" height="${across}" fill="#ffffff"/><path d="${darkRuns(symbol, 0)}" fill="#000000"/>${square(CROSS.white, '#ffffff')}${square(CROSS.black, '#000000')}<path d="${cross}" fill="#ffffff"/></svg>`
   return { svg, width: size, height: size }
 }

@@ -11,7 +11,9 @@
  * 3. the aggregates, exactly, over every row (`totals.ts`);
  * 4. the regions, lowered component by component (`lower.ts`), tables row
  *    by row (`lower-table.ts`), images through the host's lookup
- *    (`images.ts`).
+ *    (`images.ts`);
+ * 5. the payment part, its every text held to SIX's rules
+ *    (`lower-payment-part.ts`).
  *
  * It refuses rather than prints a wrong report: any error at any stage, and
  * the result is the errors, never a partial document. A preview may run on
@@ -28,6 +30,7 @@ import { checkData } from './data.js'
 import type { Completeness, Consistency, DataMode, ReportData } from './data.js'
 import type { Paragraph, ResolvedDocument } from './document.js'
 import { createFormatter } from './format.js'
+import { lowerPaymentPart } from './lower-payment-part.js'
 import { lowerRegions } from './lower.js'
 import { checkParameters } from './parameters.js'
 import type { CheckedParameters } from './parameters.js'
@@ -125,7 +128,9 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
   }
   const totals = computeTotals(inputs)
   if (totals === undefined) return { ok: false, errors: problems.errors() }
-  const regions = lowerRegions({ ...inputs, totals })
+  const render = { ...inputs, totals }
+  const regions = lowerRegions(render)
+  const paymentPart = lowerPaymentPart(render)
   if (problems.failed) return { ok: false, errors: problems.errors() }
 
   const { completeness, consistency } = checkedData.data
@@ -137,6 +142,7 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
     pageHeader: labelled ? [LABEL, ...regions.pageHeader] : regions.pageHeader,
     pageFooter: regions.pageFooter,
     body: regions.body,
+    ...(paymentPart === undefined ? {} : { paymentPart }),
   }
   const manifest: RenderManifest = {
     reportHash: reportHash(valid),

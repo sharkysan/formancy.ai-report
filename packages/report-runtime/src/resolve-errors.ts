@@ -30,10 +30,16 @@ export const RESOLVE_ERROR_CODES = [
   'rounding-not-decimal',
   /** A total over values that cannot be totalled together: a sum of text, a minimum of a number and a date. */
   'aggregate-value-type',
-  /** In a final render, a run of a QR code's content whose value is null: the code would scan as less than its content, and nothing on the page would say so. */
+  /** In a final render, a run of a QR code's content, or of a QR-bill's text, whose value is null: the code would scan as less than its content, and nothing on the page would say so. */
   'no-qr-value',
   /** In a final render, a QR code whose content prints nothing: a symbol of no data, which a scanner reads as no code. */
   'empty-qr-code',
+  /**
+   * A QR-bill a rule of SIX's breaks once its data has resolved it: an
+   * account, a reference, an address part, a message or an amount. The
+   * code report-spec gives a literal that breaks it, from the same rules.
+   */
+  'invalid-qr-bill',
   /** More errors were found than are listed. */
   'too-many-errors',
 ] as const

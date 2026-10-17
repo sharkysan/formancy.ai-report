@@ -1,6 +1,7 @@
 /**
- * The reports the Studio opens: the corpus's three starters (plan 7, R19),
- * each with its synthetic data, and a blank report to build from nothing.
+ * The reports the Studio opens: the corpus's starters, plan 7's three
+ * (R19) and the invoice with its QR-bill, each with its synthetic data, and
+ * a blank report to build from nothing.
  */
 import type { ImageResolver } from '@formancy/report-runtime'
 import { emptyReport } from '@formancy/report-spec'

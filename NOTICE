@@ -7,3 +7,11 @@ This product is distributed under the Formancy Report Source-Available Licence
 This product includes software developed by the formancy project
 (https://github.com/sharkysan/formancy.ai), licensed under the Apache License,
 Version 2.0. Those packages keep their licence; nothing here changes it.
+
+@formancy/report-render-pdf includes the Liberation Sans fonts, version
+2.1.5, Regular and Bold, in its fonts directory and, as base64, in its
+browser build. Digitized data copyright (c) 2010 Google Corporation, with
+Reserved Font Arimo, Tinos and Cousine. Copyright (c) 2012 Red Hat, Inc.,
+with Reserved Font Name Liberation. They are licensed under the SIL Open
+Font License, Version 1.1, whose text travels with them as
+fonts/LICENSE-LiberationSans.txt; nothing here changes it.

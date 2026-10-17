@@ -100,10 +100,12 @@ describe('a QR code', () => {
   // A QR code is a square, so its one size is measured against both sides
   // of the printable area, and refused once, on the side it overruns, when
   // it overruns both. A4 portrait with the fixture's margins leaves 510.24
-  // by 728.51 points; landscape, 756.85 by 481.9.
+  // by 728.51 points; landscape, 756.85 by 481.9. The fixture's QR-bill is
+  // printed on A4 in portrait only, so the pages are measured without it.
   test('is a square the printable area holds both ways, refused once when it holds neither', () => {
     const sized = (size: number, orientation = 'portrait') =>
       edited((r) => {
+        removeAt(r, '/paymentPart')
         setAt(r, '/page/orientation', orientation)
         setAt(r, `${CODE}/size`, size)
       })
@@ -139,6 +141,7 @@ describe('a QR code', () => {
       expect(room.length).toBe(Math.min(printableArea(page).width, printableArea(page).height))
       const sized = (size: number) =>
         edited((r) => {
+          removeAt(r, '/paymentPart')
           setAt(r, '/page', page)
           setAt(r, `${CODE}/size`, size)
         })

@@ -32,8 +32,8 @@ true; of its prose, a guard holds the files it names, its install lines and
 its links, and review the rest
 ([0015](./docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
 
-> **Status, 17 October 2026: 0.1.0, a developer preview, is released.**
-> Its eight packages are on npm, with provenance, and
+> **Status, 17 October 2026: 0.1.0, a developer preview, is released, and
+> main has moved past it.** Its eight packages are on npm, with provenance, and
 > [the GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.1.0)
 > carries the signed SBOM and release report of the run that published
 > them. Data goes in and a PDF comes out, from
@@ -43,9 +43,17 @@ its links, and review the rest
 > online at https://formancy.ai/report/, and `pnpm demo` runs it from a
 > clone ([Try it](#try-it)). Beside it, the product's pages say what
 > Formancy Report is, in German, French, Italian and English. What 0.1.0
-> holds and leaves out
-> is in
+> holds and leaves out is in
 > [the changelog](./CHANGELOG.md#010--2026-10-16).
+>
+> Since 0.1.0, main lets a report print QR codes
+> ([0020](./docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md))
+> and carry a Swiss QR-bill, its receipt and payment part at the foot of its
+> last page, held to SIX's rules and printed in the Liberation Sans the
+> renderer ships
+> ([0022](./docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)).
+> No release has them yet, and 0.1.0 refuses a report that holds either.
+> The Studio's invoice starter carries a bill.
 >
 > `@formancy/report-spec` defines the report format, validates a report and
 > hashes it. `@formancy/report-core` edits a report through commands, with
@@ -75,7 +83,7 @@ its links, and review the rest
 > Chromium alone
 > ([0013](./docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).
 > `@formancy/report-corpus` is private test support: adversarial fixtures,
-> the three starter reports, and the checks that prove a rendered PDF. The
+> the starter reports, and the checks that prove a rendered PDF. The
 > format is version 0, a draft: a report written now is not promised to be
 > read by a later release.
 
@@ -123,7 +131,7 @@ another site, read from the files: no gate opens the pages in a browser ([0023](
 ## The Studio
 
 `apps/studio` is the playground, never published as a package. It opens the
-three starters, and a blank report, in the React or the Angular builder,
+starters, and a blank report, in the React or the Angular builder,
 over one report session per starter, and previews the PDF the renderer
 prints from that session: in the page, on white paper, through
 `@formancy/report-render-pdf/browser` and PDF.js. It works in the same room
@@ -200,17 +208,17 @@ needs a Data production licence as well as Report's
 
 | Package | What it is |
 | --- | --- |
-| `@formancy/report-spec` | The report definition, version 0 (a draft): its types, structural validation with stable error codes, a canonical hash, page geometry and the one conversion between millimetres and points. A report is a document of its own, not a form ([0007](./docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)). No framework, no PDF engine, no Node. |
+| `@formancy/report-spec` | The report definition, version 0 (a draft): its types, structural validation with stable error codes, a canonical hash, page geometry and the one conversion between millimetres and points. A report is a document of its own, not a form ([0007](./docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)). It holds SIX's rules for a Swiss QR-bill, which the validator applies to what a report writes and the runtime to what its data resolves to ([0022](./docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)). No framework, no PDF engine, no Node. |
 | `@formancy/report-core` | The editing core: pure commands over a report, also as data for a proposal; a session that commits only what the validator accepts, with exact undo and redo; the places a component may go; and one compilation of every expression, each member checked as its type, which the diagnostics report and the runtime evaluates. A refused edit changes nothing ([0008](./docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)). No framework, no PDF engine, no Node. |
-| `@formancy/report-runtime` | Resolves a report against its data: every value held to its dataset's contract, exact numbers as strings and never through a JavaScript number, fields the report does not declare refused; totals computed exactly and rounded once as declared; values formatted for the report's locale; a renderer-neutral document, a manifest and, for a preview, its warnings. A final render refuses incomplete data ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)). No framework, no PDF engine, no Node. |
-| `@formancy/report-render-pdf` | Draws a resolved document with pdfmake and Roboto: page header and footer, tables whose header repeats and whose totals stay with their last row, columns, framed sections, images, QR codes, rules. It refuses what it cannot draw whole -- a page too many, a word wider than its column, a character the font cannot draw, a QR code whose modules would be finer than 0.4 mm -- rather than return a partial PDF ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), [0020](./docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)). Node, and a browser entry. |
+| `@formancy/report-runtime` | Resolves a report against its data: every value held to its dataset's contract, exact numbers as strings and never through a JavaScript number, fields the report does not declare refused; totals computed exactly and rounded once as declared; values formatted for the report's locale; a renderer-neutral document, a manifest and, for a preview, its warnings. A final render refuses incomplete data ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)), and any render a QR-bill that breaks SIX's rules once its data has resolved it ([0022](./docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)). No framework, no PDF engine, no Node. |
+| `@formancy/report-render-pdf` | Draws a resolved document with pdfmake and Roboto: page header and footer, tables whose header repeats and whose totals stay with their last row, columns, framed sections, images, QR codes, rules; and a Swiss QR-bill's slip, as SIX lays it out, in the Liberation Sans the package ships. It refuses what it cannot draw whole -- a page too many, a word wider than its column, a character the font cannot draw, a QR code whose modules would be finer than 0.4 mm -- rather than return a partial PDF ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), [0020](./docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), [0022](./docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)). Node, and a browser entry. |
 | `@formancy/report-data-provider` | Reads a report's data from a Formancy Data 0.1.0 server through `@formancy/data-client`, with the person's own token. It reads the header's one record, the lines fifty a page and each lookup's label, and checks the binding, the fields the person may read and the parent before it reads a record. Its data is labelled best-effort, because Data 0.1.0 has no snapshot. Running it in production needs a Formancy Data production licence too ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). No framework, no Node. |
 | `@formancy/report-builder-core` | The editor model both builders render, with no framework: one person's view of a report-core session, and the outline, palette, property fields, design view, drop targets, diagnostics, keys and words derived from it, in English, Swiss German and Swiss French. Several editors share one session and its undo history. Its `report-builder.css` dresses both builders through formancy's workbench variables. `BUILDER_SCENARIOS` is what every builder must do, as data ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)). No framework, no DOM, no Node. |
 | `@formancy/report-builder-react` | The builder for React 19: the workbench's panes over one editor, through `useSyncExternalStore`. Runs every shared scenario in three languages, with axe. |
 | `@formancy/report-builder-angular` | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js, built by ng-packagr. Runs every shared scenario in three languages, with axe; no React in its closure. It is packed from `dist/`, and the install gate compiles it into an Angular host ahead of time, links it and draws it on a server. |
 | `apps/studio` (`@formancy/report-studio`) | The playground, never published as a package and online at formancy.ai/report/ ([0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)): the starters and a blank report in either builder over one session per starter, the PDF the session prints previewed by PDF.js on white paper, and every problem printing found linked to its component. The PDF.js viewer lives here and nowhere published ([0013](./docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)). Its browser gate and its README pictures' check run in CI's `browser` job. |
 | `apps/pages` (`@formancy/report-pages`) | The product's pages, never published as a package: what Formancy Report is, and a page for healthcare, each in German, French, Italian and English, prerendered to static HTML with their sitemap and served beside the Studio at formancy.ai/report/<lang>/ ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)). Its suite reads every page back as a crawler does and holds its head, its translations, its links, its words and the sitemap, holds the files the build writes to be those pages, and holds every file a page's HTML and stylesheet have the browser fetch to be the site's own, its faces included ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)). |
-| `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)), and a reader that decodes the QR codes a page prints with ZXing; the three starter reports; and the renderer trial's adapters for pdfmake and pdfme. |
+| `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)), and a reader that decodes the QR codes a page prints with ZXing; the starter reports, an invoice with a Swiss QR-bill among them; and the renderer trial's adapters for pdfmake and pdfme. |
 
 Planned and not here: the server and its jobs, reviewed AI changes, a
 published PDF viewer, and a consistent read from Formancy Data.
@@ -241,17 +249,20 @@ these lines, from the packed packages, on the quotation starter below
 
 ## What the starters print
 
-The three starter reports, resolved by the runtime from their synthetic
-data, rendered by `report-render-pdf` and drawn by PDF.js. The pictures are
-made by `packages/report-render-pdf/scripts/readme-pictures.ts`, never by
-hand, and `pictures.test.ts` fails when a page no longer prints what its
-picture shows, or a caption quotes what the page does not print.
+The starter reports, resolved by the runtime from their synthetic data,
+rendered by `report-render-pdf` and drawn by PDF.js. The pictures are made
+by `packages/report-render-pdf/scripts/readme-pictures.ts`, never by hand,
+and `pictures.test.ts` fails when a starter has no picture, when a page no
+longer prints what its picture shows, or when a caption quotes what the
+page does not print.
 
 ![The quotation starter, an Offerte: line items in Swiss francs, then Zwischensumme, MWST 8.1 %, Rundung and Total CHF 3'143.00](docs/images/starter-quotation.png)
 
 ![The service inspection starter, page 2: the frame headed Defect found, the photo from the data, and the sign-off above Inspector's signature kept with it](docs/images/starter-service-inspection.png)
 
 ![The equipment register starter, grouped by site: Basel (12 items) heads its group, and Subtotal Basel 12 closes it](docs/images/starter-grouped-equipment.png)
+
+![The invoice starter, a Rechnung: its line items, then Zwischensumme, MWST 8.1 % and Total CHF 1'416.52, and across the foot of the page its QR-bill, the Empfangsschein and the Zahlteil with its Swiss QR Code, each for CHF 1 416.52](docs/images/starter-invoice.png)
 
 The Studio shows the same pages beside the editor, printed in the page
 from the session; its pictures are [above](#the-studio).

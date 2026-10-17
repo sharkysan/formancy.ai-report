@@ -1,6 +1,6 @@
 # 0007 — A report definition is its own versioned document, with a flowing body, one detail table, declared aggregates and print styles as tokens
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, and by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `@formancy/report-spec` tests that fail when it is
@@ -305,6 +305,22 @@ unchanged, and so is every report that was valid. A release that predates
 the kind, 0.1.0 among them, refuses a report that holds one as
 `unknown-kind`, and never skips it. `validate-qr-code.test.ts` holds the
 shape, the placement and the refusals.
+
+**Added 2026-10-17: a payment part.** A report may carry one Swiss
+QR-bill, `paymentPart`, at its own level and in no region, as [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)
+decides: the slip SIX fixes at the foot of the paper, across its width,
+which no region inside the margins can hold. Its texts are runs, read as
+a paragraph's in the report's scope, and a page number or count is
+refused in every one. Its amount is an expression. A report that carries
+one is on an A4 page in portrait, and any other page is refused once, as
+`payment-part-page`. The format still has no coordinates: where the slip
+stands is SIX's, and the renderer's to draw. SIX's rules for what a bill
+holds are applied to a text of literal runs here, as `invalid-qr-bill`,
+by the functions the runtime applies to data. It is a draft-format
+addition: `reportSpecVersion` is unchanged, and so is every report that
+was valid. A release that predates it, 0.1.0 among them, refuses a report
+with a payment part as `unknown-property`. `validate-payment-part.test.ts`
+and `qr-bill.test.ts` hold the shape, the page and the rules.
 
 ## Alternatives considered
 

@@ -104,6 +104,14 @@ is running counts as part of it, so listeners still hear once.
   and in pixels, with the same severity and overflow its outline row has.
   It also carries rulers in millimetres. It is labelled as not the PDF,
   because it is not; see *What it does not do*.
+  A report with a payment part -- a Swiss QR-bill, which report-spec holds
+  at the report's level -- also has `paymentPart`: a band the slip's size
+  (report-spec's `QR_BILL_SIZE`, 210 by 105 mm) across the sheet's foot, as
+  the slip prints across the foot of the last page, named as SIX names the
+  part ("Payment part", "Zahlteil", "Section paiement"). It stands below
+  every region, a band's gap under the last of them: when the regions reach
+  it, the sheet grows past the page rather than draw them under the slip.
+  Without a payment part it is `null`.
 - **`diagnostics`**: report-core's `diagnose()`, each entry linked to the
   component or column it is about, with a `key` of what it is -- its code,
   where it points and which characters -- unique in the list and the same
@@ -268,7 +276,10 @@ so the choices are made here.
   box is an `img` named by its label; a click selects it and moves focus to
   its outline row. While something is placed, each drop target is drawn as
   an `img` named by its label. A pointer reads its position from the
-  sheet's padding edge, inside its border, as the targets are placed.
+  sheet's padding edge, inside its border, as the targets are placed. A
+  payment part's band is an `img` named by its label, after the boxes,
+  with `data-report-part="payment-part"`, and its label drawn in it as a
+  region's band draws its own (`region-label`).
 - **A live region** (`role="status"`, unnamed) showing `status.text`, each
   announcement a new element.
 
@@ -300,8 +311,9 @@ with every arrow, select a row by focusing it, edit the title, go back to
 the report's properties from a selection, refuse an invalid property with
 its error visible, move by keyboard, delete with focus moving on,
 duplicate, undo and redo, follow a diagnostic to its component, count the
-problems as they change, press a tool with nothing to do, zoom and choose
-a style.
+problems as they change, press a tool with nothing to do, zoom, choose
+a style, and open a report with a payment part, whose band is drawn and
+which an edit, and a page refused for it, leave whole.
 
 Each framework's test runs every scenario with Testing Library, and fails
 when one is skipped. The scenarios use every kind of step, so each runner
@@ -329,10 +341,11 @@ rule here; those it found are the naming rule above and the problems' key.
 
 `@formancy/report-builder-core/report-builder.css` dresses what is specific
 to reports: the bars above and below the panes, the sheet, its region
-bands, rulers, the selection, drop indicators, outline rows, badges, an
-unavailable tool, property rows, the problems list, the grid without the
-panes the person hid, and the one-pane layout on a narrow screen. The host
-imports `@formancy/themes`' `workbench.css` first.
+bands and a payment part's band, rulers, the selection, drop indicators,
+outline rows, badges, an unavailable tool, property rows, the problems
+list, the grid without the panes the person hid, and the one-pane layout
+on a narrow screen. The host imports `@formancy/themes`' `workbench.css`
+first.
 
 The stylesheet takes colour only from the workbench's `--wb-*` variables,
 with no colour literal and no fallback. A Studio recolours the editor by
@@ -343,12 +356,16 @@ framework's class. Its test reads the file and fails on:
 - a colour literal;
 - a variable the workbench does not define;
 - a part or an attribute the builders do not render;
-- any class other than the workbench's.
+- any class other than the workbench's;
+- a rule that dresses a region's band and not a payment part's, which is
+  drawn as one.
 
 ## The editor's words
 
-Every label a builder shows is in `src/text.ts`, in English, Swiss German
-and Swiss French: `editorText(locale)` fills one, and `formatZoom` writes a
+Every label a builder shows is in the catalogue, in English, Swiss German
+and Swiss French, a file for each (`src/text-en.ts`, `src/text-de-ch.ts`,
+`src/text-fr-ch.ts`) that `src/text.ts` puts together:
+`editorText(locale)` fills one, and `formatZoom` writes a
 percentage as the language does, by Intl, as the share a QR code's level
 restores is written. A test fails when the three languages differ in their
 messages or placeholders.
@@ -370,6 +387,15 @@ the other's steps in English.
   it prints, with no modules in it. Every region is one flow on one
   sheet, without pagination. The renderer measures text and lays out
   pages, and the PDF preview shows what prints.
+- **A payment part is shown, not edited.** The editor opens a report with
+  one, keeps it whole through every edit and undo, and refuses a page it
+  cannot be printed on, Letter, landscape or a top margin past the slip's
+  top, with report-spec's reason on the field. A page header, or the
+  instruction to separate above the slip, reaching into it is refused only
+  when the report renders, since only a render measures them. The design
+  view shows where its slip prints and draws nothing of the slip, which
+  the PDF preview shows. It has no outline row and no properties yet, and
+  a diagnostic about it is listed as the report's.
 - **Not every property is editable yet.** These need editors of their own,
   and have none:
   - a table's sort, its group, its group and total rows, and its footer

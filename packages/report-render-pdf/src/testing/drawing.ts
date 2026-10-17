@@ -16,7 +16,7 @@ import { inflateSync } from 'node:zlib'
  * and in from its left, as the corpus's reader gives them.
  */
 
-/** One subpath of a path the page paints: a rectangle (`re`), or lines from a point (`m`, `l`). */
+/** One subpath of a path the page paints: a rectangle (`re`), or lines and curves from a point (`m`, `l`, `c`). */
 export interface Shape {
   readonly kind: 'rect' | 'line'
   /** The box of the path itself, before any stroke's width. */
@@ -30,6 +30,14 @@ export interface Shape {
   readonly lineWidth: number
   /** Which painting operator on the page drew it, from 0: shapes with the same number were one path, filled or stroked at once. */
   readonly paint: number
+  /**
+   * Its points in the order the path gives them, on the page: a
+   * rectangle's two opposite corners, or each point its lines and curves
+   * end at. A curve's control points are not among them, and its box is
+   * theirs: a circle drawn in quarters, as PDFKit and SVG draw one, ends
+   * a curve at each of its four extremes.
+   */
+  readonly points: readonly (readonly [number, number])[]
 }
 
 export interface Shown {
@@ -46,7 +54,7 @@ export interface DrawnPage {
   readonly number: number
   readonly shapes: readonly Shape[]
   /** Rectangles set as clipping paths. */
-  readonly clips: readonly Omit<Shape, 'fill' | 'stroke' | 'lineWidth' | 'paint'>[]
+  readonly clips: readonly Omit<Shape, 'fill' | 'stroke' | 'lineWidth' | 'paint' | 'points'>[]
   readonly text: readonly Shown[]
 }
 
@@ -98,7 +106,7 @@ interface State {
 
 function interpret(content: string, height: number, fonts: ReadonlyMap<string, string>): Omit<DrawnPage, 'number'> {
   const shapes: Shape[] = []
-  const clips: Omit<Shape, 'fill' | 'stroke' | 'lineWidth' | 'paint'>[] = []
+  const clips: Omit<Shape, 'fill' | 'stroke' | 'lineWidth' | 'paint' | 'points'>[] = []
   const shown: Shown[] = []
   const stack: State[] = []
   let state: State = { ctm: [1, 0, 0, 1, 0, 0], fill: '#000000', stroke: '#000000', lineWidth: 1 }
@@ -115,7 +123,8 @@ function interpret(content: string, height: number, fonts: ReadonlyMap<string, s
       const ys = each.points.map(([, y]) => height - y)
       const box = { kind: each.kind, x: Math.min(...xs), top: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) }
       if (clip) clips.push(box)
-      if (fill || stroke) shapes.push({ ...box, ...(fill ? { fill: state.fill } : {}), ...(stroke ? { stroke: state.stroke } : {}), lineWidth: state.lineWidth, paint: paints })
+      const points = each.points.map(([x, y]) => [x, height - y] as const)
+      if (fill || stroke) shapes.push({ ...box, ...(fill ? { fill: state.fill } : {}), ...(stroke ? { stroke: state.stroke } : {}), lineWidth: state.lineWidth, paint: paints, points })
     }
     if (fill || stroke) paints++
     path = []
@@ -153,6 +162,7 @@ function interpret(content: string, height: number, fonts: ReadonlyMap<string, s
           path.push({ kind: 'line', points: [apply(state.ctm, ...(numbers(2) as [number, number]))] })
           break
         case 'l':
+        case 'c':
           path.at(-1)?.points.push(apply(state.ctm, ...(numbers(2) as [number, number])))
           break
         case 'W':

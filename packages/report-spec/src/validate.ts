@@ -20,6 +20,7 @@ import { newContext } from './validate-context.js'
 import type { Ctx } from './validate-context.js'
 import { readComponents } from './validate-components.js'
 import { readAssets, readDatasets, readPage, readParameters, readProvenance, readStyles } from './validate-declarations.js'
+import { readPaymentPart } from './validate-payment-part.js'
 import { checkSpecVersion, REPORT_SPEC_VERSION } from './version.js'
 
 export type ReportValidation = { readonly valid: true; readonly report: ReportDefinition } | { readonly valid: false; readonly errors: readonly ReportError[] }
@@ -36,12 +37,12 @@ function readRegions(c: Ctx, value: unknown, path: string): Regions | undefined 
 
 /** The report in `o`, a copy of the document's top level whose version has been checked. */
 function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | undefined {
-  strictKeys(c.f, o, '', ['reportSpecVersion', 'id', 'title', 'locale', 'page', 'styles', 'datasets', 'parameters', 'assets', 'aggregates', 'regions'], ['provenance'])
+  strictKeys(c.f, o, '', ['reportSpecVersion', 'id', 'title', 'locale', 'page', 'styles', 'datasets', 'parameters', 'assets', 'aggregates', 'regions'], ['paymentPart', 'provenance'])
   const id = identifier(c.f, o.id, '/id')
   const title = text(c.f, o.title, '/title', MAX_LABEL_LENGTH)
   const locale = matches(c.f, o.locale, '/locale', LOCALE, 'invalid-locale', 'a BCP 47 language tag such as en, de-CH or zh-Hans-CN')
-  // The page first, then the declarations: the regions are measured
-  // against the one and checked against the others.
+  // The page first, then the declarations: the regions and the payment
+  // part are measured against the one and checked against the others.
   const page = readPage(c, o.page, '/page')
   const styles = readStyles(c, o.styles, '/styles')
   const datasets = readDatasets(c, o.datasets, '/datasets')
@@ -49,6 +50,7 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
   const assets = readAssets(c, o.assets, '/assets')
   const aggregates = readAggregates(c, o.aggregates, '/aggregates')
   const regions = readRegions(c, o.regions, '/regions')
+  const paymentPart = readPaymentPart(c, o.paymentPart, '/paymentPart', page)
   const provenance = readProvenance(c.f, o.provenance, '/provenance')
   if (
     id === undefined ||
@@ -60,12 +62,13 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
     parameters === undefined ||
     assets === undefined ||
     aggregates === undefined ||
-    regions === undefined
+    regions === undefined ||
+    (o.paymentPart !== undefined && paymentPart === undefined)
   ) {
     return undefined
   }
   const reportSpecVersion = REPORT_SPEC_VERSION
-  return { reportSpecVersion, id, title, locale, page, styles, datasets, parameters, assets, aggregates, regions, ...optional('provenance', provenance) }
+  return { reportSpecVersion, id, title, locale, page, styles, datasets, parameters, assets, aggregates, regions, ...optional('paymentPart', paymentPart), ...optional('provenance', provenance) }
 }
 
 /**

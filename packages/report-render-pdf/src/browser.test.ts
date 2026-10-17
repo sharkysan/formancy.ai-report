@@ -7,9 +7,11 @@ import browserPdfmake from 'pdfmake/build/pdfmake.js'
 import vfs from 'pdfmake/build/vfs_fonts.js'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { ALL_FIXTURES, readCodes, readPdf, verify, verifyRefusal } from '@formancy/report-corpus'
-import { afterAll, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
+import type * as billFonts from './bill-fonts.js'
 import { renderPdf as renderInBrowser } from './browser.js'
 import { renderPdf as renderInNode } from './node.js'
+import { billDocument, resolvedBill, SIX_EXAMPLES } from './testing/bills.js'
 import { documentOf, fixture, paragraph, TIMEOUT } from './testing/documents.js'
 
 /**
@@ -36,9 +38,9 @@ afterAll(() => {
   expect([...warnings].filter((each) => !each.startsWith('No local access policy defined'))).toEqual([])
 })
 
-/** A definition as pdfmake was handed it, before pdfmake changes it in place: every function by its source, and the page header and footer by what they lay out on page 2 of 3. */
+/** A definition as pdfmake was handed it, before pdfmake changes it in place: every function by its source, and the page header and footer by what they lay out on pages 2 and 3 of 3, the last of which holds a payment part's slip. */
 function serialised(definition: TDocumentDefinitions): string {
-  const regions = [definition.header, definition.footer].map((region) => (typeof region === 'function' ? region(2, 3, { width: 0, height: 0, orientation: 'portrait' }) : region))
+  const regions = [definition.header, definition.footer].flatMap((region) => [2, 3].map((page) => (typeof region === 'function' ? region(page, 3, { width: 0, height: 0, orientation: 'portrait' }) : region)))
   return JSON.stringify({ definition, regions }, (_, value: unknown) => (typeof value === 'function' ? `function ${String(value)}` : value))
 }
 
@@ -115,6 +117,22 @@ describe('the browser entry', () => {
     expect(codes).toEqual(await readCodes(await renderInNode(document, options), 1))
   }, TIMEOUT)
 
+  // A slip the browser drew otherwise than Node would show a payer one
+  // thing in the Studio's preview and another in the PDF a server sends:
+  // the same definitions, the slip in the last page's footer among them,
+  // the same code read back, and every run where Node puts it.
+  test('hands pdfmake the definitions the Node entry does for a QR-bill, which prints the same', async () => {
+    const document = billDocument(resolvedBill(SIX_EXAMPLES.two), [paragraph('Invoice 2026-0042')])
+    const options = { maxPages: 5 }
+    const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
+    const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(document, options))
+    expect(inBrowser).toEqual(inNode)
+    const [nodeBytes, browserBytes] = [await renderInNode(document, options), await renderInBrowser(document, options)]
+    expect((await readCodes(browserBytes, 1)).map(({ text }) => text)).toEqual([document.paymentPart!.payload])
+    expect(await readCodes(browserBytes, 1)).toEqual(await readCodes(nodeBytes, 1))
+    expect((await readPdf(browserBytes)).pages).toEqual((await readPdf(nodeBytes)).pages)
+  }, TIMEOUT)
+
   // A browser preview that differs from itself on every render cannot be
   // compared with anything.
   test('renders the same document to the same bytes', async () => {
@@ -133,6 +151,17 @@ describe('the browser entry', () => {
     }
   })
 
+  // The slip's Liberation Sans reaches a browser as base64 inside a script
+  // the build makes of the package's own font files, which the
+  // dependency-licence guard reads as OFL-1.1 and cannot see inside a
+  // script (0006). They are those files' very bytes.
+  test('embeds the Liberation Sans of the package’s own font files, byte for byte', async () => {
+    const { LIBERATION_SANS } = await import('./bill-fonts.js')
+    const fonts = path.join(here, '..', 'fonts')
+    expect(Buffer.from(LIBERATION_SANS.normal, 'base64').equals(readFileSync(path.join(fonts, 'LiberationSans-Regular.ttf')))).toBe(true)
+    expect(Buffer.from(LIBERATION_SANS.bold, 'base64').equals(readFileSync(path.join(fonts, 'LiberationSans-Bold.ttf')))).toBe(true)
+  })
+
   // A pdfmake whose vfs_fonts.js no longer carries a face would leave the
   // font table naming a virtual file that is not there, and fail somewhere
   // in PDFKit with an error about it. It fails here, naming the face.
@@ -149,21 +178,84 @@ describe('the browser entry', () => {
 
   // A browser has no `node:` modules and no Node build of pdfmake: a value
   // import of either anywhere the browser entry reaches breaks every app
-  // that bundles it. Read from the sources, following each relative import.
-  test('reaches no Node module and no Node build of pdfmake', () => {
-    const external = new Set<string>()
-    const visit = (file: string, seen: Set<string>): void => {
-      if (seen.has(file)) return
-      seen.add(file)
-      const source = readFileSync(path.join(here, file), 'utf8')
-      // `import x from 'y'` and `import 'y'`, but not `import type`, which leaves nothing behind.
-      for (const [, specifier] of source.matchAll(/^import (?!type )(?:[^'"]*from )?'([^']+)'/gm)) {
-        if (specifier!.startsWith('./')) visit(specifier!.slice(2).replace(/\.js$/, '.ts'), seen)
-        else external.add(specifier!)
+  // that bundles it. And the slip's fonts, over a megabyte as
+  // base64, reach an app only through an import made the first time a
+  // document has a payment part: imported statically, every host's bundle
+  // would carry them, a host that never prints a bill among them. Read
+  // from the sources, following each relative import.
+  test('reaches no Node module and no Node build of pdfmake, and Liberation Sans only when a bill asks for it', () => {
+    const reach = (entry: string): { readonly files: Set<string>; readonly external: Set<string>; readonly dynamic: Set<string> } => {
+      const [files, external, dynamic] = [new Set<string>(), new Set<string>(), new Set<string>()]
+      const visit = (file: string): void => {
+        if (files.has(file)) return
+        files.add(file)
+        const source = readFileSync(path.join(here, file), 'utf8')
+        // `import x from 'y'` and `import 'y'`, but not `import type`, which leaves nothing behind.
+        for (const [, specifier] of source.matchAll(/^import (?!type )(?:[^'"]*from )?'([^']+)'/gm)) {
+          if (specifier!.startsWith('./')) visit(specifier!.slice(2).replace(/\.js$/, '.ts'))
+          else external.add(specifier!)
+        }
+        for (const [, specifier] of source.matchAll(/^export (?!type )[^'"]*from '([^']+)'/gm)) external.add(specifier!)
+        for (const [, specifier] of source.matchAll(/\bimport\('([^']+)'\)/g)) dynamic.add(specifier!)
       }
-      for (const [, specifier] of source.matchAll(/^export (?!type )[^'"]*from '([^']+)'/gm)) external.add(specifier!)
+      visit(entry)
+      return { files, external, dynamic }
     }
-    visit('browser.ts', new Set())
-    expect([...external].sort()).toEqual(['@formancy/report-runtime', 'pdfmake/build/pdfmake.js', 'pdfmake/build/vfs_fonts.js', 'uqr'])
+    const browser = reach('browser.ts')
+    expect([...browser.external].sort()).toEqual(['@formancy/report-runtime', 'pdfmake/build/pdfmake.js', 'pdfmake/build/vfs_fonts.js', 'uqr'])
+    expect([...browser.dynamic]).toEqual(['./bill-fonts.js'])
+    expect(browser.files.has('bill-fonts.ts')).toBe(false)
+    const fonts = reach('bill-fonts.ts')
+    expect([...fonts.external].sort()).toEqual(['../fonts/LiberationSans-Bold.ttf', '../fonts/LiberationSans-Regular.ttf'])
+    expect(fonts.dynamic.size).toBe(0)
   })
+})
+
+describe('the slip’s fonts in a browser', () => {
+  /** A browser entry of its own, which has loaded no chunk yet, with `bill-fonts.js` as `factory` makes it. */
+  async function freshEntry(factory: () => Pick<typeof billFonts, 'LIBERATION_SANS'>): Promise<typeof renderInBrowser> {
+    vi.resetModules()
+    vi.doMock('./bill-fonts.js', factory)
+    return (await import('./browser.js')).renderPdf
+  }
+  const bill = (): ReturnType<typeof billDocument> => billDocument(resolvedBill(SIX_EXAMPLES.two), [paragraph('Invoice 2026-0042')])
+  afterEach(() => {
+    vi.doUnmock('./bill-fonts.js')
+    vi.resetModules()
+  })
+
+  // A chunk that failed to load once -- a network that dropped, a deploy
+  // that replaced it -- kept as failed would fail every later bill until
+  // the page reloaded. The bill it failed for fails; the next one loads the
+  // chunk again, and prints its slip.
+  test('are loaded again by the next bill after a load that failed', async () => {
+    const renderPdf = await freshEntry(() => {
+      throw new Error('the chunk did not load')
+    })
+    // Vitest's own error, an import that rejects as a chunk's does, carrying the factory's.
+    await expect(renderPdf(bill(), { maxPages: 5 })).rejects.toHaveProperty('cause.message', 'the chunk did not load')
+    vi.doUnmock('./bill-fonts.js')
+    const document = bill()
+    expect((await readCodes(await renderPdf(document, { maxPages: 5 }), 1)).map(({ text }) => text)).toEqual([document.paymentPart!.payload])
+  }, TIMEOUT)
+
+  // A chunk imported for every bill would decode and parse two fonts each
+  // time: once it has loaded, every later bill prints from it. The faces
+  // are read off the chunk once for each import, which the getter counts.
+  // The bills print one after another: Vitest hands an import made while
+  // another of the same mock is under way the module itself, not the mock
+  // (its mocker says so), and that import would go uncounted; the bills
+  // that ask at the same time share one load in engine.test.ts.
+  test('are loaded once, by the first bill, however many follow', async () => {
+    let loads = 0
+    const { LIBERATION_SANS } = await import('./bill-fonts.js')
+    const renderPdf = await freshEntry(() => ({
+      get LIBERATION_SANS() {
+        loads += 1
+        return LIBERATION_SANS
+      },
+    }))
+    for (let each = 0; each < 3; each += 1) await renderPdf(bill(), { maxPages: 5 })
+    expect(loads).toBe(1)
+  }, TIMEOUT)
 })

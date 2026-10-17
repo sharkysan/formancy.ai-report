@@ -31,6 +31,8 @@ export type {
   PageBreak,
   PageSetup,
   Paragraph,
+  QrBill,
+  QrBillHeadings,
   QrCode,
   Rectangle,
   RefusalCode,

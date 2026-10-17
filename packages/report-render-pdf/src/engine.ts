@@ -1,5 +1,5 @@
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { characterMap, type Face, type Glyphs } from './glyphs.js'
+import { characterMap, type BillFace, type BillGlyphs, type Face, type Glyphs } from './glyphs.js'
 
 /**
  * pdfmake with the renderer's fonts and access policies, as Node's entry
@@ -10,18 +10,49 @@ import { characterMap, type Face, type Glyphs } from './glyphs.js'
  */
 export interface Engine {
   readonly run: (definition: TDocumentDefinitions) => Promise<Uint8Array>
+  /** Roboto's four faces, which a report's own text prints in. */
   readonly glyphs: () => Promise<Glyphs>
+  /**
+   * Liberation Sans's two faces, which a QR-bill's slip prints in: read
+   * the first time a document has a payment part, and in a browser loaded
+   * then, so that a host that never prints a bill never loads them. Once
+   * they are read, `run` has them for a document that prints them.
+   */
+  readonly billGlyphs: () => Promise<BillGlyphs>
 }
 
-/** The glyphs of the four faces, from their bytes, read once by `read` and kept: the fonts do not change while the process runs. */
-export function glyphsOnce(read: (face: Face) => Promise<Uint8Array>): () => Promise<Glyphs> {
-  let glyphs: Promise<Glyphs> | undefined
+/** Roboto's faces, as pdfmake names them. */
+export const FACES: readonly Face[] = ['normal', 'bold', 'italics', 'bolditalics']
+
+/** Liberation Sans's, as pdfmake names them. */
+export const BILL_FACES: readonly BillFace[] = ['normal', 'bold']
+
+/**
+ * What `load` loads, loaded by the first call and kept for every call after
+ * it: the fonts do not change while the process or the page runs. Calls made
+ * while it loads share the one load. A load that fails is not kept: the
+ * calls that shared it fail, and the next call loads again, so that a file
+ * the process could not open just then, or a chunk the browser could not
+ * fetch, fails the documents that asked for it and no document after.
+ */
+export function loadOnce<T>(load: () => Promise<T>): () => Promise<T> {
+  let loading: Promise<T> | undefined
   return () =>
-    (glyphs ??= (async () => {
-      const faces: readonly Face[] = ['normal', 'bold', 'italics', 'bolditalics']
-      const maps = await Promise.all(faces.map(async (face) => [face, characterMap(await read(face))] as const))
-      return Object.fromEntries(maps) as unknown as Glyphs
-    })())
+    (loading ??= load().catch((error: unknown) => {
+      loading = undefined
+      throw error
+    }))
+}
+
+/** The glyphs of `faces`, from the bytes `read` reads for each. */
+export async function glyphsOf<F extends string>(faces: readonly F[], read: (face: F) => Promise<Uint8Array>): Promise<Readonly<Record<F, ReadonlySet<number>>>> {
+  const maps = await Promise.all(faces.map(async (face) => [face, characterMap(await read(face))] as const))
+  return Object.fromEntries(maps) as Record<F, ReadonlySet<number>>
+}
+
+/** The glyphs of `faces`, read by `read` the first time they are asked for and kept once every face has been read (`loadOnce`). */
+export function glyphsOnce<F extends string>(faces: readonly F[], read: (face: F) => Promise<Uint8Array>): () => Promise<Readonly<Record<F, ReadonlySet<number>>>> {
+  return loadOnce(() => glyphsOf(faces, read))
 }
 
 /** PDFKit's document, as both of pdfmake's builds hand it out: a readable stream, ended to be written. */

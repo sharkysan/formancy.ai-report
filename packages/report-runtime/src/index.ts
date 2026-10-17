@@ -10,6 +10,8 @@ export type {
   PageBreak,
   PageSetup,
   Paragraph,
+  QrBill,
+  QrBillHeadings,
   QrCode,
   Rectangle,
   RefusalCode,
@@ -49,3 +51,12 @@ export type { ResolveErrorCode, RuntimeError, RuntimeStage } from './resolve-err
 export type { ImageBytes, ImageRef, ImageResolver } from './render-context.js'
 /** The definition `resolveReport` reads, so that a caller of the runtime names it without depending on report-spec itself. */
 export type { ReportDefinition } from '@formancy/report-spec'
+/**
+ * What report-spec decides of a QR-bill that an engine needs to draw its
+ * slip, handed on so that an engine, which depends on the runtime alone,
+ * reads the one decision rather than making its own: the slip's size and
+ * place, the page it is printed on, the currencies, the amount's range and
+ * the longest value SIX allows.
+ */
+export { checkQrBillAmount, MAX_QR_BILL_ADDITIONAL_INFORMATION, QR_BILL_CURRENCIES, QR_BILL_SIZE, QR_BILL_TOP, qrBillPageBreak } from '@formancy/report-spec'
+export type { QrBillPageBreak } from '@formancy/report-spec'

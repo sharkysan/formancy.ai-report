@@ -71,6 +71,10 @@ clamps when what it names is not there:
   `moveColumn`, `updateColumn`, `setGroup`, `setSort`, and the footer rows
   under the table and under each group, row by row and cell by cell.
 
+No command edits a report's payment part yet, its Swiss QR-bill, and every
+one keeps it as it was: the very object, through every edit. `replaceDocument`
+takes it with the rest of the document.
+
 A patch removes an optional property with `null`, and `setGroup` and `setSort`
 remove theirs with `null`, never with `undefined`: a proposal carries its
 operations as JSON, which has no undefined.
@@ -143,7 +147,13 @@ proposal's review shows before Apply.
 - its errors.
 
 An expression in a QR code's content is compiled as one in a paragraph in
-its place is: in the report's scope, its diagnostics naming the code.
+its place is: in the report's scope, its diagnostics naming the code. A
+payment part's texts are read the same way, in the report's scope, and its
+diagnostics name no component, only the path: the bill stands in none. Its
+amount is compiled as a value that must give a decimal or null. One that
+may be null is checked as `dyn`, which may be either, and the render checks
+what it holds. An integer or a string is a type error, with `dec()` as the
+hint.
 
 `diagnose(report)` lists those errors, then the warnings. The runtime refuses
 a report with an error, so the editor and the runtime cannot disagree about
@@ -191,5 +201,10 @@ What this does not do:
   so `!= null` is the way to ask.
 - **Layout.** Whether a keep-together block fits a page, a column its width,
   or a QR code's content its square, is the renderer's to say.
+- **A QR-bill's values.** Whether an amount has two decimals at most, and
+  whether what a field puts in a bill is an IBAN, a reference or an address
+  SIX allows, depends on the data. The runtime checks them with
+  `@formancy/report-spec`'s rules, the ones the validator applies to a
+  literal.
 
 Source-available, not open source: see [`LICENSE.md`](../../LICENSE.md).

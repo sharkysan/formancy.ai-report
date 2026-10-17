@@ -4,9 +4,9 @@
  *
  * `richReport` is one valid report that uses every component kind, every
  * inline, every format, every currency and image source, every aggregate
- * function and every table feature, so that a refusal test can break
- * exactly one rule by editing it at one JSON Pointer and show that the rule
- * refuses that edit and nothing around it.
+ * function, every table feature and a payment part, so that a refusal
+ * test can break exactly one rule by editing it at one JSON Pointer and
+ * show that the rule refuses that edit and nothing around it.
  */
 import type { ReportError } from './errors.js'
 import type { FieldRef, ReportDefinition } from './types.js'
@@ -264,6 +264,36 @@ export function richReport(): ReportDefinition {
           errorCorrection: 'Q',
         },
       ],
+    },
+    // SIX's second example (IG 2.4, Annex A): a QR-IBAN and a QR reference,
+    // its texts literal where the creditor's are and read from the data
+    // where the debtor's and the message are.
+    paymentPart: {
+      kind: 'swissQrBill',
+      language: 'de',
+      account: [{ kind: 'text', text: 'CH44 3199 9123 0008 8901 2' }],
+      creditor: {
+        name: [{ kind: 'text', text: 'Max Muster & Söhne' }],
+        street: [{ kind: 'text', text: 'Musterstrasse' }],
+        buildingNumber: [{ kind: 'text', text: '123' }],
+        postalCode: [{ kind: 'text', text: '8000' }],
+        town: [{ kind: 'text', text: 'Seldwyla' }],
+        country: [{ kind: 'text', text: 'CH' }],
+      },
+      currency: 'CHF',
+      amount: { cel: 'totals.subtotal' },
+      debtor: {
+        name: [{ kind: 'field', field: header('customer') }],
+        postalCode: [{ kind: 'text', text: '8000' }],
+        town: [{ kind: 'text', text: 'Seldwyla' }],
+        country: [{ kind: 'text', text: 'CH' }],
+      },
+      reference: [{ kind: 'text', text: '21 00000 00003 13947 14300 09017' }],
+      message: [
+        { kind: 'text', text: 'Order from ' },
+        { kind: 'field', field: header('orderedOn'), format: { kind: 'date', style: 'short' } },
+      ],
+      billingInformation: [{ kind: 'text', text: '//S1/10/1234/11/201021/30/102673386/32/7.7/40/0:30' }],
     },
     provenance: { kind: 'dataset', dataset: 'order-lines' },
   }

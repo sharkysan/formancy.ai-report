@@ -1,7 +1,8 @@
 /**
  * The design view: one sheet as wide as the page, the regions as bands on it,
- * a box per component and table column, rulers in millimetres, and while
- * something is being placed, an indicator at every place it may go.
+ * a box per component and table column, a payment part's band at its foot,
+ * rulers in millimetres, and while something is being placed, an indicator
+ * at every place it may go.
  *
  * It draws the state's geometry and decides none: every left, top, width and
  * height is a number report-builder-core computed in pixels at the zoom. It
@@ -91,6 +92,14 @@ export function Canvas({ state, t, canvas: canvasRef, sheet: sheetRef, drag, sel
             ) : null}
           </div>
         ))}
+        {/* Where a payment part's slip prints, below every region: a
+            picture named as SIX names the part, as a box is named by its
+            label. */}
+        {canvas.paymentPart === null ? null : (
+          <div role="img" aria-label={canvas.paymentPart.label} data-report-part="payment-part" style={placed(canvas.paymentPart.px)}>
+            <span data-report-part="region-label">{canvas.paymentPart.label}</span>
+          </div>
+        )}
         {/* Drawn only for the places the session accepts, named as the place
             dialog names them; the one under the pointer, or focused in the
             dialog, is marked. */}

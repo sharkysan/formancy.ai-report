@@ -177,11 +177,14 @@ const OPEN_TYPE = new Set([0x00010000, 0x4f54544f, 0x74727565])
 
 /**
  * The sentences a font's licence description (name ID 13) begins with, as the
- * OFL's FAQ and Apache-licensed font projects write them, and what each means.
- * Anything else is a licence this does not recognise, refused until reviewed.
+ * OFL's FAQ, Liberation Sans 2 and Apache-licensed font projects write them,
+ * and what each means. Anything else is a licence this does not recognise,
+ * refused until reviewed: Liberation Sans 1, under GPL-2.0 with a font
+ * exception, says "Licensed under the Liberation Fonts license".
  */
 const FONT_LICENCES = [
   [/^This Font Software is licensed under the SIL Open Font License, Version 1\.1\b/, 'OFL-1.1'],
+  [/^Licensed under the SIL Open Font License, Version 1\.1\b/, 'OFL-1.1'],
   [/^Licensed under the Apache License, Version 2\.0\b/, 'Apache-2.0'],
 ]
 

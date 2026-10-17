@@ -16,7 +16,7 @@ export const DIAGNOSTIC_SEVERITIES = {
   'expression-syntax': 'error',
   /** An expression past a structural limit of `@formancy/expressions`: too deep, too many nodes, too long a list. */
   'expression-limit': 'error',
-  /** An expression whose types do not meet, each member read as the type it is declared: an integer parameter added to a string, a decimal field compared with an integer, a decimal converted with dec() again. */
+  /** An expression whose types do not meet, each member read as the type it is declared: an integer parameter added to a string, a decimal field compared with an integer, a decimal converted with dec() again; or a QR-bill's amount that gives anything but a decimal or null. */
   'expression-type': 'error',
   /** An expression its place does not allow: a condition that is not a boolean, a function its kind forbids. */
   'expression-policy': 'error',

@@ -1,8 +1,10 @@
 import type { Content, DynamicContent, TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { RenderRefusal, type Block, type ResolvedDocument, type Table } from '@formancy/report-runtime'
+import { QR_BILL_TOP, RenderRefusal, type Block, type ResolvedDocument, type Table } from '@formancy/report-runtime'
+import type { CheckedBill } from './bill.js'
 import { newBuild, type Build, type Fields, type TablePlan } from './build.js'
 import type { Checked, Measured, Page } from './check.js'
 import { contentOf } from './content.js'
+import { ABOVE_SLIP, slipContent } from './slip.js'
 import { DEFAULT_SIZE, ROBOTO } from './style.js'
 import { checkWords } from './words.js'
 
@@ -57,12 +59,34 @@ export function bodyMeasurement(measured: readonly Measured[], checked: Checked)
   return { items, build }
 }
 
+/** Where the body starts and ends on every page, from the top of the paper: inside the margins and below and above the page regions. */
+export function bodyBounds(page: Page, regions: Regions): { readonly top: number; readonly bottom: number } {
+  return { top: page.margins.top + regions.header, bottom: page.paperHeight - page.margins.bottom - regions.footer }
+}
+
+/**
+ * How much of the last page's body a QR-bill's slip takes: from where its
+ * drawing starts, the instruction above it, to the body's foot. Nothing if
+ * the body ends above the slip on every page.
+ */
+export function slipReservation(page: Page, regions: Regions): number {
+  return Math.max(0, bodyBounds(page, regions).bottom - (QR_BILL_TOP - ABOVE_SLIP))
+}
+
 /**
  * The PDF's definition. pdfmake's own page limit, `maxPagesNumber`, cuts the
  * document short; the renderer's throws out of the layout instead, from the
  * function pdfmake calls for each page's background, as the page after the
  * last one allowed is added. So no more than one page past the limit is ever
  * laid out, and nothing is written.
+ *
+ * A QR-bill's slip is the last page's footer, in place of the page footer:
+ * pdfmake lays the footer out once every page is, knowing their count, and
+ * gives what is placed above the footer's top the room down to the paper's
+ * foot (`pdfmake.test.ts` holds both). The body keeps the slip's room at
+ * its end, a spacer as tall as `slipReservation`: where the last page has
+ * less room left, pdfmake moves to a new page and starts it without the
+ * space, and the slip has that page to itself.
  */
 export function layoutDefinition(
   document: ResolvedDocument,
@@ -70,11 +94,11 @@ export function layoutDefinition(
   regions: Regions,
   plans: ReadonlyMap<Table, TablePlan>,
   maxPages: number,
+  bill?: CheckedBill,
 ): TDocumentDefinitions {
   const page: Page = checked.page
   const { margins } = page
-  const bodyTop = margins.top + regions.header
-  const bodyBottom = page.paperHeight - margins.bottom - regions.footer
+  const { top: bodyTop, bottom: bodyBottom } = bodyBounds(page, regions)
   const build = newBuild('render', checked, { top: bodyTop, bottom: bodyBottom }, plans)
   const region = (blocks: readonly Block[], margin: [number, number, number, number]): DynamicContent | undefined => {
     if (blocks.length === 0) return undefined
@@ -85,15 +109,19 @@ export function layoutDefinition(
   // Once now, so that their images are in the dictionary before pdfmake reads it.
   header?.(1, 1, { width: page.paperWidth, height: page.paperHeight, orientation: document.page.orientation })
   footer?.(1, 1, { width: page.paperWidth, height: page.paperHeight, orientation: document.page.orientation })
+  // pdfmake lays the footer out from the body's foot, so the slip's parts are placed from there.
+  const slip = bill === undefined ? undefined : (): Content => ({ stack: slipContent(bill, QR_BILL_TOP, bodyBottom, page.paperWidth) })
+  const last: DynamicContent | undefined = slip === undefined ? footer : (pageNumber, pageCount, size) => (pageNumber === pageCount ? slip() : footer?.(pageNumber, pageCount, size))
+  const reserved = bill === undefined ? [] : [{ stack: [], margin: [0, slipReservation(page, regions), 0, 0] } satisfies Content]
   return {
     info: { title: document.info.title, creationDate: checked.creationDate },
     pageSize: { width: page.paperWidth, height: page.paperHeight },
     pageMargins: [margins.left, bodyTop, margins.right, page.paperHeight - bodyBottom],
     defaultStyle: DEFAULT_STYLE,
-    content: contentOf(document.body, build, page.width),
+    content: [...contentOf(document.body, build, page.width), ...reserved],
     images: build.images,
     ...(header === undefined ? {} : { header }),
-    ...(footer === undefined ? {} : { footer }),
+    ...(last === undefined ? {} : { footer: last }),
     background: (number) => {
       // pdfmake has measured every word, and laid out no line yet.
       if (number === 1) checkWords(build.words)

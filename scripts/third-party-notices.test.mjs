@@ -533,6 +533,40 @@ describe("what the app's config says, reviewed", () => {
     expect(times(text, MIT.trimEnd())).toBe(1)
   })
 
+  // A workspace package is this repository's code and is not listed, but a
+  // file of one can carry somebody else's work all the same:
+  // report-render-pdf's bill-fonts chunk is Liberation Sans as base64, under
+  // the OFL, which would otherwise ship in the Studio under this
+  // repository's terms. The config names the package and the file -- by a
+  // pattern, for a chunk whose name its build hashes -- and the notice is
+  // listed under that package, named by the file as it is bundled, with
+  // nothing else of the package's: its own licence is this repository's.
+  // Bundled no longer, the notice stops the build, as any stale one does.
+  test("lists the notice for what a file of the repository's own embeds, and nothing else of that package", async () => {
+    const notice = join(temporary(), 'example-ofl.txt')
+    writeFileSync(notice, OFL)
+    const own = (main) => ({
+      'src/main.js': main,
+      'packages/own/package.json': JSON.stringify({ name: '@example/own', version: '1.2.0', type: 'module', main: 'dist/index.js', license: 'SEE LICENSE IN LICENSE.md' }),
+      'packages/own/LICENSE.md': "This repository's own licence\n",
+      'packages/own/dist/index.js': "export function own() {\n  return import('./fonts-a1B2_c3.js').then((fonts) => fonts.fonts())\n}\nexport function plain() {\n  return 'plain'\n}\n",
+      'packages/own/dist/fonts-a1B2_c3.js': 'export function fonts() {\n  return { "Example.ttf": "AAEAAA" }\n}\n',
+    })
+    const links = { 'node_modules/@example/own': 'packages/own' }
+    const embedded = [{ package: '@example/own', file: /^dist\/fonts-[\w-]+\.js$/, name: 'Example, under the OFL 1.1', from: notice }]
+    const { modules, bytes } = await built(project(own("import { own } from '@example/own'\nconsole.log(own())\n"), links), { notices: { embedded } })
+    expect(modules.some((id) => id.endsWith('/packages/own/dist/fonts-a1B2_c3.js'))).toBe(true)
+    const text = bytes.toString('utf8')
+    expect(listed(text)).toEqual(['@example/own 1.2.0'])
+    expect(text).toContain("@example/own 1.2.0\nThis repository's own package, listed for the work a file of it carries.\nFiles: dist/fonts-a1B2_c3.js: Example, under the OFL 1.1\n")
+    expect(times(text, OFL.trimEnd())).toBe(1)
+    expect(text).not.toContain("This repository's own licence")
+    expect(text).not.toContain('SEE LICENSE IN LICENSE.md')
+    expect(text).not.toContain('the-app')
+    const unbundled = project(own("import { plain } from '@example/own'\nconsole.log(plain())\n"), links)
+    expect(await refusal(unbundled, { notices: { embedded } })).toContain("the notice for @example/own's /^dist\\/fonts-[\\w-]+\\.js$/ (Example, under the OFL 1.1) names a file this build does not bundle")
+  })
+
   // A reviewed notice outlives what it was about the day the package stops
   // bundling that file, or the app stops bundling the package: the list
   // would say fonts ship that do not. The build stops instead, naming it.

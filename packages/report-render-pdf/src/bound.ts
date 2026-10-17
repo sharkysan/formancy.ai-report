@@ -67,10 +67,18 @@ function tableHeight(table: Table): number {
   return table.rows.reduce((sum, row) => sum + rowHeight(row.cells, (column) => row.cellStyles?.[column] ?? row.style), header)
 }
 
-/** Refuses a body whose least height needs more than `maxPages` pages of `bodyHeight`. */
-export function refuseOversized(blocks: readonly Block[], bodyHeight: number, maxPages: number): void {
-  const height = leastHeight(blocks)
+/**
+ * Refuses a body whose least height needs more than `maxPages` pages of
+ * `bodyHeight`, with `reserved` points more at its end: the room a QR-bill's
+ * slip keeps on the last page. That room is less than a page's body, so it
+ * takes at least its own height of the pages whether it ends the last page
+ * of the body or starts one of its own, and the two heights together stay
+ * a least height.
+ */
+export function refuseOversized(blocks: readonly Block[], bodyHeight: number, maxPages: number, reserved = 0): void {
+  const height = leastHeight(blocks) + reserved
   if (height > maxPages * bodyHeight) {
-    throw new RenderRefusal('too-many-pages', `the report needs more than ${maxPages} pages: its body is at least ${height.toFixed(2)} pt tall, and ${maxPages} pages hold ${(maxPages * bodyHeight).toFixed(2)} pt`)
+    const slip = reserved > 0 ? `, the ${reserved.toFixed(2)} pt the payment part's slip keeps at its end included` : ''
+    throw new RenderRefusal('too-many-pages', `the report needs more than ${maxPages} pages: its body is at least ${height.toFixed(2)} pt tall${slip}, and ${maxPages} pages hold ${(maxPages * bodyHeight).toFixed(2)} pt`)
   }
 }

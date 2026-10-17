@@ -41,8 +41,14 @@
 // licence text of its own beside it -- pdfmake's build/vfs_fonts.js, Roboto's
 // four fonts as base64, with only pdfmake's MIT licence in the package -- and
 // the text that work's licence asks to travel with it. The text is added to
-// the package's entry. A file named there that the build no longer bundles
-// stops the build, so the list cannot outlive what it is about.
+// the package's entry. A file of the repository's own can carry such a work
+// too -- report-render-pdf's bill-fonts chunk, Liberation Sans as base64 --
+// and is named by its workspace package's name: that package is then
+// listed with the notice alone, its own code still this repository's. A
+// file is named by its path in its package, or by a pattern of it for a
+// chunk whose name a build hashes. A file named there that the build no
+// longer bundles stops the build, so the list cannot outlive what it is
+// about.
 //
 // The modules are read as each chunk is rendered, not from the bundle at the
 // end: the CSS step removes a chunk that held only stylesheets, and moves its
@@ -107,6 +113,22 @@ function packageDirectory(path) {
   const name = below[0].startsWith('@') ? `${below[0]}/${below[1]}` : below[0]
   return `${path.slice(0, at + NODE_MODULES.length)}${name}`
 }
+
+/**
+ * The directory of the workspace package a file of the repository's own
+ * belongs to: the nearest above it, below the repository's root, that holds
+ * a package.json. `seen` keeps each directory's answer for the next file.
+ */
+function workspacePackage(path, repository, seen) {
+  for (let directory = dirname(path); directory.startsWith(repository); directory = dirname(directory)) {
+    if (!seen.has(directory)) seen.set(directory, readdirSync(directory).includes('package.json'))
+    if (seen.get(directory)) return directory
+  }
+  return undefined
+}
+
+/** The bundled file of `files` that `notice` names: by its path in the package, or by a pattern of it. */
+const namedFile = (notice, files) => [...files].sort().find((file) => (typeof notice.file === 'string' ? file === notice.file : notice.file.test(file)))
 
 /** A file's text, which must be UTF-8: a byte-order mark is dropped, anything else that is not UTF-8 throws. */
 const utf8 = (bytes) => new TextDecoder('utf-8', { fatal: true }).decode(bytes)
@@ -196,6 +218,10 @@ function bundledPackages(ids, { workspace, own, embedded }) {
   // Each package directory, with the directories below its root that hold a
   // bundled file of it, and those files by their path in the package.
   const directories = new Map()
+  // Each workspace package a file of the repository's own is bundled from,
+  // with those files by their path in it, for the notices that name one.
+  const workspaces = new Map()
+  const seen = new Map()
   const problems = []
   for (const id of ids) {
     if (id.startsWith('\0')) {
@@ -209,7 +235,12 @@ function bundledPackages(ids, { workspace, own, embedded }) {
     const path = pathOf(id)
     const directory = packageDirectory(path)
     if (directory === undefined) {
-      if (!path.startsWith(repository)) problems.push(`${path} is bundled and is neither in a package under node_modules nor this repository's own, so whose it is and under what terms is unknown`)
+      if (!path.startsWith(repository)) {
+        problems.push(`${path} is bundled and is neither in a package under node_modules nor this repository's own, so whose it is and under what terms is unknown`)
+      } else if (embedded.length > 0) {
+        const workspace = workspacePackage(path, repository, seen)
+        if (workspace !== undefined) workspaces.set(workspace, (workspaces.get(workspace) ?? new Set()).add(path.slice(workspace.length + 1)))
+      }
       continue
     }
     const found = directories.get(directory) ?? { within: new Set(), files: new Set() }
@@ -231,9 +262,26 @@ function bundledPackages(ids, { workspace, own, embedded }) {
     if (listed !== found) for (const file of found.files) if (!listed.files.some((each) => each.name === file.name)) listed.files.push(file)
     packages.set(found.id, listed)
     for (const notice of notices.notices) {
-      if (notice.package !== found.name || !files.has(notice.file) || carried.has(notice)) continue
+      const file = notice.package === found.name && !carried.has(notice) ? namedFile(notice, files) : undefined
+      if (file === undefined) continue
       carried.add(notice)
-      listed.files.push({ name: `${notice.file}: ${notice.name}`, licence: false, text: notice.text })
+      listed.files.push({ name: `${file}: ${notice.name}`, licence: false, text: notice.text })
+    }
+  }
+  // A workspace package is listed only for what a notice says one of its
+  // files carries, and with that notice alone.
+  for (const [directory, files] of workspaces) {
+    // The bundler read this manifest for the module's scope before the
+    // plugin saw the module, and stops on one that does not parse.
+    const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'))
+    for (const notice of notices.notices) {
+      const file = notice.package === manifest.name && !carried.has(notice) ? namedFile(notice, files) : undefined
+      if (file === undefined) continue
+      carried.add(notice)
+      const id = `${String(manifest.name)}@${String(manifest.version)}`
+      const listed = packages.get(id) ?? { id, name: String(manifest.name), version: String(manifest.version), own: true, files: [], problems: [] }
+      listed.files.push({ name: `${file}: ${notice.name}`, licence: false, text: notice.text })
+      packages.set(id, listed)
     }
   }
   for (const notice of notices.notices) {
@@ -278,6 +326,7 @@ function noticesText(packages, intro) {
   const lines = ['Third-party notices', '', ...intro]
   for (const found of packages) {
     lines.push('', RULE, `${found.name} ${found.version}`)
+    if (found.own === true) lines.push("This repository's own package, listed for the work a file of it carries.")
     if (typeof found.declared === 'string') lines.push(`Declared licence: ${found.declared}`)
     lines.push(`Files: ${found.files.map((file) => file.name).join(', ')}`, RULE)
     for (const file of found.files) lines.push('', `== ${file.name} ==`, '', file.text)

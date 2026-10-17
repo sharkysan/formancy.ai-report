@@ -5,6 +5,7 @@ import type { ImageResolver } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { equipmentRows } from './grouped-equipment.js'
 import { STARTER_IMAGES, STARTERS } from './index.js'
+import { INVOICE, invoiceData, invoiceLines } from './invoice.js'
 import { lineAmount, quotationLines } from './quotation.js'
 
 /** The host's approved assets: the starters' images, by digest. */
@@ -35,10 +36,10 @@ describe('the starters', () => {
     expect(outcome.ok ? outcome.warnings : outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`)).toEqual([])
   })
 
-  // The three are three different proofs (plan 7); two with one id would
-  // be one proof counted twice.
-  test('are three, each with its own id', () => {
-    expect(STARTERS.map(({ id }) => id)).toEqual(['service-inspection', 'quotation', 'grouped-equipment'])
+  // Plan 7's three and the invoice with its QR-bill are four different
+  // proofs; two with one id would be one proof counted twice.
+  test('are four, each with its own id', () => {
+    expect(STARTERS.map(({ id }) => id)).toEqual(['service-inspection', 'quotation', 'grouped-equipment', 'invoice'])
   })
 })
 
@@ -77,3 +78,39 @@ describe("the starters' data", () => {
     for (const [quantity, price] of [['1.00', '-50.00'], ['1.00', '-0.25'], ['1.5', '2.00'], ['1', '2.00']]) expect(() => lineAmount(quantity as string, price as string)).toThrow(RangeError)
   })
 })
+
+describe('the invoice', () => {
+  /** `numerator / denominator`, both positive, rounded half away from zero to a whole number. */
+  const halfAway = (numerator: bigint, denominator: bigint): bigint => (2n * numerator + denominator) / (2n * denominator)
+  const cents = (amount: string): bigint => BigInt(amount.replace('.', ''))
+  const francs = (centimes: bigint): string => `${centimes / 100n}.${String(centimes % 100n).padStart(2, '0')}`
+
+  // The bill's amount is the report's own total, never a second sum: the
+  // subtotal of the lines plus the VAT rounded to the centime, computed
+  // here in BigInt from the data and not by the runtime. A code that asked
+  // for another amount than the table prints would be paid wrongly, and a
+  // reference or a debtor read from the wrong field would be booked to
+  // somebody else; the code's text is compared whole, line by line, in
+  // SIX's order.
+  test('is paid by a QR-bill for its exact total, by the reference and to the customer its data names', () => {
+    const outcome = resolveReport(INVOICE.report, invoiceData(), { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z' })
+    if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
+    const subtotal = invoiceLines().reduce((sum, line) => sum + cents(line.amount as string), 0n)
+    const total = subtotal + halfAway(subtotal * 81n, 1000n)
+    const bill = outcome.document.paymentPart
+    expect(bill?.payload.split('\n')).toEqual([
+      ...['SPC', '0200', '1', 'CH4431999123000889012'],
+      ...['S', 'Formancy Haustechnik AG', 'Industriestrasse', '7', '3052', 'Zollikofen', 'CH'],
+      ...['', '', '', '', '', '', ''],
+      ...[francs(total), 'CHF'],
+      ...['S', 'Bäckerei Müller AG', 'Hauptstrasse', '12', '3011', 'Bern', 'CH'],
+      ...['QRR', '210000000003139471430009017', 'Rechnung R-2026-0731', 'EPD'],
+    ])
+    expect(bill?.reference).toBe('21 00000 00003 13947 14300 09017')
+    // Another invoice's reference -- SIX's fifth example's -- is that invoice's.
+    const data = invoiceData()
+    const other = resolveReport(INVOICE.report, { ...data, header: { ...data.header, reference: '000008207791225857421286694' } }, { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z' })
+    expect(other.ok ? other.document.paymentPart?.reference : other.errors).toBe('00 00082 07791 22585 74212 86694')
+  })
+})
+

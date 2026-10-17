@@ -1,10 +1,10 @@
-import { GROUPED_EQUIPMENT, QUOTATION, rasterPage, readPdf, SERVICE_INSPECTION, STARTER_IMAGES, type Starter } from '@formancy/report-corpus'
+import { GROUPED_EQUIPMENT, INVOICE, QUOTATION, rasterPage, readPdf, SERVICE_INSPECTION, STARTER_IMAGES, type Starter } from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import { renderPdf } from '../node.js'
 import { pageLines } from './lines.js'
 
 /**
- * The README's pictures: pages of the three starters, resolved by the
+ * The README's pictures: a page of each starter, resolved by the
  * runtime, rendered by this package and drawn by PDF.js (`rasterPage`).
  * `scripts/readme-pictures.ts` writes them to `docs/images/` with a
  * manifest; `pictures.test.ts` holds each picture to the text of the page
@@ -43,6 +43,13 @@ export const PICTURES: readonly PictureSpec[] = [
     page: 1,
     caption: 'The equipment register starter, grouped by site: Basel (12 items) heads its group, and Subtotal Basel 12 closes it',
     shows: ['Basel (12 items)', 'Subtotal Basel 12'],
+  },
+  {
+    file: 'starter-invoice.png',
+    starter: INVOICE,
+    page: 1,
+    caption: "The invoice starter, a Rechnung: its line items, then Zwischensumme, MWST 8.1 % and Total CHF 1'416.52, and across the foot of the page its QR-bill, the Empfangsschein and the Zahlteil with its Swiss QR Code, each for CHF 1 416.52",
+    shows: ['Rechnung', "Total CHF 1'416.52", 'Empfangsschein', 'Zahlteil', 'CHF 1 416.52'],
   },
 ]
 

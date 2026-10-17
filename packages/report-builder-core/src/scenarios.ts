@@ -105,6 +105,37 @@ function brokenReport(): ReportDefinition {
   return { ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)) } }
 }
 
+/**
+ * The scenario report with a Swiss QR-bill for its payment part: SIX's
+ * QR-IBAN and QR reference (IG 2.4, Annex A), every text literal, as the
+ * report reads no data.
+ */
+function billedReport(): ReportDefinition {
+  return {
+    ...scenarioReport(),
+    paymentPart: {
+      kind: 'swissQrBill',
+      language: 'en',
+      account: [{ kind: 'text', text: 'CH44 3199 9123 0008 8901 2' }],
+      creditor: {
+        name: [{ kind: 'text', text: 'Max Muster & Söhne' }],
+        street: [{ kind: 'text', text: 'Musterstrasse' }],
+        buildingNumber: [{ kind: 'text', text: '123' }],
+        postalCode: [{ kind: 'text', text: '8000' }],
+        town: [{ kind: 'text', text: 'Seldwyla' }],
+        country: [{ kind: 'text', text: 'CH' }],
+      },
+      currency: 'CHF',
+      amount: { cel: 'dec("1949.75")' },
+      reference: [{ kind: 'text', text: '21 00000 00003 13947 14300 09017' }],
+      message: [{ kind: 'text', text: 'Site visit' }],
+    },
+  }
+}
+
+/** Whether `report`'s payment part is still all of the one `billedReport` gave it. */
+const billKept = (report: ReportDefinition): boolean => JSON.stringify(report.paymentPart) === JSON.stringify(billedReport().paymentPart)
+
 /** A report with nothing in any region: the outline has no row to be a tab stop. */
 function blankReport(): ReportDefinition {
   return emptyReport('blank', 'Blank', 'en')
@@ -324,6 +355,26 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
       { expect: 'present', ...problems },
       { expect: 'absent', role: PROPERTY_ROLES.text, name: t('field.title') },
     ]),
+    // A payment part is the report's, not a region's, and nothing edits it
+    // yet: the design view shows where its slip prints, an edit elsewhere
+    // keeps it whole, and a page it cannot be printed on is refused on the
+    // field that asked for it.
+    scenario(
+      'a payment part is drawn at the sheet’s foot, and edits keep it',
+      [
+        { expect: 'present', role: 'img', name: t('canvas.paymentPart') },
+        { do: 'fill', role: PROPERTY_ROLES.text, name: t('field.title'), text: 'Site visit, invoiced' },
+        { expect: 'document', says: 'the title is the one typed, and the bill is whole', check: (report) => report.title === 'Site visit, invoiced' && billKept(report) },
+        { do: 'choose', role: PROPERTY_ROLES.select, name: t('field.orientation'), option: t('option.landscape') },
+        { expect: 'invalid', role: PROPERTY_ROLES.select, name: t('field.orientation') },
+        { expect: 'document', says: 'the page is upright still, and the bill is whole', check: (report) => report.page.orientation === 'portrait' && billKept(report) },
+        { do: 'click', ...tree(spacer) },
+        { do: 'press', key: 'Delete' },
+        { expect: 'document', says: 'the spacer is gone, and the bill is whole', check: (report) => !body(report).includes('gap') && billKept(report) },
+        { expect: 'present', role: 'img', name: t('canvas.paymentPart') },
+      ],
+      billedReport,
+    ),
     scenario('choose a style from a picker', [
       { do: 'click', ...tree('Introduction') },
       { do: 'choose', role: PROPERTY_ROLES.style, name: t('field.style'), option: 'heading' },

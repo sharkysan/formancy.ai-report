@@ -468,6 +468,17 @@ describe('fonts', () => {
     expect(fontLicence(font({ 13: 'Licensed under the Apache License, Version 2.0' })).licence).toBe('Apache-2.0')
   })
 
+  // Liberation Sans 2, the font a QR-bill's slip prints in, says the OFL in
+  // a shorter sentence than the one the OFL's FAQ suggests. Unread, the
+  // renderer's own fonts would be refused, and every release with them. The
+  // version is the sentence's: OFL 1.0, which the policy does not allow,
+  // is not 1.1, and neither is a 1.10.
+  test("reads Liberation Sans 2's sentence as OFL-1.1, and no other version", () => {
+    expect(fontLicence(font({ 13: 'Licensed under the SIL Open Font License, Version 1.1' })).licence).toBe('OFL-1.1')
+    expect(fontLicence(font({ 13: 'Licensed under the SIL Open Font License, Version 1.0' })).licence).toBeUndefined()
+    expect(fontLicence(font({ 13: 'Licensed under the SIL Open Font License, Version 1.10' })).licence).toBeUndefined()
+  })
+
   // A font is untrusted input. A truncated file, or a format whose tables
   // this does not read, is unreadable -- never a crash, and never a pass. Cut
   // inside its strings, the licence sentence's first words would survive and
@@ -575,6 +586,17 @@ describe('this workspace', () => {
     const { published, entries } = workspaceClosure()
     expect(published).toContain('@formancy/report-spec')
     expect(problems(entries)).toEqual([])
+  })
+
+  // The renderer ships fonts of its own, Liberation Sans 2.1.5 for the
+  // QR-bill's slip: read from the very files it publishes, at the version
+  // their name tables give.
+  test("reads report-render-pdf's own Liberation Sans 2.1.5 as OFL-1.1", () => {
+    const renderer = workspaceClosure().entries.find((item) => item.name === '@formancy/report-render-pdf')
+    expect(renderer.fonts.map(({ path, licence, version }) => ({ path, licence, version }))).toEqual([
+      { path: 'fonts/LiberationSans-Bold.ttf', licence: 'OFL-1.1', version: 'Version 2.1.5' },
+      { path: 'fonts/LiberationSans-Regular.ttf', licence: 'OFL-1.1', version: 'Version 2.1.5' },
+    ])
   })
 
   // The admissions are read against what pnpm installed: each Data package

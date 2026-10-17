@@ -39,13 +39,22 @@ document's own (`info.creationDate`), and nothing else in the file varies.
 
 | Entry | pdfmake | Fonts |
 |---|---|---|
-| `@formancy/report-render-pdf` | the Node build | the four Roboto files in pdfmake's package, read from disk |
-| `@formancy/report-render-pdf/browser` | the browser build, `pdfmake/build/pdfmake.js` | the same Roboto, from pdfmake's `build/vfs_fonts.js` |
+| `@formancy/report-render-pdf` | the Node build | the four Roboto files in pdfmake's package, and for a QR-bill's slip the two Liberation Sans files in this package's `fonts`, read from disk |
+| `@formancy/report-render-pdf/browser` | the browser build, `pdfmake/build/pdfmake.js` | the same Roboto, from pdfmake's `build/vfs_fonts.js`, and the same Liberation Sans from a chunk of the build's own, imported the first time a document has a bill |
 
 The two entries share everything but the build of pdfmake and where the
 fonts come from: the checks, the measuring passes and the document
 definitions are one module both import. The browser entry touches no file
-system and imports no `node:` module.
+system and imports no `node:` module. Liberation Sans reaches it through a
+dynamic import alone, so an app's bundler puts it in a chunk that a host
+which never prints a bill never loads. An import that fails is not kept:
+the bill it failed for rejects with its error, and the next bill imports
+the chunk again; once it has loaded, no bill imports it again. The Node
+entry keeps its reads of the font files the same way, so a file it could
+not open just then fails the render that asked for it and no render after.
+Whether a browser fetches a chunk again after a failure, or a chunk a
+deploy removed is still there, is not the renderer's to decide: a page
+reload is.
 
 What the tests show about the browser entry, run in Node: for every fixture
 in the corpus it hands pdfmake the definitions the Node entry does, its PDFs
@@ -111,16 +120,19 @@ Every block of the resolved document:
 - **The page header and footer**, on every page, with the page number and
   the page count. The body is laid out between them, after both are
   measured.
+- **A QR-bill's payment part**, the receipt and the payment part with its
+  Swiss QR Code, across the foot of the last page in place of its page
+  footer (below).
 
 ## What it refuses
 
 | Code | When |
 |---|---|
-| `too-many-pages` | The report needs more pages than `maxPages`. pdfmake's own limit would return the first pages as though they were all of it. A body whose least height already needs more is refused before pdfmake measures it. |
-| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs. |
+| `too-many-pages` | The report needs more pages than `maxPages`, a QR-bill's page included. pdfmake's own limit would return the first pages as though they were all of it. A body whose least height already needs more, the room a bill's slip keeps included, is refused before pdfmake measures it. |
+| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; a QR-bill the slip cannot hold (below). |
 | `invalid-asset` | An image's bytes are not the PNG or JPEG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side. |
 | `cancelled` | The signal was aborted. |
-| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep. |
+| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below). |
 
 ## QR codes
 
@@ -130,7 +142,7 @@ not scan:
 | Code | When |
 |---|---|
 | `content-too-large` | Its text is longer than any QR code holds at its level: in byte mode, 2953 bytes at L down to 1273 at H (ISO/IEC 18004, table 7). Past 7089 characters, the digits version 40 holds at L and the most any code holds, it is refused unencoded; a character is a code point, an emoji one. |
-| `content-too-large` | Its modules would be smaller than **0.4 mm**. ISO/IEC 18004 leaves the module size to the application; SIX's Swiss Implementation Guidelines for the QR-bill, version 2.3, section 6.3, require 0.4 mm when printing, taken here as what a printer prints and a phone reads reliably. The same guidelines print a QR-bill's largest code, version 25, at 46 mm without its quiet zone, modules of 0.393 mm: here it is refused. The message names the smallest square that text needs. |
+| `content-too-large` | Its modules would be smaller than **0.4 mm**. ISO/IEC 18004 leaves the module size to the application; SIX's Swiss Implementation Guidelines for the QR-bill, version 2.3, section 6.3, require 0.4 mm when printing, taken here as what a printer prints and a phone reads reliably. The same guidelines print a QR-bill's largest code, version 25, at 46 mm without its quiet zone, modules of 0.393 mm: a `qrCode` that size is refused, and a QR-bill's own code is drawn at SIX's size, not held to this floor (below). The message names the smallest square that text needs. |
 | `content-too-large` | It is wider than where it stands, or taller than the body, as an image is. |
 | `unsupported` | Its size is not a positive finite number, its level is not one of L, M, Q and H, or its text is not a string or holds half a surrogate pair. |
 
@@ -138,6 +150,74 @@ Empty text is drawn as what it is: a version 1 symbol of no data. ZXing,
 which the tests read codes with, reports no code in it at all. Of the
 runtime's documents, only a preview holds one: it refuses a final render
 whose code has a value that is null, or prints nothing.
+
+## QR-bills
+
+A document's `paymentPart`, a Swiss QR-bill the runtime has resolved and
+held to SIX's rules, is drawn as SIX's slip: the receipt and the payment
+part, 210 by 105 mm across the foot of the report's last page. The numbers
+are SIX's: its Swiss Implementation Guidelines for the QR-bill, version 2.4
+("IG"), and its Style Guide, version 1.1 ("SG"). Why it is drawn so, and
+what that costs, is [0022](../../docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md).
+
+- **Where.** The slip spans the paper's width and ends at its foot (IG 3.1),
+  whatever the page margins. It is the last page's footer, drawn there in
+  place of the page footer; the page header is drawn as on every page. The
+  body keeps the slip's room at its end: when the last page has less room
+  left, the slip takes a page of its own, which the footers before it count.
+- **The code.** The payload as UTF-8 at level M, in the smallest version
+  that holds it and none past 25 (IG 6), 46 mm square without a quiet zone
+  of its own, since the slip leaves 5 mm unprinted around it; and the Swiss
+  cross over its centre, SIX's logo of 7 mm (IG 6.4.2): a white square of
+  7 mm, a black one of 6 mm and a white cross, as schoero's generator draws
+  it; manuelbl's draws the same black square and cross on modules it clears
+  instead of a white square. It is not held to a `qrCode`'s 0.4 mm floor:
+  at version 25 a module is 0.393 mm, at the size SIX prescribes.
+- **The text.** In Liberation Sans, one of the four fonts SIX allows (IG
+  3.4): the titles 11 pt bold; the receipt's headings 6 pt bold and its
+  values 8 pt, a line every 9 pt; the payment part's 8 and 10 pt, every 11
+  pt; a blank line between blocks; the amount 11 pt below its heading on
+  the receipt and 13 pt in the payment part (SG 15). Each section stands
+  where SG 6 puts it. The additional information is printed in the payment
+  part alone (IG 3.6.2), and nothing the bill does not hold has a heading.
+- **The blank fields.** A bill without an amount, or without a debtor, has
+  fields for the payer's hand, marked by their corners, 3 mm arms of 0.75 pt:
+  30 by 10 and 40 by 15 mm for the amount, 52 by 20 and 65 by 25 mm for the
+  debtor (IG 3.5.3, 3.5.4; SG 7).
+- **The lines it is cut along.** One across the paper at the slip's top and
+  one between the receipt and the payment part, half a point, each with the
+  mark IG 3.7 asks of a line: above the one across, the instruction to
+  separate, in the slip's language, 8 pt, centred; on the one down, a
+  scissors symbol, filled in black, 2.5 by 3 mm, from 5 mm below the
+  slip's top, where the line is broken for it. It keeps inside the 5 mm
+  left unprinted beside the line, and is drawn as paths, since Liberation
+  Sans has no glyph for U+2702. Its size and place are manuelbl's
+  generator's; the drawing is this package's own.
+
+A bill is refused, naming `paymentPart` and the field, and never quoting a
+value, which may be a name, an address or an account:
+
+| Code | When |
+|---|---|
+| `unsupported` | A payment part of a kind the renderer does not know; a page that is not A4 in portrait; text that is not text, half of a surrogate pair in the payload, or a character Liberation Sans has no glyph for; an amount not written as the slip prints one, or outside report-spec's range, 0.01 to 999 999 999.99; a currency other than CHF and EUR; an address of more than three lines, additional information of more than two, or a value longer than 140 characters, the longest SIX allows. |
+| `content-too-large` | A payload of more than 997 characters, refused unencoded, or whose UTF-8 is more than version 25 holds at level M, 997 bytes (IG 6.2); a page whose top margin, with the page header and the instruction to separate, reaches into the slip, by report-spec's `qrBillPageBreak`, and a top margin alone in the editor's words; information taller than its section, 56 mm on the receipt and 85 mm in the payment part (SG 6). |
+
+What the slip does not do:
+
+- **Shrink its text to fit.** SIX allows the payment part's values from 6 to
+  10 pt. The slip prints them at the recommended sizes and refuses
+  information taller than its section.
+- **Print alternative procedures, an ultimate creditor, or a bill "not for
+  payment".** The format holds none of them.
+- **Decide SIX's rules again.** The runtime holds a bill to them once.
+  Where the renderer refuses by one of them -- the page, the currencies,
+  the amount's range and the longest value -- it is report-spec's own,
+  handed on by the runtime (`QR_BILL_TOP`, `qrBillPageBreak`,
+  `QR_BILL_CURRENCIES`, `checkQrBillAmount`,
+  `MAX_QR_BILL_ADDITIONAL_INFORMATION`), and the slip is report-spec's
+  `QR_BILL_SIZE` at `QR_BILL_TOP`. The renderer decides only what drawing
+  decides: the lines an address and the additional information print,
+  each section's height, an amount's printed form, and the code's 997.
 
 ## Fonts
 
@@ -162,6 +242,15 @@ Each PDF embeds the subset of each face it uses.
   fallback: CJK, Hebrew, Arabic, Thai and emoji are refused, and so is an
   fr-FR amount, which Intl groups with a narrow no-break space (U+202F)
   that Roboto lacks. Swiss amounts, de-CH and fr-CH alike, print.
+
+A QR-bill's slip, and nothing else, prints in **Liberation Sans 2.1.5**,
+regular and bold, under the SIL Open Font License 1.1: SIX allows Arial,
+Frutiger, Helvetica and Liberation Sans on a slip, and Roboto is none of
+them. The package ships the two font files in `fonts`, with their licence
+and authors, and the guard reads their licence from the files. The browser
+entry's copy is base64 in a chunk the build makes of them, held to their
+bytes by a test. Both faces map every character SIX allows in a bill (IG
+4.1.1), which a test holds too.
 
 ## What it does not do
 
@@ -211,8 +300,15 @@ content streams (`src/testing/drawing.ts`), which PDF.js's text does not
 show. A QR code is read as a scanner reads it: the page drawn by PDF.js and
 decoded by ZXing (`readCodes` in the corpus), for its text, its bytes, its
 level, its version and where it stands. `starters.test.ts` resolves the
-three starters with the runtime and proves their PDFs, swept across page
-ends.
+starters with the runtime and proves their PDFs: plan 7's three swept
+across page ends, and the invoice down to its bill's code, decoded from
+the page and asking for the total the page prints. `qr-bill.test.ts` and
+`qr-bill-pages.test.ts` prove a QR-bill's slip on its PDF: SIX's
+examples, resolved by the runtime, decoded byte for byte; every heading
+and value read back where SIX puts it, at its size and in its face; the
+lines, the scissors on the line down, the corner marks and the cross from
+the content stream, and the cross from the pixels too; and the page the
+slip goes on.
 
 `scripts/readme-pictures.ts` draws the repository README's pictures of the
 starters with PDF.js, and `pictures.test.ts` holds each to the text of the

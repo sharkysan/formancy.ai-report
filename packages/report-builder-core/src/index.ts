@@ -8,6 +8,7 @@ export type {
   Box,
   Canvas,
   CanvasBox,
+  CanvasPaymentPart,
   CanvasRegion,
   DiagnosticEntry,
   DocumentSummary,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { RenderRefusal, type Image, type ResolvedDocument, type Table } from '../document.js'
+import { RenderRefusal, type Image, type QrBill, type ResolvedDocument, type Table } from '../document.js'
 import { details, documentOf, ledger, paragraph, totalRow } from '../fixtures/build.js'
 import { encodePng } from '../fixtures/png.js'
 import { lineHas, pageLines } from '../lines.js'
@@ -19,6 +19,31 @@ const ADAPTERS = [pdfmakeAdapter, pdfme] as const
 /** An 8 × 8 pixel image in a box twice as wide as it is tall. */
 function squareIn(fit: Image['fit']): Image {
   return { kind: 'image', asset: { id: 'square', mediaType: 'image/png', bytes: encodePng(8, 8, () => [0, 90, 0]) }, width: 80, height: 40, fit }
+}
+
+/** A QR-bill as the runtime resolves SIX's example 3, the payload cut short: neither adapter reads it. */
+const BILL: QrBill = {
+  kind: 'swissQrBill',
+  payload: ['SPC', '0200', '1', 'CH5204835012345671000'].join('\n'),
+  headings: {
+    paymentPart: 'Payment part',
+    receipt: 'Receipt',
+    account: 'Account / Payable to',
+    reference: 'Reference',
+    additionalInformation: 'Additional information',
+    payableBy: 'Payable by (name/address)',
+    currency: 'Currency',
+    amount: 'Amount',
+    acceptancePoint: 'Acceptance point',
+    separate: 'Separate before paying in',
+  },
+  account: 'CH52 0483 5012 3456 7100 0',
+  creditor: ['Muster Stiftung', 'P.O. box', '3001 Bern'],
+  reference: null,
+  additionalInformation: [],
+  debtor: null,
+  currency: 'CHF',
+  amount: null,
 }
 
 /** The corpus's ledger of three rows, with `patch` laid over it. */
@@ -45,6 +70,8 @@ const UNDRAWN: readonly (readonly [string, ResolvedDocument, string])[] = [
   ['a rectangle in the page footer', { ...documentOf('Rectangle', [paragraph('Body')]), pageFooter: [paragraph('Footer'), { kind: 'rectangle', width: 40, height: 10, fill: '#cccccc' }] }, 'pageFooter[1]'],
   ['a rectangle in a keep-together block', documentOf('Kept rectangle', [{ kind: 'keepTogether', blocks: [paragraph('Kept'), { kind: 'rectangle', width: 40, height: 10 }] }]), 'body[0].blocks[1]'],
   ['a QR code', documentOf('QR code', [paragraph('Before'), { kind: 'qrCode', id: 'order-code', text: 'https://formancy.ai/report/', size: 85.04, errorCorrection: 'M' }]), 'body[1]'],
+  // A slip left out would print an invoice nobody can pay by, and say nothing.
+  ['a payment part', { ...documentOf('Bill', [paragraph('Invoice')]), paymentPart: BILL }, 'paymentPart'],
   ['a QR code in the page header', { ...documentOf('Header code', [paragraph('Body')]), pageHeader: [{ kind: 'qrCode', id: 'header-code', text: 'A-1', size: 40, errorCorrection: 'L' }] }, 'pageHeader[0]'],
   ['a paragraph in the serif font', documentOf('Serif', [paragraph('Set in serif', { font: 'serif' })]), 'body[0]'],
   ['a paragraph in the mono font, in the page header', { ...documentOf('Mono', [paragraph('Body')]), pageHeader: [paragraph('Set in mono', { font: 'mono' })] }, 'pageHeader[0]'],
