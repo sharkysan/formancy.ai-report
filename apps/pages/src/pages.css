@@ -10,8 +10,14 @@
  * through the room's variables -- no colour of their own, which
  * stylesheet.test.ts holds. scripts/inputs.mjs inlines the imports at build
  * time, as Vite inlines the Studio's, and the page links the one file.
+ *
+ * The faces are the Studio's fonts.css's, whose Fontsource stylesheets the
+ * build inlines from the pages' own packages and whose font files it copies
+ * beside this one, under fonts/: the pages ask no other site for them
+ * (0023).
  */
 @import '../../studio/src/styles/room.css';
+@import '../../studio/src/styles/fonts.css';
 @import '../../studio/src/styles/controls.css';
 @import '../../studio/src/styles/shell.css';
 @import '../../studio/src/styles/narrow.css';

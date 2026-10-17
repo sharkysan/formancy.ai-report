@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterAll, describe, expect, test } from 'vitest'
-import { BUNDLER_MODULES, NOTICES_FILE, thirdPartyNotices } from './third-party-notices.mjs'
+import { BUNDLER_MODULES, copiedNotices, NOTICES_FILE, thirdPartyNotices } from './third-party-notices.mjs'
 
 /**
  * The notices a built app carries (formancy.ai-data 0046), held in real Vite
@@ -252,6 +252,28 @@ describe('the notices a build writes', () => {
     expect(files.some((file) => /^assets\/logo-[\w-]+\.png$/.test(file))).toBe(true)
     expect(files.some((file) => /^assets\/bg-[\w-]+\.png$/.test(file))).toBe(true)
     expect(listed(bytes.toString('utf8'))).toEqual(['backdrop 1.0.0', 'picture 1.0.0'])
+  })
+
+  // The Studio's faces, in their shape (0023): a stylesheet of the app's
+  // @imports a Fontsource stylesheet, which Vite folds into the app's as
+  // text, no module of any chunk, and whose url() names a font file of the
+  // package. The font is written beside the chunks, past the inline limit
+  // at Vite's own, as every font the Studio serves is, and lists its
+  // package: the OFL asks that each copy of the font carry the licence.
+  test('list the package of a font a package stylesheet names, which a stylesheet @imports', async () => {
+    const root = project({
+      'src/main.js': "import './fonts.css'\n",
+      'src/fonts.css': "@import 'face/400.css';\n",
+      'node_modules/face/package.json': JSON.stringify({ name: 'face', version: '5.3.0', license: 'OFL-1.1', exports: { './*.css': './*.css' } }),
+      'node_modules/face/400.css': "@font-face {\n  font-family: 'Face';\n  src: url(./files/face-latin-400-normal.woff2) format('woff2');\n}\n",
+      'node_modules/face/files/face-latin-400-normal.woff2': 'w'.repeat(5000),
+      'node_modules/face/LICENSE': 'This Font Software is licensed under the SIL Open Font License, Version 1.1.\n',
+    })
+    const { modules, files, bytes } = await built(root)
+    expect(modules.filter((id) => id.includes('/node_modules/'))).toEqual([])
+    expect(files.some((file) => /^assets\/face-latin-400-normal-[\w-]+\.woff2$/.test(file))).toBe(true)
+    expect(listed(bytes.toString('utf8'))).toEqual(['face 5.3.0'])
+    expect(bytes.toString('utf8')).toContain('This Font Software is licensed under the SIL Open Font License, Version 1.1.')
   })
 
   // A bundled package whose terms nobody shipped would reach every browser
@@ -525,6 +547,30 @@ describe("what the app's config says, reviewed", () => {
     writeFileSync(latin, Buffer.from('Copyright © 2026 Zoë\n', 'latin1'))
     const bundled = project({ 'src/main.js': uses('carrier'), ...carrier() })
     expect(await refusal(bundled, { notices: { embedded: [{ package: 'carrier', file: 'build/fonts.js', name: 'Example', from: latin }] } })).toContain('latin.txt, cannot be read as UTF-8')
+  })
+})
+
+describe('the notices for files copied rather than bundled', () => {
+  // The product pages copy their faces out of the Fontsource packages, with
+  // no bundler to place them (0023), and the OFL asks that each copy carry
+  // the copyright and the licence. Listed as a build's notices list a
+  // package -- name, version, declared licence, each licence and notice
+  // file as it ships -- each package once, whatever order or how often it
+  // is named; one with no licence text stops the build, naming it.
+  test('list each package once, with its licence files, and refuse one with none', () => {
+    const root = project({
+      ...pkg('face', '5.3.0', { LICENSE: 'This Font Software is licensed under the SIL Open Font License, Version 1.1.\n', 'README.md': 'Face, the readme.\n' }, { license: 'OFL-1.1' }),
+      ...pkg('another', '1.0.0', { 'LICENSE.txt': MIT }),
+      ...pkg('bare', '1.0.0'),
+    })
+    const face = join(root, 'node_modules', 'face')
+    const text = copiedNotices([face, join(root, 'node_modules', 'another'), face])
+    expect(listed(text)).toEqual(['another 1.0.0', 'face 5.3.0'])
+    expect(text).toContain('Declared licence: OFL-1.1')
+    expect(times(text, 'This Font Software is licensed under the SIL Open Font License, Version 1.1.')).toBe(1)
+    expect(text).not.toContain('Face, the readme.')
+    expect(text.startsWith('Third-party notices\n\nThe packages below ship files that this build copies, as they ship them,\nbeside this one.')).toBe(true)
+    expect(() => copiedNotices([join(root, 'node_modules', 'bare')])).toThrow('bare@1.0.0 is copied and ships no licence text')
   })
 })
 

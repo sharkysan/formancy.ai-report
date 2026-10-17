@@ -289,10 +289,10 @@ describe('the journey', () => {
   // host's bytes by id and digest (0010), and the renderer denies every
   // address (0011); a page that fetched one anyway would be found here. In
   // jsdom the scripts ask nothing at all: the chunks and PDF.js's worker,
-  // the page's own assets, are modules here, not requests. What index.html
-  // asks for itself -- Google Fonts' stylesheet and the fonts it names, as
-  // formancy.ai-data's Studio does -- is not a script's request, jsdom does
-  // not load it, and it is not held here.
+  // the page's own assets, are modules here, not requests. What the page's
+  // stylesheets ask for -- the faces, the build's own files (0023) -- is
+  // not a script's request, and jsdom does not load it: the browser gate
+  // holds the built page to asking nothing of another origin.
   test('requests nothing from another origin by script', async () => {
     const asked = requests()
     const { workspace: opened, user } = mount()

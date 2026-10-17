@@ -1,15 +1,16 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
-import { families, fontVersions, MARGIN, narrowestBreakpoint, padded, SETTINGS, stylesheet, widestBreakpoint } from './camera.mjs'
+import { MARGIN, narrowestBreakpoint, padded, SETTINGS, stylesheet, widestBreakpoint } from './camera.mjs'
 import { REPO } from './record.mjs'
 
 /**
  * The camera's decisions that need no browser: the settings every picture
- * is taken in, the widths it is taken past or at, the fonts it waits for and
- * the versions it records. Its browser half -- the font wait, the canvas
- * wait, the intrusion check, the settle loop, the encoder -- runs at every
+ * is taken in and the widths it is taken past or at. The families it waits
+ * for and the versions a record names are scripts/web-fonts.mjs's, held by
+ * web-fonts.test.mjs. Its browser half -- the font wait, the canvas wait,
+ * the intrusion check, the settle loop, the encoder -- runs at every
  * capture and every --check.
  */
 
@@ -75,37 +76,5 @@ describe('the stylesheet', () => {
     } finally {
       rmSync(directory, { recursive: true, force: true })
     }
-  })
-})
-
-describe('the font families', () => {
-  // The camera waits for every family the page asks Google Fonts for; one
-  // missed here is one a fallback face could stand in for unnoticed.
-  test("are every family= of the Studio's Google Fonts link", () => {
-    expect(families(readFileSync(join(REPO, 'apps', 'studio', 'index.html'), 'utf8'))).toEqual(['Archivo', 'IBM Plex Mono', 'IBM Plex Sans'])
-  })
-
-  // A page that asked Google for nothing would give the wait nothing to wait for.
-  test('are refused when the page names none', () => {
-    expect(() => families('<link rel="preconnect" href="https://fonts.googleapis.com" />')).toThrow(/names no Google Fonts family/)
-  })
-})
-
-describe('the font versions', () => {
-  const names = ['Archivo', 'IBM Plex Mono', 'IBM Plex Sans']
-  // In the shape of the URLs Chromium fetched for the Studio on 2026-10-16: the versions are those, the file names made up.
-  const urls = ['https://fonts.gstatic.com/s/archivo/v25/k3k6o8.woff2', 'https://fonts.gstatic.com/s/ibmplexmono/v20/-F63fjp.woff2', 'https://fonts.gstatic.com/s/ibmplexsans/v23/zYXz.woff2', 'https://fonts.gstatic.com/s/ibmplexsans/v23/zYX9.woff2']
-
-  // The record's look names the font each picture was drawn in, so a font
-  // Google ships is a new look and not an unexplained change of pixels.
-  test('are read from the files each family loaded', () => {
-    expect(fontVersions(urls, names)).toEqual({ Archivo: 'v25', 'IBM Plex Mono': 'v20', 'IBM Plex Sans': 'v23' })
-  })
-
-  // Each would let the record say a version nobody can stand behind.
-  test('are refused for a file without one, two of one family, and a family no file was seen for', () => {
-    expect(() => fontVersions([...urls, 'https://fonts.gstatic.com/s/archivo/latest/x.woff2'], names)).toThrow('the font file /s/archivo/latest/x.woff2 names no version')
-    expect(() => fontVersions([...urls, 'https://fonts.gstatic.com/s/archivo/v26/x.woff2'], names)).toThrow('two versions of Archivo were loaded, v25 and v26')
-    expect(() => fontVersions(urls.slice(1), names)).toThrow('no fonts.gstatic.com file was seen for Archivo')
   })
 })

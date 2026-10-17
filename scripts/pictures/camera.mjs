@@ -29,9 +29,9 @@
 //     textarea, select, img, svg and canvas, whose painted box meets the
 //     clip, is asked whether a part contains it -- so what the record holds
 //     is everything a person reads in the picture;
-//   - fonts: `document.fonts`, for whether every family has arrived; the
-//     version in each font file's URL comes from the context's responses,
-//     not the DOM;
+//   - fonts: `document.fonts`, for whether every family has arrived; which
+//     families, and their versions, are read from the build and its font
+//     packages by scripts/web-fonts.mjs, not from the DOM;
 //   - canvases: the pixels of every canvas in the parts, read twice, since
 //     PDF.js draws a page on one after the DOM that holds it is quiet;
 //   - changes: a MutationObserver on the document while a picture is shot,
@@ -92,26 +92,14 @@ export function stylesheet(directory, entry) {
   return text
 }
 
-/** Every fonts.gstatic.com URL a context's pages fetched, by context: where `fonts()` reads the versions. */
-const fontFiles = new WeakMap()
-
 /**
  * A context with the settings every picture is taken in, `width` wide;
- * refuses a width at or below the stylesheet's widest breakpoint. It notes
- * every font file its pages fetch: Chromium lists no resource timing entry
- * for a font a cross-origin stylesheet asked for (formancy.ai-data measured
- * it), so the response is where its URL is seen.
+ * refuses a width at or below the stylesheet's widest breakpoint.
  */
 export async function context(browser, { width, breakpoint }) {
   if (!(width > breakpoint)) throw new Error(`a picture is taken past the widest breakpoint, ${String(breakpoint)}px, and ${String(width)}px is not past it`)
   const { height, ...rest } = SETTINGS
-  const opened = await browser.newContext({ viewport: { width, height }, ...rest })
-  const urls = new Set()
-  fontFiles.set(opened, urls)
-  opened.on('response', (response) => {
-    if (response.url().startsWith('https://fonts.gstatic.com/') && response.ok()) urls.add(response.url())
-  })
-  return opened
+  return browser.newContext({ viewport: { width, height }, ...rest })
 }
 
 const TYPES = {
@@ -123,6 +111,9 @@ const TYPES = {
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.txt': 'text/plain; charset=utf-8',
+  // The faces, which the build serves itself (0023).
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
 }
 
 /**
@@ -142,47 +133,12 @@ export async function serve(opened, { origin, dist }) {
   })
 }
 
-/** The font families the page asks Google Fonts for, from the `family=` parameters of the css2 links in `indexHtml`. */
-export function families(indexHtml) {
-  const found = new Set()
-  for (const [, href] of indexHtml.matchAll(/href="(https:\/\/fonts\.googleapis\.com\/css2\?[^"]+)"/g)) {
-    for (const family of new URL(href.replaceAll('&amp;', '&')).searchParams.getAll('family')) found.add(family.split(':')[0])
-  }
-  if (found.size === 0) throw new Error('index.html names no Google Fonts family, so there is nothing to wait for and a fallback face would be pictured unnoticed')
-  return [...found]
-}
-
-/** A family's directory in a fonts.gstatic.com URL: "IBM Plex Sans" is ibmplexsans. */
-const directory = (family) => family.toLowerCase().replaceAll(/\s+/g, '')
-
-/**
- * Each of `names`' version, from the `/s/<family>/v<N>/` of the font files
- * in `urls`. Refuses a file of one of the families without a version, two
- * versions of one family, and a family no file was seen for: the record
- * says which font was pictured, or nothing is recorded.
- */
-export function fontVersions(urls, names) {
-  const versions = {}
-  for (const url of urls) {
-    const path = new URL(url).pathname
-    const family = names.find((name) => path.startsWith(`/s/${directory(name)}/`))
-    if (family === undefined) continue
-    const version = new RegExp(`^/s/${directory(family)}/(v\\d+)/`).exec(path)?.[1]
-    if (version === undefined) throw new Error(`the font file ${path} names no version, so the record could not say which ${family} was pictured`)
-    if (versions[family] !== undefined && versions[family] !== version) throw new Error(`two versions of ${family} were loaded, ${versions[family]} and ${version}`)
-    versions[family] = version
-  }
-  const unversioned = names.filter((family) => versions[family] === undefined)
-  if (unversioned.length > 0) throw new Error(`no fonts.gstatic.com file was seen for ${unversioned.join(', ')}, so its version cannot be recorded`)
-  return Object.fromEntries(names.map((family) => [family, versions[family]]))
-}
-
 /**
  * Waits, at most `within` ms, until `document.fonts` has settled with at
  * least one face of every family in `names` loaded and none still loading;
  * refuses naming the family that has not arrived. `document.fonts.ready` is
  * raced against the bound, because a face whose file never answers keeps it
- * pending. Returns each family's version.
+ * pending.
  */
 export async function fonts(page, names, { within }) {
   const deadline = Date.now() + within
@@ -205,9 +161,6 @@ export async function fonts(page, names, { within }) {
     }
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
-  const urls = fontFiles.get(page.context())
-  if (urls === undefined) throw new Error("the page's context was not opened by the camera's context(), so the font files it fetched were not seen")
-  return fontVersions(urls, names)
 }
 
 /** How long a canvas's pixels must stay as they are before it counts as drawn. */
@@ -536,7 +489,7 @@ export async function text(parts, { scene }) {
  * parts moved while it was taken is refused.
  */
 export async function take(page, parts, { scene, families: names, within, keepFocus = false }) {
-  const versions = await fonts(page, names, { within })
+  await fonts(page, names, { within })
   await canvasesDrawn(page, parts, { within })
   await still(page, { keepFocus })
   const area = await clip(page, parts, { scene })
@@ -544,7 +497,7 @@ export async function take(page, parts, { scene, families: names, within, keepFo
   const said = await text(parts, { scene })
   const after = await measured(page, parts)
   if (JSON.stringify(after) !== JSON.stringify(area)) throw new Error(`${scene}: the parts moved while the picture was taken, from ${JSON.stringify(area)} to ${JSON.stringify(after)}`)
-  return { png, shots, clip: area, text: said, fonts: versions }
+  return { png, shots, clip: area, text: said }
 }
 
 /** What the pictures were taken on: one look for every record. `playwright` is the app's installed version. */

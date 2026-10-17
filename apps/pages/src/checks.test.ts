@@ -187,6 +187,58 @@ describe('the links', () => {
   })
 })
 
+describe('what a page fetches, and the files it fetches (0023)', () => {
+  // A stylesheet, a font, a hint or a picture on another site hands that
+  // site the reader's address before a word is read: Google's, for as long
+  // as the faces came from Google Fonts. What the browser fetches by itself
+  // as a page loads is the site's own; only a link a reader follows may
+  // lead elsewhere, to the sites links.ts names. formancy.ai is one of
+  // those, and a stylesheet from it is refused all the same.
+  const FETCHED = 'fetched from another site as the page loads, which tells that site who opened the page'
+  test.each([
+    ["Google Fonts' stylesheet", '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo"/>', `de/index.html: <link> names https://fonts.googleapis.com/css2?family=Archivo: ${FETCHED}`],
+    ['a preconnect to the fonts’ host', '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>', `de/index.html: <link> names https://fonts.gstatic.com: ${FETCHED}`],
+    ['a stylesheet from a site the links may name', '<link rel="stylesheet" href="https://formancy.ai/"/>', `de/index.html: <link> names https://formancy.ai/: ${FETCHED}`],
+    ['a picture from another site', '<img src="https://github.com/sharkysan/formancy.ai-report" alt="x" width="1" height="1"/>', `de/index.html: <img> names https://github.com/sharkysan/formancy.ai-report: ${FETCHED}`],
+  ])('%s', (_name, added, said) => {
+    expect(problemsOf(editing('de/index.html', (html) => html.replace('<link rel="stylesheet" href="../site/pages.css"/>', `${added}<link rel="stylesheet" href="../site/pages.css"/>`)))).toContain(said)
+  })
+
+  // A face whose file is on another site is the same address handed over,
+  // one url() later; one whose file the site does not hold is text drawn in
+  // the fallback, which no reader is told; an @import is a stylesheet the
+  // browser fetches from wherever it names.
+  test.each([
+    ['a font on another site', (css: string) => css.replace(/url\(fonts\/([^)]+)\.woff2\)/, 'url(https://fonts.gstatic.com/s/archivo/v25/$1.woff2)'), /site\/pages\.css: url\(https:\/\/fonts\.gstatic\.com\/s\/archivo\/v25\/[\w-]+\.woff2\) is a file of another site, which a reader's browser would ask for/],
+    ['a font the site does not hold', (css: string) => css.replace(/url\(fonts\/([^)]+)\.woff2\)/, 'url(fonts/missing.woff2)'), /site\/pages\.css: url\(fonts\/missing\.woff2\) names no file of the site/],
+    ['an @import', (css: string) => `@import url('https://fonts.googleapis.com/css2?family=Archivo');\n${css}`, /site\/pages\.css: @import url\('https:\/\/fonts\.googleapis\.com\/css2\?family=Archivo'\) is a stylesheet a reader's browser would fetch, from wherever it names/],
+  ])('%s', (_name, edit, said) => {
+    expect(problemsOf(editing('site/pages.css', edit))).toMatch(said)
+  })
+
+  // A data: address in a stylesheet is bytes the stylesheet carries and
+  // asks no site for anything: a check that called it another site's file
+  // would refuse a rule for the wrong reason.
+  test('a data: address in the stylesheet, which is no file of another site', () => {
+    const inlined = editing('site/pages.css', (css) => `${css}.mark { background: url(data:image/gif;base64,R0lGODlhAQABAAAAACw=); }\n`)
+    expect(problemsOf(inlined)).not.toMatch(/data:image/)
+  })
+
+  // A font file the site serves and no stylesheet names is bytes every
+  // deploy carries for nothing; and a file copied from a package whose
+  // notice is not beside it is a font shipped without the copyright and
+  // licence the OFL asks each copy to carry.
+  test('a font file no stylesheet names, and a package missing from the notices', () => {
+    const font = site.files.find((file) => file.path.startsWith('site/fonts/') && 'from' in file)
+    if (font === undefined || !('from' in font)) throw new Error('the site serves no font file')
+    const unnamed = { ...site, files: [...site.files, { path: 'site/fonts/unnamed.woff2', from: font.from }] }
+    expect(problemsOf(unnamed)).toContain('site/fonts/unnamed.woff2 is served, and no stylesheet of the site names it')
+    const pkg = /node_modules\/(@[\w-]+\/[\w-]+)\//.exec(font.from)?.[1] ?? ''
+    const unlisted = editing('site/THIRD-PARTY-NOTICES.txt', (text) => text.replaceAll(new RegExp(`^${pkg.replace('/', '\\/')} `, 'gm'), 'someone-else '))
+    expect(problemsOf(unlisted)).toContain(`${font.path} is copied from ${pkg}, which site/THIRD-PARTY-NOTICES.txt does not list`)
+  })
+})
+
 describe('the words', () => {
   // CLAUDE.md: never call it open source. Said once without a denial, in
   // any language, the page says what the licence says it is not.

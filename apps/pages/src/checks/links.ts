@@ -5,14 +5,13 @@
  * built file or the Studio; a fragment, an id on the page it names; a file
  * of this repository on GitHub, a file the checkout holds; a package on
  * npm, one this repository publishes; the licence's address for mail; and
- * nothing else but the few sites links.ts names.
+ * nothing else but the few sites links.ts names. Those are for a link a
+ * reader follows: what the browser fetches by itself as the page loads --
+ * every address but an <a>'s -- is the site's own (0023).
  */
 import { FORMANCY, FORMANCY_DATA, FORMANCY_HEALTH } from '../links.js'
 import type { Built, Read } from './read.js'
 import { read } from './read.js'
-
-/** The Google Fonts hosts: the stylesheet and its preconnects, as the Studio's page names them. */
-const FONTS = ['https://fonts.googleapis.com/', 'https://fonts.gstatic.com/']
 
 export function linkProblems({ site, inputs, exists }: Built): string[] {
   const problems: string[] = []
@@ -35,11 +34,13 @@ export function linkProblems({ site, inputs, exists }: Built): string[] {
       if (fragment !== '') return target !== undefined && target.document.getElementById(decodeURIComponent(fragment)) !== null ? null : `#${fragment} is no id on ${at}`
       return path === '' || target !== undefined || files.has(path) ? null : 'no page or file of the site, and not the Studio'
     }
+    // A stylesheet, a font, a hint or a picture from anywhere else hands
+    // that site the reader's address before a word is read (0023).
+    if (element.localName !== 'a') return 'fetched from another site as the page loads, which tells that site who opened the page'
     if (url.protocol !== 'https:') return 'not https'
     if (at === FORMANCY || at === `${inputs.repository}` || at === FORMANCY_DATA || at === FORMANCY_HEALTH) return null
     if (at.startsWith(repository)) return exists(decodeURIComponent(at.slice(repository.length))) ? null : 'a file this repository does not hold'
     if (at.startsWith('https://www.npmjs.com/package/')) return inputs.packages.includes(decodeURIComponent(at.slice('https://www.npmjs.com/package/'.length))) ? null : 'a package this repository does not publish'
-    if (FONTS.some((host) => at.startsWith(host))) return element.localName === 'link' ? null : 'Google Fonts named by something other than a <link>'
     return 'an address outside the site that links.ts does not name'
   }
 

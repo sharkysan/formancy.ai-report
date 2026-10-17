@@ -10,9 +10,9 @@
  * application's stylesheet is not a package this repository could depend
  * on; scripts/palette.test.mjs holds every copy to that commit's values.
  * The faces are admin.css's -- Archivo, IBM Plex Sans and Mono, at its
- * weights -- delivered as formancy.ai-data's apps deliver them, from Google
- * Fonts (index.html), not self-hosted as the admin has served them since
- * its 0154: @fontsource is no dependency here yet.
+ * weights -- served from this build, as the admin has served them since
+ * formancy.ai 0154: styles/fonts.css, which main.tsx imports rather than
+ * this file (0023).
  *
  * The builder's panes are the workbench's (@formancy/themes' workbench.css)
  * dressed by report-builder.css. The room sets their geometry --

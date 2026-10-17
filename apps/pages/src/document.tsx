@@ -4,7 +4,8 @@
  * alternate with English as the default, Open Graph, X's card, JSON-LD --
  * and the shell with the page's body in it. Static HTML: the only script
  * is the JSON-LD, which no browser runs, so a reader without JavaScript
- * reads it all (0021).
+ * reads it all (0021). Its one stylesheet is the site's own, and so are the
+ * faces it names: the page asks no other site for anything (0023).
  */
 import type { ReactElement } from 'react'
 import { LANGUAGE, LANGUAGES } from './languages.js'
@@ -50,9 +51,6 @@ export function Document({ page, alternates }: { readonly page: PageContext; rea
         <meta name="twitter:card" content={image === undefined ? 'summary' : 'summary_large_image'} />
         {/* No icon, said rather than requested, as the Studio says it: otherwise every load is a 404. */}
         <link rel="icon" href="data:," />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link rel="stylesheet" href={page.inputs.fonts} />
         <link rel="stylesheet" href={page.href(STYLESHEET)} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: scriptJson(structuredData(page)) }} />
       </head>

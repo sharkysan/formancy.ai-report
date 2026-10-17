@@ -18,7 +18,9 @@
 //     in React and in Angular with its preview printed, a refusal by the
 //     runtime and one by the renderer;
 //   - the preview really prints in the page: the renderer's browser entry
-//     and PDF.js, nothing fetched but the built files and the web fonts;
+//     and PDF.js, and nothing fetched, nor a connection hinted, outside the
+//     built Studio: its faces are its own files (0023), so the page tells
+//     no other site who opened it;
 //     every page of each starter drawn on white paper with ink on it, its
 //     text layer holding every line docs/images/pictures.json says that
 //     page prints, and the Download PDF link a PDF;
@@ -65,6 +67,7 @@ import { chromium } from 'playwright'
 import { build, preview } from 'vite'
 import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
+import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
 import { app, audit, describeFocus, drawnPages, fontProblem, fromTheTop, measureWidth, passes, rulesOnThePaper } from './gate-page.mjs'
 import { builderParity } from './gate-parity.mjs'
 import { gateRecorder } from './gate-results.mjs'
@@ -258,8 +261,7 @@ async function paperRules(gate, page) {
   gate.check('the paper: no rule of the page selects anything on it but the paper’s own', paper.reached.length === 0 && paper.broken.length === 0 ? null : [...paper.reached, ...paper.broken.map((selector) => `${selector} could not be matched`)].slice(0, 6).join('; '))
   const missing = ['canvas', 'span', 'div'].filter((tag) => !paper.tags.includes(tag))
   gate.check('which matched every rule against a drawn page and its text layer', paper.rules > 100 && paper.own > 0 && missing.length === 0 ? null : `${String(paper.rules)} rules, ${String(paper.own)} of the paper's own, and no ${missing.join(', ')} on the paper`)
-  const strangers = paper.unread.filter((href) => !href.startsWith('https://fonts.googleapis.com/'))
-  gate.check('and read every stylesheet but Google Fonts’', strangers.length === 0 ? null : `could not read ${strangers.join(', ')}`)
+  gate.check('and read every stylesheet of the page', paper.unread.length === 0 ? null : `could not read ${paper.unread.join(', ')}`)
 }
 
 /** From the top of the page: the skip link, on screen, then <main>, then its first control. */
@@ -453,12 +455,15 @@ async function pass(gate, browser, url, { label, width, height, refuseFonts = fa
   gate.pass({ label, width, height })
   const page = await browser.newPage({ viewport: { width, height } })
   page.setDefaultTimeout(WITHIN)
+  // Every request outside the built Studio, its faces included: they are
+  // its own files (0023), so a font from anywhere else is named here too.
   const elsewhere = new Set()
   page.on('request', (request) => {
     const address = request.url()
-    if (!address.startsWith(url) && !/^(blob|data):/.test(address) && !/^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(address)) elsewhere.add(address)
+    if (!address.startsWith(url) && !/^(blob|data):/.test(address)) elsewhere.add(address)
   })
-  if (refuseFonts) await page.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, (route) => route.abort())
+  // The fallback stack's pass: every font file refused, wherever it is from.
+  if (refuseFonts) await page.route(FONT_FILE, (route) => route.abort())
   let starters = []
   try {
     await page.goto(url, { waitUntil: 'load' })
@@ -511,7 +516,12 @@ async function pass(gate, browser, url, { label, width, height, refuseFonts = fa
       target: 'Table',
     })
     gate.check(refuseFonts ? 'with the web fonts refused, none loaded' : 'every web font the page asks for loaded', await fontProblem(page, { dist, refused: refuseFonts }))
-    gate.check('the page fetched nothing but the built Studio and the web fonts: the PDFs were printed in it', elsewhere.size === 0 ? null : [...elsewhere].slice(0, 4).join(', '))
+    // A preconnect or dns-prefetch hint opens a connection with no request
+    // the listener would hear, and a connection gives the host the address
+    // all the same (formancy.ai 0154): read from the page as it ends.
+    const hinted = await page.evaluate(() => [...document.querySelectorAll('link')].filter((link) => link.relList.contains('preconnect') || link.relList.contains('dns-prefetch')).map((link) => link.href))
+    for (const address of hinted) if (!address.startsWith(url)) elsewhere.add(`${address} (a hint)`)
+    gate.check('the page fetched nothing and hinted no connection outside the built Studio, its faces included: the PDFs were printed in it', elsewhere.size === 0 ? null : [...elsewhere].slice(0, 4).join(', '))
   } finally {
     await page.close()
   }

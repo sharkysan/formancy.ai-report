@@ -1,0 +1,22 @@
+/*
+ * The faces, from the Studio's own build rather than a font service (0023):
+ * while they came from Google Fonts, every person who opened the Studio told
+ * Google their address. admin.css's faces at admin.css's weights, imported
+ * as admin.css imports them since formancy.ai 0154: Archivo's variable face
+ * with its width axis, wdth 62 to 125 and wght 100 to 900, which covers the
+ * 75 to 125 and 500 to 800 the Google request asked for; IBM Plex Sans in
+ * 400, 500 and 600; IBM Plex Mono in 400 and 500. Each stylesheet is
+ * Fontsource's, every subset with its unicode-range, so a browser fetches
+ * only the subsets the page's text uses.
+ *
+ * main.tsx imports this file; studio.css does not, because the gate and the
+ * pictures read studio.css with its relative imports inlined and refuse any
+ * other. The product pages import it too (apps/pages/src/pages.css), and
+ * serve the same faces from their own copies.
+ */
+@import '@fontsource-variable/archivo/wdth.css';
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';

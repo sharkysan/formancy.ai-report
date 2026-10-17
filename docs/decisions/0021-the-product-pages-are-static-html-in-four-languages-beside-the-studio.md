@@ -1,6 +1,7 @@
 # 0021 — The product's pages are static HTML in four languages, built here and served beside the Studio at formancy.ai/report/
 
-- **Status:** accepted
+- **Status:** accepted; its faces are the pages' own copies since [0023](0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md),
+  not Google's, and no page asks another site for anything
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

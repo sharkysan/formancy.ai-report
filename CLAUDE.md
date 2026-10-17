@@ -269,7 +269,9 @@ What holds this section:
   white with the text it prints, the framework switch, a real pointer's
   drag, the place chooser, a pane and the Preview hidden and shown again,
   the design view holding a page at 100 % wherever the Preview stands
-  beside it, and no rule of the page's on the paper.
+  beside it, no rule of the page's on the paper, and no request or
+  connection hint to any origin but the built Studio's, its faces included
+  ([0023](docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
 - **The pages' stylesheet**, `apps/pages/src/stylesheet.test.ts`: it
   imports the Studio's `room.css` first and only the Studio's stylesheets,
   and declares no colour and no variable of its own. The pages' checks,

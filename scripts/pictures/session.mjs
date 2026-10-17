@@ -8,10 +8,11 @@
 //
 // apps/<app>/scripts/pictures.mjs holds its routing and one act per scene.
 // This holds what it would otherwise decide again: which scene is shot, that
-// --check aborts the fonts and shoots nothing, that nothing is written until
-// every scene of the walk has passed, and what each record entry says. Node
-// built-ins and scripts/browsers.mjs only, which says how a gate launches its
-// browser; the app passes in its own Playwright.
+// --check refuses the font files and shoots nothing, that nothing is
+// written until every scene of the walk has passed, and what each record
+// entry says. Node built-ins, scripts/browsers.mjs, which says how a gate
+// launches its browser, and scripts/web-fonts.mjs, which says which faces
+// the build serves; the app passes in its own Playwright.
 //
 //   node scripts/pictures.mjs                walk every scene; retake those whose text changed, or that have no record or no picture
 //   node scripts/pictures.mjs --all          retake every scene of the app
@@ -27,6 +28,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { LAUNCH_OPTIONS, launchedAs } from '../browsers.mjs'
 import { parse } from '../pictures.mjs'
+import { declaredFamilies, faceVersions, FONT_FILE } from '../web-fonts.mjs'
 import * as camera from './camera.mjs'
 import { announce, checkProblems, entry, IMAGES, lineDiff, pairingProblems, pictureOf, readRecord, readScenes, REPO, stylesheetNotices, withEntry, writeRecord } from './record.mjs'
 
@@ -130,9 +132,6 @@ async function quiet(page, parts, within) {
 /** Today, as captured.json dates a picture: the UTC date, which the record's dates are compared in. */
 const today = () => new Date().toISOString().slice(0, 10)
 
-/** Every request to Google Fonts, refused: --check compares text, which does not depend on fonts, and must not depend on Google. */
-const FONTS = /^https:\/\/fonts\.(googleapis|gstatic)\.com\//
-
 /** A repository file's bytes, or undefined when there is none. */
 const repositoryFile = (path) => (existsSync(join(REPO, path)) ? readFileSync(join(REPO, path)) : undefined)
 
@@ -217,7 +216,10 @@ async function walk(config, scenes, options, found) {
   const breakpoint = camera.widestBreakpoint(sheet, css.entry)
   const narrowest = camera.narrowestBreakpoint(sheet, css.entry)
   const stylesheet = `sha256 ${camera.digest(sheet)} of src/${css.entry} with its imports, and @formancy/themes ${themes}`
-  const families = camera.families(readFileSync(join(dist, 'index.html'), 'utf8'))
+  // The faces the build serves (0023), and each one's version for the look.
+  const families = declaredFamilies(dist)
+  if (families.length === 0) throw new Error(`no stylesheet of apps/${app}/dist declares a face, so there is nothing to wait for and a fallback face would be pictured unnoticed`)
+  const versions = faceVersions(join(REPO, 'apps', app), families)
   const widths = Object.fromEntries(actIds.map((id) => [id, widthOf(scenes.find((scene) => scene.id === id), { width, narrowest })]))
 
   // As the browser gate launches it, so the two walk the build the report holds both to.
@@ -228,8 +230,13 @@ async function walk(config, scenes, options, found) {
   let page
   try {
     context = await camera.context(browser, { width, breakpoint })
-    if (options.check) await context.route(FONTS, (route) => route.abort())
     await camera.serve(context, { origin, dist })
+    // --check compares text, which does not depend on the faces, and
+    // measures each clip for intruders in the fallback stack, as it did
+    // when the faces came from Google: what it finds does not wait on a
+    // font's arrival. After serve(), since the route registered last is
+    // asked first, and serve() answers every file of the build.
+    if (options.check) await context.route(FONT_FILE, (route) => route.abort())
     page = await context.newPage()
     page.setDefaultTimeout(within)
     await config.open(page)
@@ -295,7 +302,7 @@ async function walk(config, scenes, options, found) {
         mkdirSync(options.review, { recursive: true })
         writeFileSync(join(options.review, `${id}.png`), await camera.decodedPng(browser, picture))
       }
-      const look = camera.look(browser, { playwright, fonts: shot.fonts })
+      const look = camera.look(browser, { playwright, fonts: versions })
       const settings = { ...camera.SETTINGS, width: shot.width }
       // withEntry refuses a misquoting caption and another look before anything is written.
       next = withEntry(next, scenes, id, entry(id, { captured, settings, clip: shot.clip, picture, look, data: config.data, stylesheet, text: shot.text }))
