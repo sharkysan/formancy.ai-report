@@ -121,6 +121,7 @@ describe('decimals', () => {
     expect([value.units, value.scale]).toEqual([1250n, 2])
     expect(decimalToString(accepted('decimal', '99999999999999999999.99') as Decimal)).toBe('99999999999999999999.99')
     expect(decimalToString(accepted('decimal', '-0.5') as Decimal)).toBe('-0.5')
+    expect(decimalToString(accepted('decimal', '-0.0010') as Decimal)).toBe('-0.0010')
   })
 
   // A float has already lost digits -- 0.1 is not one tenth -- so a decimal
@@ -134,6 +135,19 @@ describe('decimals', () => {
   // '01.5', '-0' -- or a locale's ('1,5') is refused, not guessed at.
   test.each(['-0', '-0.00', '+1', '01.5', '1.', '.5', '1e2', '1,5', ' 1.5', '1.5 ', '', '0x1', '1_000'])('refuse the string %j', (raw) => {
     expect(refusal('decimal', raw)).toBe('invalid-decimal')
+  })
+
+  // Data is untrusted, and a row holds many values: '-0.' and a run of
+  // digits as long as a string may be, then a character that fails, took
+  // about a quarter of a second each while the spelling backtracked over
+  // every split of the run (measured on 17 October 2026), so a page of
+  // such rows held a render for minutes. Each is refused in time linear in
+  // its length.
+  test('refuse a hostile spelling in time linear in its length', () => {
+    const hostile = `-0.${'1'.repeat(MAX_STRING_LENGTH - 4)}x`
+    const started = performance.now()
+    for (let row = 0; row < 20; row += 1) expect(refusal('decimal', hostile)).toBe('invalid-decimal')
+    expect(performance.now() - started).toBeLessThan(1000)
   })
 
   // A value with more places than the contract declares is not the value

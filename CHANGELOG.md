@@ -10,6 +10,19 @@ later.
 
 ## Unreleased
 
+**A decimal's spelling is read in time linear in its length.** In 0.1.0,
+`report-spec`'s validator and `report-runtime`'s data check read a negative
+decimal under one -- `-0.5` -- with a pattern that tried every split of its
+digits when the string then failed. A string of `-0.`, a long run of digits
+and one wrong character took time in the square of its length: about a
+quarter of a second for a value of the runtime's longest string, 16,384
+characters, so a page of such values held a render for minutes, and longer
+in a report definition, whose strings have no such cap. Both now read a
+string one way only, and accept and refuse the same spellings: the suites'
+cases, and 200,000 random strings compared once when the pattern changed.
+Found by CodeQL on the QR-bill's amount, which reads data with the same
+pattern.
+
 **A report can carry a Swiss QR-bill**
 ([0022](docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)).
 A Swiss invoice is paid by its QR-bill, the receipt and the payment part

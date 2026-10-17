@@ -68,9 +68,12 @@ export const INTEGER = /^(?:0|-?[1-9]\d*)$/
 /**
  * An exact decimal as a string: an integer, optionally a point and at least
  * one digit. Trailing zeros are kept, because they say the scale ('1.50' has
- * two places); a negative zero ('-0', '-0.00') is refused.
+ * two places); a negative zero ('-0', '-0.00') is refused. A negative
+ * value under one is its zeros, then the digit that is not one, then any:
+ * one way to read each string, so a long one that fails is refused in time
+ * linear in its length, where `\d*[1-9]\d*` tried every split of its digits.
  */
-export const DECIMAL = /^(?:-?[1-9]\d*(?:\.\d+)?|0(?:\.\d+)?|-0\.\d*[1-9]\d*)$/
+export const DECIMAL = /^(?:-?[1-9]\d*(?:\.\d+)?|0(?:\.\d+)?|-0\.0*[1-9]\d*)$/
 
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/
 

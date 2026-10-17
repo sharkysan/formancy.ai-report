@@ -249,6 +249,18 @@ describe('the amount', () => {
     expect(accepted(checkQrBillAmount('12345678.9'))).toBe('12345678.90')
   })
 
+  // The amount reaches this check from data, so the decimal syntax it is
+  // read by must take time in its length, not its square: '-0.' and a long
+  // run of digits that then fails backtracked over every split of the run
+  // (0.4 s on 20 000 digits and 38 s on these 200 000, measured on 17
+  // October 2026), which a hostile value could make arbitrarily long.
+  test('is refused in time linear in its length, however it fails', () => {
+    const hostile = `-0.${'1'.repeat(200_000)}x`
+    const started = performance.now()
+    expect(broken(checkQrBillAmount(hostile))).toBe('is not a decimal')
+    expect(performance.now() - started).toBeLessThan(1000)
+  })
+
   // "between 0.01 and 999,999,999.99" (IG Table 8, Amt). Zero is the "do
   // not use for payment" bill's, which this module does not print.
   test('is from 0.01 to 999 999 999.99', () => {
