@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { difference, treeLines } from '../apps/studio/scripts/accessible-tree.mjs'
+import { difference, pruned, treeLines } from '../apps/studio/scripts/accessible-tree.mjs'
 
 /**
  * How the Studio's browser gate writes Chromium's accessibility tree of a
@@ -116,6 +116,27 @@ describe('treeLines', () => {
     expect(treeLines(nodes, REGION)).toEqual(['region "Report editor"', '  button "Undo"'])
   })
 
+  // The Preview standing in the builder's middle (0029) is the Studio's one
+  // React component in both builders, whose status and pages move while it
+  // prints; compared whole, two builders that agree would differ by the
+  // moment each was read. Its region is the builder's, and stays; and only
+  // what is under it goes: the pane beside it is compared as before.
+  test('keeps a node the gate prunes, and nothing under it, and everything beside it', () => {
+    const nodes = [
+      node('1', 'region', 'Report editor', { children: ['2', '5'] }),
+      node('2', 'region', 'Preview', { children: ['3'], properties: [property('focusable', 'booleanOrUndefined', true)] }),
+      node('3', 'status', '', { children: ['4'] }),
+      node('4', 'button', 'Download PDF'),
+      node('5', 'tree', 'Outline'),
+    ]
+    const prune = { role: 'region', name: 'Preview' }
+    expect(treeLines(nodes, { ...REGION, prune })).toEqual(['region "Report editor"', '  region "Preview" focusable=true', '  tree "Outline"'])
+    // A guard on the guard: unpruned, the Preview's own nodes are there.
+    expect(treeLines(nodes, REGION)).toContain('      button "Download PDF"')
+    // A region of another name is not pruned.
+    expect(treeLines(nodes, { ...REGION, prune: { role: 'region', name: 'Design view, not the PDF' } })).toHaveLength(5)
+  })
+
   // A tree read in part, or a region the gate did not find, would compare
   // as two that agreed.
   test('refuses a region it does not find once, and a child it does not hold', () => {
@@ -123,6 +144,28 @@ describe('treeLines', () => {
     expect(() => treeLines([node('1', 'region', 'Report editor'), node('2', 'region', 'Report editor')], REGION)).toThrow(/has 2 region/)
     expect(() => treeLines([{ ...node('1', 'region', 'Report editor'), ignored: true }], REGION)).toThrow(/has 0 region/)
     expect(() => treeLines([node('1', 'region', 'Report editor', { children: ['9'] })], REGION)).toThrow(/a child 9 of a region it does not hold/)
+  })
+})
+
+describe('pruned', () => {
+  // Playwright's snapshot of the editor holds every run of PDF.js's text
+  // layer where the Preview stands in its middle, read while it prints: the
+  // same Preview in both builders, and what is under it goes, as above.
+  test('keeps the line of a node it prunes, and none deeper under it, up to the next line that is not', () => {
+    const snapshot = [
+      '- region "Report editor":',
+      '  - toolbar "Report tools"',
+      '  - region "Preview":',
+      '    - heading "Preview" [level=2]',
+      '    - status: "Rendering the preview…"',
+      '      - text: more',
+      '  - tree "Outline":',
+      '    - treeitem "Body"',
+    ]
+    expect(pruned(snapshot, { role: 'region', name: 'Preview' })).toEqual(['- region "Report editor":', '  - toolbar "Report tools"', '  - region "Preview":', '  - tree "Outline":', '    - treeitem "Body"'])
+    // Only that role and that name: a heading named Preview, or a region named otherwise, is kept with what is under it.
+    expect(pruned(snapshot, { role: 'heading', name: 'Report tools' })).toEqual(snapshot)
+    expect(pruned(snapshot, { role: 'region', name: 'Previews' })).toEqual(snapshot)
   })
 })
 

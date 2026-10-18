@@ -34,6 +34,14 @@
 // its host's typography. The count of problems, named after the Studio's
 // capitals in both builders alike, was "PROBLEMS" -- equal, and wrong.
 //
+// Where the Preview stands in the builder's middle (0029) -- every starter
+// opens with it there in both passes -- the region it stands in is the
+// builder's, and is compared by its role, name and states; what is in it is
+// the Studio's one Preview in both builders, whose status and pages move
+// while it prints, and is left out of both readings (accessible-tree.mjs's
+// `prune`). The next state takes the design view back from the toolbar, so
+// the states after it compare the design view as they did before.
+//
 // Run in the first pass of each layout report-builder.css draws the builder
 // in (gate-page.mjs's `passes()`): one pane at a time, where a step shows
 // the pane it needs from the toolbar as a person would, and every pane side
@@ -43,8 +51,8 @@
 
 import { decode } from '../../../scripts/pictures/aria-text.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
-import { difference, treeLines } from './accessible-tree.mjs'
-import { builder, editorOf, open, showing } from './gate-steps.mjs'
+import { difference, pruned, treeLines } from './accessible-tree.mjs'
+import { builder, designViewOf, editorOf, open, showing } from './gate-steps.mjs'
 
 const FRAMEWORKS = ['React', 'Angular']
 
@@ -57,8 +65,8 @@ const treeOf = (editor) => editor.getByRole('tree', { name: 'Outline', exact: tr
 /**
  * The states, in the order each builder is walked through them, each with
  * the step that brings it from the one before. `walk.placed` is the name of
- * the text the third step places: "New text", or the report's own words for
- * it in a starter written in German.
+ * the text the place chooser places: "New text", or the report's own words
+ * for it in a starter written in German.
  */
 const STATES = [
   {
@@ -68,6 +76,13 @@ const STATES = [
       await open(page, id)
       await builder(page, framework)
       await tools(editor).waitFor()
+    },
+  },
+  {
+    state: 'the design view shown from the toolbar, in the Preview’s place',
+    step: async ({ page, editor }) => {
+      await tools(editor).getByRole('button', { name: 'Design view', exact: true }).click()
+      await designViewOf(page).waitFor()
     },
   },
   {
@@ -143,15 +158,18 @@ const STATES = [
   })),
 ]
 
+/** The host's view a builder draws in its middle: the region the Preview stands in, whose content is the Studio's. */
+const HOST_VIEW = { role: 'region', name: 'Preview' }
+
 /** Chromium's own tree of the editor, as accessible-tree.mjs writes it. */
 async function chromiumTree(cdp) {
   const { nodes } = await cdp.send('Accessibility.getFullAXTree')
-  return treeLines(nodes, { role: 'region', name: 'Report editor' })
+  return treeLines(nodes, { role: 'region', name: 'Report editor', prune: HOST_VIEW })
 }
 
 /** Both readings of the editor as the page stands. */
 async function readings(page, cdp) {
-  return { snapshot: (await editorOf(page).ariaSnapshot()).split('\n'), chromium: await chromiumTree(cdp) }
+  return { snapshot: pruned((await editorOf(page).ariaSnapshot()).split('\n'), HOST_VIEW), chromium: await chromiumTree(cdp) }
 }
 
 /** Two frames: what a stylesheet changed is laid out, and Chromium's tree follows it. */

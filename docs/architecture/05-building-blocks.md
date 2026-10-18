@@ -156,10 +156,12 @@ rows a page at a time, each lookup's labels. The data it hands over says
 ### `@formancy/report-builder-core` (L2)
 
 The editor model: `createReportEditor` makes one person's view of a session
-— selection, zoom, the open pane, a drag, hidden panes — and derives from
-the document everything a builder shows
+— selection, zoom, the open pane, a drag, hidden panes, and a host's view
+the host names, shown or not, in the design view's place or beside the
+builder — and derives from the document everything a builder shows
 ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md),
-[0019](../decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md)).
+[0019](../decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md),
+[0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
 
 | Module | Responsibility |
 |---|---|
@@ -168,7 +170,7 @@ the document everything a builder shows
 | `geometry.ts`, `targets.ts` | The design view's layout and zoom, and drop targets from report-core's `validLocations` |
 | `keys.ts`, `edits.ts` | `actionForKey`: which key does what, decided once for both builders |
 | `text.ts` and `text-*.ts` | Every word, in English, Swiss German and Swiss French |
-| `parts.ts` | The `data-report-part` hooks both builders render and `report-builder.css` dresses through the workbench's `--wb-*` variables |
+| `parts.ts` | The `data-report-part` hooks both builders render and `report-builder.css` dresses through the workbench's `--wb-*` variables; `view`, the region a host's view stands in, it does not dress |
 | `scenarios.ts` | `BUILDER_SCENARIOS`: what every builder must do, as data, found by role and accessible name |
 
 ### `@formancy/report-builder-react` and `@formancy/report-builder-angular` (L3)
@@ -179,7 +181,7 @@ dispatches actions and moves focus, which only a builder can know about.
 | Concern | React | Angular |
 |---|---|---|
 | Subscription | `use-editor-state.ts`, `useSyncExternalStore` | `editor-state.ts`, a signal; zoneless, `OnPush` |
-| The whole editor | `report-builder.tsx` | `builder.ts`, and `root.ts` for a host that arranges the parts |
+| The whole editor | `report-builder.tsx`, whose `hostView` prop is the host's view | `builder.ts`, and `root.ts` for a host that arranges the parts; `host-view.ts`, the `reportHostView` template a host gives its view as |
 | Panes | `toolbar.tsx`, `outline.tsx`, `palette.tsx`, `canvas.tsx`, `properties.tsx`, `diagnostics.tsx`, `places.tsx` | `toolbar.ts`, `outline.ts`, `palette.ts`, `canvas.ts`, `properties.ts`, `problems.ts`, `places.ts`, `status.ts` |
 | A pointer's drag | pointer events (`pointer-drag.ts`) | HTML drag and drop |
 | Built by | tsdown | ng-packagr, finished by `scripts/finalize-angular-dist.mjs` |
@@ -187,6 +189,9 @@ dispatches actions and moves focus, which only a builder can know about.
 Neither ships a stylesheet. The drag is the one behaviour bound differently:
 both resolve the pointer through the model, but a touch device gets no drag
 in Angular ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)).
+While the state's `view` is the host's, each draws a bare region in the
+design view's place, named after the host's view, with no workbench class,
+and leaves the keys pressed in it to the host ([0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
 
 ### `@formancy/report-corpus`
 
@@ -229,7 +234,13 @@ record of the trial
 **`apps/studio`** is the playground: one report session and one editor per
 starter (`workspace.ts`), either builder over it (`builder/`), and the
 Preview, which resolves the session's document and prints it with the
-renderer's browser entry, drawn by PDF.js on white paper (`preview/`). It
+renderer's browser entry, drawn by PDF.js on white paper (`preview/`).
+`layout.ts` says where the Preview stands: beside the builder in a window
+wide enough for the design view to hold a page beside it, and in the
+builder's middle, as the editor's host view, in any other; the workspace
+tells every editor it holds as the window crosses that width
+([0019](../decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md),
+[0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)). It
 wears formancy.ai's room: `styles/room.css` copies admin.css's variables
 under a marking comment, and the builder is recoloured only through the
 workbench's variables

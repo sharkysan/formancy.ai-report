@@ -27,6 +27,7 @@ import type {
   EditorState,
   HideablePanel,
   HistoryState,
+  HostView,
   PaletteEntry,
   Selection,
 } from './model.js'
@@ -44,6 +45,8 @@ export interface Local {
   readonly zoom: number
   readonly panel: EditorPanel
   readonly hidden: readonly HideablePanel[]
+  /** The host's view, kept by reference, so the state's is the same object until it changes. */
+  readonly host: HostView | null
   readonly drag: { readonly subject: DragSubject; readonly via: 'pointer' | 'keyboard'; readonly over: number | null } | null
   /** Values refused for the selection's fields, by key. */
   readonly errors: ReadonlyMap<string, FieldError>
@@ -83,6 +86,11 @@ export function derive(report: ReportDefinition, t: EditorText): Derived {
   const overflowing = new Set(layout.parts.filter((part) => part.overflows).map((part) => part.key))
   const order = outlineOrder(buildOutline(report, { labels, selection: null, problems, severities, overflowing }, t))
   return { report, labels, diagnostics, problems, severities, overflowing, layout, palette: paletteEntries(report, t), order }
+}
+
+/** What the middle pane shows: the host's view while it is shown there, else the design view. Decided here once, for the state and the editor's actions. */
+export function viewOf(host: HostView | null): 'design' | 'host' {
+  return host?.shown === true && host.place === 'middle' ? 'host' : 'design'
 }
 
 /** What the history shows, from the session, with the labels in the editor's words. */
@@ -163,9 +171,14 @@ function diagnosticEntries(derived: Derived, t: EditorText): DiagnosticEntry[] {
 
 const REPORT = { kind: 'report', path: '' } as const
 
-/** Which actions have somewhere to go: the selection's, decided by the same plans that make them, and the zoom's. */
-function availability(report: ReportDefinition, selection: Selection | null, zoom: number): Availability {
-  const zooms = { zoomIn: zoom < MAX_ZOOM, zoomOut: zoom > MIN_ZOOM, zoomReset: zoom !== 1 }
+/**
+ * Which actions have somewhere to go: the selection's, decided by the same
+ * plans that make them, and the zoom's -- none while the host's view stands
+ * in the design view's place, whose zoom it is.
+ */
+function availability(report: ReportDefinition, selection: Selection | null, zoom: number, view: 'design' | 'host'): Availability {
+  const design = view === 'design'
+  const zooms = { zoomIn: design && zoom < MAX_ZOOM, zoomOut: design && zoom > MIN_ZOOM, zoomReset: design && zoom !== 1 }
   const target = selection === null ? undefined : selected(report, selection)
   if (target === undefined) return { delete: false, duplicate: false, moveUp: false, moveDown: false, indent: false, outdent: false, moveTo: false, ...zooms }
   const goes = (planned: object): boolean => !('edge' in planned)
@@ -220,9 +233,11 @@ export function buildState(derived: Derived, session: SessionView, local: Local,
     history: session.history,
     drag: placing.drag,
     dropTargets: placing.dropTargets,
-    can: availability(report, local.selection, local.zoom),
+    can: availability(report, local.selection, local.zoom, viewOf(local.host)),
     panel: local.panel,
     hidden: local.hidden,
+    hostView: local.host,
+    view: viewOf(local.host),
     status: local.status,
   })
 }

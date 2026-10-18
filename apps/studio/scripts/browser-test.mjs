@@ -35,9 +35,22 @@
 //     place, and Escape puts the keyboard back on the entry; Final renders a
 //     final PDF and back; and the Preview's Zoom in redraws every page
 //     larger, on white, with ink;
-//   - the design view's note is never cut by its pane;
+//   - the Preview stands where the window has room for it (0029): in the
+//     builder's middle, in the design view's place, with the outline and
+//     the properties beside it, up to the Studio's widest breakpoint, and
+//     beside the builder past it; at each pass gate-page.mjs's `passes()`
+//     marks a first viewport -- the laptop's, and the screens 0029 names --
+//     the window holds the Studio whole as it opens, and the Preview's first
+//     page in it, unscrolled; the toolbar's Design view and the bar's
+//     Preview swap the two, the window crossing the breakpoint moves it,
+//     and the paper resized as an edit prints is redrawn (gate-place.mjs);
+//   - the design view's note is never cut by its pane, nor a control of the
+//     Preview by a pane that does not scroll to it;
 //   - no rule of the page's stylesheets selects an element on the paper but
-//     the paper's own, so what is shown is what prints;
+//     the paper's own, so what is shown is what prints -- and, where the
+//     Preview stands in the builder's middle, the workbench's `.wb *`,
+//     which turns transitions off and nothing else; nor any rule of the
+//     builder's an element of the Preview there, but that one;
 //   - every web font the built page asks for had loaded by the end of each
 //     pass, and in the pass that refuses them, none had;
 //   - the two builders' accessible trees are the same, in every starter and
@@ -68,17 +81,15 @@ import { build, preview } from 'vite'
 import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
-import { app, audit, describeFocus, drawnPages, fontProblem, fromTheTop, measureWidth, passes, rulesOnThePaper } from './gate-page.mjs'
+import { app, audit, cutControls, describeFocus, drawnPages, fontProblem, fromTheTop, measureWidth, passes, rulesOnThePaper } from './gate-page.mjs'
 import { builderParity } from './gate-parity.mjs'
+import { placeChecks } from './gate-place.mjs'
 import { gateRecorder } from './gate-results.mjs'
 import { roomChecks } from './gate-room.mjs'
-import { builder, editorOf, open, showing } from './gate-steps.mjs'
+import { builder, editorOf, open, previewInView, previewOf, selectRow, setField, settled, showing, untilLine, WITHIN } from './gate-steps.mjs'
 
 const dist = join(app, 'dist')
 const repo = join(app, '..', '..')
-
-/** How long a state may take to come: Playwright's default, which every wait below runs under. */
-const WITHIN = 30_000
 
 /**
  * What each starter's pictured page prints, as report-render-pdf's
@@ -91,27 +102,12 @@ const PICTURED = JSON.parse(readFileSync(join(repo, 'docs', 'images', 'pictures.
 const PAYMENT = 'Zahlbar innert 30 Tagen netto.'
 const EDITED = 'Zahlbar innert 10 Tagen netto.'
 
-const previewOf = (page) => page.getByRole('region', { name: 'Preview', exact: true })
-
 /** Null once `locator` is there, within a few seconds -- zoneless Angular draws a frame or two after the click -- or why not. */
 const present = (locator, what) =>
   locator.waitFor({ timeout: 5_000 }).then(
     () => null,
     () => `no ${what}`,
   )
-
-/** The outline row named `name`, shown and selected with a click. */
-async function selectRow(editor, name) {
-  await (await showing(editor, 'Outline', editor.getByRole('tree', { name: 'Outline', exact: true }))).getByRole('treeitem', { name, exact: true }).click()
-}
-
-/** The selected component's field named `name`, given `value` and left with Tab, as a person commits it; until the editor says it changed. */
-async function setField(editor, name, value) {
-  const field = await showing(editor, 'Properties', editor.getByRole('textbox', { name, exact: true }))
-  await field.fill(value)
-  await field.press('Tab')
-  await editor.getByRole('status').filter({ hasText: `Changed ${name}.` }).waitFor()
-}
 
 /**
  * A pointer drag from `source` to `position` on `target`, as a person makes
@@ -155,27 +151,6 @@ async function drag(page, source, target, position) {
   await page.mouse.move(to.x + position.x, to.y + position.y)
   await page.mouse.up()
   return said
-}
-
-/** Until the Preview says `outcome` with nothing newer on its way, and, once printed, PDF.js has the PDF and has laid out its pages. */
-async function settled(page, outcome = /^Preview: printed(, with \d+ warnings?)?\.$/) {
-  await previewOf(page).getByRole('status').filter({ hasText: outcome }).waitFor()
-  if (!outcome.test('Preview: printed.')) return
-  await page.waitForFunction(() => {
-    const paper = document.querySelector('.paper')
-    return paper !== null && paper.getAttribute('aria-busy') === 'false' && paper.querySelectorAll('.paper-page canvas').length > 0
-  }, undefined, { timeout: WITHIN })
-}
-
-/** Until a line of the PDF's text layer is `line`: what an edit's render is waited for by. */
-async function untilLine(page, line) {
-  const deadline = Date.now() + WITHIN
-  for (;;) {
-    const pages = await drawnPages(page, { within: 0 })
-    if (pages.some((sheet) => sheet.lines.includes(line))) return
-    if (Date.now() > deadline) throw new Error(`no line of the PDF became "${line}" in ${String(WITHIN)} ms`)
-    await page.waitForTimeout(100)
-  }
 }
 
 /**
@@ -225,6 +200,12 @@ async function measured(gate, page, state) {
   // a sentence it cuts is read by nobody, so it wraps to the pane instead.
   const cut = await noteCut(page)
   check(`${state}: the design view's note is not cut by its pane`, cut === null || cut === 0 ? null : `${String(cut)}px of it is cut off`)
+  // The Preview in a middle pane narrower than its tools scrolls to them
+  // (0029); one that clipped them would leave them out of a pointer's reach.
+  const controls = await cutControls(page)
+  check(`${state}: no control of the Preview is cut off by a pane that does not scroll to it`, controls.cut.length === 0 ? null : controls.cut.slice(0, 4).join('; '))
+  const { width: wide, height: high } = page.viewportSize() ?? { width: 0, height: 0 }
+  gate.measure({ name: `${state}, ${String(wide)} by ${String(high)}: controls of the Preview its pane scrolls to`, value: controls.scrolled, unit: `of ${String(controls.controls)} controls` })
   await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined))
   const result = await audit(page)
   gate.axe(result.axe)
@@ -255,10 +236,17 @@ async function paperChecks(gate, page, state, picture) {
   check(`${state}: Download PDF is a PDF`, head === '%PDF-' ? null : `it begins ${JSON.stringify(head)}`)
 }
 
-/** The paper's own rules reach it, and nothing else's: checked once per pass, on a page PDF.js has drawn. */
+/**
+ * The paper's own rules reach it, and nothing else's but the workbench's
+ * inert `.wb *` where the Preview stands in the builder's middle (0029):
+ * checked once per pass, on a page PDF.js has drawn.
+ */
 async function paperRules(gate, page) {
   const paper = await rulesOnThePaper(page)
-  gate.check('the paper: no rule of the page selects anything on it but the paper’s own', paper.reached.length === 0 && paper.broken.length === 0 ? null : [...paper.reached, ...paper.broken.map((selector) => `${selector} could not be matched`)].slice(0, 6).join('; '))
+  gate.check(
+    'the paper: no rule of the page selects anything on it but the paper’s own, and the workbench’s .wb *, which declares transitions alone',
+    paper.reached.length === 0 && paper.broken.length === 0 ? null : [...paper.reached, ...paper.broken.map((selector) => `${selector} could not be matched`)].slice(0, 6).join('; '),
+  )
   const missing = ['canvas', 'span', 'div'].filter((tag) => !paper.tags.includes(tag))
   gate.check('which matched every rule against a drawn page and its text layer', paper.rules > 100 && paper.own > 0 && missing.length === 0 ? null : `${String(paper.rules)} rules, ${String(paper.own)} of the paper's own, and no ${missing.join(', ')} on the paper`)
   gate.check('and read every stylesheet of the page', paper.unread.length === 0 ? null : `could not read ${paper.unread.join(', ')}`)
@@ -364,6 +352,9 @@ async function refusal(gate, page, { state, edit, outcome, away, button, target 
   await settled(page, outcome)
   await selectRow(editor, away)
   await measured(gate, page, state)
+  // Where the builder shows one pane at a time, the outline was the pane
+  // measured; the Preview, brought back into sight, is measured too.
+  if (await previewInView(page)) await measured(gate, page, `${state}, the Preview brought into sight`)
   const pressed = previewOf(page).getByRole('list', { name: 'Why the preview was not printed', exact: true }).getByRole('button', { name: button, exact: true })
   const row = editor.getByRole('treeitem', { name: target, exact: true, selected: true })
   gate.check(`${state}: Enter on "${button}" puts the keyboard on its outline row, selected`, await focusAfterEnter(page, pressed, row))
@@ -408,7 +399,7 @@ async function interactions(gate, page, framework) {
   }
 
   // The place chooser, the keyboard's path for every drag (formancy.ai 0046).
-  const text = editor.getByRole('group', { name: 'Insert', exact: true }).getByRole('button', { name: 'Text', exact: true })
+  const text = await showing(editor, 'Outline', editor.getByRole('group', { name: 'Insert', exact: true }).getByRole('button', { name: 'Text', exact: true }))
   await text.focus()
   await page.keyboard.press('Enter')
   const chooser = editor.getByRole('dialog', { name: 'Insert Text: choose a place', exact: true })
@@ -424,6 +415,7 @@ async function interactions(gate, page, framework) {
   check(`${framework}: and puts the keyboard back on the palette entry`, (await text.evaluate((element) => element === document.activeElement)) ? null : `the focus is on ${await describeFocus(page)}`)
 
   // Final, and back: the switch reaches the runtime, and the status says which printed.
+  await previewInView(page)
   const final = previewOf(page).getByRole('checkbox', { name: 'Final', exact: true })
   await final.check()
   const finalPrinted = await settled(page, /^Final render: printed(, with \d+ warnings?)?\.$/).then(
@@ -446,12 +438,75 @@ async function interactions(gate, page, framework) {
   await previewOf(page).getByRole('button', { name: 'Fit width', exact: true }).click()
   await settled(page)
 
-  // The room made for the design view: a pane hidden and shown, the Preview hidden and shown.
-  await roomChecks(gate, page, framework, { preview: previewOf(page), settled })
+  // The room made for the middle pane: a pane hidden and shown, the Preview hidden and shown.
+  await roomChecks(gate, page, framework)
 }
 
-/** One pass: the whole journey at one viewport, then, where `parity` marks it, the two builders compared (gate-parity.mjs). */
-async function pass(gate, browser, url, { label, width, height, refuseFonts = false, parity = false }) {
+/**
+ * The journey, on the page `pass` opened: the keyboard from the top, every
+ * starter printed and measured in each builder, what a person does with a
+ * pointer and the keyboard, the framework switch, two refusals and the
+ * fonts. Returns the starters the picker offers.
+ */
+async function journey(gate, page, picker, { refuseFonts }) {
+  await keyboard(gate, page)
+  const starters = await picker.locator('option').evaluateAll((options) => options.map((option) => ({ id: option.value, label: option.textContent })))
+  const unlisted = PICTURED.filter((picture) => !starters.some((starter) => starter.id === picture.starter))
+  gate.check('the picker offers every starter pictures.json pictures', unlisted.length === 0 ? null : `no ${unlisted.map((picture) => picture.starter).join(', ')}`)
+  let ruled = false
+  for (const framework of ['React', 'Angular']) {
+    await builder(page, framework)
+    for (const { id, label: name } of starters) {
+      await open(page, id)
+      await settled(page)
+      const state = `${name}, ${framework}`
+      const picture = PICTURED.find((each) => each.starter === id)
+      if (picture !== undefined) await paperChecks(gate, page, state, picture)
+      if (picture !== undefined && !ruled) {
+        await paperRules(gate, page)
+        ruled = true
+      }
+      await measured(gate, page, state)
+    }
+    await interactions(gate, page, framework)
+    if (framework === 'React') await frameworkSwitch(gate, page)
+  }
+  await refusal(gate, page, {
+    state: 'refused by the runtime, Angular',
+    edit: async (editor) => {
+      await selectRow(editor, 'Book value')
+      await setField(editor, 'Show only when', 'row.value > 1000')
+    },
+    outcome: /^Preview: refused by the runtime, 1 problem\.$/,
+    away: 'Tag',
+    button: 'Select Book value',
+    target: 'Book value',
+  })
+  await builder(page, 'React')
+  await refusal(gate, page, {
+    state: 'not drawn by the renderer, React',
+    edit: async (editor) => {
+      // A word wider than its column: the renderer refuses it rather than break it or let it run over.
+      await selectRow(editor, 'Tag')
+      await setField(editor, 'Heading', 'Inventarnummernkennzeichnung')
+    },
+    outcome: /^Preview: not drawn by the renderer\.$/,
+    away: 'Description',
+    button: 'Select Table',
+    target: 'Table',
+  })
+  gate.check(refuseFonts ? 'with the web fonts refused, none loaded' : 'every web font the page asks for loaded', await fontProblem(page, { dist, refused: refuseFonts }))
+  return starters
+}
+
+/**
+ * One pass at one viewport: where the Preview stands as the Studio opens,
+ * in each builder (gate-place.mjs); then, but in a `light` pass, the whole
+ * journey; what the page asked of any other origin; and, where `parity`
+ * marks it, the two builders compared (gate-parity.mjs).
+ */
+async function pass(gate, browser, url, entry) {
+  const { label, width, height, refuseFonts = false, parity = false, light = false } = entry
   gate.pass({ label, width, height })
   const page = await browser.newPage({ viewport: { width, height } })
   page.setDefaultTimeout(WITHIN)
@@ -469,53 +524,11 @@ async function pass(gate, browser, url, { label, width, height, refuseFonts = fa
     await page.goto(url, { waitUntil: 'load' })
     const picker = page.getByRole('combobox', { name: 'Starter', exact: true })
     await picker.waitFor()
-    await keyboard(gate, page)
-    starters = await picker.locator('option').evaluateAll((options) => options.map((option) => ({ id: option.value, label: option.textContent })))
-    const unlisted = PICTURED.filter((picture) => !starters.some((starter) => starter.id === picture.starter))
-    gate.check('the picker offers every starter pictures.json pictures', unlisted.length === 0 ? null : `no ${unlisted.map((picture) => picture.starter).join(', ')}`)
-    let ruled = false
     for (const framework of ['React', 'Angular']) {
       await builder(page, framework)
-      for (const { id, label: name } of starters) {
-        await open(page, id)
-        await settled(page)
-        const state = `${name}, ${framework}`
-        const picture = PICTURED.find((each) => each.starter === id)
-        if (picture !== undefined) await paperChecks(gate, page, state, picture)
-        if (picture !== undefined && !ruled) {
-          await paperRules(gate, page)
-          ruled = true
-        }
-        await measured(gate, page, state)
-      }
-      await interactions(gate, page, framework)
-      if (framework === 'React') await frameworkSwitch(gate, page)
+      await placeChecks(gate, page, framework, entry, { measured })
     }
-    await refusal(gate, page, {
-      state: 'refused by the runtime, Angular',
-      edit: async (editor) => {
-        await selectRow(editor, 'Book value')
-        await setField(editor, 'Show only when', 'row.value > 1000')
-      },
-      outcome: /^Preview: refused by the runtime, 1 problem\.$/,
-      away: 'Tag',
-      button: 'Select Book value',
-      target: 'Book value',
-    })
-    await builder(page, 'React')
-    await refusal(gate, page, {
-      state: 'not drawn by the renderer, React',
-      edit: async (editor) => {
-        // A word wider than its column: the renderer refuses it rather than break it or let it run over.
-        await selectRow(editor, 'Tag')
-        await setField(editor, 'Heading', 'Inventarnummernkennzeichnung')
-      },
-      outcome: /^Preview: not drawn by the renderer\.$/,
-      away: 'Description',
-      button: 'Select Table',
-      target: 'Table',
-    })
-    gate.check(refuseFonts ? 'with the web fonts refused, none loaded' : 'every web font the page asks for loaded', await fontProblem(page, { dist, refused: refuseFonts }))
+    if (!light) starters = await journey(gate, page, picker, { refuseFonts })
     // A preconnect or dns-prefetch hint opens a connection with no request
     // the listener would hear, and a connection gives the host the address
     // all the same (formancy.ai 0154): read from the page as it ends.
@@ -554,7 +567,7 @@ async function main() {
     for (const each of list) await pass(gate, browser, url, each)
     const failures = gate.failures()
     if (failures.length > 0) throw new Error(`${String(failures.length)} browser check(s) failed:\n  ${failures.join('\n  ')}`)
-    console.log(`\nbrowser checks passed: the Studio's whole journey in ${String(list.length)} passes, from ${String(Math.min(...list.map((each) => each.width)))} to ${String(Math.max(...list.map((each) => each.width)))}px wide, for the layout, focus, colour and printing facts jsdom cannot represent`)
+    console.log(`\nbrowser checks passed: the Studio's whole journey in ${String(list.filter((each) => each.light !== true).length)} of ${String(list.length)} passes and the Preview's place in all of them, from ${String(Math.min(...list.map((each) => each.width)))} to ${String(Math.max(...list.map((each) => each.width)))}px wide, for the layout, focus, colour and printing facts jsdom cannot represent`)
   } catch (error) {
     gate.error(error)
     throw error

@@ -11,6 +11,8 @@ import '@angular/compiler'
 import { Blob as NodeBlob } from 'node:buffer'
 import { DecompressionStream as NodeDecompressionStream } from 'node:stream/web'
 import { configure } from '@testing-library/react'
+import { afterEach } from 'vitest'
+import { JSDOM_WIDTH, setWidth } from './test-width.js'
 
 /**
  * How long a `findBy` waits. The Angular builder is imported and
@@ -41,3 +43,58 @@ configure({ asyncUtilTimeout: 15_000 })
  */
 if (typeof Blob.prototype.stream !== 'function') globalThis.Blob = NodeBlob as unknown as typeof Blob
 globalThis.DecompressionStream ??= NodeDecompressionStream as unknown as typeof DecompressionStream
+
+/**
+ * `matchMedia`, which jsdom lacks, for the one kind of query the Studio
+ * asks: `(max-width: Nrem)`, where the Preview stands (layout.ts). It is
+ * answered from `window.innerWidth` at 16 pixels a rem, as a browser
+ * answers it against the initial font size, and a width set by
+ * test-width.ts's `setWidth` fires `change` on every list whose answer it
+ * changes, as resizing a window does. Any other query is refused: answered
+ * wrongly here, it would pass a test that a browser fails. The suites that
+ * run under Node, with no window, get none.
+ */
+const QUERY = /^\(max-width: ([\d.]+)rem\)$/
+
+class StandInList extends EventTarget implements MediaQueryList {
+  onchange: MediaQueryList['onchange'] = null
+  readonly media: string
+  readonly #widest: number
+  #was: boolean
+
+  constructor(media: string) {
+    super()
+    this.media = media
+    const [, rem] = QUERY.exec(media) ?? []
+    if (rem === undefined) throw new Error(`the matchMedia stand-in answers (max-width: Nrem) alone, not ${media}`)
+    this.#widest = Number(rem) * 16
+    this.#was = this.matches
+    window.addEventListener('resize', () => {
+      if (this.matches === this.#was) return
+      this.#was = this.matches
+      const event = Object.assign(new Event('change'), { matches: this.matches, media }) as MediaQueryListEvent
+      this.onchange?.call(this, event)
+      this.dispatchEvent(event)
+    })
+  }
+
+  get matches(): boolean {
+    return window.innerWidth <= this.#widest
+  }
+
+  addListener(listener: ((this: MediaQueryList, event: MediaQueryListEvent) => unknown) | null): void {
+    if (listener !== null) this.addEventListener('change', listener as EventListener)
+  }
+
+  removeListener(listener: ((this: MediaQueryList, event: MediaQueryListEvent) => unknown) | null): void {
+    if (listener !== null) this.removeEventListener('change', listener as EventListener)
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.matchMedia ??= (query: string): MediaQueryList => new StandInList(query)
+  // Every test starts in jsdom's own window, 1024 pixels wide, whatever the one before it set.
+  afterEach(() => {
+    if (window.innerWidth !== JSDOM_WIDTH) setWidth(JSDOM_WIDTH)
+  })
+}

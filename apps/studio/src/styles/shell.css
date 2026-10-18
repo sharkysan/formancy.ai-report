@@ -1,20 +1,27 @@
 /* ---------------------------------------------------------------- shell
  *
  * The bar, and under it the builder beside the Preview: both fill the
- * window, and each scrolls inside itself. narrow.css stacks them.
+ * window, and each scrolls inside itself. Where narrow.css gives the
+ * builder the row, the Preview stands in its middle (0029).
  */
 
+/* The window's height, and the builder never under 32rem of it: a shorter
+   window scrolls the page rather than squeezing the panes, the floor 0019
+   chose, not measured, for a builder people edit in. The height stays the
+   window's, so the panes scroll inside themselves at every width. */
 .studio {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(32rem, 1fr);
   gap: 0.75rem;
   height: 100dvh;
   padding: 0.75rem;
 }
 
+/* The Preview is a panel of its own beside the builder; in its middle it is
+   what the builder's pane holds. */
 .studio-bar,
 .studio-builder,
-.studio-preview {
+.studio-preview[data-place='beside'] {
   min-width: 0;
   border: 1px solid var(--edge-strong);
   border-radius: 16px;
@@ -72,7 +79,8 @@
   min-height: 0;
 }
 
-/* The Preview hidden from the bar: the builder takes the row. */
+/* The Preview hidden from the bar: the builder takes the row. narrow.css
+   gives it the row too, wherever the Preview stands in its middle. */
 .studio-main[data-preview='hidden'] {
   grid-template-columns: minmax(0, 1fr);
 }

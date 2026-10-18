@@ -4,9 +4,16 @@
  * Switching unmounts one and mounts the other over the same editor, and so
  * the same session -- the document, its history, the selection and the zoom
  * all stay (0012, plan 21).
+ *
+ * Each is given the Studio's Preview as its view, which it draws in the
+ * design view's place while the editor says so (0029): React's builder
+ * as its `hostView`, and Angular's in an element it lends, into which
+ * React draws the Preview through a portal. A switch draws the Preview
+ * anew in the builder shown.
  */
-import { useEffect, useRef, useState } from 'react'
-import type { ReactElement } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import type { ReactElement, ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import type { ReportEditor } from '@formancy/report-builder-core'
 import { ReportBuilder } from '@formancy/report-builder-react'
 
@@ -25,9 +32,18 @@ export const FRAMEWORKS: ReadonlyArray<{ readonly value: Framework; readonly lab
  * switching back before Angular has started -- marks the late mount to take
  * itself down instead of leaving an application over the editor.
  */
-function AngularBuilder({ editor }: { editor: ReportEditor }): ReactElement {
+function AngularBuilder({ editor, hostView }: { editor: ReportEditor; hostView: ReactNode }): ReactElement {
   const host = useRef<HTMLDivElement>(null)
   const [state, setState] = useState<'starting' | 'started' | { readonly problem: string }>('starting')
+  /** The element Angular's builder lends the host's view, while it stands in the builder's middle. */
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
+  /**
+   * Whether the editor stands the view in the middle now. Angular takes its
+   * element back a render after the editor says so; drawn into it until
+   * then, the Preview would print a second time beside its copy the Studio
+   * already draws beside the builder, under the same id.
+   */
+  const inTheMiddle = useSyncExternalStore(editor.subscribe, () => editor.state().view === 'host')
 
   useEffect(() => {
     const element = host.current
@@ -39,7 +55,7 @@ function AngularBuilder({ editor }: { editor: ReportEditor }): ReactElement {
     // builder paints without waiting, and the bundle splits where the two
     // frameworks meet.
     import('./angular-bootstrap.js')
-      .then(({ mountAngularBuilder }) => mountAngularBuilder(element, editor))
+      .then(({ mountAngularBuilder }) => mountAngularBuilder(element, editor, setSlot))
       .then((teardown) => {
         if (cancelled) teardown()
         else {
@@ -68,16 +84,17 @@ function AngularBuilder({ editor }: { editor: ReportEditor }): ReactElement {
         </p>
       )}
       <div ref={host} className="builder-mount" />
+      {slot === null || !inTheMiddle ? null : createPortal(hostView, slot)}
     </>
   )
 }
 
-export function BuilderPane({ framework, editor }: { framework: Framework; editor: ReportEditor }): ReactElement {
+export function BuilderPane({ framework, editor, hostView }: { framework: Framework; editor: ReportEditor; hostView: ReactNode }): ReactElement {
   return framework === 'react' ? (
     <div className="builder-mount">
-      <ReportBuilder editor={editor} />
+      <ReportBuilder editor={editor} hostView={hostView} />
     </div>
   ) : (
-    <AngularBuilder editor={editor} />
+    <AngularBuilder editor={editor} hostView={hostView} />
   )
 }

@@ -60,13 +60,17 @@ function loaded(document: PDFDocumentProxy): LoadedPdf {
       let cancelled = false
       let task: RenderTask | undefined
       let layer: TextLayer | undefined
-      const done = document.getPage(number).then(async (page) => {
+      // An async function, so that PDF.js's getPage on a document already let
+      // go of -- which throws at once rather than rejecting -- is a draw that
+      // did not happen, not a throw in the caller's render.
+      const done = (async () => {
+        const page = await document.getPage(number)
         if (cancelled) return
         task = paint(page, zoom, canvas)
         text.replaceChildren()
         layer = new TextLayer({ textContentSource: page.streamTextContent(), container: text, viewport: page.getViewport({ scale: zoom * PX_PER_PT }) })
         await Promise.all([task.promise, layer.render()])
-      })
+      })()
       return {
         done,
         cancel() {

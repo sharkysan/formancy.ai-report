@@ -180,6 +180,46 @@ the Studio ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-picture
 A render the renderer cannot stop mid-pass finishes into nothing rather
 than replacing a newer one.
 
+Where the Preview stands is the editor's to hold and the window's to say
+([0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)):
+
+```
+the window crosses MIDDLE, 128.25rem (layout.ts, and narrow.css's query)
+   │
+   ▼
+the workspace: placeHostView, to every editor it holds ── 'middle' up to
+               2052px, 'beside' past it
+   │
+   ▼
+the bar's Preview ──▶ showHostView ──▶ view: 'host' ──▶ the builder draws a region
+   │                                                    named Preview in the design
+   │                                                    view's place, and the
+   │                                                    Studio's Preview in it prints
+   ▼
+the toolbar's Design view ──▶ openPanel('canvas') ──▶ view: 'design': the design
+                                                       view back with the keyboard
+                                                       in it; the Preview not
+                                                       drawn, nothing printed
+```
+
+Beside the builder, the bar's Preview shows and hides the Preview the
+Studio draws there, and the toolbar's Design view leaves it, as
+[0019](../decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md)
+had it. In the middle, React's builder draws the Preview as its `hostView`.
+Angular's stamps the Studio's `reportHostView` template, which holds an
+empty slot, and React draws the Preview into the slot through a portal,
+only while the editor's `view` is the host's, so that as the Preview moves
+beside the builder it is never drawn twice. So the Preview is one
+component in either builder, and a framework switch draws it again. While
+it stands in the middle the zoom, which is the design view's, is
+unavailable.
+
+As the window crosses the width with the keyboard in the middle pane,
+the builder puts it on what stands there now; the keyboard on a Preview
+beside the builder, the Studio takes along into the middle. The Preview's
+viewer keeps the PDF on its paper, and redraws it as a pane hidden or
+shown resizes the paper, until PDF.js has loaded the newer one.
+
 ## 6.6 A Swiss QR-bill, from a literal to the slip
 
 ```

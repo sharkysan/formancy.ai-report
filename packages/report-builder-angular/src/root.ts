@@ -38,11 +38,12 @@ function keepsItsKeys(element: Element): boolean {
 /**
  * What focus lands on in each pane, the first of these that is there: the
  * selected outline row, else the tree's one tab stop, else the tree itself;
- * the design view; the first field; the problems' list.
+ * the design view, else the host's view standing in its place; the first
+ * field; the problems' list.
  */
 const PANE_FOCUS: Readonly<Record<EditorPanel, readonly string[]>> = {
   outline: ['[role="treeitem"][aria-selected="true"]', '[role="treeitem"][tabindex="0"]', '[role="tree"]'],
-  canvas: ['[data-report-part="canvas"]'],
+  canvas: ['[data-report-part="canvas"]', '[data-report-part="view"]'],
   properties: ['[data-report-part="properties"] :is(input, select, textarea)'],
   diagnostics: ['[data-report-part="diagnostics"]'],
 }
@@ -65,6 +66,7 @@ const SELECTION_FOCUS: readonly string[] = ['[role="treeitem"][aria-selected="tr
     '[attr.data-panel]': 'state().panel',
     '[attr.data-hidden]': 'hidden()',
     '(keydown)': 'keydown($event)',
+    '(focusin)': 'focused($event)',
   },
 })
 export class ReportEditorRoot {
@@ -84,6 +86,10 @@ export class ReportEditorRoot {
   private focusAfter: FocusAfter | null = null
   /** What opened the place chooser, for focus to go back to when it is cancelled. */
   private opener: HTMLElement | null = null
+  /** The element the keyboard last stood on in this builder, for a middle pane swapped from under it to hand the keyboard on. */
+  private lastFocused: EventTarget | null = null
+  /** What the middle pane showed at the last render: null before the first. */
+  private view: 'design' | 'host' | null = null
 
   constructor() {
     afterEveryRender(() => this.moveFocus())
@@ -178,10 +184,17 @@ export class ReportEditorRoot {
     this.dispatch({ type: 'hidePanel', panel }, { to: 'pane', panel: 'canvas' })
   }
 
+  protected focused(event: FocusEvent): void {
+    this.lastFocused = event.target
+  }
+
   protected keydown(event: KeyboardEvent): void {
     // A key press reaches the root from an element inside it.
     const target = event.target as Element
     if (keepsItsKeys(target)) return
+    // A key pressed in this builder's host's view is the host's, as a text field's are its own.
+    const view = target.closest('[data-report-part="view"]')
+    if (view !== null && this.host.nativeElement.contains(view)) return
     const scope: KeyScope = target.closest('[role="tree"]') === null ? 'editor' : 'outline'
     const action = actionForKey(event, scope, this.state().drag !== null)
     if (action === undefined) return
@@ -191,8 +204,25 @@ export class ReportEditorRoot {
     this.dispatch(action, scope === 'outline' ? { to: 'selection' } : undefined)
   }
 
+  /**
+   * The middle pane swapped by the host -- its view placed or shown from
+   * outside, as the window crosses a width -- takes the keyboard along
+   * rather than drop it on the page: where the element it stood on went
+   * with the pane, and nothing has taken it since.
+   */
+  private dropped(): FocusAfter | null {
+    const view = this.state().view
+    const swapped = this.view !== null && this.view !== view
+    this.view = view
+    const last = this.lastFocused
+    const nowhere = document.activeElement === null || document.activeElement === document.body
+    return swapped && last instanceof Node && !last.isConnected && nowhere ? { to: 'pane', panel: 'canvas' } : null
+  }
+
   private moveFocus(): void {
-    const focus = this.focusAfter
+    // Asked every render, so that it knows what the middle pane showed at the last.
+    const dropped = this.dropped()
+    const focus = this.focusAfter ?? dropped
     if (focus === null) return
     this.focusAfter = null
     const root = this.host.nativeElement

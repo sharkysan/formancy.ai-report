@@ -24,7 +24,7 @@ describe('the builder scenarios, in React', () => {
   for (const locale of EDITOR_LOCALES) {
     for (const scenario of builderScenarios(locale)) {
       test(`${locale}: ${scenario.name}`, async () => {
-        const mounted = mount(scenario.report(), scenario.locale)
+        const mounted = mount(scenario.report(), scenario.locale, scenario.host)
         for (const step of scenario.steps) await runStep(step, mounted)
         expect(await violations()).toEqual([])
         ran.add(`${locale}: ${scenario.name}`)

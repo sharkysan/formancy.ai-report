@@ -14,9 +14,14 @@
  * The document and its history live in the session, so unmounting this and
  * mounting another builder -- React or Angular -- over the same session
  * loses nothing, and leaves no subscription behind.
+ *
+ * A host may give a view of its own -- the Studio's PDF -- which stands in
+ * the design view's place while the editor says so (0029): a bare region,
+ * named by the editor's `hostView`, holding what the host gave and nothing
+ * of the builder's, its keys the host's.
  */
 import { useCallback, useId, useLayoutEffect, useMemo, useRef } from 'react'
-import type { KeyboardEvent, ReactElement } from 'react'
+import type { KeyboardEvent, ReactElement, ReactNode } from 'react'
 import { actionForKey, editorText } from '@formancy/report-builder-core'
 import type { DiagnosticEntry, DragSubject, DropTarget, EditorAction, EditorOutcome, EditorPanel, HideablePanel, ReportEditor, Selection } from '@formancy/report-builder-core'
 import type { ComponentKind } from '@formancy/report-spec'
@@ -37,6 +42,15 @@ export interface ReportBuilderProps {
    * whoever created it does, once no builder shows it.
    */
   readonly editor: ReportEditor
+  /**
+   * What the builder draws in the design view's place while the editor's
+   * `view` is the host's: the host's own view, named by the editor's
+   * `hostView`. The builder lends it the middle pane's box and a region's
+   * name, none of report-builder.css's rules -- the workbench's `.wb *`
+   * reaches it, turning transitions off under reduced motion -- and none of
+   * its keys; it is mounted only while drawn.
+   */
+  readonly hostView?: ReactNode
 }
 
 /**
@@ -52,13 +66,19 @@ function keepsItsKeys(element: EventTarget): boolean {
   return element instanceof HTMLInputElement && element.type !== 'checkbox'
 }
 
-export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
+export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactElement {
   const state = useEditorState(editor)
   const t = useMemo(() => editorText(state.locale), [state.locale])
   // Every id this builder mints starts here, so two builders on one page never share one.
   const ids = useId()
   const tree = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLElement>(null)
+  /** The host's view's region, while it stands in the design view's place. */
+  const view = useRef<HTMLElement>(null)
+  /** The last key press the host's view had first: React bubbles one from a portal the host opened there through the view, wherever the portal's DOM is. */
+  const hostKey = useRef<Event | null>(null)
+  /** The element the keyboard last stood on in this builder, for a middle pane swapped from under it to hand the keyboard on. */
+  const lastFocused = useRef<EventTarget | null>(null)
   const sheet = useRef<HTMLDivElement>(null)
   const fields = useRef<HTMLDivElement>(null)
   const problemList = useRef<HTMLUListElement>(null)
@@ -96,8 +116,9 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
         closed.current = null
         return from?.focus()
       }
+      // The design view, or the host's view standing in its place.
       case 'canvas':
-        return canvas.current?.focus()
+        return (canvas.current ?? view.current)?.focus()
       case 'properties':
         return fields.current?.querySelector<HTMLElement>('input, select, textarea')?.focus()
       case 'diagnostics':
@@ -115,6 +136,17 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
     focus(where)
   })
 
+  // The middle pane swapped by the host -- its view placed or shown from
+  // outside, as the window crosses a width -- takes the keyboard along
+  // rather than drop it on the page: where the element it stood on went
+  // with the pane, and nothing has taken it since, it goes to what stands
+  // in the middle now.
+  useLayoutEffect(() => {
+    const last = lastFocused.current
+    const dropped = document.activeElement === null || document.activeElement === document.body
+    if (last instanceof Node && !last.isConnected && dropped) focus('canvas')
+  }, [state.view, focus])
+
   /** Dispatches `action`; when it succeeds, focus goes to `then` -- at once if nothing changed, else once the change is drawn. */
   function act(action: EditorAction, then?: FocusAfter): EditorOutcome {
     const before = editor.state()
@@ -130,7 +162,8 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
   })
 
   function onKeyDown(event: KeyboardEvent<HTMLElement>): void {
-    if (event.defaultPrevented || keepsItsKeys(event.target)) return
+    // A key pressed in the host's view is the host's, as a text field's are its own.
+    if (event.defaultPrevented || keepsItsKeys(event.target) || event.nativeEvent === hostKey.current) return
     const inTree = tree.current?.contains(event.target as Node) === true
     const action = actionForKey(event, inTree ? 'outline' : 'editor', state.drag !== null)
     if (action === undefined) return
@@ -202,6 +235,9 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
       data-panel={state.panel}
       data-hidden={state.hidden.length === 0 ? undefined : state.hidden.join(' ')}
       onKeyDown={onKeyDown}
+      onFocus={(event) => {
+        lastFocused.current = event.target
+      }}
     >
       {/* A bar across the panes: report-builder.css spans every root child that is no pane. */}
       <div className="wb-pane">
@@ -228,12 +264,33 @@ export function ReportBuilder({ editor }: ReportBuilderProps): ReactElement {
         </section>
       ) : null}
 
-      <section className="wb-pane wb-canvas" data-pane="canvas">
-        <header>{t('pane.canvas')}</header>
-        <div className="wb-body">
-          <Canvas state={state} t={t} canvas={canvas} sheet={sheet} drag={drag} select={(action) => act(action, 'selection')} />
-        </div>
-      </section>
+      {/* The middle pane: the design view, or the host's view in its place --
+          no workbench pane, so no rule of the builder's dresses what the host
+          drew. Keyed, so that React draws each its own element rather than
+          turn one into the other, the keyboard left on a pane no longer
+          focusable. */}
+      {state.view === 'host' ? (
+        <section
+          key="view"
+          ref={view}
+          aria-label={state.hostView?.name}
+          data-pane="canvas"
+          data-report-part="view"
+          tabIndex={-1}
+          onKeyDown={(event) => {
+            hostKey.current = event.nativeEvent
+          }}
+        >
+          {hostView}
+        </section>
+      ) : (
+        <section key="design" className="wb-pane wb-canvas" data-pane="canvas">
+          <header>{t('pane.canvas')}</header>
+          <div className="wb-body">
+            <Canvas state={state} t={t} canvas={canvas} sheet={sheet} drag={drag} select={(action) => act(action, 'selection')} />
+          </div>
+        </section>
+      )}
 
       {/* The properties and the problems share the third column. On a narrow
           screen report-builder.css shows the one pane `data-panel` names, so

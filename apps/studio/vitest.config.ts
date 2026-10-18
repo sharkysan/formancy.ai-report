@@ -28,12 +28,15 @@ export default mergeConfig(
       // A timeout catches a hang; it does not time anything. The journey
       // walks every starter in both builders, prints each preview and final
       // render through the real pipeline, and runs axe twice at each of its
-      // states. Measured on 2026-10-16 on a Windows 11 workstation
-      // (i9-10900K), under coverage with the rest of the suite beside it: the
-      // journey took 22.2 s, its walk again with requests recorded 7.4 s,
-      // and plan 21's switch 4.0 s, against vitest's 5 s default. 120 s is
-      // the journey five times over. formancy.ai saw suites like this run
-      // nine to fourteen times slower on a loaded CI runner (its
+      // states. Measured on 2026-10-18 on a Windows 11 workstation
+      // (i9-10900K), under coverage with the rest of the suite beside it,
+      // once the Preview stood in the design view's place (0029) -- printed
+      // again by each builder it is shown in, and the design view walked for
+      // each starter: the journey took 47.3 s, its walk again with requests
+      // recorded 27.6 s, and plan 21's switch 6.7 s, against vitest's 5 s
+      // default (on 2026-10-16, before it: 22.2 s, 7.4 s and 4.0 s). 120 s
+      // is the journey two and a half times over. formancy.ai saw suites like
+      // this run nine to fourteen times slower on a loaded CI runner (its
       // vitest.coverage.ts, on RENDER_TIMEOUT_MS); a runner that slow fails
       // the journey here, and is the measurement to raise it by.
       testTimeout: 120_000,

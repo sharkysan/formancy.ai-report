@@ -1,6 +1,6 @@
 # 0019 — A person hides the panes whose room the design view needs, and the Studio puts the Preview beside the builder only where the design view holds a page
 
-- **Status:** accepted
+- **Status:** accepted; its Preview under the builder superseded by [0029](0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**

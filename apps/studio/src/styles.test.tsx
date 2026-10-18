@@ -3,10 +3,18 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createReportEditor, scenarioReport } from '@formancy/report-builder-core'
+import type { ReportEditor, ReportEditorOptions } from '@formancy/report-builder-core'
 import { ReportBuilder } from '@formancy/report-builder-react'
 import { openReportSession } from '@formancy/report-core'
-import { cleanup, render } from '@testing-library/react'
-import { afterEach, describe, expect, test } from 'vitest'
+import { STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest'
+import { MIDDLE } from './layout.js'
+import { decodeStarters, encodeStarters } from './starters/codec.js'
+import { imagesOf, studioStarters } from './starters/starters.js'
+import { Studio } from './studio.js'
+import { createWorkspace } from './workspace.js'
+import type { Workspace } from './workspace.js'
 
 /**
  * The Studio's stylesheets, held to the promises studio.css makes: the
@@ -21,7 +29,26 @@ import { afterEach, describe, expect, test } from 'vitest'
  * the builder or the paper by a route nobody thought of is caught too. What
  * jsdom cannot do -- lay out, compute a colour, resolve a media query -- is
  * the browser gate's.
+ *
+ * Where the Preview stands in the builder's middle (0029), the builder's
+ * own stylesheets join the Studio's: the Preview and its paper are inside
+ * the workbench there. PDF.js is stood in for, since jsdom has no canvas;
+ * the stand-in writes a text layer as PDF.js does, so the paper has spans.
  */
+
+vi.mock('./preview/pdf-document.js', () => ({
+  loadPdf: () => ({
+    promise: Promise.resolve({
+      pageCount: 1,
+      pageSize: () => Promise.resolve({ width: 595.28, height: 841.89 }),
+      drawPage: (_page: number, _zoom: number, _canvas: HTMLCanvasElement, text: HTMLElement) => {
+        text.innerHTML = '<span>Total</span><br><span class="markedContent"><span>CHF</span></span>'
+        return { done: Promise.resolve(), cancel: () => undefined }
+      },
+    }),
+    destroy: () => undefined,
+  }),
+}))
 
 const styles = join(dirname(fileURLToPath(import.meta.url)))
 
@@ -61,8 +88,18 @@ const exported = (specifier: string): string => readFileSync(createRequire(impor
 /** Every style rule of the Studio's stylesheets, with its file. */
 const rules = (): Rule[] => files().flatMap((file) => rulesOf(file, readFileSync(join(styles, file), 'utf8')))
 
+let workspace: Workspace | undefined
+
+beforeAll(() => {
+  // jsdom has no object URLs; the Preview's download link needs one.
+  URL.createObjectURL = () => 'blob:studio-styles'
+  URL.revokeObjectURL = () => undefined
+})
+
 afterEach(() => {
   cleanup()
+  workspace?.dispose()
+  workspace = undefined
   document.body.replaceChildren()
 })
 
@@ -94,15 +131,64 @@ const COLOUR = /colou?r|^background|shadow$|^(border|outline)(-(top|right|bottom
  */
 const EVERYWHERE = new Set(['*:where(:not(.paper *))', ':where(:not(.paper *))::selection', ':where(:not(.paper *)):focus-visible'])
 
-/** The React builder over the scenario report, the introduction selected and a text being placed by keyboard: every kind of control it draws. */
-function builder(): Element[] {
+/** An editor over the scenario report. */
+function editorOf(options: ReportEditorOptions = {}): ReportEditor {
   const opening = openReportSession(scenarioReport())
   if (!opening.ok) throw new Error('the scenario report does not open')
-  const editor = createReportEditor(opening.session)
+  return createReportEditor(opening.session, options)
+}
+
+/** The host's view a builder draws in the design view's place: its region is the builder's, what is in it the host's (0029). */
+const HOST_VIEW = '[data-report-part="view"]'
+
+/**
+ * The React builder's own elements: over the scenario report, the
+ * introduction selected and a text being placed by keyboard -- every kind
+ * of control it draws -- and again with a host's view in the design view's
+ * place, whose region is the builder's and whose content is the host's.
+ */
+function builder(): Element[] {
+  const editor = editorOf()
   editor.dispatch({ type: 'select', id: 'intro' })
   editor.dispatch({ type: 'startDrag', subject: { kind: 'text' }, via: 'keyboard' })
   const { container } = render(<ReportBuilder editor={editor} />)
-  return [...container.querySelectorAll('.wb *')]
+  const { container: hosting } = render(<ReportBuilder editor={editorOf({ hostView: { name: 'Preview', shown: true } })} hostView={<button type="button">Download PDF</button>} />)
+  return [...container.querySelectorAll('.wb *'), ...[...hosting.querySelectorAll('.wb *')].filter((element) => element.parentElement?.closest(HOST_VIEW) === null)]
+}
+
+/** The rules of the builder's two stylesheets, as a host's bundler resolves them. */
+const builderSheets = (): Rule[] => [...rulesOf('workbench.css', exported('@formancy/themes/workbench.css')), ...rulesOf('report-builder.css', exported('@formancy/report-builder-core/report-builder.css'))]
+
+/** Those, and every rule of the Studio's that names the builder. */
+const builderRules = (): Rule[] => [...builderSheets(), ...rules().filter((rule) => NAMES_BUILDER.test(rule.selector))]
+
+/**
+ * The one rule of the builder's that reaches what a host draws in its
+ * middle: workbench.css's `.wb *` under `prefers-reduced-motion`, which
+ * turns every transition in a workbench off. Nothing in the Preview or on
+ * its paper has a transition, so it changes nothing drawn there; the test
+ * that admits it fails when it declares anything else.
+ */
+const INERT = 'workbench.css: .wb *'
+
+/** The properties each rule of `css` whose selector list holds `selector` declares, read from its text: what the browser applies. */
+const declaredBy = (css: string, selector: string): string[][] =>
+  [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter((block) => selectorsOf(block[1] ?? '').includes(selector)).map((block) => [...(block[2] ?? '').matchAll(/([\w-]+)\s*:/g)].map((match) => match[1] ?? ''))
+
+/**
+ * The Studio as it opens in a window with no room beside the builder --
+ * jsdom's 1024 pixels -- the service inspection printed and its PDF drawn in
+ * the React builder's middle. Returns the region the Preview stands in.
+ */
+async function studio(): Promise<HTMLElement> {
+  const { starters, images } = decodeStarters(encodeStarters(STARTERS, STARTER_IMAGES))
+  const listed = studioStarters(starters)
+  workspace = createWorkspace(listed)
+  render(<Studio starters={listed} workspace={workspace} images={imagesOf(images)} />)
+  await screen.findByText('Preview: printed.')
+  const view = within(screen.getByRole('region', { name: 'Report editor' })).getByRole('region', { name: 'Preview' })
+  await waitFor(() => expect(view.querySelector('.paper-text span')).not.toBeNull())
+  return view
 }
 
 /** The rules of `list` that select an element of `inside`, said as `file: selector`. */
@@ -151,10 +237,15 @@ describe("the Studio's stylesheets", () => {
   // controls: taller selects than the inputs beside them, a second focus
   // ring over the builder's own. Matched against the builder as React draws
   // it, every rule but builder.css's and the room's three for every element.
+  // What a host's view holds in the builder's middle is the Studio's own
+  // Preview, which the Studio's rules dress (0029); the region it stands
+  // in is the builder's, and held here with the rest.
   test('reach inside the builder only from builder.css, and with the room’s box model, selection and focus ring', () => {
     const inside = builder()
     expect(inside.some((element) => element.matches('select'))).toBe(true)
     expect(inside.some((element) => element.matches('[role="dialog"] button'))).toBe(true)
+    expect(inside.some((element) => element.matches(HOST_VIEW))).toBe(true)
+    expect(inside.some((element) => element.matches(`${HOST_VIEW} *`))).toBe(false)
     const studio = rules().filter((rule) => rule.file !== 'styles/builder.css' && !EVERYWHERE.has(rule.selector))
     expect(reaching(studio, inside)).toEqual([])
     // A guard on the guard: builder.css's rules do reach the builder drawn here.
@@ -185,16 +276,63 @@ describe("the Studio's stylesheets", () => {
   // PDF.js's text spans -- a font, a focus ring, box-sizing, a selection
   // colour -- would show something the PDF does not hold. Only rules that
   // are the paper's own (their selector names it) may match inside it: the
-  // white page, and the text layer PDF.js expects.
-  test('reach nothing on the paper but the rules that are its own', () => {
-    document.body.innerHTML = '<div class="viewer"><div class="paper"><div class="paper-page"><canvas></canvas><div class="paper-text"><span>Total</span><br><span class="markedContent"><span>CHF</span></span></div></div></div></div>'
-    const inside = [...document.querySelectorAll('.paper *')]
-    expect(inside.length).toBe(7)
-    expect(reaching(rules().filter((rule) => !rule.selector.includes('.paper')), inside)).toEqual([])
+  // white page, and the text layer PDF.js expects. Beside the builder those
+  // are the Studio's rules; in its middle (0029) the builder's join them,
+  // and only the workbench's inert `.wb *` reaches the paper there.
+  test('reach nothing on the paper but the rules that are its own, beside the builder and in its middle', async () => {
+    const middle = [...(await studio()).querySelectorAll('.paper *')]
+    expect(middle.some((element) => element.matches('.paper-text span'))).toBe(true)
+    const every = [...rules(), ...builderSheets()].filter((rule) => !rule.selector.includes('.paper'))
+    expect(reaching(every, middle)).toEqual([INERT])
+    document.body.insertAdjacentHTML('beforeend', '<div class="viewer"><div class="paper" id="beside"><div class="paper-page"><canvas></canvas><div class="paper-text"><span>Total</span><br><span class="markedContent"><span>CHF</span></span></div></div></div></div>')
+    const beside = [...document.querySelectorAll('#beside *')]
+    expect(beside.length).toBe(7)
+    expect(reaching(every, beside)).toEqual([])
     // A guard on the guard: the room's own element rules do reach an element
     // that is not on the paper.
     document.body.insertAdjacentHTML('beforeend', '<button>Off the paper</button>')
     const button = document.querySelector('body > button') as Element
     expect(rules().some((rule) => selectorsOf(rule.selector).some((selector) => button.matches(selector)))).toBe(true)
+  })
+
+  // Standing in the design view's place, the Preview is inside the
+  // workbench but no pane of it (0029): a pane's rules would dress its
+  // Previous page, Zoom and Final as the builder's own controls, and give it
+  // a header it does not have. Every rule of workbench.css and
+  // report-builder.css as a host's bundler resolves them, and every Studio
+  // rule that names the builder, matched against the Preview the Studio
+  // draws there: only the workbench's inert `.wb *` reaches it.
+  test('let no rule of the builder’s reach inside the Preview standing in its middle but the workbench’s inert one', async () => {
+    const view = await studio()
+    const inside = [...view.querySelectorAll('*')]
+    expect(inside.some((element) => element.matches('button.tool'))).toBe(true)
+    expect(inside.some((element) => element.matches('input[type="checkbox"]'))).toBe(true)
+    expect(reaching(builderRules(), inside)).toEqual([INERT])
+    // The inert rule turns transitions off and nothing else; with a property
+    // more it would dress the Preview, and is no longer admitted -- which
+    // the reader sees, as it does in a sample.
+    expect(declaredBy(exported('@formancy/themes/workbench.css'), '.wb *')).toEqual([['transition']])
+    expect(declaredBy('@media (x) { .wb *, .wb .y * { transition: none; color: red } }', '.wb *')).toEqual([['transition', 'color']])
+    // A guard on the guard: the same rules do dress the builder's own pane beside it.
+    const pane = within(screen.getByRole('region', { name: 'Report editor' })).getByRole('tree', { name: 'Outline' }).closest('[data-pane]')
+    expect(reaching(builderRules(), [...(pane?.querySelectorAll('*') ?? [])]).filter((rule) => rule !== INERT).length).toBeGreaterThan(0)
+  })
+
+  // The Preview's place is decided from one width twice: by layout.ts,
+  // which tells the editors where it stands, and here, where narrow.css
+  // gives the builder the row; the browser gate and the README pictures'
+  // camera read their widths from the stylesheet. Two numbers apart would
+  // stand the Preview beside a builder laid out alone in its row, or leave
+  // an empty column beside a builder with the Preview in its middle.
+  test('give the builder the row up to the width at which layout.ts stands the Preview in its middle', () => {
+    const style = document.createElement('style')
+    style.textContent = readFileSync(join(styles, 'styles', 'narrow.css'), 'utf8')
+    document.head.append(style)
+    const conditions = [...(style.sheet as CSSStyleSheet).cssRules]
+      .filter((rule): rule is CSSMediaRule => rule instanceof CSSMediaRule)
+      .filter((rule) => [...rule.cssRules].some((inner) => inner instanceof CSSStyleRule && inner.selectorText === '.studio-main'))
+      .map((rule) => rule.conditionText)
+    style.remove()
+    expect(conditions).toEqual([MIDDLE])
   })
 })

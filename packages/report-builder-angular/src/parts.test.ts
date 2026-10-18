@@ -14,7 +14,7 @@ import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { screen, within } from '@testing-library/angular'
 import { afterEach, describe, expect, test } from 'vitest'
-import { mountBuilder } from './test-mount'
+import { mountBuilder, mountWithHostView } from './test-mount'
 import { sessionOver } from './test-support'
 import { click, fill } from './test-user'
 
@@ -58,6 +58,19 @@ async function emptyHooks(): Promise<Set<string | null>> {
   return new Set([...root.querySelectorAll('[data-report-part]')].map((element) => element.getAttribute('data-report-part')))
 }
 
+/**
+ * The hooks of the builder with the host's view in the design view's place:
+ * the one part no other state draws, as the design view's are the parts it
+ * does not.
+ */
+async function hostHooks(): Promise<Set<string | null>> {
+  TestBed.resetTestingModule()
+  const editor = createReportEditor(sessionOver(scenarioReport()), { hostView: { name: 'Preview', shown: true } })
+  const mounted = await mountWithHostView(editor, 'Download PDF')
+  const root = mounted.fixture.nativeElement as HTMLElement
+  return new Set([...root.querySelectorAll('[data-report-part]')].map((element) => element.getAttribute('data-report-part')))
+}
+
 /** The data attributes of the root of a builder whose outline the person hid. */
 async function hiddenRoot(): Promise<string[]> {
   TestBed.resetTestingModule()
@@ -77,7 +90,13 @@ describe('the stylesheet’s hooks', () => {
     const root = await everything()
     const rendered = new Set([root, ...root.querySelectorAll('[data-report-part]')].map((element) => element.getAttribute('data-report-part')))
     expect(rendered.has('outline-empty')).toBe(false)
+    expect(rendered.has('view')).toBe(false)
     for (const part of await emptyHooks()) rendered.add(part)
+    // The host's view and the design view are never drawn together.
+    const host = await hostHooks()
+    expect(host.has('view')).toBe(true)
+    expect(host.has('canvas')).toBe(false)
+    for (const part of host) rendered.add(part)
     expect(rendered).toEqual(new Set(REPORT_PARTS))
   })
 

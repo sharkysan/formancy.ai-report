@@ -39,7 +39,8 @@ its links, and review the rest
 > them. Data goes in and a PDF comes out, from
 > a host's JSON or, best-effort, from a Formancy Data 0.1.0 server. A
 > report can be laid out in a native React or Angular builder. The Studio
-> puts both builders on one screen with the real PDF beside them. It is
+> puts both builders on one screen with the real PDF beside them, or, in a
+> window with no room for it there, in the place of their design view. It is
 > online at https://formancy.ai/report/, and `pnpm demo` runs it from a
 > clone ([Try it](#try-it)). Beside it, the product's pages say what
 > Formancy Report is, in German, French, Italian and English. What 0.1.0
@@ -123,10 +124,12 @@ pnpm demo
 `pnpm demo` builds the packages and the Studio, then serves the built
 Studio with `vite preview` at http://localhost:4394. Pick a starter or a
 blank report, edit it in the React or the Angular builder, and the Preview
-prints the PDF in the page, Download PDF included. The starters' data is
-synthetic and built in, and the Studio's faces are its own files: the
-gate fails when the page fetches anything, or hints at a connection,
-outside the built Studio ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
+prints the PDF in the page, Download PDF included: beside the builder in a
+window over 2052 pixels wide, and in its design view's place in any other,
+where the toolbar's Design view and the bar's Preview swap the two. The
+starters' data is synthetic and built in, and the Studio's faces are its
+own files: the gate fails when the page fetches anything, or hints at a
+connection, outside the built Studio ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
 
 formancy.ai/report/ serves the same build, from a Cloudflare Worker of its
 own beside formancy.ai's site, and the browser gate serves it under
@@ -158,12 +161,17 @@ over one report session per starter, and previews the PDF the renderer
 prints from that session: in the page, on white paper, through
 `@formancy/report-render-pdf/browser` and PDF.js. It works in the same room
 as formancy.ai's admin and Formancy Data's Studio. Each of the builder's
-side panes hides from its own header, and the bar's Preview hides the
-Preview, to give the design view their room; the toolbar and the bar bring
-them back. The Preview stands beside the builder only in a window wide
-enough for the design view to hold a page beside it, and under it
-otherwise
+side panes hides from its own header to give the middle its room, and the
+toolbar brings it back
 ([0019](./docs/decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md)).
+The Preview stands beside the builder in a window wide enough for the
+design view to hold a page beside it. In any narrower one it stands in the
+builder's middle, in the design view's place, with the outline and the
+properties beside it, so what is edited there is printed in sight; the
+toolbar's Design view gives the design view its place back, and the bar's
+Preview shows the PDF again. The bar's Preview shows and hides the PDF at
+every width, and each starter opens with it shown
+([0029](./docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
 `pnpm demo` builds and
 serves it ([Try it](#try-it)); while working on it, `pnpm --filter
 @formancy/report-studio dev` serves it on port 4394 with Vite's dev server,
@@ -186,9 +194,9 @@ once `pnpm build` has built the packages it imports.
 <details>
 <summary>More: At a phone's width</summary>
 
-<img src="./docs/images/readme/studio-narrow.webp" width="390" alt="The Studio at a phone's width: the bar with the starter picker on Service inspection and the builder switch on React, the builder showing its toolbar and the outline, and under it the Preview with both pages of the service inspection report.">
+<img src="./docs/images/readme/studio-narrow.webp" width="390" alt="The Studio at a phone's width: the bar with the starter picker on Service inspection and the builder switch on React, and under it the builder, its toolbar wrapped over several rows and the Preview as its one pane, “Preview: printed.”, with the top of the first page of the service inspection report on white paper.">
 
-*At 390 pixels wide, the service inspection starter as the Studio opens. The bar's controls take a line each, the builder shows one pane at a time, chosen from its toolbar, and the Preview follows under it with each page at the width there is, “Page 1 of 2” and the next; nothing scrolls sideways, which the Studio's browser gate measures down to 320 pixels.*
+*At 390 pixels wide, the service inspection starter as the Studio opens. The bar's controls take a line each, and the builder shows one pane at a time, chosen from its toolbar: it opens on the Preview, standing in the design view's place, with its first page at the width there is, “Page 1 of 2” ([0029](./docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)). Nothing scrolls sideways, which the Studio's browser gate measures down to 320 pixels.*
 
 </details>
 
@@ -347,8 +355,9 @@ beside the invoice's samples
 
 ![The euro invoice from Ireland, an Invoice: the boiler's parts, then Subtotal, VAT 23% and Total due €645.17, and under them the Bank details, IBAN: IE30 FMNC 0000 0012 3456 78, beside the EPC QR code that pays it](docs/images/euro-invoice-ie.png)
 
-The Studio shows the starters' pages beside the editor, printed in the
-page from the session; its pictures are [above](#the-studio).
+The Studio shows the starters' pages beside the editor, or in its design
+view's place on a narrower screen, printed in the page from the session;
+its pictures are [above](#the-studio).
 
 ## How it relates to formancy.ai and Formancy Data
 

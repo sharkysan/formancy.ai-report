@@ -38,7 +38,11 @@ const EDITED = 'Zahlbar innert 10 Tagen netto.'
 /** The condition Book value is given: a column's condition has no row to read. */
 const CONDITION = 'row.value > 1000'
 
-/** The Studio's three panels, each a whole element: the bar, the builder and the Preview. */
+/**
+ * The Studio's three panels, each a whole element: the bar, the builder and
+ * the Preview -- beside the builder past narrow.css's widest breakpoint,
+ * where the wide scenes are taken, and in the builder's middle under it.
+ */
 function panels(page) {
   return {
     Bar: page.getByRole('banner'),
@@ -137,9 +141,11 @@ const acts = {
   'studio-narrow': async (page) => {
     // A page opened afresh: the workspace, and every edit above, go with it.
     await page.reload()
-    const parts = panels(page)
-    await untilPrinted(parts.Preview)
-    return { parts }
+    const { Bar, Builder, Preview } = panels(page)
+    await untilPrinted(Preview)
+    // At a phone's width the Preview stands in the builder's middle, the
+    // pane the builder shows (0029): the builder holds it, and its text.
+    return { parts: { Bar, Builder } }
   },
 }
 
@@ -152,7 +158,7 @@ try {
     playwright: require('playwright/package.json').version,
     // Past narrow.css's widest breakpoint, which the camera holds it to: the
     // Preview beside the builder, as the captions say, and the design view
-    // holding the page whole (0019).
+    // holding the page whole (0019, 0029).
     width: 2100,
     css: { directory: join(app, 'src'), entry: 'studio.css' },
     themes: manifest.dependencies['@formancy/themes'],

@@ -314,11 +314,11 @@ export interface Availability {
   readonly indent: boolean
   readonly outdent: boolean
   readonly moveTo: boolean
-  /** Below `MAX_ZOOM`. */
+  /** Below `MAX_ZOOM`, with the design view drawn: the zoom is its. */
   readonly zoomIn: boolean
-  /** Above `MIN_ZOOM`. */
+  /** Above `MIN_ZOOM`, with the design view drawn. */
   readonly zoomOut: boolean
-  /** At any zoom but 100 %. */
+  /** At any zoom but 100 %, with the design view drawn. */
   readonly zoomReset: boolean
 }
 
@@ -329,6 +329,26 @@ export type EditorPanel = (typeof EDITOR_PANELS)[number]
 /** The panes a person may hide to give the design view their room: every one but the design view. */
 export const HIDEABLE_PANELS = ['outline', 'properties', 'diagnostics'] as const satisfies readonly EditorPanel[]
 export type HideablePanel = (typeof HIDEABLE_PANELS)[number]
+
+/**
+ * Where a host's view stands: in the design view's place, which a builder
+ * draws it in, or beside the builder, where the host draws it itself.
+ */
+export const HOST_VIEW_PLACES = ['middle', 'beside'] as const
+export type HostViewPlace = (typeof HOST_VIEW_PLACES)[number]
+
+/**
+ * A view of the host's own -- the Studio's PDF preview -- as the editor
+ * holds it: its name, whether the person has it shown, and where the host
+ * says there is room for it. One person's view, like the hidden panes:
+ * never the report's.
+ */
+export interface HostView {
+  /** In the host's words: a builder names the region it draws the view in by it. */
+  readonly name: string
+  readonly shown: boolean
+  readonly place: HostViewPlace
+}
 
 /** The latest announcement for the builder's live region; `sequence` counts them, so saying the same twice is still two. */
 export interface Announcement {
@@ -362,6 +382,14 @@ export interface EditorState {
    * layout always has its pane.
    */
   readonly hidden: readonly HideablePanel[]
+  /** The host's view, for an editor made with one: the same object until it changes. */
+  readonly hostView: HostView | null
+  /**
+   * What the middle pane shows: the design view, or the host's view while
+   * it is shown in the design view's place. Decided here, so neither
+   * builder works it out from `hostView` again.
+   */
+  readonly view: 'design' | 'host'
   readonly status: Announcement
 }
 
@@ -394,9 +422,18 @@ export type EditorAction =
   | { readonly type: 'updateDrag'; readonly over: number | null }
   | { readonly type: 'drop' }
   | { readonly type: 'cancelDrag' }
-  /** Shows the pane: the one a narrow layout shows, and one that was hidden drawn again. */
+  /**
+   * Shows the pane: the one a narrow layout shows, and one that was hidden
+   * drawn again. The design view's takes its place back from a host's view
+   * shown there.
+   */
   | { readonly type: 'openPanel'; readonly panel: EditorPanel }
   | { readonly type: 'hidePanel'; readonly panel: HideablePanel }
+  /** Shows the host's view: in the middle it takes the design view's place, and is the pane a narrow layout shows. */
+  | { readonly type: 'showHostView' }
+  | { readonly type: 'hideHostView' }
+  /** Where the host's view stands: the host's to say, from the room it has. */
+  | { readonly type: 'placeHostView'; readonly place: HostViewPlace }
 
 export type EditorActionType = EditorAction['type']
 
@@ -418,7 +455,12 @@ export const EDITOR_REFUSAL_CODES = [
   'not-dragging',
   /** A drop with no target under the pointer. */
   'no-target',
-  /** A kind whose default component the report cannot hold yet: an image with no image to draw. */
+  /**
+   * A kind whose default component the report cannot hold yet: an image
+   * with no image to draw. Or a host's view, asked of an editor made
+   * without one; or the zoom, while a host's view stands in the design
+   * view's place.
+   */
   'unavailable',
   /** Undo or redo with no step to take. */
   'no-history',

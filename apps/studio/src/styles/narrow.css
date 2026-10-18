@@ -4,44 +4,41 @@
  * Last in the cascade, so its rules win.
  *
  * Up to 128.25rem the builder and the Preview do not both fit beside each
- * other with a design view that holds a page, so they stack: the builder
- * at a useful height and the whole width, the Preview under it, and the
- * page scrolls rather than the design view showing a strip of the sheet.
- * Measured in Chromium on 16 October 2026: beside the Preview and both
- * side panes, the design view holds an A4 page at 100 % whole in a 2052px
- * window and is 2px short at 2049px; at 1536px, under the 90rem this was,
- * it was 395px wide. The browser gate checks the first width beside each
- * other. Below 48rem
- * report-builder.css shows one of the builder's panes at a time, chosen
- * from its toolbar. Below 40rem the gutters tighten and the bar's controls
- * take a line each.
+ * other with a design view that holds a page. Measured in Chromium on 16
+ * October 2026: beside the Preview and both side panes, the design view
+ * holds an A4 page at 100 % whole in a 2052px window and is 2px short at
+ * 2049px; at 1536px, under the 90rem this was, it was 395px wide (0019).
+ * There the builder has the row, and the Preview stands in its middle, in
+ * the design view's place, with the outline and the properties beside it
+ * (0029): layout.ts tells the editors so from the same query, which
+ * styles.test.tsx holds equal to this one, and the browser gate checks the
+ * first width beside each other. Below 48rem report-builder.css shows one
+ * of the builder's panes at a time, chosen from its toolbar. Below 40rem
+ * the gutters tighten and the bar's controls take a line each.
  */
 
 @media (max-width: 128.25rem) {
-  .studio {
-    grid-template-rows: auto auto;
-    height: auto;
-    min-height: 100dvh;
-  }
-
   .studio-main {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .studio-builder {
-    height: max(32rem, calc(100dvh - 6rem));
-  }
-
-  .paper {
-    flex: none;
-    overflow: auto hidden;
   }
 }
 
 @media (max-width: 40rem) {
+  /* The bar's controls take a line each and the builder's toolbar wraps,
+     so the page scrolls past the bar to a builder of nearly the window's
+     height, as 0019 had it, rather than holding the panes under the bar:
+     measured in Chromium on 18 October 2026 at 390 by 844, held to the
+     window they had 257px, the Preview's paper 28px of it. */
   .studio {
+    grid-template-rows: auto auto;
     gap: 0.5rem;
+    height: auto;
+    min-height: 100dvh;
     padding: 0.5rem;
+  }
+
+  .studio-builder {
+    height: max(32rem, calc(100dvh - 6rem));
   }
 
   .studio-bar {
@@ -66,6 +63,14 @@
 
   .paper {
     padding: 0.75rem;
+  }
+
+  /* In the builder's middle the Preview scrolls as one, its pages at their
+     height under its tools, rather than its paper in what four rows of
+     tools leave: 24px of paper at 360 by 640, measured as above. */
+  .studio-preview[data-place='middle'] .paper {
+    flex: none;
+    overflow: auto hidden;
   }
 
   .download {

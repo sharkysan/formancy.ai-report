@@ -19,7 +19,10 @@
  * styles/builder.css, admin.css's own rules for the workbench without
  * their colours -- and leaves their colours to the --wb-* variables
  * room.css sets: no rule of the Studio's declares a colour on the builder,
- * and none but builder.css's reaches inside it (styles.test.tsx). The
+ * and none but builder.css's reaches the builder's own elements
+ * (styles.test.tsx). Where the Preview stands in the builder's middle
+ * (0029) it is the Studio's, dressed by the Studio's rules, and no rule of
+ * the builder's reaches it but the workbench's inert `.wb *`. The
  * Preview's paper is the document's: white, PDF.js's drawing of the PDF,
  * and every rule that names an element ends in `:where(:not(.paper *))`.
  *

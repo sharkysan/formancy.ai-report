@@ -60,6 +60,24 @@ says what it did and tells its own listeners, and only then throws the
 error from `dispatch`. A dispatch made from inside a listener while another
 is running counts as part of it, so listeners still hear once.
 
+**A host's view.** A host with a view of its own -- the Studio's PDF
+preview -- names it when it makes the editor:
+
+```ts
+const editor = createReportEditor(opening.session, { hostView: { name: 'Preview', shown: true, place: 'middle' } })
+```
+
+The editor then holds whether it is shown and where: `'middle'`, in the
+design view's place, where a builder draws what the host gives it; or
+`'beside'`, outside the builder, where the host draws it itself. It is
+hidden and in the middle unless the option says otherwise. The host says
+where there is room (`placeHostView`) and the person whether to see it
+(`showHostView`, `hideHostView`); the toolbar's Design view gives the
+design view its place back. A view with no name, or in a place the editor
+does not know, throws a `RangeError` when the editor is made. Like the
+hidden panes it is the editor's: no edit, undo or other editor touches it
+([0029](../../docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
+
 ## The state
 
 `editor.state()` returns one `EditorState`:
@@ -150,14 +168,23 @@ is running counts as part of it, so listeners still hear once.
   so the pointer can reach both.
 - **`can`**: which actions have somewhere to go: the keyboard's moves on
   the selection, decided by the same code that performs them, and the
-  zoom's, by its range. A builder marks the others `aria-disabled` and
-  still sends them, so the editor says why nothing happened.
+  zoom's, by its range -- none while a host's view stands in the design
+  view's place, whose zoom it is. A builder marks the others
+  `aria-disabled` and still sends them, so the editor says why nothing
+  happened.
 - **`status`**: the latest announcement for the live region, numbered so
   that saying the same words twice is still two announcements.
 - **`panel`** and **`hidden`**: the pane a narrow layout shows, and the
   side panes the person hid to give the design view their room, in the
   order they stand in. The design view is never hidden, and `panel` is
   never a hidden pane, so a narrow layout always has one to show.
+- **`hostView`** and **`view`**: the host's view, for an editor made with
+  one (its name, whether it is shown, and its place), the same object until
+  it changes, so a host that reads it alone redraws only then; and what the
+  middle pane shows, `'design'` or, while the host's view is shown in the
+  middle, `'host'`. A builder draws the middle pane from `view` and never
+  works it out from `hostView` again. An editor made with its view shown
+  in the middle starts with `panel` on it.
 
 ## Actions
 
@@ -181,10 +208,13 @@ session's do.
 | `insert(kind, target)`, `move(id, target)` | The keyboard path for a drop: a kind, or an id, and a location. |
 | `setProperty(key, value)` | Writes one field through a typed report-core command. A refused value keeps what was typed, and shows the reason on that field. |
 | `undo`, `redo` | Through the session. |
-| `setZoom`, `zoomIn`, `zoomOut` | Clamped to `MIN_ZOOM` to `MAX_ZOOM`; the two steps go through `ZOOM_STEPS`. |
+| `setZoom`, `zoomIn`, `zoomOut` | Clamped to `MIN_ZOOM` to `MAX_ZOOM`; the two steps go through `ZOOM_STEPS`. Refused (`unavailable`), and said why, while a host's view stands in the design view's place: the zoom is the design view's, and would change nothing anybody sees. |
 | `startDrag`, `updateDrag`, `drop`, `cancelDrag` | Pointer drag as a state machine. `targetNear` and `targetBeside` turn a pointer position or an outline row into a target. |
-| `openPanel` | The pane a narrow layout shows, and a hidden pane shown again. |
-| `hidePanel` | Hides the outline, the properties or the problems, and says how to show it again; refused for the design view. A narrow layout's pane, hidden, gives way to the design view. |
+| `openPanel` | The pane a narrow layout shows, and a hidden pane shown again. The design view's takes its place back from a host's view shown there; one beside the builder stays shown. |
+| `hidePanel` | Hides the outline, the properties or the problems, and says how to show it again; refused for the design view. A narrow layout's pane, hidden, gives way to the middle pane, whatever stands in it. |
+| `showHostView` | Shows the host's view. In the middle it takes the design view's place and becomes the pane a narrow layout shows, and the live region says how to bring the design view back whenever that changes what is in front of the person: as the view comes, and as one shown already comes back from another pane a narrow layout showed. Asked of a view that is the pane shown already, nothing changes and nothing is said. Beside, nothing else changes. Refused (`unavailable`) for an editor made without one. |
+| `hideHostView` | Hides it, silently: the host's own control says so by its pressed state. |
+| `placeHostView(place)` | Moves it between `'middle'` and `'beside'`, shown or not as it was, silently. Placed where it stands, it changes nothing and tells no listener. |
 
 Every pointer gesture has a keyboard path (formancy.ai 0046). `actionForKey`
 gives the keys:
@@ -196,7 +226,8 @@ gives the keys:
 - **Anywhere in the editor:** Ctrl+Z undoes. Ctrl+Y or Ctrl+Shift+Z redoes.
   Ctrl with +, - and 0 zooms. Escape cancels a drag.
 - **Text fields** keep their own keys, and the builder does not pass them
-  here.
+  here. Nor does **the host's view**: a key pressed in it is the host's, so
+  Ctrl+Z on the Preview's own control undoes nothing of the report.
 
 To choose a place by keyboard, the builder starts a drag with
 `via: 'keyboard'` and lists `dropTargets` as buttons. Choosing one is an
@@ -218,7 +249,8 @@ so the choices are made here.
     toolbar;
   - the outline pane (`data-pane="outline"`): the palette, then the tree,
     with the place chooser floating over them;
-  - the design view's pane (`data-pane="canvas"`, also `wb-canvas`);
+  - the design view's pane (`data-pane="canvas"`, also `wb-canvas`), or,
+    while the state's `view` is `'host'`, the host's view in its place;
   - the third column, whose `data-pane` is `diagnostics` while that is the
     panel and `properties` otherwise; its properties half and its problems
     half each carry their own `data-pane`;
@@ -234,8 +266,23 @@ so the choices are made here.
   `action.hide`, named `action.hidePane` with the pane's name (Hide
   Outline, Hide Properties, Hide Problems, as the toolbar names the panes),
   with `data-report-part="hide-pane"`. It dispatches `hidePanel` and puts
-  focus on the design view, which took the pane's room; the toolbar's
-  button for the pane shows it again.
+  focus on the design view, or the host's view standing in its place, which
+  took the pane's room; the toolbar's button for the pane shows it again.
+- **The host's view:** while `view` is `'host'`, a `section` in the design
+  view's place with `data-pane="canvas"` and `data-report-part="view"`,
+  named `hostView.name` (`aria-label`), `tabindex="-1"` so focus can land
+  on it, and no workbench class: no rule of `report-builder.css` reaches
+  what is in it, and of `workbench.css`'s only `.wb *`, which turns
+  transitions off when motion is reduced and reaches every element under
+  the root (0029). It holds what the host gave the builder and nothing of
+  the builder's, drawn only while it stands there -- its own element, never
+  the design view's pane turned into it -- and a key pressed in it is the
+  host's. The host's view fills the box itself and scrolls inside itself;
+  a host that names a view gives one, and one that gives none gets the
+  named region, empty. When the host swaps the middle pane from under the
+  keyboard -- its view placed or shown from outside, as a window crosses a
+  width -- and the element the keyboard stood on went with it, focus goes
+  to what stands in the middle now; anywhere else the keyboard stays.
 - **A toolbar:** `role="toolbar"` named `toolbar.label`, one tab stop, the
   arrow keys, Home and End moving between its buttons the way the page
   reads (→ is the previous tool under `dir="rtl"`); an arrow held with
@@ -339,7 +386,17 @@ a style, open a report with a payment part, whose band is drawn and
 which an edit, and a page refused for it, leave whole, and insert an EPC
 payment code by keyboard, its IBAN refused on its field when its check
 digits are wrong, and its BIC added by typing it and removed by emptying
-it.
+it. Six are about a host's view: it takes the design view's place with
+the outline and the properties beside it, and the toolbar's Design view
+gives the place back; a key pressed in it is the host's; a side pane
+hidden beside it gives it the room and the keyboard; placed beside the
+builder it leaves the design view where it is; the keyboard goes with the
+middle pane when the host moves its view, and stays anywhere else; and the
+zoom says it is the design view's while the host's view stands in its
+place. Their editor is made with
+the scenario's `host`, the runner gives the builder one button as the
+host's view, and a `host` step dispatches what the host's own control
+would.
 
 Each framework's test runs every scenario with Testing Library, and fails
 when one is skipped. The scenarios use every kind of step, so each runner
@@ -371,7 +428,7 @@ bands and a payment part's band, rulers, the selection, drop indicators,
 outline rows, badges, an unavailable tool, property rows, the problems
 list, the grid without the panes the person hid, and the one-pane layout
 on a narrow screen. The host imports `@formancy/themes`' `workbench.css`
-first.
+first. It dresses nothing in a host's view, which is the host's.
 
 The stylesheet takes colour only from the workbench's `--wb-*` variables,
 with no colour literal and no fallback. A Studio recolours the editor by

@@ -1,7 +1,7 @@
 export { createReportEditor } from './editor.js'
-export type { ReportEditor, ReportEditorOptions } from './editor.js'
+export type { HostViewOptions, ReportEditor, ReportEditorOptions } from './editor.js'
 
-export { EDITOR_PANELS, EDITOR_REFUSAL_CODES, HIDEABLE_PANELS, PROPERTY_KINDS, PROPERTY_ROLES } from './model.js'
+export { EDITOR_PANELS, EDITOR_REFUSAL_CODES, HIDEABLE_PANELS, HOST_VIEW_PLACES, PROPERTY_KINDS, PROPERTY_ROLES } from './model.js'
 export type {
   Announcement,
   Availability,
@@ -23,6 +23,8 @@ export type {
   EditorState,
   HideablePanel,
   HistoryState,
+  HostView,
+  HostViewPlace,
   OutlineNode,
   OutlineRegion,
   PageGeometry,
@@ -53,4 +55,4 @@ export type { ReportPart } from './parts.js'
 
 // What every native builder must pass, as data.
 export { BUILDER_SCENARIOS, builderScenarios, SCENARIO_ACTIONS, SCENARIO_EXPECTATIONS, scenarioReport } from './scenarios.js'
-export type { BuilderScenario, KeyModifier, ScenarioQuery, ScenarioStep } from './scenarios.js'
+export type { BuilderScenario, HostViewAction, KeyModifier, ScenarioHost, ScenarioQuery, ScenarioStep } from './scenarios.js'

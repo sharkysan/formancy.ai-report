@@ -15,7 +15,7 @@ import type { ReportSession } from '@formancy/report-core'
 import { screen } from '@testing-library/angular'
 import { computeAccessibleDescription } from 'dom-accessibility-api'
 import { afterAll, afterEach, describe, expect, test } from 'vitest'
-import { mountBuilder } from './test-mount'
+import { mountBuilder, mountWithHostView } from './test-mount'
 import type { Mounted } from './test-mount'
 import { audit, sessionOver } from './test-support'
 import { choose, click, fill, press } from './test-user'
@@ -38,7 +38,7 @@ const done = new Set<string>()
 /** The English scenarios run, by name: none may be skipped. */
 const ran = new Set<string>()
 
-async function run(step: ScenarioStep, mounted: Mounted, session: ReportSession): Promise<void> {
+async function run(step: ScenarioStep, mounted: Mounted<unknown>, session: ReportSession): Promise<void> {
   done.add('do' in step ? step.do : step.expect)
   if ('do' in step) {
     switch (step.do) {
@@ -56,6 +56,10 @@ async function run(step: ScenarioStep, mounted: Mounted, session: ReportSession)
         break
       case 'choose':
         choose(find(step), step.option)
+        break
+      case 'host':
+        // What the host's own control does -- the Studio's Preview, in its bar -- through the editor.
+        mounted.editor.dispatch(step.action)
         break
     }
     await mounted.settle()
@@ -84,7 +88,9 @@ async function run(step: ScenarioStep, mounted: Mounted, session: ReportSession)
 
 async function play(scenario: BuilderScenario): Promise<void> {
   const session = sessionOver(scenario.report())
-  const mounted = await mountBuilder(createReportEditor(session, { locale: scenario.locale }))
+  const { host } = scenario
+  const editor = createReportEditor(session, { locale: scenario.locale, ...(host === undefined ? {} : { hostView: host }) })
+  const mounted = host === undefined ? await mountBuilder(editor) : await mountWithHostView(editor, host.control)
   for (const step of scenario.steps) await run(step, mounted, session)
   expect(await audit()).toEqual([])
 }

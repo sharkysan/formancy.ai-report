@@ -1,6 +1,7 @@
 // What the Studio's browser gate reads from a page, apart from the journey
 // that brings the page to each state (browser-test.mjs): the widths worth
-// measuring, the measurements themselves, axe, the paper's rules, PDF.js's
+// measuring, the measurements themselves, axe, the rules that reach the
+// paper and the Preview, the Preview's controls a pane cuts, PDF.js's
 // pages, and the web fonts. formancy.ai-data's apps/studio/scripts/
 // browser-test.mjs and scripts/browser-gate.mjs, where these first ran.
 //
@@ -36,6 +37,29 @@ const breakpointsOf = (css) => [...css.matchAll(/@media\s*\(\s*max-width:\s*([\d
  * a phone, a laptop, and the side-by-side layout made tall, so the rows
  * its panes scroll at 900 px are in view and axe can decide their contrast.
  *
+ * And the viewports of the screens the Studio is opened on, which 0029 is
+ * about (the screens the person who decided it named, on 17 October 2026):
+ * 1366 by 768, 1536 by 864 and 1920 by 1080, each a screen's whole, and
+ * 1366 by 657, what a browser's tabs, address bar and the system's taskbar
+ * leave of the first -- taken as 111 pixels, not measured on any one
+ * browser. They are `light`: the checks of where the Preview stands
+ * (gate-place.mjs) and nothing else, since a pass of the whole journey
+ * walks every starter in both builders with axe.
+ *
+ * `firstViewport` marks the passes at which the Preview's first page is in
+ * the window as the Studio opens, unscrolled: every one but two kinds. The
+ * phones, at or under the Studio's narrowest breakpoint, where the page
+ * scrolls past the bar to the builder by design (narrow.css); and the first
+ * width past report-builder.css's one-pane tier, where the builder draws its
+ * three panes and the middle one is what the two side panes leave of the
+ * window: a sliver (0029 says both).
+ *
+ * Each pass says where the Preview stands at its width -- `middle`, at or
+ * under the widest breakpoint (narrow.css's, which layout.ts's query
+ * equals) -- whether the builder shows one pane at a time (`onePane`, under
+ * report-builder.css's), and the `widest` breakpoint, for the pass that
+ * crosses it.
+ *
  * The first pass in each layout report-builder.css draws the builder in is
  * marked `parity`: there the two builders' accessible trees are compared
  * (gate-parity.mjs). Only report-builder.css's own breakpoints change which
@@ -48,6 +72,7 @@ export function passes() {
   const builder = breakpointsOf(readFileSync(require.resolve('@formancy/report-builder-core/report-builder.css'), 'utf8'))
   if (studio.length === 0 || builder.length === 0) throw new Error('found no max-width breakpoint in src/studio.css or report-builder.css, so the widths below measure nothing')
   const widest = Math.max(...studio)
+  const narrowest = Math.min(...studio)
   // The builder's layout at a width: which of its max-width rules apply there.
   const layout = (width) => builder.filter((px) => width <= px).join()
   const compared = new Set()
@@ -59,11 +84,19 @@ export function passes() {
     { label: 'phone, 360', width: 360, height: 900 },
     ...[...new Set([...studio, ...builder])].sort((a, b) => a - b).map((px) => ({ label: `one past the ${String(px)}px breakpoint`, width: px + 1, height: 900 })),
     { label: 'laptop, 1440', width: 1440, height: 900 },
+    ...[
+      [1366, 657],
+      [1366, 768],
+      [1536, 864],
+      [1920, 1080],
+    ].map(([width, height]) => ({ label: `viewport, ${String(width)} by ${String(height)}`, width, height, light: true })),
     { label: 'side by side, 2400 high', width: widest + 1, height: 2400 },
   ].map((entry) => {
-    if (compared.has(layout(entry.width))) return entry
+    const firstViewport = entry.width > narrowest && !builder.includes(entry.width - 1)
+    const placed = { ...entry, middle: entry.width <= widest, onePane: layout(entry.width) !== '', widest, firstViewport }
+    if (compared.has(layout(entry.width))) return placed
     compared.add(layout(entry.width))
-    return { ...entry, parity: true }
+    return { ...placed, parity: true }
   })
 }
 
@@ -172,69 +205,155 @@ export async function fromTheTop(page) {
 }
 
 /**
- * Every rule of the page's stylesheets -- the room's, the workbench's and
- * the builder's, as the browser parsed them -- that selects an element on
- * the PDF's paper: the white page, PDF.js's canvas and its text layer.
- * Only the paper's own rules may: those that name `.paper-page` or
- * `.paper-text`. A rule is matched for every moment, not this one: a state
- * the pointer or the keyboard puts an element in comes off the selector
- * first, and a pseudo-element is matched as the element it hangs off. What
- * the paper inherits -- the font, the line height -- it would inherit from
- * any host page; that is not a rule selecting it. A stylesheet the page
- * cannot read is named: every one is the Studio's own, from its own origin
- * (0023), so none may be.
+ * The one rule of the builder's that reaches what a host draws in its
+ * middle (0029): workbench.css's `.wb *` under `prefers-reduced-motion`,
+ * which turns every transition in a workbench off. Admitted only while it
+ * declares transitions and nothing else -- nothing on the Preview or its
+ * paper has a transition, so it changes nothing drawn there -- as the
+ * Studio's styles.test.tsx admits it in jsdom.
  */
-export function rulesOnThePaper(page) {
-  return page.evaluate(() => {
-    const paper = document.querySelector('.paper')
-    if (paper === null) return { rules: 0, own: 0, tags: [], reached: [], broken: [], unread: [] }
-    const selectors = []
-    const unread = []
-    const walk = (rules) => {
-      for (const rule of rules) {
-        if (rule instanceof CSSStyleRule) selectors.push(rule.selectorText)
-        if ('cssRules' in rule && rule.cssRules.length > 0) walk(rule.cssRules)
-      }
-    }
-    for (const sheet of document.styleSheets) {
-      try {
-        walk(sheet.cssRules)
-      } catch {
-        unread.push(sheet.href ?? 'an inline stylesheet')
-      }
-    }
-    // A selector list split at its top-level commas only: `:is(:lang(he), :lang(yi))` is one selector.
-    const split = (list) => {
-      const parts = ['']
-      let depth = 0
-      for (const character of list) {
-        if (character === '(') depth += 1
-        if (character === ')') depth -= 1
-        if (character === ',' && depth === 0) parts.push('')
-        else parts[parts.length - 1] += character
-      }
-      return parts
-    }
-    const elements = [...paper.querySelectorAll('*')]
-    const reached = []
-    const broken = []
-    let own = 0
-    for (const list of selectors) {
-      for (const selector of split(list)) {
-        if (/\.paper-(page|text)\b/.test(selector)) {
-          own += 1
-          continue
+const INERT = '.wb *'
+
+/**
+ * A selector that names the builder: the workbench's classes, its parts,
+ * its panes, or its Angular element. styles.test.tsx's, for the rules as
+ * the browser parsed the build.
+ */
+const NAMES_BUILDER = String.raw`(^|[\s>+~(,])\.wb(-[\w-]+)?\b|\[data-(report-part|pane|panel)\b|\breport-builder\b`
+
+/**
+ * Every rule of the page's stylesheets -- the room's, the workbench's and
+ * the builder's, as the browser parsed the build -- that selects an
+ * element inside the one `within` selects, among those `only` names (a
+ * pattern), or all; but those that are `own` (a pattern), which may, and
+ * workbench.css's inert `.wb *`, kept apart. A rule is matched for every
+ * moment, not this one: a state the pointer or the keyboard puts an element
+ * in comes off the selector first, and a pseudo-element is matched as the
+ * element it hangs off. What the elements inherit -- the font, the line
+ * height -- they would inherit from any host page; that is not a rule
+ * selecting them. A stylesheet the page cannot read is named: every one is
+ * the Studio's own, from its own origin (0023), so none may be. The rules
+ * are also counted against what `beside` selects, outside: the guard that
+ * the reading reaches anything at all.
+ */
+function rulesInside(page, { within, own = null, only = null, beside = null }) {
+  return page.evaluate(
+    ({ within, own, only, beside, inert }) => {
+      const container = document.querySelector(within)
+      if (container === null) return { rules: 0, own: 0, tags: [], reached: [], inert: [], broken: [], unread: [], besideReached: 0 }
+      const rules = []
+      const unread = []
+      const walk = (list) => {
+        for (const rule of list) {
+          if (rule instanceof CSSStyleRule) rules.push(rule)
+          if ('cssRules' in rule && rule.cssRules.length > 0) walk(rule.cssRules)
         }
-        const always = selector.replace(/::[\w-]+(\([^)]*\))?/g, '').replace(/:(?:focus-visible|focus-within|focus|hover|active)(?![\w-])/g, '').trim()
+      }
+      for (const sheet of document.styleSheets) {
         try {
-          const hit = elements.find((element) => element.matches(always === '' ? '*' : always))
-          if (hit !== undefined) reached.push(`${selector.trim()} selects ${hit.outerHTML.slice(0, 60)}`)
+          walk(sheet.cssRules)
         } catch {
-          broken.push(selector.trim())
+          unread.push(sheet.href ?? 'an inline stylesheet')
         }
       }
+      // A selector list split at its top-level commas only: `:is(:lang(he), :lang(yi))` is one selector.
+      const split = (list) => {
+        const parts = ['']
+        let depth = 0
+        for (const character of list) {
+          if (character === '(') depth += 1
+          if (character === ')') depth -= 1
+          if (character === ',' && depth === 0) parts.push('')
+          else parts[parts.length - 1] += character
+        }
+        return parts.map((part) => part.trim())
+      }
+      const elements = [...container.querySelectorAll('*')]
+      const others = beside === null ? [] : [...document.querySelectorAll(beside)]
+      const declared = (rule) => Array.from({ length: rule.style.length }, (_, index) => rule.style.item(index))
+      const reached = []
+      const kept = []
+      const broken = []
+      let mine = 0
+      let besideReached = 0
+      for (const rule of rules) {
+        for (const selector of split(rule.selectorText)) {
+          if (only !== null && !new RegExp(only).test(selector)) continue
+          if (own !== null && new RegExp(own).test(selector)) {
+            mine += 1
+            continue
+          }
+          const always = selector.replace(/::[\w-]+(\([^)]*\))?/g, '').replace(/:(?:focus-visible|focus-within|focus|hover|active)(?![\w-])/g, '').trim() || '*'
+          try {
+            if (others.some((element) => element.matches(always))) besideReached += 1
+            const hit = elements.find((element) => element.matches(always))
+            if (hit === undefined) continue
+            const properties = declared(rule)
+            if (selector === inert && properties.length > 0 && properties.every((property) => property.startsWith('transition'))) kept.push(`${selector} { ${properties.join(', ')} }`)
+            else reached.push(`${selector} selects ${hit.outerHTML.slice(0, 60)}`)
+          } catch {
+            broken.push(selector)
+          }
+        }
+      }
+      return { rules: rules.length, own: mine, tags: [...new Set(elements.map((element) => element.localName))], reached, inert: [...new Set(kept)], broken, unread, besideReached }
+    },
+    { within, own, only, beside, inert: INERT },
+  )
+}
+
+/**
+ * Every rule that selects an element on the PDF's paper: the white page,
+ * PDF.js's canvas and its text layer. Only the paper's own rules may: those
+ * that name `.paper-page` or `.paper-text`; and, where the Preview stands
+ * in the builder's middle, the workbench's inert `.wb *`, said apart.
+ */
+export const rulesOnThePaper = (page) => rulesInside(page, { within: '.paper', own: String.raw`\.paper-(page|text)\b` })
+
+/**
+ * Every rule that names the builder and selects an element of the Preview
+ * standing in its middle, in the region the builder lends it: none may but
+ * the inert `.wb *`, since the Preview there is the Studio's, dressed by the
+ * Studio's rules, and no pane of the workbench (0029). Counted against the
+ * builder's outline pane too, which the same rules must reach.
+ */
+export const builderRulesInThePreview = (page) =>
+  rulesInside(page, { within: '[data-report-part="editor"] [data-report-part="view"]', only: NAMES_BUILDER, beside: '[data-report-part="editor"] [data-pane="outline"] *' })
+
+/**
+ * Every control of the Preview -- a button, a link, a field -- whose box an
+ * ancestor cuts where nothing scrolls to the rest of it. Each ancestor that
+ * clips is met from the control outwards, and one that cuts what is left of
+ * the control's box without scrolling (`overflow: hidden` or `clip` on that
+ * axis) leaves that part out of a pointer's reach. A control cut only by
+ * one that scrolls -- the Preview standing in a middle pane narrower than
+ * its tools -- is counted apart, as `scrolled`.
+ */
+export function cutControls(page) {
+  return page.evaluate(() => {
+    const controls = [...document.querySelectorAll('.studio-preview :is(button, a[href], input, select, textarea)')].filter((control) => control.getClientRects().length > 0)
+    const cut = []
+    let scrolled = 0
+    for (const control of controls) {
+      const own = control.getBoundingClientRect()
+      let [left, top, right, bottom] = [own.left, own.top, own.right, own.bottom]
+      let fault = null
+      let scrolls = false
+      for (let ancestor = control.parentElement; ancestor !== null && ancestor !== document.documentElement && right > left && bottom > top; ancestor = ancestor.parentElement) {
+        const style = getComputedStyle(ancestor)
+        const box = ancestor.getBoundingClientRect()
+        const across = style.overflowX !== 'visible' && (box.left > left + 0.5 || box.right < right - 0.5)
+        const down = style.overflowY !== 'visible' && (box.top > top + 0.5 || box.bottom < bottom - 0.5)
+        if ((across && /hidden|clip/.test(style.overflowX)) || (down && /hidden|clip/.test(style.overflowY))) fault ??= ancestor
+        if ((across && /auto|scroll/.test(style.overflowX)) || (down && /auto|scroll/.test(style.overflowY))) scrolls = true
+        if (style.overflowX !== 'visible') [left, right] = [Math.max(left, box.left), Math.min(right, box.right)]
+        if (style.overflowY !== 'visible') [top, bottom] = [Math.max(top, box.top), Math.min(bottom, box.bottom)]
+      }
+      const name = (control.getAttribute('aria-label') ?? control.textContent ?? '').trim().slice(0, 30) || control.localName
+      if (fault !== null) cut.push(`${name}, by ${fault.localName}.${String(fault.className).slice(0, 24)}`)
+      else if (scrolls) scrolled += 1
     }
-    return { rules: selectors.length, own, tags: [...new Set(elements.map((element) => element.localName))], reached, broken, unread }
+    return { controls: controls.length, cut, scrolled }
   })
 }
 

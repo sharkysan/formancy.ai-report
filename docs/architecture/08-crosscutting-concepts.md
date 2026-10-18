@@ -271,7 +271,9 @@ face it used, and the renderer refuses the warning instead (0022, 0025).
 Of the builders, by construction: every drag has a keyboard path, which
 report-core's commands are shaped for
 ([formancy.ai 0046](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0046-keyboard-before-drag.md));
-keys are decided once by `actionForKey`; and the tests find elements by role
+keys are decided once by `actionForKey`, and a key pressed in a host's view
+the builder draws in its middle is the host's and never reaches it
+([0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)); and the tests find elements by role
 and accessible name, the rule upstream's
 [0034](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0034-accessible-name-only.md)
 set for its drivers, so markup a screen reader cannot navigate is markup the
@@ -313,3 +315,15 @@ serialisable styles; no rule of the editor's or the host's reaches a
 customer's PDF. The design view is not the PDF and says so by its name; the
 Studio's Preview is the PDF, drawn by PDF.js on white paper that no rule of
 the room's reaches.
+
+**A host's view in the builder is the host's.** Where the Studio's Preview
+stands in the builder's middle, in the design view's place, it is inside
+the workbench but in no pane of it: the region the builder draws carries no
+workbench class, so no rule of `@formancy/themes/workbench.css` or
+`report-builder.css` dresses its controls, and the Studio's own rules do.
+One rule of the
+builder's reaches it and its paper all the same: the workbench's `.wb *`,
+which turns transitions off when motion is reduced and draws nothing. The
+Studio's stylesheet test and the browser gate admit that selector while it
+declares transitions alone, and refuse any other
+([0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).

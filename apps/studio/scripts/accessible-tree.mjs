@@ -26,6 +26,12 @@
 //   - text itself -- StaticText, its InlineTextBox runs, a LineBreak -- which
 //     the gate compares in Playwright's snapshot, beside this.
 //
+// And, where the gate asks, what is under a node it names (`prune`): the
+// host's view a builder draws in its middle (0029), whose region is the
+// builder's and is kept, and whose content is the host's -- the Studio's one
+// Preview in both builders, its status and its pages moving while it
+// prints. The same is taken out of Playwright's snapshot (`pruned`).
+//
 // Node only, no import, and pure.
 
 /** Text, which Playwright's snapshot compares. */
@@ -54,11 +60,13 @@ function line(node, depth) {
 
 /**
  * The lines of the subtree under the one exposed node with `role` and
- * `name`, among `nodes` -- what Accessibility.getFullAXTree returns.
- * Throws when there is not exactly one such node, or a child it names is
- * not among `nodes`: a tree read in part would compare as one that agreed.
+ * `name`, among `nodes` -- what Accessibility.getFullAXTree returns --
+ * with nothing under an exposed node `prune` names (`{ role, name }`) but
+ * its own line. Throws when there is not exactly one such root, or a child
+ * it names is not among `nodes`: a tree read in part would compare as one
+ * that agreed.
  */
-export function treeLines(nodes, { role, name }) {
+export function treeLines(nodes, { role, name, prune = null }) {
   const byId = new Map(nodes.map((node) => [node.nodeId, node]))
   const roots = nodes.filter((node) => node.ignored !== true && said(node.role) === role && said(node.name) === name)
   if (roots.length !== 1) throw new Error(`Chromium's tree has ${String(roots.length)} ${role} named "${name}", where the gate reads one`)
@@ -67,6 +75,7 @@ export function treeLines(nodes, { role, name }) {
     const kind = said(node.role)
     const kept = node.ignored !== true && !TEXT.has(kind) && !(ROLELESS.has(kind) && said(node.name) === '' && said(node.description) === '')
     if (kept) lines.push(line(node, depth))
+    if (kept && prune !== null && kind === prune.role && said(node.name) === prune.name) return
     for (const id of node.childIds ?? []) {
       const child = byId.get(id)
       if (child === undefined) throw new Error(`Chromium's tree names a child ${String(id)} of a ${kind} it does not hold`)
@@ -75,6 +84,26 @@ export function treeLines(nodes, { role, name }) {
   }
   visit(roots[0], 0)
   return lines
+}
+
+/**
+ * Playwright's snapshot, as lines, with nothing under each node with
+ * `role` and `name` but its own line: the lines indented deeper than it
+ * that follow it, up to the next line that is not.
+ */
+export function pruned(lines, { role, name }) {
+  const head = `- ${role} ${JSON.stringify(name)}`
+  const kept = []
+  let under = null
+  for (const text of lines) {
+    const depth = text.length - text.trimStart().length
+    if (under !== null && depth > under) continue
+    under = null
+    kept.push(text)
+    const own = text.trimStart()
+    if (own === head || own.startsWith(`${head}:`) || own.startsWith(`${head} [`)) under = depth
+  }
+  return kept
 }
 
 /** A line as a failure says it: its depth, then what it says. */

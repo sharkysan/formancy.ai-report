@@ -11,3 +11,10 @@ import { InjectionToken } from '@angular/core'
 import type { ReportEditor } from '@formancy/report-builder-core'
 
 export const STUDIO_EDITOR = new InjectionToken<ReportEditor>('the Studio report editor')
+
+/**
+ * Where the Angular builder hands the element it lends the Studio's
+ * Preview, in its middle while the Preview stands there, and null when it
+ * takes the element back: React draws the Preview into it (0029).
+ */
+export const STUDIO_SLOT = new InjectionToken<(slot: HTMLElement | null) => void>('the Studio Preview slot')

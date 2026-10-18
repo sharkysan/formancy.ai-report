@@ -1,7 +1,8 @@
 /**
  * The hooks both builders render and report-builder.css dresses: one
  * `data-report-part` per piece of the editor, the `data-*` states on them,
- * and the workbench's shell classes for the three panes.
+ * and the workbench's shell classes for the three panes. One part is drawn
+ * and never dressed: the host's view, which is the host's.
  *
  * The stylesheet selects by these and nothing else -- never a React or an
  * Angular class -- so the two builders are dressed identically, and a test
@@ -27,6 +28,14 @@ export const REPORT_PARTS = [
   /** The count of diagnostics on an outline row or a canvas box. */
   'badge',
   'canvas',
+  /**
+   * The host's view in the design view's place: a region named by the
+   * state's `hostView`, holding what the host gave the builder. Not a
+   * workbench pane, so no rule of report-builder.css dresses anything in
+   * it, and of the workbench's only `.wb *`, which turns transitions off
+   * under reduced motion and reaches every element under the root (0029).
+   */
+  'view',
   /** The sentence that says the canvas is not the PDF. */
   'canvas-note',
   'ruler',

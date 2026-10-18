@@ -45,10 +45,29 @@ geometry. The host imports `workbench.css` from `@formancy/themes`, then
 `report-builder.css` from `report-builder-core`, and recolours the builder
 by setting the workbench's `--wb-*` variables.
 
-**`ReportBuilder` takes one prop, `editor`.** The builder subscribes while
+**`ReportBuilder` takes the `editor`.** The builder subscribes while
 it is mounted and never disposes the editor. Whoever created the editor
 disposes it, once no builder shows it. Given another editor, the builder
 lets go of the old one and subscribes to the new one.
+
+**`hostView` is what it draws in the design view's place** while the
+editor's `view` is the host's: a view of the host's own, which the editor
+was made knowing by name
+([0029](../../docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
+
+```tsx
+const editor = createReportEditor(opening.session, { hostView: { name: 'Preview', shown: true } })
+
+root.render(<ReportBuilder editor={editor} hostView={<Preview />} />)
+```
+
+The builder lends it the middle pane's box and a region named by the
+editor's `hostView`. No rule of `report-builder.css` reaches it, and of
+the workbench's only `.wb *`, which turns transitions off when motion is
+reduced; none of the builder's keys do either, nor from a portal the host
+opens from it, whose events React bubbles through the view wherever its
+DOM is. It is mounted only while it is drawn: the toolbar's Design view
+unmounts it, and the editor's `showHostView` mounts it again.
 
 **`useEditorState(editor)`** is the subscription on its own, for a host
 that shows something of the editor's state outside the builder.
@@ -82,8 +101,9 @@ Exactly the structure `report-builder-core`'s README sets out under *What a
 builder renders*, which the Angular builder renders too: a region named
 "Report editor" with a bar above the panes (the title and the toolbar,
 with its four pane buttons), the outline pane with the place dialog
-floating over it, the design view, the properties and the problems
-sharing the third column, and a bar below with the live region.
+floating over it, the design view -- or the host's view in its place --
+the properties and the problems sharing the third column, and a bar below
+with the live region.
 
 ## The keyboard
 
@@ -106,6 +126,7 @@ keyboard path came first.
 | The place dialog | Escape, Cancel | Closes it. Focus goes back to what opened it; for a dialog another builder over the same editor opened, to the palette entry of what is placed, else the selected row, else the tree. |
 | A single-line field | Enter | Commits the value, and stays in the field. |
 | A text field | Escape | Gives back what the report holds. |
+| The host's view | Any | The host's, and a portal's the host opens from it. The builder passes none of them on, so Ctrl+Z there undoes nothing of the report. |
 
 The keys in the outline and the editor's shortcuts are `actionForKey`'s,
 decided in `report-builder-core` for both builders. A text field, a
@@ -184,6 +205,13 @@ jsdom with Testing Library and user-event:
   the pointer read inside the sheet's border, and the keyboard kept on a
   problem when another is listed before it.
 - **One session, many builders**, as above.
+- **The host's view**: a bare region in the design view's place, with the
+  middle pane's `data-pane`, its own part, no workbench class and only the
+  host's node in it, which is mounted while the region is drawn and
+  unmounted with it; and a key pressed in a portal the host opens from it,
+  Ctrl+Z on a menu in the body, undoes nothing. That test reads the DOM,
+  because which rules reach the host's view is a stylesheet's reach, which
+  the accessibility tree cannot show.
 
 Each guard was watched failing with the code it guards removed. Among
 them: the subscription left behind on unmount, ids shared between two

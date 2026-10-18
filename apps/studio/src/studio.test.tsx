@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { editorText } from '@formancy/report-builder-core'
 import type { ReportSession } from '@formancy/report-core'
 import { STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest'
 import type { PreviewOutcome, PreviewRequest } from './preview/pipeline.js'
@@ -12,6 +12,7 @@ import { decodeStarters, encodeStarters } from './starters/codec.js'
 import { imagesOf, studioStarters } from './starters/starters.js'
 import { Studio } from './studio.js'
 import { violations } from './test-accessible.js'
+import { setWidth } from './test-width.js'
 import { createWorkspace } from './workspace.js'
 import type { Workspace } from './workspace.js'
 
@@ -25,6 +26,11 @@ import type { Workspace } from './workspace.js'
  * gives it. It is watched, not replaced: each request is recorded on its
  * way through. PDF.js is stood in for, because jsdom has no canvas for it
  * to draw on; what the paper shows is a browser gate's.
+ *
+ * jsdom's window is 1024 pixels wide, which has no room for the Preview
+ * beside the builder: there it stands in the design view's place (0029).
+ * A test that needs the room sets the width (test-width.ts), which the
+ * matchMedia stand-in in test-setup.ts answers.
  */
 
 const seen = vi.hoisted(() => ({
@@ -120,8 +126,15 @@ function mount(): { workspace: Workspace; user: User } {
   return { workspace, user: userEvent.setup() }
 }
 
+const t = editorText('en')
 const editor = (): HTMLElement => screen.getByRole('region', { name: 'Report editor' })
 const title = (): HTMLInputElement => within(editor()).getByRole('textbox', { name: 'Title' })
+/** The design view, by the name that says it is not the PDF; null while the Preview stands in its place. */
+const designView = (): HTMLElement | null => within(editor()).queryByRole('region', { name: t('canvas.label') })
+/** The bar's Preview, pressed while the Preview is shown, wherever it stands. */
+const toggle = (pressed?: boolean): HTMLElement => screen.getByRole('button', { name: 'Preview', ...(pressed === undefined ? {} : { pressed }) })
+/** The toolbar's button for a pane. */
+const paneButton = (name: string): HTMLElement => within(within(editor()).getByRole('toolbar', { name: 'Report tools' })).getByRole('button', { name })
 /** The editor's Undo or Redo; with `description`, only one that says what it would take back in those words. */
 const tool = (name: 'Undo' | 'Redo', description?: string): HTMLElement => within(editor()).getByRole('button', { name, ...(description === undefined ? {} : { description }) })
 const available = (button: HTMLElement): boolean => button.getAttribute('aria-disabled') !== 'true'
@@ -136,7 +149,11 @@ const subscriptions = (session: ReportSession): number | undefined => seen.subsc
  */
 const drawnBy = (): Framework => (document.querySelector('report-builder') === null ? 'React' : 'Angular')
 
-/** Switches the builder by the framework radio, and waits until that framework has drawn the editor. */
+/**
+ * Switches the builder by the framework radio, and waits until that
+ * framework has drawn the editor, and the Preview shown in its middle
+ * (0029): the builder shown draws the Preview there again.
+ */
 async function show(user: User, framework: Framework): Promise<void> {
   await user.click(screen.getByRole('radio', { name: framework }))
   await waitFor(() => {
@@ -144,6 +161,7 @@ async function show(user: User, framework: Framework): Promise<void> {
     expect(drawnBy()).toBe(framework)
   })
   await screen.findByRole('region', { name: 'Report editor' })
+  if (toggle().getAttribute('aria-pressed') === 'true') await screen.findByRole('checkbox', { name: 'Final' })
 }
 
 describe('the Studio', () => {
@@ -172,6 +190,9 @@ describe('the Studio', () => {
     await user.type(title(), edited)
     await user.tab()
     expect(session.document().title).toBe(edited)
+    // The Preview in Angular's middle prints the edit made beside it.
+    expect(editor().contains(screen.getByRole('region', { name: 'Preview' }))).toBe(true)
+    await waitFor(() => expect(seen.requests.at(-1)?.title).toBe(edited))
     // What undo would take back, in the model's words, which each builder
     // says as Undo's description.
     const undoing = editorText('en')('action.undoWhat', { label: model.state().history.undoLabel ?? '(none)' })
@@ -250,28 +271,191 @@ describe('the Studio', () => {
     expect(screen.queryByRole('list', { name: 'Why the preview was not printed' })).toBeNull()
   })
 
-  // The Preview is the widest thing beside the design view. Hidden, it
-  // gives the builder the row and prints nothing while it is away; the
-  // bar's toggle, which says whether it is shown, brings it back printing
-  // what the session holds now.
+  // Hidden, the Preview gives its place back to the design view and prints
+  // nothing while it is away; the bar's toggle, which says whether it is
+  // shown, brings it back printing what the session holds now. In the
+  // builder's middle the region named Preview is the builder's, which has
+  // no id: the toggle names the Preview inside it.
   test('hides the Preview from the bar, and shows it again printing the latest edit', async () => {
     const { user } = mount()
     await screen.findByText('Preview: printed.')
-    const toggle = screen.getByRole('button', { name: 'Preview', pressed: true })
-    expect(toggle.getAttribute('aria-controls')).toBe(screen.getByRole('region', { name: 'Preview' }).id)
-    await user.click(toggle)
+    const bar = toggle(true)
+    const controlled = document.getElementById(bar.getAttribute('aria-controls') ?? '')
+    expect(controlled).not.toBeNull()
+    expect(screen.getByRole('region', { name: 'Preview' }).contains(controlled)).toBe(true)
+    await user.click(bar)
     expect(screen.queryByRole('region', { name: 'Preview' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Preview', pressed: false })).toBe(toggle)
+    expect(designView()).not.toBeNull()
+    expect(toggle(false)).toBe(bar)
     const asked = seen.requests.length
     await user.clear(title())
     await user.type(title(), 'Hidden while edited')
     await user.tab()
     expect(seen.requests.length).toBe(asked)
     expect(await violations()).toEqual([])
-    await user.click(toggle)
+    await user.click(bar)
     await screen.findByText('Preview: printed.')
     expect(seen.requests.at(-1)?.title).toBe('Hidden while edited')
-    expect(screen.getByRole('button', { name: 'Preview', pressed: true })).toBe(toggle)
+    expect(toggle(true)).toBe(bar)
+  })
+
+  // Decision 0029, the user's "Preview in the middle": in a window with no
+  // room beside the builder the PDF stands where the design view stood,
+  // the outline and the properties beside it, so a person edits a property
+  // and watches what prints change -- in both builders, the same. A PDF
+  // under a builder that fills the window, as before, was below the fold.
+  for (const framework of ['React', 'Angular'] as const) {
+    test(`stands the Preview in the design view’s place in ${framework}, and prints what is edited beside it`, async () => {
+      const { user } = mount()
+      if (framework === 'Angular') await show(user, 'Angular')
+      await screen.findByText('Preview: printed.')
+      const preview = within(editor()).getByRole('region', { name: 'Preview' })
+      expect(await within(preview).findByRole('link', { name: 'Download PDF' })).toBeTruthy()
+      expect(designView()).toBeNull()
+      expect(within(editor()).getByRole('tree', { name: 'Outline' })).toBeTruthy()
+      expect(toggle(true)).toBeTruthy()
+      await user.clear(title())
+      await user.type(title(), 'Watched')
+      await user.tab()
+      await waitFor(() => expect(seen.requests.at(-1)?.title).toBe('Watched'))
+      await within(preview).findByText('Preview: printed.')
+      expect(within(editor()).getByRole('region', { name: 'Preview' })).toBe(preview)
+      expect(await violations()).toEqual([])
+    })
+  }
+
+  // The toolbar's Design view gives the design view its place back, the
+  // keyboard going into it, and the Preview goes with nothing printed while
+  // away; the bar's Preview, by keyboard, brings it back, keeping the
+  // keyboard on itself as a toggle does, and the builder's live region
+  // says how to get the design view back.
+  test('gives the design view its place back from the toolbar, and the PDF again from the bar', async () => {
+    const { user } = mount()
+    await screen.findByText('Preview: printed.')
+    await user.click(paneButton('Design view'))
+    expect(screen.queryByRole('region', { name: 'Preview' })).toBeNull()
+    await waitFor(() => expect(document.activeElement).toBe(designView()))
+    const bar = toggle(false)
+    const asked = seen.requests.length
+    await user.clear(title())
+    await user.type(title(), 'Away')
+    await user.tab()
+    expect(seen.requests.length).toBe(asked)
+    bar.focus()
+    await user.keyboard('{Enter}')
+    expect(toggle(true)).toBe(bar)
+    expect(document.activeElement).toBe(bar)
+    expect(designView()).toBeNull()
+    expect(within(editor()).getByText(t('status.hostViewShown', { view: 'Preview', pane: t('pane.canvas') }))).toBeTruthy()
+    await within(editor()).findByText('Preview: printed.')
+    expect(seen.requests.at(-1)?.title).toBe('Away')
+  })
+
+  // Past 2052 pixels the design view holds a page beside the Preview and
+  // both side panes (0019), and the Preview stands beside the builder,
+  // where the toolbar's Design view leaves it and the bar hides and shows
+  // it, as before 0029. The window crossing the width moves it into the
+  // builder's middle and back, shown all along.
+  test('stands the Preview beside the builder past 2052 pixels, and moves it as the window crosses', async () => {
+    setWidth(2053)
+    const { user } = mount()
+    await screen.findByText('Preview: printed.')
+    const beside = screen.getByRole('region', { name: 'Preview' })
+    expect(editor().contains(beside)).toBe(false)
+    expect(designView()).not.toBeNull()
+    await user.click(paneButton('Design view'))
+    expect(screen.getByRole('region', { name: 'Preview' })).toBe(beside)
+    expect(toggle(true)).toBeTruthy()
+    await user.click(toggle(true))
+    expect(screen.queryByRole('region', { name: 'Preview' })).toBeNull()
+    expect(designView()).not.toBeNull()
+    await user.click(toggle(false))
+    await screen.findByText('Preview: printed.')
+    expect(editor().contains(screen.getByRole('region', { name: 'Preview' }))).toBe(false)
+    act(() => setWidth(2052))
+    await within(editor()).findByText('Preview: printed.')
+    expect(editor().contains(screen.getByRole('region', { name: 'Preview' }))).toBe(true)
+    expect(designView()).toBeNull()
+    expect(toggle(true)).toBeTruthy()
+    act(() => setWidth(2053))
+    await screen.findByText('Preview: printed.')
+    expect(editor().contains(screen.getByRole('region', { name: 'Preview' }))).toBe(false)
+    expect(designView()).not.toBeNull()
+  })
+
+  // Angular takes the element it lends the Preview back a render after the
+  // editor moves the Preview beside the builder, where the Studio draws it
+  // at once: drawn into the element until then, two Previews printed under
+  // one id. And the keyboard on the Preview beside the builder goes with it
+  // into the middle, onto the region it stands in there, rather than down
+  // to the page as its pane goes.
+  test('moves the Preview in Angular with one Preview drawn at any moment, and the keyboard with it', async () => {
+    setWidth(2052)
+    const { user } = mount()
+    await show(user, 'Angular')
+    await within(editor()).findByText('Preview: printed.')
+    act(() => setWidth(2053))
+    expect(document.querySelectorAll('#studio-preview')).toHaveLength(1)
+    await waitFor(() => expect(within(editor()).queryByRole('region', { name: 'Preview' })).toBeNull())
+    await screen.findByText('Preview: printed.')
+    const fit = within(screen.getByRole('region', { name: 'Preview' })).getByRole('button', { name: 'Fit width' })
+    fit.focus()
+    act(() => setWidth(2052))
+    expect(document.querySelectorAll('#studio-preview').length).toBeLessThanOrEqual(1)
+    await waitFor(() => expect(document.activeElement).toBe(within(editor()).getByRole('region', { name: 'Preview' })))
+    await within(editor()).findByText('Preview: printed.')
+  })
+
+  // Whether the Preview is shown is the editor's, as its hidden panes are
+  // (0029): each starter keeps its own, and one opened for the first time
+  // shows its PDF whatever the starter before had.
+  test('keeps whether each starter’s Preview is shown', async () => {
+    const { user } = mount()
+    await screen.findByText('Preview: printed.')
+    await user.click(toggle(true))
+    await user.selectOptions(picker(), 'Quotation')
+    await waitFor(() => expect(title().value).toBe('Offerte'))
+    expect(toggle(true)).toBeTruthy()
+    await screen.findByText('Preview: printed.')
+    await user.selectOptions(picker(), 'Service inspection')
+    expect(toggle(false)).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Preview' })).toBeNull()
+  })
+
+  // On a phone the builder shows one pane at a time, and the Preview, shown
+  // in the middle, is out of sight while another pane is chosen. The bar's
+  // Preview then brings it into sight rather than hiding what nobody sees,
+  // and only a press with the Preview in sight hides it. jsdom lays nothing
+  // out, so it cannot tell that report-builder.css's narrow layout hides
+  // every pane but the one the editor's root names: `checkVisibility`,
+  // which the bar asks, answers here as that layout does.
+  test('brings a Preview shown out of sight into view from the bar, rather than hiding it', async () => {
+    Object.defineProperty(Element.prototype, 'checkVisibility', {
+      configurable: true,
+      value(this: Element): boolean {
+        const pane = this.closest('[data-pane]')
+        const root = this.closest('[data-report-part="editor"]')
+        return pane === null || root === null || pane.getAttribute('data-pane') === root.getAttribute('data-panel')
+      },
+    })
+    try {
+      setWidth(390)
+      const { user } = mount()
+      await screen.findByText('Preview: printed.')
+      const bar = toggle(true)
+      const preview = (): HTMLElement | null => document.getElementById(bar.getAttribute('aria-controls') ?? '')
+      expect(preview()?.checkVisibility()).toBe(true)
+      await user.click(paneButton('Outline'))
+      expect(preview()?.checkVisibility()).toBe(false)
+      await user.click(bar)
+      expect(toggle(true)).toBe(bar)
+      expect(preview()?.checkVisibility()).toBe(true)
+      await user.click(bar)
+      expect(toggle(false)).toBe(bar)
+      expect(screen.queryByRole('region', { name: 'Preview' })).toBeNull()
+    } finally {
+      Reflect.deleteProperty(Element.prototype, 'checkVisibility')
+    }
   })
 
   // The first Tab says where the keyboard can go: past the bar, into the

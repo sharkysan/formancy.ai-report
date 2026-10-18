@@ -10,7 +10,8 @@ import { act, cleanup, render } from '@testing-library/react'
 import { computeAccessibleDescription, computeAccessibleName, getRole } from 'dom-accessibility-api'
 import { afterEach, describe, expect, test } from 'vitest'
 import { StudioAngularBuilder } from './builder/angular-builder.js'
-import { STUDIO_EDITOR } from './builder/angular-editor.js'
+import { STUDIO_EDITOR, STUDIO_SLOT } from './builder/angular-editor.js'
+import { PREVIEW_NAME } from './layout.js'
 import { decodeStarters, encodeStarters } from './starters/codec.js'
 import { studioStarters } from './starters/starters.js'
 
@@ -31,6 +32,13 @@ import { studioStarters } from './starters/starters.js'
  * report; and the place chooser for every kind. What it cannot see, and the gate does: a
  * name a stylesheet changes -- jsdom applies none -- focus, which the steps
  * here do not move, and the panes a narrow screen hides.
+ *
+ * The editor is made as the Studio makes it, with its Preview shown in the
+ * design view's place (0029); a button the Studio's Preview has stands in
+ * for it, the same in both -- React's builder is given it as its view, and
+ * the Studio's Angular builder lends its slot for it, as it lends it to
+ * the real Preview -- so the region each builder draws it in is compared,
+ * and not the Preview, which is one React component in both.
  *
  * The normalisation is the gate's, for the same reasons
  * (apps/studio/scripts/accessible-tree.mjs): a relation by id is left out,
@@ -130,15 +138,19 @@ afterEach(() => {
   document.body.replaceChildren()
 })
 
-/** The two builders, React's and the Studio's Angular one, side by side over one editor of `report` in `locale`. */
+/** What stands in for the Studio's Preview in both builders' middle: one of its controls. */
+const STAND_IN = 'Download PDF'
+
+/** The two builders, React's and the Studio's Angular one, side by side over one editor of `report` in `locale`, its Preview shown in the middle. */
 async function mountBoth(report: unknown, locale: EditorLocale): Promise<Mounted> {
   const opening = openReportSession(report)
   if (!opening.ok) throw new Error('the starter did not open')
-  const editor = createReportEditor(opening.session, { locale })
+  const editor = createReportEditor(opening.session, { locale, hostView: { name: PREVIEW_NAME, shown: true, place: 'middle' } })
   const react = document.body.appendChild(document.createElement('div'))
-  render(<ReportBuilder editor={editor} />, { container: react })
+  render(<ReportBuilder editor={editor} hostView={<button type="button">{STAND_IN}</button>} />, { container: react })
   const angular = document.body.appendChild(document.createElement('div'))
-  const app = await createApplication({ providers: [provideZonelessChangeDetection(), { provide: STUDIO_EDITOR, useValue: editor }] })
+  const lend = (slot: HTMLElement | null): void => slot?.replaceChildren(Object.assign(document.createElement('button'), { type: 'button', textContent: STAND_IN }))
+  const app = await createApplication({ providers: [provideZonelessChangeDetection(), { provide: STUDIO_EDITOR, useValue: editor }, { provide: STUDIO_SLOT, useValue: lend }] })
   app.bootstrap(StudioAngularBuilder, angular.appendChild(document.createElement('report-studio-builder')))
   await app.whenStable()
   mounted = { editor, react, angular, app }
@@ -162,10 +174,14 @@ const select = (node: OutlineNode | null): EditorAction => (node === null ? { ty
 
 /**
  * Takes the editor through its states, comparing the two trees at each: as
- * opened; the place chooser for every kind the palette offers, each kind
- * that has a place then placed there; every row selected; a move's chooser;
- * a condition naming no parameter, with its problem; a top margin the page
- * cannot hold, refused; undo and redo; each pane; and the zoom.
+ * opened, with the Preview in the design view's place, and the design view
+ * given its place back; the place chooser for every kind the palette
+ * offers, each kind that has a place then placed there; every row
+ * selected; a move's chooser; a condition naming no parameter, with its
+ * problem; a top margin the page cannot hold, refused; undo and redo; each
+ * pane; the zoom; and the Preview shown in the middle again, a pane hidden
+ * and shown beside it, the Preview placed beside the builder and back, and
+ * hidden.
  */
 async function walk({ editor, react, angular, app }: Mounted): Promise<string[]> {
   const states: string[] = []
@@ -179,7 +195,8 @@ async function walk({ editor, react, angular, app }: Mounted): Promise<string[]>
     await same(state)
   }
 
-  await same('opened')
+  await same('opened, the Preview in the design view’s place')
+  await dispatch({ type: 'openPanel', panel: 'canvas' }, 'the design view given its place back')
   for (const entry of editor.state().palette) {
     await dispatch({ type: 'startDrag', subject: { kind: entry.kind }, via: 'keyboard' }, `the place chooser for ${entry.kind}`)
     const first = editor.state().dropTargets[0]
@@ -212,6 +229,12 @@ async function walk({ editor, react, angular, app }: Mounted): Promise<string[]>
   await dispatch({ type: 'redo' }, 'redone')
   for (const panel of ['canvas', 'properties', 'diagnostics', 'outline'] as const) await dispatch({ type: 'openPanel', panel }, `the ${panel} pane`)
   await dispatch({ type: 'zoomIn' }, 'zoomed in')
+  await dispatch({ type: 'showHostView' }, 'the Preview shown in the middle again')
+  await dispatch({ type: 'hidePanel', panel: 'outline' }, 'the outline hidden beside the Preview')
+  await dispatch({ type: 'openPanel', panel: 'outline' }, 'the outline shown beside it again')
+  await dispatch({ type: 'placeHostView', place: 'beside' }, 'the Preview placed beside the builder')
+  await dispatch({ type: 'placeHostView', place: 'middle' }, 'the Preview placed back in the middle')
+  await dispatch({ type: 'hideHostView' }, 'the Preview hidden')
   return states
 }
 
@@ -224,7 +247,7 @@ describe('the two builders, side by side over one editor', () => {
       test(`${locale}, ${starter.id}: draw one accessible tree at every state`, async () => {
         const states = await walk(await mountBoth(starter.report, locale))
         // The guard on the guard: a walk that stopped early compared fewer states than it names.
-        expect(states).toEqual(expect.arrayContaining(['opened', 'a condition naming no parameter', 'a margin the page cannot hold, refused', 'zoomed in']))
+        expect(states).toEqual(expect.arrayContaining(['opened, the Preview in the design view’s place', 'a condition naming no parameter', 'a margin the page cannot hold, refused', 'zoomed in', 'the Preview hidden']))
       })
     }
   }
@@ -236,5 +259,9 @@ describe('the two builders, side by side over one editor', () => {
     const lines = tree(both.react)
     expect(lines[0]).toBe('region "Report editor"')
     expect(lines).toEqual(expect.arrayContaining([expect.stringMatching(/^ +toolbar "Report tools"/), expect.stringMatching(/^ +tree "Outline"/), expect.stringMatching(/^ +button "Undo" aria-disabled="true"/)]))
+    // and the host's view, in both: a builder that drew the region and not
+    // what the host gave it -- Angular's slot never filled -- fails here.
+    await both.app.whenStable()
+    for (const drawn of [lines, tree(both.angular)]) expect(drawn).toEqual(expect.arrayContaining([expect.stringMatching(/^ +region "Preview" tabindex=-1$/), expect.stringMatching(new RegExp(`^ +button "${STAND_IN}" tabindex=0$`))]))
   })
 })
