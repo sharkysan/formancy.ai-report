@@ -6,15 +6,18 @@ import { fileURLToPath } from 'node:url'
 import nodePdfmake from 'pdfmake'
 import browserPdfmake from 'pdfmake/build/pdfmake.js'
 import vfs from 'pdfmake/build/vfs_fonts.js'
-import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { ALL_FIXTURES, E_INVOICE, inflatedDigest, readCodes, readPdf, readPdfObjects, verify, verifyRefusal } from '@formancy/report-corpus'
+import type { ContentSvg, TDocumentDefinitions } from 'pdfmake/interfaces.js'
+import { ALL_FIXTURES, E_INVOICE, inflatedDigest, readAnnotations, readCodes, readPdf, readPdfObjects, SVG_FIXTURES, verify, verifyRefusal } from '@formancy/report-corpus'
 import { resolveReport, type ResolvedDocument } from '@formancy/report-runtime'
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
 import type * as billFonts from './bill-fonts.js'
 import { renderPdf as renderInBrowser } from './browser.js'
 import { renderPdf as renderInNode } from './node.js'
+import { converterOptions } from './svg-content.js'
 import { billDocument, resolvedBill, SIX_EXAMPLES } from './testing/bills.js'
 import { documentOf, fixture, paragraph, TIMEOUT } from './testing/documents.js'
+import { encodePng } from './testing/images.js'
+import { DRAWINGS, MARK, rawSvgAsset, svg, SVG_THREATS, svgAsset } from './testing/svg.js'
 
 /**
  * The browser entry, run here in Node: pdfmake's browser build with its
@@ -87,7 +90,7 @@ describe('the browser entry', () => {
   // server's PDF differed. Every pass of every fixture: the measuring passes
   // and the PDF, refusals included.
   test('hands pdfmake the definitions the Node entry does, for every fixture', async () => {
-    for (const each of ALL_FIXTURES) {
+    for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES]) {
       const options = { maxPages: each.maxPages }
       const inNode = await definitions(nodePdfmake, () => renderInNode(each.document, options))
       const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(each.document, options))
@@ -100,7 +103,7 @@ describe('the browser entry', () => {
   // engine's output: each fixture is proved on the PDF it produced, with the
   // corpus's checks, as the Node entry's are.
   test('renders every fixture of the corpus as its checks expect, or refuses it as they allow', async () => {
-    for (const each of ALL_FIXTURES) {
+    for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES]) {
       const rendered = await renderInBrowser(each.document, { maxPages: each.maxPages }).then(
         (bytes) => ({ bytes }),
         (error: unknown) => ({ error }),
@@ -287,6 +290,63 @@ describe('the browser entry', () => {
     expect([...fonts.external].sort()).toEqual(['../fonts/LiberationSans-Bold.ttf', '../fonts/LiberationSans-Regular.ttf'])
     expect(fonts.dynamic.size).toBe(0)
   })
+})
+
+describe('an SVG asset in a browser', () => {
+  // pdfmake's browser build bundles a converter of its own, beside the one
+  // Node's runs: a browser that drew a logo otherwise than Node would show
+  // one drawing in the Studio's preview and another in the PDF a server
+  // sends. The same definitions, the drawing in the body and in the page
+  // header, and the same paths and clips on every page, read by the
+  // corpus's reader, which follows the transparency groups a clip path
+  // draws into: read from the page's own content stream alone, the clipped
+  // drawing was one painted shape of its three, and a browser that drew
+  // the other two otherwise would have passed.
+  test('hands pdfmake the definitions the Node entry does, which draw the same', async () => {
+    const document = { ...documentOf('Mark', [paragraph('Body'), { kind: 'image', asset: svgAsset(DRAWINGS.clips!, 'clips'), width: 80, height: 80, fit: 'cover' } as const]), pageHeader: [{ kind: 'image', asset: svgAsset(MARK), width: 30, height: 30, fit: 'contain' } as const] }
+    const options = { maxPages: 5 }
+    const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
+    const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(document, options))
+    expect(inBrowser).toEqual(inNode)
+    const drawn = async (pdf: Uint8Array): Promise<unknown> => (await readPdf(pdf)).pages.map(({ paths, clips }) => ({ paths, clips }))
+    const drawnInBrowser = await renderInBrowser(document, options)
+    const drawnInNode = await renderInNode(document, options)
+    expect(await drawn(drawnInBrowser)).toEqual(await drawn(drawnInNode))
+    // The mark's three paths in the header, and the clipped drawing's three in the body: what the groups hold is read.
+    expect((await readPdf(drawnInNode)).pages[0]!.paths.length).toBeGreaterThanOrEqual(6)
+    expect(await readAnnotations(drawnInBrowser)).toEqual([])
+  }, TIMEOUT)
+
+  // The threats reach the browser entry as they reach Node's, through a
+  // host that never cleaned them: each is refused, naming the asset, before
+  // the browser build is asked to make anything.
+  test('refuses every hazard as it came before pdfmake runs, as Node does', async () => {
+    const created = vi.spyOn(browserPdfmake, 'createPdf')
+    try {
+      for (const threat of SVG_THREATS) {
+        const document = { ...documentOf('Threat', [paragraph('Body')]), body: [{ kind: 'image', asset: rawSvgAsset(threat.bytes, 'threat'), width: 40, height: 40, fit: 'contain' } as const] }
+        const [inBrowser, inNode] = await Promise.all([renderInBrowser(document, { maxPages: 1 }).catch((error: unknown) => error), renderInNode(document, { maxPages: 1 }).catch((error: unknown) => error)])
+        expect(inBrowser, threat.name).toMatchObject({ code: 'invalid-asset', subject: 'threat' })
+        expect(inBrowser, threat.name).toEqual(inNode)
+      }
+      expect(created).not.toHaveBeenCalled()
+    } finally {
+      created.mockRestore()
+    }
+  }, TIMEOUT)
+
+  // The browser build's converter opens an <image>'s href in pdfmake's
+  // virtual files, where a host may have put its own and the renderer puts
+  // its fonts (0030): handed one, it embeds it. The renderer's
+  // image callback refuses the asset instead.
+  test('refuses an image the browser build would open from its virtual files', async () => {
+    await renderInBrowser(fixture('one-row').document, { maxPages: 5 })
+    browserPdfmake.addVirtualFileSystem({ 'host-secret.png': Buffer.from(encodePng(4, 4, () => [255, 0, 0])).toString('base64') })
+    const node = (options?: object): ContentSvg & { readonly options?: object } => ({ svg: svg('<image href="host-secret.png" width="10" height="10"/>'), width: 40, height: 40, ...(options === undefined ? {} : { options }) })
+    const pdf = new Uint8Array(await (browserPdfmake.createPdf({ content: [node()] }) as unknown as { getBuffer(): Promise<Uint8Array> }).getBuffer())
+    expect((await readPdf(pdf)).pages[0]!.images).toHaveLength(1)
+    await expect((browserPdfmake.createPdf({ content: [node(converterOptions('virtual', 'contain'))] }) as unknown as { getBuffer(): Promise<Uint8Array> }).getBuffer()).rejects.toMatchObject({ code: 'invalid-asset', subject: 'virtual' })
+  }, TIMEOUT)
 })
 
 describe('the slip’s fonts in a browser', () => {

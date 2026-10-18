@@ -38,12 +38,17 @@ half done behind it. Each layer has its own kind:
 A version, a component kind or a property a release does not know is refused
 whole, never skipped: the field ignored could be the one that hides a row or
 changes a total ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md)).
-So 0.1.0 refuses a report with a QR code, a payment part, an EPC QR code or
-an e-invoice, though each is an addition to the same draft version
+So 0.1.0 refuses a report with a QR code, a payment part, an EPC QR code,
+an e-invoice or an SVG asset, though each is an addition to the same draft
+version
 ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md),
 [0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
 [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
-[0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+[0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
+[0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
+An SVG construct the cleaner's tables do not name is refused, named, never
+dropped: a construct nobody decided about is one a browser may draw and
+the converter not (0030).
 And the renderer refuses an e-invoice whose file it does not know, whole,
 rather than embed it as something else or draw it as a plain PDF without
 the XML that, in Germany, is the invoice (0027), and one that its PDF/A-3b
@@ -72,6 +77,11 @@ where the shared readers quote what they find (`validate-payment-text.ts`).
 An e-invoice holds names, addresses, accounts and VAT identifiers, so
 `invalid-e-invoice` names the business term and the rule, never the value,
 and the renderer's refusals of an e-invoice never quote its XML (0027).
+An SVG's refusal names the element path and the construct, and what
+cleaning removed a kind, a name and a count: a link's address, a script's
+text and a style's content are never repeated, and a name is repeated
+only when it is short ASCII, so neither grows with what a file holds
+(0030).
 
 ## 8.3 Final and preview
 
@@ -118,7 +128,8 @@ administrator wrote them ([`SECURITY.md`](../../SECURITY.md)).
 | A report | Read once, through property descriptors, so a getter never runs and a proxy that throws is refused; every array, string and number bounded by a constant with its reason in `limits.ts` ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
 | An expression | CEL, typed member by member, within a step budget each and a step budget a render; no clock, no randomness, no `matches()`, whose time no budget bounds ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | Data | Read once without running anything, held to the declared types, a field the report does not declare refused, so nothing it was not written to read rides into a render, a cache or a log ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
-| An image | An approved asset's id and digest, resolved by the host, never an address; its bytes checked as the PNG or JPEG they say they are before pdfmake sees them, a JPEG's frame header read where PDFKit reads it, and bounded per asset and per render ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
+| An image | An approved asset's id and digest, resolved by the host, never an address; its bytes checked as the PNG or JPEG they say they are, a JPEG's frame header read where PDFKit reads it, or, for an SVG, as exactly the drawing report-spec's `cleanSvg` writes, before pdfmake sees them, and bounded per asset and per render ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), [0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
+| An SVG | Read once, where it is approved, by report-spec's own tokenizer on bytes, which is iterative, so that no nesting reaches the stack before the depth bound is checked; the passes after it recurse, to `MAX_SVG_DEPTH` levels at most. What never draws is removed and listed, text, embedded pictures, `use`, references out of the file and entities beyond XML's own refused, the rest written in one canonical form that every reader between it and the page reads alike; bounded in bytes, depth, elements, stops, dashes, rules, the cascade's work, what it costs to paint and the page-sized groups it makes, and read in time linear in its bytes. Every refusal says what was found and what to do. The renderer draws that form alone, behind its own list of elements and the converter's callbacks; in an e-invoice it also refuses one whose numbers, at the image's box, could pass the integers a PDF/A-3 holds, or whose nesting its graphics state, by a bound from the extent the cleaner measured ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 | A font file | Read from its own name table by the licence guard, and refused when it cannot be read; a font inside a script the guard does not see ([§8.7](#87-licences), [0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)) |
 | An ICC profile | PDFKit's own file, which an e-invoice's render reads and embeds as its output intent: admitted by the licence guard by the SHA-256 of its bytes, which a review read, and refused under any other; a profile inside a script the guard does not see, and the renderer's browser test holds pdfmake's copy to the reviewed digest ([§8.7](#87-licences), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 
@@ -130,17 +141,31 @@ pdfmake reads no file but the fonts it is given and, for an e-invoice,
 the ICC profile PDFKit reads from its own package, and no address at all,
 which the renderer's tests pin through `fs.readFileSync`
 ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
-[0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md));
-the corpus hands ZXing its WebAssembly from the package's own file, where
+[0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+That is pdfmake's own reading: the SVG converter it vendors would open an
+`<image>`'s file past pdfmake's access policy, or a virtual file in a
+browser, which `pdfmake.test.ts` pins; an SVG's `<image>` is refused by the
+cleaner, by the renderer's list of elements and by the converter's image
+callback, each on its own
+([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
+The corpus hands ZXing its WebAssembly from the package's own file, where
 the library would fetch it from a CDN
 ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md));
 the Studio and the pages ask no other site for anything, which the browser
 gate and the pages' checks fail on
 ([0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
 
-**Digests are trusted.** The runtime has no hash function without Node or
-the DOM, so it does not check an image's bytes against the digest that
-names them ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)).
+**Digests are trusted.** The runtime does not check an image's bytes
+against the digest that names them, and trusts the host's lookup to return
+what the digest pins
+([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)).
+0010 gave as its reason that the runtime has no hash function without Node
+or the DOM. A pure SHA-256 has been in its dependency closure since 0.1.0:
+`@noble/hashes`', which `@formancy/spec`'s `schemaHash` uses and
+report-spec's `reportHash` calls. Checking digests changes what every host's resolver must satisfy,
+and is a decision of its own. Until then, what prints of an SVG is in the
+approved form, and that it is the approved drawing is the host's
+([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
 ## 8.5 Determinism
 
@@ -154,6 +179,11 @@ Rows with equal keys keep the provider's order
 ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
 The hash is taken over a canonical form, so key order never changes it
 ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
+An SVG asset's bytes are a function of the file alone, written from
+`cleanSvg`'s own tree, and cleaning them again gives them back, which
+report-spec's `svg.test.ts` holds over every sample and a thousand
+mutations
+([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 An e-invoice's XML is written one way and reads no clock, so the same
 report and data are the same bytes, which
 `report-runtime/src/lower-e-invoice.test.ts` holds, and
@@ -227,7 +257,8 @@ anything:
   [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
   0031).
 - **Code a package vendors** under a licence of its own. pdfmake's
-  svg-to-pdfkit draws every QR code, and an EPC QR code's frame and caption;
+  svg-to-pdfkit draws every QR code, an EPC QR code's frame and caption,
+  and every SVG asset (0030);
   review read its MIT licence on 17 October 2026, and the guard judges it
   by pdfmake's field alone
   ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).

@@ -19,6 +19,7 @@ Formancy Report
 ├── Safety                                              ← fail closed; untrusted input
 │   ├── an unknown version, kind or property refused whole
 │   ├── input read without running anything, and bounded
+│   ├── an SVG drawn only in the form it was approved in
 │   └── nothing reaches the network but the provider, through the host's client
 ├── Accessibility
 │   ├── every control reachable by keyboard, role and name
@@ -60,6 +61,9 @@ Formancy Report
 | Q23 | The Studio is narrowed to 320 pixels, or asks another origin for anything | No sideways scroll and nothing past either edge; any request outside the built Studio fails a pass | `apps/studio/scripts/browser-test.mjs` ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), [0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)) |
 | Q24 | A decision record, a package or a dependency is added, or a test this architecture names is renamed, and the architecture is not changed with it | `pnpm test:repo` fails | `scripts/architecture.test.mjs` ([0026](../decisions/0026-the-architecture-is-documented-in-arc42s-sections-held-to-the-repository-by-a-guard.md)) |
 | Q25 | The Studio is opened in a 1366 by 768, 1440 by 900, 1536 by 864 or 1920 by 1080 window | The Preview's first page in view without scrolling, in the design view's place with the outline and the properties beside it; past 2052 pixels, beside the builder | `apps/studio/scripts/gate-place.mjs`, at those passes in both builders ([0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)) |
+| Q26 | A host hands the renderer an SVG as a person saved it, never cleaned: a local image, a link, text, a style sheet, an entity, a `use` fan-out | Refused as `invalid-asset`, naming the asset and none of its value, before pdfmake runs; and the renderer's list of elements and the converter's callbacks each refuse without the check before them | `report-spec/src/svg-threats.test.ts`, `report-render-pdf/src/svg-threats.test.ts`, the install gate's `consume.ts` ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)) |
+| Q27 | An approved SVG logo is drawn `cover`, or with a transform on its root, or in a page header | Drawn as vectors inside a clip of its box, nothing of it in the pixels past that box, and in a page header on every page; a render whose SVGs would cost more than `MAX_SVG_DRAWING`, a page region's counted on every page, refused as `content-too-large`, naming the asset | `report-render-pdf/src/svg.test.ts`, and the corpus's SVG fixtures through `corpus.test.ts` and `verifyInk` (0030) |
+| Q28 | An approved SVG logo whose clips or transparency are shrunk far below its box, whose outlines the converter draws far past the numbers it holds, or nested 29 graphics states deep, is drawn in an e-invoice | Refused as `unsupported`, naming the image and what to do, before pdfmake runs; or drawn, with no integer in the PDF/A-3 past 2,147,483,647, in any object or content stream; the same logo drawn as before in a report that is no e-invoice | `report-render-pdf/src/svg-pdfa.test.ts` through report-corpus's `readPdfNumbers`, and veraPDF on `variant-svg-bound.pdf` in the `e-invoice` gate (0030, [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 
 ## 9.3 Bounds, and how each was chosen
 
@@ -81,6 +85,9 @@ repeating the number. A measured figure is dated and names its machine.
 | An EPC QR code's payload | `EPC_MAX_BYTES`, `report-spec/src/epc-payload.ts`; `EPC_MAX_VERSION`, `report-spec/src/epc-print.ts` | The EPC's own (EPC069-12, 2.1 and 2.2), not chosen here. The validator counts what literal texts write, and the runtime the whole payload once its data is known ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | A captioned EPC QR code's modules | `EPC_CAPTION_MODULE`, `report-spec/src/epc-print.ts` | Austria's PSA's widths, which come with its frame; a code without the caption keeps `MIN_MODULE`. The squares a captioned code prints in follow from them, and `epc-print.test.ts` finds where they end by trying squares a hundredth of a point apart (0025) |
 | A new EPC payment code's square | `EPC_SIDE`, `report-builder-core/src/palette.ts` | The least whole millimetre in which every payload the EPC allows prints, with the frame and without, as its comment says; the euro invoice's square is the same, for the same reason (0025) |
+| An SVG asset: its bytes, as it came and as written; its depth, elements, stops, dashes, numbers and style rules; what it costs to paint, and the page-sized groups it makes | The `MAX_SVG_*` constants in `report-spec/src/limits.ts` | Measured, each beside its constant: on 18 October 2026, on that machine under Node 24.21.0 with pdfmake 0.3.11, and in Chromium 156's headless shell with PDF.js 6.4.299, with the aim that the worst drawing a bound accepts, 15 mm square, cost a reader about what one more starter page does; what the bounds give is two to six starter pages at 15 mm and three to eight page-wide, since a bound that kept the aim against a path every segment of which spans the box would refuse detailed logos. `MAX_SVG_REMOVED_NAMES`, how many names a person is shown, is chosen ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)) |
+| What drawing SVGs costs one render | `MAX_SVG_DRAWING`, `report-render-pdf/src/assets.ts` | Each thing the converter draws weighted by what it cost beside a line, and every 32 bytes of the drawing, measured over whole renders of a header logo on many pages on 18 October 2026, and the budget set at about what `MAX_IMAGE_DATA`'s largest images cost the renderer to decode (0030) |
+| The numbers an SVG may write, and how deep it may nest, in an e-invoice | `PDF_A_INTEGER`, `PDF_A_NESTING` and `SVG_INTEGER_BOUND`, `report-render-pdf/src/svg-pdfa.ts` | Not chosen: PDF/A's own limits, 2,147,483,647 and 28 (ISO 19005-2, 6.1.13, as veraPDF 1.30.3 holds them), the integer less a margin for rounding derived from `MAX_SVG_COORDINATE` and `MAX_SVG_DEPTH`, 5.7 %, as its comment says (0030) |
 
 What renders have measured, on that one machine under Node 24.21, each on
 one day, with the runs its record describes, and held by nothing:
@@ -110,6 +117,13 @@ one day, with the runs its record describes, and held by nothing:
   drawn plain, nine renders each, alternated, from the built packages, on
   18 October 2026 while the machine ran other work
   ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+- an SVG logo of 30,000 lines in the page header of a 32-page report adding
+  2.79 s to the render against one of a single rectangle, medians of five
+  whole renders under Node 24.21.0 on 18 October 2026, a logo the bounds
+  now refuse, of which the weights were measured; and the worst drawing the
+  bounds accept drawn by PDF.js page-wide at scale 2 in 446 to 448 ms, about
+  eight times the quotation starter's first page, the same day
+  ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
 **What is not measured, said.** What a commit costs — the whole report
 validated and diagnosed again on every edit, a keystroke in a property field
@@ -118,8 +132,13 @@ compiling every expression per keystroke costs. The records name the
 benchmark that would hold them and say it is not built
 ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md),
 [0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
-No render time is a gate: short of a test's timeout, a render that becomes
-slower fails nothing.
+One drawing time is a gate: `report-render-pdf/src/svg-converter.test.ts`
+fails when PDF.js takes sixteen times as long or more to draw the worst
+SVG the bounds accept as to draw a starter page in the same process, a
+ceiling twice the eight times measured on one machine, held as a ratio so
+that a slower runner is not a slower drawing, and not
+measured on CI (0030). No render time is: short of a test's timeout, a
+render that becomes slower fails nothing.
 
 ## 9.4 Quality attributes not pursued yet
 

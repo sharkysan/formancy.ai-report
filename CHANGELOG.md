@@ -10,6 +10,173 @@ later.
 
 ## Unreleased
 
+**An image asset may be an SVG, a logo drawn as vectors, cleaned once
+when it is approved into the one form the renderer draws**
+([0030](docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
+A firm's logo is a vector file, and the format took a PNG or a JPEG
+alone. pdfmake draws SVG through the svg-to-pdfkit it vendors, which, handed
+a file as a drawing program saved it, opens an `<image>`'s local file past
+pdfmake's access policy, writes a link annotation to any address,
+`javascript:` included, draws text in a face pdfmake picks past the glyph
+check, and overflows its stack on deep nesting; a `use` fan-out of 1,091
+bytes took it 4.8 s and 1,974 MB, and one of ten times as many rectangles
+killed the process out of memory, measured on 18 October 2026; and a
+transform on the root moves a logo anywhere on the page, a payment slip
+included. So a host approves an SVG
+by cleaning it, keeps the bytes the cleaner writes, and the renderer
+draws those and nothing else: nothing is cleaned, dropped or rewritten at
+print.
+
+- **`@formancy/report-spec`:**
+  - `ASSET_MEDIA_TYPES` gains `image/svg+xml`. The format stays at version
+    `'0'`. **0.1.0 refuses a report that declares an SVG asset**, as
+    `not-one-of` on its media type.
+  - `cleanSvg(bytes)` reads an SVG once, where it is approved, with a
+    tokenizer of its own on bytes: it keeps drawing elements alone, removes
+    what never draws and lists it by kind and name with a count, never a
+    value, refuses what would draw unsafely or otherwise than a browser
+    draws it, and writes the rest in one canonical form, ASCII, numbers
+    regenerated, transforms composed, ids renamed. The root's paint and
+    transform move onto a group inside it, so a transform cannot move a
+    logo off its box and Figma's root `fill="none"` keeps a stroke
+    unfilled. A clip rule a clip path would inherit is written on it, so
+    that its clip never rests on `defs`. Cleaning what it
+    wrote gives the same bytes, and its time is linear in the file's: a
+    mebibyte of each shape of value a pattern could have made quadratic is
+    held to a test's ceiling.
+  - `checkSvg(bytes)`, the renderer's: the drawing and what it costs, when
+    the bytes are already what `cleanSvg` writes, and a refusal naming the
+    first difference otherwise.
+  - Both give the drawing's `extent`, `SvgExtent`: how far the numbers
+    svg-to-pdfkit writes for it reach wherever it is placed -- the
+    inverses its page-sized groups are drawn under, the matrices of its
+    gradients and the box a clip in objectBoundingBox units draws in, each
+    over every box inside a shape's, since the converter measures a curve
+    on its outline and the cleaner by its control points, and the points
+    the converter draws its outlines with, an arc's grown to reach its ends
+    and a reflected quadratic's among them -- and how deep it nests the
+    graphics state, for the renderer to hold an e-invoice to. Nothing is
+    refused by it at approval.
+  - **What is refused, each with what to do** -- every refusal ends with
+    advice, its own or its code's: text, so a lettered logo
+    is converted to outlines first; an embedded picture; `use` and
+    `symbol`; a reference to anything outside the file; a DOCTYPE with an
+    internal subset, whose entities are never expanded; patterns, masks,
+    markers, filters, `foreignObject`, `switch`, conditional-processing
+    attributes; a colour with an alpha, `hsl()` and `transparent`. Of
+    thirteen invented samples of what drawing programs write, every plain
+    export is accepted, and live text, Illustrator's editing capabilities
+    and Canva's lettering, which Canva writes as `symbol` and `use`, are
+    refused.
+  - `SVG_REFUSAL_CODES`, `SVG_ELEMENTS`, the elements a cleaned drawing
+    is written with, and the `MAX_SVG_*` bounds in `limits.ts`, the first
+    of its bounds that were measured, each saying how, on what and when,
+    but for how many removed names a person is shown, which is chosen:
+    bytes as the file comes and as written, depth, elements, stops, dashes,
+    numbers, style rules and the cascade's work (`MAX_SVG_CASCADE`), what a
+    drawing costs a reader to paint (`MAX_SVG_SEGMENTS`, a clip path
+    counted for every element it clips) and the page-sized transparency
+    groups it makes (`MAX_SVG_GROUPS`). `MAX_SVG_COORDINATE` holds every
+    number, every transform composed from the root and its inverse, and
+    the matrix a gradient is drawn under in any box inside its shape's,
+    which the converter's box of a curve is: past it, PDFKit threw from
+    inside pdfmake for drawings the cleaner had accepted, and a gradient
+    the shape's own box held under it wrote 5 × 10^12 in the converter's. `MAX_SVG_SEGMENTS` is
+    10,000: a path every segment of which crosses its box cost a reader
+    1.15 to 1.84 s at 30,000 and 0.12 to 0.55 s at 10,000, measured on 18
+    October 2026, so a detailed crest may need simplifying first.
+  - saxes 6.0.0 is a devDependency, the tests' second reader of every
+    cleaned drawing. Nothing is added to what the package installs.
+- **`@formancy/report-runtime`:** re-exports `checkSvg`, `cleanSvg`,
+  `SVG_REFUSAL_CODES`, `SVG_ELEMENTS`, `MAX_SVG_BYTES`, `MAX_SVG_SEGMENTS`,
+  `MAX_SVG_GROUPS`, `MAX_SVG_COORDINATE` and `MAX_SVG_DEPTH` and their
+  types, `SvgExtent` among them, for an engine and for a host that
+  approves assets beside its render code. A host's answer for an SVG past
+  `MAX_SVG_BYTES`, a mebibyte, is refused as `invalid-asset` before it is
+  copied, as one past 20 MB is for any asset.
+- **`@formancy/report-render-pdf`:**
+  - An SVG image is drawn as vectors in its box, `contain` as
+    `xMidYMid meet` and `cover` as `xMidYMid slice`, clipped to the box,
+    never embedded as an image.
+  - It draws only bytes `checkSvg` accepts, and refuses any other as
+    `invalid-asset`, naming the asset and what cleaning would change,
+    before pdfmake runs. A PNG or a JPEG declared an SVG, and an SVG
+    declared either, is refused saying what it is.
+  - Behind the check, its own list of the elements a cleaned drawing
+    holds, held to report-spec's `SVG_ELEMENTS`, and converter callbacks
+    that refuse an image and a warning. Neither stops a link, which the
+    converter writes whatever its callbacks say; the check and the list
+    do.
+  - **A logo in a page header or footer is drawn again on every page**, so
+    it grows the PDF and the render with every page, where a PNG is
+    embedded once: a header logo of 30,000 lines, more than a drawing may
+    now hold, took a 32-page render 2.8 s longer than one of a single
+    rectangle, measured on 18 October 2026 (0030 says how).
+    `MAX_SVG_DRAWING` bounds what drawing SVGs costs one render, every 32
+    bytes of a drawing counted beside what it draws, since pdfmake and the
+    converter read its whole text each time; a page region's is counted on
+    every page `maxPages` allows, so at 200 pages a header logo may cost
+    5,000 units however short the report; and every SVG of a body is held
+    to one drawing's bounds as though all fell on one page. Both are
+    refused as `content-too-large`, naming the asset.
+  - **A reader pays for what a logo paints.** svg-to-pdfkit makes every
+    clip and translucent gradient a group the size of the page, and a
+    rasteriser pays for a segment on every row it spans, so the worst
+    drawing the bounds accept, 15 mm square, added 0.19 s to a page drawn
+    at a device pixel ratio of 1 and 0.39 s at 2, and page-wide 0.27 s and
+    0.55 s, in headless Chromium on 18 October 2026, against 0.06 to 0.09 s
+    for a starter page.
+  - **In an e-invoice, an SVG is held to what its PDF/A-3 can hold**, and
+    refused as `unsupported`, naming the image and saying what to do,
+    before pdfmake runs: one whose numbers could pass the 2,147,483,647 a
+    PDF/A holds an integer to, less a margin of 5.7 % for rounding, or
+    whose drawing svg-to-pdfkit nests more than 28 graphics states deep.
+    The converter writes a page-sized group's box and a gradient's matrix
+    through the inverse of the drawing's transform and the image's box,
+    and an outline in points of its own: a logo whose clip and
+    transparency are shrunk a millionfold, approved and drawn a point
+    square, wrote a box of 78,520,000,000 into an e-invoice that said it
+    was a PDF/A-3b, which veraPDF 1.30.3 failed, and an arc whose radii
+    the converter grows to reach its ends wrote control points of 5 ×
+    10^17 at any size, measured on 18 October 2026. A logo shrunk so is now
+    refused on A4 below 41.6 pt square, where a test holds report-corpus's
+    `SVG_BOUND`, shrunk alike, and such an arc, or a path of thousands of
+    reflected quadratics, at any size; the invented exporter samples make
+    their page-sized groups under no shrink and nest five deep at most. A
+    report that is no e-invoice draws every such SVG as before.
+- **`@formancy/report-corpus`:** `readPdfNumbers` reads every number a
+  PDF writes, in its objects and its content streams, each an integer or a
+  real as written, since veraPDF reads none in a soft mask's group, a
+  clip's; and
+  `SVG_BOUND`, a drawing at each bound an e-invoice holds an SVG to, with
+  `SVG_BOUND_SIDE`, the smallest box the renderer draws it in. The PDF
+  reader gives each page its painted
+  paths, their paint and the rectangular clip each was painted inside,
+  skipping what a soft mask paints, and no longer throws on a transparency
+  group's form, to which PDF.js hands no matrix; `verify` finds each SVG
+  drawing by a clip of its size with paint inside it, and `verifyInk`
+  holds a band of the page's pixels around it to white; `readAnnotations`
+  reads a page's links; `SVG_FIXTURES` draws a mark and a clipped gradient
+  `contain` and `cover`, in the body and in a page header on three pages.
+  The renderer trial's adapters refuse an SVG image.
+- **The e-invoice gate** draws the first sample's e-invoice with a page of
+  SVGs in every way svg-to-pdfkit paints one -- a clip path, a gradient, a
+  translucent stop, a group at an opacity, a dash -- and with `SVG_BOUND`
+  in its smallest box, each a variant veraPDF and Mustang accept.
+- **What it does not do:** draw text in an SVG, inline `use`, turn a
+  colour's alpha into an opacity, follow a reference out of the file, or
+  compare the PDF with a browser's drawing of the same SVG. What prints
+  is in the approved form; that it is the drawing approved rests on the
+  host's lookup, which the runtime trusts to return the bytes the digest
+  pins, as before. An e-invoice's SVG is refused by a bound on its
+  numbers, never by reading the PDF back, and the bound assumes the
+  converter's arithmetic strays no further than its margin, which
+  matrices built to cancel one another term by term could defeat. The reason 0010 gave for that, no hash function without
+  Node or the DOM, has not held since 0.1.0, and 0030 says so. No starter
+  has a logo yet, and neither builder adds an image asset or approves an
+  SVG: a builder places only an image of an asset or a field the report
+  already has.
+
 **A report's e-invoice is drawn as the PDF/A-3b that embeds its XML: the
 German hybrid invoice**
 ([0031](docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).

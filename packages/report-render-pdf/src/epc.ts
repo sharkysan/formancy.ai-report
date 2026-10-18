@@ -4,6 +4,7 @@ import { EPC_CAPTION, EPC_FRAME, EPC_MAX_BYTES, EPC_MAX_VERSION, epcCaptionBreak
 import { codePoint } from './glyphs.js'
 import { darkRuns, qrContent, refuseFineModules, type QrSymbol } from './qr.js'
 import { LIBERATION_SANS } from './style.js'
+import type { ConvertedSvg } from './svg-content.js'
 
 /**
  * An EPC QR code (EPC069-12 v3.1), encoded by uqr and drawn as a QR code
@@ -80,9 +81,6 @@ const CAPTION_GAP = 1
 function refuseWarning(warning: string): never {
   throw new Error(`pdfmake's SVG converter could not draw an EPC QR code's caption as written: ${warning}`)
 }
-
-/** An SVG node with options for pdfmake's SVG converter, which pdfmake 0.3.11 hands it (`Renderer.renderSVG`) and its types do not declare. */
-type ConvertedSvg = ContentSvg & { readonly options: { readonly warningCallback: (warning: string) => never } }
 
 /** The code's square: a QR code's without a caption, the PSA's with one. */
 export function epcContent(symbol: QrSymbol, code: EpcQrCode): ContentSvg | ConvertedSvg {

@@ -8,11 +8,14 @@
  * bytes, and a media type a report may draw, the one the template declares
  * for its own asset -- and copied, so that nothing the host changes
  * afterwards reaches the document. Whether the bytes are a picture is the
- * renderer's to say (`invalid-asset`).
+ * renderer's to say (`invalid-asset`): for an SVG, whether they are exactly
+ * the drawing report-spec's `cleanSvg` writes, by report-spec's `checkSvg`,
+ * which the renderer applies (0030).
  *
- * The lookup is trusted to return the bytes the digest pins: the runtime has
- * no hash function of its own, being free of Node and of the DOM, and does
- * not check them against it.
+ * The lookup is trusted to return the bytes the digest pins, and they are
+ * not checked against it. Not for want of a hash: a pure SHA-256 reaches the
+ * runtime through `@formancy/spec`, and checking digests is a decision of
+ * its own, since it changes what every host's resolver must satisfy (0030).
  *
  * An image field with no value draws nothing, and its box is kept as space,
  * so that what follows it stands where it would with a picture: null prints
@@ -20,10 +23,13 @@
  *
  * Each approved asset is asked for once per render, and every image that
  * draws it shares the one copy, so that a logo on every page header, or a
- * photo drawn by forty components, is held and embedded once. An answer
- * past `MAX_ASSET_BYTES` is refused before it is copied.
+ * photo drawn by forty components, is held once: a PNG or a JPEG is
+ * embedded once, and an SVG is drawn again wherever it prints, on every
+ * page of a page region (0030). An answer past its type's limit --
+ * `MAX_ASSET_BYTES`, or `MAX_SVG_BYTES` for an SVG -- is refused before it
+ * is copied.
  */
-import { ASSET_MEDIA_TYPES } from '@formancy/report-spec'
+import { ASSET_MEDIA_TYPES, MAX_SVG_BYTES } from '@formancy/report-spec'
 import type { AssetMediaType, ImageComponent } from '@formancy/report-spec'
 import { MAX_ASSET_BYTES } from './document.js'
 import type { Image, ImageAsset, Spacer } from './document.js'
@@ -44,6 +50,7 @@ function checkedBytes(found: unknown, declared: AssetMediaType | undefined): { r
   const { mediaType, bytes } = found as Partial<ImageBytes>
   if (!(bytes instanceof Uint8Array) || !ASSET_MEDIA_TYPES.includes(mediaType as AssetMediaType)) return media
   if (declared !== undefined && mediaType !== declared) return media
+  if (mediaType === 'image/svg+xml' && bytes.length > MAX_SVG_BYTES) return `is ${bytes.length} bytes; an SVG asset may have ${MAX_SVG_BYTES} (1 MiB)`
   if (bytes.length > MAX_ASSET_BYTES) return `is ${bytes.length} bytes; an asset may have ${MAX_ASSET_BYTES} (20 MB)`
   return { mediaType: mediaType as AssetMediaType, bytes: new Uint8Array(bytes) }
 }

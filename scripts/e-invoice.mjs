@@ -58,7 +58,7 @@ import { javaMajor, javaVersion } from './e-invoice/java.mjs'
 import { judgeKosit, kositArguments, readKositConsole, reportName } from './e-invoice/kosit.mjs'
 import { judgeMustang, mustangArguments, mustangOutputs } from './e-invoice/mustang.mjs'
 import { CODE_LISTS, oracleProblems, readCodedb, readSchematron } from './e-invoice/oracle.mjs'
-import { blocksDocument, embeddingProblems, PDF_BASE, pdfCorpus, variantProblems } from './e-invoice/pdf-corpus.mjs'
+import { blocksDocument, boundDocument, embeddingProblems, PDF_BASE, pdfCorpus, svgDocument, TRANSLUCENT_SVG, variantProblems } from './e-invoice/pdf-corpus.mjs'
 import { recordedConsole, recordedText, staleRecorded } from './e-invoice/record.mjs'
 import { acceptedProblems, readRegisters, toolOf, toolProblems } from './e-invoice/registers.mjs'
 import { bundledProblems, bundledVeraPdf, judgeVeraPdf, veraPdfArguments } from './e-invoice/verapdf.mjs'
@@ -246,9 +246,11 @@ function record({ work, entries, java, mustangRuns, kosit, verapdf, tools }) {
 /**
  * Every sample resolved once, in a final render, and drawn from the very
  * document whose XML the corpus holds; and each variant drawn with the base
- * sample's e-invoice, a starter resolved as a host resolves it.
+ * sample's e-invoice, a starter resolved as a host resolves it, and an SVG
+ * as an approved asset holds it, in the form report-spec's `cleanSvg`
+ * writes.
  */
-function samplesOf({ runtime, renderer, corpus }) {
+function samplesOf({ spec, runtime, renderer, corpus }) {
   const documents = new Map()
   const documentOf = (sample) => {
     if (!documents.has(sample.id)) {
@@ -277,9 +279,27 @@ function samplesOf({ runtime, renderer, corpus }) {
     if (fixture === undefined) throw new Error(`a PDF variant draws the fixture ${id}, which report-corpus does not have`)
     return fixture.document
   }
+  // The gate's own drawing is held to being cleanSvg's form as written, so that what veraPDF judges is the drawing a reviewer reads.
+  const svgAssets = () => {
+    const translucent = new TextEncoder().encode(TRANSLUCENT_SVG)
+    const cleaned = spec.cleanSvg(translucent)
+    if (!cleaned.ok || Buffer.compare(Buffer.from(cleaned.bytes), Buffer.from(translucent)) !== 0) throw new Error(`variant-svg.pdf’s translucent drawing is not in the form cleanSvg writes: ${cleaned.ok ? 'cleaning changes it' : cleaned.message}`)
+    const svg = (id, bytes) => ({ id, mediaType: 'image/svg+xml', bytes })
+    return [svg('svg-mark', corpus.SVG_MARK), svg('svg-window', corpus.SVG_WINDOW), svg('svg-translucent', translucent)]
+  }
+  const bound = () => boundDocument(documents.get(PDF_BASE), { id: 'svg-bound', mediaType: 'image/svg+xml', bytes: corpus.SVG_BOUND }, corpus.SVG_BOUND_SIDE)
   const drawVariant = (draws) => {
     const base = documents.get(PDF_BASE)
-    const page = draws.blocks === true ? blocksDocument(base, corpus.IMAGE_KINDS) : draws.fixture !== undefined ? fixtureDocument(draws.fixture) : starterDocument(draws.starter)
+    const page =
+      draws.blocks === true
+        ? blocksDocument(base, corpus.IMAGE_KINDS)
+        : draws.svg === true
+          ? svgDocument(base, svgAssets())
+          : draws.bound === true
+            ? bound()
+            : draws.fixture !== undefined
+              ? fixtureDocument(draws.fixture)
+              : starterDocument(draws.starter)
     return renderer.renderPdf({ ...page, eInvoice: base.eInvoice }, { maxPages: VARIANT_MAX_PAGES })
   }
   return { documentOf, draw, drawVariant }
@@ -299,7 +319,7 @@ async function main(argv) {
 
   const spec = await built(BUILT.spec)
   const corpusPackage = await built(BUILT.corpus)
-  const { documentOf, draw, drawVariant } = samplesOf({ runtime: await built(BUILT.runtime), renderer: await built(BUILT.renderer), corpus: corpusPackage })
+  const { documentOf, draw, drawVariant } = samplesOf({ spec, runtime: await built(BUILT.runtime), renderer: await built(BUILT.renderer), corpus: corpusPackage })
   const drawing = performance.now()
   const xmlEntries = buildCorpus({ samples: corpusPackage.E_INVOICE_SAMPLES, xmlOf: (sample) => documentOf(sample).eInvoice.xml })
   const pdfEntries = await pdfCorpus({ entries: xmlEntries, draw, drawVariant })

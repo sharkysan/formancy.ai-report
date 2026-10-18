@@ -9,17 +9,21 @@
 import { checkSpecVersion, emptyReport, QR_BILL_TOP, qrBillPageBreak, REPORT_FORMAT, REPORT_SPEC_VERSION, reportHash, validateReport, walkComponents } from '@formancy/report-spec'
 import { EPC_CAPTION, EPC_MAX_BYTES, epcCaptionBreak, epcLeastVersion } from '@formancy/report-spec'
 import { FACTUR_X, FACTUR_X_PROFILES } from '@formancy/report-spec'
-import type { EpcQrCodeComponent, FacturXInvoice, ReportDefinition, ReportError, ReportValidation, SpecVersionCheck, SwissQrBill, TableComponent, TextComponent } from '@formancy/report-spec'
+import { checkSvg, cleanSvg } from '@formancy/report-spec'
+import type { CleanSvg, EpcQrCodeComponent, FacturXInvoice, ReportDefinition, ReportError, ReportValidation, SpecVersionCheck, SvgRefusal, SwissQrBill, TableComponent, TextComponent } from '@formancy/report-spec'
 import { compileReport, diagnose, expressionValues, insertComponent, nextComponentId, openReportSession, validLocations } from '@formancy/report-core'
 import type { CommandDescriptor, CommandOutcome, CompiledExpression, Diagnostic, ReportCompilation, ReportSession, SessionOpening } from '@formancy/report-core'
 import { actionForKey, createReportEditor, editorText } from '@formancy/report-builder-core'
 import type { EditorAction, EditorOutcome, EditorState, ReportEditor } from '@formancy/report-builder-core'
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { inflateSync } from 'node:zlib'
 import { resolveReport } from '@formancy/report-runtime'
 import { QR_BILL_TOP as RUNTIME_QR_BILL_TOP, qrBillPageBreak as runtimeQrBillPageBreak } from '@formancy/report-runtime'
 import { EPC_CAPTION as RUNTIME_EPC_CAPTION, EPC_MAX_BYTES as RUNTIME_EPC_MAX_BYTES, epcCaptionBreak as runtimeEpcCaptionBreak, epcLeastVersion as runtimeEpcLeastVersion } from '@formancy/report-runtime'
 import { E_INVOICE_PREVIEW_LABEL, FACTUR_X as RUNTIME_FACTUR_X, FACTUR_X_PROFILES as RUNTIME_FACTUR_X_PROFILES } from '@formancy/report-runtime'
+import { checkSvg as runtimeCheckSvg, cleanSvg as runtimeCleanSvg } from '@formancy/report-runtime'
 import type { EInvoiceFile, EpcQrCode, Paragraph, QrBill, ReportData, Resolution } from '@formancy/report-runtime'
 import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
 import { readReportData } from '@formancy/report-data-provider'
@@ -302,6 +306,61 @@ const drawerSays = await renderPdf({ ...paidResolution.document, body: paidResol
 )
 if (specSays === undefined || drawerSays?.endsWith(specSays) !== true) throw new Error(`a captioned square too small was refused differently: ${String(specSays)}; ${String(drawerSays)}`)
 
+// An SVG logo (0030): a host approves a drawing as a person saved it by
+// report-spec's cleanSvg, keeps the bytes it writes, declares them by their
+// digest, and hands them over when the runtime asks. The renderer draws
+// them as vectors -- a PDF with no image in it -- and refuses the drawing as
+// saved, which approval would have changed, naming the asset, before
+// pdfmake sees it. The rules reach the renderer through the runtime as
+// report-spec's own: a runtime whose dist carried a copy would approve by
+// one rule and print by another, which nothing in the workspace would see.
+if (runtimeCleanSvg !== cleanSvg || runtimeCheckSvg !== checkSvg) throw new Error("the runtime does not hand on report-spec's own SVG rules")
+const saved = new TextEncoder().encode(
+  '<?xml version="1.0" encoding="UTF-8"?>\n<!-- Saved by an invented editor -->\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="56" fill="#1F4E79"/><path d="M28 62l32-30 32 30" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/></svg>\n',
+)
+const approved: CleanSvg | SvgRefusal = cleanSvg(saved)
+if (!approved.ok || approved.removed.map((removal) => removal.kind).join() !== 'declaration,comment' || !checkSvg(approved.bytes).ok) throw new Error(`the saved drawing was not approved as a clean one: ${approved.ok ? JSON.stringify(approved.removed) : approved.message}`)
+const logoDigest = `sha256:${createHash('sha256').update(approved.bytes).digest('hex')}`
+const logoed: ReportDefinition = {
+  ...paid,
+  id: 'logo-invoice',
+  assets: [{ id: 'logo', mediaType: 'image/svg+xml', digest: logoDigest }],
+  regions: { ...paid.regions, reportHeader: [{ id: 'logo-image', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 42.52, height: 42.52, fit: 'contain' }] },
+}
+const logoValidation: ReportValidation = validateReport(logoed)
+if (!logoValidation.valid) throw new Error(`the invoice with an SVG logo was refused: ${logoValidation.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
+const logoResolution = (bytes: Uint8Array): Resolution =>
+  resolveReport(logoed, euroLines, { mode: 'final', creationDate: '2026-10-15T08:00:00Z', images: (ref) => (ref.asset === 'logo' && ref.digest === logoDigest ? { mediaType: 'image/svg+xml', bytes } : undefined) })
+const logoResolved = logoResolution(approved.bytes)
+if (!logoResolved.ok) throw new Error(`the invoice with an SVG logo did not resolve: ${logoResolved.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
+const logoBytes = await renderPdf(logoResolved.document, { maxPages: 50 })
+const logoPdf = new TextDecoder('latin1').decode(logoBytes)
+if (logoPdf.includes('/Subtype /Image') || (logoPdf.match(/\/Type \/Page\b(?!s)/g) ?? []).length !== 1) throw new Error('the SVG logo was not drawn as vectors on one page')
+// No image and one page would hold of a PDF that drew no logo at all: the
+// logo is read from the page's own drawing instead -- every stream PDFKit
+// compressed, inflated -- as its disc's colour and the clip of its box,
+// neither of which the same invoice without a logo draws.
+const drawingOf = (pdf: Uint8Array): string => {
+  const text = new TextDecoder('latin1').decode(pdf)
+  let drawing = ''
+  for (const match of text.matchAll(/stream\r?\n/g)) {
+    const start = match.index + match[0].length
+    try {
+      drawing += inflateSync(pdf.subarray(start, text.indexOf('endstream', start))).toString('latin1')
+    } catch {
+      // A stream that is not Flate, or not whole, holds no drawing of the page's.
+    }
+  }
+  return drawing
+}
+const disc = `${[31, 78, 121].map((channel) => String(channel / 255)).join(' ')} scn`
+const logoBox = /0 0 m\s+42\.52 0 l\s+42\.52 42\.52 l\s+0 42\.52 l\s+h\s+W n/
+const [withLogo, withoutLogo] = [drawingOf(logoBytes), drawingOf(paidPdf)]
+if (!withLogo.includes(disc) || !logoBox.test(withLogo) || withoutLogo.includes(disc) || logoBox.test(withoutLogo)) throw new Error("the SVG logo's disc and the clip of its box were not drawn on the page, or the invoice without it drew them too")
+const unapproved = logoResolution(saved)
+const savedSays = unapproved.ok ? await renderPdf(unapproved.document, { maxPages: 50 }).then(() => undefined, (error: unknown) => error) : undefined
+if (!(savedSays instanceof RenderRefusal) || savedSays.code !== 'invalid-asset' || savedSays.subject !== 'logo') throw new Error(`a drawing as saved, never approved, was not refused as an invalid asset: ${String(savedSays)}`)
+
 // An e-invoice (0027): a German invoice of its own, since the corpus's
 // samples are never packed, whose two lines are at 19 % and at 7 %. The
 // runtime computes its totals once, for the page and for the CII XML it
@@ -531,5 +590,5 @@ const fromData = await (async () => {
 if (new TextDecoder().decode(fromData.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation read from Data did not render to a PDF')
 
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; an e-invoice validated, a country outside its list was refused by its rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; a drawing approved by report-spec's cleanSvg, the runtime's own, printed as an SVG logo with no image in its ${logoPdf.length}-byte PDF, and the drawing as saved was refused; an e-invoice validated, a country outside its list was refused by its rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
 )

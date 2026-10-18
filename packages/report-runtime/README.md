@@ -43,8 +43,9 @@ if (resolution.ok) {
   the column or the aggregate and the row;
 - a value a format cannot show, a locale or time zone the engine lacks
   (`format`);
-- an image the host has no bytes for, or bytes past 20 MB, and a total that
-  cannot be computed (`resolve`);
+- an image the host has no bytes for, or bytes past 20 MB -- an SVG's past
+  1 MiB, `MAX_SVG_BYTES` -- and a total that cannot be computed
+  (`resolve`);
 - a QR-bill that breaks one of SIX's rules once its data has resolved it
   (`resolve`, `invalid-qr-bill`): an account, a reference, an address part,
   a message or an amount, named by the field and the rule, never by the
@@ -74,7 +75,7 @@ them. Every value is held to its field's type before anything reads it:
 | `date` | `YYYY-MM-DD`, a day on the calendar from 0001 to 9999 |
 | `datetime` | `YYYY-MM-DDTHH:mm:ss`, with up to nine digits of a second, no zone |
 | `instant` | an ISO 8601 date-time with its zone, held in UTC |
-| `image` | `{ asset, digest }`, an approved asset, never an address |
+| `image` | `{ asset, digest }`, an approved asset, never an address: a PNG, a JPEG or an SVG |
 
 A field the report does not declare is refused: a report never carries what
 it does not print. Null prints as nothing; a field the data lacks is an
@@ -225,15 +226,32 @@ they are printed at and the least version that prints them. And of how an
 e-invoice is embedded: `FACTUR_X`, the file's name and media type and the
 XMP's namespace, prefix, document type and version, and
 `FACTUR_X_PROFILES`, each profile's specification identifier,
-conformance level and relationship [S]. An engine depends on the runtime
-alone, and draws and refuses by the one decision the editor refuses by.
+conformance level and relationship [S]. And of an SVG asset
+([0030](../../docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)):
+`checkSvg`, which accepts only the drawing `cleanSvg` writes and says what
+it costs to draw and how far the numbers the converter writes for it reach
+(`SvgExtent`); `cleanSvg` itself, for a host that approves assets beside
+its render code; `SVG_REFUSAL_CODES`; `SVG_ELEMENTS`, the elements an
+approved drawing is written with, which an engine's own guard is held to;
+`MAX_SVG_BYTES`; `MAX_SVG_SEGMENTS` and `MAX_SVG_GROUPS`, what a page
+may cost a reader to paint; and `MAX_SVG_COORDINATE` and `MAX_SVG_DEPTH`,
+from which an engine derives how far its arithmetic may stray from that
+extent. An engine
+depends on the runtime alone, and draws and refuses by the one decision the
+editor refuses by.
 
 ## What it does not do
 
 - **Fetch anything.** The data and the asset bytes are the host's to hand
   over; the runtime reads no database and follows no address.
-- **Check an image's digest.** It has no hash function without Node or the
-  DOM; the host's lookup is trusted to return the bytes the digest pins.
+- **Check an image's digest.** The host's lookup is trusted to return the
+  bytes the digest pins. Not for want of a hash: a pure SHA-256,
+  `@noble/hashes`', reaches the runtime through `@formancy/spec`; checking
+  digests changes what every host's resolver must satisfy, and is a
+  decision of its own
+  ([0030](../../docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
+  So what prints of an SVG is in the approved form, and that it is the
+  approved drawing is the host's to keep.
 - **Format with one engine's results everywhere.** Grouping marks, month
   names and currency symbols are the engine's ICU's, so the same report can
   print differently on two engines.

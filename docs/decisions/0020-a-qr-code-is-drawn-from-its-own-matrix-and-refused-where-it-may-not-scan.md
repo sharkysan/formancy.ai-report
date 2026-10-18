@@ -1,6 +1,6 @@
 # 0020 — A QR code is drawn from its own matrix, exactly its size, and refused where it may not scan
 
-- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's Swiss QR Code at SIX's size, and by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code as a QR code, or at the PSA's widths in Austria's frame
+- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's Swiss QR Code at SIX's size, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code as a QR code, or at the PSA's widths in Austria's frame, and by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), whose SVG assets the same converter draws, in the one form report-spec's `cleanSvg` writes
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -374,6 +374,20 @@ drawn as a `qrCode` of its payload at M is, and held to this record's
 instead, inside the PSA's frame, so its modules may be as fine as 0.381
 mm. A `qrCode` still checks nothing of what its content holds: a SEPA
 payload written into one is not an EPC QR code, and nothing says so.
+
+**Added 2026-10-18: the converter draws an asset's SVG too.** *pdfmake's
+SVG converter draws every code* above says the converter reads the SVG
+the renderer writes and nothing else. Since
+[0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)
+it also draws an SVG asset a host approved: only in the one form
+report-spec's `cleanSvg` writes, which the renderer checks before it hands
+the drawing on, behind its own list of the elements that form holds and
+the converter's image and warning callbacks, which refuse the asset. A
+code's SVG is not held to that form: the renderer writes it from the
+code's matrix, and it holds nothing a host or a customer wrote. And the
+corpus finds an SVG image by a clip of its size with paint inside, so a
+code's square, which the converter clips too, is a clip nothing expects,
+and is not reported.
 
 ## Alternatives considered
 

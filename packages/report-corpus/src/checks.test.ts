@@ -278,7 +278,7 @@ describe('verify holds the page regions to their places', () => {
   // text rather than over it, so that no box crosses the footer's.
   test('an image drawn into the page footer', async () => {
     const footer = pageLines((await readPdf(await pdfmakePdf(definition(ROWS)))).pages[0]!).find((line) => line.text.startsWith('Page '))!
-    const stated = { ...fixture, expect: { ...fixture.expect, images: [{ width: 20, height: 20 }] } }
+    const stated = { ...fixture, expect: { ...fixture.expect, images: [{ kind: 'raster' as const, width: 20, height: 20 }] } }
     const found = await problems(definition(ROWS, { onPageOne: { image: png(), width: 20, height: 20, absolutePosition: { x: 100, y: footer.top - 10 } } }), stated)
     expect(found).toEqual([expect.stringMatching(/^checks: page 1: an image at 100, [\d.]+ reaches [\d.]+ pt, below the top of the page footer at [\d.]+$/)])
   })
@@ -422,7 +422,7 @@ describe('verify checks what a fixture states about its text and pages', () => {
   // check, and one drawn at another size than the document gives is not the
   // image the author placed.
   test('images drawn, counted and measured against the document', async () => {
-    const stated = { ...fixture, expect: { ...fixture.expect, images: [{ width: 20, height: 20 }] } }
+    const stated = { ...fixture, expect: { ...fixture.expect, images: [{ kind: 'raster' as const, width: 20, height: 20 }] } }
     expect(await problems(definition(ROWS), stated)).toEqual(['checks: 0 images drawn; 1 expected'])
     expect(await problems(definition(ROWS, { extra: [{ image: png(), width: 20, height: 20 }] }), stated)).toEqual([])
     expect(await problems(definition(ROWS, { extra: [{ image: png(), width: 10, height: 20 }] }), stated)).toEqual([
@@ -462,7 +462,7 @@ describe('verify finds layout defects', () => {
         { image: png(), width: 30, height: 30, absolutePosition: { x: 556, y: 400 } },
       ],
     }
-    const found = await problems(definition(ROWS, { onPageOne: outside }), { ...fixture, expect: { ...fixture.expect, images: [{ width: 30, height: 30 }] } })
+    const found = await problems(definition(ROWS, { onPageOne: outside }), { ...fixture, expect: { ...fixture.expect, images: [{ kind: 'raster' as const, width: 30, height: 30 }] } })
     expect(found.filter((problem) => /extends past/.test(problem))).toEqual([
       expect.stringMatching(/^checks: page 1: 'ABOVE' extends past the top margin \(from [\d.]+ pt; the margin is at 40\)$/),
       expect.stringMatching(/^checks: page 1: 'BELOW' extends past the bottom margin \(to [\d.]+ pt; the margin is at 801.89\)$/),
@@ -478,7 +478,7 @@ describe('verify finds layout defects', () => {
     const correct = await readPdf(await pdfmakePdf(definition(ROWS)))
     const row = correct.pages[0]!.items.find((item) => item.text === 'ROW-0001')!
     const covered = (): TDocumentDefinitions => definition(ROWS, { onPageOne: { image: png(), width: 40, height: 14, absolutePosition: { x: row.x, y: row.top - 2 } } })
-    const stated = { ...fixture, expect: { ...fixture.expect, images: [{ width: 40, height: 14 }] } }
+    const stated = { ...fixture, expect: { ...fixture.expect, images: [{ kind: 'raster' as const, width: 40, height: 14 }] } }
     expect(await problems(covered(), stated)).toEqual([expect.stringMatching(/^checks: page 1: an image at [\d.]+, [\d.]+ overlaps 'ROW-0001' by [\d.]+ × [\d.]+ pt$/)])
     expect(await problems(covered(), { ...stated, expect: { ...stated.expect, noOverlaps: false } })).toEqual([])
   })

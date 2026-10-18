@@ -92,6 +92,15 @@ PDF/A-3b that embeds that XML as `factur-x.xml` (`pdfa.ts`), through
 PDFKit's own document on the last pass, the ICC profile PDFKit embeds
 admitted by `scripts/dependency-licences.mjs` by its digest
 ([0031](docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+An SVG asset runs through three of them and passes the core by: its rules
+are report-spec's `svg.ts` and the `svg-*.ts` beside it, `cleanSvg`, which
+cleans the file once where a host approves it into the one form the
+renderer draws, and `checkSvg`, which accepts only that form; the runtime
+hands both on and refuses an answer past `MAX_SVG_BYTES`; and the renderer
+draws only what `checkSvg` accepts, as vectors, behind its own list of
+elements in `svg-content.ts` and converter callbacks that refuse, a logo
+in a page region counted on every page against `MAX_SVG_DRAWING`
+([0030](docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
@@ -104,9 +113,11 @@ Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
 `readCodes`, which decodes the QR codes a page prints with ZXing from the
-pixels PDF.js draws, the e-invoice samples and a reader of their XML by
+pixels PDF.js draws, the drawings an SVG image paints and the ink around
+them, the e-invoice samples and a reader of their XML by
 namespace, `readPdfObjects` and `readXmp`, which read what a PDF embeds
-and says of itself with pdf-lib and saxes, `inflatedDigest`, a PDF's
+and says of itself with pdf-lib and saxes, `readPdfNumbers`, every number
+a PDF writes, content streams included, `inflatedDigest`, a PDF's
 objects hashed with every stream inflated, `IMAGE_KINDS`, an image of each
 kind PDFKit embeds, and the renderer trial that chose pdfmake. `apps/studio` is the
 playground that puts both builders and a PDF.js preview on one page
@@ -230,6 +241,13 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
   for its text, bytes, level, version and place
   ([0020](docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md),
   extending 0003). That is decoding, not a comparison of page images.
+- An SVG image is no image object to PDF.js either, so it is proved by the
+  painted paths and the rectangular clip of its box that the content stream
+  holds (`packages/report-corpus/src/drawings.ts`), and by the page's pixels
+  for what the clip hides: `verifyInk` holds a band around each drawing to
+  white ([0030](docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), extending 0003).
+  A drawing is known by its size, so say so where another of that size
+  could stand in for it.
 - Never silently drop, clip or truncate content. A report that cannot fit says
   so in a diagnostic; a production render with incomplete data refuses.
 - Exact values -- decimals, large integers -- travel as strings with their type
@@ -465,8 +483,10 @@ exactly what CI does:
   Mustang's copy, no older than the register's floor. Mustang and KoSIT
   judge the XML the runtime writes of each e-invoice sample, veraPDF and
   Mustang the PDF/A-3b the renderer draws of it and of variants that carry
-  the first sample's e-invoice on other pages -- every starter's, and a
-  page of every image kind PDFKit embeds -- Mustang by its PDF part too,
+  the first sample's e-invoice on other pages -- every starter's, a page
+  of every image kind PDFKit embeds, a page of SVGs in every way
+  svg-to-pdfkit paints one, and one of an SVG at every bound an e-invoice
+  holds one to -- Mustang by its PDF part too,
   never its exit status alone; each control is judged exactly as the
   corpus expects, at least one tool refusing it and each tool refusing at
   least one control of its format; and report-spec's code lists and rule

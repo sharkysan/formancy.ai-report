@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 import { corpus } from './corpus.mjs'
-import { blocksDocument, embeddingProblems, patched, PDF_BASE, PDF_CONTROLS, PDF_VARIANTS, pdfCorpus, pdfPlan, variantProblems } from './pdf-corpus.mjs'
+import { blocksDocument, boundDocument, embeddingProblems, patched, PDF_BASE, PDF_CONTROLS, PDF_VARIANTS, pdfCorpus, pdfPlan, svgDocument, variantProblems } from './pdf-corpus.mjs'
 
 /**
  * The PDFs the e-invoice gate judges (0031): each sample's, drawn from the
@@ -100,6 +100,34 @@ describe('the variants', () => {
     expect(drawn.pageHeader.map((block) => (block.kind === 'image' ? block.asset.id : block.kind))).toEqual(['paragraph', 'png-rgba'])
     expect([drawn.info, drawn.eInvoice, drawn.pageFooter]).toEqual([base.info, base.eInvoice, base.pageFooter])
     expect(() => blocksDocument(base, kinds.filter((kind) => kind.id !== 'png-rgba'))).toThrow('report-corpus’s IMAGE_KINDS has no png-rgba, which variant-blocks.pdf puts in its page header')
+  })
+
+  // The SVGs after the sample's page on a page of their own -- the mark, the
+  // window drawn cover, the translucent drawing -- each once, and the mark
+  // in the header of every page: a variant that lost one would leave a way
+  // svg-to-pdfkit paints into a PDF/A unjudged, and one that drew a drawing
+  // twice would pass a page's group units and be refused (0030).
+  test('add each SVG once after a page break, the window drawn cover, and the mark in the page header', () => {
+    const base = { info: { title: 'Rechnung' }, pageHeader: [{ kind: 'paragraph' }], pageFooter: [], body: [{ kind: 'paragraph' }], eInvoice: { xml: '<x/>' } }
+    const assets = ['svg-mark', 'svg-window', 'svg-translucent'].map((id) => ({ id, mediaType: 'image/svg+xml', bytes: new Uint8Array([60]) }))
+    const drawn = svgDocument(base, assets)
+    expect(drawn.body.map((block) => (block.kind === 'image' ? `${block.asset.id} ${block.fit}` : block.kind))).toEqual(['paragraph', 'pageBreak', 'svg-mark contain', 'svg-window cover', 'svg-translucent contain'])
+    expect(drawn.pageHeader.map((block) => (block.kind === 'image' ? block.asset.id : block.kind))).toEqual(['paragraph', 'svg-mark'])
+    expect(drawn.body.filter((block) => block.kind === 'image').every((block) => block.asset.mediaType === 'image/svg+xml')).toBe(true)
+    expect([drawn.info, drawn.eInvoice, drawn.pageFooter]).toEqual([base.info, base.eInvoice, base.pageFooter])
+    expect(() => svgDocument(base, assets.filter((asset) => asset.id !== 'svg-window'))).toThrow('variant-svg.pdf draws the SVG svg-window, which it was not given')
+  })
+
+  // The drawing at the bound after the sample's page, alone and contained
+  // in the square it is given: in any other box it would be drawn short of
+  // the bound, or refused, and veraPDF would judge an SVG at no bound; and
+  // beside another SVG the page's group units would refuse it (0030).
+  test('add the drawing at the bound alone after a page break, contained in a square of its side', () => {
+    const base = { info: { title: 'Rechnung' }, pageHeader: [{ kind: 'paragraph' }], pageFooter: [], body: [{ kind: 'paragraph' }], eInvoice: { xml: '<x/>' } }
+    const asset = { id: 'svg-bound', mediaType: 'image/svg+xml', bytes: new Uint8Array([60]) }
+    const drawn = boundDocument(base, asset, 41.6)
+    expect(drawn.body).toEqual([{ kind: 'paragraph' }, { kind: 'pageBreak' }, { kind: 'image', asset, width: 41.6, height: 41.6, fit: 'contain' }])
+    expect([drawn.info, drawn.eInvoice, drawn.pageHeader, drawn.pageFooter]).toEqual([base.info, base.eInvoice, base.pageHeader, base.pageFooter])
   })
 })
 

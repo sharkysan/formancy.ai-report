@@ -82,6 +82,16 @@ would anybody find out?" ([`CLAUDE.md`](../../CLAUDE.md)). So:
   draws of an e-invoice, and of no other report, and decides nothing of
   what the file says
   ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+- **An SVG is read by one reader, once.** report-spec's `cleanSvg` cleans
+  it where it is approved into one canonical form, and the renderer's
+  `checkSvg`, the same reader, accepts only that form: nothing is cleaned
+  at print. A copy of the rules in the renderer, or in a builder's upload,
+  could disagree with the one that approved the logo, and nobody would
+  find out until it printed otherwise. The renderer keeps one list of its
+  own behind the check, the elements a cleaned drawing holds, which may
+  refuse more than report-spec's tables and never less: a test holds it to
+  their `SVG_ELEMENTS`, element for element
+  ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 - **The builders render; the model decides.** Keys, drop targets, words and
   what is available are the editor model's, and each builder binds them in
   its own framework. The binding is written twice on purpose; the behaviour
@@ -118,6 +128,10 @@ margins — never on the engine's input and never through a mocked engine
 A QR code is neither text nor an image to PDF.js, so it is decoded from the
 page's pixels with ZXing, as a scanner reads it
 ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
+An SVG image is no image object either, so it is found by the painted
+paths and the clip of its box the content stream holds, and the page's
+pixels say that nothing of it shows past that box
+([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 The engine itself was chosen that way: pdfmake and pdfme ran the same
 corpus, judged by the same checks, and pdfme lost on a group header left
 alone at a page's foot

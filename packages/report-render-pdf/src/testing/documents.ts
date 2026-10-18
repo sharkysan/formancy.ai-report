@@ -1,5 +1,5 @@
-import { ALL_FIXTURES, type Expectation, type ExpectedCell, type ExpectedTable, type Fixture } from '@formancy/report-corpus'
-import type { Block, Inline, Paragraph, ResolvedDocument, Table, TableColumn, TableRow, TextStyle } from '@formancy/report-runtime'
+import { ALL_FIXTURES, type Expectation, type ExpectedCell, type ExpectedImage, type ExpectedTable, type Fixture } from '@formancy/report-corpus'
+import type { Block, Image, Inline, Paragraph, ResolvedDocument, Table, TableColumn, TableRow, TextStyle } from '@formancy/report-runtime'
 
 /**
  * Documents for the renderer's own tests, built as the corpus builds its
@@ -120,7 +120,8 @@ export function fixtureOf(id: string, document: ResolvedDocument, stated: Stated
  * The expectation a document implies, with what the test states laid over
  * it: keys from the first cell of every table row and the lines of every
  * keep-together block, every table's header and rows, the page header's and
- * footer's lines, the body's images, and every layout check on.
+ * footer's lines, the body's and the page regions' images, and every layout
+ * check on.
  */
 export function expectation(document: ResolvedDocument, stated: Stated): Expectation {
   const footerEveryPage = footerPattern(document.pageFooter)
@@ -144,9 +145,16 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     allTextInsidePrintable: true,
     noOverlaps: true,
     fontsEmbedded: true,
-    images: flatten(document.body).flatMap((block) => (block.kind === 'image' ? [{ width: block.width, height: block.height }] : [])),
+    images: imagesOf(document.body),
+    pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
     ...stated,
   }
+}
+
+/** The images among `blocks`, in document order: an SVG drawn as vectors, any other as an image. */
+function imagesOf(blocks: readonly Block[]): ExpectedImage[] {
+  const expected = ({ asset, width, height }: Image): ExpectedImage => ({ kind: asset.mediaType === 'image/svg+xml' ? 'vector' : 'raster', width, height })
+  return flatten(blocks).flatMap((block) => (block.kind === 'image' ? [expected(block)] : []))
 }
 
 /** Every block, the contents of keep-together blocks, sections and columns included, in document order. */

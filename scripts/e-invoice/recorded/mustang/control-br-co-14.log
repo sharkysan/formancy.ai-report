@@ -5,4 +5,4 @@
 [main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 4: 
 	[BR-CO-14]-Invoice total VAT amount (BT-110) = Σ VAT category tax amount (BT-117). [ID BR-CO-14] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)
 [main] WARN org.mustangproject.validator.ZUGFeRDValidator - Warning 10: Arithmetical issue:Payable total in XML is 871.64, but calculated total is 871.63 with tax basis 743.30 and with positions 743.30 = 245.00 + 266.00 + 48.00 + 37.80 + 95.00 + 12.50 + 39.00
-[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:F32FA941AE52F1D7851D1CE458758E82062EFF3F Profile:urn:cen.eu:en16931:2017 Version:2 Took:2399ms Errors:[4,10] ErrorIDs: [BR-CO-14]
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:F32FA941AE52F1D7851D1CE458758E82062EFF3F Profile:urn:cen.eu:en16931:2017 Version:2 Took:2016ms Errors:[4,10] ErrorIDs: [BR-CO-14]

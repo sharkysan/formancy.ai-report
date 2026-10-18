@@ -3,6 +3,7 @@ import { capped, pagesOf } from './check-page.js'
 import { headers, orphans, readTables, rowProblems } from './check-tables.js'
 import { exactText, glyphs, keys, wrappedText } from './check-text.js'
 import { RenderRefusal } from './document.js'
+import { placeDrawings } from './drawings.js'
 import type { Fixture } from './fixture.js'
 import type { ReadPdf } from './read-pdf.js'
 
@@ -12,16 +13,19 @@ import type { ReadPdf } from './read-pdf.js'
  * page and the text it is about; none means the PDF passes.
  *
  * The checks are grouped by what they read: the words and lines
- * (`check-text.ts`), the tables row by row (`check-tables.ts`), and where
+ * (`check-text.ts`), the tables row by row (`check-tables.ts`), where
  * things are on the page (`check-layout.ts`, which also says what positions
- * computed from text cannot see).
+ * computed from text cannot see), and where each SVG image is drawn
+ * (`drawings.ts`). What a drawing shows past its box is the pixels' to say,
+ * and `verifyInk` (`check-ink.ts`) reads them.
  */
 export function verify(fixture: Fixture, pdf: ReadPdf): string[] {
   const expected = fixture.expect
   if (expected.outcome === 'refuse') {
     return [`${fixture.id}: expected a refusal (${expected.refusal?.code ?? 'of any kind'}), but a PDF was produced`]
   }
-  const pages = pagesOf(pdf, expected)
+  const drawings = placeDrawings(pdf, expected)
+  const pages = pagesOf(pdf, expected, drawings.boxes)
   const tables = readTables(pages, expected.tables)
   const { page: setup } = fixture.document
   const problems = [
@@ -42,7 +46,8 @@ export function verify(fixture: Fixture, pdf: ReadPdf): string[] {
     ...capped(expected.allTextInsidePrintable ? outsidePrintable(pages, setup) : []),
     ...capped(expected.noOverlaps ? overlaps(pages) : []),
     ...(expected.fontsEmbedded ? pdf.fonts.filter((font) => !font.embedded).map((font) => `the font ${font.name} is not embedded`) : []),
-    ...images(pages, expected.images),
+    ...capped(images(pages, expected)),
+    ...capped([...drawings.problems]),
   ]
   return problems.map((problem) => `${fixture.id}: ${problem}`)
 }

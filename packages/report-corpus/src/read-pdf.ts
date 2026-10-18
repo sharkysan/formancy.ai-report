@@ -1,11 +1,13 @@
 import { getDocument, OPS, VerbosityLevel, type PageViewport, type PDFDocumentProxy, type PDFPageProxy } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import type { TextItem } from 'pdfjs-dist/types/src/display/api.js'
+import { drawnOn } from './operators.js'
 
 /**
  * What a rendered PDF shows, read back with PDF.js: the text on each page and
- * where it is, the images drawn and where, whether each font the pages use
- * travels inside the file, and the files it embeds. The checks prove a
- * fixture on this, never on the engine's input.
+ * where it is, the images drawn and where, the paths painted and the
+ * rectangles clipped to, whether each font the pages use travels inside the
+ * file, and the files it embeds. The checks prove a fixture on this, never
+ * on the engine's input.
  */
 
 /** A box on a page, in points, measured down from the page's top edge and in from its left edge. */
@@ -39,6 +41,25 @@ export interface PdfTextItem extends PdfBox {
   readonly angle: number
 }
 
+/** A colour a path is painted in: `#rrggbb`, or `pattern` for a gradient or a pattern, which has no one colour. */
+export type PdfPaint = `#${string}` | 'pattern'
+
+/**
+ * A path the page paints: the box of its points on the page, before any
+ * stroke's width -- a curve's box is the curve's own, not its control
+ * points' -- how it is painted and in what. A vector drawing is paths: an
+ * SVG image, a QR code, a rule, a table's borders.
+ */
+export interface PdfPath extends PdfBox {
+  readonly paint: 'fill' | 'stroke' | 'fillStroke'
+  /** Present when it is filled. */
+  readonly fill?: PdfPaint
+  /** Present when it is stroked. */
+  readonly stroke?: PdfPaint
+  /** The innermost rectangular clip in force when it was painted, by its index among the page's `clips`; none when no rectangle clipped it. */
+  readonly clip?: number
+}
+
 export interface PdfPage {
   /** From 1. */
   readonly number: number
@@ -47,6 +68,10 @@ export interface PdfPage {
   /** In the order the page's content draws them, without items that are only whitespace. */
   readonly items: readonly PdfTextItem[]
   readonly images: readonly PdfBox[]
+  /** In the order the page paints them; none from inside a soft mask, which paints nothing a reader sees (`operators.ts`). */
+  readonly paths: readonly PdfPath[]
+  /** Each clip the page sets that is one rectangle with sides along the page's, in the order it sets them: an SVG image is drawn inside one of its box. */
+  readonly clips: readonly PdfBox[]
 }
 
 export interface PdfFont {
@@ -101,12 +126,8 @@ export function baselineOf(item: PdfTextItem): number {
  * the wrong glyphs extracts as other text, which the row and exact-text
  * checks see.
  *
- * Images are found in the operator list by following the transformation
- * matrix through `save`, `restore`, `transform` and form XObjects, so each
- * image's box is where it lands on the page. The list is the page's own
- * operators: PDF.js merges runs of images into one operation only when it
- * renders, never in the list `getOperatorList` returns, so every image drawn
- * is one paint here.
+ * Images, paths and clips are read from the page's operator list
+ * (`operators.ts`), each where it lands on the page.
  */
 export async function readPdf(bytes: Uint8Array): Promise<ReadPdf> {
   // A copy: PDF.js takes ownership of the buffer it is given and may detach it.
@@ -125,12 +146,12 @@ export async function readPdf(bytes: Uint8Array): Promise<ReadPdf> {
     for (let number = 1; number <= document.numPages; number++) {
       const page = await document.getPage(number)
       const viewport = page.getViewport({ scale: 1 })
-      const { images, fontIds } = await drawnImagesAndFonts(page, viewport)
+      const { images, paths, clips, fontIds } = await drawnOn(page, viewport)
       for (const id of fontIds) {
         const font = fontObject(page, id)
         fonts.set(`${font.name}\u0000${font.embedded}`, font)
       }
-      pages.push({ number, width: viewport.width, height: viewport.height, items: await textItems(page, viewport), images })
+      pages.push({ number, width: viewport.width, height: viewport.height, items: await textItems(page, viewport), images, paths, clips })
     }
     return { pages, fonts: [...fonts.values()], attachments: await attachmentsOf(document) }
   } finally {
@@ -172,80 +193,6 @@ function textBox(item: TextItem, viewport: PageViewport): PdfTextItem {
   const [x, top] = [Math.min(...corners.map(([across]) => across)), Math.min(...corners.map(([, down]) => down))]
   const [width, height] = [Math.abs(item.width * cos) + Math.abs(size * sin), Math.abs(item.width * sin) + Math.abs(size * cos)]
   return { text: item.str, x, top, bottom: top + height, width, height, angle }
-}
-
-type Matrix = readonly [number, number, number, number, number, number]
-const IDENTITY: Matrix = [1, 0, 0, 1, 0, 0]
-
-/** Six numbers, from an array or a typed array. */
-function matrix(values: ArrayLike<unknown>): Matrix {
-  const [a, b, c, d, e, f] = Array.from(values, Number)
-  return [a ?? 1, b ?? 0, c ?? 0, d ?? 1, e ?? 0, f ?? 0]
-}
-
-/** `m` applied first, then `n`: the matrix a `cm` operator with `m` leaves when the current one is `n`. */
-function multiply(m: Matrix, n: Matrix): Matrix {
-  return [
-    m[0] * n[0] + m[1] * n[2],
-    m[0] * n[1] + m[1] * n[3],
-    m[2] * n[0] + m[3] * n[2],
-    m[2] * n[1] + m[3] * n[3],
-    m[4] * n[0] + m[5] * n[2] + n[4],
-    m[4] * n[1] + m[5] * n[3] + n[5],
-  ]
-}
-
-/** The page box of the unit square an image is drawn into under `ctm`. */
-function imageBox(ctm: Matrix, viewport: PageViewport): PdfBox {
-  const corners = [
-    [0, 0],
-    [1, 0],
-    [0, 1],
-    [1, 1],
-  ].map(([u, v]) => viewport.convertToViewportPoint(ctm[0] * u! + ctm[2] * v! + ctm[4], ctm[1] * u! + ctm[3] * v! + ctm[5]) as [number, number])
-  const xs = corners.map(([x]) => x)
-  const ys = corners.map(([, y]) => y)
-  const x = Math.min(...xs)
-  const top = Math.min(...ys)
-  const bottom = Math.max(...ys)
-  return { x, top, bottom, width: Math.max(...xs) - x, height: bottom - top }
-}
-
-async function drawnImagesAndFonts(page: PDFPageProxy, viewport: PageViewport): Promise<{ images: PdfBox[]; fontIds: Set<string> }> {
-  const { fnArray, argsArray } = await page.getOperatorList()
-  const images: PdfBox[] = []
-  const fontIds = new Set<string>()
-  const stack: Matrix[] = []
-  let ctm = IDENTITY
-  for (let index = 0; index < fnArray.length; index++) {
-    const args = argsArray[index] as unknown[]
-    switch (fnArray[index]) {
-      case OPS.save:
-        stack.push(ctm)
-        break
-      case OPS.restore:
-      case OPS.paintFormXObjectEnd:
-        ctm = stack.pop() ?? IDENTITY
-        break
-      case OPS.transform:
-        ctm = multiply(matrix(args), ctm)
-        break
-      case OPS.paintFormXObjectBegin:
-        // The form's own matrix, which PDF.js passes as a typed array.
-        stack.push(ctm)
-        ctm = multiply(matrix(args[0] as ArrayLike<number>), ctm)
-        break
-      case OPS.paintImageXObject:
-      case OPS.paintInlineImageXObject:
-      case OPS.paintImageMaskXObject:
-        images.push(imageBox(ctm, viewport))
-        break
-      case OPS.setFont:
-        fontIds.add(args[0] as string)
-        break
-    }
-  }
-  return { images, fontIds }
 }
 
 function fontObject(page: PDFPageProxy, id: string): PdfFont {

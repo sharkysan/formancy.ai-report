@@ -1,4 +1,4 @@
-import { EDGE, imageLabel, once, OVERLAP, plural, points, quoted, TOP_EDGE_PER_POINT, type Page } from './check-page.js'
+import { EDGE, imageLabel, once, OVERLAP, pictures, plural, points, quoted, TOP_EDGE_PER_POINT, type Page } from './check-page.js'
 import { pageDimensions, type PageSetup } from './document.js'
 import { normalise, type Expectation, type ExpectedImage } from './fixture.js'
 import { lineHas, type Line } from './lines.js'
@@ -16,7 +16,9 @@ import type { PdfBox } from './read-pdf.js'
  * line below, in text set tighter than any fixture sets it -- are not seen.
  * Page images are the evidence for those, and for anything drawn as vector
  * paths rather than text or images, text clipped by a clipping path, and
- * colour: white text on white extracts perfectly.
+ * colour: white text on white extracts perfectly. An SVG image is the one
+ * vector drawing read here, by the box of the clip it is painted inside
+ * (`drawings.ts`), where an image is read by its own.
  */
 
 export function pageCount(pages: readonly Page[], expected: Expectation): string[] {
@@ -39,7 +41,8 @@ export function pageSizes(pages: readonly Page[], setup: PageSetup): string[] {
  * between two of its cells where no box crosses another, is reported here.
  */
 export function regions(pages: readonly Page[], expected: Expectation): string[] {
-  return pages.flatMap(({ page, header, footer, body }) => {
+  return pages.flatMap((each) => {
+    const { page, header, footer, body } = each
     const problems = [
       ...missing(header, expected.pageHeaderLines).map((text) => `page ${page.number}: the page header line ${quoted(text)} is missing`),
       ...missing(footer, expected.pageFooterLines).map((text) => `page ${page.number}: the page footer line ${quoted(text)} is missing`),
@@ -54,9 +57,9 @@ export function regions(pages: readonly Page[], expected: Expectation): string[]
     if (lowest !== undefined && lowest.bottom > footerTop + OVERLAP) {
       problems.push(`page ${page.number}: ${quoted(lowest.text)} reaches ${points(lowest.bottom)} pt, below the top of the page footer at ${points(footerTop)}`)
     }
-    for (const image of page.images) {
-      if (image.top < footerTop && image.bottom > footerTop + OVERLAP) {
-        problems.push(`page ${page.number}: ${imageLabel(image)} reaches ${points(image.bottom)} pt, below the top of the page footer at ${points(footerTop)}`)
+    for (const { label, box } of pictures(each)) {
+      if (box.top < footerTop && box.bottom > footerTop + OVERLAP) {
+        problems.push(`page ${page.number}: ${label} reaches ${points(box.bottom)} pt, below the top of the page footer at ${points(footerTop)}`)
       }
     }
     return problems
@@ -86,7 +89,7 @@ export function footers(pages: readonly Page[], pattern: RegExp): string[] {
 
 /** A page with nothing between its page header and footer: an accidental page break, or a table that left only its regions behind. */
 export function emptyPages(pages: readonly Page[]): string[] {
-  return pages.filter(({ page, body }) => body.length === 0 && page.images.length === 0).map(({ page }) => `page ${page.number} prints nothing between its page header and footer`)
+  return pages.filter((each) => each.body.length === 0 && pictures(each).length === 0).map(({ page }) => `page ${page.number} prints nothing between its page header and footer`)
 }
 
 /** Where a kept-together group is: the one page all its lines are on, and its first line there. */
@@ -116,7 +119,7 @@ export function keptByRoom(pages: readonly Page[], groups: readonly (readonly st
     const at = placed(pages, group)
     if (at === undefined) return []
     const above = (box: PdfBox | Line): boolean => box.bottom <= at.first.top + OVERLAP
-    return [{ text: group[0] ?? '', page: at.page.page.number, moved: !at.page.body.some(above) && !at.page.page.images.some(above) }]
+    return [{ text: group[0] ?? '', page: at.page.page.number, moved: !at.page.body.some(above) && !pictures(at.page).some(({ box }) => above(box)) }]
   })
   if (found.length === 0) return []
   const firstMoved = found.findIndex((group) => group.moved)
@@ -130,10 +133,11 @@ export function keptByRoom(pages: readonly Page[], groups: readonly (readonly st
 
 export function outsidePrintable(pages: readonly Page[], setup: PageSetup): string[] {
   const { margins } = setup
-  return pages.flatMap(({ page }) => {
+  return pages.flatMap((each) => {
+    const { page } = each
     const boxes: { label: string; box: PdfBox; topEdge: number }[] = [
       ...page.items.map((item) => ({ label: quoted(item.text), box: item, topEdge: EDGE + TOP_EDGE_PER_POINT * item.height })),
-      ...page.images.map((image) => ({ label: imageLabel(image), box: image, topEdge: EDGE })),
+      ...pictures(each).map(({ label, box }) => ({ label, box, topEdge: EDGE })),
     ]
     const right = page.width - margins.right
     const bottom = page.height - margins.bottom
@@ -148,12 +152,11 @@ export function outsidePrintable(pages: readonly Page[], setup: PageSetup): stri
   })
 }
 
-/** Every pair of text runs and images on a page that share more than `OVERLAP` both ways. */
+/** Every pair of text runs, images and drawings on a page that share more than `OVERLAP` both ways. */
 export function overlaps(pages: readonly Page[]): string[] {
-  return pages.flatMap(({ page }) => {
-    const boxes = [...page.items.map((item) => ({ label: quoted(item.text), box: item as PdfBox })), ...page.images.map((image) => ({ label: imageLabel(image), box: image }))].sort(
-      (a, b) => a.box.top - b.box.top,
-    )
+  return pages.flatMap((each) => {
+    const { page } = each
+    const boxes = [...page.items.map((item) => ({ label: quoted(item.text), box: item as PdfBox })), ...pictures(each)].sort((a, b) => a.box.top - b.box.top)
     const found: string[] = []
     boxes.forEach(({ label, box }, index) => {
       for (const other of boxes.slice(index + 1)) {
@@ -167,13 +170,32 @@ export function overlaps(pages: readonly Page[]): string[] {
   })
 }
 
-/** The images drawn, in page order and the order each page draws them, against the document's: as many, each at its size. */
-export function images(pages: readonly Page[], expected: readonly ExpectedImage[]): string[] {
-  const drawn = pages.flatMap(({ page }) => page.images.map((image) => ({ image, page: page.number })))
-  if (drawn.length !== expected.length) return [`${plural(drawn.length, 'image')} drawn; ${expected.length} expected`]
-  return drawn.flatMap(({ image, page }, index) => {
-    const { width, height } = expected[index]!
-    if (Math.abs(image.width - width) <= EDGE && Math.abs(image.height - height) <= EDGE) return []
-    return [`page ${page}: ${imageLabel(image)} is drawn ${points(image.width)} × ${points(image.height)} pt; the document draws it ${width} × ${height}`]
+/**
+ * The images the PDF embeds against the document's PNGs and JPEGs: each
+ * page region's on every page, then the body's in page order and the order
+ * each page draws them, as many, each at its size. An SVG image is drawn
+ * as vectors, never as an image, and `drawings.ts` finds it.
+ */
+export function images(pages: readonly Page[], expected: Expectation): string[] {
+  const raster = (list: readonly ExpectedImage[]): ExpectedImage[] => list.filter((image) => image.kind === 'raster')
+  const [regions, body] = [raster(expected.pageRegionImages), raster(expected.images)]
+  const sized = (image: PdfBox, { width, height }: ExpectedImage): boolean => Math.abs(image.width - width) <= EDGE && Math.abs(image.height - height) <= EDGE
+  const problems: string[] = []
+  const drawn = pages.flatMap(({ page }) => {
+    const left = [...page.images]
+    for (const image of regions) {
+      const at = left.findIndex((each) => sized(each, image))
+      if (at < 0) problems.push(`page ${page.number}: the page regions' image of ${image.width} × ${image.height} pt is not drawn`)
+      else left.splice(at, 1)
+    }
+    return left.map((image) => ({ image, page: page.number }))
   })
+  if (drawn.length !== body.length) return [...problems, `${plural(drawn.length, 'image')} drawn; ${body.length} expected`]
+  return [
+    ...problems,
+    ...drawn.flatMap(({ image, page }, index) => {
+      const { width, height } = body[index]!
+      return sized(image, body[index]!) ? [] : [`page ${page}: ${imageLabel(image)} is drawn ${points(image.width)} × ${points(image.height)} pt; the document draws it ${width} × ${height}`]
+    }),
+  ]
 }

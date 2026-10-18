@@ -173,3 +173,18 @@ describe('the page and its lengths', () => {
     expect(refusals(edited((r) => setAt(r, '/styles/1/size', 10.125)))).toEqual(['too-precise /styles/1/size'])
   })
 })
+
+describe('assets', () => {
+  // An image asset may be an SVG (0030): a report that declares one is
+  // valid, and its bytes are held to cleanSvg's form where they are drawn.
+  // A media type nothing reads is refused, as before, so a GIF is never
+  // passed to a renderer that would guess at it.
+  test('an asset may be a PNG, a JPEG or an SVG, and nothing else', () => {
+    for (const mediaType of ['image/png', 'image/jpeg', 'image/svg+xml']) {
+      expect(refusals(edited((r) => setAt(r, '/assets/0/mediaType', mediaType))), mediaType).toEqual([])
+    }
+    for (const mediaType of ['image/gif', 'image/svg', 'image/svg+xml; charset=utf-8', 'IMAGE/SVG+XML']) {
+      expect(refusals(edited((r) => setAt(r, '/assets/0/mediaType', mediaType))), mediaType).toEqual(['not-one-of /assets/0/mediaType'])
+    }
+  })
+})

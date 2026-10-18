@@ -1,6 +1,6 @@
 {
   "$comment": "A run of the e-invoice gate, recorded by `node scripts/e-invoice.mjs --record` once it passed: the XML corpus it wrote (corpus/), Mustang's report and log on each file, XML and PDF (mustang/), KoSIT's report on each XML file and its console (kosit/), veraPDF's report on every PDF and what it wrote on stderr (verapdf/), how each run ended, and each PDF's digest of its objects with every stream inflated (`pdfs`, report-corpus's `inflatedDigest`): the PDFs themselves are not recorded, since their bytes are the zlib's that deflated them, which `machine` names. Every output is recorded with the line ends the repository keeps and without the machine's path to the repository, and the console without its results table, whose cells wrap each path across lines (scripts/e-invoice/record.mjs). The judges' tests and the corpus's read it, so that every rule is held on what the pinned tools wrote and not on what somebody thought they would; it is recorded again when a tool, the corpus, a control or what the renderer draws changes. `research` is one output recorded by hand on 17 October 2026, kept for what no run of the gate produces: Mustang 2.26.0's report on a FeRD sample, EN16931_Einfach.pdf, run without --no-notices and without the gate's encoding options, with its seven XRechnung notices.",
-  "recordedAt": "2026-10-18T03:33:01.138Z",
+  "recordedAt": "2026-10-18T07:42:49.399Z",
   "machine": {
     "platform": "win32",
     "arch": "x64",
@@ -33,6 +33,8 @@
     "e-invoice-reverse-charge.pdf": 0,
     "e-invoice-exempt-paid.pdf": 0,
     "variant-blocks.pdf": 0,
+    "variant-svg.pdf": 0,
+    "variant-svg-bound.pdf": 0,
     "variant-fonts.pdf": 0,
     "variant-service-inspection.pdf": 0,
     "variant-quotation.pdf": 0,
@@ -58,6 +60,8 @@
     "e-invoice-reverse-charge.pdf": "a28b0accbbcb8ae92be2c7b433ffbacb696dab5f8ce63c476c568fa054230f95",
     "e-invoice-exempt-paid.pdf": "1b9d937b545311743d65a819c322e298388d0ecfdc6467caf53b1a2fbc79e981",
     "variant-blocks.pdf": "2e6f1c5da532a07e49f14a32d4eb4c3768721ad1b587041ec3b54c0bb70221b4",
+    "variant-svg.pdf": "d677ba09b984b5569da53521e18787ca21d88d2b2d777d1790ca9542d4a95abe",
+    "variant-svg-bound.pdf": "fef710b2431517c447472bb1ffad6228999965dd75da9e5b6651c5ae9de2665f",
     "variant-fonts.pdf": "35ea7fa09b02e04582c3b608f7b3476d9dd1b157bffc6c0cfbe72b8940a01de9",
     "variant-service-inspection.pdf": "d12d91f1eea3a36caaf1bedee71a588e20e715eefe5a494329732c195b8f1b5e",
     "variant-quotation.pdf": "da3b4d1dc0de7c0499ca5ba53fe91afdef23d67af24d888d9e33035385db7e1a",

@@ -125,7 +125,8 @@ export interface ParameterDef {
   readonly default?: string | boolean
 }
 
-export const ASSET_MEDIA_TYPES = ['image/png', 'image/jpeg'] as const
+/** An asset's bytes are a PNG, a JPEG, or an SVG in the form report-spec's `cleanSvg` writes (0030). */
+export const ASSET_MEDIA_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml'] as const
 export type AssetMediaType = (typeof ASSET_MEDIA_TYPES)[number]
 
 /**

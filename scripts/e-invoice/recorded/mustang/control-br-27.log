@@ -5,4 +5,4 @@
 [main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 4: 
 	[BR-27]-The Item net price (BT-146) shall NOT be negative. [ID BR-27] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)
 [main] WARN org.mustangproject.validator.ZUGFeRDValidator - Warning 10: Arithmetical issue:Payable total in XML is 871.63, but calculated total is 288.53 with tax basis 253.30 and with positions 253.30 = -245.00 + 266.00 + 48.00 + 37.80 + 95.00 + 12.50 + 39.00
-[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:DE4E5A4DBDA642C393AE9CB209F109D29F078518 Profile:urn:cen.eu:en16931:2017 Version:2 Took:2590ms Errors:[4,10] ErrorIDs: [BR-27]
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:DE4E5A4DBDA642C393AE9CB209F109D29F078518 Profile:urn:cen.eu:en16931:2017 Version:2 Took:2089ms Errors:[4,10] ErrorIDs: [BR-27]

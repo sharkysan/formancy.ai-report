@@ -8,6 +8,7 @@ import { renderPdf } from './node.js'
 import { bareDocument, paragraph, TIMEOUT } from './testing/documents.js'
 import { invoiced } from './testing/e-invoice.js'
 import { asset, encodePng, exifSegment, frameSegment, idat, ihdr, jpegOf, NONE, pngOf } from './testing/images.js'
+import { svg, svgAsset } from './testing/svg.js'
 
 /**
  * The image checks the renderer makes before pdfmake sees an asset. Every
@@ -103,6 +104,9 @@ describe('checkImageAsset refuses, naming the asset and why', () => {
     ['a JPEG of two frame headers, of four components and then three', () => asset(jpegOf({ components: 3, segments: frameSegment({ components: 4 }) }), 'image/jpeg'), /has two frame headers$/],
     ['a JPEG of two frame headers, of three components and then four', () => asset(jpegOf({ components: 4, segments: frameSegment({ components: 3 }) }), 'image/jpeg'), /has two frame headers$/],
     ['a JPEG of two components', () => asset(jpegOf({ components: 2 }), 'image/jpeg'), /has a frame header of 2 components, where PDFKit draws 1, 3 or 4$/],
+    ['a JPEG declared an SVG', () => asset(jpegOf(), 'image/svg+xml'), /is declared an SVG and is not one: it is a JPEG$/],
+    ['an SVG not in the form cleanSvg writes', () => asset(new TextEncoder().encode(svg('<!-- made by hand --><rect width="1" height="1"/>')), 'image/svg+xml'), /is not an SVG the renderer draws: the drawing holds a comment, which cleaning removes; clean it with cleanSvg first$/],
+    ['bytes that are not an SVG, declared one', () => asset(new TextEncoder().encode('Not an image at all.'), 'image/svg+xml'), /is not an SVG the renderer draws: /],
   ])('%s', async (_, made, reason) => {
     const refused = await refusal(made())
     expect(refused?.code).toBe('invalid-asset')
@@ -149,6 +153,31 @@ describe('checkImageAsset accepts', () => {
   }, TIMEOUT)
 })
 
+describe('checkImageAsset reads an SVG', () => {
+  // The renderer fits an SVG by its viewBox, as it fits a picture by its
+  // pixels, hands pdfmake the very text that was approved, and holds a
+  // render to what it costs and an e-invoice to how far its numbers reach:
+  // a viewBox read the wrong way round would squeeze a wide logo into a
+  // tall box, an origin lost would bound an e-invoice's numbers short
+  // (`svg-pdfa.ts`), and a cost of nothing would let a header logo be drawn
+  // on every page unbounded.
+  test('as its viewBox, its drawing as approved, what it costs and how far it reaches', async () => {
+    const approved = svgAsset(svg('<rect x="10" y="20" width="200" height="100" fill="#1f4e79"/>', '10 20 200 100'))
+    expect(await checkImageAsset(approved)).toEqual({
+      kind: 'vector',
+      x: 10,
+      y: 20,
+      width: 200,
+      height: 100,
+      svg: new TextDecoder().decode(approved.bytes),
+      segments: 5,
+      groups: 0,
+      units: 5 + 12 * 2 + Math.ceil(approved.bytes.length / 32),
+      extent: { groups: { inverse: 0, origin: 0 }, patterns: { linear: 0, offset: 0 }, local: 0, own: 210, nesting: 3 },
+    })
+  })
+})
+
 describe('checkImageAsset reads the size', () => {
   // The renderer fits an image by the size read here. Width and height read
   // the wrong way round -- a JPEG's frame header gives the height first --
@@ -164,9 +193,9 @@ describe('checkImageAsset reads the size', () => {
   // its scanlines once inflated, which PDFKit decodes, here 8 rows of a
   // filter byte and 16 RGB pixels; a JPEG is embedded as it is.
   test('and the image data it holds', async () => {
-    expect((await checkImageAsset(asset(encodePng(16, 8, () => [0, 0, 0])))).data).toBe(8 * (1 + 16 * 3))
+    expect(await checkImageAsset(asset(encodePng(16, 8, () => [0, 0, 0])))).toMatchObject({ kind: 'raster', data: 8 * (1 + 16 * 3) })
     const jpeg = jpegOf({ width: 16, height: 8 })
-    expect((await checkImageAsset(asset(jpeg, 'image/jpeg'))).data).toBe(jpeg.length)
+    expect(await checkImageAsset(asset(jpeg, 'image/jpeg'))).toMatchObject({ kind: 'raster', data: jpeg.length })
   })
 
   // PDFKit turns a JPEG by its Exif orientation: 5 to 8 a quarter turn, so

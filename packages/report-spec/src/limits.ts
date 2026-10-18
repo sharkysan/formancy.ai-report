@@ -12,6 +12,10 @@
  * are not chosen, and say where they come from. Raising a bound is safe;
  * lowering one refuses reports that were valid, which once the format is
  * frozen means a new reportSpecVersion.
+ *
+ * The bounds of an SVG asset, at the end, are the exception: each but
+ * `MAX_SVG_REMOVED_NAMES` was measured, and says how, on what and when
+ * (0030).
  */
 
 /**
@@ -117,3 +121,186 @@ export const MAX_LENGTH_PT = 14_400
  * not hold a word of body text.
  */
 export const MIN_PRINTABLE_PT = 72
+
+/*
+ * The bounds of an SVG asset (0030). Each is held by report-spec's
+ * `cleanSvg` when an asset is approved and by `checkSvg` when it prints, so
+ * that an approved drawing costs a bounded amount to clean, to draw and to
+ * read back, wherever it is drawn. A `source.js:N` below is a line of
+ * pdfmake 0.3.11's `src/3rd-party/svg-to-pdfkit/source.js`, of which Node
+ * runs a transpiled copy under `js/`.
+ *
+ * Measured on 2026-10-18 on an Intel i9-10900K under Node 24.21.0 with
+ * pdfmake 0.3.11, and in Chromium 156.0.8078.4 (Playwright 1.64.1's headless
+ * shell, drawing in software) with pdfjs-dist 6.4.299, as the Studio's
+ * Preview draws a page. A starter page costs 63-89 ms to pixels there. The
+ * aim the per-drawing bounds were set by is that the worst logo they
+ * accept, at the starters' 15 mm, costs about what one more starter page
+ * costs; what they give is more, two to six starter pages at 15 mm and
+ * three to eight page-wide (`MAX_SVG_SEGMENTS`), since a bound low enough
+ * to keep the aim against a rasteriser's worst would refuse detailed
+ * logos. The machine was shared, so a time below is a median, and a range
+ * where repeated runs differed.
+ */
+
+/**
+ * Bytes in an SVG asset, both as the file comes and as `cleanSvg` writes it:
+ * the written form can be several times its input -- a relative path written
+ * as absolute coordinates, a colour name as `#rrggbb` -- so a drawing whose
+ * cleaned form would pass this is refused when it is approved, not at every
+ * print after. A logo is kilobytes; the exporters' invented samples were
+ * 545-2,520 bytes in and 483-994 out. At the bound the cleaner itself took
+ * at most 179 ms in Node on the costliest it accepts (`MAX_SVG_CASCADE`'s
+ * worst; 3,000 moves, each styled with every property and turned, written
+ * to 1.04 MB, 141-162 ms), 35-120 ms on a mebibyte of each shape of value
+ * `svg-threats.test.ts` holds it to, and 292-331 ms to refuse a mebibyte of
+ * path past MAX_SVG_SEGMENTS (Node alone, on the day these were measured
+ * again); a page of rectangles of that size takes the renderer 0.94 s to
+ * draw.
+ */
+export const MAX_SVG_BYTES = 1_048_576
+
+/**
+ * Element levels in a drawing, the root's included, as the file nests them
+ * and as `cleanSvg` writes them; also the longest chain of gradients that
+ * name each other. pdfmake's XML reader and svg-to-pdfkit both recurse once
+ * per level, and 5,000 levels overflowed the stack in a probe. 32 and 64
+ * levels with a transform each cost the same as none (122 ms to render, 59-65
+ * ms to pixels), so this bounds recursion, not time. The deepest exporter
+ * sample nests four.
+ */
+export const MAX_SVG_DEPTH = 32
+
+/**
+ * Elements in a cleaned drawing. svg-to-pdfkit re-reads and draws every one
+ * on every page it is drawn on, at about 34 microseconds an element: 10,000
+ * one-unit rectangles took 545 ms of the renderer's final pass against 55
+ * without them, and 234 ms (DPR 1) and 198 ms (DPR 2) to pixels.
+ */
+export const MAX_SVG_ELEMENTS = 10_000
+
+/**
+ * What one drawing costs a reader to paint, in weighted segments. Each
+ * command the converter draws counts: a move, a line or a close 1, a curve
+ * 3 (10,000 short crossing cubics cost about what 30,000 such lines do, in
+ * Node and in Chromium; a cubic spanning the box costs less than three
+ * lines that do, 10,000 of them 238 ms against 933 ms for 30,000 lines,
+ * as review measured the same day), an arc 3 for each curve svg-to-pdfkit splits it
+ * into (one per 60 degrees, `source.js:1054` at its default precision), and
+ * an arc that ends where it starts, which draws nothing, 1. A stroked shape
+ * counts its commands twice more, three times in all when it is also filled
+ * (10,000 lines filled and stroked cost about what 30,000 filled do). A clip
+ * path's commands count once for every element it clips, a gradient's stops
+ * once for every shape painted with it, and a dashed stroke one more for
+ * each dash it could draw.
+ *
+ * A rasteriser's worst is a path whose every segment crosses the whole
+ * box: it pays for each segment on every row of pixels the segment spans,
+ * so the cost grows faster than the count. A zigzag of such lines took 121
+ * ms to pixels at DPR 1 and 132 ms at DPR 2 in a 15 mm box at this bound,
+ * 268-276 ms at 15,000, 490-500 ms at 20,000 and 1.15-1.27 s at 30,000; the
+ * worst accepted -- that zigzag in a clipped group, with three more clipped
+ * shapes, every group the bounds allow -- took 190 and 392 ms at 15 mm and
+ * 269 and 550 ms page-wide, against 63 to 89 ms for a starter page (on
+ * 2026-10-18, in the Chromium and pdfjs-dist above, medians of five). The
+ * same count of 30,000 in paths whose segments were a seventh of the box
+ * long took 184-295 ms, and spanning the box 1.15 to 1.84 s. A logo whose
+ * curves are short costs far less than its count says, and one of more
+ * than this is refused, to be simplified in the drawing program.
+ */
+export const MAX_SVG_SEGMENTS = 10_000
+
+/**
+ * Transparency groups in one drawing, in units: a clip-path reference 1, a
+ * group with an opacity under 1 1, and a shape painted with a gradient
+ * whose stops come out translucent 2. svg-to-pdfkit makes every one a
+ * group the size of the whole page, whatever the size of the logo, and a
+ * translucent gradient two page-sized objects, so the cost is the page's
+ * pixels: about 15 ms a clip at DPR 1 and 59 ms at DPR 2, 30 ms and 117 ms
+ * a translucent gradient, 1.4 ms and 5.2 ms a group opacity. Four units keep
+ * the worst accepted at about 60 ms more than a starter page at DPR 1 and
+ * 240 ms at DPR 2, and admit every exporter sample: Figma's clipped frame is
+ * 1, Figma's fade with a layer at 80 % is 3, Canva's two shapes 2. A
+ * translucent stop is kept because a bound this small admits them; a Canva
+ * logo of five shapes or more, each clipped, is refused.
+ */
+export const MAX_SVG_GROUPS = 4
+
+/**
+ * Stops in one gradient. Each use of a 64-stop gradient writes 10.9 kB into
+ * the PDF and costs a reader about half a millisecond; `MAX_SVG_SEGMENTS`
+ * bounds the uses, counting a gradient's stops once each. A logo's
+ * gradients have two to five.
+ */
+export const MAX_SVG_STOPS = 64
+
+/**
+ * Entries in a stroke's dash array, after an odd list is doubled as SVG
+ * doubles it. Every dash it draws counts against `MAX_SVG_SEGMENTS` too: a
+ * spiral of 4,096 segments dashed at a period of 0.01 units, about 900,000
+ * dashes, cost 219-265 ms to pixels against 70-102 ms dashed at a period of
+ * one unit. Skia gives up at a count of its own; another reader may not.
+ */
+export const MAX_SVG_DASHES = 32
+
+/**
+ * The largest magnitude of any number in a drawing; of every entry of the
+ * transform composed from the root down to each element, and of its
+ * inverse, which svg-to-pdfkit computes for every clip and group opacity;
+ * and of the matrix a gradient is drawn under, its shape's and its box's
+ * composed with its own. With a point and a matrix both at it in a viewBox
+ * one unit wide, the renderer drew in 115 ms with no warning, and the
+ * device coordinates stayed near 10^13 points, far below the 10^21 at
+ * which PDFKit throws; past it, two groups shrinking a millionfold each
+ * under a clip, or a gradient composed to a million cubed, threw from
+ * inside PDFKit. An e-invoice's PDF/A-3 keeps none of PDF/A-1's 32,767 for
+ * a real: veraPDF 1.30.3's PDF/A-3b profile holds a real to 3.403 × 10^38
+ * (its rule 6.1.13-2), past PDFKit's 10^21, and an integer to 2,147,483,647
+ * (6.1.13-1), which the numbers the converter computes from these bounds can
+ * pass -- a group's box under a shrink of 10^6 in a box of a point reached
+ * 7.85 × 10^10 -- so the renderer holds an SVG in an e-invoice to that by
+ * the extent `cleanSvg` measures (`svg-extent.ts`; report-render-pdf's
+ * `svg-pdfa.ts`), and no bound here is lowered for it.
+ */
+export const MAX_SVG_COORDINATE = 1_000_000
+
+/**
+ * Simple selectors -- a type, a class or an id -- in all of a drawing's
+ * stylesheets together, after comma lists are split. Indexing the rules by
+ * id, class and type makes matching linear in the rules that could match,
+ * but rules that all match every element cannot be shortened that way, so
+ * the work is this bound times the combinations of classes elements hold.
+ * The rules one combination matches are merged once: 256 one-class rules,
+ * each declaring every kept property, all matching 10,000 elements, took
+ * the cleaner 85-102 ms in Node and 63-81 ms in Chromium, against 1.9 s
+ * when every element read every rule. Elements of combinations of their
+ * own are bounded by `MAX_SVG_CASCADE`. Illustrator's samples hold three.
+ */
+export const MAX_SVG_RULES = 256
+
+/**
+ * The cascade's work, in all: each rule compared with a combination of
+ * type, id and classes an element holds, and each declaration merged for it.
+ * Merging once per combination makes ten thousand elements of one class one
+ * merge, but elements that each hold a combination of their own are one
+ * merge each: 9,990 elements, each of its own set of fourteen classes, under
+ * 242 type rules declaring every kept property took the cleaner 1.8 s in
+ * Node. At this bound the costliest shape measured -- 5,000 elements each
+ * of its own pair of 101 classes, under 98 type rules of one declaration --
+ * took 179 ms (158-271), within what the worst file `MAX_SVG_BYTES` admits
+ * costs, and that shape of 9,990 elements is refused in 136 ms. An
+ * Illustrator export, one class an element from a few dozen, merges a few
+ * hundred times. Measured on 2026-10-18 under Node 24.21.0, medians of five,
+ * on the machine and the terms above.
+ */
+export const MAX_SVG_CASCADE = 1_000_000
+
+/**
+ * Distinct names `cleanSvg` lists among what it removed; removals of every
+ * further name are counted, not named, so that the list a person is shown
+ * does not grow with what a file holds. Chosen, not measured: the Inkscape
+ * sample, the most any exporter's sample removes, lists 26 names -- its
+ * editor's attributes, namespaces, layers and text properties -- and a
+ * bound of 16 would have cut it short.
+ */
+export const MAX_SVG_REMOVED_NAMES = 32

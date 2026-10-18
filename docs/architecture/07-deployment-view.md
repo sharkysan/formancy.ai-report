@@ -154,6 +154,15 @@ deploy happened or what the address serves.
   [0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)).
 - **A PDF viewer of its own**, if it shows the PDF in a page
   ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).
+- **For an SVG asset:** report-spec's `cleanSvg`, which the runtime
+  hands on too, run where the host approves the asset, and the bytes it
+  returns kept as the asset, declared by their digest; the file as it came
+  is never the asset, and the renderer refuses it. An approver is shown the
+  cleaned drawing, or the PDF, never the file as uploaded, which a browser
+  draws with what cleaning removed. A host that bundles the renderer
+  carries the whole SVG reader, and one that bundles report-spec's
+  validator alone a few kilobytes of its tables, which 0030 measures
+  ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 - **For an e-invoice:** no release prints one, and 0.1.0 refuses a report
   that holds one. On `main` a final render writes the CII XML into the
   resolved document, `document.eInvoice.xml`, and the renderer draws that

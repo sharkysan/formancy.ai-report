@@ -1,6 +1,6 @@
 # 0011 — `report-render-pdf` draws the whole resolved document with pdfmake, and refuses what it cannot draw whole
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which refused every e-invoice until the renderer drew the PDF/A-3 that carries one, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which draws it, a PDF/A-3b, and refuses what that cannot hold
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which refused every e-invoice until the renderer drew the PDF/A-3 that carries one, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which draws an SVG asset as vectors, only in the form report-spec's `cleanSvg` writes, and bounds what SVGs cost a render and a page, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which draws an e-invoice as a PDF/A-3b and refuses what that cannot hold
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-render-pdf`, run by its
@@ -229,6 +229,35 @@ cannot hold them: XML holding a lone surrogate, a title holding `&`, `<`,
 JPEG, naming the image, in an e-invoice alone. A preview carries no XML,
 and is drawn plain. `refusals.test.ts`, `assets.test.ts` and
 `e-invoice.test.ts` hold it.
+
+**Added 2026-10-18: SVG images.** An image's asset may be an SVG, and the
+renderer draws it as
+[0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)
+decides: as vectors, through the svg-to-pdfkit pdfmake vendors, in the
+image's box, `contain` as the converter's `xMidYMid meet` and `cover` as
+its `xMidYMid slice`, inside the viewport's clip, which is the box. It
+draws only bytes report-spec's `checkSvg` finds already in the form
+`cleanSvg` writes, and refuses any other as `invalid-asset`, naming the
+asset and what cleaning would change, before pdfmake runs; a PNG or a
+JPEG declared an SVG, and an SVG declared either, is refused saying what
+it is. Behind the check stand its own list of the elements that form
+holds (`svg-content.ts`) and the converter's image and warning callbacks,
+which refuse rather than open a file or draw on past a warning. Two
+bounds join the image data's, each refused as `content-too-large`,
+naming the asset: `MAX_SVG_DRAWING`, what drawing the SVGs costs one
+render, an image in a page region counted on every page `maxPages`
+allows, since the converter draws it on each; and report-spec's
+`MAX_SVG_SEGMENTS` and `MAX_SVG_GROUPS`, the bounds of one drawing, over
+every SVG image of the body as though all fell on one page, beside those
+of the page regions. Two sentences above hold for a PNG and a JPEG alone:
+*each asset object is embedded once*, where an SVG is drawn wherever it
+prints; and *fonts from four named files and no address*, where the
+converter would open an `<image>`'s file past pdfmake's policy, which the
+check, the list and the callback each keep from it, as 0005's addition
+says of its *no other file*
+([0005](0005-pdfmake-renders-reports-behind-one-adapter.md)).
+`svg.test.ts`, `svg-threats.test.ts` and `svg-converter.test.ts` prove it,
+and `pdfmake.test.ts` pins the converter.
 
 ## Alternatives considered
 

@@ -67,7 +67,8 @@ once; its other terms held to EN 16931's rules (6.8)
    ▼
 format every value for the locale          Intl handed exact digits, never a double
    ▼
-images through the host's lookup, by id and digest, once each
+images through the host's lookup, by id and digest, once each; an SVG
+past MAX_SVG_BYTES refused (6.9)
    ▼
 a QR-bill's texts, and an EPC QR code's, resolved and held to their code's
 rules; the EPC QR code's payload written (6.7)
@@ -80,10 +81,12 @@ ResolvedDocument + manifest (+ a preview's warnings)        every reason, or non
    ▼
 renderPdf(document, { maxPages, signal })
    ├─ before pdfmake sees it: a glyph per character, nothing malformed or
-   │ wider than where it stands, each asset's bytes, a bill, each code
-   │ encoded once and held to its square ────────────────────▶ RenderRefusal
+   │ wider than where it stands, each asset's bytes, an SVG's in the form
+   │ cleanSvg writes and within what SVGs may cost (6.9), a bill, each
+   │ code encoded once and held to its square ───────────────▶ RenderRefusal
    │ an e-invoice it does not know, a title its XMP cannot hold,
-   │ a CMYK JPEG in one ─────────────────────────────────────▶ unsupported
+   │ a CMYK JPEG in one, an SVG whose numbers or nesting its
+   │ PDF/A cannot hold (6.9) ────────────────────────────────▶ unsupported
    ├─ a bill or a captioned EPC QR code: Liberation Sans read, and in a
    │ browser its chunk imported
    ├─ measure the page regions; the body's margins follow
@@ -370,4 +373,69 @@ level report-spec gives them, and refuses a document whose values it does
 not know. The file and the XMP are added on the final pass alone, so the
 measuring passes lay the page out as the PDF prints it, and a preview,
 which carries no XML, is drawn as a plain PDF
+([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+
+## 6.9 An SVG, from the file a person saved to the page
+
+```
+a host is handed a logo as a drawing program saved it
+   │
+   ▼
+cleanSvg(bytes), where the host approves it          report-spec, at approval, once
+   ├─ text, an embedded picture, use or symbol, a reference out of the file,
+   │  a filter, a mask, an internal subset, a byte past ASCII kept, a bound
+   │  passed ──────────────────────────────────────────▶ refused, a code and
+   │                                                     what to do, never a value
+   ├─ what never draws ──▶ removed, and listed by kind and name with a count
+   ├─ CSS flattened into attributes; the root's paint and transform moved
+   │  onto a group inside it; a link written as the group it draws as
+   ▼
+the canonical form: ASCII, absolute numbers, one matrix a transform, ids
+renamed; its cost to paint, and to draw; its extent: the inverses its
+page-sized groups and the matrices its gradients are drawn under, the
+points the converter draws its outlines with, and how deep it nests it
+   ▼
+the host keeps those bytes, and declares the asset by their digest
+   │
+   ▼
+resolveReport: images through the host's lookup (6.2)
+   ├─ an answer past MAX_SVG_BYTES ─────────────────────▶ invalid-asset, before
+   │                                                     it is copied
+   ▼
+renderPdf: checkSvg(bytes)                            report-spec's, through the runtime
+   ├─ anything cleaning would change ──────────────────▶ invalid-asset, naming
+   │                                                     the asset and the change
+   ├─ the SVGs past MAX_SVG_DRAWING, a page region's counted
+   │  on every page maxPages allows; the body's past one
+   │  drawing's bounds, as though on one page ──────────▶ content-too-large
+   ├─ in an e-invoice, numbers that at the image's box,
+   │  anywhere on its page, could pass the PDF/A-3's
+   │  integers less a margin for rounding, or a nesting
+   │  past its 28 graphics states ──────────────────────▶ unsupported, naming
+   │                                                     the image and what to do
+   ├─ the renderer's own list of elements ──────────────▶ invalid-asset
+   ▼
+pdfmake's svg-to-pdfkit draws it in the image's box: contain as xMidYMid meet,
+cover as xMidYMid slice, clipped to the box
+   ├─ it would open an image, or it warns ─────────────▶ invalid-asset, from
+   │                                                     its callbacks
+   ▼
+vectors on the page, drawn again on every page in a page region
+```
+
+The rules are report-spec's alone, so the host's approval, a builder's
+upload when it comes and the renderer cannot read an SVG differently, and
+the renderer cleans nothing: what it draws is bytes `cleanSvg` wrote, or
+nothing. The renderer's list and the converter's callbacks stand behind the
+check, for a fault in the cleaner, and neither replaces it: the converter
+writes a link and draws text without a callback, which only the check and
+the list refuse. That the bytes are the drawing a person approved rests on
+the host's lookup, which the runtime trusts to return what the digest
+pins ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md),
+[0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)).
+In an e-invoice, whose PDF/A-3 holds an integer to 2,147,483,647, the
+converter's numbers for a drawing are bounded before it runs, from the
+extent the cleaner measured, the box and the page, since some of them --
+a page-sized group's box, a gradient's matrix -- grow as the box shrinks;
+a report that is no e-invoice draws the same drawing as before
 ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).

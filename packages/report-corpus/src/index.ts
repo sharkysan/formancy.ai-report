@@ -1,4 +1,5 @@
 export { verify, verifyRefusal } from './checks.js'
+export { inkAround, verifyInk } from './check-ink.js'
 export { pageDimensions, RenderRefusal } from './document.js'
 export type {
   Block,
@@ -29,7 +30,10 @@ export type { Expectation, ExpectedCell, ExpectedImage, ExpectedRefusal, Expecte
 export { epcCodes } from './fixture.js'
 export { ALL_FIXTURES } from './fixtures/all.js'
 export { IMAGE_KINDS } from './image-kinds.js'
+export { SVG_BOUND, SVG_BOUND_SIDE, SVG_FIXTURES, SVG_MARK, SVG_WINDOW } from './fixtures/svg.js'
 export { readPdf } from './read-pdf.js'
+export { readPdfNumbers } from './numbers.js'
+export type { PdfNumber, PdfNumberToken } from './numbers.js'
 export { inflatedDigest, readPdfObjects } from './objects.js'
 export type { PdfEmbeddedFile, PdfFileParams, PdfFileSpecification, PdfMetadata, PdfNamedFile, PdfObjects, PdfOutputIntent } from './objects.js'
 export { childrenOf, propertiesOf, readXmp, XMP_NAMESPACES } from './xmp.js'
@@ -40,6 +44,8 @@ export { rasterPage, rasterPixels } from './raster.js'
 export type { PagePixels } from './raster.js'
 export { readCodes } from './codes.js'
 export type { PdfCode } from './codes.js'
+export { readAnnotations } from './annotations.js'
+export type { PdfAnnotation } from './annotations.js'
 export {
   E_INVOICE,
   E_INVOICE_EXEMPT_PAID,
@@ -80,4 +86,4 @@ export {
   STARTERS,
 } from './starters/index.js'
 export type { Starter, StarterImage } from './starters/index.js'
-export type { PdfAttachment, PdfBox, PdfFont, PdfPage, PdfTextItem, ReadPdf } from './read-pdf.js'
+export type { PdfAttachment, PdfBox, PdfFont, PdfPage, PdfPaint, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'

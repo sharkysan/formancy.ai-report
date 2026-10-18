@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { RenderRefusal, type EInvoiceFile, type EpcQrCode, type Image, type QrBill, type ResolvedDocument, type Table } from '../document.js'
 import { details, documentOf, ledger, paragraph, totalRow } from '../fixtures/build.js'
 import { encodePng } from '../fixtures/png.js'
+import { SVG_MARK } from '../fixtures/svg.js'
 import { lineHas, pageLines } from '../lines.js'
 import { readPdf } from '../read-pdf.js'
 import { pdfmakeAdapter } from './pdfmake.js'
@@ -20,6 +21,9 @@ const ADAPTERS = [pdfmakeAdapter, pdfme] as const
 function squareIn(fit: Image['fit']): Image {
   return { kind: 'image', asset: { id: 'square', mediaType: 'image/png', bytes: encodePng(8, 8, () => [0, 90, 0]) }, width: 80, height: 40, fit }
 }
+
+/** The corpus's SVG mark, as an approved asset holds it: neither adapter draws an SVG. */
+const MARK: Image = { kind: 'image', asset: { id: 'mark', mediaType: 'image/svg+xml', bytes: SVG_MARK }, width: 40, height: 40, fit: 'contain' }
 
 /** A QR-bill as the runtime resolves SIX's example 3, the payload cut short: neither adapter reads it. */
 const BILL: QrBill = {
@@ -87,6 +91,12 @@ const UNDRAWN: readonly (readonly [string, ResolvedDocument, string])[] = [
   ['an EPC QR code', documentOf('EPC QR code', [paragraph('Before'), EPC]), 'body[1]'],
   ['an EPC QR code in a keep-together block', documentOf('Kept EPC QR code', [{ kind: 'keepTogether', blocks: [paragraph('Pay by code'), EPC] }]), 'body[0].blocks[1]'],
   ['a QR code in the page header', { ...documentOf('Header code', [paragraph('Body')]), pageHeader: [{ kind: 'qrCode', id: 'header-code', text: 'A-1', size: 40, errorCorrection: 'L' }] }, 'pageHeader[0]'],
+  // An SVG is a drawing, which both adapters read as a JPEG and refused as
+  // a broken one: an invalid asset, where the asset is sound and the
+  // adapter is what cannot draw it.
+  ['an SVG image', documentOf('SVG', [paragraph('Before'), MARK]), 'body[1]'],
+  ['an SVG image in a keep-together block', documentOf('Kept SVG', [{ kind: 'keepTogether', blocks: [paragraph('Kept'), MARK] }]), 'body[0].blocks[1]'],
+  ['an SVG image in the page header', { ...documentOf('Header SVG', [paragraph('Body')]), pageHeader: [MARK] }, 'pageHeader[0]'],
   ['a paragraph in the serif font', documentOf('Serif', [paragraph('Set in serif', { font: 'serif' })]), 'body[0]'],
   ['a paragraph in the mono font, in the page header', { ...documentOf('Mono', [paragraph('Body')]), pageHeader: [paragraph('Set in mono', { font: 'mono' })] }, 'pageHeader[0]'],
   ['a paragraph in colour', documentOf('Colour', [paragraph('Printed in red', { color: '#c00000' })]), 'body[0]'],

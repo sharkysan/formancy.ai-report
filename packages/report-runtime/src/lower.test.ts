@@ -1,4 +1,4 @@
-import { emptyReport, validateReport } from '@formancy/report-spec'
+import { emptyReport, MAX_SVG_BYTES, validateReport } from '@formancy/report-spec'
 import type { Component, FieldRef, Inline, Regions, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { ReportData } from './data.js'
@@ -14,6 +14,8 @@ const header = (field: string): FieldRef => ({ dataset: 'header', field })
 const LOGO_DIGEST = `sha256:${'ab'.repeat(32)}`
 const PHOTO = { asset: 'photo-1', digest: `sha256:${'cd'.repeat(32)}` }
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3])
+/** Bytes the runtime hands on as an SVG: whether they are a drawing is the renderer's to say. */
+const SVG = new Uint8Array([0x3c, 0x73, 0x76, 0x67])
 
 /** A report in English with a header dataset, two parameters, four styles and a logo, whose regions are `regions`. */
 function probe(regions: Partial<Regions>): ReportDefinition {
@@ -387,7 +389,8 @@ describe('images', () => {
     ['a lookup that throws', throwing, 'asset-lookup-failed'],
     ['an answer of another media type', () => ({ mediaType: 'image/jpeg', bytes: PNG }), 'invalid-asset'],
     ['an answer that is not bytes', () => ({ mediaType: 'image/png', bytes: [0x89] as unknown as Uint8Array }), 'invalid-asset'],
-    ['an answer of a type no report draws', () => ({ mediaType: 'image/svg+xml', bytes: PNG }), 'invalid-asset'],
+    ['an answer of a type no report draws', () => ({ mediaType: 'image/gif', bytes: PNG }), 'invalid-asset'],
+    ['an SVG answer for an asset declared a PNG', () => ({ mediaType: 'image/svg+xml', bytes: SVG }), 'invalid-asset'],
   ]
   test.each(failures)('refuses an image with %s', (_name, images, code) => {
     expect(refusals(body(logo), images === undefined ? {} : { images })).toEqual([`resolve ${code} /regions/body/0/source`])
@@ -399,10 +402,56 @@ describe('images', () => {
     expect(refusals(body(photo), { images: () => ({ mediaType: 'image/gif', bytes: PNG }) })).toEqual(['resolve invalid-asset /regions/body/0/source'])
   })
 
-  // An image field may be either type a report draws; only the template's
+  // An image field may be any type a report draws; only the template's
   // own asset declares one.
-  test('takes a JPEG for an image field', () => {
-    const [image] = lowered(body(photo), { images: () => ({ mediaType: 'image/jpeg', bytes: PNG }) }).body as Image[]
-    expect(image?.asset.mediaType).toBe('image/jpeg')
+  test('takes a JPEG and an SVG for an image field', () => {
+    const [jpeg] = lowered(body(photo), { images: () => ({ mediaType: 'image/jpeg', bytes: PNG }) }).body as Image[]
+    expect(jpeg?.asset.mediaType).toBe('image/jpeg')
+    const [svg] = lowered(body(photo), { images: () => ({ mediaType: 'image/svg+xml', bytes: SVG }) }).body as Image[]
+    expect(svg?.asset.mediaType).toBe('image/svg+xml')
+  })
+})
+
+describe('an SVG image', () => {
+  const mark: Component = { id: 'mark-image', kind: 'image', source: { kind: 'asset', asset: 'mark' }, width: 42.52, height: 42.52, fit: 'contain' }
+  const withMark = (regions: Partial<Regions>): ReportDefinition => ({ ...probe(regions), assets: [{ id: 'mark', mediaType: 'image/svg+xml', digest: LOGO_DIGEST }] })
+
+  /** Bytes whose every read but their length is counted: copying them reads them, and refusing them on their length does not. */
+  function counted(length: number): { readonly bytes: Uint8Array; readonly reads: () => number } {
+    const target = new Uint8Array(length).fill(0x20)
+    let reads = 0
+    const bytes = new Proxy(target, {
+      get(of, key) {
+        if (key !== 'length') reads += 1
+        const value: unknown = Reflect.get(of, key, of)
+        return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(of) : value
+      },
+    })
+    return { bytes, reads: () => reads }
+  }
+
+  // The media type of a template's SVG asset travels with its bytes to the
+  // renderer, which draws an SVG and a PNG by different checks: lost, the
+  // renderer would read the drawing as a PNG and refuse it, or worse.
+  test('resolves to an image whose asset is declared an SVG', () => {
+    const outcome = resolveReport(withMark(body(mark)), data(), { ...OPTIONS, images: () => ({ mediaType: 'image/svg+xml', bytes: SVG }) })
+    expect(outcome.ok && (outcome.document.body as Image[]).map(({ asset }) => ({ id: asset.id, mediaType: asset.mediaType, bytes: [...asset.bytes] }))).toEqual([{ id: 'mark', mediaType: 'image/svg+xml', bytes: [...SVG] }])
+  })
+
+  // A logo is kilobytes and an SVG asset may be a mebibyte (0030): a host
+  // that handed over 20 MB as an SVG had it copied for every render, and
+  // refused only by the renderer. Past MAX_SVG_BYTES it is refused on its
+  // length, and not one of its bytes is read; at it, it is copied.
+  test('refuses an SVG past MAX_SVG_BYTES before copying it', () => {
+    const over = counted(MAX_SVG_BYTES + 1)
+    const outcome = resolveReport(withMark(body(mark)), data(), { ...OPTIONS, images: () => ({ mediaType: 'image/svg+xml', bytes: over.bytes }) })
+    expect(outcome.ok ? [] : outcome.errors.map(({ code, path, message }) => ({ code, path, message }))).toEqual([
+      { code: 'invalid-asset', path: '/regions/body/0/source', message: `component mark-image: the host's answer for the approved asset mark is ${MAX_SVG_BYTES + 1} bytes; an SVG asset may have ${MAX_SVG_BYTES} (1 MiB)` },
+    ])
+    expect(over.reads()).toBe(0)
+    const at = counted(MAX_SVG_BYTES)
+    const accepted = resolveReport(withMark(body(mark)), data(), { ...OPTIONS, images: () => ({ mediaType: 'image/svg+xml', bytes: at.bytes }) })
+    expect(accepted.ok && (accepted.document.body[0] as Image).asset.bytes.length).toBe(MAX_SVG_BYTES)
+    expect(at.reads()).toBeGreaterThan(0)
   })
 })

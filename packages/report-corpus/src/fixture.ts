@@ -1,4 +1,4 @@
-import type { Block, EpcQrCode, Inline, RefusalCode, ResolvedDocument, Table, TableRow } from './document.js'
+import type { Block, EpcQrCode, Image, Inline, RefusalCode, ResolvedDocument, Table, TableRow } from './document.js'
 
 /**
  * A fixture is a document an engine must render, or refuse, and what the PDF
@@ -46,8 +46,13 @@ export interface ExpectedTable {
   readonly emptyText: string
 }
 
-/** An image's size on the page, in points. */
+/**
+ * An image's size on the page, in points, and how it is drawn: a PNG or a
+ * JPEG as an image the PDF embeds, an SVG as vectors, painted inside a clip
+ * of its box (0030).
+ */
 export interface ExpectedImage {
+  readonly kind: 'raster' | 'vector'
   readonly width: number
   readonly height: number
 }
@@ -115,6 +120,8 @@ export interface Expectation {
   readonly fontsEmbedded: boolean
   /** The body's images, in document order, each drawn once at this size. */
   readonly images: readonly ExpectedImage[]
+  /** The page header's and footer's images, each drawn on every page at this size. */
+  readonly pageRegionImages: readonly ExpectedImage[]
 }
 
 /** What a fixture states about itself; everything else in its expectation is derived. */
@@ -124,7 +131,8 @@ export type Stated = Pick<Expectation, 'maxPagesExpected'> & Partial<Omit<Expect
  * The expectation a document implies, with what the fixture states laid over
  * it: keys from the first cell of every table row and the lines of every
  * keep-together block, every table's header and rows, the page header's and
- * footer's lines, the body's images, and every layout check on.
+ * footer's lines, the body's and the page regions' images, and every layout
+ * check on.
  */
 export function expectation(document: ResolvedDocument, stated: Stated): Expectation {
   const footerEveryPage = footerPattern(document.pageFooter)
@@ -145,9 +153,16 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     allTextInsidePrintable: true,
     noOverlaps: true,
     fontsEmbedded: true,
-    images: flatten(document.body).flatMap((block) => (block.kind === 'image' ? [{ width: block.width, height: block.height }] : [])),
+    images: imagesOf(document.body),
+    pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
     ...stated,
   }
+}
+
+/** The images among `blocks`, in document order: an SVG drawn as vectors, any other as an image. */
+function imagesOf(blocks: readonly Block[]): ExpectedImage[] {
+  const expected = ({ asset, width, height }: Image): ExpectedImage => ({ kind: asset.mediaType === 'image/svg+xml' ? 'vector' : 'raster', width, height })
+  return flatten(blocks).flatMap((block) => (block.kind === 'image' ? [expected(block)] : []))
 }
 
 /** Every block, the contents of keep-together blocks included, in document order. */

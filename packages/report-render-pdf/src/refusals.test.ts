@@ -194,6 +194,27 @@ describe('what is malformed', () => {
   })
 })
 
+describe('an image asset that is not what it says', () => {
+  // The media type picks the check the bytes are held to, and the engine's
+  // way of drawing them: an SVG read as a PNG is refused as a broken PNG,
+  // and a PNG read as an SVG would reach the cleaner's reader. Each is
+  // refused naming the asset and what its bytes are instead; and an SVG
+  // the cleaner refuses -- nested past what the converter recurses through,
+  // past what an SVG asset may be -- is refused as it would be at approval.
+  const svg = (inner: string): Uint8Array => new TextEncoder().encode(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">${inner}</svg>`)
+  const RECT = '<rect width="1" height="1"/>'
+  const huge = svg(`<!--${' '.repeat(1_048_576)}-->${RECT}`)
+  test.each([
+    ['a PNG declared an SVG', { id: 'logo', mediaType: 'image/svg+xml', bytes: encodePng(2, 2, () => [0, 0, 0]) }, 'the image asset logo is declared an SVG and is not one: it is a PNG'],
+    ['an SVG declared a PNG', { id: 'logo', mediaType: 'image/png', bytes: svg(RECT) }, 'the image asset logo is declared a PNG and is not one: it is an SVG'],
+    ['an SVG declared a JPEG', { id: 'logo', mediaType: 'image/jpeg', bytes: svg(RECT) }, 'the image asset logo is declared a JPEG and is not one: it is an SVG'],
+    ['an SVG of forty levels', { id: 'logo', mediaType: 'image/svg+xml', bytes: svg(`${'<g>'.repeat(40)}${RECT}${'</g>'.repeat(40)}`) }, `the image asset logo is not an SVG the renderer draws: svg${'/g'.repeat(32)} nests past 32 levels; flatten its groups`],
+    ['an SVG of more than a mebibyte', { id: 'logo', mediaType: 'image/svg+xml', bytes: huge }, `the image asset logo is not an SVG the renderer draws: the file is ${huge.length} bytes; the limit is 1048576; simplify the drawing`],
+  ] as const)('%s', async (_, asset, message) => {
+    expect(await refusal(documentOf('Mislabelled', [{ kind: 'image', asset, width: 40, height: 40, fit: 'contain' }]))).toMatchObject({ code: 'invalid-asset', subject: 'logo', message })
+  })
+})
+
 describe('an e-invoice', () => {
   const ENTRIES = [
     ['in Node', renderPdf],

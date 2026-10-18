@@ -1,6 +1,6 @@
 # 0003 — A rendered report is proved on the PDF it produced
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which reads QR codes from the page's pixels, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which reads a run turned on the page, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which reads the files a PDF embeds and what it says of itself with a second reader, pdf-lib, and its XMP with saxes
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which reads QR codes from the page's pixels, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which reads a run turned on the page, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which reads an SVG image from its painted paths, its clip and its pixels, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which reads the files a PDF embeds and what it says of itself with a second reader, pdf-lib, and its XMP with saxes
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `packages/report-corpus`, whose suite runs in its own job of
@@ -159,6 +159,29 @@ an encrypted one, a name tree with `/Kids` -- is refused, not read in part.
 them, on PDFs PDFKit writes in the test with a file and without. Whether a
 validator takes such a PDF is no reader's to say: veraPDF and Mustang are
 the e-invoice gate's.
+
+**Added 2026-10-18: an SVG image, read from its paths, its clip and its
+pixels.** An SVG asset is drawn as vectors
+([0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)),
+so the PDF holds no image for it, and nothing above would see one.
+`readPdf` now gives each page its painted paths, each with its box through
+the current matrix and the forms it is drawn in, its paint, its fill and
+stroke colours (`pattern` for a gradient) and the innermost rectangular
+clip it was painted inside; and the rectangular clips themselves. What a
+soft mask paints is skipped, since the converter paints a clip path's
+mask in white, which would pass for a drawing's own white. A clip is a
+rectangle by its four corners on the page, never by its path's bounds,
+which a diamond shares with its square. `drawings.ts` finds each expected
+drawing as a clip of its size with paint inside it, a page region's on
+every page, and the margin and overlap checks read its box as an image's.
+A path painted inside a clip may reach past it, as `cover` does, so what
+shows past the box is the pixels' to say: `verifyInk` draws the page at
+four pixels to the point and holds a 2 pt band around each drawing to
+white. That reads pixels for one property; it is not the comparison of
+page images this record leaves for later. A drawing is known by its size,
+so another drawing of the same size, a QR code, could stand in for one.
+`src/read-pdf.test.ts`, `src/drawings.test.ts` and `src/check-ink.test.ts`
+hold them.
 
 ## Alternatives considered
 

@@ -5,6 +5,7 @@ import { startsOnPage, type Build, type Fields } from './build.js'
 import { epcContent } from './epc.js'
 import { qrContent } from './qr.js'
 import { DEFAULT_SIZE, textProperties } from './style.js'
+import { svgContent } from './svg-content.js'
 import { tableContent } from './table.js'
 import { columnWidths } from './widths.js'
 import { MAX_WORD_LINES } from './words.js'
@@ -188,18 +189,21 @@ function inline(run: Inline, fields: Fields | undefined): { text: string; bold?:
 }
 
 /**
- * An image in its box, which the layout reserves whole. `cover` is pdfmake's
- * own: the box clipped, the image scaled to fill it and centred. `contain`
- * is drawn at the size the box allows at the image's proportions, read from
- * its pixels, and centred in the box by margins that make up the rest of it.
+ * An image in its box, which the layout reserves whole. An SVG is drawn in
+ * the box itself, by pdfmake's SVG converter, which fits and centres it
+ * (`svg-content.ts`). For a PNG or a JPEG, `cover` is pdfmake's own: the box
+ * clipped, the image scaled to fill it and centred. `contain` is drawn at
+ * the size the box allows at the image's proportions, read from its pixels,
+ * and centred in the box by margins that make up the rest of it.
  */
 function imageContent(image: Image, build: Build): Content {
+  // The asset checks read every image's asset before anything is built.
+  const checked = build.assets.get(image.asset)!
+  if (checked.kind === 'vector') return svgContent(image, checked)
   const key = imageKey(image.asset, build)
   if (image.fit === 'cover') return { image: key, cover: { width: image.width, height: image.height, align: 'center', valign: 'center' } }
-  // The asset checks read every image's pixels before anything is built.
-  const pixels = build.pixels.get(image.asset)!
-  const scale = Math.min(image.width / pixels.width, image.height / pixels.height)
-  const [width, height] = [pixels.width * scale, pixels.height * scale]
+  const scale = Math.min(image.width / checked.width, image.height / checked.height)
+  const [width, height] = [checked.width * scale, checked.height * scale]
   const [x, y] = [(image.width - width) / 2, (image.height - height) / 2]
   return { image: key, width, height, margin: [x, y, image.width - width - x, y] }
 }

@@ -1,4 +1,4 @@
-import { MAX_ASSET_BYTES, RenderRefusal, type ImageAsset } from '@formancy/report-runtime'
+import { checkSvg, MAX_ASSET_BYTES, RenderRefusal, type CheckedSvg, type ImageAsset, type SvgExtent } from '@formancy/report-runtime'
 import { crc32, inflate } from './bytes.js'
 
 /**
@@ -16,6 +16,12 @@ import { crc32, inflate } from './bytes.js'
  * its size and its component count, and the end marker. A JPEG's
  * entropy-coded scan is not decoded: a corrupt scan inside an otherwise
  * well-formed JPEG still reaches the PDF.
+ *
+ * An SVG is checked by report-spec's `checkSvg`, which the runtime hands
+ * on: its bytes must be exactly the drawing `cleanSvg` writes, so that what
+ * prints is in the form that was approved, and nothing is cleaned, dropped
+ * or rewritten at print (0030). Its size is its viewBox's, and with it come
+ * what it costs to draw, which `check.ts` holds a render to.
  *
  * The size returned is the size the image is shown at: a JPEG whose Exif
  * orientation turns it a quarter turn is as wide as its frame is tall, as
@@ -36,8 +42,9 @@ export const MAX_ASSET_SIDE = 4096
  */
 export const MAX_IMAGE_DATA = 2 * MAX_ASSET_SIDE * (1 + MAX_ASSET_SIDE * 8)
 
-/** An image's size in pixels, as it is shown, how many bytes of image data it holds once a PNG's are inflated, and whether PDFKit draws it in DeviceCMYK. */
-export interface Pixels {
+/** A PNG's or a JPEG's size in pixels, as it is shown, how many bytes of image data it holds once a PNG's are inflated, and whether PDFKit draws it in DeviceCMYK. */
+export interface Raster {
+  readonly kind: 'raster'
   readonly width: number
   readonly height: number
   readonly data: number
@@ -51,23 +58,115 @@ export interface Pixels {
   readonly cmyk: boolean
 }
 
-/** The asset's size in pixels, once its bytes pass; refused as `invalid-asset`, naming it and why, when they do not. */
-export async function checkImageAsset(asset: ImageAsset): Promise<Pixels> {
+/**
+ * An SVG in the form `cleanSvg` writes: its viewBox, whose proportions
+ * `contain` and `cover` keep; the drawing, as the ASCII text it is, which
+ * every pass hands pdfmake unchanged; what it costs, as `checkSvg` counts
+ * it and `drawingUnits` weights it; and how far the converter's numbers for
+ * it reach, which an e-invoice holds it to (`svg-pdfa.ts`).
+ */
+export interface Vector {
+  readonly kind: 'vector'
+  /** The viewBox's origin. */
+  readonly x: number
+  readonly y: number
+  /** The viewBox's size. */
+  readonly width: number
+  readonly height: number
+  readonly svg: string
+  /** What a reader paints for it, in `MAX_SVG_SEGMENTS`' weighted segments. */
+  readonly segments: number
+  /** The page-sized transparency groups it makes, in `MAX_SVG_GROUPS`' units. */
+  readonly groups: number
+  /** What drawing it once costs the renderer, in `MAX_SVG_DRAWING`'s units. */
+  readonly units: number
+  /** How far the numbers the converter writes for it reach wherever it is placed, and how deep it nests the graphics state, as `checkSvg` measures them. */
+  readonly extent: SvgExtent
+}
+
+/** An image asset as the checks read it. */
+export type CheckedImage = Raster | Vector
+
+/** The asset as it is drawn, once its bytes pass; refused as `invalid-asset`, naming it and why, when they do not. */
+export async function checkImageAsset(asset: ImageAsset): Promise<CheckedImage> {
   const read = await readAsset(asset)
   if (typeof read === 'string') throw new RenderRefusal('invalid-asset', `the image asset ${asset.id} ${read}`, asset.id)
   return read
 }
 
-/** The asset's size in pixels, or what is wrong with it. */
-async function readAsset(asset: ImageAsset): Promise<Pixels | string> {
+/** The asset as it is drawn, or what is wrong with it. */
+async function readAsset(asset: ImageAsset): Promise<CheckedImage | string> {
   const { bytes } = asset
   if (!(bytes instanceof Uint8Array)) return 'has no bytes'
   if (bytes.length > MAX_ASSET_BYTES) return `is ${bytes.length} bytes; the limit is ${MAX_ASSET_BYTES} (20 MB)`
   const isPng = startsWith(bytes, PNG_SIGNATURE)
   const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8
-  if (asset.mediaType === 'image/png') return isPng ? readPng(bytes) : `is declared a PNG and is not one${isJpeg ? ': it is a JPEG' : ''}`
-  if (asset.mediaType === 'image/jpeg') return isJpeg ? readJpeg(bytes) : `is declared a JPEG and is not one${isPng ? ': it is a PNG' : ''}`
+  // Read as an SVG only to say what bytes declared otherwise are; cleanSvg refuses bytes past a mebibyte unread.
+  const actually = (): string => (isPng ? ': it is a PNG' : isJpeg ? ': it is a JPEG' : checkSvg(bytes).ok ? ': it is an SVG' : '')
+  if (asset.mediaType === 'image/png') return isPng ? readPng(bytes) : `is declared a PNG and is not one${actually()}`
+  if (asset.mediaType === 'image/jpeg') return isJpeg ? readJpeg(bytes) : `is declared a JPEG and is not one${actually()}`
+  if (asset.mediaType === 'image/svg+xml') return isPng || isJpeg ? `is declared an SVG and is not one${actually()}` : readSvg(bytes)
   return `is of a media type the renderer does not draw (${String(asset.mediaType)})`
+}
+
+/**
+ * The drawing one render may cost the renderer, in units of what
+ * svg-to-pdfkit does each time it draws an SVG: once for each image of it in
+ * the body, and on every page for one in a page region, which pdfmake lays
+ * out and draws anew on each page (0030). A move, a line or a close is one
+ * unit; a curve, an element, a gradient stop and a page-sized transparency
+ * group are weighted by what each costs beside a line, rounded up; and every
+ * `DRAWING_WEIGHT.bytes` bytes of the drawing are one unit more, since
+ * pdfmake reads the whole text again with xmldoc in every pass and the
+ * converter on every draw, whatever it draws. At the budget the renderer
+ * spends about 2.9 seconds drawing SVGs, about what `MAX_IMAGE_DATA`'s two
+ * largest PNGs cost it to decode.
+ *
+ * Measured on 2026-10-18 on an Intel i9-10900K, shared with other work,
+ * under Node 24.21.0 with pdfmake 0.3.11: whole renders, every pass, of an
+ * SVG 15 mm square in the page header of a report of so many pages, against
+ * the same report with an SVG of one rectangle in its place, medians of five
+ * (three at 400 pages). A line costs 2.9 microseconds a page (30,000 lines on
+ * 32 pages, 2.79 s more); a cubic 6.8, 2.3 lines (9,999 on 32 pages, 2.18 s);
+ * an element 33 beyond its segments, 11.4 lines (6,001 rectangles on 8 pages,
+ * 2.29 s); a gradient stop 17, 5.9 lines (a 64-stop gradient on 400
+ * rectangles on 7 pages, 3.2 s); a transparency group 0.10 ms beyond its
+ * element and segments, 34 to 36 lines (four clipped shapes, and two shapes
+ * painted with a translucent gradient, on 400 pages, 0.32 s and 0.25 s).
+ * Those lines were short, seven bytes each. On 16 pages a line of 18.7
+ * bytes cost 4.4 microseconds a page and one of 37 bytes 5.2, against 3.1
+ * for a short one; and 10,506 arcs that draw nothing, a mebibyte of
+ * seventeen-digit numbers, cost 109 ms a page on 8 pages, what 35,000 short
+ * lines do, though each is counted as a line. With a unit more for every 32
+ * bytes, each of these drawings costs from 13 % less than its units say
+ * (900 rectangles of seventeen-digit numbers and dash arrays) to 27 % more
+ * (the 37-byte lines).
+ */
+export const MAX_SVG_DRAWING = 1_000_000
+
+/** What each thing svg-to-pdfkit draws costs the renderer, in lines' worth of its time, rounded up, and how many bytes of the drawing are one more unit (`MAX_SVG_DRAWING`). */
+const DRAWING_WEIGHT = { curve: 3, element: 12, stop: 6, group: 40, bytes: 32 } as const
+
+/** What drawing an SVG once costs the renderer, in `MAX_SVG_DRAWING`'s units. */
+export function drawingUnits(checked: Pick<CheckedSvg, 'bytes' | 'drawn' | 'groups'>): number {
+  const { lines, curves, elements, stops } = checked.drawn
+  const commands = lines + DRAWING_WEIGHT.curve * curves + DRAWING_WEIGHT.element * elements + DRAWING_WEIGHT.stop * stops + DRAWING_WEIGHT.group * checked.groups
+  return commands + Math.ceil(checked.bytes.length / DRAWING_WEIGHT.bytes)
+}
+
+/** An SVG's drawing, when its bytes are exactly what `cleanSvg` writes; report-spec's refusal, which repeats no value, when they are not. */
+function readSvg(bytes: Uint8Array): Vector | string {
+  const checked = checkSvg(bytes)
+  if (!checked.ok) return `is not an SVG the renderer draws: ${checked.message}`
+  const { viewBox, segments, groups, extent } = checked
+  return { kind: 'vector', x: viewBox.x, y: viewBox.y, width: viewBox.width, height: viewBox.height, svg: ascii(checked.bytes), segments, groups, units: drawingUnits(checked), extent }
+}
+
+/** ASCII bytes as text, a chunk at a time: a mebibyte is more than one call takes as arguments. */
+function ascii(bytes: Uint8Array): string {
+  let text = ''
+  for (let start = 0; start < bytes.length; start += 0x2000) text += String.fromCharCode(...bytes.subarray(start, start + 0x2000))
+  return text
 }
 
 function sizeProblem(width: number, height: number): string | undefined {
@@ -106,7 +205,7 @@ interface PngHeader {
   readonly paletted: boolean
 }
 
-async function readPng(bytes: Uint8Array): Promise<Pixels | string> {
+async function readPng(bytes: Uint8Array): Promise<Raster | string> {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   let header: PngHeader | undefined
   let palette = false
@@ -135,7 +234,7 @@ async function readPng(bytes: Uint8Array): Promise<Pixels | string> {
     offset = end
   }
   if (header.paletted && !palette) return 'is paletted and has no palette'
-  return (await scanlineProblem(header, data)) ?? { width: header.width, height: header.height, data: inflatedLength(header), cmyk: false }
+  return (await scanlineProblem(header, data)) ?? { kind: 'raster', width: header.width, height: header.height, data: inflatedLength(header), cmyk: false }
 }
 
 function pngHeader(body: Uint8Array): PngHeader | string {
@@ -228,9 +327,9 @@ const APP1 = 0xe1
  * PDF/A rest on: arithmetic coding, which writes a DAC segment, may write
  * it before the frame header, and such a JPEG is refused.
  */
-function readJpeg(bytes: Uint8Array): Pixels | string {
+function readJpeg(bytes: Uint8Array): Raster | string {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-  let pixels: Pixels | undefined
+  let pixels: Raster | undefined
   let orientation: number | undefined
   for (let offset = 2; offset + 4 <= bytes.length; ) {
     const marker = bytes[offset + 1]!
@@ -248,7 +347,7 @@ function readJpeg(bytes: Uint8Array): Pixels | string {
       // The component count follows the size.
       const components = bytes[offset + 9]!
       if (!JPEG_COMPONENTS.has(components)) return `has a frame header of ${components} components, where PDFKit draws 1, 3 or 4`
-      pixels = { width, height, data: bytes.length, cmyk: components === 4 }
+      pixels = { kind: 'raster', width, height, data: bytes.length, cmyk: components === 4 }
     }
     if (marker === APP1 && orientation === undefined && startsWith(bytes.subarray(offset + 4), EXIF)) orientation = exifOrientation(bytes.subarray(offset + 4 + EXIF.length, offset + 2 + length))
     if (marker === 0xda) {
