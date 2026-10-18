@@ -1,5 +1,5 @@
 import pdfmake from 'pdfmake'
-import { ALL_FIXTURES, E_INVOICE, pageDimensions, readPdf, SVG_FIXTURES, verify, verifyInk, verifyRefusal, type Fixture } from '@formancy/report-corpus'
+import { ALL_FIXTURES, E_INVOICE, pageDimensions, readPdf, starterImages, SVG_FIXTURES, verify, verifyInk, verifyRefusal, type Fixture } from '@formancy/report-corpus'
 import { RenderRefusal, resolveReport } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf } from './node.js'
@@ -86,7 +86,7 @@ describe('a render', () => {
   // is a fixed file. The same document renders to the same bytes, its
   // creation date in the file's /Params as in the information dictionary.
   test('renders the same e-invoice to the same bytes', async () => {
-    const outcome = resolveReport(E_INVOICE.report, E_INVOICE.data, { mode: 'final', parameters: E_INVOICE.parameters, creationDate: '2026-10-16T08:00:00Z' })
+    const outcome = resolveReport(E_INVOICE.report, E_INVOICE.data, { mode: 'final', parameters: E_INVOICE.parameters, images: starterImages, creationDate: '2026-10-16T08:00:00Z' })
     if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
     const [first, second] = await Promise.all([renderPdf(outcome.document, { maxPages: 5 }), renderPdf(outcome.document, { maxPages: 5 })])
     expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)

@@ -2,7 +2,7 @@
 // that brings the page to each state (browser-test.mjs): the widths worth
 // measuring, the measurements themselves, axe, the rules that reach the
 // paper and the Preview, the Preview's controls a pane cuts, PDF.js's
-// pages, and the web fonts. formancy.ai-data's apps/studio/scripts/
+// pages, the drawings of the PDF the page offers, and the web fonts. formancy.ai-data's apps/studio/scripts/
 // browser-test.mjs and scripts/browser-gate.mjs, where these first ran.
 //
 // The reads that go to the DOM rather than the accessibility tree go there
@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { drawingsOn, readPdf } from '@formancy/report-corpus'
 import { declaredFamilies } from '../../../scripts/web-fonts.mjs'
 
 export const app = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -424,6 +425,23 @@ export async function drawnPages(page, { within }) {
     if (now.length > 0 && now.every((sheet) => sheet.lines.length > 0 && sheet.ink > 0) && JSON.stringify(now) === JSON.stringify(before)) return now
     before = now
   }
+}
+
+/**
+ * The PDF at `href`, which Download PDF points at, fetched in the page and
+ * read back with PDF.js in Node: its first five characters, which say
+ * whether it is a PDF at all, and the drawings of its page `number`, read
+ * by report-corpus's `drawingsOn`, the reader report-render-pdf's
+ * pictures.json is written with (0030, 0032) -- each clip a painted path
+ * stands inside, with its box, its paints and each of its paths -- so that
+ * the firm's mark and a code drawn by the browser entry are held to those
+ * the Node entry drew for the picture.
+ */
+export async function downloaded(page, href, number) {
+  const bytes = new Uint8Array(await page.evaluate(async (address) => [...new Uint8Array(await (await fetch(address)).arrayBuffer())], href))
+  const head = new TextDecoder().decode(bytes.subarray(0, 5))
+  const sheet = head === '%PDF-' ? (await readPdf(bytes)).pages[number - 1] : undefined
+  return { head, drawings: sheet === undefined ? [] : drawingsOn(sheet) }
 }
 
 /**

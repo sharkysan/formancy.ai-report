@@ -19,12 +19,12 @@ export interface Starter {
 }
 
 /**
- * An approved asset a starter's data names, with the bytes a host would
- * hold for it: its digest is the SHA-256 of exactly these bytes.
+ * An approved asset a starter's data or template names, with the bytes a
+ * host would hold for it: its digest is the SHA-256 of exactly these bytes.
  */
 export interface StarterImage {
   readonly asset: string
   readonly digest: string
-  readonly mediaType: 'image/png'
+  readonly mediaType: ReportDefinition['assets'][number]['mediaType']
   readonly bytes: Uint8Array
 }

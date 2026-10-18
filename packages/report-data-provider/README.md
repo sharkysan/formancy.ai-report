@@ -28,12 +28,15 @@ const client = createDataClient({ token: () => session.token(), base: dataServer
 const binding: DataBinding = { header: { form: 'quotation', record: quotationToken }, detail: { form: 'quotation-line', parent: 'header' } }
 const provided: ProviderRead = await readReportData(client, quotation, binding, { cap: 5000 })
 if (!provided.ok) throw new Error(provided.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
-const resolution = resolveReport(quotation, provided.data, { mode: 'final', creationDate: '2026-10-16T08:00:00Z' })
+const resolution = resolveReport(quotation, provided.data, { mode: 'final', images, creationDate: '2026-10-16T08:00:00Z' })
 ```
 
 The install gate runs these lines from the packed packages, against a
 server that answers Data 0.1.0's routes, and they are held to it
-(`scripts/readme-example.test.mjs`).
+(`scripts/readme-example.test.mjs`). Data hands over the data and nothing
+else: `images` is the host's own lookup of its approved assets, as in
+[the repository's README](../../README.md#render-a-report), here for the
+quotation's mark, which the template names and no record holds.
 
 **The binding** says which published form each dataset reads:
 

@@ -3,7 +3,7 @@ import { diagnose } from '@formancy/report-core'
 import { checkReport, resolveReport } from '@formancy/report-runtime'
 import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
-import { INVOICE, INVOICE_SAMPLES, STARTERS } from './index.js'
+import { INVOICE, INVOICE_SAMPLES, starterImages, STARTERS } from './index.js'
 import type { Starter } from './index.js'
 
 /**
@@ -29,7 +29,7 @@ function totalOf(sample: Starter): bigint {
 }
 
 function resolved(sample: Starter) {
-  const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, creationDate: CREATED })
+  const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, images: starterImages, creationDate: CREATED })
   if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
   return outcome
 }
@@ -92,11 +92,13 @@ describe('the invoice samples', () => {
   // JSON.stringify, is what it was before the samples were made from it.
   // A generalisation that moved one word or one key of it would move its
   // README picture, the Studio's pictures and what the browser gate reads,
-  // with nobody having retaken them. The digest is of the starter at
-  // 5495089 (main, 17 October 2026); a change to the starter retakes those
-  // pictures and states the new digest here.
+  // with nobody having retaken them. The digest is of the starter with the
+  // firm's mark at the head of its first page (0032, 18 October 2026), whose
+  // pictures were retaken with it; 0fe4b36f, at 5495089, was the starter
+  // before it. A change to the starter retakes those pictures and states
+  // the new digest here.
   test('leave the starter as it was, byte for byte', () => {
-    expect(createHash('sha256').update(JSON.stringify(INVOICE)).digest('hex')).toBe('0fe4b36f4812682d1db2fa1976c955e603d735bfaa11d7782f563f2b4fa35455')
+    expect(createHash('sha256').update(JSON.stringify(INVOICE)).digest('hex')).toBe('b0d3cf77fbd2828ba6bc42285e9e5fe61614831bb70cc9a5fe208cf5dfa4e619')
   })
 
   // A sample the validator refuses, or whose expressions the editor marks,

@@ -323,20 +323,25 @@ document has either, so a bundler that splits dynamic imports keeps it out
 of a page that prints neither. Nothing in it touches a file system or
 follows an address.
 
-In `print.ts`, a preview prints the report against sample data:
+In `print.ts`, a preview prints the report against sample data, with the
+approved assets -- a logo -- that the page hands over. The runtime asks
+`images` for each asset the report names, by its id and the digest it was
+approved by, and refuses the report as `missing-asset` when the answer is
+nothing; it never fetches one:
 
 ```ts guide=react file=print.ts
 import { resolveReport } from '@formancy/report-runtime'
-import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
+import type { ImageResolver, ReportData, ReportDefinition } from '@formancy/report-runtime'
 import { renderPdf } from '@formancy/report-render-pdf/browser'
 
 /**
- * `report` printed in the page against `sample`, as a preview: what the
- * sample lacks is labelled on every page rather than refused. Rejects with
- * the runtime's reasons, or with the renderer's RenderRefusal.
+ * `report` printed in the page against `sample`, as a preview, with the
+ * approved assets `images` hands over: what the sample lacks is labelled on
+ * every page rather than refused. Rejects with the runtime's reasons, or
+ * with the renderer's RenderRefusal.
  */
-export async function printPreview(report: ReportDefinition, sample: ReportData, signal: AbortSignal): Promise<Uint8Array> {
-  const resolution = resolveReport(report, sample, { mode: 'preview', creationDate: new Date().toISOString() })
+export async function printPreview(report: ReportDefinition, sample: ReportData, images: ImageResolver, signal: AbortSignal): Promise<Uint8Array> {
+  const resolution = resolveReport(report, sample, { mode: 'preview', images, creationDate: new Date().toISOString() })
   if (!resolution.ok) throw new Error(resolution.errors.map((error) => error.message).join('; '))
   return renderPdf(resolution.document, { maxPages: 40, signal })
 }
@@ -404,7 +409,7 @@ shown, so the preview never shows an older document after a newer one.
 import type { ReportSession } from '@formancy/report-core'
 import type { ReportDefinition } from '@formancy/report-runtime'
 
-/** What prints a report for the preview: printPreview bound to sample data, or a request to your server that passes the signal to fetch. */
+/** What prints a report for the preview: printPreview bound to sample data and the approved assets, or a request to your server that passes the signal to fetch. */
 export type Print = (report: ReportDefinition, signal: AbortSignal) => Promise<Uint8Array>
 
 /** The latest preview: the PDF, or why it was not printed. */
@@ -498,23 +503,38 @@ function PdfFrame({ pdf }: { readonly pdf: Uint8Array }): ReactElement {
 
 The page's entry imports the two stylesheets, opens the stored report and
 mounts the page. The routes it fetches are your server's: where the report
-is stored, and the sample it previews against. In `main.tsx`:
+is stored, the sample it previews against, and the assets approved for the
+report, each with the digest it was approved by and its bytes as base64.
+The lookup hands an asset over only at the digest the report declares, so
+a report that names one the server did not send is refused in the preview
+as `missing-asset`, naming it. In `main.tsx`:
 
 ```tsx guide=react file=main.tsx
 import '@formancy/themes/workbench.css'
 import '@formancy/report-builder-core/report-builder.css'
 import { createRoot } from 'react-dom/client'
-import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
+import type { ImageBytes, ImageResolver, ReportData, ReportDefinition } from '@formancy/report-runtime'
 import { openEditor } from './editor.js'
 import { ReportPage } from './report-page.js'
 import type { Print } from './preview.js'
 import { printPreview } from './print.js'
 
+/** An asset approved for the report, as your server sends it: its id, the digest it was approved by, its media type and its bytes as base64. */
+interface ApprovedAsset {
+  readonly asset: string
+  readonly digest: string
+  readonly mediaType: ImageBytes['mediaType']
+  readonly base64: string
+}
+
 const stored: unknown = await (await fetch('/reports/quotation')).json()
 const sample = (await (await fetch('/reports/quotation/sample')).json()) as ReportData
+const sent = (await (await fetch('/reports/quotation/assets')).json()) as readonly ApprovedAsset[]
+const approved = sent.map((each) => ({ ...each, bytes: Uint8Array.from(atob(each.base64), (char) => char.charCodeAt(0)) }))
 
 const opened = openEditor(stored)
-const print: Print = (report, signal) => printPreview(report, sample, signal)
+const images: ImageResolver = (ref) => approved.find((each) => each.asset === ref.asset && each.digest === ref.digest)
+const print: Print = (report, signal) => printPreview(report, sample, images, signal)
 const save = (report: ReportDefinition): void => {
   void fetch('/reports/quotation', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(report) })
 }

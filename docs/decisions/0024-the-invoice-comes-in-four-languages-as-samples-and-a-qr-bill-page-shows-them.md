@@ -3,7 +3,12 @@
 - **Status:** accepted; extended by [0028](0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
   whose euro invoice samples share `samples.json`, and whose site checks
   every page's status before it renders any, the QR-bill page's in this
-  record's words
+  record's words; and by
+  [0032](0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md),
+  under which every sample prints the firm's mark at the head of its
+  page, so that the starter's digest pinned here is the one before the
+  mark, and the samples differ still in nothing but their words and whom
+  they bill
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

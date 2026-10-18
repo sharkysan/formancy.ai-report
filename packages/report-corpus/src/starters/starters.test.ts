@@ -1,17 +1,13 @@
 import { createHash } from 'node:crypto'
 import { diagnose } from '@formancy/report-core'
 import { checkReport, EPC_MAX_VERSION, epcCaptionBreak, epcModule, resolveReport } from '@formancy/report-runtime'
-import type { ImageResolver } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { epcCodes } from '../fixture.js'
 import { EURO_INVOICE, euroInvoiceData, euroInvoiceLines } from './euro-invoice.js'
 import { equipmentRows } from './grouped-equipment.js'
-import { STARTER_IMAGES, STARTERS } from './index.js'
+import { STARTER_IMAGES, starterImages, STARTERS } from './index.js'
 import { INVOICE, invoiceData, invoiceLines } from './invoice.js'
 import { lineAmount, quotationLines } from './quotation.js'
-
-/** The host's approved assets: the starters' images, by digest. */
-const images: ImageResolver = (ref) => STARTER_IMAGES.find((image) => image.asset === ref.asset && image.digest === ref.digest)
 
 describe('the starters', () => {
   // An author starts from these. One the validator refuses, or whose
@@ -34,7 +30,7 @@ describe('the starters', () => {
   // Each starter's own data renders in a final render, with nothing a
   // preview would have to warn of: the starter and its data agree.
   test.each(STARTERS.map((starter) => [starter.id, starter] as const))('%s resolves its own data in a final render', (_id, starter) => {
-    const outcome = resolveReport(starter.report, starter.data, { mode: 'final', parameters: starter.parameters, images, creationDate: '2026-10-15T08:00:00Z' })
+    const outcome = resolveReport(starter.report, starter.data, { mode: 'final', parameters: starter.parameters, images: starterImages, creationDate: '2026-10-15T08:00:00Z' })
     expect(outcome.ok ? outcome.warnings : outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`)).toEqual([])
   })
 
@@ -96,7 +92,7 @@ describe('the invoice', () => {
   // somebody else; the code's text is compared whole, line by line, in
   // SIX's order.
   test('is paid by a QR-bill for its exact total, by the reference and to the customer its data names', () => {
-    const outcome = resolveReport(INVOICE.report, invoiceData(), { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z' })
+    const outcome = resolveReport(INVOICE.report, invoiceData(), { mode: 'final', parameters: {}, images: starterImages, creationDate: '2026-10-15T08:00:00Z' })
     if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
     const subtotal = invoiceLines().reduce((sum, line) => sum + cents(line.amount as string), 0n)
     const total = subtotal + halfAway(subtotal * 81n, 1000n)
@@ -112,7 +108,7 @@ describe('the invoice', () => {
     expect(bill?.reference).toBe('21 00000 00003 13947 14300 09017')
     // Another invoice's reference -- SIX's fifth example's -- is that invoice's.
     const data = invoiceData()
-    const other = resolveReport(INVOICE.report, { ...data, header: { ...data.header, reference: '000008207791225857421286694' } }, { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z' })
+    const other = resolveReport(INVOICE.report, { ...data, header: { ...data.header, reference: '000008207791225857421286694' } }, { mode: 'final', parameters: {}, images: starterImages, creationDate: '2026-10-15T08:00:00Z' })
     expect(other.ok ? other.document.paymentPart?.reference : other.errors).toBe('00 00082 07791 22585 74212 86694')
   })
 })
@@ -128,7 +124,7 @@ describe('the euro invoice', () => {
     return rest === 0n ? `EUR${amount / 100n}` : `EUR${amount / 100n}.${String(rest).padStart(2, '0').replace(/0$/, '')}`
   }
   const resolved = (data = euroInvoiceData()) => {
-    const outcome = resolveReport(EURO_INVOICE.report, data, { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z' })
+    const outcome = resolveReport(EURO_INVOICE.report, data, { mode: 'final', parameters: {}, images: starterImages, creationDate: '2026-10-15T08:00:00Z' })
     if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
     return epcCodes(outcome.document.body)
   }

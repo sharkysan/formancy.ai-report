@@ -1,12 +1,28 @@
 /*
  * The quotation starter of `@formancy/report-corpus`, written out: its
- * definition and its synthetic data, as a host would hold them. The corpus
- * is private and never published, so the consumer carries its own copy of
- * the one starter it renders. Generated from the corpus's QUOTATION and
- * quotationData(); a change to the starter is copied here by hand, and the
- * consumer's run says whether this copy still resolves and renders.
+ * definition and its synthetic data, as a host would hold them, and the
+ * firm's mark it prints at the head of its first page (0032), as the host
+ * approved it. The corpus is private and never published, so the consumer
+ * carries its own copy of the one starter it renders. Generated from the
+ * corpus's QUOTATION, quotationData() and LOGO; a change to the starter is
+ * copied here by hand, and report-render-pdf's install-fixture.test.ts and
+ * the consumer's run say whether this copy is still the starter, and still
+ * resolves and renders.
  */
 import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
+
+/**
+ * The firm's mark, as the host holds the approved asset: the drawing
+ * report-spec's cleanSvg writes, and the SHA-256 of those bytes, by which
+ * the quotation declares it. Written as a literal: this file is a browser
+ * host's too (guide-react.tsx), which has no node:crypto.
+ */
+export const logo = {
+  digest: 'sha256:1c4cde5bb45bf4a799f0b91ade404ef1ffd986b13dcb52b200a0ac2066c56dcb',
+  bytes: new TextEncoder().encode(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="56" fill="#1f4e79"/><path d="M28 62 L60 32 L92 62" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M60 54 C70 68 74 76 74 82 A14 14 0 0 1 46 82 C46 76 50 68 60 54 Z" fill="#ffffff"/></svg>',
+  ),
+} as const
 
 export const quotation: ReportDefinition = {
   reportSpecVersion: '0',
@@ -52,7 +68,7 @@ export const quotation: ReportDefinition = {
     },
   },
   parameters: [],
-  assets: [],
+  assets: [{ id: 'logo', mediaType: 'image/svg+xml', digest: 'sha256:1c4cde5bb45bf4a799f0b91ade404ef1ffd986b13dcb52b200a0ac2066c56dcb' }],
   aggregates: [
     { id: 'subtotal', fn: 'sum', of: { kind: 'field', field: { dataset: 'detail', field: 'amount' } } },
     {
@@ -72,6 +88,8 @@ export const quotation: ReportDefinition = {
       },
     ],
     reportHeader: [
+      { id: 'logo', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 42.52, height: 42.52, fit: 'contain' },
+      { id: 'logo-gap', kind: 'spacer', height: 12 },
       {
         id: 'sender',
         kind: 'text',

@@ -2,20 +2,30 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { EURO_INVOICE_SAMPLES, INVOICE_SAMPLES, STARTERS } from '@formancy/report-corpus'
+import { EURO_INVOICE_SAMPLES, INVOICE_SAMPLES, STARTERS, type Drawing } from '@formancy/report-corpus'
 import { describe, expect, test } from 'vitest'
 import { TIMEOUT } from './testing/documents.js'
-import { picture, PICTURES, SAMPLE_PICTURES, type PictureSpec } from './testing/pictures.js'
+import { picture, PICTURES, SAMPLE_PICTURES, type PictureSpec, type Place } from './testing/pictures.js'
 
 /**
  * The README's pictures of the starters and of both invoices' samples, held
- * to the text they show. Each was drawn by `scripts/readme-pictures.ts`
- * from a page this package rendered, and the manifest beside it records
- * the lines PDF.js read on that page: `pictures.json` for the starters',
- * `samples.json` for the samples'. A picture whose page now prints
- * something else, a picture edited by hand, and a caption that quotes what
- * its page does not print each fail here, naming the picture; the script
- * draws them again.
+ * to the text and the drawings they show. Each was drawn by
+ * `scripts/readme-pictures.ts` from a page this package rendered, and the
+ * manifest beside it records what PDF.js read on that page (0032): its
+ * lines, where each of them starts, `[x, top]` to the hundredth of a point,
+ * and its drawings, each clip a painted path stands inside, with its box,
+ * its paints and each of its paths, painted in what and where
+ * (report-corpus's `drawingsOn`): `pictures.json` for the starters',
+ * `samples.json` for the samples'. A picture whose page now prints other
+ * words, or the same words elsewhere -- every line under a mark moved down
+ * -- or draws otherwise -- a drawing or a path of one added, removed,
+ * moved, resized or repainted, a mark among them, which prints no text --
+ * a picture edited by hand, and a caption that quotes what its page does
+ * not print each fail here, naming the picture; the script draws them
+ * again. What it does not see: a path redrawn with every point inside its
+ * old box, a rule, a border or an image, which no manifest records, and
+ * the colour of text. Pixels are never compared: they are the platform's
+ * canvas.
  */
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
@@ -31,7 +41,14 @@ interface Entry {
   readonly sha256: string
   readonly caption: string
   readonly lines: readonly string[]
+  /** Where each of `lines` starts, in the same order. */
+  readonly places: readonly Place[]
+  /** The page's drawings, a QR code's among them, in the order the page sets their clips. */
+  readonly drawings: readonly Drawing[]
 }
+
+/** Each line with where it starts, so that a line moved fails as itself. */
+const placed = (lines: readonly string[], places: readonly Place[] | undefined): string[] => lines.map((line, index) => `${line} at ${places?.[index]?.join(', ') ?? 'no place recorded'}`)
 
 /** A PNG's width and height, from its header. */
 const size = (png: Uint8Array): [number, number] => {
@@ -76,9 +93,11 @@ describe("the README's pictures", () => {
     const entry = manifest.find((each) => each.file === file) as Entry
     // The PNG is the one the script wrote, not one edited by hand since.
     expect(createHash('sha256').update(readFileSync(path.join(images, file))).digest('hex')).toBe(entry.sha256)
-    // The page prints today what it printed when the picture was drawn, and is drawn at the picture's size.
+    // The page prints and draws today what it did when the picture was drawn, where it did, and is drawn at the picture's size.
     const drawn = await picture(spec)
     expect(drawn.lines).toEqual(entry.lines)
+    expect(placed(drawn.lines, drawn.places)).toEqual(placed(entry.lines, entry.places))
+    expect(drawn.drawings).toEqual(entry.drawings)
     expect(size(drawn.png)).toEqual(size(readFileSync(path.join(images, file))))
     // The caption quotes what the page prints, and the README shows the picture under it.
     expect(entry.caption).toBe(spec.caption)

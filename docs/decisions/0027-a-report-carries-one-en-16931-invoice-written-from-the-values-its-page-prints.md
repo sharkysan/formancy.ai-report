@@ -6,7 +6,10 @@
   [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
   the next step, which lifts the renderer's last refusal and draws the
   PDF/A-3b that embeds the XML, so that where this record says no PDF
-  carries an e-invoice it describes the step before that one
+  carries an e-invoice it describes the step before that one; and by
+  [0032](0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md),
+  under which the e-invoice samples print the firm's mark, the XML they
+  write unchanged
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -695,9 +698,10 @@ alone. The tools run in CI and no package carries them.
   codes found in CEN's lists; whether copying them, and committing the
   recorded reports, is acceptable under 0006 is the owner's question.
 - **The marks.** AWV e.V. holds the word marks ZUGFeRD and Factur-X. The
-  samples' title says "ZUGFeRD", the code says Factur-X, and no logo is
-  used; the logo's conditions, the DIN statement on EN 16931, FNFE-MPE's
-  terms and FeRD members' essential patents are the owner's to read.
+  samples' title says "ZUGFeRD", the code says Factur-X, and neither
+  mark's logo is printed; the logo's conditions, the DIN statement on
+  EN 16931, FNFE-MPE's terms and FeRD members' essential patents are the
+  owner's to read.
 - **The samples' law was read once.** That firewood is at 7 %, heating
   installed for a builder reverse-charged, and instalment interest agreed
   apart exempt was read in the UStG on gesetze-im-internet.de on 17

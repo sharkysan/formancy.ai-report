@@ -5,7 +5,11 @@
   whose runtime writes an e-invoice's XML, and by
   [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
   whose renderer draws the PDF/A-3b that embeds it, as this record's page
-  now says
+  now says; and by
+  [0032](0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md),
+  under which every sample prints the firm's mark at the head of its
+  page, so that the starter's digest pinned here, `27583910…`, is the one
+  before the mark
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

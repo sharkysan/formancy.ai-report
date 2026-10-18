@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { QUOTATION } from '@formancy/report-corpus'
+import { LOGO, QUOTATION } from '@formancy/report-corpus'
 import { expect, test } from 'vitest'
 
 /**
@@ -14,9 +14,13 @@ import { expect, test } from 'vitest'
 const copy = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'scripts', 'install-fixture', 'quotation.ts')
 
 // A starter that changed without its copy would leave the install gate
-// rendering a report nobody maintains any more.
-test("the install gate's quotation is the quotation starter", async () => {
-  const { quotation, quotationData } = (await import(pathToFileURL(copy).href)) as { quotation: unknown; quotationData: unknown }
+// rendering a report nobody maintains any more. The copy carries the
+// firm's mark too (0032), the bytes the host approved and the digest the
+// report declares them by: a mark copied wrong would print, from the packed
+// packages, a drawing nobody reviewed, or be refused as missing.
+test("the install gate's quotation is the quotation starter, with its mark", async () => {
+  const { quotation, quotationData, logo } = (await import(pathToFileURL(copy).href)) as { quotation: unknown; quotationData: unknown; logo: { digest: unknown; bytes: unknown } | undefined }
   expect(quotation).toEqual(QUOTATION.report)
   expect(quotationData).toEqual(QUOTATION.data)
+  expect(logo === undefined ? undefined : { digest: logo.digest, bytes: [...(logo.bytes as Uint8Array)] }).toEqual({ digest: LOGO.digest, bytes: [...LOGO.bytes] })
 })

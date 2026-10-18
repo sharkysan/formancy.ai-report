@@ -334,7 +334,9 @@ What holds this section:
   nothing past either edge down to 320 pixels, the first Tab on the skip
   link and the next into the content, axe's colour-contrast and
   target-size rules at every starter in both builders, each PDF drawn on
-  white with the text it prints, the framework switch, a real pointer's
+  white with the text it prints, each Download PDF's drawings, path by
+  path, what `docs/images/pictures.json` records (0032), the framework
+  switch, a real pointer's
   drag, the place chooser, a pane and the Preview hidden and shown again,
   the Preview beside the builder where the window has room for it and
   swapped with the design view where it has not, a pane hidden as an edit

@@ -23,7 +23,7 @@ export interface StudioStarter {
   readonly parameters: Readonly<Record<string, unknown>>
 }
 
-/** An approved asset a starter's data names, and its bytes. */
+/** An approved asset a starter's data or template names -- the inspection's photo, the firm's mark -- and its bytes. */
 export interface StudioImage {
   readonly asset: string
   readonly digest: string

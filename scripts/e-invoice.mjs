@@ -244,17 +244,19 @@ function record({ work, entries, java, mustangRuns, kosit, verapdf, tools }) {
 }
 
 /**
- * Every sample resolved once, in a final render, and drawn from the very
+ * Every sample resolved once, in a final render, as a host resolves it,
+ * with the firm's mark it prints at its head (0032), and drawn from the very
  * document whose XML the corpus holds; and each variant drawn with the base
  * sample's e-invoice, a starter resolved as a host resolves it, and an SVG
  * as an approved asset holds it, in the form report-spec's `cleanSvg`
  * writes.
  */
 function samplesOf({ spec, runtime, renderer, corpus }) {
+  const { starterImages: images } = corpus
   const documents = new Map()
   const documentOf = (sample) => {
     if (!documents.has(sample.id)) {
-      const outcome = runtime.resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, creationDate: CREATED })
+      const outcome = runtime.resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, images, creationDate: CREATED })
       if (!outcome.ok) throw new Error(`the sample ${sample.id} does not resolve: ${outcome.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
       documents.set(sample.id, outcome.document)
     }
@@ -266,7 +268,6 @@ function samplesOf({ spec, runtime, renderer, corpus }) {
     const document = eInvoice === undefined ? { ...plain, eInvoice: own } : eInvoice === null ? plain : { ...plain, eInvoice: { ...own, ...eInvoice } }
     return renderer.renderPdf(document, { maxPages: MAX_PAGES })
   }
-  const images = (ref) => corpus.STARTER_IMAGES.find((image) => image.asset === ref.asset && image.digest === ref.digest)
   const starterDocument = (id) => {
     const starter = corpus.STARTERS.find((each) => each.id === id)
     if (starter === undefined) throw new Error(`a PDF variant draws the starter ${id}, which report-corpus does not have`)

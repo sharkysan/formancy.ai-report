@@ -4,8 +4,8 @@
     "sample": "invoice-fr",
     "page": 1,
     "scale": 1.25,
-    "sha256": "e91291e4dffdabb2b6300676ba1e08457f907a392f0da7eed1c8f073be9c68fb",
-    "caption": "The invoice in French, a Facture: its line items, then Sous-total, TVA 8,1 % and Total 1'416.52 CHF, and across the foot of the page its QR-bill, the Récépissé and the Section paiement with its Swiss QR Code, each for CHF 1 416.52",
+    "sha256": "7c025bb6cf32447051ec0e12d382f4ec9177cae534feac755601b00a895b73af",
+    "caption": "The invoice in French, a Facture under the firm's mark: its line items, then Sous-total, TVA 8,1 % and Total 1'416.52 CHF, and across the foot of the page its QR-bill, the Récépissé and the Section paiement with its Swiss QR Code, each for CHF 1 416.52",
     "lines": [
       "Formancy Technique du Bâtiment SA · Chemin des Artisans 7 · 1004 Lausanne · CHE-123.456.789 TVA",
       "Boulangerie Favre SA",
@@ -58,6 +58,266 @@
       "CHF 1 416.52",
       "CHF 1 416.52",
       "Point de dépôt"
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        133.86
+      ],
+      [
+        348.59,
+        134.63
+      ],
+      [
+        56.69,
+        145.58
+      ],
+      [
+        348.59,
+        152.61
+      ],
+      [
+        56.69,
+        157.3
+      ],
+      [
+        348.59,
+        164.33
+      ],
+      [
+        348.59,
+        176.05
+      ],
+      [
+        60.69,
+        208.14
+      ],
+      [
+        60.69,
+        223.19
+      ],
+      [
+        142.69,
+        233.73
+      ],
+      [
+        142.69,
+        244.28
+      ],
+      [
+        60.69,
+        259.33
+      ],
+      [
+        142.69,
+        269.88
+      ],
+      [
+        60.69,
+        284.92
+      ],
+      [
+        142.69,
+        295.47
+      ],
+      [
+        60.69,
+        310.52
+      ],
+      [
+        60.69,
+        325.56
+      ],
+      [
+        142.69,
+        336.11
+      ],
+      [
+        60.69,
+        351.16
+      ],
+      [
+        60.69,
+        366.2
+      ],
+      [
+        60.69,
+        381.44
+      ],
+      [
+        56.69,
+        408.18
+      ],
+      [
+        243.61,
+        534.85
+      ],
+      [
+        334.49,
+        559.27
+      ],
+      [
+        14.17,
+        559.58
+      ],
+      [
+        334.49,
+        568.67
+      ],
+      [
+        14.17,
+        578.9
+      ],
+      [
+        334.49,
+        579.67
+      ],
+      [
+        14.17,
+        586.3
+      ],
+      [
+        334.49,
+        590.67
+      ],
+      [
+        14.17,
+        595.3
+      ],
+      [
+        14.17,
+        601.67
+      ],
+      [
+        14.17,
+        613.3
+      ],
+      [
+        334.49,
+        625.27
+      ],
+      [
+        14.17,
+        632.9
+      ],
+      [
+        334.49,
+        634.67
+      ],
+      [
+        14.17,
+        640.3
+      ],
+      [
+        14.17,
+        658.27
+      ],
+      [
+        14.17,
+        667.3
+      ],
+      [
+        14.17,
+        676.3
+      ],
+      [
+        14.17,
+        685.3
+      ],
+      [
+        334.49,
+        691.27
+      ],
+      [
+        334.49,
+        700.67
+      ],
+      [
+        334.49,
+        711.67
+      ],
+      [
+        334.49,
+        722.67
+      ],
+      [
+        14.17,
+        737.64
+      ],
+      [
+        189.92,
+        737.85
+      ],
+      [
+        14.17,
+        747.04
+      ],
+      [
+        189.92,
+        749.25
+      ],
+      [
+        119.91,
+        777.32
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          172.2,
+          558.42,
+          7.09,
+          8.5
+        ],
+        "paints": [
+          "#000000"
+        ],
+        "paths": [
+          "fill #000000 [172.2, 558.42, 7.09, 3.4]",
+          "fill #000000 [174.35, 560.97, 2.68, 5.95]",
+          "fill #000000 [174.47, 560.97, 2.68, 5.95]"
+        ]
+      },
+      {
+        "box": [
+          189.92,
+          592.44,
+          130.39,
+          130.39
+        ],
+        "paints": [
+          "#000000",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #ffffff [189.92, 592.44, 130.39, 130.39]",
+          "fill #000000 [189.92, 592.44, 130.39, 130.39]",
+          "fill #ffffff [245.2, 647.71, 19.84, 19.84]",
+          "fill #000000 [246.61, 649.13, 17.01, 17.01]",
+          "fill #ffffff [249.61, 652.12, 11.02, 11.02]"
+        ]
+      }
     ]
   },
   {
@@ -65,8 +325,8 @@
     "sample": "invoice-it",
     "page": 1,
     "scale": 1.25,
-    "sha256": "83d7744e524156c2e9169ff525563657af2ae64aa9a5e29a85c89214eef1096e",
-    "caption": "The invoice in Italian, a Fattura: its line items, then Subtotale, IVA 8,1 % and Totale CHF 1416.52, and across the foot of the page its QR-bill, the Ricevuta and the Sezione pagamento with its Swiss QR Code, each for CHF 1 416.52",
+    "sha256": "5b9a9325f87cc9f2d324e440ce0b1e58dd77df82eaa0c266602f820f217114f6",
+    "caption": "The invoice in Italian, a Fattura under the firm's mark: its line items, then Subtotale, IVA 8,1 % and Totale CHF 1416.52, and across the foot of the page its QR-bill, the Ricevuta and the Sezione pagamento with its Swiss QR Code, each for CHF 1 416.52",
     "lines": [
       "Formancy Impianti Tecnici SA · Via Industria 7 · 6500 Bellinzona · CHE-123.456.789 IVA",
       "Panetteria Bernasconi SA",
@@ -118,6 +378,262 @@
       "CHF 1 416.52",
       "CHF 1 416.52",
       "Punto di accettazione"
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        133.86
+      ],
+      [
+        348.59,
+        134.63
+      ],
+      [
+        56.69,
+        145.58
+      ],
+      [
+        348.59,
+        152.61
+      ],
+      [
+        56.69,
+        157.3
+      ],
+      [
+        348.59,
+        164.33
+      ],
+      [
+        348.59,
+        176.05
+      ],
+      [
+        60.69,
+        208.14
+      ],
+      [
+        60.69,
+        223.19
+      ],
+      [
+        142.69,
+        233.73
+      ],
+      [
+        60.69,
+        248.78
+      ],
+      [
+        142.69,
+        259.33
+      ],
+      [
+        60.69,
+        274.38
+      ],
+      [
+        142.69,
+        284.92
+      ],
+      [
+        60.69,
+        299.97
+      ],
+      [
+        60.69,
+        315.02
+      ],
+      [
+        142.69,
+        325.56
+      ],
+      [
+        60.69,
+        340.61
+      ],
+      [
+        60.69,
+        355.66
+      ],
+      [
+        60.69,
+        370.89
+      ],
+      [
+        56.69,
+        397.64
+      ],
+      [
+        236.73,
+        534.85
+      ],
+      [
+        334.49,
+        559.27
+      ],
+      [
+        14.17,
+        559.58
+      ],
+      [
+        334.49,
+        568.67
+      ],
+      [
+        14.17,
+        578.9
+      ],
+      [
+        334.49,
+        579.67
+      ],
+      [
+        14.17,
+        586.3
+      ],
+      [
+        334.49,
+        590.67
+      ],
+      [
+        14.17,
+        595.3
+      ],
+      [
+        14.17,
+        601.67
+      ],
+      [
+        14.17,
+        613.3
+      ],
+      [
+        334.49,
+        625.27
+      ],
+      [
+        14.17,
+        632.9
+      ],
+      [
+        334.49,
+        634.67
+      ],
+      [
+        14.17,
+        640.3
+      ],
+      [
+        14.17,
+        658.27
+      ],
+      [
+        14.17,
+        667.3
+      ],
+      [
+        14.17,
+        676.3
+      ],
+      [
+        14.17,
+        685.3
+      ],
+      [
+        334.49,
+        691.27
+      ],
+      [
+        334.49,
+        700.67
+      ],
+      [
+        334.49,
+        711.67
+      ],
+      [
+        334.49,
+        722.67
+      ],
+      [
+        14.17,
+        737.64
+      ],
+      [
+        189.92,
+        737.85
+      ],
+      [
+        14.17,
+        747.04
+      ],
+      [
+        189.92,
+        749.25
+      ],
+      [
+        99.9,
+        777.32
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          172.2,
+          558.42,
+          7.09,
+          8.5
+        ],
+        "paints": [
+          "#000000"
+        ],
+        "paths": [
+          "fill #000000 [172.2, 558.42, 7.09, 3.4]",
+          "fill #000000 [174.35, 560.97, 2.68, 5.95]",
+          "fill #000000 [174.47, 560.97, 2.68, 5.95]"
+        ]
+      },
+      {
+        "box": [
+          189.92,
+          592.44,
+          130.39,
+          130.39
+        ],
+        "paints": [
+          "#000000",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #ffffff [189.92, 592.44, 130.39, 130.39]",
+          "fill #000000 [189.92, 592.44, 130.39, 130.39]",
+          "fill #ffffff [245.2, 647.71, 19.84, 19.84]",
+          "fill #000000 [246.61, 649.13, 17.01, 17.01]",
+          "fill #ffffff [249.61, 652.12, 11.02, 11.02]"
+        ]
+      }
     ]
   },
   {
@@ -125,8 +641,8 @@
     "sample": "invoice-en",
     "page": 1,
     "scale": 1.25,
-    "sha256": "38bf4531c453515c136bf9e32cd3f440401e647c9126be745b698b0a439d4639",
-    "caption": "The invoice in English, an Invoice: its line items, then Subtotal, VAT 8.1% and Total CHF 1'416.52, and across the foot of the page its QR-bill, the Receipt and the Payment part with its Swiss QR Code, each for CHF 1 416.52",
+    "sha256": "c7b7a3db55b1aa47fc1295ab1176bdd78765a73b90e018a1f1b006eb6e991d46",
+    "caption": "The invoice in English, an Invoice under the firm's mark: its line items, then Subtotal, VAT 8.1% and Total CHF 1'416.52, and across the foot of the page its QR-bill, the Receipt and the Payment part with its Swiss QR Code, each for CHF 1 416.52",
     "lines": [
       "Formancy Building Services AG · Gewerbestrasse 14 · 4053 Basel · CHE-123.456.789 VAT",
       "Riverside Coffee Roasters AG",
@@ -176,6 +692,254 @@
       "CHF 1 416.52",
       "CHF 1 416.52",
       "Acceptance point"
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        133.86
+      ],
+      [
+        348.59,
+        134.63
+      ],
+      [
+        56.69,
+        145.58
+      ],
+      [
+        348.59,
+        152.61
+      ],
+      [
+        56.69,
+        157.3
+      ],
+      [
+        348.59,
+        164.33
+      ],
+      [
+        348.59,
+        176.05
+      ],
+      [
+        60.69,
+        208.14
+      ],
+      [
+        60.69,
+        223.19
+      ],
+      [
+        142.69,
+        233.73
+      ],
+      [
+        60.69,
+        248.78
+      ],
+      [
+        142.69,
+        259.33
+      ],
+      [
+        60.69,
+        274.38
+      ],
+      [
+        60.69,
+        289.42
+      ],
+      [
+        60.69,
+        304.47
+      ],
+      [
+        60.69,
+        319.52
+      ],
+      [
+        60.69,
+        334.56
+      ],
+      [
+        60.69,
+        349.8
+      ],
+      [
+        56.69,
+        376.54
+      ],
+      [
+        251.83,
+        534.85
+      ],
+      [
+        334.49,
+        559.27
+      ],
+      [
+        14.17,
+        559.58
+      ],
+      [
+        334.49,
+        568.67
+      ],
+      [
+        14.17,
+        578.9
+      ],
+      [
+        334.49,
+        579.67
+      ],
+      [
+        14.17,
+        586.3
+      ],
+      [
+        334.49,
+        590.67
+      ],
+      [
+        14.17,
+        595.3
+      ],
+      [
+        14.17,
+        601.67
+      ],
+      [
+        14.17,
+        613.3
+      ],
+      [
+        334.49,
+        625.27
+      ],
+      [
+        14.17,
+        632.9
+      ],
+      [
+        334.49,
+        634.67
+      ],
+      [
+        14.17,
+        640.3
+      ],
+      [
+        14.17,
+        658.27
+      ],
+      [
+        14.17,
+        667.3
+      ],
+      [
+        14.17,
+        676.3
+      ],
+      [
+        14.17,
+        685.3
+      ],
+      [
+        334.49,
+        691.27
+      ],
+      [
+        334.49,
+        700.67
+      ],
+      [
+        334.49,
+        711.67
+      ],
+      [
+        334.49,
+        722.67
+      ],
+      [
+        14.17,
+        737.64
+      ],
+      [
+        189.92,
+        737.85
+      ],
+      [
+        14.17,
+        747.04
+      ],
+      [
+        189.92,
+        749.25
+      ],
+      [
+        111.57,
+        777.32
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          172.2,
+          558.42,
+          7.09,
+          8.5
+        ],
+        "paints": [
+          "#000000"
+        ],
+        "paths": [
+          "fill #000000 [172.2, 558.42, 7.09, 3.4]",
+          "fill #000000 [174.35, 560.97, 2.68, 5.95]",
+          "fill #000000 [174.47, 560.97, 2.68, 5.95]"
+        ]
+      },
+      {
+        "box": [
+          189.92,
+          592.44,
+          130.39,
+          130.39
+        ],
+        "paints": [
+          "#000000",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #ffffff [189.92, 592.44, 130.39, 130.39]",
+          "fill #000000 [189.92, 592.44, 130.39, 130.39]",
+          "fill #ffffff [245.2, 647.71, 19.84, 19.84]",
+          "fill #000000 [246.61, 649.13, 17.01, 17.01]",
+          "fill #ffffff [249.61, 652.12, 11.02, 11.02]"
+        ]
+      }
     ]
   },
   {
@@ -183,8 +947,8 @@
     "sample": "euro-invoice-at",
     "page": 1,
     "scale": 1.25,
-    "sha256": "69473a0b0b88e1d9e10a985fa4b7cb0b91bb1863f1e4db76b0c7bd6f896463f4",
-    "caption": "The euro invoice from Austria, a Rechnung: the boiler's parts, then Nettobetrag, USt 20 % and Gesamtbetrag € 629,44, and under them the Bankverbindung, IBAN: AT93 8012 3000 1234 5678, beside the EPC QR code in Austria's frame, Zahlen mit Code up its side",
+    "sha256": "68f0dad4ab6ac546a6765d9c141f2c2083639956c1dc7abb7a64864cca12581d",
+    "caption": "The euro invoice from Austria, a Rechnung under the firm's mark: the boiler's parts, then Nettobetrag, USt 20 % and Gesamtbetrag € 629,44, and under them the Bankverbindung, IBAN: AT93 8012 3000 1234 5678, beside the EPC QR code in Austria's frame, Zahlen mit Code up its side",
     "lines": [
       "Formancy Haustechnik GmbH · Gewerbestraße 7 · 4020 Linz · UID-Nr. ATU12345678",
       "Max Mustermann",
@@ -215,6 +979,160 @@
       "Zahlungsreferenz: RF94 2026 0904",
       "Zahlen mit Code",
       "Oder scannen Sie den Code links mit Ihrer Banking-App."
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        133.86
+      ],
+      [
+        348.59,
+        134.63
+      ],
+      [
+        56.69,
+        145.58
+      ],
+      [
+        348.59,
+        152.61
+      ],
+      [
+        56.69,
+        157.3
+      ],
+      [
+        348.59,
+        164.33
+      ],
+      [
+        348.59,
+        176.05
+      ],
+      [
+        348.59,
+        187.77
+      ],
+      [
+        60.69,
+        219.86
+      ],
+      [
+        60.69,
+        234.91
+      ],
+      [
+        156.69,
+        245.45
+      ],
+      [
+        60.69,
+        260.5
+      ],
+      [
+        60.69,
+        275.55
+      ],
+      [
+        60.69,
+        290.59
+      ],
+      [
+        60.69,
+        305.64
+      ],
+      [
+        60.69,
+        320.69
+      ],
+      [
+        60.69,
+        335.73
+      ],
+      [
+        60.69,
+        350.97
+      ],
+      [
+        56.69,
+        377.71
+      ],
+      [
+        56.69,
+        389.43
+      ],
+      [
+        56.69,
+        419.15
+      ],
+      [
+        159.4,
+        430.87
+      ],
+      [
+        159.4,
+        442.59
+      ],
+      [
+        159.4,
+        454.31
+      ],
+      [
+        159.4,
+        466.03
+      ],
+      [
+        159.4,
+        477.75
+      ],
+      [
+        141.46,
+        449.27
+      ],
+      [
+        159.4,
+        495.21
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          56.69,
+          429.59,
+          90.71,
+          90.71
+        ],
+        "paints": [
+          "#000000",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #ffffff [56.69, 429.59, 90.71, 90.71]",
+          "stroke #000000 [57.03, 433.09, 90.03, 83.71]",
+          "fill #000000 [62.82, 438.88, 72.14, 72.14]"
+        ]
+      }
     ]
   },
   {
@@ -222,8 +1140,8 @@
     "sample": "euro-invoice-fr",
     "page": 1,
     "scale": 1.25,
-    "sha256": "0e489c27c1ca9d97395a04b59354bf7d9af63ec8228ba4af53e5d71f39077505",
-    "caption": "The euro invoice from France, a Facture: the boiler's parts, then Total HT, TVA 20 % and Total TTC 629,44 €, and under them the Coordonnées bancaires, IBAN : FR76 0123 4000 1200 0123 4567 880, beside the EPC QR code that pays it",
+    "sha256": "3bba7c6954ea9978f8488e40859f18f007ca1c54c4efc0c3ec52af11abb45316",
+    "caption": "The euro invoice from France, a Facture under the firm's mark: the boiler's parts, then Total HT, TVA 20 % and Total TTC 629,44 €, and under them the Coordonnées bancaires, IBAN : FR76 0123 4000 1200 0123 4567 880, beside the EPC QR code that pays it",
     "lines": [
       "Formancy Chauffage SAS · 7 rue de l’Industrie · 31200 Toulouse · TVA FR32123456789 · SAS au capital de 500 € · SIREN 123 456 789",
       "Jean Dupont",
@@ -254,6 +1172,159 @@
       "Montant : 629,44 €",
       "Référence : RF67 2026 0517",
       "Ou scannez le code à gauche avec votre application bancaire."
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        133.86
+      ],
+      [
+        348.59,
+        134.63
+      ],
+      [
+        56.69,
+        145.58
+      ],
+      [
+        348.59,
+        152.61
+      ],
+      [
+        56.69,
+        157.3
+      ],
+      [
+        348.59,
+        164.33
+      ],
+      [
+        348.59,
+        176.05
+      ],
+      [
+        348.59,
+        187.77
+      ],
+      [
+        60.69,
+        219.86
+      ],
+      [
+        60.69,
+        234.91
+      ],
+      [
+        60.69,
+        249.95
+      ],
+      [
+        60.69,
+        265
+      ],
+      [
+        156.69,
+        275.55
+      ],
+      [
+        60.69,
+        290.59
+      ],
+      [
+        156.69,
+        301.14
+      ],
+      [
+        60.69,
+        316.19
+      ],
+      [
+        60.69,
+        331.23
+      ],
+      [
+        60.69,
+        346.28
+      ],
+      [
+        60.69,
+        361.52
+      ],
+      [
+        56.69,
+        388.26
+      ],
+      [
+        56.69,
+        399.98
+      ],
+      [
+        56.69,
+        429.7
+      ],
+      [
+        159.4,
+        441.42
+      ],
+      [
+        159.4,
+        453.14
+      ],
+      [
+        159.4,
+        464.85
+      ],
+      [
+        159.4,
+        476.57
+      ],
+      [
+        159.4,
+        488.29
+      ],
+      [
+        159.4,
+        505.76
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          56.69,
+          440.14,
+          90.71,
+          90.71
+        ],
+        "paints": [
+          "#000000",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #ffffff [56.69, 440.14, 90.71, 90.71]",
+          "fill #000000 [63.54, 446.99, 77.02, 77.02]"
+        ]
+      }
     ]
   },
   {
@@ -261,8 +1332,8 @@
     "sample": "euro-invoice-it",
     "page": 1,
     "scale": 1.25,
-    "sha256": "6eecaf1cf6cd00f81f9f251d59dcf1a347dba1ce62b3975549d522678615a712",
-    "caption": "The euro invoice from Italy, a Fattura: the boiler's parts, then Imponibile, IVA 22% and Totale fattura 639,93 €, the notice Copia di cortesia, and under them the Coordinate bancarie, IBAN: IT53 N000 0000 0120 0001 2345 678, beside the EPC QR code that pays it",
+    "sha256": "6ee2eb81af1a22577f63076ead8aef3c07c643022d59f3f53331281a45151b63",
+    "caption": "The euro invoice from Italy, a Fattura under the firm's mark: the boiler's parts, then Imponibile, IVA 22% and Totale fattura 639,93 €, the notice Copia di cortesia, and under them the Coordinate bancarie, IBAN: IT53 N000 0000 0120 0001 2345 678, beside the EPC QR code that pays it",
     "lines": [
       "Formancy Termotecnica S.r.l. · Via dell’Industria, 7 · 20141 Milano · P.IVA 12345678901",
       "Mario Rossi",
@@ -295,6 +1366,167 @@
       "Importo: 639,93 €",
       "Riferimento: RF18 2026 0623",
       "Oppure inquadrate il codice a sinistra con la vostra app bancaria."
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        133.86
+      ],
+      [
+        348.59,
+        134.63
+      ],
+      [
+        56.69,
+        145.58
+      ],
+      [
+        348.59,
+        152.61
+      ],
+      [
+        56.69,
+        157.3
+      ],
+      [
+        348.59,
+        164.33
+      ],
+      [
+        348.59,
+        176.05
+      ],
+      [
+        348.59,
+        187.77
+      ],
+      [
+        60.69,
+        219.86
+      ],
+      [
+        60.69,
+        234.91
+      ],
+      [
+        60.69,
+        249.95
+      ],
+      [
+        60.69,
+        265
+      ],
+      [
+        156.69,
+        275.55
+      ],
+      [
+        60.69,
+        290.59
+      ],
+      [
+        156.69,
+        301.14
+      ],
+      [
+        60.69,
+        316.19
+      ],
+      [
+        60.69,
+        331.23
+      ],
+      [
+        60.69,
+        346.28
+      ],
+      [
+        60.69,
+        361.52
+      ],
+      [
+        56.69,
+        388.26
+      ],
+      [
+        56.69,
+        399.98
+      ],
+      [
+        56.69,
+        417.7
+      ],
+      [
+        56.69,
+        429.42
+      ],
+      [
+        56.69,
+        459.14
+      ],
+      [
+        159.4,
+        470.85
+      ],
+      [
+        159.4,
+        482.57
+      ],
+      [
+        159.4,
+        494.29
+      ],
+      [
+        159.4,
+        506.01
+      ],
+      [
+        159.4,
+        517.73
+      ],
+      [
+        159.4,
+        535.19
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          56.69,
+          469.58,
+          90.71,
+          90.71
+        ],
+        "paints": [
+          "#000000",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #ffffff [56.69, 469.58, 90.71, 90.71]",
+          "fill #000000 [63.06, 475.94, 77.98, 77.98]"
+        ]
+      }
     ]
   },
   {
@@ -302,8 +1534,8 @@
     "sample": "euro-invoice-es",
     "page": 1,
     "scale": 1.25,
-    "sha256": "2b52341d9bf10b41377eba5d993b72062d6683a8af1e91b1b11ac622ed79dd2c",
-    "caption": "The euro invoice from Spain, a Factura: the boiler's parts, then Base imponible, IVA 21 % and Total factura 634,68 €, and under them the Datos bancarios, IBAN: ES25 0000 0012 7000 1234 5678, beside the EPC QR code that pays it",
+    "sha256": "02b296116228769255172379aa8838e2af1dc00a9b6082530b1783f5ff093374",
+    "caption": "The euro invoice from Spain, a Factura under the firm's mark: the boiler's parts, then Base imponible, IVA 21 % and Total factura 634,68 €, and under them the Datos bancarios, IBAN: ES25 0000 0012 7000 1234 5678, beside the EPC QR code that pays it",
     "lines": [
       "Formancy Calefacción S.L. · Calle de la Industria, 7 · 28045 Madrid · NIF B12345678",
       "Carmen Española Española",
@@ -335,6 +1567,163 @@
       "Importe: 634,68 €",
       "Referencia: RF08 2026 0318",
       "O escanee el código de la izquierda con su app bancaria."
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        133.86
+      ],
+      [
+        348.59,
+        134.63
+      ],
+      [
+        56.69,
+        145.58
+      ],
+      [
+        348.59,
+        152.61
+      ],
+      [
+        56.69,
+        157.3
+      ],
+      [
+        348.59,
+        164.33
+      ],
+      [
+        348.59,
+        176.05
+      ],
+      [
+        348.59,
+        187.77
+      ],
+      [
+        60.69,
+        219.86
+      ],
+      [
+        60.69,
+        234.91
+      ],
+      [
+        156.69,
+        245.45
+      ],
+      [
+        60.69,
+        260.5
+      ],
+      [
+        60.69,
+        275.55
+      ],
+      [
+        156.69,
+        286.09
+      ],
+      [
+        60.69,
+        301.14
+      ],
+      [
+        156.69,
+        311.69
+      ],
+      [
+        60.69,
+        326.73
+      ],
+      [
+        60.69,
+        341.78
+      ],
+      [
+        60.69,
+        356.83
+      ],
+      [
+        60.69,
+        372.07
+      ],
+      [
+        56.69,
+        398.81
+      ],
+      [
+        56.69,
+        410.53
+      ],
+      [
+        56.69,
+        440.25
+      ],
+      [
+        159.4,
+        451.96
+      ],
+      [
+        159.4,
+        463.68
+      ],
+      [
+        159.4,
+        475.4
+      ],
+      [
+        159.4,
+        487.12
+      ],
+      [
+        159.4,
+        498.84
+      ],
+      [
+        159.4,
+        516.3
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          56.69,
+          450.69,
+          90.71,
+          90.71
+        ],
+        "paints": [
+          "#000000",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #ffffff [56.69, 450.69, 90.71, 90.71]",
+          "fill #000000 [63.54, 457.53, 77.02, 77.02]"
+        ]
+      }
     ]
   },
   {
@@ -342,8 +1731,8 @@
     "sample": "euro-invoice-nl",
     "page": 1,
     "scale": 1.25,
-    "sha256": "d1b971ef59f9e428eff6313881159c759486c93c7996320245ad350f7706c7fa",
-    "caption": "The euro invoice from the Netherlands, a Factuur: the boiler's parts, then Totaal excl. btw, Btw 21% and Totaal incl. btw € 634,68, and under them the Bankgegevens, IBAN: NL17 FMNC 0123 4567 89, beside the EPC QR code that pays it",
+    "sha256": "92fb779ff69500c066b7dc426cdf7f63074983e9f9da4b09d743ea4f85ed2a60",
+    "caption": "The euro invoice from the Netherlands, a Factuur under the firm's mark: the boiler's parts, then Totaal excl. btw, Btw 21% and Totaal incl. btw € 634,68, and under them the Bankgegevens, IBAN: NL17 FMNC 0123 4567 89, beside the EPC QR code that pays it",
     "lines": [
       "Formancy Installatietechniek B.V. · Industrieweg 7 · 3044 AS Rotterdam · btw-id NL123456789B01",
       "Jan Jansen",
@@ -373,6 +1762,155 @@
       "Bedrag: € 634,68",
       "Betalingskenmerk: RF66 2026 0729",
       "Of scan de code links met uw bankapp."
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        133.86
+      ],
+      [
+        348.59,
+        134.63
+      ],
+      [
+        56.69,
+        145.58
+      ],
+      [
+        348.59,
+        152.61
+      ],
+      [
+        56.69,
+        157.3
+      ],
+      [
+        348.59,
+        164.33
+      ],
+      [
+        348.59,
+        176.05
+      ],
+      [
+        348.59,
+        187.77
+      ],
+      [
+        60.69,
+        219.86
+      ],
+      [
+        60.69,
+        234.91
+      ],
+      [
+        60.69,
+        249.95
+      ],
+      [
+        60.69,
+        265
+      ],
+      [
+        156.69,
+        275.55
+      ],
+      [
+        60.69,
+        290.59
+      ],
+      [
+        60.69,
+        305.64
+      ],
+      [
+        60.69,
+        320.69
+      ],
+      [
+        60.69,
+        335.73
+      ],
+      [
+        60.69,
+        350.97
+      ],
+      [
+        56.69,
+        377.71
+      ],
+      [
+        56.69,
+        389.43
+      ],
+      [
+        56.69,
+        419.15
+      ],
+      [
+        159.4,
+        430.87
+      ],
+      [
+        159.4,
+        442.59
+      ],
+      [
+        159.4,
+        454.31
+      ],
+      [
+        159.4,
+        466.03
+      ],
+      [
+        159.4,
+        477.75
+      ],
+      [
+        159.4,
+        495.21
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          56.69,
+          429.59,
+          90.71,
+          90.71
+        ],
+        "paints": [
+          "#000000",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #ffffff [56.69, 429.59, 90.71, 90.71]",
+          "fill #000000 [63.06, 435.96, 77.98, 77.98]"
+        ]
+      }
     ]
   },
   {
@@ -380,8 +1918,8 @@
     "sample": "euro-invoice-ie",
     "page": 1,
     "scale": 1.25,
-    "sha256": "028ed3db6f31e5a0f57e0d9fb6145280406ae3c9bf776e1124f7dd5440161e62",
-    "caption": "The euro invoice from Ireland, an Invoice: the boiler's parts, then Subtotal, VAT 23% and Total due €645.17, and under them the Bank details, IBAN: IE30 FMNC 0000 0012 3456 78, beside the EPC QR code that pays it",
+    "sha256": "e61dbbfceb48111e9785884284634930dd9b05f2c7d7b8c4f496ba5cbb7cfa21",
+    "caption": "The euro invoice from Ireland, an Invoice under the firm's mark: the boiler's parts, then Subtotal, VAT 23% and Total due €645.17, and under them the Bank details, IBAN: IE30 FMNC 0000 0012 3456 78, beside the EPC QR code that pays it",
     "lines": [
       "Formancy Heating Supplies Ltd · 7 Industry Road · Cork · VAT No. IE1234567X",
       "Joe Bloggs",
@@ -410,6 +1948,151 @@
       "Amount: €645.17",
       "Reference: RF55 2026 0442",
       "Or scan the code on the left with your banking app."
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        133.86
+      ],
+      [
+        348.59,
+        134.63
+      ],
+      [
+        56.69,
+        145.58
+      ],
+      [
+        348.59,
+        152.61
+      ],
+      [
+        56.69,
+        157.3
+      ],
+      [
+        348.59,
+        164.33
+      ],
+      [
+        348.59,
+        176.05
+      ],
+      [
+        348.59,
+        187.77
+      ],
+      [
+        60.69,
+        219.86
+      ],
+      [
+        60.69,
+        234.91
+      ],
+      [
+        156.69,
+        245.45
+      ],
+      [
+        60.69,
+        260.5
+      ],
+      [
+        60.69,
+        275.55
+      ],
+      [
+        60.69,
+        290.59
+      ],
+      [
+        60.69,
+        305.64
+      ],
+      [
+        60.69,
+        320.69
+      ],
+      [
+        60.69,
+        335.73
+      ],
+      [
+        60.69,
+        350.97
+      ],
+      [
+        56.69,
+        377.71
+      ],
+      [
+        56.69,
+        407.43
+      ],
+      [
+        159.4,
+        419.15
+      ],
+      [
+        159.4,
+        430.87
+      ],
+      [
+        159.4,
+        442.59
+      ],
+      [
+        159.4,
+        454.31
+      ],
+      [
+        159.4,
+        466.03
+      ],
+      [
+        159.4,
+        483.49
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          56.69,
+          417.87,
+          90.71,
+          90.71
+        ],
+        "paints": [
+          "#000000",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #ffffff [56.69, 417.87, 90.71, 90.71]",
+          "fill #000000 [63.06, 424.24, 77.98, 77.98]"
+        ]
+      }
     ]
   }
 ]

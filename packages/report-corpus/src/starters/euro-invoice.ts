@@ -3,6 +3,7 @@ import { EURO_COUNTRIES } from './euro-invoice-countries.js'
 import type { AddressPart, EuroBilling, EuroCountry, WholeRate } from './euro-invoice-countries.js'
 import { EURO_WORDS } from './euro-invoice-words.js'
 import type { EuroWords } from './euro-invoice-words.js'
+import { LETTERHEAD, LOGO_ASSET } from './logo.js'
 import { lineAmount } from './quotation.js'
 import type { Starter } from './starter.js'
 
@@ -147,9 +148,10 @@ function datasets(billing: EuroBilling, labels: EuroWords['labels']): ReportDefi
   }
 }
 
-/** The head of the invoice: whom it is from, the customer's address, and the heading over its number and dates. */
+/** The head of the invoice: the firm's mark, whom it is from, the customer's address, and the heading over its number and dates. */
 function reportHeader(billing: EuroBilling, words: EuroWords): ReportDefinition['regions']['reportHeader'] {
   return [
+    ...LETTERHEAD,
     sender(billing, words),
     { id: 'sender-gap', kind: 'spacer', height: 12 },
     {
@@ -318,7 +320,7 @@ function report(billing: EuroBilling, words: EuroWords): ReportDefinition {
     styles: EURO_STYLES,
     datasets: datasets(billing, words.labels),
     parameters: [],
-    assets: [],
+    assets: [LOGO_ASSET],
     aggregates: [
       { id: 'subtotal', fn: 'sum', of: { kind: 'field', field: detail('amount') } },
       { id: 'total', fn: 'sum', of: { kind: 'expression', expression: { cel: `row.amount * dec("${factor}")` } }, rounding: { scale: 2, mode: 'half-away-from-zero' } },

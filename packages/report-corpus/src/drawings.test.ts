@@ -2,6 +2,7 @@ import type { Content, ContentSvg, TDocumentDefinitions } from 'pdfmake/interfac
 import { describe, expect, test } from 'vitest'
 import { verify } from './checks.js'
 import type { Block, Image, ResolvedDocument } from './document.js'
+import { drawingsOn } from './drawings.js'
 import { expectation, type Fixture } from './fixture.js'
 import { encodePng } from './fixtures/png.js'
 import { SVG_MARK } from './fixtures/svg.js'
@@ -149,5 +150,52 @@ describe('verify holds a drawing to the page as it holds an image', () => {
     const made = (drawn: boolean): TDocumentDefinitions => ({ ...definition({ header: () => undefined }), content: [{ text: 'Before' }, drawn ? { ...svg(60, 60), pageBreak: 'before' } : { text: '', pageBreak: 'before' }] })
     expect(await problems(made(true), alone)).toEqual([])
     expect(await problems(made(false), alone)).toEqual(['drawings: page 2 prints nothing between its page header and footer', 'drawings: the SVG image 1 of the body, 60 × 60 pt, is not drawn: no clip of its size holds a painted path'])
+  })
+})
+
+describe('drawingsOn reads a page’s drawings as a picture records them (0032)', () => {
+  /** Page 1 of `made`, read back. */
+  const first = async (made: TDocumentDefinitions) => (await readPdf(await pdfmakePdf(made))).pages[0]!
+
+  // A picture's manifest records each drawing of its page, so that a page
+  // that now draws otherwise fails its picture: the body's mark and the
+  // page header's, in the order the page sets their clips -- pdfmake draws
+  // a page's header after its body -- each a clip of its size with the
+  // mark's three shapes painted inside it, the disc, the gable stroked over
+  // it and the drop, in the order the page paints them, each with its paint
+  // and its box.
+  test('reads each clip a path is painted in, with its paints and each path', async () => {
+    const drawings = drawingsOn(await first(definition()))
+    expect(drawings.map((drawing) => [drawing.box[2], drawing.box[3], drawing.paints])).toEqual([
+      [60, 60, ['#1f4e79', '#ffffff']],
+      [20, 20, ['#1f4e79', '#ffffff']],
+    ])
+    for (const drawing of drawings) {
+      expect(drawing.paths.map((path) => path.replace(/ \[.*\]$/, ''))).toEqual(['fill #1f4e79', 'stroke #ffffff', 'fill #ffffff'])
+      expect(drawing.paths.every((path) => /\[-?[\d.]+(, -?[\d.]+){3}\]$/.test(path))).toBe(true)
+    }
+  })
+
+  // A mark redrawn inside its own box, in its own paints -- its gable 10
+  // units lower -- has the clip and the paints of the mark it replaced: a
+  // picture recorded by those alone passed a page that no longer drew what
+  // it showed. Its paths are where it differs.
+  test('tells a drawing redrawn inside its own box, in its own paints, from the one it was', async () => {
+    const lowered = MARK.replace('M28 62 L60 32 L92 62', 'M28 72 L60 42 L92 72')
+    expect(lowered).not.toBe(MARK)
+    const [was] = drawingsOn(await first(definition({ header: () => undefined })))
+    const [now] = drawingsOn(await first(definition({ header: () => undefined, drawn: svg(60, 60, lowered) })))
+    expect([now?.box, now?.paints]).toEqual([was?.box, was?.paints])
+    expect(now?.paths).not.toEqual(was?.paths)
+    expect(now?.paths.filter((path, index) => path !== was?.paths[index]).map((path) => path.split(' [')[0])).toEqual(['stroke #ffffff'])
+  })
+
+  // A clip nothing is painted in draws nothing a picture shows, and a rule
+  // no rectangle clips is no drawing: neither is recorded as one.
+  test('leaves out a clip nothing is painted in, and a path no clip holds', async () => {
+    const rule: Content = { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 200, y2: 0, lineWidth: 1 }] }
+    const page = await first(definition({ header: () => undefined, drawn: { stack: [svg(60, 60, NOTHING), rule] } }))
+    expect(page.paths.filter((path) => path.clip === undefined).length).toBeGreaterThan(0)
+    expect(drawingsOn(page)).toEqual([])
   })
 })

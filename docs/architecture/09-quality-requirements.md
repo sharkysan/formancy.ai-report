@@ -116,13 +116,22 @@ one day, with the runs its record describes, and held by nothing:
   medians of 83 to 91 ms, against 28,215 to 29,237 bytes and 81 to 94 ms
   drawn plain, nine renders each, alternated, from the built packages, on
   18 October 2026 while the machine ran other work
-  ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+  ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md));
+- the firm's mark at the head of the starters adding 430 bytes to the
+  quotation's PDF, 342 to the invoice's, 367 to the euro invoice's and 330
+  to the e-invoice sample's, and no time a median could tell from the
+  spread: with it, medians 4 ms shorter to 5 ms longer than without it,
+  each drawn nine times with it and nine without, alternated, in two runs
+  from the built packages on 18 October 2026; the invoices' and the
+  e-invoice samples' figures above were measured before the mark
+  ([0032](../decisions/0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md));
 - an SVG logo of 30,000 lines in the page header of a 32-page report adding
   2.79 s to the render against one of a single rectangle, medians of five
   whole renders under Node 24.21.0 on 18 October 2026, a logo the bounds
   now refuse, of which the weights were measured; and the worst drawing the
   bounds accept drawn by PDF.js page-wide at scale 2 in 446 to 448 ms, about
-  eight times the quotation starter's first page, the same day
+  eight times the quotation starter's first page, the same day, a page
+  the converter's test still draws without the firm's mark (0032)
   ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
 **What is not measured, said.** What a commit costs — the whole report

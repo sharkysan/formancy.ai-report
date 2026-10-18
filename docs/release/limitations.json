@@ -590,7 +590,7 @@
       ]
     },
     "0024": {
-      "reviewed": "sha256:4c8729b2b8769ea10f189860766f1c72a974e0d8857621c9048550ef07e94cfe",
+      "reviewed": "sha256:109c8d2e942bb6bf142e351e7ad6d678475a4e080e982b7985c778f281a86149",
       "limitations": [
         {
           "area": "release",
@@ -726,7 +726,7 @@
       "none": "It decides how the repository documents its architecture and what holds those documents in pnpm test:repo; its costs fall on a contributor's pull request, and nothing in a published package, a release or the Studio changes with it."
     },
     "0027": {
-      "reviewed": "sha256:1190201ef6f7a6761fccc2608d4144b6c7880e560c42cdaf5eb17c7e2c3ba200",
+      "reviewed": "sha256:455ee2ddada37418b8b821391b3c168ef3b99c5905546d9688f697c2e2d1b97a",
       "limitations": [
         {
           "area": "format",
@@ -879,7 +879,7 @@
       ]
     },
     "0028": {
-      "reviewed": "sha256:5cb4cc5b9a3f908ef21b09b9c40f46f8d47e1512a12a6cb336e4eecc3a214a7b",
+      "reviewed": "sha256:46efe42c12252fc2a1368b3eb5a99bd50630e3457076e357070049710f15150d",
       "limitations": [
         {
           "area": "release",
@@ -1109,7 +1109,7 @@
       ]
     },
     "0031": {
-      "reviewed": "sha256:e6d44144532e706b4008b096d11f3351898deeb9fea495a327aa2a2e874aaaf7",
+      "reviewed": "sha256:7dca7c6010368a4e6b8338d17065d3af0d2450e1876d2756b0d78987c4bec560",
       "limitations": [
         {
           "area": "rendering",
@@ -1202,6 +1202,29 @@
           "area": "licence",
           "says": "An ICC profile is admitted by the SHA-256 of its bytes and the licence sentence a review read, never by anything the file says, so a PDFKit that ships another profile stops the dependency guard until somebody reads it, and a profile inside a script or an image is not seen.",
           "heldBy": "scripts/dependency-licences.test.mjs"
+        }
+      ]
+    },
+    "0032": {
+      "reviewed": "sha256:94237276eb91459ad2f69cd5a0b7769516f68d5460bdb7f5368b9e840fd1389d",
+      "limitations": [
+        {
+          "area": "runtime",
+          "says": "The quotation, the QR-bill invoice and the euro invoice starters, their samples and the e-invoice samples name an approved asset, the firm's mark, so a host that prints one hands over the mark's bytes by its id and digest, or the render is refused `missing-asset`.",
+          "heldBy": "packages/report-corpus/src/starters/logo.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "The marked starters declare an SVG asset, which 0.1.0 refuses as `not-one-of`, so the quotation and invoice starters as main has them open only in a release that reads SVG."
+        },
+        {
+          "area": "builders",
+          "says": "The getting-started guide's `printPreview` takes the host's lookup of approved assets as a parameter, and its page reads them from a route of the host's server beside the sample, so a page that copied the guide's `printPreview` before passes none, and refuses a report that draws an asset -- the quotation starter with its mark -- as `missing-asset` until it passes one."
+        },
+        {
+          "area": "rendering",
+          "says": "The starters' mark is an invented drawing that names no firm, 15 mm square at the top left of the first page, taking 54.52 pt of it, so the quotation's first page holds 25 line items where it held 27; a firm's own logo is a new asset in a new template release, as any logo is.",
+          "heldBy": "packages/report-render-pdf/src/starters.test.ts"
         }
       ]
     }
