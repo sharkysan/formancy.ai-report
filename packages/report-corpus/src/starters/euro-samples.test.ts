@@ -4,7 +4,7 @@ import { checkReport, EPC_MAX_VERSION, epcCaptionBreak, epcModule, resolveReport
 import type { Block, ReportDefinition, ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { epcCodes } from '../fixture.js'
-import { EURO_INVOICE, EURO_INVOICE_SAMPLES, STARTERS } from './index.js'
+import { EURO_INVOICE, EURO_INVOICE_SAMPLES, starterImages, STARTERS } from './index.js'
 import type { Starter } from './index.js'
 
 /**
@@ -145,7 +145,7 @@ function totalOf(sample: Starter): bigint {
 }
 
 function resolved(sample: Starter): ResolvedDocument {
-  const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, creationDate: CREATED })
+  const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, images: starterImages, creationDate: CREATED })
   if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
   expect(outcome.warnings).toEqual([])
   return outcome.document
@@ -217,11 +217,13 @@ describe('the euro invoice samples', () => {
   // JSON.stringify, is what it was before the samples were made from it: a
   // generalisation that moved one word or one key would move its README
   // picture, the Studio's pictures and what the browser gate reads, with
-  // nobody having retaken them. The digest is of the starter at c212358
-  // (main, 17 October 2026); a change to the starter retakes those pictures
-  // and states the new digest here.
+  // nobody having retaken them. The digest is of the starter with the
+  // firm's mark at the head of its first page (0032, 18 October 2026), whose
+  // pictures were retaken with it; 27583910, at c212358, was the starter
+  // before it. A change to the starter retakes those pictures and states
+  // the new digest here.
   test('leave the starter as it was, byte for byte', () => {
-    expect(createHash('sha256').update(JSON.stringify(EURO_INVOICE)).digest('hex')).toBe('27583910c32cff6e3965fd0059cafa7876aa22972aa4e1ff7b447cd051bcb937')
+    expect(createHash('sha256').update(JSON.stringify(EURO_INVOICE)).digest('hex')).toBe('46574c6ec8909f12936ec5a0a88a7b1b55f6753b0f9bf4367e6e3103c8a41111')
   })
 
   // A sample the validator refuses, or whose expressions the editor marks,

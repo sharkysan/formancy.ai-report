@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
-import { childrenOf, E_INVOICE_SAMPLES, propertiesOf, readPdf, readPdfObjects, readXmp, XMP_NAMESPACES, type PdfObjects, type Starter, type Xmp, type XmlElement } from '@formancy/report-corpus'
+import { childrenOf, E_INVOICE_SAMPLES, propertiesOf, readPdf, readPdfObjects, readXmp, starterImages, XMP_NAMESPACES, type PdfObjects, type Starter, type Xmp, type XmlElement } from '@formancy/report-corpus'
 import { E_INVOICE_PREVIEW_LABEL, resolveReport, type ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { renderPdf } from './node.js'
@@ -60,7 +60,7 @@ const SRGB2014 = '384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e
 const sha256 = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex')
 
 function resolved(sample: Starter, mode: 'final' | 'preview' = 'final'): ResolvedDocument {
-  const outcome = resolveReport(sample.report, sample.data, { mode, parameters: sample.parameters, creationDate: CREATED })
+  const outcome = resolveReport(sample.report, sample.data, { mode, parameters: sample.parameters, images: starterImages, creationDate: CREATED })
   if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join('; ')}`)
   return outcome.document
 }

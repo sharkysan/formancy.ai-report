@@ -6,7 +6,7 @@ import { elementsAt, readCii, textAt, textsAt } from '../testing/cii.js'
 import type { CiiElement } from '../testing/cii.js'
 import { E_INVOICE, E_INVOICE_EXEMPT_PAID, E_INVOICE_REVERSE_CHARGE, E_INVOICE_SAMPLES, sellerAddress } from './e-invoice.js'
 import { EURO_INVOICE } from './euro-invoice.js'
-import { STARTERS } from './index.js'
+import { starterImages, STARTERS } from './index.js'
 import type { Starter } from './starter.js'
 
 /**
@@ -33,7 +33,7 @@ import type { Starter } from './starter.js'
 const CREATED = '2026-10-16T08:00:00Z'
 
 function resolved(sample: Starter): ResolvedDocument {
-  const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, creationDate: CREATED })
+  const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, images: starterImages, creationDate: CREATED })
   if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join('; '))
   return outcome.document
 }
@@ -127,7 +127,7 @@ describe('the e-invoice samples', () => {
   // and an e-invoice in the document: a final render writes the XML or
   // refuses.
   test.each(samples)('%s resolves its own data in a final render, to a document carrying its XML', (_id, sample) => {
-    const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, creationDate: CREATED })
+    const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, images: starterImages, creationDate: CREATED })
     expect(outcome.ok ? outcome.warnings : outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`)).toEqual([])
     expect(outcome.ok && [outcome.document.eInvoice?.fileName, outcome.document.eInvoice?.xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice ')]).toEqual(['factur-x.xml', true])
   })
@@ -326,7 +326,8 @@ describe("the samples' pages, against their XML", () => {
   // The head of the invoice is the XML's: the buyer's name and address,
   // its VAT identifier where it has one, the number, the issue date, the
   // delivery date or the period, whichever the XML holds, and the due
-  // date; the firm's line holds the seller's name, address and VAT number.
+  // date; the firm's line, its first paragraph, under the firm's mark,
+  // holds the seller's name, address and VAT number.
   test.each(samples)("%s's head prints the parties and dates of its XML", (_id, sample) => {
     const { blocks, columns, root } = page(sample)
     const buyer = `${HTA}/ram:BuyerTradeParty`
@@ -347,7 +348,7 @@ describe("the samples' pages, against their XML", () => {
       ],
     ])
     const address = `${seller}/ram:PostalTradeAddress`
-    expect(textOf(blocks[0] as Block)).toBe(`${textAt(root, `${seller}/ram:Name`)} · ${textAt(root, `${address}/ram:LineOne`)} · ${textAt(root, `${address}/ram:PostcodeCode`)} ${textAt(root, `${address}/ram:CityName`)} · USt-IdNr. ${textAt(root, `${seller}/ram:SpecifiedTaxRegistration/ram:ID`)}`)
+    expect(textOf(blocks.find((block) => block.kind === 'paragraph') as Block)).toBe(`${textAt(root, `${seller}/ram:Name`)} · ${textAt(root, `${address}/ram:LineOne`)} · ${textAt(root, `${address}/ram:PostcodeCode`)} ${textAt(root, `${address}/ram:CityName`)} · USt-IdNr. ${textAt(root, `${seller}/ram:SpecifiedTaxRegistration/ram:ID`)}`)
   })
 
   // The terms printed are the XML's (BT-20); the bank details printed

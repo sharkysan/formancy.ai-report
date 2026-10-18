@@ -1,6 +1,7 @@
 import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
 import { ENGLISH, FRENCH, GERMAN, ITALIAN } from './invoice-words.js'
 import type { Edition, Party } from './invoice-words.js'
+import { LETTERHEAD, LOGO_ASSET } from './logo.js'
 import { lineAmount } from './quotation.js'
 import type { Starter } from './starter.js'
 
@@ -85,7 +86,7 @@ function report(edition: Edition): ReportDefinition {
       },
     },
     parameters: [],
-    assets: [],
+    assets: [LOGO_ASSET],
     aggregates: [
       { id: 'subtotal', fn: 'sum', of: { kind: 'field', field: detail('amount') } },
       { id: 'total', fn: 'sum', of: { kind: 'expression', expression: { cel: 'row.amount * dec("1.081")' } }, rounding: { scale: 2, mode: 'half-away-from-zero' } },
@@ -93,6 +94,7 @@ function report(edition: Edition): ReportDefinition {
     regions: {
       pageHeader: [],
       reportHeader: [
+        ...LETTERHEAD,
         { id: 'sender', kind: 'text', style: 'sender', content: text(sender(creditor, edition.vatNumber)) },
         { id: 'sender-gap', kind: 'spacer', height: 12 },
         {

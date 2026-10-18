@@ -4,4 +4,4 @@
 	Value of '@unitCode' is not allowed.
 [main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 4: 
 	Value of '@unitCode' is not allowed. [ID FX-SCH-A-000613] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)
-[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:5C07E8E38739BB3FA698B4041866C064145D1F55 Profile:urn:cen.eu:en16931:2017 Version:2 Took:2085ms Errors:[4] ErrorIDs: [FX-SCH-A-000613]
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:5C07E8E38739BB3FA698B4041866C064145D1F55 Profile:urn:cen.eu:en16931:2017 Version:2 Took:2197ms Errors:[4] ErrorIDs: [FX-SCH-A-000613]

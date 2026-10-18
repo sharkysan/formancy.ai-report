@@ -9,6 +9,7 @@ import { checkImageAsset, type Vector } from './assets.js'
 import { renderPdf } from './node.js'
 import { svgContent } from './svg-content.js'
 import { bareDocument, paragraph, TIMEOUT } from './testing/documents.js'
+import { withoutMark } from './testing/letterhead.js'
 import { DRAWINGS, mutations, svg, utf8 } from './testing/svg.js'
 
 /**
@@ -101,7 +102,10 @@ describe('the worst drawing the bounds accept', () => {
   // segments, where 0030 says the bound stood before this drawing was
   // measured, it took 1.66 s, about thirty starter pages: a bound raised
   // that far fails here, as does a pdfmake that paints the drawing several
-  // times slower beside what it draws of a report.
+  // times slower beside what it draws of a report. The quotation is drawn
+  // without the firm's mark it has carried since 0032, as it printed when
+  // it was measured: a yardstick that held an SVG would slow with the
+  // drawing, and hide the very slowing this test is here to catch.
   test('rasterises page-wide, at scale 2, in under sixteen times a starter page', async () => {
     const without = cleanSvg(utf8(clipped(1)))
     if (!without.ok) throw new Error(without.message)
@@ -111,7 +115,7 @@ describe('the worst drawing the bounds accept', () => {
     if (!cleaned.ok) return
     const pdf = await renderPdf(bareDocument('Worst', [{ kind: 'image', asset: { id: 'worst', mediaType: 'image/svg+xml', bytes: cleaned.bytes }, width: 480, height: 480, fit: 'contain' }]), { maxPages: 1 })
     expect(await readAnnotations(pdf)).toEqual([])
-    const quotation = resolveReport(QUOTATION.report, quotationData(), { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z', images: () => undefined })
+    const quotation = resolveReport(withoutMark(QUOTATION.report), quotationData(), { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z', images: () => undefined })
     if (!quotation.ok) throw new Error(quotation.errors.map((error) => error.message).join('; '))
     const starter = await renderPdf(quotation.document, { maxPages: 20 })
     // PDF.js loads its fonts and its code on the first page it draws.

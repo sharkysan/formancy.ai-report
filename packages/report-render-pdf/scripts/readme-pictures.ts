@@ -3,7 +3,7 @@
  * to `docs/images/`, and the manifests `pictures.test.ts` holds them to,
  * `pictures.json` for the starters' and `samples.json` for the samples':
  * each picture's file, its SHA-256, its caption, and the lines of the page
- * it was drawn from.
+ * it was drawn from, where each starts, and the page's drawings.
  *
  *   pnpm --filter @formancy/report-render-pdf exec unrun scripts/readme-pictures.ts
  *
@@ -24,10 +24,10 @@ mkdirSync(images, { recursive: true })
 async function draw(specs: readonly PictureSpec[], name: string, of: 'starter' | 'sample'): Promise<void> {
   const manifest = []
   for (const spec of specs) {
-    const { png, lines } = await picture(spec)
+    const { png, lines, places, drawings } = await picture(spec)
     writeFileSync(path.join(images, spec.file), png)
-    manifest.push({ file: spec.file, [of]: spec.starter.id, page: spec.page, scale: SCALE, sha256: createHash('sha256').update(png).digest('hex'), caption: spec.caption, lines })
-    console.log(`${spec.file}: ${png.length} bytes, ${lines.length} lines`)
+    manifest.push({ file: spec.file, [of]: spec.starter.id, page: spec.page, scale: SCALE, sha256: createHash('sha256').update(png).digest('hex'), caption: spec.caption, lines, places, drawings })
+    console.log(`${spec.file}: ${png.length} bytes, ${lines.length} lines, ${drawings.length} drawings`)
   }
   writeFileSync(path.join(images, name), `${JSON.stringify(manifest, null, 2)}\n`)
 }

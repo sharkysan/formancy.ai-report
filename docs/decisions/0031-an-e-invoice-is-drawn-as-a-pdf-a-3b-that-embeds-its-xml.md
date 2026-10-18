@@ -1,7 +1,10 @@
 # 0031 — An e-invoice is drawn as a PDF/A-3b that embeds its XML as `factur-x.xml` and states it in its XMP, through PDFKit's own calls on the final pass and for an e-invoice alone: the ICC profile PDFKit embeds admitted by its digest, the PDF read back by readers that are not PDFKit, and veraPDF and Mustang judging it in the e-invoice gate; PDF/A for every report, pdfmake's `files`, a library that attaches the XML afterwards and a patched PDFKit lost
 
 - **Status:** accepted; numbered 0031 while 0029 and 0030 were held by
-  branches not yet merged
+  branches not yet merged; extended by
+  [0032](0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md),
+  under which every e-invoice sample it draws carries the firm's mark, an
+  SVG in each PDF/A-3b
 - **Date:** 2026-10-18
 - **Deciders:** Daniel Bacher
 - **Verified by:**

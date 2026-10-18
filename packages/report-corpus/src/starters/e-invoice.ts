@@ -2,6 +2,7 @@ import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
 import { EURO_COUNTRIES } from './euro-invoice-countries.js'
 import { EURO_WORDS } from './euro-invoice-words.js'
 import { dated, EUR, EURO_PAGE, EURO_STYLES, payment, positions, recipient, sender } from './euro-invoice.js'
+import { LETTERHEAD, LOGO_ASSET } from './logo.js'
 import { lineAmount } from './quotation.js'
 import type { Starter } from './starter.js'
 
@@ -231,11 +232,12 @@ const REPORT: ReportDefinition = {
     },
   },
   parameters: [],
-  assets: [],
+  assets: [LOGO_ASSET],
   aggregates: [],
   regions: {
     pageHeader: [],
     reportHeader: [
+      ...LETTERHEAD,
       sender(GERMANY, GERMAN),
       { id: 'sender-gap', kind: 'spacer', height: 12 },
       {

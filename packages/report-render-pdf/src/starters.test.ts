@@ -23,6 +23,7 @@ import type { ImageRef, ImageResolver, ReportData, ResolvedDocument, ResolveOpti
 import { describe, expect, test } from 'vitest'
 import { renderPdf } from './node.js'
 import { fixtureOf, normalise, TIMEOUT, type Stated } from './testing/documents.js'
+import { crowding, markAt, marksOn, withoutMark } from './testing/letterhead.js'
 import { lineHas, pageLines, type Line } from './testing/lines.js'
 
 /**
@@ -174,21 +175,72 @@ describe('the quotation', () => {
     expect(pdf.pages.map((page) => pageLines(page).at(-1)?.text)).toEqual(pdf.pages.map((page) => `Seite ${page.number} von ${pdf.pages.length}`))
   }, TIMEOUT)
 
+  // The firm's mark is a letterhead, in the report header (0032): drawn
+  // once, on the first page, at the left margin under the running head, 15
+  // mm square in its two paints, with no text beside it or in the 12 pt
+  // under it, the firm's line the first under it; and on no later page. A
+  // mark put in the page header would print on every page of a long
+  // quotation, and one under the running head's text would hide it.
+  test('prints the firm’s mark on its first page alone, under the running head and above the firm’s line', async () => {
+    const pdf = await printed(resolved(QUOTATION, data))
+    const [first] = pdf.pages as [ReadPdf['pages'][number]]
+    const [head, sender] = pageLines(first)
+    const [mark] = marksOn(first)
+    expect(pdf.pages.map(marksOn)).toEqual(pdf.pages.map((page) => (page.number === 1 ? [markAt(mark?.box[1] as number)] : [])))
+    expect([head?.text, sender?.text.startsWith('Formancy Haustechnik AG · ')]).toEqual(['Offerte Q-2026-0415', true])
+    expect(mark!.box[1]).toBeGreaterThanOrEqual(head!.bottom)
+    expect(crowding(first, mark!)).toEqual([])
+    expect(pdf.pages.flatMap((page) => page.images)).toEqual([])
+  }, TIMEOUT)
+
+  // The mark and the gap under it take 54.52 pt of the first page (0032),
+  // and two line items with them: of a quotation of 30, the first page
+  // holds 25 under the mark, where without the letterhead -- the
+  // quotation as it printed before 0032 -- it held 27. The limitation that
+  // says what the mark costs, and the windows below, rest on these counts:
+  // a letterhead grown or shrunk moves them, and fails here with both.
+  test('holds 25 line items on its first page under the firm’s mark, where it held 27 without it', async () => {
+    const perPage = async (starter: Starter): Promise<number[]> => (await printed(resolved(starter, quotationData(30)))).pages.map((page) => pageLines(page).filter((line) => /^A-\d{4}\b/.test(line.text)).length)
+    expect([await perPage(QUOTATION), await perPage({ ...QUOTATION, report: withoutMark(QUOTATION.report) })]).toEqual([
+      [25, 5],
+      [27, 3],
+    ])
+  }, TIMEOUT)
+
   // A quotation of 31 lines printed its subtotal and VAT under the last
   // line and its total alone on the next page; at 32 all three stood alone
   // there, under the repeated header. Wherever the page ends, the totals
-  // stand on the page of the last line item.
+  // stand on the page of the last line item. With the firm's mark at its
+  // head (0032), page 1 holds at most 25 line items, the totals fit under
+  // the 22nd and take the last line over with them from 23 to 26; page 2
+  // holds 32, and the last line goes over to page 3 with them from 54 to 58
+  // (measured 18 October 2026, rendering quotationData(n) for n from 20 to
+  // 75 and counting the articles PDF.js reads on each page; without the
+  // mark, page 1 held 27 and the totals carried a line from 25 and from
+  // 56). Each window holds a quotation whose totals print before its
+  // boundary and one whose totals print after it, so that a layout that
+  // moves past a window fails here rather than passing a boundary the
+  // window no longer reaches.
   test('keeps its totals on the page of the last line item, wherever the page ends', async () => {
     const apart: string[] = []
-    for (const count of [27, 28, 29, 30, 31, 32, 33, 34, 35, 64, 65, 66, 67, 68, 69, 70]) {
-      const document = resolved(QUOTATION, quotationData(count))
-      const pdf = await printed(document)
-      expect(verify(fixtureOf(`quotation-${count}`, document, { maxPagesExpected: 6 }), pdf)).toEqual([])
-      const last = `A-${1000 + count}`
-      const pages = ['Zwischensumme', 'MWST 8.1 %', 'Rundung', 'Total'].map((words) => pageWith(pdf, words))
-      if (pages.some((page) => page !== pageWith(pdf, last))) apart.push(`${count}: ${pages.join(',')} / ${pageWith(pdf, last)}`)
+    const windows = [
+      [1, [20, 21, 22, 23, 24, 25, 26, 27, 28]],
+      [2, [52, 53, 54, 55, 56, 57, 58, 59, 60]],
+    ] as const
+    const totalsOn = new Map<number, number | undefined>()
+    for (const [, counts] of windows) {
+      for (const count of counts) {
+        const document = resolved(QUOTATION, quotationData(count))
+        const pdf = await printed(document)
+        expect(verify(fixtureOf(`quotation-${count}`, document, { maxPagesExpected: 6 }), pdf)).toEqual([])
+        const last = `A-${1000 + count}`
+        const pages = ['Zwischensumme', 'MWST 8.1 %', 'Rundung', 'Total'].map((words) => pageWith(pdf, words))
+        if (pages.some((page) => page !== pageWith(pdf, last))) apart.push(`${count}: ${pages.join(',')} / ${pageWith(pdf, last)}`)
+        totalsOn.set(count, pageWith(pdf, 'Total'))
+      }
     }
     expect(apart).toEqual([])
+    expect(windows.map(([, counts]) => [totalsOn.get(counts[0]), totalsOn.get(counts.at(-1) as number)])).toEqual(windows.map(([page]) => [page, page + 1]))
   }, TIMEOUT)
 
   // 'CHF 1'250'000.00' in a column too narrow for it printed 'CHF

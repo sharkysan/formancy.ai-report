@@ -7,7 +7,7 @@ import nodePdfmake from 'pdfmake'
 import browserPdfmake from 'pdfmake/build/pdfmake.js'
 import vfs from 'pdfmake/build/vfs_fonts.js'
 import type { ContentSvg, TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { ALL_FIXTURES, E_INVOICE, inflatedDigest, readAnnotations, readCodes, readPdf, readPdfObjects, SVG_FIXTURES, verify, verifyRefusal } from '@formancy/report-corpus'
+import { ALL_FIXTURES, E_INVOICE, inflatedDigest, readAnnotations, readCodes, readPdf, readPdfObjects, starterImages, SVG_FIXTURES, verify, verifyRefusal } from '@formancy/report-corpus'
 import { resolveReport, type ResolvedDocument } from '@formancy/report-runtime'
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
 import type * as billFonts from './bill-fonts.js'
@@ -54,7 +54,7 @@ afterAll(() => {
 
 /** The de-DE e-invoice sample, resolved by the runtime in a final render: a document that carries its XML. */
 function eInvoiceDocument(): ResolvedDocument {
-  const outcome = resolveReport(E_INVOICE.report, E_INVOICE.data, { mode: 'final', parameters: E_INVOICE.parameters, creationDate: '2026-10-16T08:00:00Z' })
+  const outcome = resolveReport(E_INVOICE.report, E_INVOICE.data, { mode: 'final', parameters: E_INVOICE.parameters, images: starterImages, creationDate: '2026-10-16T08:00:00Z' })
   if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
   return outcome.document
 }

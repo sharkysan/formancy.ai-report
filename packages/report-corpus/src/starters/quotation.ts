@@ -1,4 +1,5 @@
 import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
+import { LETTERHEAD, LOGO_ASSET } from './logo.js'
 import type { Starter } from './starter.js'
 
 /**
@@ -74,7 +75,7 @@ const REPORT: ReportDefinition = {
     },
   },
   parameters: [],
-  assets: [],
+  assets: [LOGO_ASSET],
   aggregates: [
     { id: 'subtotal', fn: 'sum', of: { kind: 'field', field: detail('amount') } },
     { id: 'total', fn: 'sum', of: { kind: 'expression', expression: { cel: 'row.amount * dec("1.081")' } }, rounding: { scale: 2, mode: 'half-away-from-zero', increment: '0.05' } },
@@ -82,6 +83,7 @@ const REPORT: ReportDefinition = {
   regions: {
     pageHeader: [{ id: 'running-head', kind: 'text', style: 'small', content: [{ kind: 'text', text: 'Offerte ' }, { kind: 'field', field: header('number') }] }],
     reportHeader: [
+      ...LETTERHEAD,
       {
         id: 'sender',
         kind: 'text',

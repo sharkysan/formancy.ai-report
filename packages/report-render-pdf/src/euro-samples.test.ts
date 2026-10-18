@@ -1,9 +1,10 @@
-import { epcCodes, EURO_INVOICE_SAMPLES, readCodes, readPdf, type PdfCode, type ReadPdf, type Starter } from '@formancy/report-corpus'
+import { epcCodes, EURO_INVOICE_AT, EURO_INVOICE_SAMPLES, readCodes, readPdf, starterImages, type PdfCode, type PdfPage, type ReadPdf, type Starter } from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import type { ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { renderPdf } from './node.js'
 import { normalise, TIMEOUT } from './testing/documents.js'
+import { crowding, markAt, markPixels, marksOn, MARGIN } from './testing/letterhead.js'
 import { lineHas, pageLines, type Line } from './testing/lines.js'
 
 /**
@@ -116,6 +117,7 @@ const startingWith = (pdf: ReadPdf, words: string): Line[] => linesOf(pdf).filte
 
 interface Printed {
   readonly document: ResolvedDocument
+  readonly bytes: Uint8Array
   readonly pdf: ReadPdf
   readonly codes: readonly PdfCode[]
 }
@@ -126,10 +128,10 @@ function print(sample: Starter): Promise<Printed> {
   const cached = printed.get(sample.id)
   if (cached !== undefined) return cached
   const made = (async () => {
-    const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, creationDate: CREATED })
+    const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, images: starterImages, creationDate: CREATED })
     if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`).join('; ')}`)
     const bytes = await renderPdf(outcome.document, { maxPages: 20 })
-    return { document: outcome.document, pdf: await readPdf(bytes), codes: await readCodes(bytes, 1) }
+    return { document: outcome.document, bytes, pdf: await readPdf(bytes), codes: await readCodes(bytes, 1) }
   })()
   printed.set(sample.id, made)
   return made
@@ -209,5 +211,31 @@ describe('the euro invoice samples', () => {
     const { pdf } = await print(sample)
     const items = pdf.pages.flatMap((page) => page.items.map((item) => item.text))
     expect(items.filter((text) => /\d[  .,']\d{3}[,.]\d{2}/u.test(text))).toEqual([])
+  }, TIMEOUT)
+
+  // The firm's mark heads the page (0032), and pushes nothing off it: the
+  // page is one, and its code stands beside its details, as the first test
+  // holds. It is drawn as vectors at the margins' corner, 15 mm square, in
+  // its blue and white and no other paint, with no image embedded for it,
+  // nothing else on the page in its blue, and no text beside it or in the
+  // 12 pt under it, the firm's line the first under it. A mark missing,
+  // moved, scaled or recoloured, drawn twice, or crowding the line that
+  // says whom the invoice is from would each show here.
+  test.each(samples)('%s prints the firm’s mark at the head of its page, above the line that says whom it is from', async (_id, sample) => {
+    const { pdf } = await print(sample)
+    const [page] = pdf.pages as [PdfPage]
+    expect(marksOn(page)).toEqual([markAt(MARGIN)])
+    expect(page.images).toEqual([])
+    expect(crowding(page, markAt(MARGIN))).toEqual([])
+    expect(pageLines(page)[0]?.text).toMatch(/^Formancy /)
+  }, TIMEOUT)
+
+  // That nothing of the mark shows past its box is the pixels' to say
+  // (0030): on the Austrian sample, whose code wears the PSA's frame, PDF.js
+  // draws the disc in its blue and the drop in white, and leaves the paper
+  // white in a band 2 pt around the box.
+  test('draw the mark inside its box and nothing of it past it, by its pixels', async () => {
+    const { bytes } = await print(EURO_INVOICE_AT)
+    expect(await markPixels(bytes, markAt(MARGIN))).toEqual({ disc: '#1f4e79', drop: '#ffffff', around: [] })
   }, TIMEOUT)
 })

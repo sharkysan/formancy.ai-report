@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="e-invoice-reverse-charge.xml" datetime="2026-10-18 09:41:19">
+<validation filename="e-invoice-reverse-charge.xml" datetime="2026-10-18 13:17:13">
   <xml>
     <info>
       <version>2</version>
@@ -10,7 +10,7 @@
         <fired>126</fired>
         <failed>1</failed>
       </rules>
-      <duration unit="ms">1933</duration>
+      <duration unit="ms">2161</duration>
     </info>
     <messages>
       <warning type="4" location="/*:CrossIndustryInvoice[namespace-uri()='urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'][1]/*:SupplyChainTradeTransaction[namespace-uri()='urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'][1]/*:ApplicableHeaderTradeDelivery[namespace-uri()='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'][1]" criterion="false">[PEPPOL-EN16931-R008]-Document MUST not contain empty elements. (still status warning) [ID PEPPOL-EN16931-R008] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)</warning> 

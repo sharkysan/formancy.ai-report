@@ -1,6 +1,6 @@
 import { EDGE, plural, points } from './check-page.js'
 import type { Expectation, ExpectedImage } from './fixture.js'
-import type { PdfBox, ReadPdf } from './read-pdf.js'
+import type { PdfBox, PdfPage, PdfPath, ReadPdf } from './read-pdf.js'
 
 /**
  * Where each SVG image is drawn (0030). pdfmake's SVG converter clips a
@@ -92,4 +92,39 @@ function missing(what: string, image: ExpectedImage, clips: readonly Clip[]): st
   const listed = others.slice(0, LISTED).map((clip) => `${points(clip.box.width)} × ${points(clip.box.height)} pt on page ${clip.page}`)
   const more = others.length > LISTED ? ` and ${plural(others.length - LISTED, 'other')}` : ''
   return `${what}, ${size}, is not drawn: no clip of its size holds a painted path${listed.length === 0 ? '' : `; the clips that do are ${listed.join(', ')}${more}`}`
+}
+
+/**
+ * A drawing on a page as a picture's manifest records it (0032): a
+ * rectangular clip a painted path stands inside -- an SVG image, a QR
+ * code -- with the clip's box, `[x, top, width, height]` to the hundredth
+ * of a point; the paints of its paths, sorted; and each of its paths, in
+ * the order the page paints them, as its paint and its box to the
+ * hundredth: `fill #1f4e79 [58.11, 58.11, 39.69, 39.69]`. A path's box is
+ * its points' (`PdfPath`), so a path redrawn with every point inside its
+ * old box is the same path here; a path no rectangle clips -- a rule, a
+ * border -- belongs to no drawing.
+ */
+export interface Drawing {
+  readonly box: readonly [number, number, number, number]
+  readonly paints: readonly string[]
+  readonly paths: readonly string[]
+}
+
+const hundredth = (value: number): number => Math.round(value * 100) / 100
+
+/** A path as a drawing records it: how it is painted, in what, and its box to the hundredth. */
+function pathOf(path: PdfPath): string {
+  const paint = [path.fill === undefined ? undefined : `fill ${path.fill}`, path.stroke === undefined ? undefined : `stroke ${path.stroke}`].filter((part) => part !== undefined)
+  return `${paint.join(' ')} [${[path.x, path.top, path.width, path.height].map(hundredth).join(', ')}]`
+}
+
+/** Every drawing on `page`, in the order the page sets their clips: each clip a painted path stands inside. */
+export function drawingsOn(page: PdfPage): Drawing[] {
+  return page.clips.flatMap((clip, index) => {
+    const paths = page.paths.filter((path) => path.clip === index)
+    if (paths.length === 0) return []
+    const paints = [...new Set(paths.flatMap((path) => [path.fill, path.stroke]).filter((paint) => paint !== undefined))].sort()
+    return [{ box: [hundredth(clip.x), hundredth(clip.top), hundredth(clip.width), hundredth(clip.height)] as const, paints, paths: paths.map(pathOf) }]
+  })
 }

@@ -1,8 +1,11 @@
-import { E_INVOICE, E_INVOICE_SAMPLES, elementsAt, readCii, readCodes, readPdf, textAt, verify, type CiiElement, type PdfCode, type PdfTextItem, type ReadPdf, type Starter } from '@formancy/report-corpus'
-import { resolveReport, type ReportData, type ReportDefinition, type ResolvedDocument } from '@formancy/report-runtime'
+import { E_INVOICE, E_INVOICE_SAMPLES, elementsAt, LOGO, readCii, readCodes, readPdf, starterImages, textAt, verify, type CiiElement, type PdfCode, type PdfPage, type PdfTextItem, type ReadPdf, type Starter } from '@formancy/report-corpus'
+import { MAX_SVG_COORDINATE, resolveReport, type ReportData, type ReportDefinition, type ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
+import { checkImageAsset, type Vector } from './assets.js'
 import { renderPdf } from './node.js'
+import { SVG_INTEGER_BOUND, svgReach } from './svg-pdfa.js'
 import { fixtureOf, normalise, TIMEOUT } from './testing/documents.js'
+import { crowding, markAt, marksOn, MARGIN, MARK_SIDE } from './testing/letterhead.js'
 import { runLines } from './testing/lines.js'
 
 /**
@@ -215,7 +218,7 @@ function print(id: string, report: ReportDefinition, data: ReportData): Promise<
   let found = printed.get(id)
   if (found === undefined) {
     found = (async () => {
-      const outcome = resolveReport(report, data, { mode: 'final', parameters: {}, creationDate: CREATED })
+      const outcome = resolveReport(report, data, { mode: 'final', parameters: {}, images: starterImages, creationDate: CREATED })
       if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`).join('; ')}`)
       const bytes = await renderPdf(outcome.document, { maxPages: 5 })
       const pdf = await readPdf(bytes)
@@ -303,6 +306,33 @@ describe('an e-invoice sample, read back from its PDF', () => {
     expect(partings(shown, heldBy(root))).toEqual([])
     expect(verify(fixtureOf(id, document, { maxPagesExpected: 1, tables: [] }), pdf)).toEqual([])
   }, TIMEOUT)
+
+  // The firm's e-invoices carry its mark as its other invoices do (0032):
+  // drawn as vectors at the margins' corner, 15 mm square, in its blue and
+  // white, with no image embedded for it -- a PDF/A-3b holds an SVG drawn
+  // so (0030) -- and no text beside it or in the 12 pt under it, the firm's
+  // line the first under it. The XML says nothing of it, as the test above
+  // holds by finding nothing on the page the XML does not.
+  test.each(samples)('%s prints the firm’s mark at the head of its page', async (_id, sample: Starter) => {
+    const { pdf } = await print(sample.id, sample.report, sample.data)
+    const [page] = pdf.pages as [PdfPage]
+    expect(marksOn(page)).toEqual([markAt(MARGIN)])
+    expect([page.images, crowding(page, markAt(MARGIN))]).toEqual([[], []])
+  }, TIMEOUT)
+
+  // An SVG in an e-invoice is held to what a PDF/A-3 may hold: every
+  // number the converter writes for it, bounded from above, under
+  // SVG_INTEGER_BOUND (0030). The mark, with no group, no gradient and no
+  // clip of its own, in its box on A4, reaches no further than the bound's
+  // floor for any drawing, the converter's own numbers at twice
+  // MAX_SVG_COORDINATE: a thousandth of the bound, by its construction and
+  // not by a margin someone measured.
+  test("the firm's mark reaches no further in an e-invoice than any drawing does, a thousandth of the PDF/A-3 bound", async () => {
+    const vector = (await checkImageAsset({ id: LOGO.asset, mediaType: LOGO.mediaType, bytes: LOGO.bytes })) as Vector
+    const reach = svgReach(vector, { width: MARK_SIDE, height: MARK_SIDE, fit: 'contain' }, { paperWidth: 595.28, paperHeight: 841.89 })
+    expect(reach).toBe(2 * MAX_SVG_COORDINATE)
+    expect(reach).toBeLessThan(SVG_INTEGER_BOUND / 1000)
+  })
 })
 
 type Component = ReportDefinition['regions']['summary'][number]

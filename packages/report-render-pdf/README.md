@@ -561,6 +561,13 @@ locale at the rate the test states, its code decoded at level M asking
 for the total it prints, with the payment details beside it, and
 Austria's caption on the Austrian sample alone
 ([0028](../../docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+Each of them, and `e-invoice-samples.test.ts` for the e-invoice samples'
+PDF/A-3b, finds the firm's mark at the head of the page
+(`src/testing/letterhead.ts`): one drawing in its blue at the margins'
+corner, 15 mm square, in its two paints, with no image and no text beside
+it or in the 12 pt under it; by the pixels, nothing of it past its box;
+and the quotation's on its first page alone
+([0032](../../docs/decisions/0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md)).
 `epc-qr-code.test.ts` proves EPC QR codes on their PDF: the EPC's
 examples decoded byte for byte at level M, and 331 bytes in version 13;
 the caption read back by PDF.js, its text, its turn, its face and its
@@ -599,7 +606,8 @@ to carrying no annotation.
 
 `scripts/readme-pictures.ts` draws the repository README's pictures of the
 starters and of both invoices' samples with PDF.js, and `pictures.test.ts`
-holds each to the text of the page it was drawn from:
+holds each to the page it was drawn from: its lines and where each
+starts, and its drawings, path by path:
 
 ```bash
 pnpm --filter @formancy/report-render-pdf exec unrun scripts/readme-pictures.ts

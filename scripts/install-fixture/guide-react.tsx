@@ -14,7 +14,9 @@
  *   README sets out (structure.ts), and Save, offered only once there is
  *   something to save;
  * - the preview, `keepPreviewing` over the guide's `printPreview`, which
- *   prints in Node through the renderer's browser entry: a PDF at once; one
+ *   prints in Node through the renderer's browser entry the quotation with
+ *   the firm's mark (0032), handed over by the host's lookup as the
+ *   README's "Render a report" hands it over: a PDF at once; one
  *   print for edits made together; a print the next edit overtakes aborted
  *   and never shown; the runtime's refusal shown as the reason; and nothing
  *   once stopped.
@@ -26,13 +28,14 @@ import { version } from 'react'
 import type { ReactElement } from 'react'
 import { renderToString } from 'react-dom/server'
 import { insertComponent, setTitle } from '@formancy/report-core'
+import type { ImageResolver } from '@formancy/report-runtime'
 import { openEditor } from './guide/editor.js'
 import { ReportPage } from './guide/report-page.js'
 import { keepPreviewing } from './guide/preview.js'
 import type { Preview, Print } from './guide/preview.js'
 import { printPreview } from './guide/print.js'
 import { elementsIn, readMarkup, spokenText } from './markup.js'
-import { quotation, quotationData } from './quotation.js'
+import { logo, quotation, quotationData } from './quotation.js'
 import { insertAndSelect, reportToDraw, structureProblems } from './structure.js'
 
 /** What could be wrong, collected, so one run names every difference rather than the first. */
@@ -88,7 +91,10 @@ drawn.editor.dispose()
 // signal says, as a pass already under way or a server that has already
 // answered does: renderPdf alone would refuse an aborted signal before its
 // first pass, and the guide's own check that an overtaken print is never
-// shown would go untested.
+// shown would go untested. The quotation draws the firm's mark (0032),
+// which the host hands over through printPreview's lookup: without it, the
+// first print would be refused as missing-asset.
+const images: ImageResolver = (ref) => (ref.asset === 'logo' && ref.digest === logo.digest ? { mediaType: 'image/svg+xml', bytes: logo.bytes } : undefined)
 const opened = openEditor(quotation)
 const prints: { readonly title: string; readonly signal: AbortSignal }[] = []
 /** Which print, by its place in `prints`, made each PDF; and how many prints have ended either way. */
@@ -102,7 +108,7 @@ const print: Print = async (report, signal) => {
   try {
     const held = holding
     if (held) await new Promise<void>((resolve) => (release = resolve))
-    const pdf = await printPreview(report, quotationData, held ? new AbortController().signal : signal)
+    const pdf = await printPreview(report, quotationData, images, held ? new AbortController().signal : signal)
     madeBy.set(pdf, at)
     return pdf
   } finally {
@@ -161,5 +167,5 @@ opened.editor.dispose()
 if (wrong.length > 0) throw new Error(`the guide's React page, on React ${version}:\n- ${wrong.join('\n- ')}`)
 
 console.log(
-  `ok: React ${version}'s development build drew the guide's page on the server, its builder as report-builder-core's README sets out and Save offered only with something to save; keepPreviewing printed the quotation through the renderer's browser entry at once, once for two edits made together, aborted a print the next edit overtook and showed nothing of it, showed the runtime's reason for a report it refused, and printed nothing once stopped`,
+  `ok: React ${version}'s development build drew the guide's page on the server, its builder as report-builder-core's README sets out and Save offered only with something to save; keepPreviewing printed the quotation with its mark, handed over by the host's lookup, through the renderer's browser entry at once, once for two edits made together, aborted a print the next edit overtook and showed nothing of it, showed the runtime's reason for a report it refused, and printed nothing once stopped`,
 )

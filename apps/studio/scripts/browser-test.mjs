@@ -23,7 +23,9 @@
 //     no other site who opened it;
 //     every page of each starter drawn on white paper with ink on it, its
 //     text layer holding every line docs/images/pictures.json says that
-//     page prints, and the Download PDF link a PDF;
+//     page prints, and the Download PDF link a PDF whose page draws the
+//     drawings pictures.json records there, path by path -- the firm's
+//     mark, a code -- and no other;
 //   - the framework switch keeps the document and its history: an edit made
 //     in React is in the Angular builder with its Undo, undone there the PDF
 //     follows, and back in React the Redo is offered; and the first moment
@@ -81,7 +83,7 @@ import { build, preview } from 'vite'
 import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
-import { app, audit, cutControls, describeFocus, drawnPages, fontProblem, fromTheTop, measureWidth, passes, rulesOnThePaper } from './gate-page.mjs'
+import { app, audit, cutControls, describeFocus, downloaded, drawnPages, fontProblem, fromTheTop, measureWidth, passes, rulesOnThePaper } from './gate-page.mjs'
 import { builderParity } from './gate-parity.mjs'
 import { placeChecks } from './gate-place.mjs'
 import { gateRecorder } from './gate-results.mjs'
@@ -230,10 +232,12 @@ async function paperChecks(gate, page, state, picture) {
     `${state}: page ${String(picture.page)}'s text layer holds the ${String(picture.lines.length)} lines pictures.json says it prints, and no other`,
     missing.length === 0 && extra.length === 0 ? null : `missing ${JSON.stringify(missing.slice(0, 4))}, extra ${JSON.stringify(extra.slice(0, 4))}`,
   )
-  const head = await previewOf(page)
-    .getByRole('link', { name: 'Download PDF', exact: true })
-    .evaluate(async (link) => new TextDecoder().decode((await (await fetch(link.href)).arrayBuffer()).slice(0, 5)))
+  const href = await previewOf(page).getByRole('link', { name: 'Download PDF', exact: true }).evaluate((link) => link.href)
+  const { head, drawings } = await downloaded(page, href, picture.page)
   check(`${state}: Download PDF is a PDF`, head === '%PDF-' ? null : `it begins ${JSON.stringify(head)}`)
+  // A manifest written before it recorded drawings records none, and fails here rather than passing a page it never pictured.
+  const recorded = Array.isArray(picture.drawings) ? JSON.stringify(picture.drawings) : 'no drawings at all'
+  check(`${state}: its page ${String(picture.page)} draws the drawings pictures.json records there, and no other`, JSON.stringify(drawings) === recorded ? null : `it draws ${JSON.stringify(drawings)}, and pictures.json records ${recorded}`)
 }
 
 /**

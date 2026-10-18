@@ -237,7 +237,11 @@ tests hold an e-invoice's SVG to (0030).
 An SVG image is no image object, so `operators.ts` walks each page's
 operators for its painted paths, their paint and the rectangular clip each
 was painted inside, skipping what a soft mask paints; `drawings.ts` finds
-each expected drawing as a clip of its size with paint inside it;
+each expected drawing as a clip of its size with paint inside it, and its
+`drawingsOn` reads every drawing of a page, path by path, as the README's
+pictures record them, for those pictures, their test and the Studio's
+browser gate
+([0032](../decisions/0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md));
 `check-ink.ts` holds a band of the page's pixels around each drawing to
 white; `annotations.ts` reads every link a page carries; and
 `fixtures/svg.ts` holds the SVG fixtures, in the bytes `cleanSvg` writes,
@@ -262,6 +266,15 @@ the euro invoice's head, table and bank details that
 `starters/euro-invoice.ts` exports, with Germany's billing and words
 (`starters/e-invoice.ts`,
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+`starters/logo.ts` holds the firm's mark, `LOGO`: the corpus's
+`SVG_MARK`, named by the digest of its bytes as an approved asset is, and
+`LETTERHEAD`, the mark 15 mm square and the gap under it, which the
+quotation, both invoices, their samples and the e-invoice samples begin
+their report header with: the first template asset a starter draws.
+`STARTER_IMAGES` holds it beside the inspection's photo, and
+`starterImages` is the lookup over them that the corpus's, the renderer's
+and the e-invoice gate's resolutions hand the runtime
+([0032](../decisions/0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md)).
 `testing/cii.ts` reads the XML the runtime writes of them back with saxes,
 by namespace, for their tests and, through the index, for the renderer's,
 which read it out of the PDF they print.

@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
-import { epcCodes, readCodes, readPdf } from '@formancy/report-corpus'
+import { drawingsOn, epcCodes, readCodes, readPdf } from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import { afterAll, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
 import { decodeStarters, encodeStarters } from '../starters/codec.js'
@@ -65,7 +65,7 @@ describe('the preview pipeline', () => {
     const invoice = request('invoice')
     const outcome = await preview(invoice, new AbortController().signal)
     if (outcome.kind !== 'printed') throw new Error(`the invoice was not printed: ${JSON.stringify(outcome)}`)
-    const resolved = resolveReport(invoice.report, invoice.starter.data, { mode: 'preview', parameters: invoice.starter.parameters, creationDate: CREATED })
+    const resolved = resolveReport(invoice.report, invoice.starter.data, { mode: 'preview', parameters: invoice.starter.parameters, images: invoice.images, creationDate: CREATED })
     if (!resolved.ok || resolved.document.paymentPart === undefined) throw new Error('the invoice resolved without its bill')
     const bill = resolved.document.paymentPart
     const pdf = await readPdf(outcome.pdf)
@@ -85,12 +85,27 @@ describe('the preview pipeline', () => {
     const invoice = request('euro-invoice')
     const outcome = await preview(invoice, new AbortController().signal)
     if (outcome.kind !== 'printed') throw new Error(`the euro invoice was not printed: ${JSON.stringify(outcome)}`)
-    const resolved = resolveReport(invoice.report, invoice.starter.data, { mode: 'preview', parameters: invoice.starter.parameters, creationDate: CREATED })
+    const resolved = resolveReport(invoice.report, invoice.starter.data, { mode: 'preview', parameters: invoice.starter.parameters, images: invoice.images, creationDate: CREATED })
     if (!resolved.ok) throw new Error('the euro invoice was refused')
     const pdf = await readPdf(outcome.pdf)
     expect(pdf.pages).toHaveLength(1)
     expect(pdf.pages[0]?.items.map((item) => item.text).join(' ')).toContain('Bankverbindung')
     expect((await readCodes(outcome.pdf, 1)).map((code) => code.text)).toEqual(epcCodes(resolved.document.body).map((code) => code.payload))
+  })
+
+  // The firm's mark (0032) crosses into the page with the starters, its
+  // bytes as base64, and the browser entry the page uses draws it as
+  // vectors: on the quotation's first page, a clip 15 mm square at the left
+  // margin with the mark's blue painted inside it, and no image embedded. A
+  // codec that dropped an SVG's bytes, or an entry that drew none, would
+  // show a quotation without its letterhead, or refuse it as missing-asset.
+  test('prints the quotation with the firm’s mark drawn at the head of its first page', async () => {
+    const outcome = await preview(request('quotation'), new AbortController().signal)
+    if (outcome.kind !== 'printed') throw new Error(`the quotation was not printed: ${JSON.stringify(outcome)}`)
+    const [first] = (await readPdf(outcome.pdf)).pages
+    const marks = first === undefined ? [] : drawingsOn(first).filter((drawing) => drawing.paints.includes('#1f4e79'))
+    expect(marks.map(({ box: [x, , width, height] }) => [x, width, height])).toEqual([[56.69, 42.52, 42.52]])
+    expect(first?.images).toEqual([])
   })
 
   // What the runtime refuses comes back as its errors, each with its stage

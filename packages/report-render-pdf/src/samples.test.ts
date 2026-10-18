@@ -1,9 +1,10 @@
-import { INVOICE_SAMPLES, readCodes, readPdf, type ReadPdf, type Starter } from '@formancy/report-corpus'
+import { INVOICE, INVOICE_SAMPLES, readCodes, readPdf, starterImages, type PdfPage, type ReadPdf, type Starter } from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import type { ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { renderPdf } from './node.js'
 import { normalise, TIMEOUT } from './testing/documents.js'
+import { crowding, markAt, markPixels, marksOn, MARGIN } from './testing/letterhead.js'
 import { lineHas, pageLines, type Line } from './testing/lines.js'
 
 /**
@@ -47,7 +48,7 @@ const SAYS = {
 } as const
 
 function resolved(sample: Starter): ResolvedDocument {
-  const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, creationDate: CREATED })
+  const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, images: starterImages, creationDate: CREATED })
   if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`).join('; ')}`)
   return outcome.document
 }
@@ -102,5 +103,31 @@ describe('the invoice samples', () => {
     expect([says.receipt, says.paymentPart].filter((heading) => !texts.has(heading))).toEqual([])
     const others = Object.values(SAYS).filter((other) => other !== says)
     expect(others.flatMap((other) => [other.receipt, other.paymentPart]).filter((heading) => texts.has(heading))).toEqual([])
+  }, TIMEOUT)
+
+  // The firm's mark heads the page (0032), and pushes nothing off it: the
+  // page is one, and its slip and its code are where the test above holds
+  // them. It is drawn as vectors at the margins' corner, 15 mm square, in
+  // its blue and white and no other paint, with no image embedded for it,
+  // nothing else on the page in its blue, and no text beside it or in the
+  // 12 pt under it, the firm's line the first under it. A mark missing,
+  // moved, scaled or recoloured, drawn twice, or crowding the line that
+  // says whom the invoice is from would each show here.
+  test.each(INVOICE_SAMPLES.map((sample) => [sample.id, sample] as const))('%s prints the firm’s mark at the head of its page, above the line that says whom it is from', async (_id, sample) => {
+    const pdf = await readPdf(await renderPdf(resolved(sample), { maxPages: 20 }))
+    const [page] = pdf.pages as [PdfPage]
+    expect(marksOn(page)).toEqual([markAt(MARGIN)])
+    expect(page.images).toEqual([])
+    expect(crowding(page, markAt(MARGIN))).toEqual([])
+    expect(pageLines(page)[0]?.text).toMatch(/^Formancy /)
+  }, TIMEOUT)
+
+  // The operator list says the mark's paths stand inside a clip of its
+  // box; that nothing of them shows past it is the pixels' to say (0030):
+  // PDF.js draws the disc in its blue and the drop in white, and leaves the
+  // paper white in a band 2 pt around the box, beside the slip's code.
+  test('draws the mark inside its box and nothing of it past it, by its pixels', async () => {
+    const bytes = await renderPdf(resolved(INVOICE), { maxPages: 20 })
+    expect(await markPixels(bytes, markAt(MARGIN))).toEqual({ disc: '#1f4e79', drop: '#ffffff', around: [] })
   }, TIMEOUT)
 })

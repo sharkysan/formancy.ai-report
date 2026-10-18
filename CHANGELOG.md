@@ -10,6 +10,54 @@ later.
 
 ## Unreleased
 
+**The quotation and both invoices, with every sample of them, print an
+invented firm's mark at the top left of their first page**
+([0032](docs/decisions/0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md)).
+A report could carry a logo -- a PNG or a JPEG, and since 0030 an SVG --
+but nothing a person sees showed it: no starter declared an asset, so the
+Studio offered Image disabled on them, and only reports built for a test
+printed a template's asset from the definition to the PDF. The mark is the corpus's own
+invented drawing, a deep-blue disc with a white gable over a white drop,
+with no word in it, approved as a customer's logo is, 15 mm square above
+the line that says whom the report is from.
+
+- **A host that prints one of these starters hands over the mark**, by its
+  id and digest, or the render is refused `missing-asset`. The README's
+  "Render a report" and the Data provider's README pass `images` now, and
+  the install gate prints the quotation with its mark from the packed
+  packages through those lines. The getting-started guide's
+  `printPreview` takes the host's lookup as a parameter now, so that the
+  quotation starter previews there with its mark, and its page reads the
+  report's approved assets from the host's server beside the sample: a
+  page that copied it before passes none, and refuses a report with a
+  logo as `missing-asset`.
+- **0.1.0 refuses these starters as main has them**, since they declare an
+  SVG asset (0030).
+- **`@formancy/report-corpus`** (never published): `LOGO` and
+  `LETTERHEAD` in `starters/logo.ts`; `STARTER_IMAGES` holds the mark
+  beside the inspection's photo, and `starterImages` is the lookup over
+  them; `drawingsOn` reads a page's drawings, path by path, for the
+  pictures, their test and the Studio's browser gate alike. The e-invoice
+  samples carry the mark too, drawn into each PDF/A-3b; the XML they write
+  is unchanged. The service inspection and the equipment register print
+  none. The invoice's and the euro invoice's pinned JSON digests moved.
+- **The quotation's first page holds 25 line items, where it held 27**,
+  measured on 18 October 2026 at every count from 20 to 75, and held by
+  its test at 30. Its page-break test's windows were measured again, and
+  now fail when the layout moves past the boundary they test: on main the
+  totals first carried a line to the next page at 25 and at 56 line
+  items, and the windows began at 27 and at 64.
+- **The pictures of the PDFs record where each line of their page starts
+  and what it draws**, every clip a painted path stands inside with its
+  box, its paints and each of its paths, and `pictures.test.ts` holds them
+  to the PDF written now, the Studio's browser gate the drawings to its
+  Download PDF: the mark prints no text, and a picture taken without it
+  passed before. A path redrawn inside its own box, and a rule, a border
+  or an image, are still not seen. Every picture was retaken by its
+  script, the Studio's too.
+- **What it costs a PDF:** 330 to 430 bytes, and no render time a median
+  could tell from the spread, measured on 18 October 2026.
+
 **An image asset may be an SVG, a logo drawn as vectors, cleaned once
 when it is approved into the one form the renderer draws**
 ([0030](docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).

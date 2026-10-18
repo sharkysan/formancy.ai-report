@@ -20,6 +20,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { inflateSync } from 'node:zlib'
 import { resolveReport } from '@formancy/report-runtime'
+import type { ImageResolver } from '@formancy/report-runtime'
 import { QR_BILL_TOP as RUNTIME_QR_BILL_TOP, qrBillPageBreak as runtimeQrBillPageBreak } from '@formancy/report-runtime'
 import { EPC_CAPTION as RUNTIME_EPC_CAPTION, EPC_MAX_BYTES as RUNTIME_EPC_MAX_BYTES, epcCaptionBreak as runtimeEpcCaptionBreak, epcLeastVersion as runtimeEpcLeastVersion } from '@formancy/report-runtime'
 import { E_INVOICE_PREVIEW_LABEL, FACTUR_X as RUNTIME_FACTUR_X, FACTUR_X_PROFILES as RUNTIME_FACTUR_X_PROFILES } from '@formancy/report-runtime'
@@ -32,7 +33,7 @@ import { createDataClient } from '@formancy/data-client'
 import type { PublishedForm } from '@formancy/data-client'
 import { readEmbedding } from './embedding.js'
 import type { Embedding } from './embedding.js'
-import { quotation, quotationData } from './quotation.js'
+import { logo, quotation, quotationData } from './quotation.js'
 
 // The published code carries the refusal, not only the source: a formancy
 // form handed over as a report is named as a form, and the version this
@@ -186,13 +187,14 @@ const stylesheet = readFileSync(fileURLToPath(import.meta.resolve('@formancy/rep
 if (!stylesheet.includes("[data-report-part='canvas']") || !stylesheet.includes('var(--wb-')) throw new Error('report-builder.css is not the editor stylesheet')
 
 // The README's "Render a report", line for line, on the quotation starter:
-// the runtime resolves it from its data, the renderer draws it, and what
-// comes back is a PDF. scripts/readme-example.test.mjs holds the README's
-// lines to these.
+// the runtime resolves it from its data and the mark the host hands over
+// (0032), the renderer draws it, and what comes back is a PDF.
+// scripts/readme-example.test.mjs holds the README's lines to these.
+const images: ImageResolver = (ref) => (ref.asset === 'logo' && ref.digest === logo.digest ? { mediaType: 'image/svg+xml', bytes: logo.bytes } : undefined)
 const rendered = await (async () => {
   const report = quotation
   const data = quotationData
-  const resolution = resolveReport(report, data, { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z' })
+  const resolution = resolveReport(report, data, { mode: 'final', parameters: {}, images, creationDate: '2026-10-15T08:00:00Z' })
   if (!resolution.ok) throw new Error(resolution.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
   const pdf: Uint8Array = await renderPdf(resolution.document, { maxPages: 50 })
   return pdf
@@ -202,7 +204,7 @@ if (new TextDecoder().decode(rendered.subarray(0, 5)) !== '%PDF-') throw new Err
 // A refusal travels as the class a host catches, from the runtime's
 // declaration through the renderer's re-export: a customer's name in a
 // script the embedded font cannot draw is refused, never printed as boxes.
-const unprintable: Resolution = resolveReport(quotation, { ...quotationData, header: { ...quotationData.header, customer: '山田太郎' } }, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
+const unprintable: Resolution = resolveReport(quotation, { ...quotationData, header: { ...quotationData.header, customer: '山田太郎' } }, { mode: 'final', images, creationDate: '2026-10-15T08:00:00Z' })
 if (!unprintable.ok) throw new Error(`the quotation with a Japanese customer was refused before rendering: ${unprintable.errors.map((error) => error.code).join(', ')}`)
 const refusal: unknown = await renderPdf(unprintable.document, { maxPages: 50 }).then(
   () => undefined,
@@ -232,7 +234,7 @@ const bill: SwissQrBill = {
 const billed: ReportDefinition = { ...quotation, paymentPart: bill }
 const billedValidation: ReportValidation = validateReport(billed)
 if (!billedValidation.valid) throw new Error(`the quotation with a bill was refused: ${billedValidation.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
-const billedResolution: Resolution = resolveReport(billed, quotationData, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
+const billedResolution: Resolution = resolveReport(billed, quotationData, { mode: 'final', images, creationDate: '2026-10-15T08:00:00Z' })
 if (!billedResolution.ok) throw new Error(`the quotation with a bill did not resolve: ${billedResolution.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
 const resolvedBill: QrBill | undefined = billedResolution.document.paymentPart
 if (resolvedBill?.payload.split('\n')[3] !== 'CH4431999123000889012') throw new Error("the bill's code does not hold its account")
@@ -360,6 +362,8 @@ if (!withLogo.includes(disc) || !logoBox.test(withLogo) || withoutLogo.includes(
 const unapproved = logoResolution(saved)
 const savedSays = unapproved.ok ? await renderPdf(unapproved.document, { maxPages: 50 }).then(() => undefined, (error: unknown) => error) : undefined
 if (!(savedSays instanceof RenderRefusal) || savedSays.code !== 'invalid-asset' || savedSays.subject !== 'logo') throw new Error(`a drawing as saved, never approved, was not refused as an invalid asset: ${String(savedSays)}`)
+// The quotation's own mark, printed through the README's lines: the first template asset a host prints from the packed packages, read as the logo's disc and box above.
+if (!drawingOf(rendered).includes(disc) || !logoBox.test(drawingOf(rendered))) throw new Error("the quotation printed through the README's lines did not draw its mark's disc in the clip of its box")
 
 // An e-invoice (0027): a German invoice of its own, since the corpus's
 // samples are never packed, whose two lines are at 19 % and at 7 %. The
@@ -580,7 +584,7 @@ const fromData = await (async () => {
   const binding: DataBinding = { header: { form: 'quotation', record: quotationToken }, detail: { form: 'quotation-line', parent: 'header' } }
   const provided: ProviderRead = await readReportData(client, quotation, binding, { cap: 5000 })
   if (!provided.ok) throw new Error(provided.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
-  const resolution = resolveReport(quotation, provided.data, { mode: 'final', creationDate: '2026-10-16T08:00:00Z' })
+  const resolution = resolveReport(quotation, provided.data, { mode: 'final', images, creationDate: '2026-10-16T08:00:00Z' })
   if (!resolution.ok) throw new Error(resolution.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
   if (JSON.stringify([provided.data.header, provided.data.detail]) !== JSON.stringify([quotationHeader, quotationLines]) || resolution.manifest.consistency !== 'best-effort') {
     throw new Error("the quotation read from Data is not the quotation's own data, read best-effort")
@@ -590,5 +594,5 @@ const fromData = await (async () => {
 if (new TextDecoder().decode(fromData.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation read from Data did not render to a PDF')
 
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; a drawing approved by report-spec's cleanSvg, the runtime's own, printed as an SVG logo with no image in its ${logoPdf.length}-byte PDF, and the drawing as saved was refused; an e-invoice validated, a country outside its list was refused by its rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved with its mark and rendered to a ${rendered.length}-byte PDF that draws it, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; a drawing approved by report-spec's cleanSvg, the runtime's own, printed as an SVG logo with no image in its ${logoPdf.length}-byte PDF, and the drawing as saved was refused; an e-invoice validated, a country outside its list was refused by its rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
 )

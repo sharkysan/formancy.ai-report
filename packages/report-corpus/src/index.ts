@@ -32,6 +32,8 @@ export { ALL_FIXTURES } from './fixtures/all.js'
 export { IMAGE_KINDS } from './image-kinds.js'
 export { SVG_BOUND, SVG_BOUND_SIDE, SVG_FIXTURES, SVG_MARK, SVG_WINDOW } from './fixtures/svg.js'
 export { readPdf } from './read-pdf.js'
+export { drawingsOn } from './drawings.js'
+export type { Drawing } from './drawings.js'
 export { readPdfNumbers } from './numbers.js'
 export type { PdfNumber, PdfNumberToken } from './numbers.js'
 export { inflatedDigest, readPdfObjects } from './objects.js'
@@ -76,13 +78,17 @@ export {
   INVOICE_SAMPLES,
   invoiceData,
   invoiceLines,
+  LETTERHEAD,
   lineAmount,
+  LOGO,
+  LOGO_ASSET,
   QUOTATION,
   quotationData,
   quotationLines,
   reverseChargeData,
   SERVICE_INSPECTION,
   STARTER_IMAGES,
+  starterImages,
   STARTERS,
 } from './starters/index.js'
 export type { Starter, StarterImage } from './starters/index.js'
