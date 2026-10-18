@@ -2,8 +2,10 @@
 
 - **Status:** accepted; extended by
   [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
-  whose runtime writes an e-invoice's XML that no PDF carries yet, as this
-  record's page now says
+  whose runtime writes an e-invoice's XML, and by
+  [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
+  whose renderer draws the PDF/A-3b that embeds it, as this record's page
+  now says
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -465,6 +467,23 @@ This record's register was read again and left as it was: its one line on
 e-invoices speaks of the samples, which carry none, and 0027's register
 says what an e-invoice costs. The change that draws the PDF/A-3 must say
 so again on the page and here.
+
+**Added 2026-10-18: an e-invoice drawn.** Since
+[0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)
+the renderer draws a final render of a report that carries an e-invoice
+as a PDF/A-3b that embeds its XML, a ZUGFeRD or Factur-X invoice in the EN
+16931 profile, made for Germany alone; the corpus's German e-invoice
+samples are judged as PDFs by veraPDF and Mustang, and their XML by
+Mustang and KoSIT, in the e-invoice gate. "No e-invoice" above still
+holds of the euro invoice's samples, which carry none. As the addition
+above asks, the page says so again: in each of its languages the sentence
+that says the PDF is no e-invoice now says that the euro invoice's samples
+are none, and that Formancy Report's source draws an e-invoice as such a
+PDF for Germany, which those validators judge on the German samples, and
+that France is not claimed. Nothing fails when those words go stale
+either. This record's register was read again and left as it was: its one
+line on e-invoices speaks of the samples, which still carry none, and
+0027's and 0031's registers say what an e-invoice costs.
 
 ## Alternatives considered
 

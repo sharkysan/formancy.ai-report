@@ -7,6 +7,7 @@
 // the line per section saying where it comes from.
 
 import { browserName } from '../browsers.mjs'
+import { JUDGES } from '../e-invoice/registers.mjs'
 import { unwalked } from './results.mjs'
 
 const code = (text) => `\`${text}\``
@@ -218,25 +219,44 @@ function browserSection({ results }) {
   ].join('\n')
 }
 
-/** What the corpus expects of a file, as the e-invoice section says it. */
-const expected = (file) => (file.kind === 'sample' ? 'a sample, to accept' : 'a control, to refuse')
+/** What the corpus expects of a file, as the e-invoice section says it: a control a tool accepts says so in that tool's column. */
+const expected = (file) => (file.kind === 'control' ? 'a control, to refuse' : file.kind === 'variant' ? 'a variant, to accept' : 'a sample, to accept')
+
+/** The e-invoice gate's tools, as its section's columns name them. */
+const E_INVOICE_COLUMNS = [
+  ['mustang', 'Mustang'],
+  ['kosit', 'KoSIT'],
+  ['verapdf', 'veraPDF'],
+]
+
+/** A tool's cell for a file: its verdict, `not judged` where the gate recorded none, and empty where the tool reads no file of that format. */
+const verdictCell = (file, tool) => (JUDGES[file.format]?.includes(tool) ? (file[tool] ?? 'not judged') : '')
 
 /**
  * The e-invoice gate: the Java and the tools it ran, and every file of its
- * corpus with each tool's verdict on it.
+ * corpus, XML and PDF, with each tool's verdict on it.
  */
 function eInvoiceSection({ results }) {
   const gate = results.eInvoice
   const tools = gate === null ? [] : gate.tools.map((tool) => `${tool.id} ${String(tool.version)}`)
+  const took = (tool) => String(gate.seconds?.[tool] ?? '?')
   return [
     '## E-invoice gate',
     '',
-    'Mustang and KoSIT’s validator, at the releases `docs/release/e-invoice-tools.json` pins, over the CII XML the runtime writes of each e-invoice sample of the corpus, and over controls broken one named way each, with Java’s HTTP and HTTPS proxies at a dead port; and report-spec’s code lists and rule ids held to the schematrons they run (`scripts/e-invoice.mjs`). A file a tool judged otherwise than the corpus expects, a tool other than the pin, or a list or a rule the schematrons do not hold fails the run.',
+    'Mustang and KoSIT’s validator over the CII XML the runtime writes of each e-invoice sample of the corpus, and veraPDF and Mustang over the PDF/A-3b the renderer draws of it, at the releases `docs/release/e-invoice-tools.json` pins, and over controls broken one named way each, with Java’s HTTP and HTTPS proxies at a dead port; and report-spec’s code lists and rule ids held to the schematrons they run (`scripts/e-invoice.mjs`). A file a tool judged otherwise than the corpus expects, a tool other than the pin, or a list or a rule the schematrons do not hold fails the run.',
     '',
     gate === null
       ? 'The e-invoice gate left no results in this run.'
-      : `The e-invoice gate ${gate.passed ? 'passed' : 'failed'} on Java ${String(gate.java?.version ?? 'that it did not record')}, with ${prose(tools) || 'no tool recorded'}, Mustang in ${String(gate.seconds?.mustang ?? '?')} s and KoSIT in ${String(gate.seconds?.kosit ?? '?')} s:`,
-    ...(gate === null ? [] : ['', table(['File', 'Is', 'Mustang', 'KoSIT'], gate.files.map((file) => [file.file, expected(file), file.mustang ?? 'not judged', file.kosit ?? 'not judged']))]),
+      : `The e-invoice gate ${gate.passed ? 'passed' : 'failed'} on Java ${String(gate.java?.version ?? 'that it did not record')}, with ${prose(tools) || 'no tool recorded'}, Mustang in ${took('mustang')} s, KoSIT in ${took('kosit')} s and veraPDF in ${took('verapdf')} s:`,
+    ...(gate === null
+      ? []
+      : [
+          '',
+          table(
+            ['File', 'Is', ...E_INVOICE_COLUMNS.map(([, name]) => name)],
+            gate.files.map((file) => [file.file, expected(file), ...E_INVOICE_COLUMNS.map(([tool]) => verdictCell(file, tool))]),
+          ),
+        ]),
   ].join('\n')
 }
 

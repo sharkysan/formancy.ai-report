@@ -44,8 +44,12 @@ an e-invoice, though each is an addition to the same draft version
 [0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
 [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
-And the renderer refuses every e-invoice, whole, rather than draw it as a
-plain PDF without the XML that, in Germany, is the invoice (0027).
+And the renderer refuses an e-invoice whose file it does not know, whole,
+rather than embed it as something else or draw it as a plain PDF without
+the XML that, in Germany, is the invoice (0027), and one that its PDF/A-3b
+cannot hold, a CMYK JPEG or a title its XMP cannot write, rather than
+draw a PDF that says it is a PDF/A and is not one
+([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 
 **A code is read from a closed list.** An e-invoice's units, countries, VAT
 prefixes and schemes are lists someone chose (`UNIT_CODES`,
@@ -99,7 +103,10 @@ preview writes none, warns `e-invoice-preview`, and labels every page,
 complete data or not: "Preview: not an e-invoice, and not a final report",
 or a preview of incomplete data's label where it lacks something. A final
 render writes the XML or refuses
-([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)),
+and the renderer draws a final render as the PDF/A-3b that embeds it, and
+a preview as a plain PDF that embeds nothing
+([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 
 ## 8.4 Untrusted input
 
@@ -111,16 +118,19 @@ administrator wrote them ([`SECURITY.md`](../../SECURITY.md)).
 | A report | Read once, through property descriptors, so a getter never runs and a proxy that throws is refused; every array, string and number bounded by a constant with its reason in `limits.ts` ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
 | An expression | CEL, typed member by member, within a step budget each and a step budget a render; no clock, no randomness, no `matches()`, whose time no budget bounds ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | Data | Read once without running anything, held to the declared types, a field the report does not declare refused, so nothing it was not written to read rides into a render, a cache or a log ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
-| An image | An approved asset's id and digest, resolved by the host, never an address; its bytes checked as the PNG or JPEG they say they are before pdfmake sees them, and bounded per asset and per render ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
+| An image | An approved asset's id and digest, resolved by the host, never an address; its bytes checked as the PNG or JPEG they say they are before pdfmake sees them, a JPEG's frame header read where PDFKit reads it, and bounded per asset and per render ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 | A font file | Read from its own name table by the licence guard, and refused when it cannot be read; a font inside a script the guard does not see ([§8.7](#87-licences), [0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)) |
+| An ICC profile | PDFKit's own file, which an e-invoice's render reads and embeds as its output intent: admitted by the licence guard by the SHA-256 of its bytes, which a review read, and refused under any other; a profile inside a script the guard does not see, and the renderer's browser test holds pdfmake's copy to the reviewed digest ([§8.7](#87-licences), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 
 **Nothing in a package reaches the network but the provider**, and it only
 through the Data client the host made, to the server and with the token the
 host chose
 ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
-pdfmake reads no file but the fonts it is given and no address at all,
-which the renderer's tests pin
-([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md));
+pdfmake reads no file but the fonts it is given and, for an e-invoice,
+the ICC profile PDFKit reads from its own package, and no address at all,
+which the renderer's tests pin through `fs.readFileSync`
+([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
+[0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md));
 the corpus hands ZXing its WebAssembly from the package's own file, where
 the library would fetch it from a CDN
 ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md));
@@ -149,6 +159,16 @@ report and data are the same bytes, which
 `report-runtime/src/lower-e-invoice.test.ts` holds, and
 `report-runtime/src/cii.test.ts` pins those bytes
 ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+Its PDF/A-3b dates the embedded file with the document's creation date, so
+one e-invoice draws to the same bytes each time within an entry, which
+`report-render-pdf/src/corpus.test.ts` and `browser.test.ts` hold. The two
+entries do not draw the same bytes: pdfmake's browser build deflates with
+a zlib of its own, and its PDF of the first sample was 37,307 bytes where
+Node's was 37,578 on 18 October 2026. They draw the same objects, every
+stream inflated, which `browser.test.ts` holds with report-corpus's
+`inflatedDigest`; and the e-invoice gate records each PDF by that digest,
+so that another zlib, which may deflate them otherwise, does not fail it
+([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 
 What it does not cover: the characters Intl prints are the engine's ICU's,
 so the same report can print differently under another Node
@@ -185,7 +205,9 @@ build time and `scripts/verify-licenses.mjs` checks. Every production
 dependency and every font file a published package ships is held to an
 allow-list of permissive licences by `scripts/dependency-licences.mjs`,
 reading a font's licence from the font; an exception records a person's
-reading of a package's own licence file, at one exact version
+reading of a package's own licence file, at one exact version, and an ICC
+profile, which states no terms, is admitted by the digest of its bytes
+and the licence sentence a review read ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md))
 ([0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
 
 0006 lists what the guard cannot see. Each, and what holds it instead, if
@@ -194,13 +216,16 @@ anything:
 - **A licence's terms.** The guard trusts the identifier, so a package that
   declares MIT and ships GPL code passes. Nothing holds this: 0006 says the
   inventory review owed before the first paid release is still owed.
-- **A font inside a script.** pdfmake's vfs_fonts.js carries Roboto as
-  base64, and the renderer's browser build carries Liberation Sans so, for
-  the slip and for an EPC QR code's caption. The renderer's
-  `browser.test.ts` holds both to the bytes of the font files the guard
-  does read
+- **A font or a profile inside a script.** pdfmake's vfs_fonts.js carries
+  Roboto as base64, and the renderer's browser build carries Liberation
+  Sans so, for the slip and for an EPC QR code's caption; pdfmake's browser
+  build carries the sRGB profile an e-invoice's PDF/A embeds as base64
+  too. The renderer's `browser.test.ts` holds the fonts to the bytes of
+  the font files the guard does read, and the profile to the digest the
+  guard reviewed in PDFKit's file
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
-  [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+  [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
+  0031).
 - **Code a package vendors** under a licence of its own. pdfmake's
   svg-to-pdfkit draws every QR code, and an EPC QR code's frame and caption;
   review read its MIT licence on 17 October 2026, and the guard judges it
@@ -211,7 +236,9 @@ anything:
   under the GPL or the MPL in Mustang's, CEN/TC 434's EUPL-1.2 schematron
   in Mustang's and in KoSIT's configuration -- which nobody here reviewed
   one by one. They run in CI and no package carries them, so 0006, which
-  governs what a package ships, does not reach them. But report-spec's
+  governs what a package ships, does not reach them. veraPDF's own pin,
+  under GPL-3.0-or-later OR MPL-2.0, is admitted for the gate at its
+  pinned release alone (0031). But report-spec's
   closed lists hold codes copied out of CEN's EUPL-1.2 lists, and the gate's
   recorded reports quote CEN's rule texts; whether either is acceptable
   under 0006 is the rightsholder's open question. The ZUGFeRD and Factur-X
@@ -287,7 +314,9 @@ Chromium ([0012](../decisions/0012-the-builders-are-native-and-share-one-session
 Automated checking is a floor, not a conformance claim.
 
 Of the PDF, nothing yet: no record decides how a generated PDF is read by
-assistive technology, and no test reads one so. A QR code's text is not the
+assistive technology, and no test reads one so. An e-invoice's PDF/A is
+level b, which asks for no structure tree, since pdfmake builds none
+([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)). A QR code's text is not the
 PDF's text at all — search, copy and a screen reader find nothing in it —
 so a template that wants it read prints it beside the code
 ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).

@@ -1,11 +1,13 @@
 import { deflateSync } from 'node:zlib'
-import { readPdf } from '@formancy/report-corpus'
-import { MAX_ASSET_BYTES, RenderRefusal, type ImageAsset } from '@formancy/report-runtime'
-import { describe, expect, test } from 'vitest'
+import pdfmake from 'pdfmake'
+import { IMAGE_KINDS, readPdf } from '@formancy/report-corpus'
+import { MAX_ASSET_BYTES, RenderRefusal, type Image, type ImageAsset, type ResolvedDocument } from '@formancy/report-runtime'
+import { describe, expect, test, vi } from 'vitest'
 import { checkImageAsset } from './assets.js'
 import { renderPdf } from './node.js'
-import { bareDocument, TIMEOUT } from './testing/documents.js'
-import { asset, encodePng, exifSegment, idat, ihdr, jpegOf, NONE, pngOf } from './testing/images.js'
+import { bareDocument, paragraph, TIMEOUT } from './testing/documents.js'
+import { invoiced } from './testing/e-invoice.js'
+import { asset, encodePng, exifSegment, frameSegment, idat, ihdr, jpegOf, NONE, pngOf } from './testing/images.js'
 
 /**
  * The image checks the renderer makes before pdfmake sees an asset. Every
@@ -88,6 +90,19 @@ describe('checkImageAsset refuses, naming the asset and why', () => {
     ['a JPEG scan before its frame header', () => asset(new Uint8Array([0xff, 0xd8, 0xff, 0xda, 0x00, 0x08, 1, 1, 0, 0, 63, 0, 0x3f, 0xff, 0xd9]), 'image/jpeg'), /has image data before its frame header$/],
     ['a JPEG cut off in its scan', () => asset(jpegOf({ end: false }), 'image/jpeg'), /is cut off: it does not end with an end-of-image marker$/],
     ['a JPEG of tables and no scan', () => asset(jpegOf({ scan: false }), 'image/jpeg'), /is cut off before its image data$/],
+    // PDFKit takes the first segment whose marker is a frame's, JPG's (C8)
+    // or DAC's (CC) for the frame header and draws the image by its
+    // component count (pdfkit.js 3807, 3822-3843). One that stands before
+    // the frame, or a second frame header, would have PDFKit draw it
+    // otherwise than the check read it: a DAC segment shaped as a frame of
+    // four components drew an RGB JPEG in DeviceCMYK, past an e-invoice's
+    // refusal, and veraPDF 1.30.3 failed it on 6.2.4.3-3 (measured on
+    // 18 October 2026). Two components PDFKit gives no colour space at all.
+    ['a JPEG with a DAC segment before its frame header', () => asset(jpegOf({ components: 3, segments: frameSegment({ marker: 0xcc, components: 4 }) }), 'image/jpeg'), /has a DAC segment \(FFCC\) before its frame header, which PDFKit would read as the frame header$/],
+    ['a JPEG with a JPG segment before its frame header', () => asset(jpegOf({ components: 3, segments: frameSegment({ marker: 0xc8, components: 4 }) }), 'image/jpeg'), /has a JPG segment \(FFC8\) before its frame header, which PDFKit would read as the frame header$/],
+    ['a JPEG of two frame headers, of four components and then three', () => asset(jpegOf({ components: 3, segments: frameSegment({ components: 4 }) }), 'image/jpeg'), /has two frame headers$/],
+    ['a JPEG of two frame headers, of three components and then four', () => asset(jpegOf({ components: 4, segments: frameSegment({ components: 3 }) }), 'image/jpeg'), /has two frame headers$/],
+    ['a JPEG of two components', () => asset(jpegOf({ components: 2 }), 'image/jpeg'), /has a frame header of 2 components, where PDFKit draws 1, 3 or 4$/],
   ])('%s', async (_, made, reason) => {
     const refused = await refusal(made())
     expect(refused?.code).toBe('invalid-asset')
@@ -116,6 +131,8 @@ describe('checkImageAsset accepts', () => {
     ['a paletted PNG', () => asset(palettedPng())],
     ['a baseline JPEG', () => asset(jpegOf(), 'image/jpeg')],
     ['a JPEG with an Exif block', () => asset(jpegOf({ exif: exifSegment(1) }), 'image/jpeg')],
+    // PDFKit has read the frame header by then, so a DAC segment after it is a table like any other.
+    ['a JPEG with a DAC segment after its frame header', () => asset(jpegOf({ components: 3, afterFrame: frameSegment({ marker: 0xcc, components: 4 }) }), 'image/jpeg')],
   ])('%s, and pdfmake draws it', async (_, made) => {
     const image = made()
     expect(await refusal(image)).toBeUndefined()
@@ -184,4 +201,66 @@ describe('checkImageAsset reads the size', () => {
   ])('of a JPEG whose Exif block is %s', async (_, exif) => {
     expect(await checkImageAsset(asset(jpegOf({ width: 16, height: 8, exif }), 'image/jpeg'))).toMatchObject({ width: 16, height: 8 })
   })
+})
+
+describe('a CMYK JPEG', () => {
+  // PDFKit draws a JPEG of four components in DeviceCMYK (pdfkit.js
+  // 3808-3812). That is any report's right, and no e-invoice's: a PDF/A
+  // draws DeviceCMYK only beside a CMYK output intent (veraPDF 6.2.4.3-3,
+  // failed by such a JPEG on veraPDF 1.30.3, 2026-10-17), and every output
+  // intent must share one profile (6.2.3-2), the sRGB one an e-invoice
+  // carries. So the check reads the component count from the frame header,
+  // and a render that is an e-invoice refuses the image, naming it.
+  test.each([
+    ['a grey JPEG', () => jpegOf(), false],
+    ['a three-component JPEG', () => jpegOf({ components: 3 }), false],
+    ['a four-component JPEG', () => jpegOf({ components: 4 }), true],
+  ])('is read from the frame header: %s', async (_, made, cmyk) => {
+    expect(await checkImageAsset(asset(made(), 'image/jpeg'))).toMatchObject({ cmyk })
+  })
+
+  test('is never a PNG, whatever its colour type', async () => {
+    expect(await checkImageAsset(asset(encodePng(8, 8, () => [0, 0, 0])))).toMatchObject({ cmyk: false })
+  })
+
+  const cmyk = (id: string): ImageAsset => asset(jpegOf({ components: 4 }), 'image/jpeg', id)
+  const image = (of: ImageAsset): Image => ({ kind: 'image', asset: of, width: 40, height: 40, fit: 'contain' })
+
+  // Wherever it stands -- the body, a page region -- and wherever it came
+  // from, an approved asset or a field's image, the resolved document
+  // holds it as an image block like any other, and it is refused before
+  // pdfmake sees it: no PDF that says it is a PDF/A and is not one.
+  test.each([
+    ['in the body', (of: ImageAsset): ResolvedDocument => bareDocument('Rechnung', [image(of)])],
+    ['in the page header', (of: ImageAsset): ResolvedDocument => ({ ...bareDocument('Rechnung', [paragraph('Rechnung')]), pageHeader: [image(of)] })],
+  ])('%s of an e-invoice is refused as unsupported, naming the image', async (_, place) => {
+    const createPdf = vi.spyOn(pdfmake, 'createPdf')
+    try {
+      await expect(renderPdf(invoiced(place(cmyk('logo-cmyk'))), { maxPages: 1 })).rejects.toMatchObject({
+        code: 'unsupported',
+        subject: 'logo-cmyk',
+        message: 'the image logo-cmyk is a CMYK JPEG, which an e-invoice cannot hold: it is drawn as a PDF/A-3 whose output intent is sRGB, beside which no image may be CMYK',
+      })
+      expect(createPdf).not.toHaveBeenCalled()
+    } finally {
+      createPdf.mockRestore()
+    }
+  })
+
+  // The refusal is the e-invoice's: the same image in a report that is
+  // not one is drawn as it always was, in DeviceCMYK.
+  test('is drawn in a report that is no e-invoice', async () => {
+    const pdf = await readPdf(await renderPdf(bareDocument('Image', [image(cmyk('logo-cmyk'))]), { maxPages: 1 }))
+    expect(pdf.pages.flatMap((page) => page.images)).toHaveLength(1)
+  })
+
+  // A check that refused every JPEG in an e-invoice, or more than CMYK,
+  // would pass the case above: the corpus's image of every other kind
+  // PDFKit embeds -- grey and colour JPEGs, and PNGs of every colour type,
+  // with alpha, a palette, a colour key, 1 and 16 bits, interlaced -- is
+  // drawn in one, which the e-invoice gate has veraPDF judge (0031).
+  test('leaves an image of every kind but a CMYK JPEG drawn in an e-invoice', async () => {
+    const pdf = await readPdf(await renderPdf(invoiced(bareDocument('Rechnung', IMAGE_KINDS.map(image))), { maxPages: 2 }))
+    expect(pdf.pages.flatMap((page) => page.images)).toHaveLength(IMAGE_KINDS.length)
+  }, TIMEOUT)
 })

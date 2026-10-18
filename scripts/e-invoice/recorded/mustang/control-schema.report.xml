@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="control-schema.xml" datetime="2026-10-17 19:29:19">
+<validation filename="control-schema.xml" datetime="2026-10-18 05:31:36">
   <xml>
     <info>
       <version>2</version>
@@ -10,7 +10,7 @@
         <fired>179</fired>
         <failed>0</failed>
       </rules>
-      <duration unit="ms">1984</duration>
+      <duration unit="ms">2290</duration>
     </info>
     <messages>
       <error type="18">schema validation fails:org.xml.sax.SAXParseException; lineNumber: 19; columnNumber: 22; cvc-complex-type.2.4.a: Invalid content was found starting with element '{"urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100":Unknown}'. One of '{"urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100":IncludedNote}' is expected.</error> 

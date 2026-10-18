@@ -205,15 +205,24 @@ describe('the Markdown', () => {
 describe('the e-invoice gate', () => {
   // The section is the gate's own record: the Java and the tools it ran,
   // and each file with what the corpus expects of it and what each tool's
-  // judge said, so a red run shows which file and which tool in the row.
+  // judge said, so a red run shows which file and which tool in the row. A
+  // tool that reads no file of a format has an empty cell in its row: KoSIT
+  // reads no PDF, and veraPDF no XML.
   test('shows the Java, the tools, and every file with each tool’s verdict', () => {
     const section = (markdown) => markdown.slice(markdown.indexOf('## E-invoice gate'), markdown.indexOf('## Build identity'))
     const green = section(renderContent(report()))
-    expect(green).toContain('The e-invoice gate passed on Java 17.0.20.1, with mustang 2.26.0, kosit 1.6.3 and xrechnung-configuration 2026-08-31, Mustang in 20.8 s and KoSIT in 6.3 s:')
-    expect(green).toContain('| e-invoice.xml | a sample, to accept | as expected | as expected |')
-    expect(green).toContain('| control-br-27.xml | a control, to refuse | as expected | as expected |')
+    expect(green).toContain('The e-invoice gate passed on Java 17.0.20.1, with mustang 2.26.0, kosit 1.6.3, xrechnung-configuration 2026-08-31 and verapdf 1.30.3, Mustang in 47.5 s, KoSIT in 6.5 s and veraPDF in 2.4 s:')
+    expect(green).toContain('| File | Is | Mustang | KoSIT | veraPDF |')
+    expect(green).toContain('| e-invoice.xml | a sample, to accept | as expected | as expected |  |')
+    expect(green).toContain('| control-br-27.xml | a control, to refuse | as expected | as expected |  |')
+    expect(green).toContain('| e-invoice.pdf | a sample, to accept | as expected |  | as expected |')
+    expect(green).toContain('| control-pdfa.pdf | a control, to refuse | as expected |  | as expected |')
+    // A variant carries a sample's XML on another page, and is said to be one, not a sample.
+    expect(green).toContain('| variant-blocks.pdf | a variant, to accept | as expected |  | as expected |')
     const red = section(renderContent(report((inputs) => (job(inputs, 'e-invoice').eInvoice.kosit[1].verdict = 'not as expected'))))
-    expect(red).toContain('| control-br-27.xml | a control, to refuse | as expected | not as expected |')
+    expect(red).toContain('| control-br-27.xml | a control, to refuse | as expected | not as expected |  |')
+    const unjudged = section(renderContent(report((inputs) => (job(inputs, 'e-invoice').eInvoice.verapdf = job(inputs, 'e-invoice').eInvoice.verapdf.slice(1)))))
+    expect(unjudged).toContain('| e-invoice.pdf | a sample, to accept | as expected |  | not judged |')
     expect(section(renderContent(report((inputs) => (job(inputs, 'e-invoice').eInvoice = null))))).toContain('The e-invoice gate left no results in this run.')
   })
 })

@@ -39,7 +39,7 @@ document's own (`info.creationDate`), and nothing else in the file varies.
 
 | Entry | pdfmake | Fonts |
 |---|---|---|
-| `@formancy/report-render-pdf` | the Node build | the four Roboto files in pdfmake's package, and for a QR-bill's slip and an EPC QR code's caption the two Liberation Sans files in this package's `fonts`, read from disk |
+| `@formancy/report-render-pdf` | the Node build | the four Roboto files in pdfmake's package, and for a QR-bill's slip and an EPC QR code's caption the two Liberation Sans files in this package's `fonts`, read from disk; for an e-invoice, PDFKit reads its ICC profile from its own package (below) |
 | `@formancy/report-render-pdf/browser` | the browser build, `pdfmake/build/pdfmake.js` | the same Roboto, from pdfmake's `build/vfs_fonts.js`, and the same Liberation Sans from a chunk of the build's own, imported the first time a document has a bill or a captioned EPC QR code |
 
 The two entries share everything but the build of pdfmake and where the
@@ -138,9 +138,9 @@ Every block of the resolved document:
 |---|---|
 | `too-many-pages` | The report needs more pages than `maxPages`, a QR-bill's page included. pdfmake's own limit would return the first pages as though they were all of it. A body whose least height already needs more, the room a bill's slip keeps included, is refused before pdfmake measures it. |
 | `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below). |
-| `invalid-asset` | An image's bytes are not the PNG or JPEG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side. |
+| `invalid-asset` | An image's bytes are not the PNG or JPEG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side; or a JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, which PDFKit takes for it, as an arithmetic-coded JPEG may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components, which PDFKit gives no colour space (0031). |
 | `cancelled` | The signal was aborted. |
-| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice, which this release does not draw (below). |
+| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or one its PDF/A-3b cannot hold (below). |
 
 ## QR codes
 
@@ -296,19 +296,87 @@ What the slip does not do:
 ## E-invoices
 
 A document that carries an e-invoice, `document.eInvoice`, as
-[0027](../../docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md) decides, is refused as
-`unsupported`, naming `eInvoice`, in either entry, and pdfmake never sees
-it. An e-invoice is drawn as a PDF/A-3 with its XML embedded, which this
-release does not write; and in Germany the XML a hybrid invoice embeds is
-the invoice, so a plain PDF of one would be a picture of the invoice
-handed over as though it were the invoice. A preview is drawn: the runtime
-writes the XML only in a final render, and a preview carries none.
+[0027](../../docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md) decides, is drawn as what an e-invoice is in
+Germany: a PDF/A-3b that embeds the XML the runtime wrote, the hybrid
+invoice whose XML is the invoice
+([0031](../../docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)), in either entry.
 
-One whose XML is not text, or whose file name, conformance level or
-relationship is not report-spec's (`FACTUR_X`, `FACTUR_X_PROFILES`,
-handed on by the runtime), is refused for that first, so that it stays
-refused once e-invoices are drawn. A refusal never quotes the XML, which
-holds names, accounts and VAT identifiers.
+- **PDF/A-3b, for an e-invoice alone.** Its definition gets `version`
+  1.7 and `subset` `PDF/A-3b`, so PDFKit writes the pdfaid identification,
+  an sRGB output intent with its ICC profile, and the XMP. Level b is the
+  one in reach: level a needs a structure tree pdfmake does not build, and
+  PDFKit has no level u. Every other report is drawn as it was.
+- **The file, changed in nothing.** On the final pass alone, through
+  PDFKit's own document before it ends, `pdfa.ts` embeds the XML's UTF-8
+  bytes as `factur-x.xml`, `text/xml`, related as `Alternative` -- the
+  name, relationship and conformance level report-spec gives them
+  (`FACTUR_X`, `FACTUR_X_PROFILES`, handed on by the runtime) [S] -- dated
+  with the document's creation date, so the same document draws to the
+  same bytes. The measuring passes have no file, and lay the pages out as
+  the PDF prints them.
+- **The XMP says what the file is.** The fx properties -- the file's
+  name, the document type, the version and the conformance level -- and an
+  extension schema that declares them are appended to PDFKit's XMP, the
+  four descriptions in the renderer's own words.
+- **A preview is a plain PDF.** The runtime writes the XML only in a final
+  render; a preview carries none, embeds nothing, and is labelled on every
+  page.
+
+It refuses, as `unsupported` and before pdfmake sees the document:
+
+- an e-invoice whose XML is not text, or whose file name, conformance level
+  or relationship is not report-spec's;
+- XML holding a lone surrogate, which an encoder would write as another
+  character;
+- a title holding `&`, `<`, `>` or a character XML 1.0 cannot write,
+  naming `info.title`: PDFKit writes the title into the XMP unescaped.
+  report-spec refuses such a title in an e-invoice report, so only a
+  document made otherwise reaches this;
+- a CMYK JPEG, naming the image: PDFKit draws it in DeviceCMYK, which no
+  PDF/A with an sRGB output intent may hold. A preview draws it, so a
+  template finds out at its final render. The component count is read
+  from the frame header PDFKit reads, since a DAC segment shaped as a frame
+  of four components once had an RGB JPEG drawn in DeviceCMYK past this
+  refusal (measured on 18 October 2026, veraPDF failing it on 6.2.4.3-3),
+  and a JPEG PDFKit would read otherwise is refused as `invalid-asset` in
+  every report (above).
+
+Every other kind of image PDFKit embeds is drawn in an e-invoice:
+report-corpus's `IMAGE_KINDS` -- grey and colour JPEGs, and PNGs of every
+colour type, with alpha, a palette, its transparency or a colour key, at
+1 and 16 bits, interlaced -- which the e-invoice gate has veraPDF and
+Mustang judge in one. A colour key is drawn as PDFKit's PNG reader,
+png-js 1.1.0, reads it, in every report since 0.1.0: a grey key by its
+high byte, and an RGB key as twelve numbers where ISO 32000-1 asks two a
+component, which a viewer may ignore; report-corpus's test pins both.
+
+A refusal never quotes the XML, which holds names, accounts and VAT
+identifiers. What it leaves as PDFKit 0.19.1 writes it, `src/pdfmake.test.ts`
+pins: the embedded file's `/CheckSum` in 32 hexadecimal digits where ISO
+32000-1 asks for 16 bytes, and one trailer `/ID` for two PDFs of one title
+and creation date.
+
+**One file besides the fonts.** PDFKit reads the output intent's profile
+from its own `data/sRGB_IEC61966_2_1.icc` with `fs`, past pdfmake's access
+policy, which governs only what pdfmake opens: a render of an e-invoice
+reads that file and the fonts, and nothing else through
+`fs.readFileSync`, which a test holds. A
+host that bundles the Node entry puts the profile where the bundled
+PDFKit's `__dirname` points, or every e-invoice render fails. The browser
+entry's profile is the base64 copy in pdfmake's browser build, held to the
+same bytes. The profile is the ICC's sRGB2014, which the dependency-licence
+guard admits by its digest, with the ICC's licence sentence a review read
+([0006](../../docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
+
+**What the tests show, and what they do not.** `src/e-invoice.test.ts`
+reads each of the corpus's e-invoice samples back from its PDF with readers
+that are not PDFKit -- the file with PDF.js and pdf-lib, the XMP with saxes
+-- and `src/e-invoice-samples.test.ts` holds what the page prints to the XML
+read out of the same PDF. Whether a validator takes the PDF is the
+e-invoice gate's: veraPDF and Mustang judge the samples' PDFs there, and
+nothing here. The fx namespace, prefix and properties rest on a
+transcription of the specification, which no validator reads; the tests
+compare them with the transcription's values, and say so.
 
 ## Fonts
 

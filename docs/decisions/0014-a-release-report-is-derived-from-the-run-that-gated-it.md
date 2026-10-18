@@ -12,7 +12,10 @@
   ([0017](0017-the-sbom-describes-what-a-consumer-installs.md)). The
   gates have a fifth job, the e-invoice gate, whose results the report
   reads, shows and fails a run on
-  ([0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+  ([0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)),
+  and which judges the PDF/A-3b too, with veraPDF, so that the report
+  judges each file by the tools of its format
+  ([0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `report` job in `.github/workflows/gates.yml`, which
@@ -386,6 +389,30 @@ hold: `workflows.test.mjs` holds the job's `actions/setup-java` to the
 register's distribution. Its summary line says whether the e-invoice gate
 passed. `collect.test.mjs`, `report.test.mjs`, `render.test.mjs` and
 `workflows.test.mjs` hold it.
+
+**Added 2026-10-18: the e-invoice gate judges PDFs.** The gate's corpus
+holds the PDF/A-3b the renderer draws of each sample, and PDF controls,
+beside the XML
+([0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)),
+and a third tool, veraPDF, which the register pins as it pins the others.
+Each file of the corpus says its format, and the report judges it by the
+tools that judge that format, as `scripts/e-invoice/registers.mjs`'s
+`JUDGES` names them -- Mustang and KoSIT the XML, veraPDF and Mustang the
+PDF -- and fails a run that judged no sample of a format every one of its
+tools must accept, made, for one of its tools, no control of that tool's
+format that the tool must refuse, recorded a file of a format no tool
+judges, or misses a verdict of a tool of its file's format. A control is
+judged as its corpus expects: one tool may accept it where another
+refuses it. veraPDF is held to its register entry as the others are, by
+version, by the SHA-256 the gate measured and by the version it reported
+of itself, and to the register's floor, its own release and every one
+Mustang bundles as the gate recorded them, which the gate holds before it
+runs and the report again. A variant, a PDF that carries the first
+sample's e-invoice on another page, is shown as one, to accept. The section gains a veraPDF column, a
+tool's cell empty where it reads no file of that format, and veraPDF's
+time beside Mustang's and KoSIT's. The job's steps and its results file
+are as they were, so `collect.mjs` and `workflows.test.mjs` are unchanged;
+`report.test.mjs` and `render.test.mjs` hold the rest.
 
 ## Alternatives considered
 

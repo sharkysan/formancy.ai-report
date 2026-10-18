@@ -1,8 +1,8 @@
-import { RenderRefusal, type Block, type Columns, type EpcQrCode, type Image, type ImageAsset, type KeepTogether, type QrCode, type Rectangle, type ResolvedDocument, type Section, type Table, type TextStyle } from '@formancy/report-runtime'
+import { RenderRefusal, type Block, type Columns, type EInvoiceFile, type EpcQrCode, type Image, type ImageAsset, type KeepTogether, type QrCode, type Rectangle, type ResolvedDocument, type Section, type Table, type TextStyle } from '@formancy/report-runtime'
 import { checkImageAsset, MAX_IMAGE_DATA, type Pixels } from './assets.js'
 import { frameOf, RULE_GAP } from './content.js'
 import { epcSymbol } from './epc.js'
-import { refuseEInvoice } from './e-invoice.js'
+import { checkEInvoice, checkEInvoiceTitle } from './e-invoice.js'
 import { codePoint, faceOf, missingGlyph, type Glyphs } from './glyphs.js'
 import { qrSymbol, type QrSymbol } from './qr.js'
 import { COLOR, FONTS, LINE_FACTOR } from './style.js'
@@ -13,10 +13,12 @@ import { fillWidth, fixedWidth } from './widths.js'
  * What the renderer refuses before pdfmake sees the document: what pdfmake
  * cannot print, what is malformed, what stands where it cannot be laid out,
  * what is wider than where it stands, text with a character the face it
- * prints in has no glyph for (`glyphs.ts`), and an e-invoice, which this
- * release does not draw (`e-invoice.ts`). Every refusal names where the
- * problem is -- `body[2].blocks[0]`, a table's id, an asset's id -- and none
- * of them is a partial render: a document that is refused has drawn nothing.
+ * prints in has no glyph for (`glyphs.ts`), an e-invoice the renderer does
+ * not know (`e-invoice.ts`), and what an e-invoice's PDF/A-3 cannot hold:
+ * a title PDFKit cannot write into its XMP, and a CMYK JPEG beside its sRGB
+ * output intent. Every refusal names where the problem is --
+ * `body[2].blocks[0]`, a table's id, an asset's id -- and none of them is a
+ * partial render: a document that is refused has drawn nothing.
  *
  * The walk also collects what can only be judged once the page regions are
  * measured -- whatever is too tall for any page's body -- and what the body
@@ -68,6 +70,8 @@ export interface Measured {
 export interface Checked {
   readonly page: Page
   readonly creationDate: Date
+  /** The e-invoice the document carries, known to the renderer: drawn as a PDF/A-3b that embeds it (`pdfa.ts`). */
+  readonly eInvoice: EInvoiceFile | undefined
   /** Every image's size in pixels, as it is shown. */
   readonly pixels: ReadonlyMap<ImageAsset, Pixels>
   /** Every QR code's and EPC QR code's symbol, encoded once. */
@@ -108,8 +112,9 @@ export async function checkDocument(document: ResolvedDocument, glyphs: Glyphs):
   if (Number.isNaN(creationDate.getTime())) throw new RenderRefusal('unsupported', `the creation date '${document.info.creationDate}' is not a date`, 'info.creationDate')
   // The title goes into the PDF's metadata, never onto a page, so it is held to being text and not to the font.
   if (typeof document.info.title !== 'string') throw new RenderRefusal('unsupported', 'the title is not text', 'info.title')
-  // An e-invoice is drawn as a PDF/A-3, which this release does not write: refused, never drawn as a plain PDF (`e-invoice.ts`).
-  if (document.eInvoice !== undefined) refuseEInvoice(document.eInvoice)
+  // An e-invoice it does not know is refused, never embedded as something else or drawn as a plain PDF (`e-invoice.ts`).
+  const eInvoice = document.eInvoice === undefined ? undefined : checkEInvoice(document.eInvoice)
+  if (eInvoice !== undefined) checkEInvoiceTitle(document.info.title)
   const page = pageOf(document.page)
   const walk: Walk = { glyphs, paths: new Map(), images: [], codes: new Map(), captioned: false, tall: [], measured: [] }
   const top: Omit<Place, 'region'> = { kept: false, column: false, width: page.width, inset: 0, depth: 0 }
@@ -121,11 +126,15 @@ export async function checkDocument(document: ResolvedDocument, glyphs: Glyphs):
   for (const { image } of walk.images) {
     if (pixels.has(image.asset)) continue
     const read = await checkImageAsset(image.asset)
+    // DeviceCMYK beside the sRGB output intent fails a PDF/A (veraPDF 6.2.4.3-3), and a second intent would have to share its profile (6.2.3-2).
+    if (eInvoice !== undefined && read.cmyk) {
+      throw new RenderRefusal('unsupported', `the image ${image.asset.id} is a CMYK JPEG, which an e-invoice cannot hold: it is drawn as a PDF/A-3 whose output intent is sRGB, beside which no image may be CMYK`, image.asset.id)
+    }
     data += read.data
     if (data > MAX_IMAGE_DATA) throw new RenderRefusal('content-too-large', `the images up to ${image.asset.id} hold ${data} bytes of image data; a render may hold ${MAX_IMAGE_DATA}`, image.asset.id)
     pixels.set(image.asset, read)
   }
-  return { page, creationDate, pixels, codes: walk.codes, captioned: walk.captioned, tall: walk.tall, paths: walk.paths, measured: walk.measured }
+  return { page, creationDate, eInvoice, pixels, codes: walk.codes, captioned: walk.captioned, tall: walk.tall, paths: walk.paths, measured: walk.measured }
 }
 
 function pageOf(setup: ResolvedDocument['page']): Page {

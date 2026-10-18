@@ -5,8 +5,9 @@ import { fileURLToPath } from 'node:url'
 import pdfmake from 'pdfmake'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import type { ResolvedDocument } from '@formancy/report-runtime'
-import { BILL_FACES, collect, FACES, glyphsOnce, type Engine, type PdfStream } from './engine.js'
+import { BILL_FACES, FACES, glyphsOnce, written, type Engine } from './engine.js'
 import type { RenderOptions } from './options.js'
+import type { Finish } from './pdfa.js'
 import { render } from './render.js'
 import { LIBERATION_SANS } from './style.js'
 
@@ -15,7 +16,10 @@ import { LIBERATION_SANS } from './style.js'
  * four font files in pdfmake's own package, and Liberation Sans 2.1.5, for
  * a QR-bill's slip, from the two in this package's `fonts` directory -- all
  * of which the dependency-licence guard reads as OFL-1.1 (0006) -- and no
- * other file, and no address at all. The renderer reads the same files
+ * other file, and no address at all; but for an e-invoice, whose PDF/A
+ * output intent PDFKit reads from its own `data/sRGB_IEC61966_2_1.icc`
+ * with `fs`, past pdfmake's policy (pdfkit.js 5265), a profile the guard
+ * holds to its reviewed digest (0031). The renderer reads the same files
  * once, for the characters they have glyphs for (`glyphs.ts`): Roboto's
  * for the first document, Liberation Sans's for the first with a bill.
  *
@@ -38,11 +42,11 @@ const FONTS = {
 }
 const FONT_FILES: ReadonlySet<string> = new Set([...Object.values(FONTS.Roboto), ...Object.values(FONTS[LIBERATION_SANS])])
 
-async function run(definition: TDocumentDefinitions): Promise<Uint8Array> {
+async function run(definition: TDocumentDefinitions, finish?: Finish): Promise<Uint8Array> {
   pdfmake.setFonts(FONTS)
   pdfmake.setUrlAccessPolicy(() => false)
   pdfmake.setLocalAccessPolicy((file) => FONT_FILES.has(file))
-  return collect((await pdfmake.createPdf(definition).getStream()) as unknown as PdfStream)
+  return written(pdfmake.createPdf(definition).getStream(), finish)
 }
 
 /** pdfmake in Node, and the glyphs of the very font files it embeds. */

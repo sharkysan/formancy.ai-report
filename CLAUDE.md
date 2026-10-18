@@ -41,9 +41,13 @@ component needs written redistribution rights. Fonts must be licensed for embedd
 of every publishable package and every font they ship, reading a font's
 licence from the font, and refuses what it cannot read
 ([0006](docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
-What it cannot see -- whether a licence's terms are what its identifier says,
-code a package vendors, a font inside a script -- is held by review, and 0006
-lists it.
+An ICC profile, which a PDF/A embeds as its output intent and which states
+no terms of its own, is admitted by the SHA-256 of its bytes alone, with
+the licence sentence a review read (`ICC_PROFILES`, 0006 as 0031 extends
+it): a profile it finds by its name or its header that no review holds is
+refused. What it cannot see -- whether a licence's terms are what its
+identifier says, code a package vendors, a font or a profile inside a
+script -- is held by review, and 0006 lists it.
 
 ## How the pieces fit
 
@@ -75,15 +79,19 @@ reference are `payment-reference.ts`, which the QR-bill's rules read too;
 the runtime writes the payload, and the renderer draws Austria's caption
 in the same Liberation Sans
 ([0025](docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
-A report's e-invoice runs through all four and stops at the last: the
+A report's e-invoice runs through all four: the
 block is report-spec's `e-invoice.ts` and EN 16931's rules its
 `en16931.ts`, with the closed code lists, which the validator applies to
 literals and the runtime to data, and the account rule is the EPC QR
 code's; the core binds `invoice`, `vatBasis` and `vatAmount` in an
 e-invoice alone; the runtime computes the totals once, in
-`e-invoice-totals.ts`, and writes the CII XML, in `cii.ts`; and the
-renderer refuses every e-invoice until it draws the PDF/A-3 that embeds
-one ([0027](docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+`e-invoice-totals.ts`, and writes the CII XML, in `cii.ts`
+([0027](docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md));
+and the renderer draws a final render of it, and of no other report, as a
+PDF/A-3b that embeds that XML as `factur-x.xml` (`pdfa.ts`), through
+PDFKit's own document on the last pass, the ICC profile PDFKit embeds
+admitted by `scripts/dependency-licences.mjs` by its digest
+([0031](docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
@@ -97,7 +105,10 @@ the adversarial report fixtures, the starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
 `readCodes`, which decodes the QR codes a page prints with ZXing from the
 pixels PDF.js draws, the e-invoice samples and a reader of their XML by
-namespace, and the renderer trial that chose pdfmake. `apps/studio` is the
+namespace, `readPdfObjects` and `readXmp`, which read what a PDF embeds
+and says of itself with pdf-lib and saxes, `inflatedDigest`, a PDF's
+objects hashed with every stream inflated, `IMAGE_KINDS`, an image of each
+kind PDFKit embeds, and the renderer trial that chose pdfmake. `apps/studio` is the
 playground that puts both builders and a PDF.js preview on one page
 ([0013](docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)),
 never published as a package and served at formancy.ai/report/
@@ -447,18 +458,27 @@ exactly what CI does:
   scripts/pictures.mjs`, never by hand.
 - **`install`** runs `pnpm test:e2e:install`.
 - **`e-invoice`** runs `node scripts/e-invoice.mjs --java <path>` after
-  `pnpm build`, on the Java the register names (0027): Mustang and
-  KoSIT's validator, fetched by URL into `.e-invoice-cache/` and refused unless each SHA-256
-  is the one `docs/release/e-invoice-tools.json` registers, judge the XML
-  the runtime writes of each e-invoice sample and refuse each control, and
-  report-spec's code lists and rule ids are held to the schematrons they
-  run. A warning fails it unless `scripts/e-invoice/accepted.json` accepts
-  it, with its reason, in that file. Locally it needs a Java at least as
-  new as each JAR's `java` in the register.
-  A change to a tool, the corpus or a control is recorded for the judges'
-  tests with `--record`, never by hand: a run fails where the recorded
-  corpus is not the one it judged, and a recording holds no path of the
-  machine it was made on.
+  `pnpm build`, on the Java the register names (0027, 0031): Mustang,
+  KoSIT's validator and veraPDF, fetched by URL into `.e-invoice-cache/`
+  and refused unless each SHA-256 is the one
+  `docs/release/e-invoice-tools.json` registers, and veraPDF, its own and
+  Mustang's copy, no older than the register's floor. Mustang and KoSIT
+  judge the XML the runtime writes of each e-invoice sample, veraPDF and
+  Mustang the PDF/A-3b the renderer draws of it and of variants that carry
+  the first sample's e-invoice on other pages -- every starter's, and a
+  page of every image kind PDFKit embeds -- Mustang by its PDF part too,
+  never its exit status alone; each control is judged exactly as the
+  corpus expects, at least one tool refusing it and each tool refusing at
+  least one control of its format; and report-spec's code lists and rule
+  ids are held to the schematrons they run. A warning fails it unless
+  `scripts/e-invoice/accepted.json` accepts it, with its reason, in that
+  file. Locally it needs a Java at least as new as each JAR's `java` in
+  the register.
+  A change to a tool, the corpus, a control or what the renderer draws of
+  a sample or a variant -- a starter's layout among it -- is recorded for
+  the judges' tests with `--record`, never by hand: a run fails where the
+  recorded corpus is not the one it judged, and a recording holds no path
+  of the machine it was made on.
 - **`report`** builds the release report from what every job above
   collected
   ([0014](docs/decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md),
@@ -480,9 +500,10 @@ exactly what CI does:
     or a builder's was not at its range's floor;
   - the e-invoice gate failed, ran a tool at another version, of other
     bytes by the hash it measured, or reporting another version of itself
-    than its register pins, ran in CI on a Java of another major version
-    than the register names, or judged a file otherwise than its corpus
-    expects;
+    than its register pins, ran a veraPDF below the register's floor, its
+    own or Mustang's, ran in CI on a Java of another major version than
+    the register names, judged no sample or made no control of a format,
+    XML or PDF, or judged a file otherwise than its corpus expects;
   - two builds of one package differ, or a tarball's built files are not
     every job's;
   - a release gate's evidence or a limitation's `heldBy` test did not pass.
@@ -535,8 +556,10 @@ Locally, run the same commands for what you changed.
   oldest release its peer range admits (`scripts/install-hosts.mjs`);
 - type-checks each consumer with `skipLibCheck` **off**, against its host's
   types: Node's for the Node packages, the DOM's and not Node's for a builder;
-- runs it: `consume.ts` under Node; `react.tsx` drawn by React's server
-  renderer in its development and production builds; `angular.ts` compiled
+- runs it: `consume.ts` under Node, which also draws an e-invoice and reads
+  the PDF/A-3b's bytes with `embedding.ts` and Node alone (0031);
+  `react.tsx` drawn by React's server renderer in its development and
+  production builds; `angular.ts` compiled
   ahead of time, linked and bundled by `build.mjs`, and drawn by
   platform-server without the JIT compiler; and each builder bundled for a
   browser;

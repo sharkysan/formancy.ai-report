@@ -10,6 +10,133 @@ later.
 
 ## Unreleased
 
+**A report's e-invoice is drawn as the PDF/A-3b that embeds its XML: the
+German hybrid invoice**
+([0031](docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+In a German ZUGFeRD invoice the XML the PDF embeds is the invoice, so the
+renderer refused every e-invoice rather than hand over the picture without
+it. A final render of a report with an e-invoice is now a PDF/A-3b that
+carries the runtime's XML as `factur-x.xml`, the page and the invoice it
+prints in one file, in the EN 16931 profile and for Germany: France is
+still not claimed.
+
+- **`@formancy/report-render-pdf`:**
+  - A document whose e-invoice it knows is drawn as a PDF/A-3b, and on the
+    final pass alone, through PDFKit's own document before it ends, embeds
+    the runtime's XML byte for byte as `factur-x.xml`, `text/xml`, related
+    as `Alternative` and dated with the document's creation date, and
+    appends the fx properties and their extension schema to the XMP. Every
+    other report is drawn as before: PDF/A for every report would refuse a
+    0.1.0 template's CMYK logo, or its title with an `&`.
+  - It refuses, as `unsupported` and before pdfmake sees the document, a
+    CMYK JPEG in an e-invoice, naming the image, since DeviceCMYK beside the
+    PDF/A's sRGB output intent is no PDF/A; XML holding a lone surrogate,
+    which an encoder would write as another character; and a title holding
+    `&`, `<`, `>` or a character XML 1.0 cannot write, naming `info.title`,
+    which PDFKit writes into the XMP unescaped.
+  - It reads a JPEG's frame header where PDFKit reads it, and refuses as
+    `invalid-asset`, in every report, a JPEG PDFKit would read otherwise:
+    a JPG or DAC segment before the frame header, which PDFKit takes for
+    it, a second frame header, or a frame of other than one, three or four
+    components, which PDFKit gives no colour space. A DAC segment shaped as
+    a frame of four components had an RGB JPEG drawn in DeviceCMYK past
+    the e-invoice's refusal, which veraPDF failed; 0.1.0 drew such JPEGs
+    wrong in any report, and a template holding one now stops rendering,
+    an arithmetic-coded JPEG that writes its DAC segment first among them.
+  - Every other kind of image PDFKit embeds is drawn in an e-invoice, and
+    the e-invoice gate judges one of each. A PNG whose transparency is a
+    colour key is drawn, as since 0.1.0, as PDFKit's png-js reads it: a
+    grey key by its high byte, and an RGB key as twelve numbers where a PDF
+    reader wants six. Pinned in the corpus and not patched.
+  - A render of an e-invoice reads one file besides the fonts: PDFKit's ICC
+    profile, `data/sRGB_IEC61966_2_1.icc`, which PDFKit reads with `fs`,
+    past pdfmake's access policy. A host that bundles the Node entry puts
+    it where the bundled PDFKit's `__dirname` points.
+  - What PDFKit writes is left as it writes it, and pinned: a `/CheckSum`
+    of 32 hexadecimal digits, and one trailer `/ID` for two PDFs of one
+    title and creation date, as the corpus's three samples share one. A
+    patch would be a copy of PDFKit.
+  - The browser entry draws an e-invoice's every object as the Node entry
+    does, each stream inflated, which a test now holds; not its bytes,
+    since pdfmake's browser build deflates with a zlib of its own: 37,307
+    bytes of the first sample against Node's 37,578, measured on 18 October
+    2026.
+  - The samples are 8,497 to 8,564 bytes larger as PDF/A-3b than plain, and
+    were no slower beyond the noise of a busy machine, measured on 18
+    October 2026 (0031 says how).
+- **The page is proved against the XML on the PDF:** each sample's every
+  line and total, as PDF.js reads it, is the XML read out of the same PDF,
+  whose amounts BigInt recomputes from the data; a template that prints a
+  total of its own, or a column other than the one its e-invoice names, is
+  caught where it differs.
+- **`@formancy/report-corpus`:** reads what a PDF embeds and says of
+  itself: `readPdfObjects`, with `@pdfme/pdf-lib` 6.2.4 (MIT), now among
+  its dependencies rather than its devDependencies since its source imports
+  it and the e-invoice gate runs that source; `readXmp`, with saxes; and
+  `readPdf`'s attachments, with PDF.js. `inflatedDigest` hashes a PDF's
+  objects with every stream inflated, for a PDF whose bytes another zlib
+  may write otherwise; it was the gate's own and moved here, so that the
+  renderer's browser test reads it too. `IMAGE_KINDS` makes in code an
+  image of each kind PDFKit embeds in a way of its own. The corpus is
+  never published.
+- **The dependency guard reads ICC profiles**, since every e-invoice a
+  customer sends embeds one and a profile states no terms to read: every
+  `.icc` or `.icm` file in the production dependencies of a published
+  package, and every file there whose header is a profile's, but code and
+  text it does not open, is refused unless `ICC_PROFILES` holds its
+  SHA-256 with the licence sentence a review read. It holds PDFKit's, the ICC's sRGB2014, which "may be
+  copied, distributed, embedded, made, used, and sold without restriction".
+- **The e-invoice gate judges the PDF:** veraPDF 1.30.3, fetched from Maven
+  Central and refused unless its SHA-256 is the registered one, and
+  Mustang judge each sample's PDF/A-3b; seven variants, the first sample's
+  e-invoice drawn on every starter's pages, on the fonts fixture's, and on
+  a page of every image kind PDFKit embeds with a QR code, a rectangle, a
+  rule and a logo in its header, since a customer's e-invoice draws more
+  than the samples' one page; and seven PDF controls. Mustang is read in
+  its PDF part as well, since it exits 0 on a PDF/A failure where the XML
+  is valid (its issue #1293), and pdf-lib counts each PDF's files and
+  compares their bytes, since neither tool compares a file's declared
+  checksum or size with its bytes, nor its relationship with the
+  profile's, which three controls show. The gate holds what each sample's
+  and variant's XMP states, its file name and its conformance level, to
+  the XML it embeds, since Mustang holds the level to a fixed list alone.
+  veraPDF's licence, GPL-3.0-or-later OR MPL-2.0, is admitted for the gate
+  at 1.30.3 alone, and a floor of 1.30.2 keeps it and the copy inside
+  Mustang past CVE-2026-54078 and CVE-2026-54079. The downloads are now
+  86,368,974 bytes, and a run from the cache took 103 s on Zulu 25 and
+  130 s on Temurin 17, beside other work on one workstation on 18 October
+  2026. A change to what a starter draws now fails the job until the gate
+  is recorded again with `--record`. The release report judges each file
+  by the tools of its format, XML or PDF, with a veraPDF column, shows a
+  variant as one, and fails a run that ran a veraPDF below the floor, its
+  own or Mustang's, rather than resting on the gate's refusal alone.
+- **The install gate draws the e-invoice** from the packed tarballs and
+  reads the PDF's bytes with Node alone: the one file, its name and
+  relationship, the XML byte for byte, the XMP and the reviewed profile,
+  at the PDFKit a clean npm install resolves; its preview embeds nothing.
+- **The XMP's fx values still rest on a transcription** of the Factur-X
+  specification: its namespace, prefix, properties and schema name, which
+  Mustang agrees with by name. The transcription gives the namespace two
+  ways, with `:invoice` in its section 6.3.1, which the renderer writes,
+  and without it in its rule BR-HYBRID-04. No validator reads the
+  namespace, and the official package's XMP example needs a registration
+  with FeRD the rightsholder has not made; the renderer's test holds the
+  values to the transcription's, and says so.
+- **The EPC QR code page's limits say it**, in its four languages: its
+  samples are no e-invoice, and Formancy Report's source now draws one as a
+  PDF/A-3b that embeds its XML, for Germany alone, which veraPDF, Mustang
+  and KoSIT judge on the German samples. 0028 asked the change that draws
+  the PDF/A-3 to say so there; the new words are no native speaker's.
+- **The documents:** decision 0031 and its register entry; the records it
+  extends or amends, 0003, 0005, 0006, 0011, 0014, 0027 and 0028, each
+  read again and stamped, 0005's and 0014's again after the review, 0027's costs kept as written and the three lines
+  of its register that 0031 outdates moved to 0031's; and the
+  architecture's sections: PDF/A-3 among the constraints, `pdfa.ts` and
+  the readers in the building blocks, the flow from the table to the
+  PDF/A-3b in the runtime view, PDFKit's profile in what a host needs, the
+  proof on the PDF and the gate on PDFs in verification, and what 0031
+  accepts in risks and debt.
+
 **The Studio's Preview stands in the design view's place in any window
 too narrow for it beside the builder**
 ([0029](docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
@@ -78,8 +205,8 @@ its first page began 1092px down a 1440 by 900 window and 960px down a
   prop.
 
 **A report can carry an EN 16931 e-invoice, whose Factur-X / ZUGFeRD XML
-the runtime writes from the values its page prints; this release draws no
-PDF of one yet**
+the runtime writes from the values its page prints, and which the entry
+above draws**
 ([0027](docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 From 1 January 2027 a German seller above EUR 800,000 of turnover must
 issue e-invoices to German businesses, and from 1 January 2028 every
@@ -91,8 +218,8 @@ XML written beside it would have been a second computation of the same
 totals, and a picture that says something else than its XML may be a
 further invoice under § 14c UStG, as the BMF's letter of 15 October 2025
 says. So the page and the XML now read one
-evaluation of each line and one computation of each total. The PDF/A-3
-that embeds the XML is the next step; until it lands, the renderer refuses
+evaluation of each line and one computation of each total. The PDF/A-3b
+that embeds the XML is the entry above; this step had the renderer refuse
 every e-invoice rather than print the picture without the invoice.
 
 - **`@formancy/report-spec`:**
@@ -137,9 +264,9 @@ every e-invoice rather than print the picture without the invoice.
     none". A QR-bill or an EPC QR code printed with an
     e-invoice is paid to its account, and a QR-bill in its currency.
   - The title of a report with an e-invoice may not hold `&`, `<` or `>`:
-    the next step writes it into a PDF/A's metadata, where pdfkit does not
+    the renderer writes it into the PDF/A's metadata, where pdfkit does not
     escape it. Its page may print them.
-  - `FACTUR_X` and `FACTUR_X_PROFILES`, the names the PDF will carry,
+  - `FACTUR_X` and `FACTUR_X_PROFILES`, the names the PDF carries,
     resting on a transcription of the Factur-X 1.09.2 specification until
     the specification itself, behind a registration, is read.
   - The format stays at version `'0'`. **0.1.0 refuses a report with an
@@ -171,7 +298,7 @@ every e-invoice rather than print the picture without the invoice.
     written from, and the names are bound to the very totals.
   - The CII XML of a Factur-X 1.09.2 / ZUGFeRD 2.5.2 invoice in the EN 16931
     profile, in `document.eInvoice` with the name, relationship and
-    conformance level the renderer will embed it by. It is written one way,
+    conformance level the renderer embeds it by. It is written one way,
     so the same report and data are the same bytes.
   - Every text, date and line term held to EN 16931's rules once the data
     resolves it, and a final render with no lines refused. A line's net
@@ -193,11 +320,11 @@ every e-invoice rather than print the picture without the invoice.
     most: at that many lines it was 117 MB, measured on 17 October 2026
     from the built package, the median of five runs, on Node 24.21.0 and
     an Intel i9-10900K.
-- **`@formancy/report-render-pdf`:** a document with an e-invoice is refused
+- **`@formancy/report-render-pdf`:** a document with an e-invoice whose
+  file name, conformance level or relationship it does not know is refused
   as `unsupported`, naming `eInvoice`, in both entries and before pdfmake
-  sees it, as a PDF/A-3 this release does not draw; one whose file name,
-  conformance level or relationship it does not know is refused for that
-  first, so that the refusal outlives the next step.
+  sees it; this step refused every other e-invoice too, and the entry
+  above draws them.
 - **`@formancy/report-corpus`:** three e-invoice samples, not starters, the
   euro invoice's firm invoicing German businesses: at 19 % and 7 % paid by
   SEPA credit transfer; reverse charge with an invoicing period; and an
@@ -224,12 +351,13 @@ every e-invoice rather than print the picture without the invoice.
   tool reported of itself, and the Java's major version in CI to the
   register's. The tools run in CI and no package carries them.
 - **The install gate validates and resolves an e-invoice** of its own from
-  the packed packages, reads its XML for the totals its page prints, sees
-  the renderer refuse it, and draws its labelled preview.
-- **The EPC QR code page's limits say what an e-invoice is now**, in its
-  four languages: the PDF is still no e-invoice, and the runtime writes the
-  XML of a ZUGFeRD or Factur-X invoice, for Germany alone, which nothing
-  embeds in a PDF yet, since the renderer refuses one. The page said only
+  the packed packages, reads its XML for the totals its page prints, and
+  draws its labelled preview; the entry above draws the e-invoice.
+- **The EPC QR code page's limits said what an e-invoice was at this
+  step**, in its four languages: the PDF is still no e-invoice, and the
+  runtime writes the XML of a ZUGFeRD or Factur-X invoice, for Germany
+  alone, which nothing embedded in a PDF then; the entry above says it
+  again. The page said only
   the first, which 0028 had said a change that builds an e-invoice must say
   again; a paragraph added to 0028 says the same, its costs left as they
   were written, and its register was read again and holds. The new words

@@ -3,9 +3,10 @@ import vfs from 'pdfmake/build/vfs_fonts.js'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import type { ResolvedDocument } from '@formancy/report-runtime'
 import { fromBase64 } from './bytes.js'
-import { BILL_FACES, collect, FACES, glyphsOf, glyphsOnce, loadOnce, type Engine, type PdfStream } from './engine.js'
+import { BILL_FACES, FACES, glyphsOf, glyphsOnce, loadOnce, written, type Engine } from './engine.js'
 import type { BillFace } from './glyphs.js'
 import type { RenderOptions } from './options.js'
+import type { Finish } from './pdfa.js'
 import { render } from './render.js'
 import { LIBERATION_SANS } from './style.js'
 
@@ -19,7 +20,9 @@ export type { RenderOptions } from './options.js'
  * pdfmake's package as base64 -- the same bytes, which a test holds, so the
  * same OFL-1.1 fonts the dependency-licence guard reads (0006). Nothing here
  * touches a file system: the fonts are pdfmake's virtual files, and every
- * address is denied.
+ * address is denied. An e-invoice's PDF/A output intent is the ICC profile
+ * the browser build carries as base64 (`build/pdfmake.js` 20777), the very
+ * bytes of PDFKit's file, which `browser.test.ts` holds.
  *
  * A QR-bill's slip and an EPC QR code's caption print in Liberation Sans
  * 2.1.5, whose two faces come as base64 in a module of their own
@@ -77,11 +80,11 @@ const FONTS = {
   [LIBERATION_SANS]: { normal: own(BILL_FILES.normal), bold: own(BILL_FILES.bold) },
 }
 
-async function run(definition: TDocumentDefinitions): Promise<Uint8Array> {
+async function run(definition: TDocumentDefinitions, finish?: Finish): Promise<Uint8Array> {
   pdfmake.addVirtualFileSystem(fontFiles())
   pdfmake.setFonts(FONTS)
   pdfmake.setUrlAccessPolicy(() => false)
-  return collect((await pdfmake.createPdf(definition).getStream()) as unknown as PdfStream)
+  return written(pdfmake.createPdf(definition).getStream(), finish)
 }
 
 /** pdfmake's browser build, and the glyphs of the very virtual files it embeds. */

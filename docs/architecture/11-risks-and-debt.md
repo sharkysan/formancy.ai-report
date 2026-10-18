@@ -97,13 +97,30 @@ none of it is a tax adviser's reading
 ([0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 
-### An e-invoice rests on readings, and on two validators
+### An e-invoice rests on readings, and on its validators
 
 The Factur-X 1.09.2 / ZUGFeRD 2.5.2 specification sits behind a
-registration nobody here has made: what a Factur-X PDF says of its XML,
-the relationship, the conformance level and the XMP's values, rests on a
-transcription of it, and the release's XSD and schematron on Mustang's
-copies of FeRD's. report-spec's rules follow CEN's artefacts 1.3.17, and
+registration with FeRD that only the rightsholder can make, and nobody
+has: what a Factur-X PDF says of its XML -- the relationship, the
+conformance level, and the XMP's fx namespace, prefix, four properties and
+extension schema's name -- rests on a transcription of it, marked [S], and
+on Mustang's reading the same names, and the release's XSD and schematron
+on Mustang's copies of FeRD's. The transcription gives the fx namespace
+twice: its §6.3.1 as `urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#`,
+and its BR-HYBRID-04 as `urn:factur-x:pdfa:CrossIndustryDocument:1p0#`,
+without `:invoice`; it calls that an inconsistency and treats §6.3.1 as
+authoritative, and the renderer writes §6.3.1's form, as akretion's
+generator and PDFlib's sample do [S]. No tool in the gate reads the fx
+namespace, so if the specification means the other, every e-invoice
+carries the wrong one unseen; the renderer's test compares the values
+with the transcription's, and says so, until the official package's XMP
+example is recorded. No tool compares the XMP's conformance level with the
+XML's profile either, and the gate's own reading does, for every PDF the
+renderer draws in it. Mustang exits 0 on a PDF whose XML is valid
+whatever its PDF/A says, compares neither a file's declared /CheckSum and
+/Size with its bytes nor its relationship, and veraPDF reads no value of
+the XMP's extension, so the gate reads Mustang's PDF part and veraPDF's
+report, and counts each PDF's files with pdf-lib ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)). report-spec's rules follow CEN's artefacts 1.3.17, and
 the pinned tools run 1.3.16, so where the two differ the tools decide, and
 a rule renamed in a later release fails the gate until the ids are read
 again. The e-invoice is made for Germany: France's XP Z12-012 was not read,
@@ -178,7 +195,11 @@ its own.
 | **No viewer to install** | Publishing one waits for a reviewed exception for `pdfjs-dist`'s fonts, or a viewer that leaves PDF.js to the host ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)) | A host shows the PDF with a viewer of its own |
 | **A label over a label in the design view** | A container's label sits at its top end and a component's at its top start, so a component at the top of a narrow column at a container's right end has its label printed over the container's. The euro invoice's code first stood so, and the browser gate's axe could not tell the colour behind the labels ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) | The starter was laid out otherwise; nothing keeps an author from the layout it left |
 | **Two picture manifests** | The browser gate holds `pictures.json` to the starters the picker offers, and the samples are not starters ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)) | A third list of pictures is a third manifest, or a change to the gate |
-| **An e-invoice is written, not drawn** | The PDF/A-3 that embeds the XML is the next step, and until it lands the renderer refuses every e-invoice rather than draw it as a plain PDF ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) | A final render's XML stays in the resolved document and no PDF carries it. A renderer that predates `eInvoice`, 0.1.0's among them, would draw a resolved e-invoice as a plain PDF, which only two runtimes in one install could hand it, since the packages pin each other exactly |
+| **A renderer that predates `eInvoice`** | `checkDocument` reads the keys it knows, and 0.1.0's knows no e-invoice ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) | It would draw a resolved e-invoice as a plain PDF, which only two runtimes in one install could hand it, since the packages pin each other exactly |
+| **PDFKit's `/CheckSum` and `/ID`, as PDFKit writes them** | A patch would be a copy of upstream (0002), and filing them upstream is the rightsholder's call; `report-render-pdf/src/pdfmake.test.ts` pins both ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) | An e-invoice's embedded file declares its MD5 in 32 hexadecimal digits where ISO 32000-1 asks for 16 bytes, which veraPDF does not flag, and two e-invoices of one title and creation date share a trailer `/ID` |
+| **A file beside the fonts, outside pdfmake's policy** | PDFKit reads the ICC profile of a PDF/A from its own `data` directory with `fs` (0031) | A host that bundles the Node entry puts the profile where the bundled PDFKit's `__dirname` points, or every e-invoice render fails; nobody here has bundled one |
+| **The fx values wait for a registration** | The official ZUGFeRD package's XMP example sits behind a registration with FeRD only the rightsholder can make (0031) | The renderer's test holds the namespace, prefix and properties to the transcription's values, which agree with Mustang's reading, and to nothing more official |
+| **The corpus's table check and a word broken at its hyphen** | report-corpus's `verify` reads a cell's words by line, and misread "Gas-" over "Brennwertkessel", a word pdfmake broke at its hyphen, as measured on 18 October 2026 (0031) | The e-invoice samples' test on the PDF reads its table itself; a starter or a fixture whose cell breaks so is misreported by the corpus's table check |
 | **An e-invoice is written in the definition** | Neither builder edits one, and every command keeps it as it was (`report-core/src/commands/registry.test.ts`); the Studio offers none of the corpus's e-invoice samples (0027) | An author writes the block, its lines' named columns and its VAT categories by hand |
 | **Every host carries the e-invoice** | `validateReport` reads an e-invoice in every report, and the runtime imports its writer statically (0027) | Bundled minified from each package's source, report-spec, report-core and report-runtime grew from 145,932 to 194,092 bytes, measured with esbuild 0.28.2 on 17 October 2026, whether a host's reports have an e-invoice or not |
 | **The XML has no bound of its own** | It is written before a page is counted, so only `MAX_DETAIL_ROWS` bounds it; a bound of its own is the rightsholder's to choose (0027) | At 100,000 lines the XML held 117,280,919 bytes, and resolving took a median of 5.4 s against 2.0 s without it, over five runs from the built package on Node 24.21.0 and an Intel i9-10900K on 17 October 2026 |
@@ -188,10 +209,8 @@ its own.
 
 ## 11.4 Planned, and not built
 
-From the README and the open release gates, and nothing more: the PDF/A-3
-an e-invoice is drawn as, which embeds the XML the runtime writes
-([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md));
-the server and its jobs, storage and publication; reviewed AI changes,
+From the README and the open release gates, and nothing more: the server
+and its jobs, storage and publication; reviewed AI changes,
 whose groundwork is commands as data ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md));
 a published PDF viewer; and a consistent read from Formancy Data, which
 waits for Data's snapshot export. The format's own plan names positioned

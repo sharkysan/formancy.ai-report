@@ -1,0 +1,4 @@
+[main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 12: XMP Metadata: ConformanceLevel contains invalid value
+[main] INFO com.helger.schematron.xslt.SchematronResourceXSLTCache - Compiling XSLT instance [cpPath=/xslt/ZF_250/FACTUR-X_EN16931.xslt; urlResolved=true; URL=jar:file:/{repository}/.e-invoice-cache/mustang/2.26.0/Mustang-CLI-2.26.0.jar!/xslt/ZF_250/FACTUR-X_EN16931.xslt]
+[main] INFO com.helger.schematron.api.xslt.AbstractSchematronXSLTBasedResource - Applying Schematron XSLT on XML instance
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:invalid XML:valid Signature:null Checksum:5DFE6D81003E8653130F4F005B8EC04CEE48EB21 Profile:urn:cen.eu:en16931:2017 Version:2 Took:3242ms Errors:[] ErrorIDs: []

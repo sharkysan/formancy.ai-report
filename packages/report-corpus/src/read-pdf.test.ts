@@ -2,7 +2,7 @@ import { concatTransformationMatrix, degrees, drawObject, PDFDocument, popGraphi
 import { describe, expect, test } from 'vitest'
 import { encodePng } from './fixtures/png.js'
 import { readPdf } from './read-pdf.js'
-import { pdfmakePdf } from './testing/pdfmake.js'
+import { exactBuffer, pdfmakePdf } from './testing/pdfmake.js'
 
 /**
  * Roboto's ascender is 1900 of its 2048 units per em, and pdfmake puts a
@@ -155,6 +155,17 @@ describe('readPdf', () => {
       [80, 111.89, 30, 30],
       [120, 111.89, 30, 30],
     ])
+  })
+
+  // An embedded file is invisible to the page's text and images. PDF.js
+  // reads it from the name tree, by name, with its description and its
+  // bytes inflated; a PDF that embeds none has none, read so rather than
+  // left out, which a test asking "how many files" would take for none.
+  test('reads each file the name tree embeds, with its bytes, and none from a PDF that embeds none', async () => {
+    const xml = new TextEncoder().encode('<Rechnung>Grüße</Rechnung>\r\n')
+    const embedded = await pdfmakePdf({ content: [{ text: 'with a file' }] }, (document) => document.file(exactBuffer(xml), { name: 'factur-x.xml', type: 'text/xml', description: 'invoice data' }))
+    expect((await readPdf(embedded)).attachments).toEqual([{ name: 'factur-x.xml', description: 'invoice data', bytes: xml }])
+    expect((await readPdf(await pdfmakePdf({ content: [{ text: 'without' }] }))).attachments).toEqual([])
   })
 
   // pdfjs takes ownership of the buffer it is given. Handed the caller's own

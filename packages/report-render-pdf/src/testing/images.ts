@@ -55,6 +55,17 @@ export function encodePng(width: number, height: number, pixel: (x: number, y: n
 const segment = (marker: number, body: readonly number[]): number[] => [0xff, marker, (body.length + 2) >> 8, (body.length + 2) & 0xff, ...body]
 
 /**
+ * A frame header as `jpegOf` writes its own: 8 bits a sample, the height,
+ * the width, and each component's id, sampling factors and table. `marker`
+ * makes it another segment of the same bytes, as a JPG (0xC8) or a DAC
+ * (0xCC) segment shaped as a frame header is.
+ */
+export function frameSegment({ marker = 0xc0, height = 8, width = 8, components = 1 } = {}): number[] {
+  const ids = Array.from({ length: components }, (_, index) => index + 1)
+  return segment(marker, [8, height >> 8, height & 0xff, width >> 8, width & 0xff, components, ...ids.flatMap((id) => [id, 0x11, 0])])
+}
+
+/**
  * An APP1 segment of Exif data whose first image file directory has one
  * entry, the Orientation tag (0x0112) set to `orientation`, in big-endian
  * ("MM") byte order.
@@ -71,17 +82,30 @@ export function exifSegment(orientation: number): number[] {
  * "difference 0" and "end of block"; and a scan of those two bits, padded
  * with ones. A frame other than 8 × 8 keeps the one block, which a decoder
  * repeats; `exif` puts an Exif segment after the start.
+ *
+ * `components` makes it 3 (as YCbCr is) or 4 (as CMYK is): each component
+ * one block of the same tables, two bits each in the scan, so four fill
+ * its byte exactly. PDFKit draws a JPEG by its component count: 1 as
+ * DeviceGray, 3 as DeviceRGB, 4 as DeviceCMYK (pdfkit.js 3808-3812).
+ * `segments` puts segments of a test's own after the Exif segment and
+ * before the tables, `frameSegment`'s among them, and `afterFrame` after
+ * the frame header.
  */
-export function jpegOf({ height = 8, width = 8, scan = true, end = true, exif = [] as readonly number[] } = {}): Uint8Array {
+export function jpegOf({ height = 8, width = 8, scan = true, end = true, exif = [] as readonly number[], components = 1, segments = [] as readonly number[], afterFrame = [] as readonly number[] } = {}): Uint8Array {
   const oneCodeTable = (classAndId: number): number[] => [classAndId, 1, ...Array<number>(15).fill(0), 0]
+  const ids = Array.from({ length: components }, (_, index) => index + 1)
+  const bits = 2 * components
   return new Uint8Array([
     0xff, 0xd8, // start of image
     ...exif,
+    ...segments,
     ...segment(0xdb, [0, ...Array<number>(64).fill(1)]), // quantisation table 0
-    ...segment(0xc0, [8, height >> 8, height & 0xff, width >> 8, width & 0xff, 1, 1, 0x11, 0]), // baseline frame, one component
+    ...frameSegment({ height, width, components }), // baseline frame
+    ...afterFrame,
     ...segment(0xc4, oneCodeTable(0x00)), // DC table 0
     ...segment(0xc4, oneCodeTable(0x10)), // AC table 0
-    ...(scan ? [...segment(0xda, [1, 1, 0x00, 0, 63, 0]), 0b0011_1111] : []), // the scan: "0" then "0", padded
+    // The scan: "0" then "0" for each component, padded with ones to whole bytes.
+    ...(scan ? [...segment(0xda, [components, ...ids.flatMap((id) => [id, 0x00]), 0, 63, 0]), ...Array.from({ length: Math.ceil(bits / 8) }, (_, byte) => (0xff >> Math.min(8, bits - 8 * byte)) & 0xff)] : []),
     ...(end ? [0xff, 0xd9] : []), // end of image
   ])
 }

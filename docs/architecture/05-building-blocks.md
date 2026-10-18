@@ -10,6 +10,7 @@ apps   studio                  the playground: both builders, the PDF, PDF.js   
        pages                   the product's pages, static HTML                      private
 ────────────────────────────────────────────────────────────────────────────────────────────
 L3     report-render-pdf       pdfmake · uqr · a Node entry and a browser entry
+                               an e-invoice drawn as a PDF/A-3b that embeds its XML
        report-data-provider    @formancy/data-client: the one door to Data
        report-builder-react    React · DOM            ┐ never each other,
        report-builder-angular  Angular · DOM          ┘ never the other framework
@@ -24,8 +25,9 @@ L0     report-spec             the format · validation · hash · @formancy/spe
                                EN 16931's, for an e-invoice
 
 beside report-corpus           private test support: the fixtures, the PDF reader and its
-                               checks, readCodes, the starters and samples, a reader of the
-                               e-invoice's XML; over the runtime
+                               checks, readCodes, a reader of a PDF's objects and its XMP,
+                               the starters and samples, a reader of the e-invoice's XML;
+                               over the runtime
 ```
 
 Each row's three middle columns are its manifest's: what it depends on
@@ -41,11 +43,11 @@ the upstream packages' and the peers' ranges.
 | `@formancy/report-core` | `report-spec` | `@formancy/expressions` | — | Those two and nothing else, with the same compile-time rule ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [formancy.ai 0008](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0008-layered-packages.md)) |
 | `@formancy/report-runtime` | `report-core`, `report-spec` | `@formancy/expressions` | — | No framework, no PDF engine, no Node, by the same rule; report-core for the one compilation it shares with the editor ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | `@formancy/report-builder-core` | `report-core`, `report-spec` | — | — | Those two, nothing else; no framework, no DOM, no Node ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
-| `@formancy/report-render-pdf` | `report-runtime` | `pdfmake`, `uqr` | — | Of this repository's packages, the runtime alone, which re-exports what the renderer needs of the format: report-spec's own rules for the slip and for how an EPC QR code prints ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)), and the names an e-invoice's file is embedded by ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)). A resolved document and approved bytes in, never a database or an address ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)) |
+| `@formancy/report-render-pdf` | `report-runtime` | `pdfmake`, `uqr` | — | Of this repository's packages, the runtime alone, which re-exports what the renderer needs of the format: report-spec's own rules for the slip and for how an EPC QR code prints ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)), and the names an e-invoice's file is embedded by ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)). A resolved document and approved bytes in, never a database or an address ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)); an e-invoice's PDF/A also embeds the ICC profile PDFKit, pdfmake's own dependency, reads from its package, which `scripts/dependency-licences.mjs` holds to a review by its digest ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 | `@formancy/report-data-provider` | `report-runtime`, `report-spec` | `@formancy/data-client` | — | The only package that may depend on Formancy Data; `scripts/dependency-licences.mjs` refuses Data reached from any other ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). The DOM's globals and no `@types/node`, so a `node:` import does not compile |
 | `@formancy/report-builder-react` | `report-builder-core`, `report-core`, `report-spec` | — | `react`, `react-dom` | The core packages and React, never Angular or the other builder ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
 | `@formancy/report-builder-angular` | `report-builder-core`, `report-core`, `report-spec` | `tslib` | `@angular/core` | The core packages and Angular; `src/dependencies.test.ts` fails on React anywhere in its closure ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
-| `@formancy/report-corpus` | `report-runtime` | `pdfjs-dist`, `zxing-wasm`, `saxes` | — | Private, never published: test support ([0003](../decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)). saxes reads the XML the runtime writes, a parser that is not the writer, in the corpus's tests and, resolved from the corpus, in the e-invoice gate's scripts (0027) |
+| `@formancy/report-corpus` | `report-runtime` | `pdfjs-dist`, `zxing-wasm`, `saxes`, `@pdfme/pdf-lib` | — | Private, never published: test support ([0003](../decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)). saxes reads the XML the runtime writes, a parser that is not the writer, in the corpus's tests and, resolved from the corpus, in the e-invoice gate's scripts (0027), and a PDF's XMP. pdf-lib reads a PDF's own objects, a reader that is neither the pdfkit that writes them nor PDF.js, in the corpus's tests and the renderer's and, through the corpus's built index, in the e-invoice gate, which reads what each PDF embeds with it and records each PDF by its digest (0031) |
 | `apps/studio` (`@formancy/report-studio`) | `report-spec`, `report-core`, `report-runtime`, `report-render-pdf`, `report-builder-core`, `report-builder-react`, `report-builder-angular`: every package but the provider; and `report-corpus`, for its starters | `react`, `react-dom`, `@angular/core`, `@angular/common`, `@angular/platform-browser`, `rxjs`, `pdfjs-dist`, `@formancy/themes`, and the faces: `@fontsource-variable/archivo`, `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono` | — | Private; the PDF.js viewer lives here and in no published package ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)), and its faces are its own copies ([0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)) |
 | `apps/pages` (`@formancy/report-pages`) | — | `react` and `react-dom`, for the server renderer, and the faces: `@fontsource-variable/archivo`, `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono` | — | Private; the Studio's stylesheets by import, and facts read from the repository's files when it builds ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)) |
 
@@ -132,15 +134,15 @@ It is a package boundary, not an engine interface: there is one engine.
 
 | Module | Responsibility |
 |---|---|
-| `node.ts`, `browser.ts`, `engine.ts` | The two entries: pdfmake's Node build reading font files, or its browser build reading virtual ones. Only that differs. The browser entry imports Liberation Sans's chunk with the first document that has a QR-bill or a captioned EPC QR code, and never for a document with neither, which `report-render-pdf/src/browser.test.ts` holds ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
-| `render.ts` | The passes, each a pdfmake layout: measure the page regions, measure kept blocks and table rows, then lay out the PDF, with an abort read between them |
-| `check.ts`, `glyphs.ts`, `widths.ts`, `assets.ts` | What is refused before pdfmake sees the document: a character without a glyph, what is malformed or wider than where it stands, image bytes that are not what they say |
+| `node.ts`, `browser.ts`, `engine.ts` | The two entries: pdfmake's Node build reading font files, or its browser build reading virtual ones. Only that differs. Each hands PDFKit's document, laid out and not yet ended, to the final pass's `finish`, the one hook an e-invoice is embedded through ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)). The browser entry imports Liberation Sans's chunk with the first document that has a QR-bill or a captioned EPC QR code, and never for a document with neither, which `report-render-pdf/src/browser.test.ts` holds ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
+| `render.ts` | The passes, each a pdfmake layout: measure the page regions, measure kept blocks and table rows, then lay out the PDF, with an abort read between them; an e-invoice's file and XMP are added on that last pass alone |
+| `check.ts`, `glyphs.ts`, `widths.ts`, `assets.ts` | What is refused before pdfmake sees the document: a character without a glyph, what is malformed or wider than where it stands, image bytes that are not what they say; and in an e-invoice, a CMYK JPEG, which its PDF/A cannot hold beside its sRGB output intent |
 | `bound.ts`, and `check.ts`'s `refuseTall` | What is refused between the passes, once the page regions are measured: a block of fixed height or a line taller than a page's body, and a body whose least height already needs more pages than the limit |
 | `words.ts` | What is refused inside every pass, once pdfmake has measured the words and before it lays out a line: a word wider than its table column, or longer than `MAX_WORD_LINES` lines of its paragraph, read from pdfmake's own `_minWidth` ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
 | `breaks.ts`, `table.ts`, `table-rules.ts` | Where a table's pages break, planned from measured heights, so a group header stays with its first row and totals with the last |
 | `qr.ts` | A QR code encoded once by uqr and drawn as one vector path ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)) |
 | `bill.ts`, `slip.ts`, `bill-fonts.ts` | A QR-bill's slip as SIX lays it out, in the Liberation Sans the package ships in `fonts/`; `bill-fonts.ts` is those faces for the browser entry's chunk ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)) |
-| `e-invoice.ts` | A document with an e-invoice, refused by `checkDocument` as `unsupported`, naming `eInvoice`, in both entries and before pdfmake sees it: an e-invoice is drawn as a PDF/A-3, which this release does not write. What it does not know of the file, its name, relationship or conformance level, it refuses first, in words of its own, so that those refusals outlive the next step ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) |
+| `e-invoice.ts`, `pdfa.ts` | An e-invoice the renderer knows, and how it is drawn. `checkEInvoice` refuses, as `unsupported` and before pdfmake sees the document, a file whose name, relationship or conformance level is not report-spec's, XML holding a lone surrogate, and a title PDFKit cannot write into the XMP ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)). `pdfa.ts` makes the document a PDF/A-3b (`PDF_A_3B`) and, through the final pass's hook, embeds the runtime's XML as `factur-x.xml`, changed in nothing, and appends the fx properties and their extension schema to PDFKit's XMP; every other report is drawn as it was ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 | `epc.ts` | An EPC QR code encoded once by uqr at level M and drawn as a QR code is; with Austria's caption, in the PSA's frame at the least version that prints, the caption in the same Liberation Sans, laid out by report-spec's `epc-print.ts` ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 
 ### `@formancy/report-data-provider` (L3)
@@ -206,6 +208,23 @@ QR codes with ZXing
 ([0003](../decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md),
 [0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md),
 [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+What a PDF says of itself is read by a second reader, `objects.ts`, with
+@pdfme/pdf-lib, which shares no code with the pdfkit that writes it or
+with PDF.js: its version, information dictionary and trailer /ID, the
+files on the catalog's /AF and in its /Names /EmbeddedFiles tree, each
+with its specification's keys, its stream's and its bytes, and its output
+intents with their profiles' bytes. It refuses an encrypted PDF and a
+name tree with /Kids, which it does not walk. `read-pdf.ts` reads the files
+the name tree names too, so that a file's bytes come from two readers, and
+`xmp.ts` reads the XMP strictly with saxes, each property by its namespace
+and with its prefix. `objects.ts`'s `inflatedDigest` hashes a PDF's objects
+with every stream inflated, a JPEG's read as it is, so that two PDFs whose
+zlibs deflated one document otherwise hash alike: the e-invoice gate's
+record, and the renderer's two entries held to one. `image-kinds.ts`
+makes, in code, an image of each kind PDFKit embeds in a way of its own,
+which the e-invoice gate draws into an e-invoice and the renderer's tests
+draw into one
+([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 `starters/` holds the starter reports with their synthetic data, the
 invoice with its QR-bill and the euro invoice with its EPC QR code among
 them (`starters/euro-invoice.ts`), and the samples of those two: the
@@ -224,7 +243,8 @@ the euro invoice's head, table and bank details that
 (`starters/e-invoice.ts`,
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
 `testing/cii.ts` reads the XML the runtime writes of them back with saxes,
-by namespace, for their tests.
+by namespace, for their tests and, through the index, for the renderer's,
+which read it out of the PDF they print.
 `trial/` keeps the renderer trial's adapters for pdfmake and pdfme as the
 record of the trial
 ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).

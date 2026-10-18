@@ -15,8 +15,9 @@ name: Gates
 # browser, and the README's pictures of it held to the text they show
 # (`browser`); the packed tarballs in projects that are not this one
 # (`install`), which also compiles and runs docs/getting-started.md's code
-# (0015); and the e-invoice XML the runtime writes, judged by the validators
-# a receiver runs (`e-invoice`, 0027). A container gate arrives with the
+# (0015); and the e-invoice, the XML the runtime writes and the PDF/A-3b the
+# renderer draws of it, judged by the validators a receiver runs
+# (`e-invoice`, 0027, 0031). A container gate arrives with the
 # server it proves -- not before,
 # so that no job here passes for having nothing to check. A job added here
 # is one the report expects results from: it needs a collect step, and
@@ -360,16 +361,20 @@ jobs:
           if-no-files-found: error
           overwrite: true
 
-  # The e-invoice gate (0027): Mustang and KoSIT's validator with its
-  # XRechnung configuration, at the releases docs/release/e-invoice-tools.json
-  # pins, each fetched by URL and refused unless its SHA-256 is the
-  # registered one, then run, with Java's HTTP and HTTPS proxies at a dead
-  # port (a raw socket is not caught), over the CII XML the runtime writes
-  # of every e-invoice sample of the corpus, and over controls broken one
-  # named way each, which every tool must refuse for exactly that; and
-  # report-spec's closed code lists and the rule ids its refusals name, held
-  # to the schematrons those tools run (scripts/e-invoice.mjs). An error
-  # fails the job; a warning or a notice fails it unless
+  # The e-invoice gate (0027, 0031): Mustang, KoSIT's validator with its
+  # XRechnung configuration, and veraPDF, at the releases
+  # docs/release/e-invoice-tools.json pins, each fetched by URL and refused
+  # unless its SHA-256 is the registered one, then run, with Java's HTTP and
+  # HTTPS proxies at a dead port (a raw socket is not caught), over the CII
+  # XML the runtime writes of every e-invoice sample of the corpus, Mustang
+  # and KoSIT, and over the PDF/A-3b the renderer draws of it and of
+  # variants that carry the first sample's e-invoice on other pages, veraPDF
+  # and Mustang, and over controls broken one named way each, which every tool
+  # must judge exactly as each expects -- Mustang never by its exit status
+  # alone, which is 0 on a PDF whose XML is valid whatever its PDF/A says;
+  # and report-spec's closed code lists and the rule ids its refusals name,
+  # held to the schematrons those tools run (scripts/e-invoice.mjs). An
+  # error fails the job; a warning or a notice fails it unless
   # scripts/e-invoice/accepted.json accepts it in that file. Its own job,
   # because it needs a Java and downloads of its own, and a red "e-invoice"
   # says which kind of wrong it is.
@@ -377,9 +382,12 @@ jobs:
   # The twenty minutes are not measured on CI. The job installs the
   # workspace and builds every package before the gate, as verify does in
   # its fifteen; on a Windows 11 workstation (i9-10900K) on 2026-10-17 that
-  # build took 34 s uncached, and the gate itself 44 s on Zulu 25 with its
-  # downloads and, from the cache, 28 to 30 s on Zulu 25 and 37 to 40 s on
-  # Temurin 17. The bound is for an install, a download or a runner having a
+  # build took 34 s uncached, and the gate itself, with the PDFs, on
+  # 2026-10-18 from the cache: 59 and 61 s on Zulu 25, 82 s once beside other
+  # work on the machine, and 89 s on Temurin 17, Mustang's seventeen runs most
+  # of each; with the variants and two more controls, 103 s on Zulu 25 and
+  # 130 s on Temurin 17, each beside other work, Mustang's twenty-six runs
+  # most of each. The bound is for an install, a download or a runner having a
   # bad day, not for the work, until three green runs give a slowest time
   # to triple.
   e-invoice:
@@ -411,8 +419,9 @@ jobs:
       - run: pnpm build
 
       # The register's runtime: Mustang's and KoSIT's JARs need Java 11 (their
-      # classes are version 55), and the gate passed on Temurin 17.0.20.1 on
-      # 2026-10-17. A third-party action in all but name, pinned like one: the
+      # classes are version 55) and veraPDF's 8, and the gate passed on
+      # Temurin 17.0.20.1 on 2026-10-17, and with veraPDF and the PDFs on
+      # 2026-10-18. A third-party action in all but name, pinned like one: the
       # commit of v6.0.1, read from the action's repository that day, as
       # formancy.ai-health pins it.
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
@@ -445,8 +454,8 @@ jobs:
           path: release-results/
           if-no-files-found: error
           overwrite: true
-      # The results, the corpus as written and every tool's own output, whole,
-      # for whoever reads a red run.
+      # The results, the corpus as written -- the XML and the PDFs -- and
+      # every tool's own output, whole, for whoever reads a red run.
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:

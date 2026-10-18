@@ -1,6 +1,6 @@
 # 0003 — A rendered report is proved on the PDF it produced
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which reads QR codes from the page's pixels, and by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which reads a run turned on the page
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which reads QR codes from the page's pixels, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which reads a run turned on the page, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which reads the files a PDF embeds and what it says of itself with a second reader, pdf-lib, and its XMP with saxes
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `packages/report-corpus`, whose suite runs in its own job of
@@ -138,6 +138,27 @@ and its advance tall. A run across the page keeps the box it had. `lines`
 makes a run that does not read across the page a line of its own, after
 the lines that do, so that a caption is never joined to the text beside
 it. `src/read-pdf.test.ts` and `src/lines.test.ts` hold both.
+
+**Added 2026-10-18: what a PDF says of itself.** An e-invoice is a PDF/A-3b
+that embeds its XML
+([0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)),
+and what it embeds, how it relates the file to itself and what its XMP
+says are neither text nor an image to the checks above. They are read the
+same way, from the PDF the engine produced: `readPdf` gives the files the
+name tree names, read by PDF.js; `readPdfObjects` (`src/objects.ts`) reads
+the PDF's own objects with a second reader, `@pdfme/pdf-lib`, which shares
+no code with the PDFKit that writes them or with PDF.js -- the version, the
+information dictionary and `/ID`, every file on the catalog's `/AF` and in
+the name tree with its specification's keys and its bytes inflated, the
+output intents with their profiles, and the XMP -- so that an embedded
+file's bytes come from two readers; and `readXmp` (`src/xmp.ts`) reads the
+XMP strictly with saxes, every prefix resolved, each property found by its
+namespace. A PDF the reader of objects cannot read as PDFKit writes one --
+an encrypted one, a name tree with `/Kids` -- is refused, not read in part.
+`src/objects.test.ts`, `src/xmp.test.ts` and `src/read-pdf.test.ts` hold
+them, on PDFs PDFKit writes in the test with a file and without. Whether a
+validator takes such a PDF is no reader's to say: veraPDF and Mustang are
+the e-invoice gate's.
 
 ## Alternatives considered
 

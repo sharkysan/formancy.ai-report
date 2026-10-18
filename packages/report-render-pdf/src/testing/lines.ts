@@ -27,7 +27,8 @@ function baselineOf(item: PdfTextItem): number {
   return item.bottom - DESCENT * item.height
 }
 
-export function pageLines(page: PdfPage): Line[] {
+/** A page's runs as the lines `pageLines` reads, each line's runs left to right: for a test that reads a line's runs where they stand, as a table's cells. */
+export function runLines(page: PdfPage): PdfTextItem[][] {
   const byBaseline = [...page.items].sort((a, b) => baselineOf(a) - baselineOf(b) || a.x - b.x)
   const lines: PdfTextItem[][] = []
   for (const item of byBaseline) {
@@ -39,8 +40,11 @@ export function pageLines(page: PdfPage): Line[] {
       lines.push([item])
     }
   }
-  return lines.map((items) => {
-    const ordered = items.sort((a, b) => a.x - b.x)
+  return lines.map((items) => items.sort((a, b) => a.x - b.x))
+}
+
+export function pageLines(page: PdfPage): Line[] {
+  return runLines(page).map((ordered) => {
     let joined = ''
     ordered.forEach((item, index) => {
       const before = ordered[index - 1]

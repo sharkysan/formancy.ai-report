@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:8bb7d42e4ae2e3695ae80685577d16387dbfb24d7dd751861ab49ac7b1ab3ae8",
+      "reviewed": "sha256:8923d767676446f5ced23c5c9ddec8457215f50e58c76facf9a1f663440785d2",
       "limitations": [
         {
           "area": "testing",
@@ -65,7 +65,7 @@
       ]
     },
     "0005": {
-      "reviewed": "sha256:0c0116b4a21325980d3814cb218b3af9661788b6863741b593b69cd2b60a2fbc",
+      "reviewed": "sha256:514da8f8d541b14d050535f3276fc4a36f2967717694e3cd13e12aac9f972343",
       "limitations": [
         {
           "area": "rendering",
@@ -86,7 +86,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:91ab16b1cc2a6d2cf50c7fa61c34c173859a91cfe9485b69bc12f050b17f3965",
+      "reviewed": "sha256:c994bf7983b10e2f5efc0f46c71d2c5e739d370a3546c2a068099f4e5b58927d",
       "limitations": [
         {
           "area": "licence",
@@ -250,7 +250,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:f03d55d1ae5267210f97b7b6705359c60794f5411c022fb83a8d0a7a4cf958f3",
+      "reviewed": "sha256:fe0a31b1aff82531821c46ef84e3f9b56ee37154868f1d884eba791a969feecd",
       "limitations": [
         {
           "area": "rendering",
@@ -332,7 +332,7 @@
       ]
     },
     "0014": {
-      "reviewed": "sha256:3d7bdfa99c62af30a0b1bb139cfadeb003ef584c563a1b453cc3a4458c6316a5",
+      "reviewed": "sha256:4114226d1b64048393289ac60f7850646a1c2246a468ffdad391e8abf4009436",
       "limitations": [
         {
           "area": "release",
@@ -726,7 +726,7 @@
       "none": "It decides how the repository documents its architecture and what holds those documents in pnpm test:repo; its costs fall on a contributor's pull request, and nothing in a published package, a release or the Studio changes with it."
     },
     "0027": {
-      "reviewed": "sha256:58deb068873c400446b338ddd6f3d0844cbebe116a53dccb877acd310d06b7e8",
+      "reviewed": "sha256:1190201ef6f7a6761fccc2608d4144b6c7880e560c42cdaf5eb17c7e2c3ba200",
       "limitations": [
         {
           "area": "format",
@@ -858,26 +858,11 @@
         },
         {
           "area": "rendering",
-          "says": "This release draws no e-invoice: the renderer refuses every document with one as `unsupported`, so a final render writes the XML into the resolved document and no PDF carries it.",
-          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
-        },
-        {
-          "area": "rendering",
           "says": "A renderer that predates e-invoices, 0.1.0's among them, would draw a resolved e-invoice as a plain PDF, which only two runtimes in one install could hand it, since the packages pin each other exactly."
         },
         {
           "area": "testing",
-          "says": "An e-invoice's page is held to its XML for the corpus's three samples alone, on the document the runtime resolved and on no PDF, and only those samples go through Mustang and KoSIT, so a customer's template is held by the rules and by the check that each total is printed.",
-          "heldBy": "packages/report-corpus/src/starters/e-invoice.test.ts"
-        },
-        {
-          "area": "testing",
           "says": "The e-invoice gate's Mustang 2.26.0 and KoSIT 1.6.3 run CEN's 1.3.16 artefacts, where report-spec's rules follow 1.3.17, and on 17 October 2026 the gate had run on Windows alone, on Zulu 25 and Temurin 17, never in CI, where the release report holds it to the register's Java major version and a machine's run is held to none."
-        },
-        {
-          "area": "testing",
-          "says": "The e-invoice gate needs a Java at least as new as each JAR's `java` in its register and about 70 MB of downloads, each pinned by its SHA-256, so a release of Mustang or KoSIT reaches the gate only through a change to its register.",
-          "heldBy": "scripts/e-invoice/registers.test.mjs"
         },
         {
           "area": "licence",
@@ -894,7 +879,7 @@
       ]
     },
     "0028": {
-      "reviewed": "sha256:015a6d55799549b8ec3a63cbe4f407a0debbec82b9308868119da0ab48daf0b7",
+      "reviewed": "sha256:5cb4cc5b9a3f908ef21b09b9c40f46f8d47e1512a12a6cb336e4eecc3a214a7b",
       "limitations": [
         {
           "area": "release",
@@ -1023,6 +1008,103 @@
         {
           "area": "testing",
           "says": "The README's pictures show the Studio past 2052 pixels and at 390, never with the Preview in the builder's middle at a laptop's width, since the camera takes no width between the Studio's breakpoints."
+        }
+      ]
+    },
+    "0031": {
+      "reviewed": "sha256:e6d44144532e706b4008b096d11f3351898deeb9fea495a327aa2a2e874aaaf7",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "An e-invoice is drawn as a PDF/A-3b, the one level pdfmake and PDFKit reach, so its PDF has no structure tree and is no tagged, accessible PDF, and a receiver who asks for PDF/A-3a or 3u gets level b.",
+          "heldBy": "packages/report-render-pdf/src/e-invoice.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A CMYK JPEG, an asset's or a field's, is refused in a final render of an e-invoice, naming the image, since its PDF/A-3b's output intent is sRGB, while its preview, which is no PDF/A, draws it, so an author finds out only at the final render.",
+          "heldBy": "packages/report-render-pdf/src/assets.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, as arithmetic coding may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components -- is refused as `invalid-asset` in every report, where 0.1.0 drew it wrong, so a template that holds one stops rendering.",
+          "heldBy": "packages/report-render-pdf/src/assets.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A PNG whose transparency is a colour key is drawn in every report as PDFKit's PNG reader, png-js 1.1.0, reads it: a grey key by its high byte, so another grey may be drawn transparent, and an RGB key as twelve numbers where a PDF reader wants six, which a reader may ignore.",
+          "heldBy": "packages/report-corpus/src/image-kinds.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The renderer refuses an e-invoice whose XML holds a lone surrogate, or whose title holds `&`, `<`, `>` or a character XML 1.0 cannot write, naming `info.title`, so a document a host builds otherwise than the runtime resolves one is refused where PDFKit would write a PDF that is no PDF/A.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "An e-invoice's PDF carries the embedded file's /CheckSum as PDFKit writes it, its MD5 in 32 hexadecimal digits where ISO 32000-1 asks for 16 bytes, and a trailer /ID shared with every PDF of its title and creation date, which PDFKit derives it from.",
+          "heldBy": "packages/report-render-pdf/src/pdfmake.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A render of an e-invoice reads PDFKit's ICC profile from `data/sRGB_IEC61966_2_1.icc` beside PDFKit's own code, with `fs` and outside pdfmake's access policy, so a host that bundles the Node entry puts that file where the bundled PDFKit's `__dirname` points, or every e-invoice render fails, which nobody here has tried.",
+          "heldBy": "packages/report-render-pdf/src/pdfmake.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "No validator in the e-invoice gate reads the namespace of an e-invoice's fx properties, which the transcription it rests on gives two ways, with `:invoice` in its section 6.3.1 and without it in BR-HYBRID-04, so if the specification means the one the renderer does not write, every e-invoice carries the wrong one unseen.",
+          "heldBy": "packages/report-render-pdf/src/e-invoice.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "No validator compares an e-invoice's XMP conformance level with its XML's profile: the gate's own reading holds it for the PDFs the gate draws, and a receiver who runs Mustang or veraPDF alone would not see a level its XML does not have.",
+          "heldBy": "scripts/e-invoice/pdf-corpus.test.mjs"
+        },
+        {
+          "area": "rendering",
+          "says": "The browser entry's PDF/A-3b is drawn by pdfmake's browser build in Node in the tests and never in a browser, and its output intent is the profile that build carries as base64, which the dependency guard cannot read and a test holds to the reviewed one.",
+          "heldBy": "packages/report-render-pdf/src/browser.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "An e-invoice drawn as a PDF/A-3b is 8,497 to 8,564 bytes larger than the same report drawn plain: the corpus's samples were 36,712 to 37,801 bytes against 28,215 to 29,237, and their medians of nine renders 83 to 91 ms against 81 to 94 ms, within the noise of a machine running other work, measured on 18 October 2026 from the built packages on Node 24.21.0 and an Intel i9-10900K."
+        },
+        {
+          "area": "testing",
+          "says": "An e-invoice's page is held to the XML its PDF embeds for the corpus's three samples alone, and only those samples' XML, their PDFs and variants that carry the first sample's XML on the starters' pages and on a page of every image kind go through Mustang, KoSIT and veraPDF, so a customer's template is held by the rules and by the check that each total is printed.",
+          "heldBy": "packages/report-render-pdf/src/e-invoice-samples.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The e-invoice gate needs a Java at least as new as each JAR's `java` in its register and 86,368,974 bytes of downloads, each pinned by its SHA-256, so a release of Mustang, KoSIT or veraPDF reaches the gate only through a change to its register.",
+          "heldBy": "scripts/e-invoice/registers.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "Mustang 2.26.0 checks neither an embedded file's declared /CheckSum and /Size nor its /AFRelationship, as the gate's three controls of them show, and exits 0 on a PDF whose XML is valid whatever its PDF/A says, so the gate reads Mustang's PDF part and veraPDF's report and counts the files with pdf-lib, and a receiver who runs Mustang alone sees less.",
+          "heldBy": "scripts/e-invoice/mustang.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "Every variant of the e-invoice gate is recorded by the digest of its PDF, so a change to what a starter, the fonts fixture or an image kind draws fails the e-invoice job until somebody with a Java runs the gate with `--record`.",
+          "heldBy": "scripts/e-invoice/record.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "The e-invoice gate drew and judged its PDFs on Windows alone, on 18 October 2026, on Zulu 25 and Temurin 17 and under Node 22 and 24, and never in CI, where their digests and any ERROR line Mustang logs on Linux have not been seen."
+        },
+        {
+          "area": "testing",
+          "says": "The install gate is the one place a PDFKit that a host's install resolves within pdfmake's `^0.19.1` is seen embedding an e-invoice and its profile, and the release report names only the packed packages' direct dependencies, so it never says which PDFKit a host got."
+        },
+        {
+          "area": "licence",
+          "says": "veraPDF, which the e-invoice gate runs over the PDFs, is under GPL-3.0-or-later OR MPL-2.0, which the dependency policy refuses for a package: it is admitted for the gate's runs at 1.30.3 alone, and no package carries it.",
+          "heldBy": "scripts/e-invoice/registers.test.mjs"
+        },
+        {
+          "area": "licence",
+          "says": "An ICC profile is admitted by the SHA-256 of its bytes and the licence sentence a review read, never by anything the file says, so a PDFKit that ships another profile stops the dependency guard until somebody reads it, and a profile inside a script or an image is not seen.",
+          "heldBy": "scripts/dependency-licences.test.mjs"
         }
       ]
     }

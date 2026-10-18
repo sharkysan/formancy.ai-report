@@ -12,8 +12,7 @@ import type { Starter } from './starter.js'
 /**
  * The e-invoice samples: the de-DE e-invoice and its two variants, the
  * same template over other data. What the runtime makes of each is read
- * back here, before any PDF, since the renderer refuses an e-invoice until
- * it draws PDF/A-3:
+ * back here, in the document and the XML it resolves to, before any PDF:
  *
  * - **the XML against BigInt.** Each sample's XML is read by saxes
  *   (`testing/cii.ts`), and every amount it holds -- each line's, each
@@ -26,7 +25,9 @@ import type { Starter } from './starter.js'
  *   formats them for de-DE, so that a page that printed one thing and an
  *   XML that held another fails here.
  *
- * That it is the PDF which prints them is PR 2's claim, on the PDF (0003).
+ * That the PDF prints them, and embeds that very XML, is held on the PDF
+ * the engine produced (0003) by report-render-pdf's
+ * `e-invoice-samples.test.ts`.
  */
 
 const CREATED = '2026-10-16T08:00:00Z'
@@ -51,7 +52,7 @@ describe('the e-invoice samples', () => {
   // path through, all in German: a fourth, or one in another language,
   // would claim what the PR does not (France waits), and a sample that
   // became a starter would put an e-invoice in the Studio's picker that
-  // the renderer refuses to draw.
+  // neither builder edits.
   test('are the e-invoice and its two variants, in German, and none is a starter', () => {
     expect(E_INVOICE_SAMPLES.map((sample) => [sample.id, sample.title, sample.report.locale])).toEqual([
       ['e-invoice', 'Rechnung (ZUGFeRD)', 'de-DE'],

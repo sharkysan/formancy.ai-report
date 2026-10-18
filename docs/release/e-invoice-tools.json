@@ -1,5 +1,5 @@
 {
-  "$comment": "The tools the e-invoice gate runs over the XML the runtime writes (0027), each fetched from its release's asset and refused unless its SHA-256 is the one here. Each hash and size was read from GitHub's digest of the asset and from a download of it, which agreed, on 17 October 2026 at 14:36 UTC. `java` is the oldest Java a JAR runs on, from its manifest's Build-Jdk-Spec and its classes' versions, read the same day; `runtime` is the Java CI runs the gate on, which must run every JAR, and `distribution` its name to actions/setup-java. `licence` is a tool's own. Each download carries other works under their own licences, which nobody here reviewed one by one -- Saxon in both JARs, veraPDF and CEN/TC 434's EUPL-1.2 schematron in Mustang's, the same schematron in the configuration: they run in CI and no package carries them (0027). Read by scripts/e-invoice.mjs; held by scripts/e-invoice/registers.test.mjs. A new release is adopted by changing all of its entry in one commit, with a CHANGELOG line saying why.",
+  "$comment": "The tools the e-invoice gate runs over the XML the runtime writes (0027) and the PDF/A-3b the renderer draws of it (0031), each fetched from its release's asset and refused unless its SHA-256 is the one here. Mustang's, KoSIT's and the configuration's hash and size were read from GitHub's digest of the asset and from a download of it, which agreed, on 17 October 2026 at 14:36 UTC; veraPDF's from the .sha256 Maven Central publishes beside the JAR and from a download of it, which agreed, on 17 October 2026 and again on 18 October, Maven Central listing the JAR on 8 October 2026, a day after veraPDF's own release page dates 1.30.3. `java` is the oldest Java a JAR runs on, from its manifest's Build-Jdk-Spec and its classes' versions, read the same day (veraPDF's classes are version 52 at most, Java 8, but for its module-info and those under META-INF/versions, which its manifest does not make a multi-release JAR, and its manifest says Build-Jdk-Spec 17, the JDK it was built with); `runtime` is the Java CI runs the gate on, which must run every JAR, and `distribution` its name to actions/setup-java. `licence` is a tool's own; veraPDF's, which the dependency policy refuses, is admitted for that release by 0031 (scripts/e-invoice/registers.mjs's ADMITTED_LICENCES). `veraPdfFloor` is the oldest veraPDF the gate may run, as its own pin or inside Mustang, whose JAR the gate reads for the version it bundles. Each download carries other works under their own licences, which nobody here reviewed one by one -- Saxon in Mustang's and KoSIT's JARs, veraPDF and CEN/TC 434's EUPL-1.2 schematron in Mustang's, the same schematron in the configuration, the libraries veraPDF's JAR is built with: they run in CI and no package carries them (0027, 0031). Read by scripts/e-invoice.mjs; held by scripts/e-invoice/registers.test.mjs. A new release is adopted by changing all of its entry in one commit, with a CHANGELOG line saying why.",
   "tools": [
     {
       "id": "mustang",
@@ -34,8 +34,24 @@
       "bytes": 499607,
       "java": null,
       "licence": "Apache-2.0"
+    },
+    {
+      "id": "verapdf",
+      "name": "veraPDF CLI",
+      "version": "1.30.3",
+      "released": "2026-10-07",
+      "url": "https://repo1.maven.org/maven2/org/verapdf/apps/cli/1.30.3/cli-1.30.3.jar",
+      "sha256": "4c8acbaeb16405456c8d6d76deac8cf40d94618cb4e33aedf44e51ee1b68be91",
+      "bytes": 16057132,
+      "java": 8,
+      "licence": "GPL-3.0-or-later OR MPL-2.0"
     }
   ],
+  "veraPdfFloor": {
+    "version": "1.30.2",
+    "advisories": ["GHSA-3jh7-wm29-q568", "GHSA-36mm-w85j-3q2j"],
+    "why": "CVE-2026-54078 and CVE-2026-54079, two XML external entity flaws, through rich text and through XFA, in veraPDF's validation-model up to 1.30.1 and patched in 1.30.2 (the two advisories of veraPDF-validation, read on 17 October 2026). veraPDF parses every PDF the gate judges, as its own pin and as the copy inside Mustang, which bundles 1.30.2 (its JAR's org.verapdf pom.properties)."
+  },
   "runtime": {
     "name": "Eclipse Temurin",
     "distribution": "temurin",

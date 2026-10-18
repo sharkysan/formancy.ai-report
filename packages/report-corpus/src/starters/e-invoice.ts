@@ -19,8 +19,9 @@ import type { Starter } from './starter.js'
  * due. Its EPC code asks for the amount due, to the e-invoice's account.
  *
  * It is a sample, not a starter, as the invoice's other languages are
- * (0024): the renderer refuses an e-invoice until it draws PDF/A-3, and the
- * Studio's picker keeps its starters.
+ * (0024): neither builder edits an e-invoice, and the Studio's picker keeps
+ * its starters. The renderer draws its final render as the PDF/A-3b that
+ * embeds its XML (0031).
  *
  * **Its variants are its data**, so that each path an e-invoice may take
  * is one the e-invoice gate sees, and from the one template:
