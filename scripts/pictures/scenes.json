@@ -71,11 +71,14 @@
     "placement": "more",
     "title": "At a phone's width",
     "width": 390,
-    "caption": "At 390 pixels wide, the service inspection starter as the Studio opens. The bar's controls take a line each, the builder shows one pane at a time, chosen from its toolbar, and the Preview follows under it with each page at the width there is, “Page 1 of 2” and the next; nothing scrolls sideways, which the Studio's browser gate measures down to 320 pixels.",
-    "alt": "The Studio at a phone's width: the bar with the starter picker on Service inspection and the builder switch on React, the builder showing its toolbar and the outline, and under it the Preview with both pages of the service inspection report.",
+    "caption": "At 390 pixels wide, the service inspection starter as the Studio opens. The bar's controls take a line each, and the builder shows one pane at a time, chosen from its toolbar: it opens on the Preview, standing in the design view's place, with its first page at the width there is, “Page 1 of 2” ([0029](./docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)). Nothing scrolls sideways, which the Studio's browser gate measures down to 320 pixels.",
+    "alt": "The Studio at a phone's width: the bar with the starter picker on Service inspection and the builder switch on React, and under it the builder, its toolbar wrapped over several rows and the Preview as its one pane, “Preview: printed.”, with the top of the first page of the service inspection report on white paper.",
     "quotes": {
       "Page 1 of 2": [
-        "Preview"
+        "Builder"
+      ],
+      "Preview: printed.": [
+        "Builder"
       ]
     }
   }

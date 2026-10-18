@@ -61,9 +61,10 @@ Exactly the structure report-builder-core's README sets out under *What a
 builder renders*, which the React builder renders too: a region named
 "Report editor" with a bar above the panes (the title and the toolbar, with
 its four pane buttons), the outline pane with the place chooser floating
-over it, the design view, the properties and the problems sharing the third
-column, and a bar below with the live region. Every name comes from the
-core's catalogue in English, Swiss German and Swiss French.
+over it, the design view -- or the host's view in its place -- the
+properties and the problems sharing the third column, and a bar below with
+the live region. Every name comes from the core's catalogue in English,
+Swiss German and Swiss French.
 
 What is Angular's own:
 
@@ -75,6 +76,24 @@ What is Angular's own:
   is in the document. Every action comes from one of the builder's own
   listeners, which marks the view for check, so a render follows even an
   action that changed nothing.
+- **The host's view is a template.** A host whose editor was made with a
+  view of its own gives it as `<ng-template reportHostView>`, and the builder
+  stamps it into the design view's place while the editor's `view` is the
+  host's
+  ([0029](../../docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)):
+
+  ```html
+  <report-builder [editor]="editor">
+    <ng-template reportHostView><app-preview /></ng-template>
+  </report-builder>
+  ```
+
+  A template, not projected content, because Angular makes projected
+  content once whether its slot is drawn or not: the host's view lives only
+  while it is drawn, and the toolbar's Design view destroys it. The builder
+  stamps it with `@angular/core` alone, since `NgTemplateOutlet` is
+  `@angular/common`'s, which is not this package's peer. A key pressed in
+  it is the host's.
 - **Drag and drop is HTML's**, from the palette, from a canvas box or from an
   outline row, onto the sheet (the nearest place, `targetNear`, read inside
   the sheet's border) or onto a row (before or after it, `targetBeside`). A
@@ -103,7 +122,8 @@ and the parts inside it:
 Each part is an attribute on the element it is, so the DOM has no wrapper
 elements the React builder lacks. The bars, the panes' headers, the Report
 button and the problems' count are `<report-builder>`'s template, not parts;
-a host that arranges the parts itself writes its own. The parts inject
+a host that arranges the parts itself writes its own, and draws its own
+view where the state's `view` says, in place of `reportCanvas`. The parts inject
 `ReportEditorRoot`, which holds the state as a signal and the editor's words.
 It also routes key presses through `actionForKey`, dispatches, and moves
 focus. `injectEditorState(editorSignal)` is the same signal for a host's own
@@ -161,8 +181,13 @@ runs.
   it among them. Each property of every component kind is found by its role
   and name, and axe runs on each selection in turn.
 - **The stylesheet's hooks:** the parts rendered are exactly `REPORT_PARTS`,
-  the `data-*` states are exactly those `REPORT_ATTRIBUTES` lists, and the
-  classes are only the workbench's.
+  the design view's and the host's view's together, since the two are never
+  drawn at once; the `data-*` states are exactly those `REPORT_ATTRIBUTES`
+  lists, and the classes are only the workbench's.
+- **The host's view**: a bare region in the design view's place, with the
+  middle pane's `data-pane`, its own part, no workbench class and only the
+  host's view in it, stamped while the region is drawn and destroyed with
+  it. That test reads the DOM, for the reason the hooks' tests do.
 - **The dependency closure:** the manifest, the installed tree and every
   import the published entry reaches. No React anywhere, and nothing imported
   that is not declared.

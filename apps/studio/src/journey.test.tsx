@@ -105,6 +105,7 @@ const editor = (): HTMLElement => screen.getByRole('region', { name: 'Report edi
 /** Which framework drew the builder: the one question no role answers, since both render the same roles and names (0012). */
 const drawnBy = (): Framework => (document.querySelector('report-builder') === null ? 'React' : 'Angular')
 
+/** Switches the builder, and waits for it and for the Preview it draws in its middle (0029). */
 async function show(user: User, framework: Framework): Promise<void> {
   await user.click(screen.getByRole('radio', { name: framework }))
   await waitFor(() => {
@@ -112,6 +113,7 @@ async function show(user: User, framework: Framework): Promise<void> {
     expect(drawnBy()).toBe(framework)
   })
   await screen.findByRole('region', { name: 'Report editor' })
+  await screen.findByRole('checkbox', { name: 'Final' })
 }
 
 /**
@@ -177,9 +179,12 @@ function unnamed(): string[] {
 
 /**
  * The journey: each starter the picker offers, picked in the builder the
- * last one ended in, previewed, shown in the other builder, and rendered
- * final; then the quotation with its table's last column made 8 mm wide,
- * too narrow for the words in it, the renderer's refusal shown in both
+ * last one ended in, previewed, shown in the other builder, rendered final,
+ * and its design view given its place back from the toolbar and the
+ * Preview brought back from the bar -- jsdom's window has no room beside
+ * the builder, so the Preview stands in the design view's place (0029);
+ * then the quotation with its table's last column made 8 mm wide, too
+ * narrow for the words in it, the renderer's refusal shown in both
  * builders, and its button followed to the table. `record` is called at
  * each state.
  */
@@ -193,10 +198,16 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
     await record(`${name}, preview, in ${framework}`)
     framework = framework === 'React' ? 'Angular' : 'React'
     await show(user, framework)
+    await printed(id, 'preview', 'Preview: printed.')
     await record(`${name}, preview, in ${framework}`)
     await user.click(screen.getByRole('checkbox', { name: 'Final' }))
     await printed(id, 'final', 'Final render: printed.')
     await record(`${name}, final, in ${framework}`)
+    await user.click(within(within(editor()).getByRole('toolbar', { name: 'Report tools' })).getByRole('button', { name: 'Design view' }))
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Preview' })).toBeNull())
+    await record(`${name}, the design view, in ${framework}`)
+    await user.click(screen.getByRole('button', { name: 'Preview', pressed: false }))
+    await printed(id, 'preview', 'Preview: printed.')
   }
 
   await user.selectOptions(picker, 'Quotation')
@@ -225,6 +236,7 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   await record(`Quotation, refused, in ${framework}`)
   framework = framework === 'React' ? 'Angular' : 'React'
   await show(user, framework)
+  await screen.findByText('Preview: not drawn by the renderer.')
   await record(`Quotation, refused, in ${framework}`)
 
   // Enter on the refusal's button, as a keyboard presses it: the table is
@@ -280,7 +292,7 @@ describe('the journey', () => {
     await walk(user, opened, async (state) => {
       findings[state] = [...(await violations()).map((rule) => `${rule.id}: ${rule.nodes.join(' | ')}`), ...(await page()), ...unnamed()]
     })
-    expect(Object.keys(findings)).toHaveLength(studioStarters(starters).length * 3 + 3)
+    expect(Object.keys(findings)).toHaveLength(studioStarters(starters).length * 4 + 3)
     expect(findings).toEqual(Object.fromEntries(Object.keys(findings).map((state) => [state, []])))
   })
 

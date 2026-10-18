@@ -9,7 +9,7 @@
  * screen reader.
  */
 import { createReportEditor } from '@formancy/report-builder-core'
-import type { EditorLocale, ReportEditor, ScenarioStep } from '@formancy/report-builder-core'
+import type { EditorLocale, ReportEditor, ScenarioHost, ScenarioStep } from '@formancy/report-builder-core'
 import { openReportSession } from '@formancy/report-core'
 import type { ReportSession } from '@formancy/report-core'
 import type { ReportDefinition } from '@formancy/report-spec'
@@ -35,12 +35,16 @@ export interface Mounted {
   readonly view: RenderResult
 }
 
-/** A builder over a new session of `report`, mounted into the document. */
-export function mount(report: ReportDefinition, locale: EditorLocale = 'en'): Mounted {
+/**
+ * A builder over a new session of `report`, mounted into the document; with
+ * `host`, its editor made with that view of the host's, and the builder
+ * given, as the view, the one button the scenario names.
+ */
+export function mount(report: ReportDefinition, locale: EditorLocale = 'en', host?: ScenarioHost): Mounted {
   const session = sessionOver(report)
-  const editor = createReportEditor(session, { locale })
+  const editor = createReportEditor(session, { locale, ...(host === undefined ? {} : { hostView: host }) })
   const user = userEvent.setup()
-  const view = render(<ReportBuilder editor={editor} />)
+  const view = render(host === undefined ? <ReportBuilder editor={editor} /> : <ReportBuilder editor={editor} hostView={<button type="button">{host.control}</button>} />)
   return { session, editor, user, view }
 }
 
@@ -91,7 +95,7 @@ function keys(key: string, modifiers: readonly string[] = []): string {
 }
 
 /** Does one scenario step against the mounted builder, as the scenario's comment in report-builder-core describes. */
-export async function runStep(step: ScenarioStep, { user, session }: Mounted): Promise<void> {
+export async function runStep(step: ScenarioStep, { user, session, editor }: Mounted): Promise<void> {
   if ('do' in step) {
     switch (step.do) {
       case 'click':
@@ -112,6 +116,11 @@ export async function runStep(step: ScenarioStep, { user, session }: Mounted): P
       }
       case 'choose':
         return void (await user.selectOptions(find(step), step.option))
+      case 'host':
+        // What the host's own control does -- the Studio's Preview, in its bar -- through the editor.
+        return void act(() => {
+          editor.dispatch(step.action)
+        })
     }
   }
   switch (step.expect) {

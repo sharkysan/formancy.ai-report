@@ -50,6 +50,16 @@ export function editorToDraw(): ReportEditor {
   return insertAndSelect(createReportEditor(opening.session, { locale: 'de-CH' }))
 }
 
+/** The host's view each host draws the builder with a second time (0029): its name, and the words the host draws in it. */
+export const HOST_VIEW = { name: 'Vorschau', text: 'Die Ansicht des Hosts' } as const
+
+/** editorToDraw()'s editor, made with the host's view shown in the design view's place. */
+export function editorWithHostView(): ReportEditor {
+  const opening = openReportSession(reportToDraw())
+  if (!opening.ok) throw new Error('the report did not open a session')
+  return insertAndSelect(createReportEditor(opening.session, { locale: 'de-CH', hostView: { name: HOST_VIEW.name, shown: true } }))
+}
+
 /**
  * Everything about `root` -- the editor's root element, as a builder drew it
  * for `state` -- that is not as report-builder-core's README says: one
@@ -139,12 +149,27 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   expect(rows.length === nodes.length && nodes.every((node, at) => spokenText(rows[at] as MarkupElement) === node.label), 'the tree has not a treeitem per outline node, by label')
   expect(rows.every((row, at) => attribute(row, 'aria-selected') === String(nodes[at]?.selected)), 'the selected row is not the selected node')
 
-  // The design view: a canvas named as not the PDF, so nobody takes it for the
-  // print, with a named picture per box.
-  const [canvas] = parts('canvas')
-  const boxes = canvas === undefined ? [] : parts('box', canvas)
-  expect(nameOf(canvas) === state.canvas.label, `the design view is not named ${state.canvas.label}`)
-  expect(boxes.length === state.canvas.boxes.length && state.canvas.boxes.every((box, at) => attribute(boxes[at], 'role') === 'img' && nameOf(boxes[at]) === box.label), 'the design view has not a picture per box, named by it')
+  // The middle pane. The design view: a canvas named as not the PDF, so
+  // nobody takes it for the print, with a named picture per box. Or, while
+  // the state's `view` is the host's, the host's view in its place (0029):
+  // one region named after it, with the middle pane's hook and the view
+  // part, a focus target and no tab stop, and no class -- no workbench pane,
+  // so no rule of report-builder.css dresses what the host drew -- holding
+  // what the host drew and no design view.
+  if (state.view === 'host') {
+    const views = parts('view')
+    const [view] = views
+    expect(views.length === 1 && (view?.tag === 'section' || attribute(view, 'role') === 'region') && nameOf(view) === state.hostView?.name, `the host's view is not one region named ${String(state.hostView?.name)}`)
+    expect(attribute(view, 'data-pane') === 'canvas' && attribute(view, 'tabindex') === '-1' && attribute(view, 'class') === undefined, "the host's view is not the middle pane's bare region, a focus target and no tab stop")
+    expect(view !== undefined && spokenText(view) === HOST_VIEW.text, `the host's view does not hold what the host drew, ${HOST_VIEW.text}`)
+    expect(parts('canvas').length === 0, "the design view is drawn beside the host's view")
+  } else {
+    const [canvas] = parts('canvas')
+    const boxes = canvas === undefined ? [] : parts('box', canvas)
+    expect(nameOf(canvas) === state.canvas.label, `the design view is not named ${state.canvas.label}`)
+    expect(boxes.length === state.canvas.boxes.length && state.canvas.boxes.every((box, at) => attribute(boxes[at], 'role') === 'img' && nameOf(boxes[at]) === box.label), 'the design view has not a picture per box, named by it')
+    expect(parts('view').length === 0, "a host's view is drawn beside the design view")
+  }
 
   // The properties: a form named by its heading, a row per field; then the
   // problems, each a button named by its label; and the live region,

@@ -10,6 +10,73 @@ later.
 
 ## Unreleased
 
+**The Studio's Preview stands in the design view's place in any window
+too narrow for it beside the builder**
+([0029](docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
+Asked on 17 October 2026 why the preview is not visible on a normal
+screen: below 2053px it stood under a builder as tall as the window, so
+its first page began 1092px down a 1440 by 900 window and 960px down a
+1366 by 768 one, and a visitor saw no PDF without scrolling.
+
+- **`@formancy/report-builder-core`:** the `hostView` option names a view
+  of the host's own. The state's `hostView` says whether it is shown and
+  where, `'middle'` or `'beside'`, and `view` what the middle pane shows.
+  `showHostView`, `hideHostView` and `placeHostView` change it, and the
+  toolbar's Design view, `openPanel('canvas')`, takes the middle back from
+  it. While the host's view stands there the zoom, which is the design
+  view's, is unavailable and says so, rather than change a readout beside
+  the host's own and nothing anybody sees. Six new `BUILDER_SCENARIOS`, and
+  a `host` step kind that every runner of them implements.
+- **Both builders** draw a host's view in the design view's place, as a
+  bare region named after it, with none of report-builder.css's rules --
+  the workbench's reduced-motion `.wb *` reaches it -- and none of the
+  builder's keys: Ctrl+Z pressed in the Preview undoes nothing, nor, in
+  React, in a portal the host opens from it. React takes it as the
+  `hostView` prop, Angular as `<ng-template reportHostView>`, and either
+  exists only while it is drawn. When the host swaps the middle pane from
+  under the keyboard, as the window crosses the width, the keyboard goes
+  to what stands there rather than down to the page.
+- **The Studio:**
+  - Up to 2052px the Preview stands in the builder's middle, the outline
+    and the properties beside it, so a property edited there prints in
+    sight. Measured in Chromium on 18 October 2026, nothing scrolled, its
+    first page shows 332px in a 1366 by 768 window at 81 %, 464px in 1440
+    by 900 at 90 %, 506px in 1536 by 864 at 102 % and 722px in 1920 by
+    1080 at 150 %. From 2053px nothing changed.
+  - The bar's Preview shows and hides it at every width, and the toolbar's
+    Design view gives the design view its place back. Every starter opens
+    with its Preview shown, and keeps whether it is.
+  - From 769 to about 1000px the middle is what the side panes leave, 87px
+    at 769, and the Preview there scrolls rather than cut off a control;
+    hiding a side pane gives it room. On a phone the page scrolls past the
+    bar to the builder, as it did under 0019, and the Preview in its middle
+    scrolls as one.
+  - A window shorter than the bar and 32rem of builder scrolls the page
+    instead of squeezing the panes.
+  - The keyboard on the Preview beside the builder goes with it into the
+    middle as the window narrows, and in Angular only one Preview is drawn
+    while it moves out again.
+  - The Preview keeps the PDF on its paper until PDF.js has loaded the
+    newer one. It let the older one go as the newer arrived, and a redraw in
+    between threw and blanked the whole Studio, every edit with it: a side
+    pane hidden, or on a phone the bar's Preview pressed, within about 50 ms
+    of an edit printing did it every time in review. Main's viewer let
+    the PDF go the same way, where only a window resized, or the Preview's
+    own zoom pressed, at that moment reached it.
+- **The browser gate** checks where the Preview stands at every pass, its
+  first page in the first viewport, the swap both ways by keyboard, the
+  window crossing 2052px, and a side pane hidden, or on a phone the bar's
+  Preview pressed, the moment an edit prints, with four light passes more:
+  1366 by 657, 1366 by 768, 1536 by 864 and 1920 by 1080. The workbench's
+  reduced-motion `.wb *`, which now reaches the Preview, is admitted on it
+  and its paper while it declares transitions alone.
+- **The install gate** draws each packed builder a second time with a
+  host's view, held to report-builder-core's README by `structure.ts`.
+- **The README's phone picture** is retaken: the Studio opens there on the
+  Preview, the builder's one pane.
+- **The getting-started guide** no longer says `ReportBuilder` takes one
+  prop.
+
 **A report can carry an EN 16931 e-invoice, whose Factur-X / ZUGFeRD XML
 the runtime writes from the values its page prints; this release draws no
 PDF of one yet**

@@ -11,7 +11,11 @@
  * - the palette over the outline -- with no row in it, an empty tree and
  *   the sentence that says so -- with the place chooser floating over them
  *   while a keyboard chooses a place;
- * - the design view;
+ * - the design view, or, while the editor's `view` is the host's, the
+ *   host's view in its place: the template the host gave as
+ *   `<ng-template reportHostView>`, stamped into a bare region named by the
+ *   editor's `hostView` -- no workbench pane, so no rule of the builder's
+ *   dresses what the host drew, and its keys are the host's;
  * - the properties and the problems, sharing the third column. On a narrow
  *   screen report-builder.css shows the one pane the state's `panel` names,
  *   so the column says it is whichever of the two is asked for, and each
@@ -25,9 +29,10 @@
  * A host that wants another arrangement puts `[reportEditor]` on its own
  * element and the parts inside it, as this template does.
  */
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, contentChild, inject } from '@angular/core'
 import type { HideablePanel } from '@formancy/report-builder-core'
 import { ReportCanvas } from './canvas'
+import { ReportHostOutlet, ReportHostView } from './host-view'
 import { ReportOutline } from './outline'
 import { ReportPalette } from './palette'
 import { ReportPlaces } from './places'
@@ -41,7 +46,7 @@ import { ReportToolbar } from './toolbar'
   selector: 'report-builder',
   changeDetection: ChangeDetectionStrategy.OnPush,
   hostDirectives: [{ directive: ReportEditorRoot, inputs: ['reportEditor: editor'] }],
-  imports: [ReportCanvas, ReportOutline, ReportPalette, ReportPlaces, ReportProblems, ReportProperties, ReportStatus, ReportToolbar],
+  imports: [ReportCanvas, ReportHostOutlet, ReportOutline, ReportPalette, ReportPlaces, ReportProblems, ReportProperties, ReportStatus, ReportToolbar],
   template: `
     <div class="wb-pane">
       <header>
@@ -65,12 +70,18 @@ import { ReportToolbar } from './toolbar'
         <div reportPlaces></div>
       </section>
     }
-    <section class="wb-pane wb-canvas" data-pane="canvas">
-      <header>{{ t()('pane.canvas') }}</header>
-      <div class="wb-body">
-        <section reportCanvas></section>
-      </div>
-    </section>
+    @if (state().view === 'host') {
+      <section data-pane="canvas" data-report-part="view" tabindex="-1" [attr.aria-label]="state().hostView?.name">
+        <ng-container [reportHostOutlet]="hostView()?.template ?? null"></ng-container>
+      </section>
+    } @else {
+      <section class="wb-pane wb-canvas" data-pane="canvas">
+        <header>{{ t()('pane.canvas') }}</header>
+        <div class="wb-body">
+          <section reportCanvas></section>
+        </div>
+      </section>
+    }
     @if (shows('properties') || shows('diagnostics')) {
       <section class="wb-pane" [attr.data-pane]="state().panel === 'diagnostics' || !shows('properties') ? 'diagnostics' : 'properties'">
         @if (shows('properties')) {
@@ -112,6 +123,8 @@ export class ReportBuilder {
   protected readonly state = this.root.state
   protected readonly t = this.root.t
   protected readonly count = computed(() => this.state().diagnostics.length)
+  /** The template the host gave as its view, if it gave one. */
+  protected readonly hostView = contentChild(ReportHostView)
   /** No row in any region: the outline is an empty tree, and this says so beside it. */
   protected readonly empty = computed(() => this.state().outline.every((region) => region.nodes.length === 0))
   /** What colour the count is: an error's, when any problem is one. */

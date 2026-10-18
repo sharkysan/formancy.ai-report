@@ -27,11 +27,12 @@ import { bootstrapApplication } from '@angular/platform-browser'
 import type { BootstrapContext } from '@angular/platform-browser'
 import { BEFORE_APP_SERIALIZED, provideServerRendering, renderApplication } from '@angular/platform-server'
 import * as builder from '@formancy/report-builder-angular'
-import { injectEditorState, ReportBuilder, ReportEditorRoot } from '@formancy/report-builder-angular'
+import { injectEditorState, ReportBuilder, ReportEditorRoot, ReportHostView } from '@formancy/report-builder-angular'
 import type { FocusAfter } from '@formancy/report-builder-angular'
 import type { EditorState, ReportEditor } from '@formancy/report-builder-core'
 import { elementsIn, readMarkup } from './markup.js'
-import { editorToDraw, structureProblems } from './structure.js'
+import type { MarkupElement } from './markup.js'
+import { editorToDraw, editorWithHostView, HOST_VIEW, structureProblems } from './structure.js'
 
 /** What could be wrong, collected, so one run names every difference rather than the first. */
 const wrong: string[] = []
@@ -58,7 +59,7 @@ export const follow: (editor: Signal<ReportEditor>) => Signal<EditorState> = inj
 // says: a part added later is checked without this file changing.
 const components = new Map<string, ComponentMirror<unknown>>()
 for (const [name, value] of Object.entries(builder)) {
-  if (value === injectEditorState || value === ReportEditorRoot) continue
+  if (value === injectEditorState || value === ReportEditorRoot || value === ReportHostView) continue
   // reflectComponentType reads the class's ɵcmp: null for a class that was not linked as a component.
   const mirror = typeof value === 'function' ? reflectComponentType(value as Type<unknown>) : null
   if (mirror === null) {
@@ -73,6 +74,10 @@ for (const [name, value] of Object.entries(builder)) {
 // The directive every part injects: a definition, a factory, and no component's.
 const root: { readonly ɵdir?: unknown; readonly ɵfac?: unknown } = ReportEditorRoot
 expect(reflectComponentType(ReportEditorRoot) === null && typeof root.ɵdir === 'object' && typeof root.ɵfac === 'function', 'ReportEditorRoot is not a linked directive with a factory')
+
+// The template a host gives as its own view (0029): a directive too, on an ng-template, never a part drawn as an element.
+const hostView: { readonly ɵdir?: unknown; readonly ɵfac?: unknown } = ReportHostView
+expect(reflectComponentType(ReportHostView) === null && typeof hostView.ɵdir === 'object' && typeof hostView.ɵfac === 'function', 'ReportHostView is not a linked directive with a factory')
 
 // <report-builder [editor]="editor" />, as the README writes it.
 expect(components.get('ReportBuilder')?.selector === 'report-builder', `ReportBuilder's selector is ${String(components.get('ReportBuilder')?.selector)}, not report-builder`)
@@ -90,6 +95,8 @@ const state: EditorState = editor.state()
 const listening = editor.listenerCount()
 /** How many listeners the editor had once the page was drawn, before the application was destroyed. */
 let drawn: number | undefined
+/** The editor drawn a second time, with a host's view shown in the design view's place (0029). */
+const viewing: ReportEditor = editorWithHostView()
 
 /**
  * A host's component, as a host writes it. ngc compiles its template with
@@ -102,46 +109,58 @@ class Host {
   protected readonly editor: ReportEditor = editor
 }
 
-// Drawn as a host's server draws a page, failing on anything Angular's
-// development mode says while it does: an unknown property, a changed
-// expression, a missing required input.
-const said: string[] = []
-const { error, warn } = console
-console.error = console.warn = (...args: unknown[]): void => {
-  said.push(args.map(String).join(' '))
+/** A host's component that gives the builder its own view, as `<ng-template reportHostView>`. */
+@Component({
+  selector: 'app-root',
+  imports: [ReportBuilder, ReportHostView],
+  template: '<report-builder [editor]="editor"><ng-template reportHostView><p>{{ text }}</p></ng-template></report-builder>',
+})
+class Viewing {
+  protected readonly editor: ReportEditor = viewing
+  protected readonly text = HOST_VIEW.text
 }
-let html: string
-try {
-  html = await renderApplication(
-    (context: BootstrapContext) =>
-      bootstrapApplication(
-        Host,
-        {
-          providers: [
-            provideServerRendering(),
-            provideZonelessChangeDetection(),
-            // Called with the page drawn and the application still alive, just before it is written out.
-            { provide: BEFORE_APP_SERIALIZED, multi: true, useValue: (): void => void (drawn = editor.listenerCount()) },
-          ],
-        },
-        context,
-      ),
-    { document: '<html><head></head><body><app-root></app-root></body></html>', url: '/' },
-  )
-} finally {
-  console.error = error
-  console.warn = warn
-}
-if (said.length > 0) throw new Error(`Angular said this while drawing the builder:\n${said.join('\n')}`)
 
-// <app-root> holds the builder's element, which is the editor's root: the
-// host directive makes <report-builder> the region, with no wrapper.
-const page = elementsIn(readMarkup(html))
-const hosts = page.filter((element) => element.tag === 'app-root')
-const builders = hosts.flatMap((host) => host.children).filter((child) => typeof child !== 'string' && child.tag === 'report-builder')
-const [drawnRoot] = builders
-if (hosts.length !== 1 || builders.length !== 1 || drawnRoot === undefined || typeof drawnRoot === 'string') throw new Error('the page does not hold one <report-builder> in the host')
-wrong.push(...structureProblems(drawnRoot, state))
+/**
+ * `root` drawn as a host's server draws a page, failing on anything
+ * Angular's development mode says while it does: an unknown property, a
+ * changed expression, a missing required input. `serialized` is called with
+ * the page drawn and the application still alive, just before it is written
+ * out. Returns the builder's element.
+ */
+async function serverDraw(root: Type<unknown>, serialized: () => void = () => undefined): Promise<MarkupElement> {
+  const said: string[] = []
+  const { error, warn } = console
+  console.error = console.warn = (...args: unknown[]): void => {
+    said.push(args.map(String).join(' '))
+  }
+  let html: string
+  try {
+    html = await renderApplication(
+      (context: BootstrapContext) =>
+        bootstrapApplication(root, { providers: [provideServerRendering(), provideZonelessChangeDetection(), { provide: BEFORE_APP_SERIALIZED, multi: true, useValue: serialized }] }, context),
+      { document: '<html><head></head><body><app-root></app-root></body></html>', url: '/' },
+    )
+  } finally {
+    console.error = error
+    console.warn = warn
+  }
+  if (said.length > 0) throw new Error(`Angular said this while drawing the builder:\n${said.join('\n')}`)
+  // <app-root> holds the builder's element, which is the editor's root: the
+  // host directive makes <report-builder> the region, with no wrapper.
+  const page = elementsIn(readMarkup(html))
+  const hosts = page.filter((element) => element.tag === 'app-root')
+  const builders = hosts.flatMap((host) => host.children).filter((child) => typeof child !== 'string' && child.tag === 'report-builder')
+  const [drawnRoot] = builders
+  if (hosts.length !== 1 || builders.length !== 1 || drawnRoot === undefined || typeof drawnRoot === 'string') throw new Error('the page does not hold one <report-builder> in the host')
+  return drawnRoot
+}
+
+wrong.push(...structureProblems(await serverDraw(Host, () => void (drawn = editor.listenerCount())), state))
+// Drawn again with a host's view shown in the design view's place (0029):
+// the template the host gave, stamped into the region the builder lends it,
+// and no design view.
+wrong.push(...structureProblems(await serverDraw(Viewing), viewing.state()).map((problem) => `with a host's view: ${problem}`))
+viewing.dispose()
 
 // Drawing changed nothing. The editor's state reached the root through
 // [editor] -- an input the root requires, so a page drawn without it fails
@@ -157,5 +176,5 @@ editor.dispose()
 if (wrong.length > 0) throw new Error(`the Angular builder, compiled ahead of time and drawn on the server:\n- ${wrong.join('\n- ')}`)
 
 console.log(
-  `ok: Angular ${VERSION.full} drew the packed builder on the server, compiled ahead of time and linked without the JIT compiler, in Swiss German, as report-builder-core's README sets out: one region named by the catalogue, a toolbar that is one tab stop with a button per pane, a Hide in each side pane, a palette of ${String(state.palette.length)}, a tree with a group per region and a row per node, a design view of named pictures, a form named by its heading, the report's problems listed and counted, and the live region; every data-report-part one REPORT_PARTS names; nothing said by Angular's development mode and nothing changed; one listener while the page was alive and none once it was destroyed; ${String(components.size)} standalone components with a factory, ReportEditorRoot a directive, and each of the ${String(parts.length)} parts an attribute on an element`,
+  `ok: Angular ${VERSION.full} drew the packed builder on the server, compiled ahead of time and linked without the JIT compiler, in Swiss German, as report-builder-core's README sets out: one region named by the catalogue, a toolbar that is one tab stop with a button per pane, a Hide in each side pane, a palette of ${String(state.palette.length)}, a tree with a group per region and a row per node, a design view of named pictures, a form named by its heading, the report's problems listed and counted, and the live region, and with a host's view its template stamped into the region it stands in instead of the design view; every data-report-part one REPORT_PARTS names; nothing said by Angular's development mode and nothing changed; one listener while the page was alive and none once it was destroyed; ${String(components.size)} standalone components with a factory, ReportEditorRoot a directive, and each of the ${String(parts.length)} parts an attribute on an element`,
 )

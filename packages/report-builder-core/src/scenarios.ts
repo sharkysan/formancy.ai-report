@@ -12,13 +12,17 @@
  * the English one, and may run the others.
  *
  * A runner opens a session over `report()`, mounts its builder over it in
- * `locale`, and does each step in order:
+ * `locale`, and does each step in order. A scenario with a `host` makes the
+ * editor with that view of the host's (`hostView`), and gives the builder,
+ * as the host's view, one button named `control`.
  * - `click`: user-event's click on the element.
  * - `focus`: moves focus to the element, as tabbing to it would. In the
  *   outline that selects the row: focus and selection are one.
  * - `press`: user-event's keyboard, the modifiers held around the key.
  * - `fill`: clears the field, types the text, and tabs away, which commits.
  * - `choose`: selects the option with that label in the combobox.
+ * - `host`: dispatches the action to the editor, as the host's own control
+ *   for its view does -- the Studio's Preview, in its bar.
  * - `present`, `absent`, `focused`: the element is there, is not, has focus.
  * - `value`: the control's value. `text`: the element's text content holds
  *   it. The live region is the status with no name; the problems' count is
@@ -28,6 +32,8 @@
  */
 import { emptyReport } from '@formancy/report-spec'
 import type { EpcQrCodeComponent, ReportDefinition } from '@formancy/report-spec'
+import type { HostViewOptions } from './editor.js'
+import type { EditorAction } from './model.js'
 import { PROPERTY_ROLES } from './model.js'
 import { contentLocale, editorText, formatZoom } from './text.js'
 import type { EditorLocale } from './text.js'
@@ -39,16 +45,25 @@ export interface ScenarioQuery {
   readonly selected?: boolean
 }
 
-export const SCENARIO_ACTIONS = ['click', 'focus', 'press', 'fill', 'choose'] as const
+export const SCENARIO_ACTIONS = ['click', 'focus', 'press', 'fill', 'choose', 'host'] as const
 export const SCENARIO_EXPECTATIONS = ['present', 'absent', 'focused', 'value', 'text', 'invalid', 'document'] as const
 
 export type KeyModifier = 'Alt' | 'Control' | 'Meta' | 'Shift'
+
+/** What a host does to its view through the editor: what a `host` step may dispatch. */
+export type HostViewAction = Extract<EditorAction, { readonly type: 'showHostView' | 'hideHostView' | 'placeHostView' }>
+
+/** The host's view a scenario's editor is made with, and the one button the runner gives the builder as that view. */
+export interface ScenarioHost extends HostViewOptions {
+  readonly control: string
+}
 
 export type ScenarioStep =
   | ({ readonly do: 'click' | 'focus' } & ScenarioQuery)
   | { readonly do: 'press'; readonly key: string; readonly modifiers?: readonly KeyModifier[] }
   | ({ readonly do: 'fill'; readonly text: string } & ScenarioQuery)
   | ({ readonly do: 'choose'; readonly option: string } & ScenarioQuery)
+  | { readonly do: 'host'; readonly action: HostViewAction }
   | ({ readonly expect: 'present' | 'absent' | 'focused' | 'invalid' } & ScenarioQuery)
   | ({ readonly expect: 'value'; readonly value: string } & ScenarioQuery)
   | ({ readonly expect: 'text'; readonly text: string } & ScenarioQuery)
@@ -67,6 +82,8 @@ export interface BuilderScenario {
   /** The report the session opens: a fresh copy each call. */
   readonly report: () => ReportDefinition
   readonly steps: readonly ScenarioStep[]
+  /** A view of the host's own, for the scenarios about one. */
+  readonly host?: ScenarioHost
 }
 
 const SCENARIO_REPORT: ReportDefinition = {
@@ -143,6 +160,13 @@ function blankReport(): ReportDefinition {
 
 const body = (report: ReportDefinition): string[] => report.regions.body.map((component) => component.id)
 
+/**
+ * The host's view the scenarios about one are given: the Studio's Preview
+ * and its Download PDF. Its words are the host's, the same in every
+ * language the editor speaks.
+ */
+const PREVIEW: ScenarioHost = { name: 'Preview', control: 'Download PDF' }
+
 /** Whether the body has an EPC payment code whose text at `key` is `text`, one literal run, or, for undefined, absent. */
 const codeHas = (report: ReportDefinition, key: 'iban' | 'bic', text: string | undefined): boolean => {
   const code = report.regions.body.find((component): component is EpcQrCodeComponent => component.kind === 'epcQrCode')
@@ -174,7 +198,15 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
   const newCode = t('label.kindDetail', { kind: t('kind.epcQrCode'), detail: editorText(contentLocale(scenarioReport().locale))('default.epcBeneficiary') })
   const iban: ScenarioQuery = { role: PROPERTY_ROLES.text, name: t('field.iban') }
   const bic: ScenarioQuery = { role: PROPERTY_ROLES.text, name: t('field.bic') }
-  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = scenarioReport): BuilderScenario => ({ name, locale, report, steps })
+  const designView: ScenarioQuery = { role: 'region', name: t('canvas.label') }
+  const preview: ScenarioQuery = { role: 'region', name: PREVIEW.name }
+  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = scenarioReport, host?: ScenarioHost): BuilderScenario => ({
+    name,
+    locale,
+    report,
+    steps,
+    ...(host === undefined ? {} : { host }),
+  })
 
   return [
     scenario('insert a text into the body by keyboard', [
@@ -411,6 +443,118 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
       { do: 'choose', role: PROPERTY_ROLES.style, name: t('field.style'), option: 'heading' },
       { expect: 'document', says: 'the introduction has the heading style', check: (report) => report.regions.body.some((component) => component.id === 'intro' && component.style === 'heading') },
     ]),
+    // The host's view -- the Studio's PDF -- stands where the design view
+    // stood, with the outline and the properties beside it, so a person
+    // edits and watches what prints; the live region says the way back,
+    // and the toolbar's Design view is it, the keyboard going with it.
+    scenario(
+      'a host’s view takes the design view’s place, and the toolbar’s Design view gives it back',
+      [
+        { expect: 'present', ...designView },
+        { do: 'host', action: { type: 'showHostView' } },
+        { expect: 'present', ...preview },
+        { expect: 'present', ...button(PREVIEW.control) },
+        { expect: 'absent', ...designView },
+        { expect: 'present', ...outline },
+        { expect: 'present', role: PROPERTY_ROLES.text, name: t('field.title') },
+        { expect: 'text', ...said, text: t('status.hostViewShown', { view: PREVIEW.name, pane: t('pane.canvas') }) },
+        { do: 'click', ...button(t('pane.canvas')) },
+        { expect: 'absent', ...preview },
+        { expect: 'focused', ...designView },
+      ],
+      scenarioReport,
+      PREVIEW,
+    ),
+    // The builder's shortcuts stop at the host's view: Ctrl+Z on the
+    // Preview's own control would otherwise undo the report the person is
+    // looking at, and Ctrl+- zoom a design view nobody can see.
+    scenario(
+      'a key pressed in a host’s view is the host’s',
+      [
+        { do: 'click', ...tree('Introduction') },
+        { do: 'press', key: 'Delete' },
+        { expect: 'document', says: 'the introduction is gone', check: (report) => !body(report).includes('intro') },
+        { do: 'focus', ...button(PREVIEW.control) },
+        { do: 'press', key: 'z', modifiers: ['Control'] },
+        { expect: 'document', says: 'the introduction is still gone: nothing was undone', check: (report) => !body(report).includes('intro') },
+        { do: 'press', key: '-', modifiers: ['Control'] },
+        { expect: 'text', ...zoom, text: formatZoom(1, locale) },
+        { expect: 'focused', ...button(PREVIEW.control) },
+      ],
+      scenarioReport,
+      { ...PREVIEW, shown: true },
+    ),
+    // A pane hidden for the room gives it to whatever stands in the middle:
+    // the host's view, and the keyboard lands there.
+    scenario(
+      'a side pane hidden beside a host’s view gives it the room and the keyboard',
+      [
+        { do: 'click', ...button(t('action.hidePane', { pane: t('pane.outline') })) },
+        { expect: 'absent', ...outline },
+        { expect: 'focused', ...preview },
+        { do: 'click', ...button(t('pane.outline')) },
+        { expect: 'present', ...outline },
+        { expect: 'present', ...preview },
+      ],
+      scenarioReport,
+      { ...PREVIEW, shown: true },
+    ),
+    // Beside the builder the host draws its view, and the design view keeps
+    // its place: the toolbar's Design view takes nothing away there, so the
+    // view placed back in the middle is still shown.
+    scenario(
+      'a host’s view placed beside the builder leaves the design view in its place',
+      [
+        { do: 'host', action: { type: 'placeHostView', place: 'beside' } },
+        { expect: 'present', ...designView },
+        { expect: 'absent', ...preview },
+        { do: 'click', ...button(t('pane.canvas')) },
+        { expect: 'focused', ...designView },
+        { do: 'host', action: { type: 'placeHostView', place: 'middle' } },
+        { expect: 'present', ...preview },
+        { expect: 'absent', ...designView },
+      ],
+      scenarioReport,
+      { ...PREVIEW, shown: true },
+    ),
+    // The window crossing a width moves the host's view between the
+    // middle and beside, swapping the middle pane under the keyboard: it
+    // goes to whatever stands there now, never down to the page, where a
+    // keyboard's next Tab would start from the top. Anywhere else it stays.
+    scenario(
+      'the keyboard goes with the middle pane when the host moves its view, and stays anywhere else',
+      [
+        { do: 'click', ...button(t('pane.canvas')) },
+        { expect: 'focused', ...designView },
+        { do: 'host', action: { type: 'placeHostView', place: 'middle' } },
+        { expect: 'focused', ...preview },
+        { do: 'host', action: { type: 'placeHostView', place: 'beside' } },
+        { expect: 'focused', ...designView },
+        { do: 'click', ...tree('Introduction') },
+        { do: 'host', action: { type: 'placeHostView', place: 'middle' } },
+        { expect: 'present', ...preview },
+        { expect: 'focused', ...tree('Introduction') },
+      ],
+      scenarioReport,
+      { ...PREVIEW, shown: true, place: 'beside' },
+    ),
+    // The zoom is the design view's: with the host's view in its place a
+    // zoom would change a readout beside the host's own and nothing anybody
+    // sees, so the toolbar's zoom says why it does nothing, and works again
+    // once the design view is back.
+    scenario(
+      'the zoom says it is the design view’s while a host’s view stands in its place',
+      [
+        { do: 'click', ...button(t('action.zoomIn')) },
+        { expect: 'text', ...zoom, text: formatZoom(1, locale) },
+        { expect: 'text', ...said, text: t('status.zoomHidden', { view: PREVIEW.name, pane: t('pane.canvas') }) },
+        { do: 'click', ...button(t('pane.canvas')) },
+        { do: 'click', ...button(t('action.zoomIn')) },
+        { expect: 'text', ...zoom, text: formatZoom(1.25, locale) },
+      ],
+      scenarioReport,
+      { ...PREVIEW, shown: true },
+    ),
   ]
 }
 

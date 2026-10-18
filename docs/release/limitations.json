@@ -405,7 +405,7 @@
       ]
     },
     "0019": {
-      "reviewed": "sha256:0cd2bd2a7275e7ab84a7772bf19e7ae6437788e0cc3d6148586e32eea6afb84d",
+      "reviewed": "sha256:31c7b42b1ed0dd47d5b42f044dad7f752aca4a4975492428f878b86e386cfc61",
       "limitations": [
         {
           "area": "builders",
@@ -414,10 +414,6 @@
         {
           "area": "builders",
           "says": "A pane is hidden whole or shown at the workbench's width, never resized."
-        },
-        {
-          "area": "builders",
-          "says": "The Studio shows the Preview beside the builder only in a window over 2052px wide; narrower, it is under the builder and the page scrolls to it."
         }
       ]
     },
@@ -947,6 +943,86 @@
         {
           "area": "testing",
           "says": "The EPC QR code page's reflow down to 320 pixels and its colour contrast were measured in Chromium by hand on 17 October 2026, with every other page's, and by no gate, so a later change to a page is measured in a browser by nobody."
+        }
+      ]
+    },
+    "0029": {
+      "reviewed": "sha256:9927a8cd2ace2d1cb623120070fc44758c7b459f2d6209a07825ef1199eef323",
+      "limitations": [
+        {
+          "area": "builders",
+          "says": "In any window up to 2052 pixels wide the Studio shows the PDF or the design view in the builder's middle, never both: the bar's Preview and the toolbar's Design view swap them, so placing a component on the design view means swapping the PDF out.",
+          "heldBy": "apps/studio/src/studio.test.tsx"
+        },
+        {
+          "area": "builders",
+          "says": "The Studio's Preview starts over, printed again at its first page, fitted to the width and in preview mode, each time it takes the design view's place, the framework is switched below 2053 pixels or the window crosses 2052, and the design view it swaps with loses its scroll position."
+        },
+        {
+          "area": "builders",
+          "says": "From 769 to about 1000 pixels wide the builder's middle pane is the window less 682 pixels, so the Studio opens there on a Preview 87 pixels wide at 769, its page at 25 % and six of its seven controls reached by scrolling the pane sideways, until a side pane is hidden."
+        },
+        {
+          "area": "builders",
+          "says": "On a phone the Studio's page scrolls past the bar to the builder, as under 0019, and the Preview in the builder's middle keeps printing on every edit while another of the builder's panes is chosen."
+        },
+        {
+          "area": "builders",
+          "says": "Each of the Studio's starters keeps whether its Preview is shown, so a starter opened for the first time shows its Preview after another's was hidden.",
+          "heldBy": "apps/studio/src/studio.test.tsx"
+        },
+        {
+          "area": "builders",
+          "says": "A host's view that a builder draws in its design view's place takes none of the builder's keys, nor in React from a portal the host opens from it: Ctrl+Z or Ctrl+- pressed in it does nothing to the report or the design view.",
+          "heldBy": "packages/report-builder-react/src/scenarios.test.tsx"
+        },
+        {
+          "area": "builders",
+          "says": "No rule of report-builder.css reaches a host's view that a builder draws in its design view's place, so the host gives it its fill of the box and its scroll itself, as the Studio's preview.css does for its Preview.",
+          "heldBy": "apps/studio/src/styles.test.tsx"
+        },
+        {
+          "area": "builders",
+          "says": "While a host's view stands in a builder's design view's place the zoom is unavailable: the toolbar's zoom, and Ctrl with +, - or 0 anywhere in the builder, say it is the design view's and change nothing.",
+          "heldBy": "packages/report-builder-react/src/scenarios.test.tsx"
+        },
+        {
+          "area": "builders",
+          "says": "The keyboard follows a builder's middle pane, not the host's view: the Studio's Preview moved out of the middle as the window widens, with the keyboard in it, leaves the keyboard on the design view in its place.",
+          "heldBy": "packages/report-builder-react/src/scenarios.test.tsx"
+        },
+        {
+          "area": "builders",
+          "says": "The workbench's `.wb *`, which turns transitions off when motion is reduced, reaches the Studio's Preview and its paper in the builder's middle and is admitted while it declares transitions alone, so a workbench.css that declares more under it fails the Studio's stylesheet test and its browser gate until the rule is scoped upstream.",
+          "heldBy": "apps/studio/src/styles.test.tsx"
+        },
+        {
+          "area": "builders",
+          "says": "The Studio's Preview in the builder's middle keeps the header it has beside the builder: its heading, status and tools take 185 pixels of the middle at 1366 by 768 and 1440 by 900, its tools in two rows, and 141 at 1920 by 1080, measured on 18 October 2026."
+        },
+        {
+          "area": "builders",
+          "says": "Fit width draws the Studio's Preview larger than real wherever its pane is wider than the page: at 150 % in a 1920 by 1080 window, measured on 18 October 2026."
+        },
+        {
+          "area": "builders",
+          "says": "In the Angular builder, for a frame or two as the Studio's Preview moves into the builder's middle the bar's Preview names no element it controls, and as it moves out the region named Preview stands empty."
+        },
+        {
+          "area": "builders",
+          "says": "When the Preview takes the design view's place, the builder's live region, saying how to bring the design view back, and the Preview's own status speak at the same time."
+        },
+        {
+          "area": "builders",
+          "says": "In a window shorter than the Studio's bar and 32rem of builder the page scrolls, by 41 pixels at 1280 by 585, rather than squeeze the builder's panes."
+        },
+        {
+          "area": "testing",
+          "says": "The browser gate looks for the Preview's first page in the first viewport at 641, 1366, 1440, 1536, 1920 and 2053 pixels wide and at no width from 769 to 1365, and its 1366 by 657 is a screen less an assumed 111 pixels of browser and taskbar, measured on no browser."
+        },
+        {
+          "area": "testing",
+          "says": "The README's pictures show the Studio past 2052 pixels and at 390, never with the Preview in the builder's middle at a laptop's width, since the camera takes no width between the Studio's breakpoints."
         }
       ]
     }

@@ -9,10 +9,16 @@
  * shows the React or the Angular builder over the same editor
  * (`builder/builder-pane.tsx`); the Preview prints whatever the session
  * holds now (`preview/preview-pane.tsx`).
+ *
+ * The Preview stands beside the builder in a window with room for it, and
+ * in the builder's middle, in the design view's place, in any other
+ * (0029, `layout.ts`). Whether it is shown, and where, is the editor's: the
+ * bar's toggle, the toolbar's Design view and both builders read and change
+ * the one state, and a framework switch keeps it.
  */
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { ReactElement } from 'react'
-import type { Selection } from '@formancy/report-builder-core'
+import type { HostViewPlace, Selection } from '@formancy/report-builder-core'
 import type { ImageResolver } from '@formancy/report-runtime'
 import { BuilderPane, FRAMEWORKS } from './builder/builder-pane.js'
 import type { Framework } from './builder/builder-pane.js'
@@ -32,10 +38,25 @@ const same = (selection: Selection | null, target: ProblemTarget): boolean => se
 export function Studio({ starters, workspace, images }: { starters: readonly StudioStarter[]; workspace: Workspace; images: ImageResolver }): ReactElement {
   const [starterId, setStarterId] = useState(starters[0]?.id ?? '')
   const [framework, setFramework] = useState<Framework>('react')
-  const [previewing, setPreviewing] = useState(true)
   const builder = useRef<HTMLDivElement>(null)
+  /** The element the keyboard last stood on below the bar, for a Preview moved from under it to take it along. */
+  const lastFocused = useRef<EventTarget | null>(null)
   const opened = workspace.open(starterId)
   const { editor } = opened
+  const preview = useSyncExternalStore(editor.subscribe, () => editor.state().hostView)
+  const shown = preview?.shown === true
+  const beside = shown && preview.place === 'beside'
+
+  // The window narrowed past the width moves the Preview from beside the
+  // builder into its middle: the keyboard in it goes along, onto the
+  // region the builder draws it in, rather than down to the page. Out of
+  // the middle, the builder hands it to the design view itself.
+  useLayoutEffect(() => {
+    const last = lastFocused.current
+    const dropped = document.activeElement === null || document.activeElement === document.body
+    if (beside || !(last instanceof Node) || last.isConnected || !dropped) return
+    focusWhenDrawn(() => builder.current?.querySelector<HTMLElement>('[data-report-part="view"]') ?? null)
+  }, [beside])
 
   /**
    * A problem's component, selected in the builder and the keyboard put on
@@ -54,6 +75,20 @@ export function Studio({ starters, workspace, images }: { starters: readonly Stu
     })
   }
 
+  /**
+   * The bar's toggle: hides the Preview in sight, and shows one hidden. One
+   * shown but out of sight -- in the middle of a phone's builder while it
+   * shows another pane -- it brings into sight, so every press changes what
+   * is seen; a browser that cannot say what is in sight hides it.
+   */
+  function toggle(): void {
+    const inSight = document.getElementById(PREVIEW)?.checkVisibility?.() !== false
+    editor.dispatch({ type: shown && inSight ? 'hideHostView' : 'showHostView' })
+  }
+
+  // Hidden, the Preview is not drawn and prints nothing; shown again, it
+  // prints what the session holds then.
+  const pane = (place: HostViewPlace): ReactElement => <PreviewPane key={starterId} id={PREVIEW} place={place} opened={opened} images={images} select={select} />
   const proves = `${starterId}-proves`
   return (
     <div className="studio">
@@ -75,20 +110,26 @@ export function Studio({ starters, workspace, images }: { starters: readonly Stu
           </select>
         </div>
         <Segmented legend="Builder" name="framework" className="framework" options={FRAMEWORKS} value={framework} onChange={setFramework} />
-        {/* Hidden, the Preview is not drawn and prints nothing; shown again,
-            it prints what the session holds then. */}
-        <button type="button" className="tool" aria-pressed={previewing} aria-controls={previewing ? PREVIEW : undefined} onClick={() => setPreviewing(!previewing)}>
+        <button type="button" className="tool" aria-pressed={shown} aria-controls={shown ? PREVIEW : undefined} onClick={toggle}>
           Preview
         </button>
         <p id={proves} className="proves">
           Shows {opened.starter.proves}.
         </p>
       </header>
-      <main id="studio-main" tabIndex={-1} className="studio-main" data-preview={previewing ? undefined : 'hidden'}>
+      <main
+        id="studio-main"
+        tabIndex={-1}
+        className="studio-main"
+        data-preview={shown ? undefined : 'hidden'}
+        onFocus={(event) => {
+          lastFocused.current = event.target
+        }}
+      >
         <div ref={builder} className="studio-builder">
-          <BuilderPane key={starterId} framework={framework} editor={editor} />
+          <BuilderPane key={starterId} framework={framework} editor={editor} hostView={pane('middle')} />
         </div>
-        {previewing ? <PreviewPane key={starterId} id={PREVIEW} opened={opened} images={images} select={select} /> : null}
+        {beside ? pane('beside') : null}
       </main>
     </div>
   )

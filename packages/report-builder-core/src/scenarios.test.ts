@@ -6,7 +6,11 @@
  * selection, a field per property with a button back to the report's own,
  * a button per diagnostic and a status counting them, a button hiding each
  * side pane, nothing of a pane that is hidden, a picture of each box and of
- * the payment part's band on the canvas, and the live region.
+ * the payment part's band on the canvas, and the live region; and, while
+ * the state's `view` is the host's, a region named by the host's view in
+ * the design view's place, holding the host's one button, taking none of
+ * the builder's keys, and taking the keyboard from the middle pane it
+ * swapped.
  *
  * It is the third reading of that contract, on purpose and only here: it
  * shows that every name a scenario looks for is one the state gives, and that
@@ -23,7 +27,7 @@ import { actionForKey } from './keys.js'
 import type { EditorAction, EditorState, HideablePanel, OutlineNode } from './model.js'
 import { HIDEABLE_PANELS, PROPERTY_ROLES } from './model.js'
 import { BUILDER_SCENARIOS, builderScenarios, SCENARIO_ACTIONS, SCENARIO_EXPECTATIONS, scenarioReport } from './scenarios.js'
-import type { BuilderScenario, ScenarioQuery, ScenarioStep } from './scenarios.js'
+import type { BuilderScenario, ScenarioHost, ScenarioQuery, ScenarioStep } from './scenarios.js'
 import { EDITOR_LOCALES, editorText } from './text.js'
 import type { EditorText } from './text.js'
 import { sessionOver } from './test-support.js'
@@ -100,15 +104,27 @@ class Driver {
   readonly session: ReportSession
   readonly editor: ReportEditor
   readonly t: EditorText
+  readonly host: ScenarioHost | undefined
   focused: { readonly role: string; readonly name: string } | null = null
   constructor(scenario: BuilderScenario) {
     this.session = sessionOver(scenario.report())
-    this.editor = createReportEditor(this.session, { locale: scenario.locale })
+    this.host = scenario.host
+    this.editor = createReportEditor(this.session, { locale: scenario.locale, ...(scenario.host === undefined ? {} : { hostView: scenario.host }) })
     this.t = editorText(scenario.locale)
   }
 
   get state(): EditorState {
     return this.editor.state()
+  }
+
+  /** The region in the middle pane: the design view, or the host's view while the state says it stands there. */
+  private middle(): string {
+    return this.state.view === 'host' ? (this.state.hostView?.name ?? '') : this.t('canvas.label')
+  }
+
+  /** Whether `name` is the host's one button, drawn while its view is. */
+  private hostControl(name: string): boolean {
+    return this.state.view === 'host' && this.host?.control === name
   }
 
   /** The selected node's tree item, which focus follows in the outline; the tree itself when nothing is selected. */
@@ -142,8 +158,10 @@ class Driver {
     const first = this.state.properties.fields[0]
     // Back at the report's properties, focus is on the first of them.
     if (query.name === this.t('properties.report') && first !== undefined) this.focused = { role: PROPERTY_ROLES[first.kind], name: first.label }
-    // A pane hidden takes its Hide with it; focus goes to the design view that took its room.
-    else if (action?.type === 'hidePanel') this.focused = { role: 'region', name: this.t('canvas.label') }
+    // A pane hidden takes its Hide with it; focus goes to what took its room in the middle.
+    else if (action?.type === 'hidePanel') this.focused = { role: 'region', name: this.middle() }
+    // A pane shown from the toolbar takes the keyboard: the design view is a region; in another pane the driver does not follow it.
+    else if (action?.type === 'openPanel') this.focused = action.panel === 'canvas' ? { role: 'region', name: this.middle() } : null
     else if (selects || (choosing && action?.type === 'cancelDrag')) this.focusSelection()
     else if (action?.type === 'startDrag') this.focused = null
     else this.focused = { role: 'button', name: query.name }
@@ -163,13 +181,13 @@ class Driver {
       case 'treeitem':
         return shown(state, 'outline') && nodes(state).some((node) => node.label === query.name && (query.selected === undefined || node.selected === query.selected))
       case 'region':
-        return query.name === this.t('canvas.label')
+        return query.name === this.middle()
       case 'img':
-        return [state.canvas.paymentPart?.label, ...state.canvas.boxes.map((box) => box.label)].includes(query.name)
+        return state.view === 'design' && [state.canvas.paymentPart?.label, ...state.canvas.boxes.map((box) => box.label)].includes(query.name)
       case 'dialog':
         return state.drag?.via === 'keyboard' && state.drag.title === query.name
       case 'button':
-        return buttons(this.t, state).has(query.name)
+        return buttons(this.t, state).has(query.name) || this.hostControl(query.name)
       case 'status':
         return statusText(this.t, state, query.name) !== undefined
       default:
@@ -189,6 +207,8 @@ class Driver {
           return
         case 'press': {
           const modifiers = new Set(step.modifiers ?? [])
+          // The host's view keeps its keys: the builder passes none of them on.
+          if (this.focused !== null && this.focused.role === 'button' && this.hostControl(this.focused.name)) return
           if (step.key === 'Enter' && this.focused !== null) return this.activate(this.focused)
           const where = this.focused?.role === 'treeitem' || this.focused?.role === 'tree' ? 'outline' : 'editor'
           const press = { key: step.key, altKey: modifiers.has('Alt'), ctrlKey: modifiers.has('Control'), metaKey: modifiers.has('Meta'), shiftKey: modifiers.has('Shift') }
@@ -204,6 +224,17 @@ class Driver {
           const option = field.options?.find((candidate) => candidate.label === step.option)
           if (option === undefined) throw new Error(`no option ${step.option} in ${step.name}`)
           this.editor.dispatch({ type: 'setProperty', key: field.key, value: option.value })
+          return
+        }
+        case 'host': {
+          const was = this.state.view
+          const focused = this.focused
+          const inTheMiddle = focused !== null && ((focused.role === 'region' && focused.name === this.middle()) || (focused.role === 'button' && this.hostControl(focused.name)))
+          // What the host asks of its own view is meant to be done: one refused is a scenario that says what never happened.
+          const outcome = this.editor.dispatch(step.action)
+          if (!outcome.ok) throw new Error(`the host's ${step.action.type} was refused: ${outcome.message}`)
+          // The middle pane swapped under the keyboard hands it to what stands there now.
+          if (inTheMiddle && this.state.view !== was) this.focused = { role: 'region', name: this.middle() }
           return
         }
       }

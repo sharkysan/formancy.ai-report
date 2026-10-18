@@ -1,5 +1,6 @@
-// The whole editor: <report-builder [editor]="editor" />.
+// The whole editor: <report-builder [editor]="editor" />, and the template a host gives as its own view in the design view's place.
 export { ReportBuilder } from './builder'
+export { ReportHostView } from './host-view'
 
 // The editor's root, for a host that arranges the parts itself, and the parts.
 export { ReportEditorRoot } from './root'

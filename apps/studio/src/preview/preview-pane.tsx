@@ -6,11 +6,18 @@
  *
  * Preview runs the runtime's preview mode, which prints what the data lacks
  * as nothing and says so; Final runs a final render, which refuses it.
+ *
+ * It stands beside the builder, a region and a panel of its own, or in the
+ * builder's middle, in the design view's place (0029): there the builder's
+ * region is already named Preview, so the pane is not a second one, and it
+ * fills the box the builder lends it.
  */
 import { useId, useState } from 'react'
 import type { ReactElement } from 'react'
+import type { HostViewPlace } from '@formancy/report-builder-core'
 import { useEditorState } from '@formancy/report-builder-react'
 import type { DataMode, ImageResolver } from '@formancy/report-runtime'
+import { PREVIEW_NAME } from '../layout.js'
 import type { Opened } from '../workspace.js'
 import { PdfView } from './pdf-view.js'
 import { renderProblem, runtimeProblems } from './problems.js'
@@ -57,7 +64,7 @@ function Problems({ problems, label, select }: { problems: readonly PreviewProbl
   )
 }
 
-export function PreviewPane({ id, opened, images, select }: { id: string; opened: Opened; images: ImageResolver; select: (target: ProblemTarget) => void }): ReactElement {
+export function PreviewPane({ id, place, opened, images, select }: { id: string; place: HostViewPlace; opened: Opened; images: ImageResolver; select: (target: ProblemTarget) => void }): ReactElement {
   const [mode, setMode] = useState<DataMode>('preview')
   const { shown, rendering, fault } = usePreview(opened, images, mode)
   const { outline } = useEditorState(opened.editor)
@@ -67,10 +74,12 @@ export function PreviewPane({ id, opened, images, select }: { id: string; opened
   const problems =
     outcome === undefined ? [] : outcome.kind === 'printed' ? runtimeProblems(outcome.warnings, 'warning', outline) : outcome.kind === 'refused' ? runtimeProblems(outcome.errors, 'error', outline) : [renderProblem(outcome.refusal, outline)]
 
+  // In the middle, the builder's region is the Preview's: one of the same name inside it would be said twice.
+  const Pane = place === 'beside' ? 'section' : 'div'
   return (
-    <section id={id} className="studio-preview" aria-labelledby={heading}>
+    <Pane id={id} className="studio-preview" data-place={place} aria-labelledby={place === 'beside' ? heading : undefined}>
       <header className="preview-head">
-        <h2 id={heading}>Preview</h2>
+        <h2 id={heading}>{PREVIEW_NAME}</h2>
         <label className="check">
           <input type="checkbox" checked={mode === 'final'} onChange={(event) => setMode(event.target.checked ? 'final' : 'preview')} />
           Final
@@ -89,6 +98,6 @@ export function PreviewPane({ id, opened, images, select }: { id: string; opened
           the render that found them. */}
       {problems.length === 0 ? null : <Problems problems={problems} label={listName(shown?.mode ?? mode, outcome?.kind === 'printed')} select={select} />}
       {outcome?.kind === 'printed' ? <PdfView pdf={outcome.pdf} fileName={`${opened.starter.id}.pdf`} stale={rendering} /> : null}
-    </section>
+    </Pane>
   )
 }

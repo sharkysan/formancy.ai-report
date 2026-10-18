@@ -13,6 +13,18 @@
   overflow: hidden;
 }
 
+/* In the design view's place (0029) the builder lends the Preview its
+   middle pane's box and none of its rules: the Preview fills the box, draws
+   the line the design view's pane draws beside the properties, and
+   scrolls rather than cut a control off where the pane is narrower than
+   its tools -- the side panes keep their widths down to 48rem, and the
+   middle has what they leave. */
+.studio-preview[data-place='middle'] {
+  height: 100%;
+  overflow: auto;
+  border-inline-end: 1px solid var(--wb-rule);
+}
+
 .preview-head {
   display: flex;
   flex-wrap: wrap;

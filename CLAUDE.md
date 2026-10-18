@@ -262,7 +262,10 @@ as Formancy Data's apps are, not a new one
   own serialisable styles. The editor's CSS, and the host's, never reach a
   customer's printed output. The design view says it is not the PDF, by its
   name; the Studio's Preview is the PDF itself, drawn by PDF.js on white
-  paper, and no rule of the room's reaches it.
+  paper, and no rule of the room's reaches it but the workbench's `.wb *`,
+  which turns transitions off under reduced motion. Where the window has no
+  room for it beside the builder, it stands in the design view's place
+  ([0029](docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
 - **Keyboard first, accessible name only.** Every drag has a keyboard path
   (formancy.ai 0046): the place chooser, and `actionForKey` in the core.
   Tests find elements by role and accessible name and nothing else; where
@@ -290,7 +293,8 @@ What holds this section:
   name on every control at every state of both builders.
 - **The Studio's stylesheets**, `apps/studio/src/styles.test.tsx`: no colour
   on a rule that names the builder, no Studio rule but `builder.css`'s
-  inside the builder, and nothing on the paper but its own rules.
+  inside the builder, the Preview standing in its middle aside, and nothing
+  on the paper but its own rules and the workbench's `.wb *` (0029).
 - **The palette guard**, `scripts/palette.test.mjs` in `pnpm test:repo`:
   every stylesheet that copies `admin.css`'s variables says what admin.css
   says at the commit the test pins, and the same as every other copy.
@@ -303,8 +307,11 @@ What holds this section:
   target-size rules at every starter in both builders, each PDF drawn on
   white with the text it prints, the framework switch, a real pointer's
   drag, the place chooser, a pane and the Preview hidden and shown again,
-  the design view holding a page at 100 % wherever the Preview stands
-  beside it, no rule of the page's on the paper, and no request or
+  the Preview beside the builder where the window has room for it and
+  swapped with the design view where it has not, a pane hidden as an edit
+  prints, the design view holding a page at 100 % wherever the Preview
+  stands beside it, no rule of the page's on the paper but the workbench's
+  `.wb *`, and no request or
   connection hint to any origin but the built Studio's, its faces included
   ([0023](docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
 - **The pages' stylesheet**, `apps/pages/src/stylesheet.test.ts`: it

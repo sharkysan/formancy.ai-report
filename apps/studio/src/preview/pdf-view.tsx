@@ -90,9 +90,19 @@ export function PdfView({ pdf, fileName, stale }: { pdf: Uint8Array; fileName: s
   const [current, setCurrent] = useState(1)
   const [drawn, setDrawn] = useState<Drawn>({ of: null, zoom: 0, pages: new Set() })
   const paper = useRef<HTMLDivElement>(null)
+  /**
+   * The PDF.js document on the paper, let go of only once a newer one is
+   * there in its place, or the paper goes. Until then the paper redraws it
+   * whenever its width changes -- a side pane hidden, a pane chosen on a
+   * phone -- and a document let go of as soon as a newer PDF arrived threw
+   * at that redraw, taking the whole Studio with it.
+   */
+  const onPaper = useRef<PdfLoading | null>(null)
   const pageDrawn = useCallback((of: Loaded, at: number, page: number): void => {
     setDrawn((now) => ({ of, zoom: at, pages: new Set([...(now.of === of && now.zoom === at ? now.pages : []), page]) }))
   }, [])
+
+  useEffect(() => () => onPaper.current?.destroy(), [])
 
   // PDF.js loads with the first PDF, not with the page.
   useEffect(() => {
@@ -108,16 +118,21 @@ export function PdfView({ pdf, fileName, stale }: { pdf: Uint8Array; fileName: s
         if (document === undefined) return
         const sizes = await Promise.all(Array.from({ length: document.pageCount }, (_, index) => document.pageSize(index + 1)))
         if (!live) return
+        const replaced = onPaper.current
+        onPaper.current = loading ?? null
         setLoaded({ pdf: document, sizes, from: pdf })
         setFailed(null)
         setCurrent((page) => Math.min(page, sizes.length))
+        // A draw of it still on its way rejects, and is not said to be drawn.
+        replaced?.destroy()
       })
       .catch((error: unknown) => {
         if (live) setFailed(error instanceof Error ? error.message : String(error))
       })
     return () => {
       live = false
-      loading?.destroy()
+      // One still loading is let go of; the one on the paper stays there until another replaces it.
+      if (loading !== onPaper.current) loading?.destroy()
     }
   }, [pdf])
 

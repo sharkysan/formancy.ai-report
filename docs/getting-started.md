@@ -441,8 +441,8 @@ export function keepPreviewing(session: ReportSession, print: Print, show: (prev
 ```
 
 The page draws the builder, a Save button and the preview.
-`<ReportBuilder editor={editor} />` takes one prop and fills its container,
-so the page gives `.report-page` a height. The session's `hash()` names the
+`<ReportBuilder editor={editor} />` needs no prop but the editor and fills
+its container, so the page gives `.report-page` a height. The session's `hash()` names the
 document and stays the same until an edit, and the same again once that
 edit is undone, so Save is offered only when there is something to save;
 `exportDocument()` is a deep copy of the document, safe to hand to anything.
