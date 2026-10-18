@@ -168,7 +168,7 @@ describe("the root's paint and transform", () => {
   test("a root fill, and Affinity's root style, are carried on that group", () => {
     expect(cleaned(svg('<path d="M0 0 L5 5" stroke="red"/>', ' fill="none"')).text).toBe(svg('<g fill="none"><path d="M0 0 L5 5" stroke="#ff0000"/></g>'))
     expect(cleaned(svg(RECT, ' style="fill-rule:evenodd;stroke-linejoin:round"')).text).toBe(svg(`<g fill-rule="evenodd" stroke-linejoin="round">${RECT}</g>`))
-    expect(cleaned(svg(RECT, ' class="r"').replace('>', '><style>svg.r{opacity:.5}</style>')).text).toBe(svg(`<g opacity="0.5">${RECT}</g>`))
+    expect(cleaned(svg(`<style>svg.r{opacity:.5}</style>${RECT}`, ' class="r"')).text).toBe(svg(`<g opacity="0.5">${RECT}</g>`))
   })
 
   // The group the root's paint moves onto is a level of the written

@@ -134,7 +134,7 @@ export const EXPORTER_SAMPLES: { readonly [name: string]: ExporterSample } = {
       <stop offset="1" stop-color="#4a90c2"/>
     </linearGradient>
   </defs>
-  <path class="cls-3" d="${mark.disc.replace(/\./g, '.')}"/>
+  <path class="cls-3" d="${mark.disc}"/>
   <rect class="cls-1" x="90" y="30" width="100" height="20"/>
   <polyline class="cls-2" points="10 75 40 60 70 75"/>
 </svg>
