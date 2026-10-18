@@ -1,5 +1,5 @@
 import pdfmake from 'pdfmake'
-import { ALL_FIXTURES, E_INVOICE, pageDimensions, readPdf, verify, verifyRefusal, type Fixture } from '@formancy/report-corpus'
+import { ALL_FIXTURES, E_INVOICE, pageDimensions, readPdf, SVG_FIXTURES, verify, verifyInk, verifyRefusal, type Fixture } from '@formancy/report-corpus'
 import { RenderRefusal, resolveReport } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf } from './node.js'
@@ -11,8 +11,12 @@ import { fixture, TIMEOUT } from './testing/documents.js'
  * it produced, with the corpus's own checks, never on the definition pdfmake
  * was given (0003). These are the gate decision 0005 names: the trial chose
  * pdfmake on this corpus, and the renderer grown from its adapter is held to
- * it here.
+ * it here, and to the corpus's SVG fixtures beside it (0030), which the
+ * trial's engines never drew.
  */
+
+/** Section 20's fixtures, and the SVG ones. */
+const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES]
 
 /**
  * The fixtures the renderer cannot satisfy, each with what it cannot do and
@@ -38,10 +42,20 @@ describe('the renderer on the corpus', () => {
   // break, a header that does not repeat, a total that is not the one the
   // data holds, a truncated job -- and its checks are what would see it.
   // A fixture here that passes is one the renderer does not get wrong.
-  for (const each of ALL_FIXTURES) {
+  for (const each of CORPUS) {
     const finding = CANNOT.get(each.id)
     test(`${each.id}: ${finding === undefined ? each.title : `fails: ${finding.reason}`}`, async () => {
       expect(await problems(each)).toEqual(finding?.problems ?? [])
+    }, TIMEOUT)
+  }
+
+  // A drawing is painted inside a clip of its box, and `cover` paints it
+  // past the box for the clip to hide: the operator list cannot say what
+  // the clip kept in, and the pixels can (0003). Each SVG fixture's every
+  // page, drawn by PDF.js, shows nothing of a drawing past its box.
+  for (const each of SVG_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render')) {
+    test(`${each.id}: shows nothing of a drawing past its box, by its pixels`, async () => {
+      expect(await verifyInk(each, await renderPdf(each.document, { maxPages: each.maxPages }))).toEqual([])
     }, TIMEOUT)
   }
 
@@ -49,6 +63,7 @@ describe('the renderer on the corpus', () => {
   // fixtures the renderer is excused from that grew to cover all of them.
   test('runs a corpus that has fixtures, and excuses none of them', () => {
     expect(ALL_FIXTURES.length).toBeGreaterThan(0)
+    expect(SVG_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect([...CANNOT.keys()]).toEqual([])
   })
 })

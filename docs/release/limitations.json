@@ -34,11 +34,11 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:8923d767676446f5ced23c5c9ddec8457215f50e58c76facf9a1f663440785d2",
+      "reviewed": "sha256:e6f2d8c459335d773e1b768c78ea900d8bbed9b8c96055b2e2d90f125e4631d7",
       "limitations": [
         {
           "area": "testing",
-          "says": "A claim about a rendered PDF rests on its text and images as PDF.js reads them back, and its QR codes as ZXing decodes the page PDF.js draws, so a rule or border through a row, a shape over a line, a clipped glyph or white text on white is not seen until page images are compared."
+          "says": "A claim about a rendered PDF rests on its text and images as PDF.js reads them back, an SVG image's painted paths and clip and the pixels around it, and its QR codes as ZXing decodes the page PDF.js draws, so a rule or border through a row, a shape over a line, a clipped glyph or white text on white is not seen until page images are compared."
         },
         {
           "area": "testing",
@@ -65,7 +65,7 @@
       ]
     },
     "0005": {
-      "reviewed": "sha256:514da8f8d541b14d050535f3276fc4a36f2967717694e3cd13e12aac9f972343",
+      "reviewed": "sha256:9f4c94ed5a3d1f03ee642d6ae4b6d33e6c65f3b9b41d30f5eced69c5a6f16f3c",
       "limitations": [
         {
           "area": "rendering",
@@ -103,7 +103,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:ca6c76df41554b654af567419a9a3663c182354f384ddd1d33c401880b8fcf85",
+      "reviewed": "sha256:cf9eb173a9b85b520d051f7b8297f9b7bbdc283f68aa297b09bd624d72cf7d6c",
       "limitations": [
         {
           "area": "format",
@@ -202,7 +202,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:ce709d5a0b0683a27d1735eb351c782b005fe066c12111ca9e5dcf08584ef2b9",
+      "reviewed": "sha256:d5791e126ae7f0d45f2527d040471c467c5b815efd679bd7cf02da3e0159f5c8",
       "limitations": [
         {
           "area": "runtime",
@@ -250,7 +250,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:fe0a31b1aff82531821c46ef84e3f9b56ee37154868f1d884eba791a969feecd",
+      "reviewed": "sha256:d44847e3f2c2a494757a89dcad4d4f4d1e28323b7fe69aa74d76a26765e9495f",
       "limitations": [
         {
           "area": "rendering",
@@ -418,7 +418,7 @@
       ]
     },
     "0020": {
-      "reviewed": "sha256:41691becf6ba4b1799967a2fdd85e3eadf12f761082277c4f358a7899196a02d",
+      "reviewed": "sha256:cc67bc877239b330fd6aa213bf1a76b4334ce3711f7b11b7992f528f48c16bda",
       "limitations": [
         {
           "area": "format",
@@ -1008,6 +1008,103 @@
         {
           "area": "testing",
           "says": "The README's pictures show the Studio past 2052 pixels and at 390, never with the Preview in the builder's middle at a laptop's width, since the camera takes no width between the Studio's breakpoints."
+        }
+      ]
+    },
+    "0030": {
+      "reviewed": "sha256:1695376a7249dd8ecc88b063fd3f97c88842ef4d8fee37857cbc1d011bf52a66",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A report that declares an SVG asset is refused whole by 0.1.0, as `not-one-of` on its media type, and an image field's SVG by 0.1.0's runtime, so a report saved with one opens only in a release that has it."
+        },
+        {
+          "area": "format",
+          "says": "An SVG asset holds drawing elements alone: text, embedded pictures, `use`, `symbol`, patterns, masks, markers, filters, `foreignObject`, `switch` and conditional-processing attributes are refused, so a logo with live lettering, an icon sprite or an Illustrator file saved with its editing capabilities is refused until it is exported again, its text converted to outlines.",
+          "heldBy": "packages/report-spec/src/svg-elements.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "Of thirteen invented samples of what drawing programs write, five are refused -- live text from Illustrator and Sketch, Illustrator's editing capabilities and its CS-era entities, and Canva's lettering, which Canva writes as `symbol` and `use` and cannot outline itself -- and a Canva logo of five shapes or more is refused too, since Canva clips every shape and a drawing may make four units of transparency groups; the samples were never compared with a real export.",
+          "heldBy": "packages/report-spec/src/svg.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A colour with an alpha, `hsl()`, `transparent` and the system colours are refused in an SVG rather than turned into an opacity; `#rgb`, `#rrggbb`, `rgb()` and CSS Color 4's names are read, each written as `#rrggbb`.",
+          "heldBy": "packages/report-spec/src/svg-values.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A hidden layer of an SVG that holds text or a filter is refused though it draws nothing, since an element is judged before CSS says it is hidden.",
+          "heldBy": "packages/report-spec/src/svg-elements.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An SVG of more than 10,000 weighted segments -- a line 1, a curve 3, a stroke twice more -- is refused, so a detailed crest or a long outlined lettering may need simplifying in its drawing program before it is approved: the bound was lowered from 30,000 when a path every segment of which crosses its box was found to cost a reader 1.15 to 1.84 s at 30,000, against 0.12 to 0.55 s at 10,000, measured on 18 October 2026.",
+          "heldBy": "packages/report-spec/src/svg-bounds.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "Stylesheets in an SVG are bounded by the work of their cascade as well as by their selectors, so a drawing whose elements each hold a combination of classes of their own under many rules is refused, though no export sampled comes near it.",
+          "heldBy": "packages/report-spec/src/svg-style.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An SVG asset may be a mebibyte as it comes and as `cleanSvg` writes it, and the written form can be several times the file, so a drawing whose cleaned form would pass a mebibyte is refused when it is approved.",
+          "heldBy": "packages/report-spec/src/svg-bounds.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "An approved SVG is the drawing `cleanSvg` writes, not the file as it came: comments, metadata, editor layers, scripts, links' addresses and what never draws are removed when it is approved, and an SVG in any other form is refused when it prints, so a host shows its approver the cleaned drawing or the PDF, never the file as uploaded, which a browser draws otherwise.",
+          "heldBy": "packages/report-render-pdf/src/svg-threats.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "An SVG in a page header or footer is drawn again on every page, so a detailed logo grows the PDF and the render with every page: a header logo of 30,000 lines took a 32-page render 2.8 s longer than one of a single rectangle, and each translucent gradient wrote about 1.8 kB more a page, on one machine on 18 October 2026; every 32 bytes of a drawing count too, since pdfmake and its converter read the whole text again each time it is drawn.",
+          "heldBy": "packages/report-render-pdf/src/svg.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A render may draw `MAX_SVG_DRAWING` units of SVG, an image in a page region counted on every page `maxPages` allows and not on the pages printed, so at a limit of 200 pages a header logo may cost 5,000 units however short the report: a logo of 9,999 short lines, the most one drawing may hold, costs 12,152 and may head a report of 82 pages at most, which the Studio's Preview, limited to 40, draws and a render limited to 200 refuses.",
+          "heldBy": "packages/report-render-pdf/src/svg.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Every SVG image of a body is held to the bounds of one drawing as though all fell on one page, so a logo of three units of transparency groups printed twice in a body is refused, wherever the two land.",
+          "heldBy": "packages/report-render-pdf/src/svg.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "pdfmake's SVG converter draws every clip path and translucent gradient as a transparency group the size of the page, and a rasteriser pays for a segment on every row of pixels it spans, so the worst drawing the bounds accept, 15 mm square, added 0.19 s to a page drawn at a device pixel ratio of 1 and 0.39 s at 2, and page-wide 0.27 s and 0.55 s, in headless Chromium on 18 October 2026, against 0.06 to 0.09 s for a starter page, in every reader of the PDF and in the Studio's Preview on every edit.",
+          "heldBy": "packages/report-render-pdf/src/pdfmake.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "In an e-invoice, whose PDF/A-3 holds an integer to 2,147,483,647 and nests the graphics state 28 deep, an SVG is refused as `unsupported`, naming the image, where the numbers the converter would write for it could pass that less a margin of 5.7 % for rounding, or where it nests deeper: a logo whose clips or transparency are drawn under a shrink of 10^6 is refused on A4 below 41.6 pt square, one whose gradient inside a group grows as far as the group shrinks at any size, one whose arc has radii far too short for its ends, or whose path chains thousands of reflected quadratics, at any size, and one nested more than 28 graphics states deep in one content stream at any size; each draws in a report that is no e-invoice, so a template finds out at an e-invoice's render.",
+          "heldBy": "packages/report-render-pdf/src/svg-pdfa.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Of the invented exporter samples the cleaner accepts, each makes its page-sized groups under no matrix that shrinks them and nests five graphics states deep at most, so an e-invoice refuses none of them for its nesting, nor for its groups but as the image's own box shrinks; no real exporter's file has been measured.",
+          "heldBy": "packages/report-spec/src/svg.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "In every report, a gradient is refused at approval as `out-of-range` where its matrix, in any box inside its shape's, could pass 10^6, since svg-to-pdfkit draws it in the box of the outline and the cleaner holds a curve by its control points: a drawing whose gradient cancels against its shape's box only in the box of the control points is refused, where only that box was held before.",
+          "heldBy": "packages/report-spec/src/svg-path.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "That an SVG prints as a browser draws it is held by report-spec's tables and by review; no browser's drawing of an asset is compared with the PDF."
+        },
+        {
+          "area": "testing",
+          "says": "An e-invoice's SVG is held to PDF/A by a bound on the numbers the converter will write, never by reading its PDF back at print, and the bound assumes the converter's arithmetic strays from the cleaner's by no more than its margin, which matrices built to cancel one another term by term could defeat, and which nothing holds; the tests and the e-invoice gate read the numbers back, veraPDF none in a soft mask's group, a clip's."
+        },
+        {
+          "area": "testing",
+          "says": "What an SVG costs to clean, to draw and to paint was measured on one shared machine on 18 October 2026, under Node and in a headless Chromium drawing in software, and not in Firefox, WebKit, a browser drawing on a GPU or CI, so another reader may pay more for the worst drawing the bounds accept; the one time a gate holds, the worst drawing's raster, is held as a ratio to a starter page's in the same process, so that a slower runner is not a slower drawing.",
+          "heldBy": "packages/report-render-pdf/src/svg-converter.test.ts"
         }
       ]
     },

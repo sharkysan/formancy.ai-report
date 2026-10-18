@@ -258,6 +258,106 @@ What they do not check:
 - an account, a date or a total read from the data, before a render;
 - France's rules (BR-FR), and XRechnung's.
 
+## An SVG asset
+
+An image asset may be `image/svg+xml`, held to one form: what `cleanSvg`
+writes ([0030](../../docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
+A host approves a customer's SVG by cleaning it and keeping the bytes
+`cleanSvg` returns, whose digest the asset carries; the renderer draws an
+SVG only when `checkSvg` finds it already in that form, and refuses it
+otherwise, so nothing is cleaned, dropped or rewritten at print.
+
+```ts
+import { checkSvg, cleanSvg } from '@formancy/report-spec'
+
+const approved = cleanSvg(file) // the file's bytes; there is no TextDecoder in this package's world, and none is needed
+// { ok: true, bytes: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#1f4e79"/></svg>,
+//   viewBox: { x: 0, y: 0, width: 40, height: 40 }, segments: 20, groups: 0, drawn: { lines: 2, curves: 6, elements: 2, stops: 0 },
+//   extent: { groups: { inverse: 0, origin: 0 }, patterns: { linear: 0, offset: 0 }, local: 0, own: 39.11426010499247, nesting: 3 },
+//   removed: [declaration, attribute width, attribute height, element title], removedMore: 0 }
+checkSvg(approved.bytes) // { ok: true, … }: what cleanSvg wrote, unchanged
+checkSvg(file) // { ok: false, code: 'unsupported', message: 'the drawing holds a declaration, which cleaning removes; clean it with cleanSvg first' }
+cleanSvg(lettered) // { ok: false, code: 'text', message: 'svg/text is text; convert the text to outlines' }
+```
+
+What a cleaned SVG holds, in `svg-allow.ts`'s tables:
+
+- **Drawing elements alone**, `SVG_ELEMENTS`: `g`, `defs`, the seven
+  shapes, linear and radial gradients and their stops, clip paths of
+  shapes. Text, embedded pictures, `use`, `symbol`, patterns, masks,
+  markers, filters, `foreignObject`, `switch` and a nested `svg` are
+  refused. Every refusal says what to do after what it found -- convert
+  the text to outlines, add the picture as an asset of its own, save it
+  without Illustrator's editing capabilities -- or, where it knows nothing
+  more particular, its code's own advice.
+- **What never draws is removed and listed** -- comments, the declaration,
+  a plain DOCTYPE, titles, metadata, scripts, animations, an editor's
+  elements and attributes in their own namespaces, event handlers, data and
+  accessibility attributes, rendering hints, text and vendor-prefixed
+  properties, what draws nowhere on the element it is written on (paint
+  and clips on a gradient, a stop or `defs`, a stop's colour anywhere
+  else), hidden elements, shapes of no size, what nothing that draws
+  refers to, ids nothing refers to --
+  by name and count, never by value, the first `MAX_SVG_REMOVED_NAMES`
+  names and a count of the rest. A link is the group it draws as, its
+  address removed.
+- **CSS flattened into attributes**: a `style` attribute and `<style>`
+  rules of types, classes, ids and their compounds, in CSS's cascade. A
+  combinator, an at-rule, `!important` or an escape is refused.
+- **Colours as `#rrggbb`**, from `#rgb`, `#rrggbb`, `rgb()` and CSS
+  Color 4's names; one with an alpha, `hsl()`, `transparent` and the system
+  colours are refused. `currentColor` is written as the colour it stands
+  for.
+- **References inside the file alone**: a fill or a stroke may name a
+  gradient, a clip path a clip path; a gradient's `href` chain is flattened
+  into it. Anything else that names anything is refused, so nothing outside
+  the file is ever read. A clip rule a clip path would inherit from what
+  holds it is written on it, so that its clip never rests on `defs`.
+- **Absolute numbers in one written form**: path data in absolute commands
+  whose relative steps sum exactly, transforms composed into one matrix,
+  units converted, nothing below a millionth, and nothing past
+  `MAX_SVG_COORDINATE`: no number, no transform composed from the root and
+  no inverse of one, which the converter computes for every clip, and no
+  matrix a gradient is drawn under in any box inside its shape's, which
+  the converter's box of a curve is. The root keeps its namespace and its
+  viewBox alone; its paint and transform move onto a group inside it, so a
+  transform can never move the drawing off the report's box.
+- **Bounded**: `MAX_SVG_BYTES` in and out, `MAX_SVG_DEPTH`,
+  `MAX_SVG_ELEMENTS`, `MAX_SVG_STOPS`, `MAX_SVG_DASHES`, `MAX_SVG_RULES`,
+  the cascade's work (`MAX_SVG_CASCADE`), and what a reader will paint:
+  `MAX_SVG_SEGMENTS` weighted segments, a clip path counted for every
+  element it clips and a gradient's stops for every shape painted with it,
+  and `MAX_SVG_GROUPS` units of page-sized transparency groups. Each bound
+  but `MAX_SVG_REMOVED_NAMES` says in `limits.ts` how it was measured, and
+  the reader's time is linear in the bytes: a mebibyte of each shape of
+  value a pattern could have made quadratic is cleaned in a test's
+  ceiling.
+- **Its extent measured, `SvgExtent`** (`svg-extent.ts`): how far the
+  numbers svg-to-pdfkit writes for the drawing reach wherever it is
+  placed -- the inverses of the matrices its page-sized groups are drawn
+  under and where they take the viewBox's origin, the matrices its
+  gradients are drawn under outside a group and inside one, and the box
+  a clip in objectBoundingBox units clips to, each over every box inside
+  a shape's, and the points the converter draws its outlines with, an
+  arc's grown to reach its ends among them -- and how deep it nests the
+  graphics state. Nothing is refused by it here; the renderer holds an
+  image in an e-invoice to it, whose PDF/A-3 holds an integer to
+  2,147,483,647 and the nesting to 28.
+
+Cleaning is a fixed point: `cleanSvg` of what it wrote gives the same bytes
+with nothing removed, which is what `checkSvg` tests for.
+
+**A host shows the approver the cleaned drawing, or the PDF, never the
+file as uploaded.** A browser draws the file as it came, with what
+cleaning removes: an animation runs to its end, where the PDF shows the
+drawing before it starts, and a script may change what is drawn. The
+cleaned bytes are what prints, and what an approver says yes to.
+
+What it does not do: draw text, inline `use`, convert
+a colour with an alpha into an opacity, or follow a reference out of the
+file; and that a browser draws the cleaned drawing as the PDF does is held
+by the tables and review, not by comparing the two.
+
 ## Hash
 
 ```ts

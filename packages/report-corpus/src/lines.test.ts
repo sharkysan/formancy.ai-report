@@ -8,7 +8,7 @@ function run(text: string, x: number, baseline: number, size = 10, width = text.
 }
 
 function page(...items: PdfTextItem[]): PdfPage {
-  return { number: 1, width: 595.28, height: 841.89, items, images: [] }
+  return { number: 1, width: 595.28, height: 841.89, items, images: [], paths: [], clips: [] }
 }
 
 describe('pageLines', () => {

@@ -18,13 +18,16 @@ export interface Page {
   readonly footer: readonly Line[]
   /** Every line that is neither, top to bottom. */
   readonly body: readonly Line[]
+  /** The boxes of the SVG images drawn on the page, the page regions' and the body's: the clips their drawings are painted inside (`drawings.ts`). */
+  readonly drawings: readonly PdfBox[]
 }
 
-export function pagesOf(pdf: ReadPdf, expected: Expectation): Page[] {
+/** `pdf`'s pages as the checks read them, each with the boxes of the SVG images `drawings` found on it, page by page. */
+export function pagesOf(pdf: ReadPdf, expected: Expectation, drawings: readonly (readonly PdfBox[])[]): Page[] {
   const header = new Set(expected.pageHeaderLines.map(normalise))
   const footer = new Set(expected.pageFooterLines.map(normalise))
   const numbered = expected.footerEveryPage === undefined ? undefined : once(expected.footerEveryPage)
-  return pdf.pages.map((page) => {
+  return pdf.pages.map((page, index) => {
     const lines = pageLines(page)
     const region = (line: Line): 'header' | 'footer' | 'body' => {
       if (header.has(line.text)) return 'header'
@@ -36,6 +39,7 @@ export function pagesOf(pdf: ReadPdf, expected: Expectation): Page[] {
       header: lines.filter((line) => region(line) === 'header'),
       footer: lines.filter((line) => region(line) === 'footer'),
       body: lines.filter((line) => region(line) === 'body'),
+      drawings: drawings[index] ?? [],
     }
   })
 }
@@ -89,4 +93,13 @@ export function points(value: number): string {
 
 export function imageLabel(image: PdfBox): string {
   return `an image at ${points(image.x)}, ${points(image.top)}`
+}
+
+export function drawingLabel(drawing: PdfBox): string {
+  return `a drawing at ${points(drawing.x)}, ${points(drawing.top)}`
+}
+
+/** What a page shows that is not text: its images and its SVG images' drawings, each with the words a problem names it by. */
+export function pictures(page: Page): { readonly label: string; readonly box: PdfBox }[] {
+  return [...page.page.images.map((box) => ({ label: imageLabel(box), box })), ...page.drawings.map((box) => ({ label: drawingLabel(box), box }))]
 }

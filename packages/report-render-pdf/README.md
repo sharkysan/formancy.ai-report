@@ -92,7 +92,8 @@ Every block of the resolved document:
 - **Images**, in a box the layout reserves whole: `contain` draws all of
   the image at its proportions, as large as the box allows, centred in it;
   `cover` fills the box, centred, and is clipped to it. A JPEG is fitted by
-  the size it is shown at, after its Exif orientation.
+  the size it is shown at, after its Exif orientation. An SVG is drawn as
+  vectors (below), fitted by its viewBox.
 - **QR codes** (ISO/IEC 18004), encoded by [uqr](https://github.com/unjs/uqr)
   in the smallest version that holds their text at the level asked for,
   never a higher level, and drawn in vectors as a square exactly their size:
@@ -137,10 +138,64 @@ Every block of the resolved document:
 | Code | When |
 |---|---|
 | `too-many-pages` | The report needs more pages than `maxPages`, a QR-bill's page included. pdfmake's own limit would return the first pages as though they were all of it. A body whose least height already needs more, the room a bill's slip keeps included, is refused before pdfmake measures it. |
-| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below). |
-| `invalid-asset` | An image's bytes are not the PNG or JPEG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side; or a JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, which PDFKit takes for it, as an arithmetic-coded JPEG may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components, which PDFKit gives no colour space (0031). |
+| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below). |
+| `invalid-asset` | An image's bytes are not the PNG, JPEG or SVG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side, and for an SVG a mebibyte; a JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, which PDFKit takes for it, as an arithmetic-coded JPEG may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components, which PDFKit gives no colour space (0031); an SVG is not exactly the drawing report-spec's `cleanSvg` writes (below). |
 | `cancelled` | The signal was aborted. |
-| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or one its PDF/A-3b cannot hold (below). |
+| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or one its PDF/A-3b cannot hold, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them (below). |
+
+## SVG images
+
+An image asset may be an SVG
+([0030](../../docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)),
+which a host approves by cleaning it with report-spec's `cleanSvg`, which
+the runtime hands on, and keeping the bytes it returns. The renderer
+draws an SVG only when report-spec's `checkSvg` finds its bytes already
+exactly what `cleanSvg` writes, and refuses any other as `invalid-asset`,
+naming the asset and what cleaning would change, before pdfmake runs:
+nothing is cleaned, dropped or rewritten at print, so what prints is in
+the form that was approved.
+
+- **Drawn as vectors** by the SVG converter pdfmake 0.3.11 vendors,
+  svg-to-pdfkit, in the image's box, never as an embedded image: `contain`
+  is the converter's `xMidYMid meet`, the whole drawing as large as the box
+  allows, centred; `cover` its `xMidYMid slice`, the box filled and the rest
+  clipped by the drawing's viewport, which is the box. Nothing is drawn
+  outside the box, and a transform on the drawing's root, which the
+  cleaner moves inside it, cannot move it out.
+- **Guarded twice behind the check.** The text handed to the converter is
+  held to the renderer's own list of the elements a cleaned drawing holds
+  (`svg-content.ts`), so that a link, text, an image, `use`, a style sheet,
+  a comment or a DOCTYPE never reaches it even were the cleaner wrong; and
+  the converter's image and warning callbacks refuse the asset, where the
+  converter would open an `<image>`'s file past pdfmake's local access
+  policy, or draw on past what it could not read and say so only to the
+  console. Neither stops a link, which the converter writes for an `<a>`
+  whatever its callbacks say; the check and the list do. The list may
+  refuse more than report-spec's tables, never less: a test holds it to
+  their `SVG_ELEMENTS`.
+- **Drawn again on every page in a page region.** pdfmake lays the page
+  header and footer out for each page, and the converter draws the drawing
+  each time: a PNG is embedded once, an SVG grows the PDF and the render
+  by its drawing on every page.
+- **Bounded per render.** What drawing the SVGs costs the renderer is held
+  to `MAX_SVG_DRAWING` units of what the converter draws -- lines, curves,
+  elements, gradient stops and page-sized transparency groups, each
+  weighted by what it was measured to cost beside a line, and every 32
+  bytes of the drawing, which pdfmake and the converter read again each
+  time it is drawn, whatever it draws -- counting an
+  image in a page region on every one of `maxPages`, the pages the report
+  may have, which is known before the render: a detailed header logo can
+  be refused at a high page limit though the report prints two pages. At
+  the budget the renderer spends about what `MAX_IMAGE_DATA`'s largest
+  images cost it to decode (`assets.ts` says how both were measured, on
+  what and when). What they cost a reader is held
+  to what one drawing may cost, which was measured as a page's:
+  `MAX_SVG_SEGMENTS` and `MAX_SVG_GROUPS` over every SVG image of the body,
+  as though all fell on one page, and those of the page regions. A
+  translucent logo printed twice in the body can be refused for it.
+- **Held to PDF/A in an e-invoice** (below): an SVG whose numbers could
+  pass the integers a PDF/A-3 holds, or whose drawing nests deeper than
+  its graphics state may, is refused there and drawn in any other report.
 
 ## QR codes
 
@@ -339,7 +394,30 @@ It refuses, as `unsupported` and before pdfmake sees the document:
   of four components once had an RGB JPEG drawn in DeviceCMYK past this
   refusal (measured on 18 October 2026, veraPDF failing it on 6.2.4.3-3),
   and a JPEG PDFKit would read otherwise is refused as `invalid-asset` in
-  every report (above).
+  every report (above);
+- an SVG image whose numbers could pass the 2,147,483,647 a PDF/A-3 holds
+  an integer to, or whose drawing svg-to-pdfkit nests more than 28
+  graphics states deep, its limit (`svg-pdfa.ts`), naming the image and
+  saying what to do. The converter writes a page-sized group's box and a
+  gradient's matrix through the inverse of the drawing's transform and
+  the box, a gradient's and a clip's in the box it measures on the
+  outline, and an outline in points of its own, so a logo whose clip and
+  transparency are shrunk a millionfold wrote a box of 78,520,000,000 a
+  point square, an e-invoice that said it was a PDF/A and was not, which
+  veraPDF 1.30.3 failed, and an arc whose radii the converter grows to
+  reach its ends wrote control points of 5 × 10^17 at any size (measured
+  on 18 October 2026). The renderer bounds every number the converter will
+  write, from report-spec's extent of the drawing -- over every box inside
+  a shape's, and the points the converter draws each outline with -- the
+  image's box and fit and the page, the image anywhere on it, and refuses
+  past `SVG_INTEGER_BOUND`: the integer less a margin of 5.7 % for
+  rounding, derived from report-spec's bounds as its comment says.
+  report-corpus's `SVG_BOUND`, its groups shrunk so, is drawn on A4 in
+  `SVG_BOUND_SIDE`, 41.6 pt square, and refused a hundredth smaller; each
+  of report-spec's invented exporter samples the cleaner accepts makes its
+  page-sized groups under no shrink and nests five deep at most. The bound
+  is not held for matrices built to cancel one another term by term, whose
+  products floating point gets wrong.
 
 Every other kind of image PDFKit embeds is drawn in an e-invoice:
 report-corpus's `IMAGE_KINDS` -- grey and colour JPEGs, and PNGs of every
@@ -372,9 +450,12 @@ guard admits by its digest, with the ICC's licence sentence a review read
 reads each of the corpus's e-invoice samples back from its PDF with readers
 that are not PDFKit -- the file with PDF.js and pdf-lib, the XMP with saxes
 -- and `src/e-invoice-samples.test.ts` holds what the page prints to the XML
-read out of the same PDF. Whether a validator takes the PDF is the
-e-invoice gate's: veraPDF and Mustang judge the samples' PDFs there, and
-nothing here. The fx namespace, prefix and properties rest on a
+read out of the same PDF. `src/svg-pdfa.test.ts` reads every number of an
+SVG's e-invoice back with report-corpus's `readPdfNumbers`, content streams
+included, which veraPDF does not read, and holds the bound to at least
+every number each drawing's PDF writes. Whether a validator takes the PDF
+is the e-invoice gate's: veraPDF and Mustang judge the samples' PDFs
+there, an SVG at every bound among the variants, and nothing here. The fx namespace, prefix and properties rest on a
 transcription of the specification, which no validator reads; the tests
 compare them with the transcription's values, and say so.
 
@@ -437,6 +518,9 @@ bytes by a test. Both faces map every character SIX allows in a bill (IG
 - **Measure page regions per page.** They are measured once, every page
   field printed as `maxPages`, so a region that wraps only for some page
   numbers is measured at its widest.
+- **Draw an SVG as a browser does, compared.** That the PDF shows what a
+  browser draws of the same cleaned drawing is held by report-spec's allow
+  lists and by review; no browser's rendering is compared with the PDF.
 - **Decode a JPEG's scan.** Its structure is checked, up to the scan, and a
   corrupt scan inside a well-formed JPEG reaches the PDF. A PNG's image data
   is inflated and checked; data with bytes after its zlib stream is refused,
@@ -488,6 +572,30 @@ and value read back where SIX puts it, at its size and in its face; the
 lines, the scissors on the line down, the corner marks and the cross from
 the content stream, and the cross from the pixels too; and the page the
 slip goes on.
+
+`svg.test.ts` proves an SVG image on its PDF: no image embedded, a clip of
+exactly its box with its paths inside it in its own colours, read by the
+corpus's reader through the transparency groups a clip path draws into,
+`contain`'s proportions, and from the pixels `cover` and a
+root's transform painting nothing outside the box, each beside the same
+drawing as it came, which does; and the budget at its bound and one past
+it, an image in a page region counted on every page. `svg-threats.test.ts`
+refuses each hazard svg-to-pdfkit meets in an SVG as it came -- a local
+image, text, a style sheet, an entity, a `use` fan-out, a link -- before
+pdfmake runs, and shows each guard behind the check hold without it; holds
+the renderer's list of elements to report-spec's; and draws a drawing
+shrunk, and a gradient composed, to the bound, where past it PDFKit threw
+from inside pdfmake, refusing the drawing past it as `invalid-asset`.
+`svg-converter.test.ts` draws every drawing the tests hold, and a thousand
+seeded mutations of them the cleaner accepts, through the converter's
+throwing callbacks; holds the worst drawing the bounds accept, rasterised
+page-wide, to sixteen times a starter page rasterised in the same process;
+and holds the converter's colour names to the cleaner's.
+`pdfmake.test.ts` pins the converter as it is: the file it opens past the
+access policy, the link it writes whatever its callbacks say, the drawing
+xmldoc hands it, its warnings, its clip and the page-sized groups it draws
+for every reference. Every SVG the renderer draws in these tests is held
+to carrying no annotation.
 
 `scripts/readme-pictures.ts` draws the repository README's pictures of the
 starters and of both invoices' samples with PDF.js, and `pictures.test.ts`

@@ -265,6 +265,17 @@ export {
   MAX_SORT_KEYS,
   MAX_STYLE_RULES,
   MAX_STYLES,
+  MAX_SVG_BYTES,
+  MAX_SVG_CASCADE,
+  MAX_SVG_COORDINATE,
+  MAX_SVG_DASHES,
+  MAX_SVG_DEPTH,
+  MAX_SVG_ELEMENTS,
+  MAX_SVG_GROUPS,
+  MAX_SVG_REMOVED_NAMES,
+  MAX_SVG_RULES,
+  MAX_SVG_SEGMENTS,
+  MAX_SVG_STOPS,
   MAX_TABLE_COLUMNS,
   MAX_TEXT_LENGTH,
   MAX_VAT_CATEGORIES,
@@ -273,6 +284,14 @@ export {
   MIN_PRINTABLE_PT,
 } from './limits.js'
 export { isFieldKey, isIdentifier } from './syntax.js'
+
+export { checkSvg, cleanSvg } from './svg.js'
+export type { CheckedSvg, CleanSvg } from './svg.js'
+export type { SvgExtent } from './svg-extent.js'
+export { SVG_REFUSAL_CODES } from './svg-refusal.js'
+export { KEPT_ELEMENTS as SVG_ELEMENTS } from './svg-allow.js'
+export type { SvgRefusal, SvgRefusalCode, SvgRemoval, SvgRemovalKind } from './svg-refusal.js'
+export type { ViewBox as SvgViewBox } from './svg-drawing.js'
 
 export { reportHash } from './hash.js'
 export { emptyReport } from './empty.js'

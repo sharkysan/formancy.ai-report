@@ -1,4 +1,4 @@
-import { OVERLAP, quoted, type Page } from './check-page.js'
+import { OVERLAP, pictures, quoted, type Page } from './check-page.js'
 import type { ExpectedCell, ExpectedRow, ExpectedTable } from './fixture.js'
 import { lineHas, type Line } from './lines.js'
 
@@ -209,13 +209,14 @@ export function headers(pages: readonly Page[], read: ReadTables, tables: readon
  * No page ends a table with a heading: neither a group header, which would
  * stand over rows on the next page, nor the column header, which would stand
  * over none. A heading ends its page when nothing of the body -- no line, no
- * image -- is below it there; whatever follows a heading in the document is
- * its table's rows, so a row without a key counts as well as one with.
+ * image, no drawing -- is below it there; whatever follows a heading in the
+ * document is its table's rows, so a row without a key counts as well as one
+ * with.
  */
 export function orphans(pages: readonly Page[], read: ReadTables, tables: readonly ExpectedTable[]): string[] {
   const last = (index: number, heading: Line): boolean => {
-    const { body, page } = pages[index]!
-    return !body.some((line) => line !== heading && line.top >= heading.bottom - OVERLAP) && !page.images.some((image) => image.top >= heading.bottom - OVERLAP)
+    const page = pages[index]!
+    return !page.body.some((line) => line !== heading && line.top >= heading.bottom - OVERLAP) && !pictures(page).some(({ box }) => box.top >= heading.bottom - OVERLAP)
   }
   const groupHeaders = read.rows.flatMap(({ row, lines: [start] }) => {
     if (row.kind !== 'groupHeader' || start === undefined || !last(start.page, pages[start.page]!.body[start.line]!)) return []

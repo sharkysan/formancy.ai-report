@@ -1,18 +1,23 @@
 import { createHash } from 'node:crypto'
-import fs from 'node:fs'
+import fs, { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { PassThrough } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 import pdfmake from 'pdfmake'
-import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { readPdf, readPdfObjects, readXmp } from '@formancy/report-corpus'
+import type { ContentSvg, TDocumentDefinitions } from 'pdfmake/interfaces.js'
+import { readAnnotations, readPdf, readPdfObjects, readXmp } from '@formancy/report-corpus'
 import { describe, expect, test, vi } from 'vitest'
 import { collect, type PdfStream } from './engine.js'
 import { renderPdf } from './node.js'
 import { PDF_A_3B, type PdfKitDocument, type PdfKitFileOptions } from './pdfa.js'
+import { converterOptions } from './svg-content.js'
 import { fixture } from './testing/documents.js'
+import { readDrawing } from './testing/drawing.js'
 import { invoiced } from './testing/e-invoice.js'
+import { encodePng } from './testing/images.js'
+import { MARK, svg, svgAsset } from './testing/svg.js'
 
 /**
  * pdfmake as the Node entry configures it, and the PDF read from it.
@@ -164,6 +169,104 @@ describe("pdfmake's footer, which a QR-bill's slip is drawn as", () => {
     const baseline = (item: (typeof drawn)[number]): number => item.bottom - 0.2 * item.height
     expect(baseline(drawn[0]!)).toBeCloseTo(841.89 - 40 - 320 + (1900 / 2048) * 10, 2)
     expect(baseline(drawn[29]!) - baseline(drawn[0]!)).toBeCloseTo(29 * (2400 / 2048) * 10, 2)
+  })
+})
+
+describe("pdfmake's SVG converter, which draws an SVG asset", () => {
+  /** `node`, an SVG node, alone on an A4 page 40 pt in from the left and the top, as pdfmake 0.3.11 draws it once a render has configured it. */
+  async function drawn(node: ContentSvg & { readonly options?: object }): Promise<Uint8Array> {
+    await renderPdf(fixture('one-row').document, { maxPages: 5 })
+    return new Uint8Array(await pdfmake.createPdf({ pageSize: 'A4', pageMargins: [40, 40, 40, 40], content: [node] }).getBuffer())
+  }
+  const latin1 = (bytes: Uint8Array): string => Buffer.from(bytes).toString('latin1')
+  const count = (bytes: Uint8Array, pattern: RegExp): number => (latin1(bytes).match(pattern) ?? []).length
+
+  // svg-to-pdfkit opens an <image>'s href as a file through PDFKit, which
+  // pdfmake's local access policy does not guard: the renderer's allows
+  // its fonts alone, and the file is embedded all the same. That is what
+  // the renderer's image callback, and the check before it, exist for; an
+  // upgrade that guards it shows here.
+  test("opens an <image>'s local file past pdfmake's local access policy", async () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'report-render-pdf-'))
+    try {
+      const file = path.join(directory, 'secret.png').split(path.sep).join('/')
+      writeFileSync(file, encodePng(4, 4, () => [255, 0, 0]))
+      const pdf = await drawn({ svg: svg(`<image href="${file}" width="10" height="10"/>`), width: 40, height: 40 })
+      expect((await readPdf(pdf)).pages[0]!.images).toHaveLength(1)
+      await expect(attempt(file)).rejects.toThrow(/Access to local file denied/)
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  // pdfmake measures an SVG by reading it with xmldoc, and hands the
+  // converter what xmldoc writes back, with the box's size added: the
+  // drawing re-indented, one element a line, and otherwise as written. The
+  // canonical form holds nothing xmldoc and the converter's own reader could
+  // read apart -- no text, no entity, no DOCTYPE, no prefix -- so the
+  // second reading is of the same tree; a pdfmake that rewrote more would
+  // show here.
+  test('hands the converter what xmldoc writes back: re-indented, with the box’s size', async () => {
+    const text = new TextDecoder().decode(svgAsset(MARK).bytes)
+    const node = { svg: text, width: 42.52, height: 42.52 }
+    await drawn(node)
+    const elements = text.slice(text.indexOf('>') + 1, text.lastIndexOf('</svg>')).replace(/(?<=\/>)(?=<)/g, '\n  ')
+    expect(node.svg).toBe(`${text.slice(0, text.indexOf('>'))} width="42.52" height="42.52">\n  ${elements}\n</svg>`)
+  })
+
+  // Without a warning callback the converter says what it cannot draw to
+  // the console and draws on, otherwise than written: a clip path that
+  // clips itself is drawn without its clip. The renderer's callback refuses
+  // instead (`svg-threats.test.ts`).
+  test('warns to the console and draws on, without a warning callback', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const pdf = await drawn({ svg: svg('<clipPath id="c"><rect clip-path="url(#c)" width="1" height="1"/></clipPath><rect width="10" height="10" clip-path="url(#c)"/>'), width: 40, height: 40 })
+      expect(pdf.length).toBeGreaterThan(0)
+      expect(warn.mock.calls.map(([message]) => String(message))).toEqual(['SVGtoPDF: loop of circular references for id "c"'])
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  // `cover` is drawn as `xMidYMid slice`, past the box, and the outer
+  // svg's viewport clips it: the converter sets a clip of exactly the box
+  // before it draws. Were it to stop, a covered logo would paint over what
+  // stands beside it.
+  test('clips the drawing to its viewport, the box', async () => {
+    const [page] = readDrawing(await drawn({ svg: svg('<rect width="200" height="100" fill="#1f4e79"/>', '0 0 200 100'), width: 40, height: 40, options: { preserveAspectRatio: 'xMidYMid slice' } }))
+    expect(page!.clips).toEqual([{ kind: 'line', x: 40, top: 40, width: 40, height: 40 }])
+    expect(page!.shapes.map(({ x, width }) => [x, width])).toEqual([[20, 80]])
+  })
+
+  // The converter draws a clip path again for every element it clips, and
+  // a gradient again for every shape painted with it; each clip, and each
+  // translucent gradient twice over, is a transparency group whose box is
+  // the whole page in the drawing's units, whatever the drawing's size
+  // (0030). report-spec counts each reference and MAX_SVG_GROUPS
+  // bounds the groups by that; a converter that drew either once, or a
+  // group of the drawing's own size, would show here.
+  test('draws a clip path and a gradient for every reference, each group the size of the page', async () => {
+    const clipped = (uses: number): string => svg(`<clipPath id="c"><rect width="50" height="50"/></clipPath>${'<rect width="10" height="10" fill="#000" clip-path="url(#c)"/>'.repeat(uses)}`)
+    const painted = (uses: number, opacity: string): string => svg(`<linearGradient id="g"><stop/><stop offset="1" stop-color="#fff" stop-opacity="${opacity}"/></linearGradient>${'<rect width="10" height="10" fill="url(#g)"/>'.repeat(uses)}`)
+    const box = 42.52
+    const once = await drawn({ svg: clipped(1), width: box, height: box })
+    const thrice = await drawn({ svg: clipped(3), width: box, height: box })
+    expect([count(once, /\/Subtype \/Form/g), count(thrice, /\/Subtype \/Form/g), count(thrice, /\/SMask/g)]).toEqual([1, 3, 3])
+    expect([count(await drawn({ svg: painted(3, '1'), width: box, height: box }), /\/ShadingType/g), count(await drawn({ svg: painted(3, '0.5'), width: box, height: box }), /\/ShadingType/g)]).toEqual([3, 6])
+    // The viewBox is 100 units in a box of 42.52 pt: the group's box, in those units, is the A4 page.
+    const [x1, y1, x2, y2] = /\/BBox \[([^\]]*)\]/.exec(latin1(once))![1]!.split(' ').map(Number) as [number, number, number, number]
+    expect([((x2 - x1) * box) / 100, ((y2 - y1) * box) / 100].map((side) => Math.round(side * 100) / 100)).toEqual([595.28, 841.89])
+  })
+
+  // The converter writes a link annotation for an <a>, to any address --
+  // `javascript:` included -- whatever its callbacks say: it has no
+  // callback for a link. The cleaner unwraps every <a> and the renderer's
+  // own list of elements refuses one (`svg-content.ts`); the callbacks
+  // alone would not.
+  test("writes an <a>'s link whatever its callbacks say", async () => {
+    const pdf = await drawn({ svg: svg('<a href="javascript:app.alert(1)"><rect width="100" height="100" fill="#f00"/></a>'), width: 40, height: 40, options: converterOptions('linked', 'contain') })
+    expect(await readAnnotations(pdf)).toEqual([{ page: 1, subtype: 'Link', url: 'javascript:app.alert(1)' }])
   })
 })
 

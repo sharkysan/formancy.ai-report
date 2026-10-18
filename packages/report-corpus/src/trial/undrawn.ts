@@ -3,12 +3,12 @@ import { RenderRefusal, type Block, type Columns, type EpcQrCode, type QrCode, t
 /**
  * What the document grew after the renderer trial, which neither trial
  * adapter draws: columns, sections, rectangles, QR codes and EPC QR codes,
- * a payment part, an e-invoice to embed, fonts but the sans, colour, rules of another weight or
- * colour, and table rows and cells with styles of their own or running
- * across the table. Both adapters refuse it here, as `unsupported` and
- * naming where it stands, before they
- * build anything: a block skipped or a style ignored would print a report
- * that is not the one asked for, with nothing to say so.
+ * a payment part, an e-invoice to embed, an SVG image, fonts but the sans,
+ * colour, rules of another weight or colour, and table rows and cells with
+ * styles of their own or running across the table. Both adapters refuse it
+ * here, as `unsupported` and naming where it stands, before they build
+ * anything: a block skipped or a style ignored would print a report that is
+ * not the one asked for, with nothing to say so.
  *
  * The trial's findings stand on the document it ran on (0005). Drawing the
  * rest is the renderer's, judged on the same corpus. An image's fit is each
@@ -53,6 +53,8 @@ function problemIn(blocks: readonly Block[], path: string): Problem | undefined 
 function problemOf(block: Block, at: string): Problem | undefined {
   if (isUndrawn(block)) return { message: `${at} is a ${block.kind} block`, subject: at }
   if (block.kind === 'keepTogether') return problemIn(block.blocks, `${at}.blocks`)
+  // Both adapters read an image that is not a PNG as a JPEG, and refused an SVG as a broken one: it is a drawing neither draws.
+  if (block.kind === 'image' && block.asset.mediaType === 'image/svg+xml') return { message: `${at} is an SVG image, ${block.asset.id}`, subject: at }
   if (block.kind === 'paragraph') {
     const problem = styleProblem(block.style)
     return problem === undefined ? undefined : { message: `${at} is ${problem}`, subject: at }

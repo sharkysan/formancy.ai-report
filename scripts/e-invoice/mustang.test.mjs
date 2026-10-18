@@ -189,6 +189,8 @@ describe('Mustang’s verdict on a PDF', () => {
       ['e-invoice-reverse-charge.pdf', 'as expected', 0],
       ['e-invoice-exempt-paid.pdf', 'as expected', 0],
       ['variant-blocks.pdf', 'as expected', 0],
+      ['variant-svg.pdf', 'as expected', 0],
+      ['variant-svg-bound.pdf', 'as expected', 0],
       ['variant-fonts.pdf', 'as expected', 0],
       ['variant-service-inspection.pdf', 'as expected', 0],
       ['variant-quotation.pdf', 'as expected', 0],

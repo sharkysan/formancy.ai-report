@@ -35,7 +35,7 @@ export async function render(engine: Engine, document: ResolvedDocument, options
   const { signal, maxPages } = options
   if (!Number.isSafeInteger(maxPages) || maxPages < 1) throw new RangeError(`maxPages must be a whole number of pages, at least 1; it is ${String(maxPages)}`)
   stopIfCancelled(signal)
-  const checked = await checkDocument(document, await engine.glyphs())
+  const checked = await checkDocument(document, await engine.glyphs(), maxPages)
   const bill = document.paymentPart === undefined ? undefined : checkBill(document.paymentPart, document.page, await engine.billGlyphs())
   // An EPC QR code's caption prints in Liberation Sans too, which a browser loads only when asked; its words are the PSA's, which the face has glyphs for.
   if (checked.captioned) await engine.billGlyphs()

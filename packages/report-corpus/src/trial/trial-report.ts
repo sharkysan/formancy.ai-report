@@ -126,8 +126,9 @@ function introduction(trial: Trial): string[] {
   return [
     '# Renderer trial',
     '',
-    'Every fixture in the corpus (`packages/report-corpus/src/fixtures`), rendered',
-    'by each candidate engine through its trial adapter (`src/trial/`), read back',
+    'Every fixture of the corpus the trial runs on (`ALL_FIXTURES`, in',
+    '`packages/report-corpus/src/fixtures/all.ts`), rendered by each candidate',
+    'engine through its trial adapter (`src/trial/`), read back',
     "with PDF.js and judged by the corpus's own checks, as",
     '[0003](decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)',
     "requires. The checks are the ones each engine's suite runs, on the PDF that",

@@ -1,4 +1,5 @@
 import { inflateSync } from 'node:zlib'
+import { checkSvg, cleanSvg } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import type { Block, ResolvedDocument } from '../document.js'
 import { flatten, normalise, plainText, tables } from '../fixture.js'
@@ -12,6 +13,7 @@ import { IDENTIFIER, longParagraph, PARAGRAPH_WORDS } from './long-paragraph.js'
 import { longTable } from './long-table.js'
 import { oversized } from './oversized.js'
 import { BOUNDARY, OVERFLOW, summaryFits, summaryOverflows, SWEEP, SWEEP_STEP } from './summary.js'
+import { SVG_AS_SAVED, SVG_BOUND, SVG_FIXTURES, SVG_MARK, SVG_WINDOW, svgAsSaved, svgMark, svgWindow } from './svg.js'
 import { DESCRIPTION_WORDS, tallRow } from './tall-row.js'
 
 /**
@@ -55,6 +57,9 @@ function documentLines(document: ResolvedDocument): string[] {
   })
 }
 
+/** Section 20's fixtures and the SVG ones: every fixture an engine answers to. */
+const EVERY = [...ALL_FIXTURES, ...SVG_FIXTURES]
+
 describe('the corpus', () => {
   // Section 20's list, spelled out once here: a fixture dropped from the
   // corpus would otherwise go unnoticed, and the engine decision would be made
@@ -78,10 +83,16 @@ describe('the corpus', () => {
     ])
   })
 
+  // The SVG fixtures stand beside section 20's, which the renderer trial
+  // ran on (0005): one dropped would leave an SVG unproved on the PDF.
+  test('has the SVG fixtures beside them, each once', () => {
+    expect(SVG_FIXTURES.map((fixture) => fixture.id)).toEqual(['svg-mark', 'svg-window', 'svg-as-saved'])
+  })
+
   // A refusal without a code would accept any refusal, and a code on a
   // fixture that must render would be ignored and mislead whoever reads it.
   test('names a refusal exactly where one is allowed, and page bounds inside the page limit', () => {
-    for (const fixture of ALL_FIXTURES) {
+    for (const fixture of EVERY) {
       const { outcome, refusal, minPagesExpected, maxPagesExpected } = fixture.expect
       expect(refusal === undefined, fixture.id).toBe(outcome === 'render')
       expect(minPagesExpected, fixture.id).toBeGreaterThanOrEqual(1)
@@ -94,7 +105,7 @@ describe('the corpus', () => {
   // it exactly once and in order, and never in the page header or footer,
   // which print on every page.
   test('prints each key exactly once in the body, in order, and never in a page header or footer', () => {
-    for (const fixture of ALL_FIXTURES) {
+    for (const fixture of EVERY) {
       const { document, expect: expected } = fixture
       const inBody = occurrencesIn(bodyWords(document.body))
       const inPageRegions = occurrencesIn(bodyWords([...document.pageHeader, ...document.pageFooter]))
@@ -112,7 +123,7 @@ describe('the corpus', () => {
   // Exact and wrapped text is expected because the document prints it; text
   // the document does not hold would fail every engine.
   test('expects only text its document prints', () => {
-    for (const fixture of ALL_FIXTURES) {
+    for (const fixture of EVERY) {
       const lines = documentLines(fixture.document)
       for (const text of fixture.expect.exactText) {
         expect(lines.some((line) => ` ${line} `.includes(` ${normalise(text)} `)), `${fixture.id}: ${text}`).toBe(true)
@@ -125,7 +136,7 @@ describe('the corpus', () => {
   // adapter would have to guess about; a row without a first cell cannot be
   // found on the page, so no check could see it go missing.
   test('gives every table row a cell per column and a first cell to know it by', () => {
-    for (const fixture of ALL_FIXTURES) {
+    for (const fixture of EVERY) {
       for (const table of tables(fixture.document.body)) {
         expect(table.header, `${fixture.id}: ${table.id}`).toHaveLength(table.columns.length)
         for (const row of table.rows) {
@@ -139,7 +150,7 @@ describe('the corpus', () => {
   // The footer pattern is derived from the footer the document prints; it
   // must match that footer as printed, numbers in the named groups.
   test('derives a footer pattern that matches the footer as printed', () => {
-    for (const fixture of ALL_FIXTURES) {
+    for (const fixture of EVERY) {
       const match = fixture.expect.footerEveryPage?.exec('Page 3 of 7')
       expect(match?.groups, fixture.id).toEqual({ pageNumber: '3', pageCount: '7' })
       expect(fixture.expect.footerEveryPage?.test('Page 3 of'), fixture.id).toBe(false)
@@ -285,10 +296,40 @@ describe('the values', () => {
     const [width, height] = [view.getUint32(16), view.getUint32(20)]
     const idat = bytes.subarray(41, 41 + view.getUint32(33))
     expect(inflateSync(idat)).toHaveLength(height * (1 + 3 * width))
-    expect(images.expect.images).toEqual([{ width: 128, height: 64 }])
+    expect(images.expect.images).toEqual([{ kind: 'raster', width: 128, height: 64 }])
 
     const [invalid] = flatten(imageInvalid.document.body).filter((block) => block.kind === 'image')
     expect([...invalid!.asset.bytes.subarray(0, 4)]).not.toEqual([0x89, 0x50, 0x4e, 0x47])
     expect(imageInvalid.expect.refusal).toEqual({ code: 'invalid-asset', subject: invalid!.asset.id })
+  })
+
+  // An approved SVG is the drawing cleanSvg writes, and the renderer draws
+  // nothing else (0030): a drawing here that cleaning would change would be
+  // refused by a correct renderer, and its fixture would teach nothing. Each
+  // is what cleaning writes, and cleans to itself with nothing removed.
+  test('the SVG drawings are what cleanSvg writes, and the drawing as saved is not', () => {
+    for (const bytes of [SVG_MARK, SVG_WINDOW, SVG_BOUND]) {
+      const cleaned = cleanSvg(bytes)
+      expect(cleaned.ok && { bytes: [...cleaned.bytes], removed: cleaned.removed }).toEqual({ bytes: [...bytes], removed: [] })
+      expect(checkSvg(bytes).ok).toBe(true)
+    }
+    // The drawing as saved is the mark, and not in the form approval writes: refused at print, with nothing the matter with it but that.
+    const saved = cleanSvg(SVG_AS_SAVED)
+    expect(saved.ok && [...saved.bytes]).toEqual([...SVG_MARK])
+    expect(checkSvg(SVG_AS_SAVED)).toMatchObject({ ok: false, code: 'unsupported' })
+    expect(svgAsSaved.expect.refusal).toEqual({ code: 'invalid-asset', subject: 'mark-as-saved' })
+  })
+
+  // Each drawing is expected as vectors, twice in the body and once in the
+  // page header of each of its three pages, and the window is drawn through
+  // a clip path, the shape a reader that counted soft masks would see.
+  test('the SVG fixtures expect each drawing as vectors in the body and the page header, the window through a clip path', () => {
+    for (const fixture of [svgMark, svgWindow]) {
+      expect(fixture.expect.images.map(({ kind }) => kind), fixture.id).toEqual(['vector', 'vector'])
+      expect(fixture.expect.pageRegionImages.map(({ kind }) => kind), fixture.id).toEqual(['vector'])
+      expect(flatten(fixture.document.body).flatMap((block) => (block.kind === 'image' ? [block.fit] : [])), fixture.id).toEqual(['contain', 'cover'])
+      expect(fixture.expect, fixture.id).toMatchObject({ minPagesExpected: 3, maxPagesExpected: 3, noEmptyPages: true })
+    }
+    expect(new TextDecoder().decode(SVG_WINDOW)).toContain('clip-path="url(#c1)"')
   })
 })

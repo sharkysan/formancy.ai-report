@@ -1,6 +1,6 @@
 # 0007 — A report definition is its own versioned document, with a flowing body, one detail table, declared aggregates and print styles as tokens
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which adds the EPC QR code, and by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which adds an e-invoice and the names its totals are read by
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which adds the EPC QR code, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which adds an e-invoice and the names its totals are read by, and by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which adds an SVG asset in the one form report-spec's `cleanSvg` writes
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `@formancy/report-spec` tests that fail when it is
@@ -364,6 +364,23 @@ report that was valid and had no `eInvoice`. A release that predates it,
 0.1.0 among them, refuses a report with one as `unknown-property`.
 `validate-e-invoice.test.ts` and `en16931.test.ts` hold the shape, the
 lists and the rules, and `en16931.test.ts` holds the two name lists apart.
+
+**Added 2026-10-18: an SVG asset.** An asset's media type may be
+`image/svg+xml`, as
+[0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)
+decides; any other type than a PNG's, a JPEG's or that is still refused,
+as `not-one-of`. The definition still holds no bytes: an SVG asset is named by
+its id and the digest of the bytes report-spec's `cleanSvg` wrote when the
+asset was approved, the one form the renderer draws. That form's rules are
+report-spec's (`svg.ts` and the modules beside it), and its bounds the
+`MAX_SVG_*` constants in `limits.ts`, the first of its bounds that were
+measured rather than chosen, all but `MAX_SVG_REMOVED_NAMES`, each saying
+how. It is a draft-format
+addition: `reportSpecVersion` is unchanged, and so is every report that
+was valid. A release that predates it, 0.1.0 among them, refuses a report
+that declares an SVG asset as `not-one-of`.
+`validate-declarations.test.ts` holds the media type, and `svg.test.ts`
+and its siblings the form.
 
 ## Alternatives considered
 

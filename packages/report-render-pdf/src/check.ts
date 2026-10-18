@@ -1,11 +1,12 @@
-import { RenderRefusal, type Block, type Columns, type EInvoiceFile, type EpcQrCode, type Image, type ImageAsset, type KeepTogether, type QrCode, type Rectangle, type ResolvedDocument, type Section, type Table, type TextStyle } from '@formancy/report-runtime'
-import { checkImageAsset, MAX_IMAGE_DATA, type Pixels } from './assets.js'
+import { MAX_SVG_GROUPS, MAX_SVG_SEGMENTS, RenderRefusal, type Block, type Columns, type EInvoiceFile, type EpcQrCode, type Image, type ImageAsset, type KeepTogether, type QrCode, type Rectangle, type ResolvedDocument, type Section, type Table, type TextStyle } from '@formancy/report-runtime'
+import { checkImageAsset, MAX_IMAGE_DATA, MAX_SVG_DRAWING, type CheckedImage, type Vector } from './assets.js'
 import { frameOf, RULE_GAP } from './content.js'
 import { epcSymbol } from './epc.js'
 import { checkEInvoice, checkEInvoiceTitle } from './e-invoice.js'
 import { codePoint, faceOf, missingGlyph, type Glyphs } from './glyphs.js'
 import { qrSymbol, type QrSymbol } from './qr.js'
 import { COLOR, FONTS, LINE_FACTOR } from './style.js'
+import { checkSvgInEInvoice } from './svg-pdfa.js'
 import { KIND_BOLD, PADDING_X, PADDING_Y } from './table.js'
 import { fillWidth, fixedWidth } from './widths.js'
 
@@ -15,8 +16,9 @@ import { fillWidth, fixedWidth } from './widths.js'
  * what is wider than where it stands, text with a character the face it
  * prints in has no glyph for (`glyphs.ts`), an e-invoice the renderer does
  * not know (`e-invoice.ts`), and what an e-invoice's PDF/A-3 cannot hold:
- * a title PDFKit cannot write into its XMP, and a CMYK JPEG beside its sRGB
- * output intent. Every refusal names where the problem is --
+ * a title PDFKit cannot write into its XMP, a CMYK JPEG beside its sRGB
+ * output intent, and an SVG whose numbers could pass its integers' range
+ * or whose nesting its graphics state's (`svg-pdfa.ts`). Every refusal names where the problem is --
  * `body[2].blocks[0]`, a table's id, an asset's id -- and none of them is a
  * partial render: a document that is refused has drawn nothing.
  *
@@ -24,7 +26,9 @@ import { fillWidth, fixedWidth } from './widths.js'
  * measured -- whatever is too tall for any page's body -- and what the body
  * pass measures: its tables and keep-together blocks, each at the width it
  * stands at. It encodes every QR code and EPC QR code, once, and what it
- * encodes is what every pass draws (`qr.ts`, `epc.ts`).
+ * encodes is what every pass draws (`qr.ts`, `epc.ts`). It reads every image
+ * asset once (`assets.ts`) and holds the render to what its images cost
+ * together (`checkImages`).
  */
 
 /** The paper and its printable area, in points. */
@@ -72,8 +76,8 @@ export interface Checked {
   readonly creationDate: Date
   /** The e-invoice the document carries, known to the renderer: drawn as a PDF/A-3b that embeds it (`pdfa.ts`). */
   readonly eInvoice: EInvoiceFile | undefined
-  /** Every image's size in pixels, as it is shown. */
-  readonly pixels: ReadonlyMap<ImageAsset, Pixels>
+  /** Every image asset as the checks read it: a PNG's or a JPEG's size in pixels, as it is shown, or an SVG's drawing. */
+  readonly assets: ReadonlyMap<ImageAsset, CheckedImage>
   /** Every QR code's and EPC QR code's symbol, encoded once. */
   readonly codes: ReadonlyMap<QrCode | EpcQrCode, QrSymbol>
   /** Whether an EPC QR code is captioned: its caption prints in Liberation Sans, which the engine loads for it. */
@@ -100,14 +104,14 @@ interface Place {
 interface Walk {
   readonly glyphs: Glyphs
   readonly paths: Map<Block, string>
-  readonly images: { readonly image: Image; readonly at: string }[]
+  readonly images: { readonly image: Image; readonly region: boolean }[]
   readonly codes: Map<QrCode | EpcQrCode, QrSymbol>
   captioned: boolean
   readonly tall: Tall[]
   readonly measured: Measured[]
 }
 
-export async function checkDocument(document: ResolvedDocument, glyphs: Glyphs): Promise<Checked> {
+export async function checkDocument(document: ResolvedDocument, glyphs: Glyphs, maxPages: number): Promise<Checked> {
   const creationDate = new Date(document.info.creationDate)
   if (Number.isNaN(creationDate.getTime())) throw new RenderRefusal('unsupported', `the creation date '${document.info.creationDate}' is not a date`, 'info.creationDate')
   // The title goes into the PDF's metadata, never onto a page, so it is held to being text and not to the font.
@@ -121,20 +125,68 @@ export async function checkDocument(document: ResolvedDocument, glyphs: Glyphs):
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true }, walk)
   checkBlocks(document.pageFooter, 'pageFooter', { ...top, region: true }, walk)
   checkBlocks(document.body, 'body', { ...top, region: false }, walk)
-  const pixels = new Map<ImageAsset, Pixels>()
-  let data = 0
-  for (const { image } of walk.images) {
-    if (pixels.has(image.asset)) continue
-    const read = await checkImageAsset(image.asset)
-    // DeviceCMYK beside the sRGB output intent fails a PDF/A (veraPDF 6.2.4.3-3), and a second intent would have to share its profile (6.2.3-2).
-    if (eInvoice !== undefined && read.cmyk) {
-      throw new RenderRefusal('unsupported', `the image ${image.asset.id} is a CMYK JPEG, which an e-invoice cannot hold: it is drawn as a PDF/A-3 whose output intent is sRGB, beside which no image may be CMYK`, image.asset.id)
+  const assets = await checkImages(walk.images, maxPages, eInvoice !== undefined, page)
+  return { page, creationDate, eInvoice, assets, codes: walk.codes, captioned: walk.captioned, tall: walk.tall, paths: walk.paths, measured: walk.measured }
+}
+
+/**
+ * Every image's asset, read once however many images draw it, and what the
+ * images cost together, each refusal naming the asset whose image crossed
+ * it:
+ *
+ * - the image data the PNGs and JPEGs hold, once for each asset, against
+ *   `MAX_IMAGE_DATA`, as `content-too-large`: each is embedded once;
+ * - in an e-invoice, a JPEG PDFKit draws in DeviceCMYK, refused as
+ *   `unsupported`: the PDF/A-3 it is drawn as has an sRGB output intent,
+ *   beside which no image may be CMYK (veraPDF 6.2.4.3-3), and a second
+ *   intent would have to share its profile (6.2.3-2);
+ * - in an e-invoice, an image of an SVG whose numbers, at its box and on
+ *   its page, could pass the integers a PDF/A-3 holds, or whose drawing
+ *   nests the graphics state deeper than one may, refused as
+ *   `unsupported` (`svg-pdfa.ts`): each image, since its box decides;
+ * - what drawing the SVGs costs the renderer, for every image of one,
+ *   against `MAX_SVG_DRAWING`, as `content-too-large`: the converter draws an SVG wherever it
+ *   stands, and one in a page region on every page, counted as `maxPages`,
+ *   the pages the report may have, which is known before the render;
+ * - what the SVGs cost a reader to paint, against `MAX_SVG_SEGMENTS` and
+ *   `MAX_SVG_GROUPS`, as `content-too-large`, the bounds of one drawing, measured as what one page
+ *   may cost: every SVG image of the body counted as though all of them fell
+ *   on one page, beside those of the page regions, which every page draws.
+ *   Which page each lands on is known only once pdfmake has laid the body
+ *   out.
+ */
+async function checkImages(images: Walk['images'], maxPages: number, eInvoice: boolean, page: Page): Promise<ReadonlyMap<ImageAsset, CheckedImage>> {
+  const assets = new Map<ImageAsset, CheckedImage>()
+  const total = { data: 0, units: 0, segments: 0, groups: 0 }
+  for (const { image, region } of images) {
+    const { id } = image.asset
+    let read = assets.get(image.asset)
+    if (read === undefined) {
+      read = await checkImageAsset(image.asset)
+      if (eInvoice && read.kind === 'raster' && read.cmyk) {
+        throw new RenderRefusal('unsupported', `the image ${id} is a CMYK JPEG, which an e-invoice cannot hold: it is drawn as a PDF/A-3 whose output intent is sRGB, beside which no image may be CMYK`, id)
+      }
+      assets.set(image.asset, read)
+      total.data += read.kind === 'raster' ? read.data : 0
+      if (total.data > MAX_IMAGE_DATA) throw new RenderRefusal('content-too-large', `the images up to ${id} hold ${total.data} bytes of image data; a render may hold ${MAX_IMAGE_DATA}`, id)
     }
-    data += read.data
-    if (data > MAX_IMAGE_DATA) throw new RenderRefusal('content-too-large', `the images up to ${image.asset.id} hold ${data} bytes of image data; a render may hold ${MAX_IMAGE_DATA}`, image.asset.id)
-    pixels.set(image.asset, read)
+    if (eInvoice && read.kind === 'vector') checkSvgInEInvoice(read, image, page)
+    if (read.kind === 'vector') addVector(total, read, region ? maxPages : 1, id)
   }
-  return { page, creationDate, eInvoice, pixels, codes: walk.codes, captioned: walk.captioned, tall: walk.tall, paths: walk.paths, measured: walk.measured }
+  return assets
+}
+
+/** One more SVG image, drawn `times` times, added to what the render's SVG images cost; refused past a bound. */
+function addVector(total: { units: number; segments: number; groups: number }, vector: Vector, times: number, id: string): void {
+  total.units += vector.units * times
+  total.segments += vector.segments
+  total.groups += vector.groups
+  if (total.units > MAX_SVG_DRAWING) {
+    throw new RenderRefusal('content-too-large', `the SVG images up to ${id} cost ${total.units} units to draw, each in a page region counted on every page the report may have; a render may draw ${MAX_SVG_DRAWING}`, id)
+  }
+  const onePage = 'on one page, every SVG image of the body counted as though it fell there beside those of the page regions'
+  if (total.segments > MAX_SVG_SEGMENTS) throw new RenderRefusal('content-too-large', `the SVG images up to ${id} would cost a reader ${total.segments} weighted segments to paint ${onePage}; a page may cost ${MAX_SVG_SEGMENTS}`, id)
+  if (total.groups > MAX_SVG_GROUPS) throw new RenderRefusal('content-too-large', `the SVG images up to ${id} would make ${total.groups} units of page-sized transparency groups ${onePage}; a page may make ${MAX_SVG_GROUPS}`, id)
 }
 
 function pageOf(setup: ResolvedDocument['page']): Page {
@@ -181,7 +233,7 @@ function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
       return
     case 'image':
       checkImage(block, place, walk)
-      walk.images.push({ image: block, at })
+      walk.images.push({ image: block, region: place.region })
       return
     case 'qrCode':
       checkQrCode(block, place, walk)

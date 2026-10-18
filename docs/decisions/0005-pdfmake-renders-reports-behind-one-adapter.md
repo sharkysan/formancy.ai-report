@@ -1,6 +1,6 @@
 # 0005 — pdfmake renders reports, behind one adapter
 
-- **Status:** accepted; amended by
+- **Status:** accepted; its claim that pdfmake reads no file but its fonts narrowed by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md): the SVG converter pdfmake vendors opens an `<image>`'s file past the local access policy, and the renderer never hands it one; and amended by
   [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
   under which a render of an e-invoice reads one file besides its fonts,
   the ICC profile PDFKit embeds in a PDF/A, outside pdfmake's access
@@ -232,6 +232,19 @@ profile; a read through another call of `fs` it would not see. The
 profile is a reviewed file under
 [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md),
 as 0031 extends it.
+
+**Added 2026-10-18: the file the SVG converter would read.** *pdfmake
+reads no file but its four fonts* holds of pdfmake's own reading, which
+its local access policy guards. The SVG converter it vendors, svg-to-pdfkit,
+opens an `<image>`'s `href` through PDFKit, which that policy does not
+guard, and `pdfmake.test.ts` now pins that it does. Nothing the renderer
+hands it holds one
+([0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)):
+an SVG asset prints only in the form report-spec's `cleanSvg` writes,
+which refuses `<image>`; the renderer's own list of the elements that form
+holds refuses one again; and the converter's image callback refuses the
+asset before a file is opened, in Node and in the browser build, whose
+virtual files it would read instead.
 
 ## Alternatives considered
 

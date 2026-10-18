@@ -80,3 +80,20 @@ export type { EpcCaption } from '@formancy/report-spec'
  */
 export { FACTUR_X, FACTUR_X_PROFILES } from '@formancy/report-spec'
 export type { FacturXProfileTerms } from '@formancy/report-spec'
+/**
+ * What report-spec decides of an SVG asset, handed on as the QR-bill's
+ * decisions are (0030): `checkSvg`, which an engine applies to an SVG's
+ * bytes before it draws them, accepting only the drawing `cleanSvg` writes,
+ * with what it costs to draw and how far the numbers the converter writes
+ * for it reach (`SvgExtent`); `cleanSvg`, for a host that approves assets
+ * beside its render code; the refusal codes; `SVG_ELEMENTS`, the elements
+ * an approved drawing is written with, which an engine's own guard holds
+ * itself to; `MAX_SVG_BYTES`, the largest an SVG asset may be, which the
+ * runtime holds an answer to; `MAX_SVG_SEGMENTS` and `MAX_SVG_GROUPS`,
+ * what one page may cost a reader to paint, which an engine holds a page of
+ * several SVGs to; and `MAX_SVG_COORDINATE` and `MAX_SVG_DEPTH`, which
+ * bound the matrices a drawing is composed of, from which an engine derives
+ * how far its own arithmetic may stray from that extent.
+ */
+export { checkSvg, cleanSvg, MAX_SVG_BYTES, MAX_SVG_COORDINATE, MAX_SVG_DEPTH, MAX_SVG_GROUPS, MAX_SVG_SEGMENTS, SVG_ELEMENTS, SVG_REFUSAL_CODES } from '@formancy/report-spec'
+export type { CheckedSvg, CleanSvg, SvgExtent, SvgRefusal, SvgRefusalCode, SvgRemoval, SvgRemovalKind, SvgViewBox } from '@formancy/report-spec'

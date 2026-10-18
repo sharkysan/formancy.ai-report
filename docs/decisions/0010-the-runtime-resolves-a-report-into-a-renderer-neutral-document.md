@@ -1,6 +1,6 @@
 # 0010 — The runtime resolves a report into a renderer-neutral document, exactly, or refuses it
 
-- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which writes an EPC QR code's payload and refuses one the EPC's rules refuse, and by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which computes an e-invoice's totals once for the page and its XML, writes the XML, and refuses one EN 16931's rules refuse
+- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which writes an EPC QR code's payload and refuses one the EPC's rules refuse, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which computes an e-invoice's totals once for the page and its XML, writes the XML, and refuses one EN 16931's rules refuse, and by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which fetches an SVG asset, drawn again wherever it prints rather than embedded once, and corrects this record's reason for trusting digests
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-runtime`, run by its
@@ -228,6 +228,29 @@ bound of its own: `MAX_DETAIL_ROWS` bounds it, and 0027 records what that
 costs. `e-invoice-totals.test.ts`, `e-invoice-lines.test.ts`,
 `e-invoice-terms.test.ts`, `lower-e-invoice.test.ts` and `cii.test.ts`
 hold it.
+
+**Added 2026-10-18: an SVG asset, and a reason corrected.** An image's
+asset may be an SVG, as
+[0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)
+decides. The runtime fetches it through the host's lookup as it fetches a
+PNG, once per render, and refuses an answer past `MAX_SVG_BYTES`, a
+mebibyte, before it is copied. Whether its bytes are the form
+report-spec's `cleanSvg` writes is the renderer's to say, by report-spec's
+`checkSvg`, which the runtime hands on beside `cleanSvg`. Two sentences
+above say less than is so:
+- *Images* says the renderer embeds an asset once. A PNG or a JPEG, yes;
+  an SVG is drawn again wherever it prints, on every page of a page
+  region.
+- *Digests are trusted* gives a reason that did not hold when it was
+  written: a pure SHA-256 is in the runtime's dependency closure,
+  `@noble/hashes`', through `@formancy/spec`'s `schemaHash`, which
+  report-spec's `reportHash` calls. The decision stands, the host's lookup
+  trusted to return the bytes the digest pins. Its reason now is that
+  checking a digest changes what every host's resolver must satisfy,
+  which is a decision of its own.
+
+`lower.test.ts` holds the cap, and that the bytes are not read when it
+refuses.
 
 ## Alternatives considered
 

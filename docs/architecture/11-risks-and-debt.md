@@ -33,12 +33,13 @@ either.
 `reportSpecVersion` is `'0'`, and nothing written under it is promised to a
 later release: a report written now may need re-authoring or migrating when
 the format freezes. The additions since 0.1.0 — the QR code, the payment
-part, the EPC QR code and the e-invoice — went into the same draft version,
-and 0.1.0 refuses a report that uses any of them, whole
+part, the EPC QR code, the e-invoice and the SVG asset — went into the same
+draft version, and 0.1.0 refuses a report that uses any of them, whole
 ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md),
 [0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md),
 [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
-[0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+[0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
+[0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
 ### The renderer leans on pdfmake's defaults and internals
 
@@ -51,6 +52,73 @@ version, so an upgrade is a diff somebody runs those tests on
 ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
 [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 A pass cannot be interrupted, and no worker that could be killed is built.
+
+The SVG converter pdfmake vendors, svg-to-pdfkit, is leaned on most of
+all. What it would do with an SVG as it came — open an `<image>`'s file
+past pdfmake's access policy, write a link to any address with no callback
+to stop it, draw text in a face pdfmake chooses, recurse until the stack
+overflows, expand `use` until the process dies — is kept from it by
+report-spec's cleaner and the renderer's check, with its own list of
+elements and the converter's callbacks behind them; and what it does with
+an approved drawing — xmldoc's copy, its clip, a group the size of the page
+for every clip and translucent gradient, drawn again for every reference —
+is pinned by `pdfmake.test.ts`, so an upgrade that changes one shows. A
+group of the element's own size, and a callback for links, would be
+svg-to-pdfkit's to add; neither has been asked of it
+([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
+
+### An SVG logo costs every reader, and some files are refused
+
+Every recipient's viewer, and the Studio's Preview on every edit, pays to
+paint what a logo holds, and svg-to-pdfkit makes each clip and translucent
+gradient a group the size of the page, so a small logo can cost what the
+page's pixels cost. The worst drawing the bounds accept, a path every
+segment of which crosses its box in a clipped group, added 190 ms to a page
+at a device pixel ratio of 1 and 392 ms at 2 drawn 15 mm square, and 269
+and 550 ms page-wide, against 63 to 89 ms for a starter page, measured on
+18 October 2026 in a headless Chromium drawing in software on one machine;
+on a slower reader, a GPU or another browser, nothing here measured it. A
+logo in a page header is drawn again on every page, growing the PDF and the
+render with the page count. And the price of failing closed is refusals:
+live text, Illustrator's editing capabilities, Canva's lettering and a
+Canva logo of many shapes, a filter, a mask, a colour with an alpha, and a
+drawing past 10,000 weighted segments, which a detailed crest can be. The samples those refusals were counted on are invented, and how
+many real logos are refused is not known
+([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
+
+### An SVG in an e-invoice is held to PDF/A by a bound, not by reading the PDF
+
+An e-invoice is drawn as a PDF/A-3b
+([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)),
+which holds an integer to 2,147,483,647 and nests the graphics state 28
+deep at most. svg-to-pdfkit writes a page-sized group's box and a
+gradient's matrix through the inverse of the drawing's transform and the
+image's box, a gradient's and a clip's in the box it measures on the
+outline, and an outline in points of its own, an arc's grown to reach its
+ends and a reflected quadratic's walked away from the path, so an approved
+logo could pass the range: one whose clip and transparency are shrunk a
+millionfold, a point square, wrote a box of 78,520,000,000 into an
+e-invoice that said it was a PDF/A-3b, which veraPDF 1.30.3 failed, and an
+arc of radii a millionth and a million wrote control points of 5 ×
+10^17 at any size. The renderer now refuses such an image in an e-invoice
+before pdfmake runs, by an upper bound on every number the converter will
+write for it, from the extent report-spec's cleaner measured -- over every
+box inside a shape's, since the cleaner holds a curve by its control
+points and the converter by its outline -- the image's box and the page,
+less a margin of 5.7 % for rounding
+(`report-render-pdf/src/svg-pdfa.ts`); a report that is no e-invoice
+draws it as before. PDF/A-3 keeps none of PDF/A-1's 32,767 for a
+real: veraPDF's PDF/A-3b profile holds a real to 3.403 × 10^38, past the
+10^21 at which PDFKit throws; and the groups' `/DeviceRGB` is accepted
+beside the sRGB output intent, in the gate's two SVG variants.
+
+What is not held: the bound assumes the converter's arithmetic agrees with
+the cleaner's to that margin, which matrices built to cancel one another
+term by term could defeat; the bound is checked against the numbers read
+back only in the tests and the e-invoice gate, never at print, and veraPDF
+reads none in a soft mask's group, a clip's; and the converter's numbers are
+pdfmake 0.3.11's, so an upgrade must be measured again
+([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
 ### Formancy Data is read best-effort, and only a stand-in has answered
 
@@ -203,6 +271,10 @@ its own.
 | **An e-invoice is written in the definition** | Neither builder edits one, and every command keeps it as it was (`report-core/src/commands/registry.test.ts`); the Studio offers none of the corpus's e-invoice samples (0027) | An author writes the block, its lines' named columns and its VAT categories by hand |
 | **Every host carries the e-invoice** | `validateReport` reads an e-invoice in every report, and the runtime imports its writer statically (0027) | Bundled minified from each package's source, report-spec, report-core and report-runtime grew from 145,932 to 194,092 bytes, measured with esbuild 0.28.2 on 17 October 2026, whether a host's reports have an e-invoice or not |
 | **The XML has no bound of its own** | It is written before a page is counted, so only `MAX_DETAIL_ROWS` bounds it; a bound of its own is the rightsholder's to choose (0027) | At 100,000 lines the XML held 117,280,919 bytes, and resolving took a median of 5.4 s against 2.0 s without it, over five runs from the built package on Node 24.21.0 and an Intel i9-10900K on 17 October 2026 |
+| **A header logo counted on every page the limit allows** | `MAX_SVG_DRAWING` is checked before the render, when only `maxPages` is known, not the pages the report will print ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)) | At a limit of 200 pages a header logo may cost 5,000 units however short the report; refusing inside pdfmake's header callback, which knows the count, would admit more |
+| **A Canva logo's clips** | Canva clips every shape, each clip a page-sized group, and a drawing may make four units of them (0030) | A Canva logo of five shapes or more is refused; a clip that is one axis-aligned rectangle holding all it clips could be removed by the cleaner instead, and is not |
+| **Two lists of SVG hazards, two readers of a drawing, and two lists of its elements** | report-spec cannot import the corpus, which depends on it, so its tests state their own hazards, and the renderer's (`report-render-pdf/src/testing/svg.ts`) are another list; the renderer's `testing/drawing.ts` reads a drawing's exact ink, which the corpus's reader does not; and the renderer's `svg-content.ts` lists the elements a cleaned drawing holds apart from report-spec's tables, on purpose, as a guard behind the check (0030) | A hazard added to one list is not in the other, and nothing says so; the two lists of elements are held equal by `report-render-pdf/src/svg-threats.test.ts` |
+| **`types.ts` at the size budget** | report-spec's types gained the SVG media type; at 574 of 600 lines, counted on 18 October 2026, the next addition must split it by its reasons to change (0030) | `scripts/source-size.test.mjs` fails the change that passes 600 |
 | **Liberation Sans, twice in the package** | The Node entry reads TrueType files and the browser entry imports them as base64, for the slip and for an EPC QR code's caption ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) | The renderer's tarball went from 268,045 bytes unpacked at 0.1.0 to 2,307,611, as `npm pack --dry-run` reported on 17 October 2026 |
 | **The Preview's width, written twice** | The workspace asks the window `layout.ts`'s `MIDDLE`, and the browser gate's passes and the pictures' camera read their widths from `narrow.css`'s query ([0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)) | Nothing while `apps/studio/src/styles.test.tsx` holds the two equal; a reader of a third copy would need a test of its own |
 | **A workbench rule admitted inside the Preview** | `@formancy/themes`' `.wb *`, which turns transitions off when motion is reduced, reaches everything in the builder, the Preview standing in its middle included, and is upstream's to scope (0029) | A workbench.css that declares more under it fails the Studio's stylesheet test and the browser gate, until upstream scopes it or the Preview stands outside `.wb` |

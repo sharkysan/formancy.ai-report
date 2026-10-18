@@ -1,4 +1,25 @@
-import { concatTransformationMatrix, degrees, drawObject, PDFDocument, popGraphicsState, pushGraphicsState, StandardFonts } from '@pdfme/pdf-lib'
+import {
+  appendBezierCurve,
+  clip,
+  closePath,
+  concatTransformationMatrix,
+  degrees,
+  drawObject,
+  endPath,
+  fill,
+  fillAndStroke,
+  lineTo,
+  moveTo,
+  PDFDocument,
+  popGraphicsState,
+  pushGraphicsState,
+  rectangle,
+  setFillingRgbColor,
+  setStrokingRgbColor,
+  StandardFonts,
+  stroke,
+  type PDFOperator,
+} from '@pdfme/pdf-lib'
 import { describe, expect, test } from 'vitest'
 import { encodePng } from './fixtures/png.js'
 import { readPdf } from './read-pdf.js'
@@ -9,6 +30,12 @@ import { exactBuffer, pdfmakePdf } from './testing/pdfmake.js'
  * line's baseline that far below the top of the line's box.
  */
 const ROBOTO_ASCENDER = 1900 / 2048
+
+/** A value as the page boxes are compared here: to the hundredth of a point. */
+const hundredths = (value: number): number => Math.round(value * 100) / 100
+
+/** `operators` between a save and a restore of the graphics state. */
+const group = (...operators: PDFOperator[]): PDFOperator[] => [pushGraphicsState(), ...operators, popGraphicsState()]
 
 describe('readPdf', () => {
   // Pages are numbered from 1, as a reader of the PDF numbers them, and a
@@ -166,6 +193,107 @@ describe('readPdf', () => {
     const embedded = await pdfmakePdf({ content: [{ text: 'with a file' }] }, (document) => document.file(exactBuffer(xml), { name: 'factur-x.xml', type: 'text/xml', description: 'invoice data' }))
     expect((await readPdf(embedded)).attachments).toEqual([{ name: 'factur-x.xml', description: 'invoice data', bytes: xml }])
     expect((await readPdf(await pdfmakePdf({ content: [{ text: 'without' }] }))).attachments).toEqual([])
+  })
+
+  // A vector drawing -- an SVG image, a QR code -- is paths, which text
+  // extraction and image boxes never see. Each is where the page puts it,
+  // through a transform and a form XObject's matrix as an image is, with how
+  // it is painted and in what: read wrong, a drawing in other colours, or
+  // past its box, would pass.
+  test('finds each path painted, where it lands, how it is painted and in what', async () => {
+    const inner = await PDFDocument.create()
+    inner.addPage([200, 100]).pushOperators(setFillingRgbColor(0, 1, 0), rectangle(10, 20, 50, 40), fill())
+    const document = await PDFDocument.create()
+    const form = await document.embedPage((await PDFDocument.load(await inner.save())).getPage(0), undefined, [2, 0, 0, 2, 0, 0])
+    const page = document.addPage([595.28, 841.89])
+    page.pushOperators(
+      ...group(setFillingRgbColor(0.2, 0.4, 0.6), rectangle(100, 700, 50, 20), fill()),
+      ...group(concatTransformationMatrix(2, 0, 0, 2, 300, 500), setStrokingRgbColor(1, 0, 0), moveTo(0, 0), lineTo(10, 5), stroke()),
+      ...group(setFillingRgbColor(0, 0, 0), setStrokingRgbColor(0, 0, 1), rectangle(50, 50, 10, 10), fillAndStroke()),
+    )
+    page.drawPage(form, { x: 100, y: 500 })
+    const { paths } = (await readPdf(await document.save())).pages[0]!
+    expect(paths.map((path) => ({ box: [path.x, path.top, path.width, path.height].map(hundredths), paint: path.paint, fill: path.fill, stroke: path.stroke }))).toEqual([
+      { box: [100, 121.89, 50, 20], paint: 'fill', fill: '#336699' },
+      // The line's box is its points', two units by one doubled, before any stroke's width.
+      { box: [300, 331.89, 20, 10], paint: 'stroke', stroke: '#ff0000' },
+      { box: [50, 781.89, 10, 10], paint: 'fillStroke', fill: '#000000', stroke: '#0000ff' },
+      // The form's 50 × 40 rectangle at 10, 20, doubled by its matrix, then moved to 100, 500 on the page.
+      { box: [120, 221.89, 100, 80], paint: 'fill', fill: '#00ff00' },
+    ])
+  })
+
+  // An SVG image is drawn inside a clip of exactly its box, which is how a
+  // check finds it. A clip is a rectangle by its corners on the page: a
+  // diamond's bounding box is a square, and judged by it, a clip that cut
+  // the corners off a logo would pass as its box (0030). A path knows
+  // the innermost rectangle it was painted inside, until the state that set
+  // it is restored.
+  test('lists a clip only when it is one rectangle on the page, judged by its corners', async () => {
+    const document = await PDFDocument.create()
+    const page = document.addPage([595.28, 841.89])
+    const square = (x: number, y: number, side: number): PDFOperator[] => [moveTo(x, y), lineTo(x + side, y), lineTo(x + side, y + side), lineTo(x, y + side), closePath()]
+    const diamond = (x: number, y: number, side: number): PDFOperator[] => [moveTo(x, y + side / 2), lineTo(x + side / 2, y), lineTo(x + side, y + side / 2), lineTo(x + side / 2, y + side), closePath()]
+    const paint = (x: number, y: number): PDFOperator[] => [setFillingRgbColor(1, 0, 0), rectangle(x, y, 5, 5), fill()]
+    page.pushOperators(
+      ...group(rectangle(100, 600, 80, 40), clip(), endPath(), ...paint(90, 590)),
+      ...paint(300, 600),
+      ...group(...square(400, 600, 50), clip(), endPath(), ...paint(410, 610)),
+      ...group(...diamond(500, 600, 50), clip(), endPath(), ...paint(520, 620)),
+      ...group(moveTo(100, 300), appendBezierCurve(100, 350, 150, 350, 150, 300), closePath(), clip(), endPath(), ...paint(110, 310)),
+      // A quarter turn: the rectangle 40 by 20 stands 20 wide and 40 tall on the page, its sides still along the page's.
+      ...group(concatTransformationMatrix(0, 1, -1, 0, 300, 300), rectangle(0, 0, 40, 20), clip(), endPath()),
+      ...group(rectangle(100, 100, 200, 200), clip(), endPath(), ...group(...diamond(150, 150, 50), clip(), endPath(), ...paint(170, 170))),
+      // Two rectangles are no one rectangle, a triangle is none, and a clip of no path is none; a square drawn back to its start before it closes is one.
+      ...group(rectangle(400, 100, 20, 20), rectangle(430, 100, 20, 20), clip(), endPath()),
+      ...group(moveTo(500, 100), lineTo(550, 100), lineTo(525, 150), closePath(), clip(), endPath()),
+      ...group(clip(), endPath()),
+      ...group(moveTo(400, 200), lineTo(450, 200), lineTo(450, 250), lineTo(400, 250), lineTo(400, 200), closePath(), clip(), endPath()),
+    )
+    const { clips, paths } = (await readPdf(await document.save())).pages[0]!
+    expect(clips.map(({ x, top, width, height }) => [x, top, width, height].map(hundredths))).toEqual([
+      [100, 201.89, 80, 40],
+      [400, 191.89, 50, 50],
+      [280, 501.89, 20, 40],
+      [100, 541.89, 200, 200],
+      [400, 591.89, 50, 50],
+    ])
+    // Painted inside the first, after it, inside the square, inside the diamond and the curve alone, and inside the diamond inside the last rectangle.
+    expect(paths.map((path) => path.clip)).toEqual([0, undefined, 1, undefined, undefined, 3])
+  })
+
+  // An SVG's clip path is painted into a soft mask, in white: it says where
+  // the drawing shows, and paints nothing a reader sees. Read as paint, a
+  // white mark on blue would pass a check of its colours for the wrong
+  // reason (0030). And PDF.js hands a transparency group's form -- a
+  // group at an opacity -- no matrix, which the reader once took for six
+  // numbers and threw on: no SVG with a group could be read at all.
+  test('reads nothing of a soft mask, where an SVG clip path is painted white, and reads through a group and a gradient', async () => {
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+      '<defs><clipPath id="c"><circle cx="50" cy="50" r="40"/></clipPath><linearGradient id="g"><stop offset="0" stop-color="#000000"/><stop offset="1" stop-color="#ffffff"/></linearGradient></defs>' +
+      '<rect width="100" height="100" fill="#1f4e79" clip-path="url(#c)"/><rect y="90" width="100" height="10" fill="url(#g)"/>' +
+      '<g opacity="0.5"><rect width="10" height="10" fill="#e9c46a"/></g><rect x="20" y="20" width="60" height="40" fill="none" stroke="url(#g)" stroke-width="2"/></svg>'
+    const { paths, clips } = (await readPdf(await pdfmakePdf({ pageMargins: [40, 60, 40, 60], content: [{ svg, width: 100, height: 100 }] }))).pages[0]!
+    expect(paths.map(({ paint, fill, stroke, clip: inside }) => ({ paint, fill, stroke, inside }))).toEqual([
+      { paint: 'fill', fill: '#1f4e79', stroke: undefined, inside: 0 },
+      { paint: 'fill', fill: 'pattern', stroke: undefined, inside: 0 },
+      { paint: 'fill', fill: '#e9c46a', stroke: undefined, inside: 0 },
+      { paint: 'stroke', fill: undefined, stroke: 'pattern', inside: 0 },
+    ])
+    expect(clips.map(({ x, top, width, height }) => [x, top, width, height].map(hundredths))).toEqual([[40, 60, 100, 100]])
+  })
+
+  // A soft mask is skipped whole, however deep it holds groups of its own:
+  // the white of a mask's second shape, after a group at an opacity inside
+  // it, is no more paint a reader sees than its first.
+  test('reads nothing of a soft mask that holds a group of its own', async () => {
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><mask id="m">' +
+      '<g opacity="0.5"><rect width="100" height="100" fill="#ffffff"/></g><rect width="50" height="50" fill="#ffffff"/>' +
+      '</mask></defs><rect width="100" height="100" fill="#1f4e79" mask="url(#m)"/></svg>'
+    const { paths } = (await readPdf(await pdfmakePdf({ content: [{ svg, width: 100, height: 100 }] }))).pages[0]!
+    expect(paths.map((path) => path.fill)).toEqual(['#1f4e79'])
   })
 
   // pdfjs takes ownership of the buffer it is given. Handed the caller's own

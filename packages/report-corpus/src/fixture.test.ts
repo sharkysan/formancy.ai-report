@@ -93,7 +93,8 @@ describe('expectation', () => {
     expect(derived.footerEveryPage?.exec('Page 2')?.groups).toEqual({ pageNumber: '2' })
     // A line with a page field prints differently on every page; it is not a line to find.
     expect(derived.keptTogether).toEqual([['Summary']])
-    expect(derived.images).toEqual([{ width: 10, height: 20 }])
+    expect(derived.images).toEqual([{ kind: 'raster', width: 10, height: 20 }])
+    expect(derived.pageRegionImages).toEqual([])
     expect(derived).toMatchObject({
       outcome: 'render',
       minPagesExpected: 1,
@@ -105,6 +106,22 @@ describe('expectation', () => {
       noOverlaps: true,
       fontsEmbedded: true,
     })
+  })
+
+  // An SVG is drawn as vectors inside a clip of its box, where a PNG is an
+  // image the PDF embeds (0030): expected as an image, a logo drawn as
+  // vectors would be missing from every PDF, and one drawn as a picture of
+  // itself would pass. A page region's image is drawn on every page, so it
+  // is expected there and not once in the body.
+  test("tells an SVG image from a PNG, and the page regions' images from the body's", () => {
+    const image = (id: string, mediaType: 'image/png' | 'image/svg+xml', width: number): Block => ({ kind: 'image', asset: { id, mediaType, bytes: new Uint8Array() }, width, height: 20, fit: 'contain' })
+    const regions = { ...document, pageHeader: [{ kind: 'keepTogether', blocks: [image('mark', 'image/svg+xml', 30)] }], pageFooter: [image('seal', 'image/png', 40)], body: [image('logo', 'image/svg+xml', 50)] } as const
+    const derived = expectation(regions, { maxPagesExpected: 2 })
+    expect(derived.images).toEqual([{ kind: 'vector', width: 50, height: 20 }])
+    expect(derived.pageRegionImages).toEqual([
+      { kind: 'vector', width: 30, height: 20 },
+      { kind: 'raster', width: 40, height: 20 },
+    ])
   })
 
   // A spacer or a rule prints nothing the checks can read, and a page can

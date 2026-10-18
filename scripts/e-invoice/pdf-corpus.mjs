@@ -8,9 +8,11 @@
 //   its feature report names being the XML the corpus holds, and by
 //   Mustang, its PDF part and its XML part alike.
 // - **The variants** are what a customer's e-invoice may draw beyond the
-//   samples' one page -- an image of every kind PDFKit embeds, a QR code, a
-//   rectangle, a page region, a second page, every starter, text outside
-//   ASCII in both faces -- each drawn by the renderer with the first
+//   samples' one page -- an image of every kind PDFKit embeds, an SVG in
+//   every way the converter paints one and an SVG at every bound the
+//   renderer holds one to in an e-invoice, a QR code, a rectangle, a page
+//   region, a second page, every starter, text outside ASCII in both
+//   faces -- each drawn by the renderer with the first
 //   sample's e-invoice, and each must be accepted as a sample is. Without
 //   them every PDF a validator judged would be one template's one page.
 // - **The controls** are made by the gate and never through an option of a
@@ -115,7 +117,8 @@ export const PDF_CONTROLS = [
 
 /**
  * Each variant: its file, what it draws, and how -- `blocks`, the base
- * sample's page followed by `blocksDocument`'s; `fixture`, a document of
+ * sample's page followed by `blocksDocument`'s; `svg`, by `svgDocument`'s;
+ * `bound`, by `boundDocument`'s; `fixture`, a document of
  * report-corpus's `ALL_FIXTURES`; or `starter`, a starter of its `STARTERS`
  * resolved as a host resolves it, with `STARTER_IMAGES` -- each carrying the
  * base sample's e-invoice. `variantProblems` holds the list to every
@@ -126,6 +129,16 @@ export const PDF_VARIANTS = [
     file: 'variant-blocks.pdf',
     why: 'the sample’s page, a page break, and an image of each kind report-corpus’s IMAGE_KINDS holds -- every way PDFKit embeds an image but CMYK -- a QR code, a rectangle and a rule, with its RGBA PNG in the page header of each page, as a logo stands',
     draws: { blocks: true },
+  },
+  {
+    file: 'variant-svg.pdf',
+    why: 'the sample’s page, a page break, and SVG images in every way svg-to-pdfkit paints one -- report-corpus’s mark and window, the window’s clip path a soft mask and its sky a gradient, and a drawing of a gradient with a translucent stop, a group at an opacity, a translucent fill and stroke and a dash -- with the mark in the page header of each page, as a logo stands (0030)',
+    draws: { svg: true },
+  },
+  {
+    file: 'variant-svg-bound.pdf',
+    why: 'the sample’s page, a page break, and report-corpus’s SVG_BOUND in the smallest box the renderer draws it in an e-invoice, SVG_BOUND_SIDE square: its page-sized groups’ boxes and the matrix of its gradient inside a group come within the renderer’s margin of the largest integer a PDF/A-3 holds, and it nests the graphics state as deep as one may (0030)',
+    draws: { bound: true },
   },
   { file: 'variant-fonts.pdf', why: 'the corpus’s fonts fixture: German, French, Swiss, euro and Polish text, in the regular and the bold face, in paragraphs and a table', draws: { fixture: 'fonts' } },
   { file: 'variant-service-inspection.pdf', why: 'the service inspection starter: a photo from the data, a rule, and page regions over its pages', draws: { starter: 'service-inspection' } },
@@ -157,6 +170,59 @@ export function blocksDocument(base, imageKinds) {
     { kind: 'rule', thickness: 1, color: '#5b4bb7' },
   ]
   return { ...base, pageHeader: [...base.pageHeader, image(logo, 24)], body: [...base.body, ...blocks] }
+}
+
+/**
+ * The drawing of `variant-svg.pdf` that report-corpus's mark and window do
+ * not paint, written as report-spec's `cleanSvg` writes it, which the gate
+ * holds it to: a gradient with a translucent stop, which svg-to-pdfkit
+ * paints through a soft mask, a group at an opacity, painted as a
+ * transparency group, a translucent fill and stroke, and a dash. It makes
+ * three of a page's four group units (`MAX_SVG_GROUPS`) and the window's
+ * clip path the fourth, which is why each drawing stands once in the body.
+ */
+export const TRANSLUCENT_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60">' +
+  '<defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5b4bb7"/><stop offset="1" stop-color="#5b4bb7" stop-opacity="0.2"/></linearGradient></defs>' +
+  '<rect width="120" height="20" fill="url(#g1)"/>' +
+  '<g opacity="0.5"><circle cx="20" cy="40" r="15" fill="#1f4e79"/><rect x="30" y="30" width="20" height="20" fill="#e9c46a"/></g>' +
+  '<rect x="60" y="28" width="24" height="24" fill="#1f4e79" fill-opacity="0.4" stroke="#5b4bb7" stroke-opacity="0.6" stroke-width="2"/>' +
+  '<path d="M90 40 L118 40" fill="none" stroke="#5b4bb7" stroke-width="2" stroke-dasharray="4 2"/>' +
+  '</svg>'
+
+/** The SVG images `svgDocument` puts after the sample's page, by the id of the asset each draws, the window `cover` so that its clip is the box's too. */
+const SVG_IMAGES = [
+  { asset: 'svg-mark', width: 60, height: 60, fit: 'contain' },
+  { asset: 'svg-window', width: 120, height: 40, fit: 'cover' },
+  { asset: 'svg-translucent', width: 120, height: 60, fit: 'contain' },
+]
+
+/**
+ * The base sample's resolved document `base` with, after its page, a page
+ * break and an image of each of `SVG_IMAGES`, and the mark in its page
+ * header, `assets` holding the SVG assets they draw by id: what
+ * `variant-svg.pdf` draws.
+ */
+export function svgDocument(base, assets) {
+  const assetOf = (id) => {
+    const found = assets.find((asset) => asset.id === id)
+    if (found === undefined) throw new Error(`variant-svg.pdf draws the SVG ${id}, which it was not given`)
+    return found
+  }
+  const images = SVG_IMAGES.map(({ asset, width, height, fit }) => ({ kind: 'image', asset: assetOf(asset), width, height, fit }))
+  const mark = { kind: 'image', asset: assetOf('svg-mark'), width: 24, height: 24, fit: 'contain' }
+  return { ...base, pageHeader: [...base.pageHeader, mark], body: [...base.body, { kind: 'pageBreak' }, ...images] }
+}
+
+/**
+ * The base sample's resolved document `base` with, after its page, a page
+ * break and `asset`, report-corpus's `SVG_BOUND`, contained in a square
+ * `side` points wide: what `variant-svg-bound.pdf` draws. It stands alone,
+ * since its page-sized groups make all four of a page's group units
+ * (`MAX_SVG_GROUPS`), which no other SVG of `svgDocument`'s could share.
+ */
+export function boundDocument(base, asset, side) {
+  return { ...base, body: [...base.body, { kind: 'pageBreak' }, { kind: 'image', asset, width: side, height: side, fit: 'contain' }] }
 }
 
 /** What is wrong with the variants against the corpus's starters, by id, as sentences: a starter no variant draws, or a variant of a starter the corpus does not have. */
