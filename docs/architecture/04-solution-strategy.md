@@ -78,6 +78,10 @@ would anybody find out?" ([`CLAUDE.md`](../../CLAUDE.md)). So:
   are one set of functions in report-spec (`en16931.ts`), as the payment
   codes' are, and the e-invoice's account is held by the EPC QR code's rule
   ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+  The renderer embeds that XML, changed in nothing, in the PDF/A-3b it
+  draws of an e-invoice, and of no other report, and decides nothing of
+  what the file says
+  ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 - **The builders render; the model decides.** Keys, drop targets, words and
   what is available are the editor model's, and each builder binds them in
   its own framework. The binding is written twice on purpose; the behaviour

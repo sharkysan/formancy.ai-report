@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 import { CONTROL_BASE, CONTROLS, corpus, corpusProblems, plusOneCent, strayAccepted, taxAt } from './corpus.mjs'
+import { pdfPlan } from './pdf-corpus.mjs'
 
 /**
  * What the e-invoice gate judges (0027): the XML the runtime writes of
@@ -16,19 +17,21 @@ const here = dirname(fileURLToPath(import.meta.url))
 const recorded = (file) => readFileSync(join(here, 'recorded', 'corpus', file), 'utf8')
 const SAMPLES = ['e-invoice', 'e-invoice-reverse-charge', 'e-invoice-exempt-paid'].map((id) => ({ id }))
 const entries = corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`) })
+/** The whole corpus the gate judges: the XML, then the PDFs as planned, which the judges' tests build without drawing them. */
+const all = [...entries, ...pdfPlan(entries)]
 
 describe('the corpus', () => {
   // Every sample is judged as the runtime wrote it, and each must be
   // accepted by both tools: a sample that one refuses is a bill nobody's
   // system takes.
   test('is every sample, accepted by both tools, then the controls', () => {
-    expect(entries.map((entry) => [entry.file, entry.expect.mustang === 'accepted', entry.expect.kosit === 'accepted'])).toEqual([
-      ['e-invoice.xml', true, true],
-      ['e-invoice-reverse-charge.xml', true, true],
-      ['e-invoice-exempt-paid.xml', true, true],
-      ...CONTROLS.map((control) => [control.file, false, false]),
+    expect(entries.map((entry) => [entry.file, entry.format, entry.expect.mustang === 'accepted', entry.expect.kosit === 'accepted'])).toEqual([
+      ['e-invoice.xml', 'xml', true, true],
+      ['e-invoice-reverse-charge.xml', 'xml', true, true],
+      ['e-invoice-exempt-paid.xml', 'xml', true, true],
+      ...CONTROLS.map((control) => [control.file, 'xml', false, false]),
     ])
-    expect(corpusProblems(entries)).toEqual([])
+    expect(corpusProblems(all)).toEqual([])
   })
 
   // The judges' tests read what the tools said of the recorded corpus. A
@@ -82,17 +85,47 @@ describe('what the corpus refuses', () => {
   // say what it breaks, has nothing to be compared with.
   test('a name twice, an expectation that is none, a control without a reason, and no control a tool refuses', () => {
     const one = (change) => {
-      const copy = structuredClone(entries)
+      const copy = structuredClone(all)
       change(copy)
       return corpusProblems(copy)
     }
+    const named = (copy, file) => copy.find((entry) => entry.file === file)
     expect(one((copy) => copy.push(structuredClone(copy[0])))).toEqual(['e-invoice.xml is in the corpus twice'])
-    expect(one((copy) => (copy[0].file = 'E-Invoice.xml'))).toEqual(['E-Invoice.xml is not a lowercase .xml file name'])
+    expect(one((copy) => (copy[0].file = 'E-Invoice.xml'))).toEqual(['E-Invoice.xml is not a lowercase .xml or .pdf file name'])
     expect(one((copy) => (copy[0].expect.kosit = []))).toEqual(['e-invoice.xml expects of kosit neither acceptance nor any refusal'])
-    expect(one((copy) => (copy.at(-1).why = ''))).toEqual(['control-malformed.xml is broken and does not say for what'])
-    expect(one((copy) => (copy.at(-1).xml = copy[0].xml))).toEqual(['control-malformed.xml is the sample it is made from, unbroken'])
-    expect(one((copy) => copy.splice(3))).toEqual(['the corpus has no control mustang must refuse', 'the corpus has no control kosit must refuse'])
-    expect(one((copy) => copy.splice(0, 3))).toEqual(['the corpus has no sample both tools must accept'])
+    expect(one((copy) => (named(copy, 'control-malformed.xml').why = ''))).toEqual(['control-malformed.xml is broken and does not say for what'])
+    expect(one((copy) => (named(copy, 'control-malformed.xml').xml = copy[0].xml))).toEqual(['control-malformed.xml is the sample it is made from, unbroken'])
+    expect(one((copy) => copy.splice(3, CONTROLS.length))).toEqual(['the corpus has no xml control mustang must refuse', 'the corpus has no xml control kosit must refuse'])
+    expect(one((copy) => copy.splice(0, 3))).toEqual(['the corpus has no xml sample both tools must accept'])
+  })
+
+  // KoSIT reads no PDF and veraPDF no XML: an expectation of either on the
+  // other's format is a verdict nobody will give, and a PDF without one of
+  // veraPDF's is a PDF/A nobody judges. A file whose name says another
+  // format is written where a tool reads it as that one.
+  test('an expectation of a tool that does not judge the file’s format, none of one that does, and a format its name does not say', () => {
+    const one = (change) => {
+      const copy = structuredClone(all)
+      change(copy)
+      return corpusProblems(copy)
+    }
+    const pdf = (copy) => copy.find((entry) => entry.file === 'e-invoice.pdf')
+    expect(one((copy) => (pdf(copy).expect.kosit = 'accepted'))).toEqual(['e-invoice.pdf expects something of kosit, which does not judge a PDF'])
+    expect(one((copy) => delete pdf(copy).expect.verapdf)).toEqual(['e-invoice.pdf expects of verapdf neither acceptance nor any refusal'])
+    expect(one((copy) => (pdf(copy).format = 'xml'))).toEqual([
+      'e-invoice.pdf is an XML file, which its name does not say',
+      'e-invoice.pdf expects of kosit neither acceptance nor any refusal',
+      'e-invoice.pdf expects something of verapdf, which does not judge an XML file',
+    ])
+  })
+
+  // A control no tool is to refuse is a broken file the gate calls fine;
+  // a corpus that lost its PDFs judges the PDF/A-3b no more.
+  test('a control every tool is to accept, and a corpus without PDFs', () => {
+    const copy = structuredClone(all)
+    copy.find((entry) => entry.file === 'control-xmp.pdf').expect.mustang = 'accepted'
+    expect(corpusProblems(copy)).toEqual([`control-xmp.pdf is broken for ${copy.find((entry) => entry.file === 'control-xmp.pdf').why}, and no tool is to refuse it`])
+    expect(corpusProblems(entries)).toEqual(['the corpus has no pdf sample both tools must accept', 'the corpus has no pdf control verapdf must refuse', 'the corpus has no pdf control mustang must refuse'])
   })
 })
 
@@ -102,8 +135,8 @@ describe('the accepted messages against the corpus', () => {
   // name. One place says so for both judges.
   test('name files of the corpus, and nothing else', () => {
     const { accepted } = JSON.parse(readFileSync(join(here, 'accepted.json'), 'utf8'))
-    expect(strayAccepted(accepted, entries)).toEqual([])
-    expect(strayAccepted([...accepted, { tool: 'kosit', message: 'warning val-sch.1 CII-SR-005', files: ['invoice.xml'], reason: 'r' }], entries)).toEqual(['the accepted message kosit warning val-sch.1 CII-SR-005 names invoice.xml, which is no file of the corpus'])
+    expect(strayAccepted(accepted, all)).toEqual([])
+    expect(strayAccepted([...accepted, { tool: 'kosit', message: 'warning val-sch.1 CII-SR-005', files: ['invoice.xml'], reason: 'r' }], all)).toEqual(['the accepted message kosit warning val-sch.1 CII-SR-005 names invoice.xml, which is no file of the corpus'])
   })
 })
 

@@ -2,7 +2,11 @@
 
 - **Status:** accepted; numbered before [0028](0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)
   and merged after it, so it extends that record, whose EPC QR code page
-  now says what an e-invoice is
+  now says what an e-invoice is; extended by
+  [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
+  the next step, which lifts the renderer's last refusal and draws the
+  PDF/A-3b that embeds the XML, so that where this record says no PDF
+  carries an e-invoice it describes the step before that one
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -703,6 +707,21 @@ alone. The tools run in CI and no package carries them.
 **What it forecloses.** A second computation of an e-invoice's totals, in a
 template, a builder or a server; XML written anywhere but the runtime; and a
 plain PDF of a report that is an e-invoice.
+
+**Added 2026-10-18: the PDF/A-3b.**
+[0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)
+is the next step this record names. The renderer's last refusal is lifted:
+a final render of an e-invoice is drawn as a PDF/A-3b that embeds the XML
+as `factur-x.xml` and states it in its XMP, and the refusals of what the
+renderer does not know stay, as this record meant them to. So what this
+record says of the step between -- no e-invoice printed, the renderer
+refusing every one, the page held to its XML on the resolved document
+alone, nothing embedding the [S] values, a gate of about 70 MB of
+downloads that judges XML alone -- describes this record's step, and 0031
+says what holds now: the page held to the XML its PDF embeds, veraPDF and
+Mustang judging the PDF, and the gate's downloads measured again. The
+costs written above stand as they were written, and this record's
+register keeps those of them a release with 0031 still meets.
 
 ## Alternatives considered
 

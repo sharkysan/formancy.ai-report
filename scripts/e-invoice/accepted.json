@@ -4,8 +4,8 @@
     {
       "tool": "mustang",
       "message": "warning 4 PEPPOL-EN16931-R008",
-      "files": ["e-invoice-reverse-charge.xml"],
-      "reason": "Peppol's 'Document MUST not contain empty elements', which FeRD's EN 16931 schematron in Mustang 2.26.0 carries as a warning ('still status warning', its own words), and which KoSIT's EN 16931 scenario does not run. The Factur-X EN 16931 XSD requires one ram:ApplicableHeaderTradeDelivery and makes each of its four elements optional (Mustang 2.26.0's schema/ZF_250/EN16931, read on 17 October 2026). The reverse-charge sample gives an invoicing period (BG-14) and no actual delivery date (BT-72), so the element has nothing to hold, and the runtime writes it empty (packages/report-runtime/src/cii.ts). A delivery date written to fill it would be a term the invoice does not state and the page does not print."
+      "files": ["e-invoice-reverse-charge.xml", "e-invoice-reverse-charge.pdf"],
+      "reason": "Peppol's 'Document MUST not contain empty elements', which FeRD's EN 16931 schematron in Mustang 2.26.0 carries as a warning ('still status warning', its own words), and which KoSIT's EN 16931 scenario does not run. The Factur-X EN 16931 XSD requires one ram:ApplicableHeaderTradeDelivery and makes each of its four elements optional (Mustang 2.26.0's schema/ZF_250/EN16931, read on 17 October 2026). The reverse-charge sample gives an invoicing period (BG-14) and no actual delivery date (BT-72), so the element has nothing to hold, and the runtime writes it empty (packages/report-runtime/src/cii.ts), in the XML and so in the PDF that embeds it. A delivery date written to fill it would be a term the invoice does not state and the page does not print."
     }
   ]
 }

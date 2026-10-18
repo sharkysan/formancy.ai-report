@@ -1,5 +1,7 @@
-// What the e-invoice gate judges (0027): the CII XML the runtime writes of
-// each of the corpus's e-invoice samples, and the controls made from it.
+// What the e-invoice gate judges of the XML (0027): the CII XML the runtime
+// writes of each of the corpus's e-invoice samples, and the controls made
+// from it; and what is wrong with the whole corpus, the PDFs
+// scripts/e-invoice/pdf-corpus.mjs makes (0031) among it.
 //
 // - **The samples** are report-corpus's `E_INVOICE_SAMPLES`, resolved by
 //   the runtime as built, in a final render; their XML is judged exactly as
@@ -17,9 +19,10 @@
 //
 // An expectation is a list of message keys, as each judge keys them:
 // Mustang's `<severity> <type> <rule id>` (scripts/e-invoice/mustang.mjs),
-// KoSIT's `<level> <step> <code>` (scripts/e-invoice/kosit.mjs).
+// KoSIT's `<level> <step> <code>` (scripts/e-invoice/kosit.mjs), veraPDF's
+// `<clause>-<test>` (scripts/e-invoice/verapdf.mjs).
 
-import { JUDGED } from './registers.mjs'
+import { JUDGES } from './registers.mjs'
 
 /** The sample every control is made from: the de-DE e-invoice, at 19 % and 7 % with a delivery date. */
 export const CONTROL_BASE = 'e-invoice'
@@ -152,17 +155,17 @@ function edited(xml, edit, control) {
 }
 
 /**
- * The corpus: one entry per sample of `samples`, `{ file, sample, xml,
- * expect }`, its XML as `xmlOf(sample)` gives it, then one per control,
- * `{ file, from, why, xml, expect }`, made from the base sample's XML.
+ * The XML corpus: one entry per sample of `samples`, `{ file, format, sample,
+ * xml, expect }`, its XML as `xmlOf(sample)` gives it, then one per control,
+ * `{ file, format, from, why, xml, expect }`, made from the base sample's XML.
  */
 export function corpus({ samples, xmlOf }) {
-  const entries = samples.map((sample) => ({ file: `${sample.id}.xml`, sample: sample.id, xml: xmlOf(sample), expect: Object.fromEntries(JUDGED.map((tool) => [tool, 'accepted'])) }))
+  const entries = samples.map((sample) => ({ file: `${sample.id}.xml`, format: 'xml', sample: sample.id, xml: xmlOf(sample), expect: Object.fromEntries(JUDGES.xml.map((tool) => [tool, 'accepted'])) }))
   const base = entries.find((entry) => entry.sample === CONTROL_BASE)
   if (base === undefined) throw new Error(`the corpus has no ${CONTROL_BASE} sample to make its controls from`)
   for (const control of CONTROLS) {
     const xml = control.edits.reduce((text, edit) => edited(text, edit, control), base.xml)
-    entries.push({ file: control.file, from: base.file, why: control.why, xml, expect: structuredClone(control.expect) })
+    entries.push({ file: control.file, format: 'xml', from: base.file, why: control.why, xml, expect: structuredClone(control.expect) })
   }
   return entries
 }
@@ -173,29 +176,49 @@ export function strayAccepted(accepted, entries) {
   return accepted.flatMap((entry) => entry.files.filter((file) => !files.has(file)).map((file) => `the accepted message ${entry.tool} ${entry.message} names ${file}, which is no file of the corpus`))
 }
 
+/** Each format as a sentence names a file of it. */
+const AS = { xml: 'an XML file', pdf: 'a PDF' }
+
+/** Whether two entries' files hold the same bytes: the XML's text, or a PDF's bytes where they were drawn. */
+function sameFile(entry, other) {
+  if (entry.format === 'pdf') return entry.pdf !== undefined && other?.pdf !== undefined && Buffer.compare(Buffer.from(entry.pdf), Buffer.from(other.pdf)) === 0
+  return entry.xml === other?.xml
+}
+
 /**
  * What is wrong with the corpus itself, before anything runs: a file named
- * twice or not a lowercase .xml name, an expectation that is neither
- * acceptance nor a list of keys, a control that does not say what it breaks
- * or is its sample unbroken, and a corpus without a sample every tool
- * accepts or without a control each tool refuses.
+ * twice, not a lowercase .xml or .pdf name or of another format than its
+ * name says, an expectation of a tool that does not judge its format or
+ * none of one that does, an expectation that is neither acceptance nor a
+ * list of keys, a control that does not say what it breaks, is its sample
+ * unbroken or that every tool accepts, and, of each format, a corpus
+ * without a sample every judge accepts or without a control each judge
+ * refuses: the gate judges the XML and the PDF, and a corpus that lost
+ * either judges one of them no more.
  */
 export function corpusProblems(entries) {
   const problems = []
   const seen = new Set()
   for (const entry of entries) {
-    if (typeof entry.file !== 'string' || !/^[a-z0-9-]+\.xml$/.test(entry.file)) problems.push(`${String(entry.file)} is not a lowercase .xml file name`)
+    const judges = JUDGES[entry.format] ?? []
+    if (typeof entry.file !== 'string' || !/^[a-z0-9-]+\.(xml|pdf)$/.test(entry.file)) problems.push(`${String(entry.file)} is not a lowercase .xml or .pdf file name`)
+    else if (!entry.file.endsWith(`.${String(entry.format)}`)) problems.push(`${entry.file} is ${AS[entry.format] ?? `of the format ${String(entry.format)}`}, which its name does not say`)
     if (seen.has(entry.file)) problems.push(`${entry.file} is in the corpus twice`)
     seen.add(entry.file)
-    for (const tool of JUDGED) {
+    for (const tool of judges) {
       const expected = entry.expect?.[tool]
       if (expected !== 'accepted' && (!Array.isArray(expected) || expected.length === 0 || expected.some((key) => typeof key !== 'string'))) problems.push(`${entry.file} expects of ${tool} neither acceptance nor any refusal`)
     }
+    for (const tool of Object.keys(entry.expect ?? {})) if (!judges.includes(tool)) problems.push(`${entry.file} expects something of ${tool}, which does not judge ${AS[entry.format] ?? 'its format'}`)
     if (entry.from === undefined) continue
     if (typeof entry.why !== 'string' || entry.why === '') problems.push(`${entry.file} is broken and does not say for what`)
-    if (entry.xml === entries.find((other) => other.file === entry.from)?.xml) problems.push(`${entry.file} is the sample it is made from, unbroken`)
+    if (sameFile(entry, entries.find((other) => other.file === entry.from))) problems.push(`${entry.file} is the sample it is made from, unbroken`)
+    if (judges.length > 0 && judges.every((tool) => entry.expect?.[tool] === 'accepted')) problems.push(`${entry.file} is broken for ${entry.why}, and no tool is to refuse it`)
   }
-  if (!entries.some((entry) => JUDGED.every((tool) => entry.expect?.[tool] === 'accepted'))) problems.push('the corpus has no sample both tools must accept')
-  for (const tool of JUDGED) if (!entries.some((entry) => Array.isArray(entry.expect?.[tool]))) problems.push(`the corpus has no control ${tool} must refuse`)
+  for (const [format, judges] of Object.entries(JUDGES)) {
+    const ofFormat = entries.filter((entry) => entry.format === format)
+    if (!ofFormat.some((entry) => entry.from === undefined && judges.every((tool) => entry.expect?.[tool] === 'accepted'))) problems.push(`the corpus has no ${format} sample both tools must accept`)
+    for (const tool of judges) if (!ofFormat.some((entry) => Array.isArray(entry.expect?.[tool]))) problems.push(`the corpus has no ${format} control ${tool} must refuse`)
+  }
   return problems
 }

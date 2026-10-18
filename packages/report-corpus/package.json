@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@formancy/report-runtime": "workspace:*",
+    "@pdfme/pdf-lib": "6.2.4",
     "pdfjs-dist": "6.4.299",
     "saxes": "6.0.0",
     "zxing-wasm": "3.1.5"
@@ -29,7 +30,6 @@
     "@formancy/report-core": "workspace:*",
     "@pdfme/common": "6.2.4",
     "@pdfme/generator": "6.2.4",
-    "@pdfme/pdf-lib": "6.2.4",
     "@pdfme/schemas": "6.2.4",
     "@types/node": "catalog:",
     "@types/pdfmake": "0.3.3",

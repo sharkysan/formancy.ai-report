@@ -1,11 +1,11 @@
-import { getDocument, OPS, VerbosityLevel, type PageViewport, type PDFPageProxy } from 'pdfjs-dist/legacy/build/pdf.mjs'
+import { getDocument, OPS, VerbosityLevel, type PageViewport, type PDFDocumentProxy, type PDFPageProxy } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import type { TextItem } from 'pdfjs-dist/types/src/display/api.js'
 
 /**
  * What a rendered PDF shows, read back with PDF.js: the text on each page and
- * where it is, the images drawn and where, and whether each font the pages use
- * travels inside the file. The checks prove a fixture on this, never on the
- * engine's input.
+ * where it is, the images drawn and where, whether each font the pages use
+ * travels inside the file, and the files it embeds. The checks prove a
+ * fixture on this, never on the engine's input.
  */
 
 /** A box on a page, in points, measured down from the page's top edge and in from its left edge. */
@@ -55,10 +55,27 @@ export interface PdfFont {
   readonly embedded: boolean
 }
 
+/**
+ * A file the PDF embeds, as PDF.js finds it: by its name in the catalog's
+ * /Names /EmbeddedFiles tree, which is where PDF.js looks and nowhere else.
+ * A file only on the catalog's /AF is not among them; `readPdfObjects`, a
+ * second reader, reads both places.
+ */
+export interface PdfAttachment {
+  /** Its key in the name tree. */
+  readonly name: string
+  /** The file specification's /Desc, empty where it has none. */
+  readonly description: string
+  /** The embedded file's bytes, inflated; undefined where the specification embeds none. */
+  readonly bytes: Uint8Array | undefined
+}
+
 export interface ReadPdf {
   readonly pages: readonly PdfPage[]
   /** Every font a page draws text with, once each. */
   readonly fonts: readonly PdfFont[]
+  /** Every file the name tree names, in its order; none for a PDF that embeds none. */
+  readonly attachments: readonly PdfAttachment[]
 }
 
 /** How far below the baseline a text box reaches, as a fraction of the font size. See `PdfTextItem`. */
@@ -115,10 +132,18 @@ export async function readPdf(bytes: Uint8Array): Promise<ReadPdf> {
       }
       pages.push({ number, width: viewport.width, height: viewport.height, items: await textItems(page, viewport), images })
     }
-    return { pages, fonts: [...fonts.values()] }
+    return { pages, fonts: [...fonts.values()], attachments: await attachmentsOf(document) }
   } finally {
     await task.destroy()
   }
+}
+
+/** The name tree's files, each one's bytes asked for by its name, since PDF.js 6 lists a file without them. */
+async function attachmentsOf(document: PDFDocumentProxy): Promise<PdfAttachment[]> {
+  const listed = await document.getAttachments()
+  const attachments: PdfAttachment[] = []
+  for (const [name, { description }] of listed ?? []) attachments.push({ name, description, bytes: (await document.getAttachmentContent(name)) ?? undefined })
+  return attachments
 }
 
 async function textItems(page: PDFPageProxy, viewport: PageViewport): Promise<PdfTextItem[]> {

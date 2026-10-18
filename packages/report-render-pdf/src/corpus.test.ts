@@ -1,6 +1,6 @@
 import pdfmake from 'pdfmake'
-import { ALL_FIXTURES, pageDimensions, readPdf, verify, verifyRefusal, type Fixture } from '@formancy/report-corpus'
-import { RenderRefusal } from '@formancy/report-runtime'
+import { ALL_FIXTURES, E_INVOICE, pageDimensions, readPdf, verify, verifyRefusal, type Fixture } from '@formancy/report-corpus'
+import { RenderRefusal, resolveReport } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf } from './node.js'
 import type { RenderOptions } from './options.js'
@@ -62,6 +62,20 @@ describe('a render', () => {
     const [first, second] = await Promise.all([renderPdf(document, { maxPages }), renderPdf(document, { maxPages })])
     expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
     expect(Buffer.from(first).toString('latin1')).toContain('(D:20260101000000Z)')
+  }, TIMEOUT)
+
+  // An e-invoice is found again by its digest, or by nothing. A PDF/A adds
+  // what a plain PDF has not -- an embedded file and its dates, the XMP,
+  // an output intent -- and none of it may vary: the file's dates are the
+  // document's, the XMP holds no clock and no random id, and the profile
+  // is a fixed file. The same document renders to the same bytes, its
+  // creation date in the file's /Params as in the information dictionary.
+  test('renders the same e-invoice to the same bytes', async () => {
+    const outcome = resolveReport(E_INVOICE.report, E_INVOICE.data, { mode: 'final', parameters: E_INVOICE.parameters, creationDate: '2026-10-16T08:00:00Z' })
+    if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
+    const [first, second] = await Promise.all([renderPdf(outcome.document, { maxPages: 5 }), renderPdf(outcome.document, { maxPages: 5 })])
+    expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
+    expect(Buffer.from(first).toString('latin1').match(/\(D:20261016080000Z\)/g)).toHaveLength(3)
   }, TIMEOUT)
 
   // A cancelled job that still returns a PDF has not been cancelled.

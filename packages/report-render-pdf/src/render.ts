@@ -8,6 +8,7 @@ import { bodyMeasurement, DEFAULT_STYLE, layoutDefinition, REGION_GAP, regionsMe
 import type { Engine } from './engine.js'
 import { FIT_SLACK, measure, rowPitches, SENTINEL_LINE, SENTINEL_ROOM, tablePlan } from './measure.js'
 import type { RenderOptions } from './options.js'
+import { embedEInvoice } from './pdfa.js'
 import { ABOVE_SLIP, informationContent, PAYMENT_PART, RECEIPT } from './slip.js'
 
 /**
@@ -26,6 +27,8 @@ import { ABOVE_SLIP, informationContent, PAYMENT_PART, RECEIPT } from './slip.js
  * fit on any page or within the page limit (`bound.ts`), and chooses how
  * each table breaks. A document with a QR-bill has two passes more, one for
  * each part of its slip, which measure their information (`measureSlip`).
+ * A document with an e-invoice is drawn as a PDF/A-3b on the third pass,
+ * which alone embeds its XML (`pdfa.ts`).
  */
 
 export async function render(engine: Engine, document: ResolvedDocument, options: RenderOptions): Promise<Uint8Array> {
@@ -46,7 +49,8 @@ export async function render(engine: Engine, document: ResolvedDocument, options
   refuseOversized(document.body, bodyHeight, maxPages, bill === undefined ? 0 : slipReservation(checked.page, regions))
   const plans = await measureBody(engine, checked, bodyHeight, maxPages)
   await stopIfCancelledSoon(signal)
-  const pdf = await engine.run(layoutDefinition(document, checked, regions, plans, maxPages, bill))
+  const finish = checked.eInvoice === undefined ? undefined : embedEInvoice(checked.eInvoice, checked.creationDate)
+  const pdf = await engine.run(layoutDefinition(document, checked, regions, plans, maxPages, bill), finish)
   await stopIfCancelledSoon(signal)
   return pdf
 }

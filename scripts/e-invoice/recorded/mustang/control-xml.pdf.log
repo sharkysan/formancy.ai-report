@@ -1,0 +1,8 @@
+[main] INFO com.helger.schematron.xslt.SchematronResourceXSLTCache - Compiling XSLT instance [cpPath=/xslt/ZF_250/FACTUR-X_EN16931.xslt; urlResolved=true; URL=jar:file:/{repository}/.e-invoice-cache/mustang/2.26.0/Mustang-CLI-2.26.0.jar!/xslt/ZF_250/FACTUR-X_EN16931.xslt]
+[main] INFO com.helger.schematron.api.xslt.AbstractSchematronXSLTBasedResource - Applying Schematron XSLT on XML instance
+[main] INFO org.mustangproject.validator.XMLValidator - FailedAssert 
+	[BR-CO-14]-Invoice total VAT amount (BT-110) = Σ VAT category tax amount (BT-117).
+[main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 4: 
+	[BR-CO-14]-Invoice total VAT amount (BT-110) = Σ VAT category tax amount (BT-117). [ID BR-CO-14] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)
+[main] WARN org.mustangproject.validator.ZUGFeRDValidator - Warning 10: Arithmetical issue:Payable total in XML is 871.64, but calculated total is 871.63 with tax basis 743.30 and with positions 743.30 = 245.00 + 266.00 + 48.00 + 37.80 + 95.00 + 12.50 + 39.00
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:valid XML:invalid Signature:null Checksum:75986FD93A137E1A95811CB8590D020EEF50CDF2 Profile:urn:cen.eu:en16931:2017 Version:2 Took:3188ms Errors:[4,10] ErrorIDs: [BR-CO-14]

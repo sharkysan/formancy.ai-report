@@ -26,6 +26,8 @@ import { readReportData } from '@formancy/report-data-provider'
 import type { DataBinding, ProviderRead } from '@formancy/report-data-provider'
 import { createDataClient } from '@formancy/data-client'
 import type { PublishedForm } from '@formancy/data-client'
+import { readEmbedding } from './embedding.js'
+import type { Embedding } from './embedding.js'
 import { quotation, quotationData } from './quotation.js'
 
 // The published code carries the refusal, not only the source: a formancy
@@ -303,13 +305,12 @@ if (specSays === undefined || drawerSays?.endsWith(specSays) !== true) throw new
 // An e-invoice (0027): a German invoice of its own, since the corpus's
 // samples are never packed, whose two lines are at 19 % and at 7 %. The
 // runtime computes its totals once, for the page and for the CII XML it
-// writes, and the renderer refuses it whole, since this release draws no
-// PDF/A-3 and a plain PDF of a German e-invoice would be the picture
-// without the invoice. A runtime that lost the XML writer, a renderer that
-// lost the refusal -- and printed the picture -- or a hand-on of the
-// file's names that is a copy rather than report-spec's own fails here,
-// outside the workspace. The consumer has no XML parser, so the XML is
-// read by its elements' text, which the runtime writes one way.
+// writes, and the renderer draws it as a PDF/A-3b that embeds that XML
+// (0031). A runtime that lost the XML writer, a renderer that drew the
+// picture without the invoice, or a hand-on of the file's names that is a
+// copy rather than report-spec's own fails here, outside the workspace.
+// The consumer has no XML parser, so the XML is read by its elements'
+// text, which the runtime writes one way.
 const headerField = (field: string): { kind: 'field'; field: { dataset: 'header'; field: string } } => ({ kind: 'field', field: { dataset: 'header', field } })
 const lineField = (field: string): { kind: 'field'; field: { dataset: 'detail'; field: string } } => ({ kind: 'field', field: { dataset: 'detail', field } })
 const euro = { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } as const
@@ -442,20 +443,43 @@ if (JSON.stringify(written) !== JSON.stringify(expected)) throw new Error(`the e
 const printed = invoicedResolution.document.body.filter((block): block is Paragraph => block.kind === 'paragraph').map((block) => block.runs.map((run) => ('text' in run ? run.text : '')).join(''))
 const grandLine = printed.find((line) => line.startsWith('Rechnungsbetrag '))
 if (grandLine === undefined || !grandLine.includes((written.grandTotal[0] ?? '').replace('.', ','))) throw new Error(`the page does not print the XML's total: ${String(grandLine)}`)
-const drawnInvoice = await renderPdf(invoicedResolution.document, { maxPages: 50 }).then(
-  () => undefined,
-  (error: unknown) => error,
-)
-if (!(drawnInvoice instanceof RenderRefusal) || drawnInvoice.code !== 'unsupported' || drawnInvoice.subject !== 'eInvoice' || drawnInvoice.message !== 'an e-invoice is drawn as PDF/A-3, which this release does not do') {
-  throw new Error(`a document with an e-invoice was not refused as one this release does not draw: ${String(drawnInvoice)}`)
+// Drawn, it is a PDF/A-3b that embeds the XML as report-spec names the
+// file, as the catalog's /AF and the name tree list it, and says so in its
+// XMP, on the reviewed sRGB profile. The consumer has no PDF reader, so
+// embedding.ts reads PDFKit's bytes. What only this gate sees is the
+// PDFKit a clean npm install resolves within pdfmake's range, rather than
+// the workspace's lockfile's, and the profile it reads from its own
+// directory there.
+const invoicePdf = await renderPdf(invoicedResolution.document, { maxPages: 50 })
+const embedding: Embedding = readEmbedding(invoicePdf)
+const [attached] = embedding.associated
+const fx = FACTUR_X.xmpPrefix
+const xmp = embedding.xmp ?? ''
+const held: Readonly<Record<string, boolean>> = {
+  'PDF 1.7': embedding.version === '1.7',
+  'one associated file, its relationship and its names': embedding.associated.length === 1 && attached?.relationship === file.relationship && attached.file === file.fileName && attached.unicodeFile === file.fileName,
+  'the name tree naming it alone': JSON.stringify(embedding.names) === JSON.stringify([file.fileName]) && attached?.named === file.fileName,
+  "the runtime's XML, byte for byte, as its media type": attached?.mediaType === FACTUR_X.mediaType && attached.bytes !== undefined && Buffer.from(attached.bytes).equals(Buffer.from(file.xml, 'utf8')),
+  'PDF/A-3b in the XMP': xmp.includes('<pdfaid:part>3</pdfaid:part>') && xmp.includes('<pdfaid:conformance>B</pdfaid:conformance>'),
+  'the fx properties in the XMP': xmp.includes(`xmlns:${fx}="${FACTUR_X.xmpNamespace}"`) && xmp.includes(`<${fx}:DocumentFileName>${file.fileName}</${fx}:DocumentFileName>`) && xmp.includes(`<${fx}:ConformanceLevel>${file.conformanceLevel}</${fx}:ConformanceLevel>`),
+  // The ICC's sRGB2014, reviewed in PDFKit 0.19.1 (ICC_PROFILES in scripts/dependency-licences.mjs): another PDFKit's profile would reach a customer unreviewed.
+  'the reviewed sRGB2014 output intent': JSON.stringify(embedding.outputProfiles) === JSON.stringify(['384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a']),
 }
-// A preview writes no XML, warns, and is labelled as not the invoice on every page; that, the renderer draws.
+const missed = Object.keys(held).filter((check) => held[check] !== true)
+if (missed.length > 0) {
+  const seen = { ...embedding, associated: embedding.associated.map(({ bytes, ...rest }) => ({ ...rest, bytes: bytes?.length })), xmp: embedding.xmp?.length }
+  throw new Error(`the e-invoice was not drawn as a PDF/A-3b that embeds its XML; it lacks ${missed.join('; ')}: ${JSON.stringify(seen)}`)
+}
+// A preview writes no XML, warns, and is labelled as not the invoice on every page; that, the renderer draws, embedding nothing.
 const previewed: Resolution = resolveReport(invoiced, invoiceData, { mode: 'preview', creationDate: '2026-10-16T08:00:00Z' })
 if (!previewed.ok || previewed.document.eInvoice !== undefined || !previewed.warnings.some((warning) => warning.code === 'e-invoice-preview')) throw new Error('a preview of the e-invoice wrote its XML, or did not warn')
 const [previewLabel] = previewed.document.pageHeader
 if (previewLabel?.kind !== 'paragraph' || previewLabel.runs.map((run) => ('text' in run ? run.text : '')).join('') !== E_INVOICE_PREVIEW_LABEL) throw new Error('a preview of the e-invoice is not labelled as not the invoice')
 const invoicePreview = await renderPdf(previewed.document, { maxPages: 50 })
-if (new TextDecoder().decode(invoicePreview.subarray(0, 5)) !== '%PDF-') throw new Error('the preview of the e-invoice did not render to a PDF')
+const previewEmbedding: Embedding = readEmbedding(invoicePreview)
+if (new TextDecoder().decode(invoicePreview.subarray(0, 5)) !== '%PDF-' || previewEmbedding.associated.length !== 0 || previewEmbedding.names.length !== 0 || previewEmbedding.xmp?.includes('pdfaid:') === true) {
+  throw new Error(`the preview of the e-invoice did not render to a PDF that embeds nothing: ${JSON.stringify({ ...previewEmbedding, associated: previewEmbedding.associated.length })}`)
+}
 
 // The Data provider, from its tarball, with @formancy/data-client at the
 // exact release it pins, from the registry: the quotation read from a data
@@ -507,5 +531,5 @@ const fromData = await (async () => {
 if (new TextDecoder().decode(fromData.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation read from Data did not render to a PDF')
 
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; an e-invoice validated, a country outside its list was refused by its rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, the renderer refused it, and its labelled preview rendered to a ${invoicePreview.length}-byte PDF; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved and rendered to a ${rendered.length}-byte PDF, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; an e-invoice validated, a country outside its list was refused by its rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF`,
 )

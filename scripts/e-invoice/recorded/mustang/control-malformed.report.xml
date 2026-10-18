@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="control-malformed.xml" datetime="2026-10-17 19:29:31">
+<validation filename="control-malformed.xml" datetime="2026-10-18 05:31:49">
   <messages>
     <exception type="8">File does not look like PDF nor XML (contains neither %PDF nor &lt;?xml)</exception> 
   </messages>

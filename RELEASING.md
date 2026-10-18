@@ -158,7 +158,7 @@ pnpm build && pnpm test:repo
 pnpm exec turbo run test:coverage --force --summarize   # every package, fresh, with its wall time
 pnpm test:browser && pnpm test:pictures                  # the Studio in Chromium, and its README pictures
 node scripts/install-test.mjs
-node scripts/e-invoice.mjs --java "$JAVA_HOME/bin/java"   # Mustang and KoSIT over the e-invoice samples' XML
+node scripts/e-invoice.mjs --java "$JAVA_HOME/bin/java"   # Mustang and KoSIT over the samples' XML, veraPDF and Mustang over their PDFs
 node scripts/release-report/collect.mjs --local --since "$since"
 node scripts/release-report/report.mjs --local --allow-missing install
 ```

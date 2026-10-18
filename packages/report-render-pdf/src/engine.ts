@@ -1,5 +1,6 @@
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { characterMap, type BillFace, type BillGlyphs, type Face, type Glyphs } from './glyphs.js'
+import type { Finish, PdfKitDocument } from './pdfa.js'
 
 /**
  * pdfmake with the renderer's fonts and access policies, as Node's entry
@@ -9,7 +10,13 @@ import { characterMap, type BillFace, type BillGlyphs, type Face, type Glyphs } 
  * (`render.ts`).
  */
 export interface Engine {
-  readonly run: (definition: TDocumentDefinitions) => Promise<Uint8Array>
+  /**
+   * The PDF of `definition`. `finish`, where given, acts on PDFKit's
+   * document once pdfmake has laid it out and before it is ended, which is
+   * where an e-invoice's file and XMP are added (`pdfa.ts`): only the final
+   * pass gives one, since a measuring pass throws before its end.
+   */
+  readonly run: (definition: TDocumentDefinitions, finish?: Finish) => Promise<Uint8Array>
   /** Roboto's four faces, which a report's own text prints in. */
   readonly glyphs: () => Promise<Glyphs>
   /**
@@ -62,6 +69,16 @@ export interface PdfStream {
   on(event: 'end', listener: () => void): unknown
   on(event: 'error', listener: (error: unknown) => void): unknown
   end(): unknown
+}
+
+/**
+ * The PDF of the document `getStream` hands over, `finish` acting on it
+ * first: what each entry's `run` does once it has configured its pdfmake.
+ */
+export async function written(document: Promise<unknown>, finish: Finish | undefined): Promise<Uint8Array> {
+  const pdf = (await document) as PdfStream & PdfKitDocument
+  finish?.(pdf)
+  return collect(pdf)
 }
 
 /**

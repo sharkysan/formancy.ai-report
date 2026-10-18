@@ -12,9 +12,10 @@ import { crc32, inflate } from './bytes.js'
  * What is checked: the size limits; for a PNG, every chunk's length and CRC,
  * the header, and that the image data inflates to exactly the scanlines the
  * header promises, each with a known filter; for a JPEG, the segment
- * structure up to the scan, the frame header's size, and the end marker. A
- * JPEG's entropy-coded scan is not decoded: a corrupt scan inside an
- * otherwise well-formed JPEG still reaches the PDF.
+ * structure up to the scan, one frame header, read where PDFKit reads it,
+ * its size and its component count, and the end marker. A JPEG's
+ * entropy-coded scan is not decoded: a corrupt scan inside an otherwise
+ * well-formed JPEG still reaches the PDF.
  *
  * The size returned is the size the image is shown at: a JPEG whose Exif
  * orientation turns it a quarter turn is as wide as its frame is tall, as
@@ -35,11 +36,19 @@ export const MAX_ASSET_SIDE = 4096
  */
 export const MAX_IMAGE_DATA = 2 * MAX_ASSET_SIDE * (1 + MAX_ASSET_SIDE * 8)
 
-/** An image's size in pixels, as it is shown, and how many bytes of image data it holds once a PNG's are inflated. */
+/** An image's size in pixels, as it is shown, how many bytes of image data it holds once a PNG's are inflated, and whether PDFKit draws it in DeviceCMYK. */
 export interface Pixels {
   readonly width: number
   readonly height: number
   readonly data: number
+  /**
+   * A JPEG whose frame header says four components, which PDFKit draws in
+   * DeviceCMYK (pdfkit.js 3808-3812), as it draws one of three in
+   * DeviceRGB and one of one in DeviceGray, and no other count, which the
+   * check refuses; never a PNG, which PDFKit draws in RGB or grey. An
+   * e-invoice's PDF/A cannot hold one.
+   */
+  readonly cmyk: boolean
 }
 
 /** The asset's size in pixels, once its bytes pass; refused as `invalid-asset`, naming it and why, when they do not. */
@@ -126,7 +135,7 @@ async function readPng(bytes: Uint8Array): Promise<Pixels | string> {
     offset = end
   }
   if (header.paletted && !palette) return 'is paletted and has no palette'
-  return (await scanlineProblem(header, data)) ?? { width: header.width, height: header.height, data: inflatedLength(header) }
+  return (await scanlineProblem(header, data)) ?? { width: header.width, height: header.height, data: inflatedLength(header), cmyk: false }
 }
 
 function pngHeader(body: Uint8Array): PngHeader | string {
@@ -188,8 +197,21 @@ function* filterOffsets(rows: readonly { readonly bytes: number; readonly count:
   }
 }
 
-/** Start-of-frame markers: every SOFn but DHT (C4), JPG (C8) and DAC (CC). */
+/** Start-of-frame markers: every SOFn, which are C0 to CF but DHT (C4), JPG (C8) and DAC (CC). */
 const JPEG_FRAMES = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf])
+
+/**
+ * The two markers PDFKit takes for a frame header besides the SOFn: it
+ * reads the first segment of any of the three as the frame (pdfkit.js 3807,
+ * 3822-3843), so one of these before the frame would be read in its place.
+ */
+const READ_AS_FRAMES: ReadonlyMap<number, string> = new Map([
+  [0xc8, 'JPG'],
+  [0xcc, 'DAC'],
+])
+
+/** The component counts PDFKit gives a colour space: grey, RGB and CMYK (pdfkit.js 3808-3812). */
+const JPEG_COMPONENTS = new Set([1, 3, 4])
 
 /** APP1, where an Exif block lives. */
 const APP1 = 0xe1
@@ -199,6 +221,12 @@ const APP1 = 0xe1
  * progressive encoder writes them. Fill bytes between segments, which the
  * standard allows and encoders do not write, are refused with the rest of
  * what is malformed: failing closed costs a JPEG that could have been drawn.
+ * So does a JPEG PDFKit would read otherwise than this does -- a JPG or DAC
+ * segment before the frame header, which it reads as the frame, a second
+ * frame header, or a component count it gives no colour space -- since the
+ * size and the colour this reads are what the page and an e-invoice's
+ * PDF/A rest on: arithmetic coding, which writes a DAC segment, may write
+ * it before the frame header, and such a JPEG is refused.
  */
 function readJpeg(bytes: Uint8Array): Pixels | string {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
@@ -209,12 +237,18 @@ function readJpeg(bytes: Uint8Array): Pixels | string {
     if (bytes[offset] !== 0xff || marker === 0xff) return `has a malformed segment at byte ${offset}`
     const length = view.getUint16(offset + 2)
     if (length < 2 || offset + 2 + length > bytes.length) return `has a segment that runs past its end at byte ${offset}`
+    const readAs = READ_AS_FRAMES.get(marker)
+    if (pixels === undefined && readAs !== undefined) return `has a ${readAs} segment (FF${marker.toString(16).toUpperCase()}) before its frame header, which PDFKit would read as the frame header`
     if (JPEG_FRAMES.has(marker)) {
+      if (pixels !== undefined) return 'has two frame headers'
       if (length < 8) return 'has a frame header of the wrong length'
       const [width, height] = [view.getUint16(offset + 7), view.getUint16(offset + 5)]
       const size = sizeProblem(width, height)
       if (size !== undefined) return size
-      pixels = { width, height, data: bytes.length }
+      // The component count follows the size.
+      const components = bytes[offset + 9]!
+      if (!JPEG_COMPONENTS.has(components)) return `has a frame header of ${components} components, where PDFKit draws 1, 3 or 4`
+      pixels = { width, height, data: bytes.length, cmyk: components === 4 }
     }
     if (marker === APP1 && orientation === undefined && startsWith(bytes.subarray(offset + 4), EXIF)) orientation = exifOrientation(bytes.subarray(offset + 4 + EXIF.length, offset + 2 + length))
     if (marker === 0xda) {

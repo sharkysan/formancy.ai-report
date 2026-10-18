@@ -1,6 +1,10 @@
 # 0005 — pdfmake renders reports, behind one adapter
 
-- **Status:** accepted
+- **Status:** accepted; amended by
+  [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
+  under which a render of an e-invoice reads one file besides its fonts,
+  the ICC profile PDFKit embeds in a PDF/A, outside pdfmake's access
+  policy
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the engine's corpus tests in `packages/report-corpus`,
@@ -211,6 +215,23 @@ refused before pdfmake is handed it, 100,000 rows against five pages in
 so one from a timer arrives; a pass under way still cannot be stopped. And
 a single line, a rule or a frame taller than the body is refused, where
 the trial drew it past the foot of the page. The rest stand as written.
+
+**Amended 2026-10-18, by 0031: one file besides the fonts.** "Fonts from
+four named files and no other file" no longer holds of every render. An
+e-invoice is drawn as a PDF/A-3b
+([0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)),
+whose output intent PDFKit reads, as it ends the document, from its own
+`data/sRGB_IEC61966_2_1.icc` with `fs`, past pdfmake's local access
+policy, which governs only what pdfmake opens. The renderer sets its
+policies as before and reads no address; a render of a report that is no
+e-invoice still reads the font files and nothing else, and one of an
+e-invoice reads that profile besides. `src/pdfmake.test.ts` in
+report-render-pdf holds both, reading every file a render reads through
+`fs.readFileSync`, which is how pdfmake reads a font and PDFKit its
+profile; a read through another call of `fs` it would not see. The
+profile is a reviewed file under
+[0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md),
+as 0031 extends it.
 
 ## Alternatives considered
 

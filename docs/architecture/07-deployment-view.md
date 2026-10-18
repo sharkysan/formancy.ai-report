@@ -60,10 +60,10 @@ says
 ## The e-invoice gate's tools
 
 Nothing published carries them, and no host needs them. The `e-invoice`
-job fetches Mustang, KoSIT's validator and its XRechnung configuration from
-the URLs `docs/release/e-invoice-tools.json` registers, each refused unless
-its SHA-256 is the one registered there, into a cache directory that
-`.gitignore` names; CI keeps that cache under the register's hash, a
+job fetches Mustang, KoSIT's validator and its XRechnung configuration, and
+veraPDF, from the URLs `docs/release/e-invoice-tools.json` registers, each
+refused unless its SHA-256 is the one registered there, its size beside
+it, into a cache directory that `.gitignore` names; CI keeps that cache under the register's hash, a
 release fetches everything again, and a cached file is checked by its hash
 where it is used. The tools run on the Java the register names, which the
 job installs, with Java's HTTP and HTTPS proxies pointed at a dead port (a
@@ -73,6 +73,11 @@ the version the tool reported of itself. On a machine the gate runs on the
 Java it is handed, which must be at least as new as each JAR's `java` in
 the register, and the report shows that one
 ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+veraPDF's licence, GPL-3.0-or-later OR MPL-2.0, which a package could not
+carry, is admitted for the gate's runs at its pinned release alone, and
+the gate refuses a veraPDF older than the register's floor, its own or
+the one Mustang bundles
+([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 
 ## The demo
 
@@ -127,6 +132,12 @@ deploy happened or what the address serves.
   holds the bundle, which is where the bundle looks
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
   [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+  And for an e-invoice, PDFKit's ICC profile, `sRGB_IEC61966_2_1.icc` in
+  its `data` directory, which PDFKit reads with `fs` from beside its own
+  code, at `${__dirname}/data/`, past
+  pdfmake's access policy: a host that bundles the Node entry puts it where
+  the bundled PDFKit's `__dirname` points, or every e-invoice render
+  fails; nobody here has bundled one ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 - **For the renderer in a browser:** a bundler that splits a dynamic import,
   or the font chunk that a slip and a captioned EPC QR code print from
   lands in every page
@@ -145,13 +156,14 @@ deploy happened or what the address serves.
   ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).
 - **For an e-invoice:** no release prints one, and 0.1.0 refuses a report
   that holds one. On `main` a final render writes the CII XML into the
-  resolved document, `document.eInvoice.xml`, and the renderer refuses that
-  document, so nothing embeds the XML in a PDF and a host gets no PDF of
-  an e-invoice; a preview prints, labelled on every page as no e-invoice.
-  A host that bundles report-spec, report-core and report-runtime carries
-  the e-invoice's rules and writer whether its reports have one or not,
-  which 0027 measures
-  ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+  resolved document, `document.eInvoice.xml`, and the renderer draws that
+  document as a PDF/A-3b that embeds it as `factur-x.xml`, the German
+  hybrid invoice, in either entry; a preview writes no XML and prints as a
+  plain PDF, labelled on every page as no e-invoice. In an e-invoice, an
+  image is no CMYK JPEG. A host that bundles report-spec, report-core and
+  report-runtime carries the e-invoice's rules and writer whether its
+  reports have one or not, which 0027 measures
+  ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 - **For the provider:** a Formancy Data 0.1.0 server and a data client
   carrying the person's token
   ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).

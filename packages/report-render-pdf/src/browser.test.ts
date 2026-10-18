@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
@@ -6,7 +7,8 @@ import nodePdfmake from 'pdfmake'
 import browserPdfmake from 'pdfmake/build/pdfmake.js'
 import vfs from 'pdfmake/build/vfs_fonts.js'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { ALL_FIXTURES, readCodes, readPdf, verify, verifyRefusal } from '@formancy/report-corpus'
+import { ALL_FIXTURES, E_INVOICE, inflatedDigest, readCodes, readPdf, readPdfObjects, verify, verifyRefusal } from '@formancy/report-corpus'
+import { resolveReport, type ResolvedDocument } from '@formancy/report-runtime'
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
 import type * as billFonts from './bill-fonts.js'
 import { renderPdf as renderInBrowser } from './browser.js'
@@ -46,6 +48,16 @@ afterAll(() => {
   warn.mockRestore()
   expect([...warnings].filter((each) => !each.startsWith('No local access policy defined'))).toEqual([])
 })
+
+/** The de-DE e-invoice sample, resolved by the runtime in a final render: a document that carries its XML. */
+function eInvoiceDocument(): ResolvedDocument {
+  const outcome = resolveReport(E_INVOICE.report, E_INVOICE.data, { mode: 'final', parameters: E_INVOICE.parameters, creationDate: '2026-10-16T08:00:00Z' })
+  if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
+  return outcome.document
+}
+
+/** The SHA-256 of the ICC's sRGB2014.icc, which the licence guard reviewed in pdfkit's file (`e-invoice.test.ts`). */
+const SRGB2014 = '384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a'
 
 /** A definition as pdfmake was handed it, before pdfmake changes it in place: every function by its source, and the page header and footer by what they lay out on pages 2 and 3 of 3, the last of which holds a payment part's slip. */
 function serialised(definition: TDocumentDefinitions): string {
@@ -170,6 +182,41 @@ describe('the browser entry', () => {
     const [first, second] = await Promise.all([renderInBrowser(document, { maxPages }), renderInBrowser(document, { maxPages })])
     expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
   })
+
+  // An e-invoice drawn in a browser is the same invoice a server draws:
+  // the same definitions, PDF/A-3b's version and subset among them, the
+  // runtime's XML embedded byte for byte, its output intent's profile the
+  // reviewed sRGB2014, and every object the Node entry draws, each stream
+  // inflated -- the pages, the XMP, the information dictionary, the /ID,
+  // the output intent and the version. Not the same bytes: the browser
+  // build deflates with a zlib of its own, and its PDF of the e-invoice
+  // sample was 37,307 bytes where Node's was 37,578 (measured on 18
+  // October 2026). The profile comes from another place here -- base64
+  // inside pdfmake's browser build (`build/pdfmake.js` 20777), which the
+  // licence guard cannot read inside a script (0006) -- so a test through
+  // the Node entry alone would pass whatever the browser build carried.
+  test('hands pdfmake the definitions the Node entry does for an e-invoice, which embeds the same XML beside the reviewed profile', async () => {
+    const document = eInvoiceDocument()
+    const options = { maxPages: 5 }
+    const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
+    const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(document, options))
+    expect(inBrowser).toEqual(inNode)
+    expect(inBrowser.at(-1)).toContain('"version":"1.7","subset":"PDF/A-3b"')
+    const [nodeBytes, browserBytes] = [await renderInNode(document, options), await renderInBrowser(document, options)]
+    const [node, browser] = [await readPdfObjects(nodeBytes), await readPdfObjects(browserBytes)]
+    expect(browser.associatedFiles.map((file) => Buffer.from(file.embedded?.bytes ?? []).toString('utf8'))).toEqual([document.eInvoice!.xml])
+    expect(browser.outputIntents.map((intent) => createHash('sha256').update(intent.profile?.bytes ?? new Uint8Array()).digest('hex'))).toEqual([SRGB2014])
+    expect(browser.associatedFiles).toEqual(node.associatedFiles)
+    expect(await inflatedDigest(browserBytes)).toBe(await inflatedDigest(nodeBytes))
+  }, TIMEOUT)
+
+  // An e-invoice is found again by its digest, or by nothing: the file's
+  // dates are the document's, and the XMP holds no clock and no random id.
+  test('renders an e-invoice to the same bytes', async () => {
+    const document = eInvoiceDocument()
+    const [first, second] = await Promise.all([renderInBrowser(document, { maxPages: 5 }), renderInBrowser(document, { maxPages: 5 })])
+    expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
+  }, TIMEOUT)
 
   // The fonts the browser entry embeds are base64 inside a script, which
   // the dependency-licence guard cannot read (0006). They are the very

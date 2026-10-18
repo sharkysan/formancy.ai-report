@@ -18,12 +18,16 @@ export function encodePng(width: number, height: number, pixel: (x: number, y: n
   view.setUint32(0, width)
   view.setUint32(4, height)
   header.set([8, 2, 0, 0, 0], 8) // bit depth 8, colour type 2 (RGB), deflate, adaptive filtering, no interlace
-  return concat([
-    new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk('IHDR', header),
-    chunk('IDAT', new Uint8Array(deflateSync(scanlines))),
-    chunk('IEND', new Uint8Array(0)),
+  return pngOf([
+    ['IHDR', header],
+    ['IDAT', new Uint8Array(deflateSync(scanlines))],
+    ['IEND', new Uint8Array(0)],
   ])
+}
+
+/** A PNG of these chunks, after the signature, each framed with its length and its CRC. */
+export function pngOf(chunks: readonly (readonly [type: string, data: Uint8Array])[]): Uint8Array {
+  return concat([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), ...chunks.map(([type, data]) => chunk(type, data))])
 }
 
 /** Length, type, data, and the CRC of type and data. */

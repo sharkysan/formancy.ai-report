@@ -24,6 +24,12 @@
 // in a walked package is read too: an OpenType font's name table says its
 // licence, and a font this cannot read is refused until somebody has.
 //
+// The same holds for ICC profiles, which a PDF/A embeds as its output intent
+// in every e-invoice a customer sends (0031): every .icc or .icm file, and
+// every file whose header is a profile's, is refused unless a review has
+// read its licence and recorded, by the digest of its bytes, the sentence
+// that grants it (`ICC_PROFILES`). A profile carries no licence to read.
+//
 // Where a manifest or a font is silent or wrong, a reviewed exception records
 // what the evidence says the licence is, at one exact version; the policy
 // still applies to what it records. An exception nothing installs is refused,
@@ -101,6 +107,37 @@ export const FORMANCY_DATA = Object.freeze({
     licenceFile: 'sha256:329ae16264e73a3f429611267bfa3263c99eda5d6e2b419f223b2cc64536b8d4',
     for: '@formancy/report-data-provider',
     evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026',
+  },
+})
+
+/**
+ * Reviewed ICC profiles, by the SHA-256 of their bytes, each with what it
+ * is, the licence sentence that grants it as the review read it, and where.
+ * A profile states its copyright holder in its header and its `cprt` tag,
+ * not its terms, so nothing here reads a licence from the file: a review
+ * does, once, and the digest holds the bytes it read. Keyed by digest and
+ * not by package, since the licence is the profile's whoever ships it, and
+ * a profile one byte off is another profile nobody has read. `problems`
+ * refuses an entry nothing installs, and one that records no sentence.
+ *
+ * - The ICC's sRGB2014.icc, which PDFKit 0.19.1 ships as
+ *   `js/data/sRGB_IEC61966_2_1.icc` and embeds as the output intent of every
+ *   PDF/A (pdfkit.js 5265), which an e-invoice is: its header and tags read
+ *   an ICC v2 `mntr` RGB profile, `desc` "sRGB2014", `cprt` "Copyright
+ *   International Color Consortium, 2015". Byte for byte the ICC's own file
+ *   at https://registry.color.org/rgb-registry/profiles/sRGB2014.icc,
+ *   compared on 2026-10-17. Its licence is the ICC's for every profile the
+ *   ICC owns, on its profile library page, read that day. pdfmake's browser
+ *   build carries the same 3,024 bytes as base64 inside a script, where
+ *   this walk does not look; the renderer's browser test holds that copy to
+ *   this digest.
+ */
+export const ICC_PROFILES = Object.freeze({
+  'sha256:384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a': {
+    profile: 'sRGB2014.icc, the International Color Consortium\'s ICC v2 sRGB profile (desc "sRGB2014", cprt "Copyright International Color Consortium, 2015")',
+    licence:
+      'This profile is made available by the International Color Consortium, and may be copied, distributed, embedded, made, used, and sold without restriction. Altered versions of this profile shall have the original identification and copyright information removed and shall not be misrepresented as the original profile.',
+    evidence: 'https://registry.color.org/profile-library/#license, read 2026-10-17, where "ICC is the copyright owner"; the file compared byte for byte with https://registry.color.org/rgb-registry/profiles/sRGB2014.icc that day',
   },
 })
 
@@ -229,6 +266,14 @@ export function fontLicence(bytes) {
 /** Files that are fonts, by extension: OpenType and TrueType, collections, web fonts and Type 1. */
 const FONT_FILE = /\.(ttf|otf|ttc|otc|woff2?|eot|pfb|pfa)$/i
 
+/** Files that are ICC profiles, by extension. */
+const PROFILE_FILE = /\.ic[cm]$/i
+
+/** Whether a file's first bytes are an ICC profile's, whatever it is called: the profile file signature `acsp` at byte 36 of its header (ICC.1, 7.2). */
+function looksLikeProfile(head) {
+  return head.length >= 40 && head.toString('latin1', 36, 40) === 'acsp'
+}
+
 /**
  * Whether a file's first bytes are a font's, whatever it is called: an sfnt
  * whose table directory fits the file, a collection, a web font, or Type 1
@@ -244,11 +289,11 @@ function looksLikeFont(head, size) {
   return tables > 0 && 12 + 16 * tables <= size
 }
 
-/** The first bytes of a file, enough to tell a font by. */
+/** The first bytes of a file, enough to tell a font or an ICC profile by. */
 function headOf(path) {
   const handle = openSync(path, 'r')
   try {
-    const head = Buffer.alloc(20)
+    const head = Buffer.alloc(40)
     return head.subarray(0, readSync(handle, head, 0, head.length, 0))
   } finally {
     closeSync(handle)
@@ -257,28 +302,42 @@ function headOf(path) {
 
 /**
  * Files named as code, text or an image, which are not opened to look for a
- * font: a package holds thousands of them, and opening each one made the
- * first walk of pdfmake's closure take 18.7 s instead of 0.67 s (one Windows
- * machine, 2026-10-15). A font under one of these names is not found, which
- * 0006 says.
+ * font or an ICC profile: a package holds thousands of them, and opening
+ * each one made the first walk of pdfmake's closure take 18.7 s instead of
+ * 0.67 s (one Windows machine, 2026-10-15). A font or a profile under one of
+ * these names is not found -- one inside a script, as pdfmake's browser
+ * build carries both, or inside an image -- which 0006 says.
  */
-const NOT_A_FONT = /\.(c?js|mjs|d\.[cm]?ts|[cm]?ts|map|json|md|markdown|txt|html?|css|ya?ml|png|jpe?g|gif|svg|wasm|node)$/i
+const NOT_OPENED = /\.(c?js|mjs|d\.[cm]?ts|[cm]?ts|map|json|md|markdown|txt|html?|css|ya?ml|png|jpe?g|gif|svg|wasm|node)$/i
 
-/** Every font file in a package's directory, outside its own node_modules, by path: by extension, or by its first bytes. */
-function fontsIn(directory) {
+const byPath = (a, b) => (a.path < b.path ? -1 : 1)
+
+/**
+ * Every font file and every ICC profile in a package's directory, outside
+ * its own node_modules, by path: each by its extension, or by its first
+ * bytes. A font is read for its licence; a profile is known by its digest.
+ */
+function filesIn(directory) {
   const fonts = []
+  const profiles = []
   const walk = (at) => {
     for (const item of readdirSync(at, { withFileTypes: true })) {
       if (item.name === 'node_modules') continue
       const path = join(at, item.name)
-      if (item.isDirectory()) walk(path)
-      else if (item.isFile() && (FONT_FILE.test(item.name) || (!NOT_A_FONT.test(item.name) && looksLikeFont(headOf(path), statSync(path).size)))) {
-        fonts.push({ path: relative(directory, path).replaceAll('\\', '/'), ...fontLicence(readFileSync(path)) })
+      if (item.isDirectory()) {
+        walk(path)
+        continue
       }
+      if (!item.isFile()) continue
+      const named = FONT_FILE.test(item.name) || PROFILE_FILE.test(item.name)
+      const head = named || NOT_OPENED.test(item.name) ? undefined : headOf(path)
+      const file = relative(directory, path).replaceAll('\\', '/')
+      if (FONT_FILE.test(item.name) || (head !== undefined && looksLikeFont(head, statSync(path).size))) fonts.push({ path: file, ...fontLicence(readFileSync(path)) })
+      else if (PROFILE_FILE.test(item.name) || (head !== undefined && looksLikeProfile(head))) profiles.push({ path: file, digest: `sha256:${createHash('sha256').update(readFileSync(path)).digest('hex')}` })
     }
   }
   walk(directory)
-  return fonts.sort((a, b) => (a.path < b.path ? -1 : 1))
+  return { fonts: fonts.sort(byPath), profiles: profiles.sort(byPath) }
 }
 
 /** The real directory `name` resolves to from `directory`, as Node looks for it, or undefined. */
@@ -318,7 +377,7 @@ function pointedFile(directory, licence) {
 
 /**
  * Every package `start` needs in production, itself first: `{ name, version,
- * licence, licenceFile, dir, via, sibling, fonts }`, `via` naming the
+ * licence, licenceFile, dir, via, sibling, fonts, profiles }`, `via` naming the
  * packages between the start and it, and `licenceFile` what `pointedFile`
  * says of its licence. A required dependency that is not installed is `{ name,
  * missing: true, via }`, and so is a peer not marked optional in
@@ -336,7 +395,7 @@ export function closure(start, siblings = new Set()) {
     seen.add(directory)
     const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'))
     const licence = declaredLicence(manifest)
-    found.push({ name: manifest.name, version: manifest.version, licence, licenceFile: pointedFile(directory, licence), dir: directory, via, sibling: siblings.has(directory), fonts: fontsIn(directory) })
+    found.push({ name: manifest.name, version: manifest.version, licence, licenceFile: pointedFile(directory, licence), dir: directory, via, sibling: siblings.has(directory), ...filesIn(directory) })
     const path = [...via, manifest.name]
     const required = Object.keys(manifest.dependencies ?? {}).filter((name) => !manifest.optionalDependencies?.[name])
     const others = new Map([
@@ -384,13 +443,14 @@ function admission(item, id, route, data) {
  * What is wrong with these closures under the policy, each named once with the
  * route to it. `exceptions` replace what a package or a font file says with
  * what a review found, at that exact version, and are refused when nothing
- * here installs them. `data` admits Formancy Data's packages, and is refused
- * the same way.
+ * here installs them. `data` admits Formancy Data's packages, and `profiles`
+ * the ICC profiles a review read, and each is refused the same way.
  */
-export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA) {
+export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA, profiles = ICC_PROFILES) {
   const found = new Set()
   const used = new Set()
   const admitted = new Set()
+  const shipped = new Set()
   const judge = (key, declared, source, route, refusal) => {
     const exception = Object.hasOwn(exceptions, key) ? exceptions[key] : undefined
     if (exception !== undefined) used.add(key)
@@ -416,12 +476,22 @@ export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA)
         : `${id}/${font.path} is a font this guard cannot read a licence from; review it and record an exception (${route})`
       judge(`${id}/${font.path}`, font.licence, 'its name table', route, refusal)
     }
+    for (const profile of item.profiles) {
+      shipped.add(profile.digest)
+      if (!Object.hasOwn(profiles, profile.digest)) {
+        found.add(`${id}/${profile.path} is an ICC profile nobody has reviewed (${profile.digest}); read its licence and record it in ICC_PROFILES with the sentence that grants it (${route})`)
+      }
+    }
   }
   for (const key of Object.keys(exceptions)) {
     if (!used.has(key)) found.add(`exception ${key} names nothing a published package installs; remove it`)
   }
   for (const key of Object.keys(data)) {
     if (!admitted.has(key)) found.add(`Formancy Data admission ${key} names nothing a published package installs; remove it`)
+  }
+  for (const [digest, review] of Object.entries(profiles)) {
+    if (!shipped.has(digest)) found.add(`reviewed ICC profile ${digest} names nothing a published package installs; remove it`)
+    else if (typeof review.licence !== 'string' || review.licence.trim() === '') found.add(`reviewed ICC profile ${digest} records no licence sentence; a review quotes the sentence that grants the profile`)
   }
   return [...found]
 }
@@ -468,6 +538,7 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/dependency-licences
   }
   const thirdParty = new Set(entries.filter((item) => !item.sibling).map((item) => `${item.name}@${item.version}`))
   const fonts = entries.reduce((sum, item) => sum + item.fonts.length, 0)
+  const profiles = new Set(entries.flatMap((item) => item.profiles.map((profile) => `${item.name}@${item.version}/${profile.path}`)))
   console.log(`dependency licences: walked the production dependencies of ${published.join(', ')}`)
-  console.log(`dependency licences: ${String(thirdParty.size)} third-party packages and ${String(fonts)} fonts, each under a licence the policy allows`)
+  console.log(`dependency licences: ${String(thirdParty.size)} third-party packages, ${String(fonts)} fonts and ${String(profiles.size)} ICC profile${profiles.size === 1 ? '' : 's'}, each under a licence the policy allows or a review read`)
 }

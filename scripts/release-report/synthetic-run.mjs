@@ -62,16 +62,23 @@ const E_INVOICE_TOOLS = [
   { id: 'mustang', version: '2.26.0', sha256: 'aa'.repeat(32), java: 11 },
   { id: 'kosit', version: '1.6.3', sha256: 'bb'.repeat(32), java: 11 },
   { id: 'xrechnung-configuration', version: '2026-08-31', sha256: 'cc'.repeat(32), java: null },
+  { id: 'verapdf', version: '1.30.3', sha256: 'dd'.repeat(32), java: 8 },
 ]
 
 /** What the gate records it ran: each tool's bytes as it hashed them, and the version each JAR reported of itself. */
 const E_INVOICE_RAN = [
-  { id: 'mustang', version: '2.26.0', sha256: 'aa'.repeat(32), reported: ['2.26.0'] },
+  { id: 'mustang', version: '2.26.0', sha256: 'aa'.repeat(32), reported: ['2.26.0'], bundles: { verapdf: ['1.30.2'] } },
   { id: 'kosit', version: '1.6.3', sha256: 'bb'.repeat(32), reported: '1.6.3' },
   { id: 'xrechnung-configuration', version: '2026-08-31', sha256: 'cc'.repeat(32) },
+  { id: 'verapdf', version: '1.30.3', sha256: 'dd'.repeat(32), reported: ['1.30.3'] },
 ]
 
-/** The e-invoice gate's record, as scripts/e-invoice.mjs writes it: a sample both tools accepted and a control both refused, each as its corpus expects. */
+/**
+ * The e-invoice gate's record, as scripts/e-invoice.mjs writes it: an XML
+ * sample Mustang and KoSIT accepted and a control both refused, and a PDF
+ * sample and a variant veraPDF and Mustang accepted and a control both
+ * refused, each as its corpus expects.
+ */
 const eInvoiceJob = () => ({
   ...base('e-invoice', 'e-invoice'),
   eInvoice: {
@@ -81,18 +88,29 @@ const eInvoiceJob = () => ({
     java: { version: '17.0.20.1', major: 17 },
     tools: E_INVOICE_RAN.map((tool) => structuredClone(tool)),
     corpus: [
-      { file: 'e-invoice.xml', sample: 'e-invoice', expect: { mustang: 'accepted', kosit: 'accepted' } },
-      { file: 'control-br-27.xml', from: 'e-invoice.xml', why: 'a negative net price', expect: { mustang: ['error 4 BR-27', 'warning 10'], kosit: ['error val-sch.1 BR-27'] } },
+      { file: 'e-invoice.xml', format: 'xml', sample: 'e-invoice', expect: { mustang: 'accepted', kosit: 'accepted' } },
+      { file: 'control-br-27.xml', format: 'xml', from: 'e-invoice.xml', why: 'a negative net price', expect: { mustang: ['error 4 BR-27', 'warning 10'], kosit: ['error val-sch.1 BR-27'] } },
+      { file: 'e-invoice.pdf', format: 'pdf', sample: 'e-invoice', expect: { verapdf: 'accepted', mustang: 'accepted' } },
+      { file: 'control-pdfa.pdf', format: 'pdf', from: 'e-invoice.pdf', why: 'no output intent', expect: { verapdf: ['6.2.4.3-2'], mustang: ['pdfa 3b 6.2.4.3-2'] } },
+      { file: 'variant-blocks.pdf', format: 'pdf', variant: { blocks: true }, why: 'an image of every kind', expect: { verapdf: 'accepted', mustang: 'accepted' } },
     ],
     mustang: [
       { file: 'e-invoice.xml', verdict: 'as expected' },
       { file: 'control-br-27.xml', verdict: 'as expected' },
+      { file: 'e-invoice.pdf', verdict: 'as expected' },
+      { file: 'control-pdfa.pdf', verdict: 'as expected' },
+      { file: 'variant-blocks.pdf', verdict: 'as expected' },
     ],
     kosit: [
       { file: 'e-invoice.xml', verdict: 'as expected' },
       { file: 'control-br-27.xml', verdict: 'as expected' },
     ],
-    seconds: { mustang: 20.8, kosit: 6.3, total: 44.3 },
+    verapdf: [
+      { file: 'e-invoice.pdf', verdict: 'as expected' },
+      { file: 'control-pdfa.pdf', verdict: 'as expected' },
+      { file: 'variant-blocks.pdf', verdict: 'as expected' },
+    ],
+    seconds: { draw: 0.9, mustang: 47.5, kosit: 6.5, verapdf: 2.4, total: 59.2 },
     problems: [],
     passed: true,
   },
@@ -214,7 +232,7 @@ export function greenRun() {
     pictureApps: ['apps/studio'],
     browsers: ['chromium'],
     // What docs/release/e-invoice-tools.json pins: the tools the e-invoice gate must have run.
-    eInvoiceTools: { tools: E_INVOICE_TOOLS.map((tool) => ({ ...tool })), runtime: { name: 'Eclipse Temurin', distribution: 'temurin', java: 17 } },
+    eInvoiceTools: { tools: E_INVOICE_TOOLS.map((tool) => ({ ...tool })), runtime: { name: 'Eclipse Temurin', distribution: 'temurin', java: 17 }, veraPdfFloor: { version: '1.30.2', advisories: ['GHSA-3jh7-wm29-q568', 'GHSA-36mm-w85j-3q2j'], why: 'two XML external entity flaws' } },
     // What scripts/pictures/scenes.json gives the Studio: the scenes its check must walk.
     scenes: { 'apps/studio': ['studio-react', 'studio-angular'] },
     register: {

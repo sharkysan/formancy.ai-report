@@ -12,6 +12,7 @@
 // found and refused still is. CI allows none.
 
 import { browserName } from '../browsers.mjs'
+import { atLeast, JUDGES } from '../e-invoice/registers.mjs'
 import { unmeasured, unwalked } from './results.mjs'
 
 const list = (items, most = 5) => (items.length <= most ? items.join('; ') : `${items.slice(0, most).join('; ')}; and ${String(items.length - most)} more`)
@@ -92,10 +93,13 @@ const reportedVersions = (reported) => (Array.isArray(reported) ? reported : typ
  * (docs/release/e-invoice-tools.json, which the report reads itself) by
  * version, by the SHA-256 the gate measured of the bytes it ran and, for
  * each JAR, by the version the tool reported of itself; in CI, on the Java
- * `register.runtime` names; judged at least one sample every tool must
- * accept and one control each must refuse; and has every tool's verdict on
- * every file as its corpus expects. Its own `passed` is one flag its writer
- * sets, and the rest does not rest on it.
+ * `register.runtime` names; ran no veraPDF below `register.veraPdfFloor`,
+ * its own or Mustang's; judged, as XML and as PDF, at least one sample
+ * every tool of that format must accept and one control each must refuse;
+ * and has the verdict of every tool that judges a file's format
+ * (scripts/e-invoice/registers.mjs's JUDGES) on every file, as its corpus
+ * expects. Its own `passed` is one flag its writer sets, and the rest does
+ * not rest on it.
  */
 function eInvoiceProblems(report, register, allowMissing, ci) {
   const gate = report.results.eInvoice
@@ -114,14 +118,47 @@ function eInvoiceProblems(report, register, allowMissing, ci) {
   }
   const runtime = register.runtime
   if (ci && runtime !== undefined && gate.java?.major !== runtime.java) problems.push(`the e-invoice gate ran on Java ${String(gate.java?.major)}, where docs/release/e-invoice-tools.json has CI run it on ${runtime.name} ${String(runtime.java)}`)
-  const judges = ['mustang', 'kosit']
-  if (!gate.files.some((file) => file.kind === 'sample' && judges.every((judge) => file.expect[judge] === 'accepted'))) problems.push('the e-invoice gate judged no sample every tool must accept')
-  for (const judge of judges) if (!gate.files.some((file) => file.kind === 'control' && Array.isArray(file.expect[judge]))) problems.push(`the e-invoice gate made no control ${judge} must refuse`)
+  problems.push(...floorProblems(gate, register))
+  for (const [format, judges] of Object.entries(JUDGES)) {
+    const ofFormat = gate.files.filter((file) => file.format === format)
+    const as = format.toUpperCase()
+    if (!ofFormat.some((file) => file.kind === 'sample' && judges.every((judge) => file.expect[judge] === 'accepted'))) problems.push(`the e-invoice gate judged no ${as} sample every tool must accept`)
+    for (const judge of judges) if (!ofFormat.some((file) => file.kind === 'control' && Array.isArray(file.expect[judge]))) problems.push(`the e-invoice gate made no ${as} control ${judge} must refuse`)
+  }
   for (const file of gate.files) {
+    const judges = JUDGES[file.format]
+    if (judges === undefined) {
+      problems.push(`the e-invoice gate recorded ${file.file} as ${String(file.format)}, a format none of its tools judges`)
+      continue
+    }
     for (const judge of judges) {
       if (file[judge] === null) problems.push(`the e-invoice gate has no ${judge} verdict on ${file.file}`)
       else if (file[judge] !== 'as expected') problems.push(`the e-invoice gate’s ${judge} judged ${file.file} otherwise than its corpus expects`)
     }
+  }
+  return problems
+}
+
+/**
+ * The veraPDF floor (`register.veraPdfFloor`), held to what the gate ran:
+ * its own veraPDF pin and every veraPDF Mustang bundles, as the gate
+ * recorded them, each at the floor or later. The gate refuses to run below
+ * it, and a gate changed to run anyway, or one that recorded no bundled
+ * version, fails the run here.
+ */
+function floorProblems(gate, register) {
+  const pinsVeraPdf = (register.tools ?? []).some((pin) => pin.id === 'verapdf')
+  const floor = register.veraPdfFloor?.version
+  if (floor === undefined) return pinsVeraPdf ? ['docs/release/e-invoice-tools.json pins veraPDF and gives no floor for it'] : []
+  const problems = []
+  const ran = (id) => gate.tools.find((tool) => tool.id === id)
+  const own = ran('verapdf')
+  if (own !== undefined && !atLeast(own.version, floor)) problems.push(`the e-invoice gate ran veraPDF ${String(own.version)}, below the floor of ${floor} docs/release/e-invoice-tools.json gives`)
+  const mustang = ran('mustang')
+  if (mustang !== undefined) {
+    const bundled = mustang.bundles?.verapdf ?? []
+    if (bundled.length === 0) problems.push(`the e-invoice gate recorded no veraPDF that Mustang bundles, so the floor of ${floor} is not held for it`)
+    for (const version of bundled.filter((each) => !atLeast(each, floor))) problems.push(`the e-invoice gate ran a Mustang that bundles veraPDF ${String(version)}, below the floor of ${floor} docs/release/e-invoice-tools.json gives`)
   }
   return problems
 }

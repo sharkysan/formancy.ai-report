@@ -579,6 +579,9 @@ importers:
       '@formancy/report-runtime':
         specifier: workspace:*
         version: link:../report-runtime
+      '@pdfme/pdf-lib':
+        specifier: 6.2.4
+        version: 6.2.4
       pdfjs-dist:
         specifier: 6.4.299
         version: 6.4.299
@@ -598,9 +601,6 @@ importers:
       '@pdfme/generator':
         specifier: 6.2.4
         version: 6.2.4(@pdfme/common@6.2.4)(@pdfme/schemas@6.2.4(@pdfme/common@6.2.4))
-      '@pdfme/pdf-lib':
-        specifier: 6.2.4
-        version: 6.2.4
       '@pdfme/schemas':
         specifier: 6.2.4
         version: 6.2.4(@pdfme/common@6.2.4)

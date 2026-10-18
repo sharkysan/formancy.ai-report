@@ -1,6 +1,6 @@
 # 0011 — `report-render-pdf` draws the whole resolved document with pdfmake, and refuses what it cannot draw whole
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption, and by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which refuses every e-invoice until it draws the PDF/A-3 that carries one
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which refused every e-invoice until the renderer drew the PDF/A-3 that carries one, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which draws it, a PDF/A-3b, and refuses what that cannot hold
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-render-pdf`, run by its
@@ -216,6 +216,19 @@ that is not report-spec's -- and then the rest, as a PDF/A-3 this release
 does not draw. No refusal quotes the XML. A preview carries no XML, and
 is drawn. The next step lifts the last refusal and draws the PDF/A-3b.
 `refusals.test.ts` holds it.
+
+**Added 2026-10-18: an e-invoice, drawn.** The last refusal is lifted
+([0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+A document with an e-invoice the renderer knows is drawn as a PDF/A-3b
+that embeds its XML as `factur-x.xml` and states it in its XMP, through
+PDFKit's own calls on the final pass; every other document is drawn as
+before. What it does not know is refused as before, and three things more,
+each `unsupported` and before pdfmake sees the document, since the PDF/A
+cannot hold them: XML holding a lone surrogate, a title holding `&`, `<`,
+`>` or a character XML 1.0 cannot write, naming `info.title`, and a CMYK
+JPEG, naming the image, in an e-invoice alone. A preview carries no XML,
+and is drawn plain. `refusals.test.ts`, `assets.test.ts` and
+`e-invoice.test.ts` hold it.
 
 ## Alternatives considered
 

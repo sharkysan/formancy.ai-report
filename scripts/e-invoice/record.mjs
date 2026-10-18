@@ -1,7 +1,9 @@
 // What a run of the e-invoice gate leaves in scripts/e-invoice/recorded/
-// (0027), which the judges' tests read: each text as the run wrote it, with
-// the line ends the repository keeps and without the machine's path to the
-// repository; and the recorded corpus held to the one the runtime writes now.
+// (0027, 0031), which the judges' tests read: each text as the run wrote
+// it, with the line ends the repository keeps and without the machine's
+// path to the repository; and the recorded corpus held to the one the
+// runtime writes now, its XML byte for byte and its PDFs by their inflated
+// objects (report-corpus's `inflatedDigest`), which no zlib changes.
 
 /** The repository's root, as what is recorded writes it: no angle brackets, since an XML report holds it in its text. */
 export const ROOT = '{repository}'
@@ -11,15 +13,18 @@ export const ROOT = '{repository}'
  * repository's .gitattributes keeps every text file -- a JVM on Windows
  * ends its console's lines, and Mustang its report, with CR LF -- and every
  * spelling of `root`, the repository on the machine that ran the gate,
- * written `ROOT`: as given, and with forward slashes, which is how a file
- * URI and a Java class path spell it, and cut short with an ellipsis, as
- * KoSIT's console table cuts a long path. KoSIT names each file it read by
- * its path, and Mustang its own JAR's; a path names the machine and
- * whoever ran it, and nothing the judges read depends on one.
+ * written `ROOT`: as given, with its backslashes doubled, which is how a
+ * JSON string spells a Windows path, and with forward slashes, which is how
+ * a file URI and a Java class path spell it, and cut short with an
+ * ellipsis, as KoSIT's console table cuts a long path. KoSIT and veraPDF
+ * name each file they read by its path, and Mustang its own JAR's; a path
+ * names the machine and whoever ran it, and nothing the judges read
+ * depends on one.
  */
 export function recordedText(text, root) {
   const forward = root.replaceAll('\\', '/')
-  let recorded = String(text).replaceAll('\r\n', '\n').replaceAll(root, ROOT).replaceAll(forward, ROOT)
+  const escaped = root.replaceAll('\\', '\\\\')
+  let recorded = String(text).replaceAll('\r\n', '\n').replaceAll(escaped, ROOT).replaceAll(root, ROOT).replaceAll(forward, ROOT)
   // The longest cut first, so that a shorter one never leaves the rest of a longer.
   for (let length = forward.length - 1; length >= 4; length -= 1) recorded = recorded.replaceAll(`${forward.slice(0, length)}...`, `${ROOT}...`)
   return recorded
@@ -52,20 +57,27 @@ const RECORD = 'run node scripts/e-invoice.mjs --record, and commit what it writ
 
 /**
  * Every way the recorded corpus is not what this run judged, as sentences:
- * a file whose recorded XML differs, one not recorded, and one recorded
- * that the run did not make. `recorded` maps each recorded file's name to
- * its text. The judges' tests read the recorded corpus and the tools'
- * outputs on it, so a corpus left stale -- the runtime's XML changed, a
- * control added -- would leave them holding the judges to files the gate
- * no longer judges.
+ * an XML file whose recorded text differs, a PDF whose recorded digest of
+ * its inflated objects differs from the one this run drew (`entry.digest`),
+ * one not recorded, and one recorded that the run did not make. `recorded`
+ * maps each recorded XML file's name to its text, `pdfs` each recorded
+ * PDF's to its digest. The judges' tests read the recorded corpus and the
+ * tools' outputs on it, so a corpus left stale -- the runtime's XML or the
+ * renderer's PDF changed, a control added -- would leave them holding the
+ * judges to files the gate no longer judges.
  */
-export function staleRecorded(entries, recorded) {
+export function staleRecorded(entries, recorded, pdfs = new Map()) {
   const problems = []
-  for (const { file, xml } of entries) {
-    if (!recorded.has(file)) problems.push(`scripts/e-invoice/recorded/corpus/ holds no ${file}, which this run judged: ${RECORD}`)
-    else if (recorded.get(file) !== xml) problems.push(`scripts/e-invoice/recorded/corpus/${file} is not the XML this run judged: ${RECORD}`)
+  for (const entry of entries) {
+    const { file } = entry
+    if (entry.format === 'pdf') {
+      if (!pdfs.has(file)) problems.push(`scripts/e-invoice/recorded/run.json records no ${file}, which this run judged: ${RECORD}`)
+      else if (pdfs.get(file) !== entry.digest) problems.push(`scripts/e-invoice/recorded/run.json records ${file} as another PDF than this run drew, its objects inflated: ${RECORD}`)
+    } else if (!recorded.has(file)) problems.push(`scripts/e-invoice/recorded/corpus/ holds no ${file}, which this run judged: ${RECORD}`)
+    else if (recorded.get(file) !== entry.xml) problems.push(`scripts/e-invoice/recorded/corpus/${file} is not the XML this run judged: ${RECORD}`)
   }
   const made = new Set(entries.map(({ file }) => file))
   for (const file of recorded.keys()) if (!made.has(file)) problems.push(`scripts/e-invoice/recorded/corpus/${file} is no file this run judged: ${RECORD}`)
+  for (const file of pdfs.keys()) if (!made.has(file)) problems.push(`scripts/e-invoice/recorded/run.json records ${file}, which this run did not judge: ${RECORD}`)
   return problems
 }

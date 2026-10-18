@@ -64,9 +64,9 @@ export const eInvoiceOf = (results) => results.map((result) => result.eInvoice).
 
 /**
  * The e-invoice gate as the report shows and judges it: the Java and the
- * tools it ran, and each file of its corpus, a sample or a control, with
- * what the corpus expects of it and each tool's verdict on it, null where
- * the gate recorded none.
+ * tools it ran, and each file of its corpus, a sample, a variant or a
+ * control, XML or PDF, with what the corpus expects of it and each tool's
+ * verdict on it, null where the gate recorded none.
  */
 function eInvoiceRow(gate) {
   const verdict = (rows, file) => (rows ?? []).find((row) => row.file === file)?.verdict ?? null
@@ -75,7 +75,15 @@ function eInvoiceRow(gate) {
     problems: gate.problems ?? [],
     java: gate.java ?? null,
     tools: gate.tools ?? [],
-    files: (gate.corpus ?? []).map((entry) => ({ file: entry.file, kind: entry.from === undefined ? 'sample' : 'control', expect: entry.expect ?? {}, mustang: verdict(gate.mustang, entry.file), kosit: verdict(gate.kosit, entry.file) })),
+    files: (gate.corpus ?? []).map((entry) => ({
+      file: entry.file,
+      kind: entry.from !== undefined ? 'control' : entry.variant !== undefined ? 'variant' : 'sample',
+      format: entry.format ?? null,
+      expect: entry.expect ?? {},
+      mustang: verdict(gate.mustang, entry.file),
+      kosit: verdict(gate.kosit, entry.file),
+      verapdf: verdict(gate.verapdf, entry.file),
+    })),
     seconds: gate.seconds ?? null,
   }
 }

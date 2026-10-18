@@ -4,26 +4,33 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 import { corpus } from './corpus.mjs'
 import { JVM_OPTIONS } from './java.mjs'
-import { judgeMustang, mustangArguments, readMustang, readMustangLog } from './mustang.mjs'
+import { judgeMustang, mustangArguments, mustangOutputs, readMustang, readMustangLog } from './mustang.mjs'
+import { pdfPlan } from './pdf-corpus.mjs'
 import { readRegisters } from './registers.mjs'
 
 /**
- * Mustang's verdict on every file of the corpus (0027), judged from what
- * Mustang 2.26.0 wrote in a recorded gate run (scripts/e-invoice/recorded/,
- * whose run.json says when and on what): its report on stdout, its log on
- * stderr and its exit status. Each defect below is that recorded run with
- * one thing changed, so a rule is seen to fire on its defect and on
- * nothing else.
+ * Mustang's verdict on every file of the corpus (0027, 0031), the XML and
+ * the PDFs, judged from what Mustang 2.26.0 wrote in a recorded gate run
+ * (scripts/e-invoice/recorded/, whose run.json says when and on what): its
+ * report on stdout, its log on stderr and its exit status. Each defect
+ * below is that recorded run with one thing changed, so a rule is seen to
+ * fire on its defect and on nothing else.
  */
 const here = dirname(fileURLToPath(import.meta.url))
 const recorded = (...path) => readFileSync(join(here, 'recorded', ...path), 'utf8')
 const run = JSON.parse(recorded('run.json'))
-const entries = corpus({ samples: run.samples.map((id) => ({ id })), xmlOf: (sample) => recorded('corpus', `${sample.id}.xml`) })
+const xml = corpus({ samples: run.samples.map((id) => ({ id })), xmlOf: (sample) => recorded('corpus', `${sample.id}.xml`) })
+const entries = [...xml, ...pdfPlan(xml)]
 const { accepted } = readRegisters()
 const PROFILE = 'urn:cen.eu:en16931:2017'
 
 /** The recorded run of every file: its status, its report and its log. */
-const runs = () => new Map(entries.map((entry) => [entry.file, { status: run.mustang[entry.file], stdout: recorded('mustang', entry.file.replace(/\.xml$/, '.report.xml')), stderr: recorded('mustang', entry.file.replace(/\.xml$/, '.log')) }]))
+const runs = () => new Map(entries.map((entry) => [entry.file, { status: run.mustang[entry.file], stdout: recorded('mustang', mustangOutputs(entry.file).report), stderr: recorded('mustang', mustangOutputs(entry.file).log) }]))
+/** The recorded run on `file`, its report naming `as` as the file it judged. */
+const runOf = (file, as) => {
+  const ran = runs().get(file)
+  return { ...ran, stdout: ran.stdout.replace(`filename="${file}"`, `filename="${as}"`) }
+}
 const judged = (change = () => {}, inputs = {}) => {
   const given = { entries: structuredClone(entries), runs: runs(), accepted: structuredClone(accepted.accepted), pinned: '2.26.0', profile: PROFILE, ...inputs }
   change(given)
@@ -39,6 +46,15 @@ describe('Mustang’s command line', () => {
   test('validates the one file, its proxies at a dead port, with no notices and no log directory', () => {
     expect(mustangArguments({ jar: 'M.jar', file: 'e-invoice.xml' })).toEqual([...JVM_OPTIONS, '-Xmx1G', '-jar', 'M.jar', '--action', 'validate', '--no-notices', '--disable-file-logging', '--source', 'e-invoice.xml'])
   })
+
+  // A sample's XML and its PDF share a name but for the extension; the
+  // outputs of one must not overwrite the other's.
+  test('writes its report and log on a PDF apart from those on the XML of the same name', () => {
+    expect([mustangOutputs('e-invoice.xml'), mustangOutputs('e-invoice.pdf')]).toEqual([
+      { report: 'e-invoice.report.xml', log: 'e-invoice.log' },
+      { report: 'e-invoice.pdf.report.xml', log: 'e-invoice.pdf.log' },
+    ])
+  })
 })
 
 describe('reading Mustang', () => {
@@ -47,13 +63,30 @@ describe('reading Mustang', () => {
   // writes it and nowhere else.
   test('reads its report: the profile, the version, the rules fired, each message and both summaries', () => {
     const report = readMustang(recorded('mustang', 'control-br-27.report.xml'))
-    expect(report).toMatchObject({ filename: 'control-br-27.xml', pdf: false, status: 'invalid', messages: [] })
+    expect(report).toMatchObject({ filename: 'control-br-27.xml', pdf: null, status: 'invalid', messages: [] })
     expect(report.xml).toMatchObject({ profile: PROFILE, validator: '2.26.0', status: 'invalid' })
     expect(report.xml.fired).toBeGreaterThan(0)
     expect(report.xml.messages.map((message) => message.key)).toEqual(['error 4 BR-27', 'warning 10'])
     // A report on a PDF has a part of its own; the recorded run of FeRD's sample EN16931_Einfach.pdf (recorded/research/) is one, with notices.
     const pdf = readMustang(recorded('research', 'EN16931_Einfach.report.xml'))
-    expect([pdf.pdf, pdf.xml.messages.length, pdf.xml.messages.every((message) => message.severity === 'notice')]).toEqual([true, 7, true])
+    expect([pdf.pdf.status, pdf.xml.messages.length, pdf.xml.messages.every((message) => message.severity === 'notice')]).toEqual(['valid', 7, true])
+  })
+
+  // The PDF part is the veraPDF result Mustang bundles, written as text --
+  // its flavour, whether the file complies, each failed assertion's clause
+  // and test number -- and Mustang's own XMP checks as messages, each keyed
+  // as the PDF part's, apart from the XML part's of the same type.
+  test('reads a PDF’s part: the flavour, compliance and failed rules of its veraPDF result, and its messages', () => {
+    const sample = readMustang(recorded('mustang', 'e-invoice.pdf.report.xml'))
+    expect(sample.pdf).toEqual({ result: { flavour: '3b', compliant: true, failed: [] }, messages: [], status: 'valid' })
+    const trap = readMustang(recorded('mustang', 'control-pdfa.pdf.report.xml'))
+    // The #1293 trap: the PDF part invalid, with no message, and the report valid.
+    expect([trap.pdf.result, trap.pdf.messages, trap.pdf.status, trap.xml.status, trap.status]).toEqual([{ flavour: '3b', compliant: false, failed: ['pdfa 3b 6.2.4.3-2'] }, [], 'invalid', 'valid', 'valid'])
+    const plain = readMustang(recorded('mustang', 'control-plain.pdf.report.xml'))
+    expect(plain.pdf.result.flavour).toBe('1b')
+    expect(plain.pdf.messages.map((message) => message.key)).toEqual(['pdf error 17', 'pdf error 23'])
+    expect([plain.xml, plain.messages.map((message) => message.key)]).toEqual([null, ['exception 17']])
+    expect(readMustang(recorded('mustang', 'control-xmp.pdf.report.xml')).pdf.messages.map((message) => message.key)).toEqual(['pdf error 12'])
   })
 
   // Mustang logs an error item twice, as an item and as a line on stderr;
@@ -90,7 +123,10 @@ describe('Mustang’s verdict', () => {
   // without the entry, the reverse-charge sample's empty delivery is
   // refused; an entry nothing raised accepts nothing, and goes.
   test('refuses a warning the register does not accept, and an accepted one nothing raised', () => {
-    expect(judged((given) => (given.accepted = [])).problems).toEqual(['e-invoice-reverse-charge.xml is refused by Mustang: warning 4 PEPPOL-EN16931-R008: [PEPPOL-EN16931-R008]-Document MUST not contain empty elements. (still status warning) [ID PEPPOL-EN16931-R008] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)'])
+    // The sample's PDF embeds its XML, and raises the warning again.
+    const warning = 'warning 4 PEPPOL-EN16931-R008: [PEPPOL-EN16931-R008]-Document MUST not contain empty elements. (still status warning) [ID PEPPOL-EN16931-R008] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)'
+    expect(judged((given) => (given.accepted = [])).problems).toEqual([`e-invoice-reverse-charge.xml is refused by Mustang: ${warning}`, `e-invoice-reverse-charge.pdf is refused by Mustang: ${warning}`])
+    expect(judged((given) => (given.accepted[0].files = ['e-invoice-reverse-charge.xml'])).problems).toEqual([`e-invoice-reverse-charge.pdf is refused by Mustang: ${warning}`])
     expect(judged((given) => given.accepted.push({ tool: 'mustang', message: 'notice 27 BR-DE-15', files: ['e-invoice.xml'], reason: 'r' })).problems).toEqual(['the accepted message mustang notice 27 BR-DE-15 was raised in none of its files: remove it from scripts/e-invoice/accepted.json'])
   })
 
@@ -100,7 +136,7 @@ describe('Mustang’s verdict', () => {
   test('refuses a notice, and a report on a PDF where the corpus gave XML', () => {
     const { problems } = judged((given) => given.runs.set('e-invoice.xml', { status: 0, stdout: recorded('research', 'EN16931_Einfach.report.xml'), stderr: '' }))
     expect(problems).toContain('Mustang’s report on e-invoice.xml names EN16931_Einfach.pdf as the file it judged')
-    expect(problems).toContain('Mustang judged e-invoice.xml as a PDF: its report has a <pdf> part, and the corpus is XML')
+    expect(problems).toContain('Mustang judged e-invoice.xml as a PDF: its report has a <pdf> part, and the file is XML')
     expect(problems.filter((problem) => problem.startsWith('e-invoice.xml is refused by Mustang: notice 27 '))).toHaveLength(7)
   })
 
@@ -137,5 +173,83 @@ describe('Mustang’s verdict', () => {
     ])
     expect(judged((given) => given.entries.find((entry) => entry.file === 'control-br-27.xml').expect.mustang.pop()).problems).toEqual(['control-br-27.xml was refused by Mustang for warning 10 as well, which it is not broken for'])
     expect(judged((given) => given.entries.find((entry) => entry.file === 'control-br-27.xml').expect.mustang.push('error 4 BR-26')).problems).toEqual(['control-br-27.xml was not refused by Mustang for error 4 BR-26, which it is broken for'])
+  })
+})
+
+describe('Mustang’s verdict on a PDF', () => {
+  // The recorded PDFs as they are: every sample accepted, PDF part and XML
+  // part alike, the reverse-charge sample's accepted warning raised in its
+  // PDF too, and every control as it expects -- control-checksum.pdf
+  // accepted, since Mustang 2.26.0 compares no declared checksum.
+  test('passes the recorded run of every PDF', () => {
+    const { rows, problems } = judged()
+    expect(problems).toEqual([])
+    expect(rows.filter((row) => row.file.endsWith('.pdf')).map((row) => [row.file, row.verdict, row.status])).toEqual([
+      ['e-invoice.pdf', 'as expected', 0],
+      ['e-invoice-reverse-charge.pdf', 'as expected', 0],
+      ['e-invoice-exempt-paid.pdf', 'as expected', 0],
+      ['variant-blocks.pdf', 'as expected', 0],
+      ['variant-fonts.pdf', 'as expected', 0],
+      ['variant-service-inspection.pdf', 'as expected', 0],
+      ['variant-quotation.pdf', 'as expected', 0],
+      ['variant-grouped-equipment.pdf', 'as expected', 0],
+      ['variant-invoice.pdf', 'as expected', 0],
+      ['variant-euro-invoice.pdf', 'as expected', 0],
+      ['control-plain.pdf', 'as expected', run.mustang['control-plain.pdf']],
+      ['control-pdfa.pdf', 'as expected', 0],
+      ['control-xmp.pdf', 'as expected', 0],
+      // What Mustang 2.26.0 does not compare: a file's declared /CheckSum and /Size with its bytes, and its relationship with the profile's.
+      ['control-checksum.pdf', 'as expected', 0],
+      ['control-size.pdf', 'as expected', 0],
+      ['control-relationship.pdf', 'as expected', 0],
+      ['control-xml.pdf', 'as expected', run.mustang['control-xml.pdf']],
+    ])
+    expect(rows.find((row) => row.file === 'e-invoice-reverse-charge.pdf').accepted).toEqual(['warning 4 PEPPOL-EN16931-R008'])
+  })
+
+  // The #1293 trap: Mustang 2.26.0 exits 0 and its report says valid on a
+  // PDF whose PDF part failed, since its verdict is the XML's. Judged by
+  // its exit status or its last summary, the PDF/A break would pass; the
+  // judge reads the PDF part, and refuses it twice over.
+  test('refuses a sample whose PDF part failed, though Mustang exited 0 and its report says valid', () => {
+    const { problems } = judged((given) => given.runs.set('e-invoice.pdf', runOf('control-pdfa.pdf', 'e-invoice.pdf')))
+    expect(problems).toEqual([
+      'Mustang’s veraPDF finds e-invoice.pdf not compliant, where it must be',
+      'Mustang’s report on e-invoice.pdf says its PDF part is invalid, where the file must be accepted',
+      'e-invoice.pdf is refused by Mustang: pdfa 3b 6.2.4.3-2: its PDF part failed it',
+    ])
+  })
+
+  // A PDF part found invalid with no message and no failed rule -- one
+  // that a later Mustang words otherwise -- is still a refusal, never a
+  // pass for saying nothing; and a sample is PDF/A-3b, not what it declares.
+  test('refuses a PDF part invalid for nothing it says, of another flavour, or without a veraPDF result', () => {
+    const changed = (change) => judged((given) => given.runs.set('e-invoice.pdf', { ...runOf('e-invoice.pdf', 'e-invoice.pdf'), stdout: change(runOf('e-invoice.pdf', 'e-invoice.pdf').stdout) })).problems
+    expect(changed((text) => text.replace('<summary status="valid"/>\n  </pdf>', '<summary status="invalid"/>\n  </pdf>'))).toEqual([
+      'Mustang’s report on e-invoice.pdf says its PDF part is invalid, where the file must be accepted',
+      'e-invoice.pdf is refused by Mustang: pdf invalid: its PDF part failed it',
+    ])
+    expect(changed((text) => text.replace('flavour=3b', 'flavour=2b'))).toEqual(['Mustang validated e-invoice.pdf as PDF/A-2b, not as the PDF/A-3b it must declare itself'])
+    expect(changed((text) => text.replace(/ValidationResult \[[^\n]*\]/, ''))).toEqual(['Mustang’s report on e-invoice.pdf has no veraPDF result in its <pdf> part'])
+    // A report with no PDF part is a PDF read as XML.
+    expect(judged((given) => given.runs.set('e-invoice.pdf', runOf('e-invoice.xml', 'e-invoice.pdf'))).problems).toEqual(['Mustang’s report on e-invoice.pdf has no <pdf> part, where e-invoice.pdf is a PDF'])
+  })
+
+  // A control broken in its PDF part alone exits 0 on Mustang 2.26.0, and
+  // must: a release that exits otherwise has fixed #1293, and is a new pin
+  // that drops the rule. A control whose XML is broken exits otherwise, PDF
+  // or not.
+  test('holds a control broken in its PDF part alone to the 0 Mustang 2.26.0 exits, and every other to another', () => {
+    expect(judged((given) => (given.runs.get('control-pdfa.pdf').status = 255)).problems).toEqual(['Mustang exited 255 on control-pdfa.pdf, which is broken in its PDF part alone, where Mustang 2.26.0 exits 0 (its issue #1293): a release that fixed it is a new pin, and this rule goes with it'])
+    const xmlControl = entries.find((entry) => entry.file === 'control-xml.pdf')
+    expect(judged((given) => (given.runs.get('control-xml.pdf').status = 0)).problems).toEqual([`Mustang exited 0 on control-xml.pdf, which is broken for ${xmlControl.why}`])
+  })
+
+  // Each control's refusals are exactly what it breaks: the plain PDF, read
+  // as PDF/A-1b for want of any declaration, fails seven rules of part 1 as
+  // well as the two XMP checks, and nothing else.
+  test('refuses a PDF control refused for anything but exactly what it breaks', () => {
+    expect(judged((given) => given.entries.find((entry) => entry.file === 'control-plain.pdf').expect.mustang.splice(2, 1)).problems).toEqual(['control-plain.pdf was refused by Mustang for pdfa 1b 6.2.3.3-1 as well, which it is not broken for'])
+    expect(judged((given) => given.entries.find((entry) => entry.file === 'control-xmp.pdf').expect.mustang.push('pdf error 16')).problems).toEqual(['control-xmp.pdf was not refused by Mustang for pdf error 16, which it is broken for'])
   })
 })

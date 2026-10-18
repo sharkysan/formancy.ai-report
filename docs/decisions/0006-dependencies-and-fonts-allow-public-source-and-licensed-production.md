@@ -1,6 +1,6 @@
 # 0006 — Dependencies and fonts allow public source and licensed production
 
-- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider, and by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which reads Liberation Sans 2's licence sentence
+- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which reads Liberation Sans 2's licence sentence, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which admits an ICC profile by the digest of its bytes and the licence sentence a review read
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `scripts/dependency-licences.mjs`, run as a step of
@@ -276,6 +276,30 @@ and the renderer's two files read as OFL-1.1 at Version 2.1.5. The
 browser entry's copy of them, base64 in a chunk of its build, is a font
 inside a script, which the guard does not see; the renderer's
 `browser.test.ts` holds it to the files' bytes.
+
+**Added 2026-10-18: ICC profiles.** An e-invoice is drawn as a PDF/A-3b
+whose output intent is the ICC profile PDFKit ships, so every e-invoice a
+customer sends embeds it
+([0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+A profile names its copyright holder in its header and its `cprt` tag, not
+its terms, so the guard reads no licence from one. It finds every `.icc`
+and `.icm` file, and every file whose header has `acsp` at byte 36,
+whatever it is called, outside the names it never opens, and refuses one
+whose SHA-256 is not in `ICC_PROFILES`, a list of reviewed profiles, each
+with what it is, the licence sentence the review read and where. A review
+nothing installs is refused, and so is one without its sentence. The list
+holds one: the International Color Consortium's sRGB2014, which PDFKit
+0.19.1 ships as `js/data/sRGB_IEC61966_2_1.icc`, compared byte for byte
+with the ICC's own file on 17 October 2026, under the ICC's licence for
+its profiles, "may be copied, distributed, embedded, made, used, and sold
+without restriction". It is keyed by digest and not by package: the
+licence is the profile's whoever ships it, and one a byte off is a profile
+nobody has read. `dependency-licences.test.mjs` holds each rule, and the
+real tree's one profile. pdfmake's browser build carries the same profile
+as base64 inside a script, which the guard does not see, beside the fonts
+it carries so; the renderer's `browser.test.ts` holds that copy to the
+reviewed digest. A profile inside a script or an image is one more thing
+this record's costs list as unseen.
 
 ## Alternatives considered
 

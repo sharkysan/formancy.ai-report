@@ -197,10 +197,15 @@ export const FACTUR_X_PROFILES: { readonly [P in EInvoiceProfile]: FacturXProfil
  * The file a Factur-X PDF embeds, and the XMP that describes it [S]: the
  * name, the media type, the fx extension's namespace (its trailing `#`
  * required) and prefix, and the document type and the version it states.
+ * The namespace is the transcription's section 6.3.1; its BR-HYBRID-04
+ * gives it without `:invoice`, an inconsistency the transcription resolves
+ * for section 6.3.1, as akretion's generator and PDFlib's sample do (0031).
  * No validator checks the namespace: Mustang reads the four properties by
  * local name, and veraPDF checks only that the extension schema describes
- * them. The renderer embeds what these say; PR 2 holds them to the official
- * package's XMP example once it is recorded.
+ * them. The renderer embeds what these say (0031), and its test holds the
+ * PDF to the transcription's values, written there and not read from here;
+ * the official package's XMP example, which would hold them to more, waits
+ * for a registration with FeRD nobody here has made.
  */
 export const FACTUR_X = {
   fileName: 'factur-x.xml',

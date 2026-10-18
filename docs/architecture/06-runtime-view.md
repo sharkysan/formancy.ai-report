@@ -82,7 +82,8 @@ renderPdf(document, { maxPages, signal })
    ├─ before pdfmake sees it: a glyph per character, nothing malformed or
    │ wider than where it stands, each asset's bytes, a bill, each code
    │ encoded once and held to its square ────────────────────▶ RenderRefusal
-   │ and any e-invoice, until a PDF/A-3 is drawn ────────────▶ unsupported
+   │ an e-invoice it does not know, a title its XMP cannot hold,
+   │ a CMYK JPEG in one ─────────────────────────────────────▶ unsupported
    ├─ a bill or a captioned EPC QR code: Liberation Sans read, and in a
    │ browser its chunk imported
    ├─ measure the page regions; the body's margins follow
@@ -93,6 +94,8 @@ renderPdf(document, { maxPages, signal })
    ├─ lay out the PDF; a page past maxPages ─────────────────▶ too-many-pages
    │       in every pass, a word wider than its column ──────▶ content-too-large
    │       an abort is read between passes ──────────────────▶ cancelled
+   ├─ an e-invoice: a PDF/A-3b, and on this last pass alone its XML embedded
+   │ and its XMP written, through PDFKit's document before it ends (6.8)
    ▼
 Uint8Array
 ```
@@ -297,7 +300,7 @@ breaks a rule is refused, as a bill's is: it would scan as a transfer no
 bank makes
 ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
 
-## 6.8 An e-invoice, from the table to the XML
+## 6.8 An e-invoice, from the table to the PDF/A-3b
 
 ```
 the definition's eInvoice: its lines the table over the detail dataset, named
@@ -337,7 +340,18 @@ resolveReport, once they are lowered:
    ▼
 final: the CII XML from those very values ──────────────▶ document.eInvoice
    ▼
-renderPdf ──────────────────────────────────────────────▶ unsupported, naming eInvoice
+renderPdf: a file, a relationship or a level it does not
+   │       know, a lone surrogate, a title its XMP cannot
+   │       hold, a CMYK JPEG ───────────────────────────▶ unsupported
+   ├─ the measuring passes: neither version nor subset nor file nor XMP,
+   │  the pages laid out as the final pass lays them out
+   ├─ the final pass: version 1.7, subset PDF/A-3b; before PDFKit ends the
+   │  document, the XML's UTF-8 bytes embedded as factur-x.xml, text/xml,
+   │  Alternative, dated the document; the fx properties and their
+   │  extension schema appended to the XMP
+   ▼
+PDFKit ends it: the pdfaid identification, the sRGB output intent with
+the ICC profile it reads from its own package, the XMP ─▶ a PDF/A-3b
 ```
 
 The validator and the runtime call the same functions in report-spec's
@@ -348,8 +362,12 @@ line and one computation of each total: the names the page prints are bound
 to the very totals the XML is written from, and the editing core refuses a
 page that leaves one out or prints it otherwise. A final render writes the
 XML or refuses; one that wrote none and recorded no reason throws, as a
-defect. No PDF carries the XML yet: the renderer refuses the document, so
-the XML stays in the resolved document, where the install gate and the
-e-invoice gate read it, until the next step draws the PDF/A-3 that embeds
-it
+defect
 ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+The renderer decides none of what the file says: it embeds the runtime's
+bytes changed in nothing, under the name, relationship and conformance
+level report-spec gives them, and refuses a document whose values it does
+not know. The file and the XMP are added on the final pass alone, so the
+measuring passes lay the page out as the PDF prints it, and a preview,
+which carries no XML, is drawn as a plain PDF
+([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).

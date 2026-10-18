@@ -245,9 +245,23 @@ describe('the e-invoice gate', () => {
   // run whatever the flag says.
   test('fails the run when a file was judged otherwise than its corpus expects, though the gate says it passed', () => {
     expect(withDefect((inputs) => (gate(inputs).kosit[1].verdict = 'not as expected'))).toEqual(['the e-invoice gate’s kosit judged control-br-27.xml otherwise than its corpus expects'])
+    expect(withDefect((inputs) => (gate(inputs).verapdf[1].verdict = 'not as expected'))).toEqual(['the e-invoice gate’s verapdf judged control-pdfa.pdf otherwise than its corpus expects'])
     expect(withDefect((inputs) => (gate(inputs).mustang = gate(inputs).mustang.slice(1)))).toEqual(['the e-invoice gate has no mustang verdict on e-invoice.xml'])
-    expect(withDefect((inputs) => (gate(inputs).corpus = gate(inputs).corpus.slice(1)))).toEqual(['the e-invoice gate judged no sample every tool must accept'])
-    expect(withDefect((inputs) => (gate(inputs).corpus = gate(inputs).corpus.slice(0, 1)))).toEqual(['the e-invoice gate made no control mustang must refuse', 'the e-invoice gate made no control kosit must refuse'])
+    expect(withDefect((inputs) => (gate(inputs).verapdf = gate(inputs).verapdf.slice(1)))).toEqual(['the e-invoice gate has no verapdf verdict on e-invoice.pdf'])
+    expect(withDefect((inputs) => (gate(inputs).corpus = gate(inputs).corpus.slice(1)))).toEqual(['the e-invoice gate judged no XML sample every tool must accept'])
+    expect(withDefect((inputs) => (gate(inputs).corpus = gate(inputs).corpus.slice(0, 1)))).toEqual([
+      'the e-invoice gate made no XML control mustang must refuse',
+      'the e-invoice gate made no XML control kosit must refuse',
+      'the e-invoice gate judged no PDF sample every tool must accept',
+      'the e-invoice gate made no PDF control verapdf must refuse',
+      'the e-invoice gate made no PDF control mustang must refuse',
+    ])
+  })
+
+  // The tools that judge a file are its format's: a PDF the gate recorded
+  // without a format would be judged by nobody here, its verdicts unread.
+  test('fails the run when a file is of no format the gate’s tools judge', () => {
+    expect(withDefect((inputs) => delete gate(inputs).corpus[2].format)).toEqual(['the e-invoice gate judged no PDF sample every tool must accept', 'the e-invoice gate recorded e-invoice.pdf as null, a format none of its tools judges'])
   })
 
   // The tools are the register's, read by the report itself as the install
@@ -256,7 +270,25 @@ describe('the e-invoice gate', () => {
   test('fails the run when it ran a tool other than docs/release/e-invoice-tools.json pins', () => {
     expect(withDefect((inputs) => (gate(inputs).tools[0].version = '2.25.0'))).toEqual(['the e-invoice gate ran mustang 2.25.0, where docs/release/e-invoice-tools.json pins 2.26.0'])
     expect(withDefect((inputs) => (gate(inputs).tools[1].sha256 = 'ff'.repeat(32)))).toEqual(['the e-invoice gate ran kosit 1.6.3 of other bytes than docs/release/e-invoice-tools.json pins'])
-    expect(withDefect((inputs) => gate(inputs).tools.pop())).toEqual(['the e-invoice gate recorded no xrechnung-configuration, which docs/release/e-invoice-tools.json pins'])
+    expect(withDefect((inputs) => gate(inputs).tools.splice(2, 1))).toEqual(['the e-invoice gate recorded no xrechnung-configuration, which docs/release/e-invoice-tools.json pins'])
+    expect(withDefect((inputs) => gate(inputs).tools.pop())).toEqual(['the e-invoice gate recorded no verapdf, which docs/release/e-invoice-tools.json pins'])
+    expect(withDefect((inputs) => (gate(inputs).tools[3].reported = ['1.30.2']))).toEqual(['the e-invoice gate’s verapdf reported itself as 1.30.2, where docs/release/e-invoice-tools.json pins 1.30.3'])
+  })
+
+  // The floor keeps veraPDF's two XML external entity flaws out of the
+  // gate, its own pin and the copy inside Mustang alike. The gate refuses
+  // to run below it, and the report does not rest on that: a run that
+  // recorded a veraPDF below the floor, or no veraPDF Mustang bundles,
+  // fails here, as does a register that pins veraPDF and gives no floor.
+  test('fails the run when it ran a veraPDF below the register’s floor, its own or Mustang’s, or recorded none of Mustang’s', () => {
+    expect(withDefect((inputs) => (gate(inputs).tools[0].bundles = { verapdf: ['1.30.2', '1.30.1'] }))).toEqual(['the e-invoice gate ran a Mustang that bundles veraPDF 1.30.1, below the floor of 1.30.2 docs/release/e-invoice-tools.json gives'])
+    expect(withDefect((inputs) => (gate(inputs).tools[0].bundles = { verapdf: [] }))).toEqual(['the e-invoice gate recorded no veraPDF that Mustang bundles, so the floor of 1.30.2 is not held for it'])
+    expect(withDefect((inputs) => delete gate(inputs).tools[0].bundles)).toEqual(['the e-invoice gate recorded no veraPDF that Mustang bundles, so the floor of 1.30.2 is not held for it'])
+    expect(withDefect((inputs) => (inputs.eInvoiceTools.veraPdfFloor.version = '1.30.4'))).toEqual([
+      'the e-invoice gate ran veraPDF 1.30.3, below the floor of 1.30.4 docs/release/e-invoice-tools.json gives',
+      'the e-invoice gate ran a Mustang that bundles veraPDF 1.30.2, below the floor of 1.30.4 docs/release/e-invoice-tools.json gives',
+    ])
+    expect(withDefect((inputs) => delete inputs.eInvoiceTools.veraPdfFloor)).toEqual(['docs/release/e-invoice-tools.json pins veraPDF and gives no floor for it'])
   })
 
   // The gate records the version each tool reported of itself -- Mustang

@@ -1,16 +1,18 @@
 {
-  "$comment": "A run of the e-invoice gate, recorded by `node scripts/e-invoice.mjs --record` once it passed: the corpus it wrote (corpus/), Mustang's report and log on each file (mustang/), KoSIT's report on each and its console (kosit/), and how each run ended. Every output is recorded with the line ends the repository keeps and without the machine's path to the repository, and the console without its results table, whose cells wrap each path across lines (scripts/e-invoice/record.mjs). The judges' tests and the corpus's read it, so that every rule is held on what the pinned tools wrote and not on what somebody thought they would; it is recorded again when a tool, the corpus or a control changes. `research` is one output recorded by hand on 17 October 2026, kept for what no run of the gate produces: Mustang 2.26.0's report on a PDF -- a FeRD sample, EN16931_Einfach.pdf, run without --no-notices and without the gate's encoding options -- with its seven XRechnung notices.",
-  "recordedAt": "2026-10-17T17:29:38.502Z",
+  "$comment": "A run of the e-invoice gate, recorded by `node scripts/e-invoice.mjs --record` once it passed: the XML corpus it wrote (corpus/), Mustang's report and log on each file, XML and PDF (mustang/), KoSIT's report on each XML file and its console (kosit/), veraPDF's report on every PDF and what it wrote on stderr (verapdf/), how each run ended, and each PDF's digest of its objects with every stream inflated (`pdfs`, report-corpus's `inflatedDigest`): the PDFs themselves are not recorded, since their bytes are the zlib's that deflated them, which `machine` names. Every output is recorded with the line ends the repository keeps and without the machine's path to the repository, and the console without its results table, whose cells wrap each path across lines (scripts/e-invoice/record.mjs). The judges' tests and the corpus's read it, so that every rule is held on what the pinned tools wrote and not on what somebody thought they would; it is recorded again when a tool, the corpus, a control or what the renderer draws changes. `research` is one output recorded by hand on 17 October 2026, kept for what no run of the gate produces: Mustang 2.26.0's report on a FeRD sample, EN16931_Einfach.pdf, run without --no-notices and without the gate's encoding options, with its seven XRechnung notices.",
+  "recordedAt": "2026-10-18T03:33:01.138Z",
   "machine": {
     "platform": "win32",
     "arch": "x64",
     "node": "v24.21.0",
+    "zlib": "1.3.2.1-motley-8002e91",
     "java": "25.0.4.1"
   },
   "tools": {
     "mustang": "2.26.0",
     "kosit": "1.6.3",
-    "xrechnung-configuration": "2026-08-31"
+    "xrechnung-configuration": "2026-08-31",
+    "verapdf": "1.30.3"
   },
   "samples": [
     "e-invoice",
@@ -26,10 +28,49 @@
     "control-br-co-17.xml": 4294967295,
     "control-br-27.xml": 4294967295,
     "control-br-cl-23.xml": 4294967295,
-    "control-malformed.xml": 4294967295
+    "control-malformed.xml": 4294967295,
+    "e-invoice.pdf": 0,
+    "e-invoice-reverse-charge.pdf": 0,
+    "e-invoice-exempt-paid.pdf": 0,
+    "variant-blocks.pdf": 0,
+    "variant-fonts.pdf": 0,
+    "variant-service-inspection.pdf": 0,
+    "variant-quotation.pdf": 0,
+    "variant-grouped-equipment.pdf": 0,
+    "variant-invoice.pdf": 0,
+    "variant-euro-invoice.pdf": 0,
+    "control-plain.pdf": 4294967295,
+    "control-pdfa.pdf": 0,
+    "control-xmp.pdf": 0,
+    "control-checksum.pdf": 0,
+    "control-size.pdf": 0,
+    "control-relationship.pdf": 0,
+    "control-xml.pdf": 4294967295
   },
   "kosit": {
     "status": 6
+  },
+  "verapdf": {
+    "status": 1
+  },
+  "pdfs": {
+    "e-invoice.pdf": "21437ac23d7278adb24d53b4df7dd21323a7106cdbd894f19352d1f1c689ecc1",
+    "e-invoice-reverse-charge.pdf": "a28b0accbbcb8ae92be2c7b433ffbacb696dab5f8ce63c476c568fa054230f95",
+    "e-invoice-exempt-paid.pdf": "1b9d937b545311743d65a819c322e298388d0ecfdc6467caf53b1a2fbc79e981",
+    "variant-blocks.pdf": "2e6f1c5da532a07e49f14a32d4eb4c3768721ad1b587041ec3b54c0bb70221b4",
+    "variant-fonts.pdf": "35ea7fa09b02e04582c3b608f7b3476d9dd1b157bffc6c0cfbe72b8940a01de9",
+    "variant-service-inspection.pdf": "d12d91f1eea3a36caaf1bedee71a588e20e715eefe5a494329732c195b8f1b5e",
+    "variant-quotation.pdf": "da3b4d1dc0de7c0499ca5ba53fe91afdef23d67af24d888d9e33035385db7e1a",
+    "variant-grouped-equipment.pdf": "6dc51b1f4e451521a94de346afdc69934ffbc130daf2a7fb42a2a7d87b969cec",
+    "variant-invoice.pdf": "4f93ec108a51c30f383793c2da670665160d8f52b1c49c322806eaf02434af56",
+    "variant-euro-invoice.pdf": "4b9d3d81c1ea0f61f279207df0647a03f1dc53860af5885d9dc7d423ea854b7f",
+    "control-plain.pdf": "e015025af9229f383dc7c16f9123bb6f63b01d8c36cc3542f443091796920d24",
+    "control-pdfa.pdf": "81b3b2e61cfe3d42cdd96cefdc732a38760806835e849fe8a4cb69ccba9802b8",
+    "control-xmp.pdf": "11024ec34526fee1c8a877bbe07774a2ab237cb285cc48744a53b1ed6f883817",
+    "control-checksum.pdf": "27015dabbb7f1397f6fb194204975f1407fcd9871fde7ca46746dbca87fdb95a",
+    "control-size.pdf": "feeb99027de88e3e3b123967c9b5ab803c9566c8dd89bb3be9d4279dae635215",
+    "control-relationship.pdf": "b10e519cb08825e2e8bd5577209fef2340a5b59deae9f3003c0d88a73afe2422",
+    "control-xml.pdf": "ff365166369ed3eb33e4d62d0b9c91a7a1402d84454fc3c0277553d9a4668e19"
   },
   "research": {
     "EN16931_Einfach.report.xml": "Mustang 2.26.0 on Java 25 (Zulu 25.0.4.1), Windows 11, 17 October 2026 09:17, `--action validate --disable-file-logging --source EN16931_Einfach.pdf`, without the gate's encoding options, so that Mustang wrote its two ü in the console's code page, Windows-1252, under a declaration of UTF-8; re-encoded to UTF-8 on 17 October 2026, which changed those two characters' bytes and nothing else"

@@ -238,8 +238,8 @@ alone, and draws and refuses by the one decision the editor refuses by.
   names and currency symbols are the engine's ICU's, so the same report can
   print differently on two engines.
 - **Embed an e-invoice, or make a PDF/A.** It writes the XML and names the
-  file; the engine is to embed it, and this release's refuses every
-  e-invoice instead, as `eInvoice` above says.
+  file; the engine embeds it, changed in nothing, in the PDF/A-3b it draws
+  ([0031](../../docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 - **Encode a QR code.** It hands the engine the text a QR code's content
   prints, formatted as a paragraph with the same content prints it, and a
   QR-bill's and an EPC QR code's payloads; the engine encodes and draws

@@ -5,9 +5,9 @@ import { describe, expect, test } from 'vitest'
 import { ROOT, recordedConsole, recordedText, staleRecorded, TABLE_LEFT_OUT } from './record.mjs'
 
 /**
- * What a gate run leaves for the judges' tests (0027): its outputs without
- * the machine's path, and a recorded corpus that is the one the gate
- * judges.
+ * What a gate run leaves for the judges' tests (0027, 0031): its outputs
+ * without the machine's path, and a recorded corpus that is the one the
+ * gate judges, its XML byte for byte and its PDFs by their inflated objects.
  */
 const here = dirname(fileURLToPath(import.meta.url))
 const recordedDir = join(here, 'recorded')
@@ -21,6 +21,10 @@ describe('a recorded text', () => {
     const text = 'URL=jar:file:/C:/Work/repo/.e-invoice-cache/mustang.jar\r\nfrom file:///C:/Work/repo/x.xml and C:\\Work\\repo\\y.xml\r\n'
     expect(recordedText(text, root)).toBe(`URL=jar:file:/${ROOT}/.e-invoice-cache/mustang.jar\nfrom file:///${ROOT}/x.xml and ${ROOT}\\y.xml\n`)
     expect(recordedText('/home/runner/work/r/r/test-results/a.xml', '/home/runner/work/r/r')).toBe(`${ROOT}/test-results/a.xml`)
+    // veraPDF's JSON names each PDF by its path in a JSON string, its backslashes doubled.
+    const json = String.raw`  "name" : "C:\\Work\\repo\\test-results\\e.pdf",`
+    expect(recordedText(`${json}\r\n`, root)).toBe(`${String.raw`  "name" : "${ROOT}\\test-results\\e.pdf",`}\n`)
+    expect(json).toContain('C:\\\\Work')
     // KoSIT's console table cuts a long path short.
     expect(recordedText('|/C:/Work/rep...|   Y   |', root)).toBe(`|/${ROOT}...|   Y   |`)
     expect(recordedText('|/home/runner/wo...|', '/home/runner/work/r/r')).toBe(`|${ROOT}...|`)
@@ -40,8 +44,9 @@ describe('a recorded text', () => {
 
   // The run committed here is recorded so: no file of it names a machine.
   test('is how every recorded output is written', () => {
-    const files = ['corpus', 'mustang', 'kosit'].flatMap((part) => readdirSync(join(recordedDir, part)).map((name) => join(recordedDir, part, name)))
+    const files = ['corpus', 'mustang', 'kosit', 'verapdf'].flatMap((part) => readdirSync(join(recordedDir, part)).map((name) => join(recordedDir, part, name)))
     expect(files.length).toBeGreaterThan(10)
+    expect(files.some((file) => file.endsWith('report.json'))).toBe(true)
     for (const file of files) {
       const text = readFileSync(file, 'utf8')
       expect(text, file).not.toMatch(/[A-Z]:[\\/]|\/home\/|\/Users\/|\r/)
@@ -58,12 +63,30 @@ describe('the recorded corpus', () => {
   // the runtime no longer writes -- its XML changed, a control added or
   // gone -- leaves them testing files the gate does not judge, and the run
   // says so, naming how to record again.
-  test('is the corpus this run judged, file for file and byte for byte', () => {
+  test('is the XML this run judged, file for file and byte for byte', () => {
     expect(staleRecorded(entries, new Map([['a.xml', '<a/>'], ['b.xml', '<b/>']]))).toEqual([])
     expect(staleRecorded(entries, new Map([['a.xml', '<a />'], ['c.xml', '<c/>']]))).toEqual([
       'scripts/e-invoice/recorded/corpus/a.xml is not the XML this run judged: run node scripts/e-invoice.mjs --record, and commit what it writes',
       'scripts/e-invoice/recorded/corpus/ holds no b.xml, which this run judged: run node scripts/e-invoice.mjs --record, and commit what it writes',
       'scripts/e-invoice/recorded/corpus/c.xml is no file this run judged: run node scripts/e-invoice.mjs --record, and commit what it writes',
     ])
+  })
+
+  // A PDF is held by the digest of its objects inflated, which no zlib
+  // changes: one the renderer draws otherwise, one not recorded, and one
+  // recorded that the run did not draw, are each a record gone stale.
+  test('is the PDFs this run drew, file for file and object for object', () => {
+    const pdfs = [
+      { file: 'a.pdf', format: 'pdf', digest: 'aa' },
+      { file: 'b.pdf', format: 'pdf', digest: 'bb' },
+    ]
+    expect(staleRecorded(pdfs, new Map(), new Map([['a.pdf', 'aa'], ['b.pdf', 'bb']]))).toEqual([])
+    expect(staleRecorded(pdfs, new Map(), new Map([['a.pdf', 'ab'], ['c.pdf', 'cc']]))).toEqual([
+      'scripts/e-invoice/recorded/run.json records a.pdf as another PDF than this run drew, its objects inflated: run node scripts/e-invoice.mjs --record, and commit what it writes',
+      'scripts/e-invoice/recorded/run.json records no b.pdf, which this run judged: run node scripts/e-invoice.mjs --record, and commit what it writes',
+      'scripts/e-invoice/recorded/run.json records c.pdf, which this run did not judge: run node scripts/e-invoice.mjs --record, and commit what it writes',
+    ])
+    // A PDF is never held to an XML file of its name, nor an XML file to a digest.
+    expect(staleRecorded([...entries, ...pdfs], new Map([['a.xml', '<a/>'], ['b.xml', '<b/>']]), new Map([['a.pdf', 'aa'], ['b.pdf', 'bb']]))).toEqual([])
   })
 })

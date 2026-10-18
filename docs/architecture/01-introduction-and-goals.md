@@ -17,9 +17,10 @@ The pieces, each a package:
   initiates a SEPA credit transfer from
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
   [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)),
-  and EN 16931's for an e-invoice, whose XML the runtime writes and no PDF
-  carries yet
-  ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md));
+  and EN 16931's for an e-invoice, whose XML the runtime writes and the
+  renderer embeds in the PDF/A-3b it draws
+  ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
+  [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md));
 - an **editing core**: commands, a session with exact undo, and one
   compilation of every expression
   ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md),
@@ -66,9 +67,9 @@ rendered PDF against them. [Building blocks](05-building-blocks.md) has each.
 is only on `main` is the README's *Status* paragraph, which is dated; what
 each release held is [the changelog](../../CHANGELOG.md).
 
-Planned and not built, as the README says: the PDF/A-3 an e-invoice is
-drawn as, the server and its jobs, reviewed AI changes, a published PDF
-viewer, and a consistent read from Formancy Data. Each later release gate
+Planned and not built, as the README says: the server and its jobs,
+reviewed AI changes, a published PDF viewer, and a consistent read from
+Formancy Data. Each later release gate
 is open in [`gates.json`](../release/gates.json) with the reason. Nothing below
 describes them as though they existed.
 

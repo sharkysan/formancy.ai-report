@@ -4,6 +4,7 @@ import type { CheckedBill } from './bill.js'
 import { newBuild, type Build, type Fields, type TablePlan } from './build.js'
 import type { Checked, Measured, Page } from './check.js'
 import { contentOf } from './content.js'
+import { PDF_A_3B } from './pdfa.js'
 import { ABOVE_SLIP, slipContent } from './slip.js'
 import { DEFAULT_SIZE, ROBOTO } from './style.js'
 import { checkWords } from './words.js'
@@ -87,6 +88,11 @@ export function slipReservation(page: Page, regions: Regions): number {
  * its end, a spacer as tall as `slipReservation`: where the last page has
  * less room left, pdfmake moves to a new page and starts it without the
  * space, and the slip has that page to itself.
+ *
+ * A document with an e-invoice is a PDF/A-3b, whose version and subset are
+ * the definition's (`PDF_A_3B`); its file and XMP are the final pass's hook
+ * (`render.ts`). Neither moves a line: the measuring passes, which have
+ * neither, lay the page out as this one does.
  */
 export function layoutDefinition(
   document: ResolvedDocument,
@@ -114,6 +120,7 @@ export function layoutDefinition(
   const last: DynamicContent | undefined = slip === undefined ? footer : (pageNumber, pageCount, size) => (pageNumber === pageCount ? slip() : footer?.(pageNumber, pageCount, size))
   const reserved = bill === undefined ? [] : [{ stack: [], margin: [0, slipReservation(page, regions), 0, 0] } satisfies Content]
   return {
+    ...(checked.eInvoice === undefined ? {} : PDF_A_3B),
     info: { title: document.info.title, creationDate: checked.creationDate },
     pageSize: { width: page.paperWidth, height: page.paperHeight },
     pageMargins: [margins.left, bodyTop, margins.right, page.paperHeight - bodyBottom],

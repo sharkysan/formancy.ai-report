@@ -10,7 +10,8 @@ Formancy Report
 ├── A correct PDF                                       ← whole and exact, or refused
 │   ├── every row once, in order, nothing cut
 │   ├── totals exact, rounded once as declared
-│   └── a QR code, a QR-bill and an EPC QR code that decode as written
+│   ├── a QR code, a QR-bill and an EPC QR code that decode as written
+│   └── an e-invoice a PDF/A-3b that embeds the XML its page was printed from
 ├── Agreement                                           ← the editor and the runtime
 │   ├── the editor refuses what the runtime would, in an expression or a literal
 │   ├── the two builders do the same things
@@ -23,8 +24,8 @@ Formancy Report
 │   ├── every control reachable by keyboard, role and name
 │   └── axe clean; contrast and target size measured in Chromium
 ├── Licensability
-│   └── every production dependency and font file, as the guard reads them,
-│       allows licensed production
+│   └── every production dependency, font file and ICC profile, as the guard
+│       reads them, allows licensed production
 └── Maintainability
     ├── no source file past the size budget
     └── what a document states is derived or checked
@@ -51,9 +52,9 @@ Formancy Report
 | Q15 | A QR-bill's IBAN is mistyped, as a literal or in the data | `invalid-qr-bill` on the field, from the same function in the editor and the render; SIX's own examples decoded byte for byte from the page | `report-spec/src/qr-bill.test.ts`, `report-runtime/src/qr-bill.test.ts`, `report-render-pdf/src/qr-bill.test.ts` ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)) |
 | Q16 | An EPC QR code's IBAN is mistyped, as a literal or in the data, or its data makes its payload too long | `invalid-epc-qr-code` on the field, from the same functions in the editor and the render, its check digits the QR-bill's own; the EPC's own examples decoded byte for byte from the page as the runtime wrote them | `report-spec/src/epc-payload.test.ts`, `payment-reference.test.ts`, `validate-epc-qr-code.test.ts`, `report-runtime/src/lower-epc-qr-code.test.ts`, `report-render-pdf/src/epc-qr-code.test.ts` ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | Q17 | An EPC QR code in Austria's frame is given a square its modules cannot print in | Refused in the same words by the validator and the renderer, from report-spec's one rule, which reaches the renderer through the runtime | `report-spec/src/epc-print.test.ts`, `validate-epc-qr-code.test.ts`, `report-render-pdf/src/epc-qr-code.test.ts`, and the install gate's `consume.ts` (0025) |
-| Q18 | An e-invoice's page leaves out a total its XML holds, or prints one at fewer than two places or in another currency | `e-invoice-total-unprinted` or `e-invoice-format-differs`, an error where it is written; the page and the XML read the very values of one computation, each category's VAT rounded once and never per line, held against an independent BigInt reading of EN 16931 | `report-core/src/diagnostics/e-invoice.test.ts`, `report-runtime/src/e-invoice-totals.test.ts`, and the samples' page against their XML in `report-corpus/src/starters/e-invoice.test.ts` ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) |
-| Q19 | A report with an e-invoice is rendered, final or as a preview | A final render writes the XML or is refused, and one that wrote none and recorded no reason throws as a defect; the renderer refuses the document as `unsupported` rather than draw it without its XML; a preview writes none and is labelled on every page | `report-runtime/src/lower-e-invoice.test.ts`, `report-render-pdf/src/refusals.test.ts` (0027) |
-| Q20 | A GPL, non-commercial or unlicensed package, or an unreadable font, reaches a published package | The `verify` job fails, naming it and the route it came in by | `scripts/dependency-licences.mjs` and its test ([0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)) |
+| Q18 | An e-invoice's page leaves out a total its XML holds, or prints one at fewer than two places or in another currency | `e-invoice-total-unprinted` or `e-invoice-format-differs`, an error where it is written; the page and the XML read the very values of one computation, each category's VAT rounded once and never per line, held against an independent BigInt reading of EN 16931 | `report-core/src/diagnostics/e-invoice.test.ts`, `report-runtime/src/e-invoice-totals.test.ts`, the samples' page against their XML in `report-corpus/src/starters/e-invoice.test.ts`, and on the PDF, against the XML read out of it, in `report-render-pdf/src/e-invoice-samples.test.ts` ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
+| Q19 | A report with an e-invoice is rendered, final or as a preview | A final render writes the XML or is refused, and one that wrote none and recorded no reason throws as a defect; the renderer draws it as a PDF/A-3b that embeds the XML byte for byte, which veraPDF and Mustang accept for the corpus's samples and for the first sample's e-invoice drawn on every starter's pages and on a page of every image kind PDFKit embeds, or refuses it as `unsupported` where it does not know the file or the PDF/A cannot hold the document; a preview writes none, embeds nothing and is labelled on every page | `report-runtime/src/lower-e-invoice.test.ts`, `report-render-pdf/src/e-invoice.test.ts`, `refusals.test.ts`, and the `e-invoice` gate (0027, 0031) |
+| Q20 | A GPL, non-commercial or unlicensed package, an unreadable font or an ICC profile nobody reviewed reaches a published package | The `verify` job fails, naming it and the route it came in by | `scripts/dependency-licences.mjs` and its test ([0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)) |
 | Q21 | An upstream dependency is declared as a range or a path | `pnpm test:repo` fails | `scripts/upstream-deps.test.mjs` ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)) |
 | Q22 | A package's `exports` are wrong for a consumer, or it imports what it does not declare | The install gate fails in a plain project for that kind of host | `pnpm test:e2e:install` — release gate G1 ([0015](../decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)) |
 | Q23 | The Studio is narrowed to 320 pixels, or asks another origin for anything | No sideways scroll and nothing past either edge; any request outside the built Studio fails a pass | `apps/studio/scripts/browser-test.mjs` ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), [0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)) |
@@ -103,7 +104,12 @@ one day, with the runs its record describes, and held by nothing:
   against 2.0 s without it, and one of 10,000 lines 11,710,910 bytes in
   0.44 s against 0.23 s, five runs each from the built package under Node
   24.21.0, on 17 October 2026
-  ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+  ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md));
+- the e-invoice samples drawn as PDF/A-3b in 36,712 to 37,801 bytes and
+  medians of 83 to 91 ms, against 28,215 to 29,237 bytes and 81 to 94 ms
+  drawn plain, nine renders each, alternated, from the built packages, on
+  18 October 2026 while the machine ran other work
+  ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 
 **What is not measured, said.** What a commit costs — the whole report
 validated and diagnosed again on every edit, a keystroke in a property field

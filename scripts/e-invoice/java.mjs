@@ -8,9 +8,11 @@
  *   machine, where nothing listens, and the system's proxies are not
  *   asked, so a tool that starts fetching a schema, a code list or an
  *   update fails loudly rather than making the verdict a server's. A raw
- *   socket would not be caught; neither tool was seen to open one: each
- *   gave the same verdicts with these options as without them, on 17
- *   October 2026.
+ *   socket would not be caught; no tool was seen to open one: Mustang and
+ *   KoSIT gave the same verdicts with these options as without them, on 17
+ *   October 2026, and veraPDF 1.30.3 the same verdicts, rules and feature
+ *   reports on the gate's seventeen PDFs, listing one file's two failed
+ *   rules in another order, on Zulu 25 on 18 October 2026.
  * - **One language and one encoding.** English messages, UTF-8 on every
  *   stream. Without them, on a German Windows, Mustang 2.26.0 wrote its
  *   report's XSD message in German and in the console's code page, which is

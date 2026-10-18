@@ -51,15 +51,20 @@ builds the report from all of them (`scripts/release-report/report.mjs`).
    it ends. The passes a gate planned are its own word: they come from the
    app's stylesheets, which only the app's gate reads.
 5. **E-invoice gate:** the Java and the tools the e-invoice gate ran --
-   Mustang, KoSIT's validator and its configuration, each held by the
-   report to the version and the SHA-256
+   Mustang, KoSIT's validator and its configuration, and veraPDF, each held
+   by the report to the version and the SHA-256
    [`e-invoice-tools.json`](e-invoice-tools.json) pins, by the hash the
    gate measured of the bytes it ran and, for each JAR, the version the
    tool reported of itself; and in CI the Java, to the one the register
-   names, where a machine's is shown and not held -- and every file of its
-   corpus, a sample every tool must accept or a control each must refuse,
-   with each tool's verdict on it
-   ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+   names, where a machine's is shown and not held; veraPDF, its own and
+   the one Mustang bundles, no older than the register's floor -- and every
+   file of its corpus, XML or PDF, a sample or a variant every tool of its
+   format must accept, or a control judged exactly as the corpus expects,
+   at least one tool refusing it and each tool refusing at least one
+   control of its format, with the verdict of each tool that judges its
+   format: Mustang and KoSIT the XML, veraPDF and Mustang the PDF
+   ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
+   [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 6. **Build identity:** each published package's tarball as the install gate
    packed, installed and ran it, by sha256, and the hash of its built files
    against the `dist/` every job built.
@@ -97,10 +102,12 @@ recorded and nobody planned; a host with its install or a step unfinished; a
 builder's host that resolved no framework, or at the floor one other than
 its peer range's floor; the e-invoice gate leaving no results, failing, or
 recording a tool at another version or of other bytes than
-[`e-invoice-tools.json`](e-invoice-tools.json) pins, judging no sample
-every tool must accept or making no control a tool must refuse, or
-missing a tool's verdict on a file or having one other than its corpus
-expects; a published package whose `dist/` no job recorded,
+[`e-invoice-tools.json`](e-invoice-tools.json) pins, or a veraPDF below its
+floor, its own or Mustang's, judging no sample of a format, XML or PDF,
+that every tool of that format must accept, or making, for a tool, no
+control of its format that it must refuse, recording a file
+of a format no tool judges, or missing a tool's verdict on a file or
+having one other than its corpus expects; a published package whose `dist/` no job recorded,
 so its tarball is compared with nothing; two builds of one package that
 differ, or a tarball whose built files are not every job's; a gate whose
 evidence did not pass, or a limitation whose `heldBy` test did not; either
