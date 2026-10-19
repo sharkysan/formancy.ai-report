@@ -12,10 +12,12 @@
  * report holds, so leaving it afterwards commits nothing. A refused value
  * stays as typed, marked invalid and described by the reason, which is
  * shown under it; the editor keeps both, so they survive a re-render.
+ * Under the report's own fields, its images (`image-library.ts`, 0033).
  */
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { PROPERTY_ROLES } from '@formancy/report-builder-core'
 import type { PropertyField } from '@formancy/report-builder-core'
+import { ReportImageLibrary } from './image-library'
 import { ReportEditorRoot } from './root'
 
 /** The native control for a role: a textbox is a text input, a spinbutton a number input. */
@@ -33,6 +35,7 @@ interface Shown {
 @Component({
   selector: 'form[reportProperties]',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ReportImageLibrary],
   host: {
     'data-report-part': 'properties',
     '[attr.aria-label]': 'root.state().properties.heading',
@@ -99,6 +102,9 @@ interface Shown {
           <p data-report-part="property-error" class="wb-problem" [id]="shown.errorId">{{ shown.field.error }}</p>
         }
       </div>
+    }
+    @if (root.state().selection === null && root.state().images.assets.length > 0) {
+      <div reportImageLibrary></div>
     }
   `,
 })

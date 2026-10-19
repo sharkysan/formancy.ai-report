@@ -11,7 +11,8 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest'
 import { MIDDLE } from './layout.js'
 import { decodeStarters, encodeStarters } from './starters/codec.js'
-import { imagesOf, studioStarters } from './starters/starters.js'
+import { studioImages } from './images/image-store.js'
+import { studioStarters } from './starters/starters.js'
 import { Studio } from './studio.js'
 import { createWorkspace } from './workspace.js'
 import type { Workspace } from './workspace.js'
@@ -183,8 +184,9 @@ const declaredBy = (css: string, selector: string): string[][] =>
 async function studio(): Promise<HTMLElement> {
   const { starters, images } = decodeStarters(encodeStarters(STARTERS, STARTER_IMAGES))
   const listed = studioStarters(starters)
-  workspace = createWorkspace(listed)
-  render(<Studio starters={listed} workspace={workspace} images={imagesOf(images)} />)
+  const kept = studioImages(images)
+  workspace = createWorkspace(listed, { images: kept.store })
+  render(<Studio starters={listed} workspace={workspace} images={kept.resolve} />)
   await screen.findByText('Preview: printed.')
   const view = within(screen.getByRole('region', { name: 'Report editor' })).getByRole('region', { name: 'Preview' })
   await waitFor(() => expect(view.querySelector('.paper-text span')).not.toBeNull())

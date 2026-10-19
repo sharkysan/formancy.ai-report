@@ -7,14 +7,21 @@
  * cannot hold yet stays in the list, `aria-disabled` and described by what
  * to declare first, so it is found rather than missed; activating it
  * announces the same.
+ *
+ * Where the host keeps images, Add image… stands last (0033): a palette
+ * item of no kind, which starts no drag but opens the file chooser beside
+ * it (`image-chooser.ts`), unavailable and described by why while the
+ * editor takes no file, and busy while one is being added.
  */
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import type { PaletteEntry } from '@formancy/report-builder-core'
+import { ReportImageChooser } from './image-chooser'
 import { ReportEditorRoot } from './root'
 
 @Component({
   selector: 'div[reportPalette]',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ReportImageChooser],
   host: {
     role: 'group',
     'data-report-part': 'palette',
@@ -34,12 +41,24 @@ import { ReportEditorRoot } from './root'
         (dragend)="root.dragEnded()"
       >{{ entry.label }}@if (entry.unavailable !== undefined) {<span [id]="why(entry)" hidden>{{ entry.unavailable }}</span>}</button>
     }
+    @if (state().images.store) {
+      <button
+        type="button"
+        data-report-part="palette-item"
+        [attr.aria-disabled]="state().can.addImage ? null : 'true'"
+        [attr.aria-describedby]="state().images.unavailable === undefined ? null : addWhy"
+        [attr.aria-busy]="state().images.adding === null ? null : 'true'"
+        (click)="file.open()"
+      >{{ t()('images.add') }}@if (state().images.unavailable !== undefined) {<span [id]="addWhy" hidden>{{ state().images.unavailable }}</span>}</button>
+      <input reportImageChooser #file="reportImageChooser" />
+    }
   `,
 })
 export class ReportPalette {
   protected readonly root = inject(ReportEditorRoot)
   protected readonly state = this.root.state
   protected readonly t = this.root.t
+  protected readonly addWhy = `${this.root.id}-unavailable-add-image`
 
   protected why(entry: PaletteEntry): string {
     return `${this.root.id}-unavailable-${entry.kind}`

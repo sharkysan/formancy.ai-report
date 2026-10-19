@@ -6,14 +6,16 @@
  * Every element is found by its role and accessible name and nothing else,
  * as the scenarios are written (plan 21): a builder that renders the right
  * thing under the wrong name fails here, as it would fail a person using a
- * screen reader.
+ * screen reader. But one: the file input Add image… opens, hidden and with
+ * no role, which an `upload` step finds beside the button in the DOM, to
+ * hand it the file a person would choose (0033).
  */
 import { createReportEditor } from '@formancy/report-builder-core'
-import type { EditorLocale, ReportEditor, ScenarioHost, ScenarioStep } from '@formancy/report-builder-core'
+import type { AddedImage, EditorLocale, ImageStore, ReportEditor, ScenarioFile, ScenarioHost, ScenarioStep } from '@formancy/report-builder-core'
 import { openReportSession } from '@formancy/report-core'
 import type { ReportSession } from '@formancy/report-core'
 import type { ReportDefinition } from '@formancy/report-spec'
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { RenderResult } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import axe from 'axe-core'
@@ -38,11 +40,12 @@ export interface Mounted {
 /**
  * A builder over a new session of `report`, mounted into the document; with
  * `host`, its editor made with that view of the host's, and the builder
- * given, as the view, the one button the scenario names.
+ * given, as the view, the one button the scenario names; with `images`,
+ * its editor made with that store.
  */
-export function mount(report: ReportDefinition, locale: EditorLocale = 'en', host?: ScenarioHost): Mounted {
+export function mount(report: ReportDefinition, locale: EditorLocale = 'en', host?: ScenarioHost, images?: ImageStore): Mounted {
   const session = sessionOver(report)
-  const editor = createReportEditor(session, { locale, ...(host === undefined ? {} : { hostView: host }) })
+  const editor = createReportEditor(session, { locale, ...(host === undefined ? {} : { hostView: host }), ...(images === undefined ? {} : { images }) })
   const user = userEvent.setup()
   const view = render(host === undefined ? <ReportBuilder editor={editor} /> : <ReportBuilder editor={editor} hostView={<button type="button">{host.control}</button>} />)
   return { session, editor, user, view }
@@ -94,8 +97,61 @@ function keys(key: string, modifiers: readonly string[] = []): string {
   return `${modifiers.map((modifier) => `{${modifier}>}`).join('')}{${key}}${[...modifiers].reverse().map((modifier) => `{/${modifier}}`).join('')}`
 }
 
-/** Does one scenario step against the mounted builder, as the scenario's comment in report-builder-core describes. */
-export async function runStep(step: ScenarioStep, { user, session, editor }: Mounted): Promise<void> {
+/**
+ * The file input Add image… opens: the one element found by reading the
+ * DOM, beside the button, since a hidden input has no role (0033).
+ */
+export function fileInputOf(button: HTMLElement): HTMLInputElement {
+  const input = button.parentElement?.querySelector('input[type="file"]')
+  if (!(input instanceof HTMLInputElement)) throw new Error(`no file input beside ${button.textContent ?? 'the button'}`)
+  return input
+}
+
+/**
+ * The file `file` chosen in the chooser `input` opened: its files, then its
+ * input and change events, as a browser fires them once the chooser
+ * closes, and no filter of `accept` on the way -- user-event's upload
+ * would drop a file `accept` does not name, and click the input itself.
+ */
+export function choose(input: HTMLInputElement, file: ScenarioFile | File): void {
+  const chosen = file instanceof File ? file : new File([Uint8Array.from(file.bytes)], file.name, { type: file.type })
+  fireEvent.input(input, { target: { files: [chosen] } })
+  fireEvent.change(input, { target: { files: [chosen] } })
+}
+
+/**
+ * Add image… clicked, and `file` handed to the input it opened. Done once
+ * the editor has said what became of the file: it says it is adding it,
+ * then how that ended. A click that opened no chooser, or a file the
+ * editor never took, fails the step.
+ */
+async function upload(user: Mounted['user'], editor: ReportEditor, button: HTMLElement, file: ScenarioFile): Promise<void> {
+  const input = fileInputOf(button)
+  let opened = 0
+  const open = (): void => {
+    opened += 1
+  }
+  input.addEventListener('click', open)
+  try {
+    await user.click(button)
+  } finally {
+    input.removeEventListener('click', open)
+  }
+  expect(opened, `${button.textContent ?? ''} opened no file chooser`).toBe(1)
+  const before = editor.state().status.sequence
+  choose(input, file)
+  await waitFor(() => {
+    const now = editor.state()
+    expect(now.images.adding === null && now.status.sequence >= before + 2, `the editor never took ${file.name}, or is adding it still`).toBe(true)
+  })
+}
+
+/**
+ * Does one scenario step against the mounted builder, as the scenario's
+ * comment in report-builder-core describes; `kept`, what the scenario's
+ * store kept.
+ */
+export async function runStep(step: ScenarioStep, { user, session, editor }: Mounted, kept: readonly AddedImage[] = []): Promise<void> {
   if ('do' in step) {
     switch (step.do) {
       case 'click':
@@ -121,6 +177,8 @@ export async function runStep(step: ScenarioStep, { user, session, editor }: Mou
         return void act(() => {
           editor.dispatch(step.action)
         })
+      case 'upload':
+        return upload(user, editor, find(step), step.file)
     }
   }
   switch (step.expect) {
@@ -141,5 +199,7 @@ export async function runStep(step: ScenarioStep, { user, session, editor }: Mou
     }
     case 'document':
       return void expect(step.check(session.document()), step.says).toBe(true)
+    case 'kept':
+      return void expect(step.check(kept), step.says).toBe(true)
   }
 }

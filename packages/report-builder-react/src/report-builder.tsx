@@ -19,6 +19,11 @@
  * the design view's place while the editor says so (0029): a bare region,
  * named by the editor's `hostView`, holding what the host gave and nothing
  * of the builder's, its keys the host's.
+ *
+ * Where the host gave the editor a store for images, the palette ends with
+ * Add image…, and the report's own properties list its images (0033): the
+ * file a person chooses goes to `editor.addImage`, which says what became
+ * of it; nothing here reads it.
  */
 import { useCallback, useId, useLayoutEffect, useMemo, useRef } from 'react'
 import type { KeyboardEvent, ReactElement, ReactNode } from 'react'
@@ -27,6 +32,8 @@ import type { DiagnosticEntry, DragSubject, DropTarget, EditorAction, EditorOutc
 import type { ComponentKind } from '@formancy/report-spec'
 import { Canvas } from './canvas.js'
 import { Diagnostics } from './diagnostics.js'
+import { ImageChooser } from './image-chooser.js'
+import { ImageLibrary } from './image-library.js'
 import { Outline } from './outline.js'
 import { Palette } from './palette.js'
 import { Places } from './places.js'
@@ -79,6 +86,8 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
   const hostKey = useRef<Event | null>(null)
   /** The element the keyboard last stood on in this builder, for a middle pane swapped from under it to hand the keyboard on. */
   const lastFocused = useRef<EventTarget | null>(null)
+  /** Whether that element stood in the properties form, for a row taken from under it to hand the keyboard to the first field. */
+  const lastInProperties = useRef(false)
   const sheet = useRef<HTMLDivElement>(null)
   const fields = useRef<HTMLDivElement>(null)
   const problemList = useRef<HTMLUListElement>(null)
@@ -146,6 +155,16 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
     const dropped = document.activeElement === null || document.activeElement === document.body
     if (last instanceof Node && !last.isConnected && dropped) focus('canvas')
   }, [state.view, focus])
+
+  // An undo or a redo that takes away the row the keyboard stood on in the
+  // properties -- an image's Remove, the add undone or the remove redone --
+  // would leave it on the page: it goes to the first field, as a Remove
+  // that worked sends it.
+  useLayoutEffect(() => {
+    const last = lastFocused.current
+    const dropped = document.activeElement === null || document.activeElement === document.body
+    if (lastInProperties.current && last instanceof Node && !last.isConnected && dropped) focus('properties')
+  }, [state, focus])
 
   /** Dispatches `action`; when it succeeds, focus goes to `then` -- at once if nothing changed, else once the change is drawn. */
   function act(action: EditorAction, then?: FocusAfter): EditorOutcome {
@@ -237,6 +256,7 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
       onKeyDown={onKeyDown}
       onFocus={(event) => {
         lastFocused.current = event.target
+        lastInProperties.current = event.target.closest('[data-report-part="properties"]') !== null
       }}
     >
       {/* A bar across the panes: report-builder.css spans every root child that is no pane. */}
@@ -257,7 +277,14 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
             {hide('outline', t('pane.outline'))}
           </header>
           <div className="wb-body">
-            <Palette state={state} t={t} ids={ids} drag={drag} place={place} />
+            <Palette
+              state={state}
+              t={t}
+              ids={ids}
+              drag={drag}
+              place={place}
+              chooser={<ImageChooser state={state} t={t} ids={ids} choose={() => act({ type: 'chooseImage' }).ok} add={(file) => void editor.addImage(file)} />}
+            />
             <Outline state={state} t={t} ids={ids} tree={tree} drag={drag} act={act} />
           </div>
           {choosing === null ? null : <Places state={state} drag={choosing} t={t} ids={ids} act={act} choose={choose} cancel={cancelPlaces} />}
@@ -311,7 +338,12 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
                 {hide('properties', t('pane.properties'))}
               </header>
               <div ref={fields} className="wb-body" data-pane="properties">
-                <Properties state={state} ids={ids} act={act} />
+                <Properties
+                  state={state}
+                  ids={ids}
+                  act={act}
+                  library={state.selection === null ? <ImageLibrary state={state} t={t} ids={ids} remove={(asset) => act({ type: 'removeImage', asset }, 'properties')} /> : null}
+                />
               </div>
             </>
           ) : null}

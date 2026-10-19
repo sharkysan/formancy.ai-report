@@ -4,16 +4,63 @@
  * by its label, and the rules for when a field commits.
  */
 import { TestBed } from '@angular/core/testing'
-import { createReportEditor, PROPERTY_KINDS, PROPERTY_ROLES } from '@formancy/report-builder-core'
+import { createReportEditor, editorText, PROPERTY_KINDS, PROPERTY_ROLES, scenarioReport } from '@formancy/report-builder-core'
 import { COMPONENT_KINDS, walkComponents } from '@formancy/report-spec'
-import { fireEvent, screen } from '@testing-library/angular'
+import type { ReportDefinition } from '@formancy/report-spec'
+import { fireEvent, screen, within } from '@testing-library/angular'
+import { computeAccessibleDescription } from 'dom-accessibility-api'
 import { afterEach, describe, expect, test } from 'vitest'
 import { mountBuilder, mountScenarioBuilder } from './test-mount'
-import { audit, richSession } from './test-support'
+import { audit, richSession, sessionOver } from './test-support'
 import { click, fill, press } from './test-user'
 
 afterEach(() => {
   TestBed.resetTestingModule()
+})
+
+const t = editorText('en')
+
+/** The scenario report declaring two images, `logo`, which its report header draws, and `spare`, which nothing draws. */
+function twoImages(): ReportDefinition {
+  const report = scenarioReport()
+  return {
+    ...report,
+    assets: [
+      { id: 'logo', mediaType: 'image/svg+xml', digest: `sha256:${'ab'.repeat(32)}` },
+      { id: 'spare', mediaType: 'image/png', digest: `sha256:${'cd'.repeat(32)}` },
+    ],
+    regions: { ...report.regions, reportHeader: [{ id: 'mark', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 40, height: 40, fit: 'contain' }] },
+  }
+}
+
+describe('the report’s images', () => {
+  // Listed with the report's own properties, each by its id and kind; an
+  // image something draws cannot be removed from under it, and its Remove
+  // says so before it is pressed -- unavailable, described by what draws
+  // it -- where one that looked like any other would only say so after.
+  test('are listed under the report’s fields, the Remove of one something draws unavailable and described by what draws it', async () => {
+    const { settle } = await mountBuilder(createReportEditor(sessionOver(twoImages())))
+    const images = within(screen.getByRole('form', { name: t('properties.report') })).getByRole('group', { name: t('images.heading') })
+    expect(images.textContent).toContain('logo (SVG)')
+    expect(images.textContent).toContain('spare (PNG)')
+    const logo = within(images).getByRole('button', { name: t('images.removeOne', { id: 'logo' }) })
+    expect(logo.getAttribute('aria-disabled')).toBe('true')
+    expect(computeAccessibleDescription(logo)).toBe(t('images.inUse', { names: t('label.kindDetail', { kind: t('kind.image'), detail: 'logo' }) }))
+    const spare = within(images).getByRole('button', { name: t('images.removeOne', { id: 'spare' }) })
+    expect(spare.hasAttribute('aria-disabled')).toBe(false)
+    expect(computeAccessibleDescription(spare)).toBe('')
+    // Selecting a component shows its fields, and the report's images go with the report's.
+    click(screen.getByRole('treeitem', { name: 'Introduction' }))
+    await settle()
+    expect(screen.queryByRole('group', { name: t('images.heading') })).toBeNull()
+  })
+
+  // A report with no image has no list to show: no empty group named
+  // Images for a screen reader to stop at.
+  test('are not listed where the report has none', async () => {
+    await mountScenarioBuilder()
+    expect(screen.queryByRole('group', { name: t('images.heading') })).toBeNull()
+  })
 })
 
 describe('the properties pane', () => {

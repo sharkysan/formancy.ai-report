@@ -88,6 +88,8 @@ export class ReportEditorRoot {
   private opener: HTMLElement | null = null
   /** The element the keyboard last stood on in this builder, for a middle pane swapped from under it to hand the keyboard on. */
   private lastFocused: EventTarget | null = null
+  /** Whether that element stood in the properties form, for a row taken from under it to hand the keyboard to the first field. */
+  private lastInProperties = false
   /** What the middle pane showed at the last render: null before the first. */
   private view: 'design' | 'host' | null = null
 
@@ -105,6 +107,19 @@ export class ReportEditorRoot {
   dispatch(action: EditorAction, focus?: FocusAfter): EditorOutcome {
     if (focus !== undefined) this.focusAfter = focus
     return this.editor().dispatch(action)
+  }
+
+  /**
+   * Sends `action`, and moves focus as `focus` says only when it was done:
+   * a refused one leaves the keyboard where the person pressed, the live
+   * region saying why -- a Remove of an image something draws (0033). The
+   * render the action causes comes after this returns, so it finds the
+   * focus asked for.
+   */
+  attempt(action: EditorAction, focus: FocusAfter): EditorOutcome {
+    const outcome = this.editor().dispatch(action)
+    if (outcome.ok) this.focusAfter = focus
+    return outcome
   }
 
   /**
@@ -186,6 +201,7 @@ export class ReportEditorRoot {
 
   protected focused(event: FocusEvent): void {
     this.lastFocused = event.target
+    this.lastInProperties = event.target instanceof Element && event.target.closest('[data-report-part="properties"]') !== null
   }
 
   protected keydown(event: KeyboardEvent): void {
@@ -208,7 +224,10 @@ export class ReportEditorRoot {
    * The middle pane swapped by the host -- its view placed or shown from
    * outside, as the window crosses a width -- takes the keyboard along
    * rather than drop it on the page: where the element it stood on went
-   * with the pane, and nothing has taken it since.
+   * with the pane, and nothing has taken it since. So does an undo or a
+   * redo that takes away the row it stood on in the properties -- an
+   * image's Remove, the add undone or the remove redone: it goes to the
+   * first field, as a Remove that worked sends it.
    */
   private dropped(): FocusAfter | null {
     const view = this.state().view
@@ -216,7 +235,9 @@ export class ReportEditorRoot {
     this.view = view
     const last = this.lastFocused
     const nowhere = document.activeElement === null || document.activeElement === document.body
-    return swapped && last instanceof Node && !last.isConnected && nowhere ? { to: 'pane', panel: 'canvas' } : null
+    if (!(last instanceof Node) || last.isConnected || !nowhere) return null
+    if (swapped) return { to: 'pane', panel: 'canvas' }
+    return this.lastInProperties ? { to: 'pane', panel: 'properties' } : null
   }
 
   private moveFocus(): void {

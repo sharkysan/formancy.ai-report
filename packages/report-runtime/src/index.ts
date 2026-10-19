@@ -1,4 +1,4 @@
-export { MAX_ASSET_BYTES, REFUSAL_CODES, RenderRefusal } from './document.js'
+export { REFUSAL_CODES, RenderRefusal } from './document.js'
 export type {
   Block,
   Columns,
@@ -80,6 +80,17 @@ export type { EpcCaption } from '@formancy/report-spec'
  */
 export { FACTUR_X, FACTUR_X_PROFILES } from '@formancy/report-spec'
 export type { FacturXProfileTerms } from '@formancy/report-spec'
+/**
+ * What report-spec decides of an image's bytes, handed on as the QR-bill's
+ * decisions are (0033): `MAX_ASSET_BYTES`, the most an asset may have,
+ * which the runtime holds a host's answer to and the renderer the bytes it
+ * draws; `MAX_ASSET_SIDE`, the most pixels a side of a PNG or a JPEG;
+ * `sniffImage`, what the bytes are by their first bytes; and `imageHeader`,
+ * a PNG's or a JPEG's structure read as an upload reads it, which the
+ * renderer checks a picture by before it inflates a PNG's image data.
+ */
+export { IMAGE_REFUSAL_CODES, imageHeader, MAX_ASSET_BYTES, MAX_ASSET_SIDE, sniffImage } from '@formancy/report-spec'
+export type { ImageRefusal, ImageRefusalCode, JpegHeader, PngHeader, RasterHeader } from '@formancy/report-spec'
 /**
  * What report-spec decides of an SVG asset, handed on as the QR-bill's
  * decisions are (0030): `checkSvg`, which an engine applies to an SVG's

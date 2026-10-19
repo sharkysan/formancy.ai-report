@@ -1,11 +1,12 @@
-import { crc32 as nodeCrc32, deflateSync } from 'node:zlib'
+import { deflateSync } from 'node:zlib'
 import { describe, expect, test } from 'vitest'
-import { base64, crc32, fromBase64, inflate } from './bytes.js'
+import { base64, fromBase64, inflate } from './bytes.js'
 
 /**
  * The byte arithmetic written for both entries, held to Node's own, which
- * the browser entry cannot use: a wrong CRC refuses every PNG, a wrong
- * base64 embeds every image broken.
+ * the browser entry cannot use: a wrong base64 embeds every image broken. A
+ * PNG chunk's CRC is report-spec's now, with the rest of a picture's
+ * structure (`image-header.ts`, 0033), and held to zlib's there.
  */
 
 /** Bytes of every value, in an order that is not their own, and of every length up to `length`. */
@@ -13,12 +14,6 @@ function samples(length: number): Uint8Array[] {
   const bytes = Uint8Array.from({ length }, (_, index) => (index * 151 + 7) % 256)
   return Array.from({ length: length + 1 }, (_, end) => bytes.subarray(0, end))
 }
-
-describe('crc32', () => {
-  test('is zlib’s, for every length up to 300 bytes', () => {
-    for (const sample of samples(300)) expect(crc32(sample)).toBe(nodeCrc32(sample))
-  })
-})
 
 describe('base64', () => {
   // Every remainder of the length by three, which decides the padding.

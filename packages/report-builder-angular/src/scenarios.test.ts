@@ -7,18 +7,23 @@
  * Each scenario ends with axe over the page as the scenario left it, so a
  * dialog, an error or a moved row is audited in the state a person meets
  * it, not only the state the builder starts in.
+ *
+ * But for one element: the file input Add image… opens, hidden and with
+ * no role, which an `upload` step finds beside the button in the DOM to
+ * hand it the file (0033). A scenario about images makes its editor with
+ * the store `scenarioStore` gives it.
  */
 import { TestBed } from '@angular/core/testing'
-import { BUILDER_SCENARIOS, builderScenarios, createReportEditor, EDITOR_LOCALES, SCENARIO_ACTIONS, SCENARIO_EXPECTATIONS } from '@formancy/report-builder-core'
-import type { BuilderScenario, ScenarioQuery, ScenarioStep } from '@formancy/report-builder-core'
+import { BUILDER_SCENARIOS, builderScenarios, createReportEditor, EDITOR_LOCALES, SCENARIO_ACTIONS, SCENARIO_EXPECTATIONS, scenarioStore } from '@formancy/report-builder-core'
+import type { AddedImage, BuilderScenario, ReportEditor, ScenarioFile, ScenarioQuery, ScenarioStep } from '@formancy/report-builder-core'
 import type { ReportSession } from '@formancy/report-core'
-import { screen } from '@testing-library/angular'
+import { screen, waitFor } from '@testing-library/angular'
 import { computeAccessibleDescription } from 'dom-accessibility-api'
 import { afterAll, afterEach, describe, expect, test } from 'vitest'
 import { mountBuilder, mountWithHostView } from './test-mount'
 import type { Mounted } from './test-mount'
 import { audit, sessionOver } from './test-support'
-import { choose, click, fill, press } from './test-user'
+import { choose, click, fileInputOf, fill, pick, press } from './test-user'
 
 afterEach(() => {
   TestBed.resetTestingModule()
@@ -33,12 +38,40 @@ function absent(query: ScenarioQuery): boolean {
   return screen.queryByRole(query.role, { name: query.name, ...(query.selected === undefined ? {} : { selected: query.selected }) }) === null
 }
 
+/**
+ * Add image… clicked, and `file` handed to the input it opened. Done once
+ * the editor has said what became of the file: it says it is adding it,
+ * then how that ended. A click that opened no chooser, or a file the
+ * editor never took, fails the step.
+ */
+async function upload(button: HTMLElement, file: ScenarioFile, mounted: Mounted<unknown>): Promise<void> {
+  const input = fileInputOf(button)
+  let opened = 0
+  const open = (): void => {
+    opened += 1
+  }
+  input.addEventListener('click', open)
+  try {
+    click(button)
+  } finally {
+    input.removeEventListener('click', open)
+  }
+  expect(opened, `${button.textContent ?? ''} opened no file chooser`).toBe(1)
+  const editor: ReportEditor = mounted.editor
+  const before = editor.state().status.sequence
+  pick(input, new File([Uint8Array.from(file.bytes)], file.name, { type: file.type }))
+  await waitFor(() => {
+    const now = editor.state()
+    expect(now.images.adding === null && now.status.sequence >= before + 2, `the editor never took ${file.name}, or is adding it still`).toBe(true)
+  })
+}
+
 /** The kinds of step this runner has done, across every scenario. */
 const done = new Set<string>()
 /** The English scenarios run, by name: none may be skipped. */
 const ran = new Set<string>()
 
-async function run(step: ScenarioStep, mounted: Mounted<unknown>, session: ReportSession): Promise<void> {
+async function run(step: ScenarioStep, mounted: Mounted<unknown>, session: ReportSession, kept: readonly AddedImage[]): Promise<void> {
   done.add('do' in step ? step.do : step.expect)
   if ('do' in step) {
     switch (step.do) {
@@ -60,6 +93,9 @@ async function run(step: ScenarioStep, mounted: Mounted<unknown>, session: Repor
       case 'host':
         // What the host's own control does -- the Studio's Preview, in its bar -- through the editor.
         mounted.editor.dispatch(step.action)
+        break
+      case 'upload':
+        await upload(find(step), step.file, mounted)
         break
     }
     await mounted.settle()
@@ -83,15 +119,18 @@ async function run(step: ScenarioStep, mounted: Mounted<unknown>, session: Repor
     }
     case 'document':
       return void expect(step.check(session.document()), step.says).toBe(true)
+    case 'kept':
+      return void expect(step.check(kept), step.says).toBe(true)
   }
 }
 
 async function play(scenario: BuilderScenario): Promise<void> {
   const session = sessionOver(scenario.report())
   const { host } = scenario
-  const editor = createReportEditor(session, { locale: scenario.locale, ...(host === undefined ? {} : { hostView: host }) })
+  const images = scenarioStore(scenario)
+  const editor = createReportEditor(session, { locale: scenario.locale, ...(host === undefined ? {} : { hostView: host }), ...(images === undefined ? {} : { images: images.store }) })
   const mounted = host === undefined ? await mountBuilder(editor) : await mountWithHostView(editor, host.control)
-  for (const step of scenario.steps) await run(step, mounted, session)
+  for (const step of scenario.steps) await run(step, mounted, session, images?.kept ?? [])
   expect(await audit()).toEqual([])
 }
 

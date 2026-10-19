@@ -358,6 +358,50 @@ a colour with an alpha into an opacity, or follow a reference out of the
 file; and that a browser draws the cleaned drawing as the PDF does is held
 by the tables and review, not by comparing the two.
 
+## An image's bytes
+
+What an image a person adds is, and the digest a report pins it by, are
+read here, so that a builder refuses at the door what the renderer would
+refuse at every print, and names the image as the validator reads a name
+(0033):
+
+```ts
+import { assetDigest, imageHeader, sniffImage } from '@formancy/report-spec'
+
+sniffImage(bytes) // 'image/png', 'image/jpeg' or 'image/svg+xml', by the first bytes alone; undefined for anything else
+imageHeader(png) // { ok: true, mediaType: 'image/png', width: 120, height: 40, bitsPerPixel: 32, interlaced: false, data: every IDAT chunk's bytes, joined }
+imageHeader(jpeg) // { ok: true, mediaType: 'image/jpeg', width: 40, height: 120, components: 3 }: as it is shown, after its Exif turn
+imageHeader(wide) // { ok: false, code: 'too-large', message: 'is 5000 × 300 pixels; the limit is 4096 pixels a side', width: 5000, height: 300 }
+assetDigest(bytes) // 'sha256:' and 64 lower-case hex digits, what an asset's digest is
+```
+
+- **`sniffImage`** judges by a PNG's signature, a JPEG's start of image,
+  and `<` after an optional UTF-8 byte order mark and white space, never by
+  a file's name or a type a browser guessed. A UTF-16 or UTF-32 byte order
+  mark is an SVG too, so that `cleanSvg` can tell the person to save it as
+  UTF-8. A sniff is no check: the bytes are read whole next.
+- **`imageHeader`** reads a PNG's chunks, each with its length and CRC,
+  the header, the palette it needs and the end chunk with nothing after
+  it; and a JPEG's segments up to its scan, the frame header where PDFKit
+  reads it, the first Exif block's orientation and the end marker. Its
+  refusals, `IMAGE_REFUSAL_CODES`, are in the words the renderer says them
+  in after an asset's name, and one of a picture's size carries the size.
+  A picture is held to `MAX_ASSET_SIDE` pixels a side, and every reader of
+  an asset's bytes to `MAX_ASSET_BYTES`. A PNG's image data comes back in
+  one array, copied once however many chunks it was split over, and
+  nothing of a chunk is kept but its length: a person's 20 MiB file can
+  hold 1,747,622 empty ones, which a view kept of each held in 237 MB of
+  heap, and which are now read in 38 ms keeping nothing (Node 24.21.0 on
+  an Intel i9-10900K, 19 October 2026).
+- **`assetDigest`** is `@noble/hashes`' SHA-256, synchronous, on the
+  caller's thread: Web Crypto's is asynchronous and no part of this
+  package's library. A TypeError for anything that is not a `Uint8Array`.
+
+What it does not do: inflate a PNG's image data, which needs a
+decompressor ES2023 does not have. The renderer does at print, so a PNG
+whose data does not inflate to the scanlines its header promises passes
+here and is refused there. Nothing decodes a JPEG's scan.
+
 ## Hash
 
 ```ts

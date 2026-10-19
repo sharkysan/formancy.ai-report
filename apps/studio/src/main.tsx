@@ -17,20 +17,23 @@ import './studio.css'
 // font files the build writes from them.
 import './styles/fonts.css'
 import encoded from 'virtual:formancy-report-starters'
+import { studioImages } from './images/image-store.js'
 import { decodeStarters } from './starters/codec.js'
-import { imagesOf, studioStarters } from './starters/starters.js'
+import { studioStarters } from './starters/starters.js'
 import { Studio } from './studio.js'
 import { createWorkspace } from './workspace.js'
 
 const root = document.getElementById('root')
 if (root === null) throw new Error('index.html has no #root to render into')
 
-// The page's lifetime is the workspace's: nothing disposes it but closing the tab.
-const { starters, images } = decodeStarters(encoded)
-const listed = studioStarters(starters)
+// The page's lifetime is the workspace's, and the images': nothing disposes
+// either but closing the tab, and nothing a person adds leaves the page.
+const decoded = decodeStarters(encoded)
+const listed = studioStarters(decoded.starters)
+const images = studioImages(decoded.images)
 
 createRoot(root).render(
   <StrictMode>
-    <Studio starters={listed} workspace={createWorkspace(listed)} images={imagesOf(images)} />
+    <Studio starters={listed} workspace={createWorkspace(listed, { images: images.store })} images={images.resolve} />
   </StrictMode>,
 )

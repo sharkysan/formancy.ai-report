@@ -59,9 +59,18 @@ clamps when what it names is not there:
 - **the document:** `setTitle`, `setLocale`, `setPage`, `replaceDocument`;
 - **declarations:** `putStyle`, `removeStyle`, `putDataset`, `removeDataset`,
   `putField`, `removeField`, `putParameter`, `removeParameter`,
-  `moveParameter`, `putAsset`, `removeAsset`, `putAggregate`,
+  `moveParameter`, `addAsset`, `putAsset`, `removeAsset`, `putAggregate`,
   `removeAggregate`. A put replaces the declaration with that id where it
-  stands, or appends it; it cannot rename;
+  stands, or appends it; it cannot rename. `addAsset` only appends, and
+  refuses an id the report already declares as `already-declared`: a
+  builder names an image a person adds, a host keeps its bytes under that
+  id, and only then is it declared, so a put under an id the report came
+  to declare meanwhile would swap another image for it, unseen.
+  `nextAssetId(report, base, handed)` names it: `base`, or `base-2`,
+  `base-3`, by the rule a new component's id is made by, counting asset
+  ids alone and the ids in `handed`, those a builder has handed a host
+  already; a base that ends in a number is numbered as it stands, since
+  it is a file's name (`img-4711` taken gives `img-4711-2`);
 - **components:** `insertComponent`, `removeComponent`, `moveComponent`,
   `updateComponent` (a patch typed per kind; the id and kind never change),
   `duplicateComponent` (fresh ids for the copy and all it holds), and

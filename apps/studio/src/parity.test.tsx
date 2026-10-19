@@ -1,12 +1,12 @@
 import { provideZonelessChangeDetection } from '@angular/core'
 import type { ApplicationRef } from '@angular/core'
 import { createApplication } from '@angular/platform-browser'
-import { createReportEditor, EDITOR_LOCALES } from '@formancy/report-builder-core'
-import type { EditorAction, EditorLocale, EditorState, OutlineNode, ReportEditor } from '@formancy/report-builder-core'
+import { createReportEditor, EDITOR_LOCALES, SCENARIO_PNG } from '@formancy/report-builder-core'
+import type { EditorAction, EditorLocale, EditorState, KeptImage, OutlineNode, ReportEditor } from '@formancy/report-builder-core'
 import { ReportBuilder } from '@formancy/report-builder-react'
 import { openReportSession } from '@formancy/report-core'
 import { STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
-import { act, cleanup, render } from '@testing-library/react'
+import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { computeAccessibleDescription, computeAccessibleName, getRole } from 'dom-accessibility-api'
 import { afterEach, describe, expect, test } from 'vitest'
 import { StudioAngularBuilder } from './builder/angular-builder.js'
@@ -39,6 +39,10 @@ import { studioStarters } from './starters/starters.js'
  * the Studio's Angular builder lends its slot for it, as it lends it to
  * the real Preview -- so the region each builder draws it in is compared,
  * and not the Preview, which is one React component in both.
+ *
+ * The editor keeps images as the Studio's does (0033), so both builders
+ * draw Add image… and the report's images; its store answers only when the
+ * walk lets it, so the state while an image is being added is compared.
  *
  * The normalisation is the gate's, for the same reasons
  * (apps/studio/scripts/accessible-tree.mjs): a relation by id is left out,
@@ -126,6 +130,8 @@ interface Mounted {
   readonly react: HTMLElement
   readonly angular: HTMLElement
   readonly app: ApplicationRef
+  /** Lets the store answer for the image being added. */
+  readonly release: () => void
 }
 
 let mounted: Mounted | undefined
@@ -145,7 +151,9 @@ const STAND_IN = 'Download PDF'
 async function mountBoth(report: unknown, locale: EditorLocale): Promise<Mounted> {
   const opening = openReportSession(report)
   if (!opening.ok) throw new Error('the starter did not open')
-  const editor = createReportEditor(opening.session, { locale, hostView: { name: PREVIEW_NAME, shown: true, place: 'middle' } })
+  let answer = (): void => undefined
+  const images = { keep: () => new Promise<KeptImage>((resolve) => (answer = () => resolve({ ok: true }))) }
+  const editor = createReportEditor(opening.session, { locale, hostView: { name: PREVIEW_NAME, shown: true, place: 'middle' }, images })
   const react = document.body.appendChild(document.createElement('div'))
   render(<ReportBuilder editor={editor} hostView={<button type="button">{STAND_IN}</button>} />, { container: react })
   const angular = document.body.appendChild(document.createElement('div'))
@@ -153,7 +161,7 @@ async function mountBoth(report: unknown, locale: EditorLocale): Promise<Mounted
   const app = await createApplication({ providers: [provideZonelessChangeDetection(), { provide: STUDIO_EDITOR, useValue: editor }, { provide: STUDIO_SLOT, useValue: lend }] })
   app.bootstrap(StudioAngularBuilder, angular.appendChild(document.createElement('report-studio-builder')))
   await app.whenStable()
-  mounted = { editor, react, angular, app }
+  mounted = { editor, react, angular, app, release: () => answer() }
   return mounted
 }
 
@@ -178,12 +186,13 @@ const select = (node: OutlineNode | null): EditorAction => (node === null ? { ty
  * given its place back; the place chooser for every kind the palette
  * offers, each kind that has a place then placed there; every row
  * selected; a move's chooser; a condition naming no parameter, with its
- * problem; a top margin the page cannot hold, refused; undo and redo; each
- * pane; the zoom; and the Preview shown in the middle again, a pane hidden
- * and shown beside it, the Preview placed beside the builder and back, and
- * hidden.
+ * problem; a top margin the page cannot hold, refused; an image being
+ * added, Add image… pressed while it is, and the image listed, then
+ * removed; undo and redo; each pane; the zoom; and the Preview shown in
+ * the middle again, a pane hidden and shown beside it, the Preview placed
+ * beside the builder and back, and hidden.
  */
-async function walk({ editor, react, angular, app }: Mounted): Promise<string[]> {
+async function walk({ editor, react, angular, app, release }: Mounted): Promise<string[]> {
   const states: string[] = []
   const same = async (state: string): Promise<void> => {
     await app.whenStable()
@@ -225,6 +234,20 @@ async function walk({ editor, react, angular, app }: Mounted): Promise<string[]>
   const margin = editor.state().properties.fields.find((field) => field.kind === 'length')
   if (margin === undefined) throw new Error('the report has no length field')
   await dispatch({ type: 'setProperty', key: margin.key, value: '400' }, 'a margin the page cannot hold, refused')
+  const file = { name: 'logo.png', size: SCENARIO_PNG.length, arrayBuffer: async () => Uint8Array.from(SCENARIO_PNG).buffer }
+  let adding: Promise<unknown> = Promise.resolve()
+  act(() => void (adding = editor.addImage(file)))
+  await waitFor(() => expect(editor.state().images.adding).toBe('logo.png'))
+  await same('an image being added')
+  await dispatch({ type: 'chooseImage' }, 'Add image… pressed while an image is being added')
+  await act(async () => {
+    release()
+    await adding
+  })
+  const added = editor.state().images.assets.at(-1)
+  if (added === undefined || editor.state().images.adding !== null) throw new Error('the image was not added')
+  await same('an image added, listed under the report’s properties')
+  await dispatch({ type: 'removeImage', asset: added.id }, 'the image removed')
   await dispatch({ type: 'undo' }, 'undone')
   await dispatch({ type: 'redo' }, 'redone')
   for (const panel of ['canvas', 'properties', 'diagnostics', 'outline'] as const) await dispatch({ type: 'openPanel', panel }, `the ${panel} pane`)
@@ -247,7 +270,7 @@ describe('the two builders, side by side over one editor', () => {
       test(`${locale}, ${starter.id}: draw one accessible tree at every state`, async () => {
         const states = await walk(await mountBoth(starter.report, locale))
         // The guard on the guard: a walk that stopped early compared fewer states than it names.
-        expect(states).toEqual(expect.arrayContaining(['opened, the Preview in the design view’s place', 'a condition naming no parameter', 'a margin the page cannot hold, refused', 'zoomed in', 'the Preview hidden']))
+        expect(states).toEqual(expect.arrayContaining(['opened, the Preview in the design view’s place', 'a condition naming no parameter', 'a margin the page cannot hold, refused', 'an image being added', 'the image removed', 'zoomed in', 'the Preview hidden']))
       })
     }
   }

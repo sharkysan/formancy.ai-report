@@ -5,7 +5,10 @@
   its palette, copied and pinned, superseded by
   [0034](0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md): the Studio imports
   formancy's released `@formancy/themes/room.css`, and the palette guard
-  refuses a copy
+  refuses a copy;
+  extended by [0033](0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md),
+  under which the Studio keeps the images a person adds in the page, and
+  its browser gate adds one through the platform's file chooser
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**

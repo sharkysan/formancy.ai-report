@@ -2,6 +2,7 @@ import { nextComponentId, validLocations } from '@formancy/report-core'
 import { COMPONENT_KINDS, emptyReport, mmToPt } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
+import { recordingStore } from './image-test-support.js'
 import { defaultComponent } from './palette.js'
 import { editorOver, richReport } from './test-support.js'
 import { contentLocale, EDITOR_LOCALES, editorText } from './text.js'
@@ -83,6 +84,26 @@ describe('the palette', () => {
     expect(contentLocale('fr')).toBe('fr-CH')
     expect(contentLocale('en-US')).toBe('en')
     expect(contentLocale('it-CH')).toBe('en')
+  })
+
+  // An add appends, and a person who adds a logo and then presses Image
+  // means that logo: the oldest asset would insert the one the report had
+  // before (0033).
+  test('draws the newest image the report declares', () => {
+    const report = richReport()
+    const withMark: ReportDefinition = { ...report, assets: [...report.assets, { id: 'mark', mediaType: 'image/svg+xml', digest: `sha256:${'cd'.repeat(32)}` }] }
+    const image = editorOver(withMark).editor.state().palette.find((entry) => entry.kind === 'image')
+    expect(image?.component).toMatchObject({ kind: 'image', source: { kind: 'asset', asset: 'mark' } })
+  })
+
+  // Where the host keeps images, a report with nothing to draw is one Add
+  // image… gives something to: the entry says so, rather than send the
+  // person to declare an asset they have no way to declare.
+  test('says to add an image first where the host keeps images', () => {
+    const { editor } = editorOver(emptyReport('blank', 'Blank', 'de-CH'), { locale: 'de-CH', images: recordingStore() })
+    const de = editorText('de-CH')
+    expect(editor.state().palette.find((entry) => entry.kind === 'image')).toMatchObject({ component: null, unavailable: de('palette.addImageFirst', { add: de('images.add') }) })
+    expect(de('palette.addImageFirst', { add: de('images.add') })).toContain('Bild hinzufügen…')
   })
 
   // With no asset to pin, a new image draws the header's image field: a

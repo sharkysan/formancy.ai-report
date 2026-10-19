@@ -167,6 +167,15 @@ deploy happened or what the address serves.
   carries the whole SVG reader, and one that bundles report-spec's
   validator alone a few kilobytes of its tables, which 0030 measures
   ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
+- **For the images a person adds:** an `ImageStore` given to
+  `createReportEditor`, whose `keep` puts the bytes where the host's image
+  lookup will answer for them by id and digest before it resolves -- keyed
+  by digest, and never let go while a report or a redo may name them --
+  and says which of PNG, JPEG and SVG the host keeps. Without one, the
+  builders offer no Add image…. The editor reads the file on the page's
+  main thread, and the host is handed the drawing `cleanSvg` wrote of an
+  SVG, never the file as chosen, and the file's name for its own records
+  ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
 - **For an e-invoice:** no release prints one, and 0.1.0 refuses a report
   that holds one. On `main` a final render writes the CII XML into the
   resolved document, `document.eInvoice.xml`, and the renderer draws that

@@ -29,9 +29,8 @@
  * `MAX_ASSET_BYTES`, or `MAX_SVG_BYTES` for an SVG -- is refused before it
  * is copied.
  */
-import { ASSET_MEDIA_TYPES, MAX_SVG_BYTES } from '@formancy/report-spec'
+import { ASSET_MEDIA_TYPES, MAX_ASSET_BYTES, MAX_SVG_BYTES } from '@formancy/report-spec'
 import type { AssetMediaType, ImageComponent } from '@formancy/report-spec'
-import { MAX_ASSET_BYTES } from './document.js'
 import type { Image, ImageAsset, Spacer } from './document.js'
 import { imageValue } from './render-context.js'
 import type { ImageBytes, ImageRef, Render } from './render-context.js'

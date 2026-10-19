@@ -424,7 +424,7 @@ vectors on the page, drawn again on every page in a page region
 ```
 
 The rules are report-spec's alone, so the host's approval, a builder's
-upload when it comes and the renderer cannot read an SVG differently, and
+upload ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md), 6.10) and the renderer cannot read an SVG differently, and
 the renderer cleans nothing: what it draws is bytes `cleanSvg` wrote, or
 nothing. The renderer's list and the converter's callbacks stand behind the
 check, for a fault in the cleaner, and neither replaces it: the converter
@@ -439,3 +439,57 @@ extent the cleaner measured, the box and the page, since some of them --
 a page-sized group's box, a gradient's matrix -- grow as the box shrinks;
 a report that is no e-invoice draws the same drawing as before
 ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+
+## 6.10 An image, from the file a person chooses to the Preview
+
+```
+Add image… pressed: click, Enter or Space                 either builder
+   │ dispatch chooseImage
+   ├─ no store, a report full, an image being added ──▶ said why; no chooser
+   ▼
+input.click(), in the same activation ──▶ the platform's file chooser
+   │ change: files[0] taken, then value cleared, so the same file is a change again
+   ▼
+editor.addImage(file)                                     report-builder-core
+   ├─ file.size past MAX_ASSET_BYTES ──────────────────▶ refused, never read
+   ├─ adding: "Adding logo.png…"                         Add image… aria-busy
+   ▼
+bytes = await file.arrayBuffer(), held to the bound again
+   ▼
+sniffImage(bytes): what the bytes are, never the name   report-spec
+   ├─ PNG, JPEG: imageHeader, every chunk's CRC, the sides;
+   │  a CMYK JPEG in an e-invoice refused
+   ├─ SVG: cleanSvg (6.9), its drawing the asset
+   ├─ anything else, a refusal, a type the store keeps not ──▶ said, in the
+   │                                                     editor's words
+   ▼
+assetDigest(bytes) ── the report holds those bytes ──▶ kept again under
+   │                                                     their id, said;
+   ▼                                                     nothing declared
+id: the file's name folded, numbered as it stands by     report-core
+    nextAssetId, never an id this editor had kept
+   ▼
+await store.keep({ asset, mediaType, digest, bytes, … })  the host
+   ├─ { ok: false }, a rejection ──────────────────────▶ said; nothing declared
+   ▼
+addAsset, one undo step "Add image"                       the session
+   ├─ the id declared meanwhile ───────────────────────▶ changed; nothing replaced
+   ▼
+"Added image logo. Insert it with Image."; Image draws it, in the place chosen
+   ▼
+the Preview re-renders (6.5); the host's lookup answers by id and digest
+```
+
+The host keeps the bytes before the session holds the declaration, because
+the Studio's Preview renders on every change of the document and the
+runtime's lookup is synchronous: the other order would print
+`missing-asset` for a moment. Undo and redo take and give back the
+declaration alone, and `keep` is called once, so a host keeps what it was
+handed for as long as a redo may need it; the Studio keeps everything for
+the tab's life (`images/image-store.ts`). The id `keep` is handed is the
+one the add means: another editor may declare it first, for other bytes,
+so a store keys by digest; and the editor waits for `keep` to settle. A PNG's image data is not
+inflated and a JPEG's scan not decoded until it prints (6.2). Remove, under
+the report's own properties, takes back the declaration of an image nothing
+draws, in one step, and leaves the bytes where the host keeps them
+([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).

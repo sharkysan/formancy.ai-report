@@ -10,6 +10,96 @@ later.
 
 ## Unreleased
 
+**A person adds an image in either builder**
+([0033](docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
+A report could print a logo, and since 0032 the starters show one, but
+only a host could declare an image; a person who wanted their own logo
+had to ask for it. Now a host that gives the editor a place to keep
+images gets **Add image…**, last in the Insert palette of both builders,
+which opens the platform's file chooser, by keyboard or pointer. The file
+is recognised from its bytes, never its name, its structure checked as
+the renderer reads it -- an SVG cleaned by report-spec's `cleanSvg`
+(0030) -- kept by the host, and only then declared, in one undo step, so
+a preview never prints `missing-asset` in between. Insert's Image draws
+the image just added.
+
+- **`@formancy/report-builder-core`:** `createReportEditor`'s `images`
+  option, an `ImageStore` with `keep` and the media types the host keeps,
+  and `editor.addImage(file)`, which takes a DOM `File` as it stands; the
+  state's `images`, with the report's images as the builders list them,
+  and `can.addImage`; the actions `chooseImage` and `removeImage`; the
+  refusal codes `busy`, `not-an-image`, `not-kept` and `changed`; and the
+  types `ImageFile`, `AddedImage`, `KeptImage`, `ImageStore`,
+  `ImageLibrary` and `LibraryAsset`. The live region says why a file was
+  refused -- not an image, too large, too wide, an SVG with text, a type
+  the host does not keep, a CMYK JPEG in an e-invoice, whose PDF/A cannot
+  hold one (0031) -- in the editor's words, and the host's refusal in the
+  host's. Bytes the report declares already are not declared again, and
+  go to the host again under the id they are declared by, so that a
+  report opened where another host kept its images can be given them by
+  choosing the file. Remove, under the report's own properties, takes
+  back an image nothing draws, in one step, and says what draws one it
+  cannot. The words are in all three catalogues. The image scenarios join
+  `BUILDER_SCENARIOS`, with an `upload` step and a `kept` expectation, and
+  `SCENARIO_PNG`, `SCENARIO_PNG_DIGEST`, `SCENARIO_REFUSAL` and
+  `scenarioStore` are exported for a builder's runner.
+- **The asset's id is read from the file's name**: `Logo Müller AG.svg`
+  becomes `logo-muller-ag`, and where the report has the name already it
+  is numbered as it stands, a second `IMG_4711.png` being `img-4711-2`,
+  never `img-2`. An editor never hands a host an id it had the host keep
+  other bytes under, since an undo can declare that asset again. A file's
+  name can name a person, and the id reaches the report, so a host that
+  minds tells people so; the builders offer no other id.
+- **`@formancy/report-builder-react` and `@formancy/report-builder-angular`**
+  draw Add image… and its hidden file input, and the report's images with
+  their Remove; nothing new to bind, since the editor carries the store.
+  Angular's `ReportEditorRoot` gains `attempt(action, focus)`, which moves
+  the keyboard only when the action was done, for a host that arranges
+  the parts itself. An undo or a redo that takes away the image row the
+  keyboard stood on leaves it on the first field, as a Remove does, not on
+  the page.
+  `report-builder.css` gains no line: two of its selectors widen, so an
+  image's unavailable Remove is drawn as an unavailable tool is, and its
+  label as a field's.
+- **`@formancy/report-spec`:** `assetDigest`, an asset's SHA-256 as the
+  format writes it; `sniffImage` and `imageHeader`, the reader of a PNG's
+  and a JPEG's structure the renderer used, moved here with every chunk's
+  CRC, so that a builder refuses what the renderer would refuse at every
+  print, a PNG's image data held in one array however many chunks it was
+  split over, where a view of each of a person's million empty chunks
+  held 237 MB of the page's heap; and `MAX_ASSET_BYTES` and
+  `MAX_ASSET_SIDE`, moved here.
+  `@formancy/report-runtime` still exports `MAX_ASSET_BYTES` under the same
+  name, and re-exports the readers for the renderer, whose refusals are
+  unchanged.
+- **Dependency change: `@formancy/report-spec` depends on `@noble/hashes`
+  2.4.0, MIT, at an exact version.** It was already installed beneath
+  `@formancy/spec` 0.6.0, and its SHA-256 was already in a builder's
+  bundle through `reportHash`: it takes the digest synchronously, where
+  the editor needs it, and Web Crypto would not.
+- **`@formancy/report-core`:** `addAsset`, which refuses an id already
+  declared, with the new refusal code `already-declared`, where `putAsset`
+  replaces one; and `nextAssetId`, which numbers a file's name as it
+  stands and counts as taken the ids a builder has handed a host.
+- **The Studio** keeps every image a person adds in the page, for as long
+  as the tab is open, and sends it nowhere; a reload forgets it. Its
+  browser gate adds one in each builder through the platform's chooser,
+  prints it, undoes and redoes it, and holds that nothing is sent: no
+  request but to `blob:` and `data:` addresses and GETs without a query of
+  the files the build wrote, and no WebSocket. Its pictures were retaken
+  by their script.
+- **What it costs:** an image's data is first read whole when it prints,
+  so a PNG whose image data is corrupt is added and refused then, as
+  `invalid-asset`, and a CMYK JPEG added before the report gains an
+  e-invoice is refused at its final render; the digest takes the page's
+  main thread, 360 ms for 20 MiB in Chromium on the machine measured on
+  19 October 2026; the host's store only grows, since a redo needs the
+  bytes; the id an add hands the host is the one it means to declare, so
+  a store keys what it keeps by digest, never by id alone, the runtime
+  checking no bytes against their digest; a `keep` that never settles
+  leaves the editor busy; and the Studio's page grew by 28,491 bytes,
+  9.6 kB gzipped.
+
 **Report takes formancy 0.6.0, and the Studio and the product pages wear
 formancy's room by importing it, never a copy**
 ([0034](docs/decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)).

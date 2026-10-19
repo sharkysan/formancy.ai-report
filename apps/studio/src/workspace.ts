@@ -8,10 +8,13 @@
  * shows (0012), and the Preview, shown or not and where it stands (0029).
  * Whichever builder is shown, React's or Angular's, renders the same
  * editor, so switching frameworks keeps all of it, and a builder that is
- * unmounted leaves the editor to whoever made it: here.
+ * unmounted leaves the editor to whoever made it: here. Every editor is
+ * made with the one store the page keeps images in (0033), so an image
+ * added in one starter's builder, in either framework, is one the
+ * Preview's lookup answers for.
  */
 import { createReportEditor } from '@formancy/report-builder-core'
-import type { EditorLocale, ReportEditor } from '@formancy/report-builder-core'
+import type { EditorLocale, ImageStore, ReportEditor } from '@formancy/report-builder-core'
 import { openReportSession } from '@formancy/report-core'
 import type { ReportSession } from '@formancy/report-core'
 import { MIDDLE, placeIn, PREVIEW_NAME } from './layout.js'
@@ -35,9 +38,11 @@ export interface WorkspaceOptions {
   readonly locale?: EditorLocale
   /** The window's answer to `MIDDLE`, which says where the Preview has room; the window's own when absent. */
   readonly room?: MediaQueryList
+  /** Where an image a person adds is kept: the page's (`images/image-store.ts`); none, and no Add image…, when absent. */
+  readonly images?: ImageStore
 }
 
-export function createWorkspace(starters: readonly StudioStarter[], { locale = 'en', room = window.matchMedia(MIDDLE) }: WorkspaceOptions = {}): Workspace {
+export function createWorkspace(starters: readonly StudioStarter[], { locale = 'en', room = window.matchMedia(MIDDLE), images }: WorkspaceOptions = {}): Workspace {
   const opened = new Map<string, Opened>()
   // Every editor is told, not only the one shown: a starter picked again
   // after the window crossed the width draws its Preview where there is
@@ -55,7 +60,7 @@ export function createWorkspace(starters: readonly StudioStarter[], { locale = '
       const opening = openReportSession(starter.report)
       if (!opening.ok) throw new Error(`the starter '${id}' is not a valid report: ${opening.errors.map((error) => `${error.path} ${error.message}`).join('; ')}`)
       // Each starter opens with its PDF in sight, where the window has room for it.
-      const editor = createReportEditor(opening.session, { locale, hostView: { name: PREVIEW_NAME, shown: true, place: placeIn(room) } })
+      const editor = createReportEditor(opening.session, { locale, hostView: { name: PREVIEW_NAME, shown: true, place: placeIn(room) }, ...(images === undefined ? {} : { images }) })
       const made = { starter, session: opening.session, editor }
       opened.set(id, made)
       return made

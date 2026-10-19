@@ -236,7 +236,13 @@ approved drawing is written with, which an engine's own guard is held to;
 `MAX_SVG_BYTES`; `MAX_SVG_SEGMENTS` and `MAX_SVG_GROUPS`, what a page
 may cost a reader to paint; and `MAX_SVG_COORDINATE` and `MAX_SVG_DEPTH`,
 from which an engine derives how far its arithmetic may stray from that
-extent. An engine
+extent. And of an image's bytes, where a builder reads them when a person
+adds an image (0033): `MAX_ASSET_BYTES`, the most an asset may have, which
+this package held before and report-spec holds now, exported under the same
+name; `MAX_ASSET_SIDE`, the most pixels a side of a PNG or a JPEG;
+`sniffImage`, what bytes are by their first bytes; and `imageHeader` with
+`IMAGE_REFUSAL_CODES`, a PNG's or a JPEG's structure, read whole but for a
+PNG's image data, which an engine inflates itself. An engine
 depends on the runtime alone, and draws and refuses by the one decision the
 editor refuses by.
 
@@ -246,7 +252,8 @@ editor refuses by.
   over; the runtime reads no database and follows no address.
 - **Check an image's digest.** The host's lookup is trusted to return the
   bytes the digest pins. Not for want of a hash: a pure SHA-256,
-  `@noble/hashes`', reaches the runtime through `@formancy/spec`; checking
+  `@noble/hashes`', reaches the runtime through `@formancy/spec`, and
+  report-spec's `assetDigest` names an added image by it; checking
   digests changes what every host's resolver must satisfy, and is a
   decision of its own
   ([0030](../../docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).

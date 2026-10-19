@@ -1,9 +1,10 @@
-import { emptyReport, MAX_SVG_BYTES, validateReport } from '@formancy/report-spec'
+import { emptyReport, MAX_ASSET_BYTES, MAX_SVG_BYTES, validateReport } from '@formancy/report-spec'
+import * as spec from '@formancy/report-spec'
 import type { Component, FieldRef, Inline, Regions, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { ReportData } from './data.js'
-import { MAX_ASSET_BYTES } from './document.js'
 import type { Block, Image, QrCode, ResolvedDocument } from './document.js'
+import * as runtime from './index.js'
 import { lowerRegions } from './lower.js'
 import type { ImageResolver, Render } from './render-context.js'
 import { Problems } from './resolve-errors.js'
@@ -453,5 +454,20 @@ describe('an SVG image', () => {
     const accepted = resolveReport(withMark(body(mark)), data(), { ...OPTIONS, images: () => ({ mediaType: 'image/svg+xml', bytes: at.bytes }) })
     expect(accepted.ok && (accepted.document.body[0] as Image).asset.bytes.length).toBe(MAX_SVG_BYTES)
     expect(at.reads()).toBeGreaterThan(0)
+  })
+})
+
+describe("what an engine reads of report-spec's image decisions", () => {
+  // The renderer depends on the runtime alone, and reads a picture's
+  // structure and holds its size by the reader a builder refuses an upload
+  // by (0033), handed on here with the limits. A copy in the engine could
+  // disagree with the builder's, and nobody would find out until an image
+  // a person had added was refused at every print.
+  test("hands them on as report-spec's own", () => {
+    expect(typeof runtime.imageHeader).toBe('function')
+    expect(runtime.imageHeader).toBe(spec.imageHeader)
+    expect(runtime.sniffImage).toBe(spec.sniffImage)
+    expect(runtime.MAX_ASSET_SIDE).toBe(spec.MAX_ASSET_SIDE)
+    expect(runtime.MAX_ASSET_BYTES).toBe(spec.MAX_ASSET_BYTES)
   })
 })

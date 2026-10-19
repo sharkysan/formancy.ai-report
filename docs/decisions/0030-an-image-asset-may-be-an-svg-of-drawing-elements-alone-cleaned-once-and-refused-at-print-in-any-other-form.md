@@ -1,6 +1,9 @@
 # 0030 — An image asset may be an SVG of drawing elements alone, cleaned once by report-spec's rules when it is approved into the one form the renderer draws, and refused at print in any other form
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0033](0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md),
+  under which either builder cleans an SVG a person adds with the same
+  `cleanSvg`, the builder's upload this record names among the places an
+  SVG enters
 - **Date:** 2026-10-18
 - **Deciders:** Daniel Bacher
 - **Verified by:**

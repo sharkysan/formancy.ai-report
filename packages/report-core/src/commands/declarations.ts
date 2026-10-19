@@ -12,8 +12,16 @@
  * uses gives a report the validator refuses, so the session refuses the
  * edit with the validator's `unknown-style` at each place that uses it,
  * which is what an author needs to see before deciding.
+ *
+ * An asset has an add besides, which never replaces: an image a person adds
+ * is named before a host keeps its bytes under that id and digest, and only
+ * then declared (0033), so a put under an id the report came to declare
+ * meanwhile would swap another image for it, unseen. `nextAssetId` names
+ * it, by the rule a new component's id is made by, the file's name
+ * numbered as it stands.
  */
 import type { AggregateDef, AssetRef, DatasetContract, DatasetRole, FieldContract, ParameterDef, PrintStyle, ReportDefinition } from '@formancy/report-spec'
+import { checkPrefix, freshId } from '../ids.js'
 import { checkIndex, movedTo, removedAt, replacedAt } from '../lists.js'
 import { quote, refuse } from '../outcome.js'
 import type { CommandOutcome, Refusal } from '../outcome.js'
@@ -66,6 +74,28 @@ export function moveParameter(report: ReportDefinition, id: string, index: numbe
 
 export function putAsset(report: ReportDefinition, id: string, asset: Omit<AssetRef, 'id'>): CommandOutcome {
   return withList(report, 'assets', put(report.assets, id, asset))
+}
+
+/** The asset appended under `id`; refused as `already-declared` when the report declares one under it already. */
+export function addAsset(report: ReportDefinition, id: string, asset: Omit<AssetRef, 'id'>): CommandOutcome {
+  if (report.assets.some((existing) => existing.id === id)) return refuse('already-declared', `an asset is already declared as ${quote(id)}; an add never replaces one`, { path: '/assets' })
+  return withList(report, 'assets', put(report.assets, id, asset))
+}
+
+/**
+ * An id no asset of `report` has, and none of `handed`: `base` itself when
+ * it is free, and otherwise `base-2`, `base-3` and so on, shortened so that
+ * its number fits, as a new component's is. The base is a file's name,
+ * folded, so a number it ends in is its own and is numbered too:
+ * `img-4711` taken gives `img-4711-2`. Assets are a namespace of their own
+ * (0007), so a component's id does not count; `handed` holds the ids a
+ * builder has handed a host already, which an undo may declare again for
+ * the bytes it handed under them (0033). Throws a RangeError for a base
+ * that is not an identifier.
+ */
+export function nextAssetId(report: ReportDefinition, base: string, handed: ReadonlySet<string> = new Set()): string {
+  checkPrefix(base)
+  return freshId(base, new Set([...handed, ...report.assets.map(({ id }) => id)]), base)
 }
 
 export function removeAsset(report: ReportDefinition, id: string): CommandOutcome {

@@ -286,7 +286,7 @@
       ]
     },
     "0012": {
-      "reviewed": "sha256:60b75d6b5adf19e4fd6ccb68bb751beae05da18710f0d31c1901425c7d38574f",
+      "reviewed": "sha256:867e63d4a0575f8147ed65c1112613f527c9fda416854aa986f2b43815287ed5",
       "limitations": [
         {
           "area": "builders",
@@ -311,7 +311,7 @@
       ]
     },
     "0013": {
-      "reviewed": "sha256:c1b788a08c47ee750233d9c64d9e5c8f35c1456806a8758a3ea8b2a5ddfc5bad",
+      "reviewed": "sha256:12f0b73fb6921252a5559975c17aaa474b3e0c732886b866c2a704931719bcf6",
       "limitations": [
         {
           "area": "rendering",
@@ -1012,7 +1012,7 @@
       ]
     },
     "0030": {
-      "reviewed": "sha256:1695376a7249dd8ecc88b063fd3f97c88842ef4d8fee37857cbc1d011bf52a66",
+      "reviewed": "sha256:077a0e2efc700b69bedc6d567cae47b44cdefcca84beffecb1950eb5887784e8",
       "limitations": [
         {
           "area": "format",
@@ -1109,7 +1109,7 @@
       ]
     },
     "0031": {
-      "reviewed": "sha256:7dca7c6010368a4e6b8338d17065d3af0d2450e1876d2756b0d78987c4bec560",
+      "reviewed": "sha256:20166c8670139e34f9b0b042e2b37712c4f0dd9b07f564a53a6aa5805855c526",
       "limitations": [
         {
           "area": "rendering",
@@ -1225,6 +1225,74 @@
           "area": "rendering",
           "says": "The starters' mark is an invented drawing that names no firm, 15 mm square at the top left of the first page, taking 54.52 pt of it, so the quotation's first page holds 25 line items where it held 27; a firm's own logo is a new asset in a new template release, as any logo is.",
           "heldBy": "packages/report-render-pdf/src/starters.test.ts"
+        }
+      ]
+    },
+    "0033": {
+      "reviewed": "sha256:baf9274da8a3dc77791851217f453dc696734b8cd7068f86505bd5b911f9c938",
+      "limitations": [
+        {
+          "area": "builders",
+          "says": "A person adds an image in a builder only where the host gave the editor a store for the bytes; without one the builders offer no Add image…, and a report's images are the host's alone to declare.",
+          "heldBy": "packages/report-builder-core/src/images.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Adding an image checks its size, what its bytes are, a PNG's or a JPEG's structure with every chunk's CRC, and its sides, and an SVG whole; a PNG whose image data does not inflate to the scanlines its header promises, or a JPEG whose scan is corrupt, is added and kept, and refused as `invalid-asset` only when it prints.",
+          "heldBy": "packages/report-spec/src/image-header.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A CMYK JPEG is refused when it is added to a report with an e-invoice, whose PDF/A-3b cannot hold one; one added before the report gains an e-invoice is refused only at its final render, as `unsupported`.",
+          "heldBy": "apps/studio/src/images/image-store.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "An added image's digest is taken on the page's main thread by @noble/hashes: in Chromium 156 on an i9-10900K, on 19 October 2026, 18 ms for 1 MiB, 91 ms for 5 MiB and 360 ms for 20 MiB, about six times Web Crypto's, and the whole add of a PNG of just under 20 MiB in the Studio about half a second, while the page does nothing else."
+        },
+        {
+          "area": "builders",
+          "says": "Removing an image, or undoing its addition, leaves its bytes in the host's store, since a redo needs them and `keep` is never called again; a host lets go of what no report it keeps names and no open session can declare again by an undo or a redo.",
+          "heldBy": "packages/report-builder-core/src/images.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The asset id an add hands the host's `keep` is the one it means to declare, and another editor of the same session may declare it meanwhile for other bytes, the add then refused with the bytes kept under it; and the runtime checks no bytes against their digest. A store keys what it keeps by digest, or by id and digest, never by id alone, or a lookup could print another image unseen.",
+          "heldBy": "packages/report-builder-core/src/images.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The editor waits for the host's `keep` to settle and takes no other image meanwhile: a `keep` that never settles leaves Add image… unavailable for as long as the editor lives, and nothing cancels it.",
+          "heldBy": "packages/report-builder-core/src/images.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A file whose bytes the report declares already is declared nothing more, and its bytes go to the host's `keep` again under the id they are declared by, so that a report whose host lacks them can be given them: one more keep of bytes a host may hold.",
+          "heldBy": "packages/report-builder-core/src/images.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "An added image's id is read from its file's name -- the extension dropped, letters folded to plain Latin, anything else a hyphen, numbered as it stands where the name is taken, a second IMG_4711.png being img-4711-2 -- and reaches the report, its hash, the outline and the diagnostics, so a file named after a person names that person in the report; the builders offer no other id, and no way to rename one.",
+          "heldBy": "packages/report-builder-core/src/asset-name.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "An image is added one at a time per editor, and one whose id another editor of the same session declared while the host kept it is refused as `changed`, to be added again.",
+          "heldBy": "packages/report-builder-core/src/images.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The Studio keeps every image a person adds in the tab's memory, up to the format's own limits of 64 images of 20 MiB a report in each starter, never lets one go, and sends nothing anywhere; nothing measured where a tab gives out first, and a reload forgets them with the sessions.",
+          "heldBy": "apps/studio/src/images/image-store.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The builders' scenarios find the hidden file input Add image… opens by reading the DOM, the one element they find otherwise than by role and accessible name, and Space on Add image… is pressed for the Angular builder only by the Studio's browser gate, in Chromium."
+        },
+        {
+          "area": "release",
+          "says": "`@formancy/report-spec` depends on `@noble/hashes` at exactly 2.4.0, which `@formancy/spec` 0.6.0 brings at `^2.4.0`, so a fix to it reaches an installation only through a release of this module, and an upgrade of either may install two copies.",
+          "heldBy": "packages/report-spec/src/digest.test.ts"
         }
       ]
     },

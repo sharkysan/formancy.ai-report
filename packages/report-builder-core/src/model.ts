@@ -10,6 +10,7 @@
 import type { Location, Refusal } from '@formancy/report-core'
 import type { DiagnosticCode, DiagnosticSeverity } from '@formancy/report-core'
 import type { Component, ComponentKind, Margins, Orientation, PageSizeName, RegionName } from '@formancy/report-spec'
+import type { ImageLibrary } from './image-store.js'
 import type { EditorLocale } from './text.js'
 
 /** What is selected: a component, or one column of a table, named by the table's id and the column's. */
@@ -320,6 +321,8 @@ export interface Availability {
   readonly zoomOut: boolean
   /** At any zoom but 100 %, with the design view drawn. */
   readonly zoomReset: boolean
+  /** With a store the host gave, no image being added, and room in the report for another. */
+  readonly addImage: boolean
 }
 
 export const EDITOR_PANELS = ['outline', 'canvas', 'properties', 'diagnostics'] as const
@@ -367,6 +370,8 @@ export interface EditorState {
   readonly selection: Selection | null
   readonly outline: readonly OutlineRegion[]
   readonly palette: readonly PaletteEntry[]
+  /** The report's images, and whether a builder offers Add image… (0033). */
+  readonly images: ImageLibrary
   readonly properties: PropertyPanel
   readonly canvas: Canvas
   readonly diagnostics: readonly DiagnosticEntry[]
@@ -434,6 +439,15 @@ export type EditorAction =
   | { readonly type: 'hideHostView' }
   /** Where the host's view stands: the host's to say, from the room it has. */
   | { readonly type: 'placeHostView'; readonly place: HostViewPlace }
+  /**
+   * Sent by Add image… before a builder opens its file chooser, in the same
+   * activation: refused, and said why, when the editor would take no file
+   * now. The file chosen goes to `addImage`, which is no action, because
+   * reading it and the host keeping it take time.
+   */
+  | { readonly type: 'chooseImage' }
+  /** Removes an image the report declares and nothing draws, in one undo step. */
+  | { readonly type: 'removeImage'; readonly asset: string }
 
 export type EditorActionType = EditorAction['type']
 
@@ -456,14 +470,24 @@ export const EDITOR_REFUSAL_CODES = [
   /** A drop with no target under the pointer. */
   'no-target',
   /**
-   * A kind whose default component the report cannot hold yet: an image
-   * with no image to draw. Or a host's view, asked of an editor made
-   * without one; or the zoom, while a host's view stands in the design
-   * view's place.
+   * What the state marks unavailable, sent anyway: a kind whose default
+   * component the report cannot hold yet, an image with no image to draw; a
+   * host's view, asked of an editor made without one; the zoom, while a
+   * host's view stands in the design view's place; an image to add, with no
+   * store to keep it or no room in the report for it; and Remove, for an
+   * image something draws.
    */
   'unavailable',
   /** Undo or redo with no step to take. */
   'no-history',
+  /** An image to add while another is being added. */
+  'busy',
+  /** A file that is not an image the report prints, or past a limit, or of a kind the host does not keep: the report unchanged. */
+  'not-an-image',
+  /** The host refused to keep the image, or failed to: the report unchanged. */
+  'not-kept',
+  /** While the host kept the image, the report came to declare another under its id, which an add never replaces. */
+  'changed',
 ] as const
 
 export type EditorRefusalCode = (typeof EDITOR_REFUSAL_CODES)[number]

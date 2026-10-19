@@ -45,6 +45,7 @@ const EXAMPLES: { readonly [N in CommandName]: { readonly descriptor: Extract<Co
   putParameter: { descriptor: { command: 'putParameter', args: ['note', { type: 'string', label: 'Note', required: false }] } },
   removeParameter: { descriptor: { command: 'removeParameter', args: ['copies'] } },
   moveParameter: { descriptor: { command: 'moveParameter', args: ['from', 2] } },
+  addAsset: { descriptor: { command: 'addAsset', args: ['stamp', { mediaType: 'image/png', digest: `sha256:${'ef'.repeat(32)}` }] } },
   putAsset: { descriptor: { command: 'putAsset', args: ['stamp', { mediaType: 'image/png', digest: `sha256:${'ef'.repeat(32)}` }] } },
   removeAsset: { descriptor: { command: 'removeAsset', args: ['spare'] } },
   putAggregate: { descriptor: { command: 'putAggregate', args: ['rows', { fn: 'count' }] } },
@@ -77,10 +78,12 @@ const JUNK: readonly unknown[] = [null, 0, -1, 1.5, '', 'x', true, [], [null], {
 describe('COMMANDS', () => {
   // A proposal names commands by name. A command added to a module and not
   // to the registry could be called directly and never proposed; derived
-  // from the modules' exports, so the registry cannot fall behind them.
+  // from the modules' exports, so the registry cannot fall behind them. The
+  // two that name a new component or asset read a report and change none,
+  // so they are no commands.
   test('holds every command the command modules export, under its own name', () => {
     const exported = Object.entries({ ...document, ...declarations, ...components, ...table })
-      .filter(([name, value]) => typeof value === 'function' && name !== 'nextComponentId')
+      .filter(([name, value]) => typeof value === 'function' && name !== 'nextComponentId' && name !== 'nextAssetId')
       .map(([name]) => name)
       .sort()
     expect(Object.keys(COMMANDS).sort()).toEqual(exported)

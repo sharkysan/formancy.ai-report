@@ -78,6 +78,22 @@ does not know, throws a `RangeError` when the editor is made. Like the
 hidden panes it is the editor's: no edit, undo or other editor touches it
 ([0029](../../docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
 
+**A host's image store.** A host that keeps the images a person adds
+gives the editor its store, and both builders then offer Add image…
+(*Images a person adds*, below):
+
+```ts
+const editor = createReportEditor(opening.session, {
+  images: {
+    accept: ['image/png', 'image/svg+xml'], // every type the format draws when absent
+    async keep(image) {
+      await library.put(image.digest, image.bytes) // keyed by digest
+      return { ok: true }
+    },
+  },
+})
+```
+
 ## The state
 
 `editor.state()` returns one `EditorState`:
@@ -96,7 +112,11 @@ hidden panes it is the editor's: no edit, undo or other editor touches it
   same, each gets its id.
 - **`selection`**: a component, or one column of a table.
 - **`palette`**: every kind the format has, with the default component
-  inserting it would put in. Its id comes from `nextComponentId` and its
+  inserting it would put in. A new image draws the report's newest asset,
+  so the image a person just added is the one Image inserts, else the
+  header's image field; with neither, the entry says to add an image with
+  Add image… where the host keeps images, and to declare one where it
+  does not. Its id comes from `nextComponentId` and its
   size fits the printable area: a QR code's 30 mm square, and an EPC
   payment code's 32 mm, the least in which every payload the EPC allows
   prints with the frame and without, are held to report-spec's
@@ -112,6 +132,14 @@ hidden panes it is the editor's: no edit, undo or other editor touches it
   is Austria's option. Where the report lacks what a kind needs (an image
   with nothing to draw, a table with no detail dataset), the entry says
   what to declare first.
+- **`images`**: whether the host gave a store (`store`), so a builder
+  draws Add image…; the file chooser's `accept`, each type the store keeps
+  and its usual extensions; the name of the file being added, from the
+  moment the editor takes it until it has said what became of it
+  (`adding`); why Add image… takes no file now, while a store is given and
+  it takes none (`unavailable`); and the report's images in its order, each
+  with its label ("logo (SVG)"), its Remove's name ("Remove image logo")
+  and, when something draws it, what does (`inUse`).
 - **`properties`**: the fields of the selection, or of the report when
   nothing is selected. They are derived from report-spec's type for each
   kind. Each field has a key, a label, a kind (`text`, `multiline`, `number`,
@@ -169,7 +197,8 @@ hidden panes it is the editor's: no edit, undo or other editor touches it
 - **`can`**: which actions have somewhere to go: the keyboard's moves on
   the selection, decided by the same code that performs them, and the
   zoom's, by its range -- none while a host's view stands in the design
-  view's place, whose zoom it is. A builder marks the others
+  view's place, whose zoom it is -- and Add image…'s, by the rule that
+  refuses it. A builder marks the others
   `aria-disabled` and still sends them, so the editor says why nothing
   happened.
 - **`status`**: the latest announcement for the live region, numbered so
@@ -215,6 +244,13 @@ session's do.
 | `showHostView` | Shows the host's view. In the middle it takes the design view's place and becomes the pane a narrow layout shows, and the live region says how to bring the design view back whenever that changes what is in front of the person: as the view comes, and as one shown already comes back from another pane a narrow layout showed. Asked of a view that is the pane shown already, nothing changes and nothing is said. Beside, nothing else changes. Refused (`unavailable`) for an editor made without one. |
 | `hideHostView` | Hides it, silently: the host's own control says so by its pressed state. |
 | `placeHostView(place)` | Moves it between `'middle'` and `'beside'`, shown or not as it was, silently. Placed where it stands, it changes nothing and tells no listener. |
+| `chooseImage` | Sent by Add image… before it opens the file chooser, in the same activation. Changes nothing; refused, and said why, when the editor would take no file now: no store (`unavailable`), an image being added (`busy`), or a report that holds `MAX_ASSETS` images (`unavailable`). |
+| `removeImage(asset)` | Removes an image the report declares and nothing draws, in one undo step. Refused (`unavailable`) for one something draws, naming what draws it, before the session is asked. |
+
+`editor.addImage(file)` is no action: reading a file and a host keeping it
+take time, and `dispatch` is synchronous (0008). It resolves with an
+outcome as `dispatch` returns one, and rejects only with what a listener
+threw, once the add is done.
 
 Every pointer gesture has a keyboard path (formancy.ai 0046). `actionForKey`
 gives the keys:
@@ -233,10 +269,84 @@ To choose a place by keyboard, the builder starts a drag with
 `via: 'keyboard'` and lists `dropTargets` as buttons. Choosing one is an
 `insert` or a `move`.
 
+## Images a person adds
+
+A report holds an asset's id and digest, never its bytes (0007), and a
+host's resolver answers for them when it prints (0010). So a host that
+lets a person add an image keeps the bytes itself, through the
+`ImageStore` it gives the editor, and the report declares the asset only
+once the host has kept them
+([0033](../../docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
+A builder only turns the file a person chose into `editor.addImage(file)`:
+a DOM `File` is an `ImageFile` as it stands.
+
+`addImage` takes one file at a time, in this order, and refuses with the
+report unchanged and the reason in the live region:
+
+1. **Before the file is read**: with no store, while another is being
+   added, in a report that holds `MAX_ASSETS` images, or a file whose size
+   is past report-spec's `MAX_ASSET_BYTES` (20 megabytes of 1,048,576
+   bytes), so a 2 GB file is never read into the page's memory.
+2. **Its bytes**, read and held to the same limit again, are recognised by
+   report-spec's `sniffImage`, never by the file's name or a type a
+   browser guessed: a GIF named `logo.png` is refused. A type the store
+   does not keep is refused.
+3. **A PNG or a JPEG** is read by report-spec's `imageHeader`, as the
+   renderer reads it: every chunk's CRC, the header, the sides against
+   `MAX_ASSET_SIDE`, a JPEG's segments to its scan and its Exif turn. A
+   JPEG of four components, which PDFKit draws in CMYK, is refused in a
+   report with an e-invoice, whose PDF/A-3b cannot hold one (0031). **An
+   SVG** is cleaned by `cleanSvg` (0030), and what the host keeps is the
+   drawing it wrote, never the file as chosen; what cleaning removed is
+   said, by name, never a value. Each refusal of 0030 says what to do, in
+   the editor's words.
+4. **Its digest** is report-spec's `assetDigest`, of exactly those bytes.
+   Bytes the report declares already, as the same type, are not declared
+   again: they go to the host again under the id the report declares them
+   by, so that a report whose bytes its host lacks -- one opened where
+   another host kept them -- is given them by choosing the file, and the
+   live region names the asset that holds them.
+5. **Its id** is read from the file's name: the extension dropped, letters
+   folded to plain Latin, anything else a hyphen, `image-` before a name
+   that does not start with a letter (`Logo Müller AG.svg` is
+   `logo-muller-ag`), and numbered by report-core's `nextAssetId`, as it
+   stands, where the report has it already or this editor had the host
+   keep other bytes under it: a second `IMG_4711.png` is `img-4711-2`. A
+   file's name can carry a person's, and the id reaches the report.
+6. **The host keeps it**: `keep` is handed the id, the type, the digest,
+   the bytes, the file's name and the size it is drawn at. A `{ ok: false }`
+   is shown in the host's words, a rejection or any other answer in the
+   editor's, so nothing of the host's internals reaches the page. `keep`
+   must settle: the editor takes no other image until it does.
+7. **Then the report declares it**, through report-core's `addAsset`, in
+   one undo step, "Add image". An add never replaces: an asset the report
+   came to declare under that id while the host kept the image is left as
+   it is, and the add is refused (`changed`).
+
+Undo and redo take and give back the declaration alone, and `keep` is
+never called again, so a host keeps what it was handed for as long as a
+redo may need it. **Key the store by digest** and answer the resolver by
+id and digest, as the Studio does, never by id alone. The id `keep` is
+handed is the one the add means to declare, not one the report holds yet:
+an add the host kept may still end undeclared, and another editor of the
+session may declare that id meanwhile for other bytes, the add then
+refused as `changed`. The runtime checks no bytes against their digest,
+so a lookup that answered by id alone would print another image unseen.
+A host that keeps bytes by digest alone may ignore the id.
+
+What is not checked when an image is added is a PNG's image data, which
+needs a decompressor ES2023 does not have, and a JPEG's scan, which
+nothing decodes: a picture whose data is corrupt is added, and refused as
+`invalid-asset` when it prints. Nor is what the report gains later: a
+CMYK JPEG added before the report has an e-invoice is refused at its
+final render, as an SVG whose numbers its box would carry past what a
+PDF/A holds is.
+
 ## What a builder renders
 
 Both builders render the same accessible structure. The scenarios find
-everything in it by role and accessible name, and nothing else. Where this
+everything in it by role and accessible name, and nothing else, but for
+the hidden file input Add image… opens, which has no role. Where this
 list once left a choice open, the two builders made different ones, and
 the review that compared them found each difference only by reading both;
 so the choices are made here.
@@ -299,7 +409,22 @@ so the choices are made here.
 - **The palette:** a group named `pane.palette`, with one button per entry
   named by its label. An entry with no component is `aria-disabled` and
   described by its `unavailable` sentence. Activating one starts a keyboard
-  drag of its kind.
+  drag of its kind. Where `images.store` is true, one more button stands
+  last in the group, named `images.add` by its text, with
+  `data-report-part="palette-item"` and no `data-kind`: Add image…, which
+  starts no drag. It is `aria-disabled` and described by
+  `images.unavailable` while `can.addImage` is false, and `aria-busy="true"`
+  while `images.adding` is set. Beside it stands an `<input type="file">`
+  with `hidden` and `accept` set to `images.accept`, outside the
+  accessibility tree, and never given focus. Activating the button
+  dispatches `chooseImage` and, when that is ok, calls the input's
+  `click()` at once, in the same activation, which opens the platform's
+  chooser; awaiting anything first would lose the activation. On the
+  input's `change`, the builder takes `files[0]` into a local first, then
+  clears the input's `value` -- in a browser, clearing it empties `files`
+  -- so that the same file can be chosen again, and hands the file to
+  `addImage`. A chooser closed without a file does nothing. Focus stays on
+  the button throughout.
 - **The place chooser:** while `drag.via` is `'keyboard'`, a dialog named
   `drag.title`, floating over the outline pane, which `openPanel` shows. It
   holds a button per drop target named by its label, and a Cancel button.
@@ -333,7 +458,19 @@ so the choices are made here.
   `aria-invalid="true"` and an `aria-describedby` pointing to the visible
   error. While something is selected, a button named `properties.report`
   above the form selects nothing and takes focus to the first field: the
-  way back to the report's own properties.
+  way back to the report's own properties. While nothing is selected and
+  the report declares an image, a group named `images.heading` follows the
+  fields in the form -- named for a screen reader, with no heading drawn --
+  with one row per image of `images.assets`, `data-report-part="property"` and no
+  `data-kind`: its label as text, not a `<label>`, and a Remove button whose
+  text is `images.remove` and whose name is its `removeLabel`. A Remove
+  whose image something draws is `aria-disabled` and described by its
+  `inUse`, and still sends `removeImage`, so the live region says why. A
+  Remove that removed its image takes its own button away, and focus goes
+  to the first field, as the way back to the report's properties does; so
+  does an undo or a redo that takes away the row the keyboard stood on --
+  an image's add undone, its Remove redone -- which would otherwise leave
+  the keyboard on the page.
 - **The problems:** a `status` named `pane.problems` whose text is the
   name and, when there are any, their count ("Problems 2"), so a change in
   the count is announced; then a list named `pane.problems`, with one
@@ -396,7 +533,21 @@ zoom says it is the design view's while the host's view stands in its
 place. Their editor is made with
 the scenario's `host`, the runner gives the builder one button as the
 host's view, and a `host` step dispatches what the host's own control
-would.
+would. Others are about images: a PNG added, its add undone with the
+keyboard on its Remove and the keyboard then on the first field, redone,
+inserted with Image and both undone; a GIF named as a PNG refused; an SVG
+added as cleaned; the host's refusal shown; an image nothing draws removed
+while one something draws stays, and removed again by a redo pressed on
+its Remove; and no Add image… where the host keeps none. Their editor is made
+with the store `scenarioStore` gives the scenario (`store`), which keeps
+each image or refuses each, and records what it kept for a `kept`
+expectation. An `upload` step clicks Add image… and hands the scenario's
+file to the input beside it -- the one element a runner finds by reading
+the DOM, since a hidden input has no role -- with no filter of `accept` in
+the way, and fails when the editor never took the file. The files are
+bytes in the package: `SCENARIO_PNG`, a 2 × 1 PNG whose digest is pinned as
+`SCENARIO_PNG_DIGEST`, taken by `node:crypto`, so the first scenario holds
+`assetDigest` to it; a GIF; and an SVG.
 
 Each framework's test runs every scenario with Testing Library, and fails
 when one is skipped. The scenarios use every kind of step, so each runner
@@ -491,7 +642,8 @@ the other's steps in English.
     (only an optional text that is absent or one literal run is added by
     typing it and removed by emptying it), or a column in a columns block
     or a table (a table column can be duplicated and deleted);
-  - declarations: styles, datasets, parameters, assets, aggregates.
+  - declarations: styles, datasets, parameters, aggregates, and of assets
+    all but an image a person adds and the removal of one nothing draws.
 
   Each of these is a report-core command already. What is missing is the
   property kind to edit it.

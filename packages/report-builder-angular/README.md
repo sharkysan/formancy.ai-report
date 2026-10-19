@@ -94,6 +94,14 @@ What is Angular's own:
   stamps it with `@angular/core` alone, since `NgTemplateOutlet` is
   `@angular/common`'s, which is not this package's peer. A key pressed in
   it is the host's.
+- **Images a person adds** need nothing of the host but the editor's
+  store (`createReportEditor`'s `images`, [0033](../../docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)): the palette draws Add
+  image… last, and beside it the hidden file input, an `<input>` the
+  `ReportImageChooser` directive holds, which Add image… opens in the same
+  click once `chooseImage` is done; the file chosen is taken, the input
+  cleared, and handed to `editor.addImage`. The report's own properties
+  list its images, each with its Remove, which puts the keyboard on the
+  first field only once the image is gone (`ReportEditorRoot.attempt`).
 - **Drag and drop is HTML's**, from the palette, from a canvas box or from an
   outline row, onto the sheet (the nearest place, `targetNear`, read inside
   the sheet's border) or onto a row (before or after it, `targetBeside`). A
@@ -160,8 +168,9 @@ under jsdom with zoneless change detection, as an application on Angular 22
 runs.
 
 - **Every `BUILDER_SCENARIOS` scenario**, in English, Swiss German and Swiss
-  French. Each step finds elements by role and accessible name only, and each
-  scenario ends with axe over the whole page at WCAG 2.2 AA, as formancy.ai's
+  French. Each step finds elements by role and accessible name only, but an
+  `upload`, which finds the hidden file input beside Add image… in the DOM,
+  since it has no role; and each scenario ends with axe over the whole page at WCAG 2.2 AA, as formancy.ai's
   conformance suite audits. A scenario left out, or a kind of step never
   taken, fails the file.
 - **The accessible tree:** every element a person operates or reads is
@@ -188,6 +197,15 @@ runs.
   middle pane's `data-pane`, its own part, no workbench class and only the
   host's view in it, stamped while the region is drawn and destroyed with
   it. That test reads the DOM, for the reason the hooks' tests do.
+- **Images**: `image-chooser.test.ts` gives the file input `files` and a
+  `value` that behave as a browser's, where clearing the value empties the
+  files, and holds the file taken before the input is cleared, the input
+  cleared, a chooser closed without a file doing nothing, the keyboard on
+  Add image… while an image is added and after, Enter and a click opening
+  the chooser, no chooser where the editor takes no file, nothing drawn
+  without a store, and the host's types offered; `properties.test.ts` holds
+  the image rows. Space is not fired here; the Studio's browser gate
+  presses it (`apps/studio/scripts/gate-images.mjs`).
 - **The dependency closure:** the manifest, the installed tree and every
   import the published entry reaches. No React anywhere, and nothing imported
   that is not declared.

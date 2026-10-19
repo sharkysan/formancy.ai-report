@@ -114,17 +114,10 @@ export interface Table {
 }
 
 /**
- * The most bytes one image asset may have: 20 MB, the renderer trial's
- * limit, the plan's "enforced limits" made a number to test. The runtime
- * refuses an answer past it before copying it, and the renderer before
- * decoding it, from this one constant.
- */
-export const MAX_ASSET_BYTES = 20 * 1024 * 1024
-
-/**
  * An approved asset's bytes, already fetched by the host: an engine never
  * resolves an address. Every image that draws the same asset shares one
- * object, which an engine embeds once.
+ * object, which an engine embeds once for a PNG or a JPEG, and draws again
+ * wherever an SVG prints (0030).
  */
 export interface ImageAsset {
   readonly id: string

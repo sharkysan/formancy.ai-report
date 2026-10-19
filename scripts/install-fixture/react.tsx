@@ -26,7 +26,7 @@ import type { ReportBuilderProps } from '@formancy/report-builder-react'
 import type { EditorState, ReportEditor } from '@formancy/report-builder-core'
 import { elementsIn, readMarkup, spokenText } from './markup.js'
 import type { MarkupElement } from './markup.js'
-import { editorToDraw, editorWithHostView, HOST_VIEW, structureProblems } from './structure.js'
+import { editorToDraw, editorWithHostView, editorWithImages, HOST_VIEW, structureProblems } from './structure.js'
 
 /**
  * Which of React's builds runs: the gate sets NODE_ENV=production for the
@@ -96,6 +96,16 @@ if (viewed.children.length !== 1 || viewRoot === undefined || typeof viewRoot ==
 wrong.push(...structureProblems(viewRoot, viewing.state()).map((problem) => `with a host's view: ${problem}`))
 viewing.dispose()
 
+// Drawn a third time over an editor with a host's store, and a report
+// with two images (0033): Add image… and its input at the palette's end,
+// and the report's images listed under its fields.
+const imaging = editorWithImages()
+const imaged = readMarkup(render(<ReportBuilder editor={imaging} />))
+const [imagedRoot] = imaged.children
+if (imaged.children.length !== 1 || imagedRoot === undefined || typeof imagedRoot === 'string') throw new Error('the markup with images is not one editor root')
+wrong.push(...structureProblems(imagedRoot, imaging.state()).map((problem) => `with images: ${problem}`))
+imaging.dispose()
+
 // A host's own view of the state, through the hook the package exports.
 function Title({ editor: shown }: { readonly editor: ReportEditor }): ReactElement {
   return <h1>{useEditorState(shown).document.title}</h1>
@@ -108,5 +118,5 @@ editor.dispose()
 if (wrong.length > 0) throw new Error(`the React builder, drawn on the server by React's ${build} build:\n- ${wrong.join('\n- ')}`)
 
 console.log(
-  `ok: React ${version}'s ${build} build drew the packed builder on the server, in Swiss German, as report-builder-core's README sets out: one region named by the catalogue, a toolbar that is one tab stop with a button per pane, a Hide in each side pane, a palette of ${String(state.palette.length)}, a tree with a group per region and a row per node, a design view of named pictures, a form named by its heading, the report's problems listed and counted, and the live region, and with a host's view the region it stands in instead of the design view; every data-report-part one REPORT_PARTS names; nothing said by React, nothing changed and no listener added (the server runs no effects, so it never subscribes); useEditorState gave a host the state`,
+  `ok: React ${version}'s ${build} build drew the packed builder on the server, in Swiss German, as report-builder-core's README sets out: one region named by the catalogue, a toolbar that is one tab stop with a button per pane, a Hide in each side pane, a palette of ${String(state.palette.length)}, a tree with a group per region and a row per node, a design view of named pictures, a form named by its heading, the report's problems listed and counted, and the live region, and with a host's view the region it stands in instead of the design view, and with a host's store Add image… and its hidden input, and the report's images, each with its Remove; every data-report-part one REPORT_PARTS names; nothing said by React, nothing changed and no listener added (the server runs no effects, so it never subscribes); useEditorState gave a host the state`,
 )

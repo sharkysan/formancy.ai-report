@@ -7,8 +7,9 @@
  * outside the list is refused, never clamped, so that a keyboard move and a
  * pointer drop that name the same place do the same thing.
  */
-import { componentAt, isIdentifier, walkComponents } from '@formancy/report-spec'
+import { componentAt, walkComponents } from '@formancy/report-spec'
 import type { Component, ComponentKind, ReportDefinition } from '@formancy/report-spec'
+import { freshId, nextId } from '../ids.js'
 import { checkIndex, insertedAt, patched, removedAt } from '../lists.js'
 import type { Patch } from '../lists.js'
 import { isRefusal, quote, refuse } from '../outcome.js'
@@ -22,12 +23,6 @@ import type { ComponentList, Location } from '../tree.js'
  * table's columns; `null` removes an optional property.
  */
 export type ComponentPatch<K extends ComponentKind> = K extends ComponentKind ? Patch<Omit<Extract<Component, { kind: K }>, 'id' | 'kind'>> : never
-
-/** The longest identifier the format allows: `isIdentifier`'s rule in report-spec, at most 64 characters. */
-const IDENTIFIER_LENGTH = 64
-
-/** A trailing number an id was given to make it unique: `-2` in `intro-2`. */
-const NUMBERED = /-\d+$/
 
 function missing(id: string): Refusal {
   return refuse('not-found', `no component is ${quote(id)}`, { componentId: id })
@@ -88,17 +83,6 @@ export function updateComponent<K extends ComponentKind>(report: ReportDefinitio
   return { ok: true, report: updateAt<Component>(report, found.path, (component) => patched(component as object, patch as Patch<object>)) }
 }
 
-/** `prefix` if no component has it, otherwise its base numbered from 2, within the identifier's length. */
-function freshId(prefix: string, taken: ReadonlySet<string>): string {
-  if (!taken.has(prefix)) return prefix
-  const base = prefix.replace(NUMBERED, '')
-  for (let number = 2; ; number += 1) {
-    const suffix = `-${number}`
-    const id = `${base.slice(0, IDENTIFIER_LENGTH - suffix.length)}${suffix}`
-    if (!taken.has(id)) return id
-  }
-}
-
 function idsOf(report: ReportDefinition): Set<string> {
   return new Set(walkComponents(report).map(({ component }) => component.id))
 }
@@ -133,8 +117,7 @@ const NAMED_AFTER: { readonly [K in ComponentKind]: string } = {
  */
 export function nextComponentId(report: ReportDefinition, prefix: string): string {
   const named = Object.hasOwn(NAMED_AFTER, prefix) ? NAMED_AFTER[prefix as ComponentKind] : prefix
-  if (!isIdentifier(named)) throw new RangeError(`${quote(prefix)} is not an identifier: lower-case letters, digits and hyphens, starting with a letter`)
-  return freshId(named, idsOf(report))
+  return nextId(named, idsOf(report), prefix)
 }
 
 /** A copy of `component` and all it holds, each given a fresh id, recorded in `taken` as it is given. */

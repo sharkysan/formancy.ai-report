@@ -247,6 +247,8 @@ export { REPORT_ERROR_CODES } from './errors.js'
 export type { ReportError, ReportErrorCode } from './errors.js'
 export {
   MAX_AGGREGATES,
+  MAX_ASSET_BYTES,
+  MAX_ASSET_SIDE,
   MAX_ASSETS,
   MAX_COLUMNS,
   MAX_DATASET_FIELDS,
@@ -284,6 +286,10 @@ export {
   MIN_PRINTABLE_PT,
 } from './limits.js'
 export { isFieldKey, isIdentifier } from './syntax.js'
+
+export { assetDigest } from './digest.js'
+export { IMAGE_REFUSAL_CODES, imageHeader, sniffImage } from './image-header.js'
+export type { ImageRefusal, ImageRefusalCode, JpegHeader, PngHeader, RasterHeader } from './image-header.js'
 
 export { checkSvg, cleanSvg } from './svg.js'
 export type { CheckedSvg, CleanSvg } from './svg.js'

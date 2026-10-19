@@ -1,15 +1,16 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { editorText } from '@formancy/report-builder-core'
+import { editorText, SCENARIO_PNG } from '@formancy/report-builder-core'
 import type { ReportSession } from '@formancy/report-core'
 import { STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest'
 import type { PreviewOutcome, PreviewRequest } from './preview/pipeline.js'
 import { decodeStarters, encodeStarters } from './starters/codec.js'
-import { imagesOf, studioStarters } from './starters/starters.js'
+import { studioImages } from './images/image-store.js'
+import { studioStarters } from './starters/starters.js'
 import { Studio } from './studio.js'
 import { violations } from './test-accessible.js'
 import { setWidth } from './test-width.js'
@@ -31,11 +32,17 @@ import type { Workspace } from './workspace.js'
  * beside the builder: there it stands in the design view's place (0029).
  * A test that needs the room sets the width (test-width.ts), which the
  * matchMedia stand-in in test-setup.ts answers.
+ *
+ * An image is added as a person adds one (0033): Add image… pressed, and
+ * the file handed to the hidden input it opens, which has no role and is
+ * found beside the button in the DOM, as the builders' scenarios find it.
  */
 
 const seen = vi.hoisted(() => ({
   /** Every preview the pane asked for, in order. */
   requests: [] as { readonly id: string; readonly mode: string; readonly title: string }[],
+  /** How each preview ended -- printed, refused with the runtime's codes, or not drawn with the renderer's -- and the assets its report declared. */
+  outcomes: [] as { readonly assets: readonly string[]; readonly kind: string }[],
   /** Each session the workspace opened, and how many subscriptions it has now. */
   subscriptions: new Map<object, number>(),
 }))
@@ -44,9 +51,12 @@ vi.mock('./preview/pipeline.js', async (importOriginal) => {
   const pipeline = await importOriginal<typeof import('./preview/pipeline.js')>()
   return {
     ...pipeline,
-    preview: (request: PreviewRequest, signal: AbortSignal, options?: { readonly maxPages?: number }): Promise<PreviewOutcome> => {
+    preview: async (request: PreviewRequest, signal: AbortSignal, options?: { readonly maxPages?: number }): Promise<PreviewOutcome> => {
       seen.requests.push({ id: request.starter.id, mode: request.mode, title: request.report.title })
-      return pipeline.preview(request, signal, options)
+      const outcome = await pipeline.preview(request, signal, options)
+      const kind = outcome.kind === 'printed' ? 'printed' : outcome.kind === 'refused' ? `refused: ${outcome.errors.map((error) => error.code).join()}` : `not drawn: ${outcome.refusal.code}`
+      seen.outcomes.push({ assets: request.report.assets.map((asset) => asset.id), kind })
+      return outcome
     },
   }
 })
@@ -104,6 +114,7 @@ afterEach(() => {
   cleanup()
   workspace?.dispose()
   seen.requests.length = 0
+  seen.outcomes.length = 0
 })
 
 type User = ReturnType<typeof userEvent.setup>
@@ -119,10 +130,11 @@ function mount(): { workspace: Workspace; user: User } {
   document.documentElement.lang = served.documentElement.lang
   document.title = served.title
   const listed = studioStarters(starters)
-  workspace = createWorkspace(listed)
+  const kept = studioImages(images)
+  workspace = createWorkspace(listed, { images: kept.store })
   const root = document.createElement('div')
   root.id = 'root'
-  render(<Studio starters={listed} workspace={workspace} images={imagesOf(images)} />, { container: document.body.appendChild(root) })
+  render(<Studio starters={listed} workspace={workspace} images={kept.resolve} />, { container: document.body.appendChild(root) })
   return { workspace, user: userEvent.setup() }
 }
 
@@ -215,6 +227,49 @@ describe('the Studio', () => {
     await user.click(tool('Redo'))
     await waitFor(() => expect(title().value).toBe(edited))
     expect(session.document().title).toBe(edited)
+    expect(await violations()).toEqual([])
+  })
+
+  // Plan 21's switch with an image (0033): added in Angular, kept by the
+  // page, inserted and printed; both steps undone in React, and redone in
+  // Angular, where the Preview prints it again from the bytes the page
+  // kept. A store given to one framework's builder and not the other's, or
+  // lost with the builder, offers no Add image… after the switch; one that
+  // let the bytes go on the undo refuses the redo's preview as
+  // missing-asset.
+  test('adds an image in Angular, undoes it in React and redoes it in Angular, printing it wherever it stands', async () => {
+    /** Each preview that neither printed nor gave way to a later one: a render the scheduler cancelled for the next edit is neither. */
+    const unprinted = (): string[] => seen.outcomes.filter(({ kind }) => kind !== 'printed' && kind !== 'not drawn: cancelled').map(({ assets, kind }) => `${kind} (${assets.join()})`)
+    const { user } = mount()
+    await user.selectOptions(picker(), 'blank')
+    await screen.findByText('Preview: printed.')
+    await show(user, 'Angular')
+    const add = within(editor()).getByRole('button', { name: t('images.add') })
+    await user.click(add)
+    const input = add.parentElement?.querySelector('input[type="file"]')
+    if (!(input instanceof HTMLInputElement)) throw new Error('no file input beside Add image…')
+    fireEvent.change(input, { target: { files: [new File([Uint8Array.from(SCENARIO_PNG)], 'logo.png', { type: 'image/png' })] } })
+    await within(editor()).findByText(t('images.added', { id: 'logo', kind: t('kind.image') }))
+    expect(document.activeElement).toBe(within(editor()).getByRole('button', { name: t('images.add') }))
+    await user.click(within(editor()).getByRole('button', { name: t('kind.image') }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: t('target.inside', { where: t('region.reportHeader') }) }))
+    await waitFor(() => expect(seen.outcomes.at(-1)).toEqual({ assets: ['logo'], kind: 'printed' }))
+    expect(unprinted()).toEqual([])
+
+    await show(user, 'React')
+    // Back at the report's properties, the image is listed, drawn by the image just inserted.
+    await user.click(within(editor()).getByRole('button', { name: t('properties.report') }))
+    expect(within(editor()).getByRole('button', { name: t('images.removeOne', { id: 'logo' }), description: t('images.inUse', { names: t('label.kindDetail', { kind: t('kind.image'), detail: 'logo' }) }) })).toBeTruthy()
+    await user.click(tool('Undo'))
+    await user.click(tool('Undo'))
+    await waitFor(() => expect(seen.outcomes.at(-1)).toEqual({ assets: [], kind: 'printed' }))
+    expect(within(editor()).queryByRole('group', { name: t('images.heading') })).toBeNull()
+
+    await show(user, 'Angular')
+    await user.click(tool('Redo'))
+    await user.click(tool('Redo'))
+    await waitFor(() => expect(seen.outcomes.at(-1)).toEqual({ assets: ['logo'], kind: 'printed' }))
+    expect(unprinted()).toEqual([])
     expect(await violations()).toEqual([])
   })
 
