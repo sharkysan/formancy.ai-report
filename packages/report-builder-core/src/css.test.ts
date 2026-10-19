@@ -11,9 +11,9 @@ import { REPORT_ATTRIBUTES, REPORT_PARTS, WORKBENCH_CLASSES } from './parts.js'
 
 /**
  * The variables formancy.ai 0.5.0's `packages/themes/workbench.css` defines,
- * read from the file at that tag. Typed here because `@formancy/themes` is
- * not a dependency of this package; when the Studio brings it, this list is
- * read from the file instead.
+ * read from the file at that tag, and 0.6.0's, which the Studio pins: the
+ * file did not change between the two tags. Typed here because
+ * `@formancy/themes` is not a dependency of this package.
  */
 const WORKBENCH_VARIABLES = ['--wb-ink', '--wb-bench', '--wb-panel', '--wb-surface', '--wb-rule', '--wb-muted', '--wb-signal', '--wb-derived', '--wb-invalid', '--wb-ok', '--wb-caution', '--wb-sans', '--wb-mono']
 

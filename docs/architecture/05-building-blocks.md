@@ -49,7 +49,7 @@ the upstream packages' and the peers' ranges.
 | `@formancy/report-builder-angular` | `report-builder-core`, `report-core`, `report-spec` | `tslib` | `@angular/core` | The core packages and Angular; `src/dependencies.test.ts` fails on React anywhere in its closure ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
 | `@formancy/report-corpus` | `report-runtime` | `pdfjs-dist`, `zxing-wasm`, `saxes`, `@pdfme/pdf-lib` | — | Private, never published: test support ([0003](../decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)). saxes reads the XML the runtime writes, a parser that is not the writer, in the corpus's tests and, resolved from the corpus, in the e-invoice gate's scripts (0027), and a PDF's XMP. pdf-lib reads a PDF's own objects, a reader that is neither the pdfkit that writes them nor PDF.js, in the corpus's tests and the renderer's and, through the corpus's built index, in the e-invoice gate, which reads what each PDF embeds with it and records each PDF by its digest (0031) |
 | `apps/studio` (`@formancy/report-studio`) | `report-spec`, `report-core`, `report-runtime`, `report-render-pdf`, `report-builder-core`, `report-builder-react`, `report-builder-angular`: every package but the provider; and `report-corpus`, for its starters | `react`, `react-dom`, `@angular/core`, `@angular/common`, `@angular/platform-browser`, `rxjs`, `pdfjs-dist`, `@formancy/themes`, and the faces: `@fontsource-variable/archivo`, `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono` | — | Private; the PDF.js viewer lives here and in no published package ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)), and its faces are its own copies ([0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)) |
-| `apps/pages` (`@formancy/report-pages`) | — | `react` and `react-dom`, for the server renderer, and the faces: `@fontsource-variable/archivo`, `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono` | — | Private; the Studio's stylesheets by import, and facts read from the repository's files when it builds ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)) |
+| `apps/pages` (`@formancy/report-pages`) | — | `react` and `react-dom`, for the server renderer; `@formancy/themes`, for formancy's room; and the faces: `@fontsource-variable/archivo`, `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono` | — | Private; formancy's room and the Studio's stylesheets by import, and facts read from the repository's files when it builds ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md), [0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) |
 
 **What holds the layers, and what does not.** The table's dependencies
 are held to the manifests by `scripts/architecture.test.mjs`: a manifest
@@ -294,10 +294,12 @@ builder's middle, as the editor's host view, in any other; the workspace
 tells every editor it holds as the window crosses that width
 ([0019](../decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md),
 [0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)). It
-wears formancy.ai's room: `styles/room.css` copies admin.css's variables
-under a marking comment, and the builder is recoloured only through the
-workbench's variables
-([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).
+wears formancy.ai's room: `main.tsx` imports the released
+`@formancy/themes/room.css` after the workbench, `styles/room.css` holds
+only what is the Studio's own -- the text's two font stacks and the page --
+and the builder is recoloured only through the workbench's variables
+([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md),
+[0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)).
 Its `scripts/` hold the browser gate and the README pictures' walk.
 
 **`apps/pages`** is the product's pages, prerendered by React's
@@ -305,7 +307,8 @@ Its `scripts/` hold the browser gate and the README pictures' walk.
 English. `src/groups.ts` is the list of pages, among them a page for each
 payment code that shows its invoice's samples; `scripts/inputs.mjs` reads
 the release, the licence's terms and the faces from this repository's files
-when it builds; `src/checks/` hold every page's head, links, words and
+when it builds, and inlines formancy's room from the pages' own
+`@formancy/themes` before the Studio's stylesheets (0034); `src/checks/` hold every page's head, links, words and
 sitemap ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md),
 [0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
 A page whose code no release has carries its status, written against the

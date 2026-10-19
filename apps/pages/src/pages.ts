@@ -98,7 +98,7 @@ export const STYLESHEET = `${FILES}pages.css`
 /** The site path of a file the stylesheet names by a relative url(): a face's, `fonts/…`. */
 export const besideStylesheet = (href: string): string => `${STYLESHEET.slice(0, STYLESHEET.lastIndexOf('/') + 1)}${href}`
 
-/** The site path of the notices for the faces' files, as the Studio's build writes its own at its root (0023). */
+/** The site path of the notices for the faces' files and the room's stylesheet, as the Studio's build writes its own at its root (0023, 0034). */
 export const NOTICES = `${FILES}THIRD-PARTY-NOTICES.txt`
 
 /** The site path a picture under docs/images is served at. */

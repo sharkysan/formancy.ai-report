@@ -120,7 +120,11 @@ deploy happened or what the address serves.
   states; `@formancy/themes`, which no builder declares, so the host
   installs it itself, at the release the getting-started guide's install
   line names; and `@formancy/themes/workbench.css` imported first, then
-  report-builder-core's `report-builder.css`. The React builder fills a
+  report-builder-core's `report-builder.css`, and, for formancy's own dark
+  room, `@formancy/themes/room.css` after the workbench, as the Studio
+  imports it
+  ([0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)).
+  The React builder fills a
   container the host gives a height
   ([`packages/report-builder-react/README.md`](../../packages/report-builder-react/README.md),
   [`packages/report-builder-angular/README.md`](../../packages/report-builder-angular/README.md)).

@@ -311,7 +311,7 @@
       ]
     },
     "0013": {
-      "reviewed": "sha256:52a696cbf1f22722cc41998c644ce000a9fc162b305124feb434225db881b60a",
+      "reviewed": "sha256:c1b788a08c47ee750233d9c64d9e5c8f35c1456806a8758a3ea8b2a5ddfc5bad",
       "limitations": [
         {
           "area": "rendering",
@@ -319,7 +319,7 @@
         },
         {
           "area": "builders",
-          "says": "A host that wants formancy.ai's admin look for the builder copies the Studio's builder.css rules as well as the --wb-* variables; the variables alone give the workbench's own shapes in the room's colours."
+          "says": "A host that wants formancy.ai's admin look for the builder copies the Studio's builder.css rules, and imports `@formancy/themes/room.css` for the colours as the Studio does (0034); the room alone gives the workbench's own shapes in the room's colours."
         },
         {
           "area": "testing",
@@ -467,7 +467,7 @@
       ]
     },
     "0021": {
-      "reviewed": "sha256:ac9398258b908fe3601117b765779bb5f107503ce3e24daa995b6599a5c8ce99",
+      "reviewed": "sha256:43dc56586f86950b410b4bea7888ad831fe14b7d60f05027be54f823c0cb9da1",
       "limitations": [
         {
           "area": "release",
@@ -1225,6 +1225,28 @@
           "area": "rendering",
           "says": "The starters' mark is an invented drawing that names no firm, 15 mm square at the top left of the first page, taking 54.52 pt of it, so the quotation's first page holds 25 line items where it held 27; a firm's own logo is a new asset in a new template release, as any logo is.",
           "heldBy": "packages/report-render-pdf/src/starters.test.ts"
+        }
+      ]
+    },
+    "0034": {
+      "reviewed": "sha256:e576dcad38ebb3e93bcbcf8f76b2b46855a1b892c0e4e549f8c4ead95b3f766f",
+      "limitations": [
+        {
+          "area": "data",
+          "says": "A consumer of `@formancy/report-data-provider` installs two releases of `@formancy/spec`, 0.6.0 through `@formancy/report-spec` and 0.5.0 through `@formancy/data-client` and `@formancy/data-core` 0.1.0, which pin it exactly, until Formancy Data releases against 0.6.0; no object of one reaches the other in the provider."
+        },
+        {
+          "area": "release",
+          "says": "The Studio's demo and the product pages at formancy.ai/report/ wear formancy's room as `@formancy/themes` 0.6.0 has it, so a colour formancy moves after 0.6.0 reaches them only with the bump of `@formancy/themes` that takes the release that moves it.",
+          "heldBy": "scripts/palette.test.mjs"
+        },
+        {
+          "area": "release",
+          "says": "The colours admin.css's rules type that formancy's room does not carry -- the dark ink on the skip link and the chosen builder, the problem's pink, the shade under the starter picker and the Preview's pages, white's tints -- are copies in the Studio's and the pages' stylesheets, so one formancy's admin moves reaches neither until somebody copies it again."
+        },
+        {
+          "area": "builders",
+          "says": "A host page that wears formancy's room imports `@formancy/themes/room.css` after `workbench.css`, as the Studio does; imported before it, the workbench's light defaults win and the builder's panes stay light in the dark room."
         }
       ]
     }

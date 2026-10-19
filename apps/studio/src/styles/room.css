@@ -1,41 +1,26 @@
-/* The room: the admin's variables, the page, and what is said rather than drawn. */
+/*
+ * The room: the page, and what is said rather than drawn.
+ *
+ * formancy.ai's palette is not here. main.tsx imports it, released, as
+ * @formancy/themes/room.css after workbench.css, whose --wb-* it recolours
+ * (0034; formancy.ai 0178), and the product pages import it first in
+ * pages.css; scripts/palette.test.mjs fails on a stylesheet here that sets
+ * one of its variables itself, or types one of its hues: a tint of the
+ * room's violet is color-mix() of --client, the same colour, which moves
+ * with the room. What is below reads it. The rules are admin.css's, and
+ * the colours they type that the room does not carry -- the skip link's
+ * ink, the problem's pink, white's tints -- are admin.css's, as its rules
+ * type them (0034).
+ */
 
 :root {
-  /* formancy.ai apps/admin/src/admin.css */
-  --ground: #080a12;
-  --glass: rgb(17 22 36 / 74%);
-  --text: #eef1f8;
-  --muted: #95a0b4;
-  --edge: rgb(255 255 255 / 9%);
-  --edge-strong: rgb(255 255 255 / 15%);
-  --client: #8b7bff;
-  --server: #3fe0d5;
-  --invalid: #ff7a8a;
-  --ok: #4fdc8a;
-  --warn: #ffd27a;
-
-  --display: 'Archivo', 'Archivo Variable', 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-
-  /* The workbench recoloured for the room, as the admin recolours it: the
-     builder's panes take their colours from these and from nothing else. */
-  --wb-ink: var(--text);
-  --wb-bench: #0b0f18;
-  --wb-panel: #0f1422;
-  --wb-surface: #151b2b;
-  --wb-rule: rgb(255 255 255 / 12%);
-  --wb-muted: var(--muted);
-  --wb-signal: var(--client);
-  --wb-derived: var(--server);
-  --wb-invalid: var(--invalid);
-  --wb-ok: var(--ok);
-  --wb-caution: #f0b429;
-
-  /* The two stacks admin.css reads from workbench.css as --wb-sans and
-     --wb-mono, as formancy.ai-data's apps name them. */
+  /* The two faces the room's text is set in, which room.css leaves to the
+     importer: the stacks admin.css reads from workbench.css as --wb-sans
+     and --wb-mono, at their values, named here as formancy.ai-data's apps
+     name them, because the product pages load no workbench. The palette
+     guard holds them to the installed workbench's. */
   --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
-
-  color-scheme: dark;
 }
 
 *:where(:not(.paper *)) {
@@ -58,7 +43,11 @@ body {
 }
 
 /* The light behind the bench, as the admin has it: still, because somebody
-   works here for hours. */
+   works here for hours. Its stops mix the room's violet and teal, and the
+   gradients say `in srgb`, the space a gradient of typed colours is drawn
+   in: a color-mix() stop alone moves a gradient to Oklab, which in
+   Chromium 156 drew these gradients, alone on a page, up to 22 of 255
+   apart from the typed stops admin.css's have (0034). */
 body::before {
   content: '';
   position: fixed;
@@ -66,8 +55,8 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(50rem 30rem at 8% -8rem, rgb(139 123 255 / 15%), transparent 70%),
-    radial-gradient(40rem 26rem at 96% 0%, rgb(63 224 213 / 9%), transparent 70%),
+    radial-gradient(50rem 30rem at 8% -8rem in srgb, color-mix(in srgb, var(--client) 15%, transparent), transparent 70%),
+    radial-gradient(40rem 26rem at 96% 0% in srgb, color-mix(in srgb, var(--server) 9%, transparent), transparent 70%),
     linear-gradient(rgb(255 255 255 / 3%) 1px, transparent 1px) 0 0 / 56px 56px,
     linear-gradient(90deg, rgb(255 255 255 / 3%) 1px, transparent 1px) 0 0 / 56px 56px;
   mask-image: linear-gradient(black, transparent 85%);

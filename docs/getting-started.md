@@ -63,13 +63,13 @@ npm install @formancy/report-spec @formancy/report-core
 To embed the editor in a React page, in a React application:
 
 ```sh guide=react
-npm install @formancy/report-core @formancy/report-builder-core @formancy/report-builder-react @formancy/themes@0.5.0
+npm install @formancy/report-core @formancy/report-builder-core @formancy/report-builder-react @formancy/themes@0.6.0
 ```
 
 To embed it in an Angular page, in an Angular application:
 
 ```sh guide=angular
-npm install @formancy/report-spec @formancy/report-core @formancy/report-builder-core @formancy/report-builder-angular @formancy/themes@0.5.0
+npm install @formancy/report-spec @formancy/report-core @formancy/report-builder-core @formancy/report-builder-angular @formancy/themes@0.6.0
 ```
 
 `@formancy/themes` is formancy's, under Apache-2.0, at the release the
@@ -79,6 +79,9 @@ to reports; a page imports both, the workbench's first. The builder takes
 its colours from the workbench's `--wb-*` variables, so a page recolours it
 by setting those and never by overriding a rule
 ([report-builder-core's README](../packages/report-builder-core/README.md#the-stylesheet)).
+A page that wants formancy's own dark room imports `@formancy/themes/room.css`
+after the workbench, which sets them to the admin's palette, as the Studio
+does ([0034](./decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)).
 
 What the packages are tested with -- Node, TypeScript, React, Angular and
 the upstream `@formancy/*` releases -- is the table under

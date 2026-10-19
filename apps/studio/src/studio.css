@@ -4,11 +4,13 @@
  * own.
  *
  * The same room: a dark bench, glass panels, violet for what a person acts
- * on and teal for what the system did. The variables in styles/room.css are
- * copied from formancy.ai's apps/admin/src/admin.css (v0.5.0, e3c5967),
- * unchanged, under the comment that marks them as the copy, because an
- * application's stylesheet is not a package this repository could depend
- * on; scripts/palette.test.mjs holds every copy to that commit's values.
+ * on and teal for what the system did. The variables are formancy's own,
+ * released as @formancy/themes/room.css, which main.tsx imports after
+ * workbench.css rather than this file, never copied (0034, formancy.ai
+ * 0178); scripts/palette.test.mjs fails on a stylesheet here that sets one
+ * of them, and on the room imported before the workbench. styles/room.css
+ * is the Studio's own: the text's two font stacks, the page and what is
+ * said rather than drawn.
  * The faces are admin.css's -- Archivo, IBM Plex Sans and Mono, at its
  * weights -- served from this build, as the admin has served them since
  * formancy.ai 0154: styles/fonts.css, which main.tsx imports rather than
@@ -18,7 +20,7 @@
  * dressed by report-builder.css. The room sets their geometry --
  * styles/builder.css, admin.css's own rules for the workbench without
  * their colours -- and leaves their colours to the --wb-* variables
- * room.css sets: no rule of the Studio's declares a colour on the builder,
+ * formancy's room.css sets: no rule of the Studio's declares a colour on the builder,
  * and none but builder.css's reaches the builder's own elements
  * (styles.test.tsx). Where the Preview stands in the builder's middle
  * (0029) it is the Studio's, dressed by the Studio's rules, and no rule of

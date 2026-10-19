@@ -157,7 +157,7 @@
   background: #fff;
   box-shadow:
     0 0 0 1px rgb(255 255 255 / 12%),
-    0 30px 80px -30px rgb(139 123 255 / 45%);
+    0 30px 80px -30px color-mix(in srgb, var(--client) 45%, transparent);
   color-scheme: only light;
 }
 

@@ -26,12 +26,20 @@ const imported = [...readFileSync(join(app, 'src', 'styles', 'fonts.css'), 'utf8
 /** The families of every face fonts.css imports. */
 const declared = new Set(imported.flatMap((specifier) => facesOf(readFileSync(require.resolve(specifier), 'utf8'))))
 
-/** Each font stack room.css's :root sets, by its variable: the families it names, in order. */
+/**
+ * Each font stack the room's :root sets, by its variable: the families it
+ * names, in order. The room is two files, in the order the page loads them
+ * (0034): formancy's released room.css, which sets --display, then the
+ * Studio's styles/room.css, which sets the text's two stacks; a stack the
+ * second sets again is the second's.
+ */
 const stacks = Object.fromEntries(
-  [...(/:root\s*\{([^}]*)\}/.exec(readFileSync(join(app, 'src', 'styles', 'room.css'), 'utf8'))?.[1] ?? '').matchAll(/(--display|--sans|--mono)\s*:\s*([^;]+);/g)].map((match) => [
-    match[1] ?? '',
-    (match[2] ?? '').split(',').map((family) => family.trim().replaceAll(/^['"]|['"]$/g, '')),
-  ]),
+  [require.resolve('@formancy/themes/room.css'), join(app, 'src', 'styles', 'room.css')].flatMap((file) =>
+    [...(/:root\s*\{([^}]*)\}/.exec(readFileSync(file, 'utf8').replaceAll(/\/\*[\s\S]*?\*\//g, ''))?.[1] ?? '').matchAll(/(--display|--sans|--mono)\s*:\s*([^;]+);/g)].map((match) => [
+      match[1] ?? '',
+      (match[2] ?? '').split(',').map((family) => family.trim().replaceAll(/^['"]|['"]$/g, '')),
+    ]),
+  ),
 )
 
 describe("the Studio's faces (0023)", () => {

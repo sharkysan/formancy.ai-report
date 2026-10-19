@@ -361,12 +361,23 @@ template does. An EPC QR code's caption is text, which a reader finds
 The builders and the Studio are formancy.ai's interface concept applied, as
 Formancy Data's apps are, not a new one. `report-builder.css` is the
 builders' only stylesheet; it selects by the hooks both builders render and
-colours only through the workbench's `--wb-*` variables. The Studio wears
-admin.css's variables, copied and pinned, and the product's pages import
-the Studio's stylesheets rather than copy them
+colours only through the workbench's `--wb-*` variables. The palette is
+formancy's own, released as `@formancy/themes/room.css`: the Studio's
+`main.tsx` imports it after the workbench, whose `--wb-*` it sets, and the
+product's pages import it first and then the Studio's stylesheets, never a
+copy of either. `scripts/palette.test.mjs` refuses a stylesheet here that
+sets one of its variables or types one of its colours, both read from the
+installed file -- a tint is `color-mix()` of the variable -- and an app
+that takes it before the workbench; the browser gate reads its variables
+on the built page
 ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md),
 [0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md),
-[0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)).
+[0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md),
+[0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)).
+The Studio's own are the text's two font stacks, the page's rules and
+`builder.css`, admin.css's geometry for the workbench: admin.css's rules,
+still copied, with the colours they type that the room does not carry,
+since the room carries no rule.
 The Studio's bar is one shell for the playground
 ([formancy.ai 0106](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0106-one-shell-for-every-page-of-the-site.md)).
 

@@ -10,6 +10,74 @@ later.
 
 ## Unreleased
 
+**Report takes formancy 0.6.0, and the Studio and the product pages wear
+formancy's room by importing it, never a copy**
+([0034](docs/decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)).
+The Studio carried admin.css's colours copied by hand, held to the values
+of one commit, so a colour formancy moved moved nothing here, and said
+nothing; formancy 0.6.0 publishes them as `@formancy/themes/room.css`
+([formancy.ai 0178](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0178-the-rooms-palette-is-published.md)).
+
+- **The upstream `@formancy/*` packages move from 0.5.0 to 0.6.0, exact**:
+  `@formancy/spec` for report-spec's report hash, `@formancy/expressions`
+  for report-core and report-runtime, `@formancy/themes` for the Studio,
+  the pages and the getting-started guide's install lines. The spec
+  version stays 4, and a report's hash is the one it was: report-spec
+  reads `schemaHash` alone, which the release did not touch, and its
+  pinned digest held. `@formancy/expressions` 0.6.0's built files are
+  0.5.0's but for the version.
+- **A host that installs `@formancy/report-data-provider` gets two
+  `@formancy/spec`**, 0.6.0 through report-spec and 0.5.0 through
+  `@formancy/data-client` and `@formancy/data-core` 0.1.0, which pin it
+  exactly, until Formancy Data releases against 0.6.0. Nothing of one
+  reaches the other: the provider reads a form's fields with Data's types.
+  The second copy is 1,157,810 bytes as pnpm installed it, measured on 19
+  October 2026; the README's table lists it as transitive.
+- **The Studio imports `@formancy/themes/room.css` after the workbench**,
+  in `main.tsx`, and its `styles/room.css` keeps only its own: the text's
+  two font stacks, which room.css leaves to the page, and the page's
+  rules. **The pages import it first** in `pages.css`, from a pin of their
+  own, and their `THIRD-PARTY-NOTICES.txt` names `@formancy/themes` now,
+  since they serve its text. The released room holds the copy's 23
+  variables at the copy's values, compared declaration by declaration
+  with main's `styles/room.css`, and `workbench.css` did not change
+  between the two releases: with the room imported, the README's five
+  pictures came out byte for byte as main's.
+- **The Studio's tints of the room's violet and teal mix its variables**,
+  `color-mix(in srgb, var(--client) 15%, transparent)` where they typed
+  `rgb(139 123 255 / 15%)` as admin.css's rules do, because a typed tint
+  stays behind when the room moves its colour. The glow's gradients say
+  `in srgb`, the space typed stops are drawn in; a mixed stop alone moves a
+  gradient to Oklab. It is the same colour to one step of 255: the Studio
+  as it opens, screenshot as PNG in Chromium 156 at 2100 by 900 pixels and
+  twice the density on 19 October 2026, differs from a build with the
+  tints typed in 21,382 of its 7,560,000 pixels, each by 1 of 255, all
+  under the bar's blurred glass at the top. The colours admin.css's rules
+  type that the room does not carry stay typed, as admin.css types them.
+- **The README's pictures of the Studio were retaken by their script**,
+  for the stylesheet they were taken with; the lossy WebP carries that one
+  step as up to 15 of 255 in up to a tenth of a picture's pixels. The two
+  pictures of the whole Studio, React's and Angular's, are not
+  repeatable: two takes of one build differ by up to 11 of 255 on the
+  PDF's paper in the Preview, which no rule of the room reaches, and what
+  moves it is not traced.
+- **The palette guard refuses a copy instead of holding one.**
+  `scripts/palette.test.mjs` fails on a stylesheet, of any kind the
+  Studio's Vite bundles, or a page's `<style>`, here that sets a variable
+  of the installed room.css or types one of its colours at any alpha, the
+  names and colours read from the file; on an app that takes the room
+  nowhere, twice or before the last `workbench.css`, or names either
+  anywhere but in its entry; on the Studio and the pages resolving it to
+  different bytes; on the Studio's `theme-color` not being the room's
+  ground; and on its font stacks not being the workbench's.
+- **The browser gate reads the room on the built page**: at every pass,
+  every variable the installed room.css sets and its colour scheme, as
+  the page computes them, so a stylesheet that sets one again by any path
+  the build takes, or a workbench taken after the room, fails there.
+- **The getting-started guide** installs `@formancy/themes@0.6.0`, and
+  says a page that wants formancy's own dark room imports
+  `@formancy/themes/room.css` after the workbench.
+
 **The quotation and both invoices, with every sample of them, print an
 invented firm's mark at the top left of their first page**
 ([0032](docs/decisions/0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md)).

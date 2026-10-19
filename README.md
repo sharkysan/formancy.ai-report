@@ -32,7 +32,7 @@ true; of its prose, a guard holds the files it names, its install lines and
 its links, and review the rest
 ([0015](./docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
 
-> **Status, 18 October 2026: 0.1.0, a developer preview, is released, and
+> **Status, 19 October 2026: 0.1.0, a developer preview, is released, and
 > main has moved past it.** Its eight packages are on npm, with provenance, and
 > [the GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.1.0)
 > carries the signed SBOM and release report of the run that published
@@ -89,6 +89,10 @@ its links, and review the rest
 > the EPC QR code's from Austria, France, Italy, Spain, the Netherlands
 > and Ireland
 > ([0028](./docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+> And main builds on formancy 0.6.0, 0.1.0 on 0.5.0: the Studio and the
+> product's pages wear formancy's own room, `@formancy/themes/room.css`,
+> imported where they wore a copy
+> ([0034](./docs/decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)).
 >
 > `@formancy/report-spec` defines the report format, validates a report and
 > hashes it. `@formancy/report-core` edits a report through commands, with
@@ -176,7 +180,9 @@ starters, and a blank report, in the React or the Angular builder,
 over one report session per starter, and previews the PDF the renderer
 prints from that session: in the page, on white paper, through
 `@formancy/report-render-pdf/browser` and PDF.js. It works in the same room
-as formancy.ai's admin and Formancy Data's Studio. Each of the builder's
+as formancy.ai's admin and Formancy Data's Studio, in the admin's own
+palette, `@formancy/themes/room.css`, imported and never copied
+([0034](./docs/decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)). Each of the builder's
 side panes hides from its own header to give the middle its room, and the
 toolbar brings it back
 ([0019](./docs/decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md)).
@@ -477,9 +483,10 @@ report, signed
 | --- | --- | --- |
 | `@formancy/data-client` | 0.1.0 | `0.1.0` |
 | `@formancy/data-core` (transitive) | 0.1.0 |  |
-| `@formancy/expressions` | 0.5.0 | `0.5.0` |
-| `@formancy/spec` | 0.5.0 | `0.5.0` |
-| `@formancy/themes` | 0.5.0 | `0.5.0` |
+| `@formancy/expressions` | 0.6.0 | `0.6.0` |
+| `@formancy/spec` (transitive) | 0.5.0 |  |
+| `@formancy/spec` | 0.6.0 | `0.6.0` |
+| `@formancy/themes` | 0.6.0 | `0.6.0` |
 | `tslib`, by `@formancy/report-builder-angular` | 2.8.1 | `^2.8.0` |
 | `pdfmake`, by `@formancy/report-render-pdf` | 0.3.11 | `0.3.11` |
 | `uqr`, by `@formancy/report-render-pdf` | 0.1.3 | `0.1.3` |
