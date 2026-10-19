@@ -202,8 +202,9 @@ jobs:
             .
 
       # The SBOM is one, names every package this release publishes at its
-      # version, every runtime dependency and every upstream package their
-      # install brings, and each the report names at the version the suites
+      # version and every upstream package their install brings, each at a
+      # version the suites loaded, and its dependency graph gives each
+      # published package each runtime dependency at the version its suites
       # loaded.
       - name: The SBOM names what the suites loaded, and is pinned
         id: sbom-checked

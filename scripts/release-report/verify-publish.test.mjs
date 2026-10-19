@@ -15,6 +15,9 @@ const NAMES = ['@formancy/report-spec', '@formancy/report-render-pdf']
 const fileOf = (name) => `${name.slice(1).replace('/', '-')}-0.1.0.tgz`
 const RUN = { release: 'v0.1.0', version: '0.1.0', commit: 'c0ffee', runId: '42' }
 
+/** An SBOM's dependency graph as cdxgen writes it, each reference a package URL: `{ 'a@1': ['b@2'] }`. */
+const graph = (edges) => Object.entries(edges).map(([from, to]) => ({ ref: `pkg:npm/${from}`, dependsOn: to.map((target) => `pkg:npm/${target}`) }))
+
 /** A release in which everything holds: the report, the tarballs as `describe` gives them, and the SBOM. */
 function green() {
   const tarballs = NAMES.map((name) => {
@@ -30,7 +33,7 @@ function green() {
         install: { tarballs: tarballs.map(({ file, name, sha256: hash }) => ({ name, file, sha256: hash })) },
       },
       testedOn: {
-        runtime: [{ name: 'pdfmake', loaded: '0.3.11' }],
+        runtime: [{ package: '@formancy/report-render-pdf', name: 'pdfmake', loaded: '0.3.11' }],
         upstream: [
           { name: '@formancy/spec', version: '0.5.0', direct: true, shipped: true },
           { name: '@formancy/expressions', version: '0.5.0', direct: false, shipped: true },
@@ -41,6 +44,11 @@ function green() {
     tarballs,
     sbom: {
       components: ['pkg:npm/pdfmake@0.3.11', 'pkg:npm/%40formancy/spec@0.5.0', 'pkg:npm/%40formancy/report-spec@0.1.0', 'pkg:npm/%40formancy/report-render-pdf@0.1.0', 'pkg:npm/%40formancy/expressions@0.5.0', 'pkg:npm/tslib@2.8.1'].map((purl) => ({ purl })),
+      dependencies: graph({
+        '@formancy/report-spec@0.1.0': ['@formancy/spec@0.5.0'],
+        '@formancy/report-render-pdf@0.1.0': ['@formancy/report-spec@0.1.0', 'pdfmake@0.3.11'],
+        '@formancy/spec@0.5.0': ['@formancy/expressions@0.5.0'],
+      }),
     },
   }
 }
@@ -123,12 +131,44 @@ describe('the SBOM', () => {
   test('is refused with another version than the suites loaded, or without a runtime dependency or an upstream package', () => {
     const { report, sbom } = green()
     expect(sbomReportProblems(report, sbom)).toEqual([])
-    const replaced = (index, purl) => ({ components: sbom.components.map((component, at) => (at === index ? { purl } : component)) })
-    expect(sbomReportProblems(report, replaced(0, 'pkg:npm/pdfmake@0.3.10'))).toEqual(['the SBOM names pdfmake 0.3.10, where the suites loaded 0.3.11'])
+    const replaced = (index, purl) => ({ ...sbom, components: sbom.components.map((component, at) => (at === index ? { purl } : component)) })
+    const without = (part) => ({ ...sbom, components: sbom.components.filter((component) => !component.purl.includes(part)) })
+    const older = {
+      components: [...sbom.components.slice(1), { purl: 'pkg:npm/pdfmake@0.3.10' }],
+      dependencies: sbom.dependencies.map((entry) => ({ ...entry, dependsOn: entry.dependsOn.map((ref) => ref.replace('pdfmake@0.3.11', 'pdfmake@0.3.10')) })),
+    }
+    expect(sbomReportProblems(report, older)).toEqual(['the SBOM gives @formancy/report-render-pdf pdfmake 0.3.10, where its suites loaded 0.3.11'])
     expect(sbomReportProblems(report, replaced(1, 'pkg:npm/%40formancy/spec@0.4.0'))).toEqual(['the SBOM names @formancy/spec 0.4.0, where the suites loaded 0.5.0'])
-    expect(sbomReportProblems(report, { components: sbom.components.slice(1) })).toEqual(['the SBOM names no pdfmake, which a published package depends on'])
-    expect(sbomReportProblems(report, { components: sbom.components.filter((component) => !component.purl.includes('spec@0.5.0')) })).toEqual(['the SBOM names no @formancy/spec, which a published package depends on'])
-    expect(sbomReportProblems(report, { components: sbom.components.filter((component) => !component.purl.includes('expressions')) })).toEqual(['the SBOM names no @formancy/expressions, which a published package depends on'])
+    expect(sbomReportProblems(report, without('pdfmake'))).toEqual(['the SBOM names no pdfmake 0.3.11, which @formancy/report-render-pdf depends on'])
+    expect(sbomReportProblems(report, without('spec@0.5.0'))).toEqual(['the SBOM names no @formancy/spec, which a published package depends on'])
+    expect(sbomReportProblems(report, without('expressions'))).toEqual(['the SBOM names no @formancy/expressions, which a published package depends on'])
+  })
+
+  // The v0.2.0 rehearsal was refused for pdfkit's @noble/hashes 1.8.0,
+  // which pdfmake brings, beside report-spec's 2.4.0: a consumer installs
+  // both, and only the second is a dependency a published package declares
+  // and its suites loaded. A check by name alone refuses every SBOM that is
+  // right once two packages want one name at two versions; by the edge from
+  // the package that declares it, it still refuses report-spec given 1.8.0.
+  test('reads each runtime dependency as the package that declares it is given it, another at another version beside it', () => {
+    const { report, sbom } = green()
+    report.testedOn.runtime.push({ package: '@formancy/report-spec', name: '@noble/hashes', loaded: '2.4.0' })
+    const both = (specGets) => ({
+      components: [...sbom.components, ...['pkg:npm/pdfkit@0.19.1', 'pkg:npm/%40noble/hashes@1.8.0', 'pkg:npm/%40noble/hashes@2.4.0'].map((purl) => ({ purl }))],
+      dependencies: [
+        ...sbom.dependencies.map((entry) => (entry.ref.includes('report-spec@') ? { ...entry, dependsOn: [...entry.dependsOn, `pkg:npm/@noble/hashes@${specGets}`] } : entry)),
+        ...graph({ 'pdfmake@0.3.11': ['pdfkit@0.19.1'], 'pdfkit@0.19.1': ['@noble/hashes@1.8.0'] }),
+      ],
+    })
+    expect(sbomReportProblems(report, both('2.4.0'))).toEqual([])
+    expect(sbomReportProblems(report, both('1.8.0'))).toEqual(['the SBOM gives @formancy/report-spec @noble/hashes 1.8.0, where its suites loaded 2.4.0'])
+  })
+
+  // An SBOM without its dependency graph cannot say what a published
+  // package is given, so it says nothing that passes.
+  test('is refused when it records no dependency of a published package on its runtime dependency', () => {
+    const { report, sbom } = green()
+    expect(sbomReportProblems(report, { components: sbom.components })).toEqual(['the SBOM records no dependency of @formancy/report-render-pdf on pdfmake'])
   })
 
   // The v0.1.0 tag's run was refused for asking an SBOM of what ships for
@@ -146,8 +186,8 @@ describe('the SBOM', () => {
   // first.
   test('is refused without each published package, at the version this release publishes', () => {
     const { report, sbom } = green()
-    expect(sbomReportProblems(report, { components: sbom.components.filter((component) => !component.purl.includes('report-render-pdf')) })).toEqual(['the SBOM names no @formancy/report-render-pdf 0.1.0, which this release publishes'])
-    const older = { components: sbom.components.map((component) => (component.purl.includes('report-spec') ? { purl: 'pkg:npm/%40formancy/report-spec@0.0.9' } : component)) }
+    expect(sbomReportProblems(report, { ...sbom, components: sbom.components.filter((component) => !component.purl.includes('report-render-pdf')) })).toEqual(['the SBOM names no @formancy/report-render-pdf 0.1.0, which this release publishes'])
+    const older = { ...sbom, components: sbom.components.map((component) => (component.purl.includes('report-spec') ? { purl: 'pkg:npm/%40formancy/report-spec@0.0.9' } : component)) }
     expect(sbomReportProblems(report, older)).toEqual(['the SBOM names no @formancy/report-spec 0.1.0, which this release publishes'])
   })
 

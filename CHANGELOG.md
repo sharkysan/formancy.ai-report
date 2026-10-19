@@ -151,6 +151,20 @@ Not in this release:
 The release report that this release's run builds lists, under "Known
 limitations", what each decision record says a user will meet.
 
+**The release's SBOM check reads which version each published package is
+given**
+([0017](docs/decisions/0017-the-sbom-describes-what-a-consumer-installs.md)).
+A consumer's install of 0.2.0 holds `@noble/hashes` twice: 2.4.0, which
+report-spec declares, and 1.8.0, which pdfkit declares under pdfmake. The
+check held every copy of a runtime dependency's name to the one version
+the suites loaded, so the 0.2.0 rehearsal's `check` job refused a correct
+SBOM for pdfkit's copy; a rehearsal publishes nothing. It now reads the
+SBOM's dependency graph: each published package must be given each runtime
+dependency it declares at the version its suites loaded, an SBOM that
+records no such dependency is refused, and every upstream package is still
+held to a version the suites loaded. A dependency's dependency is held to
+nothing, as before.
+
 **A person adds an image in either builder**
 ([0033](docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
 A report could print a logo, and since 0032 the starters show one, but
