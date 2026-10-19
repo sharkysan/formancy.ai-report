@@ -32,11 +32,9 @@ true; of its prose, a guard holds the files it names, its install lines and
 its links, and review the rest
 ([0015](./docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
 
-> **Status, 19 October 2026: 0.2.0, a developer preview, is ready to
-> release and not yet published.** On npm the newest is still 0.1.0,
-> released on 16 October 2026, whose eight packages are there with
-> provenance, and whose
-> [GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.1.0)
+> **Status, 19 October 2026: 0.2.0, a developer preview, is released.**
+> Its eight packages are on npm, with provenance, and
+> [the GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.2.0)
 > carries the signed SBOM and release report of the run that published
 > them. Data goes in and a PDF comes out, from
 > a host's JSON or, best-effort, from a Formancy Data 0.1.0 server. A
@@ -96,9 +94,8 @@ its links, and review the rest
 > the EPC QR code's from Austria, France, Italy, Spain, the Netherlands
 > and Ireland
 > ([0028](./docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md));
-> both say the newest release holds their code, and since every page names
-> the changelog's newest release, they name 0.2.0 from the moment it
-> reaches main, before it is published
+> both say that 0.2.0, the newest release, holds their code, as every page
+> names the changelog's newest release
 > ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)).
 > And 0.2.0 builds on formancy 0.6.0, 0.1.0 on 0.5.0: the Studio and the
 > product's pages wear formancy's own room, `@formancy/themes/room.css`,

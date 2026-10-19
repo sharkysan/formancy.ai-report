@@ -8,7 +8,7 @@ import { packageTarball } from './test-archive.mjs'
  * What the publish job decides before it calls npm, as in formancy.ai-data
  * (its 0035): the order the tarballs go in, from their own manifests, and
  * what a version already on the registry means. Pure; the call to npm is the
- * publish job's, which has run once, for 0.1.0, and never over a version
+ * publish job's, which has run twice, for 0.1.0 and 0.2.0, and never over a version
  * the registry already held, and RELEASING.md says so.
  */
 const manifest = (name, dependencies = {}) => ({ name, manifest: { name, version: '0.1.0', dependencies } })

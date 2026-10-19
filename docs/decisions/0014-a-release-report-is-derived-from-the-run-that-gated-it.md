@@ -167,9 +167,10 @@
   what a test file is known by here; that the passes a browser gate planned
   are every width its app's stylesheets call for, which only the gate
   derives and the report takes as written; and the publish job's behaviour
-  beyond the one run it has had, 0.1.0's on 16 October 2026, where every
-  step succeeded: a `publish` run again over versions npm already holds has
-  never run, and the workflows test holds its shape.
+  beyond the two runs it has had, 0.1.0's on 16 October 2026 and 0.2.0's
+  on 19 October 2026, where every step succeeded: a `publish` run again
+  over versions npm already holds has never run, and the workflows test
+  holds its shape.
 
 ## Context
 
