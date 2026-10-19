@@ -10,6 +10,15 @@ later.
 
 ## Unreleased
 
+**A release report no longer says a version ran in no suite when the
+suites ran it under a second entry.** 0.2.0's body said a clean install
+resolved `@formancy/spec` 0.6.0 and 0.5.0 "which no suite ran", when the
+suites ran both: Data's client pins 0.5.0 beside report-spec's 0.6.0, and
+each version was held against the other's entry alone. A version is now
+named past the suites only when they ran no copy of it under that name,
+as Formancy Health's report already said it. 0.2.0's release on GitHub
+keeps the sentence it was published with.
+
 **The README says what Formancy Report does before anything else.** It
 opened with a server and AI proposals, which are planned and not built,
 and with SQL datasets as a source of data, which are not built either,
