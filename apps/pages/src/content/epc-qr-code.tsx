@@ -22,7 +22,7 @@ import type { EuroCountry } from './figures.js'
  * said, and the newest release then, 0.2.0, the first to print one, which
  * 0.1.0 refuses as an unknown kind (0025). Three sentences of
  * epc-qr-code-copy.tsx say it, as the QR-bill page's three say its bill's:
- * `unreleased`, in the hero and after the product page's teaser;
+ * `standing`, in the hero and after the product page's teaser;
  * `tryIt.text`, of the release the guide installs; and `status.text`,
  * dated. Each says the newest release holds the code, so the site refuses
  * to render once CHANGELOG.md names another release, until somebody says
@@ -33,7 +33,7 @@ export const EPC_QR_CODE_STATUS: PageStatus = {
   release: '0.2.0',
   feature: 'EPC QR code',
   copy: 'epc-qr-code-copy.tsx',
-  sentences: "`unreleased`, which the hero and the product page's teaser say, `tryIt.text` and `status.text`",
+  sentences: "`standing`, which the hero and the product page's teaser say, `tryIt.text` and `status.text`",
   constant: 'EPC_QR_CODE_STATUS',
 }
 
@@ -94,7 +94,7 @@ export const CARD_EVIDENCE: readonly (readonly string[])[] = [
 const OWN: Readonly<Record<Language, EuroCountry>> = { de: 'DE', fr: 'FR', it: 'IT', en: 'IE' }
 
 /** What the product page says of the EPC QR code page in `language`: its teaser, and where it stands, as the hero says it. */
-const teaserOf = (language: Language): Teaser => ({ ...EPC_QR_CODE_COPY[language].teaser, text: `${EPC_QR_CODE_COPY[language].teaser.text} ${EPC_QR_CODE_COPY[language].unreleased}` })
+const teaserOf = (language: Language): Teaser => ({ ...EPC_QR_CODE_COPY[language].teaser, text: `${EPC_QR_CODE_COPY[language].teaser.text} ${EPC_QR_CODE_COPY[language].standing}` })
 
 /** The decision record that says what an EPC QR code is and what it costs, which the page links for the reasons it gives. */
 const DECISION = 'docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md'
@@ -127,7 +127,7 @@ function EpcQrCodeBody({ page }: { readonly page: PageContext }): ReactElement {
             </a>
           </li>
         </ul>
-        <p>{copy.unreleased}</p>
+        <p>{copy.standing}</p>
       </section>
 
       <section className="band" aria-labelledby="does">

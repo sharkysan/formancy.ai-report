@@ -26,7 +26,7 @@ node scripts/bump.mjs 0.1.0
 #    pages refuse to render until each one's status names the new version,
 #    naming every such page in one error. For each, say whether the
 #    release has its code in the three sentences of its copy that say
-#    where it stands -- `unreleased`, `tryIt.text` and `status.text` --
+#    where it stands -- `standing`, `tryIt.text` and `status.text` --
 #    and set its status beside them:
 #    apps/pages/src/content/qr-bill-copy.tsx and QR_BILL_STATUS in
 #    qr-bill.tsx (0024); epc-qr-code-copy.tsx and EPC_QR_CODE_STATUS in
