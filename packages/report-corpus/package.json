@@ -1,6 +1,6 @@
 {
   "name": "@formancy/report-corpus",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Test support, never published: the adversarial report fixtures every PDF engine answers to, the reader that proves a rendered PDF against them, and the renderer trial that chose the engine.",
   "license": "SEE LICENSE IN LICENSE.md",

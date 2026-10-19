@@ -20,24 +20,35 @@ node scripts/bump.mjs 0.1.0
 # 2. Rename "## Unreleased" in CHANGELOG.md to the version's heading, and say
 #    what is knowingly missing. What the release was tested with is the
 #    release report's, from the run that gates it; the body carries it.
-#    Two pages say their payment code is in no release yet, the QR-bill
-#    page and the EPC QR code page, and the pages refuse to render until
-#    each one's status names the new version, naming every such page in
-#    one error. For each, say whether the release has its code in the
-#    three sentences of its copy that say where it stands -- `unreleased`,
-#    `tryIt.text` and `status.text` -- and set its status beside them:
+#    Two pages say where their payment code stands, the QR-bill page and
+#    the EPC QR code page -- since 0.2.0, in the newest release -- and the
+#    pages refuse to render until each one's status names the new version,
+#    naming every such page in one error. For each, say whether the
+#    release has its code in the three sentences of its copy that say
+#    where it stands -- `unreleased`, `tryIt.text` and `status.text` --
+#    and set its status beside them:
 #    apps/pages/src/content/qr-bill-copy.tsx and QR_BILL_STATUS in
 #    qr-bill.tsx (0024); epc-qr-code-copy.tsx and EPC_QR_CODE_STATUS in
 #    epc-qr-code.tsx (0028).
+#    The heading's date is the day the tag is pushed: the product page
+#    reads it from the heading and prints it as the day of the release.
+#    If the tag slips past it, date the heading again, with the README's
+#    Status and its link to the heading's anchor, in a commit through a
+#    pull request, and tag that commit.
 
 # 3. Verify locally — the workflow runs these again, but finding out here is cheaper
 pnpm build && pnpm typecheck && pnpm test:coverage && pnpm check:pkg && pnpm test:repo
-node scripts/verify-licenses.mjs
+node scripts/verify-licenses.mjs && node scripts/dependency-licences.mjs
+node scripts/e-invoice.mjs --java <path>   # on a Java the register names
 pnpm test:e2e:install
 #    and, to read the report of what ran on this machine, "The release report"
 #    below
 
 # 4. Get the release commit onto main, through a pull request like any other.
+#    From the merge on, the pages at formancy.ai/report/ name the release,
+#    and the QR-bill and EPC QR code pages send a reader to the guide to
+#    install it, while npm still serves the one before (0021, 0024, 0028):
+#    rehearse and tag right after the merge.
 
 # 5. Rehearse on it, then read the run, its release report and the body it built.
 gh workflow run release.yml --ref main

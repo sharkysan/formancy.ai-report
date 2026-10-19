@@ -1,6 +1,6 @@
 {
   "name": "@formancy/report-pages",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "The pages that tell search engines and people what Formancy Report does, in German, French, Italian and English, prerendered to static HTML and served under formancy.ai/report/ beside the Studio. Never published.",
   "license": "SEE LICENSE IN LICENSE.md",

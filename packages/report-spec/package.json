@@ -1,6 +1,6 @@
 {
   "name": "@formancy/report-spec",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The Formancy Report definition format: the versioned ReportDefinition, its structural validation, its canonical hash, and the refusal of a document that is not one this package reads. No framework, no PDF engine, no Node.",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "formancy-report",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Formancy Report: paginated PDF reports, designed in native Angular and React editors, from formancy forms, Formancy Data datasets or your own JSON.",
   "license": "SEE LICENSE IN LICENSE.md",

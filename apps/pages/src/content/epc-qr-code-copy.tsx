@@ -82,7 +82,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     eyebrow: 'Formancy Report für den EPC-QR-Code',
     h1: 'EPC-QR-Codes auf Ihren Rechnungen, geprüft nach den Regeln des EPC',
     lead: 'Formancy Report druckt auf Ihre Rechnungen als PDF den QR-Code für Überweisungen, auch SEPA-QR-Code genannt, mit dem eine Banking-App eine SEPA-Überweisung vorausfüllt, so wie der European Payments Council ihn in EPC069-12 festlegt. Ihre Anwendung übergibt die Daten; bevor das PDF entsteht, werden IBAN, BIC, Referenz und jeder Text nach den Regeln des EPC geprüft, und der Betrag wird exakt aus den Werten der Rechnung berechnet, in den Beispielen ihr Rechnungsbetrag.',
-    unreleased: 'Der EPC-QR-Code ist online im Studio zu sehen, aber noch in keinem Release enthalten.',
+    unreleased: 'Der EPC-QR-Code ist online im Studio zu sehen und im neuesten Release enthalten.',
     actions: { studio: 'Im Studio ausprobieren (Startvorlage Euro invoice)', samples: 'Die Beispiele ansehen' },
     does: {
       heading: 'Was es kann',
@@ -124,7 +124,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     tryIt: {
       heading: 'Ausprobieren',
       text: (version) =>
-        `Im Studio ist das deutsche Beispiel die Startvorlage Euro invoice: Wählen Sie sie unter Starter, und die Vorschau zeigt das PDF mit seinem EPC-QR-Code, so wie der Renderer es erzeugt hat. Die Builder des Studios sind englisch, und in ihrer Palette heisst der Code EPC payment code. Die Einführung installiert ${version}, das neueste Release, und das lehnt einen Bericht mit EPC-QR-Code noch ab. Wie ein Bericht seinen Code trägt und wie der Renderer ihn zeichnet, beschreibt die Dokumentation auf GitHub, auf Englisch.`,
+        `Im Studio ist das deutsche Beispiel die Startvorlage Euro invoice: Wählen Sie sie unter Starter, und die Vorschau zeigt das PDF mit seinem EPC-QR-Code, so wie der Renderer es erzeugt hat. Die Builder des Studios sind englisch, und in ihrer Palette heisst der Code EPC payment code. Die Einführung installiert ${version}, das neueste Release, das einen Bericht mit EPC-QR-Code druckt. Wie ein Bericht seinen Code trägt und wie der Renderer ihn zeichnet, beschreibt die Dokumentation auf GitHub, auf Englisch.`,
       links: {
         studio: 'Das Studio öffnen',
         spec: 'Der EPC-QR-Code im Berichtsformat (report-spec, Englisch)',
@@ -142,7 +142,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         'Der BIC wird nur für ein Konto ausserhalb des EWR verlangt. Die Bank einer zahlenden Person ausserhalb des EWR, etwa in der Schweiz, kann ihn trotzdem brauchen; das leere BIC-Feld der Builder sagt es.',
         'Wo der Code steht, bestimmt die Vorlage: Den Platz am unteren Seitenrand, den die PSA verlangt, kann das Format nicht festhalten, und ein Code in der Fusszeile steht auf jeder Seite. Der Rahmen ist eine Option, und ein Code ohne ihn wird nicht an den Modulbreiten der PSA gemessen.',
         'Nichts zwingt eine Vorlage, die Angaben neben den Code zu drucken; die Beispiele tun es.',
-        'Das PDF ist keine E-Rechnung: weder XRechnung noch ZUGFeRD, Factur-X oder FatturaPA, und die Beispiele dieser Seite tragen keine. Im Quellcode zeichnet Formancy Report einen Bericht mit E-Rechnung inzwischen als Rechnung nach ZUGFeRD oder Factur-X im Profil EN 16931, als PDF/A-3b, in das ihr XML eingebettet ist, allein für Deutschland (Frankreich ist nicht abgedeckt); veraPDF, Mustang und der Validator der KoSIT prüfen die deutschen Beispiele darin. Wo ein Land die E-Rechnung verlangt, ist das PDF höchstens eine Kopie, wie das italienische Beispiel mit dem Hinweis Copia di cortesia sagt.',
+        'Das PDF ist keine E-Rechnung: weder XRechnung noch ZUGFeRD, Factur-X oder FatturaPA, und die Beispiele dieser Seite tragen keine. Die endgültige Ausgabe eines Berichts mit E-Rechnung zeichnet Formancy Report als Rechnung nach ZUGFeRD oder Factur-X im Profil EN 16931, als PDF/A-3b, in das ihr XML eingebettet ist, allein für Deutschland (Frankreich ist nicht abgedeckt); veraPDF, Mustang und der Validator der KoSIT prüfen die deutschen Beispiele in seinem Quellcode. Wo ein Land die E-Rechnung verlangt, ist das PDF höchstens eine Kopie, wie das italienische Beispiel mit dem Hinweis Copia di cortesia sagt.',
         'Die Beispiele sind keine Steuerberatung: Die Steuersätze darin sind die Normalsätze des Tages, an dem sie gelesen wurden, und ob ein Beispiel alles trägt, was das Rechnungsrecht seines Landes verlangt, hat niemand geprüft.',
         'Noch keine Banking-App hat diese Codes gescannt: Die Tests lesen den Code mit ZXing aus der Zeichnung von PDF.js, und gedruckt wurde noch keiner. Die Richtlinien des EPC sind eine Empfehlung, und eine Bank muss einen Code nicht lesen.',
       ],
@@ -150,7 +150,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     },
     status: {
       heading: 'Stand',
-      text: (version, date) => `Im Quellcode auf GitHub und online im Studio, aber noch in keinem Release: ${version}, das neueste, lehnt einen Bericht mit EPC-QR-Code als Ganzes ab (Stand ${date}).`,
+      text: (version, date) => `In ${version}, dem neuesten Release, im Quellcode auf GitHub und online im Studio (Stand ${date}).`,
       licence: 'Formancy Report ist source-available: Der Quellcode ist öffentlich, und für den Betrieb in Produktion braucht es eine kostenpflichtige Lizenz.',
       terms: 'Die Bedingungen auf der Produktseite',
     },
@@ -170,7 +170,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     eyebrow: 'Formancy Report pour le QR code SEPA',
     h1: "Le QR code SEPA sur vos factures, vérifié selon les règles de l'EPC",
     lead: "Formancy Report imprime sur vos factures en PDF le QR code à partir duquel une application bancaire préremplit un virement SEPA, tel que l'European Payments Council le définit dans EPC069-12, et que l'on appelle souvent QR code EPC. Votre application fournit les données ; avant que le PDF soit produit, l'IBAN, le BIC, la référence et chaque texte sont vérifiés selon les règles de l'EPC, et le montant est calculé de manière exacte à partir des valeurs de la facture, son total dans les exemples.",
-    unreleased: 'Le QR code SEPA se découvre en ligne dans le Studio, mais ne figure encore dans aucune version publiée.',
+    unreleased: 'Le QR code SEPA se découvre en ligne dans le Studio et figure dans la version la plus récente.',
     actions: { studio: "L'essayer dans le Studio (modèle de départ Euro invoice)", samples: 'Voir les exemples' },
     does: {
       heading: "Ce qu'il fait",
@@ -212,7 +212,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     tryIt: {
       heading: "L'essayer",
       text: (version) =>
-        `Dans le Studio, l'exemple allemand est le modèle de départ Euro invoice : choisissez-le sous Starter, et l'aperçu montre le PDF avec son QR code SEPA, tel que le moteur de rendu l'a produit. Les builders du Studio sont en anglais, et dans leur palette le code s'appelle EPC payment code. Le guide de démarrage installe ${version}, la version la plus récente, qui refuse encore un rapport avec un QR code SEPA. La documentation sur GitHub, en anglais, explique comment un rapport porte son code et comment le moteur de rendu le dessine.`,
+        `Dans le Studio, l'exemple allemand est le modèle de départ Euro invoice : choisissez-le sous Starter, et l'aperçu montre le PDF avec son QR code SEPA, tel que le moteur de rendu l'a produit. Les builders du Studio sont en anglais, et dans leur palette le code s'appelle EPC payment code. Le guide de démarrage installe ${version}, la version la plus récente, qui imprime un rapport avec un QR code SEPA. La documentation sur GitHub, en anglais, explique comment un rapport porte son code et comment le moteur de rendu le dessine.`,
       links: {
         studio: 'Ouvrir le Studio',
         spec: 'Le QR code SEPA dans le format des rapports (report-spec, en anglais)',
@@ -230,7 +230,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         "Le BIC n'est exigé que pour un compte hors de l'EEE. La banque d'une personne qui paie hors de l'EEE, en Suisse par exemple, peut en avoir besoin tout de même ; le champ BIC vide des builders le dit.",
         "L'emplacement du code est celui que choisit le modèle : le bas de la page que demande la PSA, le format ne peut pas l'imposer, et un code dans le pied de page s'imprime sur chaque page. Le cadre est une option, et un code sans cadre n'est pas mesuré aux largeurs de module de la PSA.",
         "Rien n'oblige un modèle à imprimer les données à côté du code ; les exemples le font.",
-        "Le PDF n'est pas une facture électronique : ni XRechnung, ni ZUGFeRD, ni Factur-X, ni FatturaPA, et les exemples de cette page n'en portent aucune. Dans le code source, Formancy Report dessine désormais un rapport qui porte une facture électronique comme une facture ZUGFeRD ou Factur-X au profil EN 16931, un PDF/A-3b qui intègre son XML, pour la seule Allemagne (la France n'est pas couverte) ; veraPDF, Mustang et le validateur de la KoSIT jugent les exemples allemands qu'il contient. Là où un pays exige la facture électronique, le PDF n'en est au mieux qu'une copie, comme le dit l'exemple italien avec la mention Copia di cortesia.",
+        "Le PDF n'est pas une facture électronique : ni XRechnung, ni ZUGFeRD, ni Factur-X, ni FatturaPA, et les exemples de cette page n'en portent aucune. Formancy Report dessine le rendu final d'un rapport qui porte une facture électronique comme une facture ZUGFeRD ou Factur-X au profil EN 16931, un PDF/A-3b qui intègre son XML, pour la seule Allemagne (la France n'est pas couverte) ; veraPDF, Mustang et le validateur de la KoSIT jugent les exemples allemands de son code source. Là où un pays exige la facture électronique, le PDF n'en est au mieux qu'une copie, comme le dit l'exemple italien avec la mention Copia di cortesia.",
         "Les exemples ne sont pas un conseil fiscal : leurs taux sont les taux normaux du jour où ils ont été lus, et personne n'a vérifié qu'un exemple porte tout ce que le droit de la facturation de son pays exige.",
         "Aucune application bancaire n'a encore scanné ces codes : les tests lisent le code avec ZXing dans le dessin de PDF.js, et aucun n'a encore été imprimé. Les directives de l'EPC ne sont qu'une recommandation, et une banque n'est pas tenue de lire un code.",
       ],
@@ -238,7 +238,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     },
     status: {
       heading: 'État',
-      text: (version, date) => `Dans le code source sur GitHub et en ligne dans le Studio, mais pas encore dans une version publiée : ${version}, la plus récente, refuse en bloc tout rapport avec un QR code SEPA (état au ${date}).`,
+      text: (version, date) => `Dans la version ${version}, la plus récente, dans le code source sur GitHub et en ligne dans le Studio (état au ${date}).`,
       licence: "Formancy Report est source-available : le code source est public, et l'exploitation en production nécessite une licence payante.",
       terms: 'Les conditions, sur la page du produit',
     },
@@ -258,7 +258,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     eyebrow: 'Formancy Report per il QR code SEPA',
     h1: "Il QR code SEPA sulle vostre fatture, verificato secondo le regole dell'EPC",
     lead: "Formancy Report stampa sulle vostre fatture in PDF il QR code da cui un'app bancaria compila un bonifico SEPA, noto anche come QR code EPC, come lo definisce l'European Payments Council in EPC069-12. La vostra applicazione fornisce i dati; prima che il PDF venga prodotto, l'IBAN, il BIC, il riferimento e ogni testo vengono verificati secondo le regole dell'EPC, e l'importo è calcolato in modo esatto dai valori della fattura, negli esempi il suo totale.",
-    unreleased: 'Il QR code SEPA si può vedere online nello Studio, ma non fa ancora parte di alcuna versione pubblicata.',
+    unreleased: 'Il QR code SEPA si può vedere online nello Studio e fa parte della versione più recente.',
     actions: { studio: 'Provarlo nello Studio (modello iniziale Euro invoice)', samples: 'Vedere gli esempi' },
     does: {
       heading: 'Che cosa fa',
@@ -300,7 +300,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     tryIt: {
       heading: 'Provarlo',
       text: (version) =>
-        `Nello Studio, l'esempio tedesco è il modello iniziale Euro invoice: sceglietelo sotto Starter, e l'anteprima mostra il PDF con il suo QR code SEPA, così come l'ha prodotto il renderer. I builder dello Studio sono in inglese, e nella loro palette il codice si chiama EPC payment code. La guida introduttiva installa ${version}, la versione più recente, che rifiuta ancora un report con un QR code SEPA. La documentazione su GitHub, in inglese, spiega come un report porta il suo codice e come il renderer lo disegna.`,
+        `Nello Studio, l'esempio tedesco è il modello iniziale Euro invoice: sceglietelo sotto Starter, e l'anteprima mostra il PDF con il suo QR code SEPA, così come l'ha prodotto il renderer. I builder dello Studio sono in inglese, e nella loro palette il codice si chiama EPC payment code. La guida introduttiva installa ${version}, la versione più recente, che stampa un report con un QR code SEPA. La documentazione su GitHub, in inglese, spiega come un report porta il suo codice e come il renderer lo disegna.`,
       links: {
         studio: 'Aprire lo Studio',
         spec: 'Il QR code SEPA nel formato dei report (report-spec, in inglese)',
@@ -318,7 +318,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         'Il BIC è richiesto solo per un conto fuori dal SEE. La banca di chi paga fuori dal SEE, in Svizzera per esempio, può averne bisogno comunque; il campo BIC vuoto dei builder lo dice.',
         "Dove sta il codice lo decide il modello: il margine inferiore della pagina che chiede la PSA, il formato non lo può fissare, e un codice nel piè di pagina si stampa su ogni pagina. La cornice è un'opzione, e un codice senza cornice non è misurato sulle larghezze dei moduli della PSA.",
         'Niente obbliga un modello a stampare i dati accanto al codice; gli esempi lo fanno.',
-        "Il PDF non è una fattura elettronica: né XRechnung, né ZUGFeRD, né Factur-X, né FatturaPA, e gli esempi di questa pagina non ne portano alcuna. Nel codice sorgente Formancy Report disegna ormai un report che porta una fattura elettronica come fattura ZUGFeRD o Factur-X nel profilo EN 16931, un PDF/A-3b che incorpora il suo XML, solo per la Germania (la Francia non è coperta); veraPDF, Mustang e il validatore della KoSIT giudicano gli esempi tedeschi che contiene. Dove un paese esige la fattura elettronica, il PDF ne è al massimo una copia, come dice l'esempio italiano con la dicitura Copia di cortesia.",
+        "Il PDF non è una fattura elettronica: né XRechnung, né ZUGFeRD, né Factur-X, né FatturaPA, e gli esempi di questa pagina non ne portano alcuna. Formancy Report disegna il rendering finale di un report che porta una fattura elettronica come fattura ZUGFeRD o Factur-X nel profilo EN 16931, un PDF/A-3b che incorpora il suo XML, solo per la Germania (la Francia non è coperta); veraPDF, Mustang e il validatore della KoSIT giudicano gli esempi tedeschi del suo codice sorgente. Dove un paese esige la fattura elettronica, il PDF ne è al massimo una copia, come dice l'esempio italiano con la dicitura Copia di cortesia.",
         'Gli esempi non sono una consulenza fiscale: le loro aliquote sono quelle ordinarie del giorno in cui sono state lette, e nessuno ha verificato che un esempio porti tutto ciò che il diritto della fatturazione del suo paese richiede.',
         "Nessuna app bancaria ha ancora scansionato questi codici: i test leggono il codice con ZXing dal disegno di PDF.js, e nessuno è ancora stato stampato. Le linee guida dell'EPC sono solo una raccomandazione, e una banca non è tenuta a leggere un codice.",
       ],
@@ -326,7 +326,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     },
     status: {
       heading: 'Stato',
-      text: (version, date) => `Nel codice sorgente su GitHub e online nello Studio, ma non ancora in una versione pubblicata: ${version}, la più recente, rifiuta per intero un report con un QR code SEPA (stato al ${date}).`,
+      text: (version, date) => `Nella versione ${version}, la più recente, nel codice sorgente su GitHub e online nello Studio (stato al ${date}).`,
       licence: "Formancy Report è source-available: il codice sorgente è pubblico, e l'uso in produzione richiede una licenza a pagamento.",
       terms: 'Le condizioni, sulla pagina del prodotto',
     },
@@ -346,7 +346,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     eyebrow: 'Formancy Report for the EPC QR code',
     h1: "EPC QR codes on your invoices, checked against the EPC's rules",
     lead: "Formancy Report prints on your PDF invoices the QR code, often called a SEPA QR code, from which a banking app fills in a SEPA credit transfer, as the European Payments Council defines it in EPC069-12. Your application hands over the data; before the PDF is made, the IBAN, the BIC, the reference and every text are checked against the EPC's rules, and the amount is computed exactly from the invoice's values, in the samples its total.",
-    unreleased: 'The EPC QR code can be tried online in the Studio, and is in no release yet.',
+    unreleased: 'The EPC QR code can be tried online in the Studio, and is in the newest release.',
     actions: { studio: 'Try it in the Studio (the Euro invoice starter)', samples: 'See the samples' },
     does: {
       heading: 'What it does',
@@ -388,7 +388,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     tryIt: {
       heading: 'Try it',
       text: (version) =>
-        `In the Studio, the German sample is the Euro invoice starter: choose it under Starter, and the preview shows the PDF with its EPC QR code as the renderer produced it. The Studio's builders are in English, and their palette calls the code EPC payment code. The getting-started guide installs ${version}, the newest release, which still refuses a report with an EPC QR code. The documentation on GitHub says how a report carries its code, and how the renderer draws it.`,
+        `In the Studio, the German sample is the Euro invoice starter: choose it under Starter, and the preview shows the PDF with its EPC QR code as the renderer produced it. The Studio's builders are in English, and their palette calls the code EPC payment code. The getting-started guide installs ${version}, the newest release, which prints a report with an EPC QR code. The documentation on GitHub says how a report carries its code, and how the renderer draws it.`,
       links: {
         studio: 'Open the Studio',
         spec: 'The EPC QR code in the report format (report-spec)',
@@ -406,7 +406,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         "The BIC is asked for only where the account is outside the EEA. A payer's bank outside the EEA, in Switzerland say, may need it all the same; the builders' empty BIC field says so.",
         "Where the code stands is the template's choice: the foot of the page the PSA asks for is not one the format can pin, and a code in the page footer prints on every page. The frame is an option, and a code without it is not held to the PSA's module widths.",
         'Nothing makes a template print the details beside the code; the samples do.',
-        "The PDF is no e-invoice: no XRechnung, ZUGFeRD, Factur-X or FatturaPA, and the samples on this page carry none. In the source code, Formancy Report now draws a report that carries an e-invoice as a ZUGFeRD or Factur-X invoice in the EN 16931 profile, a PDF/A-3b that embeds its XML, for Germany alone (France is not covered); veraPDF, Mustang and KoSIT's validator judge the German samples in that code. Where a country requires e-invoices, the PDF is at most a copy, as the Italian sample says with its notice Copia di cortesia.",
+        "The PDF is no e-invoice: no XRechnung, ZUGFeRD, Factur-X or FatturaPA, and the samples on this page carry none. Formancy Report draws the final render of a report that carries an e-invoice as a ZUGFeRD or Factur-X invoice in the EN 16931 profile, a PDF/A-3b that embeds its XML, for Germany alone (France is not covered); veraPDF, Mustang and KoSIT's validator judge the German samples in its source code. Where a country requires e-invoices, the PDF is at most a copy, as the Italian sample says with its notice Copia di cortesia.",
         "The samples are no tax advice: their rates are the standard rates of the day they were read, and nobody checked that a sample carries everything its country's invoicing law asks.",
         "No banking app has scanned these codes yet: the tests read the code with ZXing from PDF.js's drawing, and none has been printed. The EPC's guidelines are informative only, and a bank need not read a code at all.",
       ],
@@ -414,7 +414,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     },
     status: {
       heading: 'Status',
-      text: (version, date) => `In the source on GitHub and online in the Studio, but in no release yet: ${version}, the newest, refuses any report with an EPC QR code outright (as of ${date}).`,
+      text: (version, date) => `In ${version}, the newest release, in the source on GitHub and online in the Studio (as of ${date}).`,
       licence: 'Formancy Report is source-available: the source is public, and running it in production needs a paid licence.',
       terms: 'The terms, on the product page',
     },

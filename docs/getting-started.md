@@ -3,7 +3,7 @@
 This guide takes an application developer from an empty npm project to a
 quotation printed as a PDF, in Node and in a browser, and to the report
 editor in a React page that saves what the author changed and previews it as
-they work, and in an Angular page that saves. It is written for the 0.1.0
+they work, and in an Angular page that saves. It is written for the 0.2.0
 developer preview: the packages are the ones
 [README.md](../README.md#packages) lists, the report format is version 0, a
 draft, and there is no server package yet, so where a page needs a server

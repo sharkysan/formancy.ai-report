@@ -30,19 +30,20 @@ export interface PageGroup {
   readonly hl7Notice?: true
   /** Its picture for a shared link: one of the site's pictures, under docs/images, the same in every language or one for each. */
   readonly image?: string | Readonly<Record<Language, string>>
-  /** Where the page says its feature stands, for a page whose feature no release had when it was written. */
+  /** Where the page says its feature stands, for a page written before any release had its feature, which says at each release whether that one has it. */
   readonly status?: PageStatus
   readonly Body: (props: { readonly page: PageContext }) => ReactElement
 }
 
 /**
  * Where a page says its feature stands (0024): the day it was last said,
- * and the newest release then, which did not have it. A release
- * CHANGELOG.md names after this one may have it, so the site refuses to
- * render until somebody says whether it does (0028). The rest is what the
- * refusal names: the feature, the file whose sentences say where it
- * stands, those sentences, and the constant that holds this, to change
- * with them.
+ * and the newest release then, which had the feature or did not, as the
+ * page's sentences say. A release CHANGELOG.md names after this one may
+ * have it where that one did not, or no longer have it, so the site
+ * refuses to render until somebody says whether it does (0028). The rest
+ * is what the refusal names: the feature, the file whose sentences say
+ * where it stands, those sentences, and the constant that holds this, to
+ * change with them.
  */
 export interface PageStatus {
   readonly asOf: string

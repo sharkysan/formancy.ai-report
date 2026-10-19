@@ -1,6 +1,6 @@
 {
   "name": "@formancy/report-render-pdf",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Formancy Report PDF renderer: draws a resolved report with pdfmake, with repeated table headers, page regions, kept-together blocks and embedded fonts, and refuses rather than truncates.",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
