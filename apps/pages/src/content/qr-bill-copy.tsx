@@ -19,13 +19,13 @@ import type { PageMeta, Teaser } from '../pages.js'
 
 export interface QrBillCopy {
   readonly meta: PageMeta
-  /** What the product page says of the page; `unreleased` follows its text there. */
+  /** What the product page says of the page; `standing` follows its text there. */
   readonly teaser: Teaser
   readonly eyebrow: string
   readonly h1: string
   readonly lead: string
   /** Where the bill stands, in a sentence: said in the hero and after the teaser, where a reader decides to try it. */
-  readonly unreleased: string
+  readonly standing: string
   readonly actions: { readonly studio: string; readonly samples: string }
   readonly does: { readonly heading: string; readonly cards: readonly { readonly title: string; readonly text: string }[] }
   readonly samples: { readonly heading: string; readonly intro: string }
@@ -66,7 +66,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     eyebrow: 'Formancy Report für die QR-Rechnung',
     h1: 'QR-Rechnungen aus Ihren eigenen Daten, geprüft nach den Regeln von SIX',
     lead: 'Formancy Report erzeugt Ihre Rechnungen als PDF, mit Empfangsschein und Zahlteil, oft QR-Einzahlungsschein genannt, am Fuss der letzten Seite, wie SIX sie vorgibt. Ihre Anwendung übergibt die Daten; bevor das PDF entsteht, werden Konto, Referenz und jeder Text nach den Regeln von SIX geprüft, und der Betrag wird exakt aus den Werten der Rechnung berechnet, in den Beispielen ihr Total.',
-    unreleased: 'Die QR-Rechnung ist online im Studio zu sehen und im neuesten Release enthalten.',
+    standing: 'Die QR-Rechnung ist online im Studio zu sehen und im neuesten Release enthalten.',
     actions: { studio: 'Im Studio ausprobieren (Startvorlage Invoice)', samples: 'Die Beispiele ansehen' },
     does: {
       heading: 'Was es kann',
@@ -149,7 +149,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     eyebrow: 'Formancy Report pour la QR-facture',
     h1: 'Des factures QR à partir de vos propres données, vérifiées selon les règles de SIX',
     lead: "Formancy Report génère vos factures en PDF, avec le récépissé et la section paiement, souvent appelés bulletin de versement QR, au pied de la dernière page, comme SIX les définit. Votre application fournit les données ; avant que le PDF soit produit, le compte, la référence et chaque texte sont vérifiés selon les règles de SIX, et le montant est calculé de manière exacte à partir des valeurs de la facture, son total dans les exemples.",
-    unreleased: 'La facture QR se découvre en ligne dans le Studio et figure dans la version la plus récente.',
+    standing: 'La facture QR se découvre en ligne dans le Studio et figure dans la version la plus récente.',
     actions: { studio: "L'essayer dans le Studio (modèle de départ Invoice)", samples: 'Voir les exemples' },
     does: {
       heading: "Ce qu'il fait",
@@ -232,7 +232,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     eyebrow: 'Formancy Report per la QR-fattura',
     h1: 'Fatture QR dai vostri dati, verificate secondo le regole di SIX',
     lead: "Formancy Report genera le vostre fatture in PDF, con la ricevuta e la sezione pagamento, spesso chiamate polizza di versamento QR, in fondo all'ultima pagina, come le definisce SIX. La vostra applicazione fornisce i dati; prima che il PDF venga prodotto, il conto, il riferimento e ogni testo vengono verificati secondo le regole di SIX, e l'importo è calcolato in modo esatto dai valori della fattura, negli esempi il suo totale.",
-    unreleased: 'La fattura QR si può vedere online nello Studio e fa parte della versione più recente.',
+    standing: 'La fattura QR si può vedere online nello Studio e fa parte della versione più recente.',
     actions: { studio: 'Provarlo nello Studio (modello iniziale Invoice)', samples: 'Vedere gli esempi' },
     does: {
       heading: 'Che cosa fa',
@@ -315,7 +315,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     eyebrow: 'Formancy Report for the Swiss QR-bill',
     h1: "Swiss QR-bills from your own data, checked against SIX's rules",
     lead: "Formancy Report renders your invoices as PDFs, with the receipt and the payment part, often called the QR payment slip, at the foot of the last page, as SIX lays them out. Your application hands over the data; before the PDF is made, the account, the reference and every text are checked against SIX's rules, and the amount is computed exactly from the invoice's values, in the samples its total.",
-    unreleased: 'The QR-bill can be tried online in the Studio, and is in the newest release.',
+    standing: 'The QR-bill can be tried online in the Studio, and is in the newest release.',
     actions: { studio: 'Try it in the Studio (the Invoice starter)', samples: 'See the samples' },
     does: {
       heading: 'What it does',

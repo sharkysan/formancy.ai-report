@@ -340,7 +340,7 @@ while one names another release than the changelog's newest, in one error
 with a line for each such page. `EPC_QR_CODE_STATUS` is written against
 0.1.0, which refuses a report with the code as an unknown kind, as
 `QR_BILL_STATUS` is, and its sentences are the same three as the QR-bill
-page's: `unreleased`, `tryIt.text` and `status.text`.
+page's: `standing`, `tryIt.text` and `status.text`.
 
 **The code is named by what it is.** EPC-QR-Code, SEPA-QR-Code and "QR-Code
 für Überweisungen"; QR code SEPA and QR code EPC; the EPC QR code and the

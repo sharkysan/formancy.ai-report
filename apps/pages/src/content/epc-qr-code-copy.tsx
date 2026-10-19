@@ -25,13 +25,13 @@ import type { PageMeta, Teaser } from '../pages.js'
 
 export interface EpcQrCodeCopy {
   readonly meta: PageMeta
-  /** What the product page says of the page; `unreleased` follows its text there. */
+  /** What the product page says of the page; `standing` follows its text there. */
   readonly teaser: Teaser
   readonly eyebrow: string
   readonly h1: string
   readonly lead: string
   /** Where the code stands, in a sentence: said in the hero and after the teaser, where a reader decides to try it. */
-  readonly unreleased: string
+  readonly standing: string
   readonly actions: { readonly studio: string; readonly samples: string }
   /** What it does, card by card, in the order `CARD_EVIDENCE` lists each card's tests. */
   readonly does: { readonly heading: string; readonly cards: readonly { readonly title: string; readonly text: string }[] }
@@ -82,7 +82,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     eyebrow: 'Formancy Report für den EPC-QR-Code',
     h1: 'EPC-QR-Codes auf Ihren Rechnungen, geprüft nach den Regeln des EPC',
     lead: 'Formancy Report druckt auf Ihre Rechnungen als PDF den QR-Code für Überweisungen, auch SEPA-QR-Code genannt, mit dem eine Banking-App eine SEPA-Überweisung vorausfüllt, so wie der European Payments Council ihn in EPC069-12 festlegt. Ihre Anwendung übergibt die Daten; bevor das PDF entsteht, werden IBAN, BIC, Referenz und jeder Text nach den Regeln des EPC geprüft, und der Betrag wird exakt aus den Werten der Rechnung berechnet, in den Beispielen ihr Rechnungsbetrag.',
-    unreleased: 'Der EPC-QR-Code ist online im Studio zu sehen und im neuesten Release enthalten.',
+    standing: 'Der EPC-QR-Code ist online im Studio zu sehen und im neuesten Release enthalten.',
     actions: { studio: 'Im Studio ausprobieren (Startvorlage Euro invoice)', samples: 'Die Beispiele ansehen' },
     does: {
       heading: 'Was es kann',
@@ -170,7 +170,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     eyebrow: 'Formancy Report pour le QR code SEPA',
     h1: "Le QR code SEPA sur vos factures, vérifié selon les règles de l'EPC",
     lead: "Formancy Report imprime sur vos factures en PDF le QR code à partir duquel une application bancaire préremplit un virement SEPA, tel que l'European Payments Council le définit dans EPC069-12, et que l'on appelle souvent QR code EPC. Votre application fournit les données ; avant que le PDF soit produit, l'IBAN, le BIC, la référence et chaque texte sont vérifiés selon les règles de l'EPC, et le montant est calculé de manière exacte à partir des valeurs de la facture, son total dans les exemples.",
-    unreleased: 'Le QR code SEPA se découvre en ligne dans le Studio et figure dans la version la plus récente.',
+    standing: 'Le QR code SEPA se découvre en ligne dans le Studio et figure dans la version la plus récente.',
     actions: { studio: "L'essayer dans le Studio (modèle de départ Euro invoice)", samples: 'Voir les exemples' },
     does: {
       heading: "Ce qu'il fait",
@@ -258,7 +258,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     eyebrow: 'Formancy Report per il QR code SEPA',
     h1: "Il QR code SEPA sulle vostre fatture, verificato secondo le regole dell'EPC",
     lead: "Formancy Report stampa sulle vostre fatture in PDF il QR code da cui un'app bancaria compila un bonifico SEPA, noto anche come QR code EPC, come lo definisce l'European Payments Council in EPC069-12. La vostra applicazione fornisce i dati; prima che il PDF venga prodotto, l'IBAN, il BIC, il riferimento e ogni testo vengono verificati secondo le regole dell'EPC, e l'importo è calcolato in modo esatto dai valori della fattura, negli esempi il suo totale.",
-    unreleased: 'Il QR code SEPA si può vedere online nello Studio e fa parte della versione più recente.',
+    standing: 'Il QR code SEPA si può vedere online nello Studio e fa parte della versione più recente.',
     actions: { studio: 'Provarlo nello Studio (modello iniziale Euro invoice)', samples: 'Vedere gli esempi' },
     does: {
       heading: 'Che cosa fa',
@@ -346,7 +346,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
     eyebrow: 'Formancy Report for the EPC QR code',
     h1: "EPC QR codes on your invoices, checked against the EPC's rules",
     lead: "Formancy Report prints on your PDF invoices the QR code, often called a SEPA QR code, from which a banking app fills in a SEPA credit transfer, as the European Payments Council defines it in EPC069-12. Your application hands over the data; before the PDF is made, the IBAN, the BIC, the reference and every text are checked against the EPC's rules, and the amount is computed exactly from the invoice's values, in the samples its total.",
-    unreleased: 'The EPC QR code can be tried online in the Studio, and is in the newest release.',
+    standing: 'The EPC QR code can be tried online in the Studio, and is in the newest release.',
     actions: { studio: 'Try it in the Studio (the Euro invoice starter)', samples: 'See the samples' },
     does: {
       heading: 'What it does',

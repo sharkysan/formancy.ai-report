@@ -37,7 +37,7 @@ describe('the EPC QR code page (0028)', () => {
     expect(inputs.release.version).toBe(EPC_QR_CODE_STATUS.release)
     const released = { ...inputs, release: { ...inputs.release, version: '0.3.0', anchor: '030--2026-11-02' } }
     expect(() => renderSite(released)).toThrow(/the EPC QR code page's status was written when 0\.2\.0 was the newest release, and CHANGELOG\.md now names 0\.3\.0/)
-    expect(() => renderSite(released)).toThrow(/epc-qr-code-copy\.tsx that says where it stands -- `unreleased`, which the hero and the product page's teaser say, `tryIt\.text` and `status\.text` -- then change EPC_QR_CODE_STATUS with them/)
+    expect(() => renderSite(released)).toThrow(/epc-qr-code-copy\.tsx that says where it stands -- `standing`, which the hero and the product page's teaser say, `tryIt\.text` and `status\.text` -- then change EPC_QR_CODE_STATUS with them/)
   })
 
   // The hero and the product page's teaser are where a reader decides to
@@ -46,15 +46,15 @@ describe('the EPC QR code page (0028)', () => {
   // foot, the status would come after the reader had left for the guide.
   test('says where it stands where a reader starts, and names the release the guide installs', () => {
     // Nothing to say would be contained in every text.
-    for (const language of LANGUAGES) expect([language, collapsed(EPC_QR_CODE_COPY[language].unreleased).split(' ').length >= 4]).toEqual([language, true])
+    for (const language of LANGUAGES) expect([language, collapsed(EPC_QR_CODE_COPY[language].standing).split(' ').length >= 4]).toEqual([language, true])
     for (const page of pagesOf('epc-qr-code')) {
-      const { unreleased } = EPC_QR_CODE_COPY[page.language]
-      expect([page.language, collapsed(page.document.querySelector('section.hero')?.textContent)]).toEqual([page.language, expect.stringContaining(collapsed(unreleased))])
+      const { standing } = EPC_QR_CODE_COPY[page.language]
+      expect([page.language, collapsed(page.document.querySelector('section.hero')?.textContent)]).toEqual([page.language, expect.stringContaining(collapsed(standing))])
       expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="try"] p')?.textContent)]).toEqual([page.language, expect.stringContaining(inputs.release.version)])
     }
     for (const page of pagesOf('product')) {
-      const { unreleased } = EPC_QR_CODE_COPY[page.language]
-      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="topic-epc-qr-code"]')?.textContent)]).toEqual([page.language, expect.stringContaining(collapsed(unreleased))])
+      const { standing } = EPC_QR_CODE_COPY[page.language]
+      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="topic-epc-qr-code"]')?.textContent)]).toEqual([page.language, expect.stringContaining(collapsed(standing))])
     }
   })
 

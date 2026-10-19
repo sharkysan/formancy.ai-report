@@ -69,8 +69,8 @@ describe('the site the build writes (0021)', () => {
       said = error instanceof Error ? error.message : String(error)
     }
     expect(said.split('\n')).toEqual([
-      "the QR-bill page's status was written when 0.2.0 was the newest release, and CHANGELOG.md now names 0.3.0: say whether that release has the QR-bill in each sentence of qr-bill-copy.tsx that says where it stands -- `unreleased`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change QR_BILL_STATUS with them",
-      "the EPC QR code page's status was written when 0.2.0 was the newest release, and CHANGELOG.md now names 0.3.0: say whether that release has the EPC QR code in each sentence of epc-qr-code-copy.tsx that says where it stands -- `unreleased`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change EPC_QR_CODE_STATUS with them",
+      "the QR-bill page's status was written when 0.2.0 was the newest release, and CHANGELOG.md now names 0.3.0: say whether that release has the QR-bill in each sentence of qr-bill-copy.tsx that says where it stands -- `standing`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change QR_BILL_STATUS with them",
+      "the EPC QR code page's status was written when 0.2.0 was the newest release, and CHANGELOG.md now names 0.3.0: say whether that release has the EPC QR code in each sentence of epc-qr-code-copy.tsx that says where it stands -- `standing`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change EPC_QR_CODE_STATUS with them",
     ])
   })
 

@@ -660,7 +660,7 @@ clip may reach past it and only the pixels say what the clip kept in.
   32 pages 2.8 s longer than one of a single rectangle, and each
   translucent gradient wrote about 1.8 kB more on every page.
 - **A page limit, not the pages printed, decides.** A header logo is
-  counted on every page `maxPages` allows, so at the README's 200 a header
+  counted on every page `maxPages` allows, so at a limit of 200 a header
   logo may cost 5,000 units, though the report prints two pages: a logo of
   9,999 short lines, the most one drawing may hold, costs 12,152 units and
   may head a report of 82 pages at most, which the Studio's Preview,

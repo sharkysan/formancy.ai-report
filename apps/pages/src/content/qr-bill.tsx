@@ -20,7 +20,7 @@ import { QR_BILL_COPY } from './qr-bill-copy.js'
  * Where the QR-bill stands, as the page says it: the day it was last said,
  * and the newest release then, 0.2.0, the first to print a report with a
  * payment part, which 0.1.0 refuses whole (0022). Three sentences of
- * qr-bill-copy.tsx say it: `unreleased`, in the hero and after the product
+ * qr-bill-copy.tsx say it: `standing`, in the hero and after the product
  * page's teaser; `tryIt.text`, of the release the guide installs; and
  * `status.text`, dated. Each says the newest release holds the bill, which
  * a later release makes true again only by keeping it, so the site refuses
@@ -32,12 +32,12 @@ export const QR_BILL_STATUS: PageStatus = {
   release: '0.2.0',
   feature: 'QR-bill',
   copy: 'qr-bill-copy.tsx',
-  sentences: "`unreleased`, which the hero and the product page's teaser say, `tryIt.text` and `status.text`",
+  sentences: "`standing`, which the hero and the product page's teaser say, `tryIt.text` and `status.text`",
   constant: 'QR_BILL_STATUS',
 }
 
 /** What the product page says of the QR-bill page in `language`: its teaser, and where it stands, as the hero says it. */
-const teaserOf = (language: Language): Teaser => ({ ...QR_BILL_COPY[language].teaser, text: `${QR_BILL_COPY[language].teaser.text} ${QR_BILL_COPY[language].unreleased}` })
+const teaserOf = (language: Language): Teaser => ({ ...QR_BILL_COPY[language].teaser, text: `${QR_BILL_COPY[language].teaser.text} ${QR_BILL_COPY[language].standing}` })
 
 /** The decision record that says what a QR-bill is and what it costs, which the page links for the reasons it gives. */
 const DECISION = 'docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md'
@@ -65,7 +65,7 @@ function QrBillBody({ page }: { readonly page: PageContext }): ReactElement {
             </a>
           </li>
         </ul>
-        <p>{copy.unreleased}</p>
+        <p>{copy.standing}</p>
       </section>
 
       <section className="band" aria-labelledby="does">

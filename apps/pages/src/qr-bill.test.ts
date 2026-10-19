@@ -28,7 +28,7 @@ describe('the QR-bill page (0024)', () => {
     expect(inputs.release.version).toBe(QR_BILL_STATUS.release)
     const released = { ...inputs, release: { ...inputs.release, version: '0.3.0', anchor: '030--2026-11-02' } }
     expect(() => renderSite(released)).toThrow(/the QR-bill page's status was written when 0\.2\.0 was the newest release, and CHANGELOG\.md now names 0\.3\.0/)
-    expect(() => renderSite(released)).toThrow(/`unreleased`, which the hero and the product page's teaser say, `tryIt\.text` and `status\.text`/)
+    expect(() => renderSite(released)).toThrow(/`standing`, which the hero and the product page's teaser say, `tryIt\.text` and `status\.text`/)
   })
 
   // The hero and the product page's teaser are where a reader decides to
@@ -38,15 +38,15 @@ describe('the QR-bill page (0024)', () => {
   // left for the guide and met the refusal there.
   test('says where it stands where a reader starts, and names the release the guide installs', () => {
     // Nothing to say would be contained in every text.
-    for (const language of LANGUAGES) expect([language, collapsed(QR_BILL_COPY[language].unreleased).split(' ').length >= 4]).toEqual([language, true])
+    for (const language of LANGUAGES) expect([language, collapsed(QR_BILL_COPY[language].standing).split(' ').length >= 4]).toEqual([language, true])
     for (const page of pagesOf('qr-bill')) {
-      const { unreleased } = QR_BILL_COPY[page.language]
-      expect([page.language, collapsed(page.document.querySelector('section.hero')?.textContent)]).toEqual([page.language, expect.stringContaining(collapsed(unreleased))])
+      const { standing } = QR_BILL_COPY[page.language]
+      expect([page.language, collapsed(page.document.querySelector('section.hero')?.textContent)]).toEqual([page.language, expect.stringContaining(collapsed(standing))])
       expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="try"] p')?.textContent)]).toEqual([page.language, expect.stringContaining(inputs.release.version)])
     }
     for (const page of pagesOf('product')) {
-      const { unreleased } = QR_BILL_COPY[page.language]
-      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="topic-qr-bill"]')?.textContent)]).toEqual([page.language, expect.stringContaining(collapsed(unreleased))])
+      const { standing } = QR_BILL_COPY[page.language]
+      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="topic-qr-bill"]')?.textContent)]).toEqual([page.language, expect.stringContaining(collapsed(standing))])
     }
   })
 
