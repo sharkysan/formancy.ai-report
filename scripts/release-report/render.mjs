@@ -57,9 +57,18 @@ export function derivedLimitations(report) {
       : `${prose(ranged.map((entry) => code(entry.name)))} ${ranged.length === 1 ? 'is' : 'are'} published as a range; the suites ran the version${ranged.length === 1 ? '' : 's'} *Tested on* names, and an install may resolve another.`,
   )
   // Every version a clean install resolved that the suites did not load, each
-  // on its own: one host's tree can move while another's does not.
-  const moved = [...testedOn.runtime, ...testedOn.upstream].flatMap((entry) =>
-    entry.fresh.filter((fresh) => fresh.version !== (entry.loaded ?? entry.version)).map((fresh) => `${code(entry.name)} ${fresh.version}${fresh.hosts.length === 0 ? '' : ` in ${prose(fresh.hosts)}`} (the suites ran ${entry.loaded ?? entry.version})`),
+  // on its own: one host's tree can move while another's does not. A name
+  // can stand at two versions the suites both loaded -- @formancy/spec 0.5.0,
+  // which Data's client pins, beside 0.6.0 -- so a version is held against
+  // every one the suites ran of its name, not against one entry's.
+  const entries = [...testedOn.runtime, ...testedOn.upstream]
+  const ran = new Map()
+  for (const entry of entries) ran.set(entry.name, distinct([...(ran.get(entry.name) ?? []), entry.loaded ?? entry.version]).sort())
+  const moved = [...ran].flatMap(([name, versions]) =>
+    entries
+      .find((entry) => entry.name === name)
+      .fresh.filter((fresh) => !versions.includes(fresh.version))
+      .map((fresh) => `${code(name)} ${fresh.version}${fresh.hosts.length === 0 ? '' : ` in ${prose(fresh.hosts)}`} (the suites ran ${prose(versions)})`),
   )
   if (moved.length > 0) sentences.push(`A clean npm install on ${String(testedOn.installedAt).slice(0, 10)} resolved ${prose(moved)}, which no suite ran.`)
   sentences.push(...peerSentences(report))

@@ -67,6 +67,23 @@ describe('the limitations a run shows', () => {
     expect(renderContent(report())).toContain('| `pdfmake` | @formancy/report-render-pdf | 0.3.11 | 0.3.11 | 0.3.11 |')
   })
 
+  // 0.2.0's body said a clean install resolved @formancy/spec 0.6.0 and
+  // 0.5.0 "which no suite ran", when the suites ran both: Data's client
+  // pins 0.5.0 beside report-spec's 0.6.0, and each version was held
+  // against the other's entry. A version is past the suites only when they
+  // ran no copy of it under that name.
+  test('name a version past the suites only when they ran no copy of it under that name', () => {
+    const both = (resolve) =>
+      report((inputs) => {
+        inputs.facts.upstream.push({ name: '@formancy/spec', version: '0.6.0', declared: '0.6.0', direct: true })
+        const install = job(inputs, 'install').install
+        install.resolved.push({ name: '@formancy/spec', version: resolve })
+        install.consumers.find((entry) => entry.project === 'react').resolved = [{ name: '@formancy/spec', version: resolve }]
+      })
+    expect(derivedLimitations(both('0.6.0')).some((sentence) => sentence.startsWith('A clean npm install'))).toBe(false)
+    expect(derivedLimitations(both('0.7.0'))).toContain('A clean npm install on 2026-10-16 resolved `@formancy/spec` 0.7.0 in react (the suites ran 0.5.0 and 0.6.0), which no suite ran.')
+  })
+
   // What jsdom cannot see is measured in the browsers the gate launched and
   // in no other: the sentence names each, and what launched it, from what
   // the gate and the pictures recorded. Without the browser job, or with a
