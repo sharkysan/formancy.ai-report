@@ -129,9 +129,11 @@ tarballs, installed by npm outside the checkout with no lifecycle script and
 no peer
 ([0017](../decisions/0017-the-sbom-describes-what-a-consumer-installs.md)),
 then refuses one that leaves out a published package at the release's
-version, a runtime dependency or an upstream package a consumer's install
-brings, or names one at another version than the suites loaded, and pins
-the SBOM. The
+version or an upstream package a consumer's install brings, names an
+upstream package at another version than the suites loaded, or whose
+dependency graph does not give each published package each runtime
+dependency it declares at the version its suites loaded, and pins the
+SBOM. The
 `publish` job refuses anything it downloaded that is not what was pinned,
 and the report again, before it signs the SBOM and the report and before
 npm receives anything (`scripts/release/pins.mjs`, `publish.mjs`).

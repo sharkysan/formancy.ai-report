@@ -87,6 +87,18 @@ it, or a shipped package's own do. The check requires:
 
 Each is still held to the version the suites loaded.
 
+**A runtime dependency is held where a published package is given it.**
+A consumer's tree can hold one name at two versions. 0.2.0's holds
+`@noble/hashes` 2.4.0, which report-spec declares, and 1.8.0, which pdfkit
+declares under pdfmake. A check by name alone refused the 0.2.0
+rehearsal's SBOM for pdfkit's copy, which no suite's record names. So
+the check reads the SBOM's dependency graph. For each runtime dependency
+the report names, the package that declares it must be given it, at the
+version its suites loaded, and the SBOM must name that version. An
+upstream package is held, by name, to a version the suites loaded, since
+the report walks every `@formancy/*` dependency and so knows each version
+an install brings (`scripts/release-report/verify-publish.mjs`).
+
 ## Consequences
 
 **What it buys.**
@@ -106,6 +118,10 @@ Each is still held to the version the suites loaded.
   the versions the suites loaded, but not the rest of the closure. The
   install gate resolves its hosts' installs the same way, and nothing
   compares the two.
+- **The check needs cdxgen's dependency graph.** An SBOM with none, or
+  with references that are not package URLs, gives no published package
+  anything, and is refused. A cdxgen that stops writing the graph so stops
+  every release, and that failure is a refusal, not a pass.
 - **No peers.** The SBOM does not say which React or Angular a host runs.
   The release report's peers table says which ones the suites loaded and
   the install gate drew.

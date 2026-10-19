@@ -103,9 +103,10 @@ anything that cannot be taken back:
      installs and not the workspace
      ([0017](docs/decisions/0017-the-sbom-describes-what-a-consumer-installs.md)).
      It refuses the SBOM unless it is one, names every published package at
-     the release's version, every runtime dependency and every upstream
-     package their install brings, and names each at the version the suites
-     loaded; and pins that too.
+     the release's version and every upstream package their install brings,
+     each at a version the suites loaded, and gives each published package,
+     in its dependency graph, each runtime dependency it declares at the
+     version its suites loaded; and pins that too.
 
    This job is not one that can write nothing. Every job of a run can write
    to the run's artefacts, this one uploads the SBOM, and cdxgen's own
