@@ -5,7 +5,8 @@ and nowhere else. A release built on a laptop cannot carry provenance — the
 attestation is a statement *by GitHub* about which workflow, at which commit,
 produced a tarball, and only the workflow can make it.
 
-The first release, 0.1.0, was cut on 16 October 2026. The workflow follows
+The first release, 0.1.0, was cut on 16 October 2026, and 0.2.0 on
+19 October 2026. The workflow follows
 Formancy Data's, release report included
 ([0014](docs/decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md),
 [`docs/release/`](docs/release/README.md)), without its server image, which
@@ -204,6 +205,13 @@ the release `dry-run`. Its body uses the version's changelog section when
 there is one and `Unreleased` otherwise, so a rehearsal on the release
 commit renders the body that will be released.
 
+0.2.0's first rehearsal stopped in `check`, which refused a correct SBOM:
+the install holds `@noble/hashes` twice, report-spec's 2.4.0 and the
+1.8.0 pdfkit brings, and the check held every copy of a runtime
+dependency's name to one version. The check was fixed on `main` before any
+tag ([0017](docs/decisions/0017-the-sbom-describes-what-a-consumer-installs.md)),
+and the tag named the commit a second, green rehearsal ran on.
+
 Agents ask before dispatching it, and never tag or publish.
 
 ## If the run fails before `publish`
@@ -241,7 +249,8 @@ entries stay even when a release never happens.
 | `npm-publish` | each version number on npm, forever | the registry; any one of the packages | the signatures |
 | `github-release` | nothing: a release can be edited or deleted | the GitHub API | npm |
 
-The publish job has run once, for 0.1.0, and every step of it succeeded.
+The publish job has run twice, for 0.1.0 and 0.2.0, and every step of each
+succeeded.
 So the path above, a `publish` run again over versions npm already holds,
 has never run: `scripts/workflows.test.mjs` holds the job's shape, and
 `scripts/release/publish.test.mjs` what it decides about a version the

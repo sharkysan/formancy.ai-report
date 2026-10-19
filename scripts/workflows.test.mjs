@@ -15,7 +15,7 @@ import { collectStep, expectedKeys, gateJobs, readWorkflow } from './workflows.m
  * pins what it checked; and everything permanent is in one job behind one
  * condition, which publishes only what was pinned, with npm, which nothing
  * can undo, as late as it can be. This holds the shape, not the behaviour:
- * the publish job has run once, for 0.1.0, and a rehearsal exercises
+ * the publish job has run twice, for 0.1.0 and 0.2.0, and a rehearsal exercises
  * everything else.
  */
 const gates = readWorkflow(undefined, '.github/workflows/gates.yml')
