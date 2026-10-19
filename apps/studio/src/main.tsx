@@ -1,11 +1,15 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-// The workbench first, the builders' stylesheet on it, then the Studio's,
-// whose room sets the workbench's --wb-* variables (styles/room.css).
-// Imported from this script, not @imported by a stylesheet, so the notices
-// plugin sees both packages' stylesheets as modules and lists their
-// licences (formancy.ai-data 0046).
+// The workbench first, then formancy.ai's room, released, which sets the
+// workbench's --wb-* to the room's colours and must come after it: both
+// say :root, and the later wins (0034; scripts/palette.test.mjs). Then the
+// builders' stylesheet on them, then the Studio's. Imported from this
+// script, not @imported by a stylesheet, so the notices plugin sees the
+// packages' stylesheets as modules and lists their licences
+// (formancy.ai-data 0046), and so the gate and the pictures, which inline
+// studio.css's relative imports and refuse any other, read the Studio's own.
 import '@formancy/themes/workbench.css'
+import '@formancy/themes/room.css'
 import '@formancy/report-builder-core/report-builder.css'
 import './studio.css'
 // The faces, from this build (0023). fonts.css @imports their stylesheets,

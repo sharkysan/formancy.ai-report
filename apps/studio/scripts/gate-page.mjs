@@ -2,7 +2,8 @@
 // that brings the page to each state (browser-test.mjs): the widths worth
 // measuring, the measurements themselves, axe, the rules that reach the
 // paper and the Preview, the Preview's controls a pane cuts, PDF.js's
-// pages, the drawings of the PDF the page offers, and the web fonts. formancy.ai-data's apps/studio/scripts/
+// pages, the drawings of the PDF the page offers, the web fonts, and the
+// room's variables as the page computes them. formancy.ai-data's apps/studio/scripts/
 // browser-test.mjs and scripts/browser-gate.mjs, where these first ran.
 //
 // The reads that go to the DOM rather than the accessibility tree go there
@@ -464,4 +465,59 @@ export async function fontProblem(page, { dist, refused }) {
   }
   const missing = families.filter((family) => !loaded.includes(family))
   return missing.length === 0 ? null : `${missing.join(', ')} did not load, so this pass measured the fallback stack in their place`
+}
+
+/**
+ * Why the page does not wear the released room, or null (0034): each custom
+ * property the installed @formancy/themes/room.css sets on :root, as the
+ * page computes it on <html>, against room.css's own value, a var() of
+ * another of its variables resolved to that one's; and its colour scheme.
+ * Compared as Chromium computes each -- a colour as a colour, a stack as a
+ * font-family -- because the build's minifier writes the room's values
+ * otherwise (rgb(17 22 36 / 74%) as #111624bd), and an alpha within one
+ * step of 255 is the same colour, which is all a hex alpha can say. Read on
+ * the built page, so what scripts/palette.test.mjs reads in the sources is
+ * measured where it lands, by whatever path the build took a stylesheet:
+ * one that sets a variable of the room's again, the workbench taken again
+ * after the room, a room taken nowhere.
+ */
+export async function paletteProblem(page) {
+  const css = readFileSync(require.resolve('@formancy/themes/room.css'), 'utf8').replaceAll(/\/\*[\s\S]*?\*\//g, '')
+  const block = /:root\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
+  const declared = Object.fromEntries([...block.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((match) => [match[1] ?? '', (match[2] ?? '').trim()]))
+  const scheme = /(?<![\w-])color-scheme\s*:\s*([^;]+);/.exec(block)?.[1]?.trim()
+  if (Object.keys(declared).length === 0 || scheme === undefined) return 'the installed room.css reads as no :root with variables and a colour scheme'
+  const resolved = (value, depth = 0) => (depth > 8 ? value : value.replaceAll(/var\(\s*(--[\w-]+)\s*\)/g, (_, name) => resolved(declared[name] ?? '', depth + 1)))
+  const room = Object.entries(declared).map(([name, value]) => [name, resolved(value)])
+  const wrong = await page.evaluate(
+    ({ room, scheme }) => {
+      const probe = document.createElement('i')
+      document.body.append(probe)
+      /** `value` as Chromium computes it: a colour's channels, a stack as a font-family, or null for neither. */
+      const computed = (value) => {
+        const property = value === '' ? null : CSS.supports('color', value) ? 'color' : CSS.supports('font-family', value) ? 'font-family' : null
+        if (property === null) return null
+        probe.style.setProperty(property, value)
+        const said = getComputedStyle(probe).getPropertyValue(property)
+        probe.style.removeProperty(property)
+        return property === 'color' ? { property, channels: (said.match(/[\d.]+/g) ?? []).map(Number) } : { property, said }
+      }
+      const same = (one, other) => {
+        if (one === null || other === null || one.property !== other.property) return false
+        if (one.property !== 'color') return one.said === other.said
+        const [a, b] = [one.channels, other.channels]
+        return a.length >= 3 && a.length === b.length && a.slice(0, 3).every((channel, at) => channel === b[at]) && Math.abs((a[3] ?? 1) - (b[3] ?? 1)) <= 1 / 255
+      }
+      const root = getComputedStyle(document.documentElement)
+      const wrong = room.flatMap(([name, value]) => {
+        const now = root.getPropertyValue(name).trim()
+        return same(computed(now), computed(value)) ? [] : [`${name} is ${now === '' ? 'unset' : now}, where the room has ${value}`]
+      })
+      if (root.colorScheme !== scheme) wrong.push(`color-scheme is ${root.colorScheme}, where the room has ${scheme}`)
+      probe.remove()
+      return wrong
+    },
+    { room, scheme },
+  )
+  return wrong.length === 0 ? null : wrong.join('; ')
 }

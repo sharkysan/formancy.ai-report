@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -90,10 +91,11 @@ describe("the pages' stylesheet", () => {
     return directory
   }
 
-  // The room is imported from the Studio, never copied (0021): its
-  // variables reach the pages through the import, which the build inlines
-  // as Vite inlines the Studio's. Comments go; every file read is said, so
-  // turbo can be told to build again when one changes.
+  // The Studio's stylesheets are imported, never copied (0021), as the
+  // released room is (0034): what they say reaches the pages through the
+  // import, which the build inlines as Vite inlines the Studio's. Comments
+  // go; every file read is said, so turbo can be told to build again when
+  // one changes.
   test('inlines every relative import, in order, without comments, and says which files it read', () => {
     const root = tree({
       'pages/src/pages.css': "/* the pages */\n@import '../../studio/room.css';\n.page { color: var(--text); }\n",
@@ -140,6 +142,24 @@ describe("the pages' stylesheet", () => {
     expect(read.map(relative)).toEqual(['pages/src/pages.css', 'studio/fonts.css', 'pages/node_modules/face/400.css'])
   })
 
+  // The room arrives as a package's stylesheet too (0034), and names no
+  // file: nothing is copied for it, and yet the pages serve its text, which
+  // its licence asks to travel with its notice. So every package a
+  // stylesheet is inlined from is said, a face's and the room's alike, and
+  // the notices are written for each; said by fonts alone, the room's
+  // package was served with no notice.
+  test('says every package it inlines a stylesheet from, one that names no font among them', () => {
+    const root = tree({
+      'pages.css': "@import 'room/room.css';\n@import 'face/400.css';\n@import 'face/400.css';\n",
+      'node_modules/room/package.json': JSON.stringify({ name: 'room', version: '0.6.0', license: 'Apache-2.0' }),
+      'node_modules/room/room.css': ':root {\n  --ground: #080a12;\n}\n',
+      ...face('node_modules', 'face', 'face-latin-400-normal'),
+    })
+    const { css, packages } = bundleStylesheet(join(root, 'pages.css'), { packages: join(root, 'node_modules') })
+    expect(css).toContain('--ground: #080a12;')
+    expect(packages.map((directory) => directory.slice(root.length + 1).replaceAll('\\', '/'))).toEqual(['node_modules/room', 'node_modules/face'])
+  })
+
   // An import by URL would be fetched by the browser, under /report/; a
   // package the pages do not depend on is a face served from nobody's
   // dependency; a url() naming a file its package does not ship is a face
@@ -175,13 +195,22 @@ describe('the inputs as the repository holds them', () => {
     expect(inputs.packages).not.toContain('@formancy/report-corpus')
     expect(inputs.licence).toMatchObject({ version: '1', address: 'info@formancy.ai' })
     expect(inputs.licence.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    expect(inputs.ground).toBe('#080a12')
-    expect(inputs.stylesheet).toContain('--ground: #080a12;')
+    // The ground the pages' theme-color says is the released room's, read
+    // from the room the pages' own manifest resolves, as their build does;
+    // typed here, it was the copy's, and a room that moves it would fail
+    // this for being right.
+    const ground = /--ground\s*:\s*([^;]+);/.exec(readFileSync(createRequire(join(repo, 'apps', 'pages', 'package.json')).resolve('@formancy/themes/room.css'), 'utf8'))?.[1]?.trim()
+    expect(ground).toMatch(/^#[\da-f]{6}$/i)
+    expect(inputs.ground).toBe(ground)
+    expect(inputs.stylesheet).toContain(`--ground: ${String(ground)};`)
     expect(inputs.pictures).toEqual([
       expect.objectContaining({ name: 'starter-quotation.png', from: 'docs/images/starter-quotation.png', width: 745, height: 1053, lines: expect.arrayContaining(["Total CHF 3'143.00"]) }),
     ])
-    expect(inputs.read).toEqual(expect.arrayContaining(['CHANGELOG.md', 'LICENSE.md', 'apps/studio/wrangler.json', 'apps/studio/src/styles/room.css', 'apps/studio/src/styles/fonts.css', 'docs/images/pictures.json', 'docs/images/starter-quotation.png']))
+    expect(inputs.read).toEqual(expect.arrayContaining(['CHANGELOG.md', 'LICENSE.md', 'apps/studio/wrangler.json', 'apps/pages/node_modules/@formancy/themes/room.css', 'apps/studio/src/styles/room.css', 'apps/studio/src/styles/fonts.css', 'docs/images/pictures.json', 'docs/images/starter-quotation.png']))
     expect(inputs.notices).toContain('@fontsource/ibm-plex-sans 5.3.0')
+    // The room's text is served too, so its package's notice travels with it (0034).
+    const themes = JSON.parse(readFileSync(join(repo, 'apps', 'pages', 'package.json'), 'utf8')).dependencies['@formancy/themes']
+    expect(inputs.notices).toContain(`@formancy/themes ${themes}`)
   })
 
   // The invoice samples' pictures are recorded in docs/images/samples.json,

@@ -9,9 +9,9 @@
       // packages' manifests, and the repository's scripts it imports.
       // Without them here, an edit to one alone would replay a cached dist/
       // that says what it said before; scripts/inputs.test.mjs holds every
-      // file read to this list. The faces' own files come from this
-      // package's node_modules, which turbo hashes through the lockfile,
-      // not as inputs (0023).
+      // file read to this list. The faces' own files, and formancy's room,
+      // come from this package's node_modules, which turbo hashes through
+      // the lockfile, not as inputs (0023, 0034).
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/CHANGELOG.md",

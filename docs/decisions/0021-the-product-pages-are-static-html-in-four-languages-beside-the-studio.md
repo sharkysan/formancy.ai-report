@@ -8,7 +8,10 @@
   by [0028](0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
   the EPC QR code page, a word check refusing the name 0025 keeps off
   everything here, and every page's status read by the site before it
-  renders any
+  renders any; its room by import of the Studio's copy superseded by
+  [0034](0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md): the pages import
+  formancy's released `@formancy/themes/room.css` first, then the Studio's
+  stylesheets
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

@@ -223,8 +223,8 @@ one.
 - **Warnings:** an unused style, asset, parameter, field or aggregate, an
   empty body, a text that prints nothing.
 
-Every member read is checked as its type. `@formancy/expressions` 0.5.0
-declares a variable only by its whole name, so each read of `row.amount` is
+Every member read is checked as its type. `@formancy/expressions` 0.6.0,
+as 0.5.0 before it, declares a variable only by its whole name, so each read of `row.amount` is
 spliced, by upstream's own `rewritePath`, into a read of `row_amount`, a
 variable declared as a decimal. An exact value is used as what it is,
 `row.amount * dec("1.081")`, and `dec(row.amount)` is a type error. A member

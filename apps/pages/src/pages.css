@@ -1,10 +1,12 @@
 /*
  * The pages' stylesheet: formancy.ai's room as the Studio wears it, and the
- * Studio's bar as the shell (0021). The room -- the admin's variables, the
- * page, the skip link, the eyebrow -- the pills, the bar and its narrow
- * rules are the Studio's own files, imported, never copied: the admin's
- * palette has one copy here, the Studio's room.css, and when
- * @formancy/themes ships the room both will import that instead.
+ * Studio's bar as the shell (0021). The palette is formancy's, released:
+ * @formancy/themes/room.css, from the pages' own dependency, first, before
+ * the Studio's stylesheets, as the Studio's page loads it before its own
+ * (0034). The rest of the room -- the page, the skip
+ * link, the eyebrow -- the pills, the bar and its narrow rules are the
+ * Studio's own files, imported, never copied. The pages load no
+ * workbench, so the room's --wb-* recolour nothing here.
  *
  * Below the imports, the pages' own rules: their layout, and colours only
  * through the room's variables -- no colour of their own, which
@@ -16,6 +18,7 @@
  * beside this one, under fonts/: the pages ask no other site for them
  * (0023).
  */
+@import '@formancy/themes/room.css';
 @import '../../studio/src/styles/room.css';
 @import '../../studio/src/styles/fonts.css';
 @import '../../studio/src/styles/controls.css';

@@ -10,7 +10,7 @@
  * Shape, type and spacing only. Every colour declaration of admin.css's
  * rules is left out -- the header's faint wash, the transparent panes, the
  * canvas's dot grid -- because the builder's colours come from the --wb-*
- * variables room.css sets and from nothing else: styles.test.tsx fails on
+ * variables formancy's room.css sets and from nothing else: styles.test.tsx fails on
  * a colour declared on any rule that names the builder. Each selector is
  * admin.css's, narrowed only where this builder differs:
  *

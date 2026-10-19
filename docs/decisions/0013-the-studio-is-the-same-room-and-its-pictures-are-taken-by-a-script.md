@@ -1,7 +1,11 @@
 # 0013 — The Studio is formancy.ai's room with a report builder in it, its PDF.js viewer stays inside it, and its README pictures are taken by a script
 
 - **Status:** accepted; its faces are the build's own since [0023](0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md),
-  not Google's, and the browser gate allows no request to another site
+  not Google's, and the browser gate allows no request to another site;
+  its palette, copied and pinned, superseded by
+  [0034](0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md): the Studio imports
+  formancy's released `@formancy/themes/room.css`, and the palette guard
+  refuses a copy
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**

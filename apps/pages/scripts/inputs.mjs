@@ -95,12 +95,15 @@ const PACKAGE_IMPORT = /^((?:@[\w.-]+\/)?[\w.-]+)\/([\w./-]+\.css)$/
  *
  * - `@import './…';` or `'../…'` is a file beside the one importing it.
  * - `@import '<package>/<file>.css';` is a stylesheet of an installed
- *   package -- a face's, Fontsource's (0023) -- found in `packages`, the
- *   pages' own node_modules, never beside the importing file, so what the
- *   pages serve is what their package.json names. Each url() in it names a
- *   file the package ships, a font; it is rewritten to name the font's copy
- *   beside the pages' stylesheet, under fonts/, and the copy is said in
- *   `fonts`: its url(), and the file and package it is copied from.
+ *   package -- a face's, Fontsource's (0023), or formancy's room (0034) --
+ *   found in `packages`, the pages' own node_modules, never beside the
+ *   importing file, so what the pages serve is what their package.json
+ *   names. Each url() in it names a file the package ships, a font; it is
+ *   rewritten to name the font's copy beside the pages' stylesheet, under
+ *   fonts/, and the copy is said in `fonts`: its url(), and the file and
+ *   package it is copied from. Every such package is said in `packages`, by
+ *   its directory, whether it names a file or not: the pages serve its
+ *   stylesheet's text, and its notice travels with it.
  *
  * `read` hears every file read. Refuses any other @import -- one by URL
  * would be fetched by the browser from wherever it names -- a package the
@@ -110,12 +113,13 @@ const PACKAGE_IMPORT = /^((?:@[\w.-]+\/)?[\w.-]+)\/([\w./-]+\.css)$/
  *
  * @param {string} file
  * @param {{ readonly read?: (file: string) => void, readonly packages?: string }} [options]
- * @returns {{ css: string, fonts: { href: string, from: string, directory: string }[] }}
+ * @returns {{ css: string, fonts: { href: string, from: string, directory: string }[], packages: string[] }}
  */
 export function bundleStylesheet(file, { read = () => {}, packages } = {}) {
   const fonts = new Map()
-  const css = inline(file, { read, packages, fonts }, undefined)
-  return { css: css.replaceAll(/\n{3,}/g, '\n\n'), fonts: [...fonts.values()].map(({ href, from, directory }) => ({ href, from, directory })) }
+  const inlined = new Set()
+  const css = inline(file, { read, packages, fonts, inlined }, undefined)
+  return { css: css.replaceAll(/\n{3,}/g, '\n\n'), fonts: [...fonts.values()].map(({ href, from, directory }) => ({ href, from, directory })), packages: [...inlined] }
 }
 
 /** `file` inlined for bundleStylesheet; `owner` is the package it belongs to, when it is a package's. */
@@ -133,6 +137,7 @@ function inline(file, context, owner) {
     const [, name, inside] = found
     const directory = context.packages === undefined ? undefined : join(context.packages, name)
     if (directory === undefined || !existsSync(join(directory, 'package.json'))) throw new Error(`${file} imports ${path}, and ${name} is not a package the pages depend on`)
+    context.inlined.add(directory)
     return inline(join(directory, inside), context, { name, directory })
   })
   if (/@import/.test(inlined)) throw new Error(`${file} has an @import it does not inline`)
@@ -203,7 +208,7 @@ export function readInputs(repo, { pictures = [] } = {}) {
   if (site === undefined) throw new Error("apps/studio/wrangler.json routes no path of formancy.ai, so the pages have no address")
   const licenceText = text('LICENSE.md')
   const licence = readLicence(licenceText)
-  const { css: stylesheet, fonts } = bundleStylesheet(join(repo, 'apps', 'pages', 'src', 'pages.css'), { read: note, packages: join(repo, 'apps', 'pages', 'node_modules') })
+  const { css: stylesheet, fonts, packages: served } = bundleStylesheet(join(repo, 'apps', 'pages', 'src', 'pages.css'), { read: note, packages: join(repo, 'apps', 'pages', 'node_modules') })
   // The lines each picture's page prints, as report-render-pdf's
   // pictures.test.ts holds them to the PDF: the starters' in pictures.json,
   // the invoice samples' in samples.json, which the Studio's browser gate
@@ -215,7 +220,7 @@ export function readInputs(repo, { pictures = [] } = {}) {
     release: releaseOf(text('CHANGELOG.md')),
     licence: { version: licence.version, date: isoDay(licence.date), address: licence.address, terms: licenceTermsOf(licenceText) },
     fonts: fonts.map((font) => ({ href: font.href, from: relative(repo, font.from).replaceAll('\\', '/') })),
-    notices: copiedNotices(fonts.map((font) => font.directory)),
+    notices: copiedNotices(served),
     ground: rootValue(stylesheet, '--ground'),
     stylesheet,
     pictures: pictures.map((name) => {

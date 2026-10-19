@@ -55,6 +55,9 @@
 //     builder's an element of the Preview there, but that one;
 //   - every web font the built page asks for had loaded by the end of each
 //     pass, and in the pass that refuses them, none had;
+//   - the page wears the released room: every variable the installed
+//     @formancy/themes/room.css sets, and its colour scheme, computed on
+//     the page as room.css gives it, at every pass (0034);
 //   - the two builders' accessible trees are the same, in every starter and
 //     in each state the same steps bring each builder to, as Playwright's
 //     snapshot reads them and as Chromium's own tree does, once in each
@@ -83,7 +86,7 @@ import { build, preview } from 'vite'
 import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
-import { app, audit, cutControls, describeFocus, downloaded, drawnPages, fontProblem, fromTheTop, measureWidth, passes, rulesOnThePaper } from './gate-page.mjs'
+import { app, audit, cutControls, describeFocus, downloaded, drawnPages, fontProblem, fromTheTop, measureWidth, paletteProblem, passes, rulesOnThePaper } from './gate-page.mjs'
 import { builderParity } from './gate-parity.mjs'
 import { placeChecks } from './gate-place.mjs'
 import { gateRecorder } from './gate-results.mjs'
@@ -528,6 +531,7 @@ async function pass(gate, browser, url, entry) {
     await page.goto(url, { waitUntil: 'load' })
     const picker = page.getByRole('combobox', { name: 'Starter', exact: true })
     await picker.waitFor()
+    gate.check("the page wears the released room, every variable and the colour scheme of the installed room.css as it has them", await paletteProblem(page))
     for (const framework of ['React', 'Angular']) {
       await builder(page, framework)
       await placeChecks(gate, page, framework, entry, { measured })

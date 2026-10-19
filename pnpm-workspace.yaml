@@ -54,7 +54,11 @@ catalog:
 # otherwise hold them back for a day. scripts/upstream-deps.mjs refuses an
 # exemption outside upstream, for a name or a range, or for a version the
 # lockfile no longer installs. Formancy Data 0.1.0, published on
-# 2026-10-16, for report-data-provider (0016).
+# 2026-10-16, for report-data-provider (0016). formancy 0.6.0, published on
+# 2026-10-18, for the packages and the Studio's and the pages' room.
 minimumReleaseAgeExclude:
   - '@formancy/data-client@0.1.0'
   - '@formancy/data-core@0.1.0'
+  - '@formancy/expressions@0.6.0'
+  - '@formancy/spec@0.6.0'
+  - '@formancy/themes@0.6.0'

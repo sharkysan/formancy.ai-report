@@ -280,13 +280,21 @@ as Formancy Data's apps are, not a new one
 - **The same room.** A dark bench, glass panels, violet for what the person
   acts on and teal for what the system did, with the builder's panes from
   `workbench.css` recoloured only through its `--wb-*` variables and not one
-  rule overridden for colour. The Studio wears `admin.css`'s variables,
-  copied into `apps/studio/src/styles/room.css` under the marking comment,
-  not a palette of its own; its `styles/builder.css` gives the panes the
-  admin's geometry without a colour. `report-builder.css` is the only
-  stylesheet the builders have. The product's pages import the Studio's
-  room, controls, bar and narrow rules rather than copy them, and their
-  own rules state no colour (0021).
+  rule overridden for colour. The palette is formancy's, released as
+  `@formancy/themes/room.css`, never copied: the Studio's `main.tsx`
+  imports it after `workbench.css`, whose `--wb-*` it sets, and no
+  stylesheet here sets one of its variables or types one of its colours:
+  a tint is `color-mix()` of the variable
+  ([0034](docs/decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md),
+  formancy.ai 0178). The Studio's `styles/room.css` holds only its own: the
+  text's two font stacks, at the workbench's, and the page's rules, which
+  are admin.css's and type only the colours the room does not carry, as
+  admin.css does; its `styles/builder.css` gives the panes the admin's
+  geometry without a colour.
+  `report-builder.css` is the only stylesheet the builders have. The
+  product's pages import formancy's room first, then the Studio's room,
+  controls, bar and narrow rules rather than copy them, and their own rules
+  state no colour (0021).
 - **The page is the document, not the room.** What prints is the report's
   own serialisable styles. The editor's CSS, and the host's, never reach a
   customer's printed output. The design view says it is not the PDF, by its
@@ -324,9 +332,15 @@ What holds this section:
   on a rule that names the builder, no Studio rule but `builder.css`'s
   inside the builder, the Preview standing in its middle aside, and nothing
   on the paper but its own rules and the workbench's `.wb *` (0029).
-- **The palette guard**, `scripts/palette.test.mjs` in `pnpm test:repo`:
-  every stylesheet that copies `admin.css`'s variables says what admin.css
-  says at the commit the test pins, and the same as every other copy.
+- **The palette guard**, `scripts/palette.test.mjs` in `pnpm test:repo`: no
+  stylesheet of any kind the build bundles, and no page's `<style>`, here
+  sets a variable the installed `room.css` declares or types one of its
+  colours, the names and colours read from that file; every app takes the
+  room once, after `workbench.css` where it takes the workbench too, names
+  either in its entry alone, and resolves it to the same release; the
+  Studio's `theme-color` is the room's ground, and its font stacks the
+  workbench's. The browser gate reads the room's variables on the built
+  page.
 - **The browser gate**, `apps/studio/scripts/browser-test.mjs`, run as
   `pnpm --filter @formancy/report-studio test:browser` in CI's `browser`
   job, for what jsdom cannot see, with the Studio served under `/report/`
@@ -346,8 +360,9 @@ What holds this section:
   connection hint to any origin but the built Studio's, its faces included
   ([0023](docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
 - **The pages' stylesheet**, `apps/pages/src/stylesheet.test.ts`: it
-  imports the Studio's `room.css` first and only the Studio's stylesheets,
-  and declares no colour and no variable of its own. The pages' checks,
+  imports formancy's `room.css` first, the Studio's `room.css` second and
+  only the Studio's stylesheets besides, and declares no colour and no
+  variable of its own. The pages' checks,
   `apps/pages/src/checks/`, hold each page's head, links, words and
   sitemap (0021).
 - **The README's pictures**, `scripts/pictures/readme.test.mjs` in
@@ -360,7 +375,8 @@ What holds this section:
   languages, and the browser gate's `gate-parity.mjs` in Chromium. Release
   gate G3 rests on them (`docs/release/gates.json`).
 
-What nothing holds yet, said: the palette and `builder.css` are copied from
+What nothing holds yet, said: `builder.css`'s geometry, and the colours
+admin.css's rules type that the room does not carry, are copied from
 `admin.css` by hand, and nothing fails when upstream's move; the gate runs
 Chromium alone, where Formancy Data's runs Firefox and WebKit too; no gate
 measures the product's pages in a browser, whose reflow and contrast were

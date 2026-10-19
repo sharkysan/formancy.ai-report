@@ -42,7 +42,7 @@
 /* A setting that is on: violet, the colour of what the person acts on. */
 .tool[aria-pressed='true'] {
   border-color: var(--client);
-  background: rgb(139 123 255 / 18%);
+  background: color-mix(in srgb, var(--client) 18%, transparent);
 }
 
 /* The starter picker: the Studio's one select. */
@@ -61,7 +61,7 @@
 .starter select:focus-visible {
   outline: none;
   border-color: var(--client);
-  box-shadow: 0 0 0 4px rgb(139 123 255 / 22%);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--client) 22%, transparent);
 }
 
 .check {

@@ -16,11 +16,11 @@ export interface SiteInputs {
   readonly licence: { readonly version: string; readonly date: string; readonly address: string; readonly terms: readonly (readonly [string, string])[] }
   /** The files of the faces the stylesheet names, the Studio's faces: each by its url() beside the stylesheet, and the file it is copied from (0023). */
   readonly fonts: readonly Font[]
-  /** The notices of the packages the faces are copied from: the copyright and the licence the OFL asks each copy to carry. */
+  /** The notices of the packages the stylesheet inlines: the faces', with the copyright and the licence the OFL asks each copy to carry, and formancy's room's, whose licence asks its notice to travel with its text (0034). */
   readonly notices: string
   /** The room's ground colour, for the browser's own chrome. */
   readonly ground: string
-  /** src/pages.css with the Studio's stylesheets it imports inlined, the faces' among them, each url() naming its copy. */
+  /** src/pages.css with formancy's room and the Studio's stylesheets it imports inlined, the faces' among them, each url() naming its copy. */
   readonly stylesheet: string
   /** The pictures the site names, each with its size and, for a starter's or an invoice sample's page, the lines it prints. */
   readonly pictures: readonly Picture[]
