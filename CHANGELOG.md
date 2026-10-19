@@ -8,6 +8,22 @@ Loosely [Keep a Changelog](https://keepachangelog.com), with reasons attached â€
 a line that says only *what* changed is rarely the line you need six months
 later.
 
+## Unreleased
+
+**The README says what Formancy Report does before anything else.** It
+opened with a server and AI proposals, which are planned and not built,
+and with SQL datasets as a source of data, which are not built either,
+and its status restated, record by record, what 0.2.0's section below
+says. It now opens with what the module is, the Studio's picture and a
+list of what it does, each line with its decision record, then a short
+dated status that links here. The detail it dropped is in the decision
+records, the changelog's earlier sections, the package READMEs, the
+architecture and `CLAUDE.md`. Every picture is still there: the nine
+samples of the two invoices in other languages and countries fold open in
+two blocks, one per invoice, and the hero's caption, shortened in
+`scripts/pictures/scenes.json`, is written by its script. Every other
+caption and generated block is as it was.
+
 ## 0.2.0 â€” 2026-10-19
 
 **The second release, still a developer preview.** It is for evaluating

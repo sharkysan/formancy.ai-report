@@ -4,7 +4,7 @@
     "app": "studio",
     "placement": "hero",
     "title": "The quotation in the React builder",
-    "caption": "The quotation starter in the React builder: the workbench's outline, its report header first holding “Image: logo”, the firm's mark ([0032](./docs/decisions/0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md)), design view and properties over one report session. Beside it the Preview, the session's document resolved against the starter's synthetic data by `@formancy/report-runtime`, printed in the page by `@formancy/report-render-pdf/browser` and drawn by PDF.js on white paper, down to “Total CHF 3'143.00” ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).",
+    "caption": "The quotation starter in the React builder, and beside it the Preview: the PDF the runtime and the renderer print from the same session, drawn by PDF.js on white paper, down to “Total CHF 3'143.00” ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).",
     "alt": "The Studio: a bar with the starter picker on Quotation and the builder switch on React; the React builder's toolbar, outline with “Image: logo” first in its report header, design view and report properties; and the Preview, “Preview: printed.”, with the Offerte under the firm's mark on white paper.",
     "quotes": {
       "Image: logo": [
