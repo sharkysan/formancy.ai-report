@@ -38,16 +38,46 @@ export function idat(rows: number, bytesPerRow: number, filter = 0): Uint8Array 
   return new Uint8Array(deflateSync(Buffer.concat(Array.from({ length: rows }, () => row))))
 }
 
-/** A truecolour PNG, 8 bits per channel, every scanline unfiltered, each pixel the colour `pixel` gives it. */
-export function encodePng(width: number, height: number, pixel: (x: number, y: number) => readonly [number, number, number]): Uint8Array {
-  const stride = 1 + width * 3
-  const scanlines = new Uint8Array(height * stride)
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) scanlines.set(pixel(x, y), y * stride + 1 + x * 3)
+/** Adam7's seven passes: the first column and row of each, and the steps between them. */
+const ADAM7 = [
+  [0, 0, 8, 8],
+  [4, 0, 8, 8],
+  [0, 4, 4, 8],
+  [2, 0, 4, 4],
+  [0, 2, 2, 4],
+  [1, 0, 2, 2],
+  [0, 1, 1, 2],
+] as const
+
+export interface PngKind {
+  /** PNG's colour type: 2 RGB, 3 paletted, 6 RGB and alpha. */
+  readonly colour?: 2 | 3 | 6
+  readonly interlace?: boolean
+  /** Chunks between the header and the image data: a palette, a transparency. */
+  readonly chunks?: readonly (readonly [type: string, data: Uint8Array])[]
+}
+
+/**
+ * A PNG of 8 bits a sample, each pixel the samples `pixel` gives it --
+ * three for the truecolour of the default kind, four with an alpha, one
+ * index for a palette -- every scanline unfiltered, and in Adam7's passes
+ * where it is interlaced: the corpus's `png` (`image-kinds.ts`), at 8 bits
+ * and at any size, but an interlaced one at least 5 pixels a side, where
+ * each of the seven passes holds pixels, as an empty one has no scanlines.
+ */
+export function encodePng(width: number, height: number, pixel: (x: number, y: number) => readonly number[], { colour = 2, interlace = false, chunks = [] }: PngKind = {}): Uint8Array {
+  const scanlines: number[] = []
+  for (const [left, top, across, down] of interlace ? ADAM7 : [[0, 0, 1, 1] as const]) {
+    for (let y = top; y < height; y += down) {
+      const row: number[] = []
+      for (let x = left; x < width; x += across) row.push(...pixel(x, y))
+      scanlines.push(0, ...row)
+    }
   }
   return pngOf([
-    ['IHDR', ihdr(width, height)],
-    ['IDAT', new Uint8Array(deflateSync(scanlines))],
+    ['IHDR', ihdr(width, height, { colour, interlace: interlace ? 1 : 0 })],
+    ...chunks,
+    ['IDAT', new Uint8Array(deflateSync(Uint8Array.from(scanlines)))],
     ['IEND', NONE],
   ])
 }

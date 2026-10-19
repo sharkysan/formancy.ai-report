@@ -4,7 +4,13 @@
   [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
   under which a render of an e-invoice reads one file besides its fonts,
   the ICC profile PDFKit embeds in a PDF/A, outside pdfmake's access
-  policy
+  policy; and extended by
+  [0035](0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md),
+  under which its claim that one document renders to the same bytes every
+  time holds of a document whose PNGs PDFKit decodes before it embeds
+  them only because the renderer has them written in the order pdfmake
+  opened them, which report-render-pdf's `image-order.test.ts` holds in
+  both entries and the install gate on the PDFKit a host resolves
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the engine's corpus tests in `packages/report-corpus`,

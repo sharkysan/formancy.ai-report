@@ -177,6 +177,15 @@ runtime evaluates with fixed capabilities besides
 ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
 The PDF's creation date is the host's, passed in, so one document renders to
 the same bytes ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).
+That holds of its images too only because the renderer orders them. PDFKit
+numbers the soft mask of a PNG with an alpha channel or a palette's
+transparency, and writes such an image and an interlaced one, when its
+decode calls back, in whatever order the decodes finish, and two renders
+of one document differed so; the renderer has those images written in the
+order pdfmake opened them, which `report-render-pdf/src/image-order.test.ts`
+holds in both entries on the PDF it produced, and the install gate on the
+PDFKit a clean install resolves
+([0035](../decisions/0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md)).
 Rows with equal keys keep the provider's order
 ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
 The hash is taken over a canonical form, so key order never changes it

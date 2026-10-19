@@ -110,7 +110,11 @@ resolves to part of a PDF
 Every value reaching the renderer is already the string it prints, so the
 renderer has no total to round twice. The PDF's creation date is the one the
 host passed, so one document renders to the same bytes every time
-([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).
+([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)),
+and the images PDFKit is still decoding when pdfmake hands the document
+over are written in the order pdfmake opened them, however their decodes
+finish
+([0035](../decisions/0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md)).
 
 ## 6.3 A read from Formancy Data
 

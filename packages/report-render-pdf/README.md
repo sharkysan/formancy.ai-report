@@ -34,6 +34,16 @@ is not a whole number of pages, at least 1, is the caller's: a `RangeError`.
 
 The same document renders to the same bytes: the creation date is the
 document's own (`info.creationDate`), and nothing else in the file varies.
+That includes where its images stand in the file. PDFKit decodes a PNG
+with an alpha channel, a palette's transparency or interlacing before it
+embeds it, and numbers its soft mask and writes it when the decode calls
+back, in whatever order the decodes finish; the renderer has those images
+written in the order pdfmake opened them, which `src/image-order.test.ts`
+holds in both entries
+([0035](../../docs/decisions/0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md)).
+The bytes are one entry's: the browser build deflates with a zlib of its
+own, and `src/browser.test.ts` holds an e-invoice from either entry to the
+same objects, each stream inflated, not to the same file.
 
 ## Node and the browser
 

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { decodePDFRawStream, PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFNumber, PDFRawStream, PDFString, type PDFObject } from '@pdfme/pdf-lib'
+import { decodePDFRawStream, PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFNumber, PDFRawStream, PDFRef, PDFString, type PDFContext, type PDFObject } from '@pdfme/pdf-lib'
 
 /**
  * The objects a PDF/A-3 with an embedded invoice is proved on, read by a
@@ -8,7 +8,8 @@ import { decodePDFRawStream, PDFArray, PDFDict, PDFDocument, PDFHexString, PDFNa
  * with. What a page shows is `readPdf`'s; what the file says of itself --
  * its version, its information dictionary, its XMP, the files it embeds and
  * where it names them, its output intent -- is read here, object by object,
- * as the PDF holds it.
+ * as the PDF holds it, and so are its images: each image object, soft
+ * masks among them, by its number.
  *
  * Every key is read as the type ISO 32000-1 gives it, and a key of another
  * type throws (pdf-lib's `lookupMaybe`), so that a name written as a string,
@@ -32,6 +33,18 @@ export interface PdfObjects {
   readonly embeddedFiles: readonly PdfNamedFile[]
   /** The catalog's /OutputIntents, in order. */
   readonly outputIntents: readonly PdfOutputIntent[]
+  /** Every image object the file holds, soft masks among them, in the order of their numbers. */
+  readonly images: readonly PdfImage[]
+}
+
+export interface PdfImage {
+  /** The object's number. */
+  readonly object: number
+  /** /Width and /Height, in samples. */
+  readonly width: number
+  readonly height: number
+  /** The number of the image object /SMask refers to, the image's soft mask; undefined where it has none. */
+  readonly softMask: number | undefined
 }
 
 export interface PdfMetadata {
@@ -122,7 +135,30 @@ export async function readPdfObjects(bytes: Uint8Array): Promise<PdfObjects> {
     associatedFiles: associated.map(fileSpecification),
     embeddedFiles,
     outputIntents: dictionariesIn(catalog.lookupMaybe(key('OutputIntents'), PDFArray)).map(outputIntent),
+    images: imagesIn(context),
   }
+}
+
+/** A stream whose /Subtype is /Image: an image object, as ISO 32000-1, 8.9.5, gives one. */
+const isImage = (object: PDFObject | undefined): object is PDFRawStream => object instanceof PDFRawStream && object.dict.get(key('Subtype')) === key('Image')
+
+/**
+ * Every image object, by number, wherever it stands: one no page draws is
+ * still in the file. /SMask, where there is one, is a stream, so a
+ * reference, and to an image (ISO 32000-1, 11.6.5.3): anything else names
+ * no mask and is refused.
+ */
+function imagesIn(context: PDFContext): PdfImage[] {
+  return context
+    .enumerateIndirectObjects()
+    .filter(([, object]) => isImage(object))
+    .map(([ref, object]) => {
+      const { dict } = object as PDFRawStream
+      const mask = dict.get(key('SMask'))
+      if (mask !== undefined && !(mask instanceof PDFRef && isImage(context.lookup(mask)))) throw new Error(`the /SMask of image ${String(ref.objectNumber)} is not a reference to an image`)
+      return { object: ref.objectNumber, width: dict.lookup(key('Width'), PDFNumber).asNumber(), height: dict.lookup(key('Height'), PDFNumber).asNumber(), softMask: mask?.objectNumber }
+    })
+    .sort((a, b) => a.object - b.object)
 }
 
 /** Every entry of `array`, each a dictionary, references resolved: the same object for the same reference. */

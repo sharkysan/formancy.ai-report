@@ -3,10 +3,11 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { deflateSync } from 'node:zlib'
-import { PDFDocument, PDFName, PDFString } from '@pdfme/pdf-lib'
+import { PDFDocument, PDFName, type PDFObject, type PDFRef, PDFString } from '@pdfme/pdf-lib'
 import { getDocument, VerbosityLevel } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { describe, expect, test } from 'vitest'
+import { IMAGE_KINDS } from './image-kinds.js'
 import { inflatedDigest, readPdfObjects } from './objects.js'
 import { readPdf } from './read-pdf.js'
 import { exactBuffer, pdfmakePdf, type PdfKitDocument } from './testing/pdfmake.js'
@@ -161,6 +162,32 @@ describe('readPdfObjects', () => {
     ])
   })
 
+  // A soft mask is an image object of its own, which PDFKit numbers once
+  // its image's pixels are decoded, and the renderer holds those numbers
+  // to the order of the images they mask (0035). A reader that took a
+  // mask for no image, missed a JPEG, or read a number off the wrong
+  // object would let any order pass. Read here from a PDF of a PNG with an
+  // alpha channel, one without and a JPEG: four image objects in the order
+  // of their numbers, the one mask named by its image, and the number
+  // held to what the image's dictionary says as PDFKit wrote it.
+  test('reads every image object by its number and size, and the soft mask each names by its number', async () => {
+    const kinds = ['png-rgba', 'png-rgb', 'jpeg-colour'].map((id) => IMAGE_KINDS.find((each) => each.id === id)!)
+    const images = Object.fromEntries(kinds.map((asset) => [asset.id, `data:${asset.mediaType};base64,${Buffer.from(asset.bytes).toString('base64')}`]))
+    const bytes = await pdfmakePdf({ content: kinds.map((asset) => ({ image: asset.id, width: 32 })), images })
+    const read = (await readPdfObjects(bytes)).images
+    expect(read.map(({ width, height }) => [width, height]).sort()).toEqual([
+      [16, 16],
+      [16, 16],
+      [16, 16],
+      [8, 8],
+    ])
+    expect(read.map(({ object }) => object)).toEqual(read.map(({ object }) => object).sort((a, b) => a - b))
+    const masked = read.filter(({ softMask }) => softMask !== undefined)
+    expect(masked).toHaveLength(1)
+    expect(read.find(({ object }) => object === masked[0]!.softMask)).toMatchObject({ width: 16, height: 16, softMask: undefined })
+    expect(Buffer.from(bytes).toString('latin1')).toContain(`/SMask ${String(masked[0]!.softMask)} 0 R`)
+  })
+
   // The XMP is where PDF/A and Factur-X identify the file, and what is
   // appended to it is the renderer's. Read as the stream holds it -- not
   // as PDF.js's metadata, which parses the packet its own way -- a packet
@@ -210,6 +237,14 @@ describe('readPdfObjects', () => {
     await expect(readPdfObjects(metadata)).rejects.toThrow('/Metadata is not a stream')
     const relationship = await built(({ catalog, context }) => catalog.set(PDFName.of('AF'), context.obj([context.obj({ Type: 'Filespec', AFRelationship: PDFString.of('Alternative') })])))
     await expect(readPdfObjects(relationship)).rejects.toThrow(/PDFName/)
+    // An image's /SMask is a stream, so a reference to one; a name there, or a reference to what is no image, names no mask.
+    const image = (document: PDFDocument, softMask: PDFObject): PDFRef => document.context.register(document.context.stream(new Uint8Array([0]), { Type: 'XObject', Subtype: 'Image', Width: 1, Height: 1, SMask: softMask }))
+    const named = await built((document) => image(document, PDFName.of('Mask')))
+    await expect(readPdfObjects(named)).rejects.toThrow(/\/SMask of image \d+ is not a reference to an image/)
+    const dictionary = await built((document) => image(document, document.context.register(document.context.obj({ Type: 'XObject' }))))
+    await expect(readPdfObjects(dictionary)).rejects.toThrow(/\/SMask of image \d+ is not a reference to an image/)
+    const sizeless = await built(({ context }) => context.register(context.stream(new Uint8Array([0]), { Subtype: 'Image', Width: 1 })))
+    await expect(readPdfObjects(sizeless)).rejects.toThrow(/PDFNumber/)
   })
 
   // The packet is text a strict XML reader reads next, and PDF/A wants it
