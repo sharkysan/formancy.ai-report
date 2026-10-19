@@ -61,8 +61,8 @@
     - `src/qr-bill.test.ts`: the page refuses to render once the
       changelog names a release newer than the one its status was written
       against, and names the three sentences that say where it stands; it
-      says it is in no release in its hero and in the product page's
-      teaser, and its try-it text names the release the guide installs;
+      says where it stands in its hero and in the product page's teaser,
+      and its try-it text names the release the guide installs;
       each page shows the four samples, its own language's first; and its
       shared link's picture is its own language's sample's. Each failed
       with its rule taken out, or before it was written. The hero's and
@@ -212,7 +212,12 @@ figure's quotes were excused on every page.
 - **The next release touches the page.** A release commit fails
   `pnpm build` and the pages' suite until the QR-bill page's status is
   written again, in its three sentences, as RELEASING.md's second step
-  says.
+  says. And they are said early: the pages name a release from the moment
+  its commit reaches main (0021), so until the tag publishes the packages
+  the page says the guide installs a release npm does not serve yet. A
+  reader who follows it installs the one before, which for 0.2.0 is
+  0.1.0, and 0.1.0 refuses the bill. RELEASING.md tags right after the
+  merge for that reason, and nothing holds it.
 - **Paper is the biller's.** The page says a bill sent on paper needs
   SIX's white, perforated paper; nothing here sees what a PDF is printed
   on, and no slip has been printed (0022).

@@ -27,23 +27,24 @@ const SAMPLES = ['starter-euro-invoice.png', 'euro-invoice-at.png', 'euro-invoic
 const OWN = { de: 'starter-euro-invoice.png', fr: 'euro-invoice-fr.png', it: 'euro-invoice-it.png', en: 'euro-invoice-ie.png' } as const
 
 describe('the EPC QR code page (0028)', () => {
-  // The page says no release has the code yet, which was true when
-  // CHANGELOG.md's newest release was 0.1.0, as the QR-bill page says of
-  // its bill (0024). The release commit would leave the sentence standing,
-  // true or not; the site refuses to render until somebody reads what the
-  // release holds and says so in each sentence that says it.
+  // The page says the newest release has the code, which is true while
+  // CHANGELOG.md's newest release is 0.2.0, the first to have it, as the
+  // QR-bill page says of its bill (0024). The release commit would leave
+  // the sentences standing, true or not; the site refuses to render until
+  // somebody reads what the release holds and says so in each sentence
+  // that says it.
   test('refuses to render once the changelog names a release its status was not written against, naming each sentence that says it', () => {
     expect(inputs.release.version).toBe(EPC_QR_CODE_STATUS.release)
-    const released = { ...inputs, release: { ...inputs.release, version: '0.2.0', anchor: '020--2026-11-02' } }
-    expect(() => renderSite(released)).toThrow(/the EPC QR code page's status was written when 0\.1\.0 was the newest release, and CHANGELOG\.md now names 0\.2\.0/)
+    const released = { ...inputs, release: { ...inputs.release, version: '0.3.0', anchor: '030--2026-11-02' } }
+    expect(() => renderSite(released)).toThrow(/the EPC QR code page's status was written when 0\.2\.0 was the newest release, and CHANGELOG\.md now names 0\.3\.0/)
     expect(() => renderSite(released)).toThrow(/epc-qr-code-copy\.tsx that says where it stands -- `unreleased`, which the hero and the product page's teaser say, `tryIt\.text` and `status\.text` -- then change EPC_QR_CODE_STATUS with them/)
   })
 
   // The hero and the product page's teaser are where a reader decides to
-  // try it, and the guide installs the newest release, which refuses a
-  // report with an EPC QR code whole (0025). Said only at the foot, the
-  // status would come after the reader had left for the guide.
-  test('says it is in no release where a reader starts, and that the guide installs a release without it', () => {
+  // try it, and the guide installs the newest release, which before 0.2.0
+  // refused a report with an EPC QR code whole (0025). Said only at the
+  // foot, the status would come after the reader had left for the guide.
+  test('says where it stands where a reader starts, and names the release the guide installs', () => {
     // Nothing to say would be contained in every text.
     for (const language of LANGUAGES) expect([language, collapsed(EPC_QR_CODE_COPY[language].unreleased).split(' ').length >= 4]).toEqual([language, true])
     for (const page of pagesOf('epc-qr-code')) {

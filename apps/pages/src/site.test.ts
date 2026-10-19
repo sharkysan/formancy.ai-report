@@ -50,9 +50,9 @@ describe('the site the build writes (0021)', () => {
     ])
   })
 
-  // A page whose feature is in no release says so, against the release
-  // the changelog named when it was written (0024). With two such pages,
-  // each refusing on its own as the QR-bill page once did, a release
+  // A page whose feature no release had when it was written says where it
+  // stands, against the release the changelog names (0024). With two such
+  // pages, each refusing on its own as the QR-bill page once did, a release
   // commit would rewrite the QR-bill page's sentences, build again, and
   // only then meet the EPC QR code page's refusal. The site reads every
   // page's status before it renders any, and says each in one error. Each
@@ -61,7 +61,7 @@ describe('the site the build writes (0021)', () => {
   // constant that is not there, and qr-bill.test.ts's patterns, which the
   // EPC QR code page's line matches too, would not see it.
   test('refuses to render, in one error, every page whose status a later release outdates', () => {
-    const released = { ...inputs, release: { ...inputs.release, version: '0.2.0', anchor: '020--2026-11-02' } }
+    const released = { ...inputs, release: { ...inputs.release, version: '0.3.0', anchor: '030--2026-11-02' } }
     let said = ''
     try {
       renderSite(released)
@@ -69,8 +69,8 @@ describe('the site the build writes (0021)', () => {
       said = error instanceof Error ? error.message : String(error)
     }
     expect(said.split('\n')).toEqual([
-      "the QR-bill page's status was written when 0.1.0 was the newest release, and CHANGELOG.md now names 0.2.0: say whether that release has the QR-bill in each sentence of qr-bill-copy.tsx that says where it stands -- `unreleased`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change QR_BILL_STATUS with them",
-      "the EPC QR code page's status was written when 0.1.0 was the newest release, and CHANGELOG.md now names 0.2.0: say whether that release has the EPC QR code in each sentence of epc-qr-code-copy.tsx that says where it stands -- `unreleased`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change EPC_QR_CODE_STATUS with them",
+      "the QR-bill page's status was written when 0.2.0 was the newest release, and CHANGELOG.md now names 0.3.0: say whether that release has the QR-bill in each sentence of qr-bill-copy.tsx that says where it stands -- `unreleased`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change QR_BILL_STATUS with them",
+      "the EPC QR code page's status was written when 0.2.0 was the newest release, and CHANGELOG.md now names 0.3.0: say whether that release has the EPC QR code in each sentence of epc-qr-code-copy.tsx that says where it stands -- `unreleased`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change EPC_QR_CODE_STATUS with them",
     ])
   })
 

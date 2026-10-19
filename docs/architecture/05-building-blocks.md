@@ -319,8 +319,9 @@ when it builds, and inlines formancy's room from the pages' own
 `@formancy/themes` before the Studio's stylesheets (0034); `src/checks/` hold every page's head, links, words and
 sitemap ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md),
 [0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
-A page whose code no release has carries its status, written against the
-release then, and `src/site.tsx` reads every page's before it renders any
+A page whose code no release had when it was written carries its status,
+written against the newest release and said again at each release, and
+`src/site.tsx` reads every page's before it renders any
 ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
 [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
 

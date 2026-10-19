@@ -1,6 +1,6 @@
 {
   "name": "@formancy/report-data-provider",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Formancy Report's Formancy Data provider: reads a published Data form's records, through @formancy/data-client 0.1.0 and the person's own token, into the data a report renders from, labelled best-effort. No framework, no Node.",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",

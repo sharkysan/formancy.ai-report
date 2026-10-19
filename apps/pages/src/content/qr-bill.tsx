@@ -18,16 +18,18 @@ import { QR_BILL_COPY } from './qr-bill-copy.js'
 
 /**
  * Where the QR-bill stands, as the page says it: the day it was last said,
- * and the newest release then, which refuses a report with a payment part.
- * Three sentences of qr-bill-copy.tsx say it: `unreleased`, in the hero and
- * after the product page's teaser; `tryIt.text`, of the release the guide
- * installs; and `status.text`, dated. A release CHANGELOG.md names after
- * this one may hold the bill, so the site refuses to render until somebody
- * says whether it does, in all three, and changes this with them (0028).
+ * and the newest release then, 0.2.0, the first to print a report with a
+ * payment part, which 0.1.0 refuses whole (0022). Three sentences of
+ * qr-bill-copy.tsx say it: `unreleased`, in the hero and after the product
+ * page's teaser; `tryIt.text`, of the release the guide installs; and
+ * `status.text`, dated. Each says the newest release holds the bill, which
+ * a later release makes true again only by keeping it, so the site refuses
+ * to render once CHANGELOG.md names another release, until somebody says
+ * whether it does, in all three, and changes this with them (0028).
  */
 export const QR_BILL_STATUS: PageStatus = {
-  asOf: '2026-10-17',
-  release: '0.1.0',
+  asOf: '2026-10-19',
+  release: '0.2.0',
   feature: 'QR-bill',
   copy: 'qr-bill-copy.tsx',
   sentences: "`unreleased`, which the hero and the product page's teaser say, `tryIt.text` and `status.text`",

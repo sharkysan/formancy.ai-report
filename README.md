@@ -32,9 +32,11 @@ true; of its prose, a guard holds the files it names, its install lines and
 its links, and review the rest
 ([0015](./docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
 
-> **Status, 19 October 2026: 0.1.0, a developer preview, is released, and
-> main has moved past it.** Its eight packages are on npm, with provenance, and
-> [the GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.1.0)
+> **Status, 19 October 2026: 0.2.0, a developer preview, is ready to
+> release and not yet published.** On npm the newest is still 0.1.0,
+> released on 16 October 2026, whose eight packages are there with
+> provenance, and whose
+> [GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.1.0)
 > carries the signed SBOM and release report of the run that published
 > them. Data goes in and a PDF comes out, from
 > a host's JSON or, best-effort, from a Formancy Data 0.1.0 server. A
@@ -43,11 +45,11 @@ its links, and review the rest
 > window with no room for it there, in the place of their design view. It is
 > online at https://formancy.ai/report/, and `pnpm demo` runs it from a
 > clone ([Try it](#try-it)). Beside it, the product's pages say what
-> Formancy Report is, in German, French, Italian and English. What 0.1.0
+> Formancy Report is, in German, French, Italian and English. What 0.2.0
 > holds and leaves out is in
-> [the changelog](./CHANGELOG.md#010--2026-10-16).
+> [the changelog](./CHANGELOG.md#020--2026-10-19).
 >
-> Since 0.1.0, main lets a report print QR codes
+> 0.2.0 lets a report print QR codes
 > ([0020](./docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md));
 > carry a Swiss QR-bill, its receipt and payment part at the foot of its
 > last page, held to SIX's rules and printed in the Liberation Sans the
@@ -75,12 +77,11 @@ its links, and review the rest
 > form, and in an e-invoice one whose numbers or nesting its PDF/A-3 could
 > not hold
 > ([0030](./docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
-> No release has any of them yet, and 0.1.0 refuses a report that holds
-> one. The Studio's two invoice starters carry a bill and an EPC QR code,
-> and the e-invoice's samples are the corpus's. The quotation and both
-> invoices, with every sample of them, print an invented firm's mark at
-> the head of their first page, an SVG approved as any asset is, so 0.1.0
-> refuses them as main has them
+> 0.1.0 refuses a report that holds any of them. The Studio's two invoice
+> starters carry a bill and an EPC QR code, and the e-invoice's samples are
+> the corpus's. The quotation and both invoices, with every sample of them,
+> print an invented firm's mark at the head of their first page, an SVG
+> approved as any asset is, so 0.1.0 refuses them as 0.2.0 has them
 > ([0032](./docs/decisions/0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md)).
 > And a person adds an image in either builder: a PNG, a JPEG or an SVG,
 > recognised from its bytes, its structure checked as the renderer reads
@@ -94,8 +95,12 @@ its links, and review the rest
 > ([0024](./docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)),
 > the EPC QR code's from Austria, France, Italy, Spain, the Netherlands
 > and Ireland
-> ([0028](./docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
-> And main builds on formancy 0.6.0, 0.1.0 on 0.5.0: the Studio and the
+> ([0028](./docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md));
+> both say the newest release holds their code, and since every page names
+> the changelog's newest release, they name 0.2.0 from the moment it
+> reaches main, before it is published
+> ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)).
+> And 0.2.0 builds on formancy 0.6.0, 0.1.0 on 0.5.0: the Studio and the
 > product's pages wear formancy's own room, `@formancy/themes/room.css`,
 > imported where they wore a copy
 > ([0034](./docs/decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)).
@@ -281,7 +286,7 @@ needs a Data production licence as well as Report's
 | `@formancy/report-builder-react` | The builder for React 19: the workbench's panes over one editor, through `useSyncExternalStore`. Runs every shared scenario in three languages, with axe. |
 | `@formancy/report-builder-angular` | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js, built by ng-packagr. Runs every shared scenario in three languages, with axe; no React in its closure. It is packed from `dist/`, and the install gate compiles it into an Angular host ahead of time, links it and draws it on a server. |
 | `apps/studio` (`@formancy/report-studio`) | The playground, never published as a package and online at formancy.ai/report/ ([0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)): the starters and a blank report in either builder over one session per starter, the PDF the session prints previewed by PDF.js on white paper, and every problem printing found linked to its component; an image a person adds kept in the page and sent nowhere ([0033](./docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)). The PDF.js viewer lives here and nowhere published ([0013](./docs/decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)). Its browser gate and its README pictures' check run in CI's `browser` job. |
-| `apps/pages` (`@formancy/report-pages`) | The product's pages, never published as a package: what Formancy Report is, a page for the Swiss QR-bill that shows the invoice samples' pictures, a page for the EPC QR code that shows the euro invoice samples', and a page for healthcare, each in German, French, Italian and English, prerendered to static HTML with their sitemap and served beside the Studio at formancy.ai/report/<lang>/ ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md), [0024](./docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md), [0028](./docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)). A page whose code no release has says so against the release it was written for, and the site refuses to render once the changelog names a later one. Its suite reads every page back as a crawler does and holds its head, its translations, its links, its words and the sitemap, holds the files the build writes to be those pages, and holds every file a page's HTML and stylesheet have the browser fetch to be the site's own, its faces included ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)). |
+| `apps/pages` (`@formancy/report-pages`) | The product's pages, never published as a package: what Formancy Report is, a page for the Swiss QR-bill that shows the invoice samples' pictures, a page for the EPC QR code that shows the euro invoice samples', and a page for healthcare, each in German, French, Italian and English, prerendered to static HTML with their sitemap and served beside the Studio at formancy.ai/report/<lang>/ ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md), [0024](./docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md), [0028](./docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)). A page written before any release had its code says, at each release, whether the newest has it, and the site refuses to render once the changelog names a later release than its status. Its suite reads every page back as a crawler does and holds its head, its translations, its links, its words and the sitemap, holds the files the build writes to be those pages, and holds every file a page's HTML and stylesheet have the browser fetch to be the site's own, its faces included ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)). |
 | `@formancy/report-corpus` | Private test support, never published. Adversarial reports an engine must render or refuse -- a long table, a row taller than a page, a group ending at a page boundary, a summary at the foot of a page, exact decimals, text outside ASCII, images, an oversized job -- with a PDF.js reader and the checks that prove a rendered PDF against them ([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)), a reader that decodes the QR codes a page prints with ZXing, and one that finds the drawings an SVG image paints and the ink around them; the starter reports, among them an invoice with a Swiss QR-bill and one with an EPC QR code, and as samples the QR-bill invoice in French, Italian and English and the euro invoice from Austria, France, Italy, Spain, the Netherlands and Ireland; three e-invoice samples, whose XML the runtime writes, held to a BigInt computation and read with saxes; readers of what a PDF embeds and says of itself, its objects with pdf-lib and its XMP with saxes, a digest of its objects with every stream inflated, and an image of each kind PDFKit embeds in a way of its own ([0031](./docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)); and the renderer trial's adapters for pdfmake and pdfme. |
 
 Planned and not here: the server and its jobs, reviewed AI changes, a

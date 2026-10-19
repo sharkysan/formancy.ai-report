@@ -17,25 +17,26 @@ const pagesOf = (group: string) => site.pages.filter((page) => page.group === gr
 const collapsed = (text: string | null | undefined): string => (text ?? '').replaceAll(/\s+/g, ' ').trim()
 
 describe('the QR-bill page (0024)', () => {
-  // The page says no release has the bill yet, which was true when
-  // CHANGELOG.md's newest release was 0.1.0. The release commit that adds
-  // a newer heading would leave the sentence standing, true or not; the
-  // site refuses to render until somebody reads what the release holds and
-  // says so, in every sentence that says it: one left behind would still
-  // tell a reader to wait for a release that has come.
+  // The page says the newest release has the bill, which is true while
+  // CHANGELOG.md's newest release is 0.2.0, the first to have it; until
+  // 0.2.0 it said no release had it. The release commit that adds a newer
+  // heading would leave the sentences standing, true or not; the site
+  // refuses to render until somebody reads what the release holds and says
+  // so, in every sentence that says it: one left behind would tell a reader
+  // to wait for a release that has come, or promise one that dropped it.
   test('refuses to render once the changelog names a release its status was not written against, naming each sentence that says it', () => {
     expect(inputs.release.version).toBe(QR_BILL_STATUS.release)
-    const released = { ...inputs, release: { ...inputs.release, version: '0.2.0', anchor: '020--2026-11-02' } }
-    expect(() => renderSite(released)).toThrow(/the QR-bill page's status was written when 0\.1\.0 was the newest release, and CHANGELOG\.md now names 0\.2\.0/)
+    const released = { ...inputs, release: { ...inputs.release, version: '0.3.0', anchor: '030--2026-11-02' } }
+    expect(() => renderSite(released)).toThrow(/the QR-bill page's status was written when 0\.2\.0 was the newest release, and CHANGELOG\.md now names 0\.3\.0/)
     expect(() => renderSite(released)).toThrow(/`unreleased`, which the hero and the product page's teaser say, `tryIt\.text` and `status\.text`/)
   })
 
   // The hero and the product page's teaser are where a reader decides to
   // try it, and the getting-started guide installs the newest release,
-  // which refuses a report with a payment part whole. Said only at the
-  // foot of the page, the status came after the reader had left for the
-  // guide and met the refusal there.
-  test('says it is in no release where a reader starts, and that the guide installs a release without it', () => {
+  // which before 0.2.0 refused a report with a payment part whole. Said
+  // only at the foot of the page, the status came after the reader had
+  // left for the guide and met the refusal there.
+  test('says where it stands where a reader starts, and names the release the guide installs', () => {
     // Nothing to say would be contained in every text.
     for (const language of LANGUAGES) expect([language, collapsed(QR_BILL_COPY[language].unreleased).split(' ').length >= 4]).toEqual([language, true])
     for (const page of pagesOf('qr-bill')) {

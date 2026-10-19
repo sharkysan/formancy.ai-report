@@ -8,7 +8,148 @@ Loosely [Keep a Changelog](https://keepachangelog.com), with reasons attached â€
 a line that says only *what* changed is rarely the line you need six months
 later.
 
-## Unreleased
+## 0.2.0 â€” 2026-10-19
+
+**The second release, still a developer preview.** It is for evaluating
+Formancy Report and building against it. It is not for reports a business
+keeps: the report format is still version "0", the draft, and a report
+written under it is not promised to be read by a later release
+([0004](docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
+
+The eight packages 0.1.0 published are published at 0.2.0:
+`@formancy/report-spec`, `report-core`, `report-runtime`,
+`report-render-pdf`, `report-data-provider`, `report-builder-core`,
+`report-builder-react` and `report-builder-angular`. They are under the
+Formancy Report Source-Available Licence, which no lawyer has reviewed yet
+([0001](docs/decisions/0001-a-paid-module-in-its-own-repository.md)).
+
+They depend on these packages, each at an exact version but one:
+- formancy's `@formancy/spec` 0.6.0, for report-spec's report hash, and
+  `@formancy/expressions` 0.6.0, for report-core and report-runtime; 0.1.0
+  took both at 0.5.0
+  ([0034](docs/decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md));
+- `@noble/hashes` 2.4.0, for report-spec's `assetDigest`, which
+  `@formancy/spec` 0.6.0 already installed
+  ([0033](docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md));
+- pdfmake 0.3.11, and uqr 0.1.3, which encodes the renderer's QR codes
+  ([0020](docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md));
+- Formancy Data's `@formancy/data-client` 0.1.0, for the Data provider
+  alone. It is under Data's source-available licence, so running the
+  provider in production needs a Data production licence too. It brings
+  Data's `@formancy/data-core` 0.1.0 and, pinned by both, formancy's
+  `@formancy/spec` 0.5.0, so a host of the provider installs two
+  `@formancy/spec`;
+- tslib, for the Angular builder, at `^2.8.0`, as at 0.1.0.
+
+The React builder takes React 19 as a peer, `^19.0.0`, and the Angular
+builder takes Angular 22, `^22.0.0`, as at 0.1.0. The install gate installs
+each builder and draws it at both ends of its range. The Studio,
+`apps/studio`, the product's pages, `apps/pages`, and the test corpus stay
+private.
+
+**What it adds is invoices, mostly.** A report can print a QR code
+([0020](docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md));
+carry a Swiss QR-bill, held to SIX's rules and printed in the Liberation
+Sans the renderer now ships
+([0022](docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md));
+print the EPC QR code a SEPA credit transfer is paid from, held to the
+EPC's rules
+([0025](docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md));
+and carry an EN 16931 e-invoice, whose Factur-X / ZUGFeRD XML the runtime
+writes from the values its page prints
+([0027](docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)),
+and which the renderer draws as the PDF/A-3b that embeds it, the German
+hybrid invoice
+([0031](docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+An image asset may be an SVG, a logo drawn as vectors, cleaned once where
+a host approves it
+([0030](docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md));
+the quotation and both invoice starters print an invented firm's mark
+([0032](docs/decisions/0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md));
+and a person adds an image in either builder, which the host keeps before
+the report declares it (0033). Report builds on formancy 0.6.0, and the
+Studio and the product's pages wear formancy's own room, imported rather
+than copied (0034). In either builder a person hides the panes whose room
+the design view needs
+([0019](docs/decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md)),
+and a host may show a view of its own in the design view's place, as the
+Studio shows its Preview wherever it does not fit beside the builder
+([0029](docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
+The Studio, as the pages do, serves its own faces and asks no other site
+for anything
+([0023](docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
+The product has pages in German, French, Italian and English
+([0021](docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)),
+one of them for the QR-bill
+([0024](docs/decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md))
+and one for the EPC QR code
+([0028](docs/decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)),
+which now say that the newest release holds each code; the EPC QR code
+page says that Formancy Report draws an e-invoice, where it said its source
+did. And the architecture is documented in arc42's sections, held to the
+repository by a guard
+([0026](docs/decisions/0026-the-architecture-is-documented-in-arc42s-sections-held-to-the-repository-by-a-guard.md)).
+The entries below say what each costs.
+
+**A report written for 0.1.0.** 0.2.0 reads version "0", as 0.1.0 does, and
+what it adds to the format are component kinds, properties and a media type
+that 0.1.0 refuses whole, so a report that uses one opens in 0.2.0 and not
+in 0.1.0. Two of the corpus's three starters of 0.1.0, the service
+inspection and the equipment register, and the getting-started guide's
+quotation are 0.1.0's definitions unchanged, which 0.2.0 validates,
+resolves and renders: the starters in its suites, the guide's in the
+install gate, against the packed packages. The corpus's fixtures are
+0.1.0's renderer-neutral documents unchanged, which 0.2.0's renderer
+draws, and no more than that: nothing validates or resolves them. No test
+reads any other report written for 0.1.0, the quotation starter as 0.1.0
+had it among them. Of the reports 0.1.0 printed, the entries below name
+one kind 0.2.0 refuses: one that draws a JPEG PDFKit reads otherwise than
+its frame header says, which 0.1.0 drew wrong, refused now as
+`invalid-asset` (0031). They name two defects of 0.1.0 that 0.2.0 fixes
+besides: a decimal string read in time in the square of its length, which
+could hold a render for minutes, and one failed read of the fonts, which
+was kept and failed every later render in the process.
+
+Of the exported types, one changed shape: report-core's `Members` requires
+the e-invoice's `invoice`, `vatBasis` and `vatAmount` maps, so code that
+builds one adds them (0027). Others grew members: report-spec's
+`ComponentKind` and `Component` by the QR code and the EPC QR code, and its
+`AssetMediaType` by `image/svg+xml`; report-runtime's `Block` by `QrCode`
+and `EpcQrCode`; report-core's `ScopeName` by the e-invoice's three names;
+the codes four packages refuse with, report-spec's `ReportErrorCode`,
+report-core's `RefusalCode`, report-runtime's `ResolveErrorCode` and
+report-builder-core's `EditorRefusalCode`; and report-builder-core's
+`EditorAction`, `ReportPart` and `ScenarioStep`. Where a list stands beside
+one, as `COMPONENT_KINDS` beside `ComponentKind`, it grew with it. Code
+written against 0.1.0 that switches over one of them to `never`, or keys a
+`Record` by one, stops compiling against 0.2.0 until it handles the new
+members.
+
+Not in this release:
+- **What release gates G4 to G7 ask for.** That is a complete Data
+  snapshot, a report server, the AI proposal workflow, and a paid pilot.
+- **A consistent read from Formancy Data.** The provider's data is
+  best-effort until Data has a snapshot export
+  ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+- **A published PDF viewer.** PDF.js ships a font under GPL-2.0 with a
+  font-embedding exception, and the dependency-licence gate refuses that in a
+  published package
+  ([0006](docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
+  The Studio previews with it.
+- **An e-invoice for France.** The e-invoice is made for Germany. Which
+  profiles AFNOR's XP Z12-012 accepts, how its four details map and whether
+  a platform takes the file were not read, and of those details the XML
+  holds the buyer's SIREN alone, so France is not claimed (0027, 0031).
+- **Editing a QR-bill or an e-invoice in a builder.** Neither builder edits
+  either: each is written in the report's definition, and the design view
+  shows where a bill's slip prints (0022, 0027). The EPC QR code is in both
+  builders' palette.
+- **A payment by a banking app.** That a QR-bill or an EPC QR code is paid
+  is not tested: ZXing reads each code from the page PDF.js draws, and no
+  banking app has scanned one, nor has one been printed (0022, 0025).
+
+The release report that this release's run builds lists, under "Known
+limitations", what each decision record says a user will meet.
 
 **A person adds an image in either builder**
 ([0033](docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
@@ -189,7 +330,7 @@ the line that says whom the report is from.
   report's approved assets from the host's server beside the sample: a
   page that copied it before passes none, and refuses a report with a
   logo as `missing-asset`.
-- **0.1.0 refuses these starters as main has them**, since they declare an
+- **0.1.0 refuses these starters as 0.2.0 has them**, since they declare an
   SVG asset (0030).
 - **`@formancy/report-corpus`** (never published): `LOGO` and
   `LETTERHEAD` in `starters/logo.ts`; `STARTER_IMAGES` holds the mark
@@ -1292,8 +1433,6 @@ nothing, without a word.
   use zxing-wasm 3.1.5, in the private corpus alone, from its own
   WebAssembly file, and fetch nothing. Codes side by side are read from
   the left, their tops compared to the nearest point.
-
-  repository does not own (`.github/REPO-METADATA.md`).
 
 **A person hides the panes whose room the design view needs**
 ([0019](docs/decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md)).

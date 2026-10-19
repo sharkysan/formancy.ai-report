@@ -1,6 +1,6 @@
 {
   "name": "@formancy/report-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Formancy Report's editing core: pure document commands over a ReportDefinition, atomic validated history with exact undo and redo, diagnostics, and a framework-independent session. No framework, no PDF engine, no Node.",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",

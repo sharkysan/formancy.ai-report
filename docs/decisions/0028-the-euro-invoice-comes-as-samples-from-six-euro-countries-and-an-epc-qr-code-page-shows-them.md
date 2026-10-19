@@ -99,8 +99,8 @@
   - **The pages' suite, `apps/pages`.**
     - `src/epc-qr-code.test.ts`: the page refuses to render once the
       changelog names a later release, naming its three sentences; it says
-      it is in no release in its hero and in the product page's teaser,
-      four words at least, and its try-it text names the release the guide
+      where it stands in its hero and in the product page's teaser, four
+      words at least, and its try-it text names the release the guide
       installs; it shows the starter and the six samples, its own
       language's first and the rest in a fixed order, and is shared with
       its own language's picture; its hero opens the Studio's root, naming
@@ -439,6 +439,10 @@ from its two words.
 - **The next release touches two pages.** A release commit fails
   `pnpm build` and the pages' suite until both pages' statuses are written
   again, in their three sentences each, as RELEASING.md's second step says.
+  And both say them early, as the QR-bill page does (0024): until the tag
+  publishes the packages, each says the guide installs a release npm does
+  not serve yet, and a reader who follows it installs the one before,
+  which for 0.2.0 is 0.1.0, and 0.1.0 refuses the code.
 - **A name no page may say.** A reader who searches for the name some
   German banks give the code finds no page here by it, and the check
   refuses it in a quote or a denial as anywhere else. It does not see the

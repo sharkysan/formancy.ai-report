@@ -19,17 +19,18 @@ import type { EuroCountry } from './figures.js'
 
 /**
  * Where the EPC QR code stands, as the page says it: the day it was last
- * said, and the newest release then, 0.1.0, which refuses a report with
- * one as an unknown kind (0025). Three sentences of epc-qr-code-copy.tsx
- * say it, as the QR-bill page's three say its bill's: `unreleased`, in the
- * hero and after the product page's teaser; `tryIt.text`, of the release
- * the guide installs; and `status.text`, dated. The site refuses to render
- * once CHANGELOG.md names another release, until somebody says whether it
- * has the code, in all three, and changes this with them.
+ * said, and the newest release then, 0.2.0, the first to print one, which
+ * 0.1.0 refuses as an unknown kind (0025). Three sentences of
+ * epc-qr-code-copy.tsx say it, as the QR-bill page's three say its bill's:
+ * `unreleased`, in the hero and after the product page's teaser;
+ * `tryIt.text`, of the release the guide installs; and `status.text`,
+ * dated. Each says the newest release holds the code, so the site refuses
+ * to render once CHANGELOG.md names another release, until somebody says
+ * whether it has the code, in all three, and changes this with them.
  */
 export const EPC_QR_CODE_STATUS: PageStatus = {
-  asOf: '2026-10-17',
-  release: '0.1.0',
+  asOf: '2026-10-19',
+  release: '0.2.0',
   feature: 'EPC QR code',
   copy: 'epc-qr-code-copy.tsx',
   sentences: "`unreleased`, which the hero and the product page's teaser say, `tryIt.text` and `status.text`",

@@ -242,7 +242,7 @@
   there as `missing-asset` until it passes one.
 - **0.1.0 refuses them.** The marked starters declare an SVG asset, which
   0.1.0's validator refuses as `not-one-of`, so the quotation and invoice
-  starters as main has them open only in a release that reads SVG (0030).
+  starters as 0.2.0 has them open only in a release that reads SVG (0030).
 - **Moved pins, and every picture retaken.** The invoice's and the euro
   invoice's pinned JSON digests moved; every picture of a PDF was drawn
   again, twelve of them showing the mark, and the Studio's pictures were

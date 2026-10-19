@@ -66,7 +66,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     eyebrow: 'Formancy Report für die QR-Rechnung',
     h1: 'QR-Rechnungen aus Ihren eigenen Daten, geprüft nach den Regeln von SIX',
     lead: 'Formancy Report erzeugt Ihre Rechnungen als PDF, mit Empfangsschein und Zahlteil, oft QR-Einzahlungsschein genannt, am Fuss der letzten Seite, wie SIX sie vorgibt. Ihre Anwendung übergibt die Daten; bevor das PDF entsteht, werden Konto, Referenz und jeder Text nach den Regeln von SIX geprüft, und der Betrag wird exakt aus den Werten der Rechnung berechnet, in den Beispielen ihr Total.',
-    unreleased: 'Die QR-Rechnung ist online im Studio zu sehen, aber noch in keinem Release enthalten.',
+    unreleased: 'Die QR-Rechnung ist online im Studio zu sehen und im neuesten Release enthalten.',
     actions: { studio: 'Im Studio ausprobieren (Startvorlage Invoice)', samples: 'Die Beispiele ansehen' },
     does: {
       heading: 'Was es kann',
@@ -104,7 +104,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     tryIt: {
       heading: 'Ausprobieren',
       text: (version) =>
-        `Im Studio ist das deutsche Beispiel die Startvorlage Invoice: Wählen Sie sie unter Starter, und die Vorschau zeigt das PDF mit seinem Zahlteil, so wie der Renderer es erzeugt hat. Die Einführung installiert ${version}, das neueste Release, und das lehnt einen Bericht mit Zahlteil noch ab. Wie ein Bericht seine QR-Rechnung trägt und warum der Zahlteil so gedruckt wird, beschreibt die Dokumentation auf GitHub, auf Englisch.`,
+        `Im Studio ist das deutsche Beispiel die Startvorlage Invoice: Wählen Sie sie unter Starter, und die Vorschau zeigt das PDF mit seinem Zahlteil, so wie der Renderer es erzeugt hat. Die Einführung installiert ${version}, das neueste Release, das einen Bericht mit Zahlteil druckt. Wie ein Bericht seine QR-Rechnung trägt und warum der Zahlteil so gedruckt wird, beschreibt die Dokumentation auf GitHub, auf Englisch.`,
       links: {
         studio: 'Das Studio öffnen',
         spec: 'Die QR-Rechnung im Berichtsformat (report-spec, Englisch)',
@@ -130,7 +130,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     },
     status: {
       heading: 'Stand',
-      text: (version, date) => `Im Quellcode auf GitHub und online im Studio, aber noch in keinem Release: ${version}, das neueste, lehnt einen Bericht mit Zahlteil als Ganzes ab (Stand ${date}).`,
+      text: (version, date) => `In ${version}, dem neuesten Release, im Quellcode auf GitHub und online im Studio (Stand ${date}).`,
       licence: 'Formancy Report ist source-available: Der Quellcode ist öffentlich, und für den Betrieb in Produktion braucht es eine kostenpflichtige Lizenz.',
       terms: 'Die Bedingungen auf der Produktseite',
     },
@@ -149,7 +149,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     eyebrow: 'Formancy Report pour la QR-facture',
     h1: 'Des factures QR à partir de vos propres données, vérifiées selon les règles de SIX',
     lead: "Formancy Report génère vos factures en PDF, avec le récépissé et la section paiement, souvent appelés bulletin de versement QR, au pied de la dernière page, comme SIX les définit. Votre application fournit les données ; avant que le PDF soit produit, le compte, la référence et chaque texte sont vérifiés selon les règles de SIX, et le montant est calculé de manière exacte à partir des valeurs de la facture, son total dans les exemples.",
-    unreleased: 'La facture QR se découvre en ligne dans le Studio, mais ne figure encore dans aucune version publiée.',
+    unreleased: 'La facture QR se découvre en ligne dans le Studio et figure dans la version la plus récente.',
     actions: { studio: "L'essayer dans le Studio (modèle de départ Invoice)", samples: 'Voir les exemples' },
     does: {
       heading: "Ce qu'il fait",
@@ -187,7 +187,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     tryIt: {
       heading: "L'essayer",
       text: (version) =>
-        `Dans le Studio, l'exemple allemand est le modèle de départ Invoice : choisissez-le sous Starter, et l'aperçu montre le PDF avec sa section paiement, tel que le moteur de rendu l'a produit. Le guide de démarrage installe ${version}, la version la plus récente, qui refuse encore un rapport avec une section paiement. La documentation sur GitHub, en anglais, explique comment un rapport porte sa facture QR et pourquoi la section paiement est imprimée ainsi.`,
+        `Dans le Studio, l'exemple allemand est le modèle de départ Invoice : choisissez-le sous Starter, et l'aperçu montre le PDF avec sa section paiement, tel que le moteur de rendu l'a produit. Le guide de démarrage installe ${version}, la version la plus récente, qui imprime un rapport avec une section paiement. La documentation sur GitHub, en anglais, explique comment un rapport porte sa facture QR et pourquoi la section paiement est imprimée ainsi.`,
       links: {
         studio: 'Ouvrir le Studio',
         spec: 'La facture QR dans le format des rapports (report-spec, en anglais)',
@@ -213,7 +213,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     },
     status: {
       heading: 'État',
-      text: (version, date) => `Dans le code source sur GitHub et en ligne dans le Studio, mais pas encore dans une version publiée : ${version}, la plus récente, refuse en bloc tout rapport avec une section paiement (état au ${date}).`,
+      text: (version, date) => `Dans la version ${version}, la plus récente, dans le code source sur GitHub et en ligne dans le Studio (état au ${date}).`,
       licence: "Formancy Report est source-available : le code source est public, et l'exploitation en production nécessite une licence payante.",
       terms: 'Les conditions, sur la page du produit',
     },
@@ -232,7 +232,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     eyebrow: 'Formancy Report per la QR-fattura',
     h1: 'Fatture QR dai vostri dati, verificate secondo le regole di SIX',
     lead: "Formancy Report genera le vostre fatture in PDF, con la ricevuta e la sezione pagamento, spesso chiamate polizza di versamento QR, in fondo all'ultima pagina, come le definisce SIX. La vostra applicazione fornisce i dati; prima che il PDF venga prodotto, il conto, il riferimento e ogni testo vengono verificati secondo le regole di SIX, e l'importo è calcolato in modo esatto dai valori della fattura, negli esempi il suo totale.",
-    unreleased: 'La fattura QR si può vedere online nello Studio, ma non fa ancora parte di alcuna versione pubblicata.',
+    unreleased: 'La fattura QR si può vedere online nello Studio e fa parte della versione più recente.',
     actions: { studio: 'Provarlo nello Studio (modello iniziale Invoice)', samples: 'Vedere gli esempi' },
     does: {
       heading: 'Che cosa fa',
@@ -270,7 +270,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     tryIt: {
       heading: 'Provarlo',
       text: (version) =>
-        `Nello Studio, l'esempio tedesco è il modello iniziale Invoice: sceglietelo sotto Starter, e l'anteprima mostra il PDF con la sua sezione pagamento, così come l'ha prodotto il renderer. La guida introduttiva installa ${version}, la versione più recente, che rifiuta ancora un report con una sezione pagamento. La documentazione su GitHub, in inglese, spiega come un report porta la sua fattura QR e perché la sezione pagamento è stampata così.`,
+        `Nello Studio, l'esempio tedesco è il modello iniziale Invoice: sceglietelo sotto Starter, e l'anteprima mostra il PDF con la sua sezione pagamento, così come l'ha prodotto il renderer. La guida introduttiva installa ${version}, la versione più recente, che stampa un report con una sezione pagamento. La documentazione su GitHub, in inglese, spiega come un report porta la sua fattura QR e perché la sezione pagamento è stampata così.`,
       links: {
         studio: 'Aprire lo Studio',
         spec: 'La fattura QR nel formato dei report (report-spec, in inglese)',
@@ -296,7 +296,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     },
     status: {
       heading: 'Stato',
-      text: (version, date) => `Nel codice sorgente su GitHub e online nello Studio, ma non ancora in una versione pubblicata: ${version}, la più recente, rifiuta per intero un report con una sezione pagamento (stato al ${date}).`,
+      text: (version, date) => `Nella versione ${version}, la più recente, nel codice sorgente su GitHub e online nello Studio (stato al ${date}).`,
       licence: "Formancy Report è source-available: il codice sorgente è pubblico, e l'uso in produzione richiede una licenza a pagamento.",
       terms: 'Le condizioni, sulla pagina del prodotto',
     },
@@ -315,7 +315,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     eyebrow: 'Formancy Report for the Swiss QR-bill',
     h1: "Swiss QR-bills from your own data, checked against SIX's rules",
     lead: "Formancy Report renders your invoices as PDFs, with the receipt and the payment part, often called the QR payment slip, at the foot of the last page, as SIX lays them out. Your application hands over the data; before the PDF is made, the account, the reference and every text are checked against SIX's rules, and the amount is computed exactly from the invoice's values, in the samples its total.",
-    unreleased: 'The QR-bill can be tried online in the Studio, and is in no release yet.',
+    unreleased: 'The QR-bill can be tried online in the Studio, and is in the newest release.',
     actions: { studio: 'Try it in the Studio (the Invoice starter)', samples: 'See the samples' },
     does: {
       heading: 'What it does',
@@ -353,7 +353,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     tryIt: {
       heading: 'Try it',
       text: (version) =>
-        `In the Studio, the German sample is the Invoice starter: choose it under Starter, and the preview shows the PDF with its payment part as the renderer produced it. The getting-started guide installs ${version}, the newest release, which still refuses a report with a payment part. The documentation on GitHub says how a report carries its QR-bill, and why the slip is printed as it is.`,
+        `In the Studio, the German sample is the Invoice starter: choose it under Starter, and the preview shows the PDF with its payment part as the renderer produced it. The getting-started guide installs ${version}, the newest release, which prints a report with a payment part. The documentation on GitHub says how a report carries its QR-bill, and why the slip is printed as it is.`,
       links: {
         studio: 'Open the Studio',
         spec: 'The QR-bill in the report format (report-spec)',
@@ -379,7 +379,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     },
     status: {
       heading: 'Status',
-      text: (version, date) => `In the source on GitHub and online in the Studio, but in no release yet: ${version}, the newest, refuses any report with a payment part outright (as of ${date}).`,
+      text: (version, date) => `In ${version}, the newest release, in the source on GitHub and online in the Studio (as of ${date}).`,
       licence: 'Formancy Report is source-available: the source is public, and running it in production needs a paid licence.',
       terms: 'The terms, on the product page',
     },

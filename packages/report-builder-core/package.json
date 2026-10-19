@@ -1,6 +1,6 @@
 {
   "name": "@formancy/report-builder-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Formancy Report Studio's framework-independent editor model: selection, palette, outline, property definitions, page geometry, keyboard actions and drop targets over one report-core session. No framework, no DOM, no Node.",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",

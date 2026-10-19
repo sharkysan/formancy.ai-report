@@ -176,9 +176,9 @@ deploy happened or what the address serves.
   main thread, and the host is handed the drawing `cleanSvg` wrote of an
   SVG, never the file as chosen, and the file's name for its own records
   ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
-- **For an e-invoice:** no release prints one, and 0.1.0 refuses a report
-  that holds one. On `main` a final render writes the CII XML into the
-  resolved document, `document.eInvoice.xml`, and the renderer draws that
+- **For an e-invoice:** 0.1.0 refuses a report that holds one. From 0.2.0
+  a final render writes the CII XML into the resolved document,
+  `document.eInvoice.xml`, and the renderer draws that
   document as a PDF/A-3b that embeds it as `factur-x.xml`, the German
   hybrid invoice, in either entry; a preview writes no XML and prints as a
   plain PDF, labelled on every page as no e-invoice. In an e-invoice, an
