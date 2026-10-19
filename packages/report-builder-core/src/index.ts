@@ -40,6 +40,9 @@ export type {
   Size,
 } from './model.js'
 
+// Where a host keeps the images a person adds, and the report's images as the state lists them (0033).
+export type { AddedImage, ImageFile, ImageLibrary, ImageStore, KeptImage, LibraryAsset } from './image-store.js'
+
 export { clampZoom, MAX_ZOOM, MIN_ZOOM, PX_PER_PT, zoomedIn, zoomedOut, ZOOM_STEPS } from './geometry.js'
 export { targetBeside, targetNear } from './targets.js'
 export { actionForKey } from './keys.js'
@@ -54,5 +57,8 @@ export { REPORT_ATTRIBUTES, REPORT_PARTS, WORKBENCH_CLASSES } from './parts.js'
 export type { ReportPart } from './parts.js'
 
 // What every native builder must pass, as data.
-export { BUILDER_SCENARIOS, builderScenarios, SCENARIO_ACTIONS, SCENARIO_EXPECTATIONS, scenarioReport } from './scenarios.js'
-export type { BuilderScenario, HostViewAction, KeyModifier, ScenarioHost, ScenarioQuery, ScenarioStep } from './scenarios.js'
+export { BUILDER_SCENARIOS, builderScenarios, SCENARIO_ACTIONS, SCENARIO_EXPECTATIONS } from './scenarios.js'
+export type { BuilderScenario, HostViewAction, KeyModifier, ScenarioFile, ScenarioHost, ScenarioQuery, ScenarioStep } from './scenarios.js'
+export { scenarioReport } from './scenario-report.js'
+export { SCENARIO_PNG, SCENARIO_PNG_DIGEST, SCENARIO_REFUSAL, scenarioStore } from './scenario-images.js'
+export type { ScenarioStore } from './scenario-images.js'

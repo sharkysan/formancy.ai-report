@@ -55,6 +55,9 @@
 //     builder's an element of the Preview there, but that one;
 //   - every web font the built page asks for had loaded by the end of each
 //     pass, and in the pass that refuses them, none had;
+//   - in each builder, an image added from the keyboard through the
+//     platform's file chooser, placed, printed, undone and redone, an SVG
+//     refused and one cleaned, and nothing sent (gate-images.mjs, 0033);
 //   - the page wears the released room: every variable the installed
 //     @formancy/themes/room.css sets, and its colour scheme, computed on
 //     the page as room.css gives it, at every pass (0034);
@@ -89,6 +92,7 @@ import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
 import { app, audit, cutControls, describeFocus, downloaded, drawnPages, fontProblem, fromTheTop, measureWidth, paletteProblem, passes, rulesOnThePaper } from './gate-page.mjs'
 import { builderParity } from './gate-parity.mjs'
 import { placeChecks } from './gate-place.mjs'
+import { imageChecks } from './gate-images.mjs'
 import { gateRecorder } from './gate-results.mjs'
 import { roomChecks } from './gate-room.mjs'
 import { builder, editorOf, open, previewInView, previewOf, selectRow, setField, settled, showing, untilLine, WITHIN } from './gate-steps.mjs'
@@ -447,6 +451,7 @@ async function interactions(gate, page, framework) {
 
   // The room made for the middle pane: a pane hidden and shown, the Preview hidden and shown.
   await roomChecks(gate, page, framework)
+  await imageChecks(gate, page, framework)
 }
 
 /**

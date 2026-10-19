@@ -70,6 +70,25 @@ export const MAX_PARAMETERS = 32
 /** Asset references: each is a lookup and a byte budget at render time. */
 export const MAX_ASSETS = 64
 
+/**
+ * The most bytes one image asset may have: 20 MB, the renderer trial's
+ * limit, the plan's "enforced limits" made a number to test, and chosen, not
+ * measured. A builder refuses a file past it before reading it, the runtime
+ * a host's answer past it before copying it, and the renderer bytes past it
+ * before decoding them, from this one constant; an SVG is held to
+ * `MAX_SVG_BYTES` besides.
+ */
+export const MAX_ASSET_BYTES = 20 * 1024 * 1024
+
+/**
+ * Pixels a side of a PNG or a JPEG asset: the renderer trial's limit too,
+ * and as chosen. What pictures of this size cost the renderer to embed is
+ * measured beside report-render-pdf's `MAX_IMAGE_DATA`, which bounds a
+ * render by them. `imageHeader` holds a picture to it, where a person adds
+ * one and where it prints.
+ */
+export const MAX_ASSET_SIDE = 4096
+
 /** Aggregates: each is a pass over the detail rows, per group and once overall. */
 export const MAX_AGGREGATES = 32
 

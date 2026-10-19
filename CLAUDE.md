@@ -109,6 +109,11 @@ supplies, labelled best-effort
 `@formancy/report-builder-react` and `@formancy/report-builder-angular` render
 it natively; `BUILDER_SCENARIOS` in the core is what both must do
 ([0012](docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).
+An image a person adds runs through report-spec's `sniffImage`,
+`imageHeader` and `assetDigest`, report-core's `nextAssetId` and
+`addAsset`, and builder-core's `addImage`, into the host's `ImageStore`,
+keyed by digest, before the report declares it
+([0033](docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
 Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
@@ -138,7 +143,7 @@ before it:
    hashing and migrations. No framework, no driver, no PDF engine, no Node.
 2. `report-core` -- pure document commands, atomic history, diagnostics.
 3. `report-builder-core` -- selection, palette, properties, geometry, review
-   state; then `report-builder-react` and `report-builder-angular`, native,
+   state, the images a person adds; then `report-builder-react` and `report-builder-angular`, native,
    never depending on each other.
 4. `report-runtime` -- typed datasets, expressions, grouping, exact aggregates,
    a renderer-neutral output.
@@ -307,7 +312,8 @@ as Formancy Data's apps are, not a new one
   (formancy.ai 0046): the place chooser, and `actionForKey` in the core.
   Tests find elements by role and accessible name and nothing else; where
   the accessibility tree cannot answer -- which framework drew the builder,
-  a stylesheet's reach, a canvas's pixels -- a test reads the DOM, and its
+  a stylesheet's reach, a canvas's pixels, the hidden file input Add
+  image… opens (0033) -- a test reads the DOM, and its
   header says which and why.
 - **Angular and React are both native**, over one report session, and neither
   depends on the other. `BUILDER_SCENARIOS` is the parity contract, and the
@@ -356,7 +362,11 @@ What holds this section:
   swapped with the design view where it has not, a pane hidden as an edit
   prints, the design view holding a page at 100 % wherever the Preview
   stands beside it, no rule of the page's on the paper but the workbench's
-  `.wb *`, and no request or
+  `.wb *`, an image added in each builder from the keyboard through the
+  platform's file chooser, the input empty again, placed, printed, undone
+  and redone, an SVG refused and one cleaned, and nothing sent: no request
+  but to `blob:` and `data:` and query-free GETs of the files the build
+  wrote, no WebSocket (`gate-images.mjs`, 0033), and no request or
   connection hint to any origin but the built Studio's, its faces included
   ([0023](docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
 - **The pages' stylesheet**, `apps/pages/src/stylesheet.test.ts`: it

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { insertComponent, moveComponent, removeComponent, updateComponent } from './commands/components.js'
-import { removeStyle } from './commands/declarations.js'
+import { addAsset, removeStyle } from './commands/declarations.js'
 import { describedCommand } from './commands/registry.js'
 import type { CommandDescriptor } from './commands/registry.js'
 import { updateColumn } from './commands/table.js'
@@ -32,6 +32,7 @@ const CASES: { readonly [C in RefusalCode]: () => CommandOutcome } = {
   'into-itself': () => moveComponent(frozenSample(), 'keep', { region: 'body', parent: 'keep', index: 0 }),
   'kind-mismatch': () => updateComponent(frozenSample(), 'gap', 'text', {}),
   'immutable-property': () => updateColumn(frozenSample(), 'lines', 'sku', { id: 'other' } as never),
+  'already-declared': () => addAsset(frozenSample(), 'logo', { mediaType: 'image/png', digest: `sha256:${'cd'.repeat(32)}` }),
   'unknown-command': () => describedCommand({ command: 'dropTable', args: [] } as unknown as CommandDescriptor)(frozenSample()),
   'invalid-arguments': () => describedCommand({ command: 'setTitle', args: [] } as unknown as CommandDescriptor)(frozenSample()),
   'invalid-document': () => inSession((report) => removeStyle(report, 'title')),

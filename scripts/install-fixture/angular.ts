@@ -32,7 +32,7 @@ import type { FocusAfter } from '@formancy/report-builder-angular'
 import type { EditorState, ReportEditor } from '@formancy/report-builder-core'
 import { elementsIn, readMarkup } from './markup.js'
 import type { MarkupElement } from './markup.js'
-import { editorToDraw, editorWithHostView, HOST_VIEW, structureProblems } from './structure.js'
+import { editorToDraw, editorWithHostView, editorWithImages, HOST_VIEW, structureProblems } from './structure.js'
 
 /** What could be wrong, collected, so one run names every difference rather than the first. */
 const wrong: string[] = []
@@ -97,6 +97,8 @@ const listening = editor.listenerCount()
 let drawn: number | undefined
 /** The editor drawn a second time, with a host's view shown in the design view's place (0029). */
 const viewing: ReportEditor = editorWithHostView()
+/** And a third, made with a host's store, over a report with two images (0033). */
+const imaging: ReportEditor = editorWithImages()
 
 /**
  * A host's component, as a host writes it. ngc compiles its template with
@@ -118,6 +120,12 @@ class Host {
 class Viewing {
   protected readonly editor: ReportEditor = viewing
   protected readonly text = HOST_VIEW.text
+}
+
+/** A host's component whose editor keeps the images a person adds: the builder draws Add image… and the report's images. */
+@Component({ selector: 'app-root', imports: [ReportBuilder], template: '<report-builder [editor]="editor" />' })
+class Imaging {
+  protected readonly editor: ReportEditor = imaging
 }
 
 /**
@@ -161,6 +169,9 @@ wrong.push(...structureProblems(await serverDraw(Host, () => void (drawn = edito
 // and no design view.
 wrong.push(...structureProblems(await serverDraw(Viewing), viewing.state()).map((problem) => `with a host's view: ${problem}`))
 viewing.dispose()
+// Drawn a third time with a host's store (0033): Add image… and its hidden input, and the report's images, each with its Remove.
+wrong.push(...structureProblems(await serverDraw(Imaging), imaging.state()).map((problem) => `with images: ${problem}`))
+imaging.dispose()
 
 // Drawing changed nothing. The editor's state reached the root through
 // [editor] -- an input the root requires, so a page drawn without it fails
@@ -176,5 +187,5 @@ editor.dispose()
 if (wrong.length > 0) throw new Error(`the Angular builder, compiled ahead of time and drawn on the server:\n- ${wrong.join('\n- ')}`)
 
 console.log(
-  `ok: Angular ${VERSION.full} drew the packed builder on the server, compiled ahead of time and linked without the JIT compiler, in Swiss German, as report-builder-core's README sets out: one region named by the catalogue, a toolbar that is one tab stop with a button per pane, a Hide in each side pane, a palette of ${String(state.palette.length)}, a tree with a group per region and a row per node, a design view of named pictures, a form named by its heading, the report's problems listed and counted, and the live region, and with a host's view its template stamped into the region it stands in instead of the design view; every data-report-part one REPORT_PARTS names; nothing said by Angular's development mode and nothing changed; one listener while the page was alive and none once it was destroyed; ${String(components.size)} standalone components with a factory, ReportEditorRoot a directive, and each of the ${String(parts.length)} parts an attribute on an element`,
+  `ok: Angular ${VERSION.full} drew the packed builder on the server, compiled ahead of time and linked without the JIT compiler, in Swiss German, as report-builder-core's README sets out: one region named by the catalogue, a toolbar that is one tab stop with a button per pane, a Hide in each side pane, a palette of ${String(state.palette.length)}, a tree with a group per region and a row per node, a design view of named pictures, a form named by its heading, the report's problems listed and counted, and the live region, and with a host's view its template stamped into the region it stands in instead of the design view, and with a host's store Add image… and its hidden input, and the report's images, each with its Remove; every data-report-part one REPORT_PARTS names; nothing said by Angular's development mode and nothing changed; one listener while the page was alive and none once it was destroyed; ${String(components.size)} standalone components with a factory, ReportEditorRoot a directive, and each of the ${String(parts.length)} parts an attribute on an element`,
 )

@@ -5,19 +5,6 @@
  * font loading (`browser.ts`).
  */
 
-/** CRC-32 as PNG and zlib compute it: the reflected polynomial 0xedb88320, every bit inverted before and after. */
-const CRC_TABLE: readonly number[] = Array.from({ length: 256 }, (_, byte) => {
-  let crc = byte
-  for (let bit = 0; bit < 8; bit++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1
-  return crc >>> 0
-})
-
-export function crc32(bytes: Uint8Array): number {
-  let crc = 0xffffffff
-  for (const byte of bytes) crc = CRC_TABLE[(crc ^ byte) & 0xff]! ^ (crc >>> 8)
-  return (crc ^ 0xffffffff) >>> 0
-}
-
 const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
 /** Standard base64 with padding, as a `data:` URL carries bytes. */

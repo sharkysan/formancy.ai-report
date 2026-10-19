@@ -69,6 +69,17 @@ opens from it, whose events React bubbles through the view wherever its
 DOM is. It is mounted only while it is drawn: the toolbar's Design view
 unmounts it, and the editor's `showHostView` mounts it again.
 
+**Images a person adds need nothing of the builder.** A host that keeps
+them gives the editor its store (`createReportEditor`'s `images`,
+report-builder-core's *Images a person adds*), and the builder draws Add
+image… last in the palette, with a hidden file input beside it, and the
+report's images, each with its Remove, under the report's own properties
+([0033](../../docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)). Add image… sends `chooseImage` and opens the platform's chooser
+in the same click; the file chosen is taken, the input cleared so the same
+file is a change again, and handed to `editor.addImage`, which says what
+became of it. The keyboard stays on the button; a Remove that removed its
+image puts it on the first field.
+
 **`useEditorState(editor)`** is the subscription on its own, for a host
 that shows something of the editor's state outside the builder.
 
@@ -122,6 +133,7 @@ keyboard path came first.
 | Anywhere but a text field | Ctrl and +, −, 0 | Zooms in, out, to actual size. |
 | The toolbar | ← →, Home, End | Moves between tools. The toolbar is one tab stop. → is "next" in a left-to-right page and "previous" under `dir="rtl"`; with Ctrl, Alt or ⌘ held the arrow is the browser's. |
 | A palette entry, Move to… | Enter, Space | Opens the place dialog. Focus goes to its first place. |
+| Add image… | Enter, Space | Opens the platform's file chooser. Focus stays on the button while the image is added and after. |
 | The place dialog | Enter on a place | Inserts or moves there. Focus goes to the row. |
 | The place dialog | Escape, Cancel | Closes it. Focus goes back to what opened it; for a dialog another builder over the same editor opened, to the palette entry of what is placed, else the selected row, else the tree. |
 | A single-line field | Enter | Commits the value, and stays in the field. |
@@ -204,6 +216,15 @@ jsdom with Testing Library and user-event:
   way out, the panes, a text field's own keys, every pointer drag above,
   the pointer read inside the sheet's border, and the keyboard kept on a
   problem when another is listed before it.
+- **Images**: `image-chooser.test.tsx` gives the file input `files` and a
+  `value` that behave as a browser's, where clearing the value empties the
+  files, and holds the file taken before the input is cleared, the input
+  cleared, a chooser closed without a file doing nothing, the keyboard on
+  Add image… while an image is added and after, Enter and Space opening
+  the chooser, no chooser where the editor takes no file, nothing drawn
+  without a store, and the host's types offered. `properties.test.tsx`
+  holds the image rows. These, and the scenarios' `upload`, find the file
+  input beside the button in the DOM: it has no role.
 - **One session, many builders**, as above.
 - **The host's view**: a bare region in the design view's place, with the
   middle pane's `data-pane`, its own part, no workbench class and only the

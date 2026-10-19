@@ -6,8 +6,11 @@
  * The scenarios are data shared with the Angular builder, so neither can
  * quietly expect less of itself than the other does (plan 21). Here they
  * meet focus, roles and the DOM, which the model's own run of them cannot.
+ * A scenario about images makes its editor with the store `scenarioStore`
+ * gives it, and its `upload` reads the DOM once, for the hidden file input
+ * beside Add image… (test-support.tsx).
  */
-import { BUILDER_SCENARIOS, builderScenarios, EDITOR_LOCALES } from '@formancy/report-builder-core'
+import { BUILDER_SCENARIOS, builderScenarios, EDITOR_LOCALES, scenarioStore } from '@formancy/report-builder-core'
 import { cleanup } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
 import { mount, runStep, violations } from './test-support.js'
@@ -24,8 +27,9 @@ describe('the builder scenarios, in React', () => {
   for (const locale of EDITOR_LOCALES) {
     for (const scenario of builderScenarios(locale)) {
       test(`${locale}: ${scenario.name}`, async () => {
-        const mounted = mount(scenario.report(), scenario.locale, scenario.host)
-        for (const step of scenario.steps) await runStep(step, mounted)
+        const images = scenarioStore(scenario)
+        const mounted = mount(scenario.report(), scenario.locale, scenario.host, images?.store)
+        for (const step of scenario.steps) await runStep(step, mounted, images?.kept)
         expect(await violations()).toEqual([])
         ran.add(`${locale}: ${scenario.name}`)
       })

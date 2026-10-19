@@ -7,16 +7,19 @@
  * same. A typed value is the person's until it is committed -- on leaving
  * the field, or Enter in a single-line one -- and a value the editor refuses
  * stays as typed, `aria-invalid`, with the reason beside it as its
- * description. Escape gives back what the report holds.
+ * description. Escape gives back what the report holds. Under the
+ * report's own fields, its images (`library`, 0033).
  */
 import { useState } from 'react'
-import type { KeyboardEvent, ReactElement } from 'react'
+import type { KeyboardEvent, ReactElement, ReactNode } from 'react'
 import type { EditorAction, EditorState, EditorText, PropertyField } from '@formancy/report-builder-core'
 
 export interface PropertiesProps {
   readonly state: EditorState
   readonly ids: string
   readonly act: (action: EditorAction) => void
+  /** The report's images, after its fields; nothing while something is selected. */
+  readonly library?: ReactNode
 }
 
 /** What the control states about validity: invalid, and why, when the field has an error. */
@@ -92,7 +95,7 @@ function Control(props: ControlProps): ReactElement {
   }
 }
 
-export function Properties({ state, ids, act }: PropertiesProps): ReactElement {
+export function Properties({ state, ids, act, library }: PropertiesProps): ReactElement {
   return (
     // Named in words, as the pane's heading says, never after the heading,
     // which a stylesheet sets in capitals that Chromium would put in the name.
@@ -114,6 +117,7 @@ export function Properties({ state, ids, act }: PropertiesProps): ReactElement {
           </div>
         )
       })}
+      {library}
     </form>
   )
 }

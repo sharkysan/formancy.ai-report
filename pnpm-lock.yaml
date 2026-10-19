@@ -748,6 +748,9 @@ importers:
       '@formancy/spec':
         specifier: 0.6.0
         version: 0.6.0
+      '@noble/hashes':
+        specifier: 2.4.0
+        version: 2.4.0
     devDependencies:
       '@arethetypeswrong/cli':
         specifier: 'catalog:'

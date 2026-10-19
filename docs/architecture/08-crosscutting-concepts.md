@@ -130,6 +130,7 @@ administrator wrote them ([`SECURITY.md`](../../SECURITY.md)).
 | Data | Read once without running anything, held to the declared types, a field the report does not declare refused, so nothing it was not written to read rides into a render, a cache or a log ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | An image | An approved asset's id and digest, resolved by the host, never an address; its bytes checked as the PNG or JPEG they say they are, a JPEG's frame header read where PDFKit reads it, or, for an SVG, as exactly the drawing report-spec's `cleanSvg` writes, before pdfmake sees them, and bounded per asset and per render ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), [0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 | An SVG | Read once, where it is approved, by report-spec's own tokenizer on bytes, which is iterative, so that no nesting reaches the stack before the depth bound is checked; the passes after it recurse, to `MAX_SVG_DEPTH` levels at most. What never draws is removed and listed, text, embedded pictures, `use`, references out of the file and entities beyond XML's own refused, the rest written in one canonical form that every reader between it and the page reads alike; bounded in bytes, depth, elements, stops, dashes, rules, the cascade's work, what it costs to paint and the page-sized groups it makes, and read in time linear in its bytes. Every refusal says what was found and what to do. The renderer draws that form alone, behind its own list of elements and the converter's callbacks; in an e-invoice it also refuses one whose numbers, at the image's box, could pass the integers a PDF/A-3 holds, or whose nesting its graphics state, by a bound from the extent the cleaner measured ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
+| A file a person adds | Its size held to `MAX_ASSET_BYTES` before it is read; recognised from its bytes by report-spec's `sniffImage`, never by its name or a type a browser guessed; a PNG's or a JPEG's structure, every chunk's CRC and its sides read by `imageHeader`, the renderer's own reader, a PNG's image data held in one array however many chunks it holds, a CMYK JPEG refused in an e-invoice, and an SVG cleaned whole by `cleanSvg`; kept by the host before the report declares it, the store keyed by digest since the id it is handed is the one the add means, and its id, folded from its name, the one thing of the name the report holds. A PNG's image data and a JPEG's scan are first read when it prints ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)) |
 | A font file | Read from its own name table by the licence guard, and refused when it cannot be read; a font inside a script the guard does not see ([§8.7](#87-licences), [0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)) |
 | An ICC profile | PDFKit's own file, which an e-invoice's render reads and embeds as its output intent: admitted by the licence guard by the SHA-256 of its bytes, which a review read, and refused under any other; a profile inside a script the guard does not see, and the renderer's browser test holds pdfmake's copy to the reviewed digest ([§8.7](#87-licences), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 
@@ -162,8 +163,9 @@ what the digest pins
 0010 gave as its reason that the runtime has no hash function without Node
 or the DOM. A pure SHA-256 has been in its dependency closure since 0.1.0:
 `@noble/hashes`', which `@formancy/spec`'s `schemaHash` uses and
-report-spec's `reportHash` calls. Checking digests changes what every host's resolver must satisfy,
-and is a decision of its own. Until then, what prints of an SVG is in the
+report-spec's `reportHash` calls, and report-spec's `assetDigest` takes an
+added image's digest with it ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)). Checking digests changes what every host's resolver must satisfy,
+and is a decision of its own, still not taken. Until then, what prints of an SVG is in the
 approved form, and that it is the approved drawing is the host's
 ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
@@ -295,7 +297,10 @@ Several sets of words, and they are kept apart:
   each editor puts back into its own language
   ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)).
   The validator's and the diagnostics' sentences are English: they are
-  keyed by stable codes, and their translation is a later step.
+  keyed by stable codes, and their translation is a later step. Why an
+  added image was refused is the builders' own sentence for each code,
+  report-spec's and 0030's, in the three languages, and the host's
+  refusal is shown in the host's words ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
 - **A QR-bill's headings** are in the slip's own language, one of SIX's
   five, which may differ from the report's
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)).

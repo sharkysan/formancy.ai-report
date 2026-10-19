@@ -1,5 +1,5 @@
-import { checkSvg, MAX_ASSET_BYTES, RenderRefusal, type CheckedSvg, type ImageAsset, type SvgExtent } from '@formancy/report-runtime'
-import { crc32, inflate } from './bytes.js'
+import { checkSvg, imageHeader, MAX_ASSET_BYTES, MAX_ASSET_SIDE, RenderRefusal, sniffImage, type CheckedSvg, type ImageAsset, type PngHeader, type SvgExtent } from '@formancy/report-runtime'
+import { inflate } from './bytes.js'
 
 /**
  * Image assets checked before pdfmake sees them. pdfmake, through PDFKit,
@@ -9,13 +9,16 @@ import { crc32, inflate } from './bytes.js'
  * error that names no asset. Both are refused here instead, naming it, as
  * `invalid-asset`.
  *
- * What is checked: the size limits; for a PNG, every chunk's length and CRC,
- * the header, and that the image data inflates to exactly the scanlines the
- * header promises, each with a known filter; for a JPEG, the segment
- * structure up to the scan, one frame header, read where PDFKit reads it,
- * its size and its component count, and the end marker. A JPEG's
- * entropy-coded scan is not decoded: a corrupt scan inside an otherwise
- * well-formed JPEG still reaches the PDF.
+ * What is checked: the size limits; a PNG's or a JPEG's structure, by
+ * report-spec's `imageHeader`, which a builder refuses an image a person
+ * adds by too (0033) -- for a PNG, every chunk's length and CRC, the header
+ * and the palette, and for a JPEG, the segment structure up to the scan,
+ * one frame header, read where PDFKit reads it, its size and its component
+ * count, and the end marker; and here, that a PNG's image data inflates to
+ * exactly the scanlines the header promises, each with a known filter,
+ * which needs the platform's decompressor. A JPEG's entropy-coded scan is
+ * not decoded: a corrupt scan inside an otherwise well-formed JPEG still
+ * reaches the PDF.
  *
  * An SVG is checked by report-spec's `checkSvg`, which the runtime hands
  * on: its bytes must be exactly the drawing `cleanSvg` writes, so that what
@@ -23,14 +26,12 @@ import { crc32, inflate } from './bytes.js'
  * or rewritten at print (0030). Its size is its viewBox's, and with it come
  * what it costs to draw, which `check.ts` holds a render to.
  *
- * The size returned is the size the image is shown at: a JPEG whose Exif
- * orientation turns it a quarter turn is as wide as its frame is tall, as
- * PDFKit draws it. The check runs on the standard library alone, so that the
- * browser entry makes exactly the same one (`bytes.ts`).
+ * The size returned is the size the image is shown at, as `imageHeader`
+ * reads it: a JPEG whose Exif orientation turns it a quarter turn is as wide
+ * as its frame is tall, as PDFKit draws it. The check runs on the standard
+ * library alone, so that the browser entry makes exactly the same one
+ * (`bytes.ts`).
  */
-
-/** Pixels a side. */
-export const MAX_ASSET_SIDE = 4096
 
 /**
  * The image data one render may hold, once inflated: two images of the
@@ -99,12 +100,13 @@ async function readAsset(asset: ImageAsset): Promise<CheckedImage | string> {
   const { bytes } = asset
   if (!(bytes instanceof Uint8Array)) return 'has no bytes'
   if (bytes.length > MAX_ASSET_BYTES) return `is ${bytes.length} bytes; the limit is ${MAX_ASSET_BYTES} (20 MB)`
-  const isPng = startsWith(bytes, PNG_SIGNATURE)
-  const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8
+  const sniffed = sniffImage(bytes)
+  const isPng = sniffed === 'image/png'
+  const isJpeg = sniffed === 'image/jpeg'
   // Read as an SVG only to say what bytes declared otherwise are; cleanSvg refuses bytes past a mebibyte unread.
   const actually = (): string => (isPng ? ': it is a PNG' : isJpeg ? ': it is a JPEG' : checkSvg(bytes).ok ? ': it is an SVG' : '')
-  if (asset.mediaType === 'image/png') return isPng ? readPng(bytes) : `is declared a PNG and is not one${actually()}`
-  if (asset.mediaType === 'image/jpeg') return isJpeg ? readJpeg(bytes) : `is declared a JPEG and is not one${actually()}`
+  if (asset.mediaType === 'image/png') return isPng ? readRaster(bytes) : `is declared a PNG and is not one${actually()}`
+  if (asset.mediaType === 'image/jpeg') return isJpeg ? readRaster(bytes) : `is declared a JPEG and is not one${actually()}`
   if (asset.mediaType === 'image/svg+xml') return isPng || isJpeg ? `is declared an SVG and is not one${actually()}` : readSvg(bytes)
   return `is of a media type the renderer does not draw (${String(asset.mediaType)})`
 }
@@ -169,22 +171,17 @@ function ascii(bytes: Uint8Array): string {
   return text
 }
 
-function sizeProblem(width: number, height: number): string | undefined {
-  if (width === 0 || height === 0) return `has no pixels (${width} × ${height})`
-  if (width > MAX_ASSET_SIDE || height > MAX_ASSET_SIDE) return `is ${width} × ${height} pixels; the limit is ${MAX_ASSET_SIDE} pixels a side`
-  return undefined
+/**
+ * A PNG or a JPEG as it is drawn, once its structure, read by
+ * `imageHeader`, and a PNG's image data pass. A JPEG is embedded as it is,
+ * and counts its bytes; a PNG counts its scanlines, which PDFKit decodes.
+ */
+async function readRaster(bytes: Uint8Array): Promise<Raster | string> {
+  const header = imageHeader(bytes)
+  if (!header.ok) return header.message
+  if (header.mediaType === 'image/jpeg') return { kind: 'raster', width: header.width, height: header.height, data: bytes.length, cmyk: header.components === 4 }
+  return (await scanlineProblem(header)) ?? { kind: 'raster', width: header.width, height: header.height, data: inflatedLength(header), cmyk: false }
 }
-
-const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] as const
-
-/** Channels per pixel for each PNG colour type, and the bit depths it allows. */
-const PNG_COLOUR_TYPES: ReadonlyMap<number, { channels: number; depths: readonly number[] }> = new Map([
-  [0, { channels: 1, depths: [1, 2, 4, 8, 16] }],
-  [2, { channels: 3, depths: [8, 16] }],
-  [3, { channels: 1, depths: [1, 2, 4, 8] }],
-  [4, { channels: 2, depths: [8, 16] }],
-  [6, { channels: 4, depths: [8, 16] }],
-])
 
 /** Adam7's seven passes: the first column and row of each, and the steps between them. */
 const ADAM7 = [
@@ -196,60 +193,6 @@ const ADAM7 = [
   [1, 0, 2, 2],
   [0, 1, 1, 2],
 ] as const
-
-interface PngHeader {
-  readonly width: number
-  readonly height: number
-  readonly bitsPerPixel: number
-  readonly interlaced: boolean
-  readonly paletted: boolean
-}
-
-async function readPng(bytes: Uint8Array): Promise<Raster | string> {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-  let header: PngHeader | undefined
-  let palette = false
-  const data: Uint8Array[] = []
-  for (let offset: number = PNG_SIGNATURE.length; ; ) {
-    // A chunk is its length, its type, its data and its CRC: 12 bytes and the data.
-    if (offset + 12 > bytes.length || offset + 12 + view.getUint32(offset) > bytes.length) return `is cut off at byte ${offset}`
-    const length = view.getUint32(offset)
-    const end = offset + 12 + length
-    const type = String.fromCharCode(...bytes.subarray(offset + 4, offset + 8))
-    const body = bytes.subarray(offset + 8, offset + 8 + length)
-    if (crc32(bytes.subarray(offset + 4, offset + 8 + length)) !== view.getUint32(offset + 8 + length)) return `has the wrong CRC on its ${type} chunk`
-    if (header === undefined) {
-      if (type !== 'IHDR') return 'does not start with its header chunk'
-      const parsed = pngHeader(body)
-      if (typeof parsed === 'string') return parsed
-      header = parsed
-    } else if (type === 'PLTE') {
-      palette = true
-    } else if (type === 'IDAT') {
-      data.push(body)
-    } else if (type === 'IEND') {
-      if (end !== bytes.length) return 'has bytes after its end chunk'
-      break
-    }
-    offset = end
-  }
-  if (header.paletted && !palette) return 'is paletted and has no palette'
-  return (await scanlineProblem(header, data)) ?? { kind: 'raster', width: header.width, height: header.height, data: inflatedLength(header), cmyk: false }
-}
-
-function pngHeader(body: Uint8Array): PngHeader | string {
-  if (body.length !== 13) return 'has a header chunk of the wrong length'
-  const view = new DataView(body.buffer, body.byteOffset, body.byteLength)
-  const width = view.getUint32(0)
-  const height = view.getUint32(4)
-  const size = sizeProblem(width, height)
-  if (size !== undefined) return size
-  const [depth = 0, colourType = 0, compression, filter, interlace = 0] = body.subarray(8)
-  const colour = PNG_COLOUR_TYPES.get(colourType)
-  if (colour === undefined || !colour.depths.includes(depth)) return `has an invalid colour type and bit depth (${colourType}, ${depth})`
-  if (compression !== 0 || filter !== 0 || interlace > 1) return 'has an unknown compression, filter or interlace method'
-  return { width, height, bitsPerPixel: colour.channels * depth, interlaced: interlace === 1, paletted: colourType === 3 }
-}
 
 /** The scanlines of each pass of the image: the bytes of one, its filter byte included, and how many there are. */
 function scanlines(header: PngHeader): { readonly bytes: number; readonly count: number }[] {
@@ -268,14 +211,13 @@ function inflatedLength(header: PngHeader): number {
  * inflates: the filter bytes are where the scanlines say, so nothing of the
  * image is kept.
  */
-async function scanlineProblem(header: PngHeader, data: readonly Uint8Array[]): Promise<string | undefined> {
-  if (data.length === 0) return 'has no image data'
+async function scanlineProblem(header: PngHeader): Promise<string | undefined> {
   const rows = scanlines(header)
   const expected = inflatedLength(header)
   const filters = filterOffsets(rows)
   let next = filters.next()
   let unknown: number | undefined
-  const inflated = await inflate(concat(data), expected, (chunk, offset) => {
+  const inflated = await inflate(header.data, expected, (chunk, offset) => {
     while (unknown === undefined && !next.done && next.value < offset + chunk.length) {
       const filter = chunk[next.value - offset]!
       if (filter > 4) unknown = filter
@@ -294,115 +236,4 @@ function* filterOffsets(rows: readonly { readonly bytes: number; readonly count:
   for (const row of rows) {
     for (let index = 0; index < row.count; index++, offset += row.bytes) yield offset
   }
-}
-
-/** Start-of-frame markers: every SOFn, which are C0 to CF but DHT (C4), JPG (C8) and DAC (CC). */
-const JPEG_FRAMES = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf])
-
-/**
- * The two markers PDFKit takes for a frame header besides the SOFn: it
- * reads the first segment of any of the three as the frame (pdfkit.js 3807,
- * 3822-3843), so one of these before the frame would be read in its place.
- */
-const READ_AS_FRAMES: ReadonlyMap<number, string> = new Map([
-  [0xc8, 'JPG'],
-  [0xcc, 'DAC'],
-])
-
-/** The component counts PDFKit gives a colour space: grey, RGB and CMYK (pdfkit.js 3808-3812). */
-const JPEG_COMPONENTS = new Set([1, 3, 4])
-
-/** APP1, where an Exif block lives. */
-const APP1 = 0xe1
-
-/**
- * The segments before the scan, each a marker and a length, as a baseline or
- * progressive encoder writes them. Fill bytes between segments, which the
- * standard allows and encoders do not write, are refused with the rest of
- * what is malformed: failing closed costs a JPEG that could have been drawn.
- * So does a JPEG PDFKit would read otherwise than this does -- a JPG or DAC
- * segment before the frame header, which it reads as the frame, a second
- * frame header, or a component count it gives no colour space -- since the
- * size and the colour this reads are what the page and an e-invoice's
- * PDF/A rest on: arithmetic coding, which writes a DAC segment, may write
- * it before the frame header, and such a JPEG is refused.
- */
-function readJpeg(bytes: Uint8Array): Raster | string {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-  let pixels: Raster | undefined
-  let orientation: number | undefined
-  for (let offset = 2; offset + 4 <= bytes.length; ) {
-    const marker = bytes[offset + 1]!
-    if (bytes[offset] !== 0xff || marker === 0xff) return `has a malformed segment at byte ${offset}`
-    const length = view.getUint16(offset + 2)
-    if (length < 2 || offset + 2 + length > bytes.length) return `has a segment that runs past its end at byte ${offset}`
-    const readAs = READ_AS_FRAMES.get(marker)
-    if (pixels === undefined && readAs !== undefined) return `has a ${readAs} segment (FF${marker.toString(16).toUpperCase()}) before its frame header, which PDFKit would read as the frame header`
-    if (JPEG_FRAMES.has(marker)) {
-      if (pixels !== undefined) return 'has two frame headers'
-      if (length < 8) return 'has a frame header of the wrong length'
-      const [width, height] = [view.getUint16(offset + 7), view.getUint16(offset + 5)]
-      const size = sizeProblem(width, height)
-      if (size !== undefined) return size
-      // The component count follows the size.
-      const components = bytes[offset + 9]!
-      if (!JPEG_COMPONENTS.has(components)) return `has a frame header of ${components} components, where PDFKit draws 1, 3 or 4`
-      pixels = { kind: 'raster', width, height, data: bytes.length, cmyk: components === 4 }
-    }
-    if (marker === APP1 && orientation === undefined && startsWith(bytes.subarray(offset + 4), EXIF)) orientation = exifOrientation(bytes.subarray(offset + 4 + EXIF.length, offset + 2 + length))
-    if (marker === 0xda) {
-      if (pixels === undefined) return 'has image data before its frame header'
-      if (bytes[bytes.length - 2] !== 0xff || bytes[bytes.length - 1] !== 0xd9) return 'is cut off: it does not end with an end-of-image marker'
-      // Orientations 5 to 8 turn the image a quarter turn, as PDFKit draws it.
-      return (orientation ?? 0) > 4 ? { ...pixels, width: pixels.height, height: pixels.width } : pixels
-    }
-    offset += 2 + length
-  }
-  return 'is cut off before its image data'
-}
-
-/** What an APP1 segment that holds Exif data starts with. */
-const EXIF = [0x45, 0x78, 0x69, 0x66, 0, 0] as const
-
-/**
- * The orientation the first Exif block gives its image, read as PDFKit reads
- * it: the Orientation tag (0x0112) of the first image file directory, from 1
- * to 8. Anything else -- a block cut short, no such tag, a value out of
- * range -- is no orientation, which PDFKit draws as 1, upright. Only the
- * first Exif block counts, for PDFKit and here, so `0` stands for one read
- * without an orientation.
- */
-function exifOrientation(block: Uint8Array): number {
-  if (block.length < 8) return 0
-  const tiff = new DataView(block.buffer, block.byteOffset, block.byteLength)
-  const order = tiff.getUint16(0)
-  if (order !== 0x4949 && order !== 0x4d4d) return 0
-  const little = order === 0x4949
-  if (tiff.getUint16(2, little) !== 42) return 0
-  const directory = tiff.getUint32(4, little)
-  if (directory + 2 > tiff.byteLength) return 0
-  const entries = tiff.getUint16(directory, little)
-  for (let index = 0; index < entries; index++) {
-    const entry = directory + 2 + index * 12
-    if (entry + 12 > tiff.byteLength) return 0
-    if (tiff.getUint16(entry, little) === 0x0112) {
-      const value = tiff.getUint16(entry + 8, little)
-      return value >= 1 && value <= 8 ? value : 0
-    }
-  }
-  return 0
-}
-
-function startsWith(bytes: Uint8Array, prefix: readonly number[]): boolean {
-  return prefix.every((byte, index) => bytes[index] === byte)
-}
-
-function concat(parts: readonly Uint8Array[]): Uint8Array<ArrayBuffer> {
-  const joined = new Uint8Array(parts.reduce((total, part) => total + part.length, 0))
-  let offset = 0
-  for (const part of parts) {
-    joined.set(part, offset)
-    offset += part.length
-  }
-  return joined
 }

@@ -22,6 +22,8 @@ import { duplicate, indent, moveBy, outdent, remove } from './edits.js'
 import type { Edit, Planned } from './edits.js'
 import { clampZoom, zoomedIn, zoomedOut } from './geometry.js'
 import { shownLabel, stepLabel } from './history.js'
+import type { ImageFile, ImageStore } from './image-store.js'
+import { imageActions, imagesOf } from './images.js'
 import { columnKey, kindLabel } from './labels.js'
 import { EDITOR_PANELS, HIDEABLE_PANELS, HOST_VIEW_PLACES } from './model.js'
 import type { DragSubject, DropTarget, EditorAction, EditorActionType, EditorOutcome, EditorRefusalCode, EditorState, HideablePanel, HostView, HostViewPlace, Selection } from './model.js'
@@ -54,6 +56,8 @@ export interface ReportEditorOptions {
   readonly zoom?: number
   /** A view of the host's own, which a builder draws in the design view's place while it is shown there. */
   readonly hostView?: HostViewOptions
+  /** Where an image a person adds is kept (0033). Without it the builders draw no Add image…, and the report's images are the host's alone to declare. */
+  readonly images?: ImageStore
 }
 
 export interface ReportEditor {
@@ -69,6 +73,15 @@ export interface ReportEditor {
    * listener has run, as the session's do.
    */
   dispatch(action: EditorAction): EditorOutcome
+  /**
+   * Adds the image in `file` as one of the report's assets, in one undo
+   * step, or says why not, the report unchanged: recognised from its bytes
+   * alone, checked as the format and the renderer read it, an SVG cleaned
+   * (0030), its digest taken, kept by the host's store, and only then
+   * declared. Resolves with the outcome, as `dispatch` returns one; rejects
+   * only with what a listener threw, once the add is done.
+   */
+  addImage(file: ImageFile): Promise<EditorOutcome>
   /** Unsubscribes from the session and forgets every listener; every action after it is refused. */
   dispose(): void
 }
@@ -105,6 +118,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
   const t = editorText(locale)
   const start = options.zoom
   const host = hostViewOf(options.hostView)
+  const images = imagesOf(options.images, locale, t)
   let local: Local = {
     selection: null,
     zoom: start === undefined || !Number.isFinite(start) ? 1 : clampZoom(start),
@@ -115,6 +129,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     drag: null,
     errors: new Map(),
     status: { text: '', sequence: 0 },
+    adding: null,
   }
   let derived: Derived | undefined
   let cached: EditorState | undefined
@@ -130,7 +145,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
 
   function current(): Derived {
     const report = session.document()
-    if (derived?.report !== report) derived = derive(report, t)
+    if (derived?.report !== report) derived = derive(report, t, images.held !== null)
     return derived
   }
 
@@ -151,6 +166,33 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
   function raise(errors: readonly unknown[]): void {
     if (errors.length === 1) throw errors[0]
     if (errors.length > 1) throw new AggregateError(errors, `${errors.length} errors in one editor action`)
+  }
+
+  /**
+   * Runs `run` as one action. The outermost tells the listeners, once,
+   * whatever threw on the way -- a builder must render the edit that
+   * stands -- and what `run`, the session's listeners after a commit and
+   * this editor's threw is added to `errors`, for the caller to throw once
+   * the action is done.
+   */
+  function act<T>(run: () => T, errors: unknown[]): T | undefined {
+    depth += 1
+    let value: T | undefined
+    try {
+      value = run()
+    } catch (error) {
+      errors.push(error)
+    } finally {
+      depth -= 1
+    }
+    if (depth === 0) {
+      errors.push(...deferred.splice(0))
+      if (pending) {
+        pending = false
+        errors.push(...listen())
+      }
+    }
+    return value
   }
 
   /** Something the state is built from changed: the next read builds a new one, and listeners hear once the action is done. */
@@ -421,6 +463,8 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     return DONE
   }
 
+  const imaging = imageActions(images, { current, local: () => local, setLocal, announce, refuse, commit, act, raise, disposed: () => disposed })
+
   const handlers: Handlers = {
     select: (action) => select(action.id === null ? null : action.column === undefined ? { id: action.id } : { id: action.id, column: action.column }),
     selectNext: () => step(1, 'next'),
@@ -486,6 +530,8 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
         setLocal({ host: hostAs(host, { place: action.place }) })
         return DONE
       }),
+    chooseImage: () => imaging.chooseImage(),
+    removeImage: (action) => imaging.removeImage(action.asset),
   }
 
   return {
@@ -498,7 +544,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
           undoLabel: shownLabel(session.undoLabel(), t),
           redoLabel: shownLabel(session.redoLabel(), t),
         }
-        cached = buildState(now, { revision: session.revision(), history }, local, locale, t, targets)
+        cached = buildState(now, { revision: session.revision(), history }, local, locale, t, targets, images)
       }
       return cached
     },
@@ -514,28 +560,12 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
       if (disposed) return { ok: false, code: 'disposed', message: t('status.disposed') }
       // An action from a caller tsc never saw -- a builder in plain JavaScript -- may name none.
       if (!Object.hasOwn(handlers, action.type)) return refuse('not-found', t('status.notFound', { name: String(action.type) }))
-      depth += 1
-      let outcome: EditorOutcome | undefined
       const errors: unknown[] = []
-      try {
-        outcome = (handlers[action.type] as (action: EditorAction) => EditorOutcome)(action)
-      } catch (error) {
-        errors.push(error)
-      } finally {
-        depth -= 1
-      }
-      // The outermost dispatch tells the listeners, once, whatever threw on
-      // the way: a builder must render the edit that stands.
-      if (depth === 0) {
-        errors.push(...deferred.splice(0))
-        if (pending) {
-          pending = false
-          errors.push(...listen())
-        }
-      }
+      const outcome = act(() => (handlers[action.type] as (action: EditorAction) => EditorOutcome)(action), errors)
       raise(errors)
       return outcome as EditorOutcome
     },
+    addImage: (file) => imaging.addImage(file),
     dispose() {
       if (disposed) return
       disposed = true

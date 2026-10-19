@@ -14,6 +14,8 @@ import type { Component, ReportDefinition } from '@formancy/report-spec'
 import { indent, moveBy, outdent } from './edits.js'
 import { layoutReport, MAX_ZOOM, MIN_ZOOM, pageGeometry, PX_PER_PT, rulerTicks, toPx } from './geometry.js'
 import type { Layout } from './geometry.js'
+import { addRefusal, imageLibrary } from './images.js'
+import type { Images } from './images.js'
 import { columnKey, kindLabel, regionLabel, reportLabels } from './labels.js'
 import type {
   Announcement,
@@ -51,6 +53,8 @@ export interface Local {
   /** Values refused for the selection's fields, by key. */
   readonly errors: ReadonlyMap<string, FieldError>
   readonly status: Announcement
+  /** The name of the file an add has taken, until it is done: one at a time. */
+  readonly adding: string | null
 }
 
 /** What the document alone decides. */
@@ -69,7 +73,8 @@ export interface Derived {
   readonly order: readonly Selection[]
 }
 
-export function derive(report: ReportDefinition, t: EditorText): Derived {
+/** What `report` alone decides, in the words of `t`; `stored` says whether the host keeps images a person adds, which the palette's Image says. */
+export function derive(report: ReportDefinition, t: EditorText, stored: boolean): Derived {
   const labels = reportLabels(report, t)
   const diagnostics = diagnose(report)
   const problems = new Map<string, number>()
@@ -85,7 +90,7 @@ export function derive(report: ReportDefinition, t: EditorText): Derived {
   const layout = layoutReport(report)
   const overflowing = new Set(layout.parts.filter((part) => part.overflows).map((part) => part.key))
   const order = outlineOrder(buildOutline(report, { labels, selection: null, problems, severities, overflowing }, t))
-  return { report, labels, diagnostics, problems, severities, overflowing, layout, palette: paletteEntries(report, t), order }
+  return { report, labels, diagnostics, problems, severities, overflowing, layout, palette: paletteEntries(report, t, stored), order }
 }
 
 /** What the middle pane shows: the host's view while it is shown there, else the design view. Decided here once, for the state and the editor's actions. */
@@ -173,12 +178,14 @@ const REPORT = { kind: 'report', path: '' } as const
 
 /**
  * Which actions have somewhere to go: the selection's, decided by the same
- * plans that make them, and the zoom's -- none while the host's view stands
- * in the design view's place, whose zoom it is.
+ * plans that make them; the zoom's -- none while the host's view stands in
+ * the design view's place, whose zoom it is; and Add image…'s, by the rule
+ * that refuses it.
  */
-function availability(report: ReportDefinition, selection: Selection | null, zoom: number, view: 'design' | 'host'): Availability {
-  const design = view === 'design'
-  const zooms = { zoomIn: design && zoom < MAX_ZOOM, zoomOut: design && zoom > MIN_ZOOM, zoomReset: design && zoom !== 1 }
+function availability(report: ReportDefinition, local: Local, images: Images): Availability {
+  const { selection, zoom } = local
+  const design = viewOf(local.host) === 'design'
+  const zooms = { zoomIn: design && zoom < MAX_ZOOM, zoomOut: design && zoom > MIN_ZOOM, zoomReset: design && zoom !== 1, addImage: addRefusal(images, local.adding, report) === undefined }
   const target = selection === null ? undefined : selected(report, selection)
   if (target === undefined) return { delete: false, duplicate: false, moveUp: false, moveDown: false, indent: false, outdent: false, moveTo: false, ...zooms }
   const goes = (planned: object): boolean => !('edge' in planned)
@@ -205,7 +212,7 @@ function dragOf(derived: Derived, local: Local, t: EditorText, targets: () => re
 }
 
 /** The whole state, frozen, from the document's derivations, the session's history and the editor's own. */
-export function buildState(derived: Derived, session: SessionView, local: Local, locale: EditorLocale, t: EditorText, targets: () => readonly DropTarget[]): EditorState {
+export function buildState(derived: Derived, session: SessionView, local: Local, locale: EditorLocale, t: EditorText, targets: () => readonly DropTarget[], images: Images): EditorState {
   const { report, labels, problems, severities, overflowing } = derived
   // The editor keeps its selection one the document has, so this finds it.
   const panelTarget = propertyTarget(report, local.selection) ?? REPORT
@@ -227,13 +234,14 @@ export function buildState(derived: Derived, session: SessionView, local: Local,
     selection: local.selection,
     outline: buildOutline(report, { labels, selection: local.selection, problems, severities, overflowing }, t),
     palette: derived.palette,
+    images: imageLibrary(images, derived, local.adding),
     properties: propertyPanel(panelTarget, fieldsOf(panelTarget, report, t, locale), propertyHeading(panelTarget, labels, t), local.errors, derived.diagnostics, t),
     canvas: canvasOf(derived, local, t),
     diagnostics: diagnosticEntries(derived, t),
     history: session.history,
     drag: placing.drag,
     dropTargets: placing.dropTargets,
-    can: availability(report, local.selection, local.zoom, viewOf(local.host)),
+    can: availability(report, local, images),
     panel: local.panel,
     hidden: local.hidden,
     hostView: local.host,

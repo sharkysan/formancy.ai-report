@@ -39,7 +39,7 @@ the upstream packages' and the peers' ranges.
 
 | Package | Depends on, here | From elsewhere | Peers | What it may import, and what holds it |
 |---|---|---|---|---|
-| `@formancy/report-spec` | — | `@formancy/spec`, for the hash | — | No framework, no PDF engine, no Node: the format names no engine ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)). ES2023's library and no `@types/node`, so a DOM or Node global does not compile |
+| `@formancy/report-spec` | — | `@formancy/spec`, for the hash; `@noble/hashes`, for an asset's SHA-256 where it is added | — | No framework, no PDF engine, no Node: the format names no engine ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)). ES2023's library and no `@types/node`, so a DOM or Node global does not compile |
 | `@formancy/report-core` | `report-spec` | `@formancy/expressions` | — | Those two and nothing else, with the same compile-time rule ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [formancy.ai 0008](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0008-layered-packages.md)) |
 | `@formancy/report-runtime` | `report-core`, `report-spec` | `@formancy/expressions` | — | No framework, no PDF engine, no Node, by the same rule; report-core for the one compilation it shares with the editor ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | `@formancy/report-builder-core` | `report-core`, `report-spec` | — | — | Those two, nothing else; no framework, no DOM, no Node ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
@@ -79,7 +79,8 @@ The format, and nothing that evaluates it
 | `version.ts` | Whether a document is a report this package reads at all, before anything about what it holds; a form or another version is refused naming both ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md)) |
 | `validate.ts` and `validate-*.ts` | Structural validation, every error with a JSON Pointer and a stable code (`errors.ts`): declarations, components and where each may stand, inlines and formats, the table, aggregates, the payment part, the EPC QR code and the e-invoice, the texts of all three read by `validate-payment-text.ts`. Kinds are tables, not switches |
 | `check.ts` | Reading untrusted input once, through property descriptors, so a getter never runs and a value cannot answer differently when asked again |
-| `limits.ts` | Every bound a definition is held to, each with its reason, and an SVG asset's, each with how it was measured, on what and when |
+| `limits.ts` | Every bound a definition is held to, each with its reason; an image asset's bytes and pixels, which every reader of an image holds it to; and an SVG asset's, each with how it was measured, on what and when |
+| `image-header.ts`, `digest.ts` | What an image's bytes are, by their first bytes alone (`sniffImage`), a PNG's or a JPEG's structure read whole but for a PNG's image data (`imageHeader`), and an asset's SHA-256 by `@noble/hashes` (`assetDigest`): what a builder reads of an image a person adds, and the renderer of one it prints, decided once ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)) |
 | `units.ts`, `page.ts` | The one conversion between millimetres and points, and the page geometry the validator, the builder's rulers and the renderer read |
 | `hash.ts` | `@formancy/spec`'s `schemaHash` over an envelope naming the format, only of a report the validator reads |
 | `qr-bill.ts`, `payment-part.ts` | SIX's rules for a Swiss QR-bill as functions over text, and the slip's size and place: what the validator applies to literals and the runtime to data ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)). Its `isQrIban` is the QR-IBAN's range, which the EPC's rules read too |
@@ -100,7 +101,7 @@ the result ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-chang
 |---|---|
 | `session.ts`, `snapshot.ts` | Commit, frozen snapshots sharing what did not change, undo and redo to `DEFAULT_HISTORY_LIMIT` steps, listeners, the stale-hash refusal |
 | `draft.ts` | Several commands as one edit, and `tryEdit`: the verdict on a draft without committing it, which a proposal's review would show |
-| `commands/` | Pure commands on the document, the components, the declarations and the table; `registry.ts` makes each a descriptor a proposal can carry, its arguments checked before it runs |
+| `commands/` | Pure commands on the document, the components, the declarations and the table, `addAsset` among them, which refuses an id already declared where `putAsset` would replace it; `registry.ts` makes each a descriptor a proposal can carry, its arguments checked before it runs; `ids.ts` the one rule a new component's id, a copy's and an added asset's are made by (0033) |
 | `locations.ts`, `tree.ts` | Where a component stands, and `validLocations`: the places it may go, found by trying each |
 | `expressions/` | `compileReport`: every expression compiled where it stands, each member checked as its type, the clock, doubles, division and `matches()` refused, and the order aggregates are computed in ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)). In a report with an e-invoice, and in no other, `invoice`, `vatBasis` and `vatAmount` are bound wherever `totals` is, and refused where they are computed from (`expressions/e-invoice.ts`, 0027) |
 | `diagnostics/` | What an editor shows about a valid report: the errors the runtime would refuse it for, and warnings an author probably wants; in an e-invoice, a total the XML holds that the page does not print, or prints otherwise than the XML holds it (`diagnostics/e-invoice.ts`, 0027) |
@@ -123,7 +124,7 @@ Each stage is a module, and each decides its question once:
 | `lower-epc-qr-code.ts` | An EPC QR code's payload: each text read as a paragraph's and held to report-spec's rules once the data has resolved it, an optional one that prints nothing left unused, and the whole held to the EPC's bytes ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | `lower-e-invoice.ts`, `e-invoice-lines.ts`, `e-invoice-totals.ts`, `e-invoice-terms.ts`, `e-invoice-payable.ts` | An e-invoice, after the aggregates and before anything is lowered: its lines read once from the rows of the table that prints them, the table printing the very values kept; its totals and VAT breakdown computed once, in `Decimal`, each category's VAT rounded once and never per line; its other terms held to report-spec's rules once the data has resolved them; and, while the codes are lowered, a payment code printed with it held to the amount due and the account ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) |
 | `cii.ts`, `cii-parties.ts`, `xml.ts` | The CII XML a final render writes from those values, each element in the profile XSD's order and at the path CEN's binding gives its term, written one way, so that the same report and data are the same bytes. A preview writes none (0027) |
-| `document.ts` | The renderer-neutral document, the refusal codes, and `MAX_ASSET_BYTES`; and an e-invoice's file: its XML, with the name, relationship and conformance level it is to be embedded by |
+| `document.ts` | The renderer-neutral document and the refusal codes; and an e-invoice's file: its XML, with the name, relationship and conformance level it is to be embedded by |
 
 ### `@formancy/report-render-pdf` (L3)
 
@@ -137,7 +138,7 @@ It is a package boundary, not an engine interface: there is one engine.
 |---|---|
 | `node.ts`, `browser.ts`, `engine.ts` | The two entries: pdfmake's Node build reading font files, or its browser build reading virtual ones. Only that differs. Each hands PDFKit's document, laid out and not yet ended, to the final pass's `finish`, the one hook an e-invoice is embedded through ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)). The browser entry imports Liberation Sans's chunk with the first document that has a QR-bill or a captioned EPC QR code, and never for a document with neither, which `report-render-pdf/src/browser.test.ts` holds ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | `render.ts` | The passes, each a pdfmake layout: measure the page regions, measure kept blocks and table rows, then lay out the PDF, with an abort read between them; an e-invoice's file and XMP are added on that last pass alone |
-| `check.ts`, `glyphs.ts`, `widths.ts`, `assets.ts` | What is refused before pdfmake sees the document: a character without a glyph, what is malformed or wider than where it stands, image bytes that are not what they say, an SVG not in the form `cleanSvg` writes, and SVGs past what a render may draw (`MAX_SVG_DRAWING`, an image in a page region counted on every page) or a page may cost a reader (0030); and in an e-invoice, a CMYK JPEG, which its PDF/A cannot hold beside its sRGB output intent |
+| `check.ts`, `glyphs.ts`, `widths.ts`, `assets.ts` | What is refused before pdfmake sees the document: a character without a glyph, what is malformed or wider than where it stands, image bytes that are not what they say, a PNG's or a JPEG's structure read by report-spec's `imageHeader` and a PNG's image data inflated here, an SVG not in the form `cleanSvg` writes, and SVGs past what a render may draw (`MAX_SVG_DRAWING`, an image in a page region counted on every page) or a page may cost a reader (0030); and in an e-invoice, a CMYK JPEG, which its PDF/A cannot hold beside its sRGB output intent |
 | `bound.ts`, and `check.ts`'s `refuseTall` | What is refused between the passes, once the page regions are measured: a block of fixed height or a line taller than a page's body, and a body whose least height already needs more pages than the limit |
 | `words.ts` | What is refused inside every pass, once pdfmake has measured the words and before it lays out a line: a word wider than its table column, or longer than `MAX_WORD_LINES` lines of its paragraph, read from pdfmake's own `_minWidth` ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
 | `breaks.ts`, `table.ts`, `table-rules.ts` | Where a table's pages break, planned from measured heights, so a group header stays with its first row and totals with the last |
@@ -167,6 +168,8 @@ builder — and derives from the document everything a builder shows
 ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md),
 [0019](../decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md),
 [0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
+Given a host's store, it adds the image in a file a person chooses, and the
+report declares it only once the host has kept its bytes ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
 
 | Module | Responsibility |
 |---|---|
@@ -174,9 +177,10 @@ builder — and derives from the document everything a builder shows
 | `outline.ts`, `palette.ts`, `properties.ts`, `property-fields.ts` | The tree a keyboard walks, what may be inserted, and each property as a field whose typed value becomes a command. An EPC payment code's fields stand in the order the code holds its elements, and a new one's square is one every payload the EPC allows prints in, with Austria's frame and without ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | `geometry.ts`, `targets.ts` | The design view's layout and zoom, and drop targets from report-core's `validLocations` |
 | `keys.ts`, `edits.ts` | `actionForKey`: which key does what, decided once for both builders |
+| `images.ts`, `image-store.ts`, `asset-name.ts` | An image a person adds: refused before it is read past its bytes' bound, recognised from its bytes by report-spec's `sniffImage`, read by `imageHeader` or cleaned by `cleanSvg`, a CMYK JPEG refused in an e-invoice, its digest taken by `assetDigest`, named from its file's name, kept by the host's `ImageStore` and only then declared, in one step; the report's images as the state lists them, and Remove for one nothing draws (0033) |
 | `text.ts` and `text-*.ts` | Every word, in English, Swiss German and Swiss French |
 | `parts.ts` | The `data-report-part` hooks both builders render and `report-builder.css` dresses through the workbench's `--wb-*` variables; `view`, the region a host's view stands in, it does not dress |
-| `scenarios.ts` | `BUILDER_SCENARIOS`: what every builder must do, as data, found by role and accessible name |
+| `scenarios.ts`, `scenario-images.ts`, `scenario-report.ts` | `BUILDER_SCENARIOS`: what every builder must do, as data, found by role and accessible name, but for the hidden file input an `upload` hands its file to; the image scenarios' files and the store `scenarioStore` gives each, which records what it kept (0033) |
 
 ### `@formancy/report-builder-react` and `@formancy/report-builder-angular` (L3)
 
@@ -189,6 +193,7 @@ dispatches actions and moves focus, which only a builder can know about.
 | The whole editor | `report-builder.tsx`, whose `hostView` prop is the host's view | `builder.ts`, and `root.ts` for a host that arranges the parts; `host-view.ts`, the `reportHostView` template a host gives its view as |
 | Panes | `toolbar.tsx`, `outline.tsx`, `palette.tsx`, `canvas.tsx`, `properties.tsx`, `diagnostics.tsx`, `places.tsx` | `toolbar.ts`, `outline.ts`, `palette.ts`, `canvas.ts`, `properties.ts`, `problems.ts`, `places.ts`, `status.ts` |
 | A pointer's drag | pointer events (`pointer-drag.ts`) | HTML drag and drop |
+| Images (0033) | `image-chooser.tsx`, Add image… and its hidden file input; `image-library.tsx`, the report's images under its properties | `image-chooser.ts`, a directive on the hidden input, which the palette's Add image… opens; `image-library.ts` |
 | Built by | tsdown | ng-packagr, finished by `scripts/finalize-angular-dist.mjs` |
 
 Neither ships a stylesheet. The drag is the one behaviour bound differently:
@@ -288,6 +293,9 @@ record of the trial
 starter (`workspace.ts`), either builder over it (`builder/`), and the
 Preview, which resolves the session's document and prints it with the
 renderer's browser entry, drawn by PDF.js on white paper (`preview/`).
+`images/image-store.ts` keeps the starters' images and every image a person
+adds in the page, by digest, for the tab's life: the store every editor is
+made with and the lookup every Preview hands the runtime ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
 `layout.ts` says where the Preview stands: beside the builder in a window
 wide enough for the design view to hold a page beside it, and in the
 builder's middle, as the editor's host view, in any other; the workspace

@@ -200,13 +200,17 @@ describe('checkImageAsset reads the size', () => {
 
   // PDFKit turns a JPEG by its Exif orientation: 5 to 8 a quarter turn, so
   // it is shown as wide as its frame is tall. 2 to 4 flip it or turn it
-  // half round, which keeps its size. Only the first Exif block counts, for
-  // PDFKit and here; an orientation out of range is none.
+  // half round, which keeps its size, 4 the last that does. Only the first
+  // Exif block counts, for PDFKit and here; an orientation out of range is
+  // none.
   test.each([
     [1, { width: 16, height: 8 }],
+    [2, { width: 16, height: 8 }],
     [3, { width: 16, height: 8 }],
+    [4, { width: 16, height: 8 }],
     [5, { width: 8, height: 16 }],
     [6, { width: 8, height: 16 }],
+    [7, { width: 8, height: 16 }],
     [8, { width: 8, height: 16 }],
     [9, { width: 16, height: 8 }],
   ])('of a JPEG of Exif orientation %i', async (orientation, size) => {

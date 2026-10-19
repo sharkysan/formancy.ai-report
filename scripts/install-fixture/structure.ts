@@ -10,7 +10,7 @@
  * one run names every difference.
  */
 import { createReportEditor, editorText, HIDEABLE_PANELS, REPORT_PARTS } from '@formancy/report-builder-core'
-import type { EditorState, ReportEditor, ReportPart } from '@formancy/report-builder-core'
+import type { EditorState, ImageStore, ReportEditor, ReportPart } from '@formancy/report-builder-core'
 import { openReportSession } from '@formancy/report-core'
 import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition, TextComponent } from '@formancy/report-spec'
@@ -58,6 +58,29 @@ export function editorWithHostView(): ReportEditor {
   const opening = openReportSession(reportToDraw())
   if (!opening.ok) throw new Error('the report did not open a session')
   return insertAndSelect(createReportEditor(opening.session, { locale: 'de-CH', hostView: { name: HOST_VIEW.name, shown: true } }))
+}
+
+/**
+ * editorToDraw()'s report with two images declared, `logo`, which an image
+ * after the clock draws, and `spare`, which nothing draws, in an editor
+ * made with a host's store and nothing selected (0033): Add image… and its
+ * input at the palette's end, and the report's images listed under its
+ * fields, the Remove of `logo` unavailable.
+ */
+export function editorWithImages(): ReportEditor {
+  const report = reportToDraw()
+  const digest = (byte: string): string => `sha256:${byte.repeat(32)}`
+  const opening = openReportSession({
+    ...report,
+    assets: [
+      { id: 'logo', mediaType: 'image/svg+xml', digest: digest('ab') },
+      { id: 'spare', mediaType: 'image/png', digest: digest('cd') },
+    ],
+    regions: { ...report.regions, body: [...report.regions.body, { id: 'mark', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 40, height: 40, fit: 'contain' }] },
+  })
+  if (!opening.ok) throw new Error('the report with images did not open a session')
+  const store: ImageStore = { accept: ['image/png', 'image/svg+xml'], keep: async () => ({ ok: true }) }
+  return createReportEditor(opening.session, { locale: 'de-CH', images: store })
 }
 
 /**
@@ -130,11 +153,26 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   )
 
   // The palette: a group with a button per entry the state offers, each named
-  // by its label, so no kind the editor offers is missing or misnamed.
+  // by its label, so no kind the editor offers is missing or misnamed. Where
+  // the host keeps images, Add image… stands last (0033): a palette item of
+  // no kind, unavailable when the state says so, and beside it the hidden
+  // file input it opens, taking what the state accepts. Without a store,
+  // neither is drawn: a button that opens nothing is no way to add an image.
   const [palette] = parts('palette')
-  const entries = palette === undefined ? [] : parts('palette-item', palette)
+  const items = palette === undefined ? [] : parts('palette-item', palette)
+  const entries = items.filter((item) => attribute(item, 'data-kind') !== undefined)
+  const adds = items.filter((item) => attribute(item, 'data-kind') === undefined)
   expect(attribute(palette, 'role') === 'group' && nameOf(palette) === t('pane.palette'), 'the palette is not a group named by the catalogue')
   expect(entries.length === state.palette.length && state.palette.every((entry, at) => spokenText(entries[at] as MarkupElement) === entry.label), 'the palette does not offer the state palette, by label')
+  const inputs = palette === undefined ? [] : elementsIn(palette).filter((element) => element.tag === 'input' && attribute(element, 'type') === 'file')
+  if (state.images.store) {
+    const [add] = adds
+    expect(adds.length === 1 && add === items.at(-1) && add?.tag === 'button' && spokenText(add) === t('images.add'), `the palette does not end with one ${t('images.add')}`)
+    expect((attribute(add, 'aria-disabled') === 'true') === !state.can.addImage, `${t('images.add')} is not unavailable exactly when the state says`)
+    expect(inputs.length === 1 && inputs[0]?.attributes.has('hidden') === true && attribute(inputs[0], 'accept') === state.images.accept, `there is not one hidden file input accepting ${state.images.accept}`)
+  } else {
+    expect(adds.length === 0 && inputs.length === 0, `${t('images.add')} is drawn for a host that keeps no images`)
+  }
 
   // The outline: a tree, a group per region named by its label, a treeitem
   // per node, and the selection where the state has it. A group left unnamed
@@ -171,12 +209,26 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
     expect(parts('view').length === 0, "a host's view is drawn beside the design view")
   }
 
-  // The properties: a form named by its heading, a row per field; then the
-  // problems, each a button named by its label; and the live region,
-  // without which nothing an action did is said.
+  // The properties: a form named by its heading, a row per field and, for
+  // the report's own, a group of a row per image, each with a Remove named
+  // by the image, unavailable while something draws it; then the problems,
+  // each a button named by its label; and the live region, without which
+  // nothing an action did is said.
   const [form] = parts('properties')
+  const images = state.selection === null ? state.images.assets : []
   expect(form?.tag === 'form' && nameOf(form) === state.properties.heading, `the properties are not a form named ${state.properties.heading}`)
-  expect(form !== undefined && parts('property', form).length === state.properties.fields.length, 'the properties have not a row per field')
+  expect(form !== undefined && parts('property', form).length === state.properties.fields.length + images.length, 'the properties have not a row per field and per image')
+  const [library] = form === undefined ? [] : withRole('group', form).filter((group) => nameOf(group) === t('images.heading'))
+  const imageRows = library === undefined ? [] : parts('property', library)
+  expect(
+    images.length === 0 ||
+      (imageRows.length === images.length &&
+        images.every((image, at) => {
+          const [remove] = elementsIn(imageRows[at] as MarkupElement).filter((element) => element.tag === 'button')
+          return spokenText(imageRows[at] as MarkupElement).startsWith(image.label) && nameOf(remove) === image.removeLabel && (attribute(remove, 'aria-disabled') === 'true') === (image.inUse !== undefined)
+        })),
+    `the report's images are not a group named ${t('images.heading')} of a row each, with its Remove`,
+  )
   const problems = parts('diagnostic')
   expect(
     problems.length === state.diagnostics.length &&

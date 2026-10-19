@@ -6,8 +6,9 @@
  * the pointer path to the same places. An entry the report cannot hold yet
  * (an image with nothing to draw) stays in the list, `aria-disabled` and
  * described by what to declare first, so it is found rather than missed.
+ * Where the host keeps images, Add image… stands last (`chooser`, 0033).
  */
-import type { ReactElement } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 import type { EditorState, EditorText } from '@formancy/report-builder-core'
 import type { ComponentKind } from '@formancy/report-spec'
 import type { PointerDrag } from './pointer-drag.js'
@@ -20,9 +21,11 @@ export interface PaletteProps {
   readonly drag: PointerDrag
   /** Opens the place dialog for a new component of `kind`, focus to return to `from`. */
   readonly place: (kind: ComponentKind, from: HTMLElement) => void
+  /** Add image… and its file input, after the entries; nothing where the host keeps no images. */
+  readonly chooser?: ReactNode
 }
 
-export function Palette({ state, t, ids, drag, place }: PaletteProps): ReactElement {
+export function Palette({ state, t, ids, drag, place, chooser }: PaletteProps): ReactElement {
   return (
     <div role="group" aria-label={t('pane.palette')} data-report-part="palette">
       {state.palette.map((entry) => {
@@ -49,6 +52,7 @@ export function Palette({ state, t, ids, drag, place }: PaletteProps): ReactElem
           </button>
         )
       })}
+      {chooser}
     </div>
   )
 }

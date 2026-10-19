@@ -33,6 +33,8 @@ export const REFUSAL_CODES = [
   'kind-mismatch',
   /** A patch that would change what identifies a thing: a component's id or kind, a column's id. */
   'immutable-property',
+  /** An add under an id the report already declares: an add never replaces, as a put does. */
+  'already-declared',
   /** A command descriptor whose command is not one this package has. */
   'unknown-command',
   /** A command descriptor whose arguments are too few, too many or of the wrong type -- one read from JSON was never type-checked. */

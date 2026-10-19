@@ -1,15 +1,17 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { OutlineNode } from '@formancy/report-builder-core'
+import { editorText, SCENARIO_PNG } from '@formancy/report-builder-core'
+import type { ImageStore, KeptImage, OutlineNode } from '@formancy/report-builder-core'
 import { STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import axe from 'axe-core'
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest'
 import type { PreviewOutcome, PreviewRequest } from './preview/pipeline.js'
 import { decodeStarters, encodeStarters } from './starters/codec.js'
-import { imagesOf, studioStarters } from './starters/starters.js'
+import { studioImages } from './images/image-store.js'
+import { studioStarters } from './starters/starters.js'
 import { Studio } from './studio.js'
 import { violations } from './test-accessible.js'
 import { createWorkspace } from './workspace.js'
@@ -28,6 +30,11 @@ import type { Workspace } from './workspace.js'
  * on its way through. PDF.js is stood in for, since jsdom has no canvas;
  * the stand-in keeps the bytes it is handed, which are what the paper
  * would show.
+ *
+ * The page's store of images is held, for the walk's image, until the
+ * walk lets it answer, so the state while an image is being added is
+ * audited too (0033); the file is handed to the hidden input Add image…
+ * opens, found beside the button in the DOM, since it has no role.
  */
 
 const seen = vi.hoisted(() => ({
@@ -87,18 +94,39 @@ afterEach(() => {
 type User = ReturnType<typeof userEvent.setup>
 type Framework = 'React' | 'Angular'
 
+/** The page's store, answering each image only once `release` is called: until then, the image is being added. */
+interface Held {
+  readonly store: ImageStore
+  release(): void
+}
+
+function held(store: ImageStore): Held {
+  let answers: (() => void)[] = []
+  return {
+    store: { keep: (image) => new Promise<KeptImage>((resolve) => answers.push(() => resolve(store.keep(image)))) },
+    release() {
+      for (const answer of answers) answer()
+      answers = []
+    },
+  }
+}
+
 /** The Studio where index.html puts it, in a `#root`, under index.html's language and title, which the page audit reads. */
-function mount(): { workspace: Workspace; user: User } {
+function mount(): { workspace: Workspace; user: User; images: Held } {
   const served = new DOMParser().parseFromString(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'index.html'), 'utf8'), 'text/html')
   document.documentElement.lang = served.documentElement.lang
   document.title = served.title
   const listed = studioStarters(starters)
-  workspace = createWorkspace(listed)
+  const kept = studioImages(images)
+  const holding = held(kept.store)
+  workspace = createWorkspace(listed, { images: holding.store })
   const root = document.createElement('div')
   root.id = 'root'
-  render(<Studio starters={listed} workspace={workspace} images={imagesOf(images)} />, { container: document.body.appendChild(root) })
-  return { workspace, user: userEvent.setup() }
+  render(<Studio starters={listed} workspace={workspace} images={kept.resolve} />, { container: document.body.appendChild(root) })
+  return { workspace, user: userEvent.setup(), images: holding }
 }
+
+const words = editorText('en')
 
 const editor = (): HTMLElement => screen.getByRole('region', { name: 'Report editor' })
 
@@ -128,10 +156,15 @@ async function printed(id: string, mode: 'preview' | 'final', status: string): P
   await waitFor(() => expect(pdfs).toContain(seen.shown.at(-1)))
   const shown = seen.shown.at(-1) ?? new Uint8Array()
   expect(new TextDecoder().decode(shown.subarray(0, 5))).toBe('%PDF-')
-  const link = screen.getByRole('link', { name: 'Download PDF' })
-  expect(link.getAttribute('download')).toBe(`${id}.pdf`)
-  const download = seen.downloads.get(link.getAttribute('href') ?? '')
-  expect(new Uint8Array((await download?.arrayBuffer()) ?? new ArrayBuffer(0))).toEqual(shown)
+  // PDF.js is handed the bytes before it has read their pages, and the link
+  // follows the pages: until then there is none, or the last PDF's. Waited
+  // for, a link that never gives these bytes still fails.
+  await waitFor(async () => {
+    const link = screen.getByRole('link', { name: 'Download PDF' })
+    expect(link.getAttribute('download')).toBe(`${id}.pdf`)
+    const download = seen.downloads.get(link.getAttribute('href') ?? '')
+    expect(new Uint8Array((await download?.arrayBuffer()) ?? new ArrayBuffer(0))).toEqual(shown)
+  })
 }
 
 /**
@@ -185,10 +218,11 @@ function unnamed(): string[] {
  * the builder, so the Preview stands in the design view's place (0029);
  * then the quotation with its table's last column made 8 mm wide, too
  * narrow for the words in it, the renderer's refusal shown in both
- * builders, and its button followed to the table. `record` is called at
- * each state.
+ * builders, and its button followed to the table; then an image added to
+ * the blank report, while the page keeps it and once the report lists it.
+ * `record` is called at each state.
  */
-async function walk(user: User, opened: Workspace, record: (state: string) => Promise<void>): Promise<void> {
+async function walk(user: User, opened: Workspace, record: (state: string) => Promise<void>, images: Held): Promise<void> {
   const picker = screen.getByRole('combobox', { name: 'Starter' })
   let framework: Framework = 'React'
   for (const option of within(picker).getAllByRole('option') as HTMLOptionElement[]) {
@@ -247,6 +281,23 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   await waitFor(() => expect(document.activeElement).toBe(within(editor()).getByRole('treeitem', { name: label(table.id), selected: true })))
   expect(model.state().selection).toEqual({ id: table.id })
   await record(`Quotation, the refusal's table selected, in ${framework}`)
+
+  // An image added to the blank report: Add image… busy while the page
+  // keeps it, then the report's images listed under its properties, its
+  // Remove named after it.
+  await user.selectOptions(picker, 'blank')
+  await printed('blank', 'preview', 'Preview: printed.')
+  const add = within(editor()).getByRole('button', { name: words('images.add') })
+  await user.click(add)
+  const input = add.parentElement?.querySelector('input[type="file"]')
+  if (!(input instanceof HTMLInputElement)) throw new Error('no file input beside Add image…')
+  fireEvent.change(input, { target: { files: [new File([Uint8Array.from(SCENARIO_PNG)], 'logo.png', { type: 'image/png' })] } })
+  await waitFor(() => expect(within(editor()).getByRole('button', { name: words('images.add') }).getAttribute('aria-busy')).toBe('true'))
+  await record(`Blank, an image being added, in ${framework}`)
+  images.release()
+  await within(editor()).findByRole('button', { name: words('images.removeOne', { id: 'logo' }) })
+  await printed('blank', 'preview', 'Preview: printed.')
+  await record(`Blank, its image listed, in ${framework}`)
 }
 
 /**
@@ -287,12 +338,17 @@ describe('the journey', () => {
   // starter shown, and the download is those very bytes; and a refusal the
   // person caused is listed, and its button takes them to what it names.
   test('every state passes axe and names every control, and every preview is a PDF', async () => {
-    const { workspace: opened, user } = mount()
     const findings: Record<string, string[]> = {}
-    await walk(user, opened, async (state) => {
-      findings[state] = [...(await violations()).map((rule) => `${rule.id}: ${rule.nodes.join(' | ')}`), ...(await page()), ...unnamed()]
-    })
-    expect(Object.keys(findings)).toHaveLength(studioStarters(starters).length * 4 + 3)
+    const { workspace: opened, user, images: kept } = mount()
+    await walk(
+      user,
+      opened,
+      async (state) => {
+        findings[state] = [...(await violations()).map((rule) => `${rule.id}: ${rule.nodes.join(' | ')}`), ...(await page()), ...unnamed()]
+      },
+      kept,
+    )
+    expect(Object.keys(findings)).toHaveLength(studioStarters(starters).length * 4 + 5)
     expect(findings).toEqual(Object.fromEntries(Object.keys(findings).map((state) => [state, []])))
   })
 
@@ -307,8 +363,8 @@ describe('the journey', () => {
   // holds the built page to asking nothing of another origin.
   test('requests nothing from another origin by script', async () => {
     const asked = requests()
-    const { workspace: opened, user } = mount()
-    await walk(user, opened, () => Promise.resolve())
+    const { workspace: opened, user, images: kept } = mount()
+    await walk(user, opened, () => Promise.resolve(), kept)
     expect(asked.filter((url) => new URL(url).origin !== location.origin)).toEqual([])
   })
 })

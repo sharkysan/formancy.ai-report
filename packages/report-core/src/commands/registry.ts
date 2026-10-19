@@ -12,6 +12,7 @@ import { quote, refuse } from '../outcome.js'
 import type { Command, CommandOutcome } from '../outcome.js'
 import { duplicateComponent, insertComponent, moveComponent, removeComponent, updateComponent } from './components.js'
 import {
+  addAsset,
   moveParameter,
   putAggregate,
   putAsset,
@@ -56,6 +57,7 @@ export const COMMANDS = Object.freeze({
   putParameter,
   removeParameter,
   moveParameter,
+  addAsset,
   putAsset,
   removeAsset,
   putAggregate,
@@ -143,6 +145,7 @@ export const ARGUMENTS: { readonly [N in CommandName]: readonly Shape[] } = {
   putParameter: ['text', 'object'],
   removeParameter: ['text'],
   moveParameter: ['text', 'index'],
+  addAsset: ['text', 'object'],
   putAsset: ['text', 'object'],
   removeAsset: ['text'],
   putAggregate: ['text', 'object'],

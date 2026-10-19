@@ -13,7 +13,9 @@ export { locationOf, locations, validLocations } from './locations.js'
 export { replaceDocument, setLocale, setPage, setTitle } from './commands/document.js'
 export type { PagePatch } from './commands/document.js'
 export {
+  addAsset,
   moveParameter,
+  nextAssetId,
   putAggregate,
   putAsset,
   putDataset,

@@ -108,12 +108,12 @@
   gap: 0.375rem;
 }
 
-/* A tool or a palette entry with nothing to act on is aria-disabled, not
-   disabled: it keeps focus, and pressing it says why. It is drawn as the
-   workbench draws a disabled button, hovered or not. */
-[data-report-part='toolbar'] button[aria-disabled='true'],
+/* A tool, a palette entry or an image's Remove with nothing to act on is
+   aria-disabled, not disabled: it keeps focus, and pressing it says why,
+   drawn as the workbench draws a disabled button, hovered or not. */
+:is([data-report-part='toolbar'], [data-report-part='property']) button[aria-disabled='true'],
 [data-report-part='palette-item'][aria-disabled='true'],
-[data-report-part='toolbar'] button[aria-disabled='true']:hover,
+:is([data-report-part='toolbar'], [data-report-part='property']) button[aria-disabled='true']:hover,
 [data-report-part='palette-item'][aria-disabled='true']:hover {
   border-color: var(--wb-rule);
   color: var(--wb-muted);
@@ -506,7 +506,7 @@
   border-block-start: 1px solid var(--wb-rule);
 }
 
-[data-report-part='property'] > label {
+[data-report-part='property'] > :is(label, span) {
   font-size: 0.8125rem;
   font-weight: 500;
 }

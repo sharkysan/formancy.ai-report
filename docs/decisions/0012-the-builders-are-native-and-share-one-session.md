@@ -9,7 +9,12 @@
   pictures are checked. Since 2026-10-16 the two builders' accessible trees
   are compared with each other, in jsdom and in Chromium, the step this
   record named next; *Verified by* and *What holds nothing yet* say what
-  holds them now.
+  holds them now. Extended by
+  [0033](0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md):
+  the editor takes a host's store for the images a person adds, and the
+  scenarios an `upload` step and a `kept` expectation, an `upload` finding
+  the hidden file input beside Add image… by reading the DOM, the one
+  element a scenario finds otherwise than by role and accessible name.
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** each package's `test:coverage` job in CI, the `verify` job

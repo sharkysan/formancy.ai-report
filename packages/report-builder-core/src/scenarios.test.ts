@@ -1,10 +1,12 @@
 /**
  * The scenarios, run against the editor model by a headless driver that
  * reads the state the way the builder contract in the README says a builder
- * renders it: a toolbar of buttons, the palette's buttons, a dialog of places
- * while a keyboard chooses one, a tree of the outline whose focus is its
+ * renders it: a toolbar of buttons, the palette's buttons and, where the
+ * host keeps images, Add image… after them, a dialog of places while a
+ * keyboard chooses one, a tree of the outline whose focus is its
  * selection, a field per property with a button back to the report's own,
- * a button per diagnostic and a status counting them, a button hiding each
+ * and, under the report's own, a Remove for each of its images, a button
+ * per diagnostic and a status counting them, a button hiding each
  * side pane, nothing of a pane that is hidden, a picture of each box and of
  * the payment part's band on the canvas, and the live region; and, while
  * the state's `view` is the host's, a region named by the host's view in
@@ -16,7 +18,8 @@
  * shows that every name a scenario looks for is one the state gives, and that
  * every step can be done with the state alone, before either framework runs
  * the scenarios with Testing Library. What it cannot show -- focus, roles,
- * what a person sees -- is what the framework runs are for.
+ * what a person sees, a file chooser -- is what the framework runs are for:
+ * an `upload` here hands the file straight to `addImage`.
  */
 import type { ReportSession } from '@formancy/report-core'
 import { componentAt } from '@formancy/report-spec'
@@ -24,10 +27,13 @@ import { describe, expect, test } from 'vitest'
 import { createReportEditor } from './editor.js'
 import type { ReportEditor } from './editor.js'
 import { actionForKey } from './keys.js'
-import type { EditorAction, EditorState, HideablePanel, OutlineNode } from './model.js'
+import type { EditorAction, EditorOutcome, EditorState, HideablePanel, OutlineNode } from './model.js'
 import { HIDEABLE_PANELS, PROPERTY_ROLES } from './model.js'
-import { BUILDER_SCENARIOS, builderScenarios, SCENARIO_ACTIONS, SCENARIO_EXPECTATIONS, scenarioReport } from './scenarios.js'
-import type { BuilderScenario, ScenarioHost, ScenarioQuery, ScenarioStep } from './scenarios.js'
+import { scenarioStore } from './scenario-images.js'
+import type { ScenarioStore } from './scenario-images.js'
+import { scenarioReport } from './scenario-report.js'
+import { BUILDER_SCENARIOS, builderScenarios, SCENARIO_ACTIONS, SCENARIO_EXPECTATIONS } from './scenarios.js'
+import type { BuilderScenario, ScenarioFile, ScenarioHost, ScenarioQuery, ScenarioStep } from './scenarios.js'
 import { EDITOR_LOCALES, editorText } from './text.js'
 import type { EditorText } from './text.js'
 import { sessionOver } from './test-support.js'
@@ -86,10 +92,13 @@ function buttons(t: EditorText, state: EditorState): Map<string, EditorAction | 
     found.set(t('places.cancel'), { type: 'cancelDrag' })
   } else if (shown(state, 'outline')) {
     for (const entry of state.palette) found.set(entry.label, { type: 'startDrag', subject: { kind: entry.kind }, via: 'keyboard' })
+    if (state.images.store) found.set(t('images.add'), { type: 'chooseImage' })
   }
   if (shown(state, 'diagnostics')) for (const entry of state.diagnostics) found.set(entry.label, entry.target === null ? { type: 'select', id: null } : { type: 'select', ...entry.target })
   // Back to the report's own properties, shown while something else is selected.
   if (state.selection !== null && shown(state, 'properties')) found.set(t('properties.report'), { type: 'select', id: null })
+  // Under the report's own properties, a Remove for each of its images.
+  if (state.selection === null && shown(state, 'properties')) for (const image of state.images.assets) found.set(image.removeLabel, { type: 'removeImage', asset: image.id })
   return found
 }
 
@@ -105,11 +114,14 @@ class Driver {
   readonly editor: ReportEditor
   readonly t: EditorText
   readonly host: ScenarioHost | undefined
+  readonly images: ScenarioStore | undefined
   focused: { readonly role: string; readonly name: string } | null = null
   constructor(scenario: BuilderScenario) {
     this.session = sessionOver(scenario.report())
     this.host = scenario.host
-    this.editor = createReportEditor(this.session, { locale: scenario.locale, ...(scenario.host === undefined ? {} : { hostView: scenario.host }) })
+    this.images = scenarioStore(scenario)
+    const images = this.images === undefined ? {} : { images: this.images.store }
+    this.editor = createReportEditor(this.session, { locale: scenario.locale, ...(scenario.host === undefined ? {} : { hostView: scenario.host }), ...images })
     this.t = editorText(scenario.locale)
   }
 
@@ -133,9 +145,9 @@ class Driver {
     this.focused = selected === undefined ? { role: 'tree', name: this.t('pane.outline') } : { role: 'treeitem', name: selected.label }
   }
 
-  private dispatch(action: EditorAction | undefined, what: string): void {
+  private dispatch(action: EditorAction | undefined, what: string): EditorOutcome {
     if (action === undefined) throw new Error(`${what} does nothing here`)
-    this.editor.dispatch(action)
+    return this.editor.dispatch(action)
   }
 
   /** Selects the outline row named `name`, which focus follows. */
@@ -146,18 +158,18 @@ class Driver {
     this.focusSelection()
   }
 
-  private activate(query: ScenarioQuery): void {
-    if (query.role === 'treeitem') return this.selectRow(query.name)
+  private activate(query: ScenarioQuery): EditorOutcome | undefined {
+    if (query.role === 'treeitem') return void this.selectRow(query.name)
     if (query.role !== 'button') throw new Error(`nothing to activate in a ${query.role}`)
     const shown = buttons(this.t, this.state)
     if (!shown.has(query.name)) throw new Error(`no button ${query.name} among ${[...shown.keys()].join(' | ')}`)
     const action = shown.get(query.name)
     const choosing = this.state.drag?.via === 'keyboard'
-    this.dispatch(action, query.name)
+    const outcome = this.dispatch(action, query.name)
     const selects = action?.type === 'insert' || action?.type === 'move' || action?.type === 'select'
-    const first = this.state.properties.fields[0]
-    // Back at the report's properties, focus is on the first of them.
-    if (query.name === this.t('properties.report') && first !== undefined) this.focused = { role: PROPERTY_ROLES[first.kind], name: first.label }
+    // Back at the report's properties, focus is on the first of them; so it is once a Remove took its own button away.
+    const back = query.name === this.t('properties.report') || (action?.type === 'removeImage' && outcome.ok)
+    if (back && this.state.properties.fields.length > 0) this.focusFirstField()
     // A pane hidden takes its Hide with it; focus goes to what took its room in the middle.
     else if (action?.type === 'hidePanel') this.focused = { role: 'region', name: this.middle() }
     // A pane shown from the toolbar takes the keyboard: the design view is a region; in another pane the driver does not follow it.
@@ -165,6 +177,27 @@ class Driver {
     else if (selects || (choosing && action?.type === 'cancelDrag')) this.focusSelection()
     else if (action?.type === 'startDrag') this.focused = null
     else this.focused = { role: 'button', name: query.name }
+    return outcome
+  }
+
+  /** The report's first field, where the way back to its properties leaves the keyboard. */
+  private focusFirstField(): void {
+    const first = this.state.properties.fields[0]
+    if (first !== undefined) this.focused = { role: PROPERTY_ROLES[first.kind], name: first.label }
+  }
+
+  /**
+   * Add image…, and the file chosen handed to `addImage`, as a builder
+   * hands it on from its input. The editor took it when it said so: it
+   * says the file is being added, then what became of it.
+   */
+  private async upload(query: ScenarioQuery, file: ScenarioFile): Promise<void> {
+    if (buttons(this.t, this.state).get(query.name)?.type !== 'chooseImage') throw new Error(`${query.name} opens no file chooser`)
+    const chosen = this.activate(query)
+    if (chosen?.ok !== true) throw new Error(`${query.name} opened no file chooser`)
+    const before = this.state.status.sequence
+    await this.editor.addImage({ name: file.name, size: file.bytes.length, arrayBuffer: async () => Uint8Array.from(file.bytes).buffer })
+    if (this.state.status.sequence < before + 2) throw new Error(`the editor never took ${file.name}`)
   }
 
   private field(query: ScenarioQuery) {
@@ -195,11 +228,11 @@ class Driver {
     }
   }
 
-  step(step: ScenarioStep): void {
+  async step(step: ScenarioStep): Promise<void> {
     if ('do' in step) {
       switch (step.do) {
         case 'click':
-          return this.activate(step)
+          return void this.activate(step)
         case 'focus':
           if (!this.present(step)) throw new Error(`nothing to focus: ${step.role} ${step.name}`)
           if (step.role === 'treeitem') return this.selectRow(step.name)
@@ -209,11 +242,14 @@ class Driver {
           const modifiers = new Set(step.modifiers ?? [])
           // The host's view keeps its keys: the builder passes none of them on.
           if (this.focused !== null && this.focused.role === 'button' && this.hostControl(this.focused.name)) return
-          if (step.key === 'Enter' && this.focused !== null) return this.activate(this.focused)
+          if (step.key === 'Enter' && this.focused !== null) return void this.activate(this.focused)
           const where = this.focused?.role === 'treeitem' || this.focused?.role === 'tree' ? 'outline' : 'editor'
           const press = { key: step.key, altKey: modifiers.has('Alt'), ctrlKey: modifiers.has('Control'), metaKey: modifiers.has('Meta'), shiftKey: modifiers.has('Shift') }
+          const onRemove = this.focused?.role === 'button' && this.state.images.assets.some((image) => image.removeLabel === this.focused?.name)
           this.dispatch(actionForKey(press, where, this.state.drag !== null), `the key ${step.key}`)
           if (where === 'outline') this.focusSelection()
+          // A key that took away the image row the keyboard stood on -- an undo of the add, a redo of the remove -- leaves it on the first field, as a Remove that worked does.
+          else if (onRemove && this.focused !== null && !this.present(this.focused)) this.focusFirstField()
           return
         }
         case 'fill':
@@ -237,6 +273,8 @@ class Driver {
           if (inTheMiddle && this.state.view !== was) this.focused = { role: 'region', name: this.middle() }
           return
         }
+        case 'upload':
+          return this.upload(step, step.file)
       }
     }
     const expectation = step
@@ -257,6 +295,8 @@ class Driver {
         return void expect(this.field(expectation).error ?? '').not.toBe('')
       case 'document':
         return void expect(expectation.check(this.session.document()), expectation.says).toBe(true)
+      case 'kept':
+        return void expect(expectation.check(this.images?.kept ?? []), expectation.says).toBe(true)
     }
   }
 }
@@ -267,9 +307,9 @@ describe('the builder scenarios', () => {
   // run for a reason no builder could fix.
   for (const locale of EDITOR_LOCALES) {
     for (const scenario of builderScenarios(locale)) {
-      test(`${locale}: ${scenario.name}`, () => {
+      test(`${locale}: ${scenario.name}`, async () => {
         const driver = new Driver(scenario)
-        for (const step of scenario.steps) driver.step(step)
+        for (const step of scenario.steps) await driver.step(step)
       })
     }
   }

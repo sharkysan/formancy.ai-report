@@ -64,6 +64,7 @@ Formancy Report
 | Q26 | A host hands the renderer an SVG as a person saved it, never cleaned: a local image, a link, text, a style sheet, an entity, a `use` fan-out | Refused as `invalid-asset`, naming the asset and none of its value, before pdfmake runs; and the renderer's list of elements and the converter's callbacks each refuse without the check before them | `report-spec/src/svg-threats.test.ts`, `report-render-pdf/src/svg-threats.test.ts`, the install gate's `consume.ts` ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)) |
 | Q27 | An approved SVG logo is drawn `cover`, or with a transform on its root, or in a page header | Drawn as vectors inside a clip of its box, nothing of it in the pixels past that box, and in a page header on every page; a render whose SVGs would cost more than `MAX_SVG_DRAWING`, a page region's counted on every page, refused as `content-too-large`, naming the asset | `report-render-pdf/src/svg.test.ts`, and the corpus's SVG fixtures through `corpus.test.ts` and `verifyInk` (0030) |
 | Q28 | An approved SVG logo whose clips or transparency are shrunk far below its box, whose outlines the converter draws far past the numbers it holds, or nested 29 graphics states deep, is drawn in an e-invoice | Refused as `unsupported`, naming the image and what to do, before pdfmake runs; or drawn, with no integer in the PDF/A-3 past 2,147,483,647, in any object or content stream; the same logo drawn as before in a report that is no e-invoice | `report-render-pdf/src/svg-pdfa.test.ts` through report-corpus's `readPdfNumbers`, and veraPDF on `variant-svg-bound.pdf` in the `e-invoice` gate (0030, [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
+| Q29 | A person adds a file: a GIF named `logo.png`, a PNG past `MAX_ASSET_SIDE`, an SVG with text, a CMYK JPEG in an e-invoice, one the host refuses, the same logo twice | Refused or not added, the reason in the live region, the report unchanged and nothing kept; one that is added is kept by the host first and declared in one undo step, in both builders, by keyboard or pointer, through the platform's chooser in Chromium, the keyboard never left on the page by an undo or a redo | report-builder-core's `images.test.ts` and the image scenarios, each builder's `scenarios.test` and `image-chooser.test`, `apps/studio/src/studio.test.tsx` and `src/images/image-store.test.ts`, and the browser gate's `gate-images.mjs` ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)) |
 
 ## 9.3 Bounds, and how each was chosen
 
@@ -75,10 +76,11 @@ repeating the number. A measured figure is dated and names its machine.
 |---|---|---|
 | Steps an expression may take, and a render in all | `EXPRESSION_STEP_BUDGET`, `RENDER_STEP_BUDGET` in `report-runtime/src/evaluate.ts` | The render's budget measured on 15 October 2026 on an Intel i9-10900K under Node 24.21, binding included: about 5 to 6.5 seconds of evaluation on that machine ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)). Another machine's seconds are not measured |
 | Detail rows | `MAX_DETAIL_ROWS`, `report-runtime/src/data.ts` | Chosen, not derived, as its comment says: at the renderer trial's 48 rows a page it is over 2,000 pages, so it bounds the runtime's own checking, sorting and totalling before a page is laid out. At the bound, checking rows of nine fields took a median of 1.5 seconds and ordering them 0.5, on 15 October 2026 on that machine |
-| An image's bytes | `MAX_ASSET_BYTES`, `report-runtime/src/document.ts`, which the renderer reads too | The renderer trial's limit, as its comment says; nothing measured behind it ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
-| An image's pixels, and image data per render | `MAX_ASSET_SIDE`, `MAX_IMAGE_DATA`, `report-render-pdf/src/assets.ts` | Two of the largest images an asset may be, once inflated; what PDFKit took to embed one, two and four of them is measured beside the constant, on 15 October 2026, on that machine ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
+| An image's bytes | `MAX_ASSET_BYTES`, `report-spec/src/limits.ts`, which the runtime and the renderer read too | The renderer trial's limit, as its comment says; nothing measured behind it ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
+| An image's pixels, and image data per render | `MAX_ASSET_SIDE`, `report-spec/src/limits.ts`; `MAX_IMAGE_DATA`, `report-render-pdf/src/assets.ts` | Two of the largest images an asset may be, once inflated; what PDFKit took to embed one, two and four of them is measured beside the constant, on 15 October 2026, on that machine ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
 | A definition's arrays, strings and numbers | `report-spec/src/limits.ts`, each with its reason | Chosen, not measured: lowering one later refuses reports that were valid ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
 | Undo steps | `DEFAULT_HISTORY_LIMIT`, `report-core/src/session.ts` | Chosen, not measured ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)) |
+| The images a person adds, in a builder and in the Studio | `MAX_ASSET_BYTES` and `MAX_ASSET_SIDE`, and the format's `MAX_ASSETS`; nothing smaller in the Studio's `images/image-store.ts` | The format's own, not chosen for an upload: nothing measured a smaller one, and nothing measured where the Studio's tab gives out holding them (0033) |
 | The Studio's preview pages | `PREVIEW_PAGE_LIMIT`, `apps/studio/src/preview/pipeline.ts` | Chosen, not measured, so an edit that would print hundreds of pages is refused rather than freeze the tab |
 | Where the Studio's Preview stands | `MIDDLE`, `apps/studio/src/layout.ts`, and the same query in `narrow.css`, held equal by `apps/studio/src/styles.test.tsx` | Measured for 0019 in Chromium on 16 October 2026: beside the Preview and both side panes, the design view holds an A4 page at 100 % whole in a 2052px window and is 2px short at 2049px. The builder's floor of 32rem in `shell.css` is chosen, not measured ([0019](../decisions/0019-a-person-hides-the-panes-the-design-view-needs-the-room-of.md), [0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)) |
 | A QR code's smallest module | `MIN_MODULE`, `report-render-pdf/src/qr.ts` | Borrowed from SIX's QR-bill guidelines; nothing here printed a code or scanned one with a phone ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)) |
@@ -133,6 +135,23 @@ one day, with the runs its record describes, and held by nothing:
   eight times the quotation starter's first page, the same day, a page
   the converter's test still draws without the firm's mark (0032)
   ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
+
+What adding an image has measured, in Playwright 1.64.1's Chromium
+156.0.8078.4, headless, on that machine under Windows 11 Pro, on 19
+October 2026, and held by nothing: report-spec's `assetDigest` on a page
+of its own, report-spec's build bundled by Vite 8.3.4 and timed through
+`page.evaluate`, a median of five runs of 18.3 ms for 1 MiB, 91.1 ms for
+5 MiB and 359.7 ms for 20 MiB, `crypto.subtle.digest` 3.0, 14.5 and
+58.0 ms; and in the Studio's built page, served as the browser gate
+serves it, from the file input's change to "Added image", PNGs of 1.0,
+5.2 and 19.7 MB in medians of three of 37 to 38, 156 to 158 and 482 to
+517 ms in the React builder and 34 to 35, 156 to 159 and 523 to 565 ms
+in the Angular one, over two runs. Under Node 24.21.0 the same day,
+`imageHeader` read a 20 MiB PNG of 1,747,622 empty image data chunks in
+38 ms, keeping nothing of them, and one of 19.7 MB in 2,401 chunks in a
+median of five of 97 ms. The Studio's page chunk grew by
+28,491 bytes with it, 9.6 kB gzipped, and the Preview's shrank by 3,426,
+the renderer's reader having moved into report-spec ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
 
 **What is not measured, said.** What a commit costs — the whole report
 validated and diagnosed again on every edit, a keystroke in a property field

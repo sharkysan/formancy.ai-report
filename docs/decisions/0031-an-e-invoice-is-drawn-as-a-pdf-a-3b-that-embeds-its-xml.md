@@ -4,7 +4,10 @@
   branches not yet merged; extended by
   [0032](0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md),
   under which every e-invoice sample it draws carries the firm's mark, an
-  SVG in each PDF/A-3b
+  SVG in each PDF/A-3b; and by
+  [0033](0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md),
+  under which a builder refuses a CMYK JPEG a person adds to a report with
+  an e-invoice, the image the final render here refuses
 - **Date:** 2026-10-18
 - **Deciders:** Daniel Bacher
 - **Verified by:**

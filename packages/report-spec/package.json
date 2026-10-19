@@ -24,7 +24,8 @@
     "check:pkg": "publint && attw --pack . --profile esm-only"
   },
   "dependencies": {
-    "@formancy/spec": "0.6.0"
+    "@formancy/spec": "0.6.0",
+    "@noble/hashes": "2.4.0"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",

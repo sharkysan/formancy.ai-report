@@ -4,8 +4,9 @@ import { STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
 import { drawingsOn, epcCodes, readCodes, readPdf } from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import { afterAll, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
+import { studioImages } from '../images/image-store.js'
 import { decodeStarters, encodeStarters } from '../starters/codec.js'
-import { BLANK, imagesOf } from '../starters/starters.js'
+import { BLANK } from '../starters/starters.js'
 import { preview } from './pipeline.js'
 import type { PreviewRequest } from './pipeline.js'
 
@@ -24,7 +25,7 @@ const CREATED = '2026-10-16T08:00:00Z'
 function request(id: string, overrides: Partial<PreviewRequest> = {}): PreviewRequest {
   const starter = [...starters, BLANK].find((each) => each.id === id)
   if (starter === undefined) throw new Error(`no starter ${id}`)
-  return { report: starter.report, starter, mode: 'preview', images: imagesOf(images), creationDate: CREATED, ...overrides }
+  return { report: starter.report, starter, mode: 'preview', images: studioImages(images).resolve, creationDate: CREATED, ...overrides }
 }
 
 // pdfmake's browser build warns, outside a browser, that it has no local

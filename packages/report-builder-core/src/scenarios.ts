@@ -2,7 +2,9 @@
  * What each native builder must do, as data: user-visible scenarios that
  * the React and the Angular builder each run with Testing Library and
  * user-event, finding every element by its role and accessible name and
- * nothing else (plan 21, formancy.ai's parity approach).
+ * nothing else (plan 21, formancy.ai's parity approach) -- but one: the
+ * file input Add image… opens, hidden and without a role, which an
+ * `upload` step hands its file to by reading the DOM (0033).
  *
  * One list for both, so neither builder's tests can quietly expect less
  * than the other's; a framework's runner fails when it skips one, and it
@@ -14,7 +16,9 @@
  * A runner opens a session over `report()`, mounts its builder over it in
  * `locale`, and does each step in order. A scenario with a `host` makes the
  * editor with that view of the host's (`hostView`), and gives the builder,
- * as the host's view, one button named `control`.
+ * as the host's view, one button named `control`. A scenario with a
+ * `store` makes it with the store `scenarioStore` gives it, which keeps
+ * every image a person adds, or refuses each, and records what it kept.
  * - `click`: user-event's click on the element.
  * - `focus`: moves focus to the element, as tabbing to it would. In the
  *   outline that selects the row: focus and selection are one.
@@ -23,18 +27,27 @@
  * - `choose`: selects the option with that label in the combobox.
  * - `host`: dispatches the action to the editor, as the host's own control
  *   for its view does -- the Studio's Preview, in its bar.
+ * - `upload`: clicks the button, Add image…, and hands `file` to the file
+ *   input beside it, as a person choosing it in the chooser does; no filter
+ *   of the input's `accept` drops it on the way. The step ends once the
+ *   editor has said what became of the file, and fails when the editor
+ *   never took it -- a chooser that never reached the editor.
  * - `present`, `absent`, `focused`: the element is there, is not, has focus.
  * - `value`: the control's value. `text`: the element's text content holds
  *   it. The live region is the status with no name; the problems' count is
  *   the status named by the problems pane.
  * - `invalid`: `aria-invalid="true"`, and an accessible description saying why.
  * - `document`: `check` holds of the session's document.
+ * - `kept`: `check` holds of what the scenario's store kept.
  */
 import { emptyReport } from '@formancy/report-spec'
 import type { EpcQrCodeComponent, ReportDefinition } from '@formancy/report-spec'
 import type { HostViewOptions } from './editor.js'
+import type { AddedImage } from './image-store.js'
 import type { EditorAction } from './model.js'
 import { PROPERTY_ROLES } from './model.js'
+import { imageScenarios } from './scenario-images.js'
+import { scenarioReport } from './scenario-report.js'
 import { contentLocale, editorText, formatZoom } from './text.js'
 import type { EditorLocale } from './text.js'
 
@@ -45,8 +58,16 @@ export interface ScenarioQuery {
   readonly selected?: boolean
 }
 
-export const SCENARIO_ACTIONS = ['click', 'focus', 'press', 'fill', 'choose', 'host'] as const
-export const SCENARIO_EXPECTATIONS = ['present', 'absent', 'focused', 'value', 'text', 'invalid', 'document'] as const
+export const SCENARIO_ACTIONS = ['click', 'focus', 'press', 'fill', 'choose', 'host', 'upload'] as const
+export const SCENARIO_EXPECTATIONS = ['present', 'absent', 'focused', 'value', 'text', 'invalid', 'document', 'kept'] as const
+
+/** A file an `upload` step hands the file input: what a runner makes a `File` of. */
+export interface ScenarioFile {
+  readonly name: string
+  /** The type a browser gives a file of this name: what the input's `accept` compares. */
+  readonly type: string
+  readonly bytes: Uint8Array
+}
 
 export type KeyModifier = 'Alt' | 'Control' | 'Meta' | 'Shift'
 
@@ -64,6 +85,7 @@ export type ScenarioStep =
   | ({ readonly do: 'fill'; readonly text: string } & ScenarioQuery)
   | ({ readonly do: 'choose'; readonly option: string } & ScenarioQuery)
   | { readonly do: 'host'; readonly action: HostViewAction }
+  | ({ readonly do: 'upload'; readonly file: ScenarioFile } & ScenarioQuery)
   | ({ readonly expect: 'present' | 'absent' | 'focused' | 'invalid' } & ScenarioQuery)
   | ({ readonly expect: 'value'; readonly value: string } & ScenarioQuery)
   | ({ readonly expect: 'text'; readonly text: string } & ScenarioQuery)
@@ -75,6 +97,7 @@ export type ScenarioStep =
       /** The check is that something stayed as it was, so it holds of the starting report too. */
       readonly unchanged?: true
     }
+  | { readonly expect: 'kept'; readonly says: string; readonly check: (kept: readonly AddedImage[]) => boolean }
 
 export interface BuilderScenario {
   readonly name: string
@@ -84,36 +107,8 @@ export interface BuilderScenario {
   readonly steps: readonly ScenarioStep[]
   /** A view of the host's own, for the scenarios about one. */
   readonly host?: ScenarioHost
-}
-
-const SCENARIO_REPORT: ReportDefinition = {
-  reportSpecVersion: '0',
-  id: 'site-visit',
-  title: 'Site visit',
-  locale: 'en',
-  page: { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 56.69, bottom: 56.69, left: 56.69 } },
-  styles: [{ id: 'heading', size: 14, bold: true }],
-  datasets: {},
-  parameters: [],
-  assets: [],
-  aggregates: [],
-  regions: {
-    reportHeader: [],
-    pageHeader: [],
-    body: [
-      { id: 'findings', kind: 'text', style: 'heading', content: [{ kind: 'text', text: 'Findings' }] },
-      { id: 'intro', kind: 'text', content: [{ kind: 'text', text: 'Introduction' }] },
-      { id: 'notes', kind: 'section', components: [{ id: 'note', kind: 'text', content: [{ kind: 'text', text: 'Note' }] }] },
-      { id: 'gap', kind: 'spacer', height: 12 },
-    ],
-    pageFooter: [],
-    summary: [],
-  },
-}
-
-/** The report every scenario starts from, or breaks one thing in: a fresh copy. scenarios.test.ts opens it, so it is valid. */
-export function scenarioReport(): ReportDefinition {
-  return JSON.parse(JSON.stringify(SCENARIO_REPORT)) as ReportDefinition
+  /** Where the scenario's editor keeps images a person adds: a store that keeps each, or one that refuses each; none when absent. */
+  readonly store?: 'keeps' | 'refuses'
 }
 
 /** The scenario report with the introduction shown only when a parameter nobody declared says so: an error the diagnostics link to it. */
@@ -555,6 +550,7 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
       scenarioReport,
       { ...PREVIEW, shown: true },
     ),
+    ...imageScenarios(locale),
   ]
 }
 

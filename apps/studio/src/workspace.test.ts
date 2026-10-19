@@ -1,3 +1,5 @@
+import { SCENARIO_PNG } from '@formancy/report-builder-core'
+import type { AddedImage } from '@formancy/report-builder-core'
 import { setTitle } from '@formancy/report-core'
 import { describe, expect, test } from 'vitest'
 import { MIDDLE } from './layout.js'
@@ -34,6 +36,28 @@ describe('the workspace', () => {
     const { editor } = workspace.open('blank')
     workspace.dispose()
     expect(editor.dispatch({ type: 'zoomIn' }).ok).toBe(false)
+  })
+
+  // An image added in one starter's builder is kept where the Preview's
+  // lookup finds it, whichever starter adds it: one store, given to every
+  // editor the workspace makes. An editor made without it would offer no
+  // Add image…, and one made with a store of its own would keep bytes the
+  // page's lookup never sees, and its Preview would refuse the image.
+  test('makes every starter’s editor with the one store the page keeps images in', async () => {
+    const kept: AddedImage[] = []
+    const workspace = createWorkspace([BLANK, OTHER], { images: { keep: async (image) => (kept.push(image), { ok: true }) } })
+    const file = { name: 'logo.png', size: SCENARIO_PNG.length, arrayBuffer: async () => Uint8Array.from(SCENARIO_PNG).buffer }
+    for (const id of ['blank', 'other']) {
+      const { editor } = workspace.open(id)
+      expect(editor.state().images.store).toBe(true)
+      expect(await editor.addImage(file)).toEqual({ ok: true })
+    }
+    expect(kept.map((image) => image.asset)).toEqual(['logo', 'logo'])
+    workspace.dispose()
+    // and without a store, an editor that offers no Add image…
+    const bare = createWorkspace([BLANK])
+    expect(bare.open('blank').editor.state().images.store).toBe(false)
+    bare.dispose()
   })
 
   // A starter the list does not have is a bug in the page, said as one.

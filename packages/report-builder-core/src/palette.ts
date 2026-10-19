@@ -5,8 +5,9 @@
  * A default is chosen to be valid somewhere in any report that has what it
  * needs: an id `nextComponentId` gives, a size that fits the smallest
  * printable area the format allows, and the report's own asset or field for
- * what has to draw or read one. Whether it is valid in a given place is the
- * validator's question, asked by the drop targets. What a default says --
+ * what has to draw or read one -- the newest image, so that the one a person
+ * just added is the one Insert's Image draws (0033). Whether it is valid in
+ * a given place is the validator's question, asked by the drop targets. What a default says --
  * a new text's words -- is in the report's language, because it prints; the
  * palette's own labels are in the editor's.
  */
@@ -58,19 +59,25 @@ const ALIGN: { readonly [T in FieldType]: Alignment } = {
 /** The kind's default component, without its id and kind, or the message saying what the report lacks. */
 type Body = Readonly<Record<string, unknown>> | MessageId
 
+/** The report's newest asset -- an add appends -- else the header's image field. */
 function imageSource(report: ReportDefinition): ImageSource | undefined {
-  const asset = report.assets[0]
+  const asset = report.assets.at(-1)
   if (asset !== undefined) return { kind: 'asset', asset: asset.id }
   const field = report.datasets.header?.fields.find((candidate) => candidate.type === 'image')
   return field === undefined ? undefined : { kind: 'field', field: { dataset: 'header', field: field.id } }
 }
 
-/** What each kind starts with, its words in `words`. A table over every kind, so a kind added to the format without a default does not compile. */
-const DEFAULTS: { readonly [K in ComponentKind]: (report: ReportDefinition, words: EditorText) => Body } = {
+/**
+ * What each kind starts with, its words in `words`; `stored` says whether
+ * the host keeps images a person adds, which is how an image with nothing
+ * to draw gets one. A table over every kind, so a kind added to the format
+ * without a default does not compile.
+ */
+const DEFAULTS: { readonly [K in ComponentKind]: (report: ReportDefinition, words: EditorText, stored: boolean) => Body } = {
   text: (_report, words) => ({ content: [{ kind: 'text', text: words('default.text') }] }),
-  image: (report) => {
+  image: (report, _words, stored) => {
     const source = imageSource(report)
-    if (source === undefined) return 'palette.needsImage'
+    if (source === undefined) return stored ? 'palette.addImageFirst' : 'palette.needsImage'
     const room = printableArea(report.page)
     return { source, width: Math.min(BOX.image.width, room.width), height: Math.min(BOX.image.height, room.height), fit: 'contain' }
   },
@@ -99,17 +106,17 @@ const DEFAULTS: { readonly [K in ComponentKind]: (report: ReportDefinition, word
   keepTogether: () => ({ components: [] }),
 }
 
-/** The default component of `kind` for `report`, or the message saying what the report must declare first. */
-export function defaultComponent(report: ReportDefinition, kind: ComponentKind): Component | MessageId {
-  const body = DEFAULTS[kind](report, editorText(contentLocale(report.locale)))
+/** The default component of `kind` for `report`, or the message saying what the report must declare -- or a person add -- first. */
+export function defaultComponent(report: ReportDefinition, kind: ComponentKind, stored = false): Component | MessageId {
+  const body = DEFAULTS[kind](report, editorText(contentLocale(report.locale)), stored)
   if (typeof body === 'string') return body
   return { id: nextComponentId(report, kind), kind, ...body } as Component
 }
 
-export function paletteEntries(report: ReportDefinition, t: EditorText): PaletteEntry[] {
+export function paletteEntries(report: ReportDefinition, t: EditorText, stored = false): PaletteEntry[] {
   return COMPONENT_KINDS.map((kind) => {
-    const component = defaultComponent(report, kind)
+    const component = defaultComponent(report, kind, stored)
     const label = kindLabel(kind, t)
-    return typeof component === 'string' ? { kind, label, component: null, unavailable: t(component) } : { kind, label, component }
+    return typeof component === 'string' ? { kind, label, component: null, unavailable: t(component, { add: t('images.add') }) } : { kind, label, component }
   })
 }
