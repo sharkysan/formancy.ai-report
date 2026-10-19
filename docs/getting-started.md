@@ -250,7 +250,10 @@ await writeFile('quotation.pdf', pdf)
 report's expressions, computes the totals and formats each value for the
 report's locale, once; nothing in it fetches anything. `renderPdf` draws the
 result with pdfmake in Roboto. The creation date is yours to fix: the same
-report, data and date print the same bytes. `maxPages` is required, and a
+report, data and date print the same bytes, its images written in the
+order pdfmake opened them however long each takes to decode
+([0035](./decisions/0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md)).
+`maxPages` is required, and a
 report that needs more is refused rather than cut short.
 
 What it costs: pdfmake lays out a whole document in one synchronous pass on

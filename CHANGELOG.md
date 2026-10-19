@@ -10,6 +10,25 @@ later.
 
 ## Unreleased
 
+**One document renders to the same bytes again when it has PNGs with
+transparency or interlacing.** PDFKit decodes such a PNG before it embeds
+it, and numbered its soft mask and wrote it when the decode called back,
+in whatever order the decodes finished, so a report with two or more of
+them could print different bytes for the same report, data and date:
+the e-invoice gate's page of every image kind came out as another PDF in
+32 of 300 draws in Node, its objects inflated in 29, and the gate failed
+once on it on #41. A host that caches, deduplicates or signs PDFs by
+their bytes would have met it as well. The renderer now has those images
+written in the order pdfmake opened them, in both entries, at no measured
+cost in time; a PDF whose images already came back in order is the same
+file as before, and every PDF the e-invoice gate records is unchanged. It
+wraps three details of PDFKit's that are not its API, and a host resolves
+PDFKit within pdfmake's range: a release that moved one would print
+varying bytes again, or, moving how one of its decodes calls back, leave
+such a render never ending. So the install gate now checks the order, and
+that the render ends, on the PDFKit a clean install resolves
+([0035](docs/decisions/0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md)).
+
 **A release report no longer says a version ran in no suite when the
 suites ran it under a second entry.** 0.2.0's body said a clean install
 resolved `@formancy/spec` 0.6.0 and 0.5.0 "which no suite ran", when the

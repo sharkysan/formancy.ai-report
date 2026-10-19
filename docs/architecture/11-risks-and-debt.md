@@ -53,6 +53,24 @@ version, so an upgrade is a diff somebody runs those tests on
 [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 A pass cannot be interrupted, and no worker that could be killed is built.
 
+PDFKit's images are leaned on too, and PDFKit is not pinned the way
+pdfmake is: a host resolves it within pdfmake's `^0.19.1`. PDFKit numbers
+a PNG's soft mask, and writes the image, when its decode calls back, so the
+renderer wraps each such image's `finalize` in the registry pdfmake keeps
+them in, to have them written in the order pdfmake opened them. A 0.19.x
+that moved the registry, a PNG's `image` or `finalize` would leave the
+images in the order their decodes finish -- bytes that vary, pages that
+do not; one that kept `finalize` but called it past `this` on one of its
+three decodes would leave every image opened after that one waiting, and
+the render would never end, neither printing nor refusing. The renderer's
+suite, which runs on the lockfile's 0.19.1, would see neither; the
+install gate, which installs what a host would and draws each decode
+ahead of another image, fails on both. The fix belongs in PDFKit,
+decoding at once or numbering and writing in the order it embeds, and
+has not been asked of it; the pins in
+`pdfmake.test.ts` and `browser.test.ts` fail when it arrives
+([0035](../decisions/0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md)).
+
 The SVG converter pdfmake vendors, svg-to-pdfkit, is leaned on most of
 all. What it would do with an SVG as it came — open an `<image>`'s file
 past pdfmake's access policy, write a link to any address with no callback

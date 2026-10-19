@@ -15,6 +15,7 @@ import { renderPdf as renderInBrowser } from './browser.js'
 import { renderPdf as renderInNode } from './node.js'
 import { converterOptions } from './svg-content.js'
 import { billDocument, resolvedBill, SIX_EXAMPLES } from './testing/bills.js'
+import { dataUrl, DECODED, imageOrder, SIDE } from './testing/decoding.js'
 import { documentOf, fixture, paragraph, TIMEOUT } from './testing/documents.js'
 import { encodePng } from './testing/images.js'
 import { DRAWINGS, MARK, rawSvgAsset, svg, SVG_THREATS, svgAsset } from './testing/svg.js'
@@ -289,6 +290,27 @@ describe('the browser entry', () => {
     const fonts = reach('bill-fonts.ts')
     expect([...fonts.external].sort()).toEqual(['../fonts/LiberationSans-Bold.ttf', '../fonts/LiberationSans-Regular.ttf'])
     expect(fonts.dynamic.size).toBe(0)
+  })
+})
+
+describe("the browser build's images that decode before they embed", () => {
+  // The hazard 0035 works around, in the browser build alone, as
+  // `pdfmake.test.ts` pins it in Node's: its inflate calls back from a
+  // timer, and a small image's soft mask still takes the first number and
+  // is written first, before a large one's drawn above it -- in 200 of 200
+  // renders (19 October 2026). Once PDFKit numbers and writes its images
+  // as it opens them, this fails, and `image-order.ts` can go.
+  test("numbers and writes a small image's soft mask before a large one's drawn above it", async () => {
+    await renderInBrowser(fixture('one-row').document, { maxPages: 5 })
+    const bytes = await browserPdfmake
+      .createPdf({ images: { large: dataUrl(DECODED.alpha), small: dataUrl(DECODED.small) }, content: [{ image: 'large', width: 100 }, { image: 'small', width: 100 }], defaultStyle: { font: 'Roboto' } })
+      .getBuffer()
+    const { widths, masks, masksAt, drawnAt } = await imageOrder(new Uint8Array(bytes))
+    expect(widths).toEqual([SIDE.alpha, SIDE.small])
+    expect(masks).toHaveLength(2)
+    expect(masks[0]).toBeGreaterThan(masks[1]!)
+    expect(masksAt[0]).toBeGreaterThan(masksAt[1]!)
+    expect(drawnAt[0]).toBeGreaterThan(drawnAt[1]!)
   })
 })
 

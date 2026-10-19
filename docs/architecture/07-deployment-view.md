@@ -142,6 +142,14 @@ deploy happened or what the address serves.
   pdfmake's access policy: a host that bundles the Node entry puts it where
   the bundled PDFKit's `__dirname` points, or every e-invoice render
   fails; nobody here has bundled one ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+  PDFKit itself is what pdfmake's `^0.19.1` resolves to, not a version
+  this repository pins, and the order the renderer writes a document's
+  images in wraps three of its details that are not its API: a release
+  that moved one would print the same pages in bytes that may vary, or,
+  moving how one decode calls `finalize`, leave a render with such images
+  never ending. The install gate checks the order, and that the render
+  ends, on what a clean install resolves, and says which release that was
+  ([0035](../decisions/0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md)).
 - **For the renderer in a browser:** a bundler that splits a dynamic import,
   or the font chunk that a slip and a captioned EPC QR code print from
   lands in every page

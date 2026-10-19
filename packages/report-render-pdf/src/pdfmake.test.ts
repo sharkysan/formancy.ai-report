@@ -15,6 +15,7 @@ import { PDF_A_3B, type PdfKitDocument, type PdfKitFileOptions } from './pdfa.js
 import { converterOptions } from './svg-content.js'
 import { fixture } from './testing/documents.js'
 import { readDrawing } from './testing/drawing.js'
+import { dataUrl, DECODED, imageOrder, SIDE } from './testing/decoding.js'
 import { invoiced } from './testing/e-invoice.js'
 import { encodePng } from './testing/images.js'
 import { MARK, svg, svgAsset } from './testing/svg.js'
@@ -104,6 +105,29 @@ describe("pdfmake's measuring, which the renderer reads", () => {
       .getBuffer()
     expect(typeof seen[0]).toBe('number')
     expect(seen[0]).toBeCloseTo(seen[1] as number, 6)
+  })
+})
+
+describe("PDFKit's images that decode before they embed, which the renderer writes in order", () => {
+  // The hazard 0035 works around, in pdfmake alone: PDFKit numbers an
+  // image's soft mask, and writes the image, when its decode finishes
+  // (pdfkit.js 3926-3996), so a small image's mask takes the first number
+  // and is written first, before a large one's drawn above it -- in 200 of
+  // 200 renders (19 October 2026). The renderer's `image-order.ts` holds
+  // its own PDFs to the order pdfmake opened their images; once PDFKit
+  // numbers and writes its images as it opens them, this fails, and that
+  // can go.
+  test("numbers and writes a small image's soft mask before a large one's drawn above it", async () => {
+    await renderPdf(fixture('one-row').document, { maxPages: 5 })
+    const bytes = await pdfmake
+      .createPdf({ images: { large: dataUrl(DECODED.alpha), small: dataUrl(DECODED.small) }, content: [{ image: 'large', width: 100 }, { image: 'small', width: 100 }], defaultStyle: { font: 'Roboto' } })
+      .getBuffer()
+    const { widths, masks, masksAt, drawnAt } = await imageOrder(new Uint8Array(bytes))
+    expect(widths).toEqual([SIDE.alpha, SIDE.small])
+    expect(masks).toHaveLength(2)
+    expect(masks[0]).toBeGreaterThan(masks[1]!)
+    expect(masksAt[0]).toBeGreaterThan(masksAt[1]!)
+    expect(drawnAt[0]).toBeGreaterThan(drawnAt[1]!)
   })
 })
 

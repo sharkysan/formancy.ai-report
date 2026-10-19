@@ -137,6 +137,7 @@ It is a package boundary, not an engine interface: there is one engine.
 | Module | Responsibility |
 |---|---|
 | `node.ts`, `browser.ts`, `engine.ts` | The two entries: pdfmake's Node build reading font files, or its browser build reading virtual ones. Only that differs. Each hands PDFKit's document, laid out and not yet ended, to the final pass's `finish`, the one hook an e-invoice is embedded through ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)). The browser entry imports Liberation Sans's chunk with the first document that has a QR-bill or a captioned EPC QR code, and never for a document with neither, which `report-render-pdf/src/browser.test.ts` holds ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
+| `image-order.ts` | The images PDFKit is still decoding when pdfmake hands its document over -- a PNG with an alpha channel, a palette's transparency or interlacing -- written in the order pdfmake opened them, whichever decode finishes first, so that their soft masks are numbered, and they are written, in that order: the body's images first, then the page regions'. `engine.ts`'s `written` calls it in both entries; it wraps the `finalize` of each such image in PDFKit's registry, typed at the boundary, and of none where one cannot be wrapped ([0035](../decisions/0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md)) |
 | `render.ts` | The passes, each a pdfmake layout: measure the page regions, measure kept blocks and table rows, then lay out the PDF, with an abort read between them; an e-invoice's file and XMP are added on that last pass alone |
 | `check.ts`, `glyphs.ts`, `widths.ts`, `assets.ts` | What is refused before pdfmake sees the document: a character without a glyph, what is malformed or wider than where it stands, image bytes that are not what they say, a PNG's or a JPEG's structure read by report-spec's `imageHeader` and a PNG's image data inflated here, an SVG not in the form `cleanSvg` writes, and SVGs past what a render may draw (`MAX_SVG_DRAWING`, an image in a page region counted on every page) or a page may cost a reader (0030); and in an e-invoice, a CMYK JPEG, which its PDF/A cannot hold beside its sRGB output intent |
 | `bound.ts`, and `check.ts`'s `refuseTall` | What is refused between the passes, once the page regions are measured: a block of fixed height or a line taller than a page's body, and a body whose least height already needs more pages than the limit |
@@ -221,8 +222,11 @@ What a PDF says of itself is read by a second reader, `objects.ts`, with
 with PDF.js: its version, information dictionary and trailer /ID, the
 files on the catalog's /AF and in its /Names /EmbeddedFiles tree, each
 with its specification's keys, its stream's and its bytes, and its output
-intents with their profiles' bytes. It refuses an encrypted PDF and a
-name tree with /Kids, which it does not walk. `read-pdf.ts` reads the files
+intents with their profiles' bytes, and every image object by its number
+and size with the soft mask it names, by which the renderer's order is
+read ([0035](../decisions/0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md)). It refuses an encrypted PDF, a
+name tree with /Kids, which it does not walk, and a soft mask that is no
+reference to an image. `read-pdf.ts` reads the files
 the name tree names too, so that a file's bytes come from two readers, and
 `xmp.ts` reads the XMP strictly with saxes, each property by its namespace
 and with its prefix. `objects.ts`'s `inflatedDigest` hashes a PDF's objects

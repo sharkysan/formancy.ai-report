@@ -65,7 +65,7 @@
       ]
     },
     "0005": {
-      "reviewed": "sha256:9f4c94ed5a3d1f03ee642d6ae4b6d33e6c65f3b9b41d30f5eced69c5a6f16f3c",
+      "reviewed": "sha256:c25a62ca9a3c112b80f6aaaa7ac267870ff11cde01f4776d85d11beb8b4f2f97",
       "limitations": [
         {
           "area": "rendering",
@@ -250,7 +250,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:d44847e3f2c2a494757a89dcad4d4f4d1e28323b7fe69aa74d76a26765e9495f",
+      "reviewed": "sha256:e954e624c4c3433c92472a5410fcdda827abb9a392ce8c25eac5d06286de4e71",
       "limitations": [
         {
           "area": "rendering",
@@ -1325,6 +1325,16 @@
         {
           "area": "builders",
           "says": "A host page that wears formancy's room imports `@formancy/themes/room.css` after `workbench.css`, as the Studio does; imported before it, the workbench's light defaults win and the builder's panes stay light in the dark room."
+        }
+      ]
+    },
+    "0035": {
+      "reviewed": "sha256:246332ae9ead84acaa7fbae59f9ece62b885dfa0ef1c8ba663f3b6d7c8627b97",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "The order a document's images are written in rests on three details of PDFKit 0.19.1 that are not its API, and a host resolves PDFKit within pdfmake's `^0.19.1`. A later 0.19.x that moved one would print the same pages in bytes that may differ from one render to the next; one that kept `finalize` but called it otherwise on one of a PNG's three decodes would leave a render with such an image ahead of another never ending, neither printing nor refused. Either is found by the install gate at its next run rather than by the renderer's own suite, which runs on 0.19.1.",
+          "heldBy": "packages/report-render-pdf/src/image-order.test.ts"
         }
       ]
     }

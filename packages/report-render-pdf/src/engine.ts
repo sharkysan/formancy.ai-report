@@ -1,5 +1,6 @@
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { characterMap, type BillFace, type BillGlyphs, type Face, type Glyphs } from './glyphs.js'
+import { finalizeInOrder, type PdfKitImages } from './image-order.js'
 import type { Finish, PdfKitDocument } from './pdfa.js'
 
 /**
@@ -74,9 +75,12 @@ export interface PdfStream {
 /**
  * The PDF of the document `getStream` hands over, `finish` acting on it
  * first: what each entry's `run` does once it has configured its pdfmake.
+ * The images PDFKit is still decoding are written in the order pdfmake
+ * opened them, whichever decode finishes first (`image-order.ts`, 0035).
  */
 export async function written(document: Promise<unknown>, finish: Finish | undefined): Promise<Uint8Array> {
-  const pdf = (await document) as PdfStream & PdfKitDocument
+  const pdf = (await document) as PdfStream & PdfKitDocument & PdfKitImages
+  finalizeInOrder(pdf)
   finish?.(pdf)
   return collect(pdf)
 }
