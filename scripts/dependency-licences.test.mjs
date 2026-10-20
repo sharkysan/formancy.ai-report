@@ -741,7 +741,8 @@ describe('this workspace', () => {
     const unreviewed = problems(entries, EXCEPTIONS, FORMANCY_DATA, {}).filter((problem) => problem.includes('ICC profile'))
     expect(unreviewed).toHaveLength(1)
     expect(unreviewed[0].startsWith('pdfkit@0.19.1/js/data/sRGB_IEC61966_2_1.icc is an ICC profile nobody has reviewed (sha256:384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a); ')).toBe(true)
-    expect(unreviewed[0].endsWith(' (@formancy/report-render-pdf > pdfmake > pdfkit)')).toBe(true)
+    // The renderer pins PDFKit itself (0036), so the walk reaches it there first.
+    expect(unreviewed[0].endsWith(' (@formancy/report-render-pdf > pdfkit)')).toBe(true)
     const corpus = createRequire(join(repo, 'packages', 'report-corpus', 'package.json'))
     const [pdfjs] = closure(dirname(corpus.resolve('pdfjs-dist/package.json')))
     const refused = problems([pdfjs], {}, {}, {}).filter((problem) => problem.includes('ICC profile'))

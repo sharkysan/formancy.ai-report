@@ -10,6 +10,20 @@ later.
 
 ## Unreleased
 
+**report-render-pdf pins PDFKit at 0.19.1**
+([0036](docs/decisions/0036-the-renderer-pins-pdfkit-at-the-release-0035-was-read-against-until-pdfkit-writes-images-in-the-order-it-embeds-them.md)).
+The order the renderer writes a document's images in, below, wraps three
+details of PDFKit 0.19.1 that are not its API, and pdfmake asks for
+PDFKit at `^0.19.1`, so a later 0.19.x could have moved under a host's
+install unseen until the install gate's next run. The renderer now
+declares PDFKit at exactly 0.19.1, importing nothing of it, so that npm
+gives pdfmake that release, and the install gate fails when pdfmake loads
+another. Under pnpm or Yarn, or beside a host's own PDFKit, which copy
+pdfmake loads was not measured; a host can hold it with its own
+overrides. The pin goes when PDFKit writes images in the order it embeds
+them and pdfmake takes that release. The browser entry is unchanged:
+pdfmake's browser build carries its own PDFKit.
+
 **One document renders to the same bytes again when it has PNGs with
 transparency or interlacing.** PDFKit decodes such a PNG before it embeds
 it, and numbered its soft mask and wrote it when the decode called back,

@@ -1329,12 +1329,22 @@
       ]
     },
     "0035": {
-      "reviewed": "sha256:246332ae9ead84acaa7fbae59f9ece62b885dfa0ef1c8ba663f3b6d7c8627b97",
+      "reviewed": "sha256:14a72675796450857760c3c368c344a4f0c7d96c21a6080a983fe5e8bc0bf480",
       "limitations": [
         {
           "area": "rendering",
-          "says": "The order a document's images are written in rests on three details of PDFKit 0.19.1 that are not its API, and a host resolves PDFKit within pdfmake's `^0.19.1`. A later 0.19.x that moved one would print the same pages in bytes that may differ from one render to the next; one that kept `finalize` but called it otherwise on one of a PNG's three decodes would leave a render with such an image ahead of another never ending, neither printing nor refused. Either is found by the install gate at its next run rather than by the renderer's own suite, which runs on 0.19.1.",
+          "says": "The order a document's images are written in rests on three details of PDFKit 0.19.1 that are not its API, and the renderer pins PDFKit at 0.19.1 so that npm gives pdfmake that release (0036); a host whose package manager places it otherwise, or that holds a PDFKit of its own, resolves pdfmake's `^0.19.1`. A later 0.19.x that moved one would print the same pages in bytes that may differ from one render to the next; one that kept `finalize` but called it otherwise on one of a PNG's three decodes would leave a render with such an image ahead of another never ending, neither printing nor refused. Either is found by the install gate at its next run rather than by the renderer's own suite, which runs on 0.19.1.",
           "heldBy": "packages/report-render-pdf/src/image-order.test.ts"
+        }
+      ]
+    },
+    "0036": {
+      "reviewed": "sha256:6f46f26b3704dfb6ae73b4a1b41fece46cfe723d4e17a67e164c97ba9241cdb5",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "report-render-pdf declares PDFKit at exactly 0.19.1 and imports nothing of it, so that an install gives pdfmake that release. The install gate, which installs with npm into hosts that hold no PDFKit of their own, holds that pdfmake loads it; under pnpm or Yarn, or beside a host's own PDFKit, which copy pdfmake loads was not measured, and a host can hold it with its own overrides. A PDFKit release that fixed the image order would reach a host only with a release of the renderer that moved the pin.",
+          "heldBy": "packages/report-render-pdf/src/pdfkit-pin.test.ts"
         }
       ]
     }

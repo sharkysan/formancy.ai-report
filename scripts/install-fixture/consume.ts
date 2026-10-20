@@ -512,9 +512,9 @@ if (grandLine === undefined || !grandLine.includes((written.grandTotal[0] ?? '')
 // file, as the catalog's /AF and the name tree list it, and says so in its
 // XMP, on the reviewed sRGB profile. The consumer has no PDF reader, so
 // embedding.ts reads PDFKit's bytes. What only this gate sees is the
-// PDFKit a clean npm install resolves within pdfmake's range, rather than
-// the workspace's lockfile's, and the profile it reads from its own
-// directory there.
+// PDFKit a clean npm install gives pdfmake, the one report-render-pdf pins
+// (0036), rather than the workspace's lockfile's, and the profile it reads
+// from its own directory there.
 const invoicePdf = await renderPdf(invoicedResolution.document, { maxPages: 50 })
 const embedding: Embedding = readEmbedding(invoicePdf)
 const [attached] = embedding.associated

@@ -1,12 +1,13 @@
 /*
  * The order the renderer writes the images PDFKit decodes before it
  * embeds them (0035), on the PDFKit this host installed. pdfmake 0.3.11
- * asks for PDFKit at ^0.19.1, which asks for png-js at ^1.1.0, so a host
- * resolves the newest release of each in range, not the one the
- * workspace's lockfile pins, and the order rests on three details of
- * PDFKit's that are not its API. consume.ts runs it and prints what it
- * returns. It lives apart because it changes when PDFKit's internals do,
- * not when a package's API does.
+ * asks for PDFKit at ^0.19.1, which asks for png-js at ^1.1.0, and the
+ * order rests on three details of PDFKit's that are not its API, so the
+ * renderer pins PDFKit at 0.19.1 (0036), which npm places where pdfmake
+ * finds it; png-js is still the newest release in range. This holds that
+ * pdfmake loads the PDFKit the renderer pins. consume.ts runs it and
+ * prints what it returns. It lives apart because it changes when PDFKit's
+ * internals do, not when a package's API does.
  *
  * A PNG with an alpha channel, one interlaced and one whose palette has
  * transparency -- PDFKit's three decodes -- are drawn large, each at a size
@@ -127,7 +128,13 @@ export async function imagesInOrder(): Promise<string> {
   }
   // The versions this host resolved, read from their own manifests: png-js's exports no package.json.
   const pdfkit = path.dirname(createRequire(createRequire(import.meta.url).resolve('pdfmake')).resolve('pdfkit/package.json'))
-  const version = (directory: string): string => (JSON.parse(readFileSync(path.join(directory, 'package.json'), 'utf8')) as { version: string }).version
+  const manifest = (directory: string): { version: string; dependencies?: Record<string, string> } => JSON.parse(readFileSync(path.join(directory, 'package.json'), 'utf8')) as { version: string; dependencies?: Record<string, string> }
+  const version = (directory: string): string => manifest(directory).version
   const pngJs = path.dirname(path.dirname(createRequire(path.join(pdfkit, 'package.json')).resolve('png-js')))
+  // The renderer pins PDFKit where 0035 read it (0036); a pin npm did not
+  // place where pdfmake looks would leave pdfmake its own release in range.
+  const renderer = path.dirname(path.dirname(createRequire(import.meta.url).resolve('@formancy/report-render-pdf')))
+  const pinned = manifest(renderer).dependencies?.pdfkit
+  if (version(pdfkit) !== pinned) throw new Error(`pdfmake loads PDFKit ${version(pdfkit)}, where @formancy/report-render-pdf pins ${String(pinned)}`)
   return `a large PNG with an alpha channel, an interlaced one and one with a palette's transparency above a small one with an alpha channel rendered, with their soft masks numbered and both written in the order pdfmake opened them, on PDFKit ${version(pdfkit)} and png-js ${version(pngJs)}`
 }

@@ -1,6 +1,6 @@
 # 0035 — The renderer writes the images PDFKit decodes before it embeds them in the order pdfmake opened them, so that one document renders to the same bytes however its decodes finish; PNGs made to embed at once, a digest by object graph with the claim narrowed, a renumbering pass, one zlib thread and a patched PDFKit lost
 
-- **Status:** accepted; extends [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), and the claim [0005](0005-pdfmake-renders-reports-behind-one-adapter.md) makes, that one document renders to the same bytes every time, which this makes true of a document with images PDFKit decodes before it embeds
+- **Status:** accepted; extends [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), and the claim [0005](0005-pdfmake-renders-reports-behind-one-adapter.md) makes, that one document renders to the same bytes every time, which this makes true of a document with images PDFKit decodes before it embeds; extended by [0036](0036-the-renderer-pins-pdfkit-at-the-release-0035-was-read-against-until-pdfkit-writes-images-in-the-order-it-embeds-them.md)
 - **Date:** 2026-10-19
 - **Deciders:** Daniel Bacher
 - **Verified by:**
