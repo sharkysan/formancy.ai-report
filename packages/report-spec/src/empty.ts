@@ -1,8 +1,8 @@
 /**
  * The report an author starts from when they start from nothing.
  */
+import type { ReportDefinition } from './definition.js'
 import { describeErrors } from './errors.js'
-import type { ReportDefinition } from './types.js'
 import { mmToPt } from './units.js'
 import { validateReport } from './validate.js'
 import { REPORT_SPEC_VERSION } from './version.js'

@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vitest'
+import { QR_ERROR_CORRECTION } from './components.js'
+import { REGION_NAMES } from './definition.js'
 import { printableArea, squareRoom } from './page.js'
 import { append, edited, editable, getAt, refusals, removeAt, richReport, setAt } from './test-support.js'
-import { QR_ERROR_CORRECTION, REGION_NAMES } from './types.js'
 import { validateReport } from './validate.js'
 
 /** Where the fixture's QR code is: last in the summary. */

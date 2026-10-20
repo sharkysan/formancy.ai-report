@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest'
+import type { ReportDefinition } from './definition.js'
 import { E_INVOICE_CURRENCIES, E_INVOICE_KINDS, INVOICE_TYPE_CODES, PAYMENT_MEANS_CODES, VAT_CATEGORY_CODES } from './e-invoice.js'
 import { EN16931_RULES } from './en16931.js'
 import { reportHash } from './hash.js'
 import { MAX_VAT_CATEGORIES } from './limits.js'
 import { editable, eInvoiceReport, getAt, removeAt, richReport, setAt } from './test-support.js'
-import type { ReportDefinition } from './types.js'
 import { validateReport } from './validate.js'
 
 const EI = '/eInvoice'

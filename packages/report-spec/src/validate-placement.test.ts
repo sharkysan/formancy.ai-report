@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vitest'
+import { REGION_NAMES } from './definition.js'
 import { MAX_NESTING_DEPTH, MAX_REGION_COMPONENTS } from './limits.js'
 import { append, edited, editable, getAt, refusals, removeAt, richReport, setAt } from './test-support.js'
-import { EXPRESSION_NAMES, REGION_NAMES } from './types.js'
+import { EXPRESSION_NAMES } from './values.js'
 
 const FLOW_REGIONS: readonly string[] = ['body', 'summary']
 

@@ -8,6 +8,12 @@
  * selection, zoom, the open pane, a drag, a host's view -- never reaches
  * the report.
  *
+ * Here are the editor's state, its listeners and the actions that edit the
+ * report or walk it. Its views -- the panes, the host's view and the zoom
+ * -- are `views.ts`'s, its drag `dragging.ts`'s and its images
+ * `images.ts`'s: each is lent what it needs of the editor, and every
+ * action of each runs through the one `dispatch` here.
+ *
  * `state()` is the same frozen object until something changes, which is
  * what React's `useSyncExternalStore` and an Angular signal compare by. An
  * action that edits the report and changes the selection tells listeners
@@ -18,36 +24,27 @@ import { insertComponent, moveComponent } from '@formancy/report-core'
 import type { Command, CommandOutcome, Location, ReportSession } from '@formancy/report-core'
 import { componentAt } from '@formancy/report-spec'
 import type { ComponentKind } from '@formancy/report-spec'
+import { dragActions } from './dragging.js'
 import { duplicate, indent, moveBy, outdent, remove } from './edits.js'
 import type { Edit, Planned } from './edits.js'
-import { clampZoom, zoomedIn, zoomedOut } from './geometry.js'
+import { clampZoom } from './geometry.js'
 import { shownLabel, stepLabel } from './history.js'
 import type { ImageFile, ImageStore } from './image-store.js'
 import { imageActions, imagesOf } from './images.js'
 import { columnKey, kindLabel } from './labels.js'
-import { EDITOR_PANELS, HIDEABLE_PANELS, HOST_VIEW_PLACES } from './model.js'
-import type { DragSubject, DropTarget, EditorAction, EditorActionType, EditorOutcome, EditorRefusalCode, EditorState, HideablePanel, HostView, HostViewPlace, Selection } from './model.js'
+import { DONE } from './model.js'
+import type { EditorAction, EditorActionType, EditorOutcome, EditorRefusalCode, EditorState, Selection } from './model.js'
 import { selectionKey } from './outline.js'
 import { fieldLabel, fieldsOf, pageRoomMessage, propertyCommand, propertyTarget, refusalMessage } from './properties.js'
 import { fieldWords } from './property-fields.js'
 import { selected } from './selection.js'
 import type { Selected } from './selection.js'
-import { buildState, derive, dragged, viewOf } from './state.js'
+import { buildState, derive, viewOf } from './state.js'
 import type { Derived, Local } from './state.js'
-import { dropTargets } from './targets.js'
-import { editorText, formatZoom } from './text.js'
+import { editorText } from './text.js'
 import type { EditorLocale } from './text.js'
-
-/**
- * A view of the host's own the editor makes room for -- the Studio's PDF
- * preview -- by its name: hidden, and in the design view's place, unless
- * it says otherwise.
- */
-export interface HostViewOptions {
-  readonly name: string
-  readonly shown?: boolean
-  readonly place?: HostViewPlace
-}
+import { hostViewOf, viewActions } from './views.js'
+import type { HostViewOptions } from './views.js'
 
 export interface ReportEditorOptions {
   /** The language of the editor's own words; English when absent. */
@@ -86,32 +83,7 @@ export interface ReportEditor {
   dispose(): void
 }
 
-const DONE: EditorOutcome = Object.freeze({ ok: true })
-
-/** Each pane that can be hidden, by the message that names it: the diagnostics are the problems. */
-const PANE_NAMES = { outline: 'pane.outline', properties: 'pane.properties', diagnostics: 'pane.problems' } as const satisfies Record<HideablePanel, string>
-
 type Handlers = { readonly [T in EditorActionType]: (action: Extract<EditorAction, { readonly type: T }>) => EditorOutcome }
-
-/**
- * The host's view as the editor keeps it: a copy of the option, never the
- * host's own object, which the frozen state would freeze. A view with no
- * name, or in a place nobody knows, is the host's mistake, refused when it
- * is made rather than drawn as a nameless region later.
- */
-function hostViewOf(option: HostViewOptions | undefined): HostView | null {
-  if (option === undefined) return null
-  if (typeof option.name !== 'string' || option.name.trim() === '') throw new RangeError('A host’s view needs a name: a builder names the region it draws the view in by it.')
-  const place = option.place ?? 'middle'
-  if (!(HOST_VIEW_PLACES as readonly string[]).includes(place)) throw new RangeError(`A host’s view stands in one of ${HOST_VIEW_PLACES.join(', ')}, not ${String(place)}.`)
-  return { name: option.name, shown: option.shown === true, place }
-}
-
-/** `host` with `next` in it: the same object when nothing changes, so a host that reads the view alone draws nothing again. */
-function hostAs(host: HostView, next: Partial<HostView>): HostView {
-  const merged = { ...host, ...next }
-  return merged.shown === host.shown && merged.place === host.place ? host : merged
-}
 
 export function createReportEditor(session: ReportSession, options: ReportEditorOptions = {}): ReportEditor {
   const locale = options.locale ?? 'en'
@@ -133,7 +105,6 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
   }
   let derived: Derived | undefined
   let cached: EditorState | undefined
-  let targetsCache: { readonly derived: Derived; readonly subject: string; readonly zoom: number; readonly targets: readonly DropTarget[] } | undefined
   const listeners = new Set<{ readonly listener: () => void }>()
   let disposed = false
   /** How many dispatches are running: one inside another -- a listener that dispatches -- counts as the outer one's. */
@@ -231,11 +202,6 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     return { status: { text, sequence: local.status.sequence + 1 } }
   }
 
-  /** A pane's name, as its tool in the toolbar says it. */
-  function paneName(panel: HideablePanel): string {
-    return t(PANE_NAMES[panel])
-  }
-
   function refuse(code: EditorRefusalCode, text: string, refusal?: Extract<CommandOutcome, { ok: false }>): EditorOutcome {
     setLocal(announce(text))
     return { ok: false, code, message: text, ...(refusal === undefined ? {} : { refusal }) }
@@ -243,18 +209,6 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
 
   function labelOf(key: string): string {
     return current().labels.get(key) ?? key
-  }
-
-  function targets(): readonly DropTarget[] {
-    const drag = local.drag
-    if (drag === null) return []
-    const now = current()
-    const subject = JSON.stringify(drag.subject)
-    if (targetsCache?.derived === now && targetsCache.subject === subject && targetsCache.zoom === local.zoom) return targetsCache.targets
-    const component = dragged(now, drag.subject)
-    const found = component === null ? [] : dropTargets(now.report, component, { labels: now.labels, layout: now.layout, zoom: local.zoom }, t)
-    targetsCache = { derived: now, subject, zoom: local.zoom, targets: found }
-    return found
   }
 
   /** The selection as the report has it, or the refusal for nothing selected. */
@@ -370,30 +324,6 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     return applyEdit(edit, () => labelOf(id))
   }
 
-  function startDrag(subject: DragSubject, via: 'pointer' | 'keyboard'): EditorOutcome {
-    const now = current()
-    if ('id' in subject) {
-      if (componentAt(now.report, subject.id) === undefined) return refuse('not-found', t('status.notFound', { name: subject.id }))
-    } else {
-      const entry = now.palette.find((candidate) => candidate.kind === subject.kind)
-      if (entry === undefined || entry.component === null) return refuse('unavailable', entry?.unavailable ?? t('status.notFound', { name: subject.kind }))
-    }
-    const name = 'id' in subject ? labelOf(subject.id) : kindLabel(subject.kind, t)
-    setLocal({ drag: { subject, via, over: null }, ...announce(t('status.choosePlace', { name })) })
-    return DONE
-  }
-
-  function drop(): EditorOutcome {
-    const drag = local.drag
-    if (drag === null) return refuse('not-dragging', t('status.notMoved'))
-    const target = drag.over === null ? undefined : targets()[drag.over]
-    if (target === undefined) {
-      setLocal({ drag: null })
-      return refuse('no-target', t('status.notMoved'))
-    }
-    return 'id' in drag.subject ? move(drag.subject.id, target.location) : insert(drag.subject.kind, target.location)
-  }
-
   function setProperty(key: string, value: string | boolean): EditorOutcome {
     const report = current().report
     // The editor keeps its selection one the document has, so there is a target.
@@ -434,35 +364,8 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     return DONE
   }
 
-  /** The host's view, or the refusal for an editor made without one. */
-  function withHostView(act: (host: HostView) => EditorOutcome): EditorOutcome {
-    return local.host === null ? refuse('unavailable', t('status.noHostView')) : act(local.host)
-  }
-
-  /**
-   * Shows the host's view. In the middle it takes the design view's place,
-   * and is the pane a narrow layout shows -- which is also how a view shown
-   * already comes back into sight there, from another pane. Either way what
-   * is in front of the person changed, so the live region says how to bring
-   * the design view back; asked again of a view that is the pane shown
-   * already, nothing changes and nothing is said.
-   */
-  function showHostView(host: HostView): EditorOutcome {
-    const next = hostAs(host, { shown: true })
-    if (viewOf(next) !== 'host') setLocal({ host: next })
-    else if (next !== host || local.panel !== 'canvas') setLocal({ host: next, panel: 'canvas', ...announce(t('status.hostViewShown', { view: host.name, pane: t('pane.canvas') })) })
-    return DONE
-  }
-
-  function zoom(to: number): EditorOutcome {
-    // The zoom is the design view's: with the host's view in its place it would change what nobody sees.
-    if (local.host !== null && viewOf(local.host) === 'host') return refuse('unavailable', t('status.zoomHidden', { view: local.host.name, pane: t('pane.canvas') }))
-    if (!Number.isFinite(to)) return refuse('invalid-value', t('input.number'))
-    const next = clampZoom(to)
-    setLocal({ zoom: next, ...announce(t('status.zoom', { zoom: formatZoom(next, locale) })) })
-    return DONE
-  }
-
+  const views = viewActions({ local: () => local, setLocal, announce, refuse }, t, locale)
+  const dragging = dragActions({ current, local: () => local, setLocal, announce, refuse, labelOf, insert, move }, t)
   const imaging = imageActions(images, { current, local: () => local, setLocal, announce, refuse, commit, act, raise, disposed: () => disposed })
 
   const handlers: Handlers = {
@@ -484,52 +387,18 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     setProperty: (action) => setProperty(action.key, action.value),
     undo: () => history('undo'),
     redo: () => history('redo'),
-    setZoom: (action) => zoom(action.zoom),
-    zoomIn: () => zoom(zoomedIn(local.zoom)),
-    zoomOut: () => zoom(zoomedOut(local.zoom)),
-    startDrag: (action) => startDrag(action.subject, action.via ?? 'pointer'),
-    updateDrag: (action) => {
-      const drag = local.drag
-      if (drag === null) return refuse('not-dragging', t('status.notMoved'))
-      if (action.over !== null && targets()[action.over] === undefined) return refuse('not-found', t('status.notFound', { name: String(action.over) }))
-      if (action.over !== drag.over) setLocal({ drag: { ...drag, over: action.over } })
-      return DONE
-    },
-    drop,
-    cancelDrag: () => {
-      if (local.drag === null) return refuse('not-dragging', t('status.notMoved'))
-      setLocal({ drag: null, ...announce(t('status.notMoved')) })
-      return DONE
-    },
-    openPanel: (action) => {
-      if (!(EDITOR_PANELS as readonly string[]).includes(action.panel)) return refuse('invalid-value', t('input.option'))
-      const shown = local.hidden.filter((panel) => panel !== action.panel)
-      // The design view takes its place back from a host's view standing in it; one beside the builder stays.
-      const back = action.panel === 'canvas' && local.host !== null && viewOf(local.host) === 'host' ? { host: hostAs(local.host, { shown: false }) } : {}
-      setLocal({ panel: action.panel, ...(shown.length === local.hidden.length ? {} : { hidden: shown }), ...back })
-      return DONE
-    },
-    hidePanel: (action) => {
-      if (!(HIDEABLE_PANELS as readonly string[]).includes(action.panel)) return refuse('invalid-value', t('input.option'))
-      if (local.hidden.includes(action.panel)) return DONE
-      const hidden = HIDEABLE_PANELS.filter((panel) => panel === action.panel || local.hidden.includes(panel))
-      // The pane a narrow layout shows is never one that is hidden.
-      setLocal({ hidden, ...(local.panel === action.panel ? { panel: 'canvas' } : {}), ...announce(t('status.paneHidden', { pane: paneName(action.panel) })) })
-      return DONE
-    },
-    showHostView: () => withHostView(showHostView),
-    // The host's own control says it, by its pressed state: the editor adds no sentence.
-    hideHostView: () =>
-      withHostView((host) => {
-        setLocal({ host: hostAs(host, { shown: false }) })
-        return DONE
-      }),
-    placeHostView: (action) =>
-      withHostView((host) => {
-        if (!(HOST_VIEW_PLACES as readonly string[]).includes(action.place)) return refuse('invalid-value', t('input.option'))
-        setLocal({ host: hostAs(host, { place: action.place }) })
-        return DONE
-      }),
+    setZoom: (action) => views.zoom(action.zoom),
+    zoomIn: () => views.zoomIn(),
+    zoomOut: () => views.zoomOut(),
+    startDrag: (action) => dragging.startDrag(action.subject, action.via ?? 'pointer'),
+    updateDrag: (action) => dragging.updateDrag(action.over),
+    drop: () => dragging.drop(),
+    cancelDrag: () => dragging.cancelDrag(),
+    openPanel: (action) => views.openPanel(action.panel),
+    hidePanel: (action) => views.hidePanel(action.panel),
+    showHostView: () => views.showHostView(),
+    hideHostView: () => views.hideHostView(),
+    placeHostView: (action) => views.placeHostView(action.place),
     chooseImage: () => imaging.chooseImage(),
     removeImage: (action) => imaging.removeImage(action.asset),
   }
@@ -544,7 +413,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
           undoLabel: shownLabel(session.undoLabel(), t),
           redoLabel: shownLabel(session.redoLabel(), t),
         }
-        cached = buildState(now, { revision: session.revision(), history }, local, locale, t, targets, images)
+        cached = buildState(now, { revision: session.revision(), history }, local, locale, t, dragging.targets, images)
       }
       return cached
     },

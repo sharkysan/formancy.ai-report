@@ -1,38 +1,24 @@
 import { describe, expect, test } from 'vitest'
 import { COUNTRY_CODES, E_INVOICE_NAMES, E_INVOICE_PROFILES, FACTUR_X, FACTUR_X_PROFILES, INVOICE_TOTALS, SCHEME_IDS, UNIT_CODES, VAT_BREAKDOWN, VAT_PREFIXES } from './e-invoice.js'
 import type { VatCategory } from './e-invoice.js'
-import { EXPRESSION_NAMES, VALUE_SCOPES } from './types.js'
+import { checkEInvoiceDate, checkInvoicingPeriod, E_INVOICE_DATES, periodBreak, supplyBreak } from './en16931-dates.js'
+import { checkEInvoiceDecimal, E_INVOICE_DECIMALS } from './en16931-decimals.js'
+import { E_INVOICE_LINE_CODES, E_INVOICE_LINE_COLUMNS } from './en16931-lines.js'
 import {
-  buyerIdentificationBreak,
   checkCountryCode,
-  checkEInvoiceDate,
-  checkEInvoiceDecimal,
   checkEInvoiceText,
-  checkInvoicingPeriod,
-  checkLineCategory,
   checkSchemeId,
   checkUnitCode,
   checkVatIdentifier,
-  checkVatRate,
-  E_INVOICE_DATES,
-  E_INVOICE_DECIMALS,
-  E_INVOICE_LINE_CODES,
-  E_INVOICE_LINE_COLUMNS,
   E_INVOICE_TEXT_TERMS,
   E_INVOICE_TEXTS,
   eInvoiceBlank,
-  EN16931_RULES,
-  en16931Rule,
-  FULL_ADDRESS,
-  neededBy,
-  periodBreak,
-  sellerIdentificationBreaks,
-  supplyBreak,
-  vatCategoryBreaks,
-  vatReasonBreak,
   xmlCharacterBreak,
-} from './en16931.js'
+} from './en16931-texts.js'
+import { buyerIdentificationBreak, checkLineCategory, checkVatRate, sellerIdentificationBreaks, vatCategoryBreaks, vatReasonBreak } from './en16931-vat.js'
+import { EN16931_RULES, en16931Rule, FULL_ADDRESS, neededBy } from './en16931.js'
 import type { PaymentCheck } from './payment-reference.js'
+import { EXPRESSION_NAMES, VALUE_SCOPES } from './values.js'
 
 /** The rule a check says is broken, or undefined when it accepts the value. */
 function broken<T>(check: PaymentCheck<T>): string | undefined {

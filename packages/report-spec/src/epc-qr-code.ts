@@ -15,7 +15,8 @@
  * instant transfer, no other currency, and no structured reference but a
  * creditor reference (ISO 11649).
  */
-import type { ComponentBase, Expression, Inline } from './types.js'
+import type { ComponentBase } from './components.js'
+import type { Expression, Inline } from './values.js'
 
 /**
  * What a code may be framed and captioned with: Austria's frame and the

@@ -493,3 +493,6 @@ export const EDITOR_REFUSAL_CODES = [
 export type EditorRefusalCode = (typeof EDITOR_REFUSAL_CODES)[number]
 
 export type EditorOutcome = { readonly ok: true } | { readonly ok: false; readonly code: EditorRefusalCode; readonly message: string; readonly refusal?: Refusal }
+
+/** The outcome of an action that did what it was asked: one frozen object, the editor's and each of its parts'. */
+export const DONE: EditorOutcome = Object.freeze({ ok: true })

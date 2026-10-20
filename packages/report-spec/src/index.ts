@@ -1,113 +1,68 @@
 export { checkSpecVersion, REPORT_FORMAT, REPORT_SPEC_VERSION } from './version.js'
 export type { SpecVersionCheck } from './version.js'
 
-export {
-  AGGREGATE_FUNCTIONS,
-  AGGREGATE_SCOPES,
-  ALIGNMENTS,
-  ASSET_MEDIA_TYPES,
-  COMPONENT_KINDS,
-  CURRENCY_SOURCE_KINDS,
-  DATASET_ROLES,
-  DATE_STYLES,
-  EXPRESSION_NAMES,
-  GROUP_KEY,
-  FIELD_TYPES,
-  FONT_FAMILIES,
-  FORMAT_KINDS,
-  IMAGE_FITS,
-  IMAGE_SOURCE_KINDS,
-  INLINE_KINDS,
-  ORIENTATIONS,
-  PAGE_SIZE_NAMES,
-  PARAMETER_TYPES,
-  PROVENANCE_KINDS,
-  QR_ERROR_CORRECTION,
-  REGION_NAMES,
-  ROUNDING_MODES,
-  SORT_DIRECTIONS,
-  TEXT_TRANSFORMS,
-  VALUE_SCOPES,
-} from './types.js'
+export { ORIENTATIONS, PAGE_SIZE_NAMES } from './page.js'
+export type { Margins, Orientation, PageSettings, PageSizeName } from './page.js'
+export { ALIGNMENTS, FONT_FAMILIES } from './styles.js'
+export type { Alignment, FontFamily, PrintStyle, StyleRule } from './styles.js'
+export { DATASET_ROLES, FIELD_TYPES, PARAMETER_TYPES } from './data.js'
+export type { DatasetContract, DatasetRole, Datasets, FieldContract, FieldRef, FieldType, ParameterDef, ParameterType } from './data.js'
+export { ASSET_MEDIA_TYPES } from './assets.js'
+export type { AssetMediaType, AssetRef } from './assets.js'
+export { AGGREGATE_SCOPES, CURRENCY_SOURCE_KINDS, DATE_STYLES, EXPRESSION_NAMES, FORMAT_KINDS, GROUP_KEY, INLINE_KINDS, TEXT_TRANSFORMS, VALUE_SCOPES } from './values.js'
 export type {
-  AggregateDef,
-  AggregateFunction,
   AggregateInline,
   AggregateScope,
-  Alignment,
-  AssetMediaType,
-  AssetRef,
-  Border,
-  ColumnSlot,
-  ColumnsComponent,
-  Component,
-  ComponentBase,
-  ComponentKind,
   CurrencyFormat,
   CurrencySource,
   CurrencySourceKind,
-  DatasetContract,
-  DatasetRole,
-  Datasets,
   DateFormat,
   DateStyle,
   Expression,
   ExpressionInline,
-  FieldContract,
   FieldInline,
-  FieldRef,
-  FieldType,
-  FontFamily,
   Format,
   FormatKind,
-  ImageComponent,
-  ImageFit,
-  ImageSource,
-  ImageSourceKind,
   Inline,
   InlineKind,
-  KeepTogetherComponent,
-  LineComponent,
-  Margins,
   NumberFormat,
-  Orientation,
-  PageBreakComponent,
   PageCountInline,
   PageNumberInline,
-  PageSettings,
-  PageSizeName,
-  ParameterDef,
   ParameterInline,
-  ParameterType,
-  PrintStyle,
-  Provenance,
-  ProvenanceKind,
-  QrCodeComponent,
-  QrErrorCorrection,
-  RectangleComponent,
-  RegionName,
-  Regions,
-  ReportDefinition,
-  Rounding,
-  RoundingMode,
-  RowValue,
-  SectionComponent,
-  SortDirection,
-  SortKey,
-  SpacerComponent,
-  StyleRule,
-  TableColumn,
-  TableComponent,
-  TableFooterCell,
-  TableFooterRow,
-  TableGroup,
-  TextComponent,
   TextFormat,
   TextInline,
   TextTransform,
   ValueScope,
+} from './values.js'
+export { AGGREGATE_FUNCTIONS, ROUNDING_MODES } from './aggregates.js'
+export type { AggregateDef, AggregateFunction, Rounding, RoundingMode, RowValue } from './aggregates.js'
+export { COMPONENT_KINDS, IMAGE_FITS, IMAGE_SOURCE_KINDS, QR_ERROR_CORRECTION } from './components.js'
+export type {
+  Border,
+  ColumnsComponent,
+  ColumnSlot,
+  Component,
+  ComponentBase,
+  ComponentKind,
+  ImageComponent,
+  ImageFit,
+  ImageSource,
+  ImageSourceKind,
+  KeepTogetherComponent,
+  LineComponent,
+  PageBreakComponent,
+  QrCodeComponent,
+  QrErrorCorrection,
+  RectangleComponent,
+  SectionComponent,
+  SpacerComponent,
+  TextComponent,
   Width,
-} from './types.js'
+} from './components.js'
+export { SORT_DIRECTIONS } from './table.js'
+export type { SortDirection, SortKey, TableColumn, TableComponent, TableFooterCell, TableFooterRow, TableGroup } from './table.js'
+export { PROVENANCE_KINDS, REGION_NAMES } from './definition.js'
+export type { Provenance, ProvenanceKind, RegionName, Regions, ReportDefinition } from './definition.js'
 
 export { PAYMENT_PART_KINDS, QR_BILL_CURRENCIES, QR_BILL_LANGUAGES } from './payment-part.js'
 export type { PaymentPart, PaymentPartKind, QrBillAddress, QrBillCurrency, QrBillLanguage, SwissQrBill } from './payment-part.js'
@@ -195,51 +150,28 @@ export type {
   VatCategory,
   VatCategoryCode,
 } from './e-invoice.js'
+export { EN16931_RULES, en16931Rule, FULL_ADDRESS, neededBy } from './en16931.js'
+export type { EInvoiceNeed, En16931Rule } from './en16931.js'
 export {
-  buyerIdentificationBreak,
   checkCountryCode,
-  checkEInvoiceDate,
-  checkEInvoiceDecimal,
   checkEInvoiceText,
-  checkInvoicingPeriod,
-  checkLineCategory,
   checkSchemeId,
   checkUnitCode,
   checkVatIdentifier,
-  checkVatRate,
-  E_INVOICE_DATES,
-  E_INVOICE_DECIMALS,
-  E_INVOICE_LINE_CODES,
-  E_INVOICE_LINE_COLUMNS,
   E_INVOICE_TEXT_TERMS,
   E_INVOICE_TEXTS,
   eInvoiceBlank,
-  EN16931_RULES,
-  en16931Rule,
-  FULL_ADDRESS,
-  neededBy,
-  periodBreak,
-  sellerIdentificationBreaks,
-  supplyBreak,
-  vatCategoryBreaks,
-  vatReasonBreak,
   xmlCharacterBreak,
-} from './en16931.js'
-export type {
-  EInvoiceDateRule,
-  EInvoiceDateTerm,
-  EInvoiceDecimalRule,
-  EInvoiceDecimalTerm,
-  EInvoiceLineCode,
-  EInvoiceLineColumn,
-  EInvoiceLineTerm,
-  EInvoiceNeed,
-  EInvoiceTextRule,
-  EInvoiceTextTerms,
-  EInvoiceTextTerm,
-  En16931Rule,
-  VatCategoryBreak,
-} from './en16931.js'
+} from './en16931-texts.js'
+export type { EInvoiceTextRule, EInvoiceTextTerm, EInvoiceTextTerms } from './en16931-texts.js'
+export { checkEInvoiceDecimal, E_INVOICE_DECIMALS } from './en16931-decimals.js'
+export type { EInvoiceDecimalRule, EInvoiceDecimalTerm } from './en16931-decimals.js'
+export { checkEInvoiceDate, checkInvoicingPeriod, E_INVOICE_DATES, periodBreak, supplyBreak } from './en16931-dates.js'
+export type { EInvoiceDateRule, EInvoiceDateTerm } from './en16931-dates.js'
+export { E_INVOICE_LINE_CODES, E_INVOICE_LINE_COLUMNS } from './en16931-lines.js'
+export type { EInvoiceLineCode, EInvoiceLineColumn, EInvoiceLineTerm } from './en16931-lines.js'
+export { buyerIdentificationBreak, checkLineCategory, checkVatRate, sellerIdentificationBreaks, vatCategoryBreaks, vatReasonBreak } from './en16931-vat.js'
+export type { VatCategoryBreak } from './en16931-vat.js'
 
 export { validateReport } from './validate.js'
 export type { ReportValidation } from './validate.js'

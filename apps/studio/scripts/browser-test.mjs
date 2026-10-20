@@ -30,13 +30,14 @@
 //     in React is in the Angular builder with its Undo, undone there the PDF
 //     follows, and back in React the Redo is offered; and the first moment
 //     the paper says it is no longer busy after the edit, its text layer and
-//     the Download PDF -- read back with PDF.js in Node -- both hold the edit;
+//     the Download PDF -- read back with PDF.js in Node -- both hold the edit
+//     (gate-switch.mjs);
 //   - in each builder: a pointer drags a palette entry onto an outline row
 //     and the component is inserted there, selected and focused; Enter on a
 //     palette entry opens the place chooser with the keyboard on its first
 //     place, and Escape puts the keyboard back on the entry; Final renders a
 //     final PDF and back; and the Preview's Zoom in redraws every page
-//     larger, on white, with ink;
+//     larger, on white, with ink (gate-interactions.mjs);
 //   - the Preview stands where the window has room for it (0029): in the
 //     builder's middle, in the design view's place, with the outline and
 //     the properties beside it, up to the Studio's widest breakpoint, and
@@ -83,19 +84,18 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
-import { readPdf } from '@formancy/report-corpus'
 import { chromium } from 'playwright'
 import { build, preview } from 'vite'
 import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
+import { interactions } from './gate-interactions.mjs'
 import { app, audit, cutControls, describeFocus, downloaded, drawnPages, fontProblem, fromTheTop, measureWidth, paletteProblem, passes, rulesOnThePaper } from './gate-page.mjs'
 import { builderParity } from './gate-parity.mjs'
 import { placeChecks } from './gate-place.mjs'
-import { imageChecks } from './gate-images.mjs'
 import { gateRecorder } from './gate-results.mjs'
-import { roomChecks } from './gate-room.mjs'
-import { builder, editorOf, open, previewInView, previewOf, selectRow, setField, settled, showing, untilLine, WITHIN } from './gate-steps.mjs'
+import { builder, editorOf, open, previewInView, previewOf, selectRow, setField, settled, WITHIN } from './gate-steps.mjs'
+import { frameworkSwitch } from './gate-switch.mjs'
 
 const dist = join(app, 'dist')
 const repo = join(app, '..', '..')
@@ -106,61 +106,6 @@ const repo = join(app, '..', '..')
  * lines PDF.js read on that page, top to bottom.
  */
 const PICTURED = JSON.parse(readFileSync(join(repo, 'docs', 'images', 'pictures.json'), 'utf8'))
-
-/** The quotation's payment line, and what the switch check makes of it. */
-const PAYMENT = 'Zahlbar innert 30 Tagen netto.'
-const EDITED = 'Zahlbar innert 10 Tagen netto.'
-
-/** Null once `locator` is there, within a few seconds -- zoneless Angular draws a frame or two after the click -- or why not. */
-const present = (locator, what) =>
-  locator.waitFor({ timeout: 5_000 }).then(
-    () => null,
-    () => `no ${what}`,
-  )
-
-/**
- * A pointer drag from `source` to `position` on `target`, as a person makes
- * one. Both are in view before the press, so nothing scrolls between the
- * press and the release: the source at the top of the window, and the
- * target, below it, scrolled into view only if it is not then. Scrolled
- * into view one after the other, a target past the fold took the source
- * above the window's top and the press missed it -- on CI, at 320 pixels
- * with the web fonts refused, where Linux's fallback is wider. Two ends
- * that cannot be in view at once are said, with where they are. Then the
- * pointer moves in steps, as a hand does. Chromium starts an HTML drag
- * (Angular's builder, 0012) only once the pointer has moved some way with
- * the button held, and in the headless shell on Linux one jump from the
- * press to the target never started it: locator.dragTo passed on Windows
- * and inserted nothing on CI. Returns where the press and the release were,
- * and what was under each, for a drag that placed nothing to say so.
- */
-async function drag(page, source, target, position) {
-  await source.evaluate((element) => element.scrollIntoView({ block: 'start', inline: 'nearest' }))
-  await target.scrollIntoViewIfNeeded()
-  const from = await source.boundingBox()
-  const to = await target.boundingBox()
-  if (from === null || to === null) throw new Error('a drag needs both ends drawn')
-  const { width, height } = page.viewportSize() ?? { width: 0, height: 0 }
-  // A pixel either way for a layout in fractions of one: scrolled to the top, a box can stand a third of a pixel above it.
-  const seen = (box) => box.x >= -1 && box.y >= -1 && box.x + box.width <= width + 1 && box.y + box.height <= height + 1
-  const at = (box) => `${String(Math.round(box.x))},${String(Math.round(box.y))} ${String(Math.round(box.width))}x${String(Math.round(box.height))}`
-  if (!seen(from) || !seen(to)) throw new Error(`a drag needs both ends in view at once, and in ${String(width)}x${String(height)} the source is at ${at(from)} and the target at ${at(to)}`)
-  const under = (x, y) =>
-    page.evaluate(([px, py]) => {
-      const element = document.elementFromPoint(px, py)
-      return element === null ? 'nothing' : `<${element.tagName.toLowerCase()}> "${(element.getAttribute('aria-label') ?? element.textContent ?? '').trim().slice(0, 40)}"`
-    }, [x, y])
-  const said = `pressed at ${at(from)} on ${await under(from.x + from.width / 2, from.y + from.height / 2)}, released at ${String(Math.round(to.x + position.x))},${String(Math.round(to.y + position.y))} on ${await under(to.x + position.x, to.y + position.y)}`
-  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
-  await page.mouse.down()
-  for (let step = 1; step <= 12; step += 1) {
-    const share = step / 12
-    await page.mouse.move(from.x + from.width / 2 + (to.x + position.x - (from.x + from.width / 2)) * share, from.y + from.height / 2 + (to.y + position.y - (from.y + from.height / 2)) * share)
-  }
-  await page.mouse.move(to.x + position.x, to.y + position.y)
-  await page.mouse.up()
-  return said
-}
 
 /**
  * Enter on `pressed`, as a keyboard user presses it; then whether
@@ -289,67 +234,6 @@ async function keyboard(gate, page) {
 }
 
 /**
- * After an edit: the paper busy while the render is on its way, then the
- * first frame it is not -- what its text layer holds then, and where
- * Download PDF points then -- and the bytes at that address, read in Node.
- * A paper that settled on the earlier PDF, or a link to bytes the paper
- * does not show, is found here.
- */
-async function firstSettled(page) {
-  await page.waitForFunction(() => document.querySelector('.paper')?.getAttribute('aria-busy') === 'true', undefined, { timeout: WITHIN })
-  const handle = await page.waitForFunction(
-    () => {
-      const paper = document.querySelector('.paper')
-      if (paper === null || paper.getAttribute('aria-busy') !== 'false') return null
-      const text = [...paper.querySelectorAll('.paper-text span')].map((span) => span.textContent ?? '').join(' ')
-      const link = [...document.querySelectorAll('a[download]')].find((anchor) => anchor.textContent.trim() === 'Download PDF')
-      return { text: text.replace(/\s+/g, ' '), href: link?.href ?? null }
-    },
-    undefined,
-    { timeout: WITHIN },
-  )
-  const { text, href } = await handle.jsonValue()
-  const bytes = href === null ? [] : await page.evaluate(async (address) => [...new Uint8Array(await (await fetch(address)).arrayBuffer())], href)
-  const read = bytes.length === 0 ? { pages: [] } : await readPdf(new Uint8Array(bytes))
-  return { text, downloaded: read.pages.flatMap((each) => each.items.map((item) => item.text)).join(' ').replace(/\s+/g, ' ') }
-}
-
-/**
- * Plan 21's switch in a real browser: an edit in React, the switch, Undo
- * in Angular, the switch back. The quotation's payment line, which prints,
- * so the PDF is held to the session too.
- */
-async function frameworkSwitch(gate, page) {
-  const { check } = gate
-  const editor = editorOf(page)
-  await open(page, 'quotation')
-  await settled(page)
-  await selectRow(editor, PAYMENT)
-  await setField(editor, 'Text', EDITED)
-  const first = await firstSettled(page)
-  check('the edit: once the paper is no longer busy, its pages show the edit', first.text.includes(EDITED) ? null : `the text layer then held ${first.text.includes(PAYMENT) ? `the line before the edit, "${PAYMENT}"` : 'neither line'}`)
-  check('and Download PDF gives that PDF, read back with PDF.js', first.downloaded.includes(EDITED) ? null : `the download ${first.downloaded === '' ? 'was empty' : 'does not hold the edit'}`)
-  await untilLine(page, EDITED)
-  await builder(page, 'Angular')
-  const angular = await editor.evaluate((element) => element.closest('report-builder') !== null)
-  check('the switch: the builder shown is Angular’s', angular ? null : 'the region "Report editor" is not inside <report-builder>')
-  const outline = () => showing(editor, 'Outline', editor.getByRole('tree', { name: 'Outline', exact: true }))
-  check('and the edit made in React is in it', await present((await outline()).getByRole('treeitem', { name: EDITED, exact: true }), `outline row "${EDITED}"`))
-  const undo = editor.getByRole('button', { name: 'Undo', exact: true })
-  check('and so is its history: Undo is offered', await present(editor.getByRole('button', { name: 'Undo', exact: true, disabled: false }), 'Undo that is not disabled'))
-  await undo.click()
-  await untilLine(page, PAYMENT).then(
-    () => check('undone in Angular, the PDF prints the line as it was', null),
-    (error) => check('undone in Angular, the PDF prints the line as it was', error.message),
-  )
-  await builder(page, 'React')
-  const back = await editor.evaluate((element) => element.closest('report-builder') === null)
-  check('switched back, the builder shown is React’s', back ? null : 'the region "Report editor" is still inside <report-builder>')
-  check('and it shows the line as Angular left it', await present((await outline()).getByRole('treeitem', { name: PAYMENT, exact: true }), `outline row "${PAYMENT}"`))
-  check('and offers Redo of the edit made before the switch', await present(editor.getByRole('button', { name: 'Redo', exact: true, disabled: false }), 'Redo that is not disabled'))
-}
-
-/**
  * A refusal in the state the page is in, measured, and its "Select …"
  * button pressed with Enter: `edit` brings the refusal, `outcome` is what
  * the status then says, `away` a row selected before the press so the
@@ -371,87 +255,6 @@ async function refusal(gate, page, { state, edit, outcome, away, button, target 
   gate.check(`${state}: Enter on "${button}" puts the keyboard on its outline row, selected`, await focusAfterEnter(page, pressed, row))
   await editor.getByRole('button', { name: 'Undo', exact: true }).click()
   await settled(page)
-}
-
-/**
- * What a person does with a pointer, the place chooser, the Final switch
- * and the Preview's zoom, in the builder `framework` names, on the service
- * inspection; each undone, so the next starts where the starters left off.
- */
-async function interactions(gate, page, framework) {
-  const { check } = gate
-  const editor = editorOf(page)
-  await open(page, 'service-inspection')
-  await settled(page)
-
-  // A pointer: a palette entry dragged onto the upper half of an outline row
-  // lands before it. React binds pointer events, Angular HTML drag and drop
-  // (0012), and Playwright drives both as a mouse. The row is the report
-  // header's second, in view without scrolling the pane: a pane scrolled
-  // between the press and the move is a drag Playwright makes and a person
-  // does not.
-  const outline = await showing(editor, 'Outline', editor.getByRole('tree', { name: 'Outline', exact: true }))
-  const rows = await outline.getByRole('treeitem').count()
-  const entry = editor.getByRole('group', { name: 'Insert', exact: true }).getByRole('button', { name: 'Spacer', exact: true })
-  const dragged = await drag(page, entry, outline.getByRole('treeitem').nth(1), { x: 24, y: 4 })
-  const dropped = outline.getByRole('treeitem', { name: 'Spacer (spacer)', exact: true, selected: true })
-  const inserted = await present(dropped, 'selected row "Spacer (spacer)"')
-  check(`${framework}: a palette entry a pointer drags onto a row is inserted there, selected`, inserted === null ? null : `${inserted}: ${dragged}`)
-  const after = await outline.getByRole('treeitem').count()
-  check(`${framework}: and nothing else is`, after === rows + 1 ? null : `${String(rows)} rows before, ${String(after)} after`)
-  const onDropped = (await dropped.count()) === 1 && (await dropped.evaluate((element) => element === document.activeElement))
-  check(`${framework}: and the keyboard is on its row`, onDropped ? null : `the focus is on ${await describeFocus(page)}`)
-  // Undone only when the drop changed something: a failed drop leaves Undo
-  // disabled, and clicking it would end the gate on a timeout instead of
-  // letting the checks after this one report.
-  if (after !== rows) {
-    await editor.getByRole('button', { name: 'Undo', exact: true }).click()
-    await settled(page)
-  }
-
-  // The place chooser, the keyboard's path for every drag (formancy.ai 0046).
-  const text = await showing(editor, 'Outline', editor.getByRole('group', { name: 'Insert', exact: true }).getByRole('button', { name: 'Text', exact: true }))
-  await text.focus()
-  await page.keyboard.press('Enter')
-  const chooser = editor.getByRole('dialog', { name: 'Insert Text: choose a place', exact: true })
-  check(`${framework}: Enter on a palette entry opens the place chooser`, await present(chooser, 'place chooser'))
-  const onFirst = (await chooser.count()) === 1 && (await chooser.evaluate((dialog) => dialog.querySelector('button') === document.activeElement))
-  check(`${framework}: with the keyboard on its first place`, onFirst ? null : `the focus is on ${await describeFocus(page)}`)
-  await page.keyboard.press('Escape')
-  const closed = await chooser.waitFor({ state: 'detached', timeout: 5_000 }).then(
-    () => null,
-    () => 'the chooser is still open',
-  )
-  check(`${framework}: Escape closes it`, closed)
-  check(`${framework}: and puts the keyboard back on the palette entry`, (await text.evaluate((element) => element === document.activeElement)) ? null : `the focus is on ${await describeFocus(page)}`)
-
-  // Final, and back: the switch reaches the runtime, and the status says which printed.
-  await previewInView(page)
-  const final = previewOf(page).getByRole('checkbox', { name: 'Final', exact: true })
-  await final.check()
-  const finalPrinted = await settled(page, /^Final render: printed(, with \d+ warnings?)?\.$/).then(
-    () => null,
-    (error) => error.message,
-  )
-  check(`${framework}: Final prints a final render`, finalPrinted)
-  await final.uncheck()
-  await settled(page)
-
-  // The Preview's zoom: every page drawn again, larger, on white, with ink.
-  const firstPage = previewOf(page).getByRole('group', { name: /^Page 1 of \d+$/ })
-  const before = await firstPage.evaluate((sheet) => sheet.getBoundingClientRect().width)
-  await previewOf(page).getByRole('group', { name: 'Zoom', exact: true }).getByRole('button', { name: 'Zoom in', exact: true }).click()
-  await settled(page)
-  const zoomed = await drawnPages(page, { within: WITHIN })
-  const larger = await firstPage.evaluate((sheet) => sheet.getBoundingClientRect().width)
-  const drawnLarger = larger > before && zoomed.length > 0 && zoomed.every((sheet) => sheet.white > 0.5 && sheet.ink > 0.001)
-  check(`${framework}: the Preview's Zoom in draws every page larger, on white, with ink`, drawnLarger ? null : `page 1 was ${String(before)}px wide and is ${String(larger)}px, with ${String(zoomed.length)} pages drawn`)
-  await previewOf(page).getByRole('button', { name: 'Fit width', exact: true }).click()
-  await settled(page)
-
-  // The room made for the middle pane: a pane hidden and shown, the Preview hidden and shown.
-  await roomChecks(gate, page, framework)
-  await imageChecks(gate, page, framework)
 }
 
 /**

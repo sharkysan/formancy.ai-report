@@ -4,38 +4,21 @@
  * where it came from. Each list records the ids it declares, so components
  * can be checked against them.
  */
+import { ASSET_MEDIA_TYPES } from './assets.js'
+import type { AssetRef } from './assets.js'
 import type { Findings } from './check.js'
 import { all, describe, fieldKey, flag, fontSize, identifier, integer, kindOf, matches, oneOf, optional, points, readArray, readObject, shape, strictKeys, text } from './check.js'
+import { DATASET_ROLES, FIELD_TYPES, PARAMETER_TYPES } from './data.js'
+import type { DatasetContract, DatasetRole, Datasets, FieldContract, FieldType, ParameterDef, ParameterType } from './data.js'
+import { PROVENANCE_KINDS } from './definition.js'
+import type { Provenance, ProvenanceKind } from './definition.js'
 import { MAX_ASSETS, MAX_DATASET_FIELDS, MAX_LABEL_LENGTH, MAX_PARAMETERS, MAX_SCALE, MAX_STYLES, MIN_PRINTABLE_PT } from './limits.js'
-import { printableArea } from './page.js'
+import { ORIENTATIONS, PAGE_SIZE_NAMES, printableArea } from './page.js'
+import type { Margins, PageSettings } from './page.js'
 import { at } from './pointer.js'
+import { ALIGNMENTS, FONT_FAMILIES } from './styles.js'
+import type { PrintStyle } from './styles.js'
 import { COLOR, DECIMAL, DIGEST, FORM_ID, INTEGER, isCalendarDate, SCHEMA_HASH } from './syntax.js'
-import {
-  ALIGNMENTS,
-  ASSET_MEDIA_TYPES,
-  DATASET_ROLES,
-  FIELD_TYPES,
-  FONT_FAMILIES,
-  ORIENTATIONS,
-  PAGE_SIZE_NAMES,
-  PARAMETER_TYPES,
-  PROVENANCE_KINDS,
-} from './types.js'
-import type {
-  AssetRef,
-  DatasetContract,
-  DatasetRole,
-  Datasets,
-  FieldContract,
-  FieldType,
-  Margins,
-  PageSettings,
-  ParameterDef,
-  ParameterType,
-  PrintStyle,
-  Provenance,
-  ProvenanceKind,
-} from './types.js'
 import { declare } from './validate-context.js'
 import type { Ctx, Declarations, Declaration } from './validate-context.js'
 

@@ -9,10 +9,12 @@
  * show that the rule refuses that edit and nothing around it.
  * `eInvoiceReport` is that report as an e-invoice, for the same use.
  */
+import type { DatasetContract, FieldRef } from './data.js'
+import type { ReportDefinition } from './definition.js'
 import type { FacturXInvoice } from './e-invoice.js'
 import type { ReportError } from './errors.js'
-import type { DatasetContract, FieldRef, Inline, ReportDefinition } from './types.js'
 import { validateReport } from './validate.js'
+import type { Inline } from './values.js'
 
 const header = (field: string): FieldRef => ({ dataset: 'header', field })
 const detail = (field: string): FieldRef => ({ dataset: 'detail', field })

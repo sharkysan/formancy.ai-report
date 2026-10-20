@@ -2,7 +2,7 @@
  * An image a person adds (0033), from the packed packages under Node: the
  * entry points the editor reads a file with, and the editor adding one.
  * consume.ts runs it and prints what it returns; it lives apart because
- * consume.ts stands at its size budget.
+ * consume.ts stood at its size budget when it came.
  *
  * - report-spec's `assetDigest` is the SHA-256 node:crypto takes, as the
  *   digest the quotation declares its mark by, so a host that takes its

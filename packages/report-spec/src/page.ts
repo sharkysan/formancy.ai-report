@@ -1,11 +1,31 @@
 /**
- * Page geometry: the size of each page the format names, the area its
- * margins leave, and the largest square that area holds. The validator's
- * margin check, the builder's rulers and the renderer read the same numbers
- * from here.
+ * The page: the sizes and orientations the format names, a report's page
+ * settings, and their geometry -- the size of each page, the area its
+ * margins leave, and the largest square that area holds. A size is named
+ * beside its dimensions, so the two are added together. The validator's
+ * margin check, the builder's rulers and the renderer read the same
+ * numbers from here.
  */
-import type { Orientation, PageSettings, PageSizeName } from './types.js'
 import { mmToPt, POINTS_PER_INCH, roundPt } from './units.js'
+
+export const PAGE_SIZE_NAMES = ['A4', 'Letter'] as const
+export type PageSizeName = (typeof PAGE_SIZE_NAMES)[number]
+
+export const ORIENTATIONS = ['portrait', 'landscape'] as const
+export type Orientation = (typeof ORIENTATIONS)[number]
+
+export interface Margins {
+  readonly top: number
+  readonly right: number
+  readonly bottom: number
+  readonly left: number
+}
+
+export interface PageSettings {
+  readonly size: PageSizeName
+  readonly orientation: Orientation
+  readonly margins: Margins
+}
 
 export interface PageDimensions {
   readonly width: number

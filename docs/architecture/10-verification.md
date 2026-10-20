@@ -92,7 +92,7 @@ that PDF
 | The samples: their XML against a BigInt computation of their data, and each line, total row, head and bank detail the page resolved to against the XML the same render wrote | `report-corpus/src/starters/e-invoice.test.ts` |
 | The XML read by a parser that is not the writer, every term at the path CEN's binding gives it | `report-corpus/src/e-invoice-xml.test.ts`, through `testing/cii.ts` |
 | The samples' XML, their PDFs and the variants that carry the first sample's e-invoice on other pages, judged by the tools a receiver runs | The `e-invoice` gate (§10.2) |
-| The packed packages | The install gate's `consume.ts`: an e-invoice validated, resolved to its XML and drawn as a PDF/A-3b, whose bytes `scripts/install-fixture/embedding.ts` reads without a PDF reader -- the XML byte for byte as `factur-x.xml` on the catalog's `/AF` and in the name tree, the relationship, the XMP and the reviewed sRGB profile, at the PDFKit a clean npm install resolves -- and its preview drawn embedding nothing |
+| The packed packages | The install gate's `consume.ts`, through `scripts/install-fixture/e-invoice.ts`: an e-invoice validated, resolved to its XML and drawn as a PDF/A-3b, whose bytes `scripts/install-fixture/embedding.ts` reads without a PDF reader -- the XML byte for byte as `factur-x.xml` on the catalog's `/AF` and in the name tree, the relationship, the XMP and the reviewed sRGB profile, at the PDFKit a clean npm install resolves -- and its preview drawn embedding nothing |
 
 **An SVG asset, at every layer that reads it.** Its rules are report-spec's
 alone, and every reader of them is held where it reads them

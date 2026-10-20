@@ -2,16 +2,18 @@
  * Aggregates: the totals a report computes over its detail rows, declared
  * once and printed by id, and the rounding each declares.
  */
+import { AGGREGATE_FUNCTIONS, ROUNDING_MODES } from './aggregates.js'
+import type { AggregateDef, AggregateFunction, Rounding } from './aggregates.js'
 import type { Findings } from './check.js'
 import { all, fieldKey, integer, matches, oneOf, optional, readArray, shape } from './check.js'
+import type { FieldType } from './data.js'
 import { MAX_AGGREGATES, MAX_SCALE } from './limits.js'
 import { at } from './pointer.js'
 import { DECIMAL } from './syntax.js'
-import { AGGREGATE_FUNCTIONS, GROUP_KEY, ROUNDING_MODES } from './types.js'
-import type { AggregateDef, AggregateFunction, FieldType, Rounding } from './types.js'
 import { declare } from './validate-context.js'
 import type { Ctx } from './validate-context.js'
 import { readRowValue } from './validate-inline.js'
+import { GROUP_KEY } from './values.js'
 
 const NUMERIC: readonly FieldType[] = ['integer', 'decimal']
 const ORDERED: readonly FieldType[] = [...NUMERIC, 'date', 'datetime', 'instant']

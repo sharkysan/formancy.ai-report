@@ -33,21 +33,11 @@ import type {
   VatCategory,
   VatCategoryCode,
 } from './e-invoice.js'
-import {
-  buyerIdentificationBreak,
-  checkEInvoiceText,
-  checkSchemeId,
-  checkVatRate,
-  E_INVOICE_TEXT_TERMS,
-  E_INVOICE_TEXTS,
-  en16931Rule,
-  periodBreak,
-  sellerIdentificationBreaks,
-  supplyBreak,
-  vatCategoryBreaks,
-  vatReasonBreak,
-} from './en16931.js'
-import type { EInvoiceTextTerm } from './en16931.js'
+import { periodBreak, supplyBreak } from './en16931-dates.js'
+import { checkEInvoiceText, checkSchemeId, E_INVOICE_TEXT_TERMS, E_INVOICE_TEXTS } from './en16931-texts.js'
+import type { EInvoiceTextTerm } from './en16931-texts.js'
+import { buyerIdentificationBreak, checkVatRate, sellerIdentificationBreaks, vatCategoryBreaks, vatReasonBreak } from './en16931-vat.js'
+import { en16931Rule } from './en16931.js'
 import { MAX_VAT_CATEGORIES } from './limits.js'
 import { at } from './pointer.js'
 import type { Ctx } from './validate-context.js'
