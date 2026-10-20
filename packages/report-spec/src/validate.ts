@@ -9,12 +9,12 @@
  * and whether the rendered output fits are later levels, owned elsewhere.
  */
 import { identifier, matches, optional, readObject, shape, strictKeys, text } from './check.js'
+import { REGION_NAMES } from './definition.js'
+import type { Regions, ReportDefinition } from './definition.js'
 import type { ReportError } from './errors.js'
 import { MAX_LABEL_LENGTH, MAX_REGION_COMPONENTS } from './limits.js'
 import { at } from './pointer.js'
 import { LOCALE } from './syntax.js'
-import { REGION_NAMES } from './types.js'
-import type { ReportDefinition, Regions } from './types.js'
 import { readAggregates } from './validate-aggregates.js'
 import { newContext } from './validate-context.js'
 import type { Ctx } from './validate-context.js'

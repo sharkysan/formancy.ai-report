@@ -81,7 +81,8 @@ in the same Liberation Sans
 ([0025](docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
 A report's e-invoice runs through all four: the
 block is report-spec's `e-invoice.ts` and EN 16931's rules its
-`en16931.ts`, with the closed code lists, which the validator applies to
+`en16931.ts` and the `en16931-*.ts` beside it, one for each kind of
+term, with the closed code lists, which the validator applies to
 literals and the runtime to data, and the account rule is the EPC QR
 code's; the core binds `invoice`, `vatBasis` and `vatAmount` in an
 e-invoice alone; the runtime computes the totals once, in
@@ -604,8 +605,9 @@ Locally, run the same commands for what you changed.
   oldest release its peer range admits (`scripts/install-hosts.mjs`);
 - type-checks each consumer with `skipLibCheck` **off**, against its host's
   types: Node's for the Node packages, the DOM's and not Node's for a builder;
-- runs it: `consume.ts` under Node, which also draws an e-invoice and reads
-  the PDF/A-3b's bytes with `embedding.ts` and Node alone (0031);
+- runs it: `consume.ts` under Node, which also draws an e-invoice, in
+  `e-invoice.ts`, and reads the PDF/A-3b's bytes with `embedding.ts` and
+  Node alone (0031);
   `react.tsx` drawn by React's server renderer in its development and
   production builds; `angular.ts` compiled
   ahead of time, linked and bundled by `build.mjs`, and drawn by

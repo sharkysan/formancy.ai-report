@@ -13,103 +13,24 @@
  * so the list exists in each of the editor's languages; the frameworks run
  * the English one, and may run the others.
  *
- * A runner opens a session over `report()`, mounts its builder over it in
- * `locale`, and does each step in order. A scenario with a `host` makes the
- * editor with that view of the host's (`hostView`), and gives the builder,
- * as the host's view, one button named `control`. A scenario with a
- * `store` makes it with the store `scenarioStore` gives it, which keeps
- * every image a person adds, or refuses each, and records what it kept.
- * - `click`: user-event's click on the element.
- * - `focus`: moves focus to the element, as tabbing to it would. In the
- *   outline that selects the row: focus and selection are one.
- * - `press`: user-event's keyboard, the modifiers held around the key.
- * - `fill`: clears the field, types the text, and tabs away, which commits.
- * - `choose`: selects the option with that label in the combobox.
- * - `host`: dispatches the action to the editor, as the host's own control
- *   for its view does -- the Studio's Preview, in its bar.
- * - `upload`: clicks the button, Add image…, and hands `file` to the file
- *   input beside it, as a person choosing it in the chooser does; no filter
- *   of the input's `accept` drops it on the way. The step ends once the
- *   editor has said what became of the file, and fails when the editor
- *   never took it -- a chooser that never reached the editor.
- * - `present`, `absent`, `focused`: the element is there, is not, has focus.
- * - `value`: the control's value. `text`: the element's text content holds
- *   it. The live region is the status with no name; the problems' count is
- *   the status named by the problems pane.
- * - `invalid`: `aria-invalid="true"`, and an accessible description saying why.
- * - `document`: `check` holds of the session's document.
- * - `kept`: `check` holds of what the scenario's store kept.
+ * What a scenario is, and what a runner does for each kind of step,
+ * `scenario-steps.ts` says. The scenarios of editing the report -- its
+ * outline, its structure, its properties, its history and its problems --
+ * and of the zoom and the panes are here. A subject with fixtures of its
+ * own stands beside them: the payment codes (`scenario-payments.ts`), a
+ * host's view (`scenario-host-view.ts`) and images
+ * (`scenario-images.ts`).
  */
 import { emptyReport } from '@formancy/report-spec'
-import type { EpcQrCodeComponent, ReportDefinition } from '@formancy/report-spec'
-import type { HostViewOptions } from './editor.js'
-import type { AddedImage } from './image-store.js'
-import type { EditorAction } from './model.js'
+import type { ReportDefinition } from '@formancy/report-spec'
 import { PROPERTY_ROLES } from './model.js'
+import { hostViewScenarios } from './scenario-host-view.js'
 import { imageScenarios } from './scenario-images.js'
-import { scenarioReport } from './scenario-report.js'
+import { paymentScenarios } from './scenario-payments.js'
+import { body, scenarioReport } from './scenario-report.js'
+import type { BuilderScenario, ScenarioQuery, ScenarioStep } from './scenario-steps.js'
 import { contentLocale, editorText, formatZoom } from './text.js'
 import type { EditorLocale } from './text.js'
-
-/** An element, by its role and its accessible name, and the ARIA states it must have. */
-export interface ScenarioQuery {
-  readonly role: string
-  readonly name: string
-  readonly selected?: boolean
-}
-
-export const SCENARIO_ACTIONS = ['click', 'focus', 'press', 'fill', 'choose', 'host', 'upload'] as const
-export const SCENARIO_EXPECTATIONS = ['present', 'absent', 'focused', 'value', 'text', 'invalid', 'document', 'kept'] as const
-
-/** A file an `upload` step hands the file input: what a runner makes a `File` of. */
-export interface ScenarioFile {
-  readonly name: string
-  /** The type a browser gives a file of this name: what the input's `accept` compares. */
-  readonly type: string
-  readonly bytes: Uint8Array
-}
-
-export type KeyModifier = 'Alt' | 'Control' | 'Meta' | 'Shift'
-
-/** What a host does to its view through the editor: what a `host` step may dispatch. */
-export type HostViewAction = Extract<EditorAction, { readonly type: 'showHostView' | 'hideHostView' | 'placeHostView' }>
-
-/** The host's view a scenario's editor is made with, and the one button the runner gives the builder as that view. */
-export interface ScenarioHost extends HostViewOptions {
-  readonly control: string
-}
-
-export type ScenarioStep =
-  | ({ readonly do: 'click' | 'focus' } & ScenarioQuery)
-  | { readonly do: 'press'; readonly key: string; readonly modifiers?: readonly KeyModifier[] }
-  | ({ readonly do: 'fill'; readonly text: string } & ScenarioQuery)
-  | ({ readonly do: 'choose'; readonly option: string } & ScenarioQuery)
-  | { readonly do: 'host'; readonly action: HostViewAction }
-  | ({ readonly do: 'upload'; readonly file: ScenarioFile } & ScenarioQuery)
-  | ({ readonly expect: 'present' | 'absent' | 'focused' | 'invalid' } & ScenarioQuery)
-  | ({ readonly expect: 'value'; readonly value: string } & ScenarioQuery)
-  | ({ readonly expect: 'text'; readonly text: string } & ScenarioQuery)
-  | {
-      readonly expect: 'document'
-      /** What is checked, for the failure message. */
-      readonly says: string
-      readonly check: (report: ReportDefinition) => boolean
-      /** The check is that something stayed as it was, so it holds of the starting report too. */
-      readonly unchanged?: true
-    }
-  | { readonly expect: 'kept'; readonly says: string; readonly check: (kept: readonly AddedImage[]) => boolean }
-
-export interface BuilderScenario {
-  readonly name: string
-  readonly locale: EditorLocale
-  /** The report the session opens: a fresh copy each call. */
-  readonly report: () => ReportDefinition
-  readonly steps: readonly ScenarioStep[]
-  /** A view of the host's own, for the scenarios about one. */
-  readonly host?: ScenarioHost
-  /** Where the scenario's editor keeps images a person adds: a store that keeps each, or one that refuses each; none when absent. */
-  readonly store?: 'keeps' | 'refuses'
-}
 
 /** The scenario report with the introduction shown only when a parameter nobody declared says so: an error the diagnostics link to it. */
 function brokenReport(): ReportDefinition {
@@ -117,55 +38,9 @@ function brokenReport(): ReportDefinition {
   return { ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)) } }
 }
 
-/**
- * The scenario report with a Swiss QR-bill for its payment part: SIX's
- * QR-IBAN and QR reference (IG 2.4, Annex A), every text literal, as the
- * report reads no data.
- */
-function billedReport(): ReportDefinition {
-  return {
-    ...scenarioReport(),
-    paymentPart: {
-      kind: 'swissQrBill',
-      language: 'en',
-      account: [{ kind: 'text', text: 'CH44 3199 9123 0008 8901 2' }],
-      creditor: {
-        name: [{ kind: 'text', text: 'Max Muster & Söhne' }],
-        street: [{ kind: 'text', text: 'Musterstrasse' }],
-        buildingNumber: [{ kind: 'text', text: '123' }],
-        postalCode: [{ kind: 'text', text: '8000' }],
-        town: [{ kind: 'text', text: 'Seldwyla' }],
-        country: [{ kind: 'text', text: 'CH' }],
-      },
-      currency: 'CHF',
-      amount: { cel: 'dec("1949.75")' },
-      reference: [{ kind: 'text', text: '21 00000 00003 13947 14300 09017' }],
-      message: [{ kind: 'text', text: 'Site visit' }],
-    },
-  }
-}
-
-/** Whether `report`'s payment part is still all of the one `billedReport` gave it. */
-const billKept = (report: ReportDefinition): boolean => JSON.stringify(report.paymentPart) === JSON.stringify(billedReport().paymentPart)
-
 /** A report with nothing in any region: the outline has no row to be a tab stop. */
 function blankReport(): ReportDefinition {
   return emptyReport('blank', 'Blank', 'en')
-}
-
-const body = (report: ReportDefinition): string[] => report.regions.body.map((component) => component.id)
-
-/**
- * The host's view the scenarios about one are given: the Studio's Preview
- * and its Download PDF. Its words are the host's, the same in every
- * language the editor speaks.
- */
-const PREVIEW: ScenarioHost = { name: 'Preview', control: 'Download PDF' }
-
-/** Whether the body has an EPC payment code whose text at `key` is `text`, one literal run, or, for undefined, absent. */
-const codeHas = (report: ReportDefinition, key: 'iban' | 'bic', text: string | undefined): boolean => {
-  const code = report.regions.body.find((component): component is EpcQrCodeComponent => component.kind === 'epcQrCode')
-  return code !== undefined && JSON.stringify(code[key]) === JSON.stringify(text === undefined ? undefined : [{ kind: 'text', text }])
 }
 
 const held = (report: ReportDefinition, id: string): string[] => {
@@ -190,19 +65,9 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
   const error = (where: string): ScenarioQuery => button(t('problem.item', { severity: t('severity.error'), where }))
   // What a new text says is in the report's language, which prints, not the editor's.
   const newText = editorText(contentLocale(scenarioReport().locale))('default.text')
-  const newCode = t('label.kindDetail', { kind: t('kind.epcQrCode'), detail: editorText(contentLocale(scenarioReport().locale))('default.epcBeneficiary') })
-  const iban: ScenarioQuery = { role: PROPERTY_ROLES.text, name: t('field.iban') }
-  const bic: ScenarioQuery = { role: PROPERTY_ROLES.text, name: t('field.bic') }
-  const designView: ScenarioQuery = { role: 'region', name: t('canvas.label') }
-  const preview: ScenarioQuery = { role: 'region', name: PREVIEW.name }
-  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = scenarioReport, host?: ScenarioHost): BuilderScenario => ({
-    name,
-    locale,
-    report,
-    steps,
-    ...(host === undefined ? {} : { host }),
-  })
+  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = scenarioReport): BuilderScenario => ({ name, locale, report, steps })
 
+  // In the order the scenarios were written, which is the order every runner runs them in.
   return [
     scenario('insert a text into the body by keyboard', [
       { do: 'focus', ...button(t('kind.text')) },
@@ -391,165 +256,13 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
       { expect: 'present', ...problems },
       { expect: 'absent', role: PROPERTY_ROLES.text, name: t('field.title') },
     ]),
-    // A payment part is the report's, not a region's, and nothing edits it
-    // yet: the design view shows where its slip prints, an edit elsewhere
-    // keeps it whole, and a page it cannot be printed on is refused on the
-    // field that asked for it.
-    scenario(
-      'a payment part is drawn at the sheet’s foot, and edits keep it',
-      [
-        { expect: 'present', role: 'img', name: t('canvas.paymentPart') },
-        { do: 'fill', role: PROPERTY_ROLES.text, name: t('field.title'), text: 'Site visit, invoiced' },
-        { expect: 'document', says: 'the title is the one typed, and the bill is whole', check: (report) => report.title === 'Site visit, invoiced' && billKept(report) },
-        { do: 'choose', role: PROPERTY_ROLES.select, name: t('field.orientation'), option: t('option.landscape') },
-        { expect: 'invalid', role: PROPERTY_ROLES.select, name: t('field.orientation') },
-        { expect: 'document', says: 'the page is upright still, and the bill is whole', check: (report) => report.page.orientation === 'portrait' && billKept(report) },
-        { do: 'click', ...tree(spacer) },
-        { do: 'press', key: 'Delete' },
-        { expect: 'document', says: 'the spacer is gone, and the bill is whole', check: (report) => !body(report).includes('gap') && billKept(report) },
-        { expect: 'present', role: 'img', name: t('canvas.paymentPart') },
-      ],
-      billedReport,
-    ),
-    // A payment code is inserted as any kind is, and its account typed where
-    // it is written: an IBAN whose check digits are wrong is refused on its
-    // field, and the code still pays the account it did. An optional text
-    // -- the BIC -- is added by typing it into its empty field, and removed
-    // by emptying it, as every optional property is.
-    scenario('insert an EPC payment code, and type its account', [
-      { do: 'focus', ...button(t('kind.epcQrCode')) },
-      { do: 'press', key: 'Enter' },
-      { do: 'focus', ...button(t('target.after', { where: region, name: spacer })) },
-      { do: 'press', key: 'Enter' },
-      { expect: 'focused', ...tree(newCode, true) },
-      { do: 'fill', ...iban, text: 'DE71 1102 2033 0123 4567 88' },
-      { expect: 'invalid', ...iban },
-      { expect: 'document', says: 'the new code pays the account it started with', check: (report) => codeHas(report, 'iban', 'DE36 0000 0000 0000 0000 00') },
-      { do: 'fill', ...iban, text: 'DE71 1102 2033 0123 4567 89' },
-      { expect: 'document', says: 'the code pays the IBAN typed, with no BIC', check: (report) => codeHas(report, 'iban', 'DE71 1102 2033 0123 4567 89') && codeHas(report, 'bic', undefined) },
-      { do: 'fill', ...bic, text: 'BHBLDEHHXXX' },
-      { expect: 'document', says: 'the code holds the BIC typed', check: (report) => codeHas(report, 'bic', 'BHBLDEHHXXX') },
-      { do: 'fill', ...bic, text: '' },
-      { expect: 'document', says: 'the code holds no BIC again', check: (report) => codeHas(report, 'bic', undefined) },
-      { expect: 'value', ...bic, value: '' },
-    ]),
+    ...paymentScenarios(locale),
     scenario('choose a style from a picker', [
       { do: 'click', ...tree('Introduction') },
       { do: 'choose', role: PROPERTY_ROLES.style, name: t('field.style'), option: 'heading' },
       { expect: 'document', says: 'the introduction has the heading style', check: (report) => report.regions.body.some((component) => component.id === 'intro' && component.style === 'heading') },
     ]),
-    // The host's view -- the Studio's PDF -- stands where the design view
-    // stood, with the outline and the properties beside it, so a person
-    // edits and watches what prints; the live region says the way back,
-    // and the toolbar's Design view is it, the keyboard going with it.
-    scenario(
-      'a host’s view takes the design view’s place, and the toolbar’s Design view gives it back',
-      [
-        { expect: 'present', ...designView },
-        { do: 'host', action: { type: 'showHostView' } },
-        { expect: 'present', ...preview },
-        { expect: 'present', ...button(PREVIEW.control) },
-        { expect: 'absent', ...designView },
-        { expect: 'present', ...outline },
-        { expect: 'present', role: PROPERTY_ROLES.text, name: t('field.title') },
-        { expect: 'text', ...said, text: t('status.hostViewShown', { view: PREVIEW.name, pane: t('pane.canvas') }) },
-        { do: 'click', ...button(t('pane.canvas')) },
-        { expect: 'absent', ...preview },
-        { expect: 'focused', ...designView },
-      ],
-      scenarioReport,
-      PREVIEW,
-    ),
-    // The builder's shortcuts stop at the host's view: Ctrl+Z on the
-    // Preview's own control would otherwise undo the report the person is
-    // looking at, and Ctrl+- zoom a design view nobody can see.
-    scenario(
-      'a key pressed in a host’s view is the host’s',
-      [
-        { do: 'click', ...tree('Introduction') },
-        { do: 'press', key: 'Delete' },
-        { expect: 'document', says: 'the introduction is gone', check: (report) => !body(report).includes('intro') },
-        { do: 'focus', ...button(PREVIEW.control) },
-        { do: 'press', key: 'z', modifiers: ['Control'] },
-        { expect: 'document', says: 'the introduction is still gone: nothing was undone', check: (report) => !body(report).includes('intro') },
-        { do: 'press', key: '-', modifiers: ['Control'] },
-        { expect: 'text', ...zoom, text: formatZoom(1, locale) },
-        { expect: 'focused', ...button(PREVIEW.control) },
-      ],
-      scenarioReport,
-      { ...PREVIEW, shown: true },
-    ),
-    // A pane hidden for the room gives it to whatever stands in the middle:
-    // the host's view, and the keyboard lands there.
-    scenario(
-      'a side pane hidden beside a host’s view gives it the room and the keyboard',
-      [
-        { do: 'click', ...button(t('action.hidePane', { pane: t('pane.outline') })) },
-        { expect: 'absent', ...outline },
-        { expect: 'focused', ...preview },
-        { do: 'click', ...button(t('pane.outline')) },
-        { expect: 'present', ...outline },
-        { expect: 'present', ...preview },
-      ],
-      scenarioReport,
-      { ...PREVIEW, shown: true },
-    ),
-    // Beside the builder the host draws its view, and the design view keeps
-    // its place: the toolbar's Design view takes nothing away there, so the
-    // view placed back in the middle is still shown.
-    scenario(
-      'a host’s view placed beside the builder leaves the design view in its place',
-      [
-        { do: 'host', action: { type: 'placeHostView', place: 'beside' } },
-        { expect: 'present', ...designView },
-        { expect: 'absent', ...preview },
-        { do: 'click', ...button(t('pane.canvas')) },
-        { expect: 'focused', ...designView },
-        { do: 'host', action: { type: 'placeHostView', place: 'middle' } },
-        { expect: 'present', ...preview },
-        { expect: 'absent', ...designView },
-      ],
-      scenarioReport,
-      { ...PREVIEW, shown: true },
-    ),
-    // The window crossing a width moves the host's view between the
-    // middle and beside, swapping the middle pane under the keyboard: it
-    // goes to whatever stands there now, never down to the page, where a
-    // keyboard's next Tab would start from the top. Anywhere else it stays.
-    scenario(
-      'the keyboard goes with the middle pane when the host moves its view, and stays anywhere else',
-      [
-        { do: 'click', ...button(t('pane.canvas')) },
-        { expect: 'focused', ...designView },
-        { do: 'host', action: { type: 'placeHostView', place: 'middle' } },
-        { expect: 'focused', ...preview },
-        { do: 'host', action: { type: 'placeHostView', place: 'beside' } },
-        { expect: 'focused', ...designView },
-        { do: 'click', ...tree('Introduction') },
-        { do: 'host', action: { type: 'placeHostView', place: 'middle' } },
-        { expect: 'present', ...preview },
-        { expect: 'focused', ...tree('Introduction') },
-      ],
-      scenarioReport,
-      { ...PREVIEW, shown: true, place: 'beside' },
-    ),
-    // The zoom is the design view's: with the host's view in its place a
-    // zoom would change a readout beside the host's own and nothing anybody
-    // sees, so the toolbar's zoom says why it does nothing, and works again
-    // once the design view is back.
-    scenario(
-      'the zoom says it is the design view’s while a host’s view stands in its place',
-      [
-        { do: 'click', ...button(t('action.zoomIn')) },
-        { expect: 'text', ...zoom, text: formatZoom(1, locale) },
-        { expect: 'text', ...said, text: t('status.zoomHidden', { view: PREVIEW.name, pane: t('pane.canvas') }) },
-        { do: 'click', ...button(t('pane.canvas')) },
-        { do: 'click', ...button(t('action.zoomIn')) },
-        { expect: 'text', ...zoom, text: formatZoom(1.25, locale) },
-      ],
-      scenarioReport,
-      { ...PREVIEW, shown: true },
-    ),
+    ...hostViewScenarios(locale),
     ...imageScenarios(locale),
   ]
 }

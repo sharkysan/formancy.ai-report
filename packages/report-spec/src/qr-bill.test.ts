@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { PAGE_SIZES } from './page.js'
+import type { PageSettings } from './page.js'
 import {
   checkQrBillAccount,
   checkQrBillAdditionalInformation,
@@ -15,7 +16,6 @@ import {
   qrBillPairing,
 } from './qr-bill.js'
 import type { QrBillCheck } from './qr-bill.js'
-import type { PageSettings } from './types.js'
 
 /** The rule a check says is broken, or undefined when it accepts the value. */
 function broken<T>(check: QrBillCheck<T>): string | undefined {

@@ -14,13 +14,14 @@
  * go with, and a payload already past its bytes before any data is read.
  */
 import { oneOf, optional, reference } from './check.js'
+import type { ComponentBase } from './components.js'
+import type { RegionName } from './definition.js'
 import { checkEpcField, checkEpcPayload, checkEpcPurpose, EPC_TEXT_FIELDS, epcPairing, epcPayload } from './epc-payload.js'
 import type { EpcTextField } from './epc-payload.js'
 import { epcCaptionBreak } from './epc-print.js'
 import { EPC_CAPTIONS } from './epc-qr-code.js'
 import type { EpcQrCodeComponent } from './epc-qr-code.js'
 import { at } from './pointer.js'
-import type { ComponentBase, RegionName } from './types.js'
 import type { Ctx } from './validate-context.js'
 import { readExpression } from './validate-inline.js'
 import { readPaymentText } from './validate-payment-text.js'

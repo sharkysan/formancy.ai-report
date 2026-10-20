@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
+import { COMPONENT_KINDS } from './components.js'
 import { eInvoiceReport, getAt, richReport } from './test-support.js'
-import { COMPONENT_KINDS } from './types.js'
 import { componentAt, walkComponents } from './walk.js'
 
 /** Every component-shaped object in a JSON value: an `id` string and a `kind` the format lists. */

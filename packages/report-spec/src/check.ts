@@ -17,11 +17,11 @@
  * A string is quoted to 40 characters, and a property name longer than any
  * the format has is refused before a path is built from it.
  */
+import type { Width } from './components.js'
 import type { ReportError, ReportErrorCode } from './errors.js'
 import { MAX_ERRORS, MAX_FONT_SIZE, MAX_KEY_LENGTH, MAX_LENGTH_PT, MIN_FONT_SIZE } from './limits.js'
 import { at } from './pointer.js'
 import { isFieldKey, isIdentifier } from './syntax.js'
-import type { Width } from './types.js'
 import { roundPt } from './units.js'
 
 /** The errors one validation has found, bounded, and the components they can be attributed to. */

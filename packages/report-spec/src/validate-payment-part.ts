@@ -11,6 +11,7 @@
  * has resolved it.
  */
 import { kindOf, oneOf, optional, readObject, shape, strictKeys } from './check.js'
+import type { PageSettings } from './page.js'
 import { PAYMENT_PART_KINDS, QR_BILL_CURRENCIES, QR_BILL_LANGUAGES } from './payment-part.js'
 import type { PaymentPart, PaymentPartKind, QrBillAddress, SwissQrBill } from './payment-part.js'
 import { at } from './pointer.js'
@@ -26,11 +27,11 @@ import {
   qrBillPairing,
 } from './qr-bill.js'
 import type { QrBillCheck, QrBillPageBreak, QrBillTextRule } from './qr-bill.js'
-import type { Inline, PageSettings } from './types.js'
 import type { Ctx } from './validate-context.js'
 import { readExpression } from './validate-inline.js'
 import { readPaymentText, unquoted } from './validate-payment-text.js'
 import type { PaymentScope, PaymentText } from './validate-payment-text.js'
+import type { Inline } from './values.js'
 
 /** Where a bill's runs are read: in the report's scope, encoded in its QR code. */
 const SCOPE: PaymentScope = { region: 'paymentPart', reads: 'report', encoded: 'a QR-bill' }

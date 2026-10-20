@@ -14,10 +14,10 @@ import type { ReportErrorCode } from './errors.js'
 import { MAX_INLINES } from './limits.js'
 import type { PaymentCheck } from './payment-reference.js'
 import { at } from './pointer.js'
-import type { Inline } from './types.js'
 import type { Ctx } from './validate-context.js'
 import { readInlines } from './validate-inline.js'
 import type { InlineScope } from './validate-inline.js'
+import type { Inline } from './values.js'
 
 /** Where a payment code's runs are read: in the report's scope, encoded in the code it names. */
 export type PaymentScope = InlineScope & { readonly reads: 'report'; readonly encoded: 'a QR-bill' | 'an EPC QR code' | 'an e-invoice' }

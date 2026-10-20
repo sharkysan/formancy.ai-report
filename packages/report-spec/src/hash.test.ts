@@ -1,8 +1,8 @@
 import { schemaHash } from '@formancy/spec'
 import { describe, expect, test } from 'vitest'
+import type { ReportDefinition } from './definition.js'
 import { reportHash } from './hash.js'
 import { eInvoiceReport, richReport } from './test-support.js'
-import type { ReportDefinition } from './types.js'
 import { REPORT_FORMAT } from './version.js'
 
 /**

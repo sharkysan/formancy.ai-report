@@ -25,12 +25,11 @@
  * Lengths and positions are said; characters are not.
  */
 import { mmToPt, roundPt } from './units.js'
-import { PAGE_SIZES, type PageDimensions } from './page.js'
+import { PAGE_SIZES, type PageDimensions, type PageSettings } from './page.js'
 import type { QrBillAddress, QrBillCurrency } from './payment-part.js'
 import { checkCreditorReference, checkIbanCheckDigits, no, ok, withoutSpaces } from './payment-reference.js'
 import type { PaymentCheck } from './payment-reference.js'
 import { DECIMAL } from './syntax.js'
-import type { PageSettings } from './types.js'
 
 /** What a check made of a text it accepts, or the rule the text breaks: every payment code's `PaymentCheck`. */
 export type QrBillCheck<T> = PaymentCheck<T>

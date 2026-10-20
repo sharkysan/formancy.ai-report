@@ -4,9 +4,9 @@
  * how much of the page its margins leave.
  */
 import { Findings, quote } from './check.js'
+import type { FieldType, ParameterType } from './data.js'
 import type { ReportErrorCode } from './errors.js'
 import type { PageDimensions } from './page.js'
-import type { FieldType, ParameterType } from './types.js'
 
 /**
  * Declared names and what each declares. `undefined` when the declarations

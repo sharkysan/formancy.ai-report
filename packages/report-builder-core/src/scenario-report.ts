@@ -36,3 +36,6 @@ const SCENARIO_REPORT: ReportDefinition = {
 export function scenarioReport(): ReportDefinition {
   return JSON.parse(JSON.stringify(SCENARIO_REPORT)) as ReportDefinition
 }
+
+/** The ids of a report's body, in order: what a scenario's `document` expectation compares. */
+export const body = (report: ReportDefinition): string[] => report.regions.body.map((component) => component.id)

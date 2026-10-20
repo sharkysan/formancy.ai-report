@@ -25,6 +25,7 @@ import type { AssetMediaType, ReportDefinition, SvgRefusalCode, SvgRemoval, SvgR
 import { assetBase } from './asset-name.js'
 import { stepLabel } from './history.js'
 import type { AddedImage, ImageFile, ImageLibrary, ImageStore, KeptImage, LibraryAsset } from './image-store.js'
+import { DONE } from './model.js'
 import type { EditorOutcome, EditorRefusalCode } from './model.js'
 import { refusalMessage } from './properties.js'
 import type { Derived, Local } from './state.js'
@@ -68,8 +69,6 @@ const UNNAMED: { readonly [K in SvgRemovalKind]: MessageId } = {
 
 /** Bytes in a megabyte as the format's limit counts them: 20 × 1,048,576. */
 const MEGABYTE = 1_048_576
-
-const DONE: EditorOutcome = Object.freeze({ ok: true })
 
 /** The host's store as the editor holds it, checked when the editor is made: the types it keeps in the format's order, and the chooser's `accept`. */
 interface HeldStore {

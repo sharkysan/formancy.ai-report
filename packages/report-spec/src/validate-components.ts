@@ -7,12 +7,13 @@
  * without an entry here does not compile.
  */
 import { all, flag, identifier, kindOf, matches, oneOf, optional, points, readArray, readList, readObject, reference, shape, strictKeys, width } from './check.js'
+import { COMPONENT_KINDS, IMAGE_FITS, IMAGE_SOURCE_KINDS, QR_ERROR_CORRECTION } from './components.js'
+import type { Border, ColumnSlot, Component, ComponentBase, ComponentKind, ImageSource, ImageSourceKind, Width } from './components.js'
+import type { RegionName } from './definition.js'
 import { MAX_COLUMNS, MAX_NESTING_DEPTH, MAX_REGION_COMPONENTS, MIN_COLUMNS } from './limits.js'
 import { squareRoom } from './page.js'
 import { at } from './pointer.js'
 import { COLOR } from './syntax.js'
-import { COMPONENT_KINDS, IMAGE_FITS, IMAGE_SOURCE_KINDS, QR_ERROR_CORRECTION } from './types.js'
-import type { Border, ColumnSlot, Component, ComponentBase, ComponentKind, ImageSource, ImageSourceKind, RegionName, Width } from './types.js'
 import { resolve, withinPage } from './validate-context.js'
 import { EPC_QR_CODE_OPTIONAL, EPC_QR_CODE_REQUIRED, readEpcQrCode } from './validate-epc-qr-code.js'
 import type { Ctx } from './validate-context.js'

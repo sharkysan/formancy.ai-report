@@ -2,8 +2,8 @@
  * The content hash that names a report definition.
  */
 import { schemaHash } from '@formancy/spec'
+import type { ReportDefinition } from './definition.js'
 import { describeErrors } from './errors.js'
-import type { ReportDefinition } from './types.js'
 import { validateReport } from './validate.js'
 import { REPORT_FORMAT } from './version.js'
 

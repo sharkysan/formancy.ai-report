@@ -14,19 +14,24 @@
  * literal. What only a render knows -- an account read from the data, the
  * amount a code asks for, which is an expression -- the runtime compares.
  */
+import type { RowValue } from './aggregates.js'
 import { identifier, quote, shape } from './check.js'
+import type { Regions } from './definition.js'
+import { E_INVOICE_LINE_CODES, E_INVOICE_LINE_COLUMNS } from './en16931-lines.js'
+import type { EInvoiceLineCode, EInvoiceLineColumn } from './en16931-lines.js'
+import { xmlCharacterBreak } from './en16931-texts.js'
+import { en16931Rule } from './en16931.js'
 import { checkEpcIban } from './epc-payload.js'
 import { E_INVOICE_CURRENCIES } from './e-invoice.js'
 import type { EInvoiceLines } from './e-invoice.js'
-import { E_INVOICE_LINE_CODES, E_INVOICE_LINE_COLUMNS, en16931Rule, xmlCharacterBreak } from './en16931.js'
-import type { EInvoiceLineCode, EInvoiceLineColumn } from './en16931.js'
 import type { PaymentPart } from './payment-part.js'
 import { at } from './pointer.js'
 import { checkQrBillAccount } from './qr-bill.js'
-import type { InlineKind, Regions, RowValue, TableComponent } from './types.js'
+import type { TableComponent } from './table.js'
 import type { Ctx } from './validate-context.js'
 import { readRowValue } from './validate-inline.js'
 import { literal } from './validate-payment-text.js'
+import type { InlineKind } from './values.js'
 import { walkRegions } from './walk.js'
 import type { ComponentLocation } from './walk.js'
 

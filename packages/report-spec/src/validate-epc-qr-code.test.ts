@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest'
+import { REGION_NAMES } from './definition.js'
 import { EPC_CAPTIONS } from './epc-qr-code.js'
 import { reportHash } from './hash.js'
 import { append, edited, editable, getAt, refusals, removeAt, richReport, setAt } from './test-support.js'
-import { REGION_NAMES } from './types.js'
 import { validateReport } from './validate.js'
 
 /** Where the fixture's EPC QR code is: last in the summary. */

@@ -3,9 +3,10 @@
  * builder's outline and the runtime share, so they visit components in one
  * order and name them by one path.
  */
+import type { Component, ComponentKind } from './components.js'
+import { REGION_NAMES } from './definition.js'
+import type { RegionName, Regions, ReportDefinition } from './definition.js'
 import { at } from './pointer.js'
-import { REGION_NAMES } from './types.js'
-import type { Component, ComponentKind, RegionName, Regions, ReportDefinition } from './types.js'
 
 export interface ComponentLocation {
   readonly component: Component

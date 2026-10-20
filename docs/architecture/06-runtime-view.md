@@ -362,9 +362,10 @@ the ICC profile it reads from its own package, the XMP ─▶ a PDF/A-3b
 ```
 
 The validator and the runtime call the same functions in report-spec's
-`en16931.ts`, named by one table for each kind of term, so the editor and a
-render cannot read EN 16931 differently, and an e-invoice's account is held
-by the EPC QR code's rule. The page and the XML read one evaluation of each
+`en16931-*.ts`, one module for each kind of term, their rules named by
+`en16931.ts`, so the editor and a render cannot read EN 16931
+differently, and an e-invoice's account is held by the EPC QR code's
+rule. The page and the XML read one evaluation of each
 line and one computation of each total: the names the page prints are bound
 to the very totals the XML is written from, and the editing core refuses a
 page that leaves one out or prints it otherwise. A final render writes the

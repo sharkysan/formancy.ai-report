@@ -14,7 +14,7 @@ import type { AssetRef, ReportDefinition } from '@formancy/report-spec'
 import type { AddedImage, ImageStore } from './image-store.js'
 import { PROPERTY_ROLES } from './model.js'
 import { scenarioReport } from './scenario-report.js'
-import type { BuilderScenario, ScenarioFile, ScenarioQuery, ScenarioStep } from './scenarios.js'
+import type { BuilderScenario, ScenarioFile, ScenarioQuery, ScenarioStep } from './scenario-steps.js'
 import { editorText } from './text.js'
 import type { EditorLocale } from './text.js'
 

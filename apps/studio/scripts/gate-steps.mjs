@@ -2,7 +2,9 @@
 // builder switched, a builder pane shown, the Preview brought into sight and
 // waited for. Shared by the journey (browser-test.mjs), the checks of where
 // the Preview stands (gate-place.mjs), the room made for the design view
-// (gate-room.mjs) and the walk that compares the two builders
+// (gate-room.mjs), the framework switch (gate-switch.mjs), what a person
+// does in each builder (gate-interactions.mjs), an image added
+// (gate-images.mjs) and the walk that compares the two builders
 // (gate-parity.mjs), so all of them reach a state the same way. Elements
 // are found by role and accessible name, but for whether a pane is drawn,
 // which the accessibility tree cannot say of a pane it does not hold.
@@ -15,6 +17,13 @@ export const WITHIN = 30_000
 
 /** The builder's own words, as its English editor says them: the gate finds what it draws by them. */
 export const said = editorText('en')
+
+/** Null once `locator` is there, within a few seconds -- zoneless Angular draws a frame or two after the click -- or why not. */
+export const present = (locator, what) =>
+  locator.waitFor({ timeout: 5_000 }).then(
+    () => null,
+    () => `no ${what}`,
+  )
 
 /** The builder's region, whichever framework drew it. */
 export const editorOf = (page) => page.getByRole('region', { name: 'Report editor', exact: true })

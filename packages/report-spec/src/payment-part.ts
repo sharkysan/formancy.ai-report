@@ -10,7 +10,7 @@
  * Implementation Guidelines for the QR-bill say; `qr-bill.ts` holds their
  * rules, and the validator applies them to a text no data can change.
  */
-import type { Expression, Inline } from './types.js'
+import type { Expression, Inline } from './values.js'
 
 /**
  * The languages a QR-bill's headings may be printed in: German, French,

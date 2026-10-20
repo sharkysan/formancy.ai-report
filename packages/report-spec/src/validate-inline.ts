@@ -5,29 +5,20 @@
  * Kinds are tables, not switches, as components are: an inline, format or
  * currency source added to its list without a reader here does not compile.
  */
+import type { RowValue } from './aggregates.js'
 import { all, flag, integer, kindOf, matches, oneOf, optional, quote, readArray, readList, readObject, reference, shape, strictKeys, text } from './check.js'
 import type { Findings } from './check.js'
+import { DATASET_ROLES } from './data.js'
+import type { FieldRef, FieldType } from './data.js'
+import type { RegionName } from './definition.js'
 import { MAX_EXPRESSION_LENGTH, MAX_INLINES, MAX_SCALE, MAX_STYLE_RULES, MAX_TEXT_LENGTH } from './limits.js'
 import { at } from './pointer.js'
+import type { StyleRule } from './styles.js'
 import { CURRENCY } from './syntax.js'
-import { AGGREGATE_SCOPES, CURRENCY_SOURCE_KINDS, DATASET_ROLES, DATE_STYLES, FORMAT_KINDS, INLINE_KINDS, TEXT_TRANSFORMS } from './types.js'
-import type {
-  CurrencySource,
-  CurrencySourceKind,
-  Expression,
-  FieldRef,
-  FieldType,
-  Format,
-  FormatKind,
-  Inline,
-  InlineKind,
-  RegionName,
-  RowValue,
-  StyleRule,
-  ValueScope,
-} from './types.js'
 import { resolve } from './validate-context.js'
 import type { Ctx } from './validate-context.js'
+import { AGGREGATE_SCOPES, CURRENCY_SOURCE_KINDS, DATE_STYLES, FORMAT_KINDS, INLINE_KINDS, TEXT_TRANSFORMS } from './values.js'
+import type { CurrencySource, CurrencySourceKind, Expression, Format, FormatKind, Inline, InlineKind, ValueScope } from './values.js'
 
 /** Where a value is read: the region decides page counters, the scope decides detail fields and a group's aggregates. */
 export interface InlineScope {

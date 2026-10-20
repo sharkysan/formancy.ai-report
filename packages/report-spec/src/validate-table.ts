@@ -4,10 +4,13 @@
  * dataset and into the table's own columns.
  */
 import { all, identifier, oneOf, optional, quote, readArray, readList, reference, shape, text, width } from './check.js'
+import type { ComponentBase, Width } from './components.js'
+import type { RegionName } from './definition.js'
 import { MAX_FOOTER_ROWS, MAX_LABEL_LENGTH, MAX_SORT_KEYS, MAX_TABLE_COLUMNS } from './limits.js'
 import { at } from './pointer.js'
-import { ALIGNMENTS, SORT_DIRECTIONS } from './types.js'
-import type { ComponentBase, RegionName, SortKey, TableColumn, TableComponent, TableFooterCell, TableFooterRow, TableGroup, Width } from './types.js'
+import { ALIGNMENTS } from './styles.js'
+import { SORT_DIRECTIONS } from './table.js'
+import type { SortKey, TableColumn, TableComponent, TableFooterCell, TableFooterRow, TableGroup } from './table.js'
 import { declare, resolve, withinPage } from './validate-context.js'
 import type { Ctx, Declarations } from './validate-context.js'
 import { readExpression, readFieldRef, readInline, readInlines, readStyleRef, readStyleRules } from './validate-inline.js'

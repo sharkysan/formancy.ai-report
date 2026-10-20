@@ -1,5 +1,6 @@
 export { createReportEditor } from './editor.js'
-export type { HostViewOptions, ReportEditor, ReportEditorOptions } from './editor.js'
+export type { ReportEditor, ReportEditorOptions } from './editor.js'
+export type { HostViewOptions } from './views.js'
 
 export { EDITOR_PANELS, EDITOR_REFUSAL_CODES, HIDEABLE_PANELS, HOST_VIEW_PLACES, PROPERTY_KINDS, PROPERTY_ROLES } from './model.js'
 export type {
@@ -57,8 +58,9 @@ export { REPORT_ATTRIBUTES, REPORT_PARTS, WORKBENCH_CLASSES } from './parts.js'
 export type { ReportPart } from './parts.js'
 
 // What every native builder must pass, as data.
-export { BUILDER_SCENARIOS, builderScenarios, SCENARIO_ACTIONS, SCENARIO_EXPECTATIONS } from './scenarios.js'
-export type { BuilderScenario, HostViewAction, KeyModifier, ScenarioFile, ScenarioHost, ScenarioQuery, ScenarioStep } from './scenarios.js'
+export { BUILDER_SCENARIOS, builderScenarios } from './scenarios.js'
+export { SCENARIO_ACTIONS, SCENARIO_EXPECTATIONS } from './scenario-steps.js'
+export type { BuilderScenario, HostViewAction, KeyModifier, ScenarioFile, ScenarioHost, ScenarioQuery, ScenarioStep } from './scenario-steps.js'
 export { scenarioReport } from './scenario-report.js'
 export { SCENARIO_PNG, SCENARIO_PNG_DIGEST, SCENARIO_REFUSAL, scenarioStore } from './scenario-images.js'
 export type { ScenarioStore } from './scenario-images.js'

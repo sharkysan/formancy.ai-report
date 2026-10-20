@@ -23,7 +23,8 @@
  * Factur-X 1.09.2 specification, which was not itself read: it is behind a
  * registration that has not been made.
  */
-import type { Expression, Inline, RowValue } from './types.js'
+import type { RowValue } from './aggregates.js'
+import type { Expression, Inline } from './values.js'
 
 /** The kinds of e-invoice. A kind this version does not know is refused, never skipped. */
 export const E_INVOICE_KINDS = ['facturX'] as const

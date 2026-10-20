@@ -21,8 +21,8 @@
  * PDFKit draws it. Every read is bounded by the bytes' length, and nothing
  * here throws for what the bytes hold.
  */
+import type { AssetMediaType } from './assets.js'
 import { MAX_ASSET_SIDE } from './limits.js'
-import type { AssetMediaType } from './types.js'
 
 /** A PNG's header, as the renderer needs it to check the image data: its scanlines follow from the size, the bits a pixel and the interlace. */
 export interface PngHeader {

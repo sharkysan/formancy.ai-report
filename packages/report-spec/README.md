@@ -205,7 +205,8 @@ FACTUR_X_PROFILES.en16931.guideline // 'urn:cen.eu:en16931:2017': BT-24
 FACTUR_X.fileName // 'factur-x.xml'
 ```
 
-`en16931.ts` holds EN 16931's rules as functions over text, each answering
+`en16931.ts` and the `en16931-*.ts` beside it, one for each kind of term,
+hold EN 16931's rules as functions over text, each answering
 the value the XML is written with or the rule broken, named by its business
 term and its business rule and never by the value. The validator applies
 them to a literal; the runtime applies the same functions to what the data
