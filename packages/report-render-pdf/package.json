@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@formancy/report-runtime": "workspace:*",
+    "pdfkit": "0.19.1",
     "pdfmake": "0.3.11",
     "uqr": "0.1.3"
   },

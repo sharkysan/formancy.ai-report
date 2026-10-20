@@ -53,8 +53,11 @@ version, so an upgrade is a diff somebody runs those tests on
 [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 A pass cannot be interrupted, and no worker that could be killed is built.
 
-PDFKit's images are leaned on too, and PDFKit is not pinned the way
-pdfmake is: a host resolves it within pdfmake's `^0.19.1`. PDFKit numbers
+PDFKit's images are leaned on too. report-render-pdf pins PDFKit at
+0.19.1, which npm places where pdfmake finds it, and the install gate
+holds that pdfmake loads it; a host on pnpm or Yarn, or with a PDFKit of
+its own, was not measured and may resolve pdfmake's `^0.19.1` otherwise
+([0036](../decisions/0036-the-renderer-pins-pdfkit-at-the-release-0035-was-read-against-until-pdfkit-writes-images-in-the-order-it-embeds-them.md)). PDFKit numbers
 a PNG's soft mask, and writes the image, when its decode calls back, so the
 renderer wraps each such image's `finalize` in the registry pdfmake keeps
 them in, to have them written in the order pdfmake opened them. A 0.19.x

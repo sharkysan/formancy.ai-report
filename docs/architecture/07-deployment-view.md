@@ -142,8 +142,12 @@ deploy happened or what the address serves.
   pdfmake's access policy: a host that bundles the Node entry puts it where
   the bundled PDFKit's `__dirname` points, or every e-invoice render
   fails; nobody here has bundled one ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
-  PDFKit itself is what pdfmake's `^0.19.1` resolves to, not a version
-  this repository pins, and the order the renderer writes a document's
+  PDFKit is pinned at 0.19.1 by report-render-pdf, which imports nothing
+  of it, so that npm places that release where pdfmake finds it; a host
+  on another package manager, or with a PDFKit of its own, may resolve
+  pdfmake's `^0.19.1` otherwise
+  ([0036](../decisions/0036-the-renderer-pins-pdfkit-at-the-release-0035-was-read-against-until-pdfkit-writes-images-in-the-order-it-embeds-them.md)).
+  The order the renderer writes a document's
   images in wraps three of its details that are not its API: a release
   that moved one would print the same pages in bytes that may vary, or,
   moving how one decode calls `finalize`, leave a render with such images

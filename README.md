@@ -299,6 +299,7 @@ gate proves and what it does not.
 | `@formancy/spec` | 0.6.0 | `0.6.0` |
 | `@formancy/themes` | 0.6.0 | `0.6.0` |
 | `tslib`, by `@formancy/report-builder-angular` | 2.8.1 | `^2.8.0` |
+| `pdfkit`, by `@formancy/report-render-pdf` | 0.19.1 | `0.19.1` |
 | `pdfmake`, by `@formancy/report-render-pdf` | 0.3.11 | `0.3.11` |
 | `uqr`, by `@formancy/report-render-pdf` | 0.1.3 | `0.1.3` |
 | `@noble/hashes`, by `@formancy/report-spec` | 2.4.0 | `2.4.0` |
