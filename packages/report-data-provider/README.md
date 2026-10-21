@@ -16,6 +16,17 @@ its `consistency`, and the render's manifest carries it. A row changed
 between two pages can be printed twice or not at all, and a total can mix
 moments.
 
+**Its source.** The data names the published form each dataset was read
+from, by the id the binding addressed it by -- `{ provider:
+'formancy-data', forms: { header: 'quotation', detail: 'quotation-line' }
+}` -- and the render's manifest carries it as `source`
+([0041](../../docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)).
+Data 0.1.0 publishes a form only under its own id, so a form answered
+under another is refused, below. A report that reads no dataset names no
+source. It names no record: a record's token spells the record's key
+(formancy.ai-data 0012), and a key can be the customer's own data. Nor
+which publication of a form answered, which Data 0.1.0 does not say.
+
 ## Read a report's data
 
 ```ts
@@ -50,6 +61,8 @@ A report field reads the form field with the same key.
 
 **The checks before any record is read:**
 - every dataset is bound, and nothing else;
+- each form Data answers is published under the id the binding names,
+  a formancy form id, or it is refused as `unexpected-form`;
 - every field the report declares is one the form lets this person read;
 - no field is an image, since Data 0.1.0 holds no approved asset;
 - the detail form offers this person a list;

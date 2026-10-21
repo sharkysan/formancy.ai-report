@@ -47,6 +47,7 @@ import type { ImageResolver } from './render-context.js'
 import { checkReport } from './report-check.js'
 import { fromData, Problems } from './resolve-errors.js'
 import type { RuntimeError } from './resolve-errors.js'
+import type { DataSource } from './source.js'
 import { documentStyles } from './styles.js'
 import { computeTotals } from './totals.js'
 import { canonicalInstant } from './values.js'
@@ -76,6 +77,15 @@ export interface RenderManifest {
   readonly completeness: Completeness
   /** Each parameter's value as the format writes one -- an exact number or a date as a string, a boolean -- or null. */
   readonly parameters: Readonly<Record<string, string | boolean | null>>
+  /**
+   * Where the data came from, as its provider named it and the check held
+   * it: each submission of a formancy form with its form's id and its
+   * version's schemaHash, or Formancy Data's forms (0041). Held to the
+   * syntax of identifiers and to no key but its shape's; what fits that
+   * syntax passes, whatever it means. Absent where the data named no
+   * source.
+   */
+  readonly source?: DataSource
 }
 
 export type Resolution =
@@ -171,7 +181,7 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
   const eInvoice = invoice === undefined || valid.eInvoice === undefined ? undefined : eInvoiceFile(render, invoice, valid.eInvoice)
   if (problems.failed) return { ok: false, errors: problems.errors() }
 
-  const { completeness, consistency } = checkedData.data
+  const { completeness, consistency, source } = checkedData.data
   const warnings = problems.warnings()
   const lacking = !completeness.complete || warnings.some(({ code }) => code !== 'e-invoice-preview')
   const labelled = !preview ? (eInvoice?.kind === 'xrechnung' ? XRECHNUNG_COPY_LABEL : undefined) : lacking ? PREVIEW_LABEL : invoice === undefined ? undefined : E_INVOICE_PREVIEW_LABEL
@@ -193,6 +203,7 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
     consistency,
     completeness,
     parameters: writtenParameters(parameters.values),
+    ...(source === undefined ? {} : { source }),
   }
   return { ok: true, document, manifest, warnings }
 }

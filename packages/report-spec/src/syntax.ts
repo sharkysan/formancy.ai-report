@@ -39,6 +39,11 @@ export function isFieldKey(value: unknown): value is string {
 /** A formancy form's id, as its schema writes one (`formId`): at most 128 characters. */
 export const FORM_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/
 
+/** Whether `value` is a formancy form's id: what a report's provenance names, and the runtime's data source (0041). */
+export function isFormId(value: unknown): value is string {
+  return typeof value === 'string' && FORM_ID.test(value)
+}
+
 /**
  * The BCP 47 subset a report's locale may be: a language (2-3 letters), an
  * optional script (4 letters, title case) and an optional region (2 letters
@@ -61,6 +66,11 @@ export const DIGEST = /^sha256:[0-9a-f]{64}$/
 
 /** A form version's hash, as `@formancy/spec`'s `schemaHash` writes it: 64 lower-case hex digits. */
 export const SCHEMA_HASH = /^[0-9a-f]{64}$/
+
+/** Whether `value` is a form version's hash as `schemaHash` writes one: what a report's provenance pins, and the runtime's data source (0041). */
+export function isSchemaHash(value: unknown): value is string {
+  return typeof value === 'string' && SCHEMA_HASH.test(value)
+}
 
 /** An exact integer as a string: no sign but '-', no leading zeros, no exponent, and no '-0'. */
 export const INTEGER = /^(?:0|-?[1-9]\d*)$/

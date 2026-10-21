@@ -1,6 +1,6 @@
 # 0016 — The Data provider reads Formancy Data 0.1.0 best-effort, as the person, and checks what it can before it reads a record
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose data names the forms it read
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -176,6 +176,20 @@ package at one exact version under three conditions:
 0.1.0's routes, and a newer Data that changes them is refused by the
 client's shape checks as `unexpected`, or by its server. Moving to a new
 Data release is a release of this package, with a new admission.
+
+**Added 2026-10-21: the forms it read, named.** The data the provider
+hands over names its source, `{ provider: 'formancy-data', forms }`: the
+published form each dataset was read from, by the id the binding
+addressed it by, which the render's manifest carries
+([0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)).
+Data 0.1.0 publishes a form only under its own id, so a form answered
+under another, or under one that is no formancy form id, is refused as
+`unexpected-form` before any record is read: one more check of what can
+be checked without a record. Data read from no form names no source. It
+names no record: a record's token spells its key (formancy.ai-data
+0012), and a key can be the customer's own data. Data 0.1.0 says no
+version of a published form, so none is named. `read.test.ts` and the
+install gate's `consume.ts` hold it.
 
 ## Alternatives considered
 

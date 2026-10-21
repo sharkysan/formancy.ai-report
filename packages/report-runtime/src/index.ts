@@ -31,6 +31,8 @@ export type {
 
 export { checkData, CONSISTENCY_MODES, DATA_MODES, MAX_DETAIL_ROWS } from './data.js'
 export type { CheckedData, CheckedRecord, Completeness, Consistency, DataCheck, DataCheckOptions, DataMode, ReportData } from './data.js'
+export { SOURCE_PROVIDERS } from './source.js'
+export type { DataSource, FormancyDataSource, FormSource, FormSubmission, SourceProvider } from './source.js'
 export { DATA_ERROR_CODES, MAX_DATA_ERRORS } from './data-errors.js'
 export type { DataError, DataErrorCode } from './data-errors.js'
 export { checkParameters } from './parameters.js'

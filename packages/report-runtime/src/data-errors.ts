@@ -34,6 +34,8 @@ export const DATA_ERROR_CODES = [
   'completeness-mismatch',
   'invalid-completeness',
   'invalid-consistency',
+  /** A source past the syntax of identifiers or its shape's keys, naming a provider the runtime does not know, or past its bounds (0041). */
+  'invalid-source',
   /** A required parameter with no value and no default. */
   'missing-parameter',
   /** A value for a parameter the report does not declare. */

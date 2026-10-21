@@ -1,6 +1,6 @@
 # 0010 — The runtime resolves a report into a renderer-neutral document, exactly, or refuses it
 
-- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which writes an EPC QR code's payload and refuses one the EPC's rules refuse, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which computes an e-invoice's totals once for the page and its XML, writes the XML, and refuses one EN 16931's rules refuse, and by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which fetches an SVG asset, drawn again wherever it prints rather than embedded once, and corrects this record's reason for trusting digests
+- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which writes an EPC QR code's payload and refuses one the EPC's rules refuse, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which computes an e-invoice's totals once for the page and its XML, writes the XML, and refuses one EN 16931's rules refuse, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which fetches an SVG asset, drawn again wherever it prints rather than embedded once, and corrects this record's reason for trusting digests, and by [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose manifest names where the data came from, by identifiers alone
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-runtime`, run by its
@@ -251,6 +251,22 @@ above say less than is so:
 
 `lower.test.ts` holds the cap, and that the bytes are not read when it
 refuses.
+
+**Added 2026-10-21: where the data came from.** The data may name its
+source, and the manifest carries it, as
+[0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)
+decides: each submission of a formancy form with its form's id and the
+`schemaHash` of the version that collected it, or the Formancy Data form
+each dataset was read from. `checkData` reads it as it reads the data,
+holds it to the syntax of identifiers -- report-spec's form id and
+version hash, a submission id of the runtime's own -- refuses a key its
+shape does not name, bounds it by the rows given, refuses a provider it
+does not know as `invalid-source`, and keeps a frozen copy. The manifest's
+comment, "Nothing in it is the data's", holds of what the data printed: a
+source names where the data came from, and no field of it. What a syntax
+cannot tell from an answer -- a single word, a personal number, a digest
+-- passes, and 0041 says so as its cost. `data.test.ts` and
+`resolve.test.ts` hold it.
 
 ## Alternatives considered
 

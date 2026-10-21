@@ -232,7 +232,7 @@ export {
   MIN_FONT_SIZE,
   MIN_PRINTABLE_PT,
 } from './limits.js'
-export { isFieldKey, isIdentifier } from './syntax.js'
+export { isFieldKey, isFormId, isIdentifier, isSchemaHash } from './syntax.js'
 
 export { assetDigest } from './digest.js'
 export { IMAGE_REFUSAL_CODES, imageHeader, sniffImage } from './image-header.js'
