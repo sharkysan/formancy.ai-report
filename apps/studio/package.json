@@ -31,7 +31,7 @@
     "@formancy/report-render-pdf": "workspace:*",
     "@formancy/report-runtime": "workspace:*",
     "@formancy/report-spec": "workspace:*",
-    "@formancy/themes": "0.6.0",
+    "@formancy/themes": "0.7.0",
     "pdfjs-dist": "6.4.299",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

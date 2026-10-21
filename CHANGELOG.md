@@ -10,6 +10,34 @@ later.
 
 ## Unreleased
 
+**Report takes formancy 0.7.0.** The upstream `@formancy/*` packages
+move from 0.6.0 to 0.7.0, exact, for what 0.6.0 was taken for:
+`@formancy/spec` for report-spec's report hash, `@formancy/expressions`
+for report-core and report-runtime, `@formancy/themes` for the Studio,
+the pages and the getting-started guide's install lines. 0.7.0 reads an
+answer as what the value holds as its own
+([formancy.ai 0185](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0185-an-answer-is-what-the-value-holds-as-its-own.md)),
+the release a report read from a formancy form's submission is to be
+read with, and a pin a release behind would hold a host to the one
+before it.
+
+- **A report's hash is the one it was.** The spec version stays 4, and
+  report-spec reads `schemaHash` alone, whose code 0.7.0 did not touch;
+  `hash.test.ts`'s pinned digest held.
+- **An expression evaluates as it did.** `@formancy/expressions` 0.7.0
+  reads a variable only as the value bag's own member, and hands CEL an
+  object holding a member of its own named `constructor` as a map. Report
+  declares and binds every member an expression reads as a variable of
+  its own, so neither changes what a report prints; every suite passed
+  unchanged.
+- **The Studio and the pages look as they did.** `@formancy/themes`
+  0.7.0's files are 0.6.0's but for the version. The README's pictures,
+  retaken by their script, are the bytes they were; their record names
+  0.7.0.
+- **A host that installs `@formancy/report-data-provider` still gets a
+  second `@formancy/spec`**, 0.5.0 through Formancy Data 0.1.0, until the
+  provider takes a Data release built against a newer one.
+
 **A report's e-invoice may be an XRechnung 3.0, for a German public
 buyer**
 ([0038](docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
