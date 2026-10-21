@@ -48,6 +48,9 @@ function refusalOf(bytes: Uint8Array): FontRefusal {
   return read
 }
 
+/** `text` as a pattern that matches it and nothing else, so a refusal's words are compared as words. */
+const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 describe('readFont reads', () => {
   // What a builder tells an approver, and what the renderer lays a line out
   // by: a name read from the wrong record, or a metric from the wrong
@@ -181,7 +184,7 @@ describe('readFont refuses a font in a format it does not read, saying which', (
     ['colour bitmaps', [['CBDT', new Uint8Array(4)]], 'colour', 'has colour bitmap glyphs (CBDT)'],
     ["Apple's colour bitmaps", [['sbix', new Uint8Array(8)]], 'colour', 'has colour bitmap glyphs (sbix)'],
   ] as const)('%s', (_, tables, code, said) => {
-    expect(refusalOf(font({ with: tables }))).toMatchObject({ ok: false, code, message: expect.stringMatching(new RegExp(`^${said.replace(/[()]/g, '\\$&')}; `)) as string })
+    expect(refusalOf(font({ with: tables }))).toMatchObject({ ok: false, code, message: expect.stringMatching(new RegExp(`^${escaped(said)}; `)) as string })
   })
 
   // A bitmap font has no outlines for a PDF to embed: neither its tables nor, behind them, one glyph that draws.
@@ -248,7 +251,7 @@ describe('the embedding an fsType allows', () => {
     // A version whose bits nothing here knows.
     [6, 0x0000, 'invalid', 'states its embedding permissions in an OS/2 table of version 6'],
   ] as const)('version %i, fsType %i: refused as %s', (version, fsType, embedding, said) => {
-    expect(refusalOf(font({ os2: os2({ version, fsType, length: 100 }) }))).toEqual({ ok: false, code: 'embedding', embedding, message: expect.stringMatching(new RegExp(`^${said.replace(/[()]/g, '\\$&')}`)) as string })
+    expect(refusalOf(font({ os2: os2({ version, fsType, length: 100 }) }))).toEqual({ ok: false, code: 'embedding', embedding, message: expect.stringMatching(new RegExp(`^${escaped(said)}`)) as string })
   })
 
   // A font refused for its licence bits is refused for them, whatever else is wrong with it, so that a person is told what to ask its vendor for.
@@ -277,7 +280,7 @@ describe('readFont holds each table to the specification', () => {
     ['the OS/2 table', 'OS/2', 'OS/2 and Windows metrics table (OS/2)'],
     ['the PostScript table', 'post', 'PostScript table (post)'],
   ])('without %s', (_, tag, called) => {
-    expect(refusalOf(font({ without: [tag] }))).toMatchObject({ code: 'malformed', message: expect.stringMatching(new RegExp(`^has no ${called.replace(/[()]/g, '\\$&')}; `)) as string })
+    expect(refusalOf(font({ without: [tag] }))).toMatchObject({ code: 'malformed', message: expect.stringMatching(new RegExp(`^has no ${escaped(called)}; `)) as string })
   })
 
   test.each([
