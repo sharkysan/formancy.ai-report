@@ -324,6 +324,51 @@ describe('the CII an e-invoice is written as', () => {
     expect(xml).toContain('<ram:DuePayableAmount>29.75</ram:DuePayableAmount>')
   })
 
+  // The terms past 0027's (0037) -- the business process, both parties'
+  // electronic addresses and the seller's contact -- each where CEN's
+  // binding puts it, at the paths the pinned XRechnung schematron reads
+  // them at (PEPPOL-EN16931-R001, -R020, -R010, BR-DE-5 to -7), and in the
+  // order of the Factur-X EN 16931 XSD's sequences: the business process
+  // before the guideline, a party's contact after its legal organisation
+  // and its electronic address after its postal address, the contact's
+  // name, telephone and email in that order. Everything else is the
+  // complete invoice's, byte for byte, which the validators took.
+  test('writes the terms past 0027s at their paths, in the order of the XSD, and nothing else differently', () => {
+    const terms: InvoiceTerms = {
+      ...TERMS,
+      businessProcess: 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0',
+      seller: { ...TERMS.seller, electronicAddress: { id: 'rechnung@muster-soehne.example', scheme: 'EM' }, contact: { name: 'Erika Mustermann', telephone: '+49 221 4710 123', email: 'erika.mustermann@muster-soehne.example' } },
+      buyer: { ...TERMS.buyer, electronicAddress: { id: '4012345000009', scheme: '0088' } },
+    }
+    const xml = ciiXml(invoice(terms))
+    const context = [
+      '  <rsm:ExchangedDocumentContext>',
+      '    <ram:BusinessProcessSpecifiedDocumentContextParameter>',
+      '      <ram:ID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</ram:ID>',
+      '    </ram:BusinessProcessSpecifiedDocumentContextParameter>',
+      '    <ram:GuidelineSpecifiedDocumentContextParameter>',
+    ]
+    const contact = [
+      '        </ram:SpecifiedLegalOrganization>',
+      '        <ram:DefinedTradeContact>',
+      '          <ram:PersonName>Erika Mustermann</ram:PersonName>',
+      '          <ram:TelephoneUniversalCommunication>',
+      '            <ram:CompleteNumber>+49 221 4710 123</ram:CompleteNumber>',
+      '          </ram:TelephoneUniversalCommunication>',
+      '          <ram:EmailURIUniversalCommunication>',
+      '            <ram:URIID>erika.mustermann@muster-soehne.example</ram:URIID>',
+      '          </ram:EmailURIUniversalCommunication>',
+      '        </ram:DefinedTradeContact>',
+      '        <ram:PostalTradeAddress>',
+    ]
+    const sellerAddress = ['        </ram:PostalTradeAddress>', '        <ram:URIUniversalCommunication>', '          <ram:URIID schemeID="EM">rechnung@muster-soehne.example</ram:URIID>', '        </ram:URIUniversalCommunication>', '        <ram:SpecifiedTaxRegistration>']
+    const buyerAddress = ['          <ram:CountryID>AT</ram:CountryID>', '        </ram:PostalTradeAddress>', '        <ram:URIUniversalCommunication>', '          <ram:URIID schemeID="0088">4012345000009</ram:URIID>', '        </ram:URIUniversalCommunication>']
+    for (const lines of [context, contact, sellerAddress, buyerAddress]) expect(xml).toContain(lines.join('\n'))
+    const added = new Set([...context.slice(1, 4), ...contact.slice(1, -1), ...sellerAddress.slice(1, -1), ...buyerAddress.slice(2)])
+    // Taken out again, line by line, what is left is the complete invoice the validators took.
+    expect(xml.split('\n').filter((line) => !added.has(line)).join('\n')).toBe(COMPLETE)
+  })
+
   // An amount is written from its own digits at two places; one at another
   // scale is a defect of what computed it, never rounded or padded here,
   // where nobody would see the XML part from the page.

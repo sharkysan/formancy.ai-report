@@ -1,3 +1,4 @@
+import { MAX_INLINES } from '@formancy/report-spec'
 import type { EInvoice, FieldRef, Inline, ReportDefinition, VatCategory } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { ReportData } from './data.js'
@@ -5,6 +6,7 @@ import { resolveReport } from './resolve.js'
 import type { Resolution, ResolveOptions } from './resolve.js'
 import type { RuntimeError } from './resolve-errors.js'
 import { invoiceData, invoiceReport, invoiceRow } from './test-support.js'
+import { MAX_STRING_LENGTH } from './values.js'
 
 /**
  * An e-invoice's terms but its lines -- its number, its dates, its
@@ -255,6 +257,92 @@ describe("an e-invoice's optional parts", () => {
     const xml = xmlOf(unpaid, invoiceData())
     expect(xml).not.toContain('SpecifiedTradeSettlementPaymentMeans')
     expect(xml).not.toContain('PaymentReference')
+  })
+})
+
+describe("an e-invoice's electronic addresses, its seller's contact and its business process", () => {
+  /** The invoice report with every term past 0027's read from a header field of its own (0037). */
+  const addressed = withInvoice(
+    (invoice) => ({
+      ...invoice,
+      businessProcess: read('process'),
+      seller: { ...invoice.seller, electronicAddress: { id: read('sellerAddress'), scheme: 'EM' }, contact: { name: read('contactName'), telephone: read('telephone'), email: read('email') } },
+      buyer: { ...invoice.buyer, electronicAddress: { id: read('buyerAddress'), scheme: '0088' } },
+    }),
+    ['process', 'sellerAddress', 'contactName', 'telephone', 'email', 'buyerAddress'],
+  )
+  const given = { process: 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0', sellerAddress: 'rechnung@muster-soehne.example', contactName: 'Erika Mustermann', telephone: '+49 221 4710 123', email: 'erika.mustermann@muster-soehne.example', buyerAddress: '4012345000009' }
+
+  // What the data gives each is written, each address with the scheme the
+  // template names: the receiver's system routes the invoice by them.
+  test('writes each as the data gives it, an address with its scheme', () => {
+    const xml = xmlOf(addressed, invoiceData(undefined, given))
+    for (const written of [
+      '<ram:ID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</ram:ID>',
+      '<ram:URIID schemeID="EM">rechnung@muster-soehne.example</ram:URIID>',
+      '<ram:PersonName>Erika Mustermann</ram:PersonName>',
+      '<ram:CompleteNumber>+49 221 4710 123</ram:CompleteNumber>',
+      '<ram:URIID>erika.mustermann@muster-soehne.example</ram:URIID>',
+      '<ram:URIID schemeID="0088">4012345000009</ram:URIID>',
+    ]) {
+      expect(xml, written).toContain(written)
+    }
+  })
+
+  // None is needed in a German B2B invoice, so what the data gives as
+  // nothing is left out: an address with its scheme, which names nothing
+  // without it, and the contact whole where it has none of its three.
+  test('leaves out each the data gives as nothing, a contact whole where it has none of its terms', () => {
+    const none = { process: null, sellerAddress: ' ', contactName: null, telephone: null, email: null, buyerAddress: null }
+    const bare = xmlOf(addressed, invoiceData(undefined, none))
+    expect(bare).toBe(xmlOf(invoiceReport(), invoiceData()))
+  })
+
+  // A contact gives all three of its terms or none, as the validator holds
+  // a literal one to (0037) and as XRechnung needs each (BR-DE-5 to -7):
+  // one the data gives in part, written with what it has, is the contact
+  // the same template would write as an XRechnung that KoSIT refuses.
+  // Refused at each term it lacks, never quoting what it has; a preview,
+  // which lacks what it has no value for, says nothing of it.
+  test('refuses a contact the data gives in part, at each term it lacks', () => {
+    const lacks = (term: string) => `${term} is empty, and a contact gives all three of its terms or none`
+    const errors = refused(addressed, invoiceData(undefined, { ...given, contactName: ' ', telephone: null }))
+    expect(errors).toEqual([refusal('/eInvoice/seller/contact/name', lacks("the seller's contact point (BT-41)")), refusal('/eInvoice/seller/contact/telephone', lacks("the seller's contact telephone number (BT-42)"))])
+    for (const error of errors) expect(error.message).not.toContain(given.email)
+    expect(refused(addressed, invoiceData(undefined, { ...given, email: null }))).toEqual([refusal('/eInvoice/seller/contact/email', lacks("the seller's contact email address (BT-43)"))])
+    expect(resolved(addressed, invoiceData(undefined, { ...given, telephone: null }), PREVIEW).ok).toBe(true)
+  })
+
+  // What the data gives is held to the rule a literal is: a telephone
+  // number of fewer than three digits (XRechnung's BR-DE-27), an email
+  // address of another shape (BR-DE-28), an identifier with white space
+  // the XML's token would collapse. None is quoted.
+  test.each([
+    [{ telephone: '0 1' }, '/eInvoice/seller/contact/telephone', "the seller's contact telephone number (BT-42) has fewer than three digits, which a telephone number has at least (XRechnung's BR-DE-27)"],
+    [{ email: 'erika.mustermann@example' }, '/eInvoice/seller/contact/email', "(XRechnung's BR-DE-28)"],
+    [{ process: 'urn:a  b' }, '/eInvoice/businessProcess', 'the business process (BT-23) holds white space the XML would not keep'],
+    [{ buyerAddress: '4012345000009 ' }, '/eInvoice/buyer/electronicAddress/id', "the buyer's electronic address (BT-49) holds white space the XML would not keep"],
+  ])('holds what the data gives to its rule: %o', (patch, path, said) => {
+    const errors = refused(addressed, invoiceData(undefined, { ...given, ...patch }))
+    expect(errors).toEqual([expect.objectContaining({ stage: 'resolve', code: 'invalid-e-invoice', path, message: expect.stringContaining(said) })])
+    for (const value of Object.values(patch)) expect(errors[0]?.message).not.toContain(value.trim())
+  })
+
+  // The longest telephone number data can give, MAX_INLINES runs, all but
+  // one each a string of MAX_STRING_LENGTH characters, is held to BR-DE-27
+  // in time in proportion to its length: with XRechnung's expression run
+  // as written (report-spec's xrechnung.test.ts), a sixteenth of it took
+  // 21.4 s to resolve and failed the bound; with the digits counted, the
+  // whole took 24 to 26 ms in three runs, measured on 20 October 2026 on
+  // Node 24.21.0 and an Intel i9-10900K.
+  test('holds the longest telephone number data can give to its rule in time in proportion to its length', () => {
+    const half = Array.from({ length: MAX_INLINES / 2 }, () => read('telephone')).flat()
+    const held = addressed.eInvoice as EInvoice
+    const long: ReportDefinition = { ...addressed, eInvoice: { ...held, seller: { ...held.seller, contact: { name: read('contactName'), telephone: [...half.slice(1), ...said('12'), ...half], email: read('email') } } } }
+    const started = Date.now()
+    const errors = refused(long, invoiceData(undefined, { ...given, telephone: 'a'.repeat(MAX_STRING_LENGTH) }))
+    expect(errors).toEqual([refusal('/eInvoice/seller/contact/telephone', "has fewer than three digits, which a telephone number has at least (XRechnung's BR-DE-27)")])
+    expect(Date.now() - started).toBeLessThan(5_000)
   })
 })
 

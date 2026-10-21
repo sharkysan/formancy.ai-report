@@ -20,21 +20,24 @@
 import { fieldKey, kindOf, oneOf, optional, readArray, readObject, reference, shape, strictKeys } from './check.js'
 import { E_INVOICE_CURRENCIES, E_INVOICE_KINDS, E_INVOICE_PROFILES, INVOICE_TYPE_CODES, PAYMENT_MEANS_CODES, VAT_CATEGORY_CODES } from './e-invoice.js'
 import type {
+  AddressScheme,
   EInvoice,
   EInvoiceAddress,
   EInvoiceBuyer,
   EInvoiceKind,
   EInvoiceSeller,
+  ElectronicAddress,
   FacturXInvoice,
   InvoicingPeriod,
   LegalIdentifier,
   PaymentInstructions,
   SchemeId,
+  SellerContact,
   VatCategory,
   VatCategoryCode,
 } from './e-invoice.js'
 import { periodBreak, supplyBreak } from './en16931-dates.js'
-import { checkEInvoiceText, checkSchemeId, E_INVOICE_TEXT_TERMS, E_INVOICE_TEXTS } from './en16931-texts.js'
+import { checkAddressScheme, checkEInvoiceText, checkSchemeId, E_INVOICE_TEXT_TERMS, E_INVOICE_TEXTS } from './en16931-texts.js'
 import type { EInvoiceTextTerm } from './en16931-texts.js'
 import { buyerIdentificationBreak, checkVatRate, sellerIdentificationBreaks, vatCategoryBreaks, vatReasonBreak } from './en16931-vat.js'
 import { en16931Rule } from './en16931.js'
@@ -96,36 +99,86 @@ function readLegalId(c: Ctx, value: unknown, path: string, party: Party): LegalI
   return id.runs === undefined || !read(o, 'scheme', scheme) ? undefined : { id: id.runs, ...optional('scheme', scheme) }
 }
 
+/** What a refusal calls an electronic address's scheme. */
+const ADDRESS_SCHEME_TERMS: { readonly [P in Party]: string } = {
+  seller: "the scheme of the seller's electronic address (BT-34-1)",
+  buyer: "the scheme of the buyer's electronic address (BT-49-1)",
+}
+
+/** An electronic address: its identifier, a text, and its scheme, a code of the list, which EN 16931 needs with it (BR-62, BR-63). */
+function readElectronicAddress(c: Ctx, value: unknown, path: string, party: Party): ElectronicAddress | undefined {
+  const o = readPart(c, value, path, ['id', 'scheme'])
+  if (o === undefined) return undefined
+  const id = readTerm(c, o.id, at(path, 'id'), E_INVOICE_TEXT_TERMS[party].electronicAddress)
+  const code = reference(c.f, o.scheme, at(path, 'scheme'))
+  const checked = code === undefined ? undefined : checkAddressScheme(code)
+  if (checked?.ok === false) c.f.report(at(path, 'scheme'), 'invalid-e-invoice', `${ADDRESS_SCHEME_TERMS[party]} ${checked.rule}`)
+  const scheme: AddressScheme | undefined = checked?.ok === true ? checked.value : undefined
+  return id.runs === undefined || scheme === undefined ? undefined : { id: id.runs, scheme }
+}
+
+/** The seller's contact: its name, its telephone number and its email address, each a text, all three given. */
+function readContact(c: Ctx, value: unknown, path: string): SellerContact | undefined {
+  const o = readPart(c, value, path, ['name', 'telephone', 'email'])
+  if (o === undefined) return undefined
+  const terms = E_INVOICE_TEXT_TERMS.seller.contact
+  const name = readTerm(c, o.name, at(path, 'name'), terms.name)
+  const telephone = readTerm(c, o.telephone, at(path, 'telephone'), terms.telephone)
+  const email = readTerm(c, o.email, at(path, 'email'), terms.email)
+  return name.runs === undefined || telephone.runs === undefined || email.runs === undefined ? undefined : { name: name.runs, telephone: telephone.runs, email: email.runs }
+}
+
 /** The seller, its identifiers held to what the categories it declares need when those could be read. */
 function readSeller(c: Ctx, value: unknown, path: string, codes: readonly VatCategoryCode[] | undefined): EInvoiceSeller | undefined {
-  const o = readPart(c, value, path, ['name', 'address'], ['vatId', 'taxNumber', 'legalId'])
+  const o = readPart(c, value, path, ['name', 'address'], ['vatId', 'taxNumber', 'legalId', 'electronicAddress', 'contact'])
   if (o === undefined) return undefined
   const terms = E_INVOICE_TEXT_TERMS.seller
   const name = readTerm(c, o.name, at(path, 'name'), terms.name)
   const vatId = readTerm(c, o.vatId, at(path, 'vatId'), terms.vatId)
   const taxNumber = readTerm(c, o.taxNumber, at(path, 'taxNumber'), terms.taxNumber)
   const legalId = readLegalId(c, o.legalId, at(path, 'legalId'), 'seller')
+  const electronicAddress = readElectronicAddress(c, o.electronicAddress, at(path, 'electronicAddress'), 'seller')
+  const contact = readContact(c, o.contact, at(path, 'contact'))
   const address = readAddress(c, o.address, at(path, 'address'), 'seller')
   // Said of what is written, read or not: an identifier refused is there.
   const has = { vatId: o.vatId !== undefined, taxNumber: o.taxNumber !== undefined, legalId: o.legalId !== undefined }
   for (const rule of codes === undefined ? [] : sellerIdentificationBreaks(has, codes)) c.f.report(path, 'invalid-e-invoice', rule)
-  if (name.runs === undefined || address === undefined || !read(o, 'vatId', vatId.runs) || !read(o, 'taxNumber', taxNumber.runs) || !read(o, 'legalId', legalId)) return undefined
-  return { name: name.runs, ...optional('vatId', vatId.runs), ...optional('taxNumber', taxNumber.runs), ...optional('legalId', legalId), address }
+  if (
+    name.runs === undefined ||
+    address === undefined ||
+    !read(o, 'vatId', vatId.runs) ||
+    !read(o, 'taxNumber', taxNumber.runs) ||
+    !read(o, 'legalId', legalId) ||
+    !read(o, 'electronicAddress', electronicAddress) ||
+    !read(o, 'contact', contact)
+  ) {
+    return undefined
+  }
+  return {
+    name: name.runs,
+    ...optional('vatId', vatId.runs),
+    ...optional('taxNumber', taxNumber.runs),
+    ...optional('legalId', legalId),
+    ...optional('electronicAddress', electronicAddress),
+    ...optional('contact', contact),
+    address,
+  }
 }
 
 /** The buyer, its identifiers held to what a reverse-charged category needs. */
 function readBuyer(c: Ctx, value: unknown, path: string, codes: readonly VatCategoryCode[] | undefined): EInvoiceBuyer | undefined {
-  const o = readPart(c, value, path, ['name', 'address'], ['vatId', 'legalId'])
+  const o = readPart(c, value, path, ['name', 'address'], ['vatId', 'legalId', 'electronicAddress'])
   if (o === undefined) return undefined
   const terms = E_INVOICE_TEXT_TERMS.buyer
   const name = readTerm(c, o.name, at(path, 'name'), terms.name)
   const vatId = readTerm(c, o.vatId, at(path, 'vatId'), terms.vatId)
   const legalId = readLegalId(c, o.legalId, at(path, 'legalId'), 'buyer')
+  const electronicAddress = readElectronicAddress(c, o.electronicAddress, at(path, 'electronicAddress'), 'buyer')
   const address = readAddress(c, o.address, at(path, 'address'), 'buyer')
   const broken = codes && buyerIdentificationBreak({ vatId: o.vatId !== undefined, legalId: o.legalId !== undefined }, codes)
   if (broken !== undefined) c.f.report(path, 'invalid-e-invoice', broken)
-  if (name.runs === undefined || address === undefined || !read(o, 'vatId', vatId.runs) || !read(o, 'legalId', legalId)) return undefined
-  return { name: name.runs, ...optional('vatId', vatId.runs), ...optional('legalId', legalId), address }
+  if (name.runs === undefined || address === undefined || !read(o, 'vatId', vatId.runs) || !read(o, 'legalId', legalId) || !read(o, 'electronicAddress', electronicAddress)) return undefined
+  return { name: name.runs, ...optional('vatId', vatId.runs), ...optional('legalId', legalId), ...optional('electronicAddress', electronicAddress), address }
 }
 
 /** A category as read: the category when all of it was, and the code and the rate by value when each was. */
@@ -213,7 +266,7 @@ function readPayment(c: Ctx, value: unknown, path: string): { payment: PaymentIn
 }
 
 const FACTUR_X_REQUIRED = ['kind', 'profile', 'type', 'currency', 'number', 'issued', 'seller', 'buyer', 'vat', 'lines']
-const FACTUR_X_OPTIONAL = ['buyerReference', 'delivered', 'period', 'payment', 'due', 'terms', 'paid']
+const FACTUR_X_OPTIONAL = ['businessProcess', 'buyerReference', 'delivered', 'period', 'payment', 'due', 'terms', 'paid']
 
 function readFacturX(c: Ctx, o: Record<string, unknown>, path: string, around: EInvoiceSurroundings): FacturXInvoice | undefined {
   strictKeys(c.f, o, path, FACTUR_X_REQUIRED, FACTUR_X_OPTIONAL)
@@ -222,6 +275,7 @@ function readFacturX(c: Ctx, o: Record<string, unknown>, path: string, around: E
   const currency = oneOf(c.f, o.currency, at(path, 'currency'), E_INVOICE_CURRENCIES)
   const number = readTerm(c, o.number, at(path, 'number'), E_INVOICE_TEXT_TERMS.number)
   const issued = readExpression(c.f, o.issued, at(path, 'issued'))
+  const businessProcess = readTerm(c, o.businessProcess, at(path, 'businessProcess'), E_INVOICE_TEXT_TERMS.businessProcess)
   // The categories first: what the parties' identifiers must be depends on their codes.
   const { categories, codes } = readVatCategories(c, o.vat, at(path, 'vat'))
   const seller = readSeller(c, o.seller, at(path, 'seller'), codes)
@@ -247,6 +301,7 @@ function readFacturX(c: Ctx, o: Record<string, unknown>, path: string, around: E
     buyer === undefined ||
     categories === undefined ||
     lines === undefined ||
+    !read(o, 'businessProcess', businessProcess.runs) ||
     !read(o, 'buyerReference', buyerReference.runs) ||
     !read(o, 'delivered', delivered) ||
     !read(o, 'period', period) ||
@@ -264,6 +319,7 @@ function readFacturX(c: Ctx, o: Record<string, unknown>, path: string, around: E
     currency,
     number: number.runs,
     issued,
+    ...optional('businessProcess', businessProcess.runs),
     seller,
     buyer,
     ...optional('buyerReference', buyerReference.runs),

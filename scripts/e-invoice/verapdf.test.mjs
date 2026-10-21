@@ -92,6 +92,7 @@ describe('veraPDF’s verdict', () => {
       ['e-invoice.pdf', 'as expected', []],
       ['e-invoice-reverse-charge.pdf', 'as expected', []],
       ['e-invoice-exempt-paid.pdf', 'as expected', []],
+      ['e-invoice-addressed.pdf', 'as expected', []],
       ['variant-blocks.pdf', 'as expected', []],
       ['variant-svg.pdf', 'as expected', []],
       ['variant-svg-bound.pdf', 'as expected', []],

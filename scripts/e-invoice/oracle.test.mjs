@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { CODE_LISTS, codeList, codeListAt, oracleProblems, readCodedb, readSchematron } from './oracle.mjs'
+import { CODE_LISTS, codeList, codeListAt, oracleProblems, readCodedb, readSchematron, readVariables, scenarioSchematrons } from './oracle.mjs'
 
 /**
  * report-spec's closed lists and the rule ids its refusals name, held to
@@ -14,7 +14,7 @@ const NS = 'xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:svrl="http://
 const test_ = (list, select = '@unitCode') => `((not(contains(normalize-space(${select}), ' ')) and contains(' ${list} ', concat(' ', normalize-space(${select}), ' '))))`
 
 /** A SchXslt-compiled rule as CEN's is: id and flag on the assert, its test in an attribute instruction. */
-const cenRule = (id, flag, test) => `<xsl:template match="ram:X" mode="d1"><schxslt:rule pattern="p"><xsl:if test="not(${test.replaceAll("'", '&apos;')})"><svrl:failed-assert location="{schxslt:location(.)}" flag="${flag}" id="${id}"><xsl:attribute name="test">${test}</xsl:attribute><svrl:text>[${id}]</svrl:text></svrl:failed-assert></xsl:if></schxslt:rule></xsl:template>`
+const cenRule = (id, flag, test, match = 'ram:X') => `<xsl:template match="${match}" mode="d1"><schxslt:rule pattern="p"><xsl:if test="not(${test.replaceAll("'", '&apos;')})"><svrl:failed-assert location="{schxslt:location(.)}" flag="${flag}" id="${id}"><xsl:attribute name="test">${test}</xsl:attribute><svrl:text>[${id}]</svrl:text></svrl:failed-assert></xsl:if></schxslt:rule></xsl:template>`
 const cen = (...rules) => `<xsl:transform ${NS} version="2.0">${rules.join('')}</xsl:transform>`
 
 /** A ph-schematron rule as FeRD's is: the context in the template's match, the value in a variable, the id and flag as attribute instructions. */
@@ -55,8 +55,25 @@ describe('reading a schematron', () => {
   })
 })
 
+/** XRechnung's two shapes, as report-spec states them and the pinned schematron's variables write them. */
+const EMAIL = String.raw`^[^@\s]+@([^@.\s]+\.)+[^@.\s]+$`
+const TELEPHONE = '.*([0-9].*){3,}.*'
+const PATTERNS = { telephone: { rule: 'BR-DE-27', pattern: TELEPHONE }, email: { rule: 'BR-DE-28', pattern: EMAIL } }
+/** Where the pinned schematron reads each shape: the seller's contact, and the element its test reads, as XRECHNUNG_SHAPES gives them. */
+const CONTACT = '/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty/ram:DefinedTradeContact'
+const TESTS = {
+  'BR-DE-27': 'matches(normalize-space(ram:TelephoneUniversalCommunication/ram:CompleteNumber), $XR-TELEPHONE-REGEX)',
+  'BR-DE-28': 'matches(normalize-space(ram:EmailURIUniversalCommunication/ram:URIID), $XR-EMAIL-REGEX)',
+}
+/** XRechnung's schematron as SchXslt compiles it: its variables at the top, each shape's rule a warning at the seller's contact reading one, its test as `tests` writes it. */
+const xrechnungSchematron = ({ telephone = TELEPHONE, email = EMAIL, rules = ['BR-DE-27', 'BR-DE-28'], tests = TESTS, context = CONTACT } = {}) =>
+  `<xsl:transform ${NS} version="2.0"><xsl:variable name="XR-TELEPHONE-REGEX" select="'${telephone}'"/><xsl:variable name="XR-EMAIL-REGEX" select="'${email}'"/>${rules
+    .map((id) => cenRule(id, 'warning', tests[id], context))
+    .join('')}</xsl:transform>`
+const xrechnungOf = (text) => ({ name: 'XRechnung’s schematron', asserts: readSchematron(text), variables: readVariables(text) })
+
 /** report-spec's lists and rules, as the oracle reads them, cut down to one list and two rules for these cases. */
-const SPEC = { UNIT_CODES: ['C62', 'H87'], EN16931_RULES: ['BR-27', 'BR-CL-23'] }
+const SPEC = { UNIT_CODES: ['C62', 'H87'], EN16931_RULES: ['BR-27', 'BR-CL-23'], XRECHNUNG_RULES: ['BR-DE-27', 'BR-DE-28'], XRECHNUNG_PATTERNS: PATTERNS }
 const LISTS = CODE_LISTS.filter((entry) => entry.list === 'UNIT_CODES')
 const CEN = { name: 'CEN’s schematron', asserts: readSchematron(cen(cenRule('BR-CL-23', 'fatal', test_('C62 H87 KGM')), cenRule('BR-27', 'fatal', '. &gt;= 0'))) }
 const FERD = {
@@ -64,8 +81,9 @@ const FERD = {
   asserts: readSchematron(ferd(ferdRule({ match: LINE, variable: 'codeValue8', select: '@unitCode', id: 'FX-SCH-A-000613', test: fromCodedb('codeValue8', 8) }), ferdRule({ match: '/x', id: 'BR-27', test: 'true()' }))),
   codedb: new Map([['8', ['C62', 'H87', 'KGM']]]),
 }
+const XRECHNUNG = xrechnungOf(xrechnungSchematron())
 const problems = (change = () => {}) => {
-  const given = { spec: structuredClone(SPEC), lists: LISTS, cen: structuredClone(CEN), ferd: structuredClone(FERD) }
+  const given = { spec: structuredClone(SPEC), lists: LISTS, cen: structuredClone(CEN), ferd: structuredClone(FERD), xrechnung: structuredClone(XRECHNUNG) }
   change(given)
   return oracleProblems(given).problems
 }
@@ -89,10 +107,11 @@ describe('the oracle’s verdict', () => {
     const party = (role) => `/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:${role}/ram:PostalTradeAddress/ram:CountryID`
     const countries = ['SellerTradeParty', 'BuyerTradeParty'].map((role) => ferdRule({ match: party(role), variable: 'codeValue7', select: '.', id: 'FX-SCH-A-0', test: fromCodedb('codeValue7', 7) }))
     const given = {
-      spec: { COUNTRY_CODES: ['DE', 'UK'], EN16931_RULES: [] },
+      spec: { COUNTRY_CODES: ['DE', 'UK'], EN16931_RULES: [], XRECHNUNG_RULES: [], XRECHNUNG_PATTERNS: {} },
       lists: CODE_LISTS.filter((entry) => entry.list === 'COUNTRY_CODES'),
       cen: { name: 'CEN’s schematron', asserts: readSchematron(cen(cenRule('BR-CL-14', 'fatal', test_('AT DE', '.')))) },
       ferd: { name: 'FeRD’s schematron', asserts: readSchematron(ferd(...countries)), codedb: new Map([['7', ['AT', 'DE']]]) },
+      xrechnung: XRECHNUNG,
     }
     expect(oracleProblems(given).problems).toEqual(['COUNTRY_CODES (BT-40, BT-55): CEN’s schematron’s BR-CL-14 does not hold UK', 'COUNTRY_CODES (BT-40, BT-55): FeRD’s schematron’s code list 7 does not hold UK'])
   })
@@ -115,13 +134,102 @@ describe('the oracle’s verdict', () => {
     expect(problems((given) => (given.cen.asserts.find((each) => each.id === 'BR-27').flag = 'warning'))).toEqual(['BR-27 is no fatal rule of CEN’s schematron'])
     expect(problems((given) => (given.ferd.asserts.find((each) => each.id === 'BR-27').flag = 'warning'))).toEqual(['BR-27 is no fatal rule of FeRD’s schematron'])
     expect(problems((given) => given.spec.EN16931_RULES.push('BR-CO-27'))).toEqual(['BR-CO-27 is no fatal rule of CEN’s schematron', 'BR-CO-27 is no fatal rule of FeRD’s schematron'])
-    expect(oracleProblems({ spec: SPEC, lists: LISTS, cen: CEN, ferd: FERD }).checked).toEqual({ lists: [{ list: 'UNIT_CODES', term: 'BT-130', codes: 2, cen: ['BR-CL-23'], ferd: ['8'] }], rules: { cen: ['BR-27', 'BR-CL-23'], ferd: ['BR-27'] } })
+    expect(oracleProblems({ spec: SPEC, lists: LISTS, cen: CEN, ferd: FERD, xrechnung: XRECHNUNG }).checked).toEqual({
+      lists: [{ list: 'UNIT_CODES', term: 'BT-130', codes: 2, cen: ['BR-CL-23'], ferd: ['8'] }],
+      rules: { cen: ['BR-27', 'BR-CL-23'], ferd: ['BR-27'], xrechnung: ['BR-DE-27', 'BR-DE-28'] },
+      patterns: [
+        { shape: 'telephone', rule: 'BR-DE-27', variable: 'XR-TELEPHONE-REGEX', context: CONTACT, test: TESTS['BR-DE-27'] },
+        { shape: 'email', rule: 'BR-DE-28', variable: 'XR-EMAIL-REGEX', context: CONTACT, test: TESTS['BR-DE-28'] },
+      ],
+    })
   })
 
   // Every list the runtime writes a code from is checked, each where the
   // runtime writes it; a list added to report-spec without a row here is a
   // list nothing holds to a validator.
   test('checks every code list report-spec writes', () => {
-    expect(CODE_LISTS.map((entry) => entry.list)).toEqual(['UNIT_CODES', 'COUNTRY_CODES', 'VAT_PREFIXES', 'SCHEME_IDS', 'VAT_CATEGORY_CODES', 'PAYMENT_MEANS_CODES', 'E_INVOICE_CURRENCIES', 'INVOICE_TYPE_CODES'])
+    expect(CODE_LISTS.map((entry) => entry.list)).toEqual(['UNIT_CODES', 'COUNTRY_CODES', 'VAT_PREFIXES', 'SCHEME_IDS', 'ADDRESS_SCHEMES', 'VAT_CATEGORY_CODES', 'PAYMENT_MEANS_CODES', 'E_INVOICE_CURRENCIES', 'INVOICE_TYPE_CODES'])
+  })
+
+  // An electronic address's scheme outside the CEF's EAS list fails
+  // BR-CL-25, whose context is the URIID with a scheme wherever it stands,
+  // and FeRD's own rule at each party's URIID, against its list 17: a
+  // scheme report-spec took that either list dropped would write a file
+  // every validator refuses, which no sample, using two schemes of five,
+  // would show (0037).
+  test('holds the address schemes to BR-CL-25 and to FeRD’s list at both parties’ electronic addresses', () => {
+    const party = (role) => `/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:${role}/ram:URIUniversalCommunication/ram:URIID`
+    const rules = ['SellerTradeParty', 'BuyerTradeParty'].map((role) => ferdRule({ match: party(role), variable: 'codeValue17', select: '@schemeID', id: 'FX-SCH-A-0', test: fromCodedb('codeValue17', 17) }))
+    const given = {
+      spec: { ADDRESS_SCHEMES: ['EM', '0204', '9930'], EN16931_RULES: [], XRECHNUNG_RULES: [], XRECHNUNG_PATTERNS: {} },
+      lists: CODE_LISTS.filter((entry) => entry.list === 'ADDRESS_SCHEMES'),
+      cen: { name: 'CEN’s schematron', asserts: readSchematron(cen(cenRule('BR-CL-25', 'fatal', test_('0088 0204 EM', '@schemeID')))) },
+      ferd: { name: 'FeRD’s schematron', asserts: readSchematron(ferd(...rules)), codedb: new Map([['17', ['EM', '0204']]]) },
+      xrechnung: xrechnungOf(xrechnungSchematron({ rules: [] })),
+    }
+    expect(oracleProblems(given).problems).toEqual(['ADDRESS_SCHEMES (BT-34-1, BT-49-1): CEN’s schematron’s BR-CL-25 does not hold 9930', 'ADDRESS_SCHEMES (BT-34-1, BT-49-1): FeRD’s schematron’s code list 17 does not hold 9930'])
+  })
+})
+
+describe('XRechnung’s rules and shapes', () => {
+  // What report-spec holds a telephone number and an email address to is
+  // XRechnung's own expression, so that no file it writes earns KoSIT's
+  // warning: a pattern KoSIT rewrote in a later configuration, or a rule
+  // it renamed, would leave report-spec's check holding another shape than
+  // the one KoSIT warns of, and nothing else would see it (0037).
+  test('holds when each rule is XRechnung’s and reads, by its one variable, the very pattern report-spec does', () => {
+    expect(problems()).toEqual([])
+  })
+
+  // Each way the string could stop being what the rule reads: KoSIT
+  // writing the pattern otherwise, renaming the rule, or testing no one
+  // variable -- none, or two -- of which the gate would compare the
+  // wrong one or none.
+  test('refuses a pattern the schematron writes otherwise, a rule it does not have, and a rule that reads no one variable', () => {
+    expect(problems((given) => (given.xrechnung = xrechnungOf(xrechnungSchematron({ email: '^[^@]+@[^@]+$' }))))).toEqual([
+      `XRechnung’s schematron’s BR-DE-28 reads $XR-EMAIL-REGEX as '^[^@]+@[^@]+$', where report-spec holds its email shape to '${EMAIL}'`,
+    ])
+    expect(problems((given) => (given.xrechnung = xrechnungOf(xrechnungSchematron({ rules: ['BR-DE-28'] }))))).toEqual(['BR-DE-27 is no rule of XRechnung’s schematron'])
+    expect(problems((given) => given.xrechnung.asserts.find((each) => each.id === 'BR-DE-27').test = 'string-length(ram:X) &gt; 2')).toEqual(['XRechnung’s schematron’s BR-DE-27 reads no one variable, where report-spec holds its telephone shape to one'])
+    expect(problems((given) => given.xrechnung.variables.delete('XR-TELEPHONE-REGEX'))).toEqual(['XRechnung’s schematron’s BR-DE-27 reads $XR-TELEPHONE-REGEX, which it does not declare as a string'])
+    const both = `${TESTS['BR-DE-28']} or matches(ram:Y, $XR-TELEPHONE-REGEX)`
+    expect(problems((given) => (given.xrechnung = xrechnungOf(xrechnungSchematron({ tests: { ...TESTS, 'BR-DE-28': both } }))))).toEqual(['XRechnung’s schematron’s BR-DE-28 reads no one variable, where report-spec holds its email shape to one'])
+  })
+
+  // The pattern is all a rule reads only where its test is that pattern
+  // matched against normalize-space of the one element, at the seller's
+  // contact: a flag added to matches() ('i', 'x'), normalize-space
+  // dropped, another element read or the rule moved to another context
+  // would have KoSIT warn of another shape than report-spec refuses, with
+  // the string still the same. Each is a problem, as is a shape of
+  // report-spec's whose place the gate does not know.
+  test('refuses a rule that tests its pattern otherwise than matched against normalize-space of its element, or at another context', () => {
+    const tested = (test) => (given) => (given.xrechnung = xrechnungOf(xrechnungSchematron({ tests: { ...TESTS, 'BR-DE-28': test } })))
+    const otherwise = (test) => `XRechnung’s schematron’s BR-DE-28 tests '${test}', where report-spec reads its email shape as '${TESTS['BR-DE-28']}'`
+    for (const test of [
+      "matches(normalize-space(ram:EmailURIUniversalCommunication/ram:URIID), $XR-EMAIL-REGEX, 'i')",
+      'matches(ram:EmailURIUniversalCommunication/ram:URIID, $XR-EMAIL-REGEX)',
+      'matches(normalize-space(ram:URIUniversalCommunication/ram:URIID), $XR-EMAIL-REGEX)',
+      'not(matches(normalize-space(ram:EmailURIUniversalCommunication/ram:URIID), $XR-EMAIL-REGEX))',
+    ]) {
+      expect(problems(tested(test)), test).toEqual([otherwise(test)])
+    }
+    const buyer = CONTACT.replace('SellerTradeParty', 'BuyerTradeParty')
+    expect(problems((given) => (given.xrechnung = xrechnungOf(xrechnungSchematron({ context: buyer }))))).toEqual([
+      `XRechnung’s schematron’s BR-DE-27 holds ${buyer}, where the runtime writes the seller’s contact at ${CONTACT}`,
+      `XRechnung’s schematron’s BR-DE-28 holds ${buyer}, where the runtime writes the seller’s contact at ${CONTACT}`,
+    ])
+    expect(problems((given) => (given.spec.XRECHNUNG_PATTERNS = { ...PATTERNS, fax: { rule: 'BR-DE-27', pattern: TELEPHONE } }))).toEqual(['report-spec holds a fax shape whose place in the XML the gate does not know'])
+  })
+
+  // A variable's select is an XPath string literal, a quote written twice
+  // within it; and a scenario's schematrons are read out of KoSIT's
+  // scenarios.xml by the scenario's name, in its namespace.
+  test('reads a variable as the string its select writes, and a scenario’s schematrons by its name', () => {
+    expect(readVariables(`<xsl:transform ${NS}><xsl:variable name="A" select="'it''s'"/><xsl:variable name="B" select="concat('a', 'b')"/><xsl:template match="x"><xsl:variable name="C" select="'inner'"/></xsl:template></xsl:transform>`)).toEqual(new Map([['A', "it's"], ['B', undefined]]))
+    const scenarios = `<scenarios xmlns="http://www.xoev.de/de/validator/framework/1/scenarios"><scenario><name>EN16931 XRechnung (CII)</name><validateWithSchematron><resource><name>a</name><location>resources/cii.xsl</location></resource></validateWithSchematron><validateWithSchematron><resource><name>b</name><location>resources/xr.xsl</location></resource></validateWithSchematron></scenario><scenario><name>EN16931 (CII)</name><validateWithSchematron><resource><name>a</name><location>resources/cii.xsl</location></resource></validateWithSchematron></scenario></scenarios>`
+    expect(scenarioSchematrons(scenarios, 'EN16931 XRechnung (CII)')).toEqual(['resources/cii.xsl', 'resources/xr.xsl'])
+    expect(scenarioSchematrons(scenarios, 'EN16931 (CII)')).toEqual(['resources/cii.xsl'])
+    expect(scenarioSchematrons(scenarios, 'XRechnung 4.0')).toEqual([])
   })
 })

@@ -112,6 +112,7 @@ export { EPC_CAPTION, EPC_CAPTION_MODULE, EPC_FRAME, EPC_MAX_VERSION, epcCaption
 export {
   COUNTRY_CODES,
   E_INVOICE_CURRENCIES,
+  ADDRESS_SCHEMES,
   E_INVOICE_KINDS,
   E_INVOICE_NAMES,
   E_INVOICE_PROFILES,
@@ -127,6 +128,7 @@ export {
   VAT_PREFIXES,
 } from './e-invoice.js'
 export type {
+  AddressScheme,
   CountryCode,
   EInvoice,
   EInvoiceAddress,
@@ -137,6 +139,7 @@ export type {
   EInvoiceName,
   EInvoiceProfile,
   EInvoiceSeller,
+  ElectronicAddress,
   FacturXInvoice,
   FacturXProfileTerms,
   InvoiceTotal,
@@ -146,6 +149,7 @@ export type {
   PaymentInstructions,
   PaymentMeansCode,
   SchemeId,
+  SellerContact,
   UnitCode,
   VatCategory,
   VatCategoryCode,
@@ -153,6 +157,7 @@ export type {
 export { EN16931_RULES, en16931Rule, FULL_ADDRESS, neededBy } from './en16931.js'
 export type { EInvoiceNeed, En16931Rule } from './en16931.js'
 export {
+  checkAddressScheme,
   checkCountryCode,
   checkEInvoiceText,
   checkSchemeId,
@@ -172,6 +177,8 @@ export { E_INVOICE_LINE_CODES, E_INVOICE_LINE_COLUMNS } from './en16931-lines.js
 export type { EInvoiceLineCode, EInvoiceLineColumn, EInvoiceLineTerm } from './en16931-lines.js'
 export { buyerIdentificationBreak, checkLineCategory, checkVatRate, sellerIdentificationBreaks, vatCategoryBreaks, vatReasonBreak } from './en16931-vat.js'
 export type { VatCategoryBreak } from './en16931-vat.js'
+export { XRECHNUNG_PATTERNS, XRECHNUNG_RULES } from './xrechnung.js'
+export type { XRechnungPattern, XRechnungRule } from './xrechnung.js'
 
 export { validateReport } from './validate.js'
 export type { ReportValidation } from './validate.js'

@@ -4,4 +4,4 @@
 	[BR-CO-17]-VAT category tax amount (BT-117) = VAT category taxable amount (BT-116) x (VAT category rate (BT-119) / 100), rounded to two decimals.
 [main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 4: 
 	[BR-CO-17]-VAT category tax amount (BT-117) = VAT category taxable amount (BT-116) x (VAT category rate (BT-119) / 100), rounded to two decimals. [ID BR-CO-17] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)
-[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:993D83EA987EB0196AC0ADB3A7286BEBF2E5C1B5 Profile:urn:cen.eu:en16931:2017 Version:2 Took:2280ms Errors:[4] ErrorIDs: [BR-CO-17]
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:993D83EA987EB0196AC0ADB3A7286BEBF2E5C1B5 Profile:urn:cen.eu:en16931:2017 Version:2 Took:2060ms Errors:[4] ErrorIDs: [BR-CO-17]

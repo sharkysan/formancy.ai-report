@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<validation filename="e-invoice-addressed.xml" datetime="2026-10-20 22:13:57">
+  <xml>
+    <info>
+      <version>2</version>
+      <profile>urn:cen.eu:en16931:2017</profile>
+      <validator version="2.26.0"/>
+      <rules>
+        <fired>137</fired>
+        <failed>0</failed>
+      </rules>
+      <duration unit="ms">2263</duration>
+    </info>
+    <summary status="valid"/>
+  </xml>
+  <summary status="valid"/>
+</validation>
+

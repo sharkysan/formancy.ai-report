@@ -373,7 +373,9 @@ jobs:
   # must judge exactly as each expects -- Mustang never by its exit status
   # alone, which is 0 on a PDF whose XML is valid whatever its PDF/A says;
   # and report-spec's closed code lists and the rule ids its refusals name,
-  # held to the schematrons those tools run (scripts/e-invoice.mjs). An
+  # held to the schematrons those tools run, and the two shapes it holds a
+  # seller's contact to, with the tests that read them, to XRechnung's
+  # schematron in KoSIT's configuration (scripts/e-invoice.mjs, 0037). An
   # error fails the job; a warning or a notice fails it unless
   # scripts/e-invoice/accepted.json accepts it in that file. Its own job,
   # because it needs a Java and downloads of its own, and a red "e-invoice"
@@ -387,7 +389,9 @@ jobs:
   # work on the machine, and 89 s on Temurin 17, Mustang's seventeen runs most
   # of each; with the variants and two more controls, 103 s on Zulu 25 and
   # 130 s on Temurin 17, each beside other work, Mustang's twenty-six runs
-  # most of each. The bound is for an install, a download or a runner having a
+  # most of each; with 0037's fourth sample and its control, on 2026-10-20,
+  # 108.5 s on Zulu 25, Mustang's thirty-one runs 94.2 s of it. The bound
+  # is for an install, a download or a runner having a
   # bad day, not for the work, until three green runs give a slowest time
   # to triple.
   e-invoice:

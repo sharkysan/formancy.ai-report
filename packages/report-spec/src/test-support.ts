@@ -327,9 +327,11 @@ const said = (text: string): readonly Inline[] => [{ kind: 'text', text }]
 
 /**
  * An e-invoice over `richReport`'s table, using every term the format has:
- * the seller's literal, the buyer's read from the data where it can be,
- * four categories of three codes, a delivery date and a period, and
- * payment to the account the report's EPC QR code pays.
+ * the seller's literal, its contact and its electronic address among them,
+ * the buyer's read from the data where it can be, its electronic address
+ * among them, the business process, four categories of three codes, a
+ * delivery date and a period, and payment to the account the report's EPC
+ * QR code pays.
  */
 export function facturXInvoice(): FacturXInvoice {
   return {
@@ -339,17 +341,21 @@ export function facturXInvoice(): FacturXInvoice {
     currency: 'EUR',
     number: [{ kind: 'text', text: 'RE-' }, { kind: 'expression', expression: { cel: 'header.customer' } }],
     issued: { cel: 'header.orderedOn' },
+    businessProcess: said('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
     seller: {
       name: said('Muster & Söhne GmbH'),
       vatId: said('DE 123 456 789'),
       taxNumber: said('201/113/40209'),
       legalId: { id: said('HRB 12345') },
+      electronicAddress: { id: said('rechnung@muster-soehne.example'), scheme: 'EM' },
+      contact: { name: said('Erika Mustermann'), telephone: said('+49 221 4710 123'), email: said('erika.mustermann@muster-soehne.example') },
       address: { line1: said('Industriestraße 7'), line2: said('Hof 2'), postalCode: said('50735'), city: said('Köln'), country: said('DE') },
     },
     buyer: {
       name: [{ kind: 'field', field: header('customer') }],
       vatId: [{ kind: 'parameter', parameter: 'region' }],
       legalId: { id: said('4012345000009'), scheme: '0088' },
+      electronicAddress: { id: [{ kind: 'parameter', parameter: 'region' }], scheme: '0088' },
       address: { line1: [{ kind: 'parameter', parameter: 'region' }], postalCode: said('1010'), city: said('Wien'), country: said('AT') },
     },
     buyerReference: said('PO-4711'),

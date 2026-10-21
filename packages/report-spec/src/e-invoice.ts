@@ -171,6 +171,25 @@ export const SCHEME_IDS = [
 ] as const
 export type SchemeId = (typeof SCHEME_IDS)[number]
 
+/**
+ * The schemes (BT-34-1, BT-49-1; the CEF's Electronic Address Scheme code
+ * list) an electronic address may be given in, and no other (BR-CL-25),
+ * each code found on 20 October 2026 in BR-CL-25's list of the CEN 1.3.16
+ * schematron KoSIT's configuration of 2026-08-31 runs and in list 17 of
+ * FeRD's code database in Mustang 2.26.0, which the e-invoice gate holds
+ * them to on every run (0037). CEN's list holds 104 codes and FeRD's 102,
+ * counted that day; these are the five a German or a French invoice is
+ * addressed by, their meanings as Peppol's EAS code list gives them:
+ */
+export const ADDRESS_SCHEMES = [
+  'EM', // an email address
+  '0204', // the Leitweg-ID, which a German public buyer is reached by
+  '0225', // France's electronic addressing scheme (FRCTC ELECTRONIC ADDRESS)
+  '9930', // a German VAT identifier
+  '0088', // EAN Location Code (GS1's Global Location Number)
+] as const
+export type AddressScheme = (typeof ADDRESS_SCHEMES)[number]
+
 /** What names each profile, in the XML and in the PDF that carries it. */
 export interface FacturXProfileTerms {
   /** The specification identifier (BT-24), which the XML opens with. */
@@ -275,20 +294,45 @@ export interface LegalIdentifier {
   readonly scheme?: SchemeId
 }
 
-/** The seller (BG-4): its name (BT-27), its VAT identifier (BT-31), its tax number (BT-32), its legal registration (BT-30) and its address (BG-5). */
+/**
+ * An electronic address (BT-34, BT-49), where the party is sent the
+ * invoice, and the scheme it is given in (BT-34-1, BT-49-1), which EN
+ * 16931 needs with it (BR-62, BR-63): a code of `ADDRESS_SCHEMES`.
+ */
+export interface ElectronicAddress {
+  readonly id: readonly Inline[]
+  readonly scheme: AddressScheme
+}
+
+/**
+ * The seller's contact (BG-6): its contact point (BT-41), a person or a
+ * department, its telephone number (BT-42) and its email address (BT-43).
+ * EN 16931 lets each be left out; a contact here gives all three, as
+ * XRechnung asks (BR-DE-5, -6, -7), so that one contact serves either.
+ */
+export interface SellerContact {
+  readonly name: readonly Inline[]
+  readonly telephone: readonly Inline[]
+  readonly email: readonly Inline[]
+}
+
+/** The seller (BG-4): its name (BT-27), its VAT identifier (BT-31), its tax number (BT-32), its legal registration (BT-30), its electronic address (BT-34), its contact (BG-6) and its address (BG-5). */
 export interface EInvoiceSeller {
   readonly name: readonly Inline[]
   readonly vatId?: readonly Inline[]
   readonly taxNumber?: readonly Inline[]
   readonly legalId?: LegalIdentifier
+  readonly electronicAddress?: ElectronicAddress
+  readonly contact?: SellerContact
   readonly address: EInvoiceAddress
 }
 
-/** The buyer (BG-7): its name (BT-44), its VAT identifier (BT-48), its legal registration (BT-47) and its address (BG-8). A buyer has no BT-32. */
+/** The buyer (BG-7): its name (BT-44), its VAT identifier (BT-48), its legal registration (BT-47), its electronic address (BT-49) and its address (BG-8). A buyer has no BT-32, and its contact (BG-9) is not written. */
 export interface EInvoiceBuyer {
   readonly name: readonly Inline[]
   readonly vatId?: readonly Inline[]
   readonly legalId?: LegalIdentifier
+  readonly electronicAddress?: ElectronicAddress
   readonly address: EInvoiceAddress
 }
 
@@ -370,6 +414,8 @@ export interface FacturXInvoice {
   readonly number: readonly Inline[]
   /** The issue date (BT-2). */
   readonly issued: Expression
+  /** The business process (BT-23): the context the buyer's system routes the invoice in, an identifier such as Peppol's `urn:fdc:peppol.eu:2017:poacc:billing:01:1.0`. */
+  readonly businessProcess?: readonly Inline[]
   readonly seller: EInvoiceSeller
   readonly buyer: EInvoiceBuyer
   /** The buyer's reference (BT-10). */

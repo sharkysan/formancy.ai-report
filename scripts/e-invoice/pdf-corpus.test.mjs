@@ -17,7 +17,7 @@ import { blocksDocument, boundDocument, embeddingProblems, patched, PDF_BASE, PD
  */
 const here = dirname(fileURLToPath(import.meta.url))
 const recorded = (file) => readFileSync(join(here, 'recorded', 'corpus', file), 'utf8')
-const SAMPLES = ['e-invoice', 'e-invoice-reverse-charge', 'e-invoice-exempt-paid'].map((id) => ({ id }))
+const SAMPLES = ['e-invoice', 'e-invoice-reverse-charge', 'e-invoice-exempt-paid', 'e-invoice-addressed'].map((id) => ({ id }))
 const xml = corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`) })
 const xmlOf = (file) => xml.find((entry) => entry.file === file).xml
 
@@ -51,6 +51,7 @@ describe('the PDF corpus as planned', () => {
       ['e-invoice.pdf', 'pdf', 'e-invoice'],
       ['e-invoice-reverse-charge.pdf', 'pdf', 'e-invoice-reverse-charge'],
       ['e-invoice-exempt-paid.pdf', 'pdf', 'e-invoice-exempt-paid'],
+      ['e-invoice-addressed.pdf', 'pdf', 'e-invoice-addressed'],
       ...PDF_VARIANTS.map((each) => [each.file, 'pdf', each.draws]),
       ...PDF_CONTROLS.map((each) => [each.file, 'pdf', 'e-invoice.pdf']),
     ])
@@ -186,6 +187,7 @@ describe('the PDF corpus as drawn', () => {
       ['e-invoice', 'own'],
       ['e-invoice-reverse-charge', 'own'],
       ['e-invoice-exempt-paid', 'own'],
+      ['e-invoice-addressed', 'own'],
       ...PDF_VARIANTS.map((variant) => ['variant', variant.draws]),
       ['e-invoice', 'none'],
       ['e-invoice', 'control-br-co-14.xml'],

@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'vitest'
-import { COUNTRY_CODES, E_INVOICE_NAMES, E_INVOICE_PROFILES, FACTUR_X, FACTUR_X_PROFILES, INVOICE_TOTALS, SCHEME_IDS, UNIT_CODES, VAT_BREAKDOWN, VAT_PREFIXES } from './e-invoice.js'
+import { ADDRESS_SCHEMES, COUNTRY_CODES, E_INVOICE_NAMES, E_INVOICE_PROFILES, FACTUR_X, FACTUR_X_PROFILES, INVOICE_TOTALS, SCHEME_IDS, UNIT_CODES, VAT_BREAKDOWN, VAT_PREFIXES } from './e-invoice.js'
 import type { VatCategory } from './e-invoice.js'
 import { checkEInvoiceDate, checkInvoicingPeriod, E_INVOICE_DATES, periodBreak, supplyBreak } from './en16931-dates.js'
 import { checkEInvoiceDecimal, E_INVOICE_DECIMALS } from './en16931-decimals.js'
 import { E_INVOICE_LINE_CODES, E_INVOICE_LINE_COLUMNS } from './en16931-lines.js'
 import {
+  checkAddressScheme,
   checkCountryCode,
   checkEInvoiceText,
   checkSchemeId,
@@ -19,6 +20,7 @@ import { buyerIdentificationBreak, checkLineCategory, checkVatRate, sellerIdenti
 import { EN16931_RULES, en16931Rule, FULL_ADDRESS, neededBy } from './en16931.js'
 import type { PaymentCheck } from './payment-reference.js'
 import { EXPRESSION_NAMES, VALUE_SCOPES } from './values.js'
+import { XRECHNUNG_RULES } from './xrechnung.js'
 
 /** The rule a check says is broken, or undefined when it accepts the value. */
 function broken<T>(check: PaymentCheck<T>): string | undefined {
@@ -131,7 +133,8 @@ describe('the closed lists', () => {
     expect([...COUNTRY_CODES].sort().join(' ')).toBe('AT BE BG CH CY CZ DE DK EE ES FI FR GB GR HR HU IE IS IT LI LT LU LV MT NL NO PL PT RO SE SI SK')
     expect(SCHEME_IDS).toEqual(['0002', '0009', '0060', '0088'])
     expect(VAT_PREFIXES).toEqual([...COUNTRY_CODES, 'EL'])
-    for (const list of [UNIT_CODES, COUNTRY_CODES, SCHEME_IDS, VAT_PREFIXES]) expect(new Set(list).size).toBe(list.length)
+    expect(ADDRESS_SCHEMES).toEqual(['EM', '0204', '0225', '9930', '0088'])
+    for (const list of [UNIT_CODES, COUNTRY_CODES, SCHEME_IDS, VAT_PREFIXES, ADDRESS_SCHEMES]) expect(new Set(list).size).toBe(list.length)
   })
 
   // "Two capitals" takes UK, which neither ISO 3166-1 nor CEN's list
@@ -163,6 +166,19 @@ describe('the closed lists', () => {
     for (const scheme of SCHEME_IDS) expect(accepted(checkSchemeId(scheme))).toBe(scheme)
     for (const text of ['0204', '9930', '88', 'GLN']) {
       expect(rule(checkSchemeId(text)), text).toBe("is not a scheme of those this release takes, a list narrower than ISO 6523's (BR-CL-11)")
+    }
+  })
+
+  // An electronic address's scheme (BT-34-1, BT-49-1) outside the CEF's
+  // EAS list fails BR-CL-25 in every validator. The list is five codes of
+  // it: an email address, the Leitweg-ID a German public buyer is reached
+  // by, France's addressing scheme, a German VAT identifier and a GLN.
+  // 0060, D-U-N-S, is the CEF's but not taken here; a scheme is a code
+  // written as the list writes it, never in another case.
+  test('take an electronic address scheme of the list, and none the CEF list holds that was not chosen', () => {
+    for (const scheme of ADDRESS_SCHEMES) expect(accepted(checkAddressScheme(scheme))).toBe(scheme)
+    for (const text of ['0060', '0002', 'em', 'EMAIL', '9906', ' EM', '']) {
+      expect(rule(checkAddressScheme(text)), text).toBe("is not an electronic address scheme of those this release takes, a list narrower than the CEF's EAS code list (BR-CL-25)")
     }
   })
 })
@@ -272,7 +288,7 @@ describe('a text of the e-invoice', () => {
   // rules, and a country and a unit their blanks.
   test('is refused where the XML writes it as a token and it holds white space a token collapses', () => {
     const tokens = Object.entries(E_INVOICE_TEXTS).flatMap(([term, { token }]) => (token === true ? [term] : []))
-    expect(tokens).toEqual(['BT-1', 'BT-30', 'BT-32', 'BT-38', 'BT-47', 'BT-53', 'BT-86', 'BT-126'])
+    expect(tokens).toEqual(['BT-1', 'BT-23', 'BT-30', 'BT-32', 'BT-34', 'BT-38', 'BT-43', 'BT-47', 'BT-49', 'BT-53', 'BT-86', 'BT-126'])
     const collapsed = 'holds white space the XML would not keep: its schema types the term as a token, read with each tab and line break as a space, two spaces as one, and none at either end'
     for (const text of ['RE-2026  0820', 'RE-2026\t0820', 'RE-2026\n0820', 'RE-2026\r0820', ' RE-2026-0820', 'RE-2026-0820 ']) expect(rule(checkEInvoiceText('BT-1', text)), JSON.stringify(text)).toBe(collapsed)
     expect(accepted(checkEInvoiceText('BT-1', 'RE 2026 0820'))).toBe('RE 2026 0820')
@@ -304,10 +320,19 @@ describe('a text of the e-invoice', () => {
   test('is the term of the place it stands in, one table for the validator and the runtime', () => {
     expect(E_INVOICE_TEXT_TERMS).toEqual({
       number: 'BT-1',
+      businessProcess: 'BT-23',
       buyerReference: 'BT-10',
       terms: 'BT-20',
-      seller: { name: 'BT-27', vatId: 'BT-31', taxNumber: 'BT-32', legalId: 'BT-30', address: { line1: 'BT-35', line2: 'BT-36', postalCode: 'BT-38', city: 'BT-37', country: 'BT-40' } },
-      buyer: { name: 'BT-44', vatId: 'BT-48', legalId: 'BT-47', address: { line1: 'BT-50', line2: 'BT-51', postalCode: 'BT-53', city: 'BT-52', country: 'BT-55' } },
+      seller: {
+        name: 'BT-27',
+        vatId: 'BT-31',
+        taxNumber: 'BT-32',
+        legalId: 'BT-30',
+        electronicAddress: 'BT-34',
+        contact: { name: 'BT-41', telephone: 'BT-42', email: 'BT-43' },
+        address: { line1: 'BT-35', line2: 'BT-36', postalCode: 'BT-38', city: 'BT-37', country: 'BT-40' },
+      },
+      buyer: { name: 'BT-44', vatId: 'BT-48', legalId: 'BT-47', electronicAddress: 'BT-49', address: { line1: 'BT-50', line2: 'BT-51', postalCode: 'BT-53', city: 'BT-52', country: 'BT-55' } },
       reason: 'BT-120',
       payment: { iban: 'BT-84', bic: 'BT-86', accountName: 'BT-85', remittance: 'BT-83' },
     })
@@ -327,6 +352,46 @@ describe('the payment account', () => {
     expect(rule(checkEInvoiceText('BT-84', 'DE83 0123 4567 0012 3456 79'))).toBe('has check digits that do not match the rest of it (ISO 13616: the IBAN modulo 97 is 1)')
     expect(rule(checkEInvoiceText('BT-84', 'CH44 3199 9123 0008 8901 2'))).toMatch(/^is a QR-IBAN/)
     expect(rule(checkEInvoiceText('BT-84', 'FO2000400440116243'))).toMatch(/^is not the IBAN of an account in SEPA/)
+  })
+})
+
+describe("the seller's contact, the electronic addresses and the business process", () => {
+  // EN 16931 asks nothing of a telephone number's shape. XRechnung does,
+  // as a warning KoSIT's XRechnung scenario raises (BR-DE-27): three
+  // digits at least, ASCII digits, since XPath's [0-9] is those. A number
+  // of fewer is a contact nobody can call, and refused where it is
+  // written, by the very expression the pinned schematron holds, read as
+  // XPath reads it after normalize-space.
+  test("is a telephone number of three digits at least, as XRechnung reads one", () => {
+    for (const text of ['+49 221 4710 820', '0221/4710-820', '123', 'Tel. 1 2 3', 'Durchwahl\n820', '1\n2\n3']) expect(accepted(checkEInvoiceText('BT-42', text)), JSON.stringify(text)).toBe(text)
+    for (const text of ['12', 'Zentrale', '+49', '\u0661\u0662\u0663']) {
+      expect(rule(checkEInvoiceText('BT-42', text)), text).toBe("has fewer than three digits, which a telephone number has at least (XRechnung's BR-DE-27)")
+    }
+  })
+
+  // XRechnung's BR-DE-28, a warning too, reads an email address as no
+  // white space, one @ with something before it, and after it two names
+  // at least joined by single dots. Its words say a dot should stand at
+  // neither end; its expression lets one begin the address, and the
+  // expression is what KoSIT runs, so it is what is held here.
+  test('is an email address of the shape XRechnung reads one in', () => {
+    for (const text of ['rechnung@formancy-haustechnik.example', 'erika.mustermann@haustechnik.example', 'a@b.c.d', '.a@b.c']) expect(accepted(checkEInvoiceText('BT-43', text)), text).toBe(text)
+    const shape = "is not an email address of the shape XRechnung reads one in: no white space, one @ with something before it, and after it two names at least, each joined to the next by one dot (XRechnung's BR-DE-28)"
+    for (const text of ['rechnung', 'a@b', 'a@@b.c', 'a@b.c.', 'a@.b.c', 'a@b..c', '@b.c', 'a b@c.d', 'a@b.c@d.e']) expect(rule(checkEInvoiceText('BT-43', text)), text).toBe(shape)
+    // An identifier the XML writes as a token, as every URIID is.
+    expect(rule(checkEInvoiceText('BT-43', ' a@b.c'))).toMatch(/^holds white space the XML would not keep/)
+  })
+
+  // The business process (BT-23) and the electronic addresses (BT-34,
+  // BT-49) are identifiers, xs:token in the XSD, held to nothing else:
+  // neither CEN nor the pinned XRechnung rules ask a shape of them, and
+  // what an address under a scheme must be is the scheme's.
+  test('are tokens where the XML writes them as identifiers, and texts where it does not', () => {
+    for (const term of ['BT-23', 'BT-34', 'BT-49'] as const) {
+      expect(accepted(checkEInvoiceText(term, 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'))).toBe('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0')
+      expect(rule(checkEInvoiceText(term, 'a  b'))).toMatch(/^holds white space the XML would not keep/)
+    }
+    expect(accepted(checkEInvoiceText('BT-41', ' Erika  Mustermann '))).toBe(' Erika  Mustermann ')
   })
 })
 
@@ -529,14 +594,18 @@ describe('the rules over what an invoice holds', () => {
 })
 
 describe('the rules named', () => {
-  // The gate holds every rule id report-spec names to a fatal rule of the
-  // pinned schematron, since ids move: BR-CO-27 became CII-SR-470 in
-  // 2.5.2. So the list it reads is every id a rule here says, and nothing
+  // The gate holds every rule id report-spec names to a rule of a pinned
+  // schematron, since ids move: BR-CO-27 became CII-SR-470 in 2.5.2. CEN's
+  // ids it holds to fatal rules of CEN's and FeRD's, XRechnung's to rules
+  // of XRechnung's of whatever flag, since the two it names only warn. So
+  // the list it reads is every id a rule here says, and nothing
   // else: an id said that is not listed would escape the gate, and one
   // listed that nothing says would be checked for nothing. Run last, over
   // every rule the cases above saw broken.
   test('are every id a rule here says, and nothing else', () => {
-    for (const text of said) for (const id of ruleIds(text)) expect(EN16931_RULES, `${id} in "${text}"`).toContain(id)
+    // XRechnung's are its own list, held by the gate to the pinned XRechnung schematron as CEN's are to CEN's.
+    const listed: readonly string[] = [...EN16931_RULES, ...XRECHNUNG_RULES]
+    for (const text of said) for (const id of ruleIds(text)) expect(listed, `${id} in "${text}"`).toContain(id)
     const named = new Set([...said].flatMap(ruleIds))
     for (const term of [...Object.values(E_INVOICE_TEXTS), ...Object.values(E_INVOICE_DECIMALS), ...Object.values(E_INVOICE_DATES)]) {
       // The UStG's full address is the law's, not one of CEN's rules.
@@ -547,7 +616,7 @@ describe('the rules named', () => {
     // runtime where a table has no rows; validate-e-invoice.test.ts holds
     // the validator's words.
     for (const id of ['BR-16', 'BR-CO-18'] as const) named.add(ruleIds(en16931Rule(id, 'said'))[0] as string)
-    expect([...named].sort()).toEqual([...EN16931_RULES].sort())
+    expect([...named].sort()).toEqual([...listed].sort())
     expect(en16931Rule('BR-16', 'an e-invoice has one line at least')).toBe('an e-invoice has one line at least (BR-16)')
   })
 })

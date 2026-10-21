@@ -31,6 +31,7 @@ import type {
   QrBillAddress,
   ReportDefinition,
   RowValue,
+  SellerContact,
   StyleRule,
   TableFooterRow,
   ValueScope,
@@ -292,16 +293,20 @@ const date = (term: EInvoiceDateTerm): InvoiceTerm => ({ what: E_INVOICE_DATES[t
 /** The keys of a table over every key of `T`: one added to the format without being read here does not compile. */
 const keysOf = <T>(table: { readonly [K in keyof T]-?: true }): readonly (keyof T)[] => Object.keys(table) as (keyof T)[]
 
-/** The texts of each party and of its address, and of the payment instructions, in the order the type holds them. */
-const SELLER_TEXTS = keysOf<Omit<EInvoiceSeller, 'legalId' | 'address'>>({ name: true, vatId: true, taxNumber: true })
-const BUYER_TEXTS = keysOf<Omit<EInvoiceBuyer, 'legalId' | 'address'>>({ name: true, vatId: true })
+/** The texts of each party, of the seller's contact and of an address, and of the payment instructions, in the order the type holds them. */
+const SELLER_TEXTS = keysOf<Omit<EInvoiceSeller, 'legalId' | 'electronicAddress' | 'contact' | 'address'>>({ name: true, vatId: true, taxNumber: true })
+const BUYER_TEXTS = keysOf<Omit<EInvoiceBuyer, 'legalId' | 'electronicAddress' | 'address'>>({ name: true, vatId: true })
+const CONTACT_TEXTS = keysOf<SellerContact>({ name: true, telephone: true, email: true })
 const ADDRESS_TEXTS = keysOf<EInvoiceAddress>({ line1: true, line2: true, postalCode: true, city: true, country: true })
 const PAYMENT_TEXTS = keysOf<Omit<PaymentInstructions, 'means'>>({ iban: true, bic: true, accountName: true, remittance: true })
 
-/** A party's texts, its legal registration's and its address's, in the order the type holds them. */
+/** A party's texts, its legal registration's, its electronic address's, the seller's contact's and its address's, in the order the type holds them. */
 function party<P extends EInvoiceSeller | EInvoiceBuyer>(held: P, texts: readonly (keyof P)[], path: string, into: Collector): void {
   for (const key of texts) into.invoiceText(held[key] as readonly Inline[] | undefined, `${path}/${String(key)}`)
   into.invoiceText(held.legalId?.id, `${path}/legalId/id`)
+  into.invoiceText(held.electronicAddress?.id, `${path}/electronicAddress/id`)
+  const contact = 'contact' in held ? held.contact : undefined
+  for (const key of CONTACT_TEXTS) into.invoiceText(contact?.[key], `${path}/contact/${key}`)
   for (const part of ADDRESS_TEXTS) into.invoiceText(held.address[part], `${path}/address/${part}`)
 }
 
@@ -318,6 +323,7 @@ const E_INVOICES: { readonly [K in EInvoiceKind]: InvoiceReader<K> } = {
   facturX: (invoice, path, into) => {
     into.invoiceText(invoice.number, `${path}/number`)
     into.expression(invoice.issued, `${path}/issued`, 'report', 'computed', {}, date('BT-2'))
+    into.invoiceText(invoice.businessProcess, `${path}/businessProcess`)
     party(invoice.seller, SELLER_TEXTS, `${path}/seller`, into)
     party(invoice.buyer, BUYER_TEXTS, `${path}/buyer`, into)
     into.invoiceText(invoice.buyerReference, `${path}/buyerReference`)

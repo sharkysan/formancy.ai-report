@@ -2,17 +2,19 @@
  * Each text term of the e-invoice held to EN 16931: what a refusal calls
  * it, whether the invoice may leave it out, whether the XML writes it as a
  * token, and its own rule -- a code from a closed list, a VAT identifier,
- * the EPC QR code's account and BIC -- in one table, and which term each
+ * the EPC QR code's account and BIC, XRechnung's shape of a telephone
+ * number and of an email address -- in one table, and which term each
  * text of the format is, by where it stands. What a text may hold at all,
  * XML 1.0 decides.
  */
 import { checkEpcBic, checkEpcIban } from './epc-payload.js'
-import { COUNTRY_CODES, SCHEME_IDS, UNIT_CODES, VAT_PREFIXES } from './e-invoice.js'
-import type { CountryCode, EInvoiceAddress, EInvoiceBuyer, EInvoiceSeller, PaymentInstructions, SchemeId, UnitCode } from './e-invoice.js'
+import { ADDRESS_SCHEMES, COUNTRY_CODES, SCHEME_IDS, UNIT_CODES, VAT_PREFIXES } from './e-invoice.js'
+import type { AddressScheme, CountryCode, EInvoiceAddress, EInvoiceBuyer, EInvoiceSeller, PaymentInstructions, SchemeId, SellerContact, UnitCode } from './e-invoice.js'
 import { en16931Rule, FULL_ADDRESS, neededBy } from './en16931.js'
 import type { EInvoiceNeed } from './en16931.js'
 import { no, ok, withoutSpaces } from './payment-reference.js'
 import type { PaymentCheck } from './payment-reference.js'
+import { emailBreak, telephoneBreak } from './xrechnung.js'
 
 /** Whether a text says nothing: empty, or white space alone. */
 export function eInvoiceBlank(text: string): boolean {
@@ -63,6 +65,20 @@ export function checkSchemeId(code: string): PaymentCheck<SchemeId> {
   if ((SCHEME_IDS as readonly string[]).includes(code)) return ok(code as SchemeId)
   return no(en16931Rule('BR-CL-11', "is not a scheme of those this release takes, a list narrower than ISO 6523's"))
 }
+
+/** An electronic address's scheme (BT-34-1, BT-49-1) of `ADDRESS_SCHEMES`: a literal the template writes, taken as written. */
+export function checkAddressScheme(code: string): PaymentCheck<AddressScheme> {
+  if ((ADDRESS_SCHEMES as readonly string[]).includes(code)) return ok(code as AddressScheme)
+  return no(en16931Rule('BR-CL-25', "is not an electronic address scheme of those this release takes, a list narrower than the CEF's EAS code list"))
+}
+
+/** A check of `breaks`: the text as written where it breaks nothing, and the rule it breaks where it does. */
+const held =
+  (breaks: (text: string) => string | undefined) =>
+  (text: string): PaymentCheck<string> => {
+    const rule = breaks(text)
+    return rule === undefined ? ok(text) : no(rule)
+  }
 
 /**
  * A VAT identifier (BT-31, BT-48): a prefix of `VAT_PREFIXES`, which names
@@ -115,23 +131,36 @@ export interface EInvoiceTextRule {
  * - The exemption reason (BT-120) is needed by its category's code
  *   (`vatReasonBreak`); a line's VAT category (BT-151) is one the invoice
  *   declares (`checkLineCategory`).
+ * - The business process (BT-23), the electronic addresses (BT-34, BT-49)
+ *   and the seller's contact (BT-41 to BT-43) are needed by no rule a
+ *   German B2B invoice is held to (0037). The telephone number and the
+ *   email address are held to the shapes XRechnung's KoSIT warns of
+ *   (`xrechnung.ts`), so that no file earns the warning; the business
+ *   process and an address, identifiers of no shape CEN or XRechnung asks,
+ *   are tokens alone.
  */
 export type EInvoiceTextTerm =
   | 'BT-1'
   | 'BT-10'
   | 'BT-20'
+  | 'BT-23'
   | 'BT-27'
   | 'BT-30'
   | 'BT-31'
   | 'BT-32'
+  | 'BT-34'
   | 'BT-35'
   | 'BT-36'
   | 'BT-37'
   | 'BT-38'
   | 'BT-40'
+  | 'BT-41'
+  | 'BT-42'
+  | 'BT-43'
   | 'BT-44'
   | 'BT-47'
   | 'BT-48'
+  | 'BT-49'
   | 'BT-50'
   | 'BT-51'
   | 'BT-52'
@@ -151,18 +180,24 @@ export const E_INVOICE_TEXTS: { readonly [T in EInvoiceTextTerm]: EInvoiceTextRu
   'BT-1': { what: 'the invoice number (BT-1)', required: 'BR-02', token: true },
   'BT-10': { what: "the buyer's reference (BT-10)" },
   'BT-20': { what: 'the payment terms (BT-20)' },
+  'BT-23': { what: 'the business process (BT-23)', token: true },
   'BT-27': { what: "the seller's name (BT-27)", required: 'BR-06' },
   'BT-30': { what: "the seller's legal registration identifier (BT-30)", token: true },
   'BT-31': { what: "the seller's VAT identifier (BT-31)", check: checkVatIdentifier },
   'BT-32': { what: "the seller's tax registration identifier (BT-32)", token: true },
+  'BT-34': { what: "the seller's electronic address (BT-34)", token: true },
   'BT-35': { what: "the seller's address line (BT-35)", required: FULL_ADDRESS },
   'BT-36': { what: "the seller's second address line (BT-36)" },
   'BT-37': { what: "the seller's city (BT-37)", required: FULL_ADDRESS },
   'BT-38': { what: "the seller's post code (BT-38)", required: FULL_ADDRESS, token: true },
   'BT-40': { what: "the seller's country code (BT-40)", required: 'BR-09', check: checkCountryCode },
+  'BT-41': { what: "the seller's contact point (BT-41)" },
+  'BT-42': { what: "the seller's contact telephone number (BT-42)", check: held(telephoneBreak) },
+  'BT-43': { what: "the seller's contact email address (BT-43)", token: true, check: held(emailBreak) },
   'BT-44': { what: "the buyer's name (BT-44)", required: 'BR-07' },
   'BT-47': { what: "the buyer's legal registration identifier (BT-47)", token: true },
   'BT-48': { what: "the buyer's VAT identifier (BT-48)", check: checkVatIdentifier },
+  'BT-49': { what: "the buyer's electronic address (BT-49)", token: true },
   'BT-50': { what: "the buyer's address line (BT-50)", required: FULL_ADDRESS },
   'BT-51': { what: "the buyer's second address line (BT-51)" },
   'BT-52': { what: "the buyer's city (BT-52)", required: FULL_ADDRESS },
@@ -182,12 +217,21 @@ export const E_INVOICE_TEXTS: { readonly [T in EInvoiceTextTerm]: EInvoiceTextRu
 /** Each part of an address, by its business term. */
 type AddressTerms = { readonly [A in keyof EInvoiceAddress]-?: EInvoiceTextTerm }
 
-/** Which term each text of an e-invoice is, by where it stands in it: the type of `E_INVOICE_TEXT_TERMS`, over every text the format has. */
+/** Each part of the seller's contact, by its business term. */
+type ContactTerms = { readonly [C in keyof SellerContact]-?: EInvoiceTextTerm }
+
+/**
+ * Which term each text of an e-invoice is, by where it stands in it: the
+ * type of `E_INVOICE_TEXT_TERMS`, over every text the format has. A legal
+ * registration and an electronic address are named by their identifier's
+ * term; their schemes are codes, not texts.
+ */
 export interface EInvoiceTextTerms {
   readonly number: EInvoiceTextTerm
+  readonly businessProcess: EInvoiceTextTerm
   readonly buyerReference: EInvoiceTextTerm
   readonly terms: EInvoiceTextTerm
-  readonly seller: { readonly [K in Exclude<keyof EInvoiceSeller, 'address'>]-?: EInvoiceTextTerm } & { readonly address: AddressTerms }
+  readonly seller: { readonly [K in Exclude<keyof EInvoiceSeller, 'address' | 'contact'>]-?: EInvoiceTextTerm } & { readonly contact: ContactTerms; readonly address: AddressTerms }
   readonly buyer: { readonly [K in Exclude<keyof EInvoiceBuyer, 'address'>]-?: EInvoiceTextTerm } & { readonly address: AddressTerms }
   /** A VAT category's exemption reason. */
   readonly reason: EInvoiceTextTerm
@@ -203,10 +247,19 @@ export interface EInvoiceTextTerms {
  */
 export const E_INVOICE_TEXT_TERMS: EInvoiceTextTerms = {
   number: 'BT-1',
+  businessProcess: 'BT-23',
   buyerReference: 'BT-10',
   terms: 'BT-20',
-  seller: { name: 'BT-27', vatId: 'BT-31', taxNumber: 'BT-32', legalId: 'BT-30', address: { line1: 'BT-35', line2: 'BT-36', postalCode: 'BT-38', city: 'BT-37', country: 'BT-40' } },
-  buyer: { name: 'BT-44', vatId: 'BT-48', legalId: 'BT-47', address: { line1: 'BT-50', line2: 'BT-51', postalCode: 'BT-53', city: 'BT-52', country: 'BT-55' } },
+  seller: {
+    name: 'BT-27',
+    vatId: 'BT-31',
+    taxNumber: 'BT-32',
+    legalId: 'BT-30',
+    electronicAddress: 'BT-34',
+    contact: { name: 'BT-41', telephone: 'BT-42', email: 'BT-43' },
+    address: { line1: 'BT-35', line2: 'BT-36', postalCode: 'BT-38', city: 'BT-37', country: 'BT-40' },
+  },
+  buyer: { name: 'BT-44', vatId: 'BT-48', legalId: 'BT-47', electronicAddress: 'BT-49', address: { line1: 'BT-50', line2: 'BT-51', postalCode: 'BT-53', city: 'BT-52', country: 'BT-55' } },
   reason: 'BT-120',
   payment: { iban: 'BT-84', bic: 'BT-86', accountName: 'BT-85', remittance: 'BT-83' },
 }
