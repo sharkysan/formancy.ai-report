@@ -53,7 +53,9 @@ validate the report again, compile every expression     it arrives as untrusted 
    ├─ an error the editor's diagnostics would give ──▶ refused
    ▼
 check the data: one header record and one detail list, each value held to its
-field's type, a field the report does not declare refused, MAX_DETAIL_ROWS
+field's type, a field the report does not declare refused, MAX_DETAIL_ROWS;
+where it names its source, the syntax of identifiers and its shape's keys (0041)
+   ├─ a source past either, more submissions than rows, or a provider unknown ──▶ refused
    ├─ final, and a field missing or the data incomplete ──▶ refused
    ├─ preview ──▶ go on: nothing printed for it, one warning per field
    ▼
@@ -76,7 +78,8 @@ rules; the EPC QR code's payload written (6.7)
 in a final render, an e-invoice's CII XML, written from those values (6.8)
    │
    ▼
-ResolvedDocument + manifest (+ a preview's warnings)        every reason, or none
+ResolvedDocument + manifest, naming the data's source where it has one
+(+ a preview's warnings)                                     every reason, or none
    │
    ▼
 renderPdf(document, { maxPages, signal })
@@ -125,6 +128,7 @@ host: a data client, carrying the person's token
 readReportData(client, report, binding, { cap, signal })
    ├─ the report valid, the cap within MAX_DETAIL_ROWS?
    ├─ every declared dataset bound, and nothing else?
+   ├─ each form Data answers published under the id the binding names?
    ├─ every declared field one this person may read, and none an image?
    ├─ the detail form offers this person a list; its parent is one field?
    │       any no ──▶ refused, before a single record is read
@@ -134,7 +138,8 @@ the detail rows, a page at a time, until Data says none follow or the cap is rea
 each lookup's labels, distinct tokens, a page of them a request
    │       a label this person may not see ──▶ refused, whole
    ▼
-ReportData, its consistency 'best-effort' ──▶ resolveReport, as in 6.2
+ReportData, its consistency 'best-effort', its source the forms it read,
+none where it read none ──▶ resolveReport, as in 6.2
 ```
 
 Every request runs Data's policy again, so the provider is exactly as
@@ -142,6 +147,9 @@ authorised as the token. The header, each page and each label are read at
 different moments: a row inserted between two pages can be printed twice or
 not at all, which is what `best-effort` and the manifest say
 ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+The manifest names the forms read, by dataset and by the ids the binding
+addressed, and no record: a record's token spells its key, which can be
+the customer's own data ([0041](../decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)).
 
 ## 6.4 Switching frameworks over one session
 

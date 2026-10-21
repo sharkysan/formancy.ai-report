@@ -23,7 +23,7 @@ import type { ImageResolver } from '@formancy/report-runtime'
 import { QR_BILL_TOP as RUNTIME_QR_BILL_TOP, qrBillPageBreak as runtimeQrBillPageBreak } from '@formancy/report-runtime'
 import { EPC_CAPTION as RUNTIME_EPC_CAPTION, EPC_MAX_BYTES as RUNTIME_EPC_MAX_BYTES, epcCaptionBreak as runtimeEpcCaptionBreak, epcLeastVersion as runtimeEpcLeastVersion } from '@formancy/report-runtime'
 import { checkSvg as runtimeCheckSvg, cleanSvg as runtimeCleanSvg } from '@formancy/report-runtime'
-import type { EpcQrCode, QrBill, ReportData, Resolution } from '@formancy/report-runtime'
+import type { DataSource, EpcQrCode, QrBill, ReportData, Resolution } from '@formancy/report-runtime'
 import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
 import { readReportData } from '@formancy/report-data-provider'
 import type { DataBinding, ProviderRead } from '@formancy/report-data-provider'
@@ -291,6 +291,21 @@ if (resolvedCode?.payload !== payload || resolvedCode.caption !== 'zahlenMitCode
 const paidPdf = await renderPdf(paidResolution.document, { maxPages: 50 })
 if (!/\/BaseFont \/[A-Z]{6}\+LiberationSans\b/.test(new TextDecoder('latin1').decode(paidPdf))) throw new Error("the EPC QR code's caption did not print in the package's Liberation Sans")
 
+// Where the data came from (0041): a host that captured the invoice's lines
+// from a formancy form's submission names the submission, the form's id
+// and the schemaHash of the version that collected it, and the manifest
+// kept beside the PDF says so as given. A source holding a person's name,
+// with its space, where an id stands is refused.
+const versionHash = '767a65b36d4c02adf432d91ccdf7f8f285eebdbfc2987fb08fecd846b721dc42'
+const submitted: DataSource = { provider: 'formancy-form', submissions: [{ id: 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380', form: 'euro-invoice', formHash: versionHash }] }
+const submittedResolution: Resolution = resolveReport(paid, { ...euroLines, source: submitted }, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
+if (!submittedResolution.ok || JSON.stringify(submittedResolution.manifest.source) !== JSON.stringify(submitted)) {
+  throw new Error(`the manifest did not name the submission the data came from: ${submittedResolution.ok ? JSON.stringify(submittedResolution.manifest.source) : submittedResolution.errors.map((error) => error.code).join(', ')}`)
+}
+const answered: DataSource = { provider: 'formancy-form', submissions: [{ id: 'Erika Mustermann', form: 'euro-invoice', formHash: versionHash }] }
+const answeredResolution: Resolution = resolveReport(paid, { ...euroLines, source: answered }, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
+if (answeredResolution.ok || answeredResolution.errors.map((error) => `${error.code} ${error.path}`).join() !== 'invalid-source /source/submissions/0/id') throw new Error('a source holding a name where a submission id stands was not refused')
+
 // The EPC's print rules reach the renderer through the runtime as
 // report-spec's own, as the QR-bill's do: a captioned square too small for
 // any version is refused by the validator and by the renderer in the same
@@ -413,10 +428,13 @@ const fromData = await (async () => {
   if (JSON.stringify([provided.data.header, provided.data.detail]) !== JSON.stringify([quotationHeader, quotationLines]) || resolution.manifest.consistency !== 'best-effort') {
     throw new Error("the quotation read from Data is not the quotation's own data, read best-effort")
   }
+  // The manifest names the published form each dataset was read from (0041).
+  const source: DataSource | undefined = resolution.manifest.source
+  if (source?.provider !== 'formancy-data' || JSON.stringify(source.forms) !== JSON.stringify({ header: 'quotation', detail: 'quotation-line' })) throw new Error(`the quotation read from Data has no manifest naming its forms: ${JSON.stringify(source)}`)
   return renderPdf(resolution.document, { maxPages: 50 })
 })()
 if (new TextDecoder().decode(fromData.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation read from Data did not render to a PDF')
 
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved with its mark and rendered to a ${rendered.length}-byte PDF that draws it, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; a drawing approved by report-spec's cleanSvg, the runtime's own, printed as an SVG logo with no image in its ${logoPdf.length}-byte PDF, and the drawing as saved was refused; ${eInvoiced}; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, and it rendered to a ${fromData.length}-byte PDF; ${await addedImages()}; ${await imagesInOrder()}`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved with its mark and rendered to a ${rendered.length}-byte PDF that draws it, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; its manifest named the form submission its lines came from, and a source holding a name was refused; a drawing approved by report-spec's cleanSvg, the runtime's own, printed as an SVG logo with no image in its ${logoPdf.length}-byte PDF, and the drawing as saved was refused; ${eInvoiced}; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, its manifest naming the forms it read, and it rendered to a ${fromData.length}-byte PDF; ${await addedImages()}; ${await imagesInOrder()}`,
 )

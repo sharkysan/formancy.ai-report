@@ -202,7 +202,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:d5791e126ae7f0d45f2527d040471c467c5b815efd679bd7cf02da3e0159f5c8",
+      "reviewed": "sha256:344bc404f6de8b1d2e28998bc5253fe08782e3519f35c819b348af0d520ee7d9",
       "limitations": [
         {
           "area": "runtime",
@@ -358,7 +358,7 @@
       ]
     },
     "0016": {
-      "reviewed": "sha256:08b7e417b53faa0ee9e5ab9bbc7bd9cf195979e79acb7e3f42407d5397b74576",
+      "reviewed": "sha256:46c73d7416a6e22677c00ea75085a0b50ef8fce137c4f4110bcf51327c9085a4",
       "limitations": [
         {
           "area": "data",
@@ -1454,6 +1454,56 @@
         {
           "area": "licence",
           "says": "XRechnung's specification identifier, the contexts and tests the e-invoice gate holds its rules to, and the sample's Leitweg-ID are copied from KoSIT's configuration and test suite, whose licences were not read, and whether that is acceptable under 0006, as whether the sample's title may name XRechnung, is the rightsholder's question."
+        }
+      ]
+    },
+    "0041": {
+      "reviewed": "sha256:a0e120dce999d07dbfd71d9a924df2d84a75b8c16aaa8f9fa4d6a6f8b95dd8f2",
+      "limitations": [
+        {
+          "area": "data",
+          "says": "A data source is held to the syntax of identifiers, so a submission's id other than letters, digits, '.', '_' and '-', at most 128 characters and starting with a letter or a digit, one holding a space, an '@', a '/', a ':' or a letter beyond ASCII among them, is refused, and a host whose ids hold anything else maps them to ids that fit or names no source.",
+          "heldBy": "packages/report-runtime/src/data.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A source's identifiers are held by their syntax and not their meaning, so a host that names its submissions by a single-word name, a personal number such as an AHV number, an IBAN or a file name, or a version's hash by any 64 hex digits, the SHA-256 of an email address among them, passes the check and puts that value in every manifest.",
+          "heldBy": "packages/report-runtime/src/data.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "The runtime holds a source's form and not its truth, so a source a host writes by hand reaches the manifest as written."
+        },
+        {
+          "area": "data",
+          "says": "The manifest of data read from Formancy Data names the published forms each dataset was read from, and neither the record a report printed nor which publication of each form answered, which Data 0.1.0 does not say.",
+          "heldBy": "packages/report-data-provider/src/read.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A manifest names every submission its data came from, with its form's id and its version's hash, so one of 100,000 submissions with UUIDs was 14,400,305 bytes of JSON, and 35,400,305 with ids and form ids of 128 characters, and checking its source added a median of about 170 ms to checking the rows, measured on one machine on 21 October 2026."
+        },
+        {
+          "area": "data",
+          "says": "A source names no more submissions than the data gives detail rows, or one where it gives none, so a host that reads several submissions into one row, or names submissions whose rows it left out, is refused, and names the submissions it printed or no source.",
+          "heldBy": "packages/report-runtime/src/data.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "The Data provider refuses, as `unexpected-form` and before any record is read, a form a server answers under another id than the one the binding names, which 0.2.0's provider read; Data 0.1.0 answers a form under its own id.",
+          "heldBy": "packages/report-data-provider/src/read.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A manifest holds no digest of the data, no time of its capture and no version of its provider, so it says where the data came from and cannot show that what printed is what was captured."
+        },
+        {
+          "area": "release",
+          "says": "Data that names a source is refused by 0.2.0's runtime as `unknown-property`, so a host that names one, or uses this release's Data provider, needs this release's runtime."
+        },
+        {
+          "area": "data",
+          "says": "No package of this release fills a formancy form's source, so a host that prints a submission names the submission, its form's id and its version's schemaHash itself, until the form bridge's package reads submissions."
         }
       ]
     }

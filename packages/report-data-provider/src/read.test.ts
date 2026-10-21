@@ -34,6 +34,59 @@ describe('readReportData', () => {
     expect(resolution.ok ? resolution.manifest.consistency : resolution.errors).toBe('best-effort')
   })
 
+  // A PDF printed from Data is traced to where its data came from only if
+  // the manifest kept beside it says so (0041): the published form each
+  // dataset was read from, by the id it was read through. Never the record's
+  // token, which spells the record's key (formancy.ai-data 0012), and a
+  // key can be the customer's own data.
+  test('names the forms it read as the data’s source, which the manifest carries', async () => {
+    const fixture = dataFixture(orderForms(), ORDER_MENU)
+    const data = read(await readReportData(fixture.client, orderReport(), ORDER))
+    expect(data.source).toEqual({ provider: 'formancy-data', forms: { header: 'order', detail: 'order-line' } })
+    expect(JSON.stringify(data.source)).not.toContain('o-1')
+    const resolution = resolveReport(orderReport(), data, { mode: 'final', ...RESOLVE })
+    expect(resolution.ok ? resolution.manifest.source : resolution.errors).toEqual({ provider: 'formancy-data', forms: { header: 'order', detail: 'order-line' } })
+  })
+
+  // The source names the form the records were read through. Data 0.1.0
+  // publishes a form only under its own id, so a server answering another
+  // -- or one that is no formancy form id, which no published form has --
+  // is not Data 0.1.0: named as it answered, the manifest would say the
+  // order came from the invoices, and planned from that form's fields, the
+  // read would be another form's. Refused before any record is read, and
+  // never by the id it answered.
+  test('refuses a form Data answers under another id, before reading a record', async () => {
+    for (const id of ['invoice', 'Erika Mustermann', 42, undefined, 'o'.repeat(200)]) {
+      const fixture = dataFixture(orderForms(), ORDER_MENU)
+      const order = orderForms()['order']!.published
+      fixture.answerNext('/v1/forms/order', 200, { ...order, form: { ...order.form, id } })
+      const result = await readReportData(fixture.client, orderReport(), ORDER)
+      expect(result.ok ? 'read' : result.errors.map(({ path, code }) => ({ path, code })), String(id)).toEqual([{ path: '/header', code: 'unexpected-form' }])
+      expect(fixture.requests.filter(({ path }) => path.includes('/records/'))).toEqual([])
+      if (!result.ok) expect(JSON.stringify(result.errors)).not.toMatch(/invoice|Erika|ooo/)
+    }
+    // A binding that names no formancy form id, answered as if one were published under it.
+    const order = orderForms()['order']!
+    const named = dataFixture({ 'Erika Mustermann': { ...order, published: { ...order.published, form: { ...order.published.form, id: 'Erika Mustermann' } } } }, ORDER_MENU)
+    const { detail: _, ...datasets } = orderReport().datasets
+    const letter: ReportDefinition = { ...orderReport(), datasets, aggregates: [], regions: { ...orderReport().regions, body: [] } }
+    const result = await readReportData(named.client, letter, { header: { form: 'Erika Mustermann', record: 'o-1' } })
+    expect(result.ok ? 'read' : result.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/header', code: 'unexpected-form' }])
+    expect(named.requests.filter(({ path }) => path.includes('/records/'))).toEqual([])
+  })
+
+  // Data read from no form has no source to name: a source naming none
+  // would say the data came from Formancy Data when nothing was read, and
+  // the runtime refuses one.
+  test('names no source for a report that reads no dataset', async () => {
+    const fixture = dataFixture(orderForms(), ORDER_MENU)
+    const blank: ReportDefinition = { ...orderReport(), datasets: {}, aggregates: [], regions: { ...orderReport().regions, reportHeader: [], body: [] } }
+    const data = read(await readReportData(fixture.client, blank, {}))
+    expect(data).toEqual({ completeness: { complete: true, captured: 0 }, consistency: 'best-effort' })
+    expect(fixture.requests).toEqual([])
+    expect(resolveReport(blank, data, { mode: 'final', ...RESOLVE }).ok).toBe(true)
+  })
+
   // Data 0.1.0 has no snapshot export: the header, each page and each
   // label are read at different moments. Called anything stronger, a
   // report could total lines that were never in one state together.
@@ -88,13 +141,14 @@ describe('readReportData', () => {
 
   // A report of one record -- a certificate, a letter -- has no lines, and
   // says it captured none: given any other count, the runtime refuses the
-  // data as rows lost on the way.
+  // data as rows lost on the way. Its source names the one form it read,
+  // and no form for a dataset the report does not declare.
   test('reads a report with no detail dataset as one record and no rows', async () => {
     const fixture = dataFixture(orderForms(), ORDER_MENU)
     const { detail: _, ...datasets } = orderReport().datasets
     const letter: ReportDefinition = { ...orderReport(), datasets, aggregates: [], regions: { ...orderReport().regions, body: [] } }
     const data = read(await readReportData(fixture.client, letter, { header: HEADER }))
-    expect(data).toEqual({ header: expect.any(Object), completeness: { complete: true, captured: 0 }, consistency: 'best-effort' })
+    expect(data).toEqual({ header: expect.any(Object), completeness: { complete: true, captured: 0 }, consistency: 'best-effort', source: { provider: 'formancy-data', forms: { header: 'order' } } })
     expect(resolveReport(letter, data, { mode: 'final', ...RESOLVE }).ok).toBe(true)
   })
 

@@ -10,6 +10,48 @@ later.
 
 ## Unreleased
 
+**A render's manifest names where its data came from**
+([0041](docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)).
+The manifest kept beside a PDF said how its data was read -- complete or
+not, how consistent, final or a preview -- and nothing of where from: a
+PDF kept for years could not say which form version collected its answers,
+or which submission it printed. `ReportData` takes an optional `source`,
+which `resolveReport`'s manifest carries as `source`:
+- `{ provider: 'formancy-form', submissions: [{ id, form, formHash }] }`:
+  each submission the data was read from, with the form's id and the
+  `schemaHash` of the version that collected it, one for a report of one
+  submission and one a row for a report of many. The form's id is each
+  submission's, since formancy lets a new version change it. The package
+  that reads a submission, which the form bridge brings later in 0.3.0,
+  fills it; until then a host that prints one names it.
+- `{ provider: 'formancy-data', forms: { header, detail } }`: the published
+  form each dataset was read from, which `@formancy/report-data-provider`
+  now names itself, by the id the binding addressed it by. Never the
+  record's token, which spells the record's key (formancy.ai-data 0012),
+  and a key can be the customer's own data. A form Data answers under
+  another id, which Data 0.1.0 never does, is refused as the provider's
+  new `unexpected-form` before any record is read, where it was read
+  before: named, the manifest would say the data came from a form it did
+  not. A report that reads no dataset names no source.
+
+A source is for identifiers alone, since a manifest is kept longer than
+any log, and `checkData` holds it to their syntax, refusing as
+`invalid-source`, and never naming the value or the key: a submission's
+id that is not letters, digits, `.`, `_` and `-` of at most 128
+characters -- a space, an `@`, a `/`, a `:` or a letter beyond ASCII --
+a form's id or a version's hash that is not one, a key a source's shape
+does not name, answers among them, more submissions than the detail rows
+given, or more than one where none are, one named twice, a Data source
+naming no form, and a provider it does not know. Its syntax is checked,
+not its meaning or its truth: a single word, a personal number or any 64
+hex digits as a hash pass. Data that names no source is read as before;
+0.2.0's runtime refuses data that names one. No digest of the data is
+kept in it: without the data kept, a digest reproduces nothing. A
+manifest that names many submissions is large: at 100,000, 14.4 MB.
+report-spec exports `isFormId` and `isSchemaHash`, the rules a report's
+provenance is held to, which the runtime holds a source to, so the two
+cannot read a form differently.
+
 **Report takes formancy 0.7.0.** The upstream `@formancy/*` packages
 move from 0.6.0 to 0.7.0, exact, for what 0.6.0 was taken for:
 `@formancy/spec` for report-spec's report hash, `@formancy/expressions`

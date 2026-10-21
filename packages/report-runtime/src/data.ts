@@ -23,6 +23,11 @@
  *   that disagrees with the rows given.
  * - **Bounded.** The rows and every string are bounded before they are
  *   read, and so is the error list; once it is full, nothing more is read.
+ * - **Its source, by the syntax of identifiers.** Where the provider names
+ *   where the data came from -- a formancy form's submissions and their
+ *   versions, or Formancy Data's forms -- it is held to `source.ts`'s
+ *   rules, no more submissions than the rows given, and the render's
+ *   manifest carries it (0041).
  *
  * What is held afterwards is a frozen copy, read once from the host's
  * objects, which no later change to them reaches.
@@ -33,6 +38,8 @@ import { at, DataFindings, isLongKey, keyAt } from './data-errors.js'
 import type { DataError, DataErrorCode } from './data-errors.js'
 import { readList, readRecord, UNREADABLE } from './input.js'
 import type { ContainerCode } from './input.js'
+import { checkSource } from './source.js'
+import type { DataSource } from './source.js'
 import { readValue } from './values.js'
 import type { CheckedValue } from './values.js'
 
@@ -80,6 +87,8 @@ export interface ReportData {
   readonly detail?: readonly Readonly<Record<string, unknown>>[]
   readonly completeness: Completeness
   readonly consistency: Consistency
+  /** Where the data came from, held to the syntax of identifiers (0041); absent where the provider names none. */
+  readonly source?: DataSource
 }
 
 /**
@@ -98,6 +107,8 @@ export interface CheckedData {
   readonly detail: readonly CheckedRecord[]
   readonly completeness: Completeness
   readonly consistency: Consistency
+  /** The source the data named, as a frozen copy; absent where it named none. */
+  readonly source?: DataSource
 }
 
 export type DataCheck =
@@ -108,7 +119,7 @@ export interface DataCheckOptions {
   readonly mode: DataMode
 }
 
-const ENVELOPE: readonly string[] = ['header', 'detail', 'completeness', 'consistency']
+const ENVELOPE: readonly string[] = ['header', 'detail', 'completeness', 'consistency', 'source']
 const COMPLETENESS: readonly string[] = ['complete', 'captured', 'cap']
 
 const MINIMISATION = 'a report never carries what it does not print, so data it does not read is refused rather than carried along'
@@ -299,6 +310,13 @@ export function checkData(report: ReportDefinition, data: ReportData, options: D
   const detail = checkDetail(c, report.datasets.detail, top.entries)
   const completeness = checkCompleteness(c, top.entries.get('completeness'), detail.given)
   const consistency = checkConsistency(c, top.entries.get('consistency'))
+  // A report of one submission reads its repeater's rows, and a report of
+  // many one a row, so a source names no more submissions than the rows
+  // given, or one where none are. Rows that could not be counted are their
+  // own error, and the source is held to the most a render reads.
+  const rows = top.entries.has('detail') ? detail.given : 0
+  const submissions = rows === undefined ? MAX_DETAIL_ROWS : Math.max(1, rows)
+  const source = top.entries.has('source') ? checkSource(c.errors, top.entries.get('source'), report.datasets, submissions) : undefined
   if (!c.errors.empty || completeness === undefined || consistency === undefined) return { ok: false, errors: c.errors.errors() }
   const checked: CheckedData = {
     mode: c.final ? 'final' : 'preview',
@@ -306,6 +324,7 @@ export function checkData(report: ReportDefinition, data: ReportData, options: D
     detail: Object.freeze(detail.rows),
     completeness,
     consistency,
+    ...(source === undefined ? {} : { source }),
   }
   return { ok: true, data: Object.freeze(checked), warnings: c.warnings }
 }

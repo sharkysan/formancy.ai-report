@@ -117,6 +117,7 @@ Each stage is a module, and each decides its question once:
 | Module | Responsibility |
 |---|---|
 | `input.ts`, `data.ts`, `values.ts`, `parameters.ts` | The data contract: read once without running anything, every value held to its field's type, undeclared fields refused, bounded by `MAX_DETAIL_ROWS` |
+| `source.ts` | Where the data came from, which the manifest carries: each submission of a formancy form with its form's id and the `schemaHash` of the version that collected it, or the Formancy Data form each dataset was read from; held to the syntax of identifiers, by report-spec's `isFormId` and `isSchemaHash`, the provenance's own rules, and a submission id's syntax of its own, and to no key its shape does not name; no more submissions than the detail rows given, which `data.ts` counts, and a provider it does not know refused ([0041](../decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)) |
 | `evaluate.ts` | The expressions report-core compiled, evaluated with fixed capabilities within `EXPRESSION_STEP_BUDGET` each and `RENDER_STEP_BUDGET` a render |
 | `sort-group.ts`, `totals.ts`, `decimal.ts` | Row order and groups; aggregates computed exactly, BigInt and upstream's `Decimal`, rounded once as declared |
 | `format.ts`, `inlines.ts`, `styles.ts` | Every value as the text it prints, for the report's locale, through Intl handed exact digits |
@@ -159,7 +160,10 @@ token. `binding.ts` holds everything it can check before it reads a record —
 the bindings, the fields the person may read, the list the detail form
 offers — and `read.ts` the reads themselves: the header record, the detail
 rows a page at a time, each lookup's labels. The data it hands over says
-`best-effort` ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+`best-effort` ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)),
+and names as its source the published form each dataset was read from,
+by the id the binding addressed, refusing a form Data answers under
+another, and never a record's token ([0041](../decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)).
 
 ### `@formancy/report-builder-core` (L2)
 

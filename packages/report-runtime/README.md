@@ -27,7 +27,7 @@ const images: ImageResolver = ({ asset, digest }) => approvedAssets.get(`${asset
 const resolution = resolveReport(report, data, { mode: 'final', parameters: { copies: '2' }, images, creationDate: '2026-10-15T08:00:00Z', timeZone: 'Europe/Zurich' })
 if (resolution.ok) {
   resolution.document // what @formancy/report-render-pdf draws
-  resolution.manifest // the report's hash, locale, zone, mode, consistency, completeness, parameters
+  resolution.manifest // the report's hash, locale, zone, mode, consistency, completeness, parameters, and the data's source where it names one
 } else {
   resolution.errors // each with the stage that found it, a stable code, a JSON Pointer, never a value
 }
@@ -94,6 +94,37 @@ leaves without a text its rules require is refused, and the error says the
 preview lacked a value for it, since its code would scan as a payment no
 bank makes. The host's objects are read
 once, as data: a getter is never run, and a proxy that throws is refused.
+
+**Where it came from.** The data may name its `source`, and the manifest
+carries it as `source`, so that a PDF kept with its manifest says what
+collected its data
+([0041](../../docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)):
+
+```ts
+// Read from a formancy form: each submission, with the form's id and the schemaHash of the version that collected it.
+source: { provider: 'formancy-form', submissions: [{ id: 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380', form: 'site-visit', formHash: '767a65b36d4c02adf432d91ccdf7f8f285eebdbfc2987fb08fecd846b721dc42' }] }
+// Read from Formancy Data: the published form each dataset was read from, as @formancy/report-data-provider names it.
+source: { provider: 'formancy-data', forms: { header: 'order', detail: 'order-line' } }
+```
+
+The form's id is each submission's, since a new version of a form may
+change it. A source is for identifiers alone, since a manifest is kept
+longer than any log, and is held to their syntax, not their meaning. A form's id
+and a version's hash are held to the rules a report's provenance is,
+report-spec's `isFormId` and `isSchemaHash`; a submission's id is
+letters, digits, `.`, `_` and `-`, starting with a letter or a digit, at
+most 128 characters. So a space, an `@`, a `/`, a `:`, a letter beyond
+ASCII or a 129th character is refused, and with them a full name or an
+email address; a single word, a personal number or any 64 hex digits as a
+hash fits, and the syntax cannot tell it from an identifier. A key a
+source's shape does not name, more submissions than the detail rows given
+(or than one where none are), a submission named twice, a Formancy Data
+source naming no form, a form for a dataset the report does not declare
+or none for one it does, and a provider the runtime does not know are
+each refused, as `invalid-source`, never naming the value or the key. Its
+syntax is checked, not its truth: that the host read what it names is the
+provider's word, as its completeness is. Data that names no source is
+read as before, and its manifest has none.
 
 ## A QR-bill
 

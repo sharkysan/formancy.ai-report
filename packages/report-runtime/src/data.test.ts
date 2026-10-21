@@ -313,3 +313,226 @@ describe('checkData', () => {
     }
   })
 })
+
+/** The schemaHash of two versions of a form, as formancy writes one, and two submissions' ids, as formancy's server makes them. */
+const VERSION_1 = '767a65b36d4c02adf432d91ccdf7f8f285eebdbfc2987fb08fecd846b721dc42'
+const VERSION_2 = 'd8cc5753df5172bcbaadc0d008086218262ca11896ae860c27b976933be012cb'
+const FIRST = 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380'
+const SECOND = '8861b39c-51df-4cc0-b71e-63a6d3f16b1b'
+
+/** A submission of the site visit's first version; `more` replaces or adds what it names. */
+const submission = (more: Record<string, unknown> = {}): Record<string, unknown> => ({ id: FIRST, form: 'site-visit', formHash: VERSION_1, ...more })
+/** A formancy form's source: each submission with the form and the version that collected it. */
+const formSource = (submissions: readonly unknown[] = [submission()], more: Record<string, unknown> = {}): Record<string, unknown> => ({ provider: 'formancy-form', submissions, ...more })
+/** Formancy Data's source: the published form each of the sample report's datasets was read from. */
+const dataSource = (forms: Record<string, unknown> = { header: 'order', detail: 'order-line' }): Record<string, unknown> => ({ provider: 'formancy-data', forms })
+/** `count` detail rows, as a report of that many submissions reads them, one a row. */
+const rows = (count: number): Record<string, unknown>[] => Array.from({ length: count }, (_, index) => sampleRow({ sku: `A-${String(index + 1)}` }))
+
+describe('checkData: where the data came from', () => {
+  // A render's manifest names the form version and the submissions its data
+  // came from (0041): a PDF kept for years is traced to what collected it
+  // only if the source travels with the data and is held as it was given,
+  // whatever the host does with its objects afterwards. formancy lets a new
+  // version change the form's id -- `diffSchemas` calls it lossy, not
+  // breaking -- so each submission names its own version's form id: one
+  // id for the whole source would misname one version's submissions.
+  test('holds a formancy form source, each submission with its form and version, as a frozen copy', () => {
+    const submissions = [submission(), submission({ id: SECOND, form: 'site-visit-2026', formHash: VERSION_2 })]
+    const given = formSource(submissions)
+    const data = checked(checkData(sampleReport(), withData({ source: given }, rows(2)), final))
+    expect(data.source).toEqual({ provider: 'formancy-form', submissions })
+    ;(submissions[0] as { id: string }).id = 'changed'
+    given['submissions'] = []
+    expect(data.source).toEqual({ provider: 'formancy-form', submissions: [submission(), { id: SECOND, form: 'site-visit-2026', formHash: VERSION_2 }] })
+    const source = data.source as { submissions: readonly object[] }
+    expect([Object.isFrozen(data.source), Object.isFrozen(source.submissions), Object.isFrozen(source.submissions[0])]).toEqual([true, true, true])
+  })
+
+  // Formancy Data's provider names the published forms it read, by the
+  // dataset each filled; data a host captured itself names no source, and
+  // the checked data says none rather than invent one.
+  test('holds a Formancy Data source by dataset, and no source where the data names none', () => {
+    const data = checked(checkData(sampleReport(), withData({ source: dataSource() }), final))
+    expect(data.source).toEqual({ provider: 'formancy-data', forms: { header: 'order', detail: 'order-line' } })
+    expect(Object.isFrozen((data.source as { forms: object }).forms)).toBe(true)
+    expect(Object.hasOwn(checked(checkData(sampleReport(), sampleData(), final)), 'source')).toBe(false)
+  })
+
+  // A source names identifiers and nothing else (0041). An answer -- a
+  // name, an email address, the submission's own data -- would ride into
+  // every manifest kept beside a PDF, which data minimisation keeps out of
+  // the data itself; a provider the runtime does not know is refused, not
+  // read as one it does (fail closed). A key the shape does not name is
+  // refused where it stands, by its container's path: the key may be the
+  // answer.
+  test.each([
+    ['a submission id holding a space', formSource([submission({ id: 'Erika Mustermann' })]), '/source/submissions/0/id'],
+    ['an email address for a submission id', formSource([submission({ id: 'erika@example.ch' })]), '/source/submissions/0/id'],
+    ['a submission id holding a slash', formSource([submission({ id: 'visit/7' })]), '/source/submissions/0/id'],
+    ['a submission id holding a colon', formSource([submission({ id: `urn:uuid:${FIRST}` })]), '/source/submissions/0/id'],
+    ['a submission id beyond ASCII', formSource([submission({ id: 'zürich-7' })]), '/source/submissions/0/id'],
+    ['a submission id as a number', formSource([submission({ id: 4711 })]), '/source/submissions/0/id'],
+    ['a submission carrying its answers', formSource([submission({ answers: { name: 'Erika' } })]), '/source/submissions/0'],
+    ['a version hash in capitals', formSource([submission({ formHash: VERSION_1.toUpperCase() })]), '/source/submissions/0/formHash'],
+    ['a version hash with a prefix', formSource([submission({ formHash: `sha256:${VERSION_1}` })]), '/source/submissions/0/formHash'],
+    ['a submission with no version', formSource([{ id: FIRST, form: 'site-visit' }]), '/source/submissions/0/formHash'],
+    ['a submission whose form id is not one', formSource([submission({ form: 'Site visit' })]), '/source/submissions/0/form'],
+    ['a submission with no form', formSource([{ id: FIRST, formHash: VERSION_1 }]), '/source/submissions/0/form'],
+    ['a submission that is not an object', formSource([FIRST]), '/source/submissions/0'],
+    ['a form source with no submission', formSource([]), '/source/submissions'],
+    ['a form source carrying data', formSource(undefined, { data: { name: 'Erika' } }), '/source'],
+    ['a form source naming one form for every submission', formSource(undefined, { form: 'site-visit' }), '/source'],
+    ['a Data source naming a record', { ...dataSource(), record: 'o-1' }, '/source'],
+    ['a Data form id that is not one', dataSource({ header: 'the orders', detail: 'order-line' }), '/source/forms/header'],
+    ['a Data source naming a form for no dataset', dataSource({ header: 'order', detail: 'order-line', lines: 'order-line' }), '/source/forms'],
+    ['a Data source whose forms are not an object', { provider: 'formancy-data', forms: 'order' }, '/source/forms'],
+    ['a provider the runtime does not know', { provider: 'host', forms: {} }, '/source/provider'],
+    ['no provider', { submissions: [submission()] }, '/source/provider'],
+    ['a source that is not an object', 'formancy-form', '/source'],
+  ])('refuses %s', (_name, source, path) => {
+    for (const mode of [final, preview]) expect(where(errors(checkData(sampleReport(), withData({ source }), mode)))).toEqual([`invalid-source ${path}`])
+  })
+
+  // What the syntax cannot see, said as 0041's cost: a single word, a
+  // personal number or an IBAN fits a submission's id, a file name a form's,
+  // and any 64 hex digits a version's hash, a digest of an email address
+  // among them. Were the syntax narrowed, the limitation would overstate
+  // the cost, and this case says so.
+  test('accepts what fits the syntax, whatever it means', () => {
+    const ids = ['Mustermann', '756.1234.5678.97', 'CH9300762011623852957', 'erika.mustermann-example.ch']
+    const source = formSource(ids.map((id, index) => submission({ id, form: index === 0 ? 'Lohnausweis_Mustermann_2026.pdf' : 'site-visit', formHash: 'f'.repeat(64) })))
+    expect(checked(checkData(sampleReport(), withData({ source }, rows(ids.length)), final)).source).toEqual(source)
+  })
+
+  // A Data source says which form each dataset was read from; one that
+  // names a form for a dataset the report does not declare, or none for one
+  // it does, or no form at all, says something of the render that is not so.
+  test('refuses a Data source whose forms are not the datasets the report declares', () => {
+    const { detail: _detail, ...headerOnly } = sampleReport().datasets
+    const { detail: _rows, ...noDetail } = sampleData([])
+    const letter = { ...sampleReport(), datasets: headerOnly }
+    const lettered = (source: unknown): ReportData => ({ ...noDetail, completeness: { complete: true, captured: 0 }, source }) as unknown as ReportData
+    expect(checked(checkData(letter, lettered(dataSource({ header: 'order' })), final)).source).toEqual({ provider: 'formancy-data', forms: { header: 'order' } })
+    expect(where(errors(checkData(letter, lettered(dataSource()), final)))).toEqual(['invalid-source /source/forms/detail'])
+    expect(where(errors(checkData(sampleReport(), withData({ source: dataSource({ header: 'order' }) }), final)))).toEqual(['invalid-source /source/forms'])
+    expect(where(errors(checkData(sampleReport(), withData({ source: dataSource({}) }), final)))).toEqual(['invalid-source /source/forms'])
+    const blank = { ...sampleReport(), datasets: {} }
+    const nothing = { completeness: { complete: true, captured: 0 }, consistency: 'host-captured', source: dataSource({}) } as unknown as ReportData
+    expect(where(errors(checkData(blank, nothing, final)))).toEqual(['invalid-source /source/forms'])
+  })
+
+  // Bounded before it is read, as the rows are: no id longer than a form's
+  // may be (128 characters), and no more submissions than the data gives
+  // detail rows, or one where it gives none -- a report of one submission
+  // reads its repeater's rows, a report of many one a row -- so never more
+  // than MAX_DETAIL_ROWS. A source naming more says something of the render
+  // that is not so, and its list costs one comparison, whatever it holds.
+  test('refuses a source too long or too many for its rows before reading past the bound', () => {
+    const long = 'a'.repeat(129)
+    expect(where(errors(checkData(sampleReport(), withData({ source: formSource([submission({ id: long })]) }), final)))).toEqual(['invalid-source /source/submissions/0/id'])
+    expect(where(errors(checkData(sampleReport(), withData({ source: formSource([submission({ form: long })]) }), final)))).toEqual(['invalid-source /source/submissions/0/form'])
+    expect(where(errors(checkData(sampleReport(), withData({ source: dataSource({ header: long, detail: 'order-line' }) }), final)))).toEqual(['invalid-source /source/forms/header'])
+    const at = 'a'.repeat(128)
+    expect(checked(checkData(sampleReport(), withData({ source: formSource([submission({ id: at, form: at })]) }), final)).source).toBeDefined()
+    const two = formSource([submission(), submission({ id: SECOND })])
+    expect(where(errors(checkData(sampleReport(), withData({ source: two }), final)))).toEqual(['invalid-source /source/submissions'])
+    expect(checked(checkData(sampleReport(), withData({ source: two }, rows(2)), final)).source).toEqual(two)
+    expect(checked(checkData(sampleReport(), withData({ source: formSource() }, []), final)).source).toEqual(formSource())
+    const { detail: _detail, ...headerOnly } = sampleReport().datasets
+    const { detail: _rows, ...noDetail } = sampleData([])
+    const letter = { ...sampleReport(), datasets: headerOnly }
+    expect(where(errors(checkData(letter, { ...noDetail, source: two } as unknown as ReportData, final)))).toEqual(['invalid-source /source/submissions'])
+    expect(checked(checkData(letter, { ...noDetail, source: formSource() } as unknown as ReportData, final)).source).toEqual(formSource())
+    // A sparse list of one past the rows: read item by item, its holes would be errors.
+    expect(where(errors(checkData(sampleReport(), withData({ source: formSource(new Array(3)) }, rows(2)), final)))).toEqual(['invalid-source /source/submissions'])
+    // Rows that cannot be counted are the rows' error, never the source's.
+    expect(where(errors(checkData(sampleReport(), withData({ detail: 'rows', source: two }), final)))).toEqual(['wrong-type /detail'])
+  })
+
+  // The source is read as the data is, once and without running anything:
+  // a getter could answer the check one id and the manifest another. What
+  // is not data is said once, where it stands, and never again as a value
+  // the source lacks.
+  test('refuses what is not data in a source, once, without running a getter', () => {
+    let ran = false
+    const getter = (value: unknown): PropertyDescriptor => ({
+      enumerable: true,
+      get: () => {
+        ran = true
+        return value
+      },
+    })
+    const hiddenId = Object.defineProperty({ form: 'site-visit', formHash: VERSION_1 }, 'id', getter(FIRST))
+    // eslint-disable-next-line no-sparse-arrays
+    const refused = errors(checkData(sampleReport(), withData({ source: formSource([hiddenId, , submission({ id: SECOND, formHash: VERSION_2 })]) }, rows(3)), final))
+    expect(where(refused)).toEqual(['not-data /source/submissions/0/id', 'not-data /source/submissions/1'])
+    const hiddenForm = Object.defineProperty({ id: FIRST, formHash: VERSION_1 }, 'form', getter('site-visit'))
+    expect(where(errors(checkData(sampleReport(), withData({ source: formSource([hiddenForm]) }), final)))).toEqual(['not-data /source/submissions/0/form'])
+    const hiddenSubmissions = Object.defineProperty({ provider: 'formancy-form' }, 'submissions', getter([submission()]))
+    expect(where(errors(checkData(sampleReport(), withData({ source: hiddenSubmissions }), final)))).toEqual(['not-data /source/submissions'])
+    const hiddenForms = Object.defineProperty({ provider: 'formancy-data' }, 'forms', getter({ header: 'order', detail: 'order-line' }))
+    expect(where(errors(checkData(sampleReport(), withData({ source: hiddenForms }), final)))).toEqual(['not-data /source/forms'])
+    const hiddenHeader = dataSource(Object.defineProperty({ detail: 'order-line' }, 'header', getter('order')))
+    expect(where(errors(checkData(sampleReport(), withData({ source: hiddenHeader }), final)))).toEqual(['not-data /source/forms/header'])
+    const unlisted = Object.defineProperty({ provider: 'formancy-form' }, 'submissions', { value: [submission()], enumerable: false })
+    expect(where(errors(checkData(sampleReport(), withData({ source: unlisted }), final)))).toEqual(['not-data /source/submissions'])
+    // A provider behind a getter is not read as any provider; a symbol key
+    // and an object that throws when read are not data either.
+    const hiddenProvider = Object.defineProperty({ forms: { header: 'order', detail: 'order-line' } }, 'provider', getter('formancy-data'))
+    expect(where(errors(checkData(sampleReport(), withData({ source: hiddenProvider }), final)))).toEqual(['not-data /source/provider'])
+    expect(ran).toBe(false)
+    expect(where(errors(checkData(sampleReport(), withData({ source: { ...dataSource(), [Symbol('hidden')]: 1 } }), final)))).toEqual(['not-data /source'])
+    const throwing = new Proxy({}, { ownKeys: () => { throw new Error('read') } })
+    expect(where(errors(checkData(sampleReport(), withData({ source: throwing }), final)))).toEqual(['not-data /source'])
+    const throwingList = new Proxy([], { getOwnPropertyDescriptor: () => { throw new Error('read') } })
+    expect(where(errors(checkData(sampleReport(), withData({ source: formSource(throwingList) }), final)))).toEqual(['not-data /source/submissions'])
+  })
+
+  // Errors are bounded, and once the bound is reached nothing more of the
+  // source is read: a source of junk costs the work of the first errors,
+  // not of every submission.
+  test('lists at most MAX_DATA_ERRORS errors of a source and stops reading after them', () => {
+    let read = false
+    const watched = new Proxy(submission({ id: SECOND, formHash: VERSION_2 }), {
+      ownKeys: (target) => {
+        read = true
+        return Reflect.ownKeys(target)
+      },
+    })
+    const junk = Array.from({ length: MAX_DATA_ERRORS + 10 }, (_, index) => submission({ id: `${String(index)} ` }))
+    const refused = errors(checkData(sampleReport(), withData({ source: formSource([...junk, watched]) }, rows(junk.length + 1)), final))
+    expect(refused).toHaveLength(MAX_DATA_ERRORS + 1)
+    expect(refused.at(-1)?.code).toBe('too-many-errors')
+    expect(read).toBe(false)
+  })
+
+  // "Each submission's id" names each once: one named twice is a host that
+  // paired its data with something other than what it says it read.
+  test('refuses a submission named twice', () => {
+    const twice = formSource([submission(), submission({ formHash: VERSION_2 })])
+    expect(where(errors(checkData(sampleReport(), withData({ source: twice }, rows(2)), final)))).toEqual(['invalid-source /source/submissions/1/id'])
+  })
+
+  // A source that breaks its rules may be holding an answer, so its
+  // refusal is the one place it must not reappear: no message and no path
+  // holds a value of it, nor a key the shape does not name, whatever is
+  // wrong.
+  test('never repeats a value or an unknown key of a source in a message or a path', () => {
+    const secret = 'SECRET 4711'
+    const hiddenKey = Object.defineProperty(submission(), secret, { enumerable: true, get: () => secret })
+    const sources = [
+      formSource([{ id: secret, form: secret, formHash: secret, answers: secret }, submission({ id: secret })], { form: secret, data: secret }),
+      formSource([{ ...submission(), [secret]: 1 }, hiddenKey], { [secret]: 1 }),
+      { provider: secret, forms: { header: secret } },
+      dataSource({ header: secret, detail: [secret], [secret]: 'order' }),
+      { ...dataSource(), [secret]: 'order' },
+      { provider: 'formancy-form', submissions: secret },
+    ]
+    for (const source of sources) {
+      const refused = errors(checkData(sampleReport(), withData({ source }, rows(2)), final))
+      expect(refused.length).toBeGreaterThan(0)
+      for (const error of refused) expect(`${error.path} ${error.message}`).not.toContain('SECRET')
+    }
+  })
+})

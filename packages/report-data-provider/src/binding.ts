@@ -48,6 +48,8 @@ export const PROVIDER_ERROR_CODES = [
   'unsupported-field',
   /** The detail form offers this person no list of its records. */
   'not-listable',
+  /** Data answered a binding's form with a published form under another id, or one that is no formancy form id: Data 0.1.0 publishes a form only under its own (0041). */
+  'unexpected-form',
   /** A lookup value whose label Data did not give this person. */
   'unresolved-label',
   /** Data refused a request; `refusal` carries its status and code, and the message is its sentence. */

@@ -72,6 +72,22 @@ describe('resolveReport', () => {
     })
   })
 
+  // A stored PDF is traced to what collected its data only if the manifest
+  // kept beside it says so (0041): the form, the exact version of it, and
+  // the submission. Copied as the check held it, so that a host changing
+  // its object afterwards does not change what the manifest says, in a
+  // final render as in a preview.
+  test('names where its data came from, when the data says', () => {
+    const source = { provider: 'formancy-form', submissions: [{ id: 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380', form: 'site-visit', formHash: '767a65b36d4c02adf432d91ccdf7f8f285eebdbfc2987fb08fecd846b721dc42' }] }
+    const data = { ...sampleData(), source } as ReportData
+    for (const mode of ['final', 'preview'] as const) {
+      const { manifest } = resolved(sampleReport(), data, { ...FINAL, mode })
+      expect(manifest.source).toEqual({ provider: 'formancy-form', submissions: [{ id: 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380', form: 'site-visit', formHash: '767a65b36d4c02adf432d91ccdf7f8f285eebdbfc2987fb08fecd846b721dc42' }] })
+      expect(manifest.source).not.toBe(source)
+    }
+    expect(Object.hasOwn(resolved().manifest, 'source')).toBe(false)
+  })
+
   // A report is untrusted input whatever its type says: a component kind
   // this version does not know is refused whole, never skipped.
   test('refuses a report the validator refuses, with its errors', () => {

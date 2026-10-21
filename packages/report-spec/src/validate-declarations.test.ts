@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { MAX_AGGREGATES, MAX_DATASET_FIELDS, MAX_FOOTER_ROWS, MAX_STYLE_RULES, MAX_STYLES } from './limits.js'
+import { isFormId, isSchemaHash } from './syntax.js'
 import { edited, getAt, refusals, removeAt, setAt } from './test-support.js'
 
 describe('parameters', () => {
@@ -136,6 +137,22 @@ describe('provenance', () => {
     expect(refusals(provenance('-visit', 'a'.repeat(64)))).toEqual(['invalid-id /provenance/form'])
     expect(refusals(provenance('visit', 'A'.repeat(64)))).toEqual(['invalid-digest /provenance/formHash'])
     expect(refusals(provenance('visit', `sha256:${'a'.repeat(64)}`))).toEqual(['invalid-digest /provenance/formHash'])
+  })
+
+  // The runtime holds a data source's form id and version hash by
+  // `isFormId` and `isSchemaHash` (0041). Were they another reading than
+  // the provenance's, a report generated from a form would name it by one
+  // rule and its data by another, and a render of its own submissions
+  // could be refused.
+  test('isFormId and isSchemaHash accept what a provenance accepts, and nothing else', () => {
+    const hash = 'a'.repeat(64)
+    for (const form of ['site-visit.v2', 'A', '0_x', 'a'.repeat(128), 'a'.repeat(129), '-visit', 'site visit', 'visit/2', '', 'visité']) {
+      expect(isFormId(form), form).toBe(refusals(edited((r) => setAt(r, '/provenance', { kind: 'form', form, formHash: hash }))).length === 0)
+    }
+    for (const formHash of [hash, '0123456789abcdef'.repeat(4), 'A'.repeat(64), 'a'.repeat(63), 'a'.repeat(65), `sha256:${hash}`, 'g'.repeat(64)]) {
+      expect(isSchemaHash(formHash), formHash).toBe(refusals(edited((r) => setAt(r, '/provenance', { kind: 'form', form: 'visit', formHash }))).length === 0)
+    }
+    expect([isFormId(7), isSchemaHash(null)]).toEqual([false, false])
   })
 })
 
