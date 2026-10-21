@@ -9,7 +9,11 @@
   carries an e-invoice it describes the step before that one; and by
   [0032](0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md),
   under which the e-invoice samples print the firm's mark, the XML they
-  write unchanged
+  write unchanged; and by
+  [0037](0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md),
+  under which an e-invoice may name the parties' electronic addresses,
+  the seller's contact and its business process, none of them needed, and
+  a fourth sample and a control judged by both validators
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

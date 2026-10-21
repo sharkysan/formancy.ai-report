@@ -6,8 +6,8 @@
  * apart because it changes when the e-invoice does -- a term, a profile, a
  * format -- and the rest of consume.ts does not.
  */
-import { FACTUR_X, FACTUR_X_PROFILES, REPORT_SPEC_VERSION, validateReport } from '@formancy/report-spec'
-import type { FacturXInvoice, ReportDefinition, ReportError, ReportValidation, TableComponent, TextComponent } from '@formancy/report-spec'
+import { ADDRESS_SCHEMES, FACTUR_X, FACTUR_X_PROFILES, REPORT_SPEC_VERSION, validateReport, XRECHNUNG_RULES } from '@formancy/report-spec'
+import type { AddressScheme, FacturXInvoice, ReportDefinition, ReportError, ReportValidation, SellerContact, TableComponent, TextComponent } from '@formancy/report-spec'
 import { resolveReport } from '@formancy/report-runtime'
 import { E_INVOICE_PREVIEW_LABEL, FACTUR_X as RUNTIME_FACTUR_X, FACTUR_X_PROFILES as RUNTIME_FACTUR_X_PROFILES } from '@formancy/report-runtime'
 import type { EInvoiceFile, Paragraph, ReportData, Resolution } from '@formancy/report-runtime'
@@ -134,6 +134,36 @@ export async function drawnEInvoice(page: ReportDefinition['page']): Promise<str
   if (stuck.valid || !stuck.errors.some((error: ReportError) => error.code === 'invalid-e-invoice' && error.path.startsWith('/eInvoice/seller/address/country') && error.message.includes('BR-CL-14') && !error.message.includes('UK'))) {
     throw new Error(`a seller's country outside the list was not refused by its rule: ${stuck.valid ? 'valid' : stuck.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
   }
+  // The terms past 0027's (0037), none of which the invoice above needs: each
+  // written where it is given, an address under its scheme, and a contact's
+  // telephone number held to XRechnung's shape, named by its rule and never
+  // by what it says.
+  const gln: AddressScheme = '0088'
+  if (!ADDRESS_SCHEMES.includes(gln)) throw new Error(`report-spec's address schemes lack the GLN's: ${ADDRESS_SCHEMES.join(', ')}`)
+  const contact: SellerContact = { name: text('Erika Mustermann'), telephone: text('+49 221 4710 820'), email: text('e.mustermann@formancy-haustechnik.example') }
+  const addressedBlock: FacturXInvoice = {
+    ...invoiceBlock,
+    businessProcess: text('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
+    seller: { ...invoiceBlock.seller, electronicAddress: { id: text('rechnung@formancy-haustechnik.example'), scheme: 'EM' }, contact },
+    buyer: { ...invoiceBlock.buyer, electronicAddress: { id: text('4012345000009'), scheme: gln } },
+  }
+  const addressed: Resolution = resolveReport({ ...invoiced, eInvoice: addressedBlock }, invoiceData, { mode: 'final', creationDate: '2026-10-16T08:00:00Z' })
+  if (!addressed.ok) throw new Error(`the e-invoice with every term past 0027's did not resolve: ${addressed.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
+  const addressedXml = addressed.document.eInvoice?.xml ?? ''
+  const terms = [
+    '<ram:ID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</ram:ID>',
+    '<ram:URIID schemeID="EM">rechnung@formancy-haustechnik.example</ram:URIID>',
+    '<ram:PersonName>Erika Mustermann</ram:PersonName>',
+    '<ram:CompleteNumber>+49 221 4710 820</ram:CompleteNumber>',
+    '<ram:URIID>e.mustermann@formancy-haustechnik.example</ram:URIID>',
+    '<ram:URIID schemeID="0088">4012345000009</ram:URIID>',
+  ]
+  const unwritten = terms.filter((term) => !addressedXml.includes(term))
+  if (unwritten.length > 0) throw new Error(`the e-invoice's XML does not hold the terms past 0027's it was given: ${unwritten.join(', ')}`)
+  const unreachable: ReportValidation = validateReport({ ...invoiced, eInvoice: { ...addressedBlock, seller: { ...addressedBlock.seller, contact: { ...contact, telephone: text('Zentrale') } } } })
+  if (unreachable.valid || !unreachable.errors.some((error: ReportError) => error.path === '/eInvoice/seller/contact/telephone' && error.message.includes(`(XRechnung's ${XRECHNUNG_RULES[0]})`) && !error.message.includes('Zentrale'))) {
+    throw new Error(`a contact's telephone number of no digits was not refused by XRechnung's rule: ${unreachable.valid ? 'valid' : unreachable.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
+  }
   const invoicedResolution: Resolution = resolveReport(invoiced, invoiceData, { mode: 'final', creationDate: '2026-10-16T08:00:00Z' })
   if (!invoicedResolution.ok) throw new Error(`the e-invoice did not resolve: ${invoicedResolution.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
   const file: EInvoiceFile | undefined = invoicedResolution.document.eInvoice
@@ -197,5 +227,5 @@ export async function drawnEInvoice(page: ReportDefinition['page']): Promise<str
   if (new TextDecoder().decode(invoicePreview.subarray(0, 5)) !== '%PDF-' || previewEmbedding.associated.length !== 0 || previewEmbedding.names.length !== 0 || previewEmbedding.xmp?.includes('pdfaid:') === true) {
     throw new Error(`the preview of the e-invoice did not render to a PDF that embeds nothing: ${JSON.stringify({ ...previewEmbedding, associated: previewEmbedding.associated.length })}`)
   }
-  return `an e-invoice validated, a country outside its list was refused by its rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing`
+  return `an e-invoice validated, a country outside its list was refused by its rule, its business process, electronic addresses and seller's contact were written where given and a telephone number of no digits refused by XRechnung's rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing`
 }

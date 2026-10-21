@@ -6,6 +6,7 @@ import { reportHash } from './hash.js'
 import { MAX_VAT_CATEGORIES } from './limits.js'
 import { editable, eInvoiceReport, getAt, removeAt, richReport, setAt } from './test-support.js'
 import { validateReport } from './validate.js'
+import { XRECHNUNG_RULES } from './xrechnung.js'
 
 const EI = '/eInvoice'
 
@@ -85,11 +86,14 @@ describe('an e-invoice', () => {
     for (const key of ['profile', 'type', 'currency', 'number', 'issued', 'seller', 'buyer', 'vat', 'lines']) {
       expect(refusals(invoice({ [`/${key}`]: undefined })), key).toEqual([`missing-property ${EI}/${key}`])
     }
-    for (const key of ['buyerReference', 'payment', 'due', 'terms', 'paid']) expect(refusals(invoice({ [`/${key}`]: undefined })), key).toEqual(key === 'payment' ? [`invalid-e-invoice ${EPC}/iban`] : [])
+    for (const key of ['buyerReference', 'businessProcess', 'payment', 'due', 'terms', 'paid']) expect(refusals(invoice({ [`/${key}`]: undefined })), key).toEqual(key === 'payment' ? [`invalid-e-invoice ${EPC}/iban`] : [])
     expect(refusals(invoice({ '/delivered': undefined }))).toEqual([])
     expect(refusals(invoice({ '/period': undefined }))).toEqual([])
     expect(refusals(invoice({ '/allowances': [] }))).toEqual([`unknown-property ${EI}/allowances`])
-    expect(refusals(invoice({ '/seller/electronicAddress': literal('x') }))).toEqual([`unknown-property ${EI}/seller/electronicAddress`])
+    // The buyer's contact (BG-9), and an address's or a contact's terms past BT-34, BT-49 and BT-41 to BT-43, are not written.
+    expect(refusals(invoice({ '/buyer/contact': { name: literal('x') } }))).toEqual([`unknown-property ${EI}/buyer/contact`])
+    expect(refusals(invoice({ '/seller/contact/department': literal('x') }))).toEqual([`unknown-property ${EI}/seller/contact/department`])
+    expect(refusals(invoice({ '/buyer/electronicAddress/schemeId': 'EM' }))).toEqual([`unknown-property ${EI}/buyer/electronicAddress/schemeId`])
     expect(refusals(invoice({ '/buyer/taxNumber': literal('x') }))).toEqual([`unknown-property ${EI}/buyer/taxNumber`])
     expect(refusals(invoice({ '/payment/card': literal('x') }))).toEqual([`unknown-property ${EI}/payment/card`])
     for (const key of ['line1', 'postalCode', 'city', 'country']) {
@@ -102,7 +106,7 @@ describe('an e-invoice', () => {
   // with none would be a second spelling of its absence, with a hash of
   // its own; a required one with none would leave EN 16931's term empty.
   test('has one run at least in every text it holds', () => {
-    for (const pointer of ['/number', '/seller/name', '/seller/address/line2', '/buyer/legalId/id', '/buyerReference', '/terms', '/vat/2/reason', '/payment/iban']) {
+    for (const pointer of ['/number', '/businessProcess', '/seller/name', '/seller/address/line2', '/seller/electronicAddress/id', '/seller/contact/name', '/seller/contact/telephone', '/seller/contact/email', '/buyer/legalId/id', '/buyer/electronicAddress/id', '/buyerReference', '/terms', '/vat/2/reason', '/payment/iban']) {
       expect(refusals(invoice({ [pointer]: [] })), pointer).toEqual([`too-few ${EI}${pointer}`])
     }
   })
@@ -223,6 +227,73 @@ describe('a literal text of the e-invoice', () => {
     expect(refusals(document)).toEqual([`invalid-e-invoice ${EI}/buyer/legalId/scheme`])
     expect(messages(document)[`${EI}/buyer/legalId/scheme`]).toBe("the scheme of the buyer's legal registration identifier (BT-47-1) is not a scheme of those this release takes, a list narrower than ISO 6523's (BR-CL-11)")
     expect(refusals(invoice({ '/seller/legalId/scheme': 88 }))).toEqual([`wrong-type ${EI}/seller/legalId/scheme`])
+  })
+})
+
+describe("the electronic addresses, the seller's contact and the business process", () => {
+  // None of them is needed in a German B2B invoice: EN 16931 asks for
+  // none, and neither the UStG nor FeRD's EN 16931 profile does. XRechnung
+  // asks for all of them, which is its own kind's to say. An invoice that
+  // gives none is the e-invoice it was before they could be given.
+  test('may each be left out, and each is read back whole where it is given', () => {
+    expect(refusals(invoice({ '/businessProcess': undefined, '/seller/electronicAddress': undefined, '/seller/contact': undefined, '/buyer/electronicAddress': undefined }))).toEqual([])
+    const outcome = validateReport(eInvoiceReport())
+    const read = outcome.valid ? outcome.report.eInvoice : undefined
+    expect([read?.businessProcess, read?.seller.electronicAddress, read?.seller.contact, read?.buyer.electronicAddress]).toEqual([
+      literal('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
+      { id: literal('rechnung@muster-soehne.example'), scheme: 'EM' },
+      { name: literal('Erika Mustermann'), telephone: literal('+49 221 4710 123'), email: literal('erika.mustermann@muster-soehne.example') },
+      { id: [{ kind: 'parameter', parameter: 'region' }], scheme: '0088' },
+    ])
+  })
+
+  // An address names its scheme (BR-62, BR-63), and a contact gives its
+  // name, its telephone and its email together: XRechnung asks for all
+  // three (BR-DE-5, -6, -7), and one shape for both kinds lets a contact
+  // written for one be the other's.
+  test('give an address its scheme and a contact its three terms', () => {
+    for (const pointer of ['/seller/electronicAddress/id', '/seller/electronicAddress/scheme', '/buyer/electronicAddress/scheme', '/seller/contact/name', '/seller/contact/telephone', '/seller/contact/email']) {
+      expect(refusals(invoice({ [pointer]: undefined })), pointer).toEqual([`missing-property ${EI}${pointer}`])
+    }
+  })
+
+  // A scheme is a code the template writes, of the CEF's EAS list as this
+  // release narrows it (BR-CL-25): one outside it makes a file every
+  // validator refuses, and is refused here, by the term and the rule.
+  test('give an address in a scheme of the list', () => {
+    expect(refusals(invoice({ '/seller/electronicAddress/scheme': '9930', '/buyer/electronicAddress/scheme': '0204' }))).toEqual([])
+    const document = invoice({ '/seller/electronicAddress/scheme': '0060', '/buyer/electronicAddress/scheme': 'em' })
+    expect(refusals(document)).toEqual([`invalid-e-invoice ${EI}/seller/electronicAddress/scheme`, `invalid-e-invoice ${EI}/buyer/electronicAddress/scheme`])
+    expect(messages(document)).toEqual({
+      [`${EI}/seller/electronicAddress/scheme`]: "the scheme of the seller's electronic address (BT-34-1) is not an electronic address scheme of those this release takes, a list narrower than the CEF's EAS code list (BR-CL-25)",
+      [`${EI}/buyer/electronicAddress/scheme`]: "the scheme of the buyer's electronic address (BT-49-1) is not an electronic address scheme of those this release takes, a list narrower than the CEF's EAS code list (BR-CL-25)",
+    })
+    expect(refusals(invoice({ '/seller/electronicAddress/scheme': 88 }))).toEqual([`wrong-type ${EI}/seller/electronicAddress/scheme`])
+  })
+
+  // A literal telephone number or email address is held where it is
+  // written to the shape XRechnung's KoSIT warns of, so that no file the
+  // template writes earns that warning; the message names the term and
+  // the rule, never the number or the address, which are a person's.
+  test("hold a literal contact to XRechnung's shapes, naming the term and the rule and never the text", () => {
+    const said = messages(invoice({ '/seller/contact/telephone': literal('Durchwahl 82'), '/seller/contact/email': literal('erika.mustermann'), '/businessProcess': literal('urn:a  b') }))
+    expect(said).toEqual({
+      [`${EI}/businessProcess`]: 'the business process (BT-23) holds white space the XML would not keep: its schema types the term as a token, read with each tab and line break as a space, two spaces as one, and none at either end',
+      [`${EI}/seller/contact/telephone`]: "the seller's contact telephone number (BT-42) has fewer than three digits, which a telephone number has at least (XRechnung's BR-DE-27)",
+      [`${EI}/seller/contact/email`]: "the seller's contact email address (BT-43) is not an email address of the shape XRechnung reads one in: no white space, one @ with something before it, and after it two names at least, each joined to the next by one dot (XRechnung's BR-DE-28)",
+    })
+    for (const message of Object.values(said)) expect(message).not.toMatch(/Durchwahl|mustermann/)
+  })
+
+  // An address or a contact written as a string is a person's address or
+  // name, refused as the wrong type without the quote; one read from the
+  // data is the render's to hold.
+  test('are refused unquoted written as a string, and left to the render read from data', () => {
+    const document = invoice({ '/seller/contact': 'Erika Mustermann, 0221 4710 123', '/buyer/electronicAddress': 'einkauf@gasthaus.example' })
+    expect(refusals(document).sort()).toEqual([`wrong-type ${EI}/buyer/electronicAddress`, `wrong-type ${EI}/seller/contact`])
+    for (const message of Object.values(messages(document))) expect(message).not.toMatch(/Mustermann|4710|gasthaus/)
+    const region = [{ kind: 'parameter', parameter: 'region' }]
+    expect(refusals(invoice({ '/seller/contact/telephone': region, '/seller/contact/email': region, '/seller/electronicAddress/id': region, '/businessProcess': region }))).toEqual([])
   })
 })
 
@@ -495,11 +566,14 @@ describe('the title of an e-invoice', () => {
 })
 
 describe('the rules the validator names', () => {
-  // Every rule id a refusal above said is one the gate holds to a fatal
-  // rule of the pinned schematron: an id said here that it does not list
-  // would escape the gate. Run last, over every message heard.
-  test('are ids of the list the gate reads', () => {
+  // Every rule id a refusal above said is one the gate holds to a pinned
+  // schematron: CEN's to a fatal rule of CEN's and, but for a BR-CL id,
+  // FeRD's, and XRechnung's to a rule of XRechnung's of whatever flag,
+  // since BR-DE-27 and BR-DE-28 only warn. An id said here that it does
+  // not list would escape the gate. Run last, over every message heard.
+  test('are ids of the lists the gate reads', () => {
     expect(heard.length).toBeGreaterThan(10)
-    for (const message of heard) for (const [id] of message.matchAll(/BR-[A-Z0-9]+(?:-[0-9]+)?/g)) expect(EN16931_RULES, `${id} in "${message}"`).toContain(id)
+    const listed: readonly string[] = [...EN16931_RULES, ...XRECHNUNG_RULES]
+    for (const message of heard) for (const [id] of message.matchAll(/BR-[A-Z0-9]+(?:-[0-9]+)?/g)) expect(listed, `${id} in "${message}"`).toContain(id)
   })
 })

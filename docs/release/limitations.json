@@ -731,7 +731,7 @@
       "none": "It decides how the repository documents its architecture and what holds those documents in pnpm test:repo; its costs fall on a contributor's pull request, and nothing in a published package, a release or the Studio changes with it."
     },
     "0027": {
-      "reviewed": "sha256:455ee2ddada37418b8b821391b3c168ef3b99c5905546d9688f697c2e2d1b97a",
+      "reviewed": "sha256:70b5c988b9df2f1f8d509b7e7fac14218bbc75d02557a41459814e09bdcaa17a",
       "limitations": [
         {
           "area": "format",
@@ -1177,7 +1177,7 @@
         },
         {
           "area": "testing",
-          "says": "An e-invoice's page is held to the XML its PDF embeds for the corpus's three samples alone, and only those samples' XML, their PDFs and variants that carry the first sample's XML on the starters' pages and on a page of every image kind go through Mustang, KoSIT and veraPDF, so a customer's template is held by the rules and by the check that each total is printed.",
+          "says": "An e-invoice's page is held to the XML its PDF embeds for the corpus's samples alone, and only those samples' XML, their PDFs and variants that carry the first sample's XML on the starters' pages and on a page of every image kind go through Mustang, KoSIT and veraPDF, so a customer's template is held by the rules and by the check that each total is printed.",
           "heldBy": "packages/report-render-pdf/src/e-invoice-samples.test.ts"
         },
         {
@@ -1345,6 +1345,54 @@
           "area": "release",
           "says": "report-render-pdf declares PDFKit at exactly 0.19.1 and imports nothing of it, so that an install gives pdfmake that release. The install gate, which installs with npm into hosts that hold no PDFKit of their own, holds that pdfmake loads it; under pnpm or Yarn, or beside a host's own PDFKit, which copy pdfmake loads was not measured, and a host can hold it with its own overrides. A PDFKit release that fixed the image order would reach a host only with a release of the renderer that moved the pin.",
           "heldBy": "packages/report-render-pdf/src/pdfkit-pin.test.ts"
+        }
+      ]
+    },
+    "0037": {
+      "reviewed": "sha256:0e5535b930cdf9815ba0bbb951b4546c9f308ed4ba60b6800aebc0f0dbd103f2",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A report that names an e-invoice's business process, an electronic address or the seller's contact is refused whole by 0.2.0, as `unknown-property`, so a report saved with one opens only in a release that has them."
+        },
+        {
+          "area": "format",
+          "says": "An e-invoice's seller contact gives a name, a telephone number and an email address together or is left out, so a seller with no telephone number to give names no contact, though EN 16931 allows a contact of an email address alone.",
+          "heldBy": "packages/report-spec/src/validate-e-invoice.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A final render refuses a seller contact whose data gives one or two of its three terms, at each term it lacks, rather than write a contact of what it has.",
+          "heldBy": "packages/report-runtime/src/e-invoice-terms.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A contact's telephone number of fewer than three ASCII digits, or an email address of another shape than XRechnung's expression, is refused in every e-invoice, where KoSIT only warns of it in XRechnung's scenario and no validator of the EN 16931 profile refuses it.",
+          "heldBy": "packages/report-spec/src/en16931.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An electronic address is given in one of five schemes, an email address, the Leitweg-ID, France's addressing scheme, a German VAT identifier or a GLN, so an address under D-U-N-S or another code of the CEF's list, which held 104 in CEN's 1.3.16 schematron on 20 October 2026, is refused, and nothing checks that an address's value is of its scheme's form, a GLN's check digit among it.",
+          "heldBy": "packages/report-spec/src/en16931.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A seller's contact point is written as a person's name, never as a department's.",
+          "heldBy": "packages/report-runtime/src/cii.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "The buyer's contact is not written: a report that names one is refused as `unknown-property`.",
+          "heldBy": "packages/report-spec/src/validate-e-invoice.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "That KoSIT raises no warning of a contact's telephone number or email address in a file report-spec takes rests on report-spec's tests and the e-invoice gate's holding of XRechnung's expressions and the tests that read them: no file the gate judges matches KoSIT's XRechnung scenario, and no sample's page prints the business process, an electronic address or the contact.",
+          "heldBy": "packages/report-spec/src/xrechnung.test.ts"
+        },
+        {
+          "area": "licence",
+          "says": "report-spec's `xrechnung.ts` holds two expressions copied as strings from KoSIT's XRechnung schematron, whose licence was not read; whether copying them is acceptable under 0006 is the rightsholder's question."
         }
       ]
     }

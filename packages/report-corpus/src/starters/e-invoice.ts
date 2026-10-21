@@ -34,14 +34,21 @@ import type { Starter } from './starter.js'
  * - **exempt and paid**, an exempt line (E) beside standard-rated lines, a
  *   paid amount, so the amount due is not the total, and a discount
  *   written as a line of a negative quantity at a positive price, since
- *   BR-27 refuses a negative price and the format has no allowances.
+ *   BR-27 refuses a negative price and the format has no allowances;
+ * - **addressed**, every term past 0027's (0037): the business process
+ *   (BT-23), the firm's electronic address (BT-34) by email and the
+ *   buyer's (BT-49) by its GLN, read from the data, and the firm's contact
+ *   (BG-6). A German B2B invoice needs none of them; XRechnung needs them
+ *   all, and the gate judges them here first.
  *
- * One variant is not data alone: the payment means is a code of the
+ * Two variants are not data alone: the payment means is a code of the
  * definition (BT-81), not a run, so the reverse-charge variant's report is
  * the sample's with `30` in its place and an id of its own, since another
  * definition under one id would be one report to a host that keys reports
- * by it (0024). The test holds the two to differ in those two values and
- * nothing else.
+ * by it (0024); and the addressed variant's report is the sample's with
+ * the terms past 0027's, the header field its buyer's address is read
+ * from, and an id of its own. The test holds each to differ from the
+ * sample in those and nothing else.
  *
  * What the law asks, as read on gesetze-im-internet.de on 17 October 2026
  * and no further: firewood ("Brennholz in Form von ... Scheiten, Zweigen")
@@ -60,7 +67,17 @@ import type { Starter } from './starter.js'
  * `euro-invoice-countries.ts` says. The buyer's VAT identifier, DE271828181, ends in a 1
  * where ISO 7064's MOD 11,10 gives the eight digits before it a 0, so that
  * no business has it; each creditor reference is ISO 11649's of the
- * invoice's number, its check digits computed as the IBAN's are.
+ * invoice's number, its check digits computed as the IBAN's are. The
+ * addressed variant's identifiers are the standard-setters' own examples,
+ * read on 20 October 2026: the firm's telephone number one of the
+ * Bundesnetzagentur's "Drama Numbers" for Köln, 0221 4710 000 to 999,
+ * which "können genehmigungsfrei in Medien gezeigt, abgedruckt und
+ * gesprochen verwendet werden"; its email addresses under `.example`, a
+ * name RFC 2606 reserves so that it reaches nobody; the buyer's GLN GS1
+ * Germany's worked example, 4012345 00000 9 ("Automatische
+ * Identifizierungstechnik AIT in der Bundeswehr"); its contact the name
+ * the German identity card's specimen bears; and its business process
+ * Peppol BIS Billing 3.0's.
  */
 
 type Component = ReportDefinition['regions']['body'][number]
@@ -189,6 +206,29 @@ const INVOICE: EInvoice = {
   paid: { cel: 'header.paid' },
 }
 
+type Dataset = NonNullable<ReportDefinition['datasets']['header']>
+
+/** The invoice's header: its number and dates, the buyer, and what was paid. */
+const HEADER: Dataset = {
+  id: 'invoice',
+  fields: [
+    { id: 'number', type: 'string', label: 'Rechnungsnummer', nullable: false },
+    { id: 'issuedOn', type: 'date', label: 'Rechnungsdatum', nullable: false },
+    { id: 'servedOn', type: 'date', label: 'Leistungsdatum', nullable: true },
+    { id: 'periodStart', type: 'date', label: 'Leistungszeitraum von', nullable: true },
+    { id: 'periodEnd', type: 'date', label: 'Leistungszeitraum bis', nullable: true },
+    { id: 'dueOn', type: 'date', label: 'Zahlbar bis', nullable: false },
+    { id: 'customer', type: 'string', label: 'Kunde', nullable: false },
+    { id: 'street', type: 'string', label: 'Straße', nullable: false },
+    { id: 'buildingNumber', type: 'string', label: 'Hausnummer', nullable: false },
+    { id: 'postcode', type: 'string', label: 'PLZ', nullable: false },
+    { id: 'city', type: 'string', label: 'Ort', nullable: false },
+    { id: 'customerVatId', type: 'string', label: 'USt-IdNr. des Kunden', nullable: true },
+    { id: 'reference', type: 'string', label: 'Referenz', nullable: false },
+    { id: 'paid', type: 'decimal', label: 'Bereits gezahlt', nullable: true, scale: 2 },
+  ],
+}
+
 const REPORT: ReportDefinition = {
   reportSpecVersion: '0',
   id: 'e-invoice',
@@ -197,25 +237,7 @@ const REPORT: ReportDefinition = {
   page: EURO_PAGE,
   styles: [...EURO_STYLES, { id: 'figure', align: 'right' }, { id: 'grand-figure', size: 10.5, bold: true, align: 'right' }],
   datasets: {
-    header: {
-      id: 'invoice',
-      fields: [
-        { id: 'number', type: 'string', label: 'Rechnungsnummer', nullable: false },
-        { id: 'issuedOn', type: 'date', label: 'Rechnungsdatum', nullable: false },
-        { id: 'servedOn', type: 'date', label: 'Leistungsdatum', nullable: true },
-        { id: 'periodStart', type: 'date', label: 'Leistungszeitraum von', nullable: true },
-        { id: 'periodEnd', type: 'date', label: 'Leistungszeitraum bis', nullable: true },
-        { id: 'dueOn', type: 'date', label: 'Zahlbar bis', nullable: false },
-        { id: 'customer', type: 'string', label: 'Kunde', nullable: false },
-        { id: 'street', type: 'string', label: 'Straße', nullable: false },
-        { id: 'buildingNumber', type: 'string', label: 'Hausnummer', nullable: false },
-        { id: 'postcode', type: 'string', label: 'PLZ', nullable: false },
-        { id: 'city', type: 'string', label: 'Ort', nullable: false },
-        { id: 'customerVatId', type: 'string', label: 'USt-IdNr. des Kunden', nullable: true },
-        { id: 'reference', type: 'string', label: 'Referenz', nullable: false },
-        { id: 'paid', type: 'decimal', label: 'Bereits gezahlt', nullable: true, scale: 2 },
-      ],
-    },
+    header: HEADER,
     detail: {
       id: 'invoice-lines',
       fields: [
@@ -346,8 +368,42 @@ export function exemptPaidData(): ReportData {
   )
 }
 
+/** Variant (d): the restaurant's boiler serviced again and its firewood delivered, to its invoicing address, the buyer's GLN. */
+export function addressedData(): ReportData {
+  return data(
+    { number: 'RE-2026-0823', issuedOn: '2026-10-19', servedOn: '2026-10-15', dueOn: '2026-11-02', customer: 'Gasthaus Zur Linde GmbH', street: 'Venloer Straße', buildingNumber: '210', postcode: '50823', city: 'Köln', customerGln: '4012345000009', reference: 'RF50 2026 0823' },
+    lines(3401, [
+      ['Wartung Gas-Brennwertkessel', 'Pausch.', '1.00', '245.00', 'standard'],
+      ['Arbeitszeit Techniker', 'h', '1.50', '76.00', 'standard'],
+      ['Kaminholz Buche, ofenfertig', 'kg', '200.00', '0.38', 'reduced'],
+      ['Anfahrt Köln', 'Pausch.', '1.00', '39.00', 'standard'],
+    ]),
+  )
+}
+
 /** The sample's report paid by credit transfer (30), under an id of its own. */
 const REVERSE_CHARGE_REPORT: ReportDefinition = { ...REPORT, id: 'e-invoice-reverse-charge', eInvoice: { ...INVOICE, payment: { ...PAYMENT, means: '30' } } }
+
+/** The firm's contact (BG-6): its accountant, at one of the Bundesnetzagentur's numbers for Köln, at an address under `.example`. */
+const CONTACT: NonNullable<EInvoice['seller']['contact']> = { name: text('Erika Mustermann'), telephone: text('+49 221 4710 820'), email: text('e.mustermann@formancy-haustechnik.example') }
+
+/**
+ * The sample's report with every term past 0027's (0037), under an id of
+ * its own: Peppol BIS Billing 3.0's business process, the firm's invoice
+ * inbox by email (EM), its contact, and the buyer's GLN (0088), read from
+ * a header field the other variants do not have.
+ */
+const ADDRESSED_REPORT: ReportDefinition = {
+  ...REPORT,
+  id: 'e-invoice-addressed',
+  datasets: { ...REPORT.datasets, header: { ...HEADER, fields: [...HEADER.fields, { id: 'customerGln', type: 'string', label: 'GLN des Kunden', nullable: false }] } },
+  eInvoice: {
+    ...INVOICE,
+    businessProcess: text('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
+    seller: { ...INVOICE.seller, electronicAddress: { id: text('rechnung@formancy-haustechnik.example'), scheme: 'EM' }, contact: CONTACT },
+    buyer: { ...INVOICE.buyer, electronicAddress: { id: [field('customerGln')], scheme: '0088' } },
+  },
+}
 
 export const E_INVOICE: Starter = {
   id: 'e-invoice',
@@ -376,5 +432,14 @@ export const E_INVOICE_EXEMPT_PAID: Starter = {
   parameters: {},
 }
 
-/** The e-invoice and its two variants: samples, which the Studio's picker does not offer. */
-export const E_INVOICE_SAMPLES: readonly Starter[] = [E_INVOICE, E_INVOICE_REVERSE_CHARGE, E_INVOICE_EXEMPT_PAID]
+export const E_INVOICE_ADDRESSED: Starter = {
+  id: 'e-invoice-addressed',
+  title: 'Rechnung (ZUGFeRD)',
+  proves: 'every term past 0027’s, none of which a German B2B invoice needs: the business process, the seller’s electronic address by email and the buyer’s by its GLN, and the seller’s contact',
+  report: ADDRESSED_REPORT,
+  data: addressedData(),
+  parameters: {},
+}
+
+/** The e-invoice and its three variants: samples, which the Studio's picker does not offer. */
+export const E_INVOICE_SAMPLES: readonly Starter[] = [E_INVOICE, E_INVOICE_REVERSE_CHARGE, E_INVOICE_EXEMPT_PAID, E_INVOICE_ADDRESSED]

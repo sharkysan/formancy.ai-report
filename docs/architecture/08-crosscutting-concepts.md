@@ -62,7 +62,24 @@ prefixes and schemes are lists someone chose (`UNIT_CODES`,
 to CEN's by the e-invoice gate. A code outside them is refused, though CEN
 might take it, because a check of the code's shape would pass `UK` or
 `Stk`, which every validator refuses, and only after the render was called
-final (0027).
+final (0027). An electronic address's scheme is one of `ADDRESS_SCHEMES`,
+five codes of the CEF's list, held to BR-CL-25's list and FeRD's the same
+way
+([0037](../decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md)).
+
+**A shape another validator warns of is its own expression.** Where
+report-spec holds a text to a shape a validator only warns of -- a
+contact's telephone number and email address, XRechnung's BR-DE-27 and
+BR-DE-28 -- the shape is the validator's expression as its schematron
+writes it, read as XPath reads it, and the e-invoice gate holds the string,
+the test that reads it and the rule's context to that schematron on every
+run; a shape of its own would refuse or take what the validator does
+otherwise, and nobody would see the two part. Where the expression run as
+written would take time that grows with the square of a text's length, as
+BR-DE-27's does, report-spec runs what it asks, a count of digits, and a
+test holds the two equal on every short text. That the validator takes
+the file is not judged until a file is one it reads in that scenario
+(0037).
 
 **A message never quotes a value.** A refusal names the field, the rule and
 the place, never the text that broke it: the data and the bill are the

@@ -10,6 +10,37 @@ later.
 
 ## Unreleased
 
+**An e-invoice may name the parties' electronic addresses, the seller's
+contact and its business process**
+([0037](docs/decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md)).
+A buyer that routes invoices by an address -- an email inbox, a GLN, a
+German VAT identifier, France's directory, a public buyer's Leitweg-ID --
+can now have it named in the XML, and XRechnung, which a German public
+buyer asks for and which comes next, requires all four, so they are in
+the format first, for either kind. None is needed for a German business
+invoice, and an invoice that names none writes the same XML as before,
+byte for byte. An address's scheme is one of five codes of the CEF's
+list, refused otherwise (BR-CL-25). A contact gives its name, telephone
+number and email address together, and a final render refuses one whose
+data gives only some of them, rather than write a contact an XRechnung
+would be refused for. The contact's telephone number and email address
+are held to the shapes KoSIT's XRechnung scenario warns of, its own
+expressions, which the e-invoice gate holds, with the tests that read
+them, to its schematron; no file the gate judges is one KoSIT reads as
+an XRechnung, so that no file earns the warning rests on those tests,
+not on KoSIT. The telephone number's three digits are counted rather
+than matched by KoSIT's expression, which, run by V8, took 20.9 s on a
+text of 64,000 characters, a tenth of what a template's literal runs may
+hold, and four times as long at each doubling (measured as 0037 says).
+report-spec exports `ADDRESS_SCHEMES` and `checkAddressScheme`,
+the types `AddressScheme`, `ElectronicAddress` and `SellerContact`, and
+`XRECHNUNG_RULES` and `XRECHNUNG_PATTERNS`, the XRechnung rule ids its
+refusals name and the two expressions. A fourth e-invoice sample uses
+every new term, and Mustang, KoSIT and veraPDF accept it; its page
+prints none of them. A control with a scheme outside the list is refused
+by both validators. 0.2.0 refuses a report that uses them, as
+`unknown-property`.
+
 **report-render-pdf pins PDFKit at 0.19.1**
 ([0036](docs/decisions/0036-the-renderer-pins-pdfkit-at-the-release-0035-was-read-against-until-pdfkit-writes-images-in-the-order-it-embeds-them.md)).
 The order the renderer writes a document's images in, below, wraps three

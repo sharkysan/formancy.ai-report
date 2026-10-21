@@ -3,4 +3,4 @@
 [main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 23: Not a PDF/A-3
 [main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Fatal Error 17: XML could not be extracted
 [main] INFO org.mustangproject.validator.ZUGFeRDValidator - XML could not be extracted
-[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:invalid XML:invalid Signature:null Checksum:A1C74E7137BBDDD61310D543650C23DAC8E8B306 Profile:null Version:null Took:1376ms Errors:[17] ErrorIDs: []
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:invalid XML:invalid Signature:null Checksum:A1C74E7137BBDDD61310D543650C23DAC8E8B306 Profile:null Version:null Took:1655ms Errors:[17] ErrorIDs: []

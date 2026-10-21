@@ -5,7 +5,7 @@
  * the renderer decides none of it.
  *
  * - **Its shape.** The root `rsm:CrossIndustryInvoice` with the four
- *   namespaces of CEN/TC 434's binding; its context (BT-24), its document
+ *   namespaces of CEN/TC 434's binding; its context (BT-23, BT-24), its document
  *   (BT-1, BT-3, BT-2) and its transaction: the lines, then the
  *   agreement, the delivery and the settlement, each element in the order
  *   the profile's XSD `xs:sequence` gives it, at the path CEN's binding
@@ -123,7 +123,10 @@ export function ciiXml(invoice: CiiInvoice): string {
   const root = element(
     'rsm:CrossIndustryInvoice',
     [
-      element('rsm:ExchangedDocumentContext', [element('ram:GuidelineSpecifiedDocumentContextParameter', [leaf('ram:ID', FACTUR_X_PROFILES[invoice.profile].guideline)])]),
+      element('rsm:ExchangedDocumentContext', [
+        optional(terms.businessProcess, (process) => element('ram:BusinessProcessSpecifiedDocumentContextParameter', [leaf('ram:ID', process)])),
+        element('ram:GuidelineSpecifiedDocumentContextParameter', [leaf('ram:ID', FACTUR_X_PROFILES[invoice.profile].guideline)]),
+      ]),
       element('rsm:ExchangedDocument', [leaf('ram:ID', terms.number), leaf('ram:TypeCode', invoice.type), dateTime('ram:IssueDateTime', terms.issued)]),
       element('rsm:SupplyChainTradeTransaction', [
         // Every line's category has a breakdown: the totals are computed from these lines.

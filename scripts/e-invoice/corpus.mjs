@@ -10,10 +10,13 @@
 //   by the gate and never through an option of a published package: a
 //   schema break, a total that breaks BR-CO-14, a standard rate below 0.5
 //   that breaks BR-CO-17, a negative net price (BR-27), a unit outside
-//   BR-CL-23, and a document that is not well formed. Each must be refused
-//   by every tool for exactly what it expects of that tool, measured on 17
+//   BR-CL-23, and a document that is not well formed; and the addressed
+//   sample's, the one that writes an electronic address (0037), with its
+//   seller's address scheme outside BR-CL-25. Each must be refused by
+//   every tool for exactly what it expects of that tool, measured on 17
 //   October 2026 with Mustang 2.26.0 and KoSIT 1.6.3 on Java 17 and 25,
-//   which said the same. A control the gate
+//   which said the same, and the BR-CL-25 control on 20 October 2026 on
+//   Java 25. A control the gate
 //   accepted would mean nothing is watching what it breaks; one refused for
 //   something else as well is not the file its name says.
 //
@@ -24,7 +27,7 @@
 
 import { JUDGES } from './registers.mjs'
 
-/** The sample every control is made from: the de-DE e-invoice, at 19 % and 7 % with a delivery date. */
+/** The sample a control is made from unless it names another: the de-DE e-invoice, at 19 % and 7 % with a delivery date. */
 export const CONTROL_BASE = 'e-invoice'
 
 /** `amount`, an amount of exactly two places, as a whole number of cents, without a Number in between. */
@@ -95,7 +98,8 @@ function lowRateControl() {
 }
 
 /**
- * Each control: its file, what it breaks, the edits that break it -- each
+ * Each control: its file, the sample it is made from where it is not
+ * `CONTROL_BASE` (`base`), what it breaks, the edits that break it -- each
  * the term it changes, where it is written, and whether the sample writes
  * it once or the control changes its first -- and what each tool says.
  */
@@ -130,6 +134,13 @@ export const CONTROLS = [
     expect: { mustang: ['error 4 FX-SCH-A-000613'], kosit: ['error val-sch.1 BR-CL-23'] },
   },
   {
+    file: 'control-br-cl-25.xml',
+    base: 'e-invoice-addressed',
+    why: 'the seller’s electronic address scheme (BT-34-1) written EMAIL, the word, where the CEF’s EAS code list writes an email address EM: BR-CL-25 refuses it, and FeRD’s code list 17 does not hold it',
+    edits: [{ term: 'BT-34-1', pattern: /(<ram:URIID schemeID=")EM(">)/g, at: 'once', replace: (_, open, close) => `${open}EMAIL${close}` }],
+    expect: { mustang: ['error 4 FX-SCH-A-000582'], kosit: ['error val-sch.1 BR-CL-25'] },
+  },
+  {
     file: 'control-malformed.xml',
     why: 'the root element’s end tag removed, so the file is not well formed XML',
     edits: [{ term: 'the root', pattern: /<\/rsm:CrossIndustryInvoice>\n/g, at: 'once', replace: () => '' }],
@@ -140,11 +151,11 @@ export const CONTROLS = [
 /** What a control changes of a term the sample writes, by how the edit says it is written: once, the first of several, or every one. */
 const CHANGES = { once: 'it once', first: 'the first', all: 'every one' }
 
-/** `xml` with `edit` made, refused where the sample does not write the term as the edit expects. */
-function edited(xml, edit, control) {
+/** `xml`, the XML of the sample `base`, with `edit` made, refused where the sample does not write the term as the edit expects. */
+function edited(xml, edit, control, base) {
   const found = xml.match(edit.pattern)?.length ?? 0
   if (edit.at === 'once' ? found !== 1 : found === 0) {
-    throw new Error(`${control.file}: ${edit.term} is written ${String(found)} times in ${CONTROL_BASE}.xml, where the control changes ${CHANGES[edit.at]}`)
+    throw new Error(`${control.file}: ${edit.term} is written ${String(found)} times in ${base}.xml, where the control changes ${CHANGES[edit.at]}`)
   }
   let done = false
   return xml.replace(edit.pattern, (...match) => {
@@ -157,14 +168,15 @@ function edited(xml, edit, control) {
 /**
  * The XML corpus: one entry per sample of `samples`, `{ file, format, sample,
  * xml, expect }`, its XML as `xmlOf(sample)` gives it, then one per control,
- * `{ file, format, from, why, xml, expect }`, made from the base sample's XML.
+ * `{ file, format, from, why, xml, expect }`, made from its sample's XML.
  */
 export function corpus({ samples, xmlOf }) {
   const entries = samples.map((sample) => ({ file: `${sample.id}.xml`, format: 'xml', sample: sample.id, xml: xmlOf(sample), expect: Object.fromEntries(JUDGES.xml.map((tool) => [tool, 'accepted'])) }))
-  const base = entries.find((entry) => entry.sample === CONTROL_BASE)
-  if (base === undefined) throw new Error(`the corpus has no ${CONTROL_BASE} sample to make its controls from`)
   for (const control of CONTROLS) {
-    const xml = control.edits.reduce((text, edit) => edited(text, edit, control), base.xml)
+    const id = control.base ?? CONTROL_BASE
+    const base = entries.find((entry) => entry.sample === id)
+    if (base === undefined) throw new Error(`the corpus has no ${id} sample to make ${control.file} from`)
+    const xml = control.edits.reduce((text, edit) => edited(text, edit, control, id), base.xml)
     entries.push({ file: control.file, format: 'xml', from: base.file, why: control.why, xml, expect: structuredClone(control.expect) })
   }
   return entries

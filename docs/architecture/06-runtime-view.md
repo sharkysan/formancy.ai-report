@@ -372,6 +372,12 @@ page that leaves one out or prints it otherwise. A final render writes the
 XML or refuses; one that wrote none and recorded no reason throws, as a
 defect
 ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+The terms a German B2B invoice does not need -- the business process, the
+parties' electronic addresses, the seller's contact -- go the same way:
+read in the report's scope, held to their rules, and, where the data gives
+one as nothing, left out of the XML, an address with its scheme and a
+contact whole where it has none of its terms; a contact the data gives in
+part a final render refuses, at each term it lacks ([0037](../decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md)).
 The renderer decides none of what the file says: it embeds the runtime's
 bytes changed in nothing, under the name, relationship and conformance
 level report-spec gives them, and refuses a document whose values it does

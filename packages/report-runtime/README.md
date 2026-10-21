@@ -174,7 +174,13 @@ EN 16931 profile, and what the renderer embeds it as, `fileName`,
   BIC, a day on the calendar, a net price not below zero, a net amount of
   whole cents, never rounded, a category the invoice declares, a character
   XML can hold, and no white space a token collapses in an identifier or a
-  code the XML writes as one. An optional text that prints nothing is left out; a needed one is
+  code the XML writes as one, and a contact's telephone number and email
+  address to XRechnung's shapes. An optional text that prints nothing is
+  left out -- the business process, an electronic address with its scheme,
+  and the contact whole where it has none of its three, though a contact
+  given in part is refused at each term it lacks, since a contact gives
+  all three or none
+  ([0037](../../docs/decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md)); a needed one is
   refused by the rule that needs it; one that prints something around a
   null is refused as cut short. What only the whole says -- the seller's
   and the buyer's identifiers, the time of supply, an exempt category's

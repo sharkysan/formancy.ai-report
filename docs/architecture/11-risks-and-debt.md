@@ -242,6 +242,13 @@ rightsholder's question. Nothing checks that what an invoice states is
 right: a wrong rate, a wrong exemption reason or another seller's VAT
 identifier passes every rule
 ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+An electronic address is held to its scheme's list and to no form of its
+scheme's: an email address under a GLN's scheme, or a GLN of a wrong check
+digit, passes; the two shapes a contact is held to are copied, as
+strings, from KoSIT's XRechnung schematron, whose licence was not read;
+and the telephone number's is run as the count of digits it asks for, held
+to the expression on every short text, and by KoSIT on no file yet
+([0037](../decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md)).
 
 ### Codes nobody scanned, and bills nobody paid
 

@@ -39,6 +39,7 @@ const MARKED = [
   'e-invoice',
   'e-invoice-reverse-charge',
   'e-invoice-exempt-paid',
+  'e-invoice-addressed',
 ]
 
 /** The reports that are no firm's letter, and print no mark: a technician's visit and a register. */

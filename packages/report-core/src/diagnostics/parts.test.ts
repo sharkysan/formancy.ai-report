@@ -320,10 +320,12 @@ describe('an e-invoice', () => {
   })
 
   // Every text an e-invoice holds is read, each part of both parties among
-  // them: with an expression everywhere one may stand, the sites found are
-  // every expression the e-invoice holds, found without knowing the
-  // format. A text the walk left out would be one nobody checks.
-  test('reads every text and every expression it holds', () => {
+  // them -- their electronic addresses and the seller's contact too, and
+  // the business process (0037): with an expression everywhere one may
+  // stand, the sites found are every expression the e-invoice holds, found
+  // without knowing the format, in the order the type holds them. A text
+  // the walk left out would be one nobody checks.
+  test('reads every text and every expression it holds, in the order the type holds them', () => {
     const report = eInvoiceSample()
     const run = (at: string): Inline[] => [{ kind: 'expression', expression: { cel: `"${at}"` } }]
     const value = (at: string): Expression => ({ cel: `"${at}"` })
@@ -341,8 +343,17 @@ describe('an e-invoice', () => {
         ...invoice,
         number: run('number'),
         issued: value('issued'),
-        seller: { name: run('seller'), vatId: run('seller vat'), taxNumber: run('tax number'), legalId: { id: run('seller id'), scheme: '0088' }, address: address('seller') },
-        buyer: { name: run('buyer'), vatId: run('buyer vat'), legalId: { id: run('buyer id') }, address: address('buyer') },
+        businessProcess: run('process'),
+        seller: {
+          name: run('seller'),
+          vatId: run('seller vat'),
+          taxNumber: run('tax number'),
+          legalId: { id: run('seller id'), scheme: '0088' },
+          electronicAddress: { id: run('seller address'), scheme: 'EM' },
+          contact: { name: run('contact'), telephone: run('telephone'), email: run('email') },
+          address: address('seller'),
+        },
+        buyer: { name: run('buyer'), vatId: run('buyer vat'), legalId: { id: run('buyer id') }, electronicAddress: { id: run('buyer address'), scheme: '0088' }, address: address('buyer') },
         buyerReference: run('reference'),
         delivered: value('delivered'),
         period: { start: value('start'), end: value('end') },
@@ -357,6 +368,23 @@ describe('an e-invoice', () => {
     const found = expressionSites(everywhere).filter(({ path }) => path.startsWith('/eInvoice/'))
     expect(found.map(({ path }) => path).sort()).toEqual(celPointers(everywhere.eInvoice, '/eInvoice').sort())
     expect(found.every(({ scope, kind, componentId, term, path }) => scope === (path.startsWith('/eInvoice/lines/') ? 'row' : 'report') && kind === 'computed' && componentId === undefined && term !== undefined)).toBe(true)
+    const parts = ['line1', 'line2', 'postalCode', 'city', 'country']
+    const text = (at: string): string => `/eInvoice/${at}/0/expression/cel`
+    expect(found.map(({ path }) => path)).toEqual([
+      text('number'),
+      '/eInvoice/issued/cel',
+      text('businessProcess'),
+      ...['name', 'vatId', 'taxNumber', 'legalId/id', 'electronicAddress/id', 'contact/name', 'contact/telephone', 'contact/email', ...parts.map((part) => `address/${part}`)].map((at) => text(`seller/${at}`)),
+      ...['name', 'vatId', 'legalId/id', 'electronicAddress/id', ...parts.map((part) => `address/${part}`)].map((at) => text(`buyer/${at}`)),
+      text('buyerReference'),
+      ...['delivered', 'period/start', 'period/end'].map((at) => `/eInvoice/${at}/cel`),
+      text(`vat/${invoice.vat.length}/reason`),
+      ...['id', 'unit', 'vat'].map((at) => `/eInvoice/lines/${at}/expression/cel`),
+      ...['iban', 'bic', 'accountName', 'remittance'].map((at) => text(`payment/${at}`)),
+      '/eInvoice/due/cel',
+      text('terms'),
+      '/eInvoice/paid/cel',
+    ])
   })
 
   // An e-invoice needs no expression of its own but its issue date: one

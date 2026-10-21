@@ -49,7 +49,9 @@ export type { PdfCode } from './codes.js'
 export { readAnnotations } from './annotations.js'
 export type { PdfAnnotation } from './annotations.js'
 export {
+  addressedData,
   E_INVOICE,
+  E_INVOICE_ADDRESSED,
   E_INVOICE_EXEMPT_PAID,
   E_INVOICE_REVERSE_CHARGE,
   E_INVOICE_SAMPLES,

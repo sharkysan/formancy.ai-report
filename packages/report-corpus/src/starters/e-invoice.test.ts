@@ -4,13 +4,13 @@ import type { Block, Columns, ResolvedDocument, Table } from '@formancy/report-r
 import { describe, expect, test } from 'vitest'
 import { elementsAt, readCii, textAt, textsAt } from '../testing/cii.js'
 import type { CiiElement } from '../testing/cii.js'
-import { E_INVOICE, E_INVOICE_EXEMPT_PAID, E_INVOICE_REVERSE_CHARGE, E_INVOICE_SAMPLES, sellerAddress } from './e-invoice.js'
+import { E_INVOICE, E_INVOICE_ADDRESSED, E_INVOICE_EXEMPT_PAID, E_INVOICE_REVERSE_CHARGE, E_INVOICE_SAMPLES, sellerAddress } from './e-invoice.js'
 import { EURO_INVOICE } from './euro-invoice.js'
 import { starterImages, STARTERS } from './index.js'
 import type { Starter } from './starter.js'
 
 /**
- * The e-invoice samples: the de-DE e-invoice and its two variants, the
+ * The e-invoice samples: the de-DE e-invoice and its three variants, the
  * same template over other data. What the runtime makes of each is read
  * back here, in the document and the XML it resolves to, before any PDF:
  *
@@ -48,26 +48,30 @@ function xmlOf(sample: Starter): CiiElement {
 const samples = E_INVOICE_SAMPLES.map((sample) => [sample.id, sample] as const)
 
 describe('the e-invoice samples', () => {
-  // The sample and the two variants the e-invoice gate sees every accepted
-  // path through, all in German: a fourth, or one in another language,
-  // would claim what the PR does not (France waits), and a sample that
-  // became a starter would put an e-invoice in the Studio's picker that
-  // neither builder edits.
-  test('are the e-invoice and its two variants, in German, and none is a starter', () => {
+  // The sample and the three variants the e-invoice gate sees every
+  // accepted path through, all in German: a fifth, or one in another
+  // language, would claim what no record does (France waits), and a sample
+  // that became a starter would put an e-invoice in the Studio's picker
+  // that neither builder edits.
+  test('are the e-invoice and its three variants, in German, and none is a starter', () => {
     expect(E_INVOICE_SAMPLES.map((sample) => [sample.id, sample.title, sample.report.locale])).toEqual([
       ['e-invoice', 'Rechnung (ZUGFeRD)', 'de-DE'],
       ['e-invoice-reverse-charge', 'Rechnung (ZUGFeRD)', 'de-DE'],
       ['e-invoice-exempt-paid', 'Rechnung (ZUGFeRD)', 'de-DE'],
+      ['e-invoice-addressed', 'Rechnung (ZUGFeRD)', 'de-DE'],
     ])
     expect(STARTERS.filter((starter) => E_INVOICE_SAMPLES.includes(starter))).toEqual([])
   })
 
   // The variants are the template over other data, so that what the gate
-  // passes is the template an author has, and not three. The exempt
+  // passes is the template an author has, and not four. The exempt
   // variant is the very report; the reverse-charge one cannot be, since
   // the payment means is a code of the definition, and differs in it and
-  // in the id another definition needs (0024), and in nothing else.
-  test('are one template: the exempt variant the very report, the reverse-charge one apart only in its id and its payment means', () => {
+  // in the id another definition needs (0024), and in nothing else; the
+  // addressed one adds the terms past 0027's (0037), the buyer's address
+  // read from a header field of its own, and differs in them, in that
+  // field and in its id alone.
+  test('are one template: the exempt variant the very report, the others apart only in their ids and what they are there for', () => {
     const differences = (a: unknown, b: unknown, at = ''): string[] => {
       if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return Object.is(a, b) ? [] : [at]
       const keys = [...new Set([...Object.keys(a), ...Object.keys(b)])].sort()
@@ -76,6 +80,14 @@ describe('the e-invoice samples', () => {
     expect(E_INVOICE_EXEMPT_PAID.report).toBe(E_INVOICE.report)
     expect(differences(E_INVOICE.report, E_INVOICE_REVERSE_CHARGE.report)).toEqual(['/eInvoice/payment/means', '/id'])
     expect([E_INVOICE.report.eInvoice?.payment?.means, E_INVOICE_REVERSE_CHARGE.report.eInvoice?.payment?.means]).toEqual(['58', '30'])
+    expect(differences(E_INVOICE.report, E_INVOICE_ADDRESSED.report)).toEqual([
+      '/datasets/header/fields/14',
+      '/eInvoice/businessProcess',
+      '/eInvoice/buyer/electronicAddress',
+      '/eInvoice/seller/contact',
+      '/eInvoice/seller/electronicAddress',
+      '/id',
+    ])
   })
 
   // One firm, one account: the e-invoice's seller, account and BIC are the
@@ -228,14 +240,36 @@ describe("the samples' XML, against BigInt", () => {
   // transfer; reverse charge with its reason, the buyer's VAT identifier,
   // a period and a plain credit transfer; an exempt category with its
   // reason, a paid amount and a discount at a negative quantity and a
-  // positive price. A variant whose data stopped taking its path would
-  // leave that path ungated, and pass every other test.
+  // positive price; and every term past 0027's (0037), the business
+  // process, the seller's contact and both electronic addresses, in two
+  // schemes, which the others leave out, each at the path CEN's binding
+  // gives it. A variant whose data stopped taking its path would leave that
+  // path ungated, and pass every other test.
+  const NONE_PAST_0027 = { process: [], sellerAddress: [], contact: [[], [], []], buyerAddress: [] }
   test.each([
-    ['e-invoice', { categories: ['S:', 'S:'], delivered: ['20261012'], period: [[], []], means: '58', buyerVatId: [], paid: undefined, negative: [] }],
-    ['e-invoice-reverse-charge', { categories: ['AE:Steuerschuldnerschaft des Leistungsempfängers'], delivered: [], period: [['20260901'], ['20260930']], means: '30', buyerVatId: ['DE271828181'], paid: undefined, negative: [] }],
-    ['e-invoice-exempt-paid', { categories: ['S:', 'E:Steuerfrei nach § 4 Nr. 8 Buchst. a UStG'], delivered: ['20261009'], period: [[], []], means: '58', buyerVatId: [], paid: '300.00', negative: [['-1.00', '56.70', '-56.70']] }],
+    ['e-invoice', { categories: ['S:', 'S:'], delivered: ['20261012'], period: [[], []], means: '58', buyerVatId: [], paid: undefined, negative: [], ...NONE_PAST_0027 }],
+    ['e-invoice-reverse-charge', { categories: ['AE:Steuerschuldnerschaft des Leistungsempfängers'], delivered: [], period: [['20260901'], ['20260930']], means: '30', buyerVatId: ['DE271828181'], paid: undefined, negative: [], ...NONE_PAST_0027 }],
+    ['e-invoice-exempt-paid', { categories: ['S:', 'E:Steuerfrei nach § 4 Nr. 8 Buchst. a UStG'], delivered: ['20261009'], period: [[], []], means: '58', buyerVatId: [], paid: '300.00', negative: [['-1.00', '56.70', '-56.70']], ...NONE_PAST_0027 }],
+    [
+      'e-invoice-addressed',
+      {
+        categories: ['S:', 'S:'],
+        delivered: ['20261015'],
+        period: [[], []],
+        means: '58',
+        buyerVatId: [],
+        paid: undefined,
+        negative: [],
+        process: ['urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'],
+        sellerAddress: ['EM:rechnung@formancy-haustechnik.example'],
+        contact: [['Erika Mustermann'], ['+49 221 4710 820'], ['e.mustermann@formancy-haustechnik.example']],
+        buyerAddress: ['0088:4012345000009'],
+      },
+    ],
   ] as const)('%s takes the path it is there for', (id, path) => {
     const root = xmlOf(E_INVOICE_SAMPLES.find((sample) => sample.id === id) as Starter)
+    const contact = `${HTA}/ram:SellerTradeParty/ram:DefinedTradeContact`
+    const addressed = (party: string) => elementsAt(root, `${HTA}/ram:${party}/ram:URIUniversalCommunication/ram:URIID`).map((element) => `${element.attributes['schemeID']}:${element.text}`)
     expect({
       categories: xmlBreakdown(root).map(({ category, reason }) => `${category}:${reason ?? ''}`),
       delivered: textsAt(root, `${HTD}/ram:ActualDeliverySupplyChainEvent/ram:OccurrenceDateTime/${DATE}`),
@@ -244,6 +278,10 @@ describe("the samples' XML, against BigInt", () => {
       buyerVatId: textsAt(root, `${HTA}/ram:BuyerTradeParty/ram:SpecifiedTaxRegistration/ram:ID`),
       paid: xmlTotals(root).paid,
       negative: xmlLines(root).flatMap((line) => (line.quantity?.startsWith('-') === true ? [[line.quantity, line.netPrice, line.netAmount]] : [])),
+      process: textsAt(root, 'rsm:ExchangedDocumentContext/ram:BusinessProcessSpecifiedDocumentContextParameter/ram:ID'),
+      sellerAddress: addressed('SellerTradeParty'),
+      contact: ['ram:PersonName', 'ram:TelephoneUniversalCommunication/ram:CompleteNumber', 'ram:EmailURIUniversalCommunication/ram:URIID'].map((at) => textsAt(root, `${contact}/${at}`)),
+      buyerAddress: addressed('BuyerTradeParty'),
     }).toEqual(path)
   })
 })

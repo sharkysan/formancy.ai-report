@@ -7,15 +7,16 @@ import { pdfPlan } from './pdf-corpus.mjs'
 
 /**
  * What the e-invoice gate judges (0027): the XML the runtime writes of
- * each corpus sample, and controls the gate makes by breaking the first
- * sample's XML in one named way each, which every judge must refuse for
+ * each corpus sample, and controls the gate makes by breaking a sample's
+ * XML in one named way each -- the first sample's, or the addressed one's
+ * for a term only it writes (0037) -- which every judge must refuse for
  * exactly that. Read here from the corpus a gate run recorded
  * (scripts/e-invoice/recorded/), so the controls these cases make are the
  * very files whose tools' outputs the judges' tests read.
  */
 const here = dirname(fileURLToPath(import.meta.url))
 const recorded = (file) => readFileSync(join(here, 'recorded', 'corpus', file), 'utf8')
-const SAMPLES = ['e-invoice', 'e-invoice-reverse-charge', 'e-invoice-exempt-paid'].map((id) => ({ id }))
+const SAMPLES = ['e-invoice', 'e-invoice-reverse-charge', 'e-invoice-exempt-paid', 'e-invoice-addressed'].map((id) => ({ id }))
 const entries = corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`) })
 /** The whole corpus the gate judges: the XML, then the PDFs as planned, which the judges' tests build without drawing them. */
 const all = [...entries, ...pdfPlan(entries)]
@@ -29,6 +30,7 @@ describe('the corpus', () => {
       ['e-invoice.xml', 'xml', true, true],
       ['e-invoice-reverse-charge.xml', 'xml', true, true],
       ['e-invoice-exempt-paid.xml', 'xml', true, true],
+      ['e-invoice-addressed.xml', 'xml', true, true],
       ...CONTROLS.map((control) => [control.file, 'xml', false, false]),
     ])
     expect(corpusProblems(all)).toEqual([])
@@ -41,15 +43,19 @@ describe('the corpus', () => {
     for (const entry of entries.filter((each) => each.from !== undefined)) expect(entry.xml, entry.file).toBe(recorded(entry.file))
   })
 
-  // A control is the sample broken one way: the lines it changes are the
+  // A control is its sample broken one way: the lines it changes are the
   // ones its reason names, and no other, so a refusal for anything else is
-  // a judge seeing what is not there.
+  // a judge seeing what is not there. Each is made from the first sample
+  // but the one whose term only the addressed sample writes.
   test('breaks the sample in the one place each control names', () => {
     const base = recorded(`${CONTROL_BASE}.xml`).split('\n')
     const changed = (file) => {
-      const lines = entries.find((entry) => entry.file === file).xml.split('\n')
-      return lines.filter((line, index) => line !== base[index]).map((line) => line.trim())
+      const control = entries.find((entry) => entry.file === file)
+      const from = recorded(control.from).split('\n')
+      return control.xml.split('\n').filter((line, index) => line !== from[index]).map((line) => line.trim())
     }
+    expect(entries.filter((entry) => entry.from !== undefined).map((entry) => [entry.file, entry.from])).toEqual(CONTROLS.map((control) => [control.file, control.file === 'control-br-cl-25.xml' ? 'e-invoice-addressed.xml' : 'e-invoice.xml']))
+    expect(changed('control-br-cl-25.xml')).toEqual(['<ram:URIID schemeID="EMAIL">rechnung@formancy-haustechnik.example</ram:URIID>'])
     expect(changed('control-br-co-14.xml')).toEqual(['<ram:TaxTotalAmount currencyID="EUR">128.34</ram:TaxTotalAmount>', '<ram:GrandTotalAmount>871.64</ram:GrandTotalAmount>', '<ram:DuePayableAmount>871.64</ram:DuePayableAmount>'])
     // The 7 % category at 0.49 %: its two lines' rate and its breakdown's, its tax 107.50 × 0.49 % = 0.53, and the totals 7.00 less.
     expect(changed('control-br-co-17.xml')).toEqual([
@@ -71,7 +77,8 @@ describe('the corpus', () => {
   // whose place is gone, would be the sample itself under a control's name:
   // a file both tools accept, read as one they refused.
   test('refuses to make a control whose sample or place is gone', () => {
-    expect(() => corpus({ samples: SAMPLES.slice(1), xmlOf: (sample) => recorded(`${sample.id}.xml`) })).toThrow('the corpus has no e-invoice sample to make its controls from')
+    expect(() => corpus({ samples: SAMPLES.slice(1), xmlOf: (sample) => recorded(`${sample.id}.xml`) })).toThrow('the corpus has no e-invoice sample to make control-schema.xml from')
+    expect(() => corpus({ samples: SAMPLES.slice(0, 3), xmlOf: (sample) => recorded(`${sample.id}.xml`) })).toThrow('the corpus has no e-invoice-addressed sample to make control-br-cl-25.xml from')
     expect(() => corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`).replace('<ram:TaxTotalAmount', '<ram:TaxSum') })).toThrow('control-br-co-14.xml: BT-110 is written 0 times in e-invoice.xml, where the control changes it once')
     // A total written twice -- a second currency's BT-111 one day -- would leave the control changing one of two, which neither tool may then read as BR-CO-14 alone.
     const twice = (sample) => recorded(`${sample.id}.xml`).replace(/(<ram:TaxTotalAmount [^\n]*\n)/, '$1$1')
@@ -95,8 +102,8 @@ describe('what the corpus refuses', () => {
     expect(one((copy) => (copy[0].expect.kosit = []))).toEqual(['e-invoice.xml expects of kosit neither acceptance nor any refusal'])
     expect(one((copy) => (named(copy, 'control-malformed.xml').why = ''))).toEqual(['control-malformed.xml is broken and does not say for what'])
     expect(one((copy) => (named(copy, 'control-malformed.xml').xml = copy[0].xml))).toEqual(['control-malformed.xml is the sample it is made from, unbroken'])
-    expect(one((copy) => copy.splice(3, CONTROLS.length))).toEqual(['the corpus has no xml control mustang must refuse', 'the corpus has no xml control kosit must refuse'])
-    expect(one((copy) => copy.splice(0, 3))).toEqual(['the corpus has no xml sample both tools must accept'])
+    expect(one((copy) => copy.splice(SAMPLES.length, CONTROLS.length))).toEqual(['the corpus has no xml control mustang must refuse', 'the corpus has no xml control kosit must refuse'])
+    expect(one((copy) => copy.splice(0, SAMPLES.length))).toEqual(['the corpus has no xml sample both tools must accept'])
   })
 
   // KoSIT reads no PDF and veraPDF no XML: an expectation of either on the

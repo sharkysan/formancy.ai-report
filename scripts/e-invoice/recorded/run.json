@@ -1,6 +1,6 @@
 {
   "$comment": "A run of the e-invoice gate, recorded by `node scripts/e-invoice.mjs --record` once it passed: the XML corpus it wrote (corpus/), Mustang's report and log on each file, XML and PDF (mustang/), KoSIT's report on each XML file and its console (kosit/), veraPDF's report on every PDF and what it wrote on stderr (verapdf/), how each run ended, and each PDF's digest of its objects with every stream inflated (`pdfs`, report-corpus's `inflatedDigest`): the PDFs themselves are not recorded, since their bytes are the zlib's that deflated them, which `machine` names. Every output is recorded with the line ends the repository keeps and without the machine's path to the repository, and the console without its results table, whose cells wrap each path across lines (scripts/e-invoice/record.mjs). The judges' tests and the corpus's read it, so that every rule is held on what the pinned tools wrote and not on what somebody thought they would; it is recorded again when a tool, the corpus, a control or what the renderer draws changes. `research` is one output recorded by hand on 17 October 2026, kept for what no run of the gate produces: Mustang 2.26.0's report on a FeRD sample, EN16931_Einfach.pdf, run without --no-notices and without the gate's encoding options, with its seven XRechnung notices.",
-  "recordedAt": "2026-10-18T11:18:48.621Z",
+  "recordedAt": "2026-10-20T20:16:31.803Z",
   "machine": {
     "platform": "win32",
     "arch": "x64",
@@ -17,21 +17,25 @@
   "samples": [
     "e-invoice",
     "e-invoice-reverse-charge",
-    "e-invoice-exempt-paid"
+    "e-invoice-exempt-paid",
+    "e-invoice-addressed"
   ],
   "mustang": {
     "e-invoice.xml": 0,
     "e-invoice-reverse-charge.xml": 0,
     "e-invoice-exempt-paid.xml": 0,
+    "e-invoice-addressed.xml": 0,
     "control-schema.xml": 4294967295,
     "control-br-co-14.xml": 4294967295,
     "control-br-co-17.xml": 4294967295,
     "control-br-27.xml": 4294967295,
     "control-br-cl-23.xml": 4294967295,
+    "control-br-cl-25.xml": 4294967295,
     "control-malformed.xml": 4294967295,
     "e-invoice.pdf": 0,
     "e-invoice-reverse-charge.pdf": 0,
     "e-invoice-exempt-paid.pdf": 0,
+    "e-invoice-addressed.pdf": 0,
     "variant-blocks.pdf": 0,
     "variant-svg.pdf": 0,
     "variant-svg-bound.pdf": 0,
@@ -50,7 +54,7 @@
     "control-xml.pdf": 4294967295
   },
   "kosit": {
-    "status": 6
+    "status": 7
   },
   "verapdf": {
     "status": 1
@@ -59,6 +63,7 @@
     "e-invoice.pdf": "63f3c67aa9503bace02eb1ffbe7748cc2d7f4a3d07eae7738f36cf4fae8c5a90",
     "e-invoice-reverse-charge.pdf": "829b82c37d32405fe49f3b7507118cc1df4b1647da4024e228aba8c4dcf78be6",
     "e-invoice-exempt-paid.pdf": "01034540359145685751fe1b1655d743ce96f8f72f9ca586194f680b73aa8248",
+    "e-invoice-addressed.pdf": "465636d787d64f6d3b4404b715b7efccb6093edfd7b99016c05e4aa50eaf62cf",
     "variant-blocks.pdf": "fb83eb9e15bab7be3dc2aa5a56c442bf69b432fd433162d6f8791f7835acc39f",
     "variant-svg.pdf": "ebd2db66d32fbe33208070ed1bc73111515c816e4073a12190c4b30ccb99a681",
     "variant-svg-bound.pdf": "7ea9ef348d44249dbbc49e686bcbd487c7d886be1aa4ea0d0e66f6a04051de80",

@@ -24,7 +24,9 @@
  * checks stand beside it, by the kind of term each holds: the texts
  * (`en16931-texts.ts`), the decimals (`en16931-decimals.ts`), the dates
  * (`en16931-dates.ts`), the terms of a line (`en16931-lines.ts`) and the
- * VAT categories (`en16931-vat.ts`).
+ * VAT categories (`en16931-vat.ts`). The two shapes XRechnung asks of the
+ * seller's contact, which no rule of CEN's does, are XRechnung's own, with
+ * their own list of ids (`xrechnung.ts`, 0037).
  */
 
 /**
@@ -52,6 +54,7 @@ export const EN16931_RULES = [
   'BR-CL-11',
   'BR-CL-14',
   'BR-CL-23',
+  'BR-CL-25',
   'BR-CO-04',
   'BR-CO-09',
   'BR-CO-17',

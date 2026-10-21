@@ -17,11 +17,11 @@ The following scenarios are available:
   * EN16931 (CII)
 
 
-Processing of 9 objects started
-Processing of 9 objects completed in 764ms
+Processing of 11 objects started
+Processing of 11 objects completed in 2,078ms
 Results:
 [The results table is left out of the record: it names every file by its path, wrapping it across lines no replacement can follow, and each file’s report, recorded beside this, says what its row said.]
-Acceptable:  3  Rejected:  6  Processing errors:  1
+Acceptable:  4  Rejected:  7  Processing errors:  1
 
 
 ##############################

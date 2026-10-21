@@ -15,7 +15,8 @@
  *   optional texts are: a nullable field's null is how data says "none".
  *   A needed one that prints nothing breaks its rule (BR-02, BR-06 ...);
  *   one whose runs print something around a null is refused as a text cut
- *   short.
+ *   short. The seller's contact is left out whole or written whole: one
+ *   the data gives in part is refused at each term it lacks (0037).
  * - **What only the whole says** -- the identifiers the lines' categories
  *   need of the seller and the buyer (BR-CO-26, BR-S-02, BR-E-02,
  *   BR-AE-02), the time of supply (§ 14 UStG), a category's reason (BR-E-10,
@@ -48,7 +49,22 @@ import {
   supplyBreak,
   vatReasonBreak,
 } from '@formancy/report-spec'
-import type { EInvoiceAddress, EInvoiceBuyer, EInvoiceDateTerm, EInvoiceSeller, EInvoiceTextTerm, Expression, FacturXInvoice, Inline, PaymentMeansCode, SchemeId, VatCategory } from '@formancy/report-spec'
+import type {
+  AddressScheme,
+  EInvoiceAddress,
+  EInvoiceBuyer,
+  EInvoiceDateTerm,
+  EInvoiceSeller,
+  EInvoiceTextTerm,
+  ElectronicAddress,
+  Expression,
+  FacturXInvoice,
+  Inline,
+  PaymentMeansCode,
+  SchemeId,
+  SellerContact,
+  VatCategory,
+} from '@formancy/report-spec'
 import { readRuns } from './inlines.js'
 import { reportScope, valueOf } from './render-context.js'
 import type { Render, Scope } from './render-context.js'
@@ -64,13 +80,22 @@ export interface AddressTerms {
   readonly country: string
 }
 
-/** A seller (BG-4) or a buyer (BG-7) as the XML writes it; a buyer has no tax number. */
+/** The seller's contact (BG-6) as the XML writes it: all three of its terms, as a contact gives them (0037), though EN 16931 lets each be left out. */
+export interface ContactTerms {
+  readonly name: string
+  readonly telephone: string
+  readonly email: string
+}
+
+/** A seller (BG-4) or a buyer (BG-7) as the XML writes it; a buyer has no tax number and no contact. */
 export interface PartyTerms {
   readonly name: string
   /** Its spaces dropped. */
   readonly vatId?: string
   readonly taxNumber?: string
   readonly legalId?: { readonly id: string; readonly scheme?: SchemeId }
+  readonly electronicAddress?: { readonly id: string; readonly scheme: AddressScheme }
+  readonly contact?: ContactTerms
   readonly address: AddressTerms
 }
 
@@ -88,6 +113,7 @@ export interface PaymentTerms {
 export interface InvoiceTerms {
   readonly number: string
   readonly issued: string
+  readonly businessProcess?: string
   readonly seller: PartyTerms
   readonly buyer: PartyTerms
   readonly buyerReference?: string
@@ -164,6 +190,37 @@ function address(reader: Reader, held: EInvoiceAddress, path: string, which: 'se
   return { line1: line1 as string, ...term('line2', line2), postalCode: postalCode as string, city: city as string, country: country as string }
 }
 
+/** An electronic address: its identifier read, with the scheme the template names; none where the data gives the identifier as nothing. */
+function electronicAddress(reader: Reader, held: ElectronicAddress | undefined, path: string, term: EInvoiceTextTerm): Read<{ readonly id: string; readonly scheme: AddressScheme }> {
+  const id = text(reader, term, held?.id, `${path}/id`)
+  return id === null || id === undefined ? id : { id, scheme: (held as ElectronicAddress).scheme }
+}
+
+/**
+ * The seller's contact: all three of its terms, or none where the data
+ * gives none of them. One it gives in part is refused at each term it
+ * lacks, as the validator refuses a literal one: a contact gives all three
+ * or none (0037). A preview lacks what it has no value for, and says
+ * nothing of it.
+ */
+function contact(reader: Reader, held: SellerContact | undefined, path: string): Read<ContactTerms> {
+  if (held === undefined) return null
+  const terms = E_INVOICE_TEXT_TERMS.seller.contact
+  const read = {
+    name: text(reader, terms.name, held.name, `${path}/name`),
+    telephone: text(reader, terms.telephone, held.telephone, `${path}/telephone`),
+    email: text(reader, terms.email, held.email, `${path}/email`),
+  }
+  const { name, telephone, email } = read
+  if (name === undefined || telephone === undefined || email === undefined) return undefined
+  if (name !== null && telephone !== null && email !== null) return { name, telephone, email }
+  if ((name === null && telephone === null && email === null) || reader.render.preview) return null
+  for (const key of ['name', 'telephone', 'email'] as const) {
+    if (read[key] === null) refuse(reader, `${path}/${key}`, `${E_INVOICE_TEXTS[terms[key]].what} is empty, and a contact gives all three of its terms or none`)
+  }
+  return undefined
+}
+
 /** A party as read, and which of its identifiers are there: one refused is there, as the validator says of one written. */
 interface ReadParty {
   readonly party: Read<PartyTerms>
@@ -177,12 +234,18 @@ function party(reader: Reader, held: EInvoiceSeller | EInvoiceBuyer, path: strin
   // A buyer has no tax registration identifier (BT-32 is the seller's).
   const taxNumber = which === 'seller' ? text(reader, E_INVOICE_TEXT_TERMS.seller.taxNumber, (held as EInvoiceSeller).taxNumber, `${path}/taxNumber`) : null
   const legalId = text(reader, terms.legalId, held.legalId?.id, `${path}/legalId/id`)
+  const reached = electronicAddress(reader, held.electronicAddress, `${path}/electronicAddress`, terms.electronicAddress)
+  // A buyer has no contact (BG-9 is not written).
+  const contacted = which === 'seller' ? contact(reader, (held as EInvoiceSeller).contact, `${path}/contact`) : null
   const where = address(reader, held.address, `${path}/address`, which)
   const has = { vatId: vatId !== null, taxNumber: taxNumber !== null, legalId: legalId !== null }
-  if (vatId === undefined || taxNumber === undefined || legalId === undefined || !all(name, where)) return { party: undefined, has }
+  if (vatId === undefined || taxNumber === undefined || legalId === undefined || reached === undefined || contacted === undefined || !all(name, where)) return { party: undefined, has }
   const scheme = held.legalId?.scheme
   const registration = legalId === null ? {} : { legalId: { id: legalId, ...(scheme === undefined ? {} : { scheme }) } }
-  return { party: { name: name as string, ...term('vatId', vatId), ...term('taxNumber', taxNumber), ...registration, address: where as AddressTerms }, has }
+  return {
+    party: { name: name as string, ...term('vatId', vatId), ...term('taxNumber', taxNumber), ...registration, ...term('electronicAddress', reached), ...term('contact', contacted), address: where as AddressTerms },
+    has,
+  }
 }
 
 function payment(reader: Reader, invoice: FacturXInvoice): { readonly payment: Read<PaymentTerms>; readonly account: string | undefined } {
@@ -226,6 +289,7 @@ export function readTerms(render: Omit<Render, 'invoice'>, invoice: FacturXInvoi
   const reader: Reader = { render, scope: reportScope(render, render.totals.report) }
   const number = text(reader, E_INVOICE_TEXT_TERMS.number, invoice.number, '/eInvoice/number')
   const issued = date(reader, 'BT-2', invoice.issued, '/eInvoice/issued')
+  const businessProcess = text(reader, E_INVOICE_TEXT_TERMS.businessProcess, invoice.businessProcess, '/eInvoice/businessProcess')
   const seller = party(reader, invoice.seller, '/eInvoice/seller', 'seller')
   const buyer = party(reader, invoice.buyer, '/eInvoice/buyer', 'buyer')
   const buyerReference = text(reader, E_INVOICE_TEXT_TERMS.buyerReference, invoice.buyerReference, '/eInvoice/buyerReference')
@@ -251,12 +315,13 @@ export function readTerms(render: Omit<Render, 'invoice'>, invoice: FacturXInvoi
       if (unreasoned !== undefined) refuse(reader, `/eInvoice/vat/${invoice.vat.indexOf(category)}/reason`, unreasoned)
     }
   }
-  const read = [number, issued, seller.party, buyer.party, buyerReference, delivered, start, end, paying.payment, due, terms, ...reasons.map(([, reason]) => reason)]
+  const read = [number, issued, businessProcess, seller.party, buyer.party, buyerReference, delivered, start, end, paying.payment, due, terms, ...reasons.map(([, reason]) => reason)]
   if (render.problems.failed || read.includes(undefined) || !all(number, issued, seller.party, buyer.party)) return { terms: undefined, account: paying.account }
   return {
     terms: {
       number: number as string,
       issued: issued as string,
+      ...term('businessProcess', businessProcess),
       seller: seller.party as PartyTerms,
       buyer: buyer.party as PartyTerms,
       ...term('buyerReference', buyerReference),

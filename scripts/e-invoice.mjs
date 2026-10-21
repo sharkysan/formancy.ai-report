@@ -28,8 +28,9 @@
 //    over the PDFs, every proxy a dead port (scripts/e-invoice/java.mjs),
 //    stdin an empty pipe.
 // 5. Judges what each said (mustang.mjs, kosit.mjs, verapdf.mjs) and holds
-//    report-spec's lists and rule ids to the schematrons the runs name
-//    (oracle.mjs).
+//    report-spec's lists and rule ids to the schematrons the runs name, and
+//    its XRechnung rules and shapes to the XRechnung schematron of the same
+//    configuration (oracle.mjs).
 // 6. Writes `test-results/e-invoice.json` -- the corpus as judged, every
 //    verdict, the times -- with every tool's own output beside it in
 //    `test-results/e-invoice/`, and exits 1 on any problem. A run that
@@ -57,7 +58,7 @@ import { corpus as buildCorpus, corpusProblems, strayAccepted } from './e-invoic
 import { javaMajor, javaVersion } from './e-invoice/java.mjs'
 import { judgeKosit, kositArguments, readKositConsole, reportName } from './e-invoice/kosit.mjs'
 import { judgeMustang, mustangArguments, mustangOutputs } from './e-invoice/mustang.mjs'
-import { CODE_LISTS, oracleProblems, readCodedb, readSchematron } from './e-invoice/oracle.mjs'
+import { CODE_LISTS, oracleProblems, readCodedb, readSchematron, readVariables, scenarioSchematrons } from './e-invoice/oracle.mjs'
 import { blocksDocument, boundDocument, embeddingProblems, PDF_BASE, pdfCorpus, svgDocument, TRANSLUCENT_SVG, variantProblems } from './e-invoice/pdf-corpus.mjs'
 import { recordedConsole, recordedText, staleRecorded } from './e-invoice/record.mjs'
 import { acceptedProblems, readRegisters, toolOf, toolProblems } from './e-invoice/registers.mjs'
@@ -83,6 +84,8 @@ const OUTPUTS = ['mustang', 'kosit', 'verapdf']
 const CREATED = '2026-10-17T08:00:00Z'
 /** The scenario of KoSIT's configuration every sample must match: the CII D16B schema and CEN's schematron, nothing of XRechnung's. */
 const SCENARIO = 'EN16931 (CII)'
+/** The scenario whose schematron beside CEN's is XRechnung's, which the oracle holds report-spec's XRechnung rules and shapes to (0037). */
+const XRECHNUNG_SCENARIO = 'EN16931 XRechnung (CII)'
 /** The most pages a PDF of the corpus may have: every sample prints on one (the renderer's e-invoice-samples.test.ts reads each as one), and one that grows is refused rather than judged unread. */
 const MAX_PAGES = 1
 /** The most pages a variant may have: a bound on the work, since nothing reads a variant's pages; the longest printed two on 18 October 2026. */
@@ -180,7 +183,7 @@ function runVeraPdf({ java, tools, entries, work }) {
   return { status: ran.status, stdout: ran.stdout ?? '', stderr: ran.stderr ?? '', error: ran.error, seconds: seconds(started) }
 }
 
-/** The schematrons the runs name, read out of the verified downloads, for the oracle; or why they cannot be. */
+/** The schematrons the runs name, and XRechnung's beside CEN's in the configuration, read out of the verified downloads, for the oracle; or why they cannot be. */
 function pinnedSchematrons({ tools, mustangVerdict, kositVerdict }) {
   const problems = []
   if (kositVerdict.schematrons.length !== 1) problems.push(`KoSIT's reports on the samples name ${String(kositVerdict.schematrons.length)} schematrons for ${SCENARIO}, where the oracle reads one`)
@@ -188,13 +191,18 @@ function pinnedSchematrons({ tools, mustangVerdict, kositVerdict }) {
   if (problems.length > 0) return { problems }
   const [location] = kositVerdict.schematrons
   const cen = { name: `CEN’s schematron (${location} in KoSIT’s configuration ${tools.configuration.version})`, asserts: readSchematron(readFileSync(join(tools.unpacked, location), 'utf8')) }
+  // XRechnung's is the one schematron its scenario runs that the samples' does not.
+  const xrechnungAt = scenarioSchematrons(readFileSync(join(tools.unpacked, 'scenarios.xml'), 'utf8'), XRECHNUNG_SCENARIO).filter((each) => each !== location)
+  if (xrechnungAt.length !== 1) return { problems: [`KoSIT’s configuration has ${XRECHNUNG_SCENARIO} run ${String(xrechnungAt.length)} schematrons beside CEN’s, where the oracle reads one`] }
+  const xrechnungText = readFileSync(join(tools.unpacked, xrechnungAt[0]), 'utf8')
+  const xrechnung = { name: `XRechnung’s schematron (${xrechnungAt[0]} in KoSIT’s configuration ${tools.configuration.version})`, asserts: readSchematron(xrechnungText), variables: readVariables(xrechnungText) }
   const jar = tools.mustangJar
   const path = mustangVerdict.compiled[0].replace(/^\//, '')
   const asserts = readSchematron(entryNamed(jar, path).toString('utf8'))
   const databases = [...new Set(asserts.flatMap((assert) => [...String(assert.test).matchAll(/document\('([^']+)'\)/g)].map((match) => match[1])))]
   if (databases.length !== 1) return { problems: [`Mustang's ${path} reads ${String(databases.length)} code databases, where the oracle reads one`] }
   const codedb = readCodedb(entryNamed(jar, `${dirname(path)}/${databases[0]}`).toString('utf8'))
-  return { problems: [], cen, ferd: { name: `FeRD’s schematron (/${path} in Mustang ${tools.mustang.version})`, asserts, codedb } }
+  return { problems: [], cen, ferd: { name: `FeRD’s schematron (/${path} in Mustang ${tools.mustang.version})`, asserts, codedb }, xrechnung }
 }
 
 /** The run the record holds: its run.json, or nothing where none is recorded. */
@@ -356,7 +364,7 @@ async function main(argv) {
   const file = { fileName: spec.FACTUR_X.fileName, relationship: profile.relationship, mediaType: spec.FACTUR_X.mediaType, md5 }
   const veraVerdict = judgeVeraPdf({ entries: pdfEntries, ...verapdf, pinned: tools.verapdf.version, file })
   const schematrons = pinnedSchematrons({ tools, mustangVerdict, kositVerdict })
-  const oracle = schematrons.problems.length > 0 ? { checked: null, problems: schematrons.problems } : oracleProblems({ spec, lists: CODE_LISTS, cen: schematrons.cen, ferd: schematrons.ferd })
+  const oracle = schematrons.problems.length > 0 ? { checked: null, problems: schematrons.problems } : oracleProblems({ spec, lists: CODE_LISTS, cen: schematrons.cen, ferd: schematrons.ferd, xrechnung: schematrons.xrechnung })
   const stale = recording ? [] : staleRecorded(entries, recordedCorpus(), new Map(Object.entries(recordedRun().pdfs ?? {})))
   const problems = [...mustangVerdict.problems, ...kositVerdict.problems, ...veraVerdict.problems, ...oracle.problems, ...stale]
   // The bytes each tool ran from, hashed once the runs are over: what the
@@ -397,7 +405,7 @@ async function main(argv) {
     for (const problem of problems) console.error(`  - ${problem}`)
     return 1
   }
-  console.log('e-invoice: every file judged as the corpus expects, and every list and rule held to both schematrons')
+  console.log('e-invoice: every file judged as the corpus expects, and every list, rule and shape held to the pinned schematrons')
   if (recording) record({ work, entries, java: jvm, mustangRuns: mustang.runs, kosit, verapdf, tools })
   return 0
 }

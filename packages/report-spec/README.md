@@ -185,8 +185,17 @@ quantity, net price and net amount, so the page and the XML read one
 evaluation of each line, and reads the line's identifier, unit and VAT
 category from each row.
 
+It may name four things a German B2B invoice does not need, and XRechnung
+does ([0037](../../docs/decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md)): its business process (`businessProcess`, BT-23), the
+seller's and the buyer's electronic addresses (`electronicAddress`, BT-34
+and BT-49, each an identifier and a scheme of `ADDRESS_SCHEMES`), and the
+seller's contact (`contact`, BG-6: its name, telephone number and email
+address, all three or none). The types are `ElectronicAddress`,
+`AddressScheme` and `SellerContact`. An invoice that names none is written
+as before, byte for byte.
+
 ```ts
-import { checkCountryCode, checkEInvoiceDecimal, checkEInvoiceText, checkVatIdentifier, checkVatRate, FACTUR_X, FACTUR_X_PROFILES, sellerIdentificationBreaks, vatCategoryBreaks } from '@formancy/report-spec'
+import { checkAddressScheme, checkCountryCode, checkEInvoiceDecimal, checkEInvoiceText, checkVatIdentifier, checkVatRate, FACTUR_X, FACTUR_X_PROFILES, sellerIdentificationBreaks, vatCategoryBreaks } from '@formancy/report-spec'
 
 checkCountryCode('UK') // { ok: false, rule: "is not a country code of those this release takes, a list narrower than ISO 3166-1's (BR-CL-14)" }
 checkVatIdentifier('DE 123 456 789') // { ok: true, value: 'DE123456789' }
@@ -199,6 +208,8 @@ checkVatRate('S', '19.00') // { ok: true, value: '19' }: compared by value
 checkVatRate('S', '0.4') // { ok: false, rule: 'is below 0.5, which BR-CO-17 rounds to 0, ... (BR-CO-17)' }
 checkEInvoiceText('BT-37', ' ') // { ok: false, rule: 'is empty, and a German invoice gives the full address ... (§ 14 Abs. 4 Satz 1 Nr. 1 UStG)' }
 checkEInvoiceText('BT-1', 'RE-2026  0820') // { ok: false, rule: 'holds white space the XML would not keep: ...' }: a token
+checkAddressScheme('0060') // { ok: false, rule: "is not an electronic address scheme of those this release takes, ... (BR-CL-25)" }
+checkEInvoiceText('BT-42', 'Zentrale') // { ok: false, rule: "has fewer than three digits, which a telephone number has at least (XRechnung's BR-DE-27)" }
 vatCategoryBreaks([{ code: 'S', rate: '19' }, { code: 'S', rate: '19.00' }]) // [{ index: 1, field: 'rate', rule: '... (BR-S-08)' }]
 sellerIdentificationBreaks({ vatId: false, taxNumber: true, legalId: false }, ['S']) // ['the seller has neither a VAT identifier (BT-31) nor a legal registration identifier (BT-30), ... (BR-CO-26)']
 FACTUR_X_PROFILES.en16931.guideline // 'urn:cen.eu:en16931:2017': BT-24
@@ -223,7 +234,18 @@ CEN's: the seller's and the buyer's street, post code and city, which
 only the country; and an identifier or a code the XSD types as a token,
 which holds no tab, line break, double space or space at either end, since
 a schema-aware reader collapses them. The payment account and its BIC are
-the EPC QR code's rules. The totals and the VAT breakdown are not here: the
+the EPC QR code's rules. A contact's telephone number and email address
+are held to the shapes XRechnung warns of, BR-DE-27 and BR-DE-28, in every
+e-invoice: each the pinned schematron's own XPath expression, exported as
+`XRECHNUNG_PATTERNS`, its rule id in `XRECHNUNG_RULES`, which the
+e-invoice gate holds, with the test that reads each expression, to KoSIT's
+XRechnung schematron as it holds `EN16931_RULES` to CEN's. The email
+address's expression runs as XPath reads it; the telephone number's three
+ASCII digits are counted, which is what its expression asks, since the
+expression run as written takes time that grows with the square of a
+text's length, and a test holds the count to the expression on every
+short text. Both are reached through `checkEInvoiceText('BT-42', …)` and
+`('BT-43', …)`. The totals and the VAT breakdown are not here: the
 runtime computes them once.
 
 A report that is an e-invoice gives its expressions three names beside
@@ -242,7 +264,10 @@ and held to CEN's 1.3.17 and the pinned 1.3.16 lists on 17 October 2026:
 counts, times, weighs and measures in; `COUNTRY_CODES`, the
 EU's members, the EEA's, Switzerland and the United Kingdom; `VAT_PREFIXES`,
 those and Greece's `EL`, which CEN's 1.3.16 takes and its 1.3.17 does not;
-and `SCHEME_IDS`, SIREN, SIRET, D-U-N-S and GLN. A rate is a percentage
+and `SCHEME_IDS`, SIREN, SIRET, D-U-N-S and GLN; and, since 0037,
+`ADDRESS_SCHEMES`, an electronic address's: an email address, the
+Leitweg-ID, France's addressing scheme, a German VAT identifier and a GLN.
+A rate is a percentage
 below 100 with two decimals at most, and a standard rate 0.5 or more, which
 BR-CO-17 would otherwise round to 0. `FACTUR_X` and `FACTUR_X_PROFILES` are
 the names the PDF carries -- the file, its relationship and the XMP's values
@@ -257,7 +282,9 @@ What they do not check:
 - the amount a payment code asks for, which is an expression: the render
   compares it with the amount due;
 - an account, a date or a total read from the data, before a render;
-- France's rules (BR-FR), and XRechnung's.
+- that an electronic address is of its scheme's form, a GLN's check digit
+  or a Leitweg-ID's among it;
+- France's rules (BR-FR), and XRechnung's, but for the two shapes above.
 
 ## An SVG asset
 
