@@ -14,9 +14,13 @@
  *
  * The maps are read from the very bytes pdfmake embeds -- the font files in
  * Node, the virtual files in a browser -- so they cannot drift from the
- * fonts. Roboto 3.014 maps the Basic Multilingual Plane only, in a format 4
+ * fonts, and by report-spec's reader, through the runtime, which reads the
+ * subtable fontkit lays text out with, in format 4 or 12 (0040): the one
+ * reader of a font's glyphs, which a host's font will be read by too.
+ * Roboto 3.014 maps the Basic Multilingual Plane only, in a format 4
  * subtable; a character past it, an emoji among them, has no glyph here.
  */
+import { characterMap as readCharacterMap } from '@formancy/report-runtime'
 
 /** pdfmake's names for a family's four faces. */
 export type Face = 'normal' | 'bold' | 'italics' | 'bolditalics'
@@ -53,50 +57,14 @@ export function codePoint(point: number): string {
 }
 
 /**
- * The code points a TrueType font maps to a glyph other than glyph 0, from
- * its Unicode BMP character map: the Windows (3, 1) or Unicode (0, 3)
- * subtable, in format 4. A font without one is not one this renderer
- * embeds, and is an error, not a document's refusal.
+ * The code points a font this renderer embeds maps to a glyph other than
+ * glyph 0, as report-spec's `characterMap` reads them. A face the reader
+ * refuses -- no character map, none in Unicode in format 4 or 12, one
+ * broken -- is not one this renderer embeds, and is an error, not a
+ * document's refusal.
  */
 export function characterMap(font: Uint8Array): ReadonlySet<number> {
-  const view = new DataView(font.buffer, font.byteOffset, font.byteLength)
-  const tables = view.getUint16(4)
-  let cmap: number | undefined
-  for (let index = 0; index < tables; index++) {
-    const record = 12 + 16 * index
-    if (String.fromCharCode(...font.subarray(record, record + 4)) === 'cmap') cmap = view.getUint32(record + 8)
-  }
-  if (cmap === undefined) throw new Error('the font has no character map')
-  const encodings = view.getUint16(cmap + 2)
-  for (let index = 0; index < encodings; index++) {
-    const record = cmap + 4 + 8 * index
-    const [platform, encoding] = [view.getUint16(record), view.getUint16(record + 2)]
-    const subtable = cmap + view.getUint32(record + 4)
-    const unicode = (platform === 3 && encoding === 1) || (platform === 0 && encoding === 3)
-    if (unicode && view.getUint16(subtable) === 4) return format4(view, subtable)
-  }
-  throw new Error('the font has no Unicode character map in format 4')
-}
-
-/** A format 4 subtable's segments, each mapping a range of code points by a delta or through the glyph array; glyph 0 is no glyph. */
-function format4(view: DataView, table: number): ReadonlySet<number> {
-  const segments = view.getUint16(table + 6) / 2
-  const ends = table + 14
-  const starts = ends + 2 * segments + 2
-  const deltas = starts + 2 * segments
-  const offsets = deltas + 2 * segments
-  const mapped = new Set<number>()
-  for (let segment = 0; segment < segments; segment++) {
-    const end = view.getUint16(ends + 2 * segment)
-    const start = view.getUint16(starts + 2 * segment)
-    const delta = view.getUint16(deltas + 2 * segment)
-    const offsetAt = offsets + 2 * segment
-    const offset = view.getUint16(offsetAt)
-    for (let point = start; point <= end; point++) {
-      const indexed = offset === 0 ? point : view.getUint16(offsetAt + offset + 2 * (point - start))
-      const glyph = offset !== 0 && indexed === 0 ? 0 : (indexed + delta) & 0xffff
-      if (glyph !== 0) mapped.add(point)
-    }
-  }
-  return mapped
+  const read = readCharacterMap(font)
+  if (!read.ok) throw new Error(`the font ${read.message}`)
+  return read.characters
 }

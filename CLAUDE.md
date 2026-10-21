@@ -108,6 +108,13 @@ draws only what `checkSvg` accepts, as vectors, behind its own list of
 elements in `svg-content.ts` and converter callbacks that refuse, a logo
 in a page region counted on every page against `MAX_SVG_DRAWING`
 ([0030](docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
+A font is read once, by report-spec's own reader: `readFont`, in
+`font.ts` and the `font-*.ts` beside it, reads a static TrueType font
+whole as fontkit, which PDFKit lays text out with, reads it, and says
+what it may be embedded as and which characters it draws, or refuses it;
+the runtime hands it on, and the renderer reads the faces it embeds
+through its `characterMap`
+([0040](docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort

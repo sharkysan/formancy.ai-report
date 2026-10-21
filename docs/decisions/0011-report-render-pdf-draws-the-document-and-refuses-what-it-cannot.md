@@ -1,6 +1,6 @@
 # 0011 — `report-render-pdf` draws the whole resolved document with pdfmake, and refuses what it cannot draw whole
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which refused every e-invoice until the renderer drew the PDF/A-3 that carries one, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which draws an SVG asset as vectors, only in the form report-spec's `cleanSvg` writes, and bounds what SVGs cost a render and a page, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which draws an e-invoice as a PDF/A-3b and refuses what that cannot hold, and by [0035](0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md), which has the images PDFKit decodes before it embeds them written in the order pdfmake opened them, so that a document with such images renders to the same bytes too, held on the PDF in both entries by `image-order.test.ts`
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which refused every e-invoice until the renderer drew the PDF/A-3 that carries one, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which draws an SVG asset as vectors, only in the form report-spec's `cleanSvg` writes, and bounds what SVGs cost a render and a page, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which draws an e-invoice as a PDF/A-3b and refuses what that cannot hold, and by [0035](0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md), which has the images PDFKit decodes before it embeds them written in the order pdfmake opened them, so that a document with such images renders to the same bytes too, held on the PDF in both entries by `image-order.test.ts`, and by [0040](0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), under which the faces' character maps are read by report-spec's font reader, through the runtime, as fontkit reads them
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-render-pdf`, run by its
@@ -258,6 +258,20 @@ says of its *no other file*
 ([0005](0005-pdfmake-renders-reports-behind-one-adapter.md)).
 `svg.test.ts`, `svg-threats.test.ts` and `svg-converter.test.ts` prove it,
 and `pdfmake.test.ts` pins the converter.
+
+**Added 2026-10-21: the glyphs, read by report-spec's reader.** The faces'
+character maps are read by report-spec's `characterMap`, which the runtime
+hands on, rather than by the renderer's own code
+([0040](0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)):
+the subtable fontkit lays text out with, in its order, where the renderer
+took the first Windows or Unicode BMP record in the table's order, and
+format 12 beside format 4. For Roboto and Liberation Sans nothing changes:
+their two Unicode records point at one subtable, and their maps are the
+characters they were. *Every character is held to its face* above holds as
+written, by one reader of a font's glyphs, which a host's font will be read
+by too. `glyphs.test.ts` holds it unchanged, and `fonts.test.ts` holds each
+face's map to fontkit's, and glyphs.ts's map of a face whose maps disagree
+to the reader's, which the parser glyphs.ts had read otherwise.
 
 ## Alternatives considered
 

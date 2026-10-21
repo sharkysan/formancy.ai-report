@@ -111,6 +111,17 @@ alone, and every reader of them is held where it reads them
 | The reader of paths, clips and masks, the drawings found, the ink around them | `report-corpus/src/read-pdf.test.ts`, `drawings.test.ts`, `check-ink.test.ts` |
 | The packed packages | The install gate's `consume.ts`: a saved drawing cleaned, printed with no image in the PDF and its disc and its box's clip in the page's drawing, and refused as it was saved |
 
+**A font's bytes, read once, and held to the reader at print.** The
+reader is report-spec's alone, and fontkit, which PDFKit prints with, is
+held to it on the faces the renderer ships ([0040](../decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)):
+
+| Where | What holds it |
+|---|---|
+| The reader, on fonts made in code: each format, kind and fsType value accepted or refused as the specification and this decision read them, each table's fields and bounds, the character map in formats 4 and 12 as fontkit takes and reads it, the names and the encodings fontkit decodes them in, the outlines' structure, each recorded length as fontkit reads it, the variation sequences and vertical metrics fontkit reads, the bounds at themselves and one past, nothing the font chose in a refusal, every prefix refused and 9,000 seeded corruptions read or refused without a throw | `report-spec/src/font.test.ts`, `font-cmap.test.ts`, `font-names.test.ts` |
+| The runtime: the reader, its codes and its bounds handed on as report-spec's own | `report-runtime/src/fonts.test.ts` |
+| The renderer: Roboto's and Liberation Sans's faces read to the values measured from their files, the line constants their own lines, fontkit mapping every code point as the reader does, every recorded length of the tables the reader reads refused or drawn by fontkit glyph for glyph alike, and seeded corruptions the reader accepts embedded by PDFKit, mapped and named alike; glyphs.ts's map the reader's on a face whose maps disagree; the glyph check, unchanged, on the reader | `report-render-pdf/src/fonts.test.ts`, `glyphs.test.ts` |
+| The packed packages | The install gate's `scripts/install-fixture/fonts.ts`: the runtime's reader report-spec's, the packed renderer's Liberation Sans read to its values, and a restricted copy and a collection refused by their codes |
+
 **The firm's mark, on every page that prints it.** Which reports carry it
 is stated in the corpus's test, never read from the starters, and where it
 prints is read off the PDF the engine produced

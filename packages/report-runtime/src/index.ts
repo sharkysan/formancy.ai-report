@@ -114,3 +114,15 @@ export type { ImageRefusal, ImageRefusalCode, JpegHeader, PngHeader, RasterHeade
  */
 export { checkSvg, cleanSvg, MAX_SVG_BYTES, MAX_SVG_COORDINATE, MAX_SVG_DEPTH, MAX_SVG_GROUPS, MAX_SVG_SEGMENTS, SVG_ELEMENTS, SVG_REFUSAL_CODES } from '@formancy/report-spec'
 export type { CheckedSvg, CleanSvg, SvgExtent, SvgRefusal, SvgRefusalCode, SvgRemoval, SvgRemovalKind, SvgViewBox } from '@formancy/report-spec'
+/**
+ * What report-spec decides of a font's bytes, handed on as the QR-bill's
+ * decisions are (0040): `readFont`, a font read whole -- what it may be
+ * embedded as, its names and metrics, and the characters it maps -- or
+ * refused, which a host approving a font beside its render code calls and
+ * an engine will hold a host's face to; `characterMap`, the characters a
+ * face maps as fontkit maps them, which an engine reads its own faces
+ * with; the refusal codes; and `MAX_FONT_BYTES` and `MAX_FONT_CHARACTERS`,
+ * the most a font may be and map.
+ */
+export { characterMap, FONT_EMBEDDING_REFUSALS, FONT_FORMATS, FONT_REFUSAL_CODES, MAX_FONT_BYTES, MAX_FONT_CHARACTERS, readFont } from '@formancy/report-spec'
+export type { Font, FontCharacters, FontEmbedding, FontEmbeddingRefusal, FontFormat, FontMetrics, FontNames, FontRefusal, FontRefusalCode, FontStyle } from '@formancy/report-spec'

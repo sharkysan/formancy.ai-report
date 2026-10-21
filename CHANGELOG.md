@@ -10,6 +10,58 @@ later.
 
 ## Unreleased
 
+**report-spec reads a font, and says what it may be embedded as and
+which characters it draws** ([0040](docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)).
+0.3.0 prints a report in fonts a host supplies, and a font, like an image,
+is untrusted bytes, approved where a host or a builder takes it and printed
+where the renderer embeds it, so the decision of what a font is comes
+first, once, in report-spec, before any report can name one. `readFont`
+reads a static TrueType font whole -- its names, the embedding its OS/2
+fsType allows, its units per em, ascender, descender and line gap, its
+weight and style bits, its glyph count and the characters it maps -- or
+refuses it, never throwing, with one of `FONT_REFUSAL_CODES` and what to
+do: a collection, WOFF, WOFF2, EOT and Type 1 (`format`, naming which),
+CFF outlines until the e-invoice gate has proved a CFF face in a PDF/A-3b,
+a variable font, a colour font, which PDFKit would print as outlines a
+colour font may leave empty, a font of bitmaps alone, a Restricted
+License, No subsetting or Bitmap only fsType, with no override, since
+PDFKit always embeds a subset of the outlines, and a font with no Unicode
+character map in format 4 or 12. The character map is read as fontkit,
+which PDFKit lays text out with, reads it: the subtable it takes, in its
+order, where the renderer took the first BMP record in the table's order,
+and format 12 beside format 4, for characters past the BMP. Where fontkit
+reads a font otherwise than the specification asks, the reader reads it as
+fontkit does, since that is what prints: a table recorded as empty, which
+fontkit does not see, is refused, as is an index to location recorded
+short of its offsets, which fontkit would draw past as nothing; a name
+record fontkit decodes otherwise than as UTF-16 or Mac Roman in English
+is refused as a PostScript name, and one past platform 3, which loses
+fontkit the whole naming table, anywhere; and the variation sequences and
+vertical metrics fontkit reads are held to the file. Two things found on
+the way are refused: a PostScript name holding PDF syntax, which PDFKit
+writes into the PDF as it stands, and a glyph of more than
+`MAX_FONT_GLYPH_WORK` points times contours, one of which took PDFKit 1.6
+s to embed (measured on 21 October 2026, as 0040 says). The licence the
+font states is handed back for a person to read, never judged: a host's
+font is the host's, under its licence.
+`characterMap` reads the character map alone, and the renderer now reads
+the faces it embeds through it, from the runtime; for Roboto and Liberation
+Sans nothing changes. report-spec exports `readFont`, `characterMap`,
+`FONT_REFUSAL_CODES`, `FONT_FORMATS`, `FONT_EMBEDDING_REFUSALS`,
+`MAX_FONT_BYTES` (an asset's 20 MB), `MAX_FONT_CHARACTERS` (131,072),
+`MAX_FONT_GLYPH_WORK` (1,048,576) and the types `Font`, `FontNames`,
+`FontMetrics`, `FontStyle`, `FontEmbedding`, `FontCharacters`,
+`FontRefusal`, `FontRefusalCode`, `FontFormat` and `FontEmbeddingRefusal`;
+the runtime hands on the reader, its codes, its types, `MAX_FONT_BYTES` and
+`MAX_FONT_CHARACTERS` as report-spec's own. Of the 447 font files of one
+Windows machine, 412 were read and 35 refused, none as malformed, and the
+costliest font the bounds admit read in 60 ms (measured on 22 October
+2026, as 0040 says). The reader does not read the layout tables fontkit
+runs at print, where a crafted morx table in a font it accepts sends
+fontkit's state machine, which has no bound on its steps, round without
+end: PDFKit had not laid one letter out when it was stopped after 20
+seconds. No format changes: a report cannot name a font yet.
+
 **A render's manifest names where its data came from**
 ([0041](docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)).
 The manifest kept beside a PDF said how its data was read -- complete or

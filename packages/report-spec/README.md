@@ -496,6 +496,80 @@ decompressor ES2023 does not have. The renderer does at print, so a PNG
 whose data does not inflate to the scanlines its header promises passes
 here and is refused there. Nothing decodes a JPEG's scan.
 
+## A font's bytes
+
+What a font is, whether its licence bits allow it to be embedded, and
+which characters it draws, are read here, once: today for the renderer,
+which reads its own faces' character maps here, and for a builder where a
+person adds a font and a host where it approves one once they take fonts
+([0040](../../docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)):
+
+```ts
+import { characterMap, readFont } from '@formancy/report-spec'
+
+readFont(ttf)
+// { ok: true,
+//   names: { family: 'Liberation Sans', subfamily: 'Regular', postScriptName: 'LiberationSans', version: 'Version 2.1.5', licence: '...', ... },
+//   embedding: 'installable', fsType: 0,
+//   metrics: { unitsPerEm: 2048, ascender: 1854, descender: -434, lineGap: 67 },
+//   style: { weight: 400, italic: false, bold: false, regular: true },
+//   glyphs: 2620, characters: Set(2327) { 0x20, 0x21, ... } }
+readFont(otf) // { ok: false, code: 'cff', message: 'is an OpenType font with CFF outlines; use the TrueType edition of the font (.ttf), ...' }
+readFont(restricted) // { ok: false, code: 'embedding', embedding: 'restricted', message: 'allows Restricted License embedding alone (fsType 0x0002), ...' }
+characterMap(ttf) // { ok: true, characters: Set(2327) { ... } }: the character map alone, of any sfnt
+```
+
+- **Accepted:** one static TrueType font, an sfnt of 0x00010000 or Apple's
+  `true`, with TrueType outlines, the eight tables every OpenType font
+  needs, a Unicode character map in format 4 or 12, and an OS/2 fsType
+  that allows embedding a subset of its outlines: Installable, Preview &
+  Print, since a PDF is opened read-only, or Editable.
+- **Refused**, each with one of `FONT_REFUSAL_CODES` and what to do: a
+  collection, WOFF, WOFF2, EOT and Type 1 (`format`, naming which of
+  `FONT_FORMATS`); CFF and CFF2 outlines (`cff`); a variable font; a
+  colour font, whose glyphs PDFKit would print as their outlines alone; a
+  font of bitmaps alone; Restricted License, No subsetting and Bitmap only,
+  and an fsType the specification does not define for its OS/2 version
+  (`embedding`, naming which of `FONT_EMBEDDING_REFUSALS`), with no
+  override; no Unicode map, or one fontkit takes in another format
+  (`character-map`); what is malformed; and a font past `MAX_FONT_BYTES`,
+  mapping more than `MAX_FONT_CHARACTERS` characters, or with a glyph of
+  more than `MAX_FONT_GLYPH_WORK` points times contours (`too-large`).
+- **The characters are fontkit's**, which PDFKit lays text out with: the
+  subtable it takes, (3, 10) first and (0, 0) last, whatever the order of
+  the records, its segments or groups sorted and apart so that a walk finds
+  what its binary search finds, and a code point mapped where its glyph is
+  not glyph 0. `readFont` holds every glyph a character maps to to the
+  glyph count, and the variation sequences fontkit reads beside the map to
+  the file; `characterMap` reads the map alone, whatever length the
+  directory records for it, holds no glyph to a count it does not read,
+  and is what the renderer reads its own faces with: a font a host brings
+  is held to `readFont`'s characters.
+- **The names are handed back as the font states them, never judged**,
+  each the best record's, Windows English first, and the typographic family
+  before the family. The licence description and its address are the
+  customer's to read. The PostScript name, which PDFKit writes into the PDF
+  as it stands, is held in every record to printable ASCII with none of
+  `[ ] ( ) { } < > / % #`, a space admitted, since PDFKit writes it as an
+  underscore, and every record to an encoding fontkit decodes as this does;
+  a record fontkit could not decode the naming table with is refused.
+- **A font is untrusted bytes**: every table's offset and length is held
+  to them and every read checked against them, a count against the bytes
+  it counts before anything is read by it, every loop bounded by them,
+  nothing recursing on what a font holds, and nothing the font chose
+  repeated in a refusal but a number the reader decoded. A table is read
+  where its record says, as fontkit reads it: refused where its recorded
+  length is 0, since fontkit then sees no table, and an index to location
+  held to the offsets its recorded length holds, since fontkit reads them
+  to there. The bounds were measured, as `limits.ts` says: the costliest
+  font they admit read in 60 ms in Node.
+
+What it does not do: read the layout tables fontkit runs at print, GSUB,
+GPOS, kern and morx, a crafted one of which can make a render throw or
+never end; judge what an outline draws; read a font's licence,
+which may forbid what its fsType allows. And a report cannot name a font
+yet: the format is unchanged.
+
 ## Hash
 
 ```ts

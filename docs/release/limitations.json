@@ -250,7 +250,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:e954e624c4c3433c92472a5410fcdda827abb9a392ce8c25eac5d06286de4e71",
+      "reviewed": "sha256:53310972ee03fb0f0ebd816d0156896e8a77a1256e75ba56a9511ae0b258b765",
       "limitations": [
         {
           "area": "rendering",
@@ -1454,6 +1454,56 @@
         {
           "area": "licence",
           "says": "XRechnung's specification identifier, the contexts and tests the e-invoice gate holds its rules to, and the sample's Leitweg-ID are copied from KoSIT's configuration and test suite, whose licences were not read, and whether that is acceptable under 0006, as whether the sample's title may name XRechnung, is the rightsholder's question."
+        }
+      ]
+    },
+    "0040": {
+      "reviewed": "sha256:84c87f2d61f4958ce8594d44b241dc4be839832e58831fafd2129b4c6617e29a",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A font is read by report-spec's `readFont` as one static TrueType file, so a collection, a WOFF or WOFF2 web font, an EOT, a Type 1 font, a CFF-flavoured OpenType font (.otf) and a variable font are each refused, and a host converts or obtains a TrueType file of each face before it approves one.",
+          "heldBy": "packages/report-spec/src/font.test.ts"
+        },
+        {
+          "area": "licence",
+          "says": "A font whose OS/2 fsType says Restricted License, No subsetting or Bitmap embedding only is refused with no override, even where its vendor grants embedding by contract, and one that says Installable may still be under a licence that forbids generating documents with it, which nothing here reads: the licence description `readFont` hands back is the customer's to read.",
+          "heldBy": "packages/report-spec/src/font.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A colour font, one with COLR, SVG, CBDT or sbix glyphs, is refused even where its outlines would print in one colour.",
+          "heldBy": "packages/report-spec/src/font.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A font mapped only in the Windows symbol encoding or a legacy one is refused, as ten of the 447 font files of one Windows machine measured on 21 and 22 October 2026 were.",
+          "heldBy": "packages/report-spec/src/font-cmap.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A font past 20 MB and one with a glyph whose points times its contours pass 1,048,576 are refused, as SimSun-ExtB, 21.9 MB, was of that machine's fonts.",
+          "heldBy": "packages/report-spec/src/font.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A font that maps more than 131,072 characters is refused.",
+          "heldBy": "packages/report-spec/src/font-cmap.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A font is read as fontkit, which PDFKit prints with, reads it, not only as the OpenType specification asks: a table recorded as empty is refused, and a PostScript name in an encoding fontkit decodes otherwise than report-spec's reader, or a naming table fontkit could not decode, is refused, where another reader might take the font.",
+          "heldBy": "packages/report-spec/src/font.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "`characterMap` reads a font's character map alone, whatever length the directory records for it, and holds no glyph to the font's glyph count, so the characters a host's font is held to are `readFont`'s, which holds both.",
+          "heldBy": "packages/report-spec/src/font-cmap.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "That fontkit, which PDFKit lays text out and subsets with, maps, names and draws a font as report-spec's reader says and embeds what it accepts is held on Roboto 3.014, Liberation Sans 2.1.5, every recorded length of two of their faces' tables and 160 corruptions of the same two, and not on a customer's font; and the layout tables fontkit runs at print, GSUB, GPOS, kern and morx, are not read, so a crafted one can fail a render with an error rather than a refusal, or never let it end: a morx table of one state that never advances, in a font the reader accepts, kept PDFKit laying one letter out until it was stopped after 20 seconds, on 22 October 2026.",
+          "heldBy": "packages/report-render-pdf/src/fonts.test.ts"
         }
       ]
     },
