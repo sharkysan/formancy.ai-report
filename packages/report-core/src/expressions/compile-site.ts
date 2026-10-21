@@ -2,7 +2,7 @@
  * One expression compiled where it stands, with every member it reads
  * checked as the type it is.
  *
- * `@formancy/expressions` 0.6.0, as 0.5.0, declares a variable only by its
+ * `@formancy/expressions` 0.7.0, as 0.5.0 and 0.6.0, declares a variable only by its
  * whole name: a declaration of `row.amount` is a variable with a dot in its
  * name, which an expression reading `row.amount` never finds. So each read of a member
  * is spliced, by upstream's own `rewritePath`, which verifies every splice
