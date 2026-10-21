@@ -1,10 +1,12 @@
 # Getting started: a PDF from your data, and the editor in your page
 
 This guide takes an application developer from an empty npm project to a
-quotation printed as a PDF, in Node and in a browser, and to the report
-editor in a React page that saves what the author changed and previews it as
-they work, and in an Angular page that saves. It is written for the 0.2.0
-developer preview: the packages are the ones
+quotation printed as a PDF, in Node and in a browser, to an XRechnung's XML
+and its copy, and to the report editor in a React page that saves what the
+author changed and previews it as they work, and in an Angular page that
+saves. It is written for the 0.2.0 developer preview, but for the
+XRechnung, which needs the release after it (section 2): the packages are
+the ones
 [README.md](../README.md#packages) lists, the report format is version 0, a
 draft, and there is no server package yet, so where a page needs a server
 -- to store a report, or to hand it data -- the server is yours.
@@ -314,6 +316,164 @@ not drawn: unsupported, body[1] prints U+5C71, which Roboto has no glyph for: it
 The renderer names where it stopped as a place in the resolved document,
 where the report's header comes first: `body[1]` is the line that names the
 customer.
+
+### An XRechnung: take the XML
+
+**This needs the release after 0.2.0.** 0.2.0 refuses a report whose
+e-invoice is of the kind `xrechnung`, as `unknown-kind`, and has no
+`XRECHNUNG_COPY_LABEL`, so with the packages npm installs today this block
+does not compile. The install gate compiles and runs it against the
+packages this repository builds.
+
+A report may carry an e-invoice, which the runtime writes as EN 16931's CII
+XML from the very values its page prints. Of the kind `xrechnung` it is an
+XRechnung 3.0, the invoice a German public buyer asks for: its XML is the
+invoice, which your application takes from the resolved document and sends
+-- to the federal portal, by email or over Peppol, as the buyer asks; the
+packages send nothing. The PDF drawn from the same document is a copy, and
+says so at the top of every page
+([0038](./decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+An XRechnung needs what EN 16931 lets an invoice leave out: the business
+process, the buyer's reference -- a public buyer's Leitweg-ID -- the payment
+instructions, the seller's contact and both parties' electronic addresses.
+Each total the XML holds is printed by the name the runtime binds it to,
+`invoice`, `vatBasis` and `vatAmount`, or the report is refused. Still in
+`quotation.ts`:
+
+```ts guide=node
+import { XRECHNUNG_COPY_LABEL } from '@formancy/report-runtime'
+
+/** Euro to the cent, as every amount of an e-invoice prints. */
+const eur = { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } as const
+const said = (text: string) => [{ kind: 'text', text }] as const
+const leitwegId = [{ kind: 'field', field: { dataset: 'header', field: 'leitwegId' } }] as const
+const line = (field: string) => ({ kind: 'field', field: { dataset: 'detail', field } }) as const
+const total = (id: string, label: string, cel: string) => ({ id, kind: 'text', content: [{ kind: 'text', text: label }, { kind: 'expression', expression: { cel }, format: eur }] }) as const
+
+const rechnung: ReportDefinition = {
+  reportSpecVersion: '0',
+  id: 'rechnung',
+  title: 'Rechnung',
+  locale: 'de-DE',
+  page: quotation.page,
+  styles: [],
+  datasets: {
+    header: {
+      id: 'rechnung',
+      fields: [
+        { id: 'number', type: 'string', label: 'Rechnungsnummer', nullable: false },
+        { id: 'issuedOn', type: 'date', label: 'Rechnungsdatum', nullable: false },
+        { id: 'servedOn', type: 'date', label: 'Leistungsdatum', nullable: false },
+        { id: 'leitwegId', type: 'string', label: 'Leitweg-ID', nullable: false },
+      ],
+    },
+    detail: {
+      id: 'rechnung-lines',
+      fields: [
+        { id: 'position', type: 'integer', label: 'Position', nullable: false },
+        { id: 'description', type: 'string', label: 'Leistung', nullable: false },
+        { id: 'quantity', type: 'decimal', label: 'Menge', nullable: false, scale: 2 },
+        { id: 'unit', type: 'string', label: 'Einheit (UN/ECE)', nullable: false },
+        { id: 'price', type: 'decimal', label: 'Einzelpreis', nullable: false, scale: 2 },
+        { id: 'amount', type: 'decimal', label: 'Betrag', nullable: false, scale: 2 },
+      ],
+    },
+  },
+  parameters: [],
+  assets: [],
+  aggregates: [],
+  regions: {
+    reportHeader: [{ id: 'heading', kind: 'text', content: [{ kind: 'text', text: 'Rechnung, Leitweg-ID ' }, ...leitwegId] }],
+    pageHeader: [],
+    body: [
+      {
+        id: 'lines',
+        kind: 'table',
+        dataset: 'detail',
+        columns: [
+          { id: 'description', header: 'Leistung', width: 'fill', align: 'left', value: line('description') },
+          { id: 'quantity', header: 'Menge', width: 60, align: 'right', value: line('quantity') },
+          { id: 'price', header: 'Einzelpreis', width: 80, align: 'right', value: { ...line('price'), format: eur } },
+          { id: 'amount', header: 'Betrag', width: 80, align: 'right', value: { ...line('amount'), format: eur } },
+        ],
+        emptyText: 'Keine Positionen.',
+        repeatHeader: true,
+      },
+    ],
+    summary: [
+      total('net', 'Nettobetrag ', 'invoice.taxBasisTotal'),
+      total('basis', 'Umsatzsteuer 19 % auf ', 'vatBasis.standard'),
+      total('vat', 'Umsatzsteuer 19 % ', 'vatAmount.standard'),
+      total('tax', 'Umsatzsteuer gesamt ', 'invoice.taxTotal'),
+      total('grand', 'Rechnungsbetrag ', 'invoice.grandTotal'),
+    ],
+    pageFooter: [],
+  },
+  eInvoice: {
+    kind: 'xrechnung',
+    version: '3.0',
+    type: '380',
+    currency: 'EUR',
+    number: [{ kind: 'field', field: { dataset: 'header', field: 'number' } }],
+    issued: { cel: 'header.issuedOn' },
+    delivered: { cel: 'header.servedOn' },
+    businessProcess: said('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
+    buyerReference: leitwegId,
+    seller: {
+      name: said('Muster Haustechnik GmbH'),
+      vatId: said('DE123456789'),
+      electronicAddress: { id: said('rechnung@haustechnik.example'), scheme: 'EM' },
+      contact: { name: said('Erika Mustermann'), telephone: said('+49 221 4710 820'), email: said('e.mustermann@haustechnik.example') },
+      address: { line1: said('Industriestraße 7'), postalCode: said('50735'), city: said('Köln'), country: said('DE') },
+    },
+    buyer: {
+      name: said('Bundesamt für Beispielwesen'),
+      electronicAddress: { id: leitwegId, scheme: '0204' },
+      address: { line1: said('Beispielweg 12'), postalCode: said('53113'), city: said('Bonn'), country: said('DE') },
+    },
+    vat: [{ id: 'standard', code: 'S', rate: '19' }],
+    lines: { table: 'lines', name: 'description', quantity: 'quantity', netPrice: 'price', netAmount: 'amount', id: line('position'), unit: line('unit'), vat: { kind: 'expression', expression: { cel: '"standard"' } } },
+    payment: { means: '58', iban: said('DE83 0123 4567 0012 3456 78') },
+  },
+}
+
+const invoiceData: ReportData = {
+  header: { number: 'RE-2026-0101', issuedOn: '2026-10-20', servedOn: '2026-10-14', leitwegId: '991-33333TEST-33' },
+  detail: [
+    { position: '1', description: 'Wartung Gas-Brennwertkessel', quantity: '1.00', unit: 'LS', price: '245.00', amount: '245.00' },
+    { position: '2', description: 'Arbeitszeit Techniker', quantity: '2.50', unit: 'HUR', price: '76.00', amount: '190.00' },
+  ],
+  completeness: { complete: true, captured: 2 },
+  consistency: 'host-captured',
+}
+
+const invoiced = resolveReport(rechnung, invoiceData, { mode: 'final', creationDate })
+if (!invoiced.ok) throw new Error(invoiced.errors.map((error) => `${error.code} at ${error.path}: ${error.message}`).join('; '))
+const { eInvoice } = invoiced.document
+if (eInvoice?.kind !== 'xrechnung') throw new Error('a final render of an XRechnung carries its XML')
+// The invoice: send these bytes, as UTF-8, to the buyer.
+await writeFile('rechnung.xml', eInvoice.xml)
+console.log(`XRechnung ${eInvoice.version} in ${eInvoice.syntax.toUpperCase()}, ${eInvoice.guideline}: rechnung.xml is the invoice`)
+// Its copy, for your records or a person's eyes.
+await writeFile('rechnung.pdf', await renderPdf(invoiced.document, { maxPages: 50 }))
+console.log(`rechnung.pdf is its copy, every page headed "${XRECHNUNG_COPY_LABEL}"`)
+```
+
+This prints:
+
+```text guide=node
+XRechnung 3.0 in CII, urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0: rechnung.xml is the invoice
+rechnung.pdf is its copy, every page headed "Copy of an XRechnung: the invoice is its XML, and this PDF is not the invoice"
+```
+
+`991-33333TEST-33` is a Leitweg-ID of KoSIT's own test suite: under the
+scheme `0204` an electronic address is one, and its check digits are held
+to ISO/IEC 7064 MOD 97-10, which neither validator the repository's
+e-invoice gate runs checks. A preview writes no XML, as for every
+e-invoice. What the e-invoice holds and refuses -- a `#`-led line in an
+XRechnung's payment terms among it, since XRechnung reads one as its own
+Skonto syntax -- is in
+[report-spec's README](../packages/report-spec/README.md#an-xrechnung).
 
 ## 3. Render in the browser
 

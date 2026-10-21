@@ -2,7 +2,8 @@
  * What an e-invoice says of the report around it, held where the report
  * can be read: that its lines are what the table over the detail dataset
  * prints, that a payment code printed with it asks for its account and its
- * currency, and that its title can stand in the PDF/A's metadata.
+ * currency, and that a Factur-X invoice's title can stand in the PDF/A's
+ * metadata.
  *
  * The page and the XML are one invoice, or the page is a second one: a
  * picture that differs from the structured part in what the invoice says
@@ -23,7 +24,7 @@ import { xmlCharacterBreak } from './en16931-texts.js'
 import { en16931Rule } from './en16931.js'
 import { checkEpcIban } from './epc-payload.js'
 import { E_INVOICE_CURRENCIES } from './e-invoice.js'
-import type { EInvoiceLines } from './e-invoice.js'
+import type { EInvoiceKind, EInvoiceLines } from './e-invoice.js'
 import type { PaymentPart } from './payment-part.js'
 import { at } from './pointer.js'
 import { checkQrBillAccount } from './qr-bill.js'
@@ -173,12 +174,13 @@ function checkPaymentCodes(c: Ctx, around: EInvoiceSurroundings, locations: read
 }
 
 /**
- * The rule an e-invoice's title breaks, or undefined. The renderer writes
- * the title into the PDF/A's XMP, and its engine writes it there unescaped
- * (`_addInfo` in pdfkit 0.19.1's `js/pdfkit.js`): "Müller & Söhne
+ * The rule a Factur-X invoice's title breaks, or undefined. The renderer
+ * writes the title into the PDF/A's XMP, and its engine writes it there
+ * unescaped (`_addInfo` in pdfkit 0.19.1's `js/pdfkit.js`): "Müller & Söhne
  * <AG>" makes metadata that is not XML, and a PDF that is not PDF/A. The
  * title is the template's own string, never data, so it is refused where
- * it is written; the page may print the three characters.
+ * it is written; the page may print the three characters. An XRechnung's
+ * copy is a plain PDF with no XMP, and its XML holds no title (0038).
  */
 function titleBreak(title: string): string | undefined {
   const characters = xmlCharacterBreak(title)
@@ -187,13 +189,14 @@ function titleBreak(title: string): string | undefined {
 }
 
 /**
- * Everything the e-invoice at `path` says of the report around it: the
- * title, the lines' table and columns, and every payment code. `pays` says
- * whether it gives payment instructions, and `account` is their account
- * when it is literal and its rule took it.
+ * Everything the e-invoice at `path` says of the report around it: a
+ * Factur-X invoice's title, the lines' table and columns, and every
+ * payment code. `pays` says whether it gives payment instructions,
+ * `account` is their account when it is literal and its rule took it, and
+ * `kind` is the e-invoice's.
  */
-export function checkEInvoiceReport(c: Ctx, path: string, around: EInvoiceSurroundings, invoice: { readonly named: NamedColumns; readonly pays: boolean; readonly account: string | undefined }): void {
-  const broken = around.title === undefined ? undefined : titleBreak(around.title)
+export function checkEInvoiceReport(c: Ctx, path: string, around: EInvoiceSurroundings, invoice: { readonly named: NamedColumns; readonly pays: boolean; readonly account: string | undefined; readonly kind: EInvoiceKind }): void {
+  const broken = around.title === undefined || invoice.kind !== 'facturX' ? undefined : titleBreak(around.title)
   if (broken !== undefined) c.f.report('/title', 'invalid-e-invoice', broken)
   const locations = around.regions && walkRegions(around.regions)
   if (locations !== undefined) checkLines(c, at(path, 'lines'), locations, invoice.named)

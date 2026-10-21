@@ -49,12 +49,13 @@ describe("a final render's e-invoice", () => {
   // The document carries the file the renderer embeds, named by
   // report-spec's constants, which the runtime hands on: one decision for
   // the name, the relationship and the conformance level, never an
-  // engine's own [S].
+  // engine's own [S]; and its kind, which says it is embedded at all (an
+  // XRechnung's is not, xrechnung.test.ts).
   test('is the XML, named as report-spec names it', () => {
     const file = resolved(invoiceReport(), invoiceData(LINES)).document.eInvoice
-    expect(file).toEqual({ xml: expect.stringMatching(/^<\?xml version="1\.0" encoding="UTF-8"\?>\n<rsm:CrossIndustryInvoice /), fileName: 'factur-x.xml', relationship: 'Alternative', conformanceLevel: 'EN 16931' })
-    expect(file?.fileName).toBe(FACTUR_X.fileName)
-    expect(file?.conformanceLevel).toBe(FACTUR_X_PROFILES.en16931.conformanceLevel)
+    expect(file).toEqual({ kind: 'facturX', xml: expect.stringMatching(/^<\?xml version="1\.0" encoding="UTF-8"\?>\n<rsm:CrossIndustryInvoice /), fileName: 'factur-x.xml', relationship: 'Alternative', conformanceLevel: 'EN 16931' })
+    expect(file?.kind === 'facturX' && file.fileName).toBe(FACTUR_X.fileName)
+    expect(file?.kind === 'facturX' && file.conformanceLevel).toBe(FACTUR_X_PROFILES.en16931.conformanceLevel)
     expect(runtime.FACTUR_X).toBe(FACTUR_X)
     expect(runtime.FACTUR_X_PROFILES).toBe(FACTUR_X_PROFILES)
   })

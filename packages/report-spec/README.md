@@ -173,7 +173,7 @@ What they do not check:
 
 A report may carry one e-invoice, `eInvoice`: an EN 16931 invoice, which the
 runtime writes as Factur-X 1.09.2 / ZUGFeRD 2.5.2 CII in the EN 16931 profile
-([0027](../../docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)). It is of kind `facturX`, type 380, in euro, its VAT categories
+([0027](../../docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)). It is of kind `facturX`, or of kind `xrechnung` (below), type 380, in euro, its VAT categories
 standard rated, exempt or reverse-charged, with no allowances or charges: a
 discount is a line of negative quantity at a positive price. Its seller, its
 buyer, their addresses and its payment instructions are runs, as a
@@ -283,8 +283,74 @@ What they do not check:
   compares it with the amount due;
 - an account, a date or a total read from the data, before a render;
 - that an electronic address is of its scheme's form, a GLN's check digit
-  or a Leitweg-ID's among it;
-- France's rules (BR-FR), and XRechnung's, but for the two shapes above.
+  among it, but for a Leitweg-ID's under 0204 (below);
+- France's rules (BR-FR).
+
+## An XRechnung
+
+An e-invoice of kind `xrechnung` is an XRechnung 3.0, KoSIT's CIUS of EN
+16931 a German public buyer asks for, written as CII alone
+([0038](../../docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)). It holds
+every term a Factur-X invoice does, by the same rules, with `version`, of
+`XRECHNUNG_VERSIONS`, where Factur-X has its profile; `XRECHNUNG` names
+each version's specification identifier (BT-24), KoSIT's `XR-CIUS-ID`, the
+release of KoSIT's it was read from, 3.0.2, and its syntax. The type is
+`XRechnungInvoice`, and the terms both kinds hold `EInvoiceTerms`.
+
+It needs what XRechnung's schematron needs past EN 16931, each refused
+where it is missing by the fatal rule that needs it (`XRECHNUNG_NEEDS`):
+the business process (PEPPOL-EN16931-R001), the buyer's reference, a
+public buyer's Leitweg-ID (BR-DE-15), the payment instructions (BR-DE-1),
+the seller's contact (BR-DE-2) and both electronic addresses
+(PEPPOL-EN16931-R020, -R010); and each of those texts, and the contact's
+three (BR-DE-5 to -7), to say something (`XRECHNUNG_TEXT_NEEDS`). Its texts
+are held by `E_INVOICE_KIND_TEXTS.xrechnung`, EN 16931's table with those
+needed and its payment terms held to BR-DE-18: no line of them may begin
+with `#`, which XRechnung reads as a Skonto line of its own syntax, and
+this release writes no Skonto (`skontoBreak`). A refusal names the rule as
+XRechnung's, `(XRechnung's BR-DE-15)`. The rules no refusal names, since
+nothing the format can say breaks them, are in `XRECHNUNG_HELD`, each with
+what holds it; the e-invoice gate holds every id of both lists to a rule of
+KoSIT's pinned XRechnung schematron, the test of each rule a need names to
+the element the runtime writes the term as, and the context and test of
+each held rule to the ones its reason was read against, so that one KoSIT
+rewrites fails the gate; and `XRECHNUNG`'s guideline and release to the
+schematron's `XR-CIUS-ID` and to the release the register pins.
+
+```ts
+import { checkEInvoiceText, checkElectronicAddress, leitwegIdBreak, skontoBreak, XRECHNUNG } from '@formancy/report-spec'
+
+XRECHNUNG['3.0'].guideline // 'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0'
+checkEInvoiceText('BT-10', ' ', 'xrechnung') // { ok: false, rule: "is empty, and an XRechnung needs it (XRechnung's BR-DE-15)" }
+checkEInvoiceText('BT-10', ' ') // { ok: false, rule: 'is blank: a term the e-invoice does not hold is left out of it' }: a Factur-X invoice may leave it out
+skontoBreak('Zahlbar binnen 14 Tagen\n#SKONTO#TAGE=14#PROZENT=2.00#\n') // "hold a line that begins with #, ... (XRechnung's BR-DE-18)"
+checkElectronicAddress('BT-49', '0204', '991-33333TEST-34') // { ok: false, rule: "is under 0204, a Leitweg-ID, and has check digits that do not match the rest of it (the Leitweg-ID's check digits, ISO/IEC 7064 MOD 97-10)" }
+leitwegIdBreak('991-33333TEST-33') // undefined: KoSIT's own test value
+```
+
+**A Leitweg-ID** is checked where scheme `0204` says an electronic address
+is one, in an e-invoice of either kind: a coarse address of 2 to 12
+digits, a fine address of up to 30 letters and digits where it has one,
+and two check digits by ISO/IEC 7064 MOD 97-10, joined by hyphens
+(`leitwegIdBreak`). The buyer's reference is not: a business buyer's
+XRechnung carries an order number there, and BR-DE-15 asks only that it be
+given. Neither validator the gate runs checks a Leitweg-ID's digits; the
+format specification could not be read when this was written, so its
+shape rests on FeRD's description of it and on KoSIT's test suite, whose
+every Leitweg-ID with right digits it takes, and whose three with wrong
+digits, which KoSIT's validator takes, it refuses. The expression is
+anchored at both ends and its repeats bounded, so a text of any length is
+decided within its first 46 characters.
+
+What it does not do:
+
+- **UBL.** CII alone: KoSIT's configuration has UBL scenarios, which a
+  second writer of one invoice would need.
+- **A Skonto.** XRechnung 3.0's `#SKONTO#` lines are refused, not written;
+  a structured discount waits for XRechnung 4.0.
+- **XRechnung 4.0**, the extension and CVD scenarios, credit notes, and
+  anything EN 16931's terms here do not hold.
+- That a Leitweg-ID belongs to a buyer, or that a portal takes the file.
 
 ## An SVG asset
 

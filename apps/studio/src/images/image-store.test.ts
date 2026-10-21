@@ -3,7 +3,7 @@
 import { createReportEditor, SCENARIO_PNG, SCENARIO_PNG_DIGEST } from '@formancy/report-builder-core'
 import type { AddedImage, ImageFile } from '@formancy/report-builder-core'
 import { openReportSession, putAsset } from '@formancy/report-core'
-import { E_INVOICE, readPdf, STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
+import { E_INVOICE, readPdf, STARTER_IMAGES, STARTERS, XRECHNUNG_SAMPLE } from '@formancy/report-corpus'
 import { assetDigest } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { afterAll, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
@@ -119,12 +119,15 @@ describe('the Studio’s images', () => {
     editor.dispose()
   })
 
-  // An e-invoice is drawn as a PDF/A-3b beside which no image may be CMYK
-  // (0031): the renderer refuses one at the final render, and the editor
-  // at the door of an e-invoice (0033). Two places decide it, so both are
-  // held here, on the e-invoice sample: were the renderer to draw it, or
-  // the editor to take it, this fails. In any other report it prints.
-  test('refuse a CMYK JPEG at the door of an e-invoice, as its final render refuses it, and print it elsewhere', async () => {
+  // A Factur-X invoice is drawn as a PDF/A-3b beside which no image may be
+  // CMYK (0031): the renderer refuses one at the final render, and the
+  // editor at the door of a Factur-X invoice (0033). Two places decide it,
+  // so both are held here, on the e-invoice sample: were the renderer to
+  // draw it, or the editor to take it, this fails. An XRechnung's PDF is a
+  // plain copy (0038), so on the XRechnung sample both take it: were
+  // either to refuse it there, this fails too. In any other report it
+  // prints.
+  test('refuse a CMYK JPEG at the door of a Factur-X invoice, as its final render refuses it, and print it in an XRechnung’s copy and elsewhere', async () => {
     const { resolve, store } = studioImages(images)
     const file: ImageFile = { name: 'druckerei.jpg', size: CMYK.length, arrayBuffer: async () => Uint8Array.from(CMYK).buffer }
     const invoice = editorOver(store, E_INVOICE.report)
@@ -145,5 +148,13 @@ describe('the Studio’s images', () => {
     const printed = await preview({ report: blank.session.document(), starter: BLANK, mode: 'final', images: resolve, creationDate: CREATED }, new AbortController().signal)
     expect(printed.kind).toBe('printed')
     blank.editor.dispose()
+    // In an XRechnung, the editor takes it and the final render draws it in the copy, the sample's mark an SVG and no image of PDF.js's.
+    const xrechnung = editorOver(store, XRECHNUNG_SAMPLE.report)
+    expect(await xrechnung.editor.addImage(file)).toEqual({ ok: true })
+    expect(xrechnung.editor.dispatch({ type: 'insert', kind: 'image', target: { region: 'reportHeader', index: 0 } })).toEqual({ ok: true })
+    const copy = await preview({ report: xrechnung.session.document(), starter: XRECHNUNG_SAMPLE, mode: 'final', images: resolve, creationDate: CREATED }, new AbortController().signal)
+    if (copy.kind !== 'printed') throw new Error(`the XRechnung's copy was not printed: ${JSON.stringify(copy)}`)
+    expect((await readPdf(copy.pdf)).pages.flatMap((page) => page.images)).toHaveLength(1)
+    xrechnung.editor.dispose()
   })
 })

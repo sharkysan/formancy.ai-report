@@ -1,8 +1,8 @@
-import { MAX_SVG_GROUPS, MAX_SVG_SEGMENTS, RenderRefusal, type Block, type Columns, type EInvoiceFile, type EpcQrCode, type Image, type ImageAsset, type KeepTogether, type QrCode, type Rectangle, type ResolvedDocument, type Section, type Table, type TextStyle } from '@formancy/report-runtime'
+import { MAX_SVG_GROUPS, MAX_SVG_SEGMENTS, RenderRefusal, type Block, type Columns, type EpcQrCode, type FacturXFile, type Image, type ImageAsset, type KeepTogether, type QrCode, type Rectangle, type ResolvedDocument, type Section, type Table, type TextStyle } from '@formancy/report-runtime'
 import { checkImageAsset, MAX_IMAGE_DATA, MAX_SVG_DRAWING, type CheckedImage, type Vector } from './assets.js'
 import { frameOf, RULE_GAP } from './content.js'
 import { epcSymbol } from './epc.js'
-import { checkEInvoice, checkEInvoiceTitle } from './e-invoice.js'
+import { checkCopyLabel, checkEInvoice, checkEInvoiceTitle } from './e-invoice.js'
 import { codePoint, faceOf, missingGlyph, type Glyphs } from './glyphs.js'
 import { qrSymbol, type QrSymbol } from './qr.js'
 import { COLOR, FONTS, LINE_FACTOR } from './style.js'
@@ -74,8 +74,8 @@ export interface Measured {
 export interface Checked {
   readonly page: Page
   readonly creationDate: Date
-  /** The e-invoice the document carries, known to the renderer: drawn as a PDF/A-3b that embeds it (`pdfa.ts`). */
-  readonly eInvoice: EInvoiceFile | undefined
+  /** The Factur-X file the document carries, known to the renderer: drawn as a PDF/A-3b that embeds it (`pdfa.ts`). An XRechnung's copy is a plain PDF, and has none. */
+  readonly pdfa: FacturXFile | undefined
   /** Every image asset as the checks read it: a PNG's or a JPEG's size in pixels, as it is shown, or an SVG's drawing. */
   readonly assets: ReadonlyMap<ImageAsset, CheckedImage>
   /** Every QR code's and EPC QR code's symbol, encoded once. */
@@ -118,15 +118,18 @@ export async function checkDocument(document: ResolvedDocument, glyphs: Glyphs, 
   if (typeof document.info.title !== 'string') throw new RenderRefusal('unsupported', 'the title is not text', 'info.title')
   // An e-invoice it does not know is refused, never embedded as something else or drawn as a plain PDF (`e-invoice.ts`).
   const eInvoice = document.eInvoice === undefined ? undefined : checkEInvoice(document.eInvoice)
-  if (eInvoice !== undefined) checkEInvoiceTitle(document.info.title)
+  // A Factur-X invoice is a PDF/A-3b that embeds its XML; an XRechnung's PDF a plain copy, labelled so on every page (0038).
+  const pdfa = eInvoice?.kind === 'facturX' ? eInvoice : undefined
+  if (pdfa !== undefined) checkEInvoiceTitle(document.info.title)
+  if (eInvoice?.kind === 'xrechnung') checkCopyLabel(document.pageHeader)
   const page = pageOf(document.page)
   const walk: Walk = { glyphs, paths: new Map(), images: [], codes: new Map(), captioned: false, tall: [], measured: [] }
   const top: Omit<Place, 'region'> = { kept: false, column: false, width: page.width, inset: 0, depth: 0 }
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true }, walk)
   checkBlocks(document.pageFooter, 'pageFooter', { ...top, region: true }, walk)
   checkBlocks(document.body, 'body', { ...top, region: false }, walk)
-  const assets = await checkImages(walk.images, maxPages, eInvoice !== undefined, page)
-  return { page, creationDate, eInvoice, assets, codes: walk.codes, captioned: walk.captioned, tall: walk.tall, paths: walk.paths, measured: walk.measured }
+  const assets = await checkImages(walk.images, maxPages, pdfa !== undefined, page)
+  return { page, creationDate, pdfa, assets, codes: walk.codes, captioned: walk.captioned, tall: walk.tall, paths: walk.paths, measured: walk.measured }
 }
 
 /**

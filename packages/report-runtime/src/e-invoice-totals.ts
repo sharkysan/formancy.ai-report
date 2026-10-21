@@ -35,7 +35,7 @@
 import { addDecimal, Decimal, decimalFromString, multiplyDecimal, roundDecimal, subtractDecimal } from '@formancy/expressions'
 import type { ExpressionValues } from '@formancy/report-core'
 import { checkVatRate } from '@formancy/report-spec'
-import type { FacturXInvoice, VatCategory } from '@formancy/report-spec'
+import type { EInvoice, VatCategory } from '@formancy/report-spec'
 
 /** A line as its totals read it: its net amount (BT-131) at exactly two places, and the category it is in (BT-151). */
 export interface TotalledLine {
@@ -142,7 +142,7 @@ export function invoiceTotals(categories: readonly VatCategory[], lines: readonl
  * no line is in it, which prints as nothing (0007). The very values the
  * XML is written from.
  */
-export function invoiceNames(invoice: Pick<FacturXInvoice, 'vat' | 'paid'>, totals: InvoiceTotals): ExpressionValues {
+export function invoiceNames(invoice: Pick<EInvoice, 'vat' | 'paid'>, totals: InvoiceTotals): ExpressionValues {
   const of = (category: VatCategory): VatBreakdown | undefined => totals.breakdown.find((each) => each.category.id === category.id)
   return {
     invoice: {

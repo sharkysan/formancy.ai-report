@@ -21,7 +21,7 @@ import { zipOf } from './zip-of.mjs'
 const here = dirname(fileURLToPath(import.meta.url))
 const recorded = (...path) => readFileSync(join(here, 'recorded', ...path), 'utf8')
 const run = JSON.parse(recorded('run.json'))
-const entries = pdfPlan(corpus({ samples: run.samples.map((id) => ({ id })), xmlOf: (sample) => recorded('corpus', `${sample.id}.xml`) }))
+const entries = pdfPlan(corpus({ samples: run.samples.map((id) => ({ id })), xmlOf: (sample) => recorded('corpus', `${sample.id}.xml`), kindOf: (sample) => run.kinds[sample.id].kind, guidelineOf: (sample) => run.kinds[sample.id].guideline }))
 const { tools } = readRegisters()
 const md5 = (bytes) => createHash('md5').update(bytes).digest('hex')
 const FILE = { fileName: 'factur-x.xml', relationship: 'Alternative', mediaType: 'text/xml', md5 }

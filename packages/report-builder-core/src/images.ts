@@ -251,8 +251,8 @@ export function imageActions(images: Images, editing: ImageEditing) {
     if (!found.ok) return refused('not-an-image', name, found.reason)
     const { mediaType, width, height, cleaned } = found
     const { report } = editing.current()
-    // An e-invoice is drawn as a PDF/A-3b whose output intent is sRGB, beside which no image may be CMYK (0031).
-    if (found.cmyk && report.eInvoice !== undefined) return refused('not-an-image', name, t('images.reason.cmykEInvoice'))
+    // A Factur-X invoice is drawn as a PDF/A-3b whose output intent is sRGB, beside which no image may be CMYK (0031); an XRechnung's copy is no PDF/A (0038).
+    if (found.cmyk && report.eInvoice?.kind === 'facturX') return refused('not-an-image', name, t('images.reason.cmykEInvoice'))
     const digest = assetDigest(found.bytes)
     const asset = declared({ mediaType, digest }) ?? nextAssetId(report, assetBase(name), keptOtherwise(bytesOf({ mediaType, digest })))
     return { image: { asset, mediaType, digest, bytes: found.bytes, fileName: name, width, height }, ...(cleaned === undefined ? {} : { cleaned }) }

@@ -57,6 +57,16 @@ says
 ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
 [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
 
+## What a host sends for an XRechnung
+
+An XRechnung's invoice is its XML, `document.eInvoice.xml` of a final
+render, which the host sends where the public buyer asks -- the federal
+portals ZRE and OZG-RE, a Land's, email, Peppol -- and nothing published
+sends it, reaches a portal or knows a Leitweg-ID's owner. The PDF the
+renderer draws of the same document is a copy, labelled so on every page,
+and embeds nothing; a host that sends it alone sends no invoice
+([0038](../decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+
 ## The e-invoice gate's tools
 
 Nothing published carries them, and no host needs them. The `e-invoice`
@@ -189,12 +199,12 @@ deploy happened or what the address serves.
   SVG, never the file as chosen, and the file's name for its own records
   ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
 - **For an e-invoice:** 0.1.0 refuses a report that holds one. From 0.2.0
-  a final render writes the CII XML into the resolved document,
-  `document.eInvoice.xml`, and the renderer draws that
+  a final render of a Factur-X invoice writes the CII XML into the
+  resolved document, `document.eInvoice.xml`, and the renderer draws that
   document as a PDF/A-3b that embeds it as `factur-x.xml`, the German
   hybrid invoice, in either entry; a preview writes no XML and prints as a
-  plain PDF, labelled on every page as no e-invoice. In an e-invoice, an
-  image is no CMYK JPEG. A host that bundles report-spec, report-core and
+  plain PDF, labelled on every page as no e-invoice. In a Factur-X
+  invoice, an image is no CMYK JPEG. An XRechnung's is below. A host that bundles report-spec, report-core and
   report-runtime carries the e-invoice's rules and writer whether its
   reports have one or not, which 0027 measures
   ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).

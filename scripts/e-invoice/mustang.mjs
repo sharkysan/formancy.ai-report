@@ -198,19 +198,20 @@ const brokenInPdfPartAlone = (expected) => expected.every((key) => key.startsWit
  * The verdict: `{ rows, problems, compiled }`. `rows` is one per corpus
  * entry, for the results file; `problems` every sentence that fails the
  * gate; `compiled` every schematron Mustang logged compiling for a sample,
- * which the oracle reads.
+ * by the profile it read the sample as -- FeRD's for a Factur-X invoice,
+ * CEN's and XRechnung's for an XRechnung (0038) -- which the oracle reads.
  *
  * - `entries`: the corpus (scripts/e-invoice/corpus.mjs and pdf-corpus.mjs),
  *   XML and PDF alike;
  * - `runs`: file to `{ status, stdout, stderr, error? }`, one per entry run;
  * - `accepted`: scripts/e-invoice/accepted.json's entries;
  * - `pinned`: the Mustang version the register pins;
- * - `profile`: BT-24, as report-spec's FACTUR_X_PROFILES gives it.
+ * - `profile`: BT-24, as report-spec's FACTUR_X_PROFILES gives it, for a sample that names none of its own (`entry.guideline`).
  */
 export function judgeMustang({ entries, runs, accepted, pinned, profile }) {
   const mine = accepted.filter((entry) => entry.tool === 'mustang')
   const raised = new Set()
-  const compiled = new Set()
+  const compiled = new Map()
   const problems = []
   const rows = entries.map((entry) => {
     const { file, expect } = entry
@@ -243,9 +244,10 @@ export function judgeMustang({ entries, runs, accepted, pinned, profile }) {
     if (report.filename !== file) wrong.push(`Mustang’s report on ${file} names ${String(report.filename)} as the file it judged`)
     if (entry.format !== 'pdf' && report.pdf !== null) wrong.push(`Mustang judged ${file} as a PDF: its report has a <pdf> part, and the file is XML`)
     if (expect.mustang === 'accepted') {
-      for (const path of log.compiled) compiled.add(path)
+      const guideline = entry.guideline ?? profile
+      compiled.set(guideline, [...new Set([...(compiled.get(guideline) ?? []), ...log.compiled])])
       if (ran.status !== 0) wrong.push(`Mustang exited ${String(ran.status)} on ${file}, which it must accept`)
-      wrong.push(...sampleProblems(entry, report, { pinned, profile }))
+      wrong.push(...sampleProblems(entry, report, { pinned, profile: guideline }))
       for (const key of ruled) wrong.push(`${file} is refused by Mustang: ${key}: its PDF part failed it`)
       for (const message of refusing) wrong.push(`${file} is refused by Mustang: ${message.key}: ${message.text}`)
       for (const key of log.refusals) wrong.push(`${file} is refused by Mustang: ${key}: Mustang logged it on stderr, and its report has no item for it`)
@@ -267,5 +269,5 @@ export function judgeMustang({ entries, runs, accepted, pinned, profile }) {
   for (const entry of mine) {
     if (!entry.files.some((file) => raised.has(`${entry.message}\0${file}`))) problems.push(`the accepted message mustang ${entry.message} was raised in none of its files: remove it from scripts/e-invoice/accepted.json`)
   }
-  return { rows, problems, compiled: [...compiled] }
+  return { rows, problems, compiled: Object.fromEntries(compiled) }
 }

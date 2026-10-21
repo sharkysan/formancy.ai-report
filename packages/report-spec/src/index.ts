@@ -126,6 +126,8 @@ export {
   VAT_BREAKDOWN,
   VAT_CATEGORY_CODES,
   VAT_PREFIXES,
+  XRECHNUNG,
+  XRECHNUNG_VERSIONS,
 } from './e-invoice.js'
 export type {
   AddressScheme,
@@ -139,6 +141,7 @@ export type {
   EInvoiceName,
   EInvoiceProfile,
   EInvoiceSeller,
+  EInvoiceTerms,
   ElectronicAddress,
   FacturXInvoice,
   FacturXProfileTerms,
@@ -153,6 +156,9 @@ export type {
   UnitCode,
   VatCategory,
   VatCategoryCode,
+  XRechnungInvoice,
+  XRechnungTerms,
+  XRechnungVersion,
 } from './e-invoice.js'
 export { EN16931_RULES, en16931Rule, FULL_ADDRESS, neededBy } from './en16931.js'
 export type { EInvoiceNeed, En16931Rule } from './en16931.js'
@@ -160,15 +166,17 @@ export {
   checkAddressScheme,
   checkCountryCode,
   checkEInvoiceText,
+  checkElectronicAddress,
   checkSchemeId,
   checkUnitCode,
   checkVatIdentifier,
+  E_INVOICE_KIND_TEXTS,
   E_INVOICE_TEXT_TERMS,
   E_INVOICE_TEXTS,
   eInvoiceBlank,
   xmlCharacterBreak,
 } from './en16931-texts.js'
-export type { EInvoiceTextRule, EInvoiceTextTerm, EInvoiceTextTerms } from './en16931-texts.js'
+export type { EInvoiceTextRule, EInvoiceTextRules, EInvoiceTextTerm, EInvoiceTextTerms } from './en16931-texts.js'
 export { checkEInvoiceDecimal, E_INVOICE_DECIMALS } from './en16931-decimals.js'
 export type { EInvoiceDecimalRule, EInvoiceDecimalTerm } from './en16931-decimals.js'
 export { checkEInvoiceDate, checkInvoicingPeriod, E_INVOICE_DATES, periodBreak, supplyBreak } from './en16931-dates.js'
@@ -177,8 +185,8 @@ export { E_INVOICE_LINE_CODES, E_INVOICE_LINE_COLUMNS } from './en16931-lines.js
 export type { EInvoiceLineCode, EInvoiceLineColumn, EInvoiceLineTerm } from './en16931-lines.js'
 export { buyerIdentificationBreak, checkLineCategory, checkVatRate, sellerIdentificationBreaks, vatCategoryBreaks, vatReasonBreak } from './en16931-vat.js'
 export type { VatCategoryBreak } from './en16931-vat.js'
-export { XRECHNUNG_PATTERNS, XRECHNUNG_RULES } from './xrechnung.js'
-export type { XRechnungPattern, XRechnungRule } from './xrechnung.js'
+export { isXRechnungRule, leitwegIdBreak, skontoBreak, XRECHNUNG_HELD, XRECHNUNG_NEEDS, XRECHNUNG_PATTERNS, XRECHNUNG_RULES, XRECHNUNG_TEXT_NEEDS, xrechnungRule } from './xrechnung.js'
+export type { XRechnungNeed, XRechnungPattern, XRechnungRule } from './xrechnung.js'
 
 export { validateReport } from './validate.js'
 export type { ReportValidation } from './validate.js'

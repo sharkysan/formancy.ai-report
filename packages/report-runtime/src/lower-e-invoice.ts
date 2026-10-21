@@ -20,9 +20,15 @@
  * `e-invoice-preview` whatever data it has, so that every page carries a
  * preview label, complete data or not. A final render writes the XML or
  * refuses.
+ *
+ * **Both kinds are resolved alike** (0038): an XRechnung's terms are EN
+ * 16931's, read by the same readers under its kind's rules, and written by
+ * the same writer, its specification identifier apart. What differs is
+ * the file the document carries: a Factur-X file a PDF/A-3b embeds, or an
+ * XRechnung's XML a host takes and sends.
  */
-import { FACTUR_X, FACTUR_X_PROFILES } from '@formancy/report-spec'
-import type { EInvoice, EInvoiceKind, FacturXInvoice } from '@formancy/report-spec'
+import { FACTUR_X, FACTUR_X_PROFILES, XRECHNUNG } from '@formancy/report-spec'
+import type { EInvoice, EInvoiceKind } from '@formancy/report-spec'
 import { ciiXml } from './cii.js'
 import type { CiiInvoice } from './cii.js'
 import type { EInvoiceFile } from './document.js'
@@ -38,9 +44,24 @@ export interface ResolvedInvoice {
   readonly written: CiiInvoice | undefined
 }
 
-type Resolver<E extends EInvoice> = (render: Omit<Render, 'invoice'>, invoice: E) => ResolvedInvoice | undefined
+/** BT-24 of each kind: a Factur-X profile's identifier, or an XRechnung version's. A table over every kind, so a kind added without one does not compile. */
+const GUIDELINES: { readonly [K in EInvoiceKind]: (invoice: Extract<EInvoice, { kind: K }>) => string } = {
+  facturX: (invoice) => FACTUR_X_PROFILES[invoice.profile].guideline,
+  xrechnung: (invoice) => XRECHNUNG[invoice.version].guideline,
+}
 
-function facturX(render: Omit<Render, 'invoice'>, invoice: FacturXInvoice): ResolvedInvoice | undefined {
+/** The guideline of `invoice`, by its kind. */
+const guidelineOf = (invoice: EInvoice): string => (GUIDELINES[invoice.kind] as (invoice: EInvoice) => string)(invoice)
+
+/**
+ * `invoice`, `render`'s e-invoice, resolved before anything is lowered,
+ * whatever its kind: its lines, its totals and its terms, each held to its
+ * kind's rules, and in a final render whose every term resolved what its
+ * XML is written from. Undefined when its lines or its totals could not
+ * be, which is recorded: nothing that prints them can be lowered. A term
+ * refused is recorded, and leaves nothing to write.
+ */
+export function resolveEInvoice(render: Omit<Render, 'invoice'>, invoice: EInvoice): ResolvedInvoice | undefined {
   const read = readLines(render, invoice)
   const paid = paidAmount(render, invoice)
   if (read === undefined || paid === undefined) return undefined
@@ -53,23 +74,24 @@ function facturX(render: Omit<Render, 'invoice'>, invoice: FacturXInvoice): Reso
     totals.breakdown.map(({ category }) => category),
   )
   const lines = writtenLines(read.lines)
-  const written = render.preview || terms === undefined || lines === undefined ? undefined : { profile: invoice.profile, type: invoice.type, currency: invoice.currency, terms, lines, totals }
+  const written = render.preview || terms === undefined || lines === undefined ? undefined : { guideline: guidelineOf(invoice), type: invoice.type, currency: invoice.currency, terms, lines, totals }
   return { reads: { names: invoiceNames(invoice, totals), columns: read.columns, payable: { amount: totals.duePayable, account } }, written }
 }
 
-/** How each kind of e-invoice is resolved. A table over every kind, so a kind added to report-spec without a way down does not compile. */
-const RESOLVERS: { readonly [K in EInvoiceKind]: Resolver<Extract<EInvoice, { kind: K }>> } = {
-  facturX,
-}
-
 /**
- * `invoice`, `render`'s e-invoice, resolved before anything is lowered:
- * its lines, its totals and its terms. Undefined when its lines or its
- * totals could not be, which is recorded: nothing that prints them can be
- * lowered. A term refused is recorded, and leaves nothing to write.
+ * The file of each kind, around its XML: Factur-X's, named as report-spec
+ * names the file a PDF/A-3b embeds [S]; an XRechnung's, standalone, named
+ * by its syntax, guideline and version. A table over every kind.
  */
-export function resolveEInvoice(render: Omit<Render, 'invoice'>, invoice: EInvoice): ResolvedInvoice | undefined {
-  return RESOLVERS[invoice.kind](render, invoice)
+const FILES: { readonly [K in EInvoiceKind]: (invoice: Extract<EInvoice, { kind: K }>, xml: string) => EInvoiceFile } = {
+  facturX: (invoice, xml) => {
+    const profile = FACTUR_X_PROFILES[invoice.profile]
+    return { kind: 'facturX', xml, fileName: FACTUR_X.fileName, relationship: profile.relationship, conformanceLevel: profile.conformanceLevel }
+  },
+  xrechnung: (invoice, xml) => {
+    const version = XRECHNUNG[invoice.version]
+    return { kind: 'xrechnung', xml, syntax: version.syntax, guideline: version.guideline, version: invoice.version }
+  },
 }
 
 /** What a preview of an e-invoice warns, whatever data it has. */
@@ -93,6 +115,5 @@ export function eInvoiceFile(render: Render, resolved: ResolvedInvoice, invoice:
   }
   if (render.problems.failed) return undefined
   if (resolved.written === undefined) throw new RangeError('a final render of an e-invoice wrote no XML and recorded no reason: a defect, refused rather than drawn as a plain PDF')
-  const profile = FACTUR_X_PROFILES[invoice.profile]
-  return { xml: ciiXml(resolved.written), fileName: FACTUR_X.fileName, relationship: profile.relationship, conformanceLevel: profile.conformanceLevel }
+  return (FILES[invoice.kind] as (invoice: EInvoice, xml: string) => EInvoiceFile)(invoice, ciiXml(resolved.written))
 }

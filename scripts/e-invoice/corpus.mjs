@@ -3,20 +3,28 @@
 // from it; and what is wrong with the whole corpus, the PDFs
 // scripts/e-invoice/pdf-corpus.mjs makes (0031) among it.
 //
-// - **The samples** are report-corpus's `E_INVOICE_SAMPLES`, resolved by
-//   the runtime as built, in a final render; their XML is judged exactly as
-//   written, and each must be accepted by every tool.
+// - **The samples** are report-corpus's `E_INVOICE_SAMPLES` and its
+//   `XRECHNUNG_SAMPLES` (0038), resolved by the runtime as built, in a
+//   final render; their XML is judged exactly as written, and each must be
+//   accepted by every tool, KoSIT matching each to its kind's scenario
+//   (`KINDS`) and Mustang reading it as its kind's guideline.
 // - **The controls** are the first sample's XML broken one named way each,
 //   by the gate and never through an option of a published package: a
 //   schema break, a total that breaks BR-CO-14, a standard rate below 0.5
 //   that breaks BR-CO-17, a negative net price (BR-27), a unit outside
 //   BR-CL-23, and a document that is not well formed; and the addressed
 //   sample's, the one that writes an electronic address (0037), with its
-//   seller's address scheme outside BR-CL-25. Each must be refused by
+//   seller's address scheme outside BR-CL-25; and the XRechnung's, each
+//   without one term XRechnung needs past EN 16931 -- the buyer's
+//   reference (BR-DE-15), the seller's contact (BR-DE-2), its electronic
+//   address (PEPPOL-EN16931-R020) -- or with a Skonto line its syntax
+//   refuses (BR-DE-18). Each must be refused by
 //   every tool for exactly what it expects of that tool, measured on 17
 //   October 2026 with Mustang 2.26.0 and KoSIT 1.6.3 on Java 17 and 25,
-//   which said the same, and the BR-CL-25 control on 20 October 2026 on
-//   Java 25. A control the gate
+//   which said the same, the BR-CL-25 control on 20 October 2026 on Java
+//   25, and the XRechnung's four on 21 October 2026 on Java 25. A
+//   Leitweg-ID with wrong check digits is no control: neither tool checks
+//   one, and both accepted it the same day (0038). A control the gate
 //   accepted would mean nothing is watching what it breaks; one refused for
 //   something else as well is not the file its name says.
 //
@@ -29,6 +37,20 @@ import { JUDGES } from './registers.mjs'
 
 /** The sample a control is made from unless it names another: the de-DE e-invoice, at 19 % and 7 % with a delivery date. */
 export const CONTROL_BASE = 'e-invoice'
+
+/** The XRechnung sample, which the controls of what XRechnung needs are made from (0038). */
+export const XRECHNUNG_BASE = 'e-invoice-xrechnung'
+
+/**
+ * What the gate makes of each kind of e-invoice: the KoSIT scenario its XML
+ * must match -- CEN's schematron alone for Factur-X's, XRechnung's beside it
+ * for an XRechnung's -- and whether a PDF/A-3b is drawn of it, which an
+ * XRechnung's copy is not: it embeds nothing, and the invoice is the XML.
+ */
+export const KINDS = {
+  facturX: { scenario: 'EN16931 (CII)', drawn: true },
+  xrechnung: { scenario: 'EN16931 XRechnung (CII)', drawn: false },
+}
 
 /** `amount`, an amount of exactly two places, as a whole number of cents, without a Number in between. */
 function centsOf(amount) {
@@ -141,6 +163,34 @@ export const CONTROLS = [
     expect: { mustang: ['error 4 FX-SCH-A-000582'], kosit: ['error val-sch.1 BR-CL-25'] },
   },
   {
+    file: 'control-br-de-15.xml',
+    base: XRECHNUNG_BASE,
+    why: 'the buyer’s reference (BT-10), the Leitweg-ID, left out, which XRechnung’s BR-DE-15 needs and EN 16931 does not',
+    edits: [{ term: 'BT-10', pattern: /\n\s*<ram:BuyerReference>[^<]*<\/ram:BuyerReference>/g, at: 'once', replace: () => '' }],
+    expect: { mustang: ['error 27 BR-DE-15'], kosit: ['error val-sch.2 BR-DE-15'] },
+  },
+  {
+    file: 'control-br-de-2.xml',
+    base: XRECHNUNG_BASE,
+    why: 'the seller’s contact (BG-6) left out, which XRechnung’s BR-DE-2 needs and EN 16931 does not',
+    edits: [{ term: 'BG-6', pattern: /\n\s*<ram:DefinedTradeContact>(?:\n\s*<[^\n]*)*?\n\s*<\/ram:DefinedTradeContact>/g, at: 'once', replace: () => '' }],
+    expect: { mustang: ['error 27 BR-DE-2'], kosit: ['error val-sch.2 BR-DE-2'] },
+  },
+  {
+    file: 'control-peppol-en16931-r020.xml',
+    base: XRECHNUNG_BASE,
+    why: 'the seller’s electronic address (BT-34) left out, which PEPPOL-EN16931-R020 of XRechnung’s schematron needs and EN 16931 does not',
+    edits: [{ term: 'BT-34', pattern: /\n\s*<ram:URIUniversalCommunication>\n\s*<ram:URIID schemeID="EM">[^<]*<\/ram:URIID>\n\s*<\/ram:URIUniversalCommunication>/g, at: 'once', replace: () => '' }],
+    expect: { mustang: ['error 27 PEPPOL-EN16931-R020'], kosit: ['error val-sch.2 PEPPOL-EN16931-R020'] },
+  },
+  {
+    file: 'control-br-de-18.xml',
+    base: XRECHNUNG_BASE,
+    why: 'a line of the payment terms (BT-20) led by #, a Skonto line whose percentage has no two decimals, which XRechnung’s BR-DE-18 refuses: report-spec writes no such line in an XRechnung',
+    edits: [{ term: 'BT-20', pattern: /(<ram:Description>)([^<]*)(<\/ram:Description>)/g, at: 'once', replace: (_, open, terms, close) => `${open}${terms}\n#SKONTO#TAGE=14#PROZENT=2#\n${close}` }],
+    expect: { mustang: ['error 27 BR-DE-18'], kosit: ['error val-sch.2 BR-DE-18'] },
+  },
+  {
     file: 'control-malformed.xml',
     why: 'the root element’s end tag removed, so the file is not well formed XML',
     edits: [{ term: 'the root', pattern: /<\/rsm:CrossIndustryInvoice>\n/g, at: 'once', replace: () => '' }],
@@ -167,17 +217,25 @@ function edited(xml, edit, control, base) {
 
 /**
  * The XML corpus: one entry per sample of `samples`, `{ file, format, sample,
- * xml, expect }`, its XML as `xmlOf(sample)` gives it, then one per control,
- * `{ file, format, from, why, xml, expect }`, made from its sample's XML.
+ * kind, scenario, guideline, xml, expect }`, its XML as `xmlOf(sample)`
+ * gives it, its kind as `kindOf(sample)` does, the KoSIT scenario that
+ * kind's XML matches, and its BT-24 as `guidelineOf(sample)` gives it, what
+ * Mustang must read it as; then one per control, `{ file, format, from,
+ * kind, scenario, guideline, why, xml, expect }`, made from its sample's
+ * XML, of its sample's kind. A kind the gate does not know is refused.
  */
-export function corpus({ samples, xmlOf }) {
-  const entries = samples.map((sample) => ({ file: `${sample.id}.xml`, format: 'xml', sample: sample.id, xml: xmlOf(sample), expect: Object.fromEntries(JUDGES.xml.map((tool) => [tool, 'accepted'])) }))
+export function corpus({ samples, xmlOf, kindOf, guidelineOf }) {
+  const entries = samples.map((sample) => {
+    const kind = kindOf(sample)
+    if (!Object.hasOwn(KINDS, kind)) throw new Error(`the sample ${sample.id} is an e-invoice of the kind ${String(kind)}, which the gate does not judge`)
+    return { file: `${sample.id}.xml`, format: 'xml', sample: sample.id, kind, scenario: KINDS[kind].scenario, guideline: guidelineOf(sample), xml: xmlOf(sample), expect: Object.fromEntries(JUDGES.xml.map((tool) => [tool, 'accepted'])) }
+  })
   for (const control of CONTROLS) {
     const id = control.base ?? CONTROL_BASE
     const base = entries.find((entry) => entry.sample === id)
     if (base === undefined) throw new Error(`the corpus has no ${id} sample to make ${control.file} from`)
     const xml = control.edits.reduce((text, edit) => edited(text, edit, control, id), base.xml)
-    entries.push({ file: control.file, format: 'xml', from: base.file, why: control.why, xml, expect: structuredClone(control.expect) })
+    entries.push({ file: control.file, format: 'xml', from: base.file, kind: base.kind, scenario: base.scenario, guideline: base.guideline, why: control.why, xml, expect: structuredClone(control.expect) })
   }
   return entries
 }

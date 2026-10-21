@@ -1,7 +1,7 @@
 import { COMPONENT_KINDS, QR_BILL_ADDRESS_RULES, walkComponents } from '@formancy/report-spec'
 import type { EpcQrCodeComponent, Expression, FacturXInvoice, Inline, ReportDefinition, SwissQrBill, TextComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
-import { eInvoiceSample, frozenSample, sampleReport } from '../test-support.js'
+import { eInvoiceSample, frozenSample, sampleReport, xrechnungSample } from '../test-support.js'
 import { expressionSites, reportParts } from './parts.js'
 import type { ExpressionSite } from './parts.js'
 
@@ -276,6 +276,16 @@ describe('an e-invoice', () => {
   test('finds every expression in a report that is one', () => {
     const report = eInvoiceSample()
     expect(expressionSites(report).map(({ path }) => path).sort()).toEqual(celPointers(report).sort())
+  })
+
+  // An XRechnung holds the same terms as a Factur-X invoice (0038): the
+  // walk reads each of its kind, the buyer's reference read from data
+  // among them, and misses none.
+  test('finds every expression in an XRechnung', () => {
+    const report = xrechnungSample()
+    const paths = expressionSites(report).map(({ path }) => path)
+    expect(paths.sort()).toEqual(celPointers(report).sort())
+    expect(paths).toContain('/eInvoice/buyerReference/1/expression/cel')
   })
 
   // Its texts and dates are read in the report's scope, as a payment

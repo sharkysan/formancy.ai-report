@@ -1,7 +1,10 @@
 /**
  * The e-invoice a report may carry: one EN 16931 invoice, written by the
- * runtime as Factur-X 1.09.2 / ZUGFeRD 2.5.2 CII in the EN 16931 profile,
- * from the very values the page prints (0027).
+ * runtime as CII from the very values the page prints (0027), of one of two
+ * kinds: Factur-X 1.09.2 / ZUGFeRD 2.5.2 in the EN 16931 profile, the
+ * hybrid a PDF/A-3b embeds (0031); or XRechnung 3.0, KoSIT's CIUS of EN
+ * 16931 a German public buyer asks for, whose XML is the invoice and whose
+ * PDF a copy (0038).
  *
  * It belongs to the report, not to a region, as a payment part does (0022):
  * one invoice per PDF. Its texts are runs, read as a paragraph's in the
@@ -27,8 +30,34 @@ import type { RowValue } from './aggregates.js'
 import type { Expression, Inline } from './values.js'
 
 /** The kinds of e-invoice. A kind this version does not know is refused, never skipped. */
-export const E_INVOICE_KINDS = ['facturX'] as const
+export const E_INVOICE_KINDS = ['facturX', 'xrechnung'] as const
 export type EInvoiceKind = (typeof E_INVOICE_KINDS)[number]
+
+/** The XRechnung versions this version writes: 3.0, the major and minor version its BT-24 names, of which KoSIT's 3.0.2 is the release the e-invoice gate's configuration pins. 4.0 is not backward compatible, and waits. */
+export const XRECHNUNG_VERSIONS = ['3.0'] as const
+export type XRechnungVersion = (typeof XRECHNUNG_VERSIONS)[number]
+
+/** What names each XRechnung version: its specification identifier (BT-24), the release of KoSIT's it is read from, and the syntax it is written in. */
+export interface XRechnungTerms {
+  /** BT-24: `XR-CIUS-ID` of KoSIT's XRechnung schematron, which its scenario `EN16931 XRechnung (CII)` matches the XML by. */
+  readonly guideline: string
+  /** The release of KoSIT's XRechnung the gate's configuration pins (`docs/release/e-invoice-tools.json`), which the e-invoice gate holds it to on every run. */
+  readonly release: string
+  /** CII, the one syntax the runtime writes: UBL, which KoSIT takes too, would be a second writer of one invoice (0027, 0038). */
+  readonly syntax: 'cii'
+}
+
+/**
+ * Each version's names. A table over every version, so a version added to
+ * `XRECHNUNG_VERSIONS` without them does not compile. BT-24 is
+ * `XR-CIUS-ID` as `resources/xrechnung/3.0.2/xsl/XRechnung-CII-validation.xsl`
+ * of KoSIT's configuration of 2026-08-31 builds it, read on 21 October
+ * 2026; the e-invoice gate holds it to that file on every run, and KoSIT
+ * matches the XRechnung sample to its scenario by it.
+ */
+export const XRECHNUNG: { readonly [V in XRechnungVersion]: XRechnungTerms } = {
+  '3.0': { guideline: 'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0', release: '3.0.2', syntax: 'cii' },
+}
 
 /** The Factur-X profiles this version writes: EN 16931 alone, which Germany counts as an e-invoice and FeRD recommends. */
 export const E_INVOICE_PROFILES = ['en16931'] as const
@@ -160,8 +189,10 @@ export const VAT_PREFIXES: readonly string[] = [...COUNTRY_CODES, 'EL']
  * given without one, as a German commercial register number is. France's
  * SIREN and SIRET, since a French buyer's SIREN is the one detail of
  * France's the XML holds; and the two that name a company anywhere. CEN
- * takes 246; the Leitweg-ID, 0204, which routes an invoice to a German
- * public buyer in BT-10, waits with XRechnung.
+ * takes 246. The Leitweg-ID, 0204, which routes an invoice to a German
+ * public buyer, is no legal registration: an XRechnung names it as the
+ * buyer's reference (BT-10) and as an electronic address
+ * (`ADDRESS_SCHEMES`, 0038).
  */
 export const SCHEME_IDS = [
   '0002', // System Information et Repertoire des Entreprise et des Etablissements: SIRENE
@@ -397,15 +428,14 @@ export interface PaymentInstructions {
 }
 
 /**
- * A Factur-X invoice in the EN 16931 profile. Each text is runs, one at
- * least where it is present; an optional one absent is a term the XML
- * leaves out, never an empty list of runs, so that one invoice has one
- * spelling and one hash. Each expression is compiled and typed by the
- * editing core: the dates are dates, the paid amount a decimal.
+ * What an invoice of either kind holds: EN 16931's terms, as 0027 and 0037
+ * give them. Each text is runs, one at least where it is present; an
+ * optional one absent is a term the XML leaves out, never an empty list of
+ * runs, so that one invoice has one spelling and one hash. Each expression
+ * is compiled and typed by the editing core: the dates are dates, the paid
+ * amount a decimal.
  */
-export interface FacturXInvoice {
-  readonly kind: 'facturX'
-  readonly profile: EInvoiceProfile
+export interface EInvoiceTerms {
   /** BT-3. */
   readonly type: InvoiceTypeCode
   /** BT-5. */
@@ -435,4 +465,29 @@ export interface FacturXInvoice {
   readonly paid?: Expression
 }
 
-export type EInvoice = FacturXInvoice
+/** A Factur-X invoice in the EN 16931 profile: the hybrid whose XML a PDF/A-3b embeds (0031). */
+export interface FacturXInvoice extends EInvoiceTerms {
+  readonly kind: 'facturX'
+  readonly profile: EInvoiceProfile
+}
+
+/**
+ * An XRechnung (0038): EN 16931's terms in KoSIT's CIUS, written as CII,
+ * with what its schematron needs past EN 16931 -- the business process
+ * (PEPPOL-EN16931-R001), the buyer's reference (BR-DE-15), the payment
+ * instructions (BR-DE-1), the seller's contact (BR-DE-2) and both
+ * electronic addresses (PEPPOL-EN16931-R020, -R010) -- each needed here.
+ * Its XML is the invoice; a PDF of it is a copy, and says so on every page.
+ */
+export interface XRechnungInvoice extends EInvoiceTerms {
+  readonly kind: 'xrechnung'
+  readonly version: XRechnungVersion
+  readonly businessProcess: readonly Inline[]
+  readonly seller: EInvoiceSeller & { readonly electronicAddress: ElectronicAddress; readonly contact: SellerContact }
+  readonly buyer: EInvoiceBuyer & { readonly electronicAddress: ElectronicAddress }
+  /** A public buyer's Leitweg-ID, or the reference a business buyer asks for. */
+  readonly buyerReference: readonly Inline[]
+  readonly payment: PaymentInstructions
+}
+
+export type EInvoice = FacturXInvoice | XRechnungInvoice

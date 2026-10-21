@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="control-br-27.xml" datetime="2026-10-20 22:14:07">
+<validation filename="control-br-27.xml" datetime="2026-10-21 19:52:31">
   <xml>
     <info>
       <version>2</version>
@@ -10,7 +10,7 @@
         <fired>179</fired>
         <failed>1</failed>
       </rules>
-      <duration unit="ms">2275</duration>
+      <duration unit="ms">1917</duration>
     </info>
     <messages>
       <error type="4" location="/*:CrossIndustryInvoice[namespace-uri()='urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'][1]/*:SupplyChainTradeTransaction[namespace-uri()='urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'][1]/*:IncludedSupplyChainTradeLineItem[namespace-uri()='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'][1]" criterion="(ram:SpecifiedLineTradeAgreement/ram:NetPriceProductTradePrice/ram:ChargeAmount) &gt;= 0">[BR-27]-The Item net price (BT-146) shall NOT be negative. [ID BR-27] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)</error>  

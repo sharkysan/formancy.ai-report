@@ -295,7 +295,9 @@ report unchanged and the reason in the live region:
    renderer reads it: every chunk's CRC, the header, the sides against
    `MAX_ASSET_SIDE`, a JPEG's segments to its scan and its Exif turn. A
    JPEG of four components, which PDFKit draws in CMYK, is refused in a
-   report with an e-invoice, whose PDF/A-3b cannot hold one (0031). **An
+   report whose e-invoice is a Factur-X invoice, whose PDF/A-3b cannot
+   hold one (0031), and added to an XRechnung, whose PDF is a plain copy
+   (0038). **An
    SVG** is cleaned by `cleanSvg` (0030), and what the host keeps is the
    drawing it wrote, never the file as chosen; what cleaning removed is
    said, by name, never a value. Each refusal of 0030 says what to do, in
@@ -338,7 +340,7 @@ What is not checked when an image is added is a PNG's image data, which
 needs a decompressor ES2023 does not have, and a JPEG's scan, which
 nothing decodes: a picture whose data is corrupt is added, and refused as
 `invalid-asset` when it prints. Nor is what the report gains later: a
-CMYK JPEG added before the report has an e-invoice is refused at its
+CMYK JPEG added before the report has a Factur-X invoice is refused at its
 final render, as an SVG whose numbers its box would carry past what a
 PDF/A holds is.
 

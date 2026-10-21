@@ -11,7 +11,7 @@
  * `eInvoiceSample` is that report as an e-invoice, for the same use.
  */
 import { validateReport } from '@formancy/report-spec'
-import type { Component, DatasetContract, FacturXInvoice, FieldRef, Inline, ReportDefinition } from '@formancy/report-spec'
+import type { Component, DatasetContract, FacturXInvoice, FieldRef, Inline, ReportDefinition, XRechnungInvoice } from '@formancy/report-spec'
 import type { CommandOutcome, Refusal } from './outcome.js'
 
 const header = (field: string): FieldRef => ({ dataset: 'header', field })
@@ -406,6 +406,28 @@ export function eInvoiceSample(): ReportDefinition {
   const header = report.datasets.header as DatasetContract
   const datasets = { ...report.datasets, header: { ...header, fields: header.fields.filter(({ id }) => id !== 'currency') } }
   return checked({ ...report, datasets, regions: { ...report.regions, body, summary: [...summary, ...PRINTED_TOTALS] }, eInvoice: INVOICE })
+}
+
+/**
+ * The e-invoice sample as an XRechnung (0038), checked valid: the same
+ * report, its e-invoice of the kind `xrechnung` with what XRechnung needs
+ * past EN 16931, the buyer's reference read from the header as an
+ * expression, so that the walk meets one where only an XRechnung needs a
+ * text.
+ */
+export function xrechnungSample(): ReportDefinition {
+  const { profile: _profile, kind: _kind, ...terms } = INVOICE
+  const invoice: XRechnungInvoice = {
+    ...terms,
+    kind: 'xrechnung',
+    version: '3.0',
+    businessProcess: said('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
+    buyerReference: [{ kind: 'text', text: 'PO-' }, computed('header.customer')],
+    seller: { ...terms.seller, electronicAddress: { id: said('rechnung@muster-soehne.example'), scheme: 'EM' }, contact: { name: said('Erika Mustermann'), telephone: said('+49 221 4710 123'), email: said('erika.mustermann@muster-soehne.example') } },
+    buyer: { ...terms.buyer, electronicAddress: { id: said('991-33333TEST-33'), scheme: '0204' } },
+    payment: INVOICE.payment as NonNullable<FacturXInvoice['payment']>,
+  }
+  return checked({ ...eInvoiceSample(), eInvoice: invoice })
 }
 
 /** `value`, every object and array in it frozen: a command that writes to its input throws on it. */

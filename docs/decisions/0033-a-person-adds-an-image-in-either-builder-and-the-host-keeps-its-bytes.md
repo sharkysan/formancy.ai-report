@@ -1,6 +1,10 @@
 # 0033 — A person adds an image in either builder: report-builder-core reads the file, recognises it from its bytes, checks it as the renderer reads it, cleans an SVG and takes its SHA-256 with @noble/hashes, and the host keeps the bytes through a store given to the editor before the report declares the asset, in one undo step; an image nothing draws is removed from the report's properties; the Studio keeps what is added in the page; a prop on each builder, Web Crypto, a digest from the host and the insert in the same step lost
 
-- **Status:** accepted
+- **Status:** accepted; narrowed by
+  [0038](0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md),
+  under which the CMYK JPEG this record refuses is refused in a report
+  whose e-invoice is a Factur-X invoice alone, an XRechnung's PDF being a
+  plain copy that holds one
 - **Date:** 2026-10-19
 - **Deciders:** Daniel Bacher
 - **Verified by:**

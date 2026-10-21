@@ -386,19 +386,39 @@ invoice whose XML is the invoice
 - **A preview is a plain PDF.** The runtime writes the XML only in a final
   render; a preview carries none, embeds nothing, and is labelled on every
   page.
+- **An XRechnung's copy is a plain PDF too**
+  ([0038](../../docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+  An XRechnung's XML is the invoice, which a host takes from the resolved
+  document and sends; its file, of the kind `xrechnung`, names its syntax,
+  guideline and version and nothing to embed it as. Its document is drawn
+  as every report is -- no PDF/A, no file, no XMP, a title of any text and
+  a CMYK logo drawn -- and its page header opens with the runtime's
+  `XRECHNUNG_COPY_PARAGRAPH`, `XRECHNUNG_COPY_LABEL` in small red bold,
+  so every page says it is the copy. Never a ZUGFeRD hybrid of the
+  XRECHNUNG profile.
 
 It refuses, as `unsupported` and before pdfmake sees the document:
 
-- an e-invoice whose XML is not text, or whose file name, conformance level
-  or relationship is not report-spec's;
+- an e-invoice of a kind it does not know, a Factur-X file without its
+  kind among them; one whose XML is not text; a Factur-X file whose file
+  name, conformance level or relationship is not report-spec's; and an
+  XRechnung's whose syntax, version or guideline is not report-spec's;
+- an XRechnung whose page header does not open with the copy's label as
+  the runtime writes it, `XRECHNUNG_COPY_PARAGRAPH`, its style and all,
+  naming `pageHeader`: a final picture of an invoice that says nothing of
+  what it is, or says it in white or at one point, where PDF.js would
+  still find the text. That the label names no font, and prints in the
+  renderer's, and that the paper is white, the renderer drawing none, are
+  what the check does not read;
 - XML holding a lone surrogate, which an encoder would write as another
   character;
 - a title holding `&`, `<`, `>` or a character XML 1.0 cannot write,
   naming `info.title`: PDFKit writes the title into the XMP unescaped.
   report-spec refuses such a title in an e-invoice report, so only a
   document made otherwise reaches this;
-- a CMYK JPEG, naming the image: PDFKit draws it in DeviceCMYK, which no
-  PDF/A with an sRGB output intent may hold. A preview draws it, so a
+- a CMYK JPEG in a Factur-X invoice, naming the image: PDFKit draws it in
+  DeviceCMYK, which no PDF/A with an sRGB output intent may hold. An
+  XRechnung's copy, no PDF/A, draws it. A preview draws it, so a
   template finds out at its final render. The component count is read
   from the frame header PDFKit reads, since a DAC segment shaped as a frame
   of four components once had an RGB JPEG drawn in DeviceCMYK past this
@@ -460,7 +480,10 @@ guard admits by its digest, with the ICC's licence sentence a review read
 reads each of the corpus's e-invoice samples back from its PDF with readers
 that are not PDFKit -- the file with PDF.js and pdf-lib, the XMP with saxes
 -- and `src/e-invoice-samples.test.ts` holds what the page prints to the XML
-read out of the same PDF. `src/svg-pdfa.test.ts` reads every number of an
+read out of the same PDF, and the XRechnung sample's copy to the XML its
+document carries; `src/xrechnung.test.ts` reads the copy back as a plain
+PDF that embeds nothing, the label first on every page of one that runs to
+two. `src/svg-pdfa.test.ts` reads every number of an
 SVG's e-invoice back with report-corpus's `readPdfNumbers`, content streams
 included, which veraPDF does not read, and holds the bound to at least
 every number each drawing's PDF writes. Whether a validator takes the PDF

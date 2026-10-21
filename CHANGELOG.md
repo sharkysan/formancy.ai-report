@@ -10,6 +10,61 @@ later.
 
 ## Unreleased
 
+**A report's e-invoice may be an XRechnung 3.0, for a German public
+buyer**
+([0038](docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+A public buyer asks for XRechnung, KoSIT's CIUS of EN 16931, as XML, and
+0.2.0 could write only the Factur-X hybrid a German business takes. An
+e-invoice of the new kind `xrechnung`, version `3.0`, is written in CII by
+the same writer, its XML a Factur-X invoice's of the same terms but for
+BT-24, KoSIT's XRechnung identifier. A final render's `document.eInvoice`
+is then `{ kind: 'xrechnung', xml, syntax: 'cii', guideline, version }`:
+the invoice, which your application takes and sends -- the packages send
+nothing -- and `renderPdf` draws the document as a plain PDF, no PDF/A and
+nothing embedded, a CMYK logo among what it draws, every page headed
+`XRECHNUNG_COPY_LABEL`, since a PDF of an XRechnung is a copy; it refuses
+an XRechnung's document whose page header does not open with the label as
+the runtime writes it, `XRECHNUNG_COPY_PARAGRAPH`, style and all, since
+the text in white or at one point would say nothing to a reader. A builder
+refuses a CMYK JPEG a person adds to a Factur-X invoice alone, whose
+PDF/A-3b cannot hold one, and adds it to an XRechnung, so that the editor
+and the renderer agree. An XRechnung needs what XRechnung's schematron
+needs past EN 16931 -- a business process, a buyer's reference (a public
+buyer's Leitweg-ID), payment instructions, the seller's contact and both
+electronic addresses -- each refused where it is missing or blank by the
+rule that needs it, "(XRechnung's BR-DE-15)". Its payment terms may hold
+no line led by `#`, which XRechnung reads as its own Skonto syntax: a
+Skonto waits for XRechnung 4.0, which replaces that syntax. An electronic
+address under scheme 0204 is held to a Leitweg-ID's shape and its check
+digits (ISO/IEC 7064 MOD 97-10), in an e-invoice of either kind, since
+neither validator the e-invoice gate runs checks them and a wrong one
+routes an invoice nowhere; the buyer's reference is not, since a business
+buyer's XRechnung carries an order number there. The Leitweg-ID's format
+specification could not be read; the check rests on FeRD's description and
+KoSIT's test values. **The resolved document's `eInvoice` now names its
+kind**, `'facturX'` or `'xrechnung'`, and the renderer refuses one without
+it; `EInvoiceFile` is now the union of `FacturXFile` and `XRechnungFile`,
+so TypeScript code that reads `fileName`, `relationship` or
+`conformanceLevel` compiles once it has checked that `kind` is
+`'facturX'`. report-spec exports `XRECHNUNG`, `XRECHNUNG_VERSIONS`,
+`XRECHNUNG_NEEDS`, `XRECHNUNG_TEXT_NEEDS`, `XRECHNUNG_HELD`,
+`E_INVOICE_KIND_TEXTS`, `checkElectronicAddress`, `leitwegIdBreak`,
+`skontoBreak`, `isXRechnungRule`, `xrechnungRule` and the types
+`XRechnungInvoice`, `XRechnungTerms`, `XRechnungVersion`, `XRechnungNeed`,
+`EInvoiceTerms` and `EInvoiceTextRules`; `checkEInvoiceText` takes the
+kind; the runtime exports `XRECHNUNG_COPY_LABEL`,
+`XRECHNUNG_COPY_PARAGRAPH`, `XRECHNUNG`, `XRECHNUNG_VERSIONS` and the
+types `FacturXFile`, `XRechnungFile`, `XRechnungTerms` and
+`XRechnungVersion`. A sample, "Rechnung (XRechnung)", is accepted by
+KoSIT's XRechnung scenario and Mustang, and four controls of it -- no
+buyer's reference, no contact, no seller's electronic address, a malformed
+Skonto line -- are refused by both for that rule alone. The e-invoice gate
+holds each rule report-spec needs, and each it holds by the format, to its
+context and test in XRechnung's pinned schematron, and `XRECHNUNG`'s
+release to the one its register pins. The getting-started guide's Node
+program now takes an XRechnung's XML. CII alone: no UBL. 0.2.0 refuses a
+report with an XRechnung, as `unknown-kind`.
+
 **An e-invoice may name the parties' electronic addresses, the seller's
 contact and its business process**
 ([0037](docs/decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md)).

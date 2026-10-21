@@ -1,6 +1,6 @@
 {
   "$comment": "A run of the e-invoice gate, recorded by `node scripts/e-invoice.mjs --record` once it passed: the XML corpus it wrote (corpus/), Mustang's report and log on each file, XML and PDF (mustang/), KoSIT's report on each XML file and its console (kosit/), veraPDF's report on every PDF and what it wrote on stderr (verapdf/), how each run ended, and each PDF's digest of its objects with every stream inflated (`pdfs`, report-corpus's `inflatedDigest`): the PDFs themselves are not recorded, since their bytes are the zlib's that deflated them, which `machine` names. Every output is recorded with the line ends the repository keeps and without the machine's path to the repository, and the console without its results table, whose cells wrap each path across lines (scripts/e-invoice/record.mjs). The judges' tests and the corpus's read it, so that every rule is held on what the pinned tools wrote and not on what somebody thought they would; it is recorded again when a tool, the corpus, a control or what the renderer draws changes. `research` is one output recorded by hand on 17 October 2026, kept for what no run of the gate produces: Mustang 2.26.0's report on a FeRD sample, EN16931_Einfach.pdf, run without --no-notices and without the gate's encoding options, with its seven XRechnung notices.",
-  "recordedAt": "2026-10-20T20:16:31.803Z",
+  "recordedAt": "2026-10-21T17:54:10.604Z",
   "machine": {
     "platform": "win32",
     "arch": "x64",
@@ -18,19 +18,47 @@
     "e-invoice",
     "e-invoice-reverse-charge",
     "e-invoice-exempt-paid",
-    "e-invoice-addressed"
+    "e-invoice-addressed",
+    "e-invoice-xrechnung"
   ],
+  "kinds": {
+    "e-invoice": {
+      "kind": "facturX",
+      "guideline": "urn:cen.eu:en16931:2017"
+    },
+    "e-invoice-reverse-charge": {
+      "kind": "facturX",
+      "guideline": "urn:cen.eu:en16931:2017"
+    },
+    "e-invoice-exempt-paid": {
+      "kind": "facturX",
+      "guideline": "urn:cen.eu:en16931:2017"
+    },
+    "e-invoice-addressed": {
+      "kind": "facturX",
+      "guideline": "urn:cen.eu:en16931:2017"
+    },
+    "e-invoice-xrechnung": {
+      "kind": "xrechnung",
+      "guideline": "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0"
+    }
+  },
   "mustang": {
     "e-invoice.xml": 0,
     "e-invoice-reverse-charge.xml": 0,
     "e-invoice-exempt-paid.xml": 0,
     "e-invoice-addressed.xml": 0,
+    "e-invoice-xrechnung.xml": 0,
     "control-schema.xml": 4294967295,
     "control-br-co-14.xml": 4294967295,
     "control-br-co-17.xml": 4294967295,
     "control-br-27.xml": 4294967295,
     "control-br-cl-23.xml": 4294967295,
     "control-br-cl-25.xml": 4294967295,
+    "control-br-de-15.xml": 4294967295,
+    "control-br-de-2.xml": 4294967295,
+    "control-peppol-en16931-r020.xml": 4294967295,
+    "control-br-de-18.xml": 4294967295,
     "control-malformed.xml": 4294967295,
     "e-invoice.pdf": 0,
     "e-invoice-reverse-charge.pdf": 0,
@@ -54,7 +82,7 @@
     "control-xml.pdf": 4294967295
   },
   "kosit": {
-    "status": 7
+    "status": 11
   },
   "verapdf": {
     "status": 1

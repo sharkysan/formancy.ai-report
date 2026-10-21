@@ -1,0 +1,9 @@
+[main] INFO com.helger.schematron.xslt.SchematronResourceXSLTCache - Compiling XSLT instance [cpPath=/xslt/en16931schematron/EN16931-CII-validation.xslt; urlResolved=true; URL=jar:file:/{repository}/.e-invoice-cache/mustang/2.26.0/Mustang-CLI-2.26.0.jar!/xslt/en16931schematron/EN16931-CII-validation.xslt]
+[main] INFO com.helger.schematron.api.xslt.AbstractSchematronXSLTBasedResource - Applying Schematron XSLT on XML instance
+[main] INFO com.helger.schematron.xslt.SchematronResourceXSLTCache - Compiling XSLT instance [cpPath=/xslt/XR_30/XRechnung-CII-validation.xslt; urlResolved=true; URL=jar:file:/{repository}/.e-invoice-cache/mustang/2.26.0/Mustang-CLI-2.26.0.jar!/xslt/XR_30/XRechnung-CII-validation.xslt]
+[main] WARN com.helger.xml.transform.LoggingTransformErrorListener - [warn] Transformation warning (net.sf.saxon.trans.XPathException: A function that computes atomic values should use xsl:sequence rather than xsl:value-of)
+[main] WARN com.helger.xml.transform.LoggingTransformErrorListener - [warn] Transformation warning (net.sf.saxon.trans.XPathException: A function that computes atomic values should use xsl:sequence rather than xsl:value-of)
+[main] INFO com.helger.schematron.api.xslt.AbstractSchematronXSLTBasedResource - Applying Schematron XSLT on XML instance
+[main] INFO org.mustangproject.validator.XMLValidator - FailedAssert [BR-DE-2] Die Gruppe "SELLER CONTACT" (BG-6) muss übermittelt werden.
+[main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 27: [BR-DE-2] Die Gruppe "SELLER CONTACT" (BG-6) muss übermittelt werden. [ID BR-DE-2] from /xslt/XR_30/XRechnung-CII-validation.xslt)
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:7806233133DC4A77545C49A2D6E47590756F2432 Profile:urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0 Version:2 Took:2145ms Errors:[27] ErrorIDs: [BR-DE-2]

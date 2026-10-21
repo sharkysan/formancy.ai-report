@@ -15,6 +15,7 @@ export { LETTERHEAD, LOGO, LOGO_ASSET } from './logo.js'
 export { lineAmount, QUOTATION, quotationData, quotationLines } from './quotation.js'
 export { INSPECTION_PHOTO, inspectionData, inspectionNotes, SERVICE_INSPECTION } from './service-inspection.js'
 export type { Starter, StarterImage } from './starter.js'
+export { XRECHNUNG_SAMPLE, XRECHNUNG_SAMPLES, xrechnungData } from './xrechnung.js'
 
 /** The three starters of plan 7, in the order the plan lists them, then the invoice with its QR-bill and the invoice with its EPC code. */
 export const STARTERS: readonly Starter[] = [SERVICE_INSPECTION, QUOTATION, GROUPED_EQUIPMENT, INVOICE, EURO_INVOICE]

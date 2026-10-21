@@ -39,10 +39,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527368481,
-  "finish" : 1792527369653,
-  "duration" : "00:00:01.172",
-  "difference" : 1172
+  "start" : 1792605248042,
+  "finish" : 1792605248623,
+  "duration" : "00:00:00.581",
+  "difference" : 581
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\e-invoice-reverse-charge.pdf",
   "size" : 37042
@@ -72,10 +72,10 @@
     "size" : "9157"
   }
 },"processingTime":{
-  "start" : 1792527369708,
-  "finish" : 1792527369890,
-  "duration" : "00:00:00.182",
-  "difference" : 182
+  "start" : 1792605248650,
+  "finish" : 1792605248763,
+  "duration" : "00:00:00.113",
+  "difference" : 113
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\e-invoice-exempt-paid.pdf",
   "size" : 38144
@@ -105,10 +105,10 @@
     "size" : "11710"
   }
 },"processingTime":{
-  "start" : 1792527369901,
-  "finish" : 1792527370017,
-  "duration" : "00:00:00.116",
-  "difference" : 116
+  "start" : 1792605248766,
+  "finish" : 1792605248836,
+  "duration" : "00:00:00.070",
+  "difference" : 70
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\e-invoice-addressed.pdf",
   "size" : 37398
@@ -138,10 +138,10 @@
     "size" : "10097"
   }
 },"processingTime":{
-  "start" : 1792527370020,
-  "finish" : 1792527370122,
-  "duration" : "00:00:00.102",
-  "difference" : 102
+  "start" : 1792605248840,
+  "finish" : 1792605248909,
+  "duration" : "00:00:00.069",
+  "difference" : 69
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\variant-blocks.pdf",
   "size" : 47887
@@ -171,10 +171,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527370127,
-  "finish" : 1792527370292,
-  "duration" : "00:00:00.165",
-  "difference" : 165
+  "start" : 1792605248912,
+  "finish" : 1792605248991,
+  "duration" : "00:00:00.079",
+  "difference" : 79
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\variant-svg.pdf",
   "size" : 43126
@@ -204,10 +204,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527370296,
-  "finish" : 1792527370409,
-  "duration" : "00:00:00.113",
-  "difference" : 113
+  "start" : 1792605248994,
+  "finish" : 1792605249069,
+  "duration" : "00:00:00.075",
+  "difference" : 75
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\variant-svg-bound.pdf",
   "size" : 41998
@@ -237,10 +237,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527370413,
-  "finish" : 1792527370514,
-  "duration" : "00:00:00.101",
-  "difference" : 101
+  "start" : 1792605249072,
+  "finish" : 1792605249136,
+  "duration" : "00:00:00.064",
+  "difference" : 64
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\variant-fonts.pdf",
   "size" : 32290
@@ -270,10 +270,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527370520,
-  "finish" : 1792527370565,
-  "duration" : "00:00:00.045",
-  "difference" : 45
+  "start" : 1792605249138,
+  "finish" : 1792605249173,
+  "duration" : "00:00:00.035",
+  "difference" : 35
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\variant-service-inspection.pdf",
   "size" : 81849
@@ -303,10 +303,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527370579,
-  "finish" : 1792527370877,
-  "duration" : "00:00:00.298",
-  "difference" : 298
+  "start" : 1792605249175,
+  "finish" : 1792605249353,
+  "duration" : "00:00:00.178",
+  "difference" : 178
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\variant-quotation.pdf",
   "size" : 34899
@@ -336,10 +336,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527370883,
-  "finish" : 1792527370950,
-  "duration" : "00:00:00.067",
-  "difference" : 67
+  "start" : 1792605249356,
+  "finish" : 1792605249401,
+  "duration" : "00:00:00.045",
+  "difference" : 45
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\variant-grouped-equipment.pdf",
   "size" : 40222
@@ -369,10 +369,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527370963,
-  "finish" : 1792527371073,
-  "duration" : "00:00:00.110",
-  "difference" : 110
+  "start" : 1792605249403,
+  "finish" : 1792605249466,
+  "duration" : "00:00:00.063",
+  "difference" : 63
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\variant-invoice.pdf",
   "size" : 62623
@@ -402,10 +402,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527371077,
-  "finish" : 1792527371173,
-  "duration" : "00:00:00.096",
-  "difference" : 96
+  "start" : 1792605249467,
+  "finish" : 1792605249521,
+  "duration" : "00:00:00.054",
+  "difference" : 54
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\variant-euro-invoice.pdf",
   "size" : 40461
@@ -435,10 +435,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527371182,
-  "finish" : 1792527371260,
-  "duration" : "00:00:00.078",
-  "difference" : 78
+  "start" : 1792605249523,
+  "finish" : 1792605249576,
+  "duration" : "00:00:00.053",
+  "difference" : 53
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\control-plain.pdf",
   "size" : 29363
@@ -982,10 +982,10 @@
   "statement" : "PDF file is not compliant with Validation Profile requirements.",
   "compliant" : false
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1792527371279,
-  "finish" : 1792527371339,
-  "duration" : "00:00:00.060",
-  "difference" : 60
+  "start" : 1792605249577,
+  "finish" : 1792605249613,
+  "duration" : "00:00:00.036",
+  "difference" : 36
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\control-pdfa.pdf",
   "size" : 37908
@@ -1526,10 +1526,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527371372,
-  "finish" : 1792527371437,
-  "duration" : "00:00:00.065",
-  "difference" : 65
+  "start" : 1792605249638,
+  "finish" : 1792605249677,
+  "duration" : "00:00:00.039",
+  "difference" : 39
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\control-xmp.pdf",
   "size" : 37908
@@ -1559,10 +1559,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527371449,
-  "finish" : 1792527371531,
-  "duration" : "00:00:00.082",
-  "difference" : 82
+  "start" : 1792605249686,
+  "finish" : 1792605249726,
+  "duration" : "00:00:00.040",
+  "difference" : 40
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\control-checksum.pdf",
   "size" : 37908
@@ -1592,10 +1592,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527371533,
-  "finish" : 1792527371608,
-  "duration" : "00:00:00.075",
-  "difference" : 75
+  "start" : 1792605249727,
+  "finish" : 1792605249773,
+  "duration" : "00:00:00.046",
+  "difference" : 46
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\control-size.pdf",
   "size" : 37908
@@ -1625,10 +1625,10 @@
     "size" : "12669"
   }
 },"processingTime":{
-  "start" : 1792527371611,
-  "finish" : 1792527371695,
-  "duration" : "00:00:00.084",
-  "difference" : 84
+  "start" : 1792605249776,
+  "finish" : 1792605249817,
+  "duration" : "00:00:00.041",
+  "difference" : 41
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\control-relationship.pdf",
   "size" : 37908
@@ -1658,10 +1658,10 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527371706,
-  "finish" : 1792527371789,
-  "duration" : "00:00:00.083",
-  "difference" : 83
+  "start" : 1792605249819,
+  "finish" : 1792605249860,
+  "duration" : "00:00:00.041",
+  "difference" : 41
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\control-xml.pdf",
   "size" : 37908
@@ -1691,38 +1691,38 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1792527371801,
-  "finish" : 1792527371875,
-  "duration" : "00:00:00.074",
-  "difference" : 74
+  "start" : 1792605249861,
+  "finish" : 1792605249895,
+  "duration" : "00:00:00.034",
+  "difference" : 34
 }}],"batchSummary":{
   "duration" : {
-    "start" : 1792527368306,
-    "finish" : 1792527371878,
-    "duration" : "00:00:03.572",
-    "difference" : 3572
+    "start" : 1792605247974,
+    "finish" : 1792605249897,
+    "duration" : "00:00:01.923",
+    "difference" : 1923
   },
   "totalJobs" : 20,
   "outOfMemory" : 0,
   "veraExceptions" : 0,
+  "multiJob" : true,
   "failedEncryptedJobs" : 0,
+  "failedParsingJobs" : 0,
   "validationSummary" : {
     "nonCompliantPdfaCount" : 2,
-    "compliantPdfaCount" : 18,
-    "totalJobCount" : 20,
     "failedJobCount" : 0,
+    "totalJobCount" : 20,
+    "compliantPdfaCount" : 18,
     "successfulJobCount" : 20
   },
-  "failedParsingJobs" : 0,
   "repairSummary" : {
-    "totalJobCount" : 0,
     "failedJobCount" : 0,
+    "totalJobCount" : 0,
     "successfulJobCount" : 0
   },
   "featuresSummary" : {
-    "totalJobCount" : 20,
     "failedJobCount" : 0,
+    "totalJobCount" : 20,
     "successfulJobCount" : 20
-  },
-  "multiJob" : true
+  }
 }}}

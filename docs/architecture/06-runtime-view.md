@@ -84,9 +84,9 @@ renderPdf(document, { maxPages, signal })
    │ wider than where it stands, each asset's bytes, an SVG's in the form
    │ cleanSvg writes and within what SVGs may cost (6.9), a bill, each
    │ code encoded once and held to its square ───────────────▶ RenderRefusal
-   │ an e-invoice it does not know, a title its XMP cannot hold,
-   │ a CMYK JPEG in one, an SVG whose numbers or nesting its
-   │ PDF/A cannot hold (6.9) ────────────────────────────────▶ unsupported
+   │ an e-invoice it does not know; in a Factur-X invoice, a title
+   │ its XMP cannot hold, a CMYK JPEG, an SVG whose numbers or
+   │ nesting its PDF/A cannot hold (6.9) ────────────────────▶ unsupported
    ├─ a bill or a captioned EPC QR code: Liberation Sans read, and in a
    │ browser its chunk imported
    ├─ measure the page regions; the body's margins follow
@@ -386,6 +386,27 @@ measuring passes lay the page out as the PDF prints it, and a preview,
 which carries no XML, is drawn as a plain PDF
 ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 
+An XRechnung goes the same way to its XML: the same readers, held to its
+kind's rules, which need what XRechnung needs and refuse a `#` line in
+its payment terms, and the same writer, BT-24 its version's. Its file is
+no Factur-X file: `{ kind: 'xrechnung', xml, syntax, guideline, version
+}`, the invoice, which the host takes from the resolved document and
+sends, and the runtime heads every page with `XRECHNUNG_COPY_LABEL`. The
+renderer draws that document as a plain PDF, the copy, a CMYK image in it
+drawn, and refuses one whose page header does not open with the label as
+the runtime writes it, `XRECHNUNG_COPY_PARAGRAPH`, style and all
+([0038](../decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+
+```
+resolveReport(xrechnung, data, { mode: 'final' })
+   ├─ a needed term missing, blank, a # line, a Leitweg-ID's digits ─▶ refused, by its rule
+   ▼
+document.eInvoice = { kind: 'xrechnung', xml, syntax: 'cii', guideline, version }
+   ├─▶ the host sends xml: a portal, email, Peppol          the invoice
+   ▼
+renderPdf(document) ── no PDF/A, no file, every page labelled ─▶ its copy
+```
+
 ## 6.9 An SVG, from the file a person saved to the page
 
 ```
@@ -469,7 +490,7 @@ bytes = await file.arrayBuffer(), held to the bound again
    ▼
 sniffImage(bytes): what the bytes are, never the name   report-spec
    ├─ PNG, JPEG: imageHeader, every chunk's CRC, the sides;
-   │  a CMYK JPEG in an e-invoice refused
+   │  a CMYK JPEG in a Factur-X invoice refused
    ├─ SVG: cleanSvg (6.9), its drawing the asset
    ├─ anything else, a refusal, a type the store keeps not ──▶ said, in the
    │                                                     editor's words

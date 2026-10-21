@@ -51,7 +51,7 @@ const BILL: QrBill = {
 }
 
 /** An e-invoice as the runtime hands one on, its XML cut short: neither adapter reads it. */
-const E_INVOICE: EInvoiceFile = { xml: '<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice/>\n', fileName: 'factur-x.xml', relationship: 'Alternative', conformanceLevel: 'EN 16931' }
+const E_INVOICE: EInvoiceFile = { kind: 'facturX', xml: '<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice/>\n', fileName: 'factur-x.xml', relationship: 'Alternative', conformanceLevel: 'EN 16931' }
 
 /** An EPC QR code as the runtime resolves one: an account and its owner alone, framed and captioned as Austria's PSA asks. */
 const EPC: EpcQrCode = { kind: 'epcQrCode', id: 'pay-code', payload: ['BCD', '002', '1', 'SCT', '', 'Max Muster', 'DE89370400440532013000'].join('\n'), size: 85.04, caption: 'zahlenMitCode' }

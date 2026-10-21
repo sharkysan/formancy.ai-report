@@ -1,6 +1,10 @@
 # 0037 — An e-invoice may name the seller's and the buyer's electronic addresses, in five schemes of the CEF's list, the seller's contact and its business process, none of which a German B2B invoice needs: the contact's telephone number and email address held to XRechnung's own expressions, which the e-invoice gate holds to KoSIT's schematron, and a fourth sample and a control judged by both validators; the terms required now, the CEF's whole list, shapes of report-spec's own and a contact of any of its terms lost
 
-- **Status:** accepted; extends [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)
+- **Status:** accepted; extends [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md);
+  extended by [0038](0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md),
+  under which an XRechnung needs these terms, an electronic address under
+  0204 is held to a Leitweg-ID's check digits in an e-invoice of either
+  kind, and KoSIT's XRechnung scenario judges a sample that names them
 - **Date:** 2026-10-20
 - **Deciders:** Daniel Bacher
 - **Verified by:**

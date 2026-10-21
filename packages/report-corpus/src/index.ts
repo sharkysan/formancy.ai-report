@@ -92,6 +92,9 @@ export {
   STARTER_IMAGES,
   starterImages,
   STARTERS,
+  XRECHNUNG_SAMPLE,
+  XRECHNUNG_SAMPLES,
+  xrechnungData,
 } from './starters/index.js'
 export type { Starter, StarterImage } from './starters/index.js'
 export type { PdfAttachment, PdfBox, PdfFont, PdfPage, PdfPaint, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'

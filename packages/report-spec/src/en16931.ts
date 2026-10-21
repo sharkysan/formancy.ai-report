@@ -26,8 +26,11 @@
  * (`en16931-dates.ts`), the terms of a line (`en16931-lines.ts`) and the
  * VAT categories (`en16931-vat.ts`). The two shapes XRechnung asks of the
  * seller's contact, which no rule of CEN's does, are XRechnung's own, with
- * their own list of ids (`xrechnung.ts`, 0037).
+ * their own list of ids (`xrechnung.ts`, 0037), and so are the terms an
+ * XRechnung needs past EN 16931 (0038).
  */
+import { isXRechnungRule, xrechnungRule } from './xrechnung.js'
+import type { XRechnungRule } from './xrechnung.js'
 
 /**
  * Every rule of EN 16931 a refusal of these checks names, and no other.
@@ -94,10 +97,11 @@ export function en16931Rule(id: En16931Rule | readonly En16931Rule[], said: stri
  */
 export const FULL_ADDRESS = '§ 14 Abs. 4 Satz 1 Nr. 1 UStG'
 
-/** What asks for a term an e-invoice cannot leave out: one of EN 16931's rules, or the UStG's full address. */
-export type EInvoiceNeed = En16931Rule | typeof FULL_ADDRESS
+/** What asks for a term an e-invoice cannot leave out: one of EN 16931's rules, the UStG's full address, or, in an XRechnung, one of XRechnung's rules (0038). */
+export type EInvoiceNeed = En16931Rule | typeof FULL_ADDRESS | XRechnungRule
 
-/** What a refusal says of a term `need` asks for that is `said` -- empty, or without a value -- and what asks for it: a rule of CEN's by its id, the UStG by its section and what it asks. */
+/** What a refusal says of a term `need` asks for that is `said` -- empty, or without a value -- and what asks for it: a rule of CEN's or XRechnung's by its id, the UStG by its section and what it asks. */
 export function neededBy(need: EInvoiceNeed, said: string): string {
-  return need === FULL_ADDRESS ? `${said}, and a German invoice gives the full address of the seller and the buyer (${FULL_ADDRESS})` : en16931Rule(need, `${said}, and an e-invoice needs it`)
+  if (need === FULL_ADDRESS) return `${said}, and a German invoice gives the full address of the seller and the buyer (${FULL_ADDRESS})`
+  return isXRechnungRule(need) ? xrechnungRule(need, `${said}, and an XRechnung needs it`) : en16931Rule(need, `${said}, and an e-invoice needs it`)
 }

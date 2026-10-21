@@ -8,6 +8,7 @@ import { E_INVOICE, E_INVOICE_ADDRESSED, E_INVOICE_EXEMPT_PAID, E_INVOICE_REVERS
 import { EURO_INVOICE } from './euro-invoice.js'
 import { starterImages, STARTERS } from './index.js'
 import type { Starter } from './starter.js'
+import { XRECHNUNG_SAMPLES } from './xrechnung.js'
 
 /**
  * The e-invoice samples: the de-DE e-invoice and its three variants, the
@@ -24,6 +25,9 @@ import type { Starter } from './starter.js'
  *   the bank details -- is compared, as text, with the XML's values as Intl
  *   formats them for de-DE, so that a page that printed one thing and an
  *   XML that held another fails here.
+ *
+ * Both hold of the XRechnung sample too (`xrechnung.ts`, 0038), whose XML
+ * is the invoice and whose PDF a copy of it.
  *
  * That the PDF prints them, and embeds that very XML, is held on the PDF
  * the engine produced (0003) by report-render-pdf's
@@ -46,6 +50,8 @@ function xmlOf(sample: Starter): CiiElement {
 }
 
 const samples = E_INVOICE_SAMPLES.map((sample) => [sample.id, sample] as const)
+/** The Factur-X samples and the XRechnung sample: every e-invoice the corpus resolves, each the same template's. */
+const everySample = [...E_INVOICE_SAMPLES, ...XRECHNUNG_SAMPLES].map((sample) => [sample.id, sample] as const)
 
 describe('the e-invoice samples', () => {
   // The sample and the three variants the e-invoice gate sees every
@@ -141,7 +147,7 @@ describe('the e-invoice samples', () => {
   test.each(samples)('%s resolves its own data in a final render, to a document carrying its XML', (_id, sample) => {
     const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, images: starterImages, creationDate: CREATED })
     expect(outcome.ok ? outcome.warnings : outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`)).toEqual([])
-    expect(outcome.ok && [outcome.document.eInvoice?.fileName, outcome.document.eInvoice?.xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice ')]).toEqual(['factur-x.xml', true])
+    expect(outcome.ok && [outcome.document.eInvoice?.kind === 'facturX' && outcome.document.eInvoice.fileName, outcome.document.eInvoice?.xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice ')]).toEqual(['factur-x.xml', true])
   })
 })
 
@@ -225,7 +231,7 @@ describe("the samples' XML, against BigInt", () => {
   // totals add up; and what was paid comes off the amount due. A runtime
   // that rounded per line, rounded half to even, or dropped the paid
   // amount would write another XML than this computes.
-  test.each(samples)("%s's amounts are its data's, computed in BigInt", (_id, sample) => {
+  test.each(everySample)("%s's amounts are its data's, computed in BigInt", (_id, sample) => {
     const root = xmlOf(sample)
     const expected = reference(sample)
     // The data's own amounts are its quantities times its prices, or the sample's data is wrong before the runtime reads it.
@@ -325,7 +331,7 @@ describe("the samples' pages, against their XML", () => {
   // write), never the line's identifier: two lines of one article would
   // share it, where BT-126 is each line's own. The identifier is the
   // line's position, 1 up in the table's order.
-  test.each(samples)("%s's table prints every line of its XML", (_id, sample) => {
+  test.each(everySample)("%s's table prints every line of its XML", (_id, sample) => {
     const { tables, root } = page(sample)
     expect(tables.map((table) => table.id)).toEqual(['positions'])
     const printed = tables[0]?.rows.filter((row) => row.kind === 'detail').map((row) => row.cells.slice(1))
@@ -342,7 +348,7 @@ describe("the samples' pages, against their XML", () => {
   // the total and, where something was paid, what was and what is due; and
   // none for a category no line is in. A row that printed a sum of its own
   // would part from the XML the first time the two rounded differently.
-  test.each(samples)("%s prints every total of its XML under the table, and no other", (_id, sample) => {
+  test.each(everySample)("%s prints every total of its XML under the table, and no other", (_id, sample) => {
     const { columns, root } = page(sample)
     const rows = columns.filter((block) => block.columns.length === 2 && block.columns.every((slot) => slot.blocks.length === 1 && slot.blocks[0]?.kind === 'paragraph'))
     const totals = xmlTotals(root)
@@ -363,10 +369,11 @@ describe("the samples' pages, against their XML", () => {
 
   // The head of the invoice is the XML's: the buyer's name and address,
   // its VAT identifier where it has one, the number, the issue date, the
-  // delivery date or the period, whichever the XML holds, and the due
-  // date; the firm's line, its first paragraph, under the firm's mark,
-  // holds the seller's name, address and VAT number.
-  test.each(samples)("%s's head prints the parties and dates of its XML", (_id, sample) => {
+  // delivery date or the period, whichever the XML holds, the due date,
+  // and the buyer's reference, the Leitweg-ID, where it has one; the
+  // firm's line, its first paragraph, under the firm's mark, holds the
+  // seller's name, address and VAT number.
+  test.each(everySample)("%s's head prints the parties and dates of its XML", (_id, sample) => {
     const { blocks, columns, root } = page(sample)
     const buyer = `${HTA}/ram:BuyerTradeParty`
     const seller = `${HTA}/ram:SellerTradeParty`
@@ -383,6 +390,7 @@ describe("the samples' pages, against their XML", () => {
         ...(delivered === undefined ? [] : [`Leistungsdatum: ${day(delivered)}`]),
         ...(start === undefined ? [] : [`Leistungszeitraum: ${day(start)} bis ${day(end)}`]),
         `Zahlbar bis: ${day(textAt(root, `${HTS}/ram:SpecifiedTradePaymentTerms/ram:DueDateDateTime/${DATE}`))}`,
+        ...textsAt(root, `${HTA}/ram:BuyerReference`).map((reference) => `Leitweg-ID: ${reference}`),
       ],
     ])
     const address = `${seller}/ram:PostalTradeAddress`
@@ -394,7 +402,7 @@ describe("the samples' pages, against their XML", () => {
   // amount due; and the EPC code asks for that amount to that account.
   // A page whose details named another account or amount than the XML
   // would be paid otherwise than the invoice says.
-  test.each(samples)("%s's terms, bank details and code are its XML's payment", (_id, sample) => {
+  test.each(everySample)("%s's terms, bank details and code are its XML's payment", (_id, sample) => {
     const { blocks, root } = page(sample)
     const means = `${HTS}/ram:SpecifiedTradeSettlementPaymentMeans`
     const texts = blocks.map(textOf)

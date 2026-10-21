@@ -1,15 +1,17 @@
 /*
  * An e-invoice (0027, 0031), from the packed packages under Node: validated,
  * resolved to its CII XML and drawn as a PDF/A-3b that embeds it, and its
- * preview drawn embedding nothing. consume.ts runs it where these checks
+ * preview drawn embedding nothing; and the same invoice as an XRechnung
+ * (0038), its XML taken from the resolved document and its copy drawn as a
+ * plain PDF labelled on every page. consume.ts runs it where these checks
  * stood, on its own report's page, and prints what it returns. It lives
  * apart because it changes when the e-invoice does -- a term, a profile, a
  * format -- and the rest of consume.ts does not.
  */
-import { ADDRESS_SCHEMES, FACTUR_X, FACTUR_X_PROFILES, REPORT_SPEC_VERSION, validateReport, XRECHNUNG_RULES } from '@formancy/report-spec'
-import type { AddressScheme, FacturXInvoice, ReportDefinition, ReportError, ReportValidation, SellerContact, TableComponent, TextComponent } from '@formancy/report-spec'
+import { ADDRESS_SCHEMES, FACTUR_X, FACTUR_X_PROFILES, REPORT_SPEC_VERSION, validateReport, XRECHNUNG, XRECHNUNG_PATTERNS } from '@formancy/report-spec'
+import type { AddressScheme, FacturXInvoice, ReportDefinition, ReportError, ReportValidation, SellerContact, TableComponent, TextComponent, XRechnungInvoice } from '@formancy/report-spec'
 import { resolveReport } from '@formancy/report-runtime'
-import { E_INVOICE_PREVIEW_LABEL, FACTUR_X as RUNTIME_FACTUR_X, FACTUR_X_PROFILES as RUNTIME_FACTUR_X_PROFILES } from '@formancy/report-runtime'
+import { E_INVOICE_PREVIEW_LABEL, FACTUR_X as RUNTIME_FACTUR_X, FACTUR_X_PROFILES as RUNTIME_FACTUR_X_PROFILES, XRECHNUNG as RUNTIME_XRECHNUNG, XRECHNUNG_COPY_LABEL, XRECHNUNG_COPY_PARAGRAPH } from '@formancy/report-runtime'
 import type { EInvoiceFile, Paragraph, ReportData, Resolution } from '@formancy/report-runtime'
 import { renderPdf } from '@formancy/report-render-pdf'
 import { readEmbedding } from './embedding.js'
@@ -161,13 +163,13 @@ export async function drawnEInvoice(page: ReportDefinition['page']): Promise<str
   const unwritten = terms.filter((term) => !addressedXml.includes(term))
   if (unwritten.length > 0) throw new Error(`the e-invoice's XML does not hold the terms past 0027's it was given: ${unwritten.join(', ')}`)
   const unreachable: ReportValidation = validateReport({ ...invoiced, eInvoice: { ...addressedBlock, seller: { ...addressedBlock.seller, contact: { ...contact, telephone: text('Zentrale') } } } })
-  if (unreachable.valid || !unreachable.errors.some((error: ReportError) => error.path === '/eInvoice/seller/contact/telephone' && error.message.includes(`(XRechnung's ${XRECHNUNG_RULES[0]})`) && !error.message.includes('Zentrale'))) {
+  if (unreachable.valid || !unreachable.errors.some((error: ReportError) => error.path === '/eInvoice/seller/contact/telephone' && error.message.includes(`(XRechnung's ${XRECHNUNG_PATTERNS.telephone.rule})`) && !error.message.includes('Zentrale'))) {
     throw new Error(`a contact's telephone number of no digits was not refused by XRechnung's rule: ${unreachable.valid ? 'valid' : unreachable.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
   }
   const invoicedResolution: Resolution = resolveReport(invoiced, invoiceData, { mode: 'final', creationDate: '2026-10-16T08:00:00Z' })
   if (!invoicedResolution.ok) throw new Error(`the e-invoice did not resolve: ${invoicedResolution.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
   const file: EInvoiceFile | undefined = invoicedResolution.document.eInvoice
-  if (file === undefined || !file.xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice ')) throw new Error('a final render of the e-invoice wrote no CII XML')
+  if (file?.kind !== 'facturX' || !file.xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice ')) throw new Error('a final render of the e-invoice wrote no Factur-X file of CII XML')
   // The file's names reach the renderer through the runtime as report-spec's own, as the QR-bill's rules do: a copy would be a second decision.
   if (RUNTIME_FACTUR_X !== FACTUR_X || RUNTIME_FACTUR_X_PROFILES !== FACTUR_X_PROFILES) throw new Error("the runtime does not hand on report-spec's own Factur-X names")
   if (file.fileName !== FACTUR_X.fileName || file.conformanceLevel !== FACTUR_X_PROFILES.en16931.conformanceLevel || file.relationship !== FACTUR_X_PROFILES.en16931.relationship) {
@@ -227,5 +229,70 @@ export async function drawnEInvoice(page: ReportDefinition['page']): Promise<str
   if (new TextDecoder().decode(invoicePreview.subarray(0, 5)) !== '%PDF-' || previewEmbedding.associated.length !== 0 || previewEmbedding.names.length !== 0 || previewEmbedding.xmp?.includes('pdfaid:') === true) {
     throw new Error(`the preview of the e-invoice did not render to a PDF that embeds nothing: ${JSON.stringify({ ...previewEmbedding, associated: previewEmbedding.associated.length })}`)
   }
-  return `an e-invoice validated, a country outside its list was refused by its rule, its business process, electronic addresses and seller's contact were written where given and a telephone number of no digits refused by XRechnung's rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing`
+  const xrechnung = await drawnXRechnung(invoiced, addressedBlock, invoiceData, addressedXml)
+  return `an e-invoice validated, a country outside its list was refused by its rule, its business process, electronic addresses and seller's contact were written where given and a telephone number of no digits refused by XRechnung's rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing; ${xrechnung}`
+}
+
+/**
+ * The same invoice as an XRechnung 3.0 (0038), from the packed packages: the
+ * addressed invoice's terms, which hold every one XRechnung needs past EN
+ * 16931 but the buyer's reference, given here as KoSIT's test Leitweg-ID
+ * and under 0204 as the buyer's address. It validates; one without its
+ * buyer's reference is refused by XRechnung's BR-DE-15, and a Leitweg-ID of
+ * wrong check digits by the Leitweg-ID's rule, neither quoting it; a final
+ * render hands a host the XML as an XRechnung's file, in CII, named by
+ * report-spec's `XRECHNUNG` as the runtime hands it on, the very XML the
+ * Factur-X invoice of the same terms is but for BT-24; and the renderer
+ * draws its copy as a plain PDF that embeds nothing, its page header the
+ * copy's label. A runtime that wrote the XRechnung as a hybrid, or a
+ * renderer that embedded its XML or dropped the label, fails here.
+ */
+async function drawnXRechnung(invoiced: ReportDefinition, addressed: FacturXInvoice, data: ReportData, addressedXml: string): Promise<string> {
+  const { kind: _kind, profile: _profile, ...terms } = addressed
+  const leitwegId = text('991-33333TEST-33')
+  const { businessProcess, seller, payment } = terms
+  if (businessProcess === undefined || seller.contact === undefined || seller.electronicAddress === undefined || payment === undefined) throw new Error('the addressed invoice lacks a term an XRechnung needs')
+  const block: XRechnungInvoice = {
+    ...terms,
+    kind: 'xrechnung',
+    version: '3.0',
+    businessProcess,
+    seller: { ...seller, contact: seller.contact, electronicAddress: seller.electronicAddress },
+    buyer: { ...terms.buyer, electronicAddress: { id: leitwegId, scheme: '0204' } },
+    buyerReference: leitwegId,
+    payment,
+  }
+  const report: ReportDefinition = { ...invoiced, id: 'install-xrechnung', title: 'Rechnung & Kopie', eInvoice: block }
+  const valid: ReportValidation = validateReport(report)
+  if (!valid.valid) throw new Error(`the XRechnung was refused: ${valid.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
+  const { buyerReference: _reference, ...unreferenced } = block
+  const unaddressed: ReportValidation = validateReport({ ...report, eInvoice: unreferenced })
+  if (unaddressed.valid || !unaddressed.errors.some((error: ReportError) => error.path === '/eInvoice/buyerReference' && error.message.includes("(XRechnung's BR-DE-15)"))) {
+    throw new Error(`an XRechnung without its buyer's reference was not refused by XRechnung's BR-DE-15: ${unaddressed.valid ? 'valid' : unaddressed.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
+  }
+  const misrouted: ReportValidation = validateReport({ ...report, eInvoice: { ...block, buyer: { ...block.buyer, electronicAddress: { id: text('991-33333TEST-34'), scheme: '0204' } } } })
+  if (misrouted.valid || !misrouted.errors.some((error: ReportError) => error.path === '/eInvoice/buyer/electronicAddress/id' && error.message.includes('MOD 97-10') && !error.message.includes('33333TEST'))) {
+    throw new Error(`a Leitweg-ID of wrong check digits was not refused by its rule: ${misrouted.valid ? 'valid' : misrouted.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
+  }
+  const resolution: Resolution = resolveReport(report, data, { mode: 'final', creationDate: '2026-10-16T08:00:00Z' })
+  if (!resolution.ok) throw new Error(`the XRechnung did not resolve: ${resolution.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
+  const file: EInvoiceFile | undefined = resolution.document.eInvoice
+  if (RUNTIME_XRECHNUNG !== XRECHNUNG) throw new Error("the runtime does not hand on report-spec's own XRechnung names")
+  const version = XRECHNUNG['3.0']
+  if (file?.kind !== 'xrechnung' || file.syntax !== version.syntax || file.guideline !== version.guideline || file.version !== '3.0') throw new Error(`a final render of the XRechnung handed on no XRechnung's file of its version: ${JSON.stringify({ ...file, xml: file?.xml.length })}`)
+  // The XML a host takes is the addressed Factur-X invoice's, byte for byte, but for BT-24 and the buyer's reference and address this one gives: one writer of one invoice. The consumer has no XML parser, and the runtime writes one way.
+  const expected = addressedXml
+    .replace('<ram:ID>urn:cen.eu:en16931:2017</ram:ID>', `<ram:ID>${version.guideline}</ram:ID>`)
+    .replace('<ram:ApplicableHeaderTradeAgreement>\n', '<ram:ApplicableHeaderTradeAgreement>\n      <ram:BuyerReference>991-33333TEST-33</ram:BuyerReference>\n')
+    .replace('<ram:URIID schemeID="0088">4012345000009</ram:URIID>', '<ram:URIID schemeID="0204">991-33333TEST-33</ram:URIID>')
+  if (file.xml !== expected) throw new Error("the XRechnung's XML is not the addressed invoice's, BT-24 and the buyer's reference and address apart")
+  // The label as the renderer holds a copy to it, the runtime's own paragraph, style and all; one runtime writes both, so its properties come in one order.
+  const [label] = resolution.document.pageHeader
+  if (label?.kind !== 'paragraph' || label.runs.map((run) => ('text' in run ? run.text : '')).join('') !== XRECHNUNG_COPY_LABEL || JSON.stringify(label) !== JSON.stringify(XRECHNUNG_COPY_PARAGRAPH)) throw new Error("the XRechnung's document is not labelled as the copy")
+  const copy = await renderPdf(resolution.document, { maxPages: 50 })
+  const embedding: Embedding = readEmbedding(copy)
+  if (new TextDecoder().decode(copy.subarray(0, 5)) !== '%PDF-' || embedding.associated.length !== 0 || embedding.names.length !== 0 || embedding.xmp !== undefined || embedding.outputProfiles.length !== 0) {
+    throw new Error(`the XRechnung's copy was not drawn as a plain PDF that embeds nothing: ${JSON.stringify({ ...embedding, associated: embedding.associated.length, xmp: embedding.xmp?.length })}`)
+  }
+  return `and as an XRechnung it validated, one without its buyer's reference was refused by XRechnung's BR-DE-15 and a Leitweg-ID of wrong check digits by its rule, a final render handed on ${file.xml.length} characters of XRechnung ${file.version} XML in ${file.syntax.toUpperCase()} for a host to send, and the renderer drew its labelled copy as a ${copy.length}-byte PDF that embeds nothing and states no PDF/A`
 }

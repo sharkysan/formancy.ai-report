@@ -8,9 +8,11 @@ import {
   checkAddressScheme,
   checkCountryCode,
   checkEInvoiceText,
+  checkElectronicAddress,
   checkSchemeId,
   checkUnitCode,
   checkVatIdentifier,
+  E_INVOICE_KIND_TEXTS,
   E_INVOICE_TEXT_TERMS,
   E_INVOICE_TEXTS,
   eInvoiceBlank,
@@ -20,7 +22,7 @@ import { buyerIdentificationBreak, checkLineCategory, checkVatRate, sellerIdenti
 import { EN16931_RULES, en16931Rule, FULL_ADDRESS, neededBy } from './en16931.js'
 import type { PaymentCheck } from './payment-reference.js'
 import { EXPRESSION_NAMES, VALUE_SCOPES } from './values.js'
-import { XRECHNUNG_RULES } from './xrechnung.js'
+import { XRECHNUNG_NEEDS, XRECHNUNG_RULES, XRECHNUNG_TEXT_NEEDS } from './xrechnung.js'
 
 /** The rule a check says is broken, or undefined when it accepts the value. */
 function broken<T>(check: PaymentCheck<T>): string | undefined {
@@ -36,9 +38,9 @@ function accepted<T>(check: PaymentCheck<T>): T {
 /** Every rule this file's cases saw broken, so the last case can hold the list of rule ids to what the rules say. */
 const said = new Set<string>()
 
-/** The BR ids a message names. */
+/** The rule ids a message names: CEN's and XRechnung's BR ids, a letter after one among them, and Peppol's that XRechnung runs. */
 function ruleIds(message: string): string[] {
-  return [...message.matchAll(/BR-[A-Z0-9]+(?:-[0-9]+)?/g)].map((match) => match[0])
+  return [...message.matchAll(/\b(?:BR-(?:[A-Z]+-)?\d+(?:-[a-z])?|PEPPOL-EN16931-R\d+)\b/g)].map((match) => match[0])
 }
 
 /** A broken rule, recorded. */
@@ -395,6 +397,51 @@ describe("the seller's contact, the electronic addresses and the business proces
   })
 })
 
+describe("an XRechnung's texts", () => {
+  // An XRechnung's terms are EN 16931's, held by the same table, but for
+  // what XRechnung needs past it -- the buyer's reference, the business
+  // process, both electronic addresses and the contact's three terms,
+  // each by the rule of XRechnung's that needs it -- and its payment
+  // terms, which may hold no Skonto line (BR-DE-18). One table per kind,
+  // over every term, so that the validator and the runtime read one rule
+  // of each term of each kind; a kind without a table does not compile.
+  test("are EN 16931's, but for what XRechnung needs and its payment terms", () => {
+    expect(E_INVOICE_KIND_TEXTS.facturX).toBe(E_INVOICE_TEXTS)
+    const xrechnung = E_INVOICE_KIND_TEXTS.xrechnung
+    expect(Object.keys(xrechnung)).toEqual(Object.keys(E_INVOICE_TEXTS))
+    const apart = Object.entries(xrechnung).flatMap(([term, held]) => {
+      const { what, token, check, required } = E_INVOICE_TEXTS[term as keyof typeof E_INVOICE_TEXTS]
+      return held.what === what && held.token === token && held.check === check && held.required === required ? [] : [term]
+    })
+    expect(apart.sort()).toEqual(['BT-10', 'BT-20', 'BT-23', 'BT-34', 'BT-41', 'BT-42', 'BT-43', 'BT-49'])
+    for (const [term, need] of Object.entries(XRECHNUNG_TEXT_NEEDS)) expect(xrechnung[term as keyof typeof xrechnung].required, term).toBe(need)
+    expect(rule(checkEInvoiceText('BT-10', ' ', 'xrechnung'))).toBe("is empty, and an XRechnung needs it (XRechnung's BR-DE-15)")
+    expect(rule(checkEInvoiceText('BT-41', '', 'xrechnung'))).toBe("is empty, and an XRechnung needs it (XRechnung's BR-DE-5)")
+    expect(rule(checkEInvoiceText('BT-10', ' '))).toBe('is blank: a term the e-invoice does not hold is left out of it')
+    expect(neededBy('PEPPOL-EN16931-R001', 'has no value')).toBe("has no value, and an XRechnung needs it (XRechnung's PEPPOL-EN16931-R001)")
+    expect(rule(checkEInvoiceText('BT-20', 'Zahlbar binnen 14 Tagen\n#SKONTO#TAGE=14#PROZENT=2.00#\n', 'xrechnung'))).toMatch(/\(XRechnung's BR-DE-18\)$/)
+    expect(accepted(checkEInvoiceText('BT-20', 'Zahlbar binnen 14 Tagen\n#SKONTO#TAGE=14#PROZENT=2.00#\n'))).toMatch(/^Zahlbar/)
+    expect(accepted(checkEInvoiceText('BT-20', 'Zahlbar binnen 14 Tagen', 'xrechnung'))).toBe('Zahlbar binnen 14 Tagen')
+    // What the format holds past its texts is a need of its own, a part, by the place it stands in.
+    expect(Object.keys(XRECHNUNG_NEEDS)).toEqual(['businessProcess', 'buyerReference', 'payment', 'seller/contact', 'seller/electronicAddress', 'buyer/electronicAddress'])
+  })
+
+  // The scheme says what an address is (0038, Q3): one under 0204 is a
+  // Leitweg-ID, held to its shape and check digits after the rule of its
+  // term, in an invoice of either kind; one under another scheme is held
+  // to its term's rule alone, as 0037 left it.
+  test('hold an electronic address under 0204 to a Leitweg-ID, after its term’s rule', () => {
+    for (const kind of ['facturX', 'xrechnung'] as const) {
+      expect(accepted(checkElectronicAddress('BT-49', '0204', '991-33333TEST-33', kind))).toBe('991-33333TEST-33')
+      expect(rule(checkElectronicAddress('BT-49', '0204', '991-33333TEST-34', kind))).toMatch(/^is under 0204, a Leitweg-ID, and has check digits that do not match/)
+      expect(rule(checkElectronicAddress('BT-34', '0204', 'rechnung@bund.example', kind))).toMatch(/^is under 0204, a Leitweg-ID, and is not shaped as one/)
+      expect(accepted(checkElectronicAddress('BT-49', 'EM', 'rechnung@bund.example', kind))).toBe('rechnung@bund.example')
+      expect(rule(checkElectronicAddress('BT-49', '0204', '991-33333TEST-33 ', kind))).toMatch(/^holds white space the XML would not keep/)
+    }
+    expect(rule(checkElectronicAddress('BT-49', '0204', ' ', 'xrechnung'))).toBe("is empty, and an XRechnung needs it (XRechnung's PEPPOL-EN16931-R010)")
+  })
+})
+
 describe('a decimal of the e-invoice', () => {
   // The XML writes BT-131 with two decimals at most (BR-DEC-23). A line
   // amount of 10.505 is refused, never rounded: the page printed it, and
@@ -607,7 +654,7 @@ describe('the rules named', () => {
     const listed: readonly string[] = [...EN16931_RULES, ...XRECHNUNG_RULES]
     for (const text of said) for (const id of ruleIds(text)) expect(listed, `${id} in "${text}"`).toContain(id)
     const named = new Set([...said].flatMap(ruleIds))
-    for (const term of [...Object.values(E_INVOICE_TEXTS), ...Object.values(E_INVOICE_DECIMALS), ...Object.values(E_INVOICE_DATES)]) {
+    for (const term of [...Object.values(E_INVOICE_KIND_TEXTS).flatMap((texts) => Object.values(texts)), ...Object.values(E_INVOICE_DECIMALS), ...Object.values(E_INVOICE_DATES)]) {
       // The UStG's full address is the law's, not one of CEN's rules.
       if (term.required !== undefined && term.required !== FULL_ADDRESS) named.add(term.required)
     }
@@ -616,6 +663,8 @@ describe('the rules named', () => {
     // runtime where a table has no rows; validate-e-invoice.test.ts holds
     // the validator's words.
     for (const id of ['BR-16', 'BR-CO-18'] as const) named.add(ruleIds(en16931Rule(id, 'said'))[0] as string)
+    // What an XRechnung needs past its texts the validator says where a part is missing; validate-xrechnung.test.ts holds its words.
+    for (const need of Object.values(XRECHNUNG_NEEDS)) named.add(need.rule)
     expect([...named].sort()).toEqual([...listed].sort())
     expect(en16931Rule('BR-16', 'an e-invoice has one line at least')).toBe('an e-invoice has one line at least (BR-16)')
   })

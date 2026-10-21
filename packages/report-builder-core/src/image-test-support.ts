@@ -8,7 +8,7 @@
  * add reads a picture's structure and header, and leaves its data to print.
  */
 import { emptyReport, validateReport } from '@formancy/report-spec'
-import type { FieldRef, Inline, ReportDefinition } from '@formancy/report-spec'
+import type { FacturXInvoice, FieldRef, Inline, ReportDefinition, XRechnungInvoice } from '@formancy/report-spec'
 import type { AddedImage, ImageFile, ImageStore, KeptImage } from './image-store.js'
 
 /** CRC-32 as PNG defines it (ISO/IEC 15948, annex D), one bit at a time. */
@@ -88,6 +88,31 @@ export function eInvoiceReport(): ReportDefinition {
   const outcome = validateReport(report)
   if (!outcome.valid) throw new Error(`the e-invoice is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path}`).join(', ')}`)
   return report
+}
+
+/**
+ * The same e-invoice as an XRechnung (0038), with what XRechnung needs past
+ * EN 16931, KoSIT's test Leitweg-ID as the buyer's reference and address:
+ * its PDF is a plain copy, no PDF/A, which may hold a CMYK image.
+ */
+export function xrechnungReport(): ReportDefinition {
+  const report = eInvoiceReport()
+  const { kind: _kind, profile: _profile, ...terms } = report.eInvoice as FacturXInvoice
+  const leitwegId = said('991-33333TEST-33')
+  const eInvoice: XRechnungInvoice = {
+    ...terms,
+    kind: 'xrechnung',
+    version: '3.0',
+    businessProcess: said('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
+    buyerReference: leitwegId,
+    seller: { ...terms.seller, electronicAddress: { id: said('rechnung@muster.example'), scheme: 'EM' }, contact: { name: said('Erika Mustermann'), telephone: said('+49 221 4710 820'), email: said('e.mustermann@muster.example') } },
+    buyer: { ...terms.buyer, electronicAddress: { id: leitwegId, scheme: '0204' } },
+    payment: { means: '58', iban: said('DE83 0123 4567 0012 3456 78') },
+  }
+  const copy: ReportDefinition = { ...report, eInvoice }
+  const outcome = validateReport(copy)
+  if (!outcome.valid) throw new Error(`the XRechnung is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path}`).join(', ')}`)
+  return copy
 }
 
 /** A GIF's signature and its smallest screen: an image, and no image the format draws. */

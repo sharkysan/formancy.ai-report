@@ -120,7 +120,7 @@ export function layoutDefinition(
   const last: DynamicContent | undefined = slip === undefined ? footer : (pageNumber, pageCount, size) => (pageNumber === pageCount ? slip() : footer?.(pageNumber, pageCount, size))
   const reserved = bill === undefined ? [] : [{ stack: [], margin: [0, slipReservation(page, regions), 0, 0] } satisfies Content]
   return {
-    ...(checked.eInvoice === undefined ? {} : PDF_A_3B),
+    ...(checked.pdfa === undefined ? {} : PDF_A_3B),
     info: { title: document.info.title, creationDate: checked.creationDate },
     pageSize: { width: page.paperWidth, height: page.paperHeight },
     pageMargins: [margins.left, bodyTop, margins.right, page.paperHeight - bodyBottom],

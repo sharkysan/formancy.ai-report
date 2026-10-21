@@ -5,6 +5,7 @@ export type {
   ColumnSlot,
   EInvoiceFile,
   EpcQrCode,
+  FacturXFile,
   Image,
   ImageAsset,
   Inline,
@@ -25,6 +26,7 @@ export type {
   TableColumn,
   TableRow,
   TextStyle,
+  XRechnungFile,
 } from './document.js'
 
 export { checkData, CONSISTENCY_MODES, DATA_MODES, MAX_DETAIL_ROWS } from './data.js'
@@ -44,7 +46,7 @@ export type { OrderedRow, OrderedTable, OrderKey, RowGroup } from './sort-group.
 export { CAPABILITIES, EVALUATION_ERROR_CODES, EXPRESSION_STEP_BUDGET, prepareExpressions, RENDER_STEP_BUDGET } from './evaluate.js'
 export type { ConditionEvaluation, Evaluation, EvaluationError, EvaluationErrorCode, ExpressionsPreparation, ReportExpressions } from './evaluate.js'
 
-export { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, resolveReport } from './resolve.js'
+export { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, resolveReport, XRECHNUNG_COPY_LABEL, XRECHNUNG_COPY_PARAGRAPH } from './resolve.js'
 export type { RenderManifest, Resolution, ResolveOptions } from './resolve.js'
 export { checkReport } from './report-check.js'
 export type { ReportCheck } from './report-check.js'
@@ -76,10 +78,12 @@ export type { EpcCaption } from '@formancy/report-spec'
  * the QR-bill's decisions are, so that an engine embeds and describes the
  * file by the one decision [S]: its name and media type, the XMP
  * extension's namespace and prefix, the document type and version it
- * states, and each profile's conformance level and relationship.
+ * states, and each profile's conformance level and relationship; and what
+ * names each XRechnung version, its guideline, release and syntax, which
+ * an engine holds an XRechnung's file to (0038).
  */
-export { FACTUR_X, FACTUR_X_PROFILES } from '@formancy/report-spec'
-export type { FacturXProfileTerms } from '@formancy/report-spec'
+export { FACTUR_X, FACTUR_X_PROFILES, XRECHNUNG, XRECHNUNG_VERSIONS } from '@formancy/report-spec'
+export type { FacturXProfileTerms, XRechnungTerms, XRechnungVersion } from '@formancy/report-spec'
 /**
  * What report-spec decides of an image's bytes, handed on as the QR-bill's
  * decisions are (0033): `MAX_ASSET_BYTES`, the most an asset may have,

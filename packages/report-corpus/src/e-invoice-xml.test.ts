@@ -122,8 +122,14 @@ const ROWS = [
   { position: '3', item: 'Rabatt', quantity: '-1', unit: 'C62', price: '5.00', amount: '-5.00', vat: 'standard' },
 ]
 
-function xmlOf(): string {
-  const outcome = resolveReport(JSON.parse(JSON.stringify(REPORT)) as ReportDefinition, { header: { number: 'RE-2026-0042' }, detail: ROWS, completeness: { complete: true, captured: 3 }, consistency: 'host-captured' }, { mode: 'final', creationDate: '2026-10-17T08:00:00Z' })
+/** The report as an XRechnung 3.0 (0038): the same terms, its kind and version where the profile was. */
+function asXRechnung(report: typeof REPORT): ReportDefinition {
+  const { profile: _profile, ...invoice } = report.eInvoice
+  return { ...report, eInvoice: { ...invoice, kind: 'xrechnung', version: '3.0' } } as unknown as ReportDefinition
+}
+
+function xmlOf(report: ReportDefinition = JSON.parse(JSON.stringify(REPORT)) as ReportDefinition): string {
+  const outcome = resolveReport(report, { header: { number: 'RE-2026-0042' }, detail: ROWS, completeness: { complete: true, captured: 3 }, consistency: 'host-captured' }, { mode: 'final', creationDate: '2026-10-17T08:00:00Z' })
   if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join('; '))
   return outcome.document.eInvoice?.xml ?? ''
 }
@@ -229,5 +235,16 @@ describe("the runtime's CII, read by another parser", () => {
     const named = [...parsed.attributes.keys()].map((path) => path.split('/@')[1])
     expect(new Set(named)).toEqual(new Set(['unitCode', 'schemeID', 'currencyID', 'format']))
     expect([...parsed.attributes.entries()].filter(([path]) => path.endsWith('/@format')).flatMap(([, values]) => values)).toEqual(Array.from({ length: 5 }, () => '102'))
+  })
+
+  // An XRechnung is written by the same writer (0038): the same report as
+  // an XRechnung holds every term at the same path with the same text and
+  // the same attributes, but for BT-24, KoSIT's XRechnung identifier.
+  test('holds every term an XRechnung of the same report holds, BT-24 apart', () => {
+    const xrechnung = pathsOf(readCii(xmlOf(asXRechnung(JSON.parse(JSON.stringify(REPORT)) as typeof REPORT))))
+    const guideline = `${CII}/rsm:ExchangedDocumentContext/ram:GuidelineSpecifiedDocumentContextParameter/ram:ID`
+    expect(xrechnung.texts.get(guideline)).toEqual(['urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0'])
+    expect(new Map([...xrechnung.texts].filter(([path]) => path !== guideline))).toEqual(new Map([...parsed.texts].filter(([path]) => path !== guideline)))
+    expect(xrechnung.attributes).toEqual(parsed.attributes)
   })
 })

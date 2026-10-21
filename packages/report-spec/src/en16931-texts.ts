@@ -5,16 +5,18 @@
  * the EPC QR code's account and BIC, XRechnung's shape of a telephone
  * number and of an email address -- in one table, and which term each
  * text of the format is, by where it stands. What a text may hold at all,
- * XML 1.0 decides.
+ * XML 1.0 decides. An XRechnung's texts are the same terms, with what
+ * XRechnung needs past EN 16931 needed and its payment terms held to
+ * BR-DE-18 (`E_INVOICE_KIND_TEXTS`, 0038).
  */
 import { checkEpcBic, checkEpcIban } from './epc-payload.js'
 import { ADDRESS_SCHEMES, COUNTRY_CODES, SCHEME_IDS, UNIT_CODES, VAT_PREFIXES } from './e-invoice.js'
-import type { AddressScheme, CountryCode, EInvoiceAddress, EInvoiceBuyer, EInvoiceSeller, PaymentInstructions, SchemeId, SellerContact, UnitCode } from './e-invoice.js'
+import type { AddressScheme, CountryCode, EInvoiceAddress, EInvoiceBuyer, EInvoiceKind, EInvoiceSeller, PaymentInstructions, SchemeId, SellerContact, UnitCode } from './e-invoice.js'
 import { en16931Rule, FULL_ADDRESS, neededBy } from './en16931.js'
 import type { EInvoiceNeed } from './en16931.js'
 import { no, ok, withoutSpaces } from './payment-reference.js'
 import type { PaymentCheck } from './payment-reference.js'
-import { emailBreak, telephoneBreak } from './xrechnung.js'
+import { emailBreak, leitwegIdBreak, skontoBreak, telephoneBreak, XRECHNUNG_TEXT_NEEDS } from './xrechnung.js'
 
 /** Whether a text says nothing: empty, or white space alone. */
 export function eInvoiceBlank(text: string): boolean {
@@ -214,6 +216,28 @@ export const E_INVOICE_TEXTS: { readonly [T in EInvoiceTextTerm]: EInvoiceTextRu
   'BT-153': { what: 'the item name (BT-153)', required: 'BR-25' },
 }
 
+/** How each text term is held, by its business term: a table over every term. */
+export type EInvoiceTextRules = { readonly [T in EInvoiceTextTerm]: EInvoiceTextRule }
+
+/** An XRechnung's text rules: EN 16931's, with each term XRechnung needs needed by its rule, and its payment terms holding no Skonto line. */
+function xrechnungTexts(): EInvoiceTextRules {
+  const rules: Record<string, EInvoiceTextRule> = { ...E_INVOICE_TEXTS }
+  for (const [term, rule] of Object.entries(XRECHNUNG_TEXT_NEEDS)) rules[term] = { ...E_INVOICE_TEXTS[term as EInvoiceTextTerm], required: rule }
+  rules['BT-20'] = { ...E_INVOICE_TEXTS['BT-20'], check: held(skontoBreak) }
+  return rules as EInvoiceTextRules
+}
+
+/**
+ * Each kind's text rules, one table per kind over every term (0038): the
+ * validator reads a literal by its kind's, the runtime what the data
+ * resolved, so the two cannot hold one term of one kind to two rules. A
+ * kind without a table does not compile.
+ */
+export const E_INVOICE_KIND_TEXTS: { readonly [K in EInvoiceKind]: EInvoiceTextRules } = {
+  facturX: E_INVOICE_TEXTS,
+  xrechnung: xrechnungTexts(),
+}
+
 /** Each part of an address, by its business term. */
 type AddressTerms = { readonly [A in keyof EInvoiceAddress]-?: EInvoiceTextTerm }
 
@@ -277,10 +301,10 @@ function collapsed(text: string): boolean {
  * its white space; then its own rule. That is what the validator says of a
  * literal; an optional term the data resolves to blank is left out of the
  * XML instead, which the runtime decides by `eInvoiceBlank` before it asks
- * here.
+ * here. `kind` is the e-invoice's, whose rules the term is held to.
  */
-export function checkEInvoiceText(term: EInvoiceTextTerm, text: string): PaymentCheck<string> {
-  const rule = E_INVOICE_TEXTS[term]
+export function checkEInvoiceText(term: EInvoiceTextTerm, text: string, kind: EInvoiceKind = 'facturX'): PaymentCheck<string> {
+  const rule = E_INVOICE_KIND_TEXTS[kind][term]
   if (eInvoiceBlank(text)) return no(rule.required === undefined ? 'is blank: a term the e-invoice does not hold is left out of it' : neededBy(rule.required, 'is empty'))
   const characters = xmlCharacterBreak(text)
   if (characters !== undefined) return no(characters)
@@ -288,4 +312,18 @@ export function checkEInvoiceText(term: EInvoiceTextTerm, text: string): Payment
     return no('holds white space the XML would not keep: its schema types the term as a token, read with each tab and line break as a space, two spaces as one, and none at either end')
   }
   return rule.check === undefined ? ok(text) : rule.check(text)
+}
+
+/**
+ * The identifier of an electronic address (BT-34, BT-49), `term`, given in
+ * `scheme`: held to its term's rule, and, under 0204, which says it is a
+ * Leitweg-ID, to a Leitweg-ID's shape and check digits (`leitwegIdBreak`,
+ * 0038), in an e-invoice of either kind. What a value under another
+ * scheme must be is not checked (0037).
+ */
+export function checkElectronicAddress(term: EInvoiceTextTerm, scheme: AddressScheme, text: string, kind: EInvoiceKind = 'facturX'): PaymentCheck<string> {
+  const checked = checkEInvoiceText(term, text, kind)
+  if (!checked.ok || scheme !== '0204') return checked
+  const broken = leitwegIdBreak(checked.value)
+  return broken === undefined ? checked : no(broken)
 }

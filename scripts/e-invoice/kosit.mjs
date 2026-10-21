@@ -1,6 +1,8 @@
 // KoSIT's validator over the corpus's XML (0027), with KoSIT's XRechnung
 // configuration, whose `EN16931 (CII)` scenario runs the CII D16B schema
-// and CEN/TC 434's schematron and nothing of XRechnung's: its command line,
+// and CEN/TC 434's schematron and nothing of XRechnung's, and whose
+// `EN16931 XRechnung (CII)` runs XRechnung's schematron beside them, which
+// an XRechnung's XML matches (0038): its command line,
 // what it writes, and the gate's verdict on it, pure over what one run left
 // so every rule is held by a test on a recorded run
 // (scripts/e-invoice/kosit.test.mjs).
@@ -22,8 +24,9 @@
 // - **Every report** is by the version the register pins and of the very
 //   bytes the corpus wrote, by their hash; and every file has one, and no
 //   other file does.
-// - **A sample** is matched to `EN16931 (CII)`, valid, accepted, and has no
-//   refusal.
+// - **A sample** is matched to its kind's scenario -- `EN16931 (CII)` for
+//   a Factur-X invoice's XML, `EN16931 XRechnung (CII)` for an
+//   XRechnung's -- valid, accepted, and has no refusal.
 // - **A control** is rejected, and refused for exactly what it expects.
 // - **The exit status** is the number of controls, since KoSIT rejects
 //   each control and no sample.
@@ -111,8 +114,8 @@ function reportProblems(entry, report, { pinned, hashes, scenario }) {
 
 /**
  * The verdict: `{ rows, problems, schematrons }`, `schematrons` every
- * schematron the samples' scenario ran, as its reports name it, which the
- * oracle reads.
+ * schematron each scenario the samples matched ran first, by the
+ * scenario, as its reports name it, which the oracle reads.
  *
  * - `entries`: the corpus;
  * - `reports`: file to the text of its report, or undefined where there is none;
@@ -122,7 +125,7 @@ function reportProblems(entry, report, { pinned, hashes, scenario }) {
  * - `accepted`: scripts/e-invoice/accepted.json's entries;
  * - `pinned`: the KoSIT version the register pins;
  * - `hashes`: file to the base64 SHA-256 of the bytes the corpus wrote;
- * - `scenario`: the scenario every sample must match.
+ * - `scenario`: the scenario a sample must match that names none of its own (`entry.scenario`).
  */
 export function judgeKosit({ entries, reports, others, status, error, console, accepted, pinned, hashes, scenario }) {
   if (error !== undefined) return { rows: [], problems: [`KoSIT did not run: ${error.message}`], schematrons: [] }
@@ -134,7 +137,7 @@ export function judgeKosit({ entries, reports, others, status, error, console, a
   if (status !== controls) problems.push(`KoSIT exited ${String(status)}, where it rejects one file per control and the corpus has ${String(controls)}`)
   for (const name of others) problems.push(`KoSIT wrote ${name}, which is the report of no file of the corpus`)
   const raised = new Set()
-  const schematrons = new Set()
+  const schematrons = new Map()
   const rows = entries.map((entry) => {
     const { file, expect } = entry
     const row = { file, expect: expect.kosit, verdict: 'not as expected', scenario: null, assessment: null, refusals: [], accepted: [] }
@@ -157,9 +160,10 @@ export function judgeKosit({ entries, reports, others, status, error, console, a
     const refusing = messages.filter((message) => message.level === 'error' || !acceptedHere.has(message.key))
     row.refusals = [...new Set(refusing.map((message) => message.key))]
     row.accepted = [...new Set(messages.filter((message) => !refusing.includes(message)).map((message) => message.key))]
-    const wrong = reportProblems(entry, report, { pinned, hashes, scenario })
+    const expected = entry.scenario ?? scenario
+    const wrong = reportProblems(entry, report, { pinned, hashes, scenario: expected })
     if (expect.kosit === 'accepted') {
-      for (const location of report.schematrons) schematrons.add(location)
+      if (report.scenario === expected) for (const location of report.schematrons) schematrons.set(expected, [...new Set([...(schematrons.get(expected) ?? []), location])])
       for (const message of refusing) wrong.push(`${file} is refused by KoSIT: ${message.key}: ${message.text}`)
     } else if (row.refusals.length === 0) wrong.push(`${file} is broken for ${entry.why}, and KoSIT accepted it: nothing is watching that`)
     else {
@@ -173,5 +177,5 @@ export function judgeKosit({ entries, reports, others, status, error, console, a
   for (const entry of mine) {
     if (!entry.files.some((file) => raised.has(`${entry.message}\0${file}`))) problems.push(`the accepted message kosit ${entry.message} was raised in none of its files: remove it from scripts/e-invoice/accepted.json`)
   }
-  return { rows, problems, schematrons: [...schematrons] }
+  return { rows, problems, schematrons: Object.fromEntries(schematrons) }
 }

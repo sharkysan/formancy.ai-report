@@ -19,7 +19,7 @@ import { readRegisters } from './registers.mjs'
 const here = dirname(fileURLToPath(import.meta.url))
 const recorded = (...path) => readFileSync(join(here, 'recorded', ...path), 'utf8')
 const run = JSON.parse(recorded('run.json'))
-const xml = corpus({ samples: run.samples.map((id) => ({ id })), xmlOf: (sample) => recorded('corpus', `${sample.id}.xml`) })
+const xml = corpus({ samples: run.samples.map((id) => ({ id })), xmlOf: (sample) => recorded('corpus', `${sample.id}.xml`), kindOf: (sample) => run.kinds[sample.id].kind, guidelineOf: (sample) => run.kinds[sample.id].guideline })
 const entries = [...xml, ...pdfPlan(xml)]
 const { accepted } = readRegisters()
 const PROFILE = 'urn:cen.eu:en16931:2017'
@@ -113,10 +113,18 @@ describe('Mustang’s verdict', () => {
   // register accepts raised where it is accepted, and every control refused
   // for exactly what it breaks.
   test('passes the recorded run', () => {
-    const { rows, problems } = judged()
+    const { rows, problems, compiled } = judged()
     expect(problems).toEqual([])
     expect(rows.map((row) => [row.file, row.verdict])).toEqual(entries.map((entry) => [entry.file, 'as expected']))
     expect(rows.find((row) => row.file === 'e-invoice-reverse-charge.xml').accepted).toEqual(['warning 4 PEPPOL-EN16931-R008'])
+    // The schematrons Mustang compiled, by the profile it read each sample as: FeRD's for a Factur-X invoice, which the oracle reads; CEN's and XRechnung's own for an XRechnung (0038), neither of them FeRD's.
+    expect(compiled).toEqual({
+      'urn:cen.eu:en16931:2017': ['/xslt/ZF_250/FACTUR-X_EN16931.xslt'],
+      'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0': ['/xslt/en16931schematron/EN16931-CII-validation.xslt', '/xslt/XR_30/XRechnung-CII-validation.xslt'],
+    })
+    expect(rows.find((row) => row.file === 'e-invoice-xrechnung.xml')).toMatchObject({ verdict: 'as expected', status: 0, refusals: [], accepted: [] })
+    // How many fewer rules check an XRechnung, as 0038's limitation quotes the recorded run: a record whose counts moved fails here until the sentence is read again.
+    expect(['e-invoice-xrechnung.xml', 'e-invoice.xml'].map((file) => rows.find((row) => row.file === file)?.fired)).toEqual([25, 179])
   })
 
   // A warning is a refusal unless the register accepts it in that file:
@@ -148,7 +156,11 @@ describe('Mustang’s verdict', () => {
     expect(judged((given) => (given.runs.get('e-invoice.xml').status = 255)).problems).toEqual(['Mustang exited 255 on e-invoice.xml, which it must accept'])
     expect(judged((given) => (given.runs.get('e-invoice.xml').stdout = given.runs.get('e-invoice.xml').stdout.replaceAll('status="valid"', 'status="invalid"'))).problems).toEqual(['Mustang’s report on e-invoice.xml says invalid, where the file must be accepted'])
     expect(judged(undefined, { pinned: '2.25.0' }).problems).toContain('Mustang’s report on e-invoice.xml is by Mustang 2.26.0, not by 2.25.0, which docs/release/e-invoice-tools.json pins')
-    expect(judged(undefined, { profile: 'urn:factur-x.eu:1p0:en16931' }).problems).toContain('Mustang read e-invoice.xml as the profile urn:cen.eu:en16931:2017, not as urn:factur-x.eu:1p0:en16931')
+    // Each sample is read as its own kind's guideline (0038), and one that names none as the profile the judge is given.
+    expect(judged((given) => (given.entries.find((entry) => entry.file === 'e-invoice.xml').guideline = 'urn:factur-x.eu:1p0:en16931')).problems).toEqual(['Mustang read e-invoice.xml as the profile urn:cen.eu:en16931:2017, not as urn:factur-x.eu:1p0:en16931'])
+    const xrechnung = 'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0'
+    expect(judged((given) => (given.entries.find((entry) => entry.file === 'e-invoice-xrechnung.xml').guideline = 'urn:cen.eu:en16931:2017')).problems).toEqual([`Mustang read e-invoice-xrechnung.xml as the profile ${xrechnung}, not as urn:cen.eu:en16931:2017`])
+    expect(judged((given) => given.entries.forEach((entry) => delete entry.guideline), { profile: 'urn:factur-x.eu:1p0:en16931' }).problems).toContain('Mustang read e-invoice.xml as the profile urn:cen.eu:en16931:2017, not as urn:factur-x.eu:1p0:en16931')
     expect(judged((given) => (given.runs.get('e-invoice.xml').stdout = given.runs.get('e-invoice.xml').stdout.replace(/<fired>\d+<\/fired>/, '<fired>0</fired>'))).problems).toEqual(['Mustang fired no rule on e-invoice.xml, so it checked nothing'])
     expect(judged((given) => (given.runs.get('e-invoice.xml').stdout = '<validation><xml>')).problems[0]).toMatch(/^Mustang wrote no report it can read on e-invoice.xml: /)
     expect(judged((given) => given.runs.delete('e-invoice.xml')).problems).toEqual(['Mustang did not run on e-invoice.xml'])

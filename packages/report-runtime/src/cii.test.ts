@@ -68,7 +68,7 @@ const TERMS: InvoiceTerms = {
 }
 
 const invoice = (terms: InvoiceTerms, lines: readonly LineTerms[] = LINES, paid: string | null = '100.00'): CiiInvoice => ({
-  profile: 'en16931',
+  guideline: 'urn:cen.eu:en16931:2017',
   type: '380',
   currency: 'EUR',
   terms,
