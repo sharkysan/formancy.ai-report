@@ -311,32 +311,36 @@ function party<P extends EInvoiceSeller | EInvoiceBuyer>(held: P, texts: readonl
 }
 
 /**
- * What each kind of e-invoice holds. A table over every kind, as
- * PAYMENT_PARTS is. An e-invoice stands in no component: its texts are
- * read as a paragraph's in the report's scope, its dates and its paid
- * amount as values there, and its line codes in each row's, as what an
- * aggregate reads from each row is; each is named by its path alone, in
- * the order the type holds them. The columns its lines are printed by are
- * read where they stand, in the table.
+ * EN 16931's terms, which an e-invoice of either kind holds. An e-invoice
+ * stands in no component: its texts are read as a paragraph's in the
+ * report's scope, its dates and its paid amount as values there, and its
+ * line codes in each row's, as what an aggregate reads from each row is;
+ * each is named by its path alone, in the order the type holds them. The
+ * columns its lines are printed by are read where they stand, in the
+ * table.
  */
+const en16931 = (invoice: EInvoice, path: string, into: Collector): void => {
+  into.invoiceText(invoice.number, `${path}/number`)
+  into.expression(invoice.issued, `${path}/issued`, 'report', 'computed', {}, date('BT-2'))
+  into.invoiceText(invoice.businessProcess, `${path}/businessProcess`)
+  party(invoice.seller, SELLER_TEXTS, `${path}/seller`, into)
+  party(invoice.buyer, BUYER_TEXTS, `${path}/buyer`, into)
+  into.invoiceText(invoice.buyerReference, `${path}/buyerReference`)
+  into.expression(invoice.delivered, `${path}/delivered`, 'report', 'computed', {}, date('BT-72'))
+  into.expression(invoice.period?.start, `${path}/period/start`, 'report', 'computed', {}, date('BT-73'))
+  into.expression(invoice.period?.end, `${path}/period/end`, 'report', 'computed', {}, date('BT-74'))
+  for (const [index, category] of invoice.vat.entries()) into.invoiceText(category.reason, `${path}/vat/${index}/reason`)
+  for (const key of Object.keys(E_INVOICE_LINE_CODES) as EInvoiceLineCode[]) into.lineCode(invoice.lines[key], `${path}/lines/${key}`, E_INVOICE_LINE_CODES[key])
+  for (const key of PAYMENT_TEXTS) into.invoiceText(invoice.payment?.[key], `${path}/payment/${key}`)
+  into.expression(invoice.due, `${path}/due`, 'report', 'computed', {}, date('BT-9'))
+  into.invoiceText(invoice.terms, `${path}/terms`)
+  into.expression(invoice.paid, `${path}/paid`, 'report', 'computed', {}, { what: E_INVOICE_DECIMALS['BT-113'].what, types: ['decimal'] })
+}
+
+/** What each kind of e-invoice holds. A table over every kind, as PAYMENT_PARTS is: an XRechnung's expressions are where a Factur-X invoice's are, its version and the profile being none (0038). */
 const E_INVOICES: { readonly [K in EInvoiceKind]: InvoiceReader<K> } = {
-  facturX: (invoice, path, into) => {
-    into.invoiceText(invoice.number, `${path}/number`)
-    into.expression(invoice.issued, `${path}/issued`, 'report', 'computed', {}, date('BT-2'))
-    into.invoiceText(invoice.businessProcess, `${path}/businessProcess`)
-    party(invoice.seller, SELLER_TEXTS, `${path}/seller`, into)
-    party(invoice.buyer, BUYER_TEXTS, `${path}/buyer`, into)
-    into.invoiceText(invoice.buyerReference, `${path}/buyerReference`)
-    into.expression(invoice.delivered, `${path}/delivered`, 'report', 'computed', {}, date('BT-72'))
-    into.expression(invoice.period?.start, `${path}/period/start`, 'report', 'computed', {}, date('BT-73'))
-    into.expression(invoice.period?.end, `${path}/period/end`, 'report', 'computed', {}, date('BT-74'))
-    for (const [index, category] of invoice.vat.entries()) into.invoiceText(category.reason, `${path}/vat/${index}/reason`)
-    for (const key of Object.keys(E_INVOICE_LINE_CODES) as EInvoiceLineCode[]) into.lineCode(invoice.lines[key], `${path}/lines/${key}`, E_INVOICE_LINE_CODES[key])
-    for (const key of PAYMENT_TEXTS) into.invoiceText(invoice.payment?.[key], `${path}/payment/${key}`)
-    into.expression(invoice.due, `${path}/due`, 'report', 'computed', {}, date('BT-9'))
-    into.invoiceText(invoice.terms, `${path}/terms`)
-    into.expression(invoice.paid, `${path}/paid`, 'report', 'computed', {}, { what: E_INVOICE_DECIMALS['BT-113'].what, types: ['decimal'] })
-  },
+  facturX: en16931,
+  xrechnung: en16931,
 }
 
 /** The table an e-invoice's lines are the rows of, and the term each column it names prints. */

@@ -1,5 +1,5 @@
-import { E_INVOICE, E_INVOICE_SAMPLES, elementsAt, LOGO, readCii, readCodes, readPdf, starterImages, textAt, verify, type CiiElement, type PdfCode, type PdfPage, type PdfTextItem, type ReadPdf, type Starter } from '@formancy/report-corpus'
-import { MAX_SVG_COORDINATE, resolveReport, type ReportData, type ReportDefinition, type ResolvedDocument } from '@formancy/report-runtime'
+import { E_INVOICE, E_INVOICE_SAMPLES, elementsAt, LOGO, readCii, readCodes, readPdf, starterImages, textAt, verify, XRECHNUNG_SAMPLES, type CiiElement, type PdfCode, type PdfPage, type PdfTextItem, type ReadPdf, type Starter } from '@formancy/report-corpus'
+import { MAX_SVG_COORDINATE, resolveReport, XRECHNUNG, XRECHNUNG_COPY_LABEL, type ReportData, type ReportDefinition, type ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { checkImageAsset, type Vector } from './assets.js'
 import { renderPdf } from './node.js'
@@ -35,6 +35,10 @@ import { runLines } from './testing/lines.js'
  * XML's value as Intl prints it for de-DE in the format this test states,
  * and the XML's amounts are recomputed here in BigInt from the sample's
  * data, at rates this test states, never read from the runtime.
+ *
+ * The XRechnung sample (0038) is read so too: its PDF embeds nothing, so
+ * its XML is the resolved document's, the very text a host takes and
+ * sends, and its page must say, as its first line, that it is the copy.
  *
  * What it cannot show: a customer template's page, since only the samples
  * are compared, nor what a sample's template prints for other data.
@@ -80,6 +84,8 @@ const epcAmount = (amount: string | undefined): string => `EUR${(amount ?? '').r
 
 /** What a page shows of its e-invoice, in the parts the template lays it out in, each as a reader reads it. */
 interface Shown {
+  /** The copy's label, the first line of an XRechnung's page, where the page prints one. */
+  readonly label: string | undefined
   /** The firm's line over the head: the seller. */
   readonly firm: string
   /** The buyer's lines, under the firm's at its left edge. */
@@ -101,7 +107,10 @@ interface Shown {
 /** What the page prints, read from its runs where they stand. Read in the template's layout, which this test states; a run of it nowhere else is unread. */
 function shownBy(pdf: ReadPdf, codes: readonly PdfCode[]): Shown {
   if (pdf.pages.length !== 1) throw new Error(`the PDF has ${pdf.pages.length} pages, where each sample prints one`)
-  const lines = runLines(pdf.pages[0]!)
+  const all = runLines(pdf.pages[0]!)
+  // The page header's one line of an XRechnung's copy, above the firm's.
+  const labelled = all[0]?.length === 1 && textOf(all[0][0]!) === XRECHNUNG_COPY_LABEL
+  const lines = labelled ? all.slice(1) : all
   const header = lines.findIndex((line) => line.map(textOf).join('|') === HEADER.join('|'))
   if (header < 1) throw new Error("the page prints no table header under the firm's line")
 
@@ -130,6 +139,7 @@ function shownBy(pdf: ReadPdf, codes: readonly PdfCode[]): Shown {
   const rest = lines.slice(next + 1).flat()
 
   return {
+    label: labelled ? XRECHNUNG_COPY_LABEL : undefined,
     firm: firm === undefined ? '' : textOf(firm),
     buyer: buyer.map(textOf),
     head: head.map(textOf).reduce(joined, ''),
@@ -152,12 +162,15 @@ function heldBy(root: CiiElement): Shown {
   const means = `${HTS}/ram:SpecifiedTradeSettlementPaymentMeans`
   const [account, iban, bic] = [at(`${means}/ram:PayeePartyCreditorFinancialAccount/ram:AccountName`), at(`${means}/ram:PayeePartyCreditorFinancialAccount/ram:IBANID`), at(`${means}/ram:PayeeSpecifiedCreditorFinancialInstitution/ram:BICID`)]
   const [due, paid] = [at(`${SUMMATION}/ram:DuePayableAmount`), at(`${SUMMATION}/ram:TotalPrepaidAmount`)]
+  const reference = at(`${HTA}/ram:BuyerReference`)
+  const xrechnung = at('rsm:ExchangedDocumentContext/ram:GuidelineSpecifiedDocumentContextParameter/ram:ID') === XRECHNUNG['3.0'].guideline
   const breakdown = elementsAt(root, `${HTS}/ram:ApplicableTradeTax`).map((tax) => {
     const of = (name: string): string | undefined => textAt(tax, `ram:${name}`)
     const label = of('CategoryCode') === 'S' ? `Umsatzsteuer ${of('RateApplicablePercent')} % auf` : `${of('ExemptionReason')}, Entgelt`
     return `${label} ${euro(of('BasisAmount'))} ${euro(of('CalculatedAmount'))}`
   })
   return {
+    label: xrechnung ? XRECHNUNG_COPY_LABEL : undefined,
     firm: `${at(`${seller}/ram:Name`)} · ${at(`${seller}/ram:PostalTradeAddress/ram:LineOne`)} · ${at(`${seller}/ram:PostalTradeAddress/ram:PostcodeCode`)} ${at(`${seller}/ram:PostalTradeAddress/ram:CityName`)} · USt-IdNr. ${at(`${seller}/ram:SpecifiedTaxRegistration/ram:ID`)}`,
     buyer: [at(`${buyer}/ram:Name`), at(`${buyer}/ram:PostalTradeAddress/ram:LineOne`), `${at(`${buyer}/ram:PostalTradeAddress/ram:PostcodeCode`)} ${at(`${buyer}/ram:PostalTradeAddress/ram:CityName`)}`, ...(buyerVatId === undefined ? [] : [`USt-IdNr.: ${buyerVatId}`])].map(String),
     head: [
@@ -167,6 +180,7 @@ function heldBy(root: CiiElement): Shown {
       ...(delivered === undefined ? [] : [`Leistungsdatum: ${day(delivered)}`]),
       ...(start === undefined ? [] : [`Leistungszeitraum: ${day(start)} bis ${day(at(`${HTS}/ram:BillingSpecifiedPeriod/ram:EndDateTime/${DATE}`))}`]),
       `Zahlbar bis: ${day(at(`${HTS}/ram:SpecifiedTradePaymentTerms/ram:DueDateDateTime/${DATE}`))}`,
+      ...(reference === undefined ? [] : [`Leitweg-ID: ${reference}`]),
     ].join(' '),
     lines: elementsAt(root, LINE).map((line) => {
       const of = (path: string): string | undefined => textAt(line, path)
@@ -205,9 +219,9 @@ function partings(page: unknown, xml: unknown, at = ''): string[] {
 interface Printed {
   readonly document: ResolvedDocument
   readonly pdf: ReadPdf
-  /** The bytes of the one file the PDF names factur-x.xml, as PDF.js reads them out of it. */
-  readonly embedded: Uint8Array
-  /** That file, parsed. */
+  /** The bytes of the one file the PDF names factur-x.xml, as PDF.js reads them out of it; undefined for an XRechnung's copy, which embeds nothing. */
+  readonly embedded: Uint8Array | undefined
+  /** That file, parsed; an XRechnung's XML, the resolved document's. */
   readonly root: CiiElement
   readonly shown: Shown
 }
@@ -222,12 +236,17 @@ function print(id: string, report: ReportDefinition, data: ReportData): Promise<
       if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`).join('; ')}`)
       const bytes = await renderPdf(outcome.document, { maxPages: 5 })
       const pdf = await readPdf(bytes)
+      const shown = shownBy(pdf, await readCodes(bytes, 1))
+      if (outcome.document.eInvoice?.kind === 'xrechnung') {
+        if (pdf.attachments.length !== 0) throw new Error(`the XRechnung's copy embeds ${pdf.attachments.length} files`)
+        return { document: outcome.document, pdf, embedded: undefined, root: readCii(outcome.document.eInvoice.xml), shown }
+      }
       const files = pdf.attachments.filter((file) => file.name === 'factur-x.xml')
       if (files.length !== 1 || files[0]!.bytes === undefined) throw new Error(`the PDF embeds ${files.length} files named factur-x.xml`)
       const embedded = files[0]!.bytes
       // Not UTF-8 throws; a byte-order mark is kept, for the byte comparison to find.
       const root = readCii(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(embedded))
-      return { document: outcome.document, pdf, embedded, root, shown: shownBy(pdf, await readCodes(bytes, 1)) }
+      return { document: outcome.document, pdf, embedded, root, shown }
     })()
     printed.set(id, found)
   }
@@ -274,6 +293,8 @@ function amountsOf(root: CiiElement) {
 }
 
 const samples = E_INVOICE_SAMPLES.map((sample) => [sample.id, sample] as const)
+/** The Factur-X samples and the XRechnung sample, whose page is compared with its XML alike. */
+const everySample = [...E_INVOICE_SAMPLES, ...XRECHNUNG_SAMPLES].map((sample) => [sample.id, sample] as const)
 
 describe('an e-invoice sample, read back from its PDF', () => {
   // What is compared below is what a receiver's software reads: the file
@@ -285,7 +306,17 @@ describe('an e-invoice sample, read back from its PDF', () => {
   // that a page equal to its XML is a page equal to its data.
   test.each(samples)("%s embeds the runtime's XML byte for byte, whose amounts are its data's in BigInt", async (_id, sample: Starter) => {
     const { document, embedded, root } = await print(sample.id, sample.report, sample.data)
-    expect(Buffer.from(embedded).equals(Buffer.from(new TextEncoder().encode(document.eInvoice!.xml)))).toBe(true)
+    expect(Buffer.from(embedded!).equals(Buffer.from(new TextEncoder().encode(document.eInvoice!.xml)))).toBe(true)
+    expect(amountsOf(root)).toEqual(reference(sample.data))
+  }, TIMEOUT)
+
+  // An XRechnung's copy embeds nothing (0038): the invoice is its XML,
+  // the resolved document's, which a host sends; the copy holds no file a
+  // receiver could take for a second invoice. Its XML's amounts are its
+  // data's, recomputed here as the samples' are.
+  test.each(XRECHNUNG_SAMPLES.map((sample) => [sample.id, sample] as const))("%s embeds nothing, and its XML's amounts are its data's in BigInt", async (_id, sample: Starter) => {
+    const { pdf, embedded, root } = await print(sample.id, sample.report, sample.data)
+    expect([embedded, pdf.attachments]).toEqual([undefined, []])
     expect(amountsOf(root)).toEqual(reference(sample.data))
   }, TIMEOUT)
 
@@ -301,7 +332,7 @@ describe('an e-invoice sample, read back from its PDF', () => {
   // past a margin and every font embedded (0003). Its table is this test's
   // to read, against the XML: the corpus's reads a cell word by word, and
   // takes the item pdfmake broke after "Gas-" for a word the cell lacks.
-  test.each(samples)('%s prints what its XML holds, where a reader reads it, and nothing else', async (id, sample: Starter) => {
+  test.each(everySample)('%s prints what its XML holds, where a reader reads it, and nothing else', async (id, sample: Starter) => {
     const { document, pdf, root, shown } = await print(sample.id, sample.report, sample.data)
     expect(partings(shown, heldBy(root))).toEqual([])
     expect(verify(fixtureOf(id, document, { maxPagesExpected: 1, tables: [] }), pdf)).toEqual([])

@@ -148,8 +148,8 @@ A person's file is read on the page's main thread: its digest by
 20 MiB on the machine it was measured on. A PNG whose image data does not
 inflate to what its header promises, or a JPEG whose scan is corrupt, is
 added, kept and declared, and refused as `invalid-asset` only when it
-prints; so is a CMYK JPEG added before its report gained an e-invoice, at
-the final render. The id a host is handed is the one the add means to
+prints; so is a CMYK JPEG added before its report gained a Factur-X
+invoice, at the final render. The id a host is handed is the one the add means to
 declare, and another editor of the session may declare it meanwhile for
 other bytes: a host that keyed its store by id alone could print another
 image unseen, and only the documentation of `ImageStore` says to key it
@@ -242,13 +242,28 @@ rightsholder's question. Nothing checks that what an invoice states is
 right: a wrong rate, a wrong exemption reason or another seller's VAT
 identifier passes every rule
 ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
-An electronic address is held to its scheme's list and to no form of its
-scheme's: an email address under a GLN's scheme, or a GLN of a wrong check
-digit, passes; the two shapes a contact is held to are copied, as
+An electronic address is held to its scheme's list and, but for a
+Leitweg-ID under 0204 (0038), to no form of its scheme's: an email address
+under a GLN's scheme, or a GLN of a wrong check digit, passes; the two shapes a contact is held to are copied, as
 strings, from KoSIT's XRechnung schematron, whose licence was not read;
 and the telephone number's is run as the count of digits it asks for, held
-to the expression on every short text, and by KoSIT on no file yet
+to the expression on every short text, and by KoSIT on the XRechnung
+sample alone
 ([0037](../decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md)).
+
+An XRechnung rests on more readings still. The Leitweg-ID's format
+specification could not be read, so the shape and check digits held of an
+address under 0204 are FeRD's description and secondary sources', checked
+against KoSIT's test values alone, three of which they refuse; that
+XRechnung 3.0 is in force until 31 July 2027 is a secondary source's; and
+4.0, which replaces the Skonto syntax an XRechnung's payment terms may not
+hold today, is not backward compatible. KoSIT's XRechnung scenario and
+Mustang judge one XRechnung, the sample, and Mustang fired 25 rules on it
+where FeRD's schematron fired 179 on a Factur-X sample, in the recorded
+run. The rules held by the format are held to their tests as the pinned
+schematron writes them, and by the sample alone in a file. The copy an
+XRechnung's PDF is carries no XML, and says so in the runtime's English
+words alone ([0038](../decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
 
 ### Codes nobody scanned, and bills nobody paid
 

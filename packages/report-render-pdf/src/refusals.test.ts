@@ -1,13 +1,14 @@
 import pdfmake from 'pdfmake'
 import browserPdfmake from 'pdfmake/build/pdfmake.js'
 import { readPdf } from '@formancy/report-corpus'
-import type { Block, Image, ResolvedDocument, Section, TableColumn } from '@formancy/report-runtime'
+import { XRECHNUNG_COPY_PARAGRAPH } from '@formancy/report-runtime'
+import type { Block, Image, Paragraph, ResolvedDocument, Section, TableColumn, TextStyle } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf as renderInBrowser } from './browser.js'
 import { MAX_DEPTH } from './check.js'
 import { renderPdf } from './node.js'
 import { BODY_HEIGHT, details, documentOf, ledger, paragraph, PRINTABLE_WIDTH } from './testing/documents.js'
-import { E_INVOICE_FILE, invoiced } from './testing/e-invoice.js'
+import { copied, E_INVOICE_FILE, invoiced, XRECHNUNG_FILE } from './testing/e-invoice.js'
 import { encodePng } from './testing/images.js'
 import { pageLines } from './testing/lines.js'
 
@@ -300,6 +301,92 @@ describe('an e-invoice', () => {
   // `browser.test.ts` read what is drawn).
   test.each(ENTRIES)('it knows is drawn %s', async (_, render) => {
     expect(await refused(render, invoice())).toBe('rendered')
+  })
+})
+
+describe('an XRechnung', () => {
+  const ENTRIES = [
+    ['in Node', renderPdf],
+    ['in a browser', renderInBrowser],
+  ] as const
+  const outcome = async (render: (typeof ENTRIES)[number][1], document: ResolvedDocument): Promise<unknown> =>
+    render(document, { maxPages: 5 }).then(
+      () => 'rendered',
+      (error: unknown) => error,
+    )
+  const copy = (file?: unknown): ResolvedDocument => copied(documentOf('XRechnung', [paragraph('Rechnung')]), file)
+
+  // The file of either kind is known by its kind (0038). One of a kind the
+  // renderer does not know, or a Factur-X file from a runtime that names
+  // no kind, would be drawn as something it is not -- a hybrid that embeds
+  // nothing, or a copy with no label -- and is refused, never guessed.
+  test.each([
+    ['a kind the renderer does not know', { ...E_INVOICE_FILE, kind: 'zugferd' }],
+    ['no kind at all', (({ kind: _kind, ...file }) => file)(E_INVOICE_FILE)],
+    ['a kind named like a property of every object', { ...E_INVOICE_FILE, kind: 'constructor' }],
+  ] as const)('with %s is refused as an e-invoice the renderer does not know', async (_, eInvoice) => {
+    for (const [, render] of ENTRIES) expect(await outcome(render, invoiced(documentOf('E-invoice', [paragraph('Rechnung')]), eInvoice))).toMatchObject({ code: 'unsupported', subject: 'eInvoice', message: 'the e-invoice is of a kind the renderer does not know' })
+  })
+
+  // An XRechnung's file names its syntax, its guideline and its version,
+  // report-spec's `XRECHNUNG`; one that names another -- UBL, which this
+  // release writes no writer of, a version it does not write, the
+  // Factur-X profile's guideline -- is from a runtime that wrote another
+  // invoice than this renderer knows, and is refused, as a lone surrogate
+  // and XML that is not text are in any e-invoice.
+  test.each([
+    ['another syntax', { ...XRECHNUNG_FILE, syntax: 'ubl' }, 'the XRechnung is written in a syntax the renderer does not know'],
+    ['another version', { ...XRECHNUNG_FILE, version: '2.3' }, 'the XRechnung is of a version the renderer does not know'],
+    ['a version named like a property of every object', { ...XRECHNUNG_FILE, version: 'constructor' }, 'the XRechnung is of a version the renderer does not know'],
+    ["the Factur-X profile's guideline", { ...XRECHNUNG_FILE, guideline: 'urn:cen.eu:en16931:2017' }, 'the XRechnung names another specification identifier than its version has'],
+    ['XML that is not text', { ...XRECHNUNG_FILE, xml: 42 }, "the e-invoice's XML is not text"],
+    ['XML holding a lone surrogate', { ...XRECHNUNG_FILE, xml: XRECHNUNG_FILE.xml.replace('Erika', `Erika ${String.fromCharCode(0xd800)}`) }, "the e-invoice's XML holds a lone surrogate, which UTF-8 cannot encode as it stands"],
+  ] as const)('with %s is refused as one the renderer does not know', async (_, eInvoice, message) => {
+    for (const [, render] of ENTRIES) {
+      const error = await outcome(render, copy(eInvoice))
+      expect(error).toMatchObject({ code: 'unsupported', subject: 'eInvoice', message })
+      expect(String((error as Error).message)).not.toContain('Mustermann')
+    }
+  })
+
+  // The PDF of an XRechnung is a copy, its invoice the XML (0038, Q1): the
+  // runtime opens every page's header with the label that says so. A
+  // document that carries an XRechnung without it -- made otherwise than
+  // the runtime makes one, or by a runtime that forgot -- would print a
+  // final picture of an invoice that says nothing of what it is, and is
+  // refused. So is the label's text in another style than the runtime's:
+  // in white on the white page, at one point, or in no style of its own,
+  // so in whatever a template's page header prints in, PDF.js still finds
+  // the text, and no reader sees it.
+  const relabel = (document: ResolvedDocument, label: Paragraph): ResolvedDocument => ({ ...document, pageHeader: [label, ...document.pageHeader.slice(1)] })
+  const restyled = (style: TextStyle) => (document: ResolvedDocument) => relabel(document, { ...XRECHNUNG_COPY_PARAGRAPH, style })
+  test.each([
+    ['no page header at all', (document: ResolvedDocument) => ({ ...document, pageHeader: [] })],
+    ['the label after another block', (document: ResolvedDocument) => ({ ...document, pageHeader: [...document.pageHeader.slice(1), document.pageHeader[0]!] })],
+    ['another label', (document: ResolvedDocument) => relabel(document, paragraph('Kopie'))],
+    // A page number is no text of the label's, wherever it stands in the paragraph.
+    ['the label with a page number in it', (document: ResolvedDocument) => relabel(document, { ...XRECHNUNG_COPY_PARAGRAPH, runs: [...XRECHNUNG_COPY_PARAGRAPH.runs, { field: 'pageNumber' }] })],
+    ['the label in white', restyled({ ...XRECHNUNG_COPY_PARAGRAPH.style, color: '#ffffff' })],
+    ['the label at one point', restyled({ ...XRECHNUNG_COPY_PARAGRAPH.style, size: 1 })],
+    ['the label in no style of its own', (document: ResolvedDocument) => relabel(document, { kind: 'paragraph', runs: XRECHNUNG_COPY_PARAGRAPH.runs })],
+    // A list's items and an object's keys read alike, so a run handed on in an object is a document made otherwise too.
+    ['the label’s run in an object, not a list', (document: ResolvedDocument) => relabel(document, { ...XRECHNUNG_COPY_PARAGRAPH, runs: { ...XRECHNUNG_COPY_PARAGRAPH.runs } as unknown as Paragraph['runs'] })],
+  ] as const)('with %s on its pages is refused', async (_, unlabel) => {
+    for (const [, render] of ENTRIES) {
+      expect(await outcome(render, unlabel(copy()))).toMatchObject({
+        code: 'unsupported',
+        subject: 'pageHeader',
+        message: "an XRechnung's PDF is a copy of its XML, labelled so at the top of every page, and this document's page header does not open with the label as the runtime writes it",
+      })
+    }
+  })
+
+  // The XRechnung the renderer knows is drawn in either entry, as a plain
+  // PDF: its title reaches no XMP, so one with an ampersand is drawn too
+  // (`xrechnung.test.ts` reads what is drawn).
+  test.each(ENTRIES)('it knows is drawn %s, its title whatever it is', async (_, render) => {
+    expect(await outcome(render, copy())).toBe('rendered')
+    expect(await outcome(render, { ...copy(), info: { ...copy().info, title: 'Müller & Söhne <AG>' } })).toBe('rendered')
   })
 })
 

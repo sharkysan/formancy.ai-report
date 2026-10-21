@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="variant-invoice.pdf" datetime="2026-10-20 22:15:00">
+<validation filename="variant-invoice.pdf" datetime="2026-10-21 19:53:30">
   <pdf>ValidationResult [flavour=3b, totalAssertions=17015, assertions=[], isCompliant=true]
     <info>
       <signature>unknown</signature>
@@ -17,7 +17,7 @@
         <fired>179</fired>
         <failed>0</failed>
       </rules>
-      <duration unit="ms">1822</duration>
+      <duration unit="ms">1775</duration>
     </info>
     <summary status="valid"/>
   </xml>

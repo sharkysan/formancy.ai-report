@@ -13,7 +13,12 @@
   [0037](0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md),
   under which an e-invoice may name the parties' electronic addresses,
   the seller's contact and its business process, none of them needed, and
-  a fourth sample and a control judged by both validators
+  a fourth sample and a control judged by both validators; and by
+  [0038](0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md),
+  under which an e-invoice may be an XRechnung 3.0, which this record
+  turned down for the German B2B invoice, its PDF a plain copy labelled
+  so on every page: the plain PDF this record forecloses, narrowed for
+  that kind alone
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

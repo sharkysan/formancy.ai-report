@@ -27,7 +27,7 @@
  * definition's to validate and the renderer's to refuse. These types do not
  * hold it.
  */
-import type { Alignment, AssetMediaType, Border, EpcCaption, FacturXProfileTerms, FontFamily, ImageFit, Margins, Orientation, PageSizeName, QrBillCurrency, QrErrorCorrection, Width } from '@formancy/report-spec'
+import type { Alignment, AssetMediaType, Border, EpcCaption, FacturXProfileTerms, FontFamily, ImageFit, Margins, Orientation, PageSizeName, QrBillCurrency, QrErrorCorrection, Width, XRechnungTerms, XRechnungVersion } from '@formancy/report-spec'
 
 /**
  * A run of text, or a number only the engine knows when it lays out the
@@ -354,7 +354,8 @@ export interface QrBill {
  * under another name. Only a final render writes one: a preview is not the
  * invoice. An engine encodes the XML as UTF-8 and changes nothing of it.
  */
-export interface EInvoiceFile {
+export interface FacturXFile {
+  readonly kind: 'facturX'
   /** The CII XML, with its declaration: the invoice itself. */
   readonly xml: string
   /** The embedded file's name: `factur-x.xml`. */
@@ -363,6 +364,28 @@ export interface EInvoiceFile {
   /** `EN 16931`. */
   readonly conformanceLevel: string
 }
+
+/**
+ * An XRechnung (0038): its XML, the invoice itself, which a host takes from
+ * the resolved document and sends -- to a portal, by email or over Peppol,
+ * as its buyer asks -- and which no PDF embeds; and what it is, its syntax,
+ * the specification identifier it opens with (BT-24) and the XRechnung
+ * version that names, report-spec's `XRECHNUNG`. An engine draws the page
+ * as a plain PDF labelled on every page as the copy, and refuses a file of
+ * another syntax, guideline or version as `unsupported`.
+ */
+export interface XRechnungFile {
+  readonly kind: 'xrechnung'
+  /** The CII XML, with its declaration: the invoice itself. */
+  readonly xml: string
+  readonly syntax: XRechnungTerms['syntax']
+  /** BT-24, as the XML holds it. */
+  readonly guideline: string
+  readonly version: XRechnungVersion
+}
+
+/** The e-invoice of a final render, by its kind: a Factur-X file a PDF/A-3b embeds, or an XRechnung's XML a host sends. */
+export type EInvoiceFile = FacturXFile | XRechnungFile
 
 export interface ResolvedDocument {
   readonly info: {

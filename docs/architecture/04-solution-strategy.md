@@ -80,9 +80,13 @@ would anybody find out?" ([`CLAUDE.md`](../../CLAUDE.md)). So:
   e-invoice's account is held by the EPC QR code's rule
   ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
   The renderer embeds that XML, changed in nothing, in the PDF/A-3b it
-  draws of an e-invoice, and of no other report, and decides nothing of
-  what the file says
-  ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+  draws of a Factur-X invoice, and of no other report, and decides nothing
+  of what the file says
+  ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md));
+  an XRechnung's XML, from the same writer, is the invoice the host sends,
+  and the renderer draws its document as a plain PDF, a copy labelled so
+  on every page in the runtime's paragraph
+  ([0038](../decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
 - **An SVG is read by one reader, once.** report-spec's `cleanSvg` cleans
   it where it is approved into one canonical form, and the renderer's
   `checkSvg`, the same reader, accepts only that form: nothing is cleaned

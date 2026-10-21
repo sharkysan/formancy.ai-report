@@ -7,11 +7,12 @@
  * function, every table feature and a payment part, so that a refusal
  * test can break exactly one rule by editing it at one JSON Pointer and
  * show that the rule refuses that edit and nothing around it.
- * `eInvoiceReport` is that report as an e-invoice, for the same use.
+ * `eInvoiceReport` is that report as an e-invoice, for the same use, and
+ * `xrechnungReport` that e-invoice as an XRechnung.
  */
 import type { DatasetContract, FieldRef } from './data.js'
 import type { ReportDefinition } from './definition.js'
-import type { FacturXInvoice } from './e-invoice.js'
+import type { FacturXInvoice, XRechnungInvoice } from './e-invoice.js'
 import type { ReportError } from './errors.js'
 import { validateReport } from './validate.js'
 import type { Inline } from './values.js'
@@ -401,6 +402,36 @@ export function eInvoiceReport(): ReportDefinition {
   const lines = report.datasets.detail as DatasetContract
   const fields = [...lines.fields, { id: 'unit', type: 'string', label: 'Unit', nullable: false } as const, { id: 'vat', type: 'string', label: 'VAT', nullable: false } as const]
   return { ...report, datasets: { ...report.datasets, detail: { ...lines, fields } }, eInvoice: facturXInvoice() }
+}
+
+/**
+ * The fixture's e-invoice as an XRechnung 3.0 (0038): every term the
+ * Factur-X fixture has, which already holds each that XRechnung needs past
+ * EN 16931 -- the business process, the buyer's reference, the payment
+ * instructions, the seller's contact and both electronic addresses -- with
+ * its version in place of the profile.
+ */
+export function xrechnungInvoice(): XRechnungInvoice {
+  const { profile: _profile, kind: _kind, ...terms } = facturXInvoice()
+  const { businessProcess, buyerReference, payment, seller, buyer } = terms
+  if (businessProcess === undefined || buyerReference === undefined || payment === undefined || seller.contact === undefined || seller.electronicAddress === undefined || buyer.electronicAddress === undefined) {
+    throw new Error('the Factur-X fixture lacks a term an XRechnung needs')
+  }
+  return {
+    kind: 'xrechnung',
+    version: '3.0',
+    ...terms,
+    businessProcess,
+    buyerReference,
+    payment,
+    seller: { ...seller, contact: seller.contact, electronicAddress: seller.electronicAddress },
+    buyer: { ...buyer, electronicAddress: buyer.electronicAddress },
+  }
+}
+
+/** `eInvoiceReport` with its e-invoice an XRechnung. */
+export function xrechnungReport(): ReportDefinition {
+  return { ...eInvoiceReport(), eInvoice: xrechnungInvoice() }
 }
 
 /** A deep copy of JSON data, as something the tests may edit freely. */

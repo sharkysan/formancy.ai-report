@@ -1,12 +1,12 @@
 import { deflateSync } from 'node:zlib'
 import pdfmake from 'pdfmake'
 import { IMAGE_KINDS, readPdf } from '@formancy/report-corpus'
-import { MAX_ASSET_BYTES, RenderRefusal, type Image, type ImageAsset, type ResolvedDocument } from '@formancy/report-runtime'
+import { MAX_ASSET_BYTES, RenderRefusal, XRECHNUNG_COPY_LABEL, type Image, type ImageAsset, type ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { checkImageAsset } from './assets.js'
 import { renderPdf } from './node.js'
 import { bareDocument, paragraph, TIMEOUT } from './testing/documents.js'
-import { invoiced } from './testing/e-invoice.js'
+import { copied, invoiced } from './testing/e-invoice.js'
 import { asset, encodePng, exifSegment, frameSegment, idat, ihdr, jpegOf, NONE, pngOf } from './testing/images.js'
 import { svg, svgAsset } from './testing/svg.js'
 
@@ -285,6 +285,16 @@ describe('a CMYK JPEG', () => {
   test('is drawn in a report that is no e-invoice', async () => {
     const pdf = await readPdf(await renderPdf(bareDocument('Image', [image(cmyk('logo-cmyk'))]), { maxPages: 1 }))
     expect(pdf.pages.flatMap((page) => page.images)).toHaveLength(1)
+  })
+
+  // The refusal is the PDF/A's, not the e-invoice's: an XRechnung's PDF is
+  // a plain copy (0038), which holds DeviceCMYK as any report does. A check
+  // that refused the image in every e-invoice would refuse a print shop's
+  // logo on a copy that could carry it.
+  test('is drawn in the copy of an XRechnung, which is no PDF/A', async () => {
+    const pdf = await readPdf(await renderPdf(copied(bareDocument('Rechnung', [image(cmyk('logo-cmyk'))])), { maxPages: 1 }))
+    expect(pdf.pages.flatMap((page) => page.images)).toHaveLength(1)
+    expect(pdf.pages[0]?.items[0]?.text).toBe(XRECHNUNG_COPY_LABEL)
   })
 
   // A check that refused every JPEG in an e-invoice, or more than CMYK,

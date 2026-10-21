@@ -12,7 +12,7 @@ import { describe, expect, test, vi } from 'vitest'
 import { createReportEditor } from './editor.js'
 import type { ReportEditor } from './editor.js'
 import type { ImageFile, KeptImage } from './image-store.js'
-import { chosen, eInvoiceReport, GIF, jpeg, png, recordingStore, utf8 } from './image-test-support.js'
+import { chosen, eInvoiceReport, GIF, jpeg, png, recordingStore, utf8, xrechnungReport } from './image-test-support.js'
 import type { EditorOutcome } from './model.js'
 import { editorOver, richReport, sessionOver } from './test-support.js'
 import { editorText } from './text.js'
@@ -398,11 +398,12 @@ describe('adding an image', () => {
     expect(store.kept.map(({ width, height }) => [width, height])).toEqual([[2, 3]])
   })
 
-  // An e-invoice prints as a PDF/A-3b whose output intent is sRGB (0031),
-  // beside which no image may be CMYK: a CMYK JPEG kept and declared in one
-  // printed in the preview and was refused at every final render. It is
-  // refused at the door instead, saying what to do; elsewhere it prints.
-  test('refuses a CMYK JPEG in an e-invoice, and adds it to any other report', async () => {
+  // A Factur-X invoice prints as a PDF/A-3b whose output intent is sRGB
+  // (0031), beside which no image may be CMYK: a CMYK JPEG kept and
+  // declared in one printed in the preview and was refused at every final
+  // render. It is refused at the door instead, saying what to do; elsewhere
+  // it prints.
+  test('refuses a CMYK JPEG in a Factur-X invoice, and adds it to any other report', async () => {
     const cmyk = jpeg(16, 16, undefined, 4)
     const store = recordingStore()
     const { editor, session } = editorOver(eInvoiceReport(), { images: store, locale: 'de-CH' })
@@ -414,6 +415,18 @@ describe('adding an image', () => {
     const plain = editorOver(blank(), { images: recordingStore() })
     ok(await plain.editor.addImage(chosen('logo-druckerei.jpg', cmyk)))
     expect(plain.session.document().assets.map((declared) => declared.mediaType)).toEqual(['image/jpeg'])
+  })
+
+  // An XRechnung's PDF is a plain copy, no PDF/A (0038), and the renderer
+  // draws a CMYK JPEG in it as in any report: refused at the door, a print
+  // shop's logo would be kept from a report that can print it, and the
+  // builder and the renderer would disagree on what an XRechnung holds.
+  test('adds a CMYK JPEG to an XRechnung, whose copy is no PDF/A', async () => {
+    const store = recordingStore()
+    const { editor, session } = editorOver(xrechnungReport(), { images: store })
+    ok(await editor.addImage(chosen('logo-druckerei.jpg', jpeg(16, 16, undefined, 4))))
+    expect(store.kept).toHaveLength(1)
+    expect(session.document().assets.map((declared) => declared.mediaType)).toEqual(['image/jpeg'])
   })
 
   // An editor that offered a kind the host will not keep would lead the

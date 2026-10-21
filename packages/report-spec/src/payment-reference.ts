@@ -1,7 +1,8 @@
 /**
  * What every payment code a report prints shares: ISO 7064's check modulo
  * 97, which ISO 13616 checks an IBAN with and ISO 11649 a creditor
- * reference; the creditor reference itself; and what a check says.
+ * reference, and a Leitweg-ID's check digits are computed by; the
+ * creditor reference itself; and what a check says.
  *
  * One check, read by the QR-bill's rules (`qr-bill.ts`) and the EPC QR
  * code's (`epc-payload.ts`): two copies could disagree about which account
@@ -34,10 +35,12 @@ export function withoutSpaces(text: string): string {
 
 /**
  * A text's remainder modulo 97, each letter read as the two digits ISO
- * 7064 gives it (A is 10, Z is 35), digit by digit: never as one number,
- * which a 27-character IBAN is too long to be exactly.
+ * 7064 gives it (A is 10, Z is 35), in either case, digit by digit: never
+ * as one number, which a 27-character IBAN is too long to be exactly. The
+ * Leitweg-ID's check digits are ISO 7064's MOD 97-10 too, and read it
+ * (`xrechnung.ts`, 0038).
  */
-function mod97(text: string): number {
+export function mod97(text: string): number {
   let remainder = 0
   for (const character of text) {
     const value = Number.parseInt(character, 36)

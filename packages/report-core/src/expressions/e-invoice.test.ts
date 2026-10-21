@@ -5,7 +5,7 @@ import type { Diagnostic } from '../diagnostics/codes.js'
 import { diagnose } from '../diagnostics/diagnose.js'
 import { thawed } from '../snapshot.js'
 import type { Mutable } from '../snapshot.js'
-import { eInvoiceSample, sampleReport, setAt } from '../test-support.js'
+import { eInvoiceSample, sampleReport, setAt, xrechnungSample } from '../test-support.js'
 import { compileReport } from './compile-report.js'
 
 const INTRO_VALUE = '/regions/body/0/content/2/expression/cel'
@@ -97,6 +97,16 @@ describe('the names an e-invoice binds', () => {
   test('read a paid amount that does not compile as anything, so its fault is said once', () => {
     expect(said(diagnose(invoiceWith(PAID, 'params.nope')))).toEqual(['expression-unknown-name /eInvoice/paid/cel'])
     expect(compileReport(invoiceWith(PAID, 'params.nope')).members.invoice.get('paid')).toEqual({ type: 'dyn', nullable: true })
+  })
+
+  // An XRechnung is an EN 16931 invoice as a Factur-X one is, its totals
+  // computed once from its lines by the same runtime (0038): its page reads
+  // them by the same names, typed the same, and is diagnosed as one.
+  test('are bound in an XRechnung as in a Factur-X invoice', () => {
+    expect(compileReport(xrechnungSample()).members).toEqual(compileReport(eInvoiceSample()).members)
+    expect(compileReport(xrechnungSample()).members.invoice.size).toBe(6)
+    expect(diagnose(xrechnungSample())).toEqual([])
+    expect(said(diagnose(edited(xrechnungSample(), set(GROSS, 'invoice.grandTotal'))))).toEqual([`expression-unknown-name ${GROSS}`])
   })
 
   // A report that is no e-invoice has no totals of one to bind.

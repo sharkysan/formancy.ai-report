@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { CODE_LISTS, codeList, codeListAt, oracleProblems, readCodedb, readSchematron, readVariables, scenarioSchematrons } from './oracle.mjs'
+import { CODE_LISTS, codeList, codeListAt, oracleProblems, readCodedb, readSchematron, readVariables, scenarioSchematrons, XRECHNUNG_HELD_RULES, XRECHNUNG_PLACES, XRECHNUNG_SKONTO } from './oracle.mjs'
 
 /**
  * report-spec's closed lists and the rule ids its refusals name, held to
@@ -65,15 +65,41 @@ const TESTS = {
   'BR-DE-27': 'matches(normalize-space(ram:TelephoneUniversalCommunication/ram:CompleteNumber), $XR-TELEPHONE-REGEX)',
   'BR-DE-28': 'matches(normalize-space(ram:EmailURIUniversalCommunication/ram:URIID), $XR-EMAIL-REGEX)',
 }
-/** XRechnung's schematron as SchXslt compiles it: its variables at the top, each shape's rule a warning at the seller's contact reading one, its test as `tests` writes it. */
-const xrechnungSchematron = ({ telephone = TELEPHONE, email = EMAIL, rules = ['BR-DE-27', 'BR-DE-28'], tests = TESTS, context = CONTACT } = {}) =>
-  `<xsl:transform ${NS} version="2.0"><xsl:variable name="XR-TELEPHONE-REGEX" select="'${telephone}'"/><xsl:variable name="XR-EMAIL-REGEX" select="'${email}'"/>${rules
+/** BR-DE-18's test as the pinned schematron begins it, the lines it reads, and what it asks of each, here cut short. */
+const SKONTO_TEST = `${XRECHNUNG_SKONTO.lines} matches ( normalize-space ($line), $XR-SKONTO-REGEX )`
+/** The rules of an XRechnung that need a term, hold one by the format, or read its payment terms: each fatal at the context and with the test the pinned schematron gives it. */
+const KIND_RULES = {
+  'BR-DE-15': { context: XRECHNUNG_PLACES.buyerReference.context, test: XRECHNUNG_PLACES.buyerReference.test },
+  'BR-DE-14': { context: '/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:ApplicableTradeTax', test: 'ram:RateApplicablePercent[boolean(normalize-space(.))]' },
+  'BR-DE-18': { context: XRECHNUNG_SKONTO.context, test: SKONTO_TEST },
+}
+/** The XRechnung version the schematron is of, and how it builds its CIUS identifier from it, as `XR-CIUS-ID` does. */
+const CIUS = 'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0'
+const VERSIONED = `<xsl:variable name="XR-MAJOR-MINOR-VERSION" select="'3.0'"/><xsl:variable name="XR-CIUS-ID" select="concat('urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_', $XR-MAJOR-MINOR-VERSION )"/>`
+/** XRechnung's schematron as SchXslt compiles it: its variables at the top, each shape's rule a warning at the seller's contact reading one, its test as `tests` writes it, and the rules of `kind`, each as `KIND_RULES` gives it. */
+const xrechnungSchematron = ({ telephone = TELEPHONE, email = EMAIL, rules = ['BR-DE-27', 'BR-DE-28'], tests = TESTS, context = CONTACT, kind = KIND_RULES, versioned = VERSIONED } = {}) =>
+  `<xsl:transform ${NS} version="2.0"><xsl:variable name="XR-TELEPHONE-REGEX" select="'${telephone}'"/><xsl:variable name="XR-EMAIL-REGEX" select="'${email}'"/>${versioned}${rules
     .map((id) => cenRule(id, 'warning', tests[id], context))
+    .join('')}${Object.entries(kind)
+    .map(([id, rule]) => cenRule(id, rule.flag ?? 'fatal', rule.test, rule.context))
     .join('')}</xsl:transform>`
-const xrechnungOf = (text) => ({ name: 'XRechnung’s schematron', asserts: readSchematron(text), variables: readVariables(text) })
+/** XRechnung's schematron as the gate reads it, with the release of XRechnung the register pins the configuration that carries it to. */
+const xrechnungOf = (text) => ({ name: 'XRechnung’s schematron', asserts: readSchematron(text), variables: readVariables(text), release: '3.0.2' })
 
-/** report-spec's lists and rules, as the oracle reads them, cut down to one list and two rules for these cases. */
-const SPEC = { UNIT_CODES: ['C62', 'H87'], EN16931_RULES: ['BR-27', 'BR-CL-23'], XRECHNUNG_RULES: ['BR-DE-27', 'BR-DE-28'], XRECHNUNG_PATTERNS: PATTERNS }
+/** What report-spec needs of an XRechnung, holds by the format and names its version, as the oracle reads it: none, for a case that holds something else. */
+const NO_KIND = { XRECHNUNG_NEEDS: {}, XRECHNUNG_TEXT_NEEDS: {}, XRECHNUNG_HELD: {}, XRECHNUNG: {}, XRECHNUNG_VERSIONS: [] }
+/** report-spec's lists and rules, as the oracle reads them, cut down to one list, two rules of CEN's and four of XRechnung's for these cases. */
+const SPEC = {
+  UNIT_CODES: ['C62', 'H87'],
+  EN16931_RULES: ['BR-27', 'BR-CL-23'],
+  XRECHNUNG_RULES: ['BR-DE-15', 'BR-DE-18', 'BR-DE-27', 'BR-DE-28'],
+  XRECHNUNG_PATTERNS: PATTERNS,
+  XRECHNUNG_NEEDS: { buyerReference: { rule: 'BR-DE-15', said: 's' } },
+  XRECHNUNG_TEXT_NEEDS: { 'BT-10': 'BR-DE-15' },
+  XRECHNUNG_HELD: { 'BR-DE-14': 'the rate' },
+  XRECHNUNG: { '3.0': { guideline: CIUS, release: '3.0.2', syntax: 'cii' } },
+  XRECHNUNG_VERSIONS: ['3.0'],
+}
 const LISTS = CODE_LISTS.filter((entry) => entry.list === 'UNIT_CODES')
 const CEN = { name: 'CEN’s schematron', asserts: readSchematron(cen(cenRule('BR-CL-23', 'fatal', test_('C62 H87 KGM')), cenRule('BR-27', 'fatal', '. &gt;= 0'))) }
 const FERD = {
@@ -107,7 +133,7 @@ describe('the oracle’s verdict', () => {
     const party = (role) => `/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:${role}/ram:PostalTradeAddress/ram:CountryID`
     const countries = ['SellerTradeParty', 'BuyerTradeParty'].map((role) => ferdRule({ match: party(role), variable: 'codeValue7', select: '.', id: 'FX-SCH-A-0', test: fromCodedb('codeValue7', 7) }))
     const given = {
-      spec: { COUNTRY_CODES: ['DE', 'UK'], EN16931_RULES: [], XRECHNUNG_RULES: [], XRECHNUNG_PATTERNS: {} },
+      spec: { COUNTRY_CODES: ['DE', 'UK'], EN16931_RULES: [], XRECHNUNG_RULES: [], XRECHNUNG_PATTERNS: {}, ...NO_KIND },
       lists: CODE_LISTS.filter((entry) => entry.list === 'COUNTRY_CODES'),
       cen: { name: 'CEN’s schematron', asserts: readSchematron(cen(cenRule('BR-CL-14', 'fatal', test_('AT DE', '.')))) },
       ferd: { name: 'FeRD’s schematron', asserts: readSchematron(ferd(...countries)), codedb: new Map([['7', ['AT', 'DE']]]) },
@@ -136,11 +162,16 @@ describe('the oracle’s verdict', () => {
     expect(problems((given) => given.spec.EN16931_RULES.push('BR-CO-27'))).toEqual(['BR-CO-27 is no fatal rule of CEN’s schematron', 'BR-CO-27 is no fatal rule of FeRD’s schematron'])
     expect(oracleProblems({ spec: SPEC, lists: LISTS, cen: CEN, ferd: FERD, xrechnung: XRECHNUNG }).checked).toEqual({
       lists: [{ list: 'UNIT_CODES', term: 'BT-130', codes: 2, cen: ['BR-CL-23'], ferd: ['8'] }],
-      rules: { cen: ['BR-27', 'BR-CL-23'], ferd: ['BR-27'], xrechnung: ['BR-DE-27', 'BR-DE-28'] },
+      rules: { cen: ['BR-27', 'BR-CL-23'], ferd: ['BR-27'], xrechnung: ['BR-DE-15', 'BR-DE-18', 'BR-DE-27', 'BR-DE-28'], held: ['BR-DE-14'] },
       patterns: [
         { shape: 'telephone', rule: 'BR-DE-27', variable: 'XR-TELEPHONE-REGEX', context: CONTACT, test: TESTS['BR-DE-27'] },
         { shape: 'email', rule: 'BR-DE-28', variable: 'XR-EMAIL-REGEX', context: CONTACT, test: TESTS['BR-DE-28'] },
       ],
+      needs: [
+        { at: 'buyerReference', rule: 'BR-DE-15', ...XRECHNUNG_PLACES.buyerReference },
+        { at: 'BT-10', rule: 'BR-DE-15', ...XRECHNUNG_PLACES['BT-10'] },
+      ],
+      versions: ['3.0'],
     })
   })
 
@@ -161,7 +192,7 @@ describe('the oracle’s verdict', () => {
     const party = (role) => `/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:${role}/ram:URIUniversalCommunication/ram:URIID`
     const rules = ['SellerTradeParty', 'BuyerTradeParty'].map((role) => ferdRule({ match: party(role), variable: 'codeValue17', select: '@schemeID', id: 'FX-SCH-A-0', test: fromCodedb('codeValue17', 17) }))
     const given = {
-      spec: { ADDRESS_SCHEMES: ['EM', '0204', '9930'], EN16931_RULES: [], XRECHNUNG_RULES: [], XRECHNUNG_PATTERNS: {} },
+      spec: { ADDRESS_SCHEMES: ['EM', '0204', '9930'], EN16931_RULES: [], XRECHNUNG_RULES: [], XRECHNUNG_PATTERNS: {}, ...NO_KIND },
       lists: CODE_LISTS.filter((entry) => entry.list === 'ADDRESS_SCHEMES'),
       cen: { name: 'CEN’s schematron', asserts: readSchematron(cen(cenRule('BR-CL-25', 'fatal', test_('0088 0204 EM', '@schemeID')))) },
       ferd: { name: 'FeRD’s schematron', asserts: readSchematron(ferd(...rules)), codedb: new Map([['17', ['EM', '0204']]]) },
@@ -226,10 +257,117 @@ describe('XRechnung’s rules and shapes', () => {
   // within it; and a scenario's schematrons are read out of KoSIT's
   // scenarios.xml by the scenario's name, in its namespace.
   test('reads a variable as the string its select writes, and a scenario’s schematrons by its name', () => {
-    expect(readVariables(`<xsl:transform ${NS}><xsl:variable name="A" select="'it''s'"/><xsl:variable name="B" select="concat('a', 'b')"/><xsl:template match="x"><xsl:variable name="C" select="'inner'"/></xsl:template></xsl:transform>`)).toEqual(new Map([['A', "it's"], ['B', undefined]]))
+    expect(readVariables(`<xsl:transform ${NS}><xsl:variable name="A" select="'it''s'"/><xsl:variable name="B" select="concat('a, ', $A )"/><xsl:variable name="D" select="concat('a', $NOPE)"/><xsl:variable name="E" select="string($A)"/><xsl:template match="x"><xsl:variable name="C" select="'inner'"/></xsl:template></xsl:transform>`)).toEqual(
+      new Map([
+        ['A', "it's"],
+        ['B', "a, it's"],
+        ['D', undefined],
+        ['E', undefined],
+      ]),
+    )
     const scenarios = `<scenarios xmlns="http://www.xoev.de/de/validator/framework/1/scenarios"><scenario><name>EN16931 XRechnung (CII)</name><validateWithSchematron><resource><name>a</name><location>resources/cii.xsl</location></resource></validateWithSchematron><validateWithSchematron><resource><name>b</name><location>resources/xr.xsl</location></resource></validateWithSchematron></scenario><scenario><name>EN16931 (CII)</name><validateWithSchematron><resource><name>a</name><location>resources/cii.xsl</location></resource></validateWithSchematron></scenario></scenarios>`
     expect(scenarioSchematrons(scenarios, 'EN16931 XRechnung (CII)')).toEqual(['resources/cii.xsl', 'resources/xr.xsl'])
     expect(scenarioSchematrons(scenarios, 'EN16931 (CII)')).toEqual(['resources/cii.xsl'])
     expect(scenarioSchematrons(scenarios, 'XRechnung 4.0')).toEqual([])
+  })
+})
+
+describe('what report-spec needs of an XRechnung, against XRechnung’s schematron', () => {
+  // report-spec refuses an XRechnung without a term XRechnung needs, by
+  // the rule that needs it (0038); that rule must be a fatal one of the
+  // pinned schematron, and test that very term's element, at the place
+  // the runtime writes it, as present. A rule KoSIT made a warning, moved
+  // or rewrote would leave report-spec refusing for a rule that no longer
+  // asks what it says, or another term needed than the one refused.
+  test('holds each need to a fatal rule testing its element where the runtime writes it', () => {
+    expect(problems()).toEqual([])
+    const changed = (change) => (given) => {
+      const kind = structuredClone(KIND_RULES)
+      change(kind)
+      given.xrechnung = xrechnungOf(xrechnungSchematron({ kind }))
+    }
+    expect(problems(changed((kind) => (kind['BR-DE-15'].flag = 'warning')))).toEqual(['XRechnung’s schematron’s BR-DE-15 is warning, where report-spec needs buyerReference by it as by a fatal rule', 'XRechnung’s schematron’s BR-DE-15 is warning, where report-spec needs BT-10 by it as by a fatal rule'])
+    expect(problems(changed((kind) => (kind['BR-DE-15'].context = '/rsm:CrossIndustryInvoice/rsm:ExchangedDocument')))).toEqual([
+      `XRechnung’s schematron’s BR-DE-15 holds /rsm:CrossIndustryInvoice/rsm:ExchangedDocument, where report-spec needs buyerReference at /rsm:CrossIndustryInvoice`,
+      `XRechnung’s schematron’s BR-DE-15 holds /rsm:CrossIndustryInvoice/rsm:ExchangedDocument, where report-spec needs BT-10 at /rsm:CrossIndustryInvoice`,
+    ])
+    const other = 'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:BuyerOrderReferencedDocument'
+    expect(problems(changed((kind) => (kind['BR-DE-15'].test = other)))).toEqual([
+      `XRechnung’s schematron’s BR-DE-15 tests '${other}', where report-spec needs buyerReference as '${XRECHNUNG_PLACES.buyerReference.test}'`,
+      `XRechnung’s schematron’s BR-DE-15 tests '${other}', where report-spec needs BT-10 as '${XRECHNUNG_PLACES['BT-10'].test}'`,
+    ])
+    // White space the compiler wraps a test or a context in, as it wraps BR-DE-16's, is no difference.
+    expect(problems(changed((kind) => (kind['BR-DE-15'] = { context: `\n  ${kind['BR-DE-15'].context} `, test: `\n          ${kind['BR-DE-15'].test}\n   ` })))).toEqual([])
+    expect(problems((given) => (given.spec.XRECHNUNG_TEXT_NEEDS = { ...given.spec.XRECHNUNG_TEXT_NEEDS, 'BT-99': 'BR-DE-15' }))).toEqual(['report-spec needs BT-99 in an XRechnung, whose place in the XML the gate does not know'])
+    expect(problems(changed((kind) => delete kind['BR-DE-15']))).toEqual(['BR-DE-15 is no rule of XRechnung’s schematron'])
+  })
+
+  // The rules report-spec holds by the format name no refusal, so nothing
+  // else would see one KoSIT renamed or dropped: each must be a rule of
+  // the pinned schematron.
+  test('holds each rule report-spec holds by the format to a rule of the schematron', () => {
+    expect(problems((given) => (given.spec.XRECHNUNG_HELD = { ...given.spec.XRECHNUNG_HELD, 'BR-DE-99': 'nothing' }))).toEqual(['BR-DE-99, which report-spec holds by the format, is no rule of XRechnung’s schematron'])
+  })
+
+  // A rule is held by the format for what it tests: BR-DE-16 takes a VAT
+  // identifier or a tax number, BR-DE-23-b refuses a card or a mandate the
+  // writer never writes. KoSIT rewriting a test -- BR-DE-16 taking the VAT
+  // identifier alone, BR-DE-23-b refusing an element the writer does
+  // write -- or moving a rule would leave the reason XRECHNUNG_HELD gives
+  // read against a rule that is gone, the id still there, and the one
+  // XRechnung sample need not break it. So each held rule's context and
+  // test are pinned, white space aside, and a held id whose rule the gate
+  // has not pinned is refused too. Its flag is none of what holds it.
+  test('holds each rule report-spec holds by the format to the context and test its reason was read against', () => {
+    const rate = XRECHNUNG_HELD_RULES['BR-DE-14']
+    const held = (change) => (given) => {
+      const kind = structuredClone(KIND_RULES)
+      change(kind['BR-DE-14'])
+      given.xrechnung = xrechnungOf(xrechnungSchematron({ kind }))
+    }
+    expect(problems(held((rule) => (rule.test = 'ram:CategoryCode')))).toEqual([`XRechnung’s schematron’s BR-DE-14 tests 'ram:CategoryCode', where report-spec holds it by the format as testing '${rate.test}'`])
+    expect(problems(held((rule) => (rule.context = '/rsm:CrossIndustryInvoice')))).toEqual([`XRechnung’s schematron’s BR-DE-14 holds /rsm:CrossIndustryInvoice, where report-spec holds it by the format at ${rate.context}`])
+    expect(
+      problems(
+        held((rule) => {
+          rule.test = `\n      ${rule.test}\n   `
+          rule.flag = 'warning'
+        }),
+      ),
+    ).toEqual([])
+    expect(problems((given) => (given.spec.XRECHNUNG_HELD = { ...given.spec.XRECHNUNG_HELD, 'BR-DE-15': 'the reference' }))).toEqual(['report-spec holds BR-DE-15 by the format, where the gate has pinned no test of it'])
+  })
+
+  // report-spec refuses every line of the payment terms led by #, the
+  // lines BR-DE-18 holds to XRechnung's Skonto syntax: a rule that read
+  // another description, split the terms otherwise or read lines led by
+  // something else would hold lines report-spec lets through.
+  test('holds BR-DE-18 to reading the lines report-spec refuses a Skonto line in', () => {
+    const reading = (test, context = XRECHNUNG_SKONTO.context) => (given) => (given.xrechnung = xrechnungOf(xrechnungSchematron({ kind: { ...KIND_RULES, 'BR-DE-18': { context, test } } })))
+    const said = `XRechnung’s schematron’s BR-DE-18 reads other lines of the payment terms than report-spec refuses a Skonto line in: '${XRECHNUNG_SKONTO.lines} …' at ${XRECHNUNG_SKONTO.context}`
+    expect(problems(reading(SKONTO_TEST.replace('Description[1]', 'Description[2]')))).toEqual([said])
+    expect(problems(reading(SKONTO_TEST.replace("'#')", "'#SKONTO')")))).toEqual([said])
+    expect(problems(reading(SKONTO_TEST.replace(String.raw`(\r?\n)`, ';')))).toEqual([said])
+    expect(problems(reading(SKONTO_TEST, '/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction'))).toEqual([said])
+  })
+
+  // The version report-spec writes is the schematron's, and its BT-24 the
+  // schematron's XR-CIUS-ID as it builds it: an XRechnung of another
+  // version, or a guideline KoSIT writes otherwise, is one KoSIT's
+  // XRechnung scenario matches to nothing, or to another release's rules.
+  test('holds each version report-spec writes, and its guideline, to the schematron’s', () => {
+    expect(problems((given) => (given.spec.XRECHNUNG_VERSIONS = ['3.0', '4.0']))).toEqual(['report-spec writes XRechnung 4.0, where XRechnung’s schematron is of 3.0'])
+    expect(problems((given) => (given.spec.XRECHNUNG['3.0'].guideline = 'urn:cen.eu:en16931:2017'))).toEqual([`report-spec names XRechnung 3.0 'urn:cen.eu:en16931:2017', where XRechnung’s schematron’s XR-CIUS-ID is '${CIUS}'`])
+    expect(problems((given) => (given.xrechnung = xrechnungOf(xrechnungSchematron({ versioned: VERSIONED.replace("'3.0'", "'3.1'") }))))).toEqual(['report-spec writes XRechnung 3.0, where XRechnung’s schematron is of 3.1'])
+  })
+
+  // `XRECHNUNG` names the release each version was read from, which a host
+  // may print or log. A configuration of 3.0.3 keeps BT-24 at
+  // xrechnung_3.0, so the version and the guideline would pass it while
+  // the release went on saying 3.0.2: it is held to the release the
+  // register pins the configuration to.
+  test('holds the release report-spec names each version by to the one the register pins', () => {
+    expect(problems((given) => (given.xrechnung.release = '3.0.3'))).toEqual(['report-spec names XRechnung 3.0 by release 3.0.2, where the gate’s configuration is of XRechnung 3.0.3'])
+    expect(problems((given) => delete given.spec.XRECHNUNG['3.0'].release)).toEqual(['report-spec names XRechnung 3.0 by release undefined, where the gate’s configuration is of XRechnung 3.0.2'])
   })
 })

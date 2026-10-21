@@ -1,7 +1,9 @@
-// The e-invoice gate (0027, 0031): Mustang, KoSIT's validator and veraPDF,
-// at the releases docs/release/e-invoice-tools.json pins, over the CII XML
-// the runtime writes of every e-invoice sample of the corpus and the
-// PDF/A-3b the renderer draws of it, and over controls broken one named way
+// The e-invoice gate (0027, 0031, 0038): Mustang, KoSIT's validator and
+// veraPDF, at the releases docs/release/e-invoice-tools.json pins, over the
+// CII XML the runtime writes of every e-invoice sample of the corpus -- the
+// Factur-X samples' and the XRechnung sample's, each in its kind's KoSIT
+// scenario -- and the PDF/A-3b the renderer draws of each Factur-X sample,
+// and over controls broken one named way
 // each, with Java's HTTP and HTTPS proxies at a dead port (a raw socket is
 // not caught); and the closed code lists and rule ids of report-spec held
 // to the schematrons those tools run.
@@ -54,7 +56,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { fetchVerified, layout, readVerified, sha256File } from './e-invoice/cache.mjs'
-import { corpus as buildCorpus, corpusProblems, strayAccepted } from './e-invoice/corpus.mjs'
+import { corpus as buildCorpus, corpusProblems, KINDS, strayAccepted } from './e-invoice/corpus.mjs'
 import { javaMajor, javaVersion } from './e-invoice/java.mjs'
 import { judgeKosit, kositArguments, readKositConsole, reportName } from './e-invoice/kosit.mjs'
 import { judgeMustang, mustangArguments, mustangOutputs } from './e-invoice/mustang.mjs'
@@ -82,10 +84,10 @@ const OUTPUTS = ['mustang', 'kosit', 'verapdf']
 
 /** The instant every sample is resolved at: the XML reads no clock, and a final render needs one. */
 const CREATED = '2026-10-17T08:00:00Z'
-/** The scenario of KoSIT's configuration every sample must match: the CII D16B schema and CEN's schematron, nothing of XRechnung's. */
-const SCENARIO = 'EN16931 (CII)'
-/** The scenario whose schematron beside CEN's is XRechnung's, which the oracle holds report-spec's XRechnung rules and shapes to (0037). */
-const XRECHNUNG_SCENARIO = 'EN16931 XRechnung (CII)'
+/** The scenario of KoSIT's configuration every Factur-X sample must match: the CII D16B schema and CEN's schematron, nothing of XRechnung's; the oracle reads CEN's schematron where it runs. */
+const SCENARIO = KINDS.facturX.scenario
+/** The scenario an XRechnung sample must match, whose schematron beside CEN's is XRechnung's, which the oracle holds report-spec's XRechnung rules and shapes to (0037, 0038). */
+const XRECHNUNG_SCENARIO = KINDS.xrechnung.scenario
 /** The most pages a PDF of the corpus may have: every sample prints on one (the renderer's e-invoice-samples.test.ts reads each as one), and one that grows is refused rather than judged unread. */
 const MAX_PAGES = 1
 /** The most pages a variant may have: a bound on the work, since nothing reads a variant's pages; the longest printed two on 18 October 2026. */
@@ -184,20 +186,23 @@ function runVeraPdf({ java, tools, entries, work }) {
 }
 
 /** The schematrons the runs name, and XRechnung's beside CEN's in the configuration, read out of the verified downloads, for the oracle; or why they cannot be. */
-function pinnedSchematrons({ tools, mustangVerdict, kositVerdict }) {
+function pinnedSchematrons({ tools, mustangVerdict, kositVerdict, profile }) {
   const problems = []
-  if (kositVerdict.schematrons.length !== 1) problems.push(`KoSIT's reports on the samples name ${String(kositVerdict.schematrons.length)} schematrons for ${SCENARIO}, where the oracle reads one`)
-  if (mustangVerdict.compiled.length !== 1) problems.push(`Mustang's logs on the samples name ${String(mustangVerdict.compiled.length)} schematrons it compiled, where the oracle reads one`)
+  const located = kositVerdict.schematrons[SCENARIO] ?? []
+  const compiled = mustangVerdict.compiled[profile] ?? []
+  if (located.length !== 1) problems.push(`KoSIT's reports on the samples name ${String(located.length)} schematrons for ${SCENARIO}, where the oracle reads one`)
+  if (compiled.length !== 1) problems.push(`Mustang's logs on the Factur-X samples name ${String(compiled.length)} schematrons it compiled, where the oracle reads one`)
   if (problems.length > 0) return { problems }
-  const [location] = kositVerdict.schematrons
+  const [location] = located
   const cen = { name: `CEN’s schematron (${location} in KoSIT’s configuration ${tools.configuration.version})`, asserts: readSchematron(readFileSync(join(tools.unpacked, location), 'utf8')) }
   // XRechnung's is the one schematron its scenario runs that the samples' does not.
   const xrechnungAt = scenarioSchematrons(readFileSync(join(tools.unpacked, 'scenarios.xml'), 'utf8'), XRECHNUNG_SCENARIO).filter((each) => each !== location)
   if (xrechnungAt.length !== 1) return { problems: [`KoSIT’s configuration has ${XRECHNUNG_SCENARIO} run ${String(xrechnungAt.length)} schematrons beside CEN’s, where the oracle reads one`] }
   const xrechnungText = readFileSync(join(tools.unpacked, xrechnungAt[0]), 'utf8')
-  const xrechnung = { name: `XRechnung’s schematron (${xrechnungAt[0]} in KoSIT’s configuration ${tools.configuration.version})`, asserts: readSchematron(xrechnungText), variables: readVariables(xrechnungText) }
+  // The release of XRechnung the register pins the configuration to, whose asset is fetched by it and verified by its SHA-256.
+  const xrechnung = { name: `XRechnung’s schematron (${xrechnungAt[0]} in KoSIT’s configuration ${tools.configuration.version})`, asserts: readSchematron(xrechnungText), variables: readVariables(xrechnungText), release: tools.configuration.xrechnung }
   const jar = tools.mustangJar
-  const path = mustangVerdict.compiled[0].replace(/^\//, '')
+  const path = compiled[0].replace(/^\//, '')
   const asserts = readSchematron(entryNamed(jar, path).toString('utf8'))
   const databases = [...new Set(asserts.flatMap((assert) => [...String(assert.test).matchAll(/document\('([^']+)'\)/g)].map((match) => match[1])))]
   if (databases.length !== 1) return { problems: [`Mustang's ${path} reads ${String(databases.length)} code databases, where the oracle reads one`] }
@@ -241,6 +246,7 @@ function record({ work, entries, java, mustangRuns, kosit, verapdf, tools }) {
     machine: { platform: process.platform, arch: process.arch, node: process.version, zlib: process.versions.zlib, java: java.version },
     tools: Object.fromEntries([tools.mustang, tools.kosit, tools.configuration, tools.verapdf].map((tool) => [tool.id, tool.version])),
     samples: entries.filter((entry) => entry.format === 'xml' && entry.sample !== undefined).map((entry) => entry.sample),
+    kinds: Object.fromEntries(entries.filter((entry) => entry.format === 'xml' && entry.sample !== undefined).map((entry) => [entry.sample, { kind: entry.kind, guideline: entry.guideline }])),
     mustang: Object.fromEntries(entries.map((entry) => [entry.file, mustangRuns.get(entry.file).status])),
     kosit: { status: kosit.status },
     verapdf: { status: verapdf.status },
@@ -330,7 +336,14 @@ async function main(argv) {
   const corpusPackage = await built(BUILT.corpus)
   const { documentOf, draw, drawVariant } = samplesOf({ spec, runtime: await built(BUILT.runtime), renderer: await built(BUILT.renderer), corpus: corpusPackage })
   const drawing = performance.now()
-  const xmlEntries = buildCorpus({ samples: corpusPackage.E_INVOICE_SAMPLES, xmlOf: (sample) => documentOf(sample).eInvoice.xml })
+  // Each sample's BT-24 as report-spec names its kind's, which Mustang must read it as.
+  const GUIDELINES = { facturX: (invoice) => spec.FACTUR_X_PROFILES[invoice.profile].guideline, xrechnung: (invoice) => spec.XRECHNUNG[invoice.version].guideline }
+  const xmlEntries = buildCorpus({
+    samples: [...corpusPackage.E_INVOICE_SAMPLES, ...corpusPackage.XRECHNUNG_SAMPLES],
+    xmlOf: (sample) => documentOf(sample).eInvoice.xml,
+    kindOf: (sample) => sample.report.eInvoice.kind,
+    guidelineOf: (sample) => GUIDELINES[sample.report.eInvoice.kind](sample.report.eInvoice),
+  })
   const pdfEntries = await pdfCorpus({ entries: xmlEntries, draw, drawVariant })
   for (const entry of pdfEntries) entry.digest = await corpusPackage.inflatedDigest(entry.pdf)
   const drawn = seconds(drawing)
@@ -363,7 +376,7 @@ async function main(argv) {
   const kositVerdict = judgeKosit({ entries: xmlEntries, ...kosit, accepted: accepted.accepted, pinned: tools.kosit.version, hashes, scenario: SCENARIO })
   const file = { fileName: spec.FACTUR_X.fileName, relationship: profile.relationship, mediaType: spec.FACTUR_X.mediaType, md5 }
   const veraVerdict = judgeVeraPdf({ entries: pdfEntries, ...verapdf, pinned: tools.verapdf.version, file })
-  const schematrons = pinnedSchematrons({ tools, mustangVerdict, kositVerdict })
+  const schematrons = pinnedSchematrons({ tools, mustangVerdict, kositVerdict, profile: profile.guideline })
   const oracle = schematrons.problems.length > 0 ? { checked: null, problems: schematrons.problems } : oracleProblems({ spec, lists: CODE_LISTS, cen: schematrons.cen, ferd: schematrons.ferd, xrechnung: schematrons.xrechnung })
   const stale = recording ? [] : staleRecorded(entries, recordedCorpus(), new Map(Object.entries(recordedRun().pdfs ?? {})))
   const problems = [...mustangVerdict.problems, ...kositVerdict.problems, ...veraVerdict.problems, ...oracle.problems, ...stale]

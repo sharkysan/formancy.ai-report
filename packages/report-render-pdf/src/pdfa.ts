@@ -1,5 +1,5 @@
 import { FACTUR_X } from '@formancy/report-runtime'
-import type { EInvoiceFile } from '@formancy/report-runtime'
+import type { FacturXFile } from '@formancy/report-runtime'
 
 /**
  * An e-invoice drawn as what it is (0031, extending 0027): a PDF/A-3b that
@@ -68,7 +68,7 @@ export type Finish = (document: PdfKitDocument) => void
  * one it is handed by nothing but these options (pdfkit.js 5184-5200) --
  * and the fx properties appended to the XMP.
  */
-export function embedEInvoice(file: EInvoiceFile, created: Date): Finish {
+export function embedEInvoice(file: FacturXFile, created: Date): Finish {
   const xml = exactBuffer(new TextEncoder().encode(file.xml))
   const description = `E-invoice XML, ${file.conformanceLevel}`
   return (document) => {
@@ -117,7 +117,7 @@ const escaped = (text: string): string => text.replace(/&/g, '&amp;').replace(/<
  * its own (pdfkit.js 6011-6013). Without the schema, veraPDF fails the
  * properties (6.6.2.3.1-1, -2).
  */
-function facturXmp(file: EInvoiceFile): string {
+function facturXmp(file: FacturXFile): string {
   const fx = FACTUR_X.xmpPrefix
   const values: Readonly<Record<(typeof PROPERTIES)[number][0], string>> = {
     DocumentFileName: file.fileName,

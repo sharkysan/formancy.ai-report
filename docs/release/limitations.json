@@ -731,7 +731,7 @@
       "none": "It decides how the repository documents its architecture and what holds those documents in pnpm test:repo; its costs fall on a contributor's pull request, and nothing in a published package, a release or the Studio changes with it."
     },
     "0027": {
-      "reviewed": "sha256:70b5c988b9df2f1f8d509b7e7fac14218bbc75d02557a41459814e09bdcaa17a",
+      "reviewed": "sha256:71aae9fb5d828bb12ea08684bb71b29cd434d917bb69cdf387e245f8156233a6",
       "limitations": [
         {
           "area": "format",
@@ -739,7 +739,7 @@
         },
         {
           "area": "format",
-          "says": "An e-invoice is EN 16931's profile of Factur-X 1.09.2 / ZUGFeRD 2.5.2 alone, a commercial invoice (380) in euro with the VAT categories S, E and AE and no allowances or charges, so a credit note, another currency, a 0 % supply EN 16931 codes Z, an intra-EU supply, XRechnung and a structured Skonto cannot be invoiced, and a discount is written as a line of negative quantity at a positive price.",
+          "says": "An e-invoice is EN 16931's profile of Factur-X 1.09.2 / ZUGFeRD 2.5.2 or, since 0038, an XRechnung 3.0, a commercial invoice (380) in euro with the VAT categories S, E and AE and no allowances or charges, so a credit note, another currency, a 0 % supply EN 16931 codes Z, an intra-EU supply and a structured Skonto cannot be invoiced, and a discount is written as a line of negative quantity at a positive price.",
           "heldBy": "packages/report-spec/src/validate-e-invoice.test.ts"
         },
         {
@@ -754,7 +754,7 @@
         },
         {
           "area": "format",
-          "says": "The title of a report with an e-invoice cannot hold `&`, `<` or `>`, which its page can print.",
+          "says": "The title of a report with a Factur-X e-invoice cannot hold `&`, `<` or `>`, which its page can print.",
           "heldBy": "packages/report-spec/src/validate-e-invoice.test.ts"
         },
         {
@@ -1119,7 +1119,7 @@
       ]
     },
     "0031": {
-      "reviewed": "sha256:20166c8670139e34f9b0b042e2b37712c4f0dd9b07f564a53a6aa5805855c526",
+      "reviewed": "sha256:67cff1800e9085060b1a4c70e04f3cd89c928778006c80140f65037f9f026f78",
       "limitations": [
         {
           "area": "rendering",
@@ -1128,7 +1128,7 @@
         },
         {
           "area": "rendering",
-          "says": "A CMYK JPEG, an asset's or a field's, is refused in a final render of an e-invoice, naming the image, since its PDF/A-3b's output intent is sRGB, while its preview, which is no PDF/A, draws it, so an author finds out only at the final render.",
+          "says": "A CMYK JPEG, an asset's or a field's, is refused in a final render of a Factur-X invoice, naming the image, since its PDF/A-3b's output intent is sRGB, while its preview, which is no PDF/A, draws it, so an author finds out only at the final render.",
           "heldBy": "packages/report-render-pdf/src/assets.test.ts"
         },
         {
@@ -1239,7 +1239,7 @@
       ]
     },
     "0033": {
-      "reviewed": "sha256:baf9274da8a3dc77791851217f453dc696734b8cd7068f86505bd5b911f9c938",
+      "reviewed": "sha256:02c3365895f3899816d10c6fdf62a8ad14dea0ba0257f4b04e8ab2795b7a5cad",
       "limitations": [
         {
           "area": "builders",
@@ -1253,7 +1253,7 @@
         },
         {
           "area": "builders",
-          "says": "A CMYK JPEG is refused when it is added to a report with an e-invoice, whose PDF/A-3b cannot hold one; one added before the report gains an e-invoice is refused only at its final render, as `unsupported`.",
+          "says": "A CMYK JPEG is refused when it is added to a report whose e-invoice is a Factur-X invoice, whose PDF/A-3b cannot hold one; one added before the report gains a Factur-X invoice is refused only at its final render, as `unsupported`.",
           "heldBy": "apps/studio/src/images/image-store.test.ts"
         },
         {
@@ -1349,7 +1349,7 @@
       ]
     },
     "0037": {
-      "reviewed": "sha256:0e5535b930cdf9815ba0bbb951b4546c9f308ed4ba60b6800aebc0f0dbd103f2",
+      "reviewed": "sha256:8350c0e46689c66a55113e2c60fead442f94c589c92f537f5dc8e8fa7b74e050",
       "limitations": [
         {
           "area": "format",
@@ -1372,7 +1372,7 @@
         },
         {
           "area": "format",
-          "says": "An electronic address is given in one of five schemes, an email address, the Leitweg-ID, France's addressing scheme, a German VAT identifier or a GLN, so an address under D-U-N-S or another code of the CEF's list, which held 104 in CEN's 1.3.16 schematron on 20 October 2026, is refused, and nothing checks that an address's value is of its scheme's form, a GLN's check digit among it.",
+          "says": "An electronic address is given in one of five schemes, an email address, the Leitweg-ID, France's addressing scheme, a German VAT identifier or a GLN, so an address under D-U-N-S or another code of the CEF's list, which held 104 in CEN's 1.3.16 schematron on 20 October 2026, is refused, and nothing checks that an address's value is of its scheme's form, a GLN's check digit among it, but for a Leitweg-ID's under 0204, which 0038 checks.",
           "heldBy": "packages/report-spec/src/en16931.test.ts"
         },
         {
@@ -1387,12 +1387,73 @@
         },
         {
           "area": "testing",
-          "says": "That KoSIT raises no warning of a contact's telephone number or email address in a file report-spec takes rests on report-spec's tests and the e-invoice gate's holding of XRechnung's expressions and the tests that read them: no file the gate judges matches KoSIT's XRechnung scenario, and no sample's page prints the business process, an electronic address or the contact.",
+          "says": "That KoSIT raises no warning of a contact's telephone number or email address in a file report-spec takes rests on report-spec's tests and the e-invoice gate's holding of XRechnung's expressions and the tests that read them: the one file the gate judges in KoSIT's XRechnung scenario is 0038's sample, whose contact is the addressed sample's, and no sample's page prints the business process, the seller's address or the contact, the XRechnung sample's printing only the buyer's Leitweg-ID.",
           "heldBy": "packages/report-spec/src/xrechnung.test.ts"
         },
         {
           "area": "licence",
           "says": "report-spec's `xrechnung.ts` holds two expressions copied as strings from KoSIT's XRechnung schematron, whose licence was not read; whether copying them is acceptable under 0006 is the rightsholder's question."
+        }
+      ]
+    },
+    "0038": {
+      "reviewed": "sha256:c004c5e3dbade806092187a42896bd13c1e9a6c7fe0f29af725f99d6ced24210",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A report whose e-invoice is an XRechnung is refused whole by 0.2.0, as `unknown-kind`, so a report saved with one opens only in a release that has it."
+        },
+        {
+          "area": "rendering",
+          "says": "The resolved document's e-invoice names its kind, so a renderer of this release refuses a Factur-X file without one, as an e-invoice of a kind it does not know, and a document a host builds by hand names it.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An XRechnung is version 3.0 of XRechnung's standard, written as CII alone, so a buyer or an access point that asks for UBL, XRechnung 4.0, its extension or CVD, or a credit note cannot be served.",
+          "heldBy": "packages/report-spec/src/validate-xrechnung.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An XRechnung needs a business process, a buyer's reference, payment instructions, the seller's contact of all three terms and both parties' electronic addresses, each refused where it is missing or, written or read from data, blank, so a seller with no telephone number to give cannot issue one.",
+          "heldBy": "packages/report-spec/src/validate-xrechnung.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An XRechnung's payment terms may hold no line that begins with #, a well-formed Skonto line of XRechnung's own syntax among them, so a discount for early payment is said in words no buyer's system reads until XRechnung 4.0.",
+          "heldBy": "packages/report-spec/src/validate-xrechnung.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An electronic address under 0204 is held to a Leitweg-ID's shape and check digits in an e-invoice of either kind, a shape read from FeRD's description and secondary sources, since the format specification could not be read on 21 October 2026, and checked against KoSIT's test values alone, so an address the specification allows and this shape does not is refused, and three Leitweg-IDs of KoSIT's own test suite, of wrong check digits, are.",
+          "heldBy": "packages/report-spec/src/xrechnung.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An XRechnung's buyer's reference is held to no Leitweg-ID's form, and nothing here knows whether a Leitweg-ID belongs to a buyer, routes an invoice, or is taken by a portal."
+        },
+        {
+          "area": "rendering",
+          "says": "An XRechnung's PDF is a plain copy, no PDF/A and no embedded file, every page headed by the runtime's English label that it is not the invoice, so a host that sends the PDF alone sends no invoice, and the label is all that says so.",
+          "heldBy": "packages/report-render-pdf/src/xrechnung.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The renderer refuses an XRechnung whose page header does not open with the copy's label as the runtime writes it, its paragraph's style and all, or whose syntax, version or guideline is not report-spec's, so a document a host builds otherwise than the runtime resolves it is refused.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "KoSIT's XRechnung scenario and Mustang judge one XRechnung, the corpus's sample, and four controls of it, Mustang firing 25 rules on it against 179 of FeRD's on a Factur-X sample in the run recorded on 21 October 2026, so a customer's XRechnung is held by report-spec's rules and by the rules of XRechnung's schematron the gate names, and not by a validator; the gate ran on Windows alone, on 21 October 2026, never in CI.",
+          "heldBy": "scripts/e-invoice/mustang.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "That XRechnung 3.0 stays in force until any date rests on a secondary source: KoSIT's own \"Versionen und Bundles\" page was not read."
+        },
+        {
+          "area": "licence",
+          "says": "XRechnung's specification identifier, the contexts and tests the e-invoice gate holds its rules to, and the sample's Leitweg-ID are copied from KoSIT's configuration and test suite, whose licences were not read, and whether that is acceptable under 0006, as whether the sample's title may name XRechnung, is the rightsholder's question."
         }
       ]
     }

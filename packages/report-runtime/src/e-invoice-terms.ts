@@ -17,6 +17,11 @@
  *   one whose runs print something around a null is refused as a text cut
  *   short. The seller's contact is left out whole or written whole: one
  *   the data gives in part is refused at each term it lacks (0037).
+ * - **Each kind's rules.** An XRechnung's texts are held to its kind's
+ *   (`E_INVOICE_KIND_TEXTS`, 0038): what XRechnung needs is needed, a
+ *   contact's three terms among them, and its payment terms hold no line
+ *   led by #. An electronic address under 0204 is a Leitweg-ID in either
+ *   kind.
  * - **What only the whole says** -- the identifiers the lines' categories
  *   need of the seller and the buyer (BR-CO-26, BR-S-02, BR-E-02,
  *   BR-AE-02), the time of supply (§ 14 UStG), a category's reason (BR-E-10,
@@ -38,11 +43,12 @@ import {
   checkEInvoiceDate,
   checkEInvoiceDecimal,
   checkEInvoiceText,
+  checkElectronicAddress,
   checkInvoicingPeriod,
   E_INVOICE_DATES,
   E_INVOICE_DECIMALS,
+  E_INVOICE_KIND_TEXTS,
   E_INVOICE_TEXT_TERMS,
-  E_INVOICE_TEXTS,
   eInvoiceBlank,
   en16931Rule,
   sellerIdentificationBreaks,
@@ -51,15 +57,17 @@ import {
 } from '@formancy/report-spec'
 import type {
   AddressScheme,
+  EInvoice,
   EInvoiceAddress,
   EInvoiceBuyer,
   EInvoiceDateTerm,
+  EInvoiceKind,
   EInvoiceSeller,
   EInvoiceTextTerm,
   ElectronicAddress,
   Expression,
-  FacturXInvoice,
   Inline,
+  PaymentCheck,
   PaymentMeansCode,
   SchemeId,
   SellerContact,
@@ -126,10 +134,11 @@ export interface InvoiceTerms {
   readonly terms?: string
 }
 
-/** What is read with: every input but what the e-invoice adds, and the report's scope. */
+/** What is read with: every input but what the e-invoice adds, the report's scope, and the kind of e-invoice, whose rules each term is held to. */
 interface Reader {
   readonly render: Omit<Render, 'invoice'>
   readonly scope: Scope
+  readonly kind: EInvoiceKind
 }
 
 /** What an error names the e-invoice by: it stands in no component. */
@@ -147,17 +156,17 @@ function refuse({ render }: Pick<Reader, 'render'>, path: string, message: strin
  */
 type Read<T> = T | null | undefined
 
-/** The text of `term`, its runs at `path`, held to its rule. */
-function text(reader: Reader, term: EInvoiceTextTerm, runs: readonly Inline[] | undefined, path: string): Read<string> {
+/** The text of `term`, its runs at `path`, held to its rule of the reader's kind, or to `check` where it is given. */
+function text(reader: Reader, term: EInvoiceTextTerm, runs: readonly Inline[] | undefined, path: string, check = (written: string): PaymentCheck<string> => checkEInvoiceText(term, written, reader.kind)): Read<string> {
   if (runs === undefined) return null
   const read = readRuns(reader.render, reader.scope, runs, path, OWNER)
   if (read.refused) return undefined
-  const rule = E_INVOICE_TEXTS[term]
+  const rule = E_INVOICE_KIND_TEXTS[reader.kind][term]
   const blank = eInvoiceBlank(read.text)
   if (reader.render.preview && (blank || read.nulls.length > 0)) return null
   if (blank && rule.required === undefined) return null
   if (!blank && read.nulls.length > 0) return refuse(reader, path, `${rule.what} has a run with no value, and written without it the e-invoice would hold less than its runs print`)
-  const checked = checkEInvoiceText(term, read.text)
+  const checked = check(read.text)
   return checked.ok ? checked.value : refuse(reader, path, `${rule.what} ${checked.rule}`)
 }
 
@@ -190,10 +199,11 @@ function address(reader: Reader, held: EInvoiceAddress, path: string, which: 'se
   return { line1: line1 as string, ...term('line2', line2), postalCode: postalCode as string, city: city as string, country: country as string }
 }
 
-/** An electronic address: its identifier read, with the scheme the template names; none where the data gives the identifier as nothing. */
+/** An electronic address: its identifier read, held to its scheme where that is 0204, with the scheme the template names; none where the data gives the identifier as nothing. */
 function electronicAddress(reader: Reader, held: ElectronicAddress | undefined, path: string, term: EInvoiceTextTerm): Read<{ readonly id: string; readonly scheme: AddressScheme }> {
-  const id = text(reader, term, held?.id, `${path}/id`)
-  return id === null || id === undefined ? id : { id, scheme: (held as ElectronicAddress).scheme }
+  if (held === undefined) return null
+  const id = text(reader, term, held.id, `${path}/id`, (written) => checkElectronicAddress(term, held.scheme, written, reader.kind))
+  return id === null || id === undefined ? id : { id, scheme: held.scheme }
 }
 
 /**
@@ -216,7 +226,7 @@ function contact(reader: Reader, held: SellerContact | undefined, path: string):
   if (name !== null && telephone !== null && email !== null) return { name, telephone, email }
   if ((name === null && telephone === null && email === null) || reader.render.preview) return null
   for (const key of ['name', 'telephone', 'email'] as const) {
-    if (read[key] === null) refuse(reader, `${path}/${key}`, `${E_INVOICE_TEXTS[terms[key]].what} is empty, and a contact gives all three of its terms or none`)
+    if (read[key] === null) refuse(reader, `${path}/${key}`, `${E_INVOICE_KIND_TEXTS[reader.kind][terms[key]].what} is empty, and a contact gives all three of its terms or none`)
   }
   return undefined
 }
@@ -248,7 +258,7 @@ function party(reader: Reader, held: EInvoiceSeller | EInvoiceBuyer, path: strin
   }
 }
 
-function payment(reader: Reader, invoice: FacturXInvoice): { readonly payment: Read<PaymentTerms>; readonly account: string | undefined } {
+function payment(reader: Reader, invoice: EInvoice): { readonly payment: Read<PaymentTerms>; readonly account: string | undefined } {
   const held = invoice.payment
   if (held === undefined) return { payment: null, account: undefined }
   const terms = E_INVOICE_TEXT_TERMS.payment
@@ -262,7 +272,7 @@ function payment(reader: Reader, invoice: FacturXInvoice): { readonly payment: R
 }
 
 /** The paid amount (BT-113), read in the report's scope: a whole number of cents, at two places, or null where none is paid. */
-export function paidAmount(render: Omit<Render, 'invoice'>, invoice: FacturXInvoice): Read<Decimal> {
+export function paidAmount(render: Omit<Render, 'invoice'>, invoice: EInvoice): Read<Decimal> {
   if (invoice.paid === undefined) return null
   const path = '/eInvoice/paid'
   const value = valueOf(render, reportScope(render, render.totals.report), `${path}/cel`)
@@ -285,8 +295,8 @@ export interface ReadTerms {
  * `used`, the categories the lines are in. `terms` is undefined where a
  * term was refused, which is recorded, or a preview lacks one.
  */
-export function readTerms(render: Omit<Render, 'invoice'>, invoice: FacturXInvoice, used: readonly VatCategory[]): ReadTerms {
-  const reader: Reader = { render, scope: reportScope(render, render.totals.report) }
+export function readTerms(render: Omit<Render, 'invoice'>, invoice: EInvoice, used: readonly VatCategory[]): ReadTerms {
+  const reader: Reader = { render, scope: reportScope(render, render.totals.report), kind: invoice.kind }
   const number = text(reader, E_INVOICE_TEXT_TERMS.number, invoice.number, '/eInvoice/number')
   const issued = date(reader, 'BT-2', invoice.issued, '/eInvoice/issued')
   const businessProcess = text(reader, E_INVOICE_TEXT_TERMS.businessProcess, invoice.businessProcess, '/eInvoice/businessProcess')

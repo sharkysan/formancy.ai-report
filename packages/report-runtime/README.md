@@ -145,11 +145,30 @@ UTF-8, counted in bytes, not in characters.
 
 ## An e-invoice
 
-A report's `eInvoice` (report-spec's, [0027](../../docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) resolves to the document's
-`eInvoice`: the CII XML of a Factur-X 1.09.2 / ZUGFeRD 2.5.2 invoice in the
-EN 16931 profile, and what the renderer embeds it as, `fileName`,
-`relationship` and `conformanceLevel`, report-spec's `FACTUR_X` and
-`FACTUR_X_PROFILES` [S].
+A report's `eInvoice` (report-spec's, [0027](../../docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) resolves, in a final render, to the
+document's `eInvoice`, an `EInvoiceFile` of its kind:
+
+- **A Factur-X file** (`FacturXFile`, `kind: 'facturX'`): the CII XML of a
+  Factur-X 1.09.2 / ZUGFeRD 2.5.2 invoice in the EN 16931 profile, and what
+  the renderer embeds it as, `fileName`, `relationship` and
+  `conformanceLevel`, report-spec's `FACTUR_X` and `FACTUR_X_PROFILES` [S].
+- **An XRechnung's file** (`XRechnungFile`, `kind: 'xrechnung'`,
+  [0038](../../docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)):
+  the CII XML of an XRechnung 3.0, the invoice itself, which a host takes
+  from the document and sends -- to a portal, by email or over Peppol, as
+  the buyer asks; nothing here sends it -- with its `syntax`, `'cii'`, its
+  `guideline`, BT-24, and its `version`, report-spec's `XRECHNUNG`. Its XML
+  is the very XML a Factur-X invoice of the same terms is, BT-24 apart: one
+  writer. Every page of the document is headed `XRECHNUNG_COPY_LABEL`,
+  since a PDF drawn of it is a copy, in the paragraph the runtime exports
+  frozen as `XRECHNUNG_COPY_PARAGRAPH`, small, bold and red; the renderer
+  draws the document as a plain PDF that embeds nothing, and refuses one
+  whose page header does not open with that paragraph, style and all.
+
+```ts
+const resolution = resolveReport(xrechnung, data, { mode: 'final', creationDate })
+if (resolution.ok && resolution.document.eInvoice?.kind === 'xrechnung') send(resolution.document.eInvoice.xml)
+```
 
 - **The lines are the table's.** Each row of the table the e-invoice names
   is a line. The four columns it names -- the item, the quantity, the net
@@ -175,7 +194,11 @@ EN 16931 profile, and what the renderer embeds it as, `fileName`,
   whole cents, never rounded, a category the invoice declares, a character
   XML can hold, and no white space a token collapses in an identifier or a
   code the XML writes as one, and a contact's telephone number and email
-  address to XRechnung's shapes. An optional text that prints nothing is
+  address to XRechnung's shapes, and an electronic address under 0204 to a
+  Leitweg-ID's shape and check digits. An XRechnung's texts are held to its
+  kind's rules: each term XRechnung needs is needed, the contact's three
+  among them, and its payment terms hold no line led by `#`, which
+  XRechnung reads as its Skonto syntax. An optional text that prints nothing is
   left out -- the business process, an electronic address with its scheme,
   and the contact whole where it has none of its three, though a contact
   given in part is refused at each term it lacks, since a contact gives
@@ -232,7 +255,9 @@ they are printed at and the least version that prints them. And of how an
 e-invoice is embedded: `FACTUR_X`, the file's name and media type and the
 XMP's namespace, prefix, document type and version, and
 `FACTUR_X_PROFILES`, each profile's specification identifier,
-conformance level and relationship [S]. And of an SVG asset
+conformance level and relationship [S]; and of what an XRechnung's file
+says it is: `XRECHNUNG` and `XRECHNUNG_VERSIONS`, each version's
+specification identifier, release and syntax (0038). And of an SVG asset
 ([0030](../../docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)):
 `checkSvg`, which accepts only the drawing `cleanSvg` writes and says what
 it costs to draw and how far the numbers the converter writes for it reach
@@ -268,9 +293,12 @@ editor refuses by.
 - **Format with one engine's results everywhere.** Grouping marks, month
   names and currency symbols are the engine's ICU's, so the same report can
   print differently on two engines.
-- **Embed an e-invoice, or make a PDF/A.** It writes the XML and names the
-  file; the engine embeds it, changed in nothing, in the PDF/A-3b it draws
+- **Embed an e-invoice, make a PDF/A, or send an XRechnung.** It writes a
+  Factur-X invoice's XML and names the file; the engine embeds it, changed
+  in nothing, in the PDF/A-3b it draws
   ([0031](../../docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+  An XRechnung's XML no engine embeds: the host takes it from the
+  document and sends it, and nothing here sends it (0038).
 - **Encode a QR code.** It hands the engine the text a QR code's content
   prints, formatted as a paragraph with the same content prints it, and a
   QR-bill's and an EPC QR code's payloads; the engine encodes and draws

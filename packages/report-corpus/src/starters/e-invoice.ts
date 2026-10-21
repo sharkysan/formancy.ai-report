@@ -82,7 +82,7 @@ import type { Starter } from './starter.js'
 
 type Component = ReportDefinition['regions']['body'][number]
 type Inline = Extract<Component, { kind: 'text' }>['content'][number]
-type EInvoice = NonNullable<ReportDefinition['eInvoice']>
+type EInvoice = Extract<NonNullable<ReportDefinition['eInvoice']>, { kind: 'facturX' }>
 
 /** The German euro invoice's billing and words: its firm, account and BIC, and the words of its head, table and bank details. */
 const [GERMANY, GERMAN] = [EURO_COUNTRIES.DE, EURO_WORDS.DE]
@@ -153,8 +153,8 @@ export function sellerAddress(address: readonly string[]): EInvoice['seller']['a
   return { line1: text(street), postalCode: text(postcode), city: text(city), country: text('DE') }
 }
 
-/** How the firm is paid (BG-16): by SEPA credit transfer, to the account its EPC code pays. */
-const PAYMENT: NonNullable<EInvoice['payment']> = { means: '58', iban: text(GERMANY.iban), bic: text(GERMANY.bic), accountName: text(firm.name), remittance: [field('reference')] }
+/** How the firm is paid (BG-16): by SEPA credit transfer, to the account its EPC code pays. The XRechnung sample's too. */
+export const PAYMENT: NonNullable<EInvoice['payment']> = { means: '58', iban: text(GERMANY.iban), bic: text(GERMANY.bic), accountName: text(firm.name), remittance: [field('reference')] }
 
 /**
  * The e-invoice: the seller the firm, the buyer and the dates read from
@@ -165,7 +165,7 @@ const PAYMENT: NonNullable<EInvoice['payment']> = { means: '58', iban: text(GERM
  * own (BT-155, which this version does not write), which two lines of one
  * article would share.
  */
-const INVOICE: EInvoice = {
+export const INVOICE: EInvoice = {
   kind: 'facturX',
   profile: 'en16931',
   type: '380',
@@ -307,20 +307,21 @@ const REPORT: ReportDefinition = {
 const UNITS = { 'Pausch.': 'LS', h: 'HUR', Stk: 'H87', kg: 'KGM', m: 'MTR' } as const
 
 /** Description, unit, quantity, unit price and VAT category of a line, each quantity and price exact to the cent; a discount's quantity is negative. */
-type Item = readonly [string, keyof typeof UNITS, string, string, 'standard' | 'reduced' | 'exempt' | 'reverse']
+export type Item = readonly [string, keyof typeof UNITS, string, string, 'standard' | 'reduced' | 'exempt' | 'reverse']
 
 /** Quantity times unit price to the cent, as the euro invoice's are; a negative quantity, a discount's, gives a negative amount. */
 const netAmount = (quantity: string, unitPrice: string): string => (quantity.startsWith('-') ? `-${lineAmount(quantity.slice(1), unitPrice)}` : lineAmount(quantity, unitPrice))
 
-/** `items` as the data gives them, each at its position, 1 up, and its article number, `first` up; in the reverse of the order the report prints them in. */
-function lines(first: number, items: readonly Item[]): Record<string, string>[] {
+/** `items` as the data gives them, each at its position, 1 up, and its article number, `first` up; in the reverse of the order the report prints them in. The XRechnung sample's are read so too (`xrechnung.ts`). */
+export function lines(first: number, items: readonly Item[]): Record<string, string>[] {
   return items.map(([description, unit, quantity, unitPrice, vat], index) => ({ position: String(index + 1), article: `H-${first + index}`, description, quantity, unit, unitCode: UNITS[unit], unitPrice, amount: netAmount(quantity, unitPrice), vat })).reverse()
 }
 
 /** What every variant's header holds that it does not set: no delivery date, no period, no VAT identifier, nothing paid. */
 const NONE = { servedOn: null, periodStart: null, periodEnd: null, customerVatId: null, paid: null } as const
 
-function data(header: Record<string, string | null>, detail: Record<string, string>[]): ReportData {
+/** A sample's data, complete and captured by the host: `header`, every field it does not set none, and `detail`. */
+export function data(header: Record<string, string | null>, detail: Record<string, string>[]): ReportData {
   return { header: { ...NONE, ...header }, detail, completeness: { complete: true, captured: detail.length }, consistency: 'host-captured' }
 }
 
@@ -385,7 +386,13 @@ export function addressedData(): ReportData {
 const REVERSE_CHARGE_REPORT: ReportDefinition = { ...REPORT, id: 'e-invoice-reverse-charge', eInvoice: { ...INVOICE, payment: { ...PAYMENT, means: '30' } } }
 
 /** The firm's contact (BG-6): its accountant, at one of the Bundesnetzagentur's numbers for Köln, at an address under `.example`. */
-const CONTACT: NonNullable<EInvoice['seller']['contact']> = { name: text('Erika Mustermann'), telephone: text('+49 221 4710 820'), email: text('e.mustermann@formancy-haustechnik.example') }
+export const CONTACT: NonNullable<EInvoice['seller']['contact']> = { name: text('Erika Mustermann'), telephone: text('+49 221 4710 820'), email: text('e.mustermann@formancy-haustechnik.example') }
+
+/** Peppol BIS Billing 3.0's business process (BT-23), the addressed sample's and the XRechnung sample's. */
+export const BUSINESS_PROCESS: readonly Inline[] = text('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0')
+
+/** The firm's invoice inbox (BT-34), by email (EM), the addressed sample's and the XRechnung sample's. */
+export const FIRM_INBOX: NonNullable<EInvoice['seller']['electronicAddress']> = { id: text('rechnung@formancy-haustechnik.example'), scheme: 'EM' }
 
 /**
  * The sample's report with every term past 0027's (0037), under an id of
@@ -399,8 +406,8 @@ const ADDRESSED_REPORT: ReportDefinition = {
   datasets: { ...REPORT.datasets, header: { ...HEADER, fields: [...HEADER.fields, { id: 'customerGln', type: 'string', label: 'GLN des Kunden', nullable: false }] } },
   eInvoice: {
     ...INVOICE,
-    businessProcess: text('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
-    seller: { ...INVOICE.seller, electronicAddress: { id: text('rechnung@formancy-haustechnik.example'), scheme: 'EM' }, contact: CONTACT },
+    businessProcess: BUSINESS_PROCESS,
+    seller: { ...INVOICE.seller, electronicAddress: FIRM_INBOX, contact: CONTACT },
     buyer: { ...INVOICE.buyer, electronicAddress: { id: [field('customerGln')], scheme: '0088' } },
   },
 }

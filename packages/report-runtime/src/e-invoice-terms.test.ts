@@ -1,5 +1,5 @@
 import { MAX_INLINES } from '@formancy/report-spec'
-import type { EInvoice, FieldRef, Inline, ReportDefinition, VatCategory } from '@formancy/report-spec'
+import type { FacturXInvoice, FieldRef, Inline, ReportDefinition, VatCategory } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { ReportData } from './data.js'
 import { resolveReport } from './resolve.js'
@@ -37,14 +37,14 @@ function refused(report: ReportDefinition, data: ReportData, options: ResolveOpt
 }
 
 /** The invoice report with its e-invoice changed by `patch`, and its header given the extra fields `fields`, strings unless typed `id:type`, every one nullable. */
-function withInvoice(patch: (invoice: EInvoice) => EInvoice, fields: readonly string[] = []): ReportDefinition {
+function withInvoice(patch: (invoice: FacturXInvoice) => FacturXInvoice, fields: readonly string[] = []): ReportDefinition {
   const report = invoiceReport()
   const own = report.datasets.header as NonNullable<ReportDefinition['datasets']['header']>
   const added = fields.map((field) => {
     const [id = '', type = 'string'] = field.split(':')
     return { id, type: type as 'string' | 'integer' | 'decimal', label: id, nullable: true }
   })
-  return { ...report, datasets: { ...report.datasets, header: { ...own, fields: [...own.fields, ...added] } }, eInvoice: patch(report.eInvoice as EInvoice) }
+  return { ...report, datasets: { ...report.datasets, header: { ...own, fields: [...own.fields, ...added] } }, eInvoice: patch(report.eInvoice as FacturXInvoice) }
 }
 
 const xmlOf = (report: ReportDefinition, data: ReportData): string => resolved(report, data).document.eInvoice?.xml ?? ''
@@ -337,7 +337,7 @@ describe("an e-invoice's electronic addresses, its seller's contact and its busi
   // Node 24.21.0 and an Intel i9-10900K.
   test('holds the longest telephone number data can give to its rule in time in proportion to its length', () => {
     const half = Array.from({ length: MAX_INLINES / 2 }, () => read('telephone')).flat()
-    const held = addressed.eInvoice as EInvoice
+    const held = addressed.eInvoice as FacturXInvoice
     const long: ReportDefinition = { ...addressed, eInvoice: { ...held, seller: { ...held.seller, contact: { name: read('contactName'), telephone: [...half.slice(1), ...said('12'), ...half], email: read('email') } } } }
     const started = Date.now()
     const errors = refused(long, invoiceData(undefined, { ...given, telephone: 'a'.repeat(MAX_STRING_LENGTH) }))

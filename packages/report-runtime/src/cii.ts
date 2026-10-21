@@ -1,8 +1,11 @@
 /**
  * An e-invoice written as UN/CEFACT Cross Industry Invoice XML in the
- * Factur-X 1.09.2 / ZUGFeRD 2.5.2 EN 16931 profile (0027): the runtime's,
- * as the QR-bill's payload is, since the XML is the invoice's payload and
- * the renderer decides none of it.
+ * Factur-X 1.09.2 / ZUGFeRD 2.5.2 EN 16931 profile (0027), or as an
+ * XRechnung 3.0 (0038): the runtime's, as the QR-bill's payload is, since
+ * the XML is the invoice's payload and the renderer decides none of it.
+ * One writer for both kinds: the XML of an XRechnung is the XML of a
+ * Factur-X invoice of the same terms, but for the specification
+ * identifier (BT-24) it opens with, which says whose rules it follows.
  *
  * - **Its shape.** The root `rsm:CrossIndustryInvoice` with the four
  *   namespaces of CEN/TC 434's binding; its context (BT-23, BT-24), its document
@@ -31,8 +34,7 @@
  */
 import { decimalToString } from '@formancy/expressions'
 import type { Decimal } from '@formancy/expressions'
-import { FACTUR_X_PROFILES } from '@formancy/report-spec'
-import type { EInvoiceCurrency, EInvoiceProfile, InvoiceTypeCode } from '@formancy/report-spec'
+import type { EInvoiceCurrency, InvoiceTypeCode } from '@formancy/report-spec'
 import { optional, paymentMeans, tradeParty } from './cii-parties.js'
 import type { LineTerms } from './e-invoice-lines.js'
 import type { InvoiceTerms } from './e-invoice-terms.js'
@@ -40,9 +42,10 @@ import type { InvoiceTotals, VatBreakdown } from './e-invoice-totals.js'
 import { element, leaf, xmlDocument } from './xml.js'
 import type { XmlAttribute, XmlElement } from './xml.js'
 
-/** What the XML is written from: the profile, the type and the currency, every term, the lines in the table's order, and the totals. */
+/** What the XML is written from: the specification identifier, the type and the currency, every term, the lines in the table's order, and the totals. */
 export interface CiiInvoice {
-  readonly profile: EInvoiceProfile
+  /** BT-24: the profile's or the XRechnung version's, as report-spec names it. */
+  readonly guideline: string
   readonly type: InvoiceTypeCode
   readonly currency: EInvoiceCurrency
   readonly terms: InvoiceTerms
@@ -125,7 +128,7 @@ export function ciiXml(invoice: CiiInvoice): string {
     [
       element('rsm:ExchangedDocumentContext', [
         optional(terms.businessProcess, (process) => element('ram:BusinessProcessSpecifiedDocumentContextParameter', [leaf('ram:ID', process)])),
-        element('ram:GuidelineSpecifiedDocumentContextParameter', [leaf('ram:ID', FACTUR_X_PROFILES[invoice.profile].guideline)]),
+        element('ram:GuidelineSpecifiedDocumentContextParameter', [leaf('ram:ID', invoice.guideline)]),
       ]),
       element('rsm:ExchangedDocument', [leaf('ram:ID', terms.number), leaf('ram:TypeCode', invoice.type), dateTime('ram:IssueDateTime', terms.issued)]),
       element('rsm:SupplyChainTradeTransaction', [

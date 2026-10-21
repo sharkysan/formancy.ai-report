@@ -27,8 +27,9 @@ import { ABOVE_SLIP, informationContent, PAYMENT_PART, RECEIPT } from './slip.js
  * fit on any page or within the page limit (`bound.ts`), and chooses how
  * each table breaks. A document with a QR-bill has two passes more, one for
  * each part of its slip, which measure their information (`measureSlip`).
- * A document with an e-invoice is drawn as a PDF/A-3b on the third pass,
- * which alone embeds its XML (`pdfa.ts`).
+ * A document with a Factur-X e-invoice is drawn as a PDF/A-3b on the third
+ * pass, which alone embeds its XML (`pdfa.ts`); one with an XRechnung as a
+ * plain PDF, the copy its label says it is (0038).
  */
 
 export async function render(engine: Engine, document: ResolvedDocument, options: RenderOptions): Promise<Uint8Array> {
@@ -49,7 +50,7 @@ export async function render(engine: Engine, document: ResolvedDocument, options
   refuseOversized(document.body, bodyHeight, maxPages, bill === undefined ? 0 : slipReservation(checked.page, regions))
   const plans = await measureBody(engine, checked, bodyHeight, maxPages)
   await stopIfCancelledSoon(signal)
-  const finish = checked.eInvoice === undefined ? undefined : embedEInvoice(checked.eInvoice, checked.creationDate)
+  const finish = checked.pdfa === undefined ? undefined : embedEInvoice(checked.pdfa, checked.creationDate)
   const pdf = await engine.run(layoutDefinition(document, checked, regions, plans, maxPages, bill), finish)
   await stopIfCancelledSoon(signal)
   return pdf

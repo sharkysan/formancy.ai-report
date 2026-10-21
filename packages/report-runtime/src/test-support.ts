@@ -12,7 +12,7 @@
  * test can hand it a null; `invoiceData` is data it accepts.
  */
 import { validateReport } from '@formancy/report-spec'
-import type { Component, FieldRef, Inline, ReportDefinition } from '@formancy/report-spec'
+import type { Component, DatasetContract, FacturXInvoice, FieldRef, Inline, ReportDefinition, XRechnungInvoice } from '@formancy/report-spec'
 import type { ReportData } from './data.js'
 
 const header = (field: string): FieldRef => ({ dataset: 'header', field })
@@ -339,6 +339,42 @@ export function invoiceData(rows: readonly Record<string, unknown>[] = [invoiceR
     completeness: { complete: true, captured: rows.length },
     consistency: 'host-captured',
   }
+}
+
+/** The firm's contact (BG-6) the XRechnung fixture names: at one of the Bundesnetzagentur's numbers for Köln, at an address under `.example`. */
+const CONTACT = { name: said('Erika Mustermann'), telephone: said('+49 221 4710 820'), email: said('e.mustermann@muster-soehne.example') }
+
+/**
+ * The invoice report as an XRechnung (0038), checked valid: its e-invoice
+ * of the kind `xrechnung`, with Peppol's business process, the firm's
+ * contact and its invoice inbox by email, and the buyer's reference and its
+ * electronic address the Leitweg-ID the data gives (`leitwegId`), under
+ * 0204; everything else the invoice report's.
+ */
+export function xrechnungReport(): ReportDefinition {
+  const report = invoiceReport()
+  const { kind: _kind, profile: _profile, ...terms } = report.eInvoice as FacturXInvoice
+  const leitwegId = [{ kind: 'field', field: header('leitwegId') }] as const
+  const invoice: XRechnungInvoice = {
+    ...terms,
+    kind: 'xrechnung',
+    version: '3.0',
+    businessProcess: said('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
+    seller: { ...terms.seller, electronicAddress: { id: said('rechnung@muster-soehne.example'), scheme: 'EM' }, contact: CONTACT },
+    buyer: { ...terms.buyer, electronicAddress: { id: leitwegId, scheme: '0204' } },
+    buyerReference: leitwegId,
+    payment: terms.payment as NonNullable<FacturXInvoice['payment']>,
+  }
+  const headerSet = report.datasets.header as DatasetContract
+  const copy: ReportDefinition = { ...report, id: 'xrechnung', datasets: { ...report.datasets, header: { ...headerSet, fields: [...headerSet.fields, { id: 'leitwegId', type: 'string', label: 'Leitweg-ID', nullable: true }] } }, eInvoice: invoice }
+  const outcome = validateReport(copy)
+  if (!outcome.valid) throw new Error(`the XRechnung report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join(', ')}`)
+  return copy
+}
+
+/** Data the XRechnung report accepts in a final render: the invoice report's, and KoSIT's test Leitweg-ID for the federal test portal, `991-33333TEST-33`. */
+export function xrechnungData(rows: readonly Record<string, unknown>[] = [invoiceRow()], header: Record<string, unknown> = {}): ReportData {
+  return invoiceData(rows, { leitwegId: '991-33333TEST-33', ...header })
 }
 
 /**

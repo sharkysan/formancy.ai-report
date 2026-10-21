@@ -7,7 +7,12 @@
   SVG in each PDF/A-3b; and by
   [0033](0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md),
   under which a builder refuses a CMYK JPEG a person adds to a report with
-  an e-invoice, the image the final render here refuses
+  an e-invoice, the image the final render here refuses; and by
+  [0038](0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md),
+  under which an e-invoice of the kind `xrechnung` is drawn as no PDF/A
+  but as a plain copy labelled so on every page, its XML the invoice a
+  host sends: the plain PDF this record forecloses, narrowed for that kind
+  alone, a Factur-X invoice drawn as here
 - **Date:** 2026-10-18
 - **Deciders:** Daniel Bacher
 - **Verified by:**

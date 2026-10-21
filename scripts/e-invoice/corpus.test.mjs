@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
-import { CONTROL_BASE, CONTROLS, corpus, corpusProblems, plusOneCent, strayAccepted, taxAt } from './corpus.mjs'
+import { CONTROL_BASE, CONTROLS, corpus, corpusProblems, KINDS, plusOneCent, strayAccepted, taxAt, XRECHNUNG_BASE } from './corpus.mjs'
 import { pdfPlan } from './pdf-corpus.mjs'
 
 /**
@@ -16,8 +16,11 @@ import { pdfPlan } from './pdf-corpus.mjs'
  */
 const here = dirname(fileURLToPath(import.meta.url))
 const recorded = (file) => readFileSync(join(here, 'recorded', 'corpus', file), 'utf8')
-const SAMPLES = ['e-invoice', 'e-invoice-reverse-charge', 'e-invoice-exempt-paid', 'e-invoice-addressed'].map((id) => ({ id }))
-const entries = corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`) })
+const run = JSON.parse(readFileSync(join(here, 'recorded', 'run.json'), 'utf8'))
+const SAMPLES = ['e-invoice', 'e-invoice-reverse-charge', 'e-invoice-exempt-paid', 'e-invoice-addressed', 'e-invoice-xrechnung'].map((id) => ({ id }))
+/** Each recorded sample's kind and BT-24, as the run that recorded it made them. */
+const KINDS_OF = { kindOf: (sample) => run.kinds[sample.id].kind, guidelineOf: (sample) => run.kinds[sample.id].guideline }
+const entries = corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`), ...KINDS_OF })
 /** The whole corpus the gate judges: the XML, then the PDFs as planned, which the judges' tests build without drawing them. */
 const all = [...entries, ...pdfPlan(entries)]
 
@@ -31,9 +34,29 @@ describe('the corpus', () => {
       ['e-invoice-reverse-charge.xml', 'xml', true, true],
       ['e-invoice-exempt-paid.xml', 'xml', true, true],
       ['e-invoice-addressed.xml', 'xml', true, true],
+      ['e-invoice-xrechnung.xml', 'xml', true, true],
       ...CONTROLS.map((control) => [control.file, 'xml', false, false]),
     ])
     expect(corpusProblems(all)).toEqual([])
+  })
+
+  // Each kind's XML is judged in KoSIT's scenario for it, and read by
+  // Mustang as its kind's guideline: Factur-X's in EN 16931's alone, an
+  // XRechnung's in XRechnung's (0038), a control in its sample's. A sample
+  // of a kind the gate does not know would be judged in no scenario at
+  // all, and is refused.
+  test('judges each kind in its scenario, as its guideline, and refuses a kind it does not know', () => {
+    expect(KINDS).toEqual({ facturX: { scenario: 'EN16931 (CII)', drawn: true }, xrechnung: { scenario: 'EN16931 XRechnung (CII)', drawn: false } })
+    const xrechnung = 'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0'
+    expect(entries.map((entry) => [entry.file, entry.kind, entry.scenario, entry.guideline])).toEqual(
+      entries.map((entry) => {
+        const of = entry.file === 'e-invoice-xrechnung.xml' || entry.from === 'e-invoice-xrechnung.xml' ? ['xrechnung', 'EN16931 XRechnung (CII)', xrechnung] : ['facturX', 'EN16931 (CII)', 'urn:cen.eu:en16931:2017']
+        return [entry.file, ...of]
+      }),
+    )
+    expect(() => corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`), ...KINDS_OF, kindOf: () => 'ubl' })).toThrow('the sample e-invoice is an e-invoice of the kind ubl, which the gate does not judge')
+    // An XRechnung's copy embeds nothing: no PDF of it is planned.
+    expect(all.filter((entry) => entry.format === 'pdf' && entry.sample !== undefined).map((entry) => entry.sample)).toEqual(SAMPLES.map((sample) => sample.id).filter((id) => id !== XRECHNUNG_BASE))
   })
 
   // The judges' tests read what the tools said of the recorded corpus. A
@@ -54,7 +77,25 @@ describe('the corpus', () => {
       const from = recorded(control.from).split('\n')
       return control.xml.split('\n').filter((line, index) => line !== from[index]).map((line) => line.trim())
     }
-    expect(entries.filter((entry) => entry.from !== undefined).map((entry) => [entry.file, entry.from])).toEqual(CONTROLS.map((control) => [control.file, control.file === 'control-br-cl-25.xml' ? 'e-invoice-addressed.xml' : 'e-invoice.xml']))
+    const XRECHNUNG_CONTROLS = ['control-br-de-15.xml', 'control-br-de-2.xml', 'control-peppol-en16931-r020.xml', 'control-br-de-18.xml']
+    expect(entries.filter((entry) => entry.from !== undefined).map((entry) => [entry.file, entry.from])).toEqual(
+      CONTROLS.map((control) => [control.file, control.file === 'control-br-cl-25.xml' ? 'e-invoice-addressed.xml' : XRECHNUNG_CONTROLS.includes(control.file) ? 'e-invoice-xrechnung.xml' : 'e-invoice.xml']),
+    )
+    // Each of the XRechnung's is the sample without the one term XRechnung needs, or with the one line BR-DE-18 refuses.
+    const xrechnung = recorded('e-invoice-xrechnung.xml')
+    const without = (from) => {
+      expect(xrechnung.split(from).length, from).toBe(2)
+      return xrechnung.replace(from, '')
+    }
+    const control = (file) => entries.find((entry) => entry.file === file).xml
+    expect(control('control-br-de-15.xml')).toBe(without('\n      <ram:BuyerReference>991-33333TEST-33</ram:BuyerReference>'))
+    expect(control('control-br-de-2.xml')).toBe(
+      without(
+        '\n        <ram:DefinedTradeContact>\n          <ram:PersonName>Erika Mustermann</ram:PersonName>\n          <ram:TelephoneUniversalCommunication>\n            <ram:CompleteNumber>+49 221 4710 820</ram:CompleteNumber>\n          </ram:TelephoneUniversalCommunication>\n          <ram:EmailURIUniversalCommunication>\n            <ram:URIID>e.mustermann@formancy-haustechnik.example</ram:URIID>\n          </ram:EmailURIUniversalCommunication>\n        </ram:DefinedTradeContact>',
+      ),
+    )
+    expect(control('control-peppol-en16931-r020.xml')).toBe(without('\n        <ram:URIUniversalCommunication>\n          <ram:URIID schemeID="EM">rechnung@formancy-haustechnik.example</ram:URIID>\n        </ram:URIUniversalCommunication>'))
+    expect(control('control-br-de-18.xml')).toBe(xrechnung.replace('unter Angabe der Referenz.</ram:Description>', 'unter Angabe der Referenz.\n#SKONTO#TAGE=14#PROZENT=2#\n</ram:Description>'))
     expect(changed('control-br-cl-25.xml')).toEqual(['<ram:URIID schemeID="EMAIL">rechnung@formancy-haustechnik.example</ram:URIID>'])
     expect(changed('control-br-co-14.xml')).toEqual(['<ram:TaxTotalAmount currencyID="EUR">128.34</ram:TaxTotalAmount>', '<ram:GrandTotalAmount>871.64</ram:GrandTotalAmount>', '<ram:DuePayableAmount>871.64</ram:DuePayableAmount>'])
     // The 7 % category at 0.49 %: its two lines' rate and its breakdown's, its tax 107.50 × 0.49 % = 0.53, and the totals 7.00 less.
@@ -77,12 +118,13 @@ describe('the corpus', () => {
   // whose place is gone, would be the sample itself under a control's name:
   // a file both tools accept, read as one they refused.
   test('refuses to make a control whose sample or place is gone', () => {
-    expect(() => corpus({ samples: SAMPLES.slice(1), xmlOf: (sample) => recorded(`${sample.id}.xml`) })).toThrow('the corpus has no e-invoice sample to make control-schema.xml from')
-    expect(() => corpus({ samples: SAMPLES.slice(0, 3), xmlOf: (sample) => recorded(`${sample.id}.xml`) })).toThrow('the corpus has no e-invoice-addressed sample to make control-br-cl-25.xml from')
-    expect(() => corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`).replace('<ram:TaxTotalAmount', '<ram:TaxSum') })).toThrow('control-br-co-14.xml: BT-110 is written 0 times in e-invoice.xml, where the control changes it once')
+    expect(() => corpus({ samples: SAMPLES.slice(1), xmlOf: (sample) => recorded(`${sample.id}.xml`), ...KINDS_OF })).toThrow('the corpus has no e-invoice sample to make control-schema.xml from')
+    expect(() => corpus({ samples: SAMPLES.slice(0, 3), xmlOf: (sample) => recorded(`${sample.id}.xml`), ...KINDS_OF })).toThrow('the corpus has no e-invoice-addressed sample to make control-br-cl-25.xml from')
+    expect(() => corpus({ samples: SAMPLES.slice(0, 4), xmlOf: (sample) => recorded(`${sample.id}.xml`), ...KINDS_OF })).toThrow('the corpus has no e-invoice-xrechnung sample to make control-br-de-15.xml from')
+    expect(() => corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`).replace('<ram:TaxTotalAmount', '<ram:TaxSum'), ...KINDS_OF })).toThrow('control-br-co-14.xml: BT-110 is written 0 times in e-invoice.xml, where the control changes it once')
     // A total written twice -- a second currency's BT-111 one day -- would leave the control changing one of two, which neither tool may then read as BR-CO-14 alone.
     const twice = (sample) => recorded(`${sample.id}.xml`).replace(/(<ram:TaxTotalAmount [^\n]*\n)/, '$1$1')
-    expect(() => corpus({ samples: SAMPLES, xmlOf: twice })).toThrow('control-br-co-14.xml: BT-110 is written 2 times in e-invoice.xml, where the control changes it once')
+    expect(() => corpus({ samples: SAMPLES, xmlOf: twice, ...KINDS_OF })).toThrow('control-br-co-14.xml: BT-110 is written 2 times in e-invoice.xml, where the control changes it once')
   })
 })
 

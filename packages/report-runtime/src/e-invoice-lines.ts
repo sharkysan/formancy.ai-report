@@ -36,7 +36,7 @@
 import { compareDecimal, decimalFromString, decimalToString } from '@formancy/expressions'
 import type { Decimal } from '@formancy/expressions'
 import { checkEInvoiceDecimal, checkEInvoiceText, checkLineCategory, E_INVOICE_DECIMALS, E_INVOICE_LINE_CODES, E_INVOICE_LINE_COLUMNS, E_INVOICE_TEXTS, eInvoiceBlank, en16931Rule, walkComponents } from '@formancy/report-spec'
-import type { EInvoiceDecimalTerm, EInvoiceLineCode, EInvoiceLineColumn, EInvoiceLineTerm, EInvoiceTextTerm, En16931Rule, FacturXInvoice, FieldType, TableComponent, VatCategory } from '@formancy/report-spec'
+import type { EInvoice, EInvoiceDecimalTerm, EInvoiceLineCode, EInvoiceLineColumn, EInvoiceLineTerm, EInvoiceTextTerm, En16931Rule, FieldType, TableComponent, VatCategory } from '@formancy/report-spec'
 import { roundDecimalAs } from './decimal.js'
 import { lineNetAmount } from './e-invoice-totals.js'
 import type { TypedValue } from './format.js'
@@ -134,7 +134,7 @@ interface NamedColumn {
 }
 
 /** The table the lines are the rows of, and the columns that print their terms. */
-function namedColumns(render: Reading, invoice: FacturXInvoice): { readonly table: TableComponent; readonly columns: readonly NamedColumn[] } {
+function namedColumns(render: Reading, invoice: EInvoice): { readonly table: TableComponent; readonly columns: readonly NamedColumn[] } {
   // report-spec's validator holds the lines to this table, and each named column to it: shown, and a detail field or an expression.
   const located = walkComponents(render.report).find(({ component }) => component.kind === 'table' && component.id === invoice.lines.table) as { readonly component: TableComponent; readonly path: string }
   const table = located.component
@@ -175,7 +175,7 @@ function readColumn(render: Reading, scope: Scope, column: NamedColumn, place: P
 }
 
 /** The line of `row`, every term read and held to its rule; undefined when a term is refused or could not be read, which is recorded. */
-function readLine(render: Reading, invoice: FacturXInvoice, table: TableComponent, columns: readonly NamedColumn[], row: OrderedRow): ReadLine | undefined {
+function readLine(render: Reading, invoice: EInvoice, table: TableComponent, columns: readonly NamedColumn[], row: OrderedRow): ReadLine | undefined {
   const scope = rowScope(render, render.totals.report, row)
   const terms: Partial<Record<keyof LineTerms, string | VatCategory | Decimal | null>> = {}
   let whole = true
@@ -218,7 +218,7 @@ function readLine(render: Reading, invoice: FacturXInvoice, table: TableComponen
  * a line is refused, or could not be read, which is recorded. A final
  * render refuses a table of no rows (BR-16).
  */
-export function readLines(render: Reading, invoice: FacturXInvoice): ReadLines | undefined {
+export function readLines(render: Reading, invoice: EInvoice): ReadLines | undefined {
   const { table, columns } = namedColumns(render, invoice)
   const lines: ReadLine[] = []
   const ids = new Set<string>()

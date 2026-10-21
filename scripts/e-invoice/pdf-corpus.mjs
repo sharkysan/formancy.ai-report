@@ -35,6 +35,8 @@
 // reads what each PDF embeds itself, and what a sample's and a variant's
 // XMP states of it (`embeddingProblems`).
 
+import { KINDS } from './corpus.mjs'
+
 /** The sample every control is made from, as the XML corpus's controls are. */
 export const PDF_BASE = 'e-invoice'
 
@@ -244,7 +246,8 @@ export function variantProblems(starters) {
  * with no renderer.
  */
 export function pdfPlan(entries) {
-  const samples = entries.filter((entry) => entry.format === 'xml' && entry.sample !== undefined)
+  // A PDF/A-3b is drawn of a kind that embeds its XML: an XRechnung's copy embeds none (0038).
+  const samples = entries.filter((entry) => entry.format === 'xml' && entry.sample !== undefined && KINDS[entry.kind]?.drawn === true)
   const base = samples.find((entry) => entry.sample === PDF_BASE)
   if (base === undefined) throw new Error(`the corpus has no ${PDF_BASE} sample to draw its PDF controls from`)
   const xmlOf = (file) => {

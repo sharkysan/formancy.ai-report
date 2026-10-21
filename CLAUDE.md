@@ -88,11 +88,17 @@ code's; the core binds `invoice`, `vatBasis` and `vatAmount` in an
 e-invoice alone; the runtime computes the totals once, in
 `e-invoice-totals.ts`, and writes the CII XML, in `cii.ts`
 ([0027](docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md));
-and the renderer draws a final render of it, and of no other report, as a
-PDF/A-3b that embeds that XML as `factur-x.xml` (`pdfa.ts`), through
-PDFKit's own document on the last pass, the ICC profile PDFKit embeds
-admitted by `scripts/dependency-licences.mjs` by its digest
+and the renderer draws a final render of a Factur-X, and of no other
+report, as a PDF/A-3b that embeds that XML as `factur-x.xml` (`pdfa.ts`),
+through PDFKit's own document on the last pass, the ICC profile PDFKit
+embeds admitted by `scripts/dependency-licences.mjs` by its digest
 ([0031](docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+An XRechnung is the same block of the other kind, its German rules
+report-spec's `xrechnung.ts`: the host takes its XML from the resolved
+document and sends it, and the renderer draws its PDF as a plain copy,
+refused unless its header leads with the runtime's
+`XRECHNUNG_COPY_PARAGRAPH`
+([0038](docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
 An SVG asset runs through three of them and passes the core by: its rules
 are report-spec's `svg.ts` and the `svg-*.ts` beside it, `cleanSvg`, which
 cleans the file once where a host approves it into the one form the
@@ -510,8 +516,9 @@ exactly what CI does:
   and refused unless each SHA-256 is the one
   `docs/release/e-invoice-tools.json` registers, and veraPDF, its own and
   Mustang's copy, no older than the register's floor. Mustang and KoSIT
-  judge the XML the runtime writes of each e-invoice sample, veraPDF and
-  Mustang the PDF/A-3b the renderer draws of it and of variants that carry
+  judge the XML the runtime writes of each e-invoice sample, an
+  XRechnung's in KoSIT's XRechnung scenario (0038), veraPDF and Mustang
+  the PDF/A-3b the renderer draws of each Factur-X and of variants that carry
   the first sample's e-invoice on other pages -- every starter's, a page
   of every image kind PDFKit embeds, a page of SVGs in every way
   svg-to-pdfkit paints one, and one of an SVG at every bound an e-invoice

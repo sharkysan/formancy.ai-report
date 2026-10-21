@@ -63,11 +63,12 @@ describe('an e-invoice', () => {
     expect(reportHash(invoice({ '/vat/1/rate': '7' }) as unknown as ReportDefinition)).not.toBe(reportHash(eInvoiceReport()))
   })
 
-  // One kind today, Factur-X in the EN 16931 profile, type 380, in euro.
-  // Anything else -- XRechnung, BASIC, a credit note, francs -- is refused,
-  // never written as though it were this (fail closed).
+  // Two kinds, Factur-X in the EN 16931 profile and XRechnung 3.0
+  // (validate-xrechnung.test.ts), type 380, in euro. Anything else -- a
+  // kind spelt otherwise, BASIC, a credit note, francs -- is refused, never
+  // written as though it were this (fail closed).
   test('is of a kind, a profile, a type and a currency this version writes', () => {
-    expect(E_INVOICE_KINDS).toEqual(['facturX'])
+    expect(E_INVOICE_KINDS).toEqual(['facturX', 'xrechnung'])
     expect(INVOICE_TYPE_CODES).toEqual(['380'])
     expect(E_INVOICE_CURRENCIES).toEqual(['EUR'])
     expect(refusals(invoice({ '/kind': 'xRechnung' }))).toEqual([`unknown-kind ${EI}/kind`])
@@ -574,6 +575,6 @@ describe('the rules the validator names', () => {
   test('are ids of the lists the gate reads', () => {
     expect(heard.length).toBeGreaterThan(10)
     const listed: readonly string[] = [...EN16931_RULES, ...XRECHNUNG_RULES]
-    for (const message of heard) for (const [id] of message.matchAll(/BR-[A-Z0-9]+(?:-[0-9]+)?/g)) expect(listed, `${id} in "${message}"`).toContain(id)
+    for (const message of heard) for (const [id] of message.matchAll(/\b(?:BR-(?:[A-Z]+-)?\d+(?:-[a-z])?|PEPPOL-EN16931-R\d+)\b/g)) expect(listed, `${id} in "${message}"`).toContain(id)
   })
 })

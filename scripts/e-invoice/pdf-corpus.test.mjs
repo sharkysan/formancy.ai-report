@@ -17,8 +17,11 @@ import { blocksDocument, boundDocument, embeddingProblems, patched, PDF_BASE, PD
  */
 const here = dirname(fileURLToPath(import.meta.url))
 const recorded = (file) => readFileSync(join(here, 'recorded', 'corpus', file), 'utf8')
-const SAMPLES = ['e-invoice', 'e-invoice-reverse-charge', 'e-invoice-exempt-paid', 'e-invoice-addressed'].map((id) => ({ id }))
-const xml = corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`) })
+const run = JSON.parse(readFileSync(join(here, 'recorded', 'run.json'), 'utf8'))
+const SAMPLES = ['e-invoice', 'e-invoice-reverse-charge', 'e-invoice-exempt-paid', 'e-invoice-addressed', 'e-invoice-xrechnung'].map((id) => ({ id }))
+/** Each recorded sample's kind and BT-24, as the run that recorded it made them. */
+const KINDS_OF = { kindOf: (sample) => run.kinds[sample.id].kind, guidelineOf: (sample) => run.kinds[sample.id].guideline }
+const xml = corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`), ...KINDS_OF })
 const xmlOf = (file) => xml.find((entry) => entry.file === file).xml
 
 /**
@@ -55,7 +58,9 @@ describe('the PDF corpus as planned', () => {
       ...PDF_VARIANTS.map((each) => [each.file, 'pdf', each.draws]),
       ...PDF_CONTROLS.map((each) => [each.file, 'pdf', 'e-invoice.pdf']),
     ])
-    for (const id of SAMPLES.map((sample) => sample.id)) expect(plan.find((entry) => entry.file === `${id}.pdf`).embeds).toBe(xmlOf(`${id}.xml`))
+    // An XRechnung's copy embeds nothing (0038): no PDF/A-3b of it is drawn.
+    for (const id of SAMPLES.map((sample) => sample.id).filter((id) => id !== 'e-invoice-xrechnung')) expect(plan.find((entry) => entry.file === `${id}.pdf`).embeds).toBe(xmlOf(`${id}.xml`))
+    expect(plan.some((entry) => entry.file === 'e-invoice-xrechnung.pdf')).toBe(false)
     expect(plan.filter((entry) => entry.variant !== undefined).every((entry) => entry.embeds === xmlOf('e-invoice.xml') && entry.why.length > 0)).toBe(true)
     expect(plan.filter((entry) => entry.from !== undefined).map((entry) => [entry.file, entry.embeds === null ? null : xml.find((each) => each.xml === entry.embeds)?.file])).toEqual([
       ['control-plain.pdf', null],

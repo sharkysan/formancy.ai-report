@@ -26,7 +26,9 @@
  * `PREVIEW_LABEL`, so that a preview printed or passed on is never taken for
  * the report. A final render refuses such data. A preview of an e-invoice
  * writes no XML, and is labelled whatever its data:
- * `E_INVOICE_PREVIEW_LABEL` where nothing else is lacking.
+ * `E_INVOICE_PREVIEW_LABEL` where nothing else is lacking. A final render
+ * of an XRechnung is labelled too, `XRECHNUNG_COPY_LABEL`: its XML is the
+ * invoice, and its PDF a copy (0038).
  */
 import { decimalToString } from '@formancy/expressions'
 import type { Decimal } from '@formancy/expressions'
@@ -86,7 +88,30 @@ export const PREVIEW_LABEL = 'Preview of incomplete data: not a final report'
 /** What every page of a preview of an e-invoice says when it lacks nothing else: it writes no XML, and is not the invoice. */
 export const E_INVOICE_PREVIEW_LABEL = 'Preview: not an e-invoice, and not a final report'
 
+/** What every page of a final render of an XRechnung says: the invoice is the XML the document carries, which a host sends, and the PDF drawn of the page is a copy (0038). */
+export const XRECHNUNG_COPY_LABEL = 'Copy of an XRechnung: the invoice is its XML, and this PDF is not the invoice'
+
+/** A label, as the runtime heads every page with one: the text alone, small, bold and red, in a paragraph of its own. */
 const label = (text: string): Paragraph => ({ kind: 'paragraph', runs: [{ text }], style: { size: 8, bold: true, color: '#b00020' } })
+
+/**
+ * The paragraph that opens every page's header of a final render of an
+ * XRechnung, as the runtime writes it: `XRECHNUNG_COPY_LABEL` in the
+ * labels' style. The renderer refuses an XRechnung's document whose page
+ * header does not open with it, style and all, since the text in white or
+ * at one point would say nothing to a reader (0038). Frozen, so that what
+ * the renderer holds a copy to is not a host's to change; each document
+ * carries a paragraph of its own.
+ */
+export const XRECHNUNG_COPY_PARAGRAPH: Paragraph = frozen(label(XRECHNUNG_COPY_LABEL))
+
+/** `paragraph` frozen through: its runs, each run, and its style. */
+function frozen(paragraph: Paragraph): Paragraph {
+  for (const run of paragraph.runs) Object.freeze(run)
+  Object.freeze(paragraph.runs)
+  Object.freeze(paragraph.style)
+  return Object.freeze(paragraph)
+}
 
 /** Each parameter's value as the format writes one. */
 function writtenParameters(values: CheckedParameters): Record<string, string | boolean | null> {
@@ -149,7 +174,7 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
   const { completeness, consistency } = checkedData.data
   const warnings = problems.warnings()
   const lacking = !completeness.complete || warnings.some(({ code }) => code !== 'e-invoice-preview')
-  const labelled = !preview ? undefined : lacking ? PREVIEW_LABEL : invoice === undefined ? undefined : E_INVOICE_PREVIEW_LABEL
+  const labelled = !preview ? (eInvoice?.kind === 'xrechnung' ? XRECHNUNG_COPY_LABEL : undefined) : lacking ? PREVIEW_LABEL : invoice === undefined ? undefined : E_INVOICE_PREVIEW_LABEL
   const document: ResolvedDocument = {
     info: { title: valid.title, creationDate },
     page: valid.page,
