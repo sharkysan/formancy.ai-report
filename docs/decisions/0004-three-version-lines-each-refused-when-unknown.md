@@ -1,6 +1,6 @@
 # 0004 — Three version lines, each refused when unknown
 
-- **Status:** accepted; the tuple a release was tested with is derived from the run that gated it, by [0014](0014-a-release-report-is-derived-from-the-run-that-gated-it.md)
+- **Status:** accepted; the tuple a release was tested with is derived from the run that gated it, by [0014](0014-a-release-report-is-derived-from-the-run-that-gated-it.md); its form line read since [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), which reads a form through the pinned validator
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `packages/report-spec/src/version.test.ts`, which proves
@@ -12,19 +12,30 @@
   proves that every `@formancy/*` dependency outside this workspace is an
   exact released version, and that only upstream versions the lockfile
   installs are exempt from pnpm's minimum release age. Each is proved on
-  fixtures, then on the real tree.
+  fixtures, then on the real tree. `packages/report-forms/src/read.test.ts`
+  proves that a form is read through the pinned `@formancy/spec`'s
+  validator ([0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)): forms at spec 1 to 4 are read, one Formancy
+  Data generated at spec 3 among them, a spec 5 form is refused with both
+  versions named, and a form the validator refuses is refused by its code.
 
   **Not mechanically enforced:**
-  - **The upstream version.** No manifest here depends on an upstream
-    `@formancy/*` package yet, so on the real tree the upstream-deps check
-    checks an empty set, and the 0.5.0 below is the version planned, with
-    nothing installed behind it.
-  - **The form spec range.** No code here reads a form yet.
-  - **The Data contract.** There is no Data dependency until Data publishes
-    one ([0002](0002-depend-on-upstream-never-copy-it.md)).
+  - **The Data contract.** The provider reads no version Data states,
+    which is less than this record decided: it is built against Data 0.1.0
+    exactly, and a Data whose replies change is refused by the client's
+    checks of their shape
+    ([0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
   - **The Node floor.** The root `engines` field states it. pnpm's
     `engine-strict` is off, and no published package declares `engines`.
   - **The tuple in the CHANGELOG.** It is typed by hand and held by review.
+
+  **Enforced since this was written**, re-read on 22 October 2026: the
+  upstream version, which no manifest here depended on when this was
+  written, and which the upstream-deps check now holds on the real tree,
+  every upstream `@formancy/*` dependency of the published packages among
+  it; and the form
+  spec range, which no code read until report-forms, and which its
+  `read.test.ts`, above, holds
+  ([0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 
 ## Context
 
@@ -124,6 +135,18 @@ join the tuple with the renderer package.
 
 **What it forecloses.** Reading "what can be read" of a newer document, and
 inferring compatibility from package version ranges.
+
+**Added 2026-10-22: the form line read.** `@formancy/report-forms` reads
+a formancy form's submissions ([0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)), the first code here that
+reads a form. It reads one as this record decided: through the
+`validateSchema` of the `@formancy/spec` the repository pins, 0.7.0 when
+this was written, which reads spec versions 1 to 4. A form of another
+`specVersion` is refused before it is validated, naming that version and
+the ones the validator reads, and every other refusal is the validator's,
+by its code. The bridge adds no reading of its own to what a form may
+hold; what it reads of one is its own question, which 0042 decides.
+`read.test.ts` holds it, a form Formancy Data generated at spec 3 among
+the forms it reads. arc42 8.6's row for the form spec changed with it.
 
 ## Alternatives considered
 

@@ -47,7 +47,7 @@
       ]
     },
     "0004": {
-      "reviewed": "sha256:c0ac2d0ba405ecd41499556b2773329259d1a70e891396adaf4ebb2bc18278fe",
+      "reviewed": "sha256:8e894aa5226f137363cb16ac0be547e08952b43ebd0f2b46fbc296307f8126db",
       "limitations": [
         {
           "area": "format",
@@ -61,6 +61,11 @@
         {
           "area": "runtime",
           "says": "The workspace's Node floor of 22.13 is advisory, and what fails on an older Node has not been measured."
+        },
+        {
+          "area": "data",
+          "says": "A formancy form of a `specVersion` the pinned `@formancy/spec` does not read is refused whole by the form bridge, naming both versions, so a host whose forms move to a newer spec needs a release of Report that pins a formancy reading it.",
+          "heldBy": "packages/report-forms/src/read.test.ts"
         }
       ]
     },
@@ -103,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:cf9eb173a9b85b520d051f7b8297f9b7bbdc283f68aa297b09bd624d72cf7d6c",
+      "reviewed": "sha256:14809a1d32ec4a795f1983c6b82365e369acddc26ebd8ba912e63f9444c8511e",
       "limitations": [
         {
           "area": "format",
@@ -202,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:344bc404f6de8b1d2e28998bc5253fe08782e3519f35c819b348af0d520ee7d9",
+      "reviewed": "sha256:97e256b4aab16a3b43b0faea817d4d4576bb3d3edbae719e0141c896cd84b1b1",
       "limitations": [
         {
           "area": "runtime",
@@ -1570,7 +1575,7 @@
       ]
     },
     "0041": {
-      "reviewed": "sha256:a0e120dce999d07dbfd71d9a924df2d84a75b8c16aaa8f9fa4d6a6f8b95dd8f2",
+      "reviewed": "sha256:04928d4a2a1d91c56800adef42ea4c54f6594e1bdddfaec1de21aac5785176ca",
       "limitations": [
         {
           "area": "data",
@@ -1612,10 +1617,101 @@
         {
           "area": "release",
           "says": "Data that names a source is refused by 0.2.0's runtime as `unknown-property`, so a host that names one, or uses this release's Data provider, needs this release's runtime."
+        }
+      ]
+    },
+    "0042": {
+      "reviewed": "sha256:2009f6c2d0ba00e974e0fbfd8acba948928de300de0f8c82405fab3009597999",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A report whose dataset is read from a formancy form is refused whole by 0.2.0, as `unknown-property`, so a report saved with that binding opens only in a release that has it."
         },
         {
           "area": "data",
-          "says": "No package of this release fills a formancy form's source, so a host that prints a submission names the submission, its form's id and its version's schemaHash itself, until the form bridge's package reads submissions."
+          "says": "The form bridge fetches nothing, so a host prints a submission against the version that collected it only if it kept that version's document, which formancy 0.7.0's server serves for its current version alone."
+        },
+        {
+          "area": "data",
+          "says": "A formancy `number` answer whose double's shortest decimal has more than 15 significant digits, a total the form computed among them, one past 2^53, whichever field reads it, or one with a fraction read into an integer field, is refused as `inexact-number` and never rounded; a form that must print such a number holds it as text under a decimal pattern, as Formancy Data writes one, which a report reads as a decimal.",
+          "heldBy": "packages/report-forms/src/numbers.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A number typed with more than 15 significant digits was rounded when formancy stored it as a double, and prints as that double's shortest decimal where that has at most 15 digits, so a typed 0.10000000000000001 prints 0.1.",
+          "heldBy": "packages/report-forms/src/numbers.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "An integer field over a formancy number whose version steps through fractions, by its step or from a fractional least value, is refused for every submission of that version, whatever its answers.",
+          "heldBy": "packages/report-forms/src/kinds.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A submission paired with another version than the one that collected it is refused only where one of its answers has no field in that version, so two versions with the same paths and other labels print the labels of the version the host handed over.",
+          "heldBy": "packages/report-forms/src/read.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A version that removed, moved or retyped a field a report reads refuses every submission of that version, naming the field and the version's hash, until the report is changed by hand: the review that would resolve it is not in this release.",
+          "heldBy": "packages/report-forms/src/read.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A field read from a group's child, a matrix row or an option has the id its report gives it, never one made from its path, so where two paths would flatten to one name the author names them apart, and nothing renames a field by similarity."
+        },
+        {
+          "area": "data",
+          "says": "An answer formancy pruned from a hidden field, or that was never given, is handed over as null, so a field declared not nullable refuses a final render of any submission that left it out.",
+          "heldBy": "packages/report-forms/src/read.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "Labels print from the version's catalogue for the report's locale, or from its default catalogue where it has none for that locale, formancy's own fallback, so a report in de-CH of a form with only German and English catalogues prints its default's labels.",
+          "heldBy": "packages/report-forms/src/kinds.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A choice whose options a deployment resolves prints only the labels the host's resolver gives, and a submission is refused as `unresolved-label` where it gives no string or throws.",
+          "heldBy": "packages/report-forms/src/kinds.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A select or a radio that offers no options in the document and names no source takes any value, as formancy's engine does, so its stored value prints unchecked with `read: 'value'`, and its label is refused.",
+          "heldBy": "packages/report-forms/src/kinds.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A file, a signature, a ranking and ticked boxes whose options a deployment resolves are refused as `unsupported-field`, never printed as something else.",
+          "heldBy": "packages/report-forms/src/kinds.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A yes-or-no radio of \"true\" and \"false\", as Formancy Data writes one, prints its label or its value as text, and is refused where a report reads it as a boolean.",
+          "heldBy": "packages/report-forms/src/kinds.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A repeater row formancy nulled when it stripped it is refused in any repeater the submission holds, whether the report reads that repeater or not, so such a submission does not print.",
+          "heldBy": "packages/report-forms/src/untrusted.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A rich text answer whose markup is longer than the runtime's 16,384 characters is refused before formancy's parser reads it, however short its words.",
+          "heldBy": "packages/report-forms/src/untrusted.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A report of one row per submission is refused for a list of no submissions, since its source names each submission it was read from.",
+          "heldBy": "packages/report-forms/src/many.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A report reads one repeater of a form as its detail, and a form's other repeaters cannot be expressed in this version of the format."
+        },
+        {
+          "area": "runtime",
+          "says": "Reading one submission of 100,000 repeater rows of six fields took a median of 966 ms, and 100,000 submissions of eleven fields, one a row, 2,135 ms, from the built package on an Intel i9-10900K under Node 24.21.0 at about a tenth of its load from other work, on 22 October 2026, before the runtime checks the data again when it resolves."
         }
       ]
     }

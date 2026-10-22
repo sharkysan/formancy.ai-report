@@ -446,6 +446,22 @@ export function edited(edit: (report: Record<string, unknown>) => void): Record<
   return report
 }
 
+/**
+ * Reads `report`'s datasets from a formancy form's submission (0042), in
+ * place: the header from the submission's answers, the detail from the rows
+ * of its repeater `lines`, and every field at its own key. `richReport`
+ * stays bound to no form, so every other test reads its datasets as the
+ * host hands them over.
+ */
+export function readFromForm(report: Record<string, unknown>): void {
+  setAt(report, '/datasets/header/form', { kind: 'submission' })
+  setAt(report, '/datasets/detail/form', { kind: 'repeater', repeater: 'lines' })
+  for (const role of ['header', 'detail']) {
+    const fields = getAt(report, `/datasets/${role}/fields`) as readonly { readonly id: string }[]
+    fields.forEach((field, index) => setAt(report, `/datasets/${role}/fields/${index}/form`, { path: field.id }))
+  }
+}
+
 /** The code and path of each error a document is refused with; none when it is valid. */
 export function refusals(document: unknown): string[] {
   const outcome = validateReport(document)

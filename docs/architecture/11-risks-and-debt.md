@@ -34,12 +34,15 @@ either.
 later release: a report written now may need re-authoring or migrating when
 the format freezes. 0.2.0's additions — the QR code, the payment
 part, the EPC QR code, the e-invoice and the SVG asset — went into the same
-draft version, and 0.1.0 refuses a report that uses any of them, whole
+draft version, and 0.1.0 refuses a report that uses any of them, whole;
+0.3.0's binding of a dataset to a formancy form went in too, and 0.2.0
+refuses a report that carries one
 ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md),
 [0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md),
 [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
-[0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
+[0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md),
+[0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 
 ### The renderer leans on pdfmake's defaults and internals
 
@@ -192,6 +195,22 @@ provider has run against a fixture that answers Data 0.1.0's routes, never
 against a Data server with a database and a policy behind it. Every Data
 release is a new admission and a release of this package
 ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+
+### A submission is read against the version the host hands over
+
+The form bridge computes a version's hash and holds every answer to a data
+path of it, so a submission paired with a version whose paths it does not
+fit is refused. Two versions with the same paths and other labels are not
+told apart: the labels of the one handed over print, and the manifest
+names that one. formancy 0.7.0's server serves its current version's
+schema alone, so a host that did not keep a version's document cannot
+print its submissions against it. A number formancy computed, or one of
+more digits than a double keeps, is refused rather than printed, but one
+typed with more than 15 digits that a double stores as a short one
+prints as that one, a typed 0.10000000000000001 as 0.1; and a
+version that moved a field the report reads refuses its submissions until
+the report is changed by hand, the review that would resolve it being
+later work ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 
 ### Two builders, written twice
 
@@ -390,3 +409,7 @@ elements in the page header and footer
 ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)),
 and the renderer's fallback fonts for the scripts Roboto lacks
 ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+0.3.0's plan names, after the form bridge's read (0042), a report
+generated from a form, the review of a form's new version and its pane in
+both builders, a parameter form written from a report's parameters, and a
+form's photos and signatures printed as approved assets.

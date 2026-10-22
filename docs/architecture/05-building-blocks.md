@@ -12,6 +12,7 @@ apps   studio                  the playground: both builders, the PDF, PDF.js   
 L3     report-render-pdf       pdfmake · pdfkit · uqr · a Node entry and a browser entry
                                an e-invoice drawn as a PDF/A-3b that embeds its XML
        report-data-provider    @formancy/data-client: the one door to Data
+       report-forms            @formancy/spec's validator: a form's submissions, handed over
        report-builder-react    React · DOM            ┐ never each other,
        report-builder-angular  Angular · DOM          ┘ never the other framework
 ────────────────────────────────────────────────────────────────────────────────────────────
@@ -27,7 +28,8 @@ L0     report-spec             the format · validation · hash · @formancy/spe
 beside report-corpus           private test support: the fixtures, the PDF reader and its
                                checks, readCodes, an SVG's drawings and their ink, a reader
                                of a PDF's objects and its XMP, the starters and samples, a
-                               reader of the e-invoice's XML; over the runtime
+                               formancy form in two versions and its submissions, a reader
+                               of the e-invoice's XML; over the runtime
 ```
 
 Each row's three middle columns are its manifest's: what it depends on
@@ -45,6 +47,7 @@ the upstream packages' and the peers' ranges.
 | `@formancy/report-builder-core` | `report-core`, `report-spec` | — | — | Those two, nothing else; no framework, no DOM, no Node ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
 | `@formancy/report-render-pdf` | `report-runtime` | `pdfmake`, `pdfkit`, `uqr` | — | Of this repository's packages, the runtime alone, which re-exports what the renderer needs of the format: report-spec's own rules for the slip and for how an EPC QR code prints ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)), the names an e-invoice's file is embedded by ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)), and `checkSvg`, the check an SVG asset is drawn by ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)), and report-spec's font reader, which its faces' glyphs are read by ([0040](../decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)). A resolved document and approved bytes in, never a database or an address ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)); an e-invoice's PDF/A also embeds the ICC profile PDFKit, pdfmake's own dependency, reads from its package, which `scripts/dependency-licences.mjs` holds to a review by its digest ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 | `@formancy/report-data-provider` | `report-runtime`, `report-spec` | `@formancy/data-client` | — | The only package that may depend on Formancy Data; `scripts/dependency-licences.mjs` refuses Data reached from any other ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). The DOM's globals and no `@types/node`, so a `node:` import does not compile |
+| `@formancy/report-forms` | `report-runtime`, `report-spec` | `@formancy/spec`, for its validator, the version hash, labels and rich text, at the release the repository pins | — | The DOM's globals and no `@types/node`, as the Data provider, so a `node:` import does not compile; nothing reaches the network: a host hands each form version and submission over ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)). It never depends on Formancy Data, which `scripts/dependency-licences.mjs` refuses from any package but the provider |
 | `@formancy/report-builder-react` | `report-builder-core`, `report-core`, `report-spec` | — | `react`, `react-dom` | The core packages and React, never Angular or the other builder ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
 | `@formancy/report-builder-angular` | `report-builder-core`, `report-core`, `report-spec` | `tslib` | `@angular/core` | The core packages and Angular; `src/dependencies.test.ts` fails on React anywhere in its closure ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
 | `@formancy/report-corpus` | `report-runtime` | `pdfjs-dist`, `zxing-wasm`, `saxes`, `@pdfme/pdf-lib` | — | Private, never published: test support ([0003](../decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)). saxes reads the XML the runtime writes, a parser that is not the writer, in the corpus's tests and, resolved from the corpus, in the e-invoice gate's scripts (0027), and a PDF's XMP. pdf-lib reads a PDF's own objects, a reader that is neither the pdfkit that writes them nor PDF.js, in the corpus's tests and the renderer's and, through the corpus's built index, in the e-invoice gate, which reads what each PDF embeds with it and records each PDF by its digest (0031) |
@@ -77,7 +80,7 @@ The format, and nothing that evaluates it
 |---|---|
 | `definition.ts`, `styles.ts`, `data.ts`, `assets.ts`, `values.ts`, `aggregates.ts`, `components.ts`, `table.ts` | `ReportDefinition` at `reportSpecVersion` `'0'`, the draft, with its five regions and its provenance; and each part it declares in a module named for it: print styles, the datasets and parameters it reads, assets, values (expressions, formats and the runs of text), aggregates, components and the table. Its page is `page.ts`'s |
 | `version.ts` | Whether a document is a report this package reads at all, before anything about what it holds; a form or another version is refused naming both ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md)) |
-| `validate.ts` and `validate-*.ts` | Structural validation, every error with a JSON Pointer and a stable code (`errors.ts`): declarations, components and where each may stand, inlines and formats, the table, aggregates, the payment part, the EPC QR code and the e-invoice, the texts of all three read by `validate-payment-text.ts`. Kinds are tables, not switches |
+| `validate.ts` and `validate-*.ts` | Structural validation, every error with a JSON Pointer and a stable code (`errors.ts`): declarations, components and where each may stand, inlines and formats, the table, aggregates, the payment part, the EPC QR code and the e-invoice, the texts of all three read by `validate-payment-text.ts`; and where a dataset is read from a formancy form's submissions, each field's data path, member and choice (`validate-form-binding.ts`, `isFormPath` in `syntax.ts`), the shape alone, which version holds what being report-forms' to say ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)). Kinds are tables, not switches |
 | `check.ts` | Reading untrusted input once, through property descriptors, so a getter never runs and a value cannot answer differently when asked again |
 | `limits.ts` | Every bound a definition is held to, each with its reason; an image asset's bytes and pixels, which every reader of an image holds it to; and an SVG asset's and a font's, each with how it was measured, on what and when |
 | `image-header.ts`, `digest.ts` | What an image's bytes are, by their first bytes alone (`sniffImage`), a PNG's or a JPEG's structure read whole but for a PNG's image data (`imageHeader`), and an asset's SHA-256 by `@noble/hashes` (`assetDigest`): what a builder reads of an image a person adds, and the renderer of one it prints, decided once ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)) |
@@ -118,7 +121,7 @@ Each stage is a module, and each decides its question once:
 | Module | Responsibility |
 |---|---|
 | `input.ts`, `data.ts`, `values.ts`, `parameters.ts` | The data contract: read once without running anything, every value held to its field's type, undeclared fields refused, bounded by `MAX_DETAIL_ROWS` |
-| `source.ts` | Where the data came from, which the manifest carries: each submission of a formancy form with its form's id and the `schemaHash` of the version that collected it, or the Formancy Data form each dataset was read from; held to the syntax of identifiers, by report-spec's `isFormId` and `isSchemaHash`, the provenance's own rules, and a submission id's syntax of its own, and to no key its shape does not name; no more submissions than the detail rows given, which `data.ts` counts, and a provider it does not know refused ([0041](../decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)) |
+| `source.ts` | Where the data came from, which the manifest carries: each submission of a formancy form with its form's id and the `schemaHash` of the version that collected it, or the Formancy Data form each dataset was read from; held to the syntax of identifiers, by report-spec's `isFormId` and `isSchemaHash`, the provenance's own rules, and a submission id's syntax of its own, `isSubmissionId`, which the form bridge reads too (0042), and to no key its shape does not name; no more submissions than the detail rows given, which `data.ts` counts, and a provider it does not know refused ([0041](../decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)) |
 | `evaluate.ts` | The expressions report-core compiled, evaluated with fixed capabilities within `EXPRESSION_STEP_BUDGET` each and `RENDER_STEP_BUDGET` a render |
 | `sort-group.ts`, `totals.ts`, `decimal.ts` | Row order and groups; aggregates computed exactly, BigInt and upstream's `Decimal`, rounded once as declared |
 | `format.ts`, `inlines.ts`, `styles.ts` | Every value as the text it prints, for the report's locale, through Intl handed exact digits |
@@ -165,6 +168,26 @@ rows a page at a time, each lookup's labels. The data it hands over says
 and names as its source the published form each dataset was read from,
 by the id the binding addressed, refusing a form Data answers under
 another, and never a record's token ([0041](../decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)).
+
+### `@formancy/report-forms` (L3)
+
+`readSubmission(report, { form, formHash?, submission }, options)` reads
+a report's data from one submission of a formancy form, against the
+version that collected it, and `readSubmissions(report, { forms,
+submissions, complete }, options)` one row per submission, each against
+its own version ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)). The host hands every document over and
+the bridge fetches nothing. The data it hands over says `host-captured`
+and names each submission with its form's id and the hash of its version
+([0041](../decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)).
+
+| Module | Responsibility |
+|---|---|
+| `read.ts` | The two readers: everything that can be refused without an answer first -- the report, the input's shape, each id by the runtime's `isSubmissionId`, each version, each field against each version -- then the answers; a refusal anywhere hands over nothing |
+| `version.ts` | A form version: copied as data, a `specVersion` the pinned `@formancy/spec` does not read refused naming both, `validateSchema`, and the `schemaHash` computed of that copy; its scopes, pages looked through, each indexed once, and held by `version.test.ts` to the paths `modelDataPaths` writes |
+| `kinds.ts` | `KINDS`, formancy's field kinds and the report types each is read as, decided once; and each field the report reads planned against a version, a field the version lacks, holds elsewhere or retypes refused naming it and the version's hash |
+| `answers.ts` | A submission walked by the version's model, an answer under no data path of it refused, and a matrix's answer held whole to the version's rows and columns; each string held to the runtime's `MAX_STRING_LENGTH` before it is read, each answer read as its kind stores it, a choice's label from the version in the report's locale or the host's `labels`, and held to its type by the runtime's `readValue`; a refusal of what an answer holds at the field's own path |
+| `numbers.ts` | The number rule: a double to its digits, a safe integer, or, nearer zero than 2^53, a decimal of at most 15 significant digits, never digits to a double, and anything else refused |
+| `json.ts`, `errors.ts` | Reading what a host hands over through its descriptors, a getter never run, lists bounded by `MAX_DETAIL_ROWS` before an item is read, nothing nested past `MAX_DOCUMENT_DEPTH`; and the codes, each refusal a JSON Pointer and never an answer, bounded by report-spec's `MAX_ERRORS` |
 
 ### `@formancy/report-builder-core` (L2)
 

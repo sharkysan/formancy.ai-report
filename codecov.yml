@@ -70,6 +70,10 @@ component_management:
       name: packages/report-data-provider
       paths:
         - packages/report-data-provider/**
+    - component_id: report-forms
+      name: packages/report-forms
+      paths:
+        - packages/report-forms/**
     - component_id: report-render-pdf
       name: packages/report-render-pdf
       paths:

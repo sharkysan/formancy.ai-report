@@ -125,6 +125,18 @@ through its `characterMap`
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
 ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+`@formancy/report-forms` reads that data from a formancy form's
+submissions, against the exact form version that collected each, as the
+host hands them over, fetching nothing: each version validated by the
+pinned `@formancy/spec` and named by the `schemaHash` computed of it, its
+scopes indexed once and held to formancy's `modelDataPaths`
+(`version.test.ts`), every field the report reads checked against each
+version before an answer is read, formancy's kinds mapped once in
+`kinds.ts`, a number by its digits or refused (`numbers.ts`), labels from
+that version in the report's locale, and the data host-captured, its
+source naming each submission and its version; the binding is
+report-spec's, on the dataset contract (`validate-form-binding.ts`)
+([0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 `@formancy/report-builder-core` is the editor model over that session, and
 `@formancy/report-builder-react` and `@formancy/report-builder-angular` render
 it natively; `BUILDER_SCENARIOS` in the core is what both must do
@@ -140,7 +152,9 @@ checks that prove a rendered PDF against them, a rasteriser for page images,
 `readCodes`, which decodes the QR codes a page prints with ZXing from the
 pixels PDF.js draws, the drawings an SVG image paints and the ink around
 them, the e-invoice samples and a reader of their XML by
-namespace, `readPdfObjects` and `readXmp`, which read what a PDF embeds
+namespace, a formancy form in two versions with submissions of each and
+a report of them (`forms/site-visit.ts`), `expectation`, which derives
+what a document's PDF must show, `readPdfObjects` and `readXmp`, which read what a PDF embeds
 and says of itself with pdf-lib and saxes, `readPdfNumbers`, every number
 a PDF writes, content streams included, `inflatedDigest`, a PDF's
 objects hashed with every stream inflated, `IMAGE_KINDS`, an image of each
@@ -174,6 +188,10 @@ before it:
 7. `report-data-provider` -- the only package allowed to depend on Formancy
    Data's contracts, at the exact release it was built against (0016);
    `scripts/dependency-licences.mjs` refuses Data reached from any other.
+8. `report-forms` -- formancy's forms: a submission read against the
+   version that collected it (0042); report-spec, report-runtime and
+   `@formancy/spec` at the exact release the repository pins, and never
+   Formancy Data's contracts.
 
 A package arrives with the decision record that says what it may import. When
 this map goes stale, the rename is the edit to make here.
@@ -284,8 +302,9 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
 - **Nothing in a package reads configuration.** The composition root reads it,
   once. A connection string, a token or a row of customer data in a log line,
   an error message or a test fixture is a defect.
-- **Templates, expressions, datasets, fonts and images are untrusted**, even
-  when an administrator wrote them. Expressions are typed, bounded and run no
+- **Templates, expressions, datasets, fonts, images, and a formancy form's
+  versions and their submissions are untrusted**, even when an
+  administrator wrote them or the host kept them. Expressions are typed, bounded and run no
   code. Assets are referenced by approved identifier and never fetched by
   address. Nothing in a package reaches the network.
 - **Identity comes from the host, verified.** A tenant, a role or a permission

@@ -21,6 +21,8 @@ import type { PrintStyle } from './styles.js'
 import { COLOR, DECIMAL, DIGEST, FORM_ID, INTEGER, isCalendarDate, SCHEMA_HASH } from './syntax.js'
 import { declare } from './validate-context.js'
 import type { Ctx, Declarations, Declaration } from './validate-context.js'
+import { checkDatasetForms, checkFieldsBound, readDatasetForm, readFieldForm } from './validate-form-binding.js'
+import type { DatasetForm } from './validate-form-binding.js'
 
 function readMargins(f: Findings, value: unknown, path: string): Margins | undefined {
   const o = shape(f, value, path, ['top', 'right', 'bottom', 'left'])
@@ -100,8 +102,9 @@ export function readStyles(c: Ctx, value: unknown, path: string): readonly Print
   return items
 }
 
-function readFieldContract(f: Findings, value: unknown, path: string): Read<FieldContract, FieldType | undefined> {
-  const o = shape(f, value, path, ['id', 'type', 'label', 'nullable'], ['scale'])
+/** A field contract, and whether it says where a form holds it, as written: the dataset holds that to whether it reads a form. */
+function readFieldContract(f: Findings, value: unknown, path: string): Read<FieldContract, FieldType | undefined> & { readonly formed: boolean } {
+  const o = shape(f, value, path, ['id', 'type', 'label', 'nullable'], ['scale', 'form'])
   const id = fieldKey(f, o?.id, at(path, 'id'))
   const type = oneOf(f, o?.type, at(path, 'type'), FIELD_TYPES)
   const label = text(f, o?.label, at(path, 'label'), MAX_LABEL_LENGTH)
@@ -110,19 +113,29 @@ function readFieldContract(f: Findings, value: unknown, path: string): Read<Fiel
   if (scale !== undefined && type !== undefined && type !== 'decimal') {
     f.report(at(path, 'scale'), 'scale-on-non-decimal', `a scale says how many decimal places a decimal field has, and this field is a ${type}`)
   }
+  const formed = o?.form !== undefined
+  const form = formed ? readFieldForm(f, o?.form, at(path, 'form'), type) : undefined
   const entry = { id, path: at(path, 'id'), value: type }
-  if (id === undefined || type === undefined || label === undefined || nullable === undefined) return { entry, item: undefined }
-  return { entry, item: { id, type, label, nullable, ...optional('scale', scale) } }
+  if (id === undefined || type === undefined || label === undefined || nullable === undefined || (formed && form === undefined)) return { entry, item: undefined, formed }
+  return { entry, item: { id, type, label, nullable, ...optional('scale', scale), ...optional('form', form) }, formed }
 }
 
-/** A dataset contract, recording its fields under its role. */
-function readDataset(c: Ctx, value: unknown, path: string, role: DatasetRole, declared: Map<string, Declarations<FieldType | undefined>>): DatasetContract | undefined {
-  if (value === undefined) return undefined
-  const o = shape(c.f, value, path, ['id', 'fields'])
+/** A dataset contract, recording its fields under its role, and what it says of a form. */
+function readDataset(c: Ctx, value: unknown, path: string, role: DatasetRole, declared: Map<string, Declarations<FieldType | undefined>>): { readonly contract: DatasetContract | undefined; readonly form: DatasetForm } {
+  const o = shape(c.f, value, path, ['id', 'fields'], ['form'])
   const id = identifier(c.f, o?.id, at(path, 'id'))
-  const fields = readDeclarations(c, o?.fields, at(path, 'fields'), MAX_DATASET_FIELDS, 'field of this dataset', (item, where) => readFieldContract(c.f, item, where))
+  const formed: boolean[] = []
+  const fields = readDeclarations(c, o?.fields, at(path, 'fields'), MAX_DATASET_FIELDS, 'field of this dataset', (item, where) => {
+    const read = readFieldContract(c.f, item, where)
+    formed.push(read.formed)
+    return read
+  })
   declared.set(role, fields.declared)
-  return id === undefined || fields.items === undefined ? undefined : { id, fields: fields.items }
+  const read = o?.form !== undefined
+  const { binding, kind } = read ? readDatasetForm(c.f, o?.form, at(path, 'form')) : { binding: undefined, kind: undefined }
+  checkFieldsBound(c.f, path, read, formed)
+  const contract = id === undefined || fields.items === undefined || (read && binding === undefined) ? undefined : { id, fields: fields.items, ...optional('form', binding) }
+  return { contract, form: { read, kind } }
 }
 
 export function readDatasets(c: Ctx, value: unknown, path: string): Datasets | undefined {
@@ -130,12 +143,13 @@ export function readDatasets(c: Ctx, value: unknown, path: string): Datasets | u
   if (o === undefined) return undefined
   const declared = new Map<string, Declarations<FieldType | undefined>>()
   c.declared.datasets = declared
-  const header = readDataset(c, o.header, at(path, 'header'), 'header', declared)
-  const detail = readDataset(c, o.detail, at(path, 'detail'), 'detail', declared)
-  if (header !== undefined && detail !== undefined && header.id === detail.id) {
-    c.f.report(at(at(path, 'detail'), 'id'), 'duplicate-id', `the header dataset is already "${detail.id}"; each dataset is bound to a provider by its own id`)
+  const header = o.header === undefined ? undefined : readDataset(c, o.header, at(path, 'header'), 'header', declared)
+  const detail = o.detail === undefined ? undefined : readDataset(c, o.detail, at(path, 'detail'), 'detail', declared)
+  if (header?.contract !== undefined && detail?.contract !== undefined && header.contract.id === detail.contract.id) {
+    c.f.report(at(at(path, 'detail'), 'id'), 'duplicate-id', `the header dataset is already "${detail.contract.id}"; each dataset is bound to a provider by its own id`)
   }
-  return { ...optional('header', header), ...optional('detail', detail) }
+  checkDatasetForms(c.f, path, { ...optional('header', header?.form), ...optional('detail', detail?.form) })
+  return { ...optional('header', header?.contract), ...optional('detail', detail?.contract) }
 }
 
 /** What a default looks like for each parameter type, and how to tell. Exact values are strings. */

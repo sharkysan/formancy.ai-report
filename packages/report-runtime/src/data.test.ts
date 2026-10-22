@@ -2,6 +2,7 @@ import { Decimal, decimalToString } from '@formancy/expressions'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { checkData, CONSISTENCY_MODES, MAX_DETAIL_ROWS } from './data.js'
+import { isSubmissionId } from './source.js'
 import type { CheckedData, DataCheck, ReportData } from './data.js'
 import type { DataError } from './data-errors.js'
 import { MAX_DATA_ERRORS } from './data-errors.js'
@@ -403,6 +404,19 @@ describe('checkData: where the data came from', () => {
     const ids = ['Mustermann', '756.1234.5678.97', 'CH9300762011623852957', 'erika.mustermann-example.ch']
     const source = formSource(ids.map((id, index) => submission({ id, form: index === 0 ? 'Lohnausweis_Mustermann_2026.pdf' : 'site-visit', formHash: 'f'.repeat(64) })))
     expect(checked(checkData(sampleReport(), withData({ source }, rows(ids.length)), final)).source).toEqual(source)
+  })
+
+  // The form bridge names each submission by the id the host hands it,
+  // and refuses one by `isSubmissionId` before it reads an answer (0042).
+  // Were that another reading than this check's, a submission the bridge
+  // read whole would be refused when it renders, or one it refused would be
+  // accepted here.
+  test('isSubmissionId accepts what a source accepts as a submission id, and nothing else', () => {
+    const ids = [FIRST, 'Mustermann', '756.1234.5678.97', '7', 'a'.repeat(128), 'a'.repeat(129), 'Erika Mustermann', 'erika@example.ch', 'visit/7', 'zürich-7', '-7', '.7', '_x', '', 4711, null]
+    for (const id of ids) {
+      const accepted = checkData(sampleReport(), withData({ source: formSource([submission({ id })]) }), final).ok
+      expect(isSubmissionId(id), String(id)).toBe(accepted)
+    }
   })
 
   // A Data source says which form each dataset was read from; one that

@@ -1,0 +1,44 @@
+import { diagnose } from '@formancy/report-core'
+import { checkReport } from '@formancy/report-runtime'
+import { describe, expect, test } from 'vitest'
+import { SITE_VISIT_HIGH, SITE_VISIT_REPORT, SITE_VISIT_SUBMISSION_V1, SITE_VISIT_SUBMISSION_V2, SITE_VISIT_V1, SITE_VISIT_V2 } from './site-visit.js'
+
+/**
+ * The site visit fixture says what it is: a report the runtime reads and an
+ * author would leave as it is, two versions that differ in one label, and
+ * submissions of each. Reading a submission is report-forms' to test; the
+ * corpus does not depend on it.
+ */
+describe('the site visit', () => {
+  // A report the runtime refuses, or one whose author's problems pane is
+  // full, would prove nothing about the bridge that fills it.
+  test('its report is one the runtime reads, with nothing an editor warns of, reading both datasets from the form', () => {
+    const checked = checkReport(SITE_VISIT_REPORT)
+    expect(checked.ok ? [] : checked.errors).toEqual([])
+    expect(diagnose(SITE_VISIT_REPORT)).toEqual([])
+    expect([SITE_VISIT_REPORT.datasets.header?.form, SITE_VISIT_REPORT.datasets.detail?.form]).toEqual([{ kind: 'submission' }, { kind: 'repeater', repeater: 'findings' }])
+  })
+
+  // The PDF proof reads version 1's label of a high-severity finding where
+  // version 2 has another: were anything else different between the
+  // versions, the proof would say less than it claims, and were the label
+  // the same, nothing.
+  test('version 2 rewrites the label of a high severity, in both languages, and nothing else', () => {
+    const v2 = JSON.parse(JSON.stringify(SITE_VISIT_V2)) as { i18n: { messages: Record<string, Record<string, string>> } }
+    expect([v2.i18n.messages['en']?.['severity.high'], v2.i18n.messages['de-CH']?.['severity.high']]).toEqual(['Critical', SITE_VISIT_HIGH.v2])
+    expect(SITE_VISIT_HIGH.v1).not.toBe(SITE_VISIT_HIGH.v2)
+    const restored = { ...v2, i18n: { ...v2.i18n, messages: { en: { ...v2.i18n.messages['en'], 'severity.high': 'High' }, 'de-CH': { ...v2.i18n.messages['de-CH'], 'severity.high': SITE_VISIT_HIGH.v1 } } } }
+    expect(restored).toEqual(SITE_VISIT_V1)
+  })
+
+  // A version-1 visit with no finding of high severity would print no
+  // label version 2 rewrote; one with an answer under a key the form does
+  // not have is a submission of another form.
+  test('each submission answers its version, the first with urgent findings among its rows', () => {
+    const keys = ((SITE_VISIT_V1['model'] as { fields: { key: string }[] }).fields).map((field) => field.key)
+    for (const { data } of [SITE_VISIT_SUBMISSION_V1, SITE_VISIT_SUBMISSION_V2]) expect(Object.keys(data).filter((key) => !keys.includes(key))).toEqual([])
+    const rows = SITE_VISIT_SUBMISSION_V1.data['findings'] as readonly { severity: string }[]
+    expect(rows.filter((row) => row.severity === 'high').length).toBeGreaterThan(0)
+    expect(SITE_VISIT_SUBMISSION_V1.id).not.toBe(SITE_VISIT_SUBMISSION_V2.id)
+  })
+})

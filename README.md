@@ -22,6 +22,7 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **Design a report** in a native React or Angular builder, with undo, and see what is wrong before anything renders ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
 - **Print it as a paginated PDF**, in Node or in a browser, from your application's JSON. Totals are exact, values are formatted for the report's locale, and a report that cannot be drawn whole is refused, never truncated ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 - **Read its data from [Formancy Data](https://github.com/sharkysan/formancy.ai-data) 0.1.0**, optionally and best-effort ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+- **Print a [formancy](https://github.com/sharkysan/formancy.ai) form's submissions**, each against the exact form version that collected it: its labels in the report's language, a field the version moved refused rather than printed wrong, and a number by its digits or not at all. Your application hands over the version and the submission ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 - **Say where a render's data came from**, in the manifest kept beside the PDF: the Data forms it read, or each submission of a formancy form with its form's id and the version that collected it, held to the syntax of identifiers ([0041](./docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)).
 - **QR codes**, refused where they may not scan ([0020](./docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
 - **A Swiss QR-bill**, its receipt and payment part at the foot of the last page, held to SIX's rules, and edited field by field in either builder: added from SIX's example, and warned of while it holds SIX's examples ([0022](./docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0039](./docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
@@ -34,12 +35,14 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 Planned and not here: the server and its jobs, reviewed AI changes, a
 published PDF viewer, and a consistent read from Formancy Data.
 
-> **Status, 19 October 2026: 0.2.0, a developer preview, is released.**
+> **Status, 22 October 2026: 0.2.0, a developer preview, is released.**
 > Its eight packages are on npm, with provenance, and
 > [the GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.2.0)
 > carries the signed SBOM and release report of the run that published
 > them. What 0.2.0 holds and leaves out is in
-> [the changelog](./CHANGELOG.md#020--2026-10-19). The report format is
+> [the changelog](./CHANGELOG.md#020--2026-10-19). Since then `main` holds
+> 0.3.0's first work, under *Unreleased* there, `@formancy/report-forms`
+> among it, which no release has published yet. The report format is
 > still version "0", the draft: a report written now is not promised to be
 > read by a later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
@@ -212,6 +215,7 @@ these lines from the packed packages (`scripts/install-fixture/consume.ts`).
 | [`@formancy/report-runtime`](./packages/report-runtime/README.md) | Resolves a report against its data into a renderer-neutral document, exact numbers as strings and totals rounded once, and writes an e-invoice's XML, or refuses with every reason; its manifest says what a render was resolved from, the data's source among it ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0041](./docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)). |
 | [`@formancy/report-render-pdf`](./packages/report-render-pdf/README.md) | Draws that document with pdfmake, in Node and through a browser entry, and refuses what it cannot draw whole rather than return a partial PDF ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)). |
 | [`@formancy/report-data-provider`](./packages/report-data-provider/README.md) | Reads a report's data from a Formancy Data 0.1.0 server, labelled best-effort ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). |
+| [`@formancy/report-forms`](./packages/report-forms/README.md) | Reads a report's data from a formancy form's submissions, against the exact version that collected each, as your application hands them over, host-captured ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)). |
 | [`@formancy/report-builder-core`](./packages/report-builder-core/README.md) | The editor model both builders render, with no framework, in English, Swiss German and Swiss French; `BUILDER_SCENARIOS` is what every builder must do ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)). |
 | [`@formancy/report-builder-react`](./packages/report-builder-react/README.md) | The builder for React 19. |
 | [`@formancy/report-builder-angular`](./packages/report-builder-angular/README.md) | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js. |
@@ -263,7 +267,11 @@ Formancy Data is optional: without it, your application supplies the data.
 With it, one package reads a published Data form's records, as the person
 whose token your application supplies, so Data's policy decides every answer
 ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
-Data never depends on Report.
+Data never depends on Report. A formancy form's submissions are read
+through `@formancy/spec`'s own validator, hash and labels, along scopes a
+test holds to formancy's own data paths, by a package that depends on
+formancy alone, never on Data
+([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 
 ## Development
 

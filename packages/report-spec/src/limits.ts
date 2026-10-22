@@ -117,6 +117,23 @@ export const MAX_TEXT_LENGTH = 10_000
 /** Characters in a title, label, column header, empty-state text or parameter default: one line, generously. */
 export const MAX_LABEL_LENGTH = 200
 
+/**
+ * Keys in a formancy data path a dataset field is read from (0042): a
+ * field in a group in a group, sixteen deep. Chosen, not measured: formancy
+ * bounds no nesting, and a person filling in a form does not follow one
+ * deeper than a few groups. It bounds a path to 1,039 characters, so no
+ * path a message names grows with what a document holds.
+ */
+export const MAX_FORM_PATH_KEYS = 16
+
+/**
+ * Characters in a member a dataset field is read from: a matrix row's
+ * value or a selectboxes option's (0042). Not chosen: formancy's schema
+ * writes both from 1 to 200 characters, so a longer one names nothing a
+ * form could hold.
+ */
+export const MAX_FORM_MEMBER_LENGTH = 200
+
 /** Characters in a CEL expression. An expression is a formula, not a program; the runtime bounds its evaluation too. */
 export const MAX_EXPRESSION_LENGTH = 1024
 

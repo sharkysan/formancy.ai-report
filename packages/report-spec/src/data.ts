@@ -9,6 +9,50 @@ export const FIELD_TYPES = ['string', 'integer', 'decimal', 'boolean', 'date', '
 export type FieldType = (typeof FIELD_TYPES)[number]
 
 /**
+ * How a choice's answer prints, where it does not print its label (0042):
+ * the value the submission stores. Its label -- the one its option has in
+ * the form version that collected it, in the report's locale -- is what it
+ * prints when `read` is left out, and has no spelling of its own, so that
+ * one binding has one hash.
+ */
+export const FORM_READS = ['value'] as const
+export type FormRead = (typeof FORM_READS)[number]
+
+/**
+ * Where a formancy form's submission holds a field's answer (0042): its
+ * data path in the dataset's scope, as formancy writes one -- field keys
+ * joined by dots, a group's child `address.street`; a page scopes nothing
+ * and has no key in it. The header's scope and one row per submission's is
+ * the submission's; a repeater's rows' is the row's.
+ */
+export interface FieldFormBinding {
+  readonly path: string
+  /** A matrix row's value, whose chosen column the field prints, or a selectboxes option's value, whether it is ticked. */
+  readonly member?: string
+  /** How a choice prints -- a select, a radio, a matrix row's column: `value`, its stored value; absent, its label. Only a string field reads a choice. */
+  readonly read?: FormRead
+}
+
+/**
+ * What of a formancy form's submissions a dataset reads (0042): the header
+ * one submission's answers; the detail one of its repeater's rows, or one
+ * row for each submission of a report of many, which has no header. Which
+ * version of which form is the render's input, never the report's: each
+ * submission is read against the version that collected it.
+ */
+export const DATASET_FORM_KINDS = ['submission', 'repeater', 'submissions'] as const
+export type DatasetFormKind = (typeof DATASET_FORM_KINDS)[number]
+
+export type DatasetFormBinding =
+  | { readonly kind: 'submission' }
+  | {
+      readonly kind: 'repeater'
+      /** The repeater's data path in the submission's scope. */
+      readonly repeater: string
+    }
+  | { readonly kind: 'submissions' }
+
+/**
  * A field a dataset contract promises.
  *
  * Values of exact types arrive as strings, never as JavaScript numbers. An
@@ -27,6 +71,8 @@ export interface FieldContract {
   readonly nullable: boolean
   /** Digits after the decimal point; decimal fields only. */
   readonly scale?: number
+  /** Where a formancy form's submission holds it, in a dataset read from one; absent in any other. */
+  readonly form?: FieldFormBinding
 }
 
 /**
@@ -38,6 +84,8 @@ export interface FieldContract {
 export interface DatasetContract {
   readonly id: string
   readonly fields: readonly FieldContract[]
+  /** What of a formancy form's submissions it reads; absent, the host hands its data over as it captured it. */
+  readonly form?: DatasetFormBinding
 }
 
 /** The two datasets a version-0 report can read: one row of header data, and the one primary detail dataset. */

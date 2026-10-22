@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { REPORT_ERROR_CODES } from './errors.js'
 import type { ReportError, ReportErrorCode } from './errors.js'
 import { MAX_ASSETS, MAX_ERRORS, MAX_LABEL_LENGTH, MAX_NESTING_DEPTH } from './limits.js'
-import { editable, eInvoiceReport, getAt, removeAt, richReport, setAt } from './test-support.js'
+import { editable, eInvoiceReport, getAt, readFromForm, removeAt, richReport, setAt } from './test-support.js'
 import { validateReport } from './validate.js'
 
 /** Edits a document in place and returns what to validate. */
@@ -30,6 +30,12 @@ const both =
   }
 
 const unchanged: Edit = (report) => report
+
+/** The fixture's datasets read from a formancy form's submission, every field at its own key (0042). */
+const fromForm: Edit = (report) => {
+  readFromForm(report)
+  return report
+}
 
 /** `count` assets with distinct ids, the fixture's two first. */
 function assets(count: number): unknown[] {
@@ -436,6 +442,30 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
       set('/regions/summary/0/components/2/source/field/field', 'stamp'),
     ),
     at: ['/regions/summary/0/components/2/source/field'],
+  },
+
+  // Where a form holds an answer is a path formancy writes, field keys
+  // joined by dots. One it could not have written finds no answer in any
+  // version, and every submission would be refused at its first render.
+  'invalid-form-path': {
+    refuse: both(fromForm, set('/datasets/detail/fields/0/form/path', 'visit.')),
+    accept: both(fromForm, set('/datasets/detail/fields/0/form/path', 'visit.site')),
+    at: ['/datasets/detail/fields/0/form/path'],
+  },
+  // A dataset read from a form whose field says nowhere it is read would
+  // be missing that field in every render, and a final render refuses a
+  // missing field.
+  'incomplete-form-binding': {
+    refuse: both(fromForm, remove('/datasets/detail/fields/3/form')),
+    accept: fromForm,
+    at: ['/datasets/detail/fields/3'],
+  },
+  // The header is one record: read from a repeater's rows, it would be
+  // which row?
+  'misplaced-form-binding': {
+    refuse: both(fromForm, set('/datasets/header/form', { kind: 'repeater', repeater: 'lines' })),
+    accept: fromForm,
+    at: ['/datasets/header/form/kind'],
   },
 }
 

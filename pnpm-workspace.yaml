@@ -49,6 +49,10 @@ catalog:
   # reader sees (0015).
   marked: ^18.1.1
 
+  # Property tests: report-forms' number rule, every decimal a formancy
+  # number answer can hold to its digits, at formancy.ai's catalog version.
+  fast-check: ^4.10.1
+
 # Releases adopted on the day they were published, each at its exact
 # version, as formancy.ai-data 0055 does; pnpm's minimum release age would
 # otherwise hold them back for a day. scripts/upstream-deps.mjs refuses an

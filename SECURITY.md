@@ -15,7 +15,9 @@ the vulnerability class and the affected component is enough to begin triage.
 
 Formancy Report turns templates and a customer's data into PDF documents, and
 serves those documents to people. Templates, expressions, datasets, fonts and
-images are untrusted input even when an administrator wrote them. The areas we
+images are untrusted input even when an administrator wrote them, and so are a
+formancy form's versions and their submissions, which a host hands the form
+bridge from its own store. The areas we
 consider highest risk, and are most interested in reports about, follow from
 that:
 
