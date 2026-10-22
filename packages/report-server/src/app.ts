@@ -206,16 +206,24 @@ export async function createReportServer(options: ReportServerOptions): Promise<
 
     // After the cross-origin refusal, which runs at the root, so a request
     // that refusal answers has no token read.
-    api.addHook('preHandler', async (request, reply) => {
+    /** The identity the verifier finds in the request's token, or undefined for a request with none or one it refuses. */
+    const authenticate = async (request: FastifyRequest): Promise<ReportIdentity | undefined> => {
       const token = bearer(request)
-      const outcome = token === undefined ? undefined : await options.verifyIdentity(token)
-      if (outcome?.ok === true) {
-        request.identity = outcome.identity
+      if (token === undefined) return undefined
+      const outcome = await options.verifyIdentity(token)
+      if (!outcome.ok) {
+        // The verifier's reason, which names a check or a claim and never the token or a claim's value.
+        request.log.info({ reason: outcome.reason }, 'host identity refused')
         return undefined
       }
-      // The verifier's reason, which names a check or a claim and never the token or a claim's value.
-      if (outcome !== undefined) request.log.info({ reason: outcome.reason }, 'host identity refused')
-      return reply.code(401).header('www-authenticate', 'Bearer').send(REFUSALS.unauthenticated)
+      return outcome.identity
+    }
+
+    api.addHook('preHandler', async (request, reply) => {
+      const identity = await authenticate(request)
+      if (identity === undefined) return reply.code(401).header('www-authenticate', 'Bearer').send(REFUSALS.unauthenticated)
+      request.identity = identity
+      return undefined
     })
 
     api.get('/v1/whoami', async (request): Promise<WhoAmI> => {
