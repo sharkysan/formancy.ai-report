@@ -304,7 +304,13 @@ this package held before and report-spec holds now, exported under the same
 name; `MAX_ASSET_SIDE`, the most pixels a side of a PNG or a JPEG;
 `sniffImage`, what bytes are by their first bytes; and `imageHeader` with
 `IMAGE_REFUSAL_CODES`, a PNG's or a JPEG's structure, read whole but for a
-PNG's image data, which an engine inflates itself. An engine
+PNG's image data, which an engine inflates itself. And of a font's bytes
+([0040](../../docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)):
+`readFont`, a font read whole or refused, for a host that approves fonts
+beside its render code; `characterMap`, the characters a face maps as
+fontkit maps them, which an engine reads its own faces with;
+`FONT_REFUSAL_CODES`, `FONT_FORMATS` and `FONT_EMBEDDING_REFUSALS`; and
+`MAX_FONT_BYTES` and `MAX_FONT_CHARACTERS`. An engine
 depends on the runtime alone, and draws and refuses by the one decision the
 editor refuses by.
 

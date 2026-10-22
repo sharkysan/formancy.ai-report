@@ -13,9 +13,9 @@
  * lowering one refuses reports that were valid, which once the format is
  * frozen means a new reportSpecVersion.
  *
- * The bounds of an SVG asset, at the end, are the exception: each but
- * `MAX_SVG_REMOVED_NAMES` was measured, and says how, on what and when
- * (0030).
+ * The bounds of an SVG asset and of a font, at the end, are the
+ * exception: each but `MAX_SVG_REMOVED_NAMES` was measured, and says how,
+ * on what and when (0030, 0040).
  */
 
 /**
@@ -323,3 +323,51 @@ export const MAX_SVG_CASCADE = 1_000_000
  * bound of 16 would have cut it short.
  */
 export const MAX_SVG_REMOVED_NAMES = 32
+
+/**
+ * The bounds of a font asset (0040), each measured on 21 October 2026 on
+ * an Intel i9-10900K under Windows 11 and Node 24.21.0, shared with another
+ * workflow's builds (8 to 11 % load), medians of seven reads: on the
+ * costliest font these three admit, made in code; on the 447 `.ttf` and
+ * `.ttc` files of the machine's Windows fonts directory, never copied into
+ * the repository; and on the faces the renderer ships. The reads, and the
+ * tally of the machine's fonts, were measured again on 22 October 2026, on
+ * the reader as review left it, at 1 to 12 % load.
+ */
+
+/**
+ * Bytes in a font: an image asset's 20 MB (`MAX_ASSET_BYTES`), which a
+ * builder, the runtime and the renderer already hold an asset to. The
+ * costliest font it admits -- 65,534 glyphs each walked flag by flag, a
+ * format 12 map of 131,066 characters -- read in 60 ms (57-65); Malgun
+ * Gothic, 13.5 MB and 28,215 glyphs, in 16 to 17 ms, Liberation Sans in
+ * 0.8.
+ * What subsetting a large font costs a render is the renderer's to measure
+ * where it embeds a host's font; of the machine's fonts, two collections and
+ * SimSun-ExtB, 21.9 MB, are past it.
+ */
+export const MAX_FONT_BYTES = MAX_ASSET_BYTES
+
+/**
+ * Characters one font may map: 131,072, twice the BMP. A kilobyte of
+ * format 12 can map every code point there is, a Set of 1,114,112 entries
+ * that took 150 ms and 60 to 80 MiB of heap to build; at this bound the Set
+ * takes 8 ms and 5 MiB. Of the 412 fonts on the machine the reader
+ * accepts, the most a font maps is 28,530 (HP Simplified Hans); Roboto maps
+ * 927, Liberation Sans 2,327. Chosen, at more than four times the most
+ * measured.
+ */
+export const MAX_FONT_CHARACTERS = 0x20000
+
+/**
+ * A simple glyph's points times its contours. fontkit, through which
+ * PDFKit subsets a font, looks every point up among the glyph's contour
+ * ends: one glyph of 32,767 contours and 65,534 points, 66 KB of a font
+ * the reader otherwise accepts, took PDFKit 1.6 s to embed, and 16,000
+ * contours of 32,000 points 0.4 s, four times as long for each doubling.
+ * At this bound a glyph costs it under a millisecond: 200 such glyphs
+ * embedded in 168 ms. The most of any glyph in the machine's fonts is
+ * 160,000 (200 contours of 800 points, Lucida Sans Unicode); Liberation
+ * Sans's is 28,224, Roboto's 3,549.
+ */
+export const MAX_FONT_GLYPH_WORK = 1_048_576

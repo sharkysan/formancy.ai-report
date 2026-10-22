@@ -201,6 +201,9 @@ export {
   MAX_DATASET_FIELDS,
   MAX_ERRORS,
   MAX_EXPRESSION_LENGTH,
+  MAX_FONT_BYTES,
+  MAX_FONT_CHARACTERS,
+  MAX_FONT_GLYPH_WORK,
   MAX_FONT_SIZE,
   MAX_FOOTER_ROWS,
   MAX_INLINES,
@@ -245,6 +248,15 @@ export { SVG_REFUSAL_CODES } from './svg-refusal.js'
 export { KEPT_ELEMENTS as SVG_ELEMENTS } from './svg-allow.js'
 export type { SvgRefusal, SvgRefusalCode, SvgRemoval, SvgRemovalKind } from './svg-refusal.js'
 export type { ViewBox as SvgViewBox } from './svg-drawing.js'
+
+export { readFont } from './font.js'
+export type { Font, FontMetrics, FontStyle } from './font.js'
+export { characterMap } from './font-cmap.js'
+export type { FontCharacters } from './font-cmap.js'
+export type { FontNames } from './font-names.js'
+export type { FontEmbedding } from './font-tables.js'
+export { FONT_EMBEDDING_REFUSALS, FONT_FORMATS, FONT_REFUSAL_CODES } from './font-refusal.js'
+export type { FontEmbeddingRefusal, FontFormat, FontRefusal, FontRefusalCode } from './font-refusal.js'
 
 export { reportHash } from './hash.js'
 export { emptyReport } from './empty.js'

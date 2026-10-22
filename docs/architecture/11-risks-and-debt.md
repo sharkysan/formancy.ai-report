@@ -163,6 +163,27 @@ runtime still trusts a host's bytes to be what their digest says
 (0010): report-spec can now take the digest, and nothing checks it at
 print ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
 
+### A third reader of fonts, and fontkit's layout unread
+
+report-spec reads a font with a reader of its own, the third reader of a
+binary format here beside the SVG cleaner and the image header's, and
+fontkit, which PDFKit lays text out and subsets with, is the one that
+matters at print. Their agreement is held on Roboto and Liberation Sans and
+on corruptions of two of their faces, not on every font a customer brings;
+a disagreement where they read a broken font apart prints a character as
+nothing, or refuses one the face prints, and is found by nothing but a
+customer. The reader does not read the layout tables fontkit runs on every
+run, GSUB, GPOS, kern and morx: a crafted one can fail a render inside
+pdfmake with an error rather than a refusal, or never let it end -- a morx
+table of one state that never advances, in a font the reader accepts, kept
+PDFKit laying out one letter until it was stopped after 20 seconds -- and a
+pass cannot be interrupted, so the renderer meets this before it embeds a
+host's font. A font's fsType is its vendor's word on embedding,
+and its licence may forbid generating documents with it all the same,
+which nothing here reads. And of 447 font files on one Windows machine, 35
+were refused: collections, symbol fonts, variable fonts, a colour font and
+one past the size bound ([0040](../decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)).
+
 ### Formancy Data is read best-effort, and only a stand-in has answered
 
 The header, each page and each label are read at different moments, so a

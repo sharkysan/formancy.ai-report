@@ -509,7 +509,10 @@ Each PDF embeds the subset of each face it uses.
 - Bold is **Roboto Medium**, the heaviest face pdfmake ships, and italic is
   Roboto Italic.
 - **Every character is held to the face it prints in**, read from the
-  faces' own character maps, and one without a glyph is refused as
+  faces' own character maps by report-spec's `characterMap`, through the
+  runtime, as fontkit, which PDFKit lays text out with, reads them
+  ([0040](../../docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)),
+  and one without a glyph is refused as
   `unsupported`, naming the block and the code point: pdfmake would print
   it as an empty box, and as U+0000 in the PDF's text. One font means no
   fallback: CJK, Hebrew, Arabic, Thai and emoji are refused, and so is an
@@ -636,6 +639,16 @@ access policy, the link it writes whatever its callbacks say, the drawing
 xmldoc hands it, its warnings, its clip and the page-sized groups it draws
 for every reference. Every SVG the renderer draws in these tests is held
 to carrying no annotation.
+
+`fonts.test.ts` reads the faces the package embeds, Roboto's four and
+Liberation Sans's two, through report-spec's reader to the values measured
+from their files, holds the line constants to their own lines, and holds
+the reader to fontkit, loaded from the PDFKit pdfmake loads: every code
+point of each face mapped alike; every recorded length of the tables the
+reader reads, of two of them, refused or drawn alike, glyph for glyph; and
+seeded corruptions of the same two, each refused by the reader or mapped
+and named alike and embedded by PDFKit (0040). It holds glyphs.ts to the
+reader on a face whose maps disagree, too.
 
 `scripts/readme-pictures.ts` draws the repository README's pictures of the
 starters and of both invoices' samples with PDF.js, and `pictures.test.ts`
