@@ -27,13 +27,16 @@ import type { EditorText, MessageId } from './text.js'
 
 /**
  * One step this package made, as data. An image's steps name no image: an
- * id in the label would make a sentence per image ever added.
+ * id in the label would make a sentence per image ever added. A step said
+ * in one sentence of its own -- a QR-bill added or removed, its debtor
+ * added or removed -- names its message.
  */
 export type Step =
   | { readonly do: 'insert' | 'delete' | 'move' | 'duplicate' | 'indent' | 'outdent'; readonly kind: PartKind }
   | { readonly do: 'change'; readonly field: FieldWords }
   | { readonly do: 'addImage' }
   | { readonly do: 'removeImage' }
+  | { readonly do: 'said'; readonly id: MessageId }
 
 /** The language of the label the session keeps. */
 const KEPT = editorText('en')
@@ -49,6 +52,7 @@ const WRITTEN = new Map<string, Step>()
 function said(step: Step, t: EditorText): string {
   if (step.do === 'change') return t('history.change', { field: fieldWords(step.field, t) })
   if (step.do === 'addImage' || step.do === 'removeImage') return t(`history.${step.do}`)
+  if (step.do === 'said') return t(step.id)
   return t(`history.${step.do}` as MessageId, { kind: kindLabel(step.kind, t) })
 }
 

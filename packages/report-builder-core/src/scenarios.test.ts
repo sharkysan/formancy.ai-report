@@ -4,11 +4,13 @@
  * renders it: a toolbar of buttons, the palette's buttons and, where the
  * host keeps images, Add image… after them, a dialog of places while a
  * keyboard chooses one, a tree of the outline whose focus is its
- * selection, a field per property with a button back to the report's own,
- * and, under the report's own, a Remove for each of its images, a button
- * per diagnostic and a status counting them, a button hiding each
- * side pane, nothing of a pane that is hidden, a picture of each box and of
- * the payment part's band on the canvas, and the live region; and, while
+ * selection, the payment part's row after the regions, a field per
+ * property with a button back to the report's own, a group per group of
+ * fields with its button, and, under the report's own, a Remove for each
+ * of its images, a button per diagnostic and a status counting them, a
+ * button hiding each side pane, nothing of a pane that is hidden, a
+ * picture of each box and of the payment part's band on the canvas, each
+ * selecting what it draws when clicked, and the live region; and, while
  * the state's `view` is the host's, a region named by the host's view in
  * the design view's place, holding the host's one button, taking none of
  * the builder's keys, and taking the keyboard from the middle pane it
@@ -27,7 +29,7 @@ import { describe, expect, test } from 'vitest'
 import { createReportEditor } from './editor.js'
 import type { ReportEditor } from './editor.js'
 import { actionForKey } from './keys.js'
-import type { EditorAction, EditorOutcome, EditorState, HideablePanel, OutlineNode } from './model.js'
+import type { EditorAction, EditorOutcome, EditorState, HideablePanel, OutlineNode, PropertyGroup, Selection } from './model.js'
 import { HIDEABLE_PANELS, PROPERTY_ROLES } from './model.js'
 import { scenarioStore } from './scenario-images.js'
 import type { ScenarioStore } from './scenario-images.js'
@@ -51,6 +53,19 @@ function nodes(state: EditorState): OutlineNode[] {
   return all
 }
 
+/** Every row of the tree, by its name: the regions' rows, then the parts', each with what selecting it selects. */
+function rows(state: EditorState): { readonly label: string; readonly selected: boolean; readonly selection: Selection }[] {
+  return [
+    ...nodes(state).map((node) => ({ label: node.label, selected: node.selected, selection: node.column === undefined ? { id: node.id } : { id: node.id, column: node.column } })),
+    ...state.outlineParts.map((row) => ({ label: row.label, selected: row.selected, selection: { part: row.part } })),
+  ]
+}
+
+/** The groups the properties draw. */
+function propertyGroups(state: EditorState): PropertyGroup[] {
+  return state.properties.rows.flatMap((row) => ('group' in row ? [row.group] : []))
+}
+
 /** The toolbar's buttons, by name, and what each dispatches. */
 function toolbar(t: EditorText, state: EditorState): Map<string, EditorAction | undefined> {
   const selection = state.selection
@@ -61,7 +76,7 @@ function toolbar(t: EditorText, state: EditorState): Map<string, EditorAction | 
     [t('action.moveDown'), { type: 'moveDown' }],
     [t('action.indent'), { type: 'indent' }],
     [t('action.outdent'), { type: 'outdent' }],
-    [t('action.moveTo'), selection === null ? undefined : { type: 'startDrag', subject: { id: selection.id }, via: 'keyboard' }],
+    [t('action.moveTo'), selection === null || 'part' in selection ? undefined : { type: 'startDrag', subject: { id: selection.id }, via: 'keyboard' }],
     [t('action.duplicate'), { type: 'duplicate' }],
     [t('action.delete'), { type: 'delete' }],
     [t('action.zoomOut'), { type: 'zoomOut' }],
@@ -98,6 +113,8 @@ function buttons(t: EditorText, state: EditorState): Map<string, EditorAction | 
   if (shown(state, 'diagnostics')) for (const entry of state.diagnostics) found.set(entry.label, entry.target === null ? { type: 'select', id: null } : { type: 'select', ...entry.target })
   // Back to the report's own properties, shown while something else is selected.
   if (state.selection !== null && shown(state, 'properties')) found.set(t('properties.report'), { type: 'select', id: null })
+  // A group's button: a party's Add or Remove, the report's Add of a QR-bill.
+  if (shown(state, 'properties')) for (const group of propertyGroups(state)) if (group.action !== undefined) found.set(group.action.label, group.action.action)
   // Under the report's own properties, a Remove for each of its images.
   if (state.selection === null && shown(state, 'properties')) for (const image of state.images.assets) found.set(image.removeLabel, { type: 'removeImage', asset: image.id })
   return found
@@ -116,7 +133,9 @@ class Driver {
   readonly t: EditorText
   readonly host: ScenarioHost | undefined
   readonly images: ScenarioStore | undefined
-  focused: { readonly role: string; readonly name: string } | null = null
+  private where: { readonly role: string; readonly name: string } | null = null
+  /** The group whose button the keyboard is on: the button stays where it is as its words change, Add to Remove and back. */
+  private onGroup: string | null = null
   constructor(scenario: BuilderScenario) {
     this.session = sessionOver(scenario.report())
     this.host = scenario.host
@@ -130,6 +149,17 @@ class Driver {
     return this.editor.state()
   }
 
+  /** Where the keyboard is: a group's button by what it says now, else where it was put. */
+  get focused(): { readonly role: string; readonly name: string } | null {
+    const label = this.onGroup === null ? undefined : propertyGroups(this.state).find((group) => group.key === this.onGroup)?.action?.label
+    return label === undefined ? this.where : { role: 'button', name: label }
+  }
+
+  set focused(next: { readonly role: string; readonly name: string } | null) {
+    this.onGroup = null
+    this.where = next
+  }
+
   /** The region in the middle pane: the design view, or the host's view while the state says it stands there. */
   private middle(): string {
     return this.state.view === 'host' ? (this.state.hostView?.name ?? '') : this.t('canvas.label')
@@ -140,9 +170,9 @@ class Driver {
     return this.state.view === 'host' && this.host?.control === name
   }
 
-  /** The selected node's tree item, which focus follows in the outline; the tree itself when nothing is selected. */
+  /** The selected row's tree item, which focus follows in the outline; the tree itself when nothing is selected. */
   private focusSelection(): void {
-    const selected = nodes(this.state).find((node) => node.selected)
+    const selected = rows(this.state).find((row) => row.selected)
     this.focused = selected === undefined ? { role: 'tree', name: this.t('pane.outline') } : { role: 'treeitem', name: selected.label }
   }
 
@@ -153,14 +183,25 @@ class Driver {
 
   /** Selects the outline row named `name`, which focus follows. */
   private selectRow(name: string): void {
-    const node = nodes(this.state).find((candidate) => candidate.label === name)
-    if (node === undefined) throw new Error(`no tree item ${name}`)
-    if (!node.selected) this.dispatch({ type: 'select', id: node.id, ...(node.column === undefined ? {} : { column: node.column }) }, name)
+    const row = rows(this.state).find((candidate) => candidate.label === name)
+    if (row === undefined) throw new Error(`no tree item ${name}`)
+    if (!row.selected) this.dispatch({ type: 'select', ...row.selection }, name)
+    this.focusSelection()
+  }
+
+  /** A click on a picture of the canvas: a box, or the payment part's band, selected, the keyboard on its outline row. */
+  private clickPicture(name: string): void {
+    const { canvas } = this.state
+    const box = canvas.boxes.find((candidate) => candidate.label === name)
+    const action: EditorAction | undefined =
+      canvas.paymentPart?.label === name ? { type: 'select', part: 'paymentPart' } : box === undefined ? undefined : { type: 'select', id: box.id, ...(box.column === undefined ? {} : { column: box.column }) }
+    this.dispatch(action, `the picture ${name}`)
     this.focusSelection()
   }
 
   private activate(query: ScenarioQuery): EditorOutcome | undefined {
     if (query.role === 'treeitem') return void this.selectRow(query.name)
+    if (query.role === 'img') return void this.clickPicture(query.name)
     if (query.role !== 'button') throw new Error(`nothing to activate in a ${query.role}`)
     const shown = buttons(this.t, this.state)
     if (!shown.has(query.name)) throw new Error(`no button ${query.name} among ${[...shown.keys()].join(' | ')}`)
@@ -168,8 +209,9 @@ class Driver {
     const choosing = this.state.drag?.via === 'keyboard'
     const outcome = this.dispatch(action, query.name)
     const selects = action?.type === 'insert' || action?.type === 'move' || action?.type === 'select'
-    // Back at the report's properties, focus is on the first of them; so it is once a Remove took its own button away.
-    const back = query.name === this.t('properties.report') || (action?.type === 'removeImage' && outcome.ok)
+    // Back at the report's properties, focus is on the first of them; so it is once a Remove took its own button away,
+    // and once Add QR-bill gave the properties the bill's, its IBAN first.
+    const back = query.name === this.t('properties.report') || ((action?.type === 'removeImage' || action?.type === 'addPart') && outcome.ok)
     if (back && this.state.properties.fields.length > 0) this.focusFirstField()
     // A pane hidden takes its Hide with it; focus goes to what took its room in the middle.
     else if (action?.type === 'hidePanel') this.focused = { role: 'region', name: this.middle() }
@@ -177,6 +219,7 @@ class Driver {
     else if (action?.type === 'openPanel') this.focused = action.panel === 'canvas' ? { role: 'region', name: this.middle() } : null
     else if (selects || (choosing && action?.type === 'cancelDrag')) this.focusSelection()
     else if (action?.type === 'startDrag') this.focused = null
+    else if (action?.type === 'addGroup' || action?.type === 'removeGroup') this.onGroup = action.key
     else this.focused = { role: 'button', name: query.name }
     return outcome
   }
@@ -213,7 +256,9 @@ class Driver {
       case 'tree':
         return query.name === this.t('pane.outline') && shown(state, 'outline')
       case 'treeitem':
-        return shown(state, 'outline') && nodes(state).some((node) => node.label === query.name && (query.selected === undefined || node.selected === query.selected))
+        return shown(state, 'outline') && rows(state).some((row) => row.label === query.name && (query.selected === undefined || row.selected === query.selected))
+      case 'group':
+        return (shown(state, 'outline') && state.outline.some((region) => region.label === query.name)) || (shown(state, 'properties') && propertyGroups(state).some((group) => group.label === query.name))
       case 'region':
         return query.name === this.middle()
       case 'img':

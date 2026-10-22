@@ -103,6 +103,15 @@ refused only by a render, in the same words. What they do not check:
   no pattern tells from a country whose codes begin with letters;
 - the code's 997 characters, which only the whole bill has.
 
+`QR_BILL_EXAMPLE_ACCOUNTS` lists the accounts of SIX's examples (IG 2.4,
+Annex A), as the code holds them: accounts to test with, which pay no
+creditor. `QR_BILL_EXAMPLE` is what a builder starts a bill from, as SIX
+prints it: example 3's account and creditor, example 1's debtor, and
+example 1's QR reference, which a bill whose account is made a QR-IBAN is
+given. report-core warns of a bill that holds any of them, written in the
+report
+([0039](../../docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
+
 ## An EPC QR code
 
 A component, `epcQrCode`, prints the code a SEPA credit transfer is

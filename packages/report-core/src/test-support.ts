@@ -262,11 +262,14 @@ const REPORT: ReportDefinition = {
     ],
   },
   // SIX's second example (IG 2.4, Annex A), its debtor and its message read
-  // from the data and its amount from a total.
+  // from the data and its amount from a total. Its account is no example
+  // of SIX's, which the diagnostics warn of (0039): a QR-IBAN of the
+  // QR-IID range's first institution and an account of zeros, so that the
+  // sample reports nothing.
   paymentPart: {
     kind: 'swissQrBill',
     language: 'de',
-    account: [{ kind: 'text', text: 'CH44 3199 9123 0008 8901 2' }],
+    account: [{ kind: 'text', text: 'CH58 3000 0000 0000 0000 0' }],
     creditor: {
       name: [{ kind: 'text', text: 'Max Muster & Söhne' }],
       street: [{ kind: 'text', text: 'Musterstrasse' }],

@@ -4,7 +4,8 @@
 // the Preview stands (gate-place.mjs), the room made for the design view
 // (gate-room.mjs), the framework switch (gate-switch.mjs), what a person
 // does in each builder (gate-interactions.mjs), an image added
-// (gate-images.mjs) and the walk that compares the two builders
+// (gate-images.mjs), a QR-bill edited (gate-payment-part.mjs) and the walk
+// that compares the two builders
 // (gate-parity.mjs), so all of them reach a state the same way. Elements
 // are found by role and accessible name, but for whether a pane is drawn,
 // which the accessibility tree cannot say of a pane it does not hold.

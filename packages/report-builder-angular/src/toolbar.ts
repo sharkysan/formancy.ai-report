@@ -94,7 +94,7 @@ export class ReportToolbar {
     // this one has no component to place, only a table's column, or nothing.
     if ('placeSelection' in use) {
       const selection = this.state().selection
-      if (tool.available && selection !== null) this.root.choosePlace({ id: selection.id }, event.currentTarget as HTMLElement)
+      if (tool.available && selection !== null && 'id' in selection) this.root.choosePlace({ id: selection.id }, event.currentTarget as HTMLElement)
       return
     }
     this.root.dispatch(use.action)

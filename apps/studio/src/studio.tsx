@@ -33,7 +33,7 @@ import type { Workspace } from './workspace.js'
 /** The Preview's id, for the bar's toggle to say what it shows and hides. */
 const PREVIEW = 'studio-preview'
 
-const same = (selection: Selection | null, target: ProblemTarget): boolean => selection !== null && selection.id === target.id && selection.column === target.column
+const same = (selection: Selection | null, target: ProblemTarget): boolean => selection !== null && 'id' in selection && selection.id === target.id && selection.column === target.column
 
 export function Studio({ starters, workspace, images }: { starters: readonly StudioStarter[]; workspace: Workspace; images: ImageResolver }): ReactElement {
   const [starterId, setStarterId] = useState(starters[0]?.id ?? '')

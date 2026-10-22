@@ -1,0 +1,117 @@
+/*
+ * The outline pane: the palette, the tree of the report's regions and rows,
+ * and the count of problems a row or a box carries. It changes when the
+ * outline does. Imported by ../report-builder.css, whose header says what
+ * holds it.
+ */
+
+/* ---------------------------------------------------------------- the palette */
+
+[data-report-part='palette'] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.375rem;
+}
+
+[data-report-part='palette-item'] {
+  text-align: start;
+}
+
+/* ---------------------------------------------------------------- the outline */
+
+[data-report-part='outline'] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* With no row in it the tree is empty, and is the tab stop: drawn as a
+   place to land, with the sentence beside it saying it is empty. */
+[data-report-part='outline']:empty {
+  min-height: 1.5rem;
+}
+
+[data-report-part='outline']:focus-visible {
+  outline: 2px solid var(--wb-signal);
+  outline-offset: 2px;
+}
+
+[data-report-part='outline-empty'] {
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--wb-muted);
+}
+
+[data-report-part='outline-region'] {
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+[data-report-part='outline-region'] > [data-report-part='region-label'] {
+  display: block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--wb-muted);
+}
+
+[data-report-part='outline-item'] {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.8125rem;
+  color: var(--wb-ink);
+  cursor: default;
+}
+
+/* Depth as indentation, read from the aria-level the tree sets, so the
+   nesting drawn and the nesting announced cannot disagree. Containers nest
+   four deep and a table's columns one more. */
+[data-report-part='outline-item'][aria-level='2'] { padding-inline-start: 1.5rem; }
+[data-report-part='outline-item'][aria-level='3'] { padding-inline-start: 2.5rem; }
+[data-report-part='outline-item'][aria-level='4'] { padding-inline-start: 3.5rem; }
+[data-report-part='outline-item'][aria-level='5'] { padding-inline-start: 4.5rem; }
+[data-report-part='outline-item'][aria-level='6'] { padding-inline-start: 5.5rem; }
+
+[data-report-part='outline-item'][data-kind='tableColumn'] {
+  font-family: var(--wb-mono);
+  font-size: 0.75rem;
+}
+
+[data-report-part='outline-item'][aria-selected='true'] {
+  background: color-mix(in srgb, var(--wb-signal) 12%, transparent);
+  box-shadow: inset 2px 0 0 var(--wb-signal);
+}
+
+/* CSS has no logical box-shadow: the bar is drawn again where a
+   right-to-left line starts. */
+[data-report-part='outline-item'][aria-selected='true']:dir(rtl) {
+  box-shadow: inset -2px 0 0 var(--wb-signal);
+}
+
+[data-report-part='outline-item']:focus-visible {
+  outline: 2px solid var(--wb-signal);
+  outline-offset: -2px;
+}
+
+/* A count of problems, on an outline row or a canvas box. */
+[data-report-part='badge'] {
+  margin-inline-start: auto;
+  min-width: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  font: 600 0.625rem/1.4 var(--wb-sans);
+  text-align: center;
+  color: var(--wb-surface);
+  background: var(--wb-invalid);
+}
+
+[data-report-part='badge'][data-severity='warning'] {
+  background: var(--wb-caution);
+}

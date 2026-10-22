@@ -10,6 +10,50 @@ later.
 
 ## Unreleased
 
+**A report's QR-bill is selected and edited field by field in either
+builder**
+([0039](docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
+Until now a bill could be changed only in the definition: the design view
+drew where its slip prints, and nothing edited it (0022). Its row now
+stands in the outline after the regions, "Payment part", and its band on
+the canvas selects it; every walk of the outline takes it, it moves
+nowhere, and Delete removes it in one undo step. Its fields are every term
+of the bill, in the order its code holds them, the creditor and the debtor
+each a group; the debtor is removed and added back, from SIX's example, by
+its group's button. A report without a bill offers Add QR-bill in its own
+properties, which adds SIX's third example, since a bill of blank texts is
+refused, and selects it with the keyboard on its IBAN. An IBAN of the
+wrong country, length or check digits is refused on its field in
+report-spec's words, and in a report with an e-invoice one apart from the
+e-invoice's account (BT-84); nothing asks the person to confirm a changed
+IBAN, since a valid account of someone else's would pass any such question
+-- who may change whom a bill pays is your application's to decide. SIX
+pays a QR-IBAN with a QR reference and nothing else, and an IBAN never
+with one, so an IBAN of the other kind typed takes the reference with it
+in the same undo step, and the live region says so: a QR-IBAN gives the
+bill SIX's example QR reference, an IBAN takes a QR reference away;
+otherwise neither field could change first, and a bill added from nothing
+could never pay a QR-IBAN. A bill that holds SIX's examples -- one of
+SIX's example accounts, which pay no creditor, or the creditor, the debtor
+or the QR reference a builder puts in, report-spec's `QR_BILL_EXAMPLE` --
+is warned of once as `example-payment-part` until each is replaced: the
+invoice starter and its samples, which pay SIX's example on purpose, now
+open with that one warning. report-core edits the bill with
+`putPaymentPart`, `updatePaymentPart` and `removePaymentPart`, which the
+registry lists in `PART_COMMANDS`, with `replaceDocument`, as the
+commands that may change it, so that a proposal's review can find a
+change of whom a bill pays by its command, comparing the bill whole where
+a proposal replaces the document. report-builder-core's `Selection` is
+now a component, a table's column or `{ part: 'paymentPart' }`: code that
+read `selection.id` narrows it to a `ComponentSelection` first, and a
+`part` the editor does not know, from code tsc never checked, is refused
+as `not-found`. Its state gains `outlineParts` and the properties' `rows`,
+a field by itself or in a group with its one button, which both builders
+draw as a named `group`. `report-builder.css` is now an entry that imports
+its rules from `styles/`, which the package publishes beside it, since the
+file had reached the size budget: a bundler inlines them, and a page that
+links the entry as it stands asks for each file beside it.
+
 **report-spec reads a font, and says what it may be embedded as and
 which characters it draws** ([0040](docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)).
 0.3.0 prints a report in fonts a host supplies, and a font, like an image,

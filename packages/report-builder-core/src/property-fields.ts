@@ -11,7 +11,7 @@
  */
 import { EPC_CAPTIONS, mmToPt, ptToMm, QR_ERROR_CORRECTION } from '@formancy/report-spec'
 import type { Component, ComponentKind, FieldRef, Inline, PrintStyle, QrErrorCorrection, ReportDefinition, TableColumn } from '@formancy/report-spec'
-import type { PropertyKind, PropertyOption } from './model.js'
+import type { EditorAction, PropertyKind, PropertyOption } from './model.js'
 import { formatPercent } from './text.js'
 import type { EditorLocale, EditorText, MessageId } from './text.js'
 
@@ -42,6 +42,63 @@ export interface FieldSpec {
   readonly options?: readonly PropertyOption[]
   readonly read: () => string | boolean
   readonly write: (input: string | boolean) => Written
+}
+
+/** A group's button: its words, and the action it sends. */
+export interface GroupButton {
+  readonly words: MessageId
+  readonly action: EditorAction
+}
+
+/**
+ * Fields drawn together under one name, and the one button the group may
+ * have. An optional group -- a bill's debtor -- also says what adding it
+ * puts at its key and how the history names adding and removing it; its
+ * button is Add while it is absent, when it has no fields, and Remove
+ * while it is there.
+ */
+export interface GroupSpec {
+  readonly key: string
+  readonly words: MessageId
+  readonly fields: readonly FieldSpec[]
+  readonly button?: GroupButton
+  readonly optional?: { readonly present: boolean; readonly value: unknown; readonly added: MessageId; readonly removed: MessageId }
+}
+
+/** What a panel shows, in order: a field by itself, or a group of fields. */
+export type PanelSpec = FieldSpec | GroupSpec
+
+export function isGroup(spec: PanelSpec): spec is GroupSpec {
+  return 'fields' in spec
+}
+
+/** Every field of `specs`, those in a group among them, in the order shown. */
+export function flatFields(specs: readonly PanelSpec[]): FieldSpec[] {
+  return specs.flatMap((spec) => (isGroup(spec) ? spec.fields : [spec]))
+}
+
+/** The words an optional group's button and its history steps say. */
+export interface OptionalWords {
+  readonly add: MessageId
+  readonly remove: MessageId
+  readonly added: MessageId
+  readonly removed: MessageId
+}
+
+/**
+ * The optional group at `key`: its fields and a Remove while it is there,
+ * `fields` given; an Add and no fields while it is not, which puts `value`
+ * at its key.
+ */
+export function optionalGroup(key: string, words: MessageId, fields: readonly FieldSpec[] | undefined, value: unknown, said: OptionalWords): GroupSpec {
+  const present = fields !== undefined
+  return {
+    key,
+    words,
+    fields: fields ?? [],
+    button: present ? { words: said.remove, action: { type: 'removeGroup', key } } : { words: said.add, action: { type: 'addGroup', key } },
+    optional: { present, value, added: said.added, removed: said.removed },
+  }
 }
 
 /** The words of a field, filled in a language: "Part 2: Field". */
@@ -146,7 +203,7 @@ function colorField(key: string, words: FieldWords, stored: string | undefined, 
 }
 
 /** An expression's source. An optional one emptied is removed; a required one is the validator's to refuse. */
-function expressionField(key: string, words: FieldWords, stored: string | undefined, required: boolean): FieldSpec {
+export function expressionField(key: string, words: FieldWords, stored: string | undefined, required: boolean): FieldSpec {
   return {
     key,
     words,
@@ -161,7 +218,7 @@ function expressionField(key: string, words: FieldWords, stored: string | undefi
 }
 
 /** One choice among `options`, each option's value mapped to what the report stores. */
-function choiceField(key: string, words: FieldWords, kind: 'select' | 'style' | 'binding', options: readonly (PropertyOption & { readonly stored: unknown })[], current: string): FieldSpec {
+export function choiceField(key: string, words: FieldWords, kind: 'select' | 'style' | 'binding', options: readonly (PropertyOption & { readonly stored: unknown })[], current: string): FieldSpec {
   return {
     key,
     words,
@@ -272,7 +329,7 @@ function contentFields(content: readonly Inline[], context: FieldContext): Field
  * content's are, named by the text. Each is one line, as a line break
  * would end its element of the code.
  */
-function codeTextFields(runs: readonly Inline[], key: string, name: MessageId, context: FieldContext): FieldSpec[] {
+export function codeTextFields(runs: readonly Inline[], key: string, name: MessageId, context: FieldContext): FieldSpec[] {
   return runsFields(runs, key, context, name, 'text')
 }
 
@@ -283,7 +340,7 @@ function codeTextFields(runs: readonly Inline[], key: string, name: MessageId, c
  * element empty, which `placeholder`, where given, says the meaning of.
  * Bound, or of several runs, it is edited run by run.
  */
-function optionalCodeTextFields(runs: readonly Inline[] | undefined, key: string, name: MessageId, context: FieldContext, placeholder?: MessageId): FieldSpec[] {
+export function optionalCodeTextFields(runs: readonly Inline[] | undefined, key: string, name: MessageId, context: FieldContext, placeholder?: MessageId): FieldSpec[] {
   const [only, ...rest] = runs ?? []
   if (only !== undefined && (only.kind !== 'text' || rest.length > 0)) return codeTextFields([only, ...rest], key, name, context)
   const shown = only?.text ?? ''

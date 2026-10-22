@@ -533,3 +533,46 @@ inflated and a JPEG's scan not decoded until it prints (6.2). Remove, under
 the report's own properties, takes back the declaration of an image nothing
 draws, in one step, and leaves the bytes where the host keeps them
 ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
+
+## 6.11 A QR-bill's IBAN, from the field to the slip's code
+
+```
+the bill selected: its outline row after the regions,     either builder
+or a click on its band; or Add QR-bill in the report's
+properties, SIX's third example, the keyboard on the IBAN
+   │ dispatch setProperty('/account/0/text', 'CH58 3000 …')
+   ▼
+payment-part-fields.ts: the IBAN's field writes one run   report-builder-core
+   ▼
+payment-part.ts: of the other kind than the reference?   report-builder-core
+   ├─ a QR-IBAN over none or a creditor reference ──────▶ SIX's example QR reference
+   ├─ an IBAN over a QR reference ──────────────────────▶ the reference taken away
+   ▼
+updatePaymentPart(report, { account, reference? }),     report-core
+one undo step "Change IBAN"; the session asks the validator
+   ├─ SIX's rules: country, length, check digits, a      report-spec
+   │  QR-IBAN in francs alone ───────────────────────────▶ refused on the field,
+   ├─ an e-invoice's BT-84 another account ─────────────▶ in the validator's words;
+   │                                                       the report unchanged
+   ▼
+diagnose: SIX's examples held? ──▶ example-payment-part, once, the payment
+   │                                part's, on its row, its band and in the problems
+   ▼
+"Changed IBAN.", and the reference's change if there was one; the Preview
+re-renders (6.5) ──▶ resolveReport (6.6) ──▶ the slip's
+                                                  Swiss QR Code holds the IBAN
+                                                  typed, without its spaces
+```
+
+The builders send what a person typed, and the editor's field writes it
+as the run it replaces, with the reference SIX pays an account of its kind
+with where the bill's is of the other (`qrBillPairing` says when); whether
+it is an account SIX's rules take is report-spec's, asked once by the
+session for every edit
+([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)).
+Nothing confirms a changed IBAN: the refusal on the field, the
+announcement, undo, the Preview and the warning on SIX's examples are what
+the editor does, and who may change whom a bill pays is the host's
+([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
+The browser gate types an IBAN into each builder and decodes the code the
+Download PDF draws from its pixels (`apps/studio/scripts/gate-payment-part.mjs`).

@@ -1,7 +1,9 @@
 /**
  * The outline: the report as an ARIA tree, a group per region and a row per
- * component or table column; with no row at all, an empty tree and the
- * sentence that says so.
+ * component or table column, then a row at the tree's top for each part of
+ * the report's own level -- its payment part, after every region, as it
+ * prints (0039); with no row at all, an empty tree and the sentence that
+ * says so.
  *
  * Rows are flat within their region and nest by `aria-level`, which is also
  * what report-builder.css indents by, so the nesting drawn and the nesting
@@ -12,7 +14,7 @@
  * to the whole tree; nothing here decides a key.
  */
 import type { ReactElement, Ref } from 'react'
-import type { EditorAction, EditorState, EditorText, OutlineNode } from '@formancy/report-builder-core'
+import type { EditorAction, EditorState, EditorText, OutlineNode, OutlinePart } from '@formancy/report-builder-core'
 import type { PointerDrag } from './pointer-drag.js'
 
 export interface OutlineProps {
@@ -40,9 +42,24 @@ function rows(nodes: readonly OutlineNode[], into: Row[] = []): Row[] {
 }
 
 /** The ids of what describes a row: how many problems it has, and that it is wider than its place. */
-function described(node: OutlineNode, problems: string, overflow: string): string | undefined {
-  const ids = [...(node.problems > 0 ? [problems] : []), ...(node.overflows ? [overflow] : [])]
+function described(node: Pick<OutlineNode, 'problems'> & { readonly overflows?: boolean }, problems: string, overflow: string): string | undefined {
+  const ids = [...(node.problems > 0 ? [problems] : []), ...(node.overflows === true ? [overflow] : [])]
   return ids.length === 0 ? undefined : ids.join(' ')
+}
+
+/** A row's count of problems: drawn, and said as its description; inside the name it would make "Introduction" read "Introduction 1". */
+function Problems({ row, id, t }: { readonly row: Pick<OutlineNode, 'problems' | 'severity'>; readonly id: string; readonly t: EditorText }): ReactElement | null {
+  if (row.problems === 0) return null
+  return (
+    <>
+      <span data-report-part="badge" data-severity={row.severity} aria-hidden="true">
+        {row.problems}
+      </span>
+      <span id={id} hidden>
+        {t('outline.problems', { count: row.problems })}
+      </span>
+    </>
+  )
 }
 
 function selection(node: OutlineNode): EditorAction {
@@ -51,9 +68,9 @@ function selection(node: OutlineNode): EditorAction {
 
 export function Outline({ state, t, ids, tree, drag, act }: OutlineProps): ReactElement {
   const regions = state.outline.map((region) => ({ region, rows: rows(region.nodes) }))
-  const all = regions.flatMap((region) => region.rows)
+  const all: readonly { readonly key: string; readonly selected: boolean }[] = [...regions.flatMap((region) => region.rows.map((row) => row.node)), ...state.outlineParts]
   // The tree's one tab stop: the selected row, else the first; the tree itself when it has none.
-  const stop = all.find((row) => row.node.selected)?.node.key ?? all[0]?.node.key
+  const stop = all.find((row) => row.selected)?.key ?? all[0]?.key
   const empty = `${ids}-outline-empty`
 
   // With no row at all the tree holds nothing -- a tree owns rows, and a
@@ -112,19 +129,7 @@ export function Outline({ state, t, ids, tree, drag, act }: OutlineProps): React
                   }}
                 >
                   {node.label}
-                  {node.problems > 0 ? (
-                    <>
-                      {/* The count is drawn, and said as the row's description:
-                          inside the name it would make "Introduction" read
-                          "Introduction 1". */}
-                      <span data-report-part="badge" data-severity={node.severity} aria-hidden="true">
-                        {node.problems}
-                      </span>
-                      <span id={problems} hidden>
-                        {t('outline.problems', { count: node.problems })}
-                      </span>
-                    </>
-                  ) : null}
+                  <Problems row={node} id={problems} t={t} />
                   {/* What the canvas marks on a box too wide for its place,
                       said where a keyboard is: on its row. */}
                   {node.overflows ? (
@@ -138,6 +143,38 @@ export function Outline({ state, t, ids, tree, drag, act }: OutlineProps): React
           </div>
         )
       })}
+      {state.outlineParts.map((part, at) => (
+        <PartRow key={part.key} part={part} position={at + 1} siblings={state.outlineParts.length} tabbable={part.key === stop} ids={ids} t={t} act={act} />
+      ))}
+    </div>
+  )
+}
+
+/**
+ * A part of the report's own level, as a row at the tree's top: selected by
+ * focus or a click, as a component's row is, and dragged nowhere, since it
+ * has one place.
+ */
+function PartRow({ part, position, siblings, tabbable, ids, t, act }: { readonly part: OutlinePart; readonly position: number; readonly siblings: number; readonly tabbable: boolean; readonly ids: string; readonly t: EditorText; readonly act: (action: EditorAction) => void }): ReactElement {
+  const problems = `${ids}-problems-${part.key}`
+  const select = (): void => act({ type: 'select', part: part.part })
+  return (
+    <div
+      role="treeitem"
+      aria-level={1}
+      aria-posinset={position}
+      aria-setsize={siblings}
+      aria-selected={part.selected}
+      aria-describedby={described(part, problems, '')}
+      tabIndex={tabbable ? 0 : -1}
+      data-report-part="outline-item"
+      onFocus={() => {
+        if (!part.selected) select()
+      }}
+      onClick={select}
+    >
+      {part.label}
+      <Problems row={part} id={problems} t={t} />
     </div>
   )
 }

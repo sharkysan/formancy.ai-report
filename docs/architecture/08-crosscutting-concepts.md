@@ -404,7 +404,10 @@ template does. An EPC QR code's caption is text, which a reader finds
 The builders and the Studio are formancy.ai's interface concept applied, as
 Formancy Data's apps are, not a new one. `report-builder.css` is the
 builders' only stylesheet; it selects by the hooks both builders render and
-colours only through the workbench's `--wb-*` variables. The palette is
+colours only through the workbench's `--wb-*` variables. It is one entry,
+its export's name, that imports its rules from `styles/` beside it, a file
+per reason to change, which the package publishes, and every guard reads it
+with those imports resolved ([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)). The palette is
 formancy's own, released as `@formancy/themes/room.css`: the Studio's
 `main.tsx` imports it after the workbench, whose `--wb-*` it sets, and the
 product's pages import it first and then the Studio's stylesheets, never a
@@ -441,3 +444,23 @@ which turns transitions off when motion is reduced and draws nothing. The
 Studio's stylesheet test and the browser gate admit that selector while it
 declares transitions alone, and refuse any other
 ([0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
+
+## 8.11 Whom a payment reaches
+
+A report's payment codes -- the QR-bill at its own level, an EPC QR code in
+a region -- and an e-invoice's BT-84 name an account, the one term a person
+can edit that changes whom money reaches. Every edit of one is a command, so
+a review of a proposal can find it by name: report-core's registry lists the
+commands that may change the bill (`PART_COMMANDS`), `replaceDocument` among
+them, whose bill a review compares whole, and an EPC code's account is an
+`updateComponent` of its `iban`. The checks are report-spec's, the
+same for a literal the editor refuses and data the runtime refuses: an IBAN's
+country, length and check digits, the QR-IBAN's pairing with its reference,
+and, with an e-invoice, one account for the page and its XML
+([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
+[0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
+[0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)).
+What none of it can tell is whether an account is the creditor's: the
+editor confirms no changed account, warns of SIX's examples alone -- its
+example accounts, and the creditor, the debtor and the QR reference a builder
+puts in -- and leaves who may change whom a bill pays to the host ([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).

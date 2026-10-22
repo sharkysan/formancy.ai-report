@@ -72,6 +72,12 @@ report-spec's `qr-bill.ts`, which the validator applies to literals and the
 runtime to data; the core compiles its amount; and the renderer draws the
 slip in the Liberation Sans it ships in its `fonts` directory
 ([0022](docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)).
+Both builders select the bill, from its outline row or its band, and edit
+it field by field through report-core's `putPaymentPart`,
+`updatePaymentPart` and `removePaymentPart`, which `PART_COMMANDS` lists;
+a bill added from nothing starts from report-spec's `QR_BILL_EXAMPLE`,
+and report-core warns of SIX's examples until each is replaced
+([0039](docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
 An EPC QR code, a component, runs through all four the same way: the EPC's
 rules are report-spec's `epc-payload.ts`, its countries `sepa.ts` and its
 print `epc-print.ts`, and the IBAN's check digits and the creditor
@@ -310,7 +316,8 @@ as Formancy Data's apps are, not a new one
   are admin.css's and type only the colours the room does not carry, as
   admin.css does; its `styles/builder.css` gives the panes the admin's
   geometry without a colour.
-  `report-builder.css` is the only stylesheet the builders have. The
+  `report-builder.css`, with the parts in `styles/` it imports, is the
+  only stylesheet the builders have. The
   product's pages import formancy's room first, then the Studio's room,
   controls, bar and narrow rules rather than copy them, and their own rules
   state no colour (0021).
@@ -371,7 +378,10 @@ What holds this section:
   white with the text it prints, each Download PDF's drawings, path by
   path, what `docs/images/pictures.json` records (0032), the framework
   switch, a real pointer's
-  drag, the place chooser, a pane and the Preview hidden and shown again,
+  drag, the place chooser, the invoice's QR-bill selected by its band in
+  each builder, an IBAN refused on its field and one typed, decoded from
+  the Download PDF's pixels and undone (`gate-payment-part.mjs`, 0039), a
+  pane and the Preview hidden and shown again,
   the Preview beside the builder where the window has room for it and
   swapped with the design view where it has not, a pane hidden as an edit
   prints, the design view holding a page at 100 % wherever the Preview

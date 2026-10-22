@@ -10,9 +10,10 @@
  *
  * Here are the editor's state, its listeners and the actions that edit the
  * report or walk it. Its views -- the panes, the host's view and the zoom
- * -- are `views.ts`'s, its drag `dragging.ts`'s and its images
- * `images.ts`'s: each is lent what it needs of the editor, and every
- * action of each runs through the one `dispatch` here.
+ * -- are `views.ts`'s, its drag `dragging.ts`'s, its images `images.ts`'s
+ * and what adds or removes a part or a group `part-actions.ts`'s: each is
+ * lent what it needs of the editor, and every action of each runs through
+ * the one `dispatch` here.
  *
  * `state()` is the same frozen object until something changes, which is
  * what React's `useSyncExternalStore` and an Angular signal compare by. An
@@ -31,13 +32,14 @@ import { clampZoom } from './geometry.js'
 import { shownLabel, stepLabel } from './history.js'
 import type { ImageFile, ImageStore } from './image-store.js'
 import { imageActions, imagesOf } from './images.js'
-import { columnKey, kindLabel } from './labels.js'
+import { columnKey, kindLabel, partLabel } from './labels.js'
 import { DONE } from './model.js'
 import type { EditorAction, EditorActionType, EditorOutcome, EditorRefusalCode, EditorState, Selection } from './model.js'
 import { selectionKey } from './outline.js'
-import { fieldLabel, fieldsOf, pageRoomMessage, propertyCommand, propertyTarget, refusalMessage } from './properties.js'
+import { partActions } from './part-actions.js'
+import { fieldLabel, fieldsOf, pageRoomMessage, propertyChange, propertyTarget, refusalMessage } from './properties.js'
 import { fieldWords } from './property-fields.js'
-import { selected } from './selection.js'
+import { isReportLevelPart, selected } from './selection.js'
 import type { Selected } from './selection.js'
 import { buildState, derive, viewOf } from './state.js'
 import type { Derived, Local } from './state.js'
@@ -248,11 +250,11 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     }
   }
 
-  /** Applies an edit through the session, selects what it says, and announces it by `name` -- or says why the session refused. */
-  function applyEdit(edit: Edit, name: () => string): EditorOutcome {
+  /** Applies an edit through the session, selects what it says, and announces it by `name` -- or says why the session refused, in the words of `refused`. */
+  function applyEdit(edit: Edit, name: () => string, refused: 'status.refused' | 'status.qrBillNotAdded' = 'status.refused'): EditorOutcome {
     const before = name()
     const outcome = commit(edit.command, stepLabel(edit.step))
-    if (!outcome.ok) return refuse('refused', t('status.refused', { name: before, reason: refusalMessage(outcome, '') }), outcome)
+    if (!outcome.ok) return refuse('refused', t(refused, { name: before, reason: refusalMessage(outcome, '') }), outcome)
     const selection = edit.then(outcome)
     setLocal({ selection, errors: new Map(), drag: null })
     const said = edit.announce === 'status.inserted' ? name() : before
@@ -260,10 +262,16 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     return DONE
   }
 
+  /** The key of what `target` is: its outline row's. */
+  function keyOf(target: Selected): string {
+    if (target.kind === 'part') return selectionKey({ part: target.part })
+    return target.kind === 'column' ? columnKey(target.table.id, target.column.id) : target.component.id
+  }
+
   function structural(plan: (target: Selected) => Planned): EditorOutcome {
     return withSelection((target) => {
       const planned = plan(target)
-      const name = labelOf(target.kind === 'column' ? columnKey(target.table.id, target.column.id) : target.component.id)
+      const name = labelOf(keyOf(target))
       return 'edge' in planned ? refuse('at-edge', t(planned.edge, { name })) : applyEdit(planned, () => name)
     })
   }
@@ -281,9 +289,10 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     return select(next)
   }
 
-  /** The container the selection stands in, or a column's table; at a region's top there is none, and that is said. */
+  /** The container the selection stands in, or a column's table; at a region's top, and for a part of the report's own level, there is none, and that is said. */
   function selectParent(): EditorOutcome {
     return withSelection((target) => {
+      if (target.kind === 'part') return refuse('at-edge', t('status.cannotOutdent', { name: labelOf(keyOf(target)) }))
       if (target.kind === 'column') return select({ id: target.table.id })
       const parent = target.location.parent
       return parent === undefined ? refuse('at-edge', t('status.cannotOutdent', { name: labelOf(target.component.id) })) : select({ id: parent })
@@ -297,13 +306,18 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
       const key = selectionKey(local.selection as Selection)
       const next = order[order.findIndex((row) => selectionKey(row) === key) + 1]
       const child = next === undefined ? undefined : selected(report, next)
-      const holds = target.kind === 'component' && child !== undefined && (child.kind === 'column' ? child.table.id : child.location.parent) === target.component.id
+      const holds = target.kind === 'component' && child !== undefined && child.kind !== 'part' && (child.kind === 'column' ? child.table.id : child.location.parent) === target.component.id
       return holds ? select(next as Selection) : refuse('at-edge', t('status.nothingInside', { name: labelOf(key) }))
     })
   }
 
+  /** A part's name, said in a refusal: one a caller tsc never saw names -- a builder in plain JavaScript -- is said as it was sent. */
+  function partName(part: unknown): string {
+    return isReportLevelPart(part) ? partLabel(part, t) : String(part)
+  }
+
   function select(selection: Selection | null): EditorOutcome {
-    if (selection !== null && selected(current().report, selection) === undefined) return refuse('not-found', t('status.notFound', { name: selection.id }))
+    if (selection !== null && selected(current().report, selection) === undefined) return refuse('not-found', t('status.notFound', { name: 'part' in selection ? partName(selection.part) : selection.id }))
     const same = selection === null ? local.selection === null : local.selection !== null && selectionKey(selection) === selectionKey(local.selection)
     if (!same) setLocal({ selection, errors: new Map() })
     return DONE
@@ -344,14 +358,15 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
       return DONE
     }
     const at = written.at ?? key
-    const outcome = commit(propertyCommand(target, at, written.value), stepLabel({ do: 'change', field: spec.words }))
+    const change = propertyChange(target, at, written.value)
+    const outcome = commit(change.command, stepLabel({ do: 'change', field: spec.words }))
     if (!outcome.ok) {
       const path = `${target.path}${at}`
       const message = pageRoomMessage(outcome, path, { spec, value: written.value, report }, t, number.format) ?? refusalMessage(outcome, path)
       setLocal(keep(message))
       return refuse('refused', t('status.invalid', { field: label, reason: message }), outcome)
     }
-    setLocal({ errors: forget, ...announce(t('status.changed', { field: fieldWords(spec.words, t) })) })
+    setLocal({ errors: forget, ...announce(t(change.said ?? 'status.changed', { field: fieldWords(spec.words, t) })) })
     return DONE
   }
 
@@ -367,9 +382,10 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
   const views = viewActions({ local: () => local, setLocal, announce, refuse }, t, locale)
   const dragging = dragActions({ current, local: () => local, setLocal, announce, refuse, labelOf, insert, move }, t)
   const imaging = imageActions(images, { current, local: () => local, setLocal, announce, refuse, commit, act, raise, disposed: () => disposed })
+  const parts = partActions({ current, local: () => local, refuse, applyEdit }, t, locale)
 
   const handlers: Handlers = {
-    select: (action) => select(action.id === null ? null : action.column === undefined ? { id: action.id } : { id: action.id, column: action.column }),
+    select: (action) => select('part' in action ? { part: action.part } : action.id === null ? null : action.column === undefined ? { id: action.id } : { id: action.id, column: action.column }),
     selectNext: () => step(1, 'next'),
     selectPrevious: () => step(-1, 'previous'),
     selectFirst: () => step(1, 'first'),
@@ -380,7 +396,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     moveDown: () => structural((target) => moveBy(current().report, target, 1)),
     indent: () => structural((target) => indent(current().report, target)),
     outdent: () => structural((target) => outdent(current().report, target)),
-    delete: () => structural((target) => remove(current().report, target)),
+    delete: () => structural((target) => remove(current().report, target, current().order)),
     duplicate: () => structural(duplicate),
     insert: (action) => insert(action.kind, action.target),
     move: (action) => move(action.id, action.target),
@@ -401,6 +417,9 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     placeHostView: (action) => views.placeHostView(action.place),
     chooseImage: () => imaging.chooseImage(),
     removeImage: (action) => imaging.removeImage(action.asset),
+    addPart: (action) => parts.addPart(action.part),
+    addGroup: (action) => parts.addGroup(action.key),
+    removeGroup: (action) => parts.removeGroup(action.key),
   }
 
   return {

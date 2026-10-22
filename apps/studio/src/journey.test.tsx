@@ -20,8 +20,10 @@ import type { Workspace } from './workspace.js'
 /**
  * The Studio's journey as one person walks it, in jsdom: every starter the
  * picker offers, each in both builders and in both modes, then an edit the
- * renderer refuses, followed to the component it names. What holds across
- * the steps rather than inside one is checked at each of them.
+ * renderer refuses, followed to the component it names; the invoice's
+ * QR-bill selected by its band and an IBAN its rules refuse typed into it,
+ * in both builders, and a bill added to the blank report (0039). What holds
+ * across the steps rather than inside one is checked at each of them.
  *
  * The preview is the real pipeline -- the runtime, and the renderer's
  * browser entry, pdfmake's browser build with its virtual-file Roboto --
@@ -282,6 +284,30 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   expect(model.state().selection).toEqual({ id: table.id })
   await record(`Quotation, the refusal's table selected, in ${framework}`)
 
+  // The invoice's QR-bill, selected by a click on its band in the design
+  // view, the keyboard on its outline row; an IBAN whose check digit is
+  // wrong typed into it, refused on the field; and the same in the other
+  // builder, the refused value and its reason kept by the editor (0039).
+  await user.selectOptions(picker, 'invoice')
+  await printed('invoice', 'preview', 'Preview: printed.')
+  await user.click(within(within(editor()).getByRole('toolbar', { name: 'Report tools' })).getByRole('button', { name: 'Design view' }))
+  await user.click(within(editor()).getByRole('img', { name: words('canvas.paymentPart') }))
+  await waitFor(() => expect(document.activeElement).toBe(within(editor()).getByRole('treeitem', { name: words('canvas.paymentPart'), selected: true })))
+  await record(`Invoice, its QR-bill selected, in ${framework}`)
+  const iban = within(editor()).getByRole('textbox', { name: words('field.iban') })
+  await user.clear(iban)
+  await user.type(iban, 'CH44 3199 9123 0008 8901 3')
+  await user.tab()
+  await waitFor(() => expect(within(editor()).getByRole('textbox', { name: words('field.iban') }).getAttribute('aria-invalid')).toBe('true'))
+  await record(`Invoice, an IBAN refused, in ${framework}`)
+  // The Preview back in the design view's place, from the bar, before the switch draws it in the other builder's middle.
+  await user.click(screen.getByRole('button', { name: 'Preview', pressed: false }))
+  await printed('invoice', 'preview', 'Preview: printed.')
+  framework = framework === 'React' ? 'Angular' : 'React'
+  await show(user, framework)
+  await waitFor(() => expect(within(editor()).getByRole('textbox', { name: words('field.iban') }).getAttribute('aria-invalid')).toBe('true'))
+  await record(`Invoice, an IBAN refused, in ${framework}`)
+
   // An image added to the blank report: Add image… busy while the page
   // keeps it, then the report's images listed under its properties, its
   // Remove named after it.
@@ -298,6 +324,16 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   await within(editor()).findByRole('button', { name: words('images.removeOne', { id: 'logo' }) })
   await printed('blank', 'preview', 'Preview: printed.')
   await record(`Blank, its image listed, in ${framework}`)
+
+  // A QR-bill added to the blank report from its own properties: SIX's
+  // example, selected, the keyboard on its IBAN, and its example account
+  // warned of among the problems (0039).
+  await user.click(within(editor()).getByRole('button', { name: words('action.addQrBill') }))
+  await waitFor(() => expect(document.activeElement).toBe(within(editor()).getByRole('textbox', { name: words('field.iban') })))
+  expect(within(editor()).getByRole('treeitem', { name: words('canvas.paymentPart'), selected: true })).toBeTruthy()
+  await within(editor()).findByRole('button', { name: words('problem.item', { severity: words('severity.warning'), where: words('canvas.paymentPart') }) })
+  await printed('blank', 'preview', 'Preview: printed.')
+  await record(`Blank, a QR-bill added, in ${framework}`)
 }
 
 /**
@@ -348,7 +384,7 @@ describe('the journey', () => {
       },
       kept,
     )
-    expect(Object.keys(findings)).toHaveLength(studioStarters(starters).length * 4 + 5)
+    expect(Object.keys(findings)).toHaveLength(studioStarters(starters).length * 4 + 9)
     expect(findings).toEqual(Object.fromEntries(Object.keys(findings).map((state) => [state, []])))
   })
 

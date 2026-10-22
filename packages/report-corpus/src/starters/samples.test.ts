@@ -103,11 +103,13 @@ describe('the invoice samples', () => {
 
   // A sample the validator refuses, or whose expressions the editor marks,
   // is a broken invoice shown as an example; a warning is one an author
-  // would see the moment they opened it.
-  test.each(samples)('%s validates, with no diagnostic at all', (_id, sample) => {
+  // would see the moment they opened it. The one each has is the one it is
+  // meant to: its bill pays SIX's example QR-IBAN, which no creditor holds,
+  // and the editor says so, of its bill (0039).
+  test.each(samples)('%s validates, with no diagnostic but that its bill pays SIX’s example', (_id, sample) => {
     const outcome = checkReport(sample.report)
     expect(outcome.ok ? [] : outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`)).toEqual([])
-    expect(diagnose(sample.report).map((diagnostic) => `${diagnostic.severity} ${diagnostic.code} ${diagnostic.path}: ${diagnostic.message}`)).toEqual([])
+    expect(diagnose(sample.report).map((diagnostic) => `${diagnostic.severity} ${diagnostic.code} ${diagnostic.path}`)).toEqual(['warning example-payment-part /paymentPart'])
   })
 
   // Its own data in a final render, with nothing a preview would warn of.

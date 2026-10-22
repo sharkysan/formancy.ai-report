@@ -71,7 +71,8 @@ const breakpointsOf = (css) => [...css.matchAll(/@media\s*\(\s*max-width:\s*([\d
  */
 export function passes() {
   const studio = breakpointsOf(inlined(join(app, 'src', 'studio.css')))
-  const builder = breakpointsOf(readFileSync(require.resolve('@formancy/report-builder-core/report-builder.css'), 'utf8'))
+  // The entry with its parts inlined, as the build takes it: its breakpoints stand in the parts it imports.
+  const builder = breakpointsOf(inlined(require.resolve('@formancy/report-builder-core/report-builder.css')))
   if (studio.length === 0 || builder.length === 0) throw new Error('found no max-width breakpoint in src/studio.css or report-builder.css, so the widths below measure nothing')
   const widest = Math.max(...studio)
   const narrowest = Math.min(...studio)

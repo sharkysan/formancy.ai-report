@@ -80,6 +80,15 @@ file is a change again, and handed to `editor.addImage`, which says what
 became of it. The keyboard stays on the button; a Remove that removed its
 image puts it on the first field.
 
+**A report's QR-bill is selected and edited like a component**
+([0039](../../docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)): its row stands in the outline after the regions, its band
+on the canvas selects it with a click, and the properties draw its fields
+and its parties as groups, each a `group` named in the editor's words with
+its one button, Remove debtor or Add debtor, which keeps the keyboard as
+its words change. Add QR-bill, in the report's own properties, takes its
+button away with them, and the keyboard goes to the bill's IBAN, as it
+does when a Remove takes its row.
+
 **`useEditorState(editor)`** is the subscription on its own, for a host
 that shows something of the editor's state outside the builder.
 

@@ -60,6 +60,8 @@ export const DIAGNOSTIC_SEVERITIES = {
   'empty-body': 'warning',
   /** A text that prints nothing: no runs, or only empty literal ones. */
   'empty-text': 'warning',
+  /** A payment part that holds, written in the report, one of SIX's example accounts, or the creditor, the debtor or the QR reference a builder puts in from SIX's examples, which are no one's (0039). */
+  'example-payment-part': 'warning',
 } as const satisfies Readonly<Record<string, 'error' | 'warning'>>
 
 export type DiagnosticCode = keyof typeof DIAGNOSTIC_SEVERITIES

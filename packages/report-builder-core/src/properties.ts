@@ -3,21 +3,25 @@
  * and the command a changed field becomes.
  *
  * A change is a typed command through report-core -- `updateComponent`,
- * `updateColumn`, `setTitle`, `setLocale`, `setPage` -- so a property edit
- * is validated, undone and refused like any other edit, and a refused one
- * shows the validator's own message on the field it came from.
+ * `updateColumn`, `updatePaymentPart`, `setTitle`, `setLocale`, `setPage`
+ * -- so a property edit is validated, undone and refused like any other
+ * edit, and a refused one shows the validator's own message on the field
+ * it came from. A bill's IBAN of the other kind takes its reference with
+ * it, in the same command (`payment-part.ts`).
  */
-import { setLocale, setPage, setTitle, updateColumn, updateComponent } from '@formancy/report-core'
-import type { Command, ComponentPatch, Diagnostic, PagePatch, Refusal } from '@formancy/report-core'
+import { setLocale, setPage, setTitle, updateColumn, updateComponent, updatePaymentPart } from '@formancy/report-core'
+import type { Command, ComponentPatch, Diagnostic, PagePatch, PaymentPartPatch, Refusal } from '@formancy/report-core'
 import { printableArea, ptToMm, squareRoom } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
-import { columnKey, kindLabel } from './labels.js'
-import type { PropertyField, PropertyPanel, Selection } from './model.js'
-import { columnFields, componentFields, fieldWords, reportFields } from './property-fields.js'
-import type { FieldSpec } from './property-fields.js'
+import { columnKey, kindLabel, partLabel } from './labels.js'
+import type { PropertyField, PropertyGroup, PropertyPanel, PropertyRow, Selection } from './model.js'
+import { pairedReference } from './payment-part.js'
+import { paymentPartFields } from './payment-part-fields.js'
+import { columnFields, componentFields, fieldWords, flatFields, isGroup, reportFields } from './property-fields.js'
+import type { FieldSpec, GroupSpec, PanelSpec } from './property-fields.js'
 import { selected } from './selection.js'
 import type { Selected } from './selection.js'
-import type { EditorLocale, EditorText } from './text.js'
+import type { EditorLocale, EditorText, MessageId } from './text.js'
 
 /** What the properties pane edits: the report, or what is selected. */
 export type PropertyTarget = { readonly kind: 'report'; readonly path: '' } | Selected
@@ -27,15 +31,29 @@ export function propertyTarget(report: ReportDefinition, selection: Selection | 
   return selection === null ? { kind: 'report', path: '' } : selected(report, selection)
 }
 
-export function fieldsOf(target: PropertyTarget, report: ReportDefinition, t: EditorText, locale: EditorLocale): FieldSpec[] {
+/**
+ * The report's own Add for a part it lacks: a group named after the part,
+ * with no fields, whose button adds it (0039).
+ */
+const ADD_PAYMENT_PART: GroupSpec = { key: '/paymentPart', words: 'canvas.paymentPart', fields: [], button: { words: 'action.addQrBill', action: { type: 'addPart', part: 'paymentPart' } } }
+
+/** What the panel shows for `target`, in order: its fields, each by itself or in a group. */
+export function specsOf(target: PropertyTarget, report: ReportDefinition, t: EditorText, locale: EditorLocale): PanelSpec[] {
   switch (target.kind) {
     case 'report':
-      return reportFields(report, t)
+      return [...reportFields(report, t), ...(report.paymentPart === undefined ? [ADD_PAYMENT_PART] : [])]
     case 'component':
       return componentFields(target.component, { report, t, locale, row: false })
     case 'column':
       return columnFields(target.column, { report, t, locale, row: true })
+    case 'part':
+      return paymentPartFields(target.bill, { report, t, locale, row: false })
   }
+}
+
+/** Every field the panel shows for `target`, those in a group among them: what a field is found by. */
+export function fieldsOf(target: PropertyTarget, report: ReportDefinition, t: EditorText, locale: EditorLocale): FieldSpec[] {
+  return flatFields(specsOf(target, report, t, locale))
 }
 
 /** A field's accessible name: its words, and its unit where it has one. */
@@ -58,10 +76,11 @@ function within(path: string, at: string): boolean {
 /**
  * The pane for `target`: each field with its value -- what was typed, after
  * a refusal -- and its error: the refusal's, else the first diagnostic
- * about what the field holds.
+ * about what the field holds; and the same fields as rows, each by itself
+ * or in its group, the group with its button.
  */
-export function propertyPanel(target: PropertyTarget, specs: readonly FieldSpec[], heading: string, errors: ReadonlyMap<string, FieldError>, diagnostics: readonly Diagnostic[], t: EditorText): PropertyPanel {
-  const fields = specs.map((spec): PropertyField => {
+export function propertyPanel(target: PropertyTarget, specs: readonly PanelSpec[], heading: string, errors: ReadonlyMap<string, FieldError>, diagnostics: readonly Diagnostic[], t: EditorText): PropertyPanel {
+  const fieldOf = (spec: FieldSpec): PropertyField => {
     const error = errors.get(spec.key)
     const about = error?.message ?? diagnostics.find((diagnostic) => within(diagnostic.path, `${target.path}${spec.key}`))?.message
     return {
@@ -74,8 +93,15 @@ export function propertyPanel(target: PropertyTarget, specs: readonly FieldSpec[
       required: spec.required,
       ...(about === undefined ? {} : { error: about }),
     }
+  }
+  const groupOf = (spec: GroupSpec): PropertyGroup => ({
+    key: spec.key,
+    label: t(spec.words),
+    fields: spec.fields.map(fieldOf),
+    ...(spec.button === undefined ? {} : { action: { label: t(spec.button.words), action: spec.button.action } }),
   })
-  return { heading, fields }
+  const rows = specs.map((spec): PropertyRow => (isGroup(spec) ? { group: groupOf(spec) } : { field: fieldOf(spec) }))
+  return { heading, fields: rows.flatMap((row) => ('group' in row ? row.group.fields : [row.field])), rows }
 }
 
 /** The pane's heading: "Report", or the kind and label of what is selected. */
@@ -87,6 +113,8 @@ export function propertyHeading(target: PropertyTarget, labels: ReadonlyMap<stri
       return t('properties.heading', { kind: kindLabel(target.component.kind, t), name: labels.get(target.component.id) ?? target.component.id })
     case 'column':
       return t('properties.heading', { kind: kindLabel('tableColumn', t), name: labels.get(columnKey(target.table.id, target.column.id)) ?? target.column.id })
+    case 'part':
+      return t('properties.heading', { kind: t('kind.swissQrBill'), name: partLabel(target.part, t) })
   }
 }
 
@@ -108,22 +136,32 @@ function patchAt(owner: object, at: string, next: unknown): Record<string, unkno
   return { [top]: rest.length === 0 ? next : withValue((owner as Record<string, unknown>)[top], rest, next) }
 }
 
-/** The command that puts `next` at `at` in the target: report-core's own, typed for what it changes. */
-export function propertyCommand(target: PropertyTarget, at: string, next: unknown): Command {
+/** A value put in the target, as the command that puts it, and the words it is announced in where it changes more than its field. */
+export interface PropertyChange {
+  readonly command: Command
+  readonly said?: MessageId
+}
+
+/** The change that puts `next` at `at` in the target: report-core's own command, typed for what it changes. */
+export function propertyChange(target: PropertyTarget, at: string, next: unknown): PropertyChange {
   switch (target.kind) {
     case 'report': {
       const [top, ...rest] = at.split('/').slice(1)
-      if (top === 'title') return (report) => setTitle(report, next as string)
-      if (top === 'locale') return (report) => setLocale(report, next as string)
-      return (report) => setPage(report, withValue({}, rest, next) as PagePatch)
+      if (top === 'title') return { command: (report) => setTitle(report, next as string) }
+      if (top === 'locale') return { command: (report) => setLocale(report, next as string) }
+      return { command: (report) => setPage(report, withValue({}, rest, next) as PagePatch) }
     }
     case 'component': {
       const { component } = target
-      return (report) => updateComponent(report, component.id, component.kind, patchAt(component, at, next) as ComponentPatch<typeof component.kind>)
+      return { command: (report) => updateComponent(report, component.id, component.kind, patchAt(component, at, next) as ComponentPatch<typeof component.kind>) }
     }
     case 'column': {
       const { table, column } = target
-      return (report) => updateColumn(report, table.id, column.id, patchAt(column, at, next))
+      return { command: (report) => updateColumn(report, table.id, column.id, patchAt(column, at, next)) }
+    }
+    case 'part': {
+      const { patch, said } = pairedReference(target.bill, patchAt(target.bill, at, next) as PaymentPartPatch)
+      return { command: (report) => updatePaymentPart(report, patch), ...(said === undefined ? {} : { said }) }
     }
   }
 }

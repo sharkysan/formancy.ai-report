@@ -38,9 +38,12 @@ import type { Workspace } from './workspace.js'
  * found beside the button in the DOM, as the builders' scenarios find it.
  */
 
+/** A report's QR-bill's account as written, its runs joined: what the Preview is asked to print it to. */
+const accountOf = vi.hoisted(() => (report: { readonly paymentPart?: { readonly account: readonly { readonly kind: string; readonly text?: string }[] } }): string | undefined => report.paymentPart?.account.map((run) => run.text ?? `[${run.kind}]`).join(''))
+
 const seen = vi.hoisted(() => ({
   /** Every preview the pane asked for, in order. */
-  requests: [] as { readonly id: string; readonly mode: string; readonly title: string }[],
+  requests: [] as { readonly id: string; readonly mode: string; readonly title: string; readonly account: string | undefined }[],
   /** How each preview ended -- printed, refused with the runtime's codes, or not drawn with the renderer's -- and the assets its report declared. */
   outcomes: [] as { readonly assets: readonly string[]; readonly kind: string }[],
   /** Each session the workspace opened, and how many subscriptions it has now. */
@@ -52,7 +55,7 @@ vi.mock('./preview/pipeline.js', async (importOriginal) => {
   return {
     ...pipeline,
     preview: async (request: PreviewRequest, signal: AbortSignal, options?: { readonly maxPages?: number }): Promise<PreviewOutcome> => {
-      seen.requests.push({ id: request.starter.id, mode: request.mode, title: request.report.title })
+      seen.requests.push({ id: request.starter.id, mode: request.mode, title: request.report.title, account: accountOf(request.report) })
       const outcome = await pipeline.preview(request, signal, options)
       const kind = outcome.kind === 'printed' ? 'printed' : outcome.kind === 'refused' ? `refused: ${outcome.errors.map((error) => error.code).join()}` : `not drawn: ${outcome.refusal.code}`
       seen.outcomes.push({ assets: request.report.assets.map((asset) => asset.id), kind })
@@ -270,6 +273,52 @@ describe('the Studio', () => {
     await user.click(tool('Redo'))
     await waitFor(() => expect(seen.outcomes.at(-1)).toEqual({ assets: ['logo'], kind: 'printed' }))
     expect(unprinted()).toEqual([])
+    expect(await violations()).toEqual([])
+  })
+
+  // Plan 21's switch with the QR-bill selected (0039): its IBAN changed in
+  // Angular, where a click on its band in the design view selected it; the
+  // bill still selected once React draws the editor, where the change is
+  // undone; and redone back in Angular, the Preview, shown again in the
+  // design view's place, asked each time to print the account as it
+  // stands. A selection of the bill one builder drew and the other did
+  // not, or lost with the switch, fails on the selected row; an edit made
+  // past the session fails on Undo.
+  test('edits the invoice’s QR-bill in Angular, undoes in React and redoes in Angular, the bill selected throughout', async () => {
+    const { workspace: opened, user } = mount()
+    await user.selectOptions(picker(), 'invoice')
+    await screen.findByText('Preview: printed.')
+    const { session } = opened.open('invoice')
+    const original = accountOf(session.document())
+    const typed = 'CH58 3000 0000 0000 0000 0'
+    const bill = (): HTMLElement => within(editor()).getByRole('treeitem', { name: t('canvas.paymentPart'), selected: true })
+    const iban = (): HTMLInputElement => within(editor()).getByRole('textbox', { name: t('field.iban') })
+
+    await show(user, 'Angular')
+    await user.click(paneButton('Design view'))
+    await user.click(within(editor()).getByRole('img', { name: t('canvas.paymentPart') }))
+    await waitFor(() => expect(document.activeElement).toBe(bill()))
+    await user.clear(iban())
+    await user.type(iban(), typed)
+    await user.tab()
+    expect(accountOf(session.document())).toBe(typed)
+    // The Preview back in the design view's place, from the bar, prints the bill as it stands.
+    await user.click(toggle(false))
+    await waitFor(() => expect(seen.requests.at(-1)?.account).toBe(typed))
+
+    await show(user, 'React')
+    expect(bill()).toBeTruthy()
+    expect(iban().value).toBe(typed)
+    await user.click(tool('Undo', t('action.undoWhat', { label: t('history.change', { field: t('field.iban') }) })))
+    await waitFor(() => expect(iban().value).toBe(original))
+    expect(accountOf(session.document())).toBe(original)
+    await waitFor(() => expect(seen.requests.at(-1)?.account).toBe(original))
+
+    await show(user, 'Angular')
+    expect(bill()).toBeTruthy()
+    await user.click(tool('Redo'))
+    await waitFor(() => expect(iban().value).toBe(typed))
+    await waitFor(() => expect(seen.requests.at(-1)?.account).toBe(typed))
     expect(await violations()).toEqual([])
   })
 

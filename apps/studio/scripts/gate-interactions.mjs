@@ -5,8 +5,9 @@
 // with Escape, the keyboard back on the entry; Final, which prints a final
 // render, and back; and the Preview's Zoom in, which draws every page
 // larger, on white, with ink. Then the room made for the middle pane
-// (gate-room.mjs) and an image added (gate-images.mjs). Each is undone, so
-// the journey goes on where the starters left off.
+// (gate-room.mjs), an image added (gate-images.mjs) and the invoice's
+// QR-bill edited (gate-payment-part.mjs). Each is undone, so the journey
+// goes on where the starters left off.
 //
 // React binds a pointer's drag to pointer events and Angular to HTML drag
 // and drop (0012), and Playwright drives both as a mouse; where focus goes
@@ -16,6 +17,7 @@
 
 import { imageChecks } from './gate-images.mjs'
 import { describeFocus, drawnPages } from './gate-page.mjs'
+import { paymentPartChecks } from './gate-payment-part.mjs'
 import { roomChecks } from './gate-room.mjs'
 import { editorOf, open, present, previewInView, previewOf, settled, showing, WITHIN } from './gate-steps.mjs'
 
@@ -142,4 +144,5 @@ export async function interactions(gate, page, framework) {
   // The room made for the middle pane: a pane hidden and shown, the Preview hidden and shown.
   await roomChecks(gate, page, framework)
   await imageChecks(gate, page, framework)
+  await paymentPartChecks(gate, page, framework)
 }

@@ -28,7 +28,7 @@
 import { useCallback, useId, useLayoutEffect, useMemo, useRef } from 'react'
 import type { KeyboardEvent, ReactElement, ReactNode } from 'react'
 import { actionForKey, editorText } from '@formancy/report-builder-core'
-import type { DiagnosticEntry, DragSubject, DropTarget, EditorAction, EditorOutcome, EditorPanel, HideablePanel, ReportEditor, Selection } from '@formancy/report-builder-core'
+import type { ComponentSelection, DiagnosticEntry, DragSubject, DropTarget, EditorAction, EditorOutcome, EditorPanel, HideablePanel, ReportEditor } from '@formancy/report-builder-core'
 import type { ComponentKind } from '@formancy/report-spec'
 import { Canvas } from './canvas.js'
 import { Diagnostics } from './diagnostics.js'
@@ -221,7 +221,7 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
 
   function placeSelection(from: HTMLElement): void {
     // The toolbar offers this only while `can.moveTo`, which holds only for a selected component.
-    openPlaces({ id: (state.selection as Selection).id }, from)
+    openPlaces({ id: (state.selection as ComponentSelection).id }, from)
   }
 
   function choose(subject: DragSubject, target: DropTarget): void {
@@ -231,6 +231,7 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
   function follow(entry: DiagnosticEntry): void {
     const { target } = entry
     if (target === null) act({ type: 'select', id: null })
+    else if ('part' in target) act({ type: 'select', part: target.part }, 'selection')
     else act(target.column === undefined ? { type: 'select', id: target.id } : { type: 'select', id: target.id, column: target.column }, 'selection')
   }
 

@@ -46,7 +46,9 @@ export {
   updateFooterRow,
 } from './commands/table.js'
 export type { FooterRows } from './commands/table.js'
-export { ARGUMENTS, COMMANDS, describedCommand } from './commands/registry.js'
+export { putPaymentPart, removePaymentPart, updatePaymentPart } from './commands/payment-part.js'
+export type { PaymentPartPatch } from './commands/payment-part.js'
+export { ARGUMENTS, COMMANDS, describedCommand, PART_COMMANDS } from './commands/registry.js'
 export type { CommandDescriptor, CommandName } from './commands/registry.js'
 
 export { compileReport } from './expressions/compile-report.js'

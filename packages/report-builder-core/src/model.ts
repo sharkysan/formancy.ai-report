@@ -13,11 +13,22 @@ import type { Component, ComponentKind, Margins, Orientation, PageSizeName, Regi
 import type { ImageLibrary } from './image-store.js'
 import type { EditorLocale } from './text.js'
 
-/** What is selected: a component, or one column of a table, named by the table's id and the column's. */
-export interface Selection {
+/**
+ * The parts a report holds at its own level, in no region, that an editor
+ * selects and edits as it does a component: its payment part, the Swiss
+ * QR-bill at the foot of its last page (0022, 0039).
+ */
+export const REPORT_LEVEL_PARTS = ['paymentPart'] as const
+export type ReportLevelPart = (typeof REPORT_LEVEL_PARTS)[number]
+
+/** A component, or one column of a table, named by the table's id and the column's. */
+export interface ComponentSelection {
   readonly id: string
   readonly column?: string
 }
+
+/** What is selected: a component or a table's column, or a part of the report's own level. */
+export type Selection = ComponentSelection | { readonly part: ReportLevelPart }
 
 /** What an outline row or a canvas box stands for: a component of a kind, or a table's column. */
 export type PartKind = ComponentKind | 'tableColumn'
@@ -100,6 +111,24 @@ export interface OutlineRegion {
   readonly nodes: readonly OutlineNode[]
 }
 
+/**
+ * A row of the outline for a part of the report's own level, after the
+ * regions' groups, at the tree's top: the payment part, which prints after
+ * every region, at the foot of the last page.
+ */
+export interface OutlinePart {
+  readonly part: ReportLevelPart
+  /** Unique in the outline: no component's id holds a capital, nor a column's key. */
+  readonly key: string
+  /** What a person calls it, as SIX names the part: "Payment part". */
+  readonly label: string
+  readonly selected: boolean
+  /** Diagnostics about it, errors and warnings together. */
+  readonly problems: number
+  /** The worst of those diagnostics, when there are any. */
+  readonly severity?: DiagnosticSeverity
+}
+
 /** What the palette offers: a kind, and the component inserting it would put in, or why there is none. */
 export interface PaletteEntry {
   readonly kind: ComponentKind
@@ -165,10 +194,37 @@ export interface PropertyField {
   readonly error?: string
 }
 
+/** A button the properties draw: what it says, and the action it dispatches. */
+export interface PropertyAction {
+  readonly label: string
+  readonly action: EditorAction
+}
+
+/**
+ * Fields drawn together under one name -- a party of a QR-bill, its
+ * creditor or its debtor -- and the one button the group may have: Add
+ * where an optional group is absent, and has no fields; Remove where it is
+ * there.
+ */
+export interface PropertyGroup {
+  /** A JSON Pointer from the selection to what the group edits: "/debtor". */
+  readonly key: string
+  /** Its accessible name: "Debtor". */
+  readonly label: string
+  readonly fields: readonly PropertyField[]
+  readonly action?: PropertyAction
+}
+
+/** What the form draws, in order: a field by itself, or a group. */
+export type PropertyRow = { readonly field: PropertyField } | { readonly group: PropertyGroup }
+
 export interface PropertyPanel {
   /** "Text: Introduction", or "Report" when nothing is selected. */
   readonly heading: string
+  /** Every field, in the order shown, those in a group among them: what a field is found by. */
   readonly fields: readonly PropertyField[]
+  /** The same fields as the form draws them, each by itself or in its group, in the same order. */
+  readonly rows: readonly PropertyRow[]
 }
 
 /** A component's or a column's box on the canvas. */
@@ -205,6 +261,11 @@ export interface CanvasRegion {
  */
 export interface CanvasPaymentPart {
   readonly label: string
+  /** Selected, as its outline row is: a click on the band selects the bill. */
+  readonly selected: boolean
+  /** Diagnostics about the bill, as its outline row counts them. */
+  readonly problems: number
+  readonly severity?: DiagnosticSeverity
   readonly pt: Box
   readonly px: Box
 }
@@ -369,6 +430,8 @@ export interface EditorState {
   readonly document: DocumentSummary
   readonly selection: Selection | null
   readonly outline: readonly OutlineRegion[]
+  /** The outline's rows for the parts of the report's own level, after its regions: its payment part, where it has one. */
+  readonly outlineParts: readonly OutlinePart[]
   readonly palette: readonly PaletteEntry[]
   /** The report's images, and whether a builder offers Add image… (0033). */
   readonly images: ImageLibrary
@@ -401,6 +464,8 @@ export interface EditorState {
 /** What a builder asks of the editor. Every pointer gesture has one a keyboard reaches too. */
 export type EditorAction =
   | { readonly type: 'select'; readonly id: string | null; readonly column?: string }
+  /** Selects a part of the report's own level: its outline row, or its band on the canvas. */
+  | { readonly type: 'select'; readonly part: ReportLevelPart }
   | { readonly type: 'selectNext' }
   | { readonly type: 'selectPrevious' }
   | { readonly type: 'selectFirst' }
@@ -448,6 +513,12 @@ export type EditorAction =
   | { readonly type: 'chooseImage' }
   /** Removes an image the report declares and nothing draws, in one undo step. */
   | { readonly type: 'removeImage'; readonly asset: string }
+  /** Adds a part of the report's own level that it lacks, from example values, in one undo step, and selects it: a QR-bill, SIX's example (0039). */
+  | { readonly type: 'addPart'; readonly part: ReportLevelPart }
+  /** Adds the optional group of fields at `key` of what is selected, from example values, in one undo step: a bill's debtor. */
+  | { readonly type: 'addGroup'; readonly key: string }
+  /** Removes the optional group at `key` of what is selected, in one undo step. */
+  | { readonly type: 'removeGroup'; readonly key: string }
 
 export type EditorActionType = EditorAction['type']
 
@@ -459,7 +530,7 @@ export const EDITOR_REFUSAL_CODES = [
   'nothing-selected',
   /** The component, column or target the action names is not there. */
   'not-found',
-  /** First or last already: a move up, a move down, an indent or an outdent with nowhere to go, or a step out of a top-level row or into one that holds nothing. */
+  /** First or last already: a move up, a move down, an indent or an outdent with nowhere to go, or a step out of a top-level row or into one that holds nothing; and any move or copy of a part of the report's own level, which has one place. */
   'at-edge',
   /** A value the property cannot take, refused before the report was touched: a number that is not one. */
   'invalid-value',
@@ -474,8 +545,9 @@ export const EDITOR_REFUSAL_CODES = [
    * component the report cannot hold yet, an image with no image to draw; a
    * host's view, asked of an editor made without one; the zoom, while a
    * host's view stands in the design view's place; an image to add, with no
-   * store to keep it or no room in the report for it; and Remove, for an
-   * image something draws.
+   * store to keep it or no room in the report for it; Remove, for an
+   * image something draws; a part the report has already, added; and a
+   * group's Add or Remove with nothing to do.
    */
   'unavailable',
   /** Undo or redo with no step to take. */

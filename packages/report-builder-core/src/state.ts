@@ -11,16 +11,18 @@ import { diagnose } from '@formancy/report-core'
 import type { Diagnostic, DiagnosticSeverity } from '@formancy/report-core'
 import { REGION_NAMES, walkComponents } from '@formancy/report-spec'
 import type { Component, ReportDefinition } from '@formancy/report-spec'
-import { indent, moveBy, outdent } from './edits.js'
+import { duplicate, indent, moveBy, outdent } from './edits.js'
 import { layoutReport, MAX_ZOOM, MIN_ZOOM, pageGeometry, PX_PER_PT, rulerTicks, toPx } from './geometry.js'
 import type { Layout } from './geometry.js'
 import { addRefusal, imageLibrary } from './images.js'
 import type { Images } from './images.js'
-import { columnKey, kindLabel, regionLabel, reportLabels } from './labels.js'
+import { columnKey, kindLabel, partLabel, regionLabel, reportLabels } from './labels.js'
 import type {
   Announcement,
   Availability,
+  Box,
   Canvas,
+  CanvasPaymentPart,
   DiagnosticEntry,
   DragState,
   DragSubject,
@@ -31,11 +33,13 @@ import type {
   HistoryState,
   HostView,
   PaletteEntry,
+  ReportLevelPart,
   Selection,
 } from './model.js'
-import { buildOutline, outlineOrder, selectionKey } from './outline.js'
+import { REPORT_LEVEL_PARTS } from './model.js'
+import { buildOutline, outlineOrder, outlineParts, selectionKey } from './outline.js'
 import { paletteEntries } from './palette.js'
-import { fieldsOf, propertyHeading, propertyPanel, propertyTarget } from './properties.js'
+import { propertyHeading, propertyPanel, propertyTarget, specsOf } from './properties.js'
 import type { FieldError } from './properties.js'
 import { selected } from './selection.js'
 import type { EditorLocale, EditorText } from './text.js'
@@ -73,23 +77,45 @@ export interface Derived {
   readonly order: readonly Selection[]
 }
 
+/**
+ * The part of the report's own level a diagnostic is about: one that names
+ * no component, at a path inside the part -- report-core names none for
+ * the bill, which stands in no region.
+ */
+function partOf(diagnostic: Diagnostic): ReportLevelPart | undefined {
+  if (diagnostic.componentId !== undefined) return undefined
+  return REPORT_LEVEL_PARTS.find((part) => diagnostic.path === `/${part}` || diagnostic.path.startsWith(`/${part}/`))
+}
+
+/** What a diagnostic is about, to select: a component, a column, a part of the report's own level, or the report. */
+function targetOf(diagnostic: Diagnostic): Selection | null {
+  const { componentId, columnId } = diagnostic
+  const part = partOf(diagnostic)
+  if (part !== undefined) return { part }
+  if (componentId === undefined) return null
+  return columnId === undefined ? { id: componentId } : { id: componentId, column: columnId }
+}
+
 /** What `report` alone decides, in the words of `t`; `stored` says whether the host keeps images a person adds, which the palette's Image says. */
 export function derive(report: ReportDefinition, t: EditorText, stored: boolean): Derived {
-  const labels = reportLabels(report, t)
+  const components = reportLabels(report, t)
+  const labels = new Map([...components, ...REPORT_LEVEL_PARTS.map((part) => [selectionKey({ part }), partLabel(part, t)] as const)])
   const diagnostics = diagnose(report)
   const problems = new Map<string, number>()
   // An error outranks a warning, whichever comes first: a count drawn in a
   // warning's colour would say the report still renders.
   const severities = new Map<string, DiagnosticSeverity>()
-  for (const { componentId, columnId, severity } of diagnostics) {
-    if (componentId === undefined) continue
-    const key = columnId === undefined ? componentId : columnKey(componentId, columnId)
+  for (const diagnostic of diagnostics) {
+    const target = targetOf(diagnostic)
+    if (target === null) continue
+    const key = selectionKey(target)
     problems.set(key, (problems.get(key) ?? 0) + 1)
-    if (severities.get(key) !== 'error') severities.set(key, severity)
+    if (severities.get(key) !== 'error') severities.set(key, diagnostic.severity)
   }
   const layout = layoutReport(report)
   const overflowing = new Set(layout.parts.filter((part) => part.overflows).map((part) => part.key))
-  const order = outlineOrder(buildOutline(report, { labels, selection: null, problems, severities, overflowing }, t))
+  const inputs = { labels, selection: null, problems, severities, overflowing }
+  const order = outlineOrder(buildOutline(report, inputs, t), outlineParts(report, inputs, t))
   return { report, labels, diagnostics, problems, severities, overflowing, layout, palette: paletteEntries(report, t, stored), order }
 }
 
@@ -117,6 +143,13 @@ function freeze<T>(value: T): T {
   return value
 }
 
+/** The payment part's band: where the slip prints, selected and counted as the bill's outline row is. */
+function paymentBand(derived: Derived, box: Box, chosen: string | undefined, zoom: number, t: EditorText): CanvasPaymentPart {
+  const key = selectionKey({ part: 'paymentPart' })
+  const severity = derived.severities.get(key)
+  return { label: partLabel('paymentPart', t), selected: chosen === key, problems: derived.problems.get(key) ?? 0, ...(severity === undefined ? {} : { severity }), pt: box, px: toPx(box, zoom) }
+}
+
 function canvasOf(derived: Derived, local: Local, t: EditorText): Canvas {
   const { layout, labels, problems, severities } = derived
   const chosen = local.selection === null ? undefined : selectionKey(local.selection)
@@ -126,7 +159,7 @@ function canvasOf(derived: Derived, local: Local, t: EditorText): Canvas {
     scale: local.zoom * PX_PER_PT,
     sheet: { pt: layout.sheet, px: toPx(layout.sheet, local.zoom) },
     regions: layout.regions.map(({ region, box, empty }) => ({ region, label: regionLabel(region, t), empty, pt: box, px: toPx(box, local.zoom) })),
-    paymentPart: layout.paymentPart === null ? null : { label: t('canvas.paymentPart'), pt: layout.paymentPart, px: toPx(layout.paymentPart, local.zoom) },
+    paymentPart: layout.paymentPart === null ? null : paymentBand(derived, layout.paymentPart, chosen, local.zoom, t),
     boxes: layout.parts.map((part) => {
       const severity = severities.get(part.key)
       return {
@@ -167,9 +200,8 @@ export function diagnosticKeys(diagnostics: readonly Diagnostic[]): string[] {
 function diagnosticEntries(derived: Derived, t: EditorText): DiagnosticEntry[] {
   const keys = diagnosticKeys(derived.diagnostics)
   return derived.diagnostics.map((diagnostic, at) => {
-    const { componentId, columnId } = diagnostic
-    const target: Selection | null = componentId === undefined ? null : columnId === undefined ? { id: componentId } : { id: componentId, column: columnId }
-    const where = target === null ? t('problem.report') : (derived.labels.get(selectionKey(target)) ?? componentId ?? '')
+    const target = targetOf(diagnostic)
+    const where = target === null ? t('problem.report') : (derived.labels.get(selectionKey(target)) ?? selectionKey(target))
     return { key: keys[at] as string, severity: diagnostic.severity, code: diagnostic.code, message: diagnostic.message, where, label: t('problem.item', { severity: t(`severity.${diagnostic.severity}`), where }), target }
   })
 }
@@ -192,7 +224,7 @@ function availability(report: ReportDefinition, local: Local, images: Images): A
   return {
     ...zooms,
     delete: true,
-    duplicate: true,
+    duplicate: goes(duplicate(target)),
     moveUp: goes(moveBy(report, target, -1)),
     moveDown: goes(moveBy(report, target, 1)),
     indent: goes(indent(report, target)),
@@ -214,6 +246,7 @@ function dragOf(derived: Derived, local: Local, t: EditorText, targets: () => re
 /** The whole state, frozen, from the document's derivations, the session's history and the editor's own. */
 export function buildState(derived: Derived, session: SessionView, local: Local, locale: EditorLocale, t: EditorText, targets: () => readonly DropTarget[], images: Images): EditorState {
   const { report, labels, problems, severities, overflowing } = derived
+  const inputs = { labels, selection: local.selection, problems, severities, overflowing }
   // The editor keeps its selection one the document has, so this finds it.
   const panelTarget = propertyTarget(report, local.selection) ?? REPORT
   const counts = new Map(REGION_NAMES.map((region) => [region, 0]))
@@ -232,10 +265,11 @@ export function buildState(derived: Derived, session: SessionView, local: Local,
       regions: REGION_NAMES.map((region) => ({ region, label: regionLabel(region, t), count: counts.get(region) ?? 0 })),
     },
     selection: local.selection,
-    outline: buildOutline(report, { labels, selection: local.selection, problems, severities, overflowing }, t),
+    outline: buildOutline(report, inputs, t),
+    outlineParts: outlineParts(report, inputs, t),
     palette: derived.palette,
     images: imageLibrary(images, derived, local.adding),
-    properties: propertyPanel(panelTarget, fieldsOf(panelTarget, report, t, locale), propertyHeading(panelTarget, labels, t), local.errors, derived.diagnostics, t),
+    properties: propertyPanel(panelTarget, specsOf(panelTarget, report, t, locale), propertyHeading(panelTarget, labels, t), local.errors, derived.diagnostics, t),
     canvas: canvasOf(derived, local, t),
     diagnostics: diagnosticEntries(derived, t),
     history: session.history,

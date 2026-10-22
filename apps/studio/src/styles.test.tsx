@@ -83,8 +83,20 @@ function rulesOf(file: string, text: string): Rule[] {
   return found
 }
 
-/** A stylesheet a package exports, without its comments, as a host's bundler resolves it. */
-const exported = (specifier: string): string => readFileSync(createRequire(import.meta.url).resolve(specifier), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+/** `file` with each `@import './…';` replaced by the file beside it that it names, as Vite inlines it; any other import refused, as nothing here could read what it brings. */
+function inlined(file: string): string {
+  const text = readFileSync(file, 'utf8').replace(/@import\s+'(\.\.?\/[^']+\.css)';/g, (_, path: string) => inlined(join(dirname(file), path)))
+  if (/@import/.test(text.replace(/\/\*[\s\S]*?\*\//g, ''))) throw new Error(`${file} has an @import the test does not inline`)
+  return text
+}
+
+/**
+ * A stylesheet a package exports, without its comments, as a host's
+ * bundler resolves it: report-builder.css with the parts it imports
+ * from beside it, so a rule that moved into a part is read where it
+ * cascades.
+ */
+const exported = (specifier: string): string => inlined(createRequire(import.meta.url).resolve(specifier)).replace(/\/\*[\s\S]*?\*\//g, '')
 
 /** Every style rule of the Studio's stylesheets, with its file. */
 const rules = (): Rule[] => files().flatMap((file) => rulesOf(file, readFileSync(join(styles, file), 'utf8')))

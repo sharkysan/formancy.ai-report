@@ -1,9 +1,12 @@
 /**
  * The QR-bill page's words, in each language (0024). Every claim is one
- * decision 0022 makes and its tests hold, or one SIX's guidelines make, and
- * says no more than it: what the checks refuse and what they do not see,
- * where the slip prints, what the tests decode, and, from 0022's costs and
- * the guidelines (IG 2.4, 3.3 and 3.7), what it does not do. The release
+ * decision 0022 or 0039 makes and its tests hold, or one SIX's guidelines
+ * make, and says no more than it: what the checks refuse and what they do
+ * not see, where the slip prints, what the tests decode, and, from 0022's
+ * and 0039's costs and the guidelines (IG 2.4, 3.3 and 3.7), what it does
+ * not do. What the builders do with the bill is said of a release by its
+ * number, and of the Studio, which is built from the source on GitHub
+ * (0018), so that neither is said of the other. The release
  * the status names is read from the changelog and handed in, never typed.
  * SIX's words are SIX's: Zahlteil, section paiement, sezione pagamento,
  * payment part, and the bill itself where a sentence names SIX's
@@ -119,7 +122,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         'Es erzeugt die Rechnung, mehr nicht: Formancy Report ist weder E-Banking noch Buchhaltungssoftware, verschickt keine Rechnungen und gleicht keine Zahlungseingänge ab.',
         'Nach den Richtlinien von SIX ist eine Rechnung als PDF für die Zahlung per E-Banking oder Mobile Banking gedacht; darum tragen ihre Linien die Schere und den Hinweis zum Abtrennen. Eine QR-Rechnung, die auf Papier verschickt wird, gehört auf weisses, perforiertes Papier, und das kann Formancy Report nicht prüfen.',
         'Eine QR-Rechnung pro Bericht, am Fuss seiner letzten Seite, im A4-Hochformat. Ein Bericht, der mehrere Rechnungen druckt, kann nicht jeder ihren eigenen Zahlteil geben.',
-        'Die beiden Builder bearbeiten die QR-Rechnung noch nicht: Die Entwurfsansicht zeigt, wo der Zahlteil gedruckt wird, und Konto, Referenz, Adressen und Betrag stehen in der Definition des Berichts.',
+        'In 0.2.0 bearbeitet keiner der beiden Builder die QR-Rechnung: Konto, Referenz, Adressen und Betrag stehen in der Definition des Berichts. Im Studio, das aus dem Quellcode auf GitHub gebaut wird, bearbeiten beide sie Feld für Feld. Eine dort hinzugefügte Rechnung beginnt mit den Beispielwerten von SIX, vor denen gewarnt wird, bis sie ersetzt sind, und nichts fragt nach, bevor sich das Konto ändert: Eine IBAN mit falschen Prüfziffern wird in ihrem Feld abgelehnt, die gültige IBAN eines anderen Kontos wird gedruckt, wie sie eingegeben wurde.',
         'Nicht jede Regel von SIX wird geprüft: ob es einen Ländercode wirklich gibt, was in den Rechnungsinformationen nach «//» folgt, ob eine Postleitzahl das Länderpräfix trägt, das SIX verbietet, und ob das Konto dem Zahlungsempfänger gehört.',
         'Keine alternativen Verfahren und keine Rechnung «NICHT ZUR ZAHLUNG VERWENDEN». Eine Rechnung in Euro an eine QR-IBAN mit QR-Referenz wird abgelehnt, wie es Version 2.4 verlangt.',
         'Text wird nie verkleinert, damit er passt: Angaben, die nicht in ihren Abschnitt passen, werden abgelehnt.',
@@ -202,7 +205,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         "Il génère la facture, rien de plus : Formancy Report n'est ni un e-banking ni un logiciel de comptabilité, il n'envoie aucune facture et ne rapproche aucun paiement reçu.",
         "Selon les directives de SIX, une facture en PDF est destinée au paiement par e-banking ou mobile banking ; c'est pourquoi ses lignes portent les ciseaux et la consigne de détacher. Une QR-facture envoyée sur papier doit être imprimée sur du papier blanc perforé, ce que Formancy Report ne peut pas vérifier.",
         'Une facture QR par rapport, au pied de sa dernière page, en A4 portrait. Un rapport qui imprime plusieurs factures ne peut pas donner à chacune sa propre section paiement.',
-        "Les deux builders ne modifient pas encore la facture QR : la vue de conception montre où s'imprime la section paiement, et le compte, la référence, les adresses et le montant s'écrivent dans la définition du rapport.",
+        "Dans la version 0.2.0, aucun des deux builders ne modifie la facture QR : le compte, la référence, les adresses et le montant s'écrivent dans la définition du rapport. Dans le Studio, construit à partir du code source publié sur GitHub, les deux la modifient champ par champ. Une facture ajoutée là part des valeurs d'exemple de SIX, signalées par un avertissement tant qu'elles ne sont pas remplacées, et rien ne demande de confirmation avant que le compte change : un IBAN aux chiffres de contrôle faux est refusé sur son champ, l'IBAN valide d'un autre compte est imprimé tel qu'il a été saisi.",
         "Toutes les règles de SIX ne sont pas vérifiées : qu'un code pays existe vraiment, ce qui suit « // » dans les informations de facture, un code postal précédé du préfixe de son pays, que SIX interdit, et que le compte appartienne bien au créancier.",
         "Pas de procédures alternatives, ni de facture « NE PAS UTILISER POUR LE PAIEMENT ». Une facture en euros vers un QR-IBAN avec une référence QR est refusée, comme l'exige la version 2.4.",
         "Le texte n'est jamais réduit pour tenir : une information qui dépasse la hauteur de sa section est refusée.",
@@ -285,7 +288,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         'Genera la fattura, niente di più: Formancy Report non è né un e-banking né un software di contabilità, non invia fatture e non riconcilia i pagamenti ricevuti.',
         "Secondo le direttive di SIX, una fattura in PDF è destinata al pagamento tramite e-banking o mobile banking; per questo le sue linee portano le forbici e l'indicazione di staccare. Una QR-fattura spedita su carta va stampata su carta bianca perforata, cosa che Formancy Report non può verificare.",
         'Una fattura QR per report, in fondo alla sua ultima pagina, in A4 verticale. Un report che stampa più fatture non può dare a ciascuna la propria sezione pagamento.',
-        'I due builder non modificano ancora la fattura QR: la vista di progettazione mostra dove si stampa la sezione pagamento, e conto, riferimento, indirizzi e importo si scrivono nella definizione del report.',
+        "Nella versione 0.2.0 nessuno dei due builder modifica la fattura QR: conto, riferimento, indirizzi e importo si scrivono nella definizione del report. Nello Studio, costruito dal codice sorgente pubblicato su GitHub, entrambi la modificano campo per campo. Una fattura aggiunta lì parte dai valori di esempio di SIX, segnalati da un avviso finché non vengono sostituiti, e nulla chiede conferma prima che il conto cambi: un IBAN con cifre di controllo sbagliate viene rifiutato sul suo campo, l'IBAN valido di un altro conto viene stampato così come è stato digitato.",
         'Non tutte le regole di SIX vengono verificate: che un codice paese esista davvero, ciò che segue «//» nelle informazioni per la fattura, un codice postale preceduto dal prefisso del suo paese, che SIX vieta, e che il conto appartenga davvero al creditore.',
         'Nessuna procedura alternativa, e nessuna fattura «NON UTILIZZARE PER IL PAGAMENTO». Una fattura in euro verso un QR-IBAN con un riferimento QR viene rifiutata, come richiede la versione 2.4.',
         "Il testo non viene mai rimpicciolito: un'informazione che non sta nella sua sezione viene rifiutata.",
@@ -368,7 +371,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         'It makes the bill, and nothing more: Formancy Report is neither e-banking nor accounting software, sends no invoices and matches no incoming payments.',
         "Under SIX's guidelines, a bill as a PDF is for paying by e-banking or mobile banking, which is why its lines carry the scissors and the instruction to separate. A QR-bill sent on paper must be printed on white, perforated paper, which Formancy Report cannot check.",
         'One QR-bill per report, at the foot of its last page, on A4 in portrait. A report that prints several invoices cannot give each one a slip of its own.',
-        "Neither builder edits the QR-bill yet: the design view shows where the slip prints, and the bill's account, reference, addresses and amount are written in the report's definition.",
+        "In 0.2.0 neither builder edits the QR-bill: its account, reference, addresses and amount are written in the report's definition. In the Studio, which is built from the source on GitHub, both edit it field by field. A bill added there starts from SIX's example values, which are warned of until they are replaced, and nothing asks before the account changes: an IBAN with wrong check digits is refused on its field, and the valid IBAN of another account is printed as typed.",
         "Not every one of SIX's rules is checked: whether a country code is one that exists, what follows the “//” in the billing information, a postal code written with its country's prefix, which SIX forbids, and whether the account is the creditor's.",
         'No alternative procedures, and no bill marked “DO NOT USE FOR PAYMENT”. A bill in euros to a QR-IBAN with a QR reference is refused, as version 2.4 requires.',
         'Text is never shrunk to fit: information taller than its section is refused.',

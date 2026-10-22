@@ -1,8 +1,9 @@
 /**
  * The builder scenarios about the payment codes: a report whose Swiss
- * QR-bill the design view draws at the sheet's foot and every edit keeps
- * whole (0022), and an EPC payment code inserted by keyboard, its account
- * and its BIC typed where they are written (0025).
+ * QR-bill the design view draws at the sheet's foot and every other edit
+ * keeps whole (0022), and an EPC payment code inserted by keyboard, its
+ * account and its BIC typed where they are written (0025). The bill
+ * selected and edited is `scenario-payment-part.ts`'s (0039).
  */
 import type { EpcQrCodeComponent, ReportDefinition } from '@formancy/report-spec'
 import { PROPERTY_ROLES } from './model.js'
@@ -14,9 +15,9 @@ import type { EditorLocale } from './text.js'
 /**
  * The scenario report with a Swiss QR-bill for its payment part: SIX's
  * QR-IBAN and QR reference (IG 2.4, Annex A), every text literal, as the
- * report reads no data.
+ * report reads no data, and no debtor.
  */
-function billedReport(): ReportDefinition {
+export function billedReport(): ReportDefinition {
   return {
     ...scenarioReport(),
     paymentPart: {
@@ -61,10 +62,9 @@ export function paymentScenarios(locale: EditorLocale): readonly BuilderScenario
   const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = scenarioReport): BuilderScenario => ({ name, locale, report, steps })
 
   return [
-    // A payment part is the report's, not a region's, and nothing edits it
-    // yet: the design view shows where its slip prints, an edit elsewhere
-    // keeps it whole, and a page it cannot be printed on is refused on the
-    // field that asked for it.
+    // A payment part is the report's, not a region's: the design view shows
+    // where its slip prints, an edit elsewhere keeps it whole, and a page it
+    // cannot be printed on is refused on the field that asked for it.
     scenario(
       'a payment part is drawn at the sheet’s foot, and edits keep it',
       [

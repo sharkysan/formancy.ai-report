@@ -15,7 +15,8 @@ import type { CommandDescriptor, CommandOutcome, CompiledExpression, Diagnostic,
 import { actionForKey, createReportEditor, editorText } from '@formancy/report-builder-core'
 import type { EditorAction, EditorOutcome, EditorState, ReportEditor } from '@formancy/report-builder-core'
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { inflateSync } from 'node:zlib'
 import { resolveReport } from '@formancy/report-runtime'
@@ -166,8 +167,12 @@ const insertion: EditorOutcome = editor.dispatch({ type: 'insert', kind: 'text',
 const [added] = editing.session.document().regions.body
 const words = added?.kind === 'text' ? added.content[0] : undefined
 // One notification for the insert and the selection it makes; a new text in
-// the report's language, which prints, though the editor speaks French.
-if (!insertion.ok || told !== 1 || editor.state().selection?.id !== added?.id || words?.kind !== 'text' || words.text !== 'Neuer Text') {
+// the report's language, which prints, though the editor speaks French. A
+// selection is a component's, a column's or a part's of the report's own
+// level (0039), so a host narrows it to read a component's id.
+const selection = editor.state().selection
+const selected = selection !== null && 'id' in selection ? selection.id : undefined
+if (!insertion.ok || told !== 1 || selected !== added?.id || words?.kind !== 'text' || words.text !== 'Neuer Text') {
   throw new Error(`the editor did not insert a text as one change: ${JSON.stringify(added)}`)
 }
 // The session keeps a sentence any consumer can show; the editor says it in its own language.
@@ -182,9 +187,19 @@ if (undo === undefined || !editor.dispatch(undo).ok || editing.session.document(
 unsubscribe()
 editor.dispose()
 if (editor.listenerCount() !== 0 || editor.dispatch({ type: 'redo' }).ok) throw new Error('a disposed editor kept its listeners or acted')
-// The stylesheet subpath the exports map promises resolves to the file, and it is the workbench's dressing.
-const stylesheet = readFileSync(fileURLToPath(import.meta.resolve('@formancy/report-builder-core/report-builder.css')), 'utf8')
-if (!stylesheet.includes("[data-report-part='canvas']") || !stylesheet.includes('var(--wb-')) throw new Error('report-builder.css is not the editor stylesheet')
+// The stylesheet subpath the exports map promises resolves to the file, and
+// it is the workbench's dressing once the parts it imports from beside it
+// are read, as a host's bundler reads them: from the tarball, so a part the
+// manifest's `files` leaves out fails here, naming it.
+const stylesheetFile = fileURLToPath(import.meta.resolve('@formancy/report-builder-core/report-builder.css'))
+const entry = readFileSync(stylesheetFile, 'utf8')
+const parts = [...entry.matchAll(/@import\s+'(\.\/[^']+\.css)';/g)].map((match) => match[1] ?? '')
+const stylesheet = entry.replace(/@import\s+'(\.\/[^']+\.css)';/g, (_, part: string) => {
+  const file = join(dirname(stylesheetFile), part)
+  if (!existsSync(file)) throw new Error(`report-builder.css imports ${part}, which the tarball does not hold`)
+  return readFileSync(file, 'utf8')
+})
+if (parts.length === 0 || !stylesheet.includes("[data-report-part='canvas']") || !stylesheet.includes('var(--wb-')) throw new Error('report-builder.css is not the editor stylesheet')
 
 // The README's "Render a report", line for line, on the quotation starter:
 // the runtime resolves it from its data and the mark the host hands over

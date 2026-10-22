@@ -1,0 +1,86 @@
+/*
+ * The properties: a row per field, its control and the reason a value was
+ * refused. It changes when the fields do. Imported by ../report-builder.css,
+ * whose header says what holds it.
+ */
+
+/* ------------------------------------------------------------- the properties */
+
+[data-report-part='property'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 9rem);
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  padding-block: 0.5rem;
+  border-block-start: 1px solid var(--wb-rule);
+}
+
+[data-report-part='property'] > :is(label, span) {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+[data-report-part='property'] :is(input, select, textarea) {
+  min-width: 0;
+  padding: 0.1875rem 0.375rem;
+  border: 1px solid var(--wb-rule);
+  border-radius: 3px;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--wb-ink);
+  background: var(--wb-surface);
+}
+
+[data-report-part='property'] textarea {
+  grid-column: 1 / -1;
+  min-height: 4rem;
+  resize: vertical;
+}
+
+[data-report-part='property'][data-kind='expression'] :is(input, textarea) {
+  font-family: var(--wb-mono);
+}
+
+[data-report-part='property'][data-kind='boolean'] input {
+  justify-self: end;
+  accent-color: var(--wb-signal);
+}
+
+[data-report-part='property'] :is(input, select, textarea):focus-visible {
+  outline: 2px solid var(--wb-signal);
+  outline-offset: 1px;
+}
+
+[data-report-part='property'] [aria-invalid='true'] {
+  border-color: var(--wb-invalid);
+}
+
+/* A group of fields -- a QR-bill's creditor or debtor -- named above its
+   rows, as the outline names a region above its rows, and its one button,
+   Add or Remove, after them (0039). The name is drawn hidden from the
+   tree, which reads the group's own. */
+[data-report-part='property-group'] {
+  padding-block: 0.5rem;
+  border-block-start: 1px solid var(--wb-rule);
+}
+
+[data-report-part='property-group'] > span {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--wb-muted);
+}
+
+[data-report-part='property-group'] > button {
+  margin-block-start: 0.5rem;
+}
+
+[data-report-part='property-error'] {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--wb-invalid);
+}

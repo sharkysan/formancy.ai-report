@@ -84,6 +84,21 @@ export function editorWithImages(): ReportEditor {
 }
 
 /**
+ * editorToDraw()'s report given a QR-bill through the editor, from SIX's
+ * example, and a debtor added to it, the bill selected (0039): its row
+ * after the regions, its band selected on the canvas, and its fields in the
+ * properties, its creditor and its debtor each a group, the debtor's with
+ * its Remove.
+ */
+export function editorWithBill(): ReportEditor {
+  const opening = openReportSession(reportToDraw())
+  if (!opening.ok) throw new Error('the report did not open a session')
+  const editor = createReportEditor(opening.session, { locale: 'de-CH' })
+  if (!editor.dispatch({ type: 'addPart', part: 'paymentPart' }).ok || !editor.dispatch({ type: 'addGroup', key: '/debtor' }).ok) throw new Error('the editor did not add a QR-bill and its debtor')
+  return editor
+}
+
+/**
  * Everything about `root` -- the editor's root element, as a builder drew it
  * for `state` -- that is not as report-builder-core's README says: one
  * sentence per difference, empty when there is none.
@@ -175,11 +190,12 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   }
 
   // The outline: a tree, a group per region named by its label, a treeitem
-  // per node, and the selection where the state has it. A group left unnamed
-  // is a region a screen reader cannot tell from the next; a row too few
-  // hides a component from a keyboard.
+  // per node, then one per part of the report's own level -- its payment
+  // part (0039) -- and the selection where the state has it. A group left
+  // unnamed is a region a screen reader cannot tell from the next; a row
+  // too few hides a component, or the bill, from a keyboard.
   const [tree] = withRole('tree')
-  const nodes = state.outline.flatMap((region) => region.nodes)
+  const nodes: readonly { readonly label: string; readonly selected: boolean }[] = [...state.outline.flatMap((region) => region.nodes), ...state.outlineParts]
   const rows = tree === undefined ? [] : withRole('treeitem', tree)
   expect(withRole('tree').length === 1 && nameOf(tree) === t('pane.outline') && attribute(tree, 'data-report-part') === 'outline', 'there is not one tree, named by the catalogue')
   const groups = tree === undefined ? [] : withRole('group', tree)
@@ -206,6 +222,13 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
     const boxes = canvas === undefined ? [] : parts('box', canvas)
     expect(nameOf(canvas) === state.canvas.label, `the design view is not named ${state.canvas.label}`)
     expect(boxes.length === state.canvas.boxes.length && state.canvas.boxes.every((box, at) => attribute(boxes[at], 'role') === 'img' && nameOf(boxes[at]) === box.label), 'the design view has not a picture per box, named by it')
+    // A payment part's band: a picture named as SIX names the part, marked selected as the bill is (0039).
+    const bands = canvas === undefined ? [] : parts('payment-part', canvas)
+    const band = state.canvas.paymentPart
+    expect(
+      band === null ? bands.length === 0 : bands.length === 1 && attribute(bands[0], 'role') === 'img' && nameOf(bands[0]) === band.label && (attribute(bands[0], 'data-selected') === 'true') === band.selected,
+      'the design view has not the payment part’s band the state has, named and selected as it is',
+    )
     expect(parts('view').length === 0, "a host's view is drawn beside the design view")
   }
 
@@ -218,6 +241,21 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   const images = state.selection === null ? state.images.assets : []
   expect(form?.tag === 'form' && nameOf(form) === state.properties.heading, `the properties are not a form named ${state.properties.heading}`)
   expect(form !== undefined && parts('property', form).length === state.properties.fields.length + images.length, 'the properties have not a row per field and per image')
+  // Each group of fields the state draws -- a QR-bill's party, the report's
+  // Add of a bill (0039) -- a group named by its label, hooked as one,
+  // holding its fields' rows and its one button, named by what it says.
+  const fieldGroups = state.properties.rows.flatMap((row) => ('group' in row ? [row.group] : []))
+  const drawnGroups = form === undefined ? [] : parts('property-group', form)
+  expect(
+    drawnGroups.length === fieldGroups.length &&
+      fieldGroups.every((group, at) => {
+        const drawn = drawnGroups[at] as MarkupElement
+        const buttons = elementsIn(drawn).filter((element) => element.tag === 'button')
+        const action = group.action === undefined ? [] : [group.action.label]
+        return attribute(drawn, 'role') === 'group' && nameOf(drawn) === group.label && parts('property', drawn).length === group.fields.length && buttons.length === action.length && buttons.every((button, index) => spokenText(button) === action[index])
+      }),
+    'the properties have not a group per group of fields, named by its label, with its rows and its button',
+  )
   const [library] = form === undefined ? [] : withRole('group', form).filter((group) => nameOf(group) === t('images.heading'))
   const imageRows = library === undefined ? [] : parts('property', library)
   expect(

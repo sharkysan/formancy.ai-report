@@ -12,7 +12,9 @@
  * every action that selects moves focus to its row. The keys (arrows, Home
  * and End, Alt with an arrow to move, Delete, Ctrl+D) are the root's,
  * decided by report-builder-core's `actionForKey`. Each region is a group
- * named by its label.
+ * named by its label. After the regions, at the tree's top, a row for each
+ * part of the report's own level: its payment part, which prints after
+ * every region (0039), selected as a row is and dragged nowhere.
  *
  * A row can be dragged, and a drag dropped on a row lands just before it or
  * just after it -- the upper or the lower half -- through the editor's
@@ -20,7 +22,7 @@
  */
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject } from '@angular/core'
 import { targetBeside } from '@formancy/report-builder-core'
-import type { OutlineNode } from '@formancy/report-builder-core'
+import type { OutlineNode, OutlinePart } from '@formancy/report-builder-core'
 import { ReportEditorRoot } from './root'
 
 /** A node with its place among its siblings. */
@@ -92,6 +94,23 @@ function rows(nodes: readonly OutlineNode[], into: Row[] = []): Row[] {
         }
       </div>
     }
+    @for (part of parts(); track part.key; let at = $index) {
+      <div
+        role="treeitem"
+        data-report-part="outline-item"
+        aria-level="1"
+        [attr.aria-posinset]="at + 1"
+        [attr.aria-setsize]="parts().length"
+        [attr.aria-selected]="part.selected"
+        [attr.aria-describedby]="part.problems > 0 ? problems(part) : null"
+        [tabIndex]="part.key === stop() ? 0 : -1"
+        (focus)="focusedPart(part)"
+        (click)="selectPart(part)"
+      >{{ part.label }}@if (part.problems > 0) {
+          <span data-report-part="badge" [attr.data-severity]="part.severity ?? null" aria-hidden="true">{{ part.problems }}</span>
+          <span [id]="problems(part)" hidden>{{ t()('outline.problems', { count: part.problems }) }}</span>
+        }</div>
+    }
     }
   `,
 })
@@ -102,14 +121,16 @@ export class ReportOutline {
   protected readonly regions = computed(() => this.root.state().outline.map((region) => ({ region: region.region, label: region.label, rows: rows(region.nodes) })))
   // ES2018, as ng-packagr compiles the published sources: no flatMap.
   private readonly all = computed(() => this.regions().reduce<OutlineNode[]>((nodes, region) => nodes.concat(region.rows.map((row) => row.node)), []))
+  /** The rows of the parts of the report's own level, after the regions'. */
+  protected readonly parts = computed(() => this.root.state().outlineParts)
   /** The row Tab lands on: the selected one, else the first; none when the tree is empty. */
   protected readonly stop = computed(() => {
-    const all = this.all()
-    return (all.find((node) => node.selected) ?? all[0])?.key
+    const all: readonly { readonly key: string; readonly selected: boolean }[] = [...this.all(), ...this.parts()]
+    return (all.find((row) => row.selected) ?? all[0])?.key
   })
 
-  protected problems(node: OutlineNode): string {
-    return `${this.root.id}-problems-${node.key}`
+  protected problems(row: OutlineNode | OutlinePart): string {
+    return `${this.root.id}-problems-${row.key}`
   }
 
   protected overflow(node: OutlineNode): string {
@@ -129,6 +150,14 @@ export class ReportOutline {
   /** Focus that arrives on a row -- by Tab, or put there after an undo -- selects it, so the properties beside it are the focused row's. */
   protected focused(node: OutlineNode): void {
     if (!node.selected) this.root.dispatch({ type: 'select', id: node.id, ...(node.column === undefined ? {} : { column: node.column }) })
+  }
+
+  protected selectPart(part: OutlinePart): void {
+    this.root.dispatch({ type: 'select', part: part.part }, { to: 'selection' })
+  }
+
+  protected focusedPart(part: OutlinePart): void {
+    if (!part.selected) this.root.dispatch({ type: 'select', part: part.part })
   }
 
   protected drag(node: OutlineNode, event: DragEvent): void {

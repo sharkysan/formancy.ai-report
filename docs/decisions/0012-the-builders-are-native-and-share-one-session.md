@@ -15,6 +15,10 @@
   scenarios an `upload` step and a `kept` expectation, an `upload` finding
   the hidden file input beside Add image… by reading the DOM, the one
   element a scenario finds otherwise than by role and accessible name.
+  Extended by [0039](0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md): the editor selects a part of the report's own level,
+  its QR-bill, as it does a component, from its outline row or its band,
+  and the properties draw groups of fields, decided in the model, which
+  both builders draw alike.
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** each package's `test:coverage` job in CI, the `verify` job

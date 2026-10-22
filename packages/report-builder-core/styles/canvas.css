@@ -1,0 +1,212 @@
+/*
+ * The design view: its note, the rulers, the sheet, the regions' bands and
+ * the payment part's, and each component's box. It changes when the design
+ * view draws something new. Imported by ../report-builder.css, whose
+ * header says what holds it.
+ */
+
+/* ----------------------------------------------------------------- the canvas */
+
+/* The note above, the horizontal ruler over the sheet, the vertical one
+   beside it; the builder sizes each from the state, in pixels. The view
+   fills its pane and scrolls itself: sized to the sheet instead, its own
+   vertical scrollbar took the width the sheet needed, and it scrolled
+   sideways for nothing. Centred only while the sheet fits, so a sheet wider
+   than the pane is scrolled from its left edge, never cut off there. */
+[data-report-part='canvas'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* The pane's width, for the note to wrap to (below). */
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: 1.25rem max-content;
+  grid-template-rows: auto 1.25rem max-content;
+  grid-template-areas:
+    'note note'
+    'corner across'
+    'down sheet';
+  justify-content: safe center;
+  align-content: start;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem;
+}
+
+/* Wrapped to the pane, not to the sheet's width: in a pane narrower than
+   the sheet, a note as wide as the sheet ran past the pane's edge and was
+   read only by scrolling. 100cqi is the view's width inside its padding. */
+[data-report-part='canvas-note'] {
+  grid-area: note;
+  max-width: min(40rem, 100cqi);
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  color: var(--wb-muted);
+}
+
+[data-report-part='ruler'] {
+  position: relative;
+  overflow: hidden;
+  font: 0.5625rem/1 var(--wb-mono);
+  color: var(--wb-muted);
+  background: var(--wb-panel);
+}
+
+[data-report-part='ruler'][data-orientation='horizontal'] {
+  grid-area: across;
+  border-block-end: 1px solid var(--wb-rule);
+}
+
+[data-report-part='ruler'][data-orientation='vertical'] {
+  grid-area: down;
+  border-inline-end: 1px solid var(--wb-rule);
+}
+
+[data-report-part='ruler-tick'] {
+  position: absolute;
+  background: var(--wb-rule);
+  white-space: nowrap;
+}
+
+[data-orientation='horizontal'] > [data-report-part='ruler-tick'] {
+  inset-block-end: 0;
+  width: 1px;
+  height: 0.25rem;
+}
+
+[data-orientation='vertical'] > [data-report-part='ruler-tick'] {
+  inset-inline-end: 0;
+  width: 0.25rem;
+  height: 1px;
+}
+
+[data-orientation='horizontal'] > [data-report-part='ruler-tick'][data-major='true'] {
+  height: 0.5rem;
+  background: var(--wb-muted);
+}
+
+[data-orientation='vertical'] > [data-report-part='ruler-tick'][data-major='true'] {
+  width: 0.5rem;
+  background: var(--wb-muted);
+}
+
+/* A tick's label sits beside its line, never across the sheet. */
+[data-report-part='ruler-tick'] > span {
+  position: absolute;
+  inset-block-end: 0.5rem;
+  inset-inline-start: 2px;
+  background: none;
+}
+
+/* Down the side, the label sits just under its line, against the sheet:
+   beside it, a number of three digits ran out of the ruler and was cut. */
+[data-orientation='vertical'] > [data-report-part='ruler-tick'] > span {
+  inset-block-start: 2px;
+  inset-block-end: auto;
+  inset-inline-start: auto;
+  inset-inline-end: 1px;
+}
+
+[data-report-part='sheet'] {
+  grid-area: sheet;
+  position: relative;
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-rule);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--wb-ink) 18%, transparent);
+}
+
+/* A region is a band; where one ends is the region boundary. Its label sits
+   in the gap above it, outside what the band holds. The payment part's band
+   is drawn as one, tinted as an empty one: room the slip takes. */
+:is([data-report-part='region'], [data-report-part='payment-part']) {
+  position: absolute;
+  outline: 1px dashed var(--wb-rule);
+}
+
+:is([data-report-part='region'][data-empty='true'], [data-report-part='payment-part']) {
+  background: color-mix(in srgb, var(--wb-rule) 25%, transparent);
+}
+
+:is([data-report-part='region'], [data-report-part='payment-part']) > [data-report-part='region-label'] {
+  position: absolute;
+  inset-block-end: 100%;
+  inset-inline-start: 0;
+  font: 600 0.625rem/1.4 var(--wb-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--wb-muted);
+  pointer-events: none;
+}
+
+/* A component's flow box: a design-mode approximation, drawn as an outline
+   so it never reads as printed content. */
+[data-report-part='box'] {
+  position: absolute;
+  box-sizing: border-box;
+  outline: 1px solid color-mix(in srgb, var(--wb-rule) 70%, transparent);
+  cursor: default;
+  /* Its own size, set from the state, for its label to ask (below). */
+  container-type: size;
+}
+
+[data-report-part='box'][data-kind='tableColumn'] {
+  outline-style: dotted;
+}
+
+/* The payment part's band is selected as a box is: a click on it selects
+   the bill (0039). */
+:is([data-report-part='box'], [data-report-part='payment-part'])[data-selected='true'] {
+  z-index: 1;
+  outline: 2px solid var(--wb-signal);
+  background: color-mix(in srgb, var(--wb-signal) 8%, transparent);
+}
+
+/* Wider than the space it stands in: marked where it runs over, never
+   clipped, so the author sees what the layout will have to answer for. */
+[data-report-part='box'][data-overflows='true'] {
+  box-shadow: inset -3px 0 0 var(--wb-caution);
+}
+
+[data-report-part='box'][data-dragging='true'] {
+  opacity: 0.4;
+}
+
+[data-report-part='box-label'] {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  max-width: 100%;
+  padding: 0 0.25rem;
+  overflow: hidden;
+  font: 0.625rem/1.4 var(--wb-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--wb-muted);
+  pointer-events: none;
+}
+
+/* A box shorter than its label -- a line, a thin rule -- draws no label:
+   one drawn anyway ran over the next box's label, and the two read as
+   neither (axe could not tell the colour behind either). The box is still
+   drawn, and named, and its row in the outline says what it is. */
+@container (height < 0.875rem) {
+  [data-report-part='box-label'] {
+    display: none;
+  }
+}
+
+/* A container's label sits at its top end, so the label of the first
+   thing inside it, at the top start, does not cover it; and above the
+   boxes inside it, the selected one's too, where axe could not tell the
+   colour behind it (0019). The drop indicators, drawn later, stay above. */
+[data-report-part='box']:is([data-kind='section'], [data-kind='columns'], [data-kind='keepTogether'], [data-kind='table']) > [data-report-part='box-label'] {
+  z-index: 2;
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+}
+
+:is([data-report-part='box'], [data-report-part='payment-part']) > [data-report-part='badge'] {
+  position: absolute;
+  inset-block-start: -0.5rem;
+  inset-inline-end: -0.5rem;
+}
