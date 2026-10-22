@@ -12,7 +12,7 @@
  */
 import type { AssetRef, ReportDefinition } from '@formancy/report-spec'
 import type { AddedImage, ImageStore } from './image-store.js'
-import { PROPERTY_ROLES } from './model.js'
+import { PROPERTY_ROLES } from './model-properties.js'
 import { scenarioReport } from './scenario-report.js'
 import type { BuilderScenario, ScenarioFile, ScenarioQuery, ScenarioStep } from './scenario-steps.js'
 import { editorText } from './text.js'

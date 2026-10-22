@@ -38,9 +38,19 @@ function slipLanguage(report: ReportDefinition): QrBillLanguage {
   return QR_BILL_LANGUAGES.find((candidate) => candidate === language) ?? 'en'
 }
 
-/** The QR-bill a person adds to `report`: SIX's third example, its headings in the report's language where SIX prints in it. */
+/**
+ * The QR-bill a person adds to `report`: SIX's third example, its headings
+ * in the report's language where SIX prints in it. In a report with an
+ * e-invoice, which holds every payment code printed with it to its
+ * currency and its account (0027), it is in the e-invoice's currency, to
+ * the account its payment instructions name, as written (0044): one a bill
+ * cannot pay -- not of Switzerland or Liechtenstein -- or none at all is
+ * refused in report-spec's words, as a page a bill is not printed on is.
+ */
 export function newPaymentPart(report: ReportDefinition): SwissQrBill {
-  return { kind: 'swissQrBill', language: slipLanguage(report), account: said(QR_BILL_EXAMPLE.account), creditor: address(QR_BILL_EXAMPLE.creditor), currency: 'CHF' }
+  const invoice = report.eInvoice
+  const bill: SwissQrBill = { kind: 'swissQrBill', language: slipLanguage(report), account: said(QR_BILL_EXAMPLE.account), creditor: address(QR_BILL_EXAMPLE.creditor), currency: 'CHF' }
+  return invoice === undefined ? bill : { ...bill, currency: invoice.currency, ...(invoice.payment === undefined ? {} : { account: invoice.payment.iban }) }
 }
 
 /** The text `runs` write when every run is literal, what no data can change; undefined otherwise. */

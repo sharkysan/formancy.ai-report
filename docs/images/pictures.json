@@ -1145,6 +1145,208 @@
     ]
   },
   {
+    "file": "starter-e-invoice.png",
+    "starter": "e-invoice",
+    "page": 1,
+    "scale": 1.25,
+    "sha256": "5b852048174c882c3f496686f098393a131760bc9d2f35a2629cde387c7d009d",
+    "caption": "The e-invoice starter, a German Rechnung under the firm's mark, whose final render is a PDF/A-3b that embeds its XML: its line items in euro, then Nettobetrag 743,30 €, Umsatzsteuer 19 % auf 635,80 €, Umsatzsteuer 7 % auf 107,50 € and Rechnungsbetrag 871,63 €, the totals the XML holds, and under them the Bankverbindung beside the EPC QR code that pays it",
+    "lines": [
+      "Formancy Haustechnik GmbH · Industriestraße 7 · 50735 Köln · USt-IdNr. DE123456789",
+      "Gasthaus Zur Linde GmbH",
+      "Rechnung",
+      "Venloer Straße 210",
+      "Rechnungsnummer: RE-2026-0820",
+      "50823 Köln",
+      "Rechnungsdatum: 16.10.2026",
+      "Leistungsdatum: 12.10.2026",
+      "Zahlbar bis: 30.10.2026",
+      "Artikel Beschreibung Menge Einheit Einzelpreis Betrag",
+      "H-3101 Wartung Gas- 1,00 Pausch. 245,00 € 245,00 €",
+      "Brennwertkessel",
+      "H-3102 Arbeitszeit Techniker 3,50 h 76,00 € 266,00 €",
+      "H-3103 Abgasmessung 1,00 Pausch. 48,00 € 48,00 €",
+      "H-3104 Dichtungssatz Brenner 2,00 Stk 18,90 € 37,80 €",
+      "H-3105 Kaminholz Buche, ofenfertig 250,00 kg 0,38 € 95,00 €",
+      "H-3106 Anzündholz Fichte 12,50 kg 1,00 € 12,50 €",
+      "H-3107 Anfahrt Köln 1,00 Pausch. 39,00 € 39,00 €",
+      "Nettobetrag 743,30 €",
+      "Umsatzsteuer 19 % auf 635,80 € 120,80 €",
+      "Umsatzsteuer 7 % auf 107,50 € 7,53 €",
+      "Umsatzsteuer gesamt 128,33 €",
+      "Rechnungsbetrag 871,63 €",
+      "Zahlbar ohne Abzug bis zum 30. Oktober 2026 auf das unten genannte Konto, unter Angabe der Referenz.",
+      "Bankverbindung",
+      "Empfänger: Formancy Haustechnik GmbH",
+      "IBAN: DE83 0123 4567 0012 3456 78",
+      "BIC: FMNCDEF0XXX",
+      "Betrag: 871,63 €",
+      "Referenz: RF34 2026 0820",
+      "Oder scannen Sie den Code links mit Ihrer Banking-App."
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        133.86
+      ],
+      [
+        348.59,
+        134.63
+      ],
+      [
+        56.69,
+        145.58
+      ],
+      [
+        348.59,
+        152.61
+      ],
+      [
+        56.69,
+        157.3
+      ],
+      [
+        348.59,
+        164.33
+      ],
+      [
+        348.59,
+        176.05
+      ],
+      [
+        348.59,
+        187.77
+      ],
+      [
+        60.69,
+        219.86
+      ],
+      [
+        60.69,
+        234.91
+      ],
+      [
+        156.69,
+        245.45
+      ],
+      [
+        60.69,
+        260.5
+      ],
+      [
+        60.69,
+        275.55
+      ],
+      [
+        60.69,
+        290.59
+      ],
+      [
+        60.69,
+        305.64
+      ],
+      [
+        60.69,
+        320.69
+      ],
+      [
+        60.69,
+        335.73
+      ],
+      [
+        56.69,
+        354.91
+      ],
+      [
+        56.69,
+        366.63
+      ],
+      [
+        56.69,
+        378.35
+      ],
+      [
+        56.69,
+        390.07
+      ],
+      [
+        56.69,
+        401.85
+      ],
+      [
+        56.69,
+        426.09
+      ],
+      [
+        56.69,
+        455.81
+      ],
+      [
+        159.4,
+        467.53
+      ],
+      [
+        159.4,
+        479.25
+      ],
+      [
+        159.4,
+        490.96
+      ],
+      [
+        159.4,
+        502.68
+      ],
+      [
+        159.4,
+        514.4
+      ],
+      [
+        159.4,
+        531.86
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          56.69,
+          466.25,
+          90.71,
+          90.71
+        ],
+        "paints": [
+          "#000000",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #ffffff [56.69, 466.25, 90.71, 90.71]",
+          "fill #000000 [63.54, 473.1, 77.02, 77.02]"
+        ]
+      }
+    ]
+  },
+  {
     "file": "starter-site-visit.png",
     "starter": "site-visit",
     "page": 1,

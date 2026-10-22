@@ -74,7 +74,7 @@ type TermFields = (bill: SwissQrBill, context: FieldContext) => readonly PanelSp
 /** Each term's fields, in the order the panel shows them. */
 const TERMS: { readonly [K in Exclude<keyof SwissQrBill, 'kind'>]-?: TermFields } = {
   account: (bill, context) => codeTextFields(bill.account, '/account', 'field.iban', context),
-  creditor: (bill, context): GroupSpec[] => [{ key: '/creditor', words: 'group.creditor', fields: addressFields('creditor', bill.creditor, context) }],
+  creditor: (bill, context): GroupSpec[] => [{ key: '/creditor', words: 'group.creditor', fields: addressFields('creditor', bill.creditor, context), buttons: [] }],
   amount: (bill) => [expressionField('/amount', { id: 'field.amount' }, bill.amount?.cel, false)],
   currency: (bill) => [choiceField('/currency', { id: 'field.currency' }, 'select', QR_BILL_CURRENCIES.map((code) => ({ value: code, label: code, stored: code })), bill.currency)],
   debtor: (bill, context) => [optionalGroup('/debtor', 'group.debtor', bill.debtor === undefined ? undefined : addressFields('debtor', bill.debtor, context), EXAMPLE_DEBTOR, DEBTOR)],

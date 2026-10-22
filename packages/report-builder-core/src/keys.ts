@@ -10,7 +10,7 @@
  * of one. Undo, redo and zoom work anywhere in the editor. A text field keeps
  * its own keys and is never asked: its Ctrl+Z undoes typing, not the report.
  */
-import type { EditorAction } from './model.js'
+import type { EditorAction } from './model-actions.js'
 
 /** A key press, as a KeyboardEvent says it. */
 export interface KeyPress {

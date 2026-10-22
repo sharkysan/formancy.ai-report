@@ -105,6 +105,20 @@ document and sends it, and the renderer draws its PDF as a plain copy,
 refused unless its header leads with the runtime's
 `XRECHNUNG_COPY_PARAGRAPH`
 ([0038](docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+Both builders select a report's e-invoice, from its outline row after the
+bill's, and edit it field by field -- report-builder-core's
+`invoice-fields.ts` is a table over every term of either kind, its VAT
+categories a list -- through report-core's `updateEInvoice`, Delete
+through `removeEInvoice`, `putEInvoice` being a host's, a paste's or a
+proposal's; the account it shares with its QR-bill and every EPC QR code
+is one edit, `setPaymentAccount`, wherever a person types it, where every
+one of them writes it in the report, and the field's own command where
+one reads it from the data, which `setPaymentAccount` refuses as
+`read-from-data`; `PART_COMMANDS` lists all four, and a payment code added
+to such a report pays its account; only its totals and its lines are held
+to the page, and an e-invoice is edited and never added from nothing, the
+corpus's e-invoice sample a starter
+([0044](docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
 An SVG asset runs through three of them and passes the core by: its rules
 are report-spec's `svg.ts` and the `svg-*.ts` beside it, `cleanSvg`, which
 cleans the file once where a host approves it into the one form the
@@ -192,8 +206,9 @@ before it:
    hashing and migrations. No framework, no driver, no PDF engine, no Node.
 2. `report-core` -- pure document commands, atomic history, diagnostics.
 3. `report-builder-core` -- selection, palette, properties, geometry, review
-   state, the images a person adds; then `report-builder-react` and `report-builder-angular`, native,
-   never depending on each other.
+   state, the images a person adds, a report's QR-bill and e-invoice edited
+   as parts of its own level; then `report-builder-react` and
+   `report-builder-angular`, native, never depending on each other.
 4. `report-runtime` -- typed datasets, expressions, grouping, exact aggregates,
    a renderer-neutral output.
 5. `report-render-pdf` -- the one chosen engine's adapter. It takes resolved
@@ -410,13 +425,19 @@ What holds this section:
   nothing past either edge down to 320 pixels, the first Tab on the skip
   link and the next into the content, axe's colour-contrast and
   target-size rules at every starter in both builders, each PDF drawn on
-  white with the text it prints, each Download PDF's drawings, path by
+  white with the text it prints, an e-invoice's with Final on, each
+  Download PDF's drawings, path by
   path, what `docs/images/pictures.json` records (0032), the framework
   switch, a real pointer's
   drag, the place chooser, the invoice's QR-bill selected by its band in
   each builder, an IBAN refused on its field and one typed, decoded from
-  the Download PDF's pixels and undone (`gate-payment-part.mjs`, 0039), a
-  pane and the Preview hidden and shown again,
+  the Download PDF's pixels and undone (`gate-payment-part.mjs`, 0039), the
+  e-invoice starter's e-invoice selected from its row in each builder, its
+  buyer's electronic address, a VAT rate and its IBAN typed, each read back
+  from the XML its final Download PDF embeds and held to the page it
+  prints, the IBAN to the EPC QR code decoded from its pixels too, and
+  undone (`gate-e-invoice.mjs`, 0044), a pane and the Preview hidden and
+  shown again,
   the Preview beside the builder where the window has room for it and
   swapped with the design view where it has not, a pane hidden as an edit
   prints, the design view holding a page at 100 % wherever the Preview

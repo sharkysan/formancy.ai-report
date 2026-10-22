@@ -9,7 +9,7 @@
  */
 import { QR_BILL_EXAMPLE } from '@formancy/report-spec'
 import type { ReportDefinition, SwissQrBill } from '@formancy/report-spec'
-import { PROPERTY_ROLES } from './model.js'
+import { PROPERTY_ROLES } from './model-properties.js'
 import { scenarioReport } from './scenario-report.js'
 import { billedReport } from './scenario-payments.js'
 import type { BuilderScenario, ScenarioQuery, ScenarioStep } from './scenario-steps.js'

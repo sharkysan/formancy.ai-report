@@ -205,6 +205,18 @@
   inset-inline-end: 0;
 }
 
+/* A container no taller than two labels -- a columns block of one line,
+   as each of the e-invoice starter's totals is (0044) -- would draw its
+   label on the line the label of what stands at the top of its last
+   column is drawn on, the one over the other, and axe could not tell the
+   colour behind either: it draws none of its own, as a box shorter than
+   its label draws none. The box is still drawn, and named. */
+@container (height < 1.75rem) {
+  [data-report-part='box']:is([data-kind='section'], [data-kind='columns'], [data-kind='keepTogether'], [data-kind='table']) > [data-report-part='box-label'] {
+    display: none;
+  }
+}
+
 :is([data-report-part='box'], [data-report-part='payment-part']) > [data-report-part='badge'] {
   position: absolute;
   inset-block-start: -0.5rem;

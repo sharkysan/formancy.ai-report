@@ -1,8 +1,9 @@
 import { COMPONENT_KINDS, componentAt, emptyReport, mmToPt, ptToMm, validateReport } from '@formancy/report-spec'
 import type { Component, ComponentKind, PageSettings, QrCodeComponent, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
-import type { EditorOutcome, PropertyField } from './model.js'
-import { PROPERTY_KINDS, PROPERTY_ROLES } from './model.js'
+import type { EditorOutcome } from './model-actions.js'
+import type { PropertyField } from './model-properties.js'
+import { PROPERTY_KINDS, PROPERTY_ROLES } from './model-properties.js'
 import { defaultComponent } from './palette.js'
 import { editorOver, richReport } from './test-support.js'
 

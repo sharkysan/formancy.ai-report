@@ -37,6 +37,23 @@ palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pi
 saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle
 tomato turquoise violet wheat white whitesmoke yellow yellowgreen`.split(/\s+/)
 
+/** The selectors of one rule's list, split at its own commas and not at those inside a pseudo-class's parentheses. */
+function selectorsOf(list: string): string[] {
+  const found: string[] = []
+  let depth = 0
+  let start = 0
+  for (let at = 0; at < list.length; at += 1) {
+    const char = list[at]
+    if (char === '(') depth += 1
+    else if (char === ')') depth -= 1
+    else if (char === ',' && depth === 0) {
+      found.push(list.slice(start, at).trim())
+      start = at + 1
+    }
+  }
+  return [...found, list.slice(start).trim()]
+}
+
 /** The text without comments, which may name a colour in prose. */
 function uncommented(text: string): string {
   return text.replace(/\/\*[\s\S]*?\*\//g, '')
@@ -198,6 +215,40 @@ describe('report-builder.css', () => {
     expect(selectedBoxes.length).toBeGreaterThanOrEqual(1)
     expect(badges.length).toBeGreaterThanOrEqual(1)
     for (const selector of [...selectedBoxes, ...badges]) expect(selector).toContain("[data-report-part='payment-part']")
+  })
+
+  // A container no taller than two labels -- a columns block of one line,
+  // as each of the e-invoice starter's totals is (0044) -- has its own
+  // label at its top end on the same line as the label of what stands at
+  // the top of its last column; drawn, one covered the other, and axe could
+  // not tell the colour behind either. Such a container draws no label of
+  // its own, as a box shorter than its label draws none.
+  test('draws no label of its own on a container no taller than two labels', () => {
+    const queries = [...RULES.matchAll(/@container\s*\(height < ([\d.]+)rem\)\s*\{([^@]*?)\}\s*\}/g)].map((match) => ({ height: Number(match[1]), body: match[2] ?? '' }))
+    const containers = queries.filter((query) => query.height >= 1.75 && /\[data-kind='columns'\][^{]*>\s*\[data-report-part='box-label'\]/.test(query.body))
+    expect(containers.length).toBe(1)
+    expect(containers[0]?.body).toMatch(/display:\s*none/)
+    for (const kind of ['section', 'columns', 'keepTogether', 'table']) expect(containers[0]?.body).toContain(`[data-kind='${kind}']`)
+  })
+
+  // A group's button with nowhere to go -- the first VAT category's Move
+  // up (0044) -- is aria-disabled and still sent, as a tool is: drawn
+  // otherwise than a tool, it would look like one that does something, and
+  // hovered otherwise, like one that wakes. Every selector that dresses an
+  // unavailable tool, its state and pseudo-class kept -- `:hover` among
+  // them -- stands in its rule with the group's button's counterpart.
+  // Each rule's list is read selector by selector, split at its own commas
+  // and not at those inside `:is()`, since one selector of a list taken
+  // away leaves the list's text holding the others.
+  test('draws a group’s unavailable button as an unavailable tool is drawn, hovered or not', () => {
+    const DISABLED = "button[aria-disabled='true']"
+    const lists = [...RULES.matchAll(/([^{}]+)\{/g)].map((match) => selectorsOf((match[1] ?? '').trim()))
+    const tools = lists.flatMap((list) => list.filter((selector) => selector.includes("[data-report-part='toolbar']") && selector.includes(DISABLED)).map((selector) => ({ selector, list })))
+    expect(tools.length).toBeGreaterThanOrEqual(2)
+    for (const { selector, list } of tools) {
+      const state = selector.slice(selector.indexOf(DISABLED) + DISABLED.length)
+      expect(list, selector).toContain(`[data-report-part='property-group'] > ${DISABLED}${state}`)
+    }
   })
 
   // The source-size guard counts stylesheets, each file on its own; the

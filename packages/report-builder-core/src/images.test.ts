@@ -13,7 +13,7 @@ import { createReportEditor } from './editor.js'
 import type { ReportEditor } from './editor.js'
 import type { ImageFile, KeptImage } from './image-store.js'
 import { chosen, eInvoiceReport, GIF, jpeg, png, recordingStore, utf8, xrechnungReport } from './image-test-support.js'
-import type { EditorOutcome } from './model.js'
+import type { EditorOutcome } from './model-actions.js'
 import { editorOver, richReport, sessionOver } from './test-support.js'
 import { editorText } from './text.js'
 

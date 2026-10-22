@@ -153,11 +153,14 @@ const STATES = [
     },
   },
   {
-    // The invoice's bill from its row after the regions; any other starter given SIX's example from its own properties, which selects it, the keyboard on its IBAN (0039).
-    state: 'the QR-bill selected, its row after the regions',
+    // The invoice's bill from its row after the regions; the e-invoice's e-invoice from its row, an e-invoice in euro taking no bill of SIX's example, which asks for francs (0044); any other starter given SIX's example from its own properties, which selects it, the keyboard on its IBAN (0039).
+    state: 'a payment part selected, its row after the regions: the QR-bill, or the e-invoice',
     step: async ({ editor }) => {
-      const row = (await showing(editor, 'Outline', treeOf(editor))).getByRole('treeitem', { name: 'Payment part', exact: true })
+      const tree = await showing(editor, 'Outline', treeOf(editor))
+      const row = tree.getByRole('treeitem', { name: 'Payment part', exact: true })
+      const invoice = tree.getByRole('treeitem', { name: 'E-invoice', exact: true })
       if ((await row.count()) === 1) await row.click()
+      else if ((await invoice.count()) === 1) await invoice.click()
       else {
         // The outline shown from the toolbar put the keyboard on a row, which selected it: the report's own properties are a button away.
         await showing(editor, 'Properties', editor.getByRole('form'))
@@ -176,6 +179,37 @@ const STATES = [
       await iban.press('Tab')
       // The live region says why, in the field's words, once the editor has refused it.
       await editor.getByRole('status').filter({ hasText: /^IBAN: / }).waitFor()
+    },
+  },
+  {
+    // The e-invoice's VAT categories a list (0044): its last taken away, the keyboard on the list's Add, which the starter's four breakdowns
+    // had left unavailable; then one added, the keyboard on its identifier. Walked where the starter has an e-invoice.
+    state: 'a VAT category taken away from the e-invoice',
+    only: async ({ editor }) => (await (await showing(editor, 'Outline', treeOf(editor))).getByRole('treeitem', { name: 'E-invoice', exact: true }).count()) === 1,
+    step: async ({ editor }) => {
+      await (await showing(editor, 'Outline', treeOf(editor))).getByRole('treeitem', { name: 'E-invoice', exact: true }).click()
+      const removed = (await showing(editor, 'Properties', editor.getByRole('form'))).getByRole('button', { name: /^Remove VAT category \d+$/ }).last()
+      await removed.click()
+      await editor.getByRole('status').filter({ hasText: /^Removed VAT category \d+\.$/ }).waitFor()
+    },
+  },
+  {
+    state: 'a VAT category added to the e-invoice',
+    only: async ({ editor }) => (await editor.getByRole('button', { name: 'Add VAT category', exact: true }).count()) === 1,
+    step: async ({ editor }) => {
+      await (await showing(editor, 'Properties', editor.getByRole('button', { name: 'Add VAT category', exact: true }))).click()
+      await editor.getByRole('status').filter({ hasText: /^Added VAT category \d+\.$/ }).waitFor()
+    },
+  },
+  {
+    state: 'a rate EN 16931 refuses, refused on its field',
+    only: async ({ editor }) => (await editor.getByRole('textbox', { name: 'VAT category 1: rate in per cent', exact: true }).count()) === 1,
+    step: async ({ editor }) => {
+      const rate = await showing(editor, 'Properties', editor.getByRole('textbox', { name: 'VAT category 1: rate in per cent', exact: true }))
+      await rate.fill('0.4')
+      await rate.press('Tab')
+      // The live region says why, in the field's words, once the editor has refused it.
+      await editor.getByRole('status').filter({ hasText: /^VAT category 1: rate in per cent: / }).waitFor()
     },
   },
   ...['Outline', 'Design view', 'Properties', 'Problems'].map((pane) => ({
@@ -240,8 +274,9 @@ async function walked(browser, url, { id, framework, viewport, refuseFonts }) {
   const reached = new Map()
   try {
     const walk = { page, url, id, framework, editor: editorOf(page), placed: undefined }
-    for (const { state, step } of STATES) {
+    for (const { state, step, only } of STATES) {
       try {
+        if (only !== undefined && !(await only(walk))) continue
         await step(walk)
         reached.set(state, await settled(page, cdp))
       } catch (error) {

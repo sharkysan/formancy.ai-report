@@ -18,7 +18,12 @@
   Extended by [0039](0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md): the editor selects a part of the report's own level,
   its QR-bill, as it does a component, from its outline row or its band,
   and the properties draw groups of fields, decided in the model, which
-  both builders draw alike.
+  both builders draw alike. Extended by
+  [0044](0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md): the e-invoice
+  is such a part too, a group of fields carries a list of buttons, each
+  saying whether it has somewhere to go and where the keyboard goes once
+  it is done, and a list of groups is edited item by item, both builders
+  following the model.
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** each package's `test:coverage` job in CI, the `verify` job

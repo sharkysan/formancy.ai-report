@@ -17,25 +17,8 @@ import type { Layout } from './geometry.js'
 import { addRefusal, imageLibrary } from './images.js'
 import type { Images } from './images.js'
 import { columnKey, kindLabel, partLabel, regionLabel, reportLabels } from './labels.js'
-import type {
-  Announcement,
-  Availability,
-  Box,
-  Canvas,
-  CanvasPaymentPart,
-  DiagnosticEntry,
-  DragState,
-  DragSubject,
-  DropTarget,
-  EditorPanel,
-  EditorState,
-  HideablePanel,
-  HistoryState,
-  HostView,
-  PaletteEntry,
-  ReportLevelPart,
-  Selection,
-} from './model.js'
+import type { Announcement, Availability, DiagnosticEntry, DragState, DragSubject, DropTarget, EditorPanel, EditorState, HideablePanel, HistoryState, HostView, PaletteEntry, ReportLevelPart, Selection } from './model.js'
+import type { Box, Canvas, CanvasPaymentPart } from './model-canvas.js'
 import { REPORT_LEVEL_PARTS } from './model.js'
 import { buildOutline, outlineOrder, outlineParts, selectionKey } from './outline.js'
 import { paletteEntries } from './palette.js'

@@ -2,7 +2,8 @@ import { pageDimensions, printableArea, REGION_NAMES } from '@formancy/report-sp
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { clampZoom, MAX_ZOOM, MIN_ZOOM, PX_PER_PT, zoomedIn, zoomedOut, ZOOM_STEPS } from './geometry.js'
-import type { Box, CanvasBox, EditorOutcome } from './model.js'
+import type { EditorOutcome } from './model-actions.js'
+import type { Box, CanvasBox } from './model-canvas.js'
 import { editorOver, richReport } from './test-support.js'
 
 function ok(outcome: EditorOutcome): void {

@@ -40,10 +40,11 @@ describe('the starters', () => {
   })
 
   // Plan 7's three, the invoice with its QR-bill, the invoice with its
-  // EPC code and the report generated from a formancy form are six
-  // different proofs; two with one id would be one proof counted twice.
-  test('are six, each with its own id', () => {
-    expect(STARTERS.map(({ id }) => id)).toEqual(['service-inspection', 'quotation', 'grouped-equipment', 'invoice', 'euro-invoice', 'site-visit'])
+  // EPC code, the e-invoice (0044) and the report generated from a formancy
+  // form are seven different proofs; two with one id would be one proof
+  // counted twice.
+  test('are seven, each with its own id', () => {
+    expect(STARTERS.map(({ id }) => id)).toEqual(['service-inspection', 'quotation', 'grouped-equipment', 'invoice', 'euro-invoice', 'e-invoice', 'site-visit'])
   })
 })
 

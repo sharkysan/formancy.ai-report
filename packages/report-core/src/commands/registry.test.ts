@@ -7,6 +7,7 @@ import { accepted, eInvoiceSample, frozenSample, refused, sampleReport } from '.
 import * as components from './components.js'
 import * as declarations from './declarations.js'
 import * as document from './document.js'
+import * as eInvoice from './e-invoice.js'
 import * as paymentPart from './payment-part.js'
 import { ARGUMENTS, COMMANDS, describedCommand, PART_COMMANDS } from './registry.js'
 import type { CommandDescriptor, CommandName } from './registry.js'
@@ -28,6 +29,8 @@ function open(report?: ReportDefinition): ReportSession {
 }
 
 const HEADER = sampleReport().datasets.header ?? { id: 'none', fields: [] }
+const INVOICE_SAMPLE = eInvoiceSample().eInvoice
+if (INVOICE_SAMPLE === undefined) throw new Error('the e-invoice sample has no e-invoice to edit')
 const BILL = sampleReport().paymentPart
 if (BILL === undefined) throw new Error('the sample has no bill to edit')
 
@@ -79,6 +82,16 @@ const EXAMPLES: { readonly [N in CommandName]: { readonly descriptor: Extract<Co
   putPaymentPart: { descriptor: { command: 'putPaymentPart', args: [{ ...BILL, language: 'fr' }] } },
   updatePaymentPart: { descriptor: { command: 'updatePaymentPart', args: [{ message: null, account: [{ kind: 'text', text: 'CH64 3196 1000 0044 2155 7' }] }] } },
   removePaymentPart: { descriptor: { command: 'removePaymentPart', args: [] } },
+  // The e-invoice sample's e-invoice, put in whole; then patched, its terms
+  // given and its paid amount removed; then taken away; and its account
+  // changed with every payment code's (0044). The sample is no e-invoice,
+  // and its bill asks for francs to a QR-IBAN, which an e-invoice in euro
+  // refuses: on it each is refused, and each is an edit made on the billed
+  // e-invoice below.
+  putEInvoice: { descriptor: { command: 'putEInvoice', args: [INVOICE_SAMPLE] }, refusedAs: 'invalid-document' },
+  updateEInvoice: { descriptor: { command: 'updateEInvoice', args: [{ terms: said('Zahlbar binnen 14 Tagen'), paid: null }] }, refusedAs: 'not-found' },
+  removeEInvoice: { descriptor: { command: 'removeEInvoice', args: [] }, refusedAs: 'not-found' },
+  setPaymentAccount: { descriptor: { command: 'setPaymentAccount', args: ['CH58 0079 1123 0008 8901 2'] }, refusedAs: 'not-found' },
 }
 
 const DESCRIPTORS: readonly CommandDescriptor[] = Object.values(EXAMPLES).map(({ descriptor }) => descriptor)
@@ -93,7 +106,7 @@ describe('COMMANDS', () => {
   // two that name a new component or asset read a report and change none,
   // so they are no commands.
   test('holds every command the command modules export, under its own name', () => {
-    const modules = { ...document, ...declarations, ...components, ...table, ...paymentPart }
+    const modules = { ...document, ...declarations, ...components, ...table, ...paymentPart, ...eInvoice }
     const exported = Object.entries(modules)
       .filter(([name, value]) => typeof value === 'function' && name !== 'nextComponentId' && name !== 'nextAssetId')
       .map(([name]) => name)
@@ -114,19 +127,84 @@ describe('COMMANDS', () => {
   })
 })
 
+/**
+ * The e-invoice sample with a QR-bill it takes: its payment account
+ * (BT-84) one of Switzerland, which a bill can pay, its EPC QR code
+ * paying it too, with a Swiss bank's BIC, as an account outside the EEA
+ * needs, and the bill in euro to it, as one printed with an e-invoice
+ * must be (0022, 0027). On it the commands of either part are edits the
+ * validator accepts, so that what keeps the other part is shown by an
+ * edit made, not by one refused.
+ */
+function billedEInvoice(): ReportDefinition {
+  const report = eInvoiceSample()
+  const invoice = report.eInvoice as NonNullable<ReportDefinition['eInvoice']>
+  const account = said('CH93 0076 2011 6238 5295 7')
+  const summary = report.regions.summary.map((component) => (component.kind === 'epcQrCode' ? { ...component, iban: account, bic: said('POFICHBEXXX') } : component))
+  return {
+    ...report,
+    regions: { ...report.regions, summary },
+    eInvoice: { ...invoice, payment: { ...(invoice.payment as NonNullable<typeof invoice.payment>), iban: account } },
+    paymentPart: { kind: 'swissQrBill', language: 'de', account, creditor: (BILL as NonNullable<typeof BILL>).creditor, currency: 'EUR' },
+  }
+}
+
+const BILLED = billedEInvoice()
+const INVOICE = BILLED.eInvoice as NonNullable<ReportDefinition['eInvoice']>
+const BILLED_BILL = BILLED.paymentPart as NonNullable<ReportDefinition['paymentPart']>
+
+/**
+ * The examples as they run on the billed e-invoice, where an example's
+ * arguments are another report's or the sample refuses it: the bill's
+ * own, in French and patched to French, as its bill takes them; a
+ * replacement, that report with another number and another bill's
+ * headings; and the e-invoice put whole, with another number. The rest
+ * run as written: the e-invoice's patch, its removal and the account the
+ * two share, another Swiss account, are edits of it as they stand.
+ */
+const ON_E_INVOICE: { readonly [N in CommandName]?: Extract<CommandDescriptor, { command: N }> } = {
+  replaceDocument: { command: 'replaceDocument', args: [{ ...BILLED, title: 'Pasted', eInvoice: { ...INVOICE, number: said('RE-2026') }, paymentPart: { ...BILLED_BILL, language: 'it' } }] },
+  putPaymentPart: { command: 'putPaymentPart', args: [{ ...BILLED_BILL, language: 'fr' }] },
+  updatePaymentPart: { command: 'updatePaymentPart', args: [{ language: 'fr' }] },
+  putEInvoice: { command: 'putEInvoice', args: [{ ...INVOICE, number: said('RE-2027') }] },
+}
+
+/** Every example as it runs on the billed e-invoice. */
+const ON_BILLED: readonly CommandDescriptor[] = DESCRIPTORS.map((descriptor): CommandDescriptor => ON_E_INVOICE[descriptor.command] ?? descriptor)
+
+/** What refuses an example on the billed e-invoice: its lines are printed by the column and from the header the examples remove. */
+const REFUSED_ON_BILLED: { readonly [N in CommandName]?: RefusalCode } = {
+  removeDataset: 'invalid-document',
+  removeColumn: 'invalid-document',
+}
+
+/**
+ * Each command the registry lists for a part, with the report its example
+ * is an edit of: the sample, where the sample accepts it; else the billed
+ * e-invoice, where every example is one.
+ */
+function listedEdits(names: readonly CommandName[]): readonly { readonly descriptor: CommandDescriptor; readonly on: 'sample' | 'billed e-invoice' }[] {
+  return DESCRIPTORS.filter((descriptor) => names.includes(descriptor.command)).map((descriptor) =>
+    EXAMPLES[descriptor.command].refusedAs === undefined ? { descriptor, on: 'sample' } : { descriptor: ON_E_INVOICE[descriptor.command] ?? descriptor, on: 'billed e-invoice' },
+  )
+}
+
 describe('the payment part', () => {
-  /** The commands the registry lists as ones that may change the payment part (0039). */
+  /** The commands the registry lists as ones that may change the payment part (0039, 0044). */
   const editing: readonly CommandName[] = PART_COMMANDS.paymentPart
 
   // The commands the registry lists for the payment part -- its own three,
-  // and a replacement of the whole document -- are the only ones that may
-  // change it, and no other may drop it: an edit to a title that lost the
-  // report's QR-bill would send an invoice nobody can pay, and say
-  // nothing. Every other command, run on a report that holds one, leaves
-  // the very bill it found. Which ones those are is read from the
-  // registry, never typed here, so a command added to edit the bill is
-  // held to editing it and no other is let off.
-  test.each(DESCRIPTORS.filter((descriptor) => !editing.includes(descriptor.command)))('$command keeps it as it was', (descriptor) => {
+  // the account it shares with an e-invoice, and a replacement of the
+  // whole document -- are the only ones that may change it, and no other
+  // may drop it: an edit to a title, or to the e-invoice printed with it,
+  // that lost the report's QR-bill would send an invoice nobody can pay,
+  // and say nothing. Every other command, run on a report that holds one
+  // -- the sample, and the billed e-invoice, where the e-invoice's own
+  // commands are edits made rather than refused -- leaves the very bill it
+  // found. Which ones those are is read from the registry, never typed
+  // here, so a command added to edit the bill is held to editing it and
+  // no other is let off.
+  test.each(DESCRIPTORS.filter((descriptor) => !editing.includes(descriptor.command)))('$command keeps it as it was, on the sample', (descriptor) => {
     const session = open()
     const before = session.document().paymentPart
     expect(before).toBeDefined()
@@ -134,83 +212,50 @@ describe('the payment part', () => {
     expect(session.document().paymentPart).toBe(before)
   })
 
+  test.each(ON_BILLED.filter((descriptor) => !editing.includes(descriptor.command)))('$command keeps it as it was, on the billed e-invoice', (descriptor) => {
+    const session = open(BILLED)
+    const before = session.document().paymentPart
+    const outcome = session.apply(descriptor)
+    expect(outcome.ok ? 'accepted' : outcome.code).toBe(REFUSED_ON_BILLED[descriptor.command] ?? 'accepted')
+    expect(session.document().paymentPart).toBe(before)
+  })
+
   // And each command the registry lists does edit it, as its example
-  // shows: one listed that kept the bill would let a command off the test
-  // above for nothing.
-  test.each(DESCRIPTORS.filter((descriptor) => editing.includes(descriptor.command)))('$command, listed as one that may change it, changes it', (descriptor) => {
-    const session = open()
+  // shows on the report it is an edit of: one listed that kept the bill
+  // would let a command off the tests above for nothing.
+  test.each(listedEdits(editing))('$descriptor.command, listed as one that may change it, changes it on the $on', ({ descriptor, on }) => {
+    const session = open(on === 'sample' ? undefined : BILLED)
     const before = session.document().paymentPart
     expect(accepted(session.apply(descriptor)).paymentPart).not.toBe(before)
   })
 })
 
 describe('the e-invoice', () => {
-  /**
-   * The e-invoice sample with a QR-bill it takes: its payment account
-   * (BT-84) one of Switzerland, which a bill can pay, its EPC QR code
-   * paying it too, with a Swiss bank's BIC, as an account outside the EEA
-   * needs, and the bill in euro to it, as one printed with an e-invoice
-   * must be (0022, 0027). On it the bill's own commands are edits the
-   * validator accepts, so that what keeps the e-invoice is shown by an
-   * edit of the bill made, not by one refused.
-   */
-  function billedEInvoice(): ReportDefinition {
-    const report = eInvoiceSample()
-    const invoice = report.eInvoice as NonNullable<ReportDefinition['eInvoice']>
-    const account = said('CH93 0076 2011 6238 5295 7')
-    const summary = report.regions.summary.map((component) => (component.kind === 'epcQrCode' ? { ...component, iban: account, bic: said('POFICHBEXXX') } : component))
-    return {
-      ...report,
-      regions: { ...report.regions, summary },
-      eInvoice: { ...invoice, payment: { ...(invoice.payment as NonNullable<typeof invoice.payment>), iban: account } },
-      paymentPart: { kind: 'swissQrBill', language: 'de', account, creditor: (BILL as NonNullable<typeof BILL>).creditor, currency: 'EUR' },
-    }
-  }
-
-  const BILLED = billedEInvoice()
-  const INVOICE = BILLED.eInvoice as NonNullable<ReportDefinition['eInvoice']>
-
-  /**
-   * The examples whose arguments are another report's, as they run on the
-   * billed e-invoice: the bill's own, in French and patched to French, as
-   * its bill takes them; a replacement, that report with another number.
-   */
-  const ON_E_INVOICE: { readonly [N in CommandName]?: Extract<CommandDescriptor, { command: N }> } = {
-    replaceDocument: { command: 'replaceDocument', args: [{ ...BILLED, title: 'Pasted', eInvoice: { ...INVOICE, number: said('RE-2026') } }] },
-    putPaymentPart: { command: 'putPaymentPart', args: [{ ...(BILLED.paymentPart as NonNullable<ReportDefinition['paymentPart']>), language: 'fr' }] },
-    updatePaymentPart: { command: 'updatePaymentPart', args: [{ language: 'fr' }] },
-  }
-  const examples = DESCRIPTORS.map((descriptor): CommandDescriptor => ON_E_INVOICE[descriptor.command] ?? descriptor)
-
-  /** What refuses an example on the billed e-invoice besides what refuses it on `base()`: its lines are printed by the column the example removes. */
-  const REFUSED: { readonly [N in CommandName]?: RefusalCode } = {
-    removeDataset: 'invalid-document',
-    removeColumn: 'invalid-document',
-  }
-
-  /** The commands the registry lists as ones that may change the e-invoice: a replacement of the whole document alone, until it is edited. */
+  /** The commands the registry lists as ones that may change the e-invoice: its own four and a replacement of the whole document (0044). */
   const editing: readonly CommandName[] = PART_COMMANDS.eInvoice
 
-  // No command edits the e-invoice yet, and none but a replacement of the
-  // whole document may drop or change it: an edit to a title, or to the
-  // bill printed with it, that lost the report's e-invoice would render a
-  // page whose XML is gone, and say nothing. Every command the registry
-  // does not list for it, run on a report that is one and holds a bill, is
-  // the edit its example is -- the bill's own put, patched and removed
-  // among them -- refused only where the e-invoice's lines need what it
-  // removes, and leaves the very e-invoice it found.
-  test.each(examples.filter((descriptor) => !editing.includes(descriptor.command)))('$command keeps it as it was', (descriptor) => {
+  // None but the commands the registry lists for it -- its put, patch and
+  // removal, the account it shares, a replacement of the whole document --
+  // may drop or change it: an edit to a title, or to the bill printed with
+  // it, that lost the report's e-invoice would render a page whose XML is
+  // gone, and say nothing. Every command the registry does not list for
+  // it, run on a report that is one and holds a bill, is the edit its
+  // example is -- the bill's own put, patched and removed among them --
+  // refused only where the e-invoice's lines need what it removes, and
+  // leaves the very e-invoice it found.
+  test.each(ON_BILLED.filter((descriptor) => !editing.includes(descriptor.command)))('$command keeps it as it was', (descriptor) => {
     const session = open(BILLED)
     const before = session.document().eInvoice
     expect(before).toBeDefined()
     const outcome = session.apply(descriptor)
-    expect(outcome.ok ? 'accepted' : outcome.code).toBe(REFUSED[descriptor.command] ?? 'accepted')
+    expect(outcome.ok ? 'accepted' : outcome.code).toBe(REFUSED_ON_BILLED[descriptor.command] ?? 'accepted')
     expect(session.document().eInvoice).toBe(before)
   })
 
   // And each command the registry lists for it does change it, as its
-  // example shows: a replacement whose e-invoice is another's.
-  test.each(examples.filter((descriptor) => editing.includes(descriptor.command)))('$command, listed as one that may change it, changes it', (descriptor) => {
+  // example shows: the e-invoice's own, the account, and a replacement
+  // whose e-invoice is another's.
+  test.each(ON_BILLED.filter((descriptor) => editing.includes(descriptor.command)))('$command, listed as one that may change it, changes it', (descriptor) => {
     const session = open(BILLED)
     const before = session.document().eInvoice
     expect(accepted(session.apply(descriptor)).eInvoice).not.toBe(before)

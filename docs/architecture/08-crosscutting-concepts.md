@@ -459,9 +459,13 @@ A report's payment codes -- the QR-bill at its own level, an EPC QR code in
 a region -- and an e-invoice's BT-84 name an account, the one term a person
 can edit that changes whom money reaches. Every edit of one is a command, so
 a review of a proposal can find it by name: report-core's registry lists the
-commands that may change the bill (`PART_COMMANDS`), `replaceDocument` among
-them, whose bill a review compares whole, and an EPC code's account is an
-`updateComponent` of its `iban`. The checks are report-spec's, the
+commands that may change the bill and the e-invoice (`PART_COMMANDS`),
+`replaceDocument` among them, whose parts a review compares whole, and an
+EPC code's account is an `updateComponent` of its `iban`. In a report with
+an e-invoice the one account is changed everywhere at once, by
+`setPaymentAccount`, wherever a person types it where every place writes
+it in the report -- where one reads it from the data, each field writes
+its own -- and a review finds that command by its name ([0044](../decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)). The checks are report-spec's, the
 same for a literal the editor refuses and data the runtime refuses: an IBAN's
 country, length and check digits, the QR-IBAN's pairing with its reference,
 and, with an e-invoice, one account for the page and its XML

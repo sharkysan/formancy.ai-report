@@ -6,19 +6,26 @@
  * `useSyncExternalStore` and Angular sets a signal from it; what either
  * shows is this, computed once, so the two builders cannot offer different
  * choices for the same document (plan 21).
+ *
+ * The state is here; what it says of the design view is `model-canvas.ts`'s,
+ * of the properties `model-properties.ts`'s, and what a builder dispatches,
+ * and is told back, `model-actions.ts`'s: each its own reason to change.
  */
-import type { Location, Refusal } from '@formancy/report-core'
+import type { Location } from '@formancy/report-core'
 import type { DiagnosticCode, DiagnosticSeverity } from '@formancy/report-core'
-import type { Component, ComponentKind, Margins, Orientation, PageSizeName, RegionName } from '@formancy/report-spec'
+import type { Component, ComponentKind, RegionName } from '@formancy/report-spec'
 import type { ImageLibrary } from './image-store.js'
+import type { Box, Canvas, PageGeometry } from './model-canvas.js'
+import type { PropertyPanel } from './model-properties.js'
 import type { EditorLocale } from './text.js'
 
 /**
  * The parts a report holds at its own level, in no region, that an editor
  * selects and edits as it does a component: its payment part, the Swiss
- * QR-bill at the foot of its last page (0022, 0039).
+ * QR-bill at the foot of its last page (0022, 0039), and its e-invoice, the
+ * EN 16931 invoice its XML holds (0027, 0038, 0044).
  */
-export const REPORT_LEVEL_PARTS = ['paymentPart'] as const
+export const REPORT_LEVEL_PARTS = ['paymentPart', 'eInvoice'] as const
 export type ReportLevelPart = (typeof REPORT_LEVEL_PARTS)[number]
 
 /** A component, or one column of a table, named by the table's id and the column's. */
@@ -32,35 +39,6 @@ export type Selection = ComponentSelection | { readonly part: ReportLevelPart }
 
 /** What an outline row or a canvas box stands for: a component of a kind, or a table's column. */
 export type PartKind = ComponentKind | 'tableColumn'
-
-/** A rectangle: in points on the page, or in CSS pixels at the editor's zoom. */
-export interface Box {
-  readonly x: number
-  readonly y: number
-  readonly width: number
-  readonly height: number
-}
-
-export interface Size {
-  readonly width: number
-  readonly height: number
-}
-
-/** The page as the report sets it, in points, and as the canvas draws it, in CSS pixels at the zoom. */
-export interface PageGeometry {
-  readonly size: PageSizeName
-  readonly orientation: Orientation
-  /** Points. */
-  readonly width: number
-  /** Points. */
-  readonly height: number
-  /** Points. */
-  readonly margins: Margins
-  /** Points: what the margins leave. */
-  readonly printable: Size
-  /** CSS pixels at the editor's zoom. */
-  readonly px: Size & { readonly margins: Margins }
-}
 
 export interface RegionSummary {
   readonly region: RegionName
@@ -114,13 +92,14 @@ export interface OutlineRegion {
 /**
  * A row of the outline for a part of the report's own level, after the
  * regions' groups, at the tree's top: the payment part, which prints after
- * every region, at the foot of the last page.
+ * every region, at the foot of the last page, and the e-invoice, which
+ * prints nothing of its own and is written as the XML.
  */
 export interface OutlinePart {
   readonly part: ReportLevelPart
   /** Unique in the outline: no component's id holds a capital, nor a column's key. */
   readonly key: string
-  /** What a person calls it, as SIX names the part: "Payment part". */
+  /** What a person calls it: the payment part as SIX names it, "Payment part"; the e-invoice, "E-invoice". */
   readonly label: string
   readonly selected: boolean
   /** Diagnostics about it, errors and warnings together. */
@@ -137,168 +116,6 @@ export interface PaletteEntry {
   readonly component: Component | null
   /** Why there is no component: what the report has to declare first. */
   readonly unavailable?: string
-}
-
-export const PROPERTY_KINDS = ['text', 'multiline', 'number', 'length', 'select', 'boolean', 'color', 'expression', 'binding', 'style'] as const
-/**
- * How a property is edited. A `length` is stored in points and edited in
- * millimetres; a `number` is edited as it is stored. `select`, `binding`
- * and `style` choose one of their options.
- */
-export type PropertyKind = (typeof PROPERTY_KINDS)[number]
-
-/**
- * The role the native control for each kind has: what a builder renders,
- * and what a test finds it by. A length and a number are `<input
- * type="number">`; a select, a binding and a style a `<select>`; a boolean
- * a checkbox; the rest text inputs or a textarea.
- */
-export const PROPERTY_ROLES = {
-  text: 'textbox',
-  multiline: 'textbox',
-  number: 'spinbutton',
-  length: 'spinbutton',
-  select: 'combobox',
-  boolean: 'checkbox',
-  color: 'textbox',
-  expression: 'textbox',
-  binding: 'combobox',
-  style: 'combobox',
-} as const satisfies { readonly [K in PropertyKind]: string }
-
-export interface PropertyOption {
-  /** What `setProperty` takes for this option. */
-  readonly value: string
-  readonly label: string
-}
-
-/** One property of the selection, as an editor shows it. */
-export interface PropertyField {
-  /** A JSON Pointer from the selection -- the component, the column or the report -- to the property. */
-  readonly key: string
-  /** The accessible name, with its unit where it has one: "Height (mm)". */
-  readonly label: string
-  readonly kind: PropertyKind
-  /**
-   * What the control shows: a string for every kind but `boolean`. A number
-   * or length is written with a point, as `<input type="number">` takes it.
-   * After a refused edit, what the person typed.
-   */
-  readonly value: string | boolean
-  readonly options?: readonly PropertyOption[]
-  /** What an empty field means, where it means something: "Empty: fills the rest". */
-  readonly placeholder?: string
-  /** Whether the property must have a value; an optional one is removed by emptying it. */
-  readonly required: boolean
-  /** Why the last value given was refused, or the diagnostic about what is there now. */
-  readonly error?: string
-}
-
-/** A button the properties draw: what it says, and the action it dispatches. */
-export interface PropertyAction {
-  readonly label: string
-  readonly action: EditorAction
-}
-
-/**
- * Fields drawn together under one name -- a party of a QR-bill, its
- * creditor or its debtor -- and the one button the group may have: Add
- * where an optional group is absent, and has no fields; Remove where it is
- * there.
- */
-export interface PropertyGroup {
-  /** A JSON Pointer from the selection to what the group edits: "/debtor". */
-  readonly key: string
-  /** Its accessible name: "Debtor". */
-  readonly label: string
-  readonly fields: readonly PropertyField[]
-  readonly action?: PropertyAction
-}
-
-/** What the form draws, in order: a field by itself, or a group. */
-export type PropertyRow = { readonly field: PropertyField } | { readonly group: PropertyGroup }
-
-export interface PropertyPanel {
-  /** "Text: Introduction", or "Report" when nothing is selected. */
-  readonly heading: string
-  /** Every field, in the order shown, those in a group among them: what a field is found by. */
-  readonly fields: readonly PropertyField[]
-  /** The same fields as the form draws them, each by itself or in its group, in the same order. */
-  readonly rows: readonly PropertyRow[]
-}
-
-/** A component's or a column's box on the canvas. */
-export interface CanvasBox {
-  readonly key: string
-  readonly id: string
-  readonly column?: string
-  readonly kind: PartKind
-  readonly label: string
-  readonly depth: number
-  readonly selected: boolean
-  readonly problems: number
-  /** The worst diagnostic about it, when there is one. */
-  readonly severity?: DiagnosticSeverity
-  /** Wider than the space it stands in: the layout will have to say what happens to it. */
-  readonly overflows: boolean
-  readonly pt: Box
-  readonly px: Box
-}
-
-export interface CanvasRegion {
-  readonly region: RegionName
-  readonly label: string
-  readonly empty: boolean
-  readonly pt: Box
-  readonly px: Box
-}
-
-/**
- * Where a report's payment part prints: a Swiss QR-bill's slip, the receipt
- * and the payment part, across the foot of the report's last page. Drawn as
- * a band the slip's size at the sheet's foot, below every region, and named
- * as SIX names the part. The slip itself is the renderer's to draw.
- */
-export interface CanvasPaymentPart {
-  readonly label: string
-  /** Selected, as its outline row is: a click on the band selects the bill. */
-  readonly selected: boolean
-  /** Diagnostics about the bill, as its outline row counts them. */
-  readonly problems: number
-  readonly severity?: DiagnosticSeverity
-  readonly pt: Box
-  readonly px: Box
-}
-
-export interface RulerTick {
-  /** CSS pixels from the sheet's edge. */
-  readonly at: number
-  readonly mm: number
-  readonly major: boolean
-  readonly label?: string
-}
-
-/**
- * The design view: one sheet as wide as the page, the regions stacked on it
- * as bands, each component's flow box inside its band, and a payment part's
- * band at the sheet's foot. A design-mode
- * approximation for selecting and placing things -- text measured by a rule
- * of thumb, a table as one row of each kind -- and never the PDF, which the
- * renderer lays out (plan 8).
- */
-export interface Canvas {
-  /** The canvas's accessible name, which says it is not the PDF. */
-  readonly label: string
-  /** The sentence shown with it, saying the same to a sighted reader. */
-  readonly note: string
-  /** CSS pixels per point at this zoom. */
-  readonly scale: number
-  readonly sheet: { readonly pt: Box; readonly px: Box }
-  readonly regions: readonly CanvasRegion[]
-  /** The payment part's band, for a report that has one; null for one that has none. */
-  readonly paymentPart: CanvasPaymentPart | null
-  readonly boxes: readonly CanvasBox[]
-  readonly rulers: { readonly horizontal: readonly RulerTick[]; readonly vertical: readonly RulerTick[] }
 }
 
 /** A diagnostic as the editor lists it, linked to what it is about. */
@@ -460,111 +277,3 @@ export interface EditorState {
   readonly view: 'design' | 'host'
   readonly status: Announcement
 }
-
-/** What a builder asks of the editor. Every pointer gesture has one a keyboard reaches too. */
-export type EditorAction =
-  | { readonly type: 'select'; readonly id: string | null; readonly column?: string }
-  /** Selects a part of the report's own level: its outline row, or its band on the canvas. */
-  | { readonly type: 'select'; readonly part: ReportLevelPart }
-  | { readonly type: 'selectNext' }
-  | { readonly type: 'selectPrevious' }
-  | { readonly type: 'selectFirst' }
-  | { readonly type: 'selectLast' }
-  /** The container the selection stands in, or a column's table: ArrowLeft in the outline. */
-  | { readonly type: 'selectParent' }
-  /** The first thing the selection holds: ArrowRight in the outline. */
-  | { readonly type: 'selectChild' }
-  | { readonly type: 'moveUp' }
-  | { readonly type: 'moveDown' }
-  | { readonly type: 'indent' }
-  | { readonly type: 'outdent' }
-  | { readonly type: 'delete' }
-  | { readonly type: 'duplicate' }
-  | { readonly type: 'insert'; readonly kind: ComponentKind; readonly target: Location }
-  | { readonly type: 'move'; readonly id: string; readonly target: Location }
-  | { readonly type: 'setProperty'; readonly key: string; readonly value: string | boolean }
-  | { readonly type: 'undo' }
-  | { readonly type: 'redo' }
-  | { readonly type: 'setZoom'; readonly zoom: number }
-  | { readonly type: 'zoomIn' }
-  | { readonly type: 'zoomOut' }
-  | { readonly type: 'startDrag'; readonly subject: DragSubject; readonly via?: 'pointer' | 'keyboard' }
-  | { readonly type: 'updateDrag'; readonly over: number | null }
-  | { readonly type: 'drop' }
-  | { readonly type: 'cancelDrag' }
-  /**
-   * Shows the pane: the one a narrow layout shows, and one that was hidden
-   * drawn again. The design view's takes its place back from a host's view
-   * shown there.
-   */
-  | { readonly type: 'openPanel'; readonly panel: EditorPanel }
-  | { readonly type: 'hidePanel'; readonly panel: HideablePanel }
-  /** Shows the host's view: in the middle it takes the design view's place, and is the pane a narrow layout shows. */
-  | { readonly type: 'showHostView' }
-  | { readonly type: 'hideHostView' }
-  /** Where the host's view stands: the host's to say, from the room it has. */
-  | { readonly type: 'placeHostView'; readonly place: HostViewPlace }
-  /**
-   * Sent by Add image… before a builder opens its file chooser, in the same
-   * activation: refused, and said why, when the editor would take no file
-   * now. The file chosen goes to `addImage`, which is no action, because
-   * reading it and the host keeping it take time.
-   */
-  | { readonly type: 'chooseImage' }
-  /** Removes an image the report declares and nothing draws, in one undo step. */
-  | { readonly type: 'removeImage'; readonly asset: string }
-  /** Adds a part of the report's own level that it lacks, from example values, in one undo step, and selects it: a QR-bill, SIX's example (0039). */
-  | { readonly type: 'addPart'; readonly part: ReportLevelPart }
-  /** Adds the optional group of fields at `key` of what is selected, from example values, in one undo step: a bill's debtor. */
-  | { readonly type: 'addGroup'; readonly key: string }
-  /** Removes the optional group at `key` of what is selected, in one undo step. */
-  | { readonly type: 'removeGroup'; readonly key: string }
-
-export type EditorActionType = EditorAction['type']
-
-/** Why an action did nothing, as stable codes; the message, in the editor's language, is for a person. */
-export const EDITOR_REFUSAL_CODES = [
-  /** The editor was disposed. */
-  'disposed',
-  /** The action is about the selection, and nothing is selected. */
-  'nothing-selected',
-  /** The component, column or target the action names is not there. */
-  'not-found',
-  /** First or last already: a move up, a move down, an indent or an outdent with nowhere to go, or a step out of a top-level row or into one that holds nothing; and any move or copy of a part of the report's own level, which has one place. */
-  'at-edge',
-  /** A value the property cannot take, refused before the report was touched: a number that is not one. */
-  'invalid-value',
-  /** report-core refused the edit; `refusal` is its reason, the validator's errors included. */
-  'refused',
-  /** A drag action while nothing is being dragged. */
-  'not-dragging',
-  /** A drop with no target under the pointer. */
-  'no-target',
-  /**
-   * What the state marks unavailable, sent anyway: a kind whose default
-   * component the report cannot hold yet, an image with no image to draw; a
-   * host's view, asked of an editor made without one; the zoom, while a
-   * host's view stands in the design view's place; an image to add, with no
-   * store to keep it or no room in the report for it; Remove, for an
-   * image something draws; a part the report has already, added; and a
-   * group's Add or Remove with nothing to do.
-   */
-  'unavailable',
-  /** Undo or redo with no step to take. */
-  'no-history',
-  /** An image to add while another is being added. */
-  'busy',
-  /** A file that is not an image the report prints, or past a limit, or of a kind the host does not keep: the report unchanged. */
-  'not-an-image',
-  /** The host refused to keep the image, or failed to: the report unchanged. */
-  'not-kept',
-  /** While the host kept the image, the report came to declare another under its id, which an add never replaces. */
-  'changed',
-] as const
-
-export type EditorRefusalCode = (typeof EDITOR_REFUSAL_CODES)[number]
-
-export type EditorOutcome = { readonly ok: true } | { readonly ok: false; readonly code: EditorRefusalCode; readonly message: string; readonly refusal?: Refusal }
-
-/** The outcome of an action that did what it was asked: one frozen object, the editor's and each of its parts'. */
-export const DONE: EditorOutcome = Object.freeze({ ok: true })

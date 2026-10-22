@@ -85,18 +85,31 @@ clamps when what it names is not there:
   its properties, never its kind) and `removePaymentPart`, which judge
   nothing of the bill: SIX's rules are report-spec's, which the session
   asks
-  ([0039](../../docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
+  ([0039](../../docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md));
+- **the e-invoice**, of either kind: `putEInvoice`, `updateEInvoice` (a
+  patch of its terms, never its kind) and `removeEInvoice`, which judge
+  nothing of it; and `setPaymentAccount(report, account)`, which writes
+  the account, as typed, into the e-invoice's BT-84, its QR-bill's account
+  and every EPC QR code's IBAN in one edit, since the validator holds each
+  code to BT-84 and refuses a change of any one alone. It is refused as
+  `not-found` without an e-invoice or an account, and as
+  `read-from-data`, naming the place, where one of them reads its account
+  from the data, which it would write over -- a builder's field writes its
+  own account then; whether each place takes the account is the
+  validator's to say, each by its own rule, and no BIC is changed
+  ([0044](../../docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
 
 `PART_COMMANDS` names the commands that may change each part of the
-report's own level -- the payment part's three, none yet made for the
-e-invoice, and `replaceDocument` for both, whose document may hold
-another part than the one it replaces -- and every other command keeps
-each as it was: the very object, through every edit. A review that looks
-for a change of whom a bill pays finds it by these names, and compares the
-bill whole for a replacement. An edit that would leave an e-invoice's line
-with no column to print it, or with a column that may be hidden, is
-refused with the validator's reason, and so is an edit of a QR-bill's
-account alone in a report with an e-invoice, which pays BT-84.
+report's own level -- the payment part's three, the e-invoice's three,
+`setPaymentAccount` for both, and `replaceDocument` for both, whose
+document may hold another part than the one it replaces -- and every other
+command keeps each as it was: the very object, through every edit. A review
+that looks for a change of whom a bill or an e-invoice is paid by finds it
+by these names, and compares the part whole for a replacement. An edit that
+would leave an e-invoice's line with no column to print it, or with a
+column that may be hidden, is refused with the validator's reason, and so
+is an edit of one payment code's account alone in a report with an
+e-invoice, which pays BT-84: `setPaymentAccount` changes them together.
 
 A patch removes an optional property with `null`, and `setGroup` and `setSort`
 remove theirs with `null`, never with `undefined`: a proposal carries its

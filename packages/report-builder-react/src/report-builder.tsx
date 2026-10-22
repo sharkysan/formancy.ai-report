@@ -28,7 +28,7 @@
 import { useCallback, useId, useLayoutEffect, useMemo, useRef } from 'react'
 import type { KeyboardEvent, ReactElement, ReactNode } from 'react'
 import { actionForKey, editorText } from '@formancy/report-builder-core'
-import type { ComponentSelection, DiagnosticEntry, DragSubject, DropTarget, EditorAction, EditorOutcome, EditorPanel, HideablePanel, ReportEditor } from '@formancy/report-builder-core'
+import type { ComponentSelection, DiagnosticEntry, DragSubject, DropTarget, EditorAction, EditorOutcome, EditorPanel, HideablePanel, PropertyAction, ReportEditor } from '@formancy/report-builder-core'
 import type { ComponentKind } from '@formancy/report-spec'
 import { Canvas } from './canvas.js'
 import { Diagnostics } from './diagnostics.js'
@@ -63,9 +63,10 @@ export interface ReportBuilderProps {
 /**
  * Where focus goes once the result of an action is drawn: the selection's
  * outline row, the place dialog this builder has just opened, the element
- * that opened it, or a pane.
+ * that opened it, a pane, or where a group's button says (`then`): a button
+ * of the group with that key, or its first field.
  */
-type FocusAfter = 'selection' | 'places' | 'opener' | EditorPanel
+type FocusAfter = 'selection' | 'places' | 'opener' | EditorPanel | NonNullable<PropertyAction['then']>
 
 /** A field that keeps its own keys: Ctrl+Z in it undoes typing, not the report, and its arrows move its caret. A checkbox has no typing to undo. */
 function keepsItsKeys(element: EventTarget): boolean {
@@ -99,6 +100,12 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
 
   const focus = useCallback((where: FocusAfter): void => {
     const selectedRow = (): HTMLElement | null => tree.current?.querySelector<HTMLElement>('[role="treeitem"][aria-selected="true"]') ?? null
+    if (typeof where === 'object') {
+      // The groups stand in the form in the order of the state's rows: the one with the key, by its place among them.
+      const groups = editor.state().properties.rows.flatMap((row) => ('group' in row ? [row.group.key] : []))
+      const element = fields.current?.querySelectorAll<HTMLElement>('[data-report-part="property-group"]')[groups.indexOf(where.group)]
+      return (where.button === undefined ? element?.querySelector<HTMLElement>('input, select, textarea') : element?.querySelectorAll<HTMLElement>(':scope > button')[where.button])?.focus()
+    }
     switch (where) {
       // After an action that leaves nothing selected -- an undo of an
       // insert -- the tree itself: a row given focus would select itself,
@@ -134,7 +141,7 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
         // The list, not its first entry: what is said first is how many there are.
         return problemList.current?.focus()
     }
-  }, [])
+  }, [editor])
 
   // After a render, the focus the action that caused it asked for: only now
   // is the row it selected, or the pane it opened, in the document.
@@ -343,6 +350,7 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
                   state={state}
                   ids={ids}
                   act={act}
+                  press={(action) => act(action.action, action.then)}
                   library={state.selection === null ? <ImageLibrary state={state} t={t} ids={ids} remove={(asset) => act({ type: 'removeImage', asset }, 'properties')} /> : null}
                 />
               </div>

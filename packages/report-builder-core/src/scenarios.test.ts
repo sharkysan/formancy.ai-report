@@ -29,8 +29,11 @@ import { describe, expect, test } from 'vitest'
 import { createReportEditor } from './editor.js'
 import type { ReportEditor } from './editor.js'
 import { actionForKey } from './keys.js'
-import type { EditorAction, EditorOutcome, EditorState, HideablePanel, OutlineNode, PropertyGroup, Selection } from './model.js'
-import { HIDEABLE_PANELS, PROPERTY_ROLES } from './model.js'
+import type { EditorState, HideablePanel, OutlineNode, Selection } from './model.js'
+import type { EditorAction, EditorOutcome } from './model-actions.js'
+import type { PropertyGroup } from './model-properties.js'
+import { HIDEABLE_PANELS } from './model.js'
+import { PROPERTY_ROLES } from './model-properties.js'
 import { scenarioStore } from './scenario-images.js'
 import type { ScenarioStore } from './scenario-images.js'
 import { scenarioReport } from './scenario-report.js'
@@ -113,8 +116,8 @@ function buttons(t: EditorText, state: EditorState): Map<string, EditorAction | 
   if (shown(state, 'diagnostics')) for (const entry of state.diagnostics) found.set(entry.label, entry.target === null ? { type: 'select', id: null } : { type: 'select', ...entry.target })
   // Back to the report's own properties, shown while something else is selected.
   if (state.selection !== null && shown(state, 'properties')) found.set(t('properties.report'), { type: 'select', id: null })
-  // A group's button: a party's Add or Remove, the report's Add of a QR-bill.
-  if (shown(state, 'properties')) for (const group of propertyGroups(state)) if (group.action !== undefined) found.set(group.action.label, group.action.action)
+  // A group's buttons: a party's Add or Remove, the report's Add of a QR-bill, a list's Add and each item's moves and Remove.
+  if (shown(state, 'properties')) for (const group of propertyGroups(state)) for (const action of group.actions) found.set(action.label, action.action)
   // Under the report's own properties, a Remove for each of its images.
   if (state.selection === null && shown(state, 'properties')) for (const image of state.images.assets) found.set(image.removeLabel, { type: 'removeImage', asset: image.id })
   return found
@@ -134,8 +137,8 @@ class Driver {
   readonly host: ScenarioHost | undefined
   readonly images: ScenarioStore | undefined
   private where: { readonly role: string; readonly name: string } | null = null
-  /** The group whose button the keyboard is on: the button stays where it is as its words change, Add to Remove and back. */
-  private onGroup: string | null = null
+  /** The group whose button the keyboard is on, and which of its buttons: the button stays where it is as its words change, Add to Remove and back. */
+  private onGroup: { readonly key: string; readonly button: number } | null = null
   constructor(scenario: BuilderScenario) {
     this.session = sessionOver(scenario.report())
     this.host = scenario.host
@@ -151,7 +154,8 @@ class Driver {
 
   /** Where the keyboard is: a group's button by what it says now, else where it was put. */
   get focused(): { readonly role: string; readonly name: string } | null {
-    const label = this.onGroup === null ? undefined : propertyGroups(this.state).find((group) => group.key === this.onGroup)?.action?.label
+    const on = this.onGroup
+    const label = on === null ? undefined : propertyGroups(this.state).find((group) => group.key === on.key)?.actions[on.button]?.label
     return label === undefined ? this.where : { role: 'button', name: label }
   }
 
@@ -199,6 +203,32 @@ class Driver {
     this.focusSelection()
   }
 
+  /** The group a button named `name` is one of, and which of its buttons it is, where it is a group's. */
+  private groupButton(name: string): { readonly group: PropertyGroup; readonly index: number } | undefined {
+    if (!shown(this.state, 'properties')) return undefined
+    for (const group of propertyGroups(this.state)) {
+      const index = group.actions.findIndex((action) => action.label === name)
+      if (index !== -1) return { group, index }
+    }
+    return undefined
+  }
+
+  /**
+   * Where a group's button leaves the keyboard: where the action's `then`
+   * says, once it is done -- the same button of the group a list's item
+   * moved to, the list's Add once one is removed, a new item's first field
+   * -- else on the button, whatever it says now.
+   */
+  private afterGroupButton({ group, index }: { readonly group: PropertyGroup; readonly index: number }, outcome: EditorOutcome): void {
+    const then = outcome.ok ? group.actions[index]?.then : undefined
+    if (then === undefined) this.onGroup = { key: group.key, button: index }
+    else if (then.button !== undefined) this.onGroup = { key: then.group, button: then.button }
+    else {
+      const first = propertyGroups(this.state).find((candidate) => candidate.key === then.group)?.fields[0]
+      this.focused = first === undefined ? null : { role: PROPERTY_ROLES[first.kind], name: first.label }
+    }
+  }
+
   private activate(query: ScenarioQuery): EditorOutcome | undefined {
     if (query.role === 'treeitem') return void this.selectRow(query.name)
     if (query.role === 'img') return void this.clickPicture(query.name)
@@ -206,6 +236,7 @@ class Driver {
     const shown = buttons(this.t, this.state)
     if (!shown.has(query.name)) throw new Error(`no button ${query.name} among ${[...shown.keys()].join(' | ')}`)
     const action = shown.get(query.name)
+    const fromGroup = this.groupButton(query.name)
     const choosing = this.state.drag?.via === 'keyboard'
     const outcome = this.dispatch(action, query.name)
     const selects = action?.type === 'insert' || action?.type === 'move' || action?.type === 'select'
@@ -219,7 +250,7 @@ class Driver {
     else if (action?.type === 'openPanel') this.focused = action.panel === 'canvas' ? { role: 'region', name: this.middle() } : null
     else if (selects || (choosing && action?.type === 'cancelDrag')) this.focusSelection()
     else if (action?.type === 'startDrag') this.focused = null
-    else if (action?.type === 'addGroup' || action?.type === 'removeGroup') this.onGroup = action.key
+    else if (fromGroup !== undefined) this.afterGroupButton(fromGroup, outcome)
     else this.focused = { role: 'button', name: query.name }
     return outcome
   }

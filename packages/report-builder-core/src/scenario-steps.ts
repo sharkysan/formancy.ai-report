@@ -33,7 +33,7 @@
  */
 import type { ReportDefinition } from '@formancy/report-spec'
 import type { AddedImage } from './image-store.js'
-import type { EditorAction } from './model.js'
+import type { EditorAction } from './model-actions.js'
 import type { EditorLocale } from './text.js'
 import type { HostViewOptions } from './views.js'
 

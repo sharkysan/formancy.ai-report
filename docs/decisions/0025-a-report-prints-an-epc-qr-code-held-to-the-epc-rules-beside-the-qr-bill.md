@@ -6,7 +6,14 @@
   amount due, and by [0028](0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
   its euro invoice's samples from six more countries and a page for the
   code, whose wording check refuses the name this record keeps off
-  everything here
+  everything here; narrowed by
+  [0044](0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md),
+  under which a container no taller than two labels draws no label of its
+  own in the design view, so that its label no longer stands over that of
+  what stands at the top of its last column there; and amended by it, the
+  palette's EPC payment code, in a report with an e-invoice, paying the
+  e-invoice's account with its BIC, and offered only where the e-invoice
+  gives payment instructions
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

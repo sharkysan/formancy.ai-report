@@ -1,7 +1,7 @@
 import { componentAt } from '@formancy/report-spec'
 import { describe, expect, test, vi } from 'vitest'
 import { createReportEditor } from './editor.js'
-import type { EditorOutcome } from './model.js'
+import type { EditorOutcome } from './model-actions.js'
 import { countingSession, richReport, sessionOver } from './test-support.js'
 
 function ok(outcome: EditorOutcome): void {

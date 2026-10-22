@@ -12,12 +12,15 @@
  * Where a test reads the DOM it says why, as these do: how a name is
  * given, which jsdom's names cannot show, because jsdom applies no
  * stylesheet and Chromium puts one's text-transform into a name taken from
- * text on the page; and a QR-bill's row and its groups of fields (0039) -- that a
- * group's name is its own and not `aria-labelledby`'s, for that reason,
- * that the drawn name is hidden from the tree, and the row's level and the
- * role of what holds it -- which no query by role and name returns.
+ * text on the page; and a QR-bill's row and its groups of fields (0039),
+ * and an e-invoice's (0044) -- that a group's name is its own and not
+ * `aria-labelledby`'s, for that reason, that the drawn name is hidden from
+ * the tree, the row's level, place and the role of what holds it, and
+ * which of a group's buttons is unavailable -- which no query by role and
+ * name returns.
  */
 import { BUILDER_SCENARIOS, createReportEditor, editorText, PROPERTY_KINDS } from '@formancy/report-builder-core'
+import type { PropertyGroup } from '@formancy/report-builder-core'
 import type { EditorState, OutlineNode } from '@formancy/report-builder-core'
 import { COMPONENT_KINDS, walkComponents } from '@formancy/report-spec'
 import type { FieldRef, ReportDefinition } from '@formancy/report-spec'
@@ -246,6 +249,35 @@ describe('every part of the builder', () => {
     expect(within(screen.getByRole('group', { name: t('group.debtor') })).getByRole('button', { name: t('action.addDebtor') })).toBeTruthy()
     const row = screen.getByRole('treeitem', { name: t('canvas.paymentPart'), selected: true })
     expect([row.getAttribute('aria-level'), row.parentElement?.getAttribute('role')]).toEqual(['1', 'tree'])
+    expect(await violations()).toEqual([])
+  })
+
+  // An e-invoice's parties, its VAT categories, its lines and its payment
+  // instructions are groups of fields (0044), named as a bill's are. Its
+  // row stands at the tree's top after the bill's, the last of the two;
+  // a category's move with nowhere to go is aria-disabled and stays
+  // focusable, as a tool is, so pressing it says why.
+  test('names an e-invoice’s row and each group of its fields in its own words, and marks a move with nowhere to go', async () => {
+    const invoiced = BUILDER_SCENARIOS.map((scenario) => scenario.report()).find((report) => report.eInvoice !== undefined && report.paymentPart !== undefined)
+    if (invoiced === undefined) throw new Error('no scenario has a report with an e-invoice and a payment part')
+    const { editor, user } = mount(invoiced)
+    await user.click(screen.getByRole('treeitem', { name: t('outline.eInvoice') }))
+    const rows = [t('canvas.paymentPart'), t('outline.eInvoice')].map((name) => screen.getByRole('treeitem', { name }))
+    expect(rows.map((row) => [row.getAttribute('aria-level'), row.getAttribute('aria-posinset'), row.getAttribute('aria-setsize'), row.parentElement?.getAttribute('role')])).toEqual([
+      ['1', '1', '2', 'tree'],
+      ['1', '2', '2', 'tree'],
+    ])
+    const groups = editor.state().properties.rows.flatMap((row): PropertyGroup[] => ('group' in row ? [row.group] : []))
+    expect(groups.map((group) => group.label)).toContain(t('group.vatCategory', { item: 1 }))
+    for (const group of groups) {
+      const drawn = screen.getByRole('group', { name: group.label })
+      expect(drawn.hasAttribute('aria-labelledby'), group.label).toBe(false)
+      expect(within(drawn).queryAllByText(group.label).filter((element) => !isInaccessible(element)), group.label).toEqual([])
+      expect(within(drawn).queryAllByRole('button').map((button) => [button.textContent, button.getAttribute('aria-disabled')]), group.label).toEqual(group.actions.map((action) => [action.label, action.available ? null : 'true']))
+    }
+    const up = screen.getByRole('button', { name: t('action.moveVatCategoryUp', { item: 1 }) })
+    up.focus()
+    expect(document.activeElement).toBe(up)
     expect(await violations()).toEqual([])
   })
 

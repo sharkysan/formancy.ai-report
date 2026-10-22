@@ -101,7 +101,12 @@ describe('veraPDF’s verdict', () => {
   test('passes the recorded run', () => {
     const { rows, problems, reported } = judged()
     expect(problems).toEqual([])
-    expect(rows.map((row) => [row.file, row.verdict, row.refusals])).toEqual([
+    // A control's refusals in the order veraPDF lists its rule summaries,
+    // which is no order the gate relies on: its judge compares them as a set.
+    // That order moved for control-plain.pdf when the e-invoice starter's
+    // variant joined the batch (0044), the PDF itself unchanged; sorted here,
+    // so that a recording is read for what it refuses.
+    expect(rows.map((row) => [row.file, row.verdict, [...row.refusals].sort()])).toEqual([
       ['e-invoice.pdf', 'as expected', []],
       ['e-invoice-reverse-charge.pdf', 'as expected', []],
       ['e-invoice-exempt-paid.pdf', 'as expected', []],
@@ -115,6 +120,7 @@ describe('veraPDF’s verdict', () => {
       ['variant-grouped-equipment.pdf', 'as expected', []],
       ['variant-invoice.pdf', 'as expected', []],
       ['variant-euro-invoice.pdf', 'as expected', []],
+      ['variant-e-invoice.pdf', 'as expected', []],
       ['variant-site-visit.pdf', 'as expected', []],
       ['control-plain.pdf', 'as expected', ['6.2.4.3-2', '6.6.2.1-1']],
       ['control-pdfa.pdf', 'as expected', ['6.2.4.3-2']],

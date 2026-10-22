@@ -148,6 +148,7 @@ export const PDF_VARIANTS = [
   { file: 'variant-grouped-equipment.pdf', why: 'the grouped equipment starter: groups with their subtotals, under a running head, over its pages', draws: { starter: 'grouped-equipment' } },
   { file: 'variant-invoice.pdf', why: 'the invoice starter: a Swiss QR-bill, drawn in Liberation Sans', draws: { starter: 'invoice' } },
   { file: 'variant-euro-invoice.pdf', why: 'the euro invoice starter: an EPC QR code with Austria’s caption, drawn in Liberation Sans', draws: { starter: 'euro-invoice' } },
+  { file: 'variant-e-invoice.pdf', why: 'the e-invoice starter, the base sample opened as the Studio opens it, from its own data, where a person edits it in either builder (0044)', draws: { starter: 'e-invoice' } },
   { file: 'variant-site-visit.pdf', why: 'the site visit starter, generated from a formancy form: lines of label and value, sections, boxes drawn as text, and a table of its findings (0045)', draws: { starter: 'site-visit' } },
 ]
 

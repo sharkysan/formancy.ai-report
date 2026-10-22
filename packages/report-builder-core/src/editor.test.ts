@@ -3,7 +3,8 @@ import { componentAt } from '@formancy/report-spec'
 import type { Component, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test, vi } from 'vitest'
 import { createReportEditor } from './editor.js'
-import type { EditorOutcome, EditorState, OutlineNode } from './model.js'
+import type { EditorState, OutlineNode } from './model.js'
+import type { EditorOutcome } from './model-actions.js'
 import { selectionKey } from './outline.js'
 import { diagnosticKeys } from './state.js'
 import { editorText } from './text.js'
@@ -229,23 +230,29 @@ describe('subscribe and dispose', () => {
     expect(session.revision()).toBe(0)
   })
 
-  // So can it a part of the report's own level that is none -- the
-  // e-invoice, before this editor knows it, or no part at all -- to select
-  // or to add. Taken in, every state after it would be drawn from a part
-  // that is not there and throw, and an add would commit a bill and then
-  // select nothing anybody can draw. Each is refused before anything
-  // changes, and the editor goes on drawing.
+  // So can it a part of the report's own level that is none -- no part at
+  // all, a name off the object's prototype -- to select or to add. Taken
+  // in, every state after it would be drawn from a part that is not there
+  // and throw, and an add would commit a bill and then select nothing
+  // anybody can draw. Each is refused before anything changes, and the
+  // editor goes on drawing. The e-invoice, a part this editor knows, is
+  // not there in a report without one to select, and is never added: it
+  // is edited, not made from nothing (0044).
   test('refuses a part of the report’s own level it does not have, to select or to add', () => {
     const billed = editorOver(billedReport())
     const unbilled = editorOver()
-    for (const part of ['eInvoice', undefined, 'toString']) {
+    for (const part of [undefined, 'toString']) {
       expect(billed.editor.dispatch({ type: 'select', part } as never), String(part)).toMatchObject({ ok: false, code: 'not-found', message: `Nothing is called ${String(part)}.` })
       expect(billed.editor.state().selection, String(part)).toBeNull()
       expect(unbilled.editor.dispatch({ type: 'addPart', part } as never), String(part)).toMatchObject({ ok: false, code: 'not-found' })
       expect(unbilled.editor.state().selection, String(part)).toBeNull()
     }
+    expect(billed.editor.dispatch({ type: 'select', part: 'eInvoice' })).toMatchObject({ ok: false, code: 'not-found', message: 'Nothing is called E-invoice.' })
+    expect(unbilled.editor.dispatch({ type: 'addPart', part: 'eInvoice' })).toMatchObject({ ok: false, code: 'unavailable', message: 'An e-invoice is edited here, never made from nothing: start from a report that has one.' })
+    expect([billed.editor.state().selection, unbilled.editor.state().selection]).toEqual([null, null])
     expect([billed.session.revision(), unbilled.session.revision()]).toEqual([0, 0])
     expect(unbilled.session.document().paymentPart).toBeUndefined()
+    expect(unbilled.session.document().eInvoice).toBeUndefined()
   })
 
   // A disposed editor reached from a stale event handler -- React's strict

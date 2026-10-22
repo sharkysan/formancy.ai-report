@@ -36,9 +36,12 @@ const EPC_SIDE = mmToPt(32)
  * Bundesbank's Bankleitzahlendatei starts with a digit from 1 to 8 -- so a
  * code inserted and never edited pays nobody. Its check digits are right
  * (ISO 13616), or the insert would be refused; and it is the same in every
- * language, so no editor changes whom a new code pays.
+ * language, so no editor changes whom a new code pays. An e-invoice's
+ * payment instructions added from nothing pay it too (0044); in a report
+ * with an e-invoice, a new code pays the e-invoice's account instead
+ * (`paymentAccount`).
  */
-const NO_ACCOUNT = 'DE36 0000 0000 0000 0000 00'
+export const NO_ACCOUNT = 'DE36 0000 0000 0000 0000 00'
 /** A new rule's thickness, in points: a hairline that prints. */
 const RULE = 0.5
 /** A new spacer's height, in points: about a line of body text. */
@@ -58,6 +61,21 @@ const ALIGN: { readonly [T in FieldType]: Alignment } = {
 
 /** The kind's default component, without its id and kind, or the message saying what the report lacks. */
 type Body = Readonly<Record<string, unknown>> | MessageId
+
+/**
+ * What a new EPC payment code pays: in a report with an e-invoice, the
+ * account the validator holds every payment code printed with it to
+ * (BT-84), as written -- its binding where the data gives it -- with its
+ * bank's BIC (BT-86) where it names one, which an account outside the EEA
+ * needs; without payment instructions there is none, and the message says
+ * what to add first (0044). Elsewhere, the account that pays nobody.
+ */
+function paymentAccount(report: ReportDefinition): Body {
+  const invoice = report.eInvoice
+  if (invoice === undefined) return { iban: [{ kind: 'text', text: NO_ACCOUNT }] }
+  if (invoice.payment === undefined) return 'palette.needsPayment'
+  return { iban: invoice.payment.iban, ...(invoice.payment.bic === undefined ? {} : { bic: invoice.payment.bic }) }
+}
 
 /** The report's newest asset -- an add appends -- else the header's image field. */
 function imageSource(report: ReportDefinition): ImageSource | undefined {
@@ -83,11 +101,11 @@ const DEFAULTS: { readonly [K in ComponentKind]: (report: ReportDefinition, word
   },
   qrCode: (report, words) => ({ content: [{ kind: 'text', text: words('default.qrCode') }], size: Math.min(QR_SIDE, squareRoom(printableArea(report.page)).length), errorCorrection: 'M' }),
   // No amount, which the payer fills in, and no frame, which is Austria's to ask for.
-  epcQrCode: (report, words) => ({
-    size: Math.min(EPC_SIDE, squareRoom(printableArea(report.page)).length),
-    beneficiary: [{ kind: 'text', text: words('default.epcBeneficiary') }],
-    iban: [{ kind: 'text', text: NO_ACCOUNT }],
-  }),
+  epcQrCode: (report, words) => {
+    const account = paymentAccount(report)
+    if (typeof account === 'string') return account
+    return { size: Math.min(EPC_SIDE, squareRoom(printableArea(report.page)).length), beneficiary: [{ kind: 'text', text: words('default.epcBeneficiary') }], ...account }
+  },
   line: () => ({ thickness: RULE }),
   rectangle: (report) => {
     const room = printableArea(report.page)

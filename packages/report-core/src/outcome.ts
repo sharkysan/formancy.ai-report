@@ -43,6 +43,8 @@ export const REFUSAL_CODES = [
   'invalid-document',
   /** An edit made against a document that is no longer the session's: its hash is not the one the edit expected. */
   'stale-document',
+  /** A value the command would write where the report reads it from the data: an account the e-invoice and its payment codes share, one of them bound (0044). */
+  'read-from-data',
 ] as const
 
 export type RefusalCode = (typeof REFUSAL_CODES)[number]

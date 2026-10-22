@@ -9,7 +9,7 @@
  * The checks say what in the markup is wrong and never stop at the first, so
  * one run names every difference.
  */
-import { createReportEditor, editorText, HIDEABLE_PANELS, REPORT_PARTS } from '@formancy/report-builder-core'
+import { BUILDER_SCENARIOS, createReportEditor, editorText, HIDEABLE_PANELS, REPORT_PARTS } from '@formancy/report-builder-core'
 import type { EditorState, ImageStore, ReportEditor, ReportPart } from '@formancy/report-builder-core'
 import { openReportSession } from '@formancy/report-core'
 import { emptyReport } from '@formancy/report-spec'
@@ -95,6 +95,25 @@ export function editorWithBill(): ReportEditor {
   if (!opening.ok) throw new Error('the report did not open a session')
   const editor = createReportEditor(opening.session, { locale: 'de-CH' })
   if (!editor.dispatch({ type: 'addPart', part: 'paymentPart' }).ok || !editor.dispatch({ type: 'addGroup', key: '/debtor' }).ok) throw new Error('the editor did not add a QR-bill and its debtor')
+  return editor
+}
+
+/**
+ * The report of the shared scenarios that holds an e-invoice and a QR-bill
+ * in euro to its account, its e-invoice selected and a VAT category added
+ * (0044): its row after the bill's, no band of its own on the canvas, and
+ * its fields in groups -- the parties, each VAT category with its moves and
+ * its Remove, the first's Move up unavailable, and the list's Add. Read
+ * from BUILDER_SCENARIOS, the package's own, so that the report is the one
+ * both builders' suites run.
+ */
+export function editorWithEInvoice(): ReportEditor {
+  const report = BUILDER_SCENARIOS.map((scenario) => scenario.report()).find((candidate) => candidate.eInvoice !== undefined && candidate.paymentPart !== undefined)
+  if (report === undefined) throw new Error('no shared scenario has a report with an e-invoice and a QR-bill')
+  const opening = openReportSession(report)
+  if (!opening.ok) throw new Error('the e-invoice report did not open a session')
+  const editor = createReportEditor(opening.session, { locale: 'de-CH' })
+  if (!editor.dispatch({ type: 'select', part: 'eInvoice' }).ok || !editor.dispatch({ type: 'addItem', key: '/vat' }).ok) throw new Error('the editor did not select the e-invoice and add a VAT category')
   return editor
 }
 
@@ -195,7 +214,9 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   // unnamed is a region a screen reader cannot tell from the next; a row
   // too few hides a component, or the bill, from a keyboard.
   const [tree] = withRole('tree')
-  const nodes: readonly { readonly label: string; readonly selected: boolean }[] = [...state.outline.flatMap((region) => region.nodes), ...state.outlineParts]
+  // Every node, a table's columns under it among them, in the tree's order: the e-invoice's report has a table (0044).
+  const walked = (list: EditorState['outline'][number]['nodes']): { readonly label: string; readonly selected: boolean }[] => list.flatMap((node) => [node, ...walked(node.children)])
+  const nodes: readonly { readonly label: string; readonly selected: boolean }[] = [...state.outline.flatMap((region) => walked(region.nodes)), ...state.outlineParts]
   const rows = tree === undefined ? [] : withRole('treeitem', tree)
   expect(withRole('tree').length === 1 && nameOf(tree) === t('pane.outline') && attribute(tree, 'data-report-part') === 'outline', 'there is not one tree, named by the catalogue')
   const groups = tree === undefined ? [] : withRole('group', tree)
@@ -242,8 +263,10 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   expect(form?.tag === 'form' && nameOf(form) === state.properties.heading, `the properties are not a form named ${state.properties.heading}`)
   expect(form !== undefined && parts('property', form).length === state.properties.fields.length + images.length, 'the properties have not a row per field and per image')
   // Each group of fields the state draws -- a QR-bill's party, the report's
-  // Add of a bill (0039) -- a group named by its label, hooked as one,
-  // holding its fields' rows and its one button, named by what it says.
+  // Add of a bill (0039), an e-invoice's party, VAT category or list
+  // (0044) -- a group named by its label, hooked as one, holding its
+  // fields' rows and its buttons, each named by what it says and
+  // aria-disabled exactly where the state says it has nowhere to go.
   const fieldGroups = state.properties.rows.flatMap((row) => ('group' in row ? [row.group] : []))
   const drawnGroups = form === undefined ? [] : parts('property-group', form)
   expect(
@@ -251,10 +274,15 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
       fieldGroups.every((group, at) => {
         const drawn = drawnGroups[at] as MarkupElement
         const buttons = elementsIn(drawn).filter((element) => element.tag === 'button')
-        const action = group.action === undefined ? [] : [group.action.label]
-        return attribute(drawn, 'role') === 'group' && nameOf(drawn) === group.label && parts('property', drawn).length === group.fields.length && buttons.length === action.length && buttons.every((button, index) => spokenText(button) === action[index])
+        return (
+          attribute(drawn, 'role') === 'group' &&
+          nameOf(drawn) === group.label &&
+          parts('property', drawn).length === group.fields.length &&
+          buttons.length === group.actions.length &&
+          buttons.every((button, index) => spokenText(button) === group.actions[index]?.label && (attribute(button, 'aria-disabled') === 'true') === !group.actions[index]?.available)
+        )
       }),
-    'the properties have not a group per group of fields, named by its label, with its rows and its button',
+    'the properties have not a group per group of fields, named by its label, with its rows and its buttons, each unavailable where the state says',
   )
   const [library] = form === undefined ? [] : withRole('group', form).filter((group) => nameOf(group) === t('images.heading'))
   const imageRows = library === undefined ? [] : parts('property', library)

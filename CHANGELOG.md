@@ -10,6 +10,67 @@ later.
 
 ## Unreleased
 
+**A report's e-invoice is edited field by field in either builder, and
+the account it shares with its payment codes is changed in one step**
+([0044](docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
+Until now an e-invoice could be changed only in the definition (0027), and
+in a report with one the QR-bill's IBAN could not be changed at all, since
+the validator holds every payment code printed with an e-invoice to its
+account (BT-84) and each edit is validated whole. Its row now stands in the
+outline after the payment part's, "E-invoice"; it prints nothing of its
+own, so it has no band, moves nowhere, and Delete removes it in one undo
+step. Its fields are every term of either kind, Factur-X's and
+XRechnung's, 0037's and 0038's among them, in groups: the seller and the
+buyer, the seller's contact, each VAT category with Move up, Move down and
+Remove and the list's Add, the lines, whose identifier, unit and category
+are read from a detail field or an expression, the payment instructions,
+and an XRechnung's own terms first. An IBAN typed into the e-invoice, its
+QR-bill or an EPC QR code is now the account all of them pay, written by
+report-core's new `setPaymentAccount` in one undo step, "Change IBAN", so
+that they agree after every edit and a proposal's review finds the change
+of whom an invoice is paid by under one command's name; an account one of
+them cannot take is refused on the field typed into, in that one's rule.
+It changes no BIC, so an EPC QR code's BIC of another country refuses the
+new account until the BIC is changed or emptied. Where any of them reads
+its account from the data, the command is refused as `read-from-data`, a
+new refusal code, rather than write over the binding, and the field typed
+into writes its own account alone, which the render compares with the
+data's; beside such a place, two written accounts are held to each other,
+and one changed alone is refused. A field's refusal is said in the words
+of its own place's rule first -- on the bill's IBAN, that a bill pays
+Swiss and Liechtenstein accounts, not that an EPC QR code's BIC is now of
+another country. In a report with an e-invoice the palette's EPC payment
+code pays the e-invoice's account, with its BIC, and is unavailable until
+the e-invoice gives payment instructions, and Add QR-bill gives the bill
+the e-invoice's currency and account, since the account that pays nobody
+and SIX's example in francs were refused there in every place. Only the
+e-invoice's totals and its lines are held to the page (0027): a seller, a
+date or a bank the page prints in its own words is accepted changed in
+the e-invoice with no warning, so the XML may then name another than the
+page, and the person changes both. An e-invoice is edited and never made from nothing, since a
+report needs a table and printed totals shaped for one: the Studio's new
+starter "E-invoice", the corpus's "Rechnung (ZUGFeRD)" sample, is where
+to start, and the e-invoice gate judges its PDF/A-3b as every starter's.
+report-core adds `putEInvoice`, `updateEInvoice` and `removeEInvoice`,
+listed in `PART_COMMANDS` with `setPaymentAccount`. report-builder-core's
+`REPORT_LEVEL_PARTS` holds `eInvoice`, a property group's one `action` is
+now `actions`, each with `available` and `then`, where the keyboard goes
+once it is done, which both builders follow, and three actions edit a list
+item by item (`addItem`, `removeItem`, `moveItem`); an Add the state marks
+unavailable is refused as `unavailable`, saying why, and an add or a
+removal the validator refuses says what was not done ("Did not add VAT
+category 4: …"), where it said "was not changed", a bill's debtor's too. The
+published `report-builder.css` draws no label of its own on a container
+no taller than two labels, as each of the e-invoice starter's totals is,
+whose label stood over the label of what stands at the top of its last
+column; a host that styles the design view sees such a container
+unnamed on the canvas. In the Studio, the Preview's list of what a render
+lacks is one tab stop, so a keyboard reaches and scrolls it where it holds
+no button, as an e-invoice's preview's one warning does. A contact, payment
+instructions or an exempt or reverse-charged category added in a builder
+hold the editor's placeholders until replaced, and nothing warns of them;
+the German and French words have not been read by a native speaker.
+
 **A person starts a report from a formancy form, and it says which form
 version it was made from**
 ([0045](docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).
@@ -198,8 +259,8 @@ its group's button. A report without a bill offers Add QR-bill in its own
 properties, which adds SIX's third example, since a bill of blank texts is
 refused, and selects it with the keyboard on its IBAN. An IBAN of the
 wrong country, length or check digits is refused on its field in
-report-spec's words, and in a report with an e-invoice one apart from the
-e-invoice's account (BT-84); nothing asks the person to confirm a changed
+report-spec's words, and in a report with an e-invoice it is the
+e-invoice's account too, changed with it (0044, above); nothing asks the person to confirm a changed
 IBAN, since a valid account of someone else's would pass any such question
 -- who may change whom a bill pays is your application's to decide. SIX
 pays a QR-IBAN with a QR reference and nothing else, and an IBAN never

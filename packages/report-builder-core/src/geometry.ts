@@ -13,7 +13,8 @@
 import { pageDimensions, printableArea, QR_BILL_SIZE, REGION_NAMES, walkComponents } from '@formancy/report-spec'
 import type { Component, Inline, Margins, RegionName, ReportDefinition, Width } from '@formancy/report-spec'
 import { columnKey } from './labels.js'
-import type { Box, PageGeometry, PartKind, RulerTick } from './model.js'
+import type { PartKind } from './model.js'
+import type { Box, PageGeometry, RulerTick } from './model-canvas.js'
 
 export const MIN_ZOOM = 0.25
 export const MAX_ZOOM = 4

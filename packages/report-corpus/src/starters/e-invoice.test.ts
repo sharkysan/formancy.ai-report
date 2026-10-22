@@ -56,17 +56,19 @@ const everySample = [...E_INVOICE_SAMPLES, ...XRECHNUNG_SAMPLES].map((sample) =>
 describe('the e-invoice samples', () => {
   // The sample and the three variants the e-invoice gate sees every
   // accepted path through, all in German: a fifth, or one in another
-  // language, would claim what no record does (France waits), and a sample
-  // that became a starter would put an e-invoice in the Studio's picker
-  // that neither builder edits.
-  test('are the e-invoice and its three variants, in German, and none is a starter', () => {
+  // language, would claim what no record does (France waits). The sample
+  // is a starter, so that a person opens an e-invoice in the Studio and
+  // edits it in either builder (0044); the variants are not, as the
+  // invoice's other languages are not (0024), so that the picker offers
+  // one e-invoice to edit and not four of one template.
+  test('are the e-invoice and its three variants, in German, the e-invoice alone a starter', () => {
     expect(E_INVOICE_SAMPLES.map((sample) => [sample.id, sample.title, sample.report.locale])).toEqual([
       ['e-invoice', 'Rechnung (ZUGFeRD)', 'de-DE'],
       ['e-invoice-reverse-charge', 'Rechnung (ZUGFeRD)', 'de-DE'],
       ['e-invoice-exempt-paid', 'Rechnung (ZUGFeRD)', 'de-DE'],
       ['e-invoice-addressed', 'Rechnung (ZUGFeRD)', 'de-DE'],
     ])
-    expect(STARTERS.filter((starter) => E_INVOICE_SAMPLES.includes(starter))).toEqual([])
+    expect(STARTERS.filter((starter) => E_INVOICE_SAMPLES.includes(starter)).map((starter) => starter.id)).toEqual(['e-invoice'])
   })
 
   // The variants are the template over other data, so that what the gate

@@ -2,26 +2,19 @@ export { createReportEditor } from './editor.js'
 export type { ReportEditor, ReportEditorOptions } from './editor.js'
 export type { HostViewOptions } from './views.js'
 
-export { EDITOR_PANELS, EDITOR_REFUSAL_CODES, HIDEABLE_PANELS, HOST_VIEW_PLACES, PROPERTY_KINDS, PROPERTY_ROLES, REPORT_LEVEL_PARTS } from './model.js'
+export { EDITOR_PANELS, HIDEABLE_PANELS, HOST_VIEW_PLACES, REPORT_LEVEL_PARTS } from './model.js'
+export { EDITOR_REFUSAL_CODES } from './model-actions.js'
+export { PROPERTY_KINDS, PROPERTY_ROLES } from './model-properties.js'
 export type {
   Announcement,
   Availability,
-  Box,
-  Canvas,
-  CanvasBox,
-  CanvasPaymentPart,
-  CanvasRegion,
   ComponentSelection,
   DiagnosticEntry,
   DocumentSummary,
   DragState,
   DragSubject,
   DropTarget,
-  EditorAction,
-  EditorActionType,
-  EditorOutcome,
   EditorPanel,
-  EditorRefusalCode,
   EditorState,
   HideablePanel,
   HistoryState,
@@ -30,22 +23,15 @@ export type {
   OutlineNode,
   OutlinePart,
   OutlineRegion,
-  PageGeometry,
   PaletteEntry,
   PartKind,
-  PropertyAction,
-  PropertyField,
-  PropertyGroup,
-  PropertyKind,
-  PropertyOption,
-  PropertyPanel,
-  PropertyRow,
   RegionSummary,
   ReportLevelPart,
-  RulerTick,
   Selection,
-  Size,
 } from './model.js'
+export type { EditorAction, EditorActionType, EditorOutcome, EditorRefusalCode } from './model-actions.js'
+export type { Box, Canvas, CanvasBox, CanvasPaymentPart, CanvasRegion, PageGeometry, RulerTick, Size } from './model-canvas.js'
+export type { PropertyAction, PropertyField, PropertyGroup, PropertyKind, PropertyOption, PropertyPanel, PropertyRow } from './model-properties.js'
 
 // Where a host keeps the images a person adds, and the report's images as the state lists them (0033).
 export type { AddedImage, ImageFile, ImageLibrary, ImageStore, KeptImage, LibraryAsset } from './image-store.js'
