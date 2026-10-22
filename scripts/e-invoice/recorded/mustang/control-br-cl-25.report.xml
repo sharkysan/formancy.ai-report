@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="control-br-cl-25.xml" datetime="2026-10-22 08:48:58">
+<validation filename="control-br-cl-25.xml" datetime="2026-10-22 10:47:59">
   <xml>
     <info>
       <version>2</version>
@@ -10,7 +10,7 @@
         <fired>137</fired>
         <failed>1</failed>
       </rules>
-      <duration unit="ms">2605</duration>
+      <duration unit="ms">2048</duration>
     </info>
     <messages>
       <error type="4" location="/*:CrossIndustryInvoice[namespace-uri()='urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'][1]/*:SupplyChainTradeTransaction[namespace-uri()='urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'][1]/*:ApplicableHeaderTradeAgreement[namespace-uri()='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'][1]/*:SellerTradeParty[namespace-uri()='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'][1]/*:URIUniversalCommunication[namespace-uri()='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'][1]/*:URIID[namespace-uri()='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'][1]" criterion="string-length($codeValue17)=0 or document('FACTUR-X_EN16931_codedb.xml')/codedb/cl[@id=17]/enumeration[@value=$codeValue17]">Value of '@schemeID' is not allowed. [ID FX-SCH-A-000582] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)</error> 

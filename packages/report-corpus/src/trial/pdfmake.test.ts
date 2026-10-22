@@ -32,6 +32,9 @@ import { RULE_SPACE } from './pdfmake-content.js'
  */
 const CANNOT: ReadonlyMap<string, { readonly reason: string; readonly problems: readonly string[] }> = new Map()
 
+/** The fixtures the trial's engine comparison covers: the ones mapping no host font, since the trial adapters predate them and embed Roboto and Liberation alone (0005, 0043). */
+const TRIAL_FIXTURES = ALL_FIXTURES.filter((fixture) => fixture.document.fonts === undefined)
+
 /** Long enough for the corpus's largest documents on a slow runner; a render that hangs still fails. */
 const TIMEOUT = 120_000
 
@@ -51,7 +54,7 @@ describe('pdfmake on the corpus', () => {
   // data holds, a truncated job -- and its checks are what would see it.
   // A fixture here that passes is one pdfmake, through this adapter, does
   // not get wrong.
-  for (const fixture of ALL_FIXTURES) {
+  for (const fixture of TRIAL_FIXTURES) {
     const finding = CANNOT.get(fixture.id)
     test(`${fixture.id}: ${finding === undefined ? fixture.title : `fails: ${finding.reason}`}`, async () => {
       expect(await problems(fixture)).toEqual(finding?.problems ?? [])

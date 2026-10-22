@@ -72,6 +72,10 @@ format every value for the locale          Intl handed exact digits, never a dou
 images through the host's lookup, by id and digest, once each; an SVG
 past MAX_SVG_BYTES refused (6.9)
    ▼
+the fonts a report maps, through the same lookup, read with readFont before
+they are handed over; a face it cannot give or that is refused refuses the
+render (0043)
+   ▼
 a QR-bill's texts, and an EPC QR code's, resolved and held to their code's
 rules; the EPC QR code's payload written (6.7)
    ▼
@@ -95,7 +99,9 @@ renderPdf(document, { maxPages, signal })
    ├─ measure the page regions; the body's margins follow
    ├─ a block of fixed height taller than the body ──────────▶ content-too-large
    ├─ least height already past maxPages ────────────────────▶ too-many-pages
-   ├─ measure kept blocks and table rows; one no page holds ─▶ content-too-large
+   ├─ measure kept blocks and table rows; one no page holds,
+   │ or a row's line no page holds under its table's
+   │ repeated header (0011) ─────────────────────────────────▶ content-too-large
    ├─ plan where each table breaks
    ├─ lay out the PDF; a page past maxPages ─────────────────▶ too-many-pages
    │       in every pass, a word wider than its column ──────▶ content-too-large

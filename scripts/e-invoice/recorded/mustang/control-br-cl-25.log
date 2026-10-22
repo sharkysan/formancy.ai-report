@@ -4,4 +4,4 @@
 	Value of '@schemeID' is not allowed.
 [main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 4: 
 	Value of '@schemeID' is not allowed. [ID FX-SCH-A-000582] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)
-[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:FD5E4772BDE5445046F24A818E8D858C5D0613D1 Profile:urn:cen.eu:en16931:2017 Version:2 Took:2723ms Errors:[4] ErrorIDs: [FX-SCH-A-000582]
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:FD5E4772BDE5445046F24A818E8D858C5D0613D1 Profile:urn:cen.eu:en16931:2017 Version:2 Took:2153ms Errors:[4] ErrorIDs: [FX-SCH-A-000582]

@@ -143,6 +143,7 @@ export const PDF_VARIANTS = [
     draws: { bound: true },
   },
   { file: 'variant-fonts.pdf', why: 'the corpus’s fonts fixture: German, French, Swiss, euro and Polish text, in the regular and the bold face, in paragraphs and a table', draws: { fixture: 'fonts' } },
+  { file: 'variant-host-fonts.pdf', why: 'the corpus’s host-fonts fixture: Latin, Greek and Cyrillic in fonts a host supplied -- Liberation Serif and Mono -- embedded beside Roboto, so a PDF/A-3b that carries an e-invoice holds a host’s faces too (0043)', draws: { fixture: 'host-fonts' } },
   { file: 'variant-service-inspection.pdf', why: 'the service inspection starter: a photo from the data, a rule, and page regions over its pages', draws: { starter: 'service-inspection' } },
   { file: 'variant-quotation.pdf', why: 'the quotation starter: page regions, a table and its totals', draws: { starter: 'quotation' } },
   { file: 'variant-grouped-equipment.pdf', why: 'the grouped equipment starter: groups with their subtotals, under a running head, over its pages', draws: { starter: 'grouped-equipment' } },

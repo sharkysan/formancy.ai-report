@@ -30,7 +30,7 @@ import {
   vhea,
   windows,
 } from './font-test-support.js'
-import { MAX_FONT_BYTES, MAX_FONT_GLYPH_WORK } from './limits.js'
+import { MAX_FONT_BYTES, MAX_FONT_COMPONENTS, MAX_FONT_GLYPH_WORK, MAX_FONT_LINE, MAX_FONT_OUTLINE_WORK, MAX_FONT_POINTS, MIN_FONT_LINE } from './limits.js'
 
 /**
  * report-spec's one reader of a font's bytes (0040), which the renderer
@@ -62,6 +62,7 @@ describe('readFont reads', () => {
         family: 'Probe Sans',
         subfamily: 'Regular',
         postScriptName: 'ProbeSans-Regular',
+        postScriptNames: ['ProbeSans-Regular'],
         fullName: 'Probe Sans Regular',
         version: 'Version 1.000',
         copyright: 'Copyright 2026 an invented foundry',
@@ -408,6 +409,46 @@ describe('readFont holds each table to the specification', () => {
   })
 })
 
+describe("readFont holds a font's line to what pdfmake can lay out", () => {
+  /** A font of `unitsPerEm` whose horizontal header has this ascender and descender, the line pdfmake lays it out by. */
+  const lined = (ascender: number, descender: number, unitsPerEm = 1000): Uint8Array => font({ head: head({ unitsPerEm }), hhea: hhea({ ascender, descender, metrics: 3 }) })
+
+  // pdfmake lays each line out its ascender less its descender tall and
+  // sets its baseline the ascender below the line's top. A line of nothing,
+  // or of less, printed every line of a report on one spot, and the
+  // renderer's page bound, which counts a line by it, let a report far past
+  // its page limit print on one page; an ascender at or below the baseline,
+  // or a descender above it, draws the glyphs outside their own line. Each
+  // is refused at the door, in numbers alone, and the descender on the
+  // baseline that two of the machine's icon fonts have is not.
+  test.each([
+    ['an ascender on the baseline', 0, -1000, 'has an ascender of 0 units, at or below its baseline, where a line must rise above it'],
+    ['an ascender below the baseline', -434, -1000, 'has an ascender of -434 units, at or below its baseline'],
+    ['a descender above the baseline', 1000, 1, 'has a descender of 1 units, above its baseline, where a line must reach down to it or below'],
+    ['an ascender that is its descender', 1854, 1854, 'has a descender of 1854 units, above its baseline'],
+  ])('%s', (_, ascender, descender, said) => {
+    expect(refusalOf(lined(ascender, descender))).toMatchObject({ code: 'malformed', message: expect.stringContaining(said) as string })
+  })
+
+  // The renderer counts a line of text as its size times its face's line
+  // when it refuses a report too long for its page limit, so a line of a
+  // few units to the em would let thousands of lines past that bound,
+  // printed each over the last; the bounds are read in ems, whatever the
+  // units, so a font is held alike at 1000 units and at 2048. A line of
+  // the bounds is accepted, one unit past either refused, naming its units.
+  test.each([1000, 2048])('a line of MIN_FONT_LINE to MAX_FONT_LINE ems, at %i units to the em', (units) => {
+    const floor = MIN_FONT_LINE * units
+    const ceiling = MAX_FONT_LINE * units
+    const descender = -Math.round(units / 4)
+    expect(readFont(lined(floor + descender, descender, units))).toMatchObject({ ok: true, metrics: { unitsPerEm: units, ascender: floor + descender, descender } })
+    expect(readFont(lined(ceiling + descender, descender, units))).toMatchObject({ ok: true })
+    expect(readFont(lined(units, 0, units))).toMatchObject({ ok: true })
+    const range = `where a line may be ${MIN_FONT_LINE} to ${MAX_FONT_LINE} ems tall`
+    expect(refusalOf(lined(floor + descender - 1, descender, units))).toMatchObject({ code: 'malformed', message: expect.stringContaining(`has a line ${floor - 1} units tall, its ascender less its descender, at ${units} units to the em, ${range}`) as string })
+    expect(refusalOf(lined(ceiling + descender + 1, descender, units))).toMatchObject({ code: 'malformed', message: expect.stringContaining(`has a line ${ceiling + 1} units tall`) as string })
+  })
+})
+
 describe('FONT_REFUSAL_CODES', () => {
   // A builder says each code in a person's language. A code no bytes give,
   // or one with no case, would be words nobody sees or a refusal nobody
@@ -468,6 +509,52 @@ describe('readFont holds a font to its bounds', () => {
       ok: false,
       code: 'too-large',
       message: `has a glyph of 17 contours and 61681 points, past the ${MAX_FONT_GLYPH_WORK} of the two multiplied that a glyph may be; simplify the glyph's outline in a font editor, or use another font`,
+    })
+  })
+
+  // A subset holds every glyph a printed character reaches, a composite's
+  // components among them, and fontkit decodes each one's points: one 'A'
+  // made of 36,733 glyphs at the bound above, a font this reader accepted,
+  // took PDFKit 162 s to embed (0043). So the points of all of a font's
+  // glyphs are bounded together, whichever of them a render prints. The
+  // .notdef glyph is empty here, so that the others' points are the sum.
+  test(`glyphs of ${MAX_FONT_POINTS} points together are read, and one point more refused`, () => {
+    const glyphs = (count: number): Uint8Array[] => [new Uint8Array(0), ...Array.from({ length: count }, () => crowded(1, 65_536))]
+    expect(32 * 65_536).toBe(MAX_FONT_POINTS)
+    expect(readFont(font({ glyphs: glyphs(32) }))).toMatchObject({ ok: true })
+    expect(refusalOf(font({ glyphs: [...glyphs(32), crowded(1, 1)] }))).toEqual({
+      ok: false,
+      code: 'too-large',
+      message: `has glyphs of more than ${MAX_FONT_POINTS} points together, the most a font's glyphs may have; use a font file that holds fewer scripts`,
+    })
+  })
+
+  // And their points times contours together: sixteen glyphs at the bound
+  // a glyph may reach are read, a seventeenth is refused, though the points
+  // of all seventeen are far fewer than the bound above.
+  test(`glyphs of ${MAX_FONT_OUTLINE_WORK} points times contours together are read, and more refused`, () => {
+    const glyphs = (count: number): Uint8Array[] => [new Uint8Array(0), ...Array.from({ length: count }, () => crowded(1024, 1024))]
+    expect(16 * MAX_FONT_GLYPH_WORK).toBe(MAX_FONT_OUTLINE_WORK)
+    expect(readFont(font({ glyphs: glyphs(16) }))).toMatchObject({ ok: true })
+    expect(refusalOf(font({ glyphs: glyphs(17) }))).toEqual({
+      ok: false,
+      code: 'too-large',
+      message: `has glyphs whose points times contours come to more than ${MAX_FONT_OUTLINE_WORK} together, the most a font's glyphs may; use a font file that holds fewer scripts`,
+    })
+  })
+
+  // A composite's components are decoded into a list when PDFKit subsets
+  // the glyph, however many name one glyph: one composite of 3,490,000,
+  // what 20 MiB holds, took PDFKit a second and 431 MiB of heap to embed
+  // (0043). The components of all a font's composites are bounded together.
+  test(`composites of ${MAX_FONT_COMPONENTS} components together are read, and one more refused`, () => {
+    const parts = (count: number): number[] => Array.from({ length: count }, () => 1)
+    const half = MAX_FONT_COMPONENTS / 2
+    expect(readFont(font({ locFormat: 1, glyphs: [square(), square(400), composite(parts(half), { bytes: true }), composite(parts(half), { bytes: true })] }))).toMatchObject({ ok: true })
+    expect(refusalOf(font({ locFormat: 1, glyphs: [square(), square(400), composite(parts(half), { bytes: true }), composite(parts(half + 1), { bytes: true })] }))).toEqual({
+      ok: false,
+      code: 'too-large',
+      message: `has composite glyphs of more than ${MAX_FONT_COMPONENTS} components together, the most a font's glyphs may have; use a font file that holds fewer scripts`,
     })
   })
 

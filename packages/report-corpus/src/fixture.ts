@@ -57,6 +57,12 @@ export interface ExpectedImage {
   readonly height: number
 }
 
+/** A run of text and the PostScript name of the face it must print in (0043), after any subset prefix. */
+export interface ExpectedFontName {
+  readonly text: string
+  readonly postScriptName: string
+}
+
 export interface Expectation {
   /** `render-or-refuse`: either a PDF that passes every check, or this refusal. */
   readonly outcome: 'render' | 'refuse' | 'render-or-refuse'
@@ -118,6 +124,8 @@ export interface Expectation {
   readonly noOverlaps: boolean
   /** Every font a page uses travels inside the PDF. */
   readonly fontsEmbedded: boolean
+  /** Each run of text held to the face it prints in, by the face's PostScript name after the subset prefix (0043); empty where a fixture maps no host font. */
+  readonly fontNames: readonly ExpectedFontName[]
   /** The body's images, in document order, each drawn once at this size. */
   readonly images: readonly ExpectedImage[]
   /** The page header's and footer's images, each drawn on every page at this size. */
@@ -153,6 +161,7 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     allTextInsidePrintable: true,
     noOverlaps: true,
     fontsEmbedded: true,
+    fontNames: [],
     images: imagesOf(document.body),
     pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
     ...stated,

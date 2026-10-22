@@ -148,10 +148,10 @@ Every block of the resolved document:
 | Code | When |
 |---|---|
 | `too-many-pages` | The report needs more pages than `maxPages`, a QR-bill's page included. pdfmake's own limit would return the first pages as though they were all of it. A body whose least height already needs more, the room a bill's slip keeps included, is refused before pdfmake measures it. |
-| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below). |
-| `invalid-asset` | An image's bytes are not the PNG, JPEG or SVG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side, and for an SVG a mebibyte; a JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, which PDFKit takes for it, as an arithmetic-coded JPEG may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components, which PDFKit gives no colour space (0031); an SVG is not exactly the drawing report-spec's `cleanSvg` writes (below). A PNG's or a JPEG's structure is read by report-spec's `imageHeader`, which a builder refuses an image a person adds by too, in the same words (0033); whether a PNG's image data inflates to the scanlines its header promises is read here alone, since it needs the platform's decompressor. |
+| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below). |
+| `invalid-asset` | An image's bytes are not the PNG, JPEG or SVG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side, and for an SVG a mebibyte; a JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, which PDFKit takes for it, as an arithmetic-coded JPEG may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components, which PDFKit gives no colour space (0031); an SVG is not exactly the drawing report-spec's `cleanSvg` writes (below). A PNG's or a JPEG's structure is read by report-spec's `imageHeader`, which a builder refuses an image a person adds by too, in the same words (0033); whether a PNG's image data inflates to the scanlines its header promises is read here alone, since it needs the platform's decompressor. A host's font `readFont` refuses, one PDFKit would draw as another face, or one asset id handed in two byte strings, naming the asset (0043). |
 | `cancelled` | The signal was aborted. |
-| `unsupported` | What the renderer cannot draw as written: a character the font has no glyph for, a font other than `sans`, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or one its PDF/A-3b cannot hold, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them (below). |
+| `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or one its PDF/A-3b cannot hold, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them (below). |
 
 ## SVG images
 
@@ -494,7 +494,8 @@ compare them with the transcription's values, and say so.
 
 ## Fonts
 
-Every report prints in **Roboto 3.014**, from pdfmake's own package, under
+A report prints its own text in **Roboto 3.014** by default, from pdfmake's
+own package, under
 the SIL Open Font License 1.1, which allows embedding fonts in documents.
 The dependency-licence guard reads that licence from the font files
 themselves ([0006](../../docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
@@ -502,22 +503,60 @@ The browser entry's copy in `vfs_fonts.js` is base64 inside a script, which
 the guard cannot read; a test holds it to the very bytes of those files.
 Each PDF embeds the subset of each face it uses.
 
-- `sans` is Roboto. **`serif` and `mono` are refused** as `unsupported`:
-  pdfmake ships no serif or monospaced font, and printing one in Roboto would
-  be a substitution nobody sees until they read the PDF. They need fonts
-  whose licence the guard allows, and none is shipped yet.
+A report that **maps** a font token to a host's font prints that token's
+text in the host's face instead ([0043](../../docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
+The runtime hands the face's bytes over; the renderer reads each with
+report-spec's `readFont` in every render, keeping nothing of it for the
+next, refusing a font it cannot embed as `invalid-asset` naming the asset,
+strips the layout tables fontkit runs at print -- GSUB, GPOS, GDEF, kern and
+`morx`, read from fontkit 2.0.4, which a test pins -- so that a crafted one
+neither hangs nor crashes a render, and embeds the stripped bytes through
+pdfmake's virtual files under names of the render's own, removed from
+pdfmake's storage after each pass. A face a report prints but does not map
+is refused as `unsupported`. Each line counts toward the page limit by the
+face it prints in, a paragraph's by its tallest run's, so a host face of a
+short line lowers the bound of its own text alone; a table's cells are walked
+once, by `styledRows`, for their text, their tallest line and that bound,
+each in the style and at the size `tableContent` prints it in. PDFKit draws
+two faces of one PostScript name as whichever it opened first, so a host face
+is refused as `invalid-asset` where any of its PostScript names is another
+face's of the render with other bytes -- another host asset's, or the
+renderer's own Roboto's or Liberation Sans's, a host's own copy of another
+release among them -- or is `null` or a name every object has, which PDFKit's
+font table holds already (`face-identity.ts`); a face of the renderer's own
+bytes is embedded whole, kerned, and prints as the renderer's. A CFF `.otf`
+is refused until report-spec reads CFF outlines and a PDF/A-3b proves one.
+
+- **Latin, Greek and Cyrillic print, and nothing else**, in any face,
+  Roboto's included: report-spec's `refusedCharacter` allows the Unicode
+  blocks of those scripts and of the punctuation, symbols and marks written
+  with them, and refuses every other character as `unsupported` --
+  right-to-left, shaping and CJK scripts, simple alphabets such as Armenian
+  and Georgian, and the bidirectional controls, which fontkit would draw as
+  a space -- since pdfmake reorders nothing and the renderer shapes nothing.
+  Every character Roboto maps prints, so a report that maps nothing refuses
+  what 0.2.0 refused, in new words for another script.
+
+- `sans` is **Roboto** where a report does not map it. **`serif` and `mono`
+  are refused** as `unsupported` where a report does not map them: pdfmake
+  ships no serif or monospaced font, and printing one in Roboto would be a
+  substitution nobody sees until they read the PDF. No serif or mono face is
+  shipped; a host supplies them.
 - Bold is **Roboto Medium**, the heaviest face pdfmake ships, and italic is
-  Roboto Italic.
+  Roboto Italic; a host's family maps its own bold and italic faces, and a
+  face it does not map is refused, never synthesised.
 - **Every character is held to the face it prints in**, read from the
   faces' own character maps by report-spec's `characterMap`, through the
   runtime, as fontkit, which PDFKit lays text out with, reads them
   ([0040](../../docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)),
   and one without a glyph is refused as
-  `unsupported`, naming the block and the code point: pdfmake would print
-  it as an empty box, and as U+0000 in the PDF's text. One font means no
-  fallback: CJK, Hebrew, Arabic, Thai and emoji are refused, and so is an
-  fr-FR amount, which Intl groups with a narrow no-break space (U+202F)
-  that Roboto lacks. Swiss amounts, de-CH and fr-CH alike, print.
+  `unsupported`, naming the face and the code point: pdfmake would print
+  it as an empty box, and as U+0000 in the PDF's text. A page number's and
+  a page count's digits are held to their paragraph's face too. There is no fallback
+  across faces: a character a mapped face lacks is refused, not drawn in
+  another. An fr-FR amount, which Intl groups with a narrow no-break space
+  (U+202F) that Roboto lacks, is refused where `sans` is Roboto; Swiss
+  amounts, de-CH and fr-CH alike, print.
 
 A QR-bill's slip and an EPC QR code's caption, and nothing else, print in
 **Liberation Sans 2.1.5**, regular and bold, under the SIL Open Font

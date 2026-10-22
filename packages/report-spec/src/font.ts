@@ -11,8 +11,10 @@
  *
  * Accepted: one static TrueType font -- an sfnt of version 0x00010000 or
  * Apple's 'true' -- with TrueType outlines, the eight tables every OpenType
- * font needs, a Unicode character map fontkit reads in format 4 or 12, and
- * an OS/2 fsType that allows embedding a subset of its outlines. Refused,
+ * font needs, a Unicode character map fontkit reads in format 4 or 12, a
+ * line pdfmake can lay out, its ascender above the baseline, its descender
+ * at or below it and the two `MIN_FONT_LINE` to `MAX_FONT_LINE` ems apart,
+ * and an OS/2 fsType that allows embedding a subset of its outlines. Refused,
  * each with what to do: a collection, WOFF, WOFF2, EOT and Type 1; CFF and
  * CFF2 outlines, until the e-invoice gate has proved a CFF face in a
  * PDF/A-3b; a variable font; colour glyphs, which PDFKit prints as their
@@ -32,7 +34,7 @@ import { caught, refuse, type FontRefusal } from './font-refusal.js'
 import { readGlyphCount, readHead, readHorizontal, readOs2, readPost, readVertical, type FontEmbedding } from './font-tables.js'
 import { MAX_FONT_BYTES } from './limits.js'
 
-/** The metrics PDFKit lays a line out by, in font units: `unitsPerEm`, and the horizontal header's ascender, descender and line gap. A line is `ascender - descender` units, as `style.ts` says of Roboto's. */
+/** The metrics PDFKit lays a line out by, in font units: `unitsPerEm`, and the horizontal header's ascender, descender and line gap. A line is `ascender - descender` units, as `style.ts` says of Roboto's: in a font this accepts, the ascender above 0, the descender at or below 0, and the line `MIN_FONT_LINE` to `MAX_FONT_LINE` ems. */
 export interface FontMetrics {
   readonly unitsPerEm: number
   readonly ascender: number
@@ -99,7 +101,7 @@ function read(bytes: Uint8Array): Font {
   const os2 = readOs2(file)
   const header = readHead(file)
   const glyphs = readGlyphCount(file)
-  const line = readHorizontal(file, glyphs)
+  const line = readHorizontal(file, glyphs, header.unitsPerEm)
   readVertical(file, glyphs)
   readOutlines(file, glyphs, header.locFormat)
   readPost(file)

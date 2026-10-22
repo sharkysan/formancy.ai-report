@@ -32,6 +32,7 @@ import type { AssetRef } from './assets.js'
 import type { Component } from './components.js'
 import type { Datasets, ParameterDef } from './data.js'
 import type { EInvoice } from './e-invoice.js'
+import type { FontMap } from './font-map.js'
 import type { PageSettings } from './page.js'
 import type { PaymentPart } from './payment-part.js'
 import type { PrintStyle } from './styles.js'
@@ -77,6 +78,8 @@ export interface ReportDefinition {
   readonly parameters: readonly ParameterDef[]
   readonly assets: readonly AssetRef[]
   readonly aggregates: readonly AggregateDef[]
+  /** Which font assets each font token prints in, face by face; absent, and a token left out, the renderer prints that token in its own face (0043). */
+  readonly fonts?: FontMap
   readonly regions: Regions
   /** A slip to pay the report by, printed at the foot of its last page: a Swiss QR-bill. Absent, the report has none. */
   readonly paymentPart?: PaymentPart

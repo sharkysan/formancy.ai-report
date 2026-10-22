@@ -1,6 +1,29 @@
 import { capped, plural, quoted, type Page } from './check-page.js'
+import type { ExpectedFontName } from './fixture.js'
 import { normalise } from './fixture.js'
 import { lineHas } from './lines.js'
+
+/** A font's subset prefix in a PDF: six upper-case letters and a plus sign before the PostScript name. */
+const SUBSET_PREFIX = /^[A-Z]{6}\+/
+
+/**
+ * Each run held to the face it prints in (0043): every text item whose text
+ * holds the fixture's marker is drawn in a font whose PostScript name, after
+ * the subset prefix the PDF gives every embedded subset, is the one the
+ * fixture names. The marker is a distinctive word, since PDF.js splits a run
+ * into several items at a script boundary; a run mapped to serif that
+ * printed in Roboto, or in the mono face, is caught here, where the
+ * extracted text alone would read the same.
+ */
+export function fontNames(pages: readonly Page[], expected: readonly ExpectedFontName[]): string[] {
+  const items = pages.flatMap(({ page }) => page.items)
+  return expected.flatMap(({ text, postScriptName }) => {
+    const drawn = items.filter((item) => item.text.includes(text))
+    if (drawn.length === 0) return [`no run holds ${quoted(text)}, to hold to the ${postScriptName} face`]
+    const names = [...new Set(drawn.map((item) => item.font.replace(SUBSET_PREFIX, '')))]
+    return names.length === 1 && names[0] === postScriptName ? [] : [`${quoted(text)} is drawn in ${names.map((name) => quoted(name)).join(', ')}; expected ${quoted(postScriptName)}`]
+  })
+}
 
 /**
  * Each key once, in order. Keys are found as whole-word sequences in the

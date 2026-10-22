@@ -135,6 +135,29 @@ what it may be embedded as and which characters it draws, or refuses it;
 the runtime hands it on, and the renderer reads the faces it embeds
 through its `characterMap`
 ([0040](docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)).
+A report maps its three font tokens to `font/ttf` assets a host approved,
+pinned by digest (report-spec's `font-map.ts`, validated in
+`validate-font-map.ts`), and prints Latin, Greek and Cyrillic, with the
+punctuation, symbols and marks written with them, and nothing else:
+`font-scripts.ts` lists the Unicode blocks that print, from `Blocks.txt`
+18.0.0, and `refusedCharacter` refuses every other character in any face,
+the bidirectional controls among them; the reader bounds a font's outlines
+together (`MAX_FONT_POINTS`, `MAX_FONT_OUTLINE_WORK`, `MAX_FONT_COMPONENTS`),
+which is what a subset can cost PDFKit, and its line between
+`MIN_FONT_LINE` and `MAX_FONT_LINE`. The runtime resolves each face through
+the host's `AssetResolver`, the image resolver widened, and reads its bytes
+with `readFont` before it hands them over (`lower-fonts.ts`); the renderer
+reads each face again in every render, keeping nothing for the next
+(`host-fonts.ts`), refuses one PDFKit would draw as another face of the
+render by its PostScript name (`face-identity.ts`), removes from its table
+directory the layout tables fontkit runs (GSUB, GPOS, GDEF, kern and
+`morx`, `strip-layout.ts`, read from the fontkit 2.0.4 a test pins), embeds
+the result through pdfmake's virtual files under names of the render's
+own, measures each line in the face it prints in and a table's cells by
+the one walk that lays them out (`styledRows`), and refuses a face the
+family does not map and a character the face lacks, a page field's digits
+included; the QR-bill's slip and the EPC caption keep Liberation Sans
+([0043](docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
@@ -182,7 +205,9 @@ namespace, a formancy form in two versions with submissions of each and
 a report of them (`forms/site-visit.ts`), the site visit starter the
 generator writes of its version 2, held as data and held to the generator
 by its hash in report-forms' `starter.test.ts` (`starters/site-visit.ts`),
-`expectation`, which derives
+Liberation Serif and Mono 2.1.5 as a host's fonts (`fixtures/host-fonts/`)
+and the face each run is drawn in, read from the PDF (`PdfTextItem.font`,
+held by `fontNames`), `expectation`, which derives
 what a document's PDF must show, `readPdfObjects` and `readXmp`, which read what a PDF embeds
 and says of itself with pdf-lib and saxes, `readPdfNumbers`, every number
 a PDF writes, content streams included, `inflatedDigest`, a PDF's

@@ -1,4 +1,4 @@
-import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
+import type { AssetMediaType, ReportData, ReportDefinition } from '@formancy/report-runtime'
 
 /**
  * A starter (plan 7, R19): a report definition an author begins from, and
@@ -25,6 +25,7 @@ export interface Starter {
 export interface StarterImage {
   readonly asset: string
   readonly digest: string
-  readonly mediaType: ReportDefinition['assets'][number]['mediaType']
+  /** An image media type: a starter's images are pictures, never fonts. */
+  readonly mediaType: AssetMediaType
   readonly bytes: Uint8Array
 }

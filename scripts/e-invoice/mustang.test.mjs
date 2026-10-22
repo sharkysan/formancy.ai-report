@@ -205,6 +205,7 @@ describe('Mustang’s verdict on a PDF', () => {
       ['variant-svg.pdf', 'as expected', 0],
       ['variant-svg-bound.pdf', 'as expected', 0],
       ['variant-fonts.pdf', 'as expected', 0],
+      ['variant-host-fonts.pdf', 'as expected', 0],
       ['variant-service-inspection.pdf', 'as expected', 0],
       ['variant-quotation.pdf', 'as expected', 0],
       ['variant-grouped-equipment.pdf', 'as expected', 0],

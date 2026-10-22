@@ -32,6 +32,9 @@ const GAPS: Readonly<Record<string, { readonly reason: string; readonly problems
   },
 }
 
+/** The fixtures the trial's engine comparison covers: the ones mapping no host font, which the trial adapters predate (0005, 0043). */
+const TRIAL_FIXTURES = ALL_FIXTURES.filter((fixture) => fixture.document.fonts === undefined)
+
 /** The long fixtures lay out and draw thousands of rows and words; a few seconds each on a developer machine. */
 const SLOW = 120_000
 
@@ -69,12 +72,13 @@ function render(blocks: readonly Block[]): Promise<Uint8Array> {
 }
 
 describe('pdfme on the corpus', () => {
-  // Every fixture, rendered and proved on its own PDF: a row lost or
-  // repeated, a column header missing from a page, a footer drawn over the
-  // body, text past a margin, a font left out of the file, or a refusal the
-  // fixture does not allow fails its case. A fixture pdfme cannot satisfy is
-  // listed in GAPS with the reason, never left out.
-  for (const fixture of ALL_FIXTURES) {
+  // Every fixture of the trial, rendered and proved on its own PDF: a row
+  // lost or repeated, a column header missing from a page, a footer drawn
+  // over the body, text past a margin, a font left out of the file, or a
+  // refusal the fixture does not allow fails its case. A fixture pdfme
+  // cannot satisfy is listed in GAPS with the reason, never left out; the
+  // fixtures that map a host font are no part of the trial (TRIAL_FIXTURES).
+  for (const fixture of TRIAL_FIXTURES) {
     const gap = GAPS[fixture.id]
     test(gap === undefined ? fixture.id : `${fixture.id} fails: ${gap.reason}`, async () => expect(await problems(fixture)).toEqual(gap?.problems ?? []), SLOW)
   }

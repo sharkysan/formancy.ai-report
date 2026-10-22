@@ -1,5 +1,6 @@
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { characterMap, type BillFace, type BillGlyphs, type Face, type Glyphs } from './glyphs.js'
+import type { HostFontFiles } from './host-fonts.js'
 import { finalizeInOrder, type PdfKitImages } from './image-order.js'
 import type { Finish, PdfKitDocument } from './pdfa.js'
 
@@ -12,12 +13,15 @@ import type { Finish, PdfKitDocument } from './pdfa.js'
  */
 export interface Engine {
   /**
-   * The PDF of `definition`. `finish`, where given, acts on PDFKit's
-   * document once pdfmake has laid it out and before it is ended, which is
-   * where an e-invoice's file and XMP are added (`pdfa.ts`): only the final
-   * pass gives one, since a measuring pass throws before its end.
+   * The PDF of `definition`, with `host`'s faces registered in pdfmake's
+   * virtual files for this run and removed after it, whether it wrote a
+   * PDF, measured or threw (0043). `finish`, where
+   * given, acts on PDFKit's document once pdfmake has laid it out and before
+   * it is ended, which is where an e-invoice's file and XMP are added
+   * (`pdfa.ts`): only the final pass gives one, since a measuring pass
+   * throws before its end.
    */
-  readonly run: (definition: TDocumentDefinitions, finish?: Finish) => Promise<Uint8Array>
+  readonly run: (definition: TDocumentDefinitions, host: HostFontFiles, finish?: Finish) => Promise<Uint8Array>
   /** Roboto's four faces, which a report's own text prints in. */
   readonly glyphs: () => Promise<Glyphs>
   /**
@@ -28,6 +32,26 @@ export interface Engine {
    * has them for a document that prints them.
    */
   readonly billGlyphs: () => Promise<BillGlyphs>
+}
+
+/** pdfmake's virtual file system, as both builds expose it: a plain `storage` object the renderer writes a host face into and removes after, since it has no delete (0043). */
+export interface VirtualFs {
+  readonly storage: Record<string, unknown>
+}
+
+/**
+ * Writes `host`'s faces into `virtualfs` for one pass and returns the
+ * cleanup that removes them: pdfmake's virtual files are process-wide and
+ * have no delete, so each pass adds its render's host faces and takes them
+ * out again, and a process holds the faces of the renders in flight and no
+ * other. The names are the render's own (`host-fonts.ts`), so a cleanup
+ * removes no file another render still reads (0043).
+ */
+export function registerHostFonts(virtualfs: VirtualFs, host: HostFontFiles): () => void {
+  for (const [name, bytes] of host.files) virtualfs.storage[name] = bytes
+  return () => {
+    for (const name of host.files.keys()) delete virtualfs.storage[name]
+  }
 }
 
 /** Roboto's faces, as pdfmake names them. */

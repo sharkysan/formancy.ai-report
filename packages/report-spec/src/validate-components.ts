@@ -6,7 +6,8 @@
  * and how to read what is particular to it. A kind added to COMPONENT_KINDS
  * without an entry here does not compile.
  */
-import { all, flag, identifier, kindOf, matches, oneOf, optional, points, readArray, readList, readObject, reference, shape, strictKeys, width } from './check.js'
+import { isFontMediaType } from './assets.js'
+import { all, flag, identifier, kindOf, matches, oneOf, optional, points, quote, readArray, readList, readObject, reference, shape, strictKeys, width } from './check.js'
 import { COMPONENT_KINDS, IMAGE_FITS, IMAGE_SOURCE_KINDS, QR_ERROR_CORRECTION } from './components.js'
 import type { Border, ColumnSlot, Component, ComponentBase, ComponentKind, ImageSource, ImageSourceKind, Width } from './components.js'
 import type { RegionName } from './definition.js'
@@ -95,7 +96,9 @@ const SOURCES: { readonly [K in ImageSourceKind]: { readonly required: readonly 
     required: ['asset'],
     read: (c, o, path) => {
       const asset = reference(c.f, o.asset, at(path, 'asset'))
-      resolve(c.f, c.declared.assets, asset, at(path, 'asset'), 'unknown-asset', 'asset')
+      const mediaType = resolve(c.f, c.declared.assets, asset, at(path, 'asset'), 'unknown-asset', 'asset')
+      // A font asset is not a picture: an image that drew one would print nothing, or fail at the first byte the renderer read.
+      if (mediaType !== undefined && isFontMediaType(mediaType)) c.f.report(at(path, 'asset'), 'asset-not-an-image', `the asset ${quote(asset as string)} is a font, which an image cannot draw`)
       return asset === undefined ? undefined : { kind: 'asset', asset }
     },
   },

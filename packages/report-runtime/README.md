@@ -317,9 +317,24 @@ PNG's image data, which an engine inflates itself. And of a font's bytes
 beside its render code; `characterMap`, the characters a face maps as
 fontkit maps them, which an engine reads its own faces with;
 `FONT_REFUSAL_CODES`, `FONT_FORMATS` and `FONT_EMBEDDING_REFUSALS`; and
-`MAX_FONT_BYTES` and `MAX_FONT_CHARACTERS`. An engine
+`MAX_FONT_BYTES` and `MAX_FONT_CHARACTERS`; `MIN_FONT_LINE` and
+`MAX_FONT_LINE`, the line in ems a face may lay out, and `MIN_FONT_SIZE` and
+`MAX_FONT_SIZE`, the sizes a report's text is set at, which an engine's page
+bound counts a line by; and `PRINTED_BLOCKS`,
+`BIDI_CONTROLS` and `refusedCharacter`, the characters a report prints,
+Latin, Greek and Cyrillic and what is written with them (0043). An engine
 depends on the runtime alone, and draws and refuses by the one decision the
 editor refuses by.
+
+A report that **maps** a font token to a host's font resolves to the bytes
+the engine embeds ([0043](../../docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)):
+`resolveReport` asks the host's lookup -- the image resolver, widened and
+renamed `AssetResolver`, with `ImageResolver` kept as an alias -- for each
+face by id and digest, reads its bytes with `readFont` before it hands them
+on, and refuses the render where a mapped face cannot be had, is past
+`MAX_FONT_BYTES`, which it holds before it copies the bytes, or the reader
+refuses it, in a preview too. `ResolvedDocument.fonts` holds each token's
+faces, bytes and all.
 
 ## What it does not do
 

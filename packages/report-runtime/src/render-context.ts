@@ -48,9 +48,15 @@ export interface ImageBytes {
 
 /**
  * The host's lookup of an approved asset's bytes by its id and digest, or
- * undefined when it has none. Never an address: the runtime fetches nothing.
+ * undefined when it has none. Never an address: the runtime fetches
+ * nothing. One lookup answers for every asset a report names -- an image it
+ * draws, or a font it prints in (0043) -- by the id and digest the report
+ * pinned.
  */
-export type ImageResolver = (ref: ImageRef) => ImageBytes | undefined
+export type AssetResolver = (ref: ImageRef) => ImageBytes | undefined
+
+/** @deprecated The resolver's former name, kept for a release; use `AssetResolver`, which answers for fonts too. */
+export type ImageResolver = AssetResolver
 
 /** Each aggregate's value over some rows, by id: a typed value, or null where it has none. */
 export type AggregateValues = ReadonlyMap<string, TypedValue | null>
@@ -88,7 +94,7 @@ export interface Render {
   readonly data: CheckedData
   readonly problems: Problems
   readonly preview: boolean
-  readonly images: ImageResolver | undefined
+  readonly images: AssetResolver | undefined
   /** Each print style, by id, as the document's style. */
   readonly styles: ReadonlyMap<string, TextStyle>
   readonly totals: Totals

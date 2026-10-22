@@ -20,7 +20,7 @@
  */
 import { addAsset, nextAssetId, removeAsset } from '@formancy/report-core'
 import type { Command, CommandOutcome, Refusal } from '@formancy/report-core'
-import { ASSET_MEDIA_TYPES, assetDigest, cleanSvg, imageHeader, MAX_ASSET_BYTES, MAX_ASSET_SIDE, MAX_ASSETS, sniffImage, walkComponents } from '@formancy/report-spec'
+import { ASSET_MEDIA_TYPES, assetDigest, cleanSvg, imageHeader, isFontMediaType, MAX_ASSET_BYTES, MAX_ASSET_SIDE, MAX_ASSETS, sniffImage, walkComponents } from '@formancy/report-spec'
 import type { AssetMediaType, ReportDefinition, SvgRefusalCode, SvgRemoval, SvgRemovalKind } from '@formancy/report-spec'
 import { assetBase } from './asset-name.js'
 import { stepLabel } from './history.js'
@@ -133,10 +133,13 @@ function drawers(derived: Derived): ReadonlyMap<string, readonly string[]> {
 export function imageLibrary(images: Images, derived: Derived, adding: string | null): ImageLibrary {
   const { t, held, list } = images
   const drawn = drawers(derived)
-  const assets = derived.report.assets.map(({ id, mediaType }): LibraryAsset => {
-    const by = drawn.get(id)
-    return { id, label: t('images.item', { id, type: FORMATS[mediaType] }), removeLabel: t('images.removeOne', { id }), ...(by === undefined ? {} : { inUse: t('images.inUse', { names: list.format(by) }) }) }
-  })
+  // The image library lists image assets; a font asset a report maps is not a picture, and the builder's Fonts section is P08's.
+  const assets = derived.report.assets
+    .filter((asset): asset is typeof asset & { readonly mediaType: AssetMediaType } => !isFontMediaType(asset.mediaType))
+    .map(({ id, mediaType }): LibraryAsset => {
+      const by = drawn.get(id)
+      return { id, label: t('images.item', { id, type: FORMATS[mediaType] }), removeLabel: t('images.removeOne', { id }), ...(by === undefined ? {} : { inUse: t('images.inUse', { names: list.format(by) }) }) }
+    })
   const why = held === null ? undefined : addRefusal(images, adding, derived.report)
   return { store: held !== null, accept: held?.accept ?? '', adding, ...(why === undefined ? {} : { unavailable: why.message }), assets }
 }

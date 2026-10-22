@@ -1,6 +1,6 @@
 # 0040 — A font is read by report-spec's own reader, once, from its bytes: a static TrueType font with outlines whose fsType allows embedding a subset is accepted, with its names, its character map as fontkit reads it in format 4 or 12, and the metrics a line is laid out by; collections, web fonts, Type 1, CFF, variable and colour fonts, a font of bitmaps alone and a Restricted License, No subsetting or Bitmap only fsType refused, with no override; the renderer reads its own faces' glyphs through it; fontkit, opentype.js and the name table's licence alone lost
 
-- **Status:** accepted; extends [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), whose glyph check now reads the faces the renderer embeds through this reader; leaves [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)'s guard as it is, since a host's font is no file a published package ships; numbered while 0039 was another branch's
+- **Status:** accepted; extends [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), whose glyph check now reads the faces the renderer embeds through this reader; leaves [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)'s guard as it is, since a host's font is no file a published package ships; numbered while 0039 was another branch's; extended by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), which maps a report's font tokens to host fonts read through this reader, closes the layout-table risk this record leaves open by stripping the tables fontkit runs at print, and bounds what subsetting a font costs, which this record left to the renderer to measure, by the points, work and components of its outlines together; and holds a font's line to what pdfmake can lay a page out by, added below on 22 October 2026 after a security review of 0043's renderer, and hands back every PostScript name a font states, added below after a second review, since the renderer tells one face from another by them
 - **Date:** 2026-10-21
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -39,7 +39,11 @@
       tag twice; every code of `FONT_REFUSAL_CODES` given by the bytes its
       case makes;
       `MAX_FONT_BYTES` and `MAX_FONT_GLYPH_WORK` each accepted at itself
-      and refused one past it; seven refusals of fonts whose names and
+      and refused one past it; the horizontal header's line held to rise
+      above its baseline and reach down to it or below, a descender on the
+      baseline accepted and an ascender that is its descender refused, and
+      to `MIN_FONT_LINE` to `MAX_FONT_LINE` ems, each accepted at itself
+      and refused a unit past it, at 1000 and at 2048 units to the em; seven refusals of fonts whose names and
       unknown tags hold a marker, no message holding it or anything but
       printable ASCII; every prefix of three fonts refused, and 9,000
       seeded corruptions of them each read or refused without a throw,
@@ -73,7 +77,8 @@
       or in an encoding this does not read, and refused, beside a sound
       record, in one fontkit decodes otherwise: Windows symbol, the Unicode
       platform past its encoding 6, Mac Roman in another language than
-      English; the naming table's version, a string past the file, a
+      English; every name the records of ID 6 hold handed back once each,
+      in table order; the naming table's version, a string past the file, a
       UTF-16 string of an odd length, records whose strings add up to more
       than the font, and a record past platform 3 refused; a version 1
       table's language tags read, and a tag past the file, a count of tags
@@ -119,7 +124,11 @@
     read; format 12's bound checked once the Set is built; (0, 6) dropped,
     moved last, and (3, 10) swapped with (0, 4); format 8 read as format
     12; post 2.5's offsets unheld; and the glyph and the byte bounds each
-    loosened by one.
+    loosened by one. **And on 22 October 2026**, after the security review,
+    each of six changes to the line's rule made a named test fail, and was
+    put back: an ascender on the baseline admitted, a descender of one unit
+    above it admitted, the floor and the ceiling each unheld, the units to
+    the em read as 1000, and a line at the floor refused.
   - **The renderer.** report-render-pdf's `src/glyphs.test.ts`, unchanged,
     green on the reader: Roboto's characters and not those it lacks, the
     same from the files and the browser build, the two fonts it cannot
@@ -148,8 +157,8 @@
     lengths and name records taken out, at a corruption fontkit named
     `null`.
   - **The runtime.** report-runtime's `src/fonts.test.ts` holds the reader,
-    its codes and its bounds handed on as report-spec's own, and
-    `MAX_FONT_BYTES` within `MAX_ASSET_BYTES`.
+    its codes and its bounds handed on as report-spec's own, the line's
+    among them, and `MAX_FONT_BYTES` within `MAX_ASSET_BYTES`.
   - **From outside.** The install gate's `scripts/install-fixture/fonts.ts`
     holds the packed runtime's reader to the packed report-spec's, reads
     the packed renderer's Liberation Sans to its names, metrics and
@@ -273,7 +282,11 @@ glyphs. No format changes; a report cannot name a font yet.
   in English. A record past platform 3, and one naming a language tag a
   version 1 table lacks, which would lose fontkit the whole table, are
   refused. The records' lengths, with the tags', may add up to no more
-  than the font's size.
+  than the font's size. Every name the PostScript name records hold is
+  handed back besides, once each, in table order (`postScriptNames`):
+  fontkit names a font by its last English record, not the best, and
+  PDFKit keeps a document's faces by that name, so the renderer tells one
+  face from another by all of them (0043).
 - **The outlines are walked for their structure** (`font-outlines.ts`):
   the offsets in order and inside the file, every glyph's header too, and
   every description to its end inside its own extent, a composite's
@@ -285,10 +298,53 @@ glyphs. No format changes; a report cannot name a font yet.
   count of metrics, all inside the file; the PostScript table's versions,
   2.0's names to its recorded end and 2.5's offsets inside the file; and
   the vertical metrics, where fontkit sees a vertical header beside them,
-  held to the bytes fontkit reads of them.
+  held to the bytes fontkit reads of them; and, beyond the specification,
+  the line the horizontal header makes (added below).
 - **Three bounds, each measured** (`limits.ts`): `MAX_FONT_BYTES`, an
   asset's 20 MB; `MAX_FONT_CHARACTERS`, 131,072; `MAX_FONT_GLYPH_WORK`, a
   glyph's points times its contours, 1,048,576.
+
+**Added 2026-10-22: a line pdfmake can lay a page out by.** pdfmake lays
+every line of a face out as tall as its horizontal header's ascender less
+its descender, over its units to the em, and sets the line's baseline the
+ascender below its top (PDFKit 0.19.1's `lineHeight`, from fontkit 2.0.4's
+`hhea.ascent`, `hhea.descent` and `head.unitsPerEm`, and pdfmake 0.3.11's
+`Line`; the line gap is not read), and the renderer counts a line of text
+by it when it refuses a report too long for its page limit (0043). The
+specification bounds none of them, and a security review of 0043's renderer
+found the reader accepted any: a face whose ascender was its descender
+printed a report of 20,000 lines, limited to one page, on one spot of that
+page in 921 ms, one whose ascender was below its descender printed 2,000
+lines on one spot above the top margin, and one of a line 4 units of its
+2,048 printed 2,000 lines within 35 points, each over the last, every one
+rendered and none refused. So `readHorizontal` holds the line it reads
+(`font-tables.ts`), each refused `malformed` in numbers alone:
+
+- the ascender above the baseline, and the descender at it or below;
+- the line `MIN_FONT_LINE` (0.5) to `MAX_FONT_LINE` (4) ems tall
+  (`limits.ts`), measured on 22 October 2026 on an Intel i9-10900K under
+  Windows 11 and Node 24.21.0 over the
+  425 fonts the reader accepts of Roboto 3.014's four faces, Liberation
+  Sans, Serif and Mono 2.1.5's eight, Noto Sans Regular (0043's Sources)
+  and the 447 files of the machine's Windows fonts directory, fontkit
+  reading every one's metrics as the reader does:
+
+  | | Line, in ems | Font |
+  |---|---|---|
+  | Shortest | 0.864 | Ink Free (665 and -199 of 1000) |
+  | | 0.915, 0.926 | Footlight MT Light, Palace Script MT |
+  | Liberation | 1.107 to 1.133 | Serif, Sans, Mono |
+  | Roboto | 1.172 | its four faces (1900 and -500 of 2048) |
+  | Noto Sans | 1.362 | Regular |
+  | | 2.271, 1.904 | Javanese Text, Myanmar Text Bold |
+  | Tallest | 2.651 | Sans Serif Collection (1621 and -1030 of 1000) |
+
+  No ascender was at or below its baseline, the least 0.592 of the em
+  (Microsoft Himalaya), and no descender above it; two icon fonts, Segoe
+  MDL2 Assets and Segoe Fluent Icons, put theirs on it. Chosen with a
+  margin: the floor half the shortest line rounded up to half an em, 42 %
+  below it, and the ceiling one and a half times the tallest rounded to a
+  whole em, 51 % above it.
 
 ## Consequences
 
@@ -321,6 +377,15 @@ glyphs. No format changes; a report cannot name a font yet.
   malformed, on 21 October 2026 and alike on 22 October, after review's
   rules. A CFF font, which most foundries ship beside the TrueType one, is
   refused until the e-invoice gate has proved one.
+- **A font whose line pdfmake cannot lay out is refused**, which a reader
+  elsewhere would take: an ascender at or below the baseline, a descender
+  above it, or a line shorter than half its em or taller than four. No font
+  of the 425 measured is, and a font past the margin a machine elsewhere
+  holds would be. The line bounds the layout's arithmetic, not the ink: a
+  glyph's outline may still reach far past its line -- the walk holds
+  structure, not appearance -- and the ascender's share of the line, the
+  line gap, which pdfmake does not read, and the OS/2 table's own ascender
+  and descender are not judged.
 - **fsType is a vendor's hint.** A font that says Installable may come
   under a licence that forbids a server generating documents with it,
   which nothing here can read; the licence description is handed back for
@@ -344,16 +409,19 @@ glyphs. No format changes; a report cannot name a font yet.
 - **What an outline draws is not judged.** A glyph whose description
   holds a contour may draw nothing a reader sees, and a mapped character
   prints so; the walk holds structure, not appearance.
-- **The PostScript name returned may not be fontkit's.** It is the best
-  record's; where records differ, fontkit returns the last English record
-  it decodes, which in a table sorted as the specification asks is the
-  Windows one returned here: for Corbel Light and Microsoft Himalaya
-  fontkit returned `CorbelLight` and `Microsoft Himalaya`, as this does,
-  checked by hand on 21 October 2026. No test holds it for a font whose
-  records differ; the renderer's sweep holds the two names alike on its
-  corruptions of two faces, and every font of that machine the reader
-  accepted and that carries variation sequences or vertical metrics was
-  named alike on 22 October 2026.
+- **The PostScript name returned may not be fontkit's**, though
+  fontkit's is one of `postScriptNames`, which the renderer compares. It
+  is the best record's; where records differ, fontkit returns the last
+  English record it decodes, which in a table sorted as the specification
+  asks is the Windows one returned here: for Corbel Light and Microsoft
+  Himalaya fontkit returned `CorbelLight` and `Microsoft Himalaya`, as this
+  does, checked by hand on 21 October 2026. No test holds it for a font
+  of a sorted table whose records differ; the renderer's sweep holds the
+  two names alike on its corruptions of two faces, and every font of that
+  machine the reader accepted and that carries variation sequences or
+  vertical metrics was named alike on 22 October 2026. Where a later
+  Macintosh record differs from the Windows one, fontkit returns the
+  Macintosh one, which the renderer's `face-identity.test.ts` holds.
 - **A builder will carry it.** Bundled minified with esbuild 0.28.2 from
   report-spec's built `dist/index.mjs`, as 0030 measured, at d0a284b on
   21 October 2026 and with this change on 22 October 2026: everything
@@ -406,6 +474,20 @@ carry variation sequences, and Malgun Gothic, Microsoft Yi Baiti and
 SimSun-ExtG vertical metrics; each was accepted, mapped and named alike by
 fontkit, and embedded by PDFKit with every character it maps below U+3000,
 on 22 October 2026.
+
+**Clamp a line in the renderer**, as the review suggested beside this,
+rather than refuse the font. The renderer would then lay a page out by a
+line other than the one pdfmake draws, and a builder or a host's approval,
+which read the font through this reader, would admit a face the renderer
+then measured as something else. Refused at the door, one reader says what
+every one of them sees, and the renderer's own bound never meets a line
+below the floor (0043).
+
+**Bound the ascender's share of the line too**, so a glyph cannot rise
+past its line's top. A glyph's outline may reach past any line a header
+states, which the walk does not judge, so a share bounds nothing an
+outline cannot undo; the floor and the signs are what the renderer's
+arithmetic needs.
 
 **Admit a restricted font on a host's attestation**, recorded in the
 manifest, the plan's option (b) for FT-Q14. A foundry that grants

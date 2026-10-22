@@ -3,8 +3,10 @@ import { readPdf } from '@formancy/report-corpus'
 import { RenderRefusal, type Block, type Image, type ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { leastHeight } from './bound.js'
+import { planFonts } from './host-fonts.js'
 import { renderPdf } from './node.js'
-import { bareDocument, BODY_HEIGHT, details, documentOf, fixture, ledger, PAGE, paragraph, TIMEOUT } from './testing/documents.js'
+import { PADDING_Y } from './table.js'
+import { bareDocument, BODY_HEIGHT, details, documentOf, fixture, ledger, LINE, PAGE, paragraph, TIMEOUT } from './testing/documents.js'
 import { idat, ihdr, NONE, pngOf } from './testing/images.js'
 
 /**
@@ -14,6 +16,9 @@ import { idat, ihdr, NONE, pngOf } from './testing/images.js'
  * drawn at a fixed height -- a rule, a frame -- is taller than the page
  * it is drawn on.
  */
+
+/** The plan of a report that maps no font: every line in Roboto's, 2400 of its 2048 units, which `leastHeight` counts the corpus's documents by. */
+const ROBOTO = planFonts(undefined, { normal: new Set(), bold: new Set(), italics: new Set(), bolditalics: new Set() })
 
 async function refusal(document: ResolvedDocument, maxPages = 5): Promise<unknown> {
   return renderPdf(document, { maxPages }).then(
@@ -51,7 +56,7 @@ describe('the page limit', () => {
   test('refuses a body that fits its least height and not its real one, once its rows are measured', async () => {
     const rows = Array.from({ length: 60 }, (_, index) => ({ kind: 'detail' as const, cells: [`ROW-${index + 1}`, 'wrapping words '.repeat(40).trim(), '1.00'] }))
     const document = documentOf('Wrapping', [ledger('wrapping', rows)])
-    expect(leastHeight(document.body)).toBeLessThan(3 * BODY_HEIGHT)
+    expect(leastHeight(document.body, ROBOTO)).toBeLessThan(3 * BODY_HEIGHT)
     const handed = await passes(() => expect(renderPdf(document, { maxPages: 3 })).rejects.toMatchObject({ code: 'too-many-pages' }))
     expect(handed).toBe(2)
   }, TIMEOUT)
@@ -64,8 +69,8 @@ describe('the page limit', () => {
     const { document } = fixture('long-table')
     const pages = (await readPdf(await renderPdf(document, { maxPages: 50 }))).pages.length
     expect(await refusal(document, pages)).toBe('rendered')
-    expect(leastHeight(document.body)).toBeGreaterThan((pages - 1) * BODY_HEIGHT * 0.9)
-    expect(leastHeight(document.body)).toBeLessThan(pages * BODY_HEIGHT)
+    expect(leastHeight(document.body, ROBOTO)).toBeGreaterThan((pages - 1) * BODY_HEIGHT * 0.9)
+    expect(leastHeight(document.body, ROBOTO)).toBeLessThan(pages * BODY_HEIGHT)
   }, TIMEOUT)
 
   test.each<[string, Block, number]>([
@@ -76,8 +81,12 @@ describe('the page limit', () => {
     ['columns, as tall as the tallest', { kind: 'columns', columns: [{ width: 'fill', blocks: [{ kind: 'rectangle', width: 10, height: 30 }] }, { width: 'fill', blocks: [{ kind: 'rectangle', width: 10, height: 20 }] }] }, 30],
     ['a keep-together block, its blocks', { kind: 'keepTogether', blocks: [{ kind: 'image', asset: { id: 'x', mediaType: 'image/png', bytes: new Uint8Array() }, width: 10, height: 12, fit: 'contain' }, paragraph('')] }, 12 + 9 * (2400 / 2048)],
     ['an empty paragraph', { kind: 'paragraph', runs: [] }, 0],
+    // A row is its tallest cell's line, each cell at its own size: its style's, else its row's where its own is null, as the runtime writes a column with no style of its own, else the table's 9 pt. Counted at the table's size, or at the row's alone, the 30 pt cell went uncounted.
+    ['a row, each cell at its own size', ledger('sizes', [{ kind: 'detail', cells: ['A', 'B', 'C'], style: { size: 20 }, cellStyles: [null, { size: 30 }, {}] }]), 9 * LINE + 2 * PADDING_Y + 30 * LINE + 2 * PADDING_Y],
+    // The empty text is a row pdfmake lays out, in place of detail rows, at the table's size.
+    ['a table of no detail rows, its empty text', ledger('empty', []), 2 * (9 * LINE + 2 * PADDING_Y)],
   ])('counts %s', (_name, block, height) => {
-    expect(leastHeight([block])).toBeCloseTo(height, 6)
+    expect(leastHeight([block], ROBOTO)).toBeCloseTo(height, 6)
   })
 })
 

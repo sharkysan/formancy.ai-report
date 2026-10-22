@@ -1,13 +1,13 @@
 import pdfmake from 'pdfmake'
 import browserPdfmake from 'pdfmake/build/pdfmake.js'
 import { readPdf } from '@formancy/report-corpus'
-import { XRECHNUNG_COPY_PARAGRAPH } from '@formancy/report-runtime'
-import type { Block, Image, Paragraph, ResolvedDocument, Section, TableColumn, TextStyle } from '@formancy/report-runtime'
+import { MAX_FONT_SIZE, MIN_FONT_SIZE, XRECHNUNG_COPY_PARAGRAPH } from '@formancy/report-runtime'
+import type { Block, Image, Paragraph, ResolvedDocument, Section, Table, TableColumn, TextStyle } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf as renderInBrowser } from './browser.js'
 import { MAX_DEPTH } from './check.js'
 import { renderPdf } from './node.js'
-import { BODY_HEIGHT, details, documentOf, ledger, paragraph, PRINTABLE_WIDTH } from './testing/documents.js'
+import { BODY_HEIGHT, details, documentOf, ledger, PAGE, paragraph, PRINTABLE_WIDTH } from './testing/documents.js'
 import { copied, E_INVOICE_FILE, invoiced, XRECHNUNG_FILE } from './testing/e-invoice.js'
 import { encodePng } from './testing/images.js'
 import { pageLines } from './testing/lines.js'
@@ -98,9 +98,26 @@ describe('what is too large for where it stands', () => {
     ['columns whose fixed widths are wider than the page', [{ kind: 'columns', columns: [{ width: 300, blocks: [] }, { width: 300, blocks: [] }] }], 'body[0]'],
     ['columns that leave a fill column nothing', [{ kind: 'columns', columns: [{ width: PRINTABLE_WIDTH, blocks: [] }, { width: 'fill', blocks: [] }] }], 'body[0]'],
     ['a section whose padding leaves nothing', [{ kind: 'section', padding: PRINTABLE_WIDTH / 2, blocks: [paragraph('Squeezed')] }], 'body[0]'],
-    ['a line of text taller than the body', [paragraph('Huge', { size: BODY_HEIGHT })], 'body[0]'],
   ] as const)('%s', async (_, body, subject) => {
     expect(await refusal(documentOf('Too large', body as readonly Block[]))).toMatchObject({ code: 'content-too-large', subject })
+  })
+
+  // A line no page's body holds, which pdfmake drops whole without a word:
+  // a 96 pt line of Roboto is 112.50 pt, here in a body of 100. A table's
+  // cell takes its row's style where its own is null, as the runtime
+  // writes a column with no style of its own: counted by its cell styles
+  // alone, the row's 96 pt 'BIG' was gone from the PDF, which 0.2.0
+  // refused; so is a cell left empty, which the measuring pass lays out as
+  // a no-break space of its size.
+  const columns: TableColumn[] = [{ width: 'fill', align: 'left' }, { width: 'fill', align: 'left' }]
+  const tall = (rows: Table['rows']): Table => ({ kind: 'table', id: 'tall', columns, header: ['H1', 'H2'], headerStyle: { size: 4 }, rows, emptyText: 'none' })
+  test.each<[string, Block, string]>([
+    ['a line of text', paragraph('BIG', { size: 96 }), 'a line of body[0] is 112.50 pt tall'],
+    ['a row in its row’s style, under a null cell style', tall([{ kind: 'detail', cells: ['BIG', 'small'], style: { size: 96 }, cellStyles: [null, { size: 4 }] }]), 'a line of table tall is 116.50 pt tall'],
+    ['a row’s empty cell', tall([{ kind: 'detail', cells: ['', 'small'], cellStyles: [{ size: 96 }, { size: 4 }] }]), 'a line of table tall is 116.50 pt tall'],
+  ])('%s taller than the body', async (_, block, said) => {
+    const page = { ...PAGE, margins: { ...PAGE.margins, top: 370.945, bottom: 370.945 } }
+    expect(await refusal({ ...documentOf('Too tall', [block, paragraph('After')]), page, pageHeader: [], pageFooter: [] })).toMatchObject({ code: 'content-too-large', message: expect.stringContaining(`${said}; the body is 100.00 pt where it stands`) as string })
   })
 
   // A keep-together block inside a framed section has less of a page than
@@ -143,6 +160,11 @@ describe('what is malformed', () => {
     ['a section border of no thickness', [{ kind: 'section', border: { thickness: 0, color: '#000000' }, blocks: [] }], 'body[0]'],
     ['a section of negative padding', [{ kind: 'section', padding: -1, blocks: [] }], 'body[0]'],
     ['text of no size', [paragraph('Nothing', { size: 0 })], 'body[0]'],
+    // The format sets text at MIN_FONT_SIZE to MAX_FONT_SIZE, and a document the runtime resolved holds no other size. The page bound counts a line as its size: 20,000 paragraphs at 0.001 pt, in a report limited to five pages, printed on one, each line over the last.
+    ['text below the format’s smallest size', Array.from({ length: 20_000 }, (_, index) => paragraph(`L${index}`, { size: 0.001 })), 'body[0]'],
+    ['text past the format’s largest size', [paragraph('Huge', { size: MAX_FONT_SIZE + 0.5 })], 'body[0]'],
+    ['a table’s header below it', [{ ...ledger('header-size', details(1, 2)), headerStyle: { size: MIN_FONT_SIZE - 0.5 } }], 'header-size'],
+    ['a table’s cell below it', [ledger('cell-size', [{ kind: 'detail', cells: ['A', 'B', 'C'], cellStyles: [null, { size: 0.001 }, null] }])], 'cell-size'],
     ['text aligned in no known way', [paragraph('Justified', { align: 'justify' as 'left' })], 'body[0]'],
     ['a colour in upper case', [paragraph('Shouting', { color: '#FF0000' })], 'body[0]'],
     ['a colour by name', [{ kind: 'rule', thickness: 1, color: 'red' }], 'body[0]'],

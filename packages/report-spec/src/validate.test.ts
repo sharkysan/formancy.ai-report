@@ -320,6 +320,27 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
     accept: set('/regions/body/2/totals/0/cells/0/column', 'price'),
     at: ['/regions/body/2/totals/0/cells/0/column'],
   },
+  // A font token mapped to a picture would have no glyphs to draw; the
+  // renderer embeds a font, and the author hears so while editing (0043).
+  'asset-not-a-font': {
+    refuse: set('/fonts/sans/normal', 'logo'),
+    accept: set('/fonts/sans/normal', 'brand'),
+    at: ['/fonts/sans/normal'],
+  },
+  // An image that drew a font asset would print nothing, or fail at the
+  // first byte the renderer read; a font is not a picture.
+  'asset-not-an-image': {
+    refuse: set('/regions/summary/1/source/asset', 'brand'),
+    accept: set('/regions/summary/1/source/asset', 'logo'),
+    at: ['/regions/summary/1/source/asset'],
+  },
+  // 'body' is set in the sans font, which this report maps without an
+  // italic face: an italic 'body' could not print, and no face is faked.
+  'missing-face': {
+    refuse: set('/styles/1/italic', true),
+    accept: set('/styles/1/italic', false),
+    at: ['/styles/1'],
+  },
   // A page break in a page footer would break every page, forever.
   'misplaced-flow-component': {
     refuse: set('/regions/pageFooter/1', { id: 'late-break', kind: 'pageBreak' }),

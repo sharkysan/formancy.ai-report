@@ -1,4 +1,4 @@
-import type { TextStyle } from '@formancy/report-runtime'
+import type { FontFamily, TextStyle } from '@formancy/report-runtime'
 
 /**
  * A document's text styles as pdfmake's: the one place a font token becomes
@@ -52,13 +52,19 @@ export const DEFAULT_SIZE = 10
 /** A colour as the document writes one, and as pdfmake reads one: `#` and six lower-case hex digits. */
 export const COLOR = /^#[0-9a-f]{6}$/
 
-/** pdfmake's text properties for a style, the renderer's own defaults under it. Only what is set is written. */
-export function textProperties(style: TextStyle, defaults: { readonly size: number; readonly bold?: boolean; readonly italic?: boolean }): Record<string, unknown> {
+/**
+ * pdfmake's text properties for a style, the renderer's own defaults under
+ * it. Only what is set is written. A font token becomes the pdfmake family
+ * `familyOf` names it -- Roboto, or the host family the report maps it to
+ * (0043) -- and a style with no token prints in the document's default
+ * family, which pdfmake inherits.
+ */
+export function textProperties(style: TextStyle, defaults: { readonly size: number; readonly bold?: boolean; readonly italic?: boolean }, familyOf: (token: FontFamily) => string): Record<string, unknown> {
   const bold = style.bold ?? defaults.bold
   const italic = style.italic ?? defaults.italic
   return {
     fontSize: style.size ?? defaults.size,
-    ...(style.font === undefined ? {} : { font: FONTS[style.font] }),
+    ...(style.font === undefined ? {} : { font: familyOf(style.font) }),
     ...(bold === undefined ? {} : { bold }),
     ...(italic === undefined ? {} : { italics: italic }),
     ...(style.color === undefined ? {} : { color: style.color }),

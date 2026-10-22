@@ -1,6 +1,6 @@
 {
   "$comment": "A run of the e-invoice gate, recorded by `node scripts/e-invoice.mjs --record` once it passed: the XML corpus it wrote (corpus/), Mustang's report and log on each file, XML and PDF (mustang/), KoSIT's report on each XML file and its console (kosit/), veraPDF's report on every PDF and what it wrote on stderr (verapdf/), how each run ended, and each PDF's digest of its objects with every stream inflated (`pdfs`, report-corpus's `inflatedDigest`): the PDFs themselves are not recorded, since their bytes are the zlib's that deflated them, which `machine` names. Every output is recorded with the line ends the repository keeps and without the machine's path to the repository, and the console without its results table, whose cells wrap each path across lines (scripts/e-invoice/record.mjs). The judges' tests and the corpus's read it, so that every rule is held on what the pinned tools wrote and not on what somebody thought they would; it is recorded again when a tool, the corpus, a control or what the renderer draws changes. `research` is one output recorded by hand on 17 October 2026, kept for what no run of the gate produces: Mustang 2.26.0's report on a FeRD sample, EN16931_Einfach.pdf, run without --no-notices and without the gate's encoding options, with its seven XRechnung notices.",
-  "recordedAt": "2026-10-22T06:50:49.511Z",
+  "recordedAt": "2026-10-22T08:49:49.659Z",
   "machine": {
     "platform": "win32",
     "arch": "x64",
@@ -68,6 +68,7 @@
     "variant-svg.pdf": 0,
     "variant-svg-bound.pdf": 0,
     "variant-fonts.pdf": 0,
+    "variant-host-fonts.pdf": 0,
     "variant-service-inspection.pdf": 0,
     "variant-quotation.pdf": 0,
     "variant-grouped-equipment.pdf": 0,
@@ -98,6 +99,7 @@
     "variant-svg.pdf": "ebd2db66d32fbe33208070ed1bc73111515c816e4073a12190c4b30ccb99a681",
     "variant-svg-bound.pdf": "7ea9ef348d44249dbbc49e686bcbd487c7d886be1aa4ea0d0e66f6a04051de80",
     "variant-fonts.pdf": "35ea7fa09b02e04582c3b608f7b3476d9dd1b157bffc6c0cfbe72b8940a01de9",
+    "variant-host-fonts.pdf": "f6771d8fe49ea79f7cf2cc64e6c1f6395405b4e20f2136235c79df285e22c98d",
     "variant-service-inspection.pdf": "d12d91f1eea3a36caaf1bedee71a588e20e715eefe5a494329732c195b8f1b5e",
     "variant-quotation.pdf": "de40c30e001b00029c451c7eb9ca4782a1f022f728bd5fe05160d4e0cb860c10",
     "variant-grouped-equipment.pdf": "6dc51b1f4e451521a94de346afdc69934ffbc130daf2a7fb42a2a7d87b969cec",

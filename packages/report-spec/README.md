@@ -544,7 +544,7 @@ import { characterMap, readFont } from '@formancy/report-spec'
 
 readFont(ttf)
 // { ok: true,
-//   names: { family: 'Liberation Sans', subfamily: 'Regular', postScriptName: 'LiberationSans', version: 'Version 2.1.5', licence: '...', ... },
+//   names: { family: 'Liberation Sans', subfamily: 'Regular', postScriptName: 'LiberationSans', postScriptNames: ['LiberationSans'], version: 'Version 2.1.5', licence: '...', ... },
 //   embedding: 'installable', fsType: 0,
 //   metrics: { unitsPerEm: 2048, ascender: 1854, descender: -434, lineGap: 67 },
 //   style: { weight: 400, italic: false, bold: false, regular: true },
@@ -568,8 +568,18 @@ characterMap(ttf) // { ok: true, characters: Set(2327) { ... } }: the character 
   (`embedding`, naming which of `FONT_EMBEDDING_REFUSALS`), with no
   override; no Unicode map, or one fontkit takes in another format
   (`character-map`); what is malformed; and a font past `MAX_FONT_BYTES`,
-  mapping more than `MAX_FONT_CHARACTERS` characters, or with a glyph of
-  more than `MAX_FONT_GLYPH_WORK` points times contours (`too-large`).
+  mapping more than `MAX_FONT_CHARACTERS` characters, with a glyph of more
+  than `MAX_FONT_GLYPH_WORK` points times contours, or whose glyphs hold
+  more than `MAX_FONT_POINTS` points, `MAX_FONT_OUTLINE_WORK` points times
+  contours or `MAX_FONT_COMPONENTS` composite components together, which
+  is what a subset of them can cost PDFKit (`too-large`, 0043).
+- **A line pdfmake can lay out**: the horizontal header's ascender above
+  the baseline, its descender at it or below, and the line they make
+  `MIN_FONT_LINE` to `MAX_FONT_LINE` ems tall, a range that holds every one
+  of the 425 fonts measured on one machine on 22 October 2026 with a
+  margin, since pdfmake lays every line of
+  a face out by it and a line of nothing let a report far past its page
+  limit print on one page (`malformed`, 0040).
 - **The characters are fontkit's**, which PDFKit lays text out with: the
   subtable it takes, (3, 10) first and (0, 0) last, whatever the order of
   the records, its segments or groups sorted and apart so that a walk finds
@@ -587,7 +597,10 @@ characterMap(ttf) // { ok: true, characters: Set(2327) { ... } }: the character 
   as it stands, is held in every record to printable ASCII with none of
   `[ ] ( ) { } < > / % #`, a space admitted, since PDFKit writes it as an
   underscore, and every record to an encoding fontkit decodes as this does;
-  a record fontkit could not decode the naming table with is refused.
+  a record fontkit could not decode the naming table with is refused. Every
+  name the records hold is handed back too, once each, as
+  `postScriptNames`, since fontkit names a font by its last English record
+  and PDFKit keeps a document's faces by that name (0043).
 - **A font is untrusted bytes**: every table's offset and length is held
   to them and every read checked against them, a count against the bytes
   it counts before anything is read by it, every loop bounded by them,
@@ -597,13 +610,28 @@ characterMap(ttf) // { ok: true, characters: Set(2327) { ... } }: the character 
   length is 0, since fontkit then sees no table, and an index to location
   held to the offsets its recorded length holds, since fontkit reads them
   to there. The bounds were measured, as `limits.ts` says: the costliest
-  font they admit read in 60 ms in Node.
+  font they admit read in 15 ms in Node, and the costliest subset found
+  under them took PDFKit 1.3 to 1.4 s to embed.
 
 What it does not do: read the layout tables fontkit runs at print, GSUB,
 GPOS, kern and morx, a crafted one of which can make a render throw or
-never end; judge what an outline draws; read a font's licence,
-which may forbid what its fsType allows. And a report cannot name a font
-yet: the format is unchanged.
+never end -- the renderer strips them from a host face before it embeds it
+(0043); judge what an outline draws; read a font's licence, which may
+forbid what its fsType allows.
+
+A report **maps** its font tokens to the fonts a host approved (0043): the
+definition's `fonts` is `{ sans?, serif?, mono? }`, each `{ normal, bold?,
+italic?, boldItalic? }` of asset ids, the assets `font/ttf` and pinned by
+digest like an image. `validateReport` refuses a face mapped to an image
+(`asset-not-a-font`), an image that draws a font (`asset-not-an-image`) and
+a print style that sets bold or italic in a mapped family without that face
+(`missing-face`); `reportHash` covers the map. `PRINTED_BLOCKS`,
+`BIDI_CONTROLS` and `refusedCharacter` are the characters a report prints,
+by code point, which the renderer applies in every face: the Latin, Greek
+and Cyrillic blocks and the punctuation, symbols and marks written with
+them, from Unicode's `Blocks.txt` 18.0.0, but for the bidirectional
+controls of its `PropList.txt`; every other character is refused, its
+script being one nothing here has proved.
 
 ## Hash
 

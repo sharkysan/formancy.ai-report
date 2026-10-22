@@ -86,6 +86,21 @@ describe('reportHash', () => {
     expect(reportHash(rate)).not.toBe(reportHash(report))
   })
 
+  // The font a token prints in is part of the template a hash names: a
+  // firm that swaps its typeface publishes a new version, and "the same
+  // report renders the same PDF" survives (0043). A report without the map,
+  // and one that maps a token to another face, each hash their own way;
+  // keys in another order are the same one.
+  test("names a report's font map, whatever the order of its keys", () => {
+    const report = richReport()
+    const { fonts, ...without } = report
+    expect(fonts).toBeDefined()
+    expect(reportHash(reversed(report) as ReportDefinition)).toBe(reportHash(report))
+    expect(reportHash(without)).not.toBe(reportHash(report))
+    const other: ReportDefinition = { ...report, fonts: { sans: { normal: 'brand-bold', bold: 'brand-bold' } } }
+    expect(reportHash(other)).not.toBe(reportHash(report))
+  })
+
   // A hash that missed a one-character edit would let a changed template
   // pass as the published one.
   test('changes with a one-character change', () => {

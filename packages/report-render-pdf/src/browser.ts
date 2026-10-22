@@ -3,8 +3,9 @@ import vfs from 'pdfmake/build/vfs_fonts.js'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import type { ResolvedDocument } from '@formancy/report-runtime'
 import { fromBase64 } from './bytes.js'
-import { BILL_FACES, FACES, glyphsOf, glyphsOnce, loadOnce, written, type Engine } from './engine.js'
+import { BILL_FACES, FACES, glyphsOf, glyphsOnce, loadOnce, registerHostFonts, written, type Engine, type VirtualFs } from './engine.js'
 import type { BillFace } from './glyphs.js'
+import type { HostFontFiles } from './host-fonts.js'
 import type { RenderOptions } from './options.js'
 import type { Finish } from './pdfa.js'
 import { render } from './render.js'
@@ -80,11 +81,19 @@ const FONTS = {
   [LIBERATION_SANS]: { normal: own(BILL_FILES.normal), bold: own(BILL_FILES.bold) },
 }
 
-async function run(definition: TDocumentDefinitions, finish?: Finish): Promise<Uint8Array> {
+/** pdfmake's virtual file system in the browser build, where a host face's bytes go for a render, beside the Roboto and Liberation base64 the build carries. */
+const virtualfs = (pdfmake as unknown as { readonly virtualfs: VirtualFs }).virtualfs
+
+async function run(definition: TDocumentDefinitions, host: HostFontFiles, finish?: Finish): Promise<Uint8Array> {
   pdfmake.addVirtualFileSystem(fontFiles())
-  pdfmake.setFonts(FONTS)
-  pdfmake.setUrlAccessPolicy(() => false)
-  return written(pdfmake.createPdf(definition).getStream(), finish)
+  const cleanup = registerHostFonts(virtualfs, host)
+  try {
+    pdfmake.setFonts({ ...FONTS, ...host.families })
+    pdfmake.setUrlAccessPolicy(() => false)
+    return await written(pdfmake.createPdf(definition).getStream(), finish)
+  } finally {
+    cleanup()
+  }
 }
 
 /** pdfmake's browser build, and the glyphs of the very virtual files it embeds. */

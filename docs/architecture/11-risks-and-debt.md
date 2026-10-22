@@ -180,12 +180,31 @@ run, GSUB, GPOS, kern and morx: a crafted one can fail a render inside
 pdfmake with an error rather than a refusal, or never let it end -- a morx
 table of one state that never advances, in a font the reader accepts, kept
 PDFKit laying out one letter until it was stopped after 20 seconds -- and a
-pass cannot be interrupted, so the renderer meets this before it embeds a
-host's font. A font's fsType is its vendor's word on embedding,
-and its licence may forbid generating documents with it all the same,
-which nothing here reads. And of 447 font files on one Windows machine, 35
-were refused: collections, symbol fonts, variable fonts, a colour font and
-one past the size bound ([0040](../decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)).
+pass cannot be interrupted. 0043 closes that for a host face by stripping
+the records those tables sit in before it embeds the face, so fontkit runs
+neither an advanced engine nor the kern processor; the ligatures, kerning
+and contextual shaping they drive are lost, which the Latin, Greek and
+Cyrillic a report prints does not need, and every other script, which
+might, is refused by code point. The tables stripped were read from
+fontkit 2.0.4, which a test pins, and the browser build's fontkit is
+pdfmake's, fixed by its exact pin; a fontkit that reads another table
+reopens it. The printed blocks are curated from Blocks.txt by hand, held
+to fontkit's older Unicode data, so that their bounds are Blocks.txt
+18.0.0's is review-held. A face that draws two characters with one glyph
+writes the first one's text for both into the PDF's text layer, as Roboto
+does for the Ohm sign and Omega. A font's fsType is its
+vendor's word on embedding, and its licence may forbid generating documents
+with it all the same, which nothing here reads. And of 447 font files on
+one Windows machine, 35 were refused: collections, symbol fonts, variable
+fonts, a colour font and one past the size bound
+([0040](../decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md),
+[0043](../decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
+A CFF-flavoured OpenType font is refused until report-spec reads CFF
+outlines and the e-invoice gate proves a CFF face in a PDF/A-3b, and the
+corpus's text box assumes a descent of a
+fifth of the size, so the host-fonts fixture is bound to Liberation Serif
+and Mono, which fit; a host face with a deeper descender is not proved
+against the overlap checks (0043).
 
 ### Formancy Data is read best-effort, and only a stand-in has answered
 

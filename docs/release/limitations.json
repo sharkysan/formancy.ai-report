@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:c994bf7983b10e2f5efc0f46c71d2c5e739d370a3546c2a068099f4e5b58927d",
+      "reviewed": "sha256:0b4bbdbed8eda31be64862c8389be3a9f743e1c2bf4849abc306b1c7bb98ccc2",
       "limitations": [
         {
           "area": "licence",
@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:14809a1d32ec4a795f1983c6b82365e369acddc26ebd8ba912e63f9444c8511e",
+      "reviewed": "sha256:b273c1a17c98fbb5afb5b1500636a85f26911195614d9c8d11b903accfebdc69",
       "limitations": [
         {
           "area": "format",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:97e256b4aab16a3b43b0faea817d4d4576bb3d3edbae719e0141c896cd84b1b1",
+      "reviewed": "sha256:216ccb336389de622adf0260112e3429125700607627916fb63a31f63348fff6",
       "limitations": [
         {
           "area": "runtime",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:53310972ee03fb0f0ebd816d0156896e8a77a1256e75ba56a9511ae0b258b765",
+      "reviewed": "sha256:358a559280561418d1bafe9fe9f0cc201f522ceeb621729c28bc67651f7069a2",
       "limitations": [
         {
           "area": "rendering",
@@ -287,6 +287,11 @@
         {
           "area": "rendering",
           "says": "A body that fits its least height but not its real one is measured whole before it is refused."
+        },
+        {
+          "area": "rendering",
+          "says": "A table is refused when a line of one of its rows does not fit under the table's repeated header with a point to spare, so a line within that point of fitting is refused though pdfmake would print it: a 40 pt row of Roboto under a 40 pt header prints from a body of 103.25 pt, and is refused below 104.25.",
+          "heldBy": "packages/report-render-pdf/src/tables.test.ts"
         }
       ]
     },
@@ -1116,7 +1121,7 @@
       ]
     },
     "0031": {
-      "reviewed": "sha256:67cff1800e9085060b1a4c70e04f3cd89c928778006c80140f65037f9f026f78",
+      "reviewed": "sha256:6710aabd88c105f8e8f501fef033acf5ce854a9d77234fe9e0c320e82feba0fd",
       "limitations": [
         {
           "area": "rendering",
@@ -1521,7 +1526,7 @@
       ]
     },
     "0040": {
-      "reviewed": "sha256:84c87f2d61f4958ce8594d44b241dc4be839832e58831fafd2129b4c6617e29a",
+      "reviewed": "sha256:58d664ee8924a21b1d360d9601cf983d5f9a951e15c1cf28581b352544ddcc7c",
       "limitations": [
         {
           "area": "format",
@@ -1552,6 +1557,11 @@
           "area": "format",
           "says": "A font that maps more than 131,072 characters is refused.",
           "heldBy": "packages/report-spec/src/font-cmap.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A font whose horizontal header puts its ascender at or below the baseline or its descender above it, or makes a line shorter than half its em or taller than four, is refused as malformed, since pdfmake lays every line of it out by that line; none of the 425 fonts measured on one machine on 22 October 2026 was.",
+          "heldBy": "packages/report-spec/src/font.test.ts"
         },
         {
           "area": "format",
@@ -1837,6 +1847,75 @@
           "area": "testing",
           "says": "The browser gate holds the shared account on the e-invoice starter's XML and its EPC QR code, decoded from the PDF's pixels, and the starter has no QR-bill, so the bill's half is held by the builder scenarios in jsdom and not on a PDF.",
           "heldBy": "packages/report-builder-core/src/scenarios.test.ts"
+        }
+      ]
+    },
+    "0043": {
+      "reviewed": "sha256:c99ad415011fc46d40780945b6e442bb2d0eb7529c22957642a2ce0f222e82ed",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A report prints its sans, serif and mono text in fonts a host approved, mapped to its three tokens and pinned by digest; a token a report leaves unmapped prints in the renderer's own face, so serif and mono print nothing until a report maps them, exactly as before 0.3.0.",
+          "heldBy": "packages/report-render-pdf/src/corpus.test.ts"
+        },
+        {
+          "area": "licence",
+          "says": "A host's font is the customer's to license: its OS/2 fsType is a vendor's hint the runtime and the renderer honour, so a font that says Installable may still be under an agreement that forbids a server generating documents with it, which nothing here reads, and 0006's guard, which reads the fonts a published package ships, never sees it.",
+          "heldBy": "packages/report-runtime/src/lower-fonts.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A character a mapped face has no glyph for is refused, naming the face and the code point, never drawn in another face: there is no fallback across the three families, and a report that needs a character its font lacks maps a font that has it.",
+          "heldBy": "packages/report-render-pdf/src/host-fonts.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "Latin, Greek and Cyrillic, with the punctuation, symbols and marks written with them, are the scripts a report prints, by an allowlist of Unicode blocks: every other script is refused by code point in any face, Roboto's included -- the right-to-left, shaping and CJK scripts, and simple alphabets such as Armenian, Georgian and Coptic -- until a fixture proves it, and so are the bidirectional controls, since pdfmake lays out no bidirectional text and the renderer runs no shaping.",
+          "heldBy": "packages/report-spec/src/font-scripts.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A font whose outlines hold more points, more points times contours or more composite components together than report-spec's MAX_FONT_POINTS, MAX_FONT_OUTLINE_WORK and MAX_FONT_COMPONENTS allow is refused as too large, so that subsetting it cannot hold a render for minutes; the bounds sit just past the largest TrueType fonts measured, which are Hangul and Han fonts no report prints in.",
+          "heldBy": "packages/report-spec/src/font.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A CFF-flavoured OpenType font (`.otf`) is refused, as 0040 refuses one, because report-spec's reader reads no CFF outlines, so the renderer cannot hold one to its rules, though veraPDF accepted a PDF/A-3b PDFKit drew in one; a TrueType file (`.ttf`) of each face is mapped instead, until a later release reads CFF outlines and the e-invoice gate proves a CFF face.",
+          "heldBy": "packages/report-spec/src/font-map.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A host face's layout tables -- GSUB, GPOS, GDEF, kern and the AAT morx state machine -- are stripped before it is embedded, so that a crafted one can neither hang nor crash a render, and its ligatures, kerning and contextual shaping are lost, combining marks placed by their boxes; the Latin, Greek and Cyrillic a report prints needs none of them. A face of the very bytes of the renderer's own Roboto or Liberation Sans keeps them, since PDFKit draws it and the renderer's own as one. The list was read from fontkit 2.0.4, which a test pins.",
+          "heldBy": "packages/report-render-pdf/src/strip-layout.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Every render reads each face it maps again, under a millisecond for a typical font, and holds it twice until the render ends, the runtime's copy and the stripped one; nothing of a face is kept from one render to the next, and two renders at once write their faces into pdfmake's process-wide virtual files under names of their own, which each pass removes.",
+          "heldBy": "packages/report-render-pdf/src/host-fonts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Each line counts toward the page limit by the face it prints in, so a report set in a host face of a short line passes the bound that refuses it before layout with up to 2.3 times the lines Roboto's would, at a face's shortest line of half its size, and pdfmake measures them all before its page limit refuses what does not fit; text in Roboto beside such a face is bounded as before.",
+          "heldBy": "packages/report-render-pdf/src/host-fonts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A host face is refused as an invalid asset where any of its PostScript names is another face's of the render with other bytes -- another host asset's, or the renderer's own Roboto's or Liberation Sans's, whether or not the report prints in it -- or is `null` or a name every JavaScript object has, since PDFKit draws two faces of one name as whichever it opened first: a host's own Roboto or Liberation Sans of another release than the renderer's is refused, and a family whose two faces state one name, while the renderer's own bytes of either are accepted.",
+          "heldBy": "packages/report-render-pdf/src/face-identity.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A document handed to the renderer with text set outside the format's 4 to 96 pt is refused, as report-spec's validator refuses such a report, since the page bound counts each line by its size; a document the runtime resolved never holds one.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "Which face a run printed in is read back from the PDF by its PostScript name, on Liberation Serif and Mono printing Latin, Greek and Cyrillic; the corpus's text box still assumes a descent of a fifth of the font size, so those faces are chosen for descenders that reach about that far, and a host face with a deeper descender is not proved against the overlap checks.",
+          "heldBy": "packages/report-corpus/src/check-text.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "A report that maps a font is refused by 0.2.0's validator as an unknown property, and its runtime and renderer must be of one release: a 0.2.0 renderer handed this runtime's document prints a mapped sans in Roboto without a word. No serif or mono face is shipped: the Liberation Sans a package ships is for the QR-bill slip and the EPC caption alone."
         }
       ]
     }

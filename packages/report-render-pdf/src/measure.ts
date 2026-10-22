@@ -1,8 +1,11 @@
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces.js'
+import { RenderRefusal, type Table } from '@formancy/report-runtime'
 import { keepBlocks, keptBlocks } from './breaks.js'
 import type { RowKind, TablePlan } from './build.js'
+import type { RowLine } from './check.js'
 import type { Engine } from './engine.js'
-import { LINE_FACTOR } from './style.js'
+import type { HostFontFiles } from './host-fonts.js'
+import { LINE_FACTOR, ROBOTO } from './style.js'
 import { checkWords, type WordRoom } from './words.js'
 import { PADDING_Y, RULE } from './table.js'
 
@@ -39,8 +42,8 @@ class Measurement {
   }
 }
 
-/** Sentinels are marked with negative numbers, so that they never meet the marks content carries. */
-const sentinel = (index: number): Content => ({ text: '.', fontSize: 1, headlineLevel: -1 - index })
+/** Sentinels are marked with negative numbers, so that they never meet the marks content carries; in Roboto, so their one line is its known height whatever the document's default face lays out (0043). */
+const sentinel = (index: number): Content => ({ text: '.', fontSize: 1, font: ROBOTO, headlineLevel: -1 - index })
 
 /** Room left on the measuring page for the sentinels: each is one line of one-point text, 1.17pt in Roboto. */
 export const SENTINEL_ROOM = 2
@@ -61,6 +64,7 @@ export async function measure(
   resources: Required<Pick<TDocumentDefinitions, 'defaultStyle' | 'images'>>,
   overflow: () => Error,
   words: readonly WordRoom[],
+  host: HostFontFiles,
 ): Promise<Measured> {
   const definition: TDocumentDefinitions = {
     pageSize: { width: page.width, height: page.height },
@@ -83,7 +87,7 @@ export async function measure(
   }
   let tops: ReadonlyMap<number, number>
   try {
-    await engine.run(definition)
+    await engine.run(definition, host)
     throw new Error('pdfmake wrote a PDF instead of measuring')
   } catch (error) {
     if (!(error instanceof Measurement)) throw error
@@ -121,6 +125,49 @@ export function rowPitches(marks: readonly number[], top: Measured['top'], table
 export const FIT_SLACK = 1
 
 /**
+ * What a page of a body `bodyHeight` tall holds of a table's rows under its
+ * column header, which pdfmake 0.3.11 repeats at the top of every page the
+ * table reaches (`headerRows: 1`, `table.ts`) as the block it laid the
+ * header out in: the table's top rule, the header row and the rule under
+ * it (`TableProcessor.beginTable` and `endRow`, `currentBlockToRepeatable`),
+ * `RULE` and the header's pitch. Less `FIT_SLACK`. pdfmake repeats the
+ * column header alone, never a group header, and has no footer rows of its
+ * own: a group's footer and a total are rows under the header like any other.
+ */
+function underHeader(headerPitch: number, bodyHeight: number): number {
+  return bodyHeight - RULE - headerPitch - FIT_SLACK
+}
+
+/**
+ * Refuses `table` when the tallest line of its rows under the header,
+ * `under`, does not fit on a page under the repeated header, `headerPitch`
+ * tall as measured, in a body `bodyHeight` tall where the table stands.
+ *
+ * pdfmake lays a row it may split out line by line. A line that does not
+ * fit what is left of a page goes to the next, under the repeated header,
+ * and one that does not fit there either goes to the page after and is
+ * dropped without a word (`LayoutBuilder.processLeaf`,
+ * `PageElementWriter._fitOnPage`, where `addLine` returns false): a row of
+ * one 40 pt line under a 40 pt header, in a body that held the row alone,
+ * printed five pages of the header and no row. On a page the table
+ * continues on, a row's line stands under its padding, with its padding
+ * and the rule under it kept below it (`TableProcessor.beginRow` and
+ * `onRowBreak`): it needs the header as it repeats, the line, its padding
+ * and three rules. A row kept whole (`dontBreakRows`) needs no less, so
+ * every table the body pass measures is held to it, whatever its plan.
+ */
+export function refuseLineUnderHeader(table: Table, under: RowLine, headerPitch: number, bodyHeight: number): void {
+  const row = PADDING_Y + under.line + PADDING_Y + RULE
+  if (row <= underHeader(headerPitch, bodyHeight)) return
+  const needs = RULE + headerPitch + row
+  throw new RenderRefusal(
+    'content-too-large',
+    `${under.what} has a line that needs ${needs.toFixed(2)} pt of a page under the table's repeated header, and a point more for rounding; a page's body is ${bodyHeight.toFixed(2)} pt where it stands`,
+    table.id,
+  )
+}
+
+/**
  * How a table breaks across pages of a body `bodyHeight` tall, from its
  * measured rows, the header row first:
  *
@@ -142,7 +189,7 @@ export const FIT_SLACK = 1
  */
 export function tablePlan(rows: readonly { readonly kind: RowKind; readonly pitch: number }[], bodyHeight: number): TablePlan {
   const [header, ...body] = rows
-  const room = bodyHeight - RULE - (header?.pitch ?? 0) - FIT_SLACK
+  const room = underHeader(header?.pitch ?? 0, bodyHeight)
   const under = (index: number): number => (body[index - 1]?.kind === 'groupHeader' ? body[index - 1]!.pitch : 0)
   const dontBreakRows = body.every((row, index) => under(index) + row.pitch <= room)
   const pitches = rows.map((row) => row.pitch)

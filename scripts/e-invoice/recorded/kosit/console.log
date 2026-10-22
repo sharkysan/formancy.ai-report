@@ -18,7 +18,7 @@ The following scenarios are available:
 
 
 Processing of 16 objects started
-Processing of 16 objects completed in 1,169ms
+Processing of 16 objects completed in 917ms
 Results:
 [The results table is left out of the record: it names every file by its path, wrapping it across lines no replacement can follow, and each file’s report, recorded beside this, says what its row said.]
 Acceptable:  5  Rejected:  11  Processing errors:  1

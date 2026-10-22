@@ -5,7 +5,9 @@
  * embedding permissions, weight and style, and the PostScript table
  * (0040). Each read is checked against the file (`FontFile`); each field a
  * reader acts on is held to the values the specification defines, and a
- * version it does not define is refused rather than read as another.
+ * version it does not define is refused rather than read as another; the
+ * line the horizontal header makes, which the specification does not
+ * bound, is held to what pdfmake can lay a page out by (0040).
  *
  * What PDFKit reads of these when it embeds a face is read here too, so
  * that a font this accepts is one fontkit decodes: it names the font by
@@ -19,6 +21,7 @@
  */
 import type { FontFile } from './font-file.js'
 import { refuse, refuseEmbedding } from './font-refusal.js'
+import { MAX_FONT_LINE, MIN_FONT_LINE } from './limits.js'
 
 /** What the font header says the rest of the font is read by. */
 export interface FontHeader {
@@ -61,8 +64,17 @@ export interface FontLine {
   readonly lineGap: number
 }
 
-/** The horizontal header, version 1, and the metrics it counts: between one and `glyphs` advances, and a side bearing for every glyph after them, inside the file. */
-export function readHorizontal(file: FontFile, glyphs: number): FontLine {
+/**
+ * The horizontal header, version 1, and the metrics it counts: between one
+ * and `glyphs` advances, and a side bearing for every glyph after them,
+ * inside the file. And the line it makes at `unitsPerEm`, which pdfmake
+ * lays every line of the face out by -- the ascender less the descender,
+ * the baseline the ascender below the line's top -- held to rise above its
+ * baseline, to reach down to it or below, and to be from `MIN_FONT_LINE`
+ * to `MAX_FONT_LINE` ems tall. The specification bounds none of them; a
+ * line of nothing printed every line of a report on one spot (0040).
+ */
+export function readHorizontal(file: FontFile, glyphs: number, unitsPerEm: number): FontLine {
   const table = file.table('hhea')
   const at = table.offset
   file.need(at, 36, table)
@@ -72,7 +84,14 @@ export function readHorizontal(file: FontFile, glyphs: number): FontLine {
   if (metrics === 0 || metrics > glyphs) refuse('malformed', `counts ${metrics} horizontal metrics for ${glyphs} glyphs`)
   const widths = file.table('hmtx')
   file.need(widths.offset, 4 * metrics + 2 * (glyphs - metrics), widths)
-  return { ascender: file.i16(at + 4, table), descender: file.i16(at + 6, table), lineGap: file.i16(at + 8, table) }
+  const line = { ascender: file.i16(at + 4, table), descender: file.i16(at + 6, table), lineGap: file.i16(at + 8, table) }
+  if (line.ascender <= 0) refuse('malformed', `has an ascender of ${line.ascender} units, at or below its baseline, where a line must rise above it`)
+  if (line.descender > 0) refuse('malformed', `has a descender of ${line.descender} units, above its baseline, where a line must reach down to it or below`)
+  const tall = line.ascender - line.descender
+  if (tall < MIN_FONT_LINE * unitsPerEm || tall > MAX_FONT_LINE * unitsPerEm) {
+    refuse('malformed', `has a line ${tall} units tall, its ascender less its descender, at ${unitsPerEm} units to the em, where a line may be ${MIN_FONT_LINE} to ${MAX_FONT_LINE} ems tall`)
+  }
+  return line
 }
 
 /**

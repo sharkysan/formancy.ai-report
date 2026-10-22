@@ -166,7 +166,8 @@ export function judgeVeraPdf({ entries, status, stdout, stderr, error, pinned, f
       if (result.failedRules !== result.failed.length) wrong.push(`veraPDF counts ${String(result.failedRules)} rules ${entry.file} failed, and summarises ${String(result.failed.length)}`)
       row.compliant = result.compliant
     }
-    row.refusals = [...new Set([...(result?.failed ?? []), ...embeddedRefusals(job.embedded, entry.embeds, file)])]
+    // Sorted, so the judged order is stable: veraPDF summarises a file's failed rules in no fixed order across runs, and the gate compares them as a set.
+    row.refusals = [...new Set([...(result?.failed ?? []), ...embeddedRefusals(job.embedded, entry.embeds, file)])].sort()
     if (entry.expect.verapdf === 'accepted') {
       if (result !== undefined && result.compliant !== true) wrong.push(`veraPDF finds ${entry.file} not PDF/A-3b compliant, where it must be`)
       if (result !== undefined && !(result.passedRules > 0)) wrong.push(`veraPDF passed no rule on ${entry.file}, so it checked nothing`)

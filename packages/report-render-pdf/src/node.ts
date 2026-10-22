@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url'
 import pdfmake from 'pdfmake'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import type { ResolvedDocument } from '@formancy/report-runtime'
-import { BILL_FACES, FACES, glyphsOnce, written, type Engine } from './engine.js'
+import { BILL_FACES, FACES, glyphsOnce, registerHostFonts, written, type Engine, type VirtualFs } from './engine.js'
+import type { HostFontFiles } from './host-fonts.js'
 import type { RenderOptions } from './options.js'
 import type { Finish } from './pdfa.js'
 import { render } from './render.js'
@@ -42,11 +43,19 @@ const FONTS = {
 }
 const FONT_FILES: ReadonlySet<string> = new Set([...Object.values(FONTS.Roboto), ...Object.values(FONTS[LIBERATION_SANS])])
 
-async function run(definition: TDocumentDefinitions, finish?: Finish): Promise<Uint8Array> {
-  pdfmake.setFonts(FONTS)
-  pdfmake.setUrlAccessPolicy(() => false)
-  pdfmake.setLocalAccessPolicy((file) => FONT_FILES.has(file))
-  return written(pdfmake.createPdf(definition).getStream(), finish)
+/** pdfmake's virtual file system in Node, where a host face's bytes go for a render; the Roboto and Liberation files are paths, read from disk, so nothing of theirs is here. */
+const virtualfs = (pdfmake as unknown as { readonly virtualfs: VirtualFs }).virtualfs
+
+async function run(definition: TDocumentDefinitions, host: HostFontFiles, finish?: Finish): Promise<Uint8Array> {
+  const cleanup = registerHostFonts(virtualfs, host)
+  try {
+    pdfmake.setFonts({ ...FONTS, ...host.families })
+    pdfmake.setUrlAccessPolicy(() => false)
+    pdfmake.setLocalAccessPolicy((file) => FONT_FILES.has(file))
+    return await written(pdfmake.createPdf(definition).getStream(), finish)
+  } finally {
+    cleanup()
+  }
 }
 
 /** pdfmake in Node, and the glyphs of the very font files it embeds. */

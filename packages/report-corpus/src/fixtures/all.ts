@@ -3,6 +3,7 @@ import { decimals } from './decimals.js'
 import { emptyDataset } from './empty-dataset.js'
 import { fonts } from './fonts.js'
 import { groupBoundary } from './group-boundary.js'
+import { hostFonts } from './host-fonts.js'
 import { imageInvalid, images } from './images.js'
 import { longParagraph } from './long-paragraph.js'
 import { longTable } from './long-table.js'
@@ -25,6 +26,7 @@ export const ALL_FIXTURES: readonly Fixture[] = [
   decimals,
   nullMissing,
   fonts,
+  hostFonts,
   images,
   imageInvalid,
   oversized,

@@ -1,8 +1,9 @@
 import type { Content, CustomTableLayout } from 'pdfmake/interfaces.js'
-import type { Block, Columns, Image, ImageAsset, Inline, Paragraph, Rectangle, Rule, Section } from '@formancy/report-runtime'
+import type { Block, Columns, Image, ImageAsset, Inline, Paragraph, Rectangle, Rule, Section, TextStyle } from '@formancy/report-runtime'
 import { base64 } from './bytes.js'
 import { startsOnPage, type Build, type Fields } from './build.js'
 import { epcContent } from './epc.js'
+import type { FaceWanted } from './host-fonts.js'
 import { qrContent } from './qr.js'
 import { DEFAULT_SIZE, textProperties } from './style.js'
 import { svgContent } from './svg-content.js'
@@ -173,12 +174,23 @@ function paragraphContent(paragraph: Paragraph, build: Build, scope: Scope): Con
   const content = {
     text: paragraph.runs.length === 0 ? '' : paragraph.runs.map((run) => inline(run, scope.fields)),
     alignment: style.align ?? 'left',
-    ...textProperties(style, { size: DEFAULT_SIZE }),
+    ...textProperties(style, { size: DEFAULT_SIZE }, build.familyOf),
   }
   // check.ts walks every paragraph, and records where it stands, before anything is built.
   const at = build.paths.get(paragraph) as string
   if (scope.record) build.words.push({ node: content, width: scope.width, lines: MAX_WORD_LINES, what: at, subject: at })
   return content
+}
+
+/**
+ * The face a paragraph's run prints in, as `inline` hands it to pdfmake:
+ * the paragraph's token and slant, and the run's own weight where it sets
+ * one, which pdfmake sets over the paragraph's; a page field prints in the
+ * paragraph's own face. check.ts holds a run's text to this face, and
+ * bound.ts counts the paragraph's least line by it.
+ */
+export function runFace(style: TextStyle | undefined, run: Inline): FaceWanted {
+  return { token: style?.font, bold: ('text' in run ? run.bold : undefined) ?? style?.bold ?? false, italic: style?.italic ?? false }
 }
 
 function inline(run: Inline, fields: Fields | undefined): { text: string; bold?: boolean } {

@@ -2,9 +2,10 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { characterMap as readCharacterMap, readFont } from '@formancy/report-runtime'
+import { assetDigest, characterMap as readCharacterMap, readFont } from '@formancy/report-runtime'
 import type { Font } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
+import { OWN_FACES } from './face-identity.js'
 import { characterMap } from './glyphs.js'
 import { LIBERATION_LINE, LINE_FACTOR } from './style.js'
 import { TIMEOUT } from './testing/documents.js'
@@ -123,6 +124,22 @@ describe("the renderer's faces, read by report-spec's reader", () => {
     expect([...characterMap(full)]).toEqual([0x1f600])
     expect(readCharacterMap(full)).toEqual({ ok: true, characters: new Set([0x1f600]) })
     expect([...characterMap(characterMapOnly([[0, 3, format4Of(0x41)], [3, 1, format4Of(0x42)]]))]).toEqual([0x42])
+  })
+
+  // A host face of one of these faces' names and other bytes is refused,
+  // and one of their bytes embedded as the renderer embeds its own
+  // (`face-identity.ts`), each known by the name fontkit reads in it and
+  // the digest of its bytes: a table that named a face by another's name
+  // or digest would let a face PDFKit draws as this one through, or strip
+  // the renderer's own bytes. Each face states one name, the one fontkit
+  // reads.
+  test('are the faces face-identity.ts knows, by name and digest', () => {
+    expect(
+      FACES.map((face) => {
+        const bytes = bytesOf(face.directory, face.file)
+        return { postScriptName: fontkit.create(Buffer.from(bytes)).postscriptName, postScriptNames: read(bytes).names.postScriptNames, digest: assetDigest(bytes) }
+      }),
+    ).toEqual(OWN_FACES.map(({ postScriptName, digest }) => ({ postScriptName, postScriptNames: [postScriptName], digest })))
   })
 
   // The two line constants the renderer lays text out by are these faces'
@@ -251,8 +268,9 @@ describe('fontkit, which PDFKit draws with', () => {
         accepted += 1
         expect(disagreements(corrupted, outcome.characters), `round ${round}`).toEqual([])
         expect(readCharacterMap(corrupted)).toEqual({ ok: true, characters: outcome.characters })
-        // The name the reader says the PDF names the font by is the one fontkit hands PDFKit.
+        // The name the reader says the PDF names the font by is the one fontkit hands PDFKit, and one of those the renderer tells faces apart by.
         expect(fontkit.create(Buffer.from(corrupted)).postscriptName, `round ${round}`).toBe(outcome.names.postScriptName)
+        expect(outcome.names.postScriptNames, `round ${round}`).toContain(outcome.names.postScriptName)
         await expect(embedded(corrupted, textOf(outcome.characters)), `round ${round}`).resolves.toBeGreaterThan(0)
       }
       // A sweep the reader refused whole would prove nothing of what it accepts.

@@ -12,7 +12,10 @@
   under which an e-invoice of the kind `xrechnung` is drawn as no PDF/A
   but as a plain copy labelled so on every page, its XML the invoice a
   host sends: the plain PDF this record forecloses, narrowed for that kind
-  alone, a Factur-X invoice drawn as here
+  alone, a Factur-X invoice drawn as here; and by
+  [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md),
+  under which a PDF/A-3b embeds a host's faces beside Roboto, held by the
+  e-invoice gate's host-font variant
 - **Date:** 2026-10-18
 - **Deciders:** Daniel Bacher
 - **Verified by:**

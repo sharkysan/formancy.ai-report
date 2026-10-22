@@ -20,8 +20,12 @@ export type {
   ParameterDef,
   ParameterType,
 } from './data.js'
-export { ASSET_MEDIA_TYPES } from './assets.js'
-export type { AssetMediaType, AssetRef } from './assets.js'
+export { ASSET_AND_FONT_MEDIA_TYPES, ASSET_MEDIA_TYPES, FONT_MEDIA_TYPES, isFontMediaType } from './assets.js'
+export type { AnyAssetMediaType, AssetMediaType, AssetRef, FontMediaType } from './assets.js'
+export { FONT_FACE_KEYS, faceKey } from './font-map.js'
+export type { FontFaceKey, FontFaces, FontMap } from './font-map.js'
+export { BIDI_CONTROLS, PRINTED_BLOCKS, refusedCharacter, UNICODE_VERSION } from './font-scripts.js'
+export type { CharacterRefusal, PrintedBlock } from './font-scripts.js'
 export { AGGREGATE_SCOPES, CURRENCY_SOURCE_KINDS, DATE_STYLES, EXPRESSION_NAMES, FORMAT_KINDS, GROUP_KEY, INLINE_KINDS, TEXT_TRANSFORMS, VALUE_SCOPES } from './values.js'
 export type {
   AggregateInline,
@@ -218,7 +222,11 @@ export {
   MAX_EXPRESSION_LENGTH,
   MAX_FONT_BYTES,
   MAX_FONT_CHARACTERS,
+  MAX_FONT_COMPONENTS,
   MAX_FONT_GLYPH_WORK,
+  MAX_FONT_LINE,
+  MAX_FONT_OUTLINE_WORK,
+  MAX_FONT_POINTS,
   MAX_FONT_SIZE,
   MAX_FOOTER_ROWS,
   MAX_FORM_MEMBER_LENGTH,
@@ -249,6 +257,7 @@ export {
   MAX_TEXT_LENGTH,
   MAX_VAT_CATEGORIES,
   MIN_COLUMNS,
+  MIN_FONT_LINE,
   MIN_FONT_SIZE,
   MIN_PRINTABLE_PT,
 } from './limits.js'

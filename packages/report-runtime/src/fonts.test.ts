@@ -20,6 +20,12 @@ describe("what an engine reads of report-spec's font reader", () => {
     expect(runtime.FONT_EMBEDDING_REFUSALS).toBe(spec.FONT_EMBEDDING_REFUSALS)
     expect(runtime.MAX_FONT_BYTES).toBe(spec.MAX_FONT_BYTES)
     expect(runtime.MAX_FONT_CHARACTERS).toBe(spec.MAX_FONT_CHARACTERS)
+    // The line a face may lay out, which an engine's page bound counts a line of text by: a copy would let the two drift apart.
+    expect(runtime.MIN_FONT_LINE).toBe(spec.MIN_FONT_LINE)
+    expect(runtime.MAX_FONT_LINE).toBe(spec.MAX_FONT_LINE)
+    // The sizes text is set at, which an engine holds a document it is handed to: its page bound counts a line as its size, and one of 0.001 pt let 20,000 lines past a limit of one page.
+    expect(runtime.MIN_FONT_SIZE).toBe(spec.MIN_FONT_SIZE)
+    expect(runtime.MAX_FONT_SIZE).toBe(spec.MAX_FONT_SIZE)
   })
 
   // A font is at most what any asset may be, which the runtime holds a host's answer to before it copies a byte.
