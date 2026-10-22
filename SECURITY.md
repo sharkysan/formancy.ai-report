@@ -17,9 +17,15 @@ Formancy Report turns templates and a customer's data into PDF documents, and
 serves those documents to people. Templates, expressions, datasets, fonts and
 images are untrusted input even when an administrator wrote them, and so are a
 formancy form's versions and their submissions, which a host hands the form
-bridge from its own store. The areas we
-consider highest risk, and are most interested in reports about, follow from
-that:
+bridge from its own store. The report server takes a person's identity and
+tenant from the host's token alone, verified offline with Formancy Data's
+verifier, and what a person may do is one table of actions, which every
+route that takes an action is to ask; in this release no route takes one,
+and whoami lists what the table gives
+([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
+[0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
+The areas we consider highest risk, and are most interested in reports
+about, follow from that:
 
 - **Cross-tenant exposure**: a dataset, a rendered PDF, a cached artefact or a
   preview reaching a person the host's authorisation did not admit, including
@@ -28,7 +34,13 @@ that:
 - **Authorisation bypass** on preview, render or download: a decision taken
   from something the browser supplied -- a tenant, a role, a hidden field --
   rather than from the host's verified identity, or a published report used to
-  read data its author could not.
+  read data its author could not. On the server: a token it accepts that the
+  host did not sign, one without the tenant claim, an action it allows that
+  the actions table does not give the person's roles, or a route that
+  answers outside that table.
+- **Disclosure in the server's log or answers**: a token, a secret, a
+  claim's value or what a request carried reaching a log line, the audit
+  trail, an error or a refusal's sentence.
 - **Derived disclosure**: a value the person may not read revealed through a
   total, a group label, a sort order, a row count, a validation message or the
   metadata given to an AI model.

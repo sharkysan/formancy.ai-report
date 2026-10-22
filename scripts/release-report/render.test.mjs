@@ -181,7 +181,7 @@ describe('the Markdown', () => {
   test('says how each section was made', () => {
     const markdown = renderContent(report())
     const method = markdown.slice(markdown.indexOf('## How this report was made'), markdown.indexOf('## Problems'))
-    for (const section of ['Subject', 'Tested on', 'Results', 'Browser', 'E-invoice gate', 'Build identity', 'Release gates', 'Known limitations', 'Problems']) expect(method).toContain(`- **${section}:**`)
+    for (const section of ['Subject', 'Tested on', 'Results', 'Browser', 'E-invoice gate', 'Container gate', 'Build identity', 'Release gates', 'Known limitations', 'Problems']) expect(method).toContain(`- **${section}:**`)
   })
 
   // The browser a gate measured in, and the Playwright that pins it, are
@@ -244,6 +244,23 @@ describe('the e-invoice gate', () => {
   })
 })
 
+describe('the container gate', () => {
+  // The section is the gate's own record (0046): the image it built, said
+  // to be the gate's and never a published one, its Node, its user and its
+  // size, how long it took to build and to answer, and every check it made,
+  // so a red run shows which check said what.
+  test('shows the image the gate built, as the gate’s, and every check with what it said', () => {
+    const section = (markdown) => markdown.slice(markdown.indexOf('## Container gate'), markdown.indexOf('## Build identity'))
+    const green = section(renderContent(report()))
+    expect(green).toContain('The container gate passed on Docker 28.0.4 linux/amd64, with the image it built from this checkout, `formancy/report-server:gate` (`sha256:e00a`): Node v26.12.1, as `node`, 192.2 MB, built in 42.0 s and answering 0.8 s after it started. It is the gate’s image; no image is published from this run.')
+    expect(green).toContain('| Check | Passed | Said |')
+    expect(green).toContain('| it runs as node | yes |  |')
+    const red = section(renderContent(report((inputs) => (job(inputs, 'container').container.checks[1] = { name: 'it runs as node', passed: false, said: 'the server runs as root' }))))
+    expect(red).toContain('| it runs as node | no | the server runs as root |')
+    expect(section(renderContent(report((inputs) => (job(inputs, 'container').container = null))))).toContain('The container gate left no results in this run.')
+  })
+})
+
 describe('the subject and the summary', () => {
   // A report that does not say which run, commit and release it is of
   // cannot be told apart from another one.
@@ -265,6 +282,6 @@ describe('the subject and the summary', () => {
     const summary = renderSummary(report(), { section: 'Unreleased', link: 'https://example.invalid/report.md' })
     expect(summary).toContain('The full report of the run that gated this: https://example.invalid/report.md')
     expect(summary).toContain('The notes above are CHANGELOG.md’s `Unreleased` section.')
-    expect(summary).toContain('6 of 6 tests passed across 4 packages; the install gate passed; the e-invoice gate passed.')
+    expect(summary).toContain('6 of 6 tests passed across 4 packages; the install gate passed; the e-invoice gate passed; the container gate passed.')
   })
 })

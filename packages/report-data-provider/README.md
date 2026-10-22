@@ -7,7 +7,10 @@ the client carries. It reads the header's one record, the detail rows a
 page at a time and each lookup's label, and hands over the data
 `@formancy/report-runtime` renders from, or every reason it will not. No
 framework and no Node. It is the one package of this repository that may
-depend on Data's contracts. What it decides, and why, is decision
+depend on Data's contracts; the report server depends on Data's identity
+verifier alone, and reads no record
+([0047](../../docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
+What it decides, and why, is decision
 [0016](../../docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md).
 
 **Best-effort.** Data 0.1.0 has no snapshot export, so the header, each

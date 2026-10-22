@@ -11,15 +11,17 @@ apps   studio                  the playground: both builders, the PDF, PDF.js   
 ────────────────────────────────────────────────────────────────────────────────────────────
 L3     report-render-pdf       pdfmake · pdfkit · uqr · a Node entry and a browser entry
                                an e-invoice drawn as a PDF/A-3b that embeds its XML
-       report-data-provider    @formancy/data-client: the one door to Data
+       report-data-provider    @formancy/data-client: the one door to Data's records
        report-forms            @formancy/spec's validator: a form's submissions, handed over;
                                a report generated from a form version; a new version
                                reviewed, its resolutions report-core's commands as data
+       report-server           Fastify · @formancy/data-identity: whoami, by the host's token
        report-builder-react    React · DOM            ┐ never each other,
        report-builder-angular  Angular · DOM          ┘ never the other framework
 ────────────────────────────────────────────────────────────────────────────────────────────
 L2     report-runtime          every value decided once        no framework, no engine, no Node
        report-builder-core     the editor model                no framework, no DOM, no Node
+       report-server-core      who may do what · the wire      no framework, no DOM, no Node
 ────────────────────────────────────────────────────────────────────────────────────────────
 L1     report-core             commands · session · compileReport · @formancy/expressions
 ────────────────────────────────────────────────────────────────────────────────────────────
@@ -51,6 +53,8 @@ the upstream packages' and the peers' ranges.
 | `@formancy/report-render-pdf` | `report-runtime` | `pdfmake`, `pdfkit`, `uqr` | — | Of this repository's packages, the runtime alone, which re-exports what the renderer needs of the format: report-spec's own rules for the slip and for how an EPC QR code prints ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)), the names an e-invoice's file is embedded by ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)), and `checkSvg`, the check an SVG asset is drawn by ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)), and report-spec's font reader, which its faces' glyphs are read by ([0040](../decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)), and `readFont`, `characterMap` and `refusedCharacter`, which a host's fonts are read, embedded and held to ([0043](../decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)). A resolved document and approved bytes in, never a database or an address ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)); an e-invoice's PDF/A also embeds the ICC profile PDFKit, pdfmake's own dependency, reads from its package, which `scripts/dependency-licences.mjs` holds to a review by its digest ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 | `@formancy/report-data-provider` | `report-runtime`, `report-spec` | `@formancy/data-client` | — | The only package that may depend on Formancy Data; `scripts/dependency-licences.mjs` refuses Data reached from any other ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). The DOM's globals and no `@types/node`, so a `node:` import does not compile |
 | `@formancy/report-forms` | `report-core`, `report-runtime`, `report-spec` | `@formancy/spec`, for its validator, the version hash, labels, rich text and the diff, at the release the repository pins | — | The DOM's globals and no `@types/node`, as the Data provider, so a `node:` import does not compile; nothing reaches the network: a host hands each form version and submission over ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)), each form version a report is generated from ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)), and each a review compares a new one with; report-core because a review's resolutions are its commands, judged by its session and its compiler ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)). It never depends on Formancy Data, which `scripts/dependency-licences.mjs` refuses from any package but the provider |
+| `@formancy/report-server-core` | — | — | — | No framework, no DOM, no Node: ES2023's library and no `@types/node`, so a `node:` import or a `fetch` does not compile. The actions table, the identity it is asked about, the wire a client compiles against and the audit port ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)). It depends on nothing; report-spec joins it with the first use case that validates what a server stores |
+| `@formancy/report-server` | `report-server-core` | `fastify`, `@fastify/rate-limit`, `@formancy/data-identity` | — | Node and Fastify; Formancy Data's identity verifier at exactly 0.3.0, the one Data package it may depend on, which `scripts/dependency-licences.mjs` admits for it alone ([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)). Never the runtime or the renderer, which its install host, holding only what it declares, would fail on; `src/composition.test.ts` fails on any module but `main.ts` that reads the environment or a file (0046) |
 | `@formancy/report-builder-react` | `report-builder-core`, `report-core`, `report-spec` | — | `react`, `react-dom` | The core packages and React, never Angular or the other builder ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
 | `@formancy/report-builder-angular` | `report-builder-core`, `report-core`, `report-spec` | `tslib` | `@angular/core` | The core packages and Angular; `src/dependencies.test.ts` fails on React anywhere in its closure ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
 | `@formancy/report-corpus` | `report-runtime` | `pdfjs-dist`, `zxing-wasm`, `saxes`, `@pdfme/pdf-lib` | — | Private, never published: test support ([0003](../decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)). saxes reads the XML the runtime writes, a parser that is not the writer, in the corpus's tests and, resolved from the corpus, in the e-invoice gate's scripts (0027), and a PDF's XMP. pdf-lib reads a PDF's own objects, a reader that is neither the pdfkit that writes them nor PDF.js, in the corpus's tests and the renderer's and, through the corpus's built index, in the e-invoice gate, which reads what each PDF embeds with it and records each PDF by its digest (0031) |
@@ -218,6 +222,41 @@ now ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-fie
 | `review-resolutions.ts` | Each resolution as a command descriptor -- an override, the binding moved with the versions it knows kept, a retype, the removal with readers, a batch -- with the report's hash, offered only where `tryEdit` takes it and, where it changes a field's type or whether it may be null, `compileReport` refuses nothing new of the expressions report-core's `fieldReaders` says it reaches, each compiled once |
 | `review-labels.ts` | A field's label in a version in the report's locale, a member's own label for a member; and the commands that say a new one where the report says an old: the field's label, a line's label run before the run that prints it, found by `generate-layout.ts`'s `labelled`, a column's heading, what prints the field being what the compiler says an expression reads |
 | `generate-layout.ts`, `notes.ts` | The outline laid out: a line of label and value, a section with its heading, the table, the title and the page counted, each id the next of its kind, a yes or a no a box read in brackets, the page A4, portrait or landscape by `MIN_COLUMN_WIDTH`; and `NOTE_CODES`, what a draft says it left out and assumed, quoting none of the form's words |
+
+### `@formancy/report-server-core` (L2)
+
+Who may do what to a tenant's reports, decided once, and what a server and
+a client say to each other ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)). The use cases and the
+stores' ports join it with the records that build them.
+
+| Module | Responsibility |
+|---|---|
+| `actions.ts` | `CAPACITIES`, the three the settings give the host's roles; `ACTIONS`, every action with the capacities that may take it, frozen; `can(identity, action, policy)`, an action the table does not hold denied, no capacity implying another, roles compared as the host spells them; `capacitiesOf` and `actionsOf`, what whoami answers |
+| `identity.ts` | `ReportIdentity`: the subject, the tenant, never empty, and the roles, derived from a verified token alone |
+| `wire.ts` | `API_PREFIX`, `/v1`, the API's version line (0046, extending [0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md)); `ROUTES`, every route the API answers with its audit operation; `WhoAmI` and `Health`; `REFUSALS`, a code and a fixed sentence for every refusal; `CROSS_ORIGIN_REQUEST_HEADERS` |
+| `audit.ts` | `AuditEvent`, one request an API route answered, never a value, who by keyed hash; and `AuditSink`, the port it goes through |
+
+### `@formancy/report-server` (L3)
+
+`createReportServer(options)` is a Fastify server over a verifier,
+the operator's role policy, an audit sink and the rate limit, proxies and
+origins, each held to its setting's rule before anything is built; and
+`main.ts` the composition root that reads the settings once and serves it
+(0046, [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
+
+| Module | Responsibility |
+|---|---|
+| `app.ts` | The server: `no-store` on every answer, the rate limit by client address, a first hook answering a path that is not plain 400 and a request no route answers 404, each counted and before its body is read, the cross-origin hooks, `/health` and HEAD on it, and the API in a context of its own whose preHandler verifies the token -- every bad one the one 401 -- before `/v1/whoami` answers; an error a request caused the fixed 400 sentence with its status, an error of its own the one 500; Node's request timeout; the log naming a request by its method and route |
+| `paths.ts` | `plainPath`: a target with nothing in it a proxy could normalise, by formancy.ai-data 0037's rule |
+| `client-errors.ts` | `answerClientError`: what Node's parser cannot read answered with the fixed refusal and `no-store`, the connection closed, nothing logged |
+| `identity.ts` | `createReportVerifier`: data-identity's verifier, built once, with the tenant's claim mapped and required, a token without it refused, and the identity handed on frozen |
+| `audit.ts` | The trail's hooks: one event per answered request, from `onResponse`, or `onSend` or the connection's close for a client that left; a route with no name in `ROUTES` stopping the server; `auditReference`, who by HMAC over a JSON array; the audit key's 32-byte floor; `logAuditSink`, one log line per event |
+| `settings.ts` | `SETTINGS`, every setting the server reads, which the package README lists; `readSettings(env)`, the environment handed to it parsed into what the server runs on or every reason it does not start, a `FORMANCY_REPORT_` variable it does not read and a secret reference to one of the server's own among them, no sentence repeating a value |
+| `rate-limit.ts`, `proxies.ts`, `cors.ts` | The rate limit, the trusted proxies and the origins, each a setting's rule and an embedder's, formancy.ai-data's (its 0034, 0071, 0060): `clientAddress`, the address a request is counted and logged by; `crossOrigin`, the preflight routes, the origin carried back, and a token-bearing request from an unlisted origin refused before its token is read |
+| `serve.ts` | `openReportServer(settings, io, logger)`: the identity key and the audit key opened through the source main.ts hands over, the audit key refused when it is the identity key, every refusal one sentence; `readAgainOnSignal`, the key set read again on SIGHUP and the log saying what changed by kid |
+| `main.ts` | The composition root: the environment read once, the server opened and served, SIGHUP and SIGTERM handled |
+
+`Dockerfile` beside `src/` is the image ([`packages/report-server/Dockerfile`](../../packages/report-server/Dockerfile)), held by `src/dockerfile.test.ts` and run by the container gate: its code root's, the store's directory the one thing its user owns.
 
 ### `@formancy/report-builder-core` (L2)
 
@@ -403,7 +442,8 @@ written against the newest release and said again at each release, and
 
 Not a package, and not shipped: the guards `pnpm test:repo` runs
 (`scripts/*.test.mjs`), the install gate (`install-test.mjs`,
-`install-hosts.mjs`, `install-fixture/`), the release report
+`install-hosts.mjs`, `install-fixture/`), the container gate
+(`container.mjs`), the release report
 (`release-report/`) and a release's pins (`release/`), the licence and
 dependency guards, the demo's deploy (`demo.mjs`) and the pictures
 (`pictures.mjs`, `pictures/`). [Verification](10-verification.md) says what

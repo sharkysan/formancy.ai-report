@@ -67,6 +67,7 @@ function workspace() {
   put(root, 'test-results/vitest.json', vitest(root, 'scripts/check-cla.test.mjs'))
   put(root, 'test-results/install.json', { startedAt: at(20), finishedAt: at(25), passed: true, node: 'v22.20.0', npm: '10.9.0', resolved: [], tarballs: [], consumers: [] })
   put(root, 'test-results/e-invoice.json', { gate: 'e-invoice', startedAt: at(40), finishedAt: at(41), java: { version: '17.0.20.1', major: 17 }, tools: [], corpus: [], mustang: [], kosit: [], problems: [], passed: true })
+  put(root, 'test-results/container.json', { gate: 'container', startedAt: at(50), finishedAt: at(52), passed: true, error: null, docker: '28.3.3 linux/amd64', image: { tag: 'formancy/report-server:gate', id: 'sha256:e0', size: 192204806, node: 'v26.12.1', user: 'node' }, measured: {}, planned: ['it runs as node'], checks: [{ name: 'it runs as node', passed: true, said: null }] })
   put(root, '.turbo/runs/one.json', { execution: { startTime: T0 - 5000 }, tasks: [{ taskId: '@formancy/report-spec#test:coverage', execution: { startTime: T0 - 4000, endTime: T0 + 9000 }, cache: { status: 'MISS' } }] })
   return root
 }
@@ -199,12 +200,12 @@ describe('the verify and install jobs’ results', () => {
     expect(collect({ root, job: 'install', ...machine })).toMatchObject({ install: null, absent: [{ reader: 'install', file: 'test-results/install.json' }], missing: [] })
   })
 
-  // A job gates.yml gains -- a container gate, one day -- needs a reader
-  // here before it can say anything; collecting nothing for it would upload
-  // results that look like a job with nothing to report.
+  // A job gates.yml gains -- the getting-started guide's, one day -- needs a
+  // reader here before it can say anything; collecting nothing for it would
+  // upload results that look like a job with nothing to report.
   test('refuse a job it has no reader for', () => {
-    expect(() => collect({ root: workspace(), job: 'container', ...machine })).toThrow(
-      'collect.mjs reads the verify, test, browser, install and e-invoice jobs, and has no reader for container: a job the report expects results from needs one here',
+    expect(() => collect({ root: workspace(), job: 'getting-started', ...machine })).toThrow(
+      'collect.mjs reads the verify, test, browser, install, e-invoice and container jobs, and has no reader for getting-started: a job the report expects results from needs one here',
     )
   })
 })
@@ -228,6 +229,28 @@ describe('the e-invoice job’s results', () => {
     const stale = collect({ root: workspace(), local: true, since: at(45), ...machine, env: {} })
     expect(stale.eInvoice).toBeNull()
     expect(stale.missing).toContain(`stale: test-results/e-invoice.json started ${at(40)}, before --since`)
+  })
+})
+
+describe('the container job’s results', () => {
+  // The container gate writes its own record however its run ends, and the
+  // report judges the gate and the image it built from it; the job's
+  // results carry it under the job's own key. A gate that never wrote it --
+  // the runner had no Docker -- is listed, so the report says what is
+  // missing rather than that there was nothing to judge (0046).
+  test('keep the gate’s record, and list it when it left none', () => {
+    const root = workspace()
+    expect(collect({ root, job: 'container', ...machine })).toMatchObject({ key: 'container', job: 'container', suites: [], install: null, eInvoice: null, container: { passed: true, image: { node: 'v26.12.1', user: 'node' } }, absent: [], missing: [] })
+    rmSync(join(root, 'test-results/container.json'))
+    expect(collect({ root, job: 'container', ...machine })).toMatchObject({ container: null, absent: [{ reader: 'container', file: 'test-results/container.json' }], missing: [] })
+  })
+
+  // On a machine the file is whatever the gate's last run left.
+  test('are read on a machine too, and refused from before --since', () => {
+    expect(collect({ root: workspace(), local: true, since: at(-1), ...machine, env: {} }).container).toMatchObject({ passed: true })
+    const stale = collect({ root: workspace(), local: true, since: at(51), ...machine, env: {} })
+    expect(stale.container).toBeNull()
+    expect(stale.missing).toContain(`stale: test-results/container.json started ${at(50)}, before --since`)
   })
 })
 
@@ -319,7 +342,7 @@ describe('local results', () => {
   // A file of an allowed reader that is there but stale is still refused.
   test('file each file not found under the reader that expected it, and refuse a stale one however it is allowed', () => {
     const root = withStudio(workspace())
-    for (const file of ['test-results/vitest.json', 'test-results/install.json', 'apps/studio/test-results/browser-chromium.json', 'apps/studio/test-results/pictures.json']) rmSync(join(root, file))
+    for (const file of ['test-results/vitest.json', 'test-results/install.json', 'test-results/container.json', 'apps/studio/test-results/browser-chromium.json', 'apps/studio/test-results/pictures.json']) rmSync(join(root, file))
     const result = collect({ root, local: true, since: at(-1), ...machine, env: {} })
     expect(result.absent).toEqual([
       { reader: 'test', file: 'packages/report-builder-angular/test-results/vitest.json' },
@@ -328,6 +351,7 @@ describe('local results', () => {
       { reader: 'browser', file: 'apps/studio/test-results/browser-chromium.json' },
       { reader: 'browser', file: 'apps/studio/test-results/pictures.json' },
       { reader: 'install', file: 'test-results/install.json' },
+      { reader: 'container', file: 'test-results/container.json' },
     ])
     expect(result.missing).toEqual([])
     // The gate's file is there, from before --since: refused, not absent.

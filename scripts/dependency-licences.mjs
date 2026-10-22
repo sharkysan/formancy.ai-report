@@ -82,10 +82,12 @@ export const EXCEPTIONS = Object.freeze({
 })
 
 /**
- * Formancy Data's packages, admitted for the one package allowed to depend
- * on them (0006, extended 2026-10-16): `name@version` to the sha256 of the
- * `LICENSE.md` their `SEE LICENSE IN` pointer names, as the review read it,
- * and the package whose dependency they may be. Data is on this
+ * Formancy Data's packages, each admitted for the one package allowed to
+ * depend on it (0006, extended 2026-10-16 by 0016 and 2026-10-22 by 0047):
+ * `name@version` to the sha256 of the `LICENSE.md` their `SEE LICENSE IN`
+ * pointer names, as the review read it, and the package whose dependency
+ * it may be -- the provider for Data's client, the server for Data's
+ * identity verifier, and neither for the other's. Data is on this
  * repository's terms under its own name, from the same rightsholder, so a
  * customer licenses the two together; it is still a source-available
  * licence, which the policy refuses from anybody else. Not a correction of
@@ -96,6 +98,11 @@ export const EXCEPTIONS = Object.freeze({
  *   depends on ship the same `LICENSE.md`, the Formancy Data Source-Available
  *   Licence Version 1.1, in force from 11 October 2026 -- byte for byte the
  *   file at Data's tag v0.1.0, read that day.
+ * - Data 0.3.0's `data-identity`, published 2026-10-21, the host identity
+ *   verifier `@formancy/report-server` verifies tokens with (0047): its
+ *   `LICENSE.md` is the same Version 1.1, byte for byte the file 0.1.0
+ *   shipped, read on 2026-10-22. It depends on jose alone, which the policy
+ *   judges like anybody's.
  */
 export const FORMANCY_DATA = Object.freeze({
   '@formancy/data-client@0.1.0': {
@@ -107,6 +114,11 @@ export const FORMANCY_DATA = Object.freeze({
     licenceFile: 'sha256:329ae16264e73a3f429611267bfa3263c99eda5d6e2b419f223b2cc64536b8d4',
     for: '@formancy/report-data-provider',
     evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026',
+  },
+  '@formancy/data-identity@0.3.0': {
+    licenceFile: 'sha256:329ae16264e73a3f429611267bfa3263c99eda5d6e2b419f223b2cc64536b8d4',
+    for: '@formancy/report-server',
+    evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026, the same bytes as 0.1.0 shipped',
   },
 })
 

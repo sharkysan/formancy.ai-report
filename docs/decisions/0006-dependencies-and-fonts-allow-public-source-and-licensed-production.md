@@ -1,6 +1,6 @@
 # 0006 — Dependencies and fonts allow public source and licensed production
 
-- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which reads Liberation Sans 2's licence sentence, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which admits an ICC profile by the digest of its bytes and the licence sentence a review read, and by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose host fonts are outside this guard, their licence the customer's
+- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which reads Liberation Sans 2's licence sentence, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which admits an ICC profile by the digest of its bytes and the licence sentence a review read, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose host fonts are outside this guard, their licence the customer's, and by [0047](0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md), which admits Data's identity verifier for the server
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `scripts/dependency-licences.mjs`, run as a step of
@@ -300,6 +300,23 @@ as base64 inside a script, which the guard does not see, beside the fonts
 it carries so; the renderer's `browser.test.ts` holds that copy to the
 reviewed digest. A profile inside a script or an image is one more thing
 this record's costs list as unseen.
+
+**Added 2026-10-22: Data's identity verifier, admitted for the server.**
+`@formancy/report-server` stopped the guard on `@formancy/data-identity`
+0.3.0, which declares `SEE LICENSE IN LICENSE.md`
+([0047](0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
+Its `LICENSE.md` is the file 0016's review read, byte for byte, so
+`FORMANCY_DATA` admits it at that version, by that digest, for
+`@formancy/report-server` alone. Each admission names the one package that
+may depend on it: Data's client and core are the provider's, data-identity
+the server's, and neither reaches the other's. Data from any other package
+is refused as before. The walk of the server's closure was the first that
+met Fastify's: on 2026-10-22 it found 56 packages that are no
+repository's own -- 47 under MIT, 4 under BSD-3-Clause, 3 under ISC,
+report-spec's `@formancy/spec` under Apache-2.0, and data-identity -- and
+no font and no ICC profile. `dependency-licences.test.mjs`
+holds the admission, the refusals and the real tree's three admissions,
+each reached from its own package.
 
 ## Alternatives considered
 

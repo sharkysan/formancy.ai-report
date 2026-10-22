@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // No Node and no browser: the core is the rules a server and its stores
+    // share, and its client compiles against its wire types in either host.
+    // No @types/node and no DOM, so a `node:` import or a `fetch` in src is a
+    // compile error rather than a review finding.
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["src/**/*.ts"]
+}

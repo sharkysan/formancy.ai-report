@@ -5,13 +5,16 @@ reasonably misread.
 
 | Term | Meaning in Formancy Report |
 |---|---|
-| **Admission** | `FORMANCY_DATA` in `scripts/dependency-licences.mjs`: a Formancy Data package let through the licence guard at one exact version, with the licence file the review read, reached from the provider alone. Not one of the script's `EXCEPTIONS`, though it is the one exception to the policy in plain words; see below ([0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md), [0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) |
+| **Action** | Something a person may do to a tenant's reports, named in report-server-core's `ACTIONS` with the capacities that may take it. A route that takes one asks `can` with it, and none does yet; an action not in the table is nobody's ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)) |
+| **Admission** | `FORMANCY_DATA` in `scripts/dependency-licences.mjs`: a Formancy Data package let through the licence guard at one exact version, with the licence file the review read, reached from the one package it is admitted for alone -- the provider for Data's client, the server for Data's identity verifier. Not one of the script's `EXCEPTIONS`, though it is the one exception to the policy in plain words; see below ([0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md), [0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)) |
 | **Aggregate** | A total declared once in a report and printed by id: computed exactly, once, in the runtime, over a group's rows or every detail row, and read by expressions as `group.<id>` and `totals.<id>` ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
+| **Audit reference** | How the server's audit trail names who asked: the first 32 hex characters of HMAC-SHA-256 under the operator's audit key, over `tenant` or `actor` and the values as a JSON array; `null` without a key. Not a hash anybody can reverse without the key, and not evidence (0046) |
 | **Batch** | Several command descriptors as one command, `{ command: 'batch', args: [steps] }`: run one after the other, validated once at its end, one undo step, refused whole with its first refusal; a transaction written down, what a resolution of several commands travels as ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)) |
 | **Best-effort** | The consistency of data the provider read from Formancy Data 0.1.0, whose header, pages and labels come from different moments ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) |
 | **BIC** | A bank's code, as ISO 9362 writes it: eight or eleven characters, for the bank, its country, its location and perhaps a branch. An EPC QR code needs one only for an account outside the EEA, and one it holds must be of the account's country, by the codes EPC409-09 gives each territory's BICs and IBANs: 0025's inference, which neither EPC document states ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | **Binding**, of a form | Where a report's dataset is read from a formancy form's submissions, in the dataset contract: the dataset's `form`, a submission, a repeater's rows or one row per submission, and each field's `form`, a data path, a member and whether a choice prints its label or its value, and the overrides a review wrote for a version. It names no form ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)) |
 | **Builder** | `@formancy/report-builder-react` or `@formancy/report-builder-angular`: the native markup over an editor, which renders its state and dispatches what the person did ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
+| **Capacity** | Author, publisher or administrator: what the operator's settings give the host's roles, and what the actions table grants an action by. No capacity implies another (0046) |
 | **Cleaned SVG** | The bytes report-spec's `cleanSvg` writes of an SVG file: drawing elements alone, in one canonical form — ASCII, attributes in the tables' order, absolute numbers, one matrix for a transform, ids renamed — which cleaning again gives back unchanged. An SVG asset is those bytes, and the renderer draws no other ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)) |
 | **Command** | A pure function from a report and its arguments to the next report or a refusal. Every command is also a **descriptor**, its name and arguments as data, which is what a proposal or a review's resolution carries, several of them as one a batch ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)) |
 | **Corpus** | `@formancy/report-corpus`: the private package of fixtures, the PDF reader and the checks every rendered PDF is proved with ([0003](../decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)) |
@@ -60,7 +63,9 @@ reasonably misread.
 | **Slip** | A QR-bill's receipt and payment part as SIX lays them out, 210 by 105 mm across the foot of the last page ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)) |
 | **Starter** | A report the Studio's picker offers, with synthetic data built in; kept in the corpus |
 | **Studio** | `apps/studio`, the playground with both builders and the PDF, online at formancy.ai/report/ ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), [0018](../decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)) |
+| **Tenant** | Whose reports a request is about: the value of the claim `FORMANCY_REPORT_ATTRIBUTES` maps, required on every token the server accepts, never named by a request itself. A single-tenant host puts one constant in it (0046) |
 | **Upstream** | formancy.ai and Formancy Data, their repositories and their published packages ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)) |
+| **whoami** | `GET /v1/whoami`: who the server takes a token's holder to be -- subject, tenant, roles -- and the capacities and actions the table gives them, so the host's wiring shows before anything depends on it (0046) |
 | **Workbench** | formancy's stylesheet, `@formancy/themes/workbench.css`, and the builder panes it dresses; a host recolours it through its `--wb-*` variables |
 | **XMP** | The metadata a PDF carries as one XML packet. A PDF/A states its part and level there, and a Factur-X PDF its file's name, document type, version and conformance level, as four fx properties an extension schema declares; their namespace rests on a transcription of the specification [S] (0031) |
 | **XRechnung** | KoSIT's CIUS of EN 16931, which a German public buyer asks for as XML: an e-invoice of the kind `xrechnung`, version 3.0, written in CII by the writer a Factur-X invoice of the same terms is, BT-24 apart, and needing what XRechnung's schematron needs past EN 16931. Its XML is the invoice, which a host takes from the resolved document and sends; the PDF drawn of the document is a plain copy, no PDF/A, every page headed by the runtime's label ([0038](../decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)) |
@@ -68,8 +73,9 @@ reasonably misread.
 ## Words used for two things
 
 **"Gate"** is three things, and the documents say which. A *job* of
-`gates.yml` — `verify`, `test`, `browser`, `install`, `e-invoice`, `report`; the
-Studio's *browser gate*, a script that runs inside the `browser` job; and a
+`gates.yml` — `verify`, `test`, `browser`, `install`, `e-invoice`, `container`, `report`; the
+Studio's *browser gate*, a script that runs inside the `browser` job, and
+the *container gate*, `scripts/container.mjs`, inside the `container` job; and a
 *release gate*, G1 to G7, which a run's evidence passes or which stays open.
 
 **"Preview"** is the Studio's Preview, the pane that shows the PDF, and a
@@ -89,7 +95,8 @@ it, Formancy Data's packages are the one exception to the rule that no
 source-available licence is admitted; the script calls that an
 *admission*, above
 ([0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md),
-[0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+[0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md),
+[0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
 
 **"QR code"** is the `qrCode` component, which encodes whatever content the
 template writes and checks none of it, and the symbol every code prints. A

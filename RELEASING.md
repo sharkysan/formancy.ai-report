@@ -9,8 +9,10 @@ The first release, 0.1.0, was cut on 16 October 2026, and 0.2.0 on
 19 October 2026. The workflow follows
 Formancy Data's, release report included
 ([0014](docs/decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md),
-[`docs/release/`](docs/release/README.md)), without its server image, which
-arrives here with the server it describes.
+[`docs/release/`](docs/release/README.md)), without its server image: the
+container gate builds and runs the server's image on every run, and no
+release publishes it yet
+([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)).
 
 ## Cutting one
 
@@ -131,9 +133,15 @@ anything that cannot be taken back:
 `--access public` is about the registry's visibility of a scoped package;
 `LICENSE.md` is what says what may be done with it.
 
-There is no container image yet, because there is no server. When the report
-server lands, its image is built, signed by digest and attested here, as
-Formancy Data's is.
+No container image is published yet. The report server's image is built
+from each checkout and run by the gates' `container` job
+(`scripts/container.mjs`), and what the release report says of it is the
+gate's image, never a published one. The record that publishes it decides
+the registry, the tags, the signature by digest and the attestation here,
+as Formancy Data's are
+([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)).
+The server's packages are published with the next release like every
+package not marked private.
 
 ## The release report
 

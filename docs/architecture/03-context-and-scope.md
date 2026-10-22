@@ -11,7 +11,8 @@
    integrator ───────────▶│  runtime · renderer             │              (and a bank,
    (npm packages)         │  editor model · two builders    │               for a payment
                           │  Data provider · form bridge    │               code)
-                          └───────┬─────────────────┬───────┘
+   the host's backend ───▶│  server: whoami, by its token   │
+   or a page, a token     └───────┬─────────────────┬───────┘
                                   ▲                 │ optional
                                   │                 ▼
                     the host's data and      Formancy Data 0.1.0
@@ -23,7 +24,9 @@
 |---|---|
 | **Report author** | Edits a report in a builder the host mounts. Receives a refused edit's reason and every diagnostic where the thing it is about stands ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)). Adds an image file in either builder, where the host keeps images: its bytes go to the host's store before the report declares it, and why one is refused is said in the live region ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)) |
 | **Integrator** | Opens the session and the editor, and disposes what it made; gives the editor a store where a person may add images, keyed by digest. Hands the runtime the data, the parameters and an image lookup it has already authorised, and, where it knows it, where the data came from, as identifiers ([0041](../decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)). Receives a document, its manifest and a preview's warnings, then a PDF; or every reason there is none ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
-| **Formancy Data** | Answers 0.1.0's runtime routes through `@formancy/data-client`, its policy deciding every answer for the person whose token the client carries ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) |
+| **Formancy Data** | Answers 0.1.0's runtime routes through `@formancy/data-client`, its policy deciding every answer for the person whose token the client carries ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). Its identity verifier, `@formancy/data-identity` 0.3.0, is the code the server verifies a host's token with, under Data's rules; nothing asks Data's server anything ([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)) |
+| **The host's identity provider and backend** | Signs a short-lived JWT for a person, naming the person's tenant in the claim the operator maps; the server verifies it offline, under a pinned algorithm, against a key the operator gives it, and fetches no key ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)) |
+| **The operator of the server** | Builds the image from the repository and runs it with its settings, the identity key named by reference; reads its log, where the audit trail is, and SIGHUPs it to read a key set again (0046) |
 | **formancy's forms** | A host's form versions and their submissions, as formancy's server stored them, which the host hands the form bridge as documents; nothing here asks formancy's server anything ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)) |
 | **formancy.ai's packages** | `@formancy/spec`'s hash, validator and labels, and the data paths a test holds the form bridge's scopes to, and `@formancy/expressions`' language and exact decimals, dependencies at exact versions ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)). `@formancy/themes`' workbench stylesheet dresses a builder, and no published package declares it: a host installs it beside the builder, at the release the getting-started guide's install line names, and the Studio pins its own ([0017](../decisions/0017-the-sbom-describes-what-a-consumer-installs.md)) |
 | **The reader of a PDF** | Receives bytes the host chose to give them. Nothing here touches them after the renderer returns |
@@ -47,6 +50,7 @@
 | Provider → Formancy Data | HTTP through a client the host made, with the host's token: the header's record, the detail rows a page at a time, each lookup's labels | Labelled `best-effort` ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) |
 | Host → form bridge | `readSubmission(report, { form, formHash?, submission: { id, data } })` or `readSubmissions(report, { forms, submissions, complete })`: the version documents and the submissions as formancy stored them; and, for a choice whose options a deployment resolves, `labels` | The data the runtime takes, labelled `host-captured`, naming each submission and its version's hash; nothing fetched ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)) |
 | Host → report generator | `generateReport(form, { id, locale, detail? })`: a form version the person starts a report from, the report's id and locale, and the repeater its table reads or one row per submission | A first draft bound to that version's submissions and naming it, with notes of what it left out and assumed; nothing fetched, and nothing kept beside the report ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)) |
+| Host → server | HTTP: `GET /health`, and `GET /v1/whoami` with `Authorization: Bearer <token>`, from the host's backend or, across an origin the operator lists, its page | `WhoAmI` -- subject, tenant, roles, capacities, actions -- or a refusal, a code and a sentence that quotes nothing; every bad token the one 401; nothing else answered ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)) |
 
 ## What is deliberately outside the boundary
 
@@ -55,16 +59,22 @@
   ([`CLAUDE.md`](../../CLAUDE.md)). The provider is exactly as authorised as
   the token it is given, and no more
   ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+  The server verifies the host's token and reads the tenant from it, and
+  manages no identity of its own: no session, password or key (0046).
 - **Fetching.** No package reaches the network but the provider, and it
   only through the Data client the host made, to the server and with the
-  token the host chose. A report names its datasets and assets, and the
+  token the host chose. The report server answers requests and sends
+  none: it fetches no key set and no key a token names
+  ([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)). A report names its datasets and assets, and the
   host resolves the names; an asset is referenced by approved id and
   digest, never by address
   ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md),
   [formancy.ai 0077](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0077-options-may-come-from-a-named-source.md)).
-- **Storage, jobs and publication.** There is no report server
-  ([`gates.json`](../release/gates.json), G5). A draft's optimistic
-  concurrency is groundwork in the session, a hash an edit may carry
+- **Storage, jobs and publication.** The server stores nothing yet: it
+  answers who is asking and nothing else
+  ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md); [`gates.json`](../release/gates.json),
+  G5). A draft's optimistic concurrency is groundwork in the session, a
+  hash an edit may carry
   ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)),
   and nothing stores a draft. An image a person adds is kept by the
   host's store, never by a package: the editor hands it over and keeps no

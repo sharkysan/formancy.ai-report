@@ -893,6 +893,11 @@ The first release that freezes the format makes it `'1'`.
   it starts a report from a form version, a first draft bound to that
   version's submissions, with notes of what it left out and assumed
   ([Start a report from a form](../packages/report-forms/README.md#start-a-report-from-a-form)).
+- **A server that knows who is asking**: `@formancy/report-server`
+  verifies your application's token, takes the person's tenant from a
+  claim every token carries, and says what their roles allow; it stores
+  nothing yet, and running it in production needs a Formancy Data licence
+  too ([its README](../packages/report-server/README.md#settings)).
 - **The package READMEs**, for everything this guide leaves out: the
   commands that edit a report as data, the expressions, groups and formats,
   the builders' keyboard and what each one renders.

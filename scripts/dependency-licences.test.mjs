@@ -338,6 +338,30 @@ describe('Formancy Data', () => {
     expect(problems([data('0.1.0', { via: ['@formancy/report-x', '@formancy/report-data-provider'] })], {}, admitted, {})).toEqual([])
   })
 
+  // 0047: Data's identity verifier is admitted for the server, as the
+  // client is for the provider, each for its own package alone. The server
+  // reaching Data's client, the provider reaching the verifier, or any other
+  // package reaching either is refused; the server reached through a
+  // package that depends on it is the server's dependency, and allowed.
+  test('admits Data’s identity verifier for the server alone, beside the client for the provider alone', () => {
+    const both = {
+      ...admitted,
+      '@formancy/data-identity@0.3.0': { licenceFile: READ, for: '@formancy/report-server', evidence: 'LICENSE.md' },
+    }
+    const identity = (via) => entry('@formancy/data-identity', '0.3.0', 'SEE LICENSE IN LICENSE.md', { via, licenceFile: READ })
+    expect(problems([data('0.1.0'), identity(['@formancy/report-server'])], {}, both, {})).toEqual([])
+    expect(problems([data('0.1.0'), identity(['@formancy/report-x', '@formancy/report-server'])], {}, both, {})).toEqual([])
+    expect(problems([data('0.1.0'), identity(['@formancy/report-data-provider'])], {}, both, {})).toEqual([
+      '@formancy/data-identity@0.3.0 is admitted for @formancy/report-server alone, and @formancy/report-data-provider depends on it (@formancy/report-data-provider > @formancy/data-identity)',
+    ])
+    expect(problems([data('0.1.0'), identity(['@formancy/report-x'])], {}, both, {})).toEqual([
+      '@formancy/data-identity@0.3.0 is admitted for @formancy/report-server alone, and @formancy/report-x depends on it (@formancy/report-x > @formancy/data-identity)',
+    ])
+    expect(problems([data('0.1.0', { via: ['@formancy/report-server'] }), identity(['@formancy/report-server'])], {}, both, {})).toEqual([
+      '@formancy/data-client@0.1.0 is admitted for @formancy/report-data-provider alone, and @formancy/report-server depends on it (@formancy/report-server > @formancy/data-client)',
+    ])
+  })
+
   // An admission is a reading of one licence file at one version: held to
   // the pointer this repository's own packages use, so a Data package that
   // declared MIT or GPL is judged by its field and not waved through.
@@ -683,12 +707,24 @@ describe('ICC profiles', () => {
   })
 })
 
-describe('this workspace', () => {
+/**
+ * The real tree's walk, once for the tests below that read it: each walk
+ * took about 2 s alone, and past the 5 s a test is given while the rest of
+ * pnpm test:repo ran beside it, on one Windows workstation on 2026-10-22,
+ * once the server's Fastify closure joined it. Nothing below changes what
+ * it returns.
+ */
+let walked
+const realTree = () => (walked ??= workspaceClosure())
+
+// The walks and the command's own run are the real tree's; 30 s is six
+// times the slowest measured under load, and a bound, not a speed.
+describe('this workspace', { timeout: 30_000 }, () => {
   // The real tree, so the guard is a gate and not an example. A walk that
   // found no publishable package has lost a directory and would pass by
   // checking nothing; report-spec is the one there is today.
   test('passes, and found @formancy/report-spec', () => {
-    const { published, entries } = workspaceClosure()
+    const { published, entries } = realTree()
     expect(published).toContain('@formancy/report-spec')
     expect(problems(entries)).toEqual([])
   })
@@ -697,7 +733,7 @@ describe('this workspace', () => {
   // QR-bill's slip: read from the very files it publishes, at the version
   // their name tables give.
   test("reads report-render-pdf's own Liberation Sans 2.1.5 as OFL-1.1", () => {
-    const renderer = workspaceClosure().entries.find((item) => item.name === '@formancy/report-render-pdf')
+    const renderer = realTree().entries.find((item) => item.name === '@formancy/report-render-pdf')
     expect(renderer.fonts.map(({ path, licence, version }) => ({ path, licence, version }))).toEqual([
       { path: 'fonts/LiberationSans-Bold.ttf', licence: 'OFL-1.1', version: 'Version 2.1.5' },
       { path: 'fonts/LiberationSans-Regular.ttf', licence: 'OFL-1.1', version: 'Version 2.1.5' },
@@ -705,15 +741,24 @@ describe('this workspace', () => {
   })
 
   // The admissions are read against what pnpm installed: each Data package
-  // the provider needs, at the version it pins, with the licence file the
-  // review read -- and nothing but the provider reaching it.
-  test('admits Formancy Data 0.1.0 for the provider, and reaches it from nothing else', () => {
-    const { entries } = workspaceClosure()
-    const data = entries.filter((item) => !item.missing && Object.hasOwn(FORMANCY_DATA, `${item.name}@${item.version}`))
-    expect(data.map((item) => `${item.name}@${item.version}`).sort()).toEqual(Object.keys(FORMANCY_DATA).sort())
+  // the provider and the server need, at the version each pins, with the
+  // licence file the review read -- Data 0.1.0's client for the provider
+  // (0016), Data 0.3.0's identity verifier for the server (0047) -- and each
+  // reached from its own package and no other. Every Data package the walk
+  // meets is one of these: a third would be refused, or admitted unread.
+  test('admits Data 0.1.0 for the provider and Data 0.3.0’s verifier for the server, each reached from its own package alone', () => {
+    const { entries } = realTree()
+    expect(Object.fromEntries(Object.entries(FORMANCY_DATA).map(([id, admission]) => [id, admission.for]))).toEqual({
+      '@formancy/data-client@0.1.0': '@formancy/report-data-provider',
+      '@formancy/data-core@0.1.0': '@formancy/report-data-provider',
+      '@formancy/data-identity@0.3.0': '@formancy/report-server',
+    })
+    const data = entries.filter((item) => !item.missing && /^@formancy\/data-/.test(item.name))
+    expect([...new Set(data.map((item) => `${item.name}@${item.version}`))].sort()).toEqual(Object.keys(FORMANCY_DATA).sort())
     for (const item of data) {
-      expect(item.licenceFile).toBe(FORMANCY_DATA[`${item.name}@${item.version}`].licenceFile)
-      expect(item.via[0]).toBe('@formancy/report-data-provider')
+      const admission = FORMANCY_DATA[`${item.name}@${item.version}`]
+      expect(item.licenceFile).toBe(admission.licenceFile)
+      expect(item.via[0]).toBe(admission.for)
     }
   })
 
@@ -723,7 +768,7 @@ describe('this workspace', () => {
   // the review list with the ICC's licence. pdfjs-dist's profile is the
   // corpus's and the Studio's, never a published package's.
   test("reads PDFKit's ICC profile as the one in the production tree, the reviewed sRGB2014", () => {
-    const { entries } = workspaceClosure()
+    const { entries } = realTree()
     const profiles = entries.flatMap((item) => (item.profiles ?? []).map((each) => [`${item.name}@${item.version}/${each.path}`, each.digest]))
     const srgb2014 = 'sha256:384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a'
     expect([...new Map(profiles).entries()]).toEqual([['pdfkit@0.19.1/js/data/sRGB_IEC61966_2_1.icc', srgb2014]])
@@ -737,7 +782,7 @@ describe('this workspace', () => {
   // review list emptied refuses PDFKit's profile, and pdfjs-dist's
   // profile, which no review read, is refused as any would be.
   test("refuses PDFKit's profile without its review, and pdfjs-dist's, which nobody reviewed", () => {
-    const { entries } = workspaceClosure()
+    const { entries } = realTree()
     const unreviewed = problems(entries, EXCEPTIONS, FORMANCY_DATA, {}).filter((problem) => problem.includes('ICC profile'))
     expect(unreviewed).toHaveLength(1)
     expect(unreviewed[0].startsWith('pdfkit@0.19.1/js/data/sRGB_IEC61966_2_1.icc is an ICC profile nobody has reviewed (sha256:384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a); ')).toBe(true)
@@ -783,7 +828,7 @@ describe('this workspace', () => {
   // A package built by neither is refused, so a third bundler cannot arrive
   // unread.
   test("every publishable package's build inlines nothing from node_modules", async () => {
-    const { published } = workspaceClosure()
+    const { published } = realTree()
     const packages = readdirSync(join(repo, 'packages')).map((name) => join(repo, 'packages', name))
     const directories = packages.filter((dir) => published.includes(JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).name))
     expect(directories.length).toBeGreaterThan(0)

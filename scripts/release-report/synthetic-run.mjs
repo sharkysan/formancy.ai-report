@@ -13,7 +13,7 @@ const T0 = Date.parse('2026-10-16T10:00:00Z')
 export const DIST = 'sha256:aaaa111122223333444455556666777788889999aaaabbbbccccddddeeeeffff'
 
 const runner = { node: 'v22.20.0', platform: 'linux', arch: 'x64', image: 'ubuntu24', imageVersion: '20261012.1' }
-const base = (key, job) => ({ schema: 1, job, key, runner, commit: 'c0ffee', run: { id: '42', attempt: '1' }, collectedAt: new Date(T0 + 3_600_000).toISOString(), suites: [], browserGates: [], pictures: [], install: null, eInvoice: null, dist: [], tarballs: [], absent: [], missing: [] })
+const base = (key, job) => ({ schema: 1, job, key, runner, commit: 'c0ffee', run: { id: '42', attempt: '1' }, collectedAt: new Date(T0 + 3_600_000).toISOString(), suites: [], browserGates: [], pictures: [], install: null, eInvoice: null, container: null, dist: [], tarballs: [], absent: [], missing: [] })
 
 /** The Chromium Playwright pins, and the one the gate launched. */
 export const CHROMIUM = '156.0.8078.4'
@@ -55,6 +55,27 @@ const browserJob = () => ({
   ],
   // turbo builds every package the Studio imports before the gate.
   dist: dist(),
+})
+
+/** The container gate's checks, as scripts/container.mjs plans them, three of them; and the base its Dockerfile builds on. */
+const CONTAINER_CHECKS = ['unconfigured, it stops and names every setting it needs', 'it runs as node', 'SIGTERM stops it, exit 0']
+const CONTAINER_BASE = 'node:26.12.1-alpine3.24@sha256:40cd'
+
+/** The container gate's record, as scripts/container.mjs writes it: every check made and passed, on an image running the Dockerfile's Node as node. */
+const containerJob = () => ({
+  ...base('container', 'container'),
+  container: {
+    gate: 'container',
+    startedAt: new Date(T0 + 500_000).toISOString(),
+    finishedAt: new Date(T0 + 560_000).toISOString(),
+    passed: true,
+    error: null,
+    docker: '28.0.4 linux/amd64',
+    image: { tag: 'formancy/report-server:gate', id: 'sha256:e00a', size: 192_204_806, node: 'v26.12.1', user: 'node' },
+    measured: { buildMs: 42_000, healthyMs: 776, stopMs: 815 },
+    planned: [...CONTAINER_CHECKS],
+    checks: CONTAINER_CHECKS.map((name) => ({ name, passed: true, said: null })),
+  },
 })
 
 /** The e-invoice gate's tools, as docs/release/e-invoice-tools.json pins them: each JAR with the oldest Java it runs on, the configuration with none. */
@@ -195,7 +216,7 @@ export function greenRun() {
     dist: dist(),
   }
   return {
-    results: [verify, spec, pdf, react, corpus, browserJob(), install, eInvoiceJob()],
+    results: [verify, spec, pdf, react, corpus, browserJob(), install, eInvoiceJob(), containerJob()],
     facts: {
       runtime: [{ package: '@formancy/report-render-pdf', name: 'pdfmake', range: '0.3.11', loaded: '0.3.11' }],
       peers: [
@@ -233,6 +254,9 @@ export function greenRun() {
     browsers: ['chromium'],
     // What docs/release/e-invoice-tools.json pins: the tools the e-invoice gate must have run.
     eInvoiceTools: { tools: E_INVOICE_TOOLS.map((tool) => ({ ...tool })), runtime: { name: 'Eclipse Temurin', distribution: 'temurin', java: 17 }, veraPdfFloor: { version: '1.30.2', advisories: ['GHSA-3jh7-wm29-q568', 'GHSA-36mm-w85j-3q2j'], why: 'two XML external entity flaws' } },
+    // What scripts/container.mjs plans, and the base packages/report-server/Dockerfile builds on.
+    containerChecks: [...CONTAINER_CHECKS],
+    containerBase: CONTAINER_BASE,
     // What scripts/pictures/scenes.json gives the Studio: the scenes its check must walk.
     scenes: { 'apps/studio': ['studio-react', 'studio-angular'] },
     register: {
@@ -260,7 +284,7 @@ export function greenRun() {
 }
 
 /** The gates workflow's jobs that leave results, as greenCiRun() runs them. */
-const JOBS = ['verify', 'test', 'browser', 'install', 'e-invoice']
+const JOBS = ['verify', 'test', 'browser', 'install', 'e-invoice', 'container']
 /** The register's gates, in its order. */
 const GATE_IDS = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'legal']
 /** A committed document, as a gate's stated evidence would be. */

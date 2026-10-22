@@ -40,10 +40,12 @@ than it looks like it should ([0001](../decisions/0001-a-paid-module-in-its-own-
 - No source-available or non-commercial licence from anybody else, because
   Report's licence cannot grant production rights to somebody else's code.
   Formancy Data's packages are the one exception to that rule, from the
-  same rightsholder on the same terms, for the provider alone; the guard
-  calls it an admission, because its own exceptions are something else
+  same rightsholder on the same terms, each for one package alone: Data's
+  client for the provider, Data's identity verifier for the server; the
+  guard calls it an admission, because its own exceptions are something else
   ([glossary](12-glossary.md#words-used-for-two-things),
-  [0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+  [0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md),
+  [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
 - A commercial component needs written redistribution rights, and the
   guard admits none without a change to 0006. That is one reason Prince was
   not trialled ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).

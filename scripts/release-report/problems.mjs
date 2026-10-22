@@ -1,12 +1,12 @@
 // What fails the report (0014; formancy.ai-data 0035), for what it shows of
 // results, the browser gate and the pictures' check, the install gate, the
-// e-invoice gate, build
+// e-invoice gate, the container gate, build
 // identity, the release gates and the limitations: one sentence each, written
 // into the report's `problems` and making the job exit 1. Both files are
 // still written, so a red run says why.
 //
 // Pure over a built report. `allowMissing` names what a local, partial
-// report may lack (verify, browser, install, e-invoice), each a reader of collect.mjs:
+// report may lack (verify, browser, install, e-invoice, container), each a reader of collect.mjs:
 // a file that reader did not find, what rests on its job and, for browser,
 // a gate or a pictures' check that left nothing are not problems. A file it
 // found and refused still is. CI allows none.
@@ -160,6 +160,33 @@ function floorProblems(gate, register) {
     if (bundled.length === 0) problems.push(`the e-invoice gate recorded no veraPDF that Mustang bundles, so the floor of ${floor} is not held for it`)
     for (const version of bundled.filter((each) => !atLeast(each, floor))) problems.push(`the e-invoice gate ran a Mustang that bundles veraPDF ${String(version)}, below the floor of ${floor} docs/release/e-invoice-tools.json gives`)
   }
+  return problems
+}
+
+/**
+ * The container gate passed; made every check `checks` names
+ * (scripts/container.mjs's CHECKS, which the report reads itself) and no
+ * other, each passed; and its image, asked itself, runs the Node of `base`,
+ * the image packages/report-server/Dockerfile names, as `node` (0046).
+ * Which base it was built on is the Dockerfile's digest, which Docker
+ * verifies and dockerfile.test.ts pins; a record repeating it would be
+ * compared with itself.
+ */
+function containerProblems(report, { checks, base }, allowMissing) {
+  const gate = report.results.container
+  if (gate === null) return allowMissing.includes('container') ? [] : ['the container gate left no results']
+  const problems = []
+  if (!gate.passed) problems.push(`the container gate did not pass: ${gate.error ?? 'no error was recorded'}`)
+  const failed = gate.checks.filter((check) => !check.passed)
+  if (failed.length > 0) problems.push(`the container gate failed ${String(failed.length)} check(s): ${list(failed.map((check) => `${check.name}: ${String(check.said)}`))}`)
+  const made = new Set(gate.checks.map((check) => check.name))
+  for (const name of checks) if (!made.has(name)) problems.push(`the container gate did not make ${name}, which scripts/container.mjs plans`)
+  for (const name of made) if (!checks.includes(name)) problems.push(`the container gate made ${name}, which scripts/container.mjs does not plan: another checkout’s gate`)
+  if (gate.image === null) return [...problems, 'the container gate recorded no image']
+  const node = /^node:(\d+\.\d+\.\d+)-/.exec(String(base))?.[1]
+  if (node === undefined) problems.push(`packages/report-server/Dockerfile names no node:<version> base the report can read, so the Node the container gate’s image runs is held to nothing`)
+  else if (gate.image.node !== `v${node}`) problems.push(`the container gate’s image runs Node ${String(gate.image.node)}, where packages/report-server/Dockerfile builds on Node ${node}`)
+  if (gate.image.user !== 'node') problems.push(`the container gate’s image runs as ${String(gate.image.user)}, where packages/report-server/Dockerfile runs it as node`)
   return problems
 }
 
@@ -334,10 +361,11 @@ export function releaseGateProblems(gates, allowMissing = []) {
  * refused, the suites, the browser gate of each of `browserApps` in each of
  * `browsers` and the pictures' check of each of `pictureApps`, the install
  * gate and its hosts against `installPlan`, the e-invoice gate against the
- * tools `eInvoiceTools` pins and, where `ci`, the Java it names, build
+ * tools `eInvoiceTools` pins and, where `ci`, the Java it names, the
+ * container gate against the checks and the base `container` names, build
  * identity and the limitations.
  */
-export function contentProblems(report, { published, installPlan, eInvoiceTools = { tools: [] }, browserApps = [], pictureApps = [], browsers = [], allowMissing = [], ci = false }) {
+export function contentProblems(report, { published, installPlan, eInvoiceTools = { tools: [] }, container = { checks: [], base: null }, browserApps = [], pictureApps = [], browsers = [], allowMissing = [], ci = false }) {
   return [
     // A file its reader expected and did not find; on a machine, not a
     // problem for a reader the report allows missing, as its banner says.
@@ -353,6 +381,7 @@ export function contentProblems(report, { published, installPlan, eInvoiceTools 
     ...picturesProblems(report, { pictureApps, browsers, allowMissing }),
     ...installProblems(report, published, allowMissing, installPlan),
     ...eInvoiceProblems(report, eInvoiceTools, allowMissing, ci),
+    ...containerProblems(report, container, allowMissing),
     ...identityProblems(report),
     ...limitationProblems(report),
   ]

@@ -82,6 +82,14 @@ component_management:
       name: packages/report-runtime
       paths:
         - packages/report-runtime/**
+    - component_id: report-server
+      name: packages/report-server
+      paths:
+        - packages/report-server/**
+    - component_id: report-server-core
+      name: packages/report-server-core
+      paths:
+        - packages/report-server-core/**
     - component_id: report-spec
       name: packages/report-spec
       paths:

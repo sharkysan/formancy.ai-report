@@ -1,8 +1,10 @@
 # 7. Deployment view
 
-Formancy Report has no server, so nothing here is deployed as a service.
 What ships is packages a host installs; what is served is the Studio and the
-product's pages, as static files.
+product's pages, as static files. The server is a package and an image an
+operator builds from the repository and runs; no release publishes the
+image yet ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)), so nothing of Report is deployed as
+a service by this repository.
 
 ## What is published, and where
 
@@ -13,9 +15,56 @@ product's pages, as static files.
 | The release report, Markdown and JSON, signed | The GitHub release; on every pull request, the CI run's artefact and summary | The gates' `report` job ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)) |
 | The Studio and the product's pages | https://formancy.ai/report/, from `main` | Cloudflare Workers Builds, on every push to `main` ([0018](../decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md), [0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)) |
 
-There is no container image, because there is no server;
-[`RELEASING.md`](../../RELEASING.md) says one arrives with the server it
-describes.
+No container image is published. The container gate builds the server's
+image from each checkout and runs it, and what the release report says of
+that image is labelled the gate's; publishing it, signed by its digest, is
+a later record's, as [`RELEASING.md`](../../RELEASING.md) says.
+
+## The server's image
+
+```
+packages/report-server/Dockerfile, built from the repository root
+   │
+   ├─ build    node:26.12.1-alpine3.24@sha256:40cd011b…, pnpm 12.4.2 by npm;
+   │           the lockfile installed for report-server and what it declares,
+   │           no install script run; built, LICENSE.md and NOTICE copied in;
+   │           `pnpm deploy --prod` into /app
+   ▼
+   runtime  the same base, by digest; /app root's, read-only to node;
+            /var/lib/formancy-report made and given to node, for the store a
+            later release writes; USER node; PORT 4392; HEALTHCHECK GET
+            /health, at Data's image's intervals; node dist/main.mjs
+```
+
+An operator runs it with its settings -- the issuer, the audience, the
+identity key by reference, `FORMANCY_REPORT_ATTRIBUTES` with the tenant's
+claim, the roles that hold each capacity, and the rate limit, proxies,
+origins and audit key where the defaults do not fit -- as the package's
+README lists them, and secrets as files or variables a reference names,
+never as a setting's value
+([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)). Unconfigured, it prints one line for each
+setting it needs and exits 1, and a key or secret it cannot open -- a
+reference to a variable that is unset -- stops it the same way, with one
+sentence; SIGHUP reads a key set file again, and SIGTERM stops it after
+the requests in flight, with exit 0. It runs with `docker run --read-only`
+too, the store's directory then a volume the operator mounts; the
+container gate runs each of these.
+
+What it does not do, and what the operator therefore owns:
+- **One instance.** Nothing here shares a rate limit or, once it arrives, a
+  store between two instances; one instance behind the host's proxy is the
+  deployment.
+- **TLS and the address.** It listens on plain HTTP on every interface of
+  its container; TLS, the public name and the proxy that forwards to it are
+  the operator's, and that proxy is named in `FORMANCY_REPORT_TRUSTED_PROXIES`
+  for the rate limit and the log to see a client's address.
+- **The log.** The audit trail is in it, one line per answered request; a
+  durable trail is a collector the operator runs, or a sink an embedder
+  writes.
+- **The base layer.** Alpine's packages, BusyBox under GPL-2.0 among them,
+  come with the base image and are not read by the dependency licence
+  guard; how a published image reads them is the publishing record's
+  question (SV-Q13 of the plan).
 
 ## How a release reaches npm
 
@@ -25,7 +74,7 @@ a v* tag pushed
    ├─ tag          decides once whether this run publishes; refuses a tag the
    │               manifests' version disagrees with
    ├─ npm-token    the token is set and accepted, checked beside the gates
-   ├─ gates        verify · test · browser · install · e-invoice ──▶ report, which
+   ├─ gates        verify · test · browser · install · e-invoice · container ──▶ report, which
    │               fails the run on anything it cannot show
    ▼
 check              read-only, no secret: the report is this run's, green and whole;
@@ -215,6 +264,14 @@ deploy happened or what the address serves.
 - **For the provider:** a Formancy Data 0.1.0 server and a data client
   carrying the person's token
   ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+- **For the server:** the image built from the repository, or the
+  package embedded through `createReportServer` under Node 22.13 or later,
+  as the install gate's `server` host makes it; `node dist/main.mjs` is the
+  image's command and has run only on the image's Node 26; a host identity
+  provider whose
+  tokens carry a tenant claim; and, to run it in production, a production
+  licence for Formancy Data as well, whose verifier it depends on
+  ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
 - **For the form bridge:** the document of every form version whose
   submissions it prints, kept beside them, since formancy 0.7.0's server
   serves its current version's schema alone; and, for a choice whose

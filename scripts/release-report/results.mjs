@@ -62,6 +62,21 @@ export const installOf = (results) => results.map((result) => result.install).fi
 /** The e-invoice gate's record in the run: the first results file that holds one, or null. */
 export const eInvoiceOf = (results) => results.map((result) => result.eInvoice).find((entry) => entry != null) ?? null
 
+/** The container gate's record in the run: the first results file that holds one, or null. */
+export const containerOf = (results) => results.map((result) => result.container).find((entry) => entry != null) ?? null
+
+/** The container gate as the report shows it (0046): whether it passed, the image it built -- the gate's, never a published one -- and each check it made. */
+function containerRow(gate) {
+  return {
+    passed: gate.passed === true,
+    error: gate.error ?? null,
+    docker: gate.docker ?? null,
+    image: gate.image ?? null,
+    measured: gate.measured ?? {},
+    checks: (gate.checks ?? []).map((check) => ({ name: String(check.name), passed: check.passed === true, said: check.said ?? null })),
+  }
+}
+
 /**
  * The e-invoice gate as the report shows and judges it: the Java and the
  * tools it ran, and each file of its corpus, a sample, a variant or a
@@ -179,7 +194,7 @@ export const unwalked = (row) => row.planned.filter((id) => !row.walked.includes
 /**
  * Every package's row, the repository's guards, the browser gates, the
  * pictures' checks -- each held to `scenes`, scenes.json's scene ids by app
- * path -- the install gate, the e-invoice gate, what collect did not find (`absent`, by the
+ * path -- the install gate, the e-invoice gate, the container gate, what collect did not find (`absent`, by the
  * reader that expected it) or found and refused (`missing`), and build
  * identity.
  */
@@ -187,6 +202,7 @@ export function resultsInRun({ results, covered, published, scenes = {} }) {
   const suites = suitesOf(results)
   const install = installOf(results)
   const eInvoice = eInvoiceOf(results)
+  const container = containerOf(results)
   return {
     packages: covered.map((entry) => suiteRow(suites.filter((suite) => suite.package === entry.name), { ...entry, published: published.includes(entry.name) })),
     repository: suiteRow(suites.filter((suite) => suite.package === null), { name: null, path: '.', published: false }),
@@ -197,6 +213,7 @@ export function resultsInRun({ results, covered, published, scenes = {} }) {
         ? null
         : { passed: install.passed === true, error: install.error ?? null, node: install.node, npm: install.npm, resolved: install.resolved ?? [], tarballs: install.tarballs ?? [], hosts: (install.consumers ?? []).map(hostOf) },
     eInvoice: eInvoice === null ? null : eInvoiceRow(eInvoice),
+    container: container === null ? null : containerRow(container),
     absent: results.flatMap((result) => (result.absent ?? []).map(({ reader, file }) => ({ job: result.key, reader, file }))),
     missing: results.flatMap((result) => (result.missing ?? []).map((what) => ({ job: result.key, what }))),
     buildIdentity: published.map((name) => {

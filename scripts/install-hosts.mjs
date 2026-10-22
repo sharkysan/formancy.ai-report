@@ -1,6 +1,10 @@
 /**
  * What the install gate installs, and where.
  *
+ * The server has a Node host of its own, holding it and what it declares
+ * and nothing else, beside the Node program's, which holds every other
+ * package that is no builder (0046).
+ *
  * Each kind of host gets a project of its own, holding what that host would
  * hold and nothing else, because one shared project lets a package resolve
  * what its own host would not have. A React host has React and React's
@@ -60,7 +64,7 @@ const REACT_TYPES = { '@types/react': ['react', typesOf], '@types/react-dom': ['
 
 /**
  * The hosts, in the order the gate reports them. `node` takes every
- * package that is no host's builder. Each builder's host lists the peers
+ * package that is no host's builder and no host `serves`. Each builder's host lists the peers
  * its builder must declare, what follows them, and what it runs, in order;
  * `with` names packages it installs beside the builder, each with what it
  * declares. A command whose program is not `node` is a binary installed in
@@ -90,6 +94,28 @@ export const HOSTS = {
       { name: 'type-check', command: ['tsc', '-p', 'tsconfig.consume.json'] },
       { name: 'run', command: ['tsx', '--tsconfig', 'tsconfig.consume.json', 'consume.ts'] },
       { name: 'guide: run', command: ['tsx', '--tsconfig', 'tsconfig.consume.json', 'guide-node.ts'] },
+    ],
+  },
+  // A host that runs Report's server in its own process (0046): Node's
+  // types, the server and what it declares, and nothing else, so a server
+  // that imported a package it never declared -- the runtime, the renderer
+  // -- fails here, where the Node host, which installs them all, would pass
+  // it. `serves` is the package it is apart for, as a builder's host is for
+  // its builder.
+  server: {
+    serves: '@formancy/report-server',
+    consumer: 'server.ts',
+    tools: { '@types/node': '^22.10.0', typescript: TYPESCRIPT, tsx: TSX },
+    tsconfig: {
+      file: 'tsconfig.server.json',
+      content: {
+        compilerOptions: { ...STRICT, target: 'ES2023', module: 'NodeNext', moduleResolution: 'nodenext', lib: ['ES2023'], types: ['node'], noEmit: true },
+        include: ['server.ts'],
+      },
+    },
+    steps: [
+      { name: 'type-check', command: ['tsc', '-p', 'tsconfig.server.json'] },
+      { name: 'run', command: ['tsx', '--tsconfig', 'tsconfig.server.json', 'server.ts'] },
     ],
   },
   react: {
@@ -225,18 +251,24 @@ function frameworkOf(host, manifest, at) {
 
 /**
  * The projects to install, from the packed manifests (`name` to manifest):
- * the Node host with every package that is no builder, and each builder's
- * host at the newest release its peers admit and at their floor.
+ * the Node host with every package that is no host's own, the server's
+ * host with the server and what it declares, and each builder's host at
+ * the newest release its peers admit and at their floor.
  */
 export function planProjects(manifests) {
   const builders = new Set(Object.values(HOSTS).flatMap((host) => (host.builder === undefined ? [] : [host.builder])))
+  const served = new Set(Object.values(HOSTS).flatMap((host) => (host.serves === undefined ? [] : [host.serves])))
   const orphans = [...manifests].filter(([name, manifest]) => !builders.has(name) && Object.keys(manifest.peerDependencies ?? {}).length > 0).map(([name]) => name)
   if (orphans.length > 0) throw new Error(`no host installs ${orphans.join(', ')}, which declares peers; give it one in install-hosts.mjs`)
 
   return Object.entries(HOSTS).flatMap(([kind, host]) => {
-    const common = { host: kind, consumer: host.consumer, guide: host.guide ?? null, tools: host.tools, tsconfig: host.tsconfig, steps: host.steps }
+    const common = { host: kind, builder: host.builder ?? null, consumer: host.consumer, guide: host.guide ?? null, tools: host.tools, tsconfig: host.tsconfig, steps: host.steps }
+    if (host.serves !== undefined) {
+      if (!manifests.has(host.serves)) throw new Error(`${host.serves} was not packed, so the ${kind} host has nothing to check`)
+      return [{ name: kind, at: null, packages: closureOf(host.serves, manifests), framework: {}, ...common }]
+    }
     if (host.builder === undefined) {
-      return [{ name: kind, at: null, packages: [...manifests.keys()].filter((name) => !builders.has(name)).sort(), framework: {}, ...common }]
+      return [{ name: kind, at: null, packages: [...manifests.keys()].filter((name) => !builders.has(name) && !served.has(name)).sort(), framework: {}, ...common }]
     }
     const manifest = manifests.get(host.builder)
     if (manifest === undefined) throw new Error(`${host.builder} was not packed, so its host has nothing to check`)

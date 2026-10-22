@@ -16,8 +16,10 @@
  * what that host would (`install-hosts.mjs` says what, and why apart); every
  * entry point resolves; the types resolve with `skipLibCheck` off, against
  * the types that host has and no others; and the code runs. The Node
- * packages are driven end to end. The React builder is drawn by React's
- * server renderer, in its development and its production build, and bundled
+ * packages are driven end to end, and the server, in a host of its own, is
+ * made, listens on a socket and is asked over it. The React builder is
+ * drawn by React's server renderer, in its development and its production
+ * build, and bundled
  * for a browser. The Angular builder is compiled into a host ahead of time,
  * linked, drawn by Angular's platform-server and bundled for a browser.
  * Each builder is checked at the newest release its peer range admits and
@@ -209,7 +211,9 @@ async function check(project, entry, tarballs, runtime, guide) {
   // What a builder's project is apart for. Anything that brings Node's types
   // into it -- a dependency of the builder's, or of a tool -- lets a builder
   // declaration that references them pass here and fail in a browser host.
-  if (project.host !== 'node' && installed(dir, '@types/node') !== undefined) throw new Error(`${project.name} has @types/node installed, which a browser host's code is checked without`)
+  // Keyed on the builder the project is for, never on its own types, which
+  // install-hosts.test.mjs holds to the DOM's alone for every builder's host.
+  if (project.builder !== null && installed(dir, '@types/node') !== undefined) throw new Error(`${project.name} has @types/node installed, which a browser host's code is checked without`)
 
   const framework = Object.entries(entry.installed).map(([name, version]) => `${name} ${String(version)}`).join(', ')
   const lines = [`\n${project.name}: ${project.consumer}${framework === '' ? '' : `, beside ${framework}`}`]
