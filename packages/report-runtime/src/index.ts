@@ -6,6 +6,7 @@ export type {
   EInvoiceFile,
   EpcQrCode,
   FacturXFile,
+  FontAsset,
   Image,
   ImageAsset,
   Inline,
@@ -19,6 +20,8 @@ export type {
   Rectangle,
   RefusalCode,
   ResolvedDocument,
+  ResolvedFaces,
+  ResolvedFonts,
   Rule,
   Section,
   Spacer,
@@ -54,7 +57,7 @@ export { checkReport } from './report-check.js'
 export type { ReportCheck } from './report-check.js'
 export { RESOLVE_ERROR_CODES } from './resolve-errors.js'
 export type { ResolveErrorCode, RuntimeError, RuntimeStage } from './resolve-errors.js'
-export type { ImageBytes, ImageRef, ImageResolver } from './render-context.js'
+export type { AssetResolver, ImageBytes, ImageRef, ImageResolver } from './render-context.js'
 /** The definition `resolveReport` reads, so that a caller of the runtime names it without depending on report-spec itself. */
 export type { ReportDefinition } from '@formancy/report-spec'
 /**
@@ -95,7 +98,7 @@ export type { FacturXProfileTerms, XRechnungTerms, XRechnungVersion } from '@for
  * a PNG's or a JPEG's structure read as an upload reads it, which the
  * renderer checks a picture by before it inflates a PNG's image data.
  */
-export { IMAGE_REFUSAL_CODES, imageHeader, MAX_ASSET_BYTES, MAX_ASSET_SIDE, sniffImage } from '@formancy/report-spec'
+export { assetDigest, IMAGE_REFUSAL_CODES, imageHeader, MAX_ASSET_BYTES, MAX_ASSET_SIDE, sniffImage } from '@formancy/report-spec'
 export type { ImageRefusal, ImageRefusalCode, JpegHeader, PngHeader, RasterHeader } from '@formancy/report-spec'
 /**
  * What report-spec decides of an SVG asset, handed on as the QR-bill's
@@ -121,8 +124,13 @@ export type { CheckedSvg, CleanSvg, SvgExtent, SvgRefusal, SvgRefusalCode, SvgRe
  * refused, which a host approving a font beside its render code calls and
  * an engine will hold a host's face to; `characterMap`, the characters a
  * face maps as fontkit maps them, which an engine reads its own faces
- * with; the refusal codes; and `MAX_FONT_BYTES` and `MAX_FONT_CHARACTERS`,
- * the most a font may be and map.
+ * with; the refusal codes; `MAX_FONT_BYTES` and `MAX_FONT_CHARACTERS`,
+ * the most a font may be and map; `MIN_FONT_LINE` and `MAX_FONT_LINE`, the
+ * line in ems a face may lay out, and `MIN_FONT_SIZE` and `MAX_FONT_SIZE`,
+ * the sizes in points a report's text is set at, which an engine's page
+ * bound counts a line of text by and holds a document it is handed to;
+ * and `refusedCharacter`, with the blocks and controls it reads, the
+ * characters a report prints (0043).
  */
-export { characterMap, FONT_EMBEDDING_REFUSALS, FONT_FORMATS, FONT_REFUSAL_CODES, MAX_FONT_BYTES, MAX_FONT_CHARACTERS, readFont } from '@formancy/report-spec'
-export type { Font, FontCharacters, FontEmbedding, FontEmbeddingRefusal, FontFormat, FontMetrics, FontNames, FontRefusal, FontRefusalCode, FontStyle } from '@formancy/report-spec'
+export { BIDI_CONTROLS, characterMap, faceKey, FONT_EMBEDDING_REFUSALS, FONT_FACE_KEYS, FONT_FORMATS, FONT_MEDIA_TYPES, FONT_REFUSAL_CODES, isFontMediaType, MAX_FONT_BYTES, MAX_FONT_CHARACTERS, MAX_FONT_LINE, MAX_FONT_SIZE, MIN_FONT_LINE, MIN_FONT_SIZE, PRINTED_BLOCKS, readFont, refusedCharacter, UNICODE_VERSION } from '@formancy/report-spec'
+export type { AnyAssetMediaType, AssetMediaType, CharacterRefusal, Font, FontCharacters, FontEmbedding, FontEmbeddingRefusal, FontFaceKey, FontFaces, FontFamily, FontFormat, FontMap, FontMediaType, FontMetrics, FontNames, FontRefusal, FontRefusalCode, FontStyle, PrintedBlock } from '@formancy/report-spec'

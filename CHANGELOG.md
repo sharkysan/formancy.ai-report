@@ -10,6 +10,94 @@ later.
 
 ## Unreleased
 
+**A report prints its sans, serif and mono text in fonts a host approved,
+embedded from their bytes, and refuses what it cannot print in them**
+([0043](docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
+A firm prints in its own typeface, so the definition's `fonts` maps each of
+its three font tokens to the faces a host approved -- `font/ttf` assets
+pinned by digest, like a logo -- and the renderer embeds them. The report's
+hash covers the map, so "the same report renders the same PDF" survives a
+firm swapping its typeface. The runtime hands each face's bytes over through
+the host's asset lookup, now `AssetResolver` (with `ImageResolver` kept as
+an alias for a release), reading each with report-spec's `readFont` before
+it hands it on; the renderer reads it again in every render, keeping
+nothing of it for the next, embeds it through pdfmake's virtual files under
+names of the render's own, and refuses, naming where: a face a report
+prints but does not map (`missing-face` at validation, `unsupported` at
+print, never a faux bold), and a character the face has no glyph for,
+naming the face. A report prints Latin, Greek and Cyrillic, with the
+punctuation, symbols and marks written with them, and nothing else, by an
+allowlist of Unicode blocks (`font-scripts.ts`, from `Blocks.txt` 18.0.0):
+right-to-left, shaping and CJK scripts, the bidirectional controls and any
+script nothing here has proved are refused in every face. A report that
+maps nothing prints exactly as before -- `sans` is Roboto, `serif` and
+`mono` refused, every character Roboto maps printed -- though a character
+in another script is refused in new words, and the QR-bill's slip and the
+EPC caption keep Liberation Sans whatever `sans` maps. **The reason:**
+without this a firm's letterhead could not carry its own type, and 0040
+read a font only so that a report could one day name it; this is that day,
+and it is held to the one rule 0040 wrote so a builder, a host and the
+renderer cannot disagree about what a font is.
+
+Closing the risks [0040](docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)
+left open, before a report may name a host's font: fontkit runs a face's
+layout tables at print -- GSUB, GPOS, kern and the AAT `morx` state machine
+-- and a crafted one could make a render never end or throw out of pdfmake;
+the renderer now strips those records before it embeds a host face, so
+fontkit builds no engine to run them, and a `morx` that never advances and
+a GSUB fontkit throws on both render. And a subset holds every glyph a
+printed character reaches, so report-spec's reader now bounds a font's
+outlines together -- `MAX_FONT_POINTS`, `MAX_FONT_OUTLINE_WORK` and
+`MAX_FONT_COMPONENTS`, refused `too-large` -- since one 'A' of a font it
+accepted took PDFKit 162 s to embed; no font of the 412 the reader accepted
+on one machine on 22 October 2026 is refused by them. What the strip loses -- ligatures,
+kerning, contextual shaping -- is what the refused scripts would need and
+nothing the Latin, Greek and Cyrillic a report prints does. A CFF `.otf`
+stays refused until the reader reads CFF outlines and the e-invoice gate
+proves a CFF face in a PDF/A-3b; a host-font variant proves a TrueType face
+embeds in one. No serif or mono face is shipped, and there is no fallback
+across faces. A face's line, its ascender less its descender, is held by the
+reader to rise above its baseline and to be half an em to four ems tall
+(`MIN_FONT_LINE`, `MAX_FONT_LINE`, which every one of the 425 fonts measured
+on one machine on 22 October 2026 falls inside), and the renderer counts each line toward the page limit by
+the face it prints in, since a crafted line of nothing let a report far past
+its page limit print on one page, every line over the last, and a short face
+lowered the bound of every line in Roboto beside it. PDFKit draws two faces of
+one PostScript name as whichever it opened first, so a host face whose
+PostScript name, in any of its records -- report-spec's `readFont` now hands
+back every one, `postScriptNames` -- is another face's of the render with
+other bytes, the renderer's own Roboto and Liberation Sans included, or is
+`null` or a name every object has, is refused `invalid-asset`: a sans of
+Liberation Sans's name and a line of its own had laid a QR-bill's slip out in
+that line and lost 7 of its runs, so a host's own Roboto or Liberation Sans of
+another release is refused too, and the renderer's own bytes of either print
+as the renderer's, kerned. A table's cells are walked once, by the walk the
+renderer builds the table from, for its text, its tallest line and the page
+bound, since the check had taken a row's cell styles in place of its style
+and let a 96 pt line vanish that 0.2.0 refused. And a style's size is held to
+the format's 4 to 96 pt (`MIN_FONT_SIZE`, `MAX_FONT_SIZE`, which the runtime
+now hands on), since the page bound counts a line by its size and a document
+made otherwise put 20,000 paragraphs of 0.001 pt on one page. And one font
+asset id handed to the renderer in two byte strings, which only a document
+built by hand can do, is refused `invalid-asset` naming the asset, since the
+renderer reads a face by its id and printed the second in the first's bytes.
+
+**A table whose row has a line no page holds under the table's repeated
+header is refused, where the line was dropped without a word**
+([0011](docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+pdfmake repeats a table's column header at the top of every page the table
+reaches and lays a row that may split out line by line, so a line that fit
+the body alone but not under the header went on from page to page and was
+dropped: in Roboto, with no host font, a 40 pt header over two 40 pt rows
+printed five pages of the header and no row, and the render succeeded; a
+host's face of a taller line reaches it at smaller sizes. The renderer now
+refuses such a table as `content-too-large`, naming the table, the row and
+its kind, the height the line needs under the header -- the header as
+measured, the line, its padding and three rules -- and the body's height.
+It keeps a point for rounding, as the table's plan does, so a line within
+a point of fitting is refused though pdfmake would have printed it. No
+corpus fixture's or starter's PDF changed.
+
 **A report's e-invoice is edited field by field in either builder, and
 the account it shares with its payment codes is changed in one step**
 ([0044](docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).

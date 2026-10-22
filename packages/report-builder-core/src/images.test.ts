@@ -542,6 +542,16 @@ describe('adding an image', () => {
       { id: 'mark', label: de('images.item', { id: 'mark', type: 'PNG' }), removeLabel: de('images.removeOne', { id: 'mark' }) },
     ])
   })
+
+  // A font asset a report maps is no picture (0043): listed as an image, it
+  // would be offered for removal from under the text it prints, and its
+  // label would name an image format it has not. The library is images alone.
+  test('lists no font asset among the images', () => {
+    const report = richReport()
+    const branded: ReportDefinition = { ...report, assets: [...report.assets, { id: 'brand', mediaType: 'font/ttf', digest: `sha256:${'c3'.repeat(32)}` }], fonts: { sans: { normal: 'brand' } } }
+    const { editor } = editorOver(branded)
+    expect(editor.state().images.assets.map((listed) => listed.id)).toEqual(report.assets.map((declared) => declared.id))
+  })
 })
 
 describe('removing an image', () => {

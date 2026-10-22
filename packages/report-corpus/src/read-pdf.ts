@@ -39,6 +39,8 @@ export interface PdfTextItem extends PdfBox {
   readonly text: string
   /** Which way its baseline runs, in degrees counter-clockwise from the page's x-axis, to the hundredth: 0 across the page, 90 up it. */
   readonly angle: number
+  /** The name of the font the run is drawn in, as the PDF holds it: a subset prefix such as `BZZZZZ+` and the face's PostScript name (0043), or the loaded name where PDF.js gives none. */
+  readonly font: string
 }
 
 /** A colour a path is painted in: `#rrggbb`, or `pattern` for a gradient or a pattern, which has no one colour. */
@@ -172,9 +174,24 @@ async function textItems(page: PDFPageProxy, viewport: PageViewport): Promise<Pd
   const items: PdfTextItem[] = []
   for (const item of content.items) {
     if (!('str' in item) || item.str.trim() === '') continue
-    items.push(textBox(item, viewport))
+    items.push(textBox(item, viewport, fontNameOf(page, item.fontName)))
   }
   return items
+}
+
+/**
+ * The name of the font a run is drawn in, from the page's loaded font
+ * objects: the subset-prefixed PostScript name the PDF holds (0043). The
+ * fonts are loaded by the operator-list read `readPdf` does before this, so
+ * `commonObjs` has each run's; where it does not, the loaded name stands.
+ */
+function fontNameOf(page: PDFPageProxy, fontName: string): string {
+  try {
+    const font = page.commonObjs.get(fontName) as { name?: string; loadedName?: string }
+    return font.name ?? font.loadedName ?? fontName
+  } catch {
+    return fontName
+  }
 }
 
 /**
@@ -184,7 +201,7 @@ async function textItems(page: PDFPageProxy, viewport: PageViewport): Promise<Pd
  * `PdfTextItem` describes, exactly: a turn of 0 has a cosine of 1 and a
  * sine of 0.
  */
-function textBox(item: TextItem, viewport: PageViewport): PdfTextItem {
+function textBox(item: TextItem, viewport: PageViewport, font: string): PdfTextItem {
   const [a, b, c, d, e, f] = item.transform as [number, number, number, number, number, number]
   const size = Math.hypot(c, d)
   const angle = Math.round((Math.atan2(b, a) * 18000) / Math.PI) / 100
@@ -192,7 +209,7 @@ function textBox(item: TextItem, viewport: PageViewport): PdfTextItem {
   const corners = [0, item.width].flatMap((along) => [-DESCENT * size, (1 - DESCENT) * size].map((up) => viewport.convertToViewportPoint(e + along * cos - up * sin, f + along * sin + up * cos) as [number, number]))
   const [x, top] = [Math.min(...corners.map(([across]) => across)), Math.min(...corners.map(([, down]) => down))]
   const [width, height] = [Math.abs(item.width * cos) + Math.abs(size * sin), Math.abs(item.width * sin) + Math.abs(size * cos)]
-  return { text: item.str, x, top, bottom: top + height, width, height, angle }
+  return { text: item.str, x, top, bottom: top + height, width, height, angle, font }
 }
 
 function fontObject(page: PDFPageProxy, id: string): PdfFont {

@@ -3,6 +3,7 @@
  * declares, which component ids it has seen, where its detail table is and
  * how much of the page its margins leave.
  */
+import type { AnyAssetMediaType } from './assets.js'
 import { Findings, quote } from './check.js'
 import type { FieldType, ParameterType } from './data.js'
 import type { ReportErrorCode } from './errors.js'
@@ -21,7 +22,8 @@ export interface Declared {
   /** By role; a role's fields are `undefined` when its contract could not be read. A field's type is `undefined` when its contract could not. */
   datasets: Declarations<Declarations<FieldType | undefined>>
   parameters: Declarations<ParameterType | undefined>
-  assets: Declarations<true>
+  /** Each asset's media type, so a reference can be held to being an image or a font (0043); `undefined` where the type could not be read. */
+  assets: Declarations<AnyAssetMediaType | undefined>
   /** What each aggregate computes, when that is known: what an expression computes is not. */
   aggregates: Declarations<FieldType | undefined>
 }

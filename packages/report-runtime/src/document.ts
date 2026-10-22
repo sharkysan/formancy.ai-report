@@ -387,6 +387,32 @@ export interface XRechnungFile {
 /** The e-invoice of a final render, by its kind: a Factur-X file a PDF/A-3b embeds, or an XRechnung's XML a host sends. */
 export type EInvoiceFile = FacturXFile | XRechnungFile
 
+/**
+ * One face of a host's font, resolved to the bytes the renderer embeds
+ * (0043): its asset id, for a refusal to name; the digest the report
+ * pinned, which the renderer names the embedded face by and caches its
+ * glyphs under; and the bytes the host's lookup handed over, which
+ * report-spec's `readFont` has read. Never a media type -- every face is a
+ * TrueType font.
+ */
+export interface FontAsset {
+  readonly id: string
+  /** `sha256:` and 64 lower-case hex digits: the digest the report pinned the face by. */
+  readonly digest: string
+  readonly bytes: Uint8Array
+}
+
+/** The faces of one font token a report maps: `normal` always, the rest where the report prints text in them, each resolved to its bytes. */
+export interface ResolvedFaces {
+  readonly normal: FontAsset
+  readonly bold?: FontAsset
+  readonly italic?: FontAsset
+  readonly boldItalic?: FontAsset
+}
+
+/** The faces each font token a report maps prints in; a token left out prints in the renderer's own face. */
+export type ResolvedFonts = { readonly [F in FontFamily]?: ResolvedFaces }
+
 export interface ResolvedDocument {
   readonly info: {
     readonly title: string
@@ -409,6 +435,8 @@ export interface ResolvedDocument {
   readonly paymentPart?: QrBill
   /** The e-invoice the PDF embeds, in a final render of a report that is one; absent, the PDF carries none. */
   readonly eInvoice?: EInvoiceFile
+  /** The host fonts each font token prints in, resolved to their bytes; absent, every token prints in the renderer's own face (0043). */
+  readonly fonts?: ResolvedFonts
 }
 
 export const REFUSAL_CODES = ['too-many-pages', 'content-too-large', 'invalid-asset', 'cancelled', 'unsupported'] as const

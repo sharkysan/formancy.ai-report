@@ -4,9 +4,10 @@ import { checkBill, refusePage, type CheckedBill } from './bill.js'
 import { refuseOversized } from './bound.js'
 import type { TablePlan } from './build.js'
 import { checkDocument, refuseTall, type Checked, type Page } from './check.js'
-import { bodyMeasurement, DEFAULT_STYLE, layoutDefinition, REGION_GAP, regionsMeasurement, slipReservation, type Regions } from './definition.js'
+import { bodyMeasurement, defaultStyle, layoutDefinition, REGION_GAP, regionsMeasurement, slipReservation, type Regions } from './definition.js'
 import type { Engine } from './engine.js'
-import { FIT_SLACK, measure, rowPitches, SENTINEL_LINE, SENTINEL_ROOM, tablePlan } from './measure.js'
+import { planFonts, type RenderFonts } from './host-fonts.js'
+import { FIT_SLACK, measure, refuseLineUnderHeader, rowPitches, SENTINEL_LINE, SENTINEL_ROOM, tablePlan } from './measure.js'
 import type { RenderOptions } from './options.js'
 import { embedEInvoice } from './pdfa.js'
 import { ABOVE_SLIP, informationContent, PAYMENT_PART, RECEIPT } from './slip.js'
@@ -36,22 +37,24 @@ export async function render(engine: Engine, document: ResolvedDocument, options
   const { signal, maxPages } = options
   if (!Number.isSafeInteger(maxPages) || maxPages < 1) throw new RangeError(`maxPages must be a whole number of pages, at least 1; it is ${String(maxPages)}`)
   stopIfCancelled(signal)
-  const checked = await checkDocument(document, await engine.glyphs(), maxPages)
+  // Each host face read with readFont, its layout tables stripped, and the engine's virtual files made, before anything is laid out (0043).
+  const fonts = planFonts(document.fonts, await engine.glyphs())
+  const checked = await checkDocument(document, fonts, maxPages)
   const bill = document.paymentPart === undefined ? undefined : checkBill(document.paymentPart, document.page, await engine.billGlyphs())
   // An EPC QR code's caption prints in Liberation Sans too, which a browser loads only when asked; its words are the PSA's, which the face has glyphs for.
   if (checked.captioned) await engine.billGlyphs()
   await stopIfCancelledSoon(signal)
-  const regions = await measureRegions(engine, document, checked, maxPages)
+  const regions = await measureRegions(engine, document, checked, fonts, maxPages)
   await stopIfCancelledSoon(signal)
   const bodyHeight = checked.page.height - regions.header - regions.footer
   if (bodyHeight <= 0) throw new RenderRefusal('content-too-large', `the page header and footer leave no room for the body (${bodyHeight.toFixed(2)} pt)`)
-  if (bill !== undefined) await measureSlip(engine, bill, checked.page, document.page, regions)
+  if (bill !== undefined) await measureSlip(engine, bill, checked.page, document.page, regions, fonts)
   refuseTall(checked.tall, bodyHeight)
-  refuseOversized(document.body, bodyHeight, maxPages, bill === undefined ? 0 : slipReservation(checked.page, regions))
-  const plans = await measureBody(engine, checked, bodyHeight, maxPages)
+  refuseOversized(document.body, bodyHeight, maxPages, fonts, bill === undefined ? 0 : slipReservation(checked.page, regions))
+  const plans = await measureBody(engine, checked, fonts, bodyHeight, maxPages)
   await stopIfCancelledSoon(signal)
   const finish = checked.pdfa === undefined ? undefined : embedEInvoice(checked.pdfa, checked.creationDate)
-  const pdf = await engine.run(layoutDefinition(document, checked, regions, plans, maxPages, bill), finish)
+  const pdf = await engine.run(layoutDefinition(document, checked, regions, plans, fonts, maxPages, bill), fonts.engine, finish)
   await stopIfCancelledSoon(signal)
   return pdf
 }
@@ -70,14 +73,14 @@ const SECTION_SLACK = 0.01
  * fit on the sheet is taller than the section, and pdfmake's next page
  * refuses it.
  */
-async function measureSlip(engine: Engine, bill: CheckedBill, page: Page, setup: PageSetup, regions: Regions): Promise<void> {
+async function measureSlip(engine: Engine, bill: CheckedBill, page: Page, setup: PageSetup, regions: Regions, fonts: RenderFonts): Promise<void> {
   refusePage(setup, regions.header + ABOVE_SLIP)
   for (const part of [PAYMENT_PART, RECEIPT]) {
     const { width, height, millimetres } = part.information
     const refusal = (): RenderRefusal => new RenderRefusal('content-too-large', `${part.name}'s information is taller than its section: SIX gives it ${millimetres} mm (${height.toFixed(2)} pt)`, 'paymentPart')
     const item: Content = { stack: informationContent(bill.bill, part), margin: [0, 0, page.paperWidth - width, 0] }
     const sheet = { width: page.paperWidth, height: height + 3 * SENTINEL_LINE + SECTION_SLACK, left: 0, right: 0 }
-    await measure(engine, sheet, [item], resources({}), refusal, [])
+    await measure(engine, sheet, [item], resources(fonts, {}), refusal, [], fonts.engine)
   }
 }
 
@@ -85,17 +88,18 @@ async function measureSlip(engine: Engine, bill: CheckedBill, page: Page, setup:
  * The page header's and footer's heights, measured once, on a page as tall
  * as the printable area: two regions that do not fit on it leave no body.
  */
-async function measureRegions(engine: Engine, document: ResolvedDocument, checked: Checked, maxPages: number): Promise<Regions> {
-  const { present, items, build } = regionsMeasurement(document, checked, maxPages)
+async function measureRegions(engine: Engine, document: ResolvedDocument, checked: Checked, fonts: RenderFonts, maxPages: number): Promise<Regions> {
+  const { present, items, build } = regionsMeasurement(document, checked, fonts, maxPages)
   if (present.length === 0) return { header: 0, footer: 0 }
   const { page } = checked
   const { heights } = await measure(
     engine,
     { width: page.paperWidth, height: page.height + SENTINEL_ROOM * (items.length + 2), left: page.margins.left, right: page.margins.right },
     items,
-    resources(build.images),
+    resources(fonts, build.images),
     () => new RenderRefusal('content-too-large', 'the page header and footer are taller than the printable area'),
     build.words,
+    fonts.engine,
   )
   const space = (blocks: readonly Block[]): number => (blocks.length === 0 ? 0 : heights[present.indexOf(blocks)]! + REGION_GAP)
   return { header: space(document.pageHeader), footer: space(document.pageFooter) }
@@ -103,7 +107,8 @@ async function measureRegions(engine: Engine, document: ResolvedDocument, checke
 
 /**
  * Measures the body's keep-together blocks and tables, refuses a block no
- * page can hold, and plans how each table breaks. On a page as tall as the
+ * page can hold and a table's line no page holds under its repeated header
+ * (`refuseLineUnderHeader`), and plans how each table breaks. On a page as tall as the
  * page limit's bodies and one more: content that does not fit on it needs
  * more pages than the limit, whatever else the body holds, so it is refused
  * here, after laying out at most that much of it.
@@ -111,20 +116,21 @@ async function measureRegions(engine: Engine, document: ResolvedDocument, checke
  * A block inside framed sections has less of each page than the body: their
  * borders and padding above and below it, which is what `inset` holds.
  */
-async function measureBody(engine: Engine, checked: Checked, bodyHeight: number, maxPages: number): Promise<ReadonlyMap<Table, TablePlan>> {
+async function measureBody(engine: Engine, checked: Checked, fonts: RenderFonts, bodyHeight: number, maxPages: number): Promise<ReadonlyMap<Table, TablePlan>> {
   const { measured, page } = checked
   if (measured.length === 0) return new Map()
-  const { items, build } = bodyMeasurement(measured, checked)
+  const { items, build } = bodyMeasurement(measured, checked, fonts)
   const { heights, top, ends } = await measure(
     engine,
     { width: page.paperWidth, height: (maxPages + 1) * bodyHeight + SENTINEL_ROOM * (items.length + 2), left: page.margins.left, right: page.margins.right },
     items,
-    resources(build.images),
+    resources(fonts, build.images),
     () => new RenderRefusal('too-many-pages', `the report needs more than ${maxPages} pages`),
     build.words,
+    fonts.engine,
   )
   const plans = new Map<Table, TablePlan>()
-  measured.forEach(({ block, at, inset }, index) => {
+  measured.forEach(({ block, at, inset, under }, index) => {
     const room = bodyHeight - inset
     if (block.kind === 'keepTogether' && heights[index]! > room - FIT_SLACK) {
       throw new RenderRefusal('content-too-large', `the keep-together block ${at} is ${heights[index]!.toFixed(2)} pt tall; a page's body is ${room.toFixed(2)} pt where it stands`, at)
@@ -132,14 +138,15 @@ async function measureBody(engine: Engine, checked: Checked, bodyHeight: number,
     if (block.kind === 'table') {
       const rows = build.measuredRows.get(block)!
       const pitches = rowPitches(rows.map((row) => row.mark), top, ends[index]!)
+      refuseLineUnderHeader(block, under!, pitches[0]!, room)
       plans.set(block, tablePlan(rows.map((row, at) => ({ kind: row.kind, pitch: pitches[at]! })), room))
     }
   })
   return plans
 }
 
-function resources(images: Record<string, string>): Required<Pick<TDocumentDefinitions, 'defaultStyle' | 'images'>> {
-  return { defaultStyle: DEFAULT_STYLE, images }
+function resources(fonts: RenderFonts, images: Record<string, string>): Required<Pick<TDocumentDefinitions, 'defaultStyle' | 'images'>> {
+  return { defaultStyle: defaultStyle(fonts), images }
 }
 
 function stopIfCancelled(signal: AbortSignal | undefined): void {

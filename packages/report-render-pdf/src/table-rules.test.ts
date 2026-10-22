@@ -2,8 +2,12 @@ import type { Node, NodeQueries } from 'pdfmake/interfaces.js'
 import { describe, expect, test } from 'vitest'
 import { naturalLayout, type KeepBlock } from './breaks.js'
 import { newBuild, type Build, type RowKind, type TablePlan } from './build.js'
+import type { RenderFonts } from './host-fonts.js'
 import type { Cell, Row } from './table.js'
 import { tableRules } from './table-rules.js'
+
+/** The plan a table whose text this test never checks needs: every token prints in Roboto. */
+const ROBOTO_ONLY = { familyOf: () => 'Roboto', usable: () => true, defaultFamily: 'Roboto', face: () => ({ glyphs: new Set<number>(), lineFactor: 2400 / 2048, name: 'Roboto' }), engine: { families: {}, files: new Map() } } satisfies RenderFonts
 
 /**
  * The planner's decisions on what pdfmake reports, without pdfmake: rows of
@@ -22,7 +26,7 @@ function rowsOf(kinds: readonly RowKind[]): Row[] {
 
 function setUp(kinds: readonly RowKind[], blocks: readonly KeepBlock[], keepWithHeaderRows = 1): { rows: Row[]; build: Build; plan: TablePlan } {
   const rows = rowsOf(kinds)
-  const build = newBuild('render', { assets: new Map(), codes: new Map(), paths: new Map() }, BODY)
+  const build = newBuild('render', { assets: new Map(), codes: new Map(), paths: new Map() }, ROBOTO_ONLY, BODY)
   const plan: TablePlan = { dontBreakRows: true, keepWithHeaderRows, pitches: rows.map(() => 10), blocks }
   tableRules(rows, plan, build, CONTINUED)
   return { rows, build, plan }
@@ -97,7 +101,7 @@ describe('a table’s planned breaks', () => {
   test('are not planned without a row that prints before the first block', () => {
     const rows = rowsOf(kinds)
     for (const row of rows.slice(1, 9)) row.cells.forEach((cell) => ((cell as { text: string }).text = ''))
-    const build = newBuild('render', { assets: new Map(), codes: new Map(), paths: new Map() }, BODY)
+    const build = newBuild('render', { assets: new Map(), codes: new Map(), paths: new Map() }, ROBOTO_ONLY, BODY)
     tableRules(rows, { dontBreakRows: true, keepWithHeaderRows: 1, pitches: rows.map(() => 10), blocks }, build, CONTINUED)
     expect(rows.slice(1, 9).every((row) => row.cells[0]!.headlineLevel === undefined)).toBe(true)
     expect(build.rules.size).toBe(2)

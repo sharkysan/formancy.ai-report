@@ -145,6 +145,7 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     allTextInsidePrintable: true,
     noOverlaps: true,
     fontsEmbedded: true,
+    fontNames: [],
     images: imagesOf(document.body),
     pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
     ...stated,

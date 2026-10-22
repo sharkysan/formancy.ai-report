@@ -39,11 +39,12 @@ import type { Completeness, Consistency, DataMode, ReportData } from './data.js'
 import type { Paragraph, ResolvedDocument } from './document.js'
 import { createFormatter } from './format.js'
 import { eInvoiceFile, resolveEInvoice } from './lower-e-invoice.js'
+import { resolveFonts } from './lower-fonts.js'
 import { lowerPaymentPart } from './lower-payment-part.js'
 import { lowerRegions } from './lower.js'
 import { checkParameters } from './parameters.js'
 import type { CheckedParameters } from './parameters.js'
-import type { ImageResolver } from './render-context.js'
+import type { AssetResolver } from './render-context.js'
 import { checkReport } from './report-check.js'
 import { fromData, Problems } from './resolve-errors.js'
 import type { RuntimeError } from './resolve-errors.js'
@@ -57,8 +58,8 @@ export interface ResolveOptions {
   readonly mode: DataMode
   /** The values a person supplied, by parameter id; defaults apply to those left out. */
   readonly parameters?: Readonly<Record<string, unknown>>
-  /** The host's lookup of approved assets' bytes; a report that draws an image is refused without one. */
-  readonly images?: ImageResolver
+  /** The host's lookup of approved assets' bytes; a report that draws an image or maps a font is refused without one (0043). */
+  readonly images?: AssetResolver
   /** An ISO 8601 instant with its zone, fixed by the caller, so that the same inputs print the same PDF. */
   readonly creationDate: string
   /** The IANA zone instants are shown in, named by the host: UTC when absent, never the machine's. */
@@ -178,6 +179,7 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
   const render = { ...inputs, totals, ...(invoice === undefined ? {} : { invoice: invoice.reads }) }
   const regions = lowerRegions(render)
   const paymentPart = lowerPaymentPart(render)
+  const fonts = resolveFonts(render, valid.fonts)
   const eInvoice = invoice === undefined || valid.eInvoice === undefined ? undefined : eInvoiceFile(render, invoice, valid.eInvoice)
   if (problems.failed) return { ok: false, errors: problems.errors() }
 
@@ -193,6 +195,7 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
     body: regions.body,
     ...(paymentPart === undefined ? {} : { paymentPart }),
     ...(eInvoice === undefined ? {} : { eInvoice }),
+    ...(fonts === undefined ? {} : { fonts }),
   }
   const manifest: RenderManifest = {
     reportHash: reportHash(valid),

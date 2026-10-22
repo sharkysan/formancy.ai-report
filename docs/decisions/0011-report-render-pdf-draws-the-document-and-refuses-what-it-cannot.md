@@ -1,6 +1,6 @@
 # 0011 — `report-render-pdf` draws the whole resolved document with pdfmake, and refuses what it cannot draw whole
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which refused every e-invoice until the renderer drew the PDF/A-3 that carries one, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which draws an SVG asset as vectors, only in the form report-spec's `cleanSvg` writes, and bounds what SVGs cost a render and a page, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which draws an e-invoice as a PDF/A-3b and refuses what that cannot hold, and by [0035](0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md), which has the images PDFKit decodes before it embeds them written in the order pdfmake opened them, so that a document with such images renders to the same bytes too, held on the PDF in both entries by `image-order.test.ts`, and by [0040](0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), under which the faces' character maps are read by report-spec's font reader, through the runtime, as fontkit reads them
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which refused every e-invoice until the renderer drew the PDF/A-3 that carries one, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which draws an SVG asset as vectors, only in the form report-spec's `cleanSvg` writes, and bounds what SVGs cost a render and a page, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which draws an e-invoice as a PDF/A-3b and refuses what that cannot hold, and by [0035](0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md), which has the images PDFKit decodes before it embeds them written in the order pdfmake opened them, so that a document with such images renders to the same bytes too, held on the PDF in both entries by `image-order.test.ts`, and by [0040](0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), under which the faces' character maps are read by report-spec's font reader, through the runtime, as fontkit reads them, and by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), under which it embeds a host's fonts and refuses what it cannot draw in them
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-render-pdf`, run by its
@@ -272,6 +272,51 @@ written, by one reader of a font's glyphs, which a host's font will be read
 by too. `glyphs.test.ts` holds it unchanged, and `fonts.test.ts` holds each
 face's map to fontkit's, and glyphs.ts's map of a face whose maps disagree
 to the reader's, which the parser glyphs.ts had read otherwise.
+
+**Fixed 2026-10-22: a row's line under the repeated header.** *Nothing is
+taller than the body* held a table's line to the body alone, and a row
+stands under its column header, which pdfmake 0.3.11 repeats at the top of
+every page the table reaches. pdfmake lays a row that may split out line by
+line, and a line that fits neither what is left of its page nor a page
+under the repeated header goes to the page after that and is dropped
+without a word (`LayoutBuilder.processLeaf`,
+`PageElementWriter._fitOnPage`). In Roboto, a 40 pt header over two 40 pt
+rows, each 50.88 pt and so within a body of 76.31 or 102.75 pt alone,
+printed five pages of the header and no row, and the render succeeded; a
+9 pt header over a 40 pt row lost the row in a body of 55.88. The review
+of P07 found it, since a host's face of a taller line reaches it at
+smaller sizes ([0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)),
+and rendered the commit P07 started from to the same five pages. A line
+needs the header as pdfmake repeats it -- the table's top rule, the header
+row as the body pass measured it and the rule under it -- then its padding
+above and below and the rule under its row: three rules in all, and the
+point the table's plan keeps for rounding (`FIT_SLACK`). Where the body
+holds less where the table stands -- in a framed section, the body less
+the frame's border and padding -- the table is refused as
+`content-too-large`, naming the table, the row and its kind, the height
+the line needs and the body's, never a cell's text (`measure.ts`'s
+`refuseLineUnderHeader`, for every table the body pass measures, whatever
+its plan). Its tallest line is the one check.ts takes from the one walk of
+a table's cells, each in the face it prints in, an empty cell at its size
+as the body check counts it; pdfmake repeats the column header alone,
+never a group header, and has no footer rows of its own, so a group's
+footer and a total are held as any row is. What it costs: a line within
+that point is refused where pdfmake would print it -- pdfmake prints the
+40 pt rows above from a body of 103.25 pt, and the renderer refuses them
+below 104.25.
+`tables.test.ts` holds it on the PDF: the review's bodies and 104.24
+refused, 104.25 and 104.75 printed whole, a header that wraps to three
+lines measured as it lays out, a detail row, a group header, a group's
+footer and a total each refused naming its kind and printed whole with
+room, in a face of a 2 em line a row and the empty text, and a table in a
+section framed by a border of 2 and a padding of 6 refused while what the
+frame leaves is short of its line and printed whole from 96.82, which fails
+when the frame is not taken from the body. Without the
+refusal eleven of its cases fail -- nine printed the table without the
+row's line, and two printed it whole within the point kept for rounding --
+the ten written before the refusal among them. Every corpus fixture's and
+starter's PDF, each invoice sample's final and preview among them, is
+byte for byte what it was before (22 October 2026).
 
 ## Alternatives considered
 

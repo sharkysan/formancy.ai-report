@@ -4,8 +4,8 @@
  * where it came from. Each list records the ids it declares, so components
  * can be checked against them.
  */
-import { ASSET_MEDIA_TYPES } from './assets.js'
-import type { AssetRef } from './assets.js'
+import { ASSET_AND_FONT_MEDIA_TYPES } from './assets.js'
+import type { AnyAssetMediaType, AssetRef } from './assets.js'
 import type { Findings } from './check.js'
 import { all, describe, fieldKey, flag, fontSize, identifier, integer, kindOf, matches, oneOf, optional, points, readArray, readObject, shape, strictKeys, text } from './check.js'
 import { DATASET_ROLES, FIELD_TYPES, PARAMETER_TYPES } from './data.js'
@@ -187,12 +187,12 @@ export function readParameters(c: Ctx, value: unknown, path: string): readonly P
   return items
 }
 
-function readAsset(f: Findings, value: unknown, path: string): Read<AssetRef, true> {
+function readAsset(f: Findings, value: unknown, path: string): Read<AssetRef, AnyAssetMediaType | undefined> {
   const o = shape(f, value, path, ['id', 'mediaType', 'digest'])
   const id = identifier(f, o?.id, at(path, 'id'))
-  const mediaType = oneOf(f, o?.mediaType, at(path, 'mediaType'), ASSET_MEDIA_TYPES)
+  const mediaType = oneOf(f, o?.mediaType, at(path, 'mediaType'), ASSET_AND_FONT_MEDIA_TYPES)
   const digest = matches(f, o?.digest, at(path, 'digest'), DIGEST, 'invalid-digest', '"sha256:" and 64 lower-case hex digits')
-  const entry = { id, path: at(path, 'id'), value: true as const }
+  const entry = { id, path: at(path, 'id'), value: mediaType }
   return { entry, item: id === undefined || mediaType === undefined || digest === undefined ? undefined : { id, mediaType, digest } }
 }
 

@@ -139,7 +139,8 @@ function repositoryRoot(): string {
 async function main(): Promise<void> {
   const { date } = parseArguments(process.argv.slice(2))
   const results: FixtureResult[] = []
-  for (const fixture of ALL_FIXTURES) {
+  // The trial's engine comparison covers the fixtures mapping no host font, which the trial adapters predate (0005, 0043).
+  for (const fixture of ALL_FIXTURES.filter((fixture) => fixture.document.fonts === undefined)) {
     const outcomes: Outcome[] = []
     for (const adapter of ADAPTERS) {
       const outcome = await judge(fixture, render(adapter, fixture))

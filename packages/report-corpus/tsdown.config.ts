@@ -6,6 +6,8 @@ export default defineConfig([
     format: ['esm'],
     dts: true,
     clean: true,
+    // The host-font test data (Liberation Serif and Mono 2.1.5, OFL-1.1) beside the built index, so a consumer of the built corpus reads the fonts the fixture names; the corpus is never published (0043).
+    copy: [{ from: 'src/fixtures/host-fonts', to: 'dist' }],
     // Nothing from node_modules is inlined (formancy.ai-data 0046): tsdown
     // inlines a package this one imports at run time without declaring it, and
     // the dist -- and an app's bundle or a tarball made from it -- would carry

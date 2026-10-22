@@ -73,6 +73,8 @@ export function richReport(): ReportDefinition {
     assets: [
       { id: 'logo', mediaType: 'image/png', digest: `sha256:${'ab'.repeat(32)}` },
       { id: 'seal', mediaType: 'image/jpeg', digest: `sha256:${'0f'.repeat(32)}` },
+      { id: 'brand', mediaType: 'font/ttf', digest: `sha256:${'c3'.repeat(32)}` },
+      { id: 'brand-bold', mediaType: 'font/ttf', digest: `sha256:${'d4'.repeat(32)}` },
     ],
     aggregates: [
       { id: 'subtotal', fn: 'sum', of: { kind: 'field', field: detail('amount') }, rounding: { scale: 2, mode: 'half-even' } },
@@ -87,6 +89,7 @@ export function richReport(): ReportDefinition {
       { id: 'latest', fn: 'max', of: { kind: 'field', field: detail('shippedAt') } },
       { id: 'earliest', fn: 'min', of: { kind: 'field', field: detail('dueOn') } },
     ],
+    fonts: { sans: { normal: 'brand', bold: 'brand-bold' } },
     regions: {
       reportHeader: [
         {

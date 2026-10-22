@@ -102,6 +102,12 @@ export const REPORT_ERROR_CODES = [
   'unknown-asset',
   'unknown-aggregate',
   'unknown-column',
+  /** A font token mapped to an asset that is an image, not a font. */
+  'asset-not-a-font',
+  /** An image that draws a font asset, which is not a picture. */
+  'asset-not-an-image',
+  /** A print style that sets bold or italic in a mapped font family that has no bold, italic or bold-italic face; a face is never synthesised. */
+  'missing-face',
 
   // Placement and structure.
   /** A table, page break or keep-together block outside the body and the summary. */

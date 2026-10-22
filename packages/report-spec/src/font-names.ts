@@ -25,7 +25,10 @@
  *   every letter in the PDF, and one it cannot decode throws inside PDFKit.
  *   The name returned is the best record's, as for every other name:
  *   Corbel Light's Unicode record says `Corbel-Light` where its Windows
- *   record, which fontkit returns, says `CorbelLight`.
+ *   record, which fontkit returns, says `CorbelLight`. Every name the
+ *   records hold is returned besides, since fontkit returns the last
+ *   English one, not the best, and PDFKit keeps a document's faces by it
+ *   (0043).
  * - **The table is one fontkit decodes.** fontkit loses the whole table,
  *   and PDFKit names the font `undefined`, where a record is of a platform
  *   past the four the specification names for names, or a version 1
@@ -55,6 +58,13 @@ export interface FontNames {
   readonly subfamily: string
   /** The PostScript name (6), which the PDF names the font by: PDFKit writes it after a subset tag, each space as an underscore. */
   readonly postScriptName: string
+  /**
+   * Every PostScript name the font's records of name ID 6 hold, each once,
+   * in table order, `postScriptName` among them: fontkit returns one of
+   * them, the last English record's, so a renderer that tells one face from
+   * another by the name PDFKit keeps it by reads them all (0043).
+   */
+  readonly postScriptNames: readonly string[]
   /** The full name (4). */
   readonly fullName?: string
   /** The version string (5). */
@@ -171,8 +181,9 @@ function decode(file: FontFile, record: NameRecord): string {
   return text
 }
 
-/** The PostScript name, the best record's, once every record of name ID 6 is one fontkit decodes alike and holds a name PDFKit writes as one PDF name. */
-function postScriptName(file: FontFile, all: readonly NameRecord[]): string {
+/** The PostScript name, the best record's, and every name the records of name ID 6 hold, once every one of them is one fontkit decodes alike and holds a name PDFKit writes as one PDF name. */
+function postScriptNames(file: FontFile, all: readonly NameRecord[]): { readonly best: string; readonly all: readonly string[] } {
+  const names = new Set<string>()
   for (const record of all) {
     if (record.id !== 6) continue
     if (rank(record) === undefined) refuse('malformed', 'has a PostScript name in an encoding this does not read')
@@ -184,11 +195,12 @@ function postScriptName(file: FontFile, all: readonly NameRecord[]): string {
       if (point !== 0x20 && (point < 33 || point > 126 || NOT_IN_POSTSCRIPT_NAMES.has(point))) refuse('malformed', 'has a PostScript name with a character PDFKit would write into the PDF as syntax: a delimiter, a number sign, or one outside printable ASCII')
     }
     if (text.trim().length === 0) refuse('malformed', 'has an empty PostScript name')
+    names.add(text)
   }
   // Every record of name ID 6 is ranked by now, so there is a best one wherever there is one.
   const name = best(file, all, 6)
   if (name === undefined) refuse('malformed', 'has no PostScript name (name ID 6)')
-  return name
+  return { best: name, all: [...names] }
 }
 
 /** The best record of name ID `id`, decoded; undefined when none is one this reads. */
@@ -208,12 +220,12 @@ function best(file: FontFile, all: readonly NameRecord[], id: number): string | 
 /** A font's names, read from its naming table. */
 export function readNames(file: FontFile): FontNames {
   const all = records(file, file.table('name'))
-  const postScript = postScriptName(file, all)
+  const postScript = postScriptNames(file, all)
   const family = best(file, all, 16) ?? best(file, all, 1)
   const subfamily = best(file, all, 17) ?? best(file, all, 2)
   if (family === undefined || subfamily === undefined) refuse('malformed', 'has no family and subfamily name (name IDs 1 and 2)')
   const optional = { fullName: 4, version: 5, copyright: 0, licence: 13, licenceUrl: 14 } as const
-  const names: { -readonly [K in keyof FontNames]: FontNames[K] } = { family, subfamily, postScriptName: postScript }
+  const names: { -readonly [K in keyof FontNames]: FontNames[K] } = { family, subfamily, postScriptName: postScript.best, postScriptNames: postScript.all }
   for (const [key, id] of Object.entries(optional) as [keyof typeof optional, number][]) {
     const text = best(file, all, id)
     if (text !== undefined) names[key] = text

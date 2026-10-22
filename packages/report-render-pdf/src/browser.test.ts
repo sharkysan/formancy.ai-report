@@ -17,6 +17,7 @@ import { converterOptions } from './svg-content.js'
 import { billDocument, resolvedBill, SIX_EXAMPLES } from './testing/bills.js'
 import { dataUrl, DECODED, imageOrder, SIDE } from './testing/decoding.js'
 import { documentOf, fixture, paragraph, TIMEOUT } from './testing/documents.js'
+import { face, THROWING } from './testing/fonts.js'
 import { encodePng } from './testing/images.js'
 import { DRAWINGS, MARK, rawSvgAsset, svg, SVG_THREATS, svgAsset } from './testing/svg.js'
 
@@ -220,6 +221,48 @@ describe('the browser entry', () => {
     const document = eInvoiceDocument()
     const [first, second] = await Promise.all([renderInBrowser(document, { maxPages: 5 }), renderInBrowser(document, { maxPages: 5 })])
     expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
+  }, TIMEOUT)
+
+  // A host font a report maps is embedded the same in a browser as on a
+  // server (0043): the same definitions, and every object each stream
+  // inflated -- the embedded subset among them -- is identical, though the
+  // bytes differ by the two builds' zlib, as an e-invoice's do. A browser
+  // host-font render is deterministic too.
+  test('embeds a host font the Node entry does, drawn the same', async () => {
+    const regular = new Uint8Array(readFileSync(path.join(here, '..', 'fonts', 'LiberationSans-Regular.ttf')))
+    const asset = { id: 'brand', digest: `sha256:${createHash('sha256').update(regular).digest('hex')}`, bytes: regular }
+    const document: ResolvedDocument = {
+      info: { title: 'Host', creationDate: '2026-01-01T00:00:00Z' },
+      page: { size: 'A4', orientation: 'portrait', margins: { top: 40, right: 40, bottom: 40, left: 40 } },
+      pageHeader: [],
+      pageFooter: [],
+      body: [{ kind: 'paragraph', runs: [{ text: 'Zürich Genève' }], style: { font: 'serif', size: 12 } }],
+      fonts: { serif: { normal: asset } },
+    }
+    const options = { maxPages: 5 }
+    const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
+    const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(document, options))
+    expect(inBrowser).toEqual(inNode)
+    const [nodeBytes, browserBytes] = [await renderInNode(document, options), await renderInBrowser(document, options)]
+    expect(await inflatedDigest(browserBytes)).toBe(await inflatedDigest(nodeBytes))
+    const again = await renderInBrowser(document, options)
+    expect(Buffer.from(browserBytes).equals(Buffer.from(again))).toBe(true)
+  }, TIMEOUT)
+
+  // The browser build bundles a fontkit of its own, which the version pin
+  // on the Node one does not read: a face whose GSUB that fontkit throws on
+  // too is drawn, since what the engine is handed has no GSUB (0043).
+  test('draws a face whose GSUB fontkit throws on, as the Node entry does', async () => {
+    const document: ResolvedDocument = {
+      info: { title: 'Host', creationDate: '2026-01-01T00:00:00Z' },
+      page: { size: 'A4', orientation: 'portrait', margins: { top: 40, right: 40, bottom: 40, left: 40 } },
+      pageHeader: [],
+      pageFooter: [],
+      body: [{ kind: 'paragraph', runs: [{ text: 'Af' }], style: { font: 'serif', size: 12 } }],
+      fonts: { serif: { normal: face('throwing', THROWING) } },
+    }
+    const pdf = await renderInBrowser(document, { maxPages: 5 })
+    expect((await readPdf(pdf)).pages[0]!.items.map((item) => item.text)).toEqual(['Af'])
   }, TIMEOUT)
 
   // The fonts the browser entry embeds are base64 inside a script, which

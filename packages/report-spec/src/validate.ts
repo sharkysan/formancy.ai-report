@@ -21,6 +21,7 @@ import type { Ctx } from './validate-context.js'
 import { readComponents } from './validate-components.js'
 import { readAssets, readDatasets, readPage, readParameters, readProvenance, readStyles } from './validate-declarations.js'
 import { readEInvoice } from './validate-e-invoice.js'
+import { checkMissingFaces, readFontMap } from './validate-font-map.js'
 import { readPaymentPart } from './validate-payment-part.js'
 import { checkSpecVersion, REPORT_SPEC_VERSION } from './version.js'
 
@@ -38,7 +39,7 @@ function readRegions(c: Ctx, value: unknown, path: string): Regions | undefined 
 
 /** The report in `o`, a copy of the document's top level whose version has been checked. */
 function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | undefined {
-  strictKeys(c.f, o, '', ['reportSpecVersion', 'id', 'title', 'locale', 'page', 'styles', 'datasets', 'parameters', 'assets', 'aggregates', 'regions'], ['paymentPart', 'eInvoice', 'provenance'])
+  strictKeys(c.f, o, '', ['reportSpecVersion', 'id', 'title', 'locale', 'page', 'styles', 'datasets', 'parameters', 'assets', 'aggregates', 'regions'], ['fonts', 'paymentPart', 'eInvoice', 'provenance'])
   const id = identifier(c.f, o.id, '/id')
   const title = text(c.f, o.title, '/title', MAX_LABEL_LENGTH)
   const locale = matches(c.f, o.locale, '/locale', LOCALE, 'invalid-locale', 'a BCP 47 language tag such as en, de-CH or zh-Hans-CN')
@@ -51,6 +52,9 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
   const parameters = readParameters(c, o.parameters, '/parameters')
   const assets = readAssets(c, o.assets, '/assets')
   const aggregates = readAggregates(c, o.aggregates, '/aggregates')
+  // The font map after the assets it references and the styles it is read against, before the regions, which print in it.
+  const fonts = readFontMap(c, o.fonts, '/fonts')
+  checkMissingFaces(c, styles, fonts, '/styles')
   const regions = readRegions(c, o.regions, '/regions')
   const paymentPart = readPaymentPart(c, o.paymentPart, '/paymentPart', page)
   const eInvoice = readEInvoice(c, o.eInvoice, '/eInvoice', { title, regions, paymentPart })
@@ -66,6 +70,7 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
     assets === undefined ||
     aggregates === undefined ||
     regions === undefined ||
+    (o.fonts !== undefined && fonts === undefined) ||
     (o.paymentPart !== undefined && paymentPart === undefined) ||
     (o.eInvoice !== undefined && eInvoice === undefined)
   ) {
@@ -83,6 +88,7 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
     parameters,
     assets,
     aggregates,
+    ...optional('fonts', fonts),
     regions,
     ...optional('paymentPart', paymentPart),
     ...optional('eInvoice', eInvoice),

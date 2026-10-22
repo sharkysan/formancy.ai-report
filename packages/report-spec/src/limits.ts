@@ -359,8 +359,9 @@ export const MAX_SVG_REMOVED_NAMES = 32
  * format 12 map of 131,066 characters -- read in 60 ms (57-65); Malgun
  * Gothic, 13.5 MB and 28,215 glyphs, in 16 to 17 ms, Liberation Sans in
  * 0.8.
- * What subsetting a large font costs a render is the renderer's to measure
- * where it embeds a host's font; of the machine's fonts, two collections and
+ * What subsetting a large font costs a render is bounded by the outlines'
+ * points and work together (`MAX_FONT_POINTS`, `MAX_FONT_OUTLINE_WORK`),
+ * not by its bytes; of the machine's fonts, two collections and
  * SimSun-ExtB, 21.9 MB, are past it.
  */
 export const MAX_FONT_BYTES = MAX_ASSET_BYTES
@@ -388,3 +389,78 @@ export const MAX_FONT_CHARACTERS = 0x20000
  * Sans's is 28,224, Roboto's 3,549.
  */
 export const MAX_FONT_GLYPH_WORK = 1_048_576
+
+/**
+ * The points of every simple glyph of a font, together: 2,097,152 (2^21).
+ * A subset holds every glyph a printed character reaches -- a composite's
+ * components among them, which may be every glyph the font has -- and
+ * fontkit decodes each point of each into an object of its own when PDFKit
+ * subsets. A font this reader accepted under the bounds above, one 'A'
+ * composed of 36,733 glyphs of 16 contours and 65,536 points, took PDFKit
+ * 162 s to embed (0043). Of the 412 fonts on the machine the reader
+ * accepts, the most points a font holds is 1,886,654 (Malgun Gothic Bold,
+ * a Hangul font whose script no report prints), Noto Sans 65,560 and
+ * Liberation Sans 35,285. Chosen just past the most measured, since the
+ * cost is what a render waits for, and the fonts that come near it hold
+ * Hangul, Han or a dozen scripts, which no report prints. At this bound
+ * and the next, the costliest subset found -- 31 glyphs of 8 contours and
+ * 65,536 points of one-byte coordinates and 65,500 glyphs of one point,
+ * one composite made of them all -- took PDFKit 1.3 to 1.4 s to embed,
+ * over three runs.
+ * Measured on 22 October 2026 on an Intel i9-10900K under Windows 11 and
+ * Node 24.21.0, shared with two other workflows' builds.
+ */
+export const MAX_FONT_POINTS = 2_097_152
+
+/**
+ * Every simple glyph's points times its contours, together: 16,777,216
+ * (2^24), sixteen glyphs at `MAX_FONT_GLYPH_WORK`. fontkit looks each point
+ * up among its glyph's contour ends, so a font of fewer points than the
+ * bound above can still cost a subset this much; sixteen glyphs at the
+ * bound took PDFKit 44 ms to embed. The most of the machine's fonts is
+ * 12,342,110 (Malgun Gothic), Liberation Sans's 123,704. Chosen past the
+ * most measured, as above. Measured as above.
+ */
+export const MAX_FONT_OUTLINE_WORK = 16_777_216
+
+/**
+ * The components of every composite glyph of a font, together: 262,144
+ * (2^18). PDFKit's subset decodes a composite's components into a list,
+ * however many of them name the same glyph: one composite of 3,490,000
+ * components, what 20 MiB holds, took PDFKit 1.0 s and 431 MiB of heap to
+ * embed for one 'A'. The most of the machine's fonts is 68,743 (HP
+ * Simplified Hans Light), and the most in one glyph 15; Liberation Sans
+ * holds 2,131, Roboto 1,321. Chosen at nearly four times the most measured.
+ * Measured as above.
+ */
+export const MAX_FONT_COMPONENTS = 262_144
+
+/**
+ * A font's line, in ems: its horizontal header's ascender less its
+ * descender, over its units to the em, which is how tall pdfmake lays out
+ * each line of it (PDFKit's `lineHeight`, from fontkit's `hhea.ascent`,
+ * `hhea.descent` and `head.unitsPerEm`; the line gap unread), its
+ * baseline the ascender below the line's top. The renderer counts a line
+ * of text as its size times this when it refuses a report too long for its
+ * page limit before laying it out (`bound.ts`), so the floor bounds how
+ * many lines a limit admits: at 0.5, 2.3 times what Roboto's 1.172 does.
+ * Unbounded, a face of a line of nothing printed a report of 20,000 lines,
+ * limited to one page, on one spot of that page, in 921 ms, and one of 4
+ * units to the em 2,000 lines within 35 points, each over the last (0040).
+ * The ceiling refuses metrics no font measured comes near; a line too tall
+ * for the page is refused at print besides.
+ * Measured on 22 October 2026 on the machine above, over the 425 fonts the
+ * reader accepts of Roboto 3.014's four faces, Liberation Sans, Serif and
+ * Mono 2.1.5's eight, Noto Sans Regular (0043's Sources) and the 447 files
+ * of the machine's Windows fonts directory: the shortest line is Ink
+ * Free's, 0.864, then Footlight MT Light's, 0.915 and Palace Script MT's,
+ * 0.926; the tallest Sans Serif Collection's, 2.651, then Javanese Text's,
+ * 2.271 and Myanmar Text Bold's, 1.904; Liberation's are 1.107 to 1.133,
+ * Roboto's 1.172 and Noto Sans's 1.362. fontkit read every one's ascender,
+ * descender and units as the reader does. Chosen with a margin: the floor
+ * half the shortest line, rounded up to half an em, 42 % below it; the
+ * ceiling one and a half times the tallest, rounded to a whole em, 51 %
+ * above it.
+ */
+export const MIN_FONT_LINE = 0.5
+export const MAX_FONT_LINE = 4

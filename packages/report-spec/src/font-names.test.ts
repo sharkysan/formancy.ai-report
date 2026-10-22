@@ -70,7 +70,7 @@ describe('the names returned', () => {
   // A name the font does not hold is not there, never an empty string a builder would show as one.
   test('leave out the names a font does not hold', () => {
     const read = named(LEAST)
-    expect(read.ok && Object.keys(read.names).sort()).toEqual(['family', 'postScriptName', 'subfamily'])
+    expect(read.ok && Object.keys(read.names).sort()).toEqual(['family', 'postScriptName', 'postScriptNames', 'subfamily'])
   })
 })
 
@@ -112,6 +112,19 @@ describe('the PostScript name', () => {
   // returned is the best, as every name's is.
   test("is the best record's where records differ", () => {
     expect(named([{ platform: 0, encoding: 3, language: 0, id: 6, text: 'Probe-Light' }, windows(1, 'Probe'), windows(2, 'Light'), windows(6, 'ProbeLight')])).toMatchObject({ ok: true, names: { postScriptName: 'ProbeLight' } })
+  })
+
+  // PDFKit keeps a document's faces by the PostScript name fontkit returns
+  // and draws a face as another of that name (0043), and which record
+  // fontkit returns depends on their order and languages: the last English
+  // one, so a Macintosh record after the Windows one the reader returns.
+  // A renderer that tells its faces apart by the best name alone would
+  // miss a face whose later record is another face's name. Every name a
+  // record of ID 6 holds is handed back, once, in table order.
+  test('is one of the names its records hold, each handed back once, in table order', () => {
+    const records = [{ platform: 0, encoding: 3, language: 0, id: 6, text: 'Probe-Light' }, windows(1, 'Probe'), windows(2, 'Light'), windows(6, 'ProbeLight'), macintosh(6, 'Probe-Light')] as const
+    expect(named(records)).toMatchObject({ ok: true, names: { postScriptName: 'ProbeLight', postScriptNames: ['Probe-Light', 'ProbeLight'] } })
+    expect(named(LEAST)).toMatchObject({ ok: true, names: { postScriptName: 'Probe-Bold', postScriptNames: ['Probe-Bold'] } })
   })
 
   // A font with no name PDFKit can write is named `undefined` in the PDF,

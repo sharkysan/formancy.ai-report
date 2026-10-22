@@ -1,7 +1,8 @@
 import type { Node, NodeQueries } from 'pdfmake/interfaces.js'
-import type { Block, EpcQrCode, ImageAsset, QrCode, Table, TableRow } from '@formancy/report-runtime'
+import type { Block, EpcQrCode, FontFamily, ImageAsset, QrCode, Table, TableRow } from '@formancy/report-runtime'
 import type { CheckedImage } from './assets.js'
 import type { KeepBlock } from './breaks.js'
+import type { RenderFonts } from './host-fonts.js'
 import type { QrSymbol } from './qr.js'
 import type { WordRoom } from './words.js'
 
@@ -75,6 +76,8 @@ export interface Build {
   readonly measuredRows: Map<Table, readonly { readonly kind: RowKind; readonly mark: number }[]>
   /** Where each paragraph stands in the document, `body[2]`, for a refusal to name. */
   readonly paths: ReadonlyMap<Block, string>
+  /** The pdfmake family a font token prints in (0043): Roboto, or the host family the report maps it to. */
+  readonly familyOf: (token: FontFamily) => string
   /** Filled in: every text node whose widest word is held to its room once pdfmake has measured it (`words.ts`). */
   readonly words: WordRoom[]
   /** The next unused mark. */
@@ -84,11 +87,12 @@ export interface Build {
 export function newBuild(
   mode: Build['mode'],
   checked: { readonly assets: ReadonlyMap<ImageAsset, CheckedImage>; readonly codes: ReadonlyMap<QrCode | EpcQrCode, QrSymbol>; readonly paths: ReadonlyMap<Block, string> },
+  fonts: RenderFonts,
   body: { readonly top: number; readonly bottom: number } = { top: 0, bottom: 0 },
   plans: ReadonlyMap<Table, TablePlan> = new Map(),
 ): Build {
   const { assets, codes, paths } = checked
-  return { mode, bodyTop: body.top, bodyBottom: body.bottom, plans, assets, codes, paths, imageKeys: new Map(), images: {}, rules: new Map(), measuredRows: new Map(), words: [], next: 1 }
+  return { mode, bodyTop: body.top, bodyBottom: body.bottom, plans, assets, codes, paths, familyOf: fonts.familyOf, imageKeys: new Map(), images: {}, rules: new Map(), measuredRows: new Map(), words: [], next: 1 }
 }
 
 /** Marks `node`, keeping a mark it already has, and returns the mark. */

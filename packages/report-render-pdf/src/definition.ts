@@ -6,7 +6,8 @@ import type { Checked, Measured, Page } from './check.js'
 import { contentOf } from './content.js'
 import { PDF_A_3B } from './pdfa.js'
 import { ABOVE_SLIP, slipContent } from './slip.js'
-import { DEFAULT_SIZE, ROBOTO } from './style.js'
+import type { RenderFonts } from './host-fonts.js'
+import { DEFAULT_SIZE } from './style.js'
 import { checkWords } from './words.js'
 
 /**
@@ -23,7 +24,10 @@ import { checkWords } from './words.js'
  * ending at its bottom. Nothing of the body can reach into either.
  */
 
-export const DEFAULT_STYLE = { font: ROBOTO, fontSize: DEFAULT_SIZE }
+/** The document's default text style: the font token-less text prints in -- the mapped `sans` host family, or Roboto -- at the default size (0043). */
+export function defaultStyle(fonts: RenderFonts): { readonly font: string; readonly fontSize: number } {
+  return { font: fonts.defaultFamily, fontSize: DEFAULT_SIZE }
+}
 
 /** Between the page header and the body, and between the body and the page footer. */
 export const REGION_GAP = 6
@@ -46,16 +50,16 @@ export interface Measurement {
  * have. A region that wraps only for some page numbers is measured at its
  * widest, which is not the same thing, and is not refused.
  */
-export function regionsMeasurement(document: ResolvedDocument, checked: Checked, maxPages: number): Measurement & { readonly present: readonly (readonly Block[])[] } {
+export function regionsMeasurement(document: ResolvedDocument, checked: Checked, fonts: RenderFonts, maxPages: number): Measurement & { readonly present: readonly (readonly Block[])[] } {
   const fields: Fields = { pageNumber: maxPages, pageCount: maxPages }
   const present = [document.pageHeader, document.pageFooter].filter((blocks) => blocks.length > 0)
-  const build = newBuild('measure', checked)
+  const build = newBuild('measure', checked, fonts)
   return { present, build, items: present.map((blocks): Content => ({ stack: contentOf(blocks, build, checked.page.width, fields) })) }
 }
 
 /** The body's tables and keep-together blocks, each one item laid out at the width it stands at. */
-export function bodyMeasurement(measured: readonly Measured[], checked: Checked): Measurement {
-  const build = newBuild('measure', checked)
+export function bodyMeasurement(measured: readonly Measured[], checked: Checked, fonts: RenderFonts): Measurement {
+  const build = newBuild('measure', checked, fonts)
   const items = measured.map(({ block, width }): Content => ({ stack: contentOf([block], build, width), margin: [0, 0, checked.page.width - width, 0] }))
   return { items, build }
 }
@@ -99,13 +103,14 @@ export function layoutDefinition(
   checked: Checked,
   regions: Regions,
   plans: ReadonlyMap<Table, TablePlan>,
+  fonts: RenderFonts,
   maxPages: number,
   bill?: CheckedBill,
 ): TDocumentDefinitions {
   const page: Page = checked.page
   const { margins } = page
   const { top: bodyTop, bottom: bodyBottom } = bodyBounds(page, regions)
-  const build = newBuild('render', checked, { top: bodyTop, bottom: bodyBottom }, plans)
+  const build = newBuild('render', checked, fonts, { top: bodyTop, bottom: bodyBottom }, plans)
   const region = (blocks: readonly Block[], margin: [number, number, number, number]): DynamicContent | undefined => {
     if (blocks.length === 0) return undefined
     return (pageNumber, pageCount) => ({ stack: contentOf(blocks, build, page.width, { pageNumber, pageCount }), margin })
@@ -124,7 +129,7 @@ export function layoutDefinition(
     info: { title: document.info.title, creationDate: checked.creationDate },
     pageSize: { width: page.paperWidth, height: page.paperHeight },
     pageMargins: [margins.left, bodyTop, margins.right, page.paperHeight - bodyBottom],
-    defaultStyle: DEFAULT_STYLE,
+    defaultStyle: defaultStyle(fonts),
     content: [...contentOf(document.body, build, page.width), ...reserved],
     images: build.images,
     ...(header === undefined ? {} : { header }),

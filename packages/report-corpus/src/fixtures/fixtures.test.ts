@@ -77,6 +77,7 @@ describe('the corpus', () => {
       'decimals',
       'null-missing',
       'fonts',
+      'host-fonts',
       'images',
       'image-invalid',
       'oversized',

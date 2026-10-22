@@ -147,6 +147,26 @@ describe('diagnose', () => {
   })
 })
 
+describe('font assets', () => {
+  // A font asset the font map maps is used, even though no image draws it;
+  // the unused-asset diagnostic would otherwise fire on every typeface a
+  // report prints in (0043).
+  test('a mapped font asset is not unused', () => {
+    const report = edited((report) => {
+      report.assets.push({ id: 'brand', mediaType: 'font/ttf', digest: `sha256:${'c3'.repeat(32)}` })
+      setAt(report, '/fonts', { sans: { normal: 'brand' } })
+    })
+    expect(diagnose(report)).toEqual([])
+  })
+
+  // A font asset no token maps is a leftover like any other, and says so in
+  // the words a font deserves, not an image's.
+  test('an unmapped font asset is unused, named as a font', () => {
+    const report = edited((report) => report.assets.push({ id: 'brand', mediaType: 'font/ttf', digest: `sha256:${'c3'.repeat(32)}` }))
+    expect(diagnose(report)).toEqual([{ code: 'unused-asset', severity: 'warning', path: '/assets/2', message: 'font "brand" is mapped to no font token' }])
+  })
+})
+
 describe('expression diagnostics', () => {
   /** The code, position and message of each diagnostic for the sample with `cel` at `pointer`. */
   const at = (pointer: string, cel: string): Diagnostic[] => diagnose(edited(set(pointer, cel)))

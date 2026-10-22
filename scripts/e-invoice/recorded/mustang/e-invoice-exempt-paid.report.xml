@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="e-invoice-exempt-paid.xml" datetime="2026-10-22 08:48:36">
+<validation filename="e-invoice-exempt-paid.xml" datetime="2026-10-22 10:47:38">
   <xml>
     <info>
       <version>2</version>
@@ -10,7 +10,7 @@
         <fired>163</fired>
         <failed>0</failed>
       </rules>
-      <duration unit="ms">2089</duration>
+      <duration unit="ms">2120</duration>
     </info>
     <summary status="valid"/>
   </xml>

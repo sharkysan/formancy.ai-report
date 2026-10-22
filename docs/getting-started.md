@@ -310,12 +310,15 @@ This prints:
 ```text guide=node
 final: refused, data incomplete at /completeness/complete: the provider says the data is incomplete; a final render prints every row or none, and never a silently truncated report
 preview: 2 lines, every page headed "Preview of incomplete data: not a final report"
-not drawn: unsupported, body[1] prints U+5C71, which Roboto has no glyph for: it would print as an empty box, and as nothing in the PDF's text, and no other font is embedded
+not drawn: unsupported, body[1] prints U+5C71, which is in no script the renderer prints: it prints Latin, Greek and Cyrillic, with the punctuation, symbols and marks written with them, and lays out no right-to-left text, no shaped script and no CJK
 ```
 
 The renderer names where it stopped as a place in the resolved document,
 where the report's header comes first: `body[1]` is the line that names the
-customer.
+customer. A character of any script but Latin, Greek and Cyrillic is
+refused by code point, since the renderer reorders and shapes nothing, even
+in a font a host supplies; a character of those scripts a font simply
+lacks is refused for that instead, naming the font ([0043](decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
 
 ### An XRechnung: take the XML
 

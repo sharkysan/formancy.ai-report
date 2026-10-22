@@ -4,7 +4,7 @@ import type { PdfPage, PdfTextItem } from './read-pdf.js'
 
 /** A run as the reader reports it: a box one font size tall, its bottom a fifth of that below the baseline. */
 function run(text: string, x: number, baseline: number, size = 10, width = text.length * size * 0.5): PdfTextItem {
-  return { text, x, top: baseline + 0.2 * size - size, bottom: baseline + 0.2 * size, width, height: size, angle: 0 }
+  return { text, x, top: baseline + 0.2 * size - size, bottom: baseline + 0.2 * size, width, height: size, angle: 0, font: 'Test' }
 }
 
 function page(...items: PdfTextItem[]): PdfPage {
@@ -36,7 +36,7 @@ describe('pageLines', () => {
   // and match no line the report prints. A turned run is a line of its
   // own, after the lines that read across the page.
   test('reads a run that does not read across the page as a line of its own', () => {
-    const caption: PdfTextItem = { text: 'Zahlen mit Code', x: 494.4, top: 690, bottom: 741.36, width: 7, height: 51.36, angle: 90 }
+    const caption: PdfTextItem = { text: 'Zahlen mit Code', x: 494.4, top: 690, bottom: 741.36, width: 7, height: 51.36, angle: 90, font: 'LiberationSans' }
     // Its box ends where that line's baseline is, a fifth of an em above it.
     const iban = run('DE71 1102 2033 0123 4567 89', 300, caption.bottom - 0.2 * caption.height)
     const lines = pageLines(page(caption, iban, run('Above', 50, 600)))

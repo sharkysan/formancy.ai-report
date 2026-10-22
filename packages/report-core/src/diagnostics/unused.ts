@@ -10,6 +10,7 @@
  * it can be credited with; its own diagnostic says why.
  */
 import { parse, referencedPaths } from '@formancy/expressions'
+import { FONT_FACE_KEYS, isFontMediaType } from '@formancy/report-spec'
 import type { DatasetRole, ReportDefinition } from '@formancy/report-spec'
 import { pathParts } from '../expressions/compile-site.js'
 import { quote } from '../outcome.js'
@@ -60,8 +61,15 @@ export function unusedDiagnostics(report: ReportDefinition, parts: ReportParts):
   const assets = new Set(parts.assets)
   const parameters = new Set(parts.parameters)
   const aggregates = new Set(parts.aggregates)
+  // A font asset is used when a font token maps one of its faces to it, where an image asset is used when an image draws it (0043).
+  const mappedFaces = new Set<string>()
+  for (const faces of Object.values(report.fonts ?? {})) for (const key of FONT_FACE_KEYS) if (faces[key] !== undefined) mappedFaces.add(faces[key])
   check(report.styles, (id) => styles.has(id), 'unused-style', '/styles', (id) => `style ${id} is used by no component, column or row`)
-  check(report.assets, (id) => assets.has(id), 'unused-asset', '/assets', (id) => `asset ${id} is drawn by no image`)
+  report.assets.forEach((asset, index) => {
+    const font = isFontMediaType(asset.mediaType)
+    if (font ? mappedFaces.has(asset.id) : assets.has(asset.id)) return
+    found.push(diagnostic('unused-asset', font ? `font ${quote(asset.id)} is mapped to no font token` : `asset ${quote(asset.id)} is drawn by no image`, { path: `/assets/${index}` }))
+  })
   check(
     report.parameters,
     (id) => parameters.has(id) || read(reads, ['params'], id),

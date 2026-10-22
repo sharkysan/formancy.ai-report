@@ -53,6 +53,23 @@ describe('pdfmake as the renderer configures it', () => {
     await expect(attempt('https://example.invalid/logo.png')).rejects.toThrow(/Access to URL denied/)
   })
 
+  // A host face goes into pdfmake's virtual files for one render and out
+  // again afterwards, since the files are process-wide and pdfmake has no
+  // delete: its VirtualFileSystem keeps them in a plain `storage` object,
+  // which the renderer writes a key into and deletes (engine.ts's
+  // registerHostFonts). Were pdfmake to hold them elsewhere, or to stop
+  // exposing `storage`, a process would leak every host font it ever drew,
+  // and this fails first.
+  test('keeps its virtual files in a storage object a key can be deleted from', () => {
+    const { virtualfs } = pdfmake as unknown as { virtualfs: { storage: Record<string, unknown>; existsSync(name: string): boolean } }
+    expect(typeof virtualfs.storage).toBe('object')
+    const name = 'formancy-report-render-pdf/font/pin.ttf'
+    virtualfs.storage[name] = new Uint8Array([1, 2, 3])
+    expect(virtualfs.existsSync(name)).toBe(true)
+    delete virtualfs.storage[name]
+    expect(virtualfs.existsSync(name)).toBe(false)
+  })
+
   // A PDF/A's output intent is the ICC profile PDFKit reads from its own
   // `data` folder with `fs`, past pdfmake's policy, as it ends the
   // document (pdfkit.js 5265): the one file beside the fonts a render
