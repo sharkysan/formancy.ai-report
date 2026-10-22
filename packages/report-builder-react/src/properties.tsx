@@ -9,10 +9,19 @@
  * stays as typed, `aria-invalid`, with the reason beside it as its
  * description. Escape gives back what the report holds. Under the
  * report's own fields, its images (`library`, 0033).
+ *
+ * Fields the editor groups -- a QR-bill's creditor and debtor (0039) -- are
+ * a `group` named in the editor's words, their name drawn and hidden from
+ * the tree, which reads the group's own, and the group's one button after
+ * them. The button keeps the keyboard where it is as its words change, Add
+ * to Remove and back. Add QR-bill, which gives the properties the bill's in
+ * place of the report's, takes its own button away, and the keyboard goes
+ * to the first field, the bill's IBAN, as it does when a Remove takes its
+ * row (report-builder.tsx).
  */
 import { useState } from 'react'
 import type { KeyboardEvent, ReactElement, ReactNode } from 'react'
-import type { EditorAction, EditorState, EditorText, PropertyField } from '@formancy/report-builder-core'
+import type { EditorAction, EditorState, PropertyField, PropertyGroup } from '@formancy/report-builder-core'
 
 export interface PropertiesProps {
   readonly state: EditorState
@@ -95,27 +104,59 @@ function Control(props: ControlProps): ReactElement {
   }
 }
 
+/** One field's row: its label, its control and, after a refusal or about a problem, why. `at` is its place among every field, for its ids. */
+function Row({ field, at, ids, act }: { readonly field: PropertyField; readonly at: number; readonly ids: string; readonly act: PropertiesProps['act'] }): ReactElement {
+  const id = `${ids}-field-${at}`
+  const error = `${id}-error`
+  const validity: Validity = field.error === undefined ? {} : { 'aria-invalid': true, 'aria-describedby': error }
+  return (
+    <div data-report-part="property" data-kind={field.kind}>
+      <label htmlFor={id}>{field.label}</label>
+      <Control field={field} id={id} validity={validity} commit={(value) => act({ type: 'setProperty', key: field.key, value })} />
+      {field.error === undefined ? null : (
+        <p id={error} data-report-part="property-error">
+          {field.error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** A group of fields, named in the editor's words, with its one button after them. */
+function Group({ group, first, ids, act }: { readonly group: PropertyGroup; readonly first: number; readonly ids: string; readonly act: PropertiesProps['act'] }): ReactElement {
+  const { action } = group
+  return (
+    <div role="group" aria-label={group.label} data-report-part="property-group">
+      <span aria-hidden="true">{group.label}</span>
+      {group.fields.map((field, at) => (
+        // A draft never outlives its field: leaving the field commits it, before anything else can be selected.
+        <Row key={field.key} field={field} at={first + at} ids={ids} act={act} />
+      ))}
+      {action === undefined ? null : (
+        <button key="action" type="button" onClick={() => act(action.action)}>
+          {action.label}
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function Properties({ state, ids, act, library }: PropertiesProps): ReactElement {
+  // Each field's place among every field, for its ids, groups' fields counted where they stand.
+  let next = 0
   return (
     // Named in words, as the pane's heading says, never after the heading,
     // which a stylesheet sets in capitals that Chromium would put in the name.
     <form aria-label={state.properties.heading} data-report-part="properties" onSubmit={(event) => event.preventDefault()}>
-      {state.properties.fields.map((field, at) => {
-        const id = `${ids}-field-${at}`
-        const error = `${id}-error`
-        const validity: Validity = field.error === undefined ? {} : { 'aria-invalid': true, 'aria-describedby': error }
-        return (
-          // A draft never outlives its field: leaving the field commits it, before anything else can be selected.
-          <div key={field.key} data-report-part="property" data-kind={field.kind}>
-            <label htmlFor={id}>{field.label}</label>
-            <Control field={field} id={id} validity={validity} commit={(value) => act({ type: 'setProperty', key: field.key, value })} />
-            {field.error === undefined ? null : (
-              <p id={error} data-report-part="property-error">
-                {field.error}
-              </p>
-            )}
-          </div>
-        )
+      {state.properties.rows.map((row) => {
+        const first = next
+        if ('group' in row) {
+          next += row.group.fields.length
+          return <Group key={row.group.key} group={row.group} first={first} ids={ids} act={act} />
+        }
+        next += 1
+        // A draft never outlives its field: leaving the field commits it, before anything else can be selected.
+        return <Row key={row.field.key} field={row.field} at={first} ids={ids} act={act} />
       })}
       {library}
     </form>

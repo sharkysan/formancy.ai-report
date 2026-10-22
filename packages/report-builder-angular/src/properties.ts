@@ -3,39 +3,45 @@
  * form named by the pane's heading, with one native control per field,
  * labelled by the field's label, with the role report-builder-core's
  * `PROPERTY_ROLES` gives its kind -- the control is chosen from that role,
- * so the two cannot disagree -- and required where the field is.
+ * so the two cannot disagree -- and required where the field is. Each
+ * field is a `property-row.ts`, which says when it commits.
  *
- * A field commits when it changes: a text on leaving it, or on Enter in a
- * single-line one; a select or a checkbox at once. A value given back as it
- * already stands is not sent, so the change event a browser fires after
- * Enter commits nothing twice. Escape in a typed field gives back what the
- * report holds, so leaving it afterwards commits nothing. A refused value
- * stays as typed, marked invalid and described by the reason, which is
- * shown under it; the editor keeps both, so they survive a re-render.
+ * Fields the editor groups -- a QR-bill's creditor and debtor (0039) -- are
+ * a `group` named in the editor's words, their name drawn and hidden from
+ * the tree, which reads the group's own, and the group's one button after
+ * them. The button keeps the keyboard where it is as its words change, Add
+ * to Remove and back. Add QR-bill, which gives the properties the bill's in
+ * place of the report's, takes its own button away, and the keyboard goes
+ * to the first field, the bill's IBAN, as it does when a Remove takes its
+ * row (`root.ts`).
  * Under the report's own fields, its images (`image-library.ts`, 0033).
  */
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { PROPERTY_ROLES } from '@formancy/report-builder-core'
-import type { PropertyField } from '@formancy/report-builder-core'
+import type { PropertyAction, PropertyField } from '@formancy/report-builder-core'
 import { ReportImageLibrary } from './image-library'
+import { CONTROLS, ReportPropertyRow } from './property-row'
+import type { Control, Shown } from './property-row'
 import { ReportEditorRoot } from './root'
 
-/** The native control for a role: a textbox is a text input, a spinbutton a number input. */
-const CONTROLS = { textbox: 'text', spinbutton: 'number', combobox: 'select', checkbox: 'checkbox' } as const
+/** A group of fields as the form draws it: its name, its fields and its one button. */
+interface ShownGroup {
+  readonly label: string
+  readonly fields: readonly Shown[]
+  readonly action: PropertyAction | null
+}
 
-type Control = (typeof CONTROLS)[keyof typeof CONTROLS] | 'textarea'
-
-interface Shown {
-  readonly field: PropertyField
-  readonly control: Control
-  readonly id: string
-  readonly errorId: string | null
+/** A row of the form: a field by itself, or a group of them with its button; the other one null. */
+interface Row {
+  readonly key: string
+  readonly field: Shown | null
+  readonly group: ShownGroup | null
 }
 
 @Component({
   selector: 'form[reportProperties]',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReportImageLibrary],
+  imports: [ReportImageLibrary, ReportPropertyRow],
   host: {
     'data-report-part': 'properties',
     '[attr.aria-label]': 'root.state().properties.heading',
@@ -43,65 +49,20 @@ interface Shown {
     '(submit)': '$event.preventDefault()',
   },
   template: `
-    @for (shown of shown(); track shown.id) {
-      <div data-report-part="property" [attr.data-kind]="shown.field.kind">
-        <label [attr.for]="shown.id">{{ shown.field.label }}</label>
-        @switch (shown.control) {
-          @case ('textarea') {
-            <textarea
-              [id]="shown.id"
-              [value]="shown.field.value"
-              [required]="shown.field.required"
-              [attr.placeholder]="shown.field.placeholder ?? null"
-              [attr.aria-invalid]="shown.errorId === null ? null : 'true'"
-              [attr.aria-describedby]="shown.errorId"
-              (change)="commit(shown.field, $any($event.target).value)"
-              (keydown.escape)="giveBack(shown.field, $event)"
-            ></textarea>
+    @for (row of rows(); track row.key) {
+      @if (row.group; as group) {
+        <div role="group" data-report-part="property-group" [attr.aria-label]="group.label">
+          <span aria-hidden="true">{{ group.label }}</span>
+          @for (shown of group.fields; track shown.id) {
+            <div reportPropertyRow [shown]="shown"></div>
           }
-          @case ('checkbox') {
-            <input
-              type="checkbox"
-              [id]="shown.id"
-              [checked]="shown.field.value === true"
-              [attr.aria-invalid]="shown.errorId === null ? null : 'true'"
-              [attr.aria-describedby]="shown.errorId"
-              (change)="commit(shown.field, $any($event.target).checked)"
-            />
+          @if (group.action; as action) {
+            <button type="button" (click)="press(action)">{{ action.label }}</button>
           }
-          @case ('select') {
-            <select
-              [id]="shown.id"
-              [required]="shown.field.required"
-              [attr.aria-invalid]="shown.errorId === null ? null : 'true'"
-              [attr.aria-describedby]="shown.errorId"
-              (change)="commit(shown.field, $any($event.target).value)"
-            >
-              @for (option of shown.field.options ?? []; track option.value) {
-                <option [value]="option.value" [selected]="option.value === shown.field.value">{{ option.label }}</option>
-              }
-            </select>
-          }
-          @default {
-            <input
-              [type]="shown.control"
-              [attr.step]="shown.control === 'number' ? 'any' : null"
-              [id]="shown.id"
-              [value]="shown.field.value"
-              [required]="shown.field.required"
-              [attr.placeholder]="shown.field.placeholder ?? null"
-              [attr.aria-invalid]="shown.errorId === null ? null : 'true'"
-              [attr.aria-describedby]="shown.errorId"
-              (change)="commit(shown.field, $any($event.target).value)"
-              (keydown.enter)="enter(shown.field, $event)"
-              (keydown.escape)="giveBack(shown.field, $event)"
-            />
-          }
-        }
-        @if (shown.errorId !== null) {
-          <p data-report-part="property-error" class="wb-problem" [id]="shown.errorId">{{ shown.field.error }}</p>
-        }
-      </div>
+        </div>
+      } @else {
+        <div reportPropertyRow [shown]="fieldOf(row)"></div>
+      }
     }
     @if (root.state().selection === null && root.state().images.assets.length > 0) {
       <div reportImageLibrary></div>
@@ -112,36 +73,38 @@ export class ReportProperties {
   protected readonly root = inject(ReportEditorRoot)
 
   /**
-   * Each field with its control and ids. The ids carry whose fields these
-   * are, and the rows are tracked by them, so a field of the next selection
-   * is a new control rather than one still holding what was typed into the
-   * last selection's.
+   * Each row, each field with its control and ids. The ids carry whose
+   * fields these are, and the rows are tracked by them, so a field of the
+   * next selection is a new control rather than one still holding what was
+   * typed into the last selection's.
    */
-  protected readonly shown = computed<readonly Shown[]>(() => {
+  protected readonly rows = computed<readonly Row[]>(() => {
     const { selection, properties } = this.root.state()
-    const owner = selection === null ? 'report' : `${selection.id}${selection.column === undefined ? '' : `-${selection.column}`}`
-    return properties.fields.map((field, index) => {
+    const owner = selection === null ? 'report' : 'part' in selection ? selection.part : `${selection.id}${selection.column === undefined ? '' : `-${selection.column}`}`
+    let index = 0
+    const shown = (field: PropertyField): Shown => {
       const id = `${this.root.id}-${owner}-${String(index)}`
+      index += 1
       const control: Control = field.kind === 'multiline' ? 'textarea' : CONTROLS[PROPERTY_ROLES[field.kind]]
       return { field, control, id, errorId: field.error === undefined ? null : `${id}-error` }
+    }
+    return properties.rows.map((row): Row => {
+      if ('field' in row) {
+        const field = shown(row.field)
+        return { key: field.id, field, group: null }
+      }
+      const { group } = row
+      return { key: `${this.root.id}-${owner}-${group.key}`, field: null, group: { label: group.label, fields: group.fields.map(shown), action: group.action ?? null } }
     })
   })
 
-  protected commit(field: PropertyField, value: string | boolean): void {
-    // The field as the editor has it now: an Enter's commit has landed by the time the browser's change event follows it.
-    const now = this.root.state().properties.fields.find((candidate) => candidate.key === field.key)
-    if (now !== undefined && now.value === value) return
-    this.root.dispatch({ type: 'setProperty', key: field.key, value })
+  /** The field of a row that is no group. */
+  protected fieldOf(row: Row): Shown {
+    return row.field as Shown
   }
 
-  protected enter(field: PropertyField, event: Event): void {
-    event.preventDefault()
-    this.commit(field, (event.target as HTMLInputElement).value)
-  }
-
-  /** Escape: what the report holds, back in the field, so nothing typed since is committed when it is left. */
-  protected giveBack(field: PropertyField, event: Event): void {
-    const now = this.root.state().properties.fields.find((candidate) => candidate.key === field.key) ?? field
-    ;(event.target as HTMLInputElement | HTMLTextAreaElement).value = String(now.value)
+  /** A group's button: what it says it does. */
+  protected press(action: PropertyAction): void {
+    this.root.dispatch(action.action)
   }
 }

@@ -1,6 +1,6 @@
 # 0032 — The quotation, the QR-bill invoice and the euro invoice, their samples and the e-invoice samples print one invented, wordless firm's mark at the top left of their first page: the corpus's SVG mark, approved as any asset is, the first template asset a starter draws; a mark per firm, a PNG made in code, a drawing of its own, the top right and the page header lost
 
-- **Status:** accepted
+- **Status:** accepted; narrowed by [0039](0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md), under which the QR-bill invoice and its samples have one diagnostic, the warning that their bill pays SIX's example QR-IBAN, where this record holds them to none
 - **Date:** 2026-10-18
 - **Deciders:** Daniel Bacher
 - **Verified by:**

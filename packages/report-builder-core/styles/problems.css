@@ -1,0 +1,42 @@
+/*
+ * The problems: the list of diagnostics and the sentence that says there
+ * are none. It changes when the problems pane does. Imported by
+ * ../report-builder.css, whose header says what holds it.
+ */
+
+/* --------------------------------------------------------------- the problems */
+
+[data-report-part='diagnostics'] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-report-part='diagnostic'] {
+  margin-block-end: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-inline-start: 3px solid var(--wb-invalid);
+  font-size: 0.75rem;
+  color: var(--wb-ink);
+}
+
+[data-report-part='diagnostic'][data-severity='warning'] {
+  border-inline-start-color: var(--wb-caution);
+}
+
+/* The sentence that says there is nothing to list. */
+[data-report-part='diagnostics'] + p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--wb-muted);
+}
+
+[data-report-part='diagnostic'] > button {
+  padding: 0;
+  border: none;
+  font-weight: 600;
+  text-align: start;
+  color: var(--wb-ink);
+  background: none;
+  cursor: pointer;
+}

@@ -12,8 +12,9 @@
  * Each box is a picture of where a component stands -- `role="img"`, named
  * by its label, so reading the view says what is on it. A click selects; a
  * box is not a tab stop, because the outline is the keyboard's way to every
- * box and two ways to the same place would double the tabbing. The view
- * itself is one stop, so a keyboard can scroll it.
+ * box and two ways to the same place would double the tabbing. The payment
+ * part's band is the same for the bill (0039). The view itself is one
+ * stop, so a keyboard can scroll it.
  */
 import type { CSSProperties, ReactElement, Ref } from 'react'
 import type { Box, CanvasBox, EditorAction, EditorState, EditorText, RulerTick } from '@formancy/report-builder-core'
@@ -94,10 +95,23 @@ export function Canvas({ state, t, canvas: canvasRef, sheet: sheetRef, drag, sel
         ))}
         {/* Where a payment part's slip prints, below every region: a
             picture named as SIX names the part, as a box is named by its
-            label. */}
+            label, which a click selects the bill by, as it does a box's
+            component. */}
         {canvas.paymentPart === null ? null : (
-          <div role="img" aria-label={canvas.paymentPart.label} data-report-part="payment-part" style={placed(canvas.paymentPart.px)}>
+          <div
+            role="img"
+            aria-label={canvas.paymentPart.label}
+            data-report-part="payment-part"
+            data-selected={canvas.paymentPart.selected ? 'true' : undefined}
+            style={placed(canvas.paymentPart.px)}
+            onClick={() => select({ type: 'select', part: 'paymentPart' })}
+          >
             <span data-report-part="region-label">{canvas.paymentPart.label}</span>
+            {canvas.paymentPart.problems > 0 ? (
+              <span data-report-part="badge" data-severity={canvas.paymentPart.severity} aria-hidden="true">
+                {canvas.paymentPart.problems}
+              </span>
+            ) : null}
           </div>
         )}
         {/* Drawn only for the places the session accepts, named as the place

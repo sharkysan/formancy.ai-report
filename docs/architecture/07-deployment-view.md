@@ -134,6 +134,10 @@ deploy happened or what the address serves.
   room, `@formancy/themes/room.css` after the workbench, as the Studio
   imports it
   ([0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)).
+  `report-builder.css` imports its rules from the package's `styles/` by
+  relative path: a bundler inlines them, and a host that serves or copies
+  the entry as it stands serves or copies `styles/` beside it
+  ([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
   The React builder fills a
   container the host gives a height
   ([`packages/report-builder-react/README.md`](../../packages/report-builder-react/README.md),

@@ -28,6 +28,7 @@ import {
   removeStyle,
 } from './declarations.js'
 import { replaceDocument, setLocale, setPage, setTitle } from './document.js'
+import { putPaymentPart, removePaymentPart, updatePaymentPart } from './payment-part.js'
 import {
   insertColumn,
   insertFooterRow,
@@ -79,9 +80,30 @@ export const COMMANDS = Object.freeze({
   updateFooterRow,
   putFooterCell,
   removeFooterCell,
+  putPaymentPart,
+  updatePaymentPart,
+  removePaymentPart,
 })
 
 export type CommandName = keyof typeof COMMANDS
+
+/**
+ * The commands that may change each part a report holds at its own level,
+ * in no region: its payment part (0022, 0039), by the three made to edit
+ * it, and its e-invoice (0027), which no command edits yet; and either by
+ * `replaceDocument`, a paste, an import or a proposal that rewrote the
+ * report, whose document may hold another part than the one it replaces.
+ * Every other command keeps each part the very object it found;
+ * registry.test.ts holds both halves, reading which commands are which
+ * from here. A proposal that names one of these may change whom a payment
+ * reaches -- a replacement whatever else it changes -- which 0039 asks a
+ * proposal's review to show above every other change, the part compared
+ * whole for a replacement, once proposals are reviewed.
+ */
+export const PART_COMMANDS = Object.freeze({
+  paymentPart: Object.freeze(['putPaymentPart', 'updatePaymentPart', 'removePaymentPart', 'replaceDocument'] as const),
+  eInvoice: Object.freeze(['replaceDocument'] as const),
+}) satisfies { readonly [part in 'paymentPart' | 'eInvoice']: readonly CommandName[] }
 
 /** A command's arguments after the report. */
 type ArgumentsOf<F> = F extends (report: ReportDefinition, ...rest: infer A) => unknown ? A : never
@@ -167,6 +189,9 @@ export const ARGUMENTS: { readonly [N in CommandName]: readonly Shape[] } = {
   updateFooterRow: ['text', 'footer', 'index', 'object'],
   putFooterCell: ['text', 'footer', 'index', 'object'],
   removeFooterCell: ['text', 'footer', 'index', 'text'],
+  putPaymentPart: ['object'],
+  updatePaymentPart: ['object'],
+  removePaymentPart: [],
 }
 
 /** Why `args` are not arguments `name` takes, or undefined when they are. Never quotes an argument. */

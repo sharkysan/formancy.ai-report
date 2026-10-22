@@ -286,7 +286,7 @@
       ]
     },
     "0012": {
-      "reviewed": "sha256:867e63d4a0575f8147ed65c1112613f527c9fda416854aa986f2b43815287ed5",
+      "reviewed": "sha256:2c38d4cca3be234f19a327e82a257114c8756cf33f17e4bbb2da42747368d03f",
       "limitations": [
         {
           "area": "builders",
@@ -489,7 +489,7 @@
       ]
     },
     "0022": {
-      "reviewed": "sha256:65e38a9c9579ce20a0e7109998def2a4e6330e4f06200490a98df37dbe0c0867",
+      "reviewed": "sha256:2be7cd0a270c9ee7c9ee7cefe355364a4402302e96a0fafaa80220f1deadd776",
       "limitations": [
         {
           "area": "format",
@@ -508,10 +508,6 @@
         {
           "area": "format",
           "says": "A QR-bill's country is checked as two capital letters, not against the codes ISO 3166-1 assigns, its billing information only for the // and the two characters naming its syntax it begins with, its postal codes not for a country's prefix, which SIX forbids, and nothing checks that the account is the creditor's."
-        },
-        {
-          "area": "builders",
-          "says": "Neither builder edits a QR-bill: the design view shows where its slip prints, the bill is written in the report's definition, and its diagnostics are listed as the report's, with no row to select."
         },
         {
           "area": "builders",
@@ -590,7 +586,7 @@
       ]
     },
     "0024": {
-      "reviewed": "sha256:b53276746f8756ec2938b5070236036c635cbb13cce6bf411ef7f265ade6100a",
+      "reviewed": "sha256:fb9a7489e44db6db5f6f3b9c50363c14f5a794ca2cb4d2e18c60e5f297e40c66",
       "limitations": [
         {
           "area": "release",
@@ -1216,7 +1212,7 @@
       ]
     },
     "0032": {
-      "reviewed": "sha256:3a518e4a670aafee42c46b55ad932f28721c6f583de1ab6f04963d7ff8861f52",
+      "reviewed": "sha256:9e489a81305757d5455e20e421e21d95e9cbb4e91ecaf9ccc40c88848f82f04e",
       "limitations": [
         {
           "area": "runtime",
@@ -1454,6 +1450,72 @@
         {
           "area": "licence",
           "says": "XRechnung's specification identifier, the contexts and tests the e-invoice gate holds its rules to, and the sample's Leitweg-ID are copied from KoSIT's configuration and test suite, whose licences were not read, and whether that is acceptable under 0006, as whether the sample's title may name XRechnung, is the rightsholder's question."
+        }
+      ]
+    },
+    "0039": {
+      "reviewed": "sha256:d59246d7069041d61f971807fb14f7903a5dbc1cc48c9590186397afe90e0509",
+      "limitations": [
+        {
+          "area": "builders",
+          "says": "A QR-bill's fields edit its texts run by run and add or remove nothing else: a run added to or removed from a text, a literal run made a binding or a binding a literal, and a reference's type, which is read from its text, have no field, and a debtor bound to the data, removed and added again, comes back as SIX's example in literal text, bound again only by undo.",
+          "heldBy": "packages/report-builder-core/src/payment-part.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A QR-bill added from nothing is SIX's third example -- its IBAN and its sample foundation of Bern as the creditor -- and is warned of until its account is none of SIX's examples and its creditor no longer SIX's sample foundation, which is not to say either is the creditor's; the builders ask for no account first.",
+          "heldBy": "packages/report-builder-core/src/payment-part.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A bill that holds, written in the report, one of SIX's four example accounts, or the creditor, the debtor or the QR reference a builder puts in from SIX's examples, is warned of once as `example-payment-part`, the invoice starter and its samples among them, which pay an example account on purpose and so open with that warning; a text read from the data, an account that pays no creditor for another reason, another of SIX's example parties or references typed by hand, and an example party with one part changed are not warned of.",
+          "heldBy": "packages/report-core/src/diagnostics/example-payment-part.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The warning that a bill holds SIX's examples is listed among the problems, on the bill, and drawn on no field -- the IBAN's among them -- which a builder would mark invalid.",
+          "heldBy": "packages/report-builder-core/src/payment-part.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A changed IBAN is checked by SIX's rules -- country, length, check digits and a QR-IBAN's currency -- and confirmed by nothing: a valid account of someone else's, typed or pasted, is taken, so who may change whom a bill pays is the host's, through who it lets edit the report, and a proposal's review that shows such a change above every other, comparing the bill whole where a proposal replaces the document, is not built.",
+          "heldBy": "packages/report-builder-core/src/payment-part.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "An IBAN of the other kind than the bill's reference changes the reference in the same step: a QR-IBAN typed over a creditor reference or none gives the bill SIX's example QR reference, and an IBAN typed over a QR reference removes it, so what was in the reference is gone until undo, which the live region says rather than asks. A reference read from the data is left as it is, and a QR-IBAN in a bill in euro is refused until the currency is francs.",
+          "heldBy": "packages/report-builder-core/src/payment-part.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "In a report with an e-invoice the QR-bill's IBAN cannot be changed: it must equal the e-invoice's account (BT-84), and an edit of either alone is refused on its field, until an edit that changes both arrives with the e-invoice's editing.",
+          "heldBy": "packages/report-builder-core/src/payment-part.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Every report without a QR-bill offers Add QR-bill in its own properties, a report that cannot take one among them -- a Letter or landscape page, an e-invoice -- where pressing it is refused in report-spec's words.",
+          "heldBy": "packages/report-builder-core/src/payment-part.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "`Selection` is a component, a table's column or a part of the report's own level, so a host's code that read `selection.id` narrows it to a `ComponentSelection` first."
+        },
+        {
+          "area": "builders",
+          "says": "A text that prints \"Payment part\" names its outline row and its box as a QR-bill's row and band are named, so the two cannot be told apart by name."
+        },
+        {
+          "area": "builders",
+          "says": "The Studio's Preview offers no \"Select …\" for a runtime refusal of a QR-bill, which names no component."
+        },
+        {
+          "area": "builders",
+          "says": "report-builder.css is an entry that imports its rules from files of `styles/`, which the package publishes beside it: a bundler inlines them, a page that links the entry as it stands asks the browser for each of them, and a host that copies the entry by hand copies `styles/` too.",
+          "heldBy": "packages/report-builder-core/src/css.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "That a bill's code pays the IBAN typed is held by the browser gate, in CI and on a developer's machine: the PDF the Studio offers in Chromium is drawn by PDF.js and its code decoded by ZXing in the gate's own Node process, never by a banking app, as 0022 says of every bill."
         }
       ]
     },

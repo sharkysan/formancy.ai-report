@@ -11,12 +11,18 @@
  * markup gives it a way to be named; so every element with a role a person
  * operates or reads is also asked its name.
  *
- * One test reads the DOM, and says why: how a name is given, which jsdom's
- * names cannot show, because jsdom applies no stylesheet and Chromium puts
- * one's text-transform into a name taken from text on the page.
+ * Where a test reads the DOM it says why, as these do: how a name is
+ * given, which jsdom's names cannot show, because jsdom applies no
+ * stylesheet and Chromium puts one's text-transform into a name taken from
+ * text on the page; where each row stands among its siblings, its level, place and
+ * set size; and a QR-bill's row and its groups of fields (0039) -- that a
+ * group's name is its own and not `aria-labelledby`'s, that the drawn name
+ * is hidden from the tree, found by its `aria-hidden` ancestor, and the
+ * row's level and the role of what holds it -- none of which a query by
+ * role and name returns.
  */
 import { TestBed } from '@angular/core/testing'
-import { createReportEditor, scenarioReport } from '@formancy/report-builder-core'
+import { BUILDER_SCENARIOS, createReportEditor, scenarioReport } from '@formancy/report-builder-core'
 import { screen, within } from '@testing-library/angular'
 import axe from 'axe-core'
 import { computeAccessibleName } from 'dom-accessibility-api'
@@ -122,6 +128,30 @@ describe('the accessible tree', () => {
     for (const { role, name } of named) expect(screen.getByRole(role, { name }), `${role} ${name}`).toBeTruthy()
     const builder = screen.getByRole('region', { name: 'Report editor' })
     expect([...builder.querySelectorAll('[aria-labelledby]')].map((element) => element.outerHTML.slice(0, 80))).toEqual([])
+  })
+
+  // A QR-bill's parties are groups of fields (0039), named as the outline's
+  // regions are: in the editor's words, the name drawn above the fields
+  // and hidden from the tree, which would read it a second time among the
+  // fields. Its row in the outline is a row at the tree's top, after the
+  // regions' groups, and the debtor's button names what it does.
+  test('names a QR-bill’s row and each group of its fields in its own words, the name drawn hidden', async () => {
+    const billed = BUILDER_SCENARIOS.map((scenario) => scenario.report()).find((report) => report.paymentPart !== undefined)
+    if (billed === undefined) throw new Error('no scenario has a report with a payment part')
+    const { editor, settle } = await mountBuilder(createReportEditor(sessionOver(billed)))
+    click(screen.getByRole('treeitem', { name: 'Payment part' }))
+    await settle()
+    const groups = editor.state().properties.rows.flatMap((row) => ('group' in row ? [row.group] : []))
+    expect(groups.map((group) => group.label)).toEqual(['Creditor', 'Debtor'])
+    for (const group of groups) {
+      const drawn = screen.getByRole('group', { name: group.label })
+      expect(drawn.hasAttribute('aria-labelledby'), group.label).toBe(false)
+      expect(within(drawn).queryAllByText(group.label).filter((element) => element.closest('[aria-hidden="true"]') === null), group.label).toEqual([])
+    }
+    expect(within(screen.getByRole('group', { name: 'Debtor' })).getByRole('button', { name: 'Add debtor' })).toBeTruthy()
+    const row = screen.getByRole('treeitem', { name: 'Payment part', selected: true })
+    expect([row.getAttribute('aria-level'), row.parentElement?.getAttribute('role')]).toEqual(['1', 'tree'])
+    expect(await audit()).toEqual([])
   })
 
   // Every row of a report holding every kind, named and audited with a

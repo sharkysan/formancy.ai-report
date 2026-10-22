@@ -102,6 +102,15 @@ What is Angular's own:
   cleared, and handed to `editor.addImage`. The report's own properties
   list its images, each with its Remove, which puts the keyboard on the
   first field only once the image is gone (`ReportEditorRoot.attempt`).
+- **A report's QR-bill is selected and edited like a component**
+  ([0039](../../docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)): its row stands in the outline after the regions, its band
+  on the canvas selects it with a click, and the properties draw its
+  fields and its parties as groups, each a `group` named in the editor's
+  words with its one button, which keeps the keyboard as its words change.
+  A field is `ReportPropertyRow`, drawn by itself or in a group from one
+  template, since `NgTemplateOutlet` is not this package's to use. Add
+  QR-bill takes its own button away, and the keyboard goes to the bill's
+  IBAN, the first field, as it does when a Remove takes its row.
 - **Drag and drop is HTML's**, from the palette, from a canvas box or from an
   outline row, onto the sheet (the nearest place, `targetNear`, read inside
   the sheet's border) or onto a row (before or after it, `targetBeside`). A

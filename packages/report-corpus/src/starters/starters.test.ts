@@ -22,9 +22,14 @@ describe('the starters', () => {
   // Nor with a warning: a starter is what the Studio opens first, and a
   // warning there -- a style no component uses, say -- is the first thing a
   // new author sees and the README's pictures show. report-core's diagnose is
-  // the list the builders' problems pane draws.
-  test.each(STARTERS.map((starter) => [starter.id, starter] as const))('%s opens with no warning in the problems pane', (_id, starter) => {
-    expect(diagnose(starter.report).map((diagnostic) => `${diagnostic.severity} ${diagnostic.code} ${diagnostic.path}: ${diagnostic.message}`)).toEqual([])
+  // the list the builders' problems pane draws. The one warning a starter
+  // opens with is the one it is meant to: the invoice's QR-bill pays SIX's
+  // example QR-IBAN, which no creditor holds, by design (0022), and the
+  // editor says so of every bill that pays one of SIX's examples, once,
+  // until it pays another (0039).
+  test.each(STARTERS.map((starter) => [starter.id, starter] as const))('%s opens with no warning in the problems pane but that its bill pays SIX’s example', (_id, starter) => {
+    const expected = starter.report.paymentPart === undefined ? [] : ['warning example-payment-part /paymentPart']
+    expect(diagnose(starter.report).map((diagnostic) => `${diagnostic.severity} ${diagnostic.code} ${diagnostic.path}`)).toEqual(expected)
   })
 
   // Each starter's own data renders in a final render, with nothing a

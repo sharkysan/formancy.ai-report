@@ -57,6 +57,8 @@ export const REPORT_PARTS = [
   'place',
   'properties',
   'property',
+  /** A group of fields in the properties -- a QR-bill's creditor or debtor -- its name drawn above them and its one button after them. */
+  'property-group',
   'property-error',
   'diagnostics',
   'diagnostic',

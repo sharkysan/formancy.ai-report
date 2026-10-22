@@ -152,6 +152,32 @@ const STATES = [
       await editor.getByRole('status').filter({ hasText: /^Top margin \(mm\): / }).waitFor()
     },
   },
+  {
+    // The invoice's bill from its row after the regions; any other starter given SIX's example from its own properties, which selects it, the keyboard on its IBAN (0039).
+    state: 'the QR-bill selected, its row after the regions',
+    step: async ({ editor }) => {
+      const row = (await showing(editor, 'Outline', treeOf(editor))).getByRole('treeitem', { name: 'Payment part', exact: true })
+      if ((await row.count()) === 1) await row.click()
+      else {
+        // The outline shown from the toolbar put the keyboard on a row, which selected it: the report's own properties are a button away.
+        await showing(editor, 'Properties', editor.getByRole('form'))
+        const report = editor.getByRole('button', { name: 'Report', exact: true })
+        if ((await report.count()) === 1) await report.click()
+        await (await showing(editor, 'Properties', editor.getByRole('button', { name: 'Add QR-bill', exact: true }))).click()
+      }
+      await showing(editor, 'Properties', editor.getByRole('textbox', { name: 'IBAN', exact: true }))
+    },
+  },
+  {
+    state: 'an IBAN with a wrong check digit refused on its field',
+    step: async ({ editor }) => {
+      const iban = await showing(editor, 'Properties', editor.getByRole('textbox', { name: 'IBAN', exact: true }))
+      await iban.fill('CH44 3199 9123 0008 8901 3')
+      await iban.press('Tab')
+      // The live region says why, in the field's words, once the editor has refused it.
+      await editor.getByRole('status').filter({ hasText: /^IBAN: / }).waitFor()
+    },
+  },
   ...['Outline', 'Design view', 'Properties', 'Problems'].map((pane) => ({
     state: `the ${pane} pane shown from the toolbar`,
     step: ({ editor }) => tools(editor).getByRole('button', { name: pane, exact: true }).click(),

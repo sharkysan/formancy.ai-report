@@ -186,9 +186,12 @@ const select = (node: OutlineNode | null): EditorAction => (node === null ? { ty
  * given its place back; the place chooser for every kind the palette
  * offers, each kind that has a place then placed there; every row
  * selected; a move's chooser; a condition naming no parameter, with its
- * problem; a top margin the page cannot hold, refused; an image being
- * added, Add image… pressed while it is, and the image listed, then
- * removed; undo and redo; each pane; the zoom; and the Preview shown in
+ * problem; a top margin the page cannot hold, refused; the QR-bill --
+ * the invoice's, or one added from SIX's example to a starter without one
+ * -- selected, an IBAN its rules refuse refused on its field, its debtor
+ * taken away and given back, the bill deleted and brought back (0039); an
+ * image being added, Add image… pressed while it is, and the image listed,
+ * then removed; undo and redo; each pane; the zoom; and the Preview shown in
  * the middle again, a pane hidden and shown beside it, the Preview placed
  * beside the builder and back, and hidden.
  */
@@ -234,6 +237,18 @@ async function walk({ editor, react, angular, app, release }: Mounted): Promise<
   const margin = editor.state().properties.fields.find((field) => field.kind === 'length')
   if (margin === undefined) throw new Error('the report has no length field')
   await dispatch({ type: 'setProperty', key: margin.key, value: '400' }, 'a margin the page cannot hold, refused')
+  // The invoice's bill selected from its row, or one added to a starter
+  // that has none, which selects it: either way the bill's form, its row
+  // and its band, in both builders.
+  const billed = editor.state().outlineParts.length > 0
+  await dispatch(billed ? { type: 'select', part: 'paymentPart' } : { type: 'addPart', part: 'paymentPart' }, 'the QR-bill selected')
+  await dispatch({ type: 'setProperty', key: '/account/0/text', value: 'CH44 3199 9123 0008 8901 3' }, 'an IBAN SIX’s rules refuse, refused on its field')
+  const debtor = editor.state().properties.rows.some((row) => 'group' in row && row.group.key === '/debtor' && row.group.fields.length > 0)
+  await dispatch({ type: debtor ? 'removeGroup' : 'addGroup', key: '/debtor' }, 'the debtor taken away or given')
+  await dispatch({ type: debtor ? 'addGroup' : 'removeGroup', key: '/debtor' }, 'the debtor given back or taken away')
+  await dispatch({ type: 'delete' }, 'the QR-bill deleted')
+  await dispatch({ type: 'undo' }, 'the QR-bill brought back')
+  await dispatch(select(null), 'the report selected again')
   const file = { name: 'logo.png', size: SCENARIO_PNG.length, arrayBuffer: async () => Uint8Array.from(SCENARIO_PNG).buffer }
   let adding: Promise<unknown> = Promise.resolve()
   act(() => void (adding = editor.addImage(file)))
@@ -270,7 +285,11 @@ describe('the two builders, side by side over one editor', () => {
       test(`${locale}, ${starter.id}: draw one accessible tree at every state`, async () => {
         const states = await walk(await mountBoth(starter.report, locale))
         // The guard on the guard: a walk that stopped early compared fewer states than it names.
-        expect(states).toEqual(expect.arrayContaining(['opened, the Preview in the design view’s place', 'a condition naming no parameter', 'a margin the page cannot hold, refused', 'an image being added', 'the image removed', 'zoomed in', 'the Preview hidden']))
+        expect(states).toEqual(
+          expect.arrayContaining(['opened, the Preview in the design view’s place', 'a condition naming no parameter', 'a margin the page cannot hold, refused', 'the QR-bill selected', 'the QR-bill deleted', 'an image being added', 'the image removed', 'zoomed in', 'the Preview hidden']),
+        )
+        // The bill the walk selected is the one the starter has, or SIX's example added to it.
+        expect(mounted?.editor.state().outlineParts.map((row) => row.part)).toEqual(['paymentPart'])
       })
     }
   }

@@ -9,6 +9,8 @@ import {
   checkQrBillText,
   QR_BILL_ADDRESS_RULES,
   QR_BILL_BILLING_RULE,
+  QR_BILL_EXAMPLE,
+  QR_BILL_EXAMPLE_ACCOUNTS,
   QR_BILL_MESSAGE_RULE,
   QR_BILL_SIZE,
   QR_BILL_TOP,
@@ -36,6 +38,17 @@ describe('the account', () => {
     expect(accepted(checkQrBillAccount('CH6431961000004421557'))).toEqual({ iban: 'CH6431961000004421557', qrIban: true })
     expect(accepted(checkQrBillAccount('CH52 0483 5012 3456 7100 0'))).toEqual({ iban: 'CH5204835012345671000', qrIban: false })
     expect(accepted(checkQrBillAccount('CH5800791123000889012'))).toEqual({ iban: 'CH5800791123000889012', qrIban: false })
+  })
+
+  // SIX's examples are accounts to test with, never a creditor's: a new
+  // bill in a builder starts from one, and the editor warns of a bill
+  // that still pays one (0039). Listed as the code holds them, in the
+  // order of IG 2.4's Annex A -- examples 1, 2, 3, then 4, 5 and 6, which
+  // share one -- each one the account check takes as it is listed, so a
+  // warning compares what the check wrote with what is here.
+  test("lists SIX's example accounts as the code holds them, each one the account check takes", () => {
+    expect(QR_BILL_EXAMPLE_ACCOUNTS).toEqual(['CH6431961000004421557', 'CH4431999123000889012', 'CH5204835012345671000', 'CH5800791123000889012'])
+    for (const account of QR_BILL_EXAMPLE_ACCOUNTS) expect(accepted(checkQrBillAccount(account)).iban).toBe(account)
   })
 
   // The QR-IID is 30000 to 31999 (IG 2.8). One out at either end would
@@ -68,6 +81,30 @@ describe('the account', () => {
   test('refuses check digits that do not match', () => {
     expect(broken(checkQrBillAccount('CH4431999123000889013'))).toBe('has check digits that do not match the rest of it (ISO 13616: the IBAN modulo 97 is 1)')
     expect(broken(checkQrBillAccount('CH4531999123000889012'))).toBe('has check digits that do not match the rest of it (ISO 13616: the IBAN modulo 97 is 1)')
+  })
+})
+
+describe('what a builder starts a bill from', () => {
+  // A bill a person adds in a builder starts from SIX's own example values
+  // (INV-Q9, 0039), which report-core warns of while the bill holds them.
+  // An account that were no example of SIX's would be put in a person's
+  // bill and never warned of; a value SIX's rules refused would refuse the
+  // add. So the account is example 3's, an IBAN, among SIX's; each part of
+  // each party is one its rule takes, and only an optional one is left out;
+  // and the reference, given to a bill whose account is made a QR-IBAN, is
+  // a QR reference whose check digit holds.
+  test("is SIX's examples, each value one SIX's rules take", () => {
+    const account = accepted(checkQrBillAccount(QR_BILL_EXAMPLE.account))
+    expect(QR_BILL_EXAMPLE_ACCOUNTS).toContain(account.iban)
+    expect(account.qrIban).toBe(false)
+    for (const party of [QR_BILL_EXAMPLE.creditor, QR_BILL_EXAMPLE.debtor]) {
+      for (const [part, rule] of Object.entries(QR_BILL_ADDRESS_RULES)) {
+        const text = (party as Readonly<Record<string, string>>)[part]
+        if (text === undefined) expect(rule.required, `${party.name}: ${part}`).toBe(false)
+        else expect(accepted(checkQrBillText(text, rule))).toBe(text)
+      }
+    }
+    expect(accepted(checkQrBillReference(QR_BILL_EXAMPLE.reference))).toEqual({ type: 'QRR', reference: '000008207791225857421286694' })
   })
 })
 

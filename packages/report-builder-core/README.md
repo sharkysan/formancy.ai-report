@@ -110,7 +110,13 @@ const editor = createReportEditor(opening.session, {
   Mustermänn"), a bound run by what it binds. Labels are unique in the
   report, so each can be an accessible name; where two would read the
   same, each gets its id.
-- **`selection`**: a component, or one column of a table.
+- **`outlineParts`**: a row for each part of the report's own level, after
+  the regions: a report's payment part, its Swiss QR-bill, named as SIX
+  names the part ("Payment part", "Zahlteil", "Section paiement"), with
+  whether it is selected and its problems, where the report has one
+  ([0039](../../docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)). Every walk of the outline takes it, last.
+- **`selection`**: a component, one column of a table, or a part of the
+  report's own level, `{ part: 'paymentPart' }` (`REPORT_LEVEL_PARTS`).
 - **`palette`**: every kind the format has, with the default component
   inserting it would put in. A new image draws the report's newest asset,
   so the image a person just added is the one Image inserts, else the
@@ -168,6 +174,26 @@ const editor = createReportEditor(opening.session, {
   reference stands beside a text is report-spec's to say when the edit is
   applied, on the field typed in, in its words, which never quote the
   value.
+  A QR-bill's fields are every term of report-spec's `SwissQrBill`, a
+  table over them (`payment-part-fields.ts`), in the order the code holds
+  them (IG 2.4, Table 8): the IBAN, the creditor, the amount, the currency,
+  the debtor, the reference, the message and the billing information, then
+  the language of the slip's headings, each named by Intl in the editor's
+  language. Each text is edited as an EPC code's is. A party is a group of
+  its address's parts, each named after the party ("Creditor's town");
+  the debtor is optional, and its group's button removes it, or adds SIX's
+  first example's debtor where there is none. The panel's `rows` are its
+  `fields` as the form draws them, each by itself or in a group
+  (`PropertyGroup`: its key, its name, its fields and its one button, an
+  `action` to dispatch); a builder draws `rows` and finds a field in
+  `fields`. Where the report has no bill, its own properties end with a
+  group "Payment part" whose button is Add QR-bill.
+  An IBAN of the other kind than the bill's reference takes the reference
+  with it, in the same step, as SIX pays a QR-IBAN with a QR reference and
+  nothing else and an IBAN never with one: a QR-IBAN typed over a bill with
+  no QR reference gives it SIX's example QR reference, report-spec's
+  `QR_BILL_EXAMPLE`; an IBAN typed over a QR reference takes it away; the
+  live region says which. A reference the data gives is left as it is.
 - **`canvas`**: the design view. It is one sheet as wide as the page, with
   the regions as bands and each component's flow box in its band, in points
   and in pixels, with the same severity and overflow its outline row has.
@@ -180,11 +206,16 @@ const editor = createReportEditor(opening.session, {
   part ("Payment part", "Zahlteil", "Section paiement"). It stands below
   every region, a band's gap under the last of them: when the regions reach
   it, the sheet grows past the page rather than draw them under the slip.
-  Without a payment part it is `null`.
+  It says whether the bill is selected, and its problems, as its outline
+  row does. Without a payment part it is `null`.
 - **`diagnostics`**: report-core's `diagnose()`, each entry linked to the
-  component or column it is about, with a `key` of what it is -- its code,
-  where it points and which characters -- unique in the list and the same
-  while it is listed.
+  component or column it is about, or to the payment part, for one that
+  names no component at a path inside `/paymentPart`, with a `key` of what
+  it is -- its code, where it points and which characters -- unique in the
+  list and the same while it is listed. A bill that holds SIX's examples
+  -- an example account, or the creditor, the debtor or the QR reference
+  the editor puts in -- is warned of once, there and on no field, until
+  each is replaced (`example-payment-part`).
 - **`history`**: whether undo and redo can run, and what they would take
   back.
 - **`drag`** and **`dropTargets`**: while something is being placed, the
@@ -228,11 +259,11 @@ session's do.
 
 | Action | Does |
 | --- | --- |
-| `select`, `selectNext`, `selectPrevious`, `selectFirst`, `selectLast` | Selects a component or a table column; the four steps walk the outline's order. |
-| `selectParent`, `selectChild` | Steps out to the container a row stands in (a column's table), or into the first thing it holds; says why where there is none. |
-| `moveUp`, `moveDown` | Reorders the selection within its list, a table's columns included. Refused at either end, never clamped. |
+| `select`, `selectNext`, `selectPrevious`, `selectFirst`, `selectLast` | Selects a component, a table column, or with `part` the report's payment part, refusing (`not-found`) what the report does not hold, a `part` that is none of `REPORT_LEVEL_PARTS` among it; the four steps walk the outline's order, the payment part last. |
+| `selectParent`, `selectChild` | Steps out to the container a row stands in (a column's table), or into the first thing it holds; says why where there is none, as for the payment part. |
+| `moveUp`, `moveDown` | Reorders the selection within its list, a table's columns included. Refused at either end, never clamped, and for the payment part, which prints where SIX puts it, as `indent`, `outdent` and `duplicate` are. |
 | `indent`, `outdent` | Moves into the container just before it, at the end of what that holds, or out to just after its own container. |
-| `delete` | Deletes, and selects the next item in the list, else the one before, else the container. |
+| `delete` | Deletes, and selects the next item in the list, else the one before, else the container; the payment part in one step, "Remove QR-bill", selecting the outline's row before it. |
 | `duplicate` | Copies to just after it with fresh ids, and selects the copy. |
 | `insert(kind, target)`, `move(id, target)` | The keyboard path for a drop: a kind, or an id, and a location. |
 | `setProperty(key, value)` | Writes one field through a typed report-core command. A refused value keeps what was typed, and shows the reason on that field. |
@@ -246,6 +277,8 @@ session's do.
 | `placeHostView(place)` | Moves it between `'middle'` and `'beside'`, shown or not as it was, silently. Placed where it stands, it changes nothing and tells no listener. |
 | `chooseImage` | Sent by Add image… before it opens the file chooser, in the same activation. Changes nothing; refused, and said why, when the editor would take no file now: no store (`unavailable`), an image being added (`busy`), or a report that holds `MAX_ASSETS` images (`unavailable`). |
 | `removeImage(asset)` | Removes an image the report declares and nothing draws, in one undo step. Refused (`unavailable`) for one something draws, naming what draws it, before the session is asked. |
+| `addPart(part)` | Adds a QR-bill to a report without one, SIX's third example (IG 2.4, Table 19), its headings in the report's language where SIX prints in it, else English, in one step, "Add QR-bill", and selects it; refused (`unavailable`) where the report has one, with report-spec's reason where it cannot take one, and (`not-found`) for a part it has none of, which a caller tsc never saw may send. |
+| `addGroup(key)`, `removeGroup(key)` | Adds the selection's optional group of fields at `key` from its example values, or removes it, in one step: a bill's debtor, "Add debtor", "Remove debtor". Refused (`unavailable`) with nothing to do. |
 
 `editor.addImage(file)` is no action: reading a file and a host keeping it
 take time, and `dispatch` is synchronous (0008). It resolves with an
@@ -443,8 +476,11 @@ so the choices are made here.
   region named by its label. Each row is a `treeitem` named by its label,
   with `aria-level` set to depth + 1, `aria-posinset`, `aria-setsize` and
   `aria-selected`, described by its problem count and, when it overflows,
-  by `canvas.overflow`. One row is a tab stop -- the selected one, else the
-  first. With no row in any region the tree is empty -- a tree owns rows,
+  by `canvas.overflow`. After the regions' groups, at the tree's top, a
+  row for each of `outlineParts` -- the payment part -- at `aria-level` 1,
+  its place among them its `aria-posinset` and `aria-setsize`, selected by
+  focus or a click as a component's row is, dragged nowhere. One row is a
+  tab stop -- the selected one, else the first. With no row in any region the tree is empty -- a tree owns rows,
   and a region's name with none under it is not one -- and is itself the
   tab stop, described by `outline.empty` in a paragraph beside it
   (`data-report-part="outline-empty"`). Focus and selection are one: focus
@@ -460,7 +496,15 @@ so the choices are made here.
   `aria-invalid="true"` and an `aria-describedby` pointing to the visible
   error. While something is selected, a button named `properties.report`
   above the form selects nothing and takes focus to the first field: the
-  way back to the report's own properties. While nothing is selected and
+  way back to the report's own properties. The form draws the state's
+  `rows`: a field by itself, or a group of them, a `group` named by its
+  `label` (`aria-label`), with `data-report-part="property-group"`, its
+  label drawn in a `span` hidden from the tree, its fields' rows, and its
+  `action`, where it has one, as a button after them named by its label,
+  which keeps the keyboard as its words change, Add to Remove and back.
+  Add QR-bill takes its own button away with the report's properties, and
+  the keyboard goes to the first field, the bill's IBAN, as it does when a
+  Remove takes its row. While nothing is selected and
   the report declares an image, a group named `images.heading` follows the
   fields in the form -- named for a screen reader, with no heading drawn --
   with one row per image of `images.assets`, `data-report-part="property"` and no
@@ -488,7 +532,9 @@ so the choices are made here.
   sheet's padding edge, inside its border, as the targets are placed. A
   payment part's band is an `img` named by its label, after the boxes,
   with `data-report-part="payment-part"`, and its label drawn in it as a
-  region's band draws its own (`region-label`).
+  region's band draws its own (`region-label`); `data-selected` and a badge
+  as a box's, and a click selects the bill and moves focus to its outline
+  row.
 - **A live region** (`role="status"`, unnamed) showing `status.text`, each
   announcement a new element.
 
@@ -522,10 +568,15 @@ its error visible, move by keyboard, delete with focus moving on,
 duplicate, undo and redo, follow a diagnostic to its component, count the
 problems as they change, press a tool with nothing to do, zoom, choose
 a style, open a report with a payment part, whose band is drawn and
-which an edit, and a page refused for it, leave whole, and insert an EPC
-payment code by keyboard, its IBAN refused on its field when its check
-digits are wrong, and its BIC added by typing it and removed by emptying
-it. Six are about a host's view: it takes the design view's place with
+which an edit, and a page refused for it, leave whole, select the QR-bill
+by its band and edit it field by field -- an IBAN with a wrong check digit
+refused on its field, one typed, its debtor added from SIX's example,
+renamed, removed and brought back by Ctrl+Z -- add a QR-bill to a report
+without one, follow its warning, delete it from its row and bring it back,
+add one and make it pay a QR-IBAN, its QR reference taken with the IBAN
+and then typed, and insert an EPC payment code by keyboard, its IBAN refused on its field
+when its check digits are wrong, and its BIC added by typing it and
+removed by emptying it. Six are about a host's view: it takes the design view's place with
 the outline and the properties beside it, and the toolbar's Design view
 gives the place back; a key pressed in it is the host's; a side pane
 hidden beside it gives it the room and the keyboard; placed beside the
@@ -578,23 +629,35 @@ rule here; those it found are the naming rule above and the problems' key.
 `@formancy/report-builder-core/report-builder.css` dresses what is specific
 to reports: the bars above and below the panes, the sheet, its region
 bands and a payment part's band, rulers, the selection, drop indicators,
-outline rows, badges, an unavailable tool, property rows, the problems
-list, the grid without the panes the person hid, and the one-pane layout
-on a narrow screen. The host imports `@formancy/themes`' `workbench.css`
-first. It dresses nothing in a host's view, which is the host's.
+outline rows, badges, an unavailable tool, property rows and groups, the
+problems list, the grid without the panes the person hid, and the one-pane
+layout on a narrow screen. The host imports `@formancy/themes`'
+`workbench.css` first. It dresses nothing in a host's view, which is the
+host's.
+
+It is one entry, the export's name, which imports its rules from
+`styles/` beside it, a file per reason to change -- the editor's frame, the
+outline, the design view, placing, the properties and the problems -- in
+the order they cascade in; the package publishes them. A bundler inlines
+them, as Vite, esbuild and the Angular CLI do; a page that links the entry
+as it stands asks the browser for each file beside it.
 
 The stylesheet takes colour only from the workbench's `--wb-*` variables,
 with no colour literal and no fallback. A Studio recolours the editor by
 setting those variables, never by overriding a rule. It selects by
 `data-report-part`, the `data-*` states and the tree's own ARIA, never by a
-framework's class. Its test reads the file and fails on:
+framework's class. Its test reads the entry with its imports resolved,
+and fails on a part it does not import, or one it imports that is not
+there, and on:
 
 - a colour literal;
 - a variable the workbench does not define;
 - a part or an attribute the builders do not render;
 - any class other than the workbench's;
 - a rule that dresses a region's band and not a payment part's, which is
-  drawn as one.
+  drawn as one;
+- a rule that dresses a selected box, or a box's badge, and not the
+  payment part's band, which a click selects as it does a box.
 
 ## The editor's words
 
@@ -624,15 +687,22 @@ the other's steps in English.
   or caption. Every region is one flow on one
   sheet, without pagination. The renderer measures text and lays out
   pages, and the PDF preview shows what prints.
-- **A payment part is shown, not edited.** The editor opens a report with
-  one, keeps it whole through every edit and undo, and refuses a page it
-  cannot be printed on, Letter, landscape or a top margin past the slip's
-  top, with report-spec's reason on the field. A page header, or the
-  instruction to separate above the slip, reaching into it is refused only
-  when the report renders, since only a render measures them. The design
-  view shows where its slip prints and draws nothing of the slip, which
-  the PDF preview shows. It has no outline row and no properties yet, and
-  a diagnostic about it is listed as the report's.
+- **A payment part's texts are edited, not its slip drawn.** The editor
+  opens a report with one, keeps it whole through every edit but its own
+  and undo, and refuses a page it cannot be printed on, Letter, landscape
+  or a top margin past the slip's top, with report-spec's reason on the
+  field. A page header, or the instruction to separate above the slip,
+  reaching into it is refused only when the report renders, since only a
+  render measures them. The design view shows where its slip prints and
+  draws nothing of the slip, which the PDF preview shows. Its fields edit
+  its texts run by run, as a payment code's, and nothing else: a debtor
+  bound to the data, removed and added again, comes back as SIX's example
+  in literal text, bound again only by undo. Nothing confirms a changed
+  IBAN: report-spec's rules refuse one of the wrong country, length or
+  check digits, SIX's examples are warned of, and a valid account of
+  someone else's is taken. In a report with an e-invoice the bill's IBAN
+  must be the e-invoice's account, and an edit of either alone is refused
+  on its field ([0039](../../docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
 - **Not every property is editable yet.** These need editors of their own,
   and have none:
   - a table's sort, its group, its group and total rows, and its footer

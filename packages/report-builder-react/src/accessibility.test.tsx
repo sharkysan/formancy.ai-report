@@ -9,11 +9,15 @@
  * when the markup gives it a way to be named; so every element with a role
  * a person operates or reads is also asked its name.
  *
- * One test reads the DOM, and says why: how a name is given, which jsdom's
- * names cannot show, because jsdom applies no stylesheet and Chromium puts
- * one's text-transform into a name taken from text on the page.
+ * Where a test reads the DOM it says why, as these do: how a name is
+ * given, which jsdom's names cannot show, because jsdom applies no
+ * stylesheet and Chromium puts one's text-transform into a name taken from
+ * text on the page; and a QR-bill's row and its groups of fields (0039) -- that a
+ * group's name is its own and not `aria-labelledby`'s, for that reason,
+ * that the drawn name is hidden from the tree, and the row's level and the
+ * role of what holds it -- which no query by role and name returns.
  */
-import { createReportEditor, editorText, PROPERTY_KINDS } from '@formancy/report-builder-core'
+import { BUILDER_SCENARIOS, createReportEditor, editorText, PROPERTY_KINDS } from '@formancy/report-builder-core'
 import type { EditorState, OutlineNode } from '@formancy/report-builder-core'
 import { COMPONENT_KINDS, walkComponents } from '@formancy/report-spec'
 import type { FieldRef, ReportDefinition } from '@formancy/report-spec'
@@ -220,6 +224,29 @@ describe('every part of the builder', () => {
     expect([...builder.querySelectorAll('[aria-labelledby]')].map((element) => element.outerHTML.slice(0, 80))).toEqual([])
     const tree = screen.getByRole('tree', { name: t('pane.outline') })
     expect(outline.flatMap((region) => within(tree).queryAllByText(region.label)).filter((element) => !isInaccessible(element)).map((element) => element.outerHTML)).toEqual([])
+  })
+
+  // A QR-bill's parties are groups of fields (0039), named as the outline's
+  // regions are: in the editor's words, the name drawn above the fields
+  // and hidden from the tree, which would read it a second time among the
+  // fields. Its row in the outline is a row at the tree's top, after the
+  // regions' groups, and the debtor's button names what it does.
+  test('names a QR-bill’s row and each group of its fields in its own words, the name drawn hidden', async () => {
+    const billed = BUILDER_SCENARIOS.map((scenario) => scenario.report()).find((report) => report.paymentPart !== undefined)
+    if (billed === undefined) throw new Error('no scenario has a report with a payment part')
+    const { editor, user } = mount(billed)
+    await user.click(screen.getByRole('treeitem', { name: t('canvas.paymentPart') }))
+    const groups = editor.state().properties.rows.flatMap((row) => ('group' in row ? [row.group] : []))
+    expect(groups.map((group) => group.label)).toEqual([t('group.creditor'), t('group.debtor')])
+    for (const group of groups) {
+      const drawn = screen.getByRole('group', { name: group.label })
+      expect(drawn.hasAttribute('aria-labelledby'), group.label).toBe(false)
+      expect(within(drawn).queryAllByText(group.label).filter((element) => !isInaccessible(element)), group.label).toEqual([])
+    }
+    expect(within(screen.getByRole('group', { name: t('group.debtor') })).getByRole('button', { name: t('action.addDebtor') })).toBeTruthy()
+    const row = screen.getByRole('treeitem', { name: t('canvas.paymentPart'), selected: true })
+    expect([row.getAttribute('aria-level'), row.parentElement?.getAttribute('role')]).toEqual(['1', 'tree'])
+    expect(await violations()).toEqual([])
   })
 
   // A table's column has no place to be moved to on its own, so the tool

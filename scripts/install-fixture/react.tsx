@@ -26,7 +26,7 @@ import type { ReportBuilderProps } from '@formancy/report-builder-react'
 import type { EditorState, ReportEditor } from '@formancy/report-builder-core'
 import { elementsIn, readMarkup, spokenText } from './markup.js'
 import type { MarkupElement } from './markup.js'
-import { editorToDraw, editorWithHostView, editorWithImages, HOST_VIEW, structureProblems } from './structure.js'
+import { editorToDraw, editorWithBill, editorWithHostView, editorWithImages, HOST_VIEW, structureProblems } from './structure.js'
 
 /**
  * Which of React's builds runs: the gate sets NODE_ENV=production for the
@@ -105,6 +105,15 @@ const [imagedRoot] = imaged.children
 if (imaged.children.length !== 1 || imagedRoot === undefined || typeof imagedRoot === 'string') throw new Error('the markup with images is not one editor root')
 wrong.push(...structureProblems(imagedRoot, imaging.state()).map((problem) => `with images: ${problem}`))
 imaging.dispose()
+
+// Drawn a fourth time with a QR-bill added and selected (0039): its row
+// after the regions, its band selected, and its parties as groups.
+const billing = editorWithBill()
+const billed = readMarkup(render(<ReportBuilder editor={billing} />))
+const [billedRoot] = billed.children
+if (billed.children.length !== 1 || billedRoot === undefined || typeof billedRoot === 'string') throw new Error('the markup with a QR-bill is not one editor root')
+wrong.push(...structureProblems(billedRoot, billing.state()).map((problem) => `with a QR-bill: ${problem}`))
+billing.dispose()
 
 // A host's own view of the state, through the hook the package exports.
 function Title({ editor: shown }: { readonly editor: ReportEditor }): ReactElement {

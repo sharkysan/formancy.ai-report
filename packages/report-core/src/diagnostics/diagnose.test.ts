@@ -129,6 +129,8 @@ const CASES: { readonly [C in DiagnosticCode]: Case } = {
     expected: { path: '/regions/body' },
   },
   'empty-text': { edit: set('/regions/body/3/components/1/content', []), expected: { path: '/regions/body/3/components/1/content', componentId: 'note' } },
+  // A bill left paying SIX's example account, as one a builder adds starts.
+  'example-payment-part': { edit: set('/paymentPart/account', [{ kind: 'text', text: 'CH44 3199 9123 0008 8901 2' }]), expected: { path: '/paymentPart' } },
 }
 
 describe('diagnose', () => {

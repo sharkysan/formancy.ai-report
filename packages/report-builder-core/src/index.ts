@@ -2,7 +2,7 @@ export { createReportEditor } from './editor.js'
 export type { ReportEditor, ReportEditorOptions } from './editor.js'
 export type { HostViewOptions } from './views.js'
 
-export { EDITOR_PANELS, EDITOR_REFUSAL_CODES, HIDEABLE_PANELS, HOST_VIEW_PLACES, PROPERTY_KINDS, PROPERTY_ROLES } from './model.js'
+export { EDITOR_PANELS, EDITOR_REFUSAL_CODES, HIDEABLE_PANELS, HOST_VIEW_PLACES, PROPERTY_KINDS, PROPERTY_ROLES, REPORT_LEVEL_PARTS } from './model.js'
 export type {
   Announcement,
   Availability,
@@ -11,6 +11,7 @@ export type {
   CanvasBox,
   CanvasPaymentPart,
   CanvasRegion,
+  ComponentSelection,
   DiagnosticEntry,
   DocumentSummary,
   DragState,
@@ -27,15 +28,20 @@ export type {
   HostView,
   HostViewPlace,
   OutlineNode,
+  OutlinePart,
   OutlineRegion,
   PageGeometry,
   PaletteEntry,
   PartKind,
+  PropertyAction,
   PropertyField,
+  PropertyGroup,
   PropertyKind,
   PropertyOption,
   PropertyPanel,
+  PropertyRow,
   RegionSummary,
+  ReportLevelPart,
   RulerTick,
   Selection,
   Size,

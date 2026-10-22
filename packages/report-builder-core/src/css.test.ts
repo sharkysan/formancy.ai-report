@@ -1,11 +1,18 @@
 /**
- * report-builder.css, read as text: what it may colour with and what it may
- * select. The file dresses both builders, so it may target only what both
- * render -- the `data-report-part` hooks and their `data-*` states -- and
- * colour only through the workbench's `--wb-*` variables, so the Studio
- * recolours the editor by setting those and never by overriding a rule.
+ * report-builder.css, read as text with its imports resolved: what it may
+ * colour with and what it may select. The file dresses both builders, so it
+ * may target only what both render -- the `data-report-part` hooks and
+ * their `data-*` states -- and colour only through the workbench's `--wb-*`
+ * variables, so the Studio recolours the editor by setting those and never
+ * by overriding a rule.
+ *
+ * The entry a host imports holds its header, an `@import` of each part in
+ * `styles/` and one rule of its own; the parts hold the rest, a file per
+ * reason to change. Every check below reads the entry as a bundler builds
+ * it, each import replaced by the part it names, so a rule cannot pass by
+ * standing in a part the checks did not read.
  */
-import css from '../report-builder.css?raw'
+import entry from '../report-builder.css?raw'
 import { describe, expect, test } from 'vitest'
 import { REPORT_ATTRIBUTES, REPORT_PARTS, WORKBENCH_CLASSES } from './parts.js'
 
@@ -70,6 +77,32 @@ function colourLiterals(text: string): string[] {
   return found
 }
 
+/**
+ * The parts beside the entry, by their path from it: `./styles/editor.css`.
+ * vitest reads each as written (vitest.config.ts includes them); one the
+ * directory does not hold is one a host's bundler would not find either.
+ */
+const PARTS = new Map(Object.entries(import.meta.glob<string>('../styles/*.css', { query: '?raw', import: 'default', eager: true })).map(([path, text]) => [path.replace(/^\.\.\//, './'), text]))
+
+/** The relative paths `text` imports, in order: `@import './styles/editor.css';`. Refuses an import of anything else. */
+function importsOf(text: string): string[] {
+  return [...uncommented(text).matchAll(/@import\s+([^;]*);/g)].map((match) => {
+    const path = /^'(\.\/[^']+\.css)'$/.exec((match[1] ?? '').trim())?.[1]
+    if (path === undefined) throw new Error(`an @import the entry may not have: ${match[0]}`)
+    return path
+  })
+}
+
+/** `text` with each of its imports replaced by the part it names: what a bundler builds, and what a host's page applies. */
+function resolved(text: string): string {
+  return text.replace(/@import\s+'(\.\/[^']+\.css)';/g, (_, path: string) => {
+    const part = PARTS.get(path)
+    if (part === undefined) throw new Error(`report-builder.css imports ${path}, which is not beside it`)
+    return part
+  })
+}
+
+const css = resolved(entry)
 const RULES = uncommented(css)
 
 describe('report-builder.css', () => {
@@ -77,8 +110,27 @@ describe('report-builder.css', () => {
   // process, and every check below would pass on nothing; this one fails
   // first (vitest.config.ts includes the file).
   test('is read as written, not as vitest’s empty stand-in', () => {
-    expect(css.startsWith('/*')).toBe(true)
+    expect(entry.startsWith('/*')).toBe(true)
+    expect(PARTS.size).toBeGreaterThan(0)
+    for (const [path, text] of PARTS) expect(text.startsWith('/*'), path).toBe(true)
     expect(css).toContain("[data-report-part='canvas']")
+  })
+
+  // A part the entry does not import dresses nothing, and is published for
+  // nothing; one it imports twice cascades twice; and an import of
+  // anything but a part beside it -- a package, a URL, a file further away
+  // -- is one a host's bundler resolves its own way, or a browser fetches.
+  // Each part is imported once, by its path beside the entry, and nothing
+  // else is: the parts, in the order they cascade in, are the rules.
+  test('imports every part in styles/ once, by its path beside the entry, and nothing else', () => {
+    const imported = importsOf(entry)
+    expect(imported.length).toBeGreaterThan(0)
+    expect(new Set(imported).size).toBe(imported.length)
+    expect([...imported].sort()).toEqual([...PARTS.keys()].sort())
+    for (const [path, text] of PARTS) expect(importsOf(text), path).toEqual([])
+    // A guard on the guard: an import it does not understand is refused, not skipped.
+    expect(() => importsOf("@import url('x.css');")).toThrow(/may not have/)
+    expect(() => resolved("@import './styles/nowhere.css';")).toThrow(/not beside it/)
   })
 
   // A colour typed into the editor's stylesheet is one the Studio cannot
@@ -134,9 +186,25 @@ describe('report-builder.css', () => {
     for (const selector of regions) expect(selector).toContain("[data-report-part='payment-part']")
   })
 
-  // The source-size guard counts stylesheets; the editor's chrome is the
-  // report-specific part only, and the workbench has the rest.
-  test('stays under the source-size budget', () => {
-    expect(css.split('\n').length).toBeLessThanOrEqual(600)
+  // The band is what a pointer selects the bill by (0039), as a box is a
+  // component's: selected, it is drawn as a selected box is, and the count
+  // of its problems stands at its corner as a box's does. A band left out
+  // of those rules would be selected with nothing on the sheet to say so,
+  // and its badge would stand in the flow over the report header.
+  test('dresses a selected payment part’s band, and its badge, by the rules that dress a selected box’s', () => {
+    const selectors = [...RULES.matchAll(/([^{}]+)\{/g)].map((match) => (match[1] ?? '').trim())
+    const selectedBoxes = selectors.filter((selector) => selector.includes("[data-report-part='box']") && selector.includes("[data-selected='true']"))
+    const badges = selectors.filter((selector) => selector.includes("[data-report-part='box']") && selector.includes("> [data-report-part='badge']"))
+    expect(selectedBoxes.length).toBeGreaterThanOrEqual(1)
+    expect(badges.length).toBeGreaterThanOrEqual(1)
+    for (const selector of [...selectedBoxes, ...badges]) expect(selector).toContain("[data-report-part='payment-part']")
+  })
+
+  // The source-size guard counts stylesheets, each file on its own; the
+  // editor's chrome is the report-specific part only, and the workbench has
+  // the rest. A part past the budget is split by its reason to change, as
+  // the entry was.
+  test('stays under the source-size budget, file by file', () => {
+    for (const [path, text] of [['../report-builder.css', entry], ...PARTS] as const) expect(text.split('\n').length, path).toBeLessThanOrEqual(600)
   })
 })

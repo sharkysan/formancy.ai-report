@@ -79,13 +79,24 @@ clamps when what it names is not there:
   gives `epc-qr-code`;
 - **the table:** `insertColumn`, `removeColumn` (with its footer cells),
   `moveColumn`, `updateColumn`, `setGroup`, `setSort`, and the footer rows
-  under the table and under each group, row by row and cell by cell.
+  under the table and under each group, row by row and cell by cell;
+- **the payment part**, the report's Swiss QR-bill: `putPaymentPart` (the
+  bill whole, added or in place of one), `updatePaymentPart` (a patch of
+  its properties, never its kind) and `removePaymentPart`, which judge
+  nothing of the bill: SIX's rules are report-spec's, which the session
+  asks
+  ([0039](../../docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
 
-No command edits a report's payment part yet, its Swiss QR-bill, or its
-e-invoice, and every one keeps each as it was: the very object, through
-every edit. `replaceDocument` takes them with the rest of the document. An
-edit that would leave an e-invoice's line with no column to print it, or
-with a column that may be hidden, is refused with the validator's reason.
+`PART_COMMANDS` names the commands that may change each part of the
+report's own level -- the payment part's three, none yet made for the
+e-invoice, and `replaceDocument` for both, whose document may hold
+another part than the one it replaces -- and every other command keeps
+each as it was: the very object, through every edit. A review that looks
+for a change of whom a bill pays finds it by these names, and compares the
+bill whole for a replacement. An edit that would leave an e-invoice's line
+with no column to print it, or with a column that may be hidden, is
+refused with the validator's reason, and so is an edit of a QR-bill's
+account alone in a report with an e-invoice, which pays BT-84.
 
 A patch removes an optional property with `null`, and `setGroup` and `setSort`
 remove theirs with `null`, never with `undefined`: a proposal carries its
@@ -230,7 +241,12 @@ one.
   A quantity's and a price's places are the data's, and the runtime holds
   them row by row.
 - **Warnings:** an unused style, asset, parameter, field or aggregate, an
-  empty body, a text that prints nothing.
+  empty body, a text that prints nothing, and a QR-bill that holds SIX's
+  examples, written in the report: an account of report-spec's
+  `QR_BILL_EXAMPLE_ACCOUNTS`, which pays no creditor, or the creditor, the
+  debtor or the QR reference a builder puts in, report-spec's
+  `QR_BILL_EXAMPLE` (`example-payment-part`, one warning on `/paymentPart`
+  naming each term that is an example).
 
 Every member read is checked as its type. `@formancy/expressions` 0.7.0,
 as 0.5.0 and 0.6.0 before it, declares a variable only by its whole name, so each read of `row.amount` is

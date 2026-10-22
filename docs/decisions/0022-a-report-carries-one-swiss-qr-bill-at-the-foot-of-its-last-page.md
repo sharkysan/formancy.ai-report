@@ -1,6 +1,6 @@
 # 0022 — A report carries one Swiss QR-bill at the foot of its last page, held to SIX's rules by one set of checks and printed in the Liberation Sans the renderer ships
 
-- **Status:** accepted; extended by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which shares its IBAN check digits and creditor reference with the EPC QR code and prints that code's caption in its Liberation Sans, and by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which holds a QR-bill printed with an e-invoice to the e-invoice's currency, account and amount due
+- **Status:** accepted; extended by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which shares its IBAN check digits and creditor reference with the EPC QR code and prints that code's caption in its Liberation Sans, and by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which holds a QR-bill printed with an e-invoice to the e-invoice's currency, account and amount due; and by [0039](0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md), which lifts its "nothing edits the bill yet": the bill is selected and edited field by field in both builders through three commands of report-core's, its diagnostics are the payment part's, and a bill paying one of SIX's example accounts, the invoice starter's among them, is warned of
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

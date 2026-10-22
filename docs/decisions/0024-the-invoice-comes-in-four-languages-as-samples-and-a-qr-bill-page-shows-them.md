@@ -8,7 +8,9 @@
   under which every sample prints the firm's mark at the head of its
   page, so that the starter's digest pinned here is the one before the
   mark, and the samples differ still in nothing but their words and whom
-  they bill
+  they bill; narrowed by [0039](0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md), under which each sample opens with one
+  warning, that its bill pays SIX's example QR-IBAN, where this record
+  holds it to none
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

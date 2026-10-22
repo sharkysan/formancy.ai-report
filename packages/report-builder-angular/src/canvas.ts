@@ -8,7 +8,8 @@
  * picture of where a component stands -- `role="img"`, named by its label,
  * so reading the view says what is on it. A click selects one, and focus
  * follows to its outline row; a box is not a tab stop, because the outline
- * is the keyboard's way to every box. The view itself is one stop, so a
+ * is the keyboard's way to every box. The payment part's band is the same
+ * for the bill (0039). The view itself is one stop, so a
  * keyboard can scroll a zoomed sheet. Dragging a palette button, a box or
  * an outline row onto it places at the nearest place the session accepts,
  * with the places drawn, and named, while the drag lasts; the place chooser
@@ -71,17 +72,20 @@ import { ReportEditorRoot } from './root'
         ><span data-report-part="box-label">{{ box.label }}</span>@if (box.problems > 0) {<span data-report-part="badge" [attr.data-severity]="box.severity ?? null" aria-hidden="true">{{ box.problems }}</span>}</div>
       }
       <!-- Where a payment part's slip prints, below every region: a picture
-           named as SIX names the part, as a box is named by its label. -->
+           named as SIX names the part, as a box is named by its label, which
+           a click selects the bill by, as it does a box's component. -->
       @if (canvas().paymentPart; as band) {
         <div
           role="img"
           data-report-part="payment-part"
           [attr.aria-label]="band.label"
+          [attr.data-selected]="band.selected ? 'true' : null"
           [style.left.px]="band.px.x"
           [style.top.px]="band.px.y"
           [style.width.px]="band.px.width"
           [style.height.px]="band.px.height"
-        ><span data-report-part="region-label">{{ band.label }}</span></div>
+          (click)="selectBill()"
+        ><span data-report-part="region-label">{{ band.label }}</span>@if (band.problems > 0) {<span data-report-part="badge" [attr.data-severity]="band.severity ?? null" aria-hidden="true">{{ band.problems }}</span>}</div>
       }
       <!-- Drawn only for the places the session accepts, named as the place
            chooser names them; the one under the pointer, or focused in the
@@ -114,6 +118,10 @@ export class ReportCanvas {
 
   protected select(box: CanvasBox): void {
     this.root.dispatch({ type: 'select', id: box.id, ...(box.column === undefined ? {} : { column: box.column }) }, { to: 'selection' })
+  }
+
+  protected selectBill(): void {
+    this.root.dispatch({ type: 'select', part: 'paymentPart' }, { to: 'selection' })
   }
 
   protected drag(box: CanvasBox, event: DragEvent): void {

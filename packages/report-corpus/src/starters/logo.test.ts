@@ -162,11 +162,13 @@ describe('the letterhead', () => {
 
   // An asset declared and never drawn is a warning an author meets first
   // (report-core's unused-asset), and one drawn twice is a mark printed
-  // twice: each marked report draws it exactly once, and warns of nothing.
-  test.each(MARKED)('%s draws the mark exactly once, with no diagnostic', (id) => {
+  // twice: each marked report draws it exactly once, and warns of nothing
+  // but, where it has a QR-bill, that the bill pays SIX's example, which
+  // it does by design (0039).
+  test.each(MARKED)('%s draws the mark exactly once, with no diagnostic but its bill’s example account', (id) => {
     const { report } = EVERY.find((starter) => starter.id === id) as Starter
     expect(components(report).filter((component) => component.kind === 'image').map((component) => component.id)).toEqual(['logo'])
-    expect(diagnose(report).map((diagnostic) => `${diagnostic.code} ${diagnostic.path}`)).toEqual([])
+    expect(diagnose(report).map((diagnostic) => `${diagnostic.code} ${diagnostic.path}`)).toEqual(report.paymentPart === undefined ? [] : ['example-payment-part /paymentPart'])
   })
 
   // A host that renders one of these starters hands over the mark's bytes,

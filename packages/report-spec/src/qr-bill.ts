@@ -117,6 +117,37 @@ export function checkQrBillAccount(text: string): QrBillCheck<QrBillAccount> {
   return ok({ iban, qrIban: isQrIban(iban) })
 }
 
+/**
+ * The accounts of SIX's examples (IG 2.4, Annex A: examples 1, 2 and 3,
+ * and 4, 5 and 6, which share one), as the code holds them: two QR-IBANs
+ * and two IBANs. SIX publishes them to test with, and they are no
+ * creditor's: a bill that pays one never reaches the creditor it names. A
+ * new bill in a builder starts from example 3's, and report-core warns of
+ * a bill whose account, written in the report, is one of these (0039).
+ */
+export const QR_BILL_EXAMPLE_ACCOUNTS = ['CH6431961000004421557', 'CH4431999123000889012', 'CH5204835012345671000', 'CH5800791123000889012'] as const
+
+/** A party of SIX's examples, part by part, as plain text. */
+type ExampleParty = { readonly [P in keyof QrBillAddress]?: string }
+
+/**
+ * What a builder starts a bill from, SIX's own example values (IG 2.4,
+ * Annex A), as SIX prints them: example 3's account and creditor (Table
+ * 19), the bill a builder adds, with no amount, debtor or reference;
+ * example 1's debtor (Table 17), the debtor it adds; and example 1's QR
+ * reference, which it gives a bill whose account is made a QR-IBAN, as a
+ * QR-IBAN is paid to with nothing else. They are no one's, and
+ * report-core warns of a bill that holds one of them, written in the
+ * report, as it warns of an example account (0039): one list, so that
+ * what a builder puts in and what is warned of cannot drift apart.
+ */
+export const QR_BILL_EXAMPLE = {
+  account: 'CH52 0483 5012 3456 7100 0',
+  creditor: { name: 'Muster Stiftung (sample foundation)', street: 'P.O. box', postalCode: '3001', town: 'Bern', country: 'CH' },
+  debtor: { name: 'Simon Muster', street: 'Musterstrasse', buildingNumber: '1', postalCode: '8000', town: 'Seldwyla', country: 'CH' },
+  reference: '00 00082 07791 22585 74212 86694',
+} as const satisfies { readonly account: string; readonly creditor: ExampleParty; readonly debtor: ExampleParty; readonly reference: string }
+
 /** The recursive modulo 10 of IG Annex B, row by row: the carry after each digit. */
 const CARRY = [0, 9, 4, 6, 8, 2, 7, 1, 3, 5]
 

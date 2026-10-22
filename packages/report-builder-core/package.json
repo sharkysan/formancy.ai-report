@@ -10,6 +10,7 @@
   "files": [
     "dist",
     "report-builder.css",
+    "styles",
     "LICENSE.md",
     "NOTICE"
   ],

@@ -1,0 +1,125 @@
+/*
+ * The editor's frame: the workbench's grid with a bar above the panes and
+ * one below, the panes a person hid, the one-pane layout on a narrow
+ * screen, the report's title, the toolbar and its unavailable tools, the
+ * zoom and the live region. It changes when the panes or the bars do.
+ * Imported by ../report-builder.css, whose header says what holds it.
+ */
+
+/* ----------------------------------------------------------------- the editor */
+
+/* The workbench's grid gives the three panes their columns. A report
+   editor adds a bar above them -- the report's title and the toolbar -- and
+   one below for the live region, each across every column: the root's
+   children that are no pane. */
+[data-report-part='editor'] {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+[data-report-part='editor'] > :not([data-pane]) {
+  grid-column: 1 / -1;
+}
+
+/* The place chooser floats over the outline pane, so the design view
+   beside it stays in sight with the place being chosen marked on it. */
+[data-report-part='editor'] > [data-pane='outline'] {
+  position: relative;
+}
+
+/* A hidden pane (the root's data-hidden) is not drawn, so the grid is the
+   workbench's columns without it -- the Studio's styles.test.tsx holds
+   them to workbench.css -- and the third column goes with both its halves.
+   The narrow layout's grid, as heavy and later, wins over these. */
+[data-report-part='editor'].wb:where([data-hidden~='outline']) {
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
+}
+
+[data-report-part='editor'].wb:where([data-hidden~='properties'][data-hidden~='diagnostics']) {
+  grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
+}
+
+[data-report-part='editor'].wb:where([data-hidden~='outline'][data-hidden~='properties'][data-hidden~='diagnostics']) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* A pane's Hide, at the end of its header, away from the name it hides. */
+[data-report-part='hide-pane'] {
+  margin-inline-start: auto;
+}
+
+/* On a narrow screen one pane shows at a time: the one the state's `panel`
+   names, set on the root as data-panel and on each pane as data-pane. */
+@media (max-width: 48rem) {
+  [data-report-part='editor'].wb {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  [data-report-part='editor'][data-panel='outline'] [data-pane]:not([data-pane='outline']),
+  [data-report-part='editor'][data-panel='canvas'] [data-pane]:not([data-pane='canvas']),
+  [data-report-part='editor'][data-panel='properties'] [data-pane]:not([data-pane='properties']),
+  [data-report-part='editor'][data-panel='diagnostics'] [data-pane]:not([data-pane='diagnostics']) {
+    display: none;
+  }
+}
+
+/* The report's name, in the bar above the panes: the document named in the
+   text colour, on one line, as the admin's title bar names its form. A long
+   name is cut with an ellipsis rather than wrapped a word a line beside the
+   toolbar; the element still holds the whole name. It keeps its width and
+   the toolbar wraps beside it, up to a share of the bar a phone can spare. */
+[data-report-part='title'] {
+  flex: none;
+  max-width: min(16rem, 40%);
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--wb-ink);
+}
+
+[data-report-part='toolbar'] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* A tool, a palette entry or an image's Remove with nothing to act on is
+   aria-disabled, not disabled: it keeps focus, and pressing it says why,
+   drawn as the workbench draws a disabled button, hovered or not. */
+:is([data-report-part='toolbar'], [data-report-part='property']) button[aria-disabled='true'],
+[data-report-part='palette-item'][aria-disabled='true'],
+:is([data-report-part='toolbar'], [data-report-part='property']) button[aria-disabled='true']:hover,
+[data-report-part='palette-item'][aria-disabled='true']:hover {
+  border-color: var(--wb-rule);
+  color: var(--wb-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+[data-report-part='zoom'] {
+  min-width: 3.5rem;
+  font: 0.75rem/1 var(--wb-mono);
+  text-align: center;
+  color: var(--wb-ink);
+}
+
+/* The live region is shown, not hidden: a sighted keyboard user needs the
+   same confirmation that an action landed. */
+[data-report-part='status'] {
+  margin: 0;
+  min-height: 1.5rem;
+  padding: 0.375rem 0.75rem;
+  border-block-start: 1px solid var(--wb-rule);
+  font-size: 0.75rem;
+  color: var(--wb-muted);
+}
+
+[data-report-part='status']:empty {
+  border-block-start: none;
+}

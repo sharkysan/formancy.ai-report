@@ -59,6 +59,11 @@
 //   - in each builder, an image added from the keyboard through the
 //     platform's file chooser, placed, printed, undone and redone, an SVG
 //     refused and one cleaned, and nothing sent (gate-images.mjs, 0033);
+//   - in each builder, the invoice's QR-bill selected from its outline
+//     row, an IBAN with a wrong check digit refused on its field, and one
+//     SIX's rules take typed: the Swiss QR Code the Download PDF draws,
+//     decoded from its pixels with ZXing, pays it, and once undone pays the
+//     starter's account again (gate-payment-part.mjs, 0039);
 //   - the page wears the released room: every variable the installed
 //     @formancy/themes/room.css sets, and its colour scheme, computed on
 //     the page as room.css gives it, at every pass (0034);

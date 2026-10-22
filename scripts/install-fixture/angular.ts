@@ -32,7 +32,7 @@ import type { FocusAfter } from '@formancy/report-builder-angular'
 import type { EditorState, ReportEditor } from '@formancy/report-builder-core'
 import { elementsIn, readMarkup } from './markup.js'
 import type { MarkupElement } from './markup.js'
-import { editorToDraw, editorWithHostView, editorWithImages, HOST_VIEW, structureProblems } from './structure.js'
+import { editorToDraw, editorWithBill, editorWithHostView, editorWithImages, HOST_VIEW, structureProblems } from './structure.js'
 
 /** What could be wrong, collected, so one run names every difference rather than the first. */
 const wrong: string[] = []
@@ -99,6 +99,8 @@ let drawn: number | undefined
 const viewing: ReportEditor = editorWithHostView()
 /** And a third, made with a host's store, over a report with two images (0033). */
 const imaging: ReportEditor = editorWithImages()
+/** And a fourth, with a QR-bill added and selected, its debtor added (0039). */
+const billing: ReportEditor = editorWithBill()
 
 /**
  * A host's component, as a host writes it. ngc compiles its template with
@@ -126,6 +128,12 @@ class Viewing {
 @Component({ selector: 'app-root', imports: [ReportBuilder], template: '<report-builder [editor]="editor" />' })
 class Imaging {
   protected readonly editor: ReportEditor = imaging
+}
+
+/** A host's component whose report has a QR-bill, selected: the builder draws its row, its band and its parties. */
+@Component({ selector: 'app-root', imports: [ReportBuilder], template: '<report-builder [editor]="editor" />' })
+class Billing {
+  protected readonly editor: ReportEditor = billing
 }
 
 /**
@@ -172,6 +180,9 @@ viewing.dispose()
 // Drawn a third time with a host's store (0033): Add image… and its hidden input, and the report's images, each with its Remove.
 wrong.push(...structureProblems(await serverDraw(Imaging), imaging.state()).map((problem) => `with images: ${problem}`))
 imaging.dispose()
+// Drawn a fourth time with a QR-bill added and selected (0039): its row, its band selected, its parties as groups.
+wrong.push(...structureProblems(await serverDraw(Billing), billing.state()).map((problem) => `with a QR-bill: ${problem}`))
+billing.dispose()
 
 // Drawing changed nothing. The editor's state reached the root through
 // [editor] -- an input the root requires, so a page drawn without it fails

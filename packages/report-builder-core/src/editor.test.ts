@@ -4,9 +4,10 @@ import type { Component, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test, vi } from 'vitest'
 import { createReportEditor } from './editor.js'
 import type { EditorOutcome, EditorState, OutlineNode } from './model.js'
+import { selectionKey } from './outline.js'
 import { diagnosticKeys } from './state.js'
 import { editorText } from './text.js'
-import { countingSession, editorOver, richReport, sessionOver } from './test-support.js'
+import { billedReport, countingSession, editorOver, richReport, sessionOver } from './test-support.js'
 
 function ok(outcome: EditorOutcome): void {
   if (!outcome.ok) throw new Error(`refused: ${outcome.code} ${outcome.message}`)
@@ -228,6 +229,25 @@ describe('subscribe and dispose', () => {
     expect(session.revision()).toBe(0)
   })
 
+  // So can it a part of the report's own level that is none -- the
+  // e-invoice, before this editor knows it, or no part at all -- to select
+  // or to add. Taken in, every state after it would be drawn from a part
+  // that is not there and throw, and an add would commit a bill and then
+  // select nothing anybody can draw. Each is refused before anything
+  // changes, and the editor goes on drawing.
+  test('refuses a part of the report’s own level it does not have, to select or to add', () => {
+    const billed = editorOver(billedReport())
+    const unbilled = editorOver()
+    for (const part of ['eInvoice', undefined, 'toString']) {
+      expect(billed.editor.dispatch({ type: 'select', part } as never), String(part)).toMatchObject({ ok: false, code: 'not-found', message: `Nothing is called ${String(part)}.` })
+      expect(billed.editor.state().selection, String(part)).toBeNull()
+      expect(unbilled.editor.dispatch({ type: 'addPart', part } as never), String(part)).toMatchObject({ ok: false, code: 'not-found' })
+      expect(unbilled.editor.state().selection, String(part)).toBeNull()
+    }
+    expect([billed.session.revision(), unbilled.session.revision()]).toEqual([0, 0])
+    expect(unbilled.session.document().paymentPart).toBeUndefined()
+  })
+
   // A disposed editor reached from a stale event handler -- React's strict
   // mode mounts twice -- must not edit the report behind the live one.
   test('refuses every action once disposed, and changes nothing', () => {
@@ -344,7 +364,7 @@ describe('selection', () => {
       ok(editor.dispatch({ type: 'selectNext' }))
       seen.push(editor.state().selection)
     }
-    expect(seen.map((selection) => (selection?.column === undefined ? selection?.id : `${selection.id}/${selection.column}`))).toEqual(order)
+    expect(seen.map((selection) => (selection === null ? undefined : selectionKey(selection)))).toEqual(order)
     expect(editor.dispatch({ type: 'selectNext' })).toMatchObject({ ok: false, code: 'at-edge' })
     ok(editor.dispatch({ type: 'selectPrevious' }))
     expect(editor.state().selection).toEqual({ id: 'order-code' })
