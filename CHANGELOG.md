@@ -10,6 +10,108 @@ later.
 
 ## Unreleased
 
+**A report refuses a submission whose form version moved a field it
+reads, until its author reviews the change**
+([0048](docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)).
+The bridge refused such a version per render (0042), and nothing lifted
+the refusal but the report changed by hand -- which, reading the new
+path, broke every older version's submissions.
+- `reviewFormVersion(report, { form, formHash?, versions })` in
+  `@formancy/report-forms` compares a new version, through formancy's
+  `diffSchemas`, with every version the report names -- the one its
+  provenance says it was made from, and each a review named -- which the
+  host hands over; one missing is refused as `missing-version`. Any other
+  version the host keeps is worth handing over too: a followed rename
+  keeps it reading where it read. It answers `compatible`, `review` or
+  `blocked`, and an item for each field the version moved, removed,
+  retyped, relabelled, reused or added, and for the form's id where it
+  changed, naming the report's field and the diff's kind and never a
+  label or an answer, which may name a person.
+- **Only what the per-render check refuses blocks**: a version that
+  removed, moved or retyped a field the report reads. Every other
+  version prints, reviewed or not -- the plan's FB-Q5, since an accepted
+  review per form release is one hosts would automate away.
+- **Each resolution is a report-core command as data**, with the report's
+  hash it was computed against, applied through a session with that
+  hash as `expectedHash`: a stale one is refused, an invalid one refused
+  whole, and each is one undo step. A rename the form's author declared
+  (`renamedFrom`, of the field or of a group or repeater holding it) is
+  offered first and labelled `declared`, and never followed by itself
+  (plan 13.6). Followed, it moves the binding to where the field is now
+  and names every other version it was handed at the old path, but one
+  that already holds the field where the rename put it, so a later
+  version that keeps the field there prints without another review, and
+  a key the rename vacated is never read as the field. A path is never
+  guessed from a name; the path a version the report names reads, where
+  formancy's diff finds the same field, is offered next, for a version a
+  followed rename did not know. Printing nothing of the field from that
+  version, another type every version reads -- saying which versions'
+  text answers it would refuse -- and the field removed with everything
+  that reads it are offered beside them, and nothing the session or the
+  compiler would refuse: printing nothing of a decimal compared with
+  `==` is not offered, a nullable decimal losing `==` (0009). A field the
+  QR-bill or the e-invoice reads is offered a rename and nothing else,
+  since anything else would change what the bill or the invoice says;
+  the detail's repeater, removed or retyped, is offered its rename and
+  nothing else, and its refusal says so.
+- **A relabel is offered, not applied**, for each text that still says an
+  old label -- the field's own, a line's label before the run that prints
+  it, a column's heading -- and a field the version added is said and
+  never added: no generated base is kept to merge into (FB-Q6). A field
+  that prints from one formancy calls new since a version the report
+  printed nothing of it from is said, never relabelled.
+- **The override is the report's** (FB-Q4): a field's binding, or the
+  detail's, may say for one version, keyed by its `schemaHash`, where that
+  version holds the field -- `{ path }`, the binding's own among them, for
+  the version a followed rename moved it to -- or that nothing of it
+  prints from it -- `{ omit: true }`, which needs the field nullable -- or
+  where its rows are -- `{ repeater }`. report-spec validates the shape (a
+  new code, `invalid-form-override`, at most `MAX_FORM_OVERRIDES`, 64),
+  the report's hash covers it, and the per-render check reads it; every
+  version not named reads the binding's own path. Its refusal of a field
+  now names the review that would lift it. A report with an override is
+  refused whole by 0.2.0, as `unknown-property`.
+- **report-core gains two commands and a reader.** `batch(report,
+  steps)`, a descriptor `{ command: 'batch', args: [steps] }`, runs
+  several descriptors as one command, validated once at its end and
+  refused whole with the first refusal: a transaction written down, so a
+  resolution of several commands travels as data and is one undo step.
+  At most `MAX_BATCH_COMMANDS`, 1,000, chosen; a step that throws on what
+  the steps before it left is refused, never thrown; `PART_COMMANDS`
+  lists it for the QR-bill and the e-invoice, as it lists
+  `replaceDocument`. `removeFieldWithReaders(report, role, id)` removes a
+  field with every component, column, footer cell, sort key, group and
+  aggregate that reads it, a style rule alone and a footer row it leaves
+  empty whole, the readers found by the diagnostics' one walk and the
+  parser the compiler asks, never a second reading of CEL; a field the
+  QR-bill or the e-invoice reads is refused as `read-by-part`, a new
+  refusal code. `fieldReaders(report)` is that walk kept for many fields,
+  with the expressions a change of a field's type reaches, which
+  `compileReport(report, only)` compiles alone: a review compiled the
+  whole report once a resolution, and one at the format's bounds did not
+  finish in ten minutes.
+- `@formancy/report-forms` now depends on `@formancy/report-core`, whose
+  commands a review's resolutions are and whose compiler judges them.
+  `generateReport` now refuses a label holding a direction override or
+  isolate, or a line or paragraph separator, as `label-unprintable`, as it
+  refuses a control character: no font draws one, and a direction control
+  shows a label in a builder in another order than it prints. A review's
+  relabel is held to the same rule.
+- **What it costs.** A field a version removed blocks every later version
+  that lacks it too, each reviewed in turn, or the field removed; a field
+  the QR-bill or the e-invoice reads blocks until the part is changed by
+  its own commands; a retype is judged by kind, never by answers; a key a
+  version vacated unreviewed and a later one reused prints as the field;
+  and a review of a report at the format's bounds whose every field is
+  never null took close to a minute (0048 has the measurements).
+- **Proved on the PDF**: the corpus gains the site visit's version 3,
+  which renames the inspector's group the technician's, declared; a
+  version-3 visit is refused by the starter made from version 2, and,
+  its review's declared renames applied, prints the technician's name and
+  licence from their new paths (`review-pdf.test.ts`). The install gate
+  reviews a version with the packed bridge and applies its resolution
+  through the packed report-core's session.
+
 **A report prints its sans, serif and mono text in fonts a host approved,
 embedded from their bytes, and refuses what it cannot print in them**
 ([0043](docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).

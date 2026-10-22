@@ -617,9 +617,13 @@ serves the current version's schema alone, so a host that prints an old
 submission keeps the version that collected it
 ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 A version that moved, removed or retyped a field the report reads is
-refused for every submission of it until the report is changed; one that
+refused for every submission of it, the refusal naming the review that
+would lift it, until a review's resolution is applied (6.15); one that
 touched nothing the report reads prints, and a field it added is never
-read by itself.
+read by itself. Where a review decided for a version, the field is read
+at its override's path in that version, or nothing of it prints from it;
+every version the binding does not name reads its own path, which a
+followed rename moves to where the field is now.
 
 ## 6.13 A report started from a formancy form version
 
@@ -702,3 +706,64 @@ block and one behind a condition changed in the one edit.
 The browser gate types the account into each builder, reads the XML the
 final Download PDF embeds and decodes its EPC QR code from its pixels
 (`apps/studio/scripts/gate-e-invoice.mjs`).
+
+## 6.15 A review of a form's new version
+
+```
+host: the new version, every version the report names, and any other it keeps
+   │
+   ▼
+reviewFormVersion(report, { form, formHash?, versions })
+   ├─ the report valid, a dataset read from a form?
+   ├─ each version read as 6.12 reads one, the new one's hash the host's?
+   ├─ every version the report names handed over: its provenance's, its overrides'?
+   │       any no ──▶ refused, each reason a code and a JSON Pointer
+   ▼
+diffSchemas(each named version, the new one): what changed, by data path;
+the moves a declared rename made, beneath a renamed group or repeater too
+   ├─ the form's id changed ──▶ an item, blocking nothing
+   ▼
+each field the report reads, planned against the new version as 6.12 plans it
+   ├─ refused ──▶ an item that blocks, the diff's kind, its resolutions:
+   │              follow-rename (declared, first) · follow-reviewed · print-nothing · retype · remove
+   │              a field the payment part or the e-invoice reads: a rename alone, and said
+   ├─ prints from a field the diff calls new since a version that printed none of it
+   │              ──▶ an item: print-nothing · remove, and no relabel
+   ├─ prints, an old label still in a text ──▶ an item: relabel, a batch
+   └─ prints ──▶ nothing
+the detail's repeater refused ──▶ an item: its rename, declared or a baseline's, or nothing
+each field the version added, where the report reads, of a kind it reads ──▶ said
+   ▼
+each resolution tried: tryEdit takes it; and where it changes a field's type or
+whether it may be null, compileReport over what fieldReaders says it reaches,
+each expression compiled once as the report stands, refuses nothing new?
+   │       no ──▶ not offered
+   ▼
+{ status: compatible | review | blocked, formHash, reportHash, items }
+   │
+   ▼
+the host shows it; a person picks a resolution
+   ▼
+session.apply(resolution.descriptor, { expectedHash: resolution.expectedHash })
+   ├─ the report since changed? ──▶ stale-document, nothing changes
+   ├─ the end invalid, or a step refused or thrown? ──▶ refused whole, nothing changes
+   ▼
+one undo step: the binding moved to where a declared rename put the field,
+each version handed over named where it read; or an override on the binding,
+keyed by the version's hash; or the field's type, or the field gone with
+what reads it, or the new label
+   ▼
+review again: the hash moved, so every other resolution of the last review is stale;
+a later version that keeps the field where the rename put it prints unreviewed
+```
+
+Nothing is applied by the review: a rename the form's author declared is
+offered first and labelled declared, and never followed by itself; a path
+is never guessed from a name, and one a version the report names reads is
+offered only where formancy's diff finds the same field there; a relabel
+is offered for the texts that say an old label word for word, and a field
+the version added is said and never added ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)).
+The removal is report-core's `removeFieldWithReaders`, which finds a
+field's readers by the diagnostics' walk and the parser the compiler
+asks, and refuses a field the QR-bill or the e-invoice reads; a
+resolution of several commands is a `batch`, one command, one undo step.

@@ -2,7 +2,7 @@ import { diagnose } from '@formancy/report-core'
 import { checkReport } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { SITE_VISIT_STARTER, SITE_VISIT_STARTER_OPTIONS } from '../starters/site-visit.js'
-import { SITE_VISIT_HIGH, SITE_VISIT_REPORT, SITE_VISIT_SUBMISSION_V1, SITE_VISIT_SUBMISSION_V2, SITE_VISIT_V1, SITE_VISIT_V2 } from './site-visit.js'
+import { SITE_VISIT_HIGH, SITE_VISIT_REPORT, SITE_VISIT_SUBMISSION_V1, SITE_VISIT_SUBMISSION_V2, SITE_VISIT_SUBMISSION_V3, SITE_VISIT_V1, SITE_VISIT_V2, SITE_VISIT_V3 } from './site-visit.js'
 
 /**
  * The site visit fixture says what it is: a report the runtime reads and an
@@ -41,6 +41,24 @@ describe('the site visit', () => {
     const rows = SITE_VISIT_SUBMISSION_V1.data['findings'] as readonly { severity: string }[]
     expect(rows.filter((row) => row.severity === 'high').length).toBeGreaterThan(0)
     expect(SITE_VISIT_SUBMISSION_V1.id).not.toBe(SITE_VISIT_SUBMISSION_V2.id)
+  })
+
+  // Version 3 moves a field the starter prints, by a rename its author
+  // declared (0048): the inspector's group is the technician's, its name
+  // and licence beneath it. Were anything else different, the review's
+  // PDF proof would follow more than the rename it claims; and a version-3
+  // visit answers version 3 alone, with answers no other visit has, so
+  // the PDF shows which visit it printed.
+  test('version 3 renames the inspector’s group, declared, and nothing else; a version-3 visit answers it', () => {
+    const fields = (form: Readonly<Record<string, unknown>>) => (form['model'] as { fields: { key: string; renamedFrom?: string }[] }).fields
+    const renamed = fields(SITE_VISIT_V3).find((field) => field.key === 'technician')
+    expect(renamed?.renamedFrom).toBe('inspector')
+    const { renamedFrom: _from, ...rest } = renamed as { key: string; renamedFrom?: string }
+    expect({ ...SITE_VISIT_V3, model: { fields: fields(SITE_VISIT_V3).map((field) => (field.key === 'technician' ? { ...rest, key: 'inspector' } : field)) } }).toEqual(SITE_VISIT_V2)
+    const keys = fields(SITE_VISIT_V3).map((field) => field.key)
+    expect(Object.keys(SITE_VISIT_SUBMISSION_V3.data).filter((key) => !keys.includes(key))).toEqual([])
+    expect(SITE_VISIT_SUBMISSION_V3.data['technician']).not.toEqual(SITE_VISIT_SUBMISSION_V2.data['inspector'])
+    expect([SITE_VISIT_SUBMISSION_V1.id, SITE_VISIT_SUBMISSION_V2.id]).not.toContain(SITE_VISIT_SUBMISSION_V3.id)
   })
 
   // The starter generated from version 2 (0045) prints a visit version 2

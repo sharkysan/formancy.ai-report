@@ -27,7 +27,7 @@ import type { AnswerContext, AnswerRecord, OptionLabels } from './answers.js'
 import { at, Findings } from './errors.js'
 import type { FormsError } from './errors.js'
 import { readList, readParts } from './json.js'
-import { planField, planRepeater } from './kinds.js'
+import { planField, planRepeater, repeaterIn } from './kinds.js'
 import type { FieldPlan } from './kinds.js'
 import { readVersion } from './version.js'
 import type { Scope, Version } from './version.js'
@@ -133,8 +133,9 @@ export function readSubmission(report: ReportDefinition, input: SubmissionInput,
     return refused(f)
   }
   const header = datasets.header === undefined ? undefined : planFields(f, version, version.answers, datasets.header, 'header')
-  const repeater = datasets.detail?.form?.kind === 'repeater' ? planRepeater(f, version, datasets.detail.form.repeater, '/datasets/detail/form/repeater') : undefined
-  const detail = datasets.detail?.form?.kind === 'repeater' && repeater !== undefined ? planFields(f, version, repeater.rows, datasets.detail, 'detail', datasets.detail.form.repeater) : undefined
+  const repeaterPath = datasets.detail?.form?.kind === 'repeater' ? repeaterIn(datasets.detail.form, version) : undefined
+  const repeater = repeaterPath === undefined ? undefined : planRepeater(f, version, repeaterPath, '/datasets/detail/form/repeater')
+  const detail = datasets.detail !== undefined && repeaterPath !== undefined && repeater !== undefined ? planFields(f, version, repeater.rows, datasets.detail, 'detail', repeaterPath) : undefined
   if (!f.empty) return refused(f)
   const answers = readAnswers(f, version, version.answers, submission.get('data'), '/submission/data')
   if (answers === undefined) return refused(f)

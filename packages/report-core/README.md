@@ -98,18 +98,50 @@ clamps when what it names is not there:
   own account then; whether each place takes the account is the
   validator's to say, each by its own rule, and no BIC is changed
   ([0044](../../docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
+- **a field with what reads it:** `removeFieldWithReaders(report, role, id)`
+  removes the field and every component, column, footer cell, sort key,
+  group and aggregate that reads it, and every reader of such an
+  aggregate in turn; a style rule that reads it goes alone, what it
+  styled kept; a footer row left with no cell goes whole, and so does a
+  table every column of which goes, and what stands in a component that
+  goes goes with it, once. What reads a
+  field is what the diagnostics find, from one walk, and in an
+  expression what the parser the compiler asks says it reads (an
+  expression that does not parse reads nothing). The outcome lists what
+  went, as JSON Pointers into the report before it, in `removed`. A field
+  the payment part or the e-invoice reads, directly or through an
+  aggregate, is refused as `read-by-part`: their own commands change them.
+  It is what a review of a form version offers where the version removed
+  a field. `fieldReaders(report)` makes that walk and reads every
+  expression once, for a review that asks of many fields: its
+  `removal(role, id)` is the command's, and its `expressions(role, id)`
+  the expressions a change of the field's type, or of whether it may be
+  null, reaches -- each that reads it, each that reads an aggregate that
+  does, in turn, and, for a field a table is grouped by, each that reads
+  the group's key
+  ([0048](../../docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md));
+- **several as one:** `batch(report, steps)` runs command descriptors one
+  after the other as one command -- a transaction written down, so that an
+  edit of several commands travels as data: one undo step, one
+  notification, validated once at its end, and refused whole with the
+  first refusal, word for word, nothing after it run. A step that is no
+  descriptor, or a batch itself, is refused as `invalid-arguments`, and so
+  is a batch of more than `MAX_BATCH_COMMANDS` (1,000) commands, before any
+  of it runs; and so is a step that throws on the report the steps before
+  it left, which no validator has seen (0048).
 
-`PART_COMMANDS` names the commands that may change each part of the
-report's own level -- the payment part's three, the e-invoice's three,
-`setPaymentAccount` for both, and `replaceDocument` for both, whose
-document may hold another part than the one it replaces -- and every other
-command keeps each as it was: the very object, through every edit. A review
-that looks for a change of whom a bill or an e-invoice is paid by finds it
-by these names, and compares the part whole for a replacement. An edit that
-would leave an e-invoice's line with no column to print it, or with a
-column that may be hidden, is refused with the validator's reason, and so
-is an edit of one payment code's account alone in a report with an
-e-invoice, which pays BT-84: `setPaymentAccount` changes them together.
+`PART_COMMANDS` names the commands that may change each part of the report's
+own level -- the payment part's three, the e-invoice's three,
+`setPaymentAccount` for both, and `replaceDocument` and `batch` for both,
+whose document, or whose steps, may hold another part than the one it
+replaces -- and every other command keeps each as it was: the very object,
+through every edit. A review that looks for a change of whom a bill or an
+e-invoice is paid by finds it by these names, and compares the part whole
+for a replacement. An edit that would leave an e-invoice's line with no
+column to print it, or with a column that may be hidden, is refused with the
+validator's reason, and so is an edit of one payment code's account alone in
+a report with an e-invoice, which pays BT-84: `setPaymentAccount` changes
+them together.
 
 A patch removes an optional property with `null`, and `setGroup` and `setSort`
 remove theirs with `null`, never with `undefined`: a proposal carries its
@@ -120,7 +152,9 @@ and an index: where the component ends up. An index outside the list is
 refused, so a keyboard move and a pointer drop agree.
 
 `COMMANDS` holds every command by name, and a `CommandDescriptor` --
-`{ command, args }` -- is one as data, for a proposal. A descriptor read from
+`{ command, args }` -- is one as data, for a proposal or a review's
+resolution; a `StepDescriptor` is any of them but a batch, what a batch
+holds. A descriptor read from
 JSON was never type-checked, so `describedCommand` checks its arguments
 against `ARGUMENTS` and refuses too few, too many or the wrong type with
 `invalid-arguments`. A descriptor never throws, whatever it holds. A typed
@@ -174,7 +208,10 @@ proposal's review shows before Apply.
 ## Expressions and diagnostics
 
 `compileReport(report)` compiles every expression where it stands, with
-`@formancy/expressions`, the compiler the runtime uses. It gives:
+`@formancy/expressions`, the compiler the runtime uses; `compileReport(report,
+only)` the expressions at the pointers `only` holds alone, with every
+aggregate's, which what they read is computed from -- what a review asks
+of a change to one field's type (0048). It gives:
 
 - the programs, keyed by the JSON Pointer to each expression;
 - what each program reads;

@@ -58,7 +58,7 @@ export const FORMS_ERROR_CODES = [
   'too-many-components',
   /** A label a generated report would print that is longer than where it prints holds: a column's heading past `MAX_LABEL_LENGTH`, a section's heading or a line's label past `MAX_TEXT_LENGTH`. Refused, never cut short. */
   'label-too-long',
-  /** A label or a title a generated report would print holding a character no font draws: a control character, or half of a surrogate pair. Refused, never dropped. */
+  /** A label or a title a generated report would print holding a character no font draws: a control character, half of a surrogate pair, a direction override or isolate, or a line or paragraph separator. Refused, never dropped. */
   'label-unprintable',
   /** A field a generated report would read at a path of more keys than a binding names (`MAX_FORM_PATH_KEYS`). */
   'path-too-long',
@@ -68,6 +68,8 @@ export const FORMS_ERROR_CODES = [
   'colliding-ids',
   /** A form, or the repeater asked for, that holds nothing a report prints: a report of it would print nothing. */
   'nothing-to-print',
+  /** A version a review compares the new one with -- the one the report was made from, or one its overrides name -- that the host did not hand over (0048). */
+  'missing-version',
   /** More errors were found than are listed. */
   'too-many-errors',
 ] as const

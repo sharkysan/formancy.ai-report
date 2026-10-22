@@ -186,6 +186,28 @@ does not (`generate-layout.ts`), the version named by its hash, and
 the form's words; what the format or the page cannot hold is refused,
 never cut to fit
 ([0045](docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).
+Its `reviewFormVersion` reviews a new form version for a report: a version
+that holds a field the report reads, or the detail's repeater, elsewhere
+than the binding reads it, not at all, or as another kind blocks that
+report's submissions of it until a resolution is applied, and every other
+version prints, a later one that keeps a field where a followed rename put
+it among them. It compares the version through formancy's `diffSchemas`
+with each version the report names, which the host hands over with any
+other it keeps, and offers report-core commands as data computed against
+the report's hash (`review-fields.ts`, `review-resolutions.ts`): a declared
+rename first, labelled declared and never followed by itself, which moves
+the binding to where the field is now and keeps every version handed over
+reading as it did, or where the rename put the field if it already holds it
+there; a path a version the report names reads, where the diff finds the
+same field; nothing printed from that version; another type; or the field
+removed with its readers by report-core's `removeFieldWithReaders` -- a
+relabel's texts as one `batch` -- and nothing that changes what the payment
+part or the e-invoice prints, each change of a field's type judged by the
+compiler over the expressions report-core's `fieldReaders` says it reaches.
+A path is never guessed from a name; a relabel is offered, and a new field
+or a reused key said, never followed; the override per version is the
+binding's, keyed by the version's hash
+([0048](docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)).
 `@formancy/report-builder-core` is the editor model over that session, and
 `@formancy/report-builder-react` and `@formancy/report-builder-angular` render
 it natively; `BUILDER_SCENARIOS` in the core is what both must do
@@ -201,7 +223,8 @@ checks that prove a rendered PDF against them, a rasteriser for page images,
 `readCodes`, which decodes the QR codes a page prints with ZXing from the
 pixels PDF.js draws, the drawings an SVG image paints and the ink around
 them, the e-invoice samples and a reader of their XML by
-namespace, a formancy form in two versions with submissions of each and
+namespace, a formancy form in three versions, the third renaming the inspector's
+group, declared, with submissions of each and
 a report of them (`forms/site-visit.ts`), the site visit starter the
 generator writes of its version 2, held as data and held to the generator
 by its hash in report-forms' `starter.test.ts` (`starters/site-visit.ts`),
@@ -244,10 +267,10 @@ before it:
    Data's contracts, at the exact release it was built against (0016);
    `scripts/dependency-licences.mjs` refuses Data reached from any other.
 8. `report-forms` -- formancy's forms: a submission read against the
-   version that collected it (0042), and a report generated from a version
-   (0045); report-spec, report-runtime and
-   `@formancy/spec` at the exact release the repository pins, and never
-   Formancy Data's contracts.
+   version that collected it (0042), a report generated from a version
+   (0045), and a new version reviewed (0048); report-spec, report-core,
+   report-runtime and `@formancy/spec` at the exact release the repository
+   pins, and never Formancy Data's contracts.
 
 A package arrives with the decision record that says what it may import. When
 this map goes stale, the rename is the edit to make here.

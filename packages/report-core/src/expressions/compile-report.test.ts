@@ -65,6 +65,23 @@ describe('compileReport', () => {
     expect(compiled?.program.resultType).toBe('decimal')
   })
 
+  // A review compiles, for each resolution that changes a field's type,
+  // the expressions that change can reach and no others (0048): the whole
+  // report compiled once a resolution made a review of a report at its
+  // bounds take minutes. What the asked-for expressions read is computed
+  // from every aggregate's, which are compiled with them.
+  test('compiles the expressions asked for alone, with every aggregate and what they read', () => {
+    const report = frozenSample()
+    const aggregates = expressionSites(report).filter(({ path }) => path.startsWith('/aggregates/')).map(({ path }) => path)
+    expect([...compileReport(report, new Set()).expressions.keys()]).toEqual(aggregates)
+    const only = compileReport(report, new Set([AMOUNT_VALUE, TOTAL_VALUE]))
+    expect([...only.expressions.keys()]).toEqual([AMOUNT_VALUE, TOTAL_VALUE, ...aggregates])
+    const whole = compileReport(report).expressions.get(TOTAL_VALUE)
+    expect([only.expressions.get(TOTAL_VALUE)?.reads, only.expressions.get(TOTAL_VALUE)?.program.resultType]).toEqual([whole?.reads, whole?.program.resultType])
+    const broken = JSON.parse(JSON.stringify(sampleReport()).replace('params.draft == false', 'params.draft ==')) as ReportDefinition
+    expect(compileReport(broken, new Set([AMOUNT_VALUE])).diagnostics).toEqual([])
+  })
+
   // An expression an error was diagnosed for has no program: the runtime
   // refuses a report with an error, and has nothing to run in its place.
   test('gives no program for an expression with an error', () => {

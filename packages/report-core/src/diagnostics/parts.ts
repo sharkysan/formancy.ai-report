@@ -2,7 +2,8 @@
  * The parts of a report the diagnostics read: every expression, with the
  * scope its place gives it and what it is for, and every style, asset,
  * field, parameter and aggregate named outside an expression -- in the
- * components, in the payment part and in the e-invoice.
+ * components, in the payment part and in the e-invoice -- and where each
+ * field and aggregate is named, for what removes a field with its readers.
  *
  * One walk, so that where an expression stands is decided once: the
  * diagnostics and `compileReport`, which the runtime compiles a report with,
@@ -90,6 +91,18 @@ export interface PrintedTotal {
   readonly columnId?: string
 }
 
+/**
+ * A field or an aggregate named outside an expression, and where: the JSON
+ * Pointer to what names it -- a run, a format's currency, an image's
+ * source, a sort key, a group's key, an aggregate's field, a line's code
+ * -- and the component and the column it stands in.
+ */
+export type NamedUse = ({ readonly kind: 'field'; readonly field: FieldRef } | { readonly kind: 'aggregate'; readonly aggregate: string }) & {
+  readonly path: string
+  readonly componentId?: string
+  readonly columnId?: string
+}
+
 /** Everything the report names, outside expressions, and every expression. */
 export interface ReportParts {
   readonly expressions: readonly ExpressionSite[]
@@ -100,6 +113,8 @@ export interface ReportParts {
   readonly fields: readonly FieldRef[]
   readonly parameters: readonly string[]
   readonly aggregates: readonly string[]
+  /** Each field and aggregate of `fields` and `aggregates`, where it is named, in document order. */
+  readonly named: readonly NamedUse[]
 }
 
 /** A run of one of an e-invoice's texts: text, whatever it computes. */
@@ -120,6 +135,7 @@ class Collector {
   readonly fields: FieldRef[] = []
   readonly parameters: string[] = []
   readonly aggregates: string[] = []
+  readonly named: NamedUse[] = []
 
   private readonly lines: LineColumns | undefined
 
@@ -141,6 +157,18 @@ class Collector {
     if (style !== undefined) this.styles.push(style)
   }
 
+  /** A field named at `path`, outside an expression. */
+  field(field: FieldRef, path: string, owner: Owner): void {
+    this.fields.push(field)
+    this.named.push({ kind: 'field', field, path, ...owner })
+  }
+
+  /** An aggregate named at `path`, outside an expression. */
+  aggregate(aggregate: string, path: string, owner: Owner): void {
+    this.aggregates.push(aggregate)
+    this.named.push({ kind: 'aggregate', aggregate, path, ...owner })
+  }
+
   /** Style rules: each a condition read in `scope`, and a style. */
   rules(rules: readonly StyleRule[] | undefined, path: string, scope: ValueScope, owner: Owner): void {
     for (const [index, rule] of (rules ?? []).entries()) {
@@ -149,21 +177,21 @@ class Collector {
     }
   }
 
-  format(format: Format | undefined): void {
+  format(format: Format | undefined, path: string, owner: Owner): void {
     if (format?.kind !== 'currency') return
-    if (format.currency.kind === 'field') this.fields.push(format.currency.field)
+    if (format.currency.kind === 'field') this.field(format.currency.field, `${path}/currency`, owner)
     if (format.currency.kind === 'parameter') this.parameters.push(format.currency.parameter)
   }
 
   inline(inline: Inline, path: string, scope: ValueScope, owner: Owner, term?: InvoiceTerm): void {
-    if (inline.kind === 'field') this.fields.push(inline.field)
+    if (inline.kind === 'field') this.field(inline.field, path, owner)
     if (inline.kind === 'parameter') this.parameters.push(inline.parameter)
-    if (inline.kind === 'aggregate') this.aggregates.push(inline.aggregate)
+    if (inline.kind === 'aggregate') this.aggregate(inline.aggregate, path, owner)
     if (inline.kind === 'aggregate' && (inline.format?.kind === 'number' || inline.format?.kind === 'currency')) {
       this.printedTotals.push({ aggregate: inline.aggregate, scale: inline.format.scale, path: `${path}/format`, ...owner })
     }
     if (inline.kind === 'expression') this.expression(inline.expression, `${path}/expression`, scope, 'computed', owner, term, inline.format)
-    if ('format' in inline) this.format(inline.format)
+    if ('format' in inline) this.format(inline.format, `${path}/format`, owner)
   }
 
   inlines(inlines: readonly Inline[], path: string, scope: ValueScope, owner: Owner, term?: InvoiceTerm): void {
@@ -177,7 +205,7 @@ class Collector {
 
   /** A code read from each of an e-invoice's lines: a detail field, or an expression in the row's scope. */
   lineCode(value: RowValue, path: string, term: InvoiceTerm): void {
-    if (value.kind === 'field') this.fields.push(value.field)
+    if (value.kind === 'field') this.field(value.field, path, {})
     else this.expression(value.expression, `${path}/expression`, 'row', 'computed', {}, term)
   }
 
@@ -218,9 +246,9 @@ const NOTHING = (): void => undefined
  */
 const READERS: { readonly [K in ComponentKind]: Reader<K> } = {
   text: (text, path, into) => into.inlines(text.content, `${path}/content`, 'report', { componentId: text.id }),
-  image: (image, _path, into) => {
+  image: (image, path, into) => {
     if (image.source.kind === 'asset') into.assets.push(image.source.asset)
-    else into.fields.push(image.source.field)
+    else into.field(image.source.field, `${path}/source`, { componentId: image.id })
   },
   // What a QR code encodes is what its content prints, read as a
   // paragraph's in the same place.
@@ -256,9 +284,9 @@ const READERS: { readonly [K in ComponentKind]: Reader<K> } = {
       into.rules(column.styleWhen, `${at}/styleWhen`, 'row', owner)
     }
     const owner = { componentId: table.id }
-    for (const key of table.sort ?? []) into.fields.push(key.field)
+    for (const [index, key] of (table.sort ?? []).entries()) into.field(key.field, `${path}/sort/${index}`, owner)
     if (table.group !== undefined) {
-      into.fields.push(table.group.by)
+      into.field(table.group.by, `${path}/group/by`, owner)
       into.inlines(table.group.header, `${path}/group/header`, 'group', owner)
       into.style(table.group.headerStyle)
       into.footer(table.group.footer, `${path}/group/footer`, 'group', owner)
@@ -364,7 +392,7 @@ export function reportParts(report: ReportDefinition): ReportParts {
   if (report.eInvoice !== undefined) (E_INVOICES[report.eInvoice.kind] as InvoiceReader<EInvoiceKind>)(report.eInvoice, '/eInvoice', into)
   for (const [index, aggregate] of report.aggregates.entries()) {
     // What an aggregate reads, it reads from each detail row.
-    if (aggregate.of?.kind === 'field') into.fields.push(aggregate.of.field)
+    if (aggregate.of?.kind === 'field') into.field(aggregate.of.field, `/aggregates/${index}/of`, {})
     if (aggregate.of?.kind === 'expression') into.expression(aggregate.of.expression, `/aggregates/${index}/of/expression`, 'row', 'computed')
   }
   return into

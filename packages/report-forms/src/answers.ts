@@ -25,7 +25,7 @@ import type { Findings } from './errors.js'
 import { answerAt, at } from './errors.js'
 import { copyJson, readList, readRecord } from './json.js'
 import type { Read, Unreadable } from './json.js'
-import type { FieldPlan } from './kinds.js'
+import type { FieldPlan, ReadPlan } from './kinds.js'
 import { decimalDigits, integerDigits } from './numbers.js'
 import type { Scope, Version } from './version.js'
 
@@ -149,7 +149,7 @@ function hostLabel(labels: OptionLabels | undefined, option: { readonly source: 
 }
 
 /** The text a choice of `plan` prints for `value`: its label in the report's locale, from the version or the host, or the value itself. */
-function choice(plan: FieldPlan, value: string, context: AnswerContext): Turned {
+function choice(plan: ReadPlan, value: string, context: AnswerContext): Turned {
   const { def } = plan
   if (plan.options.size > 0) {
     const option = plan.options.get(value)
@@ -171,7 +171,7 @@ function choice(plan: FieldPlan, value: string, context: AnswerContext): Turned 
  * row the version has none of, or a column it offers in none, is another
  * version's answer, whichever row the report reads.
  */
-function matrixRow(plan: FieldPlan, value: unknown, context: AnswerContext): Turned {
+function matrixRow(plan: ReadPlan, value: unknown, context: AnswerContext): Turned {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return invalid("a matrix's answer is an object of each row's chosen column")
   const answer = value as Record<string, unknown>
   for (const [row, column] of Object.entries(answer)) {
@@ -185,7 +185,7 @@ function matrixRow(plan: FieldPlan, value: unknown, context: AnswerContext): Tur
 }
 
 /** `value`, an answer of `plan`'s kind, as its field's type holds it. */
-function turn(plan: FieldPlan, value: unknown, context: AnswerContext): Turned {
+function turn(plan: ReadPlan, value: unknown, context: AnswerContext): Turned {
   const { def, field } = plan
   switch (plan.as) {
     case 'text':
@@ -221,9 +221,11 @@ const inside = (path: string): string => path
 /**
  * The answer `plan` reads from `record`, as its field's type holds it, or
  * undefined after reporting why not. An answer the submission does not
- * have, or holds as null, is null.
+ * have, or holds as null, is null; and so is every answer of a version a
+ * review decided prints nothing of the field (0048).
  */
 export function answerOf(f: Findings, plan: FieldPlan, record: AnswerRecord, context: AnswerContext): unknown {
+  if ('omitted' in plan) return null
   const found = holder(record, plan.keys)
   if (found === undefined || !found.record.entries.has(found.key)) return null
   const path = answerAt(found.record.path, found.key)

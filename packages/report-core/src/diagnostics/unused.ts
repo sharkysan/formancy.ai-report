@@ -6,53 +6,19 @@
  * the parameter form, a column the provider fetches.
  *
  * What an expression reads counts: its paths are asked of the parser, as
- * the compiler asks them. An expression that does not parse reads nothing
- * it can be credited with; its own diagnostic says why.
+ * the compiler asks them (`reads.ts`). An expression that does not parse
+ * reads nothing it can be credited with; its own diagnostic says why.
  */
-import { parse, referencedPaths } from '@formancy/expressions'
 import { FONT_FACE_KEYS, isFontMediaType } from '@formancy/report-spec'
-import type { DatasetRole, ReportDefinition } from '@formancy/report-spec'
-import { pathParts } from '../expressions/compile-site.js'
+import type { ReportDefinition } from '@formancy/report-spec'
+import { expressionReads, READ_AS, readsMember as read } from '../expressions/reads.js'
 import { quote } from '../outcome.js'
 import { diagnostic } from './codes.js'
 import type { Diagnostic, DiagnosticCode } from './codes.js'
-import type { ExpressionSite, ReportParts } from './parts.js'
-
-/** What expressions read, by name: the members read, or 'all' when one reads the whole map. */
-type Reads = ReadonlyMap<string, ReadonlySet<string> | 'all'>
-
-function expressionReads(sites: readonly ExpressionSite[]): Reads {
-  const reads = new Map<string, Set<string> | 'all'>()
-  for (const site of sites) {
-    const parsed = parse(site.cel)
-    if (!parsed.ok) continue
-    for (const path of referencedPaths(parsed.ast)) {
-      const { name, member, rest } = pathParts(path)
-      const known = reads.get(name)
-      // A whole read may read any member; a read by a key that is no
-      // identifier reads none, since every member's id is one.
-      if (member === undefined && rest === '') reads.set(name, 'all')
-      else if (member === undefined) continue
-      else if (known === undefined) reads.set(name, new Set([member]))
-      else if (known !== 'all') known.add(member)
-    }
-  }
-  return reads
-}
-
-/** Whether an expression reads `id` under any of `names`. */
-function read(reads: Reads, names: readonly string[], id: string): boolean {
-  return names.some((name) => {
-    const members = reads.get(name)
-    return members === 'all' || members?.has(id) === true
-  })
-}
-
-/** The name an expression reads each dataset's fields under. */
-const READ_AS: { readonly [R in DatasetRole]: string } = { header: 'header', detail: 'row' }
+import type { ReportParts } from './parts.js'
 
 export function unusedDiagnostics(report: ReportDefinition, parts: ReportParts): Diagnostic[] {
-  const reads = expressionReads(parts.expressions)
+  const reads = expressionReads(parts.expressions.map(({ cel }) => cel))
   const found: Diagnostic[] = []
   const check = (declared: readonly { readonly id: string }[], used: (id: string) => boolean, code: DiagnosticCode, list: string, message: (id: string) => string): void => {
     for (const [index, { id }] of declared.entries()) if (!used(id)) found.push(diagnostic(code, message(quote(id)), { path: `${list}/${index}` }))

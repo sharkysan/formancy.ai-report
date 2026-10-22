@@ -71,8 +71,8 @@ class Ids {
 
 const text = (value: string): Inline => ({ kind: 'text', text: value })
 
-/** A label as its line starts: a colon after it, unless it ends in one or asks a question. */
-const labelled = (label: string): string => (/[:?]$/.test(label) ? `${label} ` : `${label}: `)
+/** A label as its line starts: a colon after it, unless it ends in one or asks a question. A review finds a line by it, to relabel (0048). */
+export const labelled = (label: string): string => (/[:?]$/.test(label) ? `${label} ` : `${label}: `)
 
 /**
  * What prints `planned`'s value where `role`'s fields are read: a yes or a

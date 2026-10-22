@@ -45,6 +45,8 @@ export const REFUSAL_CODES = [
   'stale-document',
   /** A value the command would write where the report reads it from the data: an account the e-invoice and its payment codes share, one of them bound (0044). */
   'read-from-data',
+  /** A field the payment part or the e-invoice reads, directly or through an aggregate, named to a command that removes what reads it: only their own commands change them (0039, 0048). */
+  'read-by-part',
 ] as const
 
 export type RefusalCode = (typeof REFUSAL_CODES)[number]

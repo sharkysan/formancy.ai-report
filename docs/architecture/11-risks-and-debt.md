@@ -228,8 +228,25 @@ more digits than a double keeps, is refused rather than printed, but one
 typed with more than 15 digits that a double stores as a short one
 prints as that one, a typed 0.10000000000000001 as 0.1; and a
 version that moved a field the report reads refuses its submissions until
-the report is changed by hand, the review that would resolve it being
-later work ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+a review's resolution is applied ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+The review needs every version the report names, and refuses without
+one; a followed rename keeps reading where it read only the versions it
+was handed, so one the host kept back is refused until its own review;
+it offers a rename only where the form's author declared it and it
+alone lifts the refusal, so a field moved undeclared, or renamed and
+retyped at once, is the author's to move by hand; a field removed from
+the form blocks each later version, printing nothing naming one; a field
+the payment part or the e-invoice reads is offered only a rename, and the
+detail's repeater only its rename; a retype is judged by kind, so a text
+retyped a number refuses an earlier version's words; a key a version
+vacated unreviewed and a later one reused prints as the field, said only
+against a version the report names; it finds a relabel by exact words,
+so a label reworded or inside a sentence is not offered one; it says
+nothing of a field a version made optional, which prints until a final
+render meets a submission that left it out; and each change of a field's
+type it offers is compiled over the expressions that change reaches, so
+a review of a report at the format's bounds, every field never null,
+took close to a minute ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)).
 
 ### Two builders, written twice
 
@@ -434,8 +451,8 @@ elements in the page header and footer
 ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)),
 and the renderer's fallback fonts for the scripts Roboto lacks
 ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
-0.3.0's plan names, after the form bridge's read (0042) and a report
-generated from a form ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)), the review of a form's new version and its
+0.3.0's plan names, after the form bridge's read (0042), a report
+generated from a form ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)) and the review of a form's new version ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)), the review's
 pane in both builders, a parameter form written from a report's
 parameters, and a form's photos and signatures printed as approved
 assets. A generated report is a first draft nobody would print as it is,
@@ -444,6 +461,7 @@ than the format, or whose table is wider than a landscape page, gives
 none at all; a heading's or an answer's word wider than its column, or a
 label in characters Roboto lacks, is refused only when the draft prints,
 since the generator holds no font; that a draft opens with no warning in
-the editor is held on the Studio's starter alone, report-forms not
-depending on report-core, and review found it false once, for a blank
+the editor is held on the Studio's starter alone -- report-forms now
+depends on report-core, for the review, and nothing yet holds every
+draft to `diagnose` -- and review found it false once, for a blank
 title ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).

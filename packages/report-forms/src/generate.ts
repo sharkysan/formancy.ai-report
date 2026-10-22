@@ -153,7 +153,7 @@ export function generateReport(form: unknown, options: GenerateOptions): Generat
   if (asked === undefined) return refused(f)
   const version: Version | undefined = readVersion(f, form, '/form')
   if (version === undefined) return refused(f)
-  const repeater = asked.detail?.kind === 'repeater' ? planRepeater(f, version, asked.detail.repeater, '/options/detail/repeater') : undefined
+  const repeater = asked.detail?.kind === 'repeater' ? planRepeater(f, version, asked.detail.repeater, '/options/detail/repeater', false) : undefined
   if (!f.empty) return refused(f)
   const detail: DetailOf = asked.detail?.kind === 'submissions' ? asked.detail : repeater === undefined ? undefined : { kind: 'repeater', repeater: repeater.def }
   const rules = version.schema.logic?.rules ?? []

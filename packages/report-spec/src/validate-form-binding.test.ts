@@ -1,7 +1,7 @@
 import { validateSchema } from '@formancy/spec/validate'
 import { describe, expect, test } from 'vitest'
 import { reportHash } from './hash.js'
-import { MAX_FORM_MEMBER_LENGTH, MAX_FORM_PATH_KEYS } from './limits.js'
+import { MAX_FORM_MEMBER_LENGTH, MAX_FORM_OVERRIDES, MAX_FORM_PATH_KEYS } from './limits.js'
 import { isFormPath } from './syntax.js'
 import { edited, getAt, readFromForm, refusals, removeAt, setAt } from './test-support.js'
 import { validateReport } from './validate.js'
@@ -151,5 +151,105 @@ describe('a dataset read from a formancy form', () => {
     const read = hashOf(fromForm())
     expect(read).not.toBe(hashOf(edited(() => undefined)))
     expect(read).not.toBe(hashOf(fromForm((r) => setAt(r, '/datasets/detail/fields/0/form/path', 'visit.site'))))
+  })
+})
+
+/** Two form versions' hashes, as `schemaHash` writes one: 64 lower-case hex digits. */
+const V2 = 'a'.repeat(64)
+const V3 = 'b3'.repeat(32)
+
+describe("a binding's overrides, one form version at a time (0048)", () => {
+  // A review of a version that moved a field the report prints writes
+  // where that version holds it, or that the report prints nothing of it
+  // from that version, keyed by the version's hash: every other version
+  // goes on reading the binding's own path. Were either refused, a review
+  // could lift nothing but by changing what every other version reads.
+  test('a field reads another path in a version, or nothing of it, and a repeater another repeater', () => {
+    const report = fromForm((r) => {
+      setAt(r, '/datasets/header/fields/0/form', { path: 'customer', overrides: { [V2]: { path: 'client.name' }, [V3]: { path: 'buyer' } } })
+      setAt(r, '/datasets/detail/fields/5/form', { path: 'shipped', overrides: { [V2]: { omit: true } } })
+      setAt(r, '/datasets/detail/form', { kind: 'repeater', repeater: 'lines', overrides: { [V2]: { repeater: 'order.lines' } } })
+    })
+    expect(refusals(report)).toEqual([])
+    const outcome = validateReport(report)
+    if (!outcome.valid) throw new Error('refused')
+    expect(outcome.report.datasets.header?.fields[0]?.form).toEqual({ path: 'customer', overrides: { [V2]: { path: 'client.name' }, [V3]: { path: 'buyer' } } })
+    expect(outcome.report.datasets.detail?.fields[5]?.form).toEqual({ path: 'shipped', overrides: { [V2]: { omit: true } } })
+    expect(outcome.report.datasets.detail?.form).toEqual({ kind: 'repeater', repeater: 'lines', overrides: { [V2]: { repeater: 'order.lines' } } })
+  })
+
+  // Printing nothing of a field from a version hands it null in every
+  // submission of that version: a field declared never null would then
+  // refuse every final render of them, a review that lifts nothing.
+  test('prints nothing only of a field that may be null', () => {
+    expect(refusals(fromForm((r) => setAt(r, '/datasets/detail/fields/0/form/overrides', { [V2]: { omit: true } })))).toEqual(['invalid-form-override /datasets/detail/fields/0/form/overrides/' + V2])
+  })
+
+  // A review that follows a rename moves the binding's own path to where
+  // the version it reviewed holds the field, and records that version by
+  // an override reading that same path: the report then names the
+  // version, and the next review compares with it, where a rename from it
+  // is declared. Refused, a second rename of the field could never be
+  // followed. It is part of the hash, which says which versions the report
+  // was reviewed against. A list of none names nothing.
+  test("records a version reviewed at the binding's own path, and names at least one version", () => {
+    const own = fromForm((r) => setAt(r, '/datasets/header/fields/0/form/overrides', { [V2]: { path: 'customer' } }))
+    expect(refusals(own)).toEqual([])
+    const [recorded, plain] = [validateReport(own), validateReport(fromForm())]
+    if (!recorded.valid || !plain.valid) throw new Error('refused')
+    expect(recorded.report.datasets.header?.fields[0]?.form).toEqual({ path: 'customer', overrides: { [V2]: { path: 'customer' } } })
+    expect(reportHash(recorded.report)).not.toBe(reportHash(plain.report))
+    expect(refusals(fromForm((r) => setAt(r, '/datasets/detail/form', { kind: 'repeater', repeater: 'lines', overrides: { [V2]: { repeater: 'lines' } } })))).toEqual([])
+    expect(refusals(fromForm((r) => setAt(r, '/datasets/header/fields/0/form/overrides', {})))).toEqual(['too-few /datasets/header/fields/0/form/overrides'])
+    expect(refusals(fromForm((r) => setAt(r, '/datasets/detail/form', { kind: 'repeater', repeater: 'lines', overrides: {} })))).toEqual(['too-few /datasets/detail/form/overrides'])
+  })
+
+  // An override reads one thing: another path, or nothing. Both, or
+  // neither, says no one thing; `omit: false` is the binding itself,
+  // spelled otherwise. Its path is a path as the binding's is.
+  test('reads either another path or nothing, each as the binding would write it', () => {
+    const at = `/datasets/header/fields/0/form/overrides/${V2}`
+    const override = (value: unknown) => refusals(fromForm((r) => setAt(r, '/datasets/header/fields/0/form/overrides', { [V2]: value })))
+    expect(override({ path: 'client', omit: true })).toEqual([`invalid-form-override ${at}`])
+    expect(override({})).toEqual([`invalid-form-override ${at}`])
+    expect(override({ omit: false })).toEqual([`not-one-of ${at}/omit`])
+    expect(override({ path: 'client.' })).toEqual([`invalid-form-path ${at}/path`])
+    expect(override({ path: 'client', member: 'x' })).toEqual([`unknown-property ${at}/member`])
+    expect(override('client')).toEqual([`wrong-type ${at}`])
+    expect(refusals(fromForm((r) => setAt(r, '/datasets/detail/form', { kind: 'repeater', repeater: 'lines', overrides: { [V2]: { repeater: 'lines[]' } } })))).toEqual([`invalid-form-path /datasets/detail/form/overrides/${V2}/repeater`])
+  })
+
+  // A version is named by its schemaHash, as a provenance names one; a key
+  // of any other spelling names no version a submission could come from.
+  // A one-record dataset has no repeater to read from elsewhere, and a
+  // report of one row per submission none either.
+  test('names each version by its hash, and only a repeater the detail reads is overridden', () => {
+    expect(refusals(fromForm((r) => setAt(r, '/datasets/header/fields/0/form/overrides', { v2: { path: 'client' } })))).toEqual(['invalid-digest /datasets/header/fields/0/form/overrides/v2'])
+    expect(refusals(fromForm((r) => setAt(r, '/datasets/header/fields/0/form/overrides', { [V2.toUpperCase()]: { path: 'client' } })))).toEqual([`invalid-digest /datasets/header/fields/0/form/overrides/${V2.toUpperCase()}`])
+    expect(refusals(fromForm((r) => setAt(r, '/datasets/header/form', { kind: 'submission', overrides: { [V2]: { repeater: 'lines' } } })))).toEqual(['unknown-property /datasets/header/form/overrides'])
+  })
+
+  // Bounded, as every list of the format is, so no binding grows with
+  // what a document holds; at the bound, a binding.
+  test('names at most MAX_FORM_OVERRIDES versions', () => {
+    const versions = (count: number) => Object.fromEntries(Array.from({ length: count }, (_, index) => [index.toString(16).padStart(64, '0'), { path: `client${index}` }]))
+    expect(refusals(fromForm((r) => setAt(r, '/datasets/header/fields/0/form/overrides', versions(MAX_FORM_OVERRIDES))))).toEqual([])
+    expect(refusals(fromForm((r) => setAt(r, '/datasets/header/fields/0/form/overrides', versions(MAX_FORM_OVERRIDES + 1))))).toEqual(['too-many /datasets/header/fields/0/form/overrides'])
+    expect(refusals(fromForm((r) => setAt(r, '/datasets/detail/form', { kind: 'repeater', repeater: 'lines', overrides: Object.fromEntries(Object.keys(versions(MAX_FORM_OVERRIDES + 1)).map((hash) => [hash, { repeater: 'other' }])) })))).toEqual(['too-many /datasets/detail/form/overrides'])
+  })
+
+  // The hash says which versions a report was reviewed against: a review
+  // is a new version of the template. The overrides are a map by hash, so
+  // the order a host wrote them in is no part of it.
+  test('are part of what the report hashes, in no order', () => {
+    const hashOf = (report: unknown) => {
+      const outcome = validateReport(report)
+      if (!outcome.valid) throw new Error('refused')
+      return reportHash(outcome.report)
+    }
+    const two = (first: string, second: string) => fromForm((r) => setAt(r, '/datasets/header/fields/0/form/overrides', { [first]: { path: first === V2 ? 'client' : 'buyer' }, [second]: { path: second === V2 ? 'client' : 'buyer' } }))
+    expect(hashOf(two(V2, V3))).not.toBe(hashOf(fromForm()))
+    expect(hashOf(two(V2, V3))).toBe(hashOf(two(V3, V2)))
+    expect(hashOf(fromForm((r) => setAt(r, '/datasets/header/fields/0/form/overrides', { [V2]: { path: 'client' } })))).not.toBe(hashOf(fromForm((r) => setAt(r, '/datasets/header/fields/0/form/overrides', { [V3]: { path: 'client' } }))))
   })
 })

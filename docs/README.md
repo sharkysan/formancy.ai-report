@@ -35,7 +35,7 @@ told.
 | [3. Context and scope](architecture/03-context-and-scope.md) | The system boundary, and everything that stays the host's |
 | [4. Solution strategy](architecture/04-solution-strategy.md) | The ideas the rest follows from |
 | [5. Building blocks](architecture/05-building-blocks.md) | Every package and app, what each may import, and what is inside each |
-| [6. Runtime view](architecture/06-runtime-view.md) | An edit, a render, a read from Formancy Data, switching frameworks over one session, the Studio's preview, a QR-bill, an EPC QR code, an e-invoice, an SVG from the file a person saved to the page, an image from the file a person chooses, a QR-bill's IBAN from its field, an e-invoice's account typed once |
+| [6. Runtime view](architecture/06-runtime-view.md) | An edit, a render, a read from Formancy Data, switching frameworks over one session, the Studio's preview, a QR-bill, an EPC QR code, an e-invoice, an SVG from the file a person saved to the page, an image from the file a person chooses, a QR-bill's IBAN from its field, a read from a formancy form's submission, a report started from a form version, an e-invoice's account typed once, a review of a form's new version |
 | [7. Deployment view](architecture/07-deployment-view.md) | What is published and where, how a release gets there, and what a host needs |
 | [8. Cross-cutting concepts](architecture/08-crosscutting-concepts.md) | Exact values, refusals, final and preview, untrusted input, determinism, version lines, licences, languages, accessibility, the room |
 | [9. Quality requirements](architecture/09-quality-requirements.md) | Scenarios stated so that each can fail, and the bounds with how each was chosen |

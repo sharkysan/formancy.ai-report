@@ -114,7 +114,7 @@ function readFieldContract(f: Findings, value: unknown, path: string): Read<Fiel
     f.report(at(path, 'scale'), 'scale-on-non-decimal', `a scale says how many decimal places a decimal field has, and this field is a ${type}`)
   }
   const formed = o?.form !== undefined
-  const form = formed ? readFieldForm(f, o?.form, at(path, 'form'), type) : undefined
+  const form = formed ? readFieldForm(f, o?.form, at(path, 'form'), type, nullable) : undefined
   const entry = { id, path: at(path, 'id'), value: type }
   if (id === undefined || type === undefined || label === undefined || nullable === undefined || (formed && form === undefined)) return { entry, item: undefined, formed }
   return { entry, item: { id, type, label, nullable, ...optional('scale', scale), ...optional('form', form) }, formed }

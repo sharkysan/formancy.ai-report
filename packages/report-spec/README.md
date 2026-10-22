@@ -61,8 +61,11 @@ if (!outcome.valid) {
   rows, the detail one record, or a header beside a detail of one row per
   submission (`misplaced-form-binding`); a data path or a repeater that is
   not field keys joined by dots, at most `MAX_FORM_PATH_KEYS` of them, or
-  an empty member (`invalid-form-path`); and a field that says how a
-  choice prints but is no string (`binding-type-mismatch`).
+  an empty member (`invalid-form-path`); a field that says how a
+  choice prints but is no string (`binding-type-mismatch`); and an
+  override for a form version that says both a path and nothing, or
+  neither, or prints nothing of a field that may not be null
+  (`invalid-form-override`).
 
 **Read from a form.** A dataset contract may say what of a formancy
 form's submissions it reads, and each of its fields where:
@@ -79,6 +82,18 @@ spelling of its own, and `read: 'label'` is refused, so that one binding
 has one hash. The binding names no form, and is part of the report's hash. Whether a version of a
 form holds a field there is `@formancy/report-forms`' to say, per render;
 `isFormPath` is the syntax a path is held to.
+
+**Overridden per version.** A review of a form version
+([0048](../../docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md))
+writes what it decided on the binding, keyed by the version's
+`schemaHash`: a field's `overrides` read it at a path in that version,
+`{ path }`, or print nothing of it from that version, `{ omit: true }`,
+which only a field that may be null takes (`FieldFormOverride`); the
+detail's read its rows from a repeater, `{ repeater }`. Every version not
+named reads the binding's own path, and an override may read that own
+path too: a followed rename names so the version it moved the binding
+to. At least one override, at most `MAX_FORM_OVERRIDES`, each key a hash,
+and all of them part of the report's hash, in no order.
 
 A message names the field and the rule, and never quotes a payment code's
 text. It reports up to `MAX_ERRORS` errors and says when there were more.

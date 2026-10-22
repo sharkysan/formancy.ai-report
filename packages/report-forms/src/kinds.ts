@@ -8,9 +8,12 @@
  * a field the version lacks, holds elsewhere or holds as another kind is
  * refused, naming the field and the version's hash, before any answer is
  * read, so nothing prints wrong until a review lifts it. A path is never
- * guessed from a name.
+ * guessed from a name. Where a review decided for that version (0048), the
+ * binding's override for it says where the version holds the field, or
+ * that nothing of it prints from that version; every version it does not
+ * name is read at the binding's own path.
  */
-import type { FieldContract, FieldType } from '@formancy/report-spec'
+import type { DatasetFormBinding, FieldContract, FieldType } from '@formancy/report-spec'
 import type { FieldDef, FieldOption, FieldType as FormKind } from '@formancy/spec'
 import type { Findings } from './errors.js'
 import { named } from './errors.js'
@@ -68,8 +71,17 @@ export const KINDS: { readonly [K in FormKind]: KindRule } = {
   repeater: { none: 'a repeater holds rows, which a report reads as its detail and no field reads' },
 }
 
-/** How one field a report reads is read in one version. */
-export interface FieldPlan {
+/** What lifts a field's refusal for one version: a review of it, which says what the version did and offers what would print, where anything would (0048). */
+const LIFTED = 'reviewFormVersion, a review of that version, offers what lifts this, where anything does'
+
+/** What lifts the detail's: a review of it offers to read the rows elsewhere and nothing more, so the refusal says so. */
+const LIFTED_ROWS = 'reviewFormVersion, a review of that version, offers nothing but a rename of the repeater: one its author declared, or the repeater a version the report names reads the rows from'
+
+/** How one field a report reads is read in one version: as `ReadPlan` says, or not at all, where a review decided nothing of it prints from that version. */
+export type FieldPlan = ReadPlan | { readonly field: FieldContract; readonly omitted: true }
+
+/** How one field a report reads is read from one version's submissions. */
+export interface ReadPlan {
   readonly field: FieldContract
   /** Its path's keys, in its dataset's scope. */
   readonly keys: readonly string[]
@@ -90,12 +102,12 @@ export interface FieldPlan {
 const quoted = (member: string): string => JSON.stringify(member.length > 40 ? `${member.slice(0, 40)}...` : member)
 
 /** The field at `keys` in `scope` of `version`: through groups, never into a repeater's rows, which are a scope of their own. */
-function lookUp(version: Version, scope: Scope, keys: readonly string[]): FieldDef | undefined {
+export function fieldAt(version: Version, scope: Scope, keys: readonly string[]): FieldDef | undefined {
   const [first, ...rest] = keys
   const found = first === undefined ? undefined : scope.get(first)
   if (found === undefined || rest.length === 0) return found
   const inner = found.type === 'group' ? version.within.get(found) : undefined
-  return inner === undefined ? undefined : lookUp(version, inner, rest)
+  return inner === undefined ? undefined : fieldAt(version, inner, rest)
 }
 
 /** `def`'s options by value; of two that share one, which formancy allows a select, the first. */
@@ -125,15 +137,18 @@ function memberRefusal(rule: Extract<KindRule, { reads: unknown }>, def: FieldDe
 export function planField(f: Findings, version: Version, scope: Scope, field: FieldContract, where: string, inRows: string | undefined): FieldPlan | undefined {
   const binding = field.form
   if (binding === undefined) return undefined
-  const keys = binding.path.split('.')
-  const at = `${named(binding.path)}${inRows === undefined ? '' : ` in the rows of ${named(inRows)}`}`
-  const def = lookUp(version, scope, keys)
+  const override = overrideFor(binding.overrides, version)
+  if (override !== undefined && 'omit' in override) return { field, omitted: true }
+  const path = override?.path ?? binding.path
+  const keys = path.split('.')
+  const at = `${named(path)}${inRows === undefined ? '' : ` in the rows of ${named(inRows)}`}`
+  const def = fieldAt(version, scope, keys)
   const refuse = (code: 'version-lacks-field' | 'version-retypes-field' | 'unsupported-field', why: string): undefined => {
     // Once for each version: a report of many submissions meets it in every submission of that version.
-    f.report(where, code, `${field.id} is read at ${at}, and the form version ${version.hash} ${why}`, `${code} ${where} ${version.hash}`)
+    f.report(where, code, `${field.id} is read at ${at}, and the form version ${version.hash} ${why}: ${LIFTED}`, `${code} ${where} ${version.hash}`)
     return undefined
   }
-  if (def === undefined) return refuse('version-lacks-field', 'has no field there; a path is never guessed from a name, and a review says where the field is now')
+  if (def === undefined) return refuse('version-lacks-field', 'has no field there; a path is never guessed from a name')
   const rule = KINDS[def.type]
   if ('unsupported' in rule) return refuse('unsupported-field', `holds a ${def.type} field there: ${rule.unsupported}`)
   if ('none' in rule) return refuse('version-retypes-field', `holds a ${def.type} there: ${rule.none}`)
@@ -149,16 +164,32 @@ export function planField(f: Findings, version: Version, scope: Scope, field: Fi
   return { field, keys, def, as: rule.as, ...(binding.member === undefined ? {} : { member: binding.member }), label: rule.choice === true && binding.read !== 'value', options: optionsOf(def), rows }
 }
 
-/** The repeater the detail reads, in `version`, and its rows' scope, or undefined after reporting why the version has none there. */
-export function planRepeater(f: Findings, version: Version, repeater: string, where: string): { readonly def: FieldDef; readonly keys: readonly string[]; readonly rows: Scope } | undefined {
+/** The override a binding's `overrides` hold for `version`, by its hash: its own, never one an object inherits. */
+function overrideFor<T>(overrides: Readonly<Record<string, T>> | undefined, version: Version): T | undefined {
+  return overrides !== undefined && Object.hasOwn(overrides, version.hash) ? overrides[version.hash] : undefined
+}
+
+/** The data path of the repeater a detail of `binding` reads its rows from in `version`: where a review put it for that version, or the binding's own. */
+export function repeaterIn(binding: Extract<DatasetFormBinding, { kind: 'repeater' }>, version: Version): string {
+  return overrideFor(binding.overrides, version)?.repeater ?? binding.repeater
+}
+
+/**
+ * The repeater at `repeater` in `version`, and its rows' scope, or
+ * undefined after reporting why the version has none there. `review` says
+ * whether a review lifts the refusal: a report's detail's, which one does,
+ * and not a generator's option.
+ */
+export function planRepeater(f: Findings, version: Version, repeater: string, where: string, review = true): { readonly def: FieldDef; readonly keys: readonly string[]; readonly rows: Scope } | undefined {
   const keys = repeater.split('.')
-  const def = lookUp(version, version.answers, keys)
+  const def = fieldAt(version, version.answers, keys)
+  const lifted = review ? `: ${LIFTED_ROWS}` : ''
   if (def === undefined) {
-    f.report(where, 'version-lacks-field', `the detail reads the rows of ${named(repeater)}, and the form version ${version.hash} has no repeater there; a path is never guessed from a name`)
+    f.report(where, 'version-lacks-field', `the detail reads the rows of ${named(repeater)}, and the form version ${version.hash} has no repeater there; a path is never guessed from a name${lifted}`)
     return undefined
   }
   if (def.type !== 'repeater') {
-    f.report(where, 'version-retypes-field', `the detail reads the rows of ${named(repeater)}, and the form version ${version.hash} holds a ${def.type} there, which has no rows`)
+    f.report(where, 'version-retypes-field', `the detail reads the rows of ${named(repeater)}, and the form version ${version.hash} holds a ${def.type} there, which has no rows${lifted}`)
     return undefined
   }
   return { def, keys, rows: version.within.get(def) as Scope }

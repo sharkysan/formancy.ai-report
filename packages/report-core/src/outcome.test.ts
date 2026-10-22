@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { insertComponent, moveComponent, removeComponent, updateComponent } from './commands/components.js'
 import { addAsset, removeStyle } from './commands/declarations.js'
 import { setPaymentAccount } from './commands/e-invoice.js'
+import { removeFieldWithReaders } from './commands/readers.js'
 import { describedCommand } from './commands/registry.js'
 import type { CommandDescriptor } from './commands/registry.js'
 import { updateColumn } from './commands/table.js'
@@ -43,6 +44,8 @@ const CASES: { readonly [C in RefusalCode]: () => CommandOutcome } = {
     const bound = { ...report, eInvoice: { ...(report.eInvoice as NonNullable<typeof report.eInvoice>), payment: { means: '58', iban: [{ kind: 'field', field: { dataset: 'header', field: 'customer' } }] } } } as typeof report
     return setPaymentAccount(frozen(bound), 'DE89 3704 0044 0532 0130 00')
   },
+  // The QR-bill's debtor is the customer: only the bill's own commands change what it reads.
+  'read-by-part': () => removeFieldWithReaders(frozenSample(), 'header', 'customer'),
 }
 
 describe('REFUSAL_CODES', () => {

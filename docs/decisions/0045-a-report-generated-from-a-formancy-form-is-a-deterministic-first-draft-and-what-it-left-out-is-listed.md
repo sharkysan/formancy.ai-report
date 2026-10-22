@@ -1,6 +1,6 @@
 # 0045 — A report generated from a formancy form is a deterministic first draft, and what it left out is listed: `generateReport` in `@formancy/report-forms` walks a version in model order into a line of label and value for each answer, a section for each group, a matrix and ticked boxes, nothing for a page, one table over the repeater asked for or one row per submission, a box for a yes or a no and the pages counted, names the version by the hash computed of it and writes the binding its submissions are read by, declares a field never null only where the version proves it answered, and lists by stable codes what it left out and assumed; what the format cannot hold refused; the Studio opens one as a starter; a named layout, page breaks for pages, a stored base, words for yes and no, ids renamed by likeness and a draft cut to fit lost
 
-- **Status:** accepted; numbered while 0043 and 0044 were other branches'; extends [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), whose binding it writes and whose mapping it reads a kind by, and [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), whose Studio opens a starter generated from a form
+- **Status:** accepted; numbered while 0043 and 0044 were other branches'; extends [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), whose binding it writes and whose mapping it reads a kind by, and [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), whose Studio opens a starter generated from a form; extended by [0048](0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md), whose review compares a later version with the report itself, as this record decided, and offers its relabels, and which refuses a label's direction controls and separators
 - **Date:** 2026-10-22
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -468,6 +468,26 @@ starter's, and the e-invoice gate draws it as a variant.
 break made of a form's page; a stored base merged into a report; words
 for yes and no the generator chose; ids renamed by likeness to fit; a
 draft cut to the format's bounds or the page's.
+
+**Added 2026-10-22: the review.** A later version is reviewed against
+the report itself, with no base kept, as decided here (FB-Q6):
+[0048](0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)'s `reviewFormVersion` compares it with the version the
+draft names in its provenance, says a field it added and adds none, and
+offers the version's new label for each text that still says the old --
+a line's label run found by the generator's own `labelled` before the run
+that prints the field, and a column's heading over it. The package now
+depends on `report-core`, for the review's commands; the reason given
+above for holding a draft to the runtime's `checkReport` alone, that it
+does not, is gone, and nothing yet holds every draft to `diagnose`, so
+the starter is still the one draft held to opening with nothing in the
+problems pane. And a label no font draws now includes the explicit
+direction embeddings, overrides and isolates and the line and paragraph
+separators, besides a control character and half of a surrogate pair:
+no font draws one, a direction control shows a label in a builder in
+another order than it prints, and a relabel, which writes a later
+version's label into the report, is held to the same rule. Other format
+characters -- a soft hyphen, the joiners Persian and the Indic scripts
+need -- are still the renderer's to judge (`generate-kinds.test.ts`).
 
 ## Alternatives considered
 

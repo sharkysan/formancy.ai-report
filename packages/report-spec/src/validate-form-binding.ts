@@ -6,14 +6,23 @@
  * report-forms' to say, per render, against the version that collected each
  * submission. A dataset is read from a form whole, and both datasets are,
  * or neither, because a submission is read into the whole envelope at once.
+ *
+ * A binding may say, one form version at a time, where that version holds
+ * what the binding reads, or that the report prints nothing of a field
+ * from it (0048): what a review of a version decided, keyed by the
+ * version's `schemaHash`, so that every version it does not name reads the
+ * binding's own path. An override may read that own path too: a review
+ * that followed a rename moved the own path to where the version it
+ * reviewed holds the field, and names that version so, for the next
+ * review to compare with.
  */
 import type { Findings } from './check.js'
 import { kindOf, oneOf, optional, quote, readObject, reference, shape, strictKeys, text } from './check.js'
 import { DATASET_FORM_KINDS, FORM_READS } from './data.js'
-import type { DatasetFormBinding, DatasetFormKind, DatasetRole, FieldFormBinding, FieldType } from './data.js'
-import { MAX_FORM_MEMBER_LENGTH, MAX_FORM_PATH_KEYS } from './limits.js'
+import type { DatasetFormBinding, DatasetFormKind, DatasetRole, FieldFormBinding, FieldFormOverride, FieldType } from './data.js'
+import { MAX_FORM_MEMBER_LENGTH, MAX_FORM_OVERRIDES, MAX_FORM_PATH_KEYS } from './limits.js'
 import { at } from './pointer.js'
-import { isFormPath } from './syntax.js'
+import { isFormPath, isSchemaHash } from './syntax.js'
 
 const PATH_RULE = `field keys joined by dots, as formancy writes a data path in one scope: at most ${MAX_FORM_PATH_KEYS} keys, each letters, digits and underscores, and no repeater's []`
 
@@ -26,12 +35,59 @@ function formPath(f: Findings, value: unknown, path: string): string | undefined
 }
 
 /**
+ * Overrides keyed by a form version's hash, each read by `read`, or
+ * undefined when they could not all be read. At least one, since none is
+ * the binding without them spelled otherwise; at most
+ * `MAX_FORM_OVERRIDES`, refused before any is read.
+ */
+function readOverrides<T>(f: Findings, value: unknown, path: string, read: (item: unknown, where: string) => T | undefined): Readonly<Record<string, T>> | undefined {
+  const o = readObject(f, value, path)
+  if (o === undefined) return undefined
+  const versions = Object.keys(o)
+  if (versions.length === 0) f.report(path, 'too-few', 'overrides name at least one form version: none is the binding without them, and one reading has one hash')
+  if (versions.length > MAX_FORM_OVERRIDES) {
+    f.report(path, 'too-many', `name ${versions.length} form versions; at most ${MAX_FORM_OVERRIDES} are allowed`)
+    return undefined
+  }
+  const items = versions.map((version) => {
+    if (isSchemaHash(version)) return read(o[version], at(path, version))
+    f.report(at(path, version), 'invalid-digest', 'a form version is named by its schemaHash: 64 lower-case hex digits')
+    return undefined
+  })
+  return versions.length > 0 && items.every((item) => item !== undefined) ? Object.fromEntries(versions.map((version, index) => [version, items[index] as T])) : undefined
+}
+
+/**
+ * One version's override of a field's binding, or undefined after
+ * reporting why it is none: a path, the binding's own among them, or
+ * nothing printed, of a field that may be null.
+ */
+function readFieldOverride(f: Findings, value: unknown, path: string, nullable: boolean | undefined): FieldFormOverride | undefined {
+  const o = shape(f, value, path, [], ['path', 'omit'])
+  if (o === undefined) return undefined
+  if (Object.hasOwn(o, 'path') === Object.hasOwn(o, 'omit')) {
+    f.report(path, 'invalid-form-override', 'an override reads the field from another path in that version, { path }, or prints nothing of it from that version, { omit: true }: one of the two')
+    return undefined
+  }
+  if (Object.hasOwn(o, 'omit')) {
+    if (oneOf(f, o.omit, at(path, 'omit'), [true] as const) === undefined) return undefined
+    if (nullable !== false) return { omit: true }
+    f.report(path, 'invalid-form-override', "printing nothing of a field from a version hands it null in each of that version's submissions, and this field is never null: a final render would refuse every one")
+    return undefined
+  }
+  const where = formPath(f, o.path, at(path, 'path'))
+  return where === undefined ? undefined : { path: where }
+}
+
+/**
  * Where a field of `type` is read from a submission, when it says; undefined
  * when it does not, or when what it says could not all be read. A choice
- * prints text, so only a string field says how one prints.
+ * prints text, so only a string field says how one prints; and only a
+ * field that may be null, as `nullable` says, has nothing printed of it
+ * from a version.
  */
-export function readFieldForm(f: Findings, value: unknown, path: string, type: FieldType | undefined): FieldFormBinding | undefined {
-  const o = shape(f, value, path, ['path'], ['member', 'read'])
+export function readFieldForm(f: Findings, value: unknown, path: string, type: FieldType | undefined, nullable: boolean | undefined): FieldFormBinding | undefined {
+  const o = shape(f, value, path, ['path'], ['member', 'read', 'overrides'])
   if (o === undefined) return undefined
   const where = formPath(f, o.path, at(path, 'path'))
   const member = text(f, o.member, at(path, 'member'), MAX_FORM_MEMBER_LENGTH)
@@ -42,8 +98,16 @@ export function readFieldForm(f: Findings, value: unknown, path: string, type: F
   if (read !== undefined && type !== undefined && type !== 'string') {
     f.report(at(path, 'read'), 'binding-type-mismatch', `a choice prints its label or its stored value, both text, and this field is a ${type}`)
   }
-  const whole = where !== undefined && (o.member === undefined || (member !== undefined && member !== '')) && (o.read === undefined || read !== undefined)
-  return whole ? { path: where, ...optional('member', member), ...optional('read', read) } : undefined
+  const overrides = o.overrides === undefined ? undefined : readOverrides(f, o.overrides, at(path, 'overrides'), (item, version) => readFieldOverride(f, item, version, nullable))
+  const whole = where !== undefined && (o.member === undefined || (member !== undefined && member !== '')) && (o.read === undefined || read !== undefined) && (o.overrides === undefined || overrides !== undefined)
+  return whole ? { path: where, ...optional('member', member), ...optional('read', read), ...optional('overrides', overrides) } : undefined
+}
+
+/** One version's override of the detail's repeater -- a repeater, the binding's own among them -- or undefined after reporting why it is none. */
+function readRepeaterOverride(f: Findings, value: unknown, path: string): { readonly repeater: string } | undefined {
+  const o = shape(f, value, path, ['repeater'])
+  const where = o === undefined ? undefined : formPath(f, o.repeater, at(path, 'repeater'))
+  return where === undefined ? undefined : { repeater: where }
 }
 
 /** What a dataset says of a form: the binding when it could be read whole, and its kind where that could be read. */
@@ -61,9 +125,11 @@ export function readDatasetForm(f: Findings, value: unknown, path: string): Data
     strictKeys(f, o, path, ['kind'])
     return { binding: { kind }, kind }
   }
-  strictKeys(f, o, path, ['kind', 'repeater'])
+  strictKeys(f, o, path, ['kind', 'repeater'], ['overrides'])
   const repeater = formPath(f, o.repeater, at(path, 'repeater'))
-  return { binding: repeater === undefined ? undefined : { kind, repeater }, kind }
+  const overrides = o.overrides === undefined ? undefined : readOverrides(f, o.overrides, at(path, 'overrides'), (item, version) => readRepeaterOverride(f, item, version))
+  const whole = repeater !== undefined && (o.overrides === undefined || overrides !== undefined)
+  return { binding: whole ? { kind, repeater, ...optional('overrides', overrides) } : undefined, kind }
 }
 
 /**

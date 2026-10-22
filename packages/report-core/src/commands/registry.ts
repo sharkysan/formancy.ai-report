@@ -4,7 +4,10 @@
  * A proposal -- from an AI, from a saved macro, from another window -- is a
  * bounded list of operations, not code (plan 16). A descriptor is one such
  * operation, and it runs through exactly the function the builder calls, so
- * a proposal and a click cannot do the same thing two ways.
+ * a proposal and a click cannot do the same thing two ways. A batch is
+ * several of them as one command (0048): a transaction written down, so
+ * that an edit of several commands -- a review's resolution -- travels as
+ * data and is applied as one step.
  */
 import { DATASET_ROLES, REGION_NAMES } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
@@ -30,6 +33,7 @@ import {
 import { replaceDocument, setLocale, setPage, setTitle } from './document.js'
 import { putEInvoice, removeEInvoice, setPaymentAccount, updateEInvoice } from './e-invoice.js'
 import { putPaymentPart, removePaymentPart, updatePaymentPart } from './payment-part.js'
+import { removeFieldWithReaders } from './readers.js'
 import {
   insertColumn,
   insertFooterRow,
@@ -45,7 +49,8 @@ import {
   updateFooterRow,
 } from './table.js'
 
-export const COMMANDS = Object.freeze({
+/** Every command a batch may hold: every command but the batch. */
+const STEPS = Object.freeze({
   setTitle,
   setLocale,
   setPage,
@@ -88,9 +93,15 @@ export const COMMANDS = Object.freeze({
   updateEInvoice,
   removeEInvoice,
   setPaymentAccount,
+  removeFieldWithReaders,
 })
 
+export const COMMANDS = Object.freeze({ ...STEPS, batch })
+
 export type CommandName = keyof typeof COMMANDS
+
+/** A command a batch may hold: any but a batch. */
+export type StepName = keyof typeof STEPS
 
 /**
  * The commands that may change each part a report holds at its own level,
@@ -105,11 +116,12 @@ export type CommandName = keyof typeof COMMANDS
  * names one of these may change whom a payment reaches -- a replacement
  * whatever else it changes, and `setPaymentAccount` always -- which 0039
  * and 0044 ask a proposal's review to show above every other change, the
- * part compared whole for a replacement, once proposals are reviewed.
+ * part compared whole for a replacement, once proposals are reviewed. A
+ * batch may hold any of them, so it is listed for both (0048).
  */
 export const PART_COMMANDS = Object.freeze({
-  paymentPart: Object.freeze(['putPaymentPart', 'updatePaymentPart', 'removePaymentPart', 'setPaymentAccount', 'replaceDocument'] as const),
-  eInvoice: Object.freeze(['putEInvoice', 'updateEInvoice', 'removeEInvoice', 'setPaymentAccount', 'replaceDocument'] as const),
+  paymentPart: Object.freeze(['putPaymentPart', 'updatePaymentPart', 'removePaymentPart', 'setPaymentAccount', 'replaceDocument', 'batch'] as const),
+  eInvoice: Object.freeze(['putEInvoice', 'updateEInvoice', 'removeEInvoice', 'setPaymentAccount', 'replaceDocument', 'batch'] as const),
 }) satisfies { readonly [part in 'paymentPart' | 'eInvoice']: readonly CommandName[] }
 
 /** A command's arguments after the report. */
@@ -119,6 +131,18 @@ type ArgumentsOf<F> = F extends (report: ReportDefinition, ...rest: infer A) => 
 export type CommandDescriptor = {
   readonly [N in CommandName]: { readonly command: N; readonly args: Readonly<ArgumentsOf<(typeof COMMANDS)[N]>> }
 }[CommandName]
+
+/** A command a batch may hold, as data. */
+export type StepDescriptor = Exclude<CommandDescriptor, { readonly command: 'batch' }>
+
+/**
+ * Commands one batch holds. Chosen, not measured, as a proposal's bound
+ * (plan 16): the largest batch a review writes is a relabel, a command for
+ * the field and one for each text that says its label, far fewer; and a
+ * batch read from JSON is refused past it before any of it runs. What a
+ * batch at the bound costs is measured in 0048.
+ */
+export const MAX_BATCH_COMMANDS = 1000
 
 function isObject(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -147,6 +171,7 @@ const SHAPES = {
   object: { is: isObject, said: 'an object' },
   objectOrNull: { is: (value: unknown) => value === null || isObject(value), said: 'an object, or null to remove it' },
   listOrNull: { is: (value: unknown) => value === null || Array.isArray(value), said: 'a list, or null to remove it' },
+  list: { is: (value: unknown) => Array.isArray(value), said: 'a list' },
   location: { is: isLocation, said: 'a location: a region, an index, and a parent id and a column where it names them' },
   role: { is: (value: unknown) => (DATASET_ROLES as readonly unknown[]).includes(value), said: "'header' or 'detail'" },
   footer: { is: (value: unknown) => value === 'totals' || value === 'groupFooter', said: "'totals' or 'groupFooter'" },
@@ -203,6 +228,8 @@ export const ARGUMENTS: { readonly [N in CommandName]: readonly Shape[] } = {
   updateEInvoice: ['object'],
   removeEInvoice: [],
   setPaymentAccount: ['text'],
+  removeFieldWithReaders: ['role', 'text'],
+  batch: ['list'],
 }
 
 /** Why `args` are not arguments `name` takes, or undefined when they are. Never quotes an argument. */
@@ -235,4 +262,39 @@ export function describedCommand(descriptor: CommandDescriptor): Command {
   if (wrong !== undefined) return () => refuse('invalid-arguments', wrong)
   const run = COMMANDS[name] as (report: ReportDefinition, ...rest: unknown[]) => CommandOutcome
   return (report) => run(report, ...(args as unknown[]))
+}
+
+/**
+ * The commands `steps` describe, run one after the other as one command:
+ * the report the last leaves, which the session then validates once, as a
+ * transaction's end; or the first refusal, word for word, and nothing
+ * after it runs. A step is checked as any descriptor is, and one that is
+ * no object, or is a batch itself, is refused; so is a batch of more than
+ * `MAX_BATCH_COMMANDS` commands, before any runs. Never throws on what a
+ * batch read from JSON holds: a step runs on the report the steps before
+ * it left, which nothing has validated yet -- a document replaced by one
+ * of nothing, a table inserted with no columns -- and a command written
+ * for a report the validator accepts may throw on that; such a step is
+ * refused, the batch with it.
+ */
+export function batch(report: ReportDefinition, steps: readonly StepDescriptor[]): CommandOutcome {
+  if (steps.length > MAX_BATCH_COMMANDS) return refuse('invalid-arguments', `a batch holds at most ${MAX_BATCH_COMMANDS} commands, and this one ${steps.length}`)
+  let working = report
+  for (const [index, step] of steps.entries()) {
+    if (!isObject(step)) return refuse('invalid-arguments', `step ${index + 1} of the batch is not a command: an object naming one, and its arguments`)
+    if ((step as { readonly command?: unknown }).command === 'batch') return refuse('invalid-arguments', `step ${index + 1} of the batch is a batch: a batch holds commands, and is one edit already`)
+    const outcome = stepOn(working, step, index)
+    if (!outcome.ok) return outcome
+    working = outcome.report
+  }
+  return { ok: true, report: working }
+}
+
+/** `step` run on `working`, or refused where it throws on a report no validator has seen; what it threw is not quoted, since it may quote the report. */
+function stepOn(working: ReportDefinition, step: StepDescriptor, index: number): CommandOutcome {
+  try {
+    return describedCommand(step)(working)
+  } catch {
+    return refuse('invalid-arguments', `step ${index + 1} of the batch could not run on the report the steps before it left: the batch is refused whole`)
+  }
 }

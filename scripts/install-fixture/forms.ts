@@ -8,7 +8,12 @@
  * both; a report generated from the version (0045), naming it, with its
  * notes, the submission read into it and rendered; then a version that
  * moved a field the report reads, and a hash the host gives that is not
- * the form's, each refused. consume.ts runs it and prints what it returns.
+ * the form's, each refused; and a version that renamed a group the draft
+ * reads (0048), reviewed by the packed bridge against the version the
+ * draft was made from, its declared rename offered first and applied
+ * through a report-core session against the hash it was computed for, the
+ * version's visit then read, and the same resolution refused as stale.
+ * consume.ts runs it and prints what it returns.
  * It lives apart because it changes when the bridge does, and the rest of
  * consume.ts does not. The packages/report-forms README's examples are
  * these lines (scripts/readme-example.test.mjs).
@@ -17,6 +22,9 @@ import { readSubmission, readSubmissions } from '@formancy/report-forms'
 import type { FormsError, SubmissionRead } from '@formancy/report-forms'
 import { generateReport } from '@formancy/report-forms'
 import type { Generated } from '@formancy/report-forms'
+import { reviewFormVersion } from '@formancy/report-forms'
+import type { FormReview } from '@formancy/report-forms'
+import { openReportSession } from '@formancy/report-core'
 import { renderPdf } from '@formancy/report-render-pdf'
 import { resolveReport } from '@formancy/report-runtime'
 import type { ReportDefinition } from '@formancy/report-spec'
@@ -180,5 +188,30 @@ export async function formsRead(): Promise<string> {
   }
   const mismatched = refused(readSubmission(visitReport, { form: visitForm, formHash: schemaHash(moved), submission: { id: visitId, data: visitData } }))
   if (mismatched.map((error) => `${error.code} ${error.path}`).join() !== 'hash-mismatch /formHash') throw new Error(`a hash that is not the form's was not refused: ${JSON.stringify(mismatched)}`)
-  return `the form bridge read a submission of a site visit validated by @formancy/spec against its version, its labels in Swiss German, host-captured, its manifest naming the submission and the version's hash, and it rendered to a ${pdf.length}-byte PDF; it read two visits one a row, the manifest naming both; it generated a draft from the version, naming it, its one assumption listed, read the visit into it and rendered it to a ${draftPdf.length}-byte PDF; a version that moved a field it reads, and a hash that is not the form's, were refused`
+  // A later version that renamed the inspector's group the technician's,
+  // declared (0048): the draft's submissions of it are refused until
+  // reviewed. The review, against the version the draft was made from,
+  // offers the declared rename first; applied through a session against
+  // the hash it was computed for, the version's visit reads, and applied
+  // again it is stale.
+  const renamedForm = { ...visitForm, model: { fields: visitForm.model.fields.map((field) => (field.key === 'inspector' ? { ...field, key: 'technician', renamedFrom: 'inspector' } : field)) } }
+  const renamedData = { site: 'Kramgasse 49, 3011 Bern', technician: { name: 'Lea Gerber' } }
+  const unreviewed = refused(readSubmission(draft.report, { form: renamedForm, submission: { id: visitId, data: renamedData } }))
+  if (unreviewed.map((error) => `${error.code} ${error.path}`).join() !== 'version-lacks-field /datasets/header/fields/2/form' || !unreviewed[0]?.message.includes('reviewFormVersion')) {
+    throw new Error(`a version that renamed the inspector's group was not refused, naming the review that lifts it: ${JSON.stringify(unreviewed)}`)
+  }
+  const review: FormReview = reviewFormVersion(draft.report, { form: renamedForm, versions: [visitForm] })
+  if (!review.ok) throw new Error(review.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
+  const follow = review.items[0]?.resolutions[0]
+  const opening = openReportSession(draft.report)
+  const applied = opening.ok && follow !== undefined ? opening.session.apply(follow.descriptor, { expectedHash: follow.expectedHash }) : undefined
+  if (review.status !== 'blocked' || follow?.kind !== 'follow-rename' || follow.declared !== true || applied?.ok !== true || !opening.ok) {
+    throw new Error(`the review did not offer the declared rename first, or the session did not take it: ${JSON.stringify([review.status, follow?.kind, applied?.ok])}`)
+  }
+  const reviewedVisit = readSubmission(opening.session.document(), { form: renamedForm, submission: { id: visitId, data: renamedData } })
+  const again = opening.session.apply(follow.descriptor, { expectedHash: follow.expectedHash })
+  if (!reviewedVisit.ok || reviewedVisit.data.header?.['name'] !== 'Lea Gerber' || again.ok || again.code !== 'stale-document') {
+    throw new Error(`the reviewed draft did not read the renamed version's visit, or took the same resolution twice: ${JSON.stringify([reviewedVisit.ok ? reviewedVisit.data.header : reviewedVisit.errors, again.ok])}`)
+  }
+  return `the form bridge read a submission of a site visit validated by @formancy/spec against its version, its labels in Swiss German, host-captured, its manifest naming the submission and the version's hash, and it rendered to a ${pdf.length}-byte PDF; it read two visits one a row, the manifest naming both; it generated a draft from the version, naming it, its one assumption listed, read the visit into it and rendered it to a ${draftPdf.length}-byte PDF; a version that moved a field it reads, and a hash that is not the form's, were refused; a version that renamed a group the draft reads was refused, naming the review, and reviewed against the version the draft was made from, its declared rename offered first, applied through a session against its hash, after which the version's visit read and the same resolution was stale`
 }

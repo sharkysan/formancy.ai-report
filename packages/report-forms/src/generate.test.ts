@@ -300,6 +300,9 @@ describe('generateReport, its options', () => {
   test('refuses a detail the version holds no repeater at, as a read would', () => {
     expect(generationRefusals(generate(SITE_VISIT_V2, { ...VISIT, detail: { kind: 'repeater', repeater: 'befunde' } }))).toEqual(['version-lacks-field /options/detail/repeater'])
     expect(generationRefusals(generate(SITE_VISIT_V2, { ...VISIT, detail: { kind: 'repeater', repeater: 'inspector' } }))).toEqual(['version-retypes-field /options/detail/repeater'])
+    // A generator's option is no report a review could lift a refusal of: the refusal names none (0048).
+    const refusal = generate(SITE_VISIT_V2, { ...VISIT, detail: { kind: 'repeater', repeater: 'befunde' } })
+    expect(refusal.ok ? '' : refusal.errors[0]?.message).not.toContain('reviewFormVersion')
   })
 
   // A form formancy's validator refuses is no version, and a report made
