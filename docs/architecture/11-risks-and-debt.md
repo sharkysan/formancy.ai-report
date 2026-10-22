@@ -248,6 +248,36 @@ type it offers is compiled over the expressions that change reaches, so
 a review of a report at the format's bounds, every field never null,
 took close to a minute ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)).
 
+### A server that trusts a token until it expires, and runs alone
+
+The server knows who is asking only from the host's token, verified
+offline, and keeps no session: a person the host removes keeps their
+token's access until its `exp`, so the host keeps tokens short. Every token
+must carry the tenant claim, and every permission is the actions table's,
+whose rows name actions before any route takes them; a later record may
+change one ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)). It is one instance: its rate limit
+lives in its memory, and the store that arrives next is files on one
+volume, as Formancy Data's is. Its verifier is Data's, at one version, so a
+key rule Data changes reaches Report only through a release, and running
+the server in production needs a Data licence too
+([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)). That verifier sets no longest lifetime, so a
+token whose `exp` is years ahead is accepted until then, and it verifies a
+signature with `=` appended, so a token's text is not unique; both are
+Data's rules, taken whole, and nothing here keys on a token's text. The
+image is built from the repository and not published; its base layer's
+packages are read by no guard here.
+
+### The container gate rests on Docker in CI
+
+The gate builds the image on the runner's Docker and pulls the base image
+by digest from Docker Hub on every run, so a registry outage, a pull's rate
+limit or a runner's Docker having a bad day turns the run red with nothing
+wrong in the checkout; its twenty minutes are a bound for that, not for the
+work, until three green runs give a slowest time to triple. It has run by
+hand on one Windows workstation and not yet on a CI runner, on one
+architecture, and starts every container it uses with a name of its run's
+and removes it however it ends (0046).
+
 ### Two builders, written twice
 
 Every visible change is made twice and reviewed twice. The scenarios, the
@@ -409,6 +439,9 @@ its own.
 | **Two workarounds for upstream's expression API** | `@formancy/expressions`, as 0009 read it at 0.5.0, declares no typed member and cannot say which functions an expression calls, so members are spliced into flat variables and the clock is found by renaming it ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) | Positions after an index read are lost; both rest on upstream behaviour that tests pin. Each goes when upstream offers the API (0002) |
 | **Each expression compiled twice per render** | The diagnostics do not hand back their compilation ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) | Time, unmeasured |
 | **admin.css's rules copied by hand** | formancy publishes the room's palette (`@formancy/themes/room.css`, which the Studio and the pages import, [0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) but no rule, so `builder.css` carries admin.css's rules for the workbench at e3c5967, and the Studio's other stylesheets its rules for the page, with the colours they type that the room does not carry ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)) | When admin.css's geometry or one of those colours moves upstream nothing here fails; review compares them by hand |
+| **The audit trail's actor, unlike Data's** | Report's trail names who asked by a keyed hash, because a subject is a claim's value; Formancy Data's names its actor plainly (formancy.ai-data 0023; [0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)) | An operator reading both trails reads them differently, and finds a person's Report events only by computing the reference with the audit key |
+| **Data's rate limit and preflight lifetime, not measured here** | The server takes Formancy Data's 600 requests a minute and its 600-second preflight, so a host behind both servers meets one rule (0046) | Neither number was measured on Report's routes; a host whose people make more requests a minute raises the setting |
+| **Node's request timeout and Data's health check, not measured here** | The server takes Node's own 300 s for a request to arrive, which Fastify turns off, and the image Data's health-check intervals (0046) | Neither was measured on Report's routes; a route that reads a body larger than a slow link sends in 300 s needs a record of its own |
 | **Two `@formancy/spec` under the Data provider** | report-spec takes 0.7.0, and Formancy Data 0.1.0's packages pin 0.5.0 exactly ([0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) | A consumer of the provider installs both until Data releases against a newer one; nothing of one reaches the other |
 | **English where a person reads it** | The session's undo labels, the validator's and the diagnostics' sentences, and the preview's label are English ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) | A German or French builder shows an English sentence for a refusal the validator words, and an EPC payment code's square too small for its frame is refused in points, in a field edited in millimetres ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | **Properties without an editor** | A table's sort, its group and total rows and its footer cells, conditional styles, value formats, a run added to or removed from a text, a QR code's content or an EPC QR code's text (only an optional text that is absent, or one literal run, is typed in and emptied out), a column added to or removed from a columns block or added to a table, and the declarations, but for an image a person adds and the removal of one nothing draws (0033), have commands and no property kind to edit them ([`report-builder-core`'s README](../../packages/report-builder-core/README.md#what-it-does-not-do)) | Written in the definition instead |
@@ -440,8 +473,9 @@ its own.
 
 ## 11.4 Planned, and not built
 
-From the README and the open release gates, and nothing more: the server
-and its jobs, storage and publication; reviewed AI changes,
+From the README and the open release gates, and nothing more: the server's
+drafts, publication, jobs and artifacts, and its image published, on the
+server that answers who is asking today (0046); reviewed AI changes,
 whose groundwork is commands as data ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md));
 a published PDF viewer; and a consistent read from Formancy Data, which
 waits for Data's snapshot export. Whether the runtime checks the bytes a

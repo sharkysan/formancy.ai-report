@@ -34,7 +34,7 @@ export const REGISTER = 'docs/release/limitations.json'
 export const DECISIONS = 'docs/decisions'
 
 /** Where a limitation is met. Closed, so the report's grouping is the register's. */
-export const AREAS = ['licence', 'format', 'editing', 'builders', 'runtime', 'rendering', 'data', 'release', 'testing']
+export const AREAS = ['licence', 'format', 'editing', 'builders', 'runtime', 'rendering', 'data', 'server', 'release', 'testing']
 
 /** Every decision record: its number, file, title, Status line and hash. */
 export function readRecords(root = repo) {

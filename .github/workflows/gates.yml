@@ -9,19 +9,18 @@ name: Gates
 # builds the release report from all of them and fails the run on anything
 # its `problems` list (scripts/release-report/report.mjs).
 #
-# Five jobs leave results, because five things exist to prove: the build,
+# Six jobs leave results, because six things exist to prove: the build,
 # types, packaging, licences and the repository's guards (`verify`); each
 # package's suite on a runner of its own (`test`); the Studio in a real
 # browser, and the README's pictures of it held to the text they show
 # (`browser`); the packed tarballs in projects that are not this one
 # (`install`), which also compiles and runs docs/getting-started.md's code
-# (0015); and the e-invoice, the XML the runtime writes and the PDF/A-3b the
+# (0015); the e-invoice, the XML the runtime writes and the PDF/A-3b the
 # renderer draws of it, judged by the validators a receiver runs
-# (`e-invoice`, 0027, 0031). A container gate arrives with the
-# server it proves -- not before,
-# so that no job here passes for having nothing to check. A job added here
-# is one the report expects results from: it needs a collect step, and
-# collect.mjs a reader for it.
+# (`e-invoice`, 0027, 0031); and the server's image, built from this
+# checkout and run (`container`, 0046). A job added here is one the report
+# expects results from: it needs a collect step, and collect.mjs a reader
+# for it.
 #
 # A release runs code from here with its own permissions, so third-party
 # actions are pinned to commit hashes, with the tag in a comment, under
@@ -144,7 +143,7 @@ jobs:
       # Every suite reports, rather than the first failure cancelling the rest.
       fail-fast: false
       matrix:
-        package: ['@formancy/report-spec', '@formancy/report-core', '@formancy/report-runtime', '@formancy/report-data-provider', '@formancy/report-forms', '@formancy/report-render-pdf', '@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-builder-angular', '@formancy/report-corpus', '@formancy/report-studio', '@formancy/report-pages']
+        package: ['@formancy/report-spec', '@formancy/report-core', '@formancy/report-runtime', '@formancy/report-data-provider', '@formancy/report-forms', '@formancy/report-server-core', '@formancy/report-server', '@formancy/report-render-pdf', '@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-builder-angular', '@formancy/report-corpus', '@formancy/report-studio', '@formancy/report-pages']
     steps:
       - uses: actions/checkout@v4
 
@@ -470,6 +469,58 @@ jobs:
           if-no-files-found: error
           overwrite: true
 
+  # The server's image (0046), which nothing else here touches.
+  # packages/report-server/src/dockerfile.test.ts catches a workspace
+  # package the Dockerfile's COPY list forgot; this catches what it cannot --
+  # a file the runtime stage drops, a module that resolves in the workspace
+  # and not in the deployed tree, a setting main.ts does not read. formancy's
+  # image once built cleanly, passed every test and exited on startup with
+  # ERR_MODULE_NOT_FOUND, and Formancy Data's container job exists for that;
+  # this is its shape, as a script (scripts/container.mjs) that builds the
+  # image on the runner's own Docker, runs every check, removes every
+  # container it started, and writes test-results/container.json however it
+  # ends. Node and nothing else installed: the script and collect.mjs import
+  # Node's built-ins alone, and the image installs what it needs from the
+  # lockfile itself. What the report says of this image is labelled the
+  # gate's image; this release publishes none.
+  #
+  # The twenty minutes are not measured on CI: the gate took 18 s with the
+  # image's layers cached, and its build 42 s uncached, on a Windows 11
+  # workstation's Docker Desktop (i9-10900K) on 2026-10-22, beside other
+  # work. The bound is for a pull of the base image, the registry or a runner
+  # having a bad day, until three green runs give a slowest time to triple.
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: node scripts/container.mjs
+
+      - name: Keep what this job found, for the report
+        id: collect
+        if: ${{ !cancelled() }}
+        run: node scripts/release-report/collect.mjs --job container
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: release-results-${{ steps.collect.outputs.key }}
+          path: release-results/
+          if-no-files-found: error
+          overwrite: true
+      # The gate's record, whole, for whoever reads a red run.
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: container-results
+          path: test-results/container.json
+          if-no-files-found: error
+          overwrite: true
+
   # The release report (0014), built from what every job above found: what
   # this run was tested on -- Node, pnpm, TypeScript, upstream @formancy/*,
   # pdfmake, the React and Angular each install host resolved, and the
@@ -492,7 +543,7 @@ jobs:
   # checkout keeps the whole history, for a document's last change when a
   # gate's evidence is a document.
   report:
-    needs: [verify, test, browser, install, e-invoice]
+    needs: [verify, test, browser, install, e-invoice, container]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15

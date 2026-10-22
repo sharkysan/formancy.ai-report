@@ -18,8 +18,12 @@ Three things follow, and each has a guard:
   refuses a range, a `workspace:` link or a path
   ([0002](docs/decisions/0002-depend-on-upstream-never-copy-it.md)). That
   includes Formancy Data's packages: `report-data-provider` depends on
-  `@formancy/data-client` at exactly 0.1.0, and nothing else depends on
-  Data ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+  `@formancy/data-client` at exactly 0.1.0
+  ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)),
+  `report-server` on `@formancy/data-identity`, Data's token verifier, at
+  exactly 0.3.0
+  ([0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)),
+  and nothing else depends on Data.
   A generic improvement goes upstream through that
   repository's own contribution rules, not into a patched copy here.
 - **Every package declares the source-available licence**, never Apache-2.0.
@@ -33,9 +37,11 @@ Three things follow, and each has a guard:
 A dependency must allow both public source and licensed production use:
 permissive licences only, no GPL or AGPL, no source-available or
 non-commercial licence. The one exception is Formancy Data's packages, on
-this repository's terms from the same rightsholder: they are admitted for
-`report-data-provider` alone, at an exact version, with the licence file a
-review read (`FORMANCY_DATA`, 0006 as 0016 extends it). A commercial
+this repository's terms from the same rightsholder: they are admitted each
+for one package alone -- Data's client and core for `report-data-provider`,
+Data's identity verifier for `report-server` -- at an exact version, with
+the licence file a review read (`FORMANCY_DATA`, 0006 as 0016 and 0047
+extend it). A commercial
 component needs written redistribution rights. Fonts must be licensed for embedding in generated PDFs.
 `scripts/dependency-licences.mjs` holds this for the production dependencies
 of every publishable package and every font they ship, reading a font's
@@ -162,6 +168,17 @@ included; the QR-bill's slip and the EPC caption keep Liberation Sans
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
 ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+`@formancy/report-server-core` holds who may do what -- one actions table
+over the host's verified identity -- the wire and the audit port, with no
+Node; `@formancy/report-server` is the server over it, on Fastify: the
+host's token verified offline by Data's verifier, the tenant from a
+required claim, `/health` and `/v1/whoami` and nothing else, a path that is
+not plain refused before any route, a trusted-proxy list that would trust
+every client of a family refused as `@fastify/proxy-addr` matches it, its
+settings read once by `main.ts`, its image built and run by the `container`
+gate and not published
+([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
+0047).
 `@formancy/report-forms` reads that data from a formancy form's
 submissions, against the exact form version that collected each, as the
 host hands them over, fetching nothing: each version validated by the
@@ -261,11 +278,14 @@ before it:
    a renderer-neutral output.
 5. `report-render-pdf` -- the one chosen engine's adapter. It takes resolved
    input and approved asset bytes, never a database connection or a URL.
-6. `report-server-core` / `report-server`, `report-client`, `report-viewer`,
-   `report-ai`.
+6. `report-server-core` / `report-server` -- built: who may do what, and a
+   server that knows who is asking (0046); then `report-client`,
+   `report-viewer`, `report-ai`.
 7. `report-data-provider` -- the only package allowed to depend on Formancy
    Data's contracts, at the exact release it was built against (0016);
-   `scripts/dependency-licences.mjs` refuses Data reached from any other.
+   `report-server` may depend on Data's identity verifier alone (0047);
+   `scripts/dependency-licences.mjs` refuses Data reached from any other
+   package.
 8. `report-forms` -- formancy's forms: a submission read against the
    version that collected it (0042), a report generated from a version
    (0045), and a new version reviewed (0048); report-spec, report-core,
@@ -631,6 +651,14 @@ exactly what CI does:
   A change to what a picture shows is retaken with `node
   scripts/pictures.mjs`, never by hand.
 - **`install`** runs `pnpm test:e2e:install`.
+- **`container`** runs `node scripts/container.mjs`: the server's image
+  built from the checkout on the runner's Docker and run -- unconfigured it
+  stops naming its settings, and with a secret it cannot resolve it stops
+  with one sentence and no stack trace; configured it answers `/health`,
+  the one 401 and whoami, reads a key set file and reads it again on
+  SIGHUP, runs as `node`, carries the licence, writes its store and not its
+  own code, runs on a read-only root, and reads its rate limit, proxies and
+  origins (0046). Locally it needs Docker.
 - **`e-invoice`** runs `node scripts/e-invoice.mjs --java <path>` after
   `pnpm build`, on the Java the register names (0027, 0031): Mustang,
   KoSIT's validator and veraPDF, fetched by URL into `.e-invoice-cache/`
@@ -683,6 +711,10 @@ exactly what CI does:
     XML or PDF, or judged a file otherwise than its corpus expects;
   - two builds of one package differ, or a tarball's built files are not
     every job's;
+  - the container gate left no record, failed or failed a check, did not
+    make a check `scripts/container.mjs` plans or made one it does not, or
+    its image ran another Node than the Dockerfile's base or as another
+    user than `node`;
   - a release gate's evidence or a limitation's `heldBy` test did not pass.
 
   A job added to gates.yml needs a collect step and an upload, which the
@@ -736,6 +768,8 @@ Locally, run the same commands for what you changed.
 - runs it: `consume.ts` under Node, which also draws an e-invoice, in
   `e-invoice.ts`, and reads the PDF/A-3b's bytes with `embedding.ts` and
   Node alone (0031);
+  `server.ts`, the server made in its host's process and asked over a
+  socket;
   `react.tsx` drawn by React's server renderer in its development and
   production builds; `angular.ts` compiled
   ahead of time, linked and bundled by `build.mjs`, and drawn by

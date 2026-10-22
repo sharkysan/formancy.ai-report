@@ -272,7 +272,7 @@ describe('gates.yml', () => {
   // it cannot see; one that is cancelled must still leave the report to run.
   test('ends in a report that waits for every other job and runs unless cancelled', () => {
     expect([...gates.jobs.report.needs].sort()).toEqual(gateJobs(gates).sort())
-    expect(gateJobs(gates)).toEqual(expect.arrayContaining(['verify', 'test', 'browser', 'install', 'e-invoice']))
+    expect(gateJobs(gates)).toEqual(expect.arrayContaining(['verify', 'test', 'browser', 'install', 'e-invoice', 'container']))
     expect(gates.jobs.report.if).toContain('!cancelled()')
     expect(gates.on.workflow_call.inputs.release).toMatchObject({ type: 'string', default: '' })
     expect(gates.on.workflow_call.secrets).toEqual({ CODECOV_TOKEN: { required: false } })
@@ -312,7 +312,7 @@ describe('gates.yml', () => {
   test('gives the report one key per job and package, and no key twice', () => {
     const keys = expectedKeys(gates, namedPackages()).map((entry) => entry.key)
     expect(new Set(keys).size).toBe(keys.length)
-    expect(keys).toEqual(expect.arrayContaining(['verify', 'browser', 'install', 'e-invoice']))
+    expect(keys).toEqual(expect.arrayContaining(['verify', 'browser', 'install', 'e-invoice', 'container']))
     expect(keys).not.toContain('test')
     expect(keys.filter((key) => key.startsWith('test-')).sort()).toEqual(namedPackages().map((entry) => `test-${entry.id}`).sort())
   })
@@ -370,6 +370,25 @@ describe('gates.yml', () => {
     expect(steps[java].with).toEqual({ distribution: runtime.distribution, 'java-version': String(runtime.java) })
     expect(steps.find((step) => String(step.uses).startsWith('actions/cache') && step.with?.path === '.e-invoice-cache')?.with.key).toBe("e-invoice-tools-${{ hashFiles('docs/release/e-invoice-tools.json') }}")
     expect(steps.find((step) => step.with?.name === 'e-invoice-results')?.with).toEqual({ name: 'e-invoice-results', path: 'test-results/e-invoice.json\ntest-results/e-invoice/\n', 'if-no-files-found': 'error', overwrite: true })
+  })
+
+  // The container gate builds the server's image from this checkout on the
+  // runner's own Docker and runs it (scripts/container.mjs, 0046): with
+  // Node and nothing installed, since the script and collect.mjs import
+  // Node's built-ins alone and the image installs what it needs itself; on
+  // no third-party action, since none is needed to build and run an image;
+  // and before it collects. Its record is kept whole beside the results,
+  // for whoever reads a red run.
+  test('runs the container gate on the runner’s Docker, with nothing installed, before it collects, and keeps its record', () => {
+    const steps = gates.jobs.container.steps
+    const gate = steps.findIndex((step) => step.run === 'node scripts/container.mjs')
+    const collect = steps.indexOf(collectStep(gates.jobs.container))
+    expect([gate !== -1, gate < collect]).toEqual([true, true])
+    expect(steps.filter((step) => /\b(?:pnpm|npm)\b/.test(String(step.run ?? '')))).toEqual([])
+    expect(steps.map((step) => step.uses).filter((uses) => typeof uses === 'string' && !/^actions\/(checkout|setup-node|upload-artifact)@/.test(uses))).toEqual([])
+    expect(collectStep(gates.jobs.container).run).toBe('node scripts/release-report/collect.mjs --job container')
+    expect(steps.find((step) => step.with?.name === 'container-results')?.with).toEqual({ name: 'container-results', path: 'test-results/container.json', 'if-no-files-found': 'error', overwrite: true })
+    expect(foreignImports(join(repo, 'scripts', 'container.mjs'))).toEqual([])
   })
 
   // Without --force a suite's results could be a cached replay of another

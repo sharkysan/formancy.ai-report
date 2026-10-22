@@ -1,6 +1,6 @@
 # 0016 — The Data provider reads Formancy Data 0.1.0 best-effort, as the person, and checks what it can before it reads a record
 
-- **Status:** accepted; extended by [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose data names the forms it read
+- **Status:** accepted; extended by [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose data names the forms it read; its admission "for it alone" narrowed by [0047](0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md), under which the server depends on Data's identity verifier and the provider remains the one package that reads Data's records
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**

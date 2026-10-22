@@ -45,7 +45,7 @@
     },
     {
       "gate": "G5",
-      "open": "A later release: there is no report server, job, storage or publication yet, so nothing exists to test."
+      "open": "A later release: the report server verifies who is asking and answers nothing else (0046); no draft, publication, job or artifact exists yet, so none of what the gate tests does."
     },
     {
       "gate": "G6",

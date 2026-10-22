@@ -141,6 +141,7 @@ const METHOD = [
   ],
   ['Results', 'each package’s `test-results/vitest.json` and `coverage/coverage-summary.json`, turbo’s run summary (`--summarize`), the repository guards’ `test-results/vitest.json`, and the install gate’s `test-results/install.json`'],
   ['E-invoice gate', '`test-results/e-invoice.json`, which `scripts/e-invoice.mjs` writes however its run ends, held to the tools `docs/release/e-invoice-tools.json` pins'],
+  ['Container gate', '`test-results/container.json`, which `scripts/container.mjs` writes however its run ends, held to the checks that script plans and to the Node of the base `packages/report-server/Dockerfile` builds on'],
   ['Browser', 'each app’s `test-results/browser-<browser>.json`, which its browser gate writes however it ends, for every browser of `scripts/browsers.mjs`, and its `test-results/pictures.json`, which its pictures’ check writes however it ends, held to the scenes `scripts/pictures/scenes.json` gives the app'],
   ['Build identity', '`scripts/release/dist-hash.mjs` over every published package’s `dist/` in every job, and over each tarball’s built files'],
   ['Release gates', '`docs/release/gates.json`, the report job’s `needs`, and `git log` for a document’s last change'],
@@ -269,6 +270,27 @@ function eInvoiceSection({ results }) {
   ].join('\n')
 }
 
+/**
+ * The container gate (0046): the image it built from this checkout, said
+ * to be the gate's and never a published one, and every check it made with
+ * what it said.
+ */
+function containerSection({ results }) {
+  const gate = results.container
+  const image = gate?.image ?? null
+  const said = image === null
+    ? `The container gate ${gate?.passed ? 'passed' : 'failed'} on Docker ${String(gate?.docker ?? 'that it did not record')}, and recorded no image.`
+    : `The container gate ${gate.passed ? 'passed' : 'failed'} on Docker ${String(gate.docker ?? 'that it did not record')}, with the image it built from this checkout, ${code(image.tag)} (${code(image.id)}): Node ${String(image.node)}, as ${code(image.user)}, ${(image.size / 1e6).toFixed(1)} MB, built in ${seconds(gate.measured.buildMs) || 'a time it did not record'} and answering ${seconds(gate.measured.healthyMs) || 'at a time it did not record'} after it started. It is the gate’s image; no image is published from this run.`
+  return [
+    '## Container gate',
+    '',
+    'The server’s image, built from this checkout on the runner’s Docker by `scripts/container.mjs`, and run: unconfigured, it must stop and name every setting it needs, and with a secret reference it cannot resolve stop with that one sentence and no stack trace; configured, answer `/health`, refuse every bad token with the one 401, answer whoami for a token the gate signed, answer nothing else, run as `node`, carry the repository’s licence, write its store directory and not its own code, run on a read-only root, keep its audit trail free of tokens, live through SIGHUP and stop on SIGTERM, name the kids of a key set file it is given and read the file again on SIGHUP; and read the rate limit, the trusted proxies and the origins it is given. A check it did not make, one `scripts/container.mjs` does not plan, or an image that runs another Node than the base `packages/report-server/Dockerfile` names, or as another user than `node`, fails the run.',
+    '',
+    gate === null ? 'The container gate left no results in this run.' : said,
+    ...(gate === null ? [] : ['', table(['Check', 'Passed', 'Said'], gate.checks.map((check) => [check.name, check.passed ? 'yes' : 'no', check.said ?? '']))]),
+  ].join('\n')
+}
+
 const pct = (coverage) => (coverage === null ? '' : ['lines', 'branches', 'functions', 'statements'].map((metric) => (coverage[metric] === null ? '-' : String(coverage[metric]))).join(' / '))
 const yesNo = (value) => (value ? 'yes' : 'no')
 
@@ -336,7 +358,7 @@ function closingSection(report) {
 
 /** Every section after the subject. */
 export function renderContent(report) {
-  return [testedOnSection(report), resultsSection(report), browserSection(report), eInvoiceSection(report), identitySection(report), gatesSection(report), closingSection(report)].join('\n\n')
+  return [testedOnSection(report), resultsSection(report), browserSection(report), eInvoiceSection(report), containerSection(report), identitySection(report), gatesSection(report), closingSection(report)].join('\n\n')
 }
 
 /** What is being released, as the subject's first line says it. */
@@ -373,11 +395,11 @@ export function renderSummary(report, { section = null, link = null } = {}) {
   const packages = report.results.packages.filter((row) => row.present)
   const passed = packages.reduce((total, row) => total + row.passed, 0)
   const tests = packages.reduce((total, row) => total + row.tests, 0)
-  const { install, eInvoice } = report.results
+  const { install, eInvoice, container } = report.results
   return [
     ...(link === null ? [] : [`The full report of the run that gated this: ${link}`, '']),
     ...(section === null ? [] : [`The notes above are CHANGELOG.md’s ${code(section)} section.`, '']),
-    `${String(passed)} of ${String(tests)} tests passed across ${String(packages.length)} packages; the install gate ${install === null ? 'left no results' : install.passed ? 'passed' : 'failed'}; the e-invoice gate ${eInvoice === null ? 'left no results' : eInvoice.passed ? 'passed' : 'failed'}.`,
+    `${String(passed)} of ${String(tests)} tests passed across ${String(packages.length)} packages; the install gate ${install === null ? 'left no results' : install.passed ? 'passed' : 'failed'}; the e-invoice gate ${eInvoice === null ? 'left no results' : eInvoice.passed ? 'passed' : 'failed'}; the container gate ${container === null ? 'left no results' : container.passed ? 'passed' : 'failed'}.`,
     '',
     ...derivedLimitations(report).map((sentence) => `- ${sentence}`),
   ].join('\n')

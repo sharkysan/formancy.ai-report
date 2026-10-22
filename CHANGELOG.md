@@ -10,6 +10,96 @@ later.
 
 ## Unreleased
 
+**Report has a server that knows who is asking, and answers nothing else**
+([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
+[0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
+The 0.3.0 server slice -- drafts, publication, render jobs, artifacts --
+needs, before any of it, a server that knows which person of which tenant
+is asking and what they may do. Two new packages:
+- `@formancy/report-server-core`, with no Node and no framework: the
+  actions table -- three capacities, author, publisher and administrator,
+  which the operator gives to the host's roles, and every action with the
+  capacities that may take it, an unknown action denied to everybody and
+  no capacity implying another -- `can`, `capacitiesOf` and `actionsOf`;
+  `ReportIdentity`; the wire a client compiles against, `/v1`'s routes,
+  `WhoAmI` and every refusal's code and fixed sentence; and the audit port.
+- `@formancy/report-server`, on Fastify 5.12.7 and @fastify/rate-limit
+  11.2.1: `GET /health` and `GET /v1/whoami`, which answers the subject,
+  the tenant, the roles, and the capacities and actions the table gives
+  them, so a wrong issuer, audience, tenant claim or role mapping shows
+  before anything depends on it; `HEAD /health` too, for a monitor that
+  probes with HEAD. Every other method and path is the one 404, a body
+  that quotes nothing of the request, answered before any body is read,
+  counted by the rate limit and its connection closed, so a broken, a
+  large or a slowly sent body costs a client its quota and holds nothing
+  open. A path with anything a proxy could normalise -- an escape, a dot
+  or empty segment -- is the one 400, `path-not-plain`, before any route,
+  by formancy.ai-data 0037's rule; a request Node's parser cannot read is
+  the fixed `bad-request` refusal, `no-store`; and a request that takes
+  longer than Node's own 300 s to arrive is cut.
+- **The host's token, verified by Data's own verifier.** The server
+  depends on `@formancy/data-identity` at exactly 0.3.0, which Formancy
+  Data released for this (formancy.ai-data 0091), so one host's token is
+  verified by both servers under one implementation of Data's rules: the
+  algorithm pinned by the key's kind, `sub` and `exp` required, a short
+  secret and key confusion refused, a key set selected by `kid` and read
+  again on SIGHUP, nothing fetched. Its identity settings are Data's
+  names under `FORMANCY_REPORT_`, each read by Data's rule, beside two of
+  Report's own: `FORMANCY_REPORT_ROLES_CLAIM`, which Data's server does not
+  have, and `FORMANCY_REPORT_ATTRIBUTES`, which maps `tenant` alone, once.
+  The licence guard admits Data's licence for the
+  server's data-identity, at that version and by its licence file's digest,
+  beside the provider's client, each for its own package alone. **Running
+  the server in production needs a production licence for Formancy Data
+  as well.**
+- **The tenant is required.** `FORMANCY_REPORT_ATTRIBUTES` maps `tenant`
+  to the claim every token names it in; a token without it is refused with
+  the same 401 as a forgery, because a token that forgot its claim would
+  otherwise be a tenant of its own. A single-tenant host puts a constant in
+  its tokens.
+- **The audit trail never holds a value.** One log line per request an API
+  route answered, a client that left included: the route, the status, the
+  outcome's code, and who asked by HMAC-SHA-256 under
+  `FORMANCY_REPORT_AUDIT_KEY`, over the values as a JSON array so that no
+  two people share a reference, or nobody without a key, since a tenant
+  and a subject are claims' values. The key is at least 32 bytes and is not
+  the identity key, because it is all that keeps a reference from being
+  reversed, and whoever is given it to read the trail must not be able to
+  sign tokens. Formancy Data's trail names its actor plainly; Report's
+  does not.
+- **As Data's**: the rate limit, 600 a minute unless set; the trusted
+  proxies; the origins a page may call the API from; `no-store` on every
+  answer. **Its settings are read once**, by `main.ts`; an unconfigured
+  server stops with a line naming each setting it needs, and a
+  `FORMANCY_REPORT_` variable it does not read stops it too, so a misspelt
+  one is found at start; a secret reference to one of its own variables,
+  which holds no secret, stops it as well, and so does a list of trusted
+  proxies whose entries together trust every IPv4 or every IPv6 peer, as
+  Fastify's @fastify/proxy-addr matches one: `::/1`, which it compares
+  with no IPv4 peer, starts. An embedder's options are held to the same
+  rules before anything is built, and `logger` is `{ stream }` or absent,
+  since Fastify's own `false` would turn the log on here. The
+  defaults are labelled: the rate limit, the preflight's lifetime and the
+  image's health check are Data's, not measured here; the request timeout
+  is Node's own; the port, 4392, is a choice.
+- **The image**, `packages/report-server/Dockerfile`, on Node 26.12.1 at
+  its digest (the packages stay at Node 22.13 or later), running as `node`,
+  carrying `LICENSE.md` and `NOTICE`, owning the store's directory and
+  nothing of its own code, which is root's, so a process made to write
+  cannot rewrite the server; it runs on a read-only root file system. A
+  new gates job, `container`, builds it from every checkout and runs it
+  (`scripts/container.mjs`), and the release report fails a run whose
+  container gate did not make every check, or whose image ran another
+  Node than the Dockerfile's base or as another user than `node`. This
+  release does not publish the image; a later one signs and publishes it
+  by digest.
+- The install gate gains a `server` host: the packed server and what it
+  declares and nothing else, type-checked against Node's types with
+  `skipLibCheck` off, started in its own process and asked over a socket.
+- The API and the server's records are a fourth version line (0004): every
+  route under `/v1`, and every record the server will keep carrying a
+  `format` refused when unknown.
+
 **A report refuses a submission whose form version moved a field it
 reads, until its author reviews the change**
 ([0048](docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)).

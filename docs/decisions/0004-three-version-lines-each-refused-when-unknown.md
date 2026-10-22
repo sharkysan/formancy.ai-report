@@ -1,6 +1,6 @@
 # 0004 — Three version lines, each refused when unknown
 
-- **Status:** accepted; the tuple a release was tested with is derived from the run that gated it, by [0014](0014-a-release-report-is-derived-from-the-run-that-gated-it.md); its form line read since [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), which reads a form through the pinned validator
+- **Status:** accepted; the tuple a release was tested with is derived from the run that gated it, by [0014](0014-a-release-report-is-derived-from-the-run-that-gated-it.md); its form line read since [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), which reads a form through the pinned validator; extended by [0046](0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md) with a fourth line, the server's API and its records
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `packages/report-spec/src/version.test.ts`, which proves
@@ -147,6 +147,20 @@ by its code. The bridge adds no reading of its own to what a form may
 hold; what it reads of one is its own question, which 0042 decides.
 `read.test.ts` holds it, a form Formancy Data generated at spec 3 among
 the forms it reads. arc42 8.6's row for the form spec changed with it.
+
+**Added 2026-10-22: a fourth line, the server's.** Report's server
+([0046](0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md))
+is versioned as this record versions documents, in two parts that share
+the line. Its API is versioned by its path: every route a person's token
+reaches is under `/v1` (report-server-core's `API_PREFIX` and `ROUTES`),
+and a shape a client could not read as before is a route under `/v2`
+beside it, never `/v1` changed. Its own records -- a draft, a version, a
+policy, a job, an artifact -- each carry a `format` number from the record
+that introduces them, and a reader refuses one it does not know, naming it,
+as a report of an unknown `reportSpecVersion` is refused here. This
+release's server answers `/v1/whoami` alone and stores nothing, so no
+record has a format yet. `report-server-core/src/wire.test.ts` holds every
+route under `/v1`; arc42 8.6's table gained the row.
 
 ## Alternatives considered
 

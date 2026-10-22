@@ -65,16 +65,22 @@ builds the report from all of them (`scripts/release-report/report.mjs`).
    format: Mustang and KoSIT the XML, veraPDF and Mustang the PDF
    ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
    [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
-6. **Build identity:** each published package's tarball as the install gate
+6. **Container gate:** the server's image the gate built from the checkout
+   -- its id, the Node and the user it runs, as the image said them, its
+   size, how long it took to build and to answer -- said to be the gate's
+   image and never a published one, and every check the gate made, with
+   what each said
+   ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)).
+7. **Build identity:** each published package's tarball as the install gate
    packed, installed and ran it, by sha256, and the hash of its built files
    against the `dist/` every job built.
-7. **Release gates:** G1 to G7 and the legal review, from
+8. **Release gates:** G1 to G7 and the legal review, from
    [`gates.json`](gates.json).
-8. **Known limitations:** those the run shows, as fixed sentences with the
+9. **Known limitations:** those the run shows, as fixed sentences with the
    run's facts, then those the decision records state, from
    [`limitations.json`](limitations.json).
-9. **How this report was made:** where each section comes from.
-10. **Problems:** what fails the run. Empty on a green run, and the report
+10. **How this report was made:** where each section comes from.
+11. **Problems:** what fails the run. Empty on a green run, and the report
     says so.
 
 ## What fails it
@@ -107,7 +113,13 @@ floor, its own or Mustang's, judging no sample of a format, XML or PDF,
 that every tool of that format must accept, or making, for a tool, no
 control of its format that it must refuse, recording a file
 of a format no tool judges, or missing a tool's verdict on a file or
-having one other than its corpus expects; a published package whose `dist/` no job recorded,
+having one other than its corpus expects; the container gate leaving no
+results, failing, failing a check, making no check
+[`scripts/container.mjs`](../../scripts/container.mjs) plans or one it does
+not, or an image running another Node than the base the server's Dockerfile
+names, or as another user than `node`, by what the image said of itself --
+the base is the Dockerfile's digest, which Docker verifies and
+`dockerfile.test.ts` pins, and is not compared again; a published package whose `dist/` no job recorded,
 so its tarball is compared with nothing; two builds of one package that
 differ, or a tarball whose built files are not every job's; a gate whose
 evidence did not pass, or a limitation whose `heldBy` test did not; either
@@ -205,11 +217,12 @@ and a gate that rests on a browser gate is judged from that machine's run
 of it. A gate that rests on a job -- G1 rests on `install` -- has no result
 on a machine, because a job's result is the gates run's `needs`: the report
 says so unless that job is allowed missing. `--allow-missing` names
-collect's readers -- `verify`, `browser`, `install`, `e-invoice` -- whose
+collect's readers -- `verify`, `browser`, `install`, `e-invoice`, `container` -- whose
 files a machine did not write: collect files each file it did not find
 under the reader that expected it, and the report leaves out those of an
 allowed reader and what rests on it. The e-invoice gate's file is read on a
-machine as in CI, and needs a Java there. A file it found and could not use -- from before
+machine as in CI, and needs a Java there; the container gate's likewise,
+and needs Docker. A file it found and could not use -- from before
 `--since`, another run's -- fails the report whatever is allowed. A
 local report says "local" at the top, names its commit "with uncommitted
 changes" when the tree held any, names what it allowed missing when it is
