@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // The browser's globals and no @types/node, as the Data provider has
+    // them: a host reads a submission in a page or in Node, and a `node:`
+    // import in src is a compile error rather than a review finding.
+    "lib": ["ES2023", "DOM"],
+    "types": []
+  },
+  "include": ["src/**/*.ts"]
+}

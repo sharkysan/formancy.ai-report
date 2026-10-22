@@ -5,8 +5,21 @@ export { ORIENTATIONS, PAGE_SIZE_NAMES } from './page.js'
 export type { Margins, Orientation, PageSettings, PageSizeName } from './page.js'
 export { ALIGNMENTS, FONT_FAMILIES } from './styles.js'
 export type { Alignment, FontFamily, PrintStyle, StyleRule } from './styles.js'
-export { DATASET_ROLES, FIELD_TYPES, PARAMETER_TYPES } from './data.js'
-export type { DatasetContract, DatasetRole, Datasets, FieldContract, FieldRef, FieldType, ParameterDef, ParameterType } from './data.js'
+export { DATASET_FORM_KINDS, DATASET_ROLES, FIELD_TYPES, FORM_READS, PARAMETER_TYPES } from './data.js'
+export type {
+  DatasetContract,
+  DatasetFormBinding,
+  DatasetFormKind,
+  DatasetRole,
+  Datasets,
+  FieldContract,
+  FieldFormBinding,
+  FieldRef,
+  FieldType,
+  FormRead,
+  ParameterDef,
+  ParameterType,
+} from './data.js'
 export { ASSET_MEDIA_TYPES } from './assets.js'
 export type { AssetMediaType, AssetRef } from './assets.js'
 export { AGGREGATE_SCOPES, CURRENCY_SOURCE_KINDS, DATE_STYLES, EXPRESSION_NAMES, FORMAT_KINDS, GROUP_KEY, INLINE_KINDS, TEXT_TRANSFORMS, VALUE_SCOPES } from './values.js'
@@ -208,6 +221,8 @@ export {
   MAX_FONT_GLYPH_WORK,
   MAX_FONT_SIZE,
   MAX_FOOTER_ROWS,
+  MAX_FORM_MEMBER_LENGTH,
+  MAX_FORM_PATH_KEYS,
   MAX_INLINES,
   MAX_KEY_LENGTH,
   MAX_LABEL_LENGTH,
@@ -237,7 +252,7 @@ export {
   MIN_FONT_SIZE,
   MIN_PRINTABLE_PT,
 } from './limits.js'
-export { isFieldKey, isFormId, isIdentifier, isSchemaHash } from './syntax.js'
+export { isFieldKey, isFormId, isFormPath, isIdentifier, isSchemaHash } from './syntax.js'
 
 export { assetDigest } from './digest.js'
 export { IMAGE_REFUSAL_CODES, imageHeader, sniffImage } from './image-header.js'

@@ -52,3 +52,17 @@ describe("the Data provider's README, \"Read a report's data\"", () => {
     expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
   })
 })
+
+describe("the form bridge's README, \"Read a submission\"", () => {
+  // A reader copies it into a host that keeps formancy's form versions
+  // beside their submissions, so every line of it is a line the install
+  // gate runs, from the packed bridge and the @formancy/spec it pins
+  // (scripts/install-fixture/forms.ts).
+  test('is code the install gate runs, line for line', () => {
+    const readme = readFileSync(join(root, 'packages/report-forms/README.md'), 'utf8').replaceAll('\r\n', '\n')
+    const lines = exampleLines(readme, 'Read a submission')
+    const consumer = new Set(readFileSync(join(root, 'scripts/install-fixture/forms.ts'), 'utf8').replaceAll('\r\n', '\n').split('\n').map((line) => line.trim()))
+    expect(lines?.length).toBeGreaterThan(5)
+    expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
+  })
+})

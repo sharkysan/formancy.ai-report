@@ -215,6 +215,11 @@ deploy happened or what the address serves.
 - **For the provider:** a Formancy Data 0.1.0 server and a data client
   carrying the person's token
   ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+- **For the form bridge:** the document of every form version whose
+  submissions it prints, kept beside them, since formancy 0.7.0's server
+  serves its current version's schema alone; and, for a choice whose
+  options a deployment resolves, a lookup of their labels in the report's
+  locale ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 
 The getting-started guide is these steps as code the install gate compiles
 and runs ([`../getting-started.md`](../getting-started.md),

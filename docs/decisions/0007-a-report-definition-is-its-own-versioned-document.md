@@ -1,6 +1,6 @@
 # 0007 — A report definition is its own versioned document, with a flowing body, one detail table, declared aggregates and print styles as tokens
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which adds the EPC QR code, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which adds an e-invoice and the names its totals are read by, and by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which adds an SVG asset in the one form report-spec's `cleanSvg` writes
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which adds the EPC QR code, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which adds an e-invoice and the names its totals are read by, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which adds an SVG asset in the one form report-spec's `cleanSvg` writes, and by [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), whose dataset contract says where a formancy form's submission holds each field
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `@formancy/report-spec` tests that fail when it is
@@ -381,6 +381,28 @@ was valid. A release that predates it, 0.1.0 among them, refuses a report
 that declares an SVG asset as `not-one-of`.
 `validate-declarations.test.ts` holds the media type, and `svg.test.ts`
 and its siblings the form.
+
+**Added 2026-10-22: a dataset read from a form.** A dataset contract may
+say what of a formancy form's submissions it reads, `form`, as
+[0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md) decides: the header `{ kind: 'submission' }`, one
+submission's answers; the detail `{ kind: 'repeater', repeater }`, the
+rows of the repeater at that data path, or `{ kind: 'submissions' }`, one
+row per submission. Each field of such a dataset says where its answer
+is, `form: { path, member?, read? }`: its data path in the dataset's
+scope, field keys joined by dots (`isFormPath`, at most
+`MAX_FORM_PATH_KEYS`), a matrix row's or an option's value of 1 to
+`MAX_FORM_MEMBER_LENGTH` characters, and whether a choice prints its
+label, the default, or its `value`, on a string field alone. A dataset is
+read whole and both datasets or neither (`incomplete-form-binding`), the
+header reads no rows and the detail no one record, and a report of one
+row per submission has no header (`misplaced-form-binding`); a path that
+is not field keys and dots is `invalid-form-path`. The binding names no
+form, and is part of what the report hashes: whether a version of a form
+holds a field at a path is report-forms' to say, per render. It is a
+draft-format addition: `reportSpecVersion` is unchanged, and so is every
+report that was valid. A release that predates it, 0.2.0 among them,
+refuses a report that carries one as `unknown-property`.
+`validate-form-binding.test.ts` holds the shape and the refusals.
 
 ## Alternatives considered
 

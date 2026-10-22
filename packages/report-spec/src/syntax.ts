@@ -6,6 +6,7 @@
  * Each accepts one spelling of each value -- lower-case hex, canonical
  * locale case, no negative zero -- so that one value has one canonical hash.
  */
+import { MAX_FORM_PATH_KEYS } from './limits.js'
 
 /**
  * Identifiers: lower-case letters, digits and hyphens, starting with a
@@ -34,6 +35,20 @@ const FIELD_KEY = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
 /** Whether `value` is a field key: the id of a dataset field, a parameter or an aggregate. */
 export function isFieldKey(value: unknown): value is string {
   return typeof value === 'string' && FIELD_KEY.test(value)
+}
+
+/**
+ * Whether `value` is a formancy data path in one scope, as a dataset field
+ * is read from a submission (0042): field keys joined by dots, as
+ * `modelDataPaths` writes a group's child, `address.street`, and at most
+ * `MAX_FORM_PATH_KEYS` of them. A repeater's `[]` is not in it, since a
+ * path is read in the submission's scope or a row's, never across both.
+ */
+export function isFormPath(value: unknown): value is string {
+  // Measured before it is split: no key is longer than 64 characters.
+  if (typeof value !== 'string' || value.length > MAX_FORM_PATH_KEYS * 65 - 1) return false
+  const keys = value.split('.')
+  return keys.length <= MAX_FORM_PATH_KEYS && keys.every((key) => FIELD_KEY.test(key))
 }
 
 /** A formancy form's id, as its schema writes one (`formId`): at most 128 characters. */

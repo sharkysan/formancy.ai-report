@@ -576,3 +576,41 @@ the editor does, and who may change whom a bill pays is the host's
 ([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
 The browser gate types an IBAN into each builder and decodes the code the
 Download PDF draws from its pixels (`apps/studio/scripts/gate-payment-part.mjs`).
+
+## 6.12 A read from a formancy form's submission
+
+```
+host: a form version it kept, and a submission of it, as formancy stored them
+   │
+   ▼
+readSubmission(report, { form, formHash?, submission: { id, data } }, { labels })
+   ├─ the report valid, its datasets read from a form, not one row per submission?
+   ├─ the input { form, formHash?, submission: { id, data } }, and nothing else?
+   ├─ the submission's id one a source names (the runtime's isSubmissionId)?
+   ├─ the form copied as data, its specVersion one the pinned @formancy/spec reads?
+   ├─ validateSchema accepts it; schemaHash of the copy, and the host's hash that one?
+   ├─ every field the report reads at its path in this version, of a kind its type reads?
+   │       any no ──▶ refused, naming the field and the version's hash, before an answer is read
+   ▼
+the submission walked by the version's model
+   │       an answer under no data path of the version ──▶ refused, by its path
+   ▼
+each field's answer: absent or null is null; a choice's label from this version,
+in the report's locale; a number by the number rule; held to its type by readValue
+   ▼
+ReportData, 'host-captured', its source the submission, the form's id and the
+version's hash ──▶ resolveReport, as in 6.2
+```
+
+`readSubmissions(report, { forms, submissions, complete })` is the same
+read once for each submission, one a row, each paired with its version by
+the hash the host stored beside it and checked against the hash computed
+here; each version's fields are checked once, and the host says whether
+the list is complete. The bridge fetches nothing: formancy 0.7.0's server
+serves the current version's schema alone, so a host that prints an old
+submission keeps the version that collected it
+([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+A version that moved, removed or retyped a field the report reads is
+refused for every submission of it until the report is changed; one that
+touched nothing the report reads prints, and a field it added is never
+read by itself.

@@ -10,6 +10,92 @@ later.
 
 ## Unreleased
 
+**A report's data can be read from a formancy form's submission, against
+the exact form version that collected it** ([0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)). A report
+printed from a formancy form had nothing between the form and the
+report: no mapping from formancy's field kinds to the report's types, no
+reading of a submission against the version that collected it, and no
+refusal when a later version moved a field the report prints. The new
+package `@formancy/report-forms` reads them, fetching nothing: the host
+hands over the version and the submission, since formancy 0.7.0's server
+serves its current version's schema alone.
+- `readSubmission(report, { form, formHash?, submission: { id, data } })`
+  reads a report of one submission, its answers in the header and one
+  repeater's rows in the detail; `readSubmissions(report, { forms,
+  submissions, complete })` one row per submission, each paired with
+  its version by its hash. The data is `host-captured`, since a stored
+  submission is one document written at one moment, and its source names
+  each submission, the form's id and the version's hash, which the
+  manifest carries (0041).
+- **The version is computed, not trusted.** Each form is validated by the
+  pinned `@formancy/spec`'s `validateSchema` and named by the `schemaHash`
+  of exactly what was validated; a hash the host gives that differs is
+  refused as `hash-mismatch`. A form of a spec the validator does not
+  read is refused naming both versions (0004), so forms at spec 1 to 4
+  read, one Formancy Data generated at spec 3 among them.
+- **Checked per render, before an answer is read.** A field the report
+  reads that the submission's version lacks, holds in another scope or
+  holds as another kind is refused as `version-lacks-field` or
+  `version-retypes-field`, naming the field and the version's hash, until
+  the report is changed: nothing prints wrong while the review that would
+  resolve it is still to come. A version that changed nothing the report
+  reads prints. An answer under a path the version has no field for, or a
+  matrix's answer holding a row the version has none of, is
+  `unknown-answer`: the submission is another version's. The scopes a
+  version is read by are held to formancy's own `modelDataPaths` by a
+  test.
+- **The mapping, decided once.** Text and hidden values as strings, or as
+  integers and decimals held to their one spelling; a choice's label from
+  the submission's own version in the report's locale, or its stored
+  value; a matrix row's column; a ticked option as a boolean; a date and
+  an instant; rich text as its plain text. A file, a signature and a
+  ranking are refused as `unsupported-field`. The README's table of it is
+  held to what the bridge reads, every kind at every report type.
+- **A number by its digits, or refused.** A formancy number is a double:
+  a safe integer prints as its digits, and a decimal nearer zero than
+  2^53 as the shortest one that is the double when it has at most 15
+  significant digits, which every decimal of at most 15 significant
+  digits a person typed comes back as, a property test proves; a computed
+  `0.1 + 0.2`, and a double past 2^53 for either field, is
+  `inexact-number`, never rounded. A number typed with more digits was
+  rounded when formancy stored it, and prints as that double where its
+  shortest decimal is short: a typed `0.10000000000000001` prints `0.1`.
+  A form that must print more digits holds them as text under a decimal
+  pattern, as Formancy Data does.
+- **Untrusted, both.** A getter is refused and never run, an own
+  `__proto__` refused, a key such as `constructor` read as the answer's
+  own, rows bounded by `MAX_DETAIL_ROWS` before one is read, a string
+  answer by `MAX_STRING_LENGTH` before it is read and a rich text before
+  formancy's parser reads it, a host's `labels` that throws refused as
+  `unresolved-label`, and no message or path holds an answer, a key
+  inside one included. A read takes time linear in what it is handed:
+  each version's scopes and option lists are indexed once. Reading one
+  submission of 100,000 rows took a median of 966 ms, and 100,000
+  submissions 2,135 ms, from the built package on an Intel i9-10900K under Node 24.21.0 at about a tenth of its load from other work, on 22 October 2026.
+- **At least one submission.** `readSubmissions` refuses a list of none
+  as `invalid-input`, since the source the runtime holds names each
+  submission (0041), rather than hand over data the runtime would refuse
+  at a path the host never wrote.
+
+The binding is the report's: a dataset contract may say what of a
+submission it reads, `form: { kind: 'submission' }`, `{ kind: 'repeater',
+repeater }` or `{ kind: 'submissions' }`, and each of its fields where,
+`form: { path, member?, read? }`, `read: 'value'` printing a choice's
+stored value and its label printing otherwise; `read: 'label'` is
+refused, so that one binding has one spelling and one hash. report-spec
+validates its shape, with three new codes, `invalid-form-path`,
+`incomplete-form-binding` and `misplaced-form-binding`, and exports
+`isFormPath`, `DATASET_FORM_KINDS`, `FORM_READS`, `MAX_FORM_PATH_KEYS`
+and `MAX_FORM_MEMBER_LENGTH`, the last formancy's own bound on a row's
+or an option's value, held to the validator the repository pins; it is
+part of the report's hash, and 0.2.0 refuses a report that carries one.
+The runtime exports `isSubmissionId`, the rule a source holds a
+submission's id to, and `SUBMISSION_ID_SYNTAX`, the words a refusal says
+it in, both of which the bridge reads. The corpus gains a site visit form in two
+versions, the second relabelling a choice, with submissions of each and
+a report of them; a version-1 visit's PDF prints version 1's label, read
+back with PDF.js.
+
 **A report's QR-bill is selected and edited field by field in either
 builder**
 ([0039](docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
@@ -117,9 +203,9 @@ which `resolveReport`'s manifest carries as `source`:
   each submission the data was read from, with the form's id and the
   `schemaHash` of the version that collected it, one for a report of one
   submission and one a row for a report of many. The form's id is each
-  submission's, since formancy lets a new version change it. The package
-  that reads a submission, which the form bridge brings later in 0.3.0,
-  fills it; until then a host that prints one names it.
+  submission's, since formancy lets a new version change it. The form
+  bridge, `@formancy/report-forms` (above), fills it; a host that reads
+  submissions itself names it.
 - `{ provider: 'formancy-data', forms: { header, detail } }`: the published
   form each dataset was read from, which `@formancy/report-data-provider`
   now names itself, by the id the binding addressed it by. Never the

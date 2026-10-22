@@ -137,6 +137,24 @@ prints is read off the PDF the engine produced
 | The pictures of the PDFs: each line of the pictured page with where it starts, and its drawings, every clip a painted path stands inside with its box, its paints and each path's paint and box, read by the corpus's `drawingsOn`, held to the PDF written now; a picture fails when a line moves or a drawing or a path of one is added, removed, moved, resized or repainted, and not when a path is redrawn inside its own box, nor for a rule, a border or an image, which no manifest records | `report-render-pdf/src/pictures.test.ts`; `drawingsOn` by `report-corpus/src/drawings.test.ts`, a mark redrawn inside its own box among its cases |
 | The packed packages | The install gate's `consume.ts`: the quotation printed through the README's lines with its mark, its disc in the clip of its box in the page's drawing; its `guide-react.tsx`: the quotation with its mark previewed through the guide's `printPreview` and the host's lookup; `report-render-pdf/src/install-fixture.test.ts`, which holds the copy's mark to the corpus's |
 
+**A formancy submission, from the version that collected it to the page.**
+The bridge is held at every layer that reads what it reads, and its one
+claim about print -- that a reprint uses the labels of the version that
+collected the answers -- on the PDF
+([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)):
+
+| Where | What holds it |
+|---|---|
+| The binding's shape in the report | `report-spec/src/validate-form-binding.test.ts`, and a case of each of its codes in `validate.test.ts` |
+| The mapping, every kind and every pairing it refuses, every formancy kind read at every report type and held to the README's table | `report-forms/src/kinds.test.ts` |
+| The scopes a version is read by, the paths formancy's `modelDataPaths` writes, for the corpus's forms and generated models | `report-forms/src/version.test.ts`, by fast-check |
+| A read linear in what it is handed | `report-forms/src/linear.test.ts` |
+| One submission and many, the version's hash, an answer under no path of the version, a field it lacks or retypes refused before any answer is read, every spec version and a form Formancy Data generated; every read's data held to the runtime's `checkData` | `report-forms/src/read.test.ts`, `many.test.ts`, through `test-support.ts` |
+| What a host may hand over that is no data | `report-forms/src/untrusted.test.ts` |
+| The number rule, as a property of every decimal of at most 15 significant digits and of any double | `report-forms/src/numbers.test.ts`, by fast-check |
+| On the PDF: a version-1 visit printing version 1's label and not version 2's, every finding a row by the corpus's `verify`, the manifest naming version 1's hash | `report-forms/src/pdf.test.ts`, over the corpus's site visit, held to differing in one label by `report-corpus/src/forms/site-visit.test.ts` |
+| The packed packages | The install gate's `consume.ts`, through `scripts/install-fixture/forms.ts`: a form validated by the `@formancy/spec` the bridge brings, a submission read and rendered, two read one a row, a moved field and a wrong hash refused |
+
 **What it does not see.** A rule or a border through a row, a shape over a
 line, a clipped glyph, white text on white: none is text or an image to
 PDF.js, and the paths it reads are an SVG drawing's alone. A drawing is
@@ -195,7 +213,8 @@ that describe the repository rather than a package. Among them:
 [`gates.json`](../release/gates.json) names each of the delivery plan's
 release gates by id, with the evidence a run must pass or the reason it is
 open, and the release report states each. G1, G2 and G3 rest on evidence
-every run must pass: the install gate and the dependency guards; the
+every run must pass: the install gate, the dependency guards, and the
+form bridge's reading of every formancy spec version; the
 corpus, the starters and the checks; the builders' scenarios, the switch
 across frameworks and the two accessible trees compared. G4 to G7 belong to
 later releases and say why, and the legal gate waits for a lawyer

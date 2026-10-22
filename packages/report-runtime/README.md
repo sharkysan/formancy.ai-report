@@ -113,7 +113,10 @@ longer than any log, and is held to their syntax, not their meaning. A form's id
 and a version's hash are held to the rules a report's provenance is,
 report-spec's `isFormId` and `isSchemaHash`; a submission's id is
 letters, digits, `.`, `_` and `-`, starting with a letter or a digit, at
-most 128 characters. So a space, an `@`, a `/`, a `:`, a letter beyond
+most 128 characters, the rule `isSubmissionId` exports, which the form
+bridge holds an id to before it reads a submission
+([0042](../../docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+So a space, an `@`, a `/`, a `:`, a letter beyond
 ASCII or a 129th character is refused, and with them a full name or an
 email address; a single word, a personal number or any 64 hex digits as a
 hash fits, and the syntax cannot tell it from an identifier. A key a
@@ -267,8 +270,12 @@ i9-10900K, 17 October 2026). The e-invoice has no bound of its own yet.
 
 Each stage is exported for a host or a tool that needs one alone:
 `checkReport`, `checkData`, `checkParameters`, `readValue`,
-`prepareExpressions`, `createFormatter`, `orderTable` and the decimal
-arithmetic. The document's types, `RenderRefusal` and `REFUSAL_CODES` are
+`isSubmissionId`, `prepareExpressions`, `createFormatter`, `orderTable`
+and the decimal arithmetic; the form bridge reads `readValue`,
+`MAX_STRING_LENGTH`, `isSubmissionId` and `SUBMISSION_ID_SYNTAX`, the
+words a refusal says that rule in, so that it holds an answer and an id
+by this package's rules, and says them in its words, rather than a copy
+of them (0042). The document's types, `RenderRefusal` and `REFUSAL_CODES` are
 the renderer's contract, declared here so that no engine defines them.
 What report-spec decides of a QR-bill that an engine needs to draw its
 slip is handed on as report-spec's own objects: `QR_BILL_SIZE` and

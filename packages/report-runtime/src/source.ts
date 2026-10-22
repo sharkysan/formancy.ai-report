@@ -79,6 +79,18 @@ const ID_SYNTAX = "letters, digits, '.', '_' and '-', starting with a letter or 
  */
 const SUBMISSION_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/
 
+/**
+ * Whether `value` is a submission's id as a source names one: what the form
+ * bridge holds an id to before it reads a submission, so that the two
+ * cannot read an id differently (0042).
+ */
+export function isSubmissionId(value: unknown): value is string {
+  return typeof value === 'string' && SUBMISSION_ID.test(value)
+}
+
+/** What `isSubmissionId` accepts, in the words a refusal says it: the form bridge says them when it refuses an id, so the two cannot describe one rule two ways. */
+export const SUBMISSION_ID_SYNTAX = ID_SYNTAX
+
 const FORM_ID = `a form's id as formancy writes one: ${ID_SYNTAX}`
 const NOTHING_ELSE = 'and nothing else: a source names identifiers, and no answer rides into the manifest a PDF is kept with'
 const SUBMISSION = 'a submission is { "id": its id, "form": the form\'s id, "formHash": the schemaHash of the version that collected it }'
@@ -121,7 +133,7 @@ function readSubmission(errors: DataFindings, raw: unknown, path: string, seen: 
   onlyKnown(errors, path, read.entries, known, SUBMISSION)
   const [id, form, formHash] = known.map((key) => read.entries.get(key))
   if (!unreadable.has('id')) {
-    if (typeof id !== 'string' || !SUBMISSION_ID.test(id)) {
+    if (!isSubmissionId(id)) {
       errors.report(at(path, 'id'), 'invalid-source', `a submission's id: ${ID_SYNTAX}; never a name, an address or an answer`)
     } else if (seen.has(id)) {
       errors.report(at(path, 'id'), 'invalid-source', 'a source names each submission once, and an earlier entry names this one')

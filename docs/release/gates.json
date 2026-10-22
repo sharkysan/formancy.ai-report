@@ -7,7 +7,8 @@
         { "job": "install" },
         { "file": "scripts/upstream-deps.test.mjs" },
         { "file": "scripts/dependency-licences.test.mjs" },
-        { "file": "packages/report-builder-angular/src/dependencies.test.ts" }
+        { "file": "packages/report-builder-angular/src/dependencies.test.ts" },
+        { "file": "packages/report-forms/src/read.test.ts" }
       ]
     },
     {

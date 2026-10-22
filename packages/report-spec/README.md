@@ -52,7 +52,33 @@ if (!outcome.valid) {
   make a valid invoice; lines that are not what the table over the detail
   dataset prints; a QR-bill or an EPC QR code that asks to be paid to
   another account, or a QR-bill in another currency; or a title holding
-  `&`, `<` or `>`.
+  `&`, `<` or `>`;
+- a dataset read from a formancy form's submissions
+  ([0042](../../docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md))
+  that is not read whole -- a field of it that says nowhere it is read, or
+  one dataset read from a form beside one that is not
+  (`incomplete-form-binding`) -- or that reads what it is not: the header
+  rows, the detail one record, or a header beside a detail of one row per
+  submission (`misplaced-form-binding`); a data path or a repeater that is
+  not field keys joined by dots, at most `MAX_FORM_PATH_KEYS` of them, or
+  an empty member (`invalid-form-path`); and a field that says how a
+  choice prints but is no string (`binding-type-mismatch`).
+
+**Read from a form.** A dataset contract may say what of a formancy
+form's submissions it reads, and each of its fields where:
+
+```ts
+{ id: 'visit', form: { kind: 'submission' }, fields: [{ id: 'inspector', type: 'string', label: 'Inspector', nullable: true, form: { path: 'inspector.name' } }] }
+{ id: 'findings', form: { kind: 'repeater', repeater: 'findings' }, fields: [{ id: 'severity', type: 'string', label: 'Severity', nullable: true, form: { path: 'severity', read: 'value' } }] }
+```
+
+A path is in the dataset's scope, the submission's or a repeater row's; a
+`member` names a matrix row or an option of ticked boxes; a choice prints
+its label, or its stored value with `read: 'value'`. The label has no
+spelling of its own, and `read: 'label'` is refused, so that one binding
+has one hash. The binding names no form, and is part of the report's hash. Whether a version of a
+form holds a field there is `@formancy/report-forms`' to say, per render;
+`isFormPath` is the syntax a path is held to.
 
 A message names the field and the rule, and never quotes a payment code's
 text. It reports up to `MAX_ERRORS` errors and says when there were more.

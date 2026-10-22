@@ -26,8 +26,18 @@ export type {
   TableRow,
   TextStyle,
 } from './document.js'
-export type { Expectation, ExpectedCell, ExpectedImage, ExpectedRefusal, ExpectedRow, ExpectedTable, Fixture } from './fixture.js'
-export { epcCodes } from './fixture.js'
+export type { Expectation, ExpectedCell, ExpectedImage, ExpectedRefusal, ExpectedRow, ExpectedTable, Fixture, Stated } from './fixture.js'
+export { epcCodes, expectation } from './fixture.js'
+export {
+  SITE_VISIT_HIGH,
+  SITE_VISIT_REPORT,
+  SITE_VISIT_SUBMISSION_V1,
+  SITE_VISIT_SUBMISSION_V2,
+  SITE_VISIT_V1,
+  SITE_VISIT_V2,
+  siteVisitFindings,
+} from './forms/site-visit.js'
+export type { StoredSubmission } from './forms/site-visit.js'
 export { ALL_FIXTURES } from './fixtures/all.js'
 export { IMAGE_KINDS } from './image-kinds.js'
 export { SVG_BOUND, SVG_BOUND_SIDE, SVG_FIXTURES, SVG_MARK, SVG_WINDOW } from './fixtures/svg.js'

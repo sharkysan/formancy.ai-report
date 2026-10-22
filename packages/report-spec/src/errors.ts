@@ -45,6 +45,8 @@ export const REPORT_ERROR_CODES = [
   'invalid-digest',
   /** A parameter default its own type would refuse. */
   'invalid-default',
+  /** Where a dataset is read from a formancy form: a data path or a repeater that is not field keys joined by dots, or an empty member (0042). */
+  'invalid-form-path',
   /** A string that should hold an exact decimal and does not. */
   'invalid-decimal',
   /**
@@ -82,6 +84,15 @@ export const REPORT_ERROR_CODES = [
   'duplicate-id',
   /** An id the format gives a meaning of its own: an aggregate called `key`, which `group.key` reads as the value grouped by. */
   'reserved-id',
+  /**
+   * A dataset read from a formancy form that is not read whole: a field of
+   * one that says nowhere it is read, a field that says where in a dataset
+   * read from none, or one dataset read from a form beside one that is not
+   * (0042).
+   */
+  'incomplete-form-binding',
+  /** A dataset that reads what it is not from a form: the header rows, the detail one record, or a header beside a detail of one row per submission (0042). */
+  'misplaced-form-binding',
 
   // References to what the report declares.
   'unknown-style',
@@ -124,7 +135,7 @@ export const REPORT_ERROR_CODES = [
   'aggregate-type-mismatch',
   /** A number, currency or date format over a value of a type it does not format. */
   'format-type-mismatch',
-  /** A field or parameter bound where its type does not fit: an image field printed, sorted or grouped by; a field that is not an image drawn as one; a currency that is not a string. */
+  /** A field or parameter bound where its type does not fit: an image field printed, sorted or grouped by; a field that is not an image drawn as one; a currency that is not a string; a choice of a form read into a field that is not a string (0042). */
   'binding-type-mismatch',
 ] as const
 

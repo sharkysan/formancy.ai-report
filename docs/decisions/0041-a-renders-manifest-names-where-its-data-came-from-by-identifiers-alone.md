@@ -1,6 +1,6 @@
 # 0041 — A render's manifest names where its data came from, by identifiers alone: each submission of a formancy form with its form's id and the version that collected it, or the Formancy Data forms each dataset was read from; a digest of the data, the record's token, one form id for every submission and a source of free text lost
 
-- **Status:** accepted; numbered while 0039 and 0040 were held by branches not yet merged; extends [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md) and [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)
+- **Status:** accepted; numbered while 0039 and 0040 were held by branches not yet merged; extends [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md) and [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md); its form source filled by [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)
 - **Date:** 2026-10-21
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -269,6 +269,18 @@ form bridge.
 **What it forecloses.** A manifest that holds an answer by its shape. A
 third kind of source without a decision: it is a new provider, which this
 runtime refuses.
+
+**Added 2026-10-22: the form bridge fills it.** `@formancy/report-forms`
+([0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)) fills a formancy form's source as this record said it
+would: each submission's id as the host hands it over, held first to the
+runtime's own `isSubmissionId`; `form` the id of the version the bridge
+validated; and `formHash` the `schemaHash` it computed of that version,
+never one handed over, which is only compared with it. One entry for a
+report of one submission, one a row for a report of many. Which form a
+report reads is not its binding's to say after all: 0042's binding names
+paths and no form, since a version may rename the form, so the source
+names what the host handed over and the bridge read. `read.test.ts` and
+`many.test.ts` in report-forms hold it.
 
 ## Alternatives considered
 
