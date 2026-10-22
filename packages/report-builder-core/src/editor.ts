@@ -33,8 +33,9 @@ import { shownLabel, stepLabel } from './history.js'
 import type { ImageFile, ImageStore } from './image-store.js'
 import { imageActions, imagesOf } from './images.js'
 import { columnKey, kindLabel, partLabel } from './labels.js'
-import { DONE } from './model.js'
-import type { EditorAction, EditorActionType, EditorOutcome, EditorRefusalCode, EditorState, Selection } from './model.js'
+import { DONE } from './model-actions.js'
+import type { EditorState, Selection } from './model.js'
+import type { EditorAction, EditorActionType, EditorOutcome, EditorRefusalCode } from './model-actions.js'
 import { selectionKey } from './outline.js'
 import { partActions } from './part-actions.js'
 import { fieldLabel, fieldsOf, pageRoomMessage, propertyChange, propertyTarget, refusalMessage } from './properties.js'
@@ -251,14 +252,14 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
   }
 
   /** Applies an edit through the session, selects what it says, and announces it by `name` -- or says why the session refused, in the words of `refused`. */
-  function applyEdit(edit: Edit, name: () => string, refused: 'status.refused' | 'status.qrBillNotAdded' = 'status.refused'): EditorOutcome {
+  function applyEdit(edit: Edit, name: () => string, refused: 'status.refused' | 'status.qrBillNotAdded' | 'status.addRefused' | 'status.removeRefused' = 'status.refused'): EditorOutcome {
     const before = name()
     const outcome = commit(edit.command, stepLabel(edit.step))
     if (!outcome.ok) return refuse('refused', t(refused, { name: before, reason: refusalMessage(outcome, '') }), outcome)
     const selection = edit.then(outcome)
     setLocal({ selection, errors: new Map(), drag: null })
     const said = edit.announce === 'status.inserted' ? name() : before
-    setLocal(announce(t(edit.announce, { name: said })))
+    setLocal(announce(t(edit.announce, { ...edit.values, name: said })))
     return DONE
   }
 
@@ -358,7 +359,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
       return DONE
     }
     const at = written.at ?? key
-    const change = propertyChange(target, at, written.value)
+    const change = propertyChange(report, target, at, written.value)
     const outcome = commit(change.command, stepLabel({ do: 'change', field: spec.words }))
     if (!outcome.ok) {
       const path = `${target.path}${at}`
@@ -420,6 +421,9 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     addPart: (action) => parts.addPart(action.part),
     addGroup: (action) => parts.addGroup(action.key),
     removeGroup: (action) => parts.removeGroup(action.key),
+    addItem: (action) => parts.addItem(action.key),
+    removeItem: (action) => parts.removeItem(action.key),
+    moveItem: (action) => parts.moveItem(action.key, action.to),
   }
 
   return {

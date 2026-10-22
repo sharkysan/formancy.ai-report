@@ -12,7 +12,7 @@
 import { setTitle } from '@formancy/report-core'
 import { describe, expect, test, vi } from 'vitest'
 import { createReportEditor } from './editor.js'
-import type { EditorAction, EditorOutcome } from './model.js'
+import type { EditorAction, EditorOutcome } from './model-actions.js'
 import { EDITOR_LOCALES, editorText } from './text.js'
 import { editorOver, richReport, sessionOver } from './test-support.js'
 

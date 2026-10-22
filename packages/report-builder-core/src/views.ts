@@ -7,8 +7,10 @@
  * another editor over the same session.
  */
 import { clampZoom, zoomedIn, zoomedOut } from './geometry.js'
-import { DONE, EDITOR_PANELS, HIDEABLE_PANELS, HOST_VIEW_PLACES } from './model.js'
-import type { EditorOutcome, EditorPanel, EditorRefusalCode, HideablePanel, HostView, HostViewPlace } from './model.js'
+import { EDITOR_PANELS, HIDEABLE_PANELS, HOST_VIEW_PLACES } from './model.js'
+import { DONE } from './model-actions.js'
+import type { EditorPanel, HideablePanel, HostView, HostViewPlace } from './model.js'
+import type { EditorOutcome, EditorRefusalCode } from './model-actions.js'
 import { viewOf } from './state.js'
 import type { Local } from './state.js'
 import { formatZoom } from './text.js'

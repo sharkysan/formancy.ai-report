@@ -3,7 +3,9 @@ import type { Inline, ReportDefinition, SwissQrBill } from '@formancy/report-spe
 import { describe, expect, test } from 'vitest'
 import { PX_PER_PT } from './geometry.js'
 import { eInvoiceReport } from './image-test-support.js'
-import type { EditorAction, EditorOutcome, EditorState, PropertyField, PropertyGroup } from './model.js'
+import type { EditorState } from './model.js'
+import type { EditorAction, EditorOutcome } from './model-actions.js'
+import type { PropertyField, PropertyGroup } from './model-properties.js'
 import { EDITOR_LOCALES, editorText } from './text.js'
 import { billedReport, editorOver, richReport } from './test-support.js'
 
@@ -331,9 +333,9 @@ describe('the payment part’s properties', () => {
     ] as const) {
       const shown = groups(selectedBill(locale).editor.state())
       expect([...shown.keys()], locale).toEqual([creditor, debtor])
-      expect(shown.get(creditor)?.action, locale).toBeUndefined()
+      expect(shown.get(creditor)?.actions, locale).toEqual([])
       expect(shown.get(creditor)?.fields.length, locale).toBe(6)
-      expect(shown.get(debtor)?.action, locale).toEqual({ label: remove, action: { type: 'removeGroup', key: '/debtor' } })
+      expect(shown.get(debtor)?.actions, locale).toEqual([{ label: remove, action: { type: 'removeGroup', key: '/debtor' }, available: true }])
     }
   })
 
@@ -377,17 +379,27 @@ describe('the payment part’s properties', () => {
   })
 
   // A bill printed with an e-invoice pays the e-invoice's account (BT-84),
-  // so its IBAN changed alone names two accounts for one invoice. The
-  // validator refuses it, and the field says so in its words; changing
-  // both at once is a later command's (0039 leaves it to the e-invoice's
-  // editing).
-  test('refuse an IBAN apart from the e-invoice’s account, on its field', () => {
+  // so its IBAN changed alone would name two accounts for one invoice,
+  // which the validator refuses: the IBAN typed into the bill is the
+  // account the two share, written into both by one command, one undo
+  // step, and the live region says the e-invoice pays it too (0044). An
+  // account the bill cannot pay, one of Germany, is refused on the field
+  // typed into, in the QR-bill's rule, both left as they were.
+  test('change the account the bill shares with its e-invoice, both in one step, and refuse one the bill cannot pay, on its field', () => {
     const { editor, session } = editorOver(invoicedBill())
     ok(editor.dispatch({ type: 'select', part: 'paymentPart' }))
     const before = session.document()
-    expect(editor.dispatch({ type: 'setProperty', key: '/account/0/text', value: 'CH52 0483 5012 3456 7100 0' })).toMatchObject({ ok: false, code: 'refused' })
-    expect(field(editor.state(), 'IBAN').error).toMatch(/another account than the e-invoice's payment account \(BT-84\)/)
-    expect(session.document()).toBe(before)
+    ok(editor.dispatch({ type: 'setProperty', key: '/account/0/text', value: 'CH52 0483 5012 3456 7100 0' }))
+    expect([billOf(session.document()).account, session.document().eInvoice?.payment?.iban]).toEqual([said('CH52 0483 5012 3456 7100 0'), said('CH52 0483 5012 3456 7100 0')])
+    expect(editor.state().history.undoLabel).toBe('Change IBAN')
+    expect(editor.state().status.text).toBe('Changed IBAN. The e-invoice and every payment code printed with it pay the account typed.')
+    ok(editor.dispatch({ type: 'undo' }))
+    expect(session.document().paymentPart).toBe(before.paymentPart)
+    expect(session.document().eInvoice).toBe(before.eInvoice)
+    expect(editor.dispatch({ type: 'setProperty', key: '/account/0/text', value: 'DE89 3704 0044 0532 0130 00' })).toMatchObject({ ok: false, code: 'refused' })
+    expect(field(editor.state(), 'IBAN').error).toMatch(/Switzerland|Liechtenstein/)
+    expect(session.document().paymentPart).toBe(before.paymentPart)
+    expect(session.document().eInvoice).toBe(before.eInvoice)
   })
 
   // SIX ties the account's kind to the reference: a QR-IBAN is paid to
@@ -468,7 +480,7 @@ describe('the payment part’s properties', () => {
     expect(billOf(session.document()).debtor).toBeUndefined()
     expect(editor.state().history.undoLabel).toBe('Remove debtor')
     expect(editor.state().status.text).toBe('Removed Debtor.')
-    expect(groups(editor.state()).get('Debtor')).toEqual({ key: '/debtor', label: 'Debtor', fields: [], action: { label: 'Add debtor', action: { type: 'addGroup', key: '/debtor' } } })
+    expect(groups(editor.state()).get('Debtor')).toEqual({ key: '/debtor', label: 'Debtor', fields: [], actions: [{ label: 'Add debtor', action: { type: 'addGroup', key: '/debtor' }, available: true }] })
     ok(editor.dispatch({ type: 'addGroup', key: '/debtor' }))
     expect(billOf(session.document()).debtor).toEqual({
       name: [{ kind: 'text', text: 'Simon Muster' }],
@@ -522,7 +534,7 @@ describe('a QR-bill added from nothing', () => {
   test('is SIX’s example, selected, its example values warned of but not on the IBAN, in one undo step', () => {
     const { editor, session } = editorOver(richReport())
     const before = session.document()
-    expect(groups(editor.state()).get('Payment part')).toEqual({ key: '/paymentPart', label: 'Payment part', fields: [], action: { label: 'Add QR-bill', action: { type: 'addPart', part: 'paymentPart' } } })
+    expect(groups(editor.state()).get('Payment part')).toEqual({ key: '/paymentPart', label: 'Payment part', fields: [], actions: [{ label: 'Add QR-bill', action: { type: 'addPart', part: 'paymentPart' }, available: true }] })
     ok(editor.dispatch({ type: 'addPart', part: 'paymentPart' }))
     expect(billOf(session.document())).toEqual({
       kind: 'swissQrBill',
@@ -566,15 +578,15 @@ describe('a QR-bill added from nothing', () => {
   })
 
   // The bill takes the page SIX prints it on, and in a report that is an
-  // e-invoice it is in the e-invoice's currency to its account: on a
-  // Letter page, a landscape one and an e-invoice in euro the add is
-  // refused in report-spec's words, and a second add has nothing to do.
-  // None changes the report.
+  // e-invoice it is in the e-invoice's currency to its account, which the
+  // add gives it (0044): on a Letter page, a landscape one and an
+  // e-invoice that names no account the add is refused in report-spec's
+  // words, and a second add has nothing to do. None changes the report.
   test('is refused where the report cannot take it, and refused again once there is one', () => {
     for (const [report, words] of [
       [{ ...richReport(), page: { ...richReport().page, size: 'Letter' } }, /^The QR-bill was not added: a QR-bill is printed across the foot of an A4 page in portrait, and this page is Letter in portrait/],
       [{ ...richReport(), page: { ...richReport().page, orientation: 'landscape' } }, /^The QR-bill was not added: a QR-bill is printed across the foot of an A4 page in portrait, and this page is A4 in landscape/],
-      [eInvoiceReport(), /^The QR-bill was not added: .*the e-invoice's currency, EUR \(BT-5\)/],
+      [eInvoiceReport(), /^The QR-bill was not added: the QR-bill asks to be paid to an account, and the e-invoice names none/],
     ] as const) {
       const { editor, session } = editorOver(report)
       const before = session.document()

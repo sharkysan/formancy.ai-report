@@ -114,9 +114,12 @@ const editor = createReportEditor(opening.session, {
   the regions: a report's payment part, its Swiss QR-bill, named as SIX
   names the part ("Payment part", "Zahlteil", "Section paiement"), with
   whether it is selected and its problems, where the report has one
-  ([0039](../../docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)). Every walk of the outline takes it, last.
+  ([0039](../../docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md));
+  and after it its e-invoice, "E-invoice", "E-Rechnung", "Facture
+  électronique" ([0044](../../docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)). Every walk of the outline takes them, last.
 - **`selection`**: a component, one column of a table, or a part of the
-  report's own level, `{ part: 'paymentPart' }` (`REPORT_LEVEL_PARTS`).
+  report's own level, `{ part: 'paymentPart' }` or `{ part: 'eInvoice' }`
+  (`REPORT_LEVEL_PARTS`).
 - **`palette`**: every kind the format has, with the default component
   inserting it would put in. A new image draws the report's newest asset,
   so the image a person just added is the one Image inserts, else the
@@ -134,8 +137,11 @@ const editor = createReportEditor(opening.session, {
   0000 0000 0000 00`, the IBAN of bank code 00000000, which no bank keeps:
   every bank code in the Bundesbank's register starts with a digit from 1
   to 8 (read on 17 October 2026), so a code inserted and never edited pays
-  nobody. It has no amount, which the payer fills in, and no frame, which
-  is Austria's option. Where the report lacks what a kind needs (an image
+  nobody. In a report with an e-invoice, which holds every payment code to
+  its account, it pays the e-invoice's account instead, as written, with
+  its BIC where it names one, and is unavailable until the e-invoice gives
+  payment instructions (0044). It has no amount, which the payer fills in,
+  and no frame, which is Austria's option. Where the report lacks what a kind needs (an image
   with nothing to draw, a table with no detail dataset), the entry says
   what to declare first.
 - **`images`**: whether the host gave a store (`store`), so a builder
@@ -184,10 +190,37 @@ const editor = createReportEditor(opening.session, {
   the debtor is optional, and its group's button removes it, or adds SIX's
   first example's debtor where there is none. The panel's `rows` are its
   `fields` as the form draws them, each by itself or in a group
-  (`PropertyGroup`: its key, its name, its fields and its one button, an
-  `action` to dispatch); a builder draws `rows` and finds a field in
-  `fields`. Where the report has no bill, its own properties end with a
+  (`PropertyGroup`: its key, its name, its fields and its buttons,
+  `actions`, each with its label, the action to dispatch, whether it has
+  somewhere to go, `available`, and, where the keyboard goes elsewhere
+  than the button once it is done, `then`: a button of a group by its key,
+  or that group's first field); a builder draws `rows` and finds a field
+  in `fields`. Where the report has no bill, its own properties end with a
   group "Payment part" whose button is Add QR-bill.
+  An e-invoice's fields are every term of report-spec's `EInvoice`, of
+  either kind, tables over each part (`invoice-fields.ts`): the invoice's
+  own terms -- in an XRechnung its version, the buyer's reference and the
+  business process a group "XRechnung", first -- then the seller and the
+  buyer as groups, each field named after the party ("Buyer's city"); the
+  seller's contact a group of its own, optional in a Factur-X invoice,
+  added from values that reach nobody, a name in the report's language;
+  a party's legal registration and electronic address put in by typing
+  the identifier -- an address by email until its scheme is chosen -- and
+  taken away by emptying it; the invoicing period put in by either date;
+  each VAT category a group numbered from 1 ("VAT category 2: rate in per
+  cent") with Move up, Move down and Remove, and the list's group with Add
+  VAT category, which adds the first of Germany's breakdowns the invoice
+  lacks, by report-spec's `vatCategoryBreaks`; the lines a group, their
+  table, the column of each term and each code read from a detail field
+  or an expression; the payment instructions a group, optional in a
+  Factur-X invoice, added as a SEPA credit transfer to the palette's
+  account that pays nobody; then the due date, the payment terms, in
+  several lines, and the paid amount. In a report with an e-invoice, the
+  IBAN typed into the e-invoice, its QR-bill or an EPC QR code is
+  report-core's `setPaymentAccount`, one step "Change IBAN", which every
+  payment code pays, and the live region says so; one a place cannot take
+  is refused on the field typed into, in that place's rule
+  ([0044](../../docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
   An IBAN of the other kind than the bill's reference takes the reference
   with it, in the same step, as SIX pays a QR-IBAN with a QR reference and
   nothing else and an IBAN never with one: a QR-IBAN typed over a bill with
@@ -207,7 +240,8 @@ const editor = createReportEditor(opening.session, {
   every region, a band's gap under the last of them: when the regions reach
   it, the sheet grows past the page rather than draw them under the slip.
   It says whether the bill is selected, and its problems, as its outline
-  row does. Without a payment part it is `null`.
+  row does. Without a payment part it is `null`. An e-invoice prints
+  nothing of its own, and has no band.
 - **`diagnostics`**: report-core's `diagnose()`, each entry linked to the
   component or column it is about, or to the payment part, for one that
   names no component at a path inside `/paymentPart`, with a `key` of what
@@ -263,7 +297,7 @@ session's do.
 | `selectParent`, `selectChild` | Steps out to the container a row stands in (a column's table), or into the first thing it holds; says why where there is none, as for the payment part. |
 | `moveUp`, `moveDown` | Reorders the selection within its list, a table's columns included. Refused at either end, never clamped, and for the payment part, which prints where SIX puts it, as `indent`, `outdent` and `duplicate` are. |
 | `indent`, `outdent` | Moves into the container just before it, at the end of what that holds, or out to just after its own container. |
-| `delete` | Deletes, and selects the next item in the list, else the one before, else the container; the payment part in one step, "Remove QR-bill", selecting the outline's row before it. |
+| `delete` | Deletes, and selects the next item in the list, else the one before, else the container; the payment part in one step, "Remove QR-bill", and the e-invoice, "Remove e-invoice", selecting the outline's row before it. |
 | `duplicate` | Copies to just after it with fresh ids, and selects the copy. |
 | `insert(kind, target)`, `move(id, target)` | The keyboard path for a drop: a kind, or an id, and a location. |
 | `setProperty(key, value)` | Writes one field through a typed report-core command. A refused value keeps what was typed, and shows the reason on that field. |
@@ -277,8 +311,9 @@ session's do.
 | `placeHostView(place)` | Moves it between `'middle'` and `'beside'`, shown or not as it was, silently. Placed where it stands, it changes nothing and tells no listener. |
 | `chooseImage` | Sent by Add image… before it opens the file chooser, in the same activation. Changes nothing; refused, and said why, when the editor would take no file now: no store (`unavailable`), an image being added (`busy`), or a report that holds `MAX_ASSETS` images (`unavailable`). |
 | `removeImage(asset)` | Removes an image the report declares and nothing draws, in one undo step. Refused (`unavailable`) for one something draws, naming what draws it, before the session is asked. |
-| `addPart(part)` | Adds a QR-bill to a report without one, SIX's third example (IG 2.4, Table 19), its headings in the report's language where SIX prints in it, else English, in one step, "Add QR-bill", and selects it; refused (`unavailable`) where the report has one, with report-spec's reason where it cannot take one, and (`not-found`) for a part it has none of, which a caller tsc never saw may send. |
-| `addGroup(key)`, `removeGroup(key)` | Adds the selection's optional group of fields at `key` from its example values, or removes it, in one step: a bill's debtor, "Add debtor", "Remove debtor". Refused (`unavailable`) with nothing to do. |
+| `addPart(part)` | Adds a QR-bill to a report without one, SIX's third example (IG 2.4, Table 19), its headings in the report's language where SIX prints in it, else English -- in a report with an e-invoice, in the e-invoice's currency to its account (0044) -- in one step, "Add QR-bill", and selects it; refused (`unavailable`) where the report has one, with report-spec's reason where it cannot take one, and (`not-found`) for a part it has none of, which a caller tsc never saw may send. An e-invoice is never added: refused (`unavailable`), "An e-invoice is edited here, never made from nothing" (0044). |
+| `addGroup(key)`, `removeGroup(key)` | Adds the selection's optional group of fields at `key` from its example values, or removes it, in one step: a bill's debtor, "Add debtor", "Remove debtor"; an e-invoice's contact and its payment instructions. Refused (`unavailable`) with nothing to do, and for a group that is no optional one, saying it is part of every bill or every invoice of its kind, or, an item of a list, that the list's buttons add and remove it; refused by the validator, it says what was not added or removed ("Did not remove Payment instructions: …"). |
+| `addItem(key)`, `removeItem(key)`, `moveItem(key, to)` | Adds an item to the end of the selection's list at `key`, removes the item at `key` (its list's pointer and its index, "/vat/1"), or moves it to the position `to`, each one step: an e-invoice's VAT categories, "Add VAT category", "Remove VAT category", "Move VAT category". Refused (`at-edge`) past either end, (`unavailable`) for an Add the state marks unavailable, saying why, and (`not-found`) for a key that names no list or item, a key that is no string among them. |
 
 `editor.addImage(file)` is no action: reading a file and a host keeping it
 take time, and `dispatch` is synchronous (0008). It resolves with an
@@ -500,8 +535,12 @@ so the choices are made here.
   `rows`: a field by itself, or a group of them, a `group` named by its
   `label` (`aria-label`), with `data-report-part="property-group"`, its
   label drawn in a `span` hidden from the tree, its fields' rows, and its
-  `action`, where it has one, as a button after them named by its label,
-  which keeps the keyboard as its words change, Add to Remove and back.
+  `actions`, each a button after them named by its label,
+  `aria-disabled` where it is not `available` and still sent, which keeps
+  the keyboard as its words change, Add to Remove and back -- unless its
+  `then` says where the keyboard goes once the action is done, which the
+  builder follows once the change is drawn: the button at that index of
+  the group with that key, or that group's first field (0044).
   Add QR-bill takes its own button away with the report's properties, and
   the keyboard goes to the first field, the bill's IBAN, as it does when a
   Remove takes its row. While nothing is selected and
@@ -574,7 +613,13 @@ refused on its field, one typed, its debtor added from SIX's example,
 renamed, removed and brought back by Ctrl+Z -- add a QR-bill to a report
 without one, follow its warning, delete it from its row and bring it back,
 add one and make it pay a QR-IBAN, its QR reference taken with the IBAN
-and then typed, and insert an EPC payment code by keyboard, its IBAN refused on its field
+and then typed, select a report's e-invoice from its row and edit its
+buyer and a rate, a code and a rate EN 16931 refuses refused on their
+fields, add, move and remove a VAT category, the keyboard following it,
+change the account an e-invoice shares with its QR-bill and its EPC code
+from either code, an account the bill cannot pay refused, delete the
+e-invoice and bring it back, refuse an XRechnung's Leitweg-ID and its
+buyer's reference where they are typed, and insert an EPC payment code by keyboard, its IBAN refused on its field
 when its check digits are wrong, and its BIC added by typing it and
 removed by emptying it. Six are about a host's view: it takes the design view's place with
 the outline and the properties beside it, and the toolbar's Design view
@@ -701,8 +746,23 @@ the other's steps in English.
   IBAN: report-spec's rules refuse one of the wrong country, length or
   check digits, SIX's examples are warned of, and a valid account of
   someone else's is taken. In a report with an e-invoice the bill's IBAN
-  must be the e-invoice's account, and an edit of either alone is refused
-  on its field ([0039](../../docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
+  is the e-invoice's account, and typed into either it changes both, with
+  every EPC QR code's ([0039](../../docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md), [0044](../../docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
+- **An e-invoice is edited, never made.** Nothing adds one: a report
+  becomes an e-invoice through the host, a paste or a starter. What a
+  person adds to one -- a contact, payment instructions, an exempt or
+  reverse-charged category -- holds the editor's placeholders, which reach
+  nobody and are written into the XML until they are replaced, and nothing
+  warns of them. The shared account changes no BIC, so an EPC QR code
+  whose BIC is of another country refuses the new account until its BIC is
+  changed or emptied; and where one place reads its account from the
+  data, each field writes its own, so where two others are written beside
+  it, one changed alone is refused until they are bound alike or the
+  third is written. What a template prints beside the totals in its own
+  words is not changed with the e-invoice's rate or account, and what it
+  prints of the parties, the dates and the bank is held to nothing: an
+  edit of the e-invoice's seller, issue date or BIC is accepted with no
+  warning where the page names them in its own text ([0044](../../docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
 - **Not every property is editable yet.** These need editors of their own,
   and have none:
   - a table's sort, its group, its group and total rows, and its footer

@@ -9,24 +9,27 @@
  * a page break into a keep-together block is refused with the validator's
  * reason, never by a rule copied here (0008).
  *
- * A part of the report's own level -- its payment part -- has one place,
- * where SIX puts the slip, and a report holds one: it has nowhere to move
- * and no copy to make, and Delete takes it away (0039).
+ * A part of the report's own level has one place and a report holds one:
+ * its payment part prints where SIX puts the slip, and its e-invoice
+ * prints nothing of its own and is written as its XML. Neither has
+ * anywhere to move or a copy to make, and Delete takes either away (0039,
+ * 0044).
  */
-import { duplicateComponent, insertColumn, locationOf, locations, moveColumn, moveComponent, removeColumn, removeComponent, removePaymentPart } from '@formancy/report-core'
+import { duplicateComponent, insertColumn, locationOf, locations, moveColumn, moveComponent, removeColumn, removeComponent, removeEInvoice, removePaymentPart } from '@formancy/report-core'
 import type { Command, CommandOutcome } from '@formancy/report-core'
 import type { ReportDefinition, TableComponent } from '@formancy/report-spec'
 import type { Step } from './history.js'
-import type { Selection } from './model.js'
+import type { ReportLevelPart, Selection } from './model.js'
 import { siblingsAt } from './places.js'
-import type { Selected } from './selection.js'
+import type { Selected, SelectedPart } from './selection.js'
 import type { MessageId } from './text.js'
 
-/** An edit to make: the command, its history step, what it is announced as, and what is selected after it. */
+/** An edit to make: the command, its history step, what it is announced as and with what besides the name, and what is selected after it. */
 export interface Edit {
   readonly command: Command<object>
   readonly step: Step
   readonly announce: MessageId
+  readonly values?: Readonly<Record<string, string | number>>
   readonly then: (outcome: CommandOutcome & { readonly ok: true }) => Selection | null
 }
 
@@ -45,13 +48,23 @@ function selectionOf(target: Exclude<Selected, { readonly kind: 'part' }>): Sele
   return target.kind === 'column' ? { id: target.table.id, column: target.column.id } : { id: target.component.id }
 }
 
-/** Where a part of the report's own level goes: nowhere. */
-const FIXED: NoEdit = { edge: 'status.partFixed' }
+/** Where a part of the report's own level goes, and why: nowhere, each for its reason. A table over every part. */
+const FIXED: { readonly [P in ReportLevelPart]: NoEdit } = { paymentPart: { edge: 'status.partFixed' }, eInvoice: { edge: 'status.eInvoiceFixed' } }
+
+/** What Delete makes of each part of the report's own level: its removal, said in a sentence of its own. A table over every part. */
+const REMOVED: { readonly [P in ReportLevelPart]: Pick<Edit, 'command' | 'step' | 'announce'> } = {
+  paymentPart: { command: (r) => removePaymentPart(r), step: { do: 'said', id: 'history.removeQrBill' }, announce: 'status.qrBillDeleted' },
+  eInvoice: { command: (r) => removeEInvoice(r), step: { do: 'said', id: 'history.removeEInvoice' }, announce: 'status.eInvoiceDeleted' },
+}
+
+function fixed(target: SelectedPart): NoEdit {
+  return FIXED[target.part]
+}
 
 /** Moves the selection one place up or down its list -- a component's, or its table's columns. */
 export function moveBy(report: ReportDefinition, target: Selected, delta: -1 | 1): Planned {
   const edge: MessageId = delta < 0 ? 'status.first' : 'status.last'
-  if (target.kind === 'part') return FIXED
+  if (target.kind === 'part') return fixed(target)
   const then = (): Selection => selectionOf(target)
   if (target.kind === 'column') {
     const { table, column, index } = target
@@ -68,7 +81,7 @@ export function moveBy(report: ReportDefinition, target: Selected, delta: -1 | 1
 /** Into the container just before the selection, at the end of what it holds -- its last column, for a columns block. */
 export function indent(report: ReportDefinition, target: Selected): Planned {
   const edge: MessageId = 'status.cannotIndent'
-  if (target.kind === 'part') return FIXED
+  if (target.kind === 'part') return fixed(target)
   if (target.kind === 'column') return { edge }
   const { component, location } = target
   const before = siblingsAt(report, location)[location.index - 1]
@@ -82,7 +95,7 @@ export function indent(report: ReportDefinition, target: Selected): Planned {
 /** Out of the container the selection is in, to just after it. */
 export function outdent(report: ReportDefinition, target: Selected): Planned {
   const edge: MessageId = 'status.cannotOutdent'
-  if (target.kind === 'part') return FIXED
+  if (target.kind === 'part') return fixed(target)
   if (target.kind === 'column' || target.location.parent === undefined) return { edge }
   const { component } = target
   // The container stands somewhere: it holds the selection.
@@ -99,14 +112,14 @@ export function outdent(report: ReportDefinition, target: Selected): Planned {
  * Deletes the selection, selecting what a person expects focus to go to
  * (plan 21): the next in its list, else the one before, else its container;
  * for a column, the next column, else the one before, else its table; for
- * the payment part, the outline's row before it, else nothing. `order` is
- * the outline's.
+ * a part of the report's own level, the outline's row before it, else
+ * nothing. `order` is the outline's.
  */
 export function remove(report: ReportDefinition, target: Selected, order: readonly Selection[]): Edit {
   if (target.kind === 'part') {
     const at = order.findIndex((row) => 'part' in row && row.part === target.part)
     const before = at > 0 ? order[at - 1] : undefined
-    return { command: (r) => removePaymentPart(r), step: { do: 'said', id: 'history.removeQrBill' }, announce: 'status.qrBillDeleted', then: () => before ?? null }
+    return { ...REMOVED[target.part], then: () => before ?? null }
   }
   if (target.kind === 'column') {
     const { table, column, index } = target
@@ -142,7 +155,7 @@ function freshColumnId(table: TableComponent, id: string): string {
 
 /** Copies the selection to just after it, and selects the copy. */
 export function duplicate(target: Selected): Planned {
-  if (target.kind === 'part') return FIXED
+  if (target.kind === 'part') return fixed(target)
   if (target.kind === 'column') {
     const { table, column, index } = target
     const fresh = freshColumnId(table, column.id)

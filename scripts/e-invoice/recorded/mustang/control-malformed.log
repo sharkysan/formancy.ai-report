@@ -2,4 +2,4 @@
 [main] INFO org.mustangproject.validator.ZUGFeRDValidator - No XML part provided
 [main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Fatal Error 8: File does not look like PDF nor XML (contains neither %PDF nor <?xml)
 [main] INFO org.mustangproject.validator.ZUGFeRDValidator - File does not look like PDF nor XML (contains neither %PDF nor <?xml)
-[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:null Profile:null Version:null Took:138ms Errors:[8] ErrorIDs: []
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:null Profile:null Version:null Took:102ms Errors:[8] ErrorIDs: []

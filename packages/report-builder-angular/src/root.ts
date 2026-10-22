@@ -25,6 +25,8 @@ export type FocusAfter =
   | { readonly to: 'element'; readonly element: HTMLElement }
   /** Into a pane a narrow screen has just shown: its tree, its view, its first field or its list. */
   | { readonly to: 'pane'; readonly panel: EditorPanel }
+  /** Where a group's button says the keyboard goes once it is done (`then`, 0044): a button of the group with that key, or its first field. */
+  | { readonly to: 'group'; readonly group: string; readonly button?: number }
 
 let roots = 0
 
@@ -254,7 +256,18 @@ export class ReportEditorRoot {
         ? focus.element
         : focus.to === 'places'
           ? root.querySelector<HTMLElement>('[data-report-part="places"] button')
-          : first(focus.to === 'pane' ? PANE_FOCUS[focus.panel] : SELECTION_FOCUS)
+          : focus.to === 'group'
+            ? this.inGroup(focus.group, focus.button)
+            : first(focus.to === 'pane' ? PANE_FOCUS[focus.panel] : SELECTION_FOCUS)
     element?.focus()
+  }
+
+  /** The button at `button` of the properties' group with the key `key`, or its first field: the groups stand in the form in the order of the state's rows. */
+  private inGroup(key: string, button: number | undefined): HTMLElement | null {
+    const groups: string[] = []
+    for (const row of this.state().properties.rows) if ('group' in row) groups.push(row.group.key)
+    const element = this.host.nativeElement.querySelectorAll<HTMLElement>('[data-report-part="property-group"]')[groups.indexOf(key)]
+    if (element === undefined) return null
+    return button === undefined ? element.querySelector<HTMLElement>('input, select, textarea') : (element.querySelectorAll<HTMLElement>(':scope > button')[button] ?? null)
   }
 }

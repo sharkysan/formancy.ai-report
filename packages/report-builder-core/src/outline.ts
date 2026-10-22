@@ -13,6 +13,8 @@ import { REGION_NAMES, walkComponents } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { columnKey, partLabel, regionLabel } from './labels.js'
 import type { OutlineNode, OutlinePart, OutlineRegion, Selection } from './model.js'
+import { REPORT_LEVEL_PARTS } from './model.js'
+import { selected } from './selection.js'
 import type { EditorText } from './text.js'
 
 /** What the outline needs besides the report: the labels, what is selected, the diagnostics about each key, and what is wider than its place. */
@@ -41,7 +43,7 @@ type Building = { -readonly [K in keyof OutlineNode]: OutlineNode[K] } & { child
 
 /** The outline: every region in reading order, each with its components as a tree. */
 export function buildOutline(report: ReportDefinition, inputs: OutlineInputs, t: EditorText): readonly OutlineRegion[] {
-  const selected = inputs.selection === null ? undefined : selectionKey(inputs.selection)
+  const chosen = inputs.selection === null ? undefined : selectionKey(inputs.selection)
   const row = (key: string, id: string, kind: OutlineNode['kind'], depth: number): Building => {
     const severity = inputs.severities.get(key)
     return {
@@ -50,7 +52,7 @@ export function buildOutline(report: ReportDefinition, inputs: OutlineInputs, t:
       kind,
       label: inputs.labels.get(key) ?? key,
       depth,
-      selected: key === selected,
+      selected: key === chosen,
       problems: inputs.problems.get(key) ?? 0,
       ...(severity === undefined ? {} : { severity }),
       overflows: inputs.overflowing.has(key),
@@ -76,13 +78,14 @@ export function buildOutline(report: ReportDefinition, inputs: OutlineInputs, t:
   return REGION_NAMES.map((region) => ({ region, label: regionLabel(region, t), nodes: tops.get(region) ?? [] }))
 }
 
-/** The rows for the parts of the report's own level, after the regions: its payment part, where it has one. */
+/** The rows for the parts of the report's own level, after the regions, each the report has, in `REPORT_LEVEL_PARTS`' order: its payment part, then its e-invoice. */
 export function outlineParts(report: ReportDefinition, inputs: OutlineInputs, t: EditorText): readonly OutlinePart[] {
-  if (report.paymentPart === undefined) return []
-  const key = selectionKey({ part: 'paymentPart' })
-  const severity = inputs.severities.get(key)
-  const selected = inputs.selection !== null && selectionKey(inputs.selection) === key
-  return [{ part: 'paymentPart', key, label: partLabel('paymentPart', t), selected, problems: inputs.problems.get(key) ?? 0, ...(severity === undefined ? {} : { severity }) }]
+  return REPORT_LEVEL_PARTS.filter((part) => selected(report, { part }) !== undefined).map((part) => {
+    const key = selectionKey({ part })
+    const severity = inputs.severities.get(key)
+    const chosen = inputs.selection !== null && selectionKey(inputs.selection) === key
+    return { part, key, label: partLabel(part, t), selected: chosen, problems: inputs.problems.get(key) ?? 0, ...(severity === undefined ? {} : { severity }) }
+  })
 }
 
 /** Every row of the outline, in the order it shows them -- the regions' rows, then the parts' -- what the arrow keys walk. */

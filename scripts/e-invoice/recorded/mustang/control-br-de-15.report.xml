@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="control-br-de-15.xml" datetime="2026-10-22 04:44:00">
+<validation filename="control-br-de-15.xml" datetime="2026-10-22 08:49:01">
   <xml>
     <info>
       <version>2</version>
@@ -10,7 +10,7 @@
         <fired>25</fired>
         <failed>1</failed>
       </rules>
-      <duration unit="ms">2524</duration>
+      <duration unit="ms">2287</duration>
     </info>
     <messages>
       <error type="27" location="/rsm:CrossIndustryInvoice" criterion="rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:BuyerReference[boolean(normalize-space(.))]">[BR-DE-15] Das Element "Buyer reference" (BT-10) muss übermittelt werden. [ID BR-DE-15] from /xslt/XR_30/XRechnung-CII-validation.xslt)</error> 

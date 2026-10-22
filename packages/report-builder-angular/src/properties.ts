@@ -6,14 +6,18 @@
  * so the two cannot disagree -- and required where the field is. Each
  * field is a `property-row.ts`, which says when it commits.
  *
- * Fields the editor groups -- a QR-bill's creditor and debtor (0039) -- are
- * a `group` named in the editor's words, their name drawn and hidden from
- * the tree, which reads the group's own, and the group's one button after
- * them. The button keeps the keyboard where it is as its words change, Add
- * to Remove and back. Add QR-bill, which gives the properties the bill's in
- * place of the report's, takes its own button away, and the keyboard goes
- * to the first field, the bill's IBAN, as it does when a Remove takes its
- * row (`root.ts`).
+ * Fields the editor groups -- a QR-bill's creditor and debtor (0039), an
+ * e-invoice's parties, its VAT categories and its payment instructions
+ * (0044) -- are a `group` named in the editor's words, their name drawn and
+ * hidden from the tree, which reads the group's own, and the group's
+ * buttons after them, one with nowhere to go `aria-disabled` and still
+ * sent. A button keeps the keyboard where it is as its words change, Add
+ * to Remove and back, unless the editor says where it goes once done
+ * (`then`): the same button of the group a VAT category moved to, the
+ * list's Add once one is removed, a new one's first field (`root.ts`). Add
+ * QR-bill, which gives the properties the bill's in place of the report's,
+ * takes its own button away, and the keyboard goes to the first field, the
+ * bill's IBAN, as it does when a Remove takes its row.
  * Under the report's own fields, its images (`image-library.ts`, 0033).
  */
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
@@ -24,11 +28,11 @@ import { CONTROLS, ReportPropertyRow } from './property-row'
 import type { Control, Shown } from './property-row'
 import { ReportEditorRoot } from './root'
 
-/** A group of fields as the form draws it: its name, its fields and its one button. */
+/** A group of fields as the form draws it: its name, its fields and its buttons. */
 interface ShownGroup {
   readonly label: string
   readonly fields: readonly Shown[]
-  readonly action: PropertyAction | null
+  readonly actions: readonly PropertyAction[]
 }
 
 /** A row of the form: a field by itself, or a group of them with its button; the other one null. */
@@ -56,8 +60,8 @@ interface Row {
           @for (shown of group.fields; track shown.id) {
             <div reportPropertyRow [shown]="shown"></div>
           }
-          @if (group.action; as action) {
-            <button type="button" (click)="press(action)">{{ action.label }}</button>
+          @for (action of group.actions; track $index) {
+            <button type="button" [attr.aria-disabled]="action.available ? null : 'true'" (click)="press(action)">{{ action.label }}</button>
           }
         </div>
       } @else {
@@ -94,7 +98,7 @@ export class ReportProperties {
         return { key: field.id, field, group: null }
       }
       const { group } = row
-      return { key: `${this.root.id}-${owner}-${group.key}`, field: null, group: { label: group.label, fields: group.fields.map(shown), action: group.action ?? null } }
+      return { key: `${this.root.id}-${owner}-${group.key}`, field: null, group: { label: group.label, fields: group.fields.map(shown), actions: group.actions } }
     })
   })
 
@@ -103,8 +107,9 @@ export class ReportProperties {
     return row.field as Shown
   }
 
-  /** A group's button: what it says it does. */
+  /** A group's button: what it says it does, the keyboard going where the editor says once it is done. */
   protected press(action: PropertyAction): void {
-    this.root.dispatch(action.action)
+    if (action.then === undefined) this.root.dispatch(action.action)
+    else this.root.attempt(action.action, { to: 'group', ...action.then })
   }
 }

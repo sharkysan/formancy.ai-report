@@ -291,7 +291,7 @@
       ]
     },
     "0012": {
-      "reviewed": "sha256:2c38d4cca3be234f19a327e82a257114c8756cf33f17e4bbb2da42747368d03f",
+      "reviewed": "sha256:f3a9d8ddfbcc523d096dbc4c69c2ed58613a3942e8c54ee4ab59d63f28638e31",
       "limitations": [
         {
           "area": "builders",
@@ -625,7 +625,7 @@
       ]
     },
     "0025": {
-      "reviewed": "sha256:52b59acf97e9ccfe73af7f9057109fb1e683bbfbca75acd583f80bf47e8d4bd0",
+      "reviewed": "sha256:262b761ce3f40ad512988140ac8e0fe8923b634f12885184f3b5c607a51b4886",
       "limitations": [
         {
           "area": "format",
@@ -719,7 +719,8 @@
         },
         {
           "area": "builders",
-          "says": "In the builders' design view a component at the top of a narrow column at a container's right end, an EPC QR code beside its details among them, has its label printed over the container's, so that neither can be read."
+          "says": "In the builders' design view a component at the top of a narrow column at a container's right end, an EPC QR code beside its details among them, has its label printed over the container's, so that neither can be read, where the container is taller than two labels; one no taller draws no label of its own (0044).",
+          "heldBy": "packages/report-builder-core/src/css.test.ts"
         },
         {
           "area": "testing",
@@ -732,7 +733,7 @@
       "none": "It decides how the repository documents its architecture and what holds those documents in pnpm test:repo; its costs fall on a contributor's pull request, and nothing in a published package, a release or the Studio changes with it."
     },
     "0027": {
-      "reviewed": "sha256:71aae9fb5d828bb12ea08684bb71b29cd434d917bb69cdf387e245f8156233a6",
+      "reviewed": "sha256:401bb8ae7d99c77d20742444ba961a6d2883540438944bf2e2b5eeeb52e70f5f",
       "limitations": [
         {
           "area": "format",
@@ -804,11 +805,6 @@
           "area": "editing",
           "says": "The editing core types an e-invoice's dates as text, so an expression that gives a string that is no date passes its diagnostics and is refused only when the report renders.",
           "heldBy": "packages/report-runtime/src/e-invoice-terms.test.ts"
-        },
-        {
-          "area": "builders",
-          "says": "Neither builder edits an e-invoice, which is written in the report's definition, and the Studio offers none of the corpus's e-invoice samples.",
-          "heldBy": "packages/report-corpus/src/starters/e-invoice.test.ts"
         },
         {
           "area": "runtime",
@@ -1459,7 +1455,7 @@
       ]
     },
     "0039": {
-      "reviewed": "sha256:d59246d7069041d61f971807fb14f7903a5dbc1cc48c9590186397afe90e0509",
+      "reviewed": "sha256:988048a8cd028d1e7901e515ecae38661259bc8af1ae366bcac5e5212f7aa787",
       "limitations": [
         {
           "area": "builders",
@@ -1493,12 +1489,12 @@
         },
         {
           "area": "builders",
-          "says": "In a report with an e-invoice the QR-bill's IBAN cannot be changed: it must equal the e-invoice's account (BT-84), and an edit of either alone is refused on its field, until an edit that changes both arrives with the e-invoice's editing.",
+          "says": "In a report with an e-invoice the QR-bill's IBAN is the e-invoice's account (BT-84): typed into the bill it changes the e-invoice's and every EPC QR code's too, in one step (0044), and one the e-invoice or a code cannot take is refused on the bill's field.",
           "heldBy": "packages/report-builder-core/src/payment-part.test.ts"
         },
         {
           "area": "builders",
-          "says": "Every report without a QR-bill offers Add QR-bill in its own properties, a report that cannot take one among them -- a Letter or landscape page, an e-invoice -- where pressing it is refused in report-spec's words.",
+          "says": "Every report without a QR-bill offers Add QR-bill in its own properties, a report that cannot take one among them -- a Letter or landscape page, an e-invoice that names no account or one a bill cannot pay -- where pressing it is refused in report-spec's words.",
           "heldBy": "packages/report-builder-core/src/payment-part.test.ts"
         },
         {
@@ -1779,6 +1775,68 @@
           "area": "runtime",
           "says": "Generating the site visit took 1.8 to 3.9 ms, refusing a form of 100,000 fields 2.3 to 5.2 s, most of it formancy's validator, and refusing a grid of 100,000 columns 0.89 to 3.1 s, from the built package on an Intel i9-10900K under Node 24.21.0 at 3 to 100 % of its load from other work, on 22 October 2026.",
           "heldBy": "packages/report-forms/src/generate-untrusted.test.ts"
+        }
+      ]
+    },
+    "0044": {
+      "reviewed": "sha256:85f210371429a1c1812c23141edb1086035dcfc7b2f808fb97ddfccbaf204095",
+      "limitations": [
+        {
+          "area": "editing",
+          "says": "An e-invoice is edited and never made from nothing in the builders: a report becomes one through the host, a paste or the Studio's e-invoice starter, and the editor's `addPart` of one is refused as `unavailable`.",
+          "heldBy": "packages/report-builder-core/src/editor.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "The account an e-invoice shares with its QR-bill and its EPC QR codes is changed by one command, `setPaymentAccount`, which changes no BIC, so an EPC QR code whose BIC is of another country refuses the new account until its BIC is changed or emptied, an account outside the EEA, which needs a BIC, cannot follow one inside it in one edit, and a report with a QR-bill keeps a Swiss or Liechtenstein account.",
+          "heldBy": "packages/report-core/src/commands/e-invoice.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "Where the e-invoice, its QR-bill or an EPC QR code reads its account from the data, `setPaymentAccount` refuses as `read-from-data`, naming the place, rather than write over the binding.",
+          "heldBy": "packages/report-core/src/commands/e-invoice.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Where any of the e-invoice, its QR-bill and its EPC QR codes reads its account from the data, a builder's IBAN field writes its own place's account alone, which the render compares with the data's, and where two others are written, one changed alone is refused until the person binds them alike or writes the third.",
+          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "report-core holds an e-invoice's totals and its lines to the page and no other term, so the seller's name, address or VAT identifier, the issue or due date, the BIC or the account's name, changed in a builder, is accepted with no warning where the page prints it in its own words, as the e-invoice starter does, and the XML then says another thing than the page, which § 14c UStG may count as a second invoice: the person changes both."
+        },
+        {
+          "area": "builders",
+          "says": "In a report with an e-invoice the palette's EPC payment code pays the e-invoice's account with its BIC and is unavailable until the e-invoice gives payment instructions, and Add QR-bill gives the bill the e-invoice's currency and account, so it is refused where that account is not one of Switzerland or Liechtenstein.",
+          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "What a template prints beside an e-invoice's totals in its own words, as the e-invoice starter's \"Umsatzsteuer 19 % auf\" and its \"IBAN:\" line do, is not changed when the e-invoice's rate or account is, so an author changes both."
+        },
+        {
+          "area": "builders",
+          "says": "A seller's contact, payment instructions and an exempt or reverse-charged VAT category added in a builder hold the editor's placeholder words and values, which reach nobody and are written into the XML until a person replaces them, with no warning, and an exempt category's reason names no provision, which § 14 Abs. 4 Satz 1 Nr. 8 UStG asks for.",
+          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "An e-invoice's properties are one long pane of fields in groups that scrolls, which no gate measures, and their German and French words have not been read by a native speaker."
+        },
+        {
+          "area": "release",
+          "says": "report-builder-core's `PropertyGroup` holds a list of buttons, `actions`, each with `available` and `then`, where 0039's unreleased `action` was one, and `REPORT_LEVEL_PARTS` holds `eInvoice`, so a host's code that read one button or took the bill for the only part changes with this release.",
+          "heldBy": "packages/report-builder-core/src/invoice-fields.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "report-core refuses with a new code, `read-from-data`, so a host that maps every refusal code to its own message meets one it has no message for.",
+          "heldBy": "packages/report-core/src/outcome.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The browser gate holds the shared account on the e-invoice starter's XML and its EPC QR code, decoded from the PDF's pixels, and the starter has no QR-bill, so the bill's half is held by the builder scenarios in jsdom and not on a PDF.",
+          "heldBy": "packages/report-builder-core/src/scenarios.test.ts"
         }
       ]
     }

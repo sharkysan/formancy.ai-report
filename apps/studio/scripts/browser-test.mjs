@@ -25,7 +25,8 @@
 //     text layer holding every line docs/images/pictures.json says that
 //     page prints, and the Download PDF link a PDF whose page draws the
 //     drawings pictures.json records there, path by path -- the firm's
-//     mark, a code -- and no other;
+//     mark, a code -- and no other; an e-invoice's with Final on, since its
+//     preview says on every page that it is no e-invoice (0044);
 //   - the framework switch keeps the document and its history: an edit made
 //     in React is in the Angular builder with its Undo, undone there the PDF
 //     follows, and back in React the Redo is offered; and the first moment
@@ -64,6 +65,11 @@
 //     SIX's rules take typed: the Swiss QR Code the Download PDF draws,
 //     decoded from its pixels with ZXing, pays it, and once undone pays the
 //     starter's account again (gate-payment-part.mjs, 0039);
+//   - in each builder, the e-invoice's e-invoice selected from its outline
+//     row, its buyer's electronic address, a VAT rate and its IBAN typed,
+//     each read back from the XML the final Download PDF embeds and held to
+//     the page it prints, the IBAN to the EPC QR code its page draws too,
+//     decoded from its pixels, and each undone (gate-e-invoice.mjs, 0044);
 //   - the page wears the released room: every variable the installed
 //     @formancy/themes/room.css sets, and its colour scheme, computed on
 //     the page as room.css gives it, at every pass (0034);
@@ -89,6 +95,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
+import { STARTERS } from '@formancy/report-corpus'
 import { chromium } from 'playwright'
 import { build, preview } from 'vite'
 import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
@@ -111,6 +118,16 @@ const repo = join(app, '..', '..')
  * lines PDF.js read on that page, top to bottom.
  */
 const PICTURED = JSON.parse(readFileSync(join(repo, 'docs', 'images', 'pictures.json'), 'utf8'))
+
+/**
+ * The starters that are e-invoices: a preview of one is no e-invoice and
+ * says so on every page (0027), so its paper is held to its picture, drawn
+ * from its final render, with Final on (0044).
+ */
+const INVOICED = new Set(STARTERS.filter((starter) => starter.report.eInvoice !== undefined).map((starter) => starter.id))
+
+/** What the Preview says once a final render printed. */
+const FINAL = /^Final render: printed(, with \d+ warnings?)?\.$/
 
 /**
  * Enter on `pressed`, as a keyboard user presses it; then whether
@@ -281,7 +298,16 @@ async function journey(gate, page, picker, { refuseFonts }) {
       await settled(page)
       const state = `${name}, ${framework}`
       const picture = PICTURED.find((each) => each.starter === id)
-      if (picture !== undefined) await paperChecks(gate, page, state, picture)
+      const final = INVOICED.has(id) ? previewOf(page).getByRole('checkbox', { name: 'Final', exact: true }) : null
+      if (final !== null) {
+        await final.check()
+        await settled(page, FINAL)
+      }
+      if (picture !== undefined) await paperChecks(gate, page, final === null ? state : `${state}, its final render`, picture)
+      if (final !== null) {
+        await final.uncheck()
+        await settled(page)
+      }
       if (picture !== undefined && !ruled) {
         await paperRules(gate, page)
         ruled = true

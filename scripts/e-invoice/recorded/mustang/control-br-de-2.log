@@ -6,4 +6,4 @@
 [main] INFO com.helger.schematron.api.xslt.AbstractSchematronXSLTBasedResource - Applying Schematron XSLT on XML instance
 [main] INFO org.mustangproject.validator.XMLValidator - FailedAssert [BR-DE-2] Die Gruppe "SELLER CONTACT" (BG-6) muss übermittelt werden.
 [main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 27: [BR-DE-2] Die Gruppe "SELLER CONTACT" (BG-6) muss übermittelt werden. [ID BR-DE-2] from /xslt/XR_30/XRechnung-CII-validation.xslt)
-[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:7806233133DC4A77545C49A2D6E47590756F2432 Profile:urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0 Version:2 Took:3157ms Errors:[27] ErrorIDs: [BR-DE-2]
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:7806233133DC4A77545C49A2D6E47590756F2432 Profile:urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0 Version:2 Took:2578ms Errors:[27] ErrorIDs: [BR-DE-2]

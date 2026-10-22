@@ -4,4 +4,4 @@
 [main] WARN com.helger.xml.transform.LoggingTransformErrorListener - [warn] Transformation warning (net.sf.saxon.trans.XPathException: A function that computes atomic values should use xsl:sequence rather than xsl:value-of)
 [main] WARN com.helger.xml.transform.LoggingTransformErrorListener - [warn] Transformation warning (net.sf.saxon.trans.XPathException: A function that computes atomic values should use xsl:sequence rather than xsl:value-of)
 [main] INFO com.helger.schematron.api.xslt.AbstractSchematronXSLTBasedResource - Applying Schematron XSLT on XML instance
-[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:valid Signature:null Checksum:0C28E2C33742FC8DCDAFAE803D17F4816E529244 Profile:urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0 Version:2 Took:2835ms Errors:[] ErrorIDs: []
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:valid Signature:null Checksum:0C28E2C33742FC8DCDAFAE803D17F4816E529244 Profile:urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0 Version:2 Took:2320ms Errors:[] ErrorIDs: []

@@ -48,6 +48,8 @@ export {
 export type { FooterRows } from './commands/table.js'
 export { putPaymentPart, removePaymentPart, updatePaymentPart } from './commands/payment-part.js'
 export type { PaymentPartPatch } from './commands/payment-part.js'
+export { putEInvoice, removeEInvoice, setPaymentAccount, updateEInvoice } from './commands/e-invoice.js'
+export type { EInvoicePatch } from './commands/e-invoice.js'
 export { ARGUMENTS, COMMANDS, describedCommand, PART_COMMANDS } from './commands/registry.js'
 export type { CommandDescriptor, CommandName } from './commands/registry.js'
 

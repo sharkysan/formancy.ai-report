@@ -47,9 +47,14 @@ function listName(mode: DataMode, printed: boolean): string {
   return printed ? `What ${render} lacks` : `Why ${render} was not printed`
 }
 
+/**
+ * What printing found, a list that scrolls inside the Preview: one tab stop,
+ * so that a keyboard reaches and scrolls it where it holds no button -- an
+ * e-invoice's preview lists its one warning and nothing to select (0044).
+ */
 function Problems({ problems, label, select }: { problems: readonly PreviewProblem[]; label: string; select: (target: ProblemTarget) => void }): ReactElement {
   return (
-    <ul className="problems" aria-label={label}>
+    <ul className="problems" aria-label={label} tabIndex={0}>
       {problems.map((problem) => (
         <li key={problem.key} data-severity={problem.severity}>
           <code>{problem.code}</code> <span>{problem.message}</span>

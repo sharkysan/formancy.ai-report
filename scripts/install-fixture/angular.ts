@@ -32,7 +32,7 @@ import type { FocusAfter } from '@formancy/report-builder-angular'
 import type { EditorState, ReportEditor } from '@formancy/report-builder-core'
 import { elementsIn, readMarkup } from './markup.js'
 import type { MarkupElement } from './markup.js'
-import { editorToDraw, editorWithBill, editorWithHostView, editorWithImages, HOST_VIEW, structureProblems } from './structure.js'
+import { editorToDraw, editorWithBill, editorWithEInvoice, editorWithHostView, editorWithImages, HOST_VIEW, structureProblems } from './structure.js'
 
 /** What could be wrong, collected, so one run names every difference rather than the first. */
 const wrong: string[] = []
@@ -101,6 +101,8 @@ const viewing: ReportEditor = editorWithHostView()
 const imaging: ReportEditor = editorWithImages()
 /** And a fourth, with a QR-bill added and selected, its debtor added (0039). */
 const billing: ReportEditor = editorWithBill()
+/** And a fifth, with an e-invoice selected and a VAT category added (0044). */
+const invoicing: ReportEditor = editorWithEInvoice()
 
 /**
  * A host's component, as a host writes it. ngc compiles its template with
@@ -134,6 +136,12 @@ class Imaging {
 @Component({ selector: 'app-root', imports: [ReportBuilder], template: '<report-builder [editor]="editor" />' })
 class Billing {
   protected readonly editor: ReportEditor = billing
+}
+
+/** A host's component whose report has an e-invoice, selected: the builder draws its row and its groups with their buttons. */
+@Component({ selector: 'app-root', imports: [ReportBuilder], template: '<report-builder [editor]="editor" />' })
+class Invoicing {
+  protected readonly editor: ReportEditor = invoicing
 }
 
 /**
@@ -183,6 +191,9 @@ imaging.dispose()
 // Drawn a fourth time with a QR-bill added and selected (0039): its row, its band selected, its parties as groups.
 wrong.push(...structureProblems(await serverDraw(Billing), billing.state()).map((problem) => `with a QR-bill: ${problem}`))
 billing.dispose()
+// Drawn a fifth time with an e-invoice selected and a VAT category added (0044): its row after the bill's, its groups and their buttons.
+wrong.push(...structureProblems(await serverDraw(Invoicing), invoicing.state()).map((problem) => `with an e-invoice: ${problem}`))
+invoicing.dispose()
 
 // Drawing changed nothing. The editor's state reached the root through
 // [editor] -- an input the root requires, so a page drawn without it fails

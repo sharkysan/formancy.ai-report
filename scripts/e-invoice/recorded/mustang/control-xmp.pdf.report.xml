@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="control-xmp.pdf" datetime="2026-10-22 04:45:19">
+<validation filename="control-xmp.pdf" datetime="2026-10-22 08:50:18">
   <pdf>ValidationResult [flavour=3b, totalAssertions=11787, assertions=[], isCompliant=true]
     <info>
       <signature>unknown</signature>
-      <duration unit="ms">1455</duration>
+      <duration unit="ms">1457</duration>
     </info>
     <messages>
       <error type="12">XMP Metadata: ConformanceLevel contains invalid value</error> 
@@ -20,7 +20,7 @@
         <fired>179</fired>
         <failed>0</failed>
       </rules>
-      <duration unit="ms">1776</duration>
+      <duration unit="ms">1949</duration>
     </info>
     <summary status="valid"/>
   </xml>

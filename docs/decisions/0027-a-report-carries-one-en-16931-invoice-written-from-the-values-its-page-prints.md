@@ -18,7 +18,12 @@
   under which an e-invoice may be an XRechnung 3.0, which this record
   turned down for the German B2B invoice, its PDF a plain copy labelled
   so on every page: the plain PDF this record forecloses, narrowed for
-  that kind alone
+  that kind alone; and amended by
+  [0044](0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md),
+  under which either builder edits an e-invoice field by field through
+  report-core's commands, its account changed with its payment codes' in
+  one edit, and the e-invoice sample is a starter of the Studio's, which
+  this record kept out of its picker
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

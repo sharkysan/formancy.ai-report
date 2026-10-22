@@ -111,6 +111,16 @@ What is Angular's own:
   template, since `NgTemplateOutlet` is not this package's to use. Add
   QR-bill takes its own button away, and the keyboard goes to the bill's
   IBAN, the first field, as it does when a Remove takes its row.
+- **A report's e-invoice is selected and edited the same way**
+  ([0044](../../docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)): its row stands after the bill's, and its properties
+  are groups -- the parties, the seller's contact, each VAT category, the
+  list's Add, the lines, the payment instructions, an XRechnung's own
+  terms -- each with its buttons, one with nowhere to go `aria-disabled`
+  and still sent. Where a button's action says where the keyboard goes
+  once it is done (`then`), the root puts it there after the render
+  (`ReportEditorRoot.attempt`, a `group` focus): a category moved keeps
+  it on the same button of the group it went to, one removed hands it to
+  the list's Add, and one added to its first field.
 - **Drag and drop is HTML's**, from the palette, from a canvas box or from an
   outline row, onto the sheet (the nearest place, `targetNear`, read inside
   the sheet's border) or onto a row (before or after it, `targetBeside`). A

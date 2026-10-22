@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="control-br-co-14.xml" datetime="2026-10-22 04:43:45">
+<validation filename="control-br-co-14.xml" datetime="2026-10-22 08:48:47">
   <xml>
     <info>
       <version>2</version>
@@ -10,7 +10,7 @@
         <fired>179</fired>
         <failed>1</failed>
       </rules>
-      <duration unit="ms">2911</duration>
+      <duration unit="ms">2230</duration>
     </info>
     <messages>
       <error type="4" location="/*:CrossIndustryInvoice[namespace-uri()='urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'][1]/*:SupplyChainTradeTransaction[namespace-uri()='urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'][1]/*:ApplicableHeaderTradeSettlement[namespace-uri()='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'][1]/*:SpecifiedTradeSettlementHeaderMonetarySummation[namespace-uri()='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'][1]/*:TaxTotalAmount[namespace-uri()='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'][1]" criterion=". = (round(sum(/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:ApplicableTradeTax/ram:CalculatedAmount)*10*10)div 100)">[BR-CO-14]-Invoice total VAT amount (BT-110) = Σ VAT category tax amount (BT-117). [ID BR-CO-14] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)</error>  

@@ -1,13 +1,14 @@
 import { describe, expect, test } from 'vitest'
 import { insertComponent, moveComponent, removeComponent, updateComponent } from './commands/components.js'
 import { addAsset, removeStyle } from './commands/declarations.js'
+import { setPaymentAccount } from './commands/e-invoice.js'
 import { describedCommand } from './commands/registry.js'
 import type { CommandDescriptor } from './commands/registry.js'
 import { updateColumn } from './commands/table.js'
 import { REFUSAL_CODES } from './outcome.js'
 import type { Command, CommandOutcome, RefusalCode } from './outcome.js'
 import { openReportSession } from './session.js'
-import { frozenSample, refused, sampleReport } from './test-support.js'
+import { eInvoiceSample, frozen, frozenSample, refused, sampleReport } from './test-support.js'
 
 const spacer = { id: 'added', kind: 'spacer', height: 4 } as const
 
@@ -37,6 +38,11 @@ const CASES: { readonly [C in RefusalCode]: () => CommandOutcome } = {
   'invalid-arguments': () => describedCommand({ command: 'setTitle', args: [] } as unknown as CommandDescriptor)(frozenSample()),
   'invalid-document': () => inSession((report) => removeStyle(report, 'title')),
   'stale-document': () => inSession((report) => removeComponent(report, 'gap'), '0'.repeat(64)),
+  'read-from-data': () => {
+    const report = eInvoiceSample()
+    const bound = { ...report, eInvoice: { ...(report.eInvoice as NonNullable<typeof report.eInvoice>), payment: { means: '58', iban: [{ kind: 'field', field: { dataset: 'header', field: 'customer' } }] } } } as typeof report
+    return setPaymentAccount(frozen(bound), 'DE89 3704 0044 0532 0130 00')
+  },
 }
 
 describe('REFUSAL_CODES', () => {

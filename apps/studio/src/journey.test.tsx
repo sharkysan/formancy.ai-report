@@ -22,7 +22,9 @@ import type { Workspace } from './workspace.js'
  * picker offers, each in both builders and in both modes, then an edit the
  * renderer refuses, followed to the component it names; the invoice's
  * QR-bill selected by its band and an IBAN its rules refuse typed into it,
- * in both builders, and a bill added to the blank report (0039). What holds
+ * in both builders, and a bill added to the blank report (0039); the
+ * e-invoice's e-invoice selected from its row and a VAT rate EN 16931
+ * refuses typed into it, in both builders (0044). What holds
  * across the steps rather than inside one is checked at each of them.
  *
  * The preview is the real pipeline -- the runtime, and the renderer's
@@ -170,6 +172,16 @@ async function printed(id: string, mode: 'preview' | 'final', status: string): P
 }
 
 /**
+ * What the Preview says once a starter's preview has printed: printed, and
+ * for a report with an e-invoice with the runtime's one warning, that a
+ * preview is no e-invoice and is labelled so on every page (0027); its
+ * final render prints with none.
+ */
+function previewStatus(id: string): string {
+  return starters.find((starter) => starter.id === id)?.report.eInvoice === undefined ? 'Preview: printed.' : 'Preview: printed, with 1 warning.'
+}
+
+/**
  * Rules about the page as a whole, which `violations()` -- axe over the
  * body -- never reaches: the document's language and title, a way past
  * the bar, everything inside a landmark, each landmark told apart, one
@@ -229,12 +241,13 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   let framework: Framework = 'React'
   for (const option of within(picker).getAllByRole('option') as HTMLOptionElement[]) {
     const { value: id, text: name } = option
+    const previewed = previewStatus(id)
     await user.selectOptions(picker, option)
-    await printed(id, 'preview', 'Preview: printed.')
+    await printed(id, 'preview', previewed)
     await record(`${name}, preview, in ${framework}`)
     framework = framework === 'React' ? 'Angular' : 'React'
     await show(user, framework)
-    await printed(id, 'preview', 'Preview: printed.')
+    await printed(id, 'preview', previewed)
     await record(`${name}, preview, in ${framework}`)
     await user.click(screen.getByRole('checkbox', { name: 'Final' }))
     await printed(id, 'final', 'Final render: printed.')
@@ -243,7 +256,7 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Preview' })).toBeNull())
     await record(`${name}, the design view, in ${framework}`)
     await user.click(screen.getByRole('button', { name: 'Preview', pressed: false }))
-    await printed(id, 'preview', 'Preview: printed.')
+    await printed(id, 'preview', previewed)
   }
 
   await user.selectOptions(picker, 'Quotation')
@@ -307,6 +320,26 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   await show(user, framework)
   await waitFor(() => expect(within(editor()).getByRole('textbox', { name: words('field.iban') }).getAttribute('aria-invalid')).toBe('true'))
   await record(`Invoice, an IBAN refused, in ${framework}`)
+
+  // The e-invoice's e-invoice, selected from its outline row, the keyboard
+  // on it; a standard rate EN 16931 refuses typed into its first VAT
+  // category, refused on the field; and the same in the other builder,
+  // the refused value and its reason kept by the editor (0044).
+  await user.selectOptions(picker, 'e-invoice')
+  await printed('e-invoice', 'preview', previewStatus('e-invoice'))
+  await user.click(within(editor()).getByRole('treeitem', { name: words('outline.eInvoice') }))
+  await waitFor(() => expect(document.activeElement).toBe(within(editor()).getByRole('treeitem', { name: words('outline.eInvoice'), selected: true })))
+  await record(`E-invoice, its e-invoice selected, in ${framework}`)
+  const rate = within(editor()).getByRole('textbox', { name: words('field.vatCategoryRate', { item: 1 }) })
+  await user.clear(rate)
+  await user.type(rate, '0.4')
+  await user.tab()
+  await waitFor(() => expect(within(editor()).getByRole('textbox', { name: words('field.vatCategoryRate', { item: 1 }) }).getAttribute('aria-invalid')).toBe('true'))
+  await record(`E-invoice, a rate refused, in ${framework}`)
+  framework = framework === 'React' ? 'Angular' : 'React'
+  await show(user, framework)
+  await waitFor(() => expect(within(editor()).getByRole('textbox', { name: words('field.vatCategoryRate', { item: 1 }) }).getAttribute('aria-invalid')).toBe('true'))
+  await record(`E-invoice, a rate refused, in ${framework}`)
 
   // An image added to the blank report: Add image… busy while the page
   // keeps it, then the report's images listed under its properties, its
@@ -384,7 +417,7 @@ describe('the journey', () => {
       },
       kept,
     )
-    expect(Object.keys(findings)).toHaveLength(studioStarters(starters).length * 4 + 9)
+    expect(Object.keys(findings)).toHaveLength(studioStarters(starters).length * 4 + 12)
     expect(findings).toEqual(Object.fromEntries(Object.keys(findings).map((state) => [state, []])))
   })
 

@@ -9,7 +9,7 @@
  * the builder the view's one button.
  */
 import type { ReportDefinition } from '@formancy/report-spec'
-import { PROPERTY_ROLES } from './model.js'
+import { PROPERTY_ROLES } from './model-properties.js'
 import { body, scenarioReport } from './scenario-report.js'
 import type { BuilderScenario, ScenarioHost, ScenarioQuery, ScenarioStep } from './scenario-steps.js'
 import { editorText, formatZoom } from './text.js'

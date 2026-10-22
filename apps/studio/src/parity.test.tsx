@@ -189,7 +189,11 @@ const select = (node: OutlineNode | null): EditorAction => (node === null ? { ty
  * problem; a top margin the page cannot hold, refused; the QR-bill --
  * the invoice's, or one added from SIX's example to a starter without one
  * -- selected, an IBAN its rules refuse refused on its field, its debtor
- * taken away and given back, the bill deleted and brought back (0039); an
+ * taken away and given back, the bill deleted and brought back (0039); the
+ * e-invoice, where the starter has one, selected, its seller's name typed,
+ * a rate refused on its field, a VAT category taken away, added, moved and
+ * the three undone, its IBAN typed once for every payment code and undone,
+ * and the e-invoice deleted and brought back (0044); an
  * image being added, Add image… pressed while it is, and the image listed,
  * then removed; undo and redo; each pane; the zoom; and the Preview shown in
  * the middle again, a pane hidden and shown beside it, the Preview placed
@@ -248,6 +252,22 @@ async function walk({ editor, react, angular, app, release }: Mounted): Promise<
   await dispatch({ type: debtor ? 'addGroup' : 'removeGroup', key: '/debtor' }, 'the debtor given back or taken away')
   await dispatch({ type: 'delete' }, 'the QR-bill deleted')
   await dispatch({ type: 'undo' }, 'the QR-bill brought back')
+  // An e-invoice is edited and never added (0044): the walk edits one
+  // where the starter has one.
+  if (editor.state().outlineParts.some((row) => row.part === 'eInvoice')) {
+    await dispatch({ type: 'select', part: 'eInvoice' }, 'the e-invoice selected')
+    await dispatch({ type: 'setProperty', key: '/seller/name/0/text', value: 'Muster Haustechnik GmbH' }, 'the seller’s name typed')
+    await dispatch({ type: 'setProperty', key: '/vat/0/rate', value: '0.4' }, 'a rate EN 16931 refuses, refused on its field')
+    const last = (editor.state().properties.rows.filter((row) => 'group' in row && /^\/vat\/\d+$/.test(row.group.key)).length - 1).toString()
+    await dispatch({ type: 'removeItem', key: `/vat/${last}` }, 'a VAT category taken away')
+    await dispatch({ type: 'addItem', key: '/vat' }, 'a VAT category added')
+    await dispatch({ type: 'moveItem', key: `/vat/${last}`, to: 0 }, 'a VAT category moved first')
+    for (const step of ['move', 'addition', 'removal'] as const) await dispatch({ type: 'undo' }, `the ${step} undone`)
+    await dispatch({ type: 'setProperty', key: '/payment/iban/0/text', value: 'DE89 3704 0044 0532 0130 00' }, 'the IBAN typed once, for every payment code')
+    await dispatch({ type: 'undo' }, 'the IBAN undone')
+    await dispatch({ type: 'delete' }, 'the e-invoice deleted')
+    await dispatch({ type: 'undo' }, 'the e-invoice brought back')
+  }
   await dispatch(select(null), 'the report selected again')
   const file = { name: 'logo.png', size: SCENARIO_PNG.length, arrayBuffer: async () => Uint8Array.from(SCENARIO_PNG).buffer }
   let adding: Promise<unknown> = Promise.resolve()
@@ -288,8 +308,11 @@ describe('the two builders, side by side over one editor', () => {
         expect(states).toEqual(
           expect.arrayContaining(['opened, the Preview in the design view’s place', 'a condition naming no parameter', 'a margin the page cannot hold, refused', 'the QR-bill selected', 'the QR-bill deleted', 'an image being added', 'the image removed', 'zoomed in', 'the Preview hidden']),
         )
-        // The bill the walk selected is the one the starter has, or SIX's example added to it.
-        expect(mounted?.editor.state().outlineParts.map((row) => row.part)).toEqual(['paymentPart'])
+        // The bill the walk selected is the one the starter has, or SIX's example added to it, and the e-invoice the one it has, edited:
+        // an e-invoice in euro takes no bill of SIX's example, which asks for francs.
+        const invoice = starter.report.eInvoice !== undefined
+        expect(mounted?.editor.state().outlineParts.map((row) => row.part)).toEqual(invoice ? [...(starter.report.paymentPart === undefined ? [] : ['paymentPart']), 'eInvoice'] : ['paymentPart'])
+        if (invoice) expect(states).toEqual(expect.arrayContaining(['the e-invoice selected', 'a VAT category moved first', 'the IBAN typed once, for every payment code', 'the e-invoice brought back']))
       })
     }
   }

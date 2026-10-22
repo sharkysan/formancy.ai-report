@@ -1,4 +1,5 @@
 import {
+  E_INVOICE,
   EURO_INVOICE,
   EURO_INVOICE_AT,
   EURO_INVOICE_ES,
@@ -83,6 +84,14 @@ export const PICTURES: readonly PictureSpec[] = [
     page: 1,
     caption: "The euro invoice starter, a German Rechnung under the firm's mark: its line items in euro, then Nettobetrag, Umsatzsteuer 19 % and Rechnungsbetrag 1.132,44 €, and under them the Bankverbindung, IBAN: DE83 0123 4567 0012 3456 78, beside the EPC QR code that pays it",
     shows: ['Rechnung', 'Nettobetrag', 'Umsatzsteuer 19 %', 'Rechnungsbetrag 1.132,44 €', 'Bankverbindung', 'IBAN: DE83 0123 4567 0012 3456 78'],
+  },
+  {
+    file: 'starter-e-invoice.png',
+    starter: E_INVOICE,
+    page: 1,
+    caption:
+      "The e-invoice starter, a German Rechnung under the firm's mark, whose final render is a PDF/A-3b that embeds its XML: its line items in euro, then Nettobetrag 743,30 €, Umsatzsteuer 19 % auf 635,80 €, Umsatzsteuer 7 % auf 107,50 € and Rechnungsbetrag 871,63 €, the totals the XML holds, and under them the Bankverbindung beside the EPC QR code that pays it",
+    shows: ['Rechnung', 'Nettobetrag 743,30 €', 'Umsatzsteuer 19 % auf 635,80 €', 'Umsatzsteuer 7 % auf 107,50 €', 'Rechnungsbetrag 871,63 €', 'Bankverbindung'],
   },
   {
     file: 'starter-site-visit.png',

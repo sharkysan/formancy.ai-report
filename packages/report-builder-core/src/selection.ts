@@ -7,8 +7,13 @@
 import { locationOf } from '@formancy/report-core'
 import type { Location } from '@formancy/report-core'
 import { componentAt } from '@formancy/report-spec'
-import type { Component, PaymentPart, ReportDefinition, TableColumn, TableComponent } from '@formancy/report-spec'
+import type { Component, EInvoice, PaymentPart, ReportDefinition, TableColumn, TableComponent } from '@formancy/report-spec'
 import type { ReportLevelPart, Selection } from './model.js'
+
+/** A part of the report's own level found in it: its payment part, a Swiss QR-bill, or its e-invoice, and where it is. */
+export type SelectedPart =
+  | { readonly kind: 'part'; readonly part: 'paymentPart'; readonly bill: PaymentPart; readonly path: '/paymentPart' }
+  | { readonly kind: 'part'; readonly part: 'eInvoice'; readonly invoice: EInvoice; readonly path: '/eInvoice' }
 
 /**
  * What each part of the report's own level is in a report, or undefined
@@ -16,8 +21,9 @@ import type { ReportLevelPart, Selection } from './model.js'
  * `REPORT_LEVEL_PARTS` without its reading does not compile, and one that
  * is no part is told by not being in it.
  */
-const HELD: { readonly [P in ReportLevelPart]: (report: ReportDefinition) => PaymentPart | undefined } = {
-  paymentPart: (report) => report.paymentPart,
+const HELD: { readonly [P in ReportLevelPart]: (report: ReportDefinition) => Extract<SelectedPart, { readonly part: P }> | undefined } = {
+  paymentPart: (report) => (report.paymentPart === undefined ? undefined : { kind: 'part', part: 'paymentPart', bill: report.paymentPart, path: '/paymentPart' }),
+  eInvoice: (report) => (report.eInvoice === undefined ? undefined : { kind: 'part', part: 'eInvoice', invoice: report.eInvoice, path: '/eInvoice' }),
 }
 
 /** Whether `part`, from a caller tsc may never have seen -- a builder in plain JavaScript -- is a part of the report's own level. */
@@ -29,14 +35,11 @@ export function isReportLevelPart(part: unknown): part is ReportLevelPart {
 export type Selected =
   | { readonly kind: 'component'; readonly component: Component; readonly path: string; readonly location: Location }
   | { readonly kind: 'column'; readonly table: TableComponent; readonly column: TableColumn; readonly index: number; readonly path: string }
-  | { readonly kind: 'part'; readonly part: ReportLevelPart; readonly bill: PaymentPart; readonly path: string }
+  | SelectedPart
 
 /** `selection` as the report has it, or undefined when the report has no such thing. */
 export function selected(report: ReportDefinition, selection: Selection): Selected | undefined {
-  if ('part' in selection) {
-    const bill = isReportLevelPart(selection.part) ? HELD[selection.part](report) : undefined
-    return bill === undefined ? undefined : { kind: 'part', part: selection.part, bill, path: `/${selection.part}` }
-  }
+  if ('part' in selection) return isReportLevelPart(selection.part) ? HELD[selection.part](report) : undefined
   const found = componentAt(report, selection.id)
   if (found === undefined) return undefined
   // Found above, so it stands somewhere.

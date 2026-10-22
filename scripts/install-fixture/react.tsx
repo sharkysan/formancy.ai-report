@@ -26,7 +26,7 @@ import type { ReportBuilderProps } from '@formancy/report-builder-react'
 import type { EditorState, ReportEditor } from '@formancy/report-builder-core'
 import { elementsIn, readMarkup, spokenText } from './markup.js'
 import type { MarkupElement } from './markup.js'
-import { editorToDraw, editorWithBill, editorWithHostView, editorWithImages, HOST_VIEW, structureProblems } from './structure.js'
+import { editorToDraw, editorWithBill, editorWithEInvoice, editorWithHostView, editorWithImages, HOST_VIEW, structureProblems } from './structure.js'
 
 /**
  * Which of React's builds runs: the gate sets NODE_ENV=production for the
@@ -114,6 +114,15 @@ const [billedRoot] = billed.children
 if (billed.children.length !== 1 || billedRoot === undefined || typeof billedRoot === 'string') throw new Error('the markup with a QR-bill is not one editor root')
 wrong.push(...structureProblems(billedRoot, billing.state()).map((problem) => `with a QR-bill: ${problem}`))
 billing.dispose()
+
+// Drawn a fifth time with an e-invoice selected and a VAT category added
+// (0044): its row after the bill's, and its groups with their buttons.
+const invoicing = editorWithEInvoice()
+const invoiced = readMarkup(render(<ReportBuilder editor={invoicing} />))
+const [invoicedRoot] = invoiced.children
+if (invoiced.children.length !== 1 || invoicedRoot === undefined || typeof invoicedRoot === 'string') throw new Error('the markup with an e-invoice is not one editor root')
+wrong.push(...structureProblems(invoicedRoot, invoicing.state()).map((problem) => `with an e-invoice: ${problem}`))
+invoicing.dispose()
 
 // A host's own view of the state, through the hook the package exports.
 function Title({ editor: shown }: { readonly editor: ReportEditor }): ReactElement {

@@ -1,7 +1,8 @@
 import { walkComponents } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
-import type { EditorOutcome, OutlineNode } from './model.js'
+import type { OutlineNode } from './model.js'
+import type { EditorOutcome } from './model-actions.js'
 import { editorOver, richReport } from './test-support.js'
 
 function ok(outcome: EditorOutcome): void {

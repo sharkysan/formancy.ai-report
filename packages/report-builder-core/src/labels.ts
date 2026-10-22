@@ -27,8 +27,8 @@ export function regionLabel(region: RegionName, t: EditorText): string {
   return t(`region.${region}`)
 }
 
-/** What a person calls each part of the report's own level: the payment part as SIX names it, as its band on the canvas is named. A table over every part, so a part added without its name does not compile. */
-const PART_LABELS: { readonly [P in ReportLevelPart]: MessageId } = { paymentPart: 'canvas.paymentPart' }
+/** What a person calls each part of the report's own level: the payment part as SIX names it, as its band on the canvas is named, and the e-invoice. A table over every part, so a part added without its name does not compile. */
+const PART_LABELS: { readonly [P in ReportLevelPart]: MessageId } = { paymentPart: 'canvas.paymentPart', eInvoice: 'outline.eInvoice' }
 
 export function partLabel(part: ReportLevelPart, t: EditorText): string {
   return t(PART_LABELS[part])

@@ -55,10 +55,12 @@
   border-color: var(--wb-invalid);
 }
 
-/* A group of fields -- a QR-bill's creditor or debtor -- named above its
-   rows, as the outline names a region above its rows, and its one button,
-   Add or Remove, after them (0039). The name is drawn hidden from the
-   tree, which reads the group's own. */
+/* A group of fields -- a QR-bill's creditor or debtor, an e-invoice's
+   party or VAT category -- named above its rows, as the outline names a
+   region above its rows, and its buttons after them, Add or Remove (0039),
+   or a category's moves and Remove (0044), wrapping where the pane is
+   narrow. The name is drawn hidden from the tree, which reads the
+   group's own. */
 [data-report-part='property-group'] {
   padding-block: 0.5rem;
   border-block-start: 1px solid var(--wb-rule);
@@ -75,6 +77,7 @@
 
 [data-report-part='property-group'] > button {
   margin-block-start: 0.5rem;
+  margin-inline-end: 0.375rem;
 }
 
 [data-report-part='property-error'] {

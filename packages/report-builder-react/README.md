@@ -89,6 +89,17 @@ its words change. Add QR-bill, in the report's own properties, takes its
 button away with them, and the keyboard goes to the bill's IBAN, as it
 does when a Remove takes its row.
 
+**A report's e-invoice is selected and edited the same way**
+([0044](../../docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)): its row stands after the bill's, and its properties are
+groups -- the parties, the seller's contact, each VAT category, the list's
+Add, the lines, the payment instructions, an XRechnung's own terms -- each
+with its buttons. One with nowhere to go, the first category's Move up, is
+`aria-disabled` and still sent. Where a button's action says where the
+keyboard goes once it is done (`then`), the builder puts it there once the
+change is drawn: a category moved keeps the keyboard on the same button of
+the group it went to, one removed hands it to the list's Add, and one
+added to its first field.
+
 **`useEditorState(editor)`** is the subscription on its own, for a host
 that shows something of the editor's state outside the builder.
 

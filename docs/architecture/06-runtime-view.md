@@ -649,3 +649,50 @@ version is read into it, or refused, as any version is, and nothing
 regenerates the report: no base is kept beside it to merge one into
 ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)). The Studio opens the corpus's site visit, generated from its
 version 2, as a starter.
+
+## 6.14 An e-invoice's account, typed once, to the XML and every code
+
+```
+the e-invoice selected from its outline row, its bill     either builder
+from its band, or an EPC QR code from its row
+   │ dispatch setProperty('/payment/iban/0/text', 'DE89 3704 …'),
+   │ or the bill's '/account/0/text', or the code's '/iban/0/text'
+   ▼
+properties.ts: a report with an e-invoice, every run       report-builder-core
+of the field's account literal? ──no──▶ the field's own command
+   ▼ yes
+setPaymentAccount(report, 'DE89 3704 …') asked first:     report-core
+   ├─ BT-84, the bill's or a code's read from the data:
+   │  read-from-data ─────────────────────────────────────▶ the field's own command,
+   │                                                         the render comparing it
+   ▼ none read from the data: committed, one undo step       with the data's (0027)
+"Change IBAN": BT-84, the bill's account and each EPC QR
+code's IBAN, shown or hidden, one literal run each
+   ▼ the session asks the validator, each place by its own rule
+   ├─ BT-84 and an EPC code: SEPA's, no QR-IBAN; a code's  report-spec
+   │  BIC of the account's country; a bill: Switzerland ─▶ refused on the field
+   │  or Liechtenstein                                      typed into, in the
+   ▼                                                        validator's words, its
+                                                            own place's first
+"Changed IBAN. The e-invoice and every payment code printed with it pay the
+account typed."; the Preview re-renders (6.5) ──▶ resolveReport (6.6) ──▶
+a final render: the PDF/A-3b's factur-x.xml names the account (6.8), and
+each code's payload pays it
+```
+
+Each edit is validated whole
+([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)),
+and the validator holds every payment code printed with an e-invoice to its
+BT-84 (0027), so a change of any one of them alone would be refused: the
+builder writes all of them by the one command a review finds by its name
+([0044](../decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
+Which places share the account, and whether one reads it from the data, is
+the command's to say: the builder asks it before committing, and where one
+reads the data the field writes its own account alone, which the validator
+holds to the places that are written and the render to the data's.
+`report-builder-core/src/e-invoice.test.ts` holds both ways, and
+`report-core/src/commands/e-invoice.test.ts` a code nested in a columns
+block and one behind a condition changed in the one edit.
+The browser gate types the account into each builder, reads the XML the
+final Download PDF embeds and decodes its EPC QR code from its pixels
+(`apps/studio/scripts/gate-e-invoice.mjs`).

@@ -6,7 +6,7 @@
  * selected and edited is `scenario-payment-part.ts`'s (0039).
  */
 import type { EpcQrCodeComponent, ReportDefinition } from '@formancy/report-spec'
-import { PROPERTY_ROLES } from './model.js'
+import { PROPERTY_ROLES } from './model-properties.js'
 import { body, scenarioReport } from './scenario-report.js'
 import type { BuilderScenario, ScenarioQuery, ScenarioStep } from './scenario-steps.js'
 import { contentLocale, editorText } from './text.js'
