@@ -44,8 +44,14 @@
  * Its waits are choices, not measurements: 30 s for a container to answer
  * or to stop, some forty times the 0.65 to 0.78 s to healthy it measured on
  * 2026-10-22, so a loaded runner is not taken for a broken image; 1 s for
- * SIGHUP's line, which the server writes as the signal arrives; and 10 s
- * for SIGTERM, Docker's own default for `docker stop`.
+ * SIGHUP's line, which the server writes as the signal arrives; 10 s
+ * for SIGTERM, Docker's own default for `docker stop`; and, so that no wait
+ * is a promise nothing settles -- a request whose connection went away
+ * without an answer, which once left the gate's top-level await pending
+ * with nothing to keep Node running, so that it exited 13 and wrote no
+ * record -- 10 s for any one request (2 s while waiting for health) and
+ * 120 s for any one check, each on a timer that keeps Node running and
+ * fails what it waits for, by name.
  */
 import { createHash, createHmac, randomBytes } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
@@ -112,6 +118,20 @@ function must(args) {
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms))
 
+/** `fetch(url, init)`, failed by its own deadline, `ms`, naming the request, where no answer ever comes. */
+async function request(url, init = {}, ms = 10_000) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(new Error(`${init.method ?? 'GET'} ${url} had no answer within ${String(ms / 1000)} s`)), ms)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** How long any one check may take, a choice (above). */
+const CHECK_MS = 120_000
+
 const secret = randomBytes(32).toString('base64url')
 const ISSUER = 'https://host.example'
 const AUDIENCE = 'formancy-report'
@@ -168,7 +188,7 @@ async function healthy(name) {
   const base = at(name)
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try {
-      if ((await fetch(`${base}/health`)).ok) return Date.now() - from
+      if ((await request(`${base}/health`, {}, 2_000)).ok) return Date.now() - from
     } catch {
       // Not listening yet.
     }
@@ -191,11 +211,18 @@ const record = { gate: 'container', startedAt: new Date().toISOString(), finishe
 /** Makes check `name`: passed when `body` returns, failed with what it threw. */
 async function check(name, body) {
   if (!CHECKS.includes(name)) throw new Error(`${name} is not a check this gate plans`)
+  console.log(`container gate: ${name}`)
+  let timer
+  const deadline = new Promise((_done, fail) => {
+    timer = setTimeout(() => fail(new Error(`it did not finish within ${String(CHECK_MS / 1000)} s`)), CHECK_MS)
+  })
   try {
-    const said = await body()
+    const said = await Promise.race([body(), deadline])
     record.checks.push({ name, passed: true, said: typeof said === 'string' ? said : null })
   } catch (error) {
     record.checks.push({ name, passed: false, said: String(error?.message ?? error) })
+  } finally {
+    clearTimeout(timer)
   }
 }
 
@@ -242,7 +269,7 @@ async function gate() {
   const url = at(name)
   const answers = []
   const ask = async (path, headers = {}) => {
-    const answer = await fetch(`${url}${path}`, { headers })
+    const answer = await request(`${url}${path}`, { headers })
     const body = await answer.text()
     answers.push(answer)
     return { status: answer.status, headers: answer.headers, body }
@@ -317,7 +344,7 @@ async function gate() {
     await sleep(1000) // a choice (above)
     expect(must(['inspect', '-f', '{{.State.Running}}', name]) === 'true', 'the server stopped on SIGHUP')
     expect(docker(['logs', name]).output.includes('nothing was read again'), 'the server did not say SIGHUP read nothing')
-    expect((await fetch(`${url}/health`)).ok, 'the server stopped answering after SIGHUP')
+    expect((await request(`${url}/health`)).ok, 'the server stopped answering after SIGHUP')
   })
   await check('SIGTERM stops it, exit 0', () => {
     const from = Date.now()
@@ -333,7 +360,7 @@ async function gate() {
   await check('it runs on a read-only root file system', async () => {
     const sealed = start('read-only', CONFIGURED, { flags: ['--read-only'] })
     await healthy(sealed)
-    const answer = await fetch(`${at(sealed)}/v1/whoami`, { headers: { authorization: `Bearer ${tokens.good}` } })
+    const answer = await request(`${at(sealed)}/v1/whoami`, { headers: { authorization: `Bearer ${tokens.good}` } })
     expect(answer.status === 200, `whoami on a read-only root answered ${String(answer.status)}`)
     expect(docker(['exec', sealed, 'touch', '/app/.gate']).status !== 0, 'the root file system was writable under --read-only')
   })
@@ -356,7 +383,7 @@ async function gate() {
       expect(JSON.stringify(serving?.identityKeys) === '{"kids":["gate-1"],"leftOut":[]}', `the serving line named the key set as ${JSON.stringify(serving?.identityKeys ?? null)}`)
       const asked = async () => {
         const statuses = []
-        for (const kid of ['gate-1', 'gate-2']) statuses.push((await fetch(`${at(keyed)}/v1/whoami`, { headers: { authorization: `Bearer ${sign(claims, keys[kid], kid)}` } })).status)
+        for (const kid of ['gate-1', 'gate-2']) statuses.push((await request(`${at(keyed)}/v1/whoami`, { headers: { authorization: `Bearer ${sign(claims, keys[kid], kid)}` } })).status)
         return statuses.join(' ')
       }
       const before = await asked()
@@ -380,7 +407,7 @@ async function gate() {
     const limited = start('limited', { ...CONFIGURED, FORMANCY_REPORT_RATE_LIMIT: '2' })
     await healthy(limited)
     const statuses = []
-    for (let n = 0; n < 3; n += 1) statuses.push((await fetch(`${at(limited)}/v1/whoami`)).status)
+    for (let n = 0; n < 3; n += 1) statuses.push((await request(`${at(limited)}/v1/whoami`)).status)
     expect(statuses.join(' ') === '401 401 429', `three requests answered ${statuses.join(' ')}`)
   })
   const refusesSetting = async (label, env, says) => {
@@ -402,7 +429,7 @@ async function gate() {
   await check('FORMANCY_REPORT_CORS_ORIGINS grants a listed origin’s preflight and refuses another', async () => {
     const crossing = start('origins', { ...CONFIGURED, FORMANCY_REPORT_CORS_ORIGINS: 'https://app.example' })
     await healthy(crossing)
-    const preflight = (origin) => fetch(`${at(crossing)}/v1/whoami`, { method: 'OPTIONS', headers: { origin, 'access-control-request-method': 'GET', 'access-control-request-headers': 'authorization' } })
+    const preflight = (origin) => request(`${at(crossing)}/v1/whoami`, { method: 'OPTIONS', headers: { origin, 'access-control-request-method': 'GET', 'access-control-request-headers': 'authorization' } })
     const granted = await preflight('https://app.example')
     const refused = await preflight('https://evil.example')
     expect(granted.status === 204 && granted.headers.get('access-control-allow-origin') === 'https://app.example', `a listed origin's preflight answered ${String(granted.status)}`)
