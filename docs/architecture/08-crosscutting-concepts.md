@@ -35,6 +35,7 @@ half done behind it. Each layer has its own kind:
 | Provider | Every reason, each with a JSON Pointer | No data ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) |
 | Form bridge | Every reason, each with a stable code and a JSON Pointer into what was handed over or into the report, a field the version cannot fill naming the field and the version's hash | No data ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)) |
 | Report generator | Every reason, each with a stable code and a JSON Pointer into the form or the options: what the format or the page cannot hold, or a label no font draws, by its place, never cut to fit | No report, and no notes ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)) |
+| Form review | Every reason, a stable code and a JSON Pointer, a version the report names missing by its hash; and a resolution the session refuses -- stale, leaving a report the validator refuses, or a step of a batch that throws on what the steps before it left -- refused whole as any edit is | No review; the report as it was, its listeners unnotified ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)) |
 
 **Fail closed** is upstream's rule, and every reader here inherits it
 ([formancy.ai 0022](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0022-fail-open-fail-closed.md)).
@@ -167,7 +168,7 @@ host chose
 The form bridge fetches nothing: the host hands each form version and
 submission over ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)),
 and each version a report is generated from, which it reads the same way
-and walks by its model, its notes and its refusals quoting none of the form's words -- no title, label, option, value or locale -- and a pointer formancy's validator writes cut before a catalogue's locale or a message's id ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).
+and walks by its model, its notes and its refusals quoting none of the form's words -- no title, label, option, value or locale -- and a pointer formancy's validator writes cut before a catalogue's locale or a message's id ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)), and each version a review compares a new one with, read the same way, an item naming the report's field by its id and what the version did by the diff's kind, never the diff's own words, which quote labels and values ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)).
 pdfmake reads no file but the fonts it is given and, for an e-invoice,
 the ICC profile PDFKit reads from its own package, and no address at all,
 which the renderer's tests pin through `fs.readFileSync`
@@ -460,12 +461,14 @@ a region -- and an e-invoice's BT-84 name an account, the one term a person
 can edit that changes whom money reaches. Every edit of one is a command, so
 a review of a proposal can find it by name: report-core's registry lists the
 commands that may change the bill and the e-invoice (`PART_COMMANDS`),
-`replaceDocument` among them, whose parts a review compares whole, and an
-EPC code's account is an `updateComponent` of its `iban`. In a report with
-an e-invoice the one account is changed everywhere at once, by
-`setPaymentAccount`, wherever a person types it where every place writes
-it in the report -- where one reads it from the data, each field writes
-its own -- and a review finds that command by its name ([0044](../decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)). The checks are report-spec's, the
+`replaceDocument` among them, whose parts a review compares whole, and
+`batch`, whose steps a review will read by the same names once proposals
+are reviewed ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)),
+and an EPC code's account is an `updateComponent` of its `iban`. In a
+report with an e-invoice the one account is changed everywhere at once,
+by `setPaymentAccount`, wherever a person types it where every place
+writes it in the report -- where one reads it from the data, each field
+writes its own -- and a review finds that command by its name ([0044](../decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)). The checks are report-spec's, the
 same for a literal the editor refuses and data the runtime refuses: an IBAN's
 country, length and check digits, the QR-IBAN's pairing with its reference,
 and, with an e-invoice, one account for the page and its XML

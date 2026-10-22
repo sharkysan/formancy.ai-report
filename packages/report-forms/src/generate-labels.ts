@@ -7,12 +7,15 @@
  * a line break -- is one space, as HTML lays a line of text out, and none
  * stands at either end. A label that is blank then is none, and the
  * field is labelled by its key, a row or an option by its value, said. A
- * label holding a character no font draws -- a control character, or half
- * of a surrogate pair -- is refused by its place in the form, never
- * dropped: the renderer would refuse it when it printed (0011), after the
- * person had worked on the draft. Whether a font draws any other character
- * is the renderer's to say, which holds the fonts; the generator holds
- * none.
+ * label holding a character no font draws -- a control character, half of
+ * a surrogate pair, a direction override or isolate, a line or paragraph
+ * separator -- is refused by its place in the form, never dropped: the
+ * renderer would refuse it when it printed (0011), after the person had
+ * worked on the draft, and a direction control would show a builder's
+ * label in another order than it prints (0048). Whether a font draws any
+ * other character -- a soft hyphen, a joiner a script needs -- is the
+ * renderer's to say, which holds the fonts; the generator holds none. A
+ * review's relabel is held to the same rule.
  */
 import type { Text } from '@formancy/spec'
 import { resolveText } from '@formancy/spec'
@@ -28,8 +31,17 @@ export interface Label {
 /** White space as HTML collapses it: a space, a tab, a line feed, a form feed, a carriage return. */
 const WHITE_SPACE = /[\t\n\f\r ]+/g
 
-/** What no font draws: a control character, a tab and a line break among them, and half of a surrogate pair. */
-const UNDRAWN = /[\p{Cc}\p{Cs}]/u
+/**
+ * What no font draws: a control character, a tab and a line break among
+ * them; half of a surrogate pair; the explicit direction embeddings,
+ * overrides and isolates (U+202A to U+202E, U+2066 to U+2069), which
+ * reorder the text around them where it is shown; and the line and
+ * paragraph separators.
+ */
+const UNDRAWN = /[\p{Cc}\p{Cs}\p{Zl}\p{Zp}\u202A-\u202E\u2066-\u2069]/u
+
+/** Whether every character of `text` is one a font may draw, by `UNDRAWN`. */
+export const drawable = (text: string): boolean => !UNDRAWN.test(text)
 
 /** `text` as one line prints it: each run of white space one space, none at either end. */
 export const oneLine = (text: string): string => text.replace(WHITE_SPACE, ' ').trim()
@@ -54,7 +66,7 @@ export function printable(draft: Draft, label: string, where: string, what: stri
   const found = UNDRAWN.exec(label)
   if (found === null) return true
   const point = (found[0].codePointAt(0) as number).toString(16).toUpperCase().padStart(4, '0')
-  draft.f.report(where, 'label-unprintable', `${what} is labelled with U+${point}, a control character or half of a surrogate pair, which no font draws; it is refused, never dropped`)
+  draft.f.report(where, 'label-unprintable', `${what} is labelled with U+${point}, a control character, half of a surrogate pair, a direction control or a line or paragraph separator, which no font draws; it is refused, never dropped`)
   return false
 }
 

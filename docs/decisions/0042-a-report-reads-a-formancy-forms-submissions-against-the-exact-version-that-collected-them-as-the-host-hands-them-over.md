@@ -1,6 +1,6 @@
 # 0042 — A report reads a formancy form's submissions against the exact version that collected them, as the host hands them over: a package of its own, `@formancy/report-forms`, fetching nothing; the version validated by the pinned `@formancy/spec` and named by the hash computed of it; every answer under a data path of that version; formancy's kinds mapped once to the report's types, a number by its digits or refused; labels from that version in the report's locale; the binding inside the report; host-captured; a fetching client, a trusted hash, a binding beside the report, rounding and today's labels lost
 
-- **Status:** accepted; numbered while 0039 and 0040 were other branches'; extends [0004](0004-three-version-lines-each-refused-when-unknown.md), whose form line is read now, [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose dataset contract carries the binding, [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md) and [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose form source the bridge fills; extended by [0045](0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md), whose report generated from a form version writes this binding and reads a kind by this mapping
+- **Status:** accepted; numbered while 0039 and 0040 were other branches'; extends [0004](0004-three-version-lines-each-refused-when-unknown.md), whose form line is read now, [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose dataset contract carries the binding, [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md) and [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose form source the bridge fills; extended by [0045](0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md), whose report generated from a form version writes this binding and reads a kind by this mapping, and by [0048](0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md), whose review writes an override per version on this binding and lifts this record's refusal
 - **Date:** 2026-10-22
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -328,6 +328,25 @@ field key, as a submission's path is cut, each of formancy's codes said
 once there, and the 512-character bound it had is gone, since what is
 left is bounded by `MAX_DOCUMENT_DEPTH` segments of a key's length
 (`read.test.ts`).
+
+**Added 2026-10-22: the review, and the binding overridden per version.**
+[0048](0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md) reviews a new version for a report and lifts the refusal
+this record makes, "No review yet" no longer a cost. The binding gains
+overrides, keyed by a version's `schemaHash`: a field read at another path
+in that version, `{ path }`, or nothing of it from that version, `{ omit:
+true }`, and the detail's rows from another repeater, `{ repeater }`,
+which report-spec holds in shape alone. The per-render check reads them:
+`planField` reads a field where its override for the version says, or
+hands it null, and `planRepeater` the detail's rows from its override's
+repeater (`repeaterIn`), a field of them refused naming those rows; every
+version they do not name reads the binding's own path, which a review
+that follows a rename moves to where the field is now. A refusal of a
+field names what lifts it, a review of that version by
+`reviewFormVersion`, where anything does, and a refusal of the detail's
+repeater says that the review offers nothing but a rename of it
+(`overrides.test.ts`). The package now depends on `report-core` besides,
+since a review's resolutions are its commands and the compiler judges
+them; it still fetches nothing and reaches no network.
 
 ## Alternatives considered
 

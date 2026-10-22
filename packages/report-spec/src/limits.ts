@@ -134,6 +134,16 @@ export const MAX_FORM_PATH_KEYS = 16
  */
 export const MAX_FORM_MEMBER_LENGTH = 200
 
+/**
+ * Form versions one binding is read differently in (0048): the overrides
+ * a review writes on a field, or on the detail's repeater, one for each
+ * version that moved or removed it. Chosen, not measured: a field moved
+ * by 64 versions of its form is read from a form that has become another
+ * one, and a report better started again from it (0045). It bounds a
+ * binding to 64 hashes, so no binding grows with what a document holds.
+ */
+export const MAX_FORM_OVERRIDES = 64
+
 /** Characters in a CEL expression. An expression is a formula, not a program; the runtime bounds its evaluation too. */
 export const MAX_EXPRESSION_LENGTH = 1024
 

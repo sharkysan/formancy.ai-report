@@ -406,6 +406,14 @@ describe('labels', () => {
     expect(generationRefusals(generate(formOf([{ key: 'g', type: 'group', label: 'Half \ud800', fields: [{ key: 'a', type: 'text' }] }]), { id: 'r', locale: 'en' }))).toEqual(['label-unprintable /form/model/fields/0'])
     const row = formOf([{ key: 'm', type: 'matrix', rows: [option('r', 'Row\u0085')], options: [option('a'), option('b')] }])
     expect(generationRefusals(generate(row, { id: 'r', locale: 'en' }))).toEqual(['label-unprintable /form/model/fields/0/rows/0'])
+    // Nor a direction override, or isolate, which no font draws and which
+    // shows a builder's label in another order than it prints (0048); nor a
+    // line or paragraph separator, which no font draws either. A soft
+    // hyphen or a joiner, which scripts need, is the renderer's to judge.
+    for (const label of ['Ort\u202Elinks', 'Ort\u2067links\u2069', 'Zeile\u2028Zeile', 'Absatz\u2029Absatz']) {
+      expect(generationRefusals(generate(formOf([{ key: 'a', type: 'text', label }]), { id: 'r', locale: 'en' })), JSON.stringify(label)).toEqual(['label-unprintable /form/model/fields/0'])
+    }
+    expect(generate(formOf([{ key: 'a', type: 'text', label: 'Kontroll\u00ADpunkt' }]), { id: 'r', locale: 'en' }).ok).toBe(true)
   })
 
   // A label longer than a field's label holds still prints whole on its

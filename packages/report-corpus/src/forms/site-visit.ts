@@ -18,6 +18,13 @@ import type { ReportDefinition } from '@formancy/report-runtime'
  * version-1 visit prints version 1's label (plan 12.2), which the PDF of a
  * version-1 submission proves (report-forms' `pdf.test.ts`).
  *
+ * Version 3 moves fields a report prints, by a rename its author declared
+ * (0048): the inspector's group is the technician's, `renamedFrom` the
+ * inspector, so its name and its licence stand at `technician.name` and
+ * `technician.licence`. A report made from version 2 refuses a version-3
+ * visit until a review follows the rename, which the PDF of a version-3
+ * visit proves (report-forms' `review-pdf.test.ts`).
+ *
  * Plain data, as a host holds a form it kept and a submission it stored:
  * the corpus does not depend on `@formancy/spec`, and the bridge takes a
  * form as `unknown`.
@@ -156,6 +163,14 @@ export const SITE_VISIT_V2: Readonly<Record<string, unknown>> = visitForm({
   'de-CH': { ...MESSAGES_DE_CH, 'severity.high': SITE_VISIT_HIGH.v2 },
 })
 
+/** Version 3: version 2 with the inspector's group renamed the technician's, the rename declared. Nothing else changed. */
+export const SITE_VISIT_V3: Readonly<Record<string, unknown>> = {
+  ...SITE_VISIT_V2,
+  model: {
+    fields: (SITE_VISIT_V2['model'] as { readonly fields: readonly { readonly key: string }[] }).fields.map((field) => (field.key === 'inspector' ? { ...field, key: 'technician', renamedFrom: 'inspector' } : field)),
+  },
+}
+
 /** One submission as a host stores it: its id, and the answers formancy's engine wrote. */
 export interface StoredSubmission {
   readonly id: string
@@ -209,6 +224,23 @@ export const SITE_VISIT_SUBMISSION_V2: StoredSubmission = {
     condition: { safety: 'poor' },
     findings: siteVisitFindings(3),
     summary: 'Die Elektrik ist sofort zu prüfen.',
+  },
+}
+
+/** A visit collected by version 3: two findings, the technician's name and licence under the group's new key. */
+export const SITE_VISIT_SUBMISSION_V3: StoredSubmission = {
+  id: 'c5f0d3a2-7e41-4b8a-9a35-2f6f1d0b9e74',
+  data: {
+    site: 'Kramgasse 49, 3011 Bern',
+    visitedOn: '2026-10-22',
+    arrivedAt: '2026-10-22T06:30:00Z',
+    startedAt: '08:40',
+    outcome: 'pass',
+    technician: { name: 'Lea Gerber', licence: 'BE-6203' },
+    checks: ['roof', 'wiring', 'boiler'],
+    condition: { safety: 'good', cleanliness: 'good' },
+    findings: siteVisitFindings(2),
+    summary: 'Keine dringenden Befunde.',
   },
 }
 

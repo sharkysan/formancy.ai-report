@@ -671,6 +671,9 @@ importers:
 
   packages/report-forms:
     dependencies:
+      '@formancy/report-core':
+        specifier: workspace:*
+        version: link:../report-core
       '@formancy/report-runtime':
         specifier: workspace:*
         version: link:../report-runtime

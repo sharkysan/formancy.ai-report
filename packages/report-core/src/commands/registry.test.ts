@@ -9,7 +9,8 @@ import * as declarations from './declarations.js'
 import * as document from './document.js'
 import * as eInvoice from './e-invoice.js'
 import * as paymentPart from './payment-part.js'
-import { ARGUMENTS, COMMANDS, describedCommand, PART_COMMANDS } from './registry.js'
+import * as readers from './readers.js'
+import { ARGUMENTS, batch, COMMANDS, describedCommand, PART_COMMANDS } from './registry.js'
 import type { CommandDescriptor, CommandName } from './registry.js'
 import * as table from './table.js'
 
@@ -92,6 +93,10 @@ const EXAMPLES: { readonly [N in CommandName]: { readonly descriptor: Extract<Co
   updateEInvoice: { descriptor: { command: 'updateEInvoice', args: [{ terms: said('Zahlbar binnen 14 Tagen'), paid: null }] }, refusedAs: 'not-found' },
   removeEInvoice: { descriptor: { command: 'removeEInvoice', args: [] }, refusedAs: 'not-found' },
   setPaymentAccount: { descriptor: { command: 'setPaymentAccount', args: ['CH58 0079 1123 0008 8901 2'] }, refusedAs: 'not-found' },
+  // The column whose style rule reads whether a line shipped goes with the field.
+  removeFieldWithReaders: { descriptor: { command: 'removeFieldWithReaders', args: ['detail', 'shipped'] } },
+  // A title and the bill's language as one edit: a batch may hold any command, the bill's own among them.
+  batch: { descriptor: { command: 'batch', args: [[{ command: 'setTitle', args: ['Batched'] }, { command: 'updatePaymentPart', args: [{ language: 'fr' }] }]] } },
 }
 
 const DESCRIPTORS: readonly CommandDescriptor[] = Object.values(EXAMPLES).map(({ descriptor }) => descriptor)
@@ -103,12 +108,14 @@ describe('COMMANDS', () => {
   // A proposal names commands by name. A command added to a module and not
   // to the registry could be called directly and never proposed; derived
   // from the modules' exports, so the registry cannot fall behind them. The
-  // two that name a new component or asset read a report and change none,
-  // so they are no commands.
+  // two that name a new component or asset, and `fieldReaders`, which says
+  // what reads each field, read a report and change none, so they are no
+  // commands. The batch is the registry's own: it runs commands by their
+  // descriptors (0048).
   test('holds every command the command modules export, under its own name', () => {
-    const modules = { ...document, ...declarations, ...components, ...table, ...paymentPart, ...eInvoice }
+    const modules = { ...document, ...declarations, ...components, ...table, ...paymentPart, ...eInvoice, ...readers, batch }
     const exported = Object.entries(modules)
-      .filter(([name, value]) => typeof value === 'function' && name !== 'nextComponentId' && name !== 'nextAssetId')
+      .filter(([name, value]) => typeof value === 'function' && !['nextComponentId', 'nextAssetId', 'fieldReaders'].includes(name))
       .map(([name]) => name)
       .sort()
     expect(Object.keys(COMMANDS).sort()).toEqual(exported)
@@ -158,7 +165,8 @@ const BILLED_BILL = BILLED.paymentPart as NonNullable<ReportDefinition['paymentP
  * arguments are another report's or the sample refuses it: the bill's
  * own, in French and patched to French, as its bill takes them; a
  * replacement, that report with another number and another bill's
- * headings; and the e-invoice put whole, with another number. The rest
+ * headings; the e-invoice put whole, with another number; and a batch that
+ * holds such a replacement. The rest
  * run as written: the e-invoice's patch, its removal and the account the
  * two share, another Swiss account, are edits of it as they stand.
  */
@@ -167,6 +175,8 @@ const ON_E_INVOICE: { readonly [N in CommandName]?: Extract<CommandDescriptor, {
   putPaymentPart: { command: 'putPaymentPart', args: [{ ...BILLED_BILL, language: 'fr' }] },
   updatePaymentPart: { command: 'updatePaymentPart', args: [{ language: 'fr' }] },
   putEInvoice: { command: 'putEInvoice', args: [{ ...INVOICE, number: said('RE-2027') }] },
+  // A batch that holds a replacement changes what the replacement does (0048).
+  batch: { command: 'batch', args: [[{ command: 'setTitle', args: ['Batched'] }, { command: 'replaceDocument', args: [{ ...BILLED, eInvoice: { ...INVOICE, number: said('RE-2028') } }] }]] },
 }
 
 /** Every example as it runs on the billed e-invoice. */

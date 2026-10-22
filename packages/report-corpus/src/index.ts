@@ -33,8 +33,10 @@ export {
   SITE_VISIT_REPORT,
   SITE_VISIT_SUBMISSION_V1,
   SITE_VISIT_SUBMISSION_V2,
+  SITE_VISIT_SUBMISSION_V3,
   SITE_VISIT_V1,
   SITE_VISIT_V2,
+  SITE_VISIT_V3,
   siteVisitFindings,
 } from './forms/site-visit.js'
 export type { StoredSubmission } from './forms/site-visit.js'

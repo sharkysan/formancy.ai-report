@@ -6,12 +6,16 @@ each against the exact form version that collected it, as the host hands
 them over, and hands over the data `@formancy/report-runtime` renders
 from, or every reason it will not. And it starts a report from a form
 version: a first draft that names the version and reads its submissions,
-with notes of what it left out. No framework, no Node, no network: the
-bridge fetches nothing. What it decides, and why, is decision
+with notes of what it left out. And it reviews a new form version for a
+report: whether its submissions print, and what would make them, each
+resolution a report-core command as data. No framework, no Node, no
+network: the bridge fetches nothing. What it decides, and why, is decision
 [0042](../../docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)
-for reading and
+for reading,
 [0045](../../docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)
-for generating.
+for generating and
+[0048](../../docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)
+for reviewing.
 
 **The host hands the documents over.** For a report of one submission,
 the form version the submission answered and the submission, `{ id, data
@@ -124,11 +128,18 @@ field the **version** does not have is something else: refused.
 
 **Per render, against each version:** a field the report reads that the
 submission's version lacks, holds in another scope or holds as a kind
-its type does not read is refused, naming the field and the version's
-hash, before any answer is read, as `version-lacks-field` or
-`version-retypes-field`. A version that changed nothing the report reads
-prints; a field it added is never read by itself. A path is never guessed
-from a name.
+its type does not read is refused, naming the field, the version's hash
+and the review that would lift it, where anything does, before any answer
+is read, as `version-lacks-field` or `version-retypes-field`; the
+detail's repeater's refusal says a review offers nothing but a rename of
+it. A version that changed
+nothing the report reads prints; a field it added is never read by
+itself. A path is never guessed from a name. Where a review decided for
+that version, the binding's override for it, keyed by the version's
+hash, says where the version holds the field, or that nothing of it
+prints from that version (below); every version it does not name is read
+at the binding's own path, which a followed rename moves to where the
+field is now.
 
 **Untrusted, both of them.** The form and the submission are read once,
 through property descriptors, own members only: a getter is refused and
@@ -199,8 +210,8 @@ The same version and the same options give the same report, to its
 `reportHash` (`generate.test.ts`), and a version that differs only in what
 the report does not hold -- a choice's labels, read when a submission is --
 gives the same report naming another version. Nothing of the draft is
-kept as a base: a later version of the form will be reviewed against the
-report itself, which is later work.
+kept as a base: a later version of the form is reviewed against the
+report itself (below).
 
 **The notes** list, in model order, by a code from `NOTE_CODES` and the
 field's place in the form, what the draft left out -- a static text, a
@@ -227,6 +238,119 @@ its place for every member where one is not. The form is untrusted, read
 as a submission's version is, its notes and errors quoting none of its
 labels, values or locales.
 
+## Review a new form version
+
+```ts
+import { reviewFormVersion } from '@formancy/report-forms'
+import type { FormReview } from '@formancy/report-forms'
+import { openReportSession } from '@formancy/report-core'
+
+const review: FormReview = reviewFormVersion(draft.report, { form: renamedForm, versions: [visitForm] })
+if (!review.ok) throw new Error(review.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
+const follow = review.items[0]?.resolutions[0]
+const opening = openReportSession(draft.report)
+const applied = opening.ok && follow !== undefined ? opening.session.apply(follow.descriptor, { expectedHash: follow.expectedHash }) : undefined
+```
+
+The install gate runs these lines too (`scripts/readme-example.test.mjs`).
+`reviewFormVersion(report, { form, formHash?, versions })` reads the new
+version as a read does, and compares it, through formancy's
+`diffSchemas`, with each version the report names: the one its
+provenance says it was made from, and each its overrides name, all of
+which the host hands over in `versions` -- one missing is refused as
+`missing-version`. Hand over every other version you keep too: it is
+compared with nothing, and a rename followed keeps it reading where it
+read; one you keep back, which printed at the old path, is refused once
+the binding moves, until its own review. At most `MAX_DETAIL_ROWS`
+versions, as `readSubmissions` takes forms. It returns a status and an
+item for each thing the version did that the report meets:
+
+- **`blocked`**: a field the report reads, or the detail's repeater, that
+  the version removed, moved or retyped, which the per-render check
+  refuses. Only that blocks: a version that changed nothing the report
+  reads is **`compatible`**, and one whose changes print as they are --
+  a relabel, a field added, a reused key, the form's id changed -- is
+  **`review`**.
+- **Each item** names the report's dataset and field by its id, what the
+  version did as the diff names it (`field.renamed`, `field.removed`,
+  `field.typeChanged`, `field.relabelled`, `field.added`, ...), whether it
+  blocks and with what code, and never a label, an option or an answer.
+- **Its resolutions**, each a report-core command descriptor and the
+  `reportHash` it was computed against, applied through a session with
+  that hash as `expectedHash`, so a stale one is refused and nothing
+  changes:
+  - `follow-rename`, **offered first and labelled `declared`**, where the
+    form's author declared a rename (`renamedFrom`) of the field or of a
+    group or repeater holding it. It moves the binding to the field's new
+    path, names that version reading it there, and names every other
+    version you handed over reading the old path, but one that already
+    holds the field where the rename put it, as formancy's diff finds,
+    which reads it there too: each prints as it did or as the reviewed
+    version does, and a later version that keeps the field where the
+    rename put it prints without another review. It is never followed by
+    itself, and a path is never guessed from a name: a key changed
+    without `renamedFrom` is a removal and an addition.
+  - `follow-reviewed`, not labelled declared: the path a version the
+    report names reads the field at, where formancy's diff finds the same
+    field in the new version, read there in that version alone -- what a
+    version a followed rename did not know is offered.
+  - `print-nothing`: an override printing nothing of the field from that
+    version's submissions, declaring the field nullable where it was not.
+  - `retype`: another type every version the report reads the field from
+    holds it as. A version that holds it as text, retyped to a number,
+    refuses each of its submissions whose answer spells none, which the
+    resolution says.
+  - `remove`: the field removed with everything that reads it -- report-core's
+    `removeFieldWithReaders` -- what it takes listed in `removes` by
+    pointers into the report.
+  - `relabel`: a batch saying the version's new label wherever the report
+    still says an old one -- the field's own label, a line's label before
+    the run that prints it, a column's heading over it. Offered, never
+    applied.
+- **A field the QR-bill or the e-invoice reads** is offered a rename and
+  nothing else: printing nothing of it, another type or its removal would
+  change what the bill or the invoice says, and only their own commands
+  change them. The item says so. **The detail's repeater**, removed or
+  retyped, is offered its rename, declared or read so by a version the
+  report names, and nothing else, which its item and its refusal say.
+- **A field that prints from a field formancy calls new** since a version
+  the report printed nothing of it from -- a key that version vacated
+  and this one reused -- is said, offered nothing printed or its removal,
+  and no relabel.
+- **A field the version added** is said, in the scope of a dataset the
+  report reads, and never added. **A version that names its form by
+  another id** is said: it may be another form.
+
+A resolution is offered only where the session takes it and, where it
+changes a field's type or whether it may be null, it leaves no expression
+the compiler refuses that it did not refuse before: printing nothing of a
+decimal compared with `==` is not offered, since a nullable decimal loses
+`==` (0009). The compiler is asked of the expressions report-core's
+`fieldReaders` says such a change reaches, each once, never of the whole
+report for each resolution.
+
+**The override** a review writes is the report's, on the binding,
+keyed by the version's `schemaHash`:
+
+```json
+{ "id": "name", "type": "string", "label": "Name", "nullable": true, "form": { "path": "inspector.name", "overrides": { "<the version's hash>": { "path": "technician.name" } } } }
+{ "id": "count", "type": "string", "label": "Count", "nullable": true, "form": { "path": "count", "overrides": { "<the version's hash>": { "omit": true } } } }
+{ "id": "rows", "fields": [], "form": { "kind": "repeater", "repeater": "findings", "overrides": { "<the version's hash>": { "repeater": "defects" } } } }
+```
+
+A followed rename writes the binding's own path anew, and names the
+version it reviewed at that same path and the versions it knew at the old
+one:
+
+```json
+{ "id": "name", "type": "string", "label": "Name", "nullable": true, "form": { "path": "technician.name", "overrides": { "<the old version's hash>": { "path": "inspector.name" }, "<the reviewed version's hash>": { "path": "technician.name" } } } }
+```
+
+report-spec validates it structurally and hashes it with the report: a
+key that is no hash, both or neither of a path and nothing, nothing
+printed of a field never null, and none at all are refused, and at most
+`MAX_FORM_OVERRIDES` are held.
+
 ## What it does not do
 
 - **Fetch.** Nothing here reaches the network. formancy 0.7.0's server has
@@ -236,10 +360,33 @@ labels, values or locales.
   another version is refused only where one of its answers has no field in
   that version. Two versions with the same paths are the host's to keep
   apart.
-- **Review a new version.** A version that moved a field the report reads
-  is refused until the report is changed; the review that lifts it is
-  later work. A generated draft keeps no base to merge a new version
-  into, and nothing regenerates a report.
+- **Apply a review.** A review offers; the host applies, through a
+  report-core session, and a builder pane that shows one is later work.
+  A generated draft keeps no base to merge a new version into, and
+  nothing regenerates a report.
+- **Follow a rename alone where it does not lift the refusal.** A field
+  renamed and retyped in one version is offered no rename, since
+  following it would still refuse; its other resolutions are.
+- **Print nothing of a removed field from every later version at once.**
+  Printing nothing names one version, so each later version that lacks
+  the field too is refused until it is reviewed, or the field removed.
+- **Tell a reused key from the field.** A key a version removed the field
+  from, never reviewed, and a later version reused for another field,
+  prints that field's answers as the report's; a review says so only
+  against a version the report names that printed nothing of the field
+  there.
+- **Judge a retype by the answers.** A version that holds the field as
+  text, retyped to a number, refuses each of its submissions whose answer
+  spells none.
+- **Finish fast at the format's bounds.** Each change of a field's type
+  or nullability a review offers is compiled over the expressions it
+  reaches: a report of 2,500 components each reading ten of 64 header
+  fields, none of which may be null, reviewed against a version that
+  removed every field, took 49 to 50 s (0048).
+- **Find a relabel the report names no version of.** A relabel is offered
+  for texts that say a label of a version the report names -- its
+  provenance and its overrides' -- so a label a version the report was
+  never reviewed against gave a field is not seen.
 - **Lay a draft out for print.** A generated report is a first draft, a
   line for each answer under the form's own title; nobody would print it
   as it is, and an author makes it the report.

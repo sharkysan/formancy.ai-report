@@ -31,7 +31,23 @@ export interface FieldFormBinding {
   readonly member?: string
   /** How a choice prints -- a select, a radio, a matrix row's column: `value`, its stored value; absent, its label. Only a string field reads a choice. */
   readonly read?: FormRead
+  /**
+   * What a review decided for a form version (0048), keyed by the
+   * version's `schemaHash`: where that version holds the field -- `path`
+   * itself, for the version a followed rename moved `path` to -- or that
+   * the report prints nothing of it from that version. Every version not
+   * named is read at `path`.
+   */
+  readonly overrides?: Readonly<Record<string, FieldFormOverride>>
 }
+
+/**
+ * How one form version's submissions fill a field, where it is not as the
+ * binding says (0048): from another data path in the same scope, the
+ * member and the reading kept; or not at all, null in every submission of
+ * that version, which only a field that may be null takes.
+ */
+export type FieldFormOverride = { readonly path: string } | { readonly omit: true }
 
 /**
  * What of a formancy form's submissions a dataset reads (0042): the header
@@ -49,6 +65,8 @@ export type DatasetFormBinding =
       readonly kind: 'repeater'
       /** The repeater's data path in the submission's scope. */
       readonly repeater: string
+      /** Where a form version holds the rows, keyed by its `schemaHash`, as a review decided (0048) -- `repeater` itself, for the version a followed rename moved it to; its rows' fields are read at their own paths in them. Every version not named reads `repeater`. */
+      readonly overrides?: Readonly<Record<string, { readonly repeater: string }>>
     }
   | { readonly kind: 'submissions' }
 

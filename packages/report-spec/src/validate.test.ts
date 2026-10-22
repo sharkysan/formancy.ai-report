@@ -481,6 +481,14 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
     accept: fromForm,
     at: ['/datasets/detail/fields/3'],
   },
+  // A review that prints nothing of a field from one form version (0048)
+  // hands it null in each of that version's submissions: of a field never
+  // null, every final render of them would be refused.
+  'invalid-form-override': {
+    refuse: both(fromForm, set('/datasets/detail/fields/0/form/overrides', { ['c'.repeat(64)]: { omit: true } })),
+    accept: both(fromForm, set('/datasets/detail/fields/5/form/overrides', { ['c'.repeat(64)]: { omit: true } })),
+    at: [`/datasets/detail/fields/0/form/overrides/${'c'.repeat(64)}`],
+  },
   // The header is one record: read from a repeater's rows, it would be
   // which row?
   'misplaced-form-binding': {

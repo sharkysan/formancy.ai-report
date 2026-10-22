@@ -1,6 +1,6 @@
 # 0008 — Edits are commands, and a refused edit changes nothing
 
-- **Status:** accepted
+- **Status:** accepted; extended by [0048](0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md), under which several commands as one are one command, a batch, and a field is removed with what reads it
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-core`, run by its
@@ -232,6 +232,29 @@ whole of it.
 
 **What it forecloses.** Nothing permanently. Collaborative editing needs
 operations that merge, and can derive them from two snapshots when it comes.
+
+**Added 2026-10-22: a batch, and a removal that chases its readers.**
+[0048](0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md) adds two commands to the registry. `batch(report, steps)`
+is several descriptors as one command, `{ command: 'batch', args: [steps]
+}`: the steps run one after the other and the session validates the end
+once, as it does a transaction's, so a batch is a transaction written
+down, and an edit of several commands -- a review's resolution, a
+proposal -- travels as data and is one undo step. It is refused whole with
+its first refusal, word for word, nothing after it run; a step that is no
+descriptor, or a batch, is `invalid-arguments`, and so is a batch of more
+than `MAX_BATCH_COMMANDS`, before any of it runs. A step runs on what the
+steps before it left, which no validator has seen, so one that throws
+there -- a document replaced by one of nothing, then a component removed
+-- is refused as `invalid-arguments` too, never thrown: before the batch,
+no descriptor ran on a report the session had not validated. A batch may
+hold any command, so `PART_COMMANDS` lists it beside `replaceDocument`.
+And `removeFieldWithReaders(report, role, id)` removes a field with every
+component, column, style rule, footer cell and row, sort key, group and
+aggregate that reads it, found by the diagnostics' walk and the parser
+the compiler asks; `removeField` still chases no reference. Held by
+`commands/batch.test.ts`, `commands/readers.test.ts` and both of
+`commands/registry.test.ts`'s halves, and `outcome.test.ts` gives the new
+refusal, `read-by-part`, its case.
 
 ## Alternatives considered
 

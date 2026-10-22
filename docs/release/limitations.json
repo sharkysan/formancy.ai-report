@@ -147,7 +147,7 @@
       ]
     },
     "0008": {
-      "reviewed": "sha256:5ceeb953e2e5b4568eb73ba8d5a042c14110fc41d43e7131e9f525f1a85307a1",
+      "reviewed": "sha256:58eeec9b7700073c97994ae58513489ea1382963899eb78e60aafdb2087f3da3",
       "limitations": [
         {
           "area": "editing",
@@ -1460,7 +1460,7 @@
       ]
     },
     "0039": {
-      "reviewed": "sha256:988048a8cd028d1e7901e515ecae38661259bc8af1ae366bcac5e5212f7aa787",
+      "reviewed": "sha256:a9a9467d89fb1774736dddc8ef58523d378ee4a54d91aaca91fcde4b838a7acf",
       "limitations": [
         {
           "area": "builders",
@@ -1627,7 +1627,7 @@
       ]
     },
     "0042": {
-      "reviewed": "sha256:3f1e124d2b34fd5d456aeed548ce31853023f8fceacc9a47dd9b3c717f6fd24c",
+      "reviewed": "sha256:37beb87dc2a11178dbd34ea6e046d9f86e067332c5531047964c2c6a2d0c06eb",
       "limitations": [
         {
           "area": "format",
@@ -1659,8 +1659,8 @@
         },
         {
           "area": "data",
-          "says": "A version that removed, moved or retyped a field a report reads refuses every submission of that version, naming the field and the version's hash, until the report is changed by hand: the review that would resolve it is not in this release.",
-          "heldBy": "packages/report-forms/src/read.test.ts"
+          "says": "A version that removed, moved or retyped a field a report reads refuses every submission of that version, naming the field, the version's hash and the review, which offers what would lift it where anything does, until a review's resolution is applied or the report is changed by hand.",
+          "heldBy": "packages/report-forms/src/overrides.test.ts"
         },
         {
           "area": "data",
@@ -1722,7 +1722,7 @@
       ]
     },
     "0045": {
-      "reviewed": "sha256:c9b0b9baaefd08da9625a3432370364e3f3b57ee3c5222133619d9998e0898f9",
+      "reviewed": "sha256:ad9eb30619167bbfae6b16d2df4cef8d1d8ff8c7bd7c94abca827f793f2d5160",
       "limitations": [
         {
           "area": "editing",
@@ -1769,7 +1769,8 @@
         },
         {
           "area": "editing",
-          "says": "No generated base is kept beside a report, so nothing regenerates a report from a later form version: its new fields and labels reach the report only through a review, which is not in this release."
+          "says": "No generated base is kept beside a report, so nothing regenerates a report from a later form version: a review offers its new labels for the texts that say an old one and says its new fields, and applies neither.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
         },
         {
           "area": "editing",
@@ -1916,6 +1917,104 @@
         {
           "area": "release",
           "says": "A report that maps a font is refused by 0.2.0's validator as an unknown property, and its runtime and renderer must be of one release: a 0.2.0 renderer handed this runtime's document prints a mapped sans in Roboto without a word. No serif or mono face is shipped: the Liberation Sans a package ships is for the QR-bill slip and the EPC caption alone."
+        }
+      ]
+    },
+    "0048": {
+      "reviewed": "sha256:a2b622b1842d1ecfc1a3ee6a96f8fc22379482ce113a6312d51c466f849867eb",
+      "limitations": [
+        {
+          "area": "data",
+          "says": "A form version that removed, moved or retyped a field a report reads refuses every submission of it until someone applies a resolution of its review: nothing is followed by itself, a rename the form's author declared included.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A review needs every version the report names -- the one it was made from and each its overrides name -- handed over beside the new one, and is refused as `missing-version` without one, so a host that did not keep a version cannot review against it.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A followed rename keeps reading where it read each version the host handed the review over; a version it kept and did not hand over, which printed at the old path, is refused once the binding moves, until its own review offers the path the version the report was made from reads.",
+          "heldBy": "packages/report-forms/src/review-later.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A field a version removed blocks every later version that lacks it too, each reviewed in turn, since printing nothing of it names one version; or the field is removed from the report.",
+          "heldBy": "packages/report-forms/src/review-later.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A field moved without a declared rename is offered nothing but printing nothing of it from that version, another type or its removal, or the path a version the report names reads where formancy's diff finds the same field: a path is never guessed from a name, so the author moves the binding by hand.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A field renamed and retyped in the same version is offered no rename, since following it alone would still refuse that version's submissions.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A field the QR-bill or the e-invoice reads, directly or through an aggregate, is offered only a rename by its review: printing nothing of it, another type or its removal would change what the bill or the invoice says, so a version that removed one blocks until the part is changed by its own commands.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A version that removed the detail's repeater, or holds another kind there, is offered nothing but a rename of it, declared or read so by a version the report names; printing none of its rows, or removing the detail, is the author's to do.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "Printing nothing of a field from a version declares the field nullable, which an expression reads as dyn; where that would leave an expression the compiler refuses, a decimal compared with `==` among them, it is not offered.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A retype is judged by the fields' kinds, never by the answers: a version that holds the field as text, retyped to a number, has each of its submissions whose answer spells no number refused as `invalid-answer`, which the resolution says of that version and cannot say of a submission.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A key a version removed a field from, never reviewed, and a later version reused for another field, prints that field's answers as the report's; a review says so only against a version the report names that printed nothing of the field there.",
+          "heldBy": "packages/report-forms/src/review-later.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A relabel is offered only for a text that says a label of a version the report names, word for word -- the field's own label, a line's label run before the run that prints it, or a column's heading over it -- so a label reworded, inside a sentence, given by a version the report never named, or a matrix row's or option's composite label is not found, and one the format cannot hold, past `MAX_LABEL_LENGTH`, or holding a direction control or a separator, is not offered.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A field a version adds is said by its review and never added; an option or a matrix row a version adds to a field the report reads is not said.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A version that no longer requires a field the report declares never null, or that hides it by a rule, blocks nothing and is not said by its review: a final render of a submission that left the field out is refused as `unexpected-null`."
+        },
+        {
+          "area": "data",
+          "says": "A version that names its form by another id is said by its review and blocks nothing: the per-render check reads a field of any form wherever it stands where the report reads it.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "Removing a field with its readers removes every component, column, style rule, footer cell, sort key, group and aggregate that reads it, a footer row left with no cell, a table left with no column and a section whose condition reads it with all they hold, and refuses a field the QR-bill or the e-invoice reads, as `read-by-part`.",
+          "heldBy": "packages/report-core/src/commands/readers.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A report whose binding names an override for a form version is refused whole by 0.2.0, as `unknown-property`, and a field or the detail holds at most 64 of them, a followed rename naming each version handed over that read the old path; past that no rename is offered.",
+          "heldBy": "packages/report-spec/src/validate-form-binding.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A batch holds at most 1,000 commands, chosen, refused past it before any of it runs, and no batch inside it; a step that throws on what the steps before it left is refused, the batch with it.",
+          "heldBy": "packages/report-core/src/commands/batch.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "Reviewing the site visit starter against its version 3 took 7 to 11 ms, a draft of 64 fields against a version that removed or renamed every one 75 to 118 ms, and a batch of 1,000 commands applied and undone 2 to 3 ms; a report at the format's bounds, 2,500 components each reading ten of 64 header fields, against a version that removed every field, 6.4 to 6.6 s where every field may be null and 49 to 50 s where none may, each nothing printed then compiled over the expressions its field reaches: from the built packages on an Intel i9-10900K under Node 24.21.0 at 1 to 11 % load from other work, on 22 October 2026."
         }
       ]
     }

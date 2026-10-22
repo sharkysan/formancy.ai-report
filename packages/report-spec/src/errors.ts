@@ -93,6 +93,12 @@ export const REPORT_ERROR_CODES = [
   'incomplete-form-binding',
   /** A dataset that reads what it is not from a form: the header rows, the detail one record, or a header beside a detail of one row per submission (0042). */
   'misplaced-form-binding',
+  /**
+   * An override of a binding for one form version (0048) that says both a
+   * path and nothing, or neither, or that prints nothing of a field that
+   * may not be null.
+   */
+  'invalid-form-override',
 
   // References to what the report declares.
   'unknown-style',

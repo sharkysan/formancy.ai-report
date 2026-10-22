@@ -41,9 +41,17 @@ const SCALARS: ReadonlySet<string> = new Set<DeclaredType>(['bool', 'int', 'doub
 /** Where an e-invoice's paid amount stands: `invoice.paid` is what it gives. */
 const PAID = '/eInvoice/paid/cel'
 
-/** Every expression in `report` -- a report the validator accepts -- compiled where it stands. */
-export function compileReport(report: ReportDefinition): ReportCompilation {
-  return compiledSites(report, expressionSites(report))
+/**
+ * Every expression in `report` -- a report the validator accepts --
+ * compiled where it stands; or, with `only`, the expressions at those
+ * pointers to their `cel` alone, with every aggregate's and the
+ * e-invoice's paid amount, which what they read is computed from: what a
+ * review compiles of a resolution that changes one field's type, the
+ * expressions that change can reach (`fieldReaders`, 0048).
+ */
+export function compileReport(report: ReportDefinition, only?: ReadonlySet<string>): ReportCompilation {
+  const sites = expressionSites(report)
+  return compiledSites(report, only === undefined ? sites : sites.filter(({ path }) => only.has(path) || path.startsWith('/aggregates/') || path === PAID))
 }
 
 /** `compileReport` over sites already walked: `diagnose` walks the report once for this and for its warnings. */
