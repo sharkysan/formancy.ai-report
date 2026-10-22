@@ -316,7 +316,7 @@
       ]
     },
     "0013": {
-      "reviewed": "sha256:12f0b73fb6921252a5559975c17aaa474b3e0c732886b866c2a704931719bcf6",
+      "reviewed": "sha256:99a156a9cf5d4bfab5842dca5741f2e5d77fd97e9ee2efa8a57eeddf269c5437",
       "limitations": [
         {
           "area": "rendering",
@@ -1621,7 +1621,7 @@
       ]
     },
     "0042": {
-      "reviewed": "sha256:2009f6c2d0ba00e974e0fbfd8acba948928de300de0f8c82405fab3009597999",
+      "reviewed": "sha256:3f1e124d2b34fd5d456aeed548ce31853023f8fceacc9a47dd9b3c717f6fd24c",
       "limitations": [
         {
           "area": "format",
@@ -1712,6 +1712,73 @@
         {
           "area": "runtime",
           "says": "Reading one submission of 100,000 repeater rows of six fields took a median of 966 ms, and 100,000 submissions of eleven fields, one a row, 2,135 ms, from the built package on an Intel i9-10900K under Node 24.21.0 at about a tenth of its load from other work, on 22 October 2026, before the runtime checks the data again when it resolves."
+        }
+      ]
+    },
+    "0045": {
+      "reviewed": "sha256:c9b0b9baaefd08da9625a3432370364e3f3b57ee3c5222133619d9998e0898f9",
+      "limitations": [
+        {
+          "area": "editing",
+          "says": "A report generated from a formancy form is a first draft -- a line for each answer under the form's own title, whatever the report's language, sections with no space between them and every column of its table as wide as the next -- which nobody would print as it is, and which an author makes the report."
+        },
+        {
+          "area": "editing",
+          "says": "A generated report is in the form's model order and follows none of the layouts the form names, so a print layout that leaves a field out, or orders the fields otherwise, is not what the draft prints.",
+          "heldBy": "packages/report-forms/src/generate.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A tick box or a ticked option in a generated report prints `[x]` or `[ ]`, in no language, and an unanswered one as nothing.",
+          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A form whose generated report would declare more than 64 fields or hold more components than a region holds, that heads a column with a label longer than 200 characters, labels anything with a control character or nests a field past 16 keys, gives no report at all: it is refused, and nothing picks the fields to keep.",
+          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A generated report's table of more than six columns stands on a landscape page, and one of more than nine gives no report at all -- the site visit form read one row per submission, thirteen columns, among them -- since every column is as wide as the next and needs 80 pt for a heading's word.",
+          "heldBy": "packages/report-forms/src/generate-print.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A generated report whose heading or answer holds a word wider than its column -- `Zusammenfassung`, 77.8 pt, wider than the 72 pt a column of a full page holds -- or a label in characters Roboto has no glyph for, such as Chinese or an emoji, is generated, and refused by the renderer when it prints: the generator holds no font to see it."
+        },
+        {
+          "area": "editing",
+          "says": "A field labelled longer than 200 characters in a form prints its label whole on its line in a generated report, and is labelled in the report's data by its row's or option's label, or by its key, with a note saying so.",
+          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A field of a generated report is nullable unless the version requires it and no visible or skip rule can hide it, so an expression over most form fields reads a member that may be null, which CEL types as dyn.",
+          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "Where any row or option of a matrix or of ticked boxes has a value that is no field key, every member of that field takes its place among its kind's as its id in a generated report, `checks_2`, so an expression names it by place, and a later version that moves the option moves what that id would mean.",
+          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "No generated base is kept beside a report, so nothing regenerates a report from a later form version: its new fields and labels reach the report only through a review, which is not in this release."
+        },
+        {
+          "area": "editing",
+          "says": "A generated report takes one repeater as its table, the one asked for, and lists the others as left out, so a form with two lists prints one.",
+          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "That a generated report opens with no warning in the editor is held by report-core's diagnose on the Studio's site visit starter alone; every other generated report is held to the runtime's checkReport, which refuses errors and passes warnings.",
+          "heldBy": "packages/report-corpus/src/starters/starters.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "Generating the site visit took 1.8 to 3.9 ms, refusing a form of 100,000 fields 2.3 to 5.2 s, most of it formancy's validator, and refusing a grid of 100,000 columns 0.89 to 3.1 s, from the built package on an Intel i9-10900K under Node 24.21.0 at 3 to 100 % of its load from other work, on 22 October 2026.",
+          "heldBy": "packages/report-forms/src/generate-untrusted.test.ts"
         }
       ]
     }

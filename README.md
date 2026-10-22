@@ -23,6 +23,7 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **Print it as a paginated PDF**, in Node or in a browser, from your application's JSON. Totals are exact, values are formatted for the report's locale, and a report that cannot be drawn whole is refused, never truncated ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 - **Read its data from [Formancy Data](https://github.com/sharkysan/formancy.ai-data) 0.1.0**, optionally and best-effort ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
 - **Print a [formancy](https://github.com/sharkysan/formancy.ai) form's submissions**, each against the exact form version that collected it: its labels in the report's language, a field the version moved refused rather than printed wrong, and a number by its digits or not at all. Your application hands over the version and the submission ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+- **Start a report from a formancy form version**: a first draft, the same for the same version, that names the version and reads its submissions, with notes of what it left out and assumed ([0045](./docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).
 - **Say where a render's data came from**, in the manifest kept beside the PDF: the Data forms it read, or each submission of a formancy form with its form's id and the version that collected it, held to the syntax of identifiers ([0041](./docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)).
 - **QR codes**, refused where they may not scan ([0020](./docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
 - **A Swiss QR-bill**, its receipt and payment part at the foot of the last page, held to SIX's rules, and edited field by field in either builder: added from SIX's example, and warned of while it holds SIX's examples ([0022](./docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0039](./docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
@@ -179,6 +180,15 @@ print all that each country's invoicing law asks of an invoice
 
 </details>
 
+![The site visit starter, generated from version 2 of a formancy form: a line for each answer, from Objekt: Bahnhofplatz 1, 3011 Bern, the inspector, the ticked boxes and the matrix under their headings, Elektrik: [x] among them, the findings one table under Befunde, and the page counted, 1 / 1](docs/images/starter-site-visit.png)
+
+The site visit is the report `@formancy/report-forms` generates from a
+formancy form version, a first draft: its labels from that version in the
+report's language, a group a section, the repeater asked for its table,
+and a submission of that version read into it. Its notes, which no page
+shows, list what it left out and assumed
+([0045](./docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).
+
 ## Render a report
 
 Your application resolves a report against the data it may show, then
@@ -215,7 +225,7 @@ these lines from the packed packages (`scripts/install-fixture/consume.ts`).
 | [`@formancy/report-runtime`](./packages/report-runtime/README.md) | Resolves a report against its data into a renderer-neutral document, exact numbers as strings and totals rounded once, and writes an e-invoice's XML, or refuses with every reason; its manifest says what a render was resolved from, the data's source among it ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0041](./docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)). |
 | [`@formancy/report-render-pdf`](./packages/report-render-pdf/README.md) | Draws that document with pdfmake, in Node and through a browser entry, and refuses what it cannot draw whole rather than return a partial PDF ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)). |
 | [`@formancy/report-data-provider`](./packages/report-data-provider/README.md) | Reads a report's data from a Formancy Data 0.1.0 server, labelled best-effort ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). |
-| [`@formancy/report-forms`](./packages/report-forms/README.md) | Reads a report's data from a formancy form's submissions, against the exact version that collected each, as your application hands them over, host-captured ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)). |
+| [`@formancy/report-forms`](./packages/report-forms/README.md) | Reads a report's data from a formancy form's submissions, against the exact version that collected each, as your application hands them over, host-captured ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)); and starts a report from a form version, a first draft whose notes list what it left out ([0045](./docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)). |
 | [`@formancy/report-builder-core`](./packages/report-builder-core/README.md) | The editor model both builders render, with no framework, in English, Swiss German and Swiss French; `BUILDER_SCENARIOS` is what every builder must do ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)). |
 | [`@formancy/report-builder-react`](./packages/report-builder-react/README.md) | The builder for React 19. |
 | [`@formancy/report-builder-angular`](./packages/report-builder-angular/README.md) | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js. |

@@ -583,10 +583,12 @@ decoded by ZXing (`readCodes` in the corpus), for its text, its bytes, its
 level, its version and where it stands. `starters.test.ts` resolves the
 starters with the runtime and proves their PDFs: plan 7's three swept
 across page ends, the invoice down to its bill's code, decoded from the
-page and asking for the total the page prints, and the euro invoice down
+page and asking for the total the page prints, the euro invoice down
 to its EPC QR code, decoded from the page, asking for that total and
 standing beside the payment details it holds, each printed in plain
-text. `samples.test.ts` does the same for the corpus's invoice samples,
+text, and the site visit generated from a formancy form down to each
+answer's line, each box and each finding's row, over pages at 80 of
+them. `samples.test.ts` does the same for the corpus's invoice samples,
 the invoice in German, French, Italian and English: one page each, its
 totals in its locale's format, its slip's headings in its language and in
 no other's, and its code asking for the total it prints.

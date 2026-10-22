@@ -24,9 +24,9 @@ import { isSchemaHash, validateReport } from '@formancy/report-spec'
 import type { DatasetContract, Datasets, ReportDefinition } from '@formancy/report-spec'
 import { answerOf, readAnswers, rowsAt } from './answers.js'
 import type { AnswerContext, AnswerRecord, OptionLabels } from './answers.js'
-import { answerAt, at, Findings } from './errors.js'
+import { at, Findings } from './errors.js'
 import type { FormsError } from './errors.js'
-import { readList, readRecord } from './json.js'
+import { readList, readParts } from './json.js'
 import { planField, planRepeater } from './kinds.js'
 import type { FieldPlan } from './kinds.js'
 import { readVersion } from './version.js'
@@ -71,21 +71,6 @@ export interface ReadOptions {
 export type SubmissionRead = { readonly ok: true; readonly data: ReportData } | { readonly ok: false; readonly errors: readonly FormsError[] }
 
 const refused = (f: Findings): SubmissionRead => ({ ok: false, errors: f.errors() })
-
-/** The parts of an input object, each known one present when required, nothing else; undefined after reporting why not. */
-function readParts(f: Findings, raw: unknown, path: string, required: readonly string[], optional: readonly string[] = []): ReadonlyMap<string, unknown> | undefined {
-  const read = readRecord(raw, path, (where, key) => (required.includes(key) || optional.includes(key) ? at(where, key) : where))
-  if (!read.ok) {
-    f.report(read.path, read.wrongType === true ? 'invalid-input' : 'not-data', read.wrongType === true ? `expected ${[...required, ...optional].join(', ')}` : read.message)
-    return undefined
-  }
-  for (const key of read.value.keys()) {
-    // Named where it is a field key, its container where it is not, as a key in a submission is.
-    if (!required.includes(key) && !optional.includes(key)) f.report(answerAt(path, key), 'invalid-input', `the bridge reads ${[...required, ...optional].join(', ')} here, and nothing it does not know`)
-  }
-  for (const key of required) if (!read.value.has(key)) f.report(at(path, key), 'invalid-input', `${key} is required here`)
-  return read.value
-}
 
 /** Reports a submission id that is not one a source names, or one named before. */
 function checkId(f: Findings, id: unknown, path: string, seen: Set<string>): void {

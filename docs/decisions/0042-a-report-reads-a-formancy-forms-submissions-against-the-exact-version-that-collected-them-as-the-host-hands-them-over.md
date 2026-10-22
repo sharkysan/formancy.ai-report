@@ -1,6 +1,6 @@
 # 0042 — A report reads a formancy form's submissions against the exact version that collected them, as the host hands them over: a package of its own, `@formancy/report-forms`, fetching nothing; the version validated by the pinned `@formancy/spec` and named by the hash computed of it; every answer under a data path of that version; formancy's kinds mapped once to the report's types, a number by its digits or refused; labels from that version in the report's locale; the binding inside the report; host-captured; a fetching client, a trusted hash, a binding beside the report, rounding and today's labels lost
 
-- **Status:** accepted; numbered while 0039 and 0040 were other branches'; extends [0004](0004-three-version-lines-each-refused-when-unknown.md), whose form line is read now, [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose dataset contract carries the binding, [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md) and [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose form source the bridge fills
+- **Status:** accepted; numbered while 0039 and 0040 were other branches'; extends [0004](0004-three-version-lines-each-refused-when-unknown.md), whose form line is read now, [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose dataset contract carries the binding, [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md) and [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose form source the bridge fills; extended by [0045](0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md), whose report generated from a form version writes this binding and reads a kind by this mapping
 - **Date:** 2026-10-22
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -301,6 +301,33 @@ indexed once, so a read takes time linear in what it is handed.
 **What it forecloses.** A form fetched by address; a version named by a
 hash the host gave; a label of another version than the submission's; a
 number rounded to fit.
+
+**Added 2026-10-22: the binding written by a generator.** [0045](0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)
+generates a report from a form version, `generateReport` in this
+package, and writes the binding this record decides: a field at its data
+path in its dataset's scope, a matrix row's or an option's value as its
+member, `read: 'value'` for a choice that offers no option and names no
+source, the detail a repeater's rows or one row per submission. It reads
+a kind by `KINDS`, an integer as `planField` reads one, the detail's
+repeater by `planRepeater` and a version by `readVersion`, so the draft
+binds only what a read of that version finds; `generate-read.test.ts`
+reads a submission of the version into every draft of 400 generated
+models, and the corpus's version-2 visit into the Studio's starter. The
+reading itself is unchanged: `readParts`, which reads what a host hands
+over, moved from `read.ts` to `json.ts`, where the generator's options
+are read by it too, and `planRepeater` hands over the repeater it found.
+A field's id stays the report's, never one made from its path: the
+generator gives a field its own key, which formancy holds unique in the
+form, and a member its field's key and its value or its place, and
+refuses two fields of one id rather than rename either. 0045's review
+found one change to the reading: `readVersion` named a refusal of
+formancy's validator at the pointer it wrote, whole, and that pointer
+may end in a catalogue's locale or a message's id, which may be a name.
+It is cut now before its first segment that is neither an index nor a
+field key, as a submission's path is cut, each of formancy's codes said
+once there, and the 512-character bound it had is gone, since what is
+left is bounded by `MAX_DOCUMENT_DEPTH` segments of a key's length
+(`read.test.ts`).
 
 ## Alternatives considered
 

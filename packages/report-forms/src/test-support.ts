@@ -1,14 +1,18 @@
 /**
- * What the tests read submissions with: a report builder over one form's
- * fields, forms of any spec, and the reads, failing a test where the
- * outcome is not the one it expects. Every read that hands data over has
- * that data held to the runtime's `checkData`, so no test passes on data
- * the bridge says is ready and the runtime refuses. Only test files import
- * this; the index does not export it.
+ * What the tests read submissions and generate reports with: a report
+ * builder over one form's fields, forms of any spec, the reads and the
+ * generator, failing a test where the outcome is not the one it expects.
+ * Every read that hands data over has that data held to the runtime's
+ * `checkData`, and every report generated is held to the runtime's
+ * `checkReport`, so no test passes on what the bridge says is ready and
+ * the runtime refuses. Only test files import this; the index does not
+ * export it.
  */
-import { checkData } from '@formancy/report-runtime'
+import { checkData, checkReport } from '@formancy/report-runtime'
 import type { ReportData } from '@formancy/report-runtime'
 import type { DatasetContract, FieldContract, FieldFormBinding, FieldType, ReportDefinition } from '@formancy/report-spec'
+import { generateReport } from './generate.js'
+import type { Generated, GenerateNote, GenerateOptions } from './generate.js'
 import { readSubmission, readSubmissions } from './read.js'
 import type { ReadOptions, SubmissionInput, SubmissionRead, SubmissionsInput } from './read.js'
 
@@ -95,3 +99,35 @@ export const headerOf = (outcome: SubmissionRead): Readonly<Record<string, unkno
 
 /** Many submissions, read as `input`, by readSubmissions. */
 export const readMany = (report: ReportDefinition, input: unknown, options?: ReadOptions): SubmissionRead => admitted(report, readSubmissions(report, input as SubmissionsInput, options))
+
+/**
+ * `outcome`, once a report it hands over is held to report-spec's
+ * validator and to the runtime's `checkReport`, which compiles every
+ * expression with report-core: a generated report the runtime would
+ * refuse is the generator's defect, and no test passes on one (0045).
+ */
+function compiles(outcome: Generated): Generated {
+  if (outcome.ok) {
+    const check = checkReport(outcome.report)
+    if (!check.ok) throw new Error(`the generator handed over a report the runtime refuses: ${check.errors.map((error) => `${error.code} ${error.path}`).join('; ')}`)
+  }
+  return outcome
+}
+
+/** A report generated from `form` as `options` say, held to the runtime. */
+export const generate = (form: unknown, options: unknown): Generated => compiles(generateReport(form, options as GenerateOptions))
+
+/** The report and the notes of a generation, failing the test with the errors where it was refused. */
+export function generatedFrom(outcome: Generated): { readonly report: ReportDefinition; readonly notes: readonly GenerateNote[] } {
+  if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.code} ${error.path}: ${error.message}`).join('; ')}`)
+  return outcome
+}
+
+/** Each error of a refused generation as its code and path, failing the test where it was not refused. */
+export function generationRefusals(outcome: Generated): string[] {
+  if (outcome.ok) throw new Error(`generated, where a refusal was expected: ${JSON.stringify(outcome.notes)}`)
+  return outcome.errors.map((error) => `${error.code} ${error.path}`)
+}
+
+/** Each note as its code and path. */
+export const notesOf = (notes: readonly GenerateNote[]): string[] => notes.map((note) => `${note.code} ${note.path}`)

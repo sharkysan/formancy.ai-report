@@ -66,3 +66,17 @@ describe("the form bridge's README, \"Read a submission\"", () => {
     expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
   })
 })
+
+describe("the form bridge's README, \"Start a report from a form\"", () => {
+  // The generator's example too (0045): a reader copies it into a host
+  // that keeps the form version a person starts from, so every line of it
+  // is a line the install gate runs, from the packed bridge
+  // (scripts/install-fixture/forms.ts).
+  test('is code the install gate runs, line for line', () => {
+    const readme = readFileSync(join(root, 'packages/report-forms/README.md'), 'utf8').replaceAll('\r\n', '\n')
+    const lines = exampleLines(readme, 'Start a report from a form')
+    const consumer = new Set(readFileSync(join(root, 'scripts/install-fixture/forms.ts'), 'utf8').replaceAll('\r\n', '\n').split('\n').map((line) => line.trim()))
+    expect(lines?.length).toBeGreaterThan(3)
+    expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
+  })
+})

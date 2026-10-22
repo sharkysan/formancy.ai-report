@@ -292,4 +292,18 @@ describe('a submission of every spec version', () => {
     expect(refusals(nested)).toEqual(['invalid-form /form/model/fields/1/fields/0/type'])
     if (!nested.ok) expect(nested.errors[0]?.message).toContain('repeater.nested')
   })
+
+  // formancy's validator points into the form by whatever the form holds:
+  // a catalogue's locale or a message's id, which may be a name. A
+  // refusal that named that pointer whole would carry the form's text into
+  // a log; it is cut where a segment is neither a field key nor an index,
+  // as a submission's path is (`answerAt`), and each of formancy's codes
+  // there is said once.
+  test('refuses a form at where formancy points, cut before what the form names', () => {
+    const report = reportOf({ header: answers(field('site', 'string', 'site')) })
+    const catalogue = { i18n: { defaultLocale: 'en', messages: { en: { 'Erika Mustermann 1970-01-01': 7, site: 'Site' }, 'Erika Mustermann': { site: 8 } } } }
+    const outcome = read(report, formOf([{ key: 'site', type: 'text', label: { $t: 'site' } }], catalogue), {})
+    expect(refusals(outcome)).toEqual(['invalid-form /form/i18n/messages/en', 'invalid-form /form/i18n/messages'])
+    if (!outcome.ok) expect(JSON.stringify(outcome.errors)).not.toContain('Erika')
+  })
 })

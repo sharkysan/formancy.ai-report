@@ -1143,5 +1143,133 @@
         ]
       }
     ]
+  },
+  {
+    "file": "starter-site-visit.png",
+    "starter": "site-visit",
+    "page": 1,
+    "scale": 1.25,
+    "sha256": "fa539cc4b90eded2cf69d8e0caf3c86bc29d42178996eac59ea2de6d004220f5",
+    "caption": "The site visit starter, generated from version 2 of a formancy form: a line for each answer, from Objekt: Bahnhofplatz 1, 3011 Bern, the inspector, the ticked boxes and the matrix under their headings, Elektrik: [x] among them, the findings one table under Befunde, and the page counted, 1 / 1",
+    "lines": [
+      "Site visit",
+      "Objekt: Bahnhofplatz 1, 3011 Bern",
+      "Besucht am: 21.10.2026",
+      "Angekommen um: 21.10.2026, 12:05:00",
+      "Begonnen um:",
+      "Ergebnis: Nicht bestanden",
+      "Inspektor",
+      "Name: Marc Rüegg",
+      "Ausweis: BE-5120",
+      "Geprüft",
+      "Dach: [ ]",
+      "Elektrik: [x]",
+      "Heizkessel: [ ]",
+      "Zustand",
+      "Sicherheit: Schlecht",
+      "Sauberkeit:",
+      "Befunde",
+      "Nr. Bereich Dringlichkeit Stunden Teile Vor Ort behoben",
+      "F-01 Dachrinne Nord Kritisch 1.50 0 [x]",
+      "F-02 Heizraum Niedrig 0.25 1 [ ]",
+      "F-03 Treppenhaus Kritisch 2.00 2 [ ]",
+      "Zusammenfassung: Die Elektrik ist sofort zu prüfen.",
+      "1 / 1"
+    ],
+    "places": [
+      [
+        56.69,
+        58.73
+      ],
+      [
+        56.69,
+        76.72
+      ],
+      [
+        56.69,
+        88.44
+      ],
+      [
+        56.69,
+        100.15
+      ],
+      [
+        56.69,
+        111.87
+      ],
+      [
+        56.69,
+        123.59
+      ],
+      [
+        56.69,
+        135.44
+      ],
+      [
+        56.69,
+        148.2
+      ],
+      [
+        56.69,
+        159.92
+      ],
+      [
+        56.69,
+        171.77
+      ],
+      [
+        56.69,
+        184.53
+      ],
+      [
+        56.69,
+        196.25
+      ],
+      [
+        56.69,
+        207.97
+      ],
+      [
+        56.69,
+        219.81
+      ],
+      [
+        56.69,
+        232.58
+      ],
+      [
+        56.69,
+        244.3
+      ],
+      [
+        56.69,
+        256.14
+      ],
+      [
+        60.69,
+        271.28
+      ],
+      [
+        60.69,
+        286.32
+      ],
+      [
+        60.69,
+        301.37
+      ],
+      [
+        60.69,
+        316.42
+      ],
+      [
+        56.69,
+        329.59
+      ],
+      [
+        289.51,
+        776.85
+      ]
+    ],
+    "drawings": []
   }
 ]

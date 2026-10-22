@@ -6,4 +6,4 @@
 [main] INFO com.helger.schematron.api.xslt.AbstractSchematronXSLTBasedResource - Applying Schematron XSLT on XML instance
 [main] INFO org.mustangproject.validator.XMLValidator - FailedAssert Seller electronic address MUST be provided
 [main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 27: Seller electronic address MUST be provided [ID PEPPOL-EN16931-R020] from /xslt/XR_30/XRechnung-CII-validation.xslt)
-[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:853008D2BAB08C80DACD09C663A931BF52B20D32 Profile:urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0 Version:2 Took:2584ms Errors:[27] ErrorIDs: [PEPPOL-EN16931-R020]
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:853008D2BAB08C80DACD09C663A931BF52B20D32 Profile:urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0 Version:2 Took:2797ms Errors:[27] ErrorIDs: [PEPPOL-EN16931-R020]

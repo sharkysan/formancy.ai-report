@@ -1,12 +1,14 @@
 /**
  * What the bridge can say is wrong, as stable codes, and the bounded list
- * one read collects (0042).
+ * one read or one generation collects (0042, 0045).
  *
  * The path is a JSON Pointer into what was handed over -- `/form/...` into
  * the form, `/submission/data/findings/3/hours` or
  * `/submissions/2/data/site` into an answer -- or into the report, where a
  * field the report reads does not fit the version:
- * `/datasets/detail/fields/1/form`. Neither the path nor the message ever
+ * `/datasets/detail/fields/1/form`; or, for a report generated from a
+ * form, into the form or the options it was handed, `/form/model/fields/3`
+ * or `/options/locale`. Neither the path nor the message ever
  * holds an answer: an answer is the customer's, and an error ends up in a
  * log. A path names a key where it is a field key, as formancy writes one,
  * and its container where it is not, since such a key may be the answer.
@@ -14,7 +16,7 @@
 import { isFieldKey, MAX_ERRORS } from '@formancy/report-spec'
 
 export const FORMS_ERROR_CODES = [
-  /** A report `validateReport` refuses: the runtime would refuse it too, and says why. */
+  /** A report `validateReport` refuses: the runtime would refuse it too, and says why. Of a report generated from a form, a defect of the generator, never the form's. */
   'invalid-report',
   /** A report that reads no dataset from a form, or one the other reader reads: one row per submission is `readSubmissions`', one submission `readSubmission`'s. */
   'unbound-report',
@@ -48,6 +50,24 @@ export const FORMS_ERROR_CODES = [
   'inexact-number',
   /** More rows than the runtime's `MAX_DETAIL_ROWS`: a repeater's, or the submissions handed over. */
   'too-many-rows',
+  /** A form that would give a generated report more fields than a dataset holds (`MAX_DATASET_FIELDS`): refused, never cut to the first of them. */
+  'too-many-fields',
+  /** A form that would give a generated report's table more columns than a landscape A4 page gives the room a heading's word needs, which the renderer breaks in no cell: refused, never cut to the first of them. */
+  'too-many-columns',
+  /** A form whose generated report would hold more components in its body than a region does (`MAX_REGION_COMPONENTS`). */
+  'too-many-components',
+  /** A label a generated report would print that is longer than where it prints holds: a column's heading past `MAX_LABEL_LENGTH`, a section's heading or a line's label past `MAX_TEXT_LENGTH`. Refused, never cut short. */
+  'label-too-long',
+  /** A label or a title a generated report would print holding a character no font draws: a control character, or half of a surrogate pair. Refused, never dropped. */
+  'label-unprintable',
+  /** A field a generated report would read at a path of more keys than a binding names (`MAX_FORM_PATH_KEYS`). */
+  'path-too-long',
+  /** A matrix row or an option whose field's key leaves no room in a field key's 64 characters for an id of its own: refused, never named by a key cut short. */
+  'id-too-long',
+  /** Two fields a generated report would give one id: refused, never renamed by likeness to tell them apart. */
+  'colliding-ids',
+  /** A form, or the repeater asked for, that holds nothing a report prints: a report of it would print nothing. */
+  'nothing-to-print',
   /** More errors were found than are listed. */
   'too-many-errors',
 ] as const

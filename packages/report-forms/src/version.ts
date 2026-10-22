@@ -13,6 +13,7 @@
  * versions named, before anything else is read, and every other refusal
  * is formancy's, with its code.
  */
+import { isFieldKey } from '@formancy/report-spec'
 import { schemaHash, SPEC_VERSIONS } from '@formancy/spec'
 import type { FieldDef, FormSchema } from '@formancy/spec'
 import { validateSchema } from '@formancy/spec/validate'
@@ -36,13 +37,26 @@ export interface Version {
   readonly within: ReadonlyMap<FieldDef, Scope>
 }
 
+/** A segment of a pointer that names the form's structure: an index, or a field key, as formancy writes one. */
+const STRUCTURAL = (segment: string): boolean => /^(0|[1-9]\d{0,8})$/.test(segment) || isFieldKey(segment)
+
 /**
- * The longest path into a form a refusal names; past it, the form's own.
- * Chosen, not measured, so that no path a refusal names grows with what a
- * form holds: a pointer formancy's validator writes may hold the form's
- * own keys.
+ * Where in the form at `path` a pointer formancy's validator writes
+ * points, as a refusal names it: cut before its first segment that is
+ * neither an index nor a field key -- a catalogue's locale, a message's id,
+ * which may be a name -- as a submission's path is cut (`answerAt`). So no
+ * path a refusal names grows with what the form holds: each segment it
+ * keeps is at most a field key's 64 characters, and there are no more of
+ * them than the `MAX_DOCUMENT_DEPTH` levels the copy reads.
  */
-const MAX_NAMED_PATH = 512
+function pointedAt(path: string, pointer: string): string {
+  let named = path
+  for (const segment of pointer.split('/').slice(1)) {
+    if (!STRUCTURAL(segment)) break
+    named = `${named}/${segment}`
+  }
+  return named
+}
 
 /** The fields of a scope by key, a page's fields among them: a page is presentation and scopes nothing, as `modelDataPaths` writes it. */
 function scopeOf(fields: readonly FieldDef[] | undefined, into = new Map<string, FieldDef>()): Map<string, FieldDef> {
@@ -82,8 +96,9 @@ export function readVersion(f: Findings, raw: unknown, path: string): Version | 
   const validation = validateSchema(document)
   if (!validation.valid) {
     for (const error of validation.errors) {
-      const where = error.path.length > MAX_NAMED_PATH ? path : `${path}${error.path}`
-      f.report(where, 'invalid-form', `formancy's validator refuses the form: ${error.code}`)
+      const where = pointedAt(path, error.path)
+      // Once for each of formancy's codes where it points: two of one code in one catalogue are one refusal.
+      f.report(where, 'invalid-form', `formancy's validator refuses the form: ${error.code}`, `invalid-form ${where} ${error.code}`)
     }
     return undefined
   }

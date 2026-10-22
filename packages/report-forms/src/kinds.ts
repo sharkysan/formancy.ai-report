@@ -149,8 +149,8 @@ export function planField(f: Findings, version: Version, scope: Scope, field: Fi
   return { field, keys, def, as: rule.as, ...(binding.member === undefined ? {} : { member: binding.member }), label: rule.choice === true && binding.read !== 'value', options: optionsOf(def), rows }
 }
 
-/** The rows of the repeater the detail reads, in `version`, or undefined after reporting why the version has none there. */
-export function planRepeater(f: Findings, version: Version, repeater: string, where: string): { readonly keys: readonly string[]; readonly rows: Scope } | undefined {
+/** The repeater the detail reads, in `version`, and its rows' scope, or undefined after reporting why the version has none there. */
+export function planRepeater(f: Findings, version: Version, repeater: string, where: string): { readonly def: FieldDef; readonly keys: readonly string[]; readonly rows: Scope } | undefined {
   const keys = repeater.split('.')
   const def = lookUp(version, version.answers, keys)
   if (def === undefined) {
@@ -161,5 +161,5 @@ export function planRepeater(f: Findings, version: Version, repeater: string, wh
     f.report(where, 'version-retypes-field', `the detail reads the rows of ${named(repeater)}, and the form version ${version.hash} holds a ${def.type} there, which has no rows`)
     return undefined
   }
-  return { keys, rows: version.within.get(def) as Scope }
+  return { def, keys, rows: version.within.get(def) as Scope }
 }

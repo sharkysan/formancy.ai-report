@@ -39,11 +39,11 @@ describe('the starters', () => {
     expect(outcome.ok ? outcome.warnings : outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`)).toEqual([])
   })
 
-  // Plan 7's three, the invoice with its QR-bill and the invoice with its
-  // EPC code are five different proofs; two with one id would be one proof
-  // counted twice.
-  test('are five, each with its own id', () => {
-    expect(STARTERS.map(({ id }) => id)).toEqual(['service-inspection', 'quotation', 'grouped-equipment', 'invoice', 'euro-invoice'])
+  // Plan 7's three, the invoice with its QR-bill, the invoice with its
+  // EPC code and the report generated from a formancy form are six
+  // different proofs; two with one id would be one proof counted twice.
+  test('are six, each with its own id', () => {
+    expect(STARTERS.map(({ id }) => id)).toEqual(['service-inspection', 'quotation', 'grouped-equipment', 'invoice', 'euro-invoice', 'site-visit'])
   })
 })
 

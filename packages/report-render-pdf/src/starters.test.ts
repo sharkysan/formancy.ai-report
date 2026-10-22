@@ -13,6 +13,7 @@ import {
   readCodes,
   readPdf,
   SERVICE_INSPECTION,
+  SITE_VISIT_STARTER,
   STARTER_IMAGES,
   verify,
   type ReadPdf,
@@ -27,7 +28,7 @@ import { crowding, markAt, marksOn, withoutMark } from './testing/letterhead.js'
 import { lineHas, pageLines, type Line } from './testing/lines.js'
 
 /**
- * The three starters of plan 7, the invoice with its QR-bill and the invoice with its EPC code, end to end: each definition resolved by the
+ * The three starters of plan 7, the invoice with its QR-bill, the invoice with its EPC code and the report generated from a formancy form, end to end: each definition resolved by the
  * runtime against its synthetic data, rendered by pdfmake, and proved on the
  * PDF it produced, read back with PDF.js (0003) -- never on the document the
  * renderer was given. The corpus's checks prove the layout: every row once
@@ -441,5 +442,71 @@ describe('the euro invoice', () => {
     expect(beside.map((line) => line.text)).toEqual(details)
     expect(code.x + code.width).toBeLessThan((pdf.pages[0]?.width as number) / 2)
     expect(code.top).toBeGreaterThan(startingWith(pdf, 'Rechnungsbetrag')[0]?.bottom as number)
+  }, TIMEOUT)
+})
+
+describe('the site visit, generated from a formancy form', () => {
+  const data = SITE_VISIT_STARTER.data
+  const header = data.header as Record<string, string | boolean | null>
+  const rows = data.detail as Record<string, string | boolean>[]
+  /** A yes or a no as the draft prints it (0045): a box, ticked or not, and nothing where the form holds no answer. */
+  const box = (value: unknown): string => (value === true ? '[x]' : value === false ? '[ ]' : '')
+  /** Hours as the draft's two places print them for a Swiss German reader, handed the exact decimal string. */
+  const hours = (value: string): string => normalise(new Intl.NumberFormat('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value as Intl.StringNumericLiteral))
+  /** A date, or an instant with its time, as `medium` prints them for a Swiss German reader in the render's zone, UTC, the zone no option names. */
+  const dated = (value: string, time = false): string => normalise(new Intl.DateTimeFormat('de-CH', { dateStyle: 'medium', ...(time ? { timeStyle: 'medium' } : {}), timeZone: 'UTC' }).format(new Date(value)))
+  /** The finding as its row prints: each column's value in order, a box for whether it was fixed. */
+  const row = (finding: Record<string, string | boolean>): string => [finding['ref'], finding['area'], finding['severity'], hours(finding['hours'] as string), finding['parts'], box(finding['fixed'])].join(' ')
+
+  // A draft that printed an answer away from its label, a date in another
+  // style than its locale's, an unanswered one as anything but nothing, a
+  // box as `true`, or a finding's hours past its places, would mislead the
+  // reader of every visit, and no check of the definition would see it. So
+  // on the PDF: each answer on its line under its label, the date and the
+  // instant in the report's locale, an unanswered one its label alone, the
+  // inspector, the ticked boxes and the matrix each under its heading,
+  // every finding a row in its place with its hours to two places and a
+  // box for whether it was fixed, and the page counted in the footer. The
+  // values are the starter's data, formatted here by Intl, not by the
+  // runtime.
+  test('prints each answer on its line, the boxes as boxes, and every finding a row', async () => {
+    const document = resolved(SITE_VISIT_STARTER, data)
+    const pdf = await printed(document)
+    const answers = [
+      `Objekt: ${header['site']}`,
+      `Besucht am: ${dated(header['visitedOn'] as string)}`,
+      `Angekommen um: ${dated(header['arrivedAt'] as string, true)}`,
+      `Ergebnis: ${header['outcome']}`,
+      'Inspektor',
+      `Name: ${header['name']}`,
+      `Ausweis: ${header['licence']}`,
+      'Geprüft',
+      `Dach: ${box(header['checks_roof'])}`,
+      `Elektrik: ${box(header['checks_wiring'])}`,
+      `Heizkessel: ${box(header['checks_boiler'])}`,
+      'Zustand',
+      `Sicherheit: ${header['condition_safety']}`,
+      'Befunde',
+      `Zusammenfassung: ${header['summary']}`,
+    ]
+    expect(verify(fixtureOf('site-visit', document, { maxPagesExpected: 1, exactText: ['Site visit', ...answers, '1 / 1'] }), pdf)).toEqual([])
+    expect([header['startedAt'], header['condition_cleanliness']]).toEqual([null, null])
+    for (const label of ['Begonnen um:', 'Sauberkeit:']) expect(startingWith(pdf, label).map((line) => line.text)).toEqual([label])
+    expect(rows.map((finding) => startingWith(pdf, finding['ref'] as string).map((line) => line.text))).toEqual(rows.map((finding) => [row(finding)]))
+  }, TIMEOUT)
+
+  // A page break that lost a finding or printed one twice, or a page that
+  // continued the table without its headers, would print a visit of many
+  // findings wrong past its first page, where one page of them never
+  // breaks. So 80 findings: every finding once and in order, the column
+  // headers again on each page, and every page saying which of how many it
+  // is.
+  test('prints a visit of 80 findings over pages, every row once, the header on each page, and n / N', async () => {
+    const many = Array.from({ length: 80 }, (_, index) => ({ ...(rows[index % rows.length] as Record<string, string | boolean>), ref: `F-${String(index + 1).padStart(2, '0')}` }))
+    const document = resolved(SITE_VISIT_STARTER, { ...data, detail: many, completeness: { complete: true, captured: many.length } })
+    const pdf = await printed(document)
+    expect(verify(fixtureOf('site-visit-80', document, { minPagesExpected: 2, maxPagesExpected: 5 }), pdf)).toEqual([])
+    expect(pdf.pages.map((page) => pageLines(page).at(-1)?.text)).toEqual(pdf.pages.map((page) => `${page.number} / ${pdf.pages.length}`))
+    expect(many.map((finding) => startingWith(pdf, finding['ref'] as string).map((line) => line.text))).toEqual(many.map((finding) => [row(finding)]))
   }, TIMEOUT)
 })

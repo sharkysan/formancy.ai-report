@@ -4,9 +4,14 @@ Formancy Report's form bridge. It reads a report's data from a
 [formancy](https://github.com/sharkysan/formancy.ai) form's submissions,
 each against the exact form version that collected it, as the host hands
 them over, and hands over the data `@formancy/report-runtime` renders
-from, or every reason it will not. No framework, no Node, no network: the
+from, or every reason it will not. And it starts a report from a form
+version: a first draft that names the version and reads its submissions,
+with notes of what it left out. No framework, no Node, no network: the
 bridge fetches nothing. What it decides, and why, is decision
-[0042](../../docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md).
+[0042](../../docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)
+for reading and
+[0045](../../docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)
+for generating.
 
 **The host hands the documents over.** For a report of one submission,
 the form version the submission answered and the submission, `{ id, data
@@ -141,6 +146,87 @@ its keys as much as its values, stands at the field's own path. A read
 takes time linear in what it is handed, each version's scopes and option
 lists indexed once (`linear.test.ts`).
 
+## Start a report from a form
+
+```ts
+import { generateReport } from '@formancy/report-forms'
+import type { Generated } from '@formancy/report-forms'
+
+const draft: Generated = generateReport(visitForm, { id: 'site-visit-draft', locale: 'de-CH', detail: { kind: 'repeater', repeater: 'findings' } })
+if (!draft.ok) throw new Error(draft.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
+const assumed = draft.notes.map((note) => `${note.code} at ${note.path}`)
+const draftVisit = readSubmission(draft.report, { form: visitForm, submission: { id: visitId, data: visitData } })
+```
+
+The install gate runs these lines too (`scripts/readme-example.test.mjs`).
+`generateReport(form, { id, locale, detail? })` reads the version as a
+submission's is read -- validated by the pinned `@formancy/spec`, named by
+the hash computed of it -- and writes a report a person starts from:
+
+- **In model order**, the version's own order of its fields; a layout the
+  version names is an arrangement for filling it in, and is not followed.
+- **A line for each answer**: its label, from the version in `locale`,
+  and its value, a date and an instant in the report's locale, a decimal
+  to the places its step and its least value have, a yes or a no as a
+  box, `[x]` or `[ ]`. A label's white space is one space; one longer
+  than a field's label holds prints whole on its line, and the field is
+  labelled shorter.
+- **A group is a section** headed by its label, as deep as the format
+  nests sections; a deeper one stands in the section around it. A matrix
+  and ticked boxes are a section of a line a row or an option.
+- **A page is nothing**: it is a step of filling the form in, never a page
+  break.
+- **One table**: `detail: { kind: 'repeater', repeater }` makes the rows of
+  the repeater at that data path the table, where the repeater stands, a
+  column for each field of its rows, in its grid's order where it is one;
+  `{ kind: 'submissions' }` one row per submission, with no header. Every
+  other repeater is left out, said; without `detail`, every one.
+- **A page that gives the table room**: A4, portrait for a table of up
+  to six columns and landscape, said, for up to nine, each column 80 pt,
+  which holds a heading's word of 72 pt in the renderer's Roboto
+  (`generate-print.test.ts`). The renderer breaks no word in a cell, so
+  a wider word of a heading or an answer is refused when the draft
+  prints.
+- **The pages counted** in the footer, `1 / 2`, in no language's words.
+- **The version named**: `provenance` is `{ kind: 'form', form, formHash }`,
+  the hash computed of the version handed over.
+- **The binding written**, so that `readSubmission` reads a submission of
+  that version into the draft. A field is not nullable only where the
+  version proves it always answered: required, and no `visible` rule on
+  it, its group or its repeater, and no `skip` rule on its page.
+
+The same version and the same options give the same report, to its
+`reportHash` (`generate.test.ts`), and a version that differs only in what
+the report does not hold -- a choice's labels, read when a submission is --
+gives the same report naming another version. Nothing of the draft is
+kept as a base: a later version of the form will be reviewed against the
+report itself, which is later work.
+
+**The notes** list, in model order, by a code from `NOTE_CODES` and the
+field's place in the form, what the draft left out -- a static text, a
+file, a signature, a ranking, ticked boxes whose options a deployment
+resolves or that offer none, a repeater the table does not read -- and
+what it assumed: each number's reading, each box, a time of day and a
+rich text printed as text, a hidden field printed though the person never
+saw it, a choice that prints its value or the host's labels, a field
+labelled by its key and a row by its value, a label in the default
+language's words, a label longer than a field's, a field declared always
+answered, a landscape page, a blank title, labels in the form's default
+language, layouts not followed, pages not broken.
+
+**Refused, never cut to fit**: a form whose draft would hold more fields
+than a dataset does (`MAX_DATASET_FIELDS`), more columns than a landscape
+page gives room (`too-many-columns`) or more components than a region, a
+column headed longer than a field's label, a label holding a character no
+font draws, a field deeper than a binding's path reaches, a matrix row or
+an option whose field's key leaves no room for an id, two fields that
+would share an id -- never renamed by likeness to tell them apart -- and a
+form or a repeater holding nothing a report prints. A member's id is its
+field's key and its value where every member's value is a field key, and
+its place for every member where one is not. The form is untrusted, read
+as a submission's version is, its notes and errors quoting none of its
+labels, values or locales.
+
 ## What it does not do
 
 - **Fetch.** Nothing here reaches the network. formancy 0.7.0's server has
@@ -152,7 +238,11 @@ lists indexed once (`linear.test.ts`).
   apart.
 - **Review a new version.** A version that moved a field the report reads
   is refused until the report is changed; the review that lifts it is
-  later work.
+  later work. A generated draft keeps no base to merge a new version
+  into, and nothing regenerates a report.
+- **Lay a draft out for print.** A generated report is a first draft, a
+  line for each answer under the form's own title; nobody would print it
+  as it is, and an author makes it the report.
 - **Print a file or a signature.** Both are refused until the host can
   approve them as image assets.
 - **Read a yes-or-no radio as a boolean.** A radio prints its label or its

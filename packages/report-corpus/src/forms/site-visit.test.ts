@@ -1,6 +1,7 @@
 import { diagnose } from '@formancy/report-core'
 import { checkReport } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
+import { SITE_VISIT_STARTER, SITE_VISIT_STARTER_OPTIONS } from '../starters/site-visit.js'
 import { SITE_VISIT_HIGH, SITE_VISIT_REPORT, SITE_VISIT_SUBMISSION_V1, SITE_VISIT_SUBMISSION_V2, SITE_VISIT_V1, SITE_VISIT_V2 } from './site-visit.js'
 
 /**
@@ -40,5 +41,21 @@ describe('the site visit', () => {
     const rows = SITE_VISIT_SUBMISSION_V1.data['findings'] as readonly { severity: string }[]
     expect(rows.filter((row) => row.severity === 'high').length).toBeGreaterThan(0)
     expect(SITE_VISIT_SUBMISSION_V1.id).not.toBe(SITE_VISIT_SUBMISSION_V2.id)
+  })
+
+  // The starter generated from version 2 (0045) prints a visit version 2
+  // collected, and names that one version twice: in its provenance, the
+  // version it was made from, and in its data's source, the version that
+  // collected the visit. Two hashes that differed would be a draft printing
+  // another version's visit. That the hash is version 2's, and that the
+  // starter is the generator's draft, is report-forms' starter.test.ts to
+  // hold: the corpus does not depend on @formancy/spec or the bridge.
+  test('has a starter generated from version 2 that prints a version-2 visit, naming that version twice', () => {
+    const { report, data } = SITE_VISIT_STARTER
+    const source = data.source?.provider === 'formancy-form' ? data.source.submissions : []
+    expect(source.map(({ id, form }) => [id, form])).toEqual([[SITE_VISIT_SUBMISSION_V2.id, SITE_VISIT_V2['id']]])
+    expect(report.provenance).toEqual({ kind: 'form', form: SITE_VISIT_V2['id'], formHash: source[0]?.formHash })
+    expect(SITE_VISIT_STARTER_OPTIONS).toEqual({ id: SITE_VISIT_STARTER.id, locale: report.locale, detail: { kind: 'repeater', repeater: 'findings' } })
+    expect(data.detail).toHaveLength((SITE_VISIT_SUBMISSION_V2.data['findings'] as readonly unknown[]).length)
   })
 })

@@ -4,4 +4,4 @@
 	[PEPPOL-EN16931-R008]-Document MUST not contain empty elements. (still status warning)
 [main] WARN org.mustangproject.validator.ZUGFeRDValidator - Warning 4: 
 	[PEPPOL-EN16931-R008]-Document MUST not contain empty elements. (still status warning) [ID PEPPOL-EN16931-R008] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)
-[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:valid Signature:null Checksum:207DC8459CAA4D7D9E42761B2B828311DA42CB9B Profile:urn:cen.eu:en16931:2017 Version:2 Took:2125ms Errors:[4] ErrorIDs: [PEPPOL-EN16931-R008]
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:valid Signature:null Checksum:207DC8459CAA4D7D9E42761B2B828311DA42CB9B Profile:urn:cen.eu:en16931:2017 Version:2 Took:2537ms Errors:[4] ErrorIDs: [PEPPOL-EN16931-R008]

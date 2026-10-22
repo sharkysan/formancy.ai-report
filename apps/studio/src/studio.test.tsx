@@ -340,7 +340,7 @@ describe('the Studio', () => {
     expect(subscriptions(left.session)).toBe(1)
     await user.selectOptions(picker(), 'Service inspection')
     await waitFor(() => expect(title().value).toBe('Kept'))
-    expect(within(picker()).getAllByRole('option').map((option) => option.textContent)).toEqual(['Service inspection', 'Quotation', 'Grouped equipment', 'Invoice', 'Euro invoice', 'Blank'])
+    expect(within(picker()).getAllByRole('option').map((option) => option.textContent)).toEqual(['Service inspection', 'Quotation', 'Grouped equipment', 'Invoice', 'Euro invoice', 'Site visit', 'Blank'])
   })
 
   // Final runs a final render, which refuses what a preview shows with a

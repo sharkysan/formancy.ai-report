@@ -614,3 +614,38 @@ A version that moved, removed or retyped a field the report reads is
 refused for every submission of it until the report is changed; one that
 touched nothing the report reads prints, and a field it added is never
 read by itself.
+
+## 6.13 A report started from a formancy form version
+
+```
+host: a form version, and what the person asks for: an id, a locale, the table
+   │
+   ▼
+generateReport(form, { id, locale, detail? })
+   ├─ the options an id and a locale report-spec takes, a detail a repeater's path
+   │  or one row per submission, and nothing else?
+   ├─ the form read as 6.12 reads one: copied, validated, named by its hash?
+   ├─ the detail's repeater found at its path, as a read finds it?
+   │       any no ──▶ refused, each reason a code and a JSON Pointer
+   ▼
+the version's model walked in order: a line per answer, a section per group,
+a page looked through, the repeater the table, every other part listed in a note
+   │       past the format's bounds, a label no font draws, or nothing to print
+   │       ──▶ refused, never cut to fit
+   ▼
+the page: portrait for a table of up to six columns of 80 pt, landscape, said,
+for up to nine
+   │       wider than a landscape page ──▶ refused, never cut to its first columns
+   ▼
+{ report, notes }: the provenance naming the version, the binding written,
+a field never null only where the version proves it answered
+   │
+   ▼
+readSubmission(report, a submission of that version) ──▶ as in 6.12
+```
+
+The same version and options give the same report, to its hash; a later
+version is read into it, or refused, as any version is, and nothing
+regenerates the report: no base is kept beside it to merge one into
+([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)). The Studio opens the corpus's site visit, generated from its
+version 2, as a starter.

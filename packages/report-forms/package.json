@@ -1,7 +1,7 @@
 {
   "name": "@formancy/report-forms",
   "version": "0.2.0",
-  "description": "Formancy Report's formancy form bridge: reads a report's data from a formancy form's submissions, against the exact form version that collected each, as the host hands them over. No framework, no Node, no network.",
+  "description": "Formancy Report's formancy form bridge: reads a report's data from a formancy form's submissions, against the exact form version that collected each, as the host hands them over, and generates a first-draft report from a form version. No framework, no Node, no network.",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,

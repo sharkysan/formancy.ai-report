@@ -6,4 +6,4 @@
 [main] INFO com.helger.schematron.api.xslt.AbstractSchematronXSLTBasedResource - Applying Schematron XSLT on XML instance
 [main] INFO org.mustangproject.validator.XMLValidator - FailedAssert [BR-DE-15] Das Element "Buyer reference" (BT-10) muss übermittelt werden.
 [main] ERROR org.mustangproject.validator.ZUGFeRDValidator - Error 27: [BR-DE-15] Das Element "Buyer reference" (BT-10) muss übermittelt werden. [ID BR-DE-15] from /xslt/XR_30/XRechnung-CII-validation.xslt)
-[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:DAD4855E770C37F6E28CC5C346864672DFE214F2 Profile:urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0 Version:2 Took:2079ms Errors:[27] ErrorIDs: [BR-DE-15]
+[main] INFO org.mustangproject.validator.ZUGFeRDValidator - Parsed PDF:absent XML:invalid Signature:null Checksum:DAD4855E770C37F6E28CC5C346864672DFE214F2 Profile:urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0 Version:2 Took:2656ms Errors:[27] ErrorIDs: [BR-DE-15]

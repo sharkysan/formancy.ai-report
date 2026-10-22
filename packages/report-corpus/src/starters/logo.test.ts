@@ -42,8 +42,8 @@ const MARKED = [
   'e-invoice-addressed',
 ]
 
-/** The reports that are no firm's letter, and print no mark: a technician's visit and a register. */
-const UNMARKED = ['service-inspection', 'grouped-equipment']
+/** The reports that are no firm's letter, and print no mark: a technician's visit, a register, and the draft generated from the site visit form. */
+const UNMARKED = ['service-inspection', 'grouped-equipment', 'site-visit']
 
 type Component = ReportDefinition['regions']['body'][number]
 

@@ -16,6 +16,7 @@ import {
   rasterPage,
   readPdf,
   SERVICE_INSPECTION,
+  SITE_VISIT_STARTER,
   starterImages,
   type Drawing,
   type Starter,
@@ -82,6 +83,13 @@ export const PICTURES: readonly PictureSpec[] = [
     page: 1,
     caption: "The euro invoice starter, a German Rechnung under the firm's mark: its line items in euro, then Nettobetrag, Umsatzsteuer 19 % and Rechnungsbetrag 1.132,44 €, and under them the Bankverbindung, IBAN: DE83 0123 4567 0012 3456 78, beside the EPC QR code that pays it",
     shows: ['Rechnung', 'Nettobetrag', 'Umsatzsteuer 19 %', 'Rechnungsbetrag 1.132,44 €', 'Bankverbindung', 'IBAN: DE83 0123 4567 0012 3456 78'],
+  },
+  {
+    file: 'starter-site-visit.png',
+    starter: SITE_VISIT_STARTER,
+    page: 1,
+    caption: 'The site visit starter, generated from version 2 of a formancy form: a line for each answer, from Objekt: Bahnhofplatz 1, 3011 Bern, the inspector, the ticked boxes and the matrix under their headings, Elektrik: [x] among them, the findings one table under Befunde, and the page counted, 1 / 1',
+    shows: ['Objekt: Bahnhofplatz 1, 3011 Bern', 'Elektrik: [x]', 'Befunde', '1 / 1'],
   },
 ]
 
