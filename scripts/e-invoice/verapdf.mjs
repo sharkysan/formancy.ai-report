@@ -86,7 +86,8 @@ export function readVeraPdf(stdout) {
         compliant: result.compliant,
         passedRules: result.details?.passedRules,
         failedRules: result.details?.failedRules,
-        failed: (result.details?.ruleSummaries ?? []).filter((rule) => rule.status === 'failed').map((rule) => `${String(rule.clause)}-${String(rule.testNumber)}`),
+        // Sorted: veraPDF lists a job's rule summaries in no fixed order from one run to the next.
+        failed: (result.details?.ruleSummaries ?? []).filter((rule) => rule.status === 'failed').map((rule) => `${String(rule.clause)}-${String(rule.testNumber)}`).sort(),
       })),
       embedded: shownFile(job),
     })),

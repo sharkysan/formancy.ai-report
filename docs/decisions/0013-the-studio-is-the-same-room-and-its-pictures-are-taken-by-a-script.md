@@ -8,7 +8,9 @@
   refuses a copy;
   extended by [0033](0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md),
   under which the Studio keeps the images a person adds in the page, and
-  its browser gate adds one through the platform's file chooser
+  its browser gate adds one through the platform's file chooser;
+  extended by [0045](0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md), under which its picker opens a starter
+  generated from a formancy form
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -167,6 +169,18 @@ variables.
 **What it forecloses.** A palette of the Studio's own, a colour set on the
 builder by any rule but a `--wb-*` variable, and a hand-taken README
 picture.
+
+**Added 2026-10-22: a starter generated from a form.** [0045](0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)
+adds the corpus's site visit, the report `generateReport` writes of a
+formancy form's version 2 and a visit read into it, to the starters, and
+the picker offers it as Site visit after the euro invoice. It is held as
+every starter is: its PDF drawn on white by PDF.js with the lines
+`docs/images/pictures.json` records, in both builders, by the browser
+gate; one accessible tree in both builders, in three languages, by
+`parity.test.tsx`. Every README picture's bar lists the picker's
+starters, so `node scripts/pictures.mjs` took the pictures whose text
+changed again; their pixels did not change, the closed picker showing
+one starter, and `captured.json` holds the new list.
 
 ## Alternatives considered
 

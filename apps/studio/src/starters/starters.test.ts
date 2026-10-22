@@ -14,7 +14,7 @@ describe("the Studio's starters", () => {
   test('are the corpus’s, in its order, and a blank report last', () => {
     const listed = studioStarters(decoded.starters)
     expect(listed.map((starter) => starter.id)).toEqual([...STARTERS.map((starter) => starter.id), 'blank'])
-    expect(listed.map(starterLabel)).toEqual(['Service inspection', 'Quotation', 'Grouped equipment', 'Invoice', 'Euro invoice', 'Blank'])
+    expect(listed.map(starterLabel)).toEqual(['Service inspection', 'Quotation', 'Grouped equipment', 'Invoice', 'Euro invoice', 'Site visit', 'Blank'])
   })
 
   // A blank report with no datasets still previews: an empty A4 page, not a

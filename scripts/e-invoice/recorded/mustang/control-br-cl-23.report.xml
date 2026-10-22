@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="control-br-cl-23.xml" datetime="2026-10-21 19:52:33">
+<validation filename="control-br-cl-23.xml" datetime="2026-10-22 04:43:54">
   <xml>
     <info>
       <version>2</version>
@@ -10,7 +10,7 @@
         <fired>179</fired>
         <failed>1</failed>
       </rules>
-      <duration unit="ms">1999</duration>
+      <duration unit="ms">2526</duration>
     </info>
     <messages>
       <error type="4" location="/*:CrossIndustryInvoice[namespace-uri()='urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'][1]/*:SupplyChainTradeTransaction[namespace-uri()='urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100'][1]/*:IncludedSupplyChainTradeLineItem[namespace-uri()='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'][1]/*:SpecifiedLineTradeDelivery[namespace-uri()='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'][1]/*:BilledQuantity[namespace-uri()='urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100'][1]" criterion="string-length($codeValue8)=0 or document('FACTUR-X_EN16931_codedb.xml')/codedb/cl[@id=8]/enumeration[@value=$codeValue8]">Value of '@unitCode' is not allowed. [ID FX-SCH-A-000613] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)</error> 

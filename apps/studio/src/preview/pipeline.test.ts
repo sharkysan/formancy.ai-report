@@ -51,7 +51,7 @@ describe('the preview pipeline', () => {
     if (outcome.kind !== 'printed') throw new Error(`${id} was not printed: ${JSON.stringify(outcome)}`)
     const pdf = await readPdf(outcome.pdf)
     expect(pdf.pages.length).toBeGreaterThan(0)
-    const titles: Readonly<Record<string, string>> = { 'service-inspection': 'Service inspection', quotation: 'Offerte', 'grouped-equipment': 'Equipment register', invoice: 'Rechnung', 'euro-invoice': 'Rechnung' }
+    const titles: Readonly<Record<string, string>> = { 'service-inspection': 'Service inspection', quotation: 'Offerte', 'grouped-equipment': 'Equipment register', invoice: 'Rechnung', 'euro-invoice': 'Rechnung', 'site-visit': 'Site visit' }
     if (id !== 'blank') expect(pdf.pages.flatMap((page) => page.items.map((item) => item.text)).join(' ')).toContain(titles[id] ?? `(no title for ${id})`)
     expect(outcome.manifest.mode).toBe('preview')
   })

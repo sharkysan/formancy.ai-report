@@ -137,6 +137,18 @@ that version in the report's locale, and the data host-captured, its
 source naming each submission and its version; the binding is
 report-spec's, on the dataset contract (`validate-form-binding.ts`)
 ([0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+Its `generateReport` starts a report from a form version: a first draft in
+model order (`generate-walk.ts`), each field typed by `KINDS`, bound as a
+read finds it and never null only where the version proves it answered
+(`generate-fields.ts`), its labels read as formancy reads them, on one
+line, and refused where no font draws them (`generate-labels.ts`), laid
+out a line per answer and a section per group on an A4 page that gives
+each of its table's columns `MIN_COLUMN_WIDTH`, landscape where portrait
+does not (`generate-layout.ts`), the version named by its hash, and
+`notes` by `NOTE_CODES` of what it left out and assumed, quoting none of
+the form's words; what the format or the page cannot hold is refused,
+never cut to fit
+([0045](docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).
 `@formancy/report-builder-core` is the editor model over that session, and
 `@formancy/report-builder-react` and `@formancy/report-builder-angular` render
 it natively; `BUILDER_SCENARIOS` in the core is what both must do
@@ -153,7 +165,10 @@ checks that prove a rendered PDF against them, a rasteriser for page images,
 pixels PDF.js draws, the drawings an SVG image paints and the ink around
 them, the e-invoice samples and a reader of their XML by
 namespace, a formancy form in two versions with submissions of each and
-a report of them (`forms/site-visit.ts`), `expectation`, which derives
+a report of them (`forms/site-visit.ts`), the site visit starter the
+generator writes of its version 2, held as data and held to the generator
+by its hash in report-forms' `starter.test.ts` (`starters/site-visit.ts`),
+`expectation`, which derives
 what a document's PDF must show, `readPdfObjects` and `readXmp`, which read what a PDF embeds
 and says of itself with pdf-lib and saxes, `readPdfNumbers`, every number
 a PDF writes, content streams included, `inflatedDigest`, a PDF's
@@ -189,7 +204,8 @@ before it:
    Data's contracts, at the exact release it was built against (0016);
    `scripts/dependency-licences.mjs` refuses Data reached from any other.
 8. `report-forms` -- formancy's forms: a submission read against the
-   version that collected it (0042); report-spec, report-runtime and
+   version that collected it (0042), and a report generated from a version
+   (0045); report-spec, report-runtime and
    `@formancy/spec` at the exact release the repository pins, and never
    Formancy Data's contracts.
 

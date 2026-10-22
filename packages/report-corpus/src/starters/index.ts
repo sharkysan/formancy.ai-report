@@ -5,6 +5,7 @@ import { INVOICE } from './invoice.js'
 import { LOGO } from './logo.js'
 import { QUOTATION } from './quotation.js'
 import { INSPECTION_PHOTO, SERVICE_INSPECTION } from './service-inspection.js'
+import { SITE_VISIT_STARTER } from './site-visit.js'
 import type { Starter, StarterImage } from './starter.js'
 
 export { addressedData, E_INVOICE, E_INVOICE_ADDRESSED, E_INVOICE_EXEMPT_PAID, E_INVOICE_REVERSE_CHARGE, E_INVOICE_SAMPLES, eInvoiceData, exemptPaidData, reverseChargeData } from './e-invoice.js'
@@ -14,11 +15,12 @@ export { INVOICE, INVOICE_EN, INVOICE_FR, INVOICE_IT, INVOICE_SAMPLES, invoiceDa
 export { LETTERHEAD, LOGO, LOGO_ASSET } from './logo.js'
 export { lineAmount, QUOTATION, quotationData, quotationLines } from './quotation.js'
 export { INSPECTION_PHOTO, inspectionData, inspectionNotes, SERVICE_INSPECTION } from './service-inspection.js'
+export { SITE_VISIT_STARTER, SITE_VISIT_STARTER_OPTIONS } from './site-visit.js'
 export type { Starter, StarterImage } from './starter.js'
 export { XRECHNUNG_SAMPLE, XRECHNUNG_SAMPLES, xrechnungData } from './xrechnung.js'
 
-/** The three starters of plan 7, in the order the plan lists them, then the invoice with its QR-bill and the invoice with its EPC code. */
-export const STARTERS: readonly Starter[] = [SERVICE_INSPECTION, QUOTATION, GROUPED_EQUIPMENT, INVOICE, EURO_INVOICE]
+/** The three starters of plan 7, in the order the plan lists them, then the invoice with its QR-bill, the invoice with its EPC code, and the report generated from a formancy form (0045). */
+export const STARTERS: readonly Starter[] = [SERVICE_INSPECTION, QUOTATION, GROUPED_EQUIPMENT, INVOICE, EURO_INVOICE, SITE_VISIT_STARTER]
 
 /** Every approved asset a starter's or a sample's data or template names, with the bytes a host would hold for it: the inspection's photo, and the firm's mark. */
 export const STARTER_IMAGES: readonly StarterImage[] = [INSPECTION_PHOTO, LOGO]

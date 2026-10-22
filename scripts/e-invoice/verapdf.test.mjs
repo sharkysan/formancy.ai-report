@@ -73,6 +73,19 @@ describe('reading veraPDF', () => {
     expect(readVeraPdf(JSON.stringify(posix)).jobs[0].file).toBe('e-invoice.pdf')
   })
 
+  // veraPDF lists a job's rule summaries in no fixed order from one run to
+  // the next: two recordings of the same control listed its two failed
+  // rules each way round. Read in that order, the rules a recording holds
+  // would differ with no file changed; read sorted, they are the same.
+  test('reads a job’s failed rules sorted, in whatever order veraPDF lists them', () => {
+    const plain = (parsed) => readVeraPdf(JSON.stringify(parsed)).jobs.find((each) => each.file === 'control-plain.pdf').results[0].failed
+    const listed = report()
+    const reversed = report()
+    job(reversed, 'control-plain.pdf').validationResult[0].details.ruleSummaries.reverse()
+    expect(plain(listed)).toEqual(['6.2.4.3-2', '6.6.2.1-1'])
+    expect(plain(reversed)).toEqual(['6.2.4.3-2', '6.6.2.1-1'])
+  })
+
   // A run that crashed mid-write leaves no report; read as an empty one it
   // would be a pass.
   test('refuses a report that is not one', () => {
@@ -102,6 +115,7 @@ describe('veraPDF’s verdict', () => {
       ['variant-grouped-equipment.pdf', 'as expected', []],
       ['variant-invoice.pdf', 'as expected', []],
       ['variant-euro-invoice.pdf', 'as expected', []],
+      ['variant-site-visit.pdf', 'as expected', []],
       ['control-plain.pdf', 'as expected', ['6.2.4.3-2', '6.6.2.1-1']],
       ['control-pdfa.pdf', 'as expected', ['6.2.4.3-2']],
       ['control-xmp.pdf', 'as expected', []],

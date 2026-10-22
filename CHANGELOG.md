@@ -10,6 +10,94 @@ later.
 
 ## Unreleased
 
+**A person starts a report from a formancy form, and it says which form
+version it was made from**
+([0045](docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).
+The bridge could read a form's submissions into a report (0042), and
+nothing wrote that report: its binding, field by field, was written by
+hand. `@formancy/report-forms` now generates one.
+- `generateReport(form, { id, locale, detail? })` reads the version as a
+  submission's is read -- validated by the pinned `@formancy/spec`, named
+  by the hash computed of it -- and writes a first draft in the form's
+  model order, never a layout it names: the form's title, a line of label
+  and value for each answer, its label from the version in `locale`, a
+  section for each group, a matrix and ticked boxes, nothing for a page,
+  which is a step of filling the form in and never a page break, the
+  table over the repeater `detail` names, `{ kind: 'repeater',
+  repeater }`, or one row per submission, `{ kind: 'submissions' }`, and
+  the pages counted in the footer. A yes or a no prints as a box, `[x]`
+  or `[ ]`: the format has no word for yes in a report's language, and
+  the generator invents none. A date prints in the report's locale, a
+  decimal to the places its step and its least value have.
+- **The table stands on a page that gives its columns room.** The
+  renderer breaks no word in a table's cell, a heading's included, and a
+  draft of the site visit read one row per submission passed every
+  check and was refused when it printed, at its fourth column of
+  thirteen. So a table of up to six columns stands on a portrait A4
+  page and of up to nine on a landscape one, said, each column 80 pt,
+  which holds a heading's word of 72 pt, measured; a table of more is
+  refused. A wider word, a heading's or an answer's, is still the
+  renderer's to refuse when the draft prints.
+- **It names the version and reads its submissions.** Its provenance is
+  `{ kind: 'form', form, formHash }`, the hash computed here, and its
+  datasets carry the binding 0042 reads, so `readSubmission` reads a
+  submission of that version into it. A field is declared never null
+  only where the version proves it answered: required, and no visible
+  rule on it, its group or its repeater, and no skip rule on its page,
+  since formancy prunes what a rule hides.
+- **The same version and options give the same report**, to its
+  `reportHash`; a version that differs only in what the draft does not
+  hold, an option's label, gives the same report naming that version.
+- **What it left out and assumed is listed**, in `notes`, each a code of
+  `NOTE_CODES`, the place in the form and a sentence: a static text, a
+  file, a signature, a ranking, ticked boxes of nothing, a repeater the
+  table does not read; each number's reading, each box, a hidden field
+  the person never saw, labels in the form's default language, a label
+  had from a key or a value, a landscape page, a blank title, layouts
+  not followed, fields declared always answered. No note quotes the
+  form's words: a label, an option, a value or a locale may name a
+  person, and a note ends up in a log.
+- **Its labels, as one line prints them.** A run of white space in a
+  label is one space; a label longer than a field's label holds prints
+  whole on its line, and the field is labelled shorter, said, where the
+  first draft refused the whole form for one long consent question.
+- **Refused, never cut to fit**: a form whose draft would declare more
+  than 64 fields, a table wider than a page, more components than a
+  region holds, a column headed longer than 200 characters, a label of
+  a character no font draws, a field past a binding's 16 keys, a member
+  whose field's key leaves no room for its id, two fields of one id --
+  never renamed by likeness -- and a form or a repeater holding nothing
+  a report prints, each by a code of its own. A member's id is its
+  field's key and its value only where every member's value is a field
+  key, and its place for every member otherwise, so an id of a value and
+  one of a place never meet in one field. The form is untrusted, read as
+  a submission's version is, a grid's columns ordered in time linear in
+  them: formancy's own ordering took 40.7 s for the most a form may
+  hold.
+- **A refusal of the form names no catalogue's words.** formancy's
+  validator points into a form by what it holds, a message's id among
+  it; a refusal of a read or a generation is named at where it points,
+  cut before a catalogue's locale or a message's id, which may be a
+  name.
+- No generated base is kept: a later version of the form will be
+  reviewed against the report itself, the plan's FB-Q6.
+
+The Studio gains a starter, **Site visit**: the draft of the corpus's
+site visit form, version 2, in Swiss German, its table over the
+findings, with a version-2 visit read into it. Its PDF is held like
+every starter's, on the page by PDF.js and in the browser gate in both
+builders, and the e-invoice gate draws it as a variant; the README shows
+its picture, and the pictures of the Studio were taken again by their
+script, since each lists the picker's starters. report-forms' tests hold
+the corpus's copy of the draft equal, by its hash, to what the generator
+writes. The bridge's `readParts` moved to `json.ts`, and `planRepeater`
+hands over the repeater it found; neither is exported. The e-invoice
+gate's reader of veraPDF's report sorts a job's failed rules, which
+veraPDF lists in no fixed order from one run to the next: recorded
+again for the new variant, a control's two rules came the other way
+round, and the judges' test, which compares them in order, failed with
+no file changed.
+
 **A report's data can be read from a formancy form's submission, against
 the exact form version that collected it** ([0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)). A report
 printed from a formancy form had nothing between the form and the

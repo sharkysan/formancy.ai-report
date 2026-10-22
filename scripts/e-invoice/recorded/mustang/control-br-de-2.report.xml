@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="control-br-de-2.xml" datetime="2026-10-21 19:52:40">
+<validation filename="control-br-de-2.xml" datetime="2026-10-22 04:44:03">
   <xml>
     <info>
       <version>2</version>
@@ -10,7 +10,7 @@
         <fired>24</fired>
         <failed>1</failed>
       </rules>
-      <duration unit="ms">2037</duration>
+      <duration unit="ms">3042</duration>
     </info>
     <messages>
       <error type="27" location="/rsm:CrossIndustryInvoice/rsm:SupplyChainTradeTransaction[1]/ram:ApplicableHeaderTradeAgreement[1]/ram:SellerTradeParty[1]" criterion="ram:DefinedTradeContact">[BR-DE-2] Die Gruppe "SELLER CONTACT" (BG-6) muss übermittelt werden. [ID BR-DE-2] from /xslt/XR_30/XRechnung-CII-validation.xslt)</error> 

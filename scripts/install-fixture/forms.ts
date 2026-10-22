@@ -5,14 +5,18 @@
  * from that version's catalogue in the report's language, and its manifest
  * naming the submission and the version by the hash the bridge computed;
  * two submissions read by readSubmissions, one a row, the manifest naming
- * both; then a version that moved a field the report reads, and a hash the
- * host gives that is not the form's, each refused. consume.ts runs it and prints
- * what it returns. It lives apart because it changes when the bridge does,
- * and the rest of consume.ts does not. The packages/report-forms README's
- * example is these lines (scripts/readme-example.test.mjs).
+ * both; a report generated from the version (0045), naming it, with its
+ * notes, the submission read into it and rendered; then a version that
+ * moved a field the report reads, and a hash the host gives that is not
+ * the form's, each refused. consume.ts runs it and prints what it returns.
+ * It lives apart because it changes when the bridge does, and the rest of
+ * consume.ts does not. The packages/report-forms README's examples are
+ * these lines (scripts/readme-example.test.mjs).
  */
 import { readSubmission, readSubmissions } from '@formancy/report-forms'
 import type { FormsError, SubmissionRead } from '@formancy/report-forms'
+import { generateReport } from '@formancy/report-forms'
+import type { Generated } from '@formancy/report-forms'
 import { renderPdf } from '@formancy/report-render-pdf'
 import { resolveReport } from '@formancy/report-runtime'
 import type { ReportDefinition } from '@formancy/report-spec'
@@ -144,6 +148,26 @@ export async function formsRead(): Promise<string> {
     throw new Error(`the site visits were not read one a row, each named in the manifest: ${rows} ${listed}`)
   }
 
+  // A report generated from the same version (0045): a first draft that
+  // names the version it was made from, lists what it assumed -- the hours,
+  // a number with no step, printed as their digits -- and reads the visit,
+  // a submission of that version, which renders.
+  const draft: Generated = generateReport(visitForm, { id: 'site-visit-draft', locale: 'de-CH', detail: { kind: 'repeater', repeater: 'findings' } })
+  if (!draft.ok) throw new Error(draft.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
+  const assumed = draft.notes.map((note) => `${note.code} at ${note.path}`)
+  const draftVisit = readSubmission(draft.report, { form: visitForm, submission: { id: visitId, data: visitData } })
+  if (!draftVisit.ok) throw new Error(draftVisit.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
+  const draftPrint = resolveReport(draft.report, draftVisit.data, { mode: 'final', creationDate: '2026-10-22T08:00:00Z' })
+  if (!draftPrint.ok) throw new Error(`the visit read into the generated draft did not resolve: ${draftPrint.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
+  if (JSON.stringify(draft.report.provenance) !== JSON.stringify({ kind: 'form', form: 'site-visit', formHash: schemaHash(visitForm) }) || JSON.stringify(assumed) !== JSON.stringify(['number-decimal at /form/model/fields/3/fields/1'])) {
+    throw new Error(`the generated draft does not name its version, or lists other assumptions: ${JSON.stringify([draft.report.provenance, assumed])}`)
+  }
+  if (JSON.stringify(draftVisit.data.header) !== JSON.stringify({ site: 'Hauptstrasse 12, 3011 Bern', outcome: 'Reparaturen nötig', name: 'Anna Schär' }) || JSON.stringify(draftVisit.data.detail) !== JSON.stringify(visit.data.detail)) {
+    throw new Error(`the visit was not read into the generated draft as its version holds it: ${JSON.stringify([draftVisit.data.header, draftVisit.data.detail])}`)
+  }
+  const draftPdf = await renderPdf(draftPrint.document, { maxPages: 5 })
+  if (new TextDecoder().decode(draftPdf.subarray(0, 5)) !== '%PDF-') throw new Error('the visit read into the generated draft did not render to a PDF')
+
   // A later version that moved the inspector's name out of its group: the
   // report's field is refused for that version, naming it and the hash,
   // until a review lifts it; and a hash the host gives that is not the
@@ -156,5 +180,5 @@ export async function formsRead(): Promise<string> {
   }
   const mismatched = refused(readSubmission(visitReport, { form: visitForm, formHash: schemaHash(moved), submission: { id: visitId, data: visitData } }))
   if (mismatched.map((error) => `${error.code} ${error.path}`).join() !== 'hash-mismatch /formHash') throw new Error(`a hash that is not the form's was not refused: ${JSON.stringify(mismatched)}`)
-  return `the form bridge read a submission of a site visit validated by @formancy/spec against its version, its labels in Swiss German, host-captured, its manifest naming the submission and the version's hash, and it rendered to a ${pdf.length}-byte PDF; it read two visits one a row, the manifest naming both; a version that moved a field it reads, and a hash that is not the form's, were refused`
+  return `the form bridge read a submission of a site visit validated by @formancy/spec against its version, its labels in Swiss German, host-captured, its manifest naming the submission and the version's hash, and it rendered to a ${pdf.length}-byte PDF; it read two visits one a row, the manifest naming both; it generated a draft from the version, naming it, its one assumption listed, read the visit into it and rendered it to a ${draftPdf.length}-byte PDF; a version that moved a field it reads, and a hash that is not the form's, were refused`
 }

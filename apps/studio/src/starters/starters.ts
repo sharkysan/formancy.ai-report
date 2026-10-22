@@ -1,7 +1,8 @@
 /**
  * The reports the Studio opens: the corpus's starters, plan 7's three
- * (R19), the invoice with its QR-bill and the invoice with its EPC QR code,
- * each with its synthetic data, and a blank report to build from nothing.
+ * (R19), the invoice with its QR-bill, the invoice with its EPC QR code and
+ * the site visit generated from a formancy form (0045), each with its
+ * synthetic data, and a blank report to build from nothing.
  */
 import { emptyReport } from '@formancy/report-spec'
 import type { StudioStarter } from './codec.js'

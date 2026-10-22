@@ -409,7 +409,16 @@ elements in the page header and footer
 ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)),
 and the renderer's fallback fonts for the scripts Roboto lacks
 ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
-0.3.0's plan names, after the form bridge's read (0042), a report
-generated from a form, the review of a form's new version and its pane in
-both builders, a parameter form written from a report's parameters, and a
-form's photos and signatures printed as approved assets.
+0.3.0's plan names, after the form bridge's read (0042) and a report
+generated from a form ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)), the review of a form's new version and its
+pane in both builders, a parameter form written from a report's
+parameters, and a form's photos and signatures printed as approved
+assets. A generated report is a first draft nobody would print as it is,
+in the form's model order and its title's language, and a form larger
+than the format, or whose table is wider than a landscape page, gives
+none at all; a heading's or an answer's word wider than its column, or a
+label in characters Roboto lacks, is refused only when the draft prints,
+since the generator holds no font; that a draft opens with no warning in
+the editor is held on the Studio's starter alone, report-forms not
+depending on report-core, and review found it false once, for a blank
+title ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).

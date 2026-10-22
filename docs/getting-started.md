@@ -886,7 +886,10 @@ The first release that freezes the format makes it `'1'`.
   report's header and rows from a submission of a formancy form, against
   the exact version that collected it, which your application keeps and
   hands over, and nothing it reads is fetched
-  ([its README](../packages/report-forms/README.md#read-a-submission)).
+  ([its README](../packages/report-forms/README.md#read-a-submission)); and
+  it starts a report from a form version, a first draft bound to that
+  version's submissions, with notes of what it left out and assumed
+  ([Start a report from a form](../packages/report-forms/README.md#start-a-report-from-a-form)).
 - **The package READMEs**, for everything this guide leaves out: the
   commands that edit a report as data, the expressions, groups and formats,
   the builders' keyboard and what each one renders.

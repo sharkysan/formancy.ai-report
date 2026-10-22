@@ -34,6 +34,7 @@ half done behind it. Each layer has its own kind:
 | Renderer | A `RenderRefusal`: `too-many-pages`, `content-too-large`, `invalid-asset`, `cancelled` or `unsupported`, naming the block, table or asset | No PDF ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
 | Provider | Every reason, each with a JSON Pointer | No data ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) |
 | Form bridge | Every reason, each with a stable code and a JSON Pointer into what was handed over or into the report, a field the version cannot fill naming the field and the version's hash | No data ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)) |
+| Report generator | Every reason, each with a stable code and a JSON Pointer into the form or the options: what the format or the page cannot hold, or a label no font draws, by its place, never cut to fit | No report, and no notes ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)) |
 
 **Fail closed** is upstream's rule, and every reader here inherits it
 ([formancy.ai 0022](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0022-fail-open-fail-closed.md)).
@@ -164,7 +165,9 @@ through the Data client the host made, to the server and with the token the
 host chose
 ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
 The form bridge fetches nothing: the host hands each form version and
-submission over ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+submission over ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)),
+and each version a report is generated from, which it reads the same way
+and walks by its model, its notes and its refusals quoting none of the form's words -- no title, label, option, value or locale -- and a pointer formancy's validator writes cut before a catalogue's locale or a message's id ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).
 pdfmake reads no file but the fonts it is given and, for an e-invoice,
 the ICC profile PDFKit reads from its own package, and no address at all,
 which the renderer's tests pin through `fs.readFileSync`
