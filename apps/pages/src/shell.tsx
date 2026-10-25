@@ -153,6 +153,7 @@ export function Shell({ page, children }: { readonly page: PageContext; readonly
               <a href={page.github('CHANGELOG.md')}>{words.changelog}</a>
             </li>
           </ul>
+          <p><a href="https://formancy.ai/legal/">Legal notice</a> · <a href="https://formancy.ai/privacy/">Privacy</a></p>
           {page.group.hl7Notice === true ? (
             <p className="notice" lang={english}>
               {HL7_NOTICE}
