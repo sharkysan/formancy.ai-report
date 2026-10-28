@@ -24,7 +24,9 @@
  * run on a read-only root file system; write one audit line per request
  * whoami answered, holding no token; live through SIGHUP and stop on
  * SIGTERM; and, given a key set file, name its kids when it starts and
- * read it again on SIGHUP. And each public setting it reads -- the rate limit, the trusted
+ * read it again on SIGHUP; keep an author's draft and image in its store
+ * across a restart on the same volume, and save a draft on a read-only
+ * root. And each public setting it reads -- the rate limit, the trusted
  * proxies, the origins -- must change what it does, or stop it, naming the
  * setting, when it is not one.
  *
@@ -54,6 +56,7 @@
  * fails what it waits for, by name.
  */
 import { createHash, createHmac, randomBytes } from 'node:crypto'
+import { isDeepStrictEqual } from 'node:util'
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -94,6 +97,9 @@ export const CHECKS = [
   'SIGHUP leaves a server with one key running',
   'SIGTERM stops it, exit 0',
   'it runs on a read-only root file system',
+  'a draft an author saves is read back after the container restarts on the same volume',
+  'an image an author keeps is read back by its digest',
+  'on a read-only root, it saves a draft into its store',
   'with a key set file, it names the kids it serves under, and SIGHUP reads the file again',
   'FORMANCY_REPORT_RATE_LIMIT=2 answers 401 401 429',
   'FORMANCY_REPORT_RATE_LIMIT=abc stops it, naming the setting',
@@ -159,6 +165,7 @@ const CONFIGURED = {
 const envArgs = (env) => Object.entries(env).flatMap(([name, value]) => ['-e', `${name}=${value}`])
 
 const started = []
+const volumes = []
 const run = String(process.pid)
 /**
  * A container of the image, started detached, its port published on
@@ -171,6 +178,14 @@ function start(label, env, { publish = true, flags = [], files = {} } = {}) {
   must(['create', '--name', name, ...flags, ...(publish ? ['-p', '127.0.0.1::4392'] : []), ...envArgs(env), image])
   for (const [inside, from] of Object.entries(files)) must(['cp', from, `${name}:${inside}`])
   must(['start', name])
+  return name
+}
+
+/** A named volume, made here and removed with the containers, however the gate ends; its name. */
+function volume(label) {
+  const name = `formancy-report-gate-${run}-${String(volumes.length)}-${label}`
+  volumes.push(name)
+  must(['volume', 'create', name])
   return name
 }
 
@@ -204,6 +219,59 @@ async function stopped(name) {
     await sleep(500)
   }
   return { running: must(['inspect', '-f', '{{.State.Running}}', name]) === 'true', code: Number(must(['inspect', '-f', '{{.State.ExitCode}}', name])), output: docker(['logs', name]).output }
+}
+
+/**
+ * The draft slice's requests (0049), each as an author's host sends it to
+ * the server at `base`, so that one function is what a check runs against
+ * a container and what a person can run against a server of their own.
+ * `bearer` is the author's token.
+ */
+const AUTHOR_HEADERS = (bearer) => ({ authorization: `Bearer ${bearer}` })
+
+/** The report a draft check saves: report-spec's blank A4 report, written out, so that the gate needs no package. */
+export const DRAFT_REPORT = {
+  reportSpecVersion: '0',
+  id: 'gate',
+  title: 'Gate report',
+  locale: 'en',
+  page: { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 56.69, bottom: 56.69, left: 56.69 } },
+  styles: [],
+  datasets: {},
+  parameters: [],
+  assets: [],
+  aggregates: [],
+  regions: { reportHeader: [], pageHeader: [], body: [], pageFooter: [], summary: [] },
+  provenance: { kind: 'blank' },
+}
+
+/** Saves `DRAFT_REPORT` as the template `gate`, a create (`If-None-Match: *`); throws unless the server answers 201, revision 1. */
+export async function saveFirstDraft(base, bearer) {
+  const answer = await request(`${base}/v1/templates/gate/draft`, { method: 'PUT', headers: { ...AUTHOR_HEADERS(bearer), 'content-type': 'application/json', 'if-none-match': '*' }, body: JSON.stringify(DRAFT_REPORT) })
+  const body = await answer.text()
+  expect(answer.status === 201 && answer.headers.get('etag') === '"1"' && body === '{"template":"gate","revision":1}', `a first save answered ${String(answer.status)} ${answer.headers.get('etag')} ${body}`)
+}
+
+/** Reads the template `gate`'s draft; throws unless it is revision 1 and its report is `DRAFT_REPORT`, as saved. */
+export async function expectFirstDraft(base, bearer) {
+  const answer = await request(`${base}/v1/templates/gate/draft`, { headers: AUTHOR_HEADERS(bearer) })
+  const text = await answer.text()
+  expect(answer.status === 200 && answer.headers.get('etag') === '"1"', `reading the draft answered ${String(answer.status)} ${answer.headers.get('etag')} ${text.slice(0, 200)}`)
+  const draft = JSON.parse(text)
+  expect(draft.template === 'gate' && draft.revision === 1, `the draft read back was ${draft.template} at revision ${String(draft.revision)}`)
+  expect(isDeepStrictEqual(draft.report, DRAFT_REPORT), 'the report read back is not the report saved')
+}
+
+/** Keeps `bytes` as a PNG under the digest of its own bytes, then reads it back; throws unless the answer is those bytes, byte for byte, as `image/png`. */
+export async function keepAndReadImage(base, bearer, bytes) {
+  const hex = createHash('sha256').update(bytes).digest('hex')
+  const kept = await request(`${base}/v1/assets/${hex}`, { method: 'PUT', headers: { ...AUTHOR_HEADERS(bearer), 'content-type': 'image/png' }, body: bytes })
+  const keptBody = await kept.text()
+  expect(kept.status === 200 && keptBody === JSON.stringify({ digest: `sha256:${hex}` }), `keeping an image answered ${String(kept.status)} ${keptBody}`)
+  const answer = await request(`${base}/v1/assets/${hex}`, { headers: AUTHOR_HEADERS(bearer) })
+  const back = Buffer.from(await answer.arrayBuffer())
+  expect(answer.status === 200 && answer.headers.get('content-type') === 'image/png', `reading the image answered ${String(answer.status)} ${answer.headers.get('content-type')}`)
+  expect(back.equals(Buffer.from(bytes)), `the image read back is ${String(back.length)} bytes that are not the ${String(bytes.length)} kept`)
 }
 
 const record = { gate: 'container', startedAt: new Date().toISOString(), finishedAt: null, passed: false, error: null, docker: null, image: null, measured: {}, planned: [...CHECKS], checks: [] }
@@ -369,6 +437,45 @@ async function gate() {
     expect(docker(['exec', sealed, 'touch', '/app/.gate']).status !== 0, 'the root file system was writable under --read-only')
   })
 
+  // The draft slice's store is the volume (0049): a draft is the operator's
+  // data, which a restart, an upgrade of the image or a new container on the
+  // same volume must not lose. A named volume, made empty, filled by Docker
+  // from the image's directory and its owner as the server's start needs;
+  // the first container is stopped before the second starts, so that one
+  // holds the store at a time.
+  await check('a draft an author saves is read back after the container restarts on the same volume', async () => {
+    const store = volume('draft')
+    const first = start('draft-first', CONFIGURED, { flags: ['-v', `${store}:/var/lib/formancy-report`] })
+    await healthy(first)
+    await saveFirstDraft(at(first), tokens.good)
+    must(['stop', '--time', '10', first]) // Docker's own default (above)
+    const second = start('draft-second', CONFIGURED, { flags: ['-v', `${store}:/var/lib/formancy-report`] })
+    await healthy(second)
+    await expectFirstDraft(at(second), tokens.good)
+  })
+
+  // An image is kept by the digest of its bytes and read by it; compared
+  // byte for byte, since a store that kept a length's worth of something
+  // else would pass a size.
+  await check('an image an author keeps is read back by its digest', async () => {
+    const png = readFileSync(join(repo, 'docs', 'images', 'starter-site-visit.png'))
+    const kept = start('image', CONFIGURED, { flags: ['-v', `${volume('image')}:/var/lib/formancy-report`] })
+    await healthy(kept)
+    await keepAndReadImage(at(kept), tokens.good, png)
+    return `${String(png.length)} bytes`
+  })
+
+  // What the read-only check above leaves unsaid: that the store's volume
+  // is where a draft goes when nothing else on the root is writable, and it
+  // is read back from it.
+  await check('on a read-only root, it saves a draft into its store', async () => {
+    const sealed = start('read-only-save', CONFIGURED, { flags: ['--read-only', '-v', '/var/lib/formancy-report'] })
+    await healthy(sealed)
+    await saveFirstDraft(at(sealed), tokens.good)
+    await expectFirstDraft(at(sealed), tokens.good)
+    expect(docker(['exec', sealed, 'touch', '/app/.gate']).status !== 0, 'the root file system was writable under --read-only')
+  })
+
   // main.ts's key set arm: the serving line names the kids in force, and
   // SIGHUP reads the file again, as an operator rotates a key -- a token
   // under the added kid refused before and answered after.
@@ -459,6 +566,7 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/container.mjs')) {
     console.error(`container gate FAILED\n${record.error}`)
   } finally {
     for (const name of started) docker(['rm', '-f', '-v', name])
+    for (const name of volumes) docker(['volume', 'rm', '-f', name])
     if (removeImage) docker(['image', 'rm', '-f', image])
     record.finishedAt = new Date().toISOString()
     mkdirSync(dirname(out), { recursive: true })

@@ -36,4 +36,19 @@ describe('the container gate', () => {
     expect(new Set(CHECKS).size).toBe(CHECKS.length)
     expect(baseImage()).toMatch(/^node:26\.\d+\.\d+-alpine[\d.]+@sha256:[0-9a-f]{64}$/)
   })
+
+  // The draft slice (0049) is held by the image, not only by the server's
+  // suite: a store that cannot outlive its container, or cannot be written
+  // on a read-only root, passes every test in the workspace. The gate must
+  // plan these three, or the release report would count a gate that never
+  // restarted a container as one that did.
+  test('plans the draft slice’s three checks, restart, image and read-only root', () => {
+    expect(CHECKS).toEqual(
+      expect.arrayContaining([
+        'a draft an author saves is read back after the container restarts on the same volume',
+        'an image an author keeps is read back by its digest',
+        'on a read-only root, it saves a draft into its store',
+      ]),
+    )
+  })
 })
