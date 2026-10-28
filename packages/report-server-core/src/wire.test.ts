@@ -112,7 +112,23 @@ describe('the wire', () => {
 describe('the entry', () => {
   // What a server, a store and a client import is this list; anything else
   // in the entry is surface a later release could not remove unnoticed.
-  test('exports the actions table, the wire and nothing else', () => {
-    expect(Object.keys(entry).sort()).toEqual(['ACTIONS', 'API_PREFIX', 'CAPACITIES', 'CROSS_ORIGIN_REQUEST_HEADERS', 'DRAFT_FORMAT', 'REFUSALS', 'ROUTES', 'actionsOf', 'can', 'capacitiesOf'])
+  test('exports the actions table, the wire, the use cases and nothing else', () => {
+    expect(Object.keys(entry).sort()).toEqual([
+      'ACTIONS',
+      'API_PREFIX',
+      'CAPACITIES',
+      'CROSS_ORIGIN_REQUEST_HEADERS',
+      'DRAFT_FORMAT',
+      'REFUSALS',
+      'ROUTES',
+      'actionsOf',
+      'can',
+      'capacitiesOf',
+      'keepImage',
+      'listTemplates',
+      'readDraft',
+      'readImage',
+      'saveDraft',
+    ])
   })
 })

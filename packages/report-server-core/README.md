@@ -2,11 +2,11 @@
 
 Formancy Report's server core: who may do what to a tenant's reports, as one
 actions table over the host's verified identity, the audit port a server
-writes its trail through, and the wire types a client compiles against. No
+writes its trail through, the wire types a client compiles against, and the
+use cases that decide a tenant's drafts and images over a store's port. No
 framework and no Node: ES2023's library and no `@types/node`, so a `node:`
 import or a `fetch` does not compile. `@formancy/report-server` is the
-server over it; the use cases and the stores' ports join it with the
-releases that build them. What it decides, and why, is decision
+server over it. What it decides, and why, is decision
 [0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md).
 
 ## Who may do what
@@ -77,6 +77,65 @@ carries but that token contributes to it.
 - **`CROSS_ORIGIN_REQUEST_HEADERS`** -- what a page on a listed origin may
   send: the token's header, `authorization`.
 
+## The use cases
+
+```ts
+import { saveDraft } from '@formancy/report-server-core'
+import type { Asking } from '@formancy/report-server-core'
+
+const asking: Asking = { identity: person, roles: policy, store }
+const saved = await saveDraft(asking, 'invoice', body, { kind: 'create' })
+if (saved.ok) saved.status // 201; saved.body is { template, revision }, saved.revision the ETag's
+else saved.body.code // 'forbidden', 'report-invalid', 'draft-changed', ...
+```
+
+A route parses its request into these arguments and sends the answer under
+the status it carries; it decides nothing of its own. Each returns an
+**`Answer`** -- `ok`, a `status` of 200 or 201, a `body`, and a `revision`
+where the answer has one, for the route's `ETag` -- or a **`RefusalAnswer`**,
+with the status of its refusal and a `ServerRefusal` for a body. Every one
+asks `can` first, before it reads the request or asks the store, so that a
+refusal for want of a capacity cannot say whether a template, an id or an
+image exists.
+
+- **`listTemplates(asking)`** -- the tenant's templates, sorted by id
+  whatever order the store gives them in.
+- **`readDraft(asking, template)`** -- the newest draft, `404 no-draft`
+  where there is none.
+- **`saveDraft(asking, template, body, precondition)`** -- checks, in
+  this order: the capacity (403 `forbidden`); the id (400
+  `template-id-invalid`); a **`Precondition`**, `none`, `create` or
+  `replace` with a revision that is a positive safe integer (428
+  `precondition-required`); `validateReport` (422 `report-invalid`, with its
+  errors); the report's id being the template's (422 `template-id-mismatch`);
+  every image it declares kept for the tenant and no font declared (422
+  `asset-not-kept`, with the ids, sorted -- a font is refused because
+  nothing here keeps one); then the store's swap, which writes the report the
+  validator returned and the token's subject as `savedBy`: 201 for a
+  `create`, 200 for a `replace`, or 412 `draft-changed` with the revision that
+  stands, `null` where there is none.
+- **`keepImage(asking, digestHex, contentType, bytes)`** -- checks: the
+  capacity; the digest as 64 lower-case hexadecimal digits (400
+  `digest-invalid`); the size against report-spec's `MAX_ASSET_BYTES` (413
+  `image-too-large`); `sniffImage` (422 `image-refused`, reason
+  `not-an-image`); the request's media type, before any parameter, being the
+  sniffed one (415 `unsupported-media-type`); a PNG or JPEG read by
+  `imageHeader`, an SVG within `MAX_SVG_BYTES` and accepted by `checkSvg`,
+  which takes only the form `cleanSvg` writes (422 `image-refused`, with
+  report-spec's code as the reason); the bytes' digest being the path's (422
+  `digest-mismatch`). Then the store keeps it, and a second keep of the same
+  image answers as the first.
+- **`readImage(asking, digestHex)`** -- the image as it was kept, `404
+  no-asset` where the tenant has none.
+
+**`TemplateStore`** is the port, and decides nothing: `list`, `newest`,
+`save`, `keepImage`, `readImage` and `hasImage`, each taking the tenant
+first and a digest in its `sha256:` form. `save` takes the revision it
+replaces, `null` to create, and exactly one of any concurrent saves from one
+revision wins. A store has a suite of its own, the one a deployment runs; the
+use cases' suites run against a store in memory. `StoredDraft`, `SaveOutcome`
+and `StoredImage` are its records.
+
 ## The audit port
 
 `AuditEvent` is one request an API route answered: when, which route, its
@@ -88,12 +147,12 @@ is where it goes; the server's own writes a log line.
 
 - **Verify a token.** The server does, with Formancy Data's verifier; this
   package holds only what it derives.
-- **Read anything.** No store, no file, no network, no setting.
+- **Read anything.** No store, no file, no network, no setting: the store
+  is a port the host gives it.
 - **Depend on anything but the format.** `@formancy/report-spec` is its one
-  dependency, today for the two types `Draft` and `ServerRefusal` name,
-  `ReportDefinition` and `ReportError`, which it imports as types alone.
-  The use cases that validate what a server stores join it with the release
-  that builds them.
+  dependency: its types, and the functions the use cases judge a draft and
+  an image with -- `validateReport`, `isIdentifier`, `isFontMediaType`,
+  `sniffImage`, `imageHeader`, `checkSvg`, `assetDigest` and the limits.
 
 **Licence.** Source-available, not open source: see
 [`LICENSE.md`](../../LICENSE.md).
