@@ -160,14 +160,20 @@ administrator wrote them ([`SECURITY.md`](../../SECURITY.md)).
 | A host's token | Verified offline by Formancy Data's verifier, under the algorithm the key's kind pins, `iss`, `aud`, `exp` and `sub` required, its tenant claim required; nothing else a request carries -- a body, a query, another header -- contributes to who is asking. Every bad token is the one 401, its reason in the log naming a check or a claim and never the token or a claim's value; no audit event holds either, who asked named by keyed hash ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)) |
 | A request to the server | A path that is not plain -- an escape, one that does not decode, a dot or empty segment -- refused before any route, by formancy.ai-data 0037's rule; a method or a path the API does not hold answered before its body is read, counted, its connection closed; a preflight with a body refused unread; what Node's parser cannot read, and an error of the server's own, each answered with a fixed refusal that quotes nothing of the request; a request that takes over 300 s to arrive cut; the log names a request by its method and route, never the path, the query or the Host header it was sent with ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)) |
 | A server setting | Read once, by `main.ts`, from the environment it was started with; every sentence about one names the setting and never repeats its value, since the commonest mistake is a secret pasted where its reference goes; a `FORMANCY_REPORT_` variable the server does not read stops it, and so does a secret reference to one of its own variables, an audit key under 32 bytes or one that is the identity key, and trusted proxies that together trust a whole family (0046) |
+| A draft a host saves to the server | Its body no byte past report-spec's `MAX_REPORT_BYTES`, refused by the length it declares before it is read, and none before the token is verified; JSON alone, parsed by Fastify's own parser; then, after `can`, held to report-spec's identifier for the template's id, to a precondition naming a revision by `isRevision`, to `validateReport`, to the report's own `id`, and to every image it declares kept for the tenant and no font; stored as the report the validator returned, and `savedBy` the verified token's subject, never anything the body says of who wrote it. A refusal's errors, the revision that stands and the assets not kept go to the requester alone, never to a log or the trail ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)) |
+| An image a host keeps on the server | Its bytes no more than `MAX_ASSET_BYTES`, refused by the length declared before they are read; recognised by `sniffImage`, the media type claimed held to what the bytes are, a PNG's or a JPEG's header read by `imageHeader`, an SVG held to `MAX_SVG_BYTES` and to the form `cleanSvg` writes by `checkSvg`, and the bytes' SHA-256 held to the digest in the path, all before the store sees them; read back checked against that digest (0049) |
+| A file in the server's store | Read only under the names the store writes; a draft's record held to its `format`, to JSON and to the SHA-256 of its report's text, and never validated again, so a later report-spec meets it where it is opened; a template id, a digest and a tenant claim checked again before any file operation, a tenant named by the SHA-256 of its claim; a record that fails a check never served, and logged by its path inside the tenant's directory and the tenant's keyed reference, never its absolute path, whose tenant directory is the claim's unkeyed hash (0049) |
 | A font file | Read from its own name table by the licence guard, and refused when it cannot be read; a font inside a script the guard does not see ([§8.7](#87-licences), [0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)) |
 | A font's bytes | Read once, by report-spec's reader, which the renderer reads its own faces' character maps through today, and a builder and a host's approval will read a host's font through (`readFont`): every table's offset and length held to the bytes, its recorded length read as fontkit reads it, every read checked against them, every count against the bytes it counts before anything is read by it, every loop bounded by them and nothing recursing; the character map read as fontkit, which PDFKit prints with, reads it, its segments sorted and apart; the PostScript name, which PDFKit writes into the PDF unescaped, held to characters that write no PDF syntax and to encodings fontkit decodes alike; the name strings fontkit decodes, a glyph's points times its contours and the characters mapped bounded; the line the horizontal header makes, by which pdfmake lays every line out and the renderer counts the page limit, held above nothing and within a measured range; and an fsType that forbids embedding a subset of the outlines refused, with no override. The licence the font states is handed back for a person to read and judged by nothing. The layout tables fontkit runs at print, GSUB, GPOS, kern and morx, are not read, and a crafted one can make a render throw or never end ([0040](../decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)); the renderer strips those records from a host face before it embeds it, so fontkit builds no engine to run them, and prints Latin, Greek and Cyrillic alone, refusing every other script, which would need them; it refuses a host face PDFKit would draw as another, of another face's PostScript name with other bytes or of a name PDFKit's font table holds already, by every name the reader hands back; and the reader bounds a font's outlines together, since a subset holds every glyph a printed character reaches ([0043](../decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)) |
 | An ICC profile | PDFKit's own file, which an e-invoice's render reads and embeds as its output intent: admitted by the licence guard by the SHA-256 of its bytes, which a review read, and refused under any other; a profile inside a script the guard does not see, and the renderer's browser test holds pdfmake's copy to the reviewed digest ([§8.7](#87-licences), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 
-**Nothing in a package reaches the network but the provider**, and it only
-through the Data client the host made, to the server and with the token the
-host chose
-([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+**Nothing in a package reaches the network but the provider and the
+client.** The provider only through the Data client the host made, to the
+server and with the token the host chose
+([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md));
+report-client only through the `fetch` the host gives it, to the report
+server at the base URL the host names, with the token the host answers,
+following no redirect (0049).
 The report server answers requests and sends none: its verifier fetches no
 key set and no key a token names ([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
 The form bridge fetches nothing: the host hands each form version and
@@ -201,7 +207,11 @@ or the DOM. A pure SHA-256 has been in its dependency closure since 0.1.0:
 `@noble/hashes`', which `@formancy/spec`'s `schemaHash` uses and
 report-spec's `reportHash` calls, and report-spec's `assetDigest` takes an
 added image's digest with it ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)). Checking digests changes what every host's resolver must satisfy,
-and is a decision of its own, still not taken. Until then, what prints of an SVG is in the
+and is a decision of its own, still not taken. The report server keeps an
+image only under the SHA-256 of its bytes and checks it again as it reads
+one (0049); the runtime checks nothing of what a host's lookup returns,
+and the getting-started guide's cache takes the server's answer as it
+comes. Until then, what prints of an SVG is in the
 approved form, and that it is the approved drawing is the host's
 ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
@@ -268,7 +278,7 @@ lines are read that way today:
 |---|---|
 | `reportSpecVersion` | Read by report-spec's `version.ts` before anything else in a report; another version is refused, naming it and the one the package reads (`report-spec/src/version.test.ts`). It is `'0'`, a draft: nothing written under it is promised to a later release |
 | formancy's form spec | Read by report-forms, the one package that reads a form ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)): a `specVersion` the pinned `@formancy/spec` does not read is refused before the form is validated, naming it and the ones that release reads, 1 to 4; every other form goes through upstream's `validateSchema`, which the bridge adds no reading to (`report-forms/src/read.test.ts`, forms at every spec, one Formancy Data generated at spec 3 among them). A form handed to report-spec is still refused as not a report, its `specVersion` named |
-| The server's API and records | Its API by its path: every route a token reaches is under `/v1` (report-server-core's `API_PREFIX` and `ROUTES`, `wire.test.ts`), a route nothing names is the one 404, and a shape a client could not read as before is a route under `/v2` beside it. Its records each carry a `format` from the record that introduces them, refused when unknown; this release stores none (0046) |
+| The server's API and records | Its API by its path: every route a token reaches is under `/v1` (report-server-core's `API_PREFIX` and `ROUTES`, `wire.test.ts`), a route nothing names is the one 404, and a shape a client could not read as before is a route under `/v2` beside it. Its records each carry a `format` from the record that introduces them, refused when unknown (0046). The first is a draft's, `DRAFT_FORMAT`, 1: the file store refuses a record of another number, naming it, and one that is no record, and serves neither (`report-server/src/file-store.test.ts`, [0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)). An image is kept as its bytes, under the kind they sniff as, and carries no format of its own |
 | Formancy Data's contract | The provider reads no version Data states, which is less than 0004 decided. It is built against 0.1.0 exactly, and a Data whose routes or replies change is refused by the client's checks of their shape, as `unexpected`, or by its server ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) |
 
 The tuple a release was tested with is the release report's, derived from
@@ -509,17 +519,34 @@ The server's one answer to both questions
 - **What.** Three capacities, author, publisher and administrator, given to
   the host's roles by the operator's settings, and one table of actions,
   each with the capacities that may take it. A route that takes an action
-  asks `can` with it -- none does in this release, and whoami takes none --
-  an action the table does not hold is nobody's, and no capacity implies
-  another. whoami answers `actionsOf`, which agrees with `can`
-  action by action, so the host's wiring shows before anything depends on
-  it.
+  asks `can` with it -- the draft slice's five do, each through its use
+  case and before it reads the request or asks the store, and whoami takes
+  none (0049) -- an action the table does not hold is nobody's, and no
+  capacity implies another. whoami answers `actionsOf`, which agrees with
+  `can` action by action, so the host's wiring shows before anything
+  depends on it. A malformed precondition, a body past its route's limit
+  and a media type the route does not read are answered before the use
+  case, so before `can`.
+- **From which page.** A page on an origin the operator lists may send the
+  headers the routes read and nothing more, `CROSS_ORIGIN_REQUEST_HEADERS`
+  -- the token, the body's media type, `If-Match` and `If-None-Match` --
+  and read the `ETag` a save names its revision by,
+  `CROSS_ORIGIN_RESPONSE_HEADERS`; a token-bearing request a browser marks
+  cross-site from any other origin is refused before its token or its body
+  is read (0046, widened by 0049, `wire.test.ts`, `cors.test.ts`).
 - **Which tenant.** Every request has exactly one, the token's, and no
   request can name another: there is no tenant in a path, a query or a
-  body, and no single-tenant mode without the claim.
+  body, and no single-tenant mode without the claim. The store is asked
+  with that tenant first and never reads across tenants; a draft and an
+  image are the tenant's, and a template's id names a template within it
+  (0049).
 - **What is said of it.** One audit event per answered request: the route,
   the status, the outcome's code, whether it was identified, and the tenant
   and the person by HMAC-SHA-256 under the operator's audit key, over a
   JSON array so that no two people share a reference, or `null` without
-  one; the key at least 32 bytes and not the identity key. Never a token, a claim's value, a path or a body, and never
-  evidence: Data's limits, formancy.ai-data 0023.
+  one; the key at least 32 bytes and not the identity key. Never a token, a claim's value, a path or a body -- so
+  never a template's id, a title, a digest or `savedBy`, which the store
+  keeps and the trail does not; the log names a template's id or a digest
+  only in the line about a stored file the store did not write, by its
+  path inside the tenant's directory (0049) -- and never evidence: Data's
+  limits, formancy.ai-data 0023.

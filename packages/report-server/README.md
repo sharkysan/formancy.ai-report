@@ -13,7 +13,9 @@ the images a draft declares kept and read by their digest (`PUT` and
 `GET /v1/assets/{digest}`), in files on one volume. Publication, render
 jobs and artifacts arrive with the releases that build them, each a route
 of its own under `/v1`. What it decides, and why, is decision
-[0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md).
+[0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
+and for the drafts and images, decision [0049](../../docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md);
+`@formancy/report-client` is what a host asks it with.
 
 **Identity is the host's.** The host signs a short-lived JWT for a person;
 the server verifies it with Formancy Data's own verifier,
@@ -203,6 +205,16 @@ either, since it would turn the log on.
 - **Publish, render or keep anything but a draft.** A template's draft and
   the images it declares are all it stores; no version, job or artifact
   route exists in this release, and nothing deletes a draft or an image.
+- **Keep a font.** A draft that declares one is refused `asset-not-kept`,
+  naming it, since a draft kept here could not print in the face it names.
+- **Prune a revision.** Every revision a save writes stays on disk, with
+  `savedBy`, the subject of the token that saved it, a claim's value kept
+  at rest beside the tenant's documents and in every backup of the volume;
+  the record's digest covers the report and not `savedBy`.
+- **Flush a directory.** A revision's file is flushed before it is linked,
+  but its directory is not after, as in Formancy Data's store, so an
+  acknowledged save can lose its name on power loss; and a volume that
+  cannot make a hard link starts and answers every save `internal`.
 - **Stop a client that leaves from having asked.** A request whose client
   left while the route ran is still one event in the trail.
 

@@ -10,16 +10,95 @@ later.
 
 ## Unreleased
 
-**The getting-started guide keeps a report's draft on the server.** A new
-section 6 shows a React host saving from the revision it opened, saying so
-when someone saved since, reloading into a new session -- never into the
-old one, whose undo would bring the stale text back -- and keeping the
-images the preview resolves from in a cache the builder's store fills. The
-install gate compiles and bundles it with the rest of the React page, so
-the guide's React install line now names `@formancy/report-client`; the
-validation section is now section 7.
+**Report's server keeps a template's draft and the images it declares**
+([0049](docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
+Publication, versions and render jobs all start from a draft the server
+holds, and two authors saving one template must never silently lose each
+other's work, so the draft comes first, kept by compare-and-swap.
+- **Five routes**, each taking the action of its name in the actions
+  table: `GET /v1/templates`, the tenant's templates with each newest
+  draft's revision and title; `GET` and `PUT
+  /v1/templates/{template}/draft`; and `PUT` and `GET /v1/assets/{digest}`.
+  A template is named by its report's own `id`, so there is one id and it
+  is already lower case, and comes into being with its first save. One
+  draft per template of a tenant, shared by its authors.
+- **A save names the revision it replaces**, by HTTP's own preconditions:
+  `If-None-Match: *` creates, `If-Match: "<revision>"` replaces, neither is
+  428, and a save from a revision another author has saved over since is
+  412 `draft-changed`, nothing written, with the revision that stands. The
+  file store decides it by a hard link, as Formancy Data's versions, so of
+  any saves from one revision exactly one wins without a lock. Every
+  revision stays on disk, and nothing prunes or deletes one.
+- **A draft is checked on the way in and served as it was saved.** A save
+  is held to report-spec's `validateReport`, its errors returned to the
+  author alone; every image it declares must be kept for the tenant, and
+  a draft that declares a font is refused, since the server keeps no fonts
+  yet and a draft it kept could otherwise never print in its face. A read
+  checks the record's format and the digest of its report's text and does
+  not validate again, so a stricter report-spec later never locks a draft
+  away. Each revision keeps `savedBy`, the token's subject, because the
+  audit trail cannot say who saved and publication will need to: **a
+  claim's value is now kept at rest in the store** and in its backups,
+  never in a log, an audit event or a refusal.
+- **Images are the tenant's, by digest.** A keep is read as the renderer
+  reads it -- what the bytes are, the media type claimed, a PNG's or a
+  JPEG's header, an SVG in `cleanSvg`'s form alone -- and kept only under
+  the SHA-256 of its bytes, so a host can wire the builder's `ImageStore`
+  to the server.
+- **No body is read before the token is.** The identity and cross-origin
+  checks run before parsing, so an unauthenticated upload is refused at
+  once, and a refusal of a request that carries a body closes its
+  connection. A page on a listed origin may now send `content-type`,
+  `if-match` and `if-none-match` beside the token, the headers the routes
+  read, and read `ETag`.
+- **`@formancy/report-spec`'s `MAX_REPORT_BYTES`**, 256 KiB of a report's
+  JSON, the draft's body limit: sixteen times the largest report the corpus
+  holds, measured, and a quarter of the mebibyte Fastify reads by default,
+  because 0046 left the draft's limit to the format, which knows what a
+  report is.
+- **`@formancy/report-server-core`** gains the draft slice's wire types,
+  its refusals and `ServerRefusal`, the four that carry a field;
+  the use cases that decide a save, a read, a list, a keep and an image's
+  read over a store's port, `TemplateStore`; and a dependency on
+  report-spec, whose rules those use cases judge by, so that a route, a
+  second store or a second server cannot judge otherwise. It depended on
+  nothing before.
+- **`FORMANCY_REPORT_STORE_DIR` is required.** The server keeps its store
+  in that absolute directory, which must exist and be writable, and stops
+  at start, naming the setting, where it is unset or does not open: **an
+  upgrade that runs the server outside the image and does not set it
+  stops.** The image sets it to `/var/lib/formancy-report`, the directory
+  it already gave `node`, so that the drafts live where an operator mounts
+  a volume; without one they go with the container, and under `--read-only`
+  the directory must be one. The container gate saves a draft, restarts on
+  the same volume and reads it back, keeps an image and reads it back, and
+  saves on a read-only root. `openFileTemplateStore`, `StoredRecordError`
+  and `StoreFileSystemError` are exported for an embedder, and the server's
+  log names a stored file by its path inside the tenant's directory, never
+  its absolute path, whose tenant directory is the unkeyed hash of the
+  tenant claim.
+- **`@formancy/report-client`**, a new package, as 0046 said would come
+  with the draft's route: `createReportClient({ server, token, fetch? })`
+  with `listTemplates`, `readDraft`, `saveDraft`, `keepImage` and
+  `readImage`, each answering a value or the server's refusal, never
+  throwing one. No framework and no Node, depending on report-server-core
+  and report-spec alone, so a host's page compiles against the server's
+  own wire types. It follows no redirect, and throws before sending a
+  token no bearer header can carry, because fetch would quote it in its
+  error. The install gate checks it in a browser's host of its own, and
+  runs it against the packed server.
+- **The getting-started guide keeps a report's draft on the server.** A
+  new section 6 shows a React host saving from the revision it opened,
+  saying so when someone saved since, reloading into a new session --
+  never into the old one, whose undo would bring the stale text back --
+  and keeping the images the preview resolves from in a cache the
+  builder's store fills, because the runtime's resolver cannot ask a
+  server while a preview prints. The host draws Save, not the builders.
+  The install gate compiles and bundles it with the rest of the React
+  page, so the guide's React install line now names
+  `@formancy/report-client`; the validation section is now section 7.
 
-**Report has a server that knows who is asking, and answers nothing else**
+**Report has a server that knows who is asking**
 ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
 [0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
 The 0.3.0 server slice -- drafts, publication, render jobs, artifacts --

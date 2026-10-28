@@ -54,9 +54,27 @@ too, the store's directory then a volume the operator mounts; the
 container gate runs each of these.
 
 What it does not do, and what the operator therefore owns:
-- **One instance.** Nothing here shares a rate limit or, once it arrives, a
-  store between two instances; one instance behind the host's proxy is the
-  deployment.
+- **One instance.** Nothing here shares a rate limit or a store between
+  two instances; one instance behind the host's proxy, its store on a
+  local volume, is the deployment. A save is decided by a hard link, which
+  is atomic on a local file system and which nothing here has tried over
+  NFS, and the server does not probe for one at start: on a volume that
+  cannot make one it starts and refuses every save as `internal`.
+- **The store's volume, and its backup.** `FORMANCY_REPORT_STORE_DIR` is
+  required, an absolute path to a directory that exists and that `node`
+  can write; the image sets `/var/lib/formancy-report`, and the server
+  never makes it, so a volume that is not mounted stops it at start. The
+  volume is the tenants' data: under its tenants directory, one per tenant
+  named by the SHA-256 of its claim, each template's every revision as a
+  numbered file with the subject of the token that saved it, and every
+  image kept, by digest. Nothing prunes or deletes any of it. What to back
+  up is that whole directory, on a schedule the operator keeps, and a
+  restore puts its files back as they were: a record whose report was
+  edited, or cut short, is never served, a read of it answered `internal`
+  and logged by its path inside the tenant's directory, and a crash's
+  temporary file is never read as a draft. A file is flushed before it is linked, but its
+  directory is not after, so an acknowledged save can lose its name on
+  power loss ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 - **TLS and the address.** It listens on plain HTTP on every interface of
   its container; TLS, the public name and the proxy that forwards to it are
   the operator's, and that proxy is named in `FORMANCY_REPORT_TRUSTED_PROXIES`

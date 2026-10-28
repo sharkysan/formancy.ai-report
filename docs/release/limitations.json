@@ -47,7 +47,7 @@
       ]
     },
     "0004": {
-      "reviewed": "sha256:3ec88fbc2d721d4535db04abe618a800239c1cc1d248d5943ef030dd91ba0669",
+      "reviewed": "sha256:b4babd099a9f78e8dc0e6887549b83c0ac250535befafd6e64aba8615c4f8f23",
       "limitations": [
         {
           "area": "format",
@@ -1241,7 +1241,7 @@
       ]
     },
     "0033": {
-      "reviewed": "sha256:02c3365895f3899816d10c6fdf62a8ad14dea0ba0257f4b04e8ab2795b7a5cad",
+      "reviewed": "sha256:0a69dbafb0325221627327c8ba386903270af889e8f3887601b5c7cd6ed0e1b1",
       "limitations": [
         {
           "area": "builders",
@@ -2019,11 +2019,11 @@
       ]
     },
     "0046": {
-      "reviewed": "sha256:116700da86abdcee1cdfca145e2fff1949f52ce07bd2e421e60a5c7c019d24e6",
+      "reviewed": "sha256:85cab2f9b7a1c87ceda03d3c96b4421938df831054a973bf588ba12fe0a4b553",
       "limitations": [
         {
           "area": "server",
-          "says": "The server answers GET /health and GET /v1/whoami alone: no draft, publication, render job or artifact exists in this release, and every other method and path is answered 404.",
+          "says": "The server answers GET /health, GET /v1/whoami and the routes later records add, a template’s draft and its images since 0049, and nothing else: no publication, render job or artifact exists in this release, and every other method and path is answered 404.",
           "heldBy": "packages/report-server/src/app.test.ts"
         },
         {
@@ -2047,7 +2047,7 @@
         },
         {
           "area": "server",
-          "says": "The actions table names the actions of R14 before any route takes them, so whoami lists actions no route answers yet, and a later release may change a row.",
+          "says": "The actions table names the actions of R14 before the routes that take them, so whoami lists the version and policy actions no route answers yet, and a later release may change a row.",
           "heldBy": "packages/report-server-core/src/actions.test.ts"
         },
         {
@@ -2095,7 +2095,7 @@
       ]
     },
     "0047": {
-      "reviewed": "sha256:c42d03094194a18057456278b0197cfe46852b50f3bc428f191efe887328b3e4",
+      "reviewed": "sha256:171e6e8ce7c4966ed7b603c47dfd713d1462a0fbf5738de26c533d2f794e65ae",
       "limitations": [
         {
           "area": "licence",
@@ -2110,6 +2110,99 @@
         {
           "area": "server",
           "says": "The verifier tolerates 30 seconds of clock skew on exp and nbf, data-identity’s default, which the server does not change and nothing here measured."
+        }
+      ]
+    },
+    "0049": {
+      "reviewed": "sha256:75e435b9194d88ff595515c21a9b460ed72917c916bd7dc06b800437530c2d6e",
+      "limitations": [
+        {
+          "area": "server",
+          "says": "A template’s draft is saved only from the revision it was read at: a save from a revision another author has saved over since is refused 412 draft-changed and writes nothing, so the host reads the draft again, and what its author changed meanwhile is the host’s to carry over.",
+          "heldBy": "packages/report-server-core/src/drafts.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "Every saved revision of a draft stays in the store, and nothing prunes a revision or deletes a draft, a template or an image, so a tenant’s store only grows until an operator removes files by hand.",
+          "heldBy": "packages/report-server/src/file-store.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "Each revision keeps the subject of the token that saved it, as savedBy, beside the tenant’s documents in the store and in every backup of its volume, so a host whose subjects are email addresses or an identity provider’s ids keeps them there at rest.",
+          "heldBy": "packages/report-server-core/src/drafts.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A stored draft’s digest covers its report and not its savedBy, so a record whose savedBy was edited by hand on the volume is served as edited, where one whose report was edited is refused."
+        },
+        {
+          "area": "server",
+          "says": "A tenant’s directory in the store is the unkeyed SHA-256 of its tenant claim, so whoever can list the volume can tell which directory is a tenant whose claim they can guess.",
+          "heldBy": "packages/report-server/src/file-store.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A draft that declares a font is refused asset-not-kept, since the server keeps no fonts, so a report mapped to a host’s fonts cannot be kept on the server in this release.",
+          "heldBy": "packages/report-server-core/src/drafts.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A report larger than report-spec’s MAX_REPORT_BYTES of JSON, sixteen times the largest report the corpus held when it was measured, is refused 413 report-too-large as a draft however valid it is.",
+          "heldBy": "packages/report-server/src/drafts.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "The server requires FORMANCY_REPORT_STORE_DIR, the absolute path of a directory that exists and that it can write, which the image sets: run outside the image it stops at start until the setting names one, and under docker run --read-only the directory must be a volume.",
+          "heldBy": "packages/report-server/src/settings.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A save is decided by a hard link on the store’s volume, and nothing probes for one at start, so on a volume that cannot make one the server starts and answers every save internal."
+        },
+        {
+          "area": "server",
+          "says": "A saved revision’s file is flushed before it is linked, but its directory is not flushed after the link, as in Formancy Data’s store, so an acknowledged save can lose its name on power loss."
+        },
+        {
+          "area": "server",
+          "says": "Listing a tenant’s templates reads every template’s newest draft, with no index, so its time grows with the templates, unmeasured, and one record that is not what the store wrote fails the whole list internal.",
+          "heldBy": "packages/report-server/src/file-store.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A malformed precondition, a body past its route’s limit and a media type the route does not read are answered before the actions table is asked, so a person without the capacity has a malformed save refused 400 rather than 403, and up to MAX_ASSET_BYTES of an image read before the 403."
+        },
+        {
+          "area": "server",
+          "says": "A refusal answered before the body is read, the 401, a cross-origin 403 or a 415, closes the connection of a request that carries a body, so a client that keeps its connections alive opens a new one after each.",
+          "heldBy": "packages/report-server/src/drafts.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "An SVG the server serves carries no X-Content-Type-Options: nosniff and no sandboxing content security policy; the token its route needs and the drawing elements checkSvg admits alone stand in for them."
+        },
+        {
+          "area": "server",
+          "says": "A host that previews a draft kept on the server writes its own image cache, reading every image the draft declares when it opens it and keeping each one a person adds, since the runtime’s resolver is synchronous and report-client has no helper."
+        },
+        {
+          "area": "server",
+          "says": "report-client throws, before anything is sent, a token that is empty or no RFC 6750 bearer token, so a host that relied on the server’s 401 to send a signed-out person to sign in handles the throw instead.",
+          "heldBy": "packages/report-client/src/client.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "report-client follows no redirect, as far as the fetch it is given honours redirect: error, so a server reached through one, a move from http: to https: on the same host among them, is a network error, and its base URL is the address the server answers at.",
+          "heldBy": "packages/report-client/src/client.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "report-server-core depends on report-spec, so the server’s image ships report-spec and what it brings, @formancy/spec under Apache-2.0 among them, and a report-spec release is a release of the server.",
+          "heldBy": "packages/report-server/src/dockerfile.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The getting-started guide’s draft host is type-checked and bundled by the install gate and never run against a server, so its Save, its conflict and its reload rest on review and on report-client’s own suite."
         }
       ]
     }

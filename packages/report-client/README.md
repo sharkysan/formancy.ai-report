@@ -11,7 +11,8 @@ globals and no `@types/node`, so a `node:` import does not compile, and the
 install gate bundles what it exports for a browser. The server it talks to
 is decision
 [0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)'s;
-the draft it keeps there, decision 0049's.
+the draft it keeps there, and this client, decision
+[0049](../../docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)'s.
 
 ## Save and reopen a draft
 
@@ -87,6 +88,9 @@ the host's to show. Thrown:
   it reject with an error quoting the header, the token in it.
 - **A network error**, as fetch gave it, a redirect among them: the client
   follows none, so nothing it sends reaches an address but the server's.
+  That holds for a fetch that honours `redirect: 'error'`, as browsers' and
+  Node's do, and it refuses a redirect from `http:` to `https:` on the same
+  host as well, so `server` names the address the server answers at.
   The token is held to the bearer token's characters before fetch sees it,
   so no error fetch gives can quote it.
 
@@ -94,8 +98,10 @@ the host's to show. Thrown:
 
 - **Judge a draft or an image.** The server does, through
   report-server-core's use cases; the client sends what the host gives it.
-  A template id is escaped into one segment of the path, so no id reaches
-  another route, and is not checked here.
+  A template id is escaped into one segment of the path, so an id holding
+  a `/` or a `?` reaches no other route, and is not checked here; `.` and
+  `..`, which a URL resolves as segments of their own, are not refused
+  either, and reach no route the server answers.
 - **Check a value's shape.** A 2xx's JSON object is taken for the wire type
   its route answers; the server is what holds it to that.
 - **Keep anything.** Every call is a request, and the server answers each

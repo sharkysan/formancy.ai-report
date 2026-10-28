@@ -7,7 +7,8 @@ use cases that decide a tenant's drafts and images over a store's port. No
 framework and no Node: ES2023's library and no `@types/node`, so a `node:`
 import or a `fetch` does not compile. `@formancy/report-server` is the
 server over it. What it decides, and why, is decision
-[0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md).
+[0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
+and for the drafts and images, decision [0049](../../docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md).
 
 ## Who may do what
 
@@ -29,16 +30,17 @@ actionsOf(person, policy) // what GET /v1/whoami answers
   listing templates, reading and saving a draft, keeping and reading an
   image, reading, publishing, withdrawing and restoring a version, reading
   and setting a template's policy. Frozen; an action not in it is denied to
-  everybody, an inherited name such as `toString` among them. The routes
-  that take these actions arrive with the releases that build them;
-  rendering and downloading are a template's own policy's to grant, and join
-  with it.
+  everybody, an inherited name such as `toString` among them. The draft
+  slice's routes take listing, a draft's read and save and an image's keep
+  and read; the routes that take a version's and a policy's arrive with the releases that build them, and
+  rendering and downloading are a template's own policy's to grant, and
+  join with it.
 - **`can(identity, action, policy)`**, **`capacitiesOf`** and
   **`actionsOf`** -- the one question a route that takes an action is to
   ask, and the lists whoami answers, which agree with `can` action by
-  action (`src/actions.test.ts`). No route takes an action in this
-  release; whoami takes none and lists them. A role is compared as the
-  host spells it.
+  action (`src/actions.test.ts`). The use cases below ask it; whoami
+  takes no action and lists them. A role is compared as the host spells
+  it.
 
 `ReportIdentity` is who is asking, as the server derived it from a verified
 token: a subject, a tenant that is never empty, and roles. Nothing a request
@@ -143,9 +145,10 @@ image exists.
 `save`, `keepImage`, `readImage` and `hasImage`, each taking the tenant
 first and a digest in its `sha256:` form. `save` takes the revision it
 replaces, `null` to create, and exactly one of any concurrent saves from one
-revision wins. A store has a suite of its own, the one a deployment runs; the
-use cases' suites run against a store in memory. `StoredDraft`, `SaveOutcome`
-and `StoredImage` are its records.
+revision wins. A store has a suite of its own, the one a deployment runs --
+the file store's, in `@formancy/report-server`; the use cases' suites run
+against a store in memory. `StoredDraft`, `SaveOutcome` and `StoredImage`
+are its records.
 
 ## The audit port
 

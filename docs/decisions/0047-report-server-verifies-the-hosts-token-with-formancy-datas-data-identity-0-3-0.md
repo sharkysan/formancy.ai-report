@@ -1,6 +1,6 @@
 # 0047 — report-server verifies the host's token with Formancy Data's own verifier, `@formancy/data-identity` at exactly 0.3.0, read under Data's settings' names; 0006's guard admits Data's licence for report-server's data-identity beside the provider's client, each for its own package alone; Report's own verifier on jose, Data's server as a bridge, a session and a peer dependency lost
 
-- **Status:** accepted; numbered while 0043, 0044 and 0045 were held by branches not yet merged, and numbered before 0048 and merged after it; extends [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md) and [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)
+- **Status:** accepted; numbered while 0043, 0044 and 0045 were held by branches not yet merged, and numbered before 0048 and merged after it; extends [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md) and [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md); its "report-server-core depends on nothing" no longer true since [0049](0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md), under which report-server-core depends on report-spec, which the server's closure now holds
 - **Date:** 2026-10-22
 - **Deciders:** Daniel Bacher
 - **Verified by:**

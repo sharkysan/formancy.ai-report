@@ -15,13 +15,16 @@ L3     report-render-pdf       pdfmake · pdfkit · uqr · a Node entry and a br
        report-forms            @formancy/spec's validator: a form's submissions, handed over;
                                a report generated from a form version; a new version
                                reviewed, its resolutions report-core's commands as data
-       report-server           Fastify · @formancy/data-identity: whoami, by the host's token
+       report-server           Fastify · @formancy/data-identity: whoami, by the host's token;
+                               a template's draft and its images, in files on one volume
+       report-client           the host's fetch · DOM: the server's routes, for a host's page
        report-builder-react    React · DOM            ┐ never each other,
        report-builder-angular  Angular · DOM          ┘ never the other framework
 ────────────────────────────────────────────────────────────────────────────────────────────
 L2     report-runtime          every value decided once        no framework, no engine, no Node
        report-builder-core     the editor model                no framework, no DOM, no Node
        report-server-core      who may do what · the wire      no framework, no DOM, no Node
+                               · the draft's and the images' use cases, over a store's port
 ────────────────────────────────────────────────────────────────────────────────────────────
 L1     report-core             commands · session · compileReport · @formancy/expressions
 ────────────────────────────────────────────────────────────────────────────────────────────
@@ -53,7 +56,7 @@ the upstream packages' and the peers' ranges.
 | `@formancy/report-render-pdf` | `report-runtime` | `pdfmake`, `pdfkit`, `uqr` | — | Of this repository's packages, the runtime alone, which re-exports what the renderer needs of the format: report-spec's own rules for the slip and for how an EPC QR code prints ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)), the names an e-invoice's file is embedded by ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)), and `checkSvg`, the check an SVG asset is drawn by ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)), and report-spec's font reader, which its faces' glyphs are read by ([0040](../decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)), and `readFont`, `characterMap` and `refusedCharacter`, which a host's fonts are read, embedded and held to ([0043](../decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)). A resolved document and approved bytes in, never a database or an address ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)); an e-invoice's PDF/A also embeds the ICC profile PDFKit, pdfmake's own dependency, reads from its package, which `scripts/dependency-licences.mjs` holds to a review by its digest ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 | `@formancy/report-data-provider` | `report-runtime`, `report-spec` | `@formancy/data-client` | — | The only package that may depend on Formancy Data; `scripts/dependency-licences.mjs` refuses Data reached from any other ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). The DOM's globals and no `@types/node`, so a `node:` import does not compile |
 | `@formancy/report-forms` | `report-core`, `report-runtime`, `report-spec` | `@formancy/spec`, for its validator, the version hash, labels, rich text and the diff, at the release the repository pins | — | The DOM's globals and no `@types/node`, as the Data provider, so a `node:` import does not compile; nothing reaches the network: a host hands each form version and submission over ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)), each form version a report is generated from ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)), and each a review compares a new one with; report-core because a review's resolutions are its commands, judged by its session and its compiler ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)). It never depends on Formancy Data, which `scripts/dependency-licences.mjs` refuses from any package but the provider |
-| `@formancy/report-server-core` | `report-spec` | — | — | No framework, no DOM, no Node: ES2023's library and no `@types/node`, so a `node:` import or a `fetch` does not compile. The actions table, the identity it is asked about, the wire a client compiles against and the audit port ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)). Of this repository's packages, report-spec alone, for the two types the draft's wire names (`ReportDefinition`, `ReportError`), imported as types; the use cases that validate what a server stores join it with the records that build them |
+| `@formancy/report-server-core` | `report-spec` | — | — | No framework, no DOM, no Node: ES2023's library and no `@types/node`, so a `node:` import or a `fetch` does not compile. The actions table, the identity it is asked about, the wire a client compiles against and the audit port ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)), and the use cases that decide a tenant's drafts and images over `TemplateStore`, a port with no store behind it here ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)). Of this repository's packages, report-spec alone: the types the wire and the port name, and the functions the use cases judge a draft and an image by -- `validateReport`, `isIdentifier`, `isFontMediaType`, `sniffImage`, `imageHeader`, `checkSvg`, `assetDigest` and the limits -- so that what a server stores is what the format accepts, decided by the format |
 | `@formancy/report-server` | `report-server-core`, `report-spec` | `fastify`, `@fastify/rate-limit`, `@formancy/data-identity` | — | Node and Fastify; Formancy Data's identity verifier at exactly 0.3.0, the one Data package it may depend on, which `scripts/dependency-licences.mjs` admits for it alone ([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)); report-spec for the identifier rule the file store holds a template id to, the use cases' own. Never the runtime or the renderer, which its install host, holding only what it declares, would fail on; `src/composition.test.ts` fails on any module but `main.ts` that reads the environment or a file, the file store aside, which reaches its records through `node:fs/promises` alone (0046) |
 | `@formancy/report-client` | `report-server-core`, `report-spec` | — | — | The DOM's globals and no `@types/node`, as the Data provider, so a `node:` import in its source does not compile; its suite alone has Node's types, to run the server it asks. report-server-core for the routes it asks, by `ROUTES`' own keys, and the wire types it answers with; report-spec for the media types an image's answer is held to and the two types its methods name. It reaches the network through the `fetch` a host gives it, at the `server` it is given, and follows no redirect. Never the server, a builder or the runtime: the install gate checks it in a browser's host of its own, against the DOM's types alone, bundles it for a browser there, and runs it against the packed server in the server's host |
 | `@formancy/report-builder-react` | `report-builder-core`, `report-core`, `report-spec` | — | `react`, `react-dom` | The core packages and React, never Angular or the other builder ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
@@ -227,8 +230,10 @@ now ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-fie
 ### `@formancy/report-server-core` (L2)
 
 Who may do what to a tenant's reports, decided once, and what a server and
-a client say to each other ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)). The use cases and the
-stores' ports join it with the records that build them.
+a client say to each other ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)); and what a server decides about a
+tenant's drafts and images, as functions of who asks and a store's port, so
+that a route, a second store or a second server cannot decide it otherwise
+([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)). Later records' use cases and ports join it as they arrive.
 
 | Module | Responsibility |
 |---|---|
@@ -236,6 +241,10 @@ stores' ports join it with the records that build them.
 | `identity.ts` | `ReportIdentity`: the subject, the tenant, never empty, and the roles, derived from a verified token alone |
 | `wire.ts` | `API_PREFIX`, `/v1`, the API's version line (0046, extending [0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md)); `ROUTES`, every route the API answers with its audit operation; `WhoAmI` and `Health`; `DRAFT_FORMAT` and the draft slice's wire types (`TemplateSummary`, `TemplateList`, `Draft`, `DraftSaved`, `ImageKept`); `isRevision`, the one test of a revision, which a route parsing `If-Match` and the save's use case both ask; `REFUSALS`, a code and a fixed sentence for every refusal, and `ServerRefusal`, the four that carry a field beside it; `CROSS_ORIGIN_REQUEST_HEADERS`, the headers the routes read, and `CROSS_ORIGIN_RESPONSE_HEADERS`, the `ETag` a page on another origin may read |
 | `audit.ts` | `AuditEvent`, one request an API route answered, never a value, who by keyed hash; and `AuditSink`, the port it goes through |
+| `answer.ts` | `Answer` and `RefusalAnswer`: what every use case returns, its status beside its body, and a revision for the route's `ETag` where there is one; a refusal's body a `ServerRefusal`, so that the four with a field cannot be given without it |
+| `store.ts` | `TemplateStore`, the port a tenant's drafts and images are kept behind, every method taking the tenant first and deciding nothing; `StoredDraft`, `SaveOutcome` and `StoredImage`, its records; a save from one revision of which exactly one of any concurrent saves wins |
+| `drafts.ts` | `listTemplates`, `readDraft` and `saveDraft`, each asking `can` before it reads the request or asks the store; a save checking the id, the `Precondition`, `validateReport`, the report's `id` against the template's, every image kept and no font declared, then the store's swap, which writes the report the validator returned and the token's subject as `savedBy` |
+| `images.ts` | `keepImage` and `readImage`: a keep checking the digest's form, the size, what the bytes sniff as and the media type claimed, a PNG's or JPEG's header or an SVG in `cleanSvg`'s form alone, and the bytes' digest against the path's, before the store sees them |
 
 ### `@formancy/report-server` (L3)
 
@@ -262,6 +271,17 @@ is built; and
 | `main.ts` | The composition root: the environment read once, the server opened and served, SIGHUP and SIGTERM handled |
 
 `Dockerfile` beside `src/` is the image ([`packages/report-server/Dockerfile`](../../packages/report-server/Dockerfile)), held by `src/dockerfile.test.ts` and run by the container gate: its code root's, the store's directory the one thing its user owns.
+
+### `@formancy/report-client` (L3)
+
+What a host's page, or its own server, asks the report server with: a
+template's draft and the images it declares ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)). It asks the routes by
+`ROUTES`' own keys and answers in report-server-core's wire types, so a
+route or a refusal's field changed there fails a host's build.
+
+| Module | Responsibility |
+|---|---|
+| `client.ts` | `createReportClient({ server, token, fetch? })`: a base URL it can put a route's path after, refused otherwise by a sentence that quotes none of it; the host's token asked before every request and held to an RFC 6750 bearer token before fetch sees it; `listTemplates`, `readDraft`, `saveDraft` from `null` or a revision, `keepImage` and `readImage` by the `sha256:` digest a report writes; each `Answered<T>`, a refusal `REFUSALS` holds answered with its field and anything else not 2xx thrown, naming the route by its pattern; no redirect followed |
 
 ### `@formancy/report-builder-core` (L2)
 
