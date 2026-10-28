@@ -547,6 +547,7 @@ The server's one answer to both questions
   one; the key at least 32 bytes and not the identity key. Never a token, a claim's value, a path or a body -- so
   never a template's id, a title, a digest or `savedBy`, which the store
   keeps and the trail does not; the log names a template's id or a digest
-  only in the line about a stored file the store did not write, by its
-  path inside the tenant's directory (0049) -- and never evidence: Data's
+  only in the line about a stored file the store did not write and in the
+  line about the file system failing the store, each by the file's path
+  inside the tenant's directory (0049) -- and never evidence: Data's
   limits, formancy.ai-data 0023.

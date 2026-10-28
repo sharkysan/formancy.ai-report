@@ -54,8 +54,10 @@ written, and `mine.refusal.revision` is the revision that stands.
   from the answer's body; the `ETag` beside it is not needed.
 - **`keepImage(bytes, digest, mediaType)`** and **`readImage(digest)`** --
   `digest` as a report names an asset's, `sha256:` and the hexadecimal
-  digits of its bytes; the path carries the digits. A digest in any other
-  form is thrown before any request. `readImage` answers the bytes and the
+  digits of its bytes; the path carries the digits. A digest that does not
+  begin with `sha256:` is thrown before any request; the digits after it
+  are sent as they are, one segment of the path, for the server to refuse
+  where they are not a SHA-256's. `readImage` answers the bytes and the
   media type they were kept as.
 
 Each answers an **`Answered<T>`**: `{ ok: true, value }`, the route's
@@ -83,7 +85,7 @@ the host's to show. Thrown:
   the digest the request carried.
 - **What the host gave that no request could carry as it means it** -- a
   token no bearer header carries, a save from what is no revision, a digest
-  not written as a report names one -- before anything is sent, by a fixed
+  that does not begin with `sha256:` -- before anything is sent, by a fixed
   sentence that quotes none of it. Handed to fetch, such a token would make
   it reject with an error quoting the header, the token in it.
 - **A network error**, as fetch gave it, a redirect among them: the client

@@ -74,7 +74,7 @@
     audit event of an ordinary request, answered or refused, holding a
     subject, a title, a template id or a digest; and a record the store
     did not write, or the file system failing it, logged by why or by code
-    and operation, its path inside the tenant -- the one line that names a
+    and operation, its path inside the tenant -- the only lines that name a
     template's id or a digest, which the operator needs to find the file --
     and the tenant by keyed hash, and answered 500. `parsePrecondition`'s own
     cases hold what is a create, a replace, none and malformed. Watched
@@ -123,7 +123,7 @@
     status and nothing the request carried; a fielded code without its
     field thrown; an image under no image's media type thrown; a network
     error let through; and a token no bearer header carries, a save from
-    what is no revision and a digest not written as a report names one
+    what is no revision and a digest that does not begin with `sha256:`
     thrown before anything is sent. Watched failing with `redirect:
     'follow'`, with `in` for `Object.hasOwn` on the refusal's code, with
     the field unchecked, with the id unescaped, with fetch called as a
@@ -272,7 +272,9 @@ decision for a later record.
 **What a save checks, in order.** The route: the body is JSON, else 415; it
 is at most report-spec's `MAX_REPORT_BYTES`, refused by the length it
 declares before a byte is read, or once it is read past the limit where it
-declares none, 413 `report-too-large`. Then the use case: the capacity, 403
+declares none, 413 `report-too-large`; the preconditions it names are
+`If-None-Match: *` alone or one strong `If-Match` of a revision, else 400
+`bad-request`. Then the use case: the capacity, 403
 `forbidden`; the template id, 400; a precondition, 428; `validateReport`,
 422 `report-invalid` carrying report-spec's own errors; the report's `id`,
 422 `template-id-mismatch`; every image it declares kept for the tenant
@@ -339,9 +341,12 @@ which the server logs as any error of its own.
 **The store is opened by whoever knows where its root came from.**
 `FORMANCY_REPORT_STORE_DIR` is a required setting with no default: the
 absolute path of a directory that exists and the process can write, which
-the server opens before it is made and never makes, so a volume that is
-not there stops it at start with one sentence. The image sets it to
-`/var/lib/formancy-report`, the directory it gives `node`.
+the server opens before it is made and never makes, so outside the image a
+directory that does not exist stops it at start with one sentence. The
+image sets it to `/var/lib/formancy-report`, a directory the image makes
+and gives `node`: without a volume there the server starts, and the drafts
+live in the container and go with it; only under `--read-only`, where the
+directory cannot be written, does a missing volume stop it.
 `openFileTemplateStore(root)`, which an embedder calls, says what is wrong
 with a root in a sentence that names no setting, since an embedder set
 none, and `serve.ts` begins that sentence with the setting's name, taken
@@ -425,8 +430,9 @@ keys, each answering `{ ok: true, value }` or `{ ok: false, status, refusal
 that is not the API's, naming the route by its pattern and the status and
 nothing the request carried; and, before anything is sent, what the host
 gave that no request could carry as it means it -- a token that is empty or
-no RFC 6750 bearer token, a save from what is no revision, a digest not
-written as a report names one; and a network error, as fetch gave it. It
+no RFC 6750 bearer token, a save from what is no revision, a digest that
+does not begin with `sha256:`, whose digits the server judges; and a
+network error, as fetch gave it. It
 follows no redirect, sending `redirect: 'error'`. It has the DOM's globals
 and no `@types/node`, and depends on report-server-core, for the routes and
 the wire types, and on report-spec, whose `ReportDefinition` and
@@ -542,9 +548,9 @@ must be a volume for the server to start.
   header cannot carry, is thrown before anything is sent, so a host that
   counted on the server's 401 to send a signed-out person to sign in maps
   the throw instead. "Follows no redirect" holds for a fetch that honours
-  `redirect`, as browsers' and Node's do, and refuses a same-origin
-  redirect from `http:` to `https:` too, so `server` names the address the
-  server answers at.
+  `redirect`, as browsers' and Node's do, and refuses a redirect from
+  `http:` to `https:` on the same host too, so `server` names the address
+  the server answers at.
 - **A served SVG is sent as itself.** It carries no
   `X-Content-Type-Options: nosniff` and no sandboxing content policy, a
   defence in depth not taken: the route needs the token, and `checkSvg`

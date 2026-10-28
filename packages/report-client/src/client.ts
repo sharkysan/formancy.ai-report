@@ -20,7 +20,7 @@ import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
  * and nothing the request carried; a network error propagates as fetch
  * gave it. What the host gave that no request could carry as it means it
  * -- a token no bearer header carries, a save from what is no revision, a
- * digest not written as a report names one -- is thrown before anything is
+ * digest that does not begin with `sha256:` -- is thrown before anything is
  * sent, by a fixed sentence that quotes none of it.
  */
 
@@ -96,7 +96,7 @@ function preconditionOf(from: number | null): Readonly<Record<string, string>> {
 /** How a report names an image's bytes; a path carries the digits after it. */
 const DIGEST_PREFIX = 'sha256:'
 
-/** The part of `digest` a path carries, or thrown where `digest` is not written as a report names one. */
+/** The part of `digest` a path carries, or thrown where `digest` does not begin with `sha256:`; the digits after it are the server's to judge. */
 function digitsOf(digest: string): string {
   if (!digest.startsWith(DIGEST_PREFIX)) throw new Error(`A digest is given as a report names an image by one: ${DIGEST_PREFIX} and the hexadecimal digits of its bytes.`)
   return digest.slice(DIGEST_PREFIX.length)

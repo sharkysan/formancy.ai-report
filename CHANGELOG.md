@@ -52,8 +52,9 @@ other's work, so the draft comes first, kept by compare-and-swap.
   `if-match` and `if-none-match` beside the token, the headers the routes
   read, and read `ETag`.
 - **`@formancy/report-spec`'s `MAX_REPORT_BYTES`**, 256 KiB of a report's
-  JSON, the draft's body limit: sixteen times the largest report the corpus
-  holds, measured, and a quarter of the mebibyte Fastify reads by default,
+  JSON, the draft's body limit: the least power of two at least sixteen
+  times the largest report the corpus holds, measured, and a quarter of the
+  mebibyte Fastify reads by default,
   because 0046 left the draft's limit to the format, which knows what a
   report is.
 - **`@formancy/report-server-core`** gains the draft slice's wire types,

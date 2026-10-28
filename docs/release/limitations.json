@@ -2114,7 +2114,7 @@
       ]
     },
     "0049": {
-      "reviewed": "sha256:75e435b9194d88ff595515c21a9b460ed72917c916bd7dc06b800437530c2d6e",
+      "reviewed": "sha256:7fd3f9dda24fe7d1d18fedf03fd8d7b8ea89cf43fd1f3a49bc2c961a6667d9b4",
       "limitations": [
         {
           "area": "server",
@@ -2142,12 +2142,16 @@
         },
         {
           "area": "server",
+          "says": "A store an embedder writes for itself must keep absolute paths out of its errors: the server logs the file store’s own errors by fields that name no absolute path, and any other store’s error in its generic line as thrown, its message and stack included, which no test here exercises."
+        },
+        {
+          "area": "server",
           "says": "A draft that declares a font is refused asset-not-kept, since the server keeps no fonts, so a report mapped to a host’s fonts cannot be kept on the server in this release.",
           "heldBy": "packages/report-server-core/src/drafts.test.ts"
         },
         {
           "area": "server",
-          "says": "A report larger than report-spec’s MAX_REPORT_BYTES of JSON, sixteen times the largest report the corpus held when it was measured, is refused 413 report-too-large as a draft however valid it is.",
+          "says": "A report larger than report-spec’s MAX_REPORT_BYTES of JSON, the least power of two at least sixteen times the largest report the corpus held when it was measured, is refused 413 report-too-large as a draft however valid it is.",
           "heldBy": "packages/report-server/src/drafts.test.ts"
         },
         {
@@ -2158,6 +2162,10 @@
         {
           "area": "server",
           "says": "A save is decided by a hard link on the store’s volume, and nothing probes for one at start, so on a volume that cannot make one the server starts and answers every save internal."
+        },
+        {
+          "area": "server",
+          "says": "A save is decided by a hard link, which is atomic on a local file system; on a volume over NFS a client can be told the wrong outcome of a save after a retransmission, and nothing here has run the store on one."
         },
         {
           "area": "server",

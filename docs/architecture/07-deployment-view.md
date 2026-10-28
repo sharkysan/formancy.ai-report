@@ -62,9 +62,14 @@ What it does not do, and what the operator therefore owns:
   cannot make one it starts and refuses every save as `internal`.
 - **The store's volume, and its backup.** `FORMANCY_REPORT_STORE_DIR` is
   required, an absolute path to a directory that exists and that `node`
-  can write; the image sets `/var/lib/formancy-report`, and the server
-  never makes it, so a volume that is not mounted stops it at start. The
-  volume is the tenants' data: under its tenants directory, one per tenant
+  can write, which the server never makes: outside the image, a directory
+  that does not exist stops it at start. The image sets
+  `/var/lib/formancy-report`, a directory the image itself makes and gives
+  `node`, so a container run without a volume there starts, and its drafts
+  live in the container's writable layer and go with it. Only under
+  `docker run --read-only` does a missing volume stop it, the directory
+  then unwritable, which no container check makes. The volume is the
+  tenants' data: under its tenants directory, one per tenant
   named by the SHA-256 of its claim, each template's every revision as a
   numbered file with the subject of the token that saved it, and every
   image kept, by digest. Nothing prunes or deletes any of it. What to back
