@@ -601,6 +601,9 @@ importers:
       '@formancy/report-core':
         specifier: workspace:*
         version: link:../report-core
+      '@formancy/report-spec':
+        specifier: workspace:*
+        version: link:../report-spec
       '@pdfme/common':
         specifier: 6.2.4
         version: 6.2.4

@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@formancy/report-core": "workspace:*",
+    "@formancy/report-spec": "workspace:*",
     "@pdfme/common": "6.2.4",
     "@pdfme/generator": "6.2.4",
     "@pdfme/schemas": "6.2.4",
