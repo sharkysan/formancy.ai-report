@@ -108,3 +108,17 @@ describe("the server's README, \"Embed the server\"", () => {
     expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
   })
 })
+
+describe("the client's README, \"Save and reopen a draft\"", () => {
+  // A reader copies it into a host's page, or its server, that keeps a
+  // report's draft on Report's server, so every line of it is a line the
+  // install gate runs, from the packed client against the packed server
+  // in the server's host (scripts/install-fixture/server.ts, 0049).
+  test('is code the install gate runs, line for line', () => {
+    const readme = readFileSync(join(root, 'packages/report-client/README.md'), 'utf8').replaceAll('\r\n', '\n')
+    const lines = exampleLines(readme, 'Save and reopen a draft')
+    const consumer = new Set(readFileSync(join(root, 'scripts/install-fixture/server.ts'), 'utf8').replaceAll('\r\n', '\n').split('\n').map((line) => line.trim()))
+    expect(lines?.length).toBeGreaterThan(3)
+    expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
+  })
+})
