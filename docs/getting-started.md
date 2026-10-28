@@ -625,7 +625,11 @@ The page draws the builder, a Save button and the preview.
 `<ReportBuilder editor={editor} />` needs no prop but the editor and fills
 its container, so the page gives `.report-page` a height. The session's `hash()` names the
 document and stays the same until an edit, and the same again once that
-edit is undone, so Save is offered only when there is something to save;
+edit is undone, so Save is offered only when there is something to save,
+and not while a save is in flight, so a second press cannot go out from the
+revision the first is about to replace; the page marks the document saved
+only when `save` answers `true`, so a save that was refused leaves Save
+offered;
 `exportDocument()` is a deep copy of the document, safe to hand to anything.
 Undo and redo are the builder's -- its toolbar, and Ctrl+Z and Ctrl+Y -- and
 act on the session's history, which outlives the builder; a control of the
@@ -645,23 +649,32 @@ export interface ReportPageProps {
   readonly opened: OpenedEditor
   /** The same function on every render: a new one starts the preview again. */
   readonly print: Print
-  readonly save: (report: ReportDefinition) => void
+  /** Answers whether the report was saved; the page marks it saved only on `true`. An answer of `false` is the host's to show. */
+  readonly save: (report: ReportDefinition) => boolean | Promise<boolean>
 }
 
 export function ReportPage({ opened: { session, editor }, print, save }: ReportPageProps): ReactElement {
   const hash = useSyncExternalStore(session.subscribe, session.hash, session.hash)
   const [saved, setSaved] = useState(hash)
+  const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState<Preview>()
   useEffect(() => keepPreviewing(session, print, setPreview), [session, print])
 
   const onSave = (): void => {
-    save(session.exportDocument())
-    setSaved(hash)
+    const sent = hash
+    setSaving(true)
+    void Promise.resolve(save(session.exportDocument())).then(
+      (answer) => {
+        setSaving(false)
+        if (answer) setSaved(sent)
+      },
+      () => setSaving(false),
+    )
   }
   return (
     <div className="report-page">
       <ReportBuilder editor={editor} />
-      <button type="button" disabled={hash === saved} onClick={onSave}>
+      <button type="button" disabled={hash === saved || saving} onClick={onSave}>
         Save
       </button>
       {preview === undefined ? null : 'pdf' in preview ? <PdfFrame pdf={preview.pdf} /> : <p role="alert">{preview.refused}</p>}
@@ -711,8 +724,9 @@ const approved = sent.map((each) => ({ ...each, bytes: Uint8Array.from(atob(each
 const opened = openEditor(stored)
 const images: ImageResolver = (ref) => approved.find((each) => each.asset === ref.asset && each.digest === ref.digest)
 const print: Print = (report, signal) => printPreview(report, sample, images, signal)
-const save = (report: ReportDefinition): void => {
+const save = (report: ReportDefinition): boolean => {
   void fetch('/reports/quotation', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(report) })
+  return true
 }
 
 const root = document.getElementById('report')
@@ -955,12 +969,97 @@ the reload costs is the author's unsaved edits, which the message says; the
 page can keep `exportDocument()` of the old session aside first if it
 means to offer them back.
 
-Section 4's page gives Save the `save` prop and marks the document saved
-when it is pressed, not when the server answers; a host that waits for the
-answer, so that a refused save leaves Save offered, passes the page its
-own. Two saves pressed before the first answers are both from the same
-revision, and the second is refused `draft-changed` by the server; nothing
-here queues them.
+**The page that composes them.** `draft-host.tsx` makes the client from the
+server's address and the token function your page is given, opens the
+draft, and renders section 4's `ReportPage` with the draft's `save` and the
+cache's `resolve`, which the preview prints with. Save answers `true` only
+when the server wrote the revision. For `changed` and `refused` it answers
+`false`, which leaves Save offered, and the host shows the outcome's
+message in an alert; after `changed` it offers Reload, which is `openDraft`
+again, the new `KeptDraft` taking the old one's place and the old editor
+disposed of. Nothing uses the old `KeptDraft` after that. A save that
+throws, such as a token no bearer header carries, is not an answer: the
+page leaves Save offered and shows nothing, so a host whose `token` can
+fail catches it in its own `save`.
+
+```tsx guide=react file=draft-host.tsx
+import { useEffect, useMemo, useState } from 'react'
+import type { ReactElement } from 'react'
+import { createReportClient } from '@formancy/report-client'
+import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
+import { openDraft } from './drafts.js'
+import type { KeptDraft } from './drafts.js'
+import { createImageCache } from './images.js'
+import type { Print } from './preview.js'
+import { printPreview } from './print.js'
+import { ReportPage } from './report-page.js'
+
+export interface DraftHostProps {
+  /** The report server's base URL. */
+  readonly server: string
+  /** The host's current token, asked before every request. */
+  readonly token: () => string | Promise<string>
+  readonly template: string
+  /** The data the preview prints against, as in section 3. */
+  readonly sample: ReportData
+}
+
+export function DraftHost({ server, token, template, sample }: DraftHostProps): ReactElement {
+  const { reports, images } = useMemo(() => {
+    const client = createReportClient({ server, token })
+    return { reports: client, images: createImageCache(client) }
+  }, [server, token])
+  const [kept, setKept] = useState<KeptDraft>()
+  const [notice, setNotice] = useState<string>()
+  const [reloads, setReloads] = useState(0)
+  const print = useMemo<Print>(() => (report, signal) => printPreview(report, sample, images.resolve, signal), [images, sample])
+
+  // Opens the draft, and again when Reload bumps `reloads`; each open is a new session.
+  useEffect(() => {
+    let current = true
+    openDraft(reports, images, template).then(
+      (next) => {
+        if (!current) return next.opened.editor.dispose()
+        setKept(next)
+        setNotice(undefined)
+      },
+      (error: unknown) => {
+        if (current) setNotice(error instanceof Error ? error.message : String(error))
+      },
+    )
+    return () => {
+      current = false
+    }
+  }, [reports, images, template, reloads])
+  // The editor the page made is the page's to dispose of, once no builder shows it.
+  useEffect(() => (kept === undefined ? undefined : () => kept.opened.editor.dispose()), [kept])
+
+  if (kept === undefined) return notice === undefined ? <p>Opening the draft</p> : <p role="alert">{notice}</p>
+  const save = async (_report: ReportDefinition): Promise<boolean> => {
+    const outcome = await kept.save()
+    if (outcome.kind === 'saved') {
+      setNotice(undefined)
+      return true
+    }
+    setNotice(outcome.message)
+    return false
+  }
+  return (
+    <>
+      <ReportPage opened={kept.opened} print={print} save={save} />
+      {notice === undefined ? null : <p role="alert">{notice}</p>}
+      <button type="button" onClick={() => setReloads(reloads + 1)}>
+        Reload
+      </button>
+    </>
+  )
+}
+```
+
+The `save` of the page is given the report it exports and ignores it, since
+the `KeptDraft` exports the session's document itself, at the moment it
+sends. Reload is always offered here, and it costs the author's unsaved
+edits, as above.
 
 ## 7. Validate and diagnose a stored report
 
