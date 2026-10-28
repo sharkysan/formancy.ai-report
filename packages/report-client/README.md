@@ -39,14 +39,18 @@ written, and `mine.refusal.revision` is the revision that stands.
   refused when the client is made, by a sentence that never quotes it.
   `token` is asked before every request, a string or a promise of one, and
   sent as a bearer, so a token the host renews is the one the next request
-  carries. `fetch` is the host's, or the global one, and is called as a
-  function, as a browser's own fetch must be.
+  carries; one that is empty, or holds a character RFC 6750's bearer token
+  does not -- a newline, a space -- is thrown before anything is sent.
+  `fetch` is the host's, or the global one, and is called as a function, as
+  a browser's own fetch must be.
 - **`listTemplates()`** and **`readDraft(template)`** -- the tenant's
   templates by id, and a template's newest draft with its revision.
 - **`saveDraft(template, report, from)`** -- from `null`, a template not
-  yet saved, sent with `If-None-Match: *`; from a revision, the draft that
-  revision is, sent with `If-Match` naming it. The revision is read from the
-  answer's body; the `ETag` beside it is not needed.
+  yet saved, sent with `If-None-Match: *`; from a revision, a positive safe
+  integer, the draft that revision is, sent with `If-Match` naming it. From
+  anything else -- `0`, `1.5`, `NaN`, `undefined` from JavaScript -- it is
+  thrown before the token is asked or anything is sent. The revision is read
+  from the answer's body; the `ETag` beside it is not needed.
 - **`keepImage(bytes, digest, mediaType)`** and **`readImage(digest)`** --
   `digest` as a report names an asset's, `sha256:` and the hexadecimal
   digits of its bytes; the path carries the digits. A digest in any other
@@ -55,10 +59,13 @@ written, and `mine.refusal.revision` is the revision that stands.
 
 Each answers an **`Answered<T>`**: `{ ok: true, value }`, the route's
 answer as report-server-core's wire types say -- `TemplateList`, `Draft`,
-`DraftSaved`, `ImageKept`, `StoredImage`, re-exported here with
-`TemplateSummary` and `ServerRefusal` -- or `{ ok: false, status, refusal }`,
-a `ServerRefusal`: a code `REFUSALS` holds, its fixed sentence, and the
-field one of the four carries. Narrowing on `code` gives the field.
+`DraftSaved`, `ImageKept`, `StoredImage` -- or `{ ok: false, status,
+refusal }`, a `ServerRefusal`: a code `REFUSALS` holds, its fixed sentence,
+and the field one of the four carries. Narrowing on `code` gives the field.
+This package exports `createReportClient`, `ReportClientOptions`,
+`ReportClient` and `Answered`, and no wire type: a host that names one
+imports it from `@formancy/report-server-core`, and `ReportDefinition` and
+`AssetMediaType` from `@formancy/report-spec`, where each is defined.
 
 ## What it throws
 
@@ -73,8 +80,15 @@ the host's to show. Thrown:
   under none. The `Error` names the route by its pattern --
   `GET /v1/templates/:template/draft` -- and the status, never the id or
   the digest the request carried.
+- **What the host gave that no request could carry as it means it** -- a
+  token no bearer header carries, a save from what is no revision, a digest
+  not written as a report names one -- before anything is sent, by a fixed
+  sentence that quotes none of it. Handed to fetch, such a token would make
+  it reject with an error quoting the header, the token in it.
 - **A network error**, as fetch gave it, a redirect among them: the client
   follows none, so nothing it sends reaches an address but the server's.
+  The token is held to the bearer token's characters before fetch sees it,
+  so no error fetch gives can quote it.
 
 ## What it does not do
 

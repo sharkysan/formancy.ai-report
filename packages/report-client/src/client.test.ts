@@ -282,6 +282,59 @@ describe('against what is not report-server', () => {
     expect(asked[2]?.init?.body).toEqual(PNG)
   })
 
+  // A token that holds a character no bearer token carries never reaches
+  // fetch: there, a newline makes fetch reject with an error that quotes
+  // the whole header, the token in it, and the host would log or show that
+  // error as it got it. Refused before anything is sent, by a sentence that
+  // quotes nothing of the token. One that is empty, or no string at all
+  // from a JavaScript host, is no token either.
+  test('refuses a token no bearer header carries before anything is sent, quoting nothing of it', async () => {
+    const quoted = (error: unknown) => ['secret', 'wrapped'].some((part) => (error as Error).message.includes(part))
+    const leaked = await createReportClient({ server: 'https://reports.example', token: () => 'eyJ-secret\nwrapped' })
+      .listTemplates()
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      )
+    expect(leaked).toBeInstanceOf(Error)
+    expect(quoted(leaked)).toBe(false)
+    const { fetch, asked } = answering(() => Response.json({ templates: [] }))
+    for (const token of ['eyJ-secret\nwrapped', 'eyJ secret wrapped', 'eyJ-secret=wrapped', '', undefined as unknown as string]) {
+      const thrown = await createReportClient({ server: 'https://reports.example', token: () => token, fetch })
+        .listTemplates()
+        .then(
+          () => undefined,
+          (error: unknown) => error,
+        )
+      expect(thrown, JSON.stringify(token)).toBeInstanceOf(Error)
+      expect((thrown as Error).message).toMatch(/bearer/)
+      expect(quoted(thrown)).toBe(false)
+    }
+    expect(asked).toEqual([])
+  })
+
+  // A save names the revision it replaces, or null for a template not yet
+  // saved. Anything else from a JavaScript host -- 0, 1.5, NaN, undefined --
+  // sent as it is would carry the token and the whole report to a server
+  // that answers bad-request, which the host could not tell from a request
+  // the server could not read. Refused here, as a digest in the wrong form
+  // is, before the token is asked or anything is sent.
+  test('refuses a save from a value that is no revision before the token is asked or anything is sent', async () => {
+    let tokens = 0
+    const { fetch, asked } = answering(() => Response.json({}))
+    const reports = createReportClient({ server: 'https://reports.example', token: () => ((tokens += 1), 'a-token'), fetch })
+    for (const from of [0, -1, 1.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1, '3', undefined]) {
+      const thrown = await reports.saveDraft('invoice', report(), from as unknown as number).then(
+        () => undefined,
+        (error: unknown) => error,
+      )
+      expect(thrown, String(from)).toBeInstanceOf(Error)
+      expect((thrown as Error).message).toMatch(/revision/)
+    }
+    expect(tokens).toBe(0)
+    expect(asked).toEqual([])
+  })
+
   // A browser's own fetch refuses to be called as a method of anything but
   // the window ("Illegal invocation"). Called as a method of the options it
   // came in, every request a page made would throw.

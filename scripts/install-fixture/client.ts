@@ -16,11 +16,19 @@
  * person chose is bytes it keeps.
  */
 import { createReportClient } from '@formancy/report-client'
-import type { Answered, Draft, ReportClient, StoredImage } from '@formancy/report-client'
+import type { Answered, ReportClient } from '@formancy/report-client'
+import type { Draft, StoredImage } from '@formancy/report-server-core'
 import type { AssetMediaType } from '@formancy/report-spec'
 
+/** The session's current token; a page with none has nobody to ask as, and asks nothing. */
+function currentToken(): string {
+  const held = sessionStorage.getItem('report-token')
+  if (held === null) throw new Error('Nobody is signed in.')
+  return held
+}
+
 /** The client a page makes once: the server it was told of, the session's current token, and the window's own fetch. */
-export const reports: ReportClient = createReportClient({ server: 'https://reports.example', token: async () => sessionStorage.getItem('report-token') ?? '', fetch: window.fetch })
+export const reports: ReportClient = createReportClient({ server: 'https://reports.example', token: currentToken, fetch: window.fetch })
 
 /** What a page's Save says of what the server answered: the revision written, or why not, from the field the refusal's code carries. */
 export async function save(opened: Draft): Promise<string> {

@@ -18,7 +18,10 @@ import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
  * page, a body that is no JSON where JSON is due, an image under no image's
  * media type -- is thrown, naming the route by its pattern and the status,
  * and nothing the request carried; a network error propagates as fetch
- * gave it.
+ * gave it. What the host gave that no request could carry as it means it
+ * -- a token no bearer header carries, a save from what is no revision, a
+ * digest not written as a report names one -- is thrown before anything is
+ * sent, by a fixed sentence that quotes none of it.
  */
 
 export interface ReportClientOptions {
@@ -71,6 +74,23 @@ function isBaseUrl(server: unknown): server is string {
     return false
   }
   return (url.protocol === 'https:' || url.protocol === 'http:') && url.username === '' && url.password === '' && !/[?#]/.test(server) && !server.endsWith('/')
+}
+
+/**
+ * A bearer token as RFC 6750 writes one (b64token): the only characters it
+ * lets a bearer credential hold. A token with a newline would make fetch
+ * reject with an error that quotes the header, and the token with it; one
+ * with a space is no one credential.
+ */
+const BEARER = /^[A-Za-z0-9\-._~+/]+=*$/
+
+const TOKEN_RULE = 'The token the host answered is no bearer token: letters, digits and - . _ ~ + /, with = only at its end, and nothing else.'
+
+/** The headers a save from `from` sends, or thrown, before anything is asked or sent, where `from` is neither null nor a revision. */
+function preconditionOf(from: number | null): Readonly<Record<string, string>> {
+  if (from === null) return { 'if-none-match': '*' }
+  if (!isRevision(from)) throw new Error('A save is from null, for a template not yet saved, or from the revision it replaces, a positive safe integer.')
+  return { 'if-match': `"${String(from)}"` }
 }
 
 /** How a report names an image's bytes; a path carries the digits after it. */
@@ -163,7 +183,9 @@ export function createReportClient(options: ReportClientOptions): ReportClient {
     const [method, pattern] = route.split(' ') as [string, string]
     // ParametersOf makes every `:name` of the route a key of `parameters`.
     const path = pattern.replace(/:([a-z]+)/g, (_, name: string) => encodeURIComponent((parameters as Record<string, string>)[name] as string))
-    const response = await fetching(`${server}${path}`, { method, redirect: 'error', ...sent, headers: { authorization: `Bearer ${await token()}`, ...sent.headers } })
+    const bearer: unknown = await token()
+    if (typeof bearer !== 'string' || !BEARER.test(bearer)) throw new Error(TOKEN_RULE)
+    const response = await fetching(`${server}${path}`, { method, redirect: 'error', ...sent, headers: { authorization: `Bearer ${bearer}`, ...sent.headers } })
     return read(route, response)
   }
 
@@ -171,10 +193,7 @@ export function createReportClient(options: ReportClientOptions): ReportClient {
     listTemplates: async () => ask('GET /v1/templates', {}, json<TemplateList>),
     readDraft: async (template) => ask('GET /v1/templates/:template/draft', { template }, json<Draft>),
     saveDraft: async (template, report, from) =>
-      ask('PUT /v1/templates/:template/draft', { template }, json<DraftSaved>, {
-        headers: { 'content-type': 'application/json', ...(from === null ? { 'if-none-match': '*' } : { 'if-match': `"${String(from)}"` }) },
-        body: JSON.stringify(report),
-      }),
+      ask('PUT /v1/templates/:template/draft', { template }, json<DraftSaved>, { headers: { 'content-type': 'application/json', ...preconditionOf(from) }, body: JSON.stringify(report) }),
     // A copy of the bytes is sent: fetch takes a view of an ArrayBuffer alone, and `bytes` may be a view of a shared one.
     keepImage: async (bytes, digest, mediaType) => ask('PUT /v1/assets/:digest', { digest: digitsOf(digest) }, json<ImageKept>, { headers: { 'content-type': mediaType }, body: new Uint8Array(bytes) }),
     readImage: async (digest) => ask('GET /v1/assets/:digest', { digest: digitsOf(digest) }, image),
