@@ -225,15 +225,17 @@ describe('two requests waiting on one connection', () => {
   // their events again.
   test('write an event each, and leave no listener on the connection', async () => {
     const audited = await server()
-    const connections: Socket[] = []
-    audited.server.on('connection', (connection: Socket) => void connections.push(connection))
+    // The server's side of the connection, awaited rather than read when the
+    // client connects: on macOS the client's connect comes before the
+    // server's connection event, and the connection was not there yet.
+    const accepted = new Promise<Socket>((resolve) => audited.server.once('connection', resolve))
     await audited.listen({ host: '127.0.0.1', port: 0 })
     const { port } = audited.server.address() as AddressInfo
     const socket = connect(port, '127.0.0.1')
     socket.on('error', () => {})
     await new Promise((resolve) => socket.once('connect', resolve))
-    const [connection] = connections
-    const before = connection?.listenerCount('close') ?? -1
+    const connection = await accepted
+    const before = connection.listenerCount('close')
     let answered = ''
     socket.on('data', (chunk: Buffer) => void (answered += chunk.toString('utf8')))
     const ask = (token: string) => `GET /v1/whoami HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer ${token}\r\n\r\n`
@@ -241,7 +243,7 @@ describe('two requests waiting on one connection', () => {
     for (let wait = 0; wait < 40 && (answered.match(/HTTP\/1\.1 200/g) ?? []).length < 2; wait += 1) await new Promise((resolve) => setTimeout(resolve, 25))
     for (let wait = 0; wait < 40 && events.length < 2; wait += 1) await new Promise((resolve) => setTimeout(resolve, 25))
     expect(events.map((event) => event.status)).toEqual([200, 200])
-    expect(connection?.listenerCount('close')).toBe(before)
+    expect(connection.listenerCount('close')).toBe(before)
     socket.destroy()
     await new Promise((resolve) => setTimeout(resolve, 100))
     expect(events).toHaveLength(2)
