@@ -6,7 +6,7 @@ import { answer, refuse } from './answer.js'
 import type { Answer, RefusalAnswer } from './answer.js'
 import type { ReportIdentity } from './identity.js'
 import type { TemplateStore } from './store.js'
-import { DRAFT_FORMAT, REFUSALS } from './wire.js'
+import { DRAFT_FORMAT, isRevision, REFUSALS } from './wire.js'
 import type { Draft, DraftSaved, TemplateList } from './wire.js'
 
 /**
@@ -80,23 +80,24 @@ export async function saveDraft(asking: Asking, template: string, body: unknown,
   const unkept = await notKept(asking, report)
   if (unkept.length > 0) return refuse(422, { ...REFUSALS['asset-not-kept'], assets: unkept })
   const saved = await store.save(identity.tenant, template, from, { savedBy: identity.subject, report })
-  if (!saved.saved) return refuse(412, { ...REFUSALS['draft-changed'], revision: saved.revision })
+  // The revision that stands, in the body and beside it for the ETag; none where the template has no draft.
+  if (!saved.saved) return refuse(412, { ...REFUSALS['draft-changed'], revision: saved.revision }, saved.revision ?? undefined)
   return answer(from === null ? 201 : 200, { template, revision: saved.revision }, saved.revision)
 }
 
 /**
  * The revision a save replaces: `null` for a template not yet saved, a
- * revision, or undefined where the request named none. A revision is a
- * positive safe integer; the route parses one from a header, and a number
- * that is none is no precondition, for it would reach a store that names a
- * file by it.
+ * revision, or undefined where the request named none. A revision is
+ * `isRevision`'s, which the route parses a header by too; a number that is
+ * none is no precondition, for it would reach a store that names a file by
+ * it.
  */
 function replaces(precondition: Precondition): number | null | undefined {
   switch (precondition.kind) {
     case 'create':
       return null
     case 'replace':
-      return Number.isSafeInteger(precondition.revision) && precondition.revision > 0 ? precondition.revision : undefined
+      return isRevision(precondition.revision) ? precondition.revision : undefined
     case 'none':
       return undefined
   }

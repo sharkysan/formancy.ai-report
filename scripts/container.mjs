@@ -298,7 +298,7 @@ async function gate() {
     }
   })
   await check('nothing else answers, with a 404 that quotes nothing', async () => {
-    for (const path of ['/v1/templates', '/v1/whoami/extra', '/v2/whoami']) {
+    for (const path of ['/v1/versions', '/v1/whoami/extra', '/v2/whoami']) {
       const answer = await ask(path, { authorization: `Bearer ${tokens.good}` })
       expect(answer.status === 404 && answer.body === '{"code":"not-found","message":"Nothing answers this request."}', `${path} answered ${String(answer.status)} ${answer.body}`)
     }

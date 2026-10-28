@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { access, constants, link, mkdir, open, readdir, readFile, rm, stat } from 'node:fs/promises'
-import { isAbsolute, join } from 'node:path'
+import { isAbsolute, join, relative } from 'node:path'
 import { DRAFT_FORMAT } from '@formancy/report-server-core'
 import type { StoredDraft, StoredImage, TemplateStore, TemplateSummary } from '@formancy/report-server-core'
 import { isIdentifier } from '@formancy/report-spec'
@@ -49,6 +49,12 @@ const FAULTS: Readonly<Record<StoredRecordFault, string>> = {
   json: 'is not JSON',
 }
 
+/** Where a stored file is: its absolute path, and its path inside its tenant's directory. */
+export interface StoredFile {
+  readonly file: string
+  readonly withinTenant: string
+}
+
 /**
  * A file in the store that is not what the store wrote: edited by hand,
  * damaged, or of a format this release does not read. It is never served,
@@ -56,16 +62,25 @@ const FAULTS: Readonly<Record<StoredRecordFault, string>> = {
  * the server answers it as `internal`, and its log names the file. A record
  * of another format number is named with it, as 0004 names a version it
  * does not read (0046).
+ *
+ * `file` is the absolute path, which the message names, for an embedder
+ * that reads the store itself. `withinTenant` is the file's path inside its
+ * tenant's directory -- `templates/<id>/draft/<n>.json` or
+ * `assets/<hex>.<ext>` -- which is what the server's log names: the
+ * tenant's directory is the unkeyed SHA-256 of the claim, which anybody
+ * reading a log reverses for a tenant they can guess.
  */
 export class StoredRecordError extends Error {
   override name = 'StoredRecordError'
   readonly file: string
+  readonly withinTenant: string
   readonly why: StoredRecordFault
 
-  constructor(file: string, why: StoredRecordFault, format?: number) {
+  constructor(where: StoredFile, why: StoredRecordFault, format?: number) {
     const fault = format === undefined ? FAULTS[why] : `is a record of format ${String(format)}, and this release reads format ${String(DRAFT_FORMAT)} alone`
-    super(`${file} ${fault}; a stored file is never edited by hand, and this one is not served (0049).`)
-    this.file = file
+    super(`${where.file} ${fault}; a stored file is never edited by hand, and this one is not served (0049).`)
+    this.file = where.file
+    this.withinTenant = where.withinTenant
     this.why = why
   }
 }
@@ -170,9 +185,12 @@ function fileTemplateStore(root: string): TemplateStore {
     return newestRevision(await namesIn(directory))
   }
 
-  async function readDraft(directory: string, revision: number): Promise<StoredDraft> {
+  /** Where `file`, under `tenant`'s directory, is, for a `StoredRecordError` to name. */
+  const stored = (tenant: string, file: string): StoredFile => ({ file, withinTenant: relative(tenantDirectory(tenant), file) })
+
+  async function readDraft(tenant: string, directory: string, revision: number): Promise<StoredDraft> {
     const file = join(directory, `${String(revision)}.json`)
-    return { revision, ...recordIn(file, await readFile(file, 'utf8')) }
+    return { revision, ...recordIn(stored(tenant, file), await readFile(file, 'utf8')) }
   }
 
   /** The file an image is kept in under `hex`, and the kind it was kept as; undefined where there is none. */
@@ -198,7 +216,7 @@ function fileTemplateStore(root: string): TemplateStore {
       for (const template of (await namesIn(templates)).filter(isIdentifier).sort(byCodeUnits)) {
         const directory = draftDirectory(tenant, template)
         const revision = await newestIn(directory)
-        if (revision !== null) summaries.push({ template, revision, title: (await readDraft(directory, revision)).report.title })
+        if (revision !== null) summaries.push({ template, revision, title: (await readDraft(tenant, directory, revision)).report.title })
       }
       return summaries
     },
@@ -206,7 +224,7 @@ function fileTemplateStore(root: string): TemplateStore {
     async newest(tenant, template) {
       const directory = draftDirectory(tenant, template)
       const revision = await newestIn(directory)
-      return revision === null ? undefined : await readDraft(directory, revision)
+      return revision === null ? undefined : await readDraft(tenant, directory, revision)
     },
 
     async save(tenant, template, from, draft) {
@@ -233,7 +251,7 @@ function fileTemplateStore(root: string): TemplateStore {
       const kept = await imageFile(tenant, hex)
       if (kept === undefined) return undefined
       const bytes = await readFile(kept.file)
-      if (sha256(bytes) !== hex) throw new StoredRecordError(kept.file, 'digest')
+      if (sha256(bytes) !== hex) throw new StoredRecordError(stored(tenant, kept.file), 'digest')
       return { mediaType: kept.mediaType, bytes } satisfies StoredImage
     },
 
@@ -287,16 +305,16 @@ function recordText(savedBy: string, report: ReportDefinition): string {
 }
 
 /** The draft `text` holds, checked: it parses, it is this format's record, and its report is what its digest names. */
-function recordIn(file: string, text: string): Omit<StoredDraft, 'revision'> {
+function recordIn(where: StoredFile, text: string): Omit<StoredDraft, 'revision'> {
   let record: unknown
   try {
     record = JSON.parse(text)
   } catch {
-    throw new StoredRecordError(file, 'json')
+    throw new StoredRecordError(where, 'json')
   }
-  if (isRecord(record) && typeof record['format'] === 'number' && record['format'] !== DRAFT_FORMAT) throw new StoredRecordError(file, 'format', record['format'])
-  if (!isRecord(record) || record['format'] !== DRAFT_FORMAT || typeof record['savedBy'] !== 'string' || !isRecord(record['report'])) throw new StoredRecordError(file, 'format')
-  if (record['digest'] !== sha256(JSON.stringify(record['report']))) throw new StoredRecordError(file, 'digest')
+  if (isRecord(record) && typeof record['format'] === 'number' && record['format'] !== DRAFT_FORMAT) throw new StoredRecordError(where, 'format', record['format'])
+  if (!isRecord(record) || record['format'] !== DRAFT_FORMAT || typeof record['savedBy'] !== 'string' || !isRecord(record['report'])) throw new StoredRecordError(where, 'format')
+  if (record['digest'] !== sha256(JSON.stringify(record['report']))) throw new StoredRecordError(where, 'digest')
   // Not validated again: the digest says it is the report the save validated (0049).
   return { savedBy: record['savedBy'], report: record['report'] as unknown as ReportDefinition }
 }

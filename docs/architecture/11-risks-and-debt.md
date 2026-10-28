@@ -254,10 +254,10 @@ The server knows who is asking only from the host's token, verified
 offline, and keeps no session: a person the host removes keeps their
 token's access until its `exp`, so the host keeps tokens short. Every token
 must carry the tenant claim, and every permission is the actions table's,
-whose rows name actions before any route takes them; a later record may
+whose rows name actions before a route takes them; a later record may
 change one ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)). It is one instance: its rate limit
-lives in its memory, and the store that arrives next is files on one
-volume, as Formancy Data's is. Its verifier is Data's, at one version, so a
+lives in its memory, and its template store is files on one volume, as
+Formancy Data's is. Its verifier is Data's, at one version, so a
 key rule Data changes reaches Report only through a release, and running
 the server in production needs a Data licence too
 ([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)). That verifier sets no longest lifetime, so a

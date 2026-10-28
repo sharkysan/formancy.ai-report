@@ -2,14 +2,17 @@
 
 Formancy Report's server: a Fastify server that verifies the host's token
 offline, takes the person's tenant from a required claim, and says what the
-actions table allows them. In this release it answers two routes and nothing
-else: `GET /health`, and `GET /v1/whoami`, which says who the server takes
-the token's holder to be -- subject, tenant and roles -- and which actions
-the operator's role settings give them, so a wrong issuer, audience, tenant
-claim or role mapping shows before any template depends on it. Drafts,
-publication, render jobs and artifacts arrive with the releases that build
-them, each a route of its own under `/v1`. What it decides, and why, is
-decision
+actions table allows them. In this release it answers `GET /health`;
+`GET /v1/whoami`, which says who the server takes the token's holder to be
+-- subject, tenant and roles -- and which actions the operator's role
+settings give them, so a wrong issuer, audience, tenant claim or role
+mapping shows before any template depends on it; and a template's draft:
+the tenant's templates listed (`GET /v1/templates`), a template's newest
+draft read and saved (`GET` and `PUT /v1/templates/{template}/draft`), and
+the images a draft declares kept and read by their digest (`PUT` and
+`GET /v1/assets/{digest}`), in files on one volume. Publication, render
+jobs and artifacts arrive with the releases that build them, each a route
+of its own under `/v1`. What it decides, and why, is decision
 [0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md).
 
 **Identity is the host's.** The host signs a short-lived JWT for a person;
@@ -44,6 +47,26 @@ a header block past 16 KiB, headers sent too slowly -- is the fixed
 answer outside the refusals is Fastify's 503 to a request that arrives
 while the server closes. A request that takes longer than 300 s to arrive,
 Node's own default, which Fastify turns off, is cut.
+
+**A save names the draft it replaces.** `If-None-Match: *` creates a
+template, and `If-Match: "<revision>"`, the `ETag` a read or a save
+answered, replaces that revision; a save with neither is 428
+`precondition-required`, one with anything else -- a weak tag, a list, both
+headers -- 400 `bad-request`, and one from a revision that is no longer the
+newest 412 `draft-changed`, with nothing written and the revision that
+stands in its body and its `ETag`. Who may, what a draft and an image must
+be, and the status of every answer are report-server-core's use cases', and
+the routes send what those answer. A draft's body is JSON of at most
+report-spec's `MAX_REPORT_BYTES`, an image's a PNG, a JPEG or an SVG as
+`cleanSvg` wrote it, under its own media type, of at most
+`MAX_ASSET_BYTES`; a body past its route's limit is 413,
+`report-too-large` or `image-too-large`, refused by the length it declares
+before it is read, or once it is read past the limit where it declares
+none, and one of a media type the route does not read is 415
+`unsupported-media-type`, unread.
+No body is read before the request's origin and its token are: the
+cross-origin refusal and the one 401 come first, and a refusal answered
+before a body closes the connection that carried it.
 
 ## Run it
 
@@ -151,7 +174,8 @@ construction a key that would accept forgeries. `store` is the file store
 `openFileTemplateStore(root)` opens on an absolute directory that exists and
 that the process can write: it answers `{ ok: true, store }`, or `{ ok: false,
 problem }` with one sentence about the root, which names no setting, since an
-embedder set none, and never the path. `audit` is `{ sink, key? }`:
+embedder set none, and never the path; a `store` that lacks a method of the
+port does not start the server. `audit` is `{ sink, key? }`:
 the server's own sink writes the log line above, and an embedder may pass
 its own; a sink that throws never fails a request; a `key` under 32 bytes
 does not start the server. `origins`,
@@ -166,11 +190,13 @@ either, since it would turn the log on.
 - **Manage identities.** No sessions, no passwords, no keys of its own. It
   verifies somebody else's tokens, offline, and never fetches a key set or a
   key a token names.
-- **Run more than one instance as one service.** It holds nothing a second
-  instance would share today; the template store that arrives next is files
-  on one volume (formancy.ai-data 0013's shape), and the record says so.
-- **Store, render or keep anything.** No template, job or artifact route
-  exists in this release.
+- **Run more than one instance as one service.** Its template store is
+  files on one volume (formancy.ai-data 0013's shape), a save decided by a
+  hard link that a second instance on a network file system could be told
+  wrongly, and its rate limit is in its memory; the record says so.
+- **Publish, render or keep anything but a draft.** A template's draft and
+  the images it declares are all it stores; no version, job or artifact
+  route exists in this release, and nothing deletes a draft or an image.
 - **Stop a client that leaves from having asked.** A request whose client
   left while the route ran is still one event in the trail.
 

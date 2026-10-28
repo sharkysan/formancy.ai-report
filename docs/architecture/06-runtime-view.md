@@ -784,14 +784,20 @@ report-server (createReportServer)
    │    a route ROUTES names? ── no ──▶ 404 not-found, connection closed, no event
    ├─ onRequest: the rate limit, by the client address (a named proxy's X-Forwarded-For)
    │       over it ──▶ 429 rate-limited
-   ├─ preHandler: a token-bearing request a browser marks cross-site, from an
-   │  origin not listed? ──▶ 403 cross-origin-refused, the token not read
-   ├─ preHandler: one Bearer token, verified by data-identity -- the algorithm the
+   ├─ preParsing, before any body is read: a token-bearing request a browser
+   │  marks cross-site, from an origin not listed? ──▶ 403 cross-origin-refused,
+   │  the token not read
+   ├─ preParsing: one Bearer token, verified by data-identity -- the algorithm the
    │  key's kind pins, iss, aud, exp and sub -- and the tenant claim present
    │       any no ──▶ 401 unauthenticated, the verifier's reason in the log
+   │  (either refusal of a request that carries a body closes its connection)
+   ├─ a route that reads a body: a length declared past its limit ──▶ 413
+   │  report-too-large or image-too-large; a media type it does not read
+   │  ──▶ 415; neither read
    ▼
 whoami: the subject, the tenant, the roles, and what the actions table gives
-those roles under the operator's policy (can, capacitiesOf, actionsOf)
+those roles under the operator's policy (can, capacitiesOf, actionsOf);
+or a route of the draft slice, sending what its use case answers
    ▼
 onSend: Cache-Control no-store; the listed origin carried back
    ▼

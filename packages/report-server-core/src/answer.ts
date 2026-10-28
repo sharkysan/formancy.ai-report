@@ -28,7 +28,7 @@ export function answer<T>(status: Answer<T>['status'], body: T, revision?: numbe
   return revision === undefined ? { ok: true, status, body } : { ok: true, status, body, revision }
 }
 
-/** A use case's refusal. */
-export function refuse(status: RefusalAnswer['status'], body: ServerRefusal): RefusalAnswer {
-  return { ok: false, status, body }
+/** A use case's refusal, with `revision` only where a revision stands that the route's `ETag` names. */
+export function refuse(status: RefusalAnswer['status'], body: ServerRefusal, revision?: number): RefusalAnswer {
+  return revision === undefined ? { ok: false, status, body } : { ok: false, status, body, revision }
 }

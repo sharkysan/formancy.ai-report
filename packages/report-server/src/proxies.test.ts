@@ -1,15 +1,10 @@
-import { mkdtemp, rm } from 'node:fs/promises'
 import { createRequire } from 'node:module'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import type { TemplateStore } from '@formancy/report-server-core'
 import type { FastifyInstance } from 'fastify'
-import { afterEach, beforeEach, describe, expect, test } from 'vitest'
-import { createReportServer } from './app.js'
+import { describe, expect, test } from 'vitest'
 import type { ReportServerOptions } from './app.js'
-import { openFileTemplateStore } from './file-store.js'
 import type { ReportVerifier } from './identity.js'
 import { trustedProxiesProblem, trustedProxiesSetting } from './proxies.js'
+import { eachCase } from './test-support.js'
 
 /**
  * `FORMANCY_REPORT_TRUSTED_PROXIES`, by formancy.ai-data 0071's rule: the
@@ -240,31 +235,12 @@ describe('trustedProxiesProblem', () => {
 const refuseAll: ReportVerifier = async () => ({ ok: false, reason: 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' })
 
 describe('whom the server believes', () => {
+  /** The server is given a store whatever the case asks of it (0049): each case its own (test-support.ts). */
+  const cases = eachCase('formancy-report-proxies-')
   let app: FastifyInstance | undefined
-  afterEach(async () => {
-    await app?.close()
-    app = undefined
-  })
-  /**
-   * The server is given a store whatever the case asks of it (0049), so each
-   * case has one of its own: the file store on a directory made for it and
-   * removed after it, as the server runs on one, and never one shared
-   * between cases.
-   */
-  let store: TemplateStore
-  let storeDirectory: string
-  beforeEach(async () => {
-    storeDirectory = await mkdtemp(join(tmpdir(), 'formancy-report-proxies-'))
-    const opened = await openFileTemplateStore(storeDirectory)
-    if (!opened.ok) throw new Error(opened.problem)
-    store = opened.store
-  })
-  afterEach(async () => {
-    await rm(storeDirectory, { recursive: true, force: true })
-  })
   const statuses = async (options: Partial<ReportServerOptions>, forwarded: string[], remoteAddress = '127.0.0.1') => {
     await app?.close()
-    app = await createReportServer({ verifyIdentity: refuseAll, roles: { author: [], publisher: [], admin: [] }, store, rateLimit: { max: 2, timeWindowMs: 60_000 }, ...options })
+    app = await cases.serve({ verifyIdentity: refuseAll, roles: { author: [], publisher: [], admin: [] }, rateLimit: { max: 2, timeWindowMs: 60_000 }, ...options })
     const seen = []
     for (const address of forwarded) seen.push((await app.inject({ method: 'GET', url: '/v1/whoami', remoteAddress, headers: { 'x-forwarded-for': address } })).statusCode)
     return seen

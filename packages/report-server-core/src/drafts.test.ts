@@ -211,33 +211,38 @@ describe('saveDraft', () => {
 
   // Two saves from nothing: one wins. The second is told which revision
   // stands, so it can read and decide; if it were written over the first, a
-  // person's work would be lost without either of them being told.
+  // person's work would be lost without either of them being told. The
+  // revision is beside the body too, for the route's ETag, which is where
+  // HTTP says a failed precondition names what stands (RFC 9110): without
+  // it, a client reading the ETag after a 412 would find none.
   test('refuses a second create as draft-changed, naming the revision that stands, and writes nothing', async () => {
     const { store, snapshot } = memoryStore()
     expect((await saveDraft(asking(store, AUTHOR), 'invoice', report(), create)).status).toBe(201)
     const before = snapshot()
     const second = await saveDraft(asking(store, AUTHOR), 'invoice', { ...report(), title: 'Other' }, create)
-    expect(second).toEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: 1 } })
+    expect(second).toStrictEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: 1 }, revision: 1 })
     expect(snapshot()).toBe(before)
   })
 
   // A replace of a revision that is not the newest is the same lost swap,
-  // with the newest named.
+  // with the newest named, in the body and for the ETag.
   test('refuses a replace of a stale revision as draft-changed, naming the newest', async () => {
     const { store } = memoryStore()
     await saveDraft(asking(store, AUTHOR), 'invoice', report(), create)
     await saveDraft(asking(store, AUTHOR), 'invoice', report(), replace(1))
     const stale = await saveDraft(asking(store, AUTHOR), 'invoice', report(), replace(1))
-    expect(stale).toEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: 2 } })
+    expect(stale).toStrictEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: 2 }, revision: 2 })
   })
 
   // A replace of a template that has no draft stands on nothing: 412 with no
   // revision, not a create by the back door, which would let a stale tab
-  // resurrect a template after the draft it replaced went.
+  // resurrect a template after the draft it replaced went. No revision
+  // stands, so there is none for an ETag either: a route that sent one would
+  // name a draft that does not exist.
   test('refuses a replace of a template with no draft as draft-changed with no revision', async () => {
     const { store } = memoryStore()
     const saved = await saveDraft(asking(store, AUTHOR), 'invoice', report(), replace(1))
-    expect(saved).toEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: null } })
+    expect(saved).toStrictEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: null } })
     expect(await store.newest('acme', 'invoice')).toBeUndefined()
   })
 

@@ -23,6 +23,11 @@ export const API_PREFIX = '/v1'
  */
 export const ROUTES = Object.freeze({
   'GET /v1/whoami': 'whoami',
+  'GET /v1/templates': 'templates.list',
+  'GET /v1/templates/:template/draft': 'draft.read',
+  'PUT /v1/templates/:template/draft': 'draft.save',
+  'PUT /v1/assets/:digest': 'asset.keep',
+  'GET /v1/assets/:digest': 'asset.read',
 } as const)
 
 export type Route = keyof typeof ROUTES
@@ -65,6 +70,17 @@ export interface TemplateSummary {
 /** `GET /v1/templates`: the tenant's templates, by id. */
 export interface TemplateList {
   readonly templates: readonly TemplateSummary[]
+}
+
+/**
+ * Whether `value` is a revision: a positive safe integer, the first save of
+ * a template 1 and each save after it the next. The one test of one, for a
+ * route parsing an `If-Match` and a use case judging what the route parsed
+ * alike, so that the two cannot disagree about a number a store names a
+ * file by.
+ */
+export function isRevision(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) > 0
 }
 
 /**
@@ -172,6 +188,16 @@ export type ServerRefusal =
 
 /**
  * The request headers a page on an origin the operator lists may send: the
- * token. Every route reads that and nothing else a page sets.
+ * token, the body's media type, and the preconditions a save names the
+ * revision it replaces by. The routes read these and nothing else a page
+ * sets; a header granted that no route reads would be surface for nothing
+ * (0046, widened to the draft's routes by 0049).
  */
-export const CROSS_ORIGIN_REQUEST_HEADERS = Object.freeze(['authorization'] as const)
+export const CROSS_ORIGIN_REQUEST_HEADERS = Object.freeze(['authorization', 'content-type', 'if-match', 'if-none-match'] as const)
+
+/**
+ * The response headers a page on a listed origin may read beyond the ones
+ * a browser always shows it: the `ETag` a draft's read and a save answer
+ * with, the revision the page's next save names in its `If-Match` (0049).
+ */
+export const CROSS_ORIGIN_RESPONSE_HEADERS = Object.freeze(['etag'] as const)

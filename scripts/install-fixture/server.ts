@@ -74,8 +74,8 @@ try {
     throw new Error(`whoami for the host's token answered ${String(answered.status)} ${JSON.stringify(me)}`)
   }
 
-  const unknown = await fetch(`${at}/v1/templates`, { headers: { authorization: `Bearer ${token}` } })
-  if (unknown.status !== 404) throw new Error(`/v1/templates answered ${String(unknown.status)}, where nothing but /health and /v1/whoami answers`)
+  const unknown = await fetch(`${at}/v1/versions`, { headers: { authorization: `Bearer ${token}` } })
+  if (unknown.status !== 404) throw new Error(`/v1/versions answered ${String(unknown.status)}, where no route of this release answers`)
   if (events.length !== 5) throw new Error(`the trail holds ${String(events.length)} events for five requests whoami answered`)
 
   console.log(`ok: report-server listened on a socket of its own; /health answered, whoami refused no token, a tenantless one, a forgery and a malformed one with the one 401, and answered the host's token as tenant ${me.tenant} with ${String(me.actions.length)} actions; nothing else answered; the trail held one event for each request whoami answered`)

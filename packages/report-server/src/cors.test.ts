@@ -1,14 +1,8 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import type { TemplateStore } from '@formancy/report-server-core'
-import type { FastifyInstance } from 'fastify'
-import { afterEach, beforeEach, describe, expect, test } from 'vitest'
-import { createReportServer } from './app.js'
+import { describe, expect, test } from 'vitest'
 import type { ReportServerOptions } from './app.js'
 import { corsOriginsSetting, originsProblem, PREFLIGHT_MAX_AGE_SECONDS, varyWith } from './cors.js'
-import { openFileTemplateStore } from './file-store.js'
 import type { ReportVerifier } from './identity.js'
+import { eachCase } from './test-support.js'
 
 /**
  * Across origins, by formancy.ai-data 0060's rule: the API answers a page
@@ -81,50 +75,51 @@ describe('corsOriginsSetting', () => {
 const verifyIdentity: ReportVerifier = async (token) => (token === 'good' ? { ok: true, identity: { subject: 'u-1', tenant: 'acme', roles: ['report-authors'] } } : { ok: false, reason: 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' })
 const roles = { author: ['report-authors'], publisher: [], admin: [] }
 
-let app: FastifyInstance | undefined
-afterEach(async () => {
-  await app?.close()
-  app = undefined
-})
+/** The server is given a store whatever the case asks of it (0049): each case its own (test-support.ts). */
+const cases = eachCase('formancy-report-cors-')
+const server = async (overrides: Partial<ReportServerOptions> = {}) => cases.serve({ verifyIdentity, roles, ...overrides })
 
-/**
- * The server is given a store whatever the case asks of it (0049), so each
- * case has one of its own: the file store on a directory made for it and
- * removed after it, as the server runs on one, and never one shared
- * between cases.
- */
-let store: TemplateStore
-let storeDirectory: string
-beforeEach(async () => {
-  storeDirectory = await mkdtemp(join(tmpdir(), 'formancy-report-cors-'))
-  const opened = await openFileTemplateStore(storeDirectory)
-  if (!opened.ok) throw new Error(opened.problem)
-  store = opened.store
-})
-afterEach(async () => {
-  await rm(storeDirectory, { recursive: true, force: true })
-})
-const server = async (overrides: Partial<ReportServerOptions> = {}) => (app = await createReportServer({ verifyIdentity, roles, store, ...overrides }))
-
-const preflight = (origin: string, method = 'GET', headers = 'authorization') => ({
+const preflight = (origin: string, method = 'GET', headers = 'authorization', url = '/v1/whoami') => ({
   method: 'OPTIONS' as const,
-  url: '/v1/whoami',
+  url,
   headers: { origin, 'access-control-request-method': method, 'access-control-request-headers': headers },
 })
 
 describe('the server across origins', () => {
   // A listed origin's page may send the token to the API: the preflight
-  // grants that method on that route, with the token's header and no
-  // other, for as long as every engine keeps it.
+  // grants that method on that route, with the headers the routes read and
+  // no other, for as long as every engine keeps it.
   test('grants a preflight from a listed origin for a route the API answers', async () => {
     const answer = await (await server({ origins: ['https://app.example'] })).inject(preflight('https://app.example'))
     expect(answer.statusCode).toBe(204)
     expect(answer.headers['access-control-allow-origin']).toBe('https://app.example')
     expect(answer.headers['access-control-allow-methods']).toBe('GET')
-    expect(answer.headers['access-control-allow-headers']).toBe('authorization')
+    expect(answer.headers['access-control-allow-headers']).toBe('authorization, content-type, if-match, if-none-match')
     expect(answer.headers['access-control-max-age']).toBe(String(PREFLIGHT_MAX_AGE_SECONDS))
     expect(answer.headers['access-control-allow-credentials']).toBeUndefined()
     expect(PREFLIGHT_MAX_AGE_SECONDS).toBe(600)
+  })
+
+  // A builder on a listed origin saves a draft with a JSON body and a
+  // precondition, and keeps an image with its type: requests no browser
+  // sends without asking. Refused, the builder could not save across
+  // origins at all; the preflight of each parameterised route is granted
+  // its method and the headers the routes read.
+  test('grants a save’s and a keep’s preflight the body’s type and the preconditions', async () => {
+    const listed = await server({ origins: ['https://app.example'] })
+    const asked = [
+      preflight('https://app.example', 'PUT', 'authorization, content-type, if-match', '/v1/templates/invoice/draft'),
+      preflight('https://app.example', 'PUT', 'Authorization,Content-Type,If-None-Match', '/v1/templates/invoice/draft'),
+      preflight('https://app.example', 'GET', 'authorization', '/v1/templates/invoice/draft'),
+      preflight('https://app.example', 'PUT', 'authorization, content-type', `/v1/assets/${'a'.repeat(64)}`),
+      preflight('https://app.example', 'GET', 'authorization', '/v1/templates'),
+    ]
+    for (const each of asked) {
+      const answer = await listed.inject(each)
+      expect(answer.statusCode, `${each.url} ${each.headers['access-control-request-method']}`).toBe(204)
+      expect(answer.headers['access-control-allow-methods']).toBe(each.headers['access-control-request-method'])
+      expect(answer.headers['access-control-allow-headers']).toBe('authorization, content-type, if-match, if-none-match')
+    }
   })
 
   // Another origin, a method the route does not answer, or a header the
@@ -132,7 +127,14 @@ describe('the server across origins', () => {
   // answer, so a page cannot probe the list.
   test('refuses a preflight from an unlisted origin, for another method, or asking another header', async () => {
     const listed = await server({ origins: ['https://app.example'] })
-    for (const asked of [preflight('https://evil.example'), preflight('https://app.example', 'DELETE'), preflight('https://app.example', 'GET', 'authorization, x-tenant')]) {
+    for (const asked of [
+      preflight('https://evil.example'),
+      preflight('https://app.example', 'DELETE'),
+      preflight('https://app.example', 'GET', 'authorization, x-tenant'),
+      preflight('https://app.example', 'PUT', 'authorization, content-type, x-other', '/v1/templates/invoice/draft'),
+      preflight('https://app.example', 'DELETE', 'authorization', '/v1/templates/invoice/draft'),
+      preflight('https://app.example', 'POST', 'authorization, content-type', `/v1/assets/${'a'.repeat(64)}`),
+    ]) {
       const answer = await listed.inject(asked)
       expect(answer.statusCode).toBe(403)
       expect(answer.json()).toEqual({ code: 'cross-origin-refused', message: expect.any(String) })
@@ -161,6 +163,19 @@ describe('the server across origins', () => {
     expect(health.headers['access-control-allow-origin']).toBeUndefined()
   })
 
+  // A save answers with the revision in ETag, which the page's next save
+  // names. A browser hides every response header but a few from a page on
+  // another origin unless the answer exposes it, so a builder there could
+  // save once and never again. Exposed to a listed origin on the API's
+  // answers, and to nobody else.
+  test('exposes ETag to a listed origin on the API’s answers, and to nobody else', async () => {
+    const listed = await server({ origins: ['https://app.example'] })
+    const from = (origin: string, url = '/v1/whoami') => listed.inject({ method: 'GET', url, headers: { origin, 'sec-fetch-site': 'cross-site', authorization: 'Bearer good' } })
+    for (const url of ['/v1/whoami', '/v1/templates', '/v1/templates/invoice/draft']) expect((await from('https://app.example', url)).headers['access-control-expose-headers'], url).toBe('etag')
+    expect((await from('https://evil.example')).headers['access-control-expose-headers']).toBeUndefined()
+    expect((await listed.inject({ method: 'GET', url: '/health', headers: { origin: 'https://app.example' } })).headers['access-control-expose-headers']).toBeUndefined()
+  })
+
   // A browser that cached a grant keeps sending without asking again for
   // up to Max-Age after its origin leaves the list. A token-bearing request
   // the browser marks cross-site, from an origin not listed, is refused
@@ -179,7 +194,6 @@ describe('the server across origins', () => {
         expect(answer.json().code).toBe('cross-origin-refused')
       }
       await refusing.close()
-      app = undefined
     }
     expect(asked).toEqual([])
     // The same request from the page's own origin, or with no Sec-Fetch-Site, is the server's to answer.

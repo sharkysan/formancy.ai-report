@@ -3,15 +3,18 @@ import { actionsOf, capacitiesOf, CAPACITIES, REFUSALS } from '@formancy/report-
 import type { ReportIdentity, RolePolicy, TemplateStore, WhoAmI } from '@formancy/report-server-core'
 import Fastify from 'fastify'
 import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { AUDIT_KEY_MIN_BYTES, auditRequests, shortAuditKey } from './audit.js'
+import { AUDIT_KEY_MIN_BYTES, auditReference, auditRequests, shortAuditKey } from './audit.js'
 import type { AuditOptions } from './audit.js'
 import { answerClientError } from './client-errors.js'
 import { crossOrigin, originsProblem } from './cors.js'
+import { registerDraftRoutes } from './drafts.js'
+import { StoredRecordError } from './file-store.js'
 import type { ReportVerifier } from './identity.js'
 import { plainPath } from './paths.js'
 import { clientAddress, trustedProxiesProblem } from './proxies.js'
 import { DEFAULT_RATE_LIMIT, rateLimitProblem } from './rate-limit.js'
 import type { RateLimit } from './rate-limit.js'
+import { closingUnread } from './unread.js'
 
 export interface ReportServerOptions {
   /**
@@ -55,7 +58,7 @@ export interface ReportServerOptions {
 
 declare module 'fastify' {
   interface FastifyRequest {
-    /** Who is asking, once the API's preHandler verified the token; absent before, and for a request that carried none. */
+    /** Who is asking, once the API's preParsing hook verified the token; absent before, and for a request that carried none. */
     identity?: ReportIdentity
   }
 }
@@ -87,6 +90,25 @@ function loggerProblem(logger: unknown): string | undefined {
   return logger === undefined || typeof stream?.write === 'function' ? undefined : 'logger is { stream } whose write(line) takes each log line; leave it out for no log.'
 }
 
+/**
+ * The port's methods, each a key of `TemplateStore`, and every one of them:
+ * a method the port gains fails to compile here until it is checked.
+ */
+const STORE_METHODS = Object.keys({ list: true, newest: true, save: true, keepImage: true, readImage: true, hasImage: true } satisfies Record<keyof TemplateStore, true>)
+const STORE_PROBLEM = `store is a TemplateStore, whose ${STORE_METHODS.join(', ').replace(/, (?=[^,]*$)/, ' and ')} are each a function, as openFileTemplateStore answers one.`
+
+/**
+ * What is wrong with the store an embedder passes, or `undefined`: a
+ * JavaScript caller that left it out, or passed something that lacks a
+ * method of the port, would start a server whose first save failed as its
+ * own error.
+ */
+function storeProblem(store: unknown): string | undefined {
+  const given = store as Record<string, unknown> | null | undefined
+  const whole = typeof given === 'object' && given !== null && STORE_METHODS.every((method) => typeof given[method] === 'function')
+  return whole ? undefined : STORE_PROBLEM
+}
+
 /** A copy of an embedder's list, frozen, so a list changed after it was checked is never granted unchecked. */
 const frozen = <T>(list: readonly T[] | undefined): readonly T[] => Object.freeze(Array.isArray(list) ? [...list] : (list ?? []))
 
@@ -109,9 +131,10 @@ function bearer(request: FastifyRequest): string | undefined {
 }
 
 /**
- * Report's server (0046): `GET /health`, `GET /v1/whoami`, and nothing
- * else. Every API route verifies the host's token before its handler, and a
- * request without a verified identity and its tenant is the one 401.
+ * Report's server (0046): `GET /health`, `GET /v1/whoami`, the draft
+ * slice's routes (0049, drafts.ts), and nothing else. Every API route
+ * verifies the host's token before its body is read, and a request without
+ * a verified identity and its tenant is the one 401.
  */
 export async function createReportServer(options: ReportServerOptions): Promise<FastifyInstance> {
   // Each checked before anything is built, by the setting's own rule, and
@@ -122,9 +145,10 @@ export async function createReportServer(options: ReportServerOptions): Promise<
   const limit = options.rateLimit ?? DEFAULT_RATE_LIMIT
   const auditKey = options.audit?.key
   const auditKeyProblem = auditKey !== undefined && (typeof auditKey !== 'string' || shortAuditKey(auditKey)) ? `audit.key is at least ${String(AUDIT_KEY_MIN_BYTES)} bytes, as FORMANCY_REPORT_AUDIT_KEY is.` : undefined
-  for (const problem of [rolesProblem(options.roles), originsProblem(origins), trustedProxiesProblem(trustedProxies), rateLimitProblem(limit), auditKeyProblem, loggerProblem(options.logger)]) {
+  for (const problem of [rolesProblem(options.roles), storeProblem(options.store), originsProblem(origins), trustedProxiesProblem(trustedProxies), rateLimitProblem(limit), auditKeyProblem, loggerProblem(options.logger)]) {
     if (problem !== undefined) throw new Error(problem)
   }
+  const store = options.store
   const roles: RolePolicy = Object.freeze({ author: frozen(options.roles.author), publisher: frozen(options.roles.publisher), admin: frozen(options.roles.admin) })
 
   const logger = options.logger
@@ -184,8 +208,25 @@ export async function createReportServer(options: ReportServerOptions): Promise<
   crossOrigin(app, { origins })
 
   app.setErrorHandler<FastifyError>((error, request, reply) => {
+    // A file in the store that is not what it wrote: the operator's to
+    // find, by why, by its path inside the tenant's directory and by the
+    // tenant's keyed reference, as the trail names one. Never the error
+    // itself, whose message holds the absolute path, and with it the
+    // tenant's directory, the unkeyed hash of its claim (0049). A store is
+    // asked only by a route's use case, which runs after the identity hook.
+    if (error instanceof StoredRecordError) {
+      const tenant = auditReference(auditKey, 'tenant', (request.identity as ReportIdentity).tenant)
+      request.log.error({ why: error.why, file: error.withinTenant, tenant }, 'a stored record is not what the store wrote, and was not served')
+      return reply.code(500).send(REFUSALS.internal)
+    }
     const status = error.statusCode
     if (status === 429) return reply.code(429).send(REFUSALS['rate-limited'])
+    // A body past the route's limit, under the refusal the route names
+    // (drafts.ts): refused by the length it declares before it is read, or
+    // once it is read past the limit where it declares none. A body no
+    // parser of the route reads, by its media type, before it is read.
+    if (error.code === 'FST_ERR_CTP_BODY_TOO_LARGE') return reply.code(413).send(REFUSALS[request.routeOptions.config.tooLarge ?? 'bad-request'])
+    if (error.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE') return closingUnread(request, reply).code(415).send(REFUSALS['unsupported-media-type'])
     if (status !== undefined && status >= 400 && status < 500) return reply.code(status).send(REFUSALS['bad-request'])
     request.log.error({ err: error }, 'the server could not answer a request')
     return reply.code(500).send(REFUSALS.internal)
@@ -212,7 +253,9 @@ export async function createReportServer(options: ReportServerOptions): Promise<
     auditRequests(api, options.audit)
 
     // After the cross-origin refusal, which runs at the root, so a request
-    // that refusal answers has no token read.
+    // that refusal answers has no token read; both before the body is
+    // parsed, so that nobody unidentified has a byte of a body read, and
+    // both after the limiter's count, which is the route's onRequest.
     /** The identity the verifier finds in the request's token, or undefined for a request with none or one it refuses. */
     const authenticate = async (request: FastifyRequest): Promise<ReportIdentity | undefined> => {
       const token = bearer(request)
@@ -226,9 +269,9 @@ export async function createReportServer(options: ReportServerOptions): Promise<
       return outcome.identity
     }
 
-    api.addHook('preHandler', async (request, reply) => {
+    api.addHook('preParsing', async (request, reply) => {
       const identity = await authenticate(request)
-      if (identity === undefined) return reply.code(401).header('www-authenticate', 'Bearer').send(REFUSALS.unauthenticated)
+      if (identity === undefined) return closingUnread(request, reply).code(401).header('www-authenticate', 'Bearer').send(REFUSALS.unauthenticated)
       request.identity = identity
       return undefined
     })
@@ -237,6 +280,8 @@ export async function createReportServer(options: ReportServerOptions): Promise<
       const identity = request.identity as ReportIdentity
       return { subject: identity.subject, tenant: identity.tenant, roles: identity.roles, capacities: capacitiesOf(identity, roles), actions: actionsOf(identity, roles) }
     })
+
+    registerDraftRoutes(api, { store, roles })
   })
 
   return app

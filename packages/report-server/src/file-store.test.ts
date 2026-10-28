@@ -137,7 +137,11 @@ describe('a draft', () => {
   // line). Serving either would be serving a guess; each is refused, naming
   // the file, so the operator can find it -- through the list as through a
   // read -- and a format number this release does not read named beside the
-  // one it does, as 0004 names a version.
+  // one it does, as 0004 names a version. The error says the file's path
+  // inside its tenant's directory as well, which is what the server's log
+  // names it by: the tenant's directory is the unkeyed hash of the claim,
+  // reversed by trying a guessable tenant, so a log that took the absolute
+  // path to say where the record is would say whose it is.
   test('a record edited by hand, of format 2 or not JSON, throws StoredRecordError naming the file', async () => {
     await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Saved')))
     const file = join(draftDirectory(TENANT, 'invoice'), '1.json')
@@ -156,7 +160,8 @@ describe('a draft', () => {
       for (const read of [() => store.newest(TENANT, 'invoice'), () => store.list(TENANT)]) {
         const error = await read().catch((caught: unknown) => caught)
         expect(error, `${why}: ${text}`).toBeInstanceOf(StoredRecordError)
-        expect(error).toMatchObject({ file, why })
+        expect(error).toMatchObject({ file, why, withinTenant: 'templates/invoice/draft/1.json' })
+        expect(join(tenantDirectory(TENANT), (error as StoredRecordError).withinTenant)).toBe(file)
         expect((error as Error).message).toContain(file)
         expect((error as Error).message).toMatch(said)
       }
@@ -262,7 +267,8 @@ describe('an image', () => {
   // A digest names the bytes a report pinned. Kept under the wrong one, an
   // image would be printed where another was approved; changed on disk, it
   // would be served under a digest that no longer names it. The keep throws
-  // before it writes, and the read throws naming the file.
+  // before it writes, and the read throws naming the file, and its path
+  // inside the tenant's directory for a log that may not name the tenant's.
   test('is never kept or served under a digest that is not its bytes', async () => {
     const kept = image('the approved logo')
     const other = image('another logo')
@@ -273,7 +279,7 @@ describe('an image', () => {
     await writeFile(file, other.bytes)
     const error = await store.readImage(TENANT, kept.digest).catch((caught: unknown) => caught)
     expect(error).toBeInstanceOf(StoredRecordError)
-    expect(error).toMatchObject({ file, why: 'digest' })
+    expect(error).toMatchObject({ file, why: 'digest', withinTenant: `assets/${kept.digest.slice('sha256:'.length)}.png` })
   })
 
   // Two tabs add the same logo at once, and both keeps find nothing kept

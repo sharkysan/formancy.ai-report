@@ -9,15 +9,19 @@
  *   here, and `origins`, which createReportServer holds to the same rule.
  * - `crossOrigin`, which createReportServer calls on every server: with a
  *   list, an `OPTIONS` route at each API path granting a preflight for the
- *   method that path answers and the token's header alone, and the listed
- *   origin carried back on every answer of the API, refusals included; with
- *   or without one, a token-bearing request a browser marks cross-site or
- *   same-site refused before its token is read, unless its origin is listed.
+ *   methods that path answers and the headers the routes read,
+ *   `CROSS_ORIGIN_REQUEST_HEADERS`, and the listed origin carried back on
+ *   every answer of the API, refusals included, with the `ETag` a save
+ *   names exposed to it (`CROSS_ORIGIN_RESPONSE_HEADERS`, 0049); with or
+ *   without one, a token-bearing request a browser marks cross-site or
+ *   same-site refused before its token or its body is read, unless its
+ *   origin is listed.
  *
  * Never a wildcard, a pattern, `null` or credentials.
  */
-import { CROSS_ORIGIN_REQUEST_HEADERS, REFUSALS, ROUTES } from '@formancy/report-server-core'
+import { CROSS_ORIGIN_REQUEST_HEADERS, CROSS_ORIGIN_RESPONSE_HEADERS, REFUSALS, ROUTES } from '@formancy/report-server-core'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import { carriesBody, closingUnread } from './unread.js'
 
 /**
  * How long a browser may keep a granted preflight, in seconds: 600, the
@@ -139,10 +143,11 @@ export function crossOrigin(app: FastifyInstance, options: { origins: readonly s
   // their answers go unread. So a token-bearing request whose Sec-Fetch-Site
   // says another site sent it is refused here unless its origin is listed:
   // after the limiter's onRequest, so it is counted, and before the API's
-  // preHandler, which reads the token, so no token is read and no work is
-  // done; the API's own hooks still write its one event. With no route, the
-  // 404 is left as it is.
-  app.addHook('preHandler', async (request, reply) => {
+  // own preParsing hook, which reads the token, and before the body is
+  // parsed, so no token or body is read and no work is done; a body it
+  // carried closes its connection, unread. The API's own hooks still write
+  // its one event. With no route, the 404 is left as it is.
+  app.addHook('preParsing', async (request, reply) => {
     if (request.routeOptions.url === undefined || request.headers.authorization === undefined) return undefined
     const site = request.headers['sec-fetch-site']
     if (site !== 'cross-site' && site !== 'same-site') return undefined
@@ -150,19 +155,20 @@ export function crossOrigin(app: FastifyInstance, options: { origins: readonly s
     const fromListed = typeof origin === 'string' && listed.has(origin)
     if (fromListed && OFFERED.has(routeKey(request))) return undefined
     request.log.info({ reason: fromListed ? 'route not offered across origins' : 'origin not listed', ...loggable(origin) }, 'cross-origin request refused')
-    return reply.code(403).send(REFUSALS['cross-origin-refused'])
+    return closingUnread(request, reply).code(403).send(REFUSALS['cross-origin-refused'])
   })
 
   if (listed.size === 0) return
 
   // Every answer of the API, refusals included, so a page on a listed
-  // origin reads the server's sentence; Vary on all of them, since the same
-  // route answers another origin without the grant.
+  // origin reads the server's sentence, and the ETag, the revision its next
+  // save names; Vary on all of them, since the same route answers another
+  // origin without the grant.
   app.addHook('onSend', async (request, reply, payload) => {
     if (!OFFERED.has(routeKey(request))) return payload
     reply.header('vary', varyWith(reply.getHeader('vary'), 'Origin'))
     const origin = request.headers.origin
-    if (typeof origin === 'string' && listed.has(origin)) reply.header('access-control-allow-origin', origin)
+    if (typeof origin === 'string' && listed.has(origin)) reply.header('access-control-allow-origin', origin).header('access-control-expose-headers', CROSS_ORIGIN_RESPONSE_HEADERS.join(', '))
     return payload
   })
 
@@ -175,10 +181,9 @@ export function crossOrigin(app: FastifyInstance, options: { origins: readonly s
   // otherwise be parsed whatever it held, and held open however slowly it
   // came.
   const bodiless = async (request: FastifyRequest, reply: FastifyReply) => {
-    const length = request.headers['content-length']
-    if ((length === undefined || length === '0') && request.headers['transfer-encoding'] === undefined) return undefined
+    if (!carriesBody(request)) return undefined
     request.log.info({ reason: 'a preflight carries no body' }, 'preflight refused')
-    return reply.code(400).header('connection', 'close').send(REFUSALS['bad-request'])
+    return closingUnread(request, reply).code(400).send(REFUSALS['bad-request'])
   }
   for (const [path, methods] of METHODS) {
     app.options(path, { config: { rateLimit: false }, onRequest: bodiless }, async (request, reply) => {

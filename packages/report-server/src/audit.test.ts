@@ -1,20 +1,15 @@
 import { createHmac } from 'node:crypto'
 import { EventEmitter } from 'node:events'
-import { mkdtemp, rm } from 'node:fs/promises'
 import { request as httpRequest } from 'node:http'
 import { connect } from 'node:net'
 import type { AddressInfo, Socket } from 'node:net'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import type { AuditEvent, TemplateStore } from '@formancy/report-server-core'
+import type { AuditEvent } from '@formancy/report-server-core'
 import Fastify from 'fastify'
-import type { FastifyInstance } from 'fastify'
-import { afterEach, beforeEach, describe, expect, test } from 'vitest'
-import { createReportServer } from './app.js'
+import { describe, expect, test } from 'vitest'
 import type { ReportServerOptions } from './app.js'
 import { auditReference, auditRequests, logAuditSink } from './audit.js'
-import { openFileTemplateStore } from './file-store.js'
 import type { ReportVerifier } from './identity.js'
+import { eachCase } from './test-support.js'
 
 /**
  * The audit trail (0046, after formancy.ai-data 0023): one event per
@@ -32,37 +27,16 @@ const verifyIdentity: ReportVerifier = async (token) => {
   return { ok: false, reason: 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' }
 }
 
-let app: FastifyInstance | undefined
 let events: AuditEvent[]
-afterEach(async () => {
-  await app?.close()
-  app = undefined
-})
 
-/**
- * The server is given a store whatever the case asks of it (0049), so each
- * case has one of its own: the file store on a directory made for it and
- * removed after it, as the server runs on one, and never one shared
- * between cases.
- */
-let store: TemplateStore
-let storeDirectory: string
-beforeEach(async () => {
-  storeDirectory = await mkdtemp(join(tmpdir(), 'formancy-report-audit-'))
-  const opened = await openFileTemplateStore(storeDirectory)
-  if (!opened.ok) throw new Error(opened.problem)
-  store = opened.store
-})
-afterEach(async () => {
-  await rm(storeDirectory, { recursive: true, force: true })
-})
+/** The server is given a store whatever the case asks of it (0049): each case its own (test-support.ts). */
+const cases = eachCase('formancy-report-audit-')
 
 const at = '2026-10-22T08:00:00.000Z'
 /** Audited into `events`, under `key`, or with no key for `null`. */
 async function server(overrides: Partial<ReportServerOptions> = {}, key: string | null = KEY) {
   events = []
-  app = await createReportServer({ verifyIdentity, roles, store, audit: { sink: (event) => void events.push(event), now: () => at, ...(key === null ? {} : { key }) }, ...overrides })
-  return app
+  return cases.serve({ verifyIdentity, roles, audit: { sink: (event) => void events.push(event), now: () => at, ...(key === null ? {} : { key }) }, ...overrides })
 }
 
 describe('auditReference', () => {
@@ -104,6 +78,30 @@ describe('the audit trail', () => {
   test('writes one event for an answered request, naming who by keyed hash', async () => {
     await (await server()).inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: 'Bearer good' } })
     expect(events).toEqual([{ at, operation: 'whoami', status: 200, outcome: 'ok', identified: true, tenant: auditReference(KEY, 'tenant', 'acme'), actor: auditReference(KEY, 'actor', 'acme', 'u-1') }])
+  })
+
+  // Each route of the draft slice is an operation of its own in the trail,
+  // answered or refused, a refusal Fastify gives before the route's
+  // handler among them: under one name, or none, an operator could not
+  // count saves apart from reads, nor see the refusals a client met.
+  test('writes one event for each request of the draft slice, under its operation', async () => {
+    const audited = await server()
+    const hex = 'ab'.repeat(32)
+    const good = { authorization: 'Bearer good' }
+    await audited.inject({ method: 'GET', url: '/v1/templates', headers: good })
+    await audited.inject({ method: 'PUT', url: '/v1/templates/invoice/draft', headers: good })
+    await audited.inject({ method: 'PUT', url: '/v1/templates/invoice/draft', headers: { ...good, 'if-none-match': '*', 'content-type': 'text/plain' }, payload: 'x' })
+    await audited.inject({ method: 'GET', url: '/v1/templates/invoice/draft', headers: good })
+    await audited.inject({ method: 'PUT', url: `/v1/assets/${hex}`, headers: { ...good, 'content-type': 'image/png' }, payload: Buffer.from('no image') })
+    await audited.inject({ method: 'GET', url: `/v1/assets/${hex}`, headers: good })
+    expect(events.map(({ operation, status, outcome, identified }) => ({ operation, status, outcome, identified }))).toEqual([
+      { operation: 'templates.list', status: 200, outcome: 'ok', identified: true },
+      { operation: 'draft.save', status: 428, outcome: 'precondition-required', identified: true },
+      { operation: 'draft.save', status: 415, outcome: 'unsupported-media-type', identified: true },
+      { operation: 'draft.read', status: 404, outcome: 'no-draft', identified: true },
+      { operation: 'asset.keep', status: 422, outcome: 'image-refused', identified: true },
+      { operation: 'asset.read', status: 404, outcome: 'no-asset', identified: true },
+    ])
   })
 
   // A subject is unique within its tenant, not across tenants: u-1 of
@@ -185,7 +183,7 @@ describe('the audit trail', () => {
   test('answers as it would when the sink throws or rejects, and logs that it could not write', async () => {
     for (const sink of [() => { throw new Error('disk full') }, async () => Promise.reject(new Error('disk full'))]) {
       const lines: string[] = []
-      const failing = await createReportServer({ verifyIdentity, roles, store, audit: { sink }, logger: { stream: { write: (line) => void lines.push(line) } } })
+      const failing = await cases.serve({ verifyIdentity, roles, audit: { sink }, logger: { stream: { write: (line) => void lines.push(line) } } })
       const answer = await failing.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: 'Bearer good' } })
       await failing.close()
       expect(answer.statusCode).toBe(200)
@@ -197,7 +195,7 @@ describe('the audit trail', () => {
   // a collector reads the trail out of the server's own log.
   test('writes one log line per event with the server’s own sink', async () => {
     const lines: string[] = []
-    const logged = await createReportServer({ verifyIdentity, roles, store, logger: { stream: { write: (line) => void lines.push(line) } } })
+    const logged = await cases.serve({ verifyIdentity, roles, logger: { stream: { write: (line) => void lines.push(line) } } })
     const sink = logAuditSink(logged.log)
     sink({ at, operation: 'whoami', status: 200, outcome: 'ok', identified: true, tenant: null, actor: null })
     await logged.close()

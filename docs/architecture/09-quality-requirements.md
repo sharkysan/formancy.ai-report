@@ -210,7 +210,7 @@ Stated because an unstated non-goal reads as an oversight:
 - **Stopping a render mid-pass.** It needs a worker that can be killed, and
   none is built ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 - **A server that scales out.** One instance; its rate limit is in its
-  memory, and the store that arrives next is files on one volume
+  memory, and its template store is files on one volume
   ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)).
 - **Text Roboto has no glyphs for** — CJK, Hebrew, Arabic, Thai, emoji.
   Refused until fallback fonts the licence policy allows are embedded and

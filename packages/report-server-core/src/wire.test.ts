@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, test } from 'vitest'
 import * as entry from './index.js'
 import type { ServerRefusal } from './index.js'
-import { API_PREFIX, CROSS_ORIGIN_REQUEST_HEADERS, DRAFT_FORMAT, REFUSALS, ROUTES } from './wire.js'
+import { API_PREFIX, CROSS_ORIGIN_REQUEST_HEADERS, CROSS_ORIGIN_RESPONSE_HEADERS, DRAFT_FORMAT, isRevision, REFUSALS, ROUTES } from './wire.js'
 
 /**
  * What a client compiles against (0046): the API's version line, the routes
@@ -10,11 +10,24 @@ import { API_PREFIX, CROSS_ORIGIN_REQUEST_HEADERS, DRAFT_FORMAT, REFUSALS, ROUTE
 describe('the wire', () => {
   // The API is a version line of its own (0046, extending 0004): a route
   // outside /v1 would be one no version names, and a later shape would
-  // change it for every client at once.
-  test('answers every route under /v1, by method and path, each named for its audit event', () => {
+  // change it for every client at once. The table is the whole API, read
+  // by the server, which answers each entry and nothing else, and by the
+  // cross-origin grant, which offers each: a route missing here would be
+  // refused at start, and one added here unasked would be granted across
+  // origins. Two routes under one audit name would be one operation in the
+  // trail, so a save could not be told from a read.
+  test('is whoami and the draft slice’s five routes, under /v1, each with an audit name of its own', () => {
     expect(API_PREFIX).toBe('/v1')
-    expect(ROUTES).toEqual({ 'GET /v1/whoami': 'whoami' })
+    expect(ROUTES).toEqual({
+      'GET /v1/whoami': 'whoami',
+      'GET /v1/templates': 'templates.list',
+      'GET /v1/templates/:template/draft': 'draft.read',
+      'PUT /v1/templates/:template/draft': 'draft.save',
+      'PUT /v1/assets/:digest': 'asset.keep',
+      'GET /v1/assets/:digest': 'asset.read',
+    })
     for (const route of Object.keys(ROUTES)) expect(route).toMatch(/^(GET|PUT|POST|DELETE) \/v1\/[a-z/:-]+$/)
+    expect(new Set(Object.values(ROUTES)).size).toBe(Object.keys(ROUTES).length)
     expect(Object.isFrozen(ROUTES)).toBe(true)
   })
 
@@ -100,12 +113,27 @@ describe('the wire', () => {
     expect(bare.code).toBe('draft-changed')
   })
 
-  // The routes are read with a token and nothing else a page sets, so a
-  // grant across origins names that header alone; a header granted and
-  // never read is surface for nothing.
-  test('lets a page across origins send the token and nothing else', () => {
-    expect(CROSS_ORIGIN_REQUEST_HEADERS).toEqual(['authorization'])
+  // A builder on another origin saves with a JSON or an image body and a
+  // precondition, none of which a simple request may carry: without
+  // content-type, if-match and if-none-match in the grant, its preflight is
+  // refused and it cannot save at all; and without ETag exposed, it cannot
+  // read the revision its next save names. A header granted that no route
+  // reads is surface for nothing, so the lists are exactly these (0049).
+  test('lets a page across origins send the token, the body’s type and the preconditions, and read the revision', () => {
+    expect(CROSS_ORIGIN_REQUEST_HEADERS).toEqual(['authorization', 'content-type', 'if-match', 'if-none-match'])
+    expect(CROSS_ORIGIN_RESPONSE_HEADERS).toEqual(['etag'])
     expect(Object.isFrozen(CROSS_ORIGIN_REQUEST_HEADERS)).toBe(true)
+    expect(Object.isFrozen(CROSS_ORIGIN_RESPONSE_HEADERS)).toBe(true)
+  })
+
+  // A revision names a file in a store and an ETag a client sends back.
+  // The route that parses one from a header and the use case that judges
+  // one are two readers; were each to decide it, a revision one took and
+  // the other refused would reach a store that names a file by it, or a
+  // header the route accepted would be answered as no precondition.
+  test('takes a positive safe integer, and nothing else, for a revision', () => {
+    for (const revision of [1, 2, 10, Number.MAX_SAFE_INTEGER]) expect(isRevision(revision), String(revision)).toBe(true)
+    for (const value of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1, '1', null, undefined, 1n]) expect(isRevision(value), String(value)).toBe(false)
   })
 })
 
@@ -118,12 +146,14 @@ describe('the entry', () => {
       'API_PREFIX',
       'CAPACITIES',
       'CROSS_ORIGIN_REQUEST_HEADERS',
+      'CROSS_ORIGIN_RESPONSE_HEADERS',
       'DRAFT_FORMAT',
       'REFUSALS',
       'ROUTES',
       'actionsOf',
       'can',
       'capacitiesOf',
+      'isRevision',
       'keepImage',
       'listTemplates',
       'readDraft',

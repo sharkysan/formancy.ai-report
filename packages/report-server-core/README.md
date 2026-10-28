@@ -49,16 +49,23 @@ carries but that token contributes to it.
 - **`API_PREFIX`** -- `/v1`, the API's version line (0046, extending
   [0004](../../docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
 - **`ROUTES`** -- every route the API answers, `METHOD path`, with the name
-  its audit event gives it: today `GET /v1/whoami`, `whoami`.
+  its audit event gives it: `GET /v1/whoami`, `whoami`, and the draft
+  slice's five, `GET /v1/templates` (`templates.list`),
+  `GET /v1/templates/:template/draft` (`draft.read`),
+  `PUT /v1/templates/:template/draft` (`draft.save`),
+  `PUT /v1/assets/:digest` (`asset.keep`) and `GET /v1/assets/:digest`
+  (`asset.read`).
 - **`WhoAmI`**, **`Health`** -- what those answer.
 - **`DRAFT_FORMAT`** -- the stored draft's format number, `1`, which a
   reader compares and refuses another of.
 - **`TemplateSummary`**, **`TemplateList`**, **`Draft`**, **`DraftSaved`**,
-  **`ImageKept`** -- what the draft slice's routes will answer: a template
-  by its report's own id, its revision and its title; a draft with the
+  **`ImageKept`** -- what the draft slice's routes answer: a template by
+  its report's own id, its revision and its title; a draft with the
   report, the revision and the subject that saved it; the revision a save
-  wrote; the digest an image is kept under. The routes arrive with the
-  release that builds them, and `ROUTES` lists them then.
+  wrote; the digest an image is kept under.
+- **`isRevision`** -- whether a value is a revision, a positive safe
+  integer: the one test, which a route parsing `If-Match` and the use case
+  judging what it parsed both ask.
 - **`REFUSALS`**, **`Refusal`** -- every refusal, a stable code and a fixed
   sentence that quotes nothing of the request: `unauthenticated`,
   `not-found`, `path-not-plain`, `rate-limited`, `cross-origin-refused`,
@@ -75,7 +82,10 @@ carries but that token contributes to it.
   Narrowing on `code` gives the field, and a refusal of one of the four
   without it is no `ServerRefusal`.
 - **`CROSS_ORIGIN_REQUEST_HEADERS`** -- what a page on a listed origin may
-  send: the token's header, `authorization`.
+  send: the headers the routes read, `authorization`, `content-type`,
+  `if-match` and `if-none-match`. **`CROSS_ORIGIN_RESPONSE_HEADERS`** --
+  what such a page may read beyond what a browser always shows it: `etag`,
+  the revision its next save names.
 
 ## The use cases
 
@@ -113,7 +123,8 @@ image exists.
   nothing here keeps one); then the store's swap, which writes the report the
   validator returned and the token's subject as `savedBy`: 201 for a
   `create`, 200 for a `replace`, or 412 `draft-changed` with the revision that
-  stands, `null` where there is none.
+  stands, `null` where there is none, and that revision beside the body too,
+  for the `ETag`, where there is one.
 - **`keepImage(asking, digestHex, contentType, bytes)`** -- checks: the
   capacity; the digest as 64 lower-case hexadecimal digits (400
   `digest-invalid`); the size against report-spec's `MAX_ASSET_BYTES` (413
