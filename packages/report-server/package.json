@@ -27,6 +27,7 @@
     "@fastify/rate-limit": "11.2.1",
     "@formancy/data-identity": "0.3.0",
     "@formancy/report-server-core": "workspace:*",
+    "@formancy/report-spec": "workspace:*",
     "fastify": "5.12.7"
   },
   "devDependencies": {

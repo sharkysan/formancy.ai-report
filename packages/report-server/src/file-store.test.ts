@@ -1,0 +1,383 @@
+import { createHash } from 'node:crypto'
+import { chmod, link, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, relative } from 'node:path'
+import { DRAFT_FORMAT } from '@formancy/report-server-core'
+import type { StoredImage, TemplateStore } from '@formancy/report-server-core'
+import { assetDigest, emptyReport } from '@formancy/report-spec'
+import type { ReportDefinition } from '@formancy/report-spec'
+import { afterEach, beforeEach, describe, expect, test } from 'vitest'
+import { openFileTemplateStore, StoredRecordError } from './file-store.js'
+
+/**
+ * The file store (0049, as formancy.ai-data 0013): a tenant's drafts and
+ * images in files under one root, each against a real directory made for
+ * the case, since what is proved here -- a hard link deciding a race, a
+ * name a case-folding volume would merge -- is the file system's and no
+ * double's. This is the store a deployment runs; the use cases' suites run
+ * against one in memory.
+ */
+
+let root: string
+let store: TemplateStore
+
+/** The store opened on `at`, which every case but the root's own expects to open. */
+async function opened(at: string): Promise<TemplateStore> {
+  const outcome = await openFileTemplateStore(at)
+  if (!outcome.ok) throw new Error(outcome.problem)
+  return outcome.store
+}
+
+beforeEach(async () => {
+  root = await mkdtemp(join(tmpdir(), 'formancy-report-store-'))
+  store = await opened(root)
+})
+
+afterEach(async () => {
+  // A case that took the root's permissions away gives them back, or the directory could not be removed.
+  await chmod(root, 0o700).catch(() => undefined)
+  await rm(root, { recursive: true, force: true })
+})
+
+const TENANT = 'acme'
+const sha256 = (data: string | Uint8Array): string => createHash('sha256').update(data).digest('hex')
+/** The layout, written out as the store's header states it, so that a store that kept its files elsewhere fails here. */
+const tenantDirectory = (tenant: string): string => join(root, 'tenants', sha256(Buffer.from(tenant, 'utf8')))
+const draftDirectory = (tenant: string, template: string): string => join(tenantDirectory(tenant), 'templates', template, 'draft')
+const assetDirectory = (tenant: string): string => join(tenantDirectory(tenant), 'assets')
+const report = (id: string, title: string): ReportDefinition => emptyReport(id, title, 'en')
+const draft = (savedBy: string, saved: ReportDefinition) => ({ savedBy, report: saved })
+/** Bytes and the digest that names them, as a report's asset names an image. */
+const image = (text: string) => {
+  const bytes = new TextEncoder().encode(text)
+  return { bytes, digest: assetDigest(bytes) }
+}
+
+describe('a draft', () => {
+  // A store that wrote over the previous revision, numbered from anything
+  // but one, or read back other than what it was given, would serve an
+  // author a draft they never saved. The record on disk is its format, the
+  // digest, who saved it and the report, the report's text in it exactly
+  // the text its digest was taken of.
+  test('saves 1, 2 and 3 in order, each read back as it was saved', async () => {
+    const saves = [draft('u-1', report('invoice', 'One')), draft('u-2', report('invoice', 'Two')), draft('u-1', report('invoice', 'Three'))]
+    expect(await store.newest(TENANT, 'invoice')).toBeUndefined()
+    for (const [at, each] of saves.entries()) {
+      expect(await store.save(TENANT, 'invoice', at === 0 ? null : at, each)).toEqual({ saved: true, revision: at + 1 })
+      expect(await store.newest(TENANT, 'invoice')).toEqual({ revision: at + 1, ...each })
+    }
+    const text = await readFile(join(draftDirectory(TENANT, 'invoice'), '3.json'), 'utf8')
+    const written = JSON.stringify(saves[2]?.report)
+    expect(JSON.parse(text)).toEqual({ format: DRAFT_FORMAT, digest: sha256(written), savedBy: 'u-1', report: saves[2]?.report })
+    expect(text).toContain(written)
+  })
+
+  // Two authors read revision 1 and both save. Without the comparison the
+  // second would silently replace the first one's work; told which revision
+  // stands, it can read that one first.
+  test('a save from 1 after 2 is not written, and says 2 stands', async () => {
+    expect(await store.save(TENANT, 'invoice', 1, draft('u-1', report('invoice', 'Nothing yet')))).toEqual({ saved: false, revision: null })
+    await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'One')))
+    await store.save(TENANT, 'invoice', 1, draft('u-2', report('invoice', 'Two')))
+    expect(await store.save(TENANT, 'invoice', 1, draft('u-3', report('invoice', 'Stale')))).toEqual({ saved: false, revision: 2 })
+    expect(await store.save(TENANT, 'invoice', null, draft('u-3', report('invoice', 'Created again')))).toEqual({ saved: false, revision: 2 })
+    expect((await readdir(draftDirectory(TENANT, 'invoice'))).sort()).toEqual(['1.json', '2.json'])
+    expect((await store.newest(TENANT, 'invoice'))?.report.title).toBe('Two')
+  })
+
+  // The case the comparison before the write cannot decide alone: every
+  // racer reads revision 1 as the newest at once. The hard link decides,
+  // and must decide exactly once -- twenty racers, one winner, the losers
+  // told 2 stands, and no racer's temporary file left behind.
+  test('of 20 concurrent saves from 1, exactly one wins, and no temporary file remains', async () => {
+    await store.save(TENANT, 'invoice', null, draft('u-0', report('invoice', 'Base')))
+    const racers = await Promise.all(Array.from({ length: 20 }, () => opened(root)))
+    const outcomes = await Promise.all(racers.map((each, n) => each.save(TENANT, 'invoice', 1, draft(`u-${String(n + 1)}`, report('invoice', `Racer ${String(n + 1)}`)))))
+    const winners = outcomes.flatMap((outcome, n) => (outcome.saved ? [n] : []))
+    expect(winners).toHaveLength(1)
+    expect(outcomes.filter((outcome) => !outcome.saved)).toEqual(Array.from({ length: 19 }, () => ({ saved: false, revision: 2 })))
+    expect((await store.newest(TENANT, 'invoice'))?.report.title).toBe(`Racer ${String((winners[0] ?? -1) + 1)}`)
+    expect((await readdir(draftDirectory(TENANT, 'invoice'))).sort()).toEqual(['1.json', '2.json'])
+  })
+
+  // `10.json` sorts before `9.json` as text. A store that
+  // took the last name would serve revision 9 as the newest, and every save
+  // from 11 would be refused as stale.
+  test('after eleven saves, the newest is revision 11, and the list says 11', async () => {
+    for (let from: number | null = null; from === null || from < 11; from = (from ?? 0) + 1) {
+      await store.save(TENANT, 'invoice', from, draft('u-1', report('invoice', `Save ${String((from ?? 0) + 1)}`)))
+    }
+    expect(await store.newest(TENANT, 'invoice')).toMatchObject({ revision: 11, report: { title: 'Save 11' } })
+    expect(await store.list(TENANT)).toEqual([{ template: 'invoice', revision: 11, title: 'Save 11' }])
+  })
+
+  // A crash between writing and linking leaves a temporary file, and a
+  // directory can be made and never written to. Neither is a draft: listed,
+  // it would be offered to an author and then fail to read. Nor is any name
+  // the store never writes -- a zero-padded number, a note, the `.DS_Store`
+  // macOS leaves beside a template's directories.
+  test('a template directory holding only a temporary file, or nothing, is neither listed nor read', async () => {
+    await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Kept')))
+    await mkdir(join(tenantDirectory(TENANT), 'templates', 'empty'), { recursive: true })
+    await mkdir(draftDirectory(TENANT, 'crashed'), { recursive: true })
+    await writeFile(join(draftDirectory(TENANT, 'crashed'), '.0f3c.tmp'), '{"format":1,"half')
+    await writeFile(join(draftDirectory(TENANT, 'invoice'), '07.json'), '{}')
+    await writeFile(join(draftDirectory(TENANT, 'invoice'), 'notes.txt'), 'hello')
+    await writeFile(join(tenantDirectory(TENANT), 'templates', '.DS_Store'), '')
+    expect(await store.list(TENANT)).toEqual([{ template: 'invoice', revision: 1, title: 'Kept' }])
+    expect(await store.newest(TENANT, 'empty')).toBeUndefined()
+    expect(await store.newest(TENANT, 'crashed')).toBeUndefined()
+    expect(await store.newest(TENANT, 'invoice')).toMatchObject({ revision: 1 })
+    // The leftover is not a revision either, so it does not stand in the way of the first save.
+    expect(await store.save(TENANT, 'crashed', null, draft('u-1', report('crashed', 'First')))).toEqual({ saved: true, revision: 1 })
+  })
+
+  // A record changed by hand is no longer what the save validated, and one
+  // of another format is not this release's to read (0046's fourth version
+  // line). Serving either would be serving a guess; each is refused, naming
+  // the file, so the operator can find it -- through the list as through a
+  // read -- and a format number this release does not read named beside the
+  // one it does, as 0004 names a version.
+  test('a record edited by hand, of format 2 or not JSON, throws StoredRecordError naming the file', async () => {
+    await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Saved')))
+    const file = join(draftDirectory(TENANT, 'invoice'), '1.json')
+    const record = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>
+    const { savedBy: _, ...unsigned } = record
+    const cases = [
+      ['digest', JSON.stringify({ ...record, report: report('invoice', 'Edited') }), /does not hold what the SHA-256 written for it names/],
+      ['format', JSON.stringify({ ...record, format: 2 }), /is a record of format 2, and this release reads format 1 alone/],
+      ['format', JSON.stringify({ ...record, format: '1' }), /is not a draft record of format 1/],
+      ['format', JSON.stringify(unsigned), /is not a draft record of format 1/],
+      ['format', JSON.stringify([record]), /is not a draft record of format 1/],
+      ['json', '{"format":1,', /is not JSON/],
+    ] as const
+    for (const [why, text, said] of cases) {
+      await writeFile(file, text)
+      for (const read of [() => store.newest(TENANT, 'invoice'), () => store.list(TENANT)]) {
+        const error = await read().catch((caught: unknown) => caught)
+        expect(error, `${why}: ${text}`).toBeInstanceOf(StoredRecordError)
+        expect(error).toMatchObject({ file, why })
+        expect((error as Error).message).toContain(file)
+        expect((error as Error).message).toMatch(said)
+      }
+    }
+  })
+})
+
+describe('the tenants', () => {
+  // The use cases compare tenants as exact strings, and this
+  // Mac's volume folds both case and Unicode normalisation: a directory
+  // named after the claim would make Acme's drafts acme's, and one é the
+  // other's. Each tenant saves the same template from nothing, and each
+  // wins, sees only its own and holds its own image alone.
+  test('Acme, acme, NFC é and NFD é are four tenants that cannot see each other', async () => {
+    const tenants = ['Acme', 'acme', 'é', 'é']
+    for (const tenant of tenants) {
+      expect(await store.save(tenant, 'invoice', null, draft('u-1', report('invoice', `Of ${tenant}`)))).toEqual({ saved: true, revision: 1 })
+    }
+    const kept = image('the logo of Acme')
+    await store.keepImage('Acme', kept.digest, { mediaType: 'image/png', bytes: kept.bytes })
+    for (const tenant of tenants) {
+      expect((await store.newest(tenant, 'invoice'))?.report.title).toBe(`Of ${tenant}`)
+      expect(await store.list(tenant)).toEqual([{ template: 'invoice', revision: 1, title: `Of ${tenant}` }])
+      expect(await store.hasImage(tenant, kept.digest)).toBe(tenant === 'Acme')
+    }
+    expect(await readdir(join(root, 'tenants'))).toHaveLength(4)
+  })
+
+  // A string with a lone surrogate has no UTF-8 form: encoded, it becomes
+  // U+FFFD, so `\uD800`, `\uDC00` and `�` would be one tenant's
+  // directory. A claim like that is refused before it names one.
+  test('a tenant that has no UTF-8 form throws before any file operation', async () => {
+    for (const tenant of ['\ud800', 'acme\udc00']) {
+      await expect(store.list(tenant)).rejects.toThrow(/UTF-8/)
+      await expect(store.save(tenant, 'invoice', null, draft('u-1', report('invoice', 'Lone')))).rejects.toThrow(/UTF-8/)
+    }
+    expect(await readdir(root)).toEqual([])
+  })
+})
+
+describe('what names a file', () => {
+  // A template id and a digest become names in a path. The use cases refuse
+  // one that is not report-spec's before the store is asked; this is the
+  // second line, so that a route that forgot could not climb out of the
+  // tenant's directory with `../x`. With the root unreadable, any file
+  // operation made first would fail otherwise than the check does.
+  test('a template id that is not report-spec’s identifier, or a digest that is not a SHA-256, throws before any file operation', async () => {
+    await chmod(root, 0o000)
+    for (const template of ['../x', '..', '.', '', 'a/b', 'a\\b', '.hidden', 'Invoice', '-a', '1a', 'x'.repeat(65)]) {
+      await expect(store.newest(TENANT, template), template).rejects.toThrow(/not a report id/)
+      await expect(store.save(TENANT, template, null, draft('u-1', report('invoice', 'Out')))).rejects.toThrow(/not a report id/)
+    }
+    const kept = image('bytes')
+    for (const digest of ['', kept.digest.slice('sha256:'.length), kept.digest.toUpperCase(), `${kept.digest}0`, 'sha256:../../x', `sha512:${'a'.repeat(64)}`]) {
+      await expect(store.hasImage(TENANT, digest), digest).rejects.toThrow(/not a SHA-256/)
+      await expect(store.readImage(TENANT, digest)).rejects.toThrow(/not a SHA-256/)
+      await expect(store.keepImage(TENANT, digest, { mediaType: 'image/png', bytes: kept.bytes })).rejects.toThrow(/not a SHA-256/)
+    }
+    await chmod(root, 0o700)
+    expect(await readdir(root)).toEqual([])
+  })
+
+  // A revision is a positive safe integer (the plan's constraint). A name
+  // past the safe integers is one the store never wrote, and is no
+  // revision; and the save after the largest safe one would be numbered by
+  // a float that no longer counts, so it throws rather than write it.
+  test('a revision past the safe integers is neither read nor written', async () => {
+    await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'One')))
+    const directory = draftDirectory(TENANT, 'invoice')
+    await link(join(directory, '1.json'), join(directory, '99999999999999999999.json'))
+    expect(await store.newest(TENANT, 'invoice')).toMatchObject({ revision: 1 })
+    await link(join(directory, '1.json'), join(directory, `${String(Number.MAX_SAFE_INTEGER)}.json`))
+    expect(await store.newest(TENANT, 'invoice')).toMatchObject({ revision: Number.MAX_SAFE_INTEGER })
+    await expect(store.save(TENANT, 'invoice', Number.MAX_SAFE_INTEGER, draft('u-1', report('invoice', 'Past')))).rejects.toThrow(/safe integer/)
+  })
+})
+
+describe('an image', () => {
+  // A builder keeps an image again whenever a person adds it again (0033).
+  // The second keep must leave the first file as it is, one file and no
+  // leftover, and a read must give back the bytes and the kind they were
+  // kept as, each kind under its own extension.
+  test('kept twice under one digest leaves one file, and reads back its bytes and media type', async () => {
+    const png = image('a png')
+    expect(await store.hasImage(TENANT, png.digest)).toBe(false)
+    expect(await store.readImage(TENANT, png.digest)).toBeUndefined()
+    await store.keepImage(TENANT, png.digest, { mediaType: 'image/png', bytes: png.bytes })
+    const file = join(assetDirectory(TENANT), `${png.digest.slice('sha256:'.length)}.png`)
+    const first = await stat(file)
+    await store.keepImage(TENANT, png.digest, { mediaType: 'image/png', bytes: png.bytes })
+    expect((await stat(file)).ino).toBe(first.ino)
+    expect(await readdir(assetDirectory(TENANT))).toEqual([`${png.digest.slice('sha256:'.length)}.png`])
+    expect(await store.hasImage(TENANT, png.digest)).toBe(true)
+    expect(await store.readImage(TENANT, png.digest)).toEqual({ mediaType: 'image/png', bytes: Buffer.from(png.bytes) })
+    for (const [mediaType, extension] of [['image/jpeg', 'jpg'], ['image/svg+xml', 'svg']] as const) {
+      const kept = image(`an image kept as ${mediaType}`)
+      await store.keepImage(TENANT, kept.digest, { mediaType, bytes: kept.bytes })
+      expect(await readdir(assetDirectory(TENANT))).toContain(`${kept.digest.slice('sha256:'.length)}.${extension}`)
+      expect(await store.readImage(TENANT, kept.digest)).toEqual({ mediaType, bytes: Buffer.from(kept.bytes) })
+    }
+  })
+
+  // A digest names the bytes a report pinned. Kept under the wrong one, an
+  // image would be printed where another was approved; changed on disk, it
+  // would be served under a digest that no longer names it. The keep throws
+  // before it writes, and the read throws naming the file.
+  test('is never kept or served under a digest that is not its bytes', async () => {
+    const kept = image('the approved logo')
+    const other = image('another logo')
+    await expect(store.keepImage(TENANT, kept.digest, { mediaType: 'image/png', bytes: other.bytes })).rejects.toThrow(/not the SHA-256/)
+    expect(await store.hasImage(TENANT, kept.digest)).toBe(false)
+    await store.keepImage(TENANT, kept.digest, { mediaType: 'image/png', bytes: kept.bytes })
+    const file = join(assetDirectory(TENANT), `${kept.digest.slice('sha256:'.length)}.png`)
+    await writeFile(file, other.bytes)
+    const error = await store.readImage(TENANT, kept.digest).catch((caught: unknown) => caught)
+    expect(error).toBeInstanceOf(StoredRecordError)
+    expect(error).toMatchObject({ file, why: 'digest' })
+  })
+
+  // Two tabs add the same logo at once, and both keeps find nothing kept
+  // yet. The link decides again: one file, both keeps resolved, since each
+  // kept the same bytes, and no temporary file left by the one that lost.
+  test('kept by several at once leaves one file and no temporary one', async () => {
+    const logo = image('a logo added in two tabs')
+    const keepers = await Promise.all(Array.from({ length: 5 }, () => opened(root)))
+    await Promise.all(keepers.map((each) => each.keepImage(TENANT, logo.digest, { mediaType: 'image/png', bytes: logo.bytes })))
+    expect(await readdir(assetDirectory(TENANT))).toEqual([`${logo.digest.slice('sha256:'.length)}.png`])
+  })
+
+  // A kind the store has no extension for -- a font, which no store here
+  // keeps (0049) -- would be written as `<hex>.undefined`, a name no read
+  // finds. It throws before anything is written.
+  test('of a kind the store has no name for is not kept', async () => {
+    const font = image('a font')
+    const mediaType = 'font/ttf' as StoredImage['mediaType']
+    await expect(store.keepImage(TENANT, font.digest, { mediaType, bytes: font.bytes })).rejects.toThrow(/PNG, a JPEG or an SVG/)
+    expect(await readdir(root)).toEqual([])
+  })
+})
+
+describe('a directory the store cannot read', () => {
+  // Only a name that is not there is read as nothing kept. Any other
+  // failure -- here a directory this process may not read -- thrown as it
+  // is, never answered as "no draft", "no templates" or "no image", which
+  // would invite a save from nothing over drafts that exist.
+  test('throws as it is, rather than reading as empty', async () => {
+    await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Kept')))
+    const kept = image('a logo')
+    await store.keepImage(TENANT, kept.digest, { mediaType: 'image/png', bytes: kept.bytes })
+    await chmod(draftDirectory(TENANT, 'invoice'), 0o000)
+    await chmod(assetDirectory(TENANT), 0o000)
+    try {
+      await expect(store.newest(TENANT, 'invoice')).rejects.toThrow(/EACCES/)
+      await expect(store.list(TENANT)).rejects.toThrow(/EACCES/)
+      await expect(store.hasImage(TENANT, kept.digest)).rejects.toThrow(/EACCES/)
+    } finally {
+      await chmod(draftDirectory(TENANT, 'invoice'), 0o700)
+      await chmod(assetDirectory(TENANT), 0o700)
+    }
+  })
+})
+
+describe('the root', () => {
+  // A misconfigured volume found at start, in one sentence naming the
+  // setting and what is wrong, beats a server that answers every save with
+  // `internal`. The sentence never quotes the path, which the operator set
+  // and can read. The relative root names this case's own directory, which
+  // would open: only its being relative refuses it, as the directory a
+  // process starts in would otherwise decide where the drafts go.
+  test('that is a file, relative, missing or not writable is refused, naming FORMANCY_REPORT_STORE_DIR', async () => {
+    const file = join(root, 'a-file-not-a-directory')
+    await writeFile(file, 'x')
+    const locked = join(root, 'a-directory-not-writable')
+    await mkdir(locked, { mode: 0o555 })
+    const cases = [
+      [file, /not a directory/],
+      [relative(process.cwd(), root), /not an absolute path/],
+      [join(root, 'a-directory-not-made'), /names nothing/],
+      [locked, /cannot write/],
+    ] as const
+    for (const [at, why] of cases) {
+      const outcome = await openFileTemplateStore(at)
+      expect(outcome.ok, at).toBe(false)
+      const problem = outcome.ok ? '' : outcome.problem
+      expect(problem).toMatch(/^FORMANCY_REPORT_STORE_DIR /)
+      expect(problem).toMatch(why)
+      expect(problem).not.toContain(at)
+    }
+  })
+
+  // A volume that goes away under a running server: read as an empty store
+  // it would hide every draft behind "no draft", and a save would make the
+  // root again where the volume was not, splitting the store in two.
+  test('that is gone after it opened fails every call, and is not made again', async () => {
+    await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Kept')))
+    await rm(root, { recursive: true })
+    const kept = image('bytes')
+    await expect(store.list(TENANT)).rejects.toThrow(/no longer a directory/)
+    await expect(store.newest(TENANT, 'invoice')).rejects.toThrow(/no longer a directory/)
+    await expect(store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Again')))).rejects.toThrow(/no longer a directory/)
+    await expect(store.hasImage(TENANT, kept.digest)).rejects.toThrow(/no longer a directory/)
+    await expect(store.readImage(TENANT, kept.digest)).rejects.toThrow(/no longer a directory/)
+    await expect(store.keepImage(TENANT, kept.digest, { mediaType: 'image/png', bytes: kept.bytes })).rejects.toThrow(/no longer a directory/)
+    await expect(stat(root)).rejects.toThrow(/ENOENT/)
+  })
+})
+
+describe('the list', () => {
+  // The list is how an author finds a template again: each one's newest
+  // title, not its first, and in an order that does not depend on what the
+  // volume's directory listing happens to return. A tenant with nothing
+  // saved lists nothing rather than failing.
+  test('gives each template’s newest report title, ordered by template id', async () => {
+    expect(await store.list(TENANT)).toEqual([])
+    for (const id of ['zeta', 'alpha-2', 'beta', 'alpha']) await store.save(TENANT, id, null, draft('u-1', report(id, `First of ${id}`)))
+    await store.save(TENANT, 'beta', 1, draft('u-1', report('beta', 'Second of beta')))
+    expect(await store.list(TENANT)).toEqual([
+      { template: 'alpha', revision: 1, title: 'First of alpha' },
+      { template: 'alpha-2', revision: 1, title: 'First of alpha-2' },
+      { template: 'beta', revision: 2, title: 'Second of beta' },
+      { template: 'zeta', revision: 1, title: 'First of zeta' },
+    ])
+  })
+})

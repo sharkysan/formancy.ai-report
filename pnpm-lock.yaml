@@ -809,6 +809,9 @@ importers:
       '@formancy/report-server-core':
         specifier: workspace:*
         version: link:../report-server-core
+      '@formancy/report-spec':
+        specifier: workspace:*
+        version: link:../report-spec
       fastify:
         specifier: 5.12.7
         version: 5.12.7
