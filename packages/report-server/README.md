@@ -58,16 +58,20 @@ docker run --rm -p 4392:4392 \
   -e FORMANCY_REPORT_IDENTITY_SECRET=file:/run/secrets/host \
   -e FORMANCY_REPORT_ATTRIBUTES=tenant=tid \
   -e FORMANCY_REPORT_AUTHOR_ROLES=report-authors \
+  -v formancy-report-store:/var/lib/formancy-report \
   -v "$PWD/host-secret:/run/secrets/host:ro" \
   formancy/report-server
 ```
 
 It runs as `node`, on Node 26 at an exact digest, carries `LICENSE.md` and
-`NOTICE` in `/app`, and owns `/var/lib/formancy-report`, the directory the
-template store of a later release writes, and nothing else: its code in
-`/app` is root's, so a process made to write cannot rewrite it. It runs with
-`docker run --read-only` as well, which an operator may add, the store's
-directory then a volume they mount; the container gate runs it both ways.
+`NOTICE` in `/app`, and owns `/var/lib/formancy-report`, the directory it
+sets `FORMANCY_REPORT_STORE_DIR` to and keeps the template store in, and
+nothing else: its code in `/app` is root's, so a process made to write
+cannot rewrite it. The volume above is what keeps the store when the
+container is removed; run without one, the drafts go with the container.
+It runs with `docker run --read-only` as well, which an operator may add,
+the store's directory then a volume they mount, since a read-only root file
+system leaves it nowhere to write; the container gate runs it both ways.
 Unconfigured, it does not start: it prints one line for each setting it
 needs, and exits 1.
 
@@ -105,6 +109,7 @@ value.
 | `FORMANCY_REPORT_TRUSTED_PROXIES` | The proxies whose `X-Forwarded-For` names the client address: IP addresses and CIDR ranges, comma-separated, never `*`, `true`, a hop count (formancy.ai-data 0071), or entries that together trust every IPv4 or every IPv6 peer as Fastify matches one: an IPv4 peer, written plain or IPv4-mapped, against the IPv4 entries and the ranges inside `::ffff:0:0/96`, so `::ffff:0:0/96` trusts every IPv4 peer and `::/1` none; any other IPv6 peer against the other IPv6 ranges. Unset, none |
 | `FORMANCY_REPORT_CORS_ORIGINS` | The origins whose pages may call the API, each exactly as a browser sends `Origin`: never a wildcard, a pattern or `null`, and plain HTTP only on loopback (formancy.ai-data 0060). Unset, none |
 | `FORMANCY_REPORT_AUDIT_KEY` | A secret reference to the key the audit trail names who asked by: at least 32 bytes, and not the identity key -- the secret, the public key's text, or a key of the set -- as the server compares them at start. Unset, nobody is named |
+| `FORMANCY_REPORT_STORE_DIR` | Required: the absolute path of the directory the server keeps its templates' drafts and images in; the image sets `/var/lib/formancy-report`. The directory must exist and be one the process can write: the server does not make it, and stops at start, naming this setting, where it is not one |
 | `PORT` | The port it listens on. Unset, 4392: beside formancy's 4380 and Data's 4390, a choice and not a measurement |
 
 **Who may do what** is the actions table in `@formancy/report-server-core`:
@@ -129,9 +134,11 @@ is an operational trail, not evidence (formancy.ai-data 0023's limits).
 ## Embed the server
 
 ```ts
-import { createReportServer, createReportVerifier } from '@formancy/report-server'
+import { createReportServer, createReportVerifier, openFileTemplateStore } from '@formancy/report-server'
 const verifyIdentity = await createReportVerifier({ key: { kind: 'secret', secret: hostSecret }, issuer: 'https://login.example', audience: 'formancy-report', tenantClaim: 'tid' })
-const server = await createReportServer({ verifyIdentity, roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] }, audit })
+const opened = await openFileTemplateStore(storeDirectory)
+if (!opened.ok) throw new Error(opened.problem)
+const server = await createReportServer({ verifyIdentity, roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] }, audit, store: opened.store })
 await server.listen({ host: '127.0.0.1', port: 0 })
 ```
 
@@ -140,7 +147,11 @@ that holds the server and what it declares and nothing else, and they are
 held to it (`scripts/readme-example.test.mjs`). `createReportVerifier` takes
 data-identity's key options -- one secret, one public key, or a key set
 whose `keys()` is asked on every token -- with `tenantClaim`, and refuses at
-construction a key that would accept forgeries. `audit` is `{ sink, key? }`:
+construction a key that would accept forgeries. `store` is the file store
+`openFileTemplateStore(root)` opens on an absolute directory that exists and
+that the process can write: it answers `{ ok: true, store }`, or `{ ok: false,
+problem }` with one sentence about the root, which names no setting, since an
+embedder set none, and never the path. `audit` is `{ sink, key? }`:
 the server's own sink writes the log line above, and an embedder may pass
 its own; a sink that throws never fails a request; a `key` under 32 bytes
 does not start the server. `origins`,

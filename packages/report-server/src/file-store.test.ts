@@ -320,13 +320,17 @@ describe('a directory the store cannot read', () => {
 })
 
 describe('the root', () => {
-  // A misconfigured volume found at start, in one sentence naming the
-  // setting and what is wrong, beats a server that answers every save with
-  // `internal`. The sentence never quotes the path, which the operator set
-  // and can read. The relative root names this case's own directory, which
-  // would open: only its being relative refuses it, as the directory a
-  // process starts in would otherwise decide where the drafts go.
-  test('that is a file, relative, missing or not writable is refused, naming FORMANCY_REPORT_STORE_DIR', async () => {
+  // A misconfigured volume found at start, in one sentence saying what is
+  // wrong with the root, beats a server that answers every save with
+  // `internal`. The store is opened from code as well as from a container,
+  // so the sentence names no setting and no environment variable -- an
+  // embedder set none, and one told to look at FORMANCY_REPORT_STORE_DIR
+  // would look for a variable they never wrote; the server names its own
+  // (serve.ts). It never quotes the path, which the operator set and can
+  // read. The relative root names this case's own directory, which would
+  // open: only its being relative refuses it, as the directory a process
+  // starts in would otherwise decide where the drafts go.
+  test('that is a file, relative, missing or not writable is refused, naming no setting', async () => {
     const file = join(root, 'a-file-not-a-directory')
     await writeFile(file, 'x')
     const locked = join(root, 'a-directory-not-writable')
@@ -341,8 +345,9 @@ describe('the root', () => {
       const outcome = await openFileTemplateStore(at)
       expect(outcome.ok, at).toBe(false)
       const problem = outcome.ok ? '' : outcome.problem
-      expect(problem).toMatch(/^FORMANCY_REPORT_STORE_DIR /)
+      expect(problem).toMatch(/^The store's root /)
       expect(problem).toMatch(why)
+      expect(problem).not.toMatch(/FORMANCY_|environment|setting|variable/i)
       expect(problem).not.toContain(at)
     }
   })
@@ -361,6 +366,17 @@ describe('the root', () => {
     await expect(store.readImage(TENANT, kept.digest)).rejects.toThrow(/no longer a directory/)
     await expect(store.keepImage(TENANT, kept.digest, { mediaType: 'image/png', bytes: kept.bytes })).rejects.toThrow(/no longer a directory/)
     await expect(stat(root)).rejects.toThrow(/ENOENT/)
+  })
+
+  // The same rule for what a running store says: it is thrown into the
+  // server's log as an `internal`, where the operator who reads it knows
+  // the directory they mounted and an embedder knows none of our settings.
+  test('that is gone after it opened says so without naming a setting', async () => {
+    await rm(root, { recursive: true })
+    const failure = await store.list(TENANT).catch((error: unknown) => error as Error)
+    expect(failure).toBeInstanceOf(Error)
+    expect((failure as Error).message).not.toMatch(/FORMANCY_|environment|setting|variable/i)
+    expect((failure as Error).message).not.toContain(root)
   })
 })
 

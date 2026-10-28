@@ -1,12 +1,17 @@
 import { generateKeyPairSync } from 'node:crypto'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { connect } from 'node:net'
 import type { AddressInfo } from 'node:net'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import { SignJWT, UnsecuredJWT } from 'jose'
-import { afterEach, describe, expect, test } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { ACTIONS, ROUTES } from '@formancy/report-server-core'
+import type { TemplateStore } from '@formancy/report-server-core'
 import { createReportServer, REQUEST_TIMEOUT_MS } from './app.js'
 import type { ReportServerOptions } from './app.js'
+import { openFileTemplateStore } from './file-store.js'
 import { createReportVerifier } from './identity.js'
 import type { ReportVerifier } from './identity.js'
 
@@ -31,7 +36,25 @@ afterEach(async () => {
   await app?.close()
   app = undefined
 })
-const server = async (overrides: Partial<ReportServerOptions> = {}) => (app = await createReportServer({ verifyIdentity, roles, ...overrides }))
+
+/**
+ * The server is given a store whatever the case asks of it (0049), so each
+ * case has one of its own: the file store on a directory made for it and
+ * removed after it, as the server runs on one, and never one shared
+ * between cases.
+ */
+let store: TemplateStore
+let storeDirectory: string
+beforeEach(async () => {
+  storeDirectory = await mkdtemp(join(tmpdir(), 'formancy-report-app-'))
+  const opened = await openFileTemplateStore(storeDirectory)
+  if (!opened.ok) throw new Error(opened.problem)
+  store = opened.store
+})
+afterEach(async () => {
+  await rm(storeDirectory, { recursive: true, force: true })
+})
+const server = async (overrides: Partial<ReportServerOptions> = {}) => (app = await createReportServer({ verifyIdentity, roles, store, ...overrides }))
 
 /**
  * Writes `text` to a server listening on `port`, as a client that may never
@@ -143,8 +166,8 @@ describe('every bad token is the same 401', () => {
       'no tenant': await signed({ tid: undefined }),
     }
     const answers = []
-    const plain = await createReportServer({ verifyIdentity: real, roles })
-    const confused = await createReportServer({ verifyIdentity: confusedVerifier, roles })
+    const plain = await createReportServer({ verifyIdentity: real, roles, store })
+    const confused = await createReportServer({ verifyIdentity: confusedVerifier, roles, store })
     try {
       for (const headers of [{}, { authorization: 'Basic dTpw' }, { authorization: 'Bearer a b' }, { authorization: 'bearer good' }]) answers.push(await plain.inject({ method: 'GET', url: '/v1/whoami', headers }))
       for (const token of Object.values(tokens)) answers.push(await plain.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: `Bearer ${token}` } }))

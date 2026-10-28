@@ -1,6 +1,6 @@
 import rateLimit, { normalizeIP } from '@fastify/rate-limit'
 import { actionsOf, capacitiesOf, CAPACITIES, REFUSALS } from '@formancy/report-server-core'
-import type { ReportIdentity, RolePolicy, WhoAmI } from '@formancy/report-server-core'
+import type { ReportIdentity, RolePolicy, TemplateStore, WhoAmI } from '@formancy/report-server-core'
 import Fastify from 'fastify'
 import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { AUDIT_KEY_MIN_BYTES, auditRequests, shortAuditKey } from './audit.js'
@@ -22,6 +22,13 @@ export interface ReportServerOptions {
   verifyIdentity: ReportVerifier
   /** Which of the host's roles hold each capacity of the actions table: the operator's settings. */
   roles: RolePolicy
+  /**
+   * Where a tenant's drafts and images are kept (0049): the store
+   * `openFileTemplateStore` answers, opened by the caller and never here,
+   * so that a root that does not open is found at start, by whoever knows
+   * where the root came from.
+   */
+  store: TemplateStore
   /**
    * The audit trail: one event per request an API route answered, to `sink`,
    * who asked named by keyed hash under `key`, or not at all without one.

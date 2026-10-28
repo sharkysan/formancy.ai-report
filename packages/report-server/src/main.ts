@@ -8,11 +8,11 @@ import { readSettings } from './settings.js'
  * The composition root (0046), and the only module that reads
  * configuration: the environment once, here, handed to settings.ts to
  * parse and to serve.ts as the source a secret reference is read through.
- * A server that is not configured -- no issuer, audience, identity key or
- * tenant claim, or any setting it would refuse -- does not start: it prints
- * one line for each problem, each naming its setting and none repeating a
- * value, and exits 1. The settings are listed, with what each is for, in
- * settings.ts's SETTINGS and the package README.
+ * A server that is not configured -- no issuer, audience, identity key,
+ * tenant claim or store directory, or any setting it would refuse -- does
+ * not start: it prints one line for each problem, each naming its setting
+ * and none repeating a value, and exits 1. The settings are listed, with
+ * what each is for, in settings.ts's SETTINGS and the package README.
  */
 const read = readSettings(process.env)
 if (!read.ok) {
@@ -32,12 +32,14 @@ const { app, keyFile } = opened
 
 // What the server runs on, without a value an operator would not log
 // themselves: how many roles hold each capacity, the proxies and origins
-// it trusts, whether the trail names who asked, and the key set's kids.
+// it trusts, the directory it keeps its store in -- a path, not a secret --
+// whether the trail names who asked, and the key set's kids.
 app.log.info(
   {
     capacities: Object.fromEntries(Object.entries(settings.roles).map(([capacity, roles]) => [capacity, roles.length])),
     trustedProxies: settings.trustedProxies,
     origins: settings.origins,
+    storeDir: settings.storeDir,
     auditNamesWho: settings.auditKey !== undefined,
     ...(keyFile === undefined ? {} : { identityKeys: { kids: keyFile.current().kids, leftOut: keyFile.current().leftOut } }),
   },

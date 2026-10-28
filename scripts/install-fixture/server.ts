@@ -7,7 +7,8 @@
  * the packed tarballs, type-checked with skipLibCheck OFF and run under
  * Node. What is on trial: the published entry points resolve, with the
  * types that shipped, @formancy/data-identity 0.3.0 among what npm brings;
- * and the server, made in this process and listening on a socket, answers
+ * and the server, made in this process over a file store on a directory of
+ * its own and listening on a socket, answers
  * /health, refuses a request without a token, with a tenantless token, a
  * forgery or a malformed token with the one 401, and answers whoami for a
  * token this host signed, with its tenant and the actions its roles give.
@@ -15,10 +16,13 @@
  * sign one, and their secrets are this check's own.
  */
 import { createHmac } from 'node:crypto'
+import { mkdtemp, rm } from 'node:fs/promises'
 import type { AddressInfo } from 'node:net'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { ACTIONS, REFUSALS } from '@formancy/report-server-core'
 import type { Health, Refusal, WhoAmI } from '@formancy/report-server-core'
-import { createReportServer, createReportVerifier } from '@formancy/report-server'
+import { createReportServer, createReportVerifier, openFileTemplateStore } from '@formancy/report-server'
 import type { ReportServerOptions } from '@formancy/report-server'
 
 const hostSecret = 'the-install-checks-own-secret-of-at-least-32-bytes'
@@ -38,8 +42,13 @@ const forged = sign(claims, 'a-forgers-secret-that-is-not-the-hosts-of-32-bytes'
 const events: unknown[] = []
 const audit: ReportServerOptions['audit'] = { sink: (event) => void events.push(event) }
 
+// The store's directory is the host's to make, and the store never makes it (0049): this check's own, removed at the end.
+const storeDirectory = await mkdtemp(join(tmpdir(), 'formancy-report-install-'))
+
 const verifyIdentity = await createReportVerifier({ key: { kind: 'secret', secret: hostSecret }, issuer: 'https://login.example', audience: 'formancy-report', tenantClaim: 'tid' })
-const server = await createReportServer({ verifyIdentity, roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] }, audit })
+const opened = await openFileTemplateStore(storeDirectory)
+if (!opened.ok) throw new Error(opened.problem)
+const server = await createReportServer({ verifyIdentity, roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] }, audit, store: opened.store })
 await server.listen({ host: '127.0.0.1', port: 0 })
 
 try {
@@ -72,4 +81,5 @@ try {
   console.log(`ok: report-server listened on a socket of its own; /health answered, whoami refused no token, a tenantless one, a forgery and a malformed one with the one 401, and answered the host's token as tenant ${me.tenant} with ${String(me.actions.length)} actions; nothing else answered; the trail held one event for each request whoami answered`)
 } finally {
   await server.close()
+  await rm(storeDirectory, { recursive: true, force: true })
 }

@@ -85,17 +85,18 @@ const DIGEST = /^sha256:([0-9a-f]{64})$/
 /** A lone surrogate: a string holding one has no UTF-8 form. */
 const LONE_SURROGATE = /\p{Cs}/u
 
-const SETTING = 'FORMANCY_REPORT_STORE_DIR'
-
 /**
  * Opens the store on `root`, which must be an absolute path to a directory
- * this process can write, or says why not in a sentence that names the
- * setting the root comes from and never the path. The store's directories
- * are made under the root as they are first written to; the root itself is
- * never made, so a volume that is not there is found here, at start.
+ * this process can write, or says why not in a sentence about the root and
+ * never the path. It names no setting and no variable: the store is opened
+ * from code as well as from a container, and an embedder set none. The
+ * server that reads its root from a setting says which (serve.ts). The
+ * store's directories are made under the root as they are first written
+ * to; the root itself is never made, so a volume that is not there is
+ * found here, at start.
  */
 export async function openFileTemplateStore(root: string): Promise<{ readonly ok: true; readonly store: TemplateStore } | { readonly ok: false; readonly problem: string }> {
-  const refused = (why: string) => ({ ok: false, problem: `${SETTING} ${why}` }) as const
+  const refused = (why: string) => ({ ok: false, problem: `The store's root ${why}` }) as const
   if (!isAbsolute(root)) return refused('is not an absolute path; the store is named from the root, so that the directory a process starts in cannot move it.')
   const found = await stat(root).catch(() => undefined)
   if (found === undefined) return refused('names nothing this process can find; the store needs a directory that exists, and does not make one.')
@@ -117,7 +118,7 @@ function fileTemplateStore(root: string): TemplateStore {
    */
   async function standing(): Promise<void> {
     const found = await stat(root).catch(() => undefined)
-    if (found?.isDirectory() !== true) throw new Error(`The store's directory, which ${SETTING} names, is no longer a directory this process can reach; nothing in it was read or written.`)
+    if (found?.isDirectory() !== true) throw new Error("The store's root is no longer a directory this process can reach; nothing in it was read or written.")
   }
 
   /** The names in `directory`, or none where it does not exist. */

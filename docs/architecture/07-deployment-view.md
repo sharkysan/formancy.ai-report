@@ -31,15 +31,18 @@ packages/report-server/Dockerfile, built from the repository root
    │           `pnpm deploy --prod` into /app
    ▼
    runtime  the same base, by digest; /app root's, read-only to node;
-            /var/lib/formancy-report made and given to node, for the store a
-            later release writes; USER node; PORT 4392; HEALTHCHECK GET
-            /health, at Data's image's intervals; node dist/main.mjs
+            /var/lib/formancy-report made and given to node, and named to the
+            server as FORMANCY_REPORT_STORE_DIR, for its store; USER node;
+            PORT 4392; HEALTHCHECK GET /health, at Data's image's
+            intervals; node dist/main.mjs
 ```
 
 An operator runs it with its settings -- the issuer, the audience, the
 identity key by reference, `FORMANCY_REPORT_ATTRIBUTES` with the tenant's
-claim, the roles that hold each capacity, and the rate limit, proxies,
-origins and audit key where the defaults do not fit -- as the package's
+claim, the directory of its store (which the image sets, and which must be
+a volume for the drafts to outlive the container), the roles that hold each
+capacity, and the rate limit, proxies, origins and audit key where the
+defaults do not fit -- as the package's
 README lists them, and secrets as files or variables a reference names,
 never as a setting's value
 ([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)). Unconfigured, it prints one line for each

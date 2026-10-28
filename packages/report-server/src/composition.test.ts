@@ -14,9 +14,10 @@ import { describe, expect, test } from 'vitest'
  * sentence that mentions a process is not a way in.
  *
  * One other module reaches the file system: the file store, whose records
- * are files under the root main.ts hands it (0049). That is data a person
- * saved, not a setting, and the store reaches it through `node:fs/promises`
- * and through nothing else on the list, the process least of all.
+ * are files under the root the settings name, which serve.ts hands it
+ * (0049). That is data a person saved, not a setting, and the store reaches
+ * it through `node:fs/promises` and through nothing else on the list, the
+ * process least of all.
  */
 const here = dirname(fileURLToPath(import.meta.url))
 const modules = readdirSync(here).filter((name) => name.endsWith('.ts') && !name.endsWith('.test.ts'))

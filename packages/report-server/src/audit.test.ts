@@ -1,15 +1,19 @@
 import { createHmac } from 'node:crypto'
 import { EventEmitter } from 'node:events'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { request as httpRequest } from 'node:http'
 import { connect } from 'node:net'
 import type { AddressInfo, Socket } from 'node:net'
-import type { AuditEvent } from '@formancy/report-server-core'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import type { AuditEvent, TemplateStore } from '@formancy/report-server-core'
 import Fastify from 'fastify'
 import type { FastifyInstance } from 'fastify'
-import { afterEach, describe, expect, test } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { createReportServer } from './app.js'
 import type { ReportServerOptions } from './app.js'
 import { auditReference, auditRequests, logAuditSink } from './audit.js'
+import { openFileTemplateStore } from './file-store.js'
 import type { ReportVerifier } from './identity.js'
 
 /**
@@ -35,11 +39,29 @@ afterEach(async () => {
   app = undefined
 })
 
+/**
+ * The server is given a store whatever the case asks of it (0049), so each
+ * case has one of its own: the file store on a directory made for it and
+ * removed after it, as the server runs on one, and never one shared
+ * between cases.
+ */
+let store: TemplateStore
+let storeDirectory: string
+beforeEach(async () => {
+  storeDirectory = await mkdtemp(join(tmpdir(), 'formancy-report-audit-'))
+  const opened = await openFileTemplateStore(storeDirectory)
+  if (!opened.ok) throw new Error(opened.problem)
+  store = opened.store
+})
+afterEach(async () => {
+  await rm(storeDirectory, { recursive: true, force: true })
+})
+
 const at = '2026-10-22T08:00:00.000Z'
 /** Audited into `events`, under `key`, or with no key for `null`. */
 async function server(overrides: Partial<ReportServerOptions> = {}, key: string | null = KEY) {
   events = []
-  app = await createReportServer({ verifyIdentity, roles, audit: { sink: (event) => void events.push(event), now: () => at, ...(key === null ? {} : { key }) }, ...overrides })
+  app = await createReportServer({ verifyIdentity, roles, store, audit: { sink: (event) => void events.push(event), now: () => at, ...(key === null ? {} : { key }) }, ...overrides })
   return app
 }
 
@@ -163,7 +185,7 @@ describe('the audit trail', () => {
   test('answers as it would when the sink throws or rejects, and logs that it could not write', async () => {
     for (const sink of [() => { throw new Error('disk full') }, async () => Promise.reject(new Error('disk full'))]) {
       const lines: string[] = []
-      const failing = await createReportServer({ verifyIdentity, roles, audit: { sink }, logger: { stream: { write: (line) => void lines.push(line) } } })
+      const failing = await createReportServer({ verifyIdentity, roles, store, audit: { sink }, logger: { stream: { write: (line) => void lines.push(line) } } })
       const answer = await failing.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: 'Bearer good' } })
       await failing.close()
       expect(answer.statusCode).toBe(200)
@@ -175,7 +197,7 @@ describe('the audit trail', () => {
   // a collector reads the trail out of the server's own log.
   test('writes one log line per event with the server’s own sink', async () => {
     const lines: string[] = []
-    const logged = await createReportServer({ verifyIdentity, roles, logger: { stream: { write: (line) => void lines.push(line) } } })
+    const logged = await createReportServer({ verifyIdentity, roles, store, logger: { stream: { write: (line) => void lines.push(line) } } })
     const sink = logAuditSink(logged.log)
     sink({ at, operation: 'whoami', status: 200, outcome: 'ok', identified: true, tenant: null, actor: null })
     await logged.close()

@@ -356,9 +356,13 @@ async function gate() {
   })
 
   // Nothing it runs writes its root file system: an operator may run it
-  // with --read-only, and mount the store's directory as a volume.
+  // with --read-only, and mount the store's directory as a volume. The
+  // server requires that directory to be writable at start (0049), so under
+  // --read-only it is the volume that lets it start: an anonymous one,
+  // which Docker fills from the image's directory, owner included, and
+  // which `rm -v` removes with the container.
   await check('it runs on a read-only root file system', async () => {
-    const sealed = start('read-only', CONFIGURED, { flags: ['--read-only'] })
+    const sealed = start('read-only', CONFIGURED, { flags: ['--read-only', '-v', '/var/lib/formancy-report'] })
     await healthy(sealed)
     const answer = await request(`${at(sealed)}/v1/whoami`, { headers: { authorization: `Bearer ${tokens.good}` } })
     expect(answer.status === 200, `whoami on a read-only root answered ${String(answer.status)}`)
@@ -454,7 +458,7 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/container.mjs')) {
     record.error = String(error?.message ?? error)
     console.error(`container gate FAILED\n${record.error}`)
   } finally {
-    for (const name of started) docker(['rm', '-f', name])
+    for (const name of started) docker(['rm', '-f', '-v', name])
     if (removeImage) docker(['image', 'rm', '-f', image])
     record.finishedAt = new Date().toISOString()
     mkdirSync(dirname(out), { recursive: true })
