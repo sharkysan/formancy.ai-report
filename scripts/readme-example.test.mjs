@@ -94,3 +94,17 @@ describe("the form bridge's README, \"Review a new form version\"", () => {
     expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
   })
 })
+
+describe("the server's README, \"Embed the server\"", () => {
+  // A reader copies it into a host that serves Report from its own
+  // process, so every line of it is a line the install gate runs, from the
+  // packed server in a Node host holding the server and what it declares
+  // and nothing else (scripts/install-fixture/server.ts, 0046).
+  test('is code the install gate runs, line for line', () => {
+    const readme = readFileSync(join(root, 'packages/report-server/README.md'), 'utf8').replaceAll('\r\n', '\n')
+    const lines = exampleLines(readme, 'Embed the server')
+    const consumer = new Set(readFileSync(join(root, 'scripts/install-fixture/server.ts'), 'utf8').replaceAll('\r\n', '\n').split('\n').map((line) => line.trim()))
+    expect(lines?.length).toBeGreaterThan(3)
+    expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
+  })
+})

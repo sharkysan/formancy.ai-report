@@ -38,6 +38,8 @@ const manifests = new Map([
   ['@formancy/report-render-pdf', { dependencies: { '@formancy/report-runtime': '0.1.0', pdfmake: '0.3.11' } }],
   ['@formancy/report-builder-react', { dependencies: { '@formancy/report-builder-core': '0.1.0' }, peerDependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' } }],
   ['@formancy/report-builder-angular', { dependencies: { '@formancy/report-builder-core': '0.1.0', tslib: '^2.8.0' }, peerDependencies: { '@angular/core': '^22.0.0' } }],
+  ['@formancy/report-server-core', { dependencies: {} }],
+  ['@formancy/report-server', { dependencies: { '@formancy/report-server-core': '0.1.0', fastify: '5.12.7' } }],
 ])
 const named = (name) => planProjects(manifests).find((project) => project.name === name)
 /** The workbench release the Studio declares, which the guide's pages install. */
@@ -49,6 +51,7 @@ describe('the projects the gate installs', () => {
   test('are a Node host, and each builder at the newest release its peers admit and at their floor', () => {
     expect(planProjects(manifests).map(({ name, consumer }) => `${name}: ${consumer}`)).toEqual([
       'node: consume.ts',
+      'server: server.ts',
       'react: react.tsx',
       'react-floor: react.tsx',
       'react-app: guide-react.tsx',
@@ -64,7 +67,42 @@ describe('the projects the gate installs', () => {
   test('install a builder with only the packages it declares, transitively, and the Node host with the rest', () => {
     expect(named('react')?.packages).toEqual(['@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-core', '@formancy/report-spec'])
     expect(named('angular-floor')?.packages).toEqual(['@formancy/report-builder-angular', '@formancy/report-builder-core', '@formancy/report-core', '@formancy/report-spec'])
-    expect(named('node')?.packages).toEqual(['@formancy/report-builder-core', '@formancy/report-core', '@formancy/report-render-pdf', '@formancy/report-runtime', '@formancy/report-spec'])
+    expect(named('node')?.packages).toEqual(['@formancy/report-builder-core', '@formancy/report-core', '@formancy/report-render-pdf', '@formancy/report-runtime', '@formancy/report-server-core', '@formancy/report-spec'])
+  })
+
+  // The server's host is a Node host with the server and what it declares
+  // and nothing else, so a server that imported the runtime, the renderer
+  // or any package it never declared fails there, where the Node host,
+  // which installs them all, would pass it (0046).
+  test('install the server with only the packages it declares, transitively, and no framework', () => {
+    expect(named('server')?.packages).toEqual(['@formancy/report-server', '@formancy/report-server-core'])
+    expect(named('server')?.framework).toEqual({})
+    expect(named('server')?.at).toBeNull()
+    expect(named('node')?.packages).not.toContain('@formancy/report-server')
+    expect(named('server')?.tsconfig.content.compilerOptions.types).toEqual(['node'])
+  })
+
+  // The install gate refuses @types/node in a builder's host, keyed on the
+  // builder the project is for, and each builder's host is checked against
+  // the DOM's types and none of Node's. Were the guard keyed on the host's
+  // own types, one edit giving a builder's host Node's types would also
+  // silence it; here that edit fails, and a Node host is never mistaken
+  // for a builder's.
+  test("check each builder's host against the DOM's types alone, and only a host with no builder against Node's", () => {
+    const projects = planProjects(manifests)
+    const builders = projects.filter((project) => project.builder !== null)
+    expect(builders.map((project) => project.name).sort()).toEqual(['angular', 'angular-floor', 'react', 'react-app', 'react-app-floor', 'react-floor'])
+    for (const project of builders) {
+      expect(project.tsconfig.content.compilerOptions.types, project.name).toEqual([])
+      expect(project.tsconfig.content.compilerOptions.lib, project.name).toContain('DOM')
+    }
+    for (const project of projects.filter((each) => each.builder === null)) expect(project.tsconfig.content.compilerOptions.types, project.name).toEqual(['node'])
+  })
+
+  // A server host planned without the server would check nothing.
+  test('refuse to plan the server host without the server', () => {
+    const unpacked = new Map([...manifests].filter(([name]) => name !== '@formancy/report-server'))
+    expect(() => planProjects(unpacked)).toThrow(/@formancy\/report-server was not packed, so the server host has nothing to check/)
   })
 
   // The guide's React page previews in the browser, so it installs the

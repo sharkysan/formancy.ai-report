@@ -7,6 +7,7 @@
 //   node scripts/release-report/collect.mjs --job browser
 //   node scripts/release-report/collect.mjs --job install
 //   node scripts/release-report/collect.mjs --job e-invoice
+//   node scripts/release-report/collect.mjs --job container
 //   node scripts/release-report/collect.mjs --local --since 2026-10-16T08:00:00Z
 //
 // It writes `release-results/<key>.json` and, on GitHub, `key=<key>` to the
@@ -24,26 +25,27 @@
 // `test:browser` script, and its pictures' check's `test-results/pictures.json`
 // from each app with a `test:pictures` script; the install gate's
 // `test-results/install.json` in `install`; the e-invoice gate's
-// `test-results/e-invoice.json` in `e-invoice`; and in every job, every
-// published package's `dist/` that job built. Beside each suite it lists the
+// `test-results/e-invoice.json` in `e-invoice`; the container gate's
+// `test-results/container.json` in `container` (0046); and in every job,
+// every published package's `dist/` that job built. Beside each suite it lists the
 // test files the checkout holds for it (`git ls-files`), so the report can
 // name one the suite did not run. A file it expected and did not find it
 // lists under `absent`, with the reader that expected it -- verify, test,
-// browser, install or e-invoice -- so a local report can allow that reader
+// browser, install, e-invoice or container -- so a local report can allow that reader
 // missing, as its banner says; what it found and could not use -- a file from before
 // --since, another run's, a suite turbo replayed or ran without a summary,
 // a gate's file whose browser, asked for or launched, is not the one it is
 // filed under -- under `missing`. The report fails on `absent` unless, on a
 // machine, it allows that reader missing, and on `missing` always.
 //
-// Those five jobs are what gates.yml runs. A job it gains gets a reader in
+// Those six jobs are what gates.yml runs. A job it gains gets a reader in
 // READERS and a section in the report, as the browser job has; until then
 // collect refuses it, so the job fails rather than uploading results that
 // look like a job with nothing to say.
 //
 // `--local` reads every package of one machine at once, the guards, the
 // browser gate and the pictures' check of every app that has them, the
-// install gate and the e-invoice gate. It refuses a results file that
+// install gate, the e-invoice gate and the container gate. It refuses a results file that
 // started before `--since`, which has no default: a file left by an earlier
 // run read as this one's is the failure local mode has to rule out, and
 // only the person running it knows from when.
@@ -165,6 +167,7 @@ const READERS = {
   browser: (read) => read.browser(),
   install: (read) => read.install(),
   'e-invoice': (read) => read.eInvoice(),
+  container: (read) => read.container(),
 }
 
 /**
@@ -200,6 +203,7 @@ export function collect({ root = repo, job, pkg, variant, local = false, since, 
   const pictures = []
   let install = null
   let eInvoice = null
+  let container = null
   /** A gate's or a check's own results file, parsed, when it is there and from after --since; listed as absent, or as missing, otherwise. */
   const own = (shown, reader) => {
     if (!existsSync(join(root, shown))) return notFound(shown, reader)
@@ -268,6 +272,10 @@ export function collect({ root = repo, job, pkg, variant, local = false, since, 
       const result = own('test-results/e-invoice.json', 'e-invoice')
       if (result !== undefined) eInvoice = result
     },
+    container() {
+      const result = own('test-results/container.json', 'container')
+      if (result !== undefined) container = result
+    },
   }
 
   if (local) {
@@ -276,6 +284,7 @@ export function collect({ root = repo, job, pkg, variant, local = false, since, 
     read.browser()
     read.install()
     read.eInvoice()
+    read.container()
   } else {
     READERS[job](read, { pkg, packages })
   }
@@ -303,6 +312,7 @@ export function collect({ root = repo, job, pkg, variant, local = false, since, 
     pictures,
     install,
     eInvoice,
+    container,
     dist,
     tarballs: install?.tarballs ?? [],
     absent,
@@ -333,6 +343,6 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/release-report/coll
   writeFileSync(written, `${JSON.stringify(result, null, 2)}\n`, 'utf8')
   if (process.env.GITHUB_OUTPUT !== undefined) appendFileSync(process.env.GITHUB_OUTPUT, `key=${result.key}\n`)
   console.log(
-    `${slash(relative(repo, written))}: ${String(result.suites.length)} suite(s), ${String(result.browserGates.length)} browser gate(s), ${String(result.pictures.length)} pictures' check(s), ${result.install === null ? 'no' : 'the'} install gate's record, ${result.eInvoice === null ? 'no' : 'the'} e-invoice gate's record, ${String(result.dist.length)} dist/${result.absent.length === 0 ? '' : `; not found: ${result.absent.map((entry) => entry.file).join('; ')}`}${result.missing.length === 0 ? '' : `; missing: ${result.missing.join('; ')}`}`,
+    `${slash(relative(repo, written))}: ${String(result.suites.length)} suite(s), ${String(result.browserGates.length)} browser gate(s), ${String(result.pictures.length)} pictures' check(s), ${result.install === null ? 'no' : 'the'} install gate's record, ${result.eInvoice === null ? 'no' : 'the'} e-invoice gate's record, ${result.container === null ? 'no' : 'the'} container gate's record, ${String(result.dist.length)} dist/${result.absent.length === 0 ? '' : `; not found: ${result.absent.map((entry) => entry.file).join('; ')}`}${result.missing.length === 0 ? '' : `; missing: ${result.missing.join('; ')}`}`,
   )
 }

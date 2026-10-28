@@ -60,9 +60,12 @@ rendered PDF against them. [Building blocks](05-building-blocks.md) has each.
   and the form spec is never widened to hold it
   ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md),
   [0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
-- **Not a server.** Nothing here stores a report, schedules a job, or
-  decides who may see what. A host does all three, and hands the packages
-  the data and the asset bytes it has already authorised.
+- **Not yet a server that keeps anything.** `@formancy/report-server`
+  verifies the host's token, takes the tenant from it and says what the
+  actions table gives that person, and nothing more: it stores no report,
+  schedules no job and keeps no PDF
+  ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)). A host does all three today, and hands the
+  packages the data and the asset bytes it has already authorised.
 
 ## What this describes
 
@@ -70,9 +73,9 @@ rendered PDF against them. [Building blocks](05-building-blocks.md) has each.
 is only on `main` is the README's *Status* paragraph, which is dated; what
 each release held is [the changelog](../../CHANGELOG.md).
 
-Planned and not built, as the README says: the server and its jobs,
-reviewed AI changes, a published PDF viewer, and a consistent read from
-Formancy Data. Each later release gate
+Planned and not built, as the README says: the server's drafts,
+publication, jobs and artifacts, reviewed AI changes, a published PDF
+viewer, and a consistent read from Formancy Data. Each later release gate
 is open in [`gates.json`](../release/gates.json) with the reason. Nothing below
 describes them as though they existed.
 

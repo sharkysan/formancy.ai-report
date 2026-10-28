@@ -47,7 +47,7 @@
       ]
     },
     "0004": {
-      "reviewed": "sha256:8e894aa5226f137363cb16ac0be547e08952b43ebd0f2b46fbc296307f8126db",
+      "reviewed": "sha256:3ec88fbc2d721d4535db04abe618a800239c1cc1d248d5943ef030dd91ba0669",
       "limitations": [
         {
           "area": "format",
@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:0b4bbdbed8eda31be64862c8389be3a9f743e1c2bf4849abc306b1c7bb98ccc2",
+      "reviewed": "sha256:9aa302bebb9713fcf99b72a29eb6f5f8c3a9346fabc261258d24a1b18ecaeee1",
       "limitations": [
         {
           "area": "licence",
@@ -368,7 +368,7 @@
       ]
     },
     "0016": {
-      "reviewed": "sha256:46c73d7416a6e22677c00ea75085a0b50ef8fce137c4f4110bcf51327c9085a4",
+      "reviewed": "sha256:58805fcd39a364a5a784437ed25ba2b7f04f0f17b3ae8ce428aabf42ae3b8246",
       "limitations": [
         {
           "area": "data",
@@ -2015,6 +2015,101 @@
         {
           "area": "runtime",
           "says": "Reviewing the site visit starter against its version 3 took 7 to 11 ms, a draft of 64 fields against a version that removed or renamed every one 75 to 118 ms, and a batch of 1,000 commands applied and undone 2 to 3 ms; a report at the format's bounds, 2,500 components each reading ten of 64 header fields, against a version that removed every field, 6.4 to 6.6 s where every field may be null and 49 to 50 s where none may, each nothing printed then compiled over the expressions its field reaches: from the built packages on an Intel i9-10900K under Node 24.21.0 at 1 to 11 % load from other work, on 22 October 2026."
+        }
+      ]
+    },
+    "0046": {
+      "reviewed": "sha256:116700da86abdcee1cdfca145e2fff1949f52ce07bd2e421e60a5c7c019d24e6",
+      "limitations": [
+        {
+          "area": "server",
+          "says": "The server answers GET /health and GET /v1/whoami alone: no draft, publication, render job or artifact exists in this release, and every other method and path is answered 404.",
+          "heldBy": "packages/report-server/src/app.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A path with anything a proxy could normalise, an escape, a dot or an empty segment, a trailing slash or / alone among them, is answered 400 path-not-plain before any route, so a client that adds a trailing slash or escapes a character no name needs escaped is refused.",
+          "heldBy": "packages/report-server/src/app.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A request that takes longer than 300 seconds to arrive, Node’s own default, which Fastify turns off and nothing here measured, has its connection closed.",
+          "heldBy": "packages/report-server/src/app.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "Every token must carry the claim FORMANCY_REPORT_ATTRIBUTES names as its tenant, so a single-tenant host puts a constant in every token, and a token without it is refused with the same 401 as a forgery.",
+          "heldBy": "packages/report-server/src/identity.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A token is trusted until its exp: the server keeps no session and asks the host nothing, so a person removed at the host keeps their token’s access until it expires."
+        },
+        {
+          "area": "server",
+          "says": "The actions table names the actions of R14 before any route takes them, so whoami lists actions no route answers yet, and a later release may change a row.",
+          "heldBy": "packages/report-server-core/src/actions.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "The audit trail names who asked only by a keyed hash under FORMANCY_REPORT_AUDIT_KEY, and nobody without one, so an operator finds a person’s events by computing the reference, where Formancy Data’s trail names its actor plainly.",
+          "heldBy": "packages/report-server/src/audit.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "The audit trail is operational, not evidence: written to the server’s log by the same process after the answer, so an event can be lost, and a request no route answered, a 404 or a path that does not decode, writes none.",
+          "heldBy": "packages/report-server/src/audit.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A FORMANCY_REPORT_ variable the server does not read stops it at start, naming it, so a setting of a later release cannot be set before that release runs.",
+          "heldBy": "packages/report-server/src/settings.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A list of trusted proxies is refused only when its entries together trust every IPv4 or every IPv6 peer as @fastify/proxy-addr 5.1.2 matches one, so a list that trusts half of IPv4 starts, and so does ::/1, which holds the IPv4-mapped range and which that matcher compares with no IPv4 peer.",
+          "heldBy": "packages/report-server/src/proxies.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "The server is one instance: its rate limit is counted in its own memory and starts again with it, and two instances behind one address are not a supported deployment."
+        },
+        {
+          "area": "server",
+          "says": "HEAD is answered on /health alone, so a client that probes the API with HEAD is answered 404.",
+          "heldBy": "packages/report-server/src/app.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "The server’s image builds and runs on Node 26, at the digest packages/report-server/Dockerfile pins in both of its stages, while the packages run on Node 22.13 or later.",
+          "heldBy": "packages/report-server/src/dockerfile.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "This release publishes no server image: an operator builds it from the repository with packages/report-server/Dockerfile."
+        },
+        {
+          "area": "release",
+          "says": "The image’s operating system layer, Alpine Linux with BusyBox under GPL-2.0 among its packages, is not read by the dependency licence guard, which reads npm packages, and no record yet says how it is read."
+        }
+      ]
+    },
+    "0047": {
+      "reviewed": "sha256:c42d03094194a18057456278b0197cfe46852b50f3bc428f191efe887328b3e4",
+      "limitations": [
+        {
+          "area": "licence",
+          "says": "The server depends on Formancy Data’s @formancy/data-identity, under Data’s source-available licence, so running it in production needs a production licence for Formancy Data as well as for Report, even beside no Data server.",
+          "heldBy": "scripts/dependency-licences.test.mjs"
+        },
+        {
+          "area": "server",
+          "says": "The server verifies tokens under exactly Data 0.3.0’s rules, through its verifier at that version, so a rule Data changes later reaches Report only through a release of report-server that moves the pin.",
+          "heldBy": "scripts/upstream-deps.test.mjs"
+        },
+        {
+          "area": "server",
+          "says": "The verifier tolerates 30 seconds of clock skew on exp and nbf, data-identity’s default, which the server does not change and nothing here measured."
         }
       ]
     }

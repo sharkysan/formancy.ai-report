@@ -1,0 +1,21 @@
+# The server image's build context is the repository root (0046;
+# packages/report-server/Dockerfile). Everything the image does not need is
+# left out, so the context stays small and a machine's installs, builds or
+# results cannot stand in for the ones the image makes.
+# packages/report-server/src/dockerfile.test.ts holds the entries that matter.
+**/node_modules
+**/dist
+**/coverage
+**/.turbo
+**/test-results
+.git
+.github
+.claude
+docs
+apps
+release-results
+release-report
+release-tarballs
+.e-invoice-cache
+.env
+.env.*

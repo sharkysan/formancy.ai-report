@@ -767,3 +767,50 @@ The removal is report-core's `removeFieldWithReaders`, which finds a
 field's readers by the diagnostics' walk and the parser the compiler
 asks, and refuses a field the QR-bill or the e-invoice reads; a
 resolution of several commands is a `batch`, one command, one undo step.
+read by itself.
+
+## 6.16 A request to the server, from the token to the trail
+
+```
+a host's backend, or its page on an origin the operator lists
+   │  GET /v1/whoami   Authorization: Bearer <the host's JWT>
+   ▼
+Node's parser: a request it cannot read ──▶ 400, 408 or 431 bad-request, no-store
+   ▼
+report-server (createReportServer)
+   ├─ onRequest, the root's first hook, before any body is read; each counted:
+   │    a path that is not plain? ──▶ 400 path-not-plain, connection closed
+   │                                  (the matched route's event, if one matched)
+   │    a route ROUTES names? ── no ──▶ 404 not-found, connection closed, no event
+   ├─ onRequest: the rate limit, by the client address (a named proxy's X-Forwarded-For)
+   │       over it ──▶ 429 rate-limited
+   ├─ preHandler: a token-bearing request a browser marks cross-site, from an
+   │  origin not listed? ──▶ 403 cross-origin-refused, the token not read
+   ├─ preHandler: one Bearer token, verified by data-identity -- the algorithm the
+   │  key's kind pins, iss, aud, exp and sub -- and the tenant claim present
+   │       any no ──▶ 401 unauthenticated, the verifier's reason in the log
+   ▼
+whoami: the subject, the tenant, the roles, and what the actions table gives
+those roles under the operator's policy (can, capacitiesOf, actionsOf)
+   ▼
+onSend: Cache-Control no-store; the listed origin carried back
+   ▼
+onResponse (or onSend, or the connection's close, for a client that left):
+one audit event -- the route, the status, the outcome's code, whether it was
+identified, the tenant and the actor by keyed hash or null -- to the sink,
+the server's own log line
+```
+
+Every refusal is a code and a fixed sentence that quotes nothing of the
+request, and every bad token is the one 401 whatever was wrong with it
+([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)).
+A request that takes longer than 300 s to arrive, Node's own default, is
+cut; a preflight is answered by the API path's OPTIONS route, uncounted,
+and refused before its body is read when it carries one.
+The verifier fetches nothing: its key is the one the operator's settings
+name, a secret, a public key, or a key set read from a file and read again
+on SIGHUP, by data-identity's own read
+([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
+At start, before any of this, `main.ts` reads the settings once; one it
+needs and lacks, or one it would refuse, stops it with a sentence naming
+it.

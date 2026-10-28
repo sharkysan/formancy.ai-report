@@ -1,7 +1,12 @@
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
+import { CHECKS } from '../container.mjs'
 import { floorOf } from '../install-hosts.mjs'
 import { readScenes } from '../pictures/record.mjs'
-import { buildReport, installPlanOf, scenesOf } from './report.mjs'
+import { buildReport, installPlanOf, loadInputs, scenesOf } from './report.mjs'
 import { ciJob, copy, DIST, greenCiRun, greenRun, job } from './synthetic-run.mjs'
 import { published } from './tested-on.mjs'
 
@@ -325,6 +330,80 @@ describe('the e-invoice gate', () => {
   })
 })
 
+describe('the container gate', () => {
+  const gate = (inputs) => job(inputs, 'container').container
+
+  // The gate writes its record however it ends (scripts/container.mjs,
+  // 0046): one that left none, failed, or failed a check fails the run, by
+  // what it said.
+  test('fails the run when it left no results, did not pass or failed a check', () => {
+    expect(withDefect((inputs) => Object.assign(job(inputs, 'container'), { container: null, absent: [{ reader: 'container', file: 'test-results/container.json' }] }))).toEqual([
+      'container: expected and not found: test-results/container.json',
+      'the container gate left no results',
+    ])
+    expect(withDefect((inputs) => Object.assign(gate(inputs), { passed: false, error: 'docker build failed' }))).toEqual(['the container gate did not pass: docker build failed'])
+    expect(withDefect((inputs) => (gate(inputs).checks[1] = { name: gate(inputs).checks[1].name, passed: false, said: 'the server runs as root' }))).toEqual(['the container gate failed 1 check(s): it runs as node: the server runs as root'])
+  })
+
+  // The checks are scripts/container.mjs's, read by the report itself and
+  // not the gate's word for them: a gate that made fewer, or another
+  // checkout's, held nothing of what it skipped.
+  test('fails the run when it did not make a check scripts/container.mjs plans, or made one it does not', () => {
+    expect(withDefect((inputs) => gate(inputs).checks.pop())).toEqual(['the container gate did not make SIGTERM stops it, exit 0, which scripts/container.mjs plans'])
+    expect(withDefect((inputs) => gate(inputs).checks.push({ name: 'it answers on port 80', passed: true, said: null }))).toEqual(['the container gate made it answers on port 80, which scripts/container.mjs does not plan: another checkout’s gate'])
+    expect(withDefect((inputs) => (gate(inputs).checks = []))).toEqual([
+      'the container gate did not make unconfigured, it stops and names every setting it needs, which scripts/container.mjs plans',
+      'the container gate did not make it runs as node, which scripts/container.mjs plans',
+      'the container gate did not make SIGTERM stops it, exit 0, which scripts/container.mjs plans',
+    ])
+  })
+
+  // The plan is the gate's own list, which the report reads from
+  // scripts/container.mjs and from nowhere else: a report holding the gate
+  // to a list of its own would pass a gate that skipped what was added
+  // since -- the record of one run before main.ts's second refusal and its
+  // key set arm were checked, twenty checks of twenty-two, among them.
+  test('holds it to every check scripts/container.mjs plans, read from the script', () => {
+    const empty = mkdtempSync(join(tmpdir(), 'report-inputs-'))
+    try {
+      expect(loadInputs(join(dirname(fileURLToPath(import.meta.url)), '..', '..'), empty).containerChecks).toEqual(CHECKS)
+    } finally {
+      rmSync(empty, { recursive: true, force: true })
+    }
+    const added = ['a secret reference it cannot resolve stops it, exit 1, with one sentence and no stack trace', 'with a key set file, it names the kids it serves under, and SIGHUP reads the file again']
+    expect(
+      withDefect((inputs) => {
+        inputs.containerChecks = [...CHECKS]
+        gate(inputs).planned = CHECKS.filter((name) => !added.includes(name))
+        gate(inputs).checks = gate(inputs).planned.map((name) => ({ name, passed: true, said: null }))
+      }),
+    ).toEqual(added.map((name) => `the container gate did not make ${name}, which scripts/container.mjs plans`))
+  })
+
+  // The image the gate ran is held to the Dockerfile the report reads, by
+  // what the image says of itself: one running another Node or as another
+  // user is another image than this checkout makes. A Dockerfile whose base
+  // the report cannot read holds the Node to nothing, and says so.
+  test('fails the run when its image is not the one the Dockerfile builds', () => {
+    expect(withDefect((inputs) => (gate(inputs).image.node = 'v26.0.0'))).toEqual(['the container gate’s image runs Node v26.0.0, where packages/report-server/Dockerfile builds on Node 26.12.1'])
+    expect(withDefect((inputs) => (inputs.containerBase = null))).toEqual(['packages/report-server/Dockerfile names no node:<version> base the report can read, so the Node the container gate’s image runs is held to nothing'])
+    expect(withDefect((inputs) => (gate(inputs).image.user = 'root'))).toEqual(['the container gate’s image runs as root, where packages/report-server/Dockerfile runs it as node'])
+    expect(withDefect((inputs) => (gate(inputs).image = null))).toEqual(['the container gate recorded no image'])
+  })
+
+  // A local report may say it did not run the gate, which needs Docker; it
+  // says so in its banner, and only what it allows is left out.
+  test('is allowed missing locally, and only when the report says so', () => {
+    const without = (allowMissing) =>
+      withDefect((inputs) => {
+        Object.assign(job(inputs, 'container'), { container: null, absent: [{ reader: 'container', file: 'test-results/container.json' }] })
+        inputs.allowMissing = allowMissing
+      })
+    expect(without(['container'])).toEqual([])
+    expect(without(['install'])).toEqual(['container: expected and not found: test-results/container.json', 'the container gate left no results'])
+  })
+})
+
 describe('the browser gate', () => {
   const gate = (inputs) => job(inputs, 'browser').browserGates[0]
   const G3 = 'gate G3: its evidence did not pass in this run: the browser gate of apps/studio did not pass'
@@ -546,6 +625,7 @@ describe('the install plan', () => {
     expect(plan.error).toBeNull()
     expect(plan.hosts.map((host) => [host.project, host.at])).toEqual([
       ['node', null],
+      ['server', null],
       ['react', 'newest'],
       ['react-floor', 'floor'],
       ['react-app', 'newest'],
@@ -556,7 +636,7 @@ describe('the install plan', () => {
     const react = manifests.get('@formancy/report-builder-react').peerDependencies
     expect(plan.hosts.find((host) => host.project === 'react').peers).toEqual(react)
     expect(plan.hosts.find((host) => host.project === 'react-floor').peers).toEqual(Object.fromEntries(Object.entries(react).map(([name, range]) => [name, floorOf(range)])))
-    expect(installPlanOf(new Map())).toEqual({ hosts: [], error: '@formancy/report-builder-react was not packed, so its host has nothing to check' })
+    expect(installPlanOf(new Map())).toEqual({ hosts: [], error: '@formancy/report-server was not packed, so the server host has nothing to check' })
   })
 })
 
@@ -581,10 +661,10 @@ describe('a local report', () => {
   // to the run (artefacts.mjs); this holds a local report to one.
   test('fails when its results are of more than one commit or run, or hold one key twice', () => {
     expect(withDefect((inputs) => (job(inputs, 'install').commit = 'decaf'))).toEqual([
-      'the results are of 2 commits, where a report is of one: c0ffee (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus, browser, e-invoice); decaf (install)',
+      'the results are of 2 commits, where a report is of one: c0ffee (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus, browser, e-invoice, container); decaf (install)',
     ])
     expect(withDefect((inputs) => (job(inputs, 'install').run.id = null))).toEqual([
-      'the results are of 2 runs, where a report is of one: run 42 (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus, browser, e-invoice); a machine (install)',
+      'the results are of 2 runs, where a report is of one: run 42 (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus, browser, e-invoice, container); a machine (install)',
     ])
     expect(withDefect((inputs) => inputs.results.push(structuredClone(job(inputs, 'verify'))))).toEqual(['the results hold verify 2 times, where a run leaves each key once'])
   })
@@ -603,7 +683,7 @@ describe('a green CI run', () => {
     const report = buildReport(greenCiRun())
     expect(report.problems).toEqual([])
     expect(report.subject).toMatchObject({ version: '0.1.0', release: null, commit: 'c0ffee', run: { id: '42' } })
-    expect(report.subject.jobs.map((entry) => entry.key)).toEqual(['verify', 'test-report-spec', 'test-report-render-pdf', 'test-report-builder-react', 'test-report-corpus', 'browser', 'install', 'e-invoice'])
+    expect(report.subject.jobs.map((entry) => entry.key)).toEqual(['verify', 'test-report-spec', 'test-report-render-pdf', 'test-report-builder-react', 'test-report-corpus', 'browser', 'install', 'e-invoice', 'container'])
   })
 })
 
