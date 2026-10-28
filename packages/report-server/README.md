@@ -175,7 +175,13 @@ construction a key that would accept forgeries. `store` is the file store
 that the process can write: it answers `{ ok: true, store }`, or `{ ok: false,
 problem }` with one sentence about the root, which names no setting, since an
 embedder set none, and never the path; a `store` that lacks a method of the
-port does not start the server. `audit` is `{ sink, key? }`:
+port does not start the server. A store's file that is not what it wrote
+is thrown as `StoredRecordError`, and a failure of the file system under it
+as `StoreFileSystemError`, by Node's code, the operation and the path
+inside the tenant's directory, never Node's own error, whose message names
+the absolute path and with it the tenant's directory, the unkeyed hash of
+its claim; the server logs either by those and the tenant's keyed
+reference, and answers `internal`. `audit` is `{ sink, key? }`:
 the server's own sink writes the log line above, and an embedder may pass
 its own; a sink that throws never fails a request; a `key` under 32 bytes
 does not start the server. `origins`,

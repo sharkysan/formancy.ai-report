@@ -95,7 +95,7 @@ describe('the audit trail', () => {
     await audited.inject({ method: 'PUT', url: `/v1/assets/${hex}`, headers: { ...good, 'content-type': 'image/png' }, payload: Buffer.from('no image') })
     await audited.inject({ method: 'GET', url: `/v1/assets/${hex}`, headers: good })
     expect(events.map(({ operation, status, outcome, identified }) => ({ operation, status, outcome, identified }))).toEqual([
-      { operation: 'templates.list', status: 200, outcome: 'ok', identified: true },
+      { operation: 'template.list', status: 200, outcome: 'ok', identified: true },
       { operation: 'draft.save', status: 428, outcome: 'precondition-required', identified: true },
       { operation: 'draft.save', status: 415, outcome: 'unsupported-media-type', identified: true },
       { operation: 'draft.read', status: 404, outcome: 'no-draft', identified: true },

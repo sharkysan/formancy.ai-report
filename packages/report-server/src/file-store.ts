@@ -38,6 +38,13 @@ import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
  * again before any file operation, so that no caller can make it name a path
  * outside a tenant's directory. A tenant is named by a hash, which any claim
  * becomes, and which a volume that folds case or normalisation cannot merge.
+ *
+ * **No error names the root.** A path under the root holds the tenant's
+ * directory, the unkeyed hash of its claim, which a reader of a log
+ * reverses for a tenant they can guess. So the file system's own errors,
+ * whose messages name the absolute path, never leave the store:
+ * `StoreFileSystemError` carries Node's code, what the store was doing and
+ * the path inside the tenant's directory instead.
  */
 
 /** What reading a stored file found wrong with it. */
@@ -85,6 +92,36 @@ export class StoredRecordError extends Error {
   }
 }
 
+/** What the store was doing when the file system failed it. */
+export type StoreOperation = 'list' | 'read' | 'write' | 'link' | 'remove'
+
+/**
+ * The file system failed the store: a permission taken away, a volume full
+ * or failing, the root gone. Node's own error is not handed on, since its
+ * message names the absolute path and with it the tenant's directory; this
+ * one carries Node's `code`, the `operation`, and `withinTenant`, the path
+ * inside the tenant's directory, or `undefined` where what failed is the
+ * root itself. The server answers it as `internal` and logs those three,
+ * never a message or a stack (0049).
+ */
+export class StoreFileSystemError extends Error {
+  override name = 'StoreFileSystemError'
+  readonly code: string | undefined
+  readonly operation: StoreOperation
+  readonly withinTenant: string | undefined
+
+  constructor(operation: StoreOperation, withinTenant: string | undefined, code: string | undefined) {
+    super(
+      withinTenant === undefined
+        ? `The store's root is no longer a directory this process can reach (${String(code)}); nothing in it was read or written.`
+        : `The store could not ${operation} ${withinTenant} in a tenant's directory (${String(code)}).`,
+    )
+    this.code = code
+    this.operation = operation
+    this.withinTenant = withinTenant
+  }
+}
+
 /**
  * The extension each image kind is kept under. Every kind report-spec admits
  * as an image asset, and only those: a kind added there fails to compile
@@ -125,24 +162,47 @@ export async function openFileTemplateStore(root: string): Promise<{ readonly ok
 }
 
 function fileTemplateStore(root: string): TemplateStore {
+  const tenantDirectory = (tenant: string): string => join(root, 'tenants', tenantName(tenant))
+  const draftDirectory = (tenant: string, template: string): string => join(tenantDirectory(tenant), 'templates', templateName(template), 'draft')
+  const assetDirectory = (tenant: string): string => join(tenantDirectory(tenant), 'assets')
+
+  /** `path`'s place inside `tenant`'s directory: what an error may name, as the tenant's directory may not be. */
+  const within = (tenant: string, path: string): string => relative(tenantDirectory(tenant), path)
+
+  /** `error`, a failure of the file system at `path`, as the store's own (above). */
+  const failed = (operation: StoreOperation, tenant: string, path: string, error: unknown): StoreFileSystemError =>
+    // What node:fs/promises rejects with: a system error, whose code is a string.
+    new StoreFileSystemError(operation, within(tenant, path), (error as NodeJS.ErrnoException).code)
+
+  /** `run`, an operation of the file system on `path`, its failure the store's own. */
+  async function attempt<T>(operation: StoreOperation, tenant: string, path: string, run: () => Promise<T>): Promise<T> {
+    try {
+      return await run()
+    } catch (error) {
+      throw failed(operation, tenant, path, error)
+    }
+  }
+
   /**
    * Called wherever something under the root is missing, since that means
    * two things: nothing written there yet, or the volume gone. The second
    * throws, so that a store whose directory disappeared is not read as an
    * empty one and a save does not make the root again where the volume was.
    */
-  async function standing(): Promise<void> {
-    const found = await stat(root).catch(() => undefined)
-    if (found?.isDirectory() !== true) throw new Error("The store's root is no longer a directory this process can reach; nothing in it was read or written.")
+  async function standing(operation: StoreOperation): Promise<void> {
+    const found = await stat(root).catch((error: unknown) => {
+      throw new StoreFileSystemError(operation, undefined, (error as NodeJS.ErrnoException).code)
+    })
+    if (!found.isDirectory()) throw new StoreFileSystemError(operation, undefined, 'ENOTDIR')
   }
 
   /** The names in `directory`, or none where it does not exist. */
-  async function namesIn(directory: string): Promise<string[]> {
+  async function namesIn(tenant: string, directory: string): Promise<string[]> {
     try {
       return await readdir(directory)
     } catch (error) {
-      if (!isCode(error, 'ENOENT') && !isCode(error, 'ENOTDIR')) throw error
-      await standing()
+      if (!isCode(error, 'ENOENT') && !isCode(error, 'ENOTDIR')) throw failed('list', tenant, directory, error)
+      await standing('list')
       return []
     }
   }
@@ -152,45 +212,44 @@ function fileTemplateStore(root: string): TemplateStore {
    * temporary file first, flushed, then linked. False where another write
    * made the name first. The temporary file is removed whatever happens.
    */
-  async function written(directory: string, name: string, contents: string | Uint8Array): Promise<boolean> {
-    await standing()
-    await mkdir(directory, { recursive: true })
+  async function written(tenant: string, directory: string, name: string, contents: string | Uint8Array): Promise<boolean> {
+    await standing('write')
+    await attempt('write', tenant, directory, () => mkdir(directory, { recursive: true }))
     const temporary = join(directory, `.${randomUUID()}.tmp`)
     try {
-      const handle = await open(temporary, 'wx')
+      const handle = await attempt('write', tenant, temporary, () => open(temporary, 'wx'))
       try {
-        await handle.writeFile(contents)
         // On disk before it has a name: a revision that exists is whole.
-        await handle.sync()
+        await attempt('write', tenant, temporary, async () => {
+          await handle.writeFile(contents)
+          await handle.sync()
+        })
       } finally {
-        await handle.close()
+        await attempt('write', tenant, temporary, () => handle.close())
       }
+      const final = join(directory, name)
       try {
-        await link(temporary, join(directory, name))
+        await link(temporary, final)
         return true
       } catch (error) {
         if (isCode(error, 'EEXIST')) return false
-        throw error
+        throw failed('link', tenant, final, error)
       }
     } finally {
-      await rm(temporary, { force: true })
+      await attempt('remove', tenant, temporary, () => rm(temporary, { force: true }))
     }
   }
 
-  const tenantDirectory = (tenant: string): string => join(root, 'tenants', tenantName(tenant))
-  const draftDirectory = (tenant: string, template: string): string => join(tenantDirectory(tenant), 'templates', templateName(template), 'draft')
-  const assetDirectory = (tenant: string): string => join(tenantDirectory(tenant), 'assets')
-
-  async function newestIn(directory: string): Promise<number | null> {
-    return newestRevision(await namesIn(directory))
+  async function newestIn(tenant: string, directory: string): Promise<number | null> {
+    return newestRevision(await namesIn(tenant, directory))
   }
 
   /** Where `file`, under `tenant`'s directory, is, for a `StoredRecordError` to name. */
-  const stored = (tenant: string, file: string): StoredFile => ({ file, withinTenant: relative(tenantDirectory(tenant), file) })
+  const stored = (tenant: string, file: string): StoredFile => ({ file, withinTenant: within(tenant, file) })
 
   async function readDraft(tenant: string, directory: string, revision: number): Promise<StoredDraft> {
     const file = join(directory, `${String(revision)}.json`)
-    return { revision, ...recordIn(stored(tenant, file), await readFile(file, 'utf8')) }
+    return { revision, ...recordIn(stored(tenant, file), await attempt('read', tenant, file, () => readFile(file, 'utf8'))) }
   }
 
   /** The file an image is kept in under `hex`, and the kind it was kept as; undefined where there is none. */
@@ -200,11 +259,11 @@ function fileTemplateStore(root: string): TemplateStore {
       const file = join(directory, `${hex}.${extension}`)
       const found = await stat(file).catch((error: unknown) => {
         if (isCode(error, 'ENOENT') || isCode(error, 'ENOTDIR')) return undefined
-        throw error
+        throw failed('read', tenant, file, error)
       })
       if (found !== undefined) return { file, mediaType }
     }
-    await standing()
+    await standing('read')
     return undefined
   }
 
@@ -213,9 +272,9 @@ function fileTemplateStore(root: string): TemplateStore {
       const templates = join(tenantDirectory(tenant), 'templates')
       const summaries: TemplateSummary[] = []
       // Only names a template id can be: `.DS_Store` and the like are none.
-      for (const template of (await namesIn(templates)).filter(isIdentifier).sort(byCodeUnits)) {
+      for (const template of (await namesIn(tenant, templates)).filter(isIdentifier).sort(byCodeUnits)) {
         const directory = draftDirectory(tenant, template)
-        const revision = await newestIn(directory)
+        const revision = await newestIn(tenant, directory)
         if (revision !== null) summaries.push({ template, revision, title: (await readDraft(tenant, directory, revision)).report.title })
       }
       return summaries
@@ -223,18 +282,18 @@ function fileTemplateStore(root: string): TemplateStore {
 
     async newest(tenant, template) {
       const directory = draftDirectory(tenant, template)
-      const revision = await newestIn(directory)
+      const revision = await newestIn(tenant, directory)
       return revision === null ? undefined : await readDraft(tenant, directory, revision)
     },
 
     async save(tenant, template, from, draft) {
       const directory = draftDirectory(tenant, template)
-      const current = await newestIn(directory)
+      const current = await newestIn(tenant, directory)
       if (current !== from) return { saved: false, revision: current }
       const revision = (current ?? 0) + 1
       if (!Number.isSafeInteger(revision)) throw new Error('The next revision of this template would not be a safe integer, so it was not written.')
-      if (await written(directory, `${String(revision)}.json`, recordText(draft.savedBy, draft.report))) return { saved: true, revision }
-      return { saved: false, revision: await newestIn(directory) }
+      if (await written(tenant, directory, `${String(revision)}.json`, recordText(draft.savedBy, draft.report))) return { saved: true, revision }
+      return { saved: false, revision: await newestIn(tenant, directory) }
     },
 
     async keepImage(tenant, digest, image) {
@@ -243,14 +302,14 @@ function fileTemplateStore(root: string): TemplateStore {
       if (sha256(image.bytes) !== hex) throw new Error('The digest an image was to be kept under is not the SHA-256 of its bytes, so it was not kept.')
       if ((await imageFile(tenant, hex)) !== undefined) return
       // False only where a keep of the same digest linked it first: the same bytes, kept.
-      await written(assetDirectory(tenant), `${hex}.${EXTENSIONS[image.mediaType]}`, image.bytes)
+      await written(tenant, assetDirectory(tenant), `${hex}.${EXTENSIONS[image.mediaType]}`, image.bytes)
     },
 
     async readImage(tenant, digest) {
       const hex = digestName(digest)
       const kept = await imageFile(tenant, hex)
       if (kept === undefined) return undefined
-      const bytes = await readFile(kept.file)
+      const bytes = await attempt('read', tenant, kept.file, () => readFile(kept.file))
       if (sha256(bytes) !== hex) throw new StoredRecordError(stored(tenant, kept.file), 'digest')
       return { mediaType: kept.mediaType, bytes } satisfies StoredImage
     },

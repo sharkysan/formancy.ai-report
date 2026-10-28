@@ -50,8 +50,8 @@ carries but that token contributes to it.
   [0004](../../docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
 - **`ROUTES`** -- every route the API answers, `METHOD path`, with the name
   its audit event gives it: `GET /v1/whoami`, `whoami`, and the draft
-  slice's five, `GET /v1/templates` (`templates.list`),
-  `GET /v1/templates/:template/draft` (`draft.read`),
+  slice's five, each named by the action it takes: `GET /v1/templates`
+  (`template.list`), `GET /v1/templates/:template/draft` (`draft.read`),
   `PUT /v1/templates/:template/draft` (`draft.save`),
   `PUT /v1/assets/:digest` (`asset.keep`) and `GET /v1/assets/:digest`
   (`asset.read`).

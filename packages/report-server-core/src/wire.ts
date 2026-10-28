@@ -23,7 +23,7 @@ export const API_PREFIX = '/v1'
  */
 export const ROUTES = Object.freeze({
   'GET /v1/whoami': 'whoami',
-  'GET /v1/templates': 'templates.list',
+  'GET /v1/templates': 'template.list',
   'GET /v1/templates/:template/draft': 'draft.read',
   'PUT /v1/templates/:template/draft': 'draft.save',
   'PUT /v1/assets/:digest': 'asset.keep',

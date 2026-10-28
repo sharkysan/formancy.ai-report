@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, test } from 'vitest'
 import * as entry from './index.js'
 import type { ServerRefusal } from './index.js'
+import { ACTIONS } from './actions.js'
 import { API_PREFIX, CROSS_ORIGIN_REQUEST_HEADERS, CROSS_ORIGIN_RESPONSE_HEADERS, DRAFT_FORMAT, isRevision, REFUSALS, ROUTES } from './wire.js'
 
 /**
@@ -20,7 +21,7 @@ describe('the wire', () => {
     expect(API_PREFIX).toBe('/v1')
     expect(ROUTES).toEqual({
       'GET /v1/whoami': 'whoami',
-      'GET /v1/templates': 'templates.list',
+      'GET /v1/templates': 'template.list',
       'GET /v1/templates/:template/draft': 'draft.read',
       'PUT /v1/templates/:template/draft': 'draft.save',
       'PUT /v1/assets/:digest': 'asset.keep',
@@ -29,6 +30,17 @@ describe('the wire', () => {
     for (const route of Object.keys(ROUTES)) expect(route).toMatch(/^(GET|PUT|POST|DELETE) \/v1\/[a-z/:-]+$/)
     expect(new Set(Object.values(ROUTES)).size).toBe(Object.keys(ROUTES).length)
     expect(Object.isFrozen(ROUTES)).toBe(true)
+  })
+
+  // A route that takes an action is named in the trail by that action, so
+  // an operator reads an event and the actions table in one vocabulary;
+  // a name one letter off the action -- `templates.list` for
+  // `template.list` -- would be a second word for one thing, final once
+  // /v1 is released. Whoami takes no action and keeps its own name.
+  test('names every route that takes an action by that action', () => {
+    for (const [route, name] of Object.entries(ROUTES)) {
+      if (route !== 'GET /v1/whoami') expect(Object.hasOwn(ACTIONS, name), route).toBe(true)
+    }
   })
 
   // A refusal is a stable code a client branches on and a sentence a

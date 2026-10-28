@@ -7,7 +7,7 @@ import type { StoredImage, TemplateStore } from '@formancy/report-server-core'
 import { assetDigest, emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
-import { openFileTemplateStore, StoredRecordError } from './file-store.js'
+import { openFileTemplateStore, StoredRecordError, StoreFileSystemError } from './file-store.js'
 
 /**
  * The file store (0049, as formancy.ai-data 0013): a tenant's drafts and
@@ -305,23 +305,54 @@ describe('an image', () => {
 
 describe('a directory the store cannot read', () => {
   // Only a name that is not there is read as nothing kept. Any other
-  // failure -- here a directory this process may not read -- thrown as it
-  // is, never answered as "no draft", "no templates" or "no image", which
-  // would invite a save from nothing over drafts that exist.
-  test('throws as it is, rather than reading as empty', async () => {
+  // failure -- here a directory this process may not read -- is thrown,
+  // never answered as "no draft", "no templates" or "no image", which
+  // would invite a save from nothing over drafts that exist. It is thrown
+  // as the store's own error, with Node's code, what the store was doing
+  // and the path inside the tenant's directory: Node's own error names the
+  // absolute path, and with it the tenant's directory, the unkeyed hash of
+  // the claim, which a log reverses for a tenant it can guess.
+  test('throws the store’s own error, by Node’s code, the operation and the path inside the tenant, rather than reading as empty', async () => {
     await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Kept')))
     const kept = image('a logo')
     await store.keepImage(TENANT, kept.digest, { mediaType: 'image/png', bytes: kept.bytes })
     await chmod(draftDirectory(TENANT, 'invoice'), 0o000)
     await chmod(assetDirectory(TENANT), 0o000)
     try {
-      await expect(store.newest(TENANT, 'invoice')).rejects.toThrow(/EACCES/)
-      await expect(store.list(TENANT)).rejects.toThrow(/EACCES/)
-      await expect(store.hasImage(TENANT, kept.digest)).rejects.toThrow(/EACCES/)
+      const failures = [
+        [() => store.newest(TENANT, 'invoice'), { code: 'EACCES', operation: 'list', withinTenant: 'templates/invoice/draft' }],
+        [() => store.list(TENANT), { code: 'EACCES', operation: 'list', withinTenant: 'templates/invoice/draft' }],
+        [() => store.hasImage(TENANT, kept.digest), { code: 'EACCES', operation: 'read', withinTenant: `assets/${kept.digest.slice('sha256:'.length)}.png` }],
+      ] as const
+      for (const [asked, expected] of failures) {
+        const error = await (asked as () => Promise<unknown>)().catch((caught: unknown) => caught)
+        expect(error).toBeInstanceOf(StoreFileSystemError)
+        expect(error).toMatchObject(expected)
+        expect((error as Error).message).toContain('EACCES')
+        expect((error as Error).message).not.toContain(root)
+        expect((error as Error).message).not.toContain(sha256(TENANT))
+      }
     } finally {
       await chmod(draftDirectory(TENANT, 'invoice'), 0o700)
       await chmod(assetDirectory(TENANT), 0o700)
     }
+  })
+
+  // A save into a template's directory this process may not write fails
+  // writing its temporary file, and says that, not where the volume is.
+  test('throws the store’s own error for a write it cannot make', async () => {
+    await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Kept')))
+    await chmod(draftDirectory(TENANT, 'invoice'), 0o500)
+    try {
+      const error = await store.save(TENANT, 'invoice', 1, draft('u-1', report('invoice', 'Again'))).catch((caught: unknown) => caught)
+      expect(error).toBeInstanceOf(StoreFileSystemError)
+      expect(error).toMatchObject({ code: 'EACCES', operation: 'write' })
+      expect((error as StoreFileSystemError).withinTenant).toMatch(/^templates\/invoice\/draft\/\.[0-9a-f-]+\.tmp$/)
+      expect((error as Error).message).not.toContain(root)
+    } finally {
+      await chmod(draftDirectory(TENANT, 'invoice'), 0o700)
+    }
+    expect(await readdir(draftDirectory(TENANT, 'invoice'))).toEqual(['1.json'])
   })
 })
 
@@ -372,6 +403,24 @@ describe('the root', () => {
     await expect(store.readImage(TENANT, kept.digest)).rejects.toThrow(/no longer a directory/)
     await expect(store.keepImage(TENANT, kept.digest, { mediaType: 'image/png', bytes: kept.bytes })).rejects.toThrow(/no longer a directory/)
     await expect(stat(root)).rejects.toThrow(/ENOENT/)
+    // The store's own error, naming no file: what is gone is the root.
+    await expect(store.list(TENANT)).rejects.toMatchObject({ name: 'StoreFileSystemError', code: 'ENOENT', operation: 'list', withinTenant: undefined })
+    await expect(store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Again')))).rejects.toMatchObject({ code: 'ENOENT', operation: 'list' })
+    await expect(store.readImage(TENANT, kept.digest)).rejects.toMatchObject({ code: 'ENOENT', operation: 'read' })
+  })
+
+  // A root a volume left a file in place of is gone as much as a removed
+  // one, and says so by the code Node gives a path that is no directory.
+  test('that is a file after it opened fails every call as gone', async () => {
+    await rm(root, { recursive: true })
+    await writeFile(root, 'not a directory')
+    try {
+      await expect(store.list(TENANT)).rejects.toMatchObject({ code: 'ENOTDIR', operation: 'list', withinTenant: undefined })
+      await expect(store.keepImage(TENANT, image('bytes').digest, { mediaType: 'image/png', bytes: image('bytes').bytes })).rejects.toMatchObject({ code: 'ENOTDIR', operation: 'read' })
+    } finally {
+      await rm(root)
+      await mkdir(root)
+    }
   })
 
   // The same rule for what a running store says: it is thrown into the

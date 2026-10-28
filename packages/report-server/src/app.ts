@@ -8,7 +8,7 @@ import type { AuditOptions } from './audit.js'
 import { answerClientError } from './client-errors.js'
 import { crossOrigin, originsProblem } from './cors.js'
 import { registerDraftRoutes } from './drafts.js'
-import { StoredRecordError } from './file-store.js'
+import { StoredRecordError, StoreFileSystemError } from './file-store.js'
 import type { ReportVerifier } from './identity.js'
 import { plainPath } from './paths.js'
 import { clientAddress, trustedProxiesProblem } from './proxies.js'
@@ -208,15 +208,18 @@ export async function createReportServer(options: ReportServerOptions): Promise<
   crossOrigin(app, { origins })
 
   app.setErrorHandler<FastifyError>((error, request, reply) => {
-    // A file in the store that is not what it wrote: the operator's to
-    // find, by why, by its path inside the tenant's directory and by the
-    // tenant's keyed reference, as the trail names one. Never the error
-    // itself, whose message holds the absolute path, and with it the
-    // tenant's directory, the unkeyed hash of its claim (0049). A store is
-    // asked only by a route's use case, which runs after the identity hook.
-    if (error instanceof StoredRecordError) {
+    // A file in the store that is not what it wrote, or the file system
+    // failing the store: the operator's to find, by why or by Node's code
+    // and the operation, by the path inside the tenant's directory and by
+    // the tenant's keyed reference, as the trail names one. Never the error
+    // itself, its message or its stack, which may hold the absolute path,
+    // and with it the tenant's directory, the unkeyed hash of its claim
+    // (0049). A store is asked only by a route's use case, which runs after
+    // the identity hook.
+    if (error instanceof StoredRecordError || error instanceof StoreFileSystemError) {
       const tenant = auditReference(auditKey, 'tenant', (request.identity as ReportIdentity).tenant)
-      request.log.error({ why: error.why, file: error.withinTenant, tenant }, 'a stored record is not what the store wrote, and was not served')
+      if (error instanceof StoredRecordError) request.log.error({ why: error.why, file: error.withinTenant, tenant }, 'a stored record is not what the store wrote, and was not served')
+      else request.log.error({ code: error.code, operation: error.operation, file: error.withinTenant, tenant }, 'the store’s file system failed it, and nothing was answered from it')
       return reply.code(500).send(REFUSALS.internal)
     }
     const status = error.statusCode
