@@ -79,6 +79,16 @@ export const CURRENCY = /^[A-Z]{3}$/
 /** An asset's content digest: SHA-256, lower-case hex. */
 export const DIGEST = /^sha256:[0-9a-f]{64}$/
 
+/**
+ * Whether `value` is an asset's digest as a report declares one, `sha256:`
+ * and 64 lower-case hex digits: the one rule for it, which the report
+ * server judges a path's digest by, with `sha256:` before it, and its store
+ * names a file by (0049).
+ */
+export function isDigest(value: unknown): value is string {
+  return typeof value === 'string' && DIGEST.test(value)
+}
+
 /** A form version's hash, as `@formancy/spec`'s `schemaHash` writes it: 64 lower-case hex digits. */
 export const SCHEMA_HASH = /^[0-9a-f]{64}$/
 

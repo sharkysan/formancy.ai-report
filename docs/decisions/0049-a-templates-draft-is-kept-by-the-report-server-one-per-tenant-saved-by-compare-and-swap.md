@@ -20,13 +20,16 @@
     any font whatever the store holds under its digest, 422
     `asset-not-kept`, the ids sorted; who may and may not, each refusal
     for want of a capacity made before the store is asked; another
-    tenant's drafts and images neither read nor taken as kept; and a keep
-    judged in the order the code states, a PNG, a JPEG and a cleaned SVG
+    tenant's drafts and images neither read nor taken as kept; a path's
+    digest refused exactly where `isDigest` refuses it with `sha256:`
+    before it; and a keep judged in the order the code states, a PNG, a JPEG and a cleaned SVG
     kept, everything else refused by its code. Twenty-five single-point
     mutations of `drafts.ts` and `images.ts` were each killed; two
     survived the first run -- the tenant hard-coded on `hasImage` and on
     `readImage` -- because the cases used that same tenant, and were
-    killed once they used another.
+    killed once they used another. The path's digest held to `isDigest`
+    was watched failing with a pattern of the use cases' own that admitted
+    capitals ("expected [ false, false ] to deeply equal [ true, true ]").
   - **The store.** `packages/report-server/src/file-store.test.ts`,
     against a real directory made for each case, since what it proves is
     the file system's: saves 1, 2 and 3 read back as saved; a save from 1
@@ -39,7 +42,8 @@
     tenant's directory; `Acme`, `acme` and `é` in NFC and in NFD four
     tenants that cannot see each other; a tenant claim with no UTF-8 form,
     a template id that is not report-spec's identifier, a digest that is
-    not a SHA-256 refused before any file operation, and a revision past
+    not a SHA-256 refused before any file operation, a digest refused
+    exactly where report-spec's `isDigest` refuses it, and a revision past
     the safe integers neither read nor written; an image kept twice, or by several at once, one file
     read back as its bytes and media type, and never kept or served under
     a digest that is not its bytes; a directory the store cannot read or
@@ -53,8 +57,9 @@
     merged into `Acme` on the APFS volume the case ran on), with `rename`
     for `link` (the twenty concurrent saves), with the record's digest or
     format unchecked (the hand-edited record), with the newest revision
-    compared as text (the eleven saves), and with every directory a read
-    could not open read as empty.
+    compared as text (the eleven saves), with every directory a read
+    could not open read as empty, and with a digest pattern of the store's
+    own that admitted capitals ("expected 'read' to be 'refused'").
   - **The routes.** `packages/report-server/src/drafts.test.ts`, through
     `inject` with tokens the host signs and the verifier a deployment
     runs, on the file store, and over a socket where only a socket shows
@@ -322,7 +327,10 @@ only by case or by Unicode normalisation stay two tenants. The store
 checks a template id and a digest again before any file operation, so that
 no caller can make it name a path outside a tenant's directory, refuses a
 tenant claim that has no UTF-8 form, and lists only names a template id
-can be.
+can be. It checks them by the rules the use cases judge by, report-spec's
+`isIdentifier` and `isDigest`, which a report's declarations are validated
+by too, so that nothing a save or a keep lets through is a name the store
+throws on, which would be answered 500 rather than refused.
 
 **No error names the root.** A path under the root holds the tenant's
 directory, the unkeyed hash of its claim, which whoever reads a log
@@ -368,7 +376,8 @@ refusal.
 **The images are the tenant's, kept by digest.** Not a template's: a
 digest names the same bytes wherever they are declared, a report copied to
 a new template keeps reading them, and `ImageStore` is given no template.
-A keep checks, in order: the capacity; the digest, 400 `digest-invalid`;
+A keep checks, in order: the capacity; the digest, by `isDigest` with
+`sha256:` put before the path's digits, 400 `digest-invalid`;
 the size against `MAX_ASSET_BYTES`, 413 `image-too-large`; `sniffImage`,
 422 `image-refused` with the reason `not-an-image`; the request's media
 type, its essence trimmed and in any case, being the kind the bytes sniff

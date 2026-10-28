@@ -57,6 +57,12 @@ other's work, so the draft comes first, kept by compare-and-swap.
   mebibyte Fastify reads by default,
   because 0046 left the draft's limit to the format, which knows what a
   report is.
+- **`@formancy/report-spec`'s `isDigest`**, whether a value is an asset's
+  digest as a report declares one, `sha256:` and 64 lower-case hex digits.
+  The server judges the digits a path carries by it, and its store names a
+  file by it, because two patterns of their own beside report-spec's could
+  drift apart, and a save that declared a digest the store's reading
+  refused would be answered 500 rather than refused.
 - **`@formancy/report-server-core`** gains the draft slice's wire types,
   its refusals and `ServerRefusal`, the four that carry a field;
   the use cases that decide a save, a read, a list, a keep and an image's

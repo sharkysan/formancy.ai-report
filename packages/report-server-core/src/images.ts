@@ -1,4 +1,4 @@
-import { assetDigest, checkSvg, imageHeader, MAX_ASSET_BYTES, MAX_SVG_BYTES, sniffImage } from '@formancy/report-spec'
+import { assetDigest, checkSvg, imageHeader, isDigest, MAX_ASSET_BYTES, MAX_SVG_BYTES, sniffImage } from '@formancy/report-spec'
 import { can } from './actions.js'
 import { answer, refuse } from './answer.js'
 import type { Answer, RefusalAnswer } from './answer.js'
@@ -16,8 +16,14 @@ import type { ImageKept } from './wire.js'
  * what the ones before it let through.
  */
 
-/** The 64 lower-case hexadecimal digits of a SHA-256, as a path carries a digest: a store names a file by them, so nothing else is one. */
-const DIGEST_HEX = /^[0-9a-f]{64}$/
+/**
+ * Whether `digestHex` is a digest as a path carries one: the 64 lower-case
+ * hexadecimal digits of a SHA-256, without the `sha256:` a report writes
+ * before them. Judged by report-spec's `isDigest` with the prefix put back,
+ * the one rule a store names a file by, so that nothing this lets through
+ * is a digest the store refuses.
+ */
+const isDigestHex = (digestHex: string): boolean => isDigest(`sha256:${digestHex}`)
 
 /**
  * Keeps an image under the digest of its bytes, for the asking tenant. An
@@ -30,7 +36,7 @@ const DIGEST_HEX = /^[0-9a-f]{64}$/
 export async function keepImage(asking: Asking, digestHex: string, contentType: string, bytes: Uint8Array): Promise<Answer<ImageKept> | RefusalAnswer> {
   const { identity, roles, store } = asking
   if (!can(identity, 'asset.keep', roles)) return refuse(403, REFUSALS.forbidden)
-  if (!DIGEST_HEX.test(digestHex)) return refuse(400, REFUSALS['digest-invalid'])
+  if (!isDigestHex(digestHex)) return refuse(400, REFUSALS['digest-invalid'])
   if (bytes.length > MAX_ASSET_BYTES) return refuse(413, REFUSALS['image-too-large'])
   const kind = sniffImage(bytes)
   if (kind === undefined) return refuse(422, { ...REFUSALS['image-refused'], reason: 'not-an-image' })
@@ -54,7 +60,7 @@ export async function keepImage(asking: Asking, digestHex: string, contentType: 
 export async function readImage(asking: Asking, digestHex: string): Promise<Answer<StoredImage> | RefusalAnswer> {
   const { identity, roles, store } = asking
   if (!can(identity, 'asset.read', roles)) return refuse(403, REFUSALS.forbidden)
-  if (!DIGEST_HEX.test(digestHex)) return refuse(400, REFUSALS['digest-invalid'])
+  if (!isDigestHex(digestHex)) return refuse(400, REFUSALS['digest-invalid'])
   const image = await store.readImage(identity.tenant, `sha256:${digestHex}`)
   if (image === undefined) return refuse(404, REFUSALS['no-asset'])
   return answer(200, image)

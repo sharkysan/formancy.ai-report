@@ -1,4 +1,4 @@
-import { assetDigest, checkSvg, cleanSvg, MAX_ASSET_BYTES, MAX_ASSET_SIDE, MAX_SVG_BYTES } from '@formancy/report-spec'
+import { assetDigest, checkSvg, cleanSvg, isDigest, MAX_ASSET_BYTES, MAX_ASSET_SIDE, MAX_SVG_BYTES } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { RolePolicy } from './actions.js'
 import type { Asking } from './drafts.js'
@@ -363,5 +363,26 @@ describe('readImage', () => {
     expect(await readImage(asking(store, AUTHOR), '0'.repeat(64))).toEqual({ ok: false, status: 404, body: REFUSALS['no-asset'] })
     // The tenant that kept it reads it, so the question is asked of the token's tenant and not of a fixed one.
     expect((await readImage(asking(store, AUTHOR, { tenant: 'other' }), hexOf(bytes))).ok).toBe(true)
+  })
+})
+
+describe('the digest a path carries', () => {
+  // A path carries a digest's 64 digits without `sha256:`, and the store
+  // names a file by the digest with it, by report-spec's rule. Judged here
+  // by a pattern of its own, a digest this use case let through could be
+  // one the store's assertion throws on, answered 500 rather than
+  // refused; so a keep and a read refuse exactly what `isDigest` refuses
+  // once `sha256:` is put before it, and nothing else.
+  test('a keep and a read refuse a digest as digest-invalid exactly where report-spec’s isDigest refuses it with sha256: before it', async () => {
+    const bytes = png()
+    const hex = hexOf(bytes)
+    const refusedAsInvalid = (answered: { readonly ok: boolean; readonly body: unknown }): boolean => !answered.ok && (answered.body as { code?: unknown }).code === 'digest-invalid'
+    for (const digest of [hex, '0'.repeat(64), hex.toUpperCase(), `sha256:${hex}`, hex.slice(1), `${hex}0`, `${hex}\n`, `${hex.slice(0, 63)}g`, '../'.repeat(22).slice(0, 64), '']) {
+      const { store } = memoryStore()
+      const invalid = !isDigest(`sha256:${digest}`)
+      const kept = await keepImage(asking(store, AUTHOR), digest, 'image/png', bytes)
+      const read = await readImage(asking(store, AUTHOR), digest)
+      expect([refusedAsInvalid(kept), refusedAsInvalid(read)], JSON.stringify(digest)).toEqual([invalid, invalid])
+    }
   })
 })

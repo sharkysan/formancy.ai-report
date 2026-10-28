@@ -3,7 +3,7 @@ import { access, constants, link, mkdir, open, readdir, readFile, rm, stat } fro
 import { isAbsolute, join, relative } from 'node:path'
 import { DRAFT_FORMAT } from '@formancy/report-server-core'
 import type { StoredDraft, StoredImage, TemplateStore, TemplateSummary } from '@formancy/report-server-core'
-import { isIdentifier } from '@formancy/report-spec'
+import { isDigest, isIdentifier } from '@formancy/report-spec'
 import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
 
 /**
@@ -132,8 +132,8 @@ const KINDS = Object.entries(EXTENSIONS) as [AssetMediaType, string][]
 
 /** The names a draft is written under: a revision, a positive number with no leading zero. */
 const REVISION_FILE = /^([1-9][0-9]*)\.json$/
-/** A digest as a report names an asset; the 64 digits are the name its file is kept under. */
-const DIGEST = /^sha256:([0-9a-f]{64})$/
+/** What a report writes before a digest's 64 digits, which are the name its file is kept under. */
+const DIGEST_PREFIX = 'sha256:'
 /** A lone surrogate: a string holding one has no UTF-8 form. */
 const LONE_SURROGATE = /\p{Cs}/u
 
@@ -336,10 +336,10 @@ function templateName(template: string): string {
   return template
 }
 
+/** The name an image's file is kept under: its digest's 64 digits, once report-spec's `isDigest`, which the use cases judge by too, says it is one. */
 function digestName(digest: string): string {
-  const hex = DIGEST.exec(digest)?.[1]
-  if (hex === undefined) throw new Error('The store was asked for an image by a digest that is not a SHA-256 as a report names one; the use cases refuse one before the store is asked.')
-  return hex
+  if (!isDigest(digest)) throw new Error('The store was asked for an image by a digest that is not a SHA-256 as a report names one; the use cases refuse one before the store is asked.')
+  return digest.slice(DIGEST_PREFIX.length)
 }
 
 /** The newest revision among `names`, or null where none is one. A number past the safe integers is a name the store never writes. */

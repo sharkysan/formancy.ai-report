@@ -128,8 +128,9 @@ image exists.
   stands, `null` where there is none, and that revision beside the body too,
   for the `ETag`, where there is one.
 - **`keepImage(asking, digestHex, contentType, bytes)`** -- checks: the
-  capacity; the digest as 64 lower-case hexadecimal digits (400
-  `digest-invalid`); the size against report-spec's `MAX_ASSET_BYTES` (413
+  capacity; the digest as 64 lower-case hexadecimal digits, by report-spec's
+  `isDigest` with `sha256:` put before them, the rule the store names a
+  file by (400 `digest-invalid`); the size against report-spec's `MAX_ASSET_BYTES` (413
   `image-too-large`); `sniffImage` (422 `image-refused`, reason
   `not-an-image`); the request's media type, before any parameter, being the
   sniffed one (415 `unsupported-media-type`); a PNG or JPEG read by
@@ -165,8 +166,9 @@ is where it goes; the server's own writes a log line.
   is a port the host gives it.
 - **Depend on anything but the format.** `@formancy/report-spec` is its one
   dependency: its types, and the functions the use cases judge a draft and
-  an image with -- `validateReport`, `isIdentifier`, `isFontMediaType`,
-  `sniffImage`, `imageHeader`, `checkSvg`, `assetDigest` and the limits.
+  an image with -- `validateReport`, `isIdentifier`, `isDigest`,
+  `isFontMediaType`, `sniffImage`, `imageHeader`, `checkSvg`, `assetDigest`
+  and the limits.
 
 **Licence.** Source-available, not open source: see
 [`LICENSE.md`](../../LICENSE.md).

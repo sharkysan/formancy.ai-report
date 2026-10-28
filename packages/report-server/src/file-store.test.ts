@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { DRAFT_FORMAT } from '@formancy/report-server-core'
 import type { StoredImage, TemplateStore } from '@formancy/report-server-core'
-import { assetDigest, emptyReport } from '@formancy/report-spec'
+import { assetDigest, emptyReport, isDigest } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { openFileTemplateStore, StoredRecordError, StoreFileSystemError } from './file-store.js'
@@ -222,6 +222,23 @@ describe('what names a file', () => {
     }
     await chmod(root, 0o700)
     expect(await readdir(root)).toEqual([])
+  })
+
+  // The use cases let a digest through by report-spec's `isDigest`, and the
+  // store names a file by it. Were the store's reading another, a digest a
+  // report declares and a keep accepts could be one the store throws on,
+  // and a save that declares it would be answered 500 rather than
+  // asset-not-kept; so the store refuses exactly what `isDigest` refuses.
+  test('a digest is refused exactly where report-spec’s isDigest refuses it, and read where it accepts it', async () => {
+    const kept = image('bytes')
+    const hex = kept.digest.slice('sha256:'.length)
+    for (const digest of [kept.digest, `sha256:${'0'.repeat(64)}`, hex, `sha256:${hex.toUpperCase()}`, kept.digest.toUpperCase(), `SHA256:${hex}`, `${kept.digest}0`, `${kept.digest}\n`, kept.digest.slice(0, -1), 'sha256:../../x', `sha512:${hex}`, '']) {
+      const read = await store.readImage(TENANT, digest).then(
+        () => 'read',
+        (error: unknown) => (error instanceof Error && /not a SHA-256/.test(error.message) ? 'refused' : String(error)),
+      )
+      expect(read, JSON.stringify(digest)).toBe(isDigest(digest) ? 'read' : 'refused')
+    }
   })
 
   // A revision is a positive safe integer (the plan's constraint). A name

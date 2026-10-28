@@ -510,13 +510,14 @@ refuse at every print, and names the image as the validator reads a name
 (0033):
 
 ```ts
-import { assetDigest, imageHeader, sniffImage } from '@formancy/report-spec'
+import { assetDigest, imageHeader, isDigest, sniffImage } from '@formancy/report-spec'
 
 sniffImage(bytes) // 'image/png', 'image/jpeg' or 'image/svg+xml', by the first bytes alone; undefined for anything else
 imageHeader(png) // { ok: true, mediaType: 'image/png', width: 120, height: 40, bitsPerPixel: 32, interlaced: false, data: every IDAT chunk's bytes, joined }
 imageHeader(jpeg) // { ok: true, mediaType: 'image/jpeg', width: 40, height: 120, components: 3 }: as it is shown, after its Exif turn
 imageHeader(wide) // { ok: false, code: 'too-large', message: 'is 5000 × 300 pixels; the limit is 4096 pixels a side', width: 5000, height: 300 }
 assetDigest(bytes) // 'sha256:' and 64 lower-case hex digits, what an asset's digest is
+isDigest(value) // true where value is such a digest, by the rule a declaration is validated by
 ```
 
 - **`sniffImage`** judges by a PNG's signature, a JPEG's start of image,
@@ -540,6 +541,10 @@ assetDigest(bytes) // 'sha256:' and 64 lower-case hex digits, what an asset's di
 - **`assetDigest`** is `@noble/hashes`' SHA-256, synchronous, on the
   caller's thread: Web Crypto's is asynchronous and no part of this
   package's library. A TypeError for anything that is not a `Uint8Array`.
+- **`isDigest`** is the syntax alone, the one rule for it: the report
+  server judges the digits a path carries by it, with `sha256:` put back,
+  and its store names a file by it (0049), so that nothing a declaration
+  accepts is a digest the store refuses.
 
 What it does not do: inflate a PNG's image data, which needs a
 decompressor ES2023 does not have. The renderer does at print, so a PNG
