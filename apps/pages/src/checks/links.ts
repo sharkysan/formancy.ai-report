@@ -11,7 +11,7 @@
  * <a>'s -- is the site's own (0023).
  */
 import { headingAnchors } from '../../../../scripts/heading-anchors.mjs'
-import { FORMANCY, FORMANCY_DATA, FORMANCY_HEALTH } from '../links.js'
+import { FORMANCY, FORMANCY_DATA, FORMANCY_HEALTH, LEGAL_NOTICE, PRIVACY_NOTICE } from '../links.js'
 import type { Built, Read } from './read.js'
 import { read } from './read.js'
 
@@ -61,7 +61,7 @@ export function linkProblems({ site, inputs, exists, text }: Built): string[] {
     // that site the reader's address before a word is read (0023).
     if (element.localName !== 'a') return 'fetched from another site as the page loads, which tells that site who opened the page'
     if (url.protocol !== 'https:') return 'not https'
-    if (at === FORMANCY || at === `${inputs.repository}` || at === FORMANCY_DATA || at === FORMANCY_HEALTH) return null
+    if (at === FORMANCY || at === `${inputs.repository}` || at === FORMANCY_DATA || at === FORMANCY_HEALTH || at === LEGAL_NOTICE || at === PRIVACY_NOTICE) return null
     if (at.startsWith(repository)) return fileProblemOf(decodeURIComponent(at.slice(repository.length)), fragment)
     if (at.startsWith('https://www.npmjs.com/package/')) return inputs.packages.includes(decodeURIComponent(at.slice('https://www.npmjs.com/package/'.length))) ? null : 'a package this repository does not publish'
     return 'an address outside the site that links.ts does not name'

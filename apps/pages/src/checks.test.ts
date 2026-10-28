@@ -168,6 +168,19 @@ describe('the body', () => {
     expect(said).not.toContain('healthcare')
   })
 
+  // Every page formancy.ai serves links its legal notice and its privacy
+  // notice from its footer. One dropped from a page -- the shell edited, or
+  // a page given a footer of its own -- and that page is served without
+  // it, every other check green: the link check holds where a link goes,
+  // not that it is there.
+  test('a footer without the legal notice or the privacy notice', () => {
+    const legal = problemsOf(editing('it/sanita/index.html', (html) => html.replace(/<a href="https:\/\/formancy\.ai\/legal\/">[^<]*<\/a>/, '')))
+    expect(legal).toContain('it/sanita/index.html: its footer does not link to the legal notice https://formancy.ai/legal/')
+    expect(legal).not.toContain('privacy notice')
+    const privacy = problemsOf(editing('fr/index.html', (html) => html.replace(/<a href="https:\/\/formancy\.ai\/privacy\/">[^<]*<\/a>/, '')))
+    expect(privacy).toContain('fr/index.html: its footer does not link to the privacy notice https://formancy.ai/privacy/')
+  })
+
   // JSON-LD that does not parse is ignored whole; one that describes
   // another page, or offers a price, says what the page does not.
   test('JSON-LD that does not parse, or describes something else', () => {
@@ -186,7 +199,8 @@ describe('the links', () => {
   // Each way a link breaks without anybody seeing it: a page or a file of
   // the site that is not built, an id that is not there, a file of this
   // repository that moved, a package this repository does not publish,
-  // mail to an address the licence does not name, and a site nobody chose.
+  // mail to an address the licence does not name, a site nobody chose, and
+  // an address beside one links.ts names, on the same site.
   test.each([
     ['a page that is not built', '<a class="quiet" href="gesundheitswesen/">', '<a class="quiet" href="sante/">', 'de/index.html: <a> names sante/: no page or file of the site, and not the Studio'],
     ['a file that is not built', 'href="../site/pages.css"', 'href="../site/page.css"', 'de/index.html: <link> names ../site/page.css: no page or file of the site, and not the Studio'],
@@ -195,6 +209,7 @@ describe('the links', () => {
     ['a package this repository does not publish', 'npmjs.com/package/@formancy/report-render-pdf"', 'npmjs.com/package/@formancy/report-corpus"', 'de/index.html: <a> names https://www.npmjs.com/package/@formancy/report-corpus: a package this repository does not publish'],
     ['mail to another address', `mailto:${inputs.licence.address}`, 'mailto:sales@example.com', 'de/index.html: <a> names mailto:sales@example.com: mail to an address the licence does not name'],
     ['a site nobody chose', 'href="https://github.com/sharkysan/formancy.ai-data"', 'href="http://example.com/"', 'de/index.html: <a> names http://example.com/: not https'],
+    ['an address links.ts does not name', 'href="https://formancy.ai/legal/"', 'href="https://formancy.ai/imprint/"', 'de/index.html: <a> names https://formancy.ai/imprint/: an address outside the site that links.ts does not name'],
   ])('%s', (_name, from, to, said) => {
     expect(problemsOf(editing('de/index.html', (html) => html.replace(from, to)))).toContain(said)
   })
