@@ -132,8 +132,12 @@ describe('the projects the gate installs', () => {
   // renderer beside the builder, each with what it declares, and the
   // workbench's stylesheet -- in a project of its own, so that the builder's
   // own project still refuses an import of the renderer it never declared.
+  // The client is there too, with what it declares, so that the guide's
+  // draft and image cache are checked against the client's declarations and
+  // not a stand-in; a page that kept its draft through a client the host
+  // never installed would pass a guide a reader could not follow.
   test("install the guide's React page with the builder, the renderer and the Studio's workbench release, at both ends of React's range", () => {
-    expect(named('react-app')?.packages).toEqual(['@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-core', '@formancy/report-render-pdf', '@formancy/report-runtime', '@formancy/report-spec'])
+    expect(named('react-app')?.packages).toEqual(['@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-client', '@formancy/report-core', '@formancy/report-render-pdf', '@formancy/report-runtime', '@formancy/report-server-core', '@formancy/report-spec'])
     expect(named('react-app-floor')?.framework).toEqual({ react: '19.0.0', 'react-dom': '19.0.0', '@types/react': '~19.0.0', '@types/react-dom': '~19.0.0', '@formancy/themes': themes })
     expect(named('react')?.packages).not.toContain('@formancy/report-render-pdf')
     expect(named('react')?.framework).not.toHaveProperty(['@formancy/themes'])

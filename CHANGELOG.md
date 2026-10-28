@@ -10,6 +10,15 @@ later.
 
 ## Unreleased
 
+**The getting-started guide keeps a report's draft on the server.** A new
+section 6 shows a React host saving from the revision it opened, saying so
+when someone saved since, reloading into a new session -- never into the
+old one, whose undo would bring the stale text back -- and keeping the
+images the preview resolves from in a cache the builder's store fills. The
+install gate compiles and bundles it with the rest of the React page, so
+the guide's React install line now names `@formancy/report-client`; the
+validation section is now section 7.
+
 **Report has a server that knows who is asking, and answers nothing else**
 ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
 [0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).

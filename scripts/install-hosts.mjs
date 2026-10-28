@@ -167,7 +167,8 @@ export const HOSTS = {
     ],
   },
   // The guide's React page: the builder, and the renderer's browser entry
-  // its preview prints with, each with what it declares, and the
+  // its preview prints with, and the client its draft is kept on the server
+  // with (0049), each with what it declares, and the
   // workbench's stylesheet -- what the guide's install lines name -- beside
   // React. Apart from `react`, which holds only what the builder declares,
   // so that a builder importing the renderer without declaring it still
@@ -176,7 +177,7 @@ export const HOSTS = {
   // import what a bundler's client types say.
   'react-app': {
     builder: '@formancy/report-builder-react',
-    with: ['@formancy/report-render-pdf'],
+    with: ['@formancy/report-render-pdf', '@formancy/report-client'],
     consumer: 'guide-react.tsx',
     guide: { kind: 'react', entry: 'report-page.tsx', runner: 'guide-react.tsx', prints: false, bundled: true },
     peers: ['react', 'react-dom'],
