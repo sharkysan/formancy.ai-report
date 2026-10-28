@@ -23,7 +23,9 @@
     "typecheck": "tsc --noEmit",
     "check:pkg": "publint && attw --pack . --profile esm-only"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@formancy/report-spec": "workspace:*"
+  },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
     "@vitest/coverage-v8": "catalog:",

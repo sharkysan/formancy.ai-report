@@ -51,10 +51,29 @@ carries but that token contributes to it.
 - **`ROUTES`** -- every route the API answers, `METHOD path`, with the name
   its audit event gives it: today `GET /v1/whoami`, `whoami`.
 - **`WhoAmI`**, **`Health`** -- what those answer.
+- **`DRAFT_FORMAT`** -- the stored draft's format number, `1`, which a
+  reader compares and refuses another of.
+- **`TemplateSummary`**, **`TemplateList`**, **`Draft`**, **`DraftSaved`**,
+  **`ImageKept`** -- what the draft slice's routes will answer: a template
+  by its report's own id, its revision and its title; a draft with the
+  report, the revision and the subject that saved it; the revision a save
+  wrote; the digest an image is kept under. The routes arrive with the
+  release that builds them, and `ROUTES` lists them then.
 - **`REFUSALS`**, **`Refusal`** -- every refusal, a stable code and a fixed
   sentence that quotes nothing of the request: `unauthenticated`,
   `not-found`, `path-not-plain`, `rate-limited`, `cross-origin-refused`,
-  `bad-request`, `internal`.
+  `bad-request`, `internal`, and the draft slice's `forbidden`, `no-draft`,
+  `no-asset`, `template-id-invalid`, `template-id-mismatch`,
+  `digest-invalid`, `precondition-required`, `draft-changed`,
+  `report-too-large`, `image-too-large`, `unsupported-media-type`,
+  `report-invalid`, `asset-not-kept`, `image-refused` and `digest-mismatch`.
+- **`ServerRefusal`** -- a refusal as that slice gives it: four codes carry
+  a field beside the sentence, to the requester alone and never to a log or
+  an audit event -- `report-invalid` the `ReportError`s of the report sent,
+  `draft-changed` the revision that stands (or `null`), `asset-not-kept`
+  the ids of the assets not held, `image-refused` report-spec's reason.
+  Narrowing on `code` gives the field, and a refusal of one of the four
+  without it is no `ServerRefusal`.
 - **`CROSS_ORIGIN_REQUEST_HEADERS`** -- what a page on a listed origin may
   send: the token's header, `authorization`.
 
@@ -70,8 +89,11 @@ is where it goes; the server's own writes a log line.
 - **Verify a token.** The server does, with Formancy Data's verifier; this
   package holds only what it derives.
 - **Read anything.** No store, no file, no network, no setting.
-- **Depend on anything.** It has no dependency; `@formancy/report-spec`
-  joins it with the first use case that validates what a server stores.
+- **Depend on anything but the format.** `@formancy/report-spec` is its one
+  dependency, today for the two types `Draft` and `ServerRefusal` name,
+  `ReportDefinition` and `ReportError`, which it imports as types alone.
+  The use cases that validate what a server stores join it with the release
+  that builds them.
 
 **Licence.** Source-available, not open source: see
 [`LICENSE.md`](../../LICENSE.md).

@@ -83,8 +83,8 @@ describe('the container build', () => {
   // A guard on the guard: a closure that silently came back empty, or
   // lost the server, would make the test above pass forever.
   test('reads the closure from the manifests', () => {
-    expect(workspaceClosure('report-server')).toEqual(new Set(['report-server', 'report-server-core']))
-    expect(workspaceClosure('report-server-core')).toEqual(new Set(['report-server-core']))
+    expect(workspaceClosure('report-server')).toEqual(new Set(['report-server', 'report-server-core', 'report-spec']))
+    expect(workspaceClosure('report-server-core')).toEqual(new Set(['report-server-core', 'report-spec']))
   })
 
   // SV-Q5: Node 26, whose permission model has a network scope the

@@ -28,6 +28,7 @@ RUN npm install -g --ignore-scripts pnpm@12.4.2
 # here AND copied in full below; src/dockerfile.test.ts derives that list
 # from the dependency graph and fails when this file forgets one.
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
+COPY packages/report-spec/package.json packages/report-spec/
 COPY packages/report-server-core/package.json packages/report-server-core/
 COPY packages/report-server/package.json packages/report-server/
 
@@ -37,6 +38,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts --filter @formancy/report-se
 
 COPY LICENSE.md NOTICE tsconfig.base.json ./
 COPY scripts/sync-licenses.mjs scripts/
+COPY packages/report-spec/ packages/report-spec/
 COPY packages/report-server-core/ packages/report-server-core/
 COPY packages/report-server/ packages/report-server/
 
