@@ -10,6 +10,14 @@ later.
 
 ## Unreleased
 
+**Every product page links formancy.ai's legal notice and privacy notice
+from its footer, in its own language.** They were linked in English on
+every page, from outside the footer's list, and from addresses the pages'
+link check did not name, which refused every page. The footer now lists
+them beside the licence and the changelog, saying in the page's language
+that both are in English; `links.ts` names their addresses, and the
+checks refuse a page whose footer leaves either out.
+
 **A report refuses a submission whose form version moved a field it
 reads, until its author reviews the change**
 ([0048](docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)).

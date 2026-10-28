@@ -3,10 +3,12 @@
  * page's body, held for every page: one h1, the content in the HTML itself
  * with no script to run, pictures described and sized, links that say
  * where they go, a language switcher that reaches every translation, a
- * product page that introduces every topic page, and JSON-LD that parses
- * and describes the page it is on.
+ * footer that links the site's legal notice and privacy notice, a product
+ * page that introduces every topic page, and JSON-LD that parses and
+ * describes the page it is on.
  */
 import { LANGUAGES } from '../languages.js'
+import { LEGAL_NOTICE, PRIVACY_NOTICE } from '../links.js'
 import type { PageGroup } from '../pages.js'
 import { isRoot } from '../pages.js'
 import type { Built, Read } from './read.js'
@@ -51,6 +53,12 @@ export function bodyProblems({ site }: Built): string[] {
       const words = textOf(link)
       if (words === '' || SAYS_NOTHING.test(words)) say(`a link whose words say nothing of where it goes: "${words}" to ${String(link.getAttribute('href'))}`)
     }
+
+    // formancy.ai's legal notice and privacy notice, from the footer of
+    // every page it serves, these among them.
+    const foot = [...document.querySelectorAll('footer a')].map((link) => new URL(link.getAttribute('href') ?? '', page.url).href)
+    if (!foot.includes(LEGAL_NOTICE)) say(`its footer does not link to the legal notice ${LEGAL_NOTICE}`)
+    if (!foot.includes(PRIVACY_NOTICE)) say(`its footer does not link to the privacy notice ${PRIVACY_NOTICE}`)
     problems.push(...switcherProblems(page, site.pages.map(read)))
   }
   return problems

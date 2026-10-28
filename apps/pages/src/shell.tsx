@@ -9,7 +9,7 @@
 import type { ReactElement, ReactNode } from 'react'
 import { LANGUAGE, LANGUAGES } from './languages.js'
 import type { Language } from './languages.js'
-import { FORMANCY } from './links.js'
+import { FORMANCY, LEGAL_NOTICE, PRIVACY_NOTICE } from './links.js'
 import { isRoot } from './pages.js'
 import type { PageContext } from './pages.js'
 
@@ -29,6 +29,8 @@ interface ShellWords {
   readonly builtOn: (formancy: ReactNode) => ReactNode
   readonly licence: string
   readonly changelog: string
+  readonly legal: string
+  readonly privacy: string
 }
 
 const WORDS: Readonly<Record<Language, ShellWords>> = {
@@ -42,6 +44,8 @@ const WORDS: Readonly<Record<Language, ShellWords>> = {
     builtOn: (formancy) => <>Formancy Report baut auf {formancy} auf, dem visuellen Formular-Builder für Angular und React, dessen Pakete unter Apache-2.0 stehen.</>,
     licence: 'Lizenz (LICENSE.md, Englisch)',
     changelog: 'Changelog (Englisch)',
+    legal: 'Impressum (Englisch)',
+    privacy: 'Datenschutz (Englisch)',
   },
   fr: {
     skip: 'Aller au contenu',
@@ -53,6 +57,8 @@ const WORDS: Readonly<Record<Language, ShellWords>> = {
     builtOn: (formancy) => <>Formancy Report repose sur {formancy}, le builder visuel de formulaires pour Angular et React, dont les paquets sont sous Apache-2.0.</>,
     licence: 'Licence (LICENSE.md, en anglais)',
     changelog: 'Changelog (en anglais)',
+    legal: 'Mentions légales (en anglais)',
+    privacy: 'Protection des données (en anglais)',
   },
   it: {
     skip: 'Vai al contenuto',
@@ -64,6 +70,8 @@ const WORDS: Readonly<Record<Language, ShellWords>> = {
     builtOn: (formancy) => <>Formancy Report si basa su {formancy}, il builder visuale di moduli per Angular e React, i cui pacchetti sono sotto Apache-2.0.</>,
     licence: 'Licenza (LICENSE.md, in inglese)',
     changelog: 'Changelog (in inglese)',
+    legal: 'Note legali (in inglese)',
+    privacy: 'Protezione dei dati (in inglese)',
   },
   en: {
     skip: 'Skip to the content',
@@ -75,6 +83,8 @@ const WORDS: Readonly<Record<Language, ShellWords>> = {
     builtOn: (formancy) => <>Formancy Report builds on {formancy}, the visual form builder for Angular and React, whose packages are under Apache-2.0.</>,
     licence: 'Licence (LICENSE.md)',
     changelog: 'Changelog',
+    legal: 'Legal notice',
+    privacy: 'Privacy notice',
   },
 }
 
@@ -152,8 +162,13 @@ export function Shell({ page, children }: { readonly page: PageContext; readonly
             <li>
               <a href={page.github('CHANGELOG.md')}>{words.changelog}</a>
             </li>
+            <li>
+              <a href={LEGAL_NOTICE}>{words.legal}</a>
+            </li>
+            <li>
+              <a href={PRIVACY_NOTICE}>{words.privacy}</a>
+            </li>
           </ul>
-          <p><a href="https://formancy.ai/legal/">Legal notice</a> · <a href="https://formancy.ai/privacy/">Privacy</a></p>
           {page.group.hl7Notice === true ? (
             <p className="notice" lang={english}>
               {HL7_NOTICE}

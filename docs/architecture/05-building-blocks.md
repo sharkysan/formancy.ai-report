@@ -391,7 +391,9 @@ payment code that shows its invoice's samples; `scripts/inputs.mjs` reads
 the release, the licence's terms and the faces from this repository's files
 when it builds, and inlines formancy's room from the pages' own
 `@formancy/themes` before the Studio's stylesheets (0034); `src/checks/` hold every page's head, links, words and
-sitemap ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md),
+sitemap, and that its footer links formancy.ai's legal notice and privacy
+notice, which `src/links.ts` names beside the few other sites a page may
+link to ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md),
 [0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
 A page whose code no release had when it was written carries its status,
 written against the newest release and said again at each release, and
