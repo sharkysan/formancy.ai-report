@@ -975,7 +975,7 @@ draft, and renders section 4's `ReportPage` with the draft's `save` and the
 cache's `resolve`, which the preview prints with. Save answers `true` only
 when the server wrote the revision. For `changed` and `refused` it answers
 `false`, which leaves Save offered, and the host shows the outcome's
-message in an alert; after `changed` it offers Reload, which is `openDraft`
+message in an alert; it always offers Reload, which is `openDraft`
 again, the new `KeptDraft` taking the old one's place and the old editor
 disposed of. Nothing uses the old `KeptDraft` after that. A save that
 throws, such as a token no bearer header carries, is not an answer: the
@@ -983,7 +983,7 @@ page leaves Save offered and shows nothing, so a host whose `token` can
 fail catches it in its own `save`.
 
 ```tsx guide=react file=draft-host.tsx
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import { createReportClient } from '@formancy/report-client'
 import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
@@ -997,7 +997,7 @@ import { ReportPage } from './report-page.js'
 export interface DraftHostProps {
   /** The report server's base URL. */
   readonly server: string
-  /** The host's current token, asked before every request. */
+  /** The host's current token, asked before every request. A new function on every render is fine: the latest one is asked, and nothing is opened again for it. */
   readonly token: () => string | Promise<string>
   readonly template: string
   /** The data the preview prints against, as in section 3. */
@@ -1005,11 +1005,15 @@ export interface DraftHostProps {
 }
 
 export function DraftHost({ server, token, template, sample }: DraftHostProps): ReactElement {
+  const asking = useRef(token)
+  asking.current = token
+  // Once per server: a client made again would open the draft again, and dispose the editor that holds the author's unsaved edits.
   const { reports, images } = useMemo(() => {
-    const client = createReportClient({ server, token })
+    const client = createReportClient({ server, token: () => asking.current() })
     return { reports: client, images: createImageCache(client) }
-  }, [server, token])
-  const [kept, setKept] = useState<KeptDraft>()
+  }, [server])
+  const opens = useRef(0)
+  const [kept, setKept] = useState<{ readonly draft: KeptDraft; readonly open: number }>()
   const [notice, setNotice] = useState<string>()
   const [reloads, setReloads] = useState(0)
   const print = useMemo<Print>(() => (report, signal) => printPreview(report, sample, images.resolve, signal), [images, sample])
@@ -1020,7 +1024,8 @@ export function DraftHost({ server, token, template, sample }: DraftHostProps): 
     openDraft(reports, images, template).then(
       (next) => {
         if (!current) return next.opened.editor.dispose()
-        setKept(next)
+        opens.current += 1
+        setKept({ draft: next, open: opens.current })
         setNotice(undefined)
       },
       (error: unknown) => {
@@ -1032,11 +1037,11 @@ export function DraftHost({ server, token, template, sample }: DraftHostProps): 
     }
   }, [reports, images, template, reloads])
   // The editor the page made is the page's to dispose of, once no builder shows it.
-  useEffect(() => (kept === undefined ? undefined : () => kept.opened.editor.dispose()), [kept])
+  useEffect(() => (kept === undefined ? undefined : () => kept.draft.opened.editor.dispose()), [kept])
 
   if (kept === undefined) return notice === undefined ? <p>Opening the draft</p> : <p role="alert">{notice}</p>
   const save = async (_report: ReportDefinition): Promise<boolean> => {
-    const outcome = await kept.save()
+    const outcome = await kept.draft.save()
     if (outcome.kind === 'saved') {
       setNotice(undefined)
       return true
@@ -1046,7 +1051,8 @@ export function DraftHost({ server, token, template, sample }: DraftHostProps): 
   }
   return (
     <>
-      <ReportPage opened={kept.opened} print={print} save={save} />
+      {/* Keyed to the open: the page seeds what it has saved from the session it is given, once. */}
+      <ReportPage key={kept.open} opened={kept.draft.opened} print={print} save={save} />
       {notice === undefined ? null : <p role="alert">{notice}</p>}
       <button type="button" onClick={() => setReloads(reloads + 1)}>
         Reload
@@ -1055,6 +1061,14 @@ export function DraftHost({ server, token, template, sample }: DraftHostProps): 
   )
 }
 ```
+
+`ReportPage` is keyed to each open, because it seeds what it has saved from
+the session it is first given: without the key, a reload would leave Save
+offered over a document the server already holds. The client and the cache
+are made once per `server`, and the token is read through a ref, so a
+`token` written inline in a parent's render is the latest one asked and
+never reopens the draft, which would dispose the editor that holds
+unsaved edits.
 
 The `save` of the page is given the report it exports and ignores it, since
 the `KeptDraft` exports the session's document itself, at the moment it
