@@ -181,8 +181,9 @@ its settings read once by `main.ts`, its image built and run by the
 `container` gate and not published
 ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
 0047). A draft is one per template of a tenant, the template named by its
-report's `id`, saved from the revision `If-Match` names and refused 412
-`draft-changed` from a stale one, nothing written, the swap a hard link in
+report's `id`, saved from the version `If-Match` names, its revision and
+its record's digest (`draftTag`), and refused 412 `draft-changed` from a
+stale one, nothing written, the swap a hard link in
 `file-store.ts` on the directory `FORMANCY_REPORT_STORE_DIR` names; checked
 by `validateReport` on the way in, a font refused, and served as saved by
 its record's digest, with `savedBy` the token's subject; an image kept by
