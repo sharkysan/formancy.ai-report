@@ -196,7 +196,10 @@ export const REFUSALS = Object.freeze({
   'image-too-large': refusal('image-too-large', 'This image is larger than a kept image may be.'),
   'unsupported-media-type': refusal('unsupported-media-type', 'This request body is not a media type this route reads.'),
   'report-invalid': refusal('report-invalid', 'This report is not one the format accepts; the errors listed with this refusal say where.'),
-  'asset-not-kept': refusal('asset-not-kept', 'The report declares assets this server does not hold for this tenant, so it was not saved; the assets listed with this refusal are those.'),
+  'asset-not-kept': refusal(
+    'asset-not-kept',
+    'The report declares assets this server cannot give it for this tenant: an image not kept, or kept as another kind than declared, or a font, which this server does not keep. So it was not saved; the assets listed with this refusal are those.',
+  ),
   'image-refused': refusal('image-refused', 'This image is not one this server keeps; the reason listed with this refusal says why.'),
   'digest-mismatch': refusal('digest-mismatch', 'The digest in this path is not the SHA-256 of this body.'),
 })
