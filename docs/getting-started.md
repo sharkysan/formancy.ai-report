@@ -696,7 +696,10 @@ is stored, the sample it previews against, and the assets approved for the
 report, each with the digest it was approved by and its bytes as base64.
 The lookup hands an asset over only at the digest the report declares, so
 a report that names one the server did not send is refused in the preview
-as `missing-asset`, naming it. In `main.tsx`:
+as `missing-asset`, naming it. Its `save` answers whether your server took
+the report, by the status it answered, so the page marks the document
+saved only once the server has; a refusal leaves Save offered, and so does
+a request that fails, whose promise rejects. In `main.tsx`:
 
 ```tsx guide=react file=main.tsx
 import '@formancy/themes/workbench.css'
@@ -724,10 +727,8 @@ const approved = sent.map((each) => ({ ...each, bytes: Uint8Array.from(atob(each
 const opened = openEditor(stored)
 const images: ImageResolver = (ref) => approved.find((each) => each.asset === ref.asset && each.digest === ref.digest)
 const print: Print = (report, signal) => printPreview(report, sample, images, signal)
-const save = (report: ReportDefinition): boolean => {
-  void fetch('/reports/quotation', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(report) })
-  return true
-}
+const save = async (report: ReportDefinition): Promise<boolean> =>
+  (await fetch('/reports/quotation', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(report) })).ok
 
 const root = document.getElementById('report')
 if (root === null) throw new Error('the page has no element with the id report')
@@ -855,9 +856,12 @@ against the DOM's types and bundles it, and starts no server, so what
 follows is checked to compile and not run.
 
 A draft is saved **from a revision**: the one the page opened, or the one
-its last save answered. A save from a revision that is no longer the
+its last save answered, or `null` for a template not yet saved, whose
+first save creates it. A save from a revision that is no longer the
 newest is refused `draft-changed`, with the revision that stands, and
-writes nothing, so two authors never overwrite each other unseen. The
+writes nothing, so two authors never overwrite each other unseen, short of
+a restore of the server's store from before a revision a page still holds,
+after which its operator has every author reload (0049). The
 client answers a refusal and never throws it; what it throws is what no
 request could carry as it means it, such as a token no bearer header
 carries.
@@ -919,6 +923,7 @@ is from there; a save the server refused leaves it where it was.
 
 ```ts guide=react file=drafts.ts
 import type { ReportClient } from '@formancy/report-client'
+import type { ReportDefinition } from '@formancy/report-runtime'
 import { openEditor } from './editor.js'
 import type { OpenedEditor } from './editor.js'
 import type { ImageCache } from './images.js'
@@ -931,17 +936,19 @@ export type SaveOutcome =
 
 export interface KeptDraft {
   readonly opened: OpenedEditor
-  /** Saves the session's document from the revision this draft was opened at, or last saved at. */
+  /** Saves the session's document from the revision this draft was opened at, or last saved at; from `null` while the template has no draft. */
   save(): Promise<SaveOutcome>
 }
 
-/** The template's newest draft, its images read, opened in a new session. Call it again to reload; it never touches a session that is open. */
-export async function openDraft(reports: ReportClient, images: ImageCache, template: string): Promise<KeptDraft> {
+/** The template's newest draft, its images read, opened in a new session; `blank` where the template has none yet, whose first save creates it. Call it again to reload; it never touches a session that is open. */
+export async function openDraft(reports: ReportClient, images: ImageCache, template: string, blank: ReportDefinition): Promise<KeptDraft> {
   const read = await reports.readDraft(template)
-  if (!read.ok) throw new Error(`the draft was not read: ${read.refusal.code}`)
-  await images.load(read.value.report)
-  const opened = openEditor(read.value.report, images.store)
-  let revision = read.value.revision
+  if (!read.ok && read.refusal.code !== 'no-draft') throw new Error(`the draft was not read: ${read.refusal.code}`)
+  const report = read.ok ? read.value.report : blank
+  await images.load(report)
+  const opened = openEditor(report, images.store)
+  // null until the template's first save, which creates it.
+  let revision = read.ok ? read.value.revision : null
   return {
     opened,
     async save() {
@@ -957,6 +964,18 @@ export async function openDraft(reports: ReportClient, images: ImageCache, templ
 }
 ```
 
+A template comes into being with its first save, so until then reading its
+draft is refused `no-draft`. `openDraft` then opens the report the host
+hands it as `blank` -- a starter of your own, or report-spec's
+`emptyReport(template, title, locale)` where your page installs
+report-spec -- whose `id` is the template's, or its save is refused
+`template-id-mismatch`; and the revision is `null`, so the first Save goes
+out from `null`, as `If-None-Match: *`, and creates the template. Section
+4's page offers Save once the author has changed something, so a blank
+opened and left as it is creates nothing. Two authors who open a template
+not yet saved both save from `null`, and the second is told `changed`, as
+for any save from a revision that is no longer the newest.
+
 **A conflict, and a reload.** On `changed`, show the message and offer a
 reload, which is `openDraft` again and the new `KeptDraft`'s `opened` in
 the page's place: dispose of the old editor with `editor.dispose()` once no
@@ -971,7 +990,8 @@ means to offer them back.
 
 **The page that composes them.** `draft-host.tsx` makes the client from the
 server's address and the token function your page is given, opens the
-draft, and renders section 4's `ReportPage` with the draft's `save` and the
+draft, or the `blank` it is given where the template has none, and renders
+section 4's `ReportPage` with the draft's `save` and the
 cache's `resolve`, which the preview prints with. Save answers `true` only
 when the server wrote the revision. For `changed` and `refused` it answers
 `false`, which leaves Save offered, and the host shows the outcome's
@@ -1000,16 +1020,21 @@ export interface DraftHostProps {
   /** The host's current token, asked before every request. A new function on every render is fine: the latest one is asked, and nothing is opened again for it. */
   readonly token: () => string | Promise<string>
   readonly template: string
+  /** What the template opens as while it has no draft, its `id` the template's. Read when the draft opens, so a new one on every render is fine too. */
+  readonly blank: ReportDefinition
   /** The data the preview prints against, as in section 3. */
   readonly sample: ReportData
 }
 
-export function DraftHost({ server, token, template, sample }: DraftHostProps): ReactElement {
-  const asking = useRef(token)
-  asking.current = token
+export function DraftHost({ server, token, template, blank, sample }: DraftHostProps): ReactElement {
+  // The latest token and blank, written after each render, since React forbids writing a ref while it renders, by an effect declared before the one that opens the draft, so that each open and each request reads the current ones.
+  const latest = useRef({ token, blank })
+  useEffect(() => {
+    latest.current = { token, blank }
+  })
   // Once per server: a client made again would open the draft again, and dispose the editor that holds the author's unsaved edits.
   const { reports, images } = useMemo(() => {
-    const client = createReportClient({ server, token: () => asking.current() })
+    const client = createReportClient({ server, token: () => latest.current.token() })
     return { reports: client, images: createImageCache(client) }
   }, [server])
   const opens = useRef(0)
@@ -1021,7 +1046,7 @@ export function DraftHost({ server, token, template, sample }: DraftHostProps): 
   // Opens the draft, and again when Reload bumps `reloads`; each open is a new session.
   useEffect(() => {
     let current = true
-    openDraft(reports, images, template).then(
+    openDraft(reports, images, template, latest.current.blank).then(
       (next) => {
         if (!current) return next.opened.editor.dispose()
         opens.current += 1
@@ -1065,10 +1090,12 @@ export function DraftHost({ server, token, template, sample }: DraftHostProps): 
 `ReportPage` is keyed to each open, because it seeds what it has saved from
 the session it is first given: without the key, a reload would leave Save
 offered over a document the server already holds. The client and the cache
-are made once per `server`, and the token is read through a ref, so a
-`token` written inline in a parent's render is the latest one asked and
-never reopens the draft, which would dispose the editor that holds
-unsaved edits.
+are made once per `server`, and the token and the blank are read through a
+ref, which an effect writes after each render -- React forbids writing one
+while it renders -- declared before the effect that opens the draft, so
+that an open reads the current ones. A `token` or a `blank` written inline
+in a parent's render is the latest one read and never reopens the draft,
+which would dispose the editor that holds unsaved edits.
 
 The `save` of the page is given the report it exports and ignores it, since
 the `KeptDraft` exports the session's document itself, at the moment it

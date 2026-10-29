@@ -485,6 +485,8 @@ it.
 **The host draws Save and the conflict, not the builders** (the user's
 decision). The getting-started guide's section 6 shows a React host's Save,
 which waits for the server and offers nothing while a save is in flight;
+its first save of a template not yet saved, from `null`, of a blank the
+host opens where the server answers `no-draft`;
 its message when someone saved since; and its reload, which opens the
 newest draft in a new session and never replaces the document of the old
 one, whose undo would bring the stale text back and let a save from the
@@ -505,7 +507,9 @@ must be a volume for the server to start.
 **What it buys.**
 - **No save lost unseen.** Two authors saving from one revision cannot both
   succeed, by the file system's own atomic operation rather than a lock the
-  server keeps, and the one who lost is told the revision to read.
+  server keeps, and the one who lost is told the revision to read; short
+  of a restore that takes away a revision a page still holds, whose cost
+  and procedure are below.
 - **A draft every later release can start from.** Each stored draft is one
   report-spec accepted when it was saved, whose every image the tenant
   keeps as the kind it declares and which names no font, by a subject the host signed; a
