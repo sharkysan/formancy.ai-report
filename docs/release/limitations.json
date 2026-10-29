@@ -2114,11 +2114,11 @@
       ]
     },
     "0049": {
-      "reviewed": "sha256:5a8b53891566cc1c1fe26d09877a46be17dd4d1fde3cde4db03a8f39b0d4849f",
+      "reviewed": "sha256:b930690e5b5083bfc0b0f212fba57447e7ed7f34213fa85fe07946179afa5e71",
       "limitations": [
         {
           "area": "server",
-          "says": "A template’s draft is saved only from the revision it was read at: a save from a revision another author has saved over since is refused 412 draft-changed and writes nothing, so the host reads the draft again, and what its author changed meanwhile is the host’s to carry over.",
+          "says": "A template’s draft is saved only from the version it was read at, its revision and its report’s digest: a save from a draft another author has saved over since is refused 412 draft-changed and writes nothing, so the host reads the draft again, and what its author changed meanwhile is the host’s to carry over.",
           "heldBy": "packages/report-server-core/src/drafts.test.ts"
         },
         {
@@ -2128,8 +2128,17 @@
         },
         {
           "area": "server",
-          "says": "A revision is the number of a template’s newest file, so a backup restored from before the newest save, that file removed by hand, or its name lost on power loss has the next save issue the number again, and a page still holding the old revision saves over the new one unseen; the operator restores with the server stopped, has every author reload their drafts after a restore or a power cut, and never removes a draft’s newest file.",
-          "heldBy": "packages/report-server/src/file-store.test.ts"
+          "says": "A revision is the number of a template’s newest file, so a backup restored from before the newest save, that file removed by hand, or its name lost on power loss has the next save issue the number again; a page still holding the draft that went is refused 412 draft-changed by its digest and reads the newest again, unless the draft saved again holds the same report to the byte, whose save goes through, and what the restore or the power loss took away is gone.",
+          "heldBy": "packages/report-server/src/drafts.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "The digest a save names is compared with the newest draft’s just before the store’s swap, which is by revision alone, so where a draft’s newest file is removed by hand while the server runs and another save is given its number in between, a save can win over a draft its author never saw; the operator restores with the server stopped and never removes a draft’s newest file while it runs."
+        },
+        {
+          "area": "server",
+          "says": "A replacing save reads the template’s newest record once more just before the swap, parsing it and checking its digest, and what that read costs has not been measured.",
+          "heldBy": "packages/report-server-core/src/drafts.test.ts"
         },
         {
           "area": "server",

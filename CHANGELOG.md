@@ -22,12 +22,21 @@ other's work, so the draft comes first, kept by compare-and-swap.
   A template is named by its report's own `id`, so there is one id and it
   is already lower case, and comes into being with its first save. One
   draft per template of a tenant, shared by its authors.
-- **A save names the revision it replaces**, by HTTP's own preconditions:
-  `If-None-Match: *` creates, `If-Match: "<revision>"` replaces, neither is
-  428, and a save from a revision another author has saved over since is
-  412 `draft-changed`, nothing written, with the revision that stands. The
-  file store decides it by a hard link, as Formancy Data's versions, so of
-  any saves from one revision exactly one wins without a lock. Every
+- **A save names the draft it replaces, by its revision and the digest
+  of its report**, with HTTP's own preconditions: `If-None-Match: *`
+  creates; `If-Match` replaces, holding the `ETag` a read or a save
+  answered, `"<revision>-<64 hex>"`, the revision and the stored
+  record's own digest; neither is 428; and a save from a draft another
+  author has saved over since is 412 `draft-changed`, nothing written,
+  with the revision that stands and no `ETag`. The digest is there
+  because a revision is the number of a template's newest file, which a
+  restore, a file removed by hand or a power cut has the store give
+  again: a page that named the number alone would save over the draft
+  given it since, unseen. So the bare revision is refused 400, and a 412
+  sends no tag, since a tag comes only with the draft it names. The file
+  store decides the swap by a hard link, as Formancy Data's versions, so
+  of any saves from one revision exactly one wins without a lock, and
+  the save compares the newest draft's digest just before it. Every
   revision stays on disk, and nothing prunes or deletes one.
 - **A draft is checked on the way in and served as it was saved.** A save
   is held to report-spec's `validateReport`, its errors returned to the
@@ -66,12 +75,13 @@ other's work, so the draft comes first, kept by compare-and-swap.
   drift apart, and a save that declared a digest the store's reading
   refused would be answered 500 rather than refused.
 - **`@formancy/report-server-core`** gains the draft slice's wire types,
-  its refusals and `ServerRefusal`, the four that carry a field;
-  the use cases that decide a save, a read, a list, a keep and an image's
-  read over a store's port, `TemplateStore`; and a dependency on
-  report-spec, whose rules those use cases judge by, so that a route, a
-  second store or a second server cannot judge otherwise. It depended on
-  nothing before.
+  `draftTag` and `draftVersionOf`, which write and read a draft's
+  version as its `ETag`, its refusals and `ServerRefusal`, the four that
+  carry a field; the use cases that decide a save, a read, a list, a
+  keep and an image's read over a store's port, `TemplateStore`; and a
+  dependency on report-spec, whose rules those use cases judge by, so
+  that a route, a second store or a second server cannot judge
+  otherwise. It depended on nothing before.
 - **`FORMANCY_REPORT_STORE_DIR` is required.** The server keeps its store
   in that absolute directory, which must exist and be writable, and stops
   at start, naming the setting, where it is unset or does not open: **an
@@ -86,27 +96,34 @@ other's work, so the draft comes first, kept by compare-and-swap.
   log names a stored file by its path inside the tenant's directory, never
   its absolute path, whose tenant directory is the unkeyed hash of the
   tenant claim.
-- **Restore a store with the server stopped, and have every author
-  reload.** A revision is the number of a template's newest file, so a
-  backup restored from before the newest save, that file removed by hand,
-  or its name lost on power loss has the next save issue the number
-  again, and a page still holding the old one saves over the new draft
-  unseen: a save's precondition names a number, not what was saved under
-  it. Restoring with the server stopped, every author reloading their
-  drafts after a restore or a power cut, and never removing a draft's
-  newest file keep that from happening.
+- **Restore a store with the server stopped, and never remove a draft's
+  newest file while it runs.** A revision is the number of a template's
+  newest file, so a backup restored from before the newest save, that
+  file removed by hand, or its name lost on power loss has the next save
+  issue the number again. A page still holding the draft that went is
+  refused `draft-changed` by its digest, unless the draft given its
+  number since holds the same report to the byte, so nobody needs to
+  reload for that, but what the restore or the power cut took away is
+  gone. And the digest is compared just before the store's swap, which
+  is by revision alone, so a draft's newest file removed while the
+  server runs can let a racing save win over a draft its author never
+  saw.
 - **`@formancy/report-client`**, a new package, as 0046 said would come
-  with the draft's route: `createReportClient({ server, token, fetch? })`
-  with `listTemplates`, `readDraft`, `saveDraft`, `keepImage` and
-  `readImage`, each answering a value or the server's refusal, never
-  throwing one. No framework and no Node, depending on report-server-core
-  and report-spec alone, so a host's page compiles against the server's
-  own wire types. It follows no redirect, and throws before sending a
-  token no bearer header can carry, because fetch would quote it in its
-  error. The install gate checks it in a browser's host of its own, and
-  runs it against the packed server.
+  with the draft's route:
+  `createReportClient({ server, token, fetch? })` with `listTemplates`,
+  `readDraft`, `saveDraft`, `keepImage` and `readImage`, each answering
+  a value or the server's refusal, never throwing one. A save is from
+  `null` or from a draft's version, `{ revision, digest }`, which the
+  `Draft` a read answers and the `DraftSaved` a save answers are as they
+  come, so a host passes back what it was given and never writes a
+  precondition itself. No framework and no Node, depending on
+  report-server-core and report-spec alone, so a host's page compiles
+  against the server's own wire types. It follows no redirect, and
+  throws before sending a token no bearer header can carry, because
+  fetch would quote it in its error. The install gate checks it in a
+  browser's host of its own, and runs it against the packed server.
 - **The getting-started guide keeps a report's draft on the server.** A
-  new section 6 shows a React host saving from the revision it opened,
+  new section 6 shows a React host saving from the version it opened,
   creating a template with its first save from a blank it opens where
   the server has no draft, saying so when someone saved since, reloading
   into a new session -- never into the old one, whose undo would bring the

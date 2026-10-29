@@ -282,15 +282,21 @@ over NFS, never probed at start, and with the directory unflushed after
 it, an acknowledged save can lose its name on power loss. A revision is
 the number of the newest file, so a restore older than a template's
 newest save, that file removed by hand, or its name lost on power loss,
-has the next save issue the number again, and a page that still holds the
-old one saves over the new unseen; the operator's procedure is the cost's
-only answer -- restore with the server stopped, every author reloading
-after a restore or a power cut, and never remove a draft's newest file --
-and whether the `ETag` carries the record's digest
-is a question of `/v1`'s shape left open until 0.3.0. A draft that
-declares a font is refused until fonts are kept, and a host that previews
-a draft from the server writes its own image cache, since the runtime's
-resolver is synchronous ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
+has the next save issue the number again. That a page still holding the
+old draft saved over the new one unseen is answered, before 0.3.0
+releases `/v1`: the `ETag` carries the record's digest beside the
+revision, and such a save is refused `draft-changed`, but for a draft
+saved again with the same report to the byte, whose save goes through.
+What stays is accepted: the digest is compared just before the store's
+swap, which is by revision alone, so a draft's newest file removed by
+hand while the server runs can let a racing save win over a draft its
+author never saw, which the operator's procedure meets, restoring with
+the server stopped and never removing a draft's newest file while it
+runs; and a replace reads the newest record once more before the swap, at
+a cost not measured. A draft that declares a font is refused until fonts
+are kept, and a host that previews a draft from the server writes its own
+image cache, since the runtime's resolver is synchronous
+([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 
 ### The container gate rests on Docker in CI
 

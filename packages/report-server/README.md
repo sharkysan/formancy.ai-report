@@ -51,24 +51,26 @@ while the server closes. A request that takes longer than 300 s to arrive,
 Node's own default, which Fastify turns off, is cut.
 
 **A save names the draft it replaces.** `If-None-Match: *` creates a
-template, and `If-Match: "<revision>"`, the `ETag` a read or a save
-answered, replaces that revision; a save with neither is 428
-`precondition-required`, one with anything else -- a weak tag, a list, both
-headers -- 400 `bad-request`, and one from a revision that is no longer the
-newest 412 `draft-changed`, with nothing written and the revision that
-stands in its body and its `ETag`. Who may, what a draft and an image must
-be, and the status of every answer are report-server-core's use cases', and
-the routes send what those answer. A draft's body is JSON of at most
-report-spec's `MAX_REPORT_BYTES`, an image's a PNG, a JPEG or an SVG as
-`cleanSvg` wrote it, under its own media type, of at most
+template, and `If-Match: "<revision>-<64 hex>"`, the `ETag` a read or a
+save answered, the draft's revision and the digest of its stored report,
+replaces that draft; a save with neither is 428 `precondition-required`,
+one with anything else -- a weak tag, a list, the bare revision, both
+headers -- 400 `bad-request`, and one from a draft that is no longer the
+newest, by its revision or by its digest, where a restore let another save
+take its number, 412 `draft-changed`, with nothing written, the revision
+that stands in its body and no `ETag`. Who may, what a draft and an image
+must be, and the status of every answer are report-server-core's use
+cases', and the routes send what those answer. A draft's body is JSON of
+at most report-spec's `MAX_REPORT_BYTES`, an image's a PNG, a JPEG or an
+SVG as `cleanSvg` wrote it, under its own media type, of at most
 `MAX_ASSET_BYTES`; a body past its route's limit is 413,
 `report-too-large` or `image-too-large`, refused by the length it declares
 before it is read, or once it is read past the limit where it declares
 none, and one of a media type the route does not read is 415
-`unsupported-media-type`, unread.
-No body is read before the request's origin and its token are: the
-cross-origin refusal and the one 401 come first, and a refusal answered
-before a body closes the connection that carried it.
+`unsupported-media-type`, unread. No body is read before the request's
+origin and its token are: the cross-origin refusal and the one 401 come
+first, and a refusal answered before a body closes the connection that
+carried it.
 
 ## Run it
 
@@ -215,6 +217,13 @@ either, since it would turn the log on.
   but its directory is not after, as in Formancy Data's store, so an
   acknowledged save can lose its name on power loss; and a volume that
   cannot make a hard link starts and answers every save `internal`.
+- **Compare a draft's digest inside the swap.** A replace's version is
+  compared with the newest draft just before the store's swap, which is by
+  revision alone, so a draft's newest file removed by hand while the
+  server runs can let a racing save win over a draft its author never saw:
+  restore the volume with the server stopped, and never remove a draft's
+  newest file while it runs. After such a restore, or a power cut, a page
+  still holding a draft that went is refused by its digest.
 - **Stop a client that leaves from having asked.** A request whose client
   left while the route ran is still one event in the trail.
 

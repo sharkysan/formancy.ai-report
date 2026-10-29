@@ -61,31 +61,39 @@ What it does not do, and what the operator therefore owns:
   NFS, and the server does not probe for one at start: on a volume that
   cannot make one it starts and refuses every save as `internal`.
 - **The store's volume, and its backup.** `FORMANCY_REPORT_STORE_DIR` is
-  required, an absolute path to a directory that exists and that `node` can
-  write, which the server never makes: outside the image, a directory that
-  does not exist stops it at start. The image sets
+  required, an absolute path to a directory that exists and that `node`
+  can write, which the server never makes: outside the image, a directory
+  that does not exist stops it at start. The image sets
   `/var/lib/formancy-report`, a directory the image itself makes and gives
   `node`, so a container run without a volume there starts, and its drafts
   live in the container's writable layer and go with it. Only under
-  `docker run --read-only` does a missing volume stop it, the directory then
-  unwritable, which no container check makes. The volume is the tenants'
-  data: under its tenants directory, one per tenant named by the SHA-256 of
-  its claim, each template's every revision as a numbered file with the
-  subject of the token that saved it, and every image kept, by digest.
-  Nothing prunes or deletes any of it. What to back up is that whole
-  directory, on a schedule the operator keeps, and a restore puts its files
-  back as they were: a record whose report was edited, or cut short, is
-  never served, a read of it answered `internal` and logged by its path
-  inside the tenant's directory, and a crash's temporary file is never read
-  as a draft. A restore older than a template's newest save takes that
-  save's file away, and a revision is the newest file's number, so the next
-  save is given the number again, and a page still holding the old one saves
-  over the new unseen; a draft's newest file removed by hand does the same.
-  So restore with the server stopped, have every author reload their drafts
-  after a restore, and never remove a draft's newest file. A file is flushed
-  before it is linked, but its directory is not after, so an acknowledged
-  save can lose its name on power loss, and its number is issued again as
-  after a restore: have every author reload after a power cut too
+  `docker run --read-only` does a missing volume stop it, the directory
+  then unwritable, which no container check makes. The volume is the
+  tenants' data: under its tenants directory, one per tenant named by the
+  SHA-256 of its claim, each template's every revision as a numbered file
+  with the subject of the token that saved it, and every image kept, by
+  digest. Nothing prunes or deletes any of it. What to back up is that
+  whole directory, on a schedule the operator keeps, and a restore puts
+  its files back as they were: a record whose report was edited, or cut
+  short, is never served, a read of it answered `internal` and logged by
+  its path inside the tenant's directory, and a crash's temporary file is
+  never read as a draft. A restore older than a template's newest save
+  takes that save's file away, and a revision is the newest file's number,
+  so the next save is given the number again. A page still holding the
+  draft that went names its digest as well, so its save is refused
+  `draft-changed` and its author reads the newest, rather than saving over
+  a draft they never saw, unless the two drafts hold the same report to
+  the byte; nobody needs to reload for that. What the restore took away is
+  gone, which is the restore's own cost. The digest is compared just
+  before the store's swap, which is by revision alone, so a draft's newest
+  file removed by hand while the server runs can let a save that races
+  another win over a draft its author never saw, and a restore made while
+  it runs removes files under it the same way. So restore with the server
+  stopped, and never remove a draft's newest file while the server runs. A
+  file is flushed before it is linked, but its directory is not after, so
+  an acknowledged save can lose its name on power loss, and its number is
+  issued again as after a restore, a page that held it refused the same
+  way
   ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 - **TLS and the address.** It listens on plain HTTP on every interface of
   its container; TLS, the public name and the proxy that forwards to it are

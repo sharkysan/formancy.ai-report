@@ -22,7 +22,7 @@ Formancy Report
 │   ├── an SVG drawn only in the form it was approved in
 │   ├── nothing reaches the network but the provider and the client, through
 │   │   what the host gives them
-│   └── a draft saved over only from the revision it was read at
+│   └── a draft saved over only from the version it was read at
 ├── Accessibility
 │   ├── every control reachable by keyboard, role and name
 │   └── axe clean; contrast and target size measured in Chromium
@@ -89,7 +89,7 @@ Formancy Report
 | Q49 | A client leaves while whoami waits on its verifier, or an audit sink throws | One audit event for the request, written when its answer goes nowhere; the answer unchanged by the sink, which the log says failed | `report-server/src/audit.test.ts` over a real socket (0046) |
 | Q50 | A client sends broken JSON, a body past Fastify's limit, or a body a byte at a time, to a path nothing answers, or a preflight with a body | Each answered at once, before its body is read: the 404 counted by the rate limit, the preflight refused 400, and the connection closed | `report-server/src/app.test.ts`, over a real socket for the slow bodies (0046) |
 | Q51 | Twenty saves of one template race from the same revision | Exactly one written, the next revision; the other nineteen told the revision that stands, nothing of theirs written, and no temporary file left | `report-server/src/file-store.test.ts`, on a real directory ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)) |
-| Q52 | An author saves from a revision another has saved over since, or creates a template that exists | 412 `draft-changed`, nothing written, the revision that stands in the refusal and its `ETag`; through the packed client, the refusal answered and not thrown | `report-server-core/src/drafts.test.ts`, `report-client/src/client.test.ts`, the install gate's `server` host (0049) |
+| Q52 | An author saves from a revision another has saved over since, creates a template that exists, or saves from a revision whose newest file was removed and whose number another save was given since | 412 `draft-changed`, nothing written, the revision that stands in the refusal and no `ETag`; the draft saved under the number given again kept; through the packed client, the refusal answered and not thrown | `report-server-core/src/drafts.test.ts`, `report-server/src/drafts.test.ts`, `report-client/src/client.test.ts`, the install gate's `server` host (0049) |
 | Q53 | One tenant's token asks for another's draft or image, or saves a draft declaring another's image; or tenant claims differ only by case or Unicode normalisation; or a template id or a digest would name a path outside the tenant's directory | Answered as though the other's did not exist: `no-draft`, `no-asset`, or the image taken as not kept; four tenants that cannot see each other; the id or digest refused before any file operation | `report-server-core/src/drafts.test.ts`, `images.test.ts`, `report-server/src/file-store.test.ts` (0049) |
 | Q54 | An unauthenticated keep declares 20,000,000 bytes and sends none; a save is one byte past `MAX_REPORT_BYTES`, or chunked past it; a keep declares more than `MAX_ASSET_BYTES` | The 401 at once, before any body, and its connection closed; 413 `report-too-large` or `image-too-large`, by the length declared before a byte is read, or once read past the limit where none is declared | `report-server/src/drafts.test.ts`, over a real socket (0049) |
 | Q55 | A stored record's report is edited by hand, the record is of another format or not JSON, or an image's bytes on the volume are not its digest's | Never served, where a `savedBy` edited alone, which the record's digest does not cover, is served as edited: 500 `internal`, the log naming why, the file inside the tenant's directory and the tenant by keyed hash, never the absolute path or the claim | `report-server/src/file-store.test.ts`, `drafts.test.ts` (0049) |
@@ -214,7 +214,7 @@ Stated because an unstated non-goal reads as an oversight:
 - **Collaborative editing.** Snapshots do not merge; two people editing one
   draft conflict, and the second save is refused: by its hash in the
   session ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)),
-  and by its revision on the server, where the second author reloads and
+  and by its version on the server, where the second author reloads and
   carries their edits over by hand (0049).
 - **A consistent read from Formancy Data.** Best-effort until Data has a
   snapshot export ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).

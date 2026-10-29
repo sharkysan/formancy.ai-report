@@ -530,7 +530,7 @@ The server's one answer to both questions
 - **From which page.** A page on an origin the operator lists may send the
   headers the routes read and nothing more, `CROSS_ORIGIN_REQUEST_HEADERS`
   -- the token, the body's media type, `If-Match` and `If-None-Match` --
-  and read the `ETag` a save names its revision by,
+  and read the `ETag` a save names a draft's version by,
   `CROSS_ORIGIN_RESPONSE_HEADERS`; a token-bearing request a browser marks
   cross-site from any other origin is refused before its token or its body
   is read (0046, widened by 0049, `wire.test.ts`, `cors.test.ts`).

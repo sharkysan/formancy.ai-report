@@ -60,14 +60,25 @@ carries but that token contributes to it.
 - **`WhoAmI`**, **`Health`** -- what those answer.
 - **`DRAFT_FORMAT`** -- the stored draft's format number, `1`, which a
   reader compares and refuses another of.
-- **`TemplateSummary`**, **`TemplateList`**, **`Draft`**, **`DraftSaved`**,
-  **`ImageKept`** -- what the draft slice's routes answer: a template by
-  its report's own id, its revision and its title; a draft with the
-  report, the revision and the subject that saved it; the revision a save
-  wrote; the digest an image is kept under.
+- **`TemplateSummary`**, **`TemplateList`**, **`Draft`**,
+  **`DraftSaved`**, **`ImageKept`** -- what the draft slice's routes
+  answer: a template by its report's own id, its revision and its title; a
+  draft with the report, its version and the subject that saved it; the
+  version a save wrote; the digest an image is kept under.
+- **`DraftVersion`** -- which draft a read or a save answered, and so
+  which one a save from it replaces: its `revision` and its `digest`,
+  `sha256:` and the SHA-256 of its report's text as the store wrote it.
+  `Draft` and `DraftSaved` extend it. The revision alone names no one
+  draft, since a store gives a number again where its newest draft went.
 - **`isRevision`** -- whether a value is a revision, a positive safe
-  integer: the one test, which a route parsing `If-Match` and the use case
-  judging what it parsed both ask.
+  integer: the one test, which the tag's reader and the use case judging a
+  precondition both ask.
+- **`draftTag`**, **`draftVersionOf`** -- a draft's version as its strong
+  `ETag`, `"<revision>-<64 hex>"`, the digest's digits without `sha256:`.
+  `draftTag` is the one writer, for a route's answer and a client's
+  `If-Match`, and `draftVersionOf` the one reader, which answers
+  `undefined` for anything else: a weak tag, a list, a tag without its
+  quotes, the bare revision, digits no digest is.
 - **`REFUSALS`**, **`Refusal`** -- every refusal, a stable code and a fixed
   sentence that quotes nothing of the request: `unauthenticated`,
   `not-found`, `path-not-plain`, `rate-limited`, `cross-origin-refused`,
@@ -87,7 +98,7 @@ carries but that token contributes to it.
   send: the headers the routes read, `authorization`, `content-type`,
   `if-match` and `if-none-match`. **`CROSS_ORIGIN_RESPONSE_HEADERS`** --
   what such a page may read beyond what a browser always shows it: `etag`,
-  the revision its next save names.
+  the version its next save names.
 
 ## The use cases
 
@@ -97,38 +108,42 @@ import type { Asking } from '@formancy/report-server-core'
 
 const asking: Asking = { identity: person, roles: policy, store }
 const saved = await saveDraft(asking, 'invoice', body, { kind: 'create' })
-if (saved.ok) saved.status // 201; saved.body is { template, revision }, saved.revision the ETag's
+if (saved.ok) saved.status // 201; saved.body is { template, revision, digest }, saved.version the ETag's
 else saved.body.code // 'forbidden', 'report-invalid', 'draft-changed', ...
 ```
 
 A route parses its request into these arguments and sends the answer under
 the status it carries; it decides nothing of its own. Each returns an
-**`Answer`** -- `ok`, a `status` of 200 or 201, a `body`, and a `revision`
-where the answer has one, for the route's `ETag` -- or a **`RefusalAnswer`**,
-with the status of its refusal and a `ServerRefusal` for a body. Every one
-asks `can` first, before it reads the request or asks the store, so that a
+**`Answer`** -- `ok`, a `status` of 200 or 201, a `body`, and a draft's
+`version` where the answer has one, for the route's `ETag` -- or a
+**`RefusalAnswer`**, with the status of its refusal, a `ServerRefusal` for
+a body and no version, so that no refusal sends an `ETag`. Every one asks
+`can` first, before it reads the request or asks the store, so that a
 refusal for want of a capacity cannot say whether a template, an id or an
 image exists.
 
 - **`listTemplates(asking)`** -- the tenant's templates, sorted by id
   whatever order the store gives them in.
-- **`readDraft(asking, template)`** -- the newest draft, `404 no-draft`
-  where there is none.
-- **`saveDraft(asking, template, body, precondition)`** -- checks, in
-  this order: the capacity (403 `forbidden`); the id (400
+- **`readDraft(asking, template)`** -- the newest draft, its version beside
+  the body, `404 no-draft` where there is none.
+- **`saveDraft(asking, template, body, precondition)`** -- checks, in this
+  order: the capacity (403 `forbidden`); the id (400
   `template-id-invalid`); a **`Precondition`**, `none`, `create` or
-  `replace` with a revision that is a positive safe integer (428
-  `precondition-required`); `validateReport` (422 `report-invalid`, with its
-  errors); the report's id being the template's (422 `template-id-mismatch`);
-  every image it declares kept for the tenant as the kind it declares, and
-  no font declared (422 `asset-not-kept`, with the ids, sorted -- an image
-  kept as another kind is refused because the runtime would refuse it at
-  print, and a font because nothing here keeps one); then the store's swap,
-  which writes the report the validator returned and the token's subject
-  as `savedBy`: 201 for a `create`, 200 for a `replace`, or 412
-  `draft-changed` with the revision that stands, `null` where there is
-  none, and that revision beside the body too, for the `ETag`, where there
-  is one.
+  `replace` with a version whose revision is a positive safe integer and
+  whose digest is one report-spec's `isDigest` takes (428
+  `precondition-required`); `validateReport` (422 `report-invalid`, with
+  its errors); the report's id being the template's (422
+  `template-id-mismatch`); every image it declares kept for the tenant as
+  the kind it declares, and no font declared (422 `asset-not-kept`, with
+  the ids, sorted -- an image kept as another kind is refused because the
+  runtime would refuse it at print, and a font because nothing here keeps
+  one); for a `replace`, the newest draft read and compared with the
+  version, its revision and its digest (412 `draft-changed`); then the
+  store's swap, which writes the report the validator returned and the
+  token's subject as `savedBy`: 201 for a `create`, 200 for a `replace`,
+  each with the version it wrote beside the body, or 412 `draft-changed`
+  with the revision that stands, `null` where there is none, and no
+  version.
 - **`keepImage(asking, digestHex, contentType, bytes)`** -- checks: the
   capacity; the digest as 64 lower-case hexadecimal digits, by report-spec's
   `isDigest` with `sha256:` put before them, the rule the store names a file
@@ -148,12 +163,15 @@ image exists.
 `save`, `keepImage`, `readImage` and `imageKind`, each taking the tenant
 first and a digest in its `sha256:` form. `imageKind` answers the kind an
 image was kept as, so that the use case compares it with the kind a draft
-declares, once, rather than each store. `save` takes the revision it
-replaces, `null` to create, and exactly one of any concurrent saves from one
-revision wins. A store has a suite of its own, the one a deployment runs --
-the file store's, in `@formancy/report-server`; the use cases' suites run
-against a store in memory. `StoredDraft`, `SaveOutcome` and `StoredImage`
-are its records.
+declares, once, rather than each store. `newest` and `save` answer the
+digest of the report's text as written. `save` takes the revision it
+replaces, `null` to create, and exactly one of any concurrent saves from
+one revision wins; its swap is by revision alone, and that the draft at
+that revision is the one a save names by its digest too is the use case's
+to check, just before `save`, once rather than by each store. A store has
+a suite of its own, the one a deployment runs -- the file store's, in
+`@formancy/report-server`; the use cases' suites run against a store in
+memory. `StoredDraft`, `SaveOutcome` and `StoredImage` are its records.
 
 ## The audit port
 

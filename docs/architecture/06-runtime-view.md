@@ -831,16 +831,18 @@ it.
 
 ```
 a host's page: a session opened from GET /v1/templates/invoice/draft,
-revision 3, every image it declares read into the host's cache
-   │  Save: report-client's saveDraft('invoice', report, 3)
+revision 3 under its digest, ETag "3-…", every image it declares read into
+the host's cache
+   │  Save: report-client's saveDraft('invoice', report, draft), the Draft it read
    ▼
-PUT /v1/templates/invoice/draft   If-Match: "3"   Content-Type: application/json
+PUT /v1/templates/invoice/draft   If-Match: "3-…"   Content-Type: application/json
    │  6.16's hooks: the path, the rate limit, the origin, the token -- before
    │  any body is read; JSON alone, up to MAX_REPORT_BYTES
    ▼
 the route (report-server's drafts.ts)
-   ├─ If-Match and If-None-Match parsed: one strong tag of a revision, or *
-   │  alone ── anything else ──▶ 400 bad-request, before the use case
+   ├─ If-Match and If-None-Match parsed: one strong tag draftVersionOf reads
+   │  as a version, or * alone ── anything else, the bare "3" among it ──▶ 400
+   │  bad-request, before the use case
    ▼
 saveDraft (report-server-core), in this order, nothing written until the last:
    ├─ can(identity, 'draft.save', policy) ── no ──▶ 403 forbidden
@@ -849,6 +851,7 @@ saveDraft (report-server-core), in this order, nothing written until the last:
    ├─ validateReport(body) ── no ──▶ 422 report-invalid, with its errors
    ├─ the report's id is invoice ── no ──▶ 422 template-id-mismatch
    ├─ every image it declares kept for the tenant as that kind, no font ──▶ 422 asset-not-kept
+   ├─ store.newest is revision 3 under the digest the tag names ── no ──▶ 412
    ▼
 store.save(tenant, 'invoice', 3, { savedBy: the token's sub, report })
    │  file store: tenants/<sha256 of the claim>/templates/invoice/draft/
@@ -857,9 +860,9 @@ store.save(tenant, 'invoice', 3, { savedBy: the token's sub, report })
 4.json written to a temporary name, flushed, then link(temporary, 4.json)
    ├─ EEXIST: another save from 3 linked first ────▶ not written: 412
    ▼
-200 { template, revision: 4 }, ETag "4"; the page's next save is from 4
+200 { template, revision: 4, digest }, ETag "4-…"; the page's next save is from it
 
-412 draft-changed { revision: 4 }, ETag "4", nothing written
+412 draft-changed { revision: 4 }, no ETag, nothing written
    ▼
 the host says someone saved since, and offers a reload: GET the draft again,
 read its images, open a NEW session from revision 4 and dispose of the old
@@ -869,18 +872,26 @@ author's work
 ```
 
 The use case decides everything but the swap, and the store decides the
-swap alone: two saves that both read revision 3 as the newest both pass
-every check, and the link lets exactly one of them name revision 4's
-file. The loser is told the revision that stands, in the refusal and its
-`ETag`, and the host reads that one before anything else is saved. Every
-revision stays on disk; a read serves the newest, its record's digest
-checked and the report served as it was saved, never validated again
+swap alone: two saves from the draft at revision 3 both pass every
+check, the comparison of its digest included, and the link lets exactly
+one of them name revision 4's file. The loser is told the revision that
+stands, in the refusal's body and with no `ETag`, since a tag comes only
+with the draft it names, and the host reads that one before anything
+else is saved. A page that still holds a draft at revision 3 that a
+restore or a power cut took away, where another save has been given the
+number 3 since, names a digest the new draft does not have, so the
+comparison refuses it before the swap, which compares revisions alone
+and would let it through; only a draft's newest file removed by hand
+while the server runs, between one save's comparison and its swap, lets
+such a save win. Every revision stays on disk; a read serves the newest,
+its record's digest checked and the report served as it was saved, never
+validated again
 ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 A read of a record that is not JSON, not this format's, or whose report
-its digest does not name is 500 `internal`, logged by its path inside the
-tenant's directory and the tenant's keyed reference; the digest covers
-the report and not `savedBy`, so a record whose `savedBy` alone was
-edited is served as edited.
+its digest does not name is 500 `internal`, logged by its path inside
+the tenant's directory and the tenant's keyed reference; the digest
+covers the report and not `savedBy`, so a record whose `savedBy` alone
+was edited is served as edited.
 
 An image is kept the same way, by `PUT /v1/assets/{digest}`: the capacity,
 the digest's form, the size, what the bytes sniff as and the media type

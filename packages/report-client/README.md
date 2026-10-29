@@ -3,13 +3,13 @@
 Formancy Report's client for its server: what a host's page, or its own
 server, calls to keep a template's draft and the images it declares on
 [`@formancy/report-server`](../report-server/README.md). It lists the
-tenant's templates, reads a template's draft, saves one from the revision
+tenant's templates, reads a template's draft, saves one from the version
 it was opened at, and keeps and reads an image by its digest, through the
 routes report-server-core's `ROUTES` names, by their own keys, so a route
 renamed there does not compile here. No framework and no Node: the DOM's
-globals and no `@types/node`, so a `node:` import does not compile, and the
-install gate bundles what it exports for a browser. The server it talks to
-is decision
+globals and no `@types/node`, so a `node:` import does not compile, and
+the install gate bundles what it exports for a browser. The server it
+talks to is decision
 [0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)'s;
 the draft it keeps there, and this client, decision
 [0049](../../docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)'s.
@@ -30,7 +30,8 @@ const mine = await reports.saveDraft('invoice', emptyReport('invoice', 'Mine', '
 The install gate runs these lines from the packed packages, against the
 packed server in a host that holds the two and what they declare, and they
 are held to it (`scripts/readme-example.test.mjs`). `at` is the server's
-base URL and `token` the host's current token. Where another author saved
+base URL and `token` the host's current token; `opened.value`, the `Draft`
+as it came, is the version `mine` replaces. Where another author saved
 between the read and `mine`, `mine` is refused `draft-changed`, nothing is
 written, and `mine.refusal.revision` is the revision that stands.
 
@@ -45,13 +46,21 @@ written, and `mine.refusal.revision` is the revision that stands.
   `fetch` is the host's, or the global one, and is called as a function, as
   a browser's own fetch must be.
 - **`listTemplates()`** and **`readDraft(template)`** -- the tenant's
-  templates by id, and a template's newest draft with its revision.
+  templates by id, and a template's newest draft with its version, its
+  revision and its digest.
 - **`saveDraft(template, report, from)`** -- from `null`, a template not
-  yet saved, sent with `If-None-Match: *`; from a revision, a positive safe
-  integer, the draft that revision is, sent with `If-Match` naming it. From
-  anything else -- `0`, `1.5`, `NaN`, `undefined` from JavaScript -- it is
-  thrown before the token is asked or anything is sent. The revision is read
-  from the answer's body; the `ETag` beside it is not needed.
+  yet saved, sent with `If-None-Match: *`; from a draft's version,
+  `{ revision, digest }`, the draft it replaces, sent with `If-Match` as
+  report-server-core's `draftTag` writes it. The `Draft` a read answered
+  and the `DraftSaved` a save answered are each a version as they come, so
+  a host passes back what it was given. From anything else -- a bare
+  revision, a revision `0`, `1.5` or `NaN`, a digest not written as a
+  report names one, `undefined` from JavaScript -- it is thrown before the
+  token is asked or anything is sent. The version is read from the
+  answer's body; the `ETag` beside it is not needed. A save from a draft
+  that is no longer the newest, another revision or its own saved again
+  since under another digest, is refused `draft-changed`, with the
+  revision that stands.
 - **`keepImage(bytes, digest, mediaType)`** and **`readImage(digest)`** --
   `digest` as a report names an asset's, `sha256:` and the hexadecimal
   digits of its bytes; the path carries the digits. A digest that does not
@@ -84,10 +93,11 @@ the host's to show. Thrown:
   `GET /v1/templates/:template/draft` -- and the status, never the id or
   the digest the request carried.
 - **What the host gave that no request could carry as it means it** -- a
-  token no bearer header carries, a save from what is no revision, a digest
-  that does not begin with `sha256:` -- before anything is sent, by a fixed
-  sentence that quotes none of it. Handed to fetch, such a token would make
-  it reject with an error quoting the header, the token in it.
+  token no bearer header carries, a save from what is no draft's version,
+  a digest that does not begin with `sha256:` -- before anything is sent,
+  by a fixed sentence that quotes none of it. Handed to fetch, such a
+  token would make it reject with an error quoting the header, the token
+  in it.
 - **A network error**, as fetch gave it, a redirect among them: the client
   follows none, so nothing it sends reaches an address but the server's.
   That holds for a fetch that honours `redirect: 'error'`, as browsers' and

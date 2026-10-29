@@ -1,7 +1,7 @@
 {
   "name": "@formancy/report-client",
   "version": "0.2.0",
-  "description": "Formancy Report's client for its server: lists a tenant's templates, reads and saves a template's draft from the revision it was opened at, and keeps and reads the images a draft declares, over the fetch and the token a host gives it. No framework, no Node. Source-available, as every Formancy Report package.",
+  "description": "Formancy Report's client for its server: lists a tenant's templates, reads and saves a template's draft from the version it was opened at, and keeps and reads the images a draft declares, over the fetch and the token a host gives it. No framework, no Node. Source-available, as every Formancy Report package.",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,

@@ -859,10 +859,11 @@ A draft is saved **from the version it replaces**, `{ revision, digest }`:
 the one the page opened, or the one its last save answered, or `null` for
 a template not yet saved, whose first save creates it. A save from a draft
 that is no longer the newest -- another revision, or its own revision
-saved again since under another digest, as after a restore of the
-server's store from a backup older than it -- is refused `draft-changed`,
-with the revision that stands, and writes nothing, so two authors never
-overwrite each other unseen (0049). The client answers a refusal and never
+saved again since under another digest, as after a restore of the server's
+store from a backup older than it -- is refused `draft-changed`, with the
+revision that stands, and writes nothing, so two authors do not overwrite
+each other unseen, short of an operator removing a draft's newest file by
+hand while the server runs (0049). The client answers a refusal and never
 throws it; what it throws is what no request could carry as it means it,
 such as a token no bearer header carries.
 

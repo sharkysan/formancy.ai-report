@@ -1,7 +1,7 @@
 {
   "name": "@formancy/report-server",
   "version": "0.2.0",
-  "description": "Formancy Report's server: a Fastify server that verifies the host's token offline, takes the tenant from a required claim, says what the actions table gives each person, and keeps a template's draft and the images it declares in files on one volume, a save from a stale revision refused; its composition root reads its settings once.",
+  "description": "Formancy Report's server: a Fastify server that verifies the host's token offline, takes the tenant from a required claim, says what the actions table gives each person, and keeps a template's draft and the images it declares in files on one volume, a save from a stale draft refused; its composition root reads its settings once.",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,
