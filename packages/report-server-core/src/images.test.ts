@@ -34,9 +34,9 @@ function memoryStore() {
       asked.push('readImage')
       return images.get(key(tenant, digest))
     },
-    async hasImage(tenant, digest) {
-      asked.push('hasImage')
-      return images.has(key(tenant, digest))
+    async imageKind(tenant, digest) {
+      asked.push('imageKind')
+      return images.get(key(tenant, digest))?.mediaType
     },
   }
   /** Everything the store holds, as text: equal before and after a request that must keep nothing. */
@@ -113,7 +113,7 @@ describe('keepImage', () => {
     const kept = await keepImage(asking(store, AUTHOR), hexOf(bytes), 'image/png', bytes)
     expect(kept).toEqual({ ok: true, status: 200, body: { digest: assetDigest(bytes) } })
     expect(await store.readImage('acme', assetDigest(bytes))).toEqual({ mediaType: 'image/png', bytes })
-    expect(await store.hasImage('other', assetDigest(bytes))).toBe(false)
+    expect(await store.imageKind('other', assetDigest(bytes))).toBeUndefined()
   })
 
   // A JPEG and an SVG go the same way under their own types; the SVG's

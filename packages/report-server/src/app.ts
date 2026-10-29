@@ -94,7 +94,7 @@ function loggerProblem(logger: unknown): string | undefined {
  * The port's methods, each a key of `TemplateStore`, and every one of them:
  * a method the port gains fails to compile here until it is checked.
  */
-const STORE_METHODS = Object.keys({ list: true, newest: true, save: true, keepImage: true, readImage: true, hasImage: true } satisfies Record<keyof TemplateStore, true>)
+const STORE_METHODS = Object.keys({ list: true, newest: true, save: true, keepImage: true, readImage: true, imageKind: true } satisfies Record<keyof TemplateStore, true>)
 const STORE_PROBLEM = `store is a TemplateStore, whose ${STORE_METHODS.join(', ').replace(/, (?=[^,]*$)/, ' and ')} are each a function, as openFileTemplateStore answers one.`
 
 /**

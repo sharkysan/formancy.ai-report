@@ -50,9 +50,9 @@ function memoryStore() {
       asked.push('readImage')
       return images.get(key(tenant, digest))
     },
-    async hasImage(tenant, digest) {
-      asked.push('hasImage')
-      return images.has(key(tenant, digest))
+    async imageKind(tenant, digest) {
+      asked.push('imageKind')
+      return images.get(key(tenant, digest))?.mediaType
     },
   }
   /** Everything the store holds, as text: equal before and after a request that must write nothing. */
@@ -364,6 +364,25 @@ describe('saveDraft', () => {
     const saved = await saveDraft(asking(store, AUTHOR), 'invoice', draft, create)
     expect(saved).toEqual({ ok: false, status: 422, body: { ...REFUSALS['asset-not-kept'], assets: ['logo'] } })
     expect((await saveDraft(asking(store, AUTHOR, { tenant: 'other' }), 'invoice', draft, create)).ok).toBe(true)
+  })
+
+  // A draft that declares a kept PNG as an SVG, by its digest, names bytes
+  // the store holds, but the runtime refuses at print an asset whose bytes
+  // are not the kind it declares: saved, it could never print, the hole a
+  // draft that declares a font is refused to avoid. An image counts as kept
+  // only as the kind it was kept as, so a hand-made save that declares
+  // another is refused as an image not kept, by its id, and the same draft
+  // declaring the kept kind saves.
+  test('refuses a draft that declares a kept image as another kind, naming it as not kept', async () => {
+    const { store } = memoryStore()
+    await store.keepImage('acme', LOGO, png)
+    for (const mediaType of ['image/svg+xml', 'image/jpeg'] as const) {
+      const draft = { ...report(), assets: [{ id: 'logo', mediaType, digest: LOGO }] }
+      expect(await saveDraft(asking(store, AUTHOR), 'invoice', draft, create), mediaType).toEqual({ ok: false, status: 422, body: { ...REFUSALS['asset-not-kept'], assets: ['logo'] } })
+    }
+    expect(await store.newest('acme', 'invoice')).toBeUndefined()
+    const declared = { ...report(), assets: [{ id: 'logo', mediaType: 'image/png' as const, digest: LOGO }] }
+    expect((await saveDraft(asking(store, AUTHOR), 'invoice', declared, create)).ok).toBe(true)
   })
 
   // Every asset the store lacks is listed, once, in a stable order: a list

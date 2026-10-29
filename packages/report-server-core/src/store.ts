@@ -45,5 +45,11 @@ export interface TemplateStore {
   /** Keeps `image` under `digest`; a second keep of the same digest leaves it as it is. */
   keepImage(tenant: string, digest: string, image: StoredImage): Promise<void>
   readImage(tenant: string, digest: string): Promise<StoredImage | undefined>
-  hasImage(tenant: string, digest: string): Promise<boolean>
+  /**
+   * The kind the tenant's image under `digest` was kept as; undefined where
+   * the tenant keeps none. A fact the store holds, not a judgement: whether
+   * a draft may declare the image as the kind it declares is the use case's
+   * to decide, by comparing the two.
+   */
+  imageKind(tenant: string, digest: string): Promise<AssetMediaType | undefined>
 }

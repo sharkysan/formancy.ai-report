@@ -185,7 +185,7 @@ describe('the tenants', () => {
     for (const tenant of tenants) {
       expect((await store.newest(tenant, 'invoice'))?.report.title).toBe(`Of ${tenant}`)
       expect(await store.list(tenant)).toEqual([{ template: 'invoice', revision: 1, title: `Of ${tenant}` }])
-      expect(await store.hasImage(tenant, kept.digest)).toBe(tenant === 'Acme')
+      expect(await store.imageKind(tenant, kept.digest)).toBe(tenant === 'Acme' ? 'image/png' : undefined)
     }
     expect(await readdir(join(root, 'tenants'))).toHaveLength(4)
   })
@@ -216,7 +216,7 @@ describe('what names a file', () => {
     }
     const kept = image('bytes')
     for (const digest of ['', kept.digest.slice('sha256:'.length), kept.digest.toUpperCase(), `${kept.digest}0`, 'sha256:../../x', `sha512:${'a'.repeat(64)}`]) {
-      await expect(store.hasImage(TENANT, digest), digest).rejects.toThrow(/not a SHA-256/)
+      await expect(store.imageKind(TENANT, digest), digest).rejects.toThrow(/not a SHA-256/)
       await expect(store.readImage(TENANT, digest)).rejects.toThrow(/not a SHA-256/)
       await expect(store.keepImage(TENANT, digest, { mediaType: 'image/png', bytes: kept.bytes })).rejects.toThrow(/not a SHA-256/)
     }
@@ -263,7 +263,7 @@ describe('an image', () => {
   // kept as, each kind under its own extension.
   test('kept twice under one digest leaves one file, and reads back its bytes and media type', async () => {
     const png = image('a png')
-    expect(await store.hasImage(TENANT, png.digest)).toBe(false)
+    expect(await store.imageKind(TENANT, png.digest)).toBeUndefined()
     expect(await store.readImage(TENANT, png.digest)).toBeUndefined()
     await store.keepImage(TENANT, png.digest, { mediaType: 'image/png', bytes: png.bytes })
     const file = join(assetDirectory(TENANT), `${png.digest.slice('sha256:'.length)}.png`)
@@ -271,7 +271,7 @@ describe('an image', () => {
     await store.keepImage(TENANT, png.digest, { mediaType: 'image/png', bytes: png.bytes })
     expect((await stat(file)).ino).toBe(first.ino)
     expect(await readdir(assetDirectory(TENANT))).toEqual([`${png.digest.slice('sha256:'.length)}.png`])
-    expect(await store.hasImage(TENANT, png.digest)).toBe(true)
+    expect(await store.imageKind(TENANT, png.digest)).toBe('image/png')
     expect(await store.readImage(TENANT, png.digest)).toEqual({ mediaType: 'image/png', bytes: Buffer.from(png.bytes) })
     for (const [mediaType, extension] of [['image/jpeg', 'jpg'], ['image/svg+xml', 'svg']] as const) {
       const kept = image(`an image kept as ${mediaType}`)
@@ -290,13 +290,29 @@ describe('an image', () => {
     const kept = image('the approved logo')
     const other = image('another logo')
     await expect(store.keepImage(TENANT, kept.digest, { mediaType: 'image/png', bytes: other.bytes })).rejects.toThrow(/not the SHA-256/)
-    expect(await store.hasImage(TENANT, kept.digest)).toBe(false)
+    expect(await store.imageKind(TENANT, kept.digest)).toBeUndefined()
     await store.keepImage(TENANT, kept.digest, { mediaType: 'image/png', bytes: kept.bytes })
     const file = join(assetDirectory(TENANT), `${kept.digest.slice('sha256:'.length)}.png`)
     await writeFile(file, other.bytes)
     const error = await store.readImage(TENANT, kept.digest).catch((caught: unknown) => caught)
     expect(error).toBeInstanceOf(StoredRecordError)
     expect(error).toMatchObject({ file, why: 'digest', withinTenant: `assets/${kept.digest.slice('sha256:'.length)}.png` })
+  })
+
+  // A save asks the store what kind an image it declares was kept as, and
+  // refuses it unless the kind is the one declared (0049): a store that
+  // answered only whether some image is kept under the digest would let a
+  // draft declare a kept PNG as an SVG, saved and never printable. Each
+  // kind is answered by the extension it was kept under, and an image not
+  // kept, or another tenant's, by nothing.
+  test('answers the kind each image was kept as, and nothing where the tenant kept none', async () => {
+    for (const mediaType of ['image/png', 'image/jpeg', 'image/svg+xml'] as const) {
+      const kept = image(`kept as ${mediaType}`)
+      expect(await store.imageKind(TENANT, kept.digest), mediaType).toBeUndefined()
+      await store.keepImage(TENANT, kept.digest, { mediaType, bytes: kept.bytes })
+      expect(await store.imageKind(TENANT, kept.digest), mediaType).toBe(mediaType)
+      expect(await store.imageKind('other', kept.digest), mediaType).toBeUndefined()
+    }
   })
 
   // Two tabs add the same logo at once, and both keeps find nothing kept
@@ -339,7 +355,7 @@ describe('a directory the store cannot read', () => {
       const failures = [
         [() => store.newest(TENANT, 'invoice'), { code: 'EACCES', operation: 'list', withinTenant: 'templates/invoice/draft' }],
         [() => store.list(TENANT), { code: 'EACCES', operation: 'list', withinTenant: 'templates/invoice/draft' }],
-        [() => store.hasImage(TENANT, kept.digest), { code: 'EACCES', operation: 'read', withinTenant: `assets/${kept.digest.slice('sha256:'.length)}.png` }],
+        [() => store.imageKind(TENANT, kept.digest), { code: 'EACCES', operation: 'read', withinTenant: `assets/${kept.digest.slice('sha256:'.length)}.png` }],
       ] as const
       for (const [asked, expected] of failures) {
         const error = await (asked as () => Promise<unknown>)().catch((caught: unknown) => caught)
@@ -416,7 +432,7 @@ describe('the root', () => {
     await expect(store.list(TENANT)).rejects.toThrow(/no longer a directory/)
     await expect(store.newest(TENANT, 'invoice')).rejects.toThrow(/no longer a directory/)
     await expect(store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Again')))).rejects.toThrow(/no longer a directory/)
-    await expect(store.hasImage(TENANT, kept.digest)).rejects.toThrow(/no longer a directory/)
+    await expect(store.imageKind(TENANT, kept.digest)).rejects.toThrow(/no longer a directory/)
     await expect(store.readImage(TENANT, kept.digest)).rejects.toThrow(/no longer a directory/)
     await expect(store.keepImage(TENANT, kept.digest, { mediaType: 'image/png', bytes: kept.bytes })).rejects.toThrow(/no longer a directory/)
     await expect(stat(root)).rejects.toThrow(/ENOENT/)

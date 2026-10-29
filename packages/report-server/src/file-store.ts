@@ -314,8 +314,8 @@ function fileTemplateStore(root: string): TemplateStore {
       return { mediaType: kept.mediaType, bytes } satisfies StoredImage
     },
 
-    async hasImage(tenant, digest) {
-      return (await imageFile(tenant, digestName(digest))) !== undefined
+    async imageKind(tenant, digest) {
+      return (await imageFile(tenant, digestName(digest)))?.mediaType
     },
   }
 }

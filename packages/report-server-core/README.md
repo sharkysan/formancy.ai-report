@@ -120,9 +120,10 @@ image exists.
   `replace` with a revision that is a positive safe integer (428
   `precondition-required`); `validateReport` (422 `report-invalid`, with its
   errors); the report's id being the template's (422 `template-id-mismatch`);
-  every image it declares kept for the tenant and no font declared (422
-  `asset-not-kept`, with the ids, sorted -- a font is refused because
-  nothing here keeps one); then the store's swap, which writes the report the
+  every image it declares kept for the tenant as the kind it declares, and
+  no font declared (422 `asset-not-kept`, with the ids, sorted -- an image
+  kept as another kind is refused because the runtime would refuse it at
+  print, and a font because nothing here keeps one); then the store's swap, which writes the report the
   validator returned and the token's subject as `savedBy`: 201 for a
   `create`, 200 for a `replace`, or 412 `draft-changed` with the revision that
   stands, `null` where there is none, and that revision beside the body too,
@@ -143,8 +144,10 @@ image exists.
   no-asset` where the tenant has none.
 
 **`TemplateStore`** is the port, and decides nothing: `list`, `newest`,
-`save`, `keepImage`, `readImage` and `hasImage`, each taking the tenant
-first and a digest in its `sha256:` form. `save` takes the revision it
+`save`, `keepImage`, `readImage` and `imageKind`, each taking the tenant
+first and a digest in its `sha256:` form. `imageKind` answers the kind an
+image was kept as, so that the use case compares it with the kind a draft
+declares, once, rather than each store. `save` takes the revision it
 replaces, `null` to create, and exactly one of any concurrent saves from one
 revision wins. A store has a suite of its own, the one a deployment runs --
 the file store's, in `@formancy/report-server`; the use cases' suites run

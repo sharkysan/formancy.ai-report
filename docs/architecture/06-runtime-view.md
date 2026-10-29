@@ -848,7 +848,7 @@ saveDraft (report-server-core), in this order, nothing written until the last:
    ├─ a precondition ── none ──▶ 428 precondition-required
    ├─ validateReport(body) ── no ──▶ 422 report-invalid, with its errors
    ├─ the report's id is invoice ── no ──▶ 422 template-id-mismatch
-   ├─ every image it declares kept for the tenant, no font ──▶ 422 asset-not-kept
+   ├─ every image it declares kept for the tenant as that kind, no font ──▶ 422 asset-not-kept
    ▼
 store.save(tenant, 'invoice', 3, { savedBy: the token's sub, report })
    │  file store: tenants/<sha256 of the claim>/templates/invoice/draft/
@@ -884,4 +884,5 @@ the digest's form, the size, what the bytes sniff as and the media type
 claimed, the header or the SVG's form, and the digest of the bytes, then
 the store links `<64 hex>.<png|jpg|svg>` unless it is there already. The
 host keeps the bytes in its cache before `keep` resolves (6.10), and a
-save that declares an image the tenant has not kept is refused, naming it.
+save that declares an image the tenant has not kept, or kept as another
+kind than it declares, is refused, naming it.

@@ -31,9 +31,11 @@ other's work, so the draft comes first, kept by compare-and-swap.
   revision stays on disk, and nothing prunes or deletes one.
 - **A draft is checked on the way in and served as it was saved.** A save
   is held to report-spec's `validateReport`, its errors returned to the
-  author alone; every image it declares must be kept for the tenant, and
-  a draft that declares a font is refused, since the server keeps no fonts
-  yet and a draft it kept could otherwise never print in its face. A read
+  author alone; every image it declares must be kept for the tenant as
+  the kind it declares, and a draft that declares a font is refused, since
+  the server keeps no fonts yet: a draft it kept could otherwise never
+  print in its face, nor print an image the runtime would refuse as
+  another kind than its bytes. A read
   checks the record's format and the digest of its report's text and does
   not validate again, so a stricter report-spec later never locks a draft
   away. Each revision keeps `savedBy`, the token's subject, because the

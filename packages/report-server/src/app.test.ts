@@ -101,11 +101,11 @@ describe('whoami', () => {
   // server's own error; it does not start, as every other option it
   // checks.
   test('does not start with a store that lacks a method of the port', async () => {
-    const methods = { list: async () => [], newest: async () => undefined, save: async () => ({ saved: false as const, revision: null }), keepImage: async () => {}, readImage: async () => undefined, hasImage: async () => false }
+    const methods = { list: async () => [], newest: async () => undefined, save: async () => ({ saved: false as const, revision: null }), keepImage: async () => {}, readImage: async () => undefined, imageKind: async () => undefined }
     const without = (name: string) => Object.fromEntries(Object.entries(methods).filter(([method]) => method !== name))
-    const refused = [undefined, null, 'a directory', {}, { ...methods, hasImage: 'yes' }, ...Object.keys(methods).map(without)]
+    const refused = [undefined, null, 'a directory', {}, { ...methods, imageKind: 'yes' }, ...Object.keys(methods).map(without)]
     for (const store of refused) {
-      await expect(createReportServer({ verifyIdentity, roles, store: store as never }), JSON.stringify(store)).rejects.toThrow('store is a TemplateStore, whose list, newest, save, keepImage, readImage and hasImage are each a function, as openFileTemplateStore answers one.')
+      await expect(createReportServer({ verifyIdentity, roles, store: store as never }), JSON.stringify(store)).rejects.toThrow('store is a TemplateStore, whose list, newest, save, keepImage, readImage and imageKind are each a function, as openFileTemplateStore answers one.')
     }
     await expect(server({ store: methods })).resolves.toBeDefined()
   })

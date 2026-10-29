@@ -16,18 +16,23 @@
     precondition, or a revision that is no positive safe integer, 428
     before the body is looked at; a report report-spec refuses 422 with
     its errors; a report whose `id` is not the path's 422
-    `template-id-mismatch`; an image the asking tenant has not kept, and
-    any font whatever the store holds under its digest, 422
-    `asset-not-kept`, the ids sorted; who may and may not, each refusal
+    `template-id-mismatch`; an image the asking tenant has not kept, one
+    it kept as another kind than the draft declares, and any font whatever
+    the store holds under its digest, 422 `asset-not-kept`, the ids
+    sorted; who may and may not, each refusal
     for want of a capacity made before the store is asked; another
     tenant's drafts and images neither read nor taken as kept; a path's
     digest refused exactly where `isDigest` refuses it with `sha256:`
     before it; and a keep judged in the order the code states, a PNG, a JPEG and a cleaned SVG
     kept, everything else refused by its code. Twenty-five single-point
     mutations of `drafts.ts` and `images.ts` were each killed; two
-    survived the first run -- the tenant hard-coded on `hasImage` and on
+    survived the first run -- the tenant hard-coded on `hasImage`, as the
+    port's question was named before it answered the kind kept, and on
     `readImage` -- because the cases used that same tenant, and were
-    killed once they used another. The path's digest held to `isDigest`
+    killed once they used another. A kept PNG declared as an SVG or a JPEG
+    was watched saving, 201, before the port answered the kind kept
+    ("image/svg+xml: expected { ok: true, status: 201, …(2) } to deeply
+    equal { ok: false, status: 422, …(1) }"). The path's digest held to `isDigest`
     was watched failing with a pattern of the use cases' own that admitted
     capitals ("expected [ false, false ] to deeply equal [ true, true ]").
   - **The store.** `packages/report-server/src/file-store.test.ts`,
@@ -44,8 +49,10 @@
     a template id that is not report-spec's identifier, a digest that is
     not a SHA-256 refused before any file operation, a digest refused
     exactly where report-spec's `isDigest` refuses it, and a revision past
-    the safe integers neither read nor written; an image kept twice, or by several at once, one file
-    read back as its bytes and media type, and never kept or served under
+    the safe integers neither read nor written; each image's kind answered
+    as it was kept, and nothing for an image the tenant did not keep; an
+    image kept twice, or by several at once, one file read back as its
+    bytes and media type, and never kept or served under
     a digest that is not its bytes; a directory the store cannot read or
     write thrown as `StoreFileSystemError` by Node's code, the operation
     and the path inside the tenant, never read as empty; and a root that
@@ -283,8 +290,8 @@ declares none, 413 `report-too-large`; the preconditions it names are
 `forbidden`; the template id, 400; a precondition, 428; `validateReport`,
 422 `report-invalid` carrying report-spec's own errors; the report's `id`,
 422 `template-id-mismatch`; every image it declares kept for the tenant
-under its digest, and no font declared, 422 `asset-not-kept` naming the
-assets by id, sorted; and last the swap. Expression diagnostics do not
+under its digest as the kind it declares, and no font declared, 422
+`asset-not-kept` naming the assets by id, sorted; and last the swap. Expression diagnostics do not
 block a save: a draft may be unfinished. What is stored is the report the
 validator returned, which shares no object with the body.
 
@@ -397,6 +404,19 @@ store here keeps a font. A draft that names one could be saved and never
 printed in the face it names, so `asset-not-kept` names it, whatever the
 store holds under its digest. Keeping fonts is a later record's.
 
+**An image counts as kept only as the kind it was kept as.** A digest
+names bytes, and the kind they were kept as is the one they sniff as; a
+draft that declares a kept PNG as an SVG would be saved and refused at
+print, where the runtime refuses bytes handed over as another kind than
+the asset declares (report-runtime's `images.ts`), so `asset-not-kept`
+names it as it names an image not kept at all. The
+port answers the kind, `imageKind`, and the use case compares it with the
+kind declared, rather than handing a store the kind to compare: a store
+then reports what it holds and decides nothing, the rule is written once,
+and a store still answering yes or no fails to compile against the port,
+where one handed a kind it did not read would compile, since TypeScript
+lets a method take fewer parameters than its type names.
+
 **No body is read before the identity.** The cross-origin refusal and the
 token's verification move from the API's `preHandler` to `preParsing`, so
 nobody unidentified has a byte of a body read; both still run after the
@@ -479,7 +499,7 @@ must be a volume for the server to start.
   server keeps, and the one who lost is told the revision to read.
 - **A draft every later release can start from.** Each stored draft is one
   report-spec accepted when it was saved, whose every image the tenant
-  keeps and which names no font, by a subject the host signed; a
+  keeps as the kind it declares and which names no font, by a subject the host signed; a
   publication can be held to who saved what.
 - **A draft that outlives its format's next version.** It is served as it
   was saved, so a stricter report-spec, or a migration, meets it where it

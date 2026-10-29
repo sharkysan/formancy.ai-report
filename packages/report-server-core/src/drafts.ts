@@ -59,7 +59,8 @@ export async function readDraft(asking: Asking, template: string): Promise<Answe
  * precondition says. The checks run in this order, each refusing what the
  * ones before it let through, and nothing is written unless all pass:
  * the capacity; the template id; a precondition; the format; the report's
- * id being the template's; every image kept and no font declared; and
+ * id being the template's; every image kept, as the kind it declares, and
+ * no font declared; and
  * last, the store's swap, which only one of any saves from one revision
  * wins.
  *
@@ -105,14 +106,17 @@ function replaces(precondition: Precondition): number | null | undefined {
 
 /**
  * The ids of the assets the report declares and the store cannot give it,
- * sorted: an image the asking tenant has not kept under its digest, and
- * every font, since no store here keeps one -- a draft that named one could be saved
- * and never printed in the face it names. A font is not asked of the store,
- * so what the store holds under its digest changes nothing.
+ * sorted: an image the asking tenant has not kept under its digest as the
+ * kind it declares, and every font, since no store here keeps one. An image
+ * kept as another kind counts as not kept, as a font does, because each
+ * would be saved and never printed: the runtime refuses an asset whose
+ * bytes are not the kind it declares, and a face nobody keeps. A font is
+ * not asked of the store, so what the store holds under its digest changes
+ * nothing.
  */
 async function notKept(asking: Asking, report: ReportDefinition): Promise<string[]> {
   const { identity, store } = asking
-  const held = await Promise.all(report.assets.map(async (asset) => !isFontMediaType(asset.mediaType) && (await store.hasImage(identity.tenant, asset.digest))))
+  const held = await Promise.all(report.assets.map(async (asset) => !isFontMediaType(asset.mediaType) && (await store.imageKind(identity.tenant, asset.digest)) === asset.mediaType))
   return report.assets
     .filter((_, at) => !held[at])
     .map((asset) => asset.id)
