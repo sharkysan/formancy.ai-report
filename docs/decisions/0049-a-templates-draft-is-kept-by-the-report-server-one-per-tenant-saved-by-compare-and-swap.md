@@ -218,15 +218,19 @@
     its prose says, which the gate type-checks and bundles and never
     renders; that a save from a revision issued again for the same
     report, to the byte of its text, goes through, which follows from the
-    digest covering the report alone and which no case makes; a `link`
-    that fails other than by the name existing, which no case reaches,
-    being the file store's one uncovered line; that a store an embedder
-    writes keeps an absolute path out of its own errors, which the server
-    logs as any other error of its own; that the permission cases mean
-    what they say, which needs a user that is not root, as the machine
-    they were written on and GitHub's hosted runners give them; and that
-    the hard link decides a race on the operator's volume, which the
-    suite proves on whatever volume its temporary directory is on.
+    digest covering the report alone and which no case makes; the window
+    a draft's newest file removed while the server runs opens between one
+    save's comparison and its swap, whose race no case makes, and that a
+    restore with the server stopped, a power cut or a restart leaves it
+    shut, which is reasoned from the code; a `link` that fails other than
+    by the name existing, which no case reaches, being the file store's
+    one uncovered line; that a store an embedder writes keeps an absolute
+    path out of its own errors, which the server logs as any other error
+    of its own; that the permission cases mean what they say, which needs
+    a user that is not root, as the machine they were written on and
+    GitHub's hosted runners give them; and that the hard link decides a
+    race on the operator's volume, which the suite proves on whatever
+    volume its temporary directory is on.
 
 ## Context
 

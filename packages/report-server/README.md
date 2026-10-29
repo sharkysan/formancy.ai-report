@@ -223,7 +223,9 @@ either, since it would turn the log on.
   server runs can let a racing save win over a draft its author never saw:
   restore the volume with the server stopped, and never remove a draft's
   newest file while it runs. After such a restore, or a power cut, a page
-  still holding a draft that went is refused by its digest.
+  still holding a draft that went is refused by its digest, unless the
+  draft given its number since holds the same report to the byte, whose
+  save goes through.
 - **Stop a client that leaves from having asked.** A request whose client
   left while the route ran is still one event in the trail.
 

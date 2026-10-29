@@ -2114,7 +2114,7 @@
       ]
     },
     "0049": {
-      "reviewed": "sha256:b930690e5b5083bfc0b0f212fba57447e7ed7f34213fa85fe07946179afa5e71",
+      "reviewed": "sha256:c569a3b2a81d6cf75729e284ddaa81125553758cef16ab4a1c21f451a3dab9b6",
       "limitations": [
         {
           "area": "server",
@@ -2133,11 +2133,11 @@
         },
         {
           "area": "server",
-          "says": "The digest a save names is compared with the newest draft’s just before the store’s swap, which is by revision alone, so where a draft’s newest file is removed by hand while the server runs and another save is given its number in between, a save can win over a draft its author never saw; the operator restores with the server stopped and never removes a draft’s newest file while it runs."
+          "says": "The digest a save names is compared with the newest draft’s just before the store’s swap, which is by revision alone, so where a draft’s newest file is removed by hand while the server runs and another save is given its number between one save’s comparison and its swap, that save can win over a draft its author never saw; the operator restores with the server stopped and never removes a draft’s newest file while it runs."
         },
         {
           "area": "server",
-          "says": "A replacing save reads the template’s newest record once more just before the swap, parsing it and checking its digest, and what that read costs has not been measured.",
+          "says": "A replacing save reads the template’s newest draft once more just before the swap, and what that read costs has not been measured.",
           "heldBy": "packages/report-server-core/src/drafts.test.ts"
         },
         {

@@ -50,7 +50,7 @@ about, follow from that:
   image's bytes, `savedBy`, or an absolute path in the store, whose
   tenant's directory is the unkeyed hash of the tenant's claim, among them.
 - **A save lost unseen**: two saves from one revision of a draft both
-  written, a save written over a revision its author never read, or a
+  written, a save written over a draft its author never read, or a
   stored draft or image served that is not what was saved -- an integrity
   failure, and in scope.
 - **Derived disclosure**: a value the person may not read revealed through a

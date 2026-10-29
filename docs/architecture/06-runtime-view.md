@@ -879,13 +879,14 @@ stands, in the refusal's body and with no `ETag`, since a tag comes only
 with the draft it names, and the host reads that one before anything
 else is saved. A page that still holds a draft at revision 3 that a
 restore or a power cut took away, where another save has been given the
-number 3 since, names a digest the new draft does not have, so the
-comparison refuses it before the swap, which compares revisions alone
-and would let it through; only a draft's newest file removed by hand
-while the server runs, between one save's comparison and its swap, lets
-such a save win. Every revision stays on disk; a read serves the newest,
-its record's digest checked and the report served as it was saved, never
-validated again
+number 3 since, names the digest of the draft it read, so the comparison
+refuses it before the swap, which compares revisions alone and would let
+it through, unless the two hold the same report to the byte, whose save
+goes through; only a draft's newest file removed while the server runs,
+by hand or by a restore, between one save's comparison and its swap,
+lets a save win over a draft its author never saw. Every revision stays
+on disk; a read serves the newest, its record's digest checked and the
+report served as it was saved, never validated again
 ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 A read of a record that is not JSON, not this format's, or whose report
 its digest does not name is 500 `internal`, logged by its path inside

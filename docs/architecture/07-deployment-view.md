@@ -81,19 +81,19 @@ What it does not do, and what the operator therefore owns:
   takes that save's file away, and a revision is the newest file's number,
   so the next save is given the number again. A page still holding the
   draft that went names its digest as well, so its save is refused
-  `draft-changed` and its author reads the newest, rather than saving over
-  a draft they never saw, unless the two drafts hold the same report to
-  the byte; nobody needs to reload for that. What the restore took away is
-  gone, which is the restore's own cost. The digest is compared just
-  before the store's swap, which is by revision alone, so a draft's newest
-  file removed by hand while the server runs can let a save that races
-  another win over a draft its author never saw, and a restore made while
-  it runs removes files under it the same way. So restore with the server
-  stopped, and never remove a draft's newest file while the server runs. A
-  file is flushed before it is linked, but its directory is not after, so
-  an acknowledged save can lose its name on power loss, and its number is
-  issued again as after a restore, a page that held it refused the same
-  way
+  `draft-changed`, unless the two drafts hold the same report to the byte,
+  whose save goes through; refused, its author reads the newest rather
+  than saving over a draft they never saw, and nobody needs to reload for
+  that. What the restore took away is gone, which is the restore's own
+  cost. The digest is compared just before the store's swap, which is by
+  revision alone, so a draft's newest file removed by hand while the
+  server runs can let a save that races another win over a draft its
+  author never saw, and a restore made while it runs removes files under
+  it the same way. So restore with the server stopped, and never remove a
+  draft's newest file while the server runs. A file is flushed before it
+  is linked, but its directory is not after, so an acknowledged save can
+  lose its name on power loss, and its number is issued again as after a
+  restore, a page that held it refused the same way
   ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 - **TLS and the address.** It listens on plain HTTP on every interface of
   its container; TLS, the public name and the proxy that forwards to it are

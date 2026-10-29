@@ -96,18 +96,18 @@ other's work, so the draft comes first, kept by compare-and-swap.
   log names a stored file by its path inside the tenant's directory, never
   its absolute path, whose tenant directory is the unkeyed hash of the
   tenant claim.
-- **Restore a store with the server stopped, and never remove a draft's
-  newest file while it runs.** A revision is the number of a template's
-  newest file, so a backup restored from before the newest save, that
-  file removed by hand, or its name lost on power loss has the next save
-  issue the number again. A page still holding the draft that went is
-  refused `draft-changed` by its digest, unless the draft given its
-  number since holds the same report to the byte, so nobody needs to
-  reload for that, but what the restore or the power cut took away is
-  gone. And the digest is compared just before the store's swap, which
-  is by revision alone, so a draft's newest file removed while the
-  server runs can let a racing save win over a draft its author never
-  saw.
+- **Restore a store with the server stopped, and never remove a
+  draft's newest file while it runs.** A revision is the number of a
+  template's newest file, so a backup restored from before the newest
+  save, that file removed by hand, or its name lost on power loss has
+  the next save issue the number again. A page still holding the draft
+  that went is refused `draft-changed` by its digest, unless the draft
+  given its number since holds the same report to the byte, whose save
+  goes through. Nobody needs to reload for that, but what the restore
+  or the power cut took away is gone. And the digest is compared just
+  before the store's swap, which is by revision alone, so a draft's
+  newest file removed while the server runs can let a racing save win
+  over a draft its author never saw.
 - **`@formancy/report-client`**, a new package, as 0046 said would come
   with the draft's route:
   `createReportClient({ server, token, fetch? })` with `listTemplates`,
