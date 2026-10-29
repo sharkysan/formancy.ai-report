@@ -147,11 +147,22 @@ function sign(claims, key = secret, kid = undefined) {
   const body = `${base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT', ...(kid === undefined ? {} : { kid }) }))}.${base64url(JSON.stringify(claims))}`
   return `${body}.${createHmac('sha256', key).update(body).digest('base64url')}`
 }
-const now = Math.floor(Date.now() / 1000)
-const claims = { iss: ISSUER, aud: AUDIENCE, sub: 'u-1', tid: 'acme', roles: ['report-authors'], iat: now, exp: now + 600 }
-const token = sign(claims)
-const { tid: _tenant, ...tenantless } = claims
-const tokens = { good: token, tenantless: sign(tenantless), forged: sign(claims, randomBytes(32).toString('base64url')) }
+/**
+ * An author's claims, issued now and expiring 600 s later. Asked for where
+ * the checks that present them start, never when the script loads: the
+ * image's build comes first, and the draft checks come late, so a lifetime
+ * that started at load could end before them.
+ */
+export function authorClaims() {
+  const now = Math.floor(Date.now() / 1000)
+  return { iss: ISSUER, aud: AUDIENCE, sub: 'u-1', tid: 'acme', roles: ['report-authors'], iat: now, exp: now + 600 }
+}
+/** What whoami's checks present, and the audit line's check looks for in the log: a token the host signed, one without its tenant, and a forgery. */
+function whoamiTokens() {
+  const claims = authorClaims()
+  const { tid: _tenant, ...tenantless } = claims
+  return { good: sign(claims), tenantless: sign(tenantless), forged: sign(claims, randomBytes(32).toString('base64url')) }
+}
 
 /** The settings every configured container starts from. */
 const CONFIGURED = {
@@ -334,6 +345,8 @@ async function gate() {
 
   const name = start('configured', CONFIGURED)
   record.measured.healthyMs = await healthy(name)
+  // Signed as the configured container's checks start, after the build.
+  const tokens = whoamiTokens()
   const url = at(name)
   const answers = []
   const ask = async (path, headers = {}) => {
@@ -432,7 +445,7 @@ async function gate() {
   await check('it runs on a read-only root file system', async () => {
     const sealed = start('read-only', CONFIGURED, { flags: ['--read-only', '-v', '/var/lib/formancy-report'] })
     await healthy(sealed)
-    const answer = await request(`${at(sealed)}/v1/whoami`, { headers: { authorization: `Bearer ${tokens.good}` } })
+    const answer = await request(`${at(sealed)}/v1/whoami`, { headers: { authorization: `Bearer ${sign(authorClaims())}` } })
     expect(answer.status === 200, `whoami on a read-only root answered ${String(answer.status)}`)
     expect(docker(['exec', sealed, 'touch', '/app/.gate']).status !== 0, 'the root file system was writable under --read-only')
   })
@@ -444,14 +457,15 @@ async function gate() {
   // the first container is stopped before the second starts, so that one
   // holds the store at a time.
   await check('a draft an author saves is read back after the container restarts on the same volume', async () => {
+    const bearer = sign(authorClaims())
     const store = volume('draft')
     const first = start('draft-first', CONFIGURED, { flags: ['-v', `${store}:/var/lib/formancy-report`] })
     await healthy(first)
-    await saveFirstDraft(at(first), tokens.good)
+    await saveFirstDraft(at(first), bearer)
     must(['stop', '--time', '10', first]) // Docker's own default (above)
     const second = start('draft-second', CONFIGURED, { flags: ['-v', `${store}:/var/lib/formancy-report`] })
     await healthy(second)
-    await expectFirstDraft(at(second), tokens.good)
+    await expectFirstDraft(at(second), bearer)
   })
 
   // An image is kept by the digest of its bytes and read by it; compared
@@ -461,7 +475,7 @@ async function gate() {
     const png = readFileSync(join(repo, 'docs', 'images', 'starter-site-visit.png'))
     const kept = start('image', CONFIGURED, { flags: ['-v', `${volume('image')}:/var/lib/formancy-report`] })
     await healthy(kept)
-    await keepAndReadImage(at(kept), tokens.good, png)
+    await keepAndReadImage(at(kept), sign(authorClaims()), png)
     return `${String(png.length)} bytes`
   })
 
@@ -469,10 +483,11 @@ async function gate() {
   // is where a draft goes when nothing else on the root is writable, and it
   // is read back from it.
   await check('on a read-only root, it saves a draft into its store', async () => {
+    const bearer = sign(authorClaims())
     const sealed = start('read-only-save', CONFIGURED, { flags: ['--read-only', '-v', '/var/lib/formancy-report'] })
     await healthy(sealed)
-    await saveFirstDraft(at(sealed), tokens.good)
-    await expectFirstDraft(at(sealed), tokens.good)
+    await saveFirstDraft(at(sealed), bearer)
+    await expectFirstDraft(at(sealed), bearer)
     expect(docker(['exec', sealed, 'touch', '/app/.gate']).status !== 0, 'the root file system was writable under --read-only')
   })
 
@@ -494,7 +509,7 @@ async function gate() {
       expect(JSON.stringify(serving?.identityKeys) === '{"kids":["gate-1"],"leftOut":[]}', `the serving line named the key set as ${JSON.stringify(serving?.identityKeys ?? null)}`)
       const asked = async () => {
         const statuses = []
-        for (const kid of ['gate-1', 'gate-2']) statuses.push((await request(`${at(keyed)}/v1/whoami`, { headers: { authorization: `Bearer ${sign(claims, keys[kid], kid)}` } })).status)
+        for (const kid of ['gate-1', 'gate-2']) statuses.push((await request(`${at(keyed)}/v1/whoami`, { headers: { authorization: `Bearer ${sign(authorClaims(), keys[kid], kid)}` } })).status)
         return statuses.join(' ')
       }
       const before = await asked()

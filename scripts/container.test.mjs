@@ -3,8 +3,8 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { afterAll, describe, expect, test } from 'vitest'
-import { baseImage, CHECKS } from './container.mjs'
+import { afterAll, describe, expect, test, vi } from 'vitest'
+import { authorClaims, baseImage, CHECKS } from './container.mjs'
 
 /**
  * The container gate (0046) without Docker: what it leaves behind when it
@@ -35,6 +35,26 @@ describe('the container gate', () => {
     expect(CHECKS.length).toBeGreaterThan(10)
     expect(new Set(CHECKS).size).toBe(CHECKS.length)
     expect(baseImage()).toMatch(/^node:26\.\d+\.\d+-alpine[\d.]+@sha256:[0-9a-f]{64}$/)
+  })
+
+  // A token signed when the script loads starts its lifetime before the
+  // image's build, which comes first and is unmeasured on a runner, and the
+  // draft checks come late: a slow build would fail them for an expired
+  // token rather than for anything the image does. The claims are issued
+  // when a check asks for them, so one asked the moment an earlier one has
+  // expired is issued then, for the same lifetime.
+  test('issues an author’s claims when a check asks for them, not when it is imported', () => {
+    vi.useFakeTimers()
+    try {
+      const first = authorClaims()
+      vi.setSystemTime((first.exp + 1) * 1000)
+      const later = authorClaims()
+      expect(later.iat).toBe(first.exp + 1)
+      expect(later.exp - later.iat).toBe(first.exp - first.iat)
+      expect(later).toMatchObject({ sub: first.sub, tid: first.tid, roles: first.roles })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   // The draft slice (0049) is held by the image, not only by the server's
