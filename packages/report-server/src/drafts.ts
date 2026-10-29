@@ -4,7 +4,7 @@
  * adapter over report-server-core's use case of the same name, which
  * decides who may, what a draft and an image must be, and the status of
  * every answer; a route parses its request into the use case's arguments
- * and sends what it answers, its revision as the `ETag`. Nothing here
+ * and sends what it answers, a draft's version as the `ETag`. Nothing here
  * judges a draft or an image, so that a route and a use case cannot
  * disagree about one.
  *
@@ -18,7 +18,7 @@
  * body is read before the request's origin and its token are: those hooks
  * run before parsing (app.ts, cors.ts).
  */
-import { isRevision, keepImage, listTemplates, readDraft, readImage, REFUSALS, saveDraft } from '@formancy/report-server-core'
+import { draftTag, draftVersionOf, keepImage, listTemplates, readDraft, readImage, REFUSALS, saveDraft } from '@formancy/report-server-core'
 import type { Answer, Asking, Precondition, RefusalAnswer, ReportIdentity, RolePolicy, TemplateStore } from '@formancy/report-server-core'
 import { ASSET_MEDIA_TYPES, MAX_ASSET_BYTES, MAX_REPORT_BYTES } from '@formancy/report-spec'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
@@ -30,18 +30,17 @@ declare module 'fastify' {
   }
 }
 
-/** A strong ETag of a revision, as a draft's read and a save answer one: the digits, no leading zero, in quotes. */
-const STRONG_REVISION = /^"([1-9][0-9]*)"$/
-
 /**
  * What a save's headers say it stands on: `If-None-Match: *` alone, a
- * template not yet saved; `If-Match` alone holding exactly one strong ETag
- * of a revision, that revision; neither, nothing. Anything else -- a weak
- * tag, a list, a number without its quotes, revision 0 or one past the safe
- * integers, `If-Match: *`, both headers at once -- is `malformed`, which the
- * route answers 400 before the use case is asked: read as some revision or
- * none, it would save over what its author never named. A revision is
- * `isRevision`'s, as the use case judges one.
+ * template not yet saved; `If-Match` alone holding exactly one tag a
+ * draft's read or a save answered, the version it names; neither, nothing.
+ * Anything else -- a weak tag, a list, a tag without its quotes, the bare
+ * revision, a revision 0 or one past the safe integers, a digest no store
+ * writes, `If-Match: *`, both headers at once -- is `malformed`, which the
+ * route answers 400 before the use case is asked: read as some version or
+ * none, it would save over what its author never named. A tag is read by
+ * report-server-core's `draftVersionOf` and nothing else, the inverse of
+ * the `draftTag` the answers are sent with.
  */
 export function parsePrecondition(headers: { readonly 'if-match'?: string | undefined; readonly 'if-none-match'?: string | undefined }): Precondition | 'malformed' {
   const match = headers['if-match']
@@ -51,13 +50,13 @@ export function parsePrecondition(headers: { readonly 'if-match'?: string | unde
     return noneMatch === '*' ? { kind: 'create' } : 'malformed'
   }
   if (noneMatch !== undefined) return 'malformed'
-  const revision = Number(STRONG_REVISION.exec(match)?.[1])
-  return isRevision(revision) ? { kind: 'replace', revision } : 'malformed'
+  const version = draftVersionOf(match)
+  return version === undefined ? 'malformed' : { kind: 'replace', version }
 }
 
-/** Sends what a use case answered, under its status, with its revision as the `ETag` where it has one. */
+/** Sends what a use case answered, under its status, with a draft's version as the `ETag` where it has one; a refusal names no draft, and has none. */
 function send(reply: FastifyReply, answered: Answer<unknown> | RefusalAnswer): FastifyReply {
-  if (answered.revision !== undefined) reply.header('etag', `"${String(answered.revision)}"`)
+  if (answered.ok && answered.version !== undefined) reply.header('etag', draftTag(answered.version))
   return reply.code(answered.status).send(answered.body)
 }
 

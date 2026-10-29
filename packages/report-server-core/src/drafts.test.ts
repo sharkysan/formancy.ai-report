@@ -1,12 +1,14 @@
-import { emptyReport, validateReport } from '@formancy/report-spec'
+import { assetDigest, emptyReport, validateReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { RolePolicy } from './actions.js'
+import type { Answer, RefusalAnswer } from './answer.js'
 import { listTemplates, readDraft, saveDraft } from './drafts.js'
 import type { Asking, Precondition } from './drafts.js'
 import type { ReportIdentity } from './identity.js'
 import type { StoredDraft, StoredImage, TemplateStore } from './store.js'
 import { DRAFT_FORMAT, REFUSALS } from './wire.js'
+import type { DraftVersion } from './wire.js'
 
 /**
  * The draft use cases (0049): who may list, read and save, and what a save
@@ -14,6 +16,13 @@ import { DRAFT_FORMAT, REFUSALS } from './wire.js'
  * memory, enough to hold what they ask of the port; the file store has its
  * own suite, in report-server, and that is the one a deployment runs.
  */
+/**
+ * The digest the store in memory writes a report under: the SHA-256 of its
+ * JSON text's code units, which this suite's ASCII reports are, enough to
+ * tell two reports apart as the file store's SHA-256 of its UTF-8 does.
+ */
+const digestOf = (report: ReportDefinition): string => assetDigest(Uint8Array.from(JSON.stringify(report), (character) => character.charCodeAt(0)))
+
 function memoryStore() {
   const drafts = new Map<string, StoredDraft[]>()
   const images = new Map<string, StoredImage>()
@@ -39,8 +48,9 @@ function memoryStore() {
       const current = history.at(-1)?.revision ?? null
       if (current !== from) return { saved: false, revision: current }
       const revision = (current ?? 0) + 1
-      drafts.set(key(tenant, template), [...history, { revision, ...draft }])
-      return { saved: true, revision }
+      const digest = digestOf(draft.report)
+      drafts.set(key(tenant, template), [...history, { revision, digest, ...draft }])
+      return { saved: true, revision, digest }
     },
     async keepImage(tenant, digest, image) {
       asked.push('keepImage')
@@ -74,7 +84,15 @@ const asking = (store: TemplateStore, role?: string, who: Partial<ReportIdentity
 
 const none: Precondition = { kind: 'none' }
 const create: Precondition = { kind: 'create' }
-const replace = (revision: number): Precondition => ({ kind: 'replace', revision })
+const replace = (version: DraftVersion): Precondition => ({ kind: 'replace', version })
+/** A digest of no report this suite saves: a version naming it names no draft that stands. */
+const UNSAVED = `sha256:${'99'.repeat(32)}`
+
+/** The version a save answered, which a save from it names; a refusal fails the case. */
+function versionOf(answered: Answer<unknown> | RefusalAnswer): DraftVersion {
+  if (!answered.ok || answered.version === undefined) throw new Error(`the save was answered ${String(answered.status)} with no version`)
+  return answered.version
+}
 
 const report = (id = 'invoice'): ReportDefinition => emptyReport(id, 'Invoice', 'en')
 const LOGO = `sha256:${'ab'.repeat(32)}`
@@ -124,20 +142,21 @@ describe('listTemplates', () => {
 })
 
 describe('readDraft', () => {
-  // The newest draft is served with its revision twice: in the body for a
+  // The newest draft is served with its version twice: in the body for a
   // client and beside it for the route's ETag. A save of revision 1 read as
-  // revision 2, or a revision missing from the answer, would have the
-  // route send an ETag the next If-Match is refused by.
-  test('serves the newest draft with its revision, who saved it and the report', async () => {
+  // revision 2, the digest of another draft, or a version missing from the
+  // answer, would have the route send an ETag the next If-Match is refused
+  // by.
+  test('serves the newest draft with its revision, its digest, who saved it and the report', async () => {
     const { store } = memoryStore()
-    await saveDraft(asking(store, AUTHOR, { subject: 'u-1' }), 'invoice', report(), create)
+    const first = await saveDraft(asking(store, AUTHOR, { subject: 'u-1' }), 'invoice', report(), create)
     const changed = { ...report(), title: 'Invoice, second' }
-    await saveDraft(asking(store, AUTHOR, { subject: 'u-2' }), 'invoice', changed, replace(1))
+    await saveDraft(asking(store, AUTHOR, { subject: 'u-2' }), 'invoice', changed, replace(versionOf(first)))
     expect(await readDraft(asking(store, PUBLISHER), 'invoice')).toEqual({
       ok: true,
       status: 200,
-      body: { format: DRAFT_FORMAT, template: 'invoice', revision: 2, savedBy: 'u-2', report: changed },
-      revision: 2,
+      body: { format: DRAFT_FORMAT, template: 'invoice', revision: 2, digest: digestOf(changed), savedBy: 'u-2', report: changed },
+      version: { revision: 2, digest: digestOf(changed) },
     })
   })
 
@@ -195,53 +214,77 @@ describe('saveDraft', () => {
   test('creates a template at revision 1, saved by the token\'s subject', async () => {
     const { store } = memoryStore()
     const saved = await saveDraft(asking(store, AUTHOR, { subject: 'u-7' }), 'invoice', report(), create)
-    expect(saved).toEqual({ ok: true, status: 201, body: { template: 'invoice', revision: 1 }, revision: 1 })
-    expect(await store.newest('acme', 'invoice')).toEqual({ revision: 1, savedBy: 'u-7', report: report() })
+    expect(saved).toEqual({ ok: true, status: 201, body: { template: 'invoice', revision: 1, digest: digestOf(report()) }, version: { revision: 1, digest: digestOf(report()) } })
+    expect(await store.newest('acme', 'invoice')).toEqual({ revision: 1, digest: digestOf(report()), savedBy: 'u-7', report: report() })
   })
 
-  // A replace is 200, and the revision it wrote is the next, so that the
-  // client's next If-Match names it.
-  test('replaces the revision it names, answering 200 and the next revision', async () => {
+  // A replace is 200, and the version it wrote is the next revision and its
+  // report's digest, so that the client's next If-Match names it. A replace
+  // that named the newest draft by its revision and its digest and was
+  // refused would leave its author unable to save twice.
+  test('replaces the newest draft it names by its revision and its digest, answering 200 and the version it wrote', async () => {
     const { store } = memoryStore()
-    await saveDraft(asking(store, AUTHOR), 'invoice', report(), create)
-    const saved = await saveDraft(asking(store, AUTHOR), 'invoice', { ...report(), title: 'Changed' }, replace(1))
-    expect(saved).toEqual({ ok: true, status: 200, body: { template: 'invoice', revision: 2 }, revision: 2 })
+    const created = await saveDraft(asking(store, AUTHOR), 'invoice', report(), create)
+    const changed = { ...report(), title: 'Changed' }
+    const saved = await saveDraft(asking(store, AUTHOR), 'invoice', changed, replace(versionOf(created)))
+    expect(saved).toEqual({ ok: true, status: 200, body: { template: 'invoice', revision: 2, digest: digestOf(changed) }, version: { revision: 2, digest: digestOf(changed) } })
     expect((await store.newest('acme', 'invoice'))?.report.title).toBe('Changed')
   })
 
   // Two saves from nothing: one wins. The second is told which revision
   // stands, so it can read and decide; if it were written over the first, a
-  // person's work would be lost without either of them being told. The
-  // revision is beside the body too, for the route's ETag, which is where
-  // HTTP says a failed precondition names what stands (RFC 9110): without
-  // it, a client reading the ETag after a 412 would find none.
-  test('refuses a second create as draft-changed, naming the revision that stands, and writes nothing', async () => {
+  // person's work would be lost without either of them being told. No
+  // version is beside the refusal for the route's ETag: a tag comes only
+  // with the draft it names, so a client cannot save over a draft it never
+  // read by sending back a refusal's tag (0049).
+  test('refuses a second create as draft-changed, naming the revision that stands and no version, and writes nothing', async () => {
     const { store, snapshot } = memoryStore()
     expect((await saveDraft(asking(store, AUTHOR), 'invoice', report(), create)).status).toBe(201)
     const before = snapshot()
     const second = await saveDraft(asking(store, AUTHOR), 'invoice', { ...report(), title: 'Other' }, create)
-    expect(second).toStrictEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: 1 }, revision: 1 })
+    expect(second).toStrictEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: 1 } })
     expect(snapshot()).toBe(before)
   })
 
   // A replace of a revision that is not the newest is the same lost swap,
-  // with the newest named, in the body and for the ETag.
-  test('refuses a replace of a stale revision as draft-changed, naming the newest', async () => {
-    const { store } = memoryStore()
-    await saveDraft(asking(store, AUTHOR), 'invoice', report(), create)
-    await saveDraft(asking(store, AUTHOR), 'invoice', report(), replace(1))
-    const stale = await saveDraft(asking(store, AUTHOR), 'invoice', report(), replace(1))
-    expect(stale).toStrictEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: 2 }, revision: 2 })
+  // with the newest named in the body and no version beside it. The two
+  // drafts hold one report, so one digest: the revision alone tells them
+  // apart, and the use case compares it before the store is asked to swap.
+  test('refuses a replace of a stale revision as draft-changed, naming the newest, before the swap', async () => {
+    const { store, asked } = memoryStore()
+    const created = await saveDraft(asking(store, AUTHOR), 'invoice', report(), create)
+    await saveDraft(asking(store, AUTHOR), 'invoice', report(), replace(versionOf(created)))
+    const askedBefore = asked.length
+    const stale = await saveDraft(asking(store, AUTHOR), 'invoice', report(), replace(versionOf(created)))
+    expect(stale).toStrictEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: 2 } })
+    expect(asked.slice(askedBefore)).toEqual(['newest'])
+  })
+
+  // A revision is the number of a template's newest draft, so where that
+  // draft goes -- a backup older than it restored, its file removed -- the
+  // next save is given its number again. A page still holding the one that
+  // went names its revision, which stands, and its digest, which does not:
+  // were the revision compared alone, that page would save over a draft its
+  // author never saw. Refused before the store's swap, which compares the
+  // revision alone, so nothing is written, and with the revision that
+  // stands and no version, as any lost swap is.
+  test('refuses a replace naming the newest revision by another digest as draft-changed, before the swap, and writes nothing', async () => {
+    const { store, asked, snapshot } = memoryStore()
+    const created = await saveDraft(asking(store, AUTHOR), 'invoice', report(), create)
+    const before = snapshot()
+    const askedBefore = asked.length
+    const other = await saveDraft(asking(store, AUTHOR), 'invoice', { ...report(), title: 'Over a draft never read' }, replace({ revision: versionOf(created).revision, digest: UNSAVED }))
+    expect(other).toStrictEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: 1 } })
+    expect(snapshot()).toBe(before)
+    expect(asked.slice(askedBefore)).toEqual(['newest'])
   })
 
   // A replace of a template that has no draft stands on nothing: 412 with no
   // revision, not a create by the back door, which would let a stale tab
-  // resurrect a template after the draft it replaced went. No revision
-  // stands, so there is none for an ETag either: a route that sent one would
-  // name a draft that does not exist.
+  // resurrect a template after the draft it replaced went.
   test('refuses a replace of a template with no draft as draft-changed with no revision', async () => {
     const { store } = memoryStore()
-    const saved = await saveDraft(asking(store, AUTHOR), 'invoice', report(), replace(1))
+    const saved = await saveDraft(asking(store, AUTHOR), 'invoice', report(), replace({ revision: 1, digest: digestOf(report()) }))
     expect(saved).toStrictEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: null } })
     expect(await store.newest('acme', 'invoice')).toBeUndefined()
   })
@@ -255,13 +298,18 @@ describe('saveDraft', () => {
     expect(asked).toEqual([])
   })
 
-  // A revision is a positive safe integer. The route parses one from a
-  // header; a number that is none must not reach a store that names a file
-  // by it, and is no precondition.
-  test('takes a revision that is not a positive safe integer for no precondition', async () => {
+  // A version's revision is a positive safe integer and its digest one
+  // report-spec writes. The route parses one from a header; a number that
+  // is no revision must not reach a store that names a file by it, and a
+  // version with no digest names no one draft. Either is no precondition.
+  test('takes a version whose revision is not a positive safe integer, or whose digest is none, for no precondition', async () => {
     const { store, asked } = memoryStore()
-    for (const revision of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1]) {
-      expect(await saveDraft(asking(store, AUTHOR), 'invoice', report(), replace(revision)), String(revision)).toEqual({ ok: false, status: 428, body: REFUSALS['precondition-required'] })
+    const versions = [
+      ...[0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1].map((revision) => ({ revision, digest: UNSAVED })),
+      ...['', UNSAVED.slice('sha256:'.length), UNSAVED.toUpperCase(), `${UNSAVED}0`, undefined].map((digest) => ({ revision: 1, digest }) as DraftVersion),
+    ]
+    for (const version of versions) {
+      expect(await saveDraft(asking(store, AUTHOR), 'invoice', report(), replace(version)), JSON.stringify(version)).toEqual({ ok: false, status: 428, body: REFUSALS['precondition-required'] })
     }
     expect(asked).toEqual([])
   })
@@ -284,7 +332,7 @@ describe('saveDraft', () => {
     const before = snapshot()
     const askedBefore = asked.length
     for (const role of [PUBLISHER, ADMIN, undefined]) {
-      expect(await saveDraft(asking(store, role), 'invoice', report(), replace(1)), String(role)).toEqual({ ok: false, status: 403, body: REFUSALS.forbidden })
+      expect(await saveDraft(asking(store, role), 'invoice', report(), replace({ revision: 1, digest: digestOf(report()) })), String(role)).toEqual({ ok: false, status: 403, body: REFUSALS.forbidden })
     }
     expect(snapshot()).toBe(before)
     expect(asked.length).toBe(askedBefore)
@@ -435,7 +483,7 @@ describe('saveDraft', () => {
   // time and the cheapest, the one that reveals least, first. Each request
   // below fails its own check and every check after it; removing the fault
   // moves the refusal to the next.
-  test('judges a request in the order authority, id, precondition, format, id match, images, then the revision', async () => {
+  test('judges a request in the order authority, id, precondition, format, id match, images, then the version', async () => {
     const { store } = memoryStore()
     await store.keepImage('acme', LOGO, png)
     const unkept = { ...report('quote'), assets: [{ id: 'logo', mediaType: 'image/png' as const, digest: SEAL }] }
@@ -445,8 +493,8 @@ describe('saveDraft', () => {
       ['precondition', asking(store, AUTHOR), 'invoice', {}, none, 428, 'precondition-required'],
       ['format', asking(store, AUTHOR), 'invoice', {}, create, 422, 'report-invalid'],
       ['id match', asking(store, AUTHOR), 'invoice', unkept, create, 422, 'template-id-mismatch'],
-      ['images', asking(store, AUTHOR), 'quote', unkept, replace(5), 422, 'asset-not-kept'],
-      ['revision', asking(store, AUTHOR), 'quote', report('quote'), replace(5), 412, 'draft-changed'],
+      ['images', asking(store, AUTHOR), 'quote', unkept, replace({ revision: 5, digest: UNSAVED }), 422, 'asset-not-kept'],
+      ['version', asking(store, AUTHOR), 'quote', report('quote'), replace({ revision: 5, digest: UNSAVED }), 412, 'draft-changed'],
     ]
     for (const [name, who, template, body, precondition, status, code] of steps) {
       const answered = await saveDraft(who, template, body, precondition)

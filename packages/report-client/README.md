@@ -24,7 +24,7 @@ const saved = await reports.saveDraft('invoice', emptyReport('invoice', 'Invoice
 if (!saved.ok) throw new Error(`the first save was refused: ${saved.refusal.code}`)
 const opened = await reports.readDraft('invoice')
 if (!opened.ok) throw new Error(`the draft could not be read: ${opened.refusal.code}`)
-const mine = await reports.saveDraft('invoice', emptyReport('invoice', 'Mine', 'en'), opened.value.revision)
+const mine = await reports.saveDraft('invoice', emptyReport('invoice', 'Mine', 'en'), opened.value)
 ```
 
 The install gate runs these lines from the packed packages, against the

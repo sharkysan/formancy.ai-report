@@ -11,14 +11,15 @@
  * here, where no server answers: the server's host runs the packed client
  * against the packed server (server.ts). What is on trial: the client's
  * declarations name no Node type and resolve for a bundler; a page's own
- * fetch and token are what it takes; its answers narrow by `ok`, and a
- * refusal by its `code` to the field that code carries; and a file a
- * person chose is bytes it keeps.
+ * fetch and token are what it takes; a save is from the `Draft` a read
+ * answered or the `DraftSaved` a save did, each as it came; its answers
+ * narrow by `ok`, and a refusal by its `code` to the field that code
+ * carries; and a file a person chose is bytes it keeps.
  */
 import { createReportClient } from '@formancy/report-client'
 import type { Answered, ReportClient } from '@formancy/report-client'
-import type { Draft, StoredImage } from '@formancy/report-server-core'
-import type { AssetMediaType } from '@formancy/report-spec'
+import type { Draft, DraftSaved, StoredImage } from '@formancy/report-server-core'
+import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
 
 /** The session's current token; a page with none has nobody to ask as, and asks nothing. */
 function currentToken(): string {
@@ -30,9 +31,9 @@ function currentToken(): string {
 /** The client a page makes once: the server it was told of, the session's current token, and the window's own fetch. */
 export const reports: ReportClient = createReportClient({ server: 'https://reports.example', token: currentToken, fetch: window.fetch })
 
-/** What a page's Save says of what the server answered: the revision written, or why not, from the field the refusal's code carries. */
-export async function save(opened: Draft): Promise<string> {
-  const saved = await reports.saveDraft(opened.template, opened.report, opened.revision)
+/** What a page's Save says of what the server answered: the revision written, or why not, from the field the refusal's code carries. `from` is the draft the page opened, or the one its last save answered. */
+export async function save(from: Draft | DraftSaved, report: ReportDefinition): Promise<string> {
+  const saved = await reports.saveDraft(from.template, report, from)
   if (saved.ok) return `Saved as revision ${String(saved.value.revision)}.`
   const { refusal } = saved
   switch (refusal.code) {

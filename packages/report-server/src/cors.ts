@@ -161,7 +161,7 @@ export function crossOrigin(app: FastifyInstance, options: { origins: readonly s
   if (listed.size === 0) return
 
   // Every answer of the API, refusals included, so a page on a listed
-  // origin reads the server's sentence, and the ETag, the revision its next
+  // origin reads the server's sentence, and the ETag, the version its next
   // save names; Vary on all of them, since the same route answers another
   // origin without the grant.
   app.addHook('onSend', async (request, reply, payload) => {

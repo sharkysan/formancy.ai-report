@@ -88,43 +88,52 @@ const filesInStore = async (): Promise<string[]> =>
     .filter((entry) => entry.isFile())
     .map((entry) => join(entry.parentPath, entry.name).slice(cases.directory.length + 1))
     .sort()
+/** The digest acme's `template` record of `revision` holds on disk, the 64 digits its tag carries: the SHA-256 of the report's text as the store wrote it. */
+const recordDigest = async (template: string, revision: number): Promise<string> =>
+  (JSON.parse(await readFile(join(cases.directory, 'tenants', sha256('acme'), 'templates', template, 'draft', `${String(revision)}.json`), 'utf8')) as { digest: string }).digest
+
+/** 64 hexadecimal digits, as a tag carries a digest. */
+const HEX = 'ab'.repeat(32)
 
 describe('parsePrecondition', () => {
-  // A save names what it replaces: nothing yet, or one revision. Read
-  // otherwise, a create could replace a draft another author made, or a
-  // replace name a revision it never saw; and a revision past 9 must be
-  // read as its number, not refused.
-  test('reads If-None-Match * as a create, one strong ETag of a revision as a replace, and neither as none', () => {
+  // A save names what it replaces: nothing yet, or one draft by its
+  // version. Read otherwise, a create could replace a draft another author
+  // made, or a replace name a draft it never saw; and a revision past 9
+  // must be read as its number, not refused.
+  test('reads If-None-Match * as a create, one strong tag of a draft as a replace of its version, and neither as none', () => {
     expect(parsePrecondition({})).toEqual({ kind: 'none' })
     expect(parsePrecondition({ 'if-none-match': '*' })).toEqual({ kind: 'create' })
-    expect(parsePrecondition({ 'if-match': '"3"' })).toEqual({ kind: 'replace', revision: 3 })
-    expect(parsePrecondition({ 'if-match': '"10"' })).toEqual({ kind: 'replace', revision: 10 })
-    expect(parsePrecondition({ 'if-match': `"${String(Number.MAX_SAFE_INTEGER)}"` })).toEqual({ kind: 'replace', revision: Number.MAX_SAFE_INTEGER })
+    for (const revision of [3, 10, Number.MAX_SAFE_INTEGER]) {
+      expect(parsePrecondition({ 'if-match': `"${String(revision)}-${HEX}"` })).toEqual({ kind: 'replace', version: { revision, digest: `sha256:${HEX}` } })
+    }
   })
 
   // A precondition that is not exactly one of those is the client's
-  // mistake, never a guess: a weak tag, a list, a bare number, revision 0,
-  // one past the safe integers, both headers at once, or If-Match * would
-  // each have to be read as some revision or none, and a save from a
-  // revision its author never named would overwrite or be refused for
-  // the wrong reason. Each is malformed, answered 400.
-  test('takes anything else, both headers included, for malformed', () => {
+  // mistake, never a guess: a weak tag, a list, a tag without its quotes,
+  // the bare revision this API answered before its tag named the digest, a
+  // revision 0 or past the safe integers, a digest no store writes, both
+  // headers at once, or If-Match * would each have to be read as some
+  // version or none, and a save from a draft its author never named would
+  // overwrite or be refused for the wrong reason. Each is malformed,
+  // answered 400; the tag's own reader is report-server-core's, whose
+  // suite reads every shape of one.
+  test('takes anything else, the bare revision and both headers included, for malformed', () => {
     const malformed = [
-      { 'if-match': 'W/"3"' },
-      { 'if-match': '"3", "4"' },
-      { 'if-match': '3' },
-      { 'if-match': '"0"' },
-      { 'if-match': '"03"' },
-      { 'if-match': '"-1"' },
-      { 'if-match': '"1.5"' },
-      { 'if-match': '"99999999999999999999"' },
-      { 'if-match': `"${String(Number.MAX_SAFE_INTEGER + 1)}"` },
+      { 'if-match': `W/"3-${HEX}"` },
+      { 'if-match': `"3-${HEX}", "4-${HEX}"` },
+      { 'if-match': `3-${HEX}` },
+      { 'if-match': '"3"' },
+      { 'if-match': `"0-${HEX}"` },
+      { 'if-match': `"03-${HEX}"` },
+      { 'if-match': `"${String(Number.MAX_SAFE_INTEGER + 1)}-${HEX}"` },
+      { 'if-match': `"3-${HEX.toUpperCase()}"` },
+      { 'if-match': `"3-sha256:${HEX}"` },
       { 'if-match': '*' },
       { 'if-match': '' },
-      { 'if-none-match': '"3"' },
+      { 'if-none-match': `"3-${HEX}"` },
       { 'if-none-match': '*, *' },
       { 'if-none-match': '' },
-      { 'if-match': '"3"', 'if-none-match': '*' },
+      { 'if-match': `"3-${HEX}"`, 'if-none-match': '*' },
     ]
     for (const headers of malformed) expect(parsePrecondition(headers), JSON.stringify(headers)).toBe('malformed')
   })
@@ -132,24 +141,29 @@ describe('parsePrecondition', () => {
 
 describe('a draft', () => {
   // The slice's one path: an author creates a template, replaces its draft
-  // from the revision it read, reads the newest back and finds it listed.
-  // Each answer names its revision in ETag, which the next If-Match names:
-  // without it a client could not save twice.
-  test('is created 201, replaced 200, read and listed, each answer with the revision its ETag names', async () => {
+  // from the version it read, reads the newest back and finds it listed.
+  // Each answer names its version in ETag, which the next If-Match names:
+  // without it a client could not save twice. The tag's digits are the
+  // record's own digest, which every read checks, so a tag names the draft
+  // the record holds and no other.
+  test('is created 201, replaced 200, read and listed, each answer with the version its ETag names', async () => {
     const app = await serve()
     const created = await save(app, 'invoice', report(), { 'if-none-match': '*' })
     expect(created.statusCode).toBe(201)
-    expect(created.headers.etag).toBe('"1"')
-    expect(created.json()).toEqual({ template: 'invoice', revision: 1 })
-    const replaced = await save(app, 'invoice', report('invoice', 'Changed'), { 'if-match': '"1"' })
+    const first = await recordDigest('invoice', 1)
+    expect(created.headers.etag).toBe(`"1-${first}"`)
+    expect(created.json()).toEqual({ template: 'invoice', revision: 1, digest: `sha256:${first}` })
+    const replaced = await save(app, 'invoice', report('invoice', 'Changed'), { 'if-match': `"1-${first}"` })
     expect(replaced.statusCode).toBe(200)
-    expect(replaced.headers.etag).toBe('"2"')
-    expect(replaced.json()).toEqual({ template: 'invoice', revision: 2 })
+    const second = await recordDigest('invoice', 2)
+    expect(second).not.toBe(first)
+    expect(replaced.headers.etag).toBe(`"2-${second}"`)
+    expect(replaced.json()).toEqual({ template: 'invoice', revision: 2, digest: `sha256:${second}` })
     const newest = await read(app, draftUrl('invoice'))
     expect(newest.statusCode).toBe(200)
-    expect(newest.headers.etag).toBe('"2"')
+    expect(newest.headers.etag).toBe(`"2-${second}"`)
     expect(newest.headers['cache-control']).toBe('no-store')
-    expect(newest.json()).toEqual({ format: 1, template: 'invoice', revision: 2, savedBy: SUBJECT, report: report('invoice', 'Changed') })
+    expect(newest.json()).toEqual({ format: 1, template: 'invoice', revision: 2, digest: `sha256:${second}`, savedBy: SUBJECT, report: report('invoice', 'Changed') })
     const listed = await read(app, '/v1/templates')
     expect(listed.statusCode).toBe(200)
     expect(listed.json()).toEqual({ templates: [{ template: 'invoice', revision: 2, title: 'Changed' }] })
@@ -194,14 +208,44 @@ describe('a draft', () => {
 
   // A malformed precondition is no precondition the use case could read,
   // and is refused before it is asked: a save whose header could not be
-  // read must not write (Review Focus 2).
-  test('is refused 400 bad-request with a malformed precondition, and nothing written', async () => {
+  // read must not write (Review Focus 2). The bare revision a page kept from
+  // before the tag named the digest is one: read as the revision alone, it
+  // would save over a draft issued that number since.
+  test('is refused 400 bad-request with a malformed precondition, the bare revision among them, and nothing written', async () => {
     const app = await serve()
-    await save(app, 'invoice', report(), { 'if-none-match': '*' })
-    for (const headers of [{ 'if-match': 'W/"1"' }, { 'if-match': '"1", "2"' }, { 'if-match': '1' }, { 'if-match': '"1"', 'if-none-match': '*' }]) {
+    const tag = String((await save(app, 'invoice', report(), { 'if-none-match': '*' })).headers.etag)
+    for (const headers of [{ 'if-match': `W/${tag}` }, { 'if-match': `${tag}, ${tag}` }, { 'if-match': tag.slice(1, -1) }, { 'if-match': '"1"' }, { 'if-match': tag, 'if-none-match': '*' }]) {
       expect(refusal(await save(app, 'invoice', report('invoice', 'Overwritten'), headers)), JSON.stringify(headers)).toEqual({ status: 400, code: 'bad-request' })
     }
     expect(await filesInStore()).toEqual([`tenants/${sha256('acme')}/templates/invoice/draft/1.json`])
+  })
+
+  // A revision is the number of a template's newest record file, so where
+  // that file goes -- a backup older than it restored, the file removed by
+  // hand, its name lost on power loss -- the next save is given the number
+  // again. A page still holding the first revision 2 must not save over the
+  // second, which its author never saw: its ETag names the first one's
+  // digest as well, so its If-Match matches nothing that stands, and it is
+  // refused draft-changed, with no ETag, and the second revision 2 stays.
+  test('refuses a save from a revision issued again since, by the digest its ETag names, and keeps the draft saved under it', async () => {
+    const app = await serve()
+    const first = await save(app, 'invoice', report('invoice', 'One'), { 'if-none-match': '*' })
+    const two = await save(app, 'invoice', report('invoice', 'Two, open in a page'), { 'if-match': String(first.headers.etag) })
+    expect(two.statusCode).toBe(200)
+    const stale = String(two.headers.etag)
+    await rm(join(cases.directory, 'tenants', sha256('acme'), 'templates', 'invoice', 'draft', '2.json'))
+    const again = await save(app, 'invoice', report('invoice', 'Another two'), { 'if-match': String(first.headers.etag) })
+    expect(again.statusCode).toBe(200)
+    expect((again.json() as { revision: number }).revision).toBe(2)
+    const overwritten = await save(app, 'invoice', report('invoice', 'Over another two'), { 'if-match': stale })
+    expect(overwritten.statusCode).toBe(412)
+    expect(overwritten.json()).toEqual({ ...REFUSALS['draft-changed'], revision: 2 })
+    expect(overwritten.headers.etag).toBeUndefined()
+    const newest = await read(app, draftUrl('invoice'))
+    expect(newest.headers.etag).toBe(again.headers.etag)
+    expect(newest.headers.etag).not.toBe(stale)
+    expect((newest.json() as { report: ReportDefinition }).report).toEqual(report('invoice', 'Another two'))
+    expect(await filesInStore()).toEqual([1, 2].map((revision) => `tenants/${sha256('acme')}/templates/invoice/draft/${String(revision)}.json`))
   })
 })
 
@@ -247,10 +291,12 @@ describe('the refusals', () => {
     const app = await serve()
     const bytes = png()
     const other = png(9, 9)
-    expect((await save(app, 'invoice', report(), { 'if-none-match': '*' })).statusCode).toBe(201)
+    const created = await save(app, 'invoice', report(), { 'if-none-match': '*' })
+    expect(created.statusCode).toBe(201)
+    const tag = String(created.headers.etag)
 
     // Who may: a publisher reads and cannot save, an administrator lists and cannot read.
-    expect(refusal(await save(app, 'invoice', report(), { 'if-match': '"1"', authorization: PUBLISHER }))).toEqual({ status: 403, code: 'forbidden' })
+    expect(refusal(await save(app, 'invoice', report(), { 'if-match': tag, authorization: PUBLISHER }))).toEqual({ status: 403, code: 'forbidden' })
     expect((await read(app, draftUrl('invoice'), PUBLISHER)).statusCode).toBe(200)
     expect(refusal(await read(app, draftUrl('invoice'), ADMIN))).toEqual({ status: 403, code: 'forbidden' })
     expect((await read(app, '/v1/templates', ADMIN)).statusCode).toBe(200)
@@ -261,16 +307,16 @@ describe('the refusals', () => {
     expect(refusal(await read(app, draftUrl('nothing-here')))).toEqual({ status: 404, code: 'no-draft' })
     expect(refusal(await read(app, draftUrl('invoice'), GLOBEX))).toEqual({ status: 404, code: 'no-draft' })
 
-    // What a save stands on: none named, a stale revision, a create of what exists.
+    // What a save stands on: none named, another revision, the revision that stands by another digest, a create of what exists. Each 412 names the revision that stands, and none sends an ETag: a tag comes only with the draft it names.
     expect(refusal(await save(app, 'invoice', report()))).toEqual({ status: 428, code: 'precondition-required' })
-    for (const headers of [{ 'if-match': '"7"' }, { 'if-none-match': '*' }]) {
+    for (const headers of [{ 'if-match': `"7-${tag.slice(3, -1)}"` }, { 'if-match': `"1-${HEX}"` }, { 'if-none-match': '*' }]) {
       const changed = await save(app, 'invoice', report(), headers)
       expect(changed.statusCode, JSON.stringify(headers)).toBe(412)
       expect(changed.json()).toEqual({ ...REFUSALS['draft-changed'], revision: 1 })
-      expect(changed.headers.etag).toBe('"1"')
+      expect(changed.headers.etag).toBeUndefined()
     }
-    // A replace of a template with no draft names no revision, and no ETag.
-    const nothing = await save(app, 'quote', report('quote'), { 'if-match': '"1"' })
+    // A replace of a template with no draft names no revision.
+    const nothing = await save(app, 'quote', report('quote'), { 'if-match': tag })
     expect(nothing.json()).toEqual({ ...REFUSALS['draft-changed'], revision: null })
     expect(nothing.headers.etag).toBeUndefined()
 
@@ -427,13 +473,17 @@ describe('the log and the trail', () => {
     const template = 'ledger-only-this-test-names'
     const bytes = png()
     const hex = hexOf(bytes)
+    const kept = await keep(app, hex, bytes)
+    const readBack = await read(app, `/v1/assets/${hex}`)
+    const created = await save(app, template, { ...report(template), assets: [{ id: 'logo', mediaType: 'image/png', digest: assetDigest(bytes) }] }, { 'if-none-match': '*' })
+    const replaced = await save(app, template, report(template), { 'if-match': String(created.headers.etag) })
     const answered = [
-      await keep(app, hex, bytes),
-      await read(app, `/v1/assets/${hex}`),
-      await save(app, template, { ...report(template), assets: [{ id: 'logo', mediaType: 'image/png', digest: assetDigest(bytes) }] }, { 'if-none-match': '*' }),
-      await save(app, template, report(template), { 'if-match': '"1"' }),
-      await save(app, template, report(template), { 'if-match': '"1"' }),
-      await save(app, template, { ...report(template), page: null }, { 'if-match': '"2"' }),
+      kept,
+      readBack,
+      created,
+      replaced,
+      await save(app, template, report(template), { 'if-match': String(created.headers.etag) }),
+      await save(app, template, { ...report(template), page: null }, { 'if-match': String(replaced.headers.etag) }),
       await read(app, draftUrl(template)),
       await read(app, '/v1/templates'),
     ]
@@ -441,7 +491,9 @@ describe('the log and the trail', () => {
     expect(events).toHaveLength(answered.length)
     const written = `${lines.join('')}${JSON.stringify(events)}`
     expect(written).toContain('"route":"/v1/templates/:template/draft"')
-    for (const part of [SUBJECT, TITLE, template, hex, hex.slice(0, 16), 'acme']) expect(written, part).not.toContain(part)
+    // A draft's digest is the tenant's too, the SHA-256 of its report's text, in each tag a request sent and an answer gave.
+    const drafts = [created, replaced].map((answer) => (answer.json() as { digest: string }).digest.slice('sha256:'.length))
+    for (const part of [SUBJECT, TITLE, template, hex, hex.slice(0, 16), ...drafts, ...drafts.map((digest) => digest.slice(0, 16)), 'acme']) expect(written, part).not.toContain(part)
   })
 
   // A stored record the store did not write is the server's fault, and the
@@ -487,13 +539,13 @@ describe('the log and the trail', () => {
   test('names a failure of the file system by its code, the operation, the path inside the tenant and the tenant by keyed hash, answering 500', async () => {
     const lines: string[] = []
     const app = await serve({ logger: { stream: { write: (line) => void lines.push(line) } }, audit: { sink: () => {}, key: KEY } })
-    await save(app, 'invoice', report(), { 'if-none-match': '*' })
+    const tag = String((await save(app, 'invoice', report(), { 'if-none-match': '*' })).headers.etag)
     const tenant = join(cases.directory, 'tenants', sha256('acme'))
     const directory = join(tenant, 'templates', 'invoice', 'draft')
     await chmod(directory, 0o000)
     try {
       expect(refusal(await read(app, draftUrl('invoice')))).toEqual({ status: 500, code: 'internal' })
-      expect(refusal(await save(app, 'invoice', report(), { 'if-match': '"1"' }))).toEqual({ status: 500, code: 'internal' })
+      expect(refusal(await save(app, 'invoice', report(), { 'if-match': tag }))).toEqual({ status: 500, code: 'internal' })
     } finally {
       await chmod(directory, 0o700)
     }

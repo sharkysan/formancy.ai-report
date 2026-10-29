@@ -1,3 +1,4 @@
+import { isDigest } from '@formancy/report-spec'
 import type { ReportDefinition, ReportError } from '@formancy/report-spec'
 import type { Action, Capacity } from './actions.js'
 
@@ -84,22 +85,67 @@ export function isRevision(value: unknown): value is number {
 }
 
 /**
- * `GET /v1/templates/:template/draft`: a template's newest draft. `revision`
- * is a positive safe integer, the one an `If-Match` names to replace it, and
- * `savedBy` is the subject of the token that saved it.
+ * Which draft a read or a save answered, and so which one a save from it
+ * replaces: its revision, a positive safe integer, and its `digest`,
+ * `sha256:` and the 64 lower-case hexadecimal digits of the SHA-256 of the
+ * report's text as the store wrote it. The revision alone does not name
+ * one draft: it is the number of a template's newest record, so where that
+ * record goes -- a backup older than it restored, the file removed by hand,
+ * its name lost on power loss -- the next save is given its number again,
+ * and the digest is what tells the two apart (0049).
  */
-export interface Draft {
+export interface DraftVersion {
+  readonly revision: number
+  readonly digest: string
+}
+
+/**
+ * `GET /v1/templates/:template/draft`: a template's newest draft, its
+ * version the one the `ETag` names and a save from it sends back as
+ * `If-Match`, and `savedBy` the subject of the token that saved it.
+ */
+export interface Draft extends DraftVersion {
   readonly format: typeof DRAFT_FORMAT
   readonly template: string
-  readonly revision: number
   readonly savedBy: string
   readonly report: ReportDefinition
 }
 
-/** `PUT /v1/templates/:template/draft`: the revision the save wrote. */
-export interface DraftSaved {
+/** `PUT /v1/templates/:template/draft`: the version the save wrote. */
+export interface DraftSaved extends DraftVersion {
   readonly template: string
-  readonly revision: number
+}
+
+/** What a report writes before a digest's 64 digits, and a tag leaves out. */
+const DIGEST_PREFIX = 'sha256:'
+
+/**
+ * A draft's version as a strong `ETag`: `"<revision>-<64 hex>"`, the
+ * quotes included and the digest without `sha256:`. The one writer of a
+ * tag, for the route that answers one and a client that sends one back;
+ * `draftVersionOf` is the one reader.
+ */
+export function draftTag(version: DraftVersion): string {
+  return `"${String(version.revision)}-${version.digest.slice(DIGEST_PREFIX.length)}"`
+}
+
+/** A tag as `draftTag` writes one: the revision's digits, no leading zero, then what the digest is judged by. */
+const DRAFT_TAG = /^"([1-9][0-9]*)-([^"]*)"$/
+
+/**
+ * The version `tag` names, where it is exactly one `draftTag` writes: the
+ * revision `isRevision`'s, and the digits a digest report-spec's `isDigest`
+ * takes once `sha256:` is put back before them. Anything else is
+ * undefined -- a weak tag, a list, a tag without its quotes, the bare
+ * revision, a revision 0, past the safe integers or with a leading zero,
+ * upper-case or too few digits, `sha256:` inside the quotes -- so that no
+ * tag is read as a version no read or save answered.
+ */
+export function draftVersionOf(tag: string): DraftVersion | undefined {
+  const [, digits, hex] = DRAFT_TAG.exec(tag) ?? []
+  const revision = Number(digits)
+  const digest = `${DIGEST_PREFIX}${String(hex)}`
+  return isRevision(revision) && isDigest(digest) ? { revision, digest } : undefined
 }
 
 /** `PUT /v1/assets/:digest`: the image now kept, by `sha256:` and the 64 hexadecimal digits of its bytes. */
@@ -143,9 +189,9 @@ export const REFUSALS = Object.freeze({
   'digest-invalid': refusal('digest-invalid', 'The digest in this path is not a SHA-256 written as lower-case hexadecimal.'),
   'precondition-required': refusal(
     'precondition-required',
-    'A save must carry If-Match, naming the revision it replaces, or If-None-Match, for a draft not yet saved.',
+    'A save must carry If-Match, naming the draft it replaces by its ETag, or If-None-Match, for a draft not yet saved.',
   ),
-  'draft-changed': refusal('draft-changed', 'The draft is not at the revision this save expected, so nothing was written; read it again before saving.'),
+  'draft-changed': refusal('draft-changed', 'The draft is not the one this save expected, so nothing was written; read it again before saving.'),
   'report-too-large': refusal('report-too-large', 'This report is larger than a draft may be.'),
   'image-too-large': refusal('image-too-large', 'This image is larger than a kept image may be.'),
   'unsupported-media-type': refusal('unsupported-media-type', 'This request body is not a media type this route reads.'),
@@ -189,7 +235,7 @@ export type ServerRefusal =
 /**
  * The request headers a page on an origin the operator lists may send: the
  * token, the body's media type, and the preconditions a save names the
- * revision it replaces by. The routes read these and nothing else a page
+ * version it replaces by. The routes read these and nothing else a page
  * sets; a header granted that no route reads would be surface for nothing
  * (0046, widened to the draft's routes by 0049).
  */
@@ -198,6 +244,6 @@ export const CROSS_ORIGIN_REQUEST_HEADERS = Object.freeze(['authorization', 'con
 /**
  * The response headers a page on a listed origin may read beyond the ones
  * a browser always shows it: the `ETag` a draft's read and a save answer
- * with, the revision the page's next save names in its `If-Match` (0049).
+ * with, the version the page's next save names in its `If-Match` (0049).
  */
 export const CROSS_ORIGIN_RESPONSE_HEADERS = Object.freeze(['etag'] as const)

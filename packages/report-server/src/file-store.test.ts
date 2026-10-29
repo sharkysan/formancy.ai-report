@@ -58,13 +58,17 @@ describe('a draft', () => {
   // but one, or read back other than what it was given, would serve an
   // author a draft they never saved. The record on disk is its format, the
   // digest, who saved it and the report, the report's text in it exactly
-  // the text its digest was taken of.
-  test('saves 1, 2 and 3 in order, each read back as it was saved', async () => {
+  // the text its digest was taken of. The digest a save answers and a read
+  // gives is that one, as a report names a digest: a save that answered
+  // another than the read after it would give its page a tag the next save
+  // is refused by.
+  test('saves 1, 2 and 3 in order, each read back as it was saved, with the digest of its report’s text', async () => {
     const saves = [draft('u-1', report('invoice', 'One')), draft('u-2', report('invoice', 'Two')), draft('u-1', report('invoice', 'Three'))]
     expect(await store.newest(TENANT, 'invoice')).toBeUndefined()
     for (const [at, each] of saves.entries()) {
-      expect(await store.save(TENANT, 'invoice', at === 0 ? null : at, each)).toEqual({ saved: true, revision: at + 1 })
-      expect(await store.newest(TENANT, 'invoice')).toEqual({ revision: at + 1, ...each })
+      const digest = `sha256:${sha256(JSON.stringify(each.report))}`
+      expect(await store.save(TENANT, 'invoice', at === 0 ? null : at, each)).toEqual({ saved: true, revision: at + 1, digest })
+      expect(await store.newest(TENANT, 'invoice')).toEqual({ revision: at + 1, digest, ...each })
     }
     const text = await readFile(join(draftDirectory(TENANT, 'invoice'), '3.json'), 'utf8')
     const written = JSON.stringify(saves[2]?.report)
@@ -100,20 +104,22 @@ describe('a draft', () => {
     expect((await readdir(draftDirectory(TENANT, 'invoice'))).sort()).toEqual(['1.json', '2.json'])
   })
 
-  // The cost 0049 states, and the operator's procedure answers: a revision
-  // is the newest file's number, so where that file disappears -- a backup
-  // older than the newest save restored, the file removed by hand -- the
-  // next save is given its number again, and a page still holding the old
-  // revision 2 saves from it over another author's 2, unseen. Held here so
-  // that the limitation is read again the day the store stops reusing a
-  // number, or reuses one some other way: left standing, it would tell
-  // operators of a hazard the store no longer has, or not of the one it has.
-  test('a revision whose newest file is gone is issued again, and a save from the old one then wins', async () => {
+  // A revision is the newest file's number, so where that file disappears
+  // -- a backup older than the newest save restored, the file removed by
+  // hand -- the next save is given its number again, and the store's swap,
+  // which compares revisions alone, lets a save from the old revision 2 win
+  // over another author's 2. What the use case refuses that save by is the
+  // digest, which tells the two 2s apart (0049); held here so that the day
+  // the store stops reusing a number, or reuses one some other way, the
+  // costs 0049 states are read again.
+  test('a revision whose newest file is gone is issued again under another digest, and the swap by revision alone lets a save from the old one win', async () => {
     await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'One')))
-    await store.save(TENANT, 'invoice', 1, draft('u-1', report('invoice', 'Two, open in a page')))
+    const first = await store.save(TENANT, 'invoice', 1, draft('u-1', report('invoice', 'Two, open in a page')))
     await rm(join(draftDirectory(TENANT, 'invoice'), '2.json'))
-    expect(await store.save(TENANT, 'invoice', 1, draft('u-2', report('invoice', 'Another two')))).toEqual({ saved: true, revision: 2 })
-    expect(await store.save(TENANT, 'invoice', 2, draft('u-1', report('invoice', 'Three, over another two')))).toEqual({ saved: true, revision: 3 })
+    const again = await store.save(TENANT, 'invoice', 1, draft('u-2', report('invoice', 'Another two')))
+    expect(again).toMatchObject({ saved: true, revision: 2 })
+    expect(again.saved && first.saved && again.digest !== first.digest).toBe(true)
+    expect(await store.save(TENANT, 'invoice', 2, draft('u-1', report('invoice', 'Three, over another two')))).toMatchObject({ saved: true, revision: 3 })
     expect((await store.newest(TENANT, 'invoice'))?.report.title).toBe('Three, over another two')
   })
 
@@ -146,7 +152,7 @@ describe('a draft', () => {
     expect(await store.newest(TENANT, 'crashed')).toBeUndefined()
     expect(await store.newest(TENANT, 'invoice')).toMatchObject({ revision: 1 })
     // The leftover is not a revision either, so it does not stand in the way of the first save.
-    expect(await store.save(TENANT, 'crashed', null, draft('u-1', report('crashed', 'First')))).toEqual({ saved: true, revision: 1 })
+    expect(await store.save(TENANT, 'crashed', null, draft('u-1', report('crashed', 'First')))).toMatchObject({ saved: true, revision: 1 })
   })
 
   // A record whose report was changed by hand is no longer what the save
@@ -209,7 +215,7 @@ describe('the tenants', () => {
   test('Acme, acme, NFC é and NFD é are four tenants that cannot see each other', async () => {
     const tenants = ['Acme', 'acme', 'é', 'é']
     for (const tenant of tenants) {
-      expect(await store.save(tenant, 'invoice', null, draft('u-1', report('invoice', `Of ${tenant}`)))).toEqual({ saved: true, revision: 1 })
+      expect(await store.save(tenant, 'invoice', null, draft('u-1', report('invoice', `Of ${tenant}`)))).toMatchObject({ saved: true, revision: 1 })
     }
     const kept = image('the logo of Acme')
     await store.keepImage('Acme', kept.digest, { mediaType: 'image/png', bytes: kept.bytes })

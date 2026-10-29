@@ -256,20 +256,27 @@ export const DRAFT_REPORT = {
   provenance: { kind: 'blank' },
 }
 
-/** Saves `DRAFT_REPORT` as the template `gate`, a create (`If-None-Match: *`); throws unless the server answers 201, revision 1. */
+/**
+ * The 64 hexadecimal digits of the SHA-256 of `DRAFT_REPORT`'s text as the
+ * server stores it, which a draft's tag and digest carry (0049): the store
+ * writes the report the validator returns, which is this one, in this order.
+ */
+const DRAFT_HEX = createHash('sha256').update(JSON.stringify(DRAFT_REPORT)).digest('hex')
+
+/** Saves `DRAFT_REPORT` as the template `gate`, a create (`If-None-Match: *`); throws unless the server answers 201, revision 1 and its report's digest, in the body and in the ETag. */
 export async function saveFirstDraft(base, bearer) {
   const answer = await request(`${base}/v1/templates/gate/draft`, { method: 'PUT', headers: { ...AUTHOR_HEADERS(bearer), 'content-type': 'application/json', 'if-none-match': '*' }, body: JSON.stringify(DRAFT_REPORT) })
   const body = await answer.text()
-  expect(answer.status === 201 && answer.headers.get('etag') === '"1"' && body === '{"template":"gate","revision":1}', `a first save answered ${String(answer.status)} ${answer.headers.get('etag')} ${body}`)
+  expect(answer.status === 201 && answer.headers.get('etag') === `"1-${DRAFT_HEX}"` && body === JSON.stringify({ template: 'gate', revision: 1, digest: `sha256:${DRAFT_HEX}` }), `a first save answered ${String(answer.status)} ${answer.headers.get('etag')} ${body}`)
 }
 
-/** Reads the template `gate`'s draft; throws unless it is revision 1 and its report is `DRAFT_REPORT`, as saved. */
+/** Reads the template `gate`'s draft; throws unless it is revision 1 under its report's digest, in the body and in the ETag, and its report is `DRAFT_REPORT`, as saved. */
 export async function expectFirstDraft(base, bearer) {
   const answer = await request(`${base}/v1/templates/gate/draft`, { headers: AUTHOR_HEADERS(bearer) })
   const text = await answer.text()
-  expect(answer.status === 200 && answer.headers.get('etag') === '"1"', `reading the draft answered ${String(answer.status)} ${answer.headers.get('etag')} ${text.slice(0, 200)}`)
+  expect(answer.status === 200 && answer.headers.get('etag') === `"1-${DRAFT_HEX}"`, `reading the draft answered ${String(answer.status)} ${answer.headers.get('etag')} ${text.slice(0, 200)}`)
   const draft = JSON.parse(text)
-  expect(draft.template === 'gate' && draft.revision === 1, `the draft read back was ${draft.template} at revision ${String(draft.revision)}`)
+  expect(draft.template === 'gate' && draft.revision === 1 && draft.digest === `sha256:${DRAFT_HEX}`, `the draft read back was ${draft.template} at revision ${String(draft.revision)} under ${String(draft.digest)}`)
   expect(isDeepStrictEqual(draft.report, DRAFT_REPORT), 'the report read back is not the report saved')
 }
 

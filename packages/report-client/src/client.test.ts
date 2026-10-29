@@ -74,19 +74,25 @@ describe('against report-server', () => {
   const client = (options: Partial<ReportClientOptions> = {}) => createReportClient({ server: at, token: async () => signed(), ...options })
 
   // A host's Save is a create the first time and a replace from the
-  // revision it opened after. A client that sent no precondition would be
+  // version it opened after. A client that sent no precondition would be
   // refused every save, and one that sent the wrong one would overwrite
-  // another author's work or never save twice; the revision the next save
-  // names is the one the read answered, in its body.
-  test('creates a draft, reads it back, and replaces it from the revision it read', async () => {
+  // another author's work or never save twice. The version the next save
+  // names is the one the read or the last save answered, in its body: a
+  // host passes the `Draft` or the `DraftSaved` as it came, and the two
+  // name one draft by one digest.
+  test('creates a draft, reads it back, and replaces it from the draft it read, then from the save it was answered', async () => {
     const reports = client()
     expect(await reports.listTemplates()).toEqual({ ok: true, value: { templates: [] } })
-    expect(await reports.saveDraft('invoice', report(), null)).toEqual({ ok: true, value: { template: 'invoice', revision: 1 } })
+    const created = valueOf(await reports.saveDraft('invoice', report(), null))
+    expect(created).toEqual({ template: 'invoice', revision: 1, digest: expect.stringMatching(/^sha256:[0-9a-f]{64}$/) as unknown })
     const opened = valueOf(await reports.readDraft('invoice'))
-    expect(opened).toEqual({ format: 1, template: 'invoice', revision: 1, savedBy: SUBJECT, report: report() })
-    expect(await reports.saveDraft('invoice', report('invoice', 'Changed'), opened.revision)).toEqual({ ok: true, value: { template: 'invoice', revision: 2 } })
-    expect(valueOf(await reports.readDraft('invoice')).report).toEqual(report('invoice', 'Changed'))
-    expect(await reports.listTemplates()).toEqual({ ok: true, value: { templates: [{ template: 'invoice', revision: 2, title: 'Changed' }] } })
+    expect(opened).toEqual({ format: 1, template: 'invoice', revision: 1, digest: created.digest, savedBy: SUBJECT, report: report() })
+    const changed = valueOf(await reports.saveDraft('invoice', report('invoice', 'Changed'), opened))
+    expect(changed).toMatchObject({ template: 'invoice', revision: 2 })
+    expect(changed.digest).not.toBe(created.digest)
+    expect(valueOf(await reports.saveDraft('invoice', report('invoice', 'Again'), changed))).toMatchObject({ template: 'invoice', revision: 3 })
+    expect(valueOf(await reports.readDraft('invoice')).report).toEqual(report('invoice', 'Again'))
+    expect(await reports.listTemplates()).toEqual({ ok: true, value: { templates: [{ template: 'invoice', revision: 3, title: 'Again' }] } })
   })
 
   // Two authors open revision 1 and both save. The second must hear that
@@ -94,12 +100,12 @@ describe('against report-server', () => {
   // can offer the newest; a client that threw, or answered without the
   // revision, would leave the host nothing to offer. A create of a
   // template that exists is the same refusal.
-  test('answers a save from a revision no longer the newest draft-changed, with the revision that stands, and writes nothing', async () => {
+  test('answers a save from a draft no longer the newest draft-changed, with the revision that stands, and writes nothing', async () => {
     const reports = client()
-    valueOf(await reports.saveDraft('invoice', report(), null))
-    valueOf(await reports.saveDraft('invoice', report('invoice', 'Theirs'), 1))
+    const first = valueOf(await reports.saveDraft('invoice', report(), null))
+    valueOf(await reports.saveDraft('invoice', report('invoice', 'Theirs'), first))
     const changed = { ok: false, status: 412, refusal: { ...REFUSALS['draft-changed'], revision: 2 } }
-    expect(await reports.saveDraft('invoice', report('invoice', 'Mine'), 1)).toEqual(changed)
+    expect(await reports.saveDraft('invoice', report('invoice', 'Mine'), first)).toEqual(changed)
     expect(await reports.saveDraft('invoice', report('invoice', 'Mine'), null)).toEqual(changed)
     expect(valueOf(await reports.readDraft('invoice')).report).toEqual(report('invoice', 'Theirs'))
   })
@@ -117,7 +123,7 @@ describe('against report-server', () => {
     expect(await reports.saveDraft('invoice', declaring, null)).toEqual({ ok: false, status: 422, refusal: { ...REFUSALS['asset-not-kept'], assets: ['logo'] } })
     expect(await reports.keepImage(PNG, assetDigest(PNG), 'image/png')).toEqual({ ok: true, value: { digest: assetDigest(PNG) } })
     expect(await reports.readImage(assetDigest(PNG))).toEqual({ ok: true, value: { mediaType: 'image/png', bytes: PNG } })
-    expect(await reports.saveDraft('invoice', declaring, null)).toEqual({ ok: true, value: { template: 'invoice', revision: 1 } })
+    expect(valueOf(await reports.saveDraft('invoice', declaring, null))).toMatchObject({ template: 'invoice', revision: 1 })
   })
 
   // A token expires while a person edits. The host's next token must be
@@ -224,7 +230,7 @@ describe('against what is not report-server', () => {
       await expect(client(fetch).saveDraft('invoice', report(), null), JSON.stringify(body)).rejects.toThrow(/422/)
     }
     const { fetch } = answering(() => Response.json({ ...REFUSALS['draft-changed'], revision: null }, { status: 412 }))
-    expect(await client(fetch).saveDraft('invoice', report(), 3)).toEqual({ ok: false, status: 412, refusal: { ...REFUSALS['draft-changed'], revision: null } })
+    expect(await client(fetch).saveDraft('invoice', report(), { revision: 3, digest: assetDigest(PNG) })).toEqual({ ok: false, status: 412, refusal: { ...REFUSALS['draft-changed'], revision: null } })
   })
 
   // An image's answer is its bytes under its media type. One under any
@@ -263,19 +269,22 @@ describe('against what is not report-server', () => {
   })
 
   // What the routes read: the token as a bearer, a save's precondition in
-  // the header the server names, a body under its own media type, a
-  // digest's digits in the path, and the method the route is answered by.
+  // the header the server names -- the draft's version as the tag the
+  // server answered it with, the revision and the digest's 64 digits --
+  // a body under its own media type, a digest's digits in the path, and
+  // the method the route is answered by. A tag that left the digest out
+  // is one the server refuses as malformed.
   test('sends each route its method, its path under the base URL, the token as a bearer and a save’s precondition', async () => {
     const { fetch, asked } = answering(() => Response.json({}))
     const reports = client(fetch)
     await reports.saveDraft('invoice', report(), null)
-    await reports.saveDraft('invoice', report(), 12)
+    await reports.saveDraft('invoice', report(), { revision: 12, digest: assetDigest(PNG) })
     await reports.keepImage(PNG, assetDigest(PNG), 'image/png')
     const sent = asked.map(({ url, init }) => ({ url, method: init?.method, headers: init?.headers, redirect: init?.redirect }))
     const hex = assetDigest(PNG).slice('sha256:'.length)
     expect(sent).toEqual([
       { url: 'https://reports.example/v1/templates/invoice/draft', method: 'PUT', headers: { authorization: 'Bearer a-token', 'content-type': 'application/json', 'if-none-match': '*' }, redirect: 'error' },
-      { url: 'https://reports.example/v1/templates/invoice/draft', method: 'PUT', headers: { authorization: 'Bearer a-token', 'content-type': 'application/json', 'if-match': '"12"' }, redirect: 'error' },
+      { url: 'https://reports.example/v1/templates/invoice/draft', method: 'PUT', headers: { authorization: 'Bearer a-token', 'content-type': 'application/json', 'if-match': `"12-${hex}"` }, redirect: 'error' },
       { url: `https://reports.example/v1/assets/${hex}`, method: 'PUT', headers: { authorization: 'Bearer a-token', 'content-type': 'image/png' }, redirect: 'error' },
     ])
     expect(JSON.parse(String(asked[0]?.init?.body))).toEqual(report())
@@ -313,23 +322,35 @@ describe('against what is not report-server', () => {
     expect(asked).toEqual([])
   })
 
-  // A save names the revision it replaces, or null for a template not yet
-  // saved. Anything else from a JavaScript host -- 0, 1.5, NaN, undefined --
+  // A save names the draft it replaces by its version, or null for a
+  // template not yet saved. Anything else from a JavaScript host -- a
+  // revision 0, 1.5 or NaN, a digest that is none or upper-case, the bare
+  // revision a host kept before a version carried its digest, undefined --
   // sent as it is would carry the token and the whole report to a server
   // that answers bad-request, which the host could not tell from a request
   // the server could not read. Refused here, as a digest in the wrong form
-  // is, before the token is asked or anything is sent.
-  test('refuses a save from a value that is no revision before the token is asked or anything is sent', async () => {
+  // is, before the token is asked or anything is sent, by a sentence that
+  // quotes nothing of it.
+  test('refuses a save from a value that is no draft’s version before the token is asked or anything is sent', async () => {
     let tokens = 0
     const { fetch, asked } = answering(() => Response.json({}))
     const reports = createReportClient({ server: 'https://reports.example', token: () => ((tokens += 1), 'a-token'), fetch })
-    for (const from of [0, -1, 1.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1, '3', undefined]) {
-      const thrown = await reports.saveDraft('invoice', report(), from as unknown as number).then(
+    const digest = assetDigest(PNG)
+    const refused = [
+      ...[0, -1, 1.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1, '3', undefined].map((revision) => ({ revision, digest })),
+      ...['', digest.slice('sha256:'.length), digest.toUpperCase(), `${digest}0`, undefined].map((other) => ({ revision: 3, digest: other })),
+      3,
+      '"3"',
+      undefined,
+    ]
+    for (const from of refused) {
+      const thrown = await reports.saveDraft('invoice', report(), from as unknown as { revision: number; digest: string }).then(
         () => undefined,
         (error: unknown) => error,
       )
-      expect(thrown, String(from)).toBeInstanceOf(Error)
-      expect((thrown as Error).message).toMatch(/revision/)
+      expect(thrown, JSON.stringify(from)).toBeInstanceOf(Error)
+      expect((thrown as Error).message).toMatch(/revision.*digest/)
+      expect((thrown as Error).message).not.toContain(digest.slice('sha256:'.length, 'sha256:'.length + 16))
     }
     expect(tokens).toBe(0)
     expect(asked).toEqual([])

@@ -14,20 +14,31 @@ import type { TemplateSummary } from './wire.js'
  * `digest` is the full `sha256:` form, as a report names an asset.
  */
 
-/** A template's draft as a store holds it: the revision it was written at, the subject that wrote it, and the report as the validator returned it. */
+/**
+ * A template's draft as a store holds it: the revision it was written at,
+ * the digest of the report as it was written, the subject that wrote it,
+ * and the report as the validator returned it.
+ */
 export interface StoredDraft {
   /** A positive safe integer; the first save of a template is 1 and each save after it the next. */
   readonly revision: number
+  /**
+   * `sha256:` and the SHA-256 of the report's text as the store wrote it,
+   * which tells two drafts written under one revision apart: the use case
+   * compares it with the one a save names before the store's swap (0049).
+   */
+  readonly digest: string
   readonly savedBy: string
   readonly report: ReportDefinition
 }
 
 /**
- * What a save came to: written at `revision`, or not written because the
- * newest draft was not the one the save started from. `revision` is then
- * the newest draft's, or `null` where the template has none.
+ * What a save came to: written at `revision`, its report's `digest` as
+ * `StoredDraft` holds it, or not written because the newest draft was not
+ * the one the save started from. `revision` is then the newest draft's, or
+ * `null` where the template has none.
  */
-export type SaveOutcome = { readonly saved: true; readonly revision: number } | { readonly saved: false; readonly revision: number | null }
+export type SaveOutcome = { readonly saved: true; readonly revision: number; readonly digest: string } | { readonly saved: false; readonly revision: number | null }
 
 /** An image as a store holds it: the bytes and the kind they were sniffed as. */
 export interface StoredImage {
@@ -40,7 +51,12 @@ export interface TemplateStore {
   list(tenant: string): Promise<readonly TemplateSummary[]>
   /** The template's newest draft; undefined where it has none. */
   newest(tenant: string, template: string): Promise<StoredDraft | undefined>
-  /** `from` null creates the template; a number replaces that revision. Exactly one of any concurrent saves from one `from` wins. */
+  /**
+   * `from` null creates the template; a number replaces that revision.
+   * Exactly one of any concurrent saves from one `from` wins. The swap is
+   * by revision alone: that the draft at `from` is the one the save names
+   * by its digest too is the use case's to have checked.
+   */
   save(tenant: string, template: string, from: number | null, draft: { readonly savedBy: string; readonly report: ReportDefinition }): Promise<SaveOutcome>
   /** Keeps `image` under `digest`; a second keep of the same digest leaves it as it is. */
   keepImage(tenant: string, digest: string, image: StoredImage): Promise<void>

@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, test } from 'vitest'
 import * as entry from './index.js'
 import type { ServerRefusal } from './index.js'
 import { ACTIONS } from './actions.js'
-import { API_PREFIX, CROSS_ORIGIN_REQUEST_HEADERS, CROSS_ORIGIN_RESPONSE_HEADERS, DRAFT_FORMAT, isRevision, REFUSALS, ROUTES } from './wire.js'
+import { API_PREFIX, CROSS_ORIGIN_REQUEST_HEADERS, CROSS_ORIGIN_RESPONSE_HEADERS, DRAFT_FORMAT, draftTag, draftVersionOf, isRevision, REFUSALS, ROUTES } from './wire.js'
 
 /**
  * What a client compiles against (0046): the API's version line, the routes
@@ -129,9 +129,9 @@ describe('the wire', () => {
   // precondition, none of which a simple request may carry: without
   // content-type, if-match and if-none-match in the grant, its preflight is
   // refused and it cannot save at all; and without ETag exposed, it cannot
-  // read the revision its next save names. A header granted that no route
+  // read the version its next save names. A header granted that no route
   // reads is surface for nothing, so the lists are exactly these (0049).
-  test('lets a page across origins send the token, the body’s type and the preconditions, and read the revision', () => {
+  test('lets a page across origins send the token, the body’s type and the preconditions, and read the version', () => {
     expect(CROSS_ORIGIN_REQUEST_HEADERS).toEqual(['authorization', 'content-type', 'if-match', 'if-none-match'])
     expect(CROSS_ORIGIN_RESPONSE_HEADERS).toEqual(['etag'])
     expect(Object.isFrozen(CROSS_ORIGIN_REQUEST_HEADERS)).toBe(true)
@@ -146,6 +146,54 @@ describe('the wire', () => {
   test('takes a positive safe integer, and nothing else, for a revision', () => {
     for (const revision of [1, 2, 10, Number.MAX_SAFE_INTEGER]) expect(isRevision(revision), String(revision)).toBe(true)
     for (const value of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1, '1', null, undefined, 1n]) expect(isRevision(value), String(value)).toBe(false)
+  })
+
+  // The tag a read and a save answer is what the next save's If-Match
+  // sends back, so the one that writes it and the one that reads it must
+  // agree on every version: a tag the parser read as another revision or
+  // digest than the one it was written of would match a draft its page
+  // never saw, and one it refused would leave that page unable to save.
+  test('writes a draft’s version as a strong tag and reads it back as that version', () => {
+    const digest = `sha256:${'0123456789abcdef'.repeat(4)}`
+    expect(draftTag({ revision: 12, digest })).toBe(`"12-${'0123456789abcdef'.repeat(4)}"`)
+    for (const version of [1, 10, Number.MAX_SAFE_INTEGER].flatMap((revision) => [digest, `sha256:${'0'.repeat(64)}`].map((each) => ({ revision, digest: each })))) {
+      const tag = draftTag(version)
+      expect(draftVersionOf(tag), tag).toStrictEqual(version)
+    }
+  })
+
+  // The parser is the route's whole reading of If-Match. A tag it took
+  // that no read or save answered -- the bare revision this API wrote
+  // before it named the digest, a weak tag, a revision a store never
+  // numbers a file by, a digest report-spec would not write -- would be
+  // read as some version, and a save from it would be judged against a
+  // draft its author never named. Each is undefined, which the route
+  // answers 400.
+  test('reads nothing but a tag it writes', () => {
+    const hex = 'ab'.repeat(32)
+    const refused = [
+      `12-${hex}`,
+      `W/"12-${hex}"`,
+      '"1"',
+      '"12"',
+      `"012-${hex}"`,
+      `"0-${hex}"`,
+      `"-1-${hex}"`,
+      `"1.5-${hex}"`,
+      `"${String(Number.MAX_SAFE_INTEGER + 1)}-${hex}"`,
+      `"99999999999999999999-${hex}"`,
+      `"12-${hex.toUpperCase()}"`,
+      `"12-${hex.slice(1)}"`,
+      `"12-${hex}0"`,
+      `"12-sha256:${hex}"`,
+      `"12-${hex}", "13-${hex}"`,
+      `"12-${hex}" `,
+      `"12 ${hex}"`,
+      `"12--${hex}"`,
+      '*',
+      '',
+    ]
+    for (const tag of refused) expect(draftVersionOf(tag), tag).toBeUndefined()
   })
 })
 
@@ -165,6 +213,8 @@ describe('the entry', () => {
       'actionsOf',
       'can',
       'capacitiesOf',
+      'draftTag',
+      'draftVersionOf',
       'isRevision',
       'keepImage',
       'listTemplates',

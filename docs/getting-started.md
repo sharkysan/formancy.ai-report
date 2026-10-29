@@ -855,16 +855,16 @@ address and token your page is given; the install gate type-checks it
 against the DOM's types and bundles it, and starts no server, so what
 follows is checked to compile and not run.
 
-A draft is saved **from a revision**: the one the page opened, or the one
-its last save answered, or `null` for a template not yet saved, whose
-first save creates it. A save from a revision that is no longer the
-newest is refused `draft-changed`, with the revision that stands, and
-writes nothing, so two authors never overwrite each other unseen, short of
-a restore of the server's store from before a revision a page still holds,
-after which its operator has every author reload (0049). The
-client answers a refusal and never throws it; what it throws is what no
-request could carry as it means it, such as a token no bearer header
-carries.
+A draft is saved **from the version it replaces**, `{ revision, digest }`:
+the one the page opened, or the one its last save answered, or `null` for
+a template not yet saved, whose first save creates it. A save from a draft
+that is no longer the newest -- another revision, or its own revision
+saved again since under another digest, as after a restore of the
+server's store from a backup older than it -- is refused `draft-changed`,
+with the revision that stands, and writes nothing, so two authors never
+overwrite each other unseen (0049). The client answers a refusal and never
+throws it; what it throws is what no request could carry as it means it,
+such as a token no bearer header carries.
 
 **The images.** The runtime's `AssetResolver` is synchronous, so it cannot
 ask the server for a PNG while a preview prints. The page keeps a cache the
@@ -918,8 +918,9 @@ export function createImageCache(reports: ReportClient): ImageCache {
 **The draft.** `openDraft`, in `drafts.ts`, reads the newest draft, fills the
 cache, and opens it with section 4's `openEditor`, given the cache's store
 so that the builder offers Add image…. The `KeptDraft` it answers holds the
-revision as a closure, so a save that succeeds moves it and the next save
-is from there; a save the server refused leaves it where it was.
+version it saves from, the draft's revision and digest, in a closure, so a
+save that succeeds moves it and the next save is from there; a save the
+server refused leaves it where it was.
 
 ```ts guide=react file=drafts.ts
 import type { ReportClient } from '@formancy/report-client'
@@ -936,7 +937,7 @@ export type SaveOutcome =
 
 export interface KeptDraft {
   readonly opened: OpenedEditor
-  /** Saves the session's document from the revision this draft was opened at, or last saved at; from `null` while the template has no draft. */
+  /** Saves the session's document from the version this draft was opened at, or last saved at; from `null` while the template has no draft. */
   save(): Promise<SaveOutcome>
 }
 
@@ -947,14 +948,15 @@ export async function openDraft(reports: ReportClient, images: ImageCache, templ
   const report = read.ok ? read.value.report : blank
   await images.load(report)
   const opened = openEditor(report, images.store)
-  // null until the template's first save, which creates it.
-  let revision = read.ok ? read.value.revision : null
+  // The version the next save names: null until the template's first save, which creates it.
+  let from: { readonly revision: number; readonly digest: string } | null = read.ok ? { revision: read.value.revision, digest: read.value.digest } : null
   return {
     opened,
     async save() {
-      const answer = await reports.saveDraft(template, opened.session.exportDocument(), revision)
+      const answer = await reports.saveDraft(template, opened.session.exportDocument(), from)
       if (answer.ok) {
-        revision = answer.value.revision
+        const { revision, digest } = answer.value
+        from = { revision, digest }
         return { kind: 'saved', revision }
       }
       if (answer.refusal.code === 'draft-changed') return { kind: 'changed', message: 'Someone saved this template since you opened it. Reload to read their draft; yours is not saved.' }
@@ -969,12 +971,12 @@ draft is refused `no-draft`. `openDraft` then opens the report the host
 hands it as `blank` -- a starter of your own, or report-spec's
 `emptyReport(template, title, locale)` where your page installs
 report-spec -- whose `id` is the template's, or its save is refused
-`template-id-mismatch`; and the revision is `null`, so the first Save goes
+`template-id-mismatch`; and the version is `null`, so the first Save goes
 out from `null`, as `If-None-Match: *`, and creates the template. Section
 4's page offers Save once the author has changed something, so a blank
 opened and left as it is creates nothing. Two authors who open a template
 not yet saved both save from `null`, and the second is told `changed`, as
-for any save from a revision that is no longer the newest.
+for any save from a draft that is no longer the newest.
 
 **A conflict, and a reload.** On `changed`, show the message and offer a
 reload, which is `openDraft` again and the new `KeptDraft`'s `opened` in

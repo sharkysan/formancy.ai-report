@@ -1,6 +1,6 @@
-import { isRevision, REFUSALS } from '@formancy/report-server-core'
+import { draftTag, isRevision, REFUSALS } from '@formancy/report-server-core'
 import type { Draft, DraftSaved, ImageKept, RefusalCode, Route, ServerRefusal, StoredImage, TemplateList } from '@formancy/report-server-core'
-import { ASSET_MEDIA_TYPES } from '@formancy/report-spec'
+import { ASSET_MEDIA_TYPES, isDigest } from '@formancy/report-spec'
 import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
 
 /**
@@ -19,9 +19,9 @@ import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
  * media type -- is thrown, naming the route by its pattern and the status,
  * and nothing the request carried; a network error propagates as fetch
  * gave it. What the host gave that no request could carry as it means it
- * -- a token no bearer header carries, a save from what is no revision, a
- * digest that does not begin with `sha256:` -- is thrown before anything is
- * sent, by a fixed sentence that quotes none of it.
+ * -- a token no bearer header carries, a save from what is no draft's
+ * version, a digest that does not begin with `sha256:` -- is thrown before
+ * anything is sent, by a fixed sentence that quotes none of it.
  */
 
 export interface ReportClientOptions {
@@ -38,15 +38,18 @@ export type Answered<T> = { readonly ok: true; readonly value: T } | { readonly 
 export interface ReportClient {
   /** The tenant's templates, by id, each with its newest draft's revision and title. */
   listTemplates(): Promise<Answered<TemplateList>>
-  /** The template's newest draft, with the revision a save from it names. */
+  /** The template's newest draft, with the version, its revision and its digest, a save from it names. */
   readDraft(template: string): Promise<Answered<Draft>>
   /**
    * Saves `report` as the template's next draft: from `null`, a template not
-   * yet saved; from a revision, the draft that revision is. A save from a
-   * revision no longer the newest is refused `draft-changed`, with the
-   * revision that stands, and writes nothing.
+   * yet saved; from a draft's version, the draft it is: the `Draft` a read
+   * answered or the `DraftSaved` a save did, passed as it came, or its
+   * revision and digest alone. A save from a draft no longer the newest --
+   * another revision, or the same one saved again since under another
+   * digest -- is refused `draft-changed`, with the revision that stands,
+   * and writes nothing.
    */
-  saveDraft(template: string, report: ReportDefinition, from: number | null): Promise<Answered<DraftSaved>>
+  saveDraft(template: string, report: ReportDefinition, from: { readonly revision: number; readonly digest: string } | null): Promise<Answered<DraftSaved>>
   /** Keeps an image under `digest`, `sha256:` and the hexadecimal digits of its bytes, as a report names it. */
   keepImage(bytes: Uint8Array, digest: string, mediaType: AssetMediaType): Promise<Answered<ImageKept>>
   /** The image kept under `digest`, written as `keepImage` takes it: its bytes and the media type they were kept as. */
@@ -86,11 +89,18 @@ const BEARER = /^[A-Za-z0-9\-._~+/]+=*$/
 
 const TOKEN_RULE = 'The token the host answered is no bearer token: letters, digits and - . _ ~ + /, with = only at its end, and nothing else.'
 
-/** The headers a save from `from` sends, or thrown, before anything is asked or sent, where `from` is neither null nor a revision. */
-function preconditionOf(from: number | null): Readonly<Record<string, string>> {
+/**
+ * The headers a save from `from` sends: the draft's version as the tag the
+ * server answered it with, `draftTag`'s, or thrown, before anything is
+ * asked or sent, where `from` is neither null nor a draft's version.
+ */
+function preconditionOf(from: { readonly revision: number; readonly digest: string } | null): Readonly<Record<string, string>> {
   if (from === null) return { 'if-none-match': '*' }
-  if (!isRevision(from)) throw new Error('A save is from null, for a template not yet saved, or from the revision it replaces, a positive safe integer.')
-  return { 'if-match': `"${String(from)}"` }
+  // From a JavaScript host `from` may be anything, a bare revision or undefined among it, which `?.` reads as no version.
+  if (!isRevision(from?.revision) || !isDigest(from?.digest)) {
+    throw new Error('A save is from null, for a template not yet saved, or from the version of the draft it replaces, as a read or a save answered it: its revision, a positive safe integer, and its digest, sha256: and 64 lower-case hexadecimal digits.')
+  }
+  return { 'if-match': draftTag(from) }
 }
 
 /** How a report names an image's bytes; a path carries the digits after it. */

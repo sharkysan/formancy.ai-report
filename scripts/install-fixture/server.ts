@@ -13,8 +13,8 @@
  * forgery or a malformed token with the one 401, and answers whoami for a
  * token this host signed, with its tenant and the actions its roles give.
  * Through the packed report-client, installed beside it with what it
- * declares (0049), a draft is saved, read back at the revision it was saved
- * at, and a save from that revision refused draft-changed once another has
+ * declares (0049), a draft is saved, read back at the version it was saved
+ * at, and a save from the draft read refused draft-changed once another has
  * saved since, with the revision that stands.
  * The tokens are signed with node:crypto alone, as a host on any stack can
  * sign one, and their secrets are this check's own.
@@ -85,18 +85,19 @@ try {
   if (events.length !== 5) throw new Error(`the trail holds ${String(events.length)} events for five requests whoami answered`)
 
   // A host's page, as the packed client asks for it: a draft saved and read
-  // back, then saved from the revision it was read at once another author
-  // has saved since, which writes nothing and names the revision that stands.
+  // back at the version the save answered, then saved from the draft it read
+  // once another author has saved from it since, which writes nothing and
+  // names the revision that stands.
   const reports = createReportClient({ server: at, token: () => token })
   const saved = await reports.saveDraft('invoice', emptyReport('invoice', 'Invoice', 'en'), null)
   if (!saved.ok) throw new Error(`the first save was refused: ${saved.refusal.code}`)
   const opened = await reports.readDraft('invoice')
   if (!opened.ok) throw new Error(`the draft could not be read: ${opened.refusal.code}`)
-  if (opened.value.revision !== saved.value.revision || opened.value.savedBy !== claims.sub || JSON.stringify(opened.value.report) !== JSON.stringify(emptyReport('invoice', 'Invoice', 'en'))) {
+  if (opened.value.revision !== saved.value.revision || opened.value.digest !== saved.value.digest || opened.value.savedBy !== claims.sub || JSON.stringify(opened.value.report) !== JSON.stringify(emptyReport('invoice', 'Invoice', 'en'))) {
     throw new Error(`the draft saved at revision ${String(saved.value.revision)} was read back otherwise, at revision ${String(opened.value.revision)}`)
   }
-  const theirs = await reports.saveDraft('invoice', emptyReport('invoice', 'Theirs', 'en'), opened.value.revision)
-  const mine = await reports.saveDraft('invoice', emptyReport('invoice', 'Mine', 'en'), opened.value.revision)
+  const theirs = await reports.saveDraft('invoice', emptyReport('invoice', 'Theirs', 'en'), opened.value)
+  const mine = await reports.saveDraft('invoice', emptyReport('invoice', 'Mine', 'en'), opened.value)
   if (!theirs.ok || mine.ok || mine.refusal.code !== 'draft-changed' || mine.refusal.revision !== theirs.value.revision) {
     throw new Error(`a save from revision ${String(opened.value.revision)} after another's was answered ${mine.ok ? 'as saved' : `${String(mine.status)} ${mine.refusal.code}`}, not draft-changed`)
   }

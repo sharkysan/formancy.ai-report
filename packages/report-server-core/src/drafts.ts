@@ -1,4 +1,4 @@
-import { isFontMediaType, isIdentifier, validateReport } from '@formancy/report-spec'
+import { isDigest, isFontMediaType, isIdentifier, validateReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { can } from './actions.js'
 import type { RolePolicy } from './actions.js'
@@ -7,7 +7,7 @@ import type { Answer, RefusalAnswer } from './answer.js'
 import type { ReportIdentity } from './identity.js'
 import type { TemplateStore } from './store.js'
 import { DRAFT_FORMAT, isRevision, REFUSALS } from './wire.js'
-import type { Draft, DraftSaved, TemplateList } from './wire.js'
+import type { Draft, DraftSaved, DraftVersion, TemplateList } from './wire.js'
 
 /**
  * The draft use cases (0049): what a server decides about listing, reading
@@ -31,9 +31,9 @@ export interface Asking {
 /**
  * What the request said about the draft it saves over, parsed by the route
  * from `If-Match` and `If-None-Match`: nothing, a template not yet saved, or
- * the revision it replaces.
+ * the version of the draft it replaces.
  */
-export type Precondition = { readonly kind: 'none' } | { readonly kind: 'create' } | { readonly kind: 'replace'; readonly revision: number }
+export type Precondition = { readonly kind: 'none' } | { readonly kind: 'create' } | { readonly kind: 'replace'; readonly version: DraftVersion }
 
 /** The tenant's templates, by id. */
 export async function listTemplates(asking: Asking): Promise<Answer<TemplateList> | RefusalAnswer> {
@@ -44,14 +44,15 @@ export async function listTemplates(asking: Asking): Promise<Answer<TemplateList
   return answer(200, { templates: templates.toSorted(({ template: a }, { template: b }) => Number(a > b) - Number(a < b)) })
 }
 
-/** The template's newest draft, with its revision beside the body for the route's `ETag`. */
+/** The template's newest draft, with its version beside the body for the route's `ETag`. */
 export async function readDraft(asking: Asking, template: string): Promise<Answer<Draft> | RefusalAnswer> {
   const { identity, roles, store } = asking
   if (!can(identity, 'draft.read', roles)) return refuse(403, REFUSALS.forbidden)
   if (!isIdentifier(template)) return refuse(400, REFUSALS['template-id-invalid'])
   const draft = await store.newest(identity.tenant, template)
   if (draft === undefined) return refuse(404, REFUSALS['no-draft'])
-  return answer(200, { format: DRAFT_FORMAT, template, revision: draft.revision, savedBy: draft.savedBy, report: draft.report }, draft.revision)
+  const { revision, digest } = draft
+  return answer(200, { format: DRAFT_FORMAT, template, revision, digest, savedBy: draft.savedBy, report: draft.report }, { revision, digest })
 }
 
 /**
@@ -60,8 +61,9 @@ export async function readDraft(asking: Asking, template: string): Promise<Answe
  * ones before it let through, and nothing is written unless all pass:
  * the capacity; the template id; a precondition; the format; the report's
  * id being the template's; every image kept, as the kind it declares, and
- * no font declared; and last, the store's swap, which only one of any saves
- * from one revision wins.
+ * no font declared; for a replace, the newest draft being the one the
+ * precondition names, by its revision and its digest; and last, the store's
+ * swap, which only one of any saves from one revision wins.
  *
  * What is stored is the report the validator returned, which shares no
  * object with `body`, and `savedBy` is the token's subject: a body says
@@ -79,25 +81,37 @@ export async function saveDraft(asking: Asking, template: string, body: unknown,
   if (report.id !== template) return refuse(422, REFUSALS['template-id-mismatch'])
   const unkept = await notKept(asking, report)
   if (unkept.length > 0) return refuse(422, { ...REFUSALS['asset-not-kept'], assets: unkept })
-  const saved = await store.save(identity.tenant, template, from, { savedBy: identity.subject, report })
-  // The revision that stands, in the body and beside it for the ETag; none where the template has no draft.
-  if (!saved.saved) return refuse(412, { ...REFUSALS['draft-changed'], revision: saved.revision }, saved.revision ?? undefined)
-  return answer(from === null ? 201 : 200, { template, revision: saved.revision }, saved.revision)
+  if (from !== null) {
+    // A revision alone names no one draft: a store gives it again where its
+    // newest draft went (0049). So the draft that stands is compared here,
+    // once for every store, with the version the save names; the swap after
+    // it still decides between saves from the one that stands.
+    const newest = await store.newest(identity.tenant, template)
+    if (newest === undefined || newest.revision !== from.revision || newest.digest !== from.digest) return refuse(412, { ...REFUSALS['draft-changed'], revision: newest?.revision ?? null })
+  }
+  const saved = await store.save(identity.tenant, template, from === null ? null : from.revision, { savedBy: identity.subject, report })
+  // The revision that stands, or none where the template has no draft.
+  if (!saved.saved) return refuse(412, { ...REFUSALS['draft-changed'], revision: saved.revision })
+  const { revision, digest } = saved
+  return answer(from === null ? 201 : 200, { template, revision, digest }, { revision, digest })
 }
 
 /**
- * The revision a save replaces: `null` for a template not yet saved, a
- * revision, or undefined where the request named none. A revision is
- * `isRevision`'s, which the route parses a header by too; a number that is
- * none is no precondition, for it would reach a store that names a file by
- * it.
+ * The version of the draft a save replaces: `null` for a template not yet
+ * saved, a version, or undefined where the request named none. A version's
+ * revision is `isRevision`'s and its digest report-spec's `isDigest`, which
+ * the route parses a header by too; a version short of either is no
+ * precondition, for its revision would reach a store that names a file by
+ * it, and a digest that is none would match no draft.
  */
-function replaces(precondition: Precondition): number | null | undefined {
+function replaces(precondition: Precondition): DraftVersion | null | undefined {
   switch (precondition.kind) {
     case 'create':
       return null
-    case 'replace':
-      return isRevision(precondition.revision) ? precondition.revision : undefined
+    case 'replace': {
+      const { revision, digest } = precondition.version
+      return isRevision(revision) && isDigest(digest) ? { revision, digest } : undefined
+    }
     case 'none':
       return undefined
   }

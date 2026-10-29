@@ -163,8 +163,8 @@ describe('the server across origins', () => {
     expect(health.headers['access-control-allow-origin']).toBeUndefined()
   })
 
-  // A save answers with the revision in ETag, which the page's next save
-  // names. A browser hides every response header but a few from a page on
+  // A save answers with the draft's version in ETag, which the page's next
+  // save names. A browser hides every response header but a few from a page on
   // another origin unless the answer exposes it, so a builder there could
   // save once and never again. Exposed to a listed origin on the API's
   // answers, and to nobody else.

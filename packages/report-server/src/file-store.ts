@@ -32,7 +32,10 @@ import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
  * report-spec that would refuse an old draft leaves it readable and a
  * migration's to meet. A record that fails a check is not served:
  * `StoredRecordError`, naming its file. The digest covers the report and
- * not who saved it, so a `savedBy` edited by hand passes.
+ * not who saved it, so a `savedBy` edited by hand passes. The digest a read
+ * has checked, and the one a save wrote, are `StoredDraft`'s, with
+ * `sha256:` before them: what tells two drafts written under one revision
+ * apart (0049).
  *
  * **What names a file is checked here too.** The use cases refuse a template
  * id or a digest that is not one before the store is asked; the store checks
@@ -299,7 +302,8 @@ function fileTemplateStore(root: string): TemplateStore {
       if (current !== from) return { saved: false, revision: current }
       const revision = (current ?? 0) + 1
       if (!Number.isSafeInteger(revision)) throw new Error('The next revision of this template would not be a safe integer, so it was not written.')
-      if (await written(tenant, directory, `${String(revision)}.json`, recordText(draft.savedBy, draft.report))) return { saved: true, revision }
+      const record = recordOf(draft.savedBy, draft.report)
+      if (await written(tenant, directory, `${String(revision)}.json`, record.text)) return { saved: true, revision, digest: record.digest }
       return { saved: false, revision: await newestIn(tenant, directory) }
     },
 
@@ -360,17 +364,20 @@ function newestRevision(names: readonly string[]): number | null {
 }
 
 /**
- * A draft's record, as text: the report's JSON is written once, and its
- * digest is taken of exactly that text, which is the report's text in the
- * file. `JSON.stringify` writes the report the same way alone and inside the
- * record, so a reader that stringifies what it parsed has that text again.
+ * A draft's record, as text, and its digest as `StoredDraft` holds it: the
+ * report's JSON is written once, and its digest is taken of exactly that
+ * text, which is the report's text in the file. `JSON.stringify` writes the
+ * report the same way alone and inside the record, so a reader that
+ * stringifies what it parsed has that text again. The record holds the 64
+ * digits alone, as every record of format 1 does.
  */
-function recordText(savedBy: string, report: ReportDefinition): string {
+function recordOf(savedBy: string, report: ReportDefinition): { readonly text: string; readonly digest: string } {
   const text = JSON.stringify(report)
-  return `{"format":${String(DRAFT_FORMAT)},"digest":"${sha256(text)}","savedBy":${JSON.stringify(savedBy)},"report":${text}}\n`
+  const hex = sha256(text)
+  return { text: `{"format":${String(DRAFT_FORMAT)},"digest":"${hex}","savedBy":${JSON.stringify(savedBy)},"report":${text}}\n`, digest: `${DIGEST_PREFIX}${hex}` }
 }
 
-/** The draft `text` holds, checked: it parses, it is this format's record, and its report is what its digest names. */
+/** The draft `text` holds, checked: it parses, it is this format's record, and its report is what its digest names, which it gives as `StoredDraft` holds one. */
 function recordIn(where: StoredFile, text: string): Omit<StoredDraft, 'revision'> {
   let record: unknown
   try {
@@ -380,9 +387,10 @@ function recordIn(where: StoredFile, text: string): Omit<StoredDraft, 'revision'
   }
   if (isRecord(record) && typeof record['format'] === 'number' && record['format'] !== DRAFT_FORMAT) throw new StoredRecordError(where, 'format', record['format'])
   if (!isRecord(record) || record['format'] !== DRAFT_FORMAT || typeof record['savedBy'] !== 'string' || !isRecord(record['report'])) throw new StoredRecordError(where, 'format')
-  if (record['digest'] !== sha256(JSON.stringify(record['report']))) throw new StoredRecordError(where, 'digest')
+  const hex = sha256(JSON.stringify(record['report']))
+  if (record['digest'] !== hex) throw new StoredRecordError(where, 'digest')
   // Not validated again: the digest says it is the report the save validated (0049).
-  return { savedBy: record['savedBy'], report: record['report'] as unknown as ReportDefinition }
+  return { digest: `${DIGEST_PREFIX}${hex}`, savedBy: record['savedBy'], report: record['report'] as unknown as ReportDefinition }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
