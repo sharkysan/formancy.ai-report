@@ -149,8 +149,8 @@ describe('a draft', () => {
     expect(await store.save(TENANT, 'crashed', null, draft('u-1', report('crashed', 'First')))).toEqual({ saved: true, revision: 1 })
   })
 
-  // A record changed by hand is no longer what the save validated, and one
-  // of another format is not this release's to read (0046's fourth version
+  // A record whose report was changed by hand is no longer what the save
+  // validated, and one of another format is not this release's to read (0046's fourth version
   // line). Serving either would be serving a guess; each is refused, naming
   // the file, so the operator can find it -- through the list as through a
   // read -- and a format number this release does not read named beside the
@@ -159,7 +159,7 @@ describe('a draft', () => {
   // names it by: the tenant's directory is the unkeyed hash of the claim,
   // reversed by trying a guessable tenant, so a log that took the absolute
   // path to say where the record is would say whose it is.
-  test('a record edited by hand, of format 2 or not JSON, throws StoredRecordError naming the file', async () => {
+  test('a record whose report was edited by hand, of format 2 or not JSON, throws StoredRecordError naming the file', async () => {
     await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Saved')))
     const file = join(draftDirectory(TENANT, 'invoice'), '1.json')
     const record = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>
@@ -183,6 +183,20 @@ describe('a draft', () => {
         expect((error as Error).message).toMatch(said)
       }
     }
+  })
+
+  // The cost 0049 states, and StoredRecordError says: a record's digest
+  // covers its report and not who saved it, so a `savedBy` edited by hand
+  // on the volume is served as edited. Held here so that the limitation,
+  // and the error's sentence, are read again the day the digest covers it
+  // too; left standing, they would say a forged `savedBy` is served when it
+  // is refused, or the reverse.
+  test('a record whose savedBy alone was edited by hand is served as edited', async () => {
+    await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Saved')))
+    const file = join(draftDirectory(TENANT, 'invoice'), '1.json')
+    const record = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>
+    await writeFile(file, JSON.stringify({ ...record, savedBy: 'u-forged' }))
+    expect(await store.newest(TENANT, 'invoice')).toMatchObject({ revision: 1, savedBy: 'u-forged', report: { title: 'Saved' } })
   })
 })
 

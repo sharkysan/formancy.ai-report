@@ -31,7 +31,8 @@ import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
  * parses, and that digest, and never validates the report again, so a later
  * report-spec that would refuse an old draft leaves it readable and a
  * migration's to meet. A record that fails a check is not served:
- * `StoredRecordError`, naming its file.
+ * `StoredRecordError`, naming its file. The digest covers the report and
+ * not who saved it, so a `savedBy` edited by hand passes.
  *
  * **What names a file is checked here too.** The use cases refuse a template
  * id or a digest that is not one before the store is asked; the store checks
@@ -63,12 +64,18 @@ export interface StoredFile {
 }
 
 /**
- * A file in the store that is not what the store wrote: edited by hand,
- * damaged, or of a format this release does not read. It is never served,
+ * A file in the store that fails the checks a read makes of it: a draft's
+ * record that is not JSON, is of a format this release does not read, or
+ * holds a report its digest does not name -- edited, damaged or cut short
+ * -- and an image whose bytes their digest does not name. It is not served,
  * and is its own kind so that a route can tell it from a read that failed;
  * the server answers it as `internal`, and its log names the file. A record
  * of another format number is named with it, as 0004 names a version it
  * does not read (0046).
+ *
+ * The checks cover what a digest covers: a draft's report, and not its
+ * `savedBy`, so a record whose `savedBy` alone was edited by hand passes
+ * them and is served as edited (0049).
  *
  * `file` is the absolute path, which the message names, for an embedder
  * that reads the store itself. `withinTenant` is the file's path inside its
@@ -85,7 +92,7 @@ export class StoredRecordError extends Error {
 
   constructor(where: StoredFile, why: StoredRecordFault, format?: number) {
     const fault = format === undefined ? FAULTS[why] : `is a record of format ${String(format)}, and this release reads format ${String(DRAFT_FORMAT)} alone`
-    super(`${where.file} ${fault}; a stored file is never edited by hand, and this one is not served (0049).`)
+    super(`${where.file} ${fault}, so it is not served. A draft's digest covers its report and not its savedBy, and an image's digest its bytes (0049).`)
     this.file = where.file
     this.withinTenant = where.withinTenant
     this.why = why

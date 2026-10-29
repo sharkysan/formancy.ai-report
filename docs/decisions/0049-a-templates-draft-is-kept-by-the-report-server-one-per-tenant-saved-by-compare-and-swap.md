@@ -41,10 +41,12 @@
     after 2 not written, saying 2 stands; of twenty concurrent saves from
     1, exactly one wins and no temporary file remains; eleven saves read
     as revision 11, not as text; a template directory holding only a
-    crash's temporary file neither listed nor read; a record edited by
-    hand, of format 2, of format `'1'`, without `savedBy`, or not JSON,
-    thrown as `StoredRecordError` naming its file and its path inside the
-    tenant's directory; `Acme`, `acme` and `é` in NFC and in NFD four
+    crash's temporary file neither listed nor read; a record whose report
+    was edited by hand, of format 2, of format `'1'`, without `savedBy`, or
+    not JSON, thrown as `StoredRecordError` naming its file and its path
+    inside the tenant's directory; one whose `savedBy` alone was edited
+    served as edited, the cost below (watched failing with the digest
+    taken of `savedBy` too, the read then throwing `StoredRecordError`); `Acme`, `acme` and `é` in NFC and in NFD four
     tenants that cannot see each other; a tenant claim with no UTF-8 form,
     a template id that is not report-spec's identifier, a digest that is
     not a SHA-256 refused before any file operation, a digest refused
@@ -307,15 +309,16 @@ parses anything: the least power of two at least sixteen times the largest
 report the corpus holds, the XRechnung sample's 16,254 bytes, measured on
 28 October 2026 on an Apple M2 under Node 22.23.3, and a quarter of the
 mebibyte Fastify reads by default. The factor is chosen; the format's
-bounds allow far larger reports, which validate and preview and are not
-kept as drafts. `report-size.test.ts` holds every report there to the
+bounds allow far larger reports, which validate and are not kept as
+drafts. `report-size.test.ts` holds every report there to the
 limit, and the limit to the factor. This is what 0046's bodies waited for.
 
 **A draft is served as it was saved.** A record is
 `{ "format": 1, "digest": …, "savedBy": …, "report": … }`, where `digest`
 is the SHA-256 of the report's JSON text exactly as the store wrote it
 there. A read checks the record's `format`, that it parses, and that
-digest, and does not validate the report again: a later report-spec that
+digest, which covers the report and not `savedBy`, and does not validate
+the report again: a later report-spec that
 would refuse an old draft, or a report version a later release migrates,
 is the migration's to meet where a draft is opened or published, never a
 template stuck behind a read that refuses it (0004, 0007). A record that

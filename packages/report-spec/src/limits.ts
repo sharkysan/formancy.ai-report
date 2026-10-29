@@ -98,8 +98,8 @@ export const MAX_ASSET_BYTES = 20 * 1024 * 1024
  *
  * The factor is chosen, and the bounds above allow far more: one region of
  * `MAX_REGION_COMPONENTS` text components that each hold `MAX_TEXT_LENGTH`
- * characters is five million. A report of that kind validates and previews
- * and is not kept as a draft. Raising the limit is safe; lowering it
+ * characters holds five million characters. A report of that kind
+ * validates and is not kept as a draft. Raising the limit is safe; lowering it
  * refuses reports that were kept. The corpus's `report-size.test.ts`
  * holds every report there to the limit, and the limit to this factor.
  */
