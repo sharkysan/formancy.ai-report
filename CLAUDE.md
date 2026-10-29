@@ -671,7 +671,9 @@ exactly what CI does:
   the one 401 and whoami, reads a key set file and reads it again on
   SIGHUP, runs as `node`, carries the licence, writes its store and not its
   own code, runs on a read-only root, and reads its rate limit, proxies and
-  origins (0046). Locally it needs Docker.
+  origins (0046); a draft it saved is read back after a restart on the same
+  volume, an image it kept is read back by its digest, and it saves a draft
+  on a read-only root (0049). Locally it needs Docker.
 - **`e-invoice`** runs `node scripts/e-invoice.mjs --java <path>` after
   `pnpm build`, on the Java the register names (0027, 0031): Mustang,
   KoSIT's validator and veraPDF, fetched by URL into `.e-invoice-cache/`
@@ -777,17 +779,20 @@ Locally, run the same commands for what you changed.
   holding only what that host has, and each builder at the newest and the
   oldest release its peer range admits (`scripts/install-hosts.mjs`);
 - type-checks each consumer with `skipLibCheck` **off**, against its host's
-  types: Node's for the Node packages, the DOM's and not Node's for a builder;
+  types: Node's for the Node packages, the DOM's and not Node's for a builder
+  and for the client, whose `client` host holds it and what it declares
+  alone and type-checks `client.ts` against them (0049);
 - runs it: `consume.ts` under Node, which also draws an e-invoice, in
   `e-invoice.ts`, and reads the PDF/A-3b's bytes with `embedding.ts` and
   Node alone (0031);
   `server.ts`, the server made in its host's process and asked over a
-  socket;
+  socket, a draft saved through the packed client, read back and a stale
+  save refused `draft-changed`;
   `react.tsx` drawn by React's server renderer in its development and
   production builds; `angular.ts` compiled
   ahead of time, linked and bundled by `build.mjs`, and drawn by
-  platform-server without the JIT compiler; and each builder bundled for a
-  browser;
+  platform-server without the JIT compiler; and each builder and the
+  client bundled for a browser;
 - compiles and runs `docs/getting-started.md` (0015): every block of code in
   the guide names its host in its fence (`ts guide=node`, `tsx guide=react
   file=main.tsx`), and the gate writes the blocks into that host's project
