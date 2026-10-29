@@ -279,6 +279,31 @@ describe('saveDraft', () => {
     expect(asked.slice(askedBefore)).toEqual(['newest'])
   })
 
+  // Two saves from the draft that stands both pass the comparison above, and
+  // the store's swap lets one of them write: the other is told it lost, with
+  // the revision the winner wrote. It is answered as a lost swap, 412 with
+  // that revision and no version, and never as a save: a use case that took
+  // the store's refusal for a write would answer a version no draft has, and
+  // the route an ETag of nothing.
+  test('refuses a replace that passes the comparison and loses the store’s swap as draft-changed, naming the winner’s revision, and writes nothing', async () => {
+    const { store, asked, snapshot } = memoryStore()
+    const created = await saveDraft(asking(store, AUTHOR), 'invoice', report(), create)
+    // A concurrent save from the same draft links revision 2 between this one's comparison and its swap.
+    const raced: TemplateStore = {
+      ...store,
+      save: async () => {
+        asked.push('save')
+        return { saved: false, revision: 2 }
+      },
+    }
+    const before = snapshot()
+    const askedBefore = asked.length
+    const lost = await saveDraft(asking(raced, AUTHOR), 'invoice', { ...report(), title: 'Lost the race' }, replace(versionOf(created)))
+    expect(lost).toStrictEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: 2 } })
+    expect(snapshot()).toBe(before)
+    expect(asked.slice(askedBefore)).toEqual(['newest', 'save'])
+  })
+
   // A replace of a template that has no draft stands on nothing: 412 with no
   // revision, not a create by the back door, which would let a stale tab
   // resurrect a template after the draft it replaced went.
@@ -302,14 +327,20 @@ describe('saveDraft', () => {
   // report-spec writes. The route parses one from a header; a number that
   // is no revision must not reach a store that names a file by it, and a
   // version with no digest names no one draft. Either is no precondition.
-  test('takes a version whose revision is not a positive safe integer, or whose digest is none, for no precondition', async () => {
+  // So is a replace with no version at all -- a caller written for the
+  // shape before it, naming a bare revision, or a cast -- never a crash:
+  // answered as the server's own error, it would tell its author the server
+  // failed when the request named no draft.
+  test('takes a version whose revision is not a positive safe integer, or whose digest is none, or none at all, for no precondition', async () => {
     const { store, asked } = memoryStore()
     const versions = [
       ...[0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1].map((revision) => ({ revision, digest: UNSAVED })),
       ...['', UNSAVED.slice('sha256:'.length), UNSAVED.toUpperCase(), `${UNSAVED}0`, undefined].map((digest) => ({ revision: 1, digest }) as DraftVersion),
     ]
-    for (const version of versions) {
-      expect(await saveDraft(asking(store, AUTHOR), 'invoice', report(), replace(version)), JSON.stringify(version)).toEqual({ ok: false, status: 428, body: REFUSALS['precondition-required'] })
+    const preconditions = [...versions.map(replace), ...([{ kind: 'replace', revision: 3 }, { kind: 'replace' }] as unknown as Precondition[])]
+    for (const precondition of preconditions) {
+      const answered = await saveDraft(asking(store, AUTHOR), 'invoice', report(), precondition).catch((error: unknown) => error)
+      expect(answered, JSON.stringify(precondition)).toEqual({ ok: false, status: 428, body: REFUSALS['precondition-required'] })
     }
     expect(asked).toEqual([])
   })

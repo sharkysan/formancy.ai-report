@@ -102,14 +102,18 @@ export async function saveDraft(asking: Asking, template: string, body: unknown,
  * revision is `isRevision`'s and its digest report-spec's `isDigest`, which
  * the route parses a header by too; a version short of either is no
  * precondition, for its revision would reach a store that names a file by
- * it, and a digest that is none would match no draft.
+ * it, and a digest that is none would match no draft. A replace with no
+ * version at all -- a caller of the shape before it, or a cast -- is none
+ * too, and not a throw.
  */
 function replaces(precondition: Precondition): DraftVersion | null | undefined {
   switch (precondition.kind) {
     case 'create':
       return null
     case 'replace': {
-      const { revision, digest } = precondition.version
+      // The type says a version is there; a caller the type did not hold may have left it out.
+      const revision = precondition.version?.revision
+      const digest = precondition.version?.digest
       return isRevision(revision) && isDigest(digest) ? { revision, digest } : undefined
     }
     case 'none':
