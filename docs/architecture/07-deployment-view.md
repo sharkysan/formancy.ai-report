@@ -84,7 +84,8 @@ What it does not do, and what the operator therefore owns:
   So restore with the server stopped, have every author reload their drafts
   after a restore, and never remove a draft's newest file. A file is flushed
   before it is linked, but its directory is not after, so an acknowledged
-  save can lose its name on power loss
+  save can lose its name on power loss, and its number is issued again as
+  after a restore: have every author reload after a power cut too
   ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 - **TLS and the address.** It listens on plain HTTP on every interface of
   its container; TLS, the public name and the proxy that forwards to it are

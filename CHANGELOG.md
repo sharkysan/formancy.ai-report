@@ -86,6 +86,15 @@ other's work, so the draft comes first, kept by compare-and-swap.
   log names a stored file by its path inside the tenant's directory, never
   its absolute path, whose tenant directory is the unkeyed hash of the
   tenant claim.
+- **Restore a store with the server stopped, and have every author
+  reload.** A revision is the number of a template's newest file, so a
+  backup restored from before the newest save, that file removed by hand,
+  or its name lost on power loss has the next save issue the number
+  again, and a page still holding the old one saves over the new draft
+  unseen: a save's precondition names a number, not what was saved under
+  it. Restoring with the server stopped, every author reloading their
+  drafts after a restore or a power cut, and never removing a draft's
+  newest file keep that from happening.
 - **`@formancy/report-client`**, a new package, as 0046 said would come
   with the draft's route: `createReportClient({ server, token, fetch? })`
   with `listTemplates`, `readDraft`, `saveDraft`, `keepImage` and

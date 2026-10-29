@@ -876,8 +876,11 @@ file. The loser is told the revision that stands, in the refusal and its
 revision stays on disk; a read serves the newest, its record's digest
 checked and the report served as it was saved, never validated again
 ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
-A read of a record the store did not write is 500 `internal`, logged by
-its path inside the tenant's directory and the tenant's keyed reference.
+A read of a record that is not JSON, not this format's, or whose report
+its digest does not name is 500 `internal`, logged by its path inside the
+tenant's directory and the tenant's keyed reference; the digest covers
+the report and not `savedBy`, so a record whose `savedBy` alone was
+edited is served as edited.
 
 An image is kept the same way, by `PUT /v1/assets/{digest}`: the capacity,
 the digest's form, the size, what the bytes sniff as and the media type

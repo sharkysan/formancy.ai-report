@@ -281,11 +281,12 @@ guess. The swap is a hard link: atomic on a local file system, untried
 over NFS, never probed at start, and with the directory unflushed after
 it, an acknowledged save can lose its name on power loss. A revision is
 the number of the newest file, so a restore older than a template's
-newest save, or that file removed by hand, has the next save issue the
-number again, and a page that still holds the old one saves over the new
-unseen; the operator's procedure is the cost's only answer -- restore with
-the server stopped, every author reloading after it, and never remove a
-draft's newest file -- and whether the `ETag` carries the record's digest
+newest save, that file removed by hand, or its name lost on power loss,
+has the next save issue the number again, and a page that still holds the
+old one saves over the new unseen; the operator's procedure is the cost's
+only answer -- restore with the server stopped, every author reloading
+after a restore or a power cut, and never remove a draft's newest file --
+and whether the `ETag` carries the record's digest
 is a question of `/v1`'s shape left open until 0.3.0. A draft that
 declares a font is refused until fonts are kept, and a host that previews
 a draft from the server writes its own image cache, since the runtime's

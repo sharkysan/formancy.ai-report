@@ -533,13 +533,14 @@ must be a volume for the server to start.
   the count to what authors press.
 - **A revision's number can be issued twice.** A revision is the number
   of a template's newest file, so where that file disappears -- a backup
-  older than the newest save restored, or the file removed by hand -- the
-  next save is given its number again. A page that still holds the old
-  number then wins its `If-Match` against a different draft saved under
-  it since, and its save replaces that draft unseen: the precondition
-  names a number, not what was saved under it. The operator's procedure
-  meets it: restore with the server stopped; every author reloads their
-  drafts after a restore; and never remove a draft's newest file.
+  older than the newest save restored, the file removed by hand, or its
+  name lost on power loss (below) -- the next save is given its number
+  again. A page that still holds the old number then wins its `If-Match`
+  against a different draft saved under it since, and its save replaces
+  that draft unseen: the precondition names a number, not what was saved
+  under it. The operator's procedure meets it: restore with the server
+  stopped; every author reloads their drafts after a restore or a power
+  cut; and never remove a draft's newest file.
   Whether the `ETag` should carry the record's digest beside the
   revision, so that a number issued again never matches, is a question
   of `/v1`'s shape left open for the owner to decide before 0.3.0
