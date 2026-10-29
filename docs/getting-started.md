@@ -990,10 +990,10 @@ means to offer them back.
 
 **The page that composes them.** `draft-host.tsx` makes the client from the
 server's address and the token function your page is given, opens the
-draft, or the `blank` it is given where the template has none, and renders
-section 4's `ReportPage` with the draft's `save` and the
-cache's `resolve`, which the preview prints with. Save answers `true` only
-when the server wrote the revision. For `changed` and `refused` it answers
+draft, or the `blank` it is given where the template has none, and
+renders section 4's `ReportPage` with the draft's `save` and the cache's
+`resolve`, which the preview prints with. Save answers `true` only when
+the server wrote the revision. For `changed` and `refused` it answers
 `false`, which leaves Save offered, and the host shows the outcome's
 message in an alert; it always offers Reload, which is `openDraft`
 again, the new `KeptDraft` taking the old one's place and the old editor

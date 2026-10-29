@@ -123,23 +123,24 @@ image exists.
   every image it declares kept for the tenant as the kind it declares, and
   no font declared (422 `asset-not-kept`, with the ids, sorted -- an image
   kept as another kind is refused because the runtime would refuse it at
-  print, and a font because nothing here keeps one); then the store's swap, which writes the report the
-  validator returned and the token's subject as `savedBy`: 201 for a
-  `create`, 200 for a `replace`, or 412 `draft-changed` with the revision that
-  stands, `null` where there is none, and that revision beside the body too,
-  for the `ETag`, where there is one.
+  print, and a font because nothing here keeps one); then the store's swap,
+  which writes the report the validator returned and the token's subject
+  as `savedBy`: 201 for a `create`, 200 for a `replace`, or 412
+  `draft-changed` with the revision that stands, `null` where there is
+  none, and that revision beside the body too, for the `ETag`, where there
+  is one.
 - **`keepImage(asking, digestHex, contentType, bytes)`** -- checks: the
   capacity; the digest as 64 lower-case hexadecimal digits, by report-spec's
-  `isDigest` with `sha256:` put before them, the rule the store names a
-  file by (400 `digest-invalid`); the size against report-spec's `MAX_ASSET_BYTES` (413
-  `image-too-large`); `sniffImage` (422 `image-refused`, reason
-  `not-an-image`); the request's media type, before any parameter, being the
-  sniffed one (415 `unsupported-media-type`); a PNG or JPEG read by
-  `imageHeader`, an SVG within `MAX_SVG_BYTES` and accepted by `checkSvg`,
-  which takes only the form `cleanSvg` writes (422 `image-refused`, with
-  report-spec's code as the reason); the bytes' digest being the path's (422
-  `digest-mismatch`). Then the store keeps it, and a second keep of the same
-  image answers as the first.
+  `isDigest` with `sha256:` put before them, the rule the store names a file
+  by (400 `digest-invalid`); the size against report-spec's
+  `MAX_ASSET_BYTES` (413 `image-too-large`); `sniffImage` (422
+  `image-refused`, reason `not-an-image`); the request's media type, before
+  any parameter, being the sniffed one (415 `unsupported-media-type`); a PNG
+  or JPEG read by `imageHeader`, an SVG within `MAX_SVG_BYTES` and accepted
+  by `checkSvg`, which takes only the form `cleanSvg` writes (422
+  `image-refused`, with report-spec's code as the reason); the bytes' digest
+  being the path's (422 `digest-mismatch`). Then the store keeps it, and a
+  second keep of the same image answers as the first.
 - **`readImage(asking, digestHex)`** -- the image as it was kept, `404
   no-asset` where the tenant has none.
 

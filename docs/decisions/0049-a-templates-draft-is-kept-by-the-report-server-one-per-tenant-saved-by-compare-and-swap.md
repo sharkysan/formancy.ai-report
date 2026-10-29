@@ -4,77 +4,76 @@
 - **Date:** 2026-10-28
 - **Deciders:** Daniel Bacher
 - **Verified by:**
-  - **The use cases.** `packages/report-server-core/src/drafts.test.ts`
-    and `images.test.ts`, against a store in memory that records every
-    call made on the port: the list sorted by id whatever order the store
-    gives; a draft read with its revision, `savedBy` and report, 404
-    `no-draft` without one; a save created 201 at revision 1 and replaced
-    200 at the next, `savedBy` the token's subject and the report stored a
-    copy of what the validator returned, never the object handed in; a
-    second create and a stale replace 412 `draft-changed` naming the
-    revision that stands, `null` where none does, nothing written; no
-    precondition, or a revision that is no positive safe integer, 428
-    before the body is looked at; a report report-spec refuses 422 with
-    its errors; a report whose `id` is not the path's 422
-    `template-id-mismatch`; an image the asking tenant has not kept, one
-    it kept as another kind than the draft declares, and any font whatever
-    the store holds under its digest, 422 `asset-not-kept`, the ids
-    sorted; who may and may not, each refusal
-    for want of a capacity made before the store is asked; another
-    tenant's drafts and images neither read nor taken as kept; a path's
-    digest refused exactly where `isDigest` refuses it with `sha256:`
-    before it; and a keep judged in the order the code states, a PNG, a JPEG and a cleaned SVG
-    kept, everything else refused by its code. Twenty-five single-point
-    mutations of `drafts.ts` and `images.ts` were each killed; two
-    survived the first run -- the tenant hard-coded on `hasImage`, as the
-    port's question was named before it answered the kind kept, and on
-    `readImage` -- because the cases used that same tenant, and were
-    killed once they used another. A kept PNG declared as an SVG or a JPEG
-    was watched saving, 201, before the port answered the kind kept
+  - **The use cases.** `packages/report-server-core/src/drafts.test.ts` and
+    `images.test.ts`, against a store in memory that records every call made
+    on the port: the list sorted by id whatever order the store gives; a
+    draft read with its revision, `savedBy` and report, 404 `no-draft`
+    without one; a save created 201 at revision 1 and replaced 200 at the
+    next, `savedBy` the token's subject and the report stored a copy of what
+    the validator returned, never the object handed in; a second create and
+    a stale replace 412 `draft-changed` naming the revision that stands,
+    `null` where none does, nothing written; no precondition, or a revision
+    that is no positive safe integer, 428 before the body is looked at; a
+    report report-spec refuses 422 with its errors; a report whose `id` is
+    not the path's 422 `template-id-mismatch`; an image the asking tenant
+    has not kept, one it kept as another kind than the draft declares, and
+    any font whatever the store holds under its digest, 422
+    `asset-not-kept`, the ids sorted; who may and may not, each refusal for
+    want of a capacity made before the store is asked; another tenant's
+    drafts and images neither read nor taken as kept; a path's digest
+    refused exactly where `isDigest` refuses it with `sha256:` before it;
+    and a keep judged in the order the code states, a PNG, a JPEG and a
+    cleaned SVG kept, everything else refused by its code. Twenty-five
+    single-point mutations of `drafts.ts` and `images.ts` were each killed;
+    two survived the first run -- the tenant hard-coded on `hasImage`, as
+    the port's question was named before it answered the kind kept, and on
+    `readImage` -- because the cases used that same tenant, and were killed
+    once they used another. A kept PNG declared as an SVG or a JPEG was
+    watched saving, 201, before the port answered the kind kept
     ("image/svg+xml: expected { ok: true, status: 201, …(2) } to deeply
-    equal { ok: false, status: 422, …(1) }"). The path's digest held to `isDigest`
-    was watched failing with a pattern of the use cases' own that admitted
-    capitals ("expected [ false, false ] to deeply equal [ true, true ]").
-  - **The store.** `packages/report-server/src/file-store.test.ts`,
-    against a real directory made for each case, since what it proves is
-    the file system's: saves 1, 2 and 3 read back as saved; a save from 1
-    after 2 not written, saying 2 stands; of twenty concurrent saves from
-    1, exactly one wins and no temporary file remains; eleven saves read
-    as revision 11, not as text; a template directory holding only a
-    crash's temporary file neither listed nor read; a record whose report
-    was edited by hand, of format 2, of format `'1'`, without `savedBy`, or
-    not JSON, thrown as `StoredRecordError` naming its file and its path
-    inside the tenant's directory; one whose `savedBy` alone was edited
-    served as edited, the cost below (watched failing with the digest
-    taken of `savedBy` too, the read then throwing `StoredRecordError`); `Acme`, `acme` and `é` in NFC and in NFD four
-    tenants that cannot see each other; a tenant claim with no UTF-8 form,
-    a template id that is not report-spec's identifier, a digest that is
-    not a SHA-256 refused before any file operation, a digest refused
-    exactly where report-spec's `isDigest` refuses it, and a revision past
-    the safe integers neither read nor written; a revision whose newest
-    file is gone issued again, and a save from the old number winning
-    over the new, the cost below, which the case holds so that it is read
-    again once the store stops reusing a number (watched failing with a
+    equal { ok: false, status: 422, …(1) }"). The path's digest held to
+    `isDigest` was watched failing with a pattern of the use cases' own that
+    admitted capitals ("expected [ false, false ] to deeply equal [ true,
+    true ]").
+  - **The store.** `packages/report-server/src/file-store.test.ts`, against
+    a real directory made for each case, since what it proves is the file
+    system's: saves 1, 2 and 3 read back as saved; a save from 1 after 2 not
+    written, saying 2 stands; of twenty concurrent saves from 1, exactly one
+    wins and no temporary file remains; eleven saves read as revision 11,
+    not as text; a template directory holding only a crash's temporary file
+    neither listed nor read; a record whose report was edited by hand, of
+    format 2, of format `'1'`, without `savedBy`, or not JSON, thrown as
+    `StoredRecordError` naming its file and its path inside the tenant's
+    directory; one whose `savedBy` alone was edited served as edited, the
+    cost below (watched failing with the digest taken of `savedBy` too, the
+    read then throwing `StoredRecordError`); `Acme`, `acme` and `é` in NFC
+    and in NFD four tenants that cannot see each other; a tenant claim with
+    no UTF-8 form, a template id that is not report-spec's identifier, a
+    digest that is not a SHA-256 refused before any file operation, a digest
+    refused exactly where report-spec's `isDigest` refuses it, and a
+    revision past the safe integers neither read nor written; a revision
+    whose newest file is gone issued again, and a save from the old number
+    winning over the new, the cost below, which the case holds so that it is
+    read again once the store stops reusing a number (watched failing with a
     store that remembered the highest number it issued: "expected { saved:
-    true, revision: 3 } to deeply equal { saved: true, revision: 2 }");
-    each image's kind answered
-    as it was kept, and nothing for an image the tenant did not keep; an
-    image kept twice, or by several at once, one file read back as its
-    bytes and media type, and never kept or served under
-    a digest that is not its bytes; a directory the store cannot read or
-    write thrown as `StoreFileSystemError` by Node's code, the operation
-    and the path inside the tenant, never read as empty; and a root that
-    is a file, relative, missing or not writable refused naming no
-    setting, and one gone after it opened failing every call and not made
-    again. Watched failing, one mutation at a time, with the tenant named
-    by `encodeURIComponent` of its claim ("expected { saved: false,
-    revision: 1 } to deeply equal { saved: true, revision: 1 }": `acme`
-    merged into `Acme` on the APFS volume the case ran on), with `rename`
-    for `link` (the twenty concurrent saves), with the record's digest or
-    format unchecked (the hand-edited record), with the newest revision
-    compared as text (the eleven saves), with every directory a read
-    could not open read as empty, and with a digest pattern of the store's
-    own that admitted capitals ("expected 'read' to be 'refused'").
+    true, revision: 3 } to deeply equal { saved: true, revision: 2 }"); each
+    image's kind answered as it was kept, and nothing for an image the
+    tenant did not keep; an image kept twice, or by several at once, one
+    file read back as its bytes and media type, and never kept or served
+    under a digest that is not its bytes; a directory the store cannot read
+    or write thrown as `StoreFileSystemError` by Node's code, the operation
+    and the path inside the tenant, never read as empty; and a root that is
+    a file, relative, missing or not writable refused naming no setting, and
+    one gone after it opened failing every call and not made again. Watched
+    failing, one mutation at a time, with the tenant named by
+    `encodeURIComponent` of its claim ("expected { saved: false, revision: 1
+    } to deeply equal { saved: true, revision: 1 }": `acme` merged into
+    `Acme` on the APFS volume the case ran on), with `rename` for `link`
+    (the twenty concurrent saves), with the record's digest or format
+    unchecked (the hand-edited record), with the newest revision compared as
+    text (the eleven saves), with every directory a read could not open read
+    as empty, and with a digest pattern of the store's own that admitted
+    capitals ("expected 'read' to be 'refused'").
   - **The routes.** `packages/report-server/src/drafts.test.ts`, through
     `inject` with tokens the host signs and the verifier a deployment
     runs, on the file store, and over a socket where only a socket shows
@@ -294,14 +293,15 @@ is at most report-spec's `MAX_REPORT_BYTES`, refused by the length it
 declares before a byte is read, or once it is read past the limit where it
 declares none, 413 `report-too-large`; the preconditions it names are
 `If-None-Match: *` alone or one strong `If-Match` of a revision, else 400
-`bad-request`. Then the use case: the capacity, 403
-`forbidden`; the template id, 400; a precondition, 428; `validateReport`,
-422 `report-invalid` carrying report-spec's own errors; the report's `id`,
-422 `template-id-mismatch`; every image it declares kept for the tenant
-under its digest as the kind it declares, and no font declared, 422
-`asset-not-kept` naming the assets by id, sorted; and last the swap. Expression diagnostics do not
-block a save: a draft may be unfinished. What is stored is the report the
-validator returned, which shares no object with the body.
+`bad-request`. Then the use case: the capacity, 403 `forbidden`; the
+template id, 400; a precondition, 428; `validateReport`, 422
+`report-invalid` carrying report-spec's own errors; the report's `id`, 422
+`template-id-mismatch`; every image it declares kept for the tenant under
+its digest as the kind it declares, and no font declared, 422
+`asset-not-kept` naming the assets by id, sorted; and last the swap.
+Expression diagnostics do not block a save: a draft may be unfinished. What
+is stored is the report the validator returned, which shares no object with
+the body.
 
 **`MAX_REPORT_BYTES`, report-spec's.** 262,144 bytes, the UTF-8 length of
 the report's JSON, which a client sends and a server can count before it
@@ -511,9 +511,9 @@ must be a volume for the server to start.
   of a restore that takes away a revision a page still holds, whose cost
   and procedure are below.
 - **A draft every later release can start from.** Each stored draft is one
-  report-spec accepted when it was saved, whose every image the tenant
-  keeps as the kind it declares and which names no font, by a subject the host signed; a
-  publication can be held to who saved what.
+  report-spec accepted when it was saved, whose every image the tenant keeps
+  as the kind it declares and which names no font, by a subject the host
+  signed; a publication can be held to who saved what.
 - **A draft that outlives its format's next version.** It is served as it
   was saved, so a stricter report-spec, or a migration, meets it where it
   is opened and does not lock it away.

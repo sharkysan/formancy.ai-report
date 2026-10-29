@@ -367,8 +367,8 @@ describe('saveDraft', () => {
   })
 
   // A draft that declares a kept PNG as an SVG, by its digest, names bytes
-  // the store holds, but the runtime refuses at print an asset whose bytes
-  // are not the kind it declares: saved, it could never print, the hole a
+  // the store holds, but the runtime refuses at print an image handed over
+  // as another kind than it declares: saved, it could never print, the hole a
   // draft that declares a font is refused to avoid. An image counts as kept
   // only as the kind it was kept as, so a hand-made save that declares
   // another is refused as an image not kept, by its id, and the same draft

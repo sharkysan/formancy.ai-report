@@ -60,9 +60,8 @@ export async function readDraft(asking: Asking, template: string): Promise<Answe
  * ones before it let through, and nothing is written unless all pass:
  * the capacity; the template id; a precondition; the format; the report's
  * id being the template's; every image kept, as the kind it declares, and
- * no font declared; and
- * last, the store's swap, which only one of any saves from one revision
- * wins.
+ * no font declared; and last, the store's swap, which only one of any saves
+ * from one revision wins.
  *
  * What is stored is the report the validator returned, which shares no
  * object with `body`, and `savedBy` is the token's subject: a body says
@@ -109,8 +108,8 @@ function replaces(precondition: Precondition): number | null | undefined {
  * sorted: an image the asking tenant has not kept under its digest as the
  * kind it declares, and every font, since no store here keeps one. An image
  * kept as another kind counts as not kept, as a font does, because each
- * would be saved and never printed: the runtime refuses an asset whose
- * bytes are not the kind it declares, and a face nobody keeps. A font is
+ * would be saved and never printed: the runtime refuses an image handed
+ * over as another kind than it declares, and a face nobody keeps. A font is
  * not asked of the store, so what the store holds under its digest changes
  * nothing.
  */

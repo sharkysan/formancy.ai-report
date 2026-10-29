@@ -150,15 +150,15 @@ describe('a draft', () => {
   })
 
   // A record whose report was changed by hand is no longer what the save
-  // validated, and one of another format is not this release's to read (0046's fourth version
-  // line). Serving either would be serving a guess; each is refused, naming
-  // the file, so the operator can find it -- through the list as through a
-  // read -- and a format number this release does not read named beside the
-  // one it does, as 0004 names a version. The error says the file's path
-  // inside its tenant's directory as well, which is what the server's log
-  // names it by: the tenant's directory is the unkeyed hash of the claim,
-  // reversed by trying a guessable tenant, so a log that took the absolute
-  // path to say where the record is would say whose it is.
+  // validated, and one of another format is not this release's to read
+  // (0046's fourth version line). Serving either would be serving a guess;
+  // each is refused, naming the file, so the operator can find it -- through
+  // the list as through a read -- and a format number this release does not
+  // read named beside the one it does, as 0004 names a version. The error
+  // says the file's path inside its tenant's directory as well, which is
+  // what the server's log names it by: the tenant's directory is the unkeyed
+  // hash of the claim, reversed by trying a guessable tenant, so a log that
+  // took the absolute path to say where the record is would say whose it is.
   test('a record whose report was edited by hand, of format 2 or not JSON, throws StoredRecordError naming the file', async () => {
     await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Saved')))
     const file = join(draftDirectory(TENANT, 'invoice'), '1.json')
