@@ -12,9 +12,34 @@ import { describe, expect, test } from 'vitest'
  * parser, so a module that looked a setting up itself fails here rather
  * than in a review, however its import is spelt, and a comment or a
  * sentence that mentions a process is not a way in.
+ *
+ * One other module reaches the file system: the file store, whose records
+ * are files under the root the settings name, which serve.ts hands it
+ * (0049). That is data a person saved, not a setting, and the store reaches
+ * it through `node:fs/promises` and through nothing else on the list, the
+ * process least of all.
+ *
+ * The suites' own support, `test-support.ts`, makes a directory for each
+ * case's store and removes it, and is no module of the package: only test
+ * files import it, which the last case holds, so the entry and the
+ * composition root never reach it.
  */
 const here = dirname(fileURLToPath(import.meta.url))
-const modules = readdirSync(here).filter((name) => name.endsWith('.ts') && !name.endsWith('.test.ts'))
+const SUPPORT = 'test-support.ts'
+const modules = readdirSync(here).filter((name) => name.endsWith('.ts') && !name.endsWith('.test.ts') && name !== SUPPORT)
+const STORE = 'file-store.ts'
+
+/** The relative modules `source` imports or re-exports, by their specifiers. */
+function importsOf(name: string, source: string): string[] {
+  const found: string[] = []
+  const visit = (node: ts.Node): void => {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteralLike(node.moduleSpecifier)) found.push(node.moduleSpecifier.text)
+    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && node.arguments[0] !== undefined && ts.isStringLiteralLike(node.arguments[0])) found.push(node.arguments[0].text)
+    ts.forEachChild(node, visit)
+  }
+  visit(ts.createSourceFile(name, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS))
+  return found
+}
 
 /** The modules configuration is reached through: the process and the file system, with or without `node:`. */
 const CONFIGURATION = /^(?:node:)?(?:process|fs|fs\/promises)$/
@@ -54,8 +79,29 @@ describe('the composition root', () => {
   // file read through the source main.ts hands over, `io.readFile`, is
   // main's read.
   test('is the only module that reads the environment, the arguments or a file', () => {
-    const readers = modules.filter((name) => waysIn(name, readFileSync(join(here, name), 'utf8')).length > 0)
+    const readers = modules.filter((name) => name !== STORE && waysIn(name, readFileSync(join(here, name), 'utf8')).length > 0)
     expect(readers).toEqual(['main.ts'])
+  })
+
+  // The store's way to its records is the one exception, and only that
+  // way: a store that read `process.env` for its root, or `node:fs`'s
+  // synchronous reads past the module the exception names, would be a
+  // second composition root nobody configured. A store renamed away from
+  // the exception fails here too, rather than leaving it to name nothing.
+  test('leaves the file store node:fs/promises alone, for its records', () => {
+    expect(modules).toContain(STORE)
+    expect(waysIn(STORE, readFileSync(join(here, STORE), 'utf8'))).toEqual(["'node:fs/promises'"])
+  })
+
+  // The suites' support reaches the file system to make each case's
+  // directory, and is let off the rule above for that alone: a module of
+  // the package that imported it would carry a second way to the file
+  // system, and the test helpers, into what is shipped.
+  test('leaves the suites’ support to the suites', () => {
+    expect(readdirSync(here)).toContain(SUPPORT)
+    const importers = modules.filter((name) => importsOf(name, readFileSync(join(here, name), 'utf8')).some((specifier) => specifier.replace(/\.js$/, '.ts') === `./${SUPPORT}`))
+    expect(importers).toEqual([])
+    expect(importsOf('way.ts', "import { eachCase } from './test-support.js'\nconst later = await import('./test-support.js')")).toEqual(['./test-support.js', './test-support.js'])
   })
 
   // A guard on the guard: each ordinary way in, which a regex over the text

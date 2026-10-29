@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // The suite's own: it makes a store's directory and runs the packed
+    // server over it in this process, so it needs Node's types, which the
+    // package's own code is checked without (tsconfig.json).
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": []
+}

@@ -254,10 +254,10 @@ The server knows who is asking only from the host's token, verified
 offline, and keeps no session: a person the host removes keeps their
 token's access until its `exp`, so the host keeps tokens short. Every token
 must carry the tenant claim, and every permission is the actions table's,
-whose rows name actions before any route takes them; a later record may
+whose rows name actions before a route takes them; a later record may
 change one ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)). It is one instance: its rate limit
-lives in its memory, and the store that arrives next is files on one
-volume, as Formancy Data's is. Its verifier is Data's, at one version, so a
+lives in its memory, and its template store is files on one volume, as
+Formancy Data's is. Its verifier is Data's, at one version, so a
 key rule Data changes reaches Report only through a release, and running
 the server in production needs a Data licence too
 ([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)). That verifier sets no longest lifetime, so a
@@ -266,6 +266,37 @@ signature with `=` appended, so a token's text is not unique; both are
 Data's rules, taken whole, and nothing here keys on a token's text. The
 image is built from the repository and not published; its base layer's
 packages are read by no guard here.
+
+### A draft kept on the server: every revision, and who saved it
+
+The server keeps every revision of every draft and prunes none, so a
+tenant's store grows by one file a save for good, unmeasured; nothing
+deletes a draft, a template or an image. Each revision keeps the subject
+of the token that saved it beside the tenant's documents, a claim's value
+at rest in the store and in every backup of it, and the record's digest
+covers the report and not that subject, so one edited by hand on the
+volume is served. A tenant's directory is the unkeyed SHA-256 of its
+claim, which whoever can list the volume reverses for a tenant they can
+guess. The swap is a hard link: atomic on a local file system, untried
+over NFS, never probed at start, and with the directory unflushed after
+it, an acknowledged save can lose its name on power loss. A revision is
+the number of the newest file, so a restore older than a template's
+newest save, that file removed by hand, or its name lost on power loss,
+has the next save issue the number again. That a page still holding the
+old draft saved over the new one unseen is answered, before 0.3.0
+releases `/v1`: the `ETag` carries the record's digest beside the
+revision, and such a save is refused `draft-changed`, but for a draft
+saved again with the same report to the byte, whose save goes through.
+What stays is accepted: the digest is compared just before the store's
+swap, which is by revision alone, so a draft's newest file removed by
+hand while the server runs can let a racing save win over a draft its
+author never saw, which the operator's procedure meets, restoring with
+the server stopped and never removing a draft's newest file while it
+runs; and a replace reads the newest record once more before the swap, at
+a cost not measured. A draft that declares a font is refused until fonts
+are kept, and a host that previews a draft from the server writes its own
+image cache, since the runtime's resolver is synchronous
+([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 
 ### The container gate rests on Docker in CI
 
@@ -276,7 +307,10 @@ wrong in the checkout; its twenty minutes are a bound for that, not for the
 work, until three green runs give a slowest time to triple. It has run by
 hand on one Windows workstation and not yet on a CI runner, on one
 architecture, and starts every container it uses with a name of its run's
-and removes it however it ends (0046).
+and removes it however it ends (0046). Its three draft checks, a restart
+on one named volume, an image read back and a save on a read-only root,
+had run on no Docker when they were written, and remove the volumes they
+make however the gate ends (0049).
 
 ### Two builders, written twice
 
@@ -442,6 +476,9 @@ its own.
 | **The audit trail's actor, unlike Data's** | Report's trail names who asked by a keyed hash, because a subject is a claim's value; Formancy Data's names its actor plainly (formancy.ai-data 0023; [0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)) | An operator reading both trails reads them differently, and finds a person's Report events only by computing the reference with the audit key |
 | **Data's rate limit and preflight lifetime, not measured here** | The server takes Formancy Data's 600 requests a minute and its 600-second preflight, so a host behind both servers meets one rule (0046) | Neither number was measured on Report's routes; a host whose people make more requests a minute raises the setting |
 | **Node's request timeout and Data's health check, not measured here** | The server takes Node's own 300 s for a request to arrive, which Fastify turns off, and the image Data's health-check intervals (0046) | Neither was measured on Report's routes; a route that reads a body larger than a slow link sends in 300 s needs a record of its own |
+| **Every host writes the image cache** | report-runtime's `AssetResolver` is synchronous, so it cannot ask the server for an image while a preview prints, and a helper in report-client would make it depend on the runtime's types; the guide carries the code instead ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)) | Each host fetches every image a draft declares when it opens it, one request each, and keeps each one a person adds before `keep` resolves; a helper waits until hosts show it is wanted |
+| **Revisions never pruned** | The compare-and-swap needs the numbered files, and retention is a decision of its own (0049) | A template's directory grows by a file a save, and nothing measured how fast a tenant's store grows; an operator removes files by hand, never a draft's newest, whose number the next save would issue again, and nothing removes them for it |
+| **The list reads every newest draft** | No index until one is measured slow, since an index is a second write a crash can separate from the first (0049) | Listing a tenant's templates opens a file per template, unmeasured, and one record the store did not write fails the whole list |
 | **Two `@formancy/spec` under the Data provider** | report-spec takes 0.7.0, and Formancy Data 0.1.0's packages pin 0.5.0 exactly ([0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) | A consumer of the provider installs both until Data releases against a newer one; nothing of one reaches the other |
 | **English where a person reads it** | The session's undo labels, the validator's and the diagnostics' sentences, and the preview's label are English ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) | A German or French builder shows an English sentence for a refusal the validator words, and an EPC payment code's square too small for its frame is refused in points, in a field edited in millimetres ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | **Properties without an editor** | A table's sort, its group and total rows and its footer cells, conditional styles, value formats, a run added to or removed from a text, a QR code's content or an EPC QR code's text (only an optional text that is absent, or one literal run, is typed in and emptied out), a column added to or removed from a columns block or added to a table, and the declarations, but for an image a person adds and the removal of one nothing draws (0033), have commands and no property kind to edit them ([`report-builder-core`'s README](../../packages/report-builder-core/README.md#what-it-does-not-do)) | Written in the definition instead |
@@ -473,9 +510,11 @@ its own.
 
 ## 11.4 Planned, and not built
 
-From the README and the open release gates, and nothing more: the server's
-drafts, publication, jobs and artifacts, and its image published, on the
-server that answers who is asking today (0046); reviewed AI changes,
+From the README and the open release gates, and nothing more: the
+server's publication, jobs and artifacts, and its image published, on the
+server that answers who is asking (0046) and keeps a template's draft and
+its images today; fonts kept beside the images, a retention of a draft's
+older revisions, and a Save in both builders (0049); reviewed AI changes,
 whose groundwork is commands as data ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md));
 a published PDF viewer; and a consistent read from Formancy Data, which
 waits for Data's snapshot export. Whether the runtime checks the bytes a

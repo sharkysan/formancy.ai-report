@@ -31,15 +31,18 @@ packages/report-server/Dockerfile, built from the repository root
    │           `pnpm deploy --prod` into /app
    ▼
    runtime  the same base, by digest; /app root's, read-only to node;
-            /var/lib/formancy-report made and given to node, for the store a
-            later release writes; USER node; PORT 4392; HEALTHCHECK GET
-            /health, at Data's image's intervals; node dist/main.mjs
+            /var/lib/formancy-report made and given to node, and named to the
+            server as FORMANCY_REPORT_STORE_DIR, for its store; USER node;
+            PORT 4392; HEALTHCHECK GET /health, at Data's image's
+            intervals; node dist/main.mjs
 ```
 
 An operator runs it with its settings -- the issuer, the audience, the
 identity key by reference, `FORMANCY_REPORT_ATTRIBUTES` with the tenant's
-claim, the roles that hold each capacity, and the rate limit, proxies,
-origins and audit key where the defaults do not fit -- as the package's
+claim, the directory of its store (which the image sets, and which must be
+a volume for the drafts to outlive the container), the roles that hold each
+capacity, and the rate limit, proxies, origins and audit key where the
+defaults do not fit -- as the package's
 README lists them, and secrets as files or variables a reference names,
 never as a setting's value
 ([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)). Unconfigured, it prints one line for each
@@ -51,9 +54,47 @@ too, the store's directory then a volume the operator mounts; the
 container gate runs each of these.
 
 What it does not do, and what the operator therefore owns:
-- **One instance.** Nothing here shares a rate limit or, once it arrives, a
-  store between two instances; one instance behind the host's proxy is the
-  deployment.
+- **One instance.** Nothing here shares a rate limit or a store between
+  two instances; one instance behind the host's proxy, its store on a
+  local volume, is the deployment. A save is decided by a hard link, which
+  is atomic on a local file system and which nothing here has tried over
+  NFS, and the server does not probe for one at start: on a volume that
+  cannot make one it starts and refuses every save as `internal`.
+- **The store's volume, and its backup.** `FORMANCY_REPORT_STORE_DIR` is
+  required, an absolute path to a directory that exists and that `node`
+  can write, which the server never makes: outside the image, a directory
+  that does not exist stops it at start. The image sets
+  `/var/lib/formancy-report`, a directory the image itself makes and gives
+  `node`, so a container run without a volume there starts, and its drafts
+  live in the container's writable layer and go with it. Only under
+  `docker run --read-only` does a missing volume stop it, the directory
+  then unwritable, which no container check makes. The volume is the
+  tenants' data: under its tenants directory, one per tenant named by the
+  SHA-256 of its claim, each template's every revision as a numbered file
+  with the subject of the token that saved it, and every image kept, by
+  digest. Nothing prunes or deletes any of it. What to back up is that
+  whole directory, on a schedule the operator keeps, and a restore puts
+  its files back as they were: a record whose report was edited, or cut
+  short, is never served, a read of it answered `internal` and logged by
+  its path inside the tenant's directory, and a crash's temporary file is
+  never read as a draft. A restore older than a template's newest save
+  takes that save's file away, and a revision is the newest file's number,
+  so the next save is given the number again. A page still holding the
+  draft that went names its digest as well, so its save is refused
+  `draft-changed`, unless the two drafts hold the same report to the byte,
+  whose save goes through; refused, its author reads the newest rather
+  than saving over a draft they never saw, and nobody needs to reload for
+  that. What the restore took away is gone, which is the restore's own
+  cost. The digest is compared just before the store's swap, which is by
+  revision alone, so a draft's newest file removed by hand while the
+  server runs can let a save that races another win over a draft its
+  author never saw, and a restore made while it runs removes files under
+  it the same way. So restore with the server stopped, and never remove a
+  draft's newest file while the server runs. A file is flushed before it
+  is linked, but its directory is not after, so an acknowledged save can
+  lose its name on power loss, and its number is issued again as after a
+  restore, a page that held it refused the same way
+  ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 - **TLS and the address.** It listens on plain HTTP on every interface of
   its container; TLS, the public name and the proxy that forwards to it are
   the operator's, and that proxy is named in `FORMANCY_REPORT_TRUSTED_PROXIES`

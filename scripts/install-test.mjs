@@ -17,7 +17,9 @@
  * entry point resolves; the types resolve with `skipLibCheck` off, against
  * the types that host has and no others; and the code runs. The Node
  * packages are driven end to end, and the server, in a host of its own, is
- * made, listens on a socket and is asked over it. The React builder is
+ * made, listens on a socket and is asked over it, through the packed client
+ * too; the client, in a browser's host of its own, is type-checked against
+ * the DOM's types and bundled for a browser. The React builder is
  * drawn by React's server renderer, in its development and its production
  * build, and bundled
  * for a browser. The Angular builder is compiled into a host ahead of time,
@@ -208,12 +210,13 @@ async function check(project, entry, tarballs, runtime, guide) {
   entry.installed = Object.fromEntries(Object.keys(project.framework).map((name) => [name, installed(dir, name)?.version ?? null]))
   entry.tools = Object.fromEntries(Object.keys(project.tools).map((name) => [name, installed(dir, name)?.version ?? null]))
 
-  // What a builder's project is apart for. Anything that brings Node's types
-  // into it -- a dependency of the builder's, or of a tool -- lets a builder
-  // declaration that references them pass here and fail in a browser host.
-  // Keyed on the builder the project is for, never on its own types, which
-  // install-hosts.test.mjs holds to the DOM's alone for every builder's host.
-  if (project.builder !== null && installed(dir, '@types/node') !== undefined) throw new Error(`${project.name} has @types/node installed, which a browser host's code is checked without`)
+  // What a browser's project -- a builder's, or the client's -- is apart
+  // for. Anything that brings Node's types into it -- a dependency of the
+  // package's, or of a tool -- lets a declaration that references them pass
+  // here and fail in a browser host. Keyed on what the project is for,
+  // never on its own types, which install-hosts.test.mjs holds to the DOM's
+  // alone for every browser's host.
+  if (project.browser && installed(dir, '@types/node') !== undefined) throw new Error(`${project.name} has @types/node installed, which a browser host's code is checked without`)
 
   const framework = Object.entries(entry.installed).map(([name, version]) => `${name} ${String(version)}`).join(', ')
   const lines = [`\n${project.name}: ${project.consumer}${framework === '' ? '' : `, beside ${framework}`}`]

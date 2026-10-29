@@ -169,16 +169,29 @@ through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
 ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
 `@formancy/report-server-core` holds who may do what -- one actions table
-over the host's verified identity -- the wire and the audit port, with no
-Node; `@formancy/report-server` is the server over it, on Fastify: the
-host's token verified offline by Data's verifier, the tenant from a
-required claim, `/health` and `/v1/whoami` and nothing else, a path that is
-not plain refused before any route, a trusted-proxy list that would trust
-every client of a family refused as `@fastify/proxy-addr` matches it, its
-settings read once by `main.ts`, its image built and run by the `container`
-gate and not published
+over the host's verified identity -- the wire, the audit port, and the use
+cases that decide a tenant's drafts and images over a store's port,
+`TemplateStore`, judged by report-spec, with no Node; `@formancy/report-server`
+is the server over it, on Fastify: the host's token verified offline by
+Data's verifier, the tenant from a required claim, `/health`, `/v1/whoami`
+and a template's draft and the images it declares and nothing else, a path
+that is not plain refused before any route, a trusted-proxy list that would
+trust every client of a family refused as `@fastify/proxy-addr` matches it,
+its settings read once by `main.ts`, its image built and run by the
+`container` gate and not published
 ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
-0047).
+0047). A draft is one per template of a tenant, the template named by its
+report's `id`, saved from the version `If-Match` names, its revision and
+its record's digest (`draftTag`), and refused 412 `draft-changed` from a
+stale one, nothing written, the swap a hard link in
+`file-store.ts` on the directory `FORMANCY_REPORT_STORE_DIR` names; checked
+by `validateReport` on the way in, a font refused, and served as saved by
+its record's digest, with `savedBy` the token's subject; an image kept by
+its digest once report-spec has read it; no body read before the token,
+and the body bounded by report-spec's `MAX_REPORT_BYTES`.
+`@formancy/report-client` asks it over the host's fetch, with no Node,
+answering every refusal and following no redirect
+([0049](docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 `@formancy/report-forms` reads that data from a formancy form's
 submissions, against the exact form version that collected each, as the
 host hands them over, fetching nothing: each version validated by the
@@ -278,9 +291,10 @@ before it:
    a renderer-neutral output.
 5. `report-render-pdf` -- the one chosen engine's adapter. It takes resolved
    input and approved asset bytes, never a database connection or a URL.
-6. `report-server-core` / `report-server` -- built: who may do what, and a
-   server that knows who is asking (0046); then `report-client`,
-   `report-viewer`, `report-ai`.
+6. `report-server-core` / `report-server` / `report-client` -- built: who
+   may do what, a server that knows who is asking (0046) and keeps a
+   template's draft and its images, and the client a host asks it with
+   (0049); then `report-viewer`, `report-ai`.
 7. `report-data-provider` -- the only package allowed to depend on Formancy
    Data's contracts, at the exact release it was built against (0016);
    `report-server` may depend on Data's identity verifier alone (0047);
@@ -658,7 +672,9 @@ exactly what CI does:
   the one 401 and whoami, reads a key set file and reads it again on
   SIGHUP, runs as `node`, carries the licence, writes its store and not its
   own code, runs on a read-only root, and reads its rate limit, proxies and
-  origins (0046). Locally it needs Docker.
+  origins (0046); a draft it saved is read back after a restart on the same
+  volume, an image it kept is read back by its digest, and it saves a draft
+  on a read-only root (0049). Locally it needs Docker.
 - **`e-invoice`** runs `node scripts/e-invoice.mjs --java <path>` after
   `pnpm build`, on the Java the register names (0027, 0031): Mustang,
   KoSIT's validator and veraPDF, fetched by URL into `.e-invoice-cache/`
@@ -764,17 +780,20 @@ Locally, run the same commands for what you changed.
   holding only what that host has, and each builder at the newest and the
   oldest release its peer range admits (`scripts/install-hosts.mjs`);
 - type-checks each consumer with `skipLibCheck` **off**, against its host's
-  types: Node's for the Node packages, the DOM's and not Node's for a builder;
+  types: Node's for the Node packages, the DOM's and not Node's for a builder
+  and for the client, whose `client` host holds it and what it declares
+  alone and type-checks `client.ts` against them (0049);
 - runs it: `consume.ts` under Node, which also draws an e-invoice, in
   `e-invoice.ts`, and reads the PDF/A-3b's bytes with `embedding.ts` and
   Node alone (0031);
   `server.ts`, the server made in its host's process and asked over a
-  socket;
+  socket, a draft saved through the packed client, read back and a stale
+  save refused `draft-changed`;
   `react.tsx` drawn by React's server renderer in its development and
   production builds; `angular.ts` compiled
   ahead of time, linked and bundled by `build.mjs`, and drawn by
-  platform-server without the JIT compiler; and each builder bundled for a
-  browser;
+  platform-server without the JIT compiler; and each builder and the
+  client bundled for a browser;
 - compiles and runs `docs/getting-started.md` (0015): every block of code in
   the guide names its host in its fence (`ts guide=node`, `tsx guide=react
   file=main.tsx`), and the gate writes the blocks into that host's project

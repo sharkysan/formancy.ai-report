@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 import { DEFAULT_PORT } from './settings.js'
+import type { SETTINGS } from './settings.js'
 
 /**
  * The server's image (0046), as its Dockerfile writes it, held to the
@@ -83,8 +84,8 @@ describe('the container build', () => {
   // A guard on the guard: a closure that silently came back empty, or
   // lost the server, would make the test above pass forever.
   test('reads the closure from the manifests', () => {
-    expect(workspaceClosure('report-server')).toEqual(new Set(['report-server', 'report-server-core']))
-    expect(workspaceClosure('report-server-core')).toEqual(new Set(['report-server-core']))
+    expect(workspaceClosure('report-server')).toEqual(new Set(['report-server', 'report-server-core', 'report-spec']))
+    expect(workspaceClosure('report-server-core')).toEqual(new Set(['report-server-core', 'report-spec']))
   })
 
   // SV-Q5: Node 26, whose permission model has a network scope the
@@ -134,6 +135,23 @@ describe('the container build', () => {
     const command = instructions.findIndex((line) => line === 'CMD ["node", "dist/main.mjs"]')
     expect([store !== -1, store < user, user < command, command === instructions.length - 1]).toEqual([true, true, true, true])
     expect(read('packages', 'report-server', 'tsdown.config.ts')).toContain("entry: ['src/index.ts', 'src/main.ts']")
+  })
+
+  // The directory the image gives its user is the one the server is told to
+  // keep its store in: a server run from the image without the setting
+  // would stop at start (it is required), and one told another directory
+  // would write where no volume is mounted and nothing is owned, so its
+  // drafts would end with the container. The directory is read from the
+  // line that makes and gives it, so the two cannot name different ones.
+  test('tells the server to keep its store in the directory it gave its user', () => {
+    const setting: keyof typeof SETTINGS = 'FORMANCY_REPORT_STORE_DIR'
+    const owned = /^RUN mkdir -p (\S+) && chown node:node \1$/m.exec(text)?.[1]
+    expect(owned).toBe('/var/lib/formancy-report')
+    // The ENV instruction, its continued lines included.
+    const from = instructions.findIndex((line) => line.startsWith('ENV '))
+    let to = from
+    while (instructions[to]?.endsWith('\\') === true) to += 1
+    expect(instructions.slice(from, to + 1).join('\n')).toContain(`${setting}=${String(owned)}`)
   })
 
   // The port it listens on, says it exposes and probes is the settings'

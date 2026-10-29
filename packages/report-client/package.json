@@ -1,0 +1,51 @@
+{
+  "name": "@formancy/report-client",
+  "version": "0.2.0",
+  "description": "Formancy Report's client for its server: lists a tenant's templates, reads and saves a template's draft from the version it was opened at, and keeps and reads the images a draft declares, over the fetch and the token a host gives it. No framework, no Node. Source-available, as every Formancy Report package.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE.md",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test:coverage": "vitest run --coverage",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "check:pkg": "publint && attw --pack . --profile esm-only"
+  },
+  "dependencies": {
+    "@formancy/report-server-core": "workspace:*",
+    "@formancy/report-spec": "workspace:*"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
+    "@formancy/report-server": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "publint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "unrun": "^0.3.1",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
+    "directory": "packages/report-client"
+  },
+  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "bugs": "https://github.com/sharkysan/formancy.ai-report/issues"
+}

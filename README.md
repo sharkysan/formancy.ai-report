@@ -32,23 +32,27 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **An EN 16931 e-invoice**, the German hybrid invoice: the Factur-X / ZUGFeRD XML is written from the values the page prints, and a final render is a PDF/A-3b that embeds it. It may name the parties' electronic addresses, the seller's contact and its business process, which a German business invoice does not need. Or it is an **XRechnung 3.0** for a German public buyer, in CII: its XML, which your application takes from the resolved document and sends, is the invoice, and its PDF a copy labelled so on every page. France is not claimed. In a gate of its own, Mustang and KoSIT judge the XML of the repository's samples, an XRechnung's in KoSIT's XRechnung scenario, and veraPDF and Mustang the hybrids' PDFs ([0027](./docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), [0031](./docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), [0037](./docs/decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md), [0038](./docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)). Either kind is edited field by field in either builder, its terms in groups and its VAT categories a list, and an IBAN typed into the e-invoice, its QR-bill or its EPC QR code is the account all of them pay, in one step, where every one of them writes it in the report. Only its totals and its lines are held to the page: a seller, a date or a bank the page prints in its own words is yours to change with it. An e-invoice is edited and never made from nothing: a starter gives one ([0044](./docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
 - **Fonts**: a report maps its `sans`, `serif` and `mono` tokens to TrueType fonts your application approves, pinned by digest; the renderer reads each with report-spec's reader, embeds it from its bytes with the layout tables fontkit would run removed, and refuses a character the face lacks and a weight or slant it does not map. It prints Latin, Greek and Cyrillic, with their punctuation and symbols, and refuses every other script, right-to-left, shaping and CJK among them, in any face. A token left unmapped prints in Roboto (`sans`) or is refused; a QR-bill's slip keeps Liberation Sans ([0040](./docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), [0043](./docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
 - **Images**: a PNG, a JPEG, or an SVG logo drawn as vectors, made of shapes alone: no text, no embedded picture. Where your application gives the editor a store for them, a person adds one in either builder, and your application keeps its bytes ([0030](./docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), [0033](./docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
-- **A server that knows who is asking**: it verifies your application's token offline with Formancy Data's own verifier, takes the person's tenant from a claim every token must carry, and says which actions your roles give them, under `/v1`. It stores, renders and keeps nothing yet ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0047](./docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
+- **A server that knows who is asking**: it verifies your application's token offline with Formancy Data's own verifier, takes the person's tenant from a claim every token must carry, and says which actions your roles give them, under `/v1` ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0047](./docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
+- **A template's draft, kept on that server**: one per template of a tenant, saved from the version your page opened, its revision and the digest of its report, so a save from a draft another author has saved over since, or from one whose number a restore let another save take with another report, is refused with nothing written, and your page offers a reload; the report checked by the format before it is kept and served as it was saved, who saved each revision kept beside it, and the images it declares kept by their digest. `@formancy/report-client` is what your page asks it with; your page draws Save and the reload, not the builders. It renders and publishes nothing yet, and keeps no fonts ([0049](./docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 - **The Studio**, a playground with both builders and the PDF they print, beside them or in the design view's place, online at https://formancy.ai/report/ ([Try it](#try-it), [0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
 
-Planned and not here: the server's drafts, publication, render jobs and
-artifacts, and its published image; reviewed AI changes, a published PDF
-viewer, and a consistent read from Formancy Data.
+Planned and not here: the server's publication, render jobs and
+artifacts, fonts kept beside its images, a Save in the builders themselves,
+and its published image; reviewed AI changes, a published PDF viewer, and
+a consistent read from Formancy Data.
 
-> **Status, 22 October 2026: 0.2.0, a developer preview, is released.**
+> **Status, 28 October 2026: 0.2.0, a developer preview, is released.**
 > Its eight packages are on npm, with provenance, and
 > [the GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.2.0)
 > carries the signed SBOM and release report of the run that published
 > them. What 0.2.0 holds and leaves out is in
 > [the changelog](./CHANGELOG.md#020--2026-10-19). Since then `main` holds
 > 0.3.0's first work, under *Unreleased* there, `@formancy/report-forms`,
-> `@formancy/report-server-core` and `@formancy/report-server` among it,
-> which no release has published yet; the server answers who is asking and
-> nothing more, and its image is built by the gates and not published. The report format is
+> `@formancy/report-server-core`, `@formancy/report-server` and
+> `@formancy/report-client` among it, which no release has published yet;
+> the server answers who is asking and keeps a template's draft and its
+> images, in files on one volume, and its image is built by the gates and
+> not published. The report format is
 > still version "0", the draft: a report written now is not promised to be
 > read by a later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
@@ -56,8 +60,10 @@ viewer, and a consistent read from Formancy Data.
 **Start with [the getting-started guide](./docs/getting-started.md)**: a
 quotation printed as a PDF in Node and in a browser, an XRechnung's XML
 taken from what the runtime resolved, the editor in a React page that saves
-and previews, and in an Angular page. The install gate
-compiles and runs its code against the packed packages
+and previews, and in an Angular page, and a React page that keeps its draft
+on Report's server. The install gate compiles and runs its code against the
+packed packages, the server's page compiled and bundled with no server to
+ask
 ([0015](./docs/decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)).
 
 ## Try it
@@ -242,8 +248,9 @@ these lines from the packed packages (`scripts/install-fixture/consume.ts`).
 | [`@formancy/report-render-pdf`](./packages/report-render-pdf/README.md) | Draws that document with pdfmake, in Node and through a browser entry, and refuses what it cannot draw whole rather than return a partial PDF ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)). |
 | [`@formancy/report-data-provider`](./packages/report-data-provider/README.md) | Reads a report's data from a Formancy Data 0.1.0 server, labelled best-effort ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). |
 | [`@formancy/report-forms`](./packages/report-forms/README.md) | Reads a report's data from a formancy form's submissions, against the exact version that collected each, as your application hands them over, host-captured ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)); and starts a report from a form version, a first draft whose notes list what it left out ([0045](./docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)); and reviews a form's new version for a report, a version that moved, removed or retyped a field it reads blocking until a resolution -- a declared rename first, report-core's commands as data -- is applied ([0048](./docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)). |
-| [`@formancy/report-server-core`](./packages/report-server-core/README.md) | Who may do what to a tenant's reports, as one actions table over the host's verified identity, the wire a client compiles against and the audit port; no framework and no Node ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)). |
-| [`@formancy/report-server`](./packages/report-server/README.md) | The server, on Fastify: your application's token verified offline by Formancy Data's verifier, the tenant from a required claim, `/health` and `/v1/whoami` and nothing else; its settings read once, and its image built from the repository ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0047](./docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)). |
+| [`@formancy/report-server-core`](./packages/report-server-core/README.md) | Who may do what to a tenant's reports, as one actions table over the host's verified identity, the wire a client compiles against, the audit port, and the use cases that decide a tenant's drafts and images over a store's port; no framework and no Node ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0049](./docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)). |
+| [`@formancy/report-server`](./packages/report-server/README.md) | The server, on Fastify: your application's token verified offline by Formancy Data's verifier, the tenant from a required claim, `/health`, `/v1/whoami` and a template's draft and its images, in files on one volume, and nothing else; its settings read once, and its image built from the repository ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0047](./docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md), [0049](./docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)). |
+| [`@formancy/report-client`](./packages/report-client/README.md) | What your page asks that server with: the tenant's templates, a draft read and saved from its version, an image kept and read by its digest, each refusal answered with its code, over the fetch and the token your page gives it; no framework and no Node ([0049](./docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)). |
 | [`@formancy/report-builder-core`](./packages/report-builder-core/README.md) | The editor model both builders render, with no framework, in English, Swiss German and Swiss French; `BUILDER_SCENARIOS` is what every builder must do ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)). |
 | [`@formancy/report-builder-react`](./packages/report-builder-react/README.md) | The builder for React 19. |
 | [`@formancy/report-builder-angular`](./packages/report-builder-angular/README.md) | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js. |
@@ -298,7 +305,8 @@ whose token your application supplies, so Data's policy decides every answer
 Data never depends on Report. The report server verifies your
 application's token with Data's identity verifier,
 `@formancy/data-identity`, and reads nothing else of Data, so running it in
-production needs a Data licence too
+production needs a Data licence too; it keeps its drafts in files of its
+own, never in Data
 ([0047](./docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)). A formancy form's submissions are read
 through `@formancy/spec`'s own validator, hash and labels, along scopes a
 test holds to formancy's own data paths, by a package that depends on

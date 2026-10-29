@@ -28,6 +28,7 @@ RUN npm install -g --ignore-scripts pnpm@12.4.2
 # here AND copied in full below; src/dockerfile.test.ts derives that list
 # from the dependency graph and fails when this file forgets one.
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
+COPY packages/report-spec/package.json packages/report-spec/
 COPY packages/report-server-core/package.json packages/report-server-core/
 COPY packages/report-server/package.json packages/report-server/
 
@@ -37,6 +38,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts --filter @formancy/report-se
 
 COPY LICENSE.md NOTICE tsconfig.base.json ./
 COPY scripts/sync-licenses.mjs scripts/
+COPY packages/report-spec/ packages/report-spec/
 COPY packages/report-server-core/ packages/report-server-core/
 COPY packages/report-server/ packages/report-server/
 
@@ -59,15 +61,19 @@ COPY --from=build /app /app
 # The store's directory, owned by the user the server runs as, and the one
 # directory that user is given. Docker copies an image directory's owner
 # into a new named volume mounted on it; without this, such a volume is
-# root's and the template store that arrives next could not write it. No
-# VOLUME instruction: an anonymous volume nobody asked for is a surprise,
-# not a default.
+# root's and the template store could not write it. No VOLUME instruction:
+# an anonymous volume nobody asked for is a surprise, not a default.
 RUN mkdir -p /var/lib/formancy-report && chown node:node /var/lib/formancy-report
 
 USER node
 
+# FORMANCY_REPORT_STORE_DIR is the directory made above. The server requires
+# it and has no default, so the image says it: run without a volume there,
+# the drafts live in the container and go with it, and on a read-only root
+# file system the directory must be a volume (scripts/container.mjs runs both).
 ENV NODE_ENV=production \
-    PORT=4392
+    PORT=4392 \
+    FORMANCY_REPORT_STORE_DIR=/var/lib/formancy-report
 
 EXPOSE 4392
 

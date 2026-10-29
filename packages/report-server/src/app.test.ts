@@ -1,14 +1,13 @@
 import { generateKeyPairSync } from 'node:crypto'
-import { connect } from 'node:net'
 import type { AddressInfo } from 'node:net'
-import type { FastifyInstance } from 'fastify'
 import { SignJWT, UnsecuredJWT } from 'jose'
-import { afterEach, describe, expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { ACTIONS, ROUTES } from '@formancy/report-server-core'
 import { createReportServer, REQUEST_TIMEOUT_MS } from './app.js'
 import type { ReportServerOptions } from './app.js'
 import { createReportVerifier } from './identity.js'
 import type { ReportVerifier } from './identity.js'
+import { eachCase, exchange, HOST, signed } from './test-support.js'
 
 /**
  * The HTTP surface of S1 (0046): `GET /health`, `GET /v1/whoami`, and
@@ -16,46 +15,19 @@ import type { ReportVerifier } from './identity.js'
  * forwarded address, a client that leaves -- is in proxies' and audit's
  * suites over a real one.
  *
- * The secret is this test's own, throwaway.
+ * The host's secret is this test's own, throwaway (test-support.ts).
  */
-const SECRET = 'a-throwaway-test-secret-of-at-least-32-bytes'
-const ISSUER = 'https://host.example'
-const AUDIENCE = 'formancy-report'
+const { secret: SECRET, issuer: ISSUER, audience: AUDIENCE } = HOST
 const roles = { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] }
 
 /** Accepts the literal token `good`, of tenant acme; everything else is a bad signature. The real verifier has its own suite, and the cases below. */
 const verifyIdentity: ReportVerifier = async (token) => (token === 'good' ? { ok: true, identity: { subject: 'u-1', tenant: 'acme', roles: ['report-authors', 'report-publishers'] } } : { ok: false, reason: 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' })
 
-let app: FastifyInstance | undefined
-afterEach(async () => {
-  await app?.close()
-  app = undefined
-})
-const server = async (overrides: Partial<ReportServerOptions> = {}) => (app = await createReportServer({ verifyIdentity, roles, ...overrides }))
-
-/**
- * Writes `text` to a server listening on `port`, as a client that may never
- * finish its request, and reads for up to `ms`: what came back, whether the
- * server closed the connection meanwhile, and the port the client sent from.
- */
-async function exchange(port: number, text: string, ms = 1000): Promise<{ answer: string; closed: boolean; from: number | undefined }> {
-  const socket = connect(port, '127.0.0.1')
-  socket.on('error', () => {})
-  let answer = ''
-  let closed = false
-  socket.on('data', (chunk: Buffer) => void (answer += chunk.toString('utf8')))
-  const ended = new Promise<void>((resolve) => socket.once('close', () => resolve(void (closed = true))))
-  await new Promise((resolve) => socket.once('connect', resolve))
-  const from = socket.localPort
-  socket.write(text)
-  await Promise.race([ended, new Promise((resolve) => setTimeout(resolve, ms))])
-  socket.destroy()
-  return { answer, closed, from }
-}
+/** The server is given a store whatever the case asks of it (0049): each case its own (test-support.ts). */
+const cases = eachCase('formancy-report-app-')
+const server = async (overrides: Partial<ReportServerOptions> = {}) => cases.serve({ verifyIdentity, roles, ...overrides })
 
 const key = new TextEncoder().encode(SECRET)
-const signed = (claims: Record<string, unknown>, change: (jwt: SignJWT) => SignJWT = (jwt) => jwt) =>
-  change(new SignJWT({ tid: 'acme', roles: ['report-authors'], ...claims }).setProtectedHeader({ alg: 'HS256' }).setIssuer(ISSUER).setAudience(AUDIENCE).setSubject('u-1').setExpirationTime('5m')).sign(key)
 
 describe('health', () => {
   // An orchestrator needs a route that answers without credentials, and
@@ -106,8 +78,10 @@ describe('whoami', () => {
 
   // ROUTES is what a client compiles against and what the cross-origin
   // grant offers; an entry no route answers would be granted across
-  // origins and answered 404, and nothing else would notice.
+  // origins and answered 404, and nothing else would notice. Whoami and the
+  // draft slice's five routes, each by the method and pattern it names.
   test('answers every route ROUTES names', async () => {
+    expect(Object.keys(ROUTES)).toHaveLength(6)
     const listening = await server()
     for (const route of Object.keys(ROUTES)) {
       const [method = '', url = ''] = route.split(' ')
@@ -119,6 +93,21 @@ describe('whoami', () => {
   // would grant by accident, and does not start a server.
   test('does not start with a role policy that is not lists of roles', async () => {
     await expect(server({ roles: { author: 'report-authors' } as unknown as ReportServerOptions['roles'] })).rejects.toThrow('roles is { author, publisher, admin }, each a list of the host’s roles.')
+  })
+
+  // The store is where every draft route goes. A JavaScript embedder that
+  // left it out, or passed something that lacks one of the port's methods,
+  // started a server that answered whoami and failed its first save as the
+  // server's own error; it does not start, as every other option it
+  // checks.
+  test('does not start with a store that lacks a method of the port', async () => {
+    const methods = { list: async () => [], newest: async () => undefined, save: async () => ({ saved: false as const, revision: null }), keepImage: async () => {}, readImage: async () => undefined, imageKind: async () => undefined }
+    const without = (name: string) => Object.fromEntries(Object.entries(methods).filter(([method]) => method !== name))
+    const refused = [undefined, null, 'a directory', {}, { ...methods, imageKind: 'yes' }, ...Object.keys(methods).map(without)]
+    for (const store of refused) {
+      await expect(createReportServer({ verifyIdentity, roles, store: store as never }), JSON.stringify(store)).rejects.toThrow('store is a TemplateStore, whose list, newest, save, keepImage, readImage and imageKind are each a function, as openFileTemplateStore answers one.')
+    }
+    await expect(server({ store: methods })).resolves.toBeDefined()
   })
 })
 
@@ -143,8 +132,8 @@ describe('every bad token is the same 401', () => {
       'no tenant': await signed({ tid: undefined }),
     }
     const answers = []
-    const plain = await createReportServer({ verifyIdentity: real, roles })
-    const confused = await createReportServer({ verifyIdentity: confusedVerifier, roles })
+    const plain = await createReportServer({ verifyIdentity: real, roles, store: cases.store })
+    const confused = await createReportServer({ verifyIdentity: confusedVerifier, roles, store: cases.store })
     try {
       for (const headers of [{}, { authorization: 'Basic dTpw' }, { authorization: 'Bearer a b' }, { authorization: 'bearer good' }]) answers.push(await plain.inject({ method: 'GET', url: '/v1/whoami', headers }))
       for (const token of Object.values(tokens)) answers.push(await plain.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: `Bearer ${token}` } }))
@@ -197,8 +186,12 @@ describe('nothing else is answered', () => {
     const listening = await server()
     const asked = [
       ['GET', '/v1'],
-      ['GET', '/v1/templates'],
-      ['PUT', '/v1/templates/a/draft'],
+      ['GET', '/v1/templates/a'],
+      ['POST', '/v1/templates'],
+      ['DELETE', '/v1/templates/a/draft'],
+      ['GET', '/v1/templates/a/draft/1'],
+      ['DELETE', '/v1/assets/a'],
+      ['GET', '/v1/versions'],
       ['POST', '/v1/whoami'],
       ['DELETE', '/v1/whoami'],
       ['HEAD', '/v1/whoami'],
@@ -248,6 +241,19 @@ describe('nothing else is answered', () => {
     })
     const answer = await listening.inject({ method: 'GET', url: '/refusing' })
     expect(answer.statusCode).toBe(415)
+    expect(answer.body).toBe('{"code":"bad-request","message":"The request could not be read."}')
+  })
+
+  // A body past the limit of a route that names no refusal of its own --
+  // none does today but the draft's and the asset's -- is the fixed 400
+  // sentence under its 413, never Fastify's message, and never another
+  // route's refusal, which would tell a client its report or its image was
+  // too large when it sent neither.
+  test('answers a body too large for a route that names no refusal of its own 413, with the fixed 400 sentence', async () => {
+    const listening = await server()
+    listening.post('/bounded', { bodyLimit: 2 }, async () => 'read')
+    const answer = await listening.inject({ method: 'POST', url: '/bounded', headers: { 'content-type': 'application/json' }, payload: '"xx"' })
+    expect(answer.statusCode).toBe(413)
     expect(answer.body).toBe('{"code":"bad-request","message":"The request could not be read."}')
   })
 
@@ -313,6 +319,7 @@ describe('a request that holds its connection', () => {
     const made = await server(overrides)
     await made.listen({ host: '127.0.0.1', port: 0 })
     port = (made.server.address() as AddressInfo).port
+    return made
   }
 
   // A body sent a byte at a time to a path nothing answers held its
@@ -339,9 +346,9 @@ describe('a request that holds its connection', () => {
   // body sent slowly to a route that reads none -- whoami's, health's --
   // held its connection for good. Node's own default bounds it.
   test('is bounded by Node’s own request timeout', async () => {
-    await listening()
+    const made = await listening()
     expect(REQUEST_TIMEOUT_MS).toBe(300_000)
-    expect(app?.server.requestTimeout).toBe(REQUEST_TIMEOUT_MS)
+    expect(made.server.requestTimeout).toBe(REQUEST_TIMEOUT_MS)
   })
 })
 
