@@ -49,7 +49,13 @@
     a template id that is not report-spec's identifier, a digest that is
     not a SHA-256 refused before any file operation, a digest refused
     exactly where report-spec's `isDigest` refuses it, and a revision past
-    the safe integers neither read nor written; each image's kind answered
+    the safe integers neither read nor written; a revision whose newest
+    file is gone issued again, and a save from the old number winning
+    over the new, the cost below, which the case holds so that it is read
+    again once the store stops reusing a number (watched failing with a
+    store that remembered the highest number it issued: "expected { saved:
+    true, revision: 3 } to deeply equal { saved: true, revision: 2 }");
+    each image's kind answered
     as it was kept, and nothing for an image the tenant did not keep; an
     image kept twice, or by several at once, one file read back as its
     bytes and media type, and never kept or served under
@@ -515,6 +521,19 @@ must be a volume for the server to start.
   a template's directory grows by one file per save, for good, and a
   tenant's store with it; nothing measured how fast. Explicit saves keep
   the count to what authors press.
+- **A revision's number can be issued twice.** A revision is the number
+  of a template's newest file, so where that file disappears -- a backup
+  older than the newest save restored, or the file removed by hand -- the
+  next save is given its number again. A page that still holds the old
+  number then wins its `If-Match` against a different draft saved under
+  it since, and its save replaces that draft unseen: the precondition
+  names a number, not what was saved under it. The operator's procedure
+  meets it: restore with the server stopped; every author reloads their
+  drafts after a restore; and never remove a draft's newest file.
+  Whether the `ETag` should carry the record's digest beside the
+  revision, so that a number issued again never matches, is a question
+  of `/v1`'s shape left open for the owner to decide before 0.3.0
+  releases it; `file-store.test.ts` holds the reuse as it is.
 - **`savedBy` is a claim's value at rest.** Each revision keeps the token's
   subject beside the tenant's documents, often an email address or an
   identity provider's object id, which the operator's backup of the volume
@@ -558,8 +577,9 @@ must be a volume for the server to start.
   person who may not keep an image still has up to 20 MiB of one read
   before the 403; an unidentified one has nothing read.
 - **Nothing deletes.** A draft, a template and an image stay until the
-  operator removes their files by hand, and no route takes back a
-  template made by mistake.
+  operator removes their files by hand, never a draft's newest, whose
+  number the next save would issue again (above), and no route takes back
+  a template made by mistake.
 - **A new required setting.** An installation that runs the server outside
   the image, or overrides its environment, stops at start until
   `FORMANCY_REPORT_STORE_DIR` names a directory that exists and is

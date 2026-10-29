@@ -279,7 +279,14 @@ volume is served. A tenant's directory is the unkeyed SHA-256 of its
 claim, which whoever can list the volume reverses for a tenant they can
 guess. The swap is a hard link: atomic on a local file system, untried
 over NFS, never probed at start, and with the directory unflushed after
-it, an acknowledged save can lose its name on power loss. A draft that
+it, an acknowledged save can lose its name on power loss. A revision is
+the number of the newest file, so a restore older than a template's
+newest save, or that file removed by hand, has the next save issue the
+number again, and a page that still holds the old one saves over the new
+unseen; the operator's procedure is the cost's only answer -- restore with
+the server stopped, every author reloading after it, and never remove a
+draft's newest file -- and whether the `ETag` carries the record's digest
+is a question of `/v1`'s shape left open until 0.3.0. A draft that
 declares a font is refused until fonts are kept, and a host that previews
 a draft from the server writes its own image cache, since the runtime's
 resolver is synchronous ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
@@ -463,7 +470,7 @@ its own.
 | **Data's rate limit and preflight lifetime, not measured here** | The server takes Formancy Data's 600 requests a minute and its 600-second preflight, so a host behind both servers meets one rule (0046) | Neither number was measured on Report's routes; a host whose people make more requests a minute raises the setting |
 | **Node's request timeout and Data's health check, not measured here** | The server takes Node's own 300 s for a request to arrive, which Fastify turns off, and the image Data's health-check intervals (0046) | Neither was measured on Report's routes; a route that reads a body larger than a slow link sends in 300 s needs a record of its own |
 | **Every host writes the image cache** | report-runtime's `AssetResolver` is synchronous, so it cannot ask the server for an image while a preview prints, and a helper in report-client would make it depend on the runtime's types; the guide carries the code instead ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)) | Each host fetches every image a draft declares when it opens it, one request each, and keeps each one a person adds before `keep` resolves; a helper waits until hosts show it is wanted |
-| **Revisions never pruned** | The compare-and-swap needs the numbered files, and retention is a decision of its own (0049) | A template's directory grows by a file a save, and nothing measured how fast a tenant's store grows; an operator removes files by hand, and nothing removes them for it |
+| **Revisions never pruned** | The compare-and-swap needs the numbered files, and retention is a decision of its own (0049) | A template's directory grows by a file a save, and nothing measured how fast a tenant's store grows; an operator removes files by hand, never a draft's newest, whose number the next save would issue again, and nothing removes them for it |
 | **The list reads every newest draft** | No index until one is measured slow, since an index is a second write a crash can separate from the first (0049) | Listing a tenant's templates opens a file per template, unmeasured, and one record the store did not write fails the whole list |
 | **Two `@formancy/spec` under the Data provider** | report-spec takes 0.7.0, and Formancy Data 0.1.0's packages pin 0.5.0 exactly ([0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) | A consumer of the provider installs both until Data releases against a newer one; nothing of one reaches the other |
 | **English where a person reads it** | The session's undo labels, the validator's and the diagnostics' sentences, and the preview's label are English ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) | A German or French builder shows an English sentence for a refusal the validator words, and an EPC payment code's square too small for its frame is refused in points, in a field edited in millimetres ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |

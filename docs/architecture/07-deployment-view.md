@@ -77,7 +77,14 @@ What it does not do, and what the operator therefore owns:
   restore puts its files back as they were: a record whose report was
   edited, or cut short, is never served, a read of it answered `internal`
   and logged by its path inside the tenant's directory, and a crash's
-  temporary file is never read as a draft. A file is flushed before it is linked, but its
+  temporary file is never read as a draft. A restore older than a
+  template's newest save takes that save's file away, and a revision is
+  the newest file's number, so the next save is given the number again,
+  and a page still holding the old one saves over the new unseen; a
+  draft's newest file removed by hand does the same. So restore with the
+  server stopped, have every author reload their drafts after a restore,
+  and never remove a draft's newest file
+  ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)). A file is flushed before it is linked, but its
   directory is not after, so an acknowledged save can lose its name on
   power loss ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 - **TLS and the address.** It listens on plain HTTP on every interface of

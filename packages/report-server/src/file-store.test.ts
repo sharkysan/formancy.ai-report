@@ -100,6 +100,23 @@ describe('a draft', () => {
     expect((await readdir(draftDirectory(TENANT, 'invoice'))).sort()).toEqual(['1.json', '2.json'])
   })
 
+  // The cost 0049 states, and the operator's procedure answers: a revision
+  // is the newest file's number, so where that file disappears -- a backup
+  // older than the newest save restored, the file removed by hand -- the
+  // next save is given its number again, and a page still holding the old
+  // revision 2 saves from it over another author's 2, unseen. Held here so
+  // that the limitation is read again the day the store stops reusing a
+  // number, or reuses one some other way: left standing, it would tell
+  // operators of a hazard the store no longer has, or not of the one it has.
+  test('a revision whose newest file is gone is issued again, and a save from the old one then wins', async () => {
+    await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'One')))
+    await store.save(TENANT, 'invoice', 1, draft('u-1', report('invoice', 'Two, open in a page')))
+    await rm(join(draftDirectory(TENANT, 'invoice'), '2.json'))
+    expect(await store.save(TENANT, 'invoice', 1, draft('u-2', report('invoice', 'Another two')))).toEqual({ saved: true, revision: 2 })
+    expect(await store.save(TENANT, 'invoice', 2, draft('u-1', report('invoice', 'Three, over another two')))).toEqual({ saved: true, revision: 3 })
+    expect((await store.newest(TENANT, 'invoice'))?.report.title).toBe('Three, over another two')
+  })
+
   // `10.json` sorts before `9.json` as text. A store that
   // took the last name would serve revision 9 as the newest, and every save
   // from 11 would be refused as stale.

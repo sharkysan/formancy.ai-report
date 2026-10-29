@@ -2114,7 +2114,7 @@
       ]
     },
     "0049": {
-      "reviewed": "sha256:a2d488cdf834848cd4c67763421a69f6210e2c1fb6fac63ff170cb9740d47c4d",
+      "reviewed": "sha256:afee989098e1d92f3f941b9d4bc4a37e5373aa7be945ce092fd0d29f0c702fe2",
       "limitations": [
         {
           "area": "server",
@@ -2124,6 +2124,11 @@
         {
           "area": "server",
           "says": "Every saved revision of a draft stays in the store, and nothing prunes a revision or deletes a draft, a template or an image, so a tenant’s store only grows until an operator removes files by hand.",
+          "heldBy": "packages/report-server/src/file-store.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A revision is the number of a template’s newest file, so a backup restored from before the newest save, or that file removed by hand, has the next save issue the number again, and a page still holding the old revision saves over the new one unseen; the operator restores with the server stopped, has every author reload their drafts after a restore, and never removes a draft’s newest file.",
           "heldBy": "packages/report-server/src/file-store.test.ts"
         },
         {
