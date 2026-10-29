@@ -406,14 +406,17 @@ describe('saveDraft', () => {
   // This server keeps no font: a draft with a font map could be saved and then
   // never rendered with the face it names. It is refused now, so every
   // stored draft can be published later. The store is not consulted for a
-  // font, and holding that digest as an image would change nothing.
+  // font, and holding that digest as an image would change nothing. The
+  // refusal alone cannot hold the guard, since a store that answers a kind
+  // never answers `font/ttf`; that the store is not asked does.
   test('refuses a draft that declares a font, whatever the store holds under its digest', async () => {
-    const { store } = memoryStore()
+    const { store, asked } = memoryStore()
     await store.keepImage('acme', BRAND, png)
     const draft: ReportDefinition = { ...report(), assets: [{ id: 'brand', mediaType: 'font/ttf', digest: BRAND }], fonts: { sans: { normal: 'brand' } } }
     expect(validateReport(draft).valid).toBe(true)
     const saved = await saveDraft(asking(store, AUTHOR), 'invoice', draft, create)
     expect(saved).toEqual({ ok: false, status: 422, body: { ...REFUSALS['asset-not-kept'], assets: ['brand'] } })
+    expect(asked).not.toContain('imageKind')
     expect(await store.newest('acme', 'invoice')).toBeUndefined()
   })
 

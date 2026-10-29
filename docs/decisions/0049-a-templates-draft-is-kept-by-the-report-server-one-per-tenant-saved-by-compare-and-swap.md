@@ -31,10 +31,13 @@
     once they used another. A kept PNG declared as an SVG or a JPEG was
     watched saving, 201, before the port answered the kind kept
     ("image/svg+xml: expected { ok: true, status: 201, …(2) } to deeply
-    equal { ok: false, status: 422, …(1) }"). The path's digest held to
-    `isDigest` was watched failing with a pattern of the use cases' own that
-    admitted capitals ("expected [ false, false ] to deeply equal [ true,
-    true ]").
+    equal { ok: false, status: 422, …(1) }"). Once it answered the kind,
+    the use case's font guard removed survived, since no kind kept is a
+    font's, and was killed once the font's case held the store unasked
+    ("expected [ 'keepImage', 'imageKind' ] to not include 'imageKind'").
+    The path's digest held to `isDigest` was watched failing with a
+    pattern of the use cases' own that admitted capitals ("expected
+    [ false, false ] to deeply equal [ true, true ]").
   - **The store.** `packages/report-server/src/file-store.test.ts`, against
     a real directory made for each case, since what it proves is the file
     system's: saves 1, 2 and 3 read back as saved; a save from 1 after 2 not
