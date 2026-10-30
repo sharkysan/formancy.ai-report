@@ -28,7 +28,7 @@ const preview = { mode: 'preview' } as const
 
 /** `data` with its own fields replaced. */
 function withData(overrides: Record<string, unknown>, rows?: readonly Record<string, unknown>[]): ReportData {
-  return { ...sampleData(rows), ...overrides } as ReportData
+  return { ...sampleData(rows), ...overrides }
 }
 
 describe('checkData', () => {
@@ -153,7 +153,7 @@ describe('checkData', () => {
   test('refuses a declared dataset the data lacks, and warns in a preview', () => {
     const { header: _header, ...noHeader } = sampleData()
     expect(where(errors(checkData(sampleReport(), noHeader as ReportData, final)))).toEqual(['missing-dataset /header'])
-    const outcome = checkData(sampleReport(), noHeader as ReportData, preview)
+    const outcome = checkData(sampleReport(), noHeader, preview)
     expect(outcome.ok && where(outcome.warnings)).toEqual(['missing-dataset /header'])
     expect(checked(outcome).header).toEqual({})
     const { detail: _detail, ...noDetail } = sampleData([])
@@ -515,7 +515,7 @@ describe('checkData: where the data came from', () => {
       },
     })
     const hiddenId = Object.defineProperty({ form: 'site-visit', formHash: VERSION_1 }, 'id', getter(FIRST))
-    // eslint-disable-next-line no-sparse-arrays
+
     const refused = errors(
       checkData(sampleReport(), withData({ source: formSource([hiddenId, , submission({ id: SECOND, formHash: VERSION_2 })]) }, rows(3)), final),
     )

@@ -104,7 +104,7 @@ describe('text without a glyph', () => {
     ['in a section', [{ kind: 'section', padding: 4, blocks: [paragraph('ok'), paragraph('✓ ok')] }], 'body[0].blocks[1]', 'U+2713'],
     ['in a French amount', [paragraph('Total : 1 234,50 €')], 'body[0]', 'U+202F'],
   ] as const)('is refused %s', async (_, body, subject, point) => {
-    const outcome = await refusal(bareDocument('Glyphs', body as readonly Block[]))
+    const outcome = await refusal(bareDocument('Glyphs', body))
     expect(outcome).toMatchObject({ code: 'unsupported', subject, message: expect.stringContaining(point) as string })
   })
 

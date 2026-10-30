@@ -155,7 +155,7 @@ const fieldsOf = (text: string): number[] => (text.match(/\d+/g) as RegExpMatchA
 
 /** `value` as a `type` spells it: a value of that type, or a string an expression gave that spells one, as `readValue` holds it. */
 function spelledAs(value: TypedValue, type: 'date' | 'datetime' | 'instant'): string | undefined {
-  if (value.type === type) return value.value as string
+  if (value.type === type) return value.value
   if (value.type !== 'string') return undefined
   const read = readValue(type, value.value)
   return read.ok ? read.value : undefined

@@ -29,7 +29,10 @@ const CONTINUED = 10
 function rowsOf(kinds: readonly RowKind[]): Row[] {
   return ['header' as const, ...kinds].map((kind, index) => ({
     kind,
-    cells: [{ text: `R${index}`, alignment: 'left' } as Cell, { text: '', alignment: 'left' } as Cell],
+    cells: [
+      { text: `R${index}`, alignment: 'left' },
+      { text: '', alignment: 'left' },
+    ],
   }))
 }
 

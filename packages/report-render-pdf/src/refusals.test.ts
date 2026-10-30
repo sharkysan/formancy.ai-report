@@ -71,7 +71,7 @@ describe('what pdfmake cannot place', () => {
       'body[0].columns[0].blocks[0] is a page break inside a columns block',
     ],
   ] as const)('a page break %s', async (_, document, subject, message) => {
-    expect(await refusal(document as ResolvedDocument)).toMatchObject({ code: 'unsupported', subject, message })
+    expect(await refusal(document)).toMatchObject({ code: 'unsupported', subject, message })
   })
 
   // A table is part of the flow, as report-spec has it: inside a column it
@@ -329,7 +329,7 @@ describe('what is malformed', () => {
     ],
     ['a negative margin', { page: { size: 'A4', orientation: 'portrait', margins: { top: -1, right: 36, bottom: 36, left: 36 } } }, 'page.margins'],
   ] as const)('%s', async (_, change, subject) => {
-    expect(await refusal({ ...documentOf('Malformed page', [paragraph('Body')]), ...change } as ResolvedDocument)).toMatchObject({
+    expect(await refusal({ ...documentOf('Malformed page', [paragraph('Body')]), ...change })).toMatchObject({
       code: 'unsupported',
       subject,
     })
@@ -598,8 +598,7 @@ describe('an XRechnung', () => {
     // A list's items and an object's keys read alike, so a run handed on in an object is a document made otherwise too.
     [
       'the label’s run in an object, not a list',
-      (document: ResolvedDocument) =>
-        relabel(document, { ...XRECHNUNG_COPY_PARAGRAPH, runs: { ...XRECHNUNG_COPY_PARAGRAPH.runs } as unknown as Paragraph['runs'] }),
+      (document: ResolvedDocument) => relabel(document, { ...XRECHNUNG_COPY_PARAGRAPH, runs: { ...XRECHNUNG_COPY_PARAGRAPH.runs } }),
     ],
   ] as const)('with %s on its pages is refused', async (_, unlabel) => {
     for (const [, render] of ENTRIES) {

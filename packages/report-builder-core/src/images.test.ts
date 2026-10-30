@@ -584,7 +584,7 @@ describe('adding an image', () => {
   test('says a session’s refusal of the add or the remove', async () => {
     const open = sessionOver(declaring(asset('logo', 'a'), asset('unused', 'b')))
     const refuses = (): Refusal => ({ ok: false, code: 'invalid-document', message: 'this report is read only' })
-    const readOnly: ReportSession = { ...open, apply: refuses as ReportSession['apply'] }
+    const readOnly: ReportSession = { ...open, apply: refuses }
     const editor = createReportEditor(readOnly, { images: recordingStore() })
     expect(await editor.addImage(chosen('mark.png', PNG))).toMatchObject({
       ok: false,

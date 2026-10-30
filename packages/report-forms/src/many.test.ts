@@ -203,10 +203,8 @@ describe('readSubmissions', () => {
     expect(refusals(readMany(one, { forms: [SITE_VISIT_V1], submissions: SUBMISSIONS.slice(0, 1), complete: true }))).toEqual([
       'unbound-report /datasets/detail',
     ])
-    expect(refusals(readMany(VISITS, { forms: [SITE_VISIT_V1], submissions: SUBMISSIONS.slice(0, 1), complete: 'yes' } as never))).toEqual([
-      'invalid-input /complete',
-    ])
-    expect(refusals(readMany(VISITS, { forms: SITE_VISIT_V1, submissions: SUBMISSIONS, complete: true } as never))).toEqual(['invalid-input /forms'])
+    expect(refusals(readMany(VISITS, { forms: [SITE_VISIT_V1], submissions: SUBMISSIONS.slice(0, 1), complete: 'yes' }))).toEqual(['invalid-input /complete'])
+    expect(refusals(readMany(VISITS, { forms: SITE_VISIT_V1, submissions: SUBMISSIONS, complete: true }))).toEqual(['invalid-input /forms'])
     let read = 0
     const many = new Proxy([] as unknown[], {
       getOwnPropertyDescriptor: (target, key) => {

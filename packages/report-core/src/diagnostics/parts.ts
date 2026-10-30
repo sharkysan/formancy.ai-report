@@ -403,9 +403,9 @@ export function reportParts(report: ReportDefinition): ReportParts {
     into.expression(component.visibleWhen, `${path}/visibleWhen`, 'report', 'visible', owner)
     into.style(component.style)
     into.rules(component.styleWhen, `${path}/styleWhen`, 'report', owner)
-    ;(READERS[component.kind] as Reader<ComponentKind>)(component as never, path, into)
+    ;(READERS[component.kind] as Reader<ComponentKind>)(component, path, into)
   }
-  if (report.paymentPart !== undefined) (PAYMENT_PARTS[report.paymentPart.kind] as PartReader<PaymentPartKind>)(report.paymentPart, '/paymentPart', into)
+  if (report.paymentPart !== undefined) PAYMENT_PARTS[report.paymentPart.kind](report.paymentPart, '/paymentPart', into)
   if (report.eInvoice !== undefined) (E_INVOICES[report.eInvoice.kind] as InvoiceReader<EInvoiceKind>)(report.eInvoice, '/eInvoice', into)
   for (const [index, aggregate] of report.aggregates.entries()) {
     // What an aggregate reads, it reads from each detail row.

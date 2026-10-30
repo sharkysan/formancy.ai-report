@@ -644,7 +644,7 @@ describe('the site visit, generated from a formancy form', () => {
       const pdf = await printed(document)
       expect(verify(fixtureOf('site-visit-80', document, { minPagesExpected: 2, maxPagesExpected: 5 }), pdf)).toEqual([])
       expect(pdf.pages.map((page) => pageLines(page).at(-1)?.text)).toEqual(pdf.pages.map((page) => `${page.number} / ${pdf.pages.length}`))
-      expect(many.map((finding) => startingWith(pdf, finding['ref'] as string).map((line) => line.text))).toEqual(many.map((finding) => [row(finding)]))
+      expect(many.map((finding) => startingWith(pdf, finding['ref']).map((line) => line.text))).toEqual(many.map((finding) => [row(finding)]))
     },
     TIMEOUT,
   )

@@ -168,7 +168,7 @@ export function xrechnungScenarioReport(): ReportDefinition {
 
 /** The literal text of `runs`, or undefined where a run is no literal. */
 const text = (runs: readonly Inline[] | undefined): string | undefined =>
-  runs !== undefined && runs.every((run) => run.kind === 'text') ? runs.map((run) => (run as Extract<Inline, { kind: 'text' }>).text).join('') : undefined
+  runs !== undefined && runs.every((run) => run.kind === 'text') ? runs.map((run) => run.text).join('') : undefined
 
 /** The accounts the report's e-invoice, its QR-bill and its EPC payment code pay, in that order. */
 function accounts(report: ReportDefinition): (string | undefined)[] {

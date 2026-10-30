@@ -62,7 +62,7 @@ export function parseArguments(argv: readonly string[]): { readonly date: string
   const [flag, date, ...rest] = argv
   if (flag !== '--date' || date === undefined || rest.length > 0) throw new Error(USAGE)
   const [year, month, day] = date.split('-').map(Number)
-  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(Date.UTC(year!, month! - 1, day!)) : undefined
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(Date.UTC(year!, month! - 1, day)) : undefined
   if (parsed?.toISOString().slice(0, 10) !== date) throw new Error(`--date ${date} is not a calendar date written YYYY-MM-DD; ${USAGE}`)
   return { date }
 }

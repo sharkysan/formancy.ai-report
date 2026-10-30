@@ -137,7 +137,7 @@ describe('updateEInvoice', () => {
   test('leaves what an XRechnung needs to the validator, which refuses it by the rule that needs it', () => {
     const session = open(xrechnungSample())
     const before = session.document()
-    const outcome = refused(session.apply((report) => updateEInvoice(report, { buyerReference: null } as EInvoicePatch)))
+    const outcome = refused(session.apply((report) => updateEInvoice(report, { buyerReference: null })))
     expect(outcome.errors?.map((error) => error.path)).toEqual(['/eInvoice/buyerReference'])
     expect(outcome.errors?.[0]?.message).toContain('BR-DE-15')
     expect(session.document()).toBe(before)

@@ -187,7 +187,7 @@ function sharedAccount(report: ReportDefinition, runs: readonly Inline[] | undef
   if (report.eInvoice === undefined || runs === undefined || !within(at, account)) return undefined
   const written = withValue(runs, at.slice(account.length).split('/').slice(1), next) as readonly Inline[]
   if (!written.every((run) => run.kind === 'text')) return undefined
-  const text = written.map((run) => (run as Extract<Inline, { kind: 'text' }>).text).join('')
+  const text = written.map((run) => run.text).join('')
   const shared = setPaymentAccount(report, text)
   if (!shared.ok && shared.code === 'read-from-data') return undefined
   return { command: (r) => setPaymentAccount(r, text), said: 'status.accountShared' }
@@ -218,13 +218,13 @@ export function propertyChange(report: ReportDefinition, target: PropertyTarget,
         const { invoice } = target
         return (
           sharedAccount(report, invoice.payment?.iban, '/payment/iban', at, next) ?? {
-            command: (r) => updateEInvoice(r, patchAt(invoice, at, next) as EInvoicePatch),
+            command: (r) => updateEInvoice(r, patchAt(invoice, at, next)),
           }
         )
       }
       const shared = sharedAccount(report, target.bill.account, '/account', at, next)
       if (shared !== undefined) return shared
-      const { patch, said } = pairedReference(target.bill, patchAt(target.bill, at, next) as PaymentPartPatch)
+      const { patch, said } = pairedReference(target.bill, patchAt(target.bill, at, next))
       return { command: (r) => updatePaymentPart(r, patch), ...(said === undefined ? {} : { said }) }
     }
   }

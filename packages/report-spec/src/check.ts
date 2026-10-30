@@ -123,7 +123,7 @@ export function readObject(f: Findings, value: unknown, path: string): Record<st
     // another, or null. Anything else -- a Map, a Date, a class -- would be
     // read as an object of its own properties, which is not what it holds.
     const prototype: unknown = Object.getPrototypeOf(value)
-    if (prototype !== null && Object.getPrototypeOf(prototype as object) !== null) {
+    if (prototype !== null && Object.getPrototypeOf(prototype) !== null) {
       f.report(path, 'wrong-type', 'expected a plain object, found an instance of a class')
       return undefined
     }

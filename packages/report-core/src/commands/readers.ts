@@ -294,7 +294,7 @@ function removal(walk: Walk, slot: DatasetRole, fieldId: string): CommandOutcome
     const own = ruleRemoval(
       path,
       rules.get(ruleKey(component.id)),
-      (styleWhen) => (working) => updateComponent(working, component.id, component.kind, { styleWhen } as never),
+      (styleWhen) => (working) => updateComponent(working, component.id, component.kind, { styleWhen }),
       component.styleWhen,
     )
     const table = component.kind === 'table' ? tableRemoval(component, path, tables.get(component.id), rules) : { pointers: [], edits: [] }

@@ -155,7 +155,7 @@ function checked(render: Reading, term: EInvoiceLineTerm, value: TypedValue | nu
   if (value === null || (render.preview && value.type === 'string' && eInvoiceBlank(value.value))) {
     return render.preview ? null : refuse(render, place, `${term.what} ${required(term)}`)
   }
-  if (!term.types.includes(value.type as FieldType))
+  if (!term.types.includes(value.type))
     return refuse(render, place, `${term.what} is read from ${term.types.map(aType).join(' or ')}, and this gives ${aType(value.type)}`)
   const text = written(value)
   const outcome =

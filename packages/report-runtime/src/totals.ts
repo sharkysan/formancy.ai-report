@@ -64,7 +64,7 @@ function numbers(
   values: readonly TypedValue[],
   decimals: boolean,
 ): { readonly integers: readonly bigint[] } | { readonly decimals: readonly Decimal[] } | undefined {
-  if (!decimals && values.every((value) => value.type === 'integer')) return { integers: values.map((value) => value.value as bigint) }
+  if (!decimals && values.every((value) => value.type === 'integer')) return { integers: values.map((value) => value.value) }
   if (!values.every((value) => value.type === 'integer' || value.type === 'decimal')) return undefined
   return { decimals: values.map(asDecimal) }
 }

@@ -351,7 +351,7 @@ describe('reading the PDF out of PDFKit', () => {
   // pending forever: a job that neither finishes nor fails.
   test('rejects when the stream fails, rather than waiting for an end that never comes', async () => {
     const stream = new PassThrough()
-    const reading = collect(stream as unknown as PdfStream)
+    const reading = collect(stream)
     stream.destroy(new Error('the stream failed'))
     await expect(reading).rejects.toThrow('the stream failed')
   })
@@ -404,7 +404,7 @@ describe("pdfkit's PDF/A-3 and embedded files, which an e-invoice is drawn with"
         modifiedDate: CREATED,
         ...(relationship === undefined ? {} : { relationship }),
       }
-      document.file(XML.buffer.slice(XML.byteOffset, XML.byteOffset + XML.byteLength) as ArrayBuffer, options as PdfKitFileOptions)
+      document.file(XML.buffer.slice(XML.byteOffset, XML.byteOffset + XML.byteLength), options as PdfKitFileOptions)
     }
 
   // pdfmake hands the definition's version to PDFKit, which writes the

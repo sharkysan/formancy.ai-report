@@ -221,7 +221,7 @@ describe('the outline', () => {
           return component.id === 'gap' ? { id: 'blank', kind: 'text', content: [{ kind: 'text', text: '' }] } : component
         }),
       },
-    } as ReportDefinition
+    }
     const { editor } = editorOver(broken)
     const rows = new Map(
       editor

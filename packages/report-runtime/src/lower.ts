@@ -85,7 +85,7 @@ function blockOf(render: Render, component: Component, path: string, inherited: 
   const scope = reportScope(render, render.totals.report)
   if (component.visibleWhen !== undefined && holds(render, scope, `${path}/visibleWhen/cel`) !== true) return undefined
   const style = styled(render, scope, inherited, component.style, component.styleWhen, `${path}/styleWhen`)
-  return (LOWER[component.kind] as Lowerer<ComponentKind>)(component as never, { render, scope, path, style })
+  return (LOWER[component.kind] as Lowerer<ComponentKind>)(component, { render, scope, path, style })
 }
 
 /** The components of the list at `path`, in order, as the blocks they print. */

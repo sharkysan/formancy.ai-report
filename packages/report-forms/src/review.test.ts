@@ -45,7 +45,7 @@ const V1 = formOf([...FIELDS])
 
 /** A version of the form whose fields `edit` makes of the first's. */
 const version = (edit: (fields: readonly Field[]) => readonly Field[], more: Record<string, unknown> = {}): Record<string, unknown> =>
-  formOf([...edit(FIELDS as unknown as readonly Field[])], more)
+  formOf([...edit(FIELDS)], more)
 
 /** `fields` with the field `key`, at the top or in a container, replaced by what `change` makes of it, or removed where it makes nothing. */
 function changed(fields: readonly Field[], key: string, change: (field: Field) => Field | undefined): Field[] {
@@ -801,18 +801,16 @@ describe('reviewFormVersion, what it is handed', () => {
   // the report the validator's.
   test('refuses what is no report, no version, or no binding to a form', () => {
     const errors = (outcome: FormReview) => (outcome.ok ? [] : outcome.errors.map((error) => `${error.code} ${error.path}`))
-    expect(errors(reviewFormVersion({ ...REPORT, locale: 'deutsch' } as ReportDefinition, { form: V1, versions: [V1] }))).toEqual(['invalid-report '])
+    expect(errors(reviewFormVersion({ ...REPORT, locale: 'deutsch' }, { form: V1, versions: [V1] }))).toEqual(['invalid-report '])
     expect(errors(reviewFormVersion(REPORT, { form: { specVersion: '4' }, versions: [V1] }))[0]).toMatch(/^invalid-form \/form/)
     expect(errors(reviewFormVersion(REPORT, { form: V1, formHash: '0'.repeat(64), versions: [V1] }))).toEqual(['hash-mismatch /formHash'])
     expect(errors(reviewFormVersion(REPORT, { form: V1, versions: [{ specVersion: '9' }] }))).toEqual(['unsupported-spec-version /versions/0/specVersion'])
     expect(errors(reviewFormVersion(REPORT, { form: V1, versions: [V1], also: true } as never))).toEqual(['invalid-input /also'])
     expect(errors(reviewFormVersion(REPORT, { form: V1, versions: V1 } as never))).toEqual(['invalid-input /versions'])
     const { datasets: _datasets, ...rest } = REPORT
-    expect(
-      errors(
-        reviewFormVersion({ ...rest, datasets: {}, regions: { ...REPORT.regions, body: [] } } as unknown as ReportDefinition, { form: V1, versions: [V1] }),
-      ),
-    ).toEqual(['unbound-report /datasets'])
+    expect(errors(reviewFormVersion({ ...rest, datasets: {}, regions: { ...REPORT.regions, body: [] } }, { form: V1, versions: [V1] }))).toEqual([
+      'unbound-report /datasets',
+    ])
   })
 
   // What a review says ends up before a person and in a log: it names the

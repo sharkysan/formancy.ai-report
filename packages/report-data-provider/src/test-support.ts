@@ -91,7 +91,7 @@ export function dataFixture(forms: Readonly<Record<string, FixtureForm>>, menu: 
       const found = form.records.find((row) => row.record === request['record'])
       return found === undefined ? notFound() : json(200, found)
     }
-    if (kind === 'records' && name === 'list') return page(form, request as ListBody)
+    if (kind === 'records' && name === 'list') return page(form, request)
     if (kind === 'lookups' && action === 'resolve') {
       const labels = form.labels?.[name ?? ''] ?? {}
       const tokens = request['tokens'] as string[]
@@ -108,7 +108,7 @@ export function dataFixture(forms: Readonly<Record<string, FixtureForm>>, menu: 
     return Promise.resolve(serve(init?.method ?? 'GET', path, body))
   }
   return {
-    client: createDataClient({ token: () => token, fetch: fetch as typeof globalThis.fetch }),
+    client: createDataClient({ token: () => token, fetch: fetch }),
     requests,
     answerNext: (suffix, status, body) => {
       refusals.push({ suffix, status, body })
@@ -116,22 +116,21 @@ export function dataFixture(forms: Readonly<Record<string, FixtureForm>>, menu: 
   }
 }
 
-const text = (key: string, more: Partial<Field> = {}): Field => ({ key, type: 'text', label: key, ...more }) as Field
-const lookup = (key: string, source: string): Field => ({ key, type: 'select', label: key, optionsSource: source }) as Field
-const yesOrNo = (key: string): Field =>
-  ({
-    key,
-    type: 'radio',
-    label: key,
-    options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' },
-    ],
-  }) as Field
+const text = (key: string, more: Partial<Field> = {}): Field => ({ key, type: 'text', label: key, ...more })
+const lookup = (key: string, source: string): Field => ({ key, type: 'select', label: key, optionsSource: source })
+const yesOrNo = (key: string): Field => ({
+  key,
+  type: 'radio',
+  label: key,
+  options: [
+    { value: 'true', label: 'Yes' },
+    { value: 'false', label: 'No' },
+  ],
+})
 
 function published(id: string, fields: readonly Field[], readable: readonly string[]): PublishedForm {
   return {
-    form: { specVersion: '3', id, title: id, model: { fields: [...fields] } } as PublishedForm['form'],
+    form: { specVersion: '3', id, title: id, model: { fields: [...fields] } },
     operations: ['read'],
     readable: [...readable],
     list: { searchable: [], sortable: [...readable] },
@@ -166,7 +165,7 @@ export function orderForms(count = 3): Record<string, FixtureForm> {
         [
           text('number'),
           lookup('customer', 'customers'),
-          { key: 'orderedOn', type: 'date', label: 'orderedOn' } as Field,
+          { key: 'orderedOn', type: 'date', label: 'orderedOn' },
           text('total', { pattern: '^-?[0-9]{1,12}(\\.[0-9]{1,2})?$' }),
           yesOrNo('paid'),
           text('internal'),
@@ -185,9 +184,9 @@ export function orderForms(count = 3): Record<string, FixtureForm> {
         [
           lookup('order', 'orders'),
           text('article'),
-          { key: 'quantity', type: 'number', label: 'quantity' } as Field,
+          { key: 'quantity', type: 'number', label: 'quantity' },
           text('amount'),
-          { key: 'shippedAt', type: 'datetime', label: 'shippedAt' } as Field,
+          { key: 'shippedAt', type: 'datetime', label: 'shippedAt' },
           text('warehouse'),
         ],
         ['order', 'article', 'quantity', 'amount', 'shippedAt', 'warehouse'],

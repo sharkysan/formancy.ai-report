@@ -61,7 +61,7 @@ export function newPaymentPart(report: ReportDefinition): SwissQrBill {
 
 /** The text `runs` write when every run is literal, what no data can change; undefined otherwise. */
 function written(runs: readonly Inline[]): string | undefined {
-  return runs.every((run) => run.kind === 'text') ? runs.map((run) => (run as Extract<Inline, { kind: 'text' }>).text).join('') : undefined
+  return runs.every((run) => run.kind === 'text') ? runs.map((run) => run.text).join('') : undefined
 }
 
 /** The kind of account `runs` write, as report-spec's check reads it; undefined where the data or an expression says, or it is no account yet. */

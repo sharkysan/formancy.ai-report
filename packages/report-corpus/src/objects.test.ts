@@ -366,7 +366,7 @@ describe('inflatedDigest', () => {
   ).join('\n')
 
   /** A one-page PDF whose page's stream is `text` deflated at `level`, with `extra` in its dictionary. */
-  async function pdf({ text = PAGE, level = 6, extra = {} as Record<string, string> } = {}): Promise<Uint8Array> {
+  async function pdf({ text = PAGE, level = 6, extra = {} } = {}): Promise<Uint8Array> {
     const document = await PDFDocument.create({ updateMetadata: false })
     const page = document.addPage([595, 842])
     const contents = document.context.register(

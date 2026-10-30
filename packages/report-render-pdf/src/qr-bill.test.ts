@@ -89,8 +89,13 @@ function runsIn(page: PdfPage, drawn: DrawnPage, box: Box): Run[] {
 }
 
 /** A run as expected: `x` within a hundredth of a point, or anywhere when it is null. */
-const run = (text: string, x: number | null, baseline: number, size: number, font: string): Run =>
-  ({ text, x: x === null ? expect.any(Number) : expect.closeTo(x, 2), baseline: expect.closeTo(baseline, 2), size, font }) as unknown as Run
+const run = (text: string, x: number | null, baseline: number, size: number, font: string): Run => ({
+  text,
+  x: x === null ? expect.any(Number) : expect.closeTo(x, 2),
+  baseline: expect.closeTo(baseline, 2),
+  size,
+  font,
+})
 
 /** The lines of a section of SIX's: each block a heading and its values, the first heading's top at the section's top, every line `pitch` below the one before, and a blank line between blocks (SG 15). */
 function stacked(
@@ -463,13 +468,12 @@ describe('the blank fields', () => {
   const marks = (drawn: DrawnPage): Shape[] =>
     drawn.shapes.filter((shape) => shape.kind === 'line' && shape.stroke !== undefined && shape.fill === undefined && shape.lineWidth === 0.75)
 
-  const closeBox = (box: Box): Box =>
-    ({
-      x: expect.closeTo(box.x, 2),
-      top: expect.closeTo(box.top, 2),
-      width: expect.closeTo(box.width, 2),
-      height: expect.closeTo(box.height, 2),
-    }) as unknown as Box
+  const closeBox = (box: Box): Box => ({
+    x: expect.closeTo(box.x, 2),
+    top: expect.closeTo(box.top, 2),
+    width: expect.closeTo(box.width, 2),
+    height: expect.closeTo(box.height, 2),
+  })
 
   // Without an amount or a debtor, the payer writes them by hand into
   // fields of SIX's sizes, marked by their corners alone, 3 mm arms of

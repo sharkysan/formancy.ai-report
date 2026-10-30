@@ -242,8 +242,8 @@ export function canonicalInstant(text: string): string | undefined {
     return undefined
   // Date.UTC reads the years 0 to 99 as 1900 to 1999; setUTCFullYear does not.
   const moment = new Date(0)
-  moment.setUTCFullYear(year as number, (month as number) - 1, day as number)
-  moment.setUTCHours(hour as number, minute as number, second, 0)
+  moment.setUTCFullYear(year as number, (month as number) - 1, day)
+  moment.setUTCHours(hour as number, minute, second, 0)
   const offset = (match[8] === '-' ? -1 : 1) * (offsetHours * 60 + offsetMinutes)
   moment.setTime(moment.getTime() - offset * 60_000)
   const utcYear = moment.getUTCFullYear()

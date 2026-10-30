@@ -158,7 +158,7 @@ describe('updateComponent', () => {
   // component, and a kind decides every other property; neither changes in
   // place, whatever an untyped caller sends.
   test('refuses a patch that changes the id or the kind', () => {
-    const sneaky = (patch: object): Parameters<typeof updateComponent<'text'>>[3] => patch as Parameters<typeof updateComponent<'text'>>[3]
+    const sneaky = (patch: object): Parameters<typeof updateComponent<'text'>>[3] => patch
     expect(refused(updateComponent(frozenSample(), 'intro', 'text', sneaky({ id: 'other' })))).toMatchObject({
       code: 'immutable-property',
       path: '/regions/body/0/id',

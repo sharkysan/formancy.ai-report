@@ -62,7 +62,7 @@ function invoicedBill(): ReportDefinition {
     ...report,
     eInvoice: { ...(report.eInvoice as NonNullable<ReportDefinition['eInvoice']>), payment: { means: '58', iban: account } },
     paymentPart: { kind: 'swissQrBill', language: 'de', account, creditor: billOf(billedReport()).creditor, currency: 'EUR' },
-  } as ReportDefinition
+  }
 }
 
 describe('a report with a payment part, in the editor', () => {

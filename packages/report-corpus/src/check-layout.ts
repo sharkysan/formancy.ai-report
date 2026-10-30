@@ -163,7 +163,7 @@ export function outsidePrintable(pages: readonly Page[], setup: PageSetup): stri
 export function overlaps(pages: readonly Page[]): string[] {
   return pages.flatMap((each) => {
     const { page } = each
-    const boxes = [...page.items.map((item) => ({ label: quoted(item.text), box: item as PdfBox })), ...pictures(each)].sort((a, b) => a.box.top - b.box.top)
+    const boxes = [...page.items.map((item) => ({ label: quoted(item.text), box: item })), ...pictures(each)].sort((a, b) => a.box.top - b.box.top)
     const found: string[] = []
     boxes.forEach(({ label, box }, index) => {
       for (const other of boxes.slice(index + 1)) {

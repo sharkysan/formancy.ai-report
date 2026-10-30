@@ -44,7 +44,7 @@ export function sfnt(tables: readonly Table[], version: number = 0x00010000): Ui
   bytes.set([...u32(version), ...u16(count), ...u16(power * 16), ...u16(count === 0 ? 0 : Math.log2(power)), ...u16(count * 16 - power * 16)], 0)
   tables.forEach(([tag, data], index) => {
     bytes.set([...ascii(tag), ...u32(0), ...u32(offsets[index]!), ...u32(data.length)], 12 + 16 * index)
-    bytes.set(data, offsets[index]!)
+    bytes.set(data, offsets[index])
   })
   return bytes
 }
@@ -378,7 +378,7 @@ export function outlines(glyphs: readonly Uint8Array[], locFormat = 0): { glyf: 
   const offsets: number[] = [0]
   for (const glyph of glyphs) offsets.push(offsets.at(-1)! + ((glyph.length + 1) & ~1))
   const glyf = new Uint8Array(offsets.at(-1)!)
-  glyphs.forEach((glyph, index) => glyf.set(glyph, offsets[index]!))
+  glyphs.forEach((glyph, index) => glyf.set(glyph, offsets[index]))
   const loca = Uint8Array.from(offsets.flatMap((offset) => (locFormat === 0 ? u16(offset / 2) : u32(offset))))
   return { glyf, loca }
 }

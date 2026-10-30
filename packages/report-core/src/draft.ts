@@ -32,7 +32,7 @@ export interface Draft {
 export type Synchronous<R> = R & (R extends PromiseLike<unknown> ? never : unknown)
 
 export function commandOf<E extends object>(command: Command<E> | CommandDescriptor): Command<E> {
-  return typeof command === 'function' ? command : (describedCommand(command) as Command<E>)
+  return typeof command === 'function' ? command : describedCommand(command)
 }
 
 function thenable(value: unknown): boolean {

@@ -116,7 +116,7 @@ describe('the browser entry', () => {
       for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES]) {
         const options = { maxPages: each.maxPages }
         const inNode = await definitions(nodePdfmake, () => renderInNode(each.document, options))
-        const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(each.document, options))
+        const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(each.document, options))
         expect(inBrowser.length, each.id).toBe(inNode.length)
         expect(inBrowser, each.id).toEqual(inNode)
       }
@@ -172,7 +172,7 @@ describe('the browser entry', () => {
       }
       const options = { maxPages: 5 }
       const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
-      const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(document, options))
+      const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(document, options))
       expect(inBrowser).toEqual(inNode)
       const codes = await readCodes(await renderInBrowser(document, options), 1)
       expect(codes.map(({ text, ecLevel }) => ({ text, ecLevel }))).toEqual([
@@ -194,7 +194,7 @@ describe('the browser entry', () => {
       const document = billDocument(resolvedBill(SIX_EXAMPLES.two), [paragraph('Invoice 2026-0042')])
       const options = { maxPages: 5 }
       const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
-      const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(document, options))
+      const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(document, options))
       expect(inBrowser).toEqual(inNode)
       const [nodeBytes, browserBytes] = [await renderInNode(document, options), await renderInBrowser(document, options)]
       expect((await readCodes(browserBytes, 1)).map(({ text }) => text)).toEqual([document.paymentPart!.payload])
@@ -216,7 +216,7 @@ describe('the browser entry', () => {
       const document = documentOf('EPC', [paragraph('Zahlbar ohne Abzug'), EPC_CODE])
       const options = { maxPages: 5 }
       const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
-      const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(document, options))
+      const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(document, options))
       expect(inBrowser).toEqual(inNode)
       const [nodeBytes, browserBytes] = [await renderInNode(document, options), await renderInBrowser(document, options)]
       expect((await readCodes(browserBytes, 1)).map(({ text }) => text)).toEqual([EPC_CODE.payload])
@@ -255,7 +255,7 @@ describe('the browser entry', () => {
       const document = eInvoiceDocument()
       const options = { maxPages: 5 }
       const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
-      const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(document, options))
+      const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(document, options))
       expect(inBrowser).toEqual(inNode)
       expect(inBrowser.at(-1)).toContain('"version":"1.7","subset":"PDF/A-3b"')
       const [nodeBytes, browserBytes] = [await renderInNode(document, options), await renderInBrowser(document, options)]
@@ -306,7 +306,7 @@ describe('the browser entry', () => {
       }
       const options = { maxPages: 5 }
       const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
-      const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(document, options))
+      const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(document, options))
       expect(inBrowser).toEqual(inNode)
       const [nodeBytes, browserBytes] = [await renderInNode(document, options), await renderInBrowser(document, options)]
       expect(await inflatedDigest(browserBytes)).toBe(await inflatedDigest(nodeBytes))
@@ -454,7 +454,7 @@ describe('an SVG asset in a browser', () => {
       }
       const options = { maxPages: 5 }
       const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
-      const inBrowser = await definitions(browserPdfmake as unknown as typeof nodePdfmake, () => renderInBrowser(document, options))
+      const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(document, options))
       expect(inBrowser).toEqual(inNode)
       const drawn = async (pdf: Uint8Array): Promise<unknown> => (await readPdf(pdf)).pages.map(({ paths, clips }) => ({ paths, clips }))
       const drawnInBrowser = await renderInBrowser(document, options)

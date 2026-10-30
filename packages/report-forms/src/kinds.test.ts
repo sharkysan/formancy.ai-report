@@ -499,11 +499,7 @@ describe('the README’s mapping table', () => {
       const row = table.get(kind) as { readonly types: readonly string[]; readonly as: string }
       for (const type of REPORT_TYPES) {
         const member = kind === 'matrix' || kind === 'selectboxes' ? { member: 'a' } : {}
-        const outcome = read(
-          reportOf({ header: answers(field('x', type as FieldType, 'x', member)) }),
-          formOf([{ key: 'x', type: kind, ...ONE_OF_EACH[kind] }]),
-          {},
-        )
+        const outcome = read(reportOf({ header: answers(field('x', type, 'x', member)) }), formOf([{ key: 'x', type: kind, ...ONE_OF_EACH[kind] }]), {})
         const pairing = `${kind} as ${type}`
         if (row.types.includes(type)) {
           expect(outcome.ok ? headerOf(outcome) : refusals(outcome), pairing).toEqual({ x: null })
