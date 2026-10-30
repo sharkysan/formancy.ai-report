@@ -366,6 +366,12 @@ export function copiedNotices(directories) {
  * for each bundled file that carries a work with no licence text of its own
  * in its package -- `from` the file holding the notice that work's licence
  * asks for.
+ *
+ * @param {{
+ *   workspace?: string
+ *   ownModules?: readonly string[]
+ *   embedded?: readonly { package: string; file: string | RegExp; name: string; from: string }[]
+ * }} [options]
  */
 export function thirdPartyNotices({ workspace, ownModules = [], embedded = [] } = {}) {
   const own = new Set(ownModules)

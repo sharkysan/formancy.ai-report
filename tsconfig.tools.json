@@ -1,0 +1,30 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    // The configs are loaded by Vite, which resolves as a bundler does and
+    // runs the root's files as modules though the root manifest has no type.
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    // The configs import the repository's plain-JavaScript scripts; their
+    // types are inferred and not checked, as the scripts are not part of
+    // any package's program.
+    "allowJs": true,
+    "types": ["node"]
+  },
+  "include": [
+    "packages/*/vitest.config.ts",
+    "packages/*/tsdown.config.ts",
+    "apps/*/vite.config.ts",
+    "apps/*/vitest.config.ts",
+    "vitest.coverage.ts",
+    "vitest.repo.config.mts",
+    "vitest.results.ts",
+    "packages/report-render-pdf/font-plugin.ts",
+    "packages/report-render-pdf/scripts/readme-pictures.ts"
+  ]
+}
