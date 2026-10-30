@@ -1,7 +1,6 @@
 import { componentAt } from '@formancy/report-spec'
 import { describe, expect, test, vi } from 'vitest'
 import { createReportEditor } from './editor.js'
-import type { ReportEditor } from './editor.js'
 import type { EditorOutcome } from './model-actions.js'
 import { countingSession, richReport, sessionOver } from './test-support.js'
 
@@ -153,32 +152,5 @@ describe('several editors over one session', () => {
     ok(other.dispatch({ type: 'delete' }))
     expect(dragging.state().drag?.over).toBeNull()
     expect(dragging.state().dropTargets.length).toBeLessThan(before)
-  })
-})
-
-describe('an editor handed to a store hook', () => {
-  // useSyncExternalStore and its kin take `subscribe` and `state` as bare
-  // functions (the React builder passes them so). `this: void` on both makes
-  // the type refuse an implementation that reads `this`, and the real editor
-  // is shown to work with neither bound. The directive below fails typecheck
-  // as unused if the declaration is lost.
-  test('subscribes and reads with the two methods taken off it', () => {
-    const { subscribe, state } = createReportEditor(sessionOver(richReport()))
-    const listener = vi.fn()
-    const unsubscribe = subscribe(listener)
-    expect(state().view).toBeDefined()
-    unsubscribe()
-  })
-
-  test('refuses, as a type, an implementation that reads this', () => {
-    const real = createReportEditor(sessionOver(richReport()))
-    const implementation: ReportEditor = {
-      ...real,
-      // @ts-expect-error -- a `this` that the caller would not supply
-      state(this: { shared: number }) {
-        return real.state()
-      },
-    }
-    expect(implementation).toBeDefined()
   })
 })

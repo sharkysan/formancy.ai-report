@@ -63,7 +63,7 @@ export interface ReportSession {
   /** Counts changes: one per committed edit, undo or redo. A refused edit, or one that changed nothing, is not one. */
   revision(): number
   /** `reportHash` of the current document, what a save or a proposal is bound to. */
-  hash(): string
+  hash(this: void): string
   /**
    * Calls `listener` after every change, synchronously, until the function
    * returned is called. A listener that throws does not stop the others;

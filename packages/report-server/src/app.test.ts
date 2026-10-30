@@ -123,7 +123,7 @@ describe('whoami', () => {
     const listening = await server()
     for (const route of Object.keys(ROUTES)) {
       const [method = '', url = ''] = route.split(' ')
-      expect(listening.hasRoute({ method: method, url }), route).toBe(true)
+      expect(listening.hasRoute({ method, url }), route).toBe(true)
     }
   })
 

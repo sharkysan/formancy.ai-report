@@ -152,7 +152,7 @@ describe('checkData', () => {
   // render; in a preview it is a warning, and every field of it is missing.
   test('refuses a declared dataset the data lacks, and warns in a preview', () => {
     const { header: _header, ...noHeader } = sampleData()
-    expect(where(errors(checkData(sampleReport(), noHeader as ReportData, final)))).toEqual(['missing-dataset /header'])
+    expect(where(errors(checkData(sampleReport(), noHeader, final)))).toEqual(['missing-dataset /header'])
     const outcome = checkData(sampleReport(), noHeader, preview)
     expect(outcome.ok && where(outcome.warnings)).toEqual(['missing-dataset /header'])
     expect(checked(outcome).header).toEqual({})
@@ -515,7 +515,6 @@ describe('checkData: where the data came from', () => {
       },
     })
     const hiddenId = Object.defineProperty({ form: 'site-visit', formHash: VERSION_1 }, 'id', getter(FIRST))
-
     const refused = errors(
       // eslint-disable-next-line no-sparse-arrays -- a hole in the array is the input under test
       checkData(sampleReport(), withData({ source: formSource([hiddenId, , submission({ id: SECOND, formHash: VERSION_2 })]) }, rows(3)), final),

@@ -230,20 +230,21 @@ const pad = (value: number, width: number): string => String(value).padStart(wid
 export function canonicalInstant(text: string): string | undefined {
   const match = INSTANT.exec(text)
   if (match === null) return undefined
-  const [year, month, day, hour, minute, second = 0] = match.slice(1, 7).map((part) => (part === undefined ? undefined : Number(part))) as number[]
+  const [year, month, day, hour, minute, second = 0] = match.slice(1, 7).map((part) => (part === undefined ? undefined : Number(part))) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number | undefined,
+  ]
   const offsetHours = match[9] === undefined ? 0 : Number(match[9])
   const offsetMinutes = match[10] === undefined ? 0 : Number(match[10])
-  if (
-    !isCalendarDay(year as number, month as number, day as number) ||
-    !isClockTime(hour as number, minute as number, second) ||
-    offsetHours > 23 ||
-    offsetMinutes > 59
-  )
-    return undefined
+  if (!isCalendarDay(year, month, day) || !isClockTime(hour, minute, second) || offsetHours > 23 || offsetMinutes > 59) return undefined
   // Date.UTC reads the years 0 to 99 as 1900 to 1999; setUTCFullYear does not.
   const moment = new Date(0)
-  moment.setUTCFullYear(year as number, (month as number) - 1, day)
-  moment.setUTCHours(hour as number, minute, second, 0)
+  moment.setUTCFullYear(year, month - 1, day)
+  moment.setUTCHours(hour, minute, second, 0)
   const offset = (match[8] === '-' ? -1 : 1) * (offsetHours * 60 + offsetMinutes)
   moment.setTime(moment.getTime() - offset * 60_000)
   const utcYear = moment.getUTCFullYear()
