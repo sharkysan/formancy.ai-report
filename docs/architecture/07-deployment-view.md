@@ -273,8 +273,10 @@ deploy happened or what the address serves.
   licence for Formancy Data as well, whose verifier it depends on
   ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
 - **For the form bridge:** the document of every form version whose
-  submissions it prints, kept beside them, since formancy 0.7.0's server
-  serves its current version's schema alone; and, for a choice whose
+  submissions it prints, kept beside them or fetched by its number from
+  formancy's server, which serves each version's document from 0.8.0
+  ([formancy.ai 0207](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0207-a-versions-document-can-be-read.md)),
+  where 0.7.0's served the current one's alone; and, for a choice whose
   options a deployment resolves, a lookup of their labels in the report's
   locale ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 
