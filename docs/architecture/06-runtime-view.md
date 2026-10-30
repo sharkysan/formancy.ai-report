@@ -612,10 +612,12 @@ version's hash ──▶ resolveReport, as in 6.2
 read once for each submission, one a row, each paired with its version by
 the hash the host stored beside it and checked against the hash computed
 here; each version's fields are checked once, and the host says whether
-the list is complete. The bridge fetches nothing: formancy 0.7.0's server
-serves the current version's schema alone, so a host that prints an old
-submission keeps the version that collected it
-([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+the list is complete. The bridge fetches nothing: a host that prints an
+old submission hands over the version that collected it, kept beside it
+or fetched by its number from formancy's server, which serves each
+version's document and hash from 0.8.0
+([formancy.ai 0207](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0207-a-versions-document-can-be-read.md),
+[0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 A version that moved, removed or retyped a field the report reads is
 refused for every submission of it, the refusal naming the review that
 would lift it, until a review's resolution is applied (6.15); one that

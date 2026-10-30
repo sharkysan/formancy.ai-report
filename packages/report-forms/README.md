@@ -23,8 +23,11 @@ the form version the submission answered and the submission, `{ id, data
 rows the detail. For a report of one row per submission, every version
 they answered and the submissions, each with its version's `schemaHash`,
 by which it is paired with its version. A host reading formancy's own
-server keeps each version's document beside its submissions; formancy
-0.7.0's API serves the current version's schema alone.
+server keeps each version's document beside its submissions, or fetches
+the one a submission names by its number: `GET /f/:path/versions/:version`
+answers the document and its `schemaHash` from formancy 0.8.0
+([formancy.ai 0207](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0207-a-versions-document-can-be-read.md)),
+where 0.7.0's API served the current version's alone.
 
 **The version is computed, not trusted.** Each form is validated by the
 `@formancy/spec` this package pins, and named by the `schemaHash` computed
@@ -353,9 +356,11 @@ printed of a field never null, and none at all are refused, and at most
 
 ## What it does not do
 
-- **Fetch.** Nothing here reaches the network. formancy 0.7.0's server has
-  no route for one submission or an old version's schema; the host keeps
-  them.
+- **Fetch.** Nothing here reaches the network. The host hands over each
+  version and each submission, from its own store or from formancy's
+  server, which serves a version's document by its number from 0.8.0 and
+  lists a form's submissions, a page at a time from 0.11.0, but has no
+  route for one submission.
 - **Tell two versions apart by their answers.** A submission paired with
   another version is refused only where one of its answers has no field in
   that version. Two versions with the same paths are the host's to keep

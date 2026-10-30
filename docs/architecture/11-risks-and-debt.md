@@ -221,10 +221,13 @@ The form bridge computes a version's hash and holds every answer to a data
 path of it, so a submission paired with a version whose paths it does not
 fit is refused. Two versions with the same paths and other labels are not
 told apart: the labels of the one handed over print, and the manifest
-names that one. formancy 0.7.0's server serves its current version's
-schema alone, so a host that did not keep a version's document cannot
-print its submissions against it. A number formancy computed, or one of
-more digits than a double keeps, is refused rather than printed, but one
+names that one. A host that did not keep a version's document prints its
+submissions against it only from a formancy server of 0.8.0 or later,
+which serves each version's document by its number
+([formancy.ai 0207](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0207-a-versions-document-can-be-read.md));
+0.7.0's served its current version's alone. A number formancy computed,
+or one of more digits than a double keeps, is refused rather than
+printed, but one
 typed with more than 15 digits that a double stores as a short one
 prints as that one, a typed 0.10000000000000001 as 0.1; and a
 version that moved a field the report reads refuses its submissions until

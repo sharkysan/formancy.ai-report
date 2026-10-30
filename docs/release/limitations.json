@@ -47,7 +47,7 @@
       ]
     },
     "0004": {
-      "reviewed": "sha256:3ec88fbc2d721d4535db04abe618a800239c1cc1d248d5943ef030dd91ba0669",
+      "reviewed": "sha256:2b699e56dfe6e2cab432b26da17d6037b96225c61f34a7365a3718c188a8960b",
       "limitations": [
         {
           "area": "format",
@@ -1627,7 +1627,7 @@
       ]
     },
     "0042": {
-      "reviewed": "sha256:37beb87dc2a11178dbd34ea6e046d9f86e067332c5531047964c2c6a2d0c06eb",
+      "reviewed": "sha256:fa003d358794cb92a3009b38c1c3d32766ae639329df84238e2e94259064074b",
       "limitations": [
         {
           "area": "format",
@@ -1635,7 +1635,11 @@
         },
         {
           "area": "data",
-          "says": "The form bridge fetches nothing, so a host prints a submission against the version that collected it only if it kept that version's document, which formancy 0.7.0's server serves for its current version alone."
+          "says": "The form bridge fetches nothing, so a host prints a submission against the version that collected it only if it kept that version's document or fetches it from a formancy server of 0.8.0 or later, which serves each version's document by its number; 0.7.0's served its current version's alone."
+        },
+        {
+          "area": "data",
+          "says": "A default a spec 5 form gives a field, left alone by the person filling it in, is stored by formancy as their answer, indistinguishable from one they chose, and prints as one."
         },
         {
           "area": "data",
