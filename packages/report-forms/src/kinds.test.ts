@@ -299,6 +299,20 @@ describe('the mapping', () => {
     const data = readData(read(report, form, { inspector: null, findings: null }))
     expect([data.header, data.detail]).toEqual([{ inspector: null }, []])
   })
+
+  // formancy's engine stores `[]` for ticked boxes none ticked and `{}`
+  // for a matrix none answered from 0.8.0, never null (formancy.ai 0189),
+  // but a submission stored before may hold null, and formancy does not
+  // examine it again. Refused, every such submission a host kept would
+  // stop printing; null is what an answer never given reads as.
+  test('reads ticked boxes or a matrix that is null as unanswered', () => {
+    const form = formOf([
+      { key: 'checks', type: 'selectboxes', options: [{ value: 'roof', label: 'Roof' }] },
+      { key: 'rating', type: 'matrix', rows: [{ value: 'taste', label: 'Taste' }], options: [{ value: 'good', label: 'Good' }, { value: 'poor', label: 'Poor' }] },
+    ])
+    const report = reportOf({ header: answers(field('roof', 'boolean', 'checks', { member: 'roof' }), field('taste', 'string', 'rating', { member: 'taste' })) })
+    expect(headerOf(read(report, form, { checks: null, rating: null }))).toEqual({ roof: null, taste: null })
+  })
 })
 
 /** The README's mapping table: each formancy kind it names, the report types it says the kind is read as, and its second column's words. */

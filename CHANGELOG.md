@@ -29,9 +29,9 @@ none of the submissions of a form authored since.
   each for the person filling a form in -- help text, an example, an
   autofill purpose, a default, a shuffled order, an option chosen on its
   own, a rule's message -- and no answer holds anything spec 4 did not:
-  the draft of a spec 5 version is its spec 4 twin's, and a version that
-  moves to spec 5 for them prints, though formancy's diff calls each field
-  it touched changed. A default left alone is stored as the person's
+  the draft of a spec 5 version is its spec 4 twin's but for the version
+  it names, and a version that moves to spec 5 for them prints, though
+  formancy's diff calls each field it touched changed. A default left alone is stored as the person's
   answer, indistinguishable from one chosen
   ([formancy.ai 0197](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0197-a-default-is-where-something-fresh-starts.md)),
   and prints as one.

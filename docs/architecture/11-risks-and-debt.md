@@ -227,10 +227,9 @@ which serves each version's document by its number
 ([formancy.ai 0207](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0207-a-versions-document-can-be-read.md));
 0.7.0's served its current version's alone. A number formancy computed,
 or one of more digits than a double keeps, is refused rather than
-printed, but one
-typed with more than 15 digits that a double stores as a short one
-prints as that one, a typed 0.10000000000000001 as 0.1; and a
-version that moved a field the report reads refuses its submissions until
+printed, but one typed with more than 15 digits that a double stores as
+a short one prints as that one, a typed 0.10000000000000001 as 0.1; and
+a version that moved a field the report reads refuses its submissions until
 a review's resolution is applied ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 The review needs every version the report names, and refuses without
 one; a followed rename keeps reading where it read only the versions it

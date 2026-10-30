@@ -363,12 +363,14 @@ changed; what reached the bridge:
   The bridge already refused, for each kind it prints, an answer of
   another JSON type than the kind stores (`kinds.test.ts`), so nothing
   0.8.0 stores reads otherwise. A submission stored before, which
-  formancy does not examine again, reads as it did: a group or a repeater
-  held as null among it, read as unanswered. But for one shape: an empty
-  string is no choice, which 0.8.0's engine refuses and an unanswered
-  choice never was, so the bridge refuses it as `invalid-answer` for every
-  choice, where one that offers no options printed it as its value and a
-  field declared never null printed blank (`kinds.test.ts`).
+  formancy does not examine again, reads as it did: a group, a repeater,
+  ticked boxes or a matrix held as null among it, where 0.8.0 stores an
+  object or a list, read as unanswered (`kinds.test.ts`). But for one
+  shape: an empty string is no choice, which 0.8.0's engine refuses and
+  an unanswered choice never was, so the bridge refuses it as
+  `invalid-answer` for every choice, where one that offers no options
+  printed it as its value and a field declared never null printed blank
+  (`kinds.test.ts`).
 - **A computed repeater's rows carry an `_id`** from 0.11.0, and did not
   before
   ([formancy.ai 0218](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0218-a-computed-repeater-is-the-rules-row-by-row.md)).
@@ -388,7 +390,11 @@ changed; what reached the bridge:
 **Read formancy's server with a client of Report's own.** Rejected (FB-Q2):
 the API has no route for one submission or an old version's schema, lists
 submissions without their hash, and publishes no client; one written here
-would be a second reading of formancy's rules (0002).
+would be a second reading of formancy's rules (0002). From formancy 0.8.0
+an old version's schema has a route (formancy.ai 0207); the rest still
+stands at 0.11.0 -- no route for one submission, a listing without
+hashes, no published client -- and nothing in a package here reaches the
+network.
 
 **Trust the hash the host passes.** Rejected: the host's record and its
 document can disagree, and either could be wrong; computed here, the hash
