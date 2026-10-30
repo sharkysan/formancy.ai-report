@@ -116,8 +116,15 @@ describe('the e-invoice samples', () => {
     }
     const [euro] = code(EURO_INVOICE)
     const invoice = E_INVOICE.report.eInvoice
-    expect(code(E_INVOICE).map(({ beneficiary, iban, bic }) => ({ beneficiary, iban, bic }))).toEqual([{ beneficiary: euro?.beneficiary, iban: euro?.iban, bic: euro?.bic }])
-    expect([invoice?.seller.name, invoice?.payment?.accountName, invoice?.payment?.iban, invoice?.payment?.bic]).toEqual([euro?.beneficiary, euro?.beneficiary, euro?.iban, euro?.bic])
+    expect(code(E_INVOICE).map(({ beneficiary, iban, bic }) => ({ beneficiary, iban, bic }))).toEqual([
+      { beneficiary: euro?.beneficiary, iban: euro?.iban, bic: euro?.bic },
+    ])
+    expect([invoice?.seller.name, invoice?.payment?.accountName, invoice?.payment?.iban, invoice?.payment?.bic]).toEqual([
+      euro?.beneficiary,
+      euro?.beneficiary,
+      euro?.iban,
+      euro?.bic,
+    ])
   })
 
   // The seller's address is parted out of the one spelling the euro
@@ -129,8 +136,19 @@ describe('the e-invoice samples', () => {
   test("part the firm's address into a street, a post code and a city, and refuse lines of another shape", () => {
     const words = (runs: readonly unknown[]) => runs.map((run) => (run as { readonly text: string }).text).join('')
     const parted = sellerAddress(['Industriestraße 7', '50735 Köln'])
-    expect([parted.line1, parted.postalCode, parted.city, parted.country].map((runs) => words(runs ?? []))).toEqual(['Industriestraße 7', '50735', 'Köln', 'DE'])
-    const refused = [['Industriestraße 7'], ['Industriestraße 7', 'Köln 50735'], ['Industriestraße 7', '5073 Köln'], ['Industriestraße 7', '50735  Köln'], ['Industriestraße 7', '50735 Köln', 'Deutschland']]
+    expect([parted.line1, parted.postalCode, parted.city, parted.country].map((runs) => words(runs ?? []))).toEqual([
+      'Industriestraße 7',
+      '50735',
+      'Köln',
+      'DE',
+    ])
+    const refused = [
+      ['Industriestraße 7'],
+      ['Industriestraße 7', 'Köln 50735'],
+      ['Industriestraße 7', '5073 Köln'],
+      ['Industriestraße 7', '50735  Köln'],
+      ['Industriestraße 7', '50735 Köln', 'Deutschland'],
+    ]
     for (const address of refused) expect(() => sellerAddress(address), JSON.stringify(address)).toThrow("the e-invoice cannot part the firm's address")
   })
 
@@ -149,7 +167,12 @@ describe('the e-invoice samples', () => {
   test.each(samples)('%s resolves its own data in a final render, to a document carrying its XML', (_id, sample) => {
     const outcome = resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, images: starterImages, creationDate: CREATED })
     expect(outcome.ok ? outcome.warnings : outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`)).toEqual([])
-    expect(outcome.ok && [outcome.document.eInvoice?.kind === 'facturX' && outcome.document.eInvoice.fileName, outcome.document.eInvoice?.xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice ')]).toEqual(['factur-x.xml', true])
+    expect(
+      outcome.ok && [
+        outcome.document.eInvoice?.kind === 'facturX' && outcome.document.eInvoice.fileName,
+        outcome.document.eInvoice?.xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice '),
+      ],
+    ).toEqual(['factur-x.xml', true])
   })
 })
 
@@ -189,7 +212,14 @@ function xmlBreakdown(root: CiiElement) {
 /** The document's totals (BG-22) as the XML writes them, BT-113 undefined where it holds none. */
 function xmlTotals(root: CiiElement) {
   const at = (name: string): string | undefined => textAt(root, `${SUMMATION}/ram:${name}`)
-  return { lineTotal: at('LineTotalAmount'), taxBasisTotal: at('TaxBasisTotalAmount'), taxTotal: at('TaxTotalAmount'), grandTotal: at('GrandTotalAmount'), paid: at('TotalPrepaidAmount'), duePayable: at('DuePayableAmount') }
+  return {
+    lineTotal: at('LineTotalAmount'),
+    taxBasisTotal: at('TaxBasisTotalAmount'),
+    taxTotal: at('TaxTotalAmount'),
+    grandTotal: at('GrandTotalAmount'),
+    paid: at('TotalPrepaidAmount'),
+    duePayable: at('DuePayableAmount'),
+  }
 }
 
 describe("the samples' XML, against BigInt", () => {
@@ -202,14 +232,20 @@ describe("the samples' XML, against BigInt", () => {
     return BigInt(amount.replace('.', ''))
   }
   /** `numerator / denominator`, the denominator positive, rounded half away from zero. */
-  const halfAway = (numerator: bigint, denominator: bigint): bigint => (numerator < 0n ? -((-2n * numerator + denominator) / (2n * denominator)) : (2n * numerator + denominator) / (2n * denominator))
+  const halfAway = (numerator: bigint, denominator: bigint): bigint =>
+    numerator < 0n ? -((-2n * numerator + denominator) / (2n * denominator)) : (2n * numerator + denominator) / (2n * denominator)
   /** Cents as the XML writes an amount: exactly two places, a minus where negative. */
-  const written = (amount: bigint): string => `${amount < 0n ? '-' : ''}${(amount < 0n ? -amount : amount) / 100n}.${String((amount < 0n ? -amount : amount) % 100n).padStart(2, '0')}`
+  const written = (amount: bigint): string =>
+    `${amount < 0n ? '-' : ''}${(amount < 0n ? -amount : amount) / 100n}.${String((amount < 0n ? -amount : amount) % 100n).padStart(2, '0')}`
 
   /** What the sample's own data comes to, computed here: each line, each category a line is in, in the order declared, and the totals. */
   function reference(sample: Starter) {
     const rows = (sample.data.detail as Record<string, string>[]).toSorted((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1))
-    const lines = rows.map((row) => ({ amount: halfAway(cents(row['quantity'] as string) * cents(row['unitPrice'] as string), 100n), category: row['vat'] as Category, data: cents(row['amount'] as string) }))
+    const lines = rows.map((row) => ({
+      amount: halfAway(cents(row['quantity'] as string) * cents(row['unitPrice'] as string), 100n),
+      category: row['vat'] as Category,
+      data: cents(row['amount'] as string),
+    }))
     const breakdown = (Object.keys(CATEGORIES) as Category[]).flatMap((category) => {
       const own = lines.filter((line) => line.category === category)
       if (own.length === 0) return []
@@ -223,7 +259,14 @@ describe("the samples' XML, against BigInt", () => {
     return {
       lines: lines.map((line) => [written(line.data), written(line.amount), CATEGORIES[line.category][0]]),
       breakdown,
-      totals: { lineTotal: written(net), taxBasisTotal: written(net), taxTotal: written(tax), grandTotal: written(net + tax), paid: paid ?? undefined, duePayable: written(net + tax - (paid === null ? 0n : cents(paid))) },
+      totals: {
+        lineTotal: written(net),
+        taxBasisTotal: written(net),
+        taxTotal: written(tax),
+        grandTotal: written(net + tax),
+        paid: paid ?? undefined,
+        duePayable: written(net + tax - (paid === null ? 0n : cents(paid))),
+      },
     }
   }
 
@@ -255,9 +298,36 @@ describe("the samples' XML, against BigInt", () => {
   // path ungated, and pass every other test.
   const NONE_PAST_0027 = { process: [], sellerAddress: [], contact: [[], [], []], buyerAddress: [] }
   test.each([
-    ['e-invoice', { categories: ['S:', 'S:'], delivered: ['20261012'], period: [[], []], means: '58', buyerVatId: [], paid: undefined, negative: [], ...NONE_PAST_0027 }],
-    ['e-invoice-reverse-charge', { categories: ['AE:Steuerschuldnerschaft des Leistungsempfängers'], delivered: [], period: [['20260901'], ['20260930']], means: '30', buyerVatId: ['DE271828181'], paid: undefined, negative: [], ...NONE_PAST_0027 }],
-    ['e-invoice-exempt-paid', { categories: ['S:', 'E:Steuerfrei nach § 4 Nr. 8 Buchst. a UStG'], delivered: ['20261009'], period: [[], []], means: '58', buyerVatId: [], paid: '300.00', negative: [['-1.00', '56.70', '-56.70']], ...NONE_PAST_0027 }],
+    [
+      'e-invoice',
+      { categories: ['S:', 'S:'], delivered: ['20261012'], period: [[], []], means: '58', buyerVatId: [], paid: undefined, negative: [], ...NONE_PAST_0027 },
+    ],
+    [
+      'e-invoice-reverse-charge',
+      {
+        categories: ['AE:Steuerschuldnerschaft des Leistungsempfängers'],
+        delivered: [],
+        period: [['20260901'], ['20260930']],
+        means: '30',
+        buyerVatId: ['DE271828181'],
+        paid: undefined,
+        negative: [],
+        ...NONE_PAST_0027,
+      },
+    ],
+    [
+      'e-invoice-exempt-paid',
+      {
+        categories: ['S:', 'E:Steuerfrei nach § 4 Nr. 8 Buchst. a UStG'],
+        delivered: ['20261009'],
+        period: [[], []],
+        means: '58',
+        buyerVatId: [],
+        paid: '300.00',
+        negative: [['-1.00', '56.70', '-56.70']],
+        ...NONE_PAST_0027,
+      },
+    ],
     [
       'e-invoice-addressed',
       {
@@ -277,18 +347,24 @@ describe("the samples' XML, against BigInt", () => {
   ] as const)('%s takes the path it is there for', (id, path) => {
     const root = xmlOf(E_INVOICE_SAMPLES.find((sample) => sample.id === id) as Starter)
     const contact = `${HTA}/ram:SellerTradeParty/ram:DefinedTradeContact`
-    const addressed = (party: string) => elementsAt(root, `${HTA}/ram:${party}/ram:URIUniversalCommunication/ram:URIID`).map((element) => `${element.attributes['schemeID']}:${element.text}`)
+    const addressed = (party: string) =>
+      elementsAt(root, `${HTA}/ram:${party}/ram:URIUniversalCommunication/ram:URIID`).map((element) => `${element.attributes['schemeID']}:${element.text}`)
     expect({
       categories: xmlBreakdown(root).map(({ category, reason }) => `${category}:${reason ?? ''}`),
       delivered: textsAt(root, `${HTD}/ram:ActualDeliverySupplyChainEvent/ram:OccurrenceDateTime/${DATE}`),
-      period: [textsAt(root, `${HTS}/ram:BillingSpecifiedPeriod/ram:StartDateTime/${DATE}`), textsAt(root, `${HTS}/ram:BillingSpecifiedPeriod/ram:EndDateTime/${DATE}`)],
+      period: [
+        textsAt(root, `${HTS}/ram:BillingSpecifiedPeriod/ram:StartDateTime/${DATE}`),
+        textsAt(root, `${HTS}/ram:BillingSpecifiedPeriod/ram:EndDateTime/${DATE}`),
+      ],
       means: textAt(root, `${HTS}/ram:SpecifiedTradeSettlementPaymentMeans/ram:TypeCode`),
       buyerVatId: textsAt(root, `${HTA}/ram:BuyerTradeParty/ram:SpecifiedTaxRegistration/ram:ID`),
       paid: xmlTotals(root).paid,
       negative: xmlLines(root).flatMap((line) => (line.quantity?.startsWith('-') === true ? [[line.quantity, line.netPrice, line.netAmount]] : [])),
       process: textsAt(root, 'rsm:ExchangedDocumentContext/ram:BusinessProcessSpecifiedDocumentContextParameter/ram:ID'),
       sellerAddress: addressed('SellerTradeParty'),
-      contact: ['ram:PersonName', 'ram:TelephoneUniversalCommunication/ram:CompleteNumber', 'ram:EmailURIUniversalCommunication/ram:URIID'].map((at) => textsAt(root, `${contact}/${at}`)),
+      contact: ['ram:PersonName', 'ram:TelephoneUniversalCommunication/ram:CompleteNumber', 'ram:EmailURIUniversalCommunication/ram:URIID'].map((at) =>
+        textsAt(root, `${contact}/${at}`),
+      ),
       buyerAddress: addressed('BuyerTradeParty'),
     }).toEqual(path)
   })
@@ -312,7 +388,10 @@ describe("the samples' pages, against their XML", () => {
   /** An amount of the XML as Intl prints it in euro for de-DE, handed the exact decimal string. */
   const euro = (amount: string | undefined): string => euros.format(amount as Intl.StringNumericLiteral)
   /** A date of the XML, `YYYYMMDD` (format 102), as Intl prints it for de-DE in `style`, in UTC as the runtime formats a date. */
-  const day = (date: string | undefined, style: 'medium' | 'long' = 'medium'): string => new Intl.DateTimeFormat('de-DE', { dateStyle: style, timeZone: 'UTC' }).format(new Date(`${date?.slice(0, 4)}-${date?.slice(4, 6)}-${date?.slice(6, 8)}T00:00:00Z`))
+  const day = (date: string | undefined, style: 'medium' | 'long' = 'medium'): string =>
+    new Intl.DateTimeFormat('de-DE', { dateStyle: style, timeZone: 'UTC' }).format(
+      new Date(`${date?.slice(0, 4)}-${date?.slice(4, 6)}-${date?.slice(6, 8)}T00:00:00Z`),
+    )
   /** How the table prints each unit of UN/ECE Recommendation 20 the samples use: this test's own reading of the codes. */
   const PRINTED_UNITS: Readonly<Record<string, string>> = { LS: 'Pausch.', HUR: 'h', H87: 'Stk', KGM: 'kg', MTR: 'm' }
 
@@ -338,7 +417,15 @@ describe("the samples' pages, against their XML", () => {
     expect(tables.map((table) => table.id)).toEqual(['positions'])
     const printed = tables[0]?.rows.filter((row) => row.kind === 'detail').map((row) => row.cells.slice(1))
     const lines = xmlLines(root)
-    expect(printed).toEqual(lines.map((line) => [line.name, quantities.format(line.quantity as Intl.StringNumericLiteral), PRINTED_UNITS[line.unit ?? ''], euro(line.netPrice), euro(line.netAmount)]))
+    expect(printed).toEqual(
+      lines.map((line) => [
+        line.name,
+        quantities.format(line.quantity as Intl.StringNumericLiteral),
+        PRINTED_UNITS[line.unit ?? ''],
+        euro(line.netPrice),
+        euro(line.netAmount),
+      ]),
+    )
     expect(lines.map((line) => line.id)).toEqual(lines.map((_line, index) => String(index + 1)))
     expect(sample.report.eInvoice?.lines.id).toEqual({ kind: 'field', field: { dataset: 'detail', field: 'position' } })
     expect(tables[0]?.rows.filter((row) => row.kind !== 'detail')).toEqual([])
@@ -350,11 +437,16 @@ describe("the samples' pages, against their XML", () => {
   // the total and, where something was paid, what was and what is due; and
   // none for a category no line is in. A row that printed a sum of its own
   // would part from the XML the first time the two rounded differently.
-  test.each(everySample)("%s prints every total of its XML under the table, and no other", (_id, sample) => {
+  test.each(everySample)('%s prints every total of its XML under the table, and no other', (_id, sample) => {
     const { columns, root } = page(sample)
-    const rows = columns.filter((block) => block.columns.length === 2 && block.columns.every((slot) => slot.blocks.length === 1 && slot.blocks[0]?.kind === 'paragraph'))
+    const rows = columns.filter(
+      (block) => block.columns.length === 2 && block.columns.every((slot) => slot.blocks.length === 1 && slot.blocks[0]?.kind === 'paragraph'),
+    )
     const totals = xmlTotals(root)
-    const breakdown = xmlBreakdown(root).map(({ category, rate, basis, amount, reason }) => [category === 'S' ? `Umsatzsteuer ${rate} % auf ${euro(basis)}` : `${reason}, Entgelt ${euro(basis)}`, euro(amount)])
+    const breakdown = xmlBreakdown(root).map(({ category, rate, basis, amount, reason }) => [
+      category === 'S' ? `Umsatzsteuer ${rate} % auf ${euro(basis)}` : `${reason}, Entgelt ${euro(basis)}`,
+      euro(amount),
+    ])
     expect(rows.map((row) => row.columns.map((slot) => textOf(slot.blocks[0] as Block)))).toEqual([
       ['Nettobetrag', euro(totals.taxBasisTotal)],
       ...breakdown,
@@ -384,7 +476,12 @@ describe("the samples' pages, against their XML", () => {
     const start = textAt(root, `${HTS}/ram:BillingSpecifiedPeriod/ram:StartDateTime/${DATE}`)
     const end = textAt(root, `${HTS}/ram:BillingSpecifiedPeriod/ram:EndDateTime/${DATE}`)
     expect(columns[0]?.columns.map((slot) => slot.blocks.map(textOf))).toEqual([
-      [textAt(root, `${buyer}/ram:Name`), textAt(root, `${buyer}/ram:PostalTradeAddress/ram:LineOne`), `${textAt(root, `${buyer}/ram:PostalTradeAddress/ram:PostcodeCode`)} ${textAt(root, `${buyer}/ram:PostalTradeAddress/ram:CityName`)}`, ...(vatId === undefined ? [] : [`USt-IdNr.: ${vatId}`])],
+      [
+        textAt(root, `${buyer}/ram:Name`),
+        textAt(root, `${buyer}/ram:PostalTradeAddress/ram:LineOne`),
+        `${textAt(root, `${buyer}/ram:PostalTradeAddress/ram:PostcodeCode`)} ${textAt(root, `${buyer}/ram:PostalTradeAddress/ram:CityName`)}`,
+        ...(vatId === undefined ? [] : [`USt-IdNr.: ${vatId}`]),
+      ],
       [
         'Rechnung',
         `Rechnungsnummer: ${textAt(root, 'rsm:ExchangedDocument/ram:ID')}`,
@@ -396,7 +493,9 @@ describe("the samples' pages, against their XML", () => {
       ],
     ])
     const address = `${seller}/ram:PostalTradeAddress`
-    expect(textOf(blocks.find((block) => block.kind === 'paragraph') as Block)).toBe(`${textAt(root, `${seller}/ram:Name`)} · ${textAt(root, `${address}/ram:LineOne`)} · ${textAt(root, `${address}/ram:PostcodeCode`)} ${textAt(root, `${address}/ram:CityName`)} · USt-IdNr. ${textAt(root, `${seller}/ram:SpecifiedTaxRegistration/ram:ID`)}`)
+    expect(textOf(blocks.find((block) => block.kind === 'paragraph') as Block)).toBe(
+      `${textAt(root, `${seller}/ram:Name`)} · ${textAt(root, `${address}/ram:LineOne`)} · ${textAt(root, `${address}/ram:PostcodeCode`)} ${textAt(root, `${address}/ram:CityName`)} · USt-IdNr. ${textAt(root, `${seller}/ram:SpecifiedTaxRegistration/ram:ID`)}`,
+    )
   })
 
   // The terms printed are the XML's (BT-20); the bank details printed
@@ -410,7 +509,9 @@ describe("the samples' pages, against their XML", () => {
     const texts = blocks.map(textOf)
     const due = textAt(root, `${SUMMATION}/ram:DuePayableAmount`) as string
     expect(texts).toContain(textAt(root, `${HTS}/ram:SpecifiedTradePaymentTerms/ram:Description`))
-    const details = texts.filter((each) => /^(Empfänger|IBAN|BIC|Betrag|Referenz): /.test(each)).map((each) => (each.startsWith('IBAN: ') ? each.replaceAll(' ', '').replace('IBAN:', 'IBAN: ') : each))
+    const details = texts
+      .filter((each) => /^(Empfänger|IBAN|BIC|Betrag|Referenz): /.test(each))
+      .map((each) => (each.startsWith('IBAN: ') ? each.replaceAll(' ', '').replace('IBAN:', 'IBAN: ') : each))
     expect(details).toEqual([
       `Empfänger: ${textAt(root, `${means}/ram:PayeePartyCreditorFinancialAccount/ram:AccountName`)}`,
       `IBAN: ${textAt(root, `${means}/ram:PayeePartyCreditorFinancialAccount/ram:IBANID`)}`,
@@ -422,6 +523,13 @@ describe("the samples' pages, against their XML", () => {
     const codes = blocks.flatMap((block) => (block.kind === 'epcQrCode' ? [block.payload.split('\n').slice(4, 8)] : []))
     const [whole, rest] = due.split('.') as [string, string]
     const account = `${means}/ram:PayeePartyCreditorFinancialAccount`
-    expect(codes).toEqual([[textAt(root, `${means}/ram:PayeeSpecifiedCreditorFinancialInstitution/ram:BICID`), textAt(root, `${account}/ram:AccountName`), textAt(root, `${account}/ram:IBANID`), `EUR${whole}${rest === '00' ? '' : `.${rest.replace(/0$/, '')}`}`]])
+    expect(codes).toEqual([
+      [
+        textAt(root, `${means}/ram:PayeeSpecifiedCreditorFinancialInstitution/ram:BICID`),
+        textAt(root, `${account}/ram:AccountName`),
+        textAt(root, `${account}/ram:IBANID`),
+        `EUR${whole}${rest === '00' ? '' : `.${rest.replace(/0$/, '')}`}`,
+      ],
+    ])
   })
 })

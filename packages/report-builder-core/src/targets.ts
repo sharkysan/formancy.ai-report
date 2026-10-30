@@ -97,7 +97,11 @@ export function dropTargets(report: ReportDefinition, subject: Component | strin
     const beforeId = siblings[location.index]
     const pt = drawn[index] as Box
     const named =
-      afterId !== undefined ? t('target.after', { where, name: label(afterId) }) : beforeId !== undefined ? t('target.before', { where, name: label(beforeId) }) : t('target.inside', { where })
+      afterId !== undefined
+        ? t('target.after', { where, name: label(afterId) })
+        : beforeId !== undefined
+          ? t('target.before', { where, name: label(beforeId) })
+          : t('target.inside', { where })
     return {
       index,
       location,

@@ -74,7 +74,10 @@ export function resolveEInvoice(render: Omit<Render, 'invoice'>, invoice: EInvoi
     totals.breakdown.map(({ category }) => category),
   )
   const lines = writtenLines(read.lines)
-  const written = render.preview || terms === undefined || lines === undefined ? undefined : { guideline: guidelineOf(invoice), type: invoice.type, currency: invoice.currency, terms, lines, totals }
+  const written =
+    render.preview || terms === undefined || lines === undefined
+      ? undefined
+      : { guideline: guidelineOf(invoice), type: invoice.type, currency: invoice.currency, terms, lines, totals }
   return { reads: { names: invoiceNames(invoice, totals), columns: read.columns, payable: { amount: totals.duePayable, account } }, written }
 }
 
@@ -114,6 +117,7 @@ export function eInvoiceFile(render: Render, resolved: ResolvedInvoice, invoice:
     return undefined
   }
   if (render.problems.failed) return undefined
-  if (resolved.written === undefined) throw new RangeError('a final render of an e-invoice wrote no XML and recorded no reason: a defect, refused rather than drawn as a plain PDF')
+  if (resolved.written === undefined)
+    throw new RangeError('a final render of an e-invoice wrote no XML and recorded no reason: a defect, refused rather than drawn as a plain PDF')
   return (FILES[invoice.kind] as (invoice: EInvoice, xml: string) => EInvoiceFile)(invoice, ciiXml(resolved.written))
 }

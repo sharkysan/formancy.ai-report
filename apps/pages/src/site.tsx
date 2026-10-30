@@ -76,7 +76,9 @@ function staleStatuses(inputs: SiteInputs, groups: readonly PageGroup[]): string
   return groups.flatMap(({ status }) =>
     status === undefined || status.release === version
       ? []
-      : [`the ${status.feature} page's status was written when ${status.release} was the newest release, and CHANGELOG.md now names ${version}: say whether that release has the ${status.feature} in each sentence of ${status.copy} that says where it stands -- ${status.sentences} -- then change ${status.constant} with them`],
+      : [
+          `the ${status.feature} page's status was written when ${status.release} was the newest release, and CHANGELOG.md now names ${version}: say whether that release has the ${status.feature} in each sentence of ${status.copy} that says where it stands -- ${status.sentences} -- then change ${status.constant} with them`,
+        ],
   )
 }
 

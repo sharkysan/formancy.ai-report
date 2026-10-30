@@ -252,18 +252,35 @@ function rectangleContent(rectangle: Rectangle): Content {
   const { width, height, fill, stroke } = rectangle
   if (stroke === undefined || Math.min(width, height) <= 2 * OUTLINE) {
     const color = stroke ?? fill
-    return { canvas: color === undefined ? [] : [{ type: 'rect', x: 0, y: 0, w: width, h: height, color, lineWidth: 0 }], margin: [0, 0, 0, color === undefined ? height : 0] }
+    return {
+      canvas: color === undefined ? [] : [{ type: 'rect', x: 0, y: 0, w: width, h: height, color, lineWidth: 0 }],
+      margin: [0, 0, 0, color === undefined ? height : 0],
+    }
   }
   const half = OUTLINE / 2
   return {
-    canvas: [{ type: 'rect', x: half, y: half, w: width - OUTLINE, h: height - OUTLINE, lineWidth: OUTLINE, lineColor: stroke, ...(fill === undefined ? {} : { color: fill }) }],
+    canvas: [
+      {
+        type: 'rect',
+        x: half,
+        y: half,
+        w: width - OUTLINE,
+        h: height - OUTLINE,
+        lineWidth: OUTLINE,
+        lineColor: stroke,
+        ...(fill === undefined ? {} : { color: fill }),
+      },
+    ],
     margin: [0, 0, 0, half],
   }
 }
 
 /** Columns at the widths worked out here, never pdfmake's `'*'`, which a long word widens past the page (`widths.ts`). */
 function columnsContent(columns: Columns, build: Build, scope: Scope): Content {
-  const widths = columnWidths(columns.columns.map((slot) => slot.width), scope.width)
+  const widths = columnWidths(
+    columns.columns.map((slot) => slot.width),
+    scope.width,
+  )
   return {
     columns: columns.columns.map((slot, index) => {
       const width = widths[index]!

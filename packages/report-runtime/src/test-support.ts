@@ -116,8 +116,20 @@ const REPORT: ReportDefinition = {
             styleWhen: [{ when: { cel: 'row.urgent' }, style: 'strong' }],
           },
           { id: 'rate', header: 'Rate', width: 50, align: 'right', value: { kind: 'field', field: detail('rate') } },
-          { id: 'shipped', header: 'Shipped', width: 70, align: 'left', value: { kind: 'field', field: detail('shippedAt'), format: { kind: 'date', style: 'short' } } },
-          { id: 'recorded', header: 'Recorded', width: 70, align: 'left', value: { kind: 'field', field: detail('recordedAt'), format: { kind: 'date', style: 'medium' } } },
+          {
+            id: 'shipped',
+            header: 'Shipped',
+            width: 70,
+            align: 'left',
+            value: { kind: 'field', field: detail('shippedAt'), format: { kind: 'date', style: 'short' } },
+          },
+          {
+            id: 'recorded',
+            header: 'Recorded',
+            width: 70,
+            align: 'left',
+            value: { kind: 'field', field: detail('recordedAt'), format: { kind: 'date', style: 'medium' } },
+          },
           { id: 'due', header: 'Due', width: 60, align: 'left', value: { kind: 'field', field: detail('dueOn') } },
         ],
         sort: [{ field: detail('sku'), direction: 'asc' }],
@@ -182,19 +194,21 @@ export function sampleData(rows: readonly Record<string, unknown>[] = [sampleRow
 const said = (text: string): readonly Inline[] => [{ kind: 'text', text }]
 
 /** A run that prints what `cel` gives, in euro. */
-const euro = (cel: string): Inline => ({ kind: 'expression', expression: { cel }, format: { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } })
+const euro = (cel: string): Inline => ({
+  kind: 'expression',
+  expression: { cel },
+  format: { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 },
+})
 
 /** What prints every total the e-invoice's XML holds: the total without VAT, each category's basis and tax where a line is in it, the VAT and the total with it. */
 const PRINTED_TOTALS: readonly Component[] = [
   { id: 'net', kind: 'text', content: [{ kind: 'text', text: 'Netto ' }, euro('invoice.taxBasisTotal')] },
-  ...(['standard', 'reduced', 'exempt'] as const).map(
-    (id): Component => ({
-      id: `vat-${id}`,
-      kind: 'text',
-      visibleWhen: { cel: `vatAmount.${id} != null` },
-      content: [{ kind: 'text', text: `${id} ` }, euro(`vatBasis.${id}`), { kind: 'text', text: ': ' }, euro(`vatAmount.${id}`)],
-    }),
-  ),
+  ...(['standard', 'reduced', 'exempt'] as const).map((id): Component => ({
+    id: `vat-${id}`,
+    kind: 'text',
+    visibleWhen: { cel: `vatAmount.${id} != null` },
+    content: [{ kind: 'text', text: `${id} ` }, euro(`vatBasis.${id}`), { kind: 'text', text: ': ' }, euro(`vatAmount.${id}`)],
+  })),
   { id: 'vat', kind: 'text', content: [{ kind: 'text', text: 'MwSt. ' }, euro('invoice.taxTotal')] },
   { id: 'gross', kind: 'text', content: [{ kind: 'text', text: 'Brutto ' }, euro('invoice.grandTotal')] },
 ]
@@ -241,7 +255,16 @@ const INVOICE: ReportDefinition = {
   assets: [],
   aggregates: [],
   regions: {
-    reportHeader: [{ id: 'heading', kind: 'text', content: [{ kind: 'text', text: 'Rechnung ' }, { kind: 'field', field: header('number') }] }],
+    reportHeader: [
+      {
+        id: 'heading',
+        kind: 'text',
+        content: [
+          { kind: 'text', text: 'Rechnung ' },
+          { kind: 'field', field: header('number') },
+        ],
+      },
+    ],
     pageHeader: [],
     body: [
       {
@@ -301,7 +324,14 @@ const INVOICE: ReportDefinition = {
       unit: { kind: 'field', field: detail('unit') },
       vat: { kind: 'field', field: detail('vat') },
     },
-    payment: { means: '58', iban: said('DE83 0123 4567 0012 3456 78'), remittance: [{ kind: 'text', text: 'Rechnung ' }, { kind: 'field', field: header('number') }] },
+    payment: {
+      means: '58',
+      iban: said('DE83 0123 4567 0012 3456 78'),
+      remittance: [
+        { kind: 'text', text: 'Rechnung ' },
+        { kind: 'field', field: header('number') },
+      ],
+    },
     due: { cel: 'header.dueOn' },
   },
 }
@@ -310,7 +340,8 @@ const INVOICE: ReportDefinition = {
 export function invoiceReport(): ReportDefinition {
   const copy = JSON.parse(JSON.stringify(INVOICE)) as ReportDefinition
   const outcome = validateReport(copy)
-  if (!outcome.valid) throw new Error(`the invoice report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join(', ')}`)
+  if (!outcome.valid)
+    throw new Error(`the invoice report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join(', ')}`)
   return copy
 }
 
@@ -366,9 +397,18 @@ export function xrechnungReport(): ReportDefinition {
     payment: terms.payment as NonNullable<FacturXInvoice['payment']>,
   }
   const headerSet = report.datasets.header as DatasetContract
-  const copy: ReportDefinition = { ...report, id: 'xrechnung', datasets: { ...report.datasets, header: { ...headerSet, fields: [...headerSet.fields, { id: 'leitwegId', type: 'string', label: 'Leitweg-ID', nullable: true }] } }, eInvoice: invoice }
+  const copy: ReportDefinition = {
+    ...report,
+    id: 'xrechnung',
+    datasets: {
+      ...report.datasets,
+      header: { ...headerSet, fields: [...headerSet.fields, { id: 'leitwegId', type: 'string', label: 'Leitweg-ID', nullable: true }] },
+    },
+    eInvoice: invoice,
+  }
   const outcome = validateReport(copy)
-  if (!outcome.valid) throw new Error(`the XRechnung report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join(', ')}`)
+  if (!outcome.valid)
+    throw new Error(`the XRechnung report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join(', ')}`)
   return copy
 }
 

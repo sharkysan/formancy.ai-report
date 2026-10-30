@@ -83,7 +83,6 @@ function twiceAcross(version: number): number {
   return 2 * (EPC_FRAME.line + 2 * EPC_FRAME.distance + qrSymbolModules(version))
 }
 
-
 /** A size in the whole hundredths of a point it is stored in. */
 const hundredths = (size: number): number => Math.round(size * 100)
 

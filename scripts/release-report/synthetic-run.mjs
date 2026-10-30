@@ -13,13 +13,37 @@ const T0 = Date.parse('2026-10-16T10:00:00Z')
 export const DIST = 'sha256:aaaa111122223333444455556666777788889999aaaabbbbccccddddeeeeffff'
 
 const runner = { node: 'v22.20.0', platform: 'linux', arch: 'x64', image: 'ubuntu24', imageVersion: '20261012.1' }
-const base = (key, job) => ({ schema: 1, job, key, runner, commit: 'c0ffee', run: { id: '42', attempt: '1' }, collectedAt: new Date(T0 + 3_600_000).toISOString(), suites: [], browserGates: [], pictures: [], install: null, eInvoice: null, container: null, dist: [], tarballs: [], absent: [], missing: [] })
+const base = (key, job) => ({
+  schema: 1,
+  job,
+  key,
+  runner,
+  commit: 'c0ffee',
+  run: { id: '42', attempt: '1' },
+  collectedAt: new Date(T0 + 3_600_000).toISOString(),
+  suites: [],
+  browserGates: [],
+  pictures: [],
+  install: null,
+  eInvoice: null,
+  container: null,
+  dist: [],
+  tarballs: [],
+  absent: [],
+  missing: [],
+})
 
 /** The Chromium Playwright pins, and the one the gate launched. */
 export const CHROMIUM = '156.0.8078.4'
 const launched = { name: 'chromium', version: CHROMIUM, headless: true, platform: 'linux', arch: 'x64' }
 /** Two passes of the gate, each making the same checks, as apps/studio/scripts/gate-results.mjs records them. */
-const pass = (label, width) => ({ label, width, height: 900, checks: ['the first Tab reaches the skip link', 'the switch: the builder shown is Angular’s'], failed: [] })
+const pass = (label, width) => ({
+  label,
+  width,
+  height: 900,
+  checks: ['the first Tab reaches the skip link', 'the switch: the builder shown is Angular’s'],
+  failed: [],
+})
 
 /** The Studio's browser gate in Chromium and its pictures' check, as each writes its file, every check passed and every scene walked. */
 const browserJob = () => ({
@@ -110,10 +134,28 @@ const eInvoiceJob = () => ({
     tools: E_INVOICE_RAN.map((tool) => structuredClone(tool)),
     corpus: [
       { file: 'e-invoice.xml', format: 'xml', sample: 'e-invoice', expect: { mustang: 'accepted', kosit: 'accepted' } },
-      { file: 'control-br-27.xml', format: 'xml', from: 'e-invoice.xml', why: 'a negative net price', expect: { mustang: ['error 4 BR-27', 'warning 10'], kosit: ['error val-sch.1 BR-27'] } },
+      {
+        file: 'control-br-27.xml',
+        format: 'xml',
+        from: 'e-invoice.xml',
+        why: 'a negative net price',
+        expect: { mustang: ['error 4 BR-27', 'warning 10'], kosit: ['error val-sch.1 BR-27'] },
+      },
       { file: 'e-invoice.pdf', format: 'pdf', sample: 'e-invoice', expect: { verapdf: 'accepted', mustang: 'accepted' } },
-      { file: 'control-pdfa.pdf', format: 'pdf', from: 'e-invoice.pdf', why: 'no output intent', expect: { verapdf: ['6.2.4.3-2'], mustang: ['pdfa 3b 6.2.4.3-2'] } },
-      { file: 'variant-blocks.pdf', format: 'pdf', variant: { blocks: true }, why: 'an image of every kind', expect: { verapdf: 'accepted', mustang: 'accepted' } },
+      {
+        file: 'control-pdfa.pdf',
+        format: 'pdf',
+        from: 'e-invoice.pdf',
+        why: 'no output intent',
+        expect: { verapdf: ['6.2.4.3-2'], mustang: ['pdfa 3b 6.2.4.3-2'] },
+      },
+      {
+        file: 'variant-blocks.pdf',
+        format: 'pdf',
+        variant: { blocks: true },
+        why: 'an image of every kind',
+        expect: { verapdf: 'accepted', mustang: 'accepted' },
+      },
     ],
     mustang: [
       { file: 'e-invoice.xml', verdict: 'as expected' },
@@ -160,7 +202,12 @@ const PUBLISHED = ['@formancy/report-builder-react', '@formancy/report-render-pd
 /** Each job's own record of what it built: new objects every time, so a test that changes one job's changes no other's. */
 const dist = (names = PUBLISHED) => names.map((name) => ({ package: name, distHash: DIST }))
 /** A suite test job, which builds what its package depends on: report-spec, here. */
-const testJob = (id, name, path, files) => ({ ...base(`test-${id}`, 'test'), package: name, suites: [suite(name, path, files)], dist: dist(['@formancy/report-spec']) })
+const testJob = (id, name, path, files) => ({
+  ...base(`test-${id}`, 'test'),
+  package: name,
+  suites: [suite(name, path, files)],
+  dist: dist(['@formancy/report-spec']),
+})
 
 /** One install host's record, as scripts/install-test.mjs writes it: the framework it installed, the tools, what it resolved, and every step done. */
 const host = (project, at, installed, resolved = [{ name: '@formancy/spec', version: '0.5.0' }]) => ({
@@ -179,7 +226,11 @@ const host = (project, at, installed, resolved = [{ name: '@formancy/spec', vers
 
 /** The inputs of a run in which everything passed. */
 export function greenRun() {
-  const verify = { ...base('verify', 'verify'), suites: [suite(null, '.', [file('scripts/upstream-deps.test.mjs', [test('depends on upstream only at exact released versions')])])], dist: dist() }
+  const verify = {
+    ...base('verify', 'verify'),
+    suites: [suite(null, '.', [file('scripts/upstream-deps.test.mjs', [test('depends on upstream only at exact released versions')])])],
+    dist: dist(),
+  }
   const spec = testJob('report-spec', '@formancy/report-spec', 'packages/report-spec', [
     file('packages/report-spec/src/hash.test.ts', [test('pins the hash of a fixed report')]),
     file('packages/report-spec/src/validate.test.ts', [test('refuses an unknown property')]),
@@ -188,8 +239,15 @@ export function greenRun() {
     file('packages/report-render-pdf/src/corpus.test.ts', [test('renders every fixture of the corpus')]),
     file('packages/report-render-pdf/src/glyphs.test.ts', [test('refuses a character the face has no glyph for')]),
   ])
-  const react = testJob('report-builder-react', '@formancy/report-builder-react', 'packages/report-builder-react', [file('packages/report-builder-react/src/scenarios.test.tsx', [test('en: inserts a text block')])])
-  const corpus = { ...testJob('report-corpus', '@formancy/report-corpus', 'packages/report-corpus', [file('packages/report-corpus/src/checks.test.ts', [test('finds a lost row')])]), dist: [] }
+  const react = testJob('report-builder-react', '@formancy/report-builder-react', 'packages/report-builder-react', [
+    file('packages/report-builder-react/src/scenarios.test.tsx', [test('en: inserts a text block')]),
+  ])
+  const corpus = {
+    ...testJob('report-corpus', '@formancy/report-corpus', 'packages/report-corpus', [
+      file('packages/report-corpus/src/checks.test.ts', [test('finds a lost row')]),
+    ]),
+    dist: [],
+  }
   const install = {
     ...base('install', 'install'),
     install: {
@@ -202,7 +260,14 @@ export function greenRun() {
         { name: '@formancy/spec', version: '0.5.0' },
         { name: 'pdfmake', version: '0.3.11' },
       ],
-      tarballs: PUBLISHED.map((name) => ({ name, version: '0.1.0', file: `${name.slice(1).replace('/', '-')}-0.1.0.tgz`, sha256: 'ab'.repeat(32), integrity: 'sha512-x', distHash: DIST })),
+      tarballs: PUBLISHED.map((name) => ({
+        name,
+        version: '0.1.0',
+        file: `${name.slice(1).replace('/', '-')}-0.1.0.tgz`,
+        sha256: 'ab'.repeat(32),
+        integrity: 'sha512-x',
+        distHash: DIST,
+      })),
       consumers: [
         // The renderer is the Node host's alone, so pdfmake is resolved there.
         host('node', null, {}, [
@@ -226,7 +291,10 @@ export function greenRun() {
       upstream: [{ name: '@formancy/spec', version: '0.5.0', declared: '0.5.0', direct: true }],
       node: { engines: '>=22.13.0', ci: [{ workflow: 'gates.yml', job: 'verify', version: '22' }], declared: [] },
       packageManager: { name: 'pnpm', version: '12.4.2', declared: 'pnpm@12.4.2' },
-      browser: { playwright: '1.64.1', pins: [{ browser: 'chromium', name: 'chromium-headless-shell', revision: '1248', browserVersion: CHROMIUM, headless: true }] },
+      browser: {
+        playwright: '1.64.1',
+        pins: [{ browser: 'chromium', name: 'chromium-headless-shell', revision: '1248', browserVersion: CHROMIUM, headless: true }],
+      },
       tooling: [
         { name: 'typescript', declared: '~6.0.3', versions: [{ version: '6.0.3', from: ['.'] }] },
         { name: 'pdfjs-dist', declared: '6.4.299', versions: [{ version: '6.4.299', from: ['packages/report-corpus'] }] },
@@ -253,7 +321,11 @@ export function greenRun() {
     pictureApps: ['apps/studio'],
     browsers: ['chromium'],
     // What docs/release/e-invoice-tools.json pins: the tools the e-invoice gate must have run.
-    eInvoiceTools: { tools: E_INVOICE_TOOLS.map((tool) => ({ ...tool })), runtime: { name: 'Eclipse Temurin', distribution: 'temurin', java: 17 }, veraPdfFloor: { version: '1.30.2', advisories: ['GHSA-3jh7-wm29-q568', 'GHSA-36mm-w85j-3q2j'], why: 'two XML external entity flaws' } },
+    eInvoiceTools: {
+      tools: E_INVOICE_TOOLS.map((tool) => ({ ...tool })),
+      runtime: { name: 'Eclipse Temurin', distribution: 'temurin', java: 17 },
+      veraPdfFloor: { version: '1.30.2', advisories: ['GHSA-3jh7-wm29-q568', 'GHSA-36mm-w85j-3q2j'], why: 'two XML external entity flaws' },
+    },
     // What scripts/container.mjs plans, and the base packages/report-server/Dockerfile builds on.
     containerChecks: [...CONTAINER_CHECKS],
     containerBase: CONTAINER_BASE,
@@ -263,11 +335,15 @@ export function greenRun() {
       records: {
         '0011': {
           reviewed: 'sha256:11',
-          limitations: [{ area: 'rendering', says: 'One font: a character Roboto has no glyph for is refused.', heldBy: 'packages/report-render-pdf/src/glyphs.test.ts' }],
+          limitations: [
+            { area: 'rendering', says: 'One font: a character Roboto has no glyph for is refused.', heldBy: 'packages/report-render-pdf/src/glyphs.test.ts' },
+          ],
         },
       },
     },
-    records: [{ number: '0011', file: '0011-report-render-pdf-draws.md', title: 'report-render-pdf draws the document', status: 'accepted', hash: 'sha256:11' }],
+    records: [
+      { number: '0011', file: '0011-report-render-pdf-draws.md', title: 'report-render-pdf draws the document', status: 'accepted', hash: 'sha256:11' },
+    ],
     jobs: [...JOBS],
     // Evidence no other test's defect touches, so each defect still gives
     // exactly its own sentence; gates.test.mjs and the gate tests here change it.
@@ -278,7 +354,22 @@ export function greenRun() {
     commit: 'c0ffee',
     version: '0.1.0',
     release: '',
-    changelog: ['# Changelog', '', '## Unreleased', '', 'Something changed.', '', '## 0.2.0', '', 'Ahead of the manifests.', '', '## 0.1.0', '', 'The first.', ''].join('\n'),
+    changelog: [
+      '# Changelog',
+      '',
+      '## Unreleased',
+      '',
+      'Something changed.',
+      '',
+      '## 0.2.0',
+      '',
+      'Ahead of the manifests.',
+      '',
+      '## 0.1.0',
+      '',
+      'The first.',
+      '',
+    ].join('\n'),
     generatedAt: new Date(T0 + 3_700_000).toISOString(),
   }
 }
@@ -293,7 +384,10 @@ export const OPEN = 'Nothing to test yet.'
 const EVIDENCE = {
   G1: { evidence: [{ file: 'scripts/upstream-deps.test.mjs' }] },
   G2: { evidence: [{ file: 'packages/report-render-pdf/src/corpus.test.ts' }] },
-  G3: { evidence: [{ file: 'packages/report-builder-react/src/scenarios.test.tsx' }, { browserGate: 'apps/studio' }], open: 'Nothing compares the two builders’ accessible trees.' },
+  G3: {
+    evidence: [{ file: 'packages/report-builder-react/src/scenarios.test.tsx' }, { browserGate: 'apps/studio' }],
+    open: 'Nothing compares the two builders’ accessible trees.',
+  },
   G4: { evidence: [{ document: DOCUMENT }] },
   G5: { open: OPEN },
   G6: { open: OPEN },

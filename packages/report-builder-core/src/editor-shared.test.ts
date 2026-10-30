@@ -22,7 +22,12 @@ describe('several editors over one session', () => {
     expect(told).not.toHaveBeenCalled()
     ok(angular.dispatch({ type: 'delete' }))
     expect(told).toHaveBeenCalledTimes(1)
-    expect(react.state().outline.find((region) => region.region === 'body')?.nodes.map((node) => node.id)).not.toContain('gap')
+    expect(
+      react
+        .state()
+        .outline.find((region) => region.region === 'body')
+        ?.nodes.map((node) => node.id),
+    ).not.toContain('gap')
     expect(react.state().history.undoLabel).toBe('Delete Spacer')
     ok(react.dispatch({ type: 'undo' }))
     expect(componentAt(session.document(), 'gap')).toBeDefined()
@@ -109,7 +114,12 @@ describe('several editors over one session', () => {
     const session = sessionOver(richReport())
     const editor = createReportEditor(session)
     ok(editor.dispatch({ type: 'select', id: 'gap' }))
-    const broken = { ...session, apply: () => { throw new Error('no commit') } } as typeof session
+    const broken = {
+      ...session,
+      apply: () => {
+        throw new Error('no commit')
+      },
+    } as typeof session
     const over = createReportEditor(broken)
     ok(over.dispatch({ type: 'select', id: 'gap' }))
     const told = vi.fn()
@@ -118,7 +128,13 @@ describe('several editors over one session', () => {
     expect(() => over.dispatch({ type: 'setProperty', key: '/height', value: '5' })).toThrow('no commit')
     expect(told).not.toHaveBeenCalled()
     expect(over.state().selection).toEqual({ id: 'gap' })
-    const stuck = { ...session, canUndo: () => true, undo: () => { throw new Error('no undo') } } as typeof session
+    const stuck = {
+      ...session,
+      canUndo: () => true,
+      undo: () => {
+        throw new Error('no undo')
+      },
+    } as typeof session
     expect(() => createReportEditor(stuck).dispatch({ type: 'undo' })).toThrow('no undo')
   })
 

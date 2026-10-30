@@ -53,11 +53,20 @@ const LOWER: { readonly [K in ComponentKind]: Lowerer<K> } = {
   },
   epcQrCode: (code, { render, scope, path }) => epcQrCodeBlock(render, scope, code, path),
   line: (line) => ({ kind: 'rule', thickness: line.thickness, ...optional('color', line.color) }),
-  rectangle: (rectangle) => ({ kind: 'rectangle', width: rectangle.width, height: rectangle.height, ...optional('fill', rectangle.fill), ...optional('stroke', rectangle.stroke) }),
+  rectangle: (rectangle) => ({
+    kind: 'rectangle',
+    width: rectangle.width,
+    height: rectangle.height,
+    ...optional('fill', rectangle.fill),
+    ...optional('stroke', rectangle.stroke),
+  }),
   spacer: (spacer) => ({ kind: 'spacer', height: spacer.height }),
   columns: (columns, { render, path, style }) => ({
     kind: 'columns',
-    columns: columns.columns.map((slot, index) => ({ width: slot.width, blocks: blocksOf(render, slot.components, `${path}/columns/${index}/components`, style) })),
+    columns: columns.columns.map((slot, index) => ({
+      width: slot.width,
+      blocks: blocksOf(render, slot.components, `${path}/columns/${index}/components`, style),
+    })),
   }),
   section: (section, { render, path, style }) => ({
     kind: 'section',
@@ -76,7 +85,7 @@ function blockOf(render: Render, component: Component, path: string, inherited: 
   const scope = reportScope(render, render.totals.report)
   if (component.visibleWhen !== undefined && holds(render, scope, `${path}/visibleWhen/cel`) !== true) return undefined
   const style = styled(render, scope, inherited, component.style, component.styleWhen, `${path}/styleWhen`)
-  return (LOWER[component.kind] as Lowerer<ComponentKind>)(component as never, { render, scope, path, style })
+  return (LOWER[component.kind] as Lowerer<ComponentKind>)(component, { render, scope, path, style })
 }
 
 /** The components of the list at `path`, in order, as the blocks they print. */

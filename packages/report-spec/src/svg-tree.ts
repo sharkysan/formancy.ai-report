@@ -137,7 +137,12 @@ class TreeReader {
           if (top?.kind !== 'removed') this.removals.add('comment', 'comment')
           break
         case 'pi':
-          if (top?.kind !== 'removed') refuse('unsupported', `${this.reader.path} holds a processing instruction (${shown(token.target, 'one')}), which this format does not read`, 'save it as plain SVG')
+          if (top?.kind !== 'removed')
+            refuse(
+              'unsupported',
+              `${this.reader.path} holds a processing instruction (${shown(token.target, 'one')}), which this format does not read`,
+              'save it as plain SVG',
+            )
           break
         case 'text':
         case 'cdata':
@@ -206,7 +211,12 @@ class TreeReader {
       }
     }
     if (top?.kind === 'removed') {
-      if (uri === SVG_NAMESPACE && local === 'style') refuse('unsupported', `${this.reader.path} holds a style inside what is removed, which a browser would still apply`, 'move the style out of it, or delete the style')
+      if (uri === SVG_NAMESPACE && local === 'style')
+        refuse(
+          'unsupported',
+          `${this.reader.path} holds a style inside what is removed, which a browser would still apply`,
+          'move the style out of it, or delete the style',
+        )
       frame('removed', top.path)
       return
     }
@@ -219,7 +229,8 @@ class TreeReader {
       return
     }
     // Unprefixed SVG elements below would be in another namespace, which a browser draws none of.
-    if (declared.includes('') && this.lookup('') !== SVG_NAMESPACE) refuse('unsupported', `${path} declares another default namespace than SVG's`, 'save it as plain SVG')
+    if (declared.includes('') && this.lookup('') !== SVG_NAMESPACE)
+      refuse('unsupported', `${path} declares another default namespace than SVG's`, 'save it as plain SVG')
     if (REMOVED_ELEMENTS.has(local)) {
       this.removals.add('element', local)
       frame('removed', top?.path ?? path)
@@ -238,16 +249,30 @@ class TreeReader {
   private keep(parent: SvgElement | undefined, local: string, path: string, attributes: readonly XmlAttribute[]): SvgElement {
     const refused = REFUSED_ELEMENTS.get(local)
     if (refused !== undefined) refuse(refused.code, `${path} is ${local}`, refused.advice)
-    if (local === 'svg' && parent !== undefined) refuse('unsupported', `${path} is an svg inside the drawing, and this format draws one svg alone`, 'ungroup it into the outer drawing')
+    if (local === 'svg' && parent !== undefined)
+      refuse('unsupported', `${path} is an svg inside the drawing, and this format draws one svg alone`, 'ungroup it into the outer drawing')
     const link = local === 'a'
     const name = link ? 'g' : local
     if (!isKept(name)) refuse('unsupported', `${path} is ${shown(local, 'an element')}, which this format does not draw`)
-    if (parent !== undefined && !CHILDREN[parent.name].has(name)) refuse('unsupported', `${path} is not drawn inside a ${parent.name}`, `move it out of the ${parent.name}`)
+    if (parent !== undefined && !CHILDREN[parent.name].has(name))
+      refuse('unsupported', `${path} is not drawn inside a ${parent.name}`, `move it out of the ${parent.name}`)
     const depth = (parent?.depth ?? 0) + 1
     if (depth > MAX_SVG_DEPTH) refuse('too-deep', `${path} nests past ${MAX_SVG_DEPTH} levels`)
     this.elements += 1
     if (this.elements > MAX_SVG_ELEMENTS) refuse('too-large', `the drawing has more than ${MAX_SVG_ELEMENTS} elements`)
-    const element: SvgElement = { name, link, path, parent, children: [], depth, attributes: new Map(), presentation: new Map(), id: undefined, classes: [], style: undefined }
+    const element: SvgElement = {
+      name,
+      link,
+      path,
+      parent,
+      children: [],
+      depth,
+      attributes: new Map(),
+      presentation: new Map(),
+      id: undefined,
+      classes: [],
+      style: undefined,
+    }
     if (link) this.removals.add('element', 'a')
     this.attributes(element, attributes)
     if (parent === undefined) this.root = element
@@ -310,9 +335,13 @@ class TreeReader {
       } else if (local === 'href') this.href(element, value(), where)
       else if (element.link && LINK_ATTRIBUTES.has(local)) continue
       else if (isRemovedAttribute(local)) this.removals.add('attribute', local)
-      else if (CONDITIONAL_ATTRIBUTES.has(local)) refuse('unsupported', `${where} is a conditional-processing attribute, by which a browser may hide the element`, `remove ${local} from it`)
+      else if (CONDITIONAL_ATTRIBUTES.has(local))
+        refuse('unsupported', `${where} is a conditional-processing attribute, by which a browser may hide the element`, `remove ${local} from it`)
       else if (local === 'id') this.id(element, value(), where)
-      else if (local === 'class') element.classes = value().split(' ').filter((name) => name !== '')
+      else if (local === 'class')
+        element.classes = value()
+          .split(' ')
+          .filter((name) => name !== '')
       else if (local === 'style') element.style = { value: value(), where }
       else if (GEOMETRY[element.name].includes(local) || local === 'transform') this.geometry(element, local, value(), where)
       else this.presentation(element, local, value(), where)
@@ -330,7 +359,12 @@ class TreeReader {
     if (name === 'transform' && !TRANSFORMED.has(element.name) && element.parent !== undefined) {
       // A transform on defs moves nothing: what defs holds is drawn, if at all, in the user space of what refers to it.
       if (element.name === 'defs') this.removals.add('attribute', 'transform')
-      else refuse('unsupported', `${where} transforms an element this format does not transform`, "move the transform onto a group around it, or onto a gradient's gradientTransform")
+      else
+        refuse(
+          'unsupported',
+          `${where} transforms an element this format does not transform`,
+          "move the transform onto a group around it, or onto a gradient's gradientTransform",
+        )
       return
     }
     element.attributes.set(name, { value: ascii(value, where), where })

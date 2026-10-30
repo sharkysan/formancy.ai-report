@@ -66,7 +66,12 @@ const REPORT: ReportDefinition = {
   regions: {
     ...BASE.regions,
     reportHeader: BASE.regions.reportHeader.map((component) =>
-      component.kind === 'columns' && component.id === 'addresses' ? { ...component, columns: component.columns.map((column, index) => (index === 1 ? { ...column, components: withLeitwegId(column.components) } : column)) } : component,
+      component.kind === 'columns' && component.id === 'addresses'
+        ? {
+            ...component,
+            columns: component.columns.map((column, index) => (index === 1 ? { ...column, components: withLeitwegId(column.components) } : column)),
+          }
+        : component,
     ),
   },
   eInvoice: INVOICE,
@@ -75,7 +80,19 @@ const REPORT: ReportDefinition = {
 /** The federal buyer's heating serviced in its office in Bonn, all at 19 %, on a delivery date, to its Leitweg-ID. */
 export function xrechnungData(): ReportData {
   return data(
-    { number: 'RE-2026-0824', issuedOn: '2026-10-20', servedOn: '2026-10-14', dueOn: '2026-11-19', customer: 'Bundesamt für Beispielwesen', street: 'Beispielweg', buildingNumber: '12', postcode: '53113', city: 'Bonn', leitwegId: '991-33333TEST-33', reference: 'RF23 2026 0824' },
+    {
+      number: 'RE-2026-0824',
+      issuedOn: '2026-10-20',
+      servedOn: '2026-10-14',
+      dueOn: '2026-11-19',
+      customer: 'Bundesamt für Beispielwesen',
+      street: 'Beispielweg',
+      buildingNumber: '12',
+      postcode: '53113',
+      city: 'Bonn',
+      leitwegId: '991-33333TEST-33',
+      reference: 'RF23 2026 0824',
+    },
     lines(3501, [
       ['Wartung Gas-Brennwertkessel', 'Pausch.', '1.00', '245.00', 'standard'],
       ['Arbeitszeit Techniker', 'h', '2.50', '76.00', 'standard'],
@@ -88,7 +105,8 @@ export function xrechnungData(): ReportData {
 export const XRECHNUNG_SAMPLE: Starter = {
   id: 'e-invoice-xrechnung',
   title: 'Rechnung (XRechnung)',
-  proves: 'an XRechnung 3.0 for a German public buyer: its XML the invoice a host takes, its Leitweg-ID the buyer’s reference and its electronic address, and its PDF a copy labelled so on every page',
+  proves:
+    'an XRechnung 3.0 for a German public buyer: its XML the invoice a host takes, its Leitweg-ID the buyer’s reference and its electronic address, and its PDF a copy labelled so on every page',
   report: REPORT,
   data: xrechnungData(),
   parameters: {},

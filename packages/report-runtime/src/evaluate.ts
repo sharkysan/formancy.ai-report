@@ -127,7 +127,8 @@ export interface ReportExpressions {
   condition(path: string, values: ExpressionValues, row?: number): ConditionEvaluation
 }
 
-export type ExpressionsPreparation = { readonly ok: true; readonly expressions: ReportExpressions } | { readonly ok: false; readonly diagnostics: readonly Diagnostic[] }
+export type ExpressionsPreparation =
+  { readonly ok: true; readonly expressions: ReportExpressions } | { readonly ok: false; readonly diagnostics: readonly Diagnostic[] }
 
 /** The typed value an expression's result is, or why it is not one. Exported for its test alone. */
 export function typed(result: ExpressionValue, resultType: string): TypedValue | null | { readonly code: EvaluationErrorCode; readonly what: string } {
@@ -170,7 +171,8 @@ class Evaluator implements ReportExpressions {
     const fail = (code: EvaluationErrorCode, what: string): Evaluation => ({ ok: false, error: this.#error(compiled, code, what, row) })
     for (const read of compiled.reads) {
       const scope = values[read.name]
-      if (scope === undefined || !Object.hasOwn(scope, read.member)) return fail('missing-value', `${read.name}.${read.member} has no value: it is missing, which is not null`)
+      if (scope === undefined || !Object.hasOwn(scope, read.member))
+        return fail('missing-value', `${read.name}.${read.member} has no value: it is missing, which is not null`)
     }
     let bound: Record<string, unknown>
     try {

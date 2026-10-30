@@ -45,7 +45,13 @@ const ADAM7 = [
  * `pixel` gives it, every scanline unfiltered, and in Adam7's passes where
  * it is interlaced; `chunks` stand between the header and the image data.
  */
-function png(side: number, colour: 2 | 3 | 6, pixel: (x: number, y: number) => readonly number[], interlace = false, chunks: readonly (readonly [string, Uint8Array])[] = []): Uint8Array {
+function png(
+  side: number,
+  colour: 2 | 3 | 6,
+  pixel: (x: number, y: number) => readonly number[],
+  interlace = false,
+  chunks: readonly (readonly [string, Uint8Array])[] = [],
+): Uint8Array {
   const chunk = (type: string, data: Uint8Array): Buffer => {
     const typed = Buffer.concat([Buffer.from(type, 'latin1'), data])
     const framed = Buffer.alloc(typed.length + 8)
@@ -65,7 +71,12 @@ function png(side: number, colour: 2 | 3 | 6, pixel: (x: number, y: number) => r
       for (let x = left; x < side; x += across) scanlines.push(...pixel(x, y))
     }
   }
-  const framed = [chunk('IHDR', header), ...chunks.map(([type, data]) => chunk(type, data)), chunk('IDAT', deflateSync(Uint8Array.from(scanlines))), chunk('IEND', new Uint8Array(0))]
+  const framed = [
+    chunk('IHDR', header),
+    ...chunks.map(([type, data]) => chunk(type, data)),
+    chunk('IDAT', deflateSync(Uint8Array.from(scanlines))),
+    chunk('IEND', new Uint8Array(0)),
+  ]
   return new Uint8Array(Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), ...framed]))
 }
 
@@ -77,11 +88,24 @@ const PALETTE_ALPHA = new Uint8Array([255, 192, 64, 0])
 const DRAWN = [
   { id: 'large-alpha', side: 256, bytes: png(256, 6, (x, y) => [x & 255, y & 255, 128, (x + y) & 255]) },
   { id: 'large-interlaced', side: 240, bytes: png(240, 2, (x, y) => [y, x, 64], true) },
-  { id: 'large-paletted', side: 224, bytes: png(224, 3, (x, y) => [(x + y) % 4], false, [['PLTE', PALETTE], ['tRNS', PALETTE_ALPHA]]) },
+  {
+    id: 'large-paletted',
+    side: 224,
+    bytes: png(224, 3, (x, y) => [(x + y) % 4], false, [
+      ['PLTE', PALETTE],
+      ['tRNS', PALETTE_ALPHA],
+    ]),
+  },
   { id: 'small-alpha', side: 16, bytes: png(16, 6, (x, y) => [x * 16, y * 16, 64, 255 - x * 8]) },
 ] as const
 
-const image = ({ id, bytes }: (typeof DRAWN)[number]): Image => ({ kind: 'image', asset: { id, mediaType: 'image/png', bytes }, width: 120, height: 120, fit: 'contain' })
+const image = ({ id, bytes }: (typeof DRAWN)[number]): Image => ({
+  kind: 'image',
+  asset: { id, mediaType: 'image/png', bytes },
+  width: 120,
+  height: 120,
+  fit: 'contain',
+})
 
 const DOCUMENT: ResolvedDocument = {
   info: { title: 'Images in order', creationDate: '2026-10-19T08:00:00Z' },
@@ -122,13 +146,17 @@ export async function imagesInOrder(): Promise<string> {
   const widths = drawn.map(([, { dictionary }]) => Number(/\/Width (\d+)/.exec(dictionary)?.[1]))
   const at = (object: number): number => objects.get(object)?.at ?? Number.NaN
   // PDFKit numbers the images as pdfmake opens them, so their widths, in the order of their numbers, say the numbers are in that order.
-  if (JSON.stringify(widths) !== JSON.stringify(DRAWN.map(({ side }) => side)) || masks.length !== 3) throw new Error(`the images were not read as the four drawn, three with a soft mask: ${JSON.stringify({ widths, masks })}`)
+  if (JSON.stringify(widths) !== JSON.stringify(DRAWN.map(({ side }) => side)) || masks.length !== 3)
+    throw new Error(`the images were not read as the four drawn, three with a soft mask: ${JSON.stringify({ widths, masks })}`)
   if (!ascending(masks) || !ascending(masks.map(at)) || !ascending(drawn.map(([object]) => at(object)))) {
-    throw new Error(`the soft masks were numbered, or they or their images written, in another order than pdfmake opened the images, as the decodes finished: ${JSON.stringify({ masks, masksAt: masks.map(at), imagesAt: drawn.map(([object]) => at(object)) })}`)
+    throw new Error(
+      `the soft masks were numbered, or they or their images written, in another order than pdfmake opened the images, as the decodes finished: ${JSON.stringify({ masks, masksAt: masks.map(at), imagesAt: drawn.map(([object]) => at(object)) })}`,
+    )
   }
   // The versions this host resolved, read from their own manifests: png-js's exports no package.json.
   const pdfkit = path.dirname(createRequire(createRequire(import.meta.url).resolve('pdfmake')).resolve('pdfkit/package.json'))
-  const manifest = (directory: string): { version: string; dependencies?: Record<string, string> } => JSON.parse(readFileSync(path.join(directory, 'package.json'), 'utf8')) as { version: string; dependencies?: Record<string, string> }
+  const manifest = (directory: string): { version: string; dependencies?: Record<string, string> } =>
+    JSON.parse(readFileSync(path.join(directory, 'package.json'), 'utf8')) as { version: string; dependencies?: Record<string, string> }
   const version = (directory: string): string => manifest(directory).version
   const pngJs = path.dirname(path.dirname(createRequire(path.join(pdfkit, 'package.json')).resolve('png-js')))
   // The renderer pins PDFKit where 0035 read it (0036); a pin npm did not

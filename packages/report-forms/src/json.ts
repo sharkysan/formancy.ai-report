@@ -91,7 +91,8 @@ export function readList(value: unknown, path: string, max: number): Read<readon
     // A proxy describes its length as it likes: only a whole number is a
     // length, and it is compared and looped to as read.
     const length: unknown = (Object.getOwnPropertyDescriptor(value, 'length') as PropertyDescriptor).value
-    if (typeof length !== 'number' || !Number.isSafeInteger(length) || length < 0) return unreadable(path, 'a list whose length is not a whole number is not data')
+    if (typeof length !== 'number' || !Number.isSafeInteger(length) || length < 0)
+      return unreadable(path, 'a list whose length is not a whole number is not data')
     if (length > max) return { ok: false, path, message: `a list of ${length} items, more than the ${max} a render reads`, tooMany: true }
     const items: unknown[] = []
     for (let index = 0; index < length; index++) {
@@ -148,7 +149,8 @@ function copyRecord(value: unknown, path: string, keyAt: (path: string, key: str
   if (!record.ok) return record
   const copy: Record<string, unknown> = {}
   for (const [key, item] of record.value) {
-    if (key === '__proto__') return unreadable(path, 'an own __proto__ is not data: assigned, it replaces an object’s prototype, and formancy stores nothing under it')
+    if (key === '__proto__')
+      return unreadable(path, 'an own __proto__ is not data: assigned, it replaces an object’s prototype, and formancy stores nothing under it')
     const read = copyJson(item, keyAt(path, key), keyAt, depth + 1)
     if (!read.ok) return read
     copy[key] = read.value
@@ -157,15 +159,26 @@ function copyRecord(value: unknown, path: string, keyAt: (path: string, key: str
 }
 
 /** The parts of an input object, each known one present when required, nothing else; undefined after reporting why not. */
-export function readParts(f: Findings, raw: unknown, path: string, required: readonly string[], optional: readonly string[] = []): ReadonlyMap<string, unknown> | undefined {
+export function readParts(
+  f: Findings,
+  raw: unknown,
+  path: string,
+  required: readonly string[],
+  optional: readonly string[] = [],
+): ReadonlyMap<string, unknown> | undefined {
   const read = readRecord(raw, path, (where, key) => (required.includes(key) || optional.includes(key) ? at(where, key) : where))
   if (!read.ok) {
-    f.report(read.path, read.wrongType === true ? 'invalid-input' : 'not-data', read.wrongType === true ? `expected ${[...required, ...optional].join(', ')}` : read.message)
+    f.report(
+      read.path,
+      read.wrongType === true ? 'invalid-input' : 'not-data',
+      read.wrongType === true ? `expected ${[...required, ...optional].join(', ')}` : read.message,
+    )
     return undefined
   }
   for (const key of read.value.keys()) {
     // Named where it is a field key, its container where it is not, as a key in a submission is.
-    if (!required.includes(key) && !optional.includes(key)) f.report(answerAt(path, key), 'invalid-input', `the bridge reads ${[...required, ...optional].join(', ')} here, and nothing it does not know`)
+    if (!required.includes(key) && !optional.includes(key))
+      f.report(answerAt(path, key), 'invalid-input', `the bridge reads ${[...required, ...optional].join(', ')} here, and nothing it does not know`)
   }
   for (const key of required) if (!read.value.has(key)) f.report(at(path, key), 'invalid-input', `${key} is required here`)
   return read.value

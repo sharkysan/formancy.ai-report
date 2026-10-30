@@ -43,9 +43,24 @@ describe('locations', () => {
     const report = frozenSample()
     const all = locations(report)
     for (const location of all) expect(insertComponent(report, location, spacer).ok, said(location)).toBe(true)
-    const lists = 5 + walkComponents(report).reduce((count, { component }) => count + (component.kind === 'columns' ? component.columns.length : 'components' in component ? 1 : 0), 0)
+    const lists =
+      5 +
+      walkComponents(report).reduce(
+        (count, { component }) => count + (component.kind === 'columns' ? component.columns.length : 'components' in component ? 1 : 0),
+        0,
+      )
     expect(all).toHaveLength(walkComponents(report).length + lists)
-    expect(all.filter(({ region }) => region === 'body').map(said)).toEqual(['body:::0', 'body:::1', 'body:::2', 'body:::3', 'body:keep::0', 'body:keep::1', 'body:keep::2', 'body:::4', 'body:::5'])
+    expect(all.filter(({ region }) => region === 'body').map(said)).toEqual([
+      'body:::0',
+      'body:::1',
+      'body:::2',
+      'body:::3',
+      'body:keep::0',
+      'body:keep::1',
+      'body:keep::2',
+      'body:::4',
+      'body:::5',
+    ])
   })
 })
 
@@ -63,8 +78,8 @@ describe('validLocations', () => {
   // and the summary and never inside columns or a keep-together block. The
   // destinations are exactly the places the validator accepts, so a
   // builder that offers them never offers a drop the session refuses.
-  test.each([
-    ['a new page counter', { id: 'counter', kind: 'text', content: [{ kind: 'pageNumber' }] } as Component],
+  test.each<[string, Component | string]>([
+    ['a new page counter', { id: 'counter', kind: 'text', content: [{ kind: 'pageNumber' }] }],
     ['a new spacer', spacer],
     ['the detail table, moved', 'lines'],
     ['a component inside a container, moved', 'note'],

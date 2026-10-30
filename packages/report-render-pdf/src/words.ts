@@ -56,6 +56,10 @@ export function checkWords(rooms: readonly WordRoom[]): void {
     const widest = (node as { readonly _minWidth?: unknown })._minWidth
     if (typeof widest !== 'number' || widest <= width * lines + SLACK) continue
     const room = lines === 1 ? `its column holds ${width.toFixed(2)} pt` : `${lines} lines of its width are ${(width * lines).toFixed(2)} pt`
-    throw new RenderRefusal('content-too-large', `a word of ${what} is ${widest.toFixed(2)} pt wide, and ${room}; a word is broken only in a paragraph, and across no more than ${MAX_WORD_LINES} lines`, subject)
+    throw new RenderRefusal(
+      'content-too-large',
+      `a word of ${what} is ${widest.toFixed(2)} pt wide, and ${room}; a word is broken only in a paragraph, and across no more than ${MAX_WORD_LINES} lines`,
+      subject,
+    )
   }
 }

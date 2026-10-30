@@ -42,7 +42,11 @@ export type PreviewOutcome =
   | { readonly kind: 'refused'; readonly errors: readonly RuntimeError[] }
   | { readonly kind: 'not-drawn'; readonly refusal: NotDrawn }
 
-export async function preview(request: PreviewRequest, signal: AbortSignal, { maxPages = PREVIEW_PAGE_LIMIT }: { readonly maxPages?: number } = {}): Promise<PreviewOutcome> {
+export async function preview(
+  request: PreviewRequest,
+  signal: AbortSignal,
+  { maxPages = PREVIEW_PAGE_LIMIT }: { readonly maxPages?: number } = {},
+): Promise<PreviewOutcome> {
   const { report, starter, mode, images, creationDate } = request
   const resolved = resolveReport(report, starter.data, { mode, parameters: starter.parameters, images, creationDate })
   if (!resolved.ok) return { kind: 'refused', errors: resolved.errors }

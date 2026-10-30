@@ -65,7 +65,7 @@ function readOrSay(path, missing, encoding = 'utf8') {
   try {
     return readFileSync(path, encoding === null ? undefined : encoding)
   } catch (error) {
-    if (error?.code === 'ENOENT') throw new Error(missing)
+    if (error?.code === 'ENOENT') throw new Error(missing, { cause: error })
     throw error
   }
 }

@@ -86,7 +86,9 @@ function readSwissQrBill(c: Ctx, o: Record<string, unknown>, path: string, page:
   const debtor = readAddress(c, o.debtor, at(path, 'debtor'), 'debtor')
   const reference = readText(c, o.reference, at(path, 'reference'), 'the reference', checkQrBillReference)
   const message = readText(c, o.message, at(path, 'message'), 'the message', (text) => checkQrBillText(text, QR_BILL_MESSAGE_RULE))
-  const billing = readText(c, o.billingInformation, at(path, 'billingInformation'), 'the billing information', (text) => checkQrBillText(text, QR_BILL_BILLING_RULE))
+  const billing = readText(c, o.billingInformation, at(path, 'billingInformation'), 'the billing information', (text) =>
+    checkQrBillText(text, QR_BILL_BILLING_RULE),
+  )
   if (message.checked !== undefined && billing.checked !== undefined) {
     const together = checkQrBillAdditionalInformation(message.checked, billing.checked)
     if (together !== undefined) c.f.report(at(path, 'message'), 'invalid-qr-bill', together)

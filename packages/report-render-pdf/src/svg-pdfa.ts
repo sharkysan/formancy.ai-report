@@ -121,12 +121,19 @@ function placed(vector: Vector, image: Pick<Image, 'width' | 'height' | 'fit'>, 
 export function checkSvgInEInvoice(vector: Vector, image: Image, paper: Paper): void {
   const { id } = image.asset
   if (vector.extent.nesting > PDF_A_NESTING) {
-    throw new RenderRefusal('unsupported', `the image ${id} is an SVG that pdfmake's converter draws ${vector.extent.nesting} graphics states deep, and an e-invoice is drawn as a PDF/A-3, which nests them ${PDF_A_NESTING} deep at most: flatten the groups it nests`, id)
+    throw new RenderRefusal(
+      'unsupported',
+      `the image ${id} is an SVG that pdfmake's converter draws ${vector.extent.nesting} graphics states deep, and an e-invoice is drawn as a PDF/A-3, which nests them ${PDF_A_NESTING} deep at most: flatten the groups it nests`,
+      id,
+    )
   }
   const own = outlines(vector)
   const reach = Math.max(own, placed(vector, image, paper))
   if (reach > SVG_INTEGER_BOUND) {
-    const advice = own === reach ? 'save it again from the drawing program, its arcs drawn with radii that reach their ends and its smooth curves with control points of their own' : 'draw it larger, or flatten the transforms under its clips, its transparency and its gradients'
+    const advice =
+      own === reach
+        ? 'save it again from the drawing program, its arcs drawn with radii that reach their ends and its smooth curves with control points of their own'
+        : 'draw it larger, or flatten the transforms under its clips, its transparency and its gradients'
     throw new RenderRefusal(
       'unsupported',
       `the image ${id} is an SVG whose numbers, drawn ${image.width} × ${image.height} pt, could reach ${Math.ceil(reach)}, and an e-invoice is drawn as a PDF/A-3, which holds an integer to ${PDF_A_INTEGER}, ${SVG_INTEGER_BOUND} with the renderer's margin for rounding: ${advice}`,

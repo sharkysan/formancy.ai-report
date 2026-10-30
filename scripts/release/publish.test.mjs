@@ -53,7 +53,9 @@ describe('decide', () => {
   // A version is published once. Skipping on the version alone would call a
   // release done whose npm bytes are not the ones the gates ran.
   test('refuses a version npm holds with other bytes', () => {
-    expect(() => decide(tarball, integrityOf(Buffer.from('other bytes')))).toThrow(/@formancy\/report-spec@0\.1\.0 is on npm as sha512-.+, not as this tarball's sha512-/)
+    expect(() => decide(tarball, integrityOf(Buffer.from('other bytes')))).toThrow(
+      /@formancy\/report-spec@0\.1\.0 is on npm as sha512-.+, not as this tarball's sha512-/,
+    )
   })
 
   // The integrity the registry records is `sha512-` and the base64 digest of
@@ -68,8 +70,14 @@ describe('toPublish', () => {
   /** Two tarballs, the report of the run that installed them, and what `check` pinned of all three. */
   function release() {
     const tarballs = [
-      { path: 'release-tarballs/formancy-report-core-0.1.0.tgz', bytes: packageTarball({ name: '@formancy/report-core', version: '0.1.0', license: LICENSE_FIELD, dependencies: { '@formancy/report-spec': '0.1.0' } }) },
-      { path: 'release-tarballs/formancy-report-spec-0.1.0.tgz', bytes: packageTarball({ name: '@formancy/report-spec', version: '0.1.0', license: LICENSE_FIELD }) },
+      {
+        path: 'release-tarballs/formancy-report-core-0.1.0.tgz',
+        bytes: packageTarball({ name: '@formancy/report-core', version: '0.1.0', license: LICENSE_FIELD, dependencies: { '@formancy/report-spec': '0.1.0' } }),
+      },
+      {
+        path: 'release-tarballs/formancy-report-spec-0.1.0.tgz',
+        bytes: packageTarball({ name: '@formancy/report-spec', version: '0.1.0', license: LICENSE_FIELD }),
+      },
     ]
     const report = {
       problems: [],
@@ -91,7 +99,10 @@ describe('toPublish', () => {
   // something else.
   test('refuses a tarball the check job did not check, an empty pin, and a report of another run', () => {
     const swapped = release()
-    swapped.files[2] = { ...swapped.files[2], bytes: packageTarball({ name: '@formancy/report-spec', version: '0.1.0', license: LICENSE_FIELD, description: 'other' }) }
+    swapped.files[2] = {
+      ...swapped.files[2],
+      bytes: packageTarball({ name: '@formancy/report-spec', version: '0.1.0', license: LICENSE_FIELD, description: 'other' }),
+    }
     expect(() => toPublish(swapped)).toThrow(/release-tarballs\/formancy-report-spec-0\.1\.0\.tgz is not the file the check job checked/)
     expect(() => toPublish({ ...release(), checked: '' })).toThrow(/the check job pinned no file/)
     expect(() => toPublish({ ...release(), commit: 'decaf' })).toThrow(/the report is of commit c0ffee, not decaf/)
@@ -104,6 +115,8 @@ describe('toPublish', () => {
   test('refuses a tarball whose sha256 is not the one the report says the install gate installed', () => {
     const inputs = release()
     inputs.report.results.install.tarballs[0].sha256 = 'f'.repeat(64)
-    expect(() => toPublish(inputs)).toThrow(/formancy-report-core-0\.1\.0\.tgz is not the tarball the install gate installed and ran: sha256 [0-9a-f]{64}, recorded f{64}/)
+    expect(() => toPublish(inputs)).toThrow(
+      /formancy-report-core-0\.1\.0\.tgz is not the tarball the install gate installed and ran: sha256 [0-9a-f]{64}, recorded f{64}/,
+    )
   })
 })

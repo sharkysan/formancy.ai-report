@@ -122,7 +122,8 @@ export async function readPdfNumbers(bytes: Uint8Array): Promise<PdfNumber[]> {
   const pageContents = new Set<PDFObject>()
   for (const page of document.getPages()) {
     const contents = page.node.get(PDFName.of('Contents'))
-    for (const ref of contents instanceof PDFArray ? contents.asArray() : [contents]) if (ref instanceof PDFRef) pageContents.add(context.lookup(ref) as PDFObject)
+    for (const ref of contents instanceof PDFArray ? contents.asArray() : [contents])
+      if (ref instanceof PDFRef) pageContents.add(context.lookup(ref) as PDFObject)
   }
   const read: PdfNumber[] = []
   const add = (text: string, where: string): void => {
@@ -135,7 +136,10 @@ export async function readPdfNumbers(bytes: Uint8Array): Promise<PdfNumber[]> {
       continue
     }
     add(object.dict.toString(), where)
-    const content = pageContents.has(object) || object.dict.get(PDFName.of('Subtype')) === PDFName.of('Form') || object.dict.get(PDFName.of('PatternType'))?.toString() === '1'
+    const content =
+      pageContents.has(object) ||
+      object.dict.get(PDFName.of('Subtype')) === PDFName.of('Form') ||
+      object.dict.get(PDFName.of('PatternType'))?.toString() === '1'
     if (content) add(latin1(decodePDFRawStream(object).decode()), `${where}'s stream`)
   }
   return read

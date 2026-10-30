@@ -61,5 +61,7 @@ export function periodBreak(start: boolean, end: boolean): string | undefined {
  * transcribed [S], only warns of an invoice without one.
  */
 export function supplyBreak(delivered: boolean, period: boolean): string | undefined {
-  return delivered || period ? undefined : 'a German invoice says when it was supplied: a delivery date (BT-72), an invoicing period (BG-14), or both (§ 14 Abs. 4 Satz 1 Nr. 6 UStG)'
+  return delivered || period
+    ? undefined
+    : 'a German invoice says when it was supplied: a delivery date (BT-72), an invoicing period (BG-14), or both (§ 14 Abs. 4 Satz 1 Nr. 6 UStG)'
 }

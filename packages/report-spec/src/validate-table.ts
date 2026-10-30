@@ -31,7 +31,12 @@ export function checkFixedWidths(c: Ctx, widths: readonly (Width | undefined)[],
   withinPage(c, fixed === undefined ? undefined : roundPt(fixed), path, 'width', 'the fixed widths of these columns')
 }
 
-function readTableColumn(c: Ctx, value: unknown, path: string, region: RegionName): { id: string | undefined; width: Width | undefined; column: TableColumn | undefined } {
+function readTableColumn(
+  c: Ctx,
+  value: unknown,
+  path: string,
+  region: RegionName,
+): { id: string | undefined; width: Width | undefined; column: TableColumn | undefined } {
   const o = shape(c.f, value, path, ['id', 'header', 'width', 'align', 'value'], ['visibleWhen', 'style', 'styleWhen'])
   const id = identifier(c.f, o?.id, at(path, 'id'))
   const header = text(c.f, o?.header, at(path, 'header'), MAX_LABEL_LENGTH)
@@ -41,13 +46,29 @@ function readTableColumn(c: Ctx, value: unknown, path: string, region: RegionNam
   const visibleWhen = readExpression(c.f, o?.visibleWhen, at(path, 'visibleWhen'))
   const style = readStyleRef(c, o?.style, at(path, 'style'))
   const styleWhen = readStyleRules(c, o?.styleWhen, at(path, 'styleWhen'))
-  if (id === undefined || header === undefined || columnWidth === undefined || align === undefined || cell === undefined) return { id, width: columnWidth, column: undefined }
-  const column = { id, header, width: columnWidth, align, value: cell, ...optional('visibleWhen', visibleWhen), ...optional('style', style), ...optional('styleWhen', styleWhen) }
+  if (id === undefined || header === undefined || columnWidth === undefined || align === undefined || cell === undefined)
+    return { id, width: columnWidth, column: undefined }
+  const column = {
+    id,
+    header,
+    width: columnWidth,
+    align,
+    value: cell,
+    ...optional('visibleWhen', visibleWhen),
+    ...optional('style', style),
+    ...optional('styleWhen', styleWhen),
+  }
   return { id, width: columnWidth, column }
 }
 
 /** A footer cell, and the column it names when that could be read. */
-function readFooterCell(c: Ctx, value: unknown, path: string, scope: InlineScope, columns: Declarations<true>): { column: string | undefined; cell: TableFooterCell | undefined } {
+function readFooterCell(
+  c: Ctx,
+  value: unknown,
+  path: string,
+  scope: InlineScope,
+  columns: Declarations<true>,
+): { column: string | undefined; cell: TableFooterCell | undefined } {
   const o = shape(c.f, value, path, ['column', 'value'])
   const column = reference(c.f, o?.column, at(path, 'column'))
   if (column !== undefined && columns !== undefined && !columns.has(column)) {
@@ -74,7 +95,13 @@ function readFooterRows(c: Ctx, value: unknown, path: string, scope: InlineScope
   return rows && all(rows)
 }
 
-function readGroup(c: Ctx, value: unknown, path: string, region: RegionName, columns: Declarations<true>): { group: TableGroup | undefined; by: string | undefined } {
+function readGroup(
+  c: Ctx,
+  value: unknown,
+  path: string,
+  region: RegionName,
+  columns: Declarations<true>,
+): { group: TableGroup | undefined; by: string | undefined } {
   const o = shape(c.f, value, path, ['by', 'direction', 'header', 'footer'], ['headerStyle'])
   const by = readFieldRef(c, o?.by, at(path, 'by'), 'detail')
   orderable(c, by, at(path, 'by'))
@@ -102,7 +129,12 @@ function readSort(c: Ctx, value: unknown, path: string, groupBy: string | undefi
   // The group's key orders first, so it is declared before the sort keys.
   const group = groupBy === undefined ? [] : [{ id: groupBy, path, value: true }]
   const sorted = (keys ?? []).map(({ field, path: fieldPath }) => ({ id: field?.ref.field, path: fieldPath, value: true }))
-  declare(c.f, [...group, ...sorted], 'duplicate-sort-key', (field) => `${field} already orders these rows, as the group's key or an earlier sort key; a second key on it orders nothing`)
+  declare(
+    c.f,
+    [...group, ...sorted],
+    'duplicate-sort-key',
+    (field) => `${field} already orders these rows, as the group's key or an earlier sort key; a second key on it orders nothing`,
+  )
   return keys && all(keys.map(({ field, direction }) => (field === undefined || direction === undefined ? undefined : { field: field.ref, direction })))
 }
 
@@ -115,7 +147,9 @@ export function readTable(c: Ctx, o: Record<string, unknown>, path: string, regi
   else c.f.report(path, 'second-detail-table', `a report has one table over the detail dataset in version 0, and this one's is at ${c.detailTable}`)
   const dataset = oneOf(c.f, o.dataset, at(path, 'dataset'), ['detail'])
   resolve(c.f, c.declared.datasets, dataset, at(path, 'dataset'), 'unknown-dataset', 'dataset')
-  const read = readList(c.f, o.columns, at(path, 'columns'), 1, MAX_TABLE_COLUMNS)?.map((item, index) => readTableColumn(c, item, at(at(path, 'columns'), index), region))
+  const read = readList(c.f, o.columns, at(path, 'columns'), 1, MAX_TABLE_COLUMNS)?.map((item, index) =>
+    readTableColumn(c, item, at(at(path, 'columns'), index), region),
+  )
   const columnIds =
     read &&
     declare(
@@ -124,7 +158,12 @@ export function readTable(c: Ctx, o: Record<string, unknown>, path: string, regi
       'duplicate-column-id',
       (id) => `this table already has a column ${id}`,
     )
-  if (read !== undefined) checkFixedWidths(c, read.map(({ width: columnWidth }) => columnWidth), at(path, 'columns'))
+  if (read !== undefined)
+    checkFixedWidths(
+      c,
+      read.map(({ width: columnWidth }) => columnWidth),
+      at(path, 'columns'),
+    )
   const headerStyle = readStyleRef(c, o.headerStyle, at(path, 'headerStyle'))
   const group = readGroup(c, o.group, at(path, 'group'), region, columnIds)
   const sort = readSort(c, o.sort, at(path, 'sort'), group.by)

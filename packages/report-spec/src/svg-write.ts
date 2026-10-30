@@ -25,7 +25,8 @@ const MARKUP = /[<>&"'\u0080-￿]/
 
 /** One attribute as written, which no value may break out of. */
 export function attribute(name: string, value: string): string {
-  if (MARKUP.test(value)) throw new Error(`the SVG writer was handed markup or a byte past ASCII for ${name}; a value is always generated, so this is a bug in the cleaner`)
+  if (MARKUP.test(value))
+    throw new Error(`the SVG writer was handed markup or a byte past ASCII for ${name}; a value is always generated, so this is a bug in the cleaner`)
   return ` ${name}="${value}"`
 }
 
@@ -35,7 +36,10 @@ export function writeDrawing(drawing: Drawing): string {
     if (typeof value === 'string') return value
     const id = drawing.targets.get(value.reference.id)?.id
     // Every reference kept names a target the drawing writes with an id; one that does not would write `url(#)`, which cleaning would then refuse.
-    if (id === undefined) throw new Error(`the SVG writer was handed a reference to nothing it writes, at ${value.reference.where}; every reference kept names a target, so this is a bug in the cleaner`)
+    if (id === undefined)
+      throw new Error(
+        `the SVG writer was handed a reference to nothing it writes, at ${value.reference.where}; every reference kept names a target, so this is a bug in the cleaner`,
+      )
     return `url(#${id})${value.fallback === undefined ? '' : ` ${value.fallback}`}`
   }
   const write = (node: Written): void => {

@@ -109,7 +109,8 @@ export function reportLabels(report: ReportDefinition, t: EditorText): ReadonlyM
   const raw: (readonly [key: string, id: string, label: string])[] = []
   for (const { component } of walkComponents(report)) {
     raw.push([component.id, component.id, componentLabel(component, report, t)])
-    if (component.kind === 'table') for (const column of component.columns) raw.push([columnKey(component.id, column.id), column.id, columnLabel(column.header, t)])
+    if (component.kind === 'table')
+      for (const column of component.columns) raw.push([columnKey(component.id, column.id), column.id, columnLabel(column.header, t)])
   }
   const counts = new Map<string, number>()
   for (const [, , label] of raw) counts.set(label, (counts.get(label) ?? 0) + 1)

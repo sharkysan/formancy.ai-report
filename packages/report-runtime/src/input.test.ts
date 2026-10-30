@@ -109,7 +109,7 @@ describe('readList', () => {
   // A sparse array has holes JSON cannot hold, and a getter on an index is
   // code: each is refused where it is, the rest still read.
   test('refuses holes and getters by index', () => {
-    // eslint-disable-next-line no-sparse-arrays
+    // eslint-disable-next-line no-sparse-arrays -- a hole in the array is the input under test
     const list: unknown[] = ['a', , 'c']
     Object.defineProperty(list, 2, { get: () => 'c', enumerable: true })
     const read = readList(list, 10)

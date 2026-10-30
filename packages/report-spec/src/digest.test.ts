@@ -13,7 +13,8 @@ import { validateReport } from './validate.js'
  * library declares no such global, so the test names the one call it makes.
  */
 
-const WEB_CRYPTO = (globalThis as unknown as { readonly crypto: { readonly subtle: { digest(algorithm: 'SHA-256', data: Uint8Array): Promise<ArrayBuffer> } } }).crypto.subtle
+const WEB_CRYPTO = (globalThis as unknown as { readonly crypto: { readonly subtle: { digest(algorithm: 'SHA-256', data: Uint8Array): Promise<ArrayBuffer> } } })
+  .crypto.subtle
 
 async function webCryptoDigest(bytes: Uint8Array): Promise<string> {
   const hash = new Uint8Array(await WEB_CRYPTO.digest('SHA-256', bytes))
@@ -31,7 +32,11 @@ describe('assetDigest', () => {
   test.each([
     ['the empty message', utf8(''), 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'],
     ['"abc"', utf8('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'],
-    ['the two-block message', utf8('abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq'), '248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1'],
+    [
+      'the two-block message',
+      utf8('abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq'),
+      '248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1',
+    ],
     ['a million "a"', new Uint8Array(1_000_000).fill(0x61), 'cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0'],
   ])('is SHA-256 of %s, as FIPS 180-2 gives it', (_, bytes, hex) => {
     expect(assetDigest(bytes)).toBe(`sha256:${hex}`)

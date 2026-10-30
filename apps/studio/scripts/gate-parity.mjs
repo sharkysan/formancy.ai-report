@@ -88,7 +88,11 @@ const STATES = [
   {
     state: 'the place chooser open from the palette',
     step: async ({ page, editor }) => {
-      const text = await showing(editor, 'Outline', editor.getByRole('group', { name: 'Insert', exact: true }).getByRole('button', { name: 'Text', exact: true }))
+      const text = await showing(
+        editor,
+        'Outline',
+        editor.getByRole('group', { name: 'Insert', exact: true }).getByRole('button', { name: 'Text', exact: true }),
+      )
       await text.focus()
       await page.keyboard.press('Enter')
       await editor.getByRole('dialog', { name: 'Insert Text: choose a place', exact: true }).waitFor()
@@ -127,12 +131,20 @@ const STATES = [
       const condition = await showing(editor, 'Properties', editor.getByRole('textbox', { name: 'Show only when', exact: true }))
       await condition.fill('params.missing')
       await condition.press('Tab')
-      await showing(editor, 'Problems', editor.getByRole('list', { name: 'Problems', exact: true }).getByRole('button', { name: `Error: ${String(placed)}`, exact: true }))
+      await showing(
+        editor,
+        'Problems',
+        editor.getByRole('list', { name: 'Problems', exact: true }).getByRole('button', { name: `Error: ${String(placed)}`, exact: true }),
+      )
     },
   },
   {
     state: 'that problem followed to its component',
-    step: ({ editor, placed }) => editor.getByRole('list', { name: 'Problems', exact: true }).getByRole('button', { name: `Error: ${String(placed)}`, exact: true }).click(),
+    step: ({ editor, placed }) =>
+      editor
+        .getByRole('list', { name: 'Problems', exact: true })
+        .getByRole('button', { name: `Error: ${String(placed)}`, exact: true })
+        .click(),
   },
   {
     state: 'the condition undone',
@@ -149,7 +161,10 @@ const STATES = [
       await margin.fill('400')
       await margin.press('Tab')
       // The live region says why, in the field's words, once the editor has refused it.
-      await editor.getByRole('status').filter({ hasText: /^Top margin \(mm\): / }).waitFor()
+      await editor
+        .getByRole('status')
+        .filter({ hasText: /^Top margin \(mm\): / })
+        .waitFor()
     },
   },
   {
@@ -178,19 +193,26 @@ const STATES = [
       await iban.fill('CH44 3199 9123 0008 8901 3')
       await iban.press('Tab')
       // The live region says why, in the field's words, once the editor has refused it.
-      await editor.getByRole('status').filter({ hasText: /^IBAN: / }).waitFor()
+      await editor
+        .getByRole('status')
+        .filter({ hasText: /^IBAN: / })
+        .waitFor()
     },
   },
   {
     // The e-invoice's VAT categories a list (0044): its last taken away, the keyboard on the list's Add, which the starter's four breakdowns
     // had left unavailable; then one added, the keyboard on its identifier. Walked where the starter has an e-invoice.
     state: 'a VAT category taken away from the e-invoice',
-    only: async ({ editor }) => (await (await showing(editor, 'Outline', treeOf(editor))).getByRole('treeitem', { name: 'E-invoice', exact: true }).count()) === 1,
+    only: async ({ editor }) =>
+      (await (await showing(editor, 'Outline', treeOf(editor))).getByRole('treeitem', { name: 'E-invoice', exact: true }).count()) === 1,
     step: async ({ editor }) => {
       await (await showing(editor, 'Outline', treeOf(editor))).getByRole('treeitem', { name: 'E-invoice', exact: true }).click()
       const removed = (await showing(editor, 'Properties', editor.getByRole('form'))).getByRole('button', { name: /^Remove VAT category \d+$/ }).last()
       await removed.click()
-      await editor.getByRole('status').filter({ hasText: /^Removed VAT category \d+\.$/ }).waitFor()
+      await editor
+        .getByRole('status')
+        .filter({ hasText: /^Removed VAT category \d+\.$/ })
+        .waitFor()
     },
   },
   {
@@ -198,7 +220,10 @@ const STATES = [
     only: async ({ editor }) => (await editor.getByRole('button', { name: 'Add VAT category', exact: true }).count()) === 1,
     step: async ({ editor }) => {
       await (await showing(editor, 'Properties', editor.getByRole('button', { name: 'Add VAT category', exact: true }))).click()
-      await editor.getByRole('status').filter({ hasText: /^Added VAT category \d+\.$/ }).waitFor()
+      await editor
+        .getByRole('status')
+        .filter({ hasText: /^Added VAT category \d+\.$/ })
+        .waitFor()
     },
   },
   {
@@ -209,7 +234,10 @@ const STATES = [
       await rate.fill('0.4')
       await rate.press('Tab')
       // The live region says why, in the field's words, once the editor has refused it.
-      await editor.getByRole('status').filter({ hasText: /^VAT category 1: rate in per cent: / }).waitFor()
+      await editor
+        .getByRole('status')
+        .filter({ hasText: /^VAT category 1: rate in per cent: / })
+        .waitFor()
     },
   },
   ...['Outline', 'Design view', 'Properties', 'Problems'].map((pane) => ({
@@ -298,21 +326,38 @@ export async function builderParity(gate, browser, url, { starters, viewport, re
   for (const { id, label } of starters) {
     const walks = {}
     for (const framework of FRAMEWORKS) walks[framework] = await walked(browser, url, { id, framework, viewport, refuseFonts })
-    const stopped = FRAMEWORKS.filter((framework) => walks[framework].stopped !== null).map((framework) => `${framework} stopped at "${walks[framework].stopped.state}": ${walks[framework].stopped.why}`)
+    const stopped = FRAMEWORKS.filter((framework) => walks[framework].stopped !== null).map(
+      (framework) => `${framework} stopped at "${walks[framework].stopped.state}": ${walks[framework].stopped.why}`,
+    )
     gate.check(`parity, ${label}: each builder reached every state of the walk`, stopped.length === 0 ? null : stopped.join('; '))
     for (const { state } of STATES) {
       const [react, angular] = FRAMEWORKS.map((framework) => walks[framework].reached.get(state))
       if (react === undefined || angular === undefined) continue
       const names = { names: FRAMEWORKS }
-      gate.check(`parity, ${label}, ${state}: Playwright's snapshot of the editor is the same in React and in Angular`, difference(react.snapshot, angular.snapshot, names))
+      gate.check(
+        `parity, ${label}, ${state}: Playwright's snapshot of the editor is the same in React and in Angular`,
+        difference(react.snapshot, angular.snapshot, names),
+      )
       // A guard on the guard: two readings with no toolbar in them are two that agreed about nothing.
-      const vacuous = FRAMEWORKS.filter((framework) => !walks[framework].reached.get(state).chromium.some((line) => line.trimStart().startsWith('toolbar "Report tools"')))
+      const vacuous = FRAMEWORKS.filter(
+        (framework) => !walks[framework].reached.get(state).chromium.some((line) => line.trimStart().startsWith('toolbar "Report tools"')),
+      )
       gate.check(
         `parity, ${label}, ${state}: Chromium's tree of the editor -- every role, name, description, value and state -- is the same in React and in Angular`,
-        vacuous.length > 0 ? `${vacuous.join(' and ')}'s tree holds no toolbar, so it was read before the editor was drawn` : difference(react.chromium, angular.chromium, names),
+        vacuous.length > 0
+          ? `${vacuous.join(' and ')}'s tree holds no toolbar, so it was read before the editor was drawn`
+          : difference(react.chromium, angular.chromium, names),
       )
-      const transformed = FRAMEWORKS.map((framework) => [framework, difference(walks[framework].reached.get(state).chromium, walks[framework].reached.get(state).untransformed, { names: ['as styled', 'with text-transform off'] })]).filter(([, found]) => found !== null)
-      gate.check(`parity, ${label}, ${state}: no name in either builder's tree changes with the page's text-transform switched off`, transformed.length === 0 ? null : transformed.map(([framework, found]) => `${framework}: ${found}`).join('; '))
+      const transformed = FRAMEWORKS.map((framework) => [
+        framework,
+        difference(walks[framework].reached.get(state).chromium, walks[framework].reached.get(state).untransformed, {
+          names: ['as styled', 'with text-transform off'],
+        }),
+      ]).filter(([, found]) => found !== null)
+      gate.check(
+        `parity, ${label}, ${state}: no name in either builder's tree changes with the page's text-transform switched off`,
+        transformed.length === 0 ? null : transformed.map(([framework, found]) => `${framework}: ${found}`).join('; '),
+      )
     }
   }
 }

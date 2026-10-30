@@ -84,7 +84,8 @@ export class ReportProperties {
    */
   protected readonly rows = computed<readonly Row[]>(() => {
     const { selection, properties } = this.root.state()
-    const owner = selection === null ? 'report' : 'part' in selection ? selection.part : `${selection.id}${selection.column === undefined ? '' : `-${selection.column}`}`
+    const owner =
+      selection === null ? 'report' : 'part' in selection ? selection.part : `${selection.id}${selection.column === undefined ? '' : `-${selection.column}`}`
     let index = 0
     const shown = (field: PropertyField): Shown => {
       const id = `${this.root.id}-${owner}-${String(index)}`
@@ -98,7 +99,11 @@ export class ReportProperties {
         return { key: field.id, field, group: null }
       }
       const { group } = row
-      return { key: `${this.root.id}-${owner}-${group.key}`, field: null, group: { label: group.label, fields: group.fields.map(shown), actions: group.actions } }
+      return {
+        key: `${this.root.id}-${owner}-${group.key}`,
+        field: null,
+        group: { label: group.label, fields: group.fields.map(shown), actions: group.actions },
+      }
     })
   })
 

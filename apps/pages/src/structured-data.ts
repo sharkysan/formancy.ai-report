@@ -30,7 +30,15 @@ export function structuredData(page: PageContext): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@graph': [
-      { '@type': 'WebPage', '@id': page.url, url: page.url, name: meta.title, description: meta.description, inLanguage: page.language, breadcrumb: { '@id': `${page.url}#breadcrumb` } },
+      {
+        '@type': 'WebPage',
+        '@id': page.url,
+        url: page.url,
+        name: meta.title,
+        description: meta.description,
+        inLanguage: page.language,
+        breadcrumb: { '@id': `${page.url}#breadcrumb` },
+      },
       {
         '@type': 'BreadcrumbList',
         '@id': `${page.url}#breadcrumb`,

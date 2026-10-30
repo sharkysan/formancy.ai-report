@@ -73,14 +73,23 @@ for (const [name, value] of Object.entries(builder)) {
 
 // The directive every part injects: a definition, a factory, and no component's.
 const root: { readonly ɵdir?: unknown; readonly ɵfac?: unknown } = ReportEditorRoot
-expect(reflectComponentType(ReportEditorRoot) === null && typeof root.ɵdir === 'object' && typeof root.ɵfac === 'function', 'ReportEditorRoot is not a linked directive with a factory')
+expect(
+  reflectComponentType(ReportEditorRoot) === null && typeof root.ɵdir === 'object' && typeof root.ɵfac === 'function',
+  'ReportEditorRoot is not a linked directive with a factory',
+)
 
 // The template a host gives as its own view (0029): a directive too, on an ng-template, never a part drawn as an element.
 const hostView: { readonly ɵdir?: unknown; readonly ɵfac?: unknown } = ReportHostView
-expect(reflectComponentType(ReportHostView) === null && typeof hostView.ɵdir === 'object' && typeof hostView.ɵfac === 'function', 'ReportHostView is not a linked directive with a factory')
+expect(
+  reflectComponentType(ReportHostView) === null && typeof hostView.ɵdir === 'object' && typeof hostView.ɵfac === 'function',
+  'ReportHostView is not a linked directive with a factory',
+)
 
 // <report-builder [editor]="editor" />, as the README writes it.
-expect(components.get('ReportBuilder')?.selector === 'report-builder', `ReportBuilder's selector is ${String(components.get('ReportBuilder')?.selector)}, not report-builder`)
+expect(
+  components.get('ReportBuilder')?.selector === 'report-builder',
+  `ReportBuilder's selector is ${String(components.get('ReportBuilder')?.selector)}, not report-builder`,
+)
 
 // "Each part is an attribute on the element it is, so the DOM has no wrapper
 // elements the React builder lacks": every part's selector is an element
@@ -161,7 +170,11 @@ async function serverDraw(root: Type<unknown>, serialized: () => void = () => un
   try {
     html = await renderApplication(
       (context: BootstrapContext) =>
-        bootstrapApplication(root, { providers: [provideServerRendering(), provideZonelessChangeDetection(), { provide: BEFORE_APP_SERIALIZED, multi: true, useValue: serialized }] }, context),
+        bootstrapApplication(
+          root,
+          { providers: [provideServerRendering(), provideZonelessChangeDetection(), { provide: BEFORE_APP_SERIALIZED, multi: true, useValue: serialized }] },
+          context,
+        ),
       { document: '<html><head></head><body><app-root></app-root></body></html>', url: '/' },
     )
   } finally {
@@ -175,7 +188,8 @@ async function serverDraw(root: Type<unknown>, serialized: () => void = () => un
   const hosts = page.filter((element) => element.tag === 'app-root')
   const builders = hosts.flatMap((host) => host.children).filter((child) => typeof child !== 'string' && child.tag === 'report-builder')
   const [drawnRoot] = builders
-  if (hosts.length !== 1 || builders.length !== 1 || drawnRoot === undefined || typeof drawnRoot === 'string') throw new Error('the page does not hold one <report-builder> in the host')
+  if (hosts.length !== 1 || builders.length !== 1 || drawnRoot === undefined || typeof drawnRoot === 'string')
+    throw new Error('the page does not hold one <report-builder> in the host')
   return drawnRoot
 }
 
@@ -202,7 +216,10 @@ invoicing.dispose()
 // listener would keep every editor a server ever drew.
 expect(editor.state() === state, 'drawing the builder changed the editor state')
 expect(drawn === listening + 1, `the editor had ${String(listening)} listeners before the page was drawn and ${String(drawn)} once it was, not one more`)
-expect(editor.listenerCount() === listening, `the editor had ${String(listening)} listeners before the page was drawn and ${String(editor.listenerCount())} after the application was destroyed`)
+expect(
+  editor.listenerCount() === listening,
+  `the editor had ${String(listening)} listeners before the page was drawn and ${String(editor.listenerCount())} after the application was destroyed`,
+)
 expect(!jit(), "Angular's JIT compiler was loaded, so a declaration the build did not link would have linked itself here and not in a host's build")
 
 editor.dispose()

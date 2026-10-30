@@ -61,7 +61,9 @@ describe('an XRechnung', () => {
   test('is a kind of its own, of a version this release writes', () => {
     expect(E_INVOICE_KINDS).toEqual(['facturX', 'xrechnung'])
     expect(XRECHNUNG_VERSIONS).toEqual(['3.0'])
-    expect(XRECHNUNG).toEqual({ '3.0': { guideline: 'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0', release: '3.0.2', syntax: 'cii' } })
+    expect(XRECHNUNG).toEqual({
+      '3.0': { guideline: 'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0', release: '3.0.2', syntax: 'cii' },
+    })
     expect(refusals(xrechnung({ '/version': '2.3' }))).toEqual([`not-one-of ${EI}/version`])
     expect(refusals(xrechnung({ '/version': 3 }))).toEqual([`not-one-of ${EI}/version`])
     expect(refusals(xrechnung({ '/version': undefined }))).toEqual([`missing-property ${EI}/version`])
@@ -137,7 +139,9 @@ describe('an XRechnung', () => {
       const document = xrechnung({ [pointer]: literal('  ') })
       expect(refusals(document), pointer).toEqual([`invalid-e-invoice ${EI}${pointer}`])
       expect(messages(document)[`${EI}${pointer}`]).toBe(message)
-      expect(messages(facturX({ [pointer]: literal('  ') }))[`${EI}${pointer}`], pointer).toMatch(/is blank: a term the e-invoice does not hold is left out of it$/)
+      expect(messages(facturX({ [pointer]: literal('  ') }))[`${EI}${pointer}`], pointer).toMatch(
+        /is blank: a term the e-invoice does not hold is left out of it$/,
+      )
     }
   })
 
@@ -156,7 +160,8 @@ describe('an XRechnung', () => {
       )
       expect(refusals(facturX({ '/terms': literal(text) })), JSON.stringify(text)).toEqual([])
     }
-    for (const text of ['Zahlbar binnen 14 Tagen. # 1', 'Rechnung Nr. #4711', ' #SKONTO#']) expect(refusals(xrechnung({ '/terms': literal(text) })), JSON.stringify(text)).toEqual([])
+    for (const text of ['Zahlbar binnen 14 Tagen. # 1', 'Rechnung Nr. #4711', ' #SKONTO#'])
+      expect(refusals(xrechnung({ '/terms': literal(text) })), JSON.stringify(text)).toEqual([])
   })
 
   // An electronic address under 0204 says it is a Leitweg-ID, which a
@@ -176,14 +181,18 @@ describe('an XRechnung', () => {
       expect(messages(wrong)[`${EI}/buyer/electronicAddress/id`]).toBe(
         "the buyer's electronic address (BT-49) is under 0204, a Leitweg-ID, and has check digits that do not match the rest of it (the Leitweg-ID's check digits, ISO/IEC 7064 MOD 97-10)",
       )
-      expect(refusals(document({ '/buyer/electronicAddress': leitweg('rechnung@bund.example') }))).toEqual([`invalid-e-invoice ${EI}/buyer/electronicAddress/id`])
+      expect(refusals(document({ '/buyer/electronicAddress': leitweg('rechnung@bund.example') }))).toEqual([
+        `invalid-e-invoice ${EI}/buyer/electronicAddress/id`,
+      ])
       // The same text under another scheme is no Leitweg-ID, and held to nothing of one.
       expect(refusals(document({ '/buyer/electronicAddress': { id: literal('991-33333TEST-34'), scheme: '0088' } }))).toEqual([])
     }
     expect(refusals(xrechnung({ '/buyerReference': literal('991-33333TEST-34') }))).toEqual([])
     expect(refusals(xrechnung({ '/buyerReference': literal('PO-4711') }))).toEqual([])
     // One read from data is the render's to check.
-    expect(refusals(xrechnung({ '/buyer/electronicAddress': { id: [{ kind: 'field', field: { dataset: 'header', field: 'customer' } }], scheme: '0204' } }))).toEqual([])
+    expect(
+      refusals(xrechnung({ '/buyer/electronicAddress': { id: [{ kind: 'field', field: { dataset: 'header', field: 'customer' } }], scheme: '0204' } })),
+    ).toEqual([])
   })
 
   // The title rule is the PDF/A's: PDFKit writes the title into a
@@ -214,6 +223,7 @@ describe('the rules an XRechnung is refused by', () => {
   test('are ids of the lists the gate reads', () => {
     expect(heard.length).toBeGreaterThan(15)
     const listed: readonly string[] = [...EN16931_RULES, ...XRECHNUNG_RULES]
-    for (const message of heard) for (const [id] of message.matchAll(/\b(?:BR-(?:[A-Z]+-)?\d+(?:-[a-z])?|PEPPOL-EN16931-R\d+)\b/g)) expect(listed, `${id} in "${message}"`).toContain(id)
+    for (const message of heard)
+      for (const [id] of message.matchAll(/\b(?:BR-(?:[A-Z]+-)?\d+(?:-[a-z])?|PEPPOL-EN16931-R\d+)\b/g)) expect(listed, `${id} in "${message}"`).toContain(id)
   })
 })

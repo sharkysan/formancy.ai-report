@@ -15,13 +15,22 @@ import { inputs, repo, site } from './test-site.js'
  * each of its cards rests on. The checks every page passes are
  * site.test.ts's.
  */
-const pagesOf = (group: string) => site.pages.filter((page) => page.group === group).map((page) => ({ ...page, document: new DOMParser().parseFromString(page.html, 'text/html') }))
+const pagesOf = (group: string) =>
+  site.pages.filter((page) => page.group === group).map((page) => ({ ...page, document: new DOMParser().parseFromString(page.html, 'text/html') }))
 
 /** Text with its whitespace collapsed, a no-break space a space, as the French pages set theirs. */
 const collapsed = (text: string | null | undefined): string => (text ?? '').replaceAll(/\s+/g, ' ').trim()
 
 /** The euro invoice's pictures, in the order the page shows them after its own language's: the German starter, then the samples from Austria, France, Italy, Spain, the Netherlands and Ireland. */
-const SAMPLES = ['starter-euro-invoice.png', 'euro-invoice-at.png', 'euro-invoice-fr.png', 'euro-invoice-it.png', 'euro-invoice-es.png', 'euro-invoice-nl.png', 'euro-invoice-ie.png']
+const SAMPLES = [
+  'starter-euro-invoice.png',
+  'euro-invoice-at.png',
+  'euro-invoice-fr.png',
+  'euro-invoice-it.png',
+  'euro-invoice-es.png',
+  'euro-invoice-nl.png',
+  'euro-invoice-ie.png',
+]
 
 /** The sample each language's page leads with and is shared with: German's is the starter, English's the Irish sample, the one in English. */
 const OWN = { de: 'starter-euro-invoice.png', fr: 'euro-invoice-fr.png', it: 'euro-invoice-it.png', en: 'euro-invoice-ie.png' } as const
@@ -36,8 +45,12 @@ describe('the EPC QR code page (0028)', () => {
   test('refuses to render once the changelog names a release its status was not written against, naming each sentence that says it', () => {
     expect(inputs.release.version).toBe(EPC_QR_CODE_STATUS.release)
     const released = { ...inputs, release: { ...inputs.release, version: '0.3.0', anchor: '030--2026-11-02' } }
-    expect(() => renderSite(released)).toThrow(/the EPC QR code page's status was written when 0\.2\.0 was the newest release, and CHANGELOG\.md now names 0\.3\.0/)
-    expect(() => renderSite(released)).toThrow(/epc-qr-code-copy\.tsx that says where it stands -- `standing`, which the hero and the product page's teaser say, `tryIt\.text` and `status\.text` -- then change EPC_QR_CODE_STATUS with them/)
+    expect(() => renderSite(released)).toThrow(
+      /the EPC QR code page's status was written when 0\.2\.0 was the newest release, and CHANGELOG\.md now names 0\.3\.0/,
+    )
+    expect(() => renderSite(released)).toThrow(
+      /epc-qr-code-copy\.tsx that says where it stands -- `standing`, which the hero and the product page's teaser say, `tryIt\.text` and `status\.text` -- then change EPC_QR_CODE_STATUS with them/,
+    )
   })
 
   // The hero and the product page's teaser are where a reader decides to
@@ -49,12 +62,21 @@ describe('the EPC QR code page (0028)', () => {
     for (const language of LANGUAGES) expect([language, collapsed(EPC_QR_CODE_COPY[language].standing).split(' ').length >= 4]).toEqual([language, true])
     for (const page of pagesOf('epc-qr-code')) {
       const { standing } = EPC_QR_CODE_COPY[page.language]
-      expect([page.language, collapsed(page.document.querySelector('section.hero')?.textContent)]).toEqual([page.language, expect.stringContaining(collapsed(standing))])
-      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="try"] p')?.textContent)]).toEqual([page.language, expect.stringContaining(inputs.release.version)])
+      expect([page.language, collapsed(page.document.querySelector('section.hero')?.textContent)]).toEqual([
+        page.language,
+        expect.stringContaining(collapsed(standing)),
+      ])
+      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="try"] p')?.textContent)]).toEqual([
+        page.language,
+        expect.stringContaining(inputs.release.version),
+      ])
     }
     for (const page of pagesOf('product')) {
       const { standing } = EPC_QR_CODE_COPY[page.language]
-      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="topic-epc-qr-code"]')?.textContent)]).toEqual([page.language, expect.stringContaining(collapsed(standing))])
+      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="topic-epc-qr-code"]')?.textContent)]).toEqual([
+        page.language,
+        expect.stringContaining(collapsed(standing)),
+      ])
     }
   })
 
@@ -85,7 +107,10 @@ describe('the EPC QR code page (0028)', () => {
   // would show an Italian reader's contacts a Rechnung.
   test("is shared with its own language's sample's picture", () => {
     for (const page of pagesOf('epc-qr-code')) {
-      expect([page.language, page.document.querySelector('meta[property="og:image"]')?.getAttribute('content')]).toEqual([page.language, `${inputs.site}site/${OWN[page.language]}`])
+      expect([page.language, page.document.querySelector('meta[property="og:image"]')?.getAttribute('content')]).toEqual([
+        page.language,
+        `${inputs.site}site/${OWN[page.language]}`,
+      ])
     }
   })
 
@@ -97,7 +122,11 @@ describe('the EPC QR code page (0028)', () => {
   test('opens the Studio at its root, naming the starter to choose there and the code in its palette', () => {
     for (const page of pagesOf('epc-qr-code')) {
       const action = page.document.querySelector('section.hero a.action')
-      expect([page.language, new URL(action?.getAttribute('href') ?? '', page.url).href, collapsed(action?.textContent).includes('Euro invoice')]).toEqual([page.language, inputs.site, true])
+      expect([page.language, new URL(action?.getAttribute('href') ?? '', page.url).href, collapsed(action?.textContent).includes('Euro invoice')]).toEqual([
+        page.language,
+        inputs.site,
+        true,
+      ])
       const tried = collapsed(page.document.querySelector('section[aria-labelledby="try"] p')?.textContent)
       expect([page.language, tried.includes('Euro invoice'), tried.includes('EPC payment code')]).toEqual([page.language, true, true])
     }
@@ -114,7 +143,9 @@ describe('the EPC QR code page (0028)', () => {
       ['qr-bill', 'epc-qr-code'],
     ] as const) {
       for (const page of pagesOf(from)) {
-        const linked = [...page.document.querySelectorAll('section[aria-labelledby="limits"] a[href]')].map((link) => new URL(link.getAttribute('href') ?? '', page.url).href)
+        const linked = [...page.document.querySelectorAll('section[aria-labelledby="limits"] a[href]')].map(
+          (link) => new URL(link.getAttribute('href') ?? '', page.url).href,
+        )
         expect({ from, language: page.language, linked }).toEqual({ from, language: page.language, linked: [urlOf(to, page.language)] })
       }
     }
@@ -149,7 +180,12 @@ describe('the EPC QR code page (0028)', () => {
   test('links, from its samples, the record that cites where their rates and registers were read', () => {
     for (const page of pagesOf('epc-qr-code')) {
       const linked = [...page.document.querySelectorAll('section[aria-labelledby="samples"] a[href]')].map((link) => link.getAttribute('href'))
-      expect({ language: page.language, linked }).toEqual({ language: page.language, linked: [expect.stringMatching(/\/docs\/decisions\/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them\.md$/)] })
+      expect({ language: page.language, linked }).toEqual({
+        language: page.language,
+        linked: [
+          expect.stringMatching(/\/docs\/decisions\/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them\.md$/),
+        ],
+      })
     }
   })
 })

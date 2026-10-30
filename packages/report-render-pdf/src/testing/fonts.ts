@@ -23,7 +23,9 @@ const fromPdfkit = createRequire(fromPdfmake.resolve('pdfkit'))
 
 export const LIBERATION_REGULAR = new Uint8Array(readFileSync(fonts('LiberationSans-Regular.ttf')))
 export const LIBERATION_BOLD = new Uint8Array(readFileSync(fonts('LiberationSans-Bold.ttf')))
-export const ROBOTO_REGULAR = new Uint8Array(readFileSync(path.join(path.dirname(own.resolve('pdfmake/package.json')), 'fonts', 'Roboto', 'Roboto-Regular.ttf')))
+export const ROBOTO_REGULAR = new Uint8Array(
+  readFileSync(path.join(path.dirname(own.resolve('pdfmake/package.json')), 'fonts', 'Roboto', 'Roboto-Regular.ttf')),
+)
 
 /** Where fontkit's CommonJS build is, as PDFKit requires it: what a worker requires to lay text out as a render does. */
 export const FONTKIT = fromPdfkit.resolve('fontkit')
@@ -74,7 +76,10 @@ export function withTable(bytes: Uint8Array, from: string, to: string, data: Uin
   out.set(data, at)
   const { record } = tableOf(out, from)
   const view = new DataView(out.buffer)
-  out.set([...to].map((character) => character.charCodeAt(0)), record)
+  out.set(
+    [...to].map((character) => character.charCodeAt(0)),
+    record,
+  )
   view.setUint32(record + 8, at)
   view.setUint32(record + 12, data.length)
   return out
@@ -111,10 +116,18 @@ function postScriptRecords(bytes: Uint8Array): { readonly record: number; readon
 }
 
 /** `name` as a record of `platform` holds it: Mac Roman on the Macintosh platform, UTF-16 on the others. */
-const encodedName = (name: string, platform: number): number[] => (platform === 1 ? [...name].map((character) => character.charCodeAt(0)) : [...name].flatMap((character) => u16(character.charCodeAt(0))))
+const encodedName = (name: string, platform: number): number[] =>
+  platform === 1 ? [...name].map((character) => character.charCodeAt(0)) : [...name].flatMap((character) => u16(character.charCodeAt(0)))
 
 /** `out`'s record of name ID 6 `found` set to `platform`, `encoding` and `language`, holding `name` where its string was, which it must fit. */
-function setPostScriptRecord(out: Uint8Array, found: { readonly record: number; readonly at: number; readonly length: number }, platform: number, encoding: number, language: number, name: string): void {
+function setPostScriptRecord(
+  out: Uint8Array,
+  found: { readonly record: number; readonly at: number; readonly length: number },
+  platform: number,
+  encoding: number,
+  language: number,
+  name: string,
+): void {
   const encoded = encodedName(name, platform)
   if (encoded.length > found.length) throw new Error(`the name ${name} is longer than the record it replaces`)
   const view = new DataView(out.buffer, out.byteOffset, out.byteLength)
@@ -134,7 +147,8 @@ function setPostScriptRecord(out: Uint8Array, found: { readonly record: number; 
 export function named(bytes: Uint8Array, name: string): Uint8Array {
   const out = Uint8Array.from(bytes)
   const view = new DataView(out.buffer)
-  for (const found of postScriptRecords(out)) setPostScriptRecord(out, found, view.getUint16(found.record), view.getUint16(found.record + 2), view.getUint16(found.record + 4), name)
+  for (const found of postScriptRecords(out))
+    setPostScriptRecord(out, found, view.getUint16(found.record), view.getUint16(found.record + 2), view.getUint16(found.record + 4), name)
   return out
 }
 
@@ -165,7 +179,10 @@ export function withEms(bytes: Uint8Array, ems: number): Uint8Array {
 /** `bytes` with the record tagged `from` tagged `to`, so a reader finds a table of the new kind where the old one is. */
 export function retag(bytes: Uint8Array, from: string, to: string): Uint8Array {
   const out = Uint8Array.from(bytes)
-  out.set([...to].map((character) => character.charCodeAt(0)), tableOf(out, from).record)
+  out.set(
+    [...to].map((character) => character.charCodeAt(0)),
+    tableOf(out, from).record,
+  )
   return out
 }
 
@@ -186,19 +203,38 @@ export function withCharacters(bytes: Uint8Array, text: string): Uint8Array {
  */
 export const NEVER_ADVANCING_MORX = Uint8Array.from([
   // The header: version 2, one chain.
-  ...u16(2), ...u16(0), ...u32(1),
+  ...u16(2),
+  ...u16(0),
+  ...u32(1),
   // The chain: its default flags and length, no features, one subtable.
-  ...u32(1), ...u32(16 + 46), ...u32(0), ...u32(1),
+  ...u32(1),
+  ...u32(16 + 46),
+  ...u32(0),
+  ...u32(1),
   // The subtable: its length, coverage and type 0 (rearrangement), its feature flags.
-  ...u32(46), 0, 0, 0, 0, ...u32(1),
+  ...u32(46),
+  0,
+  0,
+  0,
+  0,
+  ...u32(1),
   // Its state header: four classes, and where the class table, the state array and the entries are.
-  ...u32(4), ...u32(16), ...u32(22), ...u32(30),
+  ...u32(4),
+  ...u32(16),
+  ...u32(22),
+  ...u32(30),
   // A class table of no glyphs, every glyph out of bounds.
-  ...u16(8), ...u16(0), ...u16(0),
+  ...u16(8),
+  ...u16(0),
+  ...u16(0),
   // State 0: every class to entry 0.
-  ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+  ...u16(0),
+  ...u16(0),
+  ...u16(0),
+  ...u16(0),
   // Entry 0: to state 0, and DONT_ADVANCE.
-  ...u16(0), ...u16(0x4000),
+  ...u16(0),
+  ...u16(0x4000),
 ])
 
 /**
@@ -209,13 +245,47 @@ export const NEVER_ADVANCING_MORX = Uint8Array.from([
  */
 export const THROWING_GSUB = Uint8Array.from([
   // The header: version 1.0, and where the script, feature and lookup lists are.
-  ...u16(1), ...u16(0), ...u16(10), ...u16(30), ...u16(44),
+  ...u16(1),
+  ...u16(0),
+  ...u16(10),
+  ...u16(30),
+  ...u16(44),
   // One script, DFLT, whose default language system uses feature 0.
-  ...u16(1), 0x44, 0x46, 0x4c, 0x54, ...u16(8), ...u16(4), ...u16(0), ...u16(0), ...u16(0xffff), ...u16(1), ...u16(0),
+  ...u16(1),
+  0x44,
+  0x46,
+  0x4c,
+  0x54,
+  ...u16(8),
+  ...u16(4),
+  ...u16(0),
+  ...u16(0),
+  ...u16(0xffff),
+  ...u16(1),
+  ...u16(0),
   // One feature, ccmp, of lookup 0.
-  ...u16(1), 0x63, 0x63, 0x6d, 0x70, ...u16(8), ...u16(0), ...u16(1), ...u16(0),
+  ...u16(1),
+  0x63,
+  0x63,
+  0x6d,
+  0x70,
+  ...u16(8),
+  ...u16(0),
+  ...u16(1),
+  ...u16(0),
   // One lookup, of type 10, with one subtable.
-  ...u16(1), ...u16(4), ...u16(10), ...u16(0), ...u16(1), ...u16(8), ...u16(1), ...u16(6), ...u16(0), ...u16(1), ...u16(0), ...u16(0),
+  ...u16(1),
+  ...u16(4),
+  ...u16(10),
+  ...u16(0),
+  ...u16(1),
+  ...u16(8),
+  ...u16(1),
+  ...u16(6),
+  ...u16(0),
+  ...u16(1),
+  ...u16(0),
+  ...u16(0),
 ])
 
 /**

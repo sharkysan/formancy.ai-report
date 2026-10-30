@@ -27,15 +27,23 @@ describe('the starters', () => {
   // example QR-IBAN, which no creditor holds, by design (0022), and the
   // editor says so of every bill that pays one of SIX's examples, once,
   // until it pays another (0039).
-  test.each(STARTERS.map((starter) => [starter.id, starter] as const))('%s opens with no warning in the problems pane but that its bill pays SIX’s example', (_id, starter) => {
-    const expected = starter.report.paymentPart === undefined ? [] : ['warning example-payment-part /paymentPart']
-    expect(diagnose(starter.report).map((diagnostic) => `${diagnostic.severity} ${diagnostic.code} ${diagnostic.path}`)).toEqual(expected)
-  })
+  test.each(STARTERS.map((starter) => [starter.id, starter] as const))(
+    '%s opens with no warning in the problems pane but that its bill pays SIX’s example',
+    (_id, starter) => {
+      const expected = starter.report.paymentPart === undefined ? [] : ['warning example-payment-part /paymentPart']
+      expect(diagnose(starter.report).map((diagnostic) => `${diagnostic.severity} ${diagnostic.code} ${diagnostic.path}`)).toEqual(expected)
+    },
+  )
 
   // Each starter's own data renders in a final render, with nothing a
   // preview would have to warn of: the starter and its data agree.
   test.each(STARTERS.map((starter) => [starter.id, starter] as const))('%s resolves its own data in a final render', (_id, starter) => {
-    const outcome = resolveReport(starter.report, starter.data, { mode: 'final', parameters: starter.parameters, images: starterImages, creationDate: '2026-10-15T08:00:00Z' })
+    const outcome = resolveReport(starter.report, starter.data, {
+      mode: 'final',
+      parameters: starter.parameters,
+      images: starterImages,
+      creationDate: '2026-10-15T08:00:00Z',
+    })
     expect(outcome.ok ? outcome.warnings : outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`)).toEqual([])
   })
 
@@ -80,7 +88,13 @@ describe("the starters' data", () => {
   // would make '-49.-99' of it, so it is refused instead.
   test('computes a line amount, and refuses input it would get wrong', () => {
     expect([lineAmount('3.75', '128.00'), lineAmount('12.50', '4.35'), lineAmount('7.25', '1.85')]).toEqual(['480.00', '54.38', '13.41'])
-    for (const [quantity, price] of [['1.00', '-50.00'], ['1.00', '-0.25'], ['1.5', '2.00'], ['1', '2.00']]) expect(() => lineAmount(quantity as string, price as string)).toThrow(RangeError)
+    for (const [quantity, price] of [
+      ['1.00', '-50.00'],
+      ['1.00', '-0.25'],
+      ['1.5', '2.00'],
+      ['1', '2.00'],
+    ])
+      expect(() => lineAmount(quantity as string, price as string)).toThrow(RangeError)
   })
 })
 
@@ -114,11 +128,14 @@ describe('the invoice', () => {
     expect(bill?.reference).toBe('21 00000 00003 13947 14300 09017')
     // Another invoice's reference -- SIX's fifth example's -- is that invoice's.
     const data = invoiceData()
-    const other = resolveReport(INVOICE.report, { ...data, header: { ...data.header, reference: '000008207791225857421286694' } }, { mode: 'final', parameters: {}, images: starterImages, creationDate: '2026-10-15T08:00:00Z' })
+    const other = resolveReport(
+      INVOICE.report,
+      { ...data, header: { ...data.header, reference: '000008207791225857421286694' } },
+      { mode: 'final', parameters: {}, images: starterImages, creationDate: '2026-10-15T08:00:00Z' },
+    )
     expect(other.ok ? other.document.paymentPart?.reference : other.errors).toBe('00 00082 07791 22585 74212 86694')
   })
 })
-
 
 describe('the euro invoice', () => {
   /** `numerator / denominator`, both positive, rounded half away from zero to a whole number. */
@@ -146,7 +163,20 @@ describe('the euro invoice', () => {
     const net = euroInvoiceLines().reduce((sum, line) => sum + cents(line.amount as string), 0n)
     const total = net + halfAway(net * 19n, 100n)
     expect(resolved().map((code) => code.payload.split('\n'))).toEqual([
-      ['BCD', '001', '1', 'SCT', 'FMNCDEF0XXX', 'Formancy Haustechnik GmbH', 'DE83012345670012345678', epcAmount(total), '', 'RF7220260815', '', 'Rechnung RE-2026-0815'],
+      [
+        'BCD',
+        '001',
+        '1',
+        'SCT',
+        'FMNCDEF0XXX',
+        'Formancy Haustechnik GmbH',
+        'DE83012345670012345678',
+        epcAmount(total),
+        '',
+        'RF7220260815',
+        '',
+        'Rechnung RE-2026-0815',
+      ],
     ])
     // Another invoice's reference -- the EPC's own sample's -- and number are that invoice's.
     const data = euroInvoiceData()

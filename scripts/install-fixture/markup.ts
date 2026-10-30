@@ -62,7 +62,11 @@ export function readMarkup(html: string): MarkupElement {
     } else if (tag !== undefined) {
       // A browser reads `<div/>` as an open <div>: neither writer writes one, and reading it as empty would be reading it wrong.
       if (selfClosing === '/' && !VOID.has(tag)) throw new Error(`<${tag}/> at ${String(at)} closes an element that has content`)
-      const element: Building = { tag, attributes: new Map([...attributes.matchAll(ATTRIBUTE)].map(([, name = '', value = '']) => [name, unescape(value, at)])), children: [] }
+      const element: Building = {
+        tag,
+        attributes: new Map([...attributes.matchAll(ATTRIBUTE)].map(([, name = '', value = '']) => [name, unescape(value, at)])),
+        children: [],
+      }
       parent.children.push(element)
       if (!VOID.has(tag)) open.push(element)
     }

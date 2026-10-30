@@ -30,7 +30,13 @@ export function ImageLibrary({ state, t, ids, remove }: ImageLibraryProps): Reac
         return (
           <div key={image.id} data-report-part="property">
             <span>{image.label}</span>
-            <button type="button" aria-label={image.removeLabel} aria-disabled={image.inUse === undefined ? undefined : true} aria-describedby={image.inUse === undefined ? undefined : why} onClick={() => remove(image.id)}>
+            <button
+              type="button"
+              aria-label={image.removeLabel}
+              aria-disabled={image.inUse === undefined ? undefined : true}
+              aria-describedby={image.inUse === undefined ? undefined : why}
+              onClick={() => remove(image.id)}
+            >
               {t('images.remove')}
               {image.inUse === undefined ? null : (
                 <span id={why} hidden>

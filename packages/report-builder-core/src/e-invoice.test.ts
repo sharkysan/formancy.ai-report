@@ -75,7 +75,10 @@ describe('a report with an e-invoice, in the editor', () => {
       ['fr-CH', 'Section paiement', 'Facture électronique'],
     ] as const) {
       const { editor } = editorOver(invoicedScenarioReport(), { locale })
-      expect(editor.state().outlineParts.map((row) => [row.part, row.label]), locale).toEqual([
+      expect(
+        editor.state().outlineParts.map((row) => [row.part, row.label]),
+        locale,
+      ).toEqual([
         ['paymentPart', part],
         ['eInvoice', invoice],
       ])
@@ -85,7 +88,11 @@ describe('a report with an e-invoice, in the editor', () => {
       expect(editor.state().selection, locale).toEqual({ part: 'paymentPart' })
     }
     // A report without a bill has the e-invoice's row alone, and none without an e-invoice.
-    expect(editorOver(eInvoiceReport()).editor.state().outlineParts.map((row) => row.part)).toEqual(['eInvoice'])
+    expect(
+      editorOver(eInvoiceReport())
+        .editor.state()
+        .outlineParts.map((row) => row.part),
+    ).toEqual(['eInvoice'])
     expect(editorOver(richReport()).editor.state().outlineParts).toEqual([])
   })
 
@@ -105,7 +112,11 @@ describe('a report with an e-invoice, in the editor', () => {
     const { editor, session } = selectedInvoice()
     expect(editor.state().can).toMatchObject({ delete: true, duplicate: false, moveUp: false, moveDown: false, indent: false, outdent: false, moveTo: false })
     for (const type of ['moveUp', 'moveDown', 'indent', 'outdent', 'duplicate'] as const) {
-      expect(editor.dispatch({ type }), type).toMatchObject({ ok: false, code: 'at-edge', message: 'E-invoice prints nothing of its own and is written as its XML: it is not moved or copied.' })
+      expect(editor.dispatch({ type }), type).toMatchObject({
+        ok: false,
+        code: 'at-edge',
+        message: 'E-invoice prints nothing of its own and is written as its XML: it is not moved or copied.',
+      })
     }
     expect(session.revision()).toBe(0)
   })
@@ -137,7 +148,9 @@ describe('a report with an e-invoice, in the editor', () => {
     const report = invoicedScenarioReport()
     const broken = { ...report, eInvoice: { ...invoiceOf(report), issued: { cel: 'header.missing' } } }
     const { editor } = editorOver(broken)
-    const entry = editor.state().diagnostics.find((candidate) => candidate.target !== null && 'part' in candidate.target && candidate.target.part === 'eInvoice')
+    const entry = editor
+      .state()
+      .diagnostics.find((candidate) => candidate.target !== null && 'part' in candidate.target && candidate.target.part === 'eInvoice')
     expect(entry).toMatchObject({ severity: 'error', where: 'E-invoice', label: 'Error: E-invoice' })
     expect(editor.state().outlineParts.find((row) => row.part === 'eInvoice')).toMatchObject({ problems: 1, severity: 'error' })
     ok(editor.dispatch({ type: 'select', part: 'eInvoice' }))
@@ -156,7 +169,10 @@ describe('the e-invoice’s properties', () => {
     ok(set(opened, 'VAT category 2: rate in per cent', '7.00'))
     expect(opened.editor.state().history.undoLabel).toBe('Change VAT category 2: rate in per cent')
     expect(opened.editor.state().status.text).toBe('Changed VAT category 2: rate in per cent.')
-    expect([text(invoiceOf(opened.session.document()).buyer.name), invoiceOf(opened.session.document()).vat[1]?.rate]).toEqual(['Gasthaus Zur Linde GmbH', '7.00'])
+    expect([text(invoiceOf(opened.session.document()).buyer.name), invoiceOf(opened.session.document()).vat[1]?.rate]).toEqual([
+      'Gasthaus Zur Linde GmbH',
+      '7.00',
+    ])
     ok(opened.editor.dispatch({ type: 'undo' }))
     ok(opened.editor.dispatch({ type: 'undo' }))
     expect(opened.session.document().eInvoice).toBe(before)
@@ -236,7 +252,11 @@ describe('the e-invoice’s properties', () => {
   test('add and remove the seller’s contact, and the payment instructions where nothing pays them', () => {
     const opened = selectedInvoice()
     ok(opened.editor.dispatch({ type: 'addGroup', key: '/seller/contact' }))
-    expect(invoiceOf(opened.session.document()).seller.contact).toEqual({ name: said('Name of the contact'), telephone: said('+49 221 4710 000'), email: said('contact@example.com') })
+    expect(invoiceOf(opened.session.document()).seller.contact).toEqual({
+      name: said('Name of the contact'),
+      telephone: said('+49 221 4710 000'),
+      email: said('contact@example.com'),
+    })
     expect(opened.editor.state().history.undoLabel).toBe('Add contact')
     expect(opened.editor.state().status.text).toBe('Added Seller’s contact.')
     ok(opened.editor.dispatch({ type: 'removeGroup', key: '/seller/contact' }))
@@ -271,7 +291,10 @@ describe('the e-invoice’s properties', () => {
 
 describe('the e-invoice’s VAT categories', () => {
   /** The categories' ids and rates, in order. */
-  const listed = (report: ReportDefinition): string => invoiceOf(report).vat.map((category) => `${category.id} ${category.code} ${category.rate}`).join(', ')
+  const listed = (report: ReportDefinition): string =>
+    invoiceOf(report)
+      .vat.map((category) => `${category.id} ${category.code} ${category.rate}`)
+      .join(', ')
 
   // Add puts a category of a breakdown the invoice lacks at the end,
   // under a fresh identifier; a move and a removal are one step each, each
@@ -302,10 +325,19 @@ describe('the e-invoice’s VAT categories', () => {
     const opened = selectedInvoice({
       ...report,
       locale: 'de-DE',
-      eInvoice: { ...invoice, buyer: { ...invoice.buyer, vatId: said('ATU12345678') }, vat: [...invoice.vat, { id: 'exempt', code: 'E', rate: '0', reason: said('Steuerfrei nach § 4 Nr. 8 Buchst. a UStG') }] },
+      eInvoice: {
+        ...invoice,
+        buyer: { ...invoice.buyer, vatId: said('ATU12345678') },
+        vat: [...invoice.vat, { id: 'exempt', code: 'E', rate: '0', reason: said('Steuerfrei nach § 4 Nr. 8 Buchst. a UStG') }],
+      },
     })
     ok(opened.editor.dispatch({ type: 'addItem', key: '/vat' }))
-    expect(invoiceOf(opened.session.document()).vat[3]).toEqual({ id: 'category4', code: 'AE', rate: '0', reason: said('Steuerschuldnerschaft des Leistungsempfängers') })
+    expect(invoiceOf(opened.session.document()).vat[3]).toEqual({
+      id: 'category4',
+      code: 'AE',
+      rate: '0',
+      reason: said('Steuerschuldnerschaft des Leistungsempfängers'),
+    })
   })
 
   // An invoice that holds each breakdown Add VAT category could add --
@@ -321,7 +353,11 @@ describe('the e-invoice’s VAT categories', () => {
       eInvoice: {
         ...invoice,
         buyer: { ...invoice.buyer, vatId: said('ATU12345678') },
-        vat: [...invoice.vat, { id: 'exempt', code: 'E', rate: '0', reason: said('Steuerfrei') }, { id: 'reverse', code: 'AE', rate: '0', reason: said('Reverse charge') }],
+        vat: [
+          ...invoice.vat,
+          { id: 'exempt', code: 'E', rate: '0', reason: said('Steuerfrei') },
+          { id: 'reverse', code: 'AE', rate: '0', reason: said('Reverse charge') },
+        ],
       },
     } as ReportDefinition
     const opened = selectedInvoice(full)
@@ -342,9 +378,18 @@ describe('the e-invoice’s VAT categories', () => {
   test('refuse a move past either end, a key that names nothing, and the last one taken away', () => {
     const opened = selectedInvoice()
     const before = opened.session.document()
-    expect(opened.editor.dispatch({ type: 'moveItem', key: '/vat/0', to: -1 })).toMatchObject({ ok: false, code: 'at-edge', message: 'VAT category 1 is already first.' })
-    expect(opened.editor.dispatch({ type: 'moveItem', key: '/vat/1', to: 2 })).toMatchObject({ ok: false, code: 'at-edge', message: 'VAT category 2 is already last.' })
-    for (const key of ['/vat/2', '/vat/x', '/vat/01', '/lines/0', '/nowhere']) expect(opened.editor.dispatch({ type: 'removeItem', key }), key).toMatchObject({ ok: false, code: 'not-found' })
+    expect(opened.editor.dispatch({ type: 'moveItem', key: '/vat/0', to: -1 })).toMatchObject({
+      ok: false,
+      code: 'at-edge',
+      message: 'VAT category 1 is already first.',
+    })
+    expect(opened.editor.dispatch({ type: 'moveItem', key: '/vat/1', to: 2 })).toMatchObject({
+      ok: false,
+      code: 'at-edge',
+      message: 'VAT category 2 is already last.',
+    })
+    for (const key of ['/vat/2', '/vat/x', '/vat/01', '/lines/0', '/nowhere'])
+      expect(opened.editor.dispatch({ type: 'removeItem', key }), key).toMatchObject({ ok: false, code: 'not-found' })
     expect(opened.editor.dispatch({ type: 'moveItem', key: '/vat/1', to: 1 })).toMatchObject({ ok: false, code: 'at-edge', message: 'Nothing was moved.' })
     expect(opened.editor.dispatch({ type: 'addItem', key: '/seller' })).toMatchObject({ ok: false, code: 'not-found' })
     ok(opened.editor.dispatch({ type: 'removeItem', key: '/vat/1' }))
@@ -369,12 +414,18 @@ describe('the account the e-invoice shares with its payment codes', () => {
     const before = opened.session.document()
     ok(set(opened, 'IBAN', 'CH56 0483 5012 3456 7800 9'))
     const after = opened.session.document()
-    expect([text(invoiceOf(after).payment?.iban), text(after.paymentPart?.account), ...codeAccounts(after)]).toEqual(Array(3).fill('CH56 0483 5012 3456 7800 9'))
+    expect([text(invoiceOf(after).payment?.iban), text(after.paymentPart?.account), ...codeAccounts(after)]).toEqual(
+      Array(3).fill('CH56 0483 5012 3456 7800 9'),
+    )
     expect(opened.editor.state().history.undoLabel).toBe('Change IBAN')
     expect(opened.editor.state().status.text).toBe('Changed IBAN. The e-invoice and every payment code printed with it pay the account typed.')
     expect(opened.session.revision()).toBe(1)
     ok(opened.editor.dispatch({ type: 'undo' }))
-    expect([opened.session.document().eInvoice, opened.session.document().paymentPart, opened.session.document().regions]).toEqual([before.eInvoice, before.paymentPart, before.regions])
+    expect([opened.session.document().eInvoice, opened.session.document().paymentPart, opened.session.document().regions]).toEqual([
+      before.eInvoice,
+      before.paymentPart,
+      before.regions,
+    ])
   })
 
   // An account one place cannot take is refused on the field typed into,
@@ -386,7 +437,10 @@ describe('the account the e-invoice shares with its payment codes', () => {
     const opened = editorOver(invoicedScenarioReport(), { locale })
     ok(opened.editor.dispatch({ type: 'select', part: 'paymentPart' }))
     const before = opened.session.document()
-    expect(opened.editor.dispatch({ type: 'setProperty', key: '/account/0/text', value: 'DE89 3704 0044 0532 0130 00' })).toMatchObject({ ok: false, code: 'refused' })
+    expect(opened.editor.dispatch({ type: 'setProperty', key: '/account/0/text', value: 'DE89 3704 0044 0532 0130 00' })).toMatchObject({
+      ok: false,
+      code: 'refused',
+    })
     const error = opened.editor.state().properties.fields.find((candidate) => candidate.key === '/account/0/text')?.error
     expect(error).toMatch(/Switzerland or Liechtenstein/)
     expect(error).not.toMatch(/BIC/)
@@ -415,8 +469,24 @@ describe('the account the e-invoice shares with its payment codes', () => {
     const report = invoicedScenarioReport()
     const bound = {
       ...report,
-      datasets: { ...report.datasets, header: { id: 'visit', fields: [{ id: 'account', type: 'string' as const, label: 'Account', nullable: false }, { id: 'other', type: 'string' as const, label: 'Other account', nullable: false }] } },
-      regions: { ...report.regions, summary: report.regions.summary.map((component) => (component.kind === 'epcQrCode' ? { ...component, iban: [{ kind: 'field' as const, field: { dataset: 'header' as const, field: 'account' } }] } : component)) },
+      datasets: {
+        ...report.datasets,
+        header: {
+          id: 'visit',
+          fields: [
+            { id: 'account', type: 'string' as const, label: 'Account', nullable: false },
+            { id: 'other', type: 'string' as const, label: 'Other account', nullable: false },
+          ],
+        },
+      },
+      regions: {
+        ...report.regions,
+        summary: report.regions.summary.map((component) =>
+          component.kind === 'epcQrCode'
+            ? { ...component, iban: [{ kind: 'field' as const, field: { dataset: 'header' as const, field: 'account' } }] }
+            : component,
+        ),
+      },
     }
     const opened = editorOver(bound)
     ok(opened.editor.dispatch({ type: 'select', id: 'pay-code' }))
@@ -438,7 +508,10 @@ describe('the account the e-invoice shares with its payment codes', () => {
     const bound: ReportDefinition = {
       ...report,
       datasets: { ...report.datasets, header: { id: 'visit', fields: [{ id: 'account', type: 'string', label: 'Account', nullable: false }] } },
-      eInvoice: { ...invoice, payment: { ...(invoice.payment as NonNullable<FacturXInvoice['payment']>), iban: [{ kind: 'field', field: { dataset: 'header', field: 'account' } }] } },
+      eInvoice: {
+        ...invoice,
+        payment: { ...(invoice.payment as NonNullable<FacturXInvoice['payment']>), iban: [{ kind: 'field', field: { dataset: 'header', field: 'account' } }] },
+      },
     }
     const opened = editorOver(bound)
     ok(opened.editor.dispatch({ type: 'select', id: 'pay-code' }))
@@ -462,7 +535,14 @@ describe('the account the e-invoice shares with its payment codes', () => {
     const bound: ReportDefinition = {
       ...report,
       datasets: { ...report.datasets, header: { id: 'visit', fields: [{ id: 'account', type: 'string', label: 'Account', nullable: false }] } },
-      regions: { ...report.regions, summary: report.regions.summary.map((component) => (component.kind === 'epcQrCode' ? { ...component, iban: [{ kind: 'field' as const, field: { dataset: 'header' as const, field: 'account' } }] } : component)) },
+      regions: {
+        ...report.regions,
+        summary: report.regions.summary.map((component) =>
+          component.kind === 'epcQrCode'
+            ? { ...component, iban: [{ kind: 'field' as const, field: { dataset: 'header' as const, field: 'account' } }] }
+            : component,
+        ),
+      },
     }
     const opened = selectedInvoice(bound)
     const before = opened.session.document()
@@ -481,7 +561,14 @@ describe('the account the e-invoice shares with its payment codes', () => {
     const bound: ReportDefinition = {
       ...report,
       datasets: { ...report.datasets, header: { id: 'visit', fields: [{ id: 'account', type: 'string', label: 'Account', nullable: false }] } },
-      regions: { ...report.regions, summary: report.regions.summary.map((component) => (component.kind === 'epcQrCode' ? { ...component, iban: [{ kind: 'field' as const, field: { dataset: 'header' as const, field: 'account' } }] } : component)) },
+      regions: {
+        ...report.regions,
+        summary: report.regions.summary.map((component) =>
+          component.kind === 'epcQrCode'
+            ? { ...component, iban: [{ kind: 'field' as const, field: { dataset: 'header' as const, field: 'account' } }] }
+            : component,
+        ),
+      },
     }
     const opened = selectedInvoice(bound)
     const before = opened.session.document()
@@ -528,7 +615,10 @@ describe('a payment code added to a report with an e-invoice', () => {
   // to add first, as it says an image needs an image.
   test('is unavailable where the e-invoice names no account, saying what to add first', () => {
     const { editor } = editorOver(eInvoiceReport())
-    expect(editor.state().palette.find((candidate) => candidate.kind === 'epcQrCode')).toMatchObject({ component: null, unavailable: 'Add the e-invoice’s payment instructions first: a payment code printed with it is paid to their account.' })
+    expect(editor.state().palette.find((candidate) => candidate.kind === 'epcQrCode')).toMatchObject({
+      component: null,
+      unavailable: 'Add the e-invoice’s payment instructions first: a payment code printed with it is paid to their account.',
+    })
     expect(editor.dispatch({ type: 'insert', kind: 'epcQrCode', target: { region: 'summary', index: 1 } })).toMatchObject({ ok: false, code: 'unavailable' })
   })
 
@@ -560,7 +650,16 @@ describe('the e-invoice’s groups, sent what no builder sends', () => {
   // field, rather than throw out of dispatch.
   test('refuse a key that is no string, as naming nothing', () => {
     const { editor, session } = selectedInvoice()
-    for (const action of [{ type: 'addItem' }, { type: 'addItem', key: 42 }, { type: 'removeItem' }, { type: 'removeItem', key: null }, { type: 'moveItem', to: 0 }, { type: 'moveItem', key: 7, to: 0 }, { type: 'addGroup' }, { type: 'removeGroup', key: {} }]) {
+    for (const action of [
+      { type: 'addItem' },
+      { type: 'addItem', key: 42 },
+      { type: 'removeItem' },
+      { type: 'removeItem', key: null },
+      { type: 'moveItem', to: 0 },
+      { type: 'moveItem', key: 7, to: 0 },
+      { type: 'addGroup' },
+      { type: 'removeGroup', key: {} },
+    ]) {
       expect(editor.dispatch(action as never), JSON.stringify(action)).toMatchObject({ ok: false, code: 'not-found' })
     }
     expect(session.revision()).toBe(0)
@@ -572,9 +671,21 @@ describe('the e-invoice’s groups, sent what no builder sends', () => {
   // filled in.
   test('say why a group that is part of every e-invoice, or an item of a list, is not added or removed', () => {
     const { editor } = selectedInvoice()
-    expect(editor.dispatch({ type: 'removeGroup', key: '/seller' })).toMatchObject({ ok: false, code: 'unavailable', message: 'Seller: part of every Factur-X invoice, never added or removed.' })
-    expect(editor.dispatch({ type: 'addGroup', key: '/vat/0' })).toMatchObject({ ok: false, code: 'unavailable', message: 'VAT category 1 belongs to a list: its own buttons add and remove its items.' })
-    expect(selectedInvoice(xrechnungScenarioReport()).editor.dispatch({ type: 'removeGroup', key: '/seller/contact' })).toMatchObject({ ok: false, code: 'unavailable', message: 'Seller’s contact: part of every XRechnung invoice, never added or removed.' })
+    expect(editor.dispatch({ type: 'removeGroup', key: '/seller' })).toMatchObject({
+      ok: false,
+      code: 'unavailable',
+      message: 'Seller: part of every Factur-X invoice, never added or removed.',
+    })
+    expect(editor.dispatch({ type: 'addGroup', key: '/vat/0' })).toMatchObject({
+      ok: false,
+      code: 'unavailable',
+      message: 'VAT category 1 belongs to a list: its own buttons add and remove its items.',
+    })
+    expect(selectedInvoice(xrechnungScenarioReport()).editor.dispatch({ type: 'removeGroup', key: '/seller/contact' })).toMatchObject({
+      ok: false,
+      code: 'unavailable',
+      message: 'Seller’s contact: part of every XRechnung invoice, never added or removed.',
+    })
   })
 
   // Refused by the validator, an add, a removal and a move each say what
@@ -584,7 +695,10 @@ describe('the e-invoice’s groups, sent what no builder sends', () => {
   test('say what was not done when the validator refuses an add or a removal', () => {
     const report = invoicedScenarioReport()
     const invoice = invoiceOf(report) as FacturXInvoice
-    const opened = selectedInvoice({ ...report, eInvoice: { ...invoice, vat: [...invoice.vat, { id: 'exempt', code: 'E', rate: '0', reason: said('Steuerfrei') }] } })
+    const opened = selectedInvoice({
+      ...report,
+      eInvoice: { ...invoice, vat: [...invoice.vat, { id: 'exempt', code: 'E', rate: '0', reason: said('Steuerfrei') }] },
+    })
     expect(opened.editor.dispatch({ type: 'addItem', key: '/vat' })).toMatchObject({ ok: false, code: 'refused' })
     expect(opened.editor.state().status.text).toMatch(/^Did not add VAT category 4: .*BR-AE-02/)
     expect(opened.editor.dispatch({ type: 'removeGroup', key: '/payment' })).toMatchObject({ ok: false, code: 'refused' })

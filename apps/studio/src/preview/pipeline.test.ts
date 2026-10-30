@@ -51,7 +51,15 @@ describe('the preview pipeline', () => {
     if (outcome.kind !== 'printed') throw new Error(`${id} was not printed: ${JSON.stringify(outcome)}`)
     const pdf = await readPdf(outcome.pdf)
     expect(pdf.pages.length).toBeGreaterThan(0)
-    const titles: Readonly<Record<string, string>> = { 'service-inspection': 'Service inspection', quotation: 'Offerte', 'grouped-equipment': 'Equipment register', invoice: 'Rechnung', 'euro-invoice': 'Rechnung', 'e-invoice': 'Rechnung', 'site-visit': 'Site visit' }
+    const titles: Readonly<Record<string, string>> = {
+      'service-inspection': 'Service inspection',
+      quotation: 'Offerte',
+      'grouped-equipment': 'Equipment register',
+      invoice: 'Rechnung',
+      'euro-invoice': 'Rechnung',
+      'e-invoice': 'Rechnung',
+      'site-visit': 'Site visit',
+    }
     if (id !== 'blank') expect(pdf.pages.flatMap((page) => page.items.map((item) => item.text)).join(' ')).toContain(titles[id] ?? `(no title for ${id})`)
     expect(outcome.manifest.mode).toBe('preview')
   })
@@ -66,7 +74,12 @@ describe('the preview pipeline', () => {
     const invoice = request('invoice')
     const outcome = await preview(invoice, new AbortController().signal)
     if (outcome.kind !== 'printed') throw new Error(`the invoice was not printed: ${JSON.stringify(outcome)}`)
-    const resolved = resolveReport(invoice.report, invoice.starter.data, { mode: 'preview', parameters: invoice.starter.parameters, images: invoice.images, creationDate: CREATED })
+    const resolved = resolveReport(invoice.report, invoice.starter.data, {
+      mode: 'preview',
+      parameters: invoice.starter.parameters,
+      images: invoice.images,
+      creationDate: CREATED,
+    })
     if (!resolved.ok || resolved.document.paymentPart === undefined) throw new Error('the invoice resolved without its bill')
     const bill = resolved.document.paymentPart
     const pdf = await readPdf(outcome.pdf)
@@ -86,7 +99,12 @@ describe('the preview pipeline', () => {
     const invoice = request('euro-invoice')
     const outcome = await preview(invoice, new AbortController().signal)
     if (outcome.kind !== 'printed') throw new Error(`the euro invoice was not printed: ${JSON.stringify(outcome)}`)
-    const resolved = resolveReport(invoice.report, invoice.starter.data, { mode: 'preview', parameters: invoice.starter.parameters, images: invoice.images, creationDate: CREATED })
+    const resolved = resolveReport(invoice.report, invoice.starter.data, {
+      mode: 'preview',
+      parameters: invoice.starter.parameters,
+      images: invoice.images,
+      creationDate: CREATED,
+    })
     if (!resolved.ok) throw new Error('the euro invoice was refused')
     const pdf = await readPdf(outcome.pdf)
     expect(pdf.pages).toHaveLength(1)

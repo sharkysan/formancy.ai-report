@@ -15,7 +15,20 @@ describe('the palette', () => {
     const { editor } = editorOver(richReport(), { locale: 'de-CH' })
     const { palette } = editor.state()
     expect(palette.map((entry) => entry.kind)).toEqual([...COMPONENT_KINDS])
-    expect(palette.map((entry) => entry.label)).toEqual(['Text', 'Bild', 'QR-Code', 'EPC-Zahlcode', 'Linie', 'Rechteck', 'Abstand', 'Spalten', 'Abschnitt', 'Tabelle', 'Seitenumbruch', 'Zusammenhalten'])
+    expect(palette.map((entry) => entry.label)).toEqual([
+      'Text',
+      'Bild',
+      'QR-Code',
+      'EPC-Zahlcode',
+      'Linie',
+      'Rechteck',
+      'Abstand',
+      'Spalten',
+      'Abschnitt',
+      'Tabelle',
+      'Seitenumbruch',
+      'Zusammenhalten',
+    ])
   })
 
   // A new component's id is report-core's, so two builders inserting the
@@ -37,8 +50,14 @@ describe('the palette', () => {
       if (entry.kind === 'table') expect(places, entry.kind).toEqual([])
       else expect(places.length, entry.kind).toBeGreaterThan(0)
     }
-    const withoutTable: ReportDefinition = { ...report, regions: { ...report.regions, body: report.regions.body.filter((component) => component.kind !== 'table') }, aggregates: [] }
-    const table = editorOver(withoutTable).editor.state().palette.find((entry) => entry.kind === 'table')
+    const withoutTable: ReportDefinition = {
+      ...report,
+      regions: { ...report.regions, body: report.regions.body.filter((component) => component.kind !== 'table') },
+      aggregates: [],
+    }
+    const table = editorOver(withoutTable)
+      .editor.state()
+      .palette.find((entry) => entry.kind === 'table')
     expect(validLocations(withoutTable, table?.component as NonNullable<NonNullable<typeof table>['component']>).length).toBeGreaterThan(0)
   })
 
@@ -68,8 +87,15 @@ describe('the palette', () => {
     expect(documents[1]).toEqual(documents[0])
     expect(documents[2]).toEqual(documents[0])
     expect(documents[0]?.regions.body[0]).toMatchObject({ kind: 'text', content: [{ kind: 'text', text: 'New text' }] })
-    const withoutTable: ReportDefinition = { ...report, locale: 'fr-CH', regions: { ...report.regions, body: report.regions.body.filter((component) => component.kind !== 'table') }, aggregates: [] }
-    const table = editorOver(withoutTable, { locale: 'de-CH' }).editor.state().palette.find((entry) => entry.kind === 'table')
+    const withoutTable: ReportDefinition = {
+      ...report,
+      locale: 'fr-CH',
+      regions: { ...report.regions, body: report.regions.body.filter((component) => component.kind !== 'table') },
+      aggregates: [],
+    }
+    const table = editorOver(withoutTable, { locale: 'de-CH' })
+      .editor.state()
+      .palette.find((entry) => entry.kind === 'table')
     expect(table?.component).toMatchObject({ emptyText: editorText('fr-CH')('default.emptyText') })
     expect(table?.label).toBe('Tabelle')
   })
@@ -91,8 +117,13 @@ describe('the palette', () => {
   // before (0033).
   test('draws the newest image the report declares', () => {
     const report = richReport()
-    const withMark: ReportDefinition = { ...report, assets: [...report.assets, { id: 'mark', mediaType: 'image/svg+xml', digest: `sha256:${'cd'.repeat(32)}` }] }
-    const image = editorOver(withMark).editor.state().palette.find((entry) => entry.kind === 'image')
+    const withMark: ReportDefinition = {
+      ...report,
+      assets: [...report.assets, { id: 'mark', mediaType: 'image/svg+xml', digest: `sha256:${'cd'.repeat(32)}` }],
+    }
+    const image = editorOver(withMark)
+      .editor.state()
+      .palette.find((entry) => entry.kind === 'image')
     expect(image?.component).toMatchObject({ kind: 'image', source: { kind: 'asset', asset: 'mark' } })
   })
 
@@ -102,7 +133,10 @@ describe('the palette', () => {
   test('says to add an image first where the host keeps images', () => {
     const { editor } = editorOver(emptyReport('blank', 'Blank', 'de-CH'), { locale: 'de-CH', images: recordingStore() })
     const de = editorText('de-CH')
-    expect(editor.state().palette.find((entry) => entry.kind === 'image')).toMatchObject({ component: null, unavailable: de('palette.addImageFirst', { add: de('images.add') }) })
+    expect(editor.state().palette.find((entry) => entry.kind === 'image')).toMatchObject({
+      component: null,
+      unavailable: de('palette.addImageFirst', { add: de('images.add') }),
+    })
     expect(de('palette.addImageFirst', { add: de('images.add') })).toContain('Bild hinzufügen…')
   })
 
@@ -111,7 +145,9 @@ describe('the palette', () => {
   test('draws a header image field when there is no asset', () => {
     const report = richReport()
     const withoutAssets: ReportDefinition = { ...report, assets: [], regions: { ...report.regions, reportHeader: report.regions.reportHeader.slice(1) } }
-    const image = editorOver(withoutAssets).editor.state().palette.find((entry) => entry.kind === 'image')
+    const image = editorOver(withoutAssets)
+      .editor.state()
+      .palette.find((entry) => entry.kind === 'image')
     expect(image?.component).toMatchObject({ kind: 'image', source: { kind: 'field', field: { dataset: 'header', field: 'signature' } } })
   })
 
@@ -140,7 +176,13 @@ describe('the palette', () => {
   // to.
   test('starts a QR code as the Studio’s address in a 30 mm square at level M', () => {
     const address = 'https://formancy.ai/report/'
-    expect(defaultComponent({ ...richReport(), locale: 'en' }, 'qrCode')).toEqual({ id: 'qr-code', kind: 'qrCode', content: [{ kind: 'text', text: address }], size: mmToPt(30), errorCorrection: 'M' })
+    expect(defaultComponent({ ...richReport(), locale: 'en' }, 'qrCode')).toEqual({
+      id: 'qr-code',
+      kind: 'qrCode',
+      content: [{ kind: 'text', text: address }],
+      size: mmToPt(30),
+      errorCorrection: 'M',
+    })
     expect(EDITOR_LOCALES.map((locale) => editorText(locale)('default.qrCode'))).toEqual(EDITOR_LOCALES.map(() => address))
   })
 })

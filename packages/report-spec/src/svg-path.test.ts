@@ -17,7 +17,15 @@ describe('numbers', () => {
   // no -0, NaN or Infinity reaches the output.
   test('a magnitude under a millionth is written as 0, and so is -0', () => {
     expect(['1e-7', '-0', '0.0000009', '-1e-300', '0'].map((text) => writeNumber(readNumber(text, 'test')))).toEqual(['0', '0', '0', '0', '0'])
-    expect(['0.000001', '1.5e-3', '1E2', '+5', '.5', '5.', '0012.50'].map((text) => writeNumber(readNumber(text, 'test')))).toEqual(['0.000001', '0.0015', '100', '5', '0.5', '5', '12.5'])
+    expect(['0.000001', '1.5e-3', '1E2', '+5', '.5', '5.', '0012.50'].map((text) => writeNumber(readNumber(text, 'test')))).toEqual([
+      '0.000001',
+      '0.0015',
+      '100',
+      '5',
+      '0.5',
+      '5',
+      '12.5',
+    ])
   })
 
   // PDFKit throws `unsupported number` past 10^21, naming no asset; a
@@ -26,7 +34,11 @@ describe('numbers', () => {
   test('a number at the bound is read, one past it refused', () => {
     expect(writeNumber(readNumber('999999.999999999', 'test'))).toBe('999999.999999999')
     expect(cleaned(svg(`<rect width="${MAX_SVG_COORDINATE}" height="1"/>`)).text).toContain(`width="${MAX_SVG_COORDINATE}"`)
-    expect(refused(svg(`<rect width="${MAX_SVG_COORDINATE}.000001" height="1"/>`))).toEqual({ ok: false, code: 'out-of-range', message: `svg/rect@width holds a number past ${MAX_SVG_COORDINATE}; ${SVG_ADVICE['out-of-range']}` })
+    expect(refused(svg(`<rect width="${MAX_SVG_COORDINATE}.000001" height="1"/>`))).toEqual({
+      ok: false,
+      code: 'out-of-range',
+      message: `svg/rect@width holds a number past ${MAX_SVG_COORDINATE}; ${SVG_ADVICE['out-of-range']}`,
+    })
     expect(refused(svg(`<rect width="-${MAX_SVG_COORDINATE + 1}" height="1"/>`)).code).toBe('out-of-range')
     expect(refused(svg('<rect width="1e30" height="1"/>')).code).toBe('out-of-range')
     expect(refused(svg('<rect width="1e400" height="1"/>')).code).toBe('out-of-range')
@@ -37,7 +49,11 @@ describe('numbers', () => {
   // the author did not write, and moves no point the author drew.
   test('relative steps sum to their exact decimal sum', () => {
     expect(written('M0 0 l.1.2 .2.1')).toBe('M0 0 L0.1 0.2 L0.3 0.3')
-    expect(written(`M0 0 l${'.1 .1 '.repeat(30)}`).split(' ').slice(-2)).toEqual(['L3', '3'])
+    expect(
+      written(`M0 0 l${'.1 .1 '.repeat(30)}`)
+        .split(' ')
+        .slice(-2),
+    ).toEqual(['L3', '3'])
     // Past nine places the float is written, as its shortest round trip.
     expect(written('M0 0 l0.1234567891 0 0.1 0')).toBe('M0 0 L0.1234567891 0 L0.2234567891 0')
   })
@@ -46,7 +62,10 @@ describe('numbers', () => {
   // leaves, as one that starts there is.
   test('a relative path past the bound is refused', () => {
     expect(cleaned(svg(`<path d="M999999 0 l1 0"/>`)).text).toContain(`L${MAX_SVG_COORDINATE} 0`)
-    expect(refused(svg(`<path d="M999999 0 l1.000001 0"/>`))).toMatchObject({ code: 'out-of-range', message: `svg/path@d reaches a point past ${MAX_SVG_COORDINATE}; ${SVG_ADVICE['out-of-range']}` })
+    expect(refused(svg(`<path d="M999999 0 l1.000001 0"/>`))).toMatchObject({
+      code: 'out-of-range',
+      message: `svg/path@d reaches a point past ${MAX_SVG_COORDINATE}; ${SVG_ADVICE['out-of-range']}`,
+    })
   })
 })
 
@@ -77,9 +96,16 @@ describe('path data', () => {
 
   // SVG would draw up to the error; a path drawn only partly is not the
   // author's, so malformed data is refused whole.
-  test.each(['M0 0 L', 'L0 0', 'M0 0 Z 5', 'M0,', 'M0 0,,1 1', 'M0 0 X1 1', 'M0 0 A1 1 0 2 0 1 1', 'M,0 0', 'M0 0 L1 1,', 'M0 0 L1e 1'])('%s is refused whole', (d) => {
-    expect(refused(svg(`<path d="${d}"/>`))).toEqual({ ok: false, code: 'unsupported', message: 'svg/path@d is malformed path data; save the drawing again from the program it was made in' })
-  })
+  test.each(['M0 0 L', 'L0 0', 'M0 0 Z 5', 'M0,', 'M0 0,,1 1', 'M0 0 X1 1', 'M0 0 A1 1 0 2 0 1 1', 'M,0 0', 'M0 0 L1 1,', 'M0 0 L1e 1'])(
+    '%s is refused whole',
+    (d) => {
+      expect(refused(svg(`<path d="${d}"/>`))).toEqual({
+        ok: false,
+        code: 'unsupported',
+        message: 'svg/path@d is malformed path data; save the drawing again from the program it was made in',
+      })
+    },
+  )
 
   // A path with no data draws nothing, as SVG says, and is removed rather
   // than written.
@@ -104,7 +130,7 @@ describe('what a path costs', () => {
   // control points and a reflected one are held, and an arc is held to the
   // circle about its centre that holds the control points of the curves
   // the converter draws it with, however it sweeps.
-  test("the box holds every point of the outline", () => {
+  test('the box holds every point of the outline', () => {
     expect(measure(floats(readPath('M0 0 C0 5 4 5 4 0', 'test'))).box).toEqual([0, 0, 4, 5])
     expect(measure(floats(readPath('M0 0 C0 5 4 5 4 0 S8 -5 8 0', 'test'))).box).toEqual([0, -5, 8, 5])
     const [left, top, right, bottom] = measure(floats(readPath('M0 0 A5 5 0 0 1 10 0', 'test'))).box
@@ -177,12 +203,19 @@ describe('transforms', () => {
   // CSS's functions and units are not SVG's, and svg-to-pdfkit reads none
   // of them; a matrix that flattens the drawing draws nothing a reader
   // shows, and a reader may refuse it.
-  test.each(['rotate(30deg)', 'translateX(10)', 'translate(10px)', 'scale(1 2 3)', 'matrix(1 0 0 1)', 'translate(1),', 'translate(1) x'])('%s is refused', (transform) => {
-    expect(refused(svg(`<rect width="1" height="1" transform="${transform}"/>`)).code).toBe('unsupported')
-  })
+  test.each(['rotate(30deg)', 'translateX(10)', 'translate(10px)', 'scale(1 2 3)', 'matrix(1 0 0 1)', 'translate(1),', 'translate(1) x'])(
+    '%s is refused',
+    (transform) => {
+      expect(refused(svg(`<rect width="1" height="1" transform="${transform}"/>`)).code).toBe('unsupported')
+    },
+  )
 
   test('a transform that flattens is refused', () => {
-    expect(refused(svg('<rect width="1" height="1" transform="scale(0 1)"/>'))).toEqual({ ok: false, code: 'out-of-range', message: 'svg/rect@transform flattens what it transforms to nothing; remove what it flattens, or give the transform an area' })
+    expect(refused(svg('<rect width="1" height="1" transform="scale(0 1)"/>'))).toEqual({
+      ok: false,
+      code: 'out-of-range',
+      message: 'svg/rect@transform flattens what it transforms to nothing; remove what it flattens, or give the transform an area',
+    })
   })
 
   // With every point and every composed entry under the bound, every
@@ -204,13 +237,17 @@ describe('transforms', () => {
   // threw `unsupported number` from inside PDFKit in a box 550 points wide.
   // The three are composed where the shape is drawn, and refused past the
   // bound, in its box or in user space.
-  test("a gradient transformed past the bound where its shape is drawn is refused", () => {
+  test('a gradient transformed past the bound where its shape is drawn is refused', () => {
     const turned = (scale: number, units = ''): string =>
       svg(
         `<linearGradient id="g"${units} gradientTransform="matrix(${scale} ${scale} -${scale} ${scale} 0 0)"><stop/><stop offset="1" stop-color="#f00"/></linearGradient>` +
           `<g transform="matrix(${scale} ${scale} -${scale} ${scale} 0 0)"><rect width="${scale}" height="${scale}" fill="url(#g)"/></g>`,
       )
-    expect(refused(turned(1_000_000))).toEqual({ ok: false, code: 'out-of-range', message: `svg/g/rect paints a gradient transformed past ${MAX_SVG_COORDINATE}; ${SVG_ADVICE['out-of-range']}` })
+    expect(refused(turned(1_000_000))).toEqual({
+      ok: false,
+      code: 'out-of-range',
+      message: `svg/g/rect paints a gradient transformed past ${MAX_SVG_COORDINATE}; ${SVG_ADVICE['out-of-range']}`,
+    })
     expect(refused(turned(1000, ' gradientUnits="userSpaceOnUse"').replace('<rect width="1000"', '<rect width="1"')).code).toBe('out-of-range')
     expect(cleaned(turned(10)).ok).toBe(true)
     // The same drawing, its rect painted in one colour, draws no pattern and is accepted.
@@ -232,7 +269,11 @@ describe('transforms', () => {
         '<linearGradient id="g" gradientTransform="matrix(0.000002 0 0 1 0.5 0)"><stop/><stop offset="1" stop-color="#f00"/></linearGradient>' +
           `<g transform="scale(${scale})"><path d="M1000000 0 C-1000000 0 -1000000 1 1000000 1 Z" fill="url(#g)"/></g>`,
       )
-    expect(refused(curved('200000'))).toEqual({ ok: false, code: 'out-of-range', message: `svg/g/path paints a gradient transformed past ${MAX_SVG_COORDINATE}; ${SVG_ADVICE['out-of-range']}` })
+    expect(refused(curved('200000'))).toEqual({
+      ok: false,
+      code: 'out-of-range',
+      message: `svg/g/path paints a gradient transformed past ${MAX_SVG_COORDINATE}; ${SVG_ADVICE['out-of-range']}`,
+    })
     expect(cleaned(curved('1')).ok).toBe(true)
   })
 

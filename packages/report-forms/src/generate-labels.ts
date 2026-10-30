@@ -66,7 +66,11 @@ export function printable(draft: Draft, label: string, where: string, what: stri
   const found = UNDRAWN.exec(label)
   if (found === null) return true
   const point = (found[0].codePointAt(0) as number).toString(16).toUpperCase().padStart(4, '0')
-  draft.f.report(where, 'label-unprintable', `${what} is labelled with U+${point}, a control character, half of a surrogate pair, a direction control or a line or paragraph separator, which no font draws; it is refused, never dropped`)
+  draft.f.report(
+    where,
+    'label-unprintable',
+    `${what} is labelled with U+${point}, a control character, half of a surrogate pair, a direction control or a line or paragraph separator, which no font draws; it is refused, never dropped`,
+  )
   return false
 }
 

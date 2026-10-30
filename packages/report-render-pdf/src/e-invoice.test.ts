@@ -2,7 +2,20 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
-import { childrenOf, E_INVOICE_SAMPLES, propertiesOf, readPdf, readPdfObjects, readXmp, starterImages, XMP_NAMESPACES, type PdfObjects, type Starter, type Xmp, type XmlElement } from '@formancy/report-corpus'
+import {
+  childrenOf,
+  E_INVOICE_SAMPLES,
+  propertiesOf,
+  readPdf,
+  readPdfObjects,
+  readXmp,
+  starterImages,
+  XMP_NAMESPACES,
+  type PdfObjects,
+  type Starter,
+  type Xmp,
+  type XmlElement,
+} from '@formancy/report-corpus'
 import { E_INVOICE_PREVIEW_LABEL, resolveReport, type ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { renderPdf } from './node.js'
@@ -108,19 +121,33 @@ describe('an e-invoice sample drawn', () => {
   // added, an umlaut turned into two characters -- is another invoice.
   // Both readers must find the same bytes, and they must be the runtime's
   // XML as UTF-8, exactly.
-  test.each(samples)('%s embeds one file, factur-x.xml: the XML as UTF-8 byte for byte, text/xml, Alternative, on the catalog /AF and in the name tree, dated the document', async (_, sample) => {
-    const { document, bytes, objects } = await draw(sample)
-    const xml = new TextEncoder().encode(document.eInvoice!.xml)
-    expect(objects.associatedFiles).toHaveLength(1)
-    const [file] = objects.associatedFiles
-    expect(file).toMatchObject({ type: 'Filespec', relationship: 'Alternative', f: 'factur-x.xml', uf: 'factur-x.xml', description: 'E-invoice XML, EN 16931' })
-    expect(file!.embedded).toMatchObject({ type: 'EmbeddedFile', subtype: 'text/xml', params: { creationDate: PDF_DATE, modDate: PDF_DATE, size: xml.byteLength } })
-    expect(Buffer.from(file!.embedded!.bytes).equals(Buffer.from(xml))).toBe(true)
-    expect(objects.embeddedFiles.map(({ name, associated }) => ({ name, associated }))).toEqual([{ name: 'factur-x.xml', associated: 0 }])
-    const { attachments } = await readPdf(bytes)
-    expect(attachments.map(({ name, description }) => ({ name, description }))).toEqual([{ name: 'factur-x.xml', description: 'E-invoice XML, EN 16931' }])
-    expect(Buffer.from(attachments[0]!.bytes!).equals(Buffer.from(xml))).toBe(true)
-  }, TIMEOUT)
+  test.each(samples)(
+    '%s embeds one file, factur-x.xml: the XML as UTF-8 byte for byte, text/xml, Alternative, on the catalog /AF and in the name tree, dated the document',
+    async (_, sample) => {
+      const { document, bytes, objects } = await draw(sample)
+      const xml = new TextEncoder().encode(document.eInvoice!.xml)
+      expect(objects.associatedFiles).toHaveLength(1)
+      const [file] = objects.associatedFiles
+      expect(file).toMatchObject({
+        type: 'Filespec',
+        relationship: 'Alternative',
+        f: 'factur-x.xml',
+        uf: 'factur-x.xml',
+        description: 'E-invoice XML, EN 16931',
+      })
+      expect(file!.embedded).toMatchObject({
+        type: 'EmbeddedFile',
+        subtype: 'text/xml',
+        params: { creationDate: PDF_DATE, modDate: PDF_DATE, size: xml.byteLength },
+      })
+      expect(Buffer.from(file!.embedded!.bytes).equals(Buffer.from(xml))).toBe(true)
+      expect(objects.embeddedFiles.map(({ name, associated }) => ({ name, associated }))).toEqual([{ name: 'factur-x.xml', associated: 0 }])
+      const { attachments } = await readPdf(bytes)
+      expect(attachments.map(({ name, description }) => ({ name, description }))).toEqual([{ name: 'factur-x.xml', description: 'E-invoice XML, EN 16931' }])
+      expect(Buffer.from(attachments[0]!.bytes!).equals(Buffer.from(xml))).toBe(true)
+    },
+    TIMEOUT,
+  )
 
   // A PDF/A-3's XMP is checked by every validator that reads one: not
   // well-formed, it fails veraPDF (6.6.2.1-4); without pdfaid it is no
@@ -131,42 +158,58 @@ describe('an e-invoice sample drawn', () => {
   // notice, since Mustang reads them by local name. So each is held to
   // the values the transcription gives, and the schema to declaring exactly
   // those four, each a Text of the external category.
-  test.each(samples)('%s states PDF/A-3b and the fx properties the transcription gives, in a well-formed XMP whose extension schema declares them', async (_, sample) => {
-    const { objects, xmp } = await draw(sample)
-    expect(objects.metadata).toMatchObject({ type: 'Metadata', subtype: 'XML' })
-    expect(propertiesOf(xmp, pdfaid, 'part').map(({ text, prefix }) => ({ text, prefix }))).toEqual([{ text: '3', prefix: 'pdfaid' }])
-    expect(propertiesOf(xmp, pdfaid, 'conformance').map(({ text }) => text)).toEqual(['B'])
-    for (const [name, value] of Object.entries(CITED.properties)) {
-      expect(propertiesOf(xmp, CITED.namespace, name).map(({ text, prefix }) => ({ text, prefix })), name).toEqual([{ text: value, prefix: CITED.prefix }])
-    }
-    expect(xmp.properties.filter(({ uri }) => uri === CITED.namespace).map(({ local }) => local).sort()).toEqual(Object.keys(CITED.properties).sort())
+  test.each(samples)(
+    '%s states PDF/A-3b and the fx properties the transcription gives, in a well-formed XMP whose extension schema declares them',
+    async (_, sample) => {
+      const { objects, xmp } = await draw(sample)
+      expect(objects.metadata).toMatchObject({ type: 'Metadata', subtype: 'XML' })
+      expect(propertiesOf(xmp, pdfaid, 'part').map(({ text, prefix }) => ({ text, prefix }))).toEqual([{ text: '3', prefix: 'pdfaid' }])
+      expect(propertiesOf(xmp, pdfaid, 'conformance').map(({ text }) => text)).toEqual(['B'])
+      for (const [name, value] of Object.entries(CITED.properties)) {
+        expect(
+          propertiesOf(xmp, CITED.namespace, name).map(({ text, prefix }) => ({ text, prefix })),
+          name,
+        ).toEqual([{ text: value, prefix: CITED.prefix }])
+      }
+      expect(
+        xmp.properties
+          .filter(({ uri }) => uri === CITED.namespace)
+          .map(({ local }) => local)
+          .sort(),
+      ).toEqual(Object.keys(CITED.properties).sort())
 
-    // One extension schema, the fx one: PDFKit declares none of its own, and a second, incomplete one would fail veraPDF (6.6.2.3.3).
-    const schemas = propertiesOf(xmp, pdfaExtension, 'schemas').flatMap((each) => childrenOf(each, [rdf, 'Bag'], [rdf, 'li']))
-    expect(schemas).toHaveLength(1)
-    const fx = schemas.filter((schema) => textAt(schema, [pdfaSchema, 'namespaceURI']) === CITED.namespace)
-    expect(fx).toHaveLength(1)
-    expect(textAt(fx[0]!, [pdfaSchema, 'prefix'])).toBe(CITED.prefix)
-    expect(textAt(fx[0]!, [pdfaSchema, 'schema'])).toBe(CITED.schema)
-    const declared = childrenOf(fx[0]!, [pdfaSchema, 'property'], [rdf, 'Seq'], [rdf, 'li'])
-    expect(declared.map((property) => textAt(property, [pdfaProperty, 'name'])).sort()).toEqual(Object.keys(CITED.properties).sort())
-    for (const property of declared) {
-      expect([textAt(property, [pdfaProperty, 'valueType']), textAt(property, [pdfaProperty, 'category'])]).toEqual(['Text', 'external'])
-      expect(textAt(property, [pdfaProperty, 'description'])?.trim()).not.toBe('')
-    }
-  }, TIMEOUT)
+      // One extension schema, the fx one: PDFKit declares none of its own, and a second, incomplete one would fail veraPDF (6.6.2.3.3).
+      const schemas = propertiesOf(xmp, pdfaExtension, 'schemas').flatMap((each) => childrenOf(each, [rdf, 'Bag'], [rdf, 'li']))
+      expect(schemas).toHaveLength(1)
+      const fx = schemas.filter((schema) => textAt(schema, [pdfaSchema, 'namespaceURI']) === CITED.namespace)
+      expect(fx).toHaveLength(1)
+      expect(textAt(fx[0]!, [pdfaSchema, 'prefix'])).toBe(CITED.prefix)
+      expect(textAt(fx[0]!, [pdfaSchema, 'schema'])).toBe(CITED.schema)
+      const declared = childrenOf(fx[0]!, [pdfaSchema, 'property'], [rdf, 'Seq'], [rdf, 'li'])
+      expect(declared.map((property) => textAt(property, [pdfaProperty, 'name'])).sort()).toEqual(Object.keys(CITED.properties).sort())
+      for (const property of declared) {
+        expect([textAt(property, [pdfaProperty, 'valueType']), textAt(property, [pdfaProperty, 'category'])]).toEqual(['Text', 'external'])
+        expect(textAt(property, [pdfaProperty, 'description'])?.trim()).not.toBe('')
+      }
+    },
+    TIMEOUT,
+  )
 
   // The title is passed to pdfmake as in every report, and pdfkit writes
   // it twice: into the information dictionary and, unescaped, into the
   // XMP's dc:title (pdfkit.js 6025-6032). An e-invoice report's title is refused where
   // it would break the XMP (report-spec, and `checkEInvoice` here); one
   // that passed lands in both, the same.
-  test.each(samples)('%s titles the PDF in its information dictionary and its dc:title alike', async (_, sample) => {
-    const { document, objects, xmp } = await draw(sample)
-    expect(objects.info['Title']).toBe(document.info.title)
-    const titles = propertiesOf(xmp, dc, 'title').flatMap((title) => childrenOf(title, [rdf, 'Alt'], [rdf, 'li']))
-    expect(titles.map(({ text }) => text)).toEqual([document.info.title])
-  }, TIMEOUT)
+  test.each(samples)(
+    '%s titles the PDF in its information dictionary and its dc:title alike',
+    async (_, sample) => {
+      const { document, objects, xmp } = await draw(sample)
+      expect(objects.info['Title']).toBe(document.info.title)
+      const titles = propertiesOf(xmp, dc, 'title').flatMap((title) => childrenOf(title, [rdf, 'Alt'], [rdf, 'li']))
+      expect(titles.map(({ text }) => text)).toEqual([document.info.title])
+    },
+    TIMEOUT,
+  )
 
   // A PDF/A draws DeviceRGB only beside an RGB output intent (veraPDF
   // 6.2.4.3-2), and the profile it carries is embedded in every invoice
@@ -174,39 +217,51 @@ describe('an e-invoice sample drawn', () => {
   // file pdfkit reads, which the licence guard admits by this digest.
   // A pdfkit that shipped another profile would fail here and in the
   // guard, before any customer's PDF carried it.
-  test.each(samples)('%s carries one sRGB output intent, its profile the reviewed sRGB2014 pdfkit ships, byte for byte', async (_, sample) => {
-    const { objects } = await draw(sample)
-    expect(objects.outputIntents.map(({ type, s, outputConditionIdentifier, profile }) => ({ type, s, outputConditionIdentifier, n: profile?.n }))).toEqual([
-      { type: 'OutputIntent', s: 'GTS_PDFA1', outputConditionIdentifier: 'sRGB IEC61966-2.1', n: 3 },
-    ])
-    const profile = objects.outputIntents[0]!.profile!.bytes
-    expect(sha256(profile)).toBe(SRGB2014)
-    const pdfkit = createRequire(createRequire(import.meta.url).resolve('pdfmake')).resolve('pdfkit')
-    expect(Buffer.from(profile).equals(readFileSync(path.join(path.dirname(pdfkit), 'data', 'sRGB_IEC61966_2_1.icc')))).toBe(true)
-  }, TIMEOUT)
+  test.each(samples)(
+    '%s carries one sRGB output intent, its profile the reviewed sRGB2014 pdfkit ships, byte for byte',
+    async (_, sample) => {
+      const { objects } = await draw(sample)
+      expect(objects.outputIntents.map(({ type, s, outputConditionIdentifier, profile }) => ({ type, s, outputConditionIdentifier, n: profile?.n }))).toEqual([
+        { type: 'OutputIntent', s: 'GTS_PDFA1', outputConditionIdentifier: 'sRGB IEC61966-2.1', n: 3 },
+      ])
+      const profile = objects.outputIntents[0]!.profile!.bytes
+      expect(sha256(profile)).toBe(SRGB2014)
+      const pdfkit = createRequire(createRequire(import.meta.url).resolve('pdfmake')).resolve('pdfkit')
+      expect(Buffer.from(profile).equals(readFileSync(path.join(path.dirname(pdfkit), 'data', 'sRGB_IEC61966_2_1.icc')))).toBe(true)
+    },
+    TIMEOUT,
+  )
 
   // pdfkit writes the XMP only at a version above 1.3 (pdfkit.js 6070),
   // and a PDF/A forbids /Encrypt (6.1.3-2): the reader refuses an
   // encrypted PDF, and the bytes hold no trailer key of that name.
-  test.each(samples)('%s is a PDF 1.7, unencrypted', async (_, sample) => {
-    const { bytes, objects } = await draw(sample)
-    expect(objects.version).toBe('1.7')
-    expect(Buffer.from(bytes).includes('/Encrypt')).toBe(false)
-  }, TIMEOUT)
+  test.each(samples)(
+    '%s is a PDF 1.7, unencrypted',
+    async (_, sample) => {
+      const { bytes, objects } = await draw(sample)
+      expect(objects.version).toBe('1.7')
+      expect(Buffer.from(bytes).includes('/Encrypt')).toBe(false)
+    },
+    TIMEOUT,
+  )
 
   // PDF/A-3b is the container, not the page: the same document drawn
   // without its e-invoice prints every run and image where the e-invoice
   // prints it, in the same fonts. Were the subset or the version to move
   // a line, the page a receiver reads would not be the page proved
   // against the XML.
-  test.each(samples)('%s prints the very pages it prints drawn plain', async (_, sample) => {
-    const { document, bytes } = await draw(sample)
-    const { eInvoice: _file, ...plain } = document
-    const [invoice, picture] = [await readPdf(bytes), await readPdf(await renderPdf(plain, { maxPages: 5 }))]
-    expect(invoice.pages).toEqual(picture.pages)
-    expect(invoice.fonts).toEqual(picture.fonts)
-    expect(picture.attachments).toEqual([])
-  }, TIMEOUT)
+  test.each(samples)(
+    '%s prints the very pages it prints drawn plain',
+    async (_, sample) => {
+      const { document, bytes } = await draw(sample)
+      const { eInvoice: _file, ...plain } = document
+      const [invoice, picture] = [await readPdf(bytes), await readPdf(await renderPdf(plain, { maxPages: 5 }))]
+      expect(invoice.pages).toEqual(picture.pages)
+      expect(invoice.fonts).toEqual(picture.fonts)
+      expect(picture.attachments).toEqual([])
+    },
+    TIMEOUT,
+  )
 })
 
 describe("an e-invoice's title", () => {
@@ -217,15 +272,19 @@ describe("an e-invoice's title", () => {
   // JavaScript. Refused, a template's title of two lines would stop
   // rendering for nothing; drawn, the XMP that holds it parses, and holds
   // it as XML reads it back, a carriage return read as a line feed.
-  test('drawn with what XML writes as it stands, lands in a well-formed XMP', async () => {
-    const char = (code: number): string => String.fromCodePoint(code)
-    const title = `Rechnung${char(0x09)}2026${char(0x0a)}Teil 2 ${char(0x1f9fe)}${char(0x0d)}`
-    const document = invoiced({ ...bareDocument('Rechnung', [paragraph('Rechnung')]), info: { title, creationDate: CREATED } })
-    const objects = await readPdfObjects(await renderPdf(document, { maxPages: 1 }))
-    expect(objects.info['Title']).toBe(title)
-    const titles = propertiesOf(readXmp(objects.metadata!.xmp), dc, 'title').flatMap((each) => childrenOf(each, [rdf, 'Alt'], [rdf, 'li']))
-    expect(titles.map(({ text }) => text)).toEqual([`Rechnung${char(0x09)}2026${char(0x0a)}Teil 2 ${char(0x1f9fe)}${char(0x0a)}`])
-  }, TIMEOUT)
+  test(
+    'drawn with what XML writes as it stands, lands in a well-formed XMP',
+    async () => {
+      const char = (code: number): string => String.fromCodePoint(code)
+      const title = `Rechnung${char(0x09)}2026${char(0x0a)}Teil 2 ${char(0x1f9fe)}${char(0x0d)}`
+      const document = invoiced({ ...bareDocument('Rechnung', [paragraph('Rechnung')]), info: { title, creationDate: CREATED } })
+      const objects = await readPdfObjects(await renderPdf(document, { maxPages: 1 }))
+      expect(objects.info['Title']).toBe(title)
+      const titles = propertiesOf(readXmp(objects.metadata!.xmp), dc, 'title').flatMap((each) => childrenOf(each, [rdf, 'Alt'], [rdf, 'li']))
+      expect(titles.map(({ text }) => text)).toEqual([`Rechnung${char(0x09)}2026${char(0x0a)}Teil 2 ${char(0x1f9fe)}${char(0x0a)}`])
+    },
+    TIMEOUT,
+  )
 })
 
 describe('a preview of an e-invoice sample', () => {
@@ -233,15 +292,19 @@ describe('a preview of an e-invoice sample', () => {
   // invoice, so a preview is not one, and must not look like one to
   // software either -- no PDF/A, no file, no fx -- nor to a person, who
   // reads on every page that it is not an e-invoice, complete data or not.
-  test.each(samples)('%s is a plain PDF that embeds nothing, and says so on every page', async (_, sample) => {
-    const document = resolved(sample, 'preview')
-    expect(document.eInvoice).toBeUndefined()
-    const bytes = await renderPdf(document, { maxPages: 5 })
-    const objects = await readPdfObjects(bytes)
-    expect(objects).toMatchObject({ version: '1.3', metadata: undefined, associatedFiles: [], embeddedFiles: [], outputIntents: [] })
-    const pdf = await readPdf(bytes)
-    expect(pdf.attachments).toEqual([])
-    expect(pdf.pages.length).toBeGreaterThan(0)
-    expect(pdf.pages.map((page) => page.items.some((item) => item.text === E_INVOICE_PREVIEW_LABEL))).toEqual(pdf.pages.map(() => true))
-  }, TIMEOUT)
+  test.each(samples)(
+    '%s is a plain PDF that embeds nothing, and says so on every page',
+    async (_, sample) => {
+      const document = resolved(sample, 'preview')
+      expect(document.eInvoice).toBeUndefined()
+      const bytes = await renderPdf(document, { maxPages: 5 })
+      const objects = await readPdfObjects(bytes)
+      expect(objects).toMatchObject({ version: '1.3', metadata: undefined, associatedFiles: [], embeddedFiles: [], outputIntents: [] })
+      const pdf = await readPdf(bytes)
+      expect(pdf.attachments).toEqual([])
+      expect(pdf.pages.length).toBeGreaterThan(0)
+      expect(pdf.pages.map((page) => page.items.some((item) => item.text === E_INVOICE_PREVIEW_LABEL))).toEqual(pdf.pages.map(() => true))
+    },
+    TIMEOUT,
+  )
 })

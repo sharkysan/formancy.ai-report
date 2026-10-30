@@ -38,7 +38,14 @@ export function layered(...styles: readonly (TextStyle | undefined)[]): TextStyl
  * `<path>/<index>` whose condition holds in `scope`. Undefined when nothing
  * sets anything, or when a condition failed, which is recorded.
  */
-export function styled(render: Render, scope: Scope, base: TextStyle | undefined, style: string | undefined, rules: readonly StyleRule[] | undefined, path: string): TextStyle | undefined {
+export function styled(
+  render: Render,
+  scope: Scope,
+  base: TextStyle | undefined,
+  style: string | undefined,
+  rules: readonly StyleRule[] | undefined,
+  path: string,
+): TextStyle | undefined {
   const held: TextStyle[] = []
   for (const [index, rule] of (rules ?? []).entries()) {
     if (holds(render, scope, `${path}/${index}/when/cel`) === true) held.push(render.styles.get(rule.style) as TextStyle)

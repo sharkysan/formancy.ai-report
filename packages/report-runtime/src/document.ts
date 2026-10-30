@@ -27,7 +27,23 @@
  * definition's to validate and the renderer's to refuse. These types do not
  * hold it.
  */
-import type { Alignment, AssetMediaType, Border, EpcCaption, FacturXProfileTerms, FontFamily, ImageFit, Margins, Orientation, PageSizeName, QrBillCurrency, QrErrorCorrection, Width, XRechnungTerms, XRechnungVersion } from '@formancy/report-spec'
+import type {
+  Alignment,
+  AssetMediaType,
+  Border,
+  EpcCaption,
+  FacturXProfileTerms,
+  FontFamily,
+  ImageFit,
+  Margins,
+  Orientation,
+  PageSizeName,
+  QrBillCurrency,
+  QrErrorCorrection,
+  Width,
+  XRechnungTerms,
+  XRechnungVersion,
+} from '@formancy/report-spec'
 
 /**
  * A run of text, or a number only the engine knows when it lays out the

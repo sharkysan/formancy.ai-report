@@ -33,7 +33,13 @@ export function hostViewScenarios(locale: EditorLocale): readonly BuilderScenari
   const said: ScenarioQuery = { role: 'status', name: '' }
   const designView: ScenarioQuery = { role: 'region', name: t('canvas.label') }
   const preview: ScenarioQuery = { role: 'region', name: PREVIEW.name }
-  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition, host: ScenarioHost): BuilderScenario => ({ name, locale, report, steps, host })
+  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition, host: ScenarioHost): BuilderScenario => ({
+    name,
+    locale,
+    report,
+    steps,
+    host,
+  })
 
   return [
     // The host's view -- the Studio's PDF -- stands where the design view

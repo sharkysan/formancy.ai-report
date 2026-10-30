@@ -164,7 +164,8 @@ function mutate(text: string, next: () => number): string {
     const all = [...text.matchAll(pattern)]
     return all.length === 0 ? undefined : pick(all)
   }
-  const replace = (match: RegExpExecArray | undefined, by: string): string => (match === undefined ? text : text.slice(0, match.index) + by + text.slice(match.index + match[0].length))
+  const replace = (match: RegExpExecArray | undefined, by: string): string =>
+    match === undefined ? text : text.slice(0, match.index) + by + text.slice(match.index + match[0].length)
   switch (Math.floor(next() * 9)) {
     case 0:
       return replace(at(/-?\d*\.?\d+(?:e-?\d+)?/gi), pick(NUMBERS))

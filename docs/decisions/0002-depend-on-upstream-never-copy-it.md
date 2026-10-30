@@ -1,6 +1,6 @@
 # 0002 — Depend on released upstream packages at exact versions; never copy them
 
-- **Status:** accepted
+- **Status:** accepted; narrowed by [0050](0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md): its wait for a release, for the lint and format rules, a byte-for-byte copy of Formancy Health's until formancy.ai releases them as `@formancy/code-style`, deleted when this repository pins it
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `scripts/upstream-deps.mjs`, through

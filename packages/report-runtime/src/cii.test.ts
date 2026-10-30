@@ -58,7 +58,12 @@ const TERMS: InvoiceTerms = {
     legalId: { id: 'HRB 12345' },
     address: { line1: 'Industriestraße 7', line2: 'Hof 2', postalCode: '50735', city: 'Köln', country: 'DE' },
   },
-  buyer: { name: 'Bäckerei Huber GmbH', vatId: 'ATU12345678', legalId: { id: '4012345000009', scheme: '0088' }, address: { line1: 'Ring 1', postalCode: '1010', city: 'Wien', country: 'AT' } },
+  buyer: {
+    name: 'Bäckerei Huber GmbH',
+    vatId: 'ATU12345678',
+    legalId: { id: '4012345000009', scheme: '0088' },
+    address: { line1: 'Ring 1', postalCode: '1010', city: 'Wien', country: 'AT' },
+  },
   buyerReference: 'PO-4711',
   delivered: '2026-10-15',
   reasons: new Map([['exempt', 'Steuerfrei nach § 4 Nr. 14 UStG']]),
@@ -315,12 +320,27 @@ describe('the CII an e-invoice is written as', () => {
       reasons: new Map(),
     }
     const xml = ciiXml(invoice(terms, [LINES[0] as LineTerms], null))
-    for (const name of ['LineTwo', 'SpecifiedLegalOrganization', 'BuyerReference', 'PaymentReference', 'SpecifiedTradeSettlementPaymentMeans', 'ExemptionReason', 'SpecifiedTradePaymentTerms', 'TotalPrepaidAmount', 'StartDateTime', 'schemeID="FC"']) {
+    for (const name of [
+      'LineTwo',
+      'SpecifiedLegalOrganization',
+      'BuyerReference',
+      'PaymentReference',
+      'SpecifiedTradeSettlementPaymentMeans',
+      'ExemptionReason',
+      'SpecifiedTradePaymentTerms',
+      'TotalPrepaidAmount',
+      'StartDateTime',
+      'schemeID="FC"',
+    ]) {
       expect(xml, name).not.toContain(name)
     }
     expect(xml.match(/<ram:SpecifiedTaxRegistration>/g)).toHaveLength(1)
     expect(xml).toContain('    <ram:ApplicableHeaderTradeDelivery/>\n')
-    expect(xml).toContain(['      <ram:BillingSpecifiedPeriod>', '        <ram:EndDateTime>', '          <udt:DateTimeString format="102">20261031</udt:DateTimeString>'].join('\n'))
+    expect(xml).toContain(
+      ['      <ram:BillingSpecifiedPeriod>', '        <ram:EndDateTime>', '          <udt:DateTimeString format="102">20261031</udt:DateTimeString>'].join(
+        '\n',
+      ),
+    )
     expect(xml).toContain('<ram:DuePayableAmount>29.75</ram:DuePayableAmount>')
   })
 
@@ -337,7 +357,11 @@ describe('the CII an e-invoice is written as', () => {
     const terms: InvoiceTerms = {
       ...TERMS,
       businessProcess: 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0',
-      seller: { ...TERMS.seller, electronicAddress: { id: 'rechnung@muster-soehne.example', scheme: 'EM' }, contact: { name: 'Erika Mustermann', telephone: '+49 221 4710 123', email: 'erika.mustermann@muster-soehne.example' } },
+      seller: {
+        ...TERMS.seller,
+        electronicAddress: { id: 'rechnung@muster-soehne.example', scheme: 'EM' },
+        contact: { name: 'Erika Mustermann', telephone: '+49 221 4710 123', email: 'erika.mustermann@muster-soehne.example' },
+      },
       buyer: { ...TERMS.buyer, electronicAddress: { id: '4012345000009', scheme: '0088' } },
     }
     const xml = ciiXml(invoice(terms))
@@ -361,12 +385,29 @@ describe('the CII an e-invoice is written as', () => {
       '        </ram:DefinedTradeContact>',
       '        <ram:PostalTradeAddress>',
     ]
-    const sellerAddress = ['        </ram:PostalTradeAddress>', '        <ram:URIUniversalCommunication>', '          <ram:URIID schemeID="EM">rechnung@muster-soehne.example</ram:URIID>', '        </ram:URIUniversalCommunication>', '        <ram:SpecifiedTaxRegistration>']
-    const buyerAddress = ['          <ram:CountryID>AT</ram:CountryID>', '        </ram:PostalTradeAddress>', '        <ram:URIUniversalCommunication>', '          <ram:URIID schemeID="0088">4012345000009</ram:URIID>', '        </ram:URIUniversalCommunication>']
+    const sellerAddress = [
+      '        </ram:PostalTradeAddress>',
+      '        <ram:URIUniversalCommunication>',
+      '          <ram:URIID schemeID="EM">rechnung@muster-soehne.example</ram:URIID>',
+      '        </ram:URIUniversalCommunication>',
+      '        <ram:SpecifiedTaxRegistration>',
+    ]
+    const buyerAddress = [
+      '          <ram:CountryID>AT</ram:CountryID>',
+      '        </ram:PostalTradeAddress>',
+      '        <ram:URIUniversalCommunication>',
+      '          <ram:URIID schemeID="0088">4012345000009</ram:URIID>',
+      '        </ram:URIUniversalCommunication>',
+    ]
     for (const lines of [context, contact, sellerAddress, buyerAddress]) expect(xml).toContain(lines.join('\n'))
     const added = new Set([...context.slice(1, 4), ...contact.slice(1, -1), ...sellerAddress.slice(1, -1), ...buyerAddress.slice(2)])
     // Taken out again, line by line, what is left is the complete invoice the validators took.
-    expect(xml.split('\n').filter((line) => !added.has(line)).join('\n')).toBe(COMPLETE)
+    expect(
+      xml
+        .split('\n')
+        .filter((line) => !added.has(line))
+        .join('\n'),
+    ).toBe(COMPLETE)
   })
 
   // An amount is written from its own digits at two places; one at another

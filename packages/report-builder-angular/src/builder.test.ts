@@ -126,7 +126,7 @@ describe('a builder given another editor', () => {
     const next = createReportEditor(other)
     mounted.fixture.componentRef.setInput('editor', next)
     await mounted.settle()
-    expect((screen.getByRole('textbox', { name: 'Title' }) as HTMLInputElement).value).toBe('Another visit')
+    expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Title' }).value).toBe('Another visit')
     expect(old.listenerCount()).toBe(0)
     expect(next.listenerCount()).toBe(1)
     click(tree('Spacer'))

@@ -98,7 +98,11 @@ describe('state', () => {
     const after = editor.state().diagnostics
     // The new problem is listed before the one that was there: the case the key is for.
     expect(after.map((entry) => entry.label).indexOf('Error: Introduction')).toBeLessThan(after.map((entry) => entry.label).indexOf('Warning: Report'))
-    for (const entry of before) expect(after.find((each) => each.key === entry.key), entry.label).toMatchObject({ label: entry.label, message: entry.message })
+    for (const entry of before)
+      expect(
+        after.find((each) => each.key === entry.key),
+        entry.label,
+      ).toMatchObject({ label: entry.label, message: entry.message })
     expect(new Set(after.map((entry) => entry.key)).size).toBe(after.length)
   })
 
@@ -110,7 +114,12 @@ describe('state', () => {
     const alike = { severity: 'warning', code: 'unused-style', message: 'The style "a" is not used.', path: '/styles/0' } as const
     const other = { ...alike, path: '/styles/1' }
     expect(diagnosticKeys([alike, other, alike])).toEqual([diagnosticKeys([alike])[0], diagnosticKeys([other])[0], `${String(diagnosticKeys([alike])[0])} 2`])
-    expect(diagnosticKeys([{ ...alike, position: { start: 0, end: 3 } }, { ...alike, position: { start: 4, end: 7 } }])).toEqual(['unused-style /styles/0 0-3', 'unused-style /styles/0 4-7'])
+    expect(
+      diagnosticKeys([
+        { ...alike, position: { start: 0, end: 3 } },
+        { ...alike, position: { start: 4, end: 7 } },
+      ]),
+    ).toEqual(['unused-style /styles/0 0-3', 'unused-style /styles/0 4-7'])
   })
 
   // A builder in another language shows another language: the state says
@@ -242,13 +251,25 @@ describe('subscribe and dispose', () => {
     const billed = editorOver(billedReport())
     const unbilled = editorOver()
     for (const part of [undefined, 'toString']) {
-      expect(billed.editor.dispatch({ type: 'select', part } as never), String(part)).toMatchObject({ ok: false, code: 'not-found', message: `Nothing is called ${String(part)}.` })
+      expect(billed.editor.dispatch({ type: 'select', part } as never), String(part)).toMatchObject({
+        ok: false,
+        code: 'not-found',
+        message: `Nothing is called ${String(part)}.`,
+      })
       expect(billed.editor.state().selection, String(part)).toBeNull()
       expect(unbilled.editor.dispatch({ type: 'addPart', part } as never), String(part)).toMatchObject({ ok: false, code: 'not-found' })
       expect(unbilled.editor.state().selection, String(part)).toBeNull()
     }
-    expect(billed.editor.dispatch({ type: 'select', part: 'eInvoice' })).toMatchObject({ ok: false, code: 'not-found', message: 'Nothing is called E-invoice.' })
-    expect(unbilled.editor.dispatch({ type: 'addPart', part: 'eInvoice' })).toMatchObject({ ok: false, code: 'unavailable', message: 'An e-invoice is edited here, never made from nothing: start from a report that has one.' })
+    expect(billed.editor.dispatch({ type: 'select', part: 'eInvoice' })).toMatchObject({
+      ok: false,
+      code: 'not-found',
+      message: 'Nothing is called E-invoice.',
+    })
+    expect(unbilled.editor.dispatch({ type: 'addPart', part: 'eInvoice' })).toMatchObject({
+      ok: false,
+      code: 'unavailable',
+      message: 'An e-invoice is edited here, never made from nothing: start from a report that has one.',
+    })
     expect([billed.editor.state().selection, unbilled.editor.state().selection]).toEqual([null, null])
     expect([billed.session.revision(), unbilled.session.revision()]).toEqual([0, 0])
     expect(unbilled.session.document().paymentPart).toBeUndefined()
@@ -435,7 +456,10 @@ describe('selection', () => {
     expect(editor.dispatch({ type: 'selectChild' })).toMatchObject({ ok: false, code: 'at-edge' })
     // A container whose list is empty holds nothing either, though the next row is deeper than the one before it.
     const report = richReport()
-    const empty = editorOver({ ...report, regions: { ...report.regions, body: [{ id: 'hollow', kind: 'section', components: [] }, ...report.regions.body] } }).editor
+    const empty = editorOver({
+      ...report,
+      regions: { ...report.regions, body: [{ id: 'hollow', kind: 'section', components: [] }, ...report.regions.body] },
+    }).editor
     ok(empty.dispatch({ type: 'select', id: 'hollow' }))
     expect(empty.dispatch({ type: 'selectChild' })).toMatchObject({ ok: false, code: 'at-edge' })
     expect(empty.state().selection).toEqual({ id: 'hollow' })
@@ -448,7 +472,10 @@ describe('selection', () => {
   test('lets go of a component the session no longer has', () => {
     const { editor, session } = editorOver()
     ok(editor.dispatch({ type: 'select', id: 'gap' }))
-    session.apply((report) => ({ ok: true, report: { ...report, regions: { ...report.regions, body: report.regions.body.filter((component) => component.id !== 'gap') } } }))
+    session.apply((report) => ({
+      ok: true,
+      report: { ...report, regions: { ...report.regions, body: report.regions.body.filter((component) => component.id !== 'gap') } },
+    }))
     expect(editor.state().selection).toBeNull()
   })
 })
@@ -621,7 +648,14 @@ describe('insert and move to a place', () => {
   // and so does the refusal.
   test('refuses to insert a kind the report cannot hold yet', () => {
     const empty = richReport()
-    const report: ReportDefinition = { ...empty, assets: [], datasets: {}, regions: { reportHeader: [], pageHeader: [], body: [], pageFooter: [], summary: [] }, aggregates: [], parameters: [] }
+    const report: ReportDefinition = {
+      ...empty,
+      assets: [],
+      datasets: {},
+      regions: { reportHeader: [], pageHeader: [], body: [], pageFooter: [], summary: [] },
+      aggregates: [],
+      parameters: [],
+    }
     const { editor } = editorOver(report)
     expect(editor.dispatch({ type: 'insert', kind: 'image', target: { region: 'body', index: 0 } })).toMatchObject({ ok: false, code: 'unavailable' })
   })

@@ -193,5 +193,4 @@ export class FontFile {
     this.need(at, 4, table)
     return this.view.getUint32(at)
   }
-
 }

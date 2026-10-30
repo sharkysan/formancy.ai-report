@@ -24,7 +24,10 @@ const AUDIENCE = 'formancy-report'
 const roles = { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] }
 
 /** Accepts the literal token `good`, of tenant acme; everything else is a bad signature. The real verifier has its own suite, and the cases below. */
-const verifyIdentity: ReportVerifier = async (token) => (token === 'good' ? { ok: true, identity: { subject: 'u-1', tenant: 'acme', roles: ['report-authors', 'report-publishers'] } } : { ok: false, reason: 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' })
+const verifyIdentity: ReportVerifier = async (token) =>
+  token === 'good'
+    ? { ok: true, identity: { subject: 'u-1', tenant: 'acme', roles: ['report-authors', 'report-publishers'] } }
+    : { ok: false, reason: 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' }
 
 let app: FastifyInstance | undefined
 afterEach(async () => {
@@ -55,7 +58,14 @@ async function exchange(port: number, text: string, ms = 1000): Promise<{ answer
 
 const key = new TextEncoder().encode(SECRET)
 const signed = (claims: Record<string, unknown>, change: (jwt: SignJWT) => SignJWT = (jwt) => jwt) =>
-  change(new SignJWT({ tid: 'acme', roles: ['report-authors'], ...claims }).setProtectedHeader({ alg: 'HS256' }).setIssuer(ISSUER).setAudience(AUDIENCE).setSubject('u-1').setExpirationTime('5m')).sign(key)
+  change(
+    new SignJWT({ tid: 'acme', roles: ['report-authors'], ...claims })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuer(ISSUER)
+      .setAudience(AUDIENCE)
+      .setSubject('u-1')
+      .setExpirationTime('5m'),
+  ).sign(key)
 
 describe('health', () => {
   // An orchestrator needs a route that answers without credentials, and
@@ -100,7 +110,9 @@ describe('whoami', () => {
   // The operator's policy is the one createReportServer was given: the
   // same token under another policy is another person's capacities.
   test('reads the capacities from the policy the server was given', async () => {
-    const answer = await (await server({ roles: { author: [], publisher: [], admin: ['report-authors'] } })).inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: 'Bearer good' } })
+    const answer = await (
+      await server({ roles: { author: [], publisher: [], admin: ['report-authors'] } })
+    ).inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: 'Bearer good' } })
     expect(answer.json()).toMatchObject({ capacities: ['admin'], actions: ['template.list', 'policy.read', 'policy.set'] })
   })
 
@@ -111,14 +123,16 @@ describe('whoami', () => {
     const listening = await server()
     for (const route of Object.keys(ROUTES)) {
       const [method = '', url = ''] = route.split(' ')
-      expect(listening.hasRoute({ method: method as 'GET', url }), route).toBe(true)
+      expect(listening.hasRoute({ method, url }), route).toBe(true)
     }
   })
 
   // A policy is the operator's settings; one that is not lists of roles
   // would grant by accident, and does not start a server.
   test('does not start with a role policy that is not lists of roles', async () => {
-    await expect(server({ roles: { author: 'report-authors' } as unknown as ReportServerOptions['roles'] })).rejects.toThrow('roles is { author, publisher, admin }, each a list of the host’s roles.')
+    await expect(server({ roles: { author: 'report-authors' } as unknown as ReportServerOptions['roles'] })).rejects.toThrow(
+      'roles is { author, publisher, admin }, each a list of the host’s roles.',
+    )
   })
 })
 
@@ -131,14 +145,30 @@ describe('every bad token is the same 401', () => {
     const real = await createReportVerifier({ key: { kind: 'secret', secret: SECRET }, issuer: ISSUER, audience: AUDIENCE, tenantClaim: 'tid' })
     const { publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' })
     const pem = publicKey.export({ type: 'spki', format: 'pem' }).toString()
-    const confusedVerifier = await createReportVerifier({ key: { kind: 'public-key', pem, algorithm: 'ES256' }, issuer: ISSUER, audience: AUDIENCE, tenantClaim: 'tid' })
+    const confusedVerifier = await createReportVerifier({
+      key: { kind: 'public-key', pem, algorithm: 'ES256' },
+      issuer: ISSUER,
+      audience: AUDIENCE,
+      tenantClaim: 'tid',
+    })
     const tokens = {
-      'a wrong signature': await new SignJWT({ tid: 'acme' }).setProtectedHeader({ alg: 'HS256' }).setIssuer(ISSUER).setAudience(AUDIENCE).setSubject('u-1').setExpirationTime('5m').sign(new TextEncoder().encode('another-secret-of-at-least-thirty-two-bytes')),
+      'a wrong signature': await new SignJWT({ tid: 'acme' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuer(ISSUER)
+        .setAudience(AUDIENCE)
+        .setSubject('u-1')
+        .setExpirationTime('5m')
+        .sign(new TextEncoder().encode('another-secret-of-at-least-thirty-two-bytes')),
       'another issuer': await signed({}, (jwt) => jwt.setIssuer('https://other.example')),
       'another audience': await signed({}, (jwt) => jwt.setAudience('formancy-data')),
       expired: await signed({}, (jwt) => jwt.setExpirationTime(Math.floor(Date.now() / 1000) - 3600)),
       'no exp': await new SignJWT({ tid: 'acme' }).setProtectedHeader({ alg: 'HS256' }).setIssuer(ISSUER).setAudience(AUDIENCE).setSubject('u-1').sign(key),
-      'no sub': await new SignJWT({ tid: 'acme' }).setProtectedHeader({ alg: 'HS256' }).setIssuer(ISSUER).setAudience(AUDIENCE).setExpirationTime('5m').sign(key),
+      'no sub': await new SignJWT({ tid: 'acme' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuer(ISSUER)
+        .setAudience(AUDIENCE)
+        .setExpirationTime('5m')
+        .sign(key),
       'alg none': new UnsecuredJWT({ tid: 'acme' }).setIssuer(ISSUER).setAudience(AUDIENCE).setSubject('u-1').setExpirationTime('5m').encode(),
       'no tenant': await signed({ tid: undefined }),
     }
@@ -146,10 +176,18 @@ describe('every bad token is the same 401', () => {
     const plain = await createReportServer({ verifyIdentity: real, roles })
     const confused = await createReportServer({ verifyIdentity: confusedVerifier, roles })
     try {
-      for (const headers of [{}, { authorization: 'Basic dTpw' }, { authorization: 'Bearer a b' }, { authorization: 'bearer good' }]) answers.push(await plain.inject({ method: 'GET', url: '/v1/whoami', headers }))
-      for (const token of Object.values(tokens)) answers.push(await plain.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: `Bearer ${token}` } }))
+      for (const headers of [{}, { authorization: 'Basic dTpw' }, { authorization: 'Bearer a b' }, { authorization: 'bearer good' }])
+        answers.push(await plain.inject({ method: 'GET', url: '/v1/whoami', headers }))
+      for (const token of Object.values(tokens))
+        answers.push(await plain.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: `Bearer ${token}` } }))
       // HS256 over the PEM's text, against the server that verifies with that public key.
-      const forgery = await new SignJWT({ tid: 'acme' }).setProtectedHeader({ alg: 'HS256' }).setIssuer(ISSUER).setAudience(AUDIENCE).setSubject('u-1').setExpirationTime('5m').sign(new TextEncoder().encode(pem))
+      const forgery = await new SignJWT({ tid: 'acme' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuer(ISSUER)
+        .setAudience(AUDIENCE)
+        .setSubject('u-1')
+        .setExpirationTime('5m')
+        .sign(new TextEncoder().encode(pem))
       answers.push(await confused.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: `Bearer ${forgery}` } }))
       // And the honest token, so a server that refused everything would fail here.
       expect((await plain.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: `Bearer ${await signed({})}` } })).statusCode).toBe(200)
@@ -273,8 +311,19 @@ describe('a path that is not plain', () => {
   // which Fastify's router refuses quoting it, the same.
   test('is the one 400, quoting nothing, before any route', async () => {
     const listening = await server()
-    const refusal = '{"code":"path-not-plain","message":"This path holds an escape, an empty or a dot segment, or a character a path does not carry as itself. No route here is written that way, and a proxy in front of this server may read such a path otherwise, so it was not routed."}'
-    for (const url of ['/v1/%77hoami', '/%76%31/whoami', '/h%65alth', '/v1//whoami', '/v1/whoami/', '/', '/v1/who%2Fami', '/v1/%E0%A4%A', '/v1/a-pasted%20secret']) {
+    const refusal =
+      '{"code":"path-not-plain","message":"This path holds an escape, an empty or a dot segment, or a character a path does not carry as itself. No route here is written that way, and a proxy in front of this server may read such a path otherwise, so it was not routed."}'
+    for (const url of [
+      '/v1/%77hoami',
+      '/%76%31/whoami',
+      '/h%65alth',
+      '/v1//whoami',
+      '/v1/whoami/',
+      '/',
+      '/v1/who%2Fami',
+      '/v1/%E0%A4%A',
+      '/v1/a-pasted%20secret',
+    ]) {
       const answer = await listening.inject({ method: 'GET', url, headers: { authorization: 'Bearer good' } })
       expect(answer.statusCode, url).toBe(400)
       expect(answer.body, url).toBe(refusal)
@@ -329,7 +378,10 @@ describe('a request that holds its connection', () => {
   // whatever it held, and a slow one held its connection like the 404's.
   test('is refused at once, and closed, when it is a preflight with a body', async () => {
     await listening({ origins: ['https://app.example'] })
-    const { answer, closed } = await exchange(port, 'OPTIONS /v1/whoami HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: https://app.example\r\nAccess-Control-Request-Method: GET\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{')
+    const { answer, closed } = await exchange(
+      port,
+      'OPTIONS /v1/whoami HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: https://app.example\r\nAccess-Control-Request-Method: GET\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{',
+    )
     expect(answer).toMatch(/^HTTP\/1\.1 400 /)
     expect(answer).toContain('{"code":"bad-request","message":"The request could not be read."}')
     expect(closed).toBe(true)
@@ -396,7 +448,8 @@ describe('the rate limit', () => {
   test('limits requests per client address, 404s included, but not health', async () => {
     const limited = await server({ rateLimit: { max: 2, timeWindowMs: 60_000 } })
     const statuses = []
-    for (const url of ['/v1/whoami', '/nothing', '/v1/whoami']) statuses.push((await limited.inject({ method: 'GET', url, headers: { authorization: 'Bearer bad' } })).statusCode)
+    for (const url of ['/v1/whoami', '/nothing', '/v1/whoami'])
+      statuses.push((await limited.inject({ method: 'GET', url, headers: { authorization: 'Bearer bad' } })).statusCode)
     expect(statuses).toEqual([401, 404, 429])
     const refused = await limited.inject({ method: 'GET', url: '/v1/whoami' })
     expect(refused.json()).toEqual({ code: 'rate-limited', message: 'Too many requests came from this address; wait a minute and ask again.' })
@@ -442,12 +495,31 @@ describe('the log', () => {
     await logged.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: `Bearer ${bad}` } })
     await logged.inject({ method: 'GET', url: '/v1/a-pasted-token-in-a-path', headers: { authorization: `Bearer ${good}` } })
     // A path that is not plain, matched to a route or not, and one whose escape does not decode: each the one 400.
-    for (const url of ['/v1/%77hoami/a-pasted-plain', '/v1/who%61mi?pasted-query=1', '/v1/%E0%A4%A-pasted-escape']) expect((await logged.inject({ method: 'GET', url })).statusCode, url).toBe(400)
+    for (const url of ['/v1/%77hoami/a-pasted-plain', '/v1/who%61mi?pasted-query=1', '/v1/%E0%A4%A-pasted-escape'])
+      expect((await logged.inject({ method: 'GET', url })).statusCode, url).toBe(400)
     const log = lines.join('')
     expect(log).toContain('"route":"/v1/whoami"')
     expect(log).toContain('host identity refused')
     expect(log).toContain('ERR_JWT_CLAIM_VALIDATION_FAILED')
-    for (const part of [good, bad, ...good.split('.'), ...bad.split('.'), 'hunter2', 'password', 'secret-host', 'a-pasted-token', 'a-pasted-plain', 'pasted-query', 'pasted-escape', '%E0', '%77', '%61', 'tenant-of-acme', 'person-at-acme']) expect(log, part).not.toContain(part)
+    for (const part of [
+      good,
+      bad,
+      ...good.split('.'),
+      ...bad.split('.'),
+      'hunter2',
+      'password',
+      'secret-host',
+      'a-pasted-token',
+      'a-pasted-plain',
+      'pasted-query',
+      'pasted-escape',
+      '%E0',
+      '%77',
+      '%61',
+      'tenant-of-acme',
+      'person-at-acme',
+    ])
+      expect(log, part).not.toContain(part)
   })
 
   // A line names the connection a request came on by the address the
@@ -462,7 +534,8 @@ describe('the log', () => {
     const logged = await server({ trustedProxies: ['127.0.0.1'], logger: { stream: { write: (line) => void lines.push(line) } } })
     await logged.listen({ host: '127.0.0.1', port: 0 })
     const { port } = logged.server.address() as AddressInfo
-    const ask = (headers: string) => exchange(port, `GET /v1/whoami HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer good\r\n${headers}Connection: close\r\n\r\n`)
+    const ask = (headers: string) =>
+      exchange(port, `GET /v1/whoami HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer good\r\n${headers}Connection: close\r\n\r\n`)
     const direct = await ask('')
     const forwarded = await ask('X-Forwarded-For: 198.51.100.7\r\n')
     expect([direct.answer, forwarded.answer].map((answer) => answer.slice(0, 15))).toEqual(['HTTP/1.1 200 OK', 'HTTP/1.1 200 OK'])

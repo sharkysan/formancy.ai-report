@@ -143,9 +143,25 @@ class Collector {
     this.lines = lines
   }
 
-  expression(expression: Expression | undefined, path: string, scope: ValueScope, kind: ExpressionSite['kind'], owner: Owner = {}, term?: InvoiceTerm, format?: Format): void {
+  expression(
+    expression: Expression | undefined,
+    path: string,
+    scope: ValueScope,
+    kind: ExpressionSite['kind'],
+    owner: Owner = {},
+    term?: InvoiceTerm,
+    format?: Format,
+  ): void {
     if (expression === undefined) return
-    this.expressions.push({ cel: expression.cel, scope, kind, path: `${path}/cel`, ...owner, ...(term === undefined ? {} : { term }), ...(format === undefined ? {} : { format }) })
+    this.expressions.push({
+      cel: expression.cel,
+      scope,
+      kind,
+      path: `${path}/cel`,
+      ...owner,
+      ...(term === undefined ? {} : { term }),
+      ...(format === undefined ? {} : { format }),
+    })
   }
 
   /** The term the column `column` of the table `table` prints of each line, when the e-invoice names it. */
@@ -358,7 +374,8 @@ const en16931 = (invoice: EInvoice, path: string, into: Collector): void => {
   into.expression(invoice.period?.start, `${path}/period/start`, 'report', 'computed', {}, date('BT-73'))
   into.expression(invoice.period?.end, `${path}/period/end`, 'report', 'computed', {}, date('BT-74'))
   for (const [index, category] of invoice.vat.entries()) into.invoiceText(category.reason, `${path}/vat/${index}/reason`)
-  for (const key of Object.keys(E_INVOICE_LINE_CODES) as EInvoiceLineCode[]) into.lineCode(invoice.lines[key], `${path}/lines/${key}`, E_INVOICE_LINE_CODES[key])
+  for (const key of Object.keys(E_INVOICE_LINE_CODES) as EInvoiceLineCode[])
+    into.lineCode(invoice.lines[key], `${path}/lines/${key}`, E_INVOICE_LINE_CODES[key])
   for (const key of PAYMENT_TEXTS) into.invoiceText(invoice.payment?.[key], `${path}/payment/${key}`)
   into.expression(invoice.due, `${path}/due`, 'report', 'computed', {}, date('BT-9'))
   into.invoiceText(invoice.terms, `${path}/terms`)
@@ -386,9 +403,9 @@ export function reportParts(report: ReportDefinition): ReportParts {
     into.expression(component.visibleWhen, `${path}/visibleWhen`, 'report', 'visible', owner)
     into.style(component.style)
     into.rules(component.styleWhen, `${path}/styleWhen`, 'report', owner)
-    ;(READERS[component.kind] as Reader<ComponentKind>)(component as never, path, into)
+    ;(READERS[component.kind] as Reader<ComponentKind>)(component, path, into)
   }
-  if (report.paymentPart !== undefined) (PAYMENT_PARTS[report.paymentPart.kind] as PartReader<PaymentPartKind>)(report.paymentPart, '/paymentPart', into)
+  if (report.paymentPart !== undefined) PAYMENT_PARTS[report.paymentPart.kind](report.paymentPart, '/paymentPart', into)
   if (report.eInvoice !== undefined) (E_INVOICES[report.eInvoice.kind] as InvoiceReader<EInvoiceKind>)(report.eInvoice, '/eInvoice', into)
   for (const [index, aggregate] of report.aggregates.entries()) {
     // What an aggregate reads, it reads from each detail row.

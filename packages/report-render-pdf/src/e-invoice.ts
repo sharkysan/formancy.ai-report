@@ -78,7 +78,11 @@ export function checkEInvoice(file: unknown): EInvoiceFile {
  */
 export function checkCopyLabel(pageHeader: readonly Block[]): void {
   if (!samePlain(pageHeader[0], XRECHNUNG_COPY_PARAGRAPH)) {
-    throw new RenderRefusal('unsupported', "an XRechnung's PDF is a copy of its XML, labelled so at the top of every page, and this document's page header does not open with the label as the runtime writes it", 'pageHeader')
+    throw new RenderRefusal(
+      'unsupported',
+      "an XRechnung's PDF is a copy of its XML, labelled so at the top of every page, and this document's page header does not open with the label as the runtime writes it",
+      'pageHeader',
+    )
   }
 }
 
@@ -87,7 +91,10 @@ function samePlain(a: unknown, b: unknown): boolean {
   if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return a === b
   if (Array.isArray(a) !== Array.isArray(b)) return false
   const [left, right] = [Object.keys(a), Object.keys(b)]
-  return left.length === right.length && left.every((key) => right.includes(key) && samePlain((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]))
+  return (
+    left.length === right.length &&
+    left.every((key) => right.includes(key) && samePlain((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]))
+  )
 }
 
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/
@@ -106,11 +113,22 @@ const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[
  */
 export function checkEInvoiceTitle(title: string): void {
   if (/[&<>]/.test(title) || [...title].some((character) => !xmlCharacter(character.codePointAt(0)!))) {
-    throw new RenderRefusal('unsupported', "an e-invoice's title is written into its PDF/A's XMP as it stands, where it may hold no &, < or > and no character XML 1.0 cannot write: this one does", 'info.title')
+    throw new RenderRefusal(
+      'unsupported',
+      "an e-invoice's title is written into its PDF/A's XMP as it stands, where it may hold no &, < or > and no character XML 1.0 cannot write: this one does",
+      'info.title',
+    )
   }
 }
 
 /** XML 1.0's Char: tab, line feed and carriage return, and every code point from U+0020 but the surrogates, U+FFFE and U+FFFF. A lone surrogate is read as its own code point, and is none. */
 function xmlCharacter(code: number): boolean {
-  return code === 0x9 || code === 0xa || code === 0xd || (code >= 0x20 && code <= 0xd7ff) || (code >= 0xe000 && code <= 0xfffd) || (code >= 0x10000 && code <= 0x10ffff)
+  return (
+    code === 0x9 ||
+    code === 0xa ||
+    code === 0xd ||
+    (code >= 0x20 && code <= 0xd7ff) ||
+    (code >= 0xe000 && code <= 0xfffd) ||
+    (code >= 0x10000 && code <= 0x10ffff)
+  )
 }

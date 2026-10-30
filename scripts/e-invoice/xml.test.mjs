@@ -15,7 +15,9 @@ describe('readXml', () => {
   // under another, and find an element of another namespace written under
   // that one.
   test('knows an element by its namespace and local name, whatever its prefix', () => {
-    const root = readXml(`<?xml version="1.0"?><r:report xmlns:r="${REP}" valid="true"><r:assessment><r:accept/></r:assessment><x:accept xmlns:x="urn:other"/></r:report>`)
+    const root = readXml(
+      `<?xml version="1.0"?><r:report xmlns:r="${REP}" valid="true"><r:assessment><r:accept/></r:assessment><x:accept xmlns:x="urn:other"/></r:report>`,
+    )
     expect([root.uri, root.local, attribute(root, 'valid')]).toEqual([REP, 'report', 'true'])
     expect(childOf(root, REP, 'assessment') && childOf(childOf(root, REP, 'assessment'), REP, 'accept')?.local).toBe('accept')
     expect(childrenOf(root, REP, 'accept')).toEqual([])

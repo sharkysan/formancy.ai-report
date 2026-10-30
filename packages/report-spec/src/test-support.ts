@@ -152,7 +152,11 @@ export function richReport(): ReportDefinition {
               header: 'Price',
               width: 'fill',
               align: 'right',
-              value: { kind: 'field', field: detail('unit_price'), format: { kind: 'currency', currency: { kind: 'field', field: header('currency') }, scale: 2 } },
+              value: {
+                kind: 'field',
+                field: detail('unit_price'),
+                format: { kind: 'currency', currency: { kind: 'field', field: header('currency') }, scale: 2 },
+              },
             },
             {
               id: 'amount',
@@ -187,7 +191,12 @@ export function richReport(): ReportDefinition {
                   { column: 'sku', value: { kind: 'text', text: 'Subtotal' } },
                   {
                     column: 'amount',
-                    value: { kind: 'aggregate', aggregate: 'subtotal', over: 'group', format: { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 2 } },
+                    value: {
+                      kind: 'aggregate',
+                      aggregate: 'subtotal',
+                      over: 'group',
+                      format: { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 2 },
+                    },
                   },
                 ],
               },
@@ -343,7 +352,10 @@ export function facturXInvoice(): FacturXInvoice {
     profile: 'en16931',
     type: '380',
     currency: 'EUR',
-    number: [{ kind: 'text', text: 'RE-' }, { kind: 'expression', expression: { cel: 'header.customer' } }],
+    number: [
+      { kind: 'text', text: 'RE-' },
+      { kind: 'expression', expression: { cel: 'header.customer' } },
+    ],
     issued: { cel: 'header.orderedOn' },
     businessProcess: said('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
     seller: {
@@ -386,7 +398,10 @@ export function facturXInvoice(): FacturXInvoice {
       iban: said('DE71 1102 2033 0123 4567 89'),
       bic: said('BHBLDEHHXXX'),
       accountName: said('Franz Mustermänn'),
-      remittance: [{ kind: 'text', text: 'Rechnung ' }, { kind: 'expression', expression: { cel: 'header.customer' } }],
+      remittance: [
+        { kind: 'text', text: 'Rechnung ' },
+        { kind: 'expression', expression: { cel: 'header.customer' } },
+      ],
     },
     due: { cel: 'header.orderedOn' },
     terms: said('Zahlbar innerhalb von 14 Tagen ohne Abzug'),
@@ -403,7 +418,11 @@ export function eInvoiceReport(): ReportDefinition {
   const { paymentPart: _bill, ...report } = richReport()
   // richReport declares its detail dataset, which its table reads.
   const lines = report.datasets.detail as DatasetContract
-  const fields = [...lines.fields, { id: 'unit', type: 'string', label: 'Unit', nullable: false } as const, { id: 'vat', type: 'string', label: 'VAT', nullable: false } as const]
+  const fields = [
+    ...lines.fields,
+    { id: 'unit', type: 'string', label: 'Unit', nullable: false } as const,
+    { id: 'vat', type: 'string', label: 'VAT', nullable: false } as const,
+  ]
   return { ...report, datasets: { ...report.datasets, detail: { ...lines, fields } }, eInvoice: facturXInvoice() }
 }
 
@@ -417,7 +436,14 @@ export function eInvoiceReport(): ReportDefinition {
 export function xrechnungInvoice(): XRechnungInvoice {
   const { profile: _profile, kind: _kind, ...terms } = facturXInvoice()
   const { businessProcess, buyerReference, payment, seller, buyer } = terms
-  if (businessProcess === undefined || buyerReference === undefined || payment === undefined || seller.contact === undefined || seller.electronicAddress === undefined || buyer.electronicAddress === undefined) {
+  if (
+    businessProcess === undefined ||
+    buyerReference === undefined ||
+    payment === undefined ||
+    seller.contact === undefined ||
+    seller.electronicAddress === undefined ||
+    buyer.electronicAddress === undefined
+  ) {
     throw new Error('the Factur-X fixture lacks a term an XRechnung needs')
   }
   return {
@@ -488,7 +514,13 @@ export function getAt(document: unknown, pointer: string): unknown {
 /** The container a pointer's last segment names a slot in, and that slot. */
 function parentOf(document: unknown, pointer: string): [Record<string, unknown> | unknown[], string] {
   const parts = segments(pointer)
-  const parent = getAt(document, parts.slice(0, -1).map((part) => `/${part.replaceAll('~', '~0').replaceAll('/', '~1')}`).join(''))
+  const parent = getAt(
+    document,
+    parts
+      .slice(0, -1)
+      .map((part) => `/${part.replaceAll('~', '~0').replaceAll('/', '~1')}`)
+      .join(''),
+  )
   return [parent as Record<string, unknown> | unknown[], parts.at(-1) as string]
 }
 

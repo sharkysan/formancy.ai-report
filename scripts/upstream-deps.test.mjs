@@ -1,11 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import {
-  lockedPackages,
-  releaseAgeExemptionProblems,
-  releaseAgeExemptions,
-  upstreamDependencyProblems,
-  workspaceManifests,
-} from './upstream-deps.mjs'
+import { lockedPackages, releaseAgeExemptionProblems, releaseAgeExemptions, upstreamDependencyProblems, workspaceManifests } from './upstream-deps.mjs'
 
 describe('upstreamDependencyProblems', () => {
   const core = { name: '@formancy/report-spec', dependencies: { '@formancy/spec': '0.3.0' } }
@@ -27,10 +21,7 @@ describe('upstreamDependencyProblems', () => {
   // A sibling in this workspace is not upstream; `workspace:*` is right for it.
   test('accepts an exact upstream version and a workspace sibling', () => {
     expect(
-      upstreamDependencyProblems([
-        core,
-        { name: '@formancy/report-core', dependencies: { '@formancy/report-spec': 'workspace:*', pdfmake: '^0.3.0' } },
-      ]),
+      upstreamDependencyProblems([core, { name: '@formancy/report-core', dependencies: { '@formancy/report-spec': 'workspace:*', pdfmake: '^0.3.0' } }]),
     ).toEqual([])
   })
 

@@ -99,7 +99,15 @@ const ROOM: Block = { kind: 'spacer', height: 6 }
  * `contain` in a box of `contain`'s size, and to `cover` in one of
  * `cover`'s.
  */
-function drawn(id: string, title: string, bytes: Uint8Array, header: readonly [number, number], contain: readonly [number, number], cover: readonly [number, number], caption: Paragraph): Fixture {
+function drawn(
+  id: string,
+  title: string,
+  bytes: Uint8Array,
+  header: readonly [number, number],
+  contain: readonly [number, number],
+  cover: readonly [number, number],
+  caption: Paragraph,
+): Fixture {
   const titled = documentOf(title, [
     heading(title),
     ROOM,
@@ -119,9 +127,25 @@ function drawn(id: string, title: string, bytes: Uint8Array, header: readonly [n
   return { id: `svg-${id}`, title: `${title}: an SVG drawn as vectors inside its box, in the body and on every page`, document, maxPages: 5, expect }
 }
 
-export const svgMark = drawn('mark', 'SVG mark', SVG_MARK, [24, 24], [120, 80], [120, 40], paragraph('The mark above is contained in a wide box, then covers one.'))
+export const svgMark = drawn(
+  'mark',
+  'SVG mark',
+  SVG_MARK,
+  [24, 24],
+  [120, 80],
+  [120, 40],
+  paragraph('The mark above is contained in a wide box, then covers one.'),
+)
 
-export const svgWindow = drawn('window', 'SVG window', SVG_WINDOW, [48, 24], [80, 80], [80, 80], paragraph('The window above is contained in a square, then covers one.'))
+export const svgWindow = drawn(
+  'window',
+  'SVG window',
+  SVG_WINDOW,
+  [48, 24],
+  [80, 80],
+  [80, 80],
+  paragraph('The window above is contained in a square, then covers one.'),
+)
 
 const saved = svgImage('mark-as-saved', SVG_AS_SAVED, 60, 60, 'contain')
 const savedDocument = documentOf('SVG as saved', [heading('SVG as saved'), saved])

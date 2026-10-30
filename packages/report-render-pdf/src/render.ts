@@ -77,7 +77,12 @@ async function measureSlip(engine: Engine, bill: CheckedBill, page: Page, setup:
   refusePage(setup, regions.header + ABOVE_SLIP)
   for (const part of [PAYMENT_PART, RECEIPT]) {
     const { width, height, millimetres } = part.information
-    const refusal = (): RenderRefusal => new RenderRefusal('content-too-large', `${part.name}'s information is taller than its section: SIX gives it ${millimetres} mm (${height.toFixed(2)} pt)`, 'paymentPart')
+    const refusal = (): RenderRefusal =>
+      new RenderRefusal(
+        'content-too-large',
+        `${part.name}'s information is taller than its section: SIX gives it ${millimetres} mm (${height.toFixed(2)} pt)`,
+        'paymentPart',
+      )
     const item: Content = { stack: informationContent(bill.bill, part), margin: [0, 0, page.paperWidth - width, 0] }
     const sheet = { width: page.paperWidth, height: height + 3 * SENTINEL_LINE + SECTION_SLACK, left: 0, right: 0 }
     await measure(engine, sheet, [item], resources(fonts, {}), refusal, [], fonts.engine)
@@ -133,13 +138,27 @@ async function measureBody(engine: Engine, checked: Checked, fonts: RenderFonts,
   measured.forEach(({ block, at, inset, under }, index) => {
     const room = bodyHeight - inset
     if (block.kind === 'keepTogether' && heights[index]! > room - FIT_SLACK) {
-      throw new RenderRefusal('content-too-large', `the keep-together block ${at} is ${heights[index]!.toFixed(2)} pt tall; a page's body is ${room.toFixed(2)} pt where it stands`, at)
+      throw new RenderRefusal(
+        'content-too-large',
+        `the keep-together block ${at} is ${heights[index]!.toFixed(2)} pt tall; a page's body is ${room.toFixed(2)} pt where it stands`,
+        at,
+      )
     }
     if (block.kind === 'table') {
       const rows = build.measuredRows.get(block)!
-      const pitches = rowPitches(rows.map((row) => row.mark), top, ends[index]!)
+      const pitches = rowPitches(
+        rows.map((row) => row.mark),
+        top,
+        ends[index]!,
+      )
       refuseLineUnderHeader(block, under!, pitches[0]!, room)
-      plans.set(block, tablePlan(rows.map((row, at) => ({ kind: row.kind, pitch: pitches[at]! })), room))
+      plans.set(
+        block,
+        tablePlan(
+          rows.map((row, at) => ({ kind: row.kind, pitch: pitches[at]! })),
+          room,
+        ),
+      )
     }
   })
   return plans

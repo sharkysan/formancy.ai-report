@@ -134,7 +134,12 @@ describe('how a QR code is drawn', () => {
     const code = await onlyCode(bytes)
     const module = size / (modulesOf(code.version) + 8)
     // Where a scanner finds the symbol: within half a point of four modules in from every side.
-    expect(code).toMatchObject({ x: expect.closeTo(square!.x + 4 * module, 0), top: expect.closeTo(square!.top + 4 * module, 0), width: expect.closeTo(size - 8 * module, 0), height: expect.closeTo(size - 8 * module, 0) })
+    expect(code).toMatchObject({
+      x: expect.closeTo(square!.x + 4 * module, 0),
+      top: expect.closeTo(square!.top + 4 * module, 0),
+      width: expect.closeTo(size - 8 * module, 0),
+      height: expect.closeTo(size - 8 * module, 0),
+    })
     // Every dark module is one module tall, in a row of the grid, inside the quiet zone, and painted over the white.
     for (const each of dark(drawing[0]!.shapes)) {
       expect(each.height).toBeCloseTo(module, DRAWN)
@@ -191,7 +196,13 @@ describe('how a QR code is drawn', () => {
   test('draws a code in a column at the column, and in a frame inside its padding', async () => {
     const { bytes, drawing } = await rendered(
       bareDocument('Placed', [
-        { kind: 'columns', columns: [{ width: 'fill', blocks: [paragraph('Beside the code')] }, { width: 80, blocks: [qr('INV-2026-0042', 80, 'Q', 'column-code')] }] },
+        {
+          kind: 'columns',
+          columns: [
+            { width: 'fill', blocks: [paragraph('Beside the code')] },
+            { width: 80, blocks: [qr('INV-2026-0042', 80, 'Q', 'column-code')] },
+          ],
+        },
         { kind: 'section', padding: 12, fill: '#eeeeee', blocks: [qr('INV-2026-0043', 60, 'Q', 'framed-code')] },
       ]),
     )
@@ -221,21 +232,29 @@ describe('how a QR code is drawn', () => {
   // code no scanner reads, and nothing would refuse it. Version 40 at H
   // holds 1273 bytes, the fewest of any level, so it is the largest symbol
   // for the least text: every byte of it is drawn and read back.
-  test('draws the largest symbol whole, and a scanner reads every byte of it', async () => {
-    const text = 'x'.repeat(1273)
-    const { bytes } = await rendered(bareDocument('Version 40', [qr(text, 300, 'H')]))
-    expect(await onlyCode(bytes)).toMatchObject({ text, ecLevel: 'H', version: 40 })
-  }, TIMEOUT)
+  test(
+    'draws the largest symbol whole, and a scanner reads every byte of it',
+    async () => {
+      const text = 'x'.repeat(1273)
+      const { bytes } = await rendered(bareDocument('Version 40', [qr(text, 300, 'H')]))
+      expect(await onlyCode(bytes)).toMatchObject({ text, ecLevel: 'H', version: 40 })
+    },
+    TIMEOUT,
+  )
 
   // pdfmake's page header and footer are laid out anew for every page; a
   // code there is drawn on each, and encoded once.
-  test('prints a code in the page footer on every page, encoded once', async () => {
-    const document = { ...documentOf('Footer code', [ledger('lines', details(1, 120))]), pageFooter: [qr('INV-2026-0042', 40, 'Q', 'footer-code')] }
-    const { bytes, pdf } = await rendered(document)
-    expect(pdf.pages.length).toBeGreaterThan(1)
-    for (const page of pdf.pages) expect((await onlyCode(bytes, page.number)).text).toBe('INV-2026-0042')
-    expect(encode).toHaveBeenCalledTimes(1)
-  }, TIMEOUT)
+  test(
+    'prints a code in the page footer on every page, encoded once',
+    async () => {
+      const document = { ...documentOf('Footer code', [ledger('lines', details(1, 120))]), pageFooter: [qr('INV-2026-0042', 40, 'Q', 'footer-code')] }
+      const { bytes, pdf } = await rendered(document)
+      expect(pdf.pages.length).toBeGreaterThan(1)
+      for (const page of pdf.pages) expect((await onlyCode(bytes, page.number)).text).toBe('INV-2026-0042')
+      expect(encode).toHaveBeenCalledTimes(1)
+    },
+    TIMEOUT,
+  )
 })
 
 describe('a QR code in the flow', () => {
@@ -264,13 +283,22 @@ describe('a QR code in the flow', () => {
   test('stays where it stands when pdfmake lays the document out again', async () => {
     const terms: Block = { kind: 'keepTogether', blocks: Array.from({ length: 8 }, (_, index) => paragraph(`Term ${index + 1}`)) }
     // The heading fits at the foot of the first page; the eight terms kept together after it do not.
-    const document = bareDocument('Laid out again', [qr('INV-2026-0041', 60, 'Q', 'first-code'), { kind: 'spacer', height: BODY_HEIGHT - 120 }, heading('Terms'), terms])
+    const document = bareDocument('Laid out again', [
+      qr('INV-2026-0041', 60, 'Q', 'first-code'),
+      { kind: 'spacer', height: BODY_HEIGHT - 120 },
+      heading('Terms'),
+      terms,
+    ])
     const { bytes, pdf, drawing } = await rendered(document)
     expect(lineOf(pdf, 'Terms').page).toBe(2)
     const [square] = white(drawing[0]!.shapes)
     expect(square).toMatchObject({ x: expect.closeTo(LEFT, DRAWN), top: expect.closeTo(PAGE.margins.top, DRAWN) })
     const module = 60 / (modulesOf(1) + 8)
-    expect(await onlyCode(bytes, 1)).toMatchObject({ text: 'INV-2026-0041', x: expect.closeTo(LEFT + 4 * module, 0), top: expect.closeTo(PAGE.margins.top + 4 * module, 0) })
+    expect(await onlyCode(bytes, 1)).toMatchObject({
+      text: 'INV-2026-0041',
+      x: expect.closeTo(LEFT + 4 * module, 0),
+      top: expect.closeTo(PAGE.margins.top + 4 * module, 0),
+    })
   })
 
   // A page that holds a code and no text prints something: the corpus's
@@ -294,14 +322,22 @@ describe('what a QR code refuses', () => {
   // A code drawn at another level, cut short, or not drawn at all says
   // something the report does not.
   test('refuses text no version holds at its level', async () => {
-    expect(await refusal(bareDocument('Too long', [qr('x'.repeat(1274), 300, 'H')]))).toMatchObject({ code: 'content-too-large', subject: 'payment-code', message: expect.stringContaining('1274 bytes') })
+    expect(await refusal(bareDocument('Too long', [qr('x'.repeat(1274), 300, 'H')]))).toMatchObject({
+      code: 'content-too-large',
+      subject: 'payment-code',
+      message: expect.stringContaining('1274 bytes'),
+    })
   })
 
   // Encoding takes time and memory with the length of the text, and a
   // field's value can be any length: text longer than any code holds, in
   // any mode at any level, is refused without being encoded.
   test('refuses text past the most any version holds, unencoded', async () => {
-    expect(await refusal(bareDocument('Too long', [qr('1'.repeat(7090), 300, 'L')]))).toMatchObject({ code: 'content-too-large', subject: 'payment-code', message: expect.stringContaining('7090 characters') })
+    expect(await refusal(bareDocument('Too long', [qr('1'.repeat(7090), 300, 'L')]))).toMatchObject({
+      code: 'content-too-large',
+      subject: 'payment-code',
+      message: expect.stringContaining('7090 characters'),
+    })
     expect(encode).not.toHaveBeenCalled()
   })
 
@@ -321,10 +357,14 @@ describe('what a QR code refuses', () => {
 
   // Every character a version-40 code at level L holds as digits is drawn;
   // the cap that refuses longer text unread is no lower than the standard's.
-  test('draws the most digits any version holds', async () => {
-    const { bytes } = await rendered(bareDocument('Most digits', [qr('1'.repeat(7089), 300, 'L')]))
-    expect(await onlyCode(bytes)).toMatchObject({ text: '1'.repeat(7089), version: 40 })
-  }, TIMEOUT)
+  test(
+    'draws the most digits any version holds',
+    async () => {
+      const { bytes } = await rendered(bareDocument('Most digits', [qr('1'.repeat(7089), 300, 'L')]))
+      expect(await onlyCode(bytes)).toMatchObject({ text: '1'.repeat(7089), version: 40 })
+    },
+    TIMEOUT,
+  )
 
   // The encoder failing for any other reason than text too long is the
   // engine failing, and said so, never a report refused for its length.
@@ -360,14 +400,30 @@ describe('what a QR code refuses', () => {
   test('refuses the largest code a QR-bill prints, its modules 0.393 mm', async () => {
     const symbol = modulesOf(25)
     const refused = await refusal(bareDocument('QR-bill', [qr('x'.repeat(997), (((46 * 72) / 25.4) * (symbol + 8)) / symbol)]))
-    expect(refused).toMatchObject({ code: 'content-too-large', subject: 'payment-code', message: expect.stringContaining(`the ${symbol + 8} modules across its symbol and quiet zone 1.11 pt each`) })
+    expect(refused).toMatchObject({
+      code: 'content-too-large',
+      subject: 'payment-code',
+      message: expect.stringContaining(`the ${symbol + 8} modules across its symbol and quiet zone 1.11 pt each`),
+    })
   })
 
   // A square wider than where it stands runs into the next column or past
   // the margin; taller than the body, past its foot.
   test.each([
     ['wider than the page', [qr('A', PRINTABLE_WIDTH + 1)], PAGE],
-    ['wider than its column', [{ kind: 'columns', columns: [{ width: 100, blocks: [qr('A', 120)] }, { width: 'fill', blocks: [] }] }], PAGE],
+    [
+      'wider than its column',
+      [
+        {
+          kind: 'columns',
+          columns: [
+            { width: 100, blocks: [qr('A', 120)] },
+            { width: 'fill', blocks: [] },
+          ],
+        },
+      ],
+      PAGE,
+    ],
     ['wider than the padding of its frame leaves', [{ kind: 'section', padding: 20, blocks: [qr('A', PRINTABLE_WIDTH - 20)] }], PAGE],
     ['taller than the body of a landscape page', [qr('A', 500)], { ...PAGE, orientation: 'landscape' }],
   ] as const)('refuses a code %s', async (_, body, page) => {

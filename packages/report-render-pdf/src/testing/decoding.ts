@@ -37,7 +37,13 @@ export const DECODED = {
     'large-interlaced',
   ),
   paletted: asset(
-    encodePng(SIDE.paletted, SIDE.paletted, (x, y) => [(x + y) % 4], { colour: 3, chunks: [['PLTE', PALETTE], ['tRNS', PALETTE_ALPHA]] }),
+    encodePng(SIDE.paletted, SIDE.paletted, (x, y) => [(x + y) % 4], {
+      colour: 3,
+      chunks: [
+        ['PLTE', PALETTE],
+        ['tRNS', PALETTE_ALPHA],
+      ],
+    }),
     'image/png',
     'large-paletted',
   ),

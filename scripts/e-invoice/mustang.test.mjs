@@ -19,13 +19,28 @@ import { readRegisters } from './registers.mjs'
 const here = dirname(fileURLToPath(import.meta.url))
 const recorded = (...path) => readFileSync(join(here, 'recorded', ...path), 'utf8')
 const run = JSON.parse(recorded('run.json'))
-const xml = corpus({ samples: run.samples.map((id) => ({ id })), xmlOf: (sample) => recorded('corpus', `${sample.id}.xml`), kindOf: (sample) => run.kinds[sample.id].kind, guidelineOf: (sample) => run.kinds[sample.id].guideline })
+const xml = corpus({
+  samples: run.samples.map((id) => ({ id })),
+  xmlOf: (sample) => recorded('corpus', `${sample.id}.xml`),
+  kindOf: (sample) => run.kinds[sample.id].kind,
+  guidelineOf: (sample) => run.kinds[sample.id].guideline,
+})
 const entries = [...xml, ...pdfPlan(xml)]
 const { accepted } = readRegisters()
 const PROFILE = 'urn:cen.eu:en16931:2017'
 
 /** The recorded run of every file: its status, its report and its log. */
-const runs = () => new Map(entries.map((entry) => [entry.file, { status: run.mustang[entry.file], stdout: recorded('mustang', mustangOutputs(entry.file).report), stderr: recorded('mustang', mustangOutputs(entry.file).log) }]))
+const runs = () =>
+  new Map(
+    entries.map((entry) => [
+      entry.file,
+      {
+        status: run.mustang[entry.file],
+        stdout: recorded('mustang', mustangOutputs(entry.file).report),
+        stderr: recorded('mustang', mustangOutputs(entry.file).log),
+      },
+    ]),
+  )
 /** The recorded run on `file`, its report naming `as` as the file it judged. */
 const runOf = (file, as) => {
   const ran = runs().get(file)
@@ -44,7 +59,18 @@ describe('Mustang’s command line', () => {
   // directory into the working directory; the source is always given, or
   // Mustang asks for it on stdin.
   test('validates the one file, its proxies at a dead port, with no notices and no log directory', () => {
-    expect(mustangArguments({ jar: 'M.jar', file: 'e-invoice.xml' })).toEqual([...JVM_OPTIONS, '-Xmx1G', '-jar', 'M.jar', '--action', 'validate', '--no-notices', '--disable-file-logging', '--source', 'e-invoice.xml'])
+    expect(mustangArguments({ jar: 'M.jar', file: 'e-invoice.xml' })).toEqual([
+      ...JVM_OPTIONS,
+      '-Xmx1G',
+      '-jar',
+      'M.jar',
+      '--action',
+      'validate',
+      '--no-notices',
+      '--disable-file-logging',
+      '--source',
+      'e-invoice.xml',
+    ])
   })
 
   // A sample's XML and its PDF share a name but for the extension; the
@@ -81,7 +107,13 @@ describe('reading Mustang', () => {
     expect(sample.pdf).toEqual({ result: { flavour: '3b', compliant: true, failed: [] }, messages: [], status: 'valid' })
     const trap = readMustang(recorded('mustang', 'control-pdfa.pdf.report.xml'))
     // The #1293 trap: the PDF part invalid, with no message, and the report valid.
-    expect([trap.pdf.result, trap.pdf.messages, trap.pdf.status, trap.xml.status, trap.status]).toEqual([{ flavour: '3b', compliant: false, failed: ['pdfa 3b 6.2.4.3-2'] }, [], 'invalid', 'valid', 'valid'])
+    expect([trap.pdf.result, trap.pdf.messages, trap.pdf.status, trap.xml.status, trap.status]).toEqual([
+      { flavour: '3b', compliant: false, failed: ['pdfa 3b 6.2.4.3-2'] },
+      [],
+      'invalid',
+      'valid',
+      'valid',
+    ])
     const plain = readMustang(recorded('mustang', 'control-plain.pdf.report.xml'))
     expect(plain.pdf.result.flavour).toBe('1b')
     expect(plain.pdf.messages.map((message) => message.key)).toEqual(['pdf error 17', 'pdf error 23'])
@@ -97,7 +129,11 @@ describe('reading Mustang', () => {
     expect(readMustangLog(recorded('mustang', 'e-invoice.log'))).toEqual({ compiled: ['/xslt/ZF_250/FACTUR-X_EN16931.xslt'], refusals: [] })
     expect(readMustangLog(recorded('mustang', 'control-br-27.log')).refusals).toEqual([])
     expect(readMustangLog(recorded('mustang', 'control-malformed.log')).refusals).toEqual(['log [Fatal Error]'])
-    expect(readMustangLog('[main] ERROR org.mustangproject.validator.XMLValidator - Unparseable number: "x"\nException in thread "main" java.lang.OutOfMemoryError\n').refusals).toEqual(['log ERROR org.mustangproject.validator.XMLValidator', 'log uncaught exception'])
+    expect(
+      readMustangLog(
+        '[main] ERROR org.mustangproject.validator.XMLValidator - Unparseable number: "x"\nException in thread "main" java.lang.OutOfMemoryError\n',
+      ).refusals,
+    ).toEqual(['log ERROR org.mustangproject.validator.XMLValidator', 'log uncaught exception'])
   })
 
   // A run that crashed mid-write leaves no report; read as an empty one it
@@ -120,7 +156,10 @@ describe('Mustang’s verdict', () => {
     // The schematrons Mustang compiled, by the profile it read each sample as: FeRD's for a Factur-X invoice, which the oracle reads; CEN's and XRechnung's own for an XRechnung (0038), neither of them FeRD's.
     expect(compiled).toEqual({
       'urn:cen.eu:en16931:2017': ['/xslt/ZF_250/FACTUR-X_EN16931.xslt'],
-      'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0': ['/xslt/en16931schematron/EN16931-CII-validation.xslt', '/xslt/XR_30/XRechnung-CII-validation.xslt'],
+      'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0': [
+        '/xslt/en16931schematron/EN16931-CII-validation.xslt',
+        '/xslt/XR_30/XRechnung-CII-validation.xslt',
+      ],
     })
     expect(rows.find((row) => row.file === 'e-invoice-xrechnung.xml')).toMatchObject({ verdict: 'as expected', status: 0, refusals: [], accepted: [] })
     // How many fewer rules check an XRechnung, as 0038's limitation quotes the recorded run: a record whose counts moved fails here until the sentence is read again.
@@ -132,17 +171,27 @@ describe('Mustang’s verdict', () => {
   // refused; an entry nothing raised accepts nothing, and goes.
   test('refuses a warning the register does not accept, and an accepted one nothing raised', () => {
     // The sample's PDF embeds its XML, and raises the warning again.
-    const warning = 'warning 4 PEPPOL-EN16931-R008: [PEPPOL-EN16931-R008]-Document MUST not contain empty elements. (still status warning) [ID PEPPOL-EN16931-R008] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)'
-    expect(judged((given) => (given.accepted = [])).problems).toEqual([`e-invoice-reverse-charge.xml is refused by Mustang: ${warning}`, `e-invoice-reverse-charge.pdf is refused by Mustang: ${warning}`])
-    expect(judged((given) => (given.accepted[0].files = ['e-invoice-reverse-charge.xml'])).problems).toEqual([`e-invoice-reverse-charge.pdf is refused by Mustang: ${warning}`])
-    expect(judged((given) => given.accepted.push({ tool: 'mustang', message: 'notice 27 BR-DE-15', files: ['e-invoice.xml'], reason: 'r' })).problems).toEqual(['the accepted message mustang notice 27 BR-DE-15 was raised in none of its files: remove it from scripts/e-invoice/accepted.json'])
+    const warning =
+      'warning 4 PEPPOL-EN16931-R008: [PEPPOL-EN16931-R008]-Document MUST not contain empty elements. (still status warning) [ID PEPPOL-EN16931-R008] from /xslt/ZF_250/FACTUR-X_EN16931.xslt)'
+    expect(judged((given) => (given.accepted = [])).problems).toEqual([
+      `e-invoice-reverse-charge.xml is refused by Mustang: ${warning}`,
+      `e-invoice-reverse-charge.pdf is refused by Mustang: ${warning}`,
+    ])
+    expect(judged((given) => (given.accepted[0].files = ['e-invoice-reverse-charge.xml'])).problems).toEqual([
+      `e-invoice-reverse-charge.pdf is refused by Mustang: ${warning}`,
+    ])
+    expect(judged((given) => given.accepted.push({ tool: 'mustang', message: 'notice 27 BR-DE-15', files: ['e-invoice.xml'], reason: 'r' })).problems).toEqual([
+      'the accepted message mustang notice 27 BR-DE-15 was raised in none of its files: remove it from scripts/e-invoice/accepted.json',
+    ])
   })
 
   // Every notice is a refusal too, as a warning is: the recorded run of
   // FeRD's sample EN16931_Einfach.pdf without --no-notices raised seven,
   // of XRechnung's rules.
   test('refuses a notice, and a report on a PDF where the corpus gave XML', () => {
-    const { problems } = judged((given) => given.runs.set('e-invoice.xml', { status: 0, stdout: recorded('research', 'EN16931_Einfach.report.xml'), stderr: '' }))
+    const { problems } = judged((given) =>
+      given.runs.set('e-invoice.xml', { status: 0, stdout: recorded('research', 'EN16931_Einfach.report.xml'), stderr: '' }),
+    )
     expect(problems).toContain('Mustang’s report on e-invoice.xml names EN16931_Einfach.pdf as the file it judged')
     expect(problems).toContain('Mustang judged e-invoice.xml as a PDF: its report has a <pdf> part, and the file is XML')
     expect(problems.filter((problem) => problem.startsWith('e-invoice.xml is refused by Mustang: notice 27 '))).toHaveLength(7)
@@ -154,15 +203,31 @@ describe('Mustang’s verdict', () => {
   // that did not end as its report says.
   test('refuses a sample whose run failed, by its status, its summaries, its version, its profile or the rules it fired', () => {
     expect(judged((given) => (given.runs.get('e-invoice.xml').status = 255)).problems).toEqual(['Mustang exited 255 on e-invoice.xml, which it must accept'])
-    expect(judged((given) => (given.runs.get('e-invoice.xml').stdout = given.runs.get('e-invoice.xml').stdout.replaceAll('status="valid"', 'status="invalid"'))).problems).toEqual(['Mustang’s report on e-invoice.xml says invalid, where the file must be accepted'])
-    expect(judged(undefined, { pinned: '2.25.0' }).problems).toContain('Mustang’s report on e-invoice.xml is by Mustang 2.26.0, not by 2.25.0, which docs/release/e-invoice-tools.json pins')
+    expect(
+      judged((given) => (given.runs.get('e-invoice.xml').stdout = given.runs.get('e-invoice.xml').stdout.replaceAll('status="valid"', 'status="invalid"')))
+        .problems,
+    ).toEqual(['Mustang’s report on e-invoice.xml says invalid, where the file must be accepted'])
+    expect(judged(undefined, { pinned: '2.25.0' }).problems).toContain(
+      'Mustang’s report on e-invoice.xml is by Mustang 2.26.0, not by 2.25.0, which docs/release/e-invoice-tools.json pins',
+    )
     // Each sample is read as its own kind's guideline (0038), and one that names none as the profile the judge is given.
-    expect(judged((given) => (given.entries.find((entry) => entry.file === 'e-invoice.xml').guideline = 'urn:factur-x.eu:1p0:en16931')).problems).toEqual(['Mustang read e-invoice.xml as the profile urn:cen.eu:en16931:2017, not as urn:factur-x.eu:1p0:en16931'])
+    expect(judged((given) => (given.entries.find((entry) => entry.file === 'e-invoice.xml').guideline = 'urn:factur-x.eu:1p0:en16931')).problems).toEqual([
+      'Mustang read e-invoice.xml as the profile urn:cen.eu:en16931:2017, not as urn:factur-x.eu:1p0:en16931',
+    ])
     const xrechnung = 'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0'
-    expect(judged((given) => (given.entries.find((entry) => entry.file === 'e-invoice-xrechnung.xml').guideline = 'urn:cen.eu:en16931:2017')).problems).toEqual([`Mustang read e-invoice-xrechnung.xml as the profile ${xrechnung}, not as urn:cen.eu:en16931:2017`])
-    expect(judged((given) => given.entries.forEach((entry) => delete entry.guideline), { profile: 'urn:factur-x.eu:1p0:en16931' }).problems).toContain('Mustang read e-invoice.xml as the profile urn:cen.eu:en16931:2017, not as urn:factur-x.eu:1p0:en16931')
-    expect(judged((given) => (given.runs.get('e-invoice.xml').stdout = given.runs.get('e-invoice.xml').stdout.replace(/<fired>\d+<\/fired>/, '<fired>0</fired>'))).problems).toEqual(['Mustang fired no rule on e-invoice.xml, so it checked nothing'])
-    expect(judged((given) => (given.runs.get('e-invoice.xml').stdout = '<validation><xml>')).problems[0]).toMatch(/^Mustang wrote no report it can read on e-invoice.xml: /)
+    expect(judged((given) => (given.entries.find((entry) => entry.file === 'e-invoice-xrechnung.xml').guideline = 'urn:cen.eu:en16931:2017')).problems).toEqual(
+      [`Mustang read e-invoice-xrechnung.xml as the profile ${xrechnung}, not as urn:cen.eu:en16931:2017`],
+    )
+    expect(judged((given) => given.entries.forEach((entry) => delete entry.guideline), { profile: 'urn:factur-x.eu:1p0:en16931' }).problems).toContain(
+      'Mustang read e-invoice.xml as the profile urn:cen.eu:en16931:2017, not as urn:factur-x.eu:1p0:en16931',
+    )
+    expect(
+      judged((given) => (given.runs.get('e-invoice.xml').stdout = given.runs.get('e-invoice.xml').stdout.replace(/<fired>\d+<\/fired>/, '<fired>0</fired>')))
+        .problems,
+    ).toEqual(['Mustang fired no rule on e-invoice.xml, so it checked nothing'])
+    expect(judged((given) => (given.runs.get('e-invoice.xml').stdout = '<validation><xml>')).problems[0]).toMatch(
+      /^Mustang wrote no report it can read on e-invoice.xml: /,
+    )
     expect(judged((given) => given.runs.delete('e-invoice.xml')).problems).toEqual(['Mustang did not run on e-invoice.xml'])
   })
 
@@ -171,7 +236,9 @@ describe('Mustang’s verdict', () => {
   // report says valid; the log says otherwise.
   test('refuses a sample whose log has an error its report has no item for', () => {
     const swallowed = '[main] ERROR org.mustangproject.validator.XMLValidator - Unparseable number: "x"\n'
-    expect(judged((given) => (given.runs.get('e-invoice.xml').stderr += swallowed)).problems).toEqual(['e-invoice.xml is refused by Mustang: log ERROR org.mustangproject.validator.XMLValidator: Mustang logged it on stderr, and its report has no item for it'])
+    expect(judged((given) => (given.runs.get('e-invoice.xml').stderr += swallowed)).problems).toEqual([
+      'e-invoice.xml is refused by Mustang: log ERROR org.mustangproject.validator.XMLValidator: Mustang logged it on stderr, and its report has no item for it',
+    ])
   })
 
   // A control Mustang accepted is a broken file nothing is watching; one
@@ -179,12 +246,20 @@ describe('Mustang’s verdict', () => {
   // the file its name says.
   test('refuses a control it accepted, or refused for anything but exactly what it breaks', () => {
     const sample = runs().get('e-invoice.xml')
-    expect(judged((given) => given.runs.set('control-br-27.xml', { ...sample, stdout: sample.stdout.replace('filename="e-invoice.xml"', 'filename="control-br-27.xml"') })).problems).toEqual([
+    expect(
+      judged((given) =>
+        given.runs.set('control-br-27.xml', { ...sample, stdout: sample.stdout.replace('filename="e-invoice.xml"', 'filename="control-br-27.xml"') }),
+      ).problems,
+    ).toEqual([
       'Mustang exited 0 on control-br-27.xml, which is broken for the first line’s net price (BT-146) made negative, which BR-27 refuses; Mustang’s own sums, which multiply each quantity by its price, disagree as well',
       'control-br-27.xml is broken for the first line’s net price (BT-146) made negative, which BR-27 refuses; Mustang’s own sums, which multiply each quantity by its price, disagree as well, and Mustang accepted it: nothing is watching that',
     ])
-    expect(judged((given) => given.entries.find((entry) => entry.file === 'control-br-27.xml').expect.mustang.pop()).problems).toEqual(['control-br-27.xml was refused by Mustang for warning 10 as well, which it is not broken for'])
-    expect(judged((given) => given.entries.find((entry) => entry.file === 'control-br-27.xml').expect.mustang.push('error 4 BR-26')).problems).toEqual(['control-br-27.xml was not refused by Mustang for error 4 BR-26, which it is broken for'])
+    expect(judged((given) => given.entries.find((entry) => entry.file === 'control-br-27.xml').expect.mustang.pop()).problems).toEqual([
+      'control-br-27.xml was refused by Mustang for warning 10 as well, which it is not broken for',
+    ])
+    expect(judged((given) => given.entries.find((entry) => entry.file === 'control-br-27.xml').expect.mustang.push('error 4 BR-26')).problems).toEqual([
+      'control-br-27.xml was not refused by Mustang for error 4 BR-26, which it is broken for',
+    ])
   })
 })
 
@@ -242,15 +317,24 @@ describe('Mustang’s verdict on a PDF', () => {
   // that a later Mustang words otherwise -- is still a refusal, never a
   // pass for saying nothing; and a sample is PDF/A-3b, not what it declares.
   test('refuses a PDF part invalid for nothing it says, of another flavour, or without a veraPDF result', () => {
-    const changed = (change) => judged((given) => given.runs.set('e-invoice.pdf', { ...runOf('e-invoice.pdf', 'e-invoice.pdf'), stdout: change(runOf('e-invoice.pdf', 'e-invoice.pdf').stdout) })).problems
+    const changed = (change) =>
+      judged((given) =>
+        given.runs.set('e-invoice.pdf', { ...runOf('e-invoice.pdf', 'e-invoice.pdf'), stdout: change(runOf('e-invoice.pdf', 'e-invoice.pdf').stdout) }),
+      ).problems
     expect(changed((text) => text.replace('<summary status="valid"/>\n  </pdf>', '<summary status="invalid"/>\n  </pdf>'))).toEqual([
       'Mustang’s report on e-invoice.pdf says its PDF part is invalid, where the file must be accepted',
       'e-invoice.pdf is refused by Mustang: pdf invalid: its PDF part failed it',
     ])
-    expect(changed((text) => text.replace('flavour=3b', 'flavour=2b'))).toEqual(['Mustang validated e-invoice.pdf as PDF/A-2b, not as the PDF/A-3b it must declare itself'])
-    expect(changed((text) => text.replace(/ValidationResult \[[^\n]*\]/, ''))).toEqual(['Mustang’s report on e-invoice.pdf has no veraPDF result in its <pdf> part'])
+    expect(changed((text) => text.replace('flavour=3b', 'flavour=2b'))).toEqual([
+      'Mustang validated e-invoice.pdf as PDF/A-2b, not as the PDF/A-3b it must declare itself',
+    ])
+    expect(changed((text) => text.replace(/ValidationResult \[[^\n]*\]/, ''))).toEqual([
+      'Mustang’s report on e-invoice.pdf has no veraPDF result in its <pdf> part',
+    ])
     // A report with no PDF part is a PDF read as XML.
-    expect(judged((given) => given.runs.set('e-invoice.pdf', runOf('e-invoice.xml', 'e-invoice.pdf'))).problems).toEqual(['Mustang’s report on e-invoice.pdf has no <pdf> part, where e-invoice.pdf is a PDF'])
+    expect(judged((given) => given.runs.set('e-invoice.pdf', runOf('e-invoice.xml', 'e-invoice.pdf'))).problems).toEqual([
+      'Mustang’s report on e-invoice.pdf has no <pdf> part, where e-invoice.pdf is a PDF',
+    ])
   })
 
   // A control broken in its PDF part alone exits 0 on Mustang 2.26.0, and
@@ -258,16 +342,24 @@ describe('Mustang’s verdict on a PDF', () => {
   // that drops the rule. A control whose XML is broken exits otherwise, PDF
   // or not.
   test('holds a control broken in its PDF part alone to the 0 Mustang 2.26.0 exits, and every other to another', () => {
-    expect(judged((given) => (given.runs.get('control-pdfa.pdf').status = 255)).problems).toEqual(['Mustang exited 255 on control-pdfa.pdf, which is broken in its PDF part alone, where Mustang 2.26.0 exits 0 (its issue #1293): a release that fixed it is a new pin, and this rule goes with it'])
+    expect(judged((given) => (given.runs.get('control-pdfa.pdf').status = 255)).problems).toEqual([
+      'Mustang exited 255 on control-pdfa.pdf, which is broken in its PDF part alone, where Mustang 2.26.0 exits 0 (its issue #1293): a release that fixed it is a new pin, and this rule goes with it',
+    ])
     const xmlControl = entries.find((entry) => entry.file === 'control-xml.pdf')
-    expect(judged((given) => (given.runs.get('control-xml.pdf').status = 0)).problems).toEqual([`Mustang exited 0 on control-xml.pdf, which is broken for ${xmlControl.why}`])
+    expect(judged((given) => (given.runs.get('control-xml.pdf').status = 0)).problems).toEqual([
+      `Mustang exited 0 on control-xml.pdf, which is broken for ${xmlControl.why}`,
+    ])
   })
 
   // Each control's refusals are exactly what it breaks: the plain PDF, read
   // as PDF/A-1b for want of any declaration, fails seven rules of part 1 as
   // well as the two XMP checks, and nothing else.
   test('refuses a PDF control refused for anything but exactly what it breaks', () => {
-    expect(judged((given) => given.entries.find((entry) => entry.file === 'control-plain.pdf').expect.mustang.splice(2, 1)).problems).toEqual(['control-plain.pdf was refused by Mustang for pdfa 1b 6.2.3.3-1 as well, which it is not broken for'])
-    expect(judged((given) => given.entries.find((entry) => entry.file === 'control-xmp.pdf').expect.mustang.push('pdf error 16')).problems).toEqual(['control-xmp.pdf was not refused by Mustang for pdf error 16, which it is broken for'])
+    expect(judged((given) => given.entries.find((entry) => entry.file === 'control-plain.pdf').expect.mustang.splice(2, 1)).problems).toEqual([
+      'control-plain.pdf was refused by Mustang for pdfa 1b 6.2.3.3-1 as well, which it is not broken for',
+    ])
+    expect(judged((given) => given.entries.find((entry) => entry.file === 'control-xmp.pdf').expect.mustang.push('pdf error 16')).problems).toEqual([
+      'control-xmp.pdf was not refused by Mustang for pdf error 16, which it is broken for',
+    ])
   })
 })

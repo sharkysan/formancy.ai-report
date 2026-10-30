@@ -38,7 +38,13 @@ describe('rateLimitProblem', () => {
   // start a server.
   test('refuses a limit an embedder passes that the setting could not say', () => {
     expect(rateLimitProblem({ max: 2, timeWindowMs: 1000 })).toBeUndefined()
-    for (const limit of [{ max: 0, timeWindowMs: 60_000 }, { max: 1.5, timeWindowMs: 60_000 }, { max: 2, timeWindowMs: 0 }, { max: 2, timeWindowMs: Number.NaN }, null]) {
+    for (const limit of [
+      { max: 0, timeWindowMs: 60_000 },
+      { max: 1.5, timeWindowMs: 60_000 },
+      { max: 2, timeWindowMs: 0 },
+      { max: 2, timeWindowMs: Number.NaN },
+      null,
+    ]) {
       expect(rateLimitProblem(limit), JSON.stringify(limit)).toBe('rateLimit is { max, timeWindowMs }, each a whole number of at least 1.')
     }
   })

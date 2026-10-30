@@ -32,7 +32,13 @@ describe('a batch', () => {
   test('applies its commands as one edit: one undo step, one notification, its label its own', () => {
     const { session, notified } = watched()
     const before = session.document()
-    const outcome = session.apply(batched({ command: 'setTitle', args: ['Batched'] }, { command: 'updateComponent', args: ['note', 'text', { content: [{ kind: 'text', text: 'Danke.' }] }] }), { label: 'Relabel' })
+    const outcome = session.apply(
+      batched(
+        { command: 'setTitle', args: ['Batched'] },
+        { command: 'updateComponent', args: ['note', 'text', { content: [{ kind: 'text', text: 'Danke.' }] }] },
+      ),
+      { label: 'Relabel' },
+    )
     const after = accepted(outcome)
     expect([after.title, after.regions.body.find((component) => component.id === 'keep')?.kind]).toEqual(['Batched', 'keepTogether'])
     expect(JSON.stringify(after)).toContain('Danke.')
@@ -59,7 +65,11 @@ describe('a batch', () => {
     const { session, notified } = watched()
     const before = session.document()
     const alone = refused(removeComponent(frozenSample(), 'nowhere'))
-    const refusal = refused(session.apply(batched({ command: 'setTitle', args: ['First'] }, { command: 'removeComponent', args: ['nowhere'] }, { command: 'setTitle', args: ['Never'] })))
+    const refusal = refused(
+      session.apply(
+        batched({ command: 'setTitle', args: ['First'] }, { command: 'removeComponent', args: ['nowhere'] }, { command: 'setTitle', args: ['Never'] }),
+      ),
+    )
     expect(refusal).toEqual(alone)
     expect([session.document(), session.revision(), notified(), session.canUndo()]).toEqual([before, 0, 0, false])
   })
@@ -78,7 +88,9 @@ describe('a batch', () => {
   // of writing the same edit, and nesting read from JSON has no depth a
   // stack could be trusted with.
   test('holds commands, never another batch', () => {
-    const refusal = refused(describedCommand(batched({ command: 'setTitle', args: ['First'] }, batched({ command: 'setTitle', args: ['Inner'] })))(frozenSample()))
+    const refusal = refused(
+      describedCommand(batched({ command: 'setTitle', args: ['First'] }, batched({ command: 'setTitle', args: ['Inner'] })))(frozenSample()),
+    )
     expect([refusal.code, refusal.message]).toEqual(['invalid-arguments', 'step 2 of the batch is a batch: a batch holds commands, and is one edit already'])
   })
 
@@ -88,7 +100,10 @@ describe('a batch', () => {
   test.each([null, 0, 'setTitle', true, [], [{ command: 'setTitle', args: ['x'] }]])('refuses %j where a step should be, never throwing', (junk) => {
     const run = () => describedCommand(batched({ command: 'setTitle', args: ['First'] }, junk))(frozenSample())
     expect(run).not.toThrow()
-    expect([refused(run()).code, refused(run()).message]).toEqual(['invalid-arguments', 'step 2 of the batch is not a command: an object naming one, and its arguments'])
+    expect([refused(run()).code, refused(run()).message]).toEqual([
+      'invalid-arguments',
+      'step 2 of the batch is not a command: an object naming one, and its arguments',
+    ])
   })
 
   // A step runs on the report the steps before it left, which nothing has
@@ -98,17 +113,56 @@ describe('a batch', () => {
   // loop over resolutions; the step is refused instead, the session left
   // as it was.
   test.each([
-    ['a document of nothing, then a component removed', [{ command: 'replaceDocument', args: [{}] }, { command: 'removeComponent', args: ['note'] }]],
-    ['a document of nothing, then a field removed with its readers', [{ command: 'replaceDocument', args: [{}] }, { command: 'removeFieldWithReaders', args: ['header', 'customer'] }]],
-    ['a text of no content, then a field removed with its readers', [{ command: 'insertComponent', args: [{ region: 'body', index: 0 }, { kind: 'text', id: 'bare' }] }, { command: 'removeFieldWithReaders', args: ['header', 'customer'] }]],
-    ['a table of no columns, then a column removed', [{ command: 'insertComponent', args: [{ region: 'body', index: 0 }, { kind: 'table', id: 'bare' }] }, { command: 'removeColumn', args: ['bare', 'sku'] }]],
+    [
+      'a document of nothing, then a component removed',
+      [
+        { command: 'replaceDocument', args: [{}] },
+        { command: 'removeComponent', args: ['note'] },
+      ],
+    ],
+    [
+      'a document of nothing, then a field removed with its readers',
+      [
+        { command: 'replaceDocument', args: [{}] },
+        { command: 'removeFieldWithReaders', args: ['header', 'customer'] },
+      ],
+    ],
+    [
+      'a text of no content, then a field removed with its readers',
+      [
+        {
+          command: 'insertComponent',
+          args: [
+            { region: 'body', index: 0 },
+            { kind: 'text', id: 'bare' },
+          ],
+        },
+        { command: 'removeFieldWithReaders', args: ['header', 'customer'] },
+      ],
+    ],
+    [
+      'a table of no columns, then a column removed',
+      [
+        {
+          command: 'insertComponent',
+          args: [
+            { region: 'body', index: 0 },
+            { kind: 'table', id: 'bare' },
+          ],
+        },
+        { command: 'removeColumn', args: ['bare', 'sku'] },
+      ],
+    ],
   ])('refuses a step that cannot run on what the steps before it left, never throwing: %s', (_name, steps) => {
     const { session, notified } = watched()
     const before = session.document()
     const apply = () => session.apply(JSON.parse(JSON.stringify(batched(...steps))) as CommandDescriptor)
     expect(apply).not.toThrow()
     const refusal = refused(apply())
-    expect([refusal.code, refusal.message]).toEqual(['invalid-arguments', 'step 2 of the batch could not run on the report the steps before it left: the batch is refused whole'])
+    expect([refusal.code, refusal.message]).toEqual([
+      'invalid-arguments',
+      'step 2 of the batch could not run on the report the steps before it left: the batch is refused whole',
+    ])
     expect([session.document(), session.revision(), notified()]).toEqual([before, 0, 0])
   })
 
@@ -126,7 +180,10 @@ describe('a batch', () => {
     const steps = (count: number): StepDescriptor[] => Array.from({ length: count }, (_, index) => ({ command: 'setTitle', args: [`Title ${index}`] }))
     expect(accepted(batch(frozenSample(), steps(MAX_BATCH_COMMANDS))).title).toBe(`Title ${MAX_BATCH_COMMANDS - 1}`)
     const refusal = refused(batch(frozenSample(), steps(MAX_BATCH_COMMANDS + 1)))
-    expect([refusal.code, refusal.message]).toEqual(['invalid-arguments', `a batch holds at most ${MAX_BATCH_COMMANDS} commands, and this one ${MAX_BATCH_COMMANDS + 1}`])
+    expect([refusal.code, refusal.message]).toEqual([
+      'invalid-arguments',
+      `a batch holds at most ${MAX_BATCH_COMMANDS} commands, and this one ${MAX_BATCH_COMMANDS + 1}`,
+    ])
   })
 
   // A batch of nothing changes nothing, and commits nothing.
@@ -140,7 +197,12 @@ describe('a batch', () => {
   // As every command, it never writes to the report it is given.
   test('leaves the report it was given as it was', () => {
     const report = frozenSample()
-    expect(() => batch(report, [{ command: 'setTitle', args: ['Frozen'] }, { command: 'removeComponent', args: ['gap'] }])).not.toThrow()
+    expect(() =>
+      batch(report, [
+        { command: 'setTitle', args: ['Frozen'] },
+        { command: 'removeComponent', args: ['gap'] },
+      ]),
+    ).not.toThrow()
     expect(report.title).toBe('Orders by site')
   })
 })

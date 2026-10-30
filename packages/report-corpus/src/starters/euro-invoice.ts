@@ -64,10 +64,15 @@ const detail = (field: string) => ({ dataset: 'detail', field }) as const
 export const EUR = { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } as const
 const text = (value: string) => [{ kind: 'text', text: value }] as const
 /** A label and a date of the header, as the invoice's head prints it. */
-export const dated = (label: string, field: string) => [{ kind: 'text', text: label }, { kind: 'field', field: header(field), format: { kind: 'date', style: 'medium' } }] as const
+export const dated = (label: string, field: string) =>
+  [
+    { kind: 'text', text: label },
+    { kind: 'field', field: header(field), format: { kind: 'date', style: 'medium' } },
+  ] as const
 
 /** The fields of an address line in the country's order, `between` each: a space, or a comma and a space where a country writes "Calle Mayor, 12". */
-const joined = (parts: readonly AddressPart[], between = ' ') => parts.flatMap((part, index) => [...(index === 0 ? [] : [{ kind: 'text', text: between } as const]), { kind: 'field', field: header(part) } as const])
+const joined = (parts: readonly AddressPart[], between = ' ') =>
+  parts.flatMap((part, index) => [...(index === 0 ? [] : [{ kind: 'text', text: between } as const]), { kind: 'field', field: header(part) } as const])
 
 /**
  * The two decimals a whole rate is written as, by its digits and never by
@@ -85,7 +90,8 @@ const ADDRESS_PARTS: readonly string[] = ['street', 'buildingNumber', 'postcode'
  * neither in its dataset nor in its data, since a field nothing prints is
  * one the editor warns would be fetched for nothing.
  */
-const printsField = (billing: EuroBilling, field: string): boolean => !ADDRESS_PARTS.includes(field) || [...billing.address.street, ...billing.address.town].some((part) => part === field)
+const printsField = (billing: EuroBilling, field: string): boolean =>
+  !ADDRESS_PARTS.includes(field) || [...billing.address.street, ...billing.address.town].some((part) => part === field)
 
 /** The line at the head of the invoice: the firm, its address in its country's order, its VAT number, and what else its country asks a company's invoice to say of it. */
 export const sender = (billing: EuroBilling, words: EuroWords): Component => ({
@@ -166,7 +172,14 @@ function reportHeader(billing: EuroBilling, words: EuroWords): ReportDefinition[
           width: 190,
           components: [
             { id: 'title', kind: 'text', style: 'title', content: text(words.heading) },
-            { id: 'number', kind: 'text', content: [{ kind: 'text', text: words.numberIs }, { kind: 'field', field: header('number') }] },
+            {
+              id: 'number',
+              kind: 'text',
+              content: [
+                { kind: 'text', text: words.numberIs },
+                { kind: 'field', field: header('number') },
+              ],
+            },
             { id: 'issued-on', kind: 'text', content: dated(words.issuedOnIs, 'issuedOn') },
             { id: 'served-on', kind: 'text', content: dated(words.servedOnIs, 'servedOn') },
             { id: 'due-on', kind: 'text', content: dated(words.dueOnIs, 'dueOn') },
@@ -188,7 +201,13 @@ export function positions(words: EuroWords, totals: TableComponent['totals']): T
     columns: [
       { id: 'article', header: columns[0], width: 96, align: 'left', value: { kind: 'field', field: detail('article') } },
       { id: 'description', header: columns[1], width: 'fill', align: 'left', value: { kind: 'field', field: detail('description') } },
-      { id: 'quantity', header: columns[2], width: 50, align: 'right', value: { kind: 'field', field: detail('quantity'), format: { kind: 'number', scale: 2, grouping: true } } },
+      {
+        id: 'quantity',
+        header: columns[2],
+        width: 50,
+        align: 'right',
+        value: { kind: 'field', field: detail('quantity'), format: { kind: 'number', scale: 2, grouping: true } },
+      },
       { id: 'unit', header: columns[3], width: 52, align: 'left', value: { kind: 'field', field: detail('unit') } },
       { id: 'unit-price', header: columns[4], width: 76, align: 'right', value: { kind: 'field', field: detail('unitPrice'), format: EUR } },
       { id: 'amount', header: columns[5], width: 84, align: 'right', value: { kind: 'field', field: detail('amount'), format: EUR } },
@@ -258,7 +277,10 @@ export function payment(billing: EuroBilling, words: EuroWords, amount: Expressi
                 bic: text(billing.bic),
                 amount,
                 reference: [{ kind: 'field', field: header('reference') }],
-                information: [{ kind: 'text', text: words.information }, { kind: 'field', field: header('number') }],
+                information: [
+                  { kind: 'text', text: words.information },
+                  { kind: 'field', field: header('number') },
+                ],
                 // Last, and only where asked, so that a code without it keeps the keys and the JSON it had.
                 ...(caption === undefined ? {} : { caption }),
               },
@@ -272,7 +294,14 @@ export function payment(billing: EuroBilling, words: EuroWords, amount: Expressi
               { id: 'paid-iban', kind: 'text', content: text(`${bank.iban}${billing.iban}`) },
               { id: 'paid-bic', kind: 'text', content: text(`${bank.bic}${billing.bic}`) },
               { id: 'paid-amount', kind: 'text', content: [{ kind: 'text', text: bank.amount }, printed] },
-              { id: 'paid-reference', kind: 'text', content: [{ kind: 'text', text: bank.reference }, { kind: 'field', field: header('reference') }] },
+              {
+                id: 'paid-reference',
+                kind: 'text',
+                content: [
+                  { kind: 'text', text: bank.reference },
+                  { kind: 'field', field: header('reference') },
+                ],
+              },
               { id: 'scan-gap', kind: 'spacer', height: 6 },
               { id: 'scan', kind: 'text', style: 'sender', content: text(bank.scan) },
             ],
@@ -299,10 +328,10 @@ function summary(billing: EuroBilling, words: EuroWords): ReportDefinition['regi
     },
     ...(notice === undefined
       ? []
-      : [
+      : ([
           { id: 'terms-gap', kind: 'spacer', height: 6 },
           { id: notice.id, kind: 'text', content: text(notice.text) },
-        ] as const),
+        ] as const)),
     { id: 'payment-gap', kind: 'spacer', height: 18 },
     payment(billing, words, { cel: 'totals.total' }, { kind: 'aggregate', aggregate: 'total', over: 'report', format: EUR }),
   ]
@@ -323,7 +352,12 @@ function report(billing: EuroBilling, words: EuroWords): ReportDefinition {
     assets: [LOGO_ASSET],
     aggregates: [
       { id: 'subtotal', fn: 'sum', of: { kind: 'field', field: detail('amount') } },
-      { id: 'total', fn: 'sum', of: { kind: 'expression', expression: { cel: `row.amount * dec("${factor}")` } }, rounding: { scale: 2, mode: 'half-away-from-zero' } },
+      {
+        id: 'total',
+        fn: 'sum',
+        of: { kind: 'expression', expression: { cel: `row.amount * dec("${factor}")` } },
+        rounding: { scale: 2, mode: 'half-away-from-zero' },
+      },
     ],
     regions: {
       pageHeader: [],
@@ -341,7 +375,14 @@ function lines(billing: EuroBilling, words: EuroWords): Record<string, string>[]
   return words.items
     .map(([description, unit], index) => {
       const [quantity, unitPrice] = billing.work[index] as readonly [string, string]
-      return { article: `${billing.articles.prefix}-${billing.articles.first + index}`, description, quantity, unit, unitPrice, amount: lineAmount(quantity, unitPrice) }
+      return {
+        article: `${billing.articles.prefix}-${billing.articles.first + index}`,
+        description,
+        quantity,
+        unit,
+        unitPrice,
+        amount: lineAmount(quantity, unitPrice),
+      }
     })
     .reverse()
 }
@@ -377,7 +418,8 @@ function data(billing: EuroBilling, words: EuroWords): ReportData {
  */
 function euroInvoice(country: EuroCountry): Starter {
   const [billing, words] = [EURO_COUNTRIES[country], EURO_WORDS[country]]
-  if (billing.work.length !== words.items.length) throw new Error(`the euro invoice from ${country} bills ${billing.work.length} lines, and its words describe ${words.items.length}`)
+  if (billing.work.length !== words.items.length)
+    throw new Error(`the euro invoice from ${country} bills ${billing.work.length} lines, and its words describe ${words.items.length}`)
   return { id: billing.id, title: words.title, proves: words.proves, report: report(billing, words), data: data(billing, words), parameters: {} }
 }
 
@@ -412,4 +454,12 @@ export const EURO_INVOICE_NL: Starter = euroInvoice('NL')
 export const EURO_INVOICE_IE: Starter = euroInvoice('IE')
 
 /** The euro invoice from Germany, Austria, France, Italy, Spain, the Netherlands and Ireland: the German is the starter, and the others are samples of it. */
-export const EURO_INVOICE_SAMPLES: readonly Starter[] = [EURO_INVOICE, EURO_INVOICE_AT, EURO_INVOICE_FR, EURO_INVOICE_IT, EURO_INVOICE_ES, EURO_INVOICE_NL, EURO_INVOICE_IE]
+export const EURO_INVOICE_SAMPLES: readonly Starter[] = [
+  EURO_INVOICE,
+  EURO_INVOICE_AT,
+  EURO_INVOICE_FR,
+  EURO_INVOICE_IT,
+  EURO_INVOICE_ES,
+  EURO_INVOICE_NL,
+  EURO_INVOICE_IE,
+]

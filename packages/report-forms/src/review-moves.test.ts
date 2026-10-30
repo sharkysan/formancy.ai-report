@@ -113,8 +113,19 @@ describe('declaredMoves', () => {
   // A key changed without renamedFrom is a removal and an addition: the
   // diff guesses no rename, and neither may a review.
   test('moves nothing the form did not declare', () => {
-    const before = schemaOf(formOf([{ key: 'site', type: 'text' }, { key: 'inspector', type: 'group', fields: [{ key: 'name', type: 'text' }] }]))
-    const after = schemaOf(formOf([{ key: 'address', type: 'text' }, { key: 'name', type: 'text' }, { key: 'inspector', type: 'group', fields: [] }]))
+    const before = schemaOf(
+      formOf([
+        { key: 'site', type: 'text' },
+        { key: 'inspector', type: 'group', fields: [{ key: 'name', type: 'text' }] },
+      ]),
+    )
+    const after = schemaOf(
+      formOf([
+        { key: 'address', type: 'text' },
+        { key: 'name', type: 'text' },
+        { key: 'inspector', type: 'group', fields: [] },
+      ]),
+    )
     expect([...declaredMoves(after, diffSchemas(before, after))]).toEqual([])
     heldToTheDiff(before, after)
   })
@@ -122,8 +133,31 @@ describe('declaredMoves', () => {
   // A repeater renamed takes its rows' fields with it, after `[].`, as
   // formancy writes a row's path.
   test("moves a renamed repeater's rows' fields with it", () => {
-    const before = schemaOf(formOf([{ key: 'findings', type: 'repeater', fields: [{ key: 'area', type: 'text' }, { key: 'hours', type: 'number' }] }]))
-    const after = schemaOf(formOf([{ key: 'defects', type: 'repeater', renamedFrom: 'findings', fields: [{ key: 'zone', type: 'text', renamedFrom: 'area' }, { key: 'hours', type: 'number' }] }]))
+    const before = schemaOf(
+      formOf([
+        {
+          key: 'findings',
+          type: 'repeater',
+          fields: [
+            { key: 'area', type: 'text' },
+            { key: 'hours', type: 'number' },
+          ],
+        },
+      ]),
+    )
+    const after = schemaOf(
+      formOf([
+        {
+          key: 'defects',
+          type: 'repeater',
+          renamedFrom: 'findings',
+          fields: [
+            { key: 'zone', type: 'text', renamedFrom: 'area' },
+            { key: 'hours', type: 'number' },
+          ],
+        },
+      ]),
+    )
     expect([...declaredMoves(after, diffSchemas(before, after))]).toEqual([
       ['findings', 'defects'],
       ['findings[].area', 'defects[].zone'],

@@ -26,7 +26,11 @@ export interface PagePixels {
 
 /** The page `rasterPage` draws, as its pixels rather than a PNG of them. */
 export async function rasterPixels(bytes: Uint8Array, pageNumber: number, scale: number): Promise<PagePixels> {
-  return drawn(bytes, pageNumber, scale, (canvas, context) => ({ data: context.getImageData(0, 0, canvas.width, canvas.height).data, width: canvas.width, height: canvas.height }))
+  return drawn(bytes, pageNumber, scale, (canvas, context) => ({
+    data: context.getImageData(0, 0, canvas.width, canvas.height).data,
+    width: canvas.width,
+    height: canvas.height,
+  }))
 }
 
 async function drawn<T>(bytes: Uint8Array, pageNumber: number, scale: number, read: (canvas: Canvas, context: Context) => T): Promise<T> {
@@ -34,7 +38,8 @@ async function drawn<T>(bytes: Uint8Array, pageNumber: number, scale: number, re
   const task = getDocument({ data: new Uint8Array(bytes), disableFontFace: true, useSystemFonts: false, verbosity: VerbosityLevel.ERRORS })
   try {
     const document = await task.promise
-    if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > document.numPages) throw new RangeError(`the PDF has no page ${pageNumber}; it has ${document.numPages}`)
+    if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > document.numPages)
+      throw new RangeError(`the PDF has no page ${pageNumber}; it has ${document.numPages}`)
     const page = await document.getPage(pageNumber)
     const viewport = page.getViewport({ scale })
     const { canvas, context } = (document.canvasFactory as unknown as CanvasFactory).create(Math.ceil(viewport.width), Math.ceil(viewport.height))

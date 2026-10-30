@@ -71,7 +71,11 @@ function readRows(f: Findings, version: Version, def: FieldDef, raw: unknown, pa
     if (item === null) {
       // formancy nulls a row it strips rather than shift its siblings; a
       // row that is null holds nothing to print, and is not dropped unsaid.
-      f.report(at(path, index), 'invalid-answer', 'a row that is null, where formancy stripped it: a report prints no row it cannot read, and drops none unsaid')
+      f.report(
+        at(path, index),
+        'invalid-answer',
+        'a row that is null, where formancy stripped it: a report prints no row it cannot read, and drops none unsaid',
+      )
       continue
     }
     const row = readAnswers(f, version, scope, item, at(path, index), true)
@@ -98,7 +102,11 @@ export function readAnswers(f: Findings, version: Version, scope: Scope, raw: un
     if (row && key === ROW_ID) continue
     const def = scope.get(key)
     if (def === undefined) {
-      f.report(answerAt(path, key), 'unknown-answer', `the form version ${version.hash} has no field here: the submission was collected by another version, or another form, and is read against the version that collected it`)
+      f.report(
+        answerAt(path, key),
+        'unknown-answer',
+        `the form version ${version.hash} has no field here: the submission was collected by another version, or another form, and is read against the version that collected it`,
+      )
       continue
     }
     if (value === null) continue
@@ -133,7 +141,9 @@ export function rowsAt(record: AnswerRecord, keys: readonly string[]): readonly 
 const SHAPES = { time: new RegExp(TEMPORAL_SHAPES.time), date: new RegExp(TEMPORAL_SHAPES.date), instant: new RegExp(TEMPORAL_SHAPES.datetime) } as const
 
 /** An answer turned into what the field's type holds, or why not. */
-type Turned = { readonly ok: true; readonly value: unknown } | { readonly ok: false; readonly code: 'invalid-answer' | 'unknown-answer' | 'unknown-option' | 'unresolved-label' | 'inexact-number'; readonly why: string }
+type Turned =
+  | { readonly ok: true; readonly value: unknown }
+  | { readonly ok: false; readonly code: 'invalid-answer' | 'unknown-answer' | 'unknown-option' | 'unresolved-label' | 'inexact-number'; readonly why: string }
 
 const invalid = (why: string): Turned => ({ ok: false, code: 'invalid-answer', why })
 const turned = (value: unknown): Turned => ({ ok: true, value })
@@ -160,9 +170,16 @@ function choice(plan: ReadPlan, value: string, context: AnswerContext): Turned {
   }
   // No options in the document: formancy takes any value (formancy.ai 0076), and only a source can label it.
   if (!plan.label) return turned(value)
-  if (typeof def.optionsSource !== 'string') return { ok: false, code: 'unresolved-label', why: 'the field offers no options in the form version and names no source, so its answer has no label; read its value' }
+  if (typeof def.optionsSource !== 'string')
+    return {
+      ok: false,
+      code: 'unresolved-label',
+      why: 'the field offers no options in the form version and names no source, so its answer has no label; read its value',
+    }
   const text = hostLabel(context.labels, { source: def.optionsSource, value, locale: context.locale })
-  return text === undefined ? { ok: false, code: 'unresolved-label', why: `the host gives no label for this value of the source "${def.optionsSource}"` } : turned(text)
+  return text === undefined
+    ? { ok: false, code: 'unresolved-label', why: `the host gives no label for this value of the source "${def.optionsSource}"` }
+    : turned(text)
 }
 
 /**
@@ -193,7 +210,9 @@ function turn(plan: ReadPlan, value: unknown, context: AnswerContext): Turned {
     case 'time':
     case 'date':
     case 'instant':
-      return typeof value === 'string' && SHAPES[plan.as].test(value) ? turned(value) : invalid(`a ${def.type} field's answer is formancy's fixed shape for it, ${TEMPORAL_SHAPES[plan.as === 'instant' ? 'datetime' : plan.as]}`)
+      return typeof value === 'string' && SHAPES[plan.as].test(value)
+        ? turned(value)
+        : invalid(`a ${def.type} field's answer is formancy's fixed shape for it, ${TEMPORAL_SHAPES[plan.as === 'instant' ? 'datetime' : plan.as]}`)
     case 'rich':
       return typeof value === 'string' ? turned(richTextToPlain(value)) : invalid("a rich text field's answer is its text")
     case 'number': {
@@ -209,7 +228,8 @@ function turn(plan: ReadPlan, value: unknown, context: AnswerContext): Turned {
       return matrixRow(plan, value, context)
     case 'ticked': {
       if (!Array.isArray(value) || !value.every((tick) => typeof tick === 'string')) return invalid("ticked boxes' answer is a list of their options' values")
-      if (!value.every((tick: string) => plan.options.has(tick))) return { ok: false, code: 'unknown-option', why: 'a tick is no option of the form version that collected it' }
+      if (!value.every((tick: string) => plan.options.has(tick)))
+        return { ok: false, code: 'unknown-option', why: 'a tick is no option of the form version that collected it' }
       return turned(value.includes(plan.member as string))
     }
   }
@@ -238,7 +258,11 @@ export function answerOf(f: Findings, plan: FieldPlan, record: AnswerRecord, con
   if (copy.value === null) return null
   // Before it is read: formancy's rich text parser takes time that grows faster than its input.
   if (typeof copy.value === 'string' && copy.value.length > MAX_STRING_LENGTH) {
-    f.report(path, 'invalid-answer', `${plan.field.id}: an answer of more than the ${MAX_STRING_LENGTH} characters a value may have, refused before it is read, never cut short`)
+    f.report(
+      path,
+      'invalid-answer',
+      `${plan.field.id}: an answer of more than the ${MAX_STRING_LENGTH} characters a value may have, refused before it is read, never cut short`,
+    )
     return undefined
   }
   const value = turn(plan, copy.value, context)

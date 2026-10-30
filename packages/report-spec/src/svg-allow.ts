@@ -139,9 +139,10 @@ export interface RefusedElement {
 
 /** Refused, with the code and what to do about it. Any SVG element neither kept, removed nor listed here is refused too, named. */
 export const REFUSED_ELEMENTS: ReadonlyMap<string, RefusedElement> = new Map<string, RefusedElement>([
-  ...['text', 'tspan', 'textPath', 'tref', 'altGlyph', 'altGlyphDef', 'altGlyphItem', 'glyphRef'].map(
-    (name): [string, RefusedElement] => [name, { code: 'text', advice: 'convert the text to outlines' }],
-  ),
+  ...['text', 'tspan', 'textPath', 'tref', 'altGlyph', 'altGlyphDef', 'altGlyphItem', 'glyphRef'].map((name): [string, RefusedElement] => [
+    name,
+    { code: 'text', advice: 'convert the text to outlines' },
+  ]),
   ['image', { code: 'raster', advice: 'add the picture as a PNG or JPEG asset of its own' }],
   ['use', { code: 'reference', advice: 'a program wrote shapes as references; save it again through a program that expands them' }],
   ['symbol', { code: 'reference', advice: 'a program wrote shapes as references; save it again through a program that expands them' }],
@@ -181,7 +182,13 @@ export const LINK_ATTRIBUTES: ReadonlySet<string> = new Set(['href', 'target', '
  * Refused: a browser may hide the element by them, even outside a `switch`
  * (SVG 1.1, 5.8), so removing them would print what the approver never saw.
  */
-export const CONDITIONAL_ATTRIBUTES: ReadonlySet<string> = new Set(['requiredFeatures', 'requiredExtensions', 'systemLanguage', 'requiredFonts', 'requiredFormats'])
+export const CONDITIONAL_ATTRIBUTES: ReadonlySet<string> = new Set([
+  'requiredFeatures',
+  'requiredExtensions',
+  'systemLanguage',
+  'requiredFonts',
+  'requiredFormats',
+])
 
 /** The properties written, in the order they are written: the canonical order. */
 export const WRITTEN_PROPERTIES = [
@@ -368,7 +375,10 @@ const INERT: ReadonlyMap<string, Inert> = new Map<string, Inert>([
   ['filter', { inert: (value: string) => value === 'none', advice: 'expand the appearance' }],
   ['mask', { inert: (value: string) => value === 'none', advice: 'flatten the transparency' }],
   ['mix-blend-mode', { inert: (value: string) => value === 'normal', advice: 'flatten the transparency' }],
-  ...['marker', 'marker-start', 'marker-mid', 'marker-end'].map((name): [string, Inert] => [name, { inert: (value: string) => value === 'none', advice: 'expand the stroke' }]),
+  ...['marker', 'marker-start', 'marker-mid', 'marker-end'].map((name): [string, Inert] => [
+    name,
+    { inert: (value: string) => value === 'none', advice: 'expand the stroke' },
+  ]),
   ['paint-order', { inert: fillBeforeStroke, advice: 'paint the fill before the stroke' }],
   ['transform-origin', { inert: (value: string) => ORIGINS.has(value), advice: 'apply the transform about the origin' }],
 ])
@@ -388,9 +398,7 @@ function fillBeforeStroke(value: string): boolean {
 
 /** What happens to a property written on a kept element, whose value is its text trimmed and in lower case. */
 export type PropertyFate =
-  | { readonly fate: 'kept'; readonly property: Property }
-  | { readonly fate: 'removed' }
-  | { readonly fate: 'refused'; readonly advice: string }
+  { readonly fate: 'kept'; readonly property: Property } | { readonly fate: 'removed' } | { readonly fate: 'refused'; readonly advice: string }
 
 export function propertyFate(name: string, value: string): PropertyFate | undefined {
   if (isProperty(name)) return { fate: 'kept', property: name }

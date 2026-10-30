@@ -22,7 +22,9 @@ describe('checkParameters', () => {
   // A parameter is read by the same rules as a field of its type, so that
   // `params.copies` is an integer however it reached the report.
   test('reads each value as its parameter type', () => {
-    const values = checked(checkParameters(sampleReport(), { from: '2026-01-01', draft: true, threshold: '100.00', currency: 'EUR', copies: '2', heading: 'Lieferungen' }))
+    const values = checked(
+      checkParameters(sampleReport(), { from: '2026-01-01', draft: true, threshold: '100.00', currency: 'EUR', copies: '2', heading: 'Lieferungen' }),
+    )
     expect(values.from).toBe('2026-01-01')
     expect(values.draft).toBe(true)
     expect(decimalToString(values.threshold as Decimal)).toBe('100.00')
@@ -103,7 +105,7 @@ describe('checkParameters', () => {
   // key has none to go into: each is refused at the values themselves.
   test('refuses a long key and a symbol key without building a path from them', () => {
     const long = 'p'.repeat(65)
-    const refused = errors(checkParameters(sampleReport(), { from: '2026-01-01', [long]: 1, [Symbol('hidden')]: 1 } as Record<string, unknown>))
+    const refused = errors(checkParameters(sampleReport(), { from: '2026-01-01', [long]: 1, [Symbol('hidden')]: 1 }))
     expect(where(refused)).toEqual(['not-data ', 'undeclared-parameter '])
     for (const error of refused) expect(error.message).not.toContain(long)
   })

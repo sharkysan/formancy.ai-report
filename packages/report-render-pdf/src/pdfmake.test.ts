@@ -24,7 +24,8 @@ import { MARK, svg, svgAsset } from './testing/svg.js'
  * pdfmake as the Node entry configures it, and the PDF read from it.
  */
 
-const attempt = (source: string): Promise<Buffer> => pdfmake.createPdf({ images: { source }, content: [{ image: 'source', width: 10, height: 10 }] }).getBuffer()
+const attempt = (source: string): Promise<Buffer> =>
+  pdfmake.createPdf({ images: { source }, content: [{ image: 'source', width: 10, height: 10 }] }).getBuffer()
 
 describe('pdfmake as the renderer configures it', () => {
   // The renderer's documents name no file and no address, but pdfmake reads
@@ -137,7 +138,14 @@ describe("PDFKit's images that decode before they embed, which the renderer writ
   test("numbers and writes a small image's soft mask before a large one's drawn above it", async () => {
     await renderPdf(fixture('one-row').document, { maxPages: 5 })
     const bytes = await pdfmake
-      .createPdf({ images: { large: dataUrl(DECODED.alpha), small: dataUrl(DECODED.small) }, content: [{ image: 'large', width: 100 }, { image: 'small', width: 100 }], defaultStyle: { font: 'Roboto' } })
+      .createPdf({
+        images: { large: dataUrl(DECODED.alpha), small: dataUrl(DECODED.small) },
+        content: [
+          { image: 'large', width: 100 },
+          { image: 'small', width: 100 },
+        ],
+        defaultStyle: { font: 'Roboto' },
+      })
       .getBuffer()
     const { widths, masks, masksAt, drawnAt } = await imageOrder(new Uint8Array(bytes))
     expect(widths).toEqual([SIDE.alpha, SIDE.small])
@@ -231,7 +239,10 @@ describe("pdfmake's SVG converter, which draws an SVG asset", () => {
     const directory = mkdtempSync(path.join(tmpdir(), 'report-render-pdf-'))
     try {
       const file = path.join(directory, 'secret.png').split(path.sep).join('/')
-      writeFileSync(file, encodePng(4, 4, () => [255, 0, 0]))
+      writeFileSync(
+        file,
+        encodePng(4, 4, () => [255, 0, 0]),
+      )
       const pdf = await drawn({ svg: svg(`<image href="${file}" width="10" height="10"/>`), width: 40, height: 40 })
       expect((await readPdf(pdf)).pages[0]!.images).toHaveLength(1)
       await expect(attempt(file)).rejects.toThrow(/Access to local file denied/)
@@ -262,7 +273,11 @@ describe("pdfmake's SVG converter, which draws an SVG asset", () => {
   test('warns to the console and draws on, without a warning callback', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     try {
-      const pdf = await drawn({ svg: svg('<clipPath id="c"><rect clip-path="url(#c)" width="1" height="1"/></clipPath><rect width="10" height="10" clip-path="url(#c)"/>'), width: 40, height: 40 })
+      const pdf = await drawn({
+        svg: svg('<clipPath id="c"><rect clip-path="url(#c)" width="1" height="1"/></clipPath><rect width="10" height="10" clip-path="url(#c)"/>'),
+        width: 40,
+        height: 40,
+      })
       expect(pdf.length).toBeGreaterThan(0)
       expect(warn.mock.calls.map(([message]) => String(message))).toEqual(['SVGtoPDF: loop of circular references for id "c"'])
     } finally {
@@ -275,7 +290,14 @@ describe("pdfmake's SVG converter, which draws an SVG asset", () => {
   // before it draws. Were it to stop, a covered logo would paint over what
   // stands beside it.
   test('clips the drawing to its viewport, the box', async () => {
-    const [page] = readDrawing(await drawn({ svg: svg('<rect width="200" height="100" fill="#1f4e79"/>', '0 0 200 100'), width: 40, height: 40, options: { preserveAspectRatio: 'xMidYMid slice' } }))
+    const [page] = readDrawing(
+      await drawn({
+        svg: svg('<rect width="200" height="100" fill="#1f4e79"/>', '0 0 200 100'),
+        width: 40,
+        height: 40,
+        options: { preserveAspectRatio: 'xMidYMid slice' },
+      }),
+    )
     expect(page!.clips).toEqual([{ kind: 'line', x: 40, top: 40, width: 40, height: 40 }])
     expect(page!.shapes.map(({ x, width }) => [x, width])).toEqual([[20, 80]])
   })
@@ -288,13 +310,20 @@ describe("pdfmake's SVG converter, which draws an SVG asset", () => {
   // bounds the groups by that; a converter that drew either once, or a
   // group of the drawing's own size, would show here.
   test('draws a clip path and a gradient for every reference, each group the size of the page', async () => {
-    const clipped = (uses: number): string => svg(`<clipPath id="c"><rect width="50" height="50"/></clipPath>${'<rect width="10" height="10" fill="#000" clip-path="url(#c)"/>'.repeat(uses)}`)
-    const painted = (uses: number, opacity: string): string => svg(`<linearGradient id="g"><stop/><stop offset="1" stop-color="#fff" stop-opacity="${opacity}"/></linearGradient>${'<rect width="10" height="10" fill="url(#g)"/>'.repeat(uses)}`)
+    const clipped = (uses: number): string =>
+      svg(`<clipPath id="c"><rect width="50" height="50"/></clipPath>${'<rect width="10" height="10" fill="#000" clip-path="url(#c)"/>'.repeat(uses)}`)
+    const painted = (uses: number, opacity: string): string =>
+      svg(
+        `<linearGradient id="g"><stop/><stop offset="1" stop-color="#fff" stop-opacity="${opacity}"/></linearGradient>${'<rect width="10" height="10" fill="url(#g)"/>'.repeat(uses)}`,
+      )
     const box = 42.52
     const once = await drawn({ svg: clipped(1), width: box, height: box })
     const thrice = await drawn({ svg: clipped(3), width: box, height: box })
     expect([count(once, /\/Subtype \/Form/g), count(thrice, /\/Subtype \/Form/g), count(thrice, /\/SMask/g)]).toEqual([1, 3, 3])
-    expect([count(await drawn({ svg: painted(3, '1'), width: box, height: box }), /\/ShadingType/g), count(await drawn({ svg: painted(3, '0.5'), width: box, height: box }), /\/ShadingType/g)]).toEqual([3, 6])
+    expect([
+      count(await drawn({ svg: painted(3, '1'), width: box, height: box }), /\/ShadingType/g),
+      count(await drawn({ svg: painted(3, '0.5'), width: box, height: box }), /\/ShadingType/g),
+    ]).toEqual([3, 6])
     // The viewBox is 100 units in a box of 42.52 pt: the group's box, in those units, is the A4 page.
     const [x1, y1, x2, y2] = /\/BBox \[([^\]]*)\]/.exec(latin1(once))![1]!.split(' ').map(Number) as [number, number, number, number]
     expect([((x2 - x1) * box) / 100, ((y2 - y1) * box) / 100].map((side) => Math.round(side * 100) / 100)).toEqual([595.28, 841.89])
@@ -306,7 +335,12 @@ describe("pdfmake's SVG converter, which draws an SVG asset", () => {
   // own list of elements refuses one (`svg-content.ts`); the callbacks
   // alone would not.
   test("writes an <a>'s link whatever its callbacks say", async () => {
-    const pdf = await drawn({ svg: svg('<a href="javascript:app.alert(1)"><rect width="100" height="100" fill="#f00"/></a>'), width: 40, height: 40, options: converterOptions('linked', 'contain') })
+    const pdf = await drawn({
+      svg: svg('<a href="javascript:app.alert(1)"><rect width="100" height="100" fill="#f00"/></a>'),
+      width: 40,
+      height: 40,
+      options: converterOptions('linked', 'contain'),
+    })
     expect(await readAnnotations(pdf)).toEqual([{ page: 1, subtype: 'Link', url: 'javascript:app.alert(1)' }])
   })
 })
@@ -317,7 +351,7 @@ describe('reading the PDF out of PDFKit', () => {
   // pending forever: a job that neither finishes nor fails.
   test('rejects when the stream fails, rather than waiting for an end that never comes', async () => {
     const stream = new PassThrough()
-    const reading = collect(stream as unknown as PdfStream)
+    const reading = collect(stream)
     stream.destroy(new Error('the stream failed'))
     await expect(reading).rejects.toThrow('the stream failed')
   })
@@ -343,9 +377,18 @@ describe("pdfkit's PDF/A-3 and embedded files, which an e-invoice is drawn with"
    * acting on PDFKit's document before it is ended, as the renderer's own
    * hook does.
    */
-  async function pdf(text: string, { definition = PDF_A_3B as TDocumentDefinitions, title = 'Rechnung', finish }: { definition?: TDocumentDefinitions; title?: string; finish?: (document: PdfKitDocument) => void } = {}): Promise<Uint8Array> {
+  async function pdf(
+    text: string,
+    {
+      definition = PDF_A_3B as TDocumentDefinitions,
+      title = 'Rechnung',
+      finish,
+    }: { definition?: TDocumentDefinitions; title?: string; finish?: (document: PdfKitDocument) => void } = {},
+  ): Promise<Uint8Array> {
     await renderPdf(fixture('one-row').document, { maxPages: 5 })
-    const document = (await pdfmake.createPdf({ ...definition, info: { title, creationDate: CREATED }, content: [{ text }], defaultStyle: { font: 'Roboto' } }).getStream()) as unknown as PdfStream & PdfKitDocument
+    const document = (await pdfmake
+      .createPdf({ ...definition, info: { title, creationDate: CREATED }, content: [{ text }], defaultStyle: { font: 'Roboto' } })
+      .getStream()) as unknown as PdfStream & PdfKitDocument
     finish?.(document)
     return collect(document)
   }
@@ -353,8 +396,15 @@ describe("pdfkit's PDF/A-3 and embedded files, which an e-invoice is drawn with"
     (relationship?: string) =>
     (document: PdfKitDocument): void => {
       // Without a relationship as PDFKit's own types have it: the option left out.
-      const options = { name: 'factur-x.xml', type: 'text/xml', description: 'Rechnung', creationDate: CREATED, modifiedDate: CREATED, ...(relationship === undefined ? {} : { relationship }) }
-      document.file(XML.buffer.slice(XML.byteOffset, XML.byteOffset + XML.byteLength) as ArrayBuffer, options as PdfKitFileOptions)
+      const options = {
+        name: 'factur-x.xml',
+        type: 'text/xml',
+        description: 'Rechnung',
+        creationDate: CREATED,
+        modifiedDate: CREATED,
+        ...(relationship === undefined ? {} : { relationship }),
+      }
+      document.file(XML.buffer.slice(XML.byteOffset, XML.byteOffset + XML.byteLength), options as PdfKitFileOptions)
     }
 
   // pdfmake hands the definition's version to PDFKit, which writes the

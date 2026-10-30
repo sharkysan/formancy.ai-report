@@ -54,10 +54,12 @@ function originProblem(entry: unknown): string | undefined {
     return 'is not an origin: a scheme, a host and, where it is not the default, a port'
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return 'is not an https: origin'
-  if (url.origin !== entry) return 'is not written as a browser sends Origin: lower case, a punycode name, no path or trailing slash, no default port and no user information'
+  if (url.origin !== entry)
+    return 'is not written as a browser sends Origin: lower case, a punycode name, no path or trailing slash, no default port and no user information'
   const host = url.hostname
   if (!(host.startsWith('[') || host.split('.').every((label) => LABEL.test(label)))) return 'names a pattern or a host that is no DNS name or IP address'
-  if (url.protocol === 'http:' && !LOOPBACK.has(host)) return 'is plain HTTP on a host other than localhost, 127.0.0.1 or [::1]: anything else is listed as https:'
+  if (url.protocol === 'http:' && !LOOPBACK.has(host))
+    return 'is plain HTTP on a host other than localhost, 127.0.0.1 or [::1]: anything else is listed as https:'
   return undefined
 }
 
@@ -70,7 +72,10 @@ export type CorsOriginsSetting = { ok: true; origins: string[] } | { ok: false; 
  * the whole setting, named by its place and never quoted.
  */
 export function corsOriginsSetting(text: string | undefined): CorsOriginsSetting {
-  const entries = (text ?? '').split(',').map((entry) => entry.trim()).filter((entry) => entry !== '')
+  const entries = (text ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== '')
   for (const [index, entry] of entries.entries()) {
     const problem = originProblem(entry)
     if (problem !== undefined) return { ok: false, problem: `${SETTING}: entry ${String(index + 1)} ${problem}.` }
@@ -94,7 +99,11 @@ export function originsProblem(origins: unknown): string | undefined {
  * Accept-Encoding, once a route compresses -- keeps it.
  */
 export function varyWith(existing: number | string | string[] | undefined, name: string): string {
-  const tokens = [existing ?? []].flat().flatMap((value) => String(value).split(',')).map((token) => token.trim()).filter((token) => token !== '')
+  const tokens = [existing ?? []]
+    .flat()
+    .flatMap((value) => String(value).split(','))
+    .map((token) => token.trim())
+    .filter((token) => token !== '')
   if (tokens.includes('*')) return '*'
   return tokens.some((token) => token.toLowerCase() === name.toLowerCase()) ? tokens.join(', ') : [...tokens, name].join(', ')
 }
@@ -184,7 +193,10 @@ export function crossOrigin(app: FastifyInstance, options: { origins: readonly s
     app.options(path, { config: { rateLimit: false }, onRequest: bodiless }, async (request, reply) => {
       const origin = request.headers.origin
       const method = request.headers['access-control-request-method']
-      const asked = String(request.headers['access-control-request-headers'] ?? '').split(',').map((name) => name.trim().toLowerCase()).filter((name) => name !== '')
+      const asked = String(request.headers['access-control-request-headers'] ?? '')
+        .split(',')
+        .map((name) => name.trim().toLowerCase())
+        .filter((name) => name !== '')
       const reason =
         typeof origin !== 'string' || typeof method !== 'string'
           ? 'not a preflight'

@@ -16,7 +16,8 @@ function read(read: ProviderRead) {
   return read.data
 }
 
-const lists = (requests: readonly { path: string; body: unknown }[]) => requests.filter((request) => request.path.endsWith('/records/list')).map((request) => request.body)
+const lists = (requests: readonly { path: string; body: unknown }[]) =>
+  requests.filter((request) => request.path.endsWith('/records/list')).map((request) => request.body)
 
 describe('readReportData', () => {
   // The provider's one job: what a Data form holds becomes data the runtime
@@ -28,7 +29,9 @@ describe('readReportData', () => {
     const fixture = dataFixture(orderForms(), ORDER_MENU)
     const data = read(await readReportData(fixture.client, orderReport(), ORDER))
     expect(data.header).toEqual({ number: 'Q-2026-0042', customer: 'Bäckerei Müller AG', orderedOn: '2026-10-15', total: '3143.00', paid: false })
-    expect(data.detail).toEqual([1, 2, 3].map((n) => ({ article: `A-${String(999 + n)}`, quantity: n, amount: `${String(99 + n)}.50`, shippedAt: '2026-10-15T08:30:00Z' })))
+    expect(data.detail).toEqual(
+      [1, 2, 3].map((n) => ({ article: `A-${String(999 + n)}`, quantity: n, amount: `${String(99 + n)}.50`, shippedAt: '2026-10-15T08:30:00Z' })),
+    )
     expect(data.completeness).toEqual({ complete: true, captured: 3, cap: 100_000 })
     const resolution = resolveReport(orderReport(), data, { mode: 'final', ...RESOLVE })
     expect(resolution.ok ? resolution.manifest.consistency : resolution.errors).toBe('best-effort')
@@ -45,7 +48,10 @@ describe('readReportData', () => {
     expect(data.source).toEqual({ provider: 'formancy-data', forms: { header: 'order', detail: 'order-line' } })
     expect(JSON.stringify(data.source)).not.toContain('o-1')
     const resolution = resolveReport(orderReport(), data, { mode: 'final', ...RESOLVE })
-    expect(resolution.ok ? resolution.manifest.source : resolution.errors).toEqual({ provider: 'formancy-data', forms: { header: 'order', detail: 'order-line' } })
+    expect(resolution.ok ? resolution.manifest.source : resolution.errors).toEqual({
+      provider: 'formancy-data',
+      forms: { header: 'order', detail: 'order-line' },
+    })
   })
 
   // The source names the form the records were read through. Data 0.1.0
@@ -67,7 +73,10 @@ describe('readReportData', () => {
     }
     // A binding that names no formancy form id, answered as if one were published under it.
     const order = orderForms()['order']!
-    const named = dataFixture({ 'Erika Mustermann': { ...order, published: { ...order.published, form: { ...order.published.form, id: 'Erika Mustermann' } } } }, ORDER_MENU)
+    const named = dataFixture(
+      { 'Erika Mustermann': { ...order, published: { ...order.published, form: { ...order.published.form, id: 'Erika Mustermann' } } } },
+      ORDER_MENU,
+    )
     const { detail: _, ...datasets } = orderReport().datasets
     const letter: ReportDefinition = { ...orderReport(), datasets, aggregates: [], regions: { ...orderReport().regions, body: [] } }
     const result = await readReportData(named.client, letter, { header: { form: 'Erika Mustermann', record: 'o-1' } })
@@ -103,7 +112,9 @@ describe('readReportData', () => {
   // else, "false" would print as yes.
   test('reads a Data yes-or-no as a boolean, and no answer as null', async () => {
     const fixture = dataFixture(orderForms(), ORDER_MENU)
-    const second = read(await readReportData(fixture.client, orderReport(), { header: { form: 'order', record: 'o-2' }, detail: { form: 'order-line', parent: 'header' } }))
+    const second = read(
+      await readReportData(fixture.client, orderReport(), { header: { form: 'order', record: 'o-2' }, detail: { form: 'order-line', parent: 'header' } }),
+    )
     expect(second.header?.['paid']).toBe(null)
   })
 
@@ -148,7 +159,12 @@ describe('readReportData', () => {
     const { detail: _, ...datasets } = orderReport().datasets
     const letter: ReportDefinition = { ...orderReport(), datasets, aggregates: [], regions: { ...orderReport().regions, body: [] } }
     const data = read(await readReportData(fixture.client, letter, { header: HEADER }))
-    expect(data).toEqual({ header: expect.any(Object), completeness: { complete: true, captured: 0 }, consistency: 'best-effort', source: { provider: 'formancy-data', forms: { header: 'order' } } })
+    expect(data).toEqual({
+      header: expect.any(Object),
+      completeness: { complete: true, captured: 0 },
+      consistency: 'best-effort',
+      source: { provider: 'formancy-data', forms: { header: 'order' } },
+    })
     expect(resolveReport(letter, data, { mode: 'final', ...RESOLVE }).ok).toBe(true)
   })
 
@@ -204,7 +220,17 @@ describe('readReportData', () => {
   // lists by two fields, has no one answer to "this record's lines". A
   // guess would print the wrong lines; nothing is read instead.
   test('refuses a parent the menu does not name exactly once, before reading a record', async () => {
-    const twice = { forms: [{ ...ORDER_MENU.forms[0]!, children: [{ form: 'order-line', field: 'order' }, { form: 'order-line', field: 'reorder' }] }] }
+    const twice = {
+      forms: [
+        {
+          ...ORDER_MENU.forms[0]!,
+          children: [
+            { form: 'order-line', field: 'order' },
+            { form: 'order-line', field: 'reorder' },
+          ],
+        },
+      ],
+    }
     for (const menu of [{ forms: [] }, twice]) {
       const fixture = dataFixture(orderForms(), menu)
       const result = await readReportData(fixture.client, orderReport(), ORDER)
@@ -235,7 +261,13 @@ describe('readReportData', () => {
     const fixture = dataFixture(orderForms(), ORDER_MENU)
     const report = orderReport()
     const header = report.datasets.header!
-    const nosy: ReportDefinition = { ...report, datasets: { ...report.datasets, header: { ...header, fields: [...header.fields, { id: 'internal', type: 'string', label: 'Internal', nullable: true }] } } }
+    const nosy: ReportDefinition = {
+      ...report,
+      datasets: {
+        ...report.datasets,
+        header: { ...header, fields: [...header.fields, { id: 'internal', type: 'string', label: 'Internal', nullable: true }] },
+      },
+    }
     const result = await readReportData(fixture.client, nosy, ORDER)
     expect(result.ok ? 'read' : result.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/header/internal', code: 'unreadable-field' }])
     expect(fixture.requests.some((request) => request.path.includes('/records/'))).toBe(false)
@@ -252,8 +284,16 @@ describe('readReportData', () => {
     const [number, customer, ...rest] = order.published.form.model.fields
     const fields = [{ key: 'about', type: 'group', fields: [number] }, { key: 'who', type: 'page', fields: [customer] }, ...rest]
     const grouped = { ...order, published: { ...order.published, form: { ...order.published.form, model: { fields } } } } as FixtureForm
-    expect(read(await readReportData(dataFixture({ ...forms, order: grouped }, ORDER_MENU).client, orderReport(), ORDER)).header?.['customer']).toBe('Bäckerei Müller AG')
-    const repeated = { ...grouped, published: { ...grouped.published, form: { ...grouped.published.form, model: { fields: [{ key: 'rows', type: 'repeater', fields: [number] }, customer, ...rest] } } } } as FixtureForm
+    expect(read(await readReportData(dataFixture({ ...forms, order: grouped }, ORDER_MENU).client, orderReport(), ORDER)).header?.['customer']).toBe(
+      'Bäckerei Müller AG',
+    )
+    const repeated = {
+      ...grouped,
+      published: {
+        ...grouped.published,
+        form: { ...grouped.published.form, model: { fields: [{ key: 'rows', type: 'repeater', fields: [number] }, customer, ...rest] } },
+      },
+    } as FixtureForm
     const result = await readReportData(dataFixture({ ...forms, order: repeated }, ORDER_MENU).client, orderReport(), ORDER)
     expect(result.ok ? 'read' : result.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/header/number', code: 'unreadable-field' }])
   })
@@ -265,7 +305,10 @@ describe('readReportData', () => {
     const fixture = dataFixture(orderForms(), ORDER_MENU)
     const report = orderReport()
     const header = report.datasets.header!
-    const pictured: ReportDefinition = { ...report, datasets: { ...report.datasets, header: { ...header, fields: [...header.fields, { id: 'number2', type: 'image', label: 'Logo', nullable: true }] } } }
+    const pictured: ReportDefinition = {
+      ...report,
+      datasets: { ...report.datasets, header: { ...header, fields: [...header.fields, { id: 'number2', type: 'image', label: 'Logo', nullable: true }] } },
+    }
     const result = await readReportData(fixture.client, pictured, ORDER)
     expect(result.ok ? 'read' : result.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/header/number2', code: 'unsupported-field' }])
   })
@@ -289,18 +332,35 @@ describe('readReportData', () => {
   test('passes Data’s refusals on, and hands over nothing after one', async () => {
     const gone = dataFixture(orderForms(), ORDER_MENU)
     const missing = await readReportData(gone.client, orderReport(), { ...ORDER, header: { form: 'order', record: 'o-404' } })
-    expect(missing).toEqual({ ok: false, errors: [{ path: '/header', code: 'refused', message: 'No such form or record.', refusal: { status: 404, code: 'not-found' } }] })
+    expect(missing).toEqual({
+      ok: false,
+      errors: [{ path: '/header', code: 'refused', message: 'No such form or record.', refusal: { status: 404, code: 'not-found' } }],
+    })
     const down = dataFixture(orderForms(120), ORDER_MENU)
     let pages = 0
-    const client = { ...down.client, list: async (...args: Parameters<typeof down.client.list>) => (++pages === 2 ? { ok: false as const, status: 503, code: 'unavailable', message: 'The database is not answering.' } : down.client.list(...args)) }
+    const client = {
+      ...down.client,
+      list: async (...args: Parameters<typeof down.client.list>) =>
+        ++pages === 2 ? { ok: false as const, status: 503, code: 'unavailable', message: 'The database is not answering.' } : down.client.list(...args),
+    }
     const partial = await readReportData(client, orderReport(), ORDER)
-    expect(partial).toEqual({ ok: false, errors: [{ path: '/detail', code: 'refused', message: 'The database is not answering.', refusal: { status: 503, code: 'unavailable' } }] })
+    expect(partial).toEqual({
+      ok: false,
+      errors: [{ path: '/detail', code: 'refused', message: 'The database is not answering.', refusal: { status: 503, code: 'unavailable' } }],
+    })
     // The form, the menu and a label are Data's answers too.
-    for (const [suffix, path] of [['/v1/forms/order', '/header'], ['/v1/forms', '/detail/parent'], ['/lookups/customers/resolve', '/header']] as const) {
+    for (const [suffix, path] of [
+      ['/v1/forms/order', '/header'],
+      ['/v1/forms', '/detail/parent'],
+      ['/lookups/customers/resolve', '/header'],
+    ] as const) {
       const fixture = dataFixture(orderForms(), ORDER_MENU)
       fixture.answerNext(suffix, 403, { code: 'forbidden', message: 'This person may not do that.' })
       const result = await readReportData(fixture.client, orderReport(), ORDER)
-      expect(result).toEqual({ ok: false, errors: [{ path, code: 'refused', message: 'This person may not do that.', refusal: { status: 403, code: 'forbidden' } }] })
+      expect(result).toEqual({
+        ok: false,
+        errors: [{ path, code: 'refused', message: 'This person may not do that.', refusal: { status: 403, code: 'forbidden' } }],
+      })
     }
   })
 
@@ -312,7 +372,9 @@ describe('readReportData', () => {
     const fixture = dataFixture(orderForms(), ORDER_MENU)
     fixture.answerNext('/lookups/customers/resolve', 200, { rows: [] })
     const result = await readReportData(fixture.client, orderReport(), ORDER)
-    expect(result.ok ? 'read' : result.errors).toEqual([{ path: '/header/customer', code: 'unresolved-label', message: 'one value of customer names a record whose label this person may not see' }])
+    expect(result.ok ? 'read' : result.errors).toEqual([
+      { path: '/header/customer', code: 'unresolved-label', message: 'one value of customer names a record whose label this person may not see' },
+    ])
     expect(JSON.stringify(result)).not.toContain('c-9')
     // In the lines, the first row that holds one, and how many there are.
     const forms = orderForms(4)
@@ -320,9 +382,14 @@ describe('readReportData', () => {
     const lines = dataFixture({ ...forms, 'order-line': { ...line, labels: { orders: {} } } }, ORDER_MENU)
     const report = orderReport()
     const detail = report.datasets.detail!
-    const withOrder: ReportDefinition = { ...report, datasets: { ...report.datasets, detail: { ...detail, fields: [...detail.fields, { id: 'order', type: 'string', label: 'Order', nullable: false }] } } }
+    const withOrder: ReportDefinition = {
+      ...report,
+      datasets: { ...report.datasets, detail: { ...detail, fields: [...detail.fields, { id: 'order', type: 'string', label: 'Order', nullable: false }] } },
+    }
     const many = await readReportData(lines.client, withOrder, ORDER)
-    expect(many.ok ? 'read' : many.errors).toEqual([{ path: '/detail/0/order', code: 'unresolved-label', message: '4 values of order name records whose label this person may not see' }])
+    expect(many.ok ? 'read' : many.errors).toEqual([
+      { path: '/detail/0/order', code: 'unresolved-label', message: '4 values of order name records whose label this person may not see' },
+    ])
   })
 
   // One page's tokens for one lookup fit one resolve (formancy.ai-data
@@ -336,10 +403,15 @@ describe('readReportData', () => {
     const fixture = dataFixture({ ...forms, 'order-line': { ...line, records, labels: { orders: labels } } }, ORDER_MENU)
     const report = orderReport()
     const lines = report.datasets.detail!
-    const withOrder: ReportDefinition = { ...report, datasets: { ...report.datasets, detail: { ...lines, fields: [...lines.fields, { id: 'order', type: 'string', label: 'Order', nullable: false }] } } }
+    const withOrder: ReportDefinition = {
+      ...report,
+      datasets: { ...report.datasets, detail: { ...lines, fields: [...lines.fields, { id: 'order', type: 'string', label: 'Order', nullable: false }] } },
+    }
     const data = read(await readReportData(fixture.client, withOrder, { header: HEADER, detail: { form: 'order-line' } }))
     expect(data.detail?.[61]?.['order']).toBe('Order 1')
-    const asked = fixture.requests.filter((request) => request.path.endsWith('/lookups/orders/resolve')).map((request) => (request.body as { tokens: string[] }).tokens)
+    const asked = fixture.requests
+      .filter((request) => request.path.endsWith('/lookups/orders/resolve'))
+      .map((request) => (request.body as { tokens: string[] }).tokens)
     expect(asked.map((tokens) => tokens.length)).toEqual([50, 10])
     expect(new Set(asked.flat()).size).toBe(60)
   })
@@ -361,7 +433,11 @@ describe('readReportData', () => {
   // it later anyway, and nothing is asked of Data first.
   test('refuses a report report-spec refuses, without a request', async () => {
     const fixture = dataFixture(orderForms(), ORDER_MENU)
-    const result = await readReportData(fixture.client, { ...orderReport(), datasets: { header: { id: 'order', fields: 'all' } } } as unknown as ReportDefinition, ORDER)
+    const result = await readReportData(
+      fixture.client,
+      { ...orderReport(), datasets: { header: { id: 'order', fields: 'all' } } } as unknown as ReportDefinition,
+      ORDER,
+    )
     expect(result.ok ? 'read' : result.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '', code: 'invalid-report' }])
     expect(fixture.requests).toEqual([])
   })

@@ -21,10 +21,17 @@ describe('the actions table', () => {
     expect(CAPACITIES).toEqual(['author', 'publisher', 'admin'])
     for (const [action, capacities] of Object.entries(ACTIONS)) {
       expect(capacities.length, action).toBeGreaterThan(0)
-      expect(capacities.every((capacity) => CAPACITIES.includes(capacity)), action).toBe(true)
+      expect(
+        capacities.every((capacity) => CAPACITIES.includes(capacity)),
+        action,
+      ).toBe(true)
       expect(new Set(capacities).size, action).toBe(capacities.length)
     }
-    for (const capacity of CAPACITIES) expect(Object.values(ACTIONS).some((capacities) => capacities.includes(capacity)), capacity).toBe(true)
+    for (const capacity of CAPACITIES)
+      expect(
+        Object.values(ACTIONS).some((capacities) => capacities.includes(capacity)),
+        capacity,
+      ).toBe(true)
   })
 
   // The table is the decision; a caller that could push a capacity into a

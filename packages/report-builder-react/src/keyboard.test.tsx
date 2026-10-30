@@ -167,8 +167,24 @@ describe('the place dialog', () => {
   // that says so, and holds what the builder's focus lands on.
   test('with nowhere to go says so, Cancel its first button', () => {
     const state = createReportEditor(sessionOver(scenarioReport())).state()
-    const drag = { subject: { id: 'gap' }, via: 'keyboard', over: null, title: t('places.move', { name: t('kind.spacer') }), nowhere: t('places.none', { name: t('kind.spacer') }) } as const
-    render(<Places state={{ ...state, drag, dropTargets: [] }} drag={drag} t={t} ids="places" act={() => undefined} choose={() => undefined} cancel={() => undefined} />)
+    const drag = {
+      subject: { id: 'gap' },
+      via: 'keyboard',
+      over: null,
+      title: t('places.move', { name: t('kind.spacer') }),
+      nowhere: t('places.none', { name: t('kind.spacer') }),
+    } as const
+    render(
+      <Places
+        state={{ ...state, drag, dropTargets: [] }}
+        drag={drag}
+        t={t}
+        ids="places"
+        act={() => undefined}
+        choose={() => undefined}
+        cancel={() => undefined}
+      />,
+    )
     const dialog = screen.getByRole('dialog', { name: drag.title })
     expect(computeAccessibleDescription(dialog)).toBe(drag.nowhere)
     expect(dialog.querySelector('button')).toBe(button(t('places.cancel')))
@@ -224,7 +240,16 @@ describe('the outline', () => {
       regions: {
         ...report.regions,
         body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)),
-        summary: [{ id: 'lines', kind: 'table', dataset: 'detail', columns: [{ id: 'sku', header: 'Article', width: 'fill', align: 'left', value: { kind: 'expression', expression: { cel: 'params.missing' } } }], emptyText: 'None.', repeatHeader: true }],
+        summary: [
+          {
+            id: 'lines',
+            kind: 'table',
+            dataset: 'detail',
+            columns: [{ id: 'sku', header: 'Article', width: 'fill', align: 'left', value: { kind: 'expression', expression: { cel: 'params.missing' } } }],
+            emptyText: 'None.',
+            repeatHeader: true,
+          },
+        ],
       },
     })
     await user.click(screen.getByRole('treeitem', { name: 'Introduction' }))
@@ -253,7 +278,10 @@ describe('the problems', () => {
       editor.dispatch({ type: 'setProperty', key: '/visibleWhen', value: 'params.missing' })
     })
     const problems = within(screen.getByRole('list', { name: t('pane.problems') })).getAllByRole('button')
-    expect(problems.map((problem) => problem.textContent)).toEqual([t('problem.item', { severity: t('severity.error'), where: 'Introduction' }), warning.textContent])
+    expect(problems.map((problem) => problem.textContent)).toEqual([
+      t('problem.item', { severity: t('severity.error'), where: 'Introduction' }),
+      warning.textContent,
+    ])
     expect(document.activeElement).toBe(warning)
     expect(warning.isConnected).toBe(true)
   })
@@ -265,7 +293,13 @@ describe('the panes', () => {
   // the pane that appears is where the keyboard is.
   test('are shown and entered from the toolbar', async () => {
     const report = scenarioReport()
-    const { user } = mount({ ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)) } })
+    const { user } = mount({
+      ...report,
+      regions: {
+        ...report.regions,
+        body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)),
+      },
+    })
     const editor = screen.getByRole('region', { name: t('editor.label') })
     expect(editor.getAttribute('data-panel')).toBe('outline')
 

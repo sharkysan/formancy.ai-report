@@ -37,7 +37,9 @@ describe('a binding overridden for one version', () => {
   // The review of AFTER put the name at the technician's: AFTER's
   // submissions read it there, BEFORE's where they always did.
   test('reads a field where the override says, in that version alone', () => {
-    const report = reportOf({ header: answers(field('site', 'string', 'site'), field('name', 'string', 'inspector.name', { overrides: { [AFTER_HASH]: { path: 'technician.name' } } })) })
+    const report = reportOf({
+      header: answers(field('site', 'string', 'site'), field('name', 'string', 'inspector.name', { overrides: { [AFTER_HASH]: { path: 'technician.name' } } })),
+    })
     expect(headerOf(read(report, AFTER, { site: 'Bern', technician: { name: 'Lea' } }))).toEqual({ site: 'Bern', name: 'Lea' })
     expect(headerOf(read(report, BEFORE, { site: 'Thun', inspector: { name: 'Anna' } }))).toEqual({ site: 'Thun', name: 'Anna' })
   })
@@ -46,18 +48,39 @@ describe('a binding overridden for one version', () => {
   // hands the field null, which prints as nothing, and the other versions
   // their answers.
   test('reads nothing of a field from a version the override says prints none of it', () => {
-    const report = reportOf({ header: answers(field('site', 'string', 'site'), field('name', 'string', 'inspector.name', { overrides: { [AFTER_HASH]: { omit: true } } })) })
+    const report = reportOf({
+      header: answers(field('site', 'string', 'site'), field('name', 'string', 'inspector.name', { overrides: { [AFTER_HASH]: { omit: true } } })),
+    })
     expect(headerOf(read(report, AFTER, { site: 'Bern', technician: { name: 'Lea' } }))).toEqual({ site: 'Bern', name: null })
     expect(headerOf(read(report, BEFORE, { site: 'Thun', inspector: { name: 'Anna' } }))).toEqual({ site: 'Thun', name: 'Anna' })
-    const many = reportOf({ detail: { id: 'visits', form: { kind: 'submissions' }, fields: [field('name', 'string', 'inspector.name', { overrides: { [AFTER_HASH]: { omit: true } } })] } })
-    const listed = readMany(many, { forms: [BEFORE, AFTER], complete: true, submissions: [{ id: 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380', formHash: BEFORE_HASH, data: { inspector: { name: 'Anna' } } }, { id: '8861b39c-51df-4cc0-b71e-63a6d3f16b1b', formHash: AFTER_HASH, data: { technician: { name: 'Lea' } } }] })
+    const many = reportOf({
+      detail: {
+        id: 'visits',
+        form: { kind: 'submissions' },
+        fields: [field('name', 'string', 'inspector.name', { overrides: { [AFTER_HASH]: { omit: true } } })],
+      },
+    })
+    const listed = readMany(many, {
+      forms: [BEFORE, AFTER],
+      complete: true,
+      submissions: [
+        { id: 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380', formHash: BEFORE_HASH, data: { inspector: { name: 'Anna' } } },
+        { id: '8861b39c-51df-4cc0-b71e-63a6d3f16b1b', formHash: AFTER_HASH, data: { technician: { name: 'Lea' } } },
+      ],
+    })
     expect(readData(listed).detail).toEqual([{ name: 'Anna' }, { name: null }])
   })
 
   // The detail's rows are read from the repeater the override names in
   // that version, each row's fields at their own paths in them.
   test("reads the detail's rows from the repeater the override names, in that version alone", () => {
-    const report = reportOf({ header: answers(field('site', 'string', 'site')), detail: { ...rowsOf('findings', field('area', 'string', 'area')), form: { kind: 'repeater', repeater: 'findings', overrides: { [AFTER_HASH]: { repeater: 'defects' } } } } })
+    const report = reportOf({
+      header: answers(field('site', 'string', 'site')),
+      detail: {
+        ...rowsOf('findings', field('area', 'string', 'area')),
+        form: { kind: 'repeater', repeater: 'findings', overrides: { [AFTER_HASH]: { repeater: 'defects' } } },
+      },
+    })
     expect(readData(read(report, AFTER, { site: 'Bern', defects: [{ _id: 'r1', area: 'Keller' }] })).detail).toEqual([{ area: 'Keller' }])
     expect(readData(read(report, BEFORE, { site: 'Thun', findings: [{ _id: 'r1', area: 'Dach' }] })).detail).toEqual([{ area: 'Dach' }])
   })
@@ -69,7 +92,10 @@ describe('a binding overridden for one version', () => {
   test('follows no override of another version, and its refusal names the review that lifts it', () => {
     const report = reportOf({
       header: answers(field('site', 'string', 'site'), field('name', 'string', 'inspector.name', { overrides: { [AFTER_HASH]: { path: 'technician.name' } } })),
-      detail: { ...rowsOf('findings', field('area', 'string', 'area')), form: { kind: 'repeater', repeater: 'findings', overrides: { [AFTER_HASH]: { repeater: 'defects' } } } },
+      detail: {
+        ...rowsOf('findings', field('area', 'string', 'area')),
+        form: { kind: 'repeater', repeater: 'findings', overrides: { [AFTER_HASH]: { repeater: 'defects' } } },
+      },
     })
     const outcome = read(report, LATER, { site: 'Bern', name: 'Lea' })
     expect(refusals(outcome)).toEqual(['version-lacks-field /datasets/header/fields/1/form', 'version-lacks-field /datasets/detail/form/repeater'])
@@ -84,8 +110,14 @@ describe('a binding overridden for one version', () => {
   // A row's field is read in the rows the version's own override names:
   // its refusal names those rows, where a refusal naming the binding's
   // repeater would send its reader to rows the version does not hold.
-  test("names the rows an override reads where a field of them is refused", () => {
-    const report = reportOf({ header: answers(field('site', 'string', 'site')), detail: { ...rowsOf('findings', field('area', 'string', 'zone')), form: { kind: 'repeater', repeater: 'findings', overrides: { [AFTER_HASH]: { repeater: 'defects' } } } } })
+  test('names the rows an override reads where a field of them is refused', () => {
+    const report = reportOf({
+      header: answers(field('site', 'string', 'site')),
+      detail: {
+        ...rowsOf('findings', field('area', 'string', 'zone')),
+        form: { kind: 'repeater', repeater: 'findings', overrides: { [AFTER_HASH]: { repeater: 'defects' } } },
+      },
+    })
     const outcome = read(report, AFTER, { site: 'Bern', defects: [{ _id: 'r1', area: 'Keller' }] })
     expect(refusals(outcome)).toEqual(['version-lacks-field /datasets/detail/fields/0/form'])
     expect(outcome.ok ? '' : outcome.errors[0]?.message).toContain('in the rows of "defects"')

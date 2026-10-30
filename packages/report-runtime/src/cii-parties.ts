@@ -55,7 +55,11 @@ export function tradeParty(name: 'ram:SellerTradeParty' | 'ram:BuyerTradeParty',
   const reached = party.electronicAddress
   return element(name, [
     leaf('ram:Name', party.name),
-    registration === undefined ? undefined : element('ram:SpecifiedLegalOrganization', [leaf('ram:ID', registration.id, registration.scheme === undefined ? [] : [['schemeID', registration.scheme]])]),
+    registration === undefined
+      ? undefined
+      : element('ram:SpecifiedLegalOrganization', [
+          leaf('ram:ID', registration.id, registration.scheme === undefined ? [] : [['schemeID', registration.scheme]]),
+        ]),
     tradeContact(party.contact),
     postalAddress(party.address),
     reached === undefined ? undefined : element('ram:URIUniversalCommunication', [leaf('ram:URIID', reached.id, [['schemeID', reached.scheme]])]),
@@ -72,7 +76,10 @@ export function tradeParty(name: 'ram:SellerTradeParty' | 'ram:BuyerTradeParty',
 export function paymentMeans(payment: PaymentTerms): XmlElement {
   return element('ram:SpecifiedTradeSettlementPaymentMeans', [
     leaf('ram:TypeCode', payment.means),
-    element('ram:PayeePartyCreditorFinancialAccount', [leaf('ram:IBANID', payment.account), optional(payment.accountName, (name) => leaf('ram:AccountName', name))]),
+    element('ram:PayeePartyCreditorFinancialAccount', [
+      leaf('ram:IBANID', payment.account),
+      optional(payment.accountName, (name) => leaf('ram:AccountName', name)),
+    ]),
     optional(payment.bic, (bic) => element('ram:PayeeSpecifiedCreditorFinancialInstitution', [leaf('ram:BICID', bic)])),
   ])
 }

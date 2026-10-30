@@ -25,14 +25,27 @@ const SELLER_VAT_RULES: { readonly [C in VatCategoryCode]: En16931Rule } = { S: 
  * of a declared category is one some render breaks. The runtime passes
  * the categories its lines use and the identifiers that print.
  */
-export function sellerIdentificationBreaks(has: { readonly vatId: boolean; readonly taxNumber: boolean; readonly legalId: boolean }, codes: readonly VatCategoryCode[]): readonly string[] {
+export function sellerIdentificationBreaks(
+  has: { readonly vatId: boolean; readonly taxNumber: boolean; readonly legalId: boolean },
+  codes: readonly VatCategoryCode[],
+): readonly string[] {
   const breaks: string[] = []
   if (!has.vatId && !has.legalId) {
-    breaks.push(en16931Rule('BR-CO-26', 'the seller has neither a VAT identifier (BT-31) nor a legal registration identifier (BT-30), one of which a buyer identifies a seller by'))
+    breaks.push(
+      en16931Rule(
+        'BR-CO-26',
+        'the seller has neither a VAT identifier (BT-31) nor a legal registration identifier (BT-30), one of which a buyer identifies a seller by',
+      ),
+    )
   }
   const rules = (Object.keys(SELLER_VAT_RULES) as VatCategoryCode[]).filter((code) => codes.includes(code)).map((code) => SELLER_VAT_RULES[code])
   if (!has.vatId && !has.taxNumber && rules.length > 0) {
-    breaks.push(en16931Rule(rules, 'the seller has neither a VAT identifier (BT-31) nor a tax registration identifier (BT-32), one of which a line of these VAT categories needs'))
+    breaks.push(
+      en16931Rule(
+        rules,
+        'the seller has neither a VAT identifier (BT-31) nor a tax registration identifier (BT-32), one of which a line of these VAT categories needs',
+      ),
+    )
   }
   return breaks
 }
@@ -44,7 +57,10 @@ export function sellerIdentificationBreaks(has: { readonly vatId: boolean; reado
  */
 export function buyerIdentificationBreak(has: { readonly vatId: boolean; readonly legalId: boolean }, codes: readonly VatCategoryCode[]): string | undefined {
   if (!codes.includes('AE') || has.vatId || has.legalId) return undefined
-  return en16931Rule('BR-AE-02', "a reverse-charged line needs the buyer's VAT identifier (BT-48) or its legal registration identifier (BT-47), and the buyer has neither")
+  return en16931Rule(
+    'BR-AE-02',
+    "a reverse-charged line needs the buyer's VAT identifier (BT-48) or its legal registration identifier (BT-47), and the buyer has neither",
+  )
 }
 
 /**
@@ -87,7 +103,12 @@ export function checkVatRate(code: VatCategoryCode, rate: string): PaymentCheck<
   const value = byValue(rate)
   if ((value === '0') !== RATE_RULES[code].zero) return no(RATE_RULES[code].rule)
   if (code === 'S' && BELOW_HALF.test(value)) {
-    return no(en16931Rule('BR-CO-17', "is below 0.5, which BR-CO-17 rounds to 0, and a breakdown whose rate rounds to 0 holds a tax that rounds to 0 too: a standard rated category's tax would not, past a small basis"))
+    return no(
+      en16931Rule(
+        'BR-CO-17',
+        "is below 0.5, which BR-CO-17 rounds to 0, and a breakdown whose rate rounds to 0 holds a tax that rounds to 0 too: a standard rated category's tax would not, past a small basis",
+      ),
+    )
   }
   return ok(value)
 }
@@ -132,7 +153,12 @@ export function vatCategoryBreaks(categories: readonly { readonly code: VatCateg
   for (const [index, { code, rate }] of categories.entries()) {
     const breakdown = code === 'S' ? `S ${byValue(rate)}` : code
     if (!seen.has(breakdown)) seen.add(breakdown)
-    else if (code === 'S') breaks.push({ index, field: 'rate', rule: en16931Rule('BR-S-08', 'is the rate of an earlier standard rated category, and the standard rated lines have one breakdown for each rate') })
+    else if (code === 'S')
+      breaks.push({
+        index,
+        field: 'rate',
+        rule: en16931Rule('BR-S-08', 'is the rate of an earlier standard rated category, and the standard rated lines have one breakdown for each rate'),
+      })
     else breaks.push({ index, field: 'code', rule: ONE_BREAKDOWN[code] })
   }
   return breaks

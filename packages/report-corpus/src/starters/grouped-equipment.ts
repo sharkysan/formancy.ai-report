@@ -45,13 +45,27 @@ const REPORT: ReportDefinition = {
     { id: 'value', fn: 'sum', of: { kind: 'field', field: detail('value') } },
   ],
   regions: {
-    pageHeader: [{ id: 'running-head', kind: 'text', style: 'small', content: [{ kind: 'text', text: 'Equipment register · ' }, { kind: 'field', field: header('company') }] }],
+    pageHeader: [
+      {
+        id: 'running-head',
+        kind: 'text',
+        style: 'small',
+        content: [
+          { kind: 'text', text: 'Equipment register · ' },
+          { kind: 'field', field: header('company') },
+        ],
+      },
+    ],
     reportHeader: [
       { id: 'title', kind: 'text', style: 'title', content: [{ kind: 'text', text: 'Equipment register' }] },
       {
         id: 'as-of',
         kind: 'text',
-        content: [{ kind: 'field', field: header('company') }, { kind: 'text', text: ', as of ' }, { kind: 'parameter', parameter: 'asOf', format: { kind: 'date', style: 'long' } }],
+        content: [
+          { kind: 'field', field: header('company') },
+          { kind: 'text', text: ', as of ' },
+          { kind: 'parameter', parameter: 'asOf', format: { kind: 'date', style: 'long' } },
+        ],
       },
       { id: 'head-gap', kind: 'spacer', height: 12 },
     ],
@@ -64,7 +78,13 @@ const REPORT: ReportDefinition = {
           { id: 'tag', header: 'Tag', width: 95, align: 'left', value: { kind: 'field', field: detail('tag') } },
           { id: 'description', header: 'Description', width: 'fill', align: 'left', value: { kind: 'field', field: detail('description') } },
           { id: 'category', header: 'Category', width: 70, align: 'left', value: { kind: 'field', field: detail('category') } },
-          { id: 'commissioned', header: 'Commissioned', width: 80, align: 'left', value: { kind: 'field', field: detail('commissionedOn'), format: { kind: 'date', style: 'medium' } } },
+          {
+            id: 'commissioned',
+            header: 'Commissioned',
+            width: 80,
+            align: 'left',
+            value: { kind: 'field', field: detail('commissionedOn'), format: { kind: 'date', style: 'medium' } },
+          },
           { id: 'value', header: 'Book value', width: 105, align: 'right', value: { kind: 'field', field: detail('value'), format: CHF } },
         ],
         sort: [{ field: detail('tag'), direction: 'asc' }],
@@ -98,7 +118,12 @@ const REPORT: ReportDefinition = {
     ],
     summary: [],
     pageFooter: [
-      { id: 'page-of', kind: 'text', style: 'footer', content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }] },
+      {
+        id: 'page-of',
+        kind: 'text',
+        style: 'footer',
+        content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }],
+      },
     ],
   },
   provenance: { kind: 'blank' },

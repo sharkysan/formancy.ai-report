@@ -41,5 +41,7 @@ const whole = (value: unknown): boolean => typeof value === 'number' && Number.i
 /** What is wrong with a limit an embedder passes, or `undefined`. */
 export function rateLimitProblem(limit: unknown): string | undefined {
   const given = limit as Partial<RateLimit> | null
-  return given !== null && typeof given === 'object' && whole(given.max) && whole(given.timeWindowMs) ? undefined : 'rateLimit is { max, timeWindowMs }, each a whole number of at least 1.'
+  return given !== null && typeof given === 'object' && whole(given.max) && whole(given.timeWindowMs)
+    ? undefined
+    : 'rateLimit is { max, timeWindowMs }, each a whole number of at least 1.'
 }

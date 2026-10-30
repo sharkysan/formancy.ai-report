@@ -44,7 +44,11 @@ function remove<T extends Declared>(list: readonly T[], id: string, path: string
 }
 
 /** `report` with `key` set to `list`, or the refusal. */
-function withList<K extends 'styles' | 'parameters' | 'assets' | 'aggregates'>(report: ReportDefinition, key: K, list: ReportDefinition[K] | Refusal): CommandOutcome {
+function withList<K extends 'styles' | 'parameters' | 'assets' | 'aggregates'>(
+  report: ReportDefinition,
+  key: K,
+  list: ReportDefinition[K] | Refusal,
+): CommandOutcome {
   return 'ok' in list ? list : { ok: true, report: { ...report, [key]: list } }
 }
 
@@ -78,7 +82,8 @@ export function putAsset(report: ReportDefinition, id: string, asset: Omit<Asset
 
 /** The asset appended under `id`; refused as `already-declared` when the report declares one under it already. */
 export function addAsset(report: ReportDefinition, id: string, asset: Omit<AssetRef, 'id'>): CommandOutcome {
-  if (report.assets.some((existing) => existing.id === id)) return refuse('already-declared', `an asset is already declared as ${quote(id)}; an add never replaces one`, { path: '/assets' })
+  if (report.assets.some((existing) => existing.id === id))
+    return refuse('already-declared', `an asset is already declared as ${quote(id)}; an add never replaces one`, { path: '/assets' })
   return withList(report, 'assets', put(report.assets, id, asset))
 }
 
@@ -122,7 +127,11 @@ export function removeDataset(report: ReportDefinition, slot: DatasetRole): Comm
 }
 
 /** `report` with the fields of the dataset in `slot` changed by `change`, or a refusal when there is no such dataset. */
-function withFields(report: ReportDefinition, slot: DatasetRole, change: (fields: readonly FieldContract[]) => readonly FieldContract[] | Refusal): CommandOutcome {
+function withFields(
+  report: ReportDefinition,
+  slot: DatasetRole,
+  change: (fields: readonly FieldContract[]) => readonly FieldContract[] | Refusal,
+): CommandOutcome {
   const dataset = report.datasets[slot]
   if (dataset === undefined) return refuse('not-found', `the report declares no ${slot} dataset`, { path: `/datasets/${slot}` })
   const fields = change(dataset.fields)

@@ -25,7 +25,9 @@ function freshFor(install, name) {
   const versions = distinct((install?.resolved ?? []).filter((resolved) => resolved.name === name).map((resolved) => resolved.version))
   return versions.map((version) => ({
     version,
-    hosts: (install?.consumers ?? []).filter((consumer) => (consumer.resolved ?? []).some((resolved) => resolved.name === name && resolved.version === version)).map((consumer) => consumer.project),
+    hosts: (install?.consumers ?? [])
+      .filter((consumer) => (consumer.resolved ?? []).some((resolved) => resolved.name === name && resolved.version === version))
+      .map((consumer) => consumer.project),
   }))
 }
 
@@ -55,7 +57,13 @@ function launchedIn(results, browser) {
   const seen = new Map()
   for (const { name, version, headless, by } of launches) {
     const key = `${name} ${version} ${String(headless)}`
-    seen.set(key, { name, version, headless, pin: browser.pins.find((pin) => pin.browser === name)?.browserVersion ?? null, by: distinct([...(seen.get(key)?.by ?? []), by]) })
+    seen.set(key, {
+      name,
+      version,
+      headless,
+      pin: browser.pins.find((pin) => pin.browser === name)?.browserVersion ?? null,
+      by: distinct([...(seen.get(key)?.by ?? []), by]),
+    })
   }
   return [...seen.values()]
 }
@@ -75,13 +83,22 @@ export function testedOnInRun({ results, facts }) {
     },
     npm: install?.npm ?? null,
     // What each install host type-checked its consumer with, skipLibCheck off.
-    hostTools: distinct((install?.consumers ?? []).flatMap((consumer) => Object.entries(consumer.tools ?? {}).map(([name, version]) => `${name} ${String(version)}`))).sort(),
+    hostTools: distinct(
+      (install?.consumers ?? []).flatMap((consumer) => Object.entries(consumer.tools ?? {}).map(([name, version]) => `${name} ${String(version)}`)),
+    ).sort(),
     packageManager: facts.packageManager,
     browser: facts.browser,
     browsers: launchedIn(results, facts.browser),
     // The axe-core each browser gate injected into the page, as the page reported it.
     axe: distinct(results.flatMap((result) => (result.browserGates ?? []).map((gate) => gate.axe)).filter((version) => version != null)),
     tooling: facts.tooling,
-    runners: [...new Map(results.map((result) => [`${result.runner?.image ?? ''} ${result.runner?.imageVersion ?? ''}`, { image: result.runner?.image ?? null, imageVersion: result.runner?.imageVersion ?? null }])).values()],
+    runners: [
+      ...new Map(
+        results.map((result) => [
+          `${result.runner?.image ?? ''} ${result.runner?.imageVersion ?? ''}`,
+          { image: result.runner?.image ?? null, imageVersion: result.runner?.imageVersion ?? null },
+        ]),
+      ).values(),
+    ],
   }
 }

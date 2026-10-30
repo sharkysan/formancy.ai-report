@@ -33,7 +33,12 @@ describe('the clip', () => {
   // The bench stops short of what is drawn beside the parts, side by side:
   // the Studio's bar is 12 px above the builder and the Preview.
   test('keeps what the bench leaves on each side, and no more', () => {
-    expect(padded({ x: 12, y: 140, width: 1576, height: 748 }, { top: 12, right: 12, bottom: 12, left: 12 }, { width: 1600, height: 900 })).toEqual({ x: 0, y: 128, width: 1600, height: 772 })
+    expect(padded({ x: 12, y: 140, width: 1576, height: 748 }, { top: 12, right: 12, bottom: 12, left: 12 }, { width: 1600, height: 900 })).toEqual({
+      x: 0,
+      y: 128,
+      width: 1600,
+      height: 772,
+    })
   })
 
   // A margin past the page's edge would be a box the full-page shot cannot

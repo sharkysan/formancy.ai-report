@@ -107,7 +107,8 @@ export const XRECHNUNG_HELD: { readonly [id: string]: string } = {
   'BR-DE-8': "the buyer's city: the UStG's full address needs it in every e-invoice (`FULL_ADDRESS`)",
   'BR-DE-9': "the buyer's post code: the UStG's full address needs it in every e-invoice (`FULL_ADDRESS`)",
   'BR-DE-14': 'the VAT category rate: every category declares its rate, and the writer writes it, by value, in each breakdown',
-  'BR-DE-16': "the seller's VAT identifier or tax number where a line is in S, E or AE: BR-S-02, BR-E-02 and BR-AE-02 ask the same of the three categories this release writes, and it writes no tax representative",
+  'BR-DE-16':
+    "the seller's VAT identifier or tax number where a line is in S, E or AE: BR-S-02, BR-E-02 and BR-AE-02 ask the same of the three categories this release writes, and it writes no tax representative",
   'BR-DE-17': 'the invoice type: 380, the one code `INVOICE_TYPE_CODES` holds, is of the codes it lists',
   'BR-DE-19': "the IBAN of a SEPA credit transfer: the payment account is the EPC QR code's account rule, check digits and all (`checkEpcIban`)",
   'BR-DE-21': "BT-24: the writer writes the version's `XRECHNUNG` guideline, KoSIT's `XR-CIUS-ID`",
@@ -214,11 +215,17 @@ export function telephoneBreak(text: string): string | undefined {
 export function emailBreak(text: string): string | undefined {
   return EMAIL.test(normalizeSpace(text))
     ? undefined
-    : xrechnungRule('BR-DE-28', 'is not an email address of the shape XRechnung reads one in: no white space, one @ with something before it, and after it two names at least, each joined to the next by one dot')
+    : xrechnungRule(
+        'BR-DE-28',
+        'is not an email address of the shape XRechnung reads one in: no white space, one @ with something before it, and after it two names at least, each joined to the next by one dot',
+      )
 }
 
 /** What BR-DE-18 says of a line led by #, as a refusal says it. */
-const SKONTO = xrechnungRule('BR-DE-18', 'hold a line that begins with #, which XRechnung reads as a Skonto line of its own syntax, and this release writes none: a discount is said in words')
+const SKONTO = xrechnungRule(
+  'BR-DE-18',
+  'hold a line that begins with #, which XRechnung reads as a Skonto line of its own syntax, and this release writes none: a discount is said in words',
+)
 
 /**
  * The rule an XRechnung's payment terms (BT-20) break, or undefined: no
@@ -252,7 +259,8 @@ export function skontoBreak(text: string): string | undefined {
 const LEITWEG_ID = /^([0-9]{2,12})(?:-([0-9A-Za-z]{1,30}))?-([0-9]{2})$/
 
 /** What an address under 0204 breaks by its shape, as a refusal says it. */
-const LEITWEG_SHAPE = 'is under 0204, a Leitweg-ID, and is not shaped as one: a coarse address of 2 to 12 digits, a fine address of up to 30 letters and digits where it has one, and two check digits, joined by hyphens'
+const LEITWEG_SHAPE =
+  'is under 0204, a Leitweg-ID, and is not shaped as one: a coarse address of 2 to 12 digits, a fine address of up to 30 letters and digits where it has one, and two check digits, joined by hyphens'
 
 /**
  * The rule an electronic address under scheme 0204 breaks as a Leitweg-ID,
@@ -272,5 +280,7 @@ export function leitwegIdBreak(text: string): string | undefined {
   if (parts === null) return LEITWEG_SHAPE
   const [, coarse = '', fine = '', check] = parts
   const digits = String(98 - mod97(`${coarse}${fine}00`)).padStart(2, '0')
-  return digits === check ? undefined : "is under 0204, a Leitweg-ID, and has check digits that do not match the rest of it (the Leitweg-ID's check digits, ISO/IEC 7064 MOD 97-10)"
+  return digits === check
+    ? undefined
+    : "is under 0204, a Leitweg-ID, and has check digits that do not match the rest of it (the Leitweg-ID's check digits, ISO/IEC 7064 MOD 97-10)"
 }

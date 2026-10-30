@@ -49,13 +49,19 @@ function slipLanguage(report: ReportDefinition): QrBillLanguage {
  */
 export function newPaymentPart(report: ReportDefinition): SwissQrBill {
   const invoice = report.eInvoice
-  const bill: SwissQrBill = { kind: 'swissQrBill', language: slipLanguage(report), account: said(QR_BILL_EXAMPLE.account), creditor: address(QR_BILL_EXAMPLE.creditor), currency: 'CHF' }
+  const bill: SwissQrBill = {
+    kind: 'swissQrBill',
+    language: slipLanguage(report),
+    account: said(QR_BILL_EXAMPLE.account),
+    creditor: address(QR_BILL_EXAMPLE.creditor),
+    currency: 'CHF',
+  }
   return invoice === undefined ? bill : { ...bill, currency: invoice.currency, ...(invoice.payment === undefined ? {} : { account: invoice.payment.iban }) }
 }
 
 /** The text `runs` write when every run is literal, what no data can change; undefined otherwise. */
 function written(runs: readonly Inline[]): string | undefined {
-  return runs.every((run) => run.kind === 'text') ? runs.map((run) => (run as Extract<Inline, { kind: 'text' }>).text).join('') : undefined
+  return runs.every((run) => run.kind === 'text') ? runs.map((run) => run.text).join('') : undefined
 }
 
 /** The kind of account `runs` write, as report-spec's check reads it; undefined where the data or an expression says, or it is no account yet. */

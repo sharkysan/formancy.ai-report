@@ -104,7 +104,8 @@ async function until(page, holds) {
 function agrees({ xml, text, accounts }) {
   const total = textAt(xml, `${SUMMATION}/ram:GrandTotalAmount`)
   const account = textAt(xml, `${HTS}/ram:SpecifiedTradeSettlementPaymentMeans/ram:PayeePartyCreditorFinancialAccount/ram:IBANID`)
-  if (total === undefined || !text.includes(`Rechnungsbetrag ${printedAmount(total)}`)) return `the page does not print the XML's total with VAT, ${String(total)}, as its Rechnungsbetrag`
+  if (total === undefined || !text.includes(`Rechnungsbetrag ${printedAmount(total)}`))
+    return `the page does not print the XML's total with VAT, ${String(total)}, as its Rechnungsbetrag`
   if (accounts.length !== 1 || accounts[0] !== account) return `its EPC QR codes pay ${JSON.stringify(accounts)}, and the XML's account is ${String(account)}`
   return null
 }
@@ -120,14 +121,17 @@ const addressed = (address) => (invoice) => {
   const [element] = elementsAt(invoice.xml, `${HTA}/ram:BuyerTradeParty/ram:URIUniversalCommunication/ram:URIID`)
   const buyer = textAt(invoice.xml, `${HTA}/ram:BuyerTradeParty/ram:Name`)
   if (address === null && element !== undefined) return `the XML names the buyer's electronic address ${element.text}`
-  if (address !== null && (element?.text !== address || element.attributes.schemeID !== 'EM')) return `the XML's buyer's electronic address (BT-49) is ${JSON.stringify(element?.text)} under ${JSON.stringify(element?.attributes.schemeID)}`
+  if (address !== null && (element?.text !== address || element.attributes.schemeID !== 'EM'))
+    return `the XML's buyer's electronic address (BT-49) is ${JSON.stringify(element?.text)} under ${JSON.stringify(element?.attributes.schemeID)}`
   if (buyer === undefined || !invoice.text.includes(buyer)) return `the page does not print the buyer the XML names, ${String(buyer)}`
   return agrees(invoice)
 }
 
 /** The XML's standard-rated breakdown at `rate` (BT-119) holds a tax (BT-117) the page prints, and the page's total is the XML's. */
 const taxedAt = (rate) => (invoice) => {
-  const breakdown = elementsAt(invoice.xml, `${HTS}/ram:ApplicableTradeTax`).find((tax) => textAt(tax, 'ram:CategoryCode') === 'S' && Number(textAt(tax, 'ram:RateApplicablePercent')) === Number(rate))
+  const breakdown = elementsAt(invoice.xml, `${HTS}/ram:ApplicableTradeTax`).find(
+    (tax) => textAt(tax, 'ram:CategoryCode') === 'S' && Number(textAt(tax, 'ram:RateApplicablePercent')) === Number(rate),
+  )
   const amount = breakdown === undefined ? undefined : textAt(breakdown, 'ram:CalculatedAmount')
   if (amount === undefined) return `the XML holds no standard-rated breakdown at ${rate} %`
   if (!invoice.text.includes(printedAmount(amount))) return `the page does not print the XML's tax at ${rate} %, ${amount}`
@@ -135,7 +139,8 @@ const taxedAt = (rate) => (invoice) => {
 }
 
 /** The keyboard on `element`, or where it is instead. */
-const onIt = async (page, element) => ((await element.evaluate((node) => node === document.activeElement)) ? null : `the keyboard is on ${await describeFocus(page)}`)
+const onIt = async (page, element) =>
+  (await element.evaluate((node) => node === document.activeElement)) ? null : `the keyboard is on ${await describeFocus(page)}`
 
 /** A field of the e-invoice's properties named `name`, given `value` and left with Tab; until the live region says `said`. */
 async function typed(editor, name, value, saying) {
@@ -163,7 +168,10 @@ export async function eInvoiceChecks(gate, page, framework) {
   const final = previewOf(page).getByRole('checkbox', { name: 'Final', exact: true })
   await final.check()
   await settled(page, FINAL)
-  check(`${framework}: the e-invoice's final Download PDF embeds its XML, whose total the page prints, and its EPC QR code pays the XML's account`, await until(page, paying(STARTER_ACCOUNT)))
+  check(
+    `${framework}: the e-invoice's final Download PDF embeds its XML, whose total the page prints, and its EPC QR code pays the XML's account`,
+    await until(page, paying(STARTER_ACCOUNT)),
+  )
 
   // Its row, after the regions, clicked: the e-invoice selected, and the keyboard on the row.
   const tree = await showing(editor, 'Outline', editor.getByRole('tree', { name: said('pane.outline'), exact: true }))
@@ -182,7 +190,10 @@ export async function eInvoiceChecks(gate, page, framework) {
 
   // The buyer: its electronic address typed, the XML naming it under EM.
   const buyer = said('field.buyerAddress')
-  check(`${framework}: the buyer's electronic address is typed into the e-invoice`, await typed(editor, buyer, ADDRESS, said('status.changed', { field: buyer })))
+  check(
+    `${framework}: the buyer's electronic address is typed into the e-invoice`,
+    await typed(editor, buyer, ADDRESS, said('status.changed', { field: buyer })),
+  )
   check(`${framework}: and the final PDF's XML names it, under EM, beside the buyer the page prints`, await until(page, addressed(ADDRESS)))
 
   // A rate: the first category's, the XML's tax at it printed on the page.
@@ -192,13 +203,22 @@ export async function eInvoiceChecks(gate, page, framework) {
 
   // The account, typed once: the XML's and the EPC QR code's both.
   const iban = said('field.iban')
-  check(`${framework}: an IBAN typed into the e-invoice's payment instructions is said to be every payment code's`, await typed(editor, iban, TYPED_ACCOUNT, said('status.accountShared', { field: iban })))
-  check(`${framework}: and the final PDF's XML names it, and the EPC QR code its page draws, decoded from its pixels, pays it`, await until(page, paying(TYPED_ACCOUNT.replaceAll(' ', ''))))
+  check(
+    `${framework}: an IBAN typed into the e-invoice's payment instructions is said to be every payment code's`,
+    await typed(editor, iban, TYPED_ACCOUNT, said('status.accountShared', { field: iban })),
+  )
+  check(
+    `${framework}: and the final PDF's XML names it, and the EPC QR code its page draws, decoded from its pixels, pays it`,
+    await until(page, paying(TYPED_ACCOUNT.replaceAll(' ', ''))),
+  )
 
   // Undone from the toolbar, each edit: the XML and the code are the starter's again.
   const undo = editor.getByRole('toolbar', { name: said('toolbar.label'), exact: true }).getByRole('button', { name: said('action.undo'), exact: true })
   for (let step = 0; step < 3; step += 1) if ((await undo.getAttribute('aria-disabled')) !== 'true') await undo.click()
-  check(`${framework}: undone, the XML names no electronic address of the buyer's again, taxes at 19 %, and it and the code pay the starter's account`, await until(page, (invoice) => addressed(null)(invoice) ?? taxedAt('19')(invoice) ?? paying(STARTER_ACCOUNT)(invoice)))
+  check(
+    `${framework}: undone, the XML names no electronic address of the buyer's again, taxes at 19 %, and it and the code pay the starter's account`,
+    await until(page, (invoice) => addressed(null)(invoice) ?? taxedAt('19')(invoice) ?? paying(STARTER_ACCOUNT)(invoice)),
+  )
   await previewInView(page)
   await final.uncheck()
   await settled(page)

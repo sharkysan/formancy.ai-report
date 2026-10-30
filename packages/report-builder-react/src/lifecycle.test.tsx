@@ -19,7 +19,8 @@ afterEach(cleanup)
 const en = editorText('en')
 const de = editorText('de-CH')
 
-const ids = (report: { readonly regions: { readonly body: readonly { readonly id: string }[] } }): string => report.regions.body.map((component) => component.id).join()
+const ids = (report: { readonly regions: { readonly body: readonly { readonly id: string }[] } }): string =>
+  report.regions.body.map((component) => component.id).join()
 
 describe('a builder that comes and goes', () => {
   // A builder that stayed subscribed after unmounting would re-render a
@@ -103,7 +104,11 @@ describe('two builders on one session', () => {
     const dialog = screen.getByRole('dialog', { name: en('places.insert', { kind: en('kind.text') }) })
     expect(document.activeElement).toBe(elsewhere)
 
-    act(() => within(dialog).getByRole('button', { name: en('places.cancel') }).focus())
+    act(() =>
+      within(dialog)
+        .getByRole('button', { name: en('places.cancel') })
+        .focus(),
+    )
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: en('kind.text') }))

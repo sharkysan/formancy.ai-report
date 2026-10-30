@@ -87,7 +87,10 @@ export function readVeraPdf(stdout) {
         passedRules: result.details?.passedRules,
         failedRules: result.details?.failedRules,
         // Sorted: veraPDF lists a job's rule summaries in no fixed order from one run to the next.
-        failed: (result.details?.ruleSummaries ?? []).filter((rule) => rule.status === 'failed').map((rule) => `${String(rule.clause)}-${String(rule.testNumber)}`).sort(),
+        failed: (result.details?.ruleSummaries ?? [])
+          .filter((rule) => rule.status === 'failed')
+          .map((rule) => `${String(rule.clause)}-${String(rule.testNumber)}`)
+          .sort(),
       })),
       embedded: shownFile(job),
     })),
@@ -116,13 +119,20 @@ function embeddedRefusals(shown, embeds, { fileName, relationship, mediaType, md
 function runProblems({ status, stderr, report, entries, pinned }) {
   const problems = []
   const mustFail = entries.some((entry) => Array.isArray(entry.expect.verapdf) && entry.expect.verapdf.some((key) => !key.startsWith('embedded ')))
-  if (status !== (mustFail ? 1 : 0)) problems.push(`veraPDF exited ${String(status)}, where ${mustFail ? 'a control fails a rule and it exits 1' : 'every file complies and it exits 0'}`)
-  for (const line of String(stderr).split(/\r?\n/).filter((each) => each.trim() !== '')) problems.push(`veraPDF wrote on stderr, which it does not on a run that went as its report says: ${line}`)
+  if (status !== (mustFail ? 1 : 0))
+    problems.push(`veraPDF exited ${String(status)}, where ${mustFail ? 'a control fails a rule and it exits 1' : 'every file complies and it exits 0'}`)
+  for (const line of String(stderr)
+    .split(/\r?\n/)
+    .filter((each) => each.trim() !== ''))
+    problems.push(`veraPDF wrote on stderr, which it does not on a run that went as its report says: ${line}`)
   if (report.versions.length === 0) problems.push('veraPDF’s report names no version of itself')
-  for (const part of report.versions) if (part.version !== pinned) problems.push(`veraPDF’s ${String(part.id)} is ${String(part.version)}, not ${pinned}, which docs/release/e-invoice-tools.json pins`)
+  for (const part of report.versions)
+    if (part.version !== pinned)
+      problems.push(`veraPDF’s ${String(part.id)} is ${String(part.version)}, not ${pinned}, which docs/release/e-invoice-tools.json pins`)
   const { batch } = report
   if (batch.totalJobs !== entries.length) problems.push(`veraPDF ran ${String(batch.totalJobs)} jobs, where the corpus has ${String(entries.length)} PDFs`)
-  for (const count of ['failedParsingJobs', 'failedEncryptedJobs', 'veraExceptions', 'outOfMemory']) if (batch[count] !== 0) problems.push(`veraPDF’s ${count} is ${String(batch[count])}, not 0`)
+  for (const count of ['failedParsingJobs', 'failedEncryptedJobs', 'veraExceptions', 'outOfMemory'])
+    if (batch[count] !== 0) problems.push(`veraPDF’s ${count} is ${String(batch[count])}, not 0`)
   const files = report.jobs.map((job) => job.file)
   for (const file of new Set(files)) if (!entries.some((entry) => entry.file === file)) problems.push(`veraPDF judged ${file}, which is no PDF of the corpus`)
   for (const file of new Set(files.filter((file, at) => files.indexOf(file) !== at))) problems.push(`veraPDF judged ${file} more than once`)
@@ -163,7 +173,8 @@ export function judgeVeraPdf({ entries, status, stdout, stderr, error, pinned, f
     if (result !== undefined) {
       if (result.profile !== PROFILE) wrong.push(`veraPDF validated ${entry.file} against ${String(result.profile)}, not the ${PROFILE}`)
       if (result.end !== 'normal') wrong.push(`veraPDF’s job on ${entry.file} ended ${String(result.end)}, not normally`)
-      if (result.failedRules !== result.failed.length) wrong.push(`veraPDF counts ${String(result.failedRules)} rules ${entry.file} failed, and summarises ${String(result.failed.length)}`)
+      if (result.failedRules !== result.failed.length)
+        wrong.push(`veraPDF counts ${String(result.failedRules)} rules ${entry.file} failed, and summarises ${String(result.failed.length)}`)
       row.compliant = result.compliant
     }
     // Sorted, so the judged order is stable: veraPDF summarises a file's failed rules in no fixed order across runs, and the gate compares them as a set.
@@ -174,8 +185,10 @@ export function judgeVeraPdf({ entries, status, stdout, stderr, error, pinned, f
       for (const key of row.refusals) wrong.push(`${entry.file} is refused by veraPDF: ${key}`)
     } else if (row.refusals.length === 0) wrong.push(`${entry.file} is broken for ${entry.why}, and veraPDF accepted it: nothing is watching that`)
     else {
-      for (const key of entry.expect.verapdf) if (!row.refusals.includes(key)) wrong.push(`${entry.file} was not refused by veraPDF for ${key}, which it is broken for`)
-      for (const key of row.refusals) if (!entry.expect.verapdf.includes(key)) wrong.push(`${entry.file} was refused by veraPDF for ${key} as well, which it is not broken for`)
+      for (const key of entry.expect.verapdf)
+        if (!row.refusals.includes(key)) wrong.push(`${entry.file} was not refused by veraPDF for ${key}, which it is broken for`)
+      for (const key of row.refusals)
+        if (!entry.expect.verapdf.includes(key)) wrong.push(`${entry.file} was refused by veraPDF for ${key} as well, which it is not broken for`)
     }
     problems.push(...wrong)
     row.verdict = wrong.length === 0 ? 'as expected' : 'not as expected'
@@ -202,5 +215,7 @@ export function bundledVeraPdf(jar) {
 /** What is wrong with the veraPDF a tool bundles, against the register's floor, as sentences. */
 export function bundledProblems(bundled, floor, tool) {
   if (bundled.length === 0) return [`${tool}’s JAR names no veraPDF it bundles, where it validates PDF/A with one: the floor cannot be held`]
-  return bundled.filter((part) => !atLeast(part.version, floor.version)).map((part) => `${tool} bundles veraPDF’s ${part.artifact} ${String(part.version)}, below the floor of ${floor.version} (${floor.advisories.join(', ')})`)
+  return bundled
+    .filter((part) => !atLeast(part.version, floor.version))
+    .map((part) => `${tool} bundles veraPDF’s ${part.artifact} ${String(part.version)}, below the floor of ${floor.version} (${floor.advisories.join(', ')})`)
 }

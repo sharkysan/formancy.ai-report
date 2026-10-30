@@ -523,3 +523,43 @@ The server's one answer to both questions
   JSON array so that no two people share a reference, or `null` without
   one; the key at least 32 bytes and not the identity key. Never a token, a claim's value, a path or a body, and never
   evidence: Data's limits, formancy.ai-data 0023.
+
+## 8.13 The code's own rules
+
+Every TypeScript and JavaScript file git holds is linted and formatted by
+the rules the four formancy repositories share, and `verify` fails a change
+that breaks either
+([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)):
+
+- **The rules.** `@eslint/js`'s recommended set and typescript-eslint's
+  type-aware one, every rule at error and none at `warn`; React's hooks
+  rules where a workspace declares React; a disable comment only with its
+  reason after `--`. A test is spared seven rules -- the `no-unsafe-*`
+  family, `unbound-method` and `no-explicit-any` -- and `require-await` is
+  off in every file; test support is held to every rule
+  ([formancy.ai-health 0017](https://github.com/sharkysan/formancy.ai-health/blob/main/docs/decisions/0017-every-typescript-and-javascript-file-is-linted-by-the-recommended-type-aware-rules-and-formatted-by-prettier.md)).
+- **Types where the typecheck has them.** A file is linted with the types
+  of the tsconfig `pnpm typecheck` checks it in, `tsconfig.tools.json` for
+  the vitest, Vite and tsdown configs; the install fixtures, which import
+  the packed tarballs, without types; and the scripts that drive
+  Playwright with a page's globals.
+- **A member handed off its object says so.** A member of a published
+  interface that a store hook calls off its object -- `ReportSession`'s
+  `subscribe`, `document` and `hash`, `ReportEditor`'s `subscribe` and
+  `state` -- is declared `this: void` and stays a method, so that an
+  implementation with a narrower parameter still compiles.
+- **The format.** Prettier, at 160 columns, without semicolons, in single
+  quotes, over TypeScript and JavaScript alone; every other file is as it
+  was written.
+- **A copy until it is released.** `scripts/code-style/` is Formancy
+  Health's module, byte for byte, which formancy.ai will release as
+  `@formancy/code-style`; `eslint.config.mjs` and `prettier.config.mjs`
+  call it with this repository's paths. A rule changes in the shared module
+  first and is copied here, and the copy goes when the package is pinned,
+  which narrows [0002](../decisions/0002-depend-on-upstream-never-copy-it.md)
+  until then.
+
+**What it costs.** A finding is fixed before a change merges, or disabled
+with a reason review reads; an `async` that awaits nothing passes, and so
+does an `any` a test reads; and nothing compares the copy with the module
+it came from ([§11](11-risks-and-debt.md#113-known-technical-debt)).

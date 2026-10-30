@@ -35,7 +35,17 @@ function placed(box: Box): CSSProperties {
   return { left: box.x, top: box.y, width: box.width, height: box.height }
 }
 
-function Ruler({ orientation, ticks, length, label }: { readonly orientation: 'horizontal' | 'vertical'; readonly ticks: readonly RulerTick[]; readonly length: number; readonly label: string }): ReactElement {
+function Ruler({
+  orientation,
+  ticks,
+  length,
+  label,
+}: {
+  readonly orientation: 'horizontal' | 'vertical'
+  readonly ticks: readonly RulerTick[]
+  readonly length: number
+  readonly label: string
+}): ReactElement {
   const across = orientation === 'horizontal'
   return (
     <div role="img" aria-label={label} data-report-part="ruler" data-orientation={orientation} style={across ? { width: length } : { height: length }}>
@@ -120,7 +130,14 @@ export function Canvas({ state, t, canvas: canvasRef, sheet: sheetRef, drag, sel
         {placing === null
           ? null
           : dropTargets.map((target) => (
-              <div key={target.index} role="img" aria-label={target.label} data-report-part="drop-indicator" data-over={placing.over === target.index ? 'true' : undefined} style={placed(target.px)} />
+              <div
+                key={target.index}
+                role="img"
+                aria-label={target.label}
+                data-report-part="drop-indicator"
+                data-over={placing.over === target.index ? 'true' : undefined}
+                style={placed(target.px)}
+              />
             ))}
       </div>
     </section>

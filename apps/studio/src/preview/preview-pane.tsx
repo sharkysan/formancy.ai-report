@@ -69,7 +69,19 @@ function Problems({ problems, label, select }: { problems: readonly PreviewProbl
   )
 }
 
-export function PreviewPane({ id, place, opened, images, select }: { id: string; place: HostViewPlace; opened: Opened; images: ImageResolver; select: (target: ProblemTarget) => void }): ReactElement {
+export function PreviewPane({
+  id,
+  place,
+  opened,
+  images,
+  select,
+}: {
+  id: string
+  place: HostViewPlace
+  opened: Opened
+  images: ImageResolver
+  select: (target: ProblemTarget) => void
+}): ReactElement {
   const [mode, setMode] = useState<DataMode>('preview')
   const { shown, rendering, fault } = usePreview(opened, images, mode)
   const { outline } = useEditorState(opened.editor)
@@ -77,7 +89,13 @@ export function PreviewPane({ id, place, opened, images, select }: { id: string;
 
   const outcome = shown?.outcome
   const problems =
-    outcome === undefined ? [] : outcome.kind === 'printed' ? runtimeProblems(outcome.warnings, 'warning', outline) : outcome.kind === 'refused' ? runtimeProblems(outcome.errors, 'error', outline) : [renderProblem(outcome.refusal, outline)]
+    outcome === undefined
+      ? []
+      : outcome.kind === 'printed'
+        ? runtimeProblems(outcome.warnings, 'warning', outline)
+        : outcome.kind === 'refused'
+          ? runtimeProblems(outcome.errors, 'error', outline)
+          : [renderProblem(outcome.refusal, outline)]
 
   // In the middle, the builder's region is the Preview's: one of the same name inside it would be said twice.
   const Pane = place === 'beside' ? 'section' : 'div'

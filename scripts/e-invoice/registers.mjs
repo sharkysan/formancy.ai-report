@@ -30,11 +30,18 @@ const SHA256 = /^[0-9a-f]{64}$/
  * under this one's version, is refused before anything is fetched.
  */
 export const ASSETS = {
-  mustang: { version: EXACT, url: (tool) => `https://github.com/ZUGFeRD/mustangproject/releases/download/core-${tool.version}/Mustang-CLI-${tool.version}.jar` },
-  kosit: { version: EXACT, url: (tool) => `https://github.com/itplr-kosit/validator/releases/download/v${tool.version}/validator-${tool.version}-standalone.jar` },
+  mustang: {
+    version: EXACT,
+    url: (tool) => `https://github.com/ZUGFeRD/mustangproject/releases/download/core-${tool.version}/Mustang-CLI-${tool.version}.jar`,
+  },
+  kosit: {
+    version: EXACT,
+    url: (tool) => `https://github.com/itplr-kosit/validator/releases/download/v${tool.version}/validator-${tool.version}-standalone.jar`,
+  },
   'xrechnung-configuration': {
     version: DATED,
-    url: (tool) => `https://github.com/itplr-kosit/validator-configuration-xrechnung/releases/download/v${tool.version}/xrechnung-${tool.xrechnung}-validator-configuration-${tool.version}.zip`,
+    url: (tool) =>
+      `https://github.com/itplr-kosit/validator-configuration-xrechnung/releases/download/v${tool.version}/xrechnung-${tool.xrechnung}-validator-configuration-${tool.version}.zip`,
   },
   // veraPDF's command line is published to Maven Central with a .sha256
   // beside it; its own site has the installer, with a signature and no hash.
@@ -73,7 +80,8 @@ export const ACCEPTING = Object.freeze(['mustang', 'kosit'])
 export const ADMITTED_LICENCES = new Map([['verapdf@1.30.3', 'GPL-3.0-or-later OR MPL-2.0']])
 
 /** Whether a tool's licence is one the policy allows, or the one a decision admits for that tool at that version. */
-const licenceAdmitted = (tool) => typeof tool.licence === 'string' && (spdxAllows(tool.licence) || ADMITTED_LICENCES.get(`${String(tool.id)}@${String(tool.version)}`) === tool.licence)
+const licenceAdmitted = (tool) =>
+  typeof tool.licence === 'string' && (spdxAllows(tool.licence) || ADMITTED_LICENCES.get(`${String(tool.id)}@${String(tool.version)}`) === tool.licence)
 
 /** Whether `version` is `floor` or later, both exact `major.minor.patch`, compared part by part as numbers; anything else is not. */
 export function atLeast(version, floor) {
@@ -103,7 +111,8 @@ function entryProblems(tool) {
   if (asset === undefined) return ['is no tool the gate runs']
   const problems = []
   if (typeof tool.version !== 'string' || !asset.version.test(tool.version)) problems.push('version is not an exact release')
-  if (tool.id === 'xrechnung-configuration' && (typeof tool.xrechnung !== 'string' || !EXACT.test(tool.xrechnung))) problems.push('xrechnung is not an exact release')
+  if (tool.id === 'xrechnung-configuration' && (typeof tool.xrechnung !== 'string' || !EXACT.test(tool.xrechnung)))
+    problems.push('xrechnung is not an exact release')
   if (tool.url !== asset.url(tool)) problems.push(`url is not the asset of release ${String(tool.version)} at ${asset.url(tool)}`)
   if (typeof tool.released !== 'string' || !DATED.test(tool.released)) problems.push('released is not a date')
   if (typeof tool.sha256 !== 'string' || !SHA256.test(tool.sha256)) problems.push('sha256 is not 64 lowercase hex digits')
@@ -111,7 +120,8 @@ function entryProblems(tool) {
   if (PROGRAMS.has(tool.id)) {
     if (!Number.isSafeInteger(tool.java) || tool.java < 8) problems.push('java is not a Java major version')
   } else if (tool.java !== null) problems.push('java is given, and a configuration is no program')
-  if (!licenceAdmitted(tool)) problems.push('licence is not one scripts/dependency-licences.mjs allows, nor one a decision admits for this tool at this version')
+  if (!licenceAdmitted(tool))
+    problems.push('licence is not one scripts/dependency-licences.mjs allows, nor one a decision admits for this tool at this version')
   return problems
 }
 
@@ -128,10 +138,12 @@ function floorProblems(register) {
   if (typeof floor !== 'object' || floor === null) return ['veraPdfFloor is not the oldest veraPDF the gate may run']
   const problems = []
   if (!EXACT.test(String(floor.version))) problems.push('veraPdfFloor: version is not an exact release')
-  if (!Array.isArray(floor.advisories) || floor.advisories.length === 0 || floor.advisories.some((id) => !ADVISORY.test(String(id)))) problems.push('veraPdfFloor: advisories is not a list of the GitHub advisories it is for')
+  if (!Array.isArray(floor.advisories) || floor.advisories.length === 0 || floor.advisories.some((id) => !ADVISORY.test(String(id))))
+    problems.push('veraPdfFloor: advisories is not a list of the GitHub advisories it is for')
   if (typeof floor.why !== 'string' || floor.why.trim() === '') problems.push('veraPdfFloor: gives no reason')
   const pin = register.tools.find((tool) => tool?.id === 'verapdf')
-  if (pin !== undefined && EXACT.test(String(floor.version)) && !atLeast(pin.version, floor.version)) problems.push(`verapdf: version ${String(pin.version)} is below veraPdfFloor's ${floor.version}`)
+  if (pin !== undefined && EXACT.test(String(floor.version)) && !atLeast(pin.version, floor.version))
+    problems.push(`verapdf: version ${String(pin.version)} is below veraPdfFloor's ${floor.version}`)
   return problems
 }
 
@@ -155,11 +167,14 @@ export function toolProblems(register) {
   for (const id of Object.keys(ASSETS)) if (!seen.has(id)) problems.push(say(`names no ${id}, which the gate runs`))
   problems.push(...floorProblems(register).map(say))
   const runtime = register.runtime
-  if (typeof runtime !== 'object' || runtime === null || !Number.isSafeInteger(runtime.java)) return [...problems, say('runtime is not the Java CI runs the gate on')]
+  if (typeof runtime !== 'object' || runtime === null || !Number.isSafeInteger(runtime.java))
+    return [...problems, say('runtime is not the Java CI runs the gate on')]
   if (runtime.installedBy !== 'actions/setup-java') problems.push(say('runtime: installedBy is not actions/setup-java'))
-  if (typeof runtime.distribution !== 'string' || !/^[a-z]+$/.test(runtime.distribution)) problems.push(say('runtime: distribution is not the name setup-java knows the JDK by'))
+  if (typeof runtime.distribution !== 'string' || !/^[a-z]+$/.test(runtime.distribution))
+    problems.push(say('runtime: distribution is not the name setup-java knows the JDK by'))
   for (const tool of register.tools) {
-    if (PROGRAMS.has(tool?.id) && Number.isSafeInteger(tool.java) && tool.java > runtime.java) problems.push(say(`runtime: Java ${String(runtime.java)} does not run ${tool.id}, which needs ${String(tool.java)}`))
+    if (PROGRAMS.has(tool?.id) && Number.isSafeInteger(tool.java) && tool.java > runtime.java)
+      problems.push(say(`runtime: Java ${String(runtime.java)} does not run ${tool.id}, which needs ${String(tool.java)}`))
   }
   return problems
 }
@@ -182,9 +197,12 @@ export function acceptedProblems(register) {
     seen.add(name)
     if (!ACCEPTING.includes(entry?.tool)) problems.push(say(`${name}: names no tool whose warnings the gate may accept`))
     if (typeof entry?.message !== 'string' || !/^(warning|notice|information) \S/.test(entry.message)) {
-      problems.push(say(/^error\b/.test(String(entry?.message)) ? `${name}: is an error, which refuses a file whatever is accepted` : `${name}: is no warning or notice`))
+      problems.push(
+        say(/^error\b/.test(String(entry?.message)) ? `${name}: is an error, which refuses a file whatever is accepted` : `${name}: is no warning or notice`),
+      )
     }
-    if (!Array.isArray(entry?.files) || entry.files.length === 0 || entry.files.some((file) => typeof file !== 'string')) problems.push(say(`${name}: names no file of the corpus it is accepted in`))
+    if (!Array.isArray(entry?.files) || entry.files.length === 0 || entry.files.some((file) => typeof file !== 'string'))
+      problems.push(say(`${name}: names no file of the corpus it is accepted in`))
     if (typeof entry?.reason !== 'string' || entry.reason.trim() === '') problems.push(say(`${name}: gives no reason it is accepted`))
   }
   return problems

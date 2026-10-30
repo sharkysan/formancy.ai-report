@@ -38,7 +38,9 @@ function suiteRow(suites, { name, path, published }) {
     skipped: count('skipped'),
     todo: count('todo'),
     notPassed: tests.filter((test) => test.status !== 'passed').map((test) => ({ file: test.file, name: test.name, status: test.status })),
-    failedFiles: files.filter((file) => file.status === 'failed').map((file) => ({ file: file.file, testsPassed: file.tests.every((test) => test.status === 'passed') })),
+    failedFiles: files
+      .filter((file) => file.status === 'failed')
+      .map((file) => ({ file: file.file, testsPassed: file.tests.every((test) => test.status === 'passed') })),
     // Whether every results file listed the test files the checkout holds,
     // and those its suite did not run: the include's misses, or a subset run.
     listsTestFiles: suites.every((suite) => Array.isArray(suite.testFiles)),
@@ -183,7 +185,9 @@ export function unmeasured(row) {
     ...(row.ok + row.failed.length === 0 ? ['made no check'] : []),
     ...(row.passes === 0 ? ['made no pass at a viewport width'] : []),
     ...(row.planned.length === 0 ? ['planned no pass'] : []),
-    ...(skipped.length === 0 ? [] : [`did not make ${String(skipped.length)} of the ${String(row.planned.length)} passes it planned: ${skipped.map((label) => `"${label}"`).join(', ')}`]),
+    ...(skipped.length === 0
+      ? []
+      : [`did not make ${String(skipped.length)} of the ${String(row.planned.length)} passes it planned: ${skipped.map((label) => `"${label}"`).join(', ')}`]),
     ...(empty.length === 0 ? [] : [`made no check in ${empty.length === 1 ? 'the pass' : 'the passes'} ${empty.join(', ')}`]),
   ]
 }
@@ -204,23 +208,46 @@ export function resultsInRun({ results, covered, published, scenes = {} }) {
   const eInvoice = eInvoiceOf(results)
   const container = containerOf(results)
   return {
-    packages: covered.map((entry) => suiteRow(suites.filter((suite) => suite.package === entry.name), { ...entry, published: published.includes(entry.name) })),
-    repository: suiteRow(suites.filter((suite) => suite.package === null), { name: null, path: '.', published: false }),
+    packages: covered.map((entry) =>
+      suiteRow(
+        suites.filter((suite) => suite.package === entry.name),
+        { ...entry, published: published.includes(entry.name) },
+      ),
+    ),
+    repository: suiteRow(
+      suites.filter((suite) => suite.package === null),
+      { name: null, path: '.', published: false },
+    ),
     browserGates: results.flatMap((result) => (result.browserGates ?? []).map((gate) => gateRow(gate, result.key))),
     pictures: results.flatMap((result) => (result.pictures ?? []).map((check) => picturesRow(check, result.key, scenes[check.app] ?? []))),
     install:
       install === null
         ? null
-        : { passed: install.passed === true, error: install.error ?? null, node: install.node, npm: install.npm, resolved: install.resolved ?? [], tarballs: install.tarballs ?? [], hosts: (install.consumers ?? []).map(hostOf) },
+        : {
+            passed: install.passed === true,
+            error: install.error ?? null,
+            node: install.node,
+            npm: install.npm,
+            resolved: install.resolved ?? [],
+            tarballs: install.tarballs ?? [],
+            hosts: (install.consumers ?? []).map(hostOf),
+          },
     eInvoice: eInvoice === null ? null : eInvoiceRow(eInvoice),
     container: container === null ? null : containerRow(container),
     absent: results.flatMap((result) => (result.absent ?? []).map(({ reader, file }) => ({ job: result.key, reader, file }))),
     missing: results.flatMap((result) => (result.missing ?? []).map((what) => ({ job: result.key, what }))),
     buildIdentity: published.map((name) => {
-      const builds = results.flatMap((result) => (result.dist ?? []).filter((entry) => entry.package === name).map((entry) => ({ job: result.key, distHash: entry.distHash })))
+      const builds = results.flatMap((result) =>
+        (result.dist ?? []).filter((entry) => entry.package === name).map((entry) => ({ job: result.key, distHash: entry.distHash })),
+      )
       const tarball = (install?.tarballs ?? []).find((entry) => entry.name === name) ?? null
       const hashes = distinct([...builds.map((build) => build.distHash), ...(tarball === null ? [] : [tarball.distHash])])
-      return { package: name, tarball: tarball === null ? null : { file: tarball.file, sha256: tarball.sha256, distHash: tarball.distHash }, builds, identical: hashes.length <= 1 }
+      return {
+        package: name,
+        tarball: tarball === null ? null : { file: tarball.file, sha256: tarball.sha256, distHash: tarball.distHash },
+        builds,
+        identical: hashes.length <= 1,
+      }
     }),
   }
 }
@@ -273,4 +300,5 @@ export const testFilesOf = (files, path, covered) => files.filter((file) => TEST
  * suite's include matches it is held by every run, which fails on a test
  * file its suite did not run.
  */
-export const isRunTest = (file, { covered, exists }) => TEST_FILE.test(file) && (suiteOwning(file, covered) !== '.' || file.startsWith('scripts/')) && exists(file)
+export const isRunTest = (file, { covered, exists }) =>
+  TEST_FILE.test(file) && (suiteOwning(file, covered) !== '.' || file.startsWith('scripts/')) && exists(file)

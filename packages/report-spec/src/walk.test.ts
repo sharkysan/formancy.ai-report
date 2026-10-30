@@ -59,7 +59,11 @@ describe('walkComponents', () => {
   // one the walk never visits.
   test('finds every component the report holds', () => {
     const report = richReport()
-    expect(walkComponents(report).map(({ component }) => component.id).sort()).toEqual(componentsIn(report).sort())
+    expect(
+      walkComponents(report)
+        .map(({ component }) => component.id)
+        .sort(),
+    ).toEqual(componentsIn(report).sort())
   })
 })
 

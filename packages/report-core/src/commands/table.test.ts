@@ -81,7 +81,11 @@ describe('columns', () => {
     const { visibleWhen: _gone, ...rest } = table(report).columns[4] as TableColumn
     expect(next.columns[4]).toEqual({ ...rest, header: 'Sent' })
     const sneaky = { id: 'other' } as unknown as Parameters<typeof updateColumn>[3]
-    expect(refused(updateColumn(report, 'lines', 'sku', sneaky))).toMatchObject({ code: 'immutable-property', path: `${TABLE}/columns/0/id`, componentId: 'lines' })
+    expect(refused(updateColumn(report, 'lines', 'sku', sneaky))).toMatchObject({
+      code: 'immutable-property',
+      path: `${TABLE}/columns/0/id`,
+      componentId: 'lines',
+    })
   })
 
   // Each refusal names what was wrong: no such table, a component that is
@@ -129,7 +133,11 @@ describe('footer rows', () => {
   // list of rows, and a table without any gets its first.
   test('insert a row into the totals, creating them when the table has none', () => {
     const report = frozenSample()
-    expect(cellColumns(table(accepted(insertFooterRow(report, 'lines', 'totals', 1, row))).totals)).toEqual([['sku', 'qty', 'amount'], ['sku'], ['sku', 'amount']])
+    expect(cellColumns(table(accepted(insertFooterRow(report, 'lines', 'totals', 1, row))).totals)).toEqual([
+      ['sku', 'qty', 'amount'],
+      ['sku'],
+      ['sku', 'amount'],
+    ])
     const none = accepted(updateComponent(report, 'lines', 'table', { totals: null }))
     expect(table(accepted(insertFooterRow(none, 'lines', 'totals', 0, row))).totals).toEqual([row])
     expect(refused(insertFooterRow(none, 'lines', 'totals', 1, row)).code).toBe('index-out-of-range')
@@ -167,13 +175,21 @@ describe('footer rows', () => {
   // Every place a footer edit names is checked: a group footer needs a
   // group, a row index needs a row, a cell needs its column in the row.
   test.each([
-    ['a group footer on a table with no group', (report: ReportDefinition) => insertFooterRow(accepted(setGroup(report, 'lines', null)), 'lines', 'groupFooter', 0, row), 'not-found'],
+    [
+      'a group footer on a table with no group',
+      (report: ReportDefinition) => insertFooterRow(accepted(setGroup(report, 'lines', null)), 'lines', 'groupFooter', 0, row),
+      'not-found',
+    ],
     ['a row past the end', (report: ReportDefinition) => insertFooterRow(report, 'lines', 'totals', 3, row), 'index-out-of-range'],
     ['removing a row the footer lacks', (report: ReportDefinition) => removeFooterRow(report, 'lines', 'totals', 2), 'index-out-of-range'],
     ['moving from a row the footer lacks', (report: ReportDefinition) => moveFooterRow(report, 'lines', 'totals', 2, 0), 'index-out-of-range'],
     ['moving to a row the footer lacks', (report: ReportDefinition) => moveFooterRow(report, 'lines', 'totals', 0, 2), 'index-out-of-range'],
     ['updating a row the footer lacks', (report: ReportDefinition) => updateFooterRow(report, 'lines', 'totals', -1, {}), 'index-out-of-range'],
-    ['a cell in a row the footer lacks', (report: ReportDefinition) => putFooterCell(report, 'lines', 'groupFooter', 1, row.cells[0] ?? { column: 'x', value: { kind: 'pageNumber' } }), 'index-out-of-range'],
+    [
+      'a cell in a row the footer lacks',
+      (report: ReportDefinition) => putFooterCell(report, 'lines', 'groupFooter', 1, row.cells[0] ?? { column: 'x', value: { kind: 'pageNumber' } }),
+      'index-out-of-range',
+    ],
     ['removing a cell the row lacks', (report: ReportDefinition) => removeFooterCell(report, 'lines', 'totals', 1, 'qty'), 'not-found'],
     ['removing a cell from a row the footer lacks', (report: ReportDefinition) => removeFooterCell(report, 'lines', 'totals', 2, 'sku'), 'index-out-of-range'],
     ['footer rows of a component that is not a table', (report: ReportDefinition) => removeFooterRow(report, 'intro', 'totals', 0), 'kind-mismatch'],
@@ -188,7 +204,7 @@ describe('a column that prints an e-invoice line', () => {
     const opening = openReportSession(eInvoiceSample())
     if (!opening.ok) throw new Error('the e-invoice sample did not open')
     const outcome = opening.session.apply(edit)
-    return outcome.ok ? [] : refused(outcome).errors?.map(({ code, path }) => `${code} ${path}`) ?? [refused(outcome).code]
+    return outcome.ok ? [] : (refused(outcome).errors?.map(({ code, path }) => `${code} ${path}`) ?? [refused(outcome).code])
   }
 
   // The XML is written from what the named columns print. A column
@@ -198,8 +214,16 @@ describe('a column that prints an e-invoice line', () => {
   // validator's reason, and commits nothing.
   test.each([
     ['removed', (report: ReportDefinition) => removeColumn(report, 'lines', 'amount'), ['unknown-column /eInvoice/lines/netAmount']],
-    ['hidden', (report: ReportDefinition) => updateColumn(report, 'lines', 'qty', { visibleWhen: { cel: 'params.draft' } }), ['invalid-e-invoice /eInvoice/lines/quantity']],
-    ['given a literal text', (report: ReportDefinition) => updateColumn(report, 'lines', 'sku', { value: { kind: 'text', text: 'Item' } }), ['invalid-e-invoice /eInvoice/lines/name']],
+    [
+      'hidden',
+      (report: ReportDefinition) => updateColumn(report, 'lines', 'qty', { visibleWhen: { cel: 'params.draft' } }),
+      ['invalid-e-invoice /eInvoice/lines/quantity'],
+    ],
+    [
+      'given a literal text',
+      (report: ReportDefinition) => updateColumn(report, 'lines', 'sku', { value: { kind: 'text', text: 'Item' } }),
+      ['invalid-e-invoice /eInvoice/lines/name'],
+    ],
   ])('is refused when %s', (_change, edit, errors) => {
     expect(errorsOf(edit)).toEqual(errors)
   })

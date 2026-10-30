@@ -45,11 +45,17 @@ const { values: options } = parseArgs({
   },
 })
 if (options.platform !== 'browser' && options.platform !== 'node') throw new Error('--platform is browser or node')
-if ([options.exports, options.modules, options.entry].filter((given) => given !== undefined).length !== 1) throw new Error('one of --exports, --modules and --entry')
+if ([options.exports, options.modules, options.entry].filter((given) => given !== undefined).length !== 1)
+  throw new Error('one of --exports, --modules and --entry')
 if ((options.entry === undefined) !== (options.outfile === undefined)) throw new Error('--entry needs --outfile, and only it')
 
 /** Every module in the --modules directory; a directory with none would bundle nothing and pass. */
-const modules = options.modules === undefined ? [] : readdirSync(options.modules).filter((file) => /\.(?:m?js|tsx?)$/.test(file) && !file.endsWith('.d.ts')).map((file) => join(options.modules, file))
+const modules =
+  options.modules === undefined
+    ? []
+    : readdirSync(options.modules)
+        .filter((file) => /\.(?:m?js|tsx?)$/.test(file) && !file.endsWith('.d.ts'))
+        .map((file) => join(options.modules, file))
 if (options.modules !== undefined && modules.length === 0) throw new Error(`${options.modules} holds no module to bundle`)
 
 /** Every file the linker changed, by path. */
@@ -68,7 +74,13 @@ async function linker() {
   // A library its Angular is too old for is an error the linker throws; what it only logs is printed.
   const logger = { level: 2, debug: () => {}, info: () => {}, warn: console.log, error: console.log }
   // A file system the linker never needs: it reads nothing beyond the source it is given.
-  const fileSystem = { exists: () => false, readFile: () => '', resolve: (...paths) => paths.join('/'), dirname: (path) => path.split('/').slice(0, -1).join('/'), relative: (_from, to) => to }
+  const fileSystem = {
+    exists: () => false,
+    readFile: () => '',
+    resolve: (...paths) => paths.join('/'),
+    dirname: (path) => path.split('/').slice(0, -1).join('/'),
+    relative: (_from, to) => to,
+  }
   return {
     name: 'angular-linker',
     setup(bundler) {
@@ -98,7 +110,10 @@ let result
 try {
   result = await build({
     ...(options.exports !== undefined
-      ? { stdin: { contents: `export * from ${JSON.stringify(options.exports)}`, resolveDir: process.cwd(), sourcefile: 'host.js', loader: 'js' }, write: false }
+      ? {
+          stdin: { contents: `export * from ${JSON.stringify(options.exports)}`, resolveDir: process.cwd(), sourcefile: 'host.js', loader: 'js' },
+          write: false,
+        }
       : options.modules !== undefined
         ? { entryPoints: modules, outdir: 'out/modules', write: false }
         : { entryPoints: [options.entry], outfile: options.outfile }),
@@ -114,7 +129,10 @@ try {
   })
 } catch (error) {
   const messages = error.errors ?? [{ text: String(error.message ?? error) }]
-  throw new Error(`the ${options.platform} build failed:\n${messages.map(({ text, location }) => `${text}${location ? ` (${location.file}:${String(location.line)})` : ''}`).join('\n')}`)
+  throw new Error(
+    `the ${options.platform} build failed:\n${messages.map(({ text, location }) => `${text}${location ? ` (${location.file}:${String(location.line)})` : ''}`).join('\n')}`,
+    { cause: error },
+  )
 }
 if (options.link !== undefined && !linked.some((path) => path.replaceAll('\\', '/').includes(`/node_modules/${options.link}/`))) {
   throw new Error(`nothing of ${options.link} was linked; linked: ${linked.join(', ') || 'nothing'}`)
@@ -122,7 +140,12 @@ if (options.link !== undefined && !linked.some((path) => path.replaceAll('\\', '
 
 const bytes = Object.values(result.metafile.outputs).reduce((total, output) => total + output.bytes, 0)
 const read = Object.keys(result.metafile.inputs).length
-const what = options.exports !== undefined ? `everything ${options.exports} exports` : options.modules !== undefined ? `each of ${modules.map((file) => file.replaceAll('\\', '/')).join(', ')}` : options.entry
+const what =
+  options.exports !== undefined
+    ? `everything ${options.exports} exports`
+    : options.modules !== undefined
+      ? `each of ${modules.map((file) => file.replaceAll('\\', '/')).join(', ')}`
+      : options.entry
 console.log(
   `ok: bundled ${what} for ${browser ? 'a browser' : 'Node'}: ${String(read)} files, ${String(bytes)} bytes${options.link === undefined ? '' : `, ${String(linked.length)} of them linked, ${options.link} among them`}`,
 )

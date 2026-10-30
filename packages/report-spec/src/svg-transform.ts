@@ -103,7 +103,8 @@ export function readTransform(text: string, where: string): Matrix {
  */
 function written(matrix: Matrix, where: string): Matrix {
   const entries = matrix.map((entry) => readNumber(writeNumber(float(entry)), where).value) as unknown as Matrix
-  if (entries[0] * entries[3] - entries[1] * entries[2] === 0) refuse('out-of-range', `${where} flattens what it transforms to nothing`, 'remove what it flattens, or give the transform an area')
+  if (entries[0] * entries[3] - entries[1] * entries[2] === 0)
+    refuse('out-of-range', `${where} flattens what it transforms to nothing`, 'remove what it flattens, or give the transform an area')
   return entries
 }
 
@@ -146,8 +147,16 @@ export function spreadUnder(shape: Matrix, box: Box | undefined, gradient: Matri
     return { least: drawn, greatest: drawn }
   }
   const [left, top, right, bottom] = box
-  const across = [[0, left], [right - left, left], [0, right]] as const
-  const down = [[0, top], [bottom - top, top], [0, bottom]] as const
+  const across = [
+    [0, left],
+    [right - left, left],
+    [0, right],
+  ] as const
+  const down = [
+    [0, top],
+    [bottom - top, top],
+    [0, bottom],
+  ] as const
   const least = [Infinity, Infinity, Infinity, Infinity, Infinity, Infinity]
   const greatest = [-Infinity, -Infinity, -Infinity, -Infinity, -Infinity, -Infinity]
   for (const [width, x] of across)

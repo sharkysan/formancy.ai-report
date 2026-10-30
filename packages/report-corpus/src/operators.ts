@@ -97,7 +97,7 @@ const SQUARE = 0.01
 function rectangle(data: ArrayLike<number> | null, ctm: Matrix, viewport: PageViewport): PdfBox | undefined {
   if (data === null) return undefined
   const corners: Point[] = []
-  for (let index = 0; index < data.length; ) {
+  for (let index = 0; index < data.length;) {
     const op = data[index++]
     if (op === CLOSE) {
       if (index !== data.length) return undefined
@@ -177,7 +177,7 @@ export async function drawnOn(page: PDFPageProxy, viewport: PageViewport): Promi
         state = stack.pop() ?? { ...state, ctm: IDENTITY }
         break
       case OPS.transform:
-        state.ctm = multiply(matrix(args as number[]), state.ctm)
+        state.ctm = multiply(matrix(args), state.ctm)
         break
       case OPS.paintFormXObjectBegin:
         // The form's own matrix, which PDF.js passes as a typed array, and as nothing for a transparency group's.

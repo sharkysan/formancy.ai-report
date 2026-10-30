@@ -19,7 +19,8 @@ import { read, textOf } from './read.js'
  * languages. A link's words are its accessible name, and a list of links
  * read out of context is a list of these.
  */
-const SAYS_NOTHING = /^(?:here|click here|more|read more|link|this|hier|mehr|weiter|weiterlesen|ici|cliquez ici|plus|en savoir plus|lire la suite|qui|clicca qui|di più|altro|leggi di più)$/i
+const SAYS_NOTHING =
+  /^(?:here|click here|more|read more|link|this|hier|mehr|weiter|weiterlesen|ici|cliquez ici|plus|en savoir plus|lire la suite|qui|clicca qui|di più|altro|leggi di più)$/i
 
 export function bodyProblems({ site }: Built): string[] {
   const problems: string[] = []
@@ -34,10 +35,12 @@ export function bodyProblems({ site }: Built): string[] {
     const main = document.querySelectorAll('main')
     const paragraphs = [...(main[0]?.querySelectorAll('p') ?? [])].filter((p) => textOf(p).split(' ').length >= 8)
     if (main.length !== 1) say(`${String(main.length)} <main>, not one`)
-    else if (main[0]?.contains(h1[0] ?? null) !== true || paragraphs.length < 2) say('its <main> does not hold its h1 and its text: a reader without JavaScript would find it empty')
+    else if (main[0]?.contains(h1[0] ?? null) !== true || paragraphs.length < 2)
+      say('its <main> does not hold its h1 and its text: a reader without JavaScript would find it empty')
 
     for (const script of document.querySelectorAll('script')) {
-      if (script.getAttribute('type') !== 'application/ld+json' || script.hasAttribute('src')) say(`a <script> that is not JSON-LD: ${script.outerHTML.slice(0, 80)}`)
+      if (script.getAttribute('type') !== 'application/ld+json' || script.hasAttribute('src'))
+        say(`a <script> that is not JSON-LD: ${script.outerHTML.slice(0, 80)}`)
     }
     for (const element of document.querySelectorAll('*')) {
       for (const attribute of element.getAttributeNames()) if (attribute.startsWith('on')) say(`<${element.localName}> has the handler ${attribute}`)
@@ -46,7 +49,8 @@ export function bodyProblems({ site }: Built): string[] {
     for (const image of document.querySelectorAll('img')) {
       const alt = image.getAttribute('alt')
       if (alt === null || alt.trim() === '') say(`a picture with no description: ${String(image.getAttribute('src'))}`)
-      if (!/^\d+$/.test(image.getAttribute('width') ?? '') || !/^\d+$/.test(image.getAttribute('height') ?? '')) say(`a picture without its size: ${String(image.getAttribute('src'))}`)
+      if (!/^\d+$/.test(image.getAttribute('width') ?? '') || !/^\d+$/.test(image.getAttribute('height') ?? ''))
+        say(`a picture without its size: ${String(image.getAttribute('src'))}`)
     }
 
     for (const link of document.querySelectorAll('a')) {
@@ -76,7 +80,8 @@ function switcherProblems(page: Read, pages: readonly Read[]): string[] {
       say(`the language switcher has no link to ${language}`)
       continue
     }
-    if (new URL(link.getAttribute('href') ?? '', page.url).href !== target.url) say(`the language switcher's ${language} link goes to ${new URL(link.getAttribute('href') ?? '', page.url).href}, not ${target.url}`)
+    if (new URL(link.getAttribute('href') ?? '', page.url).href !== target.url)
+      say(`the language switcher's ${language} link goes to ${new URL(link.getAttribute('href') ?? '', page.url).href}, not ${target.url}`)
     if (link.getAttribute('lang') !== language) say(`the language switcher's ${language} link is not said to be in ${language}`)
     const marked = link.getAttribute('aria-current') === 'page'
     if (marked !== (language === page.language)) say(`the language switcher's ${language} link is ${marked ? '' : 'not '}marked as the page's own`)
@@ -123,9 +128,17 @@ export function structuredDataProblems({ site, inputs }: Built, groups: readonly
     }
     if (data['@context'] !== 'https://schema.org') say(`its JSON-LD's @context is ${String(data['@context'])}`)
     if (page.group === root?.id) {
-      const wanted = { '@type': 'SoftwareApplication', name: 'Formancy Report', url: page.url, license: `${inputs.repository}/blob/main/LICENSE.md`, softwareVersion: inputs.release.version }
-      for (const [key, value] of Object.entries(wanted)) if (data[key] !== value) say(`its SoftwareApplication's ${key} is ${JSON.stringify(data[key])}, not ${JSON.stringify(value)}`)
-      for (const key of ['applicationCategory', 'operatingSystem', 'description']) if (typeof data[key] !== 'string' || data[key] === '') say(`its SoftwareApplication has no ${key}`)
+      const wanted = {
+        '@type': 'SoftwareApplication',
+        name: 'Formancy Report',
+        url: page.url,
+        license: `${inputs.repository}/blob/main/LICENSE.md`,
+        softwareVersion: inputs.release.version,
+      }
+      for (const [key, value] of Object.entries(wanted))
+        if (data[key] !== value) say(`its SoftwareApplication's ${key} is ${JSON.stringify(data[key])}, not ${JSON.stringify(value)}`)
+      for (const key of ['applicationCategory', 'operatingSystem', 'description'])
+        if (typeof data[key] !== 'string' || data[key] === '') say(`its SoftwareApplication has no ${key}`)
       if ('offers' in data) say('its SoftwareApplication makes an offer: no page states a price')
       continue
     }
@@ -135,7 +148,8 @@ export function structuredDataProblems({ site, inputs }: Built, groups: readonly
     if (webPage?.url !== page.url) say(`its WebPage is at ${String(webPage?.url)}, not its address`)
     const items = Array.isArray(crumbs?.itemListElement) ? (crumbs.itemListElement as Record<string, unknown>[]) : []
     const product = site.pages.find((each) => each.group === root?.id && each.language === page.language)
-    if (items.length !== 2 || items[0]?.item !== product?.url || items[1]?.item !== page.url) say(`its breadcrumb is ${JSON.stringify(items.map((item) => item.item))}, not the product page and then this one`)
+    if (items.length !== 2 || items[0]?.item !== product?.url || items[1]?.item !== page.url)
+      say(`its breadcrumb is ${JSON.stringify(items.map((item) => item.item))}, not the product page and then this one`)
   }
   return problems
 }

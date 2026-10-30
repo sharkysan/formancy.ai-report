@@ -111,7 +111,17 @@ function Control(props: ControlProps): ReactElement {
 }
 
 /** One field's row: its label, its control and, after a refusal or about a problem, why. `at` is its place among every field, for its ids. */
-function Row({ field, at, ids, act }: { readonly field: PropertyField; readonly at: number; readonly ids: string; readonly act: PropertiesProps['act'] }): ReactElement {
+function Row({
+  field,
+  at,
+  ids,
+  act,
+}: {
+  readonly field: PropertyField
+  readonly at: number
+  readonly ids: string
+  readonly act: PropertiesProps['act']
+}): ReactElement {
   const id = `${ids}-field-${at}`
   const error = `${id}-error`
   const validity: Validity = field.error === undefined ? {} : { 'aria-invalid': true, 'aria-describedby': error }
@@ -129,7 +139,19 @@ function Row({ field, at, ids, act }: { readonly field: PropertyField; readonly 
 }
 
 /** A group of fields, named in the editor's words, with its buttons after them, each keyed by its place so that it keeps the keyboard as its words change. */
-function Group({ group, first, ids, act, press }: { readonly group: PropertyGroup; readonly first: number; readonly ids: string; readonly act: PropertiesProps['act']; readonly press: PropertiesProps['press'] }): ReactElement {
+function Group({
+  group,
+  first,
+  ids,
+  act,
+  press,
+}: {
+  readonly group: PropertyGroup
+  readonly first: number
+  readonly ids: string
+  readonly act: PropertiesProps['act']
+  readonly press: PropertiesProps['press']
+}): ReactElement {
   return (
     <div role="group" aria-label={group.label} data-report-part="property-group">
       <span aria-hidden="true">{group.label}</span>

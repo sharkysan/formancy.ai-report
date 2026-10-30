@@ -29,7 +29,10 @@ const FONTSOURCE = /^@fontsource(?:-variable)?\//
 export function familiesOf(css) {
   const found = []
   for (const [, body] of css.matchAll(/@font-face\s*\{([^}]*)\}/g)) {
-    const family = /font-family\s*:\s*([^;]+)/.exec(body)?.[1]?.trim().replace(/^(['"])(.*)\1$/, '$2')
+    const family = /font-family\s*:\s*([^;]+)/
+      .exec(body)?.[1]
+      ?.trim()
+      .replace(/^(['"])(.*)\1$/, '$2')
     if (family !== undefined && !found.includes(family)) found.push(family)
   }
   return found
@@ -60,7 +63,8 @@ export function fontsourceFaces(app) {
     .sort()
     .map((name) => {
       const directory = join(app, 'node_modules', name)
-      if (!existsSync(join(directory, 'metadata.json'))) throw new Error(`${relative(REPO, app).replaceAll('\\', '/')} depends on ${name}, and its node_modules holds no metadata.json for it: run pnpm install`)
+      if (!existsSync(join(directory, 'metadata.json')))
+        throw new Error(`${relative(REPO, app).replaceAll('\\', '/')} depends on ${name}, and its node_modules holds no metadata.json for it: run pnpm install`)
       const own = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'))
       const metadata = JSON.parse(readFileSync(join(directory, 'metadata.json'), 'utf8'))
       const [declares] = familiesOf(readFileSync(join(directory, own.main ?? 'index.css'), 'utf8'))
@@ -79,8 +83,13 @@ export function faceVersions(app, families) {
   const versions = {}
   for (const family of families) {
     const face = faces.find((each) => each.declares === family)
-    if (face === undefined) throw new Error(`no Fontsource package of ${relative(REPO, app).replaceAll('\\', '/')} declares the family ${family}, so its version cannot be recorded`)
+    if (face === undefined)
+      throw new Error(`no Fontsource package of ${relative(REPO, app).replaceAll('\\', '/')} declares the family ${family}, so its version cannot be recorded`)
     versions[face.family] = face.version
   }
-  return Object.fromEntries(Object.keys(versions).sort().map((family) => [family, versions[family]]))
+  return Object.fromEntries(
+    Object.keys(versions)
+      .sort()
+      .map((family) => [family, versions[family]]),
+  )
 }

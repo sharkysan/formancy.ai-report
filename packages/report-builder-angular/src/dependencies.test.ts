@@ -75,7 +75,11 @@ function imported(): Set<string> {
   return names
 }
 
-const packageOf = (specifier: string): string => specifier.split('/').slice(0, specifier.startsWith('@') ? 2 : 1).join('/')
+const packageOf = (specifier: string): string =>
+  specifier
+    .split('/')
+    .slice(0, specifier.startsWith('@') ? 2 : 1)
+    .join('/')
 const REACT = /^(react|react-dom|@formancy\/report-builder-react)$/
 
 describe('what the Angular builder brings into an application', () => {

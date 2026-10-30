@@ -51,7 +51,19 @@ const NATIVE_ACCESS_WARNED = 24
  * only where there is a warning to silence.
  */
 export function kositArguments({ jar, scenarios, repository, out, files, java }) {
-  return [...JVM_OPTIONS, ...(java >= NATIVE_ACCESS_WARNED ? ['--enable-native-access=ALL-UNNAMED'] : []), '-jar', jar, '-s', scenarios, '-r', repository, '-o', out, ...files]
+  return [
+    ...JVM_OPTIONS,
+    ...(java >= NATIVE_ACCESS_WARNED ? ['--enable-native-access=ALL-UNNAMED'] : []),
+    '-jar',
+    jar,
+    '-s',
+    scenarios,
+    '-r',
+    repository,
+    '-o',
+    out,
+    ...files,
+  ]
 }
 
 /** The name KoSIT gives the report of `file`. */
@@ -96,7 +108,12 @@ export function readKositConsole(text) {
     const found = new RegExp(`${label}:\\s+(\\d+)`).exec(source)?.[1]
     return found === undefined ? undefined : Number.parseInt(found, 10)
   }
-  return { version: /KoSIT Validator version (\S+)/.exec(source)?.[1], configuration: /Loaded "([^"]+)"/.exec(source)?.[1], acceptable: count('Acceptable'), rejected: count('Rejected') }
+  return {
+    version: /KoSIT Validator version (\S+)/.exec(source)?.[1],
+    configuration: /Loaded "([^"]+)"/.exec(source)?.[1],
+    acceptable: count('Acceptable'),
+    rejected: count('Rejected'),
+  }
 }
 
 /** What is wrong with one file's report, as sentences naming it. */
@@ -104,7 +121,8 @@ function reportProblems(entry, report, { pinned, hashes, scenario }) {
   const { file } = entry
   const problems = []
   if (report.engine !== `KoSIT Validator ${pinned}`) problems.push(`KoSIT’s report on ${file} is by ${String(report.engine)}, not by KoSIT Validator ${pinned}`)
-  if (report.hash.algorithm !== 'SHA-256' || report.hash.value !== hashes.get(file)) problems.push(`KoSIT’s report on ${file} is of other bytes than the corpus wrote`)
+  if (report.hash.algorithm !== 'SHA-256' || report.hash.value !== hashes.get(file))
+    problems.push(`KoSIT’s report on ${file} is of other bytes than the corpus wrote`)
   if (entry.expect.kosit === 'accepted') {
     if (report.scenario !== scenario) problems.push(`KoSIT matched ${file} to ${report.scenario ?? 'no scenario'}, not to ${scenario}`)
     if (report.assessment !== 'accept' || !report.valid) problems.push(`KoSIT rejected ${file}, which it must accept`)
@@ -163,7 +181,8 @@ export function judgeKosit({ entries, reports, others, status, error, console, a
     const expected = entry.scenario ?? scenario
     const wrong = reportProblems(entry, report, { pinned, hashes, scenario: expected })
     if (expect.kosit === 'accepted') {
-      if (report.scenario === expected) for (const location of report.schematrons) schematrons.set(expected, [...new Set([...(schematrons.get(expected) ?? []), location])])
+      if (report.scenario === expected)
+        for (const location of report.schematrons) schematrons.set(expected, [...new Set([...(schematrons.get(expected) ?? []), location])])
       for (const message of refusing) wrong.push(`${file} is refused by KoSIT: ${message.key}: ${message.text}`)
     } else if (row.refusals.length === 0) wrong.push(`${file} is broken for ${entry.why}, and KoSIT accepted it: nothing is watching that`)
     else {
@@ -175,7 +194,8 @@ export function judgeKosit({ entries, reports, others, status, error, console, a
     return row
   })
   for (const entry of mine) {
-    if (!entry.files.some((file) => raised.has(`${entry.message}\0${file}`))) problems.push(`the accepted message kosit ${entry.message} was raised in none of its files: remove it from scripts/e-invoice/accepted.json`)
+    if (!entry.files.some((file) => raised.has(`${entry.message}\0${file}`)))
+      problems.push(`the accepted message kosit ${entry.message} was raised in none of its files: remove it from scripts/e-invoice/accepted.json`)
   }
   return { rows, problems, schematrons: Object.fromEntries(schematrons) }
 }

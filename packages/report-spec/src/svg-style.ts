@@ -110,7 +110,8 @@ function declarations(block: string, where: string, removals: Removals): Map<Pro
     const at = `${where}: ${shown(name, 'a property')}`
     if (fate === undefined) {
       if (name.startsWith('--')) refuse('unsupported', `${where} holds a custom property, which this format does not read`, CSS_ADVICE)
-      if (GEOMETRY_PROPERTIES.has(name)) refuse('unsupported', `${at} is geometry in CSS, which this format reads from attributes alone`, 'write it as an attribute')
+      if (GEOMETRY_PROPERTIES.has(name))
+        refuse('unsupported', `${at} is geometry in CSS, which this format reads from attributes alone`, 'write it as an attribute')
       refuse('unsupported', `${at} is not a property this format draws as a browser draws it`)
     }
     if (fate.fate === 'removed') removals.add('property', name)
@@ -176,10 +177,16 @@ export class Stylesheet {
     })
   }
 
-  private rule(selector: string, where: string, declared: Declarations, order: number): { readonly rule: Rule; readonly type: string | undefined; readonly parts: number } {
+  private rule(
+    selector: string,
+    where: string,
+    declared: Declarations,
+    order: number,
+  ): { readonly rule: Rule; readonly type: string | undefined; readonly parts: number } {
     if (hasNonAscii(selector)) refuse('encoding', `${where} holds a selector with a byte past ASCII`)
     const match = COMPOUND.exec(selector)
-    if (selector === '' || match === null) refuse('unsupported', `${where} holds a selector this format does not read: a type, a class, an id or a compound of them alone`, CSS_ADVICE)
+    if (selector === '' || match === null)
+      refuse('unsupported', `${where} holds a selector this format does not read: a type, a class, an id or a compound of them alone`, CSS_ADVICE)
     const [, type, rest = ''] = match
     const parts = rest.match(/[.#][^.#]+/g) ?? []
     const classes = parts.filter((part) => part.startsWith('.')).map((part) => part.slice(1))
@@ -207,10 +214,19 @@ export class Stylesheet {
     const cached = this.merged.get(key)
     if (cached !== undefined) return cached
     const held = new Set(classes)
-    const candidates: Rule[] = [...(id === undefined ? [] : (this.byId.get(id) ?? [])), ...classes.flatMap((name) => this.byClass.get(name) ?? []), ...(this.byType.get(type) ?? [])]
+    const candidates: Rule[] = [
+      ...(id === undefined ? [] : (this.byId.get(id) ?? [])),
+      ...classes.flatMap((name) => this.byClass.get(name) ?? []),
+      ...(this.byType.get(type) ?? []),
+    ]
     this.spend(candidates.length)
     const matching = candidates
-      .filter((rule) => (rule.type === undefined || rule.type === type) && [...rule.ids].every((ruleId) => ruleId === id) && [...rule.classes].every((name) => held.has(name)))
+      .filter(
+        (rule) =>
+          (rule.type === undefined || rule.type === type) &&
+          [...rule.ids].every((ruleId) => ruleId === id) &&
+          [...rule.classes].every((name) => held.has(name)),
+      )
       .sort((a, b) => a.rank - b.rank)
     this.spend(matching.reduce((sum, rule) => sum + rule.declarations.size, 0))
     const merged = new Map<Property, Declared>()

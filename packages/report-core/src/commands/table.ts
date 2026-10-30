@@ -79,7 +79,10 @@ export function updateColumn(report: ReportDefinition, tableId: string, columnId
     const index = columnIndex(table, columnId, place)
     if (isRefusal(index)) return index
     if (Object.hasOwn(patch, 'id')) {
-      return refuse('immutable-property', "a column's id is what its footer cells name, and never changes in place", { ...place, path: `${place.path}/columns/${index}/id` })
+      return refuse('immutable-property', "a column's id is what its footer cells name, and never changes in place", {
+        ...place,
+        path: `${place.path}/columns/${index}/id`,
+      })
     }
     return { ...table, columns: replacedAt(table.columns, index, patched<TableColumn>(table.columns[index] as TableColumn, patch)) }
   })
@@ -104,10 +107,15 @@ export function setSort(report: ReportDefinition, tableId: string, sort: readonl
 /** The footer rows a table has in `which`, where they are, and how to give it others; or a refusal. */
 function footerOf(table: TableComponent, which: FooterRows, place: TablePlace) {
   if (which === 'totals') {
-    return { rows: table.totals ?? [], at: { ...place, path: `${place.path}/totals` }, set: (totals: readonly TableFooterRow[]): TableComponent => ({ ...table, totals }) }
+    return {
+      rows: table.totals ?? [],
+      at: { ...place, path: `${place.path}/totals` },
+      set: (totals: readonly TableFooterRow[]): TableComponent => ({ ...table, totals }),
+    }
   }
   const group = table.group
-  if (group === undefined) return refuse('not-found', `${quote(place.componentId)} has no group, so it has no group footer`, { ...place, path: `${place.path}/group` })
+  if (group === undefined)
+    return refuse('not-found', `${quote(place.componentId)} has no group, so it has no group footer`, { ...place, path: `${place.path}/group` })
   return {
     rows: group.footer,
     at: { ...place, path: `${place.path}/group/footer` },
@@ -131,7 +139,8 @@ function withFooter(
 }
 
 /** A refusal unless `index` is a row of `rows`. */
-const checkRow = (rows: readonly TableFooterRow[], index: number, at: Place): Refusal | undefined => checkIndex(index, rows.length - 1, `${rows.length} footer rows`, at)
+const checkRow = (rows: readonly TableFooterRow[], index: number, at: Place): Refusal | undefined =>
+  checkIndex(index, rows.length - 1, `${rows.length} footer rows`, at)
 
 export function insertFooterRow(report: ReportDefinition, tableId: string, which: FooterRows, index: number, row: TableFooterRow): CommandOutcome {
   return withFooter(report, tableId, which, (rows, at) => checkIndex(index, rows.length, `${rows.length} footer rows`, at) ?? insertedAt(rows, index, row))

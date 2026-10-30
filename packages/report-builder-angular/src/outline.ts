@@ -118,7 +118,9 @@ export class ReportOutline {
   protected readonly root = inject(ReportEditorRoot)
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef)
   protected readonly t = this.root.t
-  protected readonly regions = computed(() => this.root.state().outline.map((region) => ({ region: region.region, label: region.label, rows: rows(region.nodes) })))
+  protected readonly regions = computed(() =>
+    this.root.state().outline.map((region) => ({ region: region.region, label: region.label, rows: rows(region.nodes) })),
+  )
   // ES2018, as ng-packagr compiles the published sources: no flatMap.
   private readonly all = computed(() => this.regions().reduce<OutlineNode[]>((nodes, region) => nodes.concat(region.rows.map((row) => row.node)), []))
   /** The rows of the parts of the report's own level, after the regions'. */

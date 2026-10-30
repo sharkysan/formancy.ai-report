@@ -23,9 +23,9 @@ import type { EditorText } from './text.js'
 export interface DragEditing {
   current(): Derived
   local(): Local
-  setLocal(next: Partial<Local>): void
-  announce(text: string): Partial<Local>
-  refuse(code: EditorRefusalCode, text: string): EditorOutcome
+  readonly setLocal: (next: Partial<Local>) => void
+  readonly announce: (text: string) => Partial<Local>
+  readonly refuse: (code: EditorRefusalCode, text: string) => EditorOutcome
   /** What the outline calls the component or row keyed `key`. */
   labelOf(key: string): string
   insert(kind: ComponentKind, target: Location): EditorOutcome

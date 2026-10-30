@@ -20,7 +20,12 @@ import type { ReadOptions, SubmissionInput, SubmissionRead, SubmissionsInput } f
 export const SUBMISSION = 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380'
 
 /** A field of `type` read from the form at `path`, nullable, its label its id. */
-export function field(id: string, type: FieldType, path: string, more: Omit<FieldFormBinding, 'path'> & { readonly scale?: number; readonly nullable?: boolean } = {}): FieldContract {
+export function field(
+  id: string,
+  type: FieldType,
+  path: string,
+  more: Omit<FieldFormBinding, 'path'> & { readonly scale?: number; readonly nullable?: boolean } = {},
+): FieldContract {
   const { scale, nullable = true, ...binding } = more
   return { id, type, label: id, nullable, ...(scale === undefined ? {} : { scale }), form: { path, ...binding } }
 }
@@ -69,13 +74,15 @@ function admitted(report: ReportDefinition, outcome: SubmissionRead): Submission
   if (outcome.ok) {
     const check = checkData(report, outcome.data, { mode: 'preview' })
     const refused = check.ok ? [] : check.errors.filter((error) => error.code !== 'unexpected-null')
-    if (refused.length > 0) throw new Error(`the bridge handed over data the runtime refuses: ${refused.map((error) => `${error.code} ${error.path}`).join('; ')}`)
+    if (refused.length > 0)
+      throw new Error(`the bridge handed over data the runtime refuses: ${refused.map((error) => `${error.code} ${error.path}`).join('; ')}`)
   }
   return outcome
 }
 
 /** A submission read as `input`, by readSubmission. */
-export const readOne = (report: ReportDefinition, input: unknown, options?: ReadOptions): SubmissionRead => admitted(report, readSubmission(report, input as SubmissionInput, options))
+export const readOne = (report: ReportDefinition, input: unknown, options?: ReadOptions): SubmissionRead =>
+  admitted(report, readSubmission(report, input as SubmissionInput, options))
 
 /** One submission of `data`, read against `form`. */
 export function read(report: ReportDefinition, form: unknown, data: unknown, options?: ReadOptions): SubmissionRead {
@@ -98,7 +105,8 @@ export function refusals(outcome: SubmissionRead): string[] {
 export const headerOf = (outcome: SubmissionRead): Readonly<Record<string, unknown>> => readData(outcome).header ?? {}
 
 /** Many submissions, read as `input`, by readSubmissions. */
-export const readMany = (report: ReportDefinition, input: unknown, options?: ReadOptions): SubmissionRead => admitted(report, readSubmissions(report, input as SubmissionsInput, options))
+export const readMany = (report: ReportDefinition, input: unknown, options?: ReadOptions): SubmissionRead =>
+  admitted(report, readSubmissions(report, input as SubmissionsInput, options))
 
 /**
  * `outcome`, once a report it hands over is held to report-spec's
@@ -109,7 +117,8 @@ export const readMany = (report: ReportDefinition, input: unknown, options?: Rea
 function compiles(outcome: Generated): Generated {
   if (outcome.ok) {
     const check = checkReport(outcome.report)
-    if (!check.ok) throw new Error(`the generator handed over a report the runtime refuses: ${check.errors.map((error) => `${error.code} ${error.path}`).join('; ')}`)
+    if (!check.ok)
+      throw new Error(`the generator handed over a report the runtime refuses: ${check.errors.map((error) => `${error.code} ${error.path}`).join('; ')}`)
   }
   return outcome
 }

@@ -37,7 +37,9 @@ describe('a package’s suite', () => {
   // A package whose job left nothing would be a package nobody tested, in a
   // report that said nothing about it.
   test('with no results fails the run', () => {
-    expect(withDefect((inputs) => (inputs.results = inputs.results.filter((result) => result.key !== 'test-report-corpus')))).toEqual(['@formancy/report-corpus: no results from its suite'])
+    expect(withDefect((inputs) => (inputs.results = inputs.results.filter((result) => result.key !== 'test-report-corpus')))).toEqual([
+      '@formancy/report-corpus: no results from its suite',
+    ])
   })
 
   // CLAUDE.md: a suite that can be skipped is a suite that is skipped.
@@ -46,7 +48,9 @@ describe('a package’s suite', () => {
       withDefect((inputs) => {
         job(inputs, 'test-report-spec').suites[0].files[0].tests[0].status = 'skipped'
       }),
-    ).toEqual(['@formancy/report-spec: 1 test(s) did not run (skipped), and a suite that can be skipped is a suite that is skipped: packages/report-spec/src/hash.test.ts › pins the hash of a fixed report'])
+    ).toEqual([
+      '@formancy/report-spec: 1 test(s) did not run (skipped), and a suite that can be skipped is a suite that is skipped: packages/report-spec/src/hash.test.ts › pins the hash of a fixed report',
+    ])
   })
 
   test('with a failed test fails the run', () => {
@@ -75,9 +79,13 @@ describe('a package’s suite', () => {
   })
 
   test('that vitest called unsuccessful, or that ran nothing, fails the run', () => {
-    expect(withDefect((inputs) => (job(inputs, 'test-report-spec').suites[0].success = false))).toEqual(['@formancy/report-spec: vitest reported the run unsuccessful'])
+    expect(withDefect((inputs) => (job(inputs, 'test-report-spec').suites[0].success = false))).toEqual([
+      '@formancy/report-spec: vitest reported the run unsuccessful',
+    ])
     // A package with no test file at all, whose suite passes empty.
-    expect(withDefect((inputs) => Object.assign(job(inputs, 'test-report-corpus').suites[0], { files: [], testFiles: [] }))).toEqual(['@formancy/report-corpus: its suite ran no tests'])
+    expect(withDefect((inputs) => Object.assign(job(inputs, 'test-report-corpus').suites[0], { files: [], testFiles: [] }))).toEqual([
+      '@formancy/report-corpus: its suite ran no tests',
+    ])
   })
 
   // A suite that ran part of its files passes every test it ran: a file
@@ -107,12 +115,14 @@ describe('a package’s suite', () => {
   // What collect expected and did not find, or found and could not use --
   // a turbo summary, a stale result in local mode -- is not results at all.
   test('whose job missed a file fails the run', () => {
-    expect(withDefect((inputs) => job(inputs, 'test-report-spec').absent.push({ reader: 'test', file: 'packages/report-spec/test-results/vitest.json' }))).toEqual([
-      'test-report-spec: expected and not found: packages/report-spec/test-results/vitest.json',
-    ])
-    expect(withDefect((inputs) => job(inputs, 'test-report-spec').missing.push('a fresh run of @formancy/report-spec#test:coverage: turbo replayed it from its cache'))).toEqual([
-      'test-report-spec: expected and not found: a fresh run of @formancy/report-spec#test:coverage: turbo replayed it from its cache',
-    ])
+    expect(
+      withDefect((inputs) => job(inputs, 'test-report-spec').absent.push({ reader: 'test', file: 'packages/report-spec/test-results/vitest.json' })),
+    ).toEqual(['test-report-spec: expected and not found: packages/report-spec/test-results/vitest.json'])
+    expect(
+      withDefect((inputs) =>
+        job(inputs, 'test-report-spec').missing.push('a fresh run of @formancy/report-spec#test:coverage: turbo replayed it from its cache'),
+      ),
+    ).toEqual(['test-report-spec: expected and not found: a fresh run of @formancy/report-spec#test:coverage: turbo replayed it from its cache'])
   })
 })
 
@@ -151,10 +161,9 @@ describe('the install gate', () => {
   // The install gate is the only gate that runs the packed packages; a run
   // without its record has not shown that anything published works.
   test('fails the run when it left no results, or did not pass', () => {
-    expect(withDefect((inputs) => Object.assign(job(inputs, 'install'), { install: null, absent: [{ reader: 'install', file: 'test-results/install.json' }] }))).toEqual([
-      'install: expected and not found: test-results/install.json',
-      'the install gate left no results',
-    ])
+    expect(
+      withDefect((inputs) => Object.assign(job(inputs, 'install'), { install: null, absent: [{ reader: 'install', file: 'test-results/install.json' }] })),
+    ).toEqual(['install: expected and not found: test-results/install.json', 'the install gate left no results'])
     expect(
       withDefect((inputs) => {
         Object.assign(job(inputs, 'install').install, { passed: false, error: 'react-floor: tsc failed' })
@@ -177,7 +186,9 @@ describe('the install gate', () => {
       'the install gate has no record of the react host, which scripts/install-hosts.mjs plans',
       'the install gate has no record of the react-floor host, which scripts/install-hosts.mjs plans',
     ])
-    expect(withDefect((inputs) => consumers(inputs).push({ ...structuredClone(consumers(inputs)[0]), project: 'vue' }))).toEqual(['the install gate recorded a vue host, which scripts/install-hosts.mjs does not plan'])
+    expect(withDefect((inputs) => consumers(inputs).push({ ...structuredClone(consumers(inputs)[0]), project: 'vue' }))).toEqual([
+      'the install gate recorded a vue host, which scripts/install-hosts.mjs does not plan',
+    ])
   })
 
   // Each host's steps are what it checked; a step not done is a host that
@@ -198,14 +209,20 @@ describe('the install gate', () => {
       'the install host react-floor resolved no react-dom',
     ])
     expect(withDefect((inputs) => (host(inputs, 'react').installed.react = null))).toEqual(['the install host react resolved no react'])
-    expect(withDefect((inputs) => (host(inputs, 'react-floor').installed.react = '19.0.1'))).toEqual(['the install host react-floor installed react 19.0.1, where the floor of its builder’s peer range is 19.0.0'])
-    expect(withDefect((inputs) => (host(inputs, 'react-floor').at = 'newest'))).toEqual(['the install host react-floor was installed at newest, where scripts/install-hosts.mjs plans it at floor'])
+    expect(withDefect((inputs) => (host(inputs, 'react-floor').installed.react = '19.0.1'))).toEqual([
+      'the install host react-floor installed react 19.0.1, where the floor of its builder’s peer range is 19.0.0',
+    ])
+    expect(withDefect((inputs) => (host(inputs, 'react-floor').at = 'newest'))).toEqual([
+      'the install host react-floor was installed at newest, where scripts/install-hosts.mjs plans it at floor',
+    ])
   })
 
   // The plan is install-hosts.mjs's own, from the published manifests; when
   // it cannot be made, no host can be held to it, and the run says so.
   test('fails the run when install-hosts.mjs cannot plan the hosts', () => {
-    expect(withDefect((inputs) => (inputs.installPlan = { hosts: [], error: '@formancy/report-builder-react was not packed, so its host has nothing to check' }))).toEqual([
+    expect(
+      withDefect((inputs) => (inputs.installPlan = { hosts: [], error: '@formancy/report-builder-react was not packed, so its host has nothing to check' })),
+    ).toEqual([
       'scripts/install-hosts.mjs plans no install hosts for the published packages: @formancy/report-builder-react was not packed, so its host has nothing to check',
     ])
   })
@@ -237,11 +254,16 @@ describe('the e-invoice gate', () => {
   // run without its results, or whose results failed, shows nothing of the
   // XML a final render writes.
   test('fails the run when it left no results, or did not pass', () => {
-    expect(withDefect((inputs) => Object.assign(job(inputs, 'e-invoice'), { eInvoice: null, absent: [{ reader: 'e-invoice', file: 'test-results/e-invoice.json' }] }))).toEqual([
-      'e-invoice: expected and not found: test-results/e-invoice.json',
-      'the e-invoice gate left no results',
-    ])
-    expect(withDefect((inputs) => Object.assign(gate(inputs), { passed: false, problems: ['KoSIT exited 0, where it rejects one file per control and the corpus has 1'] }))).toEqual(['the e-invoice gate did not pass: KoSIT exited 0, where it rejects one file per control and the corpus has 1'])
+    expect(
+      withDefect((inputs) =>
+        Object.assign(job(inputs, 'e-invoice'), { eInvoice: null, absent: [{ reader: 'e-invoice', file: 'test-results/e-invoice.json' }] }),
+      ),
+    ).toEqual(['e-invoice: expected and not found: test-results/e-invoice.json', 'the e-invoice gate left no results'])
+    expect(
+      withDefect((inputs) =>
+        Object.assign(gate(inputs), { passed: false, problems: ['KoSIT exited 0, where it rejects one file per control and the corpus has 1'] }),
+      ),
+    ).toEqual(['the e-invoice gate did not pass: KoSIT exited 0, where it rejects one file per control and the corpus has 1'])
   })
 
   // The gate's own `passed` is one flag its writer sets, and this does not
@@ -249,11 +271,21 @@ describe('the e-invoice gate', () => {
   // verdict missing, or a corpus without a sample or a control fails the
   // run whatever the flag says.
   test('fails the run when a file was judged otherwise than its corpus expects, though the gate says it passed', () => {
-    expect(withDefect((inputs) => (gate(inputs).kosit[1].verdict = 'not as expected'))).toEqual(['the e-invoice gate’s kosit judged control-br-27.xml otherwise than its corpus expects'])
-    expect(withDefect((inputs) => (gate(inputs).verapdf[1].verdict = 'not as expected'))).toEqual(['the e-invoice gate’s verapdf judged control-pdfa.pdf otherwise than its corpus expects'])
-    expect(withDefect((inputs) => (gate(inputs).mustang = gate(inputs).mustang.slice(1)))).toEqual(['the e-invoice gate has no mustang verdict on e-invoice.xml'])
-    expect(withDefect((inputs) => (gate(inputs).verapdf = gate(inputs).verapdf.slice(1)))).toEqual(['the e-invoice gate has no verapdf verdict on e-invoice.pdf'])
-    expect(withDefect((inputs) => (gate(inputs).corpus = gate(inputs).corpus.slice(1)))).toEqual(['the e-invoice gate judged no XML sample every tool must accept'])
+    expect(withDefect((inputs) => (gate(inputs).kosit[1].verdict = 'not as expected'))).toEqual([
+      'the e-invoice gate’s kosit judged control-br-27.xml otherwise than its corpus expects',
+    ])
+    expect(withDefect((inputs) => (gate(inputs).verapdf[1].verdict = 'not as expected'))).toEqual([
+      'the e-invoice gate’s verapdf judged control-pdfa.pdf otherwise than its corpus expects',
+    ])
+    expect(withDefect((inputs) => (gate(inputs).mustang = gate(inputs).mustang.slice(1)))).toEqual([
+      'the e-invoice gate has no mustang verdict on e-invoice.xml',
+    ])
+    expect(withDefect((inputs) => (gate(inputs).verapdf = gate(inputs).verapdf.slice(1)))).toEqual([
+      'the e-invoice gate has no verapdf verdict on e-invoice.pdf',
+    ])
+    expect(withDefect((inputs) => (gate(inputs).corpus = gate(inputs).corpus.slice(1)))).toEqual([
+      'the e-invoice gate judged no XML sample every tool must accept',
+    ])
     expect(withDefect((inputs) => (gate(inputs).corpus = gate(inputs).corpus.slice(0, 1)))).toEqual([
       'the e-invoice gate made no XML control mustang must refuse',
       'the e-invoice gate made no XML control kosit must refuse',
@@ -266,18 +298,29 @@ describe('the e-invoice gate', () => {
   // The tools that judge a file are its format's: a PDF the gate recorded
   // without a format would be judged by nobody here, its verdicts unread.
   test('fails the run when a file is of no format the gate’s tools judge', () => {
-    expect(withDefect((inputs) => delete gate(inputs).corpus[2].format)).toEqual(['the e-invoice gate judged no PDF sample every tool must accept', 'the e-invoice gate recorded e-invoice.pdf as null, a format none of its tools judges'])
+    expect(withDefect((inputs) => delete gate(inputs).corpus[2].format)).toEqual([
+      'the e-invoice gate judged no PDF sample every tool must accept',
+      'the e-invoice gate recorded e-invoice.pdf as null, a format none of its tools judges',
+    ])
   })
 
   // The tools are the register's, read by the report itself as the install
   // plan is: a gate that ran another release, or other bytes under the
   // pin's version, ran another oracle than the one this checkout names.
   test('fails the run when it ran a tool other than docs/release/e-invoice-tools.json pins', () => {
-    expect(withDefect((inputs) => (gate(inputs).tools[0].version = '2.25.0'))).toEqual(['the e-invoice gate ran mustang 2.25.0, where docs/release/e-invoice-tools.json pins 2.26.0'])
-    expect(withDefect((inputs) => (gate(inputs).tools[1].sha256 = 'ff'.repeat(32)))).toEqual(['the e-invoice gate ran kosit 1.6.3 of other bytes than docs/release/e-invoice-tools.json pins'])
-    expect(withDefect((inputs) => gate(inputs).tools.splice(2, 1))).toEqual(['the e-invoice gate recorded no xrechnung-configuration, which docs/release/e-invoice-tools.json pins'])
+    expect(withDefect((inputs) => (gate(inputs).tools[0].version = '2.25.0'))).toEqual([
+      'the e-invoice gate ran mustang 2.25.0, where docs/release/e-invoice-tools.json pins 2.26.0',
+    ])
+    expect(withDefect((inputs) => (gate(inputs).tools[1].sha256 = 'ff'.repeat(32)))).toEqual([
+      'the e-invoice gate ran kosit 1.6.3 of other bytes than docs/release/e-invoice-tools.json pins',
+    ])
+    expect(withDefect((inputs) => gate(inputs).tools.splice(2, 1))).toEqual([
+      'the e-invoice gate recorded no xrechnung-configuration, which docs/release/e-invoice-tools.json pins',
+    ])
     expect(withDefect((inputs) => gate(inputs).tools.pop())).toEqual(['the e-invoice gate recorded no verapdf, which docs/release/e-invoice-tools.json pins'])
-    expect(withDefect((inputs) => (gate(inputs).tools[3].reported = ['1.30.2']))).toEqual(['the e-invoice gate’s verapdf reported itself as 1.30.2, where docs/release/e-invoice-tools.json pins 1.30.3'])
+    expect(withDefect((inputs) => (gate(inputs).tools[3].reported = ['1.30.2']))).toEqual([
+      'the e-invoice gate’s verapdf reported itself as 1.30.2, where docs/release/e-invoice-tools.json pins 1.30.3',
+    ])
   })
 
   // The floor keeps veraPDF's two XML external entity flaws out of the
@@ -286,14 +329,22 @@ describe('the e-invoice gate', () => {
   // recorded a veraPDF below the floor, or no veraPDF Mustang bundles,
   // fails here, as does a register that pins veraPDF and gives no floor.
   test('fails the run when it ran a veraPDF below the register’s floor, its own or Mustang’s, or recorded none of Mustang’s', () => {
-    expect(withDefect((inputs) => (gate(inputs).tools[0].bundles = { verapdf: ['1.30.2', '1.30.1'] }))).toEqual(['the e-invoice gate ran a Mustang that bundles veraPDF 1.30.1, below the floor of 1.30.2 docs/release/e-invoice-tools.json gives'])
-    expect(withDefect((inputs) => (gate(inputs).tools[0].bundles = { verapdf: [] }))).toEqual(['the e-invoice gate recorded no veraPDF that Mustang bundles, so the floor of 1.30.2 is not held for it'])
-    expect(withDefect((inputs) => delete gate(inputs).tools[0].bundles)).toEqual(['the e-invoice gate recorded no veraPDF that Mustang bundles, so the floor of 1.30.2 is not held for it'])
+    expect(withDefect((inputs) => (gate(inputs).tools[0].bundles = { verapdf: ['1.30.2', '1.30.1'] }))).toEqual([
+      'the e-invoice gate ran a Mustang that bundles veraPDF 1.30.1, below the floor of 1.30.2 docs/release/e-invoice-tools.json gives',
+    ])
+    expect(withDefect((inputs) => (gate(inputs).tools[0].bundles = { verapdf: [] }))).toEqual([
+      'the e-invoice gate recorded no veraPDF that Mustang bundles, so the floor of 1.30.2 is not held for it',
+    ])
+    expect(withDefect((inputs) => delete gate(inputs).tools[0].bundles)).toEqual([
+      'the e-invoice gate recorded no veraPDF that Mustang bundles, so the floor of 1.30.2 is not held for it',
+    ])
     expect(withDefect((inputs) => (inputs.eInvoiceTools.veraPdfFloor.version = '1.30.4'))).toEqual([
       'the e-invoice gate ran veraPDF 1.30.3, below the floor of 1.30.4 docs/release/e-invoice-tools.json gives',
       'the e-invoice gate ran a Mustang that bundles veraPDF 1.30.2, below the floor of 1.30.4 docs/release/e-invoice-tools.json gives',
     ])
-    expect(withDefect((inputs) => delete inputs.eInvoiceTools.veraPdfFloor)).toEqual(['docs/release/e-invoice-tools.json pins veraPDF and gives no floor for it'])
+    expect(withDefect((inputs) => delete inputs.eInvoiceTools.veraPdfFloor)).toEqual([
+      'docs/release/e-invoice-tools.json pins veraPDF and gives no floor for it',
+    ])
   })
 
   // The gate records the version each tool reported of itself -- Mustang
@@ -302,10 +353,18 @@ describe('the e-invoice gate', () => {
   // or no release at all, ran as another oracle, whatever its file's name
   // says; the configuration reports none and is held by its bytes alone.
   test('fails the run when a tool reported another version of itself, or none', () => {
-    expect(withDefect((inputs) => (gate(inputs).tools[0].reported = ['2.26.0', '2.25.0']))).toEqual(['the e-invoice gate’s mustang reported itself as 2.26.0, 2.25.0, where docs/release/e-invoice-tools.json pins 2.26.0'])
-    expect(withDefect((inputs) => (gate(inputs).tools[0].reported = []))).toEqual(['the e-invoice gate recorded no version mustang reported of itself, which docs/release/e-invoice-tools.json pins as 2.26.0'])
-    expect(withDefect((inputs) => (gate(inputs).tools[1].reported = '1.6.2'))).toEqual(['the e-invoice gate’s kosit reported itself as 1.6.2, where docs/release/e-invoice-tools.json pins 1.6.3'])
-    expect(withDefect((inputs) => (gate(inputs).tools[1].reported = null))).toEqual(['the e-invoice gate recorded no version kosit reported of itself, which docs/release/e-invoice-tools.json pins as 1.6.3'])
+    expect(withDefect((inputs) => (gate(inputs).tools[0].reported = ['2.26.0', '2.25.0']))).toEqual([
+      'the e-invoice gate’s mustang reported itself as 2.26.0, 2.25.0, where docs/release/e-invoice-tools.json pins 2.26.0',
+    ])
+    expect(withDefect((inputs) => (gate(inputs).tools[0].reported = []))).toEqual([
+      'the e-invoice gate recorded no version mustang reported of itself, which docs/release/e-invoice-tools.json pins as 2.26.0',
+    ])
+    expect(withDefect((inputs) => (gate(inputs).tools[1].reported = '1.6.2'))).toEqual([
+      'the e-invoice gate’s kosit reported itself as 1.6.2, where docs/release/e-invoice-tools.json pins 1.6.3',
+    ])
+    expect(withDefect((inputs) => (gate(inputs).tools[1].reported = null))).toEqual([
+      'the e-invoice gate recorded no version kosit reported of itself, which docs/release/e-invoice-tools.json pins as 1.6.3',
+    ])
   })
 
   // In CI the gate runs on the Java the register names, which
@@ -313,7 +372,9 @@ describe('the e-invoice gate', () => {
   // on a JVM nobody pinned. A machine runs the Java it has, and the report
   // shows it without holding it.
   test('fails a CI run whose gate ran on a Java of another major version than the register names, and shows a machine’s', () => {
-    expect(ciDefect((inputs) => (ciJob(inputs, 'e-invoice').eInvoice.java = { version: '21.0.9', major: 21 }))).toEqual(['the e-invoice gate ran on Java 21, where docs/release/e-invoice-tools.json has CI run it on Eclipse Temurin 17'])
+    expect(ciDefect((inputs) => (ciJob(inputs, 'e-invoice').eInvoice.java = { version: '21.0.9', major: 21 }))).toEqual([
+      'the e-invoice gate ran on Java 21, where docs/release/e-invoice-tools.json has CI run it on Eclipse Temurin 17',
+    ])
     expect(withDefect((inputs) => (gate(inputs).java = { version: '25.0.4.1', major: 25 }))).toEqual([])
   })
 
@@ -337,20 +398,29 @@ describe('the container gate', () => {
   // 0046): one that left none, failed, or failed a check fails the run, by
   // what it said.
   test('fails the run when it left no results, did not pass or failed a check', () => {
-    expect(withDefect((inputs) => Object.assign(job(inputs, 'container'), { container: null, absent: [{ reader: 'container', file: 'test-results/container.json' }] }))).toEqual([
-      'container: expected and not found: test-results/container.json',
-      'the container gate left no results',
+    expect(
+      withDefect((inputs) =>
+        Object.assign(job(inputs, 'container'), { container: null, absent: [{ reader: 'container', file: 'test-results/container.json' }] }),
+      ),
+    ).toEqual(['container: expected and not found: test-results/container.json', 'the container gate left no results'])
+    expect(withDefect((inputs) => Object.assign(gate(inputs), { passed: false, error: 'docker build failed' }))).toEqual([
+      'the container gate did not pass: docker build failed',
     ])
-    expect(withDefect((inputs) => Object.assign(gate(inputs), { passed: false, error: 'docker build failed' }))).toEqual(['the container gate did not pass: docker build failed'])
-    expect(withDefect((inputs) => (gate(inputs).checks[1] = { name: gate(inputs).checks[1].name, passed: false, said: 'the server runs as root' }))).toEqual(['the container gate failed 1 check(s): it runs as node: the server runs as root'])
+    expect(withDefect((inputs) => (gate(inputs).checks[1] = { name: gate(inputs).checks[1].name, passed: false, said: 'the server runs as root' }))).toEqual([
+      'the container gate failed 1 check(s): it runs as node: the server runs as root',
+    ])
   })
 
   // The checks are scripts/container.mjs's, read by the report itself and
   // not the gate's word for them: a gate that made fewer, or another
   // checkout's, held nothing of what it skipped.
   test('fails the run when it did not make a check scripts/container.mjs plans, or made one it does not', () => {
-    expect(withDefect((inputs) => gate(inputs).checks.pop())).toEqual(['the container gate did not make SIGTERM stops it, exit 0, which scripts/container.mjs plans'])
-    expect(withDefect((inputs) => gate(inputs).checks.push({ name: 'it answers on port 80', passed: true, said: null }))).toEqual(['the container gate made it answers on port 80, which scripts/container.mjs does not plan: another checkout’s gate'])
+    expect(withDefect((inputs) => gate(inputs).checks.pop())).toEqual([
+      'the container gate did not make SIGTERM stops it, exit 0, which scripts/container.mjs plans',
+    ])
+    expect(withDefect((inputs) => gate(inputs).checks.push({ name: 'it answers on port 80', passed: true, said: null }))).toEqual([
+      'the container gate made it answers on port 80, which scripts/container.mjs does not plan: another checkout’s gate',
+    ])
     expect(withDefect((inputs) => (gate(inputs).checks = []))).toEqual([
       'the container gate did not make unconfigured, it stops and names every setting it needs, which scripts/container.mjs plans',
       'the container gate did not make it runs as node, which scripts/container.mjs plans',
@@ -370,7 +440,10 @@ describe('the container gate', () => {
     } finally {
       rmSync(empty, { recursive: true, force: true })
     }
-    const added = ['a secret reference it cannot resolve stops it, exit 1, with one sentence and no stack trace', 'with a key set file, it names the kids it serves under, and SIGHUP reads the file again']
+    const added = [
+      'a secret reference it cannot resolve stops it, exit 1, with one sentence and no stack trace',
+      'with a key set file, it names the kids it serves under, and SIGHUP reads the file again',
+    ]
     expect(
       withDefect((inputs) => {
         inputs.containerChecks = [...CHECKS]
@@ -385,9 +458,15 @@ describe('the container gate', () => {
   // user is another image than this checkout makes. A Dockerfile whose base
   // the report cannot read holds the Node to nothing, and says so.
   test('fails the run when its image is not the one the Dockerfile builds', () => {
-    expect(withDefect((inputs) => (gate(inputs).image.node = 'v26.0.0'))).toEqual(['the container gate’s image runs Node v26.0.0, where packages/report-server/Dockerfile builds on Node 26.12.1'])
-    expect(withDefect((inputs) => (inputs.containerBase = null))).toEqual(['packages/report-server/Dockerfile names no node:<version> base the report can read, so the Node the container gate’s image runs is held to nothing'])
-    expect(withDefect((inputs) => (gate(inputs).image.user = 'root'))).toEqual(['the container gate’s image runs as root, where packages/report-server/Dockerfile runs it as node'])
+    expect(withDefect((inputs) => (gate(inputs).image.node = 'v26.0.0'))).toEqual([
+      'the container gate’s image runs Node v26.0.0, where packages/report-server/Dockerfile builds on Node 26.12.1',
+    ])
+    expect(withDefect((inputs) => (inputs.containerBase = null))).toEqual([
+      'packages/report-server/Dockerfile names no node:<version> base the report can read, so the Node the container gate’s image runs is held to nothing',
+    ])
+    expect(withDefect((inputs) => (gate(inputs).image.user = 'root'))).toEqual([
+      'the container gate’s image runs as root, where packages/report-server/Dockerfile runs it as node',
+    ])
     expect(withDefect((inputs) => (gate(inputs).image = null))).toEqual(['the container gate recorded no image'])
   })
 
@@ -415,13 +494,19 @@ describe('the browser gate', () => {
       withDefect((inputs) => {
         gate(inputs).checks.failed = ['phone, 360: the first Tab reaches the skip link: focus went to the Starter combobox first']
       }),
-    ).toEqual(['the browser gate of apps/studio in Chromium failed 1 check(s): phone, 360: the first Tab reaches the skip link: focus went to the Starter combobox first', G3])
+    ).toEqual([
+      'the browser gate of apps/studio in Chromium failed 1 check(s): phone, 360: the first Tab reaches the skip link: focus went to the Starter combobox first',
+      G3,
+    ])
   })
 
   // A gate that stopped part way made only the checks before it stopped:
   // the rest were skipped, and skipped is not passed.
   test('fails the run when it ended in an error, or made fewer passes than it planned', () => {
-    expect(withDefect((inputs) => (gate(inputs).error = 'vite build wrote no apps/studio/dist/index.html'))).toEqual(['the browser gate of apps/studio in Chromium ended with an error: vite build wrote no apps/studio/dist/index.html', G3])
+    expect(withDefect((inputs) => (gate(inputs).error = 'vite build wrote no apps/studio/dist/index.html'))).toEqual([
+      'the browser gate of apps/studio in Chromium ended with an error: vite build wrote no apps/studio/dist/index.html',
+      G3,
+    ])
     expect(
       withDefect((inputs) => {
         gate(inputs).made.pop()
@@ -436,7 +521,10 @@ describe('the browser gate', () => {
   // made before the first pass -- is a width measured by nobody, though
   // the gate made checks and every pass it planned.
   test('fails the run when a pass it made has no check in it', () => {
-    expect(withDefect((inputs) => (gate(inputs).made[1].checks = []))).toEqual(['the browser gate of apps/studio in Chromium made no check in the pass "phone, 360"', G3])
+    expect(withDefect((inputs) => (gate(inputs).made[1].checks = []))).toEqual([
+      'the browser gate of apps/studio in Chromium made no check in the pass "phone, 360"',
+      G3,
+    ])
     expect(
       withDefect((inputs) => {
         const before = { label: null, width: null, height: null, checks: gate(inputs).made.flatMap((entry) => entry.checks), failed: [] }
@@ -488,8 +576,12 @@ describe('the browser gate', () => {
   // What the page was measured in is the browser Playwright pins; another
   // version, or another Playwright, is a browser the report does not name.
   test('fails the run when it launched another browser than Playwright pins, or ran another Playwright', () => {
-    expect(withDefect((inputs) => (gate(inputs).browser.version = '155.0.7999.2'))).toEqual(['the browser gate of apps/studio in Chromium launched chromium 155.0.7999.2, not the chromium-headless-shell 156.0.8078.4 Playwright 1.64.1 pins'])
-    expect(withDefect((inputs) => (gate(inputs).playwright = '1.63.0'))).toEqual(['the browser gate of apps/studio in Chromium ran Playwright 1.63.0, where the checkout installs 1.64.1'])
+    expect(withDefect((inputs) => (gate(inputs).browser.version = '155.0.7999.2'))).toEqual([
+      'the browser gate of apps/studio in Chromium launched chromium 155.0.7999.2, not the chromium-headless-shell 156.0.8078.4 Playwright 1.64.1 pins',
+    ])
+    expect(withDefect((inputs) => (gate(inputs).playwright = '1.63.0'))).toEqual([
+      'the browser gate of apps/studio in Chromium ran Playwright 1.63.0, where the checkout installs 1.64.1',
+    ])
   })
 
   // Playwright pins Chromium's headless shell and its full browser at one
@@ -514,20 +606,24 @@ describe('the pictures’ check', () => {
     expect(withDefect((inputs) => (check(inputs).problems = ['studio-react, part Preview: the page now says something else than its picture']))).toEqual([
       'the pictures’ check of apps/studio found 1 picture(s) no longer showing what the page shows: studio-react, part Preview: the page now says something else than its picture',
     ])
-    expect(withDefect((inputs) => check(inputs).walked.pop())).toEqual(['the pictures’ check of apps/studio did not walk studio-angular, which scripts/pictures/scenes.json pictures, so nothing held that picture'])
+    expect(withDefect((inputs) => check(inputs).walked.pop())).toEqual([
+      'the pictures’ check of apps/studio did not walk studio-angular, which scripts/pictures/scenes.json pictures, so nothing held that picture',
+    ])
   })
 
   // A check that stopped, or never ran, held no picture at all.
   test('fails the run when it ended in an error or left no results', () => {
-    expect(withDefect((inputs) => Object.assign(check(inputs), { error: 'studio-angular: the edited line in the PDF never came', walked: ['studio-react'] }))).toEqual([
-      'the pictures’ check of apps/studio ended with an error: studio-angular: the edited line in the PDF never came',
-    ])
+    expect(
+      withDefect((inputs) => Object.assign(check(inputs), { error: 'studio-angular: the edited line in the PDF never came', walked: ['studio-react'] })),
+    ).toEqual(['the pictures’ check of apps/studio ended with an error: studio-angular: the edited line in the PDF never came'])
     expect(withDefect((inputs) => (job(inputs, 'browser').pictures = []))).toEqual(['the pictures’ check of apps/studio left no results'])
   })
 
   // The pictures are walked in the browser the gate measures, held to the same pin.
   test('fails the run when it walked in another browser than Playwright pins, or launched it otherwise', () => {
-    expect(withDefect((inputs) => (check(inputs).browser.version = '155.0.7999.2'))).toEqual(['the pictures’ check of apps/studio launched chromium 155.0.7999.2, not the chromium-headless-shell 156.0.8078.4 Playwright 1.64.1 pins'])
+    expect(withDefect((inputs) => (check(inputs).browser.version = '155.0.7999.2'))).toEqual([
+      'the pictures’ check of apps/studio launched chromium 155.0.7999.2, not the chromium-headless-shell 156.0.8078.4 Playwright 1.64.1 pins',
+    ])
     expect(withDefect((inputs) => (check(inputs).browser.headless = false))).toEqual([
       'the pictures’ check of apps/studio launched chromium headed, where scripts/browsers.mjs launches it headless: another build than the chromium-headless-shell Playwright 1.64.1 pins',
     ])
@@ -560,7 +656,9 @@ describe('build identity', () => {
       withDefect((inputs) => {
         job(inputs, 'test-report-render-pdf').dist[0].distHash = other
       }),
-    ).toEqual([`@formancy/report-spec: two jobs built different dist/ bytes: verify, test-report-spec, test-report-builder-react, browser, install built ${DIST.slice(0, 19)}; test-report-render-pdf built ${other.slice(0, 19)}`])
+    ).toEqual([
+      `@formancy/report-spec: two jobs built different dist/ bytes: verify, test-report-spec, test-report-builder-react, browser, install built ${DIST.slice(0, 19)}; test-report-render-pdf built ${other.slice(0, 19)}`,
+    ])
   })
 
   // One number for every package is what a release publishes (bump.mjs); a
@@ -604,7 +702,9 @@ describe('the limitations', () => {
         held.tests[0].status = 'failed'
         held.status = 'failed'
       }),
-    ).toContain('0011\'s "One font: a character Roboto has no glyph for is refused." is held by packages/report-render-pdf/src/glyphs.test.ts, which did not pass in this run')
+    ).toContain(
+      '0011\'s "One font: a character Roboto has no glyph for is refused." is held by packages/report-render-pdf/src/glyphs.test.ts, which did not pass in this run',
+    )
   })
 
   // The register is read every run; one that does not hold is a report of
@@ -635,7 +735,9 @@ describe('the install plan', () => {
     ])
     const react = manifests.get('@formancy/report-builder-react').peerDependencies
     expect(plan.hosts.find((host) => host.project === 'react').peers).toEqual(react)
-    expect(plan.hosts.find((host) => host.project === 'react-floor').peers).toEqual(Object.fromEntries(Object.entries(react).map(([name, range]) => [name, floorOf(range)])))
+    expect(plan.hosts.find((host) => host.project === 'react-floor').peers).toEqual(
+      Object.fromEntries(Object.entries(react).map(([name, range]) => [name, floorOf(range)])),
+    )
     expect(installPlanOf(new Map())).toEqual({ hosts: [], error: '@formancy/report-server was not packed, so the server host has nothing to check' })
   })
 })
@@ -666,7 +768,9 @@ describe('a local report', () => {
     expect(withDefect((inputs) => (job(inputs, 'install').run.id = null))).toEqual([
       'the results are of 2 runs, where a report is of one: run 42 (verify, test-report-spec, test-report-render-pdf, test-report-builder-react, test-report-corpus, browser, e-invoice, container); a machine (install)',
     ])
-    expect(withDefect((inputs) => inputs.results.push(structuredClone(job(inputs, 'verify'))))).toEqual(['the results hold verify 2 times, where a run leaves each key once'])
+    expect(withDefect((inputs) => inputs.results.push(structuredClone(job(inputs, 'verify'))))).toEqual([
+      'the results hold verify 2 times, where a run leaves each key once',
+    ])
   })
 })
 
@@ -683,7 +787,17 @@ describe('a green CI run', () => {
     const report = buildReport(greenCiRun())
     expect(report.problems).toEqual([])
     expect(report.subject).toMatchObject({ version: '0.1.0', release: null, commit: 'c0ffee', run: { id: '42' } })
-    expect(report.subject.jobs.map((entry) => entry.key)).toEqual(['verify', 'test-report-spec', 'test-report-render-pdf', 'test-report-builder-react', 'test-report-corpus', 'browser', 'install', 'e-invoice', 'container'])
+    expect(report.subject.jobs.map((entry) => entry.key)).toEqual([
+      'verify',
+      'test-report-spec',
+      'test-report-render-pdf',
+      'test-report-builder-react',
+      'test-report-corpus',
+      'browser',
+      'install',
+      'e-invoice',
+      'container',
+    ])
   })
 })
 
@@ -721,7 +835,9 @@ describe('the run', () => {
   // A name the workflow does not give is results the report would read as
   // nobody's, and the job it should have been is then missing.
   test('fails an artefact no job leaves, and names the job whose artefact is then missing', () => {
-    expect(ciDefect((inputs) => (inputs.artefacts.find((entry) => entry.name === 'release-results-test-report-corpus').name = 'release-results-test-report-corpse'))).toEqual([
+    expect(
+      ciDefect((inputs) => (inputs.artefacts.find((entry) => entry.name === 'release-results-test-report-corpus').name = 'release-results-test-report-corpse')),
+    ).toEqual([
       'test-report-corpus: its job left no artefact release-results-test-report-corpus',
       'release-results-test-report-corpse is no artefact a job of .github/workflows/gates.yml leaves',
     ])
@@ -740,7 +856,9 @@ describe('the run', () => {
   // Results from another run -- a re-run's leftovers, or another commit's --
   // describe a run that is not this one.
   test('fails results from another run or another commit', () => {
-    expect(ciDefect((inputs) => (ciJob(inputs, 'test-report-spec').run.id = '41'))).toEqual(["release-results-test-report-spec is from run 41, not this run's 42"])
+    expect(ciDefect((inputs) => (ciJob(inputs, 'test-report-spec').run.id = '41'))).toEqual([
+      "release-results-test-report-spec is from run 41, not this run's 42",
+    ])
     expect(ciDefect((inputs) => (ciJob(inputs, 'install').commit = 'decaf'))).toEqual(["release-results-install is from commit decaf, not this run's c0ffee"])
   })
 })
@@ -761,7 +879,10 @@ describe('the release gates', () => {
 
   // G1 rests on the install job as well; a red job is a gate not passed.
   test('fail the run when a gate’s job did not succeed', () => {
-    expect(ciDefect((inputs) => (inputs.needs.install.result = 'failure'))).toEqual(['the install job ended failure', 'gate G1: its evidence did not pass in this run: the install job ended failure'])
+    expect(ciDefect((inputs) => (inputs.needs.install.result = 'failure'))).toEqual([
+      'the install job ended failure',
+      'gate G1: its evidence did not pass in this run: the install job ended failure',
+    ])
   })
 
   // Locally there is no `needs`, so a job's evidence did not run: a local
@@ -780,7 +901,13 @@ describe('the release gates', () => {
   // -- stays open; its evidence still has to pass.
   test('keep a gate with a reason open, and fail it when the evidence it has did not pass', () => {
     const report = buildReport(greenCiRun())
-    expect(report.gates.find((entry) => entry.gate === 'G3')).toMatchObject({ state: 'open', evidence: [{ kind: 'file', outcome: 'passed' }, { kind: 'browserGate', value: 'apps/studio', outcome: 'passed' }] })
+    expect(report.gates.find((entry) => entry.gate === 'G3')).toMatchObject({
+      state: 'open',
+      evidence: [
+        { kind: 'file', outcome: 'passed' },
+        { kind: 'browserGate', value: 'apps/studio', outcome: 'passed' },
+      ],
+    })
     expect(
       ciDefect((inputs) => {
         const file = ciJob(inputs, 'test-report-builder-react').suites[0].files[0]
@@ -797,7 +924,9 @@ describe('the release gates', () => {
   // The register is read every run; one that does not hold is a report of
   // gates nobody can judge.
   test('fail the run when the register does not hold', () => {
-    expect(ciDefect((inputs) => inputs.gatesRegister.gates.splice(4, 1))).toEqual(['docs/release/gates.json: the gates are G1, G2, G3, G4, G6, G7, legal, where the plan has G1, G2, G3, G4, G5, G6, G7 and legal, each once and in order'])
+    expect(ciDefect((inputs) => inputs.gatesRegister.gates.splice(4, 1))).toEqual([
+      'docs/release/gates.json: the gates are G1, G2, G3, G4, G6, G7, legal, where the plan has G1, G2, G3, G4, G5, G6, G7 and legal, each once and in order',
+    ])
   })
 
   // A document is stated, and a stated gate is a limitation, not a failure.

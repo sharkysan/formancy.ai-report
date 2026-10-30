@@ -51,7 +51,10 @@ describe('numbers', () => {
   test('refuse a number too long for Intl to keep, rather than print ∞', () => {
     const huge = `2${'0'.repeat(308)}`
     expect(formatter('en').format(integer(BigInt(huge)), number(0, false))).toMatchObject({ ok: false, code: 'number-too-large' })
-    expect(formatter('de-CH').format(decimal(`-${huge}.05`), { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 2 })).toMatchObject({ ok: false, code: 'number-too-large' })
+    expect(formatter('de-CH').format(decimal(`-${huge}.05`), { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 2 })).toMatchObject({
+      ok: false,
+      code: 'number-too-large',
+    })
     const most = '9'.repeat(308)
     expect(text(formatter('en').format(integer(BigInt(most)), number(0, false)))).toBe(most)
     expect(text(formatter('en').format(integer(BigInt(huge)), undefined))).toBe(huge)

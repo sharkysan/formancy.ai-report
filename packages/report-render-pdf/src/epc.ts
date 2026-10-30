@@ -1,6 +1,16 @@
 import type { ContentSvg } from 'pdfmake/interfaces.js'
 import { encode } from 'uqr'
-import { EPC_CAPTION, EPC_FRAME, EPC_MAX_BYTES, EPC_MAX_VERSION, epcCaptionBreak, epcLeastVersion, epcModule, RenderRefusal, type EpcQrCode } from '@formancy/report-runtime'
+import {
+  EPC_CAPTION,
+  EPC_FRAME,
+  EPC_MAX_BYTES,
+  EPC_MAX_VERSION,
+  epcCaptionBreak,
+  epcLeastVersion,
+  epcModule,
+  RenderRefusal,
+  type EpcQrCode,
+} from '@formancy/report-runtime'
 import { codePoint } from './glyphs.js'
 import { darkRuns, qrContent, refuseFineModules, type QrSymbol } from './qr.js'
 import { LIBERATION_SANS } from './style.js'
@@ -40,10 +50,12 @@ const versionOf = (symbol: QrSymbol): number => (symbol.modules.length - 17) / 4
 export function epcSymbol(code: EpcQrCode): QrSymbol {
   const { id, payload, size, caption } = code
   const what = `the EPC QR code ${id}`
-  if (caption !== undefined && caption !== 'zahlenMitCode') throw new RenderRefusal('unsupported', `${what} asks for the caption '${String(caption)}', which the renderer does not know`, id)
+  if (caption !== undefined && caption !== 'zahlenMitCode')
+    throw new RenderRefusal('unsupported', `${what} asks for the caption '${String(caption)}', which the renderer does not know`, id)
   if (typeof payload !== 'string') throw new RenderRefusal('unsupported', `${what} holds something that is not text`, id)
   const lone = /\p{Cs}/u.exec(payload)?.[0]
-  if (lone !== undefined) throw new RenderRefusal('unsupported', `${what} holds ${codePoint(lone.charCodeAt(0))}, half of a surrogate pair without the other, which has no UTF-8`, id)
+  if (lone !== undefined)
+    throw new RenderRefusal('unsupported', `${what} holds ${codePoint(lone.charCodeAt(0))}, half of a surrogate pair without the other, which has no UTF-8`, id)
   // No character is fewer bytes than code units, so a payload longer than the limit in code units is longer in bytes, and is refused without being encoded.
   if (payload.length > EPC_MAX_BYTES) throw new RenderRefusal('content-too-large', `${what} holds more than the ${EPC_MAX_BYTES} bytes the EPC allows`, id)
   const square = caption === undefined ? undefined : epcCaptionBreak(size)
@@ -55,7 +67,11 @@ export function epcSymbol(code: EpcQrCode): QrSymbol {
     symbol = { modules: encode(payload, { ecc: 'M', border: 0, boostEcc: false, minVersion: least, maxVersion: EPC_MAX_VERSION }).data }
   } catch (error) {
     if (!(error instanceof RangeError && error.message === 'Data too long')) throw error
-    throw new RenderRefusal('content-too-large', `${what} holds ${new TextEncoder().encode(payload).length} bytes, more than version ${EPC_MAX_VERSION} holds at level M, the largest code the EPC allows`, id)
+    throw new RenderRefusal(
+      'content-too-large',
+      `${what} holds ${new TextEncoder().encode(payload).length} bytes, more than version ${EPC_MAX_VERSION} holds at level M, the largest code the EPC allows`,
+      id,
+    )
   }
   if (caption === undefined) {
     refuseFineModules(symbol, size, what, 'its payload', id)

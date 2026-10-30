@@ -31,7 +31,8 @@ export function recordedText(text, root) {
 }
 
 /** What stands in a recorded KoSIT console where its results table was. */
-export const TABLE_LEFT_OUT = '[The results table is left out of the record: it names every file by its path, wrapping it across lines no replacement can follow, and each file’s report, recorded beside this, says what its row said.]'
+export const TABLE_LEFT_OUT =
+  '[The results table is left out of the record: it names every file by its path, wrapping it across lines no replacement can follow, and each file’s report, recorded beside this, says what its row said.]'
 
 /**
  * KoSIT's console as it is recorded: `recordedText`, and without its
@@ -72,12 +73,14 @@ export function staleRecorded(entries, recorded, pdfs = new Map()) {
     const { file } = entry
     if (entry.format === 'pdf') {
       if (!pdfs.has(file)) problems.push(`scripts/e-invoice/recorded/run.json records no ${file}, which this run judged: ${RECORD}`)
-      else if (pdfs.get(file) !== entry.digest) problems.push(`scripts/e-invoice/recorded/run.json records ${file} as another PDF than this run drew, its objects inflated: ${RECORD}`)
+      else if (pdfs.get(file) !== entry.digest)
+        problems.push(`scripts/e-invoice/recorded/run.json records ${file} as another PDF than this run drew, its objects inflated: ${RECORD}`)
     } else if (!recorded.has(file)) problems.push(`scripts/e-invoice/recorded/corpus/ holds no ${file}, which this run judged: ${RECORD}`)
     else if (recorded.get(file) !== entry.xml) problems.push(`scripts/e-invoice/recorded/corpus/${file} is not the XML this run judged: ${RECORD}`)
   }
   const made = new Set(entries.map(({ file }) => file))
   for (const file of recorded.keys()) if (!made.has(file)) problems.push(`scripts/e-invoice/recorded/corpus/${file} is no file this run judged: ${RECORD}`)
-  for (const file of pdfs.keys()) if (!made.has(file)) problems.push(`scripts/e-invoice/recorded/run.json records ${file}, which this run did not judge: ${RECORD}`)
+  for (const file of pdfs.keys())
+    if (!made.has(file)) problems.push(`scripts/e-invoice/recorded/run.json records ${file}, which this run did not judge: ${RECORD}`)
   return problems
 }

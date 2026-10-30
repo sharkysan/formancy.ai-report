@@ -16,7 +16,9 @@ describe('compileSite', () => {
     const outcome = compileSite({ cel: 'row.nope > 1', scope: 'row', kind: 'visible', path: '/x/cel', componentId: 'lines' }, members, {}, false)
     expect(outcome).toEqual({
       ok: false,
-      diagnostics: [{ severity: 'error', code: 'expression-unknown-name', message: expect.stringContaining('nope') as string, path: '/x/cel', componentId: 'lines' }],
+      diagnostics: [
+        { severity: 'error', code: 'expression-unknown-name', message: expect.stringContaining('nope') as string, path: '/x/cel', componentId: 'lines' },
+      ],
     })
   })
 })

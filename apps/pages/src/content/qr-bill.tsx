@@ -37,7 +37,10 @@ export const QR_BILL_STATUS: PageStatus = {
 }
 
 /** What the product page says of the QR-bill page in `language`: its teaser, and where it stands, as the hero says it. */
-const teaserOf = (language: Language): Teaser => ({ ...QR_BILL_COPY[language].teaser, text: `${QR_BILL_COPY[language].teaser.text} ${QR_BILL_COPY[language].standing}` })
+const teaserOf = (language: Language): Teaser => ({
+  ...QR_BILL_COPY[language].teaser,
+  text: `${QR_BILL_COPY[language].teaser.text} ${QR_BILL_COPY[language].standing}`,
+})
 
 /** The decision record that says what a QR-bill is and what it costs, which the page links for the reasons it gives. */
 const DECISION = 'docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md'

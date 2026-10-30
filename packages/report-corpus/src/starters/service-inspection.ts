@@ -72,7 +72,12 @@ const REPORT: ReportDefinition = {
         id: 'running-head',
         kind: 'text',
         style: 'small',
-        content: [{ kind: 'text', text: 'Service inspection ' }, { kind: 'field', field: header('reference') }, { kind: 'text', text: ' · ' }, { kind: 'field', field: header('customer') }],
+        content: [
+          { kind: 'text', text: 'Service inspection ' },
+          { kind: 'field', field: header('reference') },
+          { kind: 'text', text: ' · ' },
+          { kind: 'field', field: header('customer') },
+        ],
       },
     ],
     reportHeader: [
@@ -85,15 +90,43 @@ const REPORT: ReportDefinition = {
           {
             width: 'fill',
             components: [
-              { id: 'customer', kind: 'text', content: [{ kind: 'text', text: 'Customer: ' }, { kind: 'field', field: header('customer') }] },
-              { id: 'site', kind: 'text', content: [{ kind: 'text', text: 'Site: ' }, { kind: 'field', field: header('site') }] },
+              {
+                id: 'customer',
+                kind: 'text',
+                content: [
+                  { kind: 'text', text: 'Customer: ' },
+                  { kind: 'field', field: header('customer') },
+                ],
+              },
+              {
+                id: 'site',
+                kind: 'text',
+                content: [
+                  { kind: 'text', text: 'Site: ' },
+                  { kind: 'field', field: header('site') },
+                ],
+              },
             ],
           },
           {
             width: 'fill',
             components: [
-              { id: 'date', kind: 'text', content: [{ kind: 'text', text: 'Date: ' }, { kind: 'field', field: header('inspectedOn'), format: { kind: 'date', style: 'long' } }] },
-              { id: 'inspector', kind: 'text', content: [{ kind: 'text', text: 'Inspector: ' }, { kind: 'field', field: header('inspector') }] },
+              {
+                id: 'date',
+                kind: 'text',
+                content: [
+                  { kind: 'text', text: 'Date: ' },
+                  { kind: 'field', field: header('inspectedOn'), format: { kind: 'date', style: 'long' } },
+                ],
+              },
+              {
+                id: 'inspector',
+                kind: 'text',
+                content: [
+                  { kind: 'text', text: 'Inspector: ' },
+                  { kind: 'field', field: header('inspector') },
+                ],
+              },
             ],
           },
         ],
@@ -121,7 +154,15 @@ const REPORT: ReportDefinition = {
         kind: 'keepTogether',
         components: [
           { id: 'photo-heading', kind: 'text', style: 'heading', visibleWhen: { cel: 'header.hasPhoto' }, content: [{ kind: 'text', text: 'Photo' }] },
-          { id: 'photo', kind: 'image', visibleWhen: { cel: 'header.hasPhoto' }, source: { kind: 'field', field: header('photo') }, width: 240, height: 180, fit: 'contain' },
+          {
+            id: 'photo',
+            kind: 'image',
+            visibleWhen: { cel: 'header.hasPhoto' },
+            source: { kind: 'field', field: header('photo') },
+            width: 240,
+            height: 180,
+            fit: 'contain',
+          },
           { id: 'statement-gap', kind: 'spacer', height: 12 },
           {
             id: 'statement',
@@ -163,7 +204,12 @@ const REPORT: ReportDefinition = {
       },
     ],
     pageFooter: [
-      { id: 'page-of', kind: 'text', style: 'footer', content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }] },
+      {
+        id: 'page-of',
+        kind: 'text',
+        style: 'footer',
+        content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }],
+      },
     ],
   },
   provenance: { kind: 'blank' },
@@ -187,7 +233,11 @@ export function inspectionNotes(count: number): string {
 }
 
 /** One visit: with a defect or without, `notes` observations long, with its photo or without one. */
-export function inspectionData({ defect = true, notes = 60, photo = true }: { readonly defect?: boolean; readonly notes?: number; readonly photo?: boolean } = {}): ReportData {
+export function inspectionData({
+  defect = true,
+  notes = 60,
+  photo = true,
+}: { readonly defect?: boolean; readonly notes?: number; readonly photo?: boolean } = {}): ReportData {
   return {
     header: {
       reference: 'INS-2026-0415',

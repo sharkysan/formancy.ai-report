@@ -43,7 +43,14 @@ function green() {
     },
     tarballs,
     sbom: {
-      components: ['pkg:npm/pdfmake@0.3.11', 'pkg:npm/%40formancy/spec@0.5.0', 'pkg:npm/%40formancy/report-spec@0.1.0', 'pkg:npm/%40formancy/report-render-pdf@0.1.0', 'pkg:npm/%40formancy/expressions@0.5.0', 'pkg:npm/tslib@2.8.1'].map((purl) => ({ purl })),
+      components: [
+        'pkg:npm/pdfmake@0.3.11',
+        'pkg:npm/%40formancy/spec@0.5.0',
+        'pkg:npm/%40formancy/report-spec@0.1.0',
+        'pkg:npm/%40formancy/report-render-pdf@0.1.0',
+        'pkg:npm/%40formancy/expressions@0.5.0',
+        'pkg:npm/tslib@2.8.1',
+      ].map((purl) => ({ purl })),
       dependencies: graph({
         '@formancy/report-spec@0.1.0': ['@formancy/spec@0.5.0'],
         '@formancy/report-render-pdf@0.1.0': ['@formancy/report-spec@0.1.0', 'pdfmake@0.3.11'],
@@ -74,7 +81,9 @@ describe('the report', () => {
   // is no report this repository wrote.
   test('is refused when it has problems, is partial or local, or lists none at all', () => {
     const with_ = (change) => reportProblems({ ...green().report, ...change }, RUN)
-    expect(with_({ problems: ['@formancy/report-spec: 1 test(s) failed'] })).toEqual(['the report has 1 problem(s), the first: @formancy/report-spec: 1 test(s) failed'])
+    expect(with_({ problems: ['@formancy/report-spec: 1 test(s) failed'] })).toEqual([
+      'the report has 1 problem(s), the first: @formancy/report-spec: 1 test(s) failed',
+    ])
     expect(with_({ partial: ['install'] })).toEqual(['the report is partial: install allowed missing'])
     expect(with_({ local: true })).toEqual(['the report is a local one, and a release reads only the report its own gates built'])
     expect(with_({ problems: undefined })).toEqual(['the report lists no problems at all, not even none'])
@@ -99,7 +108,9 @@ describe('the tarballs against the report', () => {
     const { report, tarballs } = green()
     expect(installedTarballProblems(report, tarballs)).toEqual([])
     tarballs[1] = { ...tarballs[1], sha256: 'f'.repeat(64) }
-    expect(installedTarballProblems(report, tarballs)).toEqual([`formancy-report-render-pdf-0.1.0.tgz has sha256 ${'f'.repeat(64)}, not that of the formancy-report-render-pdf-0.1.0.tgz the install gate installed and ran, ${green().tarballs[1].sha256}`])
+    expect(installedTarballProblems(report, tarballs)).toEqual([
+      `formancy-report-render-pdf-0.1.0.tgz has sha256 ${'f'.repeat(64)}, not that of the formancy-report-render-pdf-0.1.0.tgz the install gate installed and ran, ${green().tarballs[1].sha256}`,
+    ])
   })
 
   // A package without a tarball is a release that leaves it behind; a
@@ -107,9 +118,9 @@ describe('the tarballs against the report', () => {
   test('are refused when one is missing, or one is no published package’s', () => {
     const { report, tarballs } = green()
     expect(installedTarballProblems(report, tarballs.slice(0, 1))).toEqual(['@formancy/report-render-pdf: 0 tarballs, where a release publishes exactly one'])
-    expect(installedTarballProblems(report, [...tarballs, { file: 'formancy-report-corpus-0.1.0.tgz', name: '@formancy/report-corpus', sha256: 'a'.repeat(64) }])).toEqual([
-      'formancy-report-corpus-0.1.0.tgz is @formancy/report-corpus, which is no published package',
-    ])
+    expect(
+      installedTarballProblems(report, [...tarballs, { file: 'formancy-report-corpus-0.1.0.tgz', name: '@formancy/report-corpus', sha256: 'a'.repeat(64) }]),
+    ).toEqual(['formancy-report-corpus-0.1.0.tgz is @formancy/report-corpus, which is no published package'])
   })
 })
 
@@ -138,7 +149,9 @@ describe('the SBOM', () => {
       dependencies: sbom.dependencies.map((entry) => ({ ...entry, dependsOn: entry.dependsOn.map((ref) => ref.replace('pdfmake@0.3.11', 'pdfmake@0.3.10')) })),
     }
     expect(sbomReportProblems(report, older)).toEqual(['the SBOM gives @formancy/report-render-pdf pdfmake 0.3.10, where its suites loaded 0.3.11'])
-    expect(sbomReportProblems(report, replaced(1, 'pkg:npm/%40formancy/spec@0.4.0'))).toEqual(['the SBOM names @formancy/spec 0.4.0, where the suites loaded 0.5.0'])
+    expect(sbomReportProblems(report, replaced(1, 'pkg:npm/%40formancy/spec@0.4.0'))).toEqual([
+      'the SBOM names @formancy/spec 0.4.0, where the suites loaded 0.5.0',
+    ])
     expect(sbomReportProblems(report, without('pdfmake'))).toEqual(['the SBOM names no pdfmake 0.3.11, which @formancy/report-render-pdf depends on'])
     expect(sbomReportProblems(report, without('spec@0.5.0'))).toEqual(['the SBOM names no @formancy/spec, which a published package depends on'])
     expect(sbomReportProblems(report, without('expressions'))).toEqual(['the SBOM names no @formancy/expressions, which a published package depends on'])
@@ -154,9 +167,14 @@ describe('the SBOM', () => {
     const { report, sbom } = green()
     report.testedOn.runtime.push({ package: '@formancy/report-spec', name: '@noble/hashes', loaded: '2.4.0' })
     const both = (specGets) => ({
-      components: [...sbom.components, ...['pkg:npm/pdfkit@0.19.1', 'pkg:npm/%40noble/hashes@1.8.0', 'pkg:npm/%40noble/hashes@2.4.0'].map((purl) => ({ purl }))],
+      components: [
+        ...sbom.components,
+        ...['pkg:npm/pdfkit@0.19.1', 'pkg:npm/%40noble/hashes@1.8.0', 'pkg:npm/%40noble/hashes@2.4.0'].map((purl) => ({ purl })),
+      ],
       dependencies: [
-        ...sbom.dependencies.map((entry) => (entry.ref.includes('report-spec@') ? { ...entry, dependsOn: [...entry.dependsOn, `pkg:npm/@noble/hashes@${specGets}`] } : entry)),
+        ...sbom.dependencies.map((entry) =>
+          entry.ref.includes('report-spec@') ? { ...entry, dependsOn: [...entry.dependsOn, `pkg:npm/@noble/hashes@${specGets}`] } : entry,
+        ),
         ...graph({ 'pdfmake@0.3.11': ['pdfkit@0.19.1'], 'pdfkit@0.19.1': ['@noble/hashes@1.8.0'] }),
       ],
     })
@@ -186,8 +204,13 @@ describe('the SBOM', () => {
   // first.
   test('is refused without each published package, at the version this release publishes', () => {
     const { report, sbom } = green()
-    expect(sbomReportProblems(report, { ...sbom, components: sbom.components.filter((component) => !component.purl.includes('report-render-pdf')) })).toEqual(['the SBOM names no @formancy/report-render-pdf 0.1.0, which this release publishes'])
-    const older = { ...sbom, components: sbom.components.map((component) => (component.purl.includes('report-spec') ? { purl: 'pkg:npm/%40formancy/report-spec@0.0.9' } : component)) }
+    expect(sbomReportProblems(report, { ...sbom, components: sbom.components.filter((component) => !component.purl.includes('report-render-pdf')) })).toEqual([
+      'the SBOM names no @formancy/report-render-pdf 0.1.0, which this release publishes',
+    ])
+    const older = {
+      ...sbom,
+      components: sbom.components.map((component) => (component.purl.includes('report-spec') ? { purl: 'pkg:npm/%40formancy/report-spec@0.0.9' } : component)),
+    }
     expect(sbomReportProblems(report, older)).toEqual(['the SBOM names no @formancy/report-spec 0.1.0, which this release publishes'])
   })
 

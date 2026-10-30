@@ -80,7 +80,10 @@ export function qrBillPageBreak(page: PageSettings, above = 0): QrBillPageBreak 
   // Said to the hundredth above, so that a reach past the top by less than a hundredth never reads as the top itself.
   const said = (Math.ceil(reach * 100 - 1e-6) / 100).toFixed(2)
   const what = above === 0 ? 'the top margin reaches' : 'the top margin, with the page header and the instruction to separate printed above the slip, reaches'
-  return { field: 'topMargin', rule: `${what} ${said} pt down the page, past the top of the QR-bill's slip at ${QR_BILL_TOP.toFixed(2)} pt, 105 mm above the paper's foot` }
+  return {
+    field: 'topMargin',
+    rule: `${what} ${said} pt down the page, past the top of the QR-bill's slip at ${QR_BILL_TOP.toFixed(2)} pt, 105 mm above the paper's foot`,
+  }
 }
 
 /** An IBAN of Switzerland or Liechtenstein: the country, two check digits, the five-digit institution and twelve digits or capitals. */
@@ -111,7 +114,8 @@ export interface QrBillAccount {
 /** The account: an IBAN or a QR-IBAN of Switzerland or Liechtenstein (IG Table 8, IBAN), its spaces dropped. */
 export function checkQrBillAccount(text: string): QrBillCheck<QrBillAccount> {
   const iban = withoutSpaces(text)
-  if (!IBAN.test(iban)) return no('is not an IBAN of Switzerland or Liechtenstein: CH or LI, two check digits and 17 digits or capitals, 21 characters without spaces')
+  if (!IBAN.test(iban))
+    return no('is not an IBAN of Switzerland or Liechtenstein: CH or LI, two check digits and 17 digits or capitals, 21 characters without spaces')
   const checked = checkIbanCheckDigits(iban)
   if (!checked.ok) return checked
   return ok({ iban, qrIban: isQrIban(iban) })
@@ -179,10 +183,14 @@ export function checkQrBillReference(text: string): QrBillCheck<QrBillReference>
   if (/^\d+$/.test(reference)) {
     if (reference.length !== QR_REFERENCE_LENGTH) return no(`is a QR reference of ${reference.length} digits; a QR reference has ${QR_REFERENCE_LENGTH}`)
     if (/^0+$/.test(reference)) return no('is a QR reference of zeros only, which SIX does not allow (IG 2.12.1)')
-    if (qrCheckDigit(reference.slice(0, -1)) !== Number(reference.at(-1))) return no('ends in a digit that is not its check digit (IG Annex B: modulo 10, recursive)')
+    if (qrCheckDigit(reference.slice(0, -1)) !== Number(reference.at(-1)))
+      return no('ends in a digit that is not its check digit (IG Annex B: modulo 10, recursive)')
     return ok({ type: 'QRR', reference })
   }
-  const creditor = checkCreditorReference(reference, 'is neither a QR reference, 27 digits, nor a creditor reference, RF, two check digits and up to 21 letters or digits')
+  const creditor = checkCreditorReference(
+    reference,
+    'is neither a QR reference, 27 digits, nor a creditor reference, RF, two check digits and up to 21 letters or digits',
+  )
   return creditor.ok ? ok({ type: 'SCOR', reference: creditor.value }) : creditor
 }
 
@@ -241,7 +249,9 @@ export const QR_BILL_BILLING_RULE: QrBillTextRule = {
  * break is not one, so no text can end its line of the code early.
  */
 function allowed(codePoint: number): boolean {
-  return (codePoint >= 0x20 && codePoint <= 0x7e) || (codePoint >= 0xa0 && codePoint <= 0x17f) || (codePoint >= 0x218 && codePoint <= 0x21b) || codePoint === 0x20ac
+  return (
+    (codePoint >= 0x20 && codePoint <= 0x7e) || (codePoint >= 0xa0 && codePoint <= 0x17f) || (codePoint >= 0x218 && codePoint <= 0x21b) || codePoint === 0x20ac
+  )
 }
 
 /**
@@ -285,7 +295,11 @@ export interface QrBillPairingBreak {
  * read from data, before a render -- is undefined, and nothing is said of
  * it.
  */
-export function qrBillPairing(account: 'iban' | 'qrIban' | undefined, reference: QrBillReferenceType | undefined, currency: QrBillCurrency): readonly QrBillPairingBreak[] {
+export function qrBillPairing(
+  account: 'iban' | 'qrIban' | undefined,
+  reference: QrBillReferenceType | undefined,
+  currency: QrBillCurrency,
+): readonly QrBillPairingBreak[] {
   const breaks: QrBillPairingBreak[] = []
   if (account === 'qrIban' && reference !== undefined && reference !== 'QRR') {
     const has = reference === 'NON' ? 'this bill has none' : 'this is a creditor reference'
@@ -293,7 +307,10 @@ export function qrBillPairing(account: 'iban' | 'qrIban' | undefined, reference:
   }
   if (account === 'iban' && reference === 'QRR') breaks.push({ field: 'reference', rule: 'a QR reference is paid to a QR-IBAN, and the account is an IBAN' })
   if (currency !== 'CHF' && (account === 'qrIban' || reference === 'QRR')) {
-    breaks.push({ field: 'currency', rule: 'a QR-IBAN and a QR reference are for invoices in CHF only, from version 2.4 of the guidelines, valid from 14 November 2026' })
+    breaks.push({
+      field: 'currency',
+      rule: 'a QR-IBAN and a QR reference are for invoices in CHF only, from version 2.4 of the guidelines, valid from 14 November 2026',
+    })
   }
   return breaks
 }
@@ -314,6 +331,7 @@ export function checkQrBillAmount(decimal: string): QrBillCheck<string> {
   const [whole = '', fraction = ''] = decimal.replace(/^-/, '').split('.')
   if (fraction.length > 2) return no('has more than two decimals; a QR-bill pays whole cents, so the amount is rounded where it is computed')
   const cents = fraction.padEnd(2, '0')
-  if (decimal.startsWith('-') || whole.length > MAX_WHOLE_DIGITS || (whole === '0' && cents === '00')) return no('is not from 0.01 to 999 999 999.99, the amounts a QR-bill pays')
+  if (decimal.startsWith('-') || whole.length > MAX_WHOLE_DIGITS || (whole === '0' && cents === '00'))
+    return no('is not from 0.01 to 999 999 999.99, the amounts a QR-bill pays')
   return ok(`${whole}.${cents}`)
 }

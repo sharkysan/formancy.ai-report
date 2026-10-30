@@ -35,10 +35,11 @@ const declared = new Set(imported.flatMap((specifier) => facesOf(readFileSync(re
  */
 const stacks = Object.fromEntries(
   [require.resolve('@formancy/themes/room.css'), join(app, 'src', 'styles', 'room.css')].flatMap((file) =>
-    [...(/:root\s*\{([^}]*)\}/.exec(readFileSync(file, 'utf8').replaceAll(/\/\*[\s\S]*?\*\//g, ''))?.[1] ?? '').matchAll(/(--display|--sans|--mono)\s*:\s*([^;]+);/g)].map((match) => [
-      match[1] ?? '',
-      (match[2] ?? '').split(',').map((family) => family.trim().replaceAll(/^['"]|['"]$/g, '')),
-    ]),
+    [
+      ...(/:root\s*\{([^}]*)\}/.exec(readFileSync(file, 'utf8').replaceAll(/\/\*[\s\S]*?\*\//g, ''))?.[1] ?? '').matchAll(
+        /(--display|--sans|--mono)\s*:\s*([^;]+);/g,
+      ),
+    ].map((match) => [match[1] ?? '', (match[2] ?? '').split(',').map((family) => family.trim().replaceAll(/^['"]|['"]$/g, ''))]),
   ),
 )
 
@@ -63,7 +64,8 @@ describe("the Studio's faces (0023)", () => {
   test("are the ones the room's stacks name, each stack one of them", () => {
     expect(Object.keys(stacks).sort()).toEqual(['--display', '--mono', '--sans'])
     expect(imported.length).toBeGreaterThan(0)
-    for (const [stack, families] of Object.entries(stacks)) expect({ stack, serves: families.filter((family) => declared.has(family)).length > 0 }).toEqual({ stack, serves: true })
+    for (const [stack, families] of Object.entries(stacks))
+      expect({ stack, serves: families.filter((family) => declared.has(family)).length > 0 }).toEqual({ stack, serves: true })
     const named = new Set(Object.values(stacks).flat())
     expect([...declared].filter((family) => !named.has(family))).toEqual([])
   })

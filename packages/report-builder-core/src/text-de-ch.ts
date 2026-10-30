@@ -107,7 +107,8 @@ export const DE_CH: Catalogue = {
   'images.reason.tooLarge': 'Es hat {size}; ein Bild darf {limit} haben.',
   'images.reason.tooWide': 'Es misst {width} × {height} Pixel; ein Bild darf {side} pro Seite messen.',
   'images.reason.noPixels': 'Es misst {width} × {height} Pixel und hat keines zum Drucken.',
-  'images.reason.malformed': 'Es ist ein beschädigtes {type} oder eines, das ein Bericht nicht drucken kann; speichern Sie es im Programm, in dem es entstand, neu.',
+  'images.reason.malformed':
+    'Es ist ein beschädigtes {type} oder eines, das ein Bericht nicht drucken kann; speichern Sie es im Programm, in dem es entstand, neu.',
   'images.reason.notAccepted': 'Bilder dieser Art werden hier nicht abgelegt.',
   'images.reason.cmykEInvoice': 'Es ist ein CMYK-JPEG, das eine E-Rechnung nicht enthalten kann; speichern Sie es als RGB.',
   'images.reason.notKept': 'Es liess sich nicht ablegen.',
@@ -118,7 +119,8 @@ export const DE_CH: Catalogue = {
   'images.reason.svgText': 'Sein Text muss zuerst in Pfade umgewandelt werden.',
   'images.reason.svgRaster': 'Es enthält ein eigenes Bild; fügen Sie dieses als PNG oder JPEG hinzu.',
   'images.reason.svgReference': 'Es verweist auf etwas, das es nicht enthält; speichern Sie es mit einem Programm neu, das Verweise auflöst.',
-  'images.reason.svgUnsupported': 'Ein Bericht kann es so, wie es geschrieben ist, nicht zeichnen; speichern Sie es im Zeichenprogramm als einfache Formen neu.',
+  'images.reason.svgUnsupported':
+    'Ein Bericht kann es so, wie es geschrieben ist, nicht zeichnen; speichern Sie es im Zeichenprogramm als einfache Formen neu.',
   'images.reason.svgRange': 'Eine Grösse oder eine Zahl darin liegt ausserhalb des Bereichs; geben Sie der Zeichnung eine gewöhnliche Grösse.',
   'images.reason.svgLarge': 'Es ist zu gross oder zu detailreich zum Drucken; vereinfachen Sie die Zeichnung.',
   'images.reason.svgDeep': 'Seine Gruppen sind zu tief verschachtelt; lösen Sie sie auf.',
@@ -242,7 +244,8 @@ export const DE_CH: Catalogue = {
   'status.indented': '{name} eingerückt.',
   'status.outdented': '{name} ausgerückt.',
   'status.changed': '{field} geändert.',
-  'status.changedToQrIban': '{field} geändert. Eine QR-IBAN wird mit einer QR-Referenz bezahlt, darum ist die Referenz das Beispiel von SIX, bis Sie die des Zahlungsempfängers angeben.',
+  'status.changedToQrIban':
+    '{field} geändert. Eine QR-IBAN wird mit einer QR-Referenz bezahlt, darum ist die Referenz das Beispiel von SIX, bis Sie die des Zahlungsempfängers angeben.',
   'status.changedToIban': '{field} geändert. Eine IBAN wird nie mit einer QR-Referenz bezahlt, darum wurde die Referenz entfernt.',
   'status.undone': 'Rückgängig gemacht: {label}.',
   'status.redone': 'Wiederholt: {label}.',
@@ -263,7 +266,8 @@ export const DE_CH: Catalogue = {
   'status.qrBillNotAdded': 'Die QR-Rechnung wurde nicht hinzugefügt: {reason}',
   'status.added': '{name} hinzugefügt.',
   'status.removed': '{name} entfernt.',
-  'status.qrBillAdded': 'QR-Rechnung mit den Beispielwerten von SIX hinzugefügt. Geben Sie Konto und Adresse des Zahlungsempfängers ein, bevor sie verschickt wird.',
+  'status.qrBillAdded':
+    'QR-Rechnung mit den Beispielwerten von SIX hinzugefügt. Geben Sie Konto und Adresse des Zahlungsempfängers ein, bevor sie verschickt wird.',
   'status.qrBillDeleted': 'QR-Rechnung gelöscht.',
   'status.alreadyThere': '{name} ist schon da.',
   'status.notThere': '{name} ist nicht da.',
@@ -389,5 +393,6 @@ export const DE_CH: Catalogue = {
   'status.removeRefused': '{name} nicht entfernt: {reason}',
   'status.notOptionalInvoice': '{name}: Teil jeder Rechnung im Format {kind}, weder hinzugefügt noch entfernt.',
   'status.notOptionalItem': '{name} gehört zu einer Liste: Deren eigene Schaltflächen fügen Einträge hinzu und entfernen sie.',
-  'status.vatCategoriesFull': 'Die E-Rechnung führt schon jede Aufschlüsselung, die eine hinzugefügte Umsatzsteuerkategorie sein könnte: Ändern Sie stattdessen eine ihrer Kategorien.',
+  'status.vatCategoriesFull':
+    'Die E-Rechnung führt schon jede Aufschlüsselung, die eine hinzugefügte Umsatzsteuerkategorie sein könnte: Ändern Sie stattdessen eine ihrer Kategorien.',
 }

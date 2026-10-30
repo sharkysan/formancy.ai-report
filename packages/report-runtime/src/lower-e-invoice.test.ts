@@ -41,9 +41,14 @@ function refused(report: ReportDefinition, data: ReportData, options: ResolveOpt
 const text = (block: Block | undefined): string => (block?.kind === 'paragraph' ? block.runs.map((run) => ('text' in run ? run.text : '')).join('') : '')
 
 /** Every value of the element `name` in `xml`, in order. */
-const values = (xml: string, name: string): string[] => [...xml.matchAll(new RegExp(`<${name}(?: [^>]*)?>([^<]*)</${name}>`, 'g'))].map((match) => match[1] as string)
+const values = (xml: string, name: string): string[] =>
+  [...xml.matchAll(new RegExp(`<${name}(?: [^>]*)?>([^<]*)</${name}>`, 'g'))].map((match) => match[1] as string)
 
-const LINES = [invoiceRow(), invoiceRow({ position: '2', item: 'Brot', quantity: '3', unit: 'KGM', price: '2.99', amount: '8.97', vat: 'reduced' }), invoiceRow({ position: '3', item: 'Beratung', quantity: '1', unit: 'HUR', price: '80.00', amount: '80.00', vat: 'exempt' })]
+const LINES = [
+  invoiceRow(),
+  invoiceRow({ position: '2', item: 'Brot', quantity: '3', unit: 'KGM', price: '2.99', amount: '8.97', vat: 'reduced' }),
+  invoiceRow({ position: '3', item: 'Beratung', quantity: '1', unit: 'HUR', price: '80.00', amount: '80.00', vat: 'exempt' }),
+]
 
 describe("a final render's e-invoice", () => {
   // The document carries the file the renderer embeds, named by
@@ -53,7 +58,13 @@ describe("a final render's e-invoice", () => {
   // XRechnung's is not, xrechnung.test.ts).
   test('is the XML, named as report-spec names it', () => {
     const file = resolved(invoiceReport(), invoiceData(LINES)).document.eInvoice
-    expect(file).toEqual({ kind: 'facturX', xml: expect.stringMatching(/^<\?xml version="1\.0" encoding="UTF-8"\?>\n<rsm:CrossIndustryInvoice /), fileName: 'factur-x.xml', relationship: 'Alternative', conformanceLevel: 'EN 16931' })
+    expect(file).toEqual({
+      kind: 'facturX',
+      xml: expect.stringMatching(/^<\?xml version="1\.0" encoding="UTF-8"\?>\n<rsm:CrossIndustryInvoice /),
+      fileName: 'factur-x.xml',
+      relationship: 'Alternative',
+      conformanceLevel: 'EN 16931',
+    })
     expect(file?.kind === 'facturX' && file.fileName).toBe(FACTUR_X.fileName)
     expect(file?.kind === 'facturX' && file.conformanceLevel).toBe(FACTUR_X_PROFILES.en16931.conformanceLevel)
     expect(runtime.FACTUR_X).toBe(FACTUR_X)
@@ -69,14 +80,29 @@ describe("a final render's e-invoice", () => {
     const xml = resolution.document.eInvoice?.xml ?? ''
     const printed = resolution.document.body.filter((block): block is Paragraph => block.kind === 'paragraph').map(text)
     const euro = (amount: string): string => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount as Intl.StringNumericLiteral)
-    const [basis = '', vat = '', grand = ''] = [values(xml, 'ram:TaxBasisTotalAmount')[0], values(xml, 'ram:TaxTotalAmount')[0], values(xml, 'ram:GrandTotalAmount')[0]]
+    const [basis = '', vat = '', grand = ''] = [
+      values(xml, 'ram:TaxBasisTotalAmount')[0],
+      values(xml, 'ram:TaxTotalAmount')[0],
+      values(xml, 'ram:GrandTotalAmount')[0],
+    ]
     expect([basis, vat, grand]).toEqual(['113.97', '5.38', '119.35'])
     expect(printed).toEqual(expect.arrayContaining([`Netto ${euro(basis)}`, `MwSt. ${euro(vat)}`, `Brutto ${euro(grand)}`]))
     expect(values(xml, 'ram:BasisAmount')).toEqual(['25.00', '8.97', '80.00'])
     expect(values(xml, 'ram:CalculatedAmount')).toEqual(['4.75', '0.63', '0.00'])
-    expect(printed).toEqual(expect.arrayContaining([`standard ${euro('25.00')}: ${euro('4.75')}`, `reduced ${euro('8.97')}: ${euro('0.63')}`, `exempt ${euro('80.00')}: ${euro('0.00')}`]))
+    expect(printed).toEqual(
+      expect.arrayContaining([
+        `standard ${euro('25.00')}: ${euro('4.75')}`,
+        `reduced ${euro('8.97')}: ${euro('0.63')}`,
+        `exempt ${euro('80.00')}: ${euro('0.00')}`,
+      ]),
+    )
     const only = resolved(invoiceReport(), invoiceData([invoiceRow()]))
-    expect(only.document.body.filter((block): block is Paragraph => block.kind === 'paragraph').map(text).filter((line) => /^(standard|reduced|exempt) /.test(line))).toEqual([`standard ${euro('25.00')}: ${euro('4.75')}`])
+    expect(
+      only.document.body
+        .filter((block): block is Paragraph => block.kind === 'paragraph')
+        .map(text)
+        .filter((line) => /^(standard|reduced|exempt) /.test(line)),
+    ).toEqual([`standard ${euro('25.00')}: ${euro('4.75')}`])
     expect(values(only.document.eInvoice?.xml ?? '', 'ram:CategoryCode')).toEqual(['S', 'S'])
   })
 
@@ -91,7 +117,9 @@ describe("a final render's e-invoice", () => {
   test('is absent from a report that is none', () => {
     const report = { ...invoiceReport() }
     const { eInvoice: _invoice, ...plain } = report
-    const summary = plain.regions.summary.filter((component) => component.id === 'gross').map((component) => ({ ...component, content: said('Brutto') }) as Component)
+    const summary = plain.regions.summary
+      .filter((component) => component.id === 'gross')
+      .map((component) => ({ ...component, content: said('Brutto') }) as Component)
     const none = { ...plain, regions: { ...plain.regions, summary } }
     expect(resolved(none, invoiceData()).document.eInvoice).toBeUndefined()
     const preview = resolved(none, invoiceData(), PREVIEW)
@@ -109,7 +137,14 @@ describe('a preview of an e-invoice', () => {
   test('writes no XML, warns that it is none, and labels every page', () => {
     const complete = resolved(invoiceReport(), invoiceData(LINES), PREVIEW)
     expect(complete.document.eInvoice).toBeUndefined()
-    expect(complete.warnings).toEqual([{ stage: 'resolve', code: 'e-invoice-preview', path: '/eInvoice', message: expect.stringMatching(/^the e-invoice: this is a preview, which writes no e-invoice/) }])
+    expect(complete.warnings).toEqual([
+      {
+        stage: 'resolve',
+        code: 'e-invoice-preview',
+        path: '/eInvoice',
+        message: expect.stringMatching(/^the e-invoice: this is a preview, which writes no e-invoice/),
+      },
+    ])
     expect(text(complete.document.pageHeader[0])).toBe(E_INVOICE_PREVIEW_LABEL)
     expect(runtime.E_INVOICE_PREVIEW_LABEL).toBe(E_INVOICE_PREVIEW_LABEL)
     const lacking = resolved(invoiceReport(), { ...invoiceData(LINES), completeness: { complete: false, captured: 3 } }, PREVIEW)
@@ -120,7 +155,9 @@ describe('a preview of an e-invoice', () => {
   // Its totals are those of what it has, printed as a final render's are.
   test('prints the totals of what it has', () => {
     const preview = resolved(invoiceReport(), invoiceData(LINES), PREVIEW)
-    expect(preview.document.body.filter((block): block is Paragraph => block.kind === 'paragraph').map(text)).toContain(`Brutto ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format('119.35')}`)
+    expect(preview.document.body.filter((block): block is Paragraph => block.kind === 'paragraph').map(text)).toContain(
+      `Brutto ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format('119.35')}`,
+    )
   })
 })
 
@@ -128,10 +165,23 @@ describe('a preview of an e-invoice', () => {
 function paying(...components: Component[]): ReportDefinition {
   const report = invoiceReport()
   const own = report.datasets.header as NonNullable<ReportDefinition['datasets']['header']>
-  const printed: Component = { id: 'paid', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'invoice.paid' } }, { kind: 'expression', expression: { cel: 'invoice.duePayable' } }] }
+  const printed: Component = {
+    id: 'paid',
+    kind: 'text',
+    content: [
+      { kind: 'expression', expression: { cel: 'invoice.paid' } },
+      { kind: 'expression', expression: { cel: 'invoice.duePayable' } },
+    ],
+  }
   return {
     ...report,
-    datasets: { ...report.datasets, header: { ...own, fields: [...own.fields, { id: 'paid', type: 'decimal', label: 'Paid', nullable: true }, { id: 'iban', type: 'string', label: 'IBAN', nullable: true }] } },
+    datasets: {
+      ...report.datasets,
+      header: {
+        ...own,
+        fields: [...own.fields, { id: 'paid', type: 'decimal', label: 'Paid', nullable: true }, { id: 'iban', type: 'string', label: 'IBAN', nullable: true }],
+      },
+    },
     regions: { ...report.regions, summary: [...report.regions.summary, printed, ...components] },
     eInvoice: { ...(report.eInvoice as EInvoice), paid: { cel: 'header.paid' } },
   }
@@ -140,7 +190,15 @@ function paying(...components: Component[]): ReportDefinition {
 /** Data for `paying`: the invoice's, its paid amount and its account none unless `values` gives them. */
 const payData = (values: Record<string, unknown> = {}): ReportData => invoiceData(undefined, { paid: null, iban: null, ...values })
 
-const epc = (patch: Partial<EpcQrCodeComponent> = {}): EpcQrCodeComponent => ({ id: 'pay-code', kind: 'epcQrCode', size: 85.04, beneficiary: said('Muster & Söhne GmbH'), iban: said('DE83 0123 4567 0012 3456 78'), amount: { cel: 'invoice.duePayable' }, ...patch })
+const epc = (patch: Partial<EpcQrCodeComponent> = {}): EpcQrCodeComponent => ({
+  id: 'pay-code',
+  kind: 'epcQrCode',
+  size: 85.04,
+  beneficiary: said('Muster & Söhne GmbH'),
+  iban: said('DE83 0123 4567 0012 3456 78'),
+  amount: { cel: 'invoice.duePayable' },
+  ...patch,
+})
 
 describe('a payment code printed with an e-invoice', () => {
   // A code that asks for another amount than the amount due, or to another
@@ -159,7 +217,8 @@ describe('a payment code printed with an e-invoice', () => {
         code: 'invalid-e-invoice',
         path: '/regions/summary/7/amount',
         componentId: 'pay-code',
-        message: "component pay-code: the EPC QR code asks for another amount than the e-invoice's amount due for payment (BT-115): a page and its XML ask for one amount",
+        message:
+          "component pay-code: the EPC QR code asks for another amount than the e-invoice's amount due for payment (BT-115): a page and its XML ask for one amount",
       },
     ])
   })
@@ -168,7 +227,11 @@ describe('a payment code printed with an e-invoice', () => {
     const report = paying(epc({ iban: [{ kind: 'field', field: header('iban') }] }))
     expect(resolved(report, payData({ iban: 'de83012345670012345678' })).document.eInvoice).toBeDefined()
     expect(refused(report, payData({ iban: 'DE89 3704 0044 0532 0130 00' }))).toEqual([
-      expect.objectContaining({ code: 'invalid-e-invoice', path: '/regions/summary/7/iban', message: expect.stringMatching(/another account than the e-invoice's payment account \(BT-84\)/) }),
+      expect.objectContaining({
+        code: 'invalid-e-invoice',
+        path: '/regions/summary/7/iban',
+        message: expect.stringMatching(/another account than the e-invoice's payment account \(BT-84\)/),
+      }),
     ])
   })
 
@@ -187,7 +250,11 @@ describe('a payment code printed with an e-invoice', () => {
     const invoice = { ...(base.eInvoice as EInvoice), payment: { means: '58' as const, iban: said(account) } }
     expect(resolved({ ...base, eInvoice: invoice, paymentPart: bill }, payData()).document.paymentPart?.amount).toBe('29.75')
     expect(refused({ ...base, eInvoice: invoice, paymentPart: { ...bill, amount: { cel: 'invoice.taxBasisTotal' } } }, payData())).toEqual([
-      expect.objectContaining({ code: 'invalid-e-invoice', path: '/paymentPart/amount', message: expect.stringMatching(/^the payment part: the QR-bill asks for another amount than/) }),
+      expect.objectContaining({
+        code: 'invalid-e-invoice',
+        path: '/paymentPart/amount',
+        message: expect.stringMatching(/^the payment part: the QR-bill asks for another amount than/),
+      }),
     ])
   })
 
@@ -207,7 +274,14 @@ describe('the runtime hands on', () => {
   // namespace, prefix, document type and version, and each profile's
   // conformance level and relationship.
   test("report-spec's Factur-X constants, as they are", () => {
-    expect(runtime.FACTUR_X).toEqual({ fileName: 'factur-x.xml', mediaType: 'text/xml', xmpNamespace: 'urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#', xmpPrefix: 'fx', documentType: 'INVOICE', version: '1.0' })
+    expect(runtime.FACTUR_X).toEqual({
+      fileName: 'factur-x.xml',
+      mediaType: 'text/xml',
+      xmpNamespace: 'urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#',
+      xmpPrefix: 'fx',
+      documentType: 'INVOICE',
+      version: '1.0',
+    })
   })
 })
 
@@ -220,9 +294,14 @@ describe('a final render that resolved no XML', () => {
   // defect, and throws.
   test('throws where nothing says why, and is refused where something does', () => {
     const invoice = invoiceReport().eInvoice as EInvoice
-    const nothing = { reads: { names: {}, columns: new Map(), payable: { amount: undefined, account: undefined } }, written: undefined } as unknown as ResolvedInvoice
+    const nothing = {
+      reads: { names: {}, columns: new Map(), payable: { amount: undefined, account: undefined } },
+      written: undefined,
+    } as unknown as ResolvedInvoice
     const final = { preview: false, problems: new Problems() } as unknown as Render
-    expect(() => eInvoiceFile(final, nothing, invoice)).toThrow(new RangeError('a final render of an e-invoice wrote no XML and recorded no reason: a defect, refused rather than drawn as a plain PDF'))
+    expect(() => eInvoiceFile(final, nothing, invoice)).toThrow(
+      new RangeError('a final render of an e-invoice wrote no XML and recorded no reason: a defect, refused rather than drawn as a plain PDF'),
+    )
     const said = new Problems()
     said.error({ stage: 'resolve', code: 'invalid-e-invoice', path: '/eInvoice/number', message: 'the e-invoice: refused' })
     expect(eInvoiceFile({ preview: false, problems: said } as unknown as Render, nothing, invoice)).toBeUndefined()

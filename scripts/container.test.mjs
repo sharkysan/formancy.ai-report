@@ -21,7 +21,9 @@ describe('the container gate', () => {
   // though it had nothing to say. It fails, and says so, in its record.
   test('writes its record, and fails, when it cannot run Docker', () => {
     const out = join(made, 'container.json')
-    const ran = spawnSync(process.execPath, [join(repo, 'scripts', 'container.mjs'), '--docker', join(made, 'no-such-docker'), '--out', out], { encoding: 'utf8' })
+    const ran = spawnSync(process.execPath, [join(repo, 'scripts', 'container.mjs'), '--docker', join(made, 'no-such-docker'), '--out', out], {
+      encoding: 'utf8',
+    })
     expect(ran.status).toBe(1)
     const record = JSON.parse(readFileSync(out, 'utf8'))
     expect(record).toMatchObject({ gate: 'container', passed: false, image: null, checks: [], planned: CHECKS })

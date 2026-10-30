@@ -378,7 +378,10 @@ describe('messages', () => {
 describe('agreement with report-spec', () => {
   /** Whether report-spec accepts `value` as the default of a parameter of `type`. */
   function specAccepts(type: ParameterType, value: string): boolean {
-    const report: ReportDefinition = { ...emptyReport('probe', 'Probe', 'en'), parameters: [{ id: 'probe', type, label: 'Probe', required: false, default: value }] }
+    const report: ReportDefinition = {
+      ...emptyReport('probe', 'Probe', 'en'),
+      parameters: [{ id: 'probe', type, label: 'Probe', required: false, default: value }],
+    }
     return validateReport(report).valid
   }
 
@@ -389,7 +392,10 @@ describe('agreement with report-spec', () => {
   test.each<[ParameterType, string]>([
     ...['0', '-5', '12', '+1', '01', '-0', '1.0', '1e3', ' 1', '', '١'].map((value): [ParameterType, string] => ['integer', value]),
     ...['12.50', '0', '0.00', '-0.5', '-0', '-0.00', '+1', '01.5', '1.', '.5', '1e2', '1,5', ''].map((value): [ParameterType, string] => ['decimal', value]),
-    ...['2024-02-29', '2026-02-29', '2026-04-31', '0000-01-01', '0001-01-01', '2026-1-1', '2026-01-01T00:00:00'].map((value): [ParameterType, string] => ['date', value]),
+    ...['2024-02-29', '2026-02-29', '2026-04-31', '0000-01-01', '0001-01-01', '2026-1-1', '2026-01-01T00:00:00'].map((value): [ParameterType, string] => [
+      'date',
+      value,
+    ]),
   ])('a %s default %j is accepted by both or refused by both', (type, value) => {
     expect(readValue(type, value).ok).toBe(specAccepts(type, value))
   })

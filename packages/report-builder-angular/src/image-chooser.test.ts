@@ -87,7 +87,14 @@ function asInABrowser(input: HTMLInputElement): { readonly pick: (file: File) =>
 /** The scenario report declaring as many images as a report may: room for none more. */
 function full(): ReportDefinition {
   const report = scenarioReport()
-  return { ...report, assets: Array.from({ length: MAX_ASSETS }, (_, at) => ({ id: `image-${String(at)}`, mediaType: 'image/png' as const, digest: `sha256:${at.toString(16).padStart(64, '0')}` })) }
+  return {
+    ...report,
+    assets: Array.from({ length: MAX_ASSETS }, (_, at) => ({
+      id: `image-${String(at)}`,
+      mediaType: 'image/png' as const,
+      digest: `sha256:${at.toString(16).padStart(64, '0')}`,
+    })),
+  }
 }
 
 describe('Add image…', () => {

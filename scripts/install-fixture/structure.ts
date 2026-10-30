@@ -76,7 +76,10 @@ export function editorWithImages(): ReportEditor {
       { id: 'logo', mediaType: 'image/svg+xml', digest: digest('ab') },
       { id: 'spare', mediaType: 'image/png', digest: digest('cd') },
     ],
-    regions: { ...report.regions, body: [...report.regions.body, { id: 'mark', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 40, height: 40, fit: 'contain' }] },
+    regions: {
+      ...report.regions,
+      body: [...report.regions.body, { id: 'mark', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 40, height: 40, fit: 'contain' }],
+    },
   })
   if (!opening.ok) throw new Error('the report with images did not open a session')
   const store: ImageStore = { accept: ['image/png', 'image/svg+xml'], keep: async () => ({ ok: true }) }
@@ -94,7 +97,8 @@ export function editorWithBill(): ReportEditor {
   const opening = openReportSession(reportToDraw())
   if (!opening.ok) throw new Error('the report did not open a session')
   const editor = createReportEditor(opening.session, { locale: 'de-CH' })
-  if (!editor.dispatch({ type: 'addPart', part: 'paymentPart' }).ok || !editor.dispatch({ type: 'addGroup', key: '/debtor' }).ok) throw new Error('the editor did not add a QR-bill and its debtor')
+  if (!editor.dispatch({ type: 'addPart', part: 'paymentPart' }).ok || !editor.dispatch({ type: 'addGroup', key: '/debtor' }).ok)
+    throw new Error('the editor did not add a QR-bill and its debtor')
   return editor
 }
 
@@ -108,12 +112,15 @@ export function editorWithBill(): ReportEditor {
  * both builders' suites run.
  */
 export function editorWithEInvoice(): ReportEditor {
-  const report = BUILDER_SCENARIOS.map((scenario) => scenario.report()).find((candidate) => candidate.eInvoice !== undefined && candidate.paymentPart !== undefined)
+  const report = BUILDER_SCENARIOS.map((scenario) => scenario.report()).find(
+    (candidate) => candidate.eInvoice !== undefined && candidate.paymentPart !== undefined,
+  )
   if (report === undefined) throw new Error('no shared scenario has a report with an e-invoice and a QR-bill')
   const opening = openReportSession(report)
   if (!opening.ok) throw new Error('the e-invoice report did not open a session')
   const editor = createReportEditor(opening.session, { locale: 'de-CH' })
-  if (!editor.dispatch({ type: 'select', part: 'eInvoice' }).ok || !editor.dispatch({ type: 'addItem', key: '/vat' }).ok) throw new Error('the editor did not select the e-invoice and add a VAT category')
+  if (!editor.dispatch({ type: 'select', part: 'eInvoice' }).ok || !editor.dispatch({ type: 'addItem', key: '/vat' }).ok)
+    throw new Error('the editor did not select the e-invoice and add a VAT category')
   return editor
 }
 
@@ -130,7 +137,8 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
     if (!holds) wrong.push(what)
   }
   const attribute = (element: MarkupElement | undefined, name: string): string | undefined => element?.attributes.get(name)
-  const parts = (part: ReportPart, within: MarkupElement = root): MarkupElement[] => elementsIn(within).filter((element) => attribute(element, 'data-report-part') === part)
+  const parts = (part: ReportPart, within: MarkupElement = root): MarkupElement[] =>
+    elementsIn(within).filter((element) => attribute(element, 'data-report-part') === part)
   const withRole = (role: string, within: MarkupElement = root): MarkupElement[] => elementsIn(within).filter((element) => attribute(element, 'role') === role)
   /**
    * The name assistive technology gives `element` from its attributes: the
@@ -158,9 +166,15 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   // the state's panel. Without the name it is no landmark; without the grid
   // and the panel, report-builder.css lays out nothing and a narrow screen
   // shows every pane at once.
-  expect(attribute(root, 'data-report-part') === 'editor' && (root.tag === 'section' || attribute(root, 'role') === 'region'), `the root <${root.tag}> is not the editor's region`)
+  expect(
+    attribute(root, 'data-report-part') === 'editor' && (root.tag === 'section' || attribute(root, 'role') === 'region'),
+    `the root <${root.tag}> is not the editor's region`,
+  )
   expect(nameOf(root) === t('editor.label'), `the root is named ${String(nameOf(root))}, not ${t('editor.label')}`)
-  expect(attribute(root, 'class')?.split(' ').includes('wb') === true && attribute(root, 'data-panel') === state.panel, 'the root lacks the wb grid or the state panel')
+  expect(
+    attribute(root, 'class')?.split(' ').includes('wb') === true && attribute(root, 'data-panel') === state.panel,
+    'the root lacks the wb grid or the state panel',
+  )
   expect(spokenText(root).includes(state.document.title), `the report's title ${state.document.title} is not shown`)
 
   // The toolbar: named, one tab stop rather than a keyboard walking every
@@ -168,12 +182,18 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   // narrow screen is the only way to reach the others.
   const [toolbar] = withRole('toolbar')
   const tools = toolbar === undefined ? [] : elementsIn(toolbar).filter((element) => element.tag === 'button')
-  expect(withRole('toolbar').length === 1 && nameOf(toolbar) === t('toolbar.label') && attribute(toolbar, 'data-report-part') === 'toolbar', 'there is not one toolbar, named by the catalogue')
+  expect(
+    withRole('toolbar').length === 1 && nameOf(toolbar) === t('toolbar.label') && attribute(toolbar, 'data-report-part') === 'toolbar',
+    'there is not one toolbar, named by the catalogue',
+  )
   expect(tools.filter((tool) => attribute(tool, 'tabindex') === '0').length === 1, 'the toolbar is not one tab stop')
   const zoom = toolbar === undefined ? [] : parts('zoom', toolbar)
   expect(zoom.length === 1 && spokenText(zoom[0] as MarkupElement) === state.zoomLabel, `the zoom does not read ${state.zoomLabel}`)
   for (const pane of [t('pane.outline'), t('pane.canvas'), t('pane.properties'), t('pane.problems')]) {
-    expect(tools.some((tool) => spokenText(tool) === pane), `the toolbar has no button named ${pane}`)
+    expect(
+      tools.some((tool) => spokenText(tool) === pane),
+      `the toolbar has no button named ${pane}`,
+    )
   }
 
   // A Hide in each side pane the state shows, named after it as the toolbar
@@ -197,13 +217,22 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   const entries = items.filter((item) => attribute(item, 'data-kind') !== undefined)
   const adds = items.filter((item) => attribute(item, 'data-kind') === undefined)
   expect(attribute(palette, 'role') === 'group' && nameOf(palette) === t('pane.palette'), 'the palette is not a group named by the catalogue')
-  expect(entries.length === state.palette.length && state.palette.every((entry, at) => spokenText(entries[at] as MarkupElement) === entry.label), 'the palette does not offer the state palette, by label')
+  expect(
+    entries.length === state.palette.length && state.palette.every((entry, at) => spokenText(entries[at] as MarkupElement) === entry.label),
+    'the palette does not offer the state palette, by label',
+  )
   const inputs = palette === undefined ? [] : elementsIn(palette).filter((element) => element.tag === 'input' && attribute(element, 'type') === 'file')
   if (state.images.store) {
     const [add] = adds
-    expect(adds.length === 1 && add === items.at(-1) && add?.tag === 'button' && spokenText(add) === t('images.add'), `the palette does not end with one ${t('images.add')}`)
+    expect(
+      adds.length === 1 && add === items.at(-1) && add?.tag === 'button' && spokenText(add) === t('images.add'),
+      `the palette does not end with one ${t('images.add')}`,
+    )
     expect((attribute(add, 'aria-disabled') === 'true') === !state.can.addImage, `${t('images.add')} is not unavailable exactly when the state says`)
-    expect(inputs.length === 1 && inputs[0]?.attributes.has('hidden') === true && attribute(inputs[0], 'accept') === state.images.accept, `there is not one hidden file input accepting ${state.images.accept}`)
+    expect(
+      inputs.length === 1 && inputs[0]?.attributes.has('hidden') === true && attribute(inputs[0], 'accept') === state.images.accept,
+      `there is not one hidden file input accepting ${state.images.accept}`,
+    )
   } else {
     expect(adds.length === 0 && inputs.length === 0, `${t('images.add')} is drawn for a host that keeps no images`)
   }
@@ -215,14 +244,30 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   // too few hides a component, or the bill, from a keyboard.
   const [tree] = withRole('tree')
   // Every node, a table's columns under it among them, in the tree's order: the e-invoice's report has a table (0044).
-  const walked = (list: EditorState['outline'][number]['nodes']): { readonly label: string; readonly selected: boolean }[] => list.flatMap((node) => [node, ...walked(node.children)])
-  const nodes: readonly { readonly label: string; readonly selected: boolean }[] = [...state.outline.flatMap((region) => walked(region.nodes)), ...state.outlineParts]
+  const walked = (list: EditorState['outline'][number]['nodes']): { readonly label: string; readonly selected: boolean }[] =>
+    list.flatMap((node) => [node, ...walked(node.children)])
+  const nodes: readonly { readonly label: string; readonly selected: boolean }[] = [
+    ...state.outline.flatMap((region) => walked(region.nodes)),
+    ...state.outlineParts,
+  ]
   const rows = tree === undefined ? [] : withRole('treeitem', tree)
-  expect(withRole('tree').length === 1 && nameOf(tree) === t('pane.outline') && attribute(tree, 'data-report-part') === 'outline', 'there is not one tree, named by the catalogue')
+  expect(
+    withRole('tree').length === 1 && nameOf(tree) === t('pane.outline') && attribute(tree, 'data-report-part') === 'outline',
+    'there is not one tree, named by the catalogue',
+  )
   const groups = tree === undefined ? [] : withRole('group', tree)
-  expect(groups.length === state.outline.length && state.outline.every((region, at) => nameOf(groups[at]) === region.label), 'the tree has not a group per region, labelled by it')
-  expect(rows.length === nodes.length && nodes.every((node, at) => spokenText(rows[at] as MarkupElement) === node.label), 'the tree has not a treeitem per outline node, by label')
-  expect(rows.every((row, at) => attribute(row, 'aria-selected') === String(nodes[at]?.selected)), 'the selected row is not the selected node')
+  expect(
+    groups.length === state.outline.length && state.outline.every((region, at) => nameOf(groups[at]) === region.label),
+    'the tree has not a group per region, labelled by it',
+  )
+  expect(
+    rows.length === nodes.length && nodes.every((node, at) => spokenText(rows[at] as MarkupElement) === node.label),
+    'the tree has not a treeitem per outline node, by label',
+  )
+  expect(
+    rows.every((row, at) => attribute(row, 'aria-selected') === String(nodes[at]?.selected)),
+    'the selected row is not the selected node',
+  )
 
   // The middle pane. The design view: a canvas named as not the PDF, so
   // nobody takes it for the print, with a named picture per box. Or, while
@@ -234,20 +279,35 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   if (state.view === 'host') {
     const views = parts('view')
     const [view] = views
-    expect(views.length === 1 && (view?.tag === 'section' || attribute(view, 'role') === 'region') && nameOf(view) === state.hostView?.name, `the host's view is not one region named ${String(state.hostView?.name)}`)
-    expect(attribute(view, 'data-pane') === 'canvas' && attribute(view, 'tabindex') === '-1' && attribute(view, 'class') === undefined, "the host's view is not the middle pane's bare region, a focus target and no tab stop")
+    expect(
+      views.length === 1 && (view?.tag === 'section' || attribute(view, 'role') === 'region') && nameOf(view) === state.hostView?.name,
+      `the host's view is not one region named ${String(state.hostView?.name)}`,
+    )
+    expect(
+      attribute(view, 'data-pane') === 'canvas' && attribute(view, 'tabindex') === '-1' && attribute(view, 'class') === undefined,
+      "the host's view is not the middle pane's bare region, a focus target and no tab stop",
+    )
     expect(view !== undefined && spokenText(view) === HOST_VIEW.text, `the host's view does not hold what the host drew, ${HOST_VIEW.text}`)
     expect(parts('canvas').length === 0, "the design view is drawn beside the host's view")
   } else {
     const [canvas] = parts('canvas')
     const boxes = canvas === undefined ? [] : parts('box', canvas)
     expect(nameOf(canvas) === state.canvas.label, `the design view is not named ${state.canvas.label}`)
-    expect(boxes.length === state.canvas.boxes.length && state.canvas.boxes.every((box, at) => attribute(boxes[at], 'role') === 'img' && nameOf(boxes[at]) === box.label), 'the design view has not a picture per box, named by it')
+    expect(
+      boxes.length === state.canvas.boxes.length &&
+        state.canvas.boxes.every((box, at) => attribute(boxes[at], 'role') === 'img' && nameOf(boxes[at]) === box.label),
+      'the design view has not a picture per box, named by it',
+    )
     // A payment part's band: a picture named as SIX names the part, marked selected as the bill is (0039).
     const bands = canvas === undefined ? [] : parts('payment-part', canvas)
     const band = state.canvas.paymentPart
     expect(
-      band === null ? bands.length === 0 : bands.length === 1 && attribute(bands[0], 'role') === 'img' && nameOf(bands[0]) === band.label && (attribute(bands[0], 'data-selected') === 'true') === band.selected,
+      band === null
+        ? bands.length === 0
+        : bands.length === 1 &&
+            attribute(bands[0], 'role') === 'img' &&
+            nameOf(bands[0]) === band.label &&
+            (attribute(bands[0], 'data-selected') === 'true') === band.selected,
       'the design view has not the payment part’s band the state has, named and selected as it is',
     )
     expect(parts('view').length === 0, "a host's view is drawn beside the design view")
@@ -261,7 +321,10 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   const [form] = parts('properties')
   const images = state.selection === null ? state.images.assets : []
   expect(form?.tag === 'form' && nameOf(form) === state.properties.heading, `the properties are not a form named ${state.properties.heading}`)
-  expect(form !== undefined && parts('property', form).length === state.properties.fields.length + images.length, 'the properties have not a row per field and per image')
+  expect(
+    form !== undefined && parts('property', form).length === state.properties.fields.length + images.length,
+    'the properties have not a row per field and per image',
+  )
   // Each group of fields the state draws -- a QR-bill's party, the report's
   // Add of a bill (0039), an e-invoice's party, VAT category or list
   // (0044) -- a group named by its label, hooked as one, holding its
@@ -279,7 +342,10 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
           nameOf(drawn) === group.label &&
           parts('property', drawn).length === group.fields.length &&
           buttons.length === group.actions.length &&
-          buttons.every((button, index) => spokenText(button) === group.actions[index]?.label && (attribute(button, 'aria-disabled') === 'true') === !group.actions[index]?.available)
+          buttons.every(
+            (button, index) =>
+              spokenText(button) === group.actions[index]?.label && (attribute(button, 'aria-disabled') === 'true') === !group.actions[index]?.available,
+          )
         )
       }),
     'the properties have not a group per group of fields, named by its label, with its rows and its buttons, each unavailable where the state says',
@@ -291,7 +357,11 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
       (imageRows.length === images.length &&
         images.every((image, at) => {
           const [remove] = elementsIn(imageRows[at] as MarkupElement).filter((element) => element.tag === 'button')
-          return spokenText(imageRows[at] as MarkupElement).startsWith(image.label) && nameOf(remove) === image.removeLabel && (attribute(remove, 'aria-disabled') === 'true') === (image.inUse !== undefined)
+          return (
+            spokenText(imageRows[at] as MarkupElement).startsWith(image.label) &&
+            nameOf(remove) === image.removeLabel &&
+            (attribute(remove, 'aria-disabled') === 'true') === (image.inUse !== undefined)
+          )
         })),
     `the report's images are not a group named ${t('images.heading')} of a row each, with its Remove`,
   )
@@ -306,8 +376,14 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   )
   // "Problems 2": a status, so a change in the count is said.
   const count = withRole('status').find((status) => nameOf(status) === t('pane.problems'))
-  expect(count !== undefined && spokenText(count) === `${t('pane.problems')} ${String(state.diagnostics.length)}`, `the problems' status does not read ${t('pane.problems')} ${String(state.diagnostics.length)}`)
-  expect(parts('status').some((status) => attribute(status, 'role') === 'status'), 'there is no live region')
+  expect(
+    count !== undefined && spokenText(count) === `${t('pane.problems')} ${String(state.diagnostics.length)}`,
+    `the problems' status does not read ${t('pane.problems')} ${String(state.diagnostics.length)}`,
+  )
+  expect(
+    parts('status').some((status) => attribute(status, 'role') === 'status'),
+    'there is no live region',
+  )
 
   return wrong
 }

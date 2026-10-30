@@ -107,7 +107,12 @@ const DONE: Readonly<Record<string, string>> = {
  * in the new version's `scope`, and what the diff says each baseline's
  * version did at that place.
  */
-function movesOf(baselines: readonly Baseline[], read: Read, field: FieldContract, scope: Placing): { readonly moved: ReadonlySet<string>; readonly kinds: readonly string[] } {
+function movesOf(
+  baselines: readonly Baseline[],
+  read: Read,
+  field: FieldContract,
+  scope: Placing,
+): { readonly moved: ReadonlySet<string>; readonly kinds: readonly string[] } {
   const moved = new Set<string>()
   const kinds: string[] = []
   for (const baseline of baselines) {
@@ -160,7 +165,8 @@ export function offeredPaths(review: Review, read: Read, scope: Placing): Readon
 }
 
 /** Whether `field`, read at `path` in the new version, is read there. */
-const lifts = (review: Review, scope: Placing, field: FieldContract, path: string): boolean => planField(new Findings(), review.version, scope.scope, withOverride(field, review.version.hash, { path }), '', undefined) !== undefined
+const lifts = (review: Review, scope: Placing, field: FieldContract, path: string): boolean =>
+  planField(new Findings(), review.version, scope.scope, withOverride(field, review.version.hash, { path }), '', undefined) !== undefined
 
 /** Whether nothing the diff from a version reports at `path`, a data path of the new version, says the field there is another: nothing added, removed, renamed or retyped there, and nothing moved away from it. */
 const unchangedAt = ({ changes, moves }: Baseline, path: string): boolean => {
@@ -180,8 +186,16 @@ function keptBy(review: Review, read: Read, field: FieldContract, scope: Placing
   const overrides = field.form?.overrides ?? {}
   const there = (handed: Baseline): boolean => {
     const placing = read.scopeIn(handed.version)
-    if (placing === undefined || placing.prefix !== scope.prefix || planField(new Findings(), handed.version, placing.scope, field, '', undefined) !== undefined) return false
-    return planField(new Findings(), handed.version, placing.scope, withOverride(field, handed.version.hash, { path: to }), '', undefined) !== undefined && unchangedAt(handed, `${scope.prefix}${to}`)
+    if (
+      placing === undefined ||
+      placing.prefix !== scope.prefix ||
+      planField(new Findings(), handed.version, placing.scope, field, '', undefined) !== undefined
+    )
+      return false
+    return (
+      planField(new Findings(), handed.version, placing.scope, withOverride(field, handed.version.hash, { path: to }), '', undefined) !== undefined &&
+      unchangedAt(handed, `${scope.prefix}${to}`)
+    )
   }
   return review.handed.filter((handed) => !Object.hasOwn(overrides, handed.version.hash) && !there(handed)).map(({ version }) => version.hash)
 }
@@ -205,7 +219,9 @@ export function blockedField(review: Review, read: Read, index: number, refusal:
     // Offered where it lifts the refusal alone: a field renamed and retyped in one version is not read by following the rename.
     if (!lifts(review, scope, field, path)) continue
     const message = `reads the field at ${named(path)} from this version on, where the form's author declared it renamed: each version the review was handed goes on reading it where it did, and a later version that keeps it there prints without a review`
-    resolutions.push(offered(on, 'follow-rename', message, followed(read.role, field, version.hash, path, keptBy(review, read, field, scope, path)), { declared: true }))
+    resolutions.push(
+      offered(on, 'follow-rename', message, followed(read.role, field, version.hash, path, keptBy(review, read, field, scope, path)), { declared: true }),
+    )
   }
   for (const [path, from] of reviewedPaths(review, read, field, scope)) {
     if (moved.has(path) || !lifts(review, scope, field, path)) continue
@@ -216,12 +232,24 @@ export function blockedField(review: Review, read: Read, index: number, refusal:
   if (removing.part === undefined) {
     const nullable = field.nullable ? '' : ', and declares the field nullable, which an expression reads as dyn (0009)'
     const typed = { role: read.role, id: field.id }
-    resolutions.push(offered(on, 'print-nothing', `prints nothing of the field from this version's submissions${nullable}; every other version is read where it was`, overridden(read.role, field, version.hash, { omit: true }, true), {}, field.nullable ? undefined : typed))
+    resolutions.push(
+      offered(
+        on,
+        'print-nothing',
+        `prints nothing of the field from this version's submissions${nullable}; every other version is read where it was`,
+        overridden(read.role, field, version.hash, { omit: true }, true),
+        {},
+        field.nullable ? undefined : typed,
+      ),
+    )
     if (refusal.code === 'version-retypes-field') resolutions.push(...retypes(review, read, field))
   }
   resolutions.push(removing.resolution)
   const what = DONE[change ?? ''] ?? DONE[refusal.code] ?? 'refuses it'
-  const part = removing.part === undefined ? '' : `; ${removing.part} reads it, which only its own commands change (0039), so nothing that changes what it prints is offered: change what it reads there first`
+  const part =
+    removing.part === undefined
+      ? ''
+      : `; ${removing.part} reads it, which only its own commands change (0039), so nothing that changes what it prints is offered: change what it reads there first`
   return {
     dataset: read.role,
     field: field.id,
@@ -257,8 +285,18 @@ function retypes(review: Review, read: Read, field: FieldContract): (Resolution 
   return [...types]
     .filter((type) => type !== field.type && fits(type))
     .map((type) => {
-      const cost = type === 'string' || textual.length === 0 ? '' : `; the form version ${textual.join(', ')} holds it as text, so a submission of it is then read as a ${type}, and refused (invalid-answer) where its answer spells none`
-      return offered(on, 'retype', `declares the field ${type}, which this version and every version the report names hold it as${cost}`, retyped(read.role, field, type), {}, { role: read.role, id: field.id })
+      const cost =
+        type === 'string' || textual.length === 0
+          ? ''
+          : `; the form version ${textual.join(', ')} holds it as text, so a submission of it is then read as a ${type}, and refused (invalid-answer) where its answer spells none`
+      return offered(
+        on,
+        'retype',
+        `declares the field ${type}, which this version and every version the report names hold it as${cost}`,
+        retyped(read.role, field, type),
+        {},
+        { role: read.role, id: field.id },
+      )
     })
 }
 
@@ -279,7 +317,17 @@ export function reusedField(review: Review, read: Read, index: number, scope: Pl
   })
   if (vacated === undefined) return undefined
   const removing = removal(on, read.role, field)
-  const nothing = removing.part === undefined ? offered(on, 'print-nothing', "prints nothing of the field from this version's submissions; every other version is read where it was", overridden(read.role, field, version.hash, { omit: true }, true), {}, field.nullable ? undefined : { role: read.role, id: field.id }) : undefined
+  const nothing =
+    removing.part === undefined
+      ? offered(
+          on,
+          'print-nothing',
+          "prints nothing of the field from this version's submissions; every other version is read where it was",
+          overridden(read.role, field, version.hash, { omit: true }, true),
+          {},
+          field.nullable ? undefined : { role: read.role, id: field.id },
+        )
+      : undefined
   return {
     dataset: read.role,
     field: field.id,
@@ -310,7 +358,12 @@ export function relabelled(review: Review, read: Read, index: number, plan: Read
   if (was.size === 0) return undefined
   const steps = relabelSteps(report, review.compiled(), read.role, field.id, was, now)
   if (steps.length === 0) return undefined
-  const resolution = offered(on, 'relabel', `says the label this version gives the field in ${steps.length} ${steps.length === 1 ? 'place' : 'places'} that say a label an earlier version gave it`, { command: 'batch', args: [steps] })
+  const resolution = offered(
+    on,
+    'relabel',
+    `says the label this version gives the field in ${steps.length} ${steps.length === 1 ? 'place' : 'places'} that say a label an earlier version gave it`,
+    { command: 'batch', args: [steps] },
+  )
   const change = first(kinds, RELABELLING)
   return {
     dataset: read.role,
@@ -347,10 +400,30 @@ export function blockedRepeater(review: Review, contract: DatasetContract, form:
   }
   const change = first(kinds, BLOCKING)
   const resolutions = [
-    ...[...moved].map((to) => offered(on, 'follow-rename', `reads the detail's rows from the repeater at ${named(to)} from this version on, where the form's author declared it renamed: each version the review was handed goes on reading where it did, and a later version that keeps it there prints without a review`, repeaterFollowed(contract, version.hash, to, keptRows(review, form, to)), { declared: true })),
-    ...[...reviewed].filter(([repeater]) => !moved.has(repeater)).map(([repeater, from]) => offered(on, 'follow-reviewed', `reads the detail's rows from the repeater at ${named(repeater)} in this version, where the form version ${from} the report names reads them and formancy's diff finds the same repeater; nobody declared it, and every other version is read as it was`, repeaterOverridden(contract, version.hash, repeater))),
+    ...[...moved].map((to) =>
+      offered(
+        on,
+        'follow-rename',
+        `reads the detail's rows from the repeater at ${named(to)} from this version on, where the form's author declared it renamed: each version the review was handed goes on reading where it did, and a later version that keeps it there prints without a review`,
+        repeaterFollowed(contract, version.hash, to, keptRows(review, form, to)),
+        { declared: true },
+      ),
+    ),
+    ...[...reviewed]
+      .filter(([repeater]) => !moved.has(repeater))
+      .map(([repeater, from]) =>
+        offered(
+          on,
+          'follow-reviewed',
+          `reads the detail's rows from the repeater at ${named(repeater)} in this version, where the form version ${from} the report names reads them and formancy's diff finds the same repeater; nobody declared it, and every other version is read as it was`,
+          repeaterOverridden(contract, version.hash, repeater),
+        ),
+      ),
   ].filter((resolution) => resolution !== undefined)
-  const none = resolutions.length === 0 ? "; a review offers nothing but a rename of the repeater -- one its author declared, or the repeater a version the report names reads the rows from -- and finds neither: the detail is the author's to change" : ''
+  const none =
+    resolutions.length === 0
+      ? "; a review offers nothing but a rename of the repeater -- one its author declared, or the repeater a version the report names reads the rows from -- and finds neither: the detail is the author's to change"
+      : ''
   return {
     dataset: 'detail',
     path: '/datasets/detail/form',
