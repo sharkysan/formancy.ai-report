@@ -315,7 +315,7 @@ pnpm install
 pnpm build
 pnpm test
 pnpm lint        # after pnpm build: the type-aware rules read the built declarations
-pnpm format      # Prettier, over every TypeScript and JavaScript file, before committing
+pnpm format      # Prettier, over every TypeScript and JavaScript file, twice before committing: it is not idempotent on some member chains
 ```
 
 CI fails a TypeScript or JavaScript file that breaks a lint rule or that

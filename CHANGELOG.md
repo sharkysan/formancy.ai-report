@@ -33,22 +33,24 @@ merges with a merge commit, so that the commit blame skips is the one on
 `main`.
 
 **A session and an editor are handed to a store hook as bare functions, and
-their types now say so.** `ReportSession.subscribe`, `document` and `hash` (the guide passes
-`session.hash` so), and
-`ReportEditor.subscribe` and `state`, are declared `this: void`, because
-React's `useSyncExternalStore` and every hook like it takes them off the
-object and calls them alone; the linter's `unbound-method` found the
-React builder and the Studio doing exactly that (the Angular builder passes
-nothing detached). Both stay methods, so an implementation with
-a narrower parameter still compiles. What `this: void` refuses is an
-object literal written in place whose `subscribe`, `document`, `hash` or `state`
-reads `this`; a class, a closure or an arrow function is unaffected, and
-nothing in this repository was. The case is
-`implementable.test.ts` in report-core and in report-builder-core: an
-implementation with a narrower parameter and a class that implements the
-members must compile, so turning them into function-typed properties fails
-typecheck, and an `@ts-expect-error` per member fails when `this: void` is
-lost.
+their types now say so**
+([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
+`ReportSession.subscribe`, `document` and `hash` (the guide passes
+`session.hash` so), and `ReportEditor.subscribe` and `state`, are declared
+`this: void`, because React's `useSyncExternalStore` and every hook like it
+takes them off the object and calls them alone; the linter's
+`unbound-method` found the React builder and the Studio doing exactly that
+(the Angular builder passes nothing detached). Both stay methods, so an
+implementation with a narrower parameter still compiles. What `this: void`
+refuses is an object literal written in place whose `subscribe`,
+`document`, `hash` or `state` reads `this`; a class, a closure or an arrow
+function is unaffected, and nothing in this repository was. The cases are
+`implementable.test.ts` in report-core and in report-builder-core: the one
+whose implementation takes a narrower parameter fails the typecheck when
+the members are turned into function-typed properties, and an
+`@ts-expect-error` per member fails it when `this: void` is lost; the one
+with a class says that a class still implements them, and fails under
+neither.
 
 **Report has a server that knows who is asking, and answers nothing else**
 ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),

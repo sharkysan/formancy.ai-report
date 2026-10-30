@@ -54,9 +54,10 @@ coding agent. The short version: test-first with the failure observed, every
 decision somebody could undo written down with what verifies it, the documents
 updated in the same pull request as the code -- and, once there is a renderer,
 every claim about a report proved on the PDF it produced.
-Run `pnpm format` before you commit and `pnpm lint` after `pnpm build`: CI
-fails a TypeScript or JavaScript file that breaks a lint rule or that
-Prettier would write otherwise
+Run `pnpm format` twice before you commit, since Prettier is not idempotent
+on a member chain whose last argument is an object literal, and `pnpm lint`
+after `pnpm build`: CI fails a TypeScript or JavaScript file that breaks a
+lint rule or that Prettier would write otherwise
 ([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
 
 ### A branch begun before the format
@@ -80,6 +81,6 @@ configuration. The driver merges a file with itself and never follows
 code to another: where `main` moved code to a file of its own, a change
 the branch made to that code meets a conflict in the file it left, and is
 carried to the new file by hand. Resolve what still conflicts; then
-`pnpm install`, `pnpm format` for a file only the branch changed, which no
-driver saw and which comes in as it was written, `pnpm build` and
+`pnpm install`, `pnpm format`, twice, for a file only the branch changed,
+which no driver saw and which comes in as it was written, `pnpm build` and
 `pnpm lint`; fix what it finds, and commit.

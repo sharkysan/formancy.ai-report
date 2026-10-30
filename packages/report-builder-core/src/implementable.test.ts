@@ -15,7 +15,8 @@ describe("an editor's detached members, as a host writes them", () => {
   const state = { view: 'design' } as unknown as EditorState
 
   // An editor turned into function-typed properties would refuse the narrower
-  // listener below (TS2322): a public change made as a lint fix.
+  // listener below (TS2328), a public change made as a lint fix: this is the
+  // case that fails when the members become properties.
   test('take an implementation whose parameter is narrower, as a method allows', () => {
     const heard: unknown[] = []
     const editor: Pick<ReportEditor, 'subscribe' | 'state'> = {
@@ -31,8 +32,10 @@ describe("an editor's detached members, as a host writes them", () => {
     expect(read()).toBe(state)
   })
 
-  // A class whose methods read `this` implements the interface, and is called on its instance: `this: void`
-  // binds a caller, not an implementation.
+  // A class whose methods read `this` implements the interface, and is called
+  // on its instance: `this: void` binds a caller, not an implementation. This
+  // case documents that, and guards nothing: it compiles with the members made
+  // properties and with `this: void` removed alike.
   test('take a class that implements them', () => {
     class Held implements Pick<ReportEditor, 'subscribe' | 'state'> {
       readonly listeners = new Set<() => void>()

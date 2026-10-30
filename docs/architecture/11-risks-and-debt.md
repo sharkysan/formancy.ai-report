@@ -438,13 +438,18 @@ its own.
 SHA, so the pull request that brings it merges with a merge commit, which
 the repository allows beside a squash and a rebase and nothing makes it
 choose: either of the others leaves the file naming nothing on `main`, and
-blame then gives the format most lines. A branch begun before the format
-conflicts with it; [`prettier-merge.mjs`](../../scripts/prettier-merge.mjs),
+blame then gives the format most lines. Nor does anything hold the file to
+the format commit: a mistyped SHA passes every gate. A branch begun before
+the format conflicts with it; [`prettier-merge.mjs`](../../scripts/prettier-merge.mjs),
 run from a checkout of `main`, merges `main` into it with each side
 formatted first, and what both sides changed, and code `main` moved to
 another file, are still the branch's to carry by hand. #60 is such a
-branch, and its `scripts/container.mjs`, formatted, passes the size budget,
-so whichever of the two merges second splits it ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
+branch, and whichever of the two merges second carries its whole cost:
+`scripts/container.mjs`, formatted, passes the size budget and is split;
+and its new report-client checks its suite as a program of its own,
+which lint reads through the glob for a package's test tsconfig that
+`project` already holds, so its code, the two `no-base-to-string`
+findings in its suite among it, meets the rules in that merge ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
 
 ## 11.3 Known technical debt
 

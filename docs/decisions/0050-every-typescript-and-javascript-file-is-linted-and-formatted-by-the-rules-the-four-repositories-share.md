@@ -1,4 +1,4 @@
-# 0050 — Every TypeScript and JavaScript file is linted and formatted by the rules the four formancy repositories share, a copy of Formancy Health's with this repository's paths until formancy.ai releases them as `@formancy/code-style`, and `verify` fails a change that breaks either; every finding fixed, a member a store hook detaches declared `this: void`; a branch from before the format merges main through Formancy Data's `scripts/prettier-merge.mjs`; the change merges with a merge commit, so that blame skips the format; rules of this repository's own, warnings, a split ahead of #60 and a squash lost
+# 0050 — Every TypeScript and JavaScript file is linted and formatted by the rules the four formancy repositories share, a copy of Formancy Health's with this repository's paths until formancy.ai releases them as `@formancy/code-style`, and `verify` fails a change that breaks either; every finding fixed, a member a store hook detaches declared `this: void`; a branch from before the format merges main through Formancy Data's `scripts/prettier-merge.mjs`; the change merges with a merge commit, so that blame skips the format; warnings, sparse arrays allowed in every test, rules of this repository's own, function-typed properties, a split ahead of #60, a merge driver of its own, a squash or a rebase, and waiting for the release lost
 
 - **Status:** accepted; numbered while 0049 was held by a branch not yet merged; narrows [0002](0002-depend-on-upstream-never-copy-it.md): its wait for a release, for the lint and format rules, which are a byte-for-byte copy of Formancy Health's until formancy.ai releases them as `@formancy/code-style`, and go when this repository pins it
 - **Date:** 2026-10-30
@@ -25,7 +25,12 @@
     report-spec, with `./apps/*/tsconfig.json` dropped from the
     tsconfigs lint reads, with `font-plugin.ts` dropped from
     `tsconfig.tools.json`, with `{ semi: true }` in `prettier.config.mjs`,
-    and with the Studio dropped from the React glob. Like Health's and
+    and with the Studio dropped from the React glob. Its reading of
+    `typecheck` takes every `tsc` a script runs, the root's among them:
+    first it took one `-p` per workspace, and passed the Angular builder's
+    typecheck made to run its spec program too, which lint never reads;
+    now that fails, 14 tsconfigs against 15, and so does the root's
+    typecheck without the tools' program. Like Health's and
     Data's, it never hands ESLint a text other than a file's own, and
     lints each file once: on CI, where `CI=true`, typescript-eslint infers
     a single run, so a text for a path on disk is typed as the file on
@@ -75,9 +80,11 @@
   **Not mechanically enforced:** how the pull request that brings this
   merges, which GitHub leaves to the person merging; that a disable
   comment's reason is true; that `scripts/code-style/` is Formancy
-  Health's, or the rules formancy.ai publishes; and that
-  `scripts/prettier-merge.mjs` and its test are Formancy Data's. Nothing
-  compares a copy with the file it was copied from.
+  Health's, or the rules formancy.ai publishes; that
+  `scripts/prettier-merge.mjs` and its test are Formancy Data's; and that
+  `.git-blame-ignore-revs` names the format commit, since a mistyped SHA
+  there passes every gate and only blame shows it. Nothing compares a copy
+  with the file it was copied from.
 
 ## Context
 
@@ -109,10 +116,12 @@ answers.
   every file over 250 lines formatted: the largest,
   report-builder-core's `property-fields.ts`, went from 524 lines to 596.
   Data had five files to split first; this repository had none.
-- **An open pull request near the budget.** #60, the server's drafts,
-  takes `scripts/container.mjs` to 598 lines on its branch at `00e0df6`,
-  and Prettier 3.9.10 writes 689 of them, measured the same day; on `main`
-  it is 464, and 537 formatted.
+- **An open pull request that meets the rules on merging.** #60, the
+  server's drafts, takes `scripts/container.mjs` to 598 lines on its
+  branch at `00e0df6`, and Prettier 3.9.10 writes 689 of them, measured
+  the same day; on `main` it is 464, and 537 formatted. It also adds
+  `packages/report-client`, whose suite is a program of its own,
+  `tsconfig.test.json`, which its typecheck runs after its source's.
 - **Gates only CI ran.** The container gate needs Docker, the e-invoice
   gate Java, and the browser gate and the pictures' check Chromium; for
   this change only CI runs them.
@@ -129,10 +138,18 @@ answers.
   semicolons, single quotes; TypeScript and JavaScript alone; and why each
   is so are formancy.ai-health 0017's and are not restated here.
 - **This repository's paths**, held by `scripts/lint.test.mjs`:
-  - `project`, the tsconfigs lint types with:
+  - `project`, the tsconfigs lint types with, exactly those
+    `pnpm typecheck` runs, every `tsc` of every script:
     `./packages/*/tsconfig.json` and `./apps/*/tsconfig.json` by glob, so
-    a new package or app is linted with types without an edit, and
-    `tsconfig.tools.json`, which `pnpm typecheck` now runs too, bringing
+    a new package or app is linted with types without an edit;
+    `./packages/*/tsconfig.test.json`, a package's suite where it is a
+    program of its own, which names nothing on `main` and will name #60's
+    report-client, so that its merge lints the client's suite with types
+    and the guard holds the glob to the typecheck, rather than `pnpm lint`
+    meeting `client.test.ts` in no program -- a fatal message, as linting
+    #60's file at `00e0df6` without the glob showed, where with it the file
+    gave two ordinary `no-base-to-string` findings for that merge to fix;
+    and `tsconfig.tools.json`, which `pnpm typecheck` now runs too, bringing
     the vitest, Vite and tsdown configs into it, with the renderer's
     `font-plugin.ts` and `scripts/readme-pictures.ts`, which were in no
     program. The Angular builder's `tsconfig.spec.json` and the Studio's
@@ -154,14 +171,19 @@ answers.
   on `main` passes it formatted, so nothing was split. When #60 merges,
   `scripts/container.mjs` is split by the reason it changes, in a commit
   that moves code without changing what it does, before the merge is
-  formatted, as Data split its five.
+  formatted, as Data split its five; and report-client's code, the two
+  findings in its suite among it, meets the rules in that merge.
 - **Every finding fixed.** ESLint's own fixes in one commit, the rest by
   hand after it. **No real bug was found.** `no-base-to-string`'s one
   finding was a test double of the Data provider that would have written
   a `Request` as "[object Object]" where the real client hands a string;
-  it now reads a string, a URL or a request. Most of the rest were a cast
-  that changed no type, a name nobody used or a caught error's `cause`
-  passed on; three asked for more:
+  it now reads a string, a URL or a request. One guard held less than it
+  read: `no-unused-vars` found `kind` unused in `workflows.test.mjs`'s
+  case for signing the release report, whose loop over `md` and `json`
+  escaped `${kind}` and so asserted one literal twice; it now asserts the
+  workflow's loop over both and the path it signs. Most of the rest were a
+  cast that changed no type, a name nobody used or a caught error's
+  `cause` passed on; three asked for more:
   - **`this: void` where a store hook detaches a member.**
     `unbound-method` found the React builder and the Studio handing
     `ReportSession.subscribe` and `document` and `ReportEditor.subscribe`
@@ -249,10 +271,13 @@ repositories.
   branch changed comes in unformatted, code `main` moved to another file
   is carried across by hand, and the script needs a checkout of `main` at
   least as new as the `main` it merges, its dependencies installed.
-- **#60 meets the budget.** Its `scripts/container.mjs` is 689 lines
-  formatted, so its merge, whichever lands second, carries a split of the
-  container gate by hand: CI alone runs that gate, so the split is proved
-  where the merge's CI runs it.
+- **#60's merge meets the rules whole.** Whichever lands second carries
+  by hand a split of the container gate, whose `scripts/container.mjs` is
+  689 lines formatted: CI alone runs that gate, so the split is proved
+  where the merge's CI runs it. It also brings report-client, whose
+  `tsconfig.test.json` lint now reads through the glob above, and whose
+  code meets every rule there: its suite's two `no-base-to-string`
+  findings, and whatever its source gives, which was not linted here.
 - **A copy that can drift.** Until the swap, nothing compares
   `scripts/code-style/` with Formancy Health's or with formancy.ai's
   package, or `scripts/prettier-merge.mjs` with Formancy Data's, and a
@@ -314,9 +339,11 @@ would move code #60 is still changing, for #60 to carry across by hand
 either way. It is split where it passes the budget, in the merge that
 takes it there.
 
-**Rebasing the branch on `main` instead of merging `main` into it.**
-Rejected: `.git-blame-ignore-revs` names the format commit by SHA, and a
-rebase moves it.
+**A squash or a rebase.** Rejected: `.git-blame-ignore-revs` names the
+format commit by SHA. Squashing the pull request folds the format into one
+commit with everything else, and rebasing it, or rebasing the branch on
+`main` instead of merging `main` into it, gives the format another SHA;
+either way the file names nothing on `main`.
 
 **A merge driver of this repository's own, or one in `.gitattributes`.**
 Rejected: Data's is tested, and a second driver would be a second thing

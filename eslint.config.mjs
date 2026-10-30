@@ -9,12 +9,16 @@ import { eslintConfig } from './scripts/code-style/code-style.mjs'
 export default eslintConfig({
   root: import.meta.dirname,
   // The tsconfigs `pnpm typecheck` runs, by glob, so that a new package or
-  // app is linted with types without an edit here. The Angular builder's
-  // specs and the Studio's Angular plugin have a tsconfig of their own that
-  // `typecheck` does not run, and no file of theirs is in them alone;
-  // tsconfig.tools.json brings the vitest, Vite and tsdown configs, and the
-  // renderer's two build helpers, into the typecheck.
-  project: ['./packages/*/tsconfig.json', './apps/*/tsconfig.json', './tsconfig.tools.json'],
+  // app is linted with types without an edit here. A package whose tests
+  // are a program of their own, beside its source's, runs it as
+  // tsconfig.test.json: none does on main yet, and #60's report-client
+  // will. The Angular builder's specs and the Studio's Angular plugin have
+  // a tsconfig of their own that `typecheck` does not run, and no file of
+  // theirs is in them alone; tsconfig.tools.json brings the vitest, Vite
+  // and tsdown configs into the typecheck, with the renderer's font plugin,
+  // which its build and its tests import, and its script that draws the
+  // README's pictures.
+  project: ['./packages/*/tsconfig.json', './packages/*/tsconfig.test.json', './apps/*/tsconfig.json', './tsconfig.tools.json'],
   ignoreFiles: ['.gitignore'],
   tests: ['**/*.{test,spec}.{ts,tsx,mts,cts,js,mjs}'],
   // The install fixtures import the packed tarballs, which the workspace

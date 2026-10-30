@@ -16,7 +16,8 @@ describe("a session's detached members, as a host writes them", () => {
   const document = { title: 'Orders' } as ReportDefinition
 
   // A session turned into function-typed properties would refuse the narrower
-  // listener below (TS2322): a public change made as a lint fix.
+  // listener below (TS2328), a public change made as a lint fix: this is the
+  // case that fails when the members become properties.
   test('take an implementation whose parameter is narrower, as a method allows', () => {
     const heard: unknown[] = []
     const session: Pick<ReportSession, 'subscribe' | 'document' | 'hash'> = {
@@ -34,8 +35,10 @@ describe("a session's detached members, as a host writes them", () => {
     expect(hash()).toBe('sha256:abc')
   })
 
-  // A class whose methods read `this` implements the interface, and is called on its instance: `this: void`
-  // binds a caller, not an implementation.
+  // A class whose methods read `this` implements the interface, and is called
+  // on its instance: `this: void` binds a caller, not an implementation. This
+  // case documents that, and guards nothing: it compiles with the members made
+  // properties and with `this: void` removed alike.
   test('take a class that implements them', () => {
     class Held implements Pick<ReportSession, 'subscribe' | 'document' | 'hash'> {
       readonly listeners = new Set<() => void>()

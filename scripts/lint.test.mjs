@@ -240,19 +240,27 @@ describe('the linter', TYPED, () => {
     })
     expect(named.length, 'tsconfigs the configuration names').toBeGreaterThan(0)
 
-    // The tsconfigs typecheck runs: the root's tools, and each workspace's
-    // own, which its script names with `-p` or leaves at the default.
-    const typechecked = ['packages', 'apps'].flatMap((group) =>
-      readdirSync(join(root, group)).flatMap((name) => {
-        const manifest = join(root, group, name, 'package.json')
-        if (!existsSync(manifest)) return []
-        const script = JSON.parse(readFileSync(manifest, 'utf8')).scripts?.typecheck
-        if (script === undefined) return []
-        return [join(group, name, /-p (\S+)/.exec(script)?.[1] ?? 'tsconfig.json')]
-      }),
-    )
-    expect(scripts.typecheck).toContain('tsc --noEmit -p tsconfig.tools.json')
-    expect([...named].sort(), 'the tsconfigs lint types with, and those typecheck runs').toEqual([...typechecked, 'tsconfig.tools.json'].sort())
+    // The tsconfigs typecheck runs: every `tsc` of the root's script and of
+    // each workspace's, each the one its `-p` names or `tsconfig.json`
+    // where it names none. Every run, not the first: a workspace whose
+    // tests are a program of their own runs two, and a second program lint
+    // never reads leaves its files linted with no types, or not at all.
+    const programs = (directory, script) =>
+      (script ?? '')
+        .split(/&&|\|\||;/)
+        .filter((command) => /(?:^|\s)tsc(?:\s|$)/.test(command))
+        .map((command) => join(directory, /(?:^|\s)(?:-p|--project)\s+(\S+)/.exec(command)?.[1] ?? 'tsconfig.json'))
+    const typechecked = [
+      ...programs('.', scripts.typecheck),
+      ...['packages', 'apps'].flatMap((group) =>
+        readdirSync(join(root, group)).flatMap((name) => {
+          const manifest = join(root, group, name, 'package.json')
+          return existsSync(manifest) ? programs(join(group, name), JSON.parse(readFileSync(manifest, 'utf8')).scripts?.typecheck) : []
+        }),
+      ),
+    ]
+    expect(typechecked, 'the root’s typecheck runs the tools’ program').toContain('tsconfig.tools.json')
+    expect([...named].sort(), 'the tsconfigs lint types with, and those typecheck runs').toEqual([...typechecked].sort())
 
     const placed = new Set(
       named.flatMap((tsconfig) => {
