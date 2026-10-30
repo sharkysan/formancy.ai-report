@@ -364,7 +364,11 @@ changed; what reached the bridge:
   another JSON type than the kind stores (`kinds.test.ts`), so nothing
   0.8.0 stores reads otherwise. A submission stored before, which
   formancy does not examine again, reads as it did: a group or a repeater
-  held as null among it, read as unanswered.
+  held as null among it, read as unanswered. But for one shape: an empty
+  string is no choice, which 0.8.0's engine refuses and an unanswered
+  choice never was, so the bridge refuses it as `invalid-answer` for every
+  choice, where one that offers no options printed it as its value and a
+  field declared never null printed blank (`kinds.test.ts`).
 - **A computed repeater's rows carry an `_id`** from 0.11.0, and did not
   before
   ([formancy.ai 0218](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0218-a-computed-repeater-is-the-rules-row-by-row.md)).

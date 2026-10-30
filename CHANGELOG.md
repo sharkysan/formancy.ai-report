@@ -48,6 +48,12 @@ none of the submissions of a form authored since.
   and hash by its number
   ([formancy.ai 0207](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0207-a-versions-document-can-be-read.md)).
   The bridge still fetches nothing.
+- **An empty string is refused as a choice's answer**, as
+  `invalid-answer`, whatever the choice offers. formancy's engine refuses
+  it from 0.8.0, a value no control writes, and an unanswered choice is
+  null or absent; report-forms printed it as the value of a choice that
+  offers no options, so a field declared never null printed blank where a
+  final render should refuse.
 - **A report's hash is the one it was.** `schemaHash`'s code is 0.7.0's:
   `hash.test.ts`'s pinned digest held, and so did the site visit
   starter, which names its form version by that hash.

@@ -1627,7 +1627,7 @@
       ]
     },
     "0042": {
-      "reviewed": "sha256:fa003d358794cb92a3009b38c1c3d32766ae639329df84238e2e94259064074b",
+      "reviewed": "sha256:5e6928bdaccffbae62cd428d039a6ca202884261b73fcadfe024397ba7750967",
       "limitations": [
         {
           "area": "format",
@@ -1687,7 +1687,7 @@
         },
         {
           "area": "data",
-          "says": "A select or a radio that offers no options in the document and names no source takes any value, as formancy's engine does, so its stored value prints unchecked with `read: 'value'`, and its label is refused.",
+          "says": "A select or a radio that offers no options in the document and names no source takes any non-empty string, as formancy's engine takes from 0.8.0, so its stored value prints unchecked with `read: 'value'`, its label is refused, and an empty string is refused as `invalid-answer`, as for any choice.",
           "heldBy": "packages/report-forms/src/kinds.test.ts"
         },
         {

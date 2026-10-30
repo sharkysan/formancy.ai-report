@@ -1,5 +1,5 @@
 import { FIELD_TYPES as REPORT_TYPES } from '@formancy/report-spec'
-import type { FieldType } from '@formancy/report-spec'
+import type { FieldType, ReportDefinition } from '@formancy/report-spec'
 import { FIELD_TYPES as FORM_KINDS, schemaHash } from '@formancy/spec'
 import { describe, expect, test } from 'vitest'
 import readme from '../README.md?raw'
@@ -115,11 +115,31 @@ describe('the mapping', () => {
     const select = formOf([{ ...severity, type: 'select' }], { i18n: CATALOGUE })
     expect(headerOf(read(report, select, { severity: 'low' }))).toEqual({ severity: 'Niedrig', code: 'low' })
     // A select may offer nothing in the document, and formancy then takes
-    // any value (formancy.ai 0076): it has no label to print, and its value
-    // prints when asked for, as formancy stored it.
+    // any value but an empty one (formancy.ai 0076, 0189): it has no label
+    // to print, and its value prints when asked for, as formancy stored it.
     const bare = formOf([{ key: 'kind', type: 'select' }])
     expect(refusals(read(reportOf({ header: answers(field('kind', 'string', 'kind')) }), bare, { kind: 'x' }))).toEqual(['unresolved-label /submission/data/kind'])
     expect(headerOf(read(reportOf({ header: answers(field('kind', 'string', 'kind', { read: 'value' })) }), bare, { kind: 'x' }))).toEqual({ kind: 'x' })
+  })
+
+  // An empty string is no choice: formancy's engine refuses it for one
+  // from 0.8.0 (formancy.ai 0189), as a value no control writes, and an
+  // unanswered choice is null or absent. Printed as its value, it would
+  // be a blank where a field declared never null refuses a final render;
+  // so it is refused as the wrong shape, as text for a number is, whether
+  // the field offers options, offers none or names a source.
+  test('refuses an empty choice as no choice’s value', () => {
+    const offered = formOf([severity], { i18n: CATALOGUE })
+    const bare = formOf([{ key: 'severity', type: 'select' }])
+    const sourced = formOf([{ key: 'severity', type: 'select', optionsSource: 'severities' }])
+    const valued = reportOf({ header: answers(field('severity', 'string', 'severity', { read: 'value' })) })
+    const labelled = reportOf({ header: answers(field('severity', 'string', 'severity')) })
+    const outcome = (report: ReportDefinition, form: unknown) => {
+      const got = read(report, form, { severity: '' }, { labels: () => 'Leer' })
+      return got.ok ? headerOf(got) : refusals(got)
+    }
+    const refused = ['invalid-answer /submission/data/severity']
+    expect([outcome(valued, offered), outcome(valued, bare), outcome(valued, sourced), outcome(labelled, sourced)]).toEqual([refused, refused, refused, refused])
   })
 
   // A select whose options a deployment resolves (formancy.ai 0077) has no

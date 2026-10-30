@@ -400,9 +400,10 @@ printed of a field never null, and none at all are refused, and at most
 - **Read a yes-or-no radio as a boolean.** A radio prints its label or its
   value; only the Data provider reads Data's `"true"` and `"false"` as one.
 - **Check a choice that offers nothing.** A select or a radio with no
-  options in the document and no source takes any value, as formancy's
-  engine does (formancy.ai 0076): its stored value prints with `read:
-  'value'`, and its label is refused.
+  options in the document and no source takes any value but an empty one,
+  as formancy's engine does from 0.8.0 (formancy.ai 0076, 0189): its
+  stored value prints with `read: 'value'`, its label is refused, and an
+  empty value is refused as `invalid-answer`, as it is for any choice.
 - **Read a row formancy nulled.** formancy nulls a repeater row it strips
   rather than shift its siblings; a submission holding one is refused, in
   any repeater it holds, whether the report reads that repeater or not.

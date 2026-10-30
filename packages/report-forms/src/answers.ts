@@ -158,7 +158,7 @@ function choice(plan: ReadPlan, value: string, context: AnswerContext): Turned {
     const text = resolveText(context.version.schema, option.label, context.locale)
     return text === undefined ? { ok: false, code: 'unresolved-label', why: 'the option has no label in the form version' } : turned(text)
   }
-  // No options in the document: formancy takes any value (formancy.ai 0076), and only a source can label it.
+  // No options in the document: formancy takes any non-empty value (formancy.ai 0076, 0189), and only a source can label it.
   if (!plan.label) return turned(value)
   if (typeof def.optionsSource !== 'string') return { ok: false, code: 'unresolved-label', why: 'the field offers no options in the form version and names no source, so its answer has no label; read its value' }
   const text = hostLabel(context.labels, { source: def.optionsSource, value, locale: context.locale })
@@ -204,7 +204,8 @@ function turn(plan: ReadPlan, value: unknown, context: AnswerContext): Turned {
     case 'checkbox':
       return typeof value === 'boolean' ? turned(value) : invalid("a tick box's answer is true or false")
     case 'choice':
-      return typeof value === 'string' ? choice(plan, value, context) : invalid("a choice's answer is the value of an option")
+      // Never empty: formancy's engine refuses an empty choice from 0.8.0 (formancy.ai 0189), and an unanswered one is null.
+      return typeof value === 'string' && value !== '' ? choice(plan, value, context) : invalid("a choice's answer is the value of an option, never empty")
     case 'matrix':
       return matrixRow(plan, value, context)
     case 'ticked': {
