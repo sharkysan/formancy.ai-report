@@ -41,13 +41,29 @@ export const PAPER_NAME = 'PDF pages'
 /** A button that keeps focus when it has nothing to do, and says so, as the builder's tools do. */
 function Tool({ label, onPress, unavailable, pressed }: { label: string; onPress: () => void; unavailable?: boolean; pressed?: boolean }): ReactElement {
   return (
-    <button type="button" className="tool" aria-disabled={unavailable === true ? true : undefined} aria-pressed={pressed} onClick={() => (unavailable === true ? undefined : onPress())}>
+    <button
+      type="button"
+      className="tool"
+      aria-disabled={unavailable === true ? true : undefined}
+      aria-pressed={pressed}
+      onClick={() => (unavailable === true ? undefined : onPress())}
+    >
       {label}
     </button>
   )
 }
 
-function Page({ loaded, number, zoom, drawn }: { loaded: Loaded; number: number; zoom: number; drawn: (of: Loaded, zoom: number, page: number) => void }): ReactElement {
+function Page({
+  loaded,
+  number,
+  zoom,
+  drawn,
+}: {
+  loaded: Loaded
+  number: number
+  zoom: number
+  drawn: (of: Loaded, zoom: number, page: number) => void
+}): ReactElement {
   const canvas = useRef<HTMLCanvasElement>(null)
   const text = useRef<HTMLDivElement>(null)
   const size = loaded.sizes[number - 1] ?? { width: 0, height: 0 }

@@ -52,8 +52,12 @@ describe('the cascade', () => {
   // Property names in any case, as CSS reads them; url() quoted or not.
   test('property names are read in any case, and url() quoted', () => {
     expect(fillOf('<rect width="1" height="1" style="FILL: Red"/>')).toBe('#ff0000')
-    expect(cleaned(svg('<linearGradient id="a"><stop/><stop offset="1"/></linearGradient><rect width="1" height="1" style="fill:url(&quot;#a&quot;)"/>')).text).toContain('fill="url(#g1)"')
-    expect(cleaned(svg("<linearGradient id=\"a\"><stop/><stop offset=\"1\"/></linearGradient><rect width=\"1\" height=\"1\" style=\"fill:url( '#a' )\"/>")).text).toContain('fill="url(#g1)"')
+    expect(
+      cleaned(svg('<linearGradient id="a"><stop/><stop offset="1"/></linearGradient><rect width="1" height="1" style="fill:url(&quot;#a&quot;)"/>')).text,
+    ).toContain('fill="url(#g1)"')
+    expect(
+      cleaned(svg('<linearGradient id="a"><stop/><stop offset="1"/></linearGradient><rect width="1" height="1" style="fill:url( \'#a\' )"/>')).text,
+    ).toContain('fill="url(#g1)"')
   })
 })
 
@@ -61,7 +65,9 @@ describe('what CSS is refused', () => {
   // A comment separates, as CSS says: fi/**/ll is two words, never fill,
   // which deleting the comment in place would make it.
   test('a comment separates and is never deleted in place', () => {
-    expect(refused(svg('<rect width="1" height="1" style="fi/**/ll:red"/>')).message).toBe(`svg/rect@style holds a CSS declaration this format does not read; ${CSS_ADVICE}`)
+    expect(refused(svg('<rect width="1" height="1" style="fi/**/ll:red"/>')).message).toBe(
+      `svg/rect@style holds a CSS declaration this format does not read; ${CSS_ADVICE}`,
+    )
     expect(fillOf('<rect width="1" height="1" style="/* a */fill/* b */:/* c */red/* d */"/>')).toBe('#ff0000')
   })
 
@@ -101,7 +107,9 @@ describe('what CSS is refused', () => {
   // and auto values that do nothing (0030).
   test('inert declarations are removed and listed', () => {
     const result = cleaned(
-      svg('<rect width="1" height="1" style="-inkscape-stroke:none;font-family:\'Ärial\';marker:none;filter:none;mix-blend-mode:normal;isolation:auto;shape-rendering:crispEdges;paint-order:normal;fill:red"/>'),
+      svg(
+        '<rect width="1" height="1" style="-inkscape-stroke:none;font-family:\'Ärial\';marker:none;filter:none;mix-blend-mode:normal;isolation:auto;shape-rendering:crispEdges;paint-order:normal;fill:red"/>',
+      ),
     )
     expect(result.text).toBe(svg('<rect width="1" height="1" fill="#ff0000"/>'))
     expect(result.removed.map(({ kind, name }) => `${kind} ${name}`)).toEqual([
@@ -123,7 +131,9 @@ describe('what CSS is refused', () => {
   })
 
   test.each(['stroke', 'stroke fill', 'markers stroke', 'fill fill', 'sideways'])('paint-order %s is refused', (order) => {
-    expect(refused(svg(`<rect width="1" height="1" paint-order="${order}"/>`)).message).toBe('svg/rect@paint-order is not drawn by this format; paint the fill before the stroke')
+    expect(refused(svg(`<rect width="1" height="1" paint-order="${order}"/>`)).message).toBe(
+      'svg/rect@paint-order is not drawn by this format; paint the fill before the stroke',
+    )
   })
 
   // Matching is linear in the rules that could match only because the
@@ -132,9 +142,16 @@ describe('what CSS is refused', () => {
   test('the stylesheets hold at most MAX_SVG_RULES simple selectors', () => {
     const rules = (count: number): string => `<style>${Array.from({ length: count }, (_, i) => `.c${i}{fill:red}`).join('')}</style>`
     expect(cleaned(svg(`${rules(MAX_SVG_RULES)}<rect width="1" height="1"/>`)).ok).toBe(true)
-    expect(refused(svg(`${rules(MAX_SVG_RULES + 1)}<rect width="1" height="1"/>`))).toEqual({ ok: false, code: 'too-large', message: `the stylesheets hold more than ${MAX_SVG_RULES} selectors; ${CSS_ADVICE}` })
+    expect(refused(svg(`${rules(MAX_SVG_RULES + 1)}<rect width="1" height="1"/>`))).toEqual({
+      ok: false,
+      code: 'too-large',
+      message: `the stylesheets hold more than ${MAX_SVG_RULES} selectors; ${CSS_ADVICE}`,
+    })
     // A compound counts each of its parts.
-    expect(refused(svg(`<style>${Array.from({ length: MAX_SVG_RULES / 2 + 1 }, (_, i) => `rect.c${i}{fill:red}`).join('')}</style><rect width="1" height="1"/>`)).code).toBe('too-large')
+    expect(
+      refused(svg(`<style>${Array.from({ length: MAX_SVG_RULES / 2 + 1 }, (_, i) => `rect.c${i}{fill:red}`).join('')}</style><rect width="1" height="1"/>`))
+        .code,
+    ).toBe('too-large')
   })
 
   // The rules one combination of classes matches are merged once, but
@@ -170,7 +187,8 @@ describe('what CSS is refused', () => {
   // 242 type rules declaring every kept property, took the cleaner 1.8 s
   // before the bound (2026-10-18, Intel i9-10900K, Node 24.21.0).
   test('elements each of their own classes under rules that match them all are refused in linear time', () => {
-    const every = 'fill:#123456;fill-opacity:.5;fill-rule:evenodd;stroke:#654321;stroke-opacity:.5;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:1;opacity:1;clip-rule:evenodd'
+    const every =
+      'fill:#123456;fill-opacity:.5;fill-rule:evenodd;stroke:#654321;stroke-opacity:.5;stroke-width:0;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:1;opacity:1;clip-rule:evenodd'
     const rules = `<style>${Array.from({ length: 14 }, (_, bit) => `.c${bit}{${every}}`).join('')}${`rect{${every}}`.repeat(242)}</style>`
     const classes = (i: number): string =>
       Array.from({ length: 14 }, (_, bit) => ((i >> bit) & 1 ? `c${bit}` : ''))

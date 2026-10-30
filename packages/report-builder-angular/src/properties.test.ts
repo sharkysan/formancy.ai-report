@@ -29,7 +29,10 @@ function twoImages(): ReportDefinition {
       { id: 'logo', mediaType: 'image/svg+xml', digest: `sha256:${'ab'.repeat(32)}` },
       { id: 'spare', mediaType: 'image/png', digest: `sha256:${'cd'.repeat(32)}` },
     ],
-    regions: { ...report.regions, reportHeader: [{ id: 'mark', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 40, height: 40, fit: 'contain' }] },
+    regions: {
+      ...report.regions,
+      reportHeader: [{ id: 'mark', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 40, height: 40, fit: 'contain' }],
+    },
   }
 }
 
@@ -83,7 +86,10 @@ describe('the properties pane', () => {
         if (field.kind === 'boolean') expect((control as HTMLInputElement).checked, field.label).toBe(field.value)
         else expect((control as HTMLInputElement).value, field.label).toBe(field.value)
       }
-      const drawn = editor.state().properties.fields.map((field) => `${field.kind} ${field.label}`).join()
+      const drawn = editor
+        .state()
+        .properties.fields.map((field) => `${field.kind} ${field.label}`)
+        .join()
       if (audited.has(drawn)) return
       audited.add(drawn)
       expect(await audit(), editor.state().properties.heading).toEqual([])

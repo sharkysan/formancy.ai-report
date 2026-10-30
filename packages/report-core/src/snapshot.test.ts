@@ -62,7 +62,11 @@ describe('settled', () => {
   // component removed, or the one a move put into another list and the
   // container it went into.
   test.each([
-    ['an insert at the start of the body', (report: ReportDefinition) => insertComponent(report, { region: 'body', index: 0 }, { id: 'added', kind: 'spacer', height: 4 }), []],
+    [
+      'an insert at the start of the body',
+      (report: ReportDefinition) => insertComponent(report, { region: 'body', index: 0 }, { id: 'added', kind: 'spacer', height: 4 }),
+      [],
+    ],
     ['removing the first component', (report: ReportDefinition) => removeComponent(report, 'intro'), ['intro']],
     ['a move to the end of its list', (report: ReportDefinition) => moveComponent(report, 'intro', { region: 'body', index: 4 }), []],
     ['a duplicate', (report: ReportDefinition) => duplicateComponent(report, 'gap'), []],

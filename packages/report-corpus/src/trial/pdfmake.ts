@@ -2,7 +2,16 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import pdfmake from 'pdfmake'
 import type { Content, DynamicContent, TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { pageDimensions, RenderRefusal, type Block, type EngineAdapter, type Image, type RenderOptions, type ResolvedDocument, type Table } from '../document.js'
+import {
+  pageDimensions,
+  RenderRefusal,
+  type Block,
+  type EngineAdapter,
+  type Image,
+  type RenderOptions,
+  type ResolvedDocument,
+  type Table,
+} from '../document.js'
 import { checkImageAsset, type Pixels } from './pdfmake-assets.js'
 import { contentOf, DEFAULT_SIZE, newBuild, PADDING_X, type Fields, type TablePlan } from './pdfmake-content.js'
 import { FIT_SLACK, measure, rowPitches, SENTINEL_ROOM, tablePlan } from './pdfmake-measure.js'
@@ -42,7 +51,12 @@ const require = createRequire(import.meta.url)
 const pdfmakeDirectory = path.dirname(require.resolve('pdfmake/package.json'))
 const roboto = (file: string): string => path.join(pdfmakeDirectory, 'fonts', 'Roboto', file).split(path.sep).join('/')
 const FONTS = {
-  Roboto: { normal: roboto('Roboto-Regular.ttf'), bold: roboto('Roboto-Medium.ttf'), italics: roboto('Roboto-Italic.ttf'), bolditalics: roboto('Roboto-MediumItalic.ttf') },
+  Roboto: {
+    normal: roboto('Roboto-Regular.ttf'),
+    bold: roboto('Roboto-Medium.ttf'),
+    italics: roboto('Roboto-Italic.ttf'),
+    bolditalics: roboto('Roboto-MediumItalic.ttf'),
+  },
 }
 const FONT_FILES: ReadonlySet<string> = new Set(Object.values(FONTS.Roboto))
 const DEFAULT_STYLE = { font: 'Roboto', fontSize: DEFAULT_SIZE }
@@ -84,7 +98,8 @@ async function render(document: ResolvedDocument, options: RenderOptions): Promi
   stopIfCancelled(signal)
   refuseUndrawn(document)
   const creationDate = new Date(document.info.creationDate)
-  if (Number.isNaN(creationDate.getTime())) throw new RenderRefusal('unsupported', `the creation date '${document.info.creationDate}' is not a date`, 'info.creationDate')
+  if (Number.isNaN(creationDate.getTime()))
+    throw new RenderRefusal('unsupported', `the creation date '${document.info.creationDate}' is not a date`, 'info.creationDate')
   const { width: paperWidth, height: paperHeight } = pageDimensions(document.page)
   const { margins } = document.page
   const page: Page = { paperWidth, paperHeight, margins, width: paperWidth - margins.left - margins.right, height: paperHeight - margins.top - margins.bottom }
@@ -101,7 +116,11 @@ async function render(document: ResolvedDocument, options: RenderOptions): Promi
   if (bodyHeight <= 0) throw new RenderRefusal('content-too-large', `the page header and footer leave no room for the body (${bodyHeight.toFixed(2)} pt)`)
   for (const block of document.body) {
     if (block.kind === 'image' && block.height > bodyHeight) {
-      throw new RenderRefusal('content-too-large', `the image ${block.asset.id} is ${block.height} pt tall; the body is ${bodyHeight.toFixed(2)} pt`, block.asset.id)
+      throw new RenderRefusal(
+        'content-too-large',
+        `the image ${block.asset.id} is ${block.height} pt tall; the body is ${bodyHeight.toFixed(2)} pt`,
+        block.asset.id,
+      )
     }
   }
   drawn.forEach(checkFit)
@@ -163,12 +182,26 @@ async function measureBody(document: ResolvedDocument, page: Page, bodyHeight: n
   const plans = new Map<Table, TablePlan>()
   measured.forEach(({ block, at }, index) => {
     if (block.kind === 'keepTogether' && heights[index]! > bodyHeight - FIT_SLACK) {
-      throw new RenderRefusal('content-too-large', `the keep-together block ${at} is ${heights[index]!.toFixed(2)} pt tall; a page's body is ${bodyHeight.toFixed(2)} pt`, at)
+      throw new RenderRefusal(
+        'content-too-large',
+        `the keep-together block ${at} is ${heights[index]!.toFixed(2)} pt tall; a page's body is ${bodyHeight.toFixed(2)} pt`,
+        at,
+      )
     }
     if (block.kind === 'table') {
       const rows = build.measuredRows.get(block)!
-      const pitches = rowPitches(rows.map((row) => row.mark), top, ends[index]!)
-      plans.set(block, tablePlan(rows.map((row, at) => ({ kind: row.kind, pitch: pitches[at]! })), bodyHeight))
+      const pitches = rowPitches(
+        rows.map((row) => row.mark),
+        top,
+        ends[index]!,
+      )
+      plans.set(
+        block,
+        tablePlan(
+          rows.map((row, at) => ({ kind: row.kind, pitch: pitches[at]! })),
+          bodyHeight,
+        ),
+      )
     }
   })
   return plans
@@ -266,7 +299,8 @@ function checkBlocks(blocks: readonly Block[], path: string, where: Where, width
       if (!(block.width > 0 && block.height > 0 && Number.isFinite(block.width) && Number.isFinite(block.height))) {
         throw new RenderRefusal('unsupported', `the image ${id} is drawn ${block.width} × ${block.height} pt`, id)
       }
-      if (block.width > width) throw new RenderRefusal('content-too-large', `the image ${id} is ${block.width} pt wide; the printable width is ${width.toFixed(2)} pt`, id)
+      if (block.width > width)
+        throw new RenderRefusal('content-too-large', `the image ${id} is ${block.width} pt wide; the printable width is ${width.toFixed(2)} pt`, id)
       drawn.push({ image: block, pixels })
     }
     if (block.kind === 'table') checkTable(block, width)
@@ -280,14 +314,23 @@ function checkTable(table: Table, width: number): void {
   const rows = [table.header, ...table.rows.map((row) => row.cells)]
   const short = rows.findIndex((cells) => cells.length !== columns)
   if (short >= 0) {
-    throw new RenderRefusal('unsupported', `the ${short === 0 ? 'header' : `row ${short}`} of table ${table.id} has ${rows[short]!.length} cells for ${columns} columns`, table.id)
+    throw new RenderRefusal(
+      'unsupported',
+      `the ${short === 0 ? 'header' : `row ${short}`} of table ${table.id} has ${rows[short]!.length} cells for ${columns} columns`,
+      table.id,
+    )
   }
   const narrow = table.columns.find((column) => column.width !== 'fill' && !(column.width > 2 * PADDING_X))
-  if (narrow !== undefined) throw new RenderRefusal('unsupported', `table ${table.id} has a column of ${String(narrow.width)} pt, no wider than its cell padding`, table.id)
+  if (narrow !== undefined)
+    throw new RenderRefusal('unsupported', `table ${table.id} has a column of ${String(narrow.width)} pt, no wider than its cell padding`, table.id)
   const fixed = table.columns.reduce((sum, column) => sum + (column.width === 'fill' ? 0 : column.width), 0)
   const fills = table.columns.filter((column) => column.width === 'fill').length
   if (fixed > width || (fills > 0 && (width - fixed) / fills <= 2 * PADDING_X)) {
-    throw new RenderRefusal('content-too-large', `table ${table.id}'s fixed columns are ${fixed} pt wide; the printable width is ${width.toFixed(2)} pt`, table.id)
+    throw new RenderRefusal(
+      'content-too-large',
+      `table ${table.id}'s fixed columns are ${fixed} pt wide; the printable width is ${width.toFixed(2)} pt`,
+      table.id,
+    )
   }
 }
 

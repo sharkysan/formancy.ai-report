@@ -92,7 +92,13 @@ export interface GroupSpec {
   readonly item?: number
   readonly fields: readonly FieldSpec[]
   readonly buttons: readonly GroupButton[]
-  readonly optional?: { readonly present: boolean; readonly value: unknown; readonly added: MessageId; readonly removed: MessageId; readonly announced?: { readonly added: MessageId; readonly removed: MessageId } }
+  readonly optional?: {
+    readonly present: boolean
+    readonly value: unknown
+    readonly added: MessageId
+    readonly removed: MessageId
+    readonly announced?: { readonly added: MessageId; readonly removed: MessageId }
+  }
   readonly list?: ListSpec
 }
 
@@ -128,7 +134,11 @@ export function optionalGroup(key: string, words: MessageId, fields: readonly Fi
     key,
     words,
     fields: fields ?? [],
-    buttons: [present ? { words: said.remove, action: { type: 'removeGroup', key }, available: true } : { words: said.add, action: { type: 'addGroup', key }, available: true }],
+    buttons: [
+      present
+        ? { words: said.remove, action: { type: 'removeGroup', key }, available: true }
+        : { words: said.add, action: { type: 'addGroup', key }, available: true },
+    ],
     optional: { present, value, added: said.added, removed: said.removed, ...(said.announced === undefined ? {} : { announced: said.announced }) },
   }
 }
@@ -159,7 +169,13 @@ function parsed(input: string): number {
  * removed, and one given back as it was shown is left alone, so that
  * leaving an absent one empty is no edit and is not announced as one.
  */
-export function textField(key: string, words: FieldWords, kind: 'text' | 'multiline', read: () => string, use: 'required' | 'optional' = 'required'): FieldSpec {
+export function textField(
+  key: string,
+  words: FieldWords,
+  kind: 'text' | 'multiline',
+  read: () => string,
+  use: 'required' | 'optional' = 'required',
+): FieldSpec {
   return {
     key,
     words,
@@ -252,7 +268,13 @@ export function expressionField(key: string, words: FieldWords, stored: string |
 }
 
 /** One choice among `options`, each option's value mapped to what the report stores. */
-export function choiceField(key: string, words: FieldWords, kind: 'select' | 'style' | 'binding', options: readonly (PropertyOption & { readonly stored: unknown })[], current: string): FieldSpec {
+export function choiceField(
+  key: string,
+  words: FieldWords,
+  kind: 'select' | 'style' | 'binding',
+  options: readonly (PropertyOption & { readonly stored: unknown })[],
+  current: string,
+): FieldSpec {
   return {
     key,
     words,
@@ -303,7 +325,11 @@ function bindings(context: FieldContext): (PropertyOption & { readonly stored: I
   const fields = (dataset: 'header' | 'detail') =>
     (report.datasets[dataset]?.fields ?? [])
       .filter((field) => field.type !== 'image')
-      .map((field) => ({ value: refToken({ dataset, field: field.id }), label: field.label, stored: { kind: 'field', field: { dataset, field: field.id } } as Inline }))
+      .map((field) => ({
+        value: refToken({ dataset, field: field.id }),
+        label: field.label,
+        stored: { kind: 'field', field: { dataset, field: field.id } } as Inline,
+      }))
   const parameters = report.parameters.map((parameter) => ({
     value: `parameter:${parameter.id}`,
     label: t('option.parameter', { label: parameter.label }),
@@ -350,7 +376,11 @@ function runsFields(runs: readonly Inline[], key: string, context: FieldContext,
   const item = typeof name === 'object' ? { item: name.item } : {}
   return runs.flatMap((run, index) => {
     const part = { n: index + 1, run: run.kind }
-    const words: FieldWords = single ? { id: id ?? (run.kind === 'text' ? 'field.text' : `run.${run.kind}`), ...item } : id === undefined ? { id: 'field.part', ...part } : { id: 'field.textPart', of: id, ...part, ...item }
+    const words: FieldWords = single
+      ? { id: id ?? (run.kind === 'text' ? 'field.text' : `run.${run.kind}`), ...item }
+      : id === undefined
+        ? { id: 'field.part', ...part }
+        : { id: 'field.textPart', of: id, ...part, ...item }
     return runField(run, `${key}/${index}`, words, context, lines) ?? []
   })
 }
@@ -377,7 +407,14 @@ export function codeTextFields(runs: readonly Inline[], key: string, name: TextN
  * element empty, which `placeholder`, where given, says the meaning of.
  * Bound, or of several runs, it is edited run by run.
  */
-export function optionalCodeTextFields(runs: readonly Inline[] | undefined, key: string, name: TextName, context: FieldContext, placeholder?: MessageId, lines: 'text' | 'multiline' = 'text'): FieldSpec[] {
+export function optionalCodeTextFields(
+  runs: readonly Inline[] | undefined,
+  key: string,
+  name: TextName,
+  context: FieldContext,
+  placeholder?: MessageId,
+  lines: 'text' | 'multiline' = 'text',
+): FieldSpec[] {
   const [only, ...rest] = runs ?? []
   if (only !== undefined && (only.kind !== 'text' || rest.length > 0)) return codeTextFields([only, ...rest], key, name, context, lines)
   const shown = only?.text ?? ''
@@ -408,7 +445,11 @@ const ALIGN_OPTIONS = (t: EditorText) => (['left', 'center', 'right'] as const).
 const RESTORES: { readonly [L in QrErrorCorrection]: number } = { L: 0.07, M: 0.15, Q: 0.25, H: 0.3 }
 
 const LEVEL_OPTIONS = ({ t, locale }: FieldContext) =>
-  QR_ERROR_CORRECTION.map((level) => ({ value: level, label: t(`option.errorCorrection${level}`, { share: formatPercent(RESTORES[level], locale) }), stored: level }))
+  QR_ERROR_CORRECTION.map((level) => ({
+    value: level,
+    label: t(`option.errorCorrection${level}`, { share: formatPercent(RESTORES[level], locale) }),
+    stored: level,
+  }))
 
 /** An EPC payment code alone, which is the absence of a caption, or with each caption the format has. */
 const CAPTION_OPTIONS = (t: EditorText) => [
@@ -420,16 +461,33 @@ type Fields<C> = (component: C, context: FieldContext) => FieldSpec[]
 
 /** Each kind's own fields, in the order the panel shows them; the ones every component has follow. */
 const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { kind: K }>> } = {
-  text: (component, context) => [...contentFields(component.content, context), booleanField('/keepWithNext', { id: 'field.keepWithNext' }, component.keepWithNext)],
+  text: (component, context) => [
+    ...contentFields(component.content, context),
+    booleanField('/keepWithNext', { id: 'field.keepWithNext' }, component.keepWithNext),
+  ],
   image: (component, { report, t }) => {
-    const assets = report.assets.map((asset) => ({ value: `asset:${asset.id}`, label: t('option.asset', { id: asset.id }), stored: { kind: 'asset', asset: asset.id } }))
+    const assets = report.assets.map((asset) => ({
+      value: `asset:${asset.id}`,
+      label: t('option.asset', { id: asset.id }),
+      stored: { kind: 'asset', asset: asset.id },
+    }))
     const images = (report.datasets.header?.fields ?? [])
       .filter((field) => field.type === 'image')
-      .map((field) => ({ value: refToken({ dataset: 'header', field: field.id }), label: field.label, stored: { kind: 'field', field: { dataset: 'header', field: field.id } } }))
+      .map((field) => ({
+        value: refToken({ dataset: 'header', field: field.id }),
+        label: field.label,
+        stored: { kind: 'field', field: { dataset: 'header', field: field.id } },
+      }))
     const { source } = component
     const fits = (['contain', 'cover'] as const).map((fit) => ({ value: fit, label: t(`option.${fit}`), stored: fit }))
     return [
-      choiceField('/source', { id: 'field.source' }, 'select', [...assets, ...images], source.kind === 'asset' ? `asset:${source.asset}` : refToken(source.field)),
+      choiceField(
+        '/source',
+        { id: 'field.source' },
+        'select',
+        [...assets, ...images],
+        source.kind === 'asset' ? `asset:${source.asset}` : refToken(source.field),
+      ),
       lengthField('/width', { id: 'field.width' }, component.width, 'required'),
       lengthField('/height', { id: 'field.height' }, component.height, 'required'),
       choiceField('/fit', { id: 'field.fit' }, 'select', fits, component.fit),
@@ -453,7 +511,10 @@ const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { 
     lengthField('/size', { id: 'field.size' }, component.size, 'required'),
     choiceField('/caption', { id: 'field.caption' }, 'select', CAPTION_OPTIONS(context.t), component.caption ?? ''),
   ],
-  line: (component) => [pointsField('/thickness', { id: 'field.thickness' }, component.thickness, true), colorField('/color', { id: 'field.color' }, component.color)],
+  line: (component) => [
+    pointsField('/thickness', { id: 'field.thickness' }, component.thickness, true),
+    colorField('/color', { id: 'field.color' }, component.color),
+  ],
   rectangle: (component) => [
     lengthField('/width', { id: 'field.width' }, component.width, 'required'),
     lengthField('/height', { id: 'field.height' }, component.height, 'required'),
@@ -461,7 +522,8 @@ const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { 
     colorField('/stroke', { id: 'field.stroke' }, component.stroke),
   ],
   spacer: (component) => [lengthField('/height', { id: 'field.height' }, component.height, 'required')],
-  columns: (component) => component.columns.map((column, index) => lengthField(`/columns/${index}/width`, { id: 'field.columnWidth', n: index + 1 }, column.width, 'fill')),
+  columns: (component) =>
+    component.columns.map((column, index) => lengthField(`/columns/${index}/width`, { id: 'field.columnWidth', n: index + 1 }, column.width, 'fill')),
   section: (component) => {
     const border = component.border
     // A border is a thickness and a colour together: a thickness emptied
@@ -473,7 +535,12 @@ const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { 
     const borderColor = colorField('/border/color', { id: 'field.borderColor' }, border?.color, (color) =>
       color === null ? value(null, '/border') : value({ thickness: border?.thickness ?? 1, color }, '/border'),
     )
-    return [colorField('/fill', { id: 'field.fill' }, component.fill), lengthField('/padding', { id: 'field.padding' }, component.padding, 'optional'), borderThickness, borderColor]
+    return [
+      colorField('/fill', { id: 'field.fill' }, component.fill),
+      lengthField('/padding', { id: 'field.padding' }, component.padding, 'optional'),
+      borderThickness,
+      borderColor,
+    ]
   },
   table: (component, { report, t }) => [
     textField('/emptyText', { id: 'field.emptyText' }, 'text', () => component.emptyText),
@@ -509,8 +576,13 @@ export function columnFields(column: TableColumn, context: FieldContext): FieldS
 /** The report's own fields: its title, language and page. */
 export function reportFields(report: ReportDefinition, t: EditorText): FieldSpec[] {
   const sizes = (['A4', 'Letter'] as const).map((size) => ({ value: size, label: size, stored: size }))
-  const orientations = (['portrait', 'landscape'] as const).map((orientation) => ({ value: orientation, label: t(`option.${orientation}`), stored: orientation }))
-  const margin = (side: 'top' | 'right' | 'bottom' | 'left', id: MessageId) => lengthField(`/page/margins/${side}`, { id }, report.page.margins[side], 'required')
+  const orientations = (['portrait', 'landscape'] as const).map((orientation) => ({
+    value: orientation,
+    label: t(`option.${orientation}`),
+    stored: orientation,
+  }))
+  const margin = (side: 'top' | 'right' | 'bottom' | 'left', id: MessageId) =>
+    lengthField(`/page/margins/${side}`, { id }, report.page.margins[side], 'required')
   return [
     textField('/title', { id: 'field.title' }, 'text', () => report.title),
     textField('/locale', { id: 'field.locale' }, 'text', () => report.locale),

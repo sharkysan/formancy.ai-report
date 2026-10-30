@@ -102,25 +102,33 @@ describe('the pdfme adapter', () => {
   // document needs refuses it whole, and the limit it needs renders it. An
   // adapter out by one would refuse a report that fits, or let one more page
   // through than the deployment allows.
-  test('refuses a document one page over its limit and renders it at its limit', async () => {
-    const pages = (await readPdf(await pdfme.render(longTable.document, { maxPages: longTable.maxPages }))).pages.length
-    const over = await refusal(pdfme.render(longTable.document, { maxPages: pages - 1 }))
-    expect(over.code).toBe('too-many-pages')
-    expect((await readPdf(await pdfme.render(longTable.document, { maxPages: pages }))).pages).toHaveLength(pages)
-  }, SLOW)
+  test(
+    'refuses a document one page over its limit and renders it at its limit',
+    async () => {
+      const pages = (await readPdf(await pdfme.render(longTable.document, { maxPages: longTable.maxPages }))).pages.length
+      const over = await refusal(pdfme.render(longTable.document, { maxPages: pages - 1 }))
+      expect(over.code).toBe('too-many-pages')
+      expect((await readPdf(await pdfme.render(longTable.document, { maxPages: pages }))).pages).toHaveLength(pages)
+    },
+    SLOW,
+  )
 
   // A job cancelled before it starts must not start; one cancelled while it
   // runs must not hand back a PDF the caller has stopped waiting for.
-  test('refuses with cancelled when the signal is aborted before or during the render', async () => {
-    const before = new AbortController()
-    before.abort()
-    expect((await refusal(pdfme.render(oneRow.document, { maxPages: 5, signal: before.signal }))).code).toBe('cancelled')
+  test(
+    'refuses with cancelled when the signal is aborted before or during the render',
+    async () => {
+      const before = new AbortController()
+      before.abort()
+      expect((await refusal(pdfme.render(oneRow.document, { maxPages: 5, signal: before.signal }))).code).toBe('cancelled')
 
-    const during = new AbortController()
-    const rendering = pdfme.render(longTable.document, { maxPages: longTable.maxPages, signal: during.signal })
-    during.abort()
-    expect((await refusal(rendering)).code).toBe('cancelled')
-  }, SLOW)
+      const during = new AbortController()
+      const rendering = pdfme.render(longTable.document, { maxPages: longTable.maxPages, signal: during.signal })
+      during.abort()
+      expect((await refusal(rendering)).code).toBe('cancelled')
+    },
+    SLOW,
+  )
 
   // pdfme reads braces in template text as an expression to evaluate. Body
   // text goes in as input, which pdfme prints as given: a total written
@@ -203,7 +211,9 @@ describe('the pdfme adapter', () => {
   // set in another face -- an italic paragraph upright, bold in the regular
   // weight -- extracts as the same text and passes every other check.
   test('sets bold, italic and bold italic text in their own Roboto faces, each embedded', async () => {
-    const pdf = await readPdf(await render([paragraph('Bold', { bold: true }), paragraph('Italic', { italic: true }), paragraph('Both', { bold: true, italic: true })]))
+    const pdf = await readPdf(
+      await render([paragraph('Bold', { bold: true }), paragraph('Italic', { italic: true }), paragraph('Both', { bold: true, italic: true })]),
+    )
     // pdf-lib names an embedded subset after the font with a number appended: Roboto-Italic-1234.
     const faces = pdf.fonts.map((font) => font.name.replace(/-\d+$/, ''))
     expect(faces).toEqual(expect.arrayContaining(['Roboto-Medium', 'Roboto-Italic', 'Roboto-MediumItalic']))
@@ -213,11 +223,15 @@ describe('the pdfme adapter', () => {
   // A table whose fixed columns are wider than the printable area would run
   // past the right margin, its last column clipped by the paper's edge.
   test('refuses a table wider than the printable area as content-too-large, naming it', async () => {
-    const wide = ledger('too-wide', [], [
-      { width: 300, align: 'left' },
-      { width: 'fill', align: 'left' },
-      { width: 300, align: 'right' },
-    ])
+    const wide = ledger(
+      'too-wide',
+      [],
+      [
+        { width: 300, align: 'left' },
+        { width: 'fill', align: 'left' },
+        { width: 300, align: 'right' },
+      ],
+    )
     const refused = await refusal(render([wide]))
     expect(refused.code).toBe('content-too-large')
     expect(refused.subject).toBe('too-wide')
@@ -231,7 +245,16 @@ describe('the pdfme adapter, on images', () => {
   // decodes anything: an image too large to embed is refused naming it,
   // never drawn as a hole or left to exhaust the worker's memory.
   test('refuses an image wider than 4096 pixels, naming it', async () => {
-    const refused = await refusal(render([image(png('wide', encodePng(4097, 1, () => [0, 0, 0])))]))
+    const refused = await refusal(
+      render([
+        image(
+          png(
+            'wide',
+            encodePng(4097, 1, () => [0, 0, 0]),
+          ),
+        ),
+      ]),
+    )
     expect(refused.code).toBe('invalid-asset')
     expect(refused.subject).toBe('wide')
   })

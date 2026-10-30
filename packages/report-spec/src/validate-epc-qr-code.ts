@@ -51,9 +51,19 @@ function readPurpose(c: Ctx, value: unknown, path: string): string | undefined {
  * writes nothing here, and the amount nothing: each can only add bytes,
  * so what is left is the least the code holds.
  */
-function readTogether(c: Ctx, o: Record<string, unknown>, path: string, texts: Readonly<Record<EpcTextField, PaymentText<string>>>, purpose: string | undefined): void {
+function readTogether(
+  c: Ctx,
+  o: Record<string, unknown>,
+  path: string,
+  texts: Readonly<Record<EpcTextField, PaymentText<string>>>,
+  purpose: string | undefined,
+): void {
   if (o.reference !== undefined && o.text !== undefined) {
-    c.f.report(at(path, 'text'), 'invalid-epc-qr-code', 'a code holds a creditor reference or a text, never both: only one of the two may be populated (EPC069-12 2.2)')
+    c.f.report(
+      at(path, 'text'),
+      'invalid-epc-qr-code',
+      'a code holds a creditor reference or a text, never both: only one of the two may be populated (EPC069-12 2.2)',
+    )
   }
   const bic = o.bic === undefined ? null : texts.bic.checked
   for (const { field, rule } of epcPairing(texts.iban.checked, bic)) c.f.report(at(path, field), 'invalid-epc-qr-code', rule)
@@ -74,7 +84,14 @@ function readTogether(c: Ctx, o: Record<string, unknown>, path: string, texts: R
  * The EPC QR code at `path`, standing in `region`, its square `size`
  * already read; undefined when anything in it could not be.
  */
-export function readEpcQrCode(c: Ctx, o: Record<string, unknown>, path: string, region: RegionName, base: ComponentBase | undefined, size: number | undefined): EpcQrCodeComponent | undefined {
+export function readEpcQrCode(
+  c: Ctx,
+  o: Record<string, unknown>,
+  path: string,
+  region: RegionName,
+  base: ComponentBase | undefined,
+  size: number | undefined,
+): EpcQrCodeComponent | undefined {
   const scope: PaymentScope = { region, reads: 'report', encoded: 'an EPC QR code' }
   const field = (key: EpcTextField): PaymentText<string> =>
     readPaymentText(c, o[key], at(path, key), scope, 'invalid-epc-qr-code', EPC_TEXT_FIELDS[key].what, (written) => checkEpcField(key, written))

@@ -81,8 +81,13 @@ function columns(page) {
 
 /** Null when the outline stands left of the middle pane and the properties right of it, on one line, or where they do not. */
 function besideIt({ outline, middle, properties }) {
-  if (outline === null || middle === null || properties === null) return `drawn: ${['outline', 'middle', 'properties'].filter((pane) => ({ outline, middle, properties })[pane] !== null).join(', ') || 'none'}`
-  const placed = outline.right <= middle.left + 1 && middle.right <= properties.left + 1 && Math.abs(outline.top - middle.top) < 1 && Math.abs(properties.top - middle.top) < 1
+  if (outline === null || middle === null || properties === null)
+    return `drawn: ${['outline', 'middle', 'properties'].filter((pane) => ({ outline, middle, properties })[pane] !== null).join(', ') || 'none'}`
+  const placed =
+    outline.right <= middle.left + 1 &&
+    middle.right <= properties.left + 1 &&
+    Math.abs(outline.top - middle.top) < 1 &&
+    Math.abs(properties.top - middle.top) < 1
   const at = (box) => `${String(Math.round(box.left))}..${String(Math.round(box.right))} at ${String(Math.round(box.top))}`
   return placed ? null : `the outline at ${at(outline)}, the middle at ${at(middle)}, the properties at ${at(properties)}`
 }
@@ -113,7 +118,9 @@ async function firstViewport(gate, page, framework) {
       if (style.overflowY !== 'visible') [top, bottom] = [Math.max(top, box.top), Math.min(bottom, box.bottom)]
     }
     ;[left, top, right, bottom] = [Math.max(left, 0), Math.max(top, 0), Math.min(right, innerWidth), Math.min(bottom, innerHeight)]
-    const runs = [...sheet.querySelectorAll('.paper-text span')].filter((span) => span.children.length === 0 && (span.textContent ?? '').trim() !== '').map((span) => span.getBoundingClientRect())
+    const runs = [...sheet.querySelectorAll('.paper-text span')]
+      .filter((span) => span.children.length === 0 && (span.textContent ?? '').trim() !== '')
+      .map((span) => span.getBoundingClientRect())
     const whole = (box) => box.top >= top - 0.5 && box.bottom <= bottom + 0.5 && box.left >= left - 0.5 && box.right <= right + 0.5
     const firstLine = runs.length === 0 ? null : runs.reduce((a, b) => (b.top < a.top ? b : a))
     const hit = right > left && bottom > top ? document.elementFromPoint((left + right) / 2, (top + bottom) / 2) : null
@@ -128,18 +135,37 @@ async function firstViewport(gate, page, framework) {
       onTop: hit !== null && sheet.contains(hit),
     }
   })
-  check(`${framework}: the window holds the Studio without scrolling`, seen.scrolled === 0 && seen.scrolls <= 0 ? null : `the page is scrolled ${String(seen.scrolled)}px, and scrolls ${String(seen.scrolls)}px`)
+  check(
+    `${framework}: the window holds the Studio without scrolling`,
+    seen.scrolled === 0 && seen.scrolls <= 0 ? null : `the page is scrolled ${String(seen.scrolled)}px, and scrolls ${String(seen.scrolls)}px`,
+  )
   check(
     `${framework}: and the Preview's first page is in it, unscrolled, from its top edge to its first line of text`,
-    seen.top >= 0 && seen.firstLine ? null : `its top edge is at ${String(Math.round(seen.top))}px of a ${String(page.viewportSize()?.height)}px window, and its first line is ${seen.firstLine ? '' : 'not '}in view`,
+    seen.top >= 0 && seen.firstLine
+      ? null
+      : `its top edge is at ${String(Math.round(seen.top))}px of a ${String(page.viewportSize()?.height)}px window, and its first line is ${seen.firstLine ? '' : 'not '}in view`,
   )
-  check(`${framework}: and what is in view of it is the page, painted on top`, seen.onTop ? null : 'the point at the middle of what is in view of it is something else')
+  check(
+    `${framework}: and what is in view of it is the page, painted on top`,
+    seen.onTop ? null : 'the point at the middle of what is in view of it is something else',
+  )
   const [sheet] = await drawnPages(page, { within: WITHIN })
-  check(`${framework}: and it is drawn on white paper, with ink on it`, sheet !== undefined && sheet.white > 0.5 && sheet.ink > 0.001 ? null : sheet === undefined ? 'no page was drawn' : `${(sheet.white * 100).toFixed(1)}% white, ${(sheet.ink * 100).toFixed(2)}% ink`)
+  check(
+    `${framework}: and it is drawn on white paper, with ink on it`,
+    sheet !== undefined && sheet.white > 0.5 && sheet.ink > 0.001
+      ? null
+      : sheet === undefined
+        ? 'no page was drawn'
+        : `${(sheet.white * 100).toFixed(1)}% white, ${(sheet.ink * 100).toFixed(2)}% ink`,
+  )
   const zoom = /(\d+)\s*%/.exec(await previewOf(page).getByRole('group', { name: 'Zoom', exact: true }).innerText())
   // Measurements are kept for the whole run, not under a pass: each says its window.
   const at = `${framework}, ${String(page.viewportSize()?.width)} by ${String(page.viewportSize()?.height)}`
-  gate.measure({ name: `${at}: the Preview's first page, in view of the first viewport`, value: Math.round(seen.shown), unit: `px of its ${String(Math.round(seen.height))}` })
+  gate.measure({
+    name: `${at}: the Preview's first page, in view of the first viewport`,
+    value: Math.round(seen.shown),
+    unit: `px of its ${String(Math.round(seen.height))}`,
+  })
   gate.measure({ name: `${at}: the Preview's first page, its runs of text in view`, value: seen.inView, unit: 'runs' })
   gate.measure({ name: `${at}: the Preview's fit zoom`, value: zoom === null ? null : Number(zoom[1]), unit: '%' })
 }
@@ -150,7 +176,10 @@ async function swap(gate, page, framework, { onePane, measured }) {
   const editor = editorOf(page)
   const toggle = toggleOf(page)
   await tools(editor).getByRole('button', { name: 'Design view', exact: true }).click()
-  check(`${framework}: the toolbar's Design view takes the Preview out of the design view's place`, await until(previewOf(page), 'detached', 'the Preview is still there'))
+  check(
+    `${framework}: the toolbar's Design view takes the Preview out of the design view's place`,
+    await until(previewOf(page), 'detached', 'the Preview is still there'),
+  )
   check(`${framework}: and puts the design view back, the keyboard in it`, await designViewFocused(page))
   check(`${framework}: and the bar's Preview says it is off`, await saysOn(page, false))
   if (!onePane) check(`${framework}: with the outline and the properties beside the design view`, besideIt(await columns(page)))
@@ -161,9 +190,15 @@ async function swap(gate, page, framework, { onePane, measured }) {
   await page.keyboard.press('Enter')
   check(`${framework}: Enter on the bar's Preview stands the Preview in the design view's place again`, await until(inTheMiddle(page), 'visible', stands(page)))
   check(`${framework}: and says it is on`, await saysOn(page, true))
-  check(`${framework}: and keeps the keyboard on itself`, (await toggle.evaluate((element) => element === document.activeElement)) ? null : `the focus is on ${await describeFocus(page)}`)
+  check(
+    `${framework}: and keeps the keyboard on itself`,
+    (await toggle.evaluate((element) => element === document.activeElement)) ? null : `the focus is on ${await describeFocus(page)}`,
+  )
   const sentence = said('status.hostViewShown', { view: 'Preview', pane: said('pane.canvas') })
-  check(`${framework}: and the builder's live region says how to bring the design view back`, await until(editor.getByRole('status').filter({ hasText: sentence }), 'attached', `no status of the builder's says "${sentence}"`))
+  check(
+    `${framework}: and the builder's live region says how to bring the design view back`,
+    await until(editor.getByRole('status').filter({ hasText: sentence }), 'attached', `no status of the builder's says "${sentence}"`),
+  )
   check(
     `${framework}: and the Preview prints there`,
     await printed(page).then(
@@ -189,24 +224,29 @@ async function resizedAsItPrints(gate, page, framework, { onePane }) {
   const heard = (error) => errors.push(error.message)
   page.on('pageerror', heard)
   try {
-    await page.evaluate((press) => {
-      window.pressedAsPrinted = undefined
-      const status = document.querySelector('.preview-status')
-      const done = /^Preview: printed(, with \d+ warnings?)?\.$/
-      let was = status?.textContent ?? ''
-      const observer = new MutationObserver(() => {
-        const now = status?.textContent ?? ''
-        if (done.test(now) && !done.test(was)) {
-          observer.disconnect()
-          const button =
-            press === 'bar' ? document.querySelector('.studio-bar button[aria-pressed]') : document.querySelector('[data-report-part="editor"] [data-pane="outline"] [data-report-part="hide-pane"]')
-          window.pressedAsPrinted = { button: button?.textContent ?? null, busy: document.querySelector('.paper')?.getAttribute('aria-busy') ?? null }
-          button?.click()
-        }
-        was = now
-      })
-      if (status !== null) observer.observe(status, { childList: true, characterData: true, subtree: true })
-    }, onePane ? 'bar' : 'hide')
+    await page.evaluate(
+      (press) => {
+        window.pressedAsPrinted = undefined
+        const status = document.querySelector('.preview-status')
+        const done = /^Preview: printed(, with \d+ warnings?)?\.$/
+        let was = status?.textContent ?? ''
+        const observer = new MutationObserver(() => {
+          const now = status?.textContent ?? ''
+          if (done.test(now) && !done.test(was)) {
+            observer.disconnect()
+            const button =
+              press === 'bar'
+                ? document.querySelector('.studio-bar button[aria-pressed]')
+                : document.querySelector('[data-report-part="editor"] [data-pane="outline"] [data-report-part="hide-pane"]')
+            window.pressedAsPrinted = { button: button?.textContent ?? null, busy: document.querySelector('.paper')?.getAttribute('aria-busy') ?? null }
+            button?.click()
+          }
+          was = now
+        })
+        if (status !== null) observer.observe(status, { childList: true, characterData: true, subtree: true })
+      },
+      onePane ? 'bar' : 'hide',
+    )
     await setField(editorOf(page), 'Title', 'Printed as the paper moved')
     const pressed = await page
       .waitForFunction(() => window.pressedAsPrinted, undefined, { timeout: WITHIN })
@@ -215,14 +255,21 @@ async function resizedAsItPrints(gate, page, framework, { onePane }) {
     const what = onePane ? "the bar's Preview, bringing the Preview into sight from the properties" : "the outline's Hide"
     check(
       `${framework}: ${what}, pressed the moment an edit prints, while PDF.js still loads it`,
-      pressed !== null && pressed.button !== null && pressed.busy === 'true' ? null : pressed === null ? 'the Preview never said it printed the edit' : `pressed ${String(pressed.button)} with the paper's aria-busy ${String(pressed.busy)}`,
+      pressed !== null && pressed.button !== null && pressed.busy === 'true'
+        ? null
+        : pressed === null
+          ? 'the Preview never said it printed the edit'
+          : `pressed ${String(pressed.button)} with the paper's aria-busy ${String(pressed.busy)}`,
     )
     const redrawn = await printed(page).then(
       () => null,
       (error) => error.message.split('\n')[0],
     )
     const alive = (await editorOf(page).count()) === 1
-    check(`${framework}: leaves the Studio standing, the PDF redrawn on the paper`, errors.length === 0 && alive && redrawn === null ? null : [...errors, alive ? redrawn : 'the builder is gone'].filter(Boolean).slice(0, 3).join('; '))
+    check(
+      `${framework}: leaves the Studio standing, the PDF redrawn on the paper`,
+      errors.length === 0 && alive && redrawn === null ? null : [...errors, alive ? redrawn : 'the builder is gone'].filter(Boolean).slice(0, 3).join('; '),
+    )
   } finally {
     page.off('pageerror', heard)
   }
@@ -251,10 +298,15 @@ async function beside(gate, page, framework, { width, height, widest }) {
       (error) => error.message.split('\n')[0],
     )
   await page.setViewportSize({ width: widest, height })
-  check(`${framework}: narrowed to the ${String(widest)}px breakpoint, the window stands the Preview in the builder's middle`, await until(inTheMiddle(page), 'visible', stands(page)))
+  check(
+    `${framework}: narrowed to the ${String(widest)}px breakpoint, the window stands the Preview in the builder's middle`,
+    await until(inTheMiddle(page), 'visible', stands(page)),
+  )
   check(`${framework}: on, and printed there`, (await saysOn(page, true)) ?? (await print()))
   await page.setViewportSize({ width, height })
-  await inTheMiddle(page).waitFor({ state: 'detached', timeout: 5_000 }).catch(() => undefined)
+  await inTheMiddle(page)
+    .waitFor({ state: 'detached', timeout: 5_000 })
+    .catch(() => undefined)
   const widened = await standing(page)
   check(`${framework}: widened again to ${String(width)}px, beside the builder again`, widened === 'beside' ? null : `the Preview stands ${widened}`)
   check(`${framework}: on, and printed there`, (await saysOn(page, true)) ?? (await print()))
@@ -266,14 +318,18 @@ async function rulesInIt(gate, page, framework) {
   const found = await builderRulesInThePreview(page)
   check(
     `${framework}: no rule of the builder's reaches inside the Preview in its middle but the workbench's inert .wb *, which declares transitions alone`,
-    found.reached.length === 0 && found.broken.length === 0 ? null : [...found.reached, ...found.broken.map((selector) => `${selector} could not be matched`)].slice(0, 6).join('; '),
+    found.reached.length === 0 && found.broken.length === 0
+      ? null
+      : [...found.reached, ...found.broken.map((selector) => `${selector} could not be matched`)].slice(0, 6).join('; '),
   )
   // A guard on the guard: the rules were read, they reach the builder's own
   // outline beside the Preview, and the Preview held its controls and paper.
   const missing = ['button', 'input', 'canvas', 'span'].filter((tag) => !found.tags.includes(tag))
   check(
     `${framework}: which matched the builder's rules against the Preview's controls and paper, and against the outline beside it`,
-    found.besideReached > 0 && missing.length === 0 && found.unread.length === 0 ? null : `${String(found.besideReached)} rules of the builder's reach its outline; no ${missing.join(', ')} in the Preview; ${found.unread.join(', ') || 'every stylesheet'} unread`,
+    found.besideReached > 0 && missing.length === 0 && found.unread.length === 0
+      ? null
+      : `${String(found.besideReached)} rules of the builder's reach its outline; no ${missing.join(', ')} in the Preview; ${found.unread.join(', ') || 'every stylesheet'} unread`,
   )
 }
 
@@ -298,7 +354,10 @@ export async function placeChecks(gate, page, framework, entry, { measured }) {
   )
   const where = await standing(page)
   const drawn = (await designViewOf(page).count()) === 0 ? '' : ', and the design view is drawn'
-  check(`${framework}: the Preview stands ${middle ? 'in the builder’s middle, in the design view’s place' : 'beside the builder'}`, where === (middle ? 'in the middle' : 'beside') && (drawn === '' || !middle) ? null : `it stands ${where}${drawn}`)
+  check(
+    `${framework}: the Preview stands ${middle ? 'in the builder’s middle, in the design view’s place' : 'beside the builder'}`,
+    where === (middle ? 'in the middle' : 'beside') && (drawn === '' || !middle) ? null : `it stands ${where}${drawn}`,
+  )
   check(`${framework}: and the bar's Preview says it is on`, await saysOn(page, true))
   if (middle && onePane) {
     const { outline, properties } = await columns(page)

@@ -88,7 +88,8 @@ export function readList(value: unknown, max: number): ListRead {
     // answers the bound one number and the loop another, or Infinity. Only a
     // whole number is a length, and it is compared and looped to as read.
     const length: unknown = (Object.getOwnPropertyDescriptor(value, 'length') as PropertyDescriptor).value
-    if (typeof length !== 'number' || !Number.isSafeInteger(length) || length < 0) return { ok: false, code: 'not-data', message: 'a list whose length is not a whole number is not data' }
+    if (typeof length !== 'number' || !Number.isSafeInteger(length) || length < 0)
+      return { ok: false, code: 'not-data', message: 'a list whose length is not a whole number is not data' }
     if (length > max) return { ok: false, code: 'too-many', message: `a list of ${length} items, more than the ${max} allowed` }
     const items: unknown[] = []
     const problems: ItemProblem[] = []

@@ -93,7 +93,12 @@ const run = (text: string, x: number | null, baseline: number, size: number, fon
   ({ text, x: x === null ? expect.any(Number) : expect.closeTo(x, 2), baseline: expect.closeTo(baseline, 2), size, font }) as unknown as Run
 
 /** The lines of a section of SIX's: each block a heading and its values, the first heading's top at the section's top, every line `pitch` below the one before, and a blank line between blocks (SG 15). */
-function stacked(x: number, top: number, sizes: { readonly heading: number; readonly value: number; readonly pitch: number }, blocks: readonly (readonly [string, readonly string[]])[]): Run[] {
+function stacked(
+  x: number,
+  top: number,
+  sizes: { readonly heading: number; readonly value: number; readonly pitch: number },
+  blocks: readonly (readonly [string, readonly string[]])[],
+): Run[] {
   const runs: Run[] = []
   let baseline = top + ascent(sizes.heading) - 2 * sizes.pitch
   for (const [heading, values] of blocks) {
@@ -125,7 +130,10 @@ const SECTIONS = {
 } as const satisfies Record<string, Box>
 
 /** Example 2's information, as the receipt and the payment part print it. */
-const ACCOUNT: readonly [string, readonly string[]] = ['Account / Payable to', ['CH44 3199 9123 0008 8901 2', 'Max Muster & Söhne', 'Musterstrasse 123', '8000 Seldwyla']]
+const ACCOUNT: readonly [string, readonly string[]] = [
+  'Account / Payable to',
+  ['CH44 3199 9123 0008 8901 2', 'Max Muster & Söhne', 'Musterstrasse 123', '8000 Seldwyla'],
+]
 const REFERENCE: readonly [string, readonly string[]] = ['Reference', ['21 00000 00003 13947 14300 09017']]
 const PAYABLE_BY: readonly [string, readonly string[]] = ['Payable by', ['Simon Muster', 'Musterstrasse 1', '8000 Seldwyla']]
 
@@ -191,7 +199,12 @@ describe('where the Swiss QR Code stands', () => {
     expect(square).toMatchObject({ x: expect.closeTo(PAYMENT + mm(5), 2), top: expect.closeTo(TOP + mm(17), 2), height: expect.closeTo(mm(46), 2) })
     const [code] = await readCodes(bytes, 1)
     // Where a scanner finds the symbol: within half a point of the square.
-    expect(code).toMatchObject({ x: expect.closeTo(PAYMENT + mm(5), 0), top: expect.closeTo(TOP + mm(17), 0), width: expect.closeTo(mm(46), 0), height: expect.closeTo(mm(46), 0) })
+    expect(code).toMatchObject({
+      x: expect.closeTo(PAYMENT + mm(5), 0),
+      top: expect.closeTo(TOP + mm(17), 0),
+      width: expect.closeTo(mm(46), 0),
+      height: expect.closeTo(mm(46), 0),
+    })
   })
 
   // The Swiss cross marks a Swiss QR Code (IG 6.4.2): 7 mm square in black
@@ -204,7 +217,10 @@ describe('where the Swiss QR Code stands', () => {
     const shapes = drawing[0]!.shapes
     const centre = { x: PAYMENT + mm(5 + 23), y: TOP + mm(17 + 23) }
     const centred = (shape: Shape, side: number): boolean =>
-      Math.abs(shape.x + shape.width / 2 - centre.x) < 0.01 && Math.abs(shape.top + shape.height / 2 - centre.y) < 0.01 && Math.abs(shape.width - side) < 0.01 && Math.abs(shape.height - side) < 0.01
+      Math.abs(shape.x + shape.width / 2 - centre.x) < 0.01 &&
+      Math.abs(shape.top + shape.height / 2 - centre.y) < 0.01 &&
+      Math.abs(shape.width - side) < 0.01 &&
+      Math.abs(shape.height - side) < 0.01
     const white = shapes.filter((shape) => shape.fill === '#ffffff' && centred(shape, mm(7)))
     const black = shapes.filter((shape) => shape.fill === '#000000' && centred(shape, mm(6)))
     const cross = shapes.filter((shape) => shape.fill === '#ffffff' && centred(shape, mm(35 / 9)))
@@ -213,7 +229,20 @@ describe('where the Swiss QR Code stands', () => {
     expect([modules.paint < white[0]!.paint, white[0]!.paint < black[0]!.paint, black[0]!.paint < cross[0]!.paint]).toEqual([true, true, true])
     // The cross's twelve corners, clockwise from the top of its upright arm: arms 7/6 mm wide, 35/9 mm from end to end.
     const [arm, span] = [mm(7 / 6) / 2, mm(35 / 9) / 2]
-    const corners = [[-arm, -span], [arm, -span], [arm, -arm], [span, -arm], [span, arm], [arm, arm], [arm, span], [-arm, span], [-arm, arm], [-span, arm], [-span, -arm], [-arm, -arm]]
+    const corners = [
+      [-arm, -span],
+      [arm, -span],
+      [arm, -arm],
+      [span, -arm],
+      [span, arm],
+      [arm, arm],
+      [arm, span],
+      [-arm, span],
+      [-arm, arm],
+      [-span, arm],
+      [-span, -arm],
+      [-arm, -arm],
+    ]
     expect(cross[0]!.points).toEqual(corners.map(([x, y]) => [expect.closeTo(centre.x + x!, 2), expect.closeTo(centre.y + y!, 2)]))
   })
 
@@ -229,11 +258,43 @@ describe('where the Swiss QR Code stands', () => {
     const red = (dx: number, dy: number): number => data[(Math.round((centre.y + mm(dy)) * scale) * width + Math.round((centre.x + mm(dx)) * scale)) * 4]!
     const at = (points: readonly (readonly [number, number])[]): number[] => points.map(([dx, dy]) => red(dx, dy))
     // The centre, and along both arms, short of their ends at 35/18 mm.
-    expect(Math.min(...at([[0, 0], [0, 1.6], [0, -1.6], [1.6, 0], [-1.6, 0]]))).toBeGreaterThan(224)
+    expect(
+      Math.min(
+        ...at([
+          [0, 0],
+          [0, 1.6],
+          [0, -1.6],
+          [1.6, 0],
+          [-1.6, 0],
+        ]),
+      ),
+    ).toBeGreaterThan(224)
     // Between the arms, and past their ends, inside the 3 mm of the black square.
-    expect(Math.max(...at([[2.2, 2.2], [-2.2, 2.2], [2.2, -2.2], [-2.2, -2.2], [0, 2.5], [2.5, 0], [0, -2.5], [-2.5, 0]]))).toBeLessThan(32)
+    expect(
+      Math.max(
+        ...at([
+          [2.2, 2.2],
+          [-2.2, 2.2],
+          [2.2, -2.2],
+          [-2.2, -2.2],
+          [0, 2.5],
+          [2.5, 0],
+          [0, -2.5],
+          [-2.5, 0],
+        ]),
+      ),
+    ).toBeLessThan(32)
     // The white ring between 3 and 3.5 mm out, at the corners.
-    expect(Math.min(...at([[3.25, 3.25], [-3.25, 3.25], [3.25, -3.25], [-3.25, -3.25]]))).toBeGreaterThan(224)
+    expect(
+      Math.min(
+        ...at([
+          [3.25, 3.25],
+          [-3.25, 3.25],
+          [3.25, -3.25],
+          [-3.25, -3.25],
+        ]),
+      ),
+    ).toBeGreaterThan(224)
   })
 })
 
@@ -251,7 +312,10 @@ describe('what the slip prints, and where', () => {
     // A receipt's amount is 8 pt on 11 pt (SG 15), "Amount" 12 mm in from
     // "Currency". PDF.js reads the two, at 6 pt, as one line; where the
     // amount's run starts is read from the content stream.
-    expect(runsIn(page, drawn, SECTIONS.receiptAmounts)).toEqual([run('Currency Amount', mm(5), amounts, 6, BOLD), run('CHF 1 949.75', mm(5), amounts + 11, 8, REGULAR)])
+    expect(runsIn(page, drawn, SECTIONS.receiptAmounts)).toEqual([
+      run('Currency Amount', mm(5), amounts, 6, BOLD),
+      run('CHF 1 949.75', mm(5), amounts + 11, 8, REGULAR),
+    ])
     const indented = drawn.text.filter((shown) => Math.abs(shown.x - mm(17)) < 0.01)
     expect(indented.map(({ baseline, size, font }) => ({ baseline, size, font }))).toEqual([
       { baseline: expect.closeTo(amounts, 2), size: 6, font: BOLD },
@@ -270,10 +334,21 @@ describe('what the slip prints, and where', () => {
     const [page, drawn] = [pdf.pages[0]!, drawing[0]!]
     expect(runsIn(page, drawn, SECTIONS.paymentTitle)).toEqual([run('Payment part', PAYMENT + mm(5), TOP + mm(5) + ascent(11), 11, BOLD)])
     const amounts = TOP + mm(68) + ascent(8)
-    expect(runsIn(page, drawn, SECTIONS.paymentCurrency)).toEqual([run('Currency', PAYMENT + mm(5), amounts, 8, BOLD), run('CHF', PAYMENT + mm(5), amounts + 13, 10, REGULAR)])
-    expect(runsIn(page, drawn, SECTIONS.paymentAmount)).toEqual([run('Amount', PAYMENT + mm(20), amounts, 8, BOLD), run('1 949.75', PAYMENT + mm(20), amounts + 13, 10, REGULAR)])
-    const additional: readonly [string, readonly string[]] = ['Additional information', ['Order from 15.10.2020', '//S1/10/1234/11/201021/30/102673386/32/7.7/40/0:30']]
-    expect(runsIn(page, drawn, SECTIONS.paymentInformation)).toEqual(stacked(PAYMENT + mm(56), TOP + mm(5), PAYMENT_TEXT, [ACCOUNT, REFERENCE, additional, PAYABLE_BY]))
+    expect(runsIn(page, drawn, SECTIONS.paymentCurrency)).toEqual([
+      run('Currency', PAYMENT + mm(5), amounts, 8, BOLD),
+      run('CHF', PAYMENT + mm(5), amounts + 13, 10, REGULAR),
+    ])
+    expect(runsIn(page, drawn, SECTIONS.paymentAmount)).toEqual([
+      run('Amount', PAYMENT + mm(20), amounts, 8, BOLD),
+      run('1 949.75', PAYMENT + mm(20), amounts + 13, 10, REGULAR),
+    ])
+    const additional: readonly [string, readonly string[]] = [
+      'Additional information',
+      ['Order from 15.10.2020', '//S1/10/1234/11/201021/30/102673386/32/7.7/40/0:30'],
+    ]
+    expect(runsIn(page, drawn, SECTIONS.paymentInformation)).toEqual(
+      stacked(PAYMENT + mm(56), TOP + mm(5), PAYMENT_TEXT, [ACCOUNT, REFERENCE, additional, PAYABLE_BY]),
+    )
     expect(pageLines(page).filter((line) => line.text.includes('Order from'))).toHaveLength(1)
   })
 
@@ -295,8 +370,11 @@ describe('what the slip prints, and where', () => {
   // a face without "ä" would print an empty box where "Währung" is.
   test('prints a German slip in Liberation Sans, umlauts included', async () => {
     const { pdf } = await rendered(resolvedBill(GERMAN))
-    const texts = pageLines(pdf.pages[0]!).map((line) => line.text).join('\n')
-    for (const word of ['Empfangsschein', 'Zahlteil', 'Währung', 'Betrag', 'Zusätzliche Informationen', 'Annahmestelle', 'Vor der Einzahlung abzutrennen']) expect(texts).toContain(word)
+    const texts = pageLines(pdf.pages[0]!)
+      .map((line) => line.text)
+      .join('\n')
+    for (const word of ['Empfangsschein', 'Zahlteil', 'Währung', 'Betrag', 'Zusätzliche Informationen', 'Annahmestelle', 'Vor der Einzahlung abzutrennen'])
+      expect(texts).toContain(word)
     expect(texts).not.toContain('\u0000')
   })
 
@@ -330,7 +408,12 @@ describe('the lines a PDF slip is cut along', () => {
     expect(lines.map(({ x, top, width, height }) => ({ x, top, width, height }))).toEqual([
       { x: expect.closeTo(0, 2), top: expect.closeTo(TOP, 2), width: expect.closeTo(PAPER.width, 2), height: expect.closeTo(0, 2) },
       { x: expect.closeTo(PAYMENT, 2), top: expect.closeTo(TOP, 2), width: expect.closeTo(0, 2), height: expect.closeTo(SCISSORS.top - TOP, 2) },
-      { x: expect.closeTo(PAYMENT, 2), top: expect.closeTo(SCISSORS.top + SCISSORS.height, 2), width: expect.closeTo(0, 2), height: expect.closeTo(PAPER.height - SCISSORS.top - SCISSORS.height, 2) },
+      {
+        x: expect.closeTo(PAYMENT, 2),
+        top: expect.closeTo(SCISSORS.top + SCISSORS.height, 2),
+        width: expect.closeTo(0, 2),
+        height: expect.closeTo(PAPER.height - SCISSORS.top - SCISSORS.height, 2),
+      },
     ])
   })
 
@@ -345,13 +428,19 @@ describe('the lines a PDF slip is cut along', () => {
   // and the same in every language, since it says nothing in any.
   test.each(LANGUAGES)('bears the scissors symbol on the line between receipt and payment part, in %s', async (language) => {
     const { drawing } = await rendered(resolvedBill({ ...SIX_EXAMPLES.two, language }))
-    const symbol = drawing[0]!.shapes.filter((shape) => shape.fill !== undefined && shape.x < PAYMENT + mm(5) && shape.x + shape.width > PAYMENT - mm(5) && shape.top < TOP + mm(12))
+    const symbol = drawing[0]!.shapes.filter(
+      (shape) => shape.fill !== undefined && shape.x < PAYMENT + mm(5) && shape.x + shape.width > PAYMENT - mm(5) && shape.top < TOP + mm(12),
+    )
     expect(symbol.length).toBeGreaterThan(0)
     expect(symbol.every((shape) => shape.fill === '#000000' && shape.stroke === undefined)).toBe(true)
     const points = symbol.flatMap((shape) => shape.points)
     const [left, right] = [Math.min(...points.map(([x]) => x)), Math.max(...points.map(([x]) => x))]
     const [top, bottom] = [Math.min(...points.map(([, y]) => y)), Math.max(...points.map(([, y]) => y))]
-    expect({ top, height: bottom - top, centre: (left + right) / 2 }).toEqual({ top: expect.closeTo(SCISSORS.top, 2), height: expect.closeTo(SCISSORS.height, 2), centre: expect.closeTo(PAYMENT, 2) })
+    expect({ top, height: bottom - top, centre: (left + right) / 2 }).toEqual({
+      top: expect.closeTo(SCISSORS.top, 2),
+      height: expect.closeTo(SCISSORS.height, 2),
+      centre: expect.closeTo(PAYMENT, 2),
+    })
     expect([left > PAYMENT - mm(5), right < PAYMENT + mm(5)]).toEqual([true, true])
     // Every point has its mirror image across the line.
     const mirrored = (x: number, y: number): boolean => points.some(([other, at]) => Math.abs(other - (2 * PAYMENT - x)) < 0.01 && Math.abs(at - y) < 0.01)
@@ -371,9 +460,16 @@ describe('the lines a PDF slip is cut along', () => {
 
 describe('the blank fields', () => {
   /** The 0.75 pt strokes of the blank fields' corner marks (IG 3.5.3; SG 7): stroked, and not filled, as the code's paths are. */
-  const marks = (drawn: DrawnPage): Shape[] => drawn.shapes.filter((shape) => shape.kind === 'line' && shape.stroke !== undefined && shape.fill === undefined && shape.lineWidth === 0.75)
+  const marks = (drawn: DrawnPage): Shape[] =>
+    drawn.shapes.filter((shape) => shape.kind === 'line' && shape.stroke !== undefined && shape.fill === undefined && shape.lineWidth === 0.75)
 
-  const closeBox = (box: Box): Box => ({ x: expect.closeTo(box.x, 2), top: expect.closeTo(box.top, 2), width: expect.closeTo(box.width, 2), height: expect.closeTo(box.height, 2) }) as unknown as Box
+  const closeBox = (box: Box): Box =>
+    ({
+      x: expect.closeTo(box.x, 2),
+      top: expect.closeTo(box.top, 2),
+      width: expect.closeTo(box.width, 2),
+      height: expect.closeTo(box.height, 2),
+    }) as unknown as Box
 
   // Without an amount or a debtor, the payer writes them by hand into
   // fields of SIX's sizes, marked by their corners alone, 3 mm arms of
@@ -387,7 +483,9 @@ describe('the blank fields', () => {
     const { pdf, drawing } = await rendered(resolvedBill(SIX_EXAMPLES.three))
     const page = pdf.pages[0]!
     const headingBaseline = (from: number, to: number, size: number): number => {
-      const [line] = pageLines({ ...page, items: page.items.filter((item) => item.x >= from && item.x < to) }).filter((each) => each.text === 'Payable by (name/address)')
+      const [line] = pageLines({ ...page, items: page.items.filter((item) => item.x >= from && item.x < to) }).filter(
+        (each) => each.text === 'Payable by (name/address)',
+      )
       return line!.bottom - 0.2 * size
     }
     const fields: readonly Box[] = [
@@ -400,10 +498,19 @@ describe('the blank fields', () => {
     expect(all).toHaveLength(4 * fields.length)
     const half = 0.75 / 2
     for (const field of fields) {
-      const inside = all.filter((shape) => shape.x >= field.x - 1 && shape.top >= field.top - 1 && shape.x + shape.width <= field.x + field.width + 1 && shape.top + shape.height <= field.top + field.height + 1)
+      const inside = all.filter(
+        (shape) =>
+          shape.x >= field.x - 1 &&
+          shape.top >= field.top - 1 &&
+          shape.x + shape.width <= field.x + field.width + 1 &&
+          shape.top + shape.height <= field.top + field.height + 1,
+      )
       expect(inside).toHaveLength(4)
       const [left, top] = [Math.min(...inside.map((shape) => shape.x)) - half, Math.min(...inside.map((shape) => shape.top)) - half]
-      const [right, bottom] = [Math.max(...inside.map((shape) => shape.x + shape.width)) + half, Math.max(...inside.map((shape) => shape.top + shape.height)) + half]
+      const [right, bottom] = [
+        Math.max(...inside.map((shape) => shape.x + shape.width)) + half,
+        Math.max(...inside.map((shape) => shape.top + shape.height)) + half,
+      ]
       expect({ x: left, top, width: right - left, height: bottom - top }).toEqual(closeBox(field))
       for (const shape of inside) expect([shape.width + half, shape.height + half]).toEqual([expect.closeTo(mm(3), 2), expect.closeTo(mm(3), 2)])
     }

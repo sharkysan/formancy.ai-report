@@ -67,8 +67,19 @@ describe('an untrusted form', () => {
   // rows the draft does not print. Each is listed, in model order, and the
   // draft is the one field and the table.
   test('of many repeaters lists each it leaves out, in time linear in them', () => {
-    const repeaters = Array.from({ length: 10_000 }, (_, index) => ({ key: `r${index}`, type: 'repeater', label: 'Rows', fields: [{ key: `c${index}`, type: 'text', label: 'Cell' }] }))
-    const { value, ms } = timed(() => generate(formOf([{ key: 'site', type: 'text', label: 'Site' }, ...repeaters]), { id: 'r', locale: 'en', detail: { kind: 'repeater', repeater: 'r9999' } }))
+    const repeaters = Array.from({ length: 10_000 }, (_, index) => ({
+      key: `r${index}`,
+      type: 'repeater',
+      label: 'Rows',
+      fields: [{ key: `c${index}`, type: 'text', label: 'Cell' }],
+    }))
+    const { value, ms } = timed(() =>
+      generate(formOf([{ key: 'site', type: 'text', label: 'Site' }, ...repeaters]), {
+        id: 'r',
+        locale: 'en',
+        detail: { kind: 'repeater', repeater: 'r9999' },
+      }),
+    )
     const { report, notes } = generatedFrom(value)
     expect([report.datasets.header?.fields.length, report.datasets.detail?.fields.map((field) => field.id)]).toEqual([1, ['c9999']])
     expect(notesOf(notes)).toEqual(Array.from({ length: 9_999 }, (_, index) => `repeater-excluded /form/model/fields/${index + 1}`))
@@ -84,7 +95,9 @@ describe('an untrusted form', () => {
       for (let level = levels; level >= 1; level -= 1) fields = [{ key: `g${level}`, type: 'group', fields }]
       return fields
     }
-    expect(generationRefusals(generate(formOf(nested(MAX_DOCUMENT_DEPTH)), { id: 'r', locale: 'en' })).map((refusal) => refusal.split(' ')[0])).toEqual(['not-data'])
+    expect(generationRefusals(generate(formOf(nested(MAX_DOCUMENT_DEPTH)), { id: 'r', locale: 'en' })).map((refusal) => refusal.split(' ')[0])).toEqual([
+      'not-data',
+    ])
     const deepest = Math.floor((MAX_DOCUMENT_DEPTH - 4) / 2)
     expect(generationRefusals(generate(formOf(nested(deepest)), { id: 'r', locale: 'en' })).map((refusal) => refusal.split(' ')[0])).toEqual(['path-too-long'])
   })
@@ -94,7 +107,10 @@ describe('an untrusted form', () => {
   // place, and no message repeats a word of it.
   test('of a label of a megabyte is refused by the field’s place, never repeated', () => {
     const label = 'Erika Mustermann '.repeat(64_000)
-    const outcome = generate(formOf([{ key: 'name', type: 'text', label: { $t: 'name' } }], { i18n: { defaultLocale: 'en', messages: { en: { name: label } } } }), { id: 'r', locale: 'en' })
+    const outcome = generate(
+      formOf([{ key: 'name', type: 'text', label: { $t: 'name' } }], { i18n: { defaultLocale: 'en', messages: { en: { name: label } } } }),
+      { id: 'r', locale: 'en' },
+    )
     expect(generationRefusals(outcome)).toEqual(['label-too-long /form/model/fields/0'])
     if (!outcome.ok) expect(JSON.stringify(outcome.errors)).not.toContain('Erika')
     expect(JSON.stringify(outcome).length).toBeLessThan(1_000)

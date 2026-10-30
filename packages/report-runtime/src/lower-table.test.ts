@@ -5,7 +5,10 @@ import type { Table, TableRow } from './document.js'
 import { resolveReport } from './resolve.js'
 
 const detail = (field: string): FieldRef => ({ dataset: 'detail', field })
-const CHF = (amount: string): string => new Intl.NumberFormat('en', { style: 'currency', currency: 'CHF', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount as Intl.StringNumericLiteral)
+const CHF = (amount: string): string =>
+  new Intl.NumberFormat('en', { style: 'currency', currency: 'CHF', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+    amount as Intl.StringNumericLiteral,
+  )
 
 const TABLE: TableComponent = {
   id: 'equipment',
@@ -36,7 +39,10 @@ const TABLE: TableComponent = {
       {
         cells: [
           { column: 'tag', value: { kind: 'expression', expression: { cel: '"Subtotal " + group.key' } } },
-          { column: 'value', value: { kind: 'aggregate', aggregate: 'total', over: 'group', format: { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 2 } } },
+          {
+            column: 'value',
+            value: { kind: 'aggregate', aggregate: 'total', over: 'group', format: { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 2 } },
+          },
           { column: 'note', value: { kind: 'text', text: 'n' } },
         ],
         style: 'red',
@@ -47,7 +53,10 @@ const TABLE: TableComponent = {
     {
       cells: [
         { column: 'tag', value: { kind: 'text', text: 'Total' } },
-        { column: 'value', value: { kind: 'aggregate', aggregate: 'total', over: 'report', format: { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 2 } } },
+        {
+          column: 'value',
+          value: { kind: 'aggregate', aggregate: 'total', over: 'report', format: { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 2 } },
+        },
         { column: 'count', value: { kind: 'aggregate', aggregate: 'items', over: 'report' } },
       ],
     },
@@ -90,8 +99,16 @@ const row = (site: string, tag: string, value: string, critical = false): Record
 /** The provider's order, which the table must not keep: Thun before Bern, B before A, and two rows with equal keys. */
 const ROWS = [row('Thun', 'B-2', '10.00'), row('Bern', 'A-2', '0.05'), row('Thun', 'A-1', '5.50', true), row('Bern', 'A-1', '1.10'), row('Bern', 'A-1', '2.20')]
 
-function table(rows: readonly Record<string, unknown>[] = ROWS, parameters: Record<string, unknown> = {}, definition: ReportDefinition = report()): Table | undefined {
-  const outcome = resolveReport(definition, { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' }, { mode: 'final', parameters, creationDate: '2026-10-15T08:00:00Z' })
+function table(
+  rows: readonly Record<string, unknown>[] = ROWS,
+  parameters: Record<string, unknown> = {},
+  definition: ReportDefinition = report(),
+): Table | undefined {
+  const outcome = resolveReport(
+    definition,
+    { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' },
+    { mode: 'final', parameters, creationDate: '2026-10-15T08:00:00Z' },
+  )
   if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join('; ')}`)
   return outcome.document.body.find((block): block is Table => block.kind === 'table')
 }
@@ -138,11 +155,23 @@ describe('a grouped table', () => {
   // Rows with no value to group by are a group of their own, after every
   // other, keyed by null, which prints as nothing.
   test('groups the rows without a key together, last', () => {
-    const nullable = report({ ...TABLE, group: { ...(TABLE.group as NonNullable<TableComponent['group']>), header: [{ kind: 'field', field: detail('site') }], footer: [] } })
+    const nullable = report({
+      ...TABLE,
+      group: { ...(TABLE.group as NonNullable<TableComponent['group']>), header: [{ kind: 'field', field: detail('site') }], footer: [] },
+    })
     const site = nullable.datasets.detail?.fields[0]
-    const definition: ReportDefinition = { ...nullable, datasets: { detail: { id: 'equipment', fields: [{ ...(site as NonNullable<typeof site>), nullable: true }, ...(nullable.datasets.detail?.fields.slice(1) ?? [])] } } }
+    const definition: ReportDefinition = {
+      ...nullable,
+      datasets: {
+        detail: { id: 'equipment', fields: [{ ...(site as NonNullable<typeof site>), nullable: true }, ...(nullable.datasets.detail?.fields.slice(1) ?? [])] },
+      },
+    }
     const rows = [row('Thun', 'B-2', '1.00'), { ...row('', 'A-1', '2.00'), site: null }, row('Bern', 'C-3', '3.00')]
-    expect(cells(table(rows, {}, definition)?.rows.filter((each) => each.kind === 'groupHeader'))).toEqual([['groupHeader', 'Bern'], ['groupHeader', 'Thun'], ['groupHeader', '']])
+    expect(cells(table(rows, {}, definition)?.rows.filter((each) => each.kind === 'groupHeader'))).toEqual([
+      ['groupHeader', 'Bern'],
+      ['groupHeader', 'Thun'],
+      ['groupHeader', ''],
+    ])
   })
 })
 
@@ -213,7 +242,11 @@ describe('a preview that lacks the field grouped by', () => {
   // null, and the field grouped by is never null.
   test('prints nothing for the key, and says so', () => {
     const rows = ROWS.map(({ site: _site, ...rest }) => rest)
-    const outcome = resolveReport(report(), { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' }, { mode: 'preview', creationDate: '2026-10-15T08:00:00Z' })
+    const outcome = resolveReport(
+      report(),
+      { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' },
+      { mode: 'preview', creationDate: '2026-10-15T08:00:00Z' },
+    )
     if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join('; ')}`)
     const lowered = outcome.document.body.find((block): block is Table => block.kind === 'table')
     expect(cells(lowered?.rows.filter((each) => each.kind !== 'detail'))).toEqual([

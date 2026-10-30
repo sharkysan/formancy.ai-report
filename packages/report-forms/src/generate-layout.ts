@@ -105,10 +105,17 @@ function componentsOf(blocks: readonly Block[], detail: readonly Planned[], ids:
         return [{ id, kind: 'section', components: [heading(block.heading), ...componentsOf(block.blocks, detail, ids)] }]
       }
       case 'table': {
-        const columns = detail.map(
-          (planned, index): TableColumn => ({ id: `column-${index + 1}`, header: planned.field.label, width: 'fill', align: planned.field.type === 'integer' || planned.field.type === 'decimal' ? 'right' : 'left', value: valueOf(planned, 'detail') }),
-        )
-        return [...(block.heading === undefined ? [] : [heading(block.heading)]), { id: 'table', kind: 'table', dataset: 'detail', columns, emptyText: EMPTY, repeatHeader: true }]
+        const columns = detail.map((planned, index): TableColumn => ({
+          id: `column-${index + 1}`,
+          header: planned.field.label,
+          width: 'fill',
+          align: planned.field.type === 'integer' || planned.field.type === 'decimal' ? 'right' : 'left',
+          value: valueOf(planned, 'detail'),
+        }))
+        return [
+          ...(block.heading === undefined ? [] : [heading(block.heading)]),
+          { id: 'table', kind: 'table', dataset: 'detail', columns, emptyText: EMPTY, repeatHeader: true },
+        ]
       }
     }
   })
@@ -120,7 +127,11 @@ export function counted(components: readonly Component[]): number {
 }
 
 /** The regions and the styles of a report titled `title`, of `blocks` and the table's `detail`. */
-export function laidOut(title: string, blocks: readonly Block[], detail: readonly Planned[]): { readonly regions: Regions; readonly styles: readonly PrintStyle[] } {
+export function laidOut(
+  title: string,
+  blocks: readonly Block[],
+  detail: readonly Planned[],
+): { readonly regions: Regions; readonly styles: readonly PrintStyle[] } {
   const body = componentsOf(blocks, detail, new Ids())
   // A section is headed, flat or not, and holds every other section and any table in it.
   const headed = blocks.some((block) => block.kind === 'section' || (block.kind === 'table' && block.heading !== undefined))

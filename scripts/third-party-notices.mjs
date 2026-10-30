@@ -177,7 +177,9 @@ function readPackage(directory, within, how = 'bundled') {
     files.push(...found.files)
   }
   if (problems.length === 0 && !own.files.some((file) => file.licence && file.text.trim() !== '')) {
-    problems.push(`${id} is ${how} and ships no licence text: no file at its root whose name begins LICENSE, LICENCE or COPYING, and is not a script or data, holds any`)
+    problems.push(
+      `${id} is ${how} and ships no licence text: no file at its root whose name begins LICENSE, LICENCE or COPYING, and is not a script or data, holds any`,
+    )
   }
   return { id, name: String(manifest.name), version: String(manifest.version), declared: manifest.license, files, problems }
 }
@@ -225,7 +227,10 @@ function bundledPackages(ids, { workspace, own, embedded }) {
   const problems = []
   for (const id of ids) {
     if (id.startsWith('\0')) {
-      if (!BUNDLER_MODULES.has(id) && !own.has(id)) problems.push(`${JSON.stringify(id.slice(1))} is a module a plugin or the bundler wrote, and neither one of the reviewed BUNDLER_MODULES in scripts/third-party-notices.mjs nor one of the app's own`)
+      if (!BUNDLER_MODULES.has(id) && !own.has(id))
+        problems.push(
+          `${JSON.stringify(id.slice(1))} is a module a plugin or the bundler wrote, and neither one of the reviewed BUNDLER_MODULES in scripts/third-party-notices.mjs nor one of the app's own`,
+        )
       continue
     }
     if (WORKER.test(id)) {
@@ -236,7 +241,9 @@ function bundledPackages(ids, { workspace, own, embedded }) {
     const directory = packageDirectory(path)
     if (directory === undefined) {
       if (!path.startsWith(repository)) {
-        problems.push(`${path} is bundled and is neither in a package under node_modules nor this repository's own, so whose it is and under what terms is unknown`)
+        problems.push(
+          `${path} is bundled and is neither in a package under node_modules nor this repository's own, so whose it is and under what terms is unknown`,
+        )
       } else if (embedded.length > 0) {
         const workspace = workspacePackage(path, repository, seen)
         if (workspace !== undefined) workspaces.set(workspace, (workspaces.get(workspace) ?? new Set()).add(path.slice(workspace.length + 1)))
@@ -285,7 +292,10 @@ function bundledPackages(ids, { workspace, own, embedded }) {
     }
   }
   for (const notice of notices.notices) {
-    if (!carried.has(notice)) problems.push(`the notice for ${notice.package}'s ${notice.file} (${notice.name}) names a file this build does not bundle: the reviewed list in the app's config is out of date`)
+    if (!carried.has(notice))
+      problems.push(
+        `the notice for ${notice.package}'s ${notice.file} (${notice.name}) names a file this build does not bundle: the reviewed list in the app's config is out of date`,
+      )
   }
   return { packages: [...packages.values()].sort(byNameAndVersion), problems }
 }
@@ -299,8 +309,8 @@ const BUNDLED = [
   'declares, and is followed by its licence and notice files as it ships',
   'them: those at its root, and those in any directory between there and a',
   'file of it that is bundled, named by their path in the package. Where a',
-  'bundled file carries somebody else\'s work that its package ships no',
-  'licence text for -- fonts inside a script -- that work\'s notice follows,',
+  "bundled file carries somebody else's work that its package ships no",
+  "licence text for -- fonts inside a script -- that work's notice follows,",
   'named by the file that carries it.',
   '',
   "The rest of this build is not listed: the Formancy Report repository's own",
@@ -401,7 +411,10 @@ export function thirdPartyNotices({ workspace, ownModules = [], embedded = [] } 
       const problems = []
       for (const item of items) {
         if (item.type === 'chunk' || stylesheets.has(item.fileName) || maps.has(item.fileName)) continue
-        if (item.originalFileNames.length === 0) problems.push(`${item.fileName} is written from no source file Vite names -- a worker's code, which Vite bundles in a build of its own, or a file a plugin emits -- so whose it is is unknown`)
+        if (item.originalFileNames.length === 0)
+          problems.push(
+            `${item.fileName} is written from no source file Vite names -- a worker's code, which Vite bundles in a build of its own, or a file a plugin emits -- so whose it is is unknown`,
+          )
         for (const name of item.originalFileNames) ids.push(resolve(root, name))
       }
       const found = bundledPackages(ids, { workspace: workspace ?? fileURLToPath(new URL('..', import.meta.url)), own, embedded })

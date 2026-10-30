@@ -15,7 +15,8 @@ const FIRST_PACKAGES = ['@formancy/report-builder-react', '@formancy/report-buil
 /** A word of the licence's table, in the page's language: refused when LICENSE.md says something the page has no words for. */
 function termIn(rows: Readonly<Record<string, string>>, english: string): string {
   const said = rows[english]
-  if (said === undefined) throw new Error(`LICENSE.md's table says "${english}", and the product page has no words for it: translate the row, after reading what changed`)
+  if (said === undefined)
+    throw new Error(`LICENSE.md's table says "${english}", and the product page has no words for it: translate the row, after reading what changed`)
   return said
 }
 

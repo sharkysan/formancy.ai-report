@@ -39,11 +39,20 @@ export function checkPayable(render: Render, code: PayingCode, amount: Decimal |
   const payable = render.invoice?.payable
   if (payable === undefined) return
   const refuse = (path: string, message: string): void =>
-    render.problems.error({ stage: 'resolve', code: 'invalid-e-invoice', path, message: `${code.said}: ${message}`, ...(code.componentId === undefined ? {} : { componentId: code.componentId }) })
+    render.problems.error({
+      stage: 'resolve',
+      code: 'invalid-e-invoice',
+      path,
+      message: `${code.said}: ${message}`,
+      ...(code.componentId === undefined ? {} : { componentId: code.componentId }),
+    })
   if (amount !== null && compareDecimal(amount, payable.amount) !== 0) {
     refuse(code.amountPath, `${code.code} asks for another amount than the e-invoice's amount due for payment (BT-115): a page and its XML ask for one amount`)
   }
   if (payable.account !== undefined && account !== payable.account) {
-    refuse(code.accountPath, `${code.code} asks to be paid to another account than the e-invoice's payment account (BT-84): a page and its XML name one account`)
+    refuse(
+      code.accountPath,
+      `${code.code} asks to be paid to another account than the e-invoice's payment account (BT-84): a page and its XML name one account`,
+    )
   }
 }

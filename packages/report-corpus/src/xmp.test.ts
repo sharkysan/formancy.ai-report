@@ -16,7 +16,10 @@ const TEST = 'urn:formancy:corpus:test#'
 
 /** The XMP packet of the PDF/A-3b pdfkit writes for `finish`'s additions and `title`. */
 async function packet(finish?: (document: PdfKitDocument) => void, title?: string): Promise<string> {
-  const bytes = await pdfmakePdf({ version: '1.7', subset: 'PDF/A-3b', content: [{ text: 'PDF/A' }], ...(title === undefined ? {} : { info: { title } }) }, finish)
+  const bytes = await pdfmakePdf(
+    { version: '1.7', subset: 'PDF/A-3b', content: [{ text: 'PDF/A' }], ...(title === undefined ? {} : { info: { title } }) },
+    finish,
+  )
   return (await readPdfObjects(bytes)).metadata!.xmp
 }
 
@@ -47,7 +50,9 @@ describe('readXmp', () => {
     expect(texts(read, pdfaid, 'conformance')).toEqual(['B'])
     expect(propertiesOf(read, pdfaid, 'part').map(({ prefix }) => prefix)).toEqual(['pdfaid'])
     const [title] = propertiesOf(read, dc, 'title')
-    expect(childrenOf(title!, [rdf, 'Alt'], [rdf, 'li'])).toMatchObject([{ text: 'corpus test', attributes: [{ uri: xml, local: 'lang', value: 'x-default' }] }])
+    expect(childrenOf(title!, [rdf, 'Alt'], [rdf, 'li'])).toMatchObject([
+      { text: 'corpus test', attributes: [{ uri: xml, local: 'lang', value: 'x-default' }] },
+    ])
     expect(texts(read, xap, 'CreateDate')).toEqual(['2026-01-01T00:00:00Z'])
   })
 
@@ -64,7 +69,9 @@ describe('readXmp', () => {
     const [schema] = childrenOf(schemas!, [rdf, 'Bag'], [rdf, 'li'])
     expect(childrenOf(schema!, [pdfaSchema, 'namespaceURI']).map(({ text }) => text)).toEqual([TEST])
     expect(childrenOf(schema!, [pdfaSchema, 'prefix']).map(({ text }) => text)).toEqual(['ct'])
-    expect(childrenOf(schema!, [pdfaSchema, 'property'], [rdf, 'Seq'], [rdf, 'li'], [pdfaProperty, 'name']).map(({ prefix, text }) => `${prefix}:${text}`)).toEqual(['pdfaProperty:Level', 'pdfaProperty:Version'])
+    expect(
+      childrenOf(schema!, [pdfaSchema, 'property'], [rdf, 'Seq'], [rdf, 'li'], [pdfaProperty, 'name']).map(({ prefix, text }) => `${prefix}:${text}`),
+    ).toEqual(['pdfaProperty:Level', 'pdfaProperty:Version'])
   })
 
   // A prefix is only a name for a namespace. A packet that binds `ct` to
@@ -125,6 +132,9 @@ describe('readXmp', () => {
   // instruction inside the element is neither its header nor its trailer.
   test("reports the packet's header and trailer as written, and their absence", async () => {
     expect(readXmp(await packet()).packet).toEqual({ header: 'begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"', trailer: 'end="w"' })
-    expect(readXmp(`<x:xmpmeta xmlns:x="adobe:ns:meta/"><?xpacket end="w"?><rdf:RDF xmlns:rdf="${rdf}"/></x:xmpmeta>`).packet).toEqual({ header: undefined, trailer: undefined })
+    expect(readXmp(`<x:xmpmeta xmlns:x="adobe:ns:meta/"><?xpacket end="w"?><rdf:RDF xmlns:rdf="${rdf}"/></x:xmpmeta>`).packet).toEqual({
+      header: undefined,
+      trailer: undefined,
+    })
   })
 })

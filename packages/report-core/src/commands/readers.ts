@@ -89,7 +89,8 @@ function holderOf(placed: Placed, place: Place): Holder {
   // Every other place a report names a field or an aggregate is in a component, which reportParts names.
   const found = placed.get(place.componentId as string) as { readonly path: string; readonly component: Component }
   const rule = RULE.exec(place.path)
-  if (rule !== null) return { kind: 'rule', component: found.component.id, ...(place.columnId === undefined ? {} : { column: place.columnId }), index: Number(rule[1]) }
+  if (rule !== null)
+    return { kind: 'rule', component: found.component.id, ...(place.columnId === undefined ? {} : { column: place.columnId }), index: Number(rule[1]) }
   if (found.component.kind !== 'table') return { kind: 'component', id: found.component.id }
   return tableHolder(found.component, place.path.slice(found.path.length), place.columnId)
 }
@@ -139,7 +140,8 @@ function gathered(holders: readonly Exclude<Holder, { kind: 'part' }>[]) {
   const rules = new Map<string, Set<number>>()
   const tables = new Map<string, TableParts>()
   const aggregates = new Set<number>()
-  const of = (table: string): TableParts => tables.get(table) ?? (tables.set(table, { columns: new Set(), cells: new Map(), sort: new Set(), group: false }).get(table) as TableParts)
+  const of = (table: string): TableParts =>
+    tables.get(table) ?? (tables.set(table, { columns: new Set(), cells: new Map(), sort: new Set(), group: false }).get(table) as TableParts)
   for (const holder of holders) {
     if (holder.kind === 'component') components.add(holder.id)
     else if (holder.kind === 'aggregate') aggregates.add(holder.index)
@@ -183,14 +185,27 @@ function keptRules(rules: readonly StyleRule[], gone: ReadonlySet<number>): read
 }
 
 /** The pointers to the rules at `gone` under `path`, and the edit that takes them, through `edit`. */
-function ruleRemoval(path: string, gone: ReadonlySet<number> | undefined, edit: (kept: readonly StyleRule[] | null) => Edit, rules: readonly StyleRule[] | undefined): { readonly pointers: string[]; readonly edits: Edit[] } {
+function ruleRemoval(
+  path: string,
+  gone: ReadonlySet<number> | undefined,
+  edit: (kept: readonly StyleRule[] | null) => Edit,
+  rules: readonly StyleRule[] | undefined,
+): { readonly pointers: string[]; readonly edits: Edit[] } {
   if (gone === undefined) return { pointers: [], edits: [] }
   // The walk named a rule of them; one found through an aggregate is found after one that reads the field itself.
-  return { pointers: [...gone].sort((a, b) => a - b).map((index) => `${path}/styleWhen/${index}`), edits: [edit(keptRules(rules as readonly StyleRule[], gone))] }
+  return {
+    pointers: [...gone].sort((a, b) => a - b).map((index) => `${path}/styleWhen/${index}`),
+    edits: [edit(keptRules(rules as readonly StyleRule[], gone))],
+  }
 }
 
 /** What goes of `table`, at `path`, as pointers and as the commands that take it: its columns' rules and its columns, its sort keys, its group, its footers' rows and cells. */
-function tableRemoval(table: TableComponent, path: string, parts: TableParts | undefined, rules: ReadonlyMap<string, ReadonlySet<number>>): { readonly pointers: string[]; readonly edits: Edit[] } {
+function tableRemoval(
+  table: TableComponent,
+  path: string,
+  parts: TableParts | undefined,
+  rules: ReadonlyMap<string, ReadonlySet<number>>,
+): { readonly pointers: string[]; readonly edits: Edit[] } {
   const pointers: string[] = []
   const edits: Edit[] = []
   const later: Edit[] = []
@@ -200,7 +215,12 @@ function tableRemoval(table: TableComponent, path: string, parts: TableParts | u
       later.push((working) => removeColumn(working, table.id, column.id))
       continue
     }
-    const kept = ruleRemoval(`${path}/columns/${index}`, rules.get(ruleKey(table.id, column.id)), (styleWhen) => (working) => updateColumn(working, table.id, column.id, { styleWhen }), column.styleWhen)
+    const kept = ruleRemoval(
+      `${path}/columns/${index}`,
+      rules.get(ruleKey(table.id, column.id)),
+      (styleWhen) => (working) => updateColumn(working, table.id, column.id, { styleWhen }),
+      column.styleWhen,
+    )
     pointers.push(...kept.pointers)
     edits.push(...kept.edits)
   }
@@ -208,14 +228,26 @@ function tableRemoval(table: TableComponent, path: string, parts: TableParts | u
   // A sort key names its field outside any expression, so the walk named each in document order, once.
   pointers.push(...[...parts.sort].map((index) => `${path}/sort/${index}`))
   if (parts.group) pointers.push(`${path}/group`)
-  const footers: [FooterRows, string, readonly TableFooterRow[] | undefined][] = [['groupFooter', 'group/footer', parts.group ? undefined : table.group?.footer], ['totals', 'totals', table.totals]]
+  const footers: [FooterRows, string, readonly TableFooterRow[] | undefined][] = [
+    ['groupFooter', 'group/footer', parts.group ? undefined : table.group?.footer],
+    ['totals', 'totals', table.totals],
+  ]
   const rowEdits: Edit[] = []
   for (const [footer, at, rows] of footers) {
     const fate = footerFate(rows ?? [], footer, parts)
-    const goes = [...fate.rows.map((row) => ({ row, pointer: `${path}/${at}/${row}` })), ...fate.cells.map(({ row, index }) => ({ row, pointer: `${path}/${at}/${row}/cells/${index}` }))]
+    const goes = [
+      ...fate.rows.map((row) => ({ row, pointer: `${path}/${at}/${row}` })),
+      ...fate.cells.map(({ row, index }) => ({ row, pointer: `${path}/${at}/${row}/cells/${index}` })),
+    ]
     pointers.push(...goes.sort((a, b) => a.row - b.row).map(({ pointer }) => pointer))
     // A cell goes before any row does, while each row stands at its index; the rows go last first.
-    edits.push(...fate.cells.map(({ row, column }) => (working: ReportDefinition) => removeFooterCell(working, table.id, footer, row, column)))
+    edits.push(
+      ...fate.cells.map(
+        ({ row, column }) =>
+          (working: ReportDefinition) =>
+            removeFooterCell(working, table.id, footer, row, column),
+      ),
+    )
     rowEdits.push(...[...fate.rows].reverse().map((row) => (working: ReportDefinition) => removeFooterRow(working, table.id, footer, row)))
   }
   edits.push(...rowEdits)
@@ -238,11 +270,16 @@ function removal(walk: Walk, slot: DatasetRole, fieldId: string): CommandOutcome
   const part = holders.find((holder) => holder.kind === 'part')
   if (part !== undefined) {
     const what = part.part === 'paymentPart' ? "the report's payment part" : "the report's e-invoice"
-    return refuse('read-by-part', `${quote(fieldId)} of the ${slot} dataset is read by ${what}, which only its own commands change: change what it reads there first`, { path: part.path })
+    return refuse(
+      'read-by-part',
+      `${quote(fieldId)} of the ${slot} dataset is read by ${what}, which only its own commands change: change what it reads there first`,
+      { path: part.path },
+    )
   }
   const { components, rules, tables, aggregates } = gathered(holders as Exclude<Holder, { kind: 'part' }>[])
   // A table that loses every column holds nothing to print, and goes whole.
-  for (const [id, parts] of tables) if ((placed.get(id)?.component as TableComponent).columns.every((column) => parts.columns.has(column.id))) components.add(id)
+  for (const [id, parts] of tables)
+    if ((placed.get(id)?.component as TableComponent).columns.every((column) => parts.columns.has(column.id))) components.add(id)
   const removed: string[] = []
   const gone: string[] = []
   const edits: Edit[] = []
@@ -254,7 +291,12 @@ function removal(walk: Walk, slot: DatasetRole, fieldId: string): CommandOutcome
       edits.push((working) => removeComponent(working, component.id))
       continue
     }
-    const own = ruleRemoval(path, rules.get(ruleKey(component.id)), (styleWhen) => (working) => updateComponent(working, component.id, component.kind, { styleWhen } as never), component.styleWhen)
+    const own = ruleRemoval(
+      path,
+      rules.get(ruleKey(component.id)),
+      (styleWhen) => (working) => updateComponent(working, component.id, component.kind, { styleWhen } as never),
+      component.styleWhen,
+    )
     const table = component.kind === 'table' ? tableRemoval(component, path, tables.get(component.id), rules) : { pointers: [], edits: [] }
     removed.push(...own.pointers, ...table.pointers)
     edits.push(...own.edits, ...table.edits)
@@ -293,13 +335,23 @@ export interface FieldReaders {
 export function fieldReaders(report: ReportDefinition): FieldReaders {
   const parts = reportParts(report)
   const walked = [...walkComponents(report)]
-  const walk: Walk = { report, named: parts.named, sites: parts.expressions.map((site) => ({ site, reads: expressionReads([site.cel]) })), walked, placed: new Map(walked.map((entry) => [entry.component.id, entry])) }
+  const walk: Walk = {
+    report,
+    named: parts.named,
+    sites: parts.expressions.map((site) => ({ site, reads: expressionReads([site.cel]) })),
+    walked,
+    placed: new Map(walked.map((entry) => [entry.component.id, entry])),
+  }
   return {
     removal: (slot, fieldId) => removal(walk, slot, fieldId),
     expressions: (slot, fieldId) => {
       const { expressions } = readsOf(walk, slot, fieldId)
-      const grouped = slot === 'detail' && walk.named.some((use) => use.kind === 'field' && use.field.dataset === 'detail' && use.field.field === fieldId && use.path.endsWith('/group/by'))
-      return grouped ? new Set([...expressions, ...walk.sites.filter(({ reads }) => readsMember(reads, ['group'], GROUP_KEY)).map(({ site }) => site.path)]) : expressions
+      const grouped =
+        slot === 'detail' &&
+        walk.named.some((use) => use.kind === 'field' && use.field.dataset === 'detail' && use.field.field === fieldId && use.path.endsWith('/group/by'))
+      return grouped
+        ? new Set([...expressions, ...walk.sites.filter(({ reads }) => readsMember(reads, ['group'], GROUP_KEY)).map(({ site }) => site.path)])
+        : expressions
     },
   }
 }

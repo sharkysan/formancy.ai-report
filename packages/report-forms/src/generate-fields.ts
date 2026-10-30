@@ -174,13 +174,23 @@ function readingOf(draft: Draft, def: FieldDef, path: string, where: string): Re
     case 'number': {
       const number = numberType(def)
       if (number.type === 'integer') return { type: 'integer', prints: 'plain', notes: ['number-integer'] }
-      return { type: 'decimal', prints: number.scale === undefined ? 'plain' : { scale: number.scale }, ...(number.scale === undefined ? {} : { scale: number.scale }), notes: ['number-decimal'] }
+      return {
+        type: 'decimal',
+        prints: number.scale === undefined ? 'plain' : { scale: number.scale },
+        ...(number.scale === undefined ? {} : { scale: number.scale }),
+        notes: ['number-decimal'],
+      }
     }
     case 'checkbox':
       return { type: 'boolean', prints: 'box', notes: ['yes-no-box'] }
     case 'choice': {
       const choice = choiceOf(def)
-      return { type: 'string', prints: 'plain', ...(choice.read === undefined ? {} : { read: choice.read }), notes: choice.note === undefined ? [] : [choice.note] }
+      return {
+        type: 'string',
+        prints: 'plain',
+        ...(choice.read === undefined ? {} : { read: choice.read }),
+        notes: choice.note === undefined ? [] : [choice.note],
+      }
     }
     case 'date':
     case 'instant':
@@ -189,7 +199,8 @@ function readingOf(draft: Draft, def: FieldDef, path: string, where: string): Re
       // formancy's validator requires a matrix's rows, one at least, and its columns, two at least, so a row prints its column's label.
       return { type: 'string', prints: 'plain', notes: [], members: { what: 'row', list: 'rows', of: distinct(def.rows ?? []) } }
     case 'ticked':
-      if (typeof def.optionsSource === 'string') return leftOut('unsupported-excluded', 'ticked boxes whose options a deployment resolves, which are not in the document, so no field could name one')
+      if (typeof def.optionsSource === 'string')
+        return leftOut('unsupported-excluded', 'ticked boxes whose options a deployment resolves, which are not in the document, so no field could name one')
       if ((def.options ?? []).length === 0) return leftOut('unsupported-excluded', 'ticked boxes that offer no option, so there is no box to print')
       return { type: 'boolean', prints: 'box', notes: ['yes-no-box'], members: { what: 'option', list: 'options', of: distinct(def.options ?? []) } }
   }
@@ -205,8 +216,16 @@ interface Line {
 
 /** What `label`, had for `what` at `where`, says of how it was had: by its `by` where it had none, or in the default locale's words. */
 function saidOf(label: Label, where: string, what: string, by: string): GenerateNote[] {
-  if (label.said === 'unlabelled') return [{ code: 'unlabelled', path: where, message: `${what} has no label in the form version, so it is labelled by its ${by}` }]
-  if (label.said === 'label-default-locale') return [{ code: 'label-default-locale', path: where, message: `${what} has no label in the form version's catalogue in the report's locale, so it is labelled in its default locale's` }]
+  if (label.said === 'unlabelled')
+    return [{ code: 'unlabelled', path: where, message: `${what} has no label in the form version, so it is labelled by its ${by}` }]
+  if (label.said === 'label-default-locale')
+    return [
+      {
+        code: 'label-default-locale',
+        path: where,
+        message: `${what} has no label in the form version's catalogue in the report's locale, so it is labelled in its default locale's`,
+      },
+    ]
   return []
 }
 
@@ -215,7 +234,14 @@ function saidOf(label: Label, where: string, what: string, by: string): Generate
  * at its place in the form -- and what is said of how each label was had;
  * or undefined after refusing one no font draws.
  */
-function linesOf(draft: Draft, def: FieldDef, reading: Reading, label: Label, path: string, where: string): { readonly lines: readonly Line[]; readonly said: GenerateNote[] } | undefined {
+function linesOf(
+  draft: Draft,
+  def: FieldDef,
+  reading: Reading,
+  label: Label,
+  path: string,
+  where: string,
+): { readonly lines: readonly Line[]; readonly said: GenerateNote[] } | undefined {
   if (!printable(draft, label.text, where, named(path))) return undefined
   const said = saidOf(label, where, named(path), 'key')
   if (reading.members === undefined) return { lines: [{ id: def.key, line: label.text, where }], said }
@@ -247,7 +273,15 @@ const MAX_LINE_LABEL = MAX_TEXT_LENGTH - 2
  * said; in the table the label is the column's heading, which a field's
  * label's length bounds.
  */
-function partsOf(draft: Draft, def: FieldDef, reading: Reading, label: Label, path: string, where: string, role: 'header' | 'detail'): { readonly parts: readonly (Line & { readonly label: string })[]; readonly said: readonly GenerateNote[] } | undefined {
+function partsOf(
+  draft: Draft,
+  def: FieldDef,
+  reading: Reading,
+  label: Label,
+  path: string,
+  where: string,
+  role: 'header' | 'detail',
+): { readonly parts: readonly (Line & { readonly label: string })[]; readonly said: readonly GenerateNote[] } | undefined {
   const printed = linesOf(draft, def, reading, label, path, where)
   if (printed === undefined) return undefined
   const parts: (Line & { readonly label: string })[] = []
@@ -255,11 +289,19 @@ function partsOf(draft: Draft, def: FieldDef, reading: Reading, label: Label, pa
   for (const each of printed.lines) {
     const whole = each.member === undefined ? each.line : `${label.text}: ${each.line}`
     if (role === 'detail' && whole.length > MAX_LABEL_LENGTH) {
-      draft.f.report(where, 'label-too-long', `${named(path)} heads a column with a label longer than the ${MAX_LABEL_LENGTH} characters a column's heading holds; it is refused, never cut short`)
+      draft.f.report(
+        where,
+        'label-too-long',
+        `${named(path)} heads a column with a label longer than the ${MAX_LABEL_LENGTH} characters a column's heading holds; it is refused, never cut short`,
+      )
       return undefined
     }
     if (each.line.length > MAX_LINE_LABEL) {
-      draft.f.report(each.where, 'label-too-long', `${named(path)} is labelled longer than the ${MAX_LINE_LABEL} characters a line holds before its value; it is refused, never cut short`)
+      draft.f.report(
+        each.where,
+        'label-too-long',
+        `${named(path)} is labelled longer than the ${MAX_LINE_LABEL} characters a line holds before its value; it is refused, never cut short`,
+      )
       return undefined
     }
     const fitted = whole.length <= MAX_LABEL_LENGTH ? whole : each.member !== undefined && each.line.length <= MAX_LABEL_LENGTH ? each.line : each.id
@@ -268,7 +310,11 @@ function partsOf(draft: Draft, def: FieldDef, reading: Reading, label: Label, pa
   }
   if (!shortened) return { parts, said: printed.said }
   const by = reading.members === undefined ? 'its key' : `its ${reading.members.what}'s label, or its id`
-  const long: GenerateNote = { code: 'long-label', path: where, message: `${named(path)} is labelled longer than the ${MAX_LABEL_LENGTH} characters a field's label holds: its line prints the label whole, and the field is labelled by ${by}` }
+  const long: GenerateNote = {
+    code: 'long-label',
+    path: where,
+    message: `${named(path)} is labelled longer than the ${MAX_LABEL_LENGTH} characters a field's label holds: its line prints the label whole, and the field is labelled by ${by}`,
+  }
   return { parts, said: [...printed.said, long] }
 }
 
@@ -285,7 +331,11 @@ export function leaf(draft: Draft, def: FieldDef, place: Place, where: string, r
   const reading = readingOf(draft, def, path, where)
   if (reading === undefined) return []
   if (keys.length > MAX_FORM_PATH_KEYS) {
-    draft.f.report(where, 'path-too-long', `${named(path)} stands ${keys.length} keys deep in its dataset's scope, and a binding names at most ${MAX_FORM_PATH_KEYS}`)
+    draft.f.report(
+      where,
+      'path-too-long',
+      `${named(path)} stands ${keys.length} keys deep in its dataset's scope, and a binding names at most ${MAX_FORM_PATH_KEYS}`,
+    )
     return []
   }
   const grid = heading === undefined ? undefined : labelOf(draft, heading, '')
@@ -293,24 +343,47 @@ export function leaf(draft: Draft, def: FieldDef, place: Place, where: string, r
   const planned = partsOf(draft, def, reading, label, path, where, role)
   if (planned === undefined) return []
   if (planned.parts.some((part) => !isFieldKey(part.id))) {
-    draft.f.report(where, 'id-too-long', `${named(path)}'s key leaves no room in a field key's 64 characters for its rows' or its options' values or places, so they have no id a report takes; it is refused, never cut short`)
+    draft.f.report(
+      where,
+      'id-too-long',
+      `${named(path)}'s key leaves no room in a field key's 64 characters for its rows' or its options' values or places, so they have no id a report takes; it is refused, never cut short`,
+    )
     return []
   }
   const nullable = def.required !== true || place.hideable || draft.hidden.has(path)
   for (const code of reading.notes) note(draft, code, where, `${named(path)} ${code === 'number-decimal' ? decimalWhy(reading.scale) : NOTED[code]}`)
   draft.notes.push(...planned.said)
-  if (!nullable) note(draft, 'present-always', where, `${named(path)} is declared never null: the version requires it, and no rule hides it, what holds it or its page`)
+  if (!nullable)
+    note(draft, 'present-always', where, `${named(path)} is declared never null: the version requires it, and no rule hides it, what holds it or its page`)
   const fields: Planned[] = []
   for (const part of planned.parts) {
-    const taker: Taken = { path, ...(part.member === undefined || reading.members === undefined ? {} : { member: { what: reading.members.what, place: part.member.place + 1 } }) }
+    const taker: Taken = {
+      path,
+      ...(part.member === undefined || reading.members === undefined ? {} : { member: { what: reading.members.what, place: part.member.place + 1 } }),
+    }
     const taken = draft.ids[role].get(part.id)
     if (taken !== undefined) {
-      draft.f.report(where, 'colliding-ids', `${described(taker)} and ${described(taken)} would both be one field of the report; a report's field ids are unique, and neither is renamed by likeness to tell them apart`)
+      draft.f.report(
+        where,
+        'colliding-ids',
+        `${described(taker)} and ${described(taken)} would both be one field of the report; a report's field ids are unique, and neither is renamed by likeness to tell them apart`,
+      )
       return []
     }
     draft.ids[role].set(part.id, taker)
-    const binding: FieldFormBinding = { path: keys.join('.'), ...(part.member === undefined ? {} : { member: part.member.value }), ...(reading.read === undefined ? {} : { read: reading.read }) }
-    const field: FieldContract = { id: part.id, type: reading.type, label: part.label, nullable, ...(reading.scale === undefined ? {} : { scale: reading.scale }), form: binding }
+    const binding: FieldFormBinding = {
+      path: keys.join('.'),
+      ...(part.member === undefined ? {} : { member: part.member.value }),
+      ...(reading.read === undefined ? {} : { read: reading.read }),
+    }
+    const field: FieldContract = {
+      id: part.id,
+      type: reading.type,
+      label: part.label,
+      nullable,
+      ...(reading.scale === undefined ? {} : { scale: reading.scale }),
+      form: binding,
+    }
     fields.push({ field, line: part.line, prints: reading.prints })
   }
   return fields

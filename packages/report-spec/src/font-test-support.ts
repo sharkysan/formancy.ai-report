@@ -52,15 +52,38 @@ export function sfnt(tables: readonly Table[], version: number = 0x00010000): Ui
 /** The font header, 54 bytes. */
 export function head({ major = 1, magic = 0x5f0f3cf5, flags = 0, unitsPerEm = 1000, macStyle = 0, locFormat = 0, glyphDataFormat = 0 } = {}): Uint8Array {
   return Uint8Array.from([
-    ...u16(major), ...u16(0), ...u32(0x00010000), ...u32(0), ...u32(magic), ...u16(flags), ...u16(unitsPerEm),
-    ...new Array<number>(16).fill(0), ...u16(-100), ...u16(-200), ...u16(600), ...u16(800),
-    ...u16(macStyle), ...u16(8), ...u16(2), ...u16(locFormat), ...u16(glyphDataFormat),
+    ...u16(major),
+    ...u16(0),
+    ...u32(0x00010000),
+    ...u32(0),
+    ...u32(magic),
+    ...u16(flags),
+    ...u16(unitsPerEm),
+    ...new Array<number>(16).fill(0),
+    ...u16(-100),
+    ...u16(-200),
+    ...u16(600),
+    ...u16(800),
+    ...u16(macStyle),
+    ...u16(8),
+    ...u16(2),
+    ...u16(locFormat),
+    ...u16(glyphDataFormat),
   ])
 }
 
 /** The horizontal header, 36 bytes. */
 export function hhea({ major = 1, ascender = 800, descender = -200, lineGap = 90, metricDataFormat = 0, metrics = 3 } = {}): Uint8Array {
-  return Uint8Array.from([...u16(major), ...u16(0), ...u16(ascender), ...u16(descender), ...u16(lineGap), ...new Array<number>(22).fill(0), ...u16(metricDataFormat), ...u16(metrics)])
+  return Uint8Array.from([
+    ...u16(major),
+    ...u16(0),
+    ...u16(ascender),
+    ...u16(descender),
+    ...u16(lineGap),
+    ...new Array<number>(22).fill(0),
+    ...u16(metricDataFormat),
+    ...u16(metrics),
+  ])
 }
 
 /**
@@ -69,7 +92,15 @@ export function hhea({ major = 1, ascender = 800, descender = -200, lineGap = 90
  * count, numOfLongVerMetrics, at byte 34.
  */
 export function vhea({ metricDataFormat = 0, metrics = 3 } = {}): Uint8Array {
-  return Uint8Array.from([...u32(0x00011000), ...u16(500), ...u16(-500), ...u16(0), ...new Array<number>(22).fill(0), ...u16(metricDataFormat), ...u16(metrics)])
+  return Uint8Array.from([
+    ...u32(0x00011000),
+    ...u16(500),
+    ...u16(-500),
+    ...u16(0),
+    ...new Array<number>(22).fill(0),
+    ...u16(metricDataFormat),
+    ...u16(metrics),
+  ])
 }
 
 /** The maximum profile: version 1.0's 32 bytes, or 0.5's six, which a CFF font carries. */
@@ -78,7 +109,13 @@ export function maxp({ version = 0x00010000, glyphs = 3 } = {}): Uint8Array {
 }
 
 /** The OS/2 table at the length its version defines: 78 bytes for 0, 86 for 1, 96 for 2 to 4 and 100 for 5. */
-export function os2({ version = 4, fsType = 0, weight = 400, fsSelection = 0x40, length }: { version?: number; fsType?: number; weight?: number; fsSelection?: number; length?: number } = {}): Uint8Array {
+export function os2({
+  version = 4,
+  fsType = 0,
+  weight = 400,
+  fsSelection = 0x40,
+  length,
+}: { version?: number; fsType?: number; weight?: number; fsSelection?: number; length?: number } = {}): Uint8Array {
   const bytes = new Uint8Array(length ?? (version === 0 ? 78 : version === 1 ? 86 : version >= 5 ? 100 : 96))
   const view = new DataView(bytes.buffer)
   view.setUint16(0, version)
@@ -89,7 +126,21 @@ export function os2({ version = 4, fsType = 0, weight = 400, fsSelection = 0x40,
 }
 
 /** The PostScript table: 32 bytes for versions 1.0 and 3.0; version 2.0's glyph name indices and Pascal strings after them. */
-export function post({ version = 0x00030000, italicAngle = 0, fixedPitch = 0, indices = [] as readonly number[], names = [] as readonly string[], strings }: { version?: number; italicAngle?: number; fixedPitch?: number; indices?: readonly number[]; names?: readonly string[]; strings?: readonly number[] } = {}): Uint8Array {
+export function post({
+  version = 0x00030000,
+  italicAngle = 0,
+  fixedPitch = 0,
+  indices = [] as readonly number[],
+  names = [] as readonly string[],
+  strings,
+}: {
+  version?: number
+  italicAngle?: number
+  fixedPitch?: number
+  indices?: readonly number[]
+  names?: readonly string[]
+  strings?: readonly number[]
+} = {}): Uint8Array {
   const header = [...u32(version), ...u32(italicAngle * 65536), ...u16(-100), ...u16(50), ...u32(fixedPitch), ...new Array<number>(16).fill(0)]
   if (version !== 0x00020000) return Uint8Array.from(header)
   const pascal = strings ?? names.flatMap((name) => [name.length, ...ascii(name)])
@@ -105,11 +156,12 @@ export interface NameEntry {
   readonly text: string
 }
 
-const utf16 = (text: string): number[] => [...text].flatMap((character) => {
-  const point = character.codePointAt(0)!
-  if (point < 0x10000) return u16(point)
-  return [...u16(0xd800 + ((point - 0x10000) >> 10)), ...u16(0xdc00 + ((point - 0x10000) & 0x3ff))]
-})
+const utf16 = (text: string): number[] =>
+  [...text].flatMap((character) => {
+    const point = character.codePointAt(0)!
+    if (point < 0x10000) return u16(point)
+    return [...u16(0xd800 + ((point - 0x10000) >> 10)), ...u16(0xdc00 + ((point - 0x10000) & 0x3ff))]
+  })
 
 /** The bytes a name record of this platform holds for `text`. */
 export const nameBytes = (entry: Pick<NameEntry, 'platform' | 'text'>): number[] => (entry.platform === 1 ? ascii(entry.text) : utf16(entry.text))
@@ -172,7 +224,10 @@ export interface Segment {
  * unless `final` is false; a segment with glyphs indexes the glyph array
  * through its idRangeOffset, as the specification's formula reads it.
  */
-export function format4(segments: readonly Segment[], { final = true, length, segCountX2 }: { final?: boolean; length?: number; segCountX2?: number } = {}): Uint8Array {
+export function format4(
+  segments: readonly Segment[],
+  { final = true, length, segCountX2 }: { final?: boolean; length?: number; segCountX2?: number } = {},
+): Uint8Array {
   const all = final ? [...segments, { start: 0xffff, end: 0xffff, delta: 1 }] : [...segments]
   const count = all.length
   const glyphArray: number[] = []
@@ -185,8 +240,12 @@ export function format4(segments: readonly Segment[], { final = true, length, se
     return offset
   })
   const body = [
-    ...u16(count * 2 === 0 ? 0 : (segCountX2 ?? count * 2)), ...u16(0), ...u16(0), ...u16(0),
-    ...all.flatMap((segment) => u16(segment.end)), ...u16(0),
+    ...u16(count * 2 === 0 ? 0 : (segCountX2 ?? count * 2)),
+    ...u16(0),
+    ...u16(0),
+    ...u16(0),
+    ...all.flatMap((segment) => u16(segment.end)),
+    ...u16(0),
     ...all.flatMap((segment) => u16(segment.start)),
     ...all.flatMap((segment) => u16(segment.delta ?? 0)),
     ...rangeOffsets.flatMap(u16),
@@ -197,7 +256,14 @@ export function format4(segments: readonly Segment[], { final = true, length, se
 
 /** A format 12 subtable of these groups: the first and last code point and the glyph of the first. */
 export function format12(groups: readonly (readonly [number, number, number])[], { length }: { length?: number } = {}): Uint8Array {
-  return Uint8Array.from([...u16(12), ...u16(0), ...u32(length ?? 16 + 12 * groups.length), ...u32(0), ...u32(groups.length), ...groups.flatMap(([start, end, glyph]) => [...u32(start), ...u32(end), ...u32(glyph)])])
+  return Uint8Array.from([
+    ...u16(12),
+    ...u16(0),
+    ...u32(length ?? 16 + 12 * groups.length),
+    ...u32(0),
+    ...u32(groups.length),
+    ...groups.flatMap(([start, end, glyph]) => [...u32(start), ...u32(end), ...u32(glyph)]),
+  ])
 }
 
 /** A record of a format 14 subtable: its selector, its default ranges as a first code point and how many follow it, and its non-default mappings of a code point to a glyph. */
@@ -251,7 +317,18 @@ export const AB: readonly Segment[] = [{ start: 0x41, end: 0x42, delta: 1 - 0x41
 /** A square of four on-curve points, 34 bytes: a glyph with an outline, as a simple glyph description writes it. */
 export function square(size = 500): Uint8Array {
   const flags = [1, 1, 1, 1]
-  return Uint8Array.from([...u16(1), ...u16(0), ...u16(0), ...u16(size), ...u16(size), ...u16(3), ...u16(0), ...flags, ...[0, size, 0, -size].flatMap(u16), ...[0, 0, size, 0].flatMap(u16)])
+  return Uint8Array.from([
+    ...u16(1),
+    ...u16(0),
+    ...u16(0),
+    ...u16(size),
+    ...u16(size),
+    ...u16(3),
+    ...u16(0),
+    ...flags,
+    ...[0, size, 0, -size].flatMap(u16),
+    ...[0, 0, size, 0].flatMap(u16),
+  ])
 }
 
 /**
@@ -275,11 +352,18 @@ export const NO_CONTOURS = Uint8Array.from([...u16(0), ...u16(0), ...u16(0), ...
  * each placed by word offsets unless `bytes`, and transformed by a scale,
  * an x and a y scale or a two by two matrix of F2DOT14s as `transform` says.
  */
-export function composite(components: readonly number[], { bytes = false, transform = 'none' }: { bytes?: boolean; transform?: 'none' | 'scale' | 'xy' | 'matrix' } = {}): Uint8Array {
+export function composite(
+  components: readonly number[],
+  { bytes = false, transform = 'none' }: { bytes?: boolean; transform?: 'none' | 'scale' | 'xy' | 'matrix' } = {},
+): Uint8Array {
   const flag = { none: 0, scale: 0x0008, xy: 0x0040, matrix: 0x0080 }[transform]
   const scales = { none: 0, scale: 1, xy: 2, matrix: 4 }[transform]
   return Uint8Array.from([
-    ...u16(0xffff), ...u16(0), ...u16(0), ...u16(500), ...u16(500),
+    ...u16(0xffff),
+    ...u16(0),
+    ...u16(0),
+    ...u16(500),
+    ...u16(500),
     ...components.flatMap((glyph, index) => [
       ...u16((bytes ? 0 : 0x0001) | flag | (index < components.length - 1 ? 0x0020 : 0)),
       ...u16(glyph),
@@ -361,7 +445,8 @@ export function tableAt(bytes: Uint8Array, tag: string): { readonly record: numb
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   for (let index = 0; index < view.getUint16(4); index++) {
     const record = 12 + 16 * index
-    if (String.fromCharCode(...bytes.subarray(record, record + 4)) === tag) return { record, offset: view.getUint32(record + 8), length: view.getUint32(record + 12) }
+    if (String.fromCharCode(...bytes.subarray(record, record + 4)) === tag)
+      return { record, offset: view.getUint32(record + 8), length: view.getUint32(record + 12) }
   }
   throw new Error(`no ${tag} table`)
 }

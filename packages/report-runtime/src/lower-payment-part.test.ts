@@ -21,7 +21,14 @@ const text = (value: string): readonly Inline[] => [{ kind: 'text', text: value 
 const read = (field: string): readonly Inline[] => [{ kind: 'field', field: header(field) }]
 
 /** An address of literal parts, each one left out that is undefined. */
-function address(name: string, street: string | undefined, buildingNumber: string | undefined, postalCode: string, town: string, country: string): QrBillAddress {
+function address(
+  name: string,
+  street: string | undefined,
+  buildingNumber: string | undefined,
+  postalCode: string,
+  town: string,
+  country: string,
+): QrBillAddress {
   return {
     name: text(name),
     ...(street === undefined ? {} : { street: text(street) }),
@@ -124,15 +131,44 @@ interface Example {
 const EXAMPLES: readonly Example[] = [
   {
     name: 'example 1, a QR-IBAN and a QR reference (Table 17)',
-    bill: { kind: 'swissQrBill', language: 'en', account: text('CH6431961000004421557'), creditor: SAMPLE_COMPANY, currency: 'CHF', amount: AMOUNT, debtor: SIMON, reference: text('000008207791225857421286694'), message: text('Payment of travel') },
+    bill: {
+      kind: 'swissQrBill',
+      language: 'en',
+      account: text('CH6431961000004421557'),
+      creditor: SAMPLE_COMPANY,
+      currency: 'CHF',
+      amount: AMOUNT,
+      debtor: SIMON,
+      reference: text('000008207791225857421286694'),
+      message: text('Payment of travel'),
+    },
     amount: '50.00',
     lines: [
-      'SPC', '0200', '1', 'CH6431961000004421557',
-      'S', 'Max Muster & Söhne (sample company)', 'Musterstrasse', '123', '8000', 'Seldwyla', 'CH',
+      'SPC',
+      '0200',
+      '1',
+      'CH6431961000004421557',
+      'S',
+      'Max Muster & Söhne (sample company)',
+      'Musterstrasse',
+      '123',
+      '8000',
+      'Seldwyla',
+      'CH',
       ...NOBODY,
-      '50.00', 'CHF',
-      'S', 'Simon Muster', 'Musterstrasse', '1', '8000', 'Seldwyla', 'CH',
-      'QRR', '000008207791225857421286694', 'Payment of travel', 'EPD',
+      '50.00',
+      'CHF',
+      'S',
+      'Simon Muster',
+      'Musterstrasse',
+      '1',
+      '8000',
+      'Seldwyla',
+      'CH',
+      'QRR',
+      '000008207791225857421286694',
+      'Payment of travel',
+      'EPD',
     ],
     printed: {
       account: 'CH64 3196 1000 0044 2155 7',
@@ -161,12 +197,31 @@ const EXAMPLES: readonly Example[] = [
     },
     amount: '1949.75',
     lines: [
-      'SPC', '0200', '1', 'CH4431999123000889012',
-      'S', 'Max Muster & Söhne (sample company)', 'Musterstrasse', '123', '8000', 'Seldwyla', 'CH',
+      'SPC',
+      '0200',
+      '1',
+      'CH4431999123000889012',
+      'S',
+      'Max Muster & Söhne (sample company)',
+      'Musterstrasse',
+      '123',
+      '8000',
+      'Seldwyla',
+      'CH',
       ...NOBODY,
-      '1949.75', 'CHF',
-      'S', 'Simon Muster', 'Musterstrasse', '1', '8000', 'Seldwyla', 'CH',
-      'QRR', '210000000003139471430009017', 'Order from 15.10.2020', 'EPD',
+      '1949.75',
+      'CHF',
+      'S',
+      'Simon Muster',
+      'Musterstrasse',
+      '1',
+      '8000',
+      'Seldwyla',
+      'CH',
+      'QRR',
+      '210000000003139471430009017',
+      'Order from 15.10.2020',
+      'EPD',
       '//S1/10/1234/11/201021/30/102673386/32/7.7/40/0:30',
     ],
     printed: {
@@ -182,9 +237,35 @@ const EXAMPLES: readonly Example[] = [
   },
   {
     name: 'example 3, without an amount, a debtor or a reference (Table 19)',
-    bill: { kind: 'swissQrBill', language: 'en', account: text('CH5204835012345671000'), creditor: address('Muster Stiftung (sample foundation)', 'P.O. box', undefined, '3001', 'Bern', 'CH'), currency: 'CHF' },
+    bill: {
+      kind: 'swissQrBill',
+      language: 'en',
+      account: text('CH5204835012345671000'),
+      creditor: address('Muster Stiftung (sample foundation)', 'P.O. box', undefined, '3001', 'Bern', 'CH'),
+      currency: 'CHF',
+    },
     amount: null,
-    lines: ['SPC', '0200', '1', 'CH5204835012345671000', 'S', 'Muster Stiftung (sample foundation)', 'P.O. box', '', '3001', 'Bern', 'CH', ...NOBODY, '', 'CHF', ...NOBODY, 'NON', '', '', 'EPD'],
+    lines: [
+      'SPC',
+      '0200',
+      '1',
+      'CH5204835012345671000',
+      'S',
+      'Muster Stiftung (sample foundation)',
+      'P.O. box',
+      '',
+      '3001',
+      'Bern',
+      'CH',
+      ...NOBODY,
+      '',
+      'CHF',
+      ...NOBODY,
+      'NON',
+      '',
+      '',
+      'EPD',
+    ],
     printed: {
       account: 'CH52 0483 5012 3456 7100 0',
       creditor: ['Muster Stiftung (sample foundation)', 'P.O. box', '3001 Bern'],
@@ -198,15 +279,43 @@ const EXAMPLES: readonly Example[] = [
   },
   {
     name: 'example 5, a creditor in Liechtenstein (Table 21)',
-    bill: { kind: 'swissQrBill', language: 'en', account: text('CH5800791123000889012'), creditor: address('Max Muster & Söhne (sample company)', 'Musterstrasse', '123', '9490', 'Vaduz', 'LI'), currency: 'CHF', amount: AMOUNT, debtor: SARAH, reference: text('RF18539007547034') },
+    bill: {
+      kind: 'swissQrBill',
+      language: 'en',
+      account: text('CH5800791123000889012'),
+      creditor: address('Max Muster & Söhne (sample company)', 'Musterstrasse', '123', '9490', 'Vaduz', 'LI'),
+      currency: 'CHF',
+      amount: AMOUNT,
+      debtor: SARAH,
+      reference: text('RF18539007547034'),
+    },
     amount: '199.95',
     lines: [
-      'SPC', '0200', '1', 'CH5800791123000889012',
-      'S', 'Max Muster & Söhne (sample company)', 'Musterstrasse', '123', '9490', 'Vaduz', 'LI',
+      'SPC',
+      '0200',
+      '1',
+      'CH5800791123000889012',
+      'S',
+      'Max Muster & Söhne (sample company)',
+      'Musterstrasse',
+      '123',
+      '9490',
+      'Vaduz',
+      'LI',
       ...NOBODY,
-      '199.95', 'CHF',
-      'S', 'Sarah Beispiel', 'Musterstrasse', '1', '8000', 'Seldwyla', 'CH',
-      'SCOR', 'RF18539007547034', '', 'EPD',
+      '199.95',
+      'CHF',
+      'S',
+      'Sarah Beispiel',
+      'Musterstrasse',
+      '1',
+      '8000',
+      'Seldwyla',
+      'CH',
+      'SCOR',
+      'RF18539007547034',
+      '',
+      'EPD',
     ],
     printed: {
       account: 'CH58 0079 1123 0008 8901 2',
@@ -233,12 +342,31 @@ const EXAMPLES: readonly Example[] = [
     },
     amount: '199.95',
     lines: [
-      'SPC', '0200', '1', 'CH5800791123000889012',
-      'S', 'Max Muster & Söhne (sample company)', 'Musterstrasse', '123', '8000', 'Seldwyla', 'CH',
+      'SPC',
+      '0200',
+      '1',
+      'CH5800791123000889012',
+      'S',
+      'Max Muster & Söhne (sample company)',
+      'Musterstrasse',
+      '123',
+      '8000',
+      'Seldwyla',
+      'CH',
       ...NOBODY,
-      '199.95', 'CHF',
-      'S', 'Sarah Beispiel', 'Musterstrasse', '1', '78462', 'Konstanz', 'DE',
-      'SCOR', 'RF18539007547034', '', 'EPD',
+      '199.95',
+      'CHF',
+      'S',
+      'Sarah Beispiel',
+      'Musterstrasse',
+      '1',
+      '78462',
+      'Konstanz',
+      'DE',
+      'SCOR',
+      'RF18539007547034',
+      '',
+      'EPD',
     ],
     printed: {
       account: 'CH58 0079 1123 0008 8901 2',
@@ -302,7 +430,14 @@ const FROM_DATA: SwissQrBill = {
   creditor: SAMPLE_COMPANY,
   currency: 'CHF',
   amount: AMOUNT,
-  debtor: { name: read('name'), street: text('Musterstrasse'), buildingNumber: text('1'), postalCode: text('8000'), town: read('town'), country: read('country') },
+  debtor: {
+    name: read('name'),
+    street: text('Musterstrasse'),
+    buildingNumber: text('1'),
+    postalCode: text('8000'),
+    town: read('town'),
+    country: read('country'),
+  },
   reference: read('reference'),
   message: read('message'),
   billingInformation: read('billing'),
@@ -335,10 +470,20 @@ describe('a bill read from data', () => {
   // holds neither (IG Table 8, IBAN; 4.1.3), so both are dropped and the
   // slip prints the code's own value, grouped.
   test('drops the spaces in the account and the reference, and the blanks around every text', () => {
-    const spaced = { ...EXAMPLE_2, account: ' CH44 3199 9123 0008 8901 2 ', reference: '21 00000 00003 13947 14300 09017', name: '  Simon Muster ', message: 'Order from 15.10.2020  ' }
+    const spaced = {
+      ...EXAMPLE_2,
+      account: ' CH44 3199 9123 0008 8901 2 ',
+      reference: '21 00000 00003 13947 14300 09017',
+      name: '  Simon Muster ',
+      message: 'Order from 15.10.2020  ',
+    }
     const part = bill(invoice(FROM_DATA), data(spaced))
     expect(part.payload.split('\n')).toEqual(EXAMPLES[1]?.lines)
-    expect(part).toMatchObject({ account: 'CH44 3199 9123 0008 8901 2', reference: '21 00000 00003 13947 14300 09017', debtor: ['Simon Muster', 'Musterstrasse 1', '8000 Seldwyla'] })
+    expect(part).toMatchObject({
+      account: 'CH44 3199 9123 0008 8901 2',
+      reference: '21 00000 00003 13947 14300 09017',
+      debtor: ['Simon Muster', 'Musterstrasse 1', '8000 Seldwyla'],
+    })
   })
 
   // A bill's text reads as a paragraph in its place prints it: a format,
@@ -350,10 +495,15 @@ describe('a bill read from data', () => {
       { kind: 'field', field: header('orderedOn'), format: { kind: 'date', style: 'long' } },
       { kind: 'expression', expression: { cel: '" for " + header.name' } },
     ]
-    const report = invoice({ ...FROM_DATA, message: runs }, { regions: { reportHeader: [], pageHeader: [], body: [{ id: 'line', kind: 'text', content: runs }], pageFooter: [], summary: [] } })
+    const report = invoice(
+      { ...FROM_DATA, message: runs },
+      { regions: { reportHeader: [], pageHeader: [], body: [{ id: 'line', kind: 'text', content: runs }], pageFooter: [], summary: [] } },
+    )
     const { document } = resolved(report, data({ ...EXAMPLE_2, orderedOn: '2020-10-15' }))
     const [paragraph] = document.body
-    expect(paragraph?.kind === 'paragraph' && paragraph.runs.map((run) => ('text' in run ? run.text : '')).join('')).toBe('Order of October 15, 2020 for Simon Muster')
+    expect(paragraph?.kind === 'paragraph' && paragraph.runs.map((run) => ('text' in run ? run.text : '')).join('')).toBe(
+      'Order of October 15, 2020 for Simon Muster',
+    )
     expect(document.paymentPart?.additionalInformation).toEqual(['Order of October 15, 2020 for Simon Muster', EXAMPLE_2.billing])
   })
 
@@ -411,7 +561,9 @@ describe('a bill read from data', () => {
   // is: the message must not carry the text it is in.
   test('names a character it refuses by its position in the text', () => {
     const outcome = resolveReport(invoice(FROM_DATA), data({ ...EXAMPLE_2, town: ' Seldwyla \u{1F3D4}' }), FINAL)
-    expect(outcome.ok ? [] : outcome.errors.map(({ message }) => message)).toEqual(["the debtor's town is not written in the characters SIX allows (IG 4.1.1): character 11 is outside them"])
+    expect(outcome.ok ? [] : outcome.errors.map(({ message }) => message)).toEqual([
+      "the debtor's town is not written in the characters SIX allows (IG 4.1.1): character 11 is outside them",
+    ])
   })
 })
 
@@ -431,7 +583,12 @@ describe('the amount', () => {
   test('refuses a value that is not a decimal, by its type', () => {
     const outcome = resolveReport(invoice({ ...FROM_DATA, amount: { cel: 'header.count' } }), data({ ...EXAMPLE_2, count: '1949' }), FINAL)
     expect(outcome.ok ? [] : outcome.errors).toEqual([
-      { stage: 'resolve', code: 'invalid-qr-bill', path: '/paymentPart/amount', message: "the amount gives integer, and a QR-bill's amount is a decimal, or null to leave it for the payer" },
+      {
+        stage: 'resolve',
+        code: 'invalid-qr-bill',
+        path: '/paymentPart/amount',
+        message: "the amount gives integer, and a QR-bill's amount is a decimal, or null to leave it for the payer",
+      },
     ])
   })
 
@@ -439,7 +596,9 @@ describe('the amount', () => {
   // stands in no component, and an error that named none would say nothing.
   test('names the payment part when its expression fails', () => {
     const outcome = resolveReport(invoice({ ...FROM_DATA, amount: { cel: 'divide(header.amount, dec("0"), 2)' } }), data(EXAMPLE_2), FINAL)
-    expect(outcome.ok ? [] : outcome.errors).toMatchObject([{ stage: 'evaluation', code: 'expression-failed', path: '/paymentPart/amount/cel', message: expect.stringMatching(/^the payment part: /) }])
+    expect(outcome.ok ? [] : outcome.errors).toMatchObject([
+      { stage: 'evaluation', code: 'expression-failed', path: '/paymentPart/amount/cel', message: expect.stringMatching(/^the payment part: /) },
+    ])
   })
 })
 
@@ -449,7 +608,17 @@ describe('a value the bill lacks', () => {
   // name, a message cut short -- and scan as some other bill, so a final
   // render refuses it, naming the run.
   test('refuses a final render, naming the run', () => {
-    const outcome = resolveReport(invoice({ ...FROM_DATA, message: [{ kind: 'text', text: 'Order for ' }, { kind: 'field', field: header('name') }] }), data({ ...EXAMPLE_2, name: null }), FINAL)
+    const outcome = resolveReport(
+      invoice({
+        ...FROM_DATA,
+        message: [
+          { kind: 'text', text: 'Order for ' },
+          { kind: 'field', field: header('name') },
+        ],
+      }),
+      data({ ...EXAMPLE_2, name: null }),
+      FINAL,
+    )
     const message = 'the payment part: this run has no value, and a QR-bill without it would scan as some other bill'
     expect(outcome.ok ? [] : outcome.errors).toEqual([
       { stage: 'resolve', code: 'no-qr-value', path: '/paymentPart/debtor/name/0', message },
@@ -477,7 +646,12 @@ describe('a value the bill lacks', () => {
     expect(shorter.document.pageHeader[0]).toMatchObject({ runs: [{ text: PREVIEW_LABEL }] })
     const outcome = resolveReport(invoice(FROM_DATA), without(EXAMPLE_2, 'name'), PREVIEW)
     expect(outcome.ok ? [] : outcome.errors).toEqual([
-      { stage: 'resolve', code: 'invalid-qr-bill', path: '/paymentPart/debtor/name', message: "the debtor's name is empty, and a QR-bill needs it; this preview has no value for a run of it" },
+      {
+        stage: 'resolve',
+        code: 'invalid-qr-bill',
+        path: '/paymentPart/debtor/name',
+        message: "the debtor's name is empty, and a QR-bill needs it; this preview has no value for a run of it",
+      },
     ])
   })
 })
@@ -486,9 +660,14 @@ describe('the payment part', () => {
   // A value a format cannot show is an error that says where; in a bill,
   // which stands in no component, it names the payment part.
   test('names itself in an error a run of it gives', () => {
-    const report = invoice({ ...FROM_DATA, message: [{ kind: 'field', field: header('amount'), format: { kind: 'currency', currency: { kind: 'field', field: header('country') }, scale: 2 } }] })
+    const report = invoice({
+      ...FROM_DATA,
+      message: [{ kind: 'field', field: header('amount'), format: { kind: 'currency', currency: { kind: 'field', field: header('country') }, scale: 2 } }],
+    })
     const outcome = resolveReport(report, data(EXAMPLE_2), FINAL)
-    expect(outcome.ok ? [] : outcome.errors).toMatchObject([{ stage: 'format', code: 'invalid-currency', path: '/paymentPart/message/0', message: expect.stringMatching(/^the payment part: /) }])
+    expect(outcome.ok ? [] : outcome.errors).toMatchObject([
+      { stage: 'format', code: 'invalid-currency', path: '/paymentPart/message/0', message: expect.stringMatching(/^the payment part: /) },
+    ])
   })
 
   // A report without a bill resolves to a document without one: no key the

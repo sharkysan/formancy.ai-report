@@ -43,7 +43,10 @@ function readsOf(reads: ReadonlyMap<string, readonly string[]>, id: string): rea
  * reads, and otherwise the earliest declared first; and, in declaration
  * order, those that have no place in it.
  */
-export function aggregateOrder(report: ReportDefinition, reads: ReadonlyMap<string, readonly string[]>): { readonly order: readonly string[]; readonly unordered: readonly string[] } {
+export function aggregateOrder(
+  report: ReportDefinition,
+  reads: ReadonlyMap<string, readonly string[]>,
+): { readonly order: readonly string[]; readonly unordered: readonly string[] } {
   const placed = new Set<string>()
   const ready = (id: string): boolean => !placed.has(id) && readsOf(reads, id).every((read) => placed.has(read))
   for (let next = report.aggregates.find(({ id }) => ready(id)); next !== undefined; next = report.aggregates.find(({ id }) => ready(id))) placed.add(next.id)

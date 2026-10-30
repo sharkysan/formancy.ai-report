@@ -62,6 +62,7 @@ export async function readCodes(bytes: Uint8Array, pageNumber: number, scale = S
 /** The level and version ZXing read, from the details it gives as JSON; a result without them is a reader this one does not know. */
 export function symbolOf(extra: string): Pick<PdfCode, 'ecLevel' | 'version'> {
   const { ECLevel, Version } = JSON.parse(extra) as { ECLevel?: unknown; Version?: unknown }
-  if ((ECLevel !== 'L' && ECLevel !== 'M' && ECLevel !== 'Q' && ECLevel !== 'H') || !/^\d+$/.test(String(Version))) throw new Error(`ZXing read a QR code without a level and a version: ${extra}`)
+  if ((ECLevel !== 'L' && ECLevel !== 'M' && ECLevel !== 'Q' && ECLevel !== 'H') || !/^\d+$/.test(String(Version)))
+    throw new Error(`ZXing read a QR code without a level and a version: ${extra}`)
   return { ecLevel: ECLevel, version: Number(Version) }
 }

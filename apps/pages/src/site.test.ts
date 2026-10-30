@@ -102,7 +102,12 @@ describe('the site the build writes (0021)', () => {
   test('gives the checks something to read on every page', () => {
     for (const page of site.pages) {
       const document = new DOMParser().parseFromString(page.html, 'text/html')
-      expect({ file: page.file, links: document.querySelectorAll('a[href]').length > 10, alternates: document.querySelectorAll('link[rel="alternate"]').length, json: document.querySelectorAll('script[type="application/ld+json"]').length }).toEqual({
+      expect({
+        file: page.file,
+        links: document.querySelectorAll('a[href]').length > 10,
+        alternates: document.querySelectorAll('link[rel="alternate"]').length,
+        json: document.querySelectorAll('script[type="application/ld+json"]').length,
+      }).toEqual({
         file: page.file,
         links: true,
         alternates: 5,

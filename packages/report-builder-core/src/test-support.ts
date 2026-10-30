@@ -54,7 +54,20 @@ const RICH: ReportDefinition = {
         kind: 'columns',
         columns: [
           { width: 120, components: [{ id: 'logo-image', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 100, height: 40, fit: 'contain' }] },
-          { width: 'fill', components: [{ id: 'title', kind: 'text', style: 'title', content: [{ kind: 'text', text: 'Orders for ' }, { kind: 'field', field: header('customer') }] }] },
+          {
+            width: 'fill',
+            components: [
+              {
+                id: 'title',
+                kind: 'text',
+                style: 'title',
+                content: [
+                  { kind: 'text', text: 'Orders for ' },
+                  { kind: 'field', field: header('customer') },
+                ],
+              },
+            ],
+          },
         ],
       },
       { id: 'rule', kind: 'line', thickness: 0.5, color: '#999999' },
@@ -86,13 +99,32 @@ const RICH: ReportDefinition = {
           { id: 'box', kind: 'rectangle', width: 200, height: 40, fill: '#eeeeee' },
         ],
       },
-      { id: 'keep', kind: 'keepTogether', components: [{ id: 'kept', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'header.customer' } }] }] },
+      {
+        id: 'keep',
+        kind: 'keepTogether',
+        components: [{ id: 'kept', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'header.customer' } }] }],
+      },
       { id: 'break', kind: 'pageBreak' },
     ],
-    pageFooter: [{ id: 'page-of', kind: 'text', content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }] }],
+    pageFooter: [
+      {
+        id: 'page-of',
+        kind: 'text',
+        content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }],
+      },
+    ],
     summary: [
       { id: 'signature-image', kind: 'image', source: { kind: 'field', field: header('signature') }, width: 150, height: 50, fit: 'contain' },
-      { id: 'order-code', kind: 'qrCode', content: [{ kind: 'text', text: 'Orders for ' }, { kind: 'field', field: header('customer') }], size: 85.04, errorCorrection: 'Q' },
+      {
+        id: 'order-code',
+        kind: 'qrCode',
+        content: [
+          { kind: 'text', text: 'Orders for ' },
+          { kind: 'field', field: header('customer') },
+        ],
+        size: 85.04,
+        errorCorrection: 'Q',
+      },
       // The EPC's first example (EPC069-12 v3.1 2.3), its BIC, name, IBAN
       // and purpose, paying the report's total, with a remittance text of
       // two runs where the example has a reference, in Austria's frame.
@@ -105,7 +137,10 @@ const RICH: ReportDefinition = {
         bic: [{ kind: 'text', text: 'BHBLDEHHXXX' }],
         amount: { cel: 'totals.total' },
         purpose: 'GDDS',
-        text: [{ kind: 'text', text: 'Orders for ' }, { kind: 'field', field: header('customer') }],
+        text: [
+          { kind: 'text', text: 'Orders for ' },
+          { kind: 'field', field: header('customer') },
+        ],
         caption: 'zahlenMitCode',
       },
     ],
@@ -173,7 +208,10 @@ export function sessionOver(report: unknown): ReportSession {
 }
 
 /** An editor over a new session of `report` (the rich report when absent), and the session. */
-export function editorOver(report: ReportDefinition = richReport(), options: ReportEditorOptions = {}): { readonly editor: ReportEditor; readonly session: ReportSession } {
+export function editorOver(
+  report: ReportDefinition = richReport(),
+  options: ReportEditorOptions = {},
+): { readonly editor: ReportEditor; readonly session: ReportSession } {
   const session = sessionOver(report)
   return { editor: createReportEditor(session, options), session }
 }

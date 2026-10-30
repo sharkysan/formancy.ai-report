@@ -38,8 +38,17 @@ const forged = sign(claims, 'a-forgers-secret-that-is-not-the-hosts-of-32-bytes'
 const events: unknown[] = []
 const audit: ReportServerOptions['audit'] = { sink: (event) => void events.push(event) }
 
-const verifyIdentity = await createReportVerifier({ key: { kind: 'secret', secret: hostSecret }, issuer: 'https://login.example', audience: 'formancy-report', tenantClaim: 'tid' })
-const server = await createReportServer({ verifyIdentity, roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] }, audit })
+const verifyIdentity = await createReportVerifier({
+  key: { kind: 'secret', secret: hostSecret },
+  issuer: 'https://login.example',
+  audience: 'formancy-report',
+  tenantClaim: 'tid',
+})
+const server = await createReportServer({
+  verifyIdentity,
+  roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] },
+  audit,
+})
 await server.listen({ host: '127.0.0.1', port: 0 })
 
 try {
@@ -54,13 +63,17 @@ try {
     const refused = await fetch(`${at}/v1/whoami`, authorization === undefined ? {} : { headers: { authorization } })
     const body = (await refused.json()) as Refusal
     if (refused.status !== 401 || body.code !== REFUSALS.unauthenticated.code || refused.headers.get('www-authenticate') !== 'Bearer') {
-      throw new Error(`whoami ${authorization === undefined ? 'without a token' : 'with a bad token'} answered ${String(refused.status)} ${body.code}, not the one 401`)
+      throw new Error(
+        `whoami ${authorization === undefined ? 'without a token' : 'with a bad token'} answered ${String(refused.status)} ${body.code}, not the one 401`,
+      )
     }
   }
 
   const answered = await fetch(`${at}/v1/whoami`, { headers: { authorization: `Bearer ${token}` } })
   const me = (await answered.json()) as WhoAmI
-  const authors = Object.entries(ACTIONS).filter(([, capacities]) => (capacities as readonly string[]).includes('author')).map(([action]) => action)
+  const authors = Object.entries(ACTIONS)
+    .filter(([, capacities]) => (capacities as readonly string[]).includes('author'))
+    .map(([action]) => action)
   if (answered.status !== 200 || me.tenant !== 'acme' || me.subject !== 'u-1' || JSON.stringify(me.actions) !== JSON.stringify(authors)) {
     throw new Error(`whoami for the host's token answered ${String(answered.status)} ${JSON.stringify(me)}`)
   }
@@ -69,7 +82,9 @@ try {
   if (unknown.status !== 404) throw new Error(`/v1/templates answered ${String(unknown.status)}, where nothing but /health and /v1/whoami answers`)
   if (events.length !== 5) throw new Error(`the trail holds ${String(events.length)} events for five requests whoami answered`)
 
-  console.log(`ok: report-server listened on a socket of its own; /health answered, whoami refused no token, a tenantless one, a forgery and a malformed one with the one 401, and answered the host's token as tenant ${me.tenant} with ${String(me.actions.length)} actions; nothing else answered; the trail held one event for each request whoami answered`)
+  console.log(
+    `ok: report-server listened on a socket of its own; /health answered, whoami refused no token, a tenantless one, a forgery and a malformed one with the one 401, and answered the host's token as tenant ${me.tenant} with ${String(me.actions.length)} actions; nothing else answered; the trail held one event for each request whoami answered`,
+  )
 } finally {
   await server.close()
 }

@@ -49,7 +49,13 @@ function slipLanguage(report: ReportDefinition): QrBillLanguage {
  */
 export function newPaymentPart(report: ReportDefinition): SwissQrBill {
   const invoice = report.eInvoice
-  const bill: SwissQrBill = { kind: 'swissQrBill', language: slipLanguage(report), account: said(QR_BILL_EXAMPLE.account), creditor: address(QR_BILL_EXAMPLE.creditor), currency: 'CHF' }
+  const bill: SwissQrBill = {
+    kind: 'swissQrBill',
+    language: slipLanguage(report),
+    account: said(QR_BILL_EXAMPLE.account),
+    creditor: address(QR_BILL_EXAMPLE.creditor),
+    currency: 'CHF',
+  }
   return invoice === undefined ? bill : { ...bill, currency: invoice.currency, ...(invoice.payment === undefined ? {} : { account: invoice.payment.iban }) }
 }
 

@@ -32,7 +32,8 @@ export function readShape(element: SvgElement): Shape | undefined {
     if (attribute === undefined) continue
     if (name === 'd' || name === 'points') continue
     const length = readLength(attribute.value, attribute.where, false)
-    if (['width', 'height', 'r', 'rx', 'ry'].includes(name) && length.value < 0) refuse('out-of-range', `${attribute.where} is negative`, 'give it zero or more')
+    if (['width', 'height', 'r', 'rx', 'ry'].includes(name) && length.value < 0)
+      refuse('out-of-range', `${attribute.where} is negative`, 'give it zero or more')
     lengths.set(name, length)
     geometry.push([name, writeNumber(length)])
   }

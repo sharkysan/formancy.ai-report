@@ -51,7 +51,8 @@ function printed(report: ReportDefinition, data: ReportData): Set<string> {
     }
   }
   walk(report)
-  for (const line of data.detail as Record<string, string>[]) for (const name of ['description', 'unit']) if (/\p{L}/u.test(line[name] as string)) found.add(line[name] as string)
+  for (const line of data.detail as Record<string, string>[])
+    for (const name of ['description', 'unit']) if (/\p{L}/u.test(line[name] as string)) found.add(line[name] as string)
   return found
 }
 
@@ -109,7 +110,9 @@ describe('the invoice samples', () => {
   test.each(samples)('%s validates, with no diagnostic but that its bill pays SIX’s example', (_id, sample) => {
     const outcome = checkReport(sample.report)
     expect(outcome.ok ? [] : outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`)).toEqual([])
-    expect(diagnose(sample.report).map((diagnostic) => `${diagnostic.severity} ${diagnostic.code} ${diagnostic.path}`)).toEqual(['warning example-payment-part /paymentPart'])
+    expect(diagnose(sample.report).map((diagnostic) => `${diagnostic.severity} ${diagnostic.code} ${diagnostic.path}`)).toEqual([
+      'warning example-payment-part /paymentPart',
+    ])
   })
 
   // Its own data in a final render, with nothing a preview would warn of.
@@ -124,10 +127,34 @@ describe('the invoice samples', () => {
   // asked for an amount its table does not print, would be paid wrongly;
   // the code's text is compared whole, line by line, in SIX's order.
   test.each([
-    ['invoice', ['Formancy Haustechnik AG', 'Industriestrasse', '7', '3052', 'Zollikofen'], ['Bäckerei Müller AG', 'Hauptstrasse', '12', '3011', 'Bern'], '210000000003139471430009017', 'Rechnung R-2026-0731'],
-    ['invoice-fr', ['Formancy Technique du Bâtiment SA', 'Chemin des Artisans', '7', '1004', 'Lausanne'], ['Boulangerie Favre SA', 'Rue du Marché', '18', '1204', 'Genève'], '000000000000000000202604127', 'Facture F-2026-0412'],
-    ['invoice-it', ['Formancy Impianti Tecnici SA', 'Via Industria', '7', '6500', 'Bellinzona'], ['Panetteria Bernasconi SA', 'Via Cantonale', '12', '6900', 'Lugano'], '000000000000000000202605875', 'Fattura F-2026-0587'],
-    ['invoice-en', ['Formancy Building Services AG', 'Gewerbestrasse', '14', '4053', 'Basel'], ['Riverside Coffee Roasters AG', 'Rheingasse', '21', '4058', 'Basel'], '000000000000000000202603184', 'Invoice INV-2026-0318'],
+    [
+      'invoice',
+      ['Formancy Haustechnik AG', 'Industriestrasse', '7', '3052', 'Zollikofen'],
+      ['Bäckerei Müller AG', 'Hauptstrasse', '12', '3011', 'Bern'],
+      '210000000003139471430009017',
+      'Rechnung R-2026-0731',
+    ],
+    [
+      'invoice-fr',
+      ['Formancy Technique du Bâtiment SA', 'Chemin des Artisans', '7', '1004', 'Lausanne'],
+      ['Boulangerie Favre SA', 'Rue du Marché', '18', '1204', 'Genève'],
+      '000000000000000000202604127',
+      'Facture F-2026-0412',
+    ],
+    [
+      'invoice-it',
+      ['Formancy Impianti Tecnici SA', 'Via Industria', '7', '6500', 'Bellinzona'],
+      ['Panetteria Bernasconi SA', 'Via Cantonale', '12', '6900', 'Lugano'],
+      '000000000000000000202605875',
+      'Fattura F-2026-0587',
+    ],
+    [
+      'invoice-en',
+      ['Formancy Building Services AG', 'Gewerbestrasse', '14', '4053', 'Basel'],
+      ['Riverside Coffee Roasters AG', 'Rheingasse', '21', '4058', 'Basel'],
+      '000000000000000000202603184',
+      'Invoice INV-2026-0318',
+    ],
   ] as const)('%s is paid by a QR-bill for its exact total, to its firm, by its reference', (id, creditor, debtor, reference, message) => {
     const sample = INVOICE_SAMPLES.find((each) => each.id === id) as Starter
     const bill = resolved(sample).document.paymentPart

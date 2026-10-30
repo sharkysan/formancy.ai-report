@@ -40,7 +40,12 @@ export interface Owner {
 export type BoundInline = Exclude<ReportInline, { kind: 'text' | 'pageNumber' | 'pageCount' }>
 
 /** The value `inline`, at `path`, reads in `scope`, unformatted; undefined when its evaluation failed, which is recorded. */
-export function inlineValue(render: Pick<Render, 'report' | 'data' | 'params' | 'expressions' | 'problems' | 'preview' | 'totals'>, scope: Scope, inline: BoundInline, path: string): TypedValue | null | undefined {
+export function inlineValue(
+  render: Pick<Render, 'report' | 'data' | 'params' | 'expressions' | 'problems' | 'preview' | 'totals'>,
+  scope: Scope,
+  inline: BoundInline,
+  path: string,
+): TypedValue | null | undefined {
   switch (inline.kind) {
     case 'field':
       return fieldValue(render, scope.record, inline.field)
@@ -64,14 +69,32 @@ function kept(render: Render, path: string, row: number | undefined): { readonly
 }
 
 /** The value `inline` reads in `scope`, and the text it prints; undefined when either could not be had, which is recorded. */
-function printed(render: Render, scope: Scope, inline: BoundInline, path: string, owner: Owner): { readonly value: TypedValue | null; readonly text: string } | undefined {
+function printed(
+  render: Render,
+  scope: Scope,
+  inline: BoundInline,
+  path: string,
+  owner: Owner,
+): { readonly value: TypedValue | null; readonly text: string } | undefined {
   const read = kept(render, path, scope.row)
   const value = read === undefined ? inlineValue(render, scope, inline, path) : read.value
   if (value === undefined) return undefined
   const formatted = render.formatter.format(value, inline.format, scope.currency)
   if (formatted.ok) return { value, text: formatted.text }
-  const where = [owner.componentId === undefined ? owner.said : `component ${owner.componentId}`, owner.columnId && `column ${owner.columnId}`, scope.row !== undefined && `detail row ${scope.row}`].filter(Boolean).join(', ')
-  render.problems.error({ stage: 'format', code: formatted.code, path, message: `${where}: ${formatted.message}`, ...placed({ componentId: owner.componentId, columnId: owner.columnId, row: scope.row }) })
+  const where = [
+    owner.componentId === undefined ? owner.said : `component ${owner.componentId}`,
+    owner.columnId && `column ${owner.columnId}`,
+    scope.row !== undefined && `detail row ${scope.row}`,
+  ]
+    .filter(Boolean)
+    .join(', ')
+  render.problems.error({
+    stage: 'format',
+    code: formatted.code,
+    path,
+    message: `${where}: ${formatted.message}`,
+    ...placed({ componentId: owner.componentId, columnId: owner.columnId, row: scope.row }),
+  })
   return undefined
 }
 
@@ -156,11 +179,24 @@ export function readRuns(render: Render, scope: Scope, runs: readonly ReportInli
  * rather than one cut short, and a final render takes it as a preview
  * does; one whose other runs print something is still refused.
  */
-export function joinedText(render: Render, scope: Scope, runs: readonly ReportInline[], path: string, encoder: Encoder, unused?: (text: string) => boolean): Encoded | undefined {
+export function joinedText(
+  render: Render,
+  scope: Scope,
+  runs: readonly ReportInline[],
+  path: string,
+  encoder: Encoder,
+  unused?: (text: string) => boolean,
+): Encoded | undefined {
   const { text, nulls, refused } = readRuns(render, scope, runs, path, encoder)
   if (!render.preview && nulls.length > 0 && unused?.(text) !== true) {
     for (const at of nulls) {
-      render.problems.error({ stage: 'resolve', code: 'no-qr-value', path: at, message: `${encoder.said}: this run has no value, and ${encoder.code} without it would scan as ${SCANNED_AS[encoder.code]}`, ...placed(encoder) })
+      render.problems.error({
+        stage: 'resolve',
+        code: 'no-qr-value',
+        path: at,
+        message: `${encoder.said}: this run has no value, and ${encoder.code} without it would scan as ${SCANNED_AS[encoder.code]}`,
+        ...placed(encoder),
+      })
     }
     return undefined
   }
@@ -177,7 +213,13 @@ export function encodedText(render: Render, scope: Scope, content: readonly Repo
   const joined = joinedText(render, scope, content, `${path}/content`, { said: `component ${id}`, componentId: id, code: 'a QR code' })
   if (joined === undefined) return undefined
   if (joined.text !== '' || render.preview) return joined.text
-  render.problems.error({ stage: 'resolve', code: 'empty-qr-code', path: `${path}/content`, message: `component ${id}: its content prints nothing, and a QR code of nothing scans as no code`, componentId: id })
+  render.problems.error({
+    stage: 'resolve',
+    code: 'empty-qr-code',
+    path: `${path}/content`,
+    message: `component ${id}: its content prints nothing, and a QR code of nothing scans as no code`,
+    componentId: id,
+  })
   return undefined
 }
 

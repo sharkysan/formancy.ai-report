@@ -94,7 +94,8 @@ export function wordingProblems({ site }: Built): string[] {
     }
 
     const notice = [...document.querySelectorAll('footer p')].some((paragraph) => textOf(paragraph) === HL7_NOTICE)
-    if ([...said, ...described].some((text) => NAMES_HL7.test(text.replace(HL7_NOTICE, ''))) && !notice) say("names HL7 or FHIR and does not carry HL7's notice word for word in its footer")
+    if ([...said, ...described].some((text) => NAMES_HL7.test(text.replace(HL7_NOTICE, ''))) && !notice)
+      say("names HL7 or FHIR and does not carry HL7's notice word for word in its footer")
 
     for (const text of [...said, ...unquoted]) {
       const money = MONEY.exec(text)
@@ -106,7 +107,9 @@ export function wordingProblems({ site }: Built): string[] {
     // description, a title -- so that an entity spelling a letter hides
     // nothing.
     const attributes = [...document.querySelectorAll('*')].flatMap((element) => element.getAttributeNames().map((name) => element.getAttribute(name) ?? ''))
-    const named = [page.html, document.documentElement.textContent ?? '', ...attributes].map((text) => BANKS_NAME.exec(text)?.[0]).find((found) => found !== undefined)
+    const named = [page.html, document.documentElement.textContent ?? '', ...attributes]
+      .map((text) => BANKS_NAME.exec(text)?.[0])
+      .find((found) => found !== undefined)
     if (named !== undefined) say(`names "${named}", the name 0025 keeps off every page: who owns it, and what rules come with it, nothing here found`)
   }
   return problems

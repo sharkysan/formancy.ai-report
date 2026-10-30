@@ -45,7 +45,11 @@ describe('tryEdit', () => {
   // The end is validated whole: a step that left a style undeclared is
   // reported with the validator's reasons, pointing at the component.
   test("gives the validator's errors for an invalid end", () => {
-    const refusal = refused(tryEdit(frozenSample(), (draft) => draft.apply((r) => insertComponent(r, { region: 'body', index: 0 }, { id: 'b', kind: 'spacer', height: 5, style: 'missing' }))))
+    const refusal = refused(
+      tryEdit(frozenSample(), (draft) =>
+        draft.apply((r) => insertComponent(r, { region: 'body', index: 0 }, { id: 'b', kind: 'spacer', height: 5, style: 'missing' })),
+      ),
+    )
     expect(refusal).toMatchObject({ code: 'invalid-document', componentId: 'b' })
     expect(refusal.errors?.map(({ code }) => code)).toEqual(['unknown-style'])
   })

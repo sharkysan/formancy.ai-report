@@ -43,7 +43,9 @@ describe('readPdf', () => {
   // swapped the axes would put every "Page n of N" and every margin check out
   // by one page or one orientation.
   test('reads every page, numbered from 1, with its size in points', async () => {
-    const pdf = await readPdf(await pdfmakePdf({ pageSize: 'A4', pageOrientation: 'landscape', content: [{ text: 'first' }, { text: 'second', pageBreak: 'before' }] }))
+    const pdf = await readPdf(
+      await pdfmakePdf({ pageSize: 'A4', pageOrientation: 'landscape', content: [{ text: 'first' }, { text: 'second', pageBreak: 'before' }] }),
+    )
     expect(pdf.pages.map((page) => [page.number, page.width, page.height])).toEqual([
       [1, 841.89, 595.28],
       [2, 841.89, 595.28],
@@ -190,7 +192,9 @@ describe('readPdf', () => {
   // left out, which a test asking "how many files" would take for none.
   test('reads each file the name tree embeds, with its bytes, and none from a PDF that embeds none', async () => {
     const xml = new TextEncoder().encode('<Rechnung>Grüße</Rechnung>\r\n')
-    const embedded = await pdfmakePdf({ content: [{ text: 'with a file' }] }, (document) => document.file(exactBuffer(xml), { name: 'factur-x.xml', type: 'text/xml', description: 'invoice data' }))
+    const embedded = await pdfmakePdf({ content: [{ text: 'with a file' }] }, (document) =>
+      document.file(exactBuffer(xml), { name: 'factur-x.xml', type: 'text/xml', description: 'invoice data' }),
+    )
     expect((await readPdf(embedded)).attachments).toEqual([{ name: 'factur-x.xml', description: 'invoice data', bytes: xml }])
     expect((await readPdf(await pdfmakePdf({ content: [{ text: 'without' }] }))).attachments).toEqual([])
   })
@@ -213,7 +217,9 @@ describe('readPdf', () => {
     )
     page.drawPage(form, { x: 100, y: 500 })
     const { paths } = (await readPdf(await document.save())).pages[0]!
-    expect(paths.map((path) => ({ box: [path.x, path.top, path.width, path.height].map(hundredths), paint: path.paint, fill: path.fill, stroke: path.stroke }))).toEqual([
+    expect(
+      paths.map((path) => ({ box: [path.x, path.top, path.width, path.height].map(hundredths), paint: path.paint, fill: path.fill, stroke: path.stroke })),
+    ).toEqual([
       { box: [100, 121.89, 50, 20], paint: 'fill', fill: '#336699' },
       // The line's box is its points', two units by one doubled, before any stroke's width.
       { box: [300, 331.89, 20, 10], paint: 'stroke', stroke: '#ff0000' },
@@ -232,8 +238,20 @@ describe('readPdf', () => {
   test('lists a clip only when it is one rectangle on the page, judged by its corners', async () => {
     const document = await PDFDocument.create()
     const page = document.addPage([595.28, 841.89])
-    const square = (x: number, y: number, side: number): PDFOperator[] => [moveTo(x, y), lineTo(x + side, y), lineTo(x + side, y + side), lineTo(x, y + side), closePath()]
-    const diamond = (x: number, y: number, side: number): PDFOperator[] => [moveTo(x, y + side / 2), lineTo(x + side / 2, y), lineTo(x + side, y + side / 2), lineTo(x + side / 2, y + side), closePath()]
+    const square = (x: number, y: number, side: number): PDFOperator[] => [
+      moveTo(x, y),
+      lineTo(x + side, y),
+      lineTo(x + side, y + side),
+      lineTo(x, y + side),
+      closePath(),
+    ]
+    const diamond = (x: number, y: number, side: number): PDFOperator[] => [
+      moveTo(x, y + side / 2),
+      lineTo(x + side / 2, y),
+      lineTo(x + side, y + side / 2),
+      lineTo(x + side / 2, y + side),
+      closePath(),
+    ]
     const paint = (x: number, y: number): PDFOperator[] => [setFillingRgbColor(1, 0, 0), rectangle(x, y, 5, 5), fill()]
     page.pushOperators(
       ...group(rectangle(100, 600, 80, 40), clip(), endPath(), ...paint(90, 590)),

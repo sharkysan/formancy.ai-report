@@ -22,7 +22,8 @@ export type SelectedPart =
  * is no part is told by not being in it.
  */
 const HELD: { readonly [P in ReportLevelPart]: (report: ReportDefinition) => Extract<SelectedPart, { readonly part: P }> | undefined } = {
-  paymentPart: (report) => (report.paymentPart === undefined ? undefined : { kind: 'part', part: 'paymentPart', bill: report.paymentPart, path: '/paymentPart' }),
+  paymentPart: (report) =>
+    report.paymentPart === undefined ? undefined : { kind: 'part', part: 'paymentPart', bill: report.paymentPart, path: '/paymentPart' },
   eInvoice: (report) => (report.eInvoice === undefined ? undefined : { kind: 'part', part: 'eInvoice', invoice: report.eInvoice, path: '/eInvoice' }),
 }
 
@@ -43,7 +44,8 @@ export function selected(report: ReportDefinition, selection: Selection): Select
   const found = componentAt(report, selection.id)
   if (found === undefined) return undefined
   // Found above, so it stands somewhere.
-  if (selection.column === undefined) return { kind: 'component', component: found.component, path: found.path, location: locationOf(report, selection.id) as Location }
+  if (selection.column === undefined)
+    return { kind: 'component', component: found.component, path: found.path, location: locationOf(report, selection.id) as Location }
   if (found.component.kind !== 'table') return undefined
   const index = found.component.columns.findIndex((column) => column.id === selection.column)
   const column = found.component.columns[index]

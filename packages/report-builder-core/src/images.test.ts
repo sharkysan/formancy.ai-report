@@ -43,7 +43,10 @@ const added = (id: string): string => t('images.added', { id, kind: t('kind.imag
 function declaring(...assets: AssetRef[]): ReportDefinition {
   const report = blank()
   const [first] = assets
-  const header = first === undefined ? [] : [{ id: 'logo-image', kind: 'image' as const, source: { kind: 'asset' as const, asset: first.id }, width: 100, height: 40, fit: 'contain' as const }]
+  const header =
+    first === undefined
+      ? []
+      : [{ id: 'logo-image', kind: 'image' as const, source: { kind: 'asset' as const, asset: first.id }, width: 100, height: 40, fit: 'contain' as const }]
   return { ...report, assets, regions: { ...report.regions, reportHeader: header } }
 }
 
@@ -73,13 +76,21 @@ describe('adding an image', () => {
     const store = recordingStore()
     const { editor, session } = editorOver(blank(), { images: store })
     const huge = chosen('scan.png', PNG, MAX_ASSET_BYTES + 1)
-    expect(await editor.addImage(huge)).toEqual({ ok: false, code: 'not-an-image', message: refused('scan.png', t('images.reason.tooLarge', { size: '20.1 MB', limit: '20 MB' })) })
+    expect(await editor.addImage(huge)).toEqual({
+      ok: false,
+      code: 'not-an-image',
+      message: refused('scan.png', t('images.reason.tooLarge', { size: '20.1 MB', limit: '20 MB' })),
+    })
     expect(huge.reads()).toBe(0)
     // A PNG with a byte past the limit after it, which is past the limit before it is anything else.
     const padded = new Uint8Array(MAX_ASSET_BYTES + 1)
     padded.set(PNG)
     const understated = chosen('scan.png', padded, 10)
-    expect(await editor.addImage(understated)).toEqual({ ok: false, code: 'not-an-image', message: refused('scan.png', t('images.reason.tooLarge', { size: '20.1 MB', limit: '20 MB' })) })
+    expect(await editor.addImage(understated)).toEqual({
+      ok: false,
+      code: 'not-an-image',
+      message: refused('scan.png', t('images.reason.tooLarge', { size: '20.1 MB', limit: '20 MB' })),
+    })
     expect(understated.reads()).toBe(1)
     expect(store.offered).toEqual([])
     expect(session.canUndo()).toBe(false)
@@ -165,7 +176,10 @@ describe('adding an image', () => {
     ok(await editor.addImage(chosen('logo.png', PNG)))
     expect(await editor.addImage(chosen('logo copy.png', PNG))).toEqual({ ok: true })
     expect(editor.state().status.text).toBe(t('images.already', { id: 'logo' }))
-    expect(store.offered.map(({ asset, fileName }) => [asset, fileName])).toEqual([['logo', 'logo.png'], ['logo', 'logo copy.png']])
+    expect(store.offered.map(({ asset, fileName }) => [asset, fileName])).toEqual([
+      ['logo', 'logo.png'],
+      ['logo', 'logo copy.png'],
+    ])
     expect(session.document().assets).toHaveLength(1)
     ok(editor.dispatch({ type: 'undo' }))
     expect(session.canUndo()).toBe(false)
@@ -181,12 +195,18 @@ describe('adding an image', () => {
     const { editor, session } = editorOver(report, { images: store })
     const before = session.revision()
     ok(await editor.addImage(chosen('Firmenlogo.png', PNG)))
-    expect(store.kept).toEqual([{ asset: 'logo', mediaType: 'image/png', digest: assetDigest(PNG), bytes: PNG, fileName: 'Firmenlogo.png', width: 2, height: 1 }])
+    expect(store.kept).toEqual([
+      { asset: 'logo', mediaType: 'image/png', digest: assetDigest(PNG), bytes: PNG, fileName: 'Firmenlogo.png', width: 2, height: 1 },
+    ])
     expect(session.revision()).toBe(before)
     expect(editor.state().status.text).toBe(t('images.already', { id: 'logo' }))
     // A host's refusal of them is said as any other.
     const refusing = editorOver(report, { images: recordingStore(() => ({ ok: false, message: 'The library is full.' })) })
-    expect(await refusing.editor.addImage(chosen('Firmenlogo.png', PNG))).toEqual({ ok: false, code: 'not-kept', message: refused('Firmenlogo.png', 'The library is full.') })
+    expect(await refusing.editor.addImage(chosen('Firmenlogo.png', PNG))).toEqual({
+      ok: false,
+      code: 'not-kept',
+      message: refused('Firmenlogo.png', 'The library is full.'),
+    })
   })
 
   // An asset declared as another type than its bytes are -- which the
@@ -210,7 +230,10 @@ describe('adding an image', () => {
     ok(await editor.addImage(chosen('logo.png', PNG)))
     ok(editor.dispatch({ type: 'removeImage', asset: 'logo' }))
     ok(await editor.addImage(chosen('logo.png', png(3, 1))))
-    expect(store.kept.map(({ asset, width }) => [asset, width])).toEqual([['logo', 2], ['logo-2', 3]])
+    expect(store.kept.map(({ asset, width }) => [asset, width])).toEqual([
+      ['logo', 2],
+      ['logo-2', 3],
+    ])
     ok(editor.dispatch({ type: 'undo' }))
     ok(editor.dispatch({ type: 'undo' }))
     expect(session.document().assets).toEqual([{ id: 'logo', mediaType: 'image/png', digest: assetDigest(PNG) }])
@@ -261,7 +284,9 @@ describe('adding an image', () => {
     expect(session.document().assets).toEqual([{ id: 'logo', ...other }])
 
     const twin = sessionOver(blank())
-    const declares = createReportEditor(twin, { images: recordingStore((image) => (twin.apply((report) => putAsset(report, 'mark', { mediaType: image.mediaType, digest: image.digest })), { ok: true })) })
+    const declares = createReportEditor(twin, {
+      images: recordingStore((image) => (twin.apply((report) => putAsset(report, 'mark', { mediaType: image.mediaType, digest: image.digest })), { ok: true })),
+    })
     expect(await declares.addImage(chosen('logo.png', PNG))).toEqual({ ok: true })
     expect(twin.document().assets.map((declared) => declared.id)).toEqual(['mark'])
     expect(declares.state().status.text).toBe(t('images.already', { id: 'mark' }))
@@ -318,12 +343,18 @@ describe('adding an image', () => {
     const cleaned = cleanSvg(utf8(MARK))
     if (!cleaned.ok) throw new Error(cleaned.message)
     ok(await editor.addImage(chosen('mark.svg', utf8(MARK))))
-    expect(store.kept).toEqual([{ asset: 'mark', mediaType: 'image/svg+xml', digest: assetDigest(cleaned.bytes), bytes: cleaned.bytes, fileName: 'mark.svg', width: 40, height: 20 }])
+    expect(store.kept).toEqual([
+      { asset: 'mark', mediaType: 'image/svg+xml', digest: assetDigest(cleaned.bytes), bytes: cleaned.bytes, fileName: 'mark.svg', width: 40, height: 20 },
+    ])
     expect(session.document().assets).toEqual([{ id: 'mark', mediaType: 'image/svg+xml', digest: assetDigest(cleaned.bytes) }])
     const names = new Intl.ListFormat('en', { type: 'conjunction' }).format([t('images.svgDeclaration'), t('images.svgComment'), 'metadata', 'script'])
     expect(editor.state().status.text).toBe(`${added('mark')} ${t('images.cleaned', { names })}`)
     // A drawing cleaning leaves whole is added without a word about cleaning.
-    ok(await editor.addImage(chosen('plain.svg', utf8('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#000000"/></svg>'))))
+    ok(
+      await editor.addImage(
+        chosen('plain.svg', utf8('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#000000"/></svg>')),
+      ),
+    )
     expect(editor.state().status.text).toBe(added('plain'))
   })
 
@@ -334,7 +365,14 @@ describe('adding an image', () => {
     const de = editorText('de-CH')
     const long = 'y'.repeat(70)
     const { editor } = editorOver(blank(), { images: recordingStore(), locale: 'de-CH' })
-    ok(await editor.addImage(chosen('mark.svg', utf8(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:x="urn:x" viewBox="0 0 10 10"><x:${long}/><rect width="1" height="1" x:${long}="1"/></svg>`))))
+    ok(
+      await editor.addImage(
+        chosen(
+          'mark.svg',
+          utf8(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:x="urn:x" viewBox="0 0 10 10"><x:${long}/><rect width="1" height="1" x:${long}="1"/></svg>`),
+        ),
+      ),
+    )
     const names = new Intl.ListFormat('de-CH', { type: 'conjunction' }).format(['xmlns:x', de('images.svgElement'), de('images.svgAttribute')])
     expect(editor.state().status.text).toBe(`${de('images.added', { id: 'mark', kind: de('kind.image') })} ${de('images.cleaned', { names })}`)
     expect(editor.state().status.text).toContain('ein Element aus einem anderen Namensraum')
@@ -345,8 +383,13 @@ describe('adding an image', () => {
   test('says how many more cleaning removed past the names it lists', async () => {
     const many = Array.from({ length: 40 }, (_, index) => `data-a${index}="1"`).join(' ')
     const { editor } = editorOver(blank(), { images: recordingStore() })
-    ok(await editor.addImage(chosen('many.svg', utf8(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="1" height="1" ${many}/></svg>`))))
-    const names = new Intl.ListFormat('en', { type: 'conjunction' }).format([...Array.from({ length: 32 }, (_, index) => `data-a${index}`), t('images.cleanedMore', { count: '8' })])
+    ok(
+      await editor.addImage(chosen('many.svg', utf8(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="1" height="1" ${many}/></svg>`))),
+    )
+    const names = new Intl.ListFormat('en', { type: 'conjunction' }).format([
+      ...Array.from({ length: 32 }, (_, index) => `data-a${index}`),
+      t('images.cleanedMore', { count: '8' }),
+    ])
     expect(editor.state().status.text).toBe(`${added('many')} ${t('images.cleaned', { names })}`)
   })
 
@@ -355,15 +398,27 @@ describe('adding an image', () => {
   // file that is no SVG at all is said as any file that is no image is.
   test.each([
     ['text', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><text>Hi</text></svg>`, 'images.reason.svgText'],
-    ['raster', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><image href="data:image/png;base64,AAAA" width="1" height="1"/></svg>`, 'images.reason.svgRaster'],
+    [
+      'raster',
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><image href="data:image/png;base64,AAAA" width="1" height="1"/></svg>`,
+      'images.reason.svgRaster',
+    ],
     ['not-svg', '<html/>', 'images.reason.notImage'],
     ['not-well-formed', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect></svg>`, 'images.reason.svgBroken'],
     ['doctype', `<!DOCTYPE svg [<!ENTITY a "b">]><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"/>`, 'images.reason.svgDoctype'],
     ['reference', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><use href="#x"/></svg>`, 'images.reason.svgReference'],
     ['unsupported', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><foreignObject/></svg>`, 'images.reason.svgUnsupported'],
     ['out-of-range', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 0.5 10"><rect width="1" height="1"/></svg>`, 'images.reason.svgRange'],
-    ['too-deep', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">${'<g>'.repeat(40)}<rect width="1" height="1"/>${'</g>'.repeat(40)}</svg>`, 'images.reason.svgDeep'],
-    ['too-large', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><!--${' '.repeat(1_048_576)}--><rect width="1" height="1"/></svg>`, 'images.reason.svgLarge'],
+    [
+      'too-deep',
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">${'<g>'.repeat(40)}<rect width="1" height="1"/>${'</g>'.repeat(40)}</svg>`,
+      'images.reason.svgDeep',
+    ],
+    [
+      'too-large',
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><!--${' '.repeat(1_048_576)}--><rect width="1" height="1"/></svg>`,
+      'images.reason.svgLarge',
+    ],
   ] as const)('refuses an SVG cleanSvg refuses as %s, saying what to do', async (code, text, reason) => {
     expect(cleanSvg(utf8(text))).toMatchObject({ ok: false, code })
     const store = recordingStore()
@@ -389,10 +444,17 @@ describe('adding an image', () => {
     const de = editorText('de-CH')
     const number = new Intl.NumberFormat('de-CH')
     const wide = de('images.reason.tooWide', { width: number.format(5000), height: '1', side: number.format(4096) })
-    expect(await editor.addImage(chosen('wide.png', png(5000, 1)))).toMatchObject({ code: 'not-an-image', message: de('images.refused', { name: 'wide.png', reason: wide }) })
+    expect(await editor.addImage(chosen('wide.png', png(5000, 1)))).toMatchObject({
+      code: 'not-an-image',
+      message: de('images.refused', { name: 'wide.png', reason: wide }),
+    })
     expect(await editor.addImage(chosen('tall.jpg', jpeg(1, 4097)))).toMatchObject({ code: 'not-an-image' })
-    expect(await editor.addImage(chosen('empty.png', png(0, 1)))).toMatchObject({ message: de('images.refused', { name: 'empty.png', reason: de('images.reason.noPixels', { width: '0', height: '1' }) }) })
-    expect(await editor.addImage(chosen('broken.png', png(2, 1, true)))).toMatchObject({ message: de('images.refused', { name: 'broken.png', reason: de('images.reason.malformed', { type: 'PNG' }) }) })
+    expect(await editor.addImage(chosen('empty.png', png(0, 1)))).toMatchObject({
+      message: de('images.refused', { name: 'empty.png', reason: de('images.reason.noPixels', { width: '0', height: '1' }) }),
+    })
+    expect(await editor.addImage(chosen('broken.png', png(2, 1, true)))).toMatchObject({
+      message: de('images.refused', { name: 'broken.png', reason: de('images.reason.malformed', { type: 'PNG' }) }),
+    })
     expect(store.offered).toEqual([])
     ok(await editor.addImage(chosen('turned.jpg', jpeg(3, 2, 6))))
     expect(store.kept.map(({ width, height }) => [width, height])).toEqual([[2, 3]])
@@ -408,7 +470,11 @@ describe('adding an image', () => {
     const store = recordingStore()
     const { editor, session } = editorOver(eInvoiceReport(), { images: store, locale: 'de-CH' })
     const de = editorText('de-CH')
-    expect(await editor.addImage(chosen('logo-druckerei.jpg', cmyk))).toEqual({ ok: false, code: 'not-an-image', message: de('images.refused', { name: 'logo-druckerei.jpg', reason: de('images.reason.cmykEInvoice') }) })
+    expect(await editor.addImage(chosen('logo-druckerei.jpg', cmyk))).toEqual({
+      ok: false,
+      code: 'not-an-image',
+      message: de('images.refused', { name: 'logo-druckerei.jpg', reason: de('images.reason.cmykEInvoice') }),
+    })
     expect(store.offered).toEqual([])
     expect(session.canUndo()).toBe(false)
     ok(await editor.addImage(chosen('logo.jpg', jpeg(16, 16))))
@@ -435,7 +501,11 @@ describe('adding an image', () => {
     const store = recordingStore(undefined, ['image/png'])
     const { editor, session } = editorOver(blank(), { images: store })
     expect(editor.state().images.accept).toBe('image/png,.png')
-    expect(await editor.addImage(chosen('mark.svg', utf8(MARK)))).toEqual({ ok: false, code: 'not-an-image', message: refused('mark.svg', t('images.reason.notAccepted')) })
+    expect(await editor.addImage(chosen('mark.svg', utf8(MARK)))).toEqual({
+      ok: false,
+      code: 'not-an-image',
+      message: refused('mark.svg', t('images.reason.notAccepted')),
+    })
     ok(await editor.addImage(chosen('logo.png', PNG)))
     expect(session.document().assets.map((declared) => declared.mediaType)).toEqual(['image/png'])
     expect(editorOver(blank(), { images: recordingStore() }).editor.state().images.accept).toBe('image/png,.png,image/jpeg,.jpg,.jpeg,image/svg+xml,.svg')
@@ -468,7 +538,14 @@ describe('adding an image', () => {
   // Bytes kept for an asset the validator refuses -- one past MAX_ASSETS --
   // are kept for nothing; the count said is the format's, never typed.
   test('refuses another image once the report holds all it may', async () => {
-    const full = { ...blank(), assets: Array.from({ length: MAX_ASSETS }, (_, index) => ({ id: `image-${index}`, mediaType: 'image/png' as const, digest: `sha256:${index.toString(16).padStart(64, '0')}` })) }
+    const full = {
+      ...blank(),
+      assets: Array.from({ length: MAX_ASSETS }, (_, index) => ({
+        id: `image-${index}`,
+        mediaType: 'image/png' as const,
+        digest: `sha256:${index.toString(16).padStart(64, '0')}`,
+      })),
+    }
     const { editor } = editorOver(full, { images: recordingStore() })
     const message = t('images.full', { count: String(MAX_ASSETS) })
     expect(editor.state().images.unavailable).toBe(message)
@@ -509,8 +586,17 @@ describe('adding an image', () => {
     const refuses = (): Refusal => ({ ok: false, code: 'invalid-document', message: 'this report is read only' })
     const readOnly: ReportSession = { ...open, apply: refuses as ReportSession['apply'] }
     const editor = createReportEditor(readOnly, { images: recordingStore() })
-    expect(await editor.addImage(chosen('mark.png', PNG))).toMatchObject({ ok: false, code: 'refused', message: refused('mark.png', 'this report is read only'), refusal: { code: 'invalid-document' } })
-    expect(editor.dispatch({ type: 'removeImage', asset: 'unused' })).toMatchObject({ ok: false, code: 'refused', message: t('status.refused', { name: 'unused', reason: 'this report is read only' }) })
+    expect(await editor.addImage(chosen('mark.png', PNG))).toMatchObject({
+      ok: false,
+      code: 'refused',
+      message: refused('mark.png', 'this report is read only'),
+      refusal: { code: 'invalid-document' },
+    })
+    expect(editor.dispatch({ type: 'removeImage', asset: 'unused' })).toMatchObject({
+      ok: false,
+      code: 'refused',
+      message: t('status.refused', { name: 'unused', reason: 'this report is read only' }),
+    })
     expect(open.document().assets.map((declared) => declared.id)).toEqual(['logo', 'unused'])
   })
 
@@ -519,7 +605,15 @@ describe('adding an image', () => {
   // file all the same: an editor left busy would take no image again.
   test('lets go of the file when the commit throws, and rejects with the error', async () => {
     const open = sessionOver(blank())
-    const editor = createReportEditor({ ...open, apply: () => { throw new Error('read only') } }, { images: recordingStore() })
+    const editor = createReportEditor(
+      {
+        ...open,
+        apply: () => {
+          throw new Error('read only')
+        },
+      },
+      { images: recordingStore() },
+    )
     await expect(editor.addImage(chosen('logo.png', PNG))).rejects.toThrow('read only')
     expect(editor.state().images.adding).toBeNull()
     expect(editor.dispatch({ type: 'chooseImage' })).toEqual({ ok: true })
@@ -529,16 +623,34 @@ describe('adding an image', () => {
   // it, so a person knows before pressing Remove why it will not go.
   test('lists the report’s images, each with what draws it', () => {
     const report = richReport()
-    const twice = { ...report, assets: [...report.assets, asset('mark', 'e')], regions: { ...report.regions, summary: [...report.regions.summary, { id: 'logo-again', kind: 'image' as const, source: { kind: 'asset' as const, asset: 'logo' }, width: 50, height: 20, fit: 'contain' as const }] } }
+    const twice = {
+      ...report,
+      assets: [...report.assets, asset('mark', 'e')],
+      regions: {
+        ...report.regions,
+        summary: [
+          ...report.regions.summary,
+          { id: 'logo-again', kind: 'image' as const, source: { kind: 'asset' as const, asset: 'logo' }, width: 50, height: 20, fit: 'contain' as const },
+        ],
+      },
+    }
     const { editor } = editorOver(twice, { locale: 'de-CH' })
     const de = editorText('de-CH')
-    const labels = editor.state().outline.flatMap((region) => region.nodes).flatMap(function all(node): string[] {
-      return [node.label, ...node.children.flatMap(all)]
-    })
+    const labels = editor
+      .state()
+      .outline.flatMap((region) => region.nodes)
+      .flatMap(function all(node): string[] {
+        return [node.label, ...node.children.flatMap(all)]
+      })
     const drawing = labels.filter((label) => label.startsWith(de('kind.image')) && label.includes('logo'))
     expect(drawing).toHaveLength(2)
     expect(editor.state().images.assets).toEqual([
-      { id: 'logo', label: de('images.item', { id: 'logo', type: 'PNG' }), removeLabel: de('images.removeOne', { id: 'logo' }), inUse: de('images.inUse', { names: new Intl.ListFormat('de-CH', { type: 'conjunction' }).format(drawing) }) },
+      {
+        id: 'logo',
+        label: de('images.item', { id: 'logo', type: 'PNG' }),
+        removeLabel: de('images.removeOne', { id: 'logo' }),
+        inUse: de('images.inUse', { names: new Intl.ListFormat('de-CH', { type: 'conjunction' }).format(drawing) }),
+      },
       { id: 'mark', label: de('images.item', { id: 'mark', type: 'PNG' }), removeLabel: de('images.removeOne', { id: 'mark' }) },
     ])
   })
@@ -548,7 +660,11 @@ describe('adding an image', () => {
   // label would name an image format it has not. The library is images alone.
   test('lists no font asset among the images', () => {
     const report = richReport()
-    const branded: ReportDefinition = { ...report, assets: [...report.assets, { id: 'brand', mediaType: 'font/ttf', digest: `sha256:${'c3'.repeat(32)}` }], fonts: { sans: { normal: 'brand' } } }
+    const branded: ReportDefinition = {
+      ...report,
+      assets: [...report.assets, { id: 'brand', mediaType: 'font/ttf', digest: `sha256:${'c3'.repeat(32)}` }],
+      fonts: { sans: { normal: 'brand' } },
+    }
     const { editor } = editorOver(branded)
     expect(editor.state().images.assets.map((listed) => listed.id)).toEqual(report.assets.map((declared) => declared.id))
   })
@@ -578,7 +694,11 @@ describe('removing an image', () => {
     const inUse = t('images.inUse', { names: t('label.kindDetail', { kind: t('kind.image'), detail: 'logo' }) })
     expect(editor.dispatch({ type: 'removeImage', asset: 'logo' })).toEqual({ ok: false, code: 'unavailable', message: inUse })
     expect(editor.state().images.assets[0]?.inUse).toBe(inUse)
-    expect(editor.dispatch({ type: 'removeImage', asset: 'nothing' })).toEqual({ ok: false, code: 'not-found', message: t('status.notFound', { name: 'nothing' }) })
+    expect(editor.dispatch({ type: 'removeImage', asset: 'nothing' })).toEqual({
+      ok: false,
+      code: 'not-found',
+      message: t('status.notFound', { name: 'nothing' }),
+    })
     expect(over.revision()).toBe(before)
   })
 })

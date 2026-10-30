@@ -190,7 +190,8 @@ function currencyOf(source: CurrencySource, scope: CurrencyScope | undefined): s
     source.kind === 'parameter'
       ? [`parameter ${source.parameter}`, scope?.params?.[source.parameter]]
       : [`field ${source.field.field}`, (source.field.dataset === 'header' ? scope?.header : scope?.row)?.[source.field.field]]
-  if (raw === null || raw === undefined) return refused('no-currency', `the amount's currency, ${name}, has no value, and an amount without one reads as some other currency`)
+  if (raw === null || raw === undefined)
+    return refused('no-currency', `the amount's currency, ${name}, has no value, and an amount without one reads as some other currency`)
   if (typeof raw === 'string' && /^[A-Z]{3}$/.test(raw)) return raw
   return refused('invalid-currency', `the amount's currency, ${name}, is not an ISO 4217 code in capitals, such as CHF`)
 }
@@ -242,7 +243,10 @@ class LocaleFormatter implements Formatter {
     if (typeof currency === 'object') return currency
     const rounded = decimalToString(roundDecimalAs(exact, { scale: format.scale, mode: 'half-away-from-zero' })) as Intl.StringNumericLiteral
     if (rounded.replace(/^-/, '').split('.')[0]!.length > MAX_FORMATTED_DIGITS) {
-      return refused('number-too-large', `a number of more than ${MAX_FORMATTED_DIGITS} digits, which Intl would print as infinity; printed without a format, it prints whole`)
+      return refused(
+        'number-too-large',
+        `a number of more than ${MAX_FORMATTED_DIGITS} digits, which Intl would print as infinity; printed without a format, it prints whole`,
+      )
     }
     const options: Intl.NumberFormatOptions = {
       minimumFractionDigits: format.scale,
@@ -254,7 +258,8 @@ class LocaleFormatter implements Formatter {
 
   #date(value: TypedValue, style: DateStyle): Formatted {
     const moment = momentOf(value)
-    if (moment === undefined) return refused('format-type-mismatch', `a date format shows dates, dates and times, and instants, and this value is a ${value.type} that spells none`)
+    if (moment === undefined)
+      return refused('format-type-mismatch', `a date format shows dates, dates and times, and instants, and this value is a ${value.type} that spells none`)
     const options: Intl.DateTimeFormatOptions = {
       dateStyle: style,
       ...(moment.time ? { timeStyle: TIME_STYLE[style] } : {}),
@@ -265,7 +270,9 @@ class LocaleFormatter implements Formatter {
 }
 
 /** A formatter for `context`, or why its locale or time zone is refused. */
-export function createFormatter(context: FormatContext): { readonly ok: true; readonly formatter: Formatter } | { readonly ok: false; readonly code: FormatErrorCode; readonly message: string } {
+export function createFormatter(
+  context: FormatContext,
+): { readonly ok: true; readonly formatter: Formatter } | { readonly ok: false; readonly code: FormatErrorCode; readonly message: string } {
   if (!supportedLocale(context.locale)) {
     return { ok: false, code: 'unsupported-locale', message: "the engine's Intl does not have this locale, and would print the host's instead" }
   }

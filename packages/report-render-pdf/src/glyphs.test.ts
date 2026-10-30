@@ -81,13 +81,17 @@ describe('the character maps', () => {
 describe('text without a glyph', () => {
   // pdfmake 0.3.11's own default, pinned: a character Roboto has no glyph
   // for comes back out of the PDF as U+0000, and the PDF is written.
-  test('is lost by pdfmake without a word', async () => {
-    pdfmake.setFonts({ Roboto: { normal: path.join(fonts, FILES.normal).split(path.sep).join('/') } })
-    pdfmake.setLocalAccessPolicy(() => true)
-    const bytes = await pdfmake.createPdf({ content: ['Kunde: 山田'], defaultStyle: { font: 'Roboto' } }).getBuffer()
-    const pdf = await readPdf(new Uint8Array(bytes))
-    expect(pdf.pages[0]?.items.map((item) => item.text).join('')).toContain('\u0000')
-  }, TIMEOUT)
+  test(
+    'is lost by pdfmake without a word',
+    async () => {
+      pdfmake.setFonts({ Roboto: { normal: path.join(fonts, FILES.normal).split(path.sep).join('/') } })
+      pdfmake.setLocalAccessPolicy(() => true)
+      const bytes = await pdfmake.createPdf({ content: ['Kunde: 山田'], defaultStyle: { font: 'Roboto' } }).getBuffer()
+      const pdf = await readPdf(new Uint8Array(bytes))
+      expect(pdf.pages[0]?.items.map((item) => item.text).join('')).toContain('\u0000')
+    },
+    TIMEOUT,
+  )
 
   // Each place text prints, refused naming the block or the table and the
   // character, whatever the face.
@@ -112,7 +116,11 @@ describe('text without a glyph', () => {
 
   // Line breaks print as breaks, and every character of the corpus's
   // languages as itself.
-  test('is never what Roboto draws', async () => {
-    expect(await refusal(bareDocument('Glyphs', [paragraph("Zürich, Genève\nŁódź · CHF 1'234.50 · 1’234,50 €")]))).toBe('rendered')
-  }, TIMEOUT)
+  test(
+    'is never what Roboto draws',
+    async () => {
+      expect(await refusal(bareDocument('Glyphs', [paragraph("Zürich, Genève\nŁódź · CHF 1'234.50 · 1’234,50 €")]))).toBe('rendered')
+    },
+    TIMEOUT,
+  )
 })

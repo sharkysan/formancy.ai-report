@@ -50,7 +50,12 @@ export interface Measurement {
  * have. A region that wraps only for some page numbers is measured at its
  * widest, which is not the same thing, and is not refused.
  */
-export function regionsMeasurement(document: ResolvedDocument, checked: Checked, fonts: RenderFonts, maxPages: number): Measurement & { readonly present: readonly (readonly Block[])[] } {
+export function regionsMeasurement(
+  document: ResolvedDocument,
+  checked: Checked,
+  fonts: RenderFonts,
+  maxPages: number,
+): Measurement & { readonly present: readonly (readonly Block[])[] } {
   const fields: Fields = { pageNumber: maxPages, pageCount: maxPages }
   const present = [document.pageHeader, document.pageFooter].filter((blocks) => blocks.length > 0)
   const build = newBuild('measure', checked, fonts)
@@ -122,7 +127,8 @@ export function layoutDefinition(
   footer?.(1, 1, { width: page.paperWidth, height: page.paperHeight, orientation: document.page.orientation })
   // pdfmake lays the footer out from the body's foot, so the slip's parts are placed from there.
   const slip = bill === undefined ? undefined : (): Content => ({ stack: slipContent(bill, QR_BILL_TOP, bodyBottom, page.paperWidth) })
-  const last: DynamicContent | undefined = slip === undefined ? footer : (pageNumber, pageCount, size) => (pageNumber === pageCount ? slip() : footer?.(pageNumber, pageCount, size))
+  const last: DynamicContent | undefined =
+    slip === undefined ? footer : (pageNumber, pageCount, size) => (pageNumber === pageCount ? slip() : footer?.(pageNumber, pageCount, size))
   const reserved = bill === undefined ? [] : [{ stack: [], margin: [0, slipReservation(page, regions), 0, 0] } satisfies Content]
   return {
     ...(checked.pdfa === undefined ? {} : PDF_A_3B),

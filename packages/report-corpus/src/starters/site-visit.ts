@@ -35,7 +35,11 @@ const REPORT: ReportDefinition = {
   title: 'Site visit',
   locale: 'de-CH',
   page: { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 56.69, bottom: 56.69, left: 56.69 } },
-  styles: [{ id: 'title', size: 16, bold: true }, { id: 'heading', size: 11, bold: true }, { id: 'footer', size: 8, align: 'center' }],
+  styles: [
+    { id: 'title', size: 16, bold: true },
+    { id: 'heading', size: 11, bold: true },
+    { id: 'footer', size: 8, align: 'center' },
+  ],
   datasets: {
     header: {
       id: 'answers',
@@ -76,26 +80,67 @@ const REPORT: ReportDefinition = {
     reportHeader: [{ id: 'title', style: 'title', kind: 'text', content: [{ kind: 'text', text: 'Site visit' }] }],
     pageHeader: [],
     body: [
-      { id: 'line-1', kind: 'text', content: [{ kind: 'text', text: 'Objekt: ' }, { kind: 'field', field: { dataset: 'header', field: 'site' } }] },
+      {
+        id: 'line-1',
+        kind: 'text',
+        content: [
+          { kind: 'text', text: 'Objekt: ' },
+          { kind: 'field', field: { dataset: 'header', field: 'site' } },
+        ],
+      },
       {
         id: 'line-2',
         kind: 'text',
-        content: [{ kind: 'text', text: 'Besucht am: ' }, { kind: 'field', field: { dataset: 'header', field: 'visitedOn' }, format: { kind: 'date', style: 'medium' } }],
+        content: [
+          { kind: 'text', text: 'Besucht am: ' },
+          { kind: 'field', field: { dataset: 'header', field: 'visitedOn' }, format: { kind: 'date', style: 'medium' } },
+        ],
       },
       {
         id: 'line-3',
         kind: 'text',
-        content: [{ kind: 'text', text: 'Angekommen um: ' }, { kind: 'field', field: { dataset: 'header', field: 'arrivedAt' }, format: { kind: 'date', style: 'medium' } }],
+        content: [
+          { kind: 'text', text: 'Angekommen um: ' },
+          { kind: 'field', field: { dataset: 'header', field: 'arrivedAt' }, format: { kind: 'date', style: 'medium' } },
+        ],
       },
-      { id: 'line-4', kind: 'text', content: [{ kind: 'text', text: 'Begonnen um: ' }, { kind: 'field', field: { dataset: 'header', field: 'startedAt' } }] },
-      { id: 'line-5', kind: 'text', content: [{ kind: 'text', text: 'Ergebnis: ' }, { kind: 'field', field: { dataset: 'header', field: 'outcome' } }] },
+      {
+        id: 'line-4',
+        kind: 'text',
+        content: [
+          { kind: 'text', text: 'Begonnen um: ' },
+          { kind: 'field', field: { dataset: 'header', field: 'startedAt' } },
+        ],
+      },
+      {
+        id: 'line-5',
+        kind: 'text',
+        content: [
+          { kind: 'text', text: 'Ergebnis: ' },
+          { kind: 'field', field: { dataset: 'header', field: 'outcome' } },
+        ],
+      },
       {
         id: 'section-1',
         kind: 'section',
         components: [
           { id: 'heading-1', style: 'heading', kind: 'text', content: [{ kind: 'text', text: 'Inspektor' }], keepWithNext: true },
-          { id: 'line-6', kind: 'text', content: [{ kind: 'text', text: 'Name: ' }, { kind: 'field', field: { dataset: 'header', field: 'name' } }] },
-          { id: 'line-7', kind: 'text', content: [{ kind: 'text', text: 'Ausweis: ' }, { kind: 'field', field: { dataset: 'header', field: 'licence' } }] },
+          {
+            id: 'line-6',
+            kind: 'text',
+            content: [
+              { kind: 'text', text: 'Name: ' },
+              { kind: 'field', field: { dataset: 'header', field: 'name' } },
+            ],
+          },
+          {
+            id: 'line-7',
+            kind: 'text',
+            content: [
+              { kind: 'text', text: 'Ausweis: ' },
+              { kind: 'field', field: { dataset: 'header', field: 'licence' } },
+            ],
+          },
         ],
       },
       {
@@ -134,11 +179,21 @@ const REPORT: ReportDefinition = {
         kind: 'section',
         components: [
           { id: 'heading-3', style: 'heading', kind: 'text', content: [{ kind: 'text', text: 'Zustand' }], keepWithNext: true },
-          { id: 'line-11', kind: 'text', content: [{ kind: 'text', text: 'Sicherheit: ' }, { kind: 'field', field: { dataset: 'header', field: 'condition_safety' } }] },
+          {
+            id: 'line-11',
+            kind: 'text',
+            content: [
+              { kind: 'text', text: 'Sicherheit: ' },
+              { kind: 'field', field: { dataset: 'header', field: 'condition_safety' } },
+            ],
+          },
           {
             id: 'line-12',
             kind: 'text',
-            content: [{ kind: 'text', text: 'Sauberkeit: ' }, { kind: 'field', field: { dataset: 'header', field: 'condition_cleanliness' } }],
+            content: [
+              { kind: 'text', text: 'Sauberkeit: ' },
+              { kind: 'field', field: { dataset: 'header', field: 'condition_cleanliness' } },
+            ],
           },
         ],
       },
@@ -170,7 +225,14 @@ const REPORT: ReportDefinition = {
         emptyText: '–',
         repeatHeader: true,
       },
-      { id: 'line-13', kind: 'text', content: [{ kind: 'text', text: 'Zusammenfassung: ' }, { kind: 'field', field: { dataset: 'header', field: 'summary' } }] },
+      {
+        id: 'line-13',
+        kind: 'text',
+        content: [
+          { kind: 'text', text: 'Zusammenfassung: ' },
+          { kind: 'field', field: { dataset: 'header', field: 'summary' } },
+        ],
+      },
     ],
     pageFooter: [{ id: 'page-number', style: 'footer', kind: 'text', content: [{ kind: 'pageNumber' }, { kind: 'text', text: ' / ' }, { kind: 'pageCount' }] }],
     summary: [],

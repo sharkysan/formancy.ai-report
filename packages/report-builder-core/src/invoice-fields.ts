@@ -76,7 +76,13 @@ type Choice = PropertyOption & { readonly stored: unknown }
 
 /** The words of each part of a party's postal address (BG-5, BG-8), named after the party. */
 const ADDRESS_WORDS: { readonly [P in Party]: { readonly [K in keyof EInvoiceAddress]-?: MessageId } } = {
-  seller: { line1: 'field.sellerLine1', line2: 'field.sellerLine2', postalCode: 'field.sellerPostalCode', city: 'field.sellerCity', country: 'field.sellerCountry' },
+  seller: {
+    line1: 'field.sellerLine1',
+    line2: 'field.sellerLine2',
+    postalCode: 'field.sellerPostalCode',
+    city: 'field.sellerCity',
+    country: 'field.sellerCountry',
+  },
   buyer: { line1: 'field.buyerLine1', line2: 'field.buyerLine2', postalCode: 'field.buyerPostalCode', city: 'field.buyerCity', country: 'field.buyerCountry' },
 }
 
@@ -101,26 +107,35 @@ function addressFields(party: Party, address: EInvoiceAddress, context: FieldCon
  * while the part is absent, puts the part in, as `fresh` makes it; emptied,
  * it takes the whole part away; the scheme is a choice while it is there.
  */
-function identifiedFields(owner: string, part: { readonly id: readonly Inline[]; readonly scheme?: string } | undefined, words: { readonly id: MessageId; readonly scheme: MessageId }, schemes: readonly Choice[], fresh: (id: readonly Inline[]) => unknown, context: FieldContext): FieldSpec[] {
-  const ids = optionalCodeTextFields(part?.id, `${owner}/id`, words.id, context).map(
-    (spec): FieldSpec => ({
-      ...spec,
-      write: (input) => {
-        const written = spec.write(input)
-        if (!written.ok || 'unchanged' in written) return written
-        if (written.value === null) return setTo(null, owner)
-        return part === undefined ? setTo(fresh(written.value as readonly Inline[]), owner) : written
-      },
-    }),
-  )
+function identifiedFields(
+  owner: string,
+  part: { readonly id: readonly Inline[]; readonly scheme?: string } | undefined,
+  words: { readonly id: MessageId; readonly scheme: MessageId },
+  schemes: readonly Choice[],
+  fresh: (id: readonly Inline[]) => unknown,
+  context: FieldContext,
+): FieldSpec[] {
+  const ids = optionalCodeTextFields(part?.id, `${owner}/id`, words.id, context).map((spec): FieldSpec => ({
+    ...spec,
+    write: (input) => {
+      const written = spec.write(input)
+      if (!written.ok || 'unchanged' in written) return written
+      if (written.value === null) return setTo(null, owner)
+      return part === undefined ? setTo(fresh(written.value as readonly Inline[]), owner) : written
+    },
+  }))
   return part === undefined ? ids : [...ids, choiceField(`${owner}/scheme`, { id: words.scheme }, 'select', schemes, part.scheme ?? '')]
 }
 
 /** The schemes a legal registration may be given in (BT-30-1, BT-47-1), none among them: a German commercial register number has none. */
-const legalSchemes = ({ t }: FieldContext): Choice[] => [{ value: '', label: t('option.none'), stored: null }, ...SCHEME_IDS.map((scheme) => ({ value: scheme, label: t(`option.scheme${scheme}`), stored: scheme }))]
+const legalSchemes = ({ t }: FieldContext): Choice[] => [
+  { value: '', label: t('option.none'), stored: null },
+  ...SCHEME_IDS.map((scheme) => ({ value: scheme, label: t(`option.scheme${scheme}`), stored: scheme })),
+]
 
 /** The schemes an electronic address is given in (BT-34-1, BT-49-1), one of which it needs (BR-62, BR-63). */
-const addressSchemes = ({ t }: FieldContext): Choice[] => ADDRESS_SCHEMES.map((scheme) => ({ value: scheme, label: t(`option.address${scheme}`), stored: scheme }))
+const addressSchemes = ({ t }: FieldContext): Choice[] =>
+  ADDRESS_SCHEMES.map((scheme) => ({ value: scheme, label: t(`option.address${scheme}`), stored: scheme }))
 
 /** A party's legal registration, its words named after the party. */
 function legalFields(party: Party, id: MessageId, scheme: MessageId, legal: EInvoiceSeller['legalId'], context: FieldContext): FieldSpec[] {
@@ -151,10 +166,20 @@ function contactFields(contact: SellerContact, context: FieldContext): FieldSpec
  * anyone. Each holds to XRechnung's shapes (BR-DE-27, -28).
  */
 function exampleContact(context: FieldContext): SellerContact {
-  return { name: said(editorText(contentLocale(context.report.locale))('default.contactName')), telephone: said('+49 221 4710 000'), email: said('contact@example.com') }
+  return {
+    name: said(editorText(contentLocale(context.report.locale))('default.contactName')),
+    telephone: said('+49 221 4710 000'),
+    email: said('contact@example.com'),
+  }
 }
 
-const CONTACT_WORDS = { add: 'action.addContact', remove: 'action.removeContact', added: 'history.addContact', removed: 'history.removeContact', announced: { added: 'status.itemAdded', removed: 'status.itemRemoved' } } as const
+const CONTACT_WORDS = {
+  add: 'action.addContact',
+  remove: 'action.removeContact',
+  added: 'history.addContact',
+  removed: 'history.removeContact',
+  announced: { added: 'status.itemAdded', removed: 'status.itemRemoved' },
+} as const
 
 /** The seller's contact: a group of its own, optional in a Factur-X invoice, part of every XRechnung (BR-DE-2). */
 function contactGroup(contact: SellerContact | undefined, kind: EInvoice['kind'], context: FieldContext): GroupSpec {
@@ -171,7 +196,8 @@ const SELLER: { readonly [K in keyof EInvoiceSeller]-?: PartyFields<EInvoiceSell
   vatId: (seller, _kind, context) => optionalCodeTextFields(seller.vatId, '/seller/vatId', 'field.sellerVatId', context),
   taxNumber: (seller, _kind, context) => optionalCodeTextFields(seller.taxNumber, '/seller/taxNumber', 'field.sellerTaxNumber', context),
   legalId: (seller, _kind, context) => legalFields('seller', 'field.sellerLegalId', 'field.sellerLegalScheme', seller.legalId, context),
-  electronicAddress: (seller, _kind, context) => electronicFields('seller', 'field.sellerAddress', 'field.sellerAddressScheme', seller.electronicAddress, context),
+  electronicAddress: (seller, _kind, context) =>
+    electronicFields('seller', 'field.sellerAddress', 'field.sellerAddressScheme', seller.electronicAddress, context),
   address: (seller, _kind, context) => addressFields('seller', seller.address, context),
   contact: (seller, kind, context) => [contactGroup(seller.contact, kind, context)],
 }
@@ -186,7 +212,14 @@ const BUYER: { readonly [K in keyof EInvoiceBuyer]-?: PartyFields<EInvoiceBuyer>
 }
 
 /** A party's group, its fields in its table's order, and any group of its own -- the seller's contact -- after it. */
-function partyGroups<P extends object>(key: string, words: MessageId, party: P, terms: { readonly [K in keyof P]-?: PartyFields<P> }, kind: EInvoice['kind'], context: FieldContext): PanelSpec[] {
+function partyGroups<P extends object>(
+  key: string,
+  words: MessageId,
+  party: P,
+  terms: { readonly [K in keyof P]-?: PartyFields<P> },
+  kind: EInvoice['kind'],
+  context: FieldContext,
+): PanelSpec[] {
   const specs = (Object.keys(terms) as (keyof P)[]).flatMap((term) => terms[term](party, kind, context))
   return [{ key, words, fields: specs.filter((spec): spec is FieldSpec => !isGroup(spec)), buttons: [] }, ...specs.filter(isGroup)]
 }
@@ -212,8 +245,20 @@ function vatGroup(category: VatCategory, index: number, count: number, context: 
   const up = index > 0
   const down = index < count - 1
   const buttons: GroupButton[] = [
-    { words: 'action.moveVatCategoryUp', item, action: { type: 'moveItem', key, to: index - 1 }, available: up, ...(up ? { then: { group: `/vat/${index - 1}`, button: 0 } } : {}) },
-    { words: 'action.moveVatCategoryDown', item, action: { type: 'moveItem', key, to: index + 1 }, available: down, ...(down ? { then: { group: `/vat/${index + 1}`, button: 1 } } : {}) },
+    {
+      words: 'action.moveVatCategoryUp',
+      item,
+      action: { type: 'moveItem', key, to: index - 1 },
+      available: up,
+      ...(up ? { then: { group: `/vat/${index - 1}`, button: 0 } } : {}),
+    },
+    {
+      words: 'action.moveVatCategoryDown',
+      item,
+      action: { type: 'moveItem', key, to: index + 1 },
+      available: down,
+      ...(down ? { then: { group: `/vat/${index + 1}`, button: 1 } } : {}),
+    },
     { words: 'action.removeVatCategory', item, action: { type: 'removeItem', key }, available: true, then: { group: '/vat', button: 0 } },
   ]
   return { key, words: 'group.vatCategory', item, fields: (Object.keys(TERMS) as (keyof VatCategory)[]).flatMap((term) => TERMS[term]()), buttons }
@@ -255,7 +300,14 @@ function vatGroups(categories: readonly VatCategory[], context: FieldContext): G
     key: '/vat',
     words: 'group.vatCategories',
     fields: [],
-    buttons: [{ words: 'action.addVatCategory', action: { type: 'addItem', key: '/vat' }, available: free, ...(free ? { then: { group: `/vat/${String(categories.length)}` } } : {}) }],
+    buttons: [
+      {
+        words: 'action.addVatCategory',
+        action: { type: 'addItem', key: '/vat' },
+        available: free,
+        ...(free ? { then: { group: `/vat/${String(categories.length)}` } } : {}),
+      },
+    ],
     list: {
       key: '/vat',
       items: categories,
@@ -272,14 +324,17 @@ function vatGroups(categories: readonly VatCategory[], context: FieldContext): G
 
 /** The report's tables, by id: the lines are the rows of one of them. */
 function tableChoices({ report }: FieldContext): Choice[] {
-  return walkComponents(report).flatMap(({ component }) => (component.kind === 'table' ? [{ value: component.id, label: component.id, stored: component.id }] : []))
+  return walkComponents(report).flatMap(({ component }) =>
+    component.kind === 'table' ? [{ value: component.id, label: component.id, stored: component.id }] : [],
+  )
 }
 
 /** The columns of the table the lines name, by heading -- and id, where two share one -- each what a column of a line's term may be. */
 function columnChoices(lines: EInvoiceLines, { report }: FieldContext): Choice[] {
   const found = walkComponents(report).find(({ component }) => component.id === lines.table)?.component
   const columns = found?.kind === 'table' ? found.columns : []
-  const label = (header: string, id: string): string => (header === '' ? id : columns.filter((column) => column.header === header).length > 1 ? `${header} (${id})` : header)
+  const label = (header: string, id: string): string =>
+    header === '' ? id : columns.filter((column) => column.header === header).length > 1 ? `${header} (${id})` : header
   return columns.map((column) => ({ value: column.id, label: label(column.header, column.id), stored: column.id }))
 }
 
@@ -314,14 +369,28 @@ const LINES: { readonly [K in keyof EInvoiceLines]-?: (lines: EInvoiceLines, con
 
 /** Each of the payment instructions' terms (BG-16): the means, the account the payment codes share, its bank, its name and the remittance information. */
 const PAYMENT: { readonly [K in keyof PaymentInstructions]-?: (payment: PaymentInstructions, context: FieldContext) => FieldSpec[] } = {
-  means: (payment, { t }) => [choiceField('/payment/means', { id: 'field.paymentMeans' }, 'select', PAYMENT_MEANS_CODES.map((code) => ({ value: code, label: t(`option.means${code}`), stored: code })), payment.means)],
+  means: (payment, { t }) => [
+    choiceField(
+      '/payment/means',
+      { id: 'field.paymentMeans' },
+      'select',
+      PAYMENT_MEANS_CODES.map((code) => ({ value: code, label: t(`option.means${code}`), stored: code })),
+      payment.means,
+    ),
+  ],
   iban: (payment, context) => codeTextFields(payment.iban, '/payment/iban', 'field.iban', context),
   bic: (payment, context) => optionalCodeTextFields(payment.bic, '/payment/bic', 'field.bic', context),
   accountName: (payment, context) => optionalCodeTextFields(payment.accountName, '/payment/accountName', 'field.accountName', context),
   remittance: (payment, context) => optionalCodeTextFields(payment.remittance, '/payment/remittance', 'field.remittance', context),
 }
 
-const PAYMENT_WORDS = { add: 'action.addPayment', remove: 'action.removePayment', added: 'history.addPayment', removed: 'history.removePayment', announced: { added: 'status.itemAdded', removed: 'status.itemRemoved' } } as const
+const PAYMENT_WORDS = {
+  add: 'action.addPayment',
+  remove: 'action.removePayment',
+  added: 'history.addPayment',
+  removed: 'history.removePayment',
+  announced: { added: 'status.itemAdded', removed: 'status.itemRemoved' },
+} as const
 
 /**
  * The payment instructions' group: optional in a Factur-X invoice, added
@@ -362,13 +431,47 @@ type TermFields = (invoice: EInvoice, context: FieldContext) => readonly PanelSp
 /** Each term's fields or groups, in the order the panel shows them: what names the invoice, its dates and routing, the parties, when it was supplied, its categories, its lines, how it is paid. */
 const TERMS: { readonly [K in Term]-?: TermFields } = {
   version: (invoice) =>
-    invoice.kind === 'xrechnung' ? [choiceField('/version', { id: 'field.xrechnungVersion' }, 'select', XRECHNUNG_VERSIONS.map((version) => ({ value: version, label: version, stored: version })), invoice.version)] : [],
+    invoice.kind === 'xrechnung'
+      ? [
+          choiceField(
+            '/version',
+            { id: 'field.xrechnungVersion' },
+            'select',
+            XRECHNUNG_VERSIONS.map((version) => ({ value: version, label: version, stored: version })),
+            invoice.version,
+          ),
+        ]
+      : [],
   profile: (invoice) =>
     invoice.kind === 'facturX'
-      ? [choiceField('/profile', { id: 'field.profile' }, 'select', E_INVOICE_PROFILES.map((profile) => ({ value: profile, label: FACTUR_X_PROFILES[profile].conformanceLevel, stored: profile })), invoice.profile)]
+      ? [
+          choiceField(
+            '/profile',
+            { id: 'field.profile' },
+            'select',
+            E_INVOICE_PROFILES.map((profile) => ({ value: profile, label: FACTUR_X_PROFILES[profile].conformanceLevel, stored: profile })),
+            invoice.profile,
+          ),
+        ]
       : [],
-  type: (invoice, { t }) => [choiceField('/type', { id: 'field.invoiceType' }, 'select', INVOICE_TYPE_CODES.map((code) => ({ value: code, label: t(`option.invoiceType${code}`), stored: code })), invoice.type)],
-  currency: (invoice) => [choiceField('/currency', { id: 'field.currency' }, 'select', E_INVOICE_CURRENCIES.map((code) => ({ value: code, label: code, stored: code })), invoice.currency)],
+  type: (invoice, { t }) => [
+    choiceField(
+      '/type',
+      { id: 'field.invoiceType' },
+      'select',
+      INVOICE_TYPE_CODES.map((code) => ({ value: code, label: t(`option.invoiceType${code}`), stored: code })),
+      invoice.type,
+    ),
+  ],
+  currency: (invoice) => [
+    choiceField(
+      '/currency',
+      { id: 'field.currency' },
+      'select',
+      E_INVOICE_CURRENCIES.map((code) => ({ value: code, label: code, stored: code })),
+      invoice.currency,
+    ),
+  ],
   number: (invoice, context) => codeTextFields(invoice.number, '/number', 'field.invoiceNumber', context),
   issued: (invoice) => [expressionField('/issued', { id: 'field.issued' }, invoice.issued.cel, true)],
   buyerReference: (invoice, context) => optionalCodeTextFields(invoice.buyerReference, '/buyerReference', 'field.buyerReference', context),
@@ -378,7 +481,14 @@ const TERMS: { readonly [K in Term]-?: TermFields } = {
   delivered: (invoice) => [expressionField('/delivered', { id: 'field.delivered' }, invoice.delivered?.cel, false)],
   period: (invoice) => [periodField('start', invoice.period, 'field.periodStart'), periodField('end', invoice.period, 'field.periodEnd')],
   vat: (invoice, context) => vatGroups(invoice.vat, context),
-  lines: (invoice, context) => [{ key: '/lines', words: 'group.lines', fields: (Object.keys(LINES) as (keyof EInvoiceLines)[]).flatMap((term) => LINES[term](invoice.lines, context)), buttons: [] }],
+  lines: (invoice, context) => [
+    {
+      key: '/lines',
+      words: 'group.lines',
+      fields: (Object.keys(LINES) as (keyof EInvoiceLines)[]).flatMap((term) => LINES[term](invoice.lines, context)),
+      buttons: [],
+    },
+  ],
   payment: (invoice, context) => [paymentGroup(invoice, context)],
   due: (invoice) => [expressionField('/due', { id: 'field.due' }, invoice.due?.cel, false)],
   terms: (invoice, context) => optionalCodeTextFields(invoice.terms, '/terms', 'field.paymentTerms', context, undefined, 'multiline'),

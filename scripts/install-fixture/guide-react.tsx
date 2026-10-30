@@ -69,7 +69,8 @@ async function until(holds: () => boolean, what: string): Promise<void> {
   }
 }
 
-const isPdf = (preview: Preview | undefined): boolean => preview !== undefined && 'pdf' in preview && new TextDecoder().decode(preview.pdf.subarray(0, 5)) === '%PDF-'
+const isPdf = (preview: Preview | undefined): boolean =>
+  preview !== undefined && 'pdf' in preview && new TextDecoder().decode(preview.pdf.subarray(0, 5)) === '%PDF-'
 
 // The page, drawn on the server, over the report structure.ts reads, opened
 // by the guide's openEditor.
@@ -133,7 +134,10 @@ expect(prints.length === 1 && isPdf(shown[0]) && shownFrom(0) === 0, 'the first 
 retitle('Offerte, revised')
 retitle('Offerte, revised again')
 await until(() => shown.length === 2, 'print after two edits')
-expect(prints.length === 2 && prints[1]?.title === 'Offerte, revised again' && shownFrom(1) === 1, `two edits made together printed ${String(prints.length - 1)} times, the last of ${String(prints[1]?.title)}`)
+expect(
+  prints.length === 2 && prints[1]?.title === 'Offerte, revised again' && shownFrom(1) === 1,
+  `two edits made together printed ${String(prints.length - 1)} times, the last of ${String(prints[1]?.title)}`,
+)
 
 // A print still running when the next edit arrives: aborted, and, though
 // it finishes, never shown -- only the print of the latest document is.
@@ -146,15 +150,22 @@ expect(prints[2]?.signal.aborted === true, 'a print the next edit overtook was n
 release?.()
 await until(() => ended === 4, 'finish the overtaken print and the next')
 await new Promise((resolve) => setTimeout(resolve, 50))
-expect(shown.length === 3 && prints[3]?.title === 'Offerte, latest' && shownFrom(2) === 3, `after a print the next edit overtook, the previews shown came from prints ${shown.map((_, at) => String(shownFrom(at))).join(', ')}, where only print 3, of the latest document, should follow 1`)
+expect(
+  shown.length === 3 && prints[3]?.title === 'Offerte, latest' && shownFrom(2) === 3,
+  `after a print the next edit overtook, the previews shown came from prints ${shown.map((_, at) => String(shownFrom(at))).join(', ')}, where only print 3, of the latest document, should follow 1`,
+)
 
 // A report the runtime refuses: its reason, shown.
 const clock = { id: 'clock', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'string(now())' } }] } as const
-if (!opened.session.apply((report) => insertComponent(report, { region: 'body', index: 0 }, clock)).ok) throw new Error('the session refused a text printing the clock')
+if (!opened.session.apply((report) => insertComponent(report, { region: 'body', index: 0 }, clock)).ok)
+  throw new Error('the session refused a text printing the clock')
 await until(() => shown.length === 4, 'say why a refused report was not printed')
 const refused = shown[3]
 const described = refused === undefined ? 'nothing' : 'pdf' in refused ? `the PDF of print ${String(shownFrom(3))}` : `refused, ${refused.refused}`
-expect(refused !== undefined && 'refused' in refused && refused.refused.includes('now()'), `a report the runtime refuses, printing the clock, was shown as ${described}`)
+expect(
+  refused !== undefined && 'refused' in refused && refused.refused.includes('now()'),
+  `a report the runtime refuses, printing the clock, was shown as ${described}`,
+)
 
 // Stopped: an edit prints nothing.
 stop()

@@ -22,7 +22,9 @@ describe('checkParameters', () => {
   // A parameter is read by the same rules as a field of its type, so that
   // `params.copies` is an integer however it reached the report.
   test('reads each value as its parameter type', () => {
-    const values = checked(checkParameters(sampleReport(), { from: '2026-01-01', draft: true, threshold: '100.00', currency: 'EUR', copies: '2', heading: 'Lieferungen' }))
+    const values = checked(
+      checkParameters(sampleReport(), { from: '2026-01-01', draft: true, threshold: '100.00', currency: 'EUR', copies: '2', heading: 'Lieferungen' }),
+    )
     expect(values.from).toBe('2026-01-01')
     expect(values.draft).toBe(true)
     expect(decimalToString(values.threshold as Decimal)).toBe('100.00')

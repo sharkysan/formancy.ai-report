@@ -235,7 +235,10 @@ describe('values JSON cannot hold', () => {
     expect(refusals(report)).toEqual(['not-json /parameters'])
     expect(lying.reads()).toBe(0)
 
-    const endless = lyingArray(() => Number.POSITIVE_INFINITY, () => ({ kind: 'text', text: 'x' }))
+    const endless = lyingArray(
+      () => Number.POSITIVE_INFINITY,
+      () => ({ kind: 'text', text: 'x' }),
+    )
     const inlines = editable(richReport())
     setAt(inlines, '/regions/body/0/content', endless.array)
     expect(refusals(inlines)).toEqual(['not-json /regions/body/0/content'])
@@ -245,10 +248,16 @@ describe('values JSON cannot hold', () => {
   // A length that is a number past the bound is refused before an element
   // is read, in a list of declarations and in a list of inlines alike.
   test('refuses a proxy whose numeric length is past the bound without reading an element', () => {
-    const parameters = lyingArray(() => MAX_PARAMETERS + 1, () => ({}))
+    const parameters = lyingArray(
+      () => MAX_PARAMETERS + 1,
+      () => ({}),
+    )
     const report = editable(richReport())
     setAt(report, '/parameters', parameters.array)
-    const inlines = lyingArray(() => MAX_INLINES + 1, () => ({}))
+    const inlines = lyingArray(
+      () => MAX_INLINES + 1,
+      () => ({}),
+    )
     setAt(report, '/regions/body/0/content', inlines.array)
     expect(refusals(report)).toEqual(['too-many /parameters', 'too-many /regions/body/0/content'])
     expect(parameters.reads() + inlines.reads()).toBe(0)

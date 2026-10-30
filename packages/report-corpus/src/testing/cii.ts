@@ -87,7 +87,10 @@ export function textAt(from: CiiElement, path: string): string | undefined {
 }
 
 /** Every element's text that is not blank by its path from the root, and every attribute by the element's path and `@name`, each in document order. */
-export function pathsOf(root: CiiElement): { readonly texts: ReadonlyMap<string, readonly string[]>; readonly attributes: ReadonlyMap<string, readonly string[]> } {
+export function pathsOf(root: CiiElement): {
+  readonly texts: ReadonlyMap<string, readonly string[]>
+  readonly attributes: ReadonlyMap<string, readonly string[]>
+} {
   const texts = new Map<string, string[]>()
   const attributes = new Map<string, string[]>()
   const add = (map: Map<string, string[]>, key: string, value: string): void => {

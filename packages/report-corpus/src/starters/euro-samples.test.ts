@@ -40,7 +40,8 @@ const STATED = {
     vat: 'Umsatzsteuer 19 %',
     address: ['Erika Mustermann', 'Heidestraße 17', '51147 Köln'],
     from: 'Formancy Haustechnik GmbH · Industriestraße 7 · 50735 Köln · USt-IdNr. DE123456789',
-    notice: 'Sie sind gesetzlich verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige Unterlage zwei Jahre lang aufzubewahren (§ 14b Abs. 1 Satz 5 UStG).',
+    notice:
+      'Sie sind gesetzlich verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige Unterlage zwei Jahre lang aufzubewahren (§ 14b Abs. 1 Satz 5 UStG).',
   },
   'euro-invoice-at': {
     locale: 'de-AT',
@@ -69,7 +70,8 @@ const STATED = {
     vat: 'IVA 22%',
     address: ['Mario Rossi', 'Via Roma, 15', '10121 Torino'],
     from: 'Formancy Termotecnica S.r.l. · Via dell’Industria, 7 · 20141 Milano · P.IVA 12345678901',
-    notice: 'Copia di cortesia: l’originale della fattura elettronica, trasmessa tramite il Sistema di Interscambio, è a vostra disposizione nell’area riservata del sito dell’Agenzia delle Entrate.',
+    notice:
+      'Copia di cortesia: l’originale della fattura elettronica, trasmessa tramite il Sistema di Interscambio, è a vostra disposizione nell’area riservata del sito dell’Agenzia delle Entrate.',
   },
   'euro-invoice-es': {
     locale: 'es-ES',
@@ -129,9 +131,14 @@ const ODD = [1, 0, 5, 7, 9, 13, 15, 17, 19, 21]
  */
 const NATIONAL = {
   // The RIB key: 97 less the remainder by 97 of 89 times the bank, 15 times the branch and 3 times the account.
-  FR: (bban: string) => String(97n - ((89n * BigInt(bban.slice(0, 5)) + 15n * BigInt(bban.slice(5, 10)) + 3n * BigInt(bban.slice(10, 21))) % 97n)).padStart(2, '0') === bban.slice(21),
+  FR: (bban: string) =>
+    String(97n - ((89n * BigInt(bban.slice(0, 5)) + 15n * BigInt(bban.slice(5, 10)) + 3n * BigInt(bban.slice(10, 21))) % 97n)).padStart(2, '0') ===
+    bban.slice(21),
   // The CIN: the 22 digits after it, each counted by its place, the sum's remainder by 26 as a letter from A.
-  IT: (bban: string) => String.fromCharCode(65 + ([...bban.slice(1)].reduce((sum, digit, index) => sum + (index % 2 === 0 ? (ODD[Number(digit)] as number) : Number(digit)), 0) % 26)) === bban.charAt(0),
+  IT: (bban: string) =>
+    String.fromCharCode(
+      65 + ([...bban.slice(1)].reduce((sum, digit, index) => sum + (index % 2 === 0 ? (ODD[Number(digit)] as number) : Number(digit)), 0) % 26),
+    ) === bban.charAt(0),
   // The DC: one digit of the entity and the office, led by two zeros, and one of the account.
   ES: (bban: string) => `${spanishDigit(`00${bban.slice(0, 8)}`)}${spanishDigit(bban.slice(10))}` === bban.slice(8, 10),
   // The eleven test: the ten digits weighted 10 down to 1, their sum a multiple of eleven.
@@ -154,7 +161,9 @@ function resolved(sample: Starter): ResolvedDocument {
 /** The first paragraphs of the body's first columns block, each as one text: the customer's address, as the runtime resolved it. */
 function addressOf(document: ResolvedDocument): string[] {
   const columns = document.body.find((block): block is Extract<Block, { kind: 'columns' }> => block.kind === 'columns')
-  return (columns?.columns[0]?.blocks ?? []).flatMap((block) => (block.kind === 'paragraph' ? [block.runs.map((run) => ('text' in run ? run.text : '')).join('')] : []))
+  return (columns?.columns[0]?.blocks ?? []).flatMap((block) =>
+    block.kind === 'paragraph' ? [block.runs.map((run) => ('text' in run ? run.text : '')).join('')] : [],
+  )
 }
 
 /**
@@ -174,7 +183,8 @@ function printed(report: ReportDefinition, data: Starter['data']): Set<string> {
     }
   }
   walk(report)
-  for (const line of data.detail as Record<string, string>[]) for (const name of ['description', 'unit']) if (/\p{L}/u.test(line[name] as string)) found.add(line[name] as string)
+  for (const line of data.detail as Record<string, string>[])
+    for (const name of ['description', 'unit']) if (/\p{L}/u.test(line[name] as string)) found.add(line[name] as string)
   return found
 }
 
@@ -247,7 +257,9 @@ describe('the euro invoice samples', () => {
   // whole, element by element in the EPC's order (EPC069-12 v3.1 2.2).
   test.each(samples)('%s is paid by one EPC code for its exact total, to its own firm, by its own reference', (id, sample) => {
     const [bic, firm, iban, reference, information] = STATED[id as Id].pays
-    expect(epcCodes(resolved(sample).body).map((code) => code.payload.split('\n'))).toEqual([['BCD', '001', '1', 'SCT', bic, firm, compact(iban), epcAmount(totalOf(sample)), '', compact(reference), '', information]])
+    expect(epcCodes(resolved(sample).body).map((code) => code.payload.split('\n'))).toEqual([
+      ['BCD', '001', '1', 'SCT', bic, firm, compact(iban), epcAmount(totalOf(sample)), '', compact(reference), '', information],
+    ])
   })
 
   // Each country's standard rate, as the EU's Your Europe table gave it on
@@ -264,7 +276,14 @@ describe('the euro invoice samples', () => {
       { kind: 'expression', expression: { cel: `row.amount * dec("1.${rate}")` } },
       [
         { column: 'article', value: { kind: 'text', text: vat } },
-        { column: 'amount', value: { kind: 'expression', expression: { cel: `round(totals.subtotal * dec("0.${rate}"), 2)` }, format: { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } } },
+        {
+          column: 'amount',
+          value: {
+            kind: 'expression',
+            expression: { cel: `round(totals.subtotal * dec("0.${rate}"), 2)` },
+            format: { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 },
+          },
+        },
       ],
     ])
   })
@@ -286,19 +305,22 @@ describe('the euro invoice samples', () => {
     ['euro-invoice-es', 'ES', '0000', 'FMNCDEF0XXX'],
     ['euro-invoice-nl', 'NL', 'FMNC', 'FMNCDEF0XXX'],
     ['euro-invoice-ie', 'IE', 'FMNC000000', 'FMNCDEF0XXX'],
-  ] as const)('%s pays an account of its country by the bank code chosen, through a test BIC, both held to report-spec’s rules', (id, country, bank, foreign) => {
-    const [bic, , iban] = STATED[id].pays
-    const account = compact(iban)
-    expect([account.slice(0, 2), account.slice(4, 4 + bank.length), bic.slice(4, 6), bic.charAt(7)]).toEqual([country, bank, country, '0'])
-    const sample = EURO_INVOICE_SAMPLES.find((each) => each.id === id) as Starter
-    const refused = (report: unknown) => {
-      const outcome = checkReport(report)
-      return outcome.ok ? [] : outcome.errors.map((error) => [error.code, error.path.split('/').at(-1)])
-    }
-    expect(refused(sample.report)).toEqual([])
-    expect(refused(rewritten(sample.report, iban, `${iban.slice(0, -2)}${iban.at(-1)}${iban.at(-2)}`))).toEqual([['invalid-epc-qr-code', 'iban']])
-    expect(refused(rewritten(sample.report, bic, foreign))).toEqual([['invalid-epc-qr-code', 'bic']])
-  })
+  ] as const)(
+    '%s pays an account of its country by the bank code chosen, through a test BIC, both held to report-spec’s rules',
+    (id, country, bank, foreign) => {
+      const [bic, , iban] = STATED[id].pays
+      const account = compact(iban)
+      expect([account.slice(0, 2), account.slice(4, 4 + bank.length), bic.slice(4, 6), bic.charAt(7)]).toEqual([country, bank, country, '0'])
+      const sample = EURO_INVOICE_SAMPLES.find((each) => each.id === id) as Starter
+      const refused = (report: unknown) => {
+        const outcome = checkReport(report)
+        return outcome.ok ? [] : outcome.errors.map((error) => [error.code, error.path.split('/').at(-1)])
+      }
+      expect(refused(sample.report)).toEqual([])
+      expect(refused(rewritten(sample.report, iban, `${iban.slice(0, -2)}${iban.at(-1)}${iban.at(-2)}`))).toEqual([['invalid-epc-qr-code', 'iban']])
+      expect(refused(rewritten(sample.report, bic, foreign))).toEqual([['invalid-epc-qr-code', 'bic']])
+    },
+  )
 
   // A translation that left a word of the German behind prints it on a
   // French, Italian, Spanish, Dutch or English invoice. Each prints no
@@ -322,7 +344,9 @@ describe('the euro invoice samples', () => {
   // the pages compare unlike invoices.
   test('sell the same parts at the same quantities and prices', () => {
     const work = (sample: Starter) =>
-      [...(sample.data.detail as Record<string, string>[])].sort((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1)).map(({ quantity, unitPrice, amount }) => [quantity, unitPrice, amount])
+      [...(sample.data.detail as Record<string, string>[])]
+        .sort((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1))
+        .map(({ quantity, unitPrice, amount }) => [quantity, unitPrice, amount])
     const parts = [
       ['1.00', '312.00', '312.00'],
       ['1.00', '148.00', '148.00'],
@@ -362,9 +386,14 @@ describe('the euro invoice samples', () => {
   // country's invoice would state a duty its reader does not have.
   test.each(samples)('%s prints the notice its law asks for under its terms, and no other', (id, sample) => {
     const { summary } = sample.report.regions
-    const between = summary.slice(summary.findIndex((component) => component.id === 'terms') + 1, summary.findIndex((component) => component.id === 'payment-gap'))
+    const between = summary.slice(
+      summary.findIndex((component) => component.id === 'terms') + 1,
+      summary.findIndex((component) => component.id === 'payment-gap'),
+    )
     const notice = STATED[id as Id].notice
-    expect(between.flatMap((component) => (component.kind === 'text' ? [component.content] : []))).toEqual(notice === undefined ? [] : [[{ kind: 'text', text: notice }]])
+    expect(between.flatMap((component) => (component.kind === 'text' ? [component.content] : []))).toEqual(
+      notice === undefined ? [] : [[{ kind: 'text', text: notice }]],
+    )
   })
 
   // French sets a space before a colon, a semicolon, a question or an
@@ -425,7 +454,9 @@ describe('the euro invoice samples', () => {
   // name or note is never refused by its data's length alone.
   test.each(samples)('%s prints its code in a square that holds every payload the EPC allows, with the frame or without', (_id, sample) => {
     const floor = (0.4 * 72) / 25.4
-    expect(epcCodes(resolved(sample).body).map((code) => [epcModule(code.size, EPC_MAX_VERSION, undefined) >= floor, epcCaptionBreak(code.size, EPC_MAX_VERSION)])).toEqual([[true, undefined]])
+    expect(
+      epcCodes(resolved(sample).body).map((code) => [epcModule(code.size, EPC_MAX_VERSION, undefined) >= floor, epcCaptionBreak(code.size, EPC_MAX_VERSION)]),
+    ).toEqual([[true, undefined]])
   })
 
   // Every amount the six samples print is under a thousand euro, so that

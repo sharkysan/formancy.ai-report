@@ -98,7 +98,8 @@ function amount(lowering: Lowering): string | undefined {
   const value = valueOf(lowering.render, lowering.scope, `${path}/cel`)
   if (value === undefined) return undefined
   if (value === null) return ''
-  if (value.type !== 'decimal') return refuse(lowering, path, `the amount gives ${value.type}, and an EPC QR code's amount is a decimal in euro, or null to leave it for the payer`)
+  if (value.type !== 'decimal')
+    return refuse(lowering, path, `the amount gives ${value.type}, and an EPC QR code's amount is a decimal in euro, or null to leave it for the payer`)
   const outcome = checkEpcAmount(decimalToString(value.value))
   return outcome.ok ? outcome.value : refuse(lowering, path, `the amount ${outcome.rule}`)
 }
@@ -124,7 +125,17 @@ export function epcQrCodeBlock(render: Render, scope: Scope, code: EpcQrCodeComp
     const asked = { said: lowering.encoder.said, code: 'the EPC QR code', componentId: code.id, amountPath: `${path}/amount`, accountPath: `${path}/iban` }
     checkPayable(render, asked, sum === '' ? null : decimalFromString(sum), iban.text)
   }
-  if (pairing.length > 0 || bic === undefined || beneficiary === undefined || iban === undefined || sum === undefined || reference === undefined || text === undefined || information === undefined) return undefined
+  if (
+    pairing.length > 0 ||
+    bic === undefined ||
+    beneficiary === undefined ||
+    iban === undefined ||
+    sum === undefined ||
+    reference === undefined ||
+    text === undefined ||
+    information === undefined
+  )
+    return undefined
   const payload = epcPayload({
     bic: bic.text,
     beneficiary: beneficiary.text,

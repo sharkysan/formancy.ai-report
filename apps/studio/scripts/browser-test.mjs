@@ -102,7 +102,20 @@ import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
 import { interactions } from './gate-interactions.mjs'
-import { app, audit, cutControls, describeFocus, downloaded, drawnPages, fontProblem, fromTheTop, measureWidth, paletteProblem, passes, rulesOnThePaper } from './gate-page.mjs'
+import {
+  app,
+  audit,
+  cutControls,
+  describeFocus,
+  downloaded,
+  drawnPages,
+  fontProblem,
+  fromTheTop,
+  measureWidth,
+  paletteProblem,
+  passes,
+  rulesOnThePaper,
+} from './gate-page.mjs'
 import { builderParity } from './gate-parity.mjs'
 import { placeChecks } from './gate-place.mjs'
 import { gateRecorder } from './gate-results.mjs'
@@ -179,16 +192,30 @@ async function measured(gate, page, state) {
   // The Preview in a middle pane narrower than its tools scrolls to them
   // (0029); one that clipped them would leave them out of a pointer's reach.
   const controls = await cutControls(page)
-  check(`${state}: no control of the Preview is cut off by a pane that does not scroll to it`, controls.cut.length === 0 ? null : controls.cut.slice(0, 4).join('; '))
+  check(
+    `${state}: no control of the Preview is cut off by a pane that does not scroll to it`,
+    controls.cut.length === 0 ? null : controls.cut.slice(0, 4).join('; '),
+  )
   const { width: wide, height: high } = page.viewportSize() ?? { width: 0, height: 0 }
-  gate.measure({ name: `${state}, ${String(wide)} by ${String(high)}: controls of the Preview its pane scrolls to`, value: controls.scrolled, unit: `of ${String(controls.controls)} controls` })
+  gate.measure({
+    name: `${state}, ${String(wide)} by ${String(high)}: controls of the Preview its pane scrolls to`,
+    value: controls.scrolled,
+    unit: `of ${String(controls.controls)} controls`,
+  })
   await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined))
   const result = await audit(page)
   gate.axe(result.axe)
   check(`${state}: axe's default rules and target size find nothing`, result.violations.length === 0 ? null : result.violations.join('; '))
   check(`${state}: contrast and target size measured, over something`, result.measured.length === 2 ? null : `only ${result.measured.join(', ') || 'nothing'}`)
-  check(`${state}: the contrast of every text in view decided, but PDF.js's text over the PDF`, result.undecided.length === 0 ? null : `undecided: ${result.undecided.join('; ')}`)
-  gate.measure({ name: `${state}: texts whose contrast axe could not decide because their pane had scrolled them out of view`, value: result.hidden, unit: 'texts' })
+  check(
+    `${state}: the contrast of every text in view decided, but PDF.js's text over the PDF`,
+    result.undecided.length === 0 ? null : `undecided: ${result.undecided.join('; ')}`,
+  )
+  gate.measure({
+    name: `${state}: texts whose contrast axe could not decide because their pane had scrolled them out of view`,
+    value: result.hidden,
+    unit: 'texts',
+  })
 }
 
 /** The printed preview of a pictured starter, held to what its picture's page prints. */
@@ -196,8 +223,13 @@ async function paperChecks(gate, page, state, picture) {
   const { check } = gate
   const pages = await drawnPages(page, { within: WITHIN })
   const said = await previewOf(page).getByRole('group', { name: 'Pages', exact: true }).innerText()
-  check(`${state}: PDF.js laid out every page the viewer counts`, said.includes(`of ${String(pages.length)}`) ? null : `${String(pages.length)} pages drawn, and the viewer says "${said.replaceAll(/\s+/g, ' ')}"`)
-  const poor = pages.filter((sheet) => !(sheet.white > 0.5 && sheet.ink > 0.001)).map((sheet) => `page ${String(sheet.number)}: ${(sheet.white * 100).toFixed(1)}% white, ${(sheet.ink * 100).toFixed(2)}% ink`)
+  check(
+    `${state}: PDF.js laid out every page the viewer counts`,
+    said.includes(`of ${String(pages.length)}`) ? null : `${String(pages.length)} pages drawn, and the viewer says "${said.replaceAll(/\s+/g, ' ')}"`,
+  )
+  const poor = pages
+    .filter((sheet) => !(sheet.white > 0.5 && sheet.ink > 0.001))
+    .map((sheet) => `page ${String(sheet.number)}: ${(sheet.white * 100).toFixed(1)}% white, ${(sheet.ink * 100).toFixed(2)}% ink`)
   check(`${state}: every page drawn on white paper, with ink on it`, pages.length > 0 && poor.length === 0 ? null : poor.join('; ') || 'no page was drawn')
   const lines = pages.find((sheet) => sheet.number === picture.page)?.lines ?? []
   const missing = picture.lines.filter((line) => !lines.includes(line))
@@ -206,12 +238,17 @@ async function paperChecks(gate, page, state, picture) {
     `${state}: page ${String(picture.page)}'s text layer holds the ${String(picture.lines.length)} lines pictures.json says it prints, and no other`,
     missing.length === 0 && extra.length === 0 ? null : `missing ${JSON.stringify(missing.slice(0, 4))}, extra ${JSON.stringify(extra.slice(0, 4))}`,
   )
-  const href = await previewOf(page).getByRole('link', { name: 'Download PDF', exact: true }).evaluate((link) => link.href)
+  const href = await previewOf(page)
+    .getByRole('link', { name: 'Download PDF', exact: true })
+    .evaluate((link) => link.href)
   const { head, drawings } = await downloaded(page, href, picture.page)
   check(`${state}: Download PDF is a PDF`, head === '%PDF-' ? null : `it begins ${JSON.stringify(head)}`)
   // A manifest written before it recorded drawings records none, and fails here rather than passing a page it never pictured.
   const recorded = Array.isArray(picture.drawings) ? JSON.stringify(picture.drawings) : 'no drawings at all'
-  check(`${state}: its page ${String(picture.page)} draws the drawings pictures.json records there, and no other`, JSON.stringify(drawings) === recorded ? null : `it draws ${JSON.stringify(drawings)}, and pictures.json records ${recorded}`)
+  check(
+    `${state}: its page ${String(picture.page)} draws the drawings pictures.json records there, and no other`,
+    JSON.stringify(drawings) === recorded ? null : `it draws ${JSON.stringify(drawings)}, and pictures.json records ${recorded}`,
+  )
 }
 
 /**
@@ -223,10 +260,17 @@ async function paperRules(gate, page) {
   const paper = await rulesOnThePaper(page)
   gate.check(
     'the paper: no rule of the page selects anything on it but the paper’s own, and the workbench’s .wb *, which declares transitions alone',
-    paper.reached.length === 0 && paper.broken.length === 0 ? null : [...paper.reached, ...paper.broken.map((selector) => `${selector} could not be matched`)].slice(0, 6).join('; '),
+    paper.reached.length === 0 && paper.broken.length === 0
+      ? null
+      : [...paper.reached, ...paper.broken.map((selector) => `${selector} could not be matched`)].slice(0, 6).join('; '),
   )
   const missing = ['canvas', 'span', 'div'].filter((tag) => !paper.tags.includes(tag))
-  gate.check('which matched every rule against a drawn page and its text layer', paper.rules > 100 && paper.own > 0 && missing.length === 0 ? null : `${String(paper.rules)} rules, ${String(paper.own)} of the paper's own, and no ${missing.join(', ')} on the paper`)
+  gate.check(
+    'which matched every rule against a drawn page and its text layer',
+    paper.rules > 100 && paper.own > 0 && missing.length === 0
+      ? null
+      : `${String(paper.rules)} rules, ${String(paper.own)} of the paper's own, and no ${missing.join(', ')} on the paper`,
+  )
   gate.check('and read every stylesheet of the page', paper.unread.length === 0 ? null : `could not read ${paper.unread.join(', ')}`)
 }
 
@@ -246,7 +290,10 @@ async function keyboard(gate, page) {
   check('the skip link, shown: axe finds nothing', skipAudit.violations.length === 0 ? null : skipAudit.violations.join('; '))
   await page.keyboard.press('Enter')
   const main = page.getByRole('main')
-  check('Enter on it puts the keyboard on <main>', (await main.evaluate((element) => element === document.activeElement)) ? null : `the focus is on ${await describeFocus(page)}`)
+  check(
+    'Enter on it puts the keyboard on <main>',
+    (await main.evaluate((element) => element === document.activeElement)) ? null : `the focus is on ${await describeFocus(page)}`,
+  )
   await page.keyboard.press('Tab')
   const into = await main.evaluate((element) => {
     const tabbable = [...element.querySelectorAll('*')].filter((each) => each.tabIndex >= 0 && !each.disabled && each.getClientRects().length > 0)
@@ -289,7 +336,10 @@ async function journey(gate, page, picker, { refuseFonts }) {
   await keyboard(gate, page)
   const starters = await picker.locator('option').evaluateAll((options) => options.map((option) => ({ id: option.value, label: option.textContent })))
   const unlisted = PICTURED.filter((picture) => !starters.some((starter) => starter.id === picture.starter))
-  gate.check('the picker offers every starter pictures.json pictures', unlisted.length === 0 ? null : `no ${unlisted.map((picture) => picture.starter).join(', ')}`)
+  gate.check(
+    'the picker offers every starter pictures.json pictures',
+    unlisted.length === 0 ? null : `no ${unlisted.map((picture) => picture.starter).join(', ')}`,
+  )
   let ruled = false
   for (const framework of ['React', 'Angular']) {
     await builder(page, framework)
@@ -341,7 +391,10 @@ async function journey(gate, page, picker, { refuseFonts }) {
     button: 'Select Table',
     target: 'Table',
   })
-  gate.check(refuseFonts ? 'with the web fonts refused, none loaded' : 'every web font the page asks for loaded', await fontProblem(page, { dist, refused: refuseFonts }))
+  gate.check(
+    refuseFonts ? 'with the web fonts refused, none loaded' : 'every web font the page asks for loaded',
+    await fontProblem(page, { dist, refused: refuseFonts }),
+  )
   return starters
 }
 
@@ -370,7 +423,7 @@ async function pass(gate, browser, url, entry) {
     await page.goto(url, { waitUntil: 'load' })
     const picker = page.getByRole('combobox', { name: 'Starter', exact: true })
     await picker.waitFor()
-    gate.check("the page wears the released room, every variable and the colour scheme of the installed room.css as it has them", await paletteProblem(page))
+    gate.check('the page wears the released room, every variable and the colour scheme of the installed room.css as it has them', await paletteProblem(page))
     for (const framework of ['React', 'Angular']) {
       await builder(page, framework)
       await placeChecks(gate, page, framework, entry, { measured })
@@ -379,9 +432,16 @@ async function pass(gate, browser, url, entry) {
     // A preconnect or dns-prefetch hint opens a connection with no request
     // the listener would hear, and a connection gives the host the address
     // all the same (formancy.ai 0154): read from the page as it ends.
-    const hinted = await page.evaluate(() => [...document.querySelectorAll('link')].filter((link) => link.relList.contains('preconnect') || link.relList.contains('dns-prefetch')).map((link) => link.href))
+    const hinted = await page.evaluate(() =>
+      [...document.querySelectorAll('link')]
+        .filter((link) => link.relList.contains('preconnect') || link.relList.contains('dns-prefetch'))
+        .map((link) => link.href),
+    )
     for (const address of hinted) if (!address.startsWith(url)) elsewhere.add(`${address} (a hint)`)
-    gate.check('the page fetched nothing and hinted no connection outside the built Studio, its faces included: the PDFs were printed in it', elsewhere.size === 0 ? null : [...elsewhere].slice(0, 4).join(', '))
+    gate.check(
+      'the page fetched nothing and hinted no connection outside the built Studio, its faces included: the PDFs were printed in it',
+      elsewhere.size === 0 ? null : [...elsewhere].slice(0, 4).join(', '),
+    )
   } finally {
     await page.close()
   }
@@ -414,7 +474,9 @@ async function main() {
     for (const each of list) await pass(gate, browser, url, each)
     const failures = gate.failures()
     if (failures.length > 0) throw new Error(`${String(failures.length)} browser check(s) failed:\n  ${failures.join('\n  ')}`)
-    console.log(`\nbrowser checks passed: the Studio's whole journey in ${String(list.filter((each) => each.light !== true).length)} of ${String(list.length)} passes and the Preview's place in all of them, from ${String(Math.min(...list.map((each) => each.width)))} to ${String(Math.max(...list.map((each) => each.width)))}px wide, for the layout, focus, colour and printing facts jsdom cannot represent`)
+    console.log(
+      `\nbrowser checks passed: the Studio's whole journey in ${String(list.filter((each) => each.light !== true).length)} of ${String(list.length)} passes and the Preview's place in all of them, from ${String(Math.min(...list.map((each) => each.width)))} to ${String(Math.max(...list.map((each) => each.width)))}px wide, for the layout, focus, colour and printing facts jsdom cannot represent`,
+    )
   } catch (error) {
     gate.error(error)
     throw error

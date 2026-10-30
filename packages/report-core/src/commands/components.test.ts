@@ -159,8 +159,14 @@ describe('updateComponent', () => {
   // place, whatever an untyped caller sends.
   test('refuses a patch that changes the id or the kind', () => {
     const sneaky = (patch: object): Parameters<typeof updateComponent<'text'>>[3] => patch as Parameters<typeof updateComponent<'text'>>[3]
-    expect(refused(updateComponent(frozenSample(), 'intro', 'text', sneaky({ id: 'other' })))).toMatchObject({ code: 'immutable-property', path: '/regions/body/0/id' })
-    expect(refused(updateComponent(frozenSample(), 'intro', 'text', sneaky({ kind: 'spacer' })))).toMatchObject({ code: 'immutable-property', path: '/regions/body/0/kind' })
+    expect(refused(updateComponent(frozenSample(), 'intro', 'text', sneaky({ id: 'other' })))).toMatchObject({
+      code: 'immutable-property',
+      path: '/regions/body/0/id',
+    })
+    expect(refused(updateComponent(frozenSample(), 'intro', 'text', sneaky({ kind: 'spacer' })))).toMatchObject({
+      code: 'immutable-property',
+      path: '/regions/body/0/kind',
+    })
   })
 
   // The patch type is per kind: these lines do not compile, which the
@@ -224,7 +230,10 @@ describe('duplicateComponent', () => {
   test('copies an EPC QR code with every field it holds', () => {
     const outcome = duplicateComponent(frozenSample(), 'payment-code')
     expect(outcome.ok && outcome.id).toBe('payment-code-2')
-    expect(componentAt(accepted(outcome), 'payment-code-2')?.component).toEqual({ ...componentAt(sampleReport(), 'payment-code')?.component, id: 'payment-code-2' })
+    expect(componentAt(accepted(outcome), 'payment-code-2')?.component).toEqual({
+      ...componentAt(sampleReport(), 'payment-code')?.component,
+      id: 'payment-code-2',
+    })
   })
 
   test('refuses a component the report lacks', () => {
@@ -248,7 +257,12 @@ describe('nextComponentId', () => {
   // says: an EPC QR code is epc-qr-code, never epcqrcode, which an author
   // reading the outline would not read as three words.
   test('writes each word of a kind apart', () => {
-    expect(['pageBreak', 'qrCode', 'epcQrCode', 'keepTogether'].map((kind) => nextComponentId(frozenSample(), kind))).toEqual(['page-break', 'qr-code', 'epc-qr-code', 'keep-together'])
+    expect(['pageBreak', 'qrCode', 'epcQrCode', 'keepTogether'].map((kind) => nextComponentId(frozenSample(), kind))).toEqual([
+      'page-break',
+      'qr-code',
+      'epc-qr-code',
+      'keep-together',
+    ])
   })
 
   // The palette names a new component by its kind; the first free id wins.

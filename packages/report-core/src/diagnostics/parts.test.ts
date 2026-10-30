@@ -18,7 +18,11 @@ describe('expressionSites', () => {
   // the format fails here until the walk knows it.
   test('finds every expression in the report', () => {
     const report = frozenSample()
-    expect(expressionSites(report).map(({ path }) => path).sort()).toEqual(celPointers(report).sort())
+    expect(
+      expressionSites(report)
+        .map(({ path }) => path)
+        .sort(),
+    ).toEqual(celPointers(report).sort())
   })
 
   // Each expression is compiled against the names its place binds and with
@@ -27,7 +31,8 @@ describe('expressionSites', () => {
   // properties rather than the whole table's; one in the payment part names
   // no component, and comes after every component's.
   test('gives each expression its scope, its kind, and the component and column it is in', () => {
-    const said = ({ path, scope, kind, componentId, columnId }: ExpressionSite): string => `${scope} ${kind} ${componentId ?? '-'}${columnId === undefined ? '' : `/${columnId}`} ${path}`
+    const said = ({ path, scope, kind, componentId, columnId }: ExpressionSite): string =>
+      `${scope} ${kind} ${componentId ?? '-'}${columnId === undefined ? '' : `/${columnId}`} ${path}`
     expect(expressionSites(frozenSample()).map(said)).toEqual([
       'report visible intro /regions/body/0/visibleWhen/cel',
       'report visible intro /regions/body/0/styleWhen/0/when/cel',
@@ -123,7 +128,13 @@ describe('a QR code', () => {
     const swapped = { ...report, regions: { ...report.regions, summary: [...report.regions.summary.slice(0, 2), asText, ...report.regions.summary.slice(3)] } }
     const parts = reportParts(report)
     expect(parts).toEqual(reportParts(swapped))
-    expect(parts.expressions).toContainEqual({ cel: '" from " + params.from', scope: 'report', kind: 'computed', path: '/regions/summary/2/content/2/expression/cel', componentId: 'order-code' })
+    expect(parts.expressions).toContainEqual({
+      cel: '" from " + params.from',
+      scope: 'report',
+      kind: 'computed',
+      path: '/regions/summary/2/content/2/expression/cel',
+      componentId: 'order-code',
+    })
   })
 })
 
@@ -142,8 +153,21 @@ describe('an EPC QR code', () => {
   // expression in a code would go unchecked until a render refused it.
   test("is read in the report's scope, its amount as the code's amount, named after the code", () => {
     expect(reportParts(frozenSample()).expressions.filter(({ componentId }) => componentId === 'payment-code')).toEqual([
-      { cel: 'totals.subtotal', scope: 'report', kind: 'computed', path: '/regions/summary/3/amount/cel', componentId: 'payment-code', amount: 'an EPC QR code' },
-      { cel: '" for " + header.customer', scope: 'report', kind: 'computed', path: '/regions/summary/3/information/1/expression/cel', componentId: 'payment-code' },
+      {
+        cel: 'totals.subtotal',
+        scope: 'report',
+        kind: 'computed',
+        path: '/regions/summary/3/amount/cel',
+        componentId: 'payment-code',
+        amount: 'an EPC QR code',
+      },
+      {
+        cel: '" for " + header.customer',
+        scope: 'report',
+        kind: 'computed',
+        path: '/regions/summary/3/information/1/expression/cel',
+        componentId: 'payment-code',
+      },
     ])
   })
 
@@ -162,7 +186,11 @@ describe('an EPC QR code', () => {
       information: run('information'),
     }))
     const found = expressionSites(everywhere).filter(({ componentId }) => componentId === 'payment-code')
-    expect(found.map(({ path }) => path)).toEqual(['bic', 'beneficiary', 'iban', 'amount', 'text', 'information'].map((key) => (key === 'amount' ? '/regions/summary/3/amount/cel' : `/regions/summary/3/${key}/0/expression/cel`)))
+    expect(found.map(({ path }) => path)).toEqual(
+      ['bic', 'beneficiary', 'iban', 'amount', 'text', 'information'].map((key) =>
+        key === 'amount' ? '/regions/summary/3/amount/cel' : `/regions/summary/3/${key}/0/expression/cel`,
+      ),
+    )
     expect(found.map(({ path }) => path).sort()).toEqual(celPointers(everywhere.regions.summary[3], '/regions/summary/3').sort())
     const withReference = withCode((code) => ({ ...code, reference: run('reference') }))
     expect(expressionSites(withReference).map(({ path }) => path)).toContain('/regions/summary/3/reference/0/expression/cel')
@@ -237,7 +265,14 @@ describe('a payment part', () => {
   // on the commonest donation slip there is.
   test('is read for what it holds when it holds only what it must', () => {
     const report = sampleReport()
-    const { amount: _amount, debtor: _debtor, reference: _reference, message: _message, billingInformation: _billing, ...bare } = report.paymentPart as SwissQrBill
+    const {
+      amount: _amount,
+      debtor: _debtor,
+      reference: _reference,
+      message: _message,
+      billingInformation: _billing,
+      ...bare
+    } = report.paymentPart as SwissQrBill
     const parts = reportParts({ ...report, paymentPart: { ...bare, account: [{ kind: 'expression', expression: { cel: 'header.customer' } }] } })
     expect(parts.expressions.filter(({ path }) => path.startsWith('/paymentPart/')).map(({ path }) => path)).toEqual(['/paymentPart/account/0/expression/cel'])
   })
@@ -268,14 +303,19 @@ describe('an e-invoice', () => {
   /** The invoice a report holds. */
   const invoiceOf = (report: ReportDefinition): FacturXInvoice => report.eInvoice as FacturXInvoice
   /** Each site as its scope, its kind, its component, its path, its term and the types it may give. */
-  const said = ({ scope, kind, path, term, componentId }: ExpressionSite): string => `${scope} ${kind} ${componentId ?? '-'} ${path} ${term?.what ?? '-'}: ${term?.types?.join('|') ?? '-'}`
+  const said = ({ scope, kind, path, term, componentId }: ExpressionSite): string =>
+    `${scope} ${kind} ${componentId ?? '-'} ${path} ${term?.what ?? '-'}: ${term?.types?.join('|') ?? '-'}`
 
   // An expression the walk missed would be written into the XML checked by
   // nobody. Derived from the document, so a place the format adds to the
   // e-invoice fails here until the walk knows it.
   test('finds every expression in a report that is one', () => {
     const report = eInvoiceSample()
-    expect(expressionSites(report).map(({ path }) => path).sort()).toEqual(celPointers(report).sort())
+    expect(
+      expressionSites(report)
+        .map(({ path }) => path)
+        .sort(),
+    ).toEqual(celPointers(report).sort())
   })
 
   // An XRechnung holds the same terms as a Factur-X invoice (0038): the
@@ -319,8 +359,15 @@ describe('an e-invoice', () => {
     const table = report.regions.body[2]
     if (table?.kind !== 'table') throw new Error('the sample has moved its table')
     const columns = table.columns.map((column) => ({ ...column, value: { kind: 'expression', expression: { cel: `row.${column.id}` } } as const }))
-    const computed: ReportDefinition = { ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component === table ? { ...table, columns } : component)) } }
-    expect(expressionSites(computed).filter(({ path }) => /^\/regions\/body\/2\/columns\/\d+\/value\//.test(path)).map(said)).toEqual([
+    const computed: ReportDefinition = {
+      ...report,
+      regions: { ...report.regions, body: report.regions.body.map((component) => (component === table ? { ...table, columns } : component)) },
+    }
+    expect(
+      expressionSites(computed)
+        .filter(({ path }) => /^\/regions\/body\/2\/columns\/\d+\/value\//.test(path))
+        .map(said),
+    ).toEqual([
       'row computed lines /regions/body/2/columns/0/value/expression/cel the item name (BT-153): string',
       'row computed lines /regions/body/2/columns/1/value/expression/cel the invoiced quantity (BT-129): integer|decimal',
       'row computed lines /regions/body/2/columns/2/value/expression/cel the item net price (BT-146): integer|decimal',
@@ -363,12 +410,23 @@ describe('an e-invoice', () => {
           contact: { name: run('contact'), telephone: run('telephone'), email: run('email') },
           address: address('seller'),
         },
-        buyer: { name: run('buyer'), vatId: run('buyer vat'), legalId: { id: run('buyer id') }, electronicAddress: { id: run('buyer address'), scheme: '0088' }, address: address('buyer') },
+        buyer: {
+          name: run('buyer'),
+          vatId: run('buyer vat'),
+          legalId: { id: run('buyer id') },
+          electronicAddress: { id: run('buyer address'), scheme: '0088' },
+          address: address('buyer'),
+        },
         buyerReference: run('reference'),
         delivered: value('delivered'),
         period: { start: value('start'), end: value('end') },
         vat: [...invoice.vat, { id: 'exempt', code: 'E', rate: '0', reason: run('reason') }],
-        lines: { ...invoice.lines, id: { kind: 'expression', expression: value('id') }, unit: { kind: 'expression', expression: value('unit') }, vat: { kind: 'expression', expression: value('vat') } },
+        lines: {
+          ...invoice.lines,
+          id: { kind: 'expression', expression: value('id') },
+          unit: { kind: 'expression', expression: value('unit') },
+          vat: { kind: 'expression', expression: value('vat') },
+        },
         payment: { means: '58', iban: run('iban'), bic: run('bic'), accountName: run('account'), remittance: run('remittance') },
         due: value('due'),
         terms: run('terms'),
@@ -377,14 +435,29 @@ describe('an e-invoice', () => {
     }
     const found = expressionSites(everywhere).filter(({ path }) => path.startsWith('/eInvoice/'))
     expect(found.map(({ path }) => path).sort()).toEqual(celPointers(everywhere.eInvoice, '/eInvoice').sort())
-    expect(found.every(({ scope, kind, componentId, term, path }) => scope === (path.startsWith('/eInvoice/lines/') ? 'row' : 'report') && kind === 'computed' && componentId === undefined && term !== undefined)).toBe(true)
+    expect(
+      found.every(
+        ({ scope, kind, componentId, term, path }) =>
+          scope === (path.startsWith('/eInvoice/lines/') ? 'row' : 'report') && kind === 'computed' && componentId === undefined && term !== undefined,
+      ),
+    ).toBe(true)
     const parts = ['line1', 'line2', 'postalCode', 'city', 'country']
     const text = (at: string): string => `/eInvoice/${at}/0/expression/cel`
     expect(found.map(({ path }) => path)).toEqual([
       text('number'),
       '/eInvoice/issued/cel',
       text('businessProcess'),
-      ...['name', 'vatId', 'taxNumber', 'legalId/id', 'electronicAddress/id', 'contact/name', 'contact/telephone', 'contact/email', ...parts.map((part) => `address/${part}`)].map((at) => text(`seller/${at}`)),
+      ...[
+        'name',
+        'vatId',
+        'taxNumber',
+        'legalId/id',
+        'electronicAddress/id',
+        'contact/name',
+        'contact/telephone',
+        'contact/email',
+        ...parts.map((part) => `address/${part}`),
+      ].map((at) => text(`seller/${at}`)),
       ...['name', 'vatId', 'legalId/id', 'electronicAddress/id', ...parts.map((part) => `address/${part}`)].map((at) => text(`buyer/${at}`)),
       text('buyerReference'),
       ...['delivered', 'period/start', 'period/end'].map((at) => `/eInvoice/${at}/cel`),
@@ -404,8 +477,15 @@ describe('an e-invoice', () => {
     const report = eInvoiceSample()
     const { delivered: _delivered, period: _period, payment: _payment, due: _due, paid: _paid, ...bare } = invoiceOf(report)
     const sku = { kind: 'field', field: { dataset: 'detail', field: 'sku' } } as const
-    const minimal: ReportDefinition = { ...report, eInvoice: { ...bare, number: [{ kind: 'text', text: 'RE-1' }], lines: { ...bare.lines, unit: sku, vat: sku } } }
-    expect(expressionSites(minimal).filter(({ path }) => path.startsWith('/eInvoice/')).map(({ path }) => path)).toEqual(['/eInvoice/issued/cel'])
+    const minimal: ReportDefinition = {
+      ...report,
+      eInvoice: { ...bare, number: [{ kind: 'text', text: 'RE-1' }], lines: { ...bare.lines, unit: sku, vat: sku } },
+    }
+    expect(
+      expressionSites(minimal)
+        .filter(({ path }) => path.startsWith('/eInvoice/'))
+        .map(({ path }) => path),
+    ).toEqual(['/eInvoice/issued/cel'])
   })
 
   // What its texts and its line codes name is used: a field read only as

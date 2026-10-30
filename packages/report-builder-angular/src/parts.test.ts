@@ -9,7 +9,15 @@
  * role and accessible name everywhere else.
  */
 import { TestBed } from '@angular/core/testing'
-import { BUILDER_SCENARIOS, createReportEditor, EDITOR_PANELS, REPORT_ATTRIBUTES, REPORT_PARTS, scenarioReport, WORKBENCH_CLASSES } from '@formancy/report-builder-core'
+import {
+  BUILDER_SCENARIOS,
+  createReportEditor,
+  EDITOR_PANELS,
+  REPORT_ATTRIBUTES,
+  REPORT_PARTS,
+  scenarioReport,
+  WORKBENCH_CLASSES,
+} from '@formancy/report-builder-core'
 import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { screen, within } from '@testing-library/angular'
@@ -33,7 +41,24 @@ function everythingReport(): ReportDefinition {
   const paymentPart = BUILDER_SCENARIOS.map((scenario) => scenario.report().paymentPart).find((bill) => bill !== undefined)
   if (paymentPart === undefined) throw new Error('no scenario has a report with a payment part')
   const body = report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component))
-  return { ...report, paymentPart, regions: { ...report.regions, body: [...body, { id: 'side', kind: 'columns', columns: [{ width: 100, components: [{ id: 'wide', kind: 'rectangle', width: 150, height: 20 }] }, { width: 'fill', components: [] }] }] } }
+  return {
+    ...report,
+    paymentPart,
+    regions: {
+      ...report.regions,
+      body: [
+        ...body,
+        {
+          id: 'side',
+          kind: 'columns',
+          columns: [
+            { width: 100, components: [{ id: 'wide', kind: 'rectangle', width: 150, height: 20 }] },
+            { width: 'fill', components: [] },
+          ],
+        },
+      ],
+    },
+  }
 }
 
 /** The builder showing every hook at once: a refused field, a move being placed by keyboard, a place pointed at, a problem. */
@@ -45,7 +70,9 @@ async function everything(): Promise<HTMLElement> {
   await mounted.settle()
   click(screen.getByRole('button', { name: 'Move to…' }))
   await mounted.settle()
-  within(screen.getByRole('dialog', { name: 'Move Spacer: choose a place' })).getAllByRole('button')[0]?.focus()
+  within(screen.getByRole('dialog', { name: 'Move Spacer: choose a place' }))
+    .getAllByRole('button')[0]
+    ?.focus()
   await mounted.settle()
   return mounted.fixture.nativeElement as HTMLElement
 }

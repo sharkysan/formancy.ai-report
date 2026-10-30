@@ -74,10 +74,14 @@ export function moveComponent(report: ReportDefinition, id: string, location: Lo
 export function updateComponent<K extends ComponentKind>(report: ReportDefinition, id: string, kind: K, patch: ComponentPatch<K>): CommandOutcome {
   const found = componentAt(report, id)
   if (found === undefined) return missing(id)
-  if (found.component.kind !== kind) return refuse('kind-mismatch', `${quote(id)} is a ${found.component.kind}, not a ${kind}`, { path: found.path, componentId: id })
+  if (found.component.kind !== kind)
+    return refuse('kind-mismatch', `${quote(id)} is a ${found.component.kind}, not a ${kind}`, { path: found.path, componentId: id })
   for (const key of ['id', 'kind'] as const) {
     if (Object.hasOwn(patch, key)) {
-      return refuse('immutable-property', `a component's ${key} never changes in place; insert a new component instead`, { path: `${found.path}/${key}`, componentId: id })
+      return refuse('immutable-property', `a component's ${key} never changes in place; insert a new component instead`, {
+        path: `${found.path}/${key}`,
+        componentId: id,
+      })
     }
   }
   return { ok: true, report: updateAt<Component>(report, found.path, (component) => patched(component as object, patch as Patch<object>)) }

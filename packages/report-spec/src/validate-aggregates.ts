@@ -23,7 +23,9 @@ const ORDERED: readonly FieldType[] = [...NUMERIC, 'date', 'datetime', 'instant'
  * a count is an integer, an average a decimal, and a sum, minimum or
  * maximum the type it read. Unknown when what it read is an expression.
  */
-const FUNCTIONS: { readonly [F in AggregateFunction]: { readonly takes: readonly FieldType[] | 'any'; readonly gives: (of: FieldType | undefined) => FieldType | undefined } } = {
+const FUNCTIONS: {
+  readonly [F in AggregateFunction]: { readonly takes: readonly FieldType[] | 'any'; readonly gives: (of: FieldType | undefined) => FieldType | undefined }
+} = {
   sum: { takes: NUMERIC, gives: (of) => of },
   avg: { takes: NUMERIC, gives: () => 'decimal' },
   min: { takes: ORDERED, gives: (of) => of },
@@ -59,7 +61,12 @@ function readAggregate(c: Ctx, value: unknown, path: string): { id: string | und
   const o = shape(c.f, value, path, ['id', 'fn'], ['of', 'rounding'])
   const id = fieldKey(c.f, o?.id, at(path, 'id'))
   // group.key is the value a group is keyed by; an aggregate of that name would be read there as one or the other.
-  if (id === GROUP_KEY) c.f.report(at(path, 'id'), 'reserved-id', `an aggregate cannot be called ${GROUP_KEY}: in a group's header and footer, group.${GROUP_KEY} is the value the group is keyed by`)
+  if (id === GROUP_KEY)
+    c.f.report(
+      at(path, 'id'),
+      'reserved-id',
+      `an aggregate cannot be called ${GROUP_KEY}: in a group's header and footer, group.${GROUP_KEY} is the value the group is keyed by`,
+    )
   const fn = oneOf(c.f, o?.fn, at(path, 'fn'), AGGREGATE_FUNCTIONS)
   const of = readRowValue(c, o?.of, at(path, 'of'))
   if (o !== undefined && fn !== undefined && fn !== 'count' && !Object.hasOwn(o, 'of')) {

@@ -57,7 +57,9 @@ function detailRow(lowering: Lowering, row: OrderedRow): TableRow {
     return run === undefined ? '' : textOfRuns([run])
   })
   const own = lowering.shown.map(({ column, index }) => styled(render, scope, undefined, column.style, column.styleWhen, `${path}/columns/${index}/styleWhen`))
-  const cellStyles = own.some((style) => style !== undefined) ? { cellStyles: own.map((style) => (style === undefined ? null : (layered(lowering.base, style) as TextStyle))) } : {}
+  const cellStyles = own.some((style) => style !== undefined)
+    ? { cellStyles: own.map((style) => (style === undefined ? null : (layered(lowering.base, style) as TextStyle))) }
+    : {}
   return { kind: 'detail', cells, ...(lowering.base === undefined ? {} : { style: lowering.base }), ...cellStyles }
 }
 

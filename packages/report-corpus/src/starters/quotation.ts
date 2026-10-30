@@ -78,10 +78,25 @@ const REPORT: ReportDefinition = {
   assets: [LOGO_ASSET],
   aggregates: [
     { id: 'subtotal', fn: 'sum', of: { kind: 'field', field: detail('amount') } },
-    { id: 'total', fn: 'sum', of: { kind: 'expression', expression: { cel: 'row.amount * dec("1.081")' } }, rounding: { scale: 2, mode: 'half-away-from-zero', increment: '0.05' } },
+    {
+      id: 'total',
+      fn: 'sum',
+      of: { kind: 'expression', expression: { cel: 'row.amount * dec("1.081")' } },
+      rounding: { scale: 2, mode: 'half-away-from-zero', increment: '0.05' },
+    },
   ],
   regions: {
-    pageHeader: [{ id: 'running-head', kind: 'text', style: 'small', content: [{ kind: 'text', text: 'Offerte ' }, { kind: 'field', field: header('number') }] }],
+    pageHeader: [
+      {
+        id: 'running-head',
+        kind: 'text',
+        style: 'small',
+        content: [
+          { kind: 'text', text: 'Offerte ' },
+          { kind: 'field', field: header('number') },
+        ],
+      },
+    ],
     reportHeader: [
       ...LETTERHEAD,
       {
@@ -106,18 +121,57 @@ const REPORT: ReportDefinition = {
             width: 'fill',
             components: [
               { id: 'customer', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('customer') }] },
-              { id: 'contact', kind: 'text', style: 'address', visibleWhen: { cel: 'header.contact != null' }, content: [{ kind: 'text', text: 'z. Hd. ' }, { kind: 'field', field: header('contact') }] },
+              {
+                id: 'contact',
+                kind: 'text',
+                style: 'address',
+                visibleWhen: { cel: 'header.contact != null' },
+                content: [
+                  { kind: 'text', text: 'z. Hd. ' },
+                  { kind: 'field', field: header('contact') },
+                ],
+              },
               { id: 'street', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('street') }] },
-              { id: 'city', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('postcode') }, { kind: 'text', text: ' ' }, { kind: 'field', field: header('city') }] },
+              {
+                id: 'city',
+                kind: 'text',
+                style: 'address',
+                content: [
+                  { kind: 'field', field: header('postcode') },
+                  { kind: 'text', text: ' ' },
+                  { kind: 'field', field: header('city') },
+                ],
+              },
             ],
           },
           {
             width: 190,
             components: [
               { id: 'title', kind: 'text', style: 'title', content: [{ kind: 'text', text: 'Offerte' }] },
-              { id: 'number', kind: 'text', content: [{ kind: 'text', text: 'Nummer: ' }, { kind: 'field', field: header('number') }] },
-              { id: 'quoted-on', kind: 'text', content: [{ kind: 'text', text: 'Datum: ' }, { kind: 'field', field: header('quotedOn'), format: { kind: 'date', style: 'medium' } }] },
-              { id: 'valid-until', kind: 'text', content: [{ kind: 'text', text: 'Gültig bis: ' }, { kind: 'field', field: header('validUntil'), format: { kind: 'date', style: 'medium' } }] },
+              {
+                id: 'number',
+                kind: 'text',
+                content: [
+                  { kind: 'text', text: 'Nummer: ' },
+                  { kind: 'field', field: header('number') },
+                ],
+              },
+              {
+                id: 'quoted-on',
+                kind: 'text',
+                content: [
+                  { kind: 'text', text: 'Datum: ' },
+                  { kind: 'field', field: header('quotedOn'), format: { kind: 'date', style: 'medium' } },
+                ],
+              },
+              {
+                id: 'valid-until',
+                kind: 'text',
+                content: [
+                  { kind: 'text', text: 'Gültig bis: ' },
+                  { kind: 'field', field: header('validUntil'), format: { kind: 'date', style: 'medium' } },
+                ],
+              },
             ],
           },
         ],
@@ -132,7 +186,13 @@ const REPORT: ReportDefinition = {
         columns: [
           { id: 'article', header: 'Artikel', width: 82, align: 'left', value: { kind: 'field', field: detail('article') } },
           { id: 'description', header: 'Beschreibung', width: 'fill', align: 'left', value: { kind: 'field', field: detail('description') } },
-          { id: 'quantity', header: 'Menge', width: 50, align: 'right', value: { kind: 'field', field: detail('quantity'), format: { kind: 'number', scale: 2, grouping: true } } },
+          {
+            id: 'quantity',
+            header: 'Menge',
+            width: 50,
+            align: 'right',
+            value: { kind: 'field', field: detail('quantity'), format: { kind: 'number', scale: 2, grouping: true } },
+          },
           { id: 'unit', header: 'Einheit', width: 58, align: 'left', value: { kind: 'field', field: detail('unit') } },
           { id: 'unit-price', header: 'Preis', width: 82, align: 'right', value: { kind: 'field', field: detail('unitPrice'), format: CHF } },
           { id: 'amount', header: 'Betrag', width: 92, align: 'right', value: { kind: 'field', field: detail('amount'), format: CHF } },
@@ -154,7 +214,10 @@ const REPORT: ReportDefinition = {
           {
             cells: [
               { column: 'article', value: { kind: 'text', text: 'Rundung' } },
-              { column: 'amount', value: { kind: 'expression', expression: { cel: 'totals.total - (totals.subtotal + round(totals.subtotal * dec("0.081"), 2))' }, format: CHF } },
+              {
+                column: 'amount',
+                value: { kind: 'expression', expression: { cel: 'totals.total - (totals.subtotal + round(totals.subtotal * dec("0.081"), 2))' }, format: CHF },
+              },
             ],
           },
           {
@@ -171,11 +234,24 @@ const REPORT: ReportDefinition = {
     ],
     summary: [
       { id: 'summary-gap', kind: 'spacer', height: 12 },
-      { id: 'validity', kind: 'text', content: [{ kind: 'text', text: 'Diese Offerte ist gültig bis ' }, { kind: 'field', field: header('validUntil'), format: { kind: 'date', style: 'long' } }, { kind: 'text', text: '.' }] },
+      {
+        id: 'validity',
+        kind: 'text',
+        content: [
+          { kind: 'text', text: 'Diese Offerte ist gültig bis ' },
+          { kind: 'field', field: header('validUntil'), format: { kind: 'date', style: 'long' } },
+          { kind: 'text', text: '.' },
+        ],
+      },
       { id: 'terms', kind: 'text', content: [{ kind: 'text', text: 'Zahlbar innert 30 Tagen netto.' }] },
     ],
     pageFooter: [
-      { id: 'page-of', kind: 'text', style: 'footer', content: [{ kind: 'text', text: 'Seite ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' von ' }, { kind: 'pageCount' }] },
+      {
+        id: 'page-of',
+        kind: 'text',
+        style: 'footer',
+        content: [{ kind: 'text', text: 'Seite ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' von ' }, { kind: 'pageCount' }],
+      },
     ],
   },
   provenance: { kind: 'blank' },
@@ -212,7 +288,8 @@ const CENTIMES = /^(?:0|[1-9]\d*)\.\d{2}$/
  * arithmetic below reads both as whole centimes.
  */
 export function lineAmount(quantity: string, unitPrice: string): string {
-  if (!CENTIMES.test(quantity) || !CENTIMES.test(unitPrice)) throw new RangeError('lineAmount takes a quantity and a unit price written with exactly two places, and neither negative')
+  if (!CENTIMES.test(quantity) || !CENTIMES.test(unitPrice))
+    throw new RangeError('lineAmount takes a quantity and a unit price written with exactly two places, and neither negative')
   const product = BigInt(quantity.replace('.', '')) * BigInt(unitPrice.replace('.', ''))
   return francs((product + 50n) / 100n)
 }

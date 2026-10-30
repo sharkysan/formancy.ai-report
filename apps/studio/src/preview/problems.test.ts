@@ -17,7 +17,8 @@ function outline(): readonly OutlineRegion[] {
 
 /** The outline row the editor gives `id` (and `column`), whose label is what the builder calls it. */
 function row(regions: readonly OutlineRegion[], id: string, column?: string): OutlineNode {
-  const walk = (nodes: readonly OutlineNode[]): OutlineNode | undefined => nodes.map((node) => (node.id === id && node.column === column ? node : walk(node.children))).find((found) => found !== undefined)
+  const walk = (nodes: readonly OutlineNode[]): OutlineNode | undefined =>
+    nodes.map((node) => (node.id === id && node.column === column ? node : walk(node.children))).find((found) => found !== undefined)
   const found = regions.map((region) => walk(region.nodes)).find((each) => each !== undefined)
   if (found === undefined) throw new Error(`no outline row ${id} ${column ?? ''}`)
   return found
@@ -30,7 +31,14 @@ describe("the preview's problems", () => {
   // person lands on what to change, named as the builder names it, not on
   // the whole table or nowhere.
   test('link an error in a column to that column, by its outline label', () => {
-    const error: RuntimeError = { stage: 'evaluation', code: 'evaluation-failed' as never, path: '/regions/body/0/columns/5', message: 'it failed', componentId: 'positions', columnId: 'amount' }
+    const error: RuntimeError = {
+      stage: 'evaluation',
+      code: 'evaluation-failed' as never,
+      path: '/regions/body/0/columns/5',
+      message: 'it failed',
+      componentId: 'positions',
+      columnId: 'amount',
+    }
     const [problem] = runtimeProblems([error], 'error', regions)
     expect(problem?.target).toEqual({ id: 'positions', column: 'amount', label: row(regions, 'positions', 'amount').label })
     expect(problem).toMatchObject({ severity: 'error', code: 'evaluation evaluation-failed', message: 'it failed' })
@@ -50,7 +58,14 @@ describe("the preview's problems", () => {
   // A column the outline does not list is still in its table: the table is
   // what the person can select.
   test('fall back to the component when its column is not in the outline', () => {
-    const error: RuntimeError = { stage: 'format', code: 'unsupported-locale' as never, path: '', message: 'm', componentId: 'positions', columnId: 'no-such-column' }
+    const error: RuntimeError = {
+      stage: 'format',
+      code: 'unsupported-locale' as never,
+      path: '',
+      message: 'm',
+      componentId: 'positions',
+      columnId: 'no-such-column',
+    }
     expect(runtimeProblems([error], 'error', regions)[0]?.target).toEqual({ id: 'positions', label: row(regions, 'positions').label })
   })
 
@@ -58,8 +73,17 @@ describe("the preview's problems", () => {
   // names a block it has no id for by its place in the document, which is
   // no component, and links nowhere.
   test("link a renderer's refusal by the component it names", () => {
-    expect(renderProblem({ code: 'content-too-large', message: 'too wide', subject: 'positions' }, regions).target).toEqual({ id: 'positions', label: row(regions, 'positions').label })
-    expect(renderProblem({ code: 'unsupported', message: 'margins', subject: 'page.margins' }, regions)).toEqual({ key: 'render unsupported', severity: 'error', code: 'render unsupported', message: 'margins', target: null })
+    expect(renderProblem({ code: 'content-too-large', message: 'too wide', subject: 'positions' }, regions).target).toEqual({
+      id: 'positions',
+      label: row(regions, 'positions').label,
+    })
+    expect(renderProblem({ code: 'unsupported', message: 'margins', subject: 'page.margins' }, regions)).toEqual({
+      key: 'render unsupported',
+      severity: 'error',
+      code: 'render unsupported',
+      message: 'margins',
+      target: null,
+    })
   })
 
   // React keys: two identical errors -- the same missing field read in two

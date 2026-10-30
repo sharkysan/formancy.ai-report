@@ -57,7 +57,9 @@ export function checkEpcIban(text: string): PaymentCheck<string> {
   if (iban.length !== country.length) return no(`is ${iban.length} characters long, and an IBAN of its country has ${country.length} (SWIFT's IBAN Registry)`)
   const checked = checkIbanCheckDigits(iban)
   if (checked.ok && isQrIban(iban)) {
-    return no("is a QR-IBAN, which SIX keeps for QR-bills in francs paid with a QR reference (SIX's QR-bill guidelines 2.8, 2.10), and a SEPA credit transfer in euro carries none")
+    return no(
+      "is a QR-IBAN, which SIX keeps for QR-bills in francs paid with a QR reference (SIX's QR-bill guidelines 2.8, 2.10), and a SEPA credit transfer in euro carries none",
+    )
   }
   return checked
 }
@@ -75,7 +77,9 @@ const BIC = /^[A-Z0-9]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?$/
 /** The BIC of the beneficiary's bank (EPC 2.2, AT-C002), of a bank in SEPA. */
 export function checkEpcBic(text: string): PaymentCheck<string> {
   if (!BIC.test(text)) {
-    return no('is not a BIC: four letters or digits for the bank, two letters for its country, two letters or digits for its place, and three for a branch or none (ISO 9362)')
+    return no(
+      'is not a BIC: four letters or digits for the bank, two letters for its country, two letters or digits for its place, and three for a branch or none (ISO 9362)',
+    )
   }
   if (sepaIbanCountryOfBic(text.slice(4, 6)) === undefined) return no('is not the BIC of a bank in SEPA: its country is not one EPC409-09 lists')
   return ok(text)
@@ -110,7 +114,12 @@ export function epcPairing(iban: string | undefined, bic: string | null | undefi
   const country = iban.slice(0, 2)
   if (bic === null) {
     if (sepaCountry(country)?.eea !== false) return []
-    return [{ field: 'bic', rule: "an account outside the EEA is paid to with its bank's BIC: EPC069-12 2.2 keeps the BIC mandatory where SCT scheme participants from non-EEA countries take part" }]
+    return [
+      {
+        field: 'bic',
+        rule: "an account outside the EEA is paid to with its bank's BIC: EPC069-12 2.2 keeps the BIC mandatory where SCT scheme participants from non-EEA countries take part",
+      },
+    ]
   }
   if (bic === undefined || sepaIbanCountryOfBic(bic.slice(4, 6)) === country) return []
   return [{ field: 'bic', rule: "the BIC is of a bank in another country than the IBAN's account (EPC409-09 5 gives each country's BICs and IBANs)" }]
@@ -127,7 +136,10 @@ export function epcPairing(iban: string | undefined, bic: string | null | undefi
  * written in, as SIX says banks draw no distinction.
  */
 export function checkEpcReference(text: string): PaymentCheck<string> {
-  const checked = checkCreditorReference(text, 'is not a creditor reference: RF, two check digits and up to 21 letters or digits (ISO 11649), the one structured reference this code holds')
+  const checked = checkCreditorReference(
+    text,
+    'is not a creditor reference: RF, two check digits and up to 21 letters or digits (ISO 11649), the one structured reference this code holds',
+  )
   return checked.ok ? ok(checked.value.toUpperCase()) : checked
 }
 
@@ -224,7 +236,11 @@ export function epcBlank(text: string): boolean {
 export function checkEpcField(field: EpcTextField, text: string): PaymentCheck<string> {
   const { optional, check } = EPC_TEXT_FIELDS[field]
   if (!epcBlank(text)) return check(text)
-  return no(optional ? 'is blank, and an element the code holds has one character at least (EPC069-12 2.2): a text the code does not hold is left out' : 'is empty, and an EPC QR code needs it')
+  return no(
+    optional
+      ? 'is blank, and an element the code holds has one character at least (EPC069-12 2.2): a text the code does not hold is left out'
+      : 'is empty, and an EPC QR code needs it',
+  )
 }
 
 /**

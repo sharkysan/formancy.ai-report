@@ -24,7 +24,13 @@ const key = new TextEncoder().encode(SECRET)
 
 /** A token as the host signs it, with `claims` over the defaults and `change` applied before signing. */
 async function token(claims: Record<string, unknown> = {}, change: (jwt: SignJWT) => SignJWT = (jwt) => jwt): Promise<string> {
-  const jwt = new SignJWT({ tid: 'acme', roles: ['report-authors'], ...claims }).setProtectedHeader({ alg: 'HS256' }).setIssuer(ISSUER).setAudience(AUDIENCE).setSubject('u-1').setIssuedAt().setExpirationTime('5m')
+  const jwt = new SignJWT({ tid: 'acme', roles: ['report-authors'], ...claims })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuer(ISSUER)
+    .setAudience(AUDIENCE)
+    .setSubject('u-1')
+    .setIssuedAt()
+    .setExpirationTime('5m')
   return change(jwt).sign(key)
 }
 
@@ -55,7 +61,13 @@ describe('createReportVerifier', () => {
   // expired or with no expiry, one with nobody in it, and one unsigned.
   test('refuses a wrong signature, issuer or audience, an expired token, one with no exp or no sub, and alg none', async () => {
     const verify = await createReportVerifier(options)
-    const forged = await new SignJWT({ tid: 'acme' }).setProtectedHeader({ alg: 'HS256' }).setIssuer(ISSUER).setAudience(AUDIENCE).setSubject('u-1').setExpirationTime('5m').sign(new TextEncoder().encode('another-secret-of-at-least-thirty-two-bytes'))
+    const forged = await new SignJWT({ tid: 'acme' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuer(ISSUER)
+      .setAudience(AUDIENCE)
+      .setSubject('u-1')
+      .setExpirationTime('5m')
+      .sign(new TextEncoder().encode('another-secret-of-at-least-thirty-two-bytes'))
     const unsigned = new UnsecuredJWT({ tid: 'acme' }).setIssuer(ISSUER).setAudience(AUDIENCE).setSubject('u-1').setExpirationTime('5m').encode()
     const refused = {
       'a wrong signature': forged,
@@ -63,7 +75,12 @@ describe('createReportVerifier', () => {
       'another audience': await token({}, (jwt) => jwt.setAudience('formancy-data')),
       'an expired token': await token({}, (jwt) => jwt.setExpirationTime(Math.floor(Date.now() / 1000) - 3600)),
       'no exp': await new SignJWT({ tid: 'acme' }).setProtectedHeader({ alg: 'HS256' }).setIssuer(ISSUER).setAudience(AUDIENCE).setSubject('u-1').sign(key),
-      'no sub': await new SignJWT({ tid: 'acme' }).setProtectedHeader({ alg: 'HS256' }).setIssuer(ISSUER).setAudience(AUDIENCE).setExpirationTime('5m').sign(key),
+      'no sub': await new SignJWT({ tid: 'acme' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuer(ISSUER)
+        .setAudience(AUDIENCE)
+        .setExpirationTime('5m')
+        .sign(key),
       'alg none': unsigned,
       'not a token': 'not.a.token',
     }
@@ -92,7 +109,11 @@ describe('createReportVerifier', () => {
   // put a credential or a person's identifier in the log (CLAUDE.md).
   test('says why in words that hold neither the token nor a claim’s value', async () => {
     const verify = await createReportVerifier(options)
-    const cases = [await token({ tid: undefined, roles: ['secret-role'] }), await token({}, (jwt) => jwt.setIssuer('https://leaked.example')), await token({ roles: 'not-a-list' })]
+    const cases = [
+      await token({ tid: undefined, roles: ['secret-role'] }),
+      await token({}, (jwt) => jwt.setIssuer('https://leaked.example')),
+      await token({ roles: 'not-a-list' }),
+    ]
     for (const presented of cases) {
       const outcome = await verify(presented)
       expect(outcome.ok).toBe(false)
@@ -116,9 +137,21 @@ describe('createReportVerifier', () => {
     const { publicKey, privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' })
     const pem = publicKey.export({ type: 'spki', format: 'pem' }).toString()
     const verify = await createReportVerifier({ ...options, key: { kind: 'public-key', pem, algorithm: 'ES256' } })
-    const honest = await new SignJWT({ tid: 'acme' }).setProtectedHeader({ alg: 'ES256' }).setIssuer(ISSUER).setAudience(AUDIENCE).setSubject('u-1').setExpirationTime('5m').sign(privateKey)
+    const honest = await new SignJWT({ tid: 'acme' })
+      .setProtectedHeader({ alg: 'ES256' })
+      .setIssuer(ISSUER)
+      .setAudience(AUDIENCE)
+      .setSubject('u-1')
+      .setExpirationTime('5m')
+      .sign(privateKey)
     expect(await verify(honest)).toMatchObject({ ok: true, identity: { tenant: 'acme' } })
-    const confused = await new SignJWT({ tid: 'acme' }).setProtectedHeader({ alg: 'HS256' }).setIssuer(ISSUER).setAudience(AUDIENCE).setSubject('u-1').setExpirationTime('5m').sign(new TextEncoder().encode(pem))
+    const confused = await new SignJWT({ tid: 'acme' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuer(ISSUER)
+      .setAudience(AUDIENCE)
+      .setSubject('u-1')
+      .setExpirationTime('5m')
+      .sign(new TextEncoder().encode(pem))
     expect((await verify(confused)).ok).toBe(false)
   })
 

@@ -97,7 +97,7 @@ const SQUARE = 0.01
 function rectangle(data: ArrayLike<number> | null, ctm: Matrix, viewport: PageViewport): PdfBox | undefined {
   if (data === null) return undefined
   const corners: Point[] = []
-  for (let index = 0; index < data.length; ) {
+  for (let index = 0; index < data.length;) {
     const op = data[index++]
     if (op === CLOSE) {
       if (index !== data.length) return undefined

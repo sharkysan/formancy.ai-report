@@ -75,7 +75,10 @@ export function fieldsOf(dataset: DatasetContract | undefined): ReadonlyMap<stri
 
 export function parametersOf(report: ReportDefinition): ReadonlyMap<string, ExpressionMember> {
   return new Map(
-    report.parameters.map((parameter) => [parameter.id, { type: EXPRESSION_TYPES[parameter.type], nullable: !parameter.required && parameter.default === undefined }]),
+    report.parameters.map((parameter) => [
+      parameter.id,
+      { type: EXPRESSION_TYPES[parameter.type], nullable: !parameter.required && parameter.default === undefined },
+    ]),
   )
 }
 

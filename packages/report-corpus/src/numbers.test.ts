@@ -73,7 +73,18 @@ describe('readPdfNumbers', () => {
     const { context } = document
     const page = document.addPage([200, 200])
     const form = context.register(context.flateStream(`q ${PAST + 1} 0 0 1 0 0 cm 0 0 m Q`, { Type: 'XObject', Subtype: 'Form', BBox: [0, 0, PAST + 2, 1.5] }))
-    context.register(context.stream(`${PAST + 3} 0 m`, { Type: 'Pattern', PatternType: 1, PaintType: 1, TilingType: 2, BBox: [0, 0, 1, 1], XStep: 1, YStep: 1, Resources: {} }))
+    context.register(
+      context.stream(`${PAST + 3} 0 m`, {
+        Type: 'Pattern',
+        PatternType: 1,
+        PaintType: 1,
+        TilingType: 2,
+        BBox: [0, 0, 1, 1],
+        XStep: 1,
+        YStep: 1,
+        Resources: {},
+      }),
+    )
     page.node.setXObject(PDFName.of('X1'), form)
     page.node.set(PDFName.of('Contents'), context.register(context.stream(Buffer.from(deflateSync(`/X1 Do -${PAST + 4} 0 m`)), { Filter: 'FlateDecode' })))
     context.register(context.stream(`${PAST + 5}`, { Type: 'EmbeddedFile' }))

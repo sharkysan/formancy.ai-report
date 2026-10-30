@@ -53,7 +53,19 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
  * which allows embedding. Nothing else, so a licence nobody has read is refused
  * by not being here.
  */
-export const ALLOWED = Object.freeze(['MIT', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', '0BSD', 'BlueOak-1.0.0', 'Zlib', 'CC0-1.0', 'Unlicense', 'OFL-1.1'])
+export const ALLOWED = Object.freeze([
+  'MIT',
+  'ISC',
+  'BSD-2-Clause',
+  'BSD-3-Clause',
+  'Apache-2.0',
+  '0BSD',
+  'BlueOak-1.0.0',
+  'Zlib',
+  'CC0-1.0',
+  'Unlicense',
+  'OFL-1.1',
+])
 const allowed = new Set(ALLOWED.map((id) => id.toUpperCase()))
 
 /**
@@ -149,7 +161,8 @@ export const ICC_PROFILES = Object.freeze({
     profile: 'sRGB2014.icc, the International Color Consortium\'s ICC v2 sRGB profile (desc "sRGB2014", cprt "Copyright International Color Consortium, 2015")',
     licence:
       'This profile is made available by the International Color Consortium, and may be copied, distributed, embedded, made, used, and sold without restriction. Altered versions of this profile shall have the original identification and copyright information removed and shall not be misrepresented as the original profile.',
-    evidence: 'https://registry.color.org/profile-library/#license, read 2026-10-17, where "ICC is the copyright owner"; the file compared byte for byte with https://registry.color.org/rgb-registry/profiles/sRGB2014.icc that day',
+    evidence:
+      'https://registry.color.org/profile-library/#license, read 2026-10-17, where "ICC is the copyright owner"; the file compared byte for byte with https://registry.color.org/rgb-registry/profiles/sRGB2014.icc that day',
   },
 })
 
@@ -344,8 +357,10 @@ function filesIn(directory) {
       const named = FONT_FILE.test(item.name) || PROFILE_FILE.test(item.name)
       const head = named || NOT_OPENED.test(item.name) ? undefined : headOf(path)
       const file = relative(directory, path).replaceAll('\\', '/')
-      if (FONT_FILE.test(item.name) || (head !== undefined && looksLikeFont(head, statSync(path).size))) fonts.push({ path: file, ...fontLicence(readFileSync(path)) })
-      else if (PROFILE_FILE.test(item.name) || (head !== undefined && looksLikeProfile(head))) profiles.push({ path: file, digest: `sha256:${createHash('sha256').update(readFileSync(path)).digest('hex')}` })
+      if (FONT_FILE.test(item.name) || (head !== undefined && looksLikeFont(head, statSync(path).size)))
+        fonts.push({ path: file, ...fontLicence(readFileSync(path)) })
+      else if (PROFILE_FILE.test(item.name) || (head !== undefined && looksLikeProfile(head)))
+        profiles.push({ path: file, digest: `sha256:${createHash('sha256').update(readFileSync(path)).digest('hex')}` })
     }
   }
   walk(directory)
@@ -380,7 +395,9 @@ function pointedFile(directory, licence) {
   const file = pointer[1].trim()
   if (file === '.' || file === '..' || /[\\/]/.test(file)) return null
   try {
-    return `sha256:${createHash('sha256').update(readFileSync(join(directory, file))).digest('hex')}`
+    return `sha256:${createHash('sha256')
+      .update(readFileSync(join(directory, file)))
+      .digest('hex')}`
   } catch (error) {
     if (error.code === 'ENOENT' || error.code === 'EISDIR') return null
     throw error
@@ -407,7 +424,16 @@ export function closure(start, siblings = new Set()) {
     seen.add(directory)
     const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'))
     const licence = declaredLicence(manifest)
-    found.push({ name: manifest.name, version: manifest.version, licence, licenceFile: pointedFile(directory, licence), dir: directory, via, sibling: siblings.has(directory), ...filesIn(directory) })
+    found.push({
+      name: manifest.name,
+      version: manifest.version,
+      licence,
+      licenceFile: pointedFile(directory, licence),
+      dir: directory,
+      via,
+      sibling: siblings.has(directory),
+      ...filesIn(directory),
+    })
     const path = [...via, manifest.name]
     const required = Object.keys(manifest.dependencies ?? {}).filter((name) => !manifest.optionalDependencies?.[name])
     const others = new Map([
@@ -473,7 +499,9 @@ export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA,
   for (const item of entries) {
     const route = [...item.via, item.name].join(' > ')
     if (item.missing) {
-      found.add(`${item.name} is a ${item.peer ? 'peer dependency' : 'dependency'} of ${item.via.at(-1)} and is not installed, so its licence cannot be read (${route})`)
+      found.add(
+        `${item.name} is a ${item.peer ? 'peer dependency' : 'dependency'} of ${item.via.at(-1)} and is not installed, so its licence cannot be read (${route})`,
+      )
       continue
     }
     const id = `${item.name}@${item.version}`
@@ -481,7 +509,8 @@ export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA,
     if (verdict !== false) admitted.add(id)
     if (typeof verdict === 'string') found.add(verdict)
     // A workspace package is passed over only when it declares this repository's terms; one that says otherwise is judged like anyone's.
-    else if (verdict === false && !(item.sibling && item.licence === LICENSE_FIELD)) judge(id, item.licence, 'its package.json', route, `${id} declares no licence (${route})`)
+    else if (verdict === false && !(item.sibling && item.licence === LICENSE_FIELD))
+      judge(id, item.licence, 'its package.json', route, `${id} declares no licence (${route})`)
     for (const font of item.fonts) {
       const refusal = font.readable
         ? `${id}/${font.path} is a font whose name table names no licence the policy allows: "${font.description ?? ''}" (${route})`
@@ -491,7 +520,9 @@ export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA,
     for (const profile of item.profiles) {
       shipped.add(profile.digest)
       if (!Object.hasOwn(profiles, profile.digest)) {
-        found.add(`${id}/${profile.path} is an ICC profile nobody has reviewed (${profile.digest}); read its licence and record it in ICC_PROFILES with the sentence that grants it (${route})`)
+        found.add(
+          `${id}/${profile.path} is an ICC profile nobody has reviewed (${profile.digest}); read its licence and record it in ICC_PROFILES with the sentence that grants it (${route})`,
+        )
       }
     }
   }
@@ -503,7 +534,8 @@ export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA,
   }
   for (const [digest, review] of Object.entries(profiles)) {
     if (!shipped.has(digest)) found.add(`reviewed ICC profile ${digest} names nothing a published package installs; remove it`)
-    else if (typeof review.licence !== 'string' || review.licence.trim() === '') found.add(`reviewed ICC profile ${digest} records no licence sentence; a review quotes the sentence that grants the profile`)
+    else if (typeof review.licence !== 'string' || review.licence.trim() === '')
+      found.add(`reviewed ICC profile ${digest} records no licence sentence; a review quotes the sentence that grants the profile`)
   }
   return [...found]
 }
@@ -552,5 +584,7 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/dependency-licences
   const fonts = entries.reduce((sum, item) => sum + item.fonts.length, 0)
   const profiles = new Set(entries.flatMap((item) => item.profiles.map((profile) => `${item.name}@${item.version}/${profile.path}`)))
   console.log(`dependency licences: walked the production dependencies of ${published.join(', ')}`)
-  console.log(`dependency licences: ${String(thirdParty.size)} third-party packages, ${String(fonts)} fonts and ${String(profiles.size)} ICC profile${profiles.size === 1 ? '' : 's'}, each under a licence the policy allows or a review read`)
+  console.log(
+    `dependency licences: ${String(thirdParty.size)} third-party packages, ${String(fonts)} fonts and ${String(profiles.size)} ICC profile${profiles.size === 1 ? '' : 's'}, each under a licence the policy allows or a review read`,
+  )
 }

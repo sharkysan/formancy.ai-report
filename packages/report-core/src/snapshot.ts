@@ -44,7 +44,10 @@ function settle(next: unknown, previous: unknown): unknown {
   }
   const before = isRecord(previous) ? previous : undefined
   const entries = Object.keys(next).map((key) => [key, settle((next as Record<string, unknown>)[key], before?.[key])] as const)
-  const same = before !== undefined && Object.keys(before).length === entries.length && entries.every(([key, value]) => Object.hasOwn(before, key) && before[key] === value)
+  const same =
+    before !== undefined &&
+    Object.keys(before).length === entries.length &&
+    entries.every(([key, value]) => Object.hasOwn(before, key) && before[key] === value)
   return same ? previous : Object.freeze(Object.fromEntries(entries))
 }
 

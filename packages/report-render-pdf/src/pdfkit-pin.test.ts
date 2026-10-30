@@ -11,7 +11,8 @@ import { describe, expect, test } from 'vitest'
  * workspace's install; the install gate's image-order fixture holds the
  * same of what npm installs for a host.
  */
-const manifest = (directory: string): { version: string; dependencies?: Record<string, string> } => JSON.parse(readFileSync(path.join(directory, 'package.json'), 'utf8')) as { version: string; dependencies?: Record<string, string> }
+const manifest = (directory: string): { version: string; dependencies?: Record<string, string> } =>
+  JSON.parse(readFileSync(path.join(directory, 'package.json'), 'utf8')) as { version: string; dependencies?: Record<string, string> }
 const here = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const own = createRequire(path.join(here, 'package.json'))
 const loaded = path.dirname(createRequire(own.resolve('pdfmake')).resolve('pdfkit/package.json'))

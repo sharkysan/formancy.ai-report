@@ -127,10 +127,18 @@ function totalRow(id: string, label: readonly Inline[], amount: string, options:
 /** Every total the XML holds, each printed from the name the runtime binds it to: the net amount, each category's basis and tax, the VAT, the total, and what was paid and is due. */
 const TOTALS: readonly Component[] = [
   totalRow('net', text('Nettobetrag'), 'invoice.taxBasisTotal'),
-  totalRow('vat-standard', [{ kind: 'text', text: 'Umsatzsteuer 19 % auf ' }, euro('vatBasis.standard')], 'vatAmount.standard', { when: 'vatAmount.standard != null' }),
-  totalRow('vat-reduced', [{ kind: 'text', text: 'Umsatzsteuer 7 % auf ' }, euro('vatBasis.reduced')], 'vatAmount.reduced', { when: 'vatAmount.reduced != null' }),
-  totalRow('vat-exempt', [{ kind: 'text', text: `${EXEMPT_REASON}, Entgelt ` }, euro('vatBasis.exempt')], 'vatAmount.exempt', { when: 'vatAmount.exempt != null' }),
-  totalRow('vat-reverse', [{ kind: 'text', text: `${REVERSE_CHARGE_REASON}, Entgelt ` }, euro('vatBasis.reverse')], 'vatAmount.reverse', { when: 'vatAmount.reverse != null' }),
+  totalRow('vat-standard', [{ kind: 'text', text: 'Umsatzsteuer 19 % auf ' }, euro('vatBasis.standard')], 'vatAmount.standard', {
+    when: 'vatAmount.standard != null',
+  }),
+  totalRow('vat-reduced', [{ kind: 'text', text: 'Umsatzsteuer 7 % auf ' }, euro('vatBasis.reduced')], 'vatAmount.reduced', {
+    when: 'vatAmount.reduced != null',
+  }),
+  totalRow('vat-exempt', [{ kind: 'text', text: `${EXEMPT_REASON}, Entgelt ` }, euro('vatBasis.exempt')], 'vatAmount.exempt', {
+    when: 'vatAmount.exempt != null',
+  }),
+  totalRow('vat-reverse', [{ kind: 'text', text: `${REVERSE_CHARGE_REASON}, Entgelt ` }, euro('vatBasis.reverse')], 'vatAmount.reverse', {
+    when: 'vatAmount.reverse != null',
+  }),
   totalRow('vat-total', text('Umsatzsteuer gesamt'), 'invoice.taxTotal'),
   totalRow('grand', text('Rechnungsbetrag'), 'invoice.grandTotal', { grand: true }),
   totalRow('prepaid', text('Bereits gezahlt'), 'invoice.paid', { when: 'invoice.paid != null' }),
@@ -148,13 +156,20 @@ const TOTALS: readonly Component[] = [
 export function sellerAddress(address: readonly string[]): EInvoice['seller']['address'] {
   const [street, town, ...more] = address
   const parted = /^(\d{5}) (\S.*)$/u.exec(town ?? '')
-  if (street === undefined || parted === null || more.length > 0) throw new Error(`the e-invoice cannot part the firm's address, ${JSON.stringify(address)}, into a street, a post code and a city`)
+  if (street === undefined || parted === null || more.length > 0)
+    throw new Error(`the e-invoice cannot part the firm's address, ${JSON.stringify(address)}, into a street, a post code and a city`)
   const [, postcode = '', city = ''] = parted
   return { line1: text(street), postalCode: text(postcode), city: text(city), country: text('DE') }
 }
 
 /** How the firm is paid (BG-16): by SEPA credit transfer, to the account its EPC code pays. The XRechnung sample's too. */
-export const PAYMENT: NonNullable<EInvoice['payment']> = { means: '58', iban: text(GERMANY.iban), bic: text(GERMANY.bic), accountName: text(firm.name), remittance: [field('reference')] }
+export const PAYMENT: NonNullable<EInvoice['payment']> = {
+  means: '58',
+  iban: text(GERMANY.iban),
+  bic: text(GERMANY.bic),
+  accountName: text(firm.name),
+  remittance: [field('reference')],
+}
 
 /**
  * The e-invoice: the seller the firm, the buyer and the dates read from
@@ -180,7 +195,12 @@ export const INVOICE: EInvoice = {
   buyer: {
     name: [field('customer')],
     vatId: [field('customerVatId')],
-    address: { line1: [field('street'), { kind: 'text', text: ' ' }, field('buildingNumber')], postalCode: [field('postcode')], city: [field('city')], country: text('DE') },
+    address: {
+      line1: [field('street'), { kind: 'text', text: ' ' }, field('buildingNumber')],
+      postalCode: [field('postcode')],
+      city: [field('city')],
+      country: text('DE'),
+    },
   },
   delivered: { cel: 'header.servedOn' },
   period: { start: { cel: 'header.periodStart' }, end: { cel: 'header.periodEnd' } },
@@ -270,7 +290,12 @@ const REPORT: ReportDefinition = {
             width: 'fill',
             components: [
               ...recipient(GERMANY),
-              { id: 'customer-vat-id', kind: 'text', visibleWhen: { cel: 'header.customerVatId != null' }, content: [{ kind: 'text', text: 'USt-IdNr.: ' }, field('customerVatId')] },
+              {
+                id: 'customer-vat-id',
+                kind: 'text',
+                visibleWhen: { cel: 'header.customerVatId != null' },
+                content: [{ kind: 'text', text: 'USt-IdNr.: ' }, field('customerVatId')],
+              },
             ],
           },
           {
@@ -280,7 +305,12 @@ const REPORT: ReportDefinition = {
               { id: 'number', kind: 'text', content: [{ kind: 'text', text: 'Rechnungsnummer: ' }, field('number')] },
               { id: 'issued-on', kind: 'text', content: dated('Rechnungsdatum: ', 'issuedOn') },
               { id: 'served-on', kind: 'text', visibleWhen: { cel: 'header.servedOn != null' }, content: dated('Leistungsdatum: ', 'servedOn') },
-              { id: 'period', kind: 'text', visibleWhen: { cel: 'header.periodStart != null' }, content: [...dated('Leistungszeitraum: ', 'periodStart'), ...dated(' bis ', 'periodEnd')] },
+              {
+                id: 'period',
+                kind: 'text',
+                visibleWhen: { cel: 'header.periodStart != null' },
+                content: [...dated('Leistungszeitraum: ', 'periodStart'), ...dated(' bis ', 'periodEnd')],
+              },
               { id: 'due-on', kind: 'text', content: dated('Zahlbar bis: ', 'dueOn') },
             ],
           },
@@ -310,11 +340,24 @@ const UNITS = { 'Pausch.': 'LS', h: 'HUR', Stk: 'H87', kg: 'KGM', m: 'MTR' } as 
 export type Item = readonly [string, keyof typeof UNITS, string, string, 'standard' | 'reduced' | 'exempt' | 'reverse']
 
 /** Quantity times unit price to the cent, as the euro invoice's are; a negative quantity, a discount's, gives a negative amount. */
-const netAmount = (quantity: string, unitPrice: string): string => (quantity.startsWith('-') ? `-${lineAmount(quantity.slice(1), unitPrice)}` : lineAmount(quantity, unitPrice))
+const netAmount = (quantity: string, unitPrice: string): string =>
+  quantity.startsWith('-') ? `-${lineAmount(quantity.slice(1), unitPrice)}` : lineAmount(quantity, unitPrice)
 
 /** `items` as the data gives them, each at its position, 1 up, and its article number, `first` up; in the reverse of the order the report prints them in. The XRechnung sample's are read so too (`xrechnung.ts`). */
 export function lines(first: number, items: readonly Item[]): Record<string, string>[] {
-  return items.map(([description, unit, quantity, unitPrice, vat], index) => ({ position: String(index + 1), article: `H-${first + index}`, description, quantity, unit, unitCode: UNITS[unit], unitPrice, amount: netAmount(quantity, unitPrice), vat })).reverse()
+  return items
+    .map(([description, unit, quantity, unitPrice, vat], index) => ({
+      position: String(index + 1),
+      article: `H-${first + index}`,
+      description,
+      quantity,
+      unit,
+      unitCode: UNITS[unit],
+      unitPrice,
+      amount: netAmount(quantity, unitPrice),
+      vat,
+    }))
+    .reverse()
 }
 
 /** What every variant's header holds that it does not set: no delivery date, no period, no VAT identifier, nothing paid. */
@@ -328,7 +371,18 @@ export function data(header: Record<string, string | null>, detail: Record<strin
 /** The sample's data: a restaurant's boiler serviced and its firewood delivered, at 19 % and at 7 %, on a delivery date. */
 export function eInvoiceData(): ReportData {
   return data(
-    { number: 'RE-2026-0820', issuedOn: '2026-10-16', servedOn: '2026-10-12', dueOn: '2026-10-30', customer: 'Gasthaus Zur Linde GmbH', street: 'Venloer Straße', buildingNumber: '210', postcode: '50823', city: 'Köln', reference: 'RF34 2026 0820' },
+    {
+      number: 'RE-2026-0820',
+      issuedOn: '2026-10-16',
+      servedOn: '2026-10-12',
+      dueOn: '2026-10-30',
+      customer: 'Gasthaus Zur Linde GmbH',
+      street: 'Venloer Straße',
+      buildingNumber: '210',
+      postcode: '50823',
+      city: 'Köln',
+      reference: 'RF34 2026 0820',
+    },
     lines(3101, [
       ['Wartung Gas-Brennwertkessel', 'Pausch.', '1.00', '245.00', 'standard'],
       ['Arbeitszeit Techniker', 'h', '3.50', '76.00', 'standard'],
@@ -344,7 +398,20 @@ export function eInvoiceData(): ReportData {
 /** Variant (b): a boiler, radiators and pipes installed in a builder's new building over September, the builder owing the tax. */
 export function reverseChargeData(): ReportData {
   return data(
-    { number: 'RE-2026-0821', issuedOn: '2026-10-05', periodStart: '2026-09-01', periodEnd: '2026-09-30', dueOn: '2026-11-04', customer: 'Domblick Bau GmbH', street: 'Butzweilerstraße', buildingNumber: '35', postcode: '50829', city: 'Köln', customerVatId: 'DE271828181', reference: 'RF07 2026 0821' },
+    {
+      number: 'RE-2026-0821',
+      issuedOn: '2026-10-05',
+      periodStart: '2026-09-01',
+      periodEnd: '2026-09-30',
+      dueOn: '2026-11-04',
+      customer: 'Domblick Bau GmbH',
+      street: 'Butzweilerstraße',
+      buildingNumber: '35',
+      postcode: '50829',
+      city: 'Köln',
+      customerVatId: 'DE271828181',
+      reference: 'RF07 2026 0821',
+    },
     lines(3201, [
       ['Gas-Brennwertkessel 24 kW, geliefert und montiert', 'Stk', '1.00', '3450.00', 'reverse'],
       ['Heizkörper Typ 22, montiert', 'Stk', '14.00', '212.50', 'reverse'],
@@ -357,7 +424,19 @@ export function reverseChargeData(): ReportData {
 /** Variant (c): three boilers serviced for a property manager, less its framework discount, the instalment agreement's interest exempt, and a payment on account made. */
 export function exemptPaidData(): ReportData {
   return data(
-    { number: 'RE-2026-0822', issuedOn: '2026-10-14', servedOn: '2026-10-09', dueOn: '2026-10-28', customer: 'Hausverwaltung Severin GmbH', street: 'Severinstraße', buildingNumber: '120', postcode: '50678', city: 'Köln', reference: 'RF77 2026 0822', paid: '300.00' },
+    {
+      number: 'RE-2026-0822',
+      issuedOn: '2026-10-14',
+      servedOn: '2026-10-09',
+      dueOn: '2026-10-28',
+      customer: 'Hausverwaltung Severin GmbH',
+      street: 'Severinstraße',
+      buildingNumber: '120',
+      postcode: '50678',
+      city: 'Köln',
+      reference: 'RF77 2026 0822',
+      paid: '300.00',
+    },
     lines(3301, [
       ['Wartung Gastherme, Haus 1', 'Pausch.', '1.00', '189.00', 'standard'],
       ['Wartung Gastherme, Haus 2', 'Pausch.', '1.00', '189.00', 'standard'],
@@ -372,7 +451,19 @@ export function exemptPaidData(): ReportData {
 /** Variant (d): the restaurant's boiler serviced again and its firewood delivered, to its invoicing address, the buyer's GLN. */
 export function addressedData(): ReportData {
   return data(
-    { number: 'RE-2026-0823', issuedOn: '2026-10-19', servedOn: '2026-10-15', dueOn: '2026-11-02', customer: 'Gasthaus Zur Linde GmbH', street: 'Venloer Straße', buildingNumber: '210', postcode: '50823', city: 'Köln', customerGln: '4012345000009', reference: 'RF50 2026 0823' },
+    {
+      number: 'RE-2026-0823',
+      issuedOn: '2026-10-19',
+      servedOn: '2026-10-15',
+      dueOn: '2026-11-02',
+      customer: 'Gasthaus Zur Linde GmbH',
+      street: 'Venloer Straße',
+      buildingNumber: '210',
+      postcode: '50823',
+      city: 'Köln',
+      customerGln: '4012345000009',
+      reference: 'RF50 2026 0823',
+    },
     lines(3401, [
       ['Wartung Gas-Brennwertkessel', 'Pausch.', '1.00', '245.00', 'standard'],
       ['Arbeitszeit Techniker', 'h', '1.50', '76.00', 'standard'],
@@ -386,7 +477,11 @@ export function addressedData(): ReportData {
 const REVERSE_CHARGE_REPORT: ReportDefinition = { ...REPORT, id: 'e-invoice-reverse-charge', eInvoice: { ...INVOICE, payment: { ...PAYMENT, means: '30' } } }
 
 /** The firm's contact (BG-6): its accountant, at one of the Bundesnetzagentur's numbers for Köln, at an address under `.example`. */
-export const CONTACT: NonNullable<EInvoice['seller']['contact']> = { name: text('Erika Mustermann'), telephone: text('+49 221 4710 820'), email: text('e.mustermann@formancy-haustechnik.example') }
+export const CONTACT: NonNullable<EInvoice['seller']['contact']> = {
+  name: text('Erika Mustermann'),
+  telephone: text('+49 221 4710 820'),
+  email: text('e.mustermann@formancy-haustechnik.example'),
+}
 
 /** Peppol BIS Billing 3.0's business process (BT-23), the addressed sample's and the XRechnung sample's. */
 export const BUSINESS_PROCESS: readonly Inline[] = text('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0')
@@ -403,7 +498,10 @@ export const FIRM_INBOX: NonNullable<EInvoice['seller']['electronicAddress']> = 
 const ADDRESSED_REPORT: ReportDefinition = {
   ...REPORT,
   id: 'e-invoice-addressed',
-  datasets: { ...REPORT.datasets, header: { ...HEADER, fields: [...HEADER.fields, { id: 'customerGln', type: 'string', label: 'GLN des Kunden', nullable: false }] } },
+  datasets: {
+    ...REPORT.datasets,
+    header: { ...HEADER, fields: [...HEADER.fields, { id: 'customerGln', type: 'string', label: 'GLN des Kunden', nullable: false }] },
+  },
   eInvoice: {
     ...INVOICE,
     businessProcess: BUSINESS_PROCESS,
@@ -415,7 +513,8 @@ const ADDRESSED_REPORT: ReportDefinition = {
 export const E_INVOICE: Starter = {
   id: 'e-invoice',
   title: 'Rechnung (ZUGFeRD)',
-  proves: 'an EN 16931 e-invoice: its totals and VAT breakdown computed once for the page and the XML, at 19 % and 7 %, with a delivery date, paid by SEPA credit transfer and an EPC code for the amount due',
+  proves:
+    'an EN 16931 e-invoice: its totals and VAT breakdown computed once for the page and the XML, at 19 % and 7 %, with a delivery date, paid by SEPA credit transfer and an EPC code for the amount due',
   report: REPORT,
   data: eInvoiceData(),
   parameters: {},
@@ -424,7 +523,8 @@ export const E_INVOICE: Starter = {
 export const E_INVOICE_REVERSE_CHARGE: Starter = {
   id: 'e-invoice-reverse-charge',
   title: 'Rechnung (ZUGFeRD)',
-  proves: 'reverse charge (AE) with its reason and the buyer’s VAT identifier, an invoicing period in place of a delivery date, and payment by credit transfer (30)',
+  proves:
+    'reverse charge (AE) with its reason and the buyer’s VAT identifier, an invoicing period in place of a delivery date, and payment by credit transfer (30)',
   report: REVERSE_CHARGE_REPORT,
   data: reverseChargeData(),
   parameters: {},
@@ -433,7 +533,8 @@ export const E_INVOICE_REVERSE_CHARGE: Starter = {
 export const E_INVOICE_EXEMPT_PAID: Starter = {
   id: 'e-invoice-exempt-paid',
   title: 'Rechnung (ZUGFeRD)',
-  proves: 'an exempt line (E) with its reason beside standard-rated lines, a discount as a negative quantity at a positive price, and a paid amount, so the amount due is not the total',
+  proves:
+    'an exempt line (E) with its reason beside standard-rated lines, a discount as a negative quantity at a positive price, and a paid amount, so the amount due is not the total',
   report: REPORT,
   data: exemptPaidData(),
   parameters: {},
@@ -442,7 +543,8 @@ export const E_INVOICE_EXEMPT_PAID: Starter = {
 export const E_INVOICE_ADDRESSED: Starter = {
   id: 'e-invoice-addressed',
   title: 'Rechnung (ZUGFeRD)',
-  proves: 'every term past 0027’s, none of which a German B2B invoice needs: the business process, the seller’s electronic address by email and the buyer’s by its GLN, and the seller’s contact',
+  proves:
+    'every term past 0027’s, none of which a German B2B invoice needs: the business process, the seller’s electronic address by email and the buyer’s by its GLN, and the seller’s contact',
   report: ADDRESSED_REPORT,
   data: addressedData(),
   parameters: {},

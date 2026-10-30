@@ -59,7 +59,8 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
   de: {
     meta: {
       title: 'Formancy Report: PDF-Berichtsdesigner für Angular und React',
-      description: 'Paginierte PDF-Berichte in nativen Editoren für Angular und React gestalten: exakte Summen, eine Vorschau, die das echte PDF ist. Selbst gehostet.',
+      description:
+        'Paginierte PDF-Berichte in nativen Editoren für Angular und React gestalten: exakte Summen, eine Vorschau, die das echte PDF ist. Selbst gehostet.',
       name: 'Formancy Report',
     },
     eyebrow: (version) => `Version ${version} · Developer Preview`,
@@ -95,26 +96,36 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
         },
         {
           title: 'Ihre Daten bleiben bei Ihnen',
-          text: <>Laufzeit und Renderer laden nichts nach und folgen keiner Adresse. Ein Bericht nennt seine Datensätze und Bilder, und Ihre Anwendung übergibt beides: als eigenes JSON oder, nach bestem Bemühen (best-effort), aus einem Server von {data}, mit den Rechten der Person, deren Token Ihre Anwendung mitgibt.</>,
+          text: (
+            <>
+              Laufzeit und Renderer laden nichts nach und folgen keiner Adresse. Ein Bericht nennt seine Datensätze und Bilder, und Ihre Anwendung übergibt
+              beides: als eigenes JSON oder, nach bestem Bemühen (best-effort), aus einem Server von {data}, mit den Rechten der Person, deren Token Ihre
+              Anwendung mitgibt.
+            </>
+          ),
         },
       ],
     },
     examples: {
       heading: 'Beispiele: was die Startvorlagen drucken',
-      intro: 'Jede Startvorlage ist ein Bericht mit synthetischen Daten, eingebaut ins Studio. Öffnen Sie eine dort, ändern Sie sie, und die Vorschau druckt sie neu.',
+      intro:
+        'Jede Startvorlage ist ein Bericht mit synthetischen Daten, eingebaut ins Studio. Öffnen Sie eine dort, ändern Sie sie, und die Vorschau druckt sie neu.',
       action: 'Die Startvorlagen im Studio öffnen',
     },
     status: {
       heading: (version) => `Stand: ${version}, eine Developer Preview`,
-      released: (date) => `Veröffentlicht am ${date}. Die Pakete sind auf npm, mit Provenance, und das Release auf GitHub enthält die signierte SBOM und den Release-Bericht des Laufs, der sie veröffentlicht hat.`,
+      released: (date) =>
+        `Veröffentlicht am ${date}. Die Pakete sind auf npm, mit Provenance, und das Release auf GitHub enthält die signierte SBOM und den Release-Bericht des Laufs, der sie veröffentlicht hat.`,
       format: 'Das Berichtsformat ist noch ein Entwurf: Dass eine spätere Version einen heute geschriebenen Bericht liest, ist nicht zugesichert.',
-      missing: 'Noch nicht dabei: der Server und seine Jobs, Änderungsvorschläge einer KI, die eine Person prüft, bevor sie gelten, ein veröffentlichter PDF-Viewer und konsistentes Lesen aus Formancy Data.',
+      missing:
+        'Noch nicht dabei: der Server und seine Jobs, Änderungsvorschläge einer KI, die eine Person prüft, bevor sie gelten, ein veröffentlichter PDF-Viewer und konsistentes Lesen aus Formancy Data.',
       changelog: (version) => `Was ${version} enthält, im Changelog (Englisch)`,
       npm: (name) => `${name} auf npm`,
     },
     licence: {
       heading: 'Source-available, nicht Open Source',
-      intro: 'Der Quellcode ist öffentlich: Lesen, Forken, Evaluieren, Entwickeln und Testen sind kostenlos, auch in Unternehmen. Für den Betrieb in Produktion braucht es eine kostenpflichtige Lizenz.',
+      intro:
+        'Der Quellcode ist öffentlich: Lesen, Forken, Evaluieren, Entwickeln und Testen sind kostenlos, auch in Unternehmen. Für den Betrieb in Produktion braucht es eine kostenpflichtige Lizenz.',
       caption: 'Die Bedingungen, wie LICENSE.md sie festhält',
       use: 'Nutzung',
       terms: 'Bedingungen',
@@ -131,21 +142,24 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       },
       footnote: ({ version, date, licence, mail }) => (
         <>
-          Die Bedingungen stehen in {licence} (Englisch): Version {version}, in Kraft seit dem {date}, noch von keiner Anwältin und keinem Anwalt geprüft. Eine Produktionslizenz können Sie bei {mail} anfragen.
+          Die Bedingungen stehen in {licence} (Englisch): Version {version}, in Kraft seit dem {date}, noch von keiner Anwältin und keinem Anwalt geprüft. Eine
+          Produktionslizenz können Sie bei {mail} anfragen.
         </>
       ),
-      upstream: 'Die formancy-Pakete, auf denen es aufbaut, bleiben unter Apache-2.0. Wer in Produktion Daten aus Formancy Data liest, braucht zusätzlich eine Produktionslizenz für Formancy Data.',
+      upstream:
+        'Die formancy-Pakete, auf denen es aufbaut, bleiben unter Apache-2.0. Wer in Produktion Daten aus Formancy Data liest, braucht zusätzlich eine Produktionslizenz für Formancy Data.',
     },
   },
   fr: {
     meta: {
       title: 'Formancy Report : rapports PDF pour Angular et React',
-      description: 'Concevez des rapports PDF paginés dans des éditeurs natifs pour Angular et React : totaux exacts, un aperçu qui est le vrai PDF, hébergé chez vous.',
+      description:
+        'Concevez des rapports PDF paginés dans des éditeurs natifs pour Angular et React : totaux exacts, un aperçu qui est le vrai PDF, hébergé chez vous.',
       name: 'Formancy Report',
     },
     eyebrow: (version) => `Version ${version} · préversion pour développeurs`,
     h1: 'Des rapports PDF paginés, conçus dans votre application Angular ou React',
-    lead: "Formancy Report est un concepteur de rapports que vous hébergez vous-même. La personne qui conçoit le rapport le met en page dans un éditeur visuel, natif en Angular et en React ; votre application fournit les données, et le moteur de rendu génère le PDF, sur votre serveur ou dans le navigateur.",
+    lead: 'Formancy Report est un concepteur de rapports que vous hébergez vous-même. La personne qui conçoit le rapport le met en page dans un éditeur visuel, natif en Angular et en React ; votre application fournit les données, et le moteur de rendu génère le PDF, sur votre serveur ou dans le navigateur.',
     actions: { studio: "L'essayer dans le Studio", guide: 'Lire le guide de démarrage (en anglais)', source: 'Le code source sur GitHub' },
     today: {
       heading: "Ce qu'il fait aujourd'hui",
@@ -176,26 +190,36 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
         },
         {
           title: 'Vos données restent chez vous',
-          text: <>Le runtime et le moteur de rendu ne vont rien chercher et ne suivent aucune adresse. Un rapport nomme ses jeux de données et ses images, et votre application fournit les deux : en JSON, ou, en mode best-effort, depuis un serveur {data}, avec les droits de la personne dont votre application transmet le jeton.</>,
+          text: (
+            <>
+              Le runtime et le moteur de rendu ne vont rien chercher et ne suivent aucune adresse. Un rapport nomme ses jeux de données et ses images, et votre
+              application fournit les deux : en JSON, ou, en mode best-effort, depuis un serveur {data}, avec les droits de la personne dont votre application
+              transmet le jeton.
+            </>
+          ),
         },
       ],
     },
     examples: {
       heading: "Exemples : ce qu'impriment les modèles de départ",
-      intro: "Chaque modèle de départ est un rapport avec des données synthétiques, intégré au Studio. Ouvrez-en un, modifiez-le, et l'aperçu l'imprime à nouveau.",
+      intro:
+        "Chaque modèle de départ est un rapport avec des données synthétiques, intégré au Studio. Ouvrez-en un, modifiez-le, et l'aperçu l'imprime à nouveau.",
       action: 'Ouvrir les modèles de départ dans le Studio',
     },
     status: {
       heading: (version) => `État : ${version}, une préversion pour développeurs`,
-      released: (date) => `Publiée le ${date}. Ses paquets sont sur npm, avec provenance, et la release sur GitHub contient le SBOM signé et le rapport de release de l'exécution qui les a publiés.`,
+      released: (date) =>
+        `Publiée le ${date}. Ses paquets sont sur npm, avec provenance, et la release sur GitHub contient le SBOM signé et le rapport de release de l'exécution qui les a publiés.`,
       format: "Le format des rapports est encore un brouillon : rien ne garantit qu'une version ultérieure lise un rapport écrit aujourd'hui.",
-      missing: "Pas encore disponible : le serveur et ses tâches, les modifications proposées par une IA et revues par une personne avant de s'appliquer, un visualiseur PDF publié, et une lecture cohérente depuis Formancy Data.",
+      missing:
+        "Pas encore disponible : le serveur et ses tâches, les modifications proposées par une IA et revues par une personne avant de s'appliquer, un visualiseur PDF publié, et une lecture cohérente depuis Formancy Data.",
       changelog: (version) => `Ce que contient ${version}, dans le changelog (en anglais)`,
       npm: (name) => `${name} sur npm`,
     },
     licence: {
       heading: 'Source-available, pas open source',
-      intro: "Le code source est public : le lire, le forker, l'évaluer, développer et tester avec lui, c'est gratuit, y compris en entreprise. L'exploitation en production nécessite une licence payante.",
+      intro:
+        "Le code source est public : le lire, le forker, l'évaluer, développer et tester avec lui, c'est gratuit, y compris en entreprise. L'exploitation en production nécessite une licence payante.",
       caption: 'Les conditions, telles que LICENSE.md les énonce',
       use: 'Usage',
       terms: 'Conditions',
@@ -212,10 +236,12 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       },
       footnote: ({ version, date, licence, mail }) => (
         <>
-          Les conditions sont dans {licence} (en anglais) : version {version}, en vigueur depuis le {date}, pas encore revue par un avocat ou une avocate. Une licence de production se demande à {mail}.
+          Les conditions sont dans {licence} (en anglais) : version {version}, en vigueur depuis le {date}, pas encore revue par un avocat ou une avocate. Une
+          licence de production se demande à {mail}.
         </>
       ),
-      upstream: 'Les paquets formancy sur lesquels il repose restent sous Apache-2.0. Lire des données depuis Formancy Data en production nécessite en plus une licence de production Formancy Data.',
+      upstream:
+        'Les paquets formancy sur lesquels il repose restent sous Apache-2.0. Lire des données depuis Formancy Data en production nécessite en plus une licence de production Formancy Data.',
     },
   },
   it: {
@@ -257,7 +283,13 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
         },
         {
           title: 'I vostri dati restano da voi',
-          text: <>Il runtime e il renderer non caricano nulla e non seguono alcun indirizzo. Un report nomina i suoi set di dati e le sue immagini, e la vostra applicazione fornisce entrambi: come JSON proprio o, in modalità best-effort, da un server {data}, con i permessi della persona di cui la vostra applicazione fornisce il token.</>,
+          text: (
+            <>
+              Il runtime e il renderer non caricano nulla e non seguono alcun indirizzo. Un report nomina i suoi set di dati e le sue immagini, e la vostra
+              applicazione fornisce entrambi: come JSON proprio o, in modalità best-effort, da un server {data}, con i permessi della persona di cui la vostra
+              applicazione fornisce il token.
+            </>
+          ),
         },
       ],
     },
@@ -268,15 +300,18 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     },
     status: {
       heading: (version) => `Stato: ${version}, un'anteprima per sviluppatori`,
-      released: (date) => `Pubblicata il ${date}. I suoi pacchetti sono su npm, con provenance, e la release su GitHub contiene lo SBOM firmato e il rapporto di release dell'esecuzione che li ha pubblicati.`,
+      released: (date) =>
+        `Pubblicata il ${date}. I suoi pacchetti sono su npm, con provenance, e la release su GitHub contiene lo SBOM firmato e il rapporto di release dell'esecuzione che li ha pubblicati.`,
       format: 'Il formato dei report è ancora una bozza: non è garantito che una versione successiva legga un report scritto oggi.',
-      missing: "Non ancora disponibili: il server e i suoi job, le modifiche proposte da un'IA e verificate da una persona prima di essere applicate, un visualizzatore PDF pubblicato e una lettura coerente da Formancy Data.",
+      missing:
+        "Non ancora disponibili: il server e i suoi job, le modifiche proposte da un'IA e verificate da una persona prima di essere applicate, un visualizzatore PDF pubblicato e una lettura coerente da Formancy Data.",
       changelog: (version) => `Che cosa contiene ${version}, nel changelog (in inglese)`,
       npm: (name) => `${name} su npm`,
     },
     licence: {
       heading: 'Source-available, non open source',
-      intro: "Il codice sorgente è pubblico: leggerlo, farne un fork, valutarlo, svilupparci e testarlo è gratuito, anche in un'azienda. L'uso in produzione richiede una licenza a pagamento.",
+      intro:
+        "Il codice sorgente è pubblico: leggerlo, farne un fork, valutarlo, svilupparci e testarlo è gratuito, anche in un'azienda. L'uso in produzione richiede una licenza a pagamento.",
       caption: 'Le condizioni, come le stabilisce LICENSE.md',
       use: 'Uso',
       terms: 'Condizioni',
@@ -293,16 +328,19 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       },
       footnote: ({ version, date, licence, mail }) => (
         <>
-          Le condizioni sono in {licence} (in inglese): versione {version}, in vigore dal {date}, non ancora esaminata da un avvocato o da un'avvocata. Una licenza di produzione si richiede a {mail}.
+          Le condizioni sono in {licence} (in inglese): versione {version}, in vigore dal {date}, non ancora esaminata da un avvocato o da un'avvocata. Una
+          licenza di produzione si richiede a {mail}.
         </>
       ),
-      upstream: 'I pacchetti formancy su cui si basa restano sotto Apache-2.0. Leggere dati da Formancy Data in produzione richiede anche una licenza di produzione di Formancy Data.',
+      upstream:
+        'I pacchetti formancy su cui si basa restano sotto Apache-2.0. Leggere dati da Formancy Data in produzione richiede anche una licenza di produzione di Formancy Data.',
     },
   },
   en: {
     meta: {
       title: 'Formancy Report: PDF report designer for Angular and React',
-      description: 'Design paginated PDF reports in native Angular and React editors. Exact totals, a preview that is the real PDF, self-hosted and source-available.',
+      description:
+        'Design paginated PDF reports in native Angular and React editors. Exact totals, a preview that is the real PDF, self-hosted and source-available.',
       name: 'Formancy Report',
     },
     eyebrow: (version) => `Version ${version} · developer preview`,
@@ -338,7 +376,12 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
         },
         {
           title: 'Your data stays with you',
-          text: <>The runtime and the renderer fetch nothing and follow no address. A report names its datasets and its images, and your application hands over both: as JSON of its own or, best-effort, from a {data} server, read as the person whose token your application supplies.</>,
+          text: (
+            <>
+              The runtime and the renderer fetch nothing and follow no address. A report names its datasets and its images, and your application hands over
+              both: as JSON of its own or, best-effort, from a {data} server, read as the person whose token your application supplies.
+            </>
+          ),
         },
       ],
     },
@@ -349,15 +392,18 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     },
     status: {
       heading: (version) => `Status: ${version}, a developer preview`,
-      released: (date) => `Released on ${date}. Its packages are on npm, with provenance, and the GitHub release carries the signed SBOM and the release report of the run that published them.`,
+      released: (date) =>
+        `Released on ${date}. Its packages are on npm, with provenance, and the GitHub release carries the signed SBOM and the release report of the run that published them.`,
       format: 'The report format is still a draft: a report written now is not promised to be read by a later release.',
-      missing: 'Not here yet: the server and its jobs, changes an AI proposes and a person reviews before they apply, a published PDF viewer, and a consistent read from Formancy Data.',
+      missing:
+        'Not here yet: the server and its jobs, changes an AI proposes and a person reviews before they apply, a published PDF viewer, and a consistent read from Formancy Data.',
       changelog: (version) => `What ${version} holds, in the changelog`,
       npm: (name) => `${name} on npm`,
     },
     licence: {
       heading: 'Source-available, not open source',
-      intro: 'The source is public: reading it, forking it, and evaluating, developing and testing with it are free, in a company too. Running it in production needs a paid licence.',
+      intro:
+        'The source is public: reading it, forking it, and evaluating, developing and testing with it are free, in a company too. Running it in production needs a paid licence.',
       caption: 'The terms, as LICENSE.md states them',
       use: 'Use',
       terms: 'Terms',
@@ -377,7 +423,8 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
           The terms are in {licence}: Version {version}, in force from {date}, not yet reviewed by a lawyer. A production licence is requested from {mail}.
         </>
       ),
-      upstream: 'The formancy packages it builds on stay under Apache-2.0. Reading data from Formancy Data in production needs a Formancy Data production licence as well.',
+      upstream:
+        'The formancy packages it builds on stay under Apache-2.0. Reading data from Formancy Data in production needs a Formancy Data production licence as well.',
     },
   },
 }

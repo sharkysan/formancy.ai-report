@@ -43,7 +43,8 @@ export function readHead(file: FontFile): FontHeader {
   if (locFormat !== 0 && locFormat !== 1) refuse('malformed', 'has an index to location format the specification does not define')
   if (file.i16(at + 52, table) !== 0) refuse('malformed', 'has glyph data in a format the specification does not define')
   // Bit 14: the Last Resort font, whose glyphs stand for ranges of code points rather than drawing them.
-  if ((file.u16(at + 16, table) & 0x4000) !== 0) refuse('character-map', 'is a last-resort font, whose glyphs stand for ranges of characters rather than draw them')
+  if ((file.u16(at + 16, table) & 0x4000) !== 0)
+    refuse('character-map', 'is a last-resort font, whose glyphs stand for ranges of characters rather than draw them')
   return { unitsPerEm, locFormat }
 }
 
@@ -89,7 +90,10 @@ export function readHorizontal(file: FontFile, glyphs: number, unitsPerEm: numbe
   if (line.descender > 0) refuse('malformed', `has a descender of ${line.descender} units, above its baseline, where a line must reach down to it or below`)
   const tall = line.ascender - line.descender
   if (tall < MIN_FONT_LINE * unitsPerEm || tall > MAX_FONT_LINE * unitsPerEm) {
-    refuse('malformed', `has a line ${tall} units tall, its ascender less its descender, at ${unitsPerEm} units to the em, where a line may be ${MIN_FONT_LINE} to ${MAX_FONT_LINE} ems tall`)
+    refuse(
+      'malformed',
+      `has a line ${tall} units tall, its ascender less its descender, at ${unitsPerEm} units to the em, where a line may be ${MIN_FONT_LINE} to ${MAX_FONT_LINE} ems tall`,
+    )
   }
   return line
 }
@@ -156,15 +160,20 @@ const USAGE = { restricted: 0x0002, previewPrint: 0x0004, editable: 0x0008 } as 
  */
 export function embeddingOf(version: number, fsType: number): FontEmbedding {
   const hex = `0x${fsType.toString(16).padStart(4, '0')}`
-  if (version > LAST_OS2_VERSION) refuseEmbedding('invalid', `states its embedding permissions in an OS/2 table of version ${version}, which the specification does not define`)
+  if (version > LAST_OS2_VERSION)
+    refuseEmbedding('invalid', `states its embedding permissions in an OS/2 table of version ${version}, which the specification does not define`)
   if ((fsType & 0x0001) !== 0) refuseEmbedding('invalid', `sets bit 0 of its embedding permissions (fsType ${hex}), which the specification reserves`)
   const usage = fsType & 0x000e
   const several = usage !== 0 && (usage & (usage - 1)) !== 0
-  if (several && version >= 3) refuseEmbedding('invalid', `sets more than one usage permission (fsType ${hex}), which an OS/2 table of version ${version} may not`)
+  if (several && version >= 3)
+    refuseEmbedding('invalid', `sets more than one usage permission (fsType ${hex}), which an OS/2 table of version ${version} may not`)
   const permitted = (usage & USAGE.editable) !== 0 ? 'editable' : (usage & USAGE.previewPrint) !== 0 ? 'preview-print' : usage === 0 ? 'installable' : undefined
-  if (permitted === undefined) refuseEmbedding('restricted', `allows Restricted License embedding alone (fsType ${hex}), which forbids embedding the font without its owner's permission`)
-  if (version >= 2 && (fsType & 0x0200) !== 0) refuseEmbedding('bitmap-only', `allows its bitmaps alone to be embedded (fsType ${hex}), where a PDF embeds outlines`)
-  if (version >= 2 && (fsType & 0x0100) !== 0) refuseEmbedding('no-subsetting', `forbids embedding a subset of it (fsType ${hex}), where the PDF embeds only the glyphs it prints`)
+  if (permitted === undefined)
+    refuseEmbedding('restricted', `allows Restricted License embedding alone (fsType ${hex}), which forbids embedding the font without its owner's permission`)
+  if (version >= 2 && (fsType & 0x0200) !== 0)
+    refuseEmbedding('bitmap-only', `allows its bitmaps alone to be embedded (fsType ${hex}), where a PDF embeds outlines`)
+  if (version >= 2 && (fsType & 0x0100) !== 0)
+    refuseEmbedding('no-subsetting', `forbids embedding a subset of it (fsType ${hex}), where the PDF embeds only the glyphs it prints`)
   return permitted
 }
 
@@ -176,7 +185,14 @@ export function readOs2(file: FontFile): FontOs2 {
   const fsType = file.u16(at + 8, table)
   const embedding = embeddingOf(version, fsType)
   const selection = file.u16(at + 62, table)
-  return { embedding, fsType, weight: file.u16(at + 4, table), italic: (selection & 0x01) !== 0, bold: (selection & 0x20) !== 0, regular: (selection & 0x40) !== 0 }
+  return {
+    embedding,
+    fsType,
+    weight: file.u16(at + 4, table),
+    italic: (selection & 0x01) !== 0,
+    bold: (selection & 0x20) !== 0,
+    regular: (selection & 0x40) !== 0,
+  }
 }
 
 /**
@@ -203,7 +219,7 @@ export function readPost(file: FontFile): void {
   file.need(at + 34, 2 * named, table)
   // fontkit reads Pascal strings from after the indices to the table's recorded end, each a length and its characters.
   const end = table.offset + table.length
-  for (let string = at + 34 + 2 * named; string < end; ) {
+  for (let string = at + 34 + 2 * named; string < end;) {
     file.need(string, 1 + file.u8(string, table), table)
     string += 1 + file.u8(string, table)
   }

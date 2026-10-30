@@ -35,7 +35,8 @@ function refused(report: ReportDefinition, data: ReportData, options: ResolveOpt
 const xmlOf = (data: ReportData, report: ReportDefinition = invoiceReport()): string => resolved(report, data).document.eInvoice?.xml ?? ''
 
 /** Every value of the element `name` in `xml`, in order. */
-const values = (xml: string, name: string): string[] => [...xml.matchAll(new RegExp(`<${name}(?: [^>]*)?>([^<]*)</${name}>`, 'g'))].map((match) => match[1] as string)
+const values = (xml: string, name: string): string[] =>
+  [...xml.matchAll(new RegExp(`<${name}(?: [^>]*)?>([^<]*)</${name}>`, 'g'))].map((match) => match[1] as string)
 
 /** The detail rows the lines' table prints, each its cells. */
 function printedLines(resolution: Extract<Resolution, { ok: true }>): readonly (readonly string[])[] {
@@ -59,7 +60,10 @@ function withInvoice(patch: (invoice: EInvoice) => EInvoice, report: ReportDefin
 /** The invoice report with the lines' table changed by `patch`. */
 function withTable(patch: (table: TableComponent) => TableComponent): ReportDefinition {
   const report = invoiceReport()
-  return { ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.kind === 'table' ? patch(component) : component)) } }
+  return {
+    ...report,
+    regions: { ...report.regions, body: report.regions.body.map((component) => (component.kind === 'table' ? patch(component) : component)) },
+  }
 }
 
 /** The invoice report with the column `id`'s value changed by `patch`. */
@@ -101,7 +105,10 @@ describe("an e-invoice's lines", () => {
   // part, and the page would print a line the XML does not hold.
   test('are read once a row, the table printing the very value the XML holds', () => {
     const heavy = `size([${Array.from({ length: 64 }, (_, index) => index).join(',')}].filter(x, [${Array.from({ length: 24 }, (_, index) => index).join(',')}].exists(y, y == x))) > 0 ? row.amount : row.amount`
-    const report = withTable((table) => ({ ...table, columns: table.columns.map((column) => (column.id === 'amount' ? { ...column, value: { kind: 'expression', expression: { cel: heavy } } } : column)) }))
+    const report = withTable((table) => ({
+      ...table,
+      columns: table.columns.map((column) => (column.id === 'amount' ? { ...column, value: { kind: 'expression', expression: { cel: heavy } } } : column)),
+    }))
     const expressions = (prepareExpressions(report) as { readonly expressions: ReportExpressions }).expressions
     const at = '/regions/body/0/columns/4/value/expression/cel'
     const first = expressions.evaluate(at, { row: { amount: '1.00' } }, 0)
@@ -126,10 +133,22 @@ describe("an e-invoice's lines", () => {
       ...table,
       columns: table.columns.map((column) => {
         if (column.id === 'amount') return { ...column, value: { kind: 'expression', expression: { cel: 'round(row.price * row.quantity, 2)' } } }
-        return column.id === 'price' ? { ...column, value: { kind: 'field', field: { dataset: 'detail', field: 'price' }, format: { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 3 } } } : column
+        return column.id === 'price'
+          ? {
+              ...column,
+              value: {
+                kind: 'field',
+                field: { dataset: 'detail', field: 'price' },
+                format: { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 3 },
+              },
+            }
+          : column
       }),
     }))
-    const resolution = resolved(report, invoiceData([invoiceRow({ quantity: '3', price: '0.333', amount: null }), invoiceRow({ position: '2', quantity: '1', price: '0.10', amount: null })]))
+    const resolution = resolved(
+      report,
+      invoiceData([invoiceRow({ quantity: '3', price: '0.333', amount: null }), invoiceRow({ position: '2', quantity: '1', price: '0.10', amount: null })]),
+    )
     expect(values(resolution.document.eInvoice?.xml ?? '', 'ram:LineTotalAmount')).toEqual(['1.00', '0.10', '1.10'])
     expect(printed(resolution, 'Netto')).toBe('Netto 1,10\u00a0€')
   })
@@ -176,7 +195,12 @@ describe("a final render of an e-invoice's lines", () => {
   // net amount below zero: BR-27 refuses only a negative price. 10.500 is
   // a whole number of cents, written 10.50.
   test('takes a discount line, and an amount of trailing zeros', () => {
-    const xml = xmlOf(invoiceData([invoiceRow({ quantity: '42', amount: '10.500' }), invoiceRow({ position: '2', item: 'Rabatt', quantity: '-1', unit: 'C62', price: '2.00', amount: '-2.00' })]))
+    const xml = xmlOf(
+      invoiceData([
+        invoiceRow({ quantity: '42', amount: '10.500' }),
+        invoiceRow({ position: '2', item: 'Rabatt', quantity: '-1', unit: 'C62', price: '2.00', amount: '-2.00' }),
+      ]),
+    )
     expect(values(xml, 'ram:LineTotalAmount')).toEqual(['10.50', '-2.00', '8.50'])
     expect(values(xml, 'ram:BilledQuantity')).toEqual(['42', '-1'])
   })
@@ -199,13 +223,24 @@ describe("a final render of an e-invoice's lines", () => {
         code: 'invalid-e-invoice',
         path: '/regions/body/0/columns/4/value',
         row: 0,
-        message: 'component lines, column amount, detail row 0: the line net amount (BT-131) is not the invoiced quantity (BT-129) times the item net price (BT-146), rounded once to the cent: a receiver that multiplies them reads another amount',
+        message:
+          'component lines, column amount, detail row 0: the line net amount (BT-131) is not the invoiced quantity (BT-129) times the item net price (BT-146), rounded once to the cent: a receiver that multiplies them reads another amount',
       }),
     ])
-    expect(refused(invoiceReport(), invoiceData([invoiceRow({ quantity: '3', price: '0.33', amount: '1.00' })]), PREVIEW)).toEqual([expect.objectContaining({ path: '/regions/body/0/columns/4/value', row: 0 })])
-    const xml = xmlOf(invoiceData([invoiceRow({ quantity: '3', price: '0.335', amount: '1.01' }), invoiceRow({ position: '2', quantity: '-3', price: '0.335', amount: '-1.01' })]), plainPrices())
+    expect(refused(invoiceReport(), invoiceData([invoiceRow({ quantity: '3', price: '0.33', amount: '1.00' })]), PREVIEW)).toEqual([
+      expect.objectContaining({ path: '/regions/body/0/columns/4/value', row: 0 }),
+    ])
+    const xml = xmlOf(
+      invoiceData([
+        invoiceRow({ quantity: '3', price: '0.335', amount: '1.01' }),
+        invoiceRow({ position: '2', quantity: '-3', price: '0.335', amount: '-1.01' }),
+      ]),
+      plainPrices(),
+    )
     expect(values(xml, 'ram:LineTotalAmount')).toEqual(['1.01', '-1.01', '0.00'])
-    expect(refused(plainPrices(), invoiceData([invoiceRow({ quantity: '3', price: '0.335', amount: '1.00' })]))).toEqual([expect.objectContaining({ path: '/regions/body/0/columns/4/value' })])
+    expect(refused(plainPrices(), invoiceData([invoiceRow({ quantity: '3', price: '0.335', amount: '1.00' })]))).toEqual([
+      expect.objectContaining({ path: '/regions/body/0/columns/4/value' }),
+    ])
   })
 
   // BT-126 is "Eindeutige Bezeichnung für die betreffende
@@ -216,9 +251,17 @@ describe("a final render of an e-invoice's lines", () => {
   test('refuses a line identifier an earlier line has', () => {
     const errors = refused(invoiceReport(), invoiceData([invoiceRow(), invoiceRow({ item: 'Muttern M6' }), invoiceRow({ position: '2' })]))
     expect(errors).toEqual([
-      expect.objectContaining({ stage: 'resolve', code: 'invalid-e-invoice', path: '/eInvoice/lines/id', row: 1, message: "the e-invoice, detail row 1: the line identifier (BT-126) is an earlier line's, and each line of an e-invoice has its own" }),
+      expect.objectContaining({
+        stage: 'resolve',
+        code: 'invalid-e-invoice',
+        path: '/eInvoice/lines/id',
+        row: 1,
+        message: "the e-invoice, detail row 1: the line identifier (BT-126) is an earlier line's, and each line of an e-invoice has its own",
+      }),
     ])
-    expect(refused(invoiceReport(), invoiceData([invoiceRow(), invoiceRow()]), PREVIEW)).toEqual([expect.objectContaining({ path: '/eInvoice/lines/id', row: 1 })])
+    expect(refused(invoiceReport(), invoiceData([invoiceRow(), invoiceRow()]), PREVIEW)).toEqual([
+      expect.objectContaining({ path: '/eInvoice/lines/id', row: 1 }),
+    ])
   })
 
   // A column prints a quantity or a price at the places its format shows,
@@ -229,17 +272,27 @@ describe("a final render of an e-invoice's lines", () => {
   // term, never the value. An amount the XML writes at two places, and
   // every total, are held where the template is, by the editing core.
   test('refuses a quantity or a price its column prints at fewer places than it has', () => {
-    const report = withColumn('qty', (value) => ({ ...value, format: { kind: 'number', scale: 0, grouping: false } }) as TableComponent['columns'][number]['value'])
+    const report = withColumn(
+      'qty',
+      (value) => ({ ...value, format: { kind: 'number', scale: 0, grouping: false } }) as TableComponent['columns'][number]['value'],
+    )
     expect(refused(report, invoiceData([invoiceRow({ quantity: '3.5', price: '2.00', amount: '7.00' })]))).toEqual([
       expect.objectContaining({
         code: 'invalid-e-invoice',
         path: '/regions/body/0/columns/2/value',
         row: 0,
-        message: 'component lines, column qty, detail row 0: the invoiced quantity (BT-129) has more places than its column prints, 0, so the page would print another than the XML holds: the column prints the places the data gives',
+        message:
+          'component lines, column qty, detail row 0: the invoiced quantity (BT-129) has more places than its column prints, 0, so the page would print another than the XML holds: the column prints the places the data gives',
       }),
     ])
     expect(xmlOf(invoiceData([invoiceRow({ quantity: '4.00', price: '2.00', amount: '8.00' })]), report)).toContain('unitCode="H87">4.00</ram:BilledQuantity>')
-    expect(refused(invoiceReport(), invoiceData([invoiceRow({ quantity: '3', price: '0.333', amount: '1.00' })]), PREVIEW)).toEqual([expect.objectContaining({ path: '/regions/body/0/columns/3/value', row: 0, message: expect.stringMatching(/the item net price \(BT-146\) has more places than its column prints, 2, /) })])
+    expect(refused(invoiceReport(), invoiceData([invoiceRow({ quantity: '3', price: '0.333', amount: '1.00' })]), PREVIEW)).toEqual([
+      expect.objectContaining({
+        path: '/regions/body/0/columns/3/value',
+        row: 0,
+        message: expect.stringMatching(/the item net price \(BT-146\) has more places than its column prints, 2, /),
+      }),
+    ])
     expect(printedLines(resolved(invoiceReport(), invoiceData([invoiceRow({ price: '0.2500' })])))[0]?.[3]).toBe('0,25 €')
   })
 
@@ -254,7 +307,10 @@ describe("a final render of an e-invoice's lines", () => {
   // A line identifier may be an integer, as a position is; a code read by
   // an expression is held to the same rule as a field.
   test('reads a code from an expression, and an identifier from an integer', () => {
-    const report = withInvoice((invoice) => ({ ...invoice, lines: { ...invoice.lines, unit: { kind: 'expression', expression: { cel: 'row.unit == "Stück" ? "H87" : row.unit' } } } }))
+    const report = withInvoice((invoice) => ({
+      ...invoice,
+      lines: { ...invoice.lines, unit: { kind: 'expression', expression: { cel: 'row.unit == "Stück" ? "H87" : row.unit' } } },
+    }))
     const xml = xmlOf(invoiceData([invoiceRow({ unit: 'Stück', position: '7' })]), report)
     expect(xml).toContain('<ram:LineID>7</ram:LineID>')
     expect(xml).toContain('unitCode="H87"')
@@ -264,17 +320,36 @@ describe("a final render of an e-invoice's lines", () => {
   // nullable field is -- is held to its term's types once it has resolved:
   // an item name that is a number would be written as a name nobody gave.
   test('refuses a column whose value is of another type than its term', () => {
-    const report = withTable((table) => ({ ...table, columns: table.columns.map((column) => (column.id === 'item' ? { ...column, value: { kind: 'expression', expression: { cel: 'row.position' } } } : column)) }))
+    const report = withTable((table) => ({
+      ...table,
+      columns: table.columns.map((column) =>
+        column.id === 'item' ? { ...column, value: { kind: 'expression', expression: { cel: 'row.position' } } } : column,
+      ),
+    }))
     expect(refused(report, invoiceData())).toEqual([
-      expect.objectContaining({ code: 'invalid-e-invoice', path: '/regions/body/0/columns/1/value', row: 0, message: 'component lines, column item, detail row 0: the item name (BT-153) is read from a string, and this gives an integer' }),
+      expect.objectContaining({
+        code: 'invalid-e-invoice',
+        path: '/regions/body/0/columns/1/value',
+        row: 0,
+        message: 'component lines, column item, detail row 0: the item name (BT-153) is read from a string, and this gives an integer',
+      }),
     ])
   })
 
   // A column that fails to evaluate for a row has its own error, naming
   // the column and the row, and the lines are not read on with a gap.
   test('refuses a line whose column fails to evaluate, once', () => {
-    const report = withTable((table) => ({ ...table, columns: table.columns.map((column) => (column.id === 'amount' ? { ...column, value: { kind: 'expression', expression: { cel: 'divide(row.amount, row.quantity - row.quantity, 2)' } } } : column)) }))
-    expect(refused(report, invoiceData())).toEqual([expect.objectContaining({ stage: 'evaluation', code: 'expression-failed', path: '/regions/body/0/columns/4/value/expression/cel', row: 0 })])
+    const report = withTable((table) => ({
+      ...table,
+      columns: table.columns.map((column) =>
+        column.id === 'amount'
+          ? { ...column, value: { kind: 'expression', expression: { cel: 'divide(row.amount, row.quantity - row.quantity, 2)' } } }
+          : column,
+      ),
+    }))
+    expect(refused(report, invoiceData())).toEqual([
+      expect.objectContaining({ stage: 'evaluation', code: 'expression-failed', path: '/regions/body/0/columns/4/value/expression/cel', row: 0 }),
+    ])
   })
 
   // Errors are bounded: past the bound the reading stops, and the list
@@ -288,9 +363,20 @@ describe("a final render of an e-invoice's lines", () => {
   // An expression that fails for a row is an evaluation error that says
   // where: the e-invoice, which stands in no component, and the row.
   test('names the e-invoice and the row when a code fails to evaluate', () => {
-    const report = withInvoice((invoice) => ({ ...invoice, lines: { ...invoice.lines, vat: { kind: 'expression', expression: { cel: 'string(divide(dec(1), dec(row.position) - dec(1), 2))' } } } }))
+    const report = withInvoice((invoice) => ({
+      ...invoice,
+      lines: { ...invoice.lines, vat: { kind: 'expression', expression: { cel: 'string(divide(dec(1), dec(row.position) - dec(1), 2))' } } },
+    }))
     const errors = refused(report, invoiceData())
-    expect(errors).toEqual([expect.objectContaining({ stage: 'evaluation', code: 'expression-failed', path: '/eInvoice/lines/vat/expression/cel', row: 0, message: expect.stringMatching(/^the e-invoice, detail row 0: /) })])
+    expect(errors).toEqual([
+      expect.objectContaining({
+        stage: 'evaluation',
+        code: 'expression-failed',
+        path: '/eInvoice/lines/vat/expression/cel',
+        row: 0,
+        message: expect.stringMatching(/^the e-invoice, detail row 0: /),
+      }),
+    ])
   })
 })
 
@@ -318,7 +404,10 @@ describe("a preview of an e-invoice's lines", () => {
   // line out of every total. Refused instead, a preview of data half
   // typed in would show nothing; a final render refuses each.
   test('takes a text term of blanks as one it lacks', () => {
-    const data = invoiceData([invoiceRow({ quantity: '40', amount: '10.00', item: '  ', unit: ' ' }), invoiceRow({ position: '2', quantity: '4', amount: '1.00', vat: '\t' })])
+    const data = invoiceData([
+      invoiceRow({ quantity: '40', amount: '10.00', item: '  ', unit: ' ' }),
+      invoiceRow({ position: '2', quantity: '4', amount: '1.00', vat: '\t' }),
+    ])
     const resolution = resolved(invoiceReport(), data, PREVIEW)
     expect(printed(resolution, 'Netto')).toMatch(/^Netto 10,00\s€$/)
     expect(refused(invoiceReport(), data).map((error) => [error.path, 'row' in error ? error.row : undefined])).toEqual([
@@ -332,7 +421,11 @@ describe("a preview of an e-invoice's lines", () => {
   // not missing: an amount of a third decimal or a category the invoice
   // does not declare would print totals no final render could.
   test('holds what it has to the rules', () => {
-    expect(refused(invoiceReport(), invoiceData([invoiceRow({ vat: 'zero' })]), PREVIEW)).toEqual([expect.objectContaining({ code: 'invalid-e-invoice', path: '/eInvoice/lines/vat' })])
-    expect(refused(invoiceReport(), invoiceData([invoiceRow({ amount: '1.001' })]), PREVIEW)).toEqual([expect.objectContaining({ code: 'invalid-e-invoice', path: '/regions/body/0/columns/4/value' })])
+    expect(refused(invoiceReport(), invoiceData([invoiceRow({ vat: 'zero' })]), PREVIEW)).toEqual([
+      expect.objectContaining({ code: 'invalid-e-invoice', path: '/eInvoice/lines/vat' }),
+    ])
+    expect(refused(invoiceReport(), invoiceData([invoiceRow({ amount: '1.001' })]), PREVIEW)).toEqual([
+      expect.objectContaining({ code: 'invalid-e-invoice', path: '/regions/body/0/columns/4/value' }),
+    ])
   })
 })

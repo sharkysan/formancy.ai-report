@@ -52,7 +52,8 @@ export function removeEInvoice(report: ReportDefinition): CommandOutcome {
 export function updateEInvoice(report: ReportDefinition, patch: EInvoicePatch): CommandOutcome {
   const invoice = report.eInvoice
   if (invoice === undefined) return missing()
-  if (Object.hasOwn(patch, 'kind')) return refuse('immutable-property', "an e-invoice's kind never changes in place; put a new e-invoice instead", { path: `${PATH}/kind` })
+  if (Object.hasOwn(patch, 'kind'))
+    return refuse('immutable-property', "an e-invoice's kind never changes in place; put a new e-invoice instead", { path: `${PATH}/kind` })
   return { ok: true, report: { ...report, eInvoice: patched(invoice, patch as Patch<EInvoice>) } }
 }
 
@@ -63,10 +64,14 @@ function literal(runs: readonly Inline[]): boolean {
 
 /** The refusal for an account the report reads from the data at `path`, which the command would write over with a literal. */
 function readFromData(place: string, path: string, componentId?: string): Refusal {
-  return refuse('read-from-data', `${place} reads its account from the data, which says what it is at the render; bind the e-invoice's account and its payment codes alike, or write them alike`, {
-    path,
-    ...(componentId === undefined ? {} : { componentId }),
-  })
+  return refuse(
+    'read-from-data',
+    `${place} reads its account from the data, which says what it is at the render; bind the e-invoice's account and its payment codes alike, or write them alike`,
+    {
+      path,
+      ...(componentId === undefined ? {} : { componentId }),
+    },
+  )
 }
 
 /**

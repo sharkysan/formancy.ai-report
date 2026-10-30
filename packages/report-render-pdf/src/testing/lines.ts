@@ -52,7 +52,13 @@ export function pageLines(page: PdfPage): Line[] {
       joined += (before !== undefined && gap > WORD_GAP * Math.min(item.height, before.height) ? ' ' : '') + item.text
     })
     const last = ordered.at(-1)!
-    return { text: normalise(joined), top: Math.min(...ordered.map((item) => item.top)), bottom: Math.max(...ordered.map((item) => item.bottom)), x: ordered[0]!.x, right: last.x + last.width }
+    return {
+      text: normalise(joined),
+      top: Math.min(...ordered.map((item) => item.top)),
+      bottom: Math.max(...ordered.map((item) => item.bottom)),
+      x: ordered[0]!.x,
+      right: last.x + last.width,
+    }
   })
 }
 

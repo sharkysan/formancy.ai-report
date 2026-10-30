@@ -127,7 +127,10 @@ describe('the corpus', () => {
     for (const fixture of EVERY) {
       const lines = documentLines(fixture.document)
       for (const text of fixture.expect.exactText) {
-        expect(lines.some((line) => ` ${line} `.includes(` ${normalise(text)} `)), `${fixture.id}: ${text}`).toBe(true)
+        expect(
+          lines.some((line) => ` ${line} `.includes(` ${normalise(text)} `)),
+          `${fixture.id}: ${text}`,
+        ).toBe(true)
       }
       for (const text of fixture.expect.wrappedText) expect(lines, fixture.id).toContain(text)
     }
@@ -164,7 +167,9 @@ describe('the boundary arithmetic', () => {
   // densest row any plausible engine draws.
   test('long-table runs to several pages however dense the rows', () => {
     const rows = tables(longTable.document.body)[0]!.rows
-    expect(rows.filter((row) => row.kind === 'detail').map((row) => row.cells[0])).toEqual(Array.from({ length: 300 }, (_, i) => `ROW-${String(i + 1).padStart(4, '0')}`))
+    expect(rows.filter((row) => row.kind === 'detail').map((row) => row.cells[0])).toEqual(
+      Array.from({ length: 300 }, (_, i) => `ROW-${String(i + 1).padStart(4, '0')}`),
+    )
     expect(Math.ceil(rows.length / ROWS_PER_PAGE_RANGE.max)).toBeGreaterThanOrEqual(2)
     expect(longTable.expect.minPagesExpected).toBeGreaterThanOrEqual(2)
   })
@@ -241,7 +246,9 @@ describe('the boundary arithmetic', () => {
     expect(SWEEP.at(-1)).toBeGreaterThan(BOUNDARY.max)
     expect(SWEEP_STEP).toBeLessThan(lineHeight(BODY_SIZE) * LINE_FACTOR_RANGE.min)
     SWEEP.slice(1).forEach((height, index) => expect(height - SWEEP[index]!).toBeCloseTo(SWEEP_STEP, 9))
-    const fillers = flatten(summaryFits.document.body).filter((block) => block.kind === 'image').map((block) => block.height)
+    const fillers = flatten(summaryFits.document.body)
+      .filter((block) => block.kind === 'image')
+      .map((block) => block.height)
     expect(fillers).toEqual(SWEEP)
     expect(summaryFits.expect.keptTogether).toHaveLength(SWEEP.length)
     expect(summaryFits.expect.keptTogetherByRoom).toBe(true)
@@ -326,9 +333,18 @@ describe('the values', () => {
   // a clip path, the shape a reader that counted soft masks would see.
   test('the SVG fixtures expect each drawing as vectors in the body and the page header, the window through a clip path', () => {
     for (const fixture of [svgMark, svgWindow]) {
-      expect(fixture.expect.images.map(({ kind }) => kind), fixture.id).toEqual(['vector', 'vector'])
-      expect(fixture.expect.pageRegionImages.map(({ kind }) => kind), fixture.id).toEqual(['vector'])
-      expect(flatten(fixture.document.body).flatMap((block) => (block.kind === 'image' ? [block.fit] : [])), fixture.id).toEqual(['contain', 'cover'])
+      expect(
+        fixture.expect.images.map(({ kind }) => kind),
+        fixture.id,
+      ).toEqual(['vector', 'vector'])
+      expect(
+        fixture.expect.pageRegionImages.map(({ kind }) => kind),
+        fixture.id,
+      ).toEqual(['vector'])
+      expect(
+        flatten(fixture.document.body).flatMap((block) => (block.kind === 'image' ? [block.fit] : [])),
+        fixture.id,
+      ).toEqual(['contain', 'cover'])
       expect(fixture.expect, fixture.id).toMatchObject({ minPagesExpected: 3, maxPagesExpected: 3, noEmptyPages: true })
     }
     expect(new TextDecoder().decode(SVG_WINDOW)).toContain('clip-path="url(#c1)"')

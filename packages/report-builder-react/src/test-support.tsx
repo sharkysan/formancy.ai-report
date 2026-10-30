@@ -47,7 +47,9 @@ export function mount(report: ReportDefinition, locale: EditorLocale = 'en', hos
   const session = sessionOver(report)
   const editor = createReportEditor(session, { locale, ...(host === undefined ? {} : { hostView: host }), ...(images === undefined ? {} : { images }) })
   const user = userEvent.setup()
-  const view = render(host === undefined ? <ReportBuilder editor={editor} /> : <ReportBuilder editor={editor} hostView={<button type="button">{host.control}</button>} />)
+  const view = render(
+    host === undefined ? <ReportBuilder editor={editor} /> : <ReportBuilder editor={editor} hostView={<button type="button">{host.control}</button>} />,
+  )
   return { session, editor, user, view }
 }
 
@@ -94,7 +96,10 @@ function valueOf(element: HTMLElement): string {
 
 /** user-event's keyboard text for a key held with modifiers: `{Alt>}{ArrowDown}{/Alt}`. */
 function keys(key: string, modifiers: readonly string[] = []): string {
-  return `${modifiers.map((modifier) => `{${modifier}>}`).join('')}{${key}}${[...modifiers].reverse().map((modifier) => `{/${modifier}}`).join('')}`
+  return `${modifiers.map((modifier) => `{${modifier}>}`).join('')}{${key}}${[...modifiers]
+    .reverse()
+    .map((modifier) => `{/${modifier}}`)
+    .join('')}`
 }
 
 /**

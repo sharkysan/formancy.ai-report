@@ -34,10 +34,17 @@ const TIMEOUT = 120_000
 const WORD = 'Massnahmenplan'
 
 /** A form whose repeater's rows hold `count` fields, each headed by `WORD`. */
-const wide = (count: number) => formOf([{ key: 'site', type: 'text', label: 'Site' }, { key: 'items', type: 'repeater', label: 'Items', fields: Array.from({ length: count }, (_, index) => ({ key: `c${index}`, type: 'text', label: WORD })) }])
+const wide = (count: number) =>
+  formOf([
+    { key: 'site', type: 'text', label: 'Site' },
+    { key: 'items', type: 'repeater', label: 'Items', fields: Array.from({ length: count }, (_, index) => ({ key: `c${index}`, type: 'text', label: WORD })) },
+  ])
 
 /** A visit of two rows, each of `count` short answers. */
-const visit = (count: number) => ({ site: 'Bern', items: ['r1', 'r2'].map((id) => ({ _id: id, ...Object.fromEntries(Array.from({ length: count }, (_, index) => [`c${index}`, 'Wert'])) })) })
+const visit = (count: number) => ({
+  site: 'Bern',
+  items: ['r1', 'r2'].map((id) => ({ _id: id, ...Object.fromEntries(Array.from({ length: count }, (_, index) => [`c${index}`, 'Wert'])) })),
+})
 
 const ITEMS = { kind: 'repeater', repeater: 'items' } as const
 
@@ -60,47 +67,59 @@ function oneMore(report: ReportDefinition): ReportDefinition {
 describe('a generated table', () => {
   // On a portrait page each of six columns has the room, and the draft
   // prints every heading and every answer, the page portrait.
-  test('of as many columns as a portrait page gives that room stands on one, and prints', async () => {
-    const portrait = Math.floor((PAGE_SIZES.A4.width - 2 * 56.69) / MIN_COLUMN_WIDTH)
-    expect(portrait).toBe(6)
-    const { report, notes } = generatedFrom(generate(wide(portrait), { id: 'r', locale: 'de-CH', detail: ITEMS }))
-    expect(report.page.orientation).toBe('portrait')
-    expect(notesOf(notes).filter((note) => note.startsWith('table'))).toEqual([])
-    const pdf = await printed(report, portrait)
-    expect([pdf.pages.length, Math.round(pdf.pages[0]?.width ?? 0)]).toEqual([1, 595])
-    const items = pdf.pages.flatMap((page) => page.items).map((item) => item.text.trim())
-    expect([items.filter((text) => text === WORD).length, items.filter((text) => text === 'Wert').length]).toEqual([portrait, 2 * portrait])
-  }, TIMEOUT)
+  test(
+    'of as many columns as a portrait page gives that room stands on one, and prints',
+    async () => {
+      const portrait = Math.floor((PAGE_SIZES.A4.width - 2 * 56.69) / MIN_COLUMN_WIDTH)
+      expect(portrait).toBe(6)
+      const { report, notes } = generatedFrom(generate(wide(portrait), { id: 'r', locale: 'de-CH', detail: ITEMS }))
+      expect(report.page.orientation).toBe('portrait')
+      expect(notesOf(notes).filter((note) => note.startsWith('table'))).toEqual([])
+      const pdf = await printed(report, portrait)
+      expect([pdf.pages.length, Math.round(pdf.pages[0]?.width ?? 0)]).toEqual([1, 595])
+      const items = pdf.pages.flatMap((page) => page.items).map((item) => item.text.trim())
+      expect([items.filter((text) => text === WORD).length, items.filter((text) => text === 'Wert').length]).toEqual([portrait, 2 * portrait])
+    },
+    TIMEOUT,
+  )
 
   // One column more than portrait gives that room turns the page
   // landscape, said, and up to as many as landscape gives, it prints.
-  test('of more stands on a landscape page, said, up to as many columns as it gives that room, and prints', async () => {
-    const landscape = Math.floor((PAGE_SIZES.A4.height - 2 * 56.69) / MIN_COLUMN_WIDTH)
-    expect(landscape).toBe(9)
-    for (const count of [7, landscape]) {
-      const { report, notes } = generatedFrom(generate(wide(count), { id: 'r', locale: 'de-CH', detail: ITEMS }))
-      expect(report.page.orientation).toBe('landscape')
-      expect(notesOf(notes).filter((note) => note.startsWith('table'))).toEqual(['table-landscape /form/model/fields/1/fields'])
-      const pdf = await printed(report, count)
-      expect([pdf.pages.length, Math.round(pdf.pages[0]?.width ?? 0)]).toEqual([1, 842])
-      expect(pdf.pages.flatMap((page) => page.items).filter((item) => item.text.trim() === WORD)).toHaveLength(count)
-    }
-  }, TIMEOUT)
+  test(
+    'of more stands on a landscape page, said, up to as many columns as it gives that room, and prints',
+    async () => {
+      const landscape = Math.floor((PAGE_SIZES.A4.height - 2 * 56.69) / MIN_COLUMN_WIDTH)
+      expect(landscape).toBe(9)
+      for (const count of [7, landscape]) {
+        const { report, notes } = generatedFrom(generate(wide(count), { id: 'r', locale: 'de-CH', detail: ITEMS }))
+        expect(report.page.orientation).toBe('landscape')
+        expect(notesOf(notes).filter((note) => note.startsWith('table'))).toEqual(['table-landscape /form/model/fields/1/fields'])
+        const pdf = await printed(report, count)
+        expect([pdf.pages.length, Math.round(pdf.pages[0]?.width ?? 0)]).toEqual([1, 842])
+        expect(pdf.pages.flatMap((page) => page.items).filter((item) => item.text.trim() === WORD)).toHaveLength(count)
+      }
+    },
+    TIMEOUT,
+  )
 
   // The bound is where the room ends: the same draft with one column more,
   // portrait at seven and landscape at ten, is refused by the renderer at
   // the heading word, as the site visit one row per submission was.
-  test('would be refused when it printed, one column past either bound', async () => {
-    for (const count of [6, 9]) {
-      const { report } = generatedFrom(generate(wide(count), { id: 'r', locale: 'de-CH', detail: ITEMS }))
-      const refusal = await printed(oneMore(report), count).then(
-        () => undefined,
-        (error: unknown) => error,
-      )
-      expect(refusal, `${count + 1} columns`).toBeInstanceOf(RenderRefusal)
-      expect((refusal as RenderRefusal).message).toMatch(/^a word of the header of table table, column \d+ is/)
-    }
-  }, TIMEOUT)
+  test(
+    'would be refused when it printed, one column past either bound',
+    async () => {
+      for (const count of [6, 9]) {
+        const { report } = generatedFrom(generate(wide(count), { id: 'r', locale: 'de-CH', detail: ITEMS }))
+        const refusal = await printed(oneMore(report), count).then(
+          () => undefined,
+          (error: unknown) => error,
+        )
+        expect(refusal, `${count + 1} columns`).toBeInstanceOf(RenderRefusal)
+        expect((refusal as RenderRefusal).message).toMatch(/^a word of the header of table table, column \d+ is/)
+      }
+    },
+    TIMEOUT,
+  )
 
   // More columns than a landscape page gives that room are refused, by
   // where the columns stand in the form, and never cut to the first nine:

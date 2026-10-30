@@ -9,7 +9,23 @@ import { LAYOUT_TABLES } from './strip-layout.js'
 import { LINE_FACTOR } from './style.js'
 import { bareBillDocument, GERMAN, resolvedBill } from './testing/bills.js'
 import { bareDocument, documentOf, paragraph, TIMEOUT } from './testing/documents.js'
-import { face, HOST_SANS, HOST_SANS_BOLD, layOutInWorker, LIBERATION_BOLD, LIBERATION_REGULAR, NEVER_ADVANCING, retag, ROBOTO_REGULAR, tableOf, THROWING, withCharacters, withEms, withFsType, withLine } from './testing/fonts.js'
+import {
+  face,
+  HOST_SANS,
+  HOST_SANS_BOLD,
+  layOutInWorker,
+  LIBERATION_BOLD,
+  LIBERATION_REGULAR,
+  NEVER_ADVANCING,
+  retag,
+  ROBOTO_REGULAR,
+  tableOf,
+  THROWING,
+  withCharacters,
+  withEms,
+  withFsType,
+  withLine,
+} from './testing/fonts.js'
 
 /**
  * A report printing in fonts a host approved (0043): the renderer embeds
@@ -56,7 +72,9 @@ async function refusal(document: ResolvedDocument, options: { readonly maxPages:
 /** Each run of `pdf` as its text and the PostScript name of the face it is drawn in, the subset prefix dropped. */
 async function runs(pdf: Uint8Array): Promise<{ readonly text: string; readonly face: string }[]> {
   const { pages } = await readPdf(pdf)
-  return pages.flatMap((page) => page.items.filter((item) => item.text.trim() !== '').map((item) => ({ text: item.text, face: item.font.replace(/^[A-Z]{6}\+/, '') })))
+  return pages.flatMap((page) =>
+    page.items.filter((item) => item.text.trim() !== '').map((item) => ({ text: item.text, face: item.font.replace(/^[A-Z]{6}\+/, '') })),
+  )
 }
 
 /** A table of one column, its header and one detail row; `rows` replaces the row. */
@@ -114,43 +132,71 @@ describe('the plan for a report that maps a face twice', () => {
   // 2026). The runtime resolves each id once, so only such a document can
   // do it: refused as invalid-asset, naming the asset alone. One id in
   // equal bytes, a copy of them, is one face, read and filed once.
-  test('refuses one asset handed in two byte strings, and reads one in equal bytes once', async () => {
-    const twice = mapped({ sans: { normal: face('brand', HOST_SANS) }, mono: { normal: face('brand', BOLD) } }, [paragraph('Sans'), paragraph('Mono', { font: 'mono' })])
-    expect(await refusal(twice)).toMatchObject({ code: 'invalid-asset', subject: 'brand', message: 'the font asset brand is handed to the renderer twice, in other bytes the second time: an asset is one font, read by its id' })
-    expect(planFonts({ sans: { normal: face('brand', REGULAR) }, mono: { normal: face('brand', Uint8Array.from(REGULAR)) } }, ROBOTO).engine.files.size).toBe(1)
-  }, TIMEOUT)
+  test(
+    'refuses one asset handed in two byte strings, and reads one in equal bytes once',
+    async () => {
+      const twice = mapped({ sans: { normal: face('brand', HOST_SANS) }, mono: { normal: face('brand', BOLD) } }, [
+        paragraph('Sans'),
+        paragraph('Mono', { font: 'mono' }),
+      ])
+      expect(await refusal(twice)).toMatchObject({
+        code: 'invalid-asset',
+        subject: 'brand',
+        message: 'the font asset brand is handed to the renderer twice, in other bytes the second time: an asset is one font, read by its id',
+      })
+      expect(planFonts({ sans: { normal: face('brand', REGULAR) }, mono: { normal: face('brand', Uint8Array.from(REGULAR)) } }, ROBOTO).engine.files.size).toBe(
+        1,
+      )
+    },
+    TIMEOUT,
+  )
 })
 
 describe('a host font the renderer embeds', () => {
   // A host-font render reads no clock and no random id: the same document
   // renders to the same bytes, so a preview and a server's PDF can be
   // compared, and a render found again by its digest.
-  test('renders the same document to the same bytes', async () => {
-    const document = mapped({ sans: { normal: face('brand', REGULAR), bold: face('brand-bold', BOLD) } }, [paragraph('Zürich', { font: 'sans' }), paragraph('Total', { font: 'sans', bold: true })])
-    const [first, second] = await Promise.all([renderPdf(document, OPTIONS), renderPdf(document, OPTIONS)])
-    expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
-  }, TIMEOUT)
+  test(
+    'renders the same document to the same bytes',
+    async () => {
+      const document = mapped({ sans: { normal: face('brand', REGULAR), bold: face('brand-bold', BOLD) } }, [
+        paragraph('Zürich', { font: 'sans' }),
+        paragraph('Total', { font: 'sans', bold: true }),
+      ])
+      const [first, second] = await Promise.all([renderPdf(document, OPTIONS), renderPdf(document, OPTIONS)])
+      expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
+    },
+    TIMEOUT,
+  )
 
   // pdfmake's virtual files are process-wide and have no delete, so each
   // pass takes its faces out again: after a render, and after one refused
   // once a pass had run -- a keep-together block taller than a page, which
   // the body pass measured -- none is left, and a process that renders many
   // firms' fonts holds none of them afterwards.
-  test('leaves none of its faces in pdfmake’s virtual files, rendered or refused', async () => {
-    const fonts = { sans: { normal: face('brand', REGULAR) } }
-    await renderPdf(mapped(fonts, [paragraph('Zürich', { font: 'sans' })]), OPTIONS)
-    expect(hostFiles()).toEqual([])
-    const kept = { kind: 'keepTogether' as const, blocks: Array.from({ length: 120 }, (_, index) => paragraph(`Line ${index}`, { font: 'sans' })) }
-    expect(await refusal(mapped(fonts, [kept]))).toMatchObject({ code: 'content-too-large', subject: 'body[0]' })
-    expect(hostFiles()).toEqual([])
-  }, TIMEOUT)
+  test(
+    'leaves none of its faces in pdfmake’s virtual files, rendered or refused',
+    async () => {
+      const fonts = { sans: { normal: face('brand', REGULAR) } }
+      await renderPdf(mapped(fonts, [paragraph('Zürich', { font: 'sans' })]), OPTIONS)
+      expect(hostFiles()).toEqual([])
+      const kept = { kind: 'keepTogether' as const, blocks: Array.from({ length: 120 }, (_, index) => paragraph(`Line ${index}`, { font: 'sans' })) }
+      expect(await refusal(mapped(fonts, [kept]))).toMatchObject({ code: 'content-too-large', subject: 'body[0]' })
+      expect(hostFiles()).toEqual([])
+    },
+    TIMEOUT,
+  )
 
   // A serif paragraph with no host font is refused, as before: what an
   // earlier render mapped is not the next document's.
-  test('leaves a later render of another document unaffected', async () => {
-    await renderPdf(mapped({ serif: { normal: face('brand', REGULAR) } }, [paragraph('Serif', { font: 'serif' })]), OPTIONS)
-    expect(await refusal(bareDocument('Plain', [paragraph('Serif', { font: 'serif' })]))).toMatchObject({ code: 'unsupported' })
-  }, TIMEOUT)
+  test(
+    'leaves a later render of another document unaffected',
+    async () => {
+      await renderPdf(mapped({ serif: { normal: face('brand', REGULAR) } }, [paragraph('Serif', { font: 'serif' })]), OPTIONS)
+      expect(await refusal(bareDocument('Plain', [paragraph('Serif', { font: 'serif' })]))).toMatchObject({ code: 'unsupported' })
+    },
+    TIMEOUT,
+  )
 
   // Two renders of one firm's invoices at once, each of a page header and
   // footer measured before the body, the second started a few turns of the
@@ -159,91 +205,116 @@ describe('a host font the renderer embeds', () => {
   // written and not yet read. Named by digest, the second render failed
   // with pdfmake's "Access to local file denied", a plain error, at five of
   // the first twelve delays.
-  test('renders one face in two renders at once, however their passes interleave', async () => {
-    const document: ResolvedDocument = { ...documentOf('Interleaved', [paragraph('Zürich')]), fonts: { sans: { normal: face('brand', REGULAR) } } }
-    const storage = virtualfs.storage
-    const failed: string[] = []
-    try {
-      for (let delay = 0; delay < 20; delay += 1) {
-        let second: Promise<Uint8Array> | undefined
-        const started = async (): Promise<Uint8Array> => {
-          for (let turn = 0; turn < delay; turn += 1) await Promise.resolve()
-          return renderPdf(document, OPTIONS)
+  test(
+    'renders one face in two renders at once, however their passes interleave',
+    async () => {
+      const document: ResolvedDocument = { ...documentOf('Interleaved', [paragraph('Zürich')]), fonts: { sans: { normal: face('brand', REGULAR) } } }
+      const storage = virtualfs.storage
+      const failed: string[] = []
+      try {
+        for (let delay = 0; delay < 20; delay += 1) {
+          let second: Promise<Uint8Array> | undefined
+          const started = async (): Promise<Uint8Array> => {
+            for (let turn = 0; turn < delay; turn += 1) await Promise.resolve()
+            return renderPdf(document, OPTIONS)
+          }
+          virtualfs.storage = new Proxy(storage, {
+            set(target, name, value) {
+              if (second === undefined && String(name).startsWith(HOST_FILES)) second = started()
+              return Reflect.set(target, name, value)
+            },
+          })
+          // The second starts while the first runs, when it writes its first face; both are awaited once the first is done.
+          const outcomes = await Promise.allSettled([renderPdf(document, OPTIONS)])
+          if (second === undefined) failed.push(`delay ${delay}: no second render started`)
+          else outcomes.push(...(await Promise.allSettled([second])))
+          for (const outcome of outcomes) if (outcome.status === 'rejected') failed.push(`delay ${delay}: ${String(outcome.reason)}`)
+          virtualfs.storage = storage
         }
-        virtualfs.storage = new Proxy(storage, {
-          set(target, name, value) {
-            if (second === undefined && String(name).startsWith(HOST_FILES)) second = started()
-            return Reflect.set(target, name, value)
-          },
-        })
-        // The second starts while the first runs, when it writes its first face; both are awaited once the first is done.
-        const outcomes = await Promise.allSettled([renderPdf(document, OPTIONS)])
-        if (second === undefined) failed.push(`delay ${delay}: no second render started`)
-        else outcomes.push(...(await Promise.allSettled([second])))
-        for (const outcome of outcomes) if (outcome.status === 'rejected') failed.push(`delay ${delay}: ${String(outcome.reason)}`)
+      } finally {
         virtualfs.storage = storage
       }
-    } finally {
-      virtualfs.storage = storage
-    }
-    expect(failed).toEqual([])
-  }, TIMEOUT)
+      expect(failed).toEqual([])
+    },
+    TIMEOUT,
+  )
 
   // Each render reads the bytes it is handed. A face another render read
   // under the same digest is never this one's: Bold under Regular's digest
   // prints Bold, and four bytes that are no font are refused, as they
   // would be under any digest, whatever ran before them in the process.
-  test('prints each render in the bytes it was handed, whatever another handed under its digest', async () => {
-    const digest = assetDigest(REGULAR)
-    const document = (bytes: Uint8Array): ResolvedDocument => mapped({ serif: { normal: face('brand', bytes, digest) } }, [paragraph('Serif', { font: 'serif' })])
-    expect(await runs(await renderPdf(document(REGULAR), OPTIONS))).toEqual([{ text: 'Serif', face: 'LiberationSans' }])
-    expect(await runs(await renderPdf(document(BOLD), OPTIONS))).toEqual([{ text: 'Serif', face: 'LiberationSans-Bold' }])
-    expect(await refusal(document(Uint8Array.from([0, 1, 0, 0])))).toMatchObject({ code: 'invalid-asset', subject: 'brand' })
-  }, TIMEOUT)
+  test(
+    'prints each render in the bytes it was handed, whatever another handed under its digest',
+    async () => {
+      const digest = assetDigest(REGULAR)
+      const document = (bytes: Uint8Array): ResolvedDocument =>
+        mapped({ serif: { normal: face('brand', bytes, digest) } }, [paragraph('Serif', { font: 'serif' })])
+      expect(await runs(await renderPdf(document(REGULAR), OPTIONS))).toEqual([{ text: 'Serif', face: 'LiberationSans' }])
+      expect(await runs(await renderPdf(document(BOLD), OPTIONS))).toEqual([{ text: 'Serif', face: 'LiberationSans-Bold' }])
+      expect(await refusal(document(Uint8Array.from([0, 1, 0, 0])))).toMatchObject({ code: 'invalid-asset', subject: 'brand' })
+    },
+    TIMEOUT,
+  )
 })
 
 describe('a mapped sans', () => {
   // Text with no token prints in the mapped sans, not in Roboto, and so do
   // a table's cells, its header in the bold face the renderer sets it in:
   // read from the PDF, since every one of them would read the same in Roboto.
-  test('prints text with no font token, and a table, in its faces, never in Roboto', async () => {
-    const pdf = await renderPdf(mapped({ sans: { normal: face('brand', REGULAR), bold: face('brand-bold', BOLD) } }, [paragraph('Zürich'), table()]), OPTIONS)
-    expect(await runs(pdf)).toEqual([
-      { text: 'Zürich', face: 'LiberationSans' },
-      { text: 'Key', face: 'LiberationSans-Bold' },
-      { text: 'R-1', face: 'LiberationSans' },
-    ])
-  }, TIMEOUT)
+  test(
+    'prints text with no font token, and a table, in its faces, never in Roboto',
+    async () => {
+      const pdf = await renderPdf(mapped({ sans: { normal: face('brand', REGULAR), bold: face('brand-bold', BOLD) } }, [paragraph('Zürich'), table()]), OPTIONS)
+      expect(await runs(pdf)).toEqual([
+        { text: 'Zürich', face: 'LiberationSans' },
+        { text: 'Key', face: 'LiberationSans-Bold' },
+        { text: 'R-1', face: 'LiberationSans' },
+      ])
+    },
+    TIMEOUT,
+  )
 
   // A character is held to the face it prints in, not to Roboto's: U+FFFD,
   // which Roboto draws and Liberation Sans does not, is refused in the
   // mapped sans, naming the face, and prints where the report maps nothing.
-  test('refuses a character its face lacks though Roboto has it, naming the face', async () => {
-    const body = [paragraph('Customer �')]
-    const outcome = await refusal(mapped({ sans: { normal: face('brand', REGULAR) } }, body))
-    expect(outcome).toMatchObject({ code: 'unsupported', subject: 'body[0]' })
-    expect((outcome as RenderRefusal).message).toContain("U+FFFD, which the sans font's regular face, the asset brand, has no glyph for")
-    expect(await refusal(bareDocument('Roboto', body))).toBe('rendered')
-  }, TIMEOUT)
+  test(
+    'refuses a character its face lacks though Roboto has it, naming the face',
+    async () => {
+      const body = [paragraph('Customer �')]
+      const outcome = await refusal(mapped({ sans: { normal: face('brand', REGULAR) } }, body))
+      expect(outcome).toMatchObject({ code: 'unsupported', subject: 'body[0]' })
+      expect((outcome as RenderRefusal).message).toContain("U+FFFD, which the sans font's regular face, the asset brand, has no glyph for")
+      expect(await refusal(bareDocument('Roboto', body))).toBe('rendered')
+    },
+    TIMEOUT,
+  )
 
   // The slip prints in the Liberation Sans SIX asks for whatever sans
   // maps: here a host's Roboto, which would show in every run of the slip
   // were it printed in the mapped sans.
-  test('leaves the QR-bill’s slip in Liberation Sans', async () => {
-    const document: ResolvedDocument = { ...bareBillDocument(resolvedBill(GERMAN)), fonts: { sans: { normal: face('brand', ROBOTO_REGULAR) } } }
-    const faces = new Set((await runs(await renderPdf(document, OPTIONS))).map((run) => run.face))
-    expect([...faces].sort()).toEqual(['LiberationSans', 'LiberationSans-Bold'])
-  }, TIMEOUT)
+  test(
+    'leaves the QR-bill’s slip in Liberation Sans',
+    async () => {
+      const document: ResolvedDocument = { ...bareBillDocument(resolvedBill(GERMAN)), fonts: { sans: { normal: face('brand', ROBOTO_REGULAR) } } }
+      const faces = new Set((await runs(await renderPdf(document, OPTIONS))).map((run) => run.face))
+      expect([...faces].sort()).toEqual(['LiberationSans', 'LiberationSans-Bold'])
+    },
+    TIMEOUT,
+  )
 
   // The measuring passes stand their sentinels in Roboto, whose line they
   // assume: in a mapped sans of the tallest line the reader accepts, four
   // times the size, the slip's sheet, as tall as its section and three
   // sentinel lines, would overflow, and a bill that fits be refused.
-  test('measures with sentinels in Roboto, whatever the mapped sans lays out', async () => {
-    const tall = lineOf(MAX_FONT_LINE)
-    const document: ResolvedDocument = { ...bareBillDocument(resolvedBill(GERMAN)), fonts: { sans: { normal: face('brand', tall) } } }
-    expect(await refusal(document)).toBe('rendered')
-  }, TIMEOUT)
+  test(
+    'measures with sentinels in Roboto, whatever the mapped sans lays out',
+    async () => {
+      const tall = lineOf(MAX_FONT_LINE)
+      const document: ResolvedDocument = { ...bareBillDocument(resolvedBill(GERMAN)), fonts: { sans: { normal: face('brand', tall) } } }
+      expect(await refusal(document)).toBe('rendered')
+    },
+    TIMEOUT,
+  )
 })
 
 describe('a mapped face’s own line', () => {
@@ -252,23 +323,37 @@ describe('a mapped face’s own line', () => {
   // and in a table's header, though in Roboto's line, 112.5pt, it would
   // fit; each is refused as too tall, never laid out past the foot of the
   // page.
-  test('refuses a line that face makes taller than the body', async () => {
-    const tall = lineOf(MAX_FONT_LINE)
-    const fonts = { sans: { normal: face('brand', tall), bold: face('brand-bold', tall) } }
-    expect(await refusal(onBody(300, mapped(fonts, [paragraph('Tall', { font: 'sans', size: 96 })])))).toMatchObject({ code: 'content-too-large', subject: 'body[0]' })
-    expect(await refusal(onBody(300, mapped(fonts, [{ ...table(), headerStyle: { font: 'sans', size: 96 } }])))).toMatchObject({ code: 'content-too-large', subject: 'lines' })
-  }, TIMEOUT)
+  test(
+    'refuses a line that face makes taller than the body',
+    async () => {
+      const tall = lineOf(MAX_FONT_LINE)
+      const fonts = { sans: { normal: face('brand', tall), bold: face('brand-bold', tall) } }
+      expect(await refusal(onBody(300, mapped(fonts, [paragraph('Tall', { font: 'sans', size: 96 })])))).toMatchObject({
+        code: 'content-too-large',
+        subject: 'body[0]',
+      })
+      expect(await refusal(onBody(300, mapped(fonts, [{ ...table(), headerStyle: { font: 'sans', size: 96 } }])))).toMatchObject({
+        code: 'content-too-large',
+        subject: 'lines',
+      })
+    },
+    TIMEOUT,
+  )
 
   // A line is as tall as its tallest run: a paragraph in a regular face
   // whose 96pt line fits a body of 300, with one bold run in a face four
   // times its size, was measured by the regular face alone, and pdfmake
   // dropped the whole 384pt line without a word, its page left empty. It is
   // refused as too tall, naming the paragraph.
-  test('refuses a line a run’s own face makes taller than the body', async () => {
-    const fonts = { sans: { normal: face('brand', REGULAR), bold: face('brand-bold', lineOf(MAX_FONT_LINE, HOST_SANS_BOLD)) } }
-    const body: ResolvedDocument['body'] = [{ kind: 'paragraph', runs: [{ text: 'A' }, { text: 'B', bold: true }], style: { size: 96 } }, paragraph('After')]
-    expect(await refusal(onBody(300, mapped(fonts, body)))).toMatchObject({ code: 'content-too-large', subject: 'body[0]' })
-  }, TIMEOUT)
+  test(
+    'refuses a line a run’s own face makes taller than the body',
+    async () => {
+      const fonts = { sans: { normal: face('brand', REGULAR), bold: face('brand-bold', lineOf(MAX_FONT_LINE, HOST_SANS_BOLD)) } }
+      const body: ResolvedDocument['body'] = [{ kind: 'paragraph', runs: [{ text: 'A' }, { text: 'B', bold: true }], style: { size: 96 } }, paragraph('After')]
+      expect(await refusal(onBody(300, mapped(fonts, body)))).toMatchObject({ code: 'content-too-large', subject: 'body[0]' })
+    },
+    TIMEOUT,
+  )
 
   // A table's cell prints at the table's 9pt where its style sets no size,
   // and its empty text in italic: in a face of a 4 em line, a header of no
@@ -279,20 +364,38 @@ describe('a mapped face’s own line', () => {
   test.each<[string, Table]>([
     ['a header of no size', { ...table([{ kind: 'detail', cells: ['a'], style: { size: 4 } }]), headerStyle: { font: 'sans' } }],
     ['the empty text, in italic', { ...table([]), headerStyle: { size: 4 } }],
-  ])('refuses %s whose line that face makes taller than the body', async (_, tall) => {
-    const fonts = { sans: { normal: face('brand', lineOf(MAX_FONT_LINE)), bold: face('brand-bold', lineOf(MAX_FONT_LINE, HOST_SANS_BOLD)), italic: face('brand', lineOf(MAX_FONT_LINE)) } }
-    const outcome = await refusal(onBody(30, mapped(fonts, [tall, paragraph('After', { size: 4 })])))
-    expect(outcome).toMatchObject({ code: 'content-too-large', subject: 'lines', message: 'a line of table lines is 40.00 pt tall; the body is 30.00 pt where it stands' })
-  }, TIMEOUT)
+  ])(
+    'refuses %s whose line that face makes taller than the body',
+    async (_, tall) => {
+      const fonts = {
+        sans: {
+          normal: face('brand', lineOf(MAX_FONT_LINE)),
+          bold: face('brand-bold', lineOf(MAX_FONT_LINE, HOST_SANS_BOLD)),
+          italic: face('brand', lineOf(MAX_FONT_LINE)),
+        },
+      }
+      const outcome = await refusal(onBody(30, mapped(fonts, [tall, paragraph('After', { size: 4 })])))
+      expect(outcome).toMatchObject({
+        code: 'content-too-large',
+        subject: 'lines',
+        message: 'a line of table lines is 40.00 pt tall; the body is 30.00 pt where it stands',
+      })
+    },
+    TIMEOUT,
+  )
 
   // The body's least height is a floor no taller than pdfmake lays out: in
   // a face of the shortest line the reader accepts, half its size, a
   // hundred lines fit on one page that in Roboto's line would need two, and
   // the report is not refused for pages it does not need.
-  test('measures a line in a face of a shorter line than Roboto’s by its own', async () => {
-    const body = Array.from({ length: 100 }, (_, index) => paragraph(`Line ${index}`, { font: 'sans' }))
-    expect(await refusal(mapped({ sans: { normal: face('brand', lineOf(MIN_FONT_LINE)) } }, body), { maxPages: 1 })).toBe('rendered')
-  }, TIMEOUT)
+  test(
+    'measures a line in a face of a shorter line than Roboto’s by its own',
+    async () => {
+      const body = Array.from({ length: 100 }, (_, index) => paragraph(`Line ${index}`, { font: 'sans' }))
+      expect(await refusal(mapped({ sans: { normal: face('brand', lineOf(MIN_FONT_LINE)) } }, body), { maxPages: 1 })).toBe('rendered')
+    },
+    TIMEOUT,
+  )
 
   // A host face's line once lowered the bound for all the text: with mono
   // mapped to a face of half its size, a hundred lines in Roboto -- 1054
@@ -304,17 +407,21 @@ describe('a mapped face’s own line', () => {
   test.each<[string, ResolvedDocument['body']]>([
     ['a paragraph', Array.from({ length: 100 }, (_, index) => paragraph(`Line ${index}`))],
     ['a table row', [table(Array.from({ length: 60 }, (_, index) => ({ kind: 'detail' as const, cells: [`R-${index}`] })))]],
-  ])('counts %s in Roboto by Roboto’s line, whatever shorter face the report maps beside it', async (_, roboto) => {
-    const body = [paragraph('code', { font: 'mono' }), ...roboto]
-    const handed = vi.spyOn(pdfmake, 'createPdf')
-    try {
-      const outcome = await refusal(mapped({ mono: { normal: face('code', lineOf(MIN_FONT_LINE)) } }, body), { maxPages: 1 })
-      expect(outcome).toMatchObject({ code: 'too-many-pages', message: expect.stringContaining('its body is at least') as string })
-      expect(handed).not.toHaveBeenCalled()
-    } finally {
-      handed.mockRestore()
-    }
-  }, TIMEOUT)
+  ])(
+    'counts %s in Roboto by Roboto’s line, whatever shorter face the report maps beside it',
+    async (_, roboto) => {
+      const body = [paragraph('code', { font: 'mono' }), ...roboto]
+      const handed = vi.spyOn(pdfmake, 'createPdf')
+      try {
+        const outcome = await refusal(mapped({ mono: { normal: face('code', lineOf(MIN_FONT_LINE)) } }, body), { maxPages: 1 })
+        expect(outcome).toMatchObject({ code: 'too-many-pages', message: expect.stringContaining('its body is at least') as string })
+        expect(handed).not.toHaveBeenCalled()
+      } finally {
+        handed.mockRestore()
+      }
+    },
+    TIMEOUT,
+  )
 
   // A paragraph whose runs print in two faces lays each line out as tall
   // as its tallest run (pdfmake's `Line.getHeight`), so its least line is
@@ -323,19 +430,31 @@ describe('a mapped face’s own line', () => {
   // and are refused by the bound before pdfmake is handed them. Counted by
   // the shorter run, the 43 passed the bound; counted by more than the
   // tallest, the 42 that fit were refused.
-  test('counts a paragraph of two faces by its tallest run, never more', async () => {
-    const fonts = { sans: { normal: face('brand', lineOf(MIN_FONT_LINE)), bold: face('brand-bold', lineOf(2, HOST_SANS_BOLD)) } }
-    const lines = (count: number): ResolvedDocument['body'] => Array.from({ length: count }, (_, index) => ({ kind: 'paragraph', runs: [{ text: `Line ${index} ` }, { text: 'due', bold: true }], style: { size: 9 } }))
-    const fitting = await renderPdf(mapped(fonts, lines(42)), { maxPages: 1 })
-    expect((await readPdf(fitting)).pages).toHaveLength(1)
-    const handed = vi.spyOn(pdfmake, 'createPdf')
-    try {
-      expect(await refusal(mapped(fonts, lines(43)), { maxPages: 1 })).toMatchObject({ code: 'too-many-pages', message: expect.stringContaining('its body is at least 774.00 pt tall') as string })
-      expect(handed).not.toHaveBeenCalled()
-    } finally {
-      handed.mockRestore()
-    }
-  }, TIMEOUT)
+  test(
+    'counts a paragraph of two faces by its tallest run, never more',
+    async () => {
+      const fonts = { sans: { normal: face('brand', lineOf(MIN_FONT_LINE)), bold: face('brand-bold', lineOf(2, HOST_SANS_BOLD)) } }
+      const lines = (count: number): ResolvedDocument['body'] =>
+        Array.from({ length: count }, (_, index) => ({
+          kind: 'paragraph',
+          runs: [{ text: `Line ${index} ` }, { text: 'due', bold: true }],
+          style: { size: 9 },
+        }))
+      const fitting = await renderPdf(mapped(fonts, lines(42)), { maxPages: 1 })
+      expect((await readPdf(fitting)).pages).toHaveLength(1)
+      const handed = vi.spyOn(pdfmake, 'createPdf')
+      try {
+        expect(await refusal(mapped(fonts, lines(43)), { maxPages: 1 })).toMatchObject({
+          code: 'too-many-pages',
+          message: expect.stringContaining('its body is at least 774.00 pt tall') as string,
+        })
+        expect(handed).not.toHaveBeenCalled()
+      } finally {
+        handed.mockRestore()
+      }
+    },
+    TIMEOUT,
+  )
 })
 
 describe('a face whose line pdfmake cannot lay a page out by', () => {
@@ -350,88 +469,124 @@ describe('a face whose line pdfmake cannot lay a page out by', () => {
     ['a line of nothing', 1854, 1854, 'has a descender of 1854 units, above its baseline'],
     ['a line below nothing', -434, 1854, 'has an ascender of -434 units, at or below its baseline'],
     ['a line of 4 units to the em', 3, -1, 'has a line 4 units tall'],
-  ])('refuses %s', async (_, ascender, descender, said) => {
-    const body = Array.from({ length: 2000 }, (_, index) => paragraph(`Line ${index}`))
-    const outcome = await refusal(mapped({ sans: { normal: face('brand', withLine(REGULAR, ascender, descender)) } }, body), { maxPages: 1 })
-    expect(outcome).toMatchObject({ code: 'invalid-asset', subject: 'brand' })
-    expect((outcome as RenderRefusal).message).toContain(`the font asset brand ${said}`)
-  }, TIMEOUT)
+  ])(
+    'refuses %s',
+    async (_, ascender, descender, said) => {
+      const body = Array.from({ length: 2000 }, (_, index) => paragraph(`Line ${index}`))
+      const outcome = await refusal(mapped({ sans: { normal: face('brand', withLine(REGULAR, ascender, descender)) } }, body), { maxPages: 1 })
+      expect(outcome).toMatchObject({ code: 'invalid-asset', subject: 'brand' })
+      expect((outcome as RenderRefusal).message).toContain(`the font asset brand ${said}`)
+    },
+    TIMEOUT,
+  )
 })
 
 describe('what a host font cannot print', () => {
   // A character the mapped face has no glyph for is refused, naming the
   // token, the face and the code point: it would print as an empty box,
   // and as nothing in the PDF's text.
-  test('refuses a character the face has no glyph for, naming the face and the code point', async () => {
-    const outcome = await refusal(mapped({ serif: { normal: face('brand', REGULAR) } }, [paragraph('Paid ✓', { font: 'serif' })]))
-    expect(outcome).toMatchObject({ code: 'unsupported', subject: 'body[0]' })
-    expect((outcome as RenderRefusal).message).toContain("U+2713, which the serif font's regular face, the asset brand, has no glyph for")
-  }, TIMEOUT)
+  test(
+    'refuses a character the face has no glyph for, naming the face and the code point',
+    async () => {
+      const outcome = await refusal(mapped({ serif: { normal: face('brand', REGULAR) } }, [paragraph('Paid ✓', { font: 'serif' })]))
+      expect(outcome).toMatchObject({ code: 'unsupported', subject: 'body[0]' })
+      expect((outcome as RenderRefusal).message).toContain("U+2713, which the serif font's regular face, the asset brand, has no glyph for")
+    },
+    TIMEOUT,
+  )
 
   // A page number prints its digits in the paragraph's face: a face that
   // has none would print the footer's "Page 1 of 1" as "Page  of ", and
   // nothing in the text layer. Refused, naming the page field.
-  test('refuses a page field whose face has no digits', async () => {
-    const letters = withCharacters(HOST_SANS, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz :')
-    const document: ResolvedDocument = { ...documentOf('Letters', [paragraph('Text')]), fonts: { sans: { normal: face('brand', letters) } } }
-    const outcome = await refusal(document)
-    expect(outcome).toMatchObject({ code: 'unsupported', subject: 'pageFooter[0]' })
-    expect((outcome as RenderRefusal).message).toContain("pageFooter[0]'s page field prints U+0030")
-  }, TIMEOUT)
+  test(
+    'refuses a page field whose face has no digits',
+    async () => {
+      const letters = withCharacters(HOST_SANS, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz :')
+      const document: ResolvedDocument = { ...documentOf('Letters', [paragraph('Text')]), fonts: { sans: { normal: face('brand', letters) } } }
+      const outcome = await refusal(document)
+      expect(outcome).toMatchObject({ code: 'unsupported', subject: 'pageFooter[0]' })
+      expect((outcome as RenderRefusal).message).toContain("pageFooter[0]'s page field prints U+0030")
+    },
+    TIMEOUT,
+  )
 
   // A weight or slant the family does not map is refused, never synthesised:
   // the renderer draws no faux bold.
-  test('refuses a face the family does not map', async () => {
-    const outcome = await refusal(mapped({ serif: { normal: face('brand', REGULAR) } }, [paragraph('Heading', { font: 'serif', bold: true })]))
-    expect(outcome).toMatchObject({ code: 'unsupported', subject: 'body[0]' })
-    expect((outcome as RenderRefusal).message).toContain('bold')
-    expect((outcome as RenderRefusal).message).toContain('serif')
-  }, TIMEOUT)
+  test(
+    'refuses a face the family does not map',
+    async () => {
+      const outcome = await refusal(mapped({ serif: { normal: face('brand', REGULAR) } }, [paragraph('Heading', { font: 'serif', bold: true })]))
+      expect(outcome).toMatchObject({ code: 'unsupported', subject: 'body[0]' })
+      expect((outcome as RenderRefusal).message).toContain('bold')
+      expect((outcome as RenderRefusal).message).toContain('serif')
+    },
+    TIMEOUT,
+  )
 
   // A right-to-left script is refused by code point even where the face maps
   // it, since pdfmake lays out no bidi; the message says so, not a missing
   // glyph.
-  test('refuses a right-to-left script the face maps', async () => {
-    const outcome = await refusal(mapped({ serif: { normal: face('brand', REGULAR) } }, [paragraph('Shalom שלום', { font: 'serif' })]))
-    expect(outcome).toMatchObject({ code: 'unsupported', subject: 'body[0]' })
-    expect((outcome as RenderRefusal).message).toContain('right-to-left')
-    expect((outcome as RenderRefusal).message).toContain('U+05E9')
-  }, TIMEOUT)
+  test(
+    'refuses a right-to-left script the face maps',
+    async () => {
+      const outcome = await refusal(mapped({ serif: { normal: face('brand', REGULAR) } }, [paragraph('Shalom שלום', { font: 'serif' })]))
+      expect(outcome).toMatchObject({ code: 'unsupported', subject: 'body[0]' })
+      expect((outcome as RenderRefusal).message).toContain('right-to-left')
+      expect((outcome as RenderRefusal).message).toContain('U+05E9')
+    },
+    TIMEOUT,
+  )
 
   // Liberation Sans maps the right-to-left override, and fontkit draws it
   // as a space: "abc‮def" would print as "abc def". Refused as the
   // control it is.
-  test('refuses a bidirectional control the face maps', async () => {
-    const outcome = await refusal(mapped({ serif: { normal: face('brand', REGULAR) } }, [paragraph('abc‮def', { font: 'serif' })]))
-    expect(outcome).toMatchObject({ code: 'unsupported', subject: 'body[0]' })
-    expect((outcome as RenderRefusal).message).toContain('U+202E, a bidirectional control')
-  }, TIMEOUT)
+  test(
+    'refuses a bidirectional control the face maps',
+    async () => {
+      const outcome = await refusal(mapped({ serif: { normal: face('brand', REGULAR) } }, [paragraph('abc‮def', { font: 'serif' })]))
+      expect(outcome).toMatchObject({ code: 'unsupported', subject: 'body[0]' })
+      expect((outcome as RenderRefusal).message).toContain('U+202E, a bidirectional control')
+    },
+    TIMEOUT,
+  )
 
   // A byte-order mark is ordinary in data, and Roboto maps it: a report
   // that maps nothing prints it as 0.2.0 did.
-  test('prints a byte-order mark in Roboto, as before', async () => {
-    expect(await refusal(bareDocument('Plain', [paragraph('﻿Invoice 42')]))).toBe('rendered')
-  }, TIMEOUT)
+  test(
+    'prints a byte-order mark in Roboto, as before',
+    async () => {
+      expect(await refusal(bareDocument('Plain', [paragraph('﻿Invoice 42')]))).toBe('rendered')
+    },
+    TIMEOUT,
+  )
 
   // The header and total rows the renderer prints bold are held to the map
   // too: a table in a family mapped without a bold face is refused, naming
   // the table, though no style of its own asked for bold.
-  test('refuses a table whose bold header the family cannot print', async () => {
-    const outcome = await refusal(mapped({ sans: { normal: face('brand', REGULAR) } }, [table()]))
-    expect(outcome).toMatchObject({ code: 'unsupported', subject: 'lines' })
-    expect((outcome as RenderRefusal).message).toContain('bold')
-  }, TIMEOUT)
+  test(
+    'refuses a table whose bold header the family cannot print',
+    async () => {
+      const outcome = await refusal(mapped({ sans: { normal: face('brand', REGULAR) } }, [table()]))
+      expect(outcome).toMatchObject({ code: 'unsupported', subject: 'lines' })
+      expect((outcome as RenderRefusal).message).toContain('bold')
+    },
+    TIMEOUT,
+  )
 
   // The empty text prints in italic where a table has no detail rows, and
   // only there: a table of rows in a family mapped without an italic face
   // prints, and the same table empty is refused for the italic it needs.
-  test('holds a table to the italic face only where it prints its empty text', async () => {
-    const fonts = { sans: { normal: face('brand', REGULAR), bold: face('brand-bold', BOLD) } }
-    expect(await refusal(mapped(fonts, [table()]))).toBe('rendered')
-    const outcome = await refusal(mapped(fonts, [table([])]))
-    expect(outcome).toMatchObject({ code: 'unsupported', subject: 'lines' })
-    expect((outcome as RenderRefusal).message).toContain('italic')
-  }, TIMEOUT)
+  test(
+    'holds a table to the italic face only where it prints its empty text',
+    async () => {
+      const fonts = { sans: { normal: face('brand', REGULAR), bold: face('brand-bold', BOLD) } }
+      expect(await refusal(mapped(fonts, [table()]))).toBe('rendered')
+      const outcome = await refusal(mapped(fonts, [table([])]))
+      expect(outcome).toMatchObject({ code: 'unsupported', subject: 'lines' })
+      expect((outcome as RenderRefusal).message).toContain('italic')
+    },
+    TIMEOUT,
+  )
 })
 
 describe('a font the renderer cannot read', () => {
@@ -445,10 +600,14 @@ describe('a font the renderer cannot read', () => {
     ['Bitmap embedding only (fsType 0x0200)', withFsType(REGULAR, 0x0200)],
     ['a collection', Uint8Array.from([0x74, 0x74, 0x63, 0x66, 0, 1, 0, 0, 0, 0, 0, 1])],
     ['a variable font', retag(REGULAR, 'cmap', 'fvar')],
-  ])('refuses %s as invalid-asset, naming the asset', async (_, bytes) => {
-    const outcome = await refusal(mapped({ serif: { normal: face('brand', bytes) } }, [paragraph('Serif', { font: 'serif' })]))
-    expect(outcome).toMatchObject({ code: 'invalid-asset', subject: 'brand' })
-  }, TIMEOUT)
+  ])(
+    'refuses %s as invalid-asset, naming the asset',
+    async (_, bytes) => {
+      const outcome = await refusal(mapped({ serif: { normal: face('brand', bytes) } }, [paragraph('Serif', { font: 'serif' })]))
+      expect(outcome).toMatchObject({ code: 'invalid-asset', subject: 'brand' })
+    },
+    TIMEOUT,
+  )
 })
 
 describe('a crafted layout table at print', () => {
@@ -479,9 +638,13 @@ describe('a crafted layout table at print', () => {
   // fontkit and PDFKit in a worker, and only then the render runs here,
   // drawing both, where before one held its thread for good and the other
   // threw a plain error out of pdfmake.
-  test('renders a face whose morx never advances and one whose GSUB fontkit throws on', async () => {
-    for (const bytes of planFonts(fonts, ROBOTO).engine.files.values()) expect(await layOutInWorker(bytes, 'Af', 10_000)).toBe('laid out')
-    const pdf = await renderPdf(mapped(fonts, [paragraph('Af', { font: 'serif' }), paragraph('Af', { font: 'serif', bold: true })]), OPTIONS)
-    expect((await runs(pdf)).map((run) => run.text)).toEqual(['Af', 'Af'])
-  }, TIMEOUT)
+  test(
+    'renders a face whose morx never advances and one whose GSUB fontkit throws on',
+    async () => {
+      for (const bytes of planFonts(fonts, ROBOTO).engine.files.values()) expect(await layOutInWorker(bytes, 'Af', 10_000)).toBe('laid out')
+      const pdf = await renderPdf(mapped(fonts, [paragraph('Af', { font: 'serif' }), paragraph('Af', { font: 'serif', bold: true })]), OPTIONS)
+      expect((await runs(pdf)).map((run) => run.text)).toEqual(['Af', 'Af'])
+    },
+    TIMEOUT,
+  )
 })

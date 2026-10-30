@@ -23,7 +23,12 @@ describe('readAnnotations', () => {
   // A link to a page of the document goes nowhere outside it: it is read
   // as a link, with no address.
   test('reads a link to a page as a link with no address', async () => {
-    const pdf = await pdfmakePdf({ content: [{ text: 'Onwards', linkToPage: 2 }, { text: 'Page 2', pageBreak: 'before' }] })
+    const pdf = await pdfmakePdf({
+      content: [
+        { text: 'Onwards', linkToPage: 2 },
+        { text: 'Page 2', pageBreak: 'before' },
+      ],
+    })
     expect(await readAnnotations(pdf)).toEqual([{ page: 1, subtype: 'Link' }])
   })
 

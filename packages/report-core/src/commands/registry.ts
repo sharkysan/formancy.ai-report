@@ -278,11 +278,13 @@ export function describedCommand(descriptor: CommandDescriptor): Command {
  * refused, the batch with it.
  */
 export function batch(report: ReportDefinition, steps: readonly StepDescriptor[]): CommandOutcome {
-  if (steps.length > MAX_BATCH_COMMANDS) return refuse('invalid-arguments', `a batch holds at most ${MAX_BATCH_COMMANDS} commands, and this one ${steps.length}`)
+  if (steps.length > MAX_BATCH_COMMANDS)
+    return refuse('invalid-arguments', `a batch holds at most ${MAX_BATCH_COMMANDS} commands, and this one ${steps.length}`)
   let working = report
   for (const [index, step] of steps.entries()) {
     if (!isObject(step)) return refuse('invalid-arguments', `step ${index + 1} of the batch is not a command: an object naming one, and its arguments`)
-    if ((step as { readonly command?: unknown }).command === 'batch') return refuse('invalid-arguments', `step ${index + 1} of the batch is a batch: a batch holds commands, and is one edit already`)
+    if ((step as { readonly command?: unknown }).command === 'batch')
+      return refuse('invalid-arguments', `step ${index + 1} of the batch is a batch: a batch holds commands, and is one edit already`)
     const outcome = stepOn(working, step, index)
     if (!outcome.ok) return outcome
     working = outcome.report

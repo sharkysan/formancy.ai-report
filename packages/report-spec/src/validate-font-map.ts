@@ -36,7 +36,8 @@ function readFaces(c: Ctx, value: unknown, path: string): FontFaces | undefined 
     const asset = reference(c.f, o?.[key], at(path, key))
     if (asset === undefined) return undefined
     const mediaType = resolve(c.f, c.declared.assets, asset, at(path, key), 'unknown-asset', 'asset')
-    if (mediaType !== undefined && !isFontMediaType(mediaType)) c.f.report(at(path, key), 'asset-not-a-font', `the asset ${quote(asset)} is an image, not a font`)
+    if (mediaType !== undefined && !isFontMediaType(mediaType))
+      c.f.report(at(path, key), 'asset-not-a-font', `the asset ${quote(asset)} is an image, not a font`)
     return asset
   }
   const normal = face('normal')

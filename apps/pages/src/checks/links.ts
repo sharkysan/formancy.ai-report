@@ -45,7 +45,8 @@ export function linkProblems({ site, inputs, exists, text }: Built): string[] {
 
   /** What is wrong with `address` as `element` on `page` names it, or null. */
   function problemOf(page: Read, element: Element, address: string): string | null {
-    if (address.startsWith('data:')) return element.localName === 'link' && element.getAttribute('rel') === 'icon' ? null : 'a data: address anywhere but the icon'
+    if (address.startsWith('data:'))
+      return element.localName === 'link' && element.getAttribute('rel') === 'icon' ? null : 'a data: address anywhere but the icon'
     if (address.startsWith('mailto:')) return address === `mailto:${inputs.licence.address}` ? null : `mail to an address the licence does not name`
     const url = new URL(address, page.url)
     const fragment = url.hash.slice(1)
@@ -54,16 +55,21 @@ export function linkProblems({ site, inputs, exists, text }: Built): string[] {
     if (at.startsWith(inputs.site)) {
       const path = at.slice(inputs.site.length)
       const target = byUrl.get(at)
-      if (fragment !== '') return target !== undefined && target.document.getElementById(decodeURIComponent(fragment)) !== null ? null : `#${fragment} is no id on ${at}`
+      if (fragment !== '')
+        return target !== undefined && target.document.getElementById(decodeURIComponent(fragment)) !== null ? null : `#${fragment} is no id on ${at}`
       return path === '' || target !== undefined || files.has(path) ? null : 'no page or file of the site, and not the Studio'
     }
     // A stylesheet, a font, a hint or a picture from anywhere else hands
     // that site the reader's address before a word is read (0023).
     if (element.localName !== 'a') return 'fetched from another site as the page loads, which tells that site who opened the page'
     if (url.protocol !== 'https:') return 'not https'
-    if (at === FORMANCY || at === `${inputs.repository}` || at === FORMANCY_DATA || at === FORMANCY_HEALTH || at === LEGAL_NOTICE || at === PRIVACY_NOTICE) return null
+    if (at === FORMANCY || at === `${inputs.repository}` || at === FORMANCY_DATA || at === FORMANCY_HEALTH || at === LEGAL_NOTICE || at === PRIVACY_NOTICE)
+      return null
     if (at.startsWith(repository)) return fileProblemOf(decodeURIComponent(at.slice(repository.length)), fragment)
-    if (at.startsWith('https://www.npmjs.com/package/')) return inputs.packages.includes(decodeURIComponent(at.slice('https://www.npmjs.com/package/'.length))) ? null : 'a package this repository does not publish'
+    if (at.startsWith('https://www.npmjs.com/package/'))
+      return inputs.packages.includes(decodeURIComponent(at.slice('https://www.npmjs.com/package/'.length)))
+        ? null
+        : 'a package this repository does not publish'
     return 'an address outside the site that links.ts does not name'
   }
 
@@ -76,7 +82,8 @@ export function linkProblems({ site, inputs, exists, text }: Built): string[] {
     // A shared link's picture is fetched by whoever shows the link: a file the site serves.
     for (const meta of page.document.querySelectorAll('meta[property="og:image"]')) {
       const address = meta.getAttribute('content') ?? ''
-      if (!address.startsWith(inputs.site) || !files.has(address.slice(inputs.site.length))) problems.push(`${page.file}: og:image names ${address}: no file of the site`)
+      if (!address.startsWith(inputs.site) || !files.has(address.slice(inputs.site.length)))
+        problems.push(`${page.file}: og:image names ${address}: no file of the site`)
     }
   }
   return problems

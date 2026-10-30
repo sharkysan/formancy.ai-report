@@ -167,7 +167,10 @@ describe('evaluate', () => {
     const report: ReportDefinition = { ...reportOf('params.n > 1152921504606846975'), parameters: [{ id: 'n', type: 'integer', label: 'N', required: true }] }
     expect(value(prepared(report).evaluate(at(0), { params: { n: 2n ** 60n } }))).toEqual({ type: 'boolean', value: true })
     expect(value(prepared(report).evaluate(at(0), { params: { n: 2n ** 60n - 1n } }))).toEqual({ type: 'boolean', value: false })
-    const added = prepared({ ...reportOf('params.n + 1', 'params.x'), parameters: [...report.parameters, { id: 'x', type: 'string', label: 'X', required: true }] })
+    const added = prepared({
+      ...reportOf('params.n + 1', 'params.x'),
+      parameters: [...report.parameters, { id: 'x', type: 'string', label: 'X', required: true }],
+    })
     const outcome = added.evaluate(at(0), { params: { n: 2n ** 60n } }, 0)
     expect(!outcome.ok && outcome.error.code).toBe('expression-failed')
     expect(!outcome.ok && outcome.error.message).toContain('int_out_of_range')
@@ -204,7 +207,12 @@ describe('evaluate', () => {
   // refused before anything is evaluated, wherever it is written.
   test('never evaluates a double', () => {
     const outcome = prepareExpressions(reportOf('string(int(double(params.x) * 100.0))', 'string(1.5 * 2.0)'))
-    expect(!outcome.ok && outcome.diagnostics.map(({ code }) => code)).toEqual(['expression-inexact', 'expression-inexact', 'expression-inexact', 'expression-inexact'])
+    expect(!outcome.ok && outcome.diagnostics.map(({ code }) => code)).toEqual([
+      'expression-inexact',
+      'expression-inexact',
+      'expression-inexact',
+      'expression-inexact',
+    ])
   })
 
   // Should a number that is not a whole one ever come back, it is refused,

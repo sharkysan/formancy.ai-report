@@ -62,14 +62,31 @@ function headingOf(draft: Draft, text: Text | undefined, key: string, path: stri
   const label = labelOf(draft, text, key)
   if (!printable(draft, label.text, where, named(path))) return undefined
   if (label.text.length <= MAX_TEXT_LENGTH) return label
-  draft.f.report(where, 'label-too-long', `${named(path)} is labelled longer than the ${MAX_TEXT_LENGTH} characters a heading holds; it is refused, never cut short`)
+  draft.f.report(
+    where,
+    'label-too-long',
+    `${named(path)} is labelled longer than the ${MAX_TEXT_LENGTH} characters a heading holds; it is refused, never cut short`,
+  )
   return undefined
 }
 
 /** What is said of how the heading of `path`, a group or a repeater, was had: by its key where it has no label, in the default locale's words where the report's catalogue lacks it. */
-function headingSaid(heading: Label, path: string, where: string, what: string): { readonly code: NoteCode; readonly path: string; readonly message: string }[] {
-  if (heading.said === 'unlabelled') return [{ code: 'unlabelled', path: where, message: `${named(path)} has no label in the form version, so ${what} is headed by its key` }]
-  if (heading.said === 'label-default-locale') return [{ code: 'label-default-locale', path: where, message: `${named(path)} has no label in the form version's catalogue in the report's locale, so ${what} is headed in its default locale's` }]
+function headingSaid(
+  heading: Label,
+  path: string,
+  where: string,
+  what: string,
+): { readonly code: NoteCode; readonly path: string; readonly message: string }[] {
+  if (heading.said === 'unlabelled')
+    return [{ code: 'unlabelled', path: where, message: `${named(path)} has no label in the form version, so ${what} is headed by its key` }]
+  if (heading.said === 'label-default-locale')
+    return [
+      {
+        code: 'label-default-locale',
+        path: where,
+        message: `${named(path)} has no label in the form version's catalogue in the report's locale, so ${what} is headed in its default locale's`,
+      },
+    ]
   return []
 }
 
@@ -102,14 +119,30 @@ export function gridOrder(repeater: FieldDef): { readonly child: FieldDef; reado
  * key is said here only for a group, a matrix's and ticked boxes' being
  * their field's label, which the field says.
  */
-function section(draft: Draft, def: FieldDef, path: string, where: string, depth: number, mark: number, inner: (depth: number) => readonly Block[]): Block | undefined {
+function section(
+  draft: Draft,
+  def: FieldDef,
+  path: string,
+  where: string,
+  depth: number,
+  mark: number,
+  inner: (depth: number) => readonly Block[],
+): Block | undefined {
   const flat = depth >= MAX_NESTING_DEPTH
   const blocks = inner(flat ? depth : depth + 1)
   if (blocks.length === 0) return undefined
   const heading = headingOf(draft, def.label, def.key, path, where)
   if (heading === undefined) return undefined
   const said = [
-    ...(flat ? [{ code: 'group-flattened' as const, path: where, message: `${named(path)} stands deeper than the ${MAX_NESTING_DEPTH} sections the format nests: its heading and its lines stand in the section around it` }] : []),
+    ...(flat
+      ? [
+          {
+            code: 'group-flattened' as const,
+            path: where,
+            message: `${named(path)} stands deeper than the ${MAX_NESTING_DEPTH} sections the format nests: its heading and its lines stand in the section around it`,
+          },
+        ]
+      : []),
     ...(def.type === 'group' ? headingSaid(heading, path, where, 'it') : []),
   ]
   draft.notes.splice(mark, 0, ...said)
@@ -135,13 +168,27 @@ function flatten(draft: Draft, fields: readonly FieldDef[], place: Place, list: 
     const where = at(list, indices?.[position] ?? position)
     if (def.type === 'page') flatten(draft, def.fields ?? [], onPage(draft, place, def), `${where}/fields`, into)
     else if (def.type === 'group') flatten(draft, def.fields ?? [], within(draft, place, def), `${where}/fields`, into)
-    else if (def.type === 'repeater') note(draft, 'repeater-excluded', where, `${named(`${place.target}${def.key}`)} is left out: a report has one detail table, and its rows are one per submission`)
+    else if (def.type === 'repeater')
+      note(
+        draft,
+        'repeater-excluded',
+        where,
+        `${named(`${place.target}${def.key}`)} is left out: a report has one detail table, and its rows are one per submission`,
+      )
     else into.push(...leaf(draft, def, place, where, 'detail'))
   }
 }
 
 /** The body's blocks of `fields`, in model order, each field's declared into `header`, the table's rows' into `detail`. */
-function blocksOf(draft: Draft, fields: readonly FieldDef[], place: Place, list: string, depth: number, outline: { header: Planned[]; detail: Planned[]; columnsAt: string | undefined }, detail: DetailOf): Block[] {
+function blocksOf(
+  draft: Draft,
+  fields: readonly FieldDef[],
+  place: Place,
+  list: string,
+  depth: number,
+  outline: { header: Planned[]; detail: Planned[]; columnsAt: string | undefined },
+  detail: DetailOf,
+): Block[] {
   const blocks: Block[] = []
   for (const [index, def] of fields.entries()) {
     const where = at(list, index)
@@ -150,11 +197,18 @@ function blocksOf(draft: Draft, fields: readonly FieldDef[], place: Place, list:
       blocks.push(...blocksOf(draft, def.fields ?? [], onPage(draft, place, def), `${where}/fields`, depth, outline, detail))
     } else if (def.type === 'group') {
       const inner = within(draft, place, def)
-      const block = section(draft, def, path, where, depth, draft.notes.length, (nested) => blocksOf(draft, def.fields ?? [], inner, `${where}/fields`, nested, outline, detail))
+      const block = section(draft, def, path, where, depth, draft.notes.length, (nested) =>
+        blocksOf(draft, def.fields ?? [], inner, `${where}/fields`, nested, outline, detail),
+      )
       if (block !== undefined) blocks.push(block)
     } else if (def.type === 'repeater') {
       if (detail?.kind !== 'repeater' || detail.repeater !== def) {
-        note(draft, 'repeater-excluded', where, `${named(path)} is left out: a report has one detail table, and ${detail?.kind === 'repeater' ? 'another repeater is its rows' : 'none was asked for'}`)
+        note(
+          draft,
+          'repeater-excluded',
+          where,
+          `${named(path)} is left out: a report has one detail table, and ${detail?.kind === 'repeater' ? 'another repeater is its rows' : 'none was asked for'}`,
+        )
         continue
       }
       const heading = headingOf(draft, def.label, def.key, path, where)

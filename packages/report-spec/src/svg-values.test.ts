@@ -30,11 +30,25 @@ describe('colours', () => {
   // A colour with an alpha would have to become an opacity, a second
   // decision; hsl() and the system colours are not read (0030). Each is
   // refused rather than drawn in another colour.
-  test.each(['#abcd', '#aabbccdd', 'rgba(1,2,3,0.5)', 'hsl(120, 50%, 50%)', 'hsla(1,2%,3%,.4)', 'transparent', 'ButtonText', 'rgb(1 2 3)', 'rgb(1,2%,3)', 'context-fill', '#ab', '#aabbc'])('%s is refused', (colour) => {
+  test.each([
+    '#abcd',
+    '#aabbccdd',
+    'rgba(1,2,3,0.5)',
+    'hsl(120, 50%, 50%)',
+    'hsla(1,2%,3%,.4)',
+    'transparent',
+    'ButtonText',
+    'rgb(1 2 3)',
+    'rgb(1,2%,3)',
+    'context-fill',
+    '#ab',
+    '#aabbc',
+  ])('%s is refused', (colour) => {
     expect(refused(svg(`<rect width="1" height="1" fill="${colour}"/>`))).toEqual({
       ok: false,
       code: 'unsupported',
-      message: 'svg/rect@fill is a colour this format does not read: one with an alpha, hsl(), transparent or a system colour; write it as #rrggbb, with fill-opacity, stroke-opacity or stop-opacity for its alpha',
+      message:
+        'svg/rect@fill is a colour this format does not read: one with an alpha, hsl(), transparent or a system colour; write it as #rrggbb, with fill-opacity, stroke-opacity or stop-opacity for its alpha',
     })
   })
 
@@ -52,14 +66,20 @@ describe('colours', () => {
     expect(paint('fill="currentColor" color="#123456"')).toBe('fill="#123456"')
     expect(paint('stroke="currentcolor"')).toBe('stroke="#000000"')
     expect(cleaned(svg('<g color="red"><rect width="1" height="1" fill="currentColor"/></g>')).text).toContain('fill="#ff0000"')
-    expect(cleaned(svg('<linearGradient id="a" color="lime"><stop stop-color="currentColor"/></linearGradient><rect width="1" height="1" fill="url(#a)"/>')).text).toContain('stop-color="#00ff00"')
+    expect(
+      cleaned(svg('<linearGradient id="a" color="lime"><stop stop-color="currentColor"/></linearGradient><rect width="1" height="1" fill="url(#a)"/>')).text,
+    ).toContain('stop-color="#00ff00"')
   })
 
   // An inherited currentColor is the keyword, so a child of another colour
   // paints in its own (CSS Color 4, 6.4); svg-to-pdfkit would paint it in
   // its parent's, so the child's paint is written on the child.
-  test("a child of another colour paints an inherited currentColor in its own", () => {
-    const text = cleaned(svg('<g fill="currentColor" color="red"><rect width="1" height="1"/><rect width="2" height="2" color="blue"/><rect width="3" height="3" color="red"/></g>')).text
+  test('a child of another colour paints an inherited currentColor in its own', () => {
+    const text = cleaned(
+      svg(
+        '<g fill="currentColor" color="red"><rect width="1" height="1"/><rect width="2" height="2" color="blue"/><rect width="3" height="3" color="red"/></g>',
+      ),
+    ).text
     expect(text).toBe(svg('<g fill="#ff0000"><rect width="1" height="1"/><rect width="2" height="2" fill="#0000ff"/><rect width="3" height="3"/></g>'))
   })
 })
@@ -140,7 +160,11 @@ describe('clip-path', () => {
   test('what follows a clip path url is refused', () => {
     const clip = '<clipPath id="c"><rect width="1" height="1"/></clipPath>'
     expect(cleaned(svg(`${clip}<rect width="1" height="1" clip-path="url(#c) "/>`)).text).toContain('clip-path="url(#c1)"')
-    expect(refused(svg(`${clip}<rect width="1" height="1" clip-path="url(#c) red"/>`))).toEqual({ ok: false, code: 'unsupported', message: 'svg/rect@clip-path is not none or url(#id); write it as none or url(#id)' })
+    expect(refused(svg(`${clip}<rect width="1" height="1" clip-path="url(#c) red"/>`))).toEqual({
+      ok: false,
+      code: 'unsupported',
+      message: 'svg/rect@clip-path is not none or url(#id); write it as none or url(#id)',
+    })
   })
 })
 

@@ -13,7 +13,11 @@ const CREATED = '2026-10-15T08:00:00Z'
 const FINAL: ResolveOptions = { mode: 'final', parameters: { from: '2026-01-01' }, creationDate: CREATED }
 
 /** The resolution of `report` over `data`, failing the test with the errors when it is refused. */
-function resolved(report: ReportDefinition = sampleReport(), data: ReportData = sampleData(), options: ResolveOptions = FINAL): { document: ResolvedDocument; manifest: RenderManifest; warnings: readonly RuntimeError[] } {
+function resolved(
+  report: ReportDefinition = sampleReport(),
+  data: ReportData = sampleData(),
+  options: ResolveOptions = FINAL,
+): { document: ResolvedDocument; manifest: RenderManifest; warnings: readonly RuntimeError[] } {
   const outcome = resolveReport(report, data, options)
   if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`).join('; ')}`)
   return outcome
@@ -36,7 +40,8 @@ function ungrouped(): ReportDefinition {
   return { ...report, regions: { ...report.regions, body } }
 }
 
-const text = (block: Block | undefined): string => (block?.kind === 'paragraph' ? block.runs.map((run) => ('text' in run ? run.text : `{${run.field}}`)).join('') : `<${block?.kind}>`)
+const text = (block: Block | undefined): string =>
+  block?.kind === 'paragraph' ? block.runs.map((run) => ('text' in run ? run.text : `{${run.field}}`)).join('') : `<${block?.kind}>`
 
 describe('resolveReport', () => {
   // The report header is the start of the body and the summary its end; a
@@ -44,7 +49,10 @@ describe('resolveReport', () => {
   // report upside down.
   test('lowers the report header, the body and the summary into one body, in order', () => {
     const report = sampleReport()
-    const withSummary: ReportDefinition = { ...report, regions: { ...report.regions, summary: [{ id: 'closing', kind: 'text', content: [{ kind: 'text', text: 'End.' }] }] } }
+    const withSummary: ReportDefinition = {
+      ...report,
+      regions: { ...report.regions, summary: [{ id: 'closing', kind: 'text', content: [{ kind: 'text', text: 'End.' }] }] },
+    }
     const { document } = resolved(withSummary)
     expect(document.body.map((block) => block.kind)).toEqual(['paragraph', 'spacer', 'paragraph', 'table', 'paragraph'])
     expect(text(document.body[0])).toBe('Deliveries for Muster AG1. Januar 2026422026-01-01')
@@ -59,7 +67,10 @@ describe('resolveReport', () => {
   // writes it -- a default applied, an exact number still exact.
   test('says what the document was resolved from', () => {
     const report = sampleReport()
-    const { manifest } = resolved(report, sampleData(), { ...FINAL, parameters: { from: '2026-01-01', threshold: '12345678901234567890.12', copies: '9007199254740993' } })
+    const { manifest } = resolved(report, sampleData(), {
+      ...FINAL,
+      parameters: { from: '2026-01-01', threshold: '12345678901234567890.12', copies: '9007199254740993' },
+    })
     expect(manifest).toEqual({
       reportHash: reportHash(report),
       reportSpecVersion: '0',
@@ -68,7 +79,14 @@ describe('resolveReport', () => {
       mode: 'final',
       consistency: 'host-captured',
       completeness: { complete: true, captured: 1 },
-      parameters: { from: '2026-01-01', draft: false, threshold: '12345678901234567890.12', currency: 'CHF', copies: '9007199254740993', heading: 'Deliveries' },
+      parameters: {
+        from: '2026-01-01',
+        draft: false,
+        threshold: '12345678901234567890.12',
+        currency: 'CHF',
+        copies: '9007199254740993',
+        heading: 'Deliveries',
+      },
     })
   })
 
@@ -78,11 +96,21 @@ describe('resolveReport', () => {
   // its object afterwards does not change what the manifest says, in a
   // final render as in a preview.
   test('names where its data came from, when the data says', () => {
-    const source = { provider: 'formancy-form', submissions: [{ id: 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380', form: 'site-visit', formHash: '767a65b36d4c02adf432d91ccdf7f8f285eebdbfc2987fb08fecd846b721dc42' }] }
+    const source = {
+      provider: 'formancy-form',
+      submissions: [
+        { id: 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380', form: 'site-visit', formHash: '767a65b36d4c02adf432d91ccdf7f8f285eebdbfc2987fb08fecd846b721dc42' },
+      ],
+    }
     const data = { ...sampleData(), source } as ReportData
     for (const mode of ['final', 'preview'] as const) {
       const { manifest } = resolved(sampleReport(), data, { ...FINAL, mode })
-      expect(manifest.source).toEqual({ provider: 'formancy-form', submissions: [{ id: 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380', form: 'site-visit', formHash: '767a65b36d4c02adf432d91ccdf7f8f285eebdbfc2987fb08fecd846b721dc42' }] })
+      expect(manifest.source).toEqual({
+        provider: 'formancy-form',
+        submissions: [
+          { id: 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380', form: 'site-visit', formHash: '767a65b36d4c02adf432d91ccdf7f8f285eebdbfc2987fb08fecd846b721dc42' },
+        ],
+      })
       expect(manifest.source).not.toBe(source)
     }
     expect(Object.hasOwn(resolved().manifest, 'source')).toBe(false)
@@ -100,7 +128,10 @@ describe('resolveReport', () => {
   // that calls the clock would print differently tomorrow.
   test('refuses a report its diagnostics give an error for', () => {
     const report = sampleReport()
-    const clocked: ReportDefinition = { ...report, regions: { ...report.regions, summary: [{ id: 'when', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'string(now())' } }] }] } }
+    const clocked: ReportDefinition = {
+      ...report,
+      regions: { ...report.regions, summary: [{ id: 'when', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'string(now())' } }] }] },
+    }
     expect(refusals(clocked)).toEqual(['expressions expression-not-reproducible /regions/summary/0/content/0/expression/cel'])
   })
 
@@ -127,7 +158,10 @@ describe('resolveReport', () => {
   // A render that fails partway is refused whole, saying where: here a
   // quantity divided by zero copies, in one column of one row.
   test('refuses a report an evaluation fails in, naming the column and the row', () => {
-    const outcome = resolveReport(sampleReport(), sampleData([sampleRow(), sampleRow({ sku: 'B-2' })]), { ...FINAL, parameters: { from: '2026-01-01', copies: '0' } })
+    const outcome = resolveReport(sampleReport(), sampleData([sampleRow(), sampleRow({ sku: 'B-2' })]), {
+      ...FINAL,
+      parameters: { from: '2026-01-01', copies: '0' },
+    })
     expect(outcome.ok).toBe(false)
     expect(!outcome.ok && outcome.errors).toEqual([
       expect.objectContaining({ stage: 'evaluation', code: 'expression-failed', componentId: 'lines', columnId: 'per-copy', row: 0 }),

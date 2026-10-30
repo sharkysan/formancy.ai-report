@@ -51,7 +51,9 @@ function continuing(workflows) {
   return Object.entries(workflows).flatMap(([file, workflow]) =>
     Object.entries(workflow.jobs ?? {}).flatMap(([id, job]) => [
       ...(job['continue-on-error'] === undefined ? [] : [`${file}: ${id}`]),
-      ...(job.steps ?? []).filter((step) => step['continue-on-error'] !== undefined).map((step) => `${file}: ${id}: ${String(step.id ?? step.name ?? step.run ?? step.uses)}`),
+      ...(job.steps ?? [])
+        .filter((step) => step['continue-on-error'] !== undefined)
+        .map((step) => `${file}: ${id}: ${String(step.id ?? step.name ?? step.run ?? step.uses)}`),
     ]),
   )
 }
@@ -63,8 +65,16 @@ function foreignImports(file, seen = new Set()) {
   if (seen.has(file)) return []
   seen.add(file)
   const text = readFileSync(file, 'utf8')
-  const specifiers = [...text.matchAll(/^\s*(?:import|export)\s[^'"]*?from\s+['"]([^'"]+)['"]|^\s*import\s+['"]([^'"]+)['"]|\bimport\(\s*['"]([^'"]+)['"]\s*\)/gm)].map((match) => match[1] ?? match[2] ?? match[3])
-  return specifiers.flatMap((specifier) => (specifier.startsWith('.') ? foreignImports(resolve(dirname(file), specifier), seen) : specifier.startsWith('node:') ? [] : [`${file.slice(repo.length + 1).replaceAll('\\', '/')} imports ${specifier}`]))
+  const specifiers = [
+    ...text.matchAll(/^\s*(?:import|export)\s[^'"]*?from\s+['"]([^'"]+)['"]|^\s*import\s+['"]([^'"]+)['"]|\bimport\(\s*['"]([^'"]+)['"]\s*\)/gm),
+  ].map((match) => match[1] ?? match[2] ?? match[3])
+  return specifiers.flatMap((specifier) =>
+    specifier.startsWith('.')
+      ? foreignImports(resolve(dirname(file), specifier), seen)
+      : specifier.startsWith('node:')
+        ? []
+        : [`${file.slice(repo.length + 1).replaceAll('\\', '/')} imports ${specifier}`],
+  )
 }
 
 describe('the scripts that run without an install', () => {
@@ -121,7 +131,9 @@ describe('release.yml', () => {
   test('reads NPM_TOKEN only in the npm-token and publish jobs, each behind the one condition', () => {
     expect(release.jobs['npm-token'].if).toBe(ONLY_WHEN_PUBLISHING)
     expect(release.jobs.publish.if).toBe(ONLY_WHEN_PUBLISHING)
-    const reading = Object.entries(release.jobs).filter(([, job]) => JSON.stringify(job).includes('secrets.NPM_TOKEN')).map(([id]) => id)
+    const reading = Object.entries(release.jobs)
+      .filter(([, job]) => JSON.stringify(job).includes('secrets.NPM_TOKEN'))
+      .map(([id]) => id)
     expect(reading).toEqual(['npm-token', 'publish'])
   })
 
@@ -130,7 +142,11 @@ describe('release.yml', () => {
   // admits only `v*` tags is not. The policy is a repository setting no test
   // here can see (REPO-METADATA.md); that the two jobs ask for it is held here.
   test('reads the npm token from the npm environment, in the two jobs that need it and no other', () => {
-    expect(Object.entries(release.jobs).filter(([, job]) => job.environment !== undefined).map(([id, job]) => `${id}: ${String(job.environment)}`)).toEqual(['npm-token: npm', 'publish: npm'])
+    expect(
+      Object.entries(release.jobs)
+        .filter(([, job]) => job.environment !== undefined)
+        .map(([id, job]) => `${id}: ${String(job.environment)}`),
+    ).toEqual(['npm-token: npm', 'publish: npm'])
   })
 
   // The job that installs and builds holds nothing it could misuse; only the
@@ -174,7 +190,11 @@ describe('release.yml', () => {
     expect(npmReach(release)).toEqual(['npm-publish'])
     const early = structuredClone(release)
     const cosign = early.jobs.publish.steps.findIndex((step) => step.id === 'cosign')
-    early.jobs.publish.steps.splice(cosign, 0, { name: 'early', env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' }, run: 'for f in release-tarballs/*.tgz; do npm publish "$f" --access public; done' })
+    early.jobs.publish.steps.splice(cosign, 0, {
+      name: 'early',
+      env: { NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}' },
+      run: 'for f in release-tarballs/*.tgz; do npm publish "$f" --access public; done',
+    })
     expect(npmReach(early)).toEqual(['early', 'npm-publish'])
     early.jobs.publish.steps[cosign].env = {}
     expect(npmReach(early)).toEqual(['early', 'npm-publish'])
@@ -197,8 +217,10 @@ describe('release.yml', () => {
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line !== '')
-    const at =(pattern) => lines.findIndex((line) => pattern.test(line))
-    expect(lines.find((line) => line.startsWith('npm install'))).toBe('npm install --ignore-scripts --legacy-peer-deps --no-audit --no-fund "${GITHUB_WORKSPACE}"/release-tarballs/*.tgz')
+    const at = (pattern) => lines.findIndex((line) => pattern.test(line))
+    expect(lines.find((line) => line.startsWith('npm install'))).toBe(
+      'npm install --ignore-scripts --legacy-peer-deps --no-audit --no-fund "${GITHUB_WORKSPACE}"/release-tarballs/*.tgz',
+    )
     expect(at(/^cd "\$\{RUNNER_TEMP\}\//)).toBeGreaterThanOrEqual(0)
     expect(at(/^cd "\$\{RUNNER_TEMP\}\//)).toBeLessThan(at(/^npm install /))
     expect(at(/^npm install /)).toBeLessThan(at(/cdxgen@/))
@@ -219,16 +241,37 @@ describe('release.yml', () => {
     const ids = check.steps.map((step) => step.id)
     expect(ids.filter((id) => ['report-checked', 'sbom', 'sbom-checked'].includes(id))).toEqual(['report-checked', 'sbom', 'sbom-checked'])
     expect(check.steps.slice(0, ids.indexOf('report-checked')).filter((step) => /cdxgen|npx/.test(String(step.run)))).toEqual([])
-    expect(check.steps.slice(0, ids.indexOf('report-checked')).filter((step) => String(step.uses).startsWith('actions/download-artifact')).map((step) => step.with.name)).toEqual(['release-report', 'release-tarballs'])
-    expect(check.steps.find((step) => step.id === 'report-checked').run).toBe('node scripts/release/pins.mjs check --release "${RELEASE}" --version "${VERSION}" --report release-report release-tarballs >> "$GITHUB_OUTPUT"')
+    expect(
+      check.steps
+        .slice(0, ids.indexOf('report-checked'))
+        .filter((step) => String(step.uses).startsWith('actions/download-artifact'))
+        .map((step) => step.with.name),
+    ).toEqual(['release-report', 'release-tarballs'])
+    expect(check.steps.find((step) => step.id === 'report-checked').run).toBe(
+      'node scripts/release/pins.mjs check --release "${RELEASE}" --version "${VERSION}" --report release-report release-tarballs >> "$GITHUB_OUTPUT"',
+    )
     expect(check.steps.find((step) => step.id === 'sbom-checked').run).toContain('node scripts/release/pins.mjs sbom --report release-report ')
     const publish = release.jobs.publish
-    expect(publish.env).toMatchObject({ CHECKED: '${{ needs.check.outputs.checked }}', CHECKED_SBOM: '${{ needs.check.outputs.sbom }}', RELEASE: '${{ needs.tag.outputs.release }}', VERSION: '${{ needs.tag.outputs.version }}' })
+    expect(publish.env).toMatchObject({
+      CHECKED: '${{ needs.check.outputs.checked }}',
+      CHECKED_SBOM: '${{ needs.check.outputs.sbom }}',
+      RELEASE: '${{ needs.tag.outputs.release }}',
+      VERSION: '${{ needs.tag.outputs.version }}',
+    })
     const downloads = publish.steps.findIndex((step) => step.id === 'downloads-checked')
-    expect(publish.steps.slice(0, downloads).filter((step) => String(step.uses).startsWith('actions/download-artifact')).map((step) => step.with.name)).toEqual(['release-report', 'release-tarballs', 'release-sbom'])
-    expect(publish.steps[downloads].run).toContain('node scripts/release/pins.mjs downloads --release "${RELEASE}" --version "${VERSION}" --report release-report release-tarballs ')
+    expect(
+      publish.steps
+        .slice(0, downloads)
+        .filter((step) => String(step.uses).startsWith('actions/download-artifact'))
+        .map((step) => step.with.name),
+    ).toEqual(['release-report', 'release-tarballs', 'release-sbom'])
+    expect(publish.steps[downloads].run).toContain(
+      'node scripts/release/pins.mjs downloads --release "${RELEASE}" --version "${VERSION}" --report release-report release-tarballs ',
+    )
     expect(publish.steps.slice(downloads + 1).filter((step) => String(step.uses).startsWith('actions/download-artifact'))).toEqual([])
-    expect(publish.steps.find((step) => step.id === 'npm-publish').run).toBe('node scripts/release/publish.mjs --tarballs release-tarballs --report release-report')
+    expect(publish.steps.find((step) => step.id === 'npm-publish').run).toBe(
+      'node scripts/release/publish.mjs --tarballs release-tarballs --report release-report',
+    )
   })
 
   // The release carries the report it was gated by, signed by the identity
@@ -241,7 +284,10 @@ describe('release.yml', () => {
     for (const kind of ['md', 'json']) expect(sign.run).toContain(`release-report/release-report.\${kind}`)
     expect(sign.run).toContain('cosign sign-blob --yes')
     const step = publish.steps.find((entry) => entry.id === 'github-release')
-    const files = step.with.files.split('\n').map((line) => line.trim()).filter(Boolean)
+    const files = step.with.files
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
     expect(files).toEqual([
       'formancy-report-*-sbom.cdx.json',
       'formancy-report-*-sbom.cdx.json.sigstore',
@@ -286,7 +332,12 @@ describe('gates.yml', () => {
     const report = gates.jobs.report.steps.find((step) => String(step.run).includes('scripts/release-report/report.mjs'))
     expect(report.run).toBe('node scripts/release-report/report.mjs --results release-results --out release-report')
     expect(report.env).toEqual({ NEEDS: '${{ toJSON(needs) }}', RELEASE: '${{ inputs.release }}' })
-    expect(gates.jobs.report.steps.find((step) => step.with?.name === 'release-report')?.with).toEqual({ name: 'release-report', path: 'release-report/', 'if-no-files-found': 'error', overwrite: true })
+    expect(gates.jobs.report.steps.find((step) => step.with?.name === 'release-report')?.with).toEqual({
+      name: 'release-report',
+      path: 'release-report/',
+      'if-no-files-found': 'error',
+      overwrite: true,
+    })
   })
 
   // A job that collects nothing, or uploads under a name the report cannot
@@ -301,7 +352,12 @@ describe('gates.yml', () => {
       const upload = jobSteps[jobSteps.indexOf(collect) + 1]
       expect(upload.uses, id).toMatch(/^actions\/upload-artifact@/)
       expect(upload.if, id).toContain('!cancelled()')
-      expect(upload.with, id).toEqual({ name: 'release-results-${{ steps.collect.outputs.key }}', path: 'release-results/', 'if-no-files-found': 'error', overwrite: true })
+      expect(upload.with, id).toEqual({
+        name: 'release-results-${{ steps.collect.outputs.key }}',
+        path: 'release-results/',
+        'if-no-files-found': 'error',
+        overwrite: true,
+      })
     }
   })
 
@@ -314,7 +370,11 @@ describe('gates.yml', () => {
     expect(new Set(keys).size).toBe(keys.length)
     expect(keys).toEqual(expect.arrayContaining(['verify', 'browser', 'install', 'e-invoice', 'container']))
     expect(keys).not.toContain('test')
-    expect(keys.filter((key) => key.startsWith('test-')).sort()).toEqual(namedPackages().map((entry) => `test-${entry.id}`).sort())
+    expect(keys.filter((key) => key.startsWith('test-')).sort()).toEqual(
+      namedPackages()
+        .map((entry) => `test-${entry.id}`)
+        .sort(),
+    )
   })
 
   // A job without a collect step, or one that collects under another job's
@@ -325,8 +385,12 @@ describe('gates.yml', () => {
       change(workflow)
       return () => expectedKeys(workflow, namedPackages())
     }
-    expect(changed((workflow) => (workflow.jobs.install.steps = workflow.jobs.install.steps.filter((step) => step.id !== 'collect')))).toThrow('.github/workflows/gates.yml: the install job has no step with id collect, so it leaves nothing for the report')
-    expect(changed((workflow) => (collectStep(workflow.jobs.install).run = 'node scripts/release-report/collect.mjs --job verify'))).toThrow('.github/workflows/gates.yml: the install job collects as --job verify, not as itself')
+    expect(changed((workflow) => (workflow.jobs.install.steps = workflow.jobs.install.steps.filter((step) => step.id !== 'collect')))).toThrow(
+      '.github/workflows/gates.yml: the install job has no step with id collect, so it leaves nothing for the report',
+    )
+    expect(changed((workflow) => (collectStep(workflow.jobs.install).run = 'node scripts/release-report/collect.mjs --job verify'))).toThrow(
+      '.github/workflows/gates.yml: the install job collects as --job verify, not as itself',
+    )
   })
 
   // The browser job's results are the files the Studio's gate and its
@@ -344,7 +408,12 @@ describe('gates.yml', () => {
     expect([gate, pictures].every((index) => index !== -1 && index < collect)).toBe(true)
     expect(browser[pictures].if).toContain('!cancelled()')
     expect(collectStep(gates.jobs.browser).run).toBe('node scripts/release-report/collect.mjs --job browser')
-    expect(browser.find((step) => step.with?.name === 'browser-results')?.with).toEqual({ name: 'browser-results', path: 'apps/studio/test-results/', 'if-no-files-found': 'error', overwrite: true })
+    expect(browser.find((step) => step.with?.name === 'browser-results')?.with).toEqual({
+      name: 'browser-results',
+      path: 'apps/studio/test-results/',
+      'if-no-files-found': 'error',
+      overwrite: true,
+    })
     const studio = JSON.parse(readFileSync(join(repo, 'apps', 'studio', 'package.json'), 'utf8'))
     expect(studio.scripts['test:pictures']).toBe('node scripts/pictures.mjs --check')
   })
@@ -368,8 +437,15 @@ describe('gates.yml', () => {
     const { runtime } = JSON.parse(readFileSync(join(repo, 'docs', 'release', 'e-invoice-tools.json'), 'utf8'))
     expect(steps[java].uses).toMatch(/^actions\/setup-java@[0-9a-f]{40}$/)
     expect(steps[java].with).toEqual({ distribution: runtime.distribution, 'java-version': String(runtime.java) })
-    expect(steps.find((step) => String(step.uses).startsWith('actions/cache') && step.with?.path === '.e-invoice-cache')?.with.key).toBe("e-invoice-tools-${{ hashFiles('docs/release/e-invoice-tools.json') }}")
-    expect(steps.find((step) => step.with?.name === 'e-invoice-results')?.with).toEqual({ name: 'e-invoice-results', path: 'test-results/e-invoice.json\ntest-results/e-invoice/\n', 'if-no-files-found': 'error', overwrite: true })
+    expect(steps.find((step) => String(step.uses).startsWith('actions/cache') && step.with?.path === '.e-invoice-cache')?.with.key).toBe(
+      "e-invoice-tools-${{ hashFiles('docs/release/e-invoice-tools.json') }}",
+    )
+    expect(steps.find((step) => step.with?.name === 'e-invoice-results')?.with).toEqual({
+      name: 'e-invoice-results',
+      path: 'test-results/e-invoice.json\ntest-results/e-invoice/\n',
+      'if-no-files-found': 'error',
+      overwrite: true,
+    })
   })
 
   // The container gate builds the server's image from this checkout on the
@@ -385,9 +461,16 @@ describe('gates.yml', () => {
     const collect = steps.indexOf(collectStep(gates.jobs.container))
     expect([gate !== -1, gate < collect]).toEqual([true, true])
     expect(steps.filter((step) => /\b(?:pnpm|npm)\b/.test(String(step.run ?? '')))).toEqual([])
-    expect(steps.map((step) => step.uses).filter((uses) => typeof uses === 'string' && !/^actions\/(checkout|setup-node|upload-artifact)@/.test(uses))).toEqual([])
+    expect(steps.map((step) => step.uses).filter((uses) => typeof uses === 'string' && !/^actions\/(checkout|setup-node|upload-artifact)@/.test(uses))).toEqual(
+      [],
+    )
     expect(collectStep(gates.jobs.container).run).toBe('node scripts/release-report/collect.mjs --job container')
-    expect(steps.find((step) => step.with?.name === 'container-results')?.with).toEqual({ name: 'container-results', path: 'test-results/container.json', 'if-no-files-found': 'error', overwrite: true })
+    expect(steps.find((step) => step.with?.name === 'container-results')?.with).toEqual({
+      name: 'container-results',
+      path: 'test-results/container.json',
+      'if-no-files-found': 'error',
+      overwrite: true,
+    })
     expect(foreignImports(join(repo, 'scripts', 'container.mjs'))).toEqual([])
   })
 
@@ -418,7 +501,11 @@ describe('gates.yml', () => {
   // write shell into; through `env` it is only ever a value.
   test('puts no expression inside a script, here or in the release', () => {
     for (const workflow of [gates, release]) {
-      expect(steps(workflow).filter(({ step }) => String(step.run ?? '').includes('${{')).map(({ job, step }) => `${job}: ${step.name ?? step.run}`)).toEqual([])
+      expect(
+        steps(workflow)
+          .filter(({ step }) => String(step.run ?? '').includes('${{'))
+          .map(({ job, step }) => `${job}: ${step.name ?? step.run}`),
+      ).toEqual([])
     }
   })
 
@@ -456,7 +543,11 @@ describe('gates.yml', () => {
     const caches = steps(gates).filter(({ step }) => String(step.uses).startsWith('actions/cache'))
     expect(caches.length).toBeGreaterThan(0)
     expect(caches.filter(({ step }) => step.if !== "inputs.release == ''").map(({ job, step }) => `${job}: ${step.name ?? step.with?.path}`)).toEqual([])
-    expect(steps(release).filter(({ step }) => String(step.uses).startsWith('actions/cache')).map(({ job }) => job)).toEqual([])
+    expect(
+      steps(release)
+        .filter(({ step }) => String(step.uses).startsWith('actions/cache'))
+        .map(({ job }) => job),
+    ).toEqual([])
   })
 
   // Merged, two jobs that wrote one key would overwrite each other before
@@ -470,6 +561,11 @@ describe('gates.yml', () => {
   test('keeps the tarballs the install gate packed, installed and ran', () => {
     const install = gates.jobs.install.steps
     expect(install.map((step) => step.run).filter(Boolean)).toContain('node scripts/install-test.mjs --keep-tarballs release-tarballs')
-    expect(install.find((step) => step.with?.name === 'release-tarballs')?.with).toEqual({ name: 'release-tarballs', path: 'release-tarballs/', 'if-no-files-found': 'error', overwrite: true })
+    expect(install.find((step) => step.with?.name === 'release-tarballs')?.with).toEqual({
+      name: 'release-tarballs',
+      path: 'release-tarballs/',
+      'if-no-files-found': 'error',
+      overwrite: true,
+    })
   })
 })

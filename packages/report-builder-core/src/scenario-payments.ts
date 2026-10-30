@@ -59,7 +59,12 @@ export function paymentScenarios(locale: EditorLocale): readonly BuilderScenario
   const newCode = t('label.kindDetail', { kind: t('kind.epcQrCode'), detail: editorText(contentLocale(scenarioReport().locale))('default.epcBeneficiary') })
   const iban: ScenarioQuery = { role: PROPERTY_ROLES.text, name: t('field.iban') }
   const bic: ScenarioQuery = { role: PROPERTY_ROLES.text, name: t('field.bic') }
-  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = scenarioReport): BuilderScenario => ({ name, locale, report, steps })
+  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = scenarioReport): BuilderScenario => ({
+    name,
+    locale,
+    report,
+    steps,
+  })
 
   return [
     // A payment part is the report's, not a region's: the design view shows
@@ -70,10 +75,18 @@ export function paymentScenarios(locale: EditorLocale): readonly BuilderScenario
       [
         { expect: 'present', role: 'img', name: t('canvas.paymentPart') },
         { do: 'fill', role: PROPERTY_ROLES.text, name: t('field.title'), text: 'Site visit, invoiced' },
-        { expect: 'document', says: 'the title is the one typed, and the bill is whole', check: (report) => report.title === 'Site visit, invoiced' && billKept(report) },
+        {
+          expect: 'document',
+          says: 'the title is the one typed, and the bill is whole',
+          check: (report) => report.title === 'Site visit, invoiced' && billKept(report),
+        },
         { do: 'choose', role: PROPERTY_ROLES.select, name: t('field.orientation'), option: t('option.landscape') },
         { expect: 'invalid', role: PROPERTY_ROLES.select, name: t('field.orientation') },
-        { expect: 'document', says: 'the page is upright still, and the bill is whole', check: (report) => report.page.orientation === 'portrait' && billKept(report) },
+        {
+          expect: 'document',
+          says: 'the page is upright still, and the bill is whole',
+          check: (report) => report.page.orientation === 'portrait' && billKept(report),
+        },
         { do: 'click', ...tree(spacer) },
         { do: 'press', key: 'Delete' },
         { expect: 'document', says: 'the spacer is gone, and the bill is whole', check: (report) => !body(report).includes('gap') && billKept(report) },
@@ -96,7 +109,11 @@ export function paymentScenarios(locale: EditorLocale): readonly BuilderScenario
       { expect: 'invalid', ...iban },
       { expect: 'document', says: 'the new code pays the account it started with', check: (report) => codeHas(report, 'iban', 'DE36 0000 0000 0000 0000 00') },
       { do: 'fill', ...iban, text: 'DE71 1102 2033 0123 4567 89' },
-      { expect: 'document', says: 'the code pays the IBAN typed, with no BIC', check: (report) => codeHas(report, 'iban', 'DE71 1102 2033 0123 4567 89') && codeHas(report, 'bic', undefined) },
+      {
+        expect: 'document',
+        says: 'the code pays the IBAN typed, with no BIC',
+        check: (report) => codeHas(report, 'iban', 'DE71 1102 2033 0123 4567 89') && codeHas(report, 'bic', undefined),
+      },
       { do: 'fill', ...bic, text: 'BHBLDEHHXXX' },
       { expect: 'document', says: 'the code holds the BIC typed', check: (report) => codeHas(report, 'bic', 'BHBLDEHHXXX') },
       { do: 'fill', ...bic, text: '' },

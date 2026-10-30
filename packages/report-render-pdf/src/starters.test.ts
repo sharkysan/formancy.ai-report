@@ -52,7 +52,13 @@ function host(): { readonly images: ImageResolver; readonly asked: ImageRef[] } 
 
 /** `starter` resolved against `data`, failing the test with the errors when it is refused. */
 function resolved(starter: Starter, data: ReportData, options: Partial<ResolveOptions> = {}): ResolvedDocument {
-  const outcome = resolveReport(starter.report, data, { mode: 'final', parameters: starter.parameters, images: host().images, creationDate: CREATED, ...options })
+  const outcome = resolveReport(starter.report, data, {
+    mode: 'final',
+    parameters: starter.parameters,
+    images: host().images,
+    creationDate: CREATED,
+    ...options,
+  })
   if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`).join('; ')}`)
   return outcome.document
 }
@@ -65,7 +71,8 @@ async function printed(document: ResolvedDocument, maxPages = 20): Promise<ReadP
 const linesOf = (pdf: ReadPdf): Line[] => pdf.pages.flatMap((page) => pageLines(page))
 
 /** The number of the page a line starting with `words` is first printed on; undefined when none is. */
-const pageWith = (pdf: ReadPdf, words: string): number | undefined => pdf.pages.find((page) => pageLines(page).some((line) => ` ${line.text} `.startsWith(` ${normalise(words)} `)))?.number
+const pageWith = (pdf: ReadPdf, words: string): number | undefined =>
+  pdf.pages.find((page) => pageLines(page).some((line) => ` ${line.text} `.startsWith(` ${normalise(words)} `)))?.number
 
 /** The lines that begin with `words`, as whole words. */
 const startingWith = (pdf: ReadPdf, words: string): Line[] => linesOf(pdf).filter((line) => ` ${line.text} `.startsWith(` ${normalise(words)} `))
@@ -78,7 +85,12 @@ const cents = (text: string): bigint => BigInt(text.replace('.', ''))
 const halfAway = (numerator: bigint, denominator: bigint): bigint => (2n * numerator + denominator) / (2n * denominator)
 
 /** An amount in Swiss francs as Intl prints it for `locale`, handed the exact decimal string, with its spaces as a PDF line has them. */
-const francs = (locale: string, amount: bigint): string => normalise(new Intl.NumberFormat(locale, { style: 'currency', currency: 'CHF', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(decimal(amount) as Intl.StringNumericLiteral))
+const francs = (locale: string, amount: bigint): string =>
+  normalise(
+    new Intl.NumberFormat(locale, { style: 'currency', currency: 'CHF', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+      decimal(amount) as Intl.StringNumericLiteral,
+    ),
+  )
 
 describe('the service inspection report', () => {
   const NOTES = Array.from({ length: 60 }, (_, index) => `N${String(index + 1).padStart(2, '0')}:`)
@@ -88,51 +100,73 @@ describe('the service inspection report', () => {
   // defect is framed where it was found, its photo is drawn at its box from
   // the bytes the host holds -- asked for by id and digest, never fetched --
   // and every page says which of how many it is.
-  test('prints every note once and in order, the defect, the photo, the signature lines, and Page n of N', async () => {
-    const { images, asked } = host()
-    const document = resolved(SERVICE_INSPECTION, inspectionData({ defect: true }), { images })
-    expect(asked).toEqual([{ asset: INSPECTION_PHOTO.asset, digest: INSPECTION_PHOTO.digest }])
-    const pdf = await printed(document)
-    const stated: Stated = { minPagesExpected: 2, maxPagesExpected: 4, keys: [...NOTES, 'Defect found', 'Photo'], exactText: ["Inspector's signature", 'Place and date'], wrappedText: [DEFECT] }
-    expect(verify(fixtureOf('service-inspection', document, stated), pdf)).toEqual([])
-    expect(pdf.pages.length).toBeGreaterThanOrEqual(2)
-    expect(pdf.pages.map((page) => pageLines(page).at(-1)?.text)).toEqual(pdf.pages.map((page) => `Page ${page.number} of ${pdf.pages.length}`))
-    expect(pdf.pages.flatMap((page) => page.images).map(({ width, height }) => [Math.round(width), Math.round(height)])).toEqual([[240, 180]])
-  }, TIMEOUT)
+  test(
+    'prints every note once and in order, the defect, the photo, the signature lines, and Page n of N',
+    async () => {
+      const { images, asked } = host()
+      const document = resolved(SERVICE_INSPECTION, inspectionData({ defect: true }), { images })
+      expect(asked).toEqual([{ asset: INSPECTION_PHOTO.asset, digest: INSPECTION_PHOTO.digest }])
+      const pdf = await printed(document)
+      const stated: Stated = {
+        minPagesExpected: 2,
+        maxPagesExpected: 4,
+        keys: [...NOTES, 'Defect found', 'Photo'],
+        exactText: ["Inspector's signature", 'Place and date'],
+        wrappedText: [DEFECT],
+      }
+      expect(verify(fixtureOf('service-inspection', document, stated), pdf)).toEqual([])
+      expect(pdf.pages.length).toBeGreaterThanOrEqual(2)
+      expect(pdf.pages.map((page) => pageLines(page).at(-1)?.text)).toEqual(pdf.pages.map((page) => `Page ${page.number} of ${pdf.pages.length}`))
+      expect(pdf.pages.flatMap((page) => page.images).map(({ width, height }) => [Math.round(width), Math.round(height)])).toEqual([[240, 180]])
+    },
+    TIMEOUT,
+  )
 
   // The sign-off stood alone on a last page, under nothing it signed, when
   // the notes filled the page before (23 to 27 notes, and 70 to 74). The
   // photo and the sentence it signs now stand on its page, wherever the
   // notes end.
-  test('never leaves the signature lines alone on a page', async () => {
-    const alone: number[] = []
-    for (const notes of [20, 22, 23, 24, 25, 26, 27, 28, 30, 70, 71, 72, 73, 74]) {
-      const pdf = await printed(resolved(SERVICE_INSPECTION, inspectionData({ notes })))
-      const signed = pageWith(pdf, "Inspector's signature")
-      if (signed === undefined || signed !== pageWith(pdf, 'Photo') || signed !== pageWith(pdf, 'Inspected as recorded above by')) alone.push(notes)
-    }
-    expect(alone).toEqual([])
-  }, TIMEOUT)
+  test(
+    'never leaves the signature lines alone on a page',
+    async () => {
+      const alone: number[] = []
+      for (const notes of [20, 22, 23, 24, 25, 26, 27, 28, 30, 70, 71, 72, 73, 74]) {
+        const pdf = await printed(resolved(SERVICE_INSPECTION, inspectionData({ notes })))
+        const signed = pageWith(pdf, "Inspector's signature")
+        if (signed === undefined || signed !== pageWith(pdf, 'Photo') || signed !== pageWith(pdf, 'Inspected as recorded above by')) alone.push(notes)
+      }
+      expect(alone).toEqual([])
+    },
+    TIMEOUT,
+  )
 
   // A visit without a photo printed the 'Photo' heading over 180pt of
   // nothing; it prints neither, and the sentence and the signature lines
   // still stand together.
-  test('prints no photo heading and no empty box without a photo', async () => {
-    const pdf = await printed(resolved(SERVICE_INSPECTION, inspectionData({ photo: false })))
-    expect(pageWith(pdf, 'Photo')).toBeUndefined()
-    expect(pdf.pages.flatMap((page) => page.images)).toEqual([])
-    expect(pageWith(pdf, 'Inspected as recorded above by')).toBe(pageWith(pdf, "Inspector's signature"))
-  }, TIMEOUT)
+  test(
+    'prints no photo heading and no empty box without a photo',
+    async () => {
+      const pdf = await printed(resolved(SERVICE_INSPECTION, inspectionData({ photo: false })))
+      expect(pageWith(pdf, 'Photo')).toBeUndefined()
+      expect(pdf.pages.flatMap((page) => page.images)).toEqual([])
+      expect(pageWith(pdf, 'Inspected as recorded above by')).toBe(pageWith(pdf, "Inspector's signature"))
+    },
+    TIMEOUT,
+  )
 
   // The defect section prints only when there is a defect: without one,
   // neither its heading nor its frame's text is anywhere in the PDF, and
   // nothing else moves out of place.
-  test('leaves the defect section out when no defect was found', async () => {
-    const document = resolved(SERVICE_INSPECTION, inspectionData({ defect: false }))
-    const pdf = await printed(document)
-    expect(verify(fixtureOf('service-inspection-clear', document, { minPagesExpected: 2, maxPagesExpected: 4, keys: NOTES }), pdf)).toEqual([])
-    expect(linesOf(pdf).filter((line) => line.text.includes('Defect') || line.text.includes('exhaust fan'))).toEqual([])
-  }, TIMEOUT)
+  test(
+    'leaves the defect section out when no defect was found',
+    async () => {
+      const document = resolved(SERVICE_INSPECTION, inspectionData({ defect: false }))
+      const pdf = await printed(document)
+      expect(verify(fixtureOf('service-inspection-clear', document, { minPagesExpected: 2, maxPagesExpected: 4, keys: NOTES }), pdf)).toEqual([])
+      expect(linesOf(pdf).filter((line) => line.text.includes('Defect') || line.text.includes('exhaust fan'))).toEqual([])
+    },
+    TIMEOUT,
+  )
 })
 
 describe('the quotation', () => {
@@ -154,27 +188,35 @@ describe('the quotation', () => {
   // the other way round, its amount exactly the supplier's in Swiss francs;
   // the table's header repeated on every page it reaches; the totals
   // exactly what the reference computes; and "Seite n von N" on every page.
-  test('prints every line item once in order with its exact amount, and totals as the reference computes them', async () => {
-    const document = resolved(QUOTATION, data)
-    const pdf = await printed(document)
-    expect(verify(fixtureOf('quotation', document, { minPagesExpected: 2, maxPagesExpected: 6 }), pdf)).toEqual([])
-    const found = lines.map((line) => startingWith(pdf, line['article'] as string))
-    expect(found.map((each) => each.length)).toEqual(lines.map(() => 1))
-    expect(found.map(([line], index) => line !== undefined && lineHas(line, chf(cents(lines[index]?.['amount'] as string))))).toEqual(lines.map(() => true))
-    const articles = linesOf(pdf).flatMap((line) => (/^A-\d{4}\b/.exec(line.text) ?? []).map((match) => match))
-    expect(articles).toEqual(lines.map((line) => line['article']))
-    expect(startingWith(pdf, 'Zwischensumme').map((line) => line.text)).toEqual([`Zwischensumme ${chf(subtotal)}`])
-    expect(startingWith(pdf, 'MWST 8.1 %').map((line) => line.text)).toEqual([`MWST 8.1 % ${chf(vat)}`])
-    expect(startingWith(pdf, 'Rundung').map((line) => line.text)).toEqual([`Rundung ${chf(rounding)}`])
-    expect(startingWith(pdf, 'Total').map((line) => line.text)).toEqual([`Total ${chf(total)}`])
-    expect(rounding).not.toBe(0n)
-    // The grand total stands out from the lines above it: set larger, as its style says, not only in the weight every total row has.
-    const size = (words: string): number | undefined => pdf.pages.flatMap((page) => page.items).find((item) => item.text.startsWith(words))?.height
-    expect(size('Total')).toBeGreaterThan(size('Zwischensumme') as number)
-    expect(startingWith(pdf, 'Formancy Haustechnik AG').map((line) => line.text)).toEqual(['Formancy Haustechnik AG · Industriestrasse 7, 3052 Zollikofen · CHE-123.456.789 MWST'])
-    expect(pdf.pages.map((page) => pageLines(page).filter((line) => line.text === 'Artikel Beschreibung Menge Einheit Preis Betrag').length)).toEqual(pdf.pages.map(() => 1))
-    expect(pdf.pages.map((page) => pageLines(page).at(-1)?.text)).toEqual(pdf.pages.map((page) => `Seite ${page.number} von ${pdf.pages.length}`))
-  }, TIMEOUT)
+  test(
+    'prints every line item once in order with its exact amount, and totals as the reference computes them',
+    async () => {
+      const document = resolved(QUOTATION, data)
+      const pdf = await printed(document)
+      expect(verify(fixtureOf('quotation', document, { minPagesExpected: 2, maxPagesExpected: 6 }), pdf)).toEqual([])
+      const found = lines.map((line) => startingWith(pdf, line['article'] as string))
+      expect(found.map((each) => each.length)).toEqual(lines.map(() => 1))
+      expect(found.map(([line], index) => line !== undefined && lineHas(line, chf(cents(lines[index]?.['amount'] as string))))).toEqual(lines.map(() => true))
+      const articles = linesOf(pdf).flatMap((line) => (/^A-\d{4}\b/.exec(line.text) ?? []).map((match) => match))
+      expect(articles).toEqual(lines.map((line) => line['article']))
+      expect(startingWith(pdf, 'Zwischensumme').map((line) => line.text)).toEqual([`Zwischensumme ${chf(subtotal)}`])
+      expect(startingWith(pdf, 'MWST 8.1 %').map((line) => line.text)).toEqual([`MWST 8.1 % ${chf(vat)}`])
+      expect(startingWith(pdf, 'Rundung').map((line) => line.text)).toEqual([`Rundung ${chf(rounding)}`])
+      expect(startingWith(pdf, 'Total').map((line) => line.text)).toEqual([`Total ${chf(total)}`])
+      expect(rounding).not.toBe(0n)
+      // The grand total stands out from the lines above it: set larger, as its style says, not only in the weight every total row has.
+      const size = (words: string): number | undefined => pdf.pages.flatMap((page) => page.items).find((item) => item.text.startsWith(words))?.height
+      expect(size('Total')).toBeGreaterThan(size('Zwischensumme') as number)
+      expect(startingWith(pdf, 'Formancy Haustechnik AG').map((line) => line.text)).toEqual([
+        'Formancy Haustechnik AG · Industriestrasse 7, 3052 Zollikofen · CHE-123.456.789 MWST',
+      ])
+      expect(pdf.pages.map((page) => pageLines(page).filter((line) => line.text === 'Artikel Beschreibung Menge Einheit Preis Betrag').length)).toEqual(
+        pdf.pages.map(() => 1),
+      )
+      expect(pdf.pages.map((page) => pageLines(page).at(-1)?.text)).toEqual(pdf.pages.map((page) => `Seite ${page.number} von ${pdf.pages.length}`))
+    },
+    TIMEOUT,
+  )
 
   // The firm's mark is a letterhead, in the report header (0032): drawn
   // once, on the first page, at the left margin under the running head, 15
@@ -182,17 +224,21 @@ describe('the quotation', () => {
   // under it, the firm's line the first under it; and on no later page. A
   // mark put in the page header would print on every page of a long
   // quotation, and one under the running head's text would hide it.
-  test('prints the firm’s mark on its first page alone, under the running head and above the firm’s line', async () => {
-    const pdf = await printed(resolved(QUOTATION, data))
-    const [first] = pdf.pages as [ReadPdf['pages'][number]]
-    const [head, sender] = pageLines(first)
-    const [mark] = marksOn(first)
-    expect(pdf.pages.map(marksOn)).toEqual(pdf.pages.map((page) => (page.number === 1 ? [markAt(mark?.box[1] as number)] : [])))
-    expect([head?.text, sender?.text.startsWith('Formancy Haustechnik AG · ')]).toEqual(['Offerte Q-2026-0415', true])
-    expect(mark!.box[1]).toBeGreaterThanOrEqual(head!.bottom)
-    expect(crowding(first, mark!)).toEqual([])
-    expect(pdf.pages.flatMap((page) => page.images)).toEqual([])
-  }, TIMEOUT)
+  test(
+    'prints the firm’s mark on its first page alone, under the running head and above the firm’s line',
+    async () => {
+      const pdf = await printed(resolved(QUOTATION, data))
+      const [first] = pdf.pages as [ReadPdf['pages'][number]]
+      const [head, sender] = pageLines(first)
+      const [mark] = marksOn(first)
+      expect(pdf.pages.map(marksOn)).toEqual(pdf.pages.map((page) => (page.number === 1 ? [markAt(mark?.box[1] as number)] : [])))
+      expect([head?.text, sender?.text.startsWith('Formancy Haustechnik AG · ')]).toEqual(['Offerte Q-2026-0415', true])
+      expect(mark!.box[1]).toBeGreaterThanOrEqual(head!.bottom)
+      expect(crowding(first, mark!)).toEqual([])
+      expect(pdf.pages.flatMap((page) => page.images)).toEqual([])
+    },
+    TIMEOUT,
+  )
 
   // The mark and the gap under it take 54.52 pt of the first page (0032),
   // and two line items with them: of a quotation of 30, the first page
@@ -200,13 +246,18 @@ describe('the quotation', () => {
   // quotation as it printed before 0032 -- it held 27. The limitation that
   // says what the mark costs, and the windows below, rest on these counts:
   // a letterhead grown or shrunk moves them, and fails here with both.
-  test('holds 25 line items on its first page under the firm’s mark, where it held 27 without it', async () => {
-    const perPage = async (starter: Starter): Promise<number[]> => (await printed(resolved(starter, quotationData(30)))).pages.map((page) => pageLines(page).filter((line) => /^A-\d{4}\b/.test(line.text)).length)
-    expect([await perPage(QUOTATION), await perPage({ ...QUOTATION, report: withoutMark(QUOTATION.report) })]).toEqual([
-      [25, 5],
-      [27, 3],
-    ])
-  }, TIMEOUT)
+  test(
+    'holds 25 line items on its first page under the firm’s mark, where it held 27 without it',
+    async () => {
+      const perPage = async (starter: Starter): Promise<number[]> =>
+        (await printed(resolved(starter, quotationData(30)))).pages.map((page) => pageLines(page).filter((line) => /^A-\d{4}\b/.test(line.text)).length)
+      expect([await perPage(QUOTATION), await perPage({ ...QUOTATION, report: withoutMark(QUOTATION.report) })]).toEqual([
+        [25, 5],
+        [27, 3],
+      ])
+    },
+    TIMEOUT,
+  )
 
   // A quotation of 31 lines printed its subtotal and VAT under the last
   // line and its total alone on the next page; at 32 all three stood alone
@@ -222,46 +273,67 @@ describe('the quotation', () => {
   // boundary and one whose totals print after it, so that a layout that
   // moves past a window fails here rather than passing a boundary the
   // window no longer reaches.
-  test('keeps its totals on the page of the last line item, wherever the page ends', async () => {
-    const apart: string[] = []
-    const windows = [
-      [1, [20, 21, 22, 23, 24, 25, 26, 27, 28]],
-      [2, [52, 53, 54, 55, 56, 57, 58, 59, 60]],
-    ] as const
-    const totalsOn = new Map<number, number | undefined>()
-    for (const [, counts] of windows) {
-      for (const count of counts) {
-        const document = resolved(QUOTATION, quotationData(count))
-        const pdf = await printed(document)
-        expect(verify(fixtureOf(`quotation-${count}`, document, { maxPagesExpected: 6 }), pdf)).toEqual([])
-        const last = `A-${1000 + count}`
-        const pages = ['Zwischensumme', 'MWST 8.1 %', 'Rundung', 'Total'].map((words) => pageWith(pdf, words))
-        if (pages.some((page) => page !== pageWith(pdf, last))) apart.push(`${count}: ${pages.join(',')} / ${pageWith(pdf, last)}`)
-        totalsOn.set(count, pageWith(pdf, 'Total'))
+  test(
+    'keeps its totals on the page of the last line item, wherever the page ends',
+    async () => {
+      const apart: string[] = []
+      const windows = [
+        [1, [20, 21, 22, 23, 24, 25, 26, 27, 28]],
+        [2, [52, 53, 54, 55, 56, 57, 58, 59, 60]],
+      ] as const
+      const totalsOn = new Map<number, number | undefined>()
+      for (const [, counts] of windows) {
+        for (const count of counts) {
+          const document = resolved(QUOTATION, quotationData(count))
+          const pdf = await printed(document)
+          expect(verify(fixtureOf(`quotation-${count}`, document, { maxPagesExpected: 6 }), pdf)).toEqual([])
+          const last = `A-${1000 + count}`
+          const pages = ['Zwischensumme', 'MWST 8.1 %', 'Rundung', 'Total'].map((words) => pageWith(pdf, words))
+          if (pages.some((page) => page !== pageWith(pdf, last))) apart.push(`${count}: ${pages.join(',')} / ${pageWith(pdf, last)}`)
+          totalsOn.set(count, pageWith(pdf, 'Total'))
+        }
       }
-    }
-    expect(apart).toEqual([])
-    expect(windows.map(([, counts]) => [totalsOn.get(counts[0]), totalsOn.get(counts.at(-1) as number)])).toEqual(windows.map(([page]) => [page, page + 1]))
-  }, TIMEOUT)
+      expect(apart).toEqual([])
+      expect(windows.map(([, counts]) => [totalsOn.get(counts[0]), totalsOn.get(counts.at(-1) as number)])).toEqual(windows.map(([page]) => [page, page + 1]))
+    },
+    TIMEOUT,
+  )
 
   // 'CHF 1'250'000.00' in a column too narrow for it printed 'CHF
   // 1'250'000.0' with '0' on the next line. An amount prints on one line,
   // whole, or the report is refused; the starter's columns hold seven
   // digits.
-  test('prints a seven-digit amount whole, on one line', async () => {
-    const data = quotationData(3)
-    const big = { article: 'A-2001', description: 'Gesamtsanierung Lüftung', quantity: '1.00', unit: 'Pausch.', unitPrice: '1250000.00', amount: '1250000.00' }
-    const detail = [...(data.detail as Record<string, string>[]), big]
-    const pdf = await printed(resolved(QUOTATION, { ...data, detail, completeness: { complete: true, captured: detail.length } }))
-    expect(startingWith(pdf, 'A-2001').map((line) => line.text)).toEqual([`A-2001 Gesamtsanierung Lüftung 1.00 Pausch. ${chf(125000000n)} ${chf(125000000n)}`])
-  }, TIMEOUT)
+  test(
+    'prints a seven-digit amount whole, on one line',
+    async () => {
+      const data = quotationData(3)
+      const big = {
+        article: 'A-2001',
+        description: 'Gesamtsanierung Lüftung',
+        quantity: '1.00',
+        unit: 'Pausch.',
+        unitPrice: '1250000.00',
+        amount: '1250000.00',
+      }
+      const detail = [...(data.detail as Record<string, string>[]), big]
+      const pdf = await printed(resolved(QUOTATION, { ...data, detail, completeness: { complete: true, captured: detail.length } }))
+      expect(startingWith(pdf, 'A-2001').map((line) => line.text)).toEqual([
+        `A-2001 Gesamtsanierung Lüftung 1.00 Pausch. ${chf(125000000n)} ${chf(125000000n)}`,
+      ])
+    },
+    TIMEOUT,
+  )
 
   // A job too big for its page limit is refused, never cut short: no PDF
   // of the first pages of a quotation with the totals missing.
-  test('refuses a quotation too long for its page limit', async () => {
-    const document = resolved(QUOTATION, quotationData(600))
-    await expect(renderPdf(document, { maxPages: 5 })).rejects.toSatisfy((error) => error instanceof RenderRefusal && error.code === 'too-many-pages')
-  }, TIMEOUT)
+  test(
+    'refuses a quotation too long for its page limit',
+    async () => {
+      const document = resolved(QUOTATION, quotationData(600))
+      await expect(renderPdf(document, { maxPages: 5 })).rejects.toSatisfy((error) => error instanceof RenderRefusal && error.code === 'too-many-pages')
+    },
+    TIMEOUT,
+  )
 })
 
 describe('the equipment register', () => {
@@ -269,85 +341,113 @@ describe('the equipment register', () => {
   const rows = data.detail as Record<string, string>[]
   const chf = (amount: bigint): string => francs('en-GB', amount)
   /** The sites in the order an English reader sorts them, each with its rows' tags in order, its count and its exact sum. */
-  const sites = [...new Set(rows.map((row) => row['site'] as string))]
-    .sort(new Intl.Collator('en-GB').compare)
-    .map((site) => {
-      const own = rows.filter((row) => row['site'] === site)
-      return { site, tags: own.map((row) => row['tag'] as string).sort(), count: own.length, sum: own.reduce((sum, row) => sum + cents(row['value'] as string), 0n) }
-    })
+  const sites = [...new Set(rows.map((row) => row['site'] as string))].sort(new Intl.Collator('en-GB').compare).map((site) => {
+    const own = rows.filter((row) => row['site'] === site)
+    return {
+      site,
+      tags: own.map((row) => row['tag'] as string).sort(),
+      count: own.length,
+      sum: own.reduce((sum, row) => sum + cents(row['value'] as string), 0n),
+    }
+  })
 
   // Grouped by site in a stable order: each group headed by its own key and
   // count, its rows by tag, its subtotal and count exactly its rows', and a
   // grand total that is every row's -- though the provider sent the rows
   // mixed, newest first.
-  test('groups by site, heads each group with its key, and counts and totals each exactly', async () => {
-    const document = resolved(GROUPED_EQUIPMENT, data)
-    const pdf = await printed(document)
-    expect(verify(fixtureOf('grouped-equipment', document, { minPagesExpected: 1, maxPagesExpected: 4 }), pdf)).toEqual([])
-    expect(sites).toHaveLength(4)
-    // Groups that count alike could not show a group's count was its own.
-    expect(new Set(sites.map(({ count }) => count)).size).toBe(4)
-    const order = sites.flatMap(({ site, tags, count }) => [`${site} (${count} items)`, ...tags, `Subtotal ${site}`])
-    const printedOrder = linesOf(pdf).flatMap((line) => order.filter((key) => ` ${line.text} `.startsWith(` ${key} `)))
-    expect(printedOrder).toEqual(order)
-    for (const { site, count, sum } of sites) expect(startingWith(pdf, `Subtotal ${site}`).map((line) => line.text)).toEqual([`Subtotal ${site} ${count} ${chf(sum)}`])
-    const grand = sites.reduce((sum, site) => sum + site.sum, 0n)
-    expect(startingWith(pdf, 'Grand total').map((line) => line.text)).toEqual([`Grand total ${rows.length} ${chf(grand)}`])
-  }, TIMEOUT)
+  test(
+    'groups by site, heads each group with its key, and counts and totals each exactly',
+    async () => {
+      const document = resolved(GROUPED_EQUIPMENT, data)
+      const pdf = await printed(document)
+      expect(verify(fixtureOf('grouped-equipment', document, { minPagesExpected: 1, maxPagesExpected: 4 }), pdf)).toEqual([])
+      expect(sites).toHaveLength(4)
+      // Groups that count alike could not show a group's count was its own.
+      expect(new Set(sites.map(({ count }) => count)).size).toBe(4)
+      const order = sites.flatMap(({ site, tags, count }) => [`${site} (${count} items)`, ...tags, `Subtotal ${site}`])
+      const printedOrder = linesOf(pdf).flatMap((line) => order.filter((key) => ` ${line.text} `.startsWith(` ${key} `)))
+      expect(printedOrder).toEqual(order)
+      for (const { site, count, sum } of sites)
+        expect(startingWith(pdf, `Subtotal ${site}`).map((line) => line.text)).toEqual([`Subtotal ${site} ${count} ${chf(sum)}`])
+      const grand = sites.reduce((sum, site) => sum + site.sum, 0n)
+      expect(startingWith(pdf, 'Grand total').map((line) => line.text)).toEqual([`Grand total ${rows.length} ${chf(grand)}`])
+    },
+    TIMEOUT,
+  )
 
   // A subtotal stood alone at the top of a page under the repeated header,
   // apart from every row it adds up, and the grand total alone on a last
   // page. Wherever a page ends, each subtotal is on the page of its group's
   // last row, and the grand total on the page of the last subtotal.
-  test('keeps each subtotal with its last row, and the grand total with the last subtotal', async () => {
-    const apart: string[] = []
-    for (let count = 30; count <= 46; count++) {
-      const rows = equipmentData(count).detail as Record<string, string>[]
-      const pdf = await printed(resolved(GROUPED_EQUIPMENT, equipmentData(count)))
-      const groups = [...new Set(rows.map((row) => row['site'] as string))].sort(new Intl.Collator('en-GB').compare)
-      for (const site of groups) {
-        const last = rows.filter((row) => row['site'] === site).map((row) => row['tag'] as string).sort().at(-1) as string
-        if (pageWith(pdf, `Subtotal ${site}`) !== pageWith(pdf, last)) apart.push(`${count}: ${site}`)
+  test(
+    'keeps each subtotal with its last row, and the grand total with the last subtotal',
+    async () => {
+      const apart: string[] = []
+      for (let count = 30; count <= 46; count++) {
+        const rows = equipmentData(count).detail as Record<string, string>[]
+        const pdf = await printed(resolved(GROUPED_EQUIPMENT, equipmentData(count)))
+        const groups = [...new Set(rows.map((row) => row['site'] as string))].sort(new Intl.Collator('en-GB').compare)
+        for (const site of groups) {
+          const last = rows
+            .filter((row) => row['site'] === site)
+            .map((row) => row['tag'] as string)
+            .sort()
+            .at(-1) as string
+          if (pageWith(pdf, `Subtotal ${site}`) !== pageWith(pdf, last)) apart.push(`${count}: ${site}`)
+        }
+        if (pageWith(pdf, 'Grand total') !== pageWith(pdf, `Subtotal ${groups.at(-1)}`)) apart.push(`${count}: grand total`)
       }
-      if (pageWith(pdf, 'Grand total') !== pageWith(pdf, `Subtotal ${groups.at(-1)}`)) apart.push(`${count}: grand total`)
-    }
-    expect(apart).toEqual([])
-  }, TIMEOUT)
+      expect(apart).toEqual([])
+    },
+    TIMEOUT,
+  )
 
   // At 200 items a grand total of 'CHF 10,612,357.00' was broken in the
   // middle of the number, its last '0' on the next line. The book value
   // column holds it whole, and the corpus's checks find every row in place.
-  test('prints a register of 200 items with every amount whole', async () => {
-    const document = resolved(GROUPED_EQUIPMENT, equipmentData(200))
-    const pdf = await printed(document)
-    expect(verify(fixtureOf('grouped-equipment-200', document, { minPagesExpected: 4, maxPagesExpected: 12 }), pdf)).toEqual([])
-  }, TIMEOUT)
+  test(
+    'prints a register of 200 items with every amount whole',
+    async () => {
+      const document = resolved(GROUPED_EQUIPMENT, equipmentData(200))
+      const pdf = await printed(document)
+      expect(verify(fixtureOf('grouped-equipment-200', document, { minPagesExpected: 4, maxPagesExpected: 12 }), pdf)).toEqual([])
+    },
+    TIMEOUT,
+  )
 
   // With nothing recorded the table says so, heads no group, and its total
   // is of nothing: 0 items worth CHF 0.00 (0007).
-  test('prints its empty state and a grand total of nothing', async () => {
-    const document = resolved(GROUPED_EQUIPMENT, equipmentData(0))
-    const pdf = await printed(document)
-    expect(verify(fixtureOf('grouped-equipment-empty', document, { maxPagesExpected: 1 }), pdf)).toEqual([])
-    expect(startingWith(pdf, 'No equipment recorded.')).toHaveLength(1)
-    expect(startingWith(pdf, 'Grand total').map((line) => line.text)).toEqual([`Grand total 0 ${chf(0n)}`])
-    expect(linesOf(pdf).filter((line) => line.text.startsWith('Subtotal'))).toEqual([])
-  }, TIMEOUT)
+  test(
+    'prints its empty state and a grand total of nothing',
+    async () => {
+      const document = resolved(GROUPED_EQUIPMENT, equipmentData(0))
+      const pdf = await printed(document)
+      expect(verify(fixtureOf('grouped-equipment-empty', document, { maxPagesExpected: 1 }), pdf)).toEqual([])
+      expect(startingWith(pdf, 'No equipment recorded.')).toHaveLength(1)
+      expect(startingWith(pdf, 'Grand total').map((line) => line.text)).toEqual([`Grand total 0 ${chf(0n)}`])
+      expect(linesOf(pdf).filter((line) => line.text.startsWith('Subtotal'))).toEqual([])
+    },
+    TIMEOUT,
+  )
 
   // Data the provider calls incomplete: a final render refuses it, and a
   // preview prints it labelled as a preview on every page, and says so in
   // its manifest, so that it is never taken for the register.
-  test('refuses incomplete data in a final render and labels a preview of it on every page', async () => {
-    const incomplete: ReportData = { ...data, completeness: { complete: false, captured: rows.length, cap: rows.length } }
-    const final = resolveReport(GROUPED_EQUIPMENT.report, incomplete, { mode: 'final', parameters: GROUPED_EQUIPMENT.parameters, creationDate: CREATED })
-    expect(final.ok ? [] : final.errors.map((error) => `${error.stage} ${error.code}`)).toEqual(['data incomplete'])
-    const preview = resolveReport(GROUPED_EQUIPMENT.report, incomplete, { mode: 'preview', parameters: GROUPED_EQUIPMENT.parameters, creationDate: CREATED })
-    if (!preview.ok) throw new Error(preview.errors.map((error) => error.message).join('; '))
-    expect(preview.manifest.completeness.complete).toBe(false)
-    const pdf = await printed(preview.document)
-    expect(verify(fixtureOf('grouped-equipment-preview', preview.document, { maxPagesExpected: 4 }), pdf)).toEqual([])
-    expect(pdf.pages.map((page) => pageLines(page)[0]?.text)).toEqual(pdf.pages.map(() => PREVIEW_LABEL))
-  }, TIMEOUT)
+  test(
+    'refuses incomplete data in a final render and labels a preview of it on every page',
+    async () => {
+      const incomplete: ReportData = { ...data, completeness: { complete: false, captured: rows.length, cap: rows.length } }
+      const final = resolveReport(GROUPED_EQUIPMENT.report, incomplete, { mode: 'final', parameters: GROUPED_EQUIPMENT.parameters, creationDate: CREATED })
+      expect(final.ok ? [] : final.errors.map((error) => `${error.stage} ${error.code}`)).toEqual(['data incomplete'])
+      const preview = resolveReport(GROUPED_EQUIPMENT.report, incomplete, { mode: 'preview', parameters: GROUPED_EQUIPMENT.parameters, creationDate: CREATED })
+      if (!preview.ok) throw new Error(preview.errors.map((error) => error.message).join('; '))
+      expect(preview.manifest.completeness.complete).toBe(false)
+      const pdf = await printed(preview.document)
+      expect(verify(fixtureOf('grouped-equipment-preview', preview.document, { maxPagesExpected: 4 }), pdf)).toEqual([])
+      expect(pdf.pages.map((page) => pageLines(page)[0]?.text)).toEqual(pdf.pages.map(() => PREVIEW_LABEL))
+    },
+    TIMEOUT,
+  )
 })
 
 describe('the invoice', () => {
@@ -372,30 +472,43 @@ describe('the invoice', () => {
   // and the payment part print too. A bill that asked for another amount
   // than the invoice states would be paid wrongly, and nothing on the page
   // would show it.
-  test('prints its lines and totals, and a QR-bill on the same page for exactly the printed total', async () => {
-    const document = resolved(INVOICE, data)
-    const bytes = await renderPdf(document, { maxPages: 20 })
-    const pdf = await readPdf(bytes)
-    expect(pdf.pages).toHaveLength(1)
-    const found = lines.map((line) => startingWith(pdf, line['article'] as string))
-    expect(found.map((each) => each.length)).toEqual(lines.map(() => 1))
-    expect(found.map(([line], index) => line !== undefined && lineHas(line, chf(cents(lines[index]?.['amount'] as string))))).toEqual(lines.map(() => true))
-    expect(startingWith(pdf, 'Zwischensumme').map((line) => line.text)).toEqual([`Zwischensumme ${chf(subtotal)}`])
-    expect(startingWith(pdf, 'MWST 8.1 %').map((line) => line.text)).toEqual([`MWST 8.1 % ${chf(vat)}`])
-    expect(startingWith(pdf, 'Total').map((line) => line.text)).toEqual([`Total ${chf(total)}`])
-    const codes = await readCodes(bytes, 1)
-    expect(codes.map((code) => code.text)).toEqual([document.paymentPart?.payload])
-    expect(codes[0]?.text.split('\n').slice(18, 20)).toEqual([decimal(total), 'CHF'])
-    expect(pdf.pages[0]?.items.filter((item) => item.text === slipAmount(total)).length).toBe(2)
-    for (const heading of ['Empfangsschein', 'Zahlteil']) expect(pdf.pages[0]?.items.some((item) => item.text === heading), heading).toBe(true)
-  }, TIMEOUT)
+  test(
+    'prints its lines and totals, and a QR-bill on the same page for exactly the printed total',
+    async () => {
+      const document = resolved(INVOICE, data)
+      const bytes = await renderPdf(document, { maxPages: 20 })
+      const pdf = await readPdf(bytes)
+      expect(pdf.pages).toHaveLength(1)
+      const found = lines.map((line) => startingWith(pdf, line['article'] as string))
+      expect(found.map((each) => each.length)).toEqual(lines.map(() => 1))
+      expect(found.map(([line], index) => line !== undefined && lineHas(line, chf(cents(lines[index]?.['amount'] as string))))).toEqual(lines.map(() => true))
+      expect(startingWith(pdf, 'Zwischensumme').map((line) => line.text)).toEqual([`Zwischensumme ${chf(subtotal)}`])
+      expect(startingWith(pdf, 'MWST 8.1 %').map((line) => line.text)).toEqual([`MWST 8.1 % ${chf(vat)}`])
+      expect(startingWith(pdf, 'Total').map((line) => line.text)).toEqual([`Total ${chf(total)}`])
+      const codes = await readCodes(bytes, 1)
+      expect(codes.map((code) => code.text)).toEqual([document.paymentPart?.payload])
+      expect(codes[0]?.text.split('\n').slice(18, 20)).toEqual([decimal(total), 'CHF'])
+      expect(pdf.pages[0]?.items.filter((item) => item.text === slipAmount(total)).length).toBe(2)
+      for (const heading of ['Empfangsschein', 'Zahlteil'])
+        expect(
+          pdf.pages[0]?.items.some((item) => item.text === heading),
+          heading,
+        ).toBe(true)
+    },
+    TIMEOUT,
+  )
 })
 
 describe('the euro invoice', () => {
   const data = euroInvoiceData()
   const lines = [...(data.detail as Record<string, string>[])].sort((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1))
   /** An amount in euro as Intl prints it for a German reader, handed the exact decimal string. */
-  const eur = (amount: bigint): string => normalise(new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(decimal(amount) as Intl.StringNumericLiteral))
+  const eur = (amount: bigint): string =>
+    normalise(
+      new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+        decimal(amount) as Intl.StringNumericLiteral,
+      ),
+    )
   /** An IBAN or a creditor reference as a person reads it: in groups of four. */
   const grouped = (code: string): string => code.replace(/(.{4})(?=.)/g, '$1 ')
 
@@ -417,32 +530,44 @@ describe('the euro invoice', () => {
   // what the banking app read. A code that paid another amount or another
   // account than the page says would be paid wrongly, and only a reader
   // who decoded it would know.
-  test('prints its lines and totals, and an EPC code for exactly the printed total beside the details it holds', async () => {
-    const document = resolved(EURO_INVOICE, data)
-    const bytes = await renderPdf(document, { maxPages: 20 })
-    const pdf = await readPdf(bytes)
-    expect(pdf.pages).toHaveLength(1)
-    const found = lines.map((line) => startingWith(pdf, line['article'] as string))
-    expect(found.map((each) => each.length)).toEqual(lines.map(() => 1))
-    expect(found.map(([line], index) => line !== undefined && lineHas(line, eur(cents(lines[index]?.['amount'] as string))))).toEqual(lines.map(() => true))
-    expect(startingWith(pdf, 'Nettobetrag').map((line) => line.text)).toEqual([`Nettobetrag ${eur(net)}`])
-    expect(startingWith(pdf, 'Umsatzsteuer 19 %').map((line) => line.text)).toEqual([`Umsatzsteuer 19 % ${eur(tax)}`])
-    expect(startingWith(pdf, 'Rechnungsbetrag').map((line) => line.text)).toEqual([`Rechnungsbetrag ${eur(total)}`])
-    const codes = await readCodes(bytes, 1)
-    expect(codes.map((code) => [code.text, code.ecLevel])).toEqual(epcCodes(document.body).map((resolved) => [resolved.payload, 'M']))
-    const [code] = codes as [(typeof codes)[number]]
-    expect(code.version).toBeLessThanOrEqual(13)
-    const [, , , , bic, name, iban, amount, , reference] = code.text.split('\n')
-    expect(amount).toBe(`EUR${decimal(total).replace(/\.?0+$/, '')}`)
-    const details = [`Empfänger: ${name}`, `IBAN: ${grouped(iban as string)}`, `BIC: ${bic}`, `Betrag: ${eur(total)}`, `Referenz: ${grouped(reference as string)}`]
-    expect(details.map((words) => startingWith(pdf, words).map((line) => line.text))).toEqual(details.map((words) => [words]))
-    // In the left half of the page, below the totals, and each detail
-    // beside it: right of the symbol, and within its height.
-    const beside = details.flatMap((words) => startingWith(pdf, words)).filter((line) => line.x > code.x + code.width && line.bottom > code.top && line.top < code.bottom)
-    expect(beside.map((line) => line.text)).toEqual(details)
-    expect(code.x + code.width).toBeLessThan((pdf.pages[0]?.width as number) / 2)
-    expect(code.top).toBeGreaterThan(startingWith(pdf, 'Rechnungsbetrag')[0]?.bottom as number)
-  }, TIMEOUT)
+  test(
+    'prints its lines and totals, and an EPC code for exactly the printed total beside the details it holds',
+    async () => {
+      const document = resolved(EURO_INVOICE, data)
+      const bytes = await renderPdf(document, { maxPages: 20 })
+      const pdf = await readPdf(bytes)
+      expect(pdf.pages).toHaveLength(1)
+      const found = lines.map((line) => startingWith(pdf, line['article'] as string))
+      expect(found.map((each) => each.length)).toEqual(lines.map(() => 1))
+      expect(found.map(([line], index) => line !== undefined && lineHas(line, eur(cents(lines[index]?.['amount'] as string))))).toEqual(lines.map(() => true))
+      expect(startingWith(pdf, 'Nettobetrag').map((line) => line.text)).toEqual([`Nettobetrag ${eur(net)}`])
+      expect(startingWith(pdf, 'Umsatzsteuer 19 %').map((line) => line.text)).toEqual([`Umsatzsteuer 19 % ${eur(tax)}`])
+      expect(startingWith(pdf, 'Rechnungsbetrag').map((line) => line.text)).toEqual([`Rechnungsbetrag ${eur(total)}`])
+      const codes = await readCodes(bytes, 1)
+      expect(codes.map((code) => [code.text, code.ecLevel])).toEqual(epcCodes(document.body).map((resolved) => [resolved.payload, 'M']))
+      const [code] = codes as [(typeof codes)[number]]
+      expect(code.version).toBeLessThanOrEqual(13)
+      const [, , , , bic, name, iban, amount, , reference] = code.text.split('\n')
+      expect(amount).toBe(`EUR${decimal(total).replace(/\.?0+$/, '')}`)
+      const details = [
+        `Empfänger: ${name}`,
+        `IBAN: ${grouped(iban as string)}`,
+        `BIC: ${bic}`,
+        `Betrag: ${eur(total)}`,
+        `Referenz: ${grouped(reference as string)}`,
+      ]
+      expect(details.map((words) => startingWith(pdf, words).map((line) => line.text))).toEqual(details.map((words) => [words]))
+      // In the left half of the page, below the totals, and each detail
+      // beside it: right of the symbol, and within its height.
+      const beside = details
+        .flatMap((words) => startingWith(pdf, words))
+        .filter((line) => line.x > code.x + code.width && line.bottom > code.top && line.top < code.bottom)
+      expect(beside.map((line) => line.text)).toEqual(details)
+      expect(code.x + code.width).toBeLessThan((pdf.pages[0]?.width as number) / 2)
+      expect(code.top).toBeGreaterThan(startingWith(pdf, 'Rechnungsbetrag')[0]?.bottom as number)
+    },
+    TIMEOUT,
+  )
 })
 
 describe('the site visit, generated from a formancy form', () => {
@@ -452,11 +577,14 @@ describe('the site visit, generated from a formancy form', () => {
   /** A yes or a no as the draft prints it (0045): a box, ticked or not, and nothing where the form holds no answer. */
   const box = (value: unknown): string => (value === true ? '[x]' : value === false ? '[ ]' : '')
   /** Hours as the draft's two places print them for a Swiss German reader, handed the exact decimal string. */
-  const hours = (value: string): string => normalise(new Intl.NumberFormat('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value as Intl.StringNumericLiteral))
+  const hours = (value: string): string =>
+    normalise(new Intl.NumberFormat('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value as Intl.StringNumericLiteral))
   /** A date, or an instant with its time, as `medium` prints them for a Swiss German reader in the render's zone, UTC, the zone no option names. */
-  const dated = (value: string, time = false): string => normalise(new Intl.DateTimeFormat('de-CH', { dateStyle: 'medium', ...(time ? { timeStyle: 'medium' } : {}), timeZone: 'UTC' }).format(new Date(value)))
+  const dated = (value: string, time = false): string =>
+    normalise(new Intl.DateTimeFormat('de-CH', { dateStyle: 'medium', ...(time ? { timeStyle: 'medium' } : {}), timeZone: 'UTC' }).format(new Date(value)))
   /** The finding as its row prints: each column's value in order, a box for whether it was fixed. */
-  const row = (finding: Record<string, string | boolean>): string => [finding['ref'], finding['area'], finding['severity'], hours(finding['hours'] as string), finding['parts'], box(finding['fixed'])].join(' ')
+  const row = (finding: Record<string, string | boolean>): string =>
+    [finding['ref'], finding['area'], finding['severity'], hours(finding['hours'] as string), finding['parts'], box(finding['fixed'])].join(' ')
 
   // A draft that printed an answer away from its label, a date in another
   // style than its locale's, an unanswered one as anything but nothing, a
@@ -469,31 +597,35 @@ describe('the site visit, generated from a formancy form', () => {
   // box for whether it was fixed, and the page counted in the footer. The
   // values are the starter's data, formatted here by Intl, not by the
   // runtime.
-  test('prints each answer on its line, the boxes as boxes, and every finding a row', async () => {
-    const document = resolved(SITE_VISIT_STARTER, data)
-    const pdf = await printed(document)
-    const answers = [
-      `Objekt: ${header['site']}`,
-      `Besucht am: ${dated(header['visitedOn'] as string)}`,
-      `Angekommen um: ${dated(header['arrivedAt'] as string, true)}`,
-      `Ergebnis: ${header['outcome']}`,
-      'Inspektor',
-      `Name: ${header['name']}`,
-      `Ausweis: ${header['licence']}`,
-      'Geprüft',
-      `Dach: ${box(header['checks_roof'])}`,
-      `Elektrik: ${box(header['checks_wiring'])}`,
-      `Heizkessel: ${box(header['checks_boiler'])}`,
-      'Zustand',
-      `Sicherheit: ${header['condition_safety']}`,
-      'Befunde',
-      `Zusammenfassung: ${header['summary']}`,
-    ]
-    expect(verify(fixtureOf('site-visit', document, { maxPagesExpected: 1, exactText: ['Site visit', ...answers, '1 / 1'] }), pdf)).toEqual([])
-    expect([header['startedAt'], header['condition_cleanliness']]).toEqual([null, null])
-    for (const label of ['Begonnen um:', 'Sauberkeit:']) expect(startingWith(pdf, label).map((line) => line.text)).toEqual([label])
-    expect(rows.map((finding) => startingWith(pdf, finding['ref'] as string).map((line) => line.text))).toEqual(rows.map((finding) => [row(finding)]))
-  }, TIMEOUT)
+  test(
+    'prints each answer on its line, the boxes as boxes, and every finding a row',
+    async () => {
+      const document = resolved(SITE_VISIT_STARTER, data)
+      const pdf = await printed(document)
+      const answers = [
+        `Objekt: ${header['site']}`,
+        `Besucht am: ${dated(header['visitedOn'] as string)}`,
+        `Angekommen um: ${dated(header['arrivedAt'] as string, true)}`,
+        `Ergebnis: ${header['outcome']}`,
+        'Inspektor',
+        `Name: ${header['name']}`,
+        `Ausweis: ${header['licence']}`,
+        'Geprüft',
+        `Dach: ${box(header['checks_roof'])}`,
+        `Elektrik: ${box(header['checks_wiring'])}`,
+        `Heizkessel: ${box(header['checks_boiler'])}`,
+        'Zustand',
+        `Sicherheit: ${header['condition_safety']}`,
+        'Befunde',
+        `Zusammenfassung: ${header['summary']}`,
+      ]
+      expect(verify(fixtureOf('site-visit', document, { maxPagesExpected: 1, exactText: ['Site visit', ...answers, '1 / 1'] }), pdf)).toEqual([])
+      expect([header['startedAt'], header['condition_cleanliness']]).toEqual([null, null])
+      for (const label of ['Begonnen um:', 'Sauberkeit:']) expect(startingWith(pdf, label).map((line) => line.text)).toEqual([label])
+      expect(rows.map((finding) => startingWith(pdf, finding['ref'] as string).map((line) => line.text))).toEqual(rows.map((finding) => [row(finding)]))
+    },
+    TIMEOUT,
+  )
 
   // A page break that lost a finding or printed one twice, or a page that
   // continued the table without its headers, would print a visit of many
@@ -501,12 +633,19 @@ describe('the site visit, generated from a formancy form', () => {
   // breaks. So 80 findings: every finding once and in order, the column
   // headers again on each page, and every page saying which of how many it
   // is.
-  test('prints a visit of 80 findings over pages, every row once, the header on each page, and n / N', async () => {
-    const many = Array.from({ length: 80 }, (_, index) => ({ ...(rows[index % rows.length] as Record<string, string | boolean>), ref: `F-${String(index + 1).padStart(2, '0')}` }))
-    const document = resolved(SITE_VISIT_STARTER, { ...data, detail: many, completeness: { complete: true, captured: many.length } })
-    const pdf = await printed(document)
-    expect(verify(fixtureOf('site-visit-80', document, { minPagesExpected: 2, maxPagesExpected: 5 }), pdf)).toEqual([])
-    expect(pdf.pages.map((page) => pageLines(page).at(-1)?.text)).toEqual(pdf.pages.map((page) => `${page.number} / ${pdf.pages.length}`))
-    expect(many.map((finding) => startingWith(pdf, finding['ref'] as string).map((line) => line.text))).toEqual(many.map((finding) => [row(finding)]))
-  }, TIMEOUT)
+  test(
+    'prints a visit of 80 findings over pages, every row once, the header on each page, and n / N',
+    async () => {
+      const many = Array.from({ length: 80 }, (_, index) => ({
+        ...(rows[index % rows.length] as Record<string, string | boolean>),
+        ref: `F-${String(index + 1).padStart(2, '0')}`,
+      }))
+      const document = resolved(SITE_VISIT_STARTER, { ...data, detail: many, completeness: { complete: true, captured: many.length } })
+      const pdf = await printed(document)
+      expect(verify(fixtureOf('site-visit-80', document, { minPagesExpected: 2, maxPagesExpected: 5 }), pdf)).toEqual([])
+      expect(pdf.pages.map((page) => pageLines(page).at(-1)?.text)).toEqual(pdf.pages.map((page) => `${page.number} / ${pdf.pages.length}`))
+      expect(many.map((finding) => startingWith(pdf, finding['ref'] as string).map((line) => line.text))).toEqual(many.map((finding) => [row(finding)]))
+    },
+    TIMEOUT,
+  )
 })

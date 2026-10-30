@@ -10,7 +10,7 @@ function decode(png: Uint8Array): { width: number; height: number; pixel: (x: nu
   const [depth, colour] = [png[24], png[25]]
   if (depth !== 8 || colour !== 6) throw new Error(`expected 8-bit RGBA, got depth ${depth} colour ${colour}`)
   const chunks: Uint8Array[] = []
-  for (let offset = 8; offset < png.length; ) {
+  for (let offset = 8; offset < png.length;) {
     const length = view.getUint32(offset)
     if (String.fromCharCode(...png.subarray(offset + 4, offset + 8)) === 'IDAT') chunks.push(png.subarray(offset + 8, offset + 8 + length))
     offset += 12 + length
@@ -38,7 +38,10 @@ describe('rasterPage', () => {
   // only asked for a PNG: the page is drawn at the scale asked, on white,
   // and what is on it is where the PDF puts it.
   test('draws a page at its scale, on white, with what is on it where it is', async () => {
-    const pdf = await pdfmakePdf({ pageSize: 'A4', content: [{ canvas: [{ type: 'rect', x: 0, y: 0, w: 100, h: 50, color: '#000000' }], absolutePosition: { x: 100, y: 100 } }] })
+    const pdf = await pdfmakePdf({
+      pageSize: 'A4',
+      content: [{ canvas: [{ type: 'rect', x: 0, y: 0, w: 100, h: 50, color: '#000000' }], absolutePosition: { x: 100, y: 100 } }],
+    })
     const { width, height, pixel } = decode(await rasterPage(pdf, 1, 2))
     expect([width, height]).toEqual([Math.ceil(595.28 * 2), Math.ceil(841.89 * 2)])
     expect(pixel(20, 20)).toEqual([255, 255, 255, 255])
@@ -58,13 +61,18 @@ describe('rasterPixels', () => {
   // another scale or in another layout than RGBA rows, would read something
   // else or nothing: the pixels are rasterPage's page, each one of them.
   test('gives the page rasterPage draws, pixel for pixel, as RGBA rows at its scale', async () => {
-    const pdf = await pdfmakePdf({ pageSize: 'A4', content: [{ canvas: [{ type: 'rect', x: 0, y: 0, w: 100, h: 50, color: '#000000' }], absolutePosition: { x: 100, y: 100 } }] })
+    const pdf = await pdfmakePdf({
+      pageSize: 'A4',
+      content: [{ canvas: [{ type: 'rect', x: 0, y: 0, w: 100, h: 50, color: '#000000' }], absolutePosition: { x: 100, y: 100 } }],
+    })
     const { data, width, height } = await rasterPixels(pdf, 1, 2)
     expect([width, height]).toEqual([Math.ceil(595.28 * 2), Math.ceil(841.89 * 2)])
     expect(data).toBeInstanceOf(Uint8ClampedArray)
     expect(data.length).toBe(width * height * 4)
     const png = decode(await rasterPage(pdf, 1, 2))
-    const differing = Array.from({ length: height }, (_, y) => y).find((y) => Array.from({ length: width }, (_, x) => x).some((x) => png.pixel(x, y).some((channel, at) => channel !== data[(y * width + x) * 4 + at])))
+    const differing = Array.from({ length: height }, (_, y) => y).find((y) =>
+      Array.from({ length: width }, (_, x) => x).some((x) => png.pixel(x, y).some((channel, at) => channel !== data[(y * width + x) * 4 + at])),
+    )
     expect(differing).toBeUndefined()
     expect([...data.subarray((250 * width + 300) * 4, (250 * width + 300) * 4 + 4)]).toEqual([0, 0, 0, 255])
   })

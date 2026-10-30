@@ -80,7 +80,10 @@ export function drafted<R>(report: ReportDefinition, run: (draft: Draft) => Sync
 /** The refusal for a result the validator refused, pointing at its first error; it gives at least one. */
 function invalid(errors: readonly ReportError[]): Refusal {
   const first = errors[0] as ReportError
-  return { ...refuse('invalid-document', `the edit would leave a report that is not valid: ${first.message}`, { path: first.path, componentId: first.componentId }), errors }
+  return {
+    ...refuse('invalid-document', `the edit would leave a report that is not valid: ${first.message}`, { path: first.path, componentId: first.componentId }),
+    errors,
+  }
 }
 
 /** `candidate` as the validator's copy of it, or the refusal that carries the validator's errors. */

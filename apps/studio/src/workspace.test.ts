@@ -87,7 +87,10 @@ describe('the workspace', () => {
     const add = room.addEventListener.bind(room)
     const remove = room.removeEventListener.bind(room)
     room.addEventListener = ((type: string, listener: EventListener) => (listening.add(listener), add(type, listener))) as typeof room.addEventListener
-    room.removeEventListener = ((type: string, listener: EventListener) => (listening.delete(listener), remove(type, listener))) as typeof room.removeEventListener
+    room.removeEventListener = ((type: string, listener: EventListener) => (
+      listening.delete(listener),
+      remove(type, listener)
+    )) as typeof room.removeEventListener
     const workspace = createWorkspace([BLANK, OTHER], { room })
     const [blank, other] = [workspace.open('blank').editor, workspace.open('other').editor]
     setWidth(2053)

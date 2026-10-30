@@ -1,5 +1,17 @@
 import { describe, expect, test } from 'vitest'
-import { ADDRESS_SCHEMES, COUNTRY_CODES, E_INVOICE_NAMES, E_INVOICE_PROFILES, FACTUR_X, FACTUR_X_PROFILES, INVOICE_TOTALS, SCHEME_IDS, UNIT_CODES, VAT_BREAKDOWN, VAT_PREFIXES } from './e-invoice.js'
+import {
+  ADDRESS_SCHEMES,
+  COUNTRY_CODES,
+  E_INVOICE_NAMES,
+  E_INVOICE_PROFILES,
+  FACTUR_X,
+  FACTUR_X_PROFILES,
+  INVOICE_TOTALS,
+  SCHEME_IDS,
+  UNIT_CODES,
+  VAT_BREAKDOWN,
+  VAT_PREFIXES,
+} from './e-invoice.js'
 import type { VatCategory } from './e-invoice.js'
 import { checkEInvoiceDate, checkInvoicingPeriod, E_INVOICE_DATES, periodBreak, supplyBreak } from './en16931-dates.js'
 import { checkEInvoiceDecimal, E_INVOICE_DECIMALS } from './en16931-decimals.js'
@@ -131,7 +143,29 @@ describe('the closed lists', () => {
   // customer's XML; one dropped would refuse an invoice that rendered
   // yesterday. Pinned whole, so either is a change a reviewer sees here.
   test('are the chosen codes and no others', () => {
-    expect(UNIT_CODES).toEqual(['C62', 'H87', 'SET', 'PR', 'LS', 'MIN', 'HUR', 'DAY', 'WEE', 'MON', 'ANN', 'GRM', 'KGM', 'TNE', 'MTR', 'KMT', 'MTK', 'MTQ', 'MLT', 'LTR', 'KWH'])
+    expect(UNIT_CODES).toEqual([
+      'C62',
+      'H87',
+      'SET',
+      'PR',
+      'LS',
+      'MIN',
+      'HUR',
+      'DAY',
+      'WEE',
+      'MON',
+      'ANN',
+      'GRM',
+      'KGM',
+      'TNE',
+      'MTR',
+      'KMT',
+      'MTK',
+      'MTQ',
+      'MLT',
+      'LTR',
+      'KWH',
+    ])
     expect([...COUNTRY_CODES].sort().join(' ')).toBe('AT BE BG CH CY CZ DE DK EE ES FI FR GB GR HR HU IE IS IT LI LT LU LV MT NL NO PL PT RO SE SI SK')
     expect(SCHEME_IDS).toEqual(['0002', '0009', '0060', '0088'])
     expect(VAT_PREFIXES).toEqual([...COUNTRY_CODES, 'EL'])
@@ -158,7 +192,9 @@ describe('the closed lists', () => {
     for (const unit of UNIT_CODES) expect(accepted(checkUnitCode(unit))).toBe(unit)
     expect(accepted(checkUnitCode('HUR '))).toBe('HUR')
     for (const text of ['Stk', 'h', 'kg', 'hur', 'XPP', 'E48', '']) {
-      expect(rule(checkUnitCode(text)), text).toBe('is not a unit of measure of those this release takes, a list narrower than UN/ECE Recommendation 20 (BR-CL-23)')
+      expect(rule(checkUnitCode(text)), text).toBe(
+        'is not a unit of measure of those this release takes, a list narrower than UN/ECE Recommendation 20 (BR-CL-23)',
+      )
     }
   })
 
@@ -180,7 +216,9 @@ describe('the closed lists', () => {
   test('take an electronic address scheme of the list, and none the CEF list holds that was not chosen', () => {
     for (const scheme of ADDRESS_SCHEMES) expect(accepted(checkAddressScheme(scheme))).toBe(scheme)
     for (const text of ['0060', '0002', 'em', 'EMAIL', '9906', ' EM', '']) {
-      expect(rule(checkAddressScheme(text)), text).toBe("is not an electronic address scheme of those this release takes, a list narrower than the CEF's EAS code list (BR-CL-25)")
+      expect(rule(checkAddressScheme(text)), text).toBe(
+        "is not an electronic address scheme of those this release takes, a list narrower than the CEF's EAS code list (BR-CL-25)",
+      )
     }
   })
 })
@@ -195,7 +233,9 @@ describe('a VAT identifier', () => {
     expect(accepted(checkVatIdentifier('EL123456789'))).toBe('EL123456789')
     expect(accepted(checkVatIdentifier('ATU12345678'))).toBe('ATU12345678')
     for (const text of ['UK123456789', 'de123456789', '123456789', 'XI123456789', 'DE']) {
-      expect(rule(checkVatIdentifier(text)), text).toBe('does not begin with a country code this release takes as a VAT prefix, then the number it gives (BR-CO-09)')
+      expect(rule(checkVatIdentifier(text)), text).toBe(
+        'does not begin with a country code this release takes as a VAT prefix, then the number it gives (BR-CO-09)',
+      )
     }
   })
 })
@@ -274,9 +314,13 @@ describe('a text of the e-invoice', () => {
     })
     for (const [term, { what }] of Object.entries(E_INVOICE_TEXTS)) expect(what, term).toMatch(new RegExp(`^the .+ \\(${term}\\)$`))
     expect(FULL_ADDRESS).toBe('§ 14 Abs. 4 Satz 1 Nr. 1 UStG')
-    expect(rule(checkEInvoiceText('BT-37', ' '))).toBe('is empty, and a German invoice gives the full address of the seller and the buyer (§ 14 Abs. 4 Satz 1 Nr. 1 UStG)')
+    expect(rule(checkEInvoiceText('BT-37', ' '))).toBe(
+      'is empty, and a German invoice gives the full address of the seller and the buyer (§ 14 Abs. 4 Satz 1 Nr. 1 UStG)',
+    )
     expect(neededBy('BR-06', 'is empty')).toBe('is empty, and an e-invoice needs it (BR-06)')
-    expect(neededBy(FULL_ADDRESS, 'has no value')).toBe('has no value, and a German invoice gives the full address of the seller and the buyer (§ 14 Abs. 4 Satz 1 Nr. 1 UStG)')
+    expect(neededBy(FULL_ADDRESS, 'has no value')).toBe(
+      'has no value, and a German invoice gives the full address of the seller and the buyer (§ 14 Abs. 4 Satz 1 Nr. 1 UStG)',
+    )
   })
 
   // The XSD types an identifier and a code (udt:IDType, udt:CodeType) as
@@ -291,8 +335,10 @@ describe('a text of the e-invoice', () => {
   test('is refused where the XML writes it as a token and it holds white space a token collapses', () => {
     const tokens = Object.entries(E_INVOICE_TEXTS).flatMap(([term, { token }]) => (token === true ? [term] : []))
     expect(tokens).toEqual(['BT-1', 'BT-23', 'BT-30', 'BT-32', 'BT-34', 'BT-38', 'BT-43', 'BT-47', 'BT-49', 'BT-53', 'BT-86', 'BT-126'])
-    const collapsed = 'holds white space the XML would not keep: its schema types the term as a token, read with each tab and line break as a space, two spaces as one, and none at either end'
-    for (const text of ['RE-2026  0820', 'RE-2026\t0820', 'RE-2026\n0820', 'RE-2026\r0820', ' RE-2026-0820', 'RE-2026-0820 ']) expect(rule(checkEInvoiceText('BT-1', text)), JSON.stringify(text)).toBe(collapsed)
+    const collapsed =
+      'holds white space the XML would not keep: its schema types the term as a token, read with each tab and line break as a space, two spaces as one, and none at either end'
+    for (const text of ['RE-2026  0820', 'RE-2026\t0820', 'RE-2026\n0820', 'RE-2026\r0820', ' RE-2026-0820', 'RE-2026-0820 '])
+      expect(rule(checkEInvoiceText('BT-1', text)), JSON.stringify(text)).toBe(collapsed)
     expect(accepted(checkEInvoiceText('BT-1', 'RE 2026 0820'))).toBe('RE 2026 0820')
     expect(rule(checkEInvoiceText('BT-38', '50735 '))).toBe(collapsed)
     expect(rule(checkEInvoiceText('BT-126', '1 0'.replace(' ', '  ')))).toBe(collapsed)
@@ -334,13 +380,23 @@ describe('a text of the e-invoice', () => {
         contact: { name: 'BT-41', telephone: 'BT-42', email: 'BT-43' },
         address: { line1: 'BT-35', line2: 'BT-36', postalCode: 'BT-38', city: 'BT-37', country: 'BT-40' },
       },
-      buyer: { name: 'BT-44', vatId: 'BT-48', legalId: 'BT-47', electronicAddress: 'BT-49', address: { line1: 'BT-50', line2: 'BT-51', postalCode: 'BT-53', city: 'BT-52', country: 'BT-55' } },
+      buyer: {
+        name: 'BT-44',
+        vatId: 'BT-48',
+        legalId: 'BT-47',
+        electronicAddress: 'BT-49',
+        address: { line1: 'BT-50', line2: 'BT-51', postalCode: 'BT-53', city: 'BT-52', country: 'BT-55' },
+      },
       reason: 'BT-120',
       payment: { iban: 'BT-84', bic: 'BT-86', accountName: 'BT-85', remittance: 'BT-83' },
     })
     const leaves = (value: unknown): string[] => (typeof value === 'string' ? [value] : Object.values(value as object).flatMap(leaves))
     const lines = ['BT-126', 'BT-130', 'BT-151', 'BT-153']
-    expect(leaves(E_INVOICE_TEXT_TERMS).sort()).toEqual(Object.keys(E_INVOICE_TEXTS).filter((term) => !lines.includes(term)).sort())
+    expect(leaves(E_INVOICE_TEXT_TERMS).sort()).toEqual(
+      Object.keys(E_INVOICE_TEXTS)
+        .filter((term) => !lines.includes(term))
+        .sort(),
+    )
   })
 })
 
@@ -351,7 +407,9 @@ describe('the payment account', () => {
   // The two cannot disagree about an account an invoice prints both of.
   test("is the EPC QR code's account rule, check digits and all", () => {
     expect(accepted(checkEInvoiceText('BT-84', 'de83 0123 4567 0012 3456 78'))).toBe('DE83012345670012345678')
-    expect(rule(checkEInvoiceText('BT-84', 'DE83 0123 4567 0012 3456 79'))).toBe('has check digits that do not match the rest of it (ISO 13616: the IBAN modulo 97 is 1)')
+    expect(rule(checkEInvoiceText('BT-84', 'DE83 0123 4567 0012 3456 79'))).toBe(
+      'has check digits that do not match the rest of it (ISO 13616: the IBAN modulo 97 is 1)',
+    )
     expect(rule(checkEInvoiceText('BT-84', 'CH44 3199 9123 0008 8901 2'))).toMatch(/^is a QR-IBAN/)
     expect(rule(checkEInvoiceText('BT-84', 'FO2000400440116243'))).toMatch(/^is not the IBAN of an account in SEPA/)
   })
@@ -364,8 +422,9 @@ describe("the seller's contact, the electronic addresses and the business proces
   // of fewer is a contact nobody can call, and refused where it is
   // written, by the very expression the pinned schematron holds, read as
   // XPath reads it after normalize-space.
-  test("is a telephone number of three digits at least, as XRechnung reads one", () => {
-    for (const text of ['+49 221 4710 820', '0221/4710-820', '123', 'Tel. 1 2 3', 'Durchwahl\n820', '1\n2\n3']) expect(accepted(checkEInvoiceText('BT-42', text)), JSON.stringify(text)).toBe(text)
+  test('is a telephone number of three digits at least, as XRechnung reads one', () => {
+    for (const text of ['+49 221 4710 820', '0221/4710-820', '123', 'Tel. 1 2 3', 'Durchwahl\n820', '1\n2\n3'])
+      expect(accepted(checkEInvoiceText('BT-42', text)), JSON.stringify(text)).toBe(text)
     for (const text of ['12', 'Zentrale', '+49', '\u0661\u0662\u0663']) {
       expect(rule(checkEInvoiceText('BT-42', text)), text).toBe("has fewer than three digits, which a telephone number has at least (XRechnung's BR-DE-27)")
     }
@@ -377,9 +436,12 @@ describe("the seller's contact, the electronic addresses and the business proces
   // neither end; its expression lets one begin the address, and the
   // expression is what KoSIT runs, so it is what is held here.
   test('is an email address of the shape XRechnung reads one in', () => {
-    for (const text of ['rechnung@formancy-haustechnik.example', 'erika.mustermann@haustechnik.example', 'a@b.c.d', '.a@b.c']) expect(accepted(checkEInvoiceText('BT-43', text)), text).toBe(text)
-    const shape = "is not an email address of the shape XRechnung reads one in: no white space, one @ with something before it, and after it two names at least, each joined to the next by one dot (XRechnung's BR-DE-28)"
-    for (const text of ['rechnung', 'a@b', 'a@@b.c', 'a@b.c.', 'a@.b.c', 'a@b..c', '@b.c', 'a b@c.d', 'a@b.c@d.e']) expect(rule(checkEInvoiceText('BT-43', text)), text).toBe(shape)
+    for (const text of ['rechnung@formancy-haustechnik.example', 'erika.mustermann@haustechnik.example', 'a@b.c.d', '.a@b.c'])
+      expect(accepted(checkEInvoiceText('BT-43', text)), text).toBe(text)
+    const shape =
+      "is not an email address of the shape XRechnung reads one in: no white space, one @ with something before it, and after it two names at least, each joined to the next by one dot (XRechnung's BR-DE-28)"
+    for (const text of ['rechnung', 'a@b', 'a@@b.c', 'a@b.c.', 'a@.b.c', 'a@b..c', '@b.c', 'a b@c.d', 'a@b.c@d.e'])
+      expect(rule(checkEInvoiceText('BT-43', text)), text).toBe(shape)
     // An identifier the XML writes as a token, as every URIID is.
     expect(rule(checkEInvoiceText('BT-43', ' a@b.c'))).toMatch(/^holds white space the XML would not keep/)
   })
@@ -423,7 +485,14 @@ describe("an XRechnung's texts", () => {
     expect(accepted(checkEInvoiceText('BT-20', 'Zahlbar binnen 14 Tagen\n#SKONTO#TAGE=14#PROZENT=2.00#\n'))).toMatch(/^Zahlbar/)
     expect(accepted(checkEInvoiceText('BT-20', 'Zahlbar binnen 14 Tagen', 'xrechnung'))).toBe('Zahlbar binnen 14 Tagen')
     // What the format holds past its texts is a need of its own, a part, by the place it stands in.
-    expect(Object.keys(XRECHNUNG_NEEDS)).toEqual(['businessProcess', 'buyerReference', 'payment', 'seller/contact', 'seller/electronicAddress', 'buyer/electronicAddress'])
+    expect(Object.keys(XRECHNUNG_NEEDS)).toEqual([
+      'businessProcess',
+      'buyerReference',
+      'payment',
+      'seller/contact',
+      'seller/electronicAddress',
+      'buyer/electronicAddress',
+    ])
   })
 
   // The scheme says what an address is (0038, Q3): one under 0204 is a
@@ -433,7 +502,9 @@ describe("an XRechnung's texts", () => {
   test('hold an electronic address under 0204 to a Leitweg-ID, after its term’s rule', () => {
     for (const kind of ['facturX', 'xrechnung'] as const) {
       expect(accepted(checkElectronicAddress('BT-49', '0204', '991-33333TEST-33', kind))).toBe('991-33333TEST-33')
-      expect(rule(checkElectronicAddress('BT-49', '0204', '991-33333TEST-34', kind))).toMatch(/^is under 0204, a Leitweg-ID, and has check digits that do not match/)
+      expect(rule(checkElectronicAddress('BT-49', '0204', '991-33333TEST-34', kind))).toMatch(
+        /^is under 0204, a Leitweg-ID, and has check digits that do not match/,
+      )
       expect(rule(checkElectronicAddress('BT-34', '0204', 'rechnung@bund.example', kind))).toMatch(/^is under 0204, a Leitweg-ID, and is not shaped as one/)
       expect(accepted(checkElectronicAddress('BT-49', 'EM', 'rechnung@bund.example', kind))).toBe('rechnung@bund.example')
       expect(rule(checkElectronicAddress('BT-49', '0204', '991-33333TEST-33 ', kind))).toMatch(/^holds white space the XML would not keep/)
@@ -453,8 +524,12 @@ describe('a decimal of the e-invoice', () => {
     expect(accepted(checkEInvoiceDecimal('BT-131', '-12.3'))).toBe('-12.30')
     expect(accepted(checkEInvoiceDecimal('BT-131', '-0.010'))).toBe('-0.01')
     expect(accepted(checkEInvoiceDecimal('BT-113', '0'))).toBe('0.00')
-    expect(rule(checkEInvoiceDecimal('BT-131', '10.505'))).toBe('is not a whole number of cents, and the XML writes it with two decimals at most: it is rounded where the template computes it (BR-DEC-23)')
-    expect(rule(checkEInvoiceDecimal('BT-113', '0.001'))).toBe('is not a whole number of cents, and the XML writes it with two decimals at most: it is rounded where the template computes it (BR-DEC-16)')
+    expect(rule(checkEInvoiceDecimal('BT-131', '10.505'))).toBe(
+      'is not a whole number of cents, and the XML writes it with two decimals at most: it is rounded where the template computes it (BR-DEC-23)',
+    )
+    expect(rule(checkEInvoiceDecimal('BT-113', '0.001'))).toBe(
+      'is not a whole number of cents, and the XML writes it with two decimals at most: it is rounded where the template computes it (BR-DEC-16)',
+    )
   })
 
   // BR-27: a negative net price is refused by every validator. A
@@ -465,7 +540,9 @@ describe('a decimal of the e-invoice', () => {
     expect(accepted(checkEInvoiceDecimal('BT-146', '12.3456'))).toBe('12.3456')
     expect(accepted(checkEInvoiceDecimal('BT-129', '-1'))).toBe('-1')
     expect(accepted(checkEInvoiceDecimal('BT-129', '2.500'))).toBe('2.500')
-    expect(rule(checkEInvoiceDecimal('BT-146', '-0.01'))).toBe('is negative, and a net price never is: a discount is a line of negative quantity at a positive price (BR-27)')
+    expect(rule(checkEInvoiceDecimal('BT-146', '-0.01'))).toBe(
+      'is negative, and a net price never is: a discount is a line of negative quantity at a positive price (BR-27)',
+    )
   })
 
   // A value that is not a decimal is refused by its type before any rule.
@@ -509,7 +586,9 @@ describe('the VAT categories', () => {
     expect(rule(checkVatRate('E', '7'))).toBe("is not 0, and an exempt category's rate is 0 (BR-E-05)")
     expect(rule(checkVatRate('AE', '0.01'))).toBe("is not 0, and a reverse-charged category's rate is 0 (BR-AE-05)")
     for (const rate of ['100', '-19', '19.000', '019', '.5', '7,5', '1e1', '']) {
-      expect(broken(checkVatRate('S', rate)), rate).toBe('is not a rate this release takes: a percentage from 0 to below 100, an exact decimal of two places at most')
+      expect(broken(checkVatRate('S', rate)), rate).toBe(
+        'is not a rate this release takes: a percentage from 0 to below 100, an exact decimal of two places at most',
+      )
     }
   })
 
@@ -521,7 +600,10 @@ describe('the VAT categories', () => {
   // fatal, when a review measured it on 17 October 2026. Refused where the
   // rate is written, compared as text, by value.
   test('are refused standard rated below 0.5, which BR-CO-17 rounds to 0', () => {
-    for (const rate of ['0.01', '0.4', '0.40', '0.49']) expect(rule(checkVatRate('S', rate)), rate).toBe("is below 0.5, which BR-CO-17 rounds to 0, and a breakdown whose rate rounds to 0 holds a tax that rounds to 0 too: a standard rated category's tax would not, past a small basis (BR-CO-17)")
+    for (const rate of ['0.01', '0.4', '0.40', '0.49'])
+      expect(rule(checkVatRate('S', rate)), rate).toBe(
+        "is below 0.5, which BR-CO-17 rounds to 0, and a breakdown whose rate rounds to 0 holds a tax that rounds to 0 too: a standard rated category's tax would not, past a small basis (BR-CO-17)",
+      )
     for (const rate of ['0.5', '0.50', '0.99', '1', '2.1']) expect(accepted(checkVatRate('S', rate)), rate).toBe(rate.replace(/0$/, ''))
     expect(accepted(checkVatRate('E', '0'))).toBe('0')
   })
@@ -534,7 +616,9 @@ describe('the VAT categories', () => {
     expect(vatReasonBreak('AE', true)).toBeUndefined()
     expect(recorded(vatReasonBreak('S', true))).toBe('a standard rated category gives no exemption reason (BR-S-10)')
     expect(recorded(vatReasonBreak('E', false))).toBe('an exempt category gives its exemption reason (BR-E-10)')
-    expect(recorded(vatReasonBreak('AE', false))).toBe('a reverse-charged category gives its reason, "Reverse charge" or its words in the invoice\'s language (BR-AE-10)')
+    expect(recorded(vatReasonBreak('AE', false))).toBe(
+      'a reverse-charged category gives its reason, "Reverse charge" or its words in the invoice\'s language (BR-AE-10)',
+    )
   })
 
   // One breakdown per rate of the standard rated lines (BR-S-08), and
@@ -545,7 +629,14 @@ describe('the VAT categories', () => {
   // where it is. Named by the rule the XML would break, as the runtime's
   // breakdown names it.
   test('are one breakdown each: standard rates distinct by value, one exempt and one reverse-charged at most', () => {
-    expect(vatCategoryBreaks([{ code: 'S', rate: '19' }, { code: 'S', rate: '7' }, { code: 'E', rate: '0' }, { code: 'AE', rate: '0' }])).toEqual([])
+    expect(
+      vatCategoryBreaks([
+        { code: 'S', rate: '19' },
+        { code: 'S', rate: '7' },
+        { code: 'E', rate: '0' },
+        { code: 'AE', rate: '0' },
+      ]),
+    ).toEqual([])
     const breaks = vatCategoryBreaks([
       { code: 'S', rate: '19' },
       { code: 'S', rate: '19.00' },
@@ -557,7 +648,11 @@ describe('the VAT categories', () => {
     ])
     for (const { rule: text } of breaks) said.add(text)
     expect(breaks).toEqual([
-      { index: 1, field: 'rate', rule: 'is the rate of an earlier standard rated category, and the standard rated lines have one breakdown for each rate (BR-S-08)' },
+      {
+        index: 1,
+        field: 'rate',
+        rule: 'is the rate of an earlier standard rated category, and the standard rated lines have one breakdown for each rate (BR-S-08)',
+      },
       { index: 3, field: 'code', rule: 'is a second exempt category, and the exempt lines have exactly one breakdown (BR-E-01)' },
       { index: 5, field: 'code', rule: 'is a second reverse-charged category, and the reverse-charged lines have exactly one breakdown (BR-AE-01)' },
     ])
@@ -618,7 +713,9 @@ describe('the rules over what an invoice holds', () => {
   test('hold the time of supply, and a period that is one', () => {
     expect(supplyBreak(true, false)).toBeUndefined()
     expect(supplyBreak(false, true)).toBeUndefined()
-    expect(supplyBreak(false, false)).toBe('a German invoice says when it was supplied: a delivery date (BT-72), an invoicing period (BG-14), or both (§ 14 Abs. 4 Satz 1 Nr. 6 UStG)')
+    expect(supplyBreak(false, false)).toBe(
+      'a German invoice says when it was supplied: a delivery date (BT-72), an invoicing period (BG-14), or both (§ 14 Abs. 4 Satz 1 Nr. 6 UStG)',
+    )
     expect(periodBreak(true, false)).toBeUndefined()
     expect(periodBreak(false, true)).toBeUndefined()
     expect(recorded(periodBreak(false, false))).toBe('an invoicing period has a start (BT-73), an end (BT-74), or both (BR-CO-19)')
@@ -636,7 +733,8 @@ describe('the rules over what an invoice holds', () => {
   test('hold a date to a day on the calendar, written YYYY-MM-DD', () => {
     expect(accepted(checkEInvoiceDate('2026-10-17'))).toBe('2026-10-17')
     expect(accepted(checkEInvoiceDate('2024-02-29'))).toBe('2024-02-29')
-    for (const text of ['2026-02-29', '2026-10-17T08:00:00', '17.10.2026', 'Muster AG', '']) expect(broken(checkEInvoiceDate(text)), text).toBe('is not a day on the calendar written YYYY-MM-DD')
+    for (const text of ['2026-02-29', '2026-10-17T08:00:00', '17.10.2026', 'Muster AG', ''])
+      expect(broken(checkEInvoiceDate(text)), text).toBe('is not a day on the calendar written YYYY-MM-DD')
   })
 })
 
@@ -654,7 +752,11 @@ describe('the rules named', () => {
     const listed: readonly string[] = [...EN16931_RULES, ...XRECHNUNG_RULES]
     for (const text of said) for (const id of ruleIds(text)) expect(listed, `${id} in "${text}"`).toContain(id)
     const named = new Set([...said].flatMap(ruleIds))
-    for (const term of [...Object.values(E_INVOICE_KIND_TEXTS).flatMap((texts) => Object.values(texts)), ...Object.values(E_INVOICE_DECIMALS), ...Object.values(E_INVOICE_DATES)]) {
+    for (const term of [
+      ...Object.values(E_INVOICE_KIND_TEXTS).flatMap((texts) => Object.values(texts)),
+      ...Object.values(E_INVOICE_DECIMALS),
+      ...Object.values(E_INVOICE_DATES),
+    ]) {
       // The UStG's full address is the law's, not one of CEN's rules.
       if (term.required !== undefined && term.required !== FULL_ADDRESS) named.add(term.required)
     }

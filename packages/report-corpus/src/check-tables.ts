@@ -146,7 +146,8 @@ class Reading {
     for (const [index, cell] of this.#words.entries()) {
       let count = 0
       while (at + count < words.length && taken[index]! + count < cell.length && words[at + count] === cell[taken[index]! + count]) count++
-      if (first && count === 0) return `prints nothing of its column ${this.#cells[index]!.column + 1} cell ${quoted(this.#cells[index]!.text)} on its first line`
+      if (first && count === 0)
+        return `prints nothing of its column ${this.#cells[index]!.column + 1} cell ${quoted(this.#cells[index]!.text)} on its first line`
       taken[index] = taken[index]! + count
       at += count
     }
@@ -200,7 +201,9 @@ export function headers(pages: readonly Page[], read: ReadTables, tables: readon
       const absent = table.header.filter((cell) => !body.some((line) => line.bottom <= first.top + OVERLAP && lineHas(line, cell)))
       if (absent.length === 0) return []
       const cells = absent.map((cell) => quoted(cell)).join(', ')
-      return [`page ${index + 1}: ${absent.length === 1 ? `the header cell ${cells} is` : `the header cells ${cells} are`} not above the first line of table ${table.id}, ${quoted(first.text)}`]
+      return [
+        `page ${index + 1}: ${absent.length === 1 ? `the header cell ${cells} is` : `the header cells ${cells} are`} not above the first line of table ${table.id}, ${quoted(first.text)}`,
+      ]
     })
   })
 }
@@ -216,7 +219,10 @@ export function headers(pages: readonly Page[], read: ReadTables, tables: readon
 export function orphans(pages: readonly Page[], read: ReadTables, tables: readonly ExpectedTable[]): string[] {
   const last = (index: number, heading: Line): boolean => {
     const page = pages[index]!
-    return !page.body.some((line) => line !== heading && line.top >= heading.bottom - OVERLAP) && !pictures(page).some(({ box }) => box.top >= heading.bottom - OVERLAP)
+    return (
+      !page.body.some((line) => line !== heading && line.top >= heading.bottom - OVERLAP) &&
+      !pictures(page).some(({ box }) => box.top >= heading.bottom - OVERLAP)
+    )
   }
   const groupHeaders = read.rows.flatMap(({ row, lines: [start] }) => {
     if (row.kind !== 'groupHeader' || start === undefined || !last(start.page, pages[start.page]!.body[start.line]!)) return []
@@ -226,7 +232,9 @@ export function orphans(pages: readonly Page[], read: ReadTables, tables: readon
     const headerLine = table.header.join(' ')
     if (headerLine === '') return []
     return pages.flatMap(({ body }, index) =>
-      body.filter((line) => line.text === headerLine && last(index, line)).map(() => `page ${index + 1}: the column header of table ${table.id} ends the page, with none of its rows under it`),
+      body
+        .filter((line) => line.text === headerLine && last(index, line))
+        .map(() => `page ${index + 1}: the column header of table ${table.id} ends the page, with none of its rows under it`),
     )
   })
   return [...groupHeaders, ...columnHeaders]

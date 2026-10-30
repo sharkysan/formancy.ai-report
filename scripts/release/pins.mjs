@@ -34,7 +34,14 @@ export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex'
 export function describe({ path, bytes }) {
   const entries = readTarball(bytes)
   const manifest = JSON.parse(entries.get('package/package.json')?.toString('utf8') ?? '{}')
-  return { file: basename(path), sha256: sha256(bytes), name: manifest.name, version: manifest.version, license: manifest.license, carries: LICENSE_FILES.filter((file) => entries.has(`package/${file}`)) }
+  return {
+    file: basename(path),
+    sha256: sha256(bytes),
+    name: manifest.name,
+    version: manifest.version,
+    license: manifest.license,
+    carries: LICENSE_FILES.filter((file) => entries.has(`package/${file}`)),
+  }
 }
 
 /**
@@ -160,11 +167,15 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/release/pins.mjs'))
     if (file === undefined) throw new Error('usage: pins.mjs sbom --report <dir> <sbom file>')
     const bytes = readFileSync(file)
     const problems = sbomProblems(bytes)
-    settle(problems.length > 0 ? problems : sbomReportProblems(readReport(need('report')), JSON.parse(bytes.toString('utf8'))), 'The SBOM is not this release’s')
+    settle(
+      problems.length > 0 ? problems : sbomReportProblems(readReport(need('report')), JSON.parse(bytes.toString('utf8'))),
+      'The SBOM is not this release’s',
+    )
     console.log(`checked=${JSON.stringify(pinsOf([{ path: relative(process.cwd(), file), bytes }]))}`)
   } else if (stage === 'downloads') {
     const [tarballDir, sbom] = positional
-    if (tarballDir === undefined || sbom === undefined) throw new Error('usage: pins.mjs downloads --release <r> --version <x.y.z> --report <dir> <tarball dir> <sbom file>')
+    if (tarballDir === undefined || sbom === undefined)
+      throw new Error('usage: pins.mjs downloads --release <r> --version <x.y.z> --report <dir> <tarball dir> <sbom file>')
     const reportDir = need('report')
     settle(
       [

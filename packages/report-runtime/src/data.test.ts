@@ -324,9 +324,16 @@ const SECOND = '8861b39c-51df-4cc0-b71e-63a6d3f16b1b'
 /** A submission of the site visit's first version; `more` replaces or adds what it names. */
 const submission = (more: Record<string, unknown> = {}): Record<string, unknown> => ({ id: FIRST, form: 'site-visit', formHash: VERSION_1, ...more })
 /** A formancy form's source: each submission with the form and the version that collected it. */
-const formSource = (submissions: readonly unknown[] = [submission()], more: Record<string, unknown> = {}): Record<string, unknown> => ({ provider: 'formancy-form', submissions, ...more })
+const formSource = (submissions: readonly unknown[] = [submission()], more: Record<string, unknown> = {}): Record<string, unknown> => ({
+  provider: 'formancy-form',
+  submissions,
+  ...more,
+})
 /** Formancy Data's source: the published form each of the sample report's datasets was read from. */
-const dataSource = (forms: Record<string, unknown> = { header: 'order', detail: 'order-line' }): Record<string, unknown> => ({ provider: 'formancy-data', forms })
+const dataSource = (forms: Record<string, unknown> = { header: 'order', detail: 'order-line' }): Record<string, unknown> => ({
+  provider: 'formancy-data',
+  forms,
+})
 /** `count` detail rows, as a report of that many submissions reads them, one a row. */
 const rows = (count: number): Record<string, unknown>[] => Array.from({ length: count }, (_, index) => sampleRow({ sku: `A-${String(index + 1)}` }))
 
@@ -402,7 +409,9 @@ describe('checkData: where the data came from', () => {
   // the cost, and this case says so.
   test('accepts what fits the syntax, whatever it means', () => {
     const ids = ['Mustermann', '756.1234.5678.97', 'CH9300762011623852957', 'erika.mustermann-example.ch']
-    const source = formSource(ids.map((id, index) => submission({ id, form: index === 0 ? 'Lohnausweis_Mustermann_2026.pdf' : 'site-visit', formHash: 'f'.repeat(64) })))
+    const source = formSource(
+      ids.map((id, index) => submission({ id, form: index === 0 ? 'Lohnausweis_Mustermann_2026.pdf' : 'site-visit', formHash: 'f'.repeat(64) })),
+    )
     expect(checked(checkData(sampleReport(), withData({ source }, rows(ids.length)), final)).source).toEqual(source)
   })
 
@@ -412,7 +421,24 @@ describe('checkData: where the data came from', () => {
   // read whole would be refused when it renders, or one it refused would be
   // accepted here.
   test('isSubmissionId accepts what a source accepts as a submission id, and nothing else', () => {
-    const ids = [FIRST, 'Mustermann', '756.1234.5678.97', '7', 'a'.repeat(128), 'a'.repeat(129), 'Erika Mustermann', 'erika@example.ch', 'visit/7', 'zürich-7', '-7', '.7', '_x', '', 4711, null]
+    const ids = [
+      FIRST,
+      'Mustermann',
+      '756.1234.5678.97',
+      '7',
+      'a'.repeat(128),
+      'a'.repeat(129),
+      'Erika Mustermann',
+      'erika@example.ch',
+      'visit/7',
+      'zürich-7',
+      '-7',
+      '.7',
+      '_x',
+      '',
+      4711,
+      null,
+    ]
     for (const id of ids) {
       const accepted = checkData(sampleReport(), withData({ source: formSource([submission({ id })]) }), final).ok
       expect(isSubmissionId(id), String(id)).toBe(accepted)
@@ -427,7 +453,10 @@ describe('checkData: where the data came from', () => {
     const { detail: _rows, ...noDetail } = sampleData([])
     const letter = { ...sampleReport(), datasets: headerOnly }
     const lettered = (source: unknown): ReportData => ({ ...noDetail, completeness: { complete: true, captured: 0 }, source }) as unknown as ReportData
-    expect(checked(checkData(letter, lettered(dataSource({ header: 'order' })), final)).source).toEqual({ provider: 'formancy-data', forms: { header: 'order' } })
+    expect(checked(checkData(letter, lettered(dataSource({ header: 'order' })), final)).source).toEqual({
+      provider: 'formancy-data',
+      forms: { header: 'order' },
+    })
     expect(where(errors(checkData(letter, lettered(dataSource()), final)))).toEqual(['invalid-source /source/forms/detail'])
     expect(where(errors(checkData(sampleReport(), withData({ source: dataSource({ header: 'order' }) }), final)))).toEqual(['invalid-source /source/forms'])
     expect(where(errors(checkData(sampleReport(), withData({ source: dataSource({}) }), final)))).toEqual(['invalid-source /source/forms'])
@@ -444,9 +473,15 @@ describe('checkData: where the data came from', () => {
   // that is not so, and its list costs one comparison, whatever it holds.
   test('refuses a source too long or too many for its rows before reading past the bound', () => {
     const long = 'a'.repeat(129)
-    expect(where(errors(checkData(sampleReport(), withData({ source: formSource([submission({ id: long })]) }), final)))).toEqual(['invalid-source /source/submissions/0/id'])
-    expect(where(errors(checkData(sampleReport(), withData({ source: formSource([submission({ form: long })]) }), final)))).toEqual(['invalid-source /source/submissions/0/form'])
-    expect(where(errors(checkData(sampleReport(), withData({ source: dataSource({ header: long, detail: 'order-line' }) }), final)))).toEqual(['invalid-source /source/forms/header'])
+    expect(where(errors(checkData(sampleReport(), withData({ source: formSource([submission({ id: long })]) }), final)))).toEqual([
+      'invalid-source /source/submissions/0/id',
+    ])
+    expect(where(errors(checkData(sampleReport(), withData({ source: formSource([submission({ form: long })]) }), final)))).toEqual([
+      'invalid-source /source/submissions/0/form',
+    ])
+    expect(where(errors(checkData(sampleReport(), withData({ source: dataSource({ header: long, detail: 'order-line' }) }), final)))).toEqual([
+      'invalid-source /source/forms/header',
+    ])
     const at = 'a'.repeat(128)
     expect(checked(checkData(sampleReport(), withData({ source: formSource([submission({ id: at, form: at })]) }), final)).source).toBeDefined()
     const two = formSource([submission(), submission({ id: SECOND })])
@@ -459,7 +494,9 @@ describe('checkData: where the data came from', () => {
     expect(where(errors(checkData(letter, { ...noDetail, source: two } as unknown as ReportData, final)))).toEqual(['invalid-source /source/submissions'])
     expect(checked(checkData(letter, { ...noDetail, source: formSource() } as unknown as ReportData, final)).source).toEqual(formSource())
     // A sparse list of one past the rows: read item by item, its holes would be errors.
-    expect(where(errors(checkData(sampleReport(), withData({ source: formSource(new Array(3)) }, rows(2)), final)))).toEqual(['invalid-source /source/submissions'])
+    expect(where(errors(checkData(sampleReport(), withData({ source: formSource(new Array(3)) }, rows(2)), final)))).toEqual([
+      'invalid-source /source/submissions',
+    ])
     // Rows that cannot be counted are the rows' error, never the source's.
     expect(where(errors(checkData(sampleReport(), withData({ detail: 'rows', source: two }), final)))).toEqual(['wrong-type /detail'])
   })
@@ -479,7 +516,9 @@ describe('checkData: where the data came from', () => {
     })
     const hiddenId = Object.defineProperty({ form: 'site-visit', formHash: VERSION_1 }, 'id', getter(FIRST))
     // eslint-disable-next-line no-sparse-arrays
-    const refused = errors(checkData(sampleReport(), withData({ source: formSource([hiddenId, , submission({ id: SECOND, formHash: VERSION_2 })]) }, rows(3)), final))
+    const refused = errors(
+      checkData(sampleReport(), withData({ source: formSource([hiddenId, , submission({ id: SECOND, formHash: VERSION_2 })]) }, rows(3)), final),
+    )
     expect(where(refused)).toEqual(['not-data /source/submissions/0/id', 'not-data /source/submissions/1'])
     const hiddenForm = Object.defineProperty({ id: FIRST, formHash: VERSION_1 }, 'form', getter('site-visit'))
     expect(where(errors(checkData(sampleReport(), withData({ source: formSource([hiddenForm]) }), final)))).toEqual(['not-data /source/submissions/0/form'])
@@ -497,9 +536,20 @@ describe('checkData: where the data came from', () => {
     expect(where(errors(checkData(sampleReport(), withData({ source: hiddenProvider }), final)))).toEqual(['not-data /source/provider'])
     expect(ran).toBe(false)
     expect(where(errors(checkData(sampleReport(), withData({ source: { ...dataSource(), [Symbol('hidden')]: 1 } }), final)))).toEqual(['not-data /source'])
-    const throwing = new Proxy({}, { ownKeys: () => { throw new Error('read') } })
+    const throwing = new Proxy(
+      {},
+      {
+        ownKeys: () => {
+          throw new Error('read')
+        },
+      },
+    )
     expect(where(errors(checkData(sampleReport(), withData({ source: throwing }), final)))).toEqual(['not-data /source'])
-    const throwingList = new Proxy([], { getOwnPropertyDescriptor: () => { throw new Error('read') } })
+    const throwingList = new Proxy([], {
+      getOwnPropertyDescriptor: () => {
+        throw new Error('read')
+      },
+    })
     expect(where(errors(checkData(sampleReport(), withData({ source: formSource(throwingList) }), final)))).toEqual(['not-data /source/submissions'])
   })
 

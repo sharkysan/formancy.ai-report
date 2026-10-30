@@ -7,7 +7,13 @@ import type { Cell, Row } from './table.js'
 import { tableRules } from './table-rules.js'
 
 /** The plan a table whose text this test never checks needs: every token prints in Roboto. */
-const ROBOTO_ONLY = { familyOf: () => 'Roboto', usable: () => true, defaultFamily: 'Roboto', face: () => ({ glyphs: new Set<number>(), lineFactor: 2400 / 2048, name: 'Roboto' }), engine: { families: {}, files: new Map() } } satisfies RenderFonts
+const ROBOTO_ONLY = {
+  familyOf: () => 'Roboto',
+  usable: () => true,
+  defaultFamily: 'Roboto',
+  face: () => ({ glyphs: new Set<number>(), lineFactor: 2400 / 2048, name: 'Roboto' }),
+  engine: { families: {}, files: new Map() },
+} satisfies RenderFonts
 
 /**
  * The planner's decisions on what pdfmake reports, without pdfmake: rows of
@@ -21,7 +27,10 @@ const BODY = { top: 0, bottom: 105 }
 const CONTINUED = 10
 
 function rowsOf(kinds: readonly RowKind[]): Row[] {
-  return ['header' as const, ...kinds].map((kind, index) => ({ kind, cells: [{ text: `R${index}`, alignment: 'left' } as Cell, { text: '', alignment: 'left' } as Cell] }))
+  return ['header' as const, ...kinds].map((kind, index) => ({
+    kind,
+    cells: [{ text: `R${index}`, alignment: 'left' } as Cell, { text: '', alignment: 'left' } as Cell],
+  }))
 }
 
 function setUp(kinds: readonly RowKind[], blocks: readonly KeepBlock[], keepWithHeaderRows = 1): { rows: Row[]; build: Build; plan: TablePlan } {
@@ -33,7 +42,8 @@ function setUp(kinds: readonly RowKind[], blocks: readonly KeepBlock[], keepWith
 }
 
 /** What pdfmake reports of a row: its first cell's mark, page and top. */
-const reported = (row: Row, pageNumber: number, top: number): Node => ({ headlineLevel: row.cells[0]!.headlineLevel, startPosition: { pageNumber, top } }) as unknown as Node
+const reported = (row: Row, pageNumber: number, top: number): Node =>
+  ({ headlineLevel: row.cells[0]!.headlineLevel, startPosition: { pageNumber, top } }) as unknown as Node
 
 /** pdfmake's report of every row from `first`, where the arithmetic puts it, on page 1 on; `shift` moves one row's top. */
 function queriesOf(rows: readonly Row[], plan: TablePlan, first: number, top: number, shift: Readonly<Record<number, number>> = {}): NodeQueries {

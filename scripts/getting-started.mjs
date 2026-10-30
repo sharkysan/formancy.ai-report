@@ -81,7 +81,10 @@ export function fencedBlocks(markdown) {
       while (at < lines.length && lines[at].replace(/^(?:\s*>)*\s*/, '').trim() !== opening.replace(/^(?:\s*>)*\s*/, '')) at += 1
       if (at === lines.length) at = cursor
       cursor = at + 1
-      const [language = '', ...rest] = (code.lang ?? '').trim().split(/\s+/).filter((word) => word !== '')
+      const [language = '', ...rest] = (code.lang ?? '')
+        .trim()
+        .split(/\s+/)
+        .filter((word) => word !== '')
       const attributes = new Map(rest.map((word) => [word.split('=')[0], word.includes('=') ? word.slice(word.indexOf('=') + 1) : '']))
       blocks.push({ line: at + 1, language, attributes, words: rest, code: code.text, indented: code.codeBlockStyle === 'indented', lead })
     }
@@ -111,7 +114,8 @@ export function readGuide(markdown, hosts) {
   const read = new Map(hosts.map((host) => [host.kind, { files: new Map(), output: null, installs: [], settings: {}, blocks: [] }]))
   for (const block of fencedBlocks(markdown)) {
     const where = `docs/getting-started.md line ${String(block.line)}`
-    if (block.indented) throw new Error(`${where}: an indented code block, which has no info string to say whether it is code the gate should run; fence it and tag it`)
+    if (block.indented)
+      throw new Error(`${where}: an indented code block, which has no info string to say whether it is code the gate should run; fence it and tag it`)
     const language = block.language.toLowerCase()
     if (language === '') throw new Error(`${where}: a fence with no language, so nothing can say whether it is code the gate should run`)
     const unknown = block.words.filter((word) => !ATTRIBUTES.has(word.split('=')[0]) || !word.includes('='))
@@ -119,7 +123,10 @@ export function readGuide(markdown, hosts) {
     const tag = block.attributes.get('guide')
     if (tag === undefined) {
       if (CODE.has(language)) throw new Error(`${where}: a ${block.language} block with no guide= tag, which the install gate would never compile or run`)
-      if (!UNTAGGED.has(language)) throw new Error(`${where}: a ${block.language} block with no guide= tag; only ${[...UNTAGGED].join(', ')} may go untagged, so an install line or an output nothing checks cannot slip in`)
+      if (!UNTAGGED.has(language))
+        throw new Error(
+          `${where}: a ${block.language} block with no guide= tag; only ${[...UNTAGGED].join(', ')} may go untagged, so an install line or an output nothing checks cannot slip in`,
+        )
       if (block.attributes.has('file')) throw new Error(`${where}: file= without guide= names a file in no host`)
       continue
     }
@@ -135,8 +142,10 @@ export function readGuide(markdown, hosts) {
         const host = known.get(kind)
         const file = block.attributes.get('file') ?? host.entry
         if (!FILE.test(file)) throw new Error(`${where}: file=${file} is not a plain .ts or .tsx name`)
-        if (!file.endsWith(`.${language}`)) throw new Error(`${where}: a ${language} block in ${file}, which ${kind} compiles as ${file.slice(file.lastIndexOf('.') + 1)}`)
-        if (file !== host.entry && !host.bundled) throw new Error(`${where}: ${kind} runs one module, ${host.entry}, and bundles none, so ${file} would be compiled and never run`)
+        if (!file.endsWith(`.${language}`))
+          throw new Error(`${where}: a ${language} block in ${file}, which ${kind} compiles as ${file.slice(file.lastIndexOf('.') + 1)}`)
+        if (file !== host.entry && !host.bundled)
+          throw new Error(`${where}: ${kind} runs one module, ${host.entry}, and bundles none, so ${file} would be compiled and never run`)
         const files = read.get(kind).files
         const stem = file.slice(0, file.lastIndexOf('.'))
         const clash = [...files.keys()].find((other) => other !== file && other.slice(0, other.lastIndexOf('.')) === stem)
@@ -154,7 +163,10 @@ export function readGuide(markdown, hosts) {
       }
     } else if (language === 'sh') {
       if (block.attributes.has('file')) throw new Error(`${where}: an install line names no file`)
-      for (const line of block.code.split('\n').map((text) => text.trim()).filter((text) => text !== '')) {
+      for (const line of block.code
+        .split('\n')
+        .map((text) => text.trim())
+        .filter((text) => text !== '')) {
         const setting = SETTING.exec(line)
         const installs = setting === null ? installLine(line, where) : []
         for (const kind of kinds) {
@@ -167,7 +179,8 @@ export function readGuide(markdown, hosts) {
     }
   }
   for (const [kind, entry] of read) {
-    if (!entry.files.has(known.get(kind).entry)) throw new Error(`docs/getting-started.md gives ${kind} no ${known.get(kind).entry}, the module the install gate runs for it`)
+    if (!entry.files.has(known.get(kind).entry))
+      throw new Error(`docs/getting-started.md gives ${kind} no ${known.get(kind).entry}, the module the install gate runs for it`)
   }
   return read
 }
@@ -196,7 +209,9 @@ function installLine(line, where) {
  * a Node built-in; relative imports are the guide's own modules.
  */
 export function importedPackages(code) {
-  const specifiers = [...code.matchAll(/\bfrom\s+['"]([^'"]+)['"]|\bimport\s+['"]([^'"]+)['"]|\bimport\(\s*['"]([^'"]+)['"]\s*\)/g)].map((match) => match[1] ?? match[2] ?? match[3])
+  const specifiers = [...code.matchAll(/\bfrom\s+['"]([^'"]+)['"]|\bimport\s+['"]([^'"]+)['"]|\bimport\(\s*['"]([^'"]+)['"]\s*\)/g)].map(
+    (match) => match[1] ?? match[2] ?? match[3],
+  )
   const packages = specifiers
     .filter((specifier) => !specifier.startsWith('.'))
     .map((specifier) => {

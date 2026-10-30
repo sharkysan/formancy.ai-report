@@ -43,9 +43,24 @@ describe('locations', () => {
     const report = frozenSample()
     const all = locations(report)
     for (const location of all) expect(insertComponent(report, location, spacer).ok, said(location)).toBe(true)
-    const lists = 5 + walkComponents(report).reduce((count, { component }) => count + (component.kind === 'columns' ? component.columns.length : 'components' in component ? 1 : 0), 0)
+    const lists =
+      5 +
+      walkComponents(report).reduce(
+        (count, { component }) => count + (component.kind === 'columns' ? component.columns.length : 'components' in component ? 1 : 0),
+        0,
+      )
     expect(all).toHaveLength(walkComponents(report).length + lists)
-    expect(all.filter(({ region }) => region === 'body').map(said)).toEqual(['body:::0', 'body:::1', 'body:::2', 'body:::3', 'body:keep::0', 'body:keep::1', 'body:keep::2', 'body:::4', 'body:::5'])
+    expect(all.filter(({ region }) => region === 'body').map(said)).toEqual([
+      'body:::0',
+      'body:::1',
+      'body:::2',
+      'body:::3',
+      'body:keep::0',
+      'body:keep::1',
+      'body:keep::2',
+      'body:::4',
+      'body:::5',
+    ])
   })
 })
 

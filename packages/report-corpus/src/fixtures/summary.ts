@@ -52,7 +52,7 @@ function summary(number?: number): KeepTogether {
 const SUMMARY_LINES = summary().blocks.length
 
 /** A body's height and a summary's, when a line is `factor` times its font size. */
-const range =(factor: number): { body: number; summary: number } => ({ body: bodyHeight(factor), summary: SUMMARY_LINES * BODY_SIZE * factor })
+const range = (factor: number): { body: number; summary: number } => ({ body: bodyHeight(factor), summary: SUMMARY_LINES * BODY_SIZE * factor })
 
 /** The fillers that leave a summary exactly room, from the tallest lines and most room taken to the shortest. */
 export const BOUNDARY = {
@@ -64,7 +64,10 @@ export const BOUNDARY = {
 export const SWEEP_STEP = 2
 
 /** summary-fits's fillers, from a step below the range to a step above it. */
-export const SWEEP: readonly number[] = Array.from({ length: Math.floor((BOUNDARY.max - BOUNDARY.min) / SWEEP_STEP) + 3 }, (_, index) => BOUNDARY.min - SWEEP_STEP + index * SWEEP_STEP)
+export const SWEEP: readonly number[] = Array.from(
+  { length: Math.floor((BOUNDARY.max - BOUNDARY.min) / SWEEP_STEP) + 3 },
+  (_, index) => BOUNDARY.min - SWEEP_STEP + index * SWEEP_STEP,
+)
 
 /** summary-overflows's filler: two lines past the range. */
 export const OVERFLOW = BOUNDARY.max + 2 * lineHeight(BODY_SIZE)

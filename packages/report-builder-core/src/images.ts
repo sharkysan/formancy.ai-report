@@ -20,7 +20,18 @@
  */
 import { addAsset, nextAssetId, removeAsset } from '@formancy/report-core'
 import type { Command, CommandOutcome, Refusal } from '@formancy/report-core'
-import { ASSET_MEDIA_TYPES, assetDigest, cleanSvg, imageHeader, isFontMediaType, MAX_ASSET_BYTES, MAX_ASSET_SIDE, MAX_ASSETS, sniffImage, walkComponents } from '@formancy/report-spec'
+import {
+  ASSET_MEDIA_TYPES,
+  assetDigest,
+  cleanSvg,
+  imageHeader,
+  isFontMediaType,
+  MAX_ASSET_BYTES,
+  MAX_ASSET_SIDE,
+  MAX_ASSETS,
+  sniffImage,
+  walkComponents,
+} from '@formancy/report-spec'
 import type { AssetMediaType, ReportDefinition, SvgRefusalCode, SvgRemoval, SvgRemovalKind } from '@formancy/report-spec'
 import { assetBase } from './asset-name.js'
 import { stepLabel } from './history.js'
@@ -103,13 +114,18 @@ export function imagesOf(store: ImageStore | undefined, locale: EditorLocale, t:
   if (typeof store?.keep !== 'function') throw new RangeError('An image store needs a keep function: the editor hands it every image a person adds.')
   const accept: readonly string[] = store.accept ?? ASSET_MEDIA_TYPES
   const unknown = Array.isArray(accept) ? accept.filter((type) => !(ASSET_MEDIA_TYPES as readonly string[]).includes(type)) : [String(accept)]
-  if (unknown.length > 0 || accept.length === 0) throw new RangeError(`An image store keeps one or more of ${ASSET_MEDIA_TYPES.join(', ')}${unknown.length === 0 ? '' : `, not ${unknown.join(', ')}`}.`)
+  if (unknown.length > 0 || accept.length === 0)
+    throw new RangeError(`An image store keeps one or more of ${ASSET_MEDIA_TYPES.join(', ')}${unknown.length === 0 ? '' : `, not ${unknown.join(', ')}`}.`)
   const types = ASSET_MEDIA_TYPES.filter((type) => accept.includes(type))
   return { ...words, held: { store, types, accept: types.flatMap((type) => [type, ...EXTENSIONS[type]]).join(',') } }
 }
 
 /** Why Add image… takes no file now, or undefined when it does: no store, an image being added, or a report that holds all it may. */
-export function addRefusal(images: Images, adding: string | null, report: ReportDefinition): { readonly code: Extract<EditorRefusalCode, 'unavailable' | 'busy'>; readonly message: string } | undefined {
+export function addRefusal(
+  images: Images,
+  adding: string | null,
+  report: ReportDefinition,
+): { readonly code: Extract<EditorRefusalCode, 'unavailable' | 'busy'>; readonly message: string } | undefined {
   const { t } = images
   if (images.held === null) return { code: 'unavailable', message: t('images.none') }
   if (adding !== null) return { code: 'busy', message: t('images.busy', { name: adding }) }
@@ -138,7 +154,12 @@ export function imageLibrary(images: Images, derived: Derived, adding: string | 
     .filter((asset): asset is typeof asset & { readonly mediaType: AssetMediaType } => !isFontMediaType(asset.mediaType))
     .map(({ id, mediaType }): LibraryAsset => {
       const by = drawn.get(id)
-      return { id, label: t('images.item', { id, type: FORMATS[mediaType] }), removeLabel: t('images.removeOne', { id }), ...(by === undefined ? {} : { inUse: t('images.inUse', { names: list.format(by) }) }) }
+      return {
+        id,
+        label: t('images.item', { id, type: FORMATS[mediaType] }),
+        removeLabel: t('images.removeOne', { id }),
+        ...(by === undefined ? {} : { inUse: t('images.inUse', { names: list.format(by) }) }),
+      }
     })
   const why = held === null ? undefined : addRefusal(images, adding, derived.report)
   return { store: held !== null, accept: held?.accept ?? '', adding, ...(why === undefined ? {} : { unavailable: why.message }), assets }
@@ -160,7 +181,15 @@ export interface ImageEditing {
 
 /** An image read and checked, whether it is a CMYK JPEG, with what cleaning removed from it, said; or why it was refused. */
 type Recognised =
-  | { readonly ok: true; readonly mediaType: AssetMediaType; readonly bytes: Uint8Array; readonly width: number; readonly height: number; readonly cmyk: boolean; readonly cleaned?: string }
+  | {
+      readonly ok: true
+      readonly mediaType: AssetMediaType
+      readonly bytes: Uint8Array
+      readonly width: number
+      readonly height: number
+      readonly cmyk: boolean
+      readonly cleaned?: string
+    }
   | { readonly ok: false; readonly reason: string }
 
 /** The editor's image actions over `editing`. */
@@ -190,12 +219,15 @@ export function imageActions(images: Images, editing: ImageEditing) {
     return end({ ok: false, code, message, ...(refusal === undefined ? {} : { refusal }) }, message)
   }
 
-  const tooLarge = (size: number): string => t('images.reason.tooLarge', { size: images.megabytes.format(size / MEGABYTE), limit: images.megabytes.format(MAX_ASSET_BYTES / MEGABYTE) })
+  const tooLarge = (size: number): string =>
+    t('images.reason.tooLarge', { size: images.megabytes.format(size / MEGABYTE), limit: images.megabytes.format(MAX_ASSET_BYTES / MEGABYTE) })
 
   /** What cleaning removed, said: each name, the first cleanSvg lists, and how many more. */
   function cleanedOf(removed: readonly SvgRemoval[], more: number): string | undefined {
     if (removed.length === 0) return undefined
-    const names = removed.map(({ kind, name }) => (kind === 'element' || kind === 'attribute' || kind === 'property') && !name.includes(' ') ? name : t(UNNAMED[kind]))
+    const names = removed.map(({ kind, name }) =>
+      (kind === 'element' || kind === 'attribute' || kind === 'property') && !name.includes(' ') ? name : t(UNNAMED[kind]),
+    )
     if (more > 0) names.push(t('images.cleanedMore', { count: number.format(more) }))
     return t('images.cleaned', { names: images.list.format(names) })
   }
@@ -209,13 +241,32 @@ export function imageActions(images: Images, editing: ImageEditing) {
       const drawing = cleanSvg(bytes)
       if (!drawing.ok) return { ok: false, reason: t(SVG_REASONS[drawing.code]) }
       const cleaned = cleanedOf(drawing.removed, drawing.removedMore)
-      return { ok: true, mediaType: type, bytes: drawing.bytes, width: drawing.viewBox.width, height: drawing.viewBox.height, cmyk: false, ...(cleaned === undefined ? {} : { cleaned }) }
+      return {
+        ok: true,
+        mediaType: type,
+        bytes: drawing.bytes,
+        width: drawing.viewBox.width,
+        height: drawing.viewBox.height,
+        cmyk: false,
+        ...(cleaned === undefined ? {} : { cleaned }),
+      }
     }
     const header = imageHeader(bytes)
-    if (header.ok) return { ok: true, mediaType: header.mediaType, bytes, width: header.width, height: header.height, cmyk: header.mediaType === 'image/jpeg' && header.components === 4 }
+    if (header.ok)
+      return {
+        ok: true,
+        mediaType: header.mediaType,
+        bytes,
+        width: header.width,
+        height: header.height,
+        cmyk: header.mediaType === 'image/jpeg' && header.components === 4,
+      }
     switch (header.code) {
       case 'too-large':
-        return { ok: false, reason: t('images.reason.tooWide', { width: number.format(header.width), height: number.format(header.height), side: number.format(MAX_ASSET_SIDE) }) }
+        return {
+          ok: false,
+          reason: t('images.reason.tooWide', { width: number.format(header.width), height: number.format(header.height), side: number.format(MAX_ASSET_SIDE) }),
+        }
       case 'no-pixels':
         return { ok: false, reason: t('images.reason.noPixels', { width: number.format(header.width), height: number.format(header.height) }) }
       case 'malformed':
@@ -235,7 +286,8 @@ export function imageActions(images: Images, editing: ImageEditing) {
     // A builder in plain JavaScript may hand on no file at all.
     if (typeof file?.arrayBuffer !== 'function') return editing.refuse('not-an-image', t('images.refused', { name, reason: t('images.reason.unreadable') }))
     // A 2 GB file is never read into the page's memory to be refused.
-    if (typeof file.size === 'number' && file.size > MAX_ASSET_BYTES) return editing.refuse('not-an-image', t('images.refused', { name, reason: tooLarge(file.size) }))
+    if (typeof file.size === 'number' && file.size > MAX_ASSET_BYTES)
+      return editing.refuse('not-an-image', t('images.refused', { name, reason: tooLarge(file.size) }))
     editing.setLocal({ adding: name, ...editing.announce(t('images.adding', { name })) })
     // addRefusal refuses an editor without a store.
     return held as HeldStore
@@ -264,12 +316,16 @@ export function imageActions(images: Images, editing: ImageEditing) {
   /** The last: the asset declared, once the host kept its bytes, or why not. */
   function declare(name: string, image: AddedImage, cleaned: string | undefined, answer: KeptImage | undefined): EditorOutcome {
     if (editing.disposed()) return disposed()
-    if (answer?.ok !== true) return refused('not-kept', name, answer?.ok === false && typeof answer.message === 'string' ? answer.message : t('images.reason.notKept'))
+    if (answer?.ok !== true)
+      return refused('not-kept', name, answer?.ok === false && typeof answer.message === 'string' ? answer.message : t('images.reason.notKept'))
     kept.set(image.asset, bytesOf(image))
     // Declared already, or meanwhile by another editor of the session: the report holds it.
     const already = declared(image)
     if (already !== undefined) return end(DONE, t('images.already', { id: already }))
-    const outcome = editing.commit((report) => addAsset(report, image.asset, { mediaType: image.mediaType, digest: image.digest }), stepLabel({ do: 'addImage' }))
+    const outcome = editing.commit(
+      (report) => addAsset(report, image.asset, { mediaType: image.mediaType, digest: image.digest }),
+      stepLabel({ do: 'addImage' }),
+    )
     if (outcome.ok) {
       const said = t('images.added', { id: image.asset, kind: t('kind.image') })
       return end(DONE, cleaned === undefined ? said : `${said} ${cleaned}`)

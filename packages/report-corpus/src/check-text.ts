@@ -21,7 +21,9 @@ export function fontNames(pages: readonly Page[], expected: readonly ExpectedFon
     const drawn = items.filter((item) => item.text.includes(text))
     if (drawn.length === 0) return [`no run holds ${quoted(text)}, to hold to the ${postScriptName} face`]
     const names = [...new Set(drawn.map((item) => item.font.replace(SUBSET_PREFIX, '')))]
-    return names.length === 1 && names[0] === postScriptName ? [] : [`${quoted(text)} is drawn in ${names.map((name) => quoted(name)).join(', ')}; expected ${quoted(postScriptName)}`]
+    return names.length === 1 && names[0] === postScriptName
+      ? []
+      : [`${quoted(text)} is drawn in ${names.map((name) => quoted(name)).join(', ')}; expected ${quoted(postScriptName)}`]
   })
 }
 
@@ -69,7 +71,15 @@ export function exactText(pages: readonly Page[], expected: readonly string[]): 
  */
 export function wrappedText(pages: readonly Page[], expected: readonly string[]): string[] {
   return expected
-    .filter((text) => !pages.some(({ body }) => readsAs(body.map((line) => line.text.replace(/\s+/g, '')), text.replace(/\s+/g, ''))))
+    .filter(
+      (text) =>
+        !pages.some(({ body }) =>
+          readsAs(
+            body.map((line) => line.text.replace(/\s+/g, '')),
+            text.replace(/\s+/g, ''),
+          ),
+        ),
+    )
     .map((text) => `${quoted(text)} (${plural(text.length, 'character')}) is not printed as lines of its own on one page, even with line breaks removed`)
 }
 
@@ -97,7 +107,9 @@ export function glyphs(pages: readonly Page[]): string[] {
   return pages.flatMap(({ page }) =>
     page.items.flatMap((item) => {
       const codes = [...new Set(item.text.match(/[\u0000�]/g) ?? [])].map((code) => `U+${code.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`)
-      return codes.length === 0 ? [] : [`page ${page.number}: ${quoted(item.text.replace(/\u0000/g, '␀'))} has ${codes.join(' and ')}, a character no glyph was drawn for`]
+      return codes.length === 0
+        ? []
+        : [`page ${page.number}: ${quoted(item.text.replace(/\u0000/g, '␀'))} has ${codes.join(' and ')}, a character no glyph was drawn for`]
     }),
   )
 }

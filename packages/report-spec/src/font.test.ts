@@ -1,7 +1,17 @@
 import { describe, expect, test } from 'vitest'
 import { readFont } from './font.js'
 import { characterMap } from './font-cmap.js'
-import { caught, FONT_EMBEDDING_REFUSALS, FONT_FORMATS, FONT_REFUSAL_CODES, refuse, type FontEmbeddingRefusal, type FontFormat, type FontRefusal, type FontRefusalCode } from './font-refusal.js'
+import {
+  caught,
+  FONT_EMBEDDING_REFUSALS,
+  FONT_FORMATS,
+  FONT_REFUSAL_CODES,
+  refuse,
+  type FontEmbeddingRefusal,
+  type FontFormat,
+  type FontRefusal,
+  type FontRefusalCode,
+} from './font-refusal.js'
 import { embeddingOf } from './font-tables.js'
 import {
   AB,
@@ -130,9 +140,13 @@ describe('readFont reads', () => {
     ['by a two by two matrix', { transform: 'matrix' }],
   ] as const)('composite glyphs whose components are placed %s', (_, placed) => {
     // One component, so that a walk that read its size otherwise would end past it or short of it; and three.
-    for (const components of [[1], [1, 0, 1]]) expect(readFont(font({ glyphs: [square(), square(400), composite(components, placed)] })), `${components.length}`).toMatchObject({ ok: true })
+    for (const components of [[1], [1, 0, 1]])
+      expect(readFont(font({ glyphs: [square(), square(400), composite(components, placed)] })), `${components.length}`).toMatchObject({ ok: true })
     const whole = composite([1, 0], placed)
-    expect(refusalOf(font({ glyphs: [square(), square(400), whole.subarray(0, whole.length - 2)] }))).toMatchObject({ code: 'malformed', message: expect.stringContaining('has a glyph description that runs past its end') as string })
+    expect(refusalOf(font({ glyphs: [square(), square(400), whole.subarray(0, whole.length - 2)] }))).toMatchObject({
+      code: 'malformed',
+      message: expect.stringContaining('has a glyph description that runs past its end') as string,
+    })
   })
 
   // A space has no outline; a font of outlines and spaces is a font.
@@ -148,17 +162,27 @@ describe('readFont refuses a font in a format it does not read, saying which', (
     ['a collection', Uint8Array.from([...u32(tagged('ttcf')), ...u16(1), ...u16(0), ...u32(1), ...u32(16)]), 'collection', 'is a font collection'],
     ['a WOFF', Uint8Array.from([...u32(tagged('wOFF')), ...u32(0x00010000), ...new Array<number>(40).fill(0)]), 'woff', 'is a WOFF web font'],
     ['a WOFF2', Uint8Array.from([...u32(tagged('wOF2')), ...u32(0x00010000), ...new Array<number>(40).fill(0)]), 'woff2', 'is a WOFF2 web font'],
-    ['an EOT', (() => {
-      const eot = new Uint8Array(120)
-      new DataView(eot.buffer).setUint32(0, eot.length, true)
-      eot.set([0x4c, 0x50], 34)
-      return eot
-    })(), 'eot', 'is an Embedded OpenType web font'],
+    [
+      'an EOT',
+      (() => {
+        const eot = new Uint8Array(120)
+        new DataView(eot.buffer).setUint32(0, eot.length, true)
+        eot.set([0x4c, 0x50], 34)
+        return eot
+      })(),
+      'eot',
+      'is an Embedded OpenType web font',
+    ],
     ['a PFB', Uint8Array.from([0x80, 0x01, 0x10, 0, 0, 0, ...new Array<number>(16).fill(0x25)]), 'type-1', 'is a PostScript Type 1 font'],
     ['a PFA', Uint8Array.from([...'%!PS-AdobeFont-1.0: Probe 001.000\n'].map((character) => character.charCodeAt(0))), 'type-1', 'is a PostScript Type 1 font'],
     ["an sfnt of 'typ1'", font({ version: tagged('typ1') }), 'type-1', 'is a PostScript Type 1 font'],
   ] as const)('%s', (_, bytes, format, said) => {
-    expect(refusalOf(bytes)).toEqual({ ok: false, code: 'format', format, message: expect.stringMatching(new RegExp(`^${said}.*; export the face to use as a TrueType font file \\(\\.ttf\\)$`)) as string })
+    expect(refusalOf(bytes)).toEqual({
+      ok: false,
+      code: 'format',
+      format,
+      message: expect.stringMatching(new RegExp(`^${said}.*; export the face to use as a TrueType font file \\(\\.ttf\\)$`)) as string,
+    })
   })
 
   // An EOT is known by its magic number in a header that measures the file: the magic alone, at byte 34 of something else, is not one.
@@ -175,7 +199,11 @@ describe('readFont refuses a font in a format it does not read, saying which', (
     ["a 'CFF ' table in a TrueType sfnt", font({ with: [['CFF ', new Uint8Array(8)]] }), 'has CFF outlines'],
     ['a CFF2 table', font({ with: [['CFF2', new Uint8Array(8)]] }), 'has CFF2 outlines'],
   ])('CFF outlines: %s', (_, bytes, said) => {
-    expect(refusalOf(bytes)).toEqual({ ok: false, code: 'cff', message: `${said}; use the TrueType edition of the font (.ttf), which most foundries ship beside the OpenType CFF one (.otf)` })
+    expect(refusalOf(bytes)).toEqual({
+      ok: false,
+      code: 'cff',
+      message: `${said}; use the TrueType edition of the font (.ttf), which most foundries ship beside the OpenType CFF one (.otf)`,
+    })
   })
 
   test.each([
@@ -192,7 +220,17 @@ describe('readFont refuses a font in a format it does not read, saying which', (
   test.each([
     ['no glyph data', font({ without: ['glyf'] }), 'has no TrueType outlines (glyf and loca)'],
     ['no index to location', font({ without: ['loca'] }), 'has no TrueType outlines (glyf and loca)'],
-    ['bitmaps beside glyphs that draw nothing', font({ glyphs: [NO_CONTOURS, NO_CONTOURS, new Uint8Array(0)], with: [['EBDT', new Uint8Array(8)], ['EBLC', new Uint8Array(8)]] }), 'has no glyph with an outline'],
+    [
+      'bitmaps beside glyphs that draw nothing',
+      font({
+        glyphs: [NO_CONTOURS, NO_CONTOURS, new Uint8Array(0)],
+        with: [
+          ['EBDT', new Uint8Array(8)],
+          ['EBLC', new Uint8Array(8)],
+        ],
+      }),
+      'has no glyph with an outline',
+    ],
   ])('no outlines: %s', (_, bytes, said) => {
     expect(refusalOf(bytes)).toEqual({ ok: false, code: 'no-outlines', message: `${said}; use a font with TrueType outlines` })
   })
@@ -252,7 +290,12 @@ describe('the embedding an fsType allows', () => {
     // A version whose bits nothing here knows.
     [6, 0x0000, 'invalid', 'states its embedding permissions in an OS/2 table of version 6'],
   ] as const)('version %i, fsType %i: refused as %s', (version, fsType, embedding, said) => {
-    expect(refusalOf(font({ os2: os2({ version, fsType, length: 100 }) }))).toEqual({ ok: false, code: 'embedding', embedding, message: expect.stringMatching(new RegExp(`^${escaped(said)}`)) as string })
+    expect(refusalOf(font({ os2: os2({ version, fsType, length: 100 }) }))).toEqual({
+      ok: false,
+      code: 'embedding',
+      embedding,
+      message: expect.stringMatching(new RegExp(`^${escaped(said)}`)) as string,
+    })
   })
 
   // A font refused for its licence bits is refused for them, whatever else is wrong with it, so that a person is told what to ask its vendor for.
@@ -263,7 +306,9 @@ describe('the embedding an fsType allows', () => {
   // A refusal for its licence bits that said only what is wrong would leave
   // a person who brought their brand's typeface with nothing to ask for.
   test('every refusal says what to ask for', () => {
-    expect(refusalOf(font({ os2: os2({ fsType: 0x0002 }) })).message).toMatch(/; ask the font's vendor for a licence and a file that allow embedding a subset in a PDF$/)
+    expect(refusalOf(font({ os2: os2({ fsType: 0x0002 }) })).message).toMatch(
+      /; ask the font's vendor for a licence and a file that allow embedding a subset in a PDF$/,
+    )
   })
 })
 
@@ -281,7 +326,10 @@ describe('readFont holds each table to the specification', () => {
     ['the OS/2 table', 'OS/2', 'OS/2 and Windows metrics table (OS/2)'],
     ['the PostScript table', 'post', 'PostScript table (post)'],
   ])('without %s', (_, tag, called) => {
-    expect(refusalOf(font({ without: [tag] }))).toMatchObject({ code: 'malformed', message: expect.stringMatching(new RegExp(`^has no ${escaped(called)}; `)) as string })
+    expect(refusalOf(font({ without: [tag] }))).toMatchObject({
+      code: 'malformed',
+      message: expect.stringMatching(new RegExp(`^has no ${escaped(called)}; `)) as string,
+    })
   })
 
   test.each([
@@ -291,7 +339,11 @@ describe('readFont holds each table to the specification', () => {
     ['16,385 units to the em', { head: head({ unitsPerEm: 16385 }) }, 'has 16385 units to the em'],
     ['an index to location format of 2', { head: head({ locFormat: 2 }) }, 'has an index to location format the specification does not define'],
     ['glyph data in format 1', { head: head({ glyphDataFormat: 1 }) }, 'has glyph data in a format the specification does not define'],
-    ['a maximum profile of version 0.5, as a CFF font has', { maxp: maxp({ version: 0x00005000 }) }, 'has a maximum profile of another version than the 1.0 TrueType outlines need'],
+    [
+      'a maximum profile of version 0.5, as a CFF font has',
+      { maxp: maxp({ version: 0x00005000 }) },
+      'has a maximum profile of another version than the 1.0 TrueType outlines need',
+    ],
     ['no glyph at all', { maxp: maxp({ glyphs: 0 }) }, 'has no glyph, not even the .notdef glyph 0'],
     ['a horizontal header of version 2', { hhea: hhea({ major: 2 }) }, 'has a horizontal header of a version the specification does not define'],
     ['horizontal metrics in format 1', { hhea: hhea({ metricDataFormat: 1 }) }, 'has horizontal metrics in a format the specification does not define'],
@@ -301,16 +353,27 @@ describe('readFont holds each table to the specification', () => {
     // fontkit decodes version 1.0's 32 bytes whole, and a maximum profile it cannot decode leaves PDFKit without a glyph count.
     ['a maximum profile cut short at the end of the file', { maxp: maxp().subarray(0, 6), last: 'maxp' }, 'has its maximum profile table (maxp) cut off'],
     ['a PostScript table of version 4', { post: post({ version: 0x00040000 }) }, 'has a PostScript table of a version the specification does not define'],
-    ['a PostScript name string past the end of its table', { post: post({ version: 0x00020000, indices: [0, 0, 258], strings: [40, 0x41] }) }, 'has its PostScript table (post) cut off'],
+    [
+      'a PostScript name string past the end of its table',
+      { post: post({ version: 0x00020000, indices: [0, 0, 258], strings: [40, 0x41] }) },
+      'has its PostScript table (post) cut off',
+    ],
     // fontkit reads version 2.5's offsets by the table's own count, one a glyph: three counted, one there.
-    ['a PostScript table of version 2.5 whose offsets run past the end of the file', { post: Uint8Array.from([...post({ version: 0x00025000 }), ...u16(3), 0]), last: 'post' }, 'has its PostScript table (post) cut off'],
+    [
+      'a PostScript table of version 2.5 whose offsets run past the end of the file',
+      { post: Uint8Array.from([...post({ version: 0x00025000 }), ...u16(3), 0]), last: 'post' },
+      'has its PostScript table (post) cut off',
+    ],
   ])('%s', (_, parts, said) => {
     expect(refusalOf(font(parts))).toMatchObject({ code: 'malformed', message: expect.stringContaining(said) as string })
   })
 
   // A last-resort font's glyphs stand for whole ranges of code points; a run printed in one would print placeholders, not the text.
   test('a last-resort font', () => {
-    expect(refusalOf(font({ head: head({ flags: 0x4000 }) }))).toMatchObject({ code: 'character-map', message: expect.stringContaining('is a last-resort font') as string })
+    expect(refusalOf(font({ head: head({ flags: 0x4000 }) }))).toMatchObject({
+      code: 'character-map',
+      message: expect.stringContaining('is a last-resort font') as string,
+    })
   })
 
   // A glyph fontkit would read past the file's end throws inside pdfmake
@@ -318,21 +381,56 @@ describe('readFont holds each table to the specification', () => {
   // glyph count prints nothing.
   test.each([
     ['offsets out of order', () => font({ loca: Uint8Array.from([...u16(0), ...u16(17), ...u16(10), ...u16(51)]) }), 'has glyph offsets out of order'],
-    ['an offset past the end of the file', () => font({ loca: Uint8Array.from([...u16(0), ...u16(17), ...u16(34), ...u16(0xfff0)]) }), 'has its glyph data table (glyf) cut off'],
-    ['a description shorter than its header', () => font({ glyphs: [square(), Uint8Array.from([0, 1, 0, 0]), square()] }), 'has a glyph description shorter than its header'],
-    ['a simple glyph whose points run past its description', () => font({ glyphs: [square(), square().subarray(0, 30), square()] }), 'has a glyph description that runs past its end'],
-    ['a simple glyph whose instructions run past its description', () => font({ glyphs: [square(), patched(square(), 12, u16(400)), square()] }), 'has a glyph description that runs past its end'],
-    ['a repeated flag that says more points follow than the description holds', () => font({ glyphs: [square(), patched(square(), 14, [0x09, 200]), square()] }), 'has a glyph description that runs past its end'],
-    ['a composite of a glyph the font does not have', () => font({ glyphs: [square(), square(), composite([3])] }), 'has a composite glyph made of a glyph the font does not have'],
-    ['a composite whose components run past its description', () => font({ glyphs: [square(), square(), composite([1, 0]).subarray(0, 20)] }), 'has a glyph description that runs past its end'],
-    ['a character mapped to a glyph the font does not have', () => font({ cmap: cmap([[3, 1, format4([{ start: 0x41, end: 0x43, delta: 1 - 0x41 }])]]) }), 'maps a character to a glyph the font does not have'],
+    [
+      'an offset past the end of the file',
+      () => font({ loca: Uint8Array.from([...u16(0), ...u16(17), ...u16(34), ...u16(0xfff0)]) }),
+      'has its glyph data table (glyf) cut off',
+    ],
+    [
+      'a description shorter than its header',
+      () => font({ glyphs: [square(), Uint8Array.from([0, 1, 0, 0]), square()] }),
+      'has a glyph description shorter than its header',
+    ],
+    [
+      'a simple glyph whose points run past its description',
+      () => font({ glyphs: [square(), square().subarray(0, 30), square()] }),
+      'has a glyph description that runs past its end',
+    ],
+    [
+      'a simple glyph whose instructions run past its description',
+      () => font({ glyphs: [square(), patched(square(), 12, u16(400)), square()] }),
+      'has a glyph description that runs past its end',
+    ],
+    [
+      'a repeated flag that says more points follow than the description holds',
+      () => font({ glyphs: [square(), patched(square(), 14, [0x09, 200]), square()] }),
+      'has a glyph description that runs past its end',
+    ],
+    [
+      'a composite of a glyph the font does not have',
+      () => font({ glyphs: [square(), square(), composite([3])] }),
+      'has a composite glyph made of a glyph the font does not have',
+    ],
+    [
+      'a composite whose components run past its description',
+      () => font({ glyphs: [square(), square(), composite([1, 0]).subarray(0, 20)] }),
+      'has a glyph description that runs past its end',
+    ],
+    [
+      'a character mapped to a glyph the font does not have',
+      () => font({ cmap: cmap([[3, 1, format4([{ start: 0x41, end: 0x43, delta: 1 - 0x41 }])]]) }),
+      'maps a character to a glyph the font does not have',
+    ],
   ])('a glyph: %s', (_, made, said) => {
     expect(refusalOf(made())).toMatchObject({ code: 'malformed', message: expect.stringContaining(said) as string })
   })
 
   // fontkit reads a glyph's header for its box when it measures the glyph, even an empty one at the very end of the file.
   test("an empty last glyph whose header fontkit would read past the file's end", () => {
-    expect(refusalOf(font({ glyphs: [square(), square(), new Uint8Array(0)], last: 'glyf' }))).toMatchObject({ code: 'malformed', message: expect.stringContaining('has its glyph data table (glyf) cut off') as string })
+    expect(refusalOf(font({ glyphs: [square(), square(), new Uint8Array(0)], last: 'glyf' }))).toMatchObject({
+      code: 'malformed',
+      message: expect.stringContaining('has its glyph data table (glyf) cut off') as string,
+    })
   })
 
   // fontkit sees a table only where its recorded length is not 0: PDFKit
@@ -343,7 +441,10 @@ describe('readFont holds each table to the specification', () => {
   const READ = ['cmap', 'glyf', 'head', 'hhea', 'hmtx', 'loca', 'maxp', 'name', 'OS/2', 'post'] as const
   test.each(READ)('a %s table recorded as empty, which fontkit does not see', (tag) => {
     const bytes = font()
-    expect(refusalOf(patched(bytes, tableAt(bytes, tag).record + 12, u32(0)))).toMatchObject({ code: 'malformed', message: expect.stringMatching(new RegExp(`^has an empty .* table \\(${tag}\\); `)) as string })
+    expect(refusalOf(patched(bytes, tableAt(bytes, tag).record + 12, u32(0)))).toMatchObject({
+      code: 'malformed',
+      message: expect.stringMatching(new RegExp(`^has an empty .* table \\(${tag}\\); `)) as string,
+    })
   })
 
   // Past that, fontkit reads a table's fields from its offset whatever its
@@ -366,7 +467,10 @@ describe('readFont holds each table to the specification', () => {
   ])('an index to location recorded %s short of its offsets', (_, short) => {
     const bytes = font()
     const loca = tableAt(bytes, 'loca')
-    expect(refusalOf(patched(bytes, loca.record + 12, u32(loca.length - short)))).toMatchObject({ code: 'malformed', message: expect.stringContaining('has an index to location table (loca) whose recorded length holds fewer offsets than its 3 glyphs need') as string })
+    expect(refusalOf(patched(bytes, loca.record + 12, u32(loca.length - short)))).toMatchObject({
+      code: 'malformed',
+      message: expect.stringContaining('has an index to location table (loca) whose recorded length holds fewer offsets than its 3 glyphs need') as string,
+    })
   })
 
   // fontkit measures every glyph by the vertical metrics where it sees a
@@ -381,9 +485,16 @@ describe('readFont holds each table to the specification', () => {
     ['refused where fontkit counts three metrics, of four bytes each, past the file', vhea({ metricDataFormat: 3, metrics: 0 }), 10, false],
     ['read where only the specification counts metrics past the file', vhea({ metricDataFormat: 0, metrics: 3 }), 8, true],
   ] as const)('vertical metrics %s', (_, header, length, read) => {
-    const bytes = font({ with: [['vhea', header], ['vmtx', new Uint8Array(length)]], last: 'vmtx' })
+    const bytes = font({
+      with: [
+        ['vhea', header],
+        ['vmtx', new Uint8Array(length)],
+      ],
+      last: 'vmtx',
+    })
     if (read) expect(readFont(bytes)).toMatchObject({ ok: true })
-    else expect(refusalOf(bytes)).toMatchObject({ code: 'malformed', message: expect.stringContaining('has its vertical metrics table (vmtx) cut off') as string })
+    else
+      expect(refusalOf(bytes)).toMatchObject({ code: 'malformed', message: expect.stringContaining('has its vertical metrics table (vmtx) cut off') as string })
   })
 
   // Where fontkit sees no vertical header, it measures by OS/2 and the
@@ -391,19 +502,47 @@ describe('readFont holds each table to the specification', () => {
   // refuse a font PDFKit prints. A header it sees is held whole.
   test('vertical metrics without a header fontkit sees, unread, and a header cut short, refused', () => {
     expect(readFont(font({ with: [['vmtx', new Uint8Array(1)]], last: 'vmtx' }))).toMatchObject({ ok: true })
-    const empty = font({ with: [['vhea', vhea()], ['vmtx', new Uint8Array(1)]], last: 'vmtx' })
+    const empty = font({
+      with: [
+        ['vhea', vhea()],
+        ['vmtx', new Uint8Array(1)],
+      ],
+      last: 'vmtx',
+    })
     expect(readFont(patched(empty, tableAt(empty, 'vhea').record + 12, u32(0)))).toMatchObject({ ok: true })
-    expect(refusalOf(font({ with: [['vmtx', new Uint8Array(12)], ['vhea', vhea().subarray(0, 34)]], last: 'vhea' }))).toMatchObject({ code: 'malformed', message: expect.stringContaining('has its vertical header table (vhea) cut off') as string })
+    expect(
+      refusalOf(
+        font({
+          with: [
+            ['vmtx', new Uint8Array(12)],
+            ['vhea', vhea().subarray(0, 34)],
+          ],
+          last: 'vhea',
+        }),
+      ),
+    ).toMatchObject({ code: 'malformed', message: expect.stringContaining('has its vertical header table (vhea) cut off') as string })
   })
 
   // The directory is where every other read starts.
   test.each([
     ['cut off in its directory', () => font().subarray(0, 40), 'is cut off in its table directory'],
-    ['a table past the end of the file', () => {
-      const bytes = font()
-      return patched(bytes, tableAt(bytes, 'head').record + 12, u32(0x7fff_ffff))
-    }, 'has font header table (head) that runs past the end of the file'],
-    ['two tables of one tag', () => sfnt([['cmap', cmap([[3, 1, format4(AB)]])], ['cmap', cmap([[3, 1, format4(AB)]])]]), 'has two character map tables (cmap)'],
+    [
+      'a table past the end of the file',
+      () => {
+        const bytes = font()
+        return patched(bytes, tableAt(bytes, 'head').record + 12, u32(0x7fff_ffff))
+      },
+      'has font header table (head) that runs past the end of the file',
+    ],
+    [
+      'two tables of one tag',
+      () =>
+        sfnt([
+          ['cmap', cmap([[3, 1, format4(AB)]])],
+          ['cmap', cmap([[3, 1, format4(AB)]])],
+        ]),
+      'has two character map tables (cmap)',
+    ],
   ])('a directory %s', (_, made, said) => {
     expect(refusalOf(made())).toMatchObject({ code: 'malformed', message: expect.stringContaining(said) as string })
   })
@@ -411,7 +550,8 @@ describe('readFont holds each table to the specification', () => {
 
 describe("readFont holds a font's line to what pdfmake can lay out", () => {
   /** A font of `unitsPerEm` whose horizontal header has this ascender and descender, the line pdfmake lays it out by. */
-  const lined = (ascender: number, descender: number, unitsPerEm = 1000): Uint8Array => font({ head: head({ unitsPerEm }), hhea: hhea({ ascender, descender, metrics: 3 }) })
+  const lined = (ascender: number, descender: number, unitsPerEm = 1000): Uint8Array =>
+    font({ head: head({ unitsPerEm }), hhea: hhea({ ascender, descender, metrics: 3 }) })
 
   // pdfmake lays each line out its ascender less its descender tall and
   // sets its baseline the ascender below the line's top. A line of nothing,
@@ -440,12 +580,21 @@ describe("readFont holds a font's line to what pdfmake can lay out", () => {
     const floor = MIN_FONT_LINE * units
     const ceiling = MAX_FONT_LINE * units
     const descender = -Math.round(units / 4)
-    expect(readFont(lined(floor + descender, descender, units))).toMatchObject({ ok: true, metrics: { unitsPerEm: units, ascender: floor + descender, descender } })
+    expect(readFont(lined(floor + descender, descender, units))).toMatchObject({
+      ok: true,
+      metrics: { unitsPerEm: units, ascender: floor + descender, descender },
+    })
     expect(readFont(lined(ceiling + descender, descender, units))).toMatchObject({ ok: true })
     expect(readFont(lined(units, 0, units))).toMatchObject({ ok: true })
     const range = `where a line may be ${MIN_FONT_LINE} to ${MAX_FONT_LINE} ems tall`
-    expect(refusalOf(lined(floor + descender - 1, descender, units))).toMatchObject({ code: 'malformed', message: expect.stringContaining(`has a line ${floor - 1} units tall, its ascender less its descender, at ${units} units to the em, ${range}`) as string })
-    expect(refusalOf(lined(ceiling + descender + 1, descender, units))).toMatchObject({ code: 'malformed', message: expect.stringContaining(`has a line ${ceiling + 1} units tall`) as string })
+    expect(refusalOf(lined(floor + descender - 1, descender, units))).toMatchObject({
+      code: 'malformed',
+      message: expect.stringContaining(`has a line ${floor - 1} units tall, its ascender less its descender, at ${units} units to the em, ${range}`) as string,
+    })
+    expect(refusalOf(lined(ceiling + descender + 1, descender, units))).toMatchObject({
+      code: 'malformed',
+      message: expect.stringContaining(`has a line ${ceiling + 1} units tall`) as string,
+    })
   })
 })
 
@@ -490,7 +639,12 @@ describe('FONT_REFUSAL_CODES', () => {
     expect(refusalOf(Uint8Array.from(FORMAT_CASES[format]))).toMatchObject({ code: 'format', format })
   })
 
-  const EMBEDDING_CASES: { readonly [E in FontEmbeddingRefusal]: number } = { invalid: 0x0001, restricted: 0x0002, 'bitmap-only': 0x0200, 'no-subsetting': 0x0100 }
+  const EMBEDDING_CASES: { readonly [E in FontEmbeddingRefusal]: number } = {
+    invalid: 0x0001,
+    restricted: 0x0002,
+    'bitmap-only': 0x0200,
+    'no-subsetting': 0x0100,
+  }
   test.each(FONT_EMBEDDING_REFUSALS)('the embedding refusal %s is named', (embedding) => {
     expect(refusalOf(font({ os2: os2({ fsType: EMBEDDING_CASES[embedding] }) }))).toMatchObject({ code: 'embedding', embedding })
   })
@@ -550,8 +704,12 @@ describe('readFont holds a font to its bounds', () => {
   test(`composites of ${MAX_FONT_COMPONENTS} components together are read, and one more refused`, () => {
     const parts = (count: number): number[] => Array.from({ length: count }, () => 1)
     const half = MAX_FONT_COMPONENTS / 2
-    expect(readFont(font({ locFormat: 1, glyphs: [square(), square(400), composite(parts(half), { bytes: true }), composite(parts(half), { bytes: true })] }))).toMatchObject({ ok: true })
-    expect(refusalOf(font({ locFormat: 1, glyphs: [square(), square(400), composite(parts(half), { bytes: true }), composite(parts(half + 1), { bytes: true })] }))).toEqual({
+    expect(
+      readFont(font({ locFormat: 1, glyphs: [square(), square(400), composite(parts(half), { bytes: true }), composite(parts(half), { bytes: true })] })),
+    ).toMatchObject({ ok: true })
+    expect(
+      refusalOf(font({ locFormat: 1, glyphs: [square(), square(400), composite(parts(half), { bytes: true }), composite(parts(half + 1), { bytes: true })] })),
+    ).toEqual({
       ok: false,
       code: 'too-large',
       message: `has composite glyphs of more than ${MAX_FONT_COMPONENTS} components together, the most a font's glyphs may have; use a font file that holds fewer scripts`,
@@ -568,7 +726,11 @@ describe('readFont holds a font to its bounds', () => {
     expect(readFont(largest)).toMatchObject({ ok: true })
     const longer = font({ with: [['zpad', new Uint8Array(padding + 1)]] })
     expect(longer.length).toBe(MAX_FONT_BYTES + 1)
-    expect(refusalOf(longer)).toEqual({ ok: false, code: 'too-large', message: `is ${longer.length} bytes, where the most a font may have is ${MAX_FONT_BYTES}; use a font file that holds fewer scripts` })
+    expect(refusalOf(longer)).toEqual({
+      ok: false,
+      code: 'too-large',
+      message: `is ${longer.length} bytes, where the most a font may have is ${MAX_FONT_BYTES}; use a font file that holds fewer scripts`,
+    })
   })
 })
 
@@ -583,11 +745,20 @@ describe('no refusal repeats text the font chose', () => {
   const markedName = name(NAMES.map((entry) => (entry.id === 6 ? entry : { ...entry, text: `${entry.text} ${MARKER}` })))
   const fonts: readonly Uint8Array[] = [
     font({ name: markedName, os2: os2({ fsType: 2 }) }),
-    font({ name: markedName, with: [['QzMa', new Uint8Array(4)], ['fvar', new Uint8Array(4)]] }),
+    font({
+      name: markedName,
+      with: [
+        ['QzMa', new Uint8Array(4)],
+        ['fvar', new Uint8Array(4)],
+      ],
+    }),
     font({ name: markedName, head: head({ magic: 0 }) }),
     font({ name: name([windows(1, MARKER), windows(2, MARKER), windows(6, `${MARKER}/Bad`)]) }),
     font({ name: name([windows(1, MARKER), windows(2, MARKER), windows(6, `${MARKER}${'x'.repeat(60)}`)]) }),
-    sfnt([['QzMa', new Uint8Array(4)], ['QzMa', new Uint8Array(4)]]),
+    sfnt([
+      ['QzMa', new Uint8Array(4)],
+      ['QzMa', new Uint8Array(4)],
+    ]),
     (() => {
       const bytes = font({ with: [['QzMa', new Uint8Array(4)]] })
       return patched(bytes, tableAt(bytes, 'QzMa').record + 12, u32(0x7fff_ffff))
@@ -607,7 +778,11 @@ describe('caught', () => {
   // that bytes are refused; it goes through.
   test('turns a refusal thrown inside the reader into its value, and lets any other error through', () => {
     expect(caught(() => refuse('malformed', 'is broken'))).toMatchObject({ ok: false, code: 'malformed' })
-    expect(() => caught(() => { throw new TypeError('a fault of the reader') })).toThrow(TypeError)
+    expect(() =>
+      caught(() => {
+        throw new TypeError('a fault of the reader')
+      }),
+    ).toThrow(TypeError)
   })
 })
 
@@ -621,20 +796,44 @@ describe('readFont never throws', () => {
   // again by `characterMap`, the same map.
   const bases: readonly Uint8Array[] = [
     font(),
-    font({ locFormat: 1, glyphs: [square(), composite([0, 0]), square(200), new Uint8Array(0)], post: post({ version: 0x00020000, indices: [0, 258, 259, 0], names: ['a', 'b'] }) }),
+    font({
+      locFormat: 1,
+      glyphs: [square(), composite([0, 0]), square(200), new Uint8Array(0)],
+      post: post({ version: 0x00020000, indices: [0, 258, 259, 0], names: ['a', 'b'] }),
+    }),
     font({
       os2: os2({ version: 1, fsType: 0x000c }),
       cmap: cmap([
         [0, 3, format4([{ start: 0x20, end: 0x22, glyphs: [1, 0, 2] }])],
         [0, 5, format14([{ selector: 0xfe00, defaults: [[0x20, 2]], mappings: [[0x41, 2]] }])],
-        [3, 10, Uint8Array.from([...u16(12), ...u16(0), ...u32(40), ...u32(0), ...u32(2), ...u32(0x41), ...u32(0x42), ...u32(1), ...u32(0x1f600), ...u32(0x1f600), ...u32(2)])],
+        [
+          3,
+          10,
+          Uint8Array.from([
+            ...u16(12),
+            ...u16(0),
+            ...u32(40),
+            ...u32(0),
+            ...u32(2),
+            ...u32(0x41),
+            ...u32(0x42),
+            ...u32(1),
+            ...u32(0x1f600),
+            ...u32(0x1f600),
+            ...u32(2),
+          ]),
+        ],
       ]),
-      with: [['vhea', vhea()], ['vmtx', new Uint8Array(12)]],
+      with: [
+        ['vhea', vhea()],
+        ['vmtx', new Uint8Array(12)],
+      ],
     }),
   ]
 
   test('on every prefix of a font', () => {
-    for (const base of bases) for (let length = 0; length < base.length; length++) expect(readFont(base.subarray(0, length)).ok, `${length} of ${base.length} bytes`).toBe(false)
+    for (const base of bases)
+      for (let length = 0; length < base.length; length++) expect(readFont(base.subarray(0, length)).ok, `${length} of ${base.length} bytes`).toBe(false)
   })
 
   test('on a sweep of seeded corruptions, each read or refused', () => {

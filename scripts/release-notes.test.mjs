@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import { BODY_LIMIT, bodySection, releaseBody, releaseNotes } from './release-notes.mjs'
 
-const changelog = ['# Changelog', '', '## Unreleased', '', 'pending', '', '## 0.1.0 — 2026-11-01', '', 'first', '', '## [0.0.1] — 2026-10-08', '', 'zero'].join('\n')
+const changelog = ['# Changelog', '', '## Unreleased', '', 'pending', '', '## 0.1.0 — 2026-11-01', '', 'first', '', '## [0.0.1] — 2026-10-08', '', 'zero'].join(
+  '\n',
+)
 
 describe('releaseNotes', () => {
   // The body of a GitHub release is one version's section, and the release
@@ -29,7 +31,9 @@ describe('releaseBody', () => {
   // The body is the version's notes, then what the release was tested on:
   // the release report's summary, under a heading of its own (0014).
   test('appends the report summary to the section', () => {
-    expect(releaseBody(changelog, '0.1.0', '12 of 12 tests passed.\n')).toBe('## 0.1.0 — 2026-11-01\n\nfirst\n\n## What this release was tested on\n\n12 of 12 tests passed.\n')
+    expect(releaseBody(changelog, '0.1.0', '12 of 12 tests passed.\n')).toBe(
+      '## 0.1.0 — 2026-11-01\n\nfirst\n\n## What this release was tested on\n\n12 of 12 tests passed.\n',
+    )
   })
 
   // GitHub refuses a body over 125,000 characters with a 422 -- after npm

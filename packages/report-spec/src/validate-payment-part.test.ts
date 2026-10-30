@@ -93,13 +93,19 @@ describe('a payment part', () => {
   test("reads what a paragraph in the report's scope reads, and never a page number or count", () => {
     const lines = { kind: 'aggregate', aggregate: 'lines', over: 'report' }
     expect(refusals(bill({ '/message/2': lines, '/debtor/street': [{ kind: 'parameter', parameter: 'region' }] }))).toEqual([])
-    expect(refusals(bill({ '/message/1': { kind: 'field', field: { dataset: 'detail', field: 'site' } } }))).toEqual([`misplaced-detail-field ${PART}/message/1/field`])
-    expect(refusals(bill({ '/message/1': { kind: 'aggregate', aggregate: 'lines', over: 'group' } }))).toEqual([`misplaced-group-aggregate ${PART}/message/1/over`])
+    expect(refusals(bill({ '/message/1': { kind: 'field', field: { dataset: 'detail', field: 'site' } } }))).toEqual([
+      `misplaced-detail-field ${PART}/message/1/field`,
+    ])
+    expect(refusals(bill({ '/message/1': { kind: 'aggregate', aggregate: 'lines', over: 'group' } }))).toEqual([
+      `misplaced-group-aggregate ${PART}/message/1/over`,
+    ])
     expect(refusals(bill({ '/debtor/name/0/field/field': 'signature' }))).toEqual([`binding-type-mismatch ${PART}/debtor/name/0/field`])
     for (const counter of [{ kind: 'pageNumber' }, { kind: 'pageCount' }]) {
       const report = bill({ '/message/1': counter })
       expect(refusals(report), counter.kind).toEqual([`misplaced-page-counter ${PART}/message/1`])
-      expect(messages(report)[`${PART}/message/1`]).toBe('what a QR-bill encodes is resolved once, before pages are counted, so a page number or count has no value in it')
+      expect(messages(report)[`${PART}/message/1`]).toBe(
+        'what a QR-bill encodes is resolved once, before pages are counted, so a page number or count has no value in it',
+      )
     }
   })
 
@@ -137,7 +143,9 @@ describe('the page of a report with a payment part', () => {
     expect(refusals(edited((r) => setAt(r, '/page/margins/top', 544.25)))).toEqual([])
     const report = edited((r) => setAt(r, '/page/margins/top', 544.26))
     expect(refusals(report)).toEqual(['payment-part-page /page/margins/top'])
-    expect(messages(report)['/page/margins/top']).toBe("the top margin reaches 544.26 pt down the page, past the top of the QR-bill's slip at 544.25 pt, 105 mm above the paper's foot")
+    expect(messages(report)['/page/margins/top']).toBe(
+      "the top margin reaches 544.26 pt down the page, past the top of the QR-bill's slip at 544.25 pt, 105 mm above the paper's foot",
+    )
   })
 
   // A page that is not A4 in portrait has no slip to keep room for: its
@@ -180,7 +188,16 @@ describe('a literal text on the bill', () => {
     expect(refusals(bill({ '/debtor/postalCode': literal('8'.repeat(17)) }))).toEqual([`invalid-qr-bill ${PART}/debtor/postalCode`])
     expect(refusals(bill({ '/billingInformation': literal('S1/10/1234') }))).toEqual([`invalid-qr-bill ${PART}/billingInformation`])
     // Literal runs are read as the text they make together.
-    expect(refusals(bill({ '/account': [{ kind: 'text', text: 'CH44 3199 9123 ' }, { kind: 'text', text: '0008 8901 2' }] }))).toEqual([])
+    expect(
+      refusals(
+        bill({
+          '/account': [
+            { kind: 'text', text: 'CH44 3199 9123 ' },
+            { kind: 'text', text: '0008 8901 2' },
+          ],
+        }),
+      ),
+    ).toEqual([])
   })
 
   // The message says what the rule is and which field broke it, and never
@@ -215,7 +232,12 @@ describe('a literal text on the bill', () => {
       '/creditor/town': ['Seldwyla'],
       '/debtor': 'Simon Muster, Musterstrasse 1, 8000 Bern',
     })
-    expect(refusals(report).sort()).toEqual([`wrong-type ${PART}/account`, `wrong-type ${PART}/creditor/name`, `wrong-type ${PART}/creditor/town/0`, `wrong-type ${PART}/debtor`])
+    expect(refusals(report).sort()).toEqual([
+      `wrong-type ${PART}/account`,
+      `wrong-type ${PART}/creditor/name`,
+      `wrong-type ${PART}/creditor/town/0`,
+      `wrong-type ${PART}/debtor`,
+    ])
     for (const message of Object.values(messages(report))) expect(message).not.toMatch(/3199|Rutschmann|Seldwyla|Muster/)
   })
 
@@ -237,7 +259,16 @@ describe('a literal text on the bill', () => {
   test('is the only text checked: one read from the data is left to the render', () => {
     const customer = [{ kind: 'field', field: { dataset: 'header', field: 'customer' } }]
     expect(refusals(bill({ '/account': customer, '/reference': customer, '/creditor/country': customer, '/message': customer }))).toEqual([])
-    expect(refusals(bill({ '/account': [{ kind: 'text', text: 'CH44 ' }, { kind: 'parameter', parameter: 'region' }] }))).toEqual([])
+    expect(
+      refusals(
+        bill({
+          '/account': [
+            { kind: 'text', text: 'CH44 ' },
+            { kind: 'parameter', parameter: 'region' },
+          ],
+        }),
+      ),
+    ).toEqual([])
   })
 })
 

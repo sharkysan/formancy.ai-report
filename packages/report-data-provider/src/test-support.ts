@@ -48,7 +48,12 @@ export interface DataFixture {
 const json = (status: number, body: unknown): Response => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 const notFound = (): Response => json(404, { code: 'not-found', message: 'No such form or record.' })
 
-type ListBody = { readonly parent?: { readonly field: string; readonly record: string }; readonly sort?: readonly { readonly field: string; readonly direction: 'asc' | 'desc' }[]; readonly offset?: number; readonly limit?: number }
+type ListBody = {
+  readonly parent?: { readonly field: string; readonly record: string }
+  readonly sort?: readonly { readonly field: string; readonly direction: 'asc' | 'desc' }[]
+  readonly offset?: number
+  readonly limit?: number
+}
 
 /** The page `list` answers: Data's defaults for what is left out, at most 50 rows, and whether more follow. */
 function page(form: FixtureForm, body: ListBody): Response {
@@ -158,7 +163,14 @@ export function orderForms(count = 3): Record<string, FixtureForm> {
     order: {
       published: published(
         'order',
-        [text('number'), lookup('customer', 'customers'), { key: 'orderedOn', type: 'date', label: 'orderedOn' } as Field, text('total', { pattern: '^-?[0-9]{1,12}(\\.[0-9]{1,2})?$' }), yesOrNo('paid'), text('internal')],
+        [
+          text('number'),
+          lookup('customer', 'customers'),
+          { key: 'orderedOn', type: 'date', label: 'orderedOn' } as Field,
+          text('total', { pattern: '^-?[0-9]{1,12}(\\.[0-9]{1,2})?$' }),
+          yesOrNo('paid'),
+          text('internal'),
+        ],
         ['number', 'customer', 'orderedOn', 'total', 'paid'],
       ),
       records: [
@@ -170,7 +182,14 @@ export function orderForms(count = 3): Record<string, FixtureForm> {
     'order-line': {
       published: published(
         'order-line',
-        [lookup('order', 'orders'), text('article'), { key: 'quantity', type: 'number', label: 'quantity' } as Field, text('amount'), { key: 'shippedAt', type: 'datetime', label: 'shippedAt' } as Field, text('warehouse')],
+        [
+          lookup('order', 'orders'),
+          text('article'),
+          { key: 'quantity', type: 'number', label: 'quantity' } as Field,
+          text('amount'),
+          { key: 'shippedAt', type: 'datetime', label: 'shippedAt' } as Field,
+          text('warehouse'),
+        ],
         ['order', 'article', 'quantity', 'amount', 'shippedAt', 'warehouse'],
       ),
       records: [...lines, ...other],
@@ -228,7 +247,11 @@ export function orderReport(): ReportDefinition {
         {
           id: 'title',
           kind: 'text',
-          content: [{ kind: 'field', field: header('number') }, { kind: 'text', text: ' for ' }, { kind: 'field', field: header('customer') }],
+          content: [
+            { kind: 'field', field: header('number') },
+            { kind: 'text', text: ' for ' },
+            { kind: 'field', field: header('customer') },
+          ],
         },
       ],
       pageHeader: [],

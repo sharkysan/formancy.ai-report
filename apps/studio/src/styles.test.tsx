@@ -74,7 +74,8 @@ function rulesOf(file: string, text: string): Rule[] {
   document.head.append(style)
   const walk = (list: CSSRuleList): void => {
     for (const rule of list) {
-      if (rule instanceof CSSStyleRule) found.push({ file, selector: rule.selectorText, properties: Array.from({ length: rule.style.length }, (_, index) => rule.style.item(index)) })
+      if (rule instanceof CSSStyleRule)
+        found.push({ file, selector: rule.selectorText, properties: Array.from({ length: rule.style.length }, (_, index) => rule.style.item(index)) })
       else if ('cssRules' in rule) walk((rule as CSSGroupingRule).cssRules)
     }
   }
@@ -165,12 +166,20 @@ function builder(): Element[] {
   editor.dispatch({ type: 'select', id: 'intro' })
   editor.dispatch({ type: 'startDrag', subject: { kind: 'text' }, via: 'keyboard' })
   const { container } = render(<ReportBuilder editor={editor} />)
-  const { container: hosting } = render(<ReportBuilder editor={editorOf({ hostView: { name: 'Preview', shown: true } })} hostView={<button type="button">Download PDF</button>} />)
-  return [...container.querySelectorAll('.wb *'), ...[...hosting.querySelectorAll('.wb *')].filter((element) => element.parentElement?.closest(HOST_VIEW) === null)]
+  const { container: hosting } = render(
+    <ReportBuilder editor={editorOf({ hostView: { name: 'Preview', shown: true } })} hostView={<button type="button">Download PDF</button>} />,
+  )
+  return [
+    ...container.querySelectorAll('.wb *'),
+    ...[...hosting.querySelectorAll('.wb *')].filter((element) => element.parentElement?.closest(HOST_VIEW) === null),
+  ]
 }
 
 /** The rules of the builder's two stylesheets, as a host's bundler resolves them. */
-const builderSheets = (): Rule[] => [...rulesOf('workbench.css', exported('@formancy/themes/workbench.css')), ...rulesOf('report-builder.css', exported('@formancy/report-builder-core/report-builder.css'))]
+const builderSheets = (): Rule[] => [
+  ...rulesOf('workbench.css', exported('@formancy/themes/workbench.css')),
+  ...rulesOf('report-builder.css', exported('@formancy/report-builder-core/report-builder.css')),
+]
 
 /** Those, and every rule of the Studio's that names the builder. */
 const builderRules = (): Rule[] => [...builderSheets(), ...rules().filter((rule) => NAMES_BUILDER.test(rule.selector))]
@@ -186,7 +195,9 @@ const INERT = 'workbench.css: .wb *'
 
 /** The properties each rule of `css` whose selector list holds `selector` declares, read from its text: what the browser applies. */
 const declaredBy = (css: string, selector: string): string[][] =>
-  [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter((block) => selectorsOf(block[1] ?? '').includes(selector)).map((block) => [...(block[2] ?? '').matchAll(/([\w-]+)\s*:/g)].map((match) => match[1] ?? ''))
+  [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter((block) => selectorsOf(block[1] ?? '').includes(selector))
+    .map((block) => [...(block[2] ?? '').matchAll(/([\w-]+)\s*:/g)].map((match) => match[1] ?? ''))
 
 /**
  * The Studio as it opens in a window with no room beside the builder --
@@ -240,7 +251,10 @@ describe("the Studio's stylesheets", () => {
         .map((rule) => `${rule.file}: ${rule.selector} { ${rule.properties.filter((property) => COLOUR.test(property)).join(', ')} }`)
     // A guard on the guard: it finds a colour on the workbench's pane and on
     // a part, and lets the shape of a button through.
-    const sample = rulesOf('sample', ".wb-pane > header { background-color: rgb(255 255 255 / 2%) } [data-report-part='title'] { color: white } .wb-pane button { border-radius: 999px }")
+    const sample = rulesOf(
+      'sample',
+      ".wb-pane > header { background-color: rgb(255 255 255 / 2%) } [data-report-part='title'] { color: white } .wb-pane button { border-radius: 999px }",
+    )
     expect(painting(sample)).toEqual(['sample: .wb-pane > header { background-color }', "sample: [data-report-part='title'] { color }"])
     expect(rules().filter((rule) => NAMES_BUILDER.test(rule.selector)).length).toBeGreaterThan(0)
     expect(painting(rules())).toEqual([])
@@ -263,7 +277,12 @@ describe("the Studio's stylesheets", () => {
     const studio = rules().filter((rule) => rule.file !== 'styles/builder.css' && !EVERYWHERE.has(rule.selector))
     expect(reaching(studio, inside)).toEqual([])
     // A guard on the guard: builder.css's rules do reach the builder drawn here.
-    expect(reaching(rules().filter((rule) => rule.file === 'styles/builder.css'), inside).length).toBeGreaterThan(0)
+    expect(
+      reaching(
+        rules().filter((rule) => rule.file === 'styles/builder.css'),
+        inside,
+      ).length,
+    ).toBeGreaterThan(0)
   })
 
   // report-builder.css lays the builder out without a pane the person hid
@@ -273,15 +292,23 @@ describe("the Studio's stylesheets", () => {
   // view in the outline's width. Read as text, because jsdom's CSS object
   // model drops grid properties it does not know.
   test('lay the builder out without a hidden pane in the workbench’s own columns', () => {
-    const tracks = [...exported('@formancy/themes/workbench.css').matchAll(/(?:^|\})\s*\.wb\s*\{[^}]*grid-template-columns:\s*([^;]+);/g)].map((match) => (match[1] ?? '').match(/minmax\([^)]*\)/g) ?? [])
+    const tracks = [...exported('@formancy/themes/workbench.css').matchAll(/(?:^|\})\s*\.wb\s*\{[^}]*grid-template-columns:\s*([^;]+);/g)].map(
+      (match) => (match[1] ?? '').match(/minmax\([^)]*\)/g) ?? [],
+    )
     expect(tracks).toHaveLength(1)
     const columns = tracks[0] ?? []
     expect(columns).toHaveLength(3)
-    const grids = [...exported('@formancy/report-builder-core/report-builder.css').matchAll(/\[data-report-part='editor'\]\.wb:where\(((?:\[data-hidden~='[a-z]+'\])+)\)\s*\{\s*grid-template-columns:\s*([^;]+);/g)]
+    const grids = [
+      ...exported('@formancy/report-builder-core/report-builder.css').matchAll(
+        /\[data-report-part='editor'\]\.wb:where\(((?:\[data-hidden~='[a-z]+'\])+)\)\s*\{\s*grid-template-columns:\s*([^;]+);/g,
+      ),
+    ]
     expect(grids).toHaveLength(3)
     for (const [, condition = '', written = ''] of grids) {
       const hidden = [...condition.matchAll(/'([a-z]+)'/g)].map((match) => match[1])
-      const kept = columns.filter((_, at) => !(at === 0 && hidden.includes('outline')) && !(at === 2 && hidden.includes('properties') && hidden.includes('diagnostics')))
+      const kept = columns.filter(
+        (_, at) => !(at === 0 && hidden.includes('outline')) && !(at === 2 && hidden.includes('properties') && hidden.includes('diagnostics')),
+      )
       expect(written.trim(), hidden.join(' ')).toBe(kept.join(' '))
     }
   })
@@ -298,7 +325,10 @@ describe("the Studio's stylesheets", () => {
     expect(middle.some((element) => element.matches('.paper-text span'))).toBe(true)
     const every = [...rules(), ...builderSheets()].filter((rule) => !rule.selector.includes('.paper'))
     expect(reaching(every, middle)).toEqual([INERT])
-    document.body.insertAdjacentHTML('beforeend', '<div class="viewer"><div class="paper" id="beside"><div class="paper-page"><canvas></canvas><div class="paper-text"><span>Total</span><br><span class="markedContent"><span>CHF</span></span></div></div></div></div>')
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<div class="viewer"><div class="paper" id="beside"><div class="paper-page"><canvas></canvas><div class="paper-text"><span>Total</span><br><span class="markedContent"><span>CHF</span></span></div></div></div></div>',
+    )
     const beside = [...document.querySelectorAll('#beside *')]
     expect(beside.length).toBe(7)
     expect(reaching(every, beside)).toEqual([])
@@ -328,7 +358,9 @@ describe("the Studio's stylesheets", () => {
     expect(declaredBy(exported('@formancy/themes/workbench.css'), '.wb *')).toEqual([['transition']])
     expect(declaredBy('@media (x) { .wb *, .wb .y * { transition: none; color: red } }', '.wb *')).toEqual([['transition', 'color']])
     // A guard on the guard: the same rules do dress the builder's own pane beside it.
-    const pane = within(screen.getByRole('region', { name: 'Report editor' })).getByRole('tree', { name: 'Outline' }).closest('[data-pane]')
+    const pane = within(screen.getByRole('region', { name: 'Report editor' }))
+      .getByRole('tree', { name: 'Outline' })
+      .closest('[data-pane]')
     expect(reaching(builderRules(), [...(pane?.querySelectorAll('*') ?? [])]).filter((rule) => rule !== INERT).length).toBeGreaterThan(0)
   })
 

@@ -1,4 +1,15 @@
-import { epcCodes, EURO_INVOICE_AT, EURO_INVOICE_SAMPLES, readCodes, readPdf, starterImages, type PdfCode, type PdfPage, type ReadPdf, type Starter } from '@formancy/report-corpus'
+import {
+  epcCodes,
+  EURO_INVOICE_AT,
+  EURO_INVOICE_SAMPLES,
+  readCodes,
+  readPdf,
+  starterImages,
+  type PdfCode,
+  type PdfPage,
+  type ReadPdf,
+  type Starter,
+} from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import type { ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
@@ -101,10 +112,16 @@ const cents = (text: string): bigint => BigInt(text.replace('.', ''))
 const halfAway = (numerator: bigint, denominator: bigint): bigint => (2n * numerator + denominator) / (2n * denominator)
 
 /** An amount in euro as Intl prints it for `locale`, handed the exact decimal string, with its spaces as a PDF line has them. */
-const euros = (locale: string, amount: bigint): string => normalise(new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(decimal(amount) as Intl.StringNumericLiteral))
+const euros = (locale: string, amount: bigint): string =>
+  normalise(
+    new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+      decimal(amount) as Intl.StringNumericLiteral,
+    ),
+  )
 
 /** A date of the data, `YYYY-MM-DD`, as Intl prints it for `locale` in the medium style, in UTC as the runtime formats a date. */
-const day = (locale: string, date: string): string => normalise(new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`)))
+const day = (locale: string, date: string): string =>
+  normalise(new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`)))
 
 /** An IBAN or a creditor reference as a person reads it: in groups of four. */
 const grouped = (code: string): string => code.replace(/(.{4})(?=.)/g, '$1 ')
@@ -153,52 +170,78 @@ describe('the euro invoice samples', () => {
   // format, a label in another language, or a code asking for another
   // amount than the page states would each be shown as what the product
   // does.
-  test.each(samples)('%s prints one page, its totals in its locale, and a code for exactly the printed total beside the details it holds', async (id, sample) => {
-    const says = SAYS[id as keyof typeof SAYS]
-    const eur = (amount: bigint): string => euros(says.locale, amount)
-    const lines = [...(sample.data.detail as Record<string, string>[])].sort((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1))
-    const net = lines.reduce((sum, line) => sum + cents(line['amount'] as string), 0n)
-    const tax = halfAway(net * says.rate, 100n)
-    const total = net + tax
+  test.each(samples)(
+    '%s prints one page, its totals in its locale, and a code for exactly the printed total beside the details it holds',
+    async (id, sample) => {
+      const says = SAYS[id as keyof typeof SAYS]
+      const eur = (amount: bigint): string => euros(says.locale, amount)
+      const lines = [...(sample.data.detail as Record<string, string>[])].sort((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1))
+      const net = lines.reduce((sum, line) => sum + cents(line['amount'] as string), 0n)
+      const tax = halfAway(net * says.rate, 100n)
+      const total = net + tax
 
-    const { document, pdf, codes } = await print(sample)
-    expect(pdf.pages).toHaveLength(1)
-    const found = lines.map((line) => startingWith(pdf, line['article'] as string))
-    expect(found.map((each) => each.length)).toEqual(lines.map(() => 1))
-    expect(found.map(([line], index) => line !== undefined && lineHas(line, eur(cents(lines[index]?.['amount'] as string))))).toEqual(lines.map(() => true))
-    const [netIs, taxIs, totalIs] = says.labels
-    expect([netIs, taxIs, totalIs].map((label) => startingWith(pdf, label).map((line) => line.text))).toEqual([[`${netIs} ${eur(net)}`], [`${taxIs} ${eur(tax)}`], [`${totalIs} ${eur(total)}`]])
-    expect(startingWith(pdf, says.due).map((line) => line.text)).toEqual([`${says.due} ${day(says.locale, sample.data.header?.['dueOn'] as string)}`])
-    expect(says.address.map((words) => startingWith(pdf, words).length)).toEqual([1, 1, 1])
+      const { document, pdf, codes } = await print(sample)
+      expect(pdf.pages).toHaveLength(1)
+      const found = lines.map((line) => startingWith(pdf, line['article'] as string))
+      expect(found.map((each) => each.length)).toEqual(lines.map(() => 1))
+      expect(found.map(([line], index) => line !== undefined && lineHas(line, eur(cents(lines[index]?.['amount'] as string))))).toEqual(lines.map(() => true))
+      const [netIs, taxIs, totalIs] = says.labels
+      expect([netIs, taxIs, totalIs].map((label) => startingWith(pdf, label).map((line) => line.text))).toEqual([
+        [`${netIs} ${eur(net)}`],
+        [`${taxIs} ${eur(tax)}`],
+        [`${totalIs} ${eur(total)}`],
+      ])
+      expect(startingWith(pdf, says.due).map((line) => line.text)).toEqual([`${says.due} ${day(says.locale, sample.data.header?.['dueOn'] as string)}`])
+      expect(says.address.map((words) => startingWith(pdf, words).length)).toEqual([1, 1, 1])
 
-    expect(codes.map((code) => [code.text, code.ecLevel])).toEqual(epcCodes(document.body).map((resolved) => [resolved.payload, 'M']))
-    const [code] = codes as [PdfCode]
-    expect(code.version).toBeLessThanOrEqual(13)
-    const [, , , , bic, name, iban, amount, , reference] = code.text.split('\n')
-    expect(amount).toBe(`EUR${decimal(total).replace(/\.?0+$/, '')}`)
-    const [paidTo, ibanIs, bicIs, amountIs, referenceIs] = says.details
-    const details = [`${paidTo} ${name}`, `${ibanIs} ${grouped(iban as string)}`, `${bicIs} ${bic}`, `${amountIs} ${eur(total)}`, `${referenceIs} ${grouped(reference as string)}`]
-    expect(details.map((words) => startingWith(pdf, words).map((line) => line.text))).toEqual(details.map((words) => [words]))
-    const beside = details.flatMap((words) => startingWith(pdf, words)).filter((line) => line.x > code.x + code.width && line.bottom > code.top && line.top < code.bottom)
-    expect(beside.map((line) => line.text)).toEqual(details)
-    expect(code.x + code.width).toBeLessThan((pdf.pages[0]?.width as number) / 2)
-    expect(code.top).toBeGreaterThan(startingWith(pdf, totalIs)[0]?.bottom as number)
-  }, TIMEOUT)
+      expect(codes.map((code) => [code.text, code.ecLevel])).toEqual(epcCodes(document.body).map((resolved) => [resolved.payload, 'M']))
+      const [code] = codes as [PdfCode]
+      expect(code.version).toBeLessThanOrEqual(13)
+      const [, , , , bic, name, iban, amount, , reference] = code.text.split('\n')
+      expect(amount).toBe(`EUR${decimal(total).replace(/\.?0+$/, '')}`)
+      const [paidTo, ibanIs, bicIs, amountIs, referenceIs] = says.details
+      const details = [
+        `${paidTo} ${name}`,
+        `${ibanIs} ${grouped(iban as string)}`,
+        `${bicIs} ${bic}`,
+        `${amountIs} ${eur(total)}`,
+        `${referenceIs} ${grouped(reference as string)}`,
+      ]
+      expect(details.map((words) => startingWith(pdf, words).map((line) => line.text))).toEqual(details.map((words) => [words]))
+      const beside = details
+        .flatMap((words) => startingWith(pdf, words))
+        .filter((line) => line.x > code.x + code.width && line.bottom > code.top && line.top < code.bottom)
+      expect(beside.map((line) => line.text)).toEqual(details)
+      expect(code.x + code.width).toBeLessThan((pdf.pages[0]?.width as number) / 2)
+      expect(code.top).toBeGreaterThan(startingWith(pdf, totalIs)[0]?.bottom as number)
+    },
+    TIMEOUT,
+  )
 
   // Austria's sample wears the PSA's frame, and it alone: "Zahlen mit
   // Code" read back as a turned run, up the right side of the symbol and
   // left of the details, within the symbol's height. The caption on
   // another country's code would print Austria's words on its invoice;
   // its absence on Austria's would print a code the PSA frames otherwise.
-  test.each(samples)('%s wears Austria’s frame only if it is the Austrian sample', async (id, sample) => {
-    const { pdf, codes } = await print(sample)
-    const [code] = codes as [PdfCode]
-    const captions = pdf.pages[0]?.items.filter((item) => normalise(item.text) === CAPTION) ?? []
-    const details = startingWith(pdf, SAYS[id as keyof typeof SAYS].details[0])
-    expect(captions.map((caption) => [caption.angle, caption.x >= code.x + code.width, caption.x + caption.width < (details[0]?.x as number), caption.top >= code.top - 1, caption.bottom <= code.bottom + 1])).toEqual(
-      id === 'euro-invoice-at' ? [[90, true, true, true, true]] : [],
-    )
-  }, TIMEOUT)
+  test.each(samples)(
+    '%s wears Austria’s frame only if it is the Austrian sample',
+    async (id, sample) => {
+      const { pdf, codes } = await print(sample)
+      const [code] = codes as [PdfCode]
+      const captions = pdf.pages[0]?.items.filter((item) => normalise(item.text) === CAPTION) ?? []
+      const details = startingWith(pdf, SAYS[id as keyof typeof SAYS].details[0])
+      expect(
+        captions.map((caption) => [
+          caption.angle,
+          caption.x >= code.x + code.width,
+          caption.x + caption.width < (details[0]?.x as number),
+          caption.top >= code.top - 1,
+          caption.bottom <= code.bottom + 1,
+        ]),
+      ).toEqual(id === 'euro-invoice-at' ? [[90, true, true, true, true]] : [])
+    },
+    TIMEOUT,
+  )
 
   // pdfmake draws a character its face has no glyph for as nothing, and the
   // renderer refuses such a document before it draws it (glyphs.ts), so
@@ -206,12 +249,16 @@ describe('the euro invoice samples', () => {
   // Roboto, and no text read back needs looking at for one. fr-FR groups a
   // thousand with U+202F, which Roboto lacks: the samples keep every amount
   // under a thousand, and no amount on a page prints a grouping mark.
-  test.each(samples.slice(1))('%s prints in its locale with no glyph missing, and no amount with a grouping mark', async (_id, sample) => {
-    expect(new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format('1000.00' as Intl.StringNumericLiteral)).toContain(' ')
-    const { pdf } = await print(sample)
-    const items = pdf.pages.flatMap((page) => page.items.map((item) => item.text))
-    expect(items.filter((text) => /\d[  .,']\d{3}[,.]\d{2}/u.test(text))).toEqual([])
-  }, TIMEOUT)
+  test.each(samples.slice(1))(
+    '%s prints in its locale with no glyph missing, and no amount with a grouping mark',
+    async (_id, sample) => {
+      expect(new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format('1000.00' as Intl.StringNumericLiteral)).toContain(' ')
+      const { pdf } = await print(sample)
+      const items = pdf.pages.flatMap((page) => page.items.map((item) => item.text))
+      expect(items.filter((text) => /\d[  .,']\d{3}[,.]\d{2}/u.test(text))).toEqual([])
+    },
+    TIMEOUT,
+  )
 
   // The firm's mark heads the page (0032), and pushes nothing off it: the
   // page is one, and its code stands beside its details, as the first test
@@ -221,21 +268,29 @@ describe('the euro invoice samples', () => {
   // 12 pt under it, the firm's line the first under it. A mark missing,
   // moved, scaled or recoloured, drawn twice, or crowding the line that
   // says whom the invoice is from would each show here.
-  test.each(samples)('%s prints the firm’s mark at the head of its page, above the line that says whom it is from', async (_id, sample) => {
-    const { pdf } = await print(sample)
-    const [page] = pdf.pages as [PdfPage]
-    expect(marksOn(page)).toEqual([markAt(MARGIN)])
-    expect(page.images).toEqual([])
-    expect(crowding(page, markAt(MARGIN))).toEqual([])
-    expect(pageLines(page)[0]?.text).toMatch(/^Formancy /)
-  }, TIMEOUT)
+  test.each(samples)(
+    '%s prints the firm’s mark at the head of its page, above the line that says whom it is from',
+    async (_id, sample) => {
+      const { pdf } = await print(sample)
+      const [page] = pdf.pages as [PdfPage]
+      expect(marksOn(page)).toEqual([markAt(MARGIN)])
+      expect(page.images).toEqual([])
+      expect(crowding(page, markAt(MARGIN))).toEqual([])
+      expect(pageLines(page)[0]?.text).toMatch(/^Formancy /)
+    },
+    TIMEOUT,
+  )
 
   // That nothing of the mark shows past its box is the pixels' to say
   // (0030): on the Austrian sample, whose code wears the PSA's frame, PDF.js
   // draws the disc in its blue and the drop in white, and leaves the paper
   // white in a band 2 pt around the box.
-  test('draw the mark inside its box and nothing of it past it, by its pixels', async () => {
-    const { bytes } = await print(EURO_INVOICE_AT)
-    expect(await markPixels(bytes, markAt(MARGIN))).toEqual({ disc: '#1f4e79', drop: '#ffffff', around: [] })
-  }, TIMEOUT)
+  test(
+    'draw the mark inside its box and nothing of it past it, by its pixels',
+    async () => {
+      const { bytes } = await print(EURO_INVOICE_AT)
+      expect(await markPixels(bytes, markAt(MARGIN))).toEqual({ disc: '#1f4e79', drop: '#ffffff', around: [] })
+    },
+    TIMEOUT,
+  )
 })

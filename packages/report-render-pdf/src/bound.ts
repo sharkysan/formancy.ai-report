@@ -113,6 +113,9 @@ export function refuseOversized(blocks: readonly Block[], bodyHeight: number, ma
   const height = leastHeight(blocks, fonts) + reserved
   if (height > maxPages * bodyHeight) {
     const slip = reserved > 0 ? `, the ${reserved.toFixed(2)} pt the payment part's slip keeps at its end included` : ''
-    throw new RenderRefusal('too-many-pages', `the report needs more than ${maxPages} pages: its body is at least ${height.toFixed(2)} pt tall${slip}, and ${maxPages} pages hold ${(maxPages * bodyHeight).toFixed(2)} pt`)
+    throw new RenderRefusal(
+      'too-many-pages',
+      `the report needs more than ${maxPages} pages: its body is at least ${height.toFixed(2)} pt tall${slip}, and ${maxPages} pages hold ${(maxPages * bodyHeight).toFixed(2)} pt`,
+    )
   }
 }

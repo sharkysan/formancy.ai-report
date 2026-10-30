@@ -65,13 +65,16 @@ export function decimalDigits(value: number): NumberDigits {
   if (Number.isSafeInteger(value)) return { ok: true, digits: String(value) }
   // Every double past 2^53 is a whole number, and none of them holds its last digits.
   if (Number.isInteger(value)) return refused(`${PAST_SAFE}, so it is refused, never printed as another number`)
-  if (Math.abs(value) < MIN_NORMAL) return refused('a number nearer zero than the smallest normal double, where two decimals a person typed can be one number; it is refused, never rounded')
+  if (Math.abs(value) < MIN_NORMAL)
+    return refused('a number nearer zero than the smallest normal double, where two decimals a person typed can be one number; it is refused, never rounded')
   // toExponential() without an argument writes the shortest digits that are
   // this double, one before the point: `-1.2345e-3`.
   const [mantissa = '', exponent = '0'] = value.toExponential().split('e')
   const digits = mantissa.replace('-', '').replace('.', '')
   if (digits.length > MAX_EXACT_DIGITS) {
-    return refused(`a number of more than ${MAX_EXACT_DIGITS} significant digits: arithmetic made it, or more digits were typed than a double keeps, and printed it would be a number nobody wrote; it is refused, never rounded`)
+    return refused(
+      `a number of more than ${MAX_EXACT_DIGITS} significant digits: arithmetic made it, or more digits were typed than a double keeps, and printed it would be a number nobody wrote; it is refused, never rounded`,
+    )
   }
   return { ok: true, digits: `${value < 0 ? '-' : ''}${written(digits, Number(exponent))}` }
 }

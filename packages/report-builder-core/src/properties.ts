@@ -42,7 +42,12 @@ export function propertyTarget(report: ReportDefinition, selection: Selection | 
  * The report's own Add for a part it lacks: a group named after the part,
  * with no fields, whose button adds it (0039).
  */
-const ADD_PAYMENT_PART: GroupSpec = { key: '/paymentPart', words: 'canvas.paymentPart', fields: [], buttons: [{ words: 'action.addQrBill', action: { type: 'addPart', part: 'paymentPart' }, available: true }] }
+const ADD_PAYMENT_PART: GroupSpec = {
+  key: '/paymentPart',
+  words: 'canvas.paymentPart',
+  fields: [],
+  buttons: [{ words: 'action.addQrBill', action: { type: 'addPart', part: 'paymentPart' }, available: true }],
+}
 
 /** What the panel shows for `target`, in order: its fields, each by itself or in a group. */
 export function specsOf(target: PropertyTarget, report: ReportDefinition, t: EditorText, locale: EditorLocale): PanelSpec[] {
@@ -54,7 +59,9 @@ export function specsOf(target: PropertyTarget, report: ReportDefinition, t: Edi
     case 'column':
       return columnFields(target.column, { report, t, locale, row: true })
     case 'part':
-      return target.part === 'paymentPart' ? paymentPartFields(target.bill, { report, t, locale, row: false }) : invoiceFields(target.invoice, { report, t, locale, row: false })
+      return target.part === 'paymentPart'
+        ? paymentPartFields(target.bill, { report, t, locale, row: false })
+        : invoiceFields(target.invoice, { report, t, locale, row: false })
   }
 }
 
@@ -86,7 +93,14 @@ function within(path: string, at: string): boolean {
  * about what the field holds; and the same fields as rows, each by itself
  * or in its group, the group with its button.
  */
-export function propertyPanel(target: PropertyTarget, specs: readonly PanelSpec[], heading: string, errors: ReadonlyMap<string, FieldError>, diagnostics: readonly Diagnostic[], t: EditorText): PropertyPanel {
+export function propertyPanel(
+  target: PropertyTarget,
+  specs: readonly PanelSpec[],
+  heading: string,
+  errors: ReadonlyMap<string, FieldError>,
+  diagnostics: readonly Diagnostic[],
+  t: EditorText,
+): PropertyPanel {
   const fieldOf = (spec: FieldSpec): PropertyField => {
     const error = errors.get(spec.key)
     const about = error?.message ?? diagnostics.find((diagnostic) => within(diagnostic.path, `${target.path}${spec.key}`))?.message
@@ -191,7 +205,9 @@ export function propertyChange(report: ReportDefinition, target: PropertyTarget,
     case 'component': {
       const { component } = target
       const shared = component.kind === 'epcQrCode' ? sharedAccount(report, component.iban, '/iban', at, next) : undefined
-      return shared ?? { command: (r) => updateComponent(r, component.id, component.kind, patchAt(component, at, next) as ComponentPatch<typeof component.kind>) }
+      return (
+        shared ?? { command: (r) => updateComponent(r, component.id, component.kind, patchAt(component, at, next) as ComponentPatch<typeof component.kind>) }
+      )
     }
     case 'column': {
       const { table, column } = target
@@ -200,7 +216,11 @@ export function propertyChange(report: ReportDefinition, target: PropertyTarget,
     case 'part': {
       if (target.part === 'eInvoice') {
         const { invoice } = target
-        return sharedAccount(report, invoice.payment?.iban, '/payment/iban', at, next) ?? { command: (r) => updateEInvoice(r, patchAt(invoice, at, next) as EInvoicePatch) }
+        return (
+          sharedAccount(report, invoice.payment?.iban, '/payment/iban', at, next) ?? {
+            command: (r) => updateEInvoice(r, patchAt(invoice, at, next) as EInvoicePatch),
+          }
+        )
       }
       const shared = sharedAccount(report, target.bill.account, '/account', at, next)
       if (shared !== undefined) return shared

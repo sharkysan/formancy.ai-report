@@ -50,7 +50,18 @@ export const IMAGE_KINDS: readonly ImageAsset[] = [
   png('png-rgb-keyed', { colour: 2, depth: 8, chunks: [['tRNS', new Uint8Array([0, 0, 0, 0, 0, 128])]] }, (x, y) => [x * 16, y * 16, 128]),
   png('png-paletted', { colour: 3, depth: 8, chunks: [['PLTE', PALETTE]] }, (x, y) => [(x + y) % 4]),
   // tRNS for a paletted image is an alpha for each entry of its palette.
-  png('png-paletted-transparent', { colour: 3, depth: 8, chunks: [['PLTE', PALETTE], ['tRNS', new Uint8Array([255, 192, 64, 0])]] }, (x, y) => [(x + y) % 4]),
+  png(
+    'png-paletted-transparent',
+    {
+      colour: 3,
+      depth: 8,
+      chunks: [
+        ['PLTE', PALETTE],
+        ['tRNS', new Uint8Array([255, 192, 64, 0])],
+      ],
+    },
+    (x, y) => [(x + y) % 4],
+  ),
   png('png-interlaced', { colour: 2, depth: 8, interlace: true }, (x, y) => [x * 16, y * 16, 128]),
   jpeg('jpeg-grey', 1),
   jpeg('jpeg-colour', 3),
@@ -92,7 +103,9 @@ function png(id: string, { colour, depth, interlace = false, chunks = [] }: PngK
 function packed(samples: readonly number[], depth: 1 | 8 | 16): number[] {
   if (depth === 8) return [...samples]
   if (depth === 16) return samples.flatMap((sample) => [sample >> 8, sample & 0xff])
-  return Array.from({ length: Math.ceil(samples.length / 8) }, (_, byte) => samples.slice(byte * 8, byte * 8 + 8).reduce((bits, sample, at) => bits | (sample << (7 - at)), 0))
+  return Array.from({ length: Math.ceil(samples.length / 8) }, (_, byte) =>
+    samples.slice(byte * 8, byte * 8 + 8).reduce((bits, sample, at) => bits | (sample << (7 - at)), 0),
+  )
 }
 
 /** A JPEG segment: its marker, its length, which counts itself, and its body. */
@@ -112,14 +125,16 @@ function jpeg(id: string, components: 1 | 3): ImageAsset {
   const ids = Array.from({ length: components }, (_, index) => index + 1)
   const bits = 2 * components
   const bytes = new Uint8Array([
-    0xff, 0xd8, // start of image
+    0xff,
+    0xd8, // start of image
     ...segment(0xdb, [0, ...Array<number>(64).fill(1)]), // quantisation table 0
     ...segment(0xc0, [8, 0, 8, 0, 8, components, ...ids.flatMap((each) => [each, 0x11, 0])]), // baseline frame, 8 × 8
     ...segment(0xc4, oneCodeTable(0x00)), // DC table 0
     ...segment(0xc4, oneCodeTable(0x10)), // AC table 0
     ...segment(0xda, [components, ...ids.flatMap((each) => [each, 0x00]), 0, 63, 0]),
     ...Array.from({ length: Math.ceil(bits / 8) }, (_, byte) => (0xff >> Math.min(8, bits - 8 * byte)) & 0xff),
-    0xff, 0xd9, // end of image
+    0xff,
+    0xd9, // end of image
   ])
   return { id, mediaType: 'image/jpeg', bytes }
 }

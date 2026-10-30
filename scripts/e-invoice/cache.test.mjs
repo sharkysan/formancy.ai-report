@@ -65,7 +65,9 @@ describe('fetchVerified', () => {
     const directory = scratch()
     const path = join(directory, 'm.jar')
     const printed = vi.spyOn(console, 'error').mockImplementation(() => {})
-    await expect(fetchVerified({ url: 'https://example.org/m.jar', path, sha256: sha(Buffer.from('other')) }, serving(BYTES))).rejects.toThrow(/^refused what https:\/\/example.org\/m.jar served: its SHA-256 is not [0-9a-f]{64}, the one the register says$/)
+    await expect(fetchVerified({ url: 'https://example.org/m.jar', path, sha256: sha(Buffer.from('other')) }, serving(BYTES))).rejects.toThrow(
+      /^refused what https:\/\/example.org\/m.jar served: its SHA-256 is not [0-9a-f]{64}, the one the register says$/,
+    )
     expect(printed).toHaveBeenCalledWith(`https://example.org/m.jar served bytes whose SHA-256 is ${sha(BYTES)}`)
     printed.mockRestore()
     expect(readdirSync(directory)).toEqual([])
@@ -85,7 +87,9 @@ describe('fetchVerified', () => {
     expect(await sha256File(path)).toBe(sha(BYTES))
     rmSync(path)
     const printed = vi.spyOn(console, 'error').mockImplementation(() => {})
-    await expect(fetchVerified({ url: 'https://example.org/m.jar', path, sha256: sha(BYTES) }, serving(BYTES, 404))).rejects.toThrow(/^https:\/\/example.org\/m.jar did not serve the file$/)
+    await expect(fetchVerified({ url: 'https://example.org/m.jar', path, sha256: sha(BYTES) }, serving(BYTES, 404))).rejects.toThrow(
+      /^https:\/\/example.org\/m.jar did not serve the file$/,
+    )
     expect(printed).toHaveBeenCalledWith('https://example.org/m.jar answered 404')
     printed.mockRestore()
   })
@@ -100,6 +104,8 @@ describe('readVerified', () => {
     writeFileSync(path, BYTES)
     expect(readVerified(path, sha(BYTES)).equals(BYTES)).toBe(true)
     writeFileSync(path, 'changed since')
-    expect(() => readVerified(path, sha(BYTES))).toThrow(`refused to read ${path}: its SHA-256 is ${sha(Buffer.from('changed since'))}, where the register says ${sha(BYTES)}`)
+    expect(() => readVerified(path, sha(BYTES))).toThrow(
+      `refused to read ${path}: its SHA-256 is ${sha(Buffer.from('changed since'))}, where the register says ${sha(BYTES)}`,
+    )
   })
 })

@@ -131,7 +131,8 @@ export function readObject(f: Findings, value: unknown, path: string): Record<st
     for (const key of Object.keys(value)) {
       // Reported where its object is and left out of the copy, so no path is
       // built from it; the error alone keeps the report from being valid.
-      if (key.length > MAX_KEY_LENGTH) f.report(path, 'too-long', `holds a property name ${key.length} characters long, ${quote(key)}; no name in the format is longer than ${MAX_KEY_LENGTH}`)
+      if (key.length > MAX_KEY_LENGTH)
+        f.report(path, 'too-long', `holds a property name ${key.length} characters long, ${quote(key)}; no name in the format is longer than ${MAX_KEY_LENGTH}`)
       else copy[key] = readProperty(f, value, key, at(path, key))
     }
     return copy
@@ -190,7 +191,13 @@ export function strictKeys(f: Findings, o: Record<string, unknown>, path: string
 }
 
 /** An object with exactly the properties a shape allows. */
-export function shape(f: Findings, value: unknown, path: string, required: readonly string[], optional: readonly string[] = []): Record<string, unknown> | undefined {
+export function shape(
+  f: Findings,
+  value: unknown,
+  path: string,
+  required: readonly string[],
+  optional: readonly string[] = [],
+): Record<string, unknown> | undefined {
   const o = readObject(f, value, path)
   if (o !== undefined) strictKeys(f, o, path, required, optional)
   return o

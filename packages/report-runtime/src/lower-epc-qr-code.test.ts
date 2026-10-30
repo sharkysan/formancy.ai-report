@@ -145,9 +145,26 @@ describe("the EPC's examples", () => {
   // so it is the example but for that digit, the same 103 characters, and
   // 104 bytes for the ç. Its empty BIC, purpose and reference are lines.
   test('V2 is written as the example in UTF-8: version 002, its empty elements as lines', () => {
-    const v2 = code({ beneficiary: text("François D'Alsace S.A."), iban: text('FR14 2004 1010 0505 0001 3M02 606'), amount: AMOUNT, text: text('Client:Marie Louise La Lune') })
+    const v2 = code({
+      beneficiary: text("François D'Alsace S.A."),
+      iban: text('FR14 2004 1010 0505 0001 3M02 606'),
+      amount: AMOUNT,
+      text: text('Client:Marie Louise La Lune'),
+    })
     const written = block(invoice(v2), data({ amount: '12.3' })).payload
-    expect(written.split('\n')).toEqual(['BCD', '002', '1', 'SCT', '', "François D'Alsace S.A.", 'FR1420041010050500013M02606', 'EUR12.3', '', '', 'Client:Marie Louise La Lune'])
+    expect(written.split('\n')).toEqual([
+      'BCD',
+      '002',
+      '1',
+      'SCT',
+      '',
+      "François D'Alsace S.A.",
+      'FR1420041010050500013M02606',
+      'EUR12.3',
+      '',
+      '',
+      'Client:Marie Louise La Lune',
+    ])
     expect([[...written].length, utf8Bytes(written)]).toEqual([103, 104])
   })
 })
@@ -164,8 +181,18 @@ describe('the payload', () => {
     ['an amount alone', { amount: AMOUNT }, { amount: '45.00' }, `${HEAD}\nEUR45`],
     ['a reference alone', { reference: read('reference') }, { reference: 'RF18 5390 0754 7034' }, `${HEAD}\n\n\nRF18539007547034`],
     ['a text alone', { text: read('text') }, { text: 'Rechnung 2026-0042' }, `${HEAD}\n\n\n\nRechnung 2026-0042`],
-    ['information without remittance', { amount: AMOUNT, information: read('information') }, { amount: '45.00', information: 'Danke für Ihren Auftrag' }, `${HEAD}\nEUR45\n\n\n\nDanke für Ihren Auftrag`],
-    ['a purpose and a reference', { amount: AMOUNT, purpose: 'GDDS', reference: read('reference') }, { amount: '45.00', reference: 'RF18539007547034' }, `${HEAD}\nEUR45\nGDDS\nRF18539007547034`],
+    [
+      'information without remittance',
+      { amount: AMOUNT, information: read('information') },
+      { amount: '45.00', information: 'Danke für Ihren Auftrag' },
+      `${HEAD}\nEUR45\n\n\n\nDanke für Ihren Auftrag`,
+    ],
+    [
+      'a purpose and a reference',
+      { amount: AMOUNT, purpose: 'GDDS', reference: read('reference') },
+      { amount: '45.00', reference: 'RF18539007547034' },
+      `${HEAD}\nEUR45\nGDDS\nRF18539007547034`,
+    ],
   ] as const)('holds %s, every element before the last a line, and nothing after it', (_name, patch, values, expected) => {
     const written = payload(patch, { ...MAX, ...values })
     expect(written).toBe(expected)
@@ -184,7 +211,9 @@ describe('the payload', () => {
     const patch = { bic: read('bic'), reference: read('reference'), information: read('information') }
     for (const nothing of ['', '   ', null]) {
       for (const options of [FINAL, PREVIEW]) {
-        expect(payload(patch, { ...MAX, bic: nothing, reference: nothing, information: nothing }, options), `${JSON.stringify(nothing)} ${options.mode}`).toBe(HEAD)
+        expect(payload(patch, { ...MAX, bic: nothing, reference: nothing, information: nothing }, options), `${JSON.stringify(nothing)} ${options.mode}`).toBe(
+          HEAD,
+        )
       }
     }
     expect(payload({ amount: AMOUNT, text: read('text') }, { ...MAX, amount: '45.00', text: null })).toBe(`${HEAD}\nEUR45`)
@@ -203,7 +232,8 @@ describe('the payload', () => {
         stage: 'resolve',
         code: 'invalid-epc-qr-code',
         path: '/regions/summary/0',
-        message: 'component pay-code: its payload is 332 bytes long in UTF-8; the EPC allows at most 331 (EPC069-12 2.2), what a version 13 code holds at level M',
+        message:
+          'component pay-code: its payload is 332 bytes long in UTF-8; the EPC allows at most 331 (EPC069-12 2.2), what a version 13 code holds at level M',
         componentId: 'pay-code',
       },
     ])
@@ -286,7 +316,13 @@ describe('the amount', () => {
     ['-5.00', 'is not from 0.01 to 999999999.99, the amounts an EPC QR code pays (EPC069-12 2.2)'],
   ])('refuses %s, naming the rule', (amount, rule) => {
     expect(errors(invoice(code({ amount: AMOUNT })), data({ ...MAX, amount }))).toEqual([
-      { stage: 'resolve', code: 'invalid-epc-qr-code', path: '/regions/summary/0/amount', message: `component pay-code: the amount ${rule}`, componentId: 'pay-code' },
+      {
+        stage: 'resolve',
+        code: 'invalid-epc-qr-code',
+        path: '/regions/summary/0/amount',
+        message: `component pay-code: the amount ${rule}`,
+        componentId: 'pay-code',
+      },
     ])
   })
 
@@ -310,7 +346,13 @@ describe('the amount', () => {
   test('names the code when its expression fails', () => {
     const failing = code({ amount: { cel: 'divide(header.amount, dec("0"), 2)' } })
     expect(errors(invoice(failing), data({ ...MAX, amount: '45.00' }))).toMatchObject([
-      { stage: 'evaluation', code: 'expression-failed', path: '/regions/summary/0/amount/cel', componentId: 'pay-code', message: expect.stringMatching(/^component pay-code: /) },
+      {
+        stage: 'evaluation',
+        code: 'expression-failed',
+        path: '/regions/summary/0/amount/cel',
+        componentId: 'pay-code',
+        message: expect.stringMatching(/^component pay-code: /),
+      },
     ])
   })
 })
@@ -344,7 +386,9 @@ describe('a code read from data', () => {
   ]
   test.each(BROKEN)('refuses %s, naming the field and never the value', (_name, values, patch, field) => {
     const refused = errors(invoice(code(patch)), data({ ...MAX, ...values }))
-    expect(refused.map((error) => `${error.stage} ${error.code} ${error.path} ${'componentId' in error ? error.componentId : '-'}`)).toEqual([`resolve invalid-epc-qr-code /regions/summary/0/${field} pay-code`])
+    expect(refused.map((error) => `${error.stage} ${error.code} ${error.path} ${'componentId' in error ? error.componentId : '-'}`)).toEqual([
+      `resolve invalid-epc-qr-code /regions/summary/0/${field} pay-code`,
+    ])
     expect(refused[0]?.message).toMatch(/^component pay-code: /)
     for (const value of Object.values(values)) if (typeof value === 'string' && value.trim() !== '') expect(refused[0]?.message).not.toContain(value)
   })
@@ -353,8 +397,16 @@ describe('a code read from data', () => {
   // a person who fixes one value and renders again is not refused anew for
   // the next. A BIC whose account is refused is not paired with it.
   test('says every rule the data breaks, in the order the payload holds them', () => {
-    const refused = errors(invoice(code({ bic: read('bic'), text: read('text') })), data({ bic: 'COBADEFFX', name: '', iban: 'DE89370400440532013001', text: 't'.repeat(141) }))
-    expect(refused.map(({ path }) => path)).toEqual(['/regions/summary/0/bic', '/regions/summary/0/beneficiary', '/regions/summary/0/iban', '/regions/summary/0/text'])
+    const refused = errors(
+      invoice(code({ bic: read('bic'), text: read('text') })),
+      data({ bic: 'COBADEFFX', name: '', iban: 'DE89370400440532013001', text: 't'.repeat(141) }),
+    )
+    expect(refused.map(({ path }) => path)).toEqual([
+      '/regions/summary/0/bic',
+      '/regions/summary/0/beneficiary',
+      '/regions/summary/0/iban',
+      '/regions/summary/0/text',
+    ])
   })
 
   // Version 002 lets a code leave the BIC out, but "the BIC will continue
@@ -368,7 +420,8 @@ describe('a code read from data', () => {
       stage: 'resolve',
       code: 'invalid-epc-qr-code',
       path: '/regions/summary/0/bic',
-      message: "component pay-code: an account outside the EEA is paid to with its bank's BIC: EPC069-12 2.2 keeps the BIC mandatory where SCT scheme participants from non-EEA countries take part",
+      message:
+        "component pay-code: an account outside the EEA is paid to with its bank's BIC: EPC069-12 2.2 keeps the BIC mandatory where SCT scheme participants from non-EEA countries take part",
       componentId: 'pay-code',
     }
     expect(errors(invoice(code()), data({ ...MAX, iban: 'CH9300762011623852957' }))).toEqual([refusal])
@@ -379,8 +432,16 @@ describe('a code read from data', () => {
   // account's country's and a BIC; a BIC of Guernsey goes with a British
   // IBAN, as EPC409-09 pairs them.
   test("takes a BIC of the account's country, and writes version 001 for it", () => {
-    expect(payload({ bic: read('bic') }, { ...MAX, bic: 'COBADEFFXXX' }).split('\n').slice(0, 5)).toEqual(['BCD', '001', '1', 'SCT', 'COBADEFFXXX'])
-    expect(payload({ bic: read('bic') }, { ...MAX, iban: 'GB29NWBK60161331926819', bic: 'RBOSGGSX' }).split('\n').slice(4, 7)).toEqual(['RBOSGGSX', 'Max Muster', 'GB29NWBK60161331926819'])
+    expect(
+      payload({ bic: read('bic') }, { ...MAX, bic: 'COBADEFFXXX' })
+        .split('\n')
+        .slice(0, 5),
+    ).toEqual(['BCD', '001', '1', 'SCT', 'COBADEFFXXX'])
+    expect(
+      payload({ bic: read('bic') }, { ...MAX, iban: 'GB29NWBK60161331926819', bic: 'RBOSGGSX' })
+        .split('\n')
+        .slice(4, 7),
+    ).toEqual(['RBOSGGSX', 'Max Muster', 'GB29NWBK60161331926819'])
   })
 })
 
@@ -390,7 +451,12 @@ describe('a value the code lacks', () => {
   // short, a reference without its number -- and scan as some other
   // transfer, so a final render refuses it, naming the code and the run.
   test('refuses a final render, naming the code and the run', () => {
-    const short = code({ beneficiary: [{ kind: 'text', text: 'Muster ' }, { kind: 'field', field: header('name') }] })
+    const short = code({
+      beneficiary: [
+        { kind: 'text', text: 'Muster ' },
+        { kind: 'field', field: header('name') },
+      ],
+    })
     expect(errors(invoice(short), data({ ...MAX, name: null }))).toEqual([
       {
         stage: 'resolve',
@@ -407,8 +473,15 @@ describe('a value the code lacks', () => {
   // number -- a final render refuses it, naming the run, though a text of
   // that null alone is no text and leaves its element unused.
   test('refuses a final render where an optional text prints some runs and lacks another', () => {
-    const numbered = code({ information: [{ kind: 'text', text: 'Rechnung ' }, { kind: 'field', field: header('invoiceNo') }] })
-    expect(errors(invoice(numbered), data({ ...MAX, invoiceNo: null })).map(({ code: refusal, path }) => `${refusal} ${path}`)).toEqual(['no-qr-value /regions/summary/0/information/1'])
+    const numbered = code({
+      information: [
+        { kind: 'text', text: 'Rechnung ' },
+        { kind: 'field', field: header('invoiceNo') },
+      ],
+    })
+    expect(errors(invoice(numbered), data({ ...MAX, invoiceNo: null })).map(({ code: refusal, path }) => `${refusal} ${path}`)).toEqual([
+      'no-qr-value /regions/summary/0/information/1',
+    ])
     expect(payload({ information: read('invoiceNo') }, { ...MAX, invoiceNo: null })).toBe(HEAD)
   })
 
@@ -433,9 +506,12 @@ describe('a value the code lacks', () => {
         componentId: 'pay-code',
       },
     ])
-    expect(errors(invoice(code({ bic: read('bic') })), without({ ...MAX, iban: 'CH9300762011623852957' }, 'bic'), PREVIEW).map(({ path, message }) => [path, message.endsWith('; this preview has no value for a run of it')])).toEqual([
-      ['/regions/summary/0/bic', true],
-    ])
+    expect(
+      errors(invoice(code({ bic: read('bic') })), without({ ...MAX, iban: 'CH9300762011623852957' }, 'bic'), PREVIEW).map(({ path, message }) => [
+        path,
+        message.endsWith('; this preview has no value for a run of it'),
+      ]),
+    ).toEqual([['/regions/summary/0/bic', true]])
   })
 })
 

@@ -27,7 +27,17 @@ export { FONT_FACE_KEYS, faceKey } from './font-map.js'
 export type { FontFaceKey, FontFaces, FontMap } from './font-map.js'
 export { BIDI_CONTROLS, PRINTED_BLOCKS, refusedCharacter, UNICODE_VERSION } from './font-scripts.js'
 export type { CharacterRefusal, PrintedBlock } from './font-scripts.js'
-export { AGGREGATE_SCOPES, CURRENCY_SOURCE_KINDS, DATE_STYLES, EXPRESSION_NAMES, FORMAT_KINDS, GROUP_KEY, INLINE_KINDS, TEXT_TRANSFORMS, VALUE_SCOPES } from './values.js'
+export {
+  AGGREGATE_SCOPES,
+  CURRENCY_SOURCE_KINDS,
+  DATE_STYLES,
+  EXPRESSION_NAMES,
+  FORMAT_KINDS,
+  GROUP_KEY,
+  INLINE_KINDS,
+  TEXT_TRANSFORMS,
+  VALUE_SCOPES,
+} from './values.js'
 export type {
   AggregateInline,
   AggregateScope,
@@ -205,7 +215,17 @@ export { E_INVOICE_LINE_CODES, E_INVOICE_LINE_COLUMNS } from './en16931-lines.js
 export type { EInvoiceLineCode, EInvoiceLineColumn, EInvoiceLineTerm } from './en16931-lines.js'
 export { buyerIdentificationBreak, checkLineCategory, checkVatRate, sellerIdentificationBreaks, vatCategoryBreaks, vatReasonBreak } from './en16931-vat.js'
 export type { VatCategoryBreak } from './en16931-vat.js'
-export { isXRechnungRule, leitwegIdBreak, skontoBreak, XRECHNUNG_HELD, XRECHNUNG_NEEDS, XRECHNUNG_PATTERNS, XRECHNUNG_RULES, XRECHNUNG_TEXT_NEEDS, xrechnungRule } from './xrechnung.js'
+export {
+  isXRechnungRule,
+  leitwegIdBreak,
+  skontoBreak,
+  XRECHNUNG_HELD,
+  XRECHNUNG_NEEDS,
+  XRECHNUNG_PATTERNS,
+  XRECHNUNG_RULES,
+  XRECHNUNG_TEXT_NEEDS,
+  xrechnungRule,
+} from './xrechnung.js'
 export type { XRechnungNeed, XRechnungPattern, XRechnungRule } from './xrechnung.js'
 
 export { validateReport } from './validate.js'

@@ -65,7 +65,12 @@ export interface PngKind {
  * and at any size, but an interlaced one at least 5 pixels a side, where
  * each of the seven passes holds pixels, as an empty one has no scanlines.
  */
-export function encodePng(width: number, height: number, pixel: (x: number, y: number) => readonly number[], { colour = 2, interlace = false, chunks = [] }: PngKind = {}): Uint8Array {
+export function encodePng(
+  width: number,
+  height: number,
+  pixel: (x: number, y: number) => readonly number[],
+  { colour = 2, interlace = false, chunks = [] }: PngKind = {},
+): Uint8Array {
   const scanlines: number[] = []
   for (const [left, top, across, down] of interlace ? ADAM7 : [[0, 0, 1, 1] as const]) {
     for (let y = top; y < height; y += down) {
@@ -121,12 +126,22 @@ export function exifSegment(orientation: number): number[] {
  * before the tables, `frameSegment`'s among them, and `afterFrame` after
  * the frame header.
  */
-export function jpegOf({ height = 8, width = 8, scan = true, end = true, exif = [] as readonly number[], components = 1, segments = [] as readonly number[], afterFrame = [] as readonly number[] } = {}): Uint8Array {
+export function jpegOf({
+  height = 8,
+  width = 8,
+  scan = true,
+  end = true,
+  exif = [] as readonly number[],
+  components = 1,
+  segments = [] as readonly number[],
+  afterFrame = [] as readonly number[],
+} = {}): Uint8Array {
   const oneCodeTable = (classAndId: number): number[] => [classAndId, 1, ...Array<number>(15).fill(0), 0]
   const ids = Array.from({ length: components }, (_, index) => index + 1)
   const bits = 2 * components
   return new Uint8Array([
-    0xff, 0xd8, // start of image
+    0xff,
+    0xd8, // start of image
     ...exif,
     ...segments,
     ...segment(0xdb, [0, ...Array<number>(64).fill(1)]), // quantisation table 0
@@ -135,7 +150,12 @@ export function jpegOf({ height = 8, width = 8, scan = true, end = true, exif = 
     ...segment(0xc4, oneCodeTable(0x00)), // DC table 0
     ...segment(0xc4, oneCodeTable(0x10)), // AC table 0
     // The scan: "0" then "0" for each component, padded with ones to whole bytes.
-    ...(scan ? [...segment(0xda, [components, ...ids.flatMap((id) => [id, 0x00]), 0, 63, 0]), ...Array.from({ length: Math.ceil(bits / 8) }, (_, byte) => (0xff >> Math.min(8, bits - 8 * byte)) & 0xff)] : []),
+    ...(scan
+      ? [
+          ...segment(0xda, [components, ...ids.flatMap((id) => [id, 0x00]), 0, 63, 0]),
+          ...Array.from({ length: Math.ceil(bits / 8) }, (_, byte) => (0xff >> Math.min(8, bits - 8 * byte)) & 0xff),
+        ]
+      : []),
     ...(end ? [0xff, 0xd9] : []), // end of image
   ])
 }

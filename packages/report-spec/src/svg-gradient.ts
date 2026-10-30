@@ -34,13 +34,14 @@ export interface FlatGradient {
 /** The gradients a gradient names, itself first, followed until one names none. */
 function chain(gradient: SvgElement, ids: ReadonlyMap<string, SvgElement>): SvgElement[] {
   const chained = [gradient]
-  for (let href = gradient.attributes.get('href'); href !== undefined; ) {
+  for (let href = gradient.attributes.get('href'); href !== undefined;) {
     const target = href.value.trim()
     if (!target.startsWith('#')) refuse('reference', `${href.where} refers to something outside the file`, 'put the gradient it names into the file')
     const next = ids.get(target.slice(1))
     if (next === undefined || !GRADIENTS.has(next.name)) refuse('reference', `${href.where} names no gradient in the file`, 'name a gradient in the file')
     if (chained.includes(next)) refuse('reference', `${href.where} is a cycle of gradients naming each other`, 'make one of them name none')
-    if (chained.length >= MAX_SVG_DEPTH) refuse('too-deep', `${href.where} is a chain of more than ${MAX_SVG_DEPTH} gradients`, 'give the gradient its own stops and attributes')
+    if (chained.length >= MAX_SVG_DEPTH)
+      refuse('too-deep', `${href.where} is a chain of more than ${MAX_SVG_DEPTH} gradients`, 'give the gradient its own stops and attributes')
     chained.push(next)
     href = next.attributes.get('href')
   }
@@ -69,14 +70,16 @@ export function flattenGradient(gradient: SvgElement, ids: ReadonlyMap<string, S
     if (attribute === undefined) continue
     if (name === 'gradientUnits') geometry.push([name, attribute.value])
     else if (name === 'spreadMethod') {
-      if (attribute.value !== 'pad') refuse('unsupported', `${attribute.where} is a spread this format draws as pad alone`, 'expand the repeated gradient into shapes, or use pad')
+      if (attribute.value !== 'pad')
+        refuse('unsupported', `${attribute.where} is a spread this format draws as pad alone`, 'expand the repeated gradient into shapes, or use pad')
       geometry.push([name, 'pad'])
     } else if (name === 'gradientTransform') {
       matrix = readTransform(attribute.value, attribute.where)
       if (!isIdentity(matrix)) geometry.push([name, writeMatrix(matrix)])
     } else {
       const length = readLength(attribute.value, attribute.where, inBox)
-      if (name === 'r' && !(length.value > 0)) refuse('out-of-range', `${attribute.where} is a radial gradient of no radius`, 'give it a radius, or paint with its last colour')
+      if (name === 'r' && !(length.value > 0))
+        refuse('out-of-range', `${attribute.where} is a radial gradient of no radius`, 'give it a radius, or paint with its last colour')
       geometry.push([name, writeNumber(length)])
     }
   }

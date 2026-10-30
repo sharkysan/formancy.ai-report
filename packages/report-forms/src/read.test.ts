@@ -10,7 +10,8 @@ const V1 = schemaHash(SITE_VISIT_V1)
 const V2 = schemaHash(SITE_VISIT_V2)
 
 /** The site visit report read from `submission` against `form`. */
-const visit = (form: unknown, submission = SITE_VISIT_SUBMISSION_V1, more: { readonly formHash?: string } = {}) => readOne(SITE_VISIT_REPORT, { form, ...more, submission })
+const visit = (form: unknown, submission = SITE_VISIT_SUBMISSION_V1, more: { readonly formHash?: string } = {}) =>
+  readOne(SITE_VISIT_REPORT, { form, ...more, submission })
 
 describe('readSubmission', () => {
   // The bridge's one job: a stored submission becomes data a final render
@@ -55,7 +56,10 @@ describe('readSubmission', () => {
     expect(severities(visit(SITE_VISIT_V2, SITE_VISIT_SUBMISSION_V2))).toEqual([SITE_VISIT_HIGH.v2, 'Niedrig', SITE_VISIT_HIGH.v2])
     // Version 2 has every path version 1 has, so a version-1 visit handed over with it prints version 2's labels: only the host can tell the two apart.
     expect(severities(visit(SITE_VISIT_V2))).toContain(SITE_VISIT_HIGH.v2)
-    expect(readData(visit(SITE_VISIT_V2, SITE_VISIT_SUBMISSION_V2)).source).toEqual({ provider: 'formancy-form', submissions: [{ id: SITE_VISIT_SUBMISSION_V2.id, form: 'site-visit', formHash: V2 }] })
+    expect(readData(visit(SITE_VISIT_V2, SITE_VISIT_SUBMISSION_V2)).source).toEqual({
+      provider: 'formancy-form',
+      submissions: [{ id: SITE_VISIT_SUBMISSION_V2.id, form: 'site-visit', formHash: V2 }],
+    })
   })
 
   // The version's identity is its hash, computed here of the document
@@ -63,7 +67,10 @@ describe('readSubmission', () => {
   // version that is not that document's says the host's record and its
   // document disagree, and either could be the wrong one.
   test('computes the version’s hash itself, and refuses one the host gives that differs', () => {
-    expect(readData(visit(SITE_VISIT_V1, SITE_VISIT_SUBMISSION_V1, { formHash: V1 })).source).toEqual({ provider: 'formancy-form', submissions: [{ id: SITE_VISIT_SUBMISSION_V1.id, form: 'site-visit', formHash: V1 }] })
+    expect(readData(visit(SITE_VISIT_V1, SITE_VISIT_SUBMISSION_V1, { formHash: V1 })).source).toEqual({
+      provider: 'formancy-form',
+      submissions: [{ id: SITE_VISIT_SUBMISSION_V1.id, form: 'site-visit', formHash: V1 }],
+    })
     for (const formHash of [V2, V1.toUpperCase(), `sha256:${V1}`, 'Erika Mustermann']) {
       const outcome = visit(SITE_VISIT_V1, SITE_VISIT_SUBMISSION_V1, { formHash })
       expect(refusals(outcome), formHash).toEqual(['hash-mismatch /formHash'])
@@ -88,7 +95,13 @@ describe('readSubmission', () => {
       _id: 'r9',
     }
     const outcome = visit(SITE_VISIT_V1, { id: SUBMISSION, data: unknown })
-    expect(refusals(outcome)).toEqual(['unknown-answer /submission/data/inspector/email', 'unknown-answer /submission/data/findings/0/photo', 'unknown-answer /submission/data/weather', 'unknown-answer /submission/data', 'unknown-answer /submission/data/_id'])
+    expect(refusals(outcome)).toEqual([
+      'unknown-answer /submission/data/inspector/email',
+      'unknown-answer /submission/data/findings/0/photo',
+      'unknown-answer /submission/data/weather',
+      'unknown-answer /submission/data',
+      'unknown-answer /submission/data/_id',
+    ])
     if (!outcome.ok) expect(JSON.stringify(outcome.errors)).not.toMatch(/Erika|erika/)
   })
 
@@ -102,21 +115,34 @@ describe('readSubmission', () => {
     const moved = formOf([
       { key: 'inspectorName', type: 'text' },
       { key: 'site', type: 'text' },
-      { key: 'items', type: 'repeater', fields: [{ key: 'ref', type: 'text' }, { key: 'parts', type: 'text' }] },
+      {
+        key: 'items',
+        type: 'repeater',
+        fields: [
+          { key: 'ref', type: 'text' },
+          { key: 'parts', type: 'text' },
+        ],
+      },
     ])
     const report = reportOf({
       header: answers(field('inspector', 'string', 'inspector.name'), field('ref', 'string', 'ref'), field('site', 'string', 'site')),
       detail: rowsOf('findings', field('ref', 'string', 'ref')),
     })
     const outcome = read(report, moved, {})
-    expect(refusals(outcome)).toEqual(['version-lacks-field /datasets/header/fields/0/form', 'version-lacks-field /datasets/header/fields/1/form', 'version-lacks-field /datasets/detail/form/repeater'])
+    expect(refusals(outcome)).toEqual([
+      'version-lacks-field /datasets/header/fields/0/form',
+      'version-lacks-field /datasets/header/fields/1/form',
+      'version-lacks-field /datasets/detail/form/repeater',
+    ])
     if (!outcome.ok) {
       for (const error of outcome.errors) expect(error.message).toContain(schemaHash(moved))
       expect(outcome.errors[0]?.message).toContain('inspector')
     }
     const retyped = reportOf({ detail: rowsOf('items', field('parts', 'date', 'parts')) })
     expect(refusals(read(retyped, moved, {}))).toEqual(['version-retypes-field /datasets/detail/fields/0/form'])
-    expect(refusals(read(reportOf({ detail: rowsOf('site', field('ref', 'string', 'ref')) }), moved, {}))).toEqual(['version-retypes-field /datasets/detail/form/repeater'])
+    expect(refusals(read(reportOf({ detail: rowsOf('site', field('ref', 'string', 'ref')) }), moved, {}))).toEqual([
+      'version-retypes-field /datasets/detail/form/repeater',
+    ])
   })
 
   // The version's own refusal is the one that says what to do: a field it
@@ -125,7 +151,10 @@ describe('readSubmission', () => {
   // under a path it has no field for, the reason buried among them, and a
   // getter in them run.
   test('refuses a field the version lacks before it reads any answer', () => {
-    const moved = formOf([{ key: 'inspectorName', type: 'text' }, { key: 'site', type: 'text' }])
+    const moved = formOf([
+      { key: 'inspectorName', type: 'text' },
+      { key: 'site', type: 'text' },
+    ])
     const report = reportOf({ header: answers(field('inspector', 'string', 'inspector.name'), field('site', 'string', 'site')) })
     let calls = 0
     const data = Object.defineProperty({ weather: 'Regen', inspector: { name: 'Anna' } }, 'site', {
@@ -144,7 +173,10 @@ describe('readSubmission', () => {
   // never rides into the data, which holds what the report declares and
   // nothing else.
   test('reads a version that added a field, without handing the field over', () => {
-    const added = { ...SITE_VISIT_V1, model: { fields: [...(SITE_VISIT_V1['model'] as { fields: unknown[] }).fields, { key: 'weather', type: 'text', label: 'Weather' }] } }
+    const added = {
+      ...SITE_VISIT_V1,
+      model: { fields: [...(SITE_VISIT_V1['model'] as { fields: unknown[] }).fields, { key: 'weather', type: 'text', label: 'Weather' }] },
+    }
     const data = readData(visit(added, { id: SUBMISSION, data: { ...SITE_VISIT_SUBMISSION_V1.data, weather: 'Regen' } }))
     expect(Object.keys(data.header ?? {})).not.toContain('weather')
     expect(JSON.stringify(data)).not.toContain('Regen')
@@ -157,7 +189,19 @@ describe('readSubmission', () => {
   // rows, captured as none.
   test('hands over an absent answer as null, and a repeater with none as no rows', () => {
     const data = readData(visit(SITE_VISIT_V1, { id: SUBMISSION, data: { site: 'Bern', visitedOn: '2026-10-15' } }))
-    expect(data.header).toEqual({ site: 'Bern', visitedOn: '2026-10-15', arrivedAt: null, startedAt: null, outcome: null, outcomeCode: null, inspector: null, licence: null, roofChecked: null, safety: null, summary: null })
+    expect(data.header).toEqual({
+      site: 'Bern',
+      visitedOn: '2026-10-15',
+      arrivedAt: null,
+      startedAt: null,
+      outcome: null,
+      outcomeCode: null,
+      inspector: null,
+      licence: null,
+      roofChecked: null,
+      safety: null,
+      summary: null,
+    })
     expect([data.detail, data.completeness]).toEqual([[], { complete: true, captured: 0 }])
     const resolved = resolveReport(SITE_VISIT_REPORT, readData(visit(SITE_VISIT_V1, { id: SUBMISSION, data: { visitedOn: '2026-10-15' } })), RESOLVE)
     expect(resolved.ok ? 'resolved' : resolved.errors.map((error) => `${error.code} ${error.path}`)).toEqual(['unexpected-null /header/site'])
@@ -169,9 +213,15 @@ describe('readSubmission', () => {
   // the field's scale is refused, never rounded.
   test('holds each answer to its field’s type by the runtime’s reading, at its path in the submission', () => {
     const findings = siteVisitRows([{ hours: 1.255 }])
-    expect(refusals(visit(SITE_VISIT_V1, { id: SUBMISSION, data: { ...SITE_VISIT_SUBMISSION_V1.data, findings } }))).toEqual(['invalid-answer /submission/data/findings/0/hours'])
-    expect(refusals(visit(SITE_VISIT_V1, { id: SUBMISSION, data: { ...SITE_VISIT_SUBMISSION_V1.data, visitedOn: '2026-02-30' } }))).toEqual(['invalid-answer /submission/data/visitedOn'])
-    expect(refusals(visit(SITE_VISIT_V1, { id: SUBMISSION, data: { ...SITE_VISIT_SUBMISSION_V1.data, site: 'a\uD800' } }))).toEqual(['invalid-answer /submission/data/site'])
+    expect(refusals(visit(SITE_VISIT_V1, { id: SUBMISSION, data: { ...SITE_VISIT_SUBMISSION_V1.data, findings } }))).toEqual([
+      'invalid-answer /submission/data/findings/0/hours',
+    ])
+    expect(refusals(visit(SITE_VISIT_V1, { id: SUBMISSION, data: { ...SITE_VISIT_SUBMISSION_V1.data, visitedOn: '2026-02-30' } }))).toEqual([
+      'invalid-answer /submission/data/visitedOn',
+    ])
+    expect(refusals(visit(SITE_VISIT_V1, { id: SUBMISSION, data: { ...SITE_VISIT_SUBMISSION_V1.data, site: 'a\uD800' } }))).toEqual([
+      'invalid-answer /submission/data/site',
+    ])
   })
 
   // A submission is named in every manifest by its id, held to the
@@ -194,9 +244,16 @@ describe('readSubmission', () => {
   // only that: a report bound to no form would be filled with nothing it
   // asked for, and one of one row per submission is readSubmissions'.
   test('refuses a report it cannot read: invalid, read from no form, or of one row per submission', () => {
-    const unbound = { ...SITE_VISIT_REPORT, datasets: { header: { id: 'visit', fields: [{ id: 'site', type: 'string', label: 'Site', nullable: true }] } }, regions: { ...SITE_VISIT_REPORT.regions, reportHeader: [], pageHeader: [], body: [], summary: [] }, aggregates: [] } as ReportDefinition
+    const unbound = {
+      ...SITE_VISIT_REPORT,
+      datasets: { header: { id: 'visit', fields: [{ id: 'site', type: 'string', label: 'Site', nullable: true }] } },
+      regions: { ...SITE_VISIT_REPORT.regions, reportHeader: [], pageHeader: [], body: [], summary: [] },
+      aggregates: [],
+    } as ReportDefinition
     expect(refusals(readOne(unbound, { form: SITE_VISIT_V1, submission: SITE_VISIT_SUBMISSION_V1 }))).toEqual(['unbound-report /datasets'])
-    expect(refusals(readOne({ ...SITE_VISIT_REPORT, title: 7 } as unknown as ReportDefinition, { form: SITE_VISIT_V1, submission: SITE_VISIT_SUBMISSION_V1 }))).toEqual(['invalid-report '])
+    expect(
+      refusals(readOne({ ...SITE_VISIT_REPORT, title: 7 } as unknown as ReportDefinition, { form: SITE_VISIT_V1, submission: SITE_VISIT_SUBMISSION_V1 })),
+    ).toEqual(['invalid-report '])
     const many = reportOf({ detail: { id: 'visits', form: { kind: 'submissions' }, fields: [field('site', 'string', 'site')] } })
     expect(refusals(readOne(many, { form: SITE_VISIT_V1, submission: SITE_VISIT_SUBMISSION_V1 }))).toEqual(['unbound-report /datasets/detail/form'])
   })
@@ -211,7 +268,9 @@ describe('readSubmission', () => {
     expect(shape({ form: SITE_VISIT_V1 })).toEqual(['invalid-input /submission'])
     expect(shape({ form: SITE_VISIT_V1, submission: { id: SUBMISSION } })).toEqual(['invalid-input /submission/data'])
     expect(shape({ form: SITE_VISIT_V1, submission: SITE_VISIT_SUBMISSION_V1, version: 1 })).toEqual(['invalid-input /version'])
-    expect(shape({ form: SITE_VISIT_V1, submission: { ...SITE_VISIT_SUBMISSION_V1, submittedAt: '2026-10-15' } })).toEqual(['invalid-input /submission/submittedAt'])
+    expect(shape({ form: SITE_VISIT_V1, submission: { ...SITE_VISIT_SUBMISSION_V1, submittedAt: '2026-10-15' } })).toEqual([
+      'invalid-input /submission/submittedAt',
+    ])
     expect(shape({ form: SITE_VISIT_V1, submission: { id: SUBMISSION, data: [] } })).toEqual(['invalid-answer /submission/data'])
   })
 })
@@ -227,11 +286,63 @@ describe('a submission of every spec version', () => {
   // of them: 0004 decided the bridge reads what upstream's validator
   // reads, and narrows nothing.
   test.each([
-    ['1', [{ key: 'site', type: 'text', label: 'Site' }, { key: 'parts', type: 'number' }, { key: 'kind', type: 'select', options: [{ value: 'a', label: 'Annual' }] }, { key: 'on', type: 'date' }, { key: 'ok', type: 'checkbox' }, { key: 'g', type: 'group', fields: [{ key: 'name', type: 'text' }] }, { key: 'rows', type: 'repeater', fields: [{ key: 'x', type: 'text' }] }]],
+    [
+      '1',
+      [
+        { key: 'site', type: 'text', label: 'Site' },
+        { key: 'parts', type: 'number' },
+        { key: 'kind', type: 'select', options: [{ value: 'a', label: 'Annual' }] },
+        { key: 'on', type: 'date' },
+        { key: 'ok', type: 'checkbox' },
+        { key: 'g', type: 'group', fields: [{ key: 'name', type: 'text' }] },
+        { key: 'rows', type: 'repeater', fields: [{ key: 'x', type: 'text' }] },
+      ],
+    ],
     // In pages, which scope nothing: the site is read at its own key, as modelDataPaths writes it.
-    ['2', [{ key: 'first', type: 'page', fields: [{ key: 'site', type: 'text' }, { key: 'at', type: 'time' }] }, { key: 'second', type: 'page', fields: [{ key: 'seen', type: 'datetime' }, { key: 'notes', type: 'richtext' }, { key: 'checks', type: 'selectboxes', options: [{ value: 'roof', label: 'Roof' }] }] }]],
-    ['3', [{ key: 'site', type: 'text' }, { key: 'signed', type: 'signature', box: [300, 100] }]],
-    ['4', [{ key: 'site', type: 'text' }, { key: 'rating', type: 'matrix', rows: [{ value: 'taste', label: 'Taste' }], options: [{ value: 'good', label: 'Good' }, { value: 'poor', label: 'Poor' }] }]],
+    [
+      '2',
+      [
+        {
+          key: 'first',
+          type: 'page',
+          fields: [
+            { key: 'site', type: 'text' },
+            { key: 'at', type: 'time' },
+          ],
+        },
+        {
+          key: 'second',
+          type: 'page',
+          fields: [
+            { key: 'seen', type: 'datetime' },
+            { key: 'notes', type: 'richtext' },
+            { key: 'checks', type: 'selectboxes', options: [{ value: 'roof', label: 'Roof' }] },
+          ],
+        },
+      ],
+    ],
+    [
+      '3',
+      [
+        { key: 'site', type: 'text' },
+        { key: 'signed', type: 'signature', box: [300, 100] },
+      ],
+    ],
+    [
+      '4',
+      [
+        { key: 'site', type: 'text' },
+        {
+          key: 'rating',
+          type: 'matrix',
+          rows: [{ value: 'taste', label: 'Taste' }],
+          options: [
+            { value: 'good', label: 'Good' },
+            { value: 'poor', label: 'Poor' },
+          ],
+        },
+      ],
+    ],
   ])('reads a form at spec %s', (specVersion, fields) => {
     const form = formOf(fields, {}, specVersion)
     const report = reportOf({ header: answers(field('site', 'string', 'site')) })
@@ -250,18 +361,50 @@ describe('a submission of every spec version', () => {
         { key: 'number', type: 'text', label: 'Number', required: true, maxLength: 20 },
         { key: 'total', type: 'text', label: 'Total', pattern: '^-?(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,2})?$' },
         { key: 'quantity', type: 'number', label: 'Quantity', min: -2147483648, max: 2147483647 },
-        { key: 'paid', type: 'radio', label: 'Paid', options: [{ value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }] },
+        {
+          key: 'paid',
+          type: 'radio',
+          label: 'Paid',
+          options: [
+            { value: 'true', label: 'Yes' },
+            { value: 'false', label: 'No' },
+          ],
+        },
         { key: 'orderedOn', type: 'date', label: 'Ordered on' },
         { key: 'shippedAt', type: 'datetime', label: 'Shipped at' },
       ],
       { id: 'order' },
       '3',
     )
-    const report = reportOf({
-      header: answers(field('number', 'string', 'number'), field('total', 'decimal', 'total', { scale: 2 }), field('quantity', 'integer', 'quantity'), field('paid', 'string', 'paid'), field('orderedOn', 'date', 'orderedOn'), field('shippedAt', 'instant', 'shippedAt')),
-    }, 'en')
-    const outcome = read(report, form, { number: 'Q-2026-0042', total: '99999999999999.99', quantity: 3, paid: 'false', orderedOn: '2026-10-15', shippedAt: '2026-10-15T08:30:00Z' })
-    expect(headerOf(outcome)).toEqual({ number: 'Q-2026-0042', total: '99999999999999.99', quantity: '3', paid: 'No', orderedOn: '2026-10-15', shippedAt: '2026-10-15T08:30:00Z' })
+    const report = reportOf(
+      {
+        header: answers(
+          field('number', 'string', 'number'),
+          field('total', 'decimal', 'total', { scale: 2 }),
+          field('quantity', 'integer', 'quantity'),
+          field('paid', 'string', 'paid'),
+          field('orderedOn', 'date', 'orderedOn'),
+          field('shippedAt', 'instant', 'shippedAt'),
+        ),
+      },
+      'en',
+    )
+    const outcome = read(report, form, {
+      number: 'Q-2026-0042',
+      total: '99999999999999.99',
+      quantity: 3,
+      paid: 'false',
+      orderedOn: '2026-10-15',
+      shippedAt: '2026-10-15T08:30:00Z',
+    })
+    expect(headerOf(outcome)).toEqual({
+      number: 'Q-2026-0042',
+      total: '99999999999999.99',
+      quantity: '3',
+      paid: 'No',
+      orderedOn: '2026-10-15',
+      shippedAt: '2026-10-15T08:30:00Z',
+    })
     expect(readData(outcome).source).toEqual({ provider: 'formancy-form', submissions: [{ id: SUBMISSION, form: 'order', formHash: schemaHash(form) }] })
     expect(refusals(read(report, form, { total: '1,50' }))).toEqual(['invalid-answer /submission/data/total'])
   })
@@ -285,10 +428,24 @@ describe('a submission of every spec version', () => {
   // meets one). Refused with formancy's own code, where it points.
   test('refuses a form formancy’s validator refuses, by its code and where it points', () => {
     const report = reportOf({ header: answers(field('site', 'string', 'site')) })
-    const twice = read(report, formOf([{ key: 'site', type: 'text' }, { key: 'site', type: 'text' }]), {})
+    const twice = read(
+      report,
+      formOf([
+        { key: 'site', type: 'text' },
+        { key: 'site', type: 'text' },
+      ]),
+      {},
+    )
     expect(refusals(twice)).toEqual(['invalid-form /form/model/fields/1/key'])
     if (!twice.ok) expect(twice.errors[0]?.message).toContain('key.taken')
-    const nested = read(report, formOf([{ key: 'site', type: 'text' }, { key: 'rows', type: 'repeater', fields: [{ key: 'inner', type: 'repeater', fields: [] }] }]), {})
+    const nested = read(
+      report,
+      formOf([
+        { key: 'site', type: 'text' },
+        { key: 'rows', type: 'repeater', fields: [{ key: 'inner', type: 'repeater', fields: [] }] },
+      ]),
+      {},
+    )
     expect(refusals(nested)).toEqual(['invalid-form /form/model/fields/1/fields/0/type'])
     if (!nested.ok) expect(nested.errors[0]?.message).toContain('repeater.nested')
   })

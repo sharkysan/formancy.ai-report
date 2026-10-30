@@ -119,7 +119,9 @@ describe('a refused value', () => {
     const number = new Intl.NumberFormat('fr-CH', { maximumFractionDigits: 2 })
     ok(editor.dispatch({ type: 'select', id: 'box' }))
     editor.dispatch({ type: 'setProperty', key: '/width', value: '999.5' })
-    expect(field(editor.state().properties.fields, '/width').error).toBe(`${number.format(999.5)} mm dépassent les ${number.format(170)} mm que laissent les marges.`)
+    expect(field(editor.state().properties.fields, '/width').error).toBe(
+      `${number.format(999.5)} mm dépassent les ${number.format(170)} mm que laissent les marges.`,
+    )
   })
 
   // A number field given something that is not a number is refused before
@@ -190,14 +192,29 @@ describe('a component’s properties', () => {
     const { editor } = editorOver()
     const keys = (id: string): string[] => {
       ok(editor.dispatch({ type: 'select', id }))
-      return editor.state().properties.fields.map((candidate) => candidate.key).slice(0, -2)
+      return editor
+        .state()
+        .properties.fields.map((candidate) => candidate.key)
+        .slice(0, -2)
     }
     expect(keys('intro')).toEqual(['/content/0/text', '/keepWithNext'])
     expect(keys('title')).toEqual(['/content/0/text', '/content/1', '/keepWithNext'])
     expect(keys('kept')).toEqual(['/content/0/expression', '/keepWithNext'])
     expect(keys('logo-image')).toEqual(['/source', '/width', '/height', '/fit'])
     expect(keys('order-code')).toEqual(['/content/0/text', '/content/1', '/size', '/errorCorrection'])
-    expect(keys('pay-code')).toEqual(['/beneficiary/0/text', '/iban/0/text', '/bic', '/amount', '/purpose', '/reference', '/text/0/text', '/text/1', '/information', '/size', '/caption'])
+    expect(keys('pay-code')).toEqual([
+      '/beneficiary/0/text',
+      '/iban/0/text',
+      '/bic',
+      '/amount',
+      '/purpose',
+      '/reference',
+      '/text/0/text',
+      '/text/1',
+      '/information',
+      '/size',
+      '/caption',
+    ])
     expect(keys('rule')).toEqual(['/thickness', '/color'])
     expect(keys('box')).toEqual(['/width', '/height', '/fill', '/stroke'])
     expect(keys('gap')).toEqual(['/height'])
@@ -233,7 +250,11 @@ describe('a component’s properties', () => {
   test('choose the aggregate a printed total prints', () => {
     const report = richReport()
     const total = { id: 'grand', kind: 'text', content: [{ kind: 'aggregate', aggregate: 'total', over: 'report' }] } as const
-    const { editor, session } = editorOver({ ...report, aggregates: [...report.aggregates, { id: 'lines', fn: 'count' }], regions: { ...report.regions, summary: [total] } })
+    const { editor, session } = editorOver({
+      ...report,
+      aggregates: [...report.aggregates, { id: 'lines', fn: 'count' }],
+      regions: { ...report.regions, summary: [total] },
+    })
     ok(editor.dispatch({ type: 'select', id: 'grand' }))
     const aggregate = field(editor.state().properties.fields, '/content/0/aggregate')
     expect(aggregate).toMatchObject({ label: 'Total', kind: 'select', value: 'total' })
@@ -251,7 +272,15 @@ describe('a component’s properties', () => {
     ok(editor.dispatch({ type: 'setProperty', key: '/keepWithNext', value: true }))
     ok(editor.dispatch({ type: 'setProperty', key: '/style', value: '' }))
     const title = componentAt(session.document(), 'title')?.component
-    expect(title).toEqual({ id: 'title', kind: 'text', keepWithNext: true, content: [{ kind: 'text', text: 'Orders for ' }, { kind: 'parameter', parameter: 'from' }] })
+    expect(title).toEqual({
+      id: 'title',
+      kind: 'text',
+      keepWithNext: true,
+      content: [
+        { kind: 'text', text: 'Orders for ' },
+        { kind: 'parameter', parameter: 'from' },
+      ],
+    })
     expect(editor.dispatch({ type: 'setProperty', key: '/content/1', value: 'parameter:nope' })).toMatchObject({ ok: false, code: 'invalid-value' })
   })
 
@@ -306,7 +335,9 @@ describe('a component’s properties', () => {
       { value: 'field:header:signature', label: 'Signature' },
     ])
     ok(editor.dispatch({ type: 'setProperty', key: '/source', value: 'field:header:signature' }))
-    expect(componentAt(session.document(), 'logo-image')?.component).toMatchObject({ source: { kind: 'field', field: { dataset: 'header', field: 'signature' } } })
+    expect(componentAt(session.document(), 'logo-image')?.component).toMatchObject({
+      source: { kind: 'field', field: { dataset: 'header', field: 'signature' } },
+    })
   })
 
   // A QR code's content is edited run by run as a text's is, its square as
@@ -337,7 +368,10 @@ describe('a component’s properties', () => {
     expect(componentAt(session.document(), 'order-code')?.component).toEqual({
       id: 'order-code',
       kind: 'qrCode',
-      content: [{ kind: 'text', text: 'https://example.com/orders/' }, { kind: 'field', field: { dataset: 'header', field: 'customer' } }],
+      content: [
+        { kind: 'text', text: 'https://example.com/orders/' },
+        { kind: 'field', field: { dataset: 'header', field: 'customer' } },
+      ],
       size: 70.87,
       errorCorrection: 'H',
     })
@@ -355,7 +389,10 @@ describe('a component’s properties', () => {
       ok(editor.dispatch({ type: 'select', id: 'order-code' }))
       const percent = (share: number) => new Intl.NumberFormat(locale, { style: 'percent' }).format(share)
       const expected = [0.07, 0.15, 0.25, 0.3].map((share, index) => `${labels[index] as string} (${percent(share)})`)
-      expect(field(editor.state().properties.fields, '/errorCorrection').options?.map((option) => option.label), locale).toEqual(expected)
+      expect(
+        field(editor.state().properties.fields, '/errorCorrection').options?.map((option) => option.label),
+        locale,
+      ).toEqual(expected)
     }
   })
 
@@ -386,16 +423,25 @@ describe('a component’s properties', () => {
     const millimetres = new Intl.NumberFormat('en', { maximumFractionDigits: 2 })
     for (const page of pages) {
       const blank = emptyReport('square', 'Square', 'en')
-      const withCode = (size: number): ReportDefinition => ({ ...blank, page, regions: { ...blank.regions, body: [{ id: 'code', kind: 'qrCode', content: [{ kind: 'text', text: 'A' }], size, errorCorrection: 'M' }] } })
+      const withCode = (size: number): ReportDefinition => ({
+        ...blank,
+        page,
+        regions: { ...blank.regions, body: [{ id: 'code', kind: 'qrCode', content: [{ kind: 'text', text: 'A' }], size, errorCorrection: 'M' }] },
+      })
       // Where 30 mm does not fit, the palette's default is the largest square the validator accepts.
       const { size } = defaultComponent(withCode(50), 'qrCode') as QrCodeComponent
       expect(size, page.orientation).toBeLessThan(mmToPt(30))
-      expect([validateReport(withCode(size)).valid, validateReport(withCode(Math.round((size + 0.01) * 100) / 100)).valid], page.orientation).toEqual([true, false])
+      expect([validateReport(withCode(size)).valid, validateReport(withCode(Math.round((size + 0.01) * 100) / 100)).valid], page.orientation).toEqual([
+        true,
+        false,
+      ])
       // And it is the room this pane names for a size too large.
       const { editor } = editorOver(withCode(50))
       ok(editor.dispatch({ type: 'select', id: 'code' }))
       expect(editor.dispatch({ type: 'setProperty', key: '/size', value: '100' })).toMatchObject({ ok: false, code: 'refused' })
-      expect(field(editor.state().properties.fields, '/size').error, page.orientation).toBe(`100 mm is more than the ${millimetres.format(ptToMm(size))} mm the margins leave.`)
+      expect(field(editor.state().properties.fields, '/size').error, page.orientation).toBe(
+        `100 mm is more than the ${millimetres.format(ptToMm(size))} mm the margins leave.`,
+      )
     }
   })
 
@@ -418,7 +464,13 @@ describe('a table column’s properties', () => {
     const { heading, fields } = editor.state().properties
     expect(heading).toBe('Column: Amount')
     expect(fields.map((candidate) => candidate.key)).toEqual(['/header', '/width', '/align', '/value', '/style', '/visibleWhen'])
-    expect(field(fields, '/value').options?.map((option) => option.value)).toEqual(['field:detail:site', 'field:detail:sku', 'field:detail:amount', 'field:header:customer', 'parameter:from'])
+    expect(field(fields, '/value').options?.map((option) => option.value)).toEqual([
+      'field:detail:site',
+      'field:detail:sku',
+      'field:detail:amount',
+      'field:header:customer',
+      'parameter:from',
+    ])
     ok(editor.dispatch({ type: 'setProperty', key: '/header', value: 'Total' }))
     ok(editor.dispatch({ type: 'setProperty', key: '/align', value: 'center' }))
     const table = componentAt(session.document(), 'lines')?.component as Extract<Component, { kind: 'table' }>

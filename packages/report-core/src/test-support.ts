@@ -98,7 +98,9 @@ const REPORT: ReportDefinition = {
       },
       { id: 'rule', kind: 'line', thickness: 0.5, color: '#999999' },
     ],
-    pageHeader: [{ id: 'running-title', kind: 'text', style: 'small', content: [{ kind: 'parameter', parameter: 'from', format: { kind: 'date', style: 'medium' } }] }],
+    pageHeader: [
+      { id: 'running-title', kind: 'text', style: 'small', content: [{ kind: 'parameter', parameter: 'from', format: { kind: 'date', style: 'medium' } }] },
+    ],
     body: [
       {
         id: 'intro',
@@ -120,13 +122,23 @@ const REPORT: ReportDefinition = {
         headerStyle: 'strong',
         columns: [
           { id: 'sku', header: 'SKU', width: 80, align: 'left', value: { kind: 'field', field: detail('sku') } },
-          { id: 'qty', header: 'Qty', width: 50, align: 'right', value: { kind: 'field', field: detail('quantity'), format: { kind: 'number', scale: 0, grouping: true } } },
+          {
+            id: 'qty',
+            header: 'Qty',
+            width: 50,
+            align: 'right',
+            value: { kind: 'field', field: detail('quantity'), format: { kind: 'number', scale: 0, grouping: true } },
+          },
           {
             id: 'price',
             header: 'Price',
             width: 'fill',
             align: 'right',
-            value: { kind: 'field', field: detail('unit_price'), format: { kind: 'currency', currency: { kind: 'field', field: header('currency') }, scale: 2 } },
+            value: {
+              kind: 'field',
+              field: detail('unit_price'),
+              format: { kind: 'currency', currency: { kind: 'field', field: header('currency') }, scale: 2 },
+            },
           },
           {
             id: 'amount',
@@ -162,7 +174,15 @@ const REPORT: ReportDefinition = {
               cells: [
                 { column: 'sku', value: { kind: 'text', text: 'Subtotal' } },
                 { column: 'qty', value: { kind: 'expression', expression: { cel: 'group.lines' } } },
-                { column: 'amount', value: { kind: 'aggregate', aggregate: 'subtotal', over: 'group', format: { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 2 } } },
+                {
+                  column: 'amount',
+                  value: {
+                    kind: 'aggregate',
+                    aggregate: 'subtotal',
+                    over: 'group',
+                    format: { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 2 },
+                  },
+                },
               ],
             },
           ],
@@ -215,7 +235,9 @@ const REPORT: ReportDefinition = {
           {
             id: 'threshold',
             kind: 'text',
-            content: [{ kind: 'parameter', parameter: 'threshold', format: { kind: 'currency', currency: { kind: 'parameter', parameter: 'currency' }, scale: 2 } }],
+            content: [
+              { kind: 'parameter', parameter: 'threshold', format: { kind: 'currency', currency: { kind: 'parameter', parameter: 'currency' }, scale: 2 } },
+            ],
           },
           {
             id: 'statistics',
@@ -401,10 +423,14 @@ const PRINTED_TOTALS: readonly Component[] = [
  */
 export function eInvoiceSample(): ReportDefinition {
   const { paymentPart: _bill, ...report } = REPORT
-  const summary = report.regions.summary.map((component) => (component.kind === 'epcQrCode' ? { ...component, amount: { cel: 'invoice.duePayable' } } : component))
+  const summary = report.regions.summary.map((component) =>
+    component.kind === 'epcQrCode' ? { ...component, amount: { cel: 'invoice.duePayable' } } : component,
+  )
   const euro = { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } as const
   const body = report.regions.body.map((component) =>
-    component.kind === 'table' ? { ...component, columns: component.columns.map((column) => (column.id === 'price' ? { ...column, value: { ...column.value, format: euro } } : column)) } : component,
+    component.kind === 'table'
+      ? { ...component, columns: component.columns.map((column) => (column.id === 'price' ? { ...column, value: { ...column.value, format: euro } } : column)) }
+      : component,
   ) as Component[]
   const header = report.datasets.header as DatasetContract
   const datasets = { ...report.datasets, header: { ...header, fields: header.fields.filter(({ id }) => id !== 'currency') } }
@@ -426,7 +452,11 @@ export function xrechnungSample(): ReportDefinition {
     version: '3.0',
     businessProcess: said('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
     buyerReference: [{ kind: 'text', text: 'PO-' }, computed('header.customer')],
-    seller: { ...terms.seller, electronicAddress: { id: said('rechnung@muster-soehne.example'), scheme: 'EM' }, contact: { name: said('Erika Mustermann'), telephone: said('+49 221 4710 123'), email: said('erika.mustermann@muster-soehne.example') } },
+    seller: {
+      ...terms.seller,
+      electronicAddress: { id: said('rechnung@muster-soehne.example'), scheme: 'EM' },
+      contact: { name: said('Erika Mustermann'), telephone: said('+49 221 4710 123'), email: said('erika.mustermann@muster-soehne.example') },
+    },
     buyer: { ...terms.buyer, electronicAddress: { id: said('991-33333TEST-33'), scheme: '0204' } },
     payment: INVOICE.payment as NonNullable<FacturXInvoice['payment']>,
   }

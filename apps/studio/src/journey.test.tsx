@@ -66,7 +66,11 @@ vi.mock('./preview/pdf-document.js', () => ({
   loadPdf: (bytes: Uint8Array) => {
     seen.shown.push(bytes)
     return {
-      promise: Promise.resolve({ pageCount: 1, pageSize: () => Promise.resolve({ width: 595.28, height: 841.89 }), drawPage: () => ({ done: Promise.resolve(), cancel: () => undefined }) }),
+      promise: Promise.resolve({
+        pageCount: 1,
+        pageSize: () => Promise.resolve({ width: 595.28, height: 841.89 }),
+        drawPage: () => ({ done: Promise.resolve(), cancel: () => undefined }),
+      }),
       destroy: () => undefined,
     }
   },
@@ -217,7 +221,24 @@ async function page(): Promise<string[]> {
  * formancy.ai-data's suites do, does -- here by Testing Library's own
  * computation, the one every query by name in this suite goes through.
  */
-const CONTROLS = ['button', 'checkbox', 'combobox', 'link', 'listbox', 'menuitem', 'option', 'radio', 'searchbox', 'slider', 'spinbutton', 'switch', 'tab', 'textbox', 'tree', 'treeitem'] as const
+const CONTROLS = [
+  'button',
+  'checkbox',
+  'combobox',
+  'link',
+  'listbox',
+  'menuitem',
+  'option',
+  'radio',
+  'searchbox',
+  'slider',
+  'spinbutton',
+  'switch',
+  'tab',
+  'textbox',
+  'tree',
+  'treeitem',
+] as const
 
 function unnamed(): string[] {
   const empty = (name: string): boolean => name.trim() === ''
@@ -269,7 +290,9 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   // Studio's own lookup (preview/problems.ts), which names the button.
   const rows = model.state().outline.flatMap((region) => region.nodes)
   const find = (nodes: readonly OutlineNode[], wanted: string, inColumn: string | undefined): string | undefined =>
-    nodes.map((node) => (node.id === wanted && node.column === inColumn ? node.label : find(node.children, wanted, inColumn))).find((found) => found !== undefined)
+    nodes
+      .map((node) => (node.id === wanted && node.column === inColumn ? node.label : find(node.children, wanted, inColumn)))
+      .find((found) => found !== undefined)
   const label = (wanted: string, inColumn?: string): string => find(rows, wanted, inColumn) ?? `(no row for ${wanted})`
   // Narrower than the header's one word: the renderer refuses rather than
   // breaking it (0011), naming the table.
@@ -311,14 +334,26 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   await user.clear(iban)
   await user.type(iban, 'CH44 3199 9123 0008 8901 3')
   await user.tab()
-  await waitFor(() => expect(within(editor()).getByRole('textbox', { name: words('field.iban') }).getAttribute('aria-invalid')).toBe('true'))
+  await waitFor(() =>
+    expect(
+      within(editor())
+        .getByRole('textbox', { name: words('field.iban') })
+        .getAttribute('aria-invalid'),
+    ).toBe('true'),
+  )
   await record(`Invoice, an IBAN refused, in ${framework}`)
   // The Preview back in the design view's place, from the bar, before the switch draws it in the other builder's middle.
   await user.click(screen.getByRole('button', { name: 'Preview', pressed: false }))
   await printed('invoice', 'preview', 'Preview: printed.')
   framework = framework === 'React' ? 'Angular' : 'React'
   await show(user, framework)
-  await waitFor(() => expect(within(editor()).getByRole('textbox', { name: words('field.iban') }).getAttribute('aria-invalid')).toBe('true'))
+  await waitFor(() =>
+    expect(
+      within(editor())
+        .getByRole('textbox', { name: words('field.iban') })
+        .getAttribute('aria-invalid'),
+    ).toBe('true'),
+  )
   await record(`Invoice, an IBAN refused, in ${framework}`)
 
   // The e-invoice's e-invoice, selected from its outline row, the keyboard
@@ -334,11 +369,23 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   await user.clear(rate)
   await user.type(rate, '0.4')
   await user.tab()
-  await waitFor(() => expect(within(editor()).getByRole('textbox', { name: words('field.vatCategoryRate', { item: 1 }) }).getAttribute('aria-invalid')).toBe('true'))
+  await waitFor(() =>
+    expect(
+      within(editor())
+        .getByRole('textbox', { name: words('field.vatCategoryRate', { item: 1 }) })
+        .getAttribute('aria-invalid'),
+    ).toBe('true'),
+  )
   await record(`E-invoice, a rate refused, in ${framework}`)
   framework = framework === 'React' ? 'Angular' : 'React'
   await show(user, framework)
-  await waitFor(() => expect(within(editor()).getByRole('textbox', { name: words('field.vatCategoryRate', { item: 1 }) }).getAttribute('aria-invalid')).toBe('true'))
+  await waitFor(() =>
+    expect(
+      within(editor())
+        .getByRole('textbox', { name: words('field.vatCategoryRate', { item: 1 }) })
+        .getAttribute('aria-invalid'),
+    ).toBe('true'),
+  )
   await record(`E-invoice, a rate refused, in ${framework}`)
 
   // An image added to the blank report: Add image… busy while the page
@@ -351,7 +398,13 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   const input = add.parentElement?.querySelector('input[type="file"]')
   if (!(input instanceof HTMLInputElement)) throw new Error('no file input beside Add image…')
   fireEvent.change(input, { target: { files: [new File([Uint8Array.from(SCENARIO_PNG)], 'logo.png', { type: 'image/png' })] } })
-  await waitFor(() => expect(within(editor()).getByRole('button', { name: words('images.add') }).getAttribute('aria-busy')).toBe('true'))
+  await waitFor(() =>
+    expect(
+      within(editor())
+        .getByRole('button', { name: words('images.add') })
+        .getAttribute('aria-busy'),
+    ).toBe('true'),
+  )
   await record(`Blank, an image being added, in ${framework}`)
   images.release()
   await within(editor()).findByRole('button', { name: words('images.removeOne', { id: 'logo' }) })

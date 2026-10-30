@@ -44,7 +44,9 @@ const OTHER = 'DE89 3704 0044 0532 0130 00'
 function billed(): ReportDefinition {
   const report = eInvoiceSample()
   const account = said('CH93 0076 2011 6238 5295 7')
-  const summary = report.regions.summary.map((component) => (component.kind === 'epcQrCode' ? { ...component, iban: account, bic: said('POFICHBEXXX') } : component))
+  const summary = report.regions.summary.map((component) =>
+    component.kind === 'epcQrCode' ? { ...component, iban: account, bic: said('POFICHBEXXX') } : component,
+  )
   const bill = sampleReport().paymentPart as NonNullable<ReportDefinition['paymentPart']>
   return {
     ...report,
@@ -186,7 +188,14 @@ describe('setPaymentAccount', () => {
     const nested = { ...top, id: 'nested-code' }
     const summary = [
       ...report.regions.summary.map((component) => (component.id === top.id ? { ...top, visibleWhen: { cel: 'true' } } : component)),
-      { id: 'pay-columns', kind: 'columns' as const, columns: [{ width: 'fill' as const, components: [nested] }, { width: 'fill' as const, components: [] }] },
+      {
+        id: 'pay-columns',
+        kind: 'columns' as const,
+        columns: [
+          { width: 'fill' as const, components: [nested] },
+          { width: 'fill' as const, components: [] },
+        ],
+      },
     ]
     const session = open({ ...report, regions: { ...report.regions, summary } })
     accepted(session.apply((current) => setPaymentAccount(current, 'CH58 0079 1123 0008 8901 2')))
@@ -204,7 +213,10 @@ describe('setPaymentAccount', () => {
     const one = accepted(setPaymentAccount(frozen(eInvoiceSample()), OTHER))
     expect([one.eInvoice?.payment?.iban, ...codes(one).map((code) => code.iban)]).toEqual([said(OTHER), said(OTHER)])
     expect(one).not.toHaveProperty('paymentPart')
-    const bare = { ...eInvoiceSample(), regions: { ...eInvoiceSample().regions, summary: eInvoiceSample().regions.summary.filter((component) => component.kind !== 'epcQrCode') } }
+    const bare = {
+      ...eInvoiceSample(),
+      regions: { ...eInvoiceSample().regions, summary: eInvoiceSample().regions.summary.filter((component) => component.kind !== 'epcQrCode') },
+    }
     expect(accepted(setPaymentAccount(frozen(bare), OTHER)).eInvoice?.payment?.iban).toEqual(said(OTHER))
   })
 
@@ -221,7 +233,10 @@ describe('setPaymentAccount', () => {
     const before = session.document()
     const german = refused(session.apply((report) => setPaymentAccount(report, OTHER)))
     expect(german.code).toBe('invalid-document')
-    expect(german.errors?.map((error) => `${error.code} ${error.path}`).sort()).toEqual(['invalid-epc-qr-code /regions/summary/3/bic', 'invalid-qr-bill /paymentPart/account'])
+    expect(german.errors?.map((error) => `${error.code} ${error.path}`).sort()).toEqual([
+      'invalid-epc-qr-code /regions/summary/3/bic',
+      'invalid-qr-bill /paymentPart/account',
+    ])
     expect(german.errors?.[0]?.message).not.toContain('DE89')
     const mistyped = refused(session.apply((report) => setPaymentAccount(report, 'CH58 0079 1123 0008 8901 3')))
     expect(mistyped.errors?.map((error) => error.path).sort()).toEqual(['/eInvoice/payment/iban', '/paymentPart/account', '/regions/summary/3/iban'].sort())
@@ -240,8 +255,18 @@ describe('setPaymentAccount', () => {
     const billBound = { ...billed(), paymentPart: { ...(billed().paymentPart as NonNullable<ReportDefinition['paymentPart']>), account: bound } }
     expect(refused(setPaymentAccount(frozen(billBound), OTHER))).toMatchObject({ code: 'read-from-data', path: '/paymentPart/account' })
     const report = billed()
-    const codeBound = { ...report, regions: { ...report.regions, summary: report.regions.summary.map((component) => (component.kind === 'epcQrCode' ? { ...component, iban: bound } : component)) } }
-    expect(refused(setPaymentAccount(frozen(codeBound), OTHER))).toMatchObject({ code: 'read-from-data', path: '/regions/summary/3/iban', componentId: 'payment-code' })
+    const codeBound = {
+      ...report,
+      regions: {
+        ...report.regions,
+        summary: report.regions.summary.map((component) => (component.kind === 'epcQrCode' ? { ...component, iban: bound } : component)),
+      },
+    }
+    expect(refused(setPaymentAccount(frozen(codeBound), OTHER))).toMatchObject({
+      code: 'read-from-data',
+      path: '/regions/summary/3/iban',
+      componentId: 'payment-code',
+    })
   })
 
   // Without an e-invoice no account is shared: a QR-bill and an EPC QR

@@ -42,7 +42,11 @@ function whole(source: string, at: number, name: string): boolean {
  * `variables` -- to a function that would make a render unrepeatable, in
  * the order they are written, with the span of the call.
  */
-export function unreproducibleCalls(source: string, kind: ExpressionKind, variables: VariableDeclarations): { readonly name: UnreproducibleFunction; readonly span: SourceSpan }[] {
+export function unreproducibleCalls(
+  source: string,
+  kind: ExpressionKind,
+  variables: VariableDeclarations,
+): { readonly name: UnreproducibleFunction; readonly span: SourceSpan }[] {
   const found: { readonly name: UnreproducibleFunction; readonly span: SourceSpan }[] = []
   for (const name of UNREPRODUCIBLE_FUNCTIONS) {
     for (let at = source.indexOf(name); at !== -1; at = source.indexOf(name, at + 1)) {

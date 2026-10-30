@@ -62,7 +62,15 @@ export interface PaymentText<T> {
  * when they are literal, refused as `code`, `what` breaking it. Absent,
  * nothing is said: whether it may be is the shape's question.
  */
-export function readPaymentText<T>(c: Ctx, value: unknown, path: string, scope: PaymentScope, code: ReportErrorCode, what: string, check: (text: string) => PaymentCheck<T>): PaymentText<T> {
+export function readPaymentText<T>(
+  c: Ctx,
+  value: unknown,
+  path: string,
+  scope: PaymentScope,
+  code: ReportErrorCode,
+  what: string,
+  check: (text: string) => PaymentCheck<T>,
+): PaymentText<T> {
   const runs = readRuns(c, value, path, scope)
   const text = runs && literal(runs)
   if (text === undefined) return { runs, checked: undefined }

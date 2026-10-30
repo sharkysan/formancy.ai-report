@@ -59,7 +59,11 @@ describe('the bounds of an SVG', () => {
     const open = svg(`${RECT}<!--`).slice(0, -'</svg>'.length)
     const at = (length: number): Uint8Array => utf8(`${open}${'x'.repeat(length - open.length - '--></svg>'.length)}--></svg>`)
     expect(cleaned(at(MAX_SVG_BYTES)).ok).toBe(true)
-    expect(refused(at(MAX_SVG_BYTES + 1))).toEqual({ ok: false, code: 'too-large', message: `the file is ${MAX_SVG_BYTES + 1} bytes; the limit is ${MAX_SVG_BYTES}; ${SVG_ADVICE['too-large']}` })
+    expect(refused(at(MAX_SVG_BYTES + 1))).toEqual({
+      ok: false,
+      code: 'too-large',
+      message: `the file is ${MAX_SVG_BYTES + 1} bytes; the limit is ${MAX_SVG_BYTES}; ${SVG_ADVICE['too-large']}`,
+    })
   })
 
   // The written form can be several times its input; one that would pass
@@ -86,7 +90,11 @@ describe('the bounds of an SVG', () => {
     expect(written.text).toBe(approved.clean)
     const longer = ofLength(MAX_SVG_BYTES + 1)
     expect(longer.saved.length).toBeLessThan(MAX_SVG_BYTES)
-    expect(refused(longer.saved)).toEqual({ ok: false, code: 'too-large', message: `the cleaned drawing would be ${MAX_SVG_BYTES + 1} bytes; the limit is ${MAX_SVG_BYTES}; ${SVG_ADVICE['too-large']}` })
+    expect(refused(longer.saved)).toEqual({
+      ok: false,
+      code: 'too-large',
+      message: `the cleaned drawing would be ${MAX_SVG_BYTES + 1} bytes; the limit is ${MAX_SVG_BYTES}; ${SVG_ADVICE['too-large']}`,
+    })
   })
 
   test('depth: MAX_SVG_DEPTH levels are read, one more refused', () => {
@@ -98,7 +106,11 @@ describe('the bounds of an SVG', () => {
   test('elements: MAX_SVG_ELEMENTS are read, one more refused', () => {
     const empties = (count: number): string => `${'<defs/>'.repeat(count)}${RECT}`
     expect(cleaned(svg(empties(MAX_SVG_ELEMENTS - 2))).ok).toBe(true)
-    expect(refused(svg(empties(MAX_SVG_ELEMENTS - 1)))).toEqual({ ok: false, code: 'too-large', message: `the drawing has more than ${MAX_SVG_ELEMENTS} elements; ${SVG_ADVICE['too-large']}` })
+    expect(refused(svg(empties(MAX_SVG_ELEMENTS - 1)))).toEqual({
+      ok: false,
+      code: 'too-large',
+      message: `the drawing has more than ${MAX_SVG_ELEMENTS} elements; ${SVG_ADVICE['too-large']}`,
+    })
   })
 
   // The group the root's paint moves onto is an element of the written
@@ -111,24 +123,40 @@ describe('the bounds of an SVG', () => {
     const used = Array.from({ length: gradients }, (_, i) => `<linearGradient id="a${i}">${stops}</linearGradient><path d="M0 0" fill="url(#a${i})"/>`).join('')
     const inner = `${used}${MOVE.repeat(MAX_SVG_ELEMENTS - 1 - gradients * (MAX_SVG_STOPS + 2))}`
     expect(cleaned(svg(inner)).drawn.elements).toBe(MAX_SVG_ELEMENTS)
-    expect(refused(svg(inner, ' fill="red"'))).toEqual({ ok: false, code: 'too-large', message: `the cleaned drawing has more than ${MAX_SVG_ELEMENTS} elements; ${SVG_ADVICE['too-large']}` })
+    expect(refused(svg(inner, ' fill="red"'))).toEqual({
+      ok: false,
+      code: 'too-large',
+      message: `the cleaned drawing has more than ${MAX_SVG_ELEMENTS} elements; ${SVG_ADVICE['too-large']}`,
+    })
   })
 
   test('stops: MAX_SVG_STOPS in a gradient are read, one more refused', () => {
     const gradient = (count: number): string => `<linearGradient id="a">${'<stop/>'.repeat(count)}</linearGradient><rect width="1" height="1" fill="url(#a)"/>`
     expect(cleaned(svg(gradient(MAX_SVG_STOPS))).ok).toBe(true)
-    expect(refused(svg(gradient(MAX_SVG_STOPS + 1)))).toEqual({ ok: false, code: 'too-large', message: `svg/linearGradient has more than ${MAX_SVG_STOPS} stops; ${SVG_ADVICE['too-large']}` })
+    expect(refused(svg(gradient(MAX_SVG_STOPS + 1)))).toEqual({
+      ok: false,
+      code: 'too-large',
+      message: `svg/linearGradient has more than ${MAX_SVG_STOPS} stops; ${SVG_ADVICE['too-large']}`,
+    })
   })
 
   test('segments: MAX_SVG_SEGMENTS weighted segments are read, one more refused', () => {
     expect(cleaned(svg(lines(MAX_SVG_SEGMENTS - 1))).segments).toBe(MAX_SVG_SEGMENTS)
-    expect(refused(svg(lines(MAX_SVG_SEGMENTS)))).toEqual({ ok: false, code: 'too-large', message: `the drawing costs ${MAX_SVG_SEGMENTS + 1} weighted segments to paint; the limit is ${MAX_SVG_SEGMENTS}; ${SVG_ADVICE['too-large']}` })
+    expect(refused(svg(lines(MAX_SVG_SEGMENTS)))).toEqual({
+      ok: false,
+      code: 'too-large',
+      message: `the drawing costs ${MAX_SVG_SEGMENTS + 1} weighted segments to paint; the limit is ${MAX_SVG_SEGMENTS}; ${SVG_ADVICE['too-large']}`,
+    })
   })
 
   test('groups: MAX_SVG_GROUPS units are read, one more refused', () => {
     const clips = (count: number): string => `<clipPath id="c">${RECT}</clipPath>${`<rect width="1" height="1" clip-path="url(#c)"/>`.repeat(count)}`
     expect(cleaned(svg(clips(MAX_SVG_GROUPS))).groups).toBe(MAX_SVG_GROUPS)
-    expect(refused(svg(clips(MAX_SVG_GROUPS + 1)))).toEqual({ ok: false, code: 'too-large', message: `the drawing makes ${MAX_SVG_GROUPS + 1} units of transparency groups; the limit is ${MAX_SVG_GROUPS}; flatten its clips and its transparency` })
+    expect(refused(svg(clips(MAX_SVG_GROUPS + 1)))).toEqual({
+      ok: false,
+      code: 'too-large',
+      message: `the drawing makes ${MAX_SVG_GROUPS + 1} units of transparency groups; the limit is ${MAX_SVG_GROUPS}; flatten its clips and its transparency`,
+    })
   })
 
   // The list a person is shown does not grow with what a file holds
@@ -138,8 +166,14 @@ describe('the bounds of an SVG', () => {
     const result = cleaned(svg(`<rect width="1" height="1" ${attributes} data-a0b="x"/>`))
     expect(result.removed).toHaveLength(MAX_SVG_REMOVED_NAMES)
     expect(result.removedMore).toBe(9)
-    expect(cleaned(svg(`<rect width="1" height="1" data-${'x'.repeat(64)}="1" data-ü="2"/>`)).removed).toEqual([{ kind: 'attribute', name: 'an attribute with a long or non-ASCII name', count: 2 }])
-    expect(cleaned(svg(`<x:${'y'.repeat(70)} xmlns:x="urn:x"/>${RECT}`)).removed).toContainEqual({ kind: 'element', name: 'an element in another namespace', count: 1 })
+    expect(cleaned(svg(`<rect width="1" height="1" data-${'x'.repeat(64)}="1" data-ü="2"/>`)).removed).toEqual([
+      { kind: 'attribute', name: 'an attribute with a long or non-ASCII name', count: 2 },
+    ])
+    expect(cleaned(svg(`<x:${'y'.repeat(70)} xmlns:x="urn:x"/>${RECT}`)).removed).toContainEqual({
+      kind: 'element',
+      name: 'an element in another namespace',
+      count: 1,
+    })
   })
 })
 
@@ -217,7 +251,12 @@ describe('what a drawing costs', () => {
     expect(cleaned(svg('<circle r="5"/><rect width="1" height="1"/>')).drawn).toEqual({ lines: 2 + 5, curves: 6, elements: 3, stops: 0 })
     const clip = `<clipPath id="c">${RECT}${RECT}</clipPath>`
     // The root, the clip path, its two shapes, and three shapes each clipping it: 7 elements, and the clip path's two shapes again for each of the three.
-    expect(cleaned(svg(`${clip}${'<rect width="2" height="2" clip-path="url(#c)"/>'.repeat(3)}`)).drawn).toEqual({ lines: 3 * 5 + 3 * 2 * 5, curves: 0, elements: 7 + 3 * 2, stops: 0 })
+    expect(cleaned(svg(`${clip}${'<rect width="2" height="2" clip-path="url(#c)"/>'.repeat(3)}`)).drawn).toEqual({
+      lines: 3 * 5 + 3 * 2 * 5,
+      curves: 0,
+      elements: 7 + 3 * 2,
+      stops: 0,
+    })
     const gradient = `<linearGradient id="a">${'<stop/>'.repeat(4)}</linearGradient>`
     expect(cleaned(svg(`${gradient}<g fill="url(#a)" stroke="url(#a)">${RECT.repeat(3)}</g>`)).drawn.stops).toBe(3 * 2 * 4)
   })

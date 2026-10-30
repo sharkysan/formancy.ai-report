@@ -2,7 +2,16 @@ import { diagnose } from '@formancy/report-core'
 import { checkReport } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { SITE_VISIT_STARTER, SITE_VISIT_STARTER_OPTIONS } from '../starters/site-visit.js'
-import { SITE_VISIT_HIGH, SITE_VISIT_REPORT, SITE_VISIT_SUBMISSION_V1, SITE_VISIT_SUBMISSION_V2, SITE_VISIT_SUBMISSION_V3, SITE_VISIT_V1, SITE_VISIT_V2, SITE_VISIT_V3 } from './site-visit.js'
+import {
+  SITE_VISIT_HIGH,
+  SITE_VISIT_REPORT,
+  SITE_VISIT_SUBMISSION_V1,
+  SITE_VISIT_SUBMISSION_V2,
+  SITE_VISIT_SUBMISSION_V3,
+  SITE_VISIT_V1,
+  SITE_VISIT_V2,
+  SITE_VISIT_V3,
+} from './site-visit.js'
 
 /**
  * The site visit fixture says what it is: a report the runtime reads and an
@@ -17,7 +26,10 @@ describe('the site visit', () => {
     const checked = checkReport(SITE_VISIT_REPORT)
     expect(checked.ok ? [] : checked.errors).toEqual([])
     expect(diagnose(SITE_VISIT_REPORT)).toEqual([])
-    expect([SITE_VISIT_REPORT.datasets.header?.form, SITE_VISIT_REPORT.datasets.detail?.form]).toEqual([{ kind: 'submission' }, { kind: 'repeater', repeater: 'findings' }])
+    expect([SITE_VISIT_REPORT.datasets.header?.form, SITE_VISIT_REPORT.datasets.detail?.form]).toEqual([
+      { kind: 'submission' },
+      { kind: 'repeater', repeater: 'findings' },
+    ])
   })
 
   // The PDF proof reads version 1's label of a high-severity finding where
@@ -28,7 +40,16 @@ describe('the site visit', () => {
     const v2 = JSON.parse(JSON.stringify(SITE_VISIT_V2)) as { i18n: { messages: Record<string, Record<string, string>> } }
     expect([v2.i18n.messages['en']?.['severity.high'], v2.i18n.messages['de-CH']?.['severity.high']]).toEqual(['Critical', SITE_VISIT_HIGH.v2])
     expect(SITE_VISIT_HIGH.v1).not.toBe(SITE_VISIT_HIGH.v2)
-    const restored = { ...v2, i18n: { ...v2.i18n, messages: { en: { ...v2.i18n.messages['en'], 'severity.high': 'High' }, 'de-CH': { ...v2.i18n.messages['de-CH'], 'severity.high': SITE_VISIT_HIGH.v1 } } } }
+    const restored = {
+      ...v2,
+      i18n: {
+        ...v2.i18n,
+        messages: {
+          en: { ...v2.i18n.messages['en'], 'severity.high': 'High' },
+          'de-CH': { ...v2.i18n.messages['de-CH'], 'severity.high': SITE_VISIT_HIGH.v1 },
+        },
+      },
+    }
     expect(restored).toEqual(SITE_VISIT_V1)
   })
 
@@ -36,7 +57,7 @@ describe('the site visit', () => {
   // label version 2 rewrote; one with an answer under a key the form does
   // not have is a submission of another form.
   test('each submission answers its version, the first with urgent findings among its rows', () => {
-    const keys = ((SITE_VISIT_V1['model'] as { fields: { key: string }[] }).fields).map((field) => field.key)
+    const keys = (SITE_VISIT_V1['model'] as { fields: { key: string }[] }).fields.map((field) => field.key)
     for (const { data } of [SITE_VISIT_SUBMISSION_V1, SITE_VISIT_SUBMISSION_V2]) expect(Object.keys(data).filter((key) => !keys.includes(key))).toEqual([])
     const rows = SITE_VISIT_SUBMISSION_V1.data['findings'] as readonly { severity: string }[]
     expect(rows.filter((row) => row.severity === 'high').length).toBeGreaterThan(0)
@@ -54,7 +75,10 @@ describe('the site visit', () => {
     const renamed = fields(SITE_VISIT_V3).find((field) => field.key === 'technician')
     expect(renamed?.renamedFrom).toBe('inspector')
     const { renamedFrom: _from, ...rest } = renamed as { key: string; renamedFrom?: string }
-    expect({ ...SITE_VISIT_V3, model: { fields: fields(SITE_VISIT_V3).map((field) => (field.key === 'technician' ? { ...rest, key: 'inspector' } : field)) } }).toEqual(SITE_VISIT_V2)
+    expect({
+      ...SITE_VISIT_V3,
+      model: { fields: fields(SITE_VISIT_V3).map((field) => (field.key === 'technician' ? { ...rest, key: 'inspector' } : field)) },
+    }).toEqual(SITE_VISIT_V2)
     const keys = fields(SITE_VISIT_V3).map((field) => field.key)
     expect(Object.keys(SITE_VISIT_SUBMISSION_V3.data).filter((key) => !keys.includes(key))).toEqual([])
     expect(SITE_VISIT_SUBMISSION_V3.data['technician']).not.toEqual(SITE_VISIT_SUBMISSION_V2.data['inspector'])

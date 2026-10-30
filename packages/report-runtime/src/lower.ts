@@ -53,11 +53,20 @@ const LOWER: { readonly [K in ComponentKind]: Lowerer<K> } = {
   },
   epcQrCode: (code, { render, scope, path }) => epcQrCodeBlock(render, scope, code, path),
   line: (line) => ({ kind: 'rule', thickness: line.thickness, ...optional('color', line.color) }),
-  rectangle: (rectangle) => ({ kind: 'rectangle', width: rectangle.width, height: rectangle.height, ...optional('fill', rectangle.fill), ...optional('stroke', rectangle.stroke) }),
+  rectangle: (rectangle) => ({
+    kind: 'rectangle',
+    width: rectangle.width,
+    height: rectangle.height,
+    ...optional('fill', rectangle.fill),
+    ...optional('stroke', rectangle.stroke),
+  }),
   spacer: (spacer) => ({ kind: 'spacer', height: spacer.height }),
   columns: (columns, { render, path, style }) => ({
     kind: 'columns',
-    columns: columns.columns.map((slot, index) => ({ width: slot.width, blocks: blocksOf(render, slot.components, `${path}/columns/${index}/components`, style) })),
+    columns: columns.columns.map((slot, index) => ({
+      width: slot.width,
+      blocks: blocksOf(render, slot.components, `${path}/columns/${index}/components`, style),
+    })),
   }),
   section: (section, { render, path, style }) => ({
     kind: 'section',

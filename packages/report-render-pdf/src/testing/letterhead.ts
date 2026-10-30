@@ -51,7 +51,9 @@ export function withoutMark(report: ReportDefinition): ReportDefinition {
 /** The text on `page` that stands beside `mark` or within the gap under it, with where it is: none, on a letterhead. */
 export function crowding(page: PdfPage, mark: Mark): string[] {
   const [, top, , height] = mark.box
-  return page.items.filter((item) => item.bottom > top && item.top < top + height + MARK_GAP).map((item) => `${item.text} at ${hundredth(item.x)}, ${hundredth(item.top)}`)
+  return page.items
+    .filter((item) => item.bottom > top && item.top < top + height + MARK_GAP)
+    .map((item) => `${item.text} at ${hundredth(item.x)}, ${hundredth(item.top)}`)
 }
 
 /**

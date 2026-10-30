@@ -106,7 +106,17 @@ describe('the demo on formancy.ai (0018)', () => {
     ['code that runs at the edge', { ...base, main: 'worker.js' }, 'main'],
     ['a route on another zone', { ...base, routes: [{ pattern: 'formancy.ai/report/*', zone_name: 'example.com' }, base.routes[1]] }, 'zone'],
     ['no route for the path without its slash', { ...base, routes: [base.routes[0]] }, 'formancy.ai/report'],
-    ['a route for the whole site', { ...base, routes: [{ pattern: 'formancy.ai/*', zone_name: 'formancy.ai' }, { pattern: 'formancy.ai', zone_name: 'formancy.ai' }] }, 'path'],
+    [
+      'a route for the whole site',
+      {
+        ...base,
+        routes: [
+          { pattern: 'formancy.ai/*', zone_name: 'formancy.ai' },
+          { pattern: 'formancy.ai', zone_name: 'formancy.ai' },
+        ],
+      },
+      'path',
+    ],
     ['a custom domain', { ...base, routes: [...base.routes, { pattern: 'report.formancy.ai', custom_domain: true }] }, 'custom_domain'],
     ['assets staged elsewhere', { ...base, assets: { ...base.assets, directory: './dist' } }, '.cloudflare'],
     ['no redirect from /report to /report/', { ...base, assets: { ...base.assets, html_handling: 'none' } }, 'auto-trailing-slash'],
@@ -121,7 +131,9 @@ describe('the demo on formancy.ai (0018)', () => {
   // deployed (formancy.ai's README, "Build formancy.ai"). The gate would see
   // it; the deploy refuses it before anything is uploaded.
   test('refuses a built page that asks for a file by an absolute path, and only that', () => {
-    expect(indexProblems('<script type="module" crossorigin src="./assets/index-a.js"></script><link rel="stylesheet" crossorigin href="./assets/index-b.css">')).toEqual([])
+    expect(
+      indexProblems('<script type="module" crossorigin src="./assets/index-a.js"></script><link rel="stylesheet" crossorigin href="./assets/index-b.css">'),
+    ).toEqual([])
     expect(indexProblems('<link rel="icon" href="data:," /><link href="https://fonts.googleapis.com/css2?family=Archivo" rel="stylesheet" />')).toEqual([])
     expect(indexProblems('<script type="module" crossorigin src="/assets/index-a.js"></script>')).toEqual(['src="/assets/index-a.js"'])
     expect(indexProblems('<link rel="modulepreload" crossorigin href="/report/assets/c.js">')).toEqual(['href="/report/assets/c.js"'])
@@ -202,7 +214,8 @@ describe('what the deploy stages (0018, 0021)', () => {
       .sort()
 
   const studio = () => tree({ 'index.html': '<script type="module" src="./assets/index-a.js"></script>', 'assets/index-a.js': '' })
-  const pages = (extra = {}) => tree({ 'en/index.html': '<link rel="stylesheet" href="../site/pages.css">', 'sitemap.xml': '<urlset/>', 'site/pages.css': '', ...extra })
+  const pages = (extra = {}) =>
+    tree({ 'en/index.html': '<link rel="stylesheet" href="../site/pages.css">', 'sitemap.xml': '<urlset/>', 'site/pages.css': '', ...extra })
 
   // One Worker serves both, from one directory: the Studio's page at the
   // demo's path, where 0018 put it, and the pages beside it under their
@@ -228,7 +241,9 @@ describe('what the deploy stages (0018, 0021)', () => {
   // own site, and loads without its stylesheet.
   test('refuses a page of either build that asks for a file by an absolute path', () => {
     const into = tree({})
-    expect(() => stageDemo([studio(), pages({ 'de/index.html': '<link rel="stylesheet" href="/site/pages.css">' })], join(into, 'report'))).toThrow(/de\/index\.html asks for a file by an absolute path: href="\/site\/pages\.css"/)
+    expect(() => stageDemo([studio(), pages({ 'de/index.html': '<link rel="stylesheet" href="/site/pages.css">' })], join(into, 'report'))).toThrow(
+      /de\/index\.html asks for a file by an absolute path: href="\/site\/pages\.css"/,
+    )
     expect(existsSync(join(into, 'report'))).toBe(false)
   })
 

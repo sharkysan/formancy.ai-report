@@ -59,7 +59,9 @@ describe('testedOn()', () => {
   // through another upstream package would not be asked for at all.
   test('marks shipped the upstream packages a published package installs, directly or through another, and no other', () => {
     const shipped = facts.upstream.filter((entry) => entry.shipped).map((entry) => entry.name)
-    const declaredUpstream = published(repo).flatMap(({ manifest }) => Object.keys(manifest.dependencies ?? {}).filter((name) => name.startsWith('@formancy/') && !local.has(name)))
+    const declaredUpstream = published(repo).flatMap(({ manifest }) =>
+      Object.keys(manifest.dependencies ?? {}).filter((name) => name.startsWith('@formancy/') && !local.has(name)),
+    )
     expect(declaredUpstream.length).toBeGreaterThan(0)
     expect(shipped).toEqual(expect.arrayContaining(declaredUpstream))
     // @formancy/data-client, which the provider declares, brings @formancy/data-core.
@@ -75,12 +77,16 @@ describe('testedOn()', () => {
   test('names the Playwright the browser gates load, and the build it pins for each browser they run in', () => {
     const studio = installed(join(repo, 'apps', 'studio'), 'playwright')
     expect(facts.browser.playwright).toBe(studio.version)
-    expect(facts.browser.pins.map((pin) => [pin.browser, pin.name, pin.headless])).toEqual(BROWSERS.map((browser) => [browser, PINNED_AS[browser], LAUNCH_OPTIONS.headless]))
+    expect(facts.browser.pins.map((pin) => [pin.browser, pin.name, pin.headless])).toEqual(
+      BROWSERS.map((browser) => [browser, PINNED_AS[browser], LAUNCH_OPTIONS.headless]),
+    )
     for (const pin of facts.browser.pins) {
       expect(pin.browserVersion, pin.name).toMatch(/^\d+\.\d+/)
       expect(pin.revision, pin.name).toMatch(/^\d+$/)
     }
-    expect(readmeTable(facts)).toContain(`| Chromium | ${facts.browser.pins[0].browserVersion}, the chromium-headless-shell Playwright ${studio.version} pins (revision ${facts.browser.pins[0].revision}) |  |`)
+    expect(readmeTable(facts)).toContain(
+      `| Chromium | ${facts.browser.pins[0].browserVersion}, the chromium-headless-shell Playwright ${studio.version} pins (revision ${facts.browser.pins[0].revision}) |  |`,
+    )
   })
 
   // A lookup that found nothing would render an empty row that equals

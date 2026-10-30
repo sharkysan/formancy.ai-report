@@ -58,7 +58,13 @@ export const CARD_EVIDENCE: readonly (readonly string[])[] = [
   // The EPC's rules: the IBAN and its country's length, the QR-IBAN, the BIC
   // and its country, the creditor reference, each text, the bytes; and the
   // same functions for what the report writes and what the data brings.
-  ['packages/report-spec/src/epc-payload.test.ts', 'packages/report-spec/src/sepa.test.ts', 'packages/report-spec/src/payment-reference.test.ts', 'packages/report-spec/src/validate-epc-qr-code.test.ts', 'packages/report-runtime/src/lower-epc-qr-code.test.ts'],
+  [
+    'packages/report-spec/src/epc-payload.test.ts',
+    'packages/report-spec/src/sepa.test.ts',
+    'packages/report-spec/src/payment-reference.test.ts',
+    'packages/report-spec/src/validate-epc-qr-code.test.ts',
+    'packages/report-runtime/src/lower-epc-qr-code.test.ts',
+  ],
   // Refused before the PDF, on its field: the IBAN's rules the validator
   // applies -- its check digits, its country's length, a country of SEPA --
   // and its refusal when the report is validated, on its field, unquoted;
@@ -79,7 +85,12 @@ export const CARD_EVIDENCE: readonly (readonly string[])[] = [
   // The amount: the PSA's spellings, more than two decimals refused rather
   // than rounded, null left to the payer, and each invoice's total computed
   // in BigInt against the code's.
-  ['packages/report-spec/src/epc-payload.test.ts', 'packages/report-runtime/src/lower-epc-qr-code.test.ts', 'packages/report-corpus/src/starters/starters.test.ts', 'packages/report-corpus/src/starters/euro-samples.test.ts'],
+  [
+    'packages/report-spec/src/epc-payload.test.ts',
+    'packages/report-runtime/src/lower-epc-qr-code.test.ts',
+    'packages/report-corpus/src/starters/starters.test.ts',
+    'packages/report-corpus/src/starters/euro-samples.test.ts',
+  ],
   // The details beside the code: decoded, and each read back beside it.
   ['packages/report-render-pdf/src/starters.test.ts', 'packages/report-render-pdf/src/euro-samples.test.ts'],
   // Austria's frame: the PSA's frame, caption and modules' widths, and the
@@ -87,14 +98,21 @@ export const CARD_EVIDENCE: readonly (readonly string[])[] = [
   ['packages/report-spec/src/epc-print.test.ts', 'packages/report-render-pdf/src/epc-qr-code.test.ts', 'packages/report-render-pdf/src/euro-samples.test.ts'],
   // Proved on the PDF: the EPC's examples byte for byte at level M, and
   // every invoice down to the amount it prints, decoded by ZXing.
-  ['packages/report-render-pdf/src/epc-qr-code.test.ts', 'packages/report-render-pdf/src/starters.test.ts', 'packages/report-render-pdf/src/euro-samples.test.ts'],
+  [
+    'packages/report-render-pdf/src/epc-qr-code.test.ts',
+    'packages/report-render-pdf/src/starters.test.ts',
+    'packages/report-render-pdf/src/euro-samples.test.ts',
+  ],
 ]
 
 /** The sample each language's page leads with and is shared with: German's is the starter, English's the Irish, the sample in English. */
 const OWN: Readonly<Record<Language, EuroCountry>> = { de: 'DE', fr: 'FR', it: 'IT', en: 'IE' }
 
 /** What the product page says of the EPC QR code page in `language`: its teaser, and where it stands, as the hero says it. */
-const teaserOf = (language: Language): Teaser => ({ ...EPC_QR_CODE_COPY[language].teaser, text: `${EPC_QR_CODE_COPY[language].teaser.text} ${EPC_QR_CODE_COPY[language].standing}` })
+const teaserOf = (language: Language): Teaser => ({
+  ...EPC_QR_CODE_COPY[language].teaser,
+  text: `${EPC_QR_CODE_COPY[language].teaser.text} ${EPC_QR_CODE_COPY[language].standing}`,
+})
 
 /** The decision record that says what an EPC QR code is and what it costs, which the page links for the reasons it gives. */
 const DECISION = 'docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md'

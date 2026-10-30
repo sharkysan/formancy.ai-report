@@ -1,4 +1,15 @@
-import { RenderRefusal, type Block, type Columns, type EpcQrCode, type QrCode, type Rectangle, type ResolvedDocument, type Section, type Table, type TextStyle } from '../document.js'
+import {
+  RenderRefusal,
+  type Block,
+  type Columns,
+  type EpcQrCode,
+  type QrCode,
+  type Rectangle,
+  type ResolvedDocument,
+  type Section,
+  type Table,
+  type TextStyle,
+} from '../document.js'
 
 /**
  * What the document grew after the renderer trial, which neither trial
@@ -32,8 +43,10 @@ export function isUndrawn(block: Block): block is Undrawn {
 export function refuseUndrawn(document: ResolvedDocument): void {
   const bill = document.paymentPart === undefined ? undefined : { message: 'the document has a payment part', subject: 'paymentPart' }
   const invoice = document.eInvoice === undefined ? undefined : { message: 'the document carries an e-invoice to embed', subject: 'eInvoice' }
-  const problem = bill ?? invoice ?? problemIn(document.pageHeader, 'pageHeader') ?? problemIn(document.pageFooter, 'pageFooter') ?? problemIn(document.body, 'body')
-  if (problem !== undefined) throw new RenderRefusal('unsupported', `${problem.message}; the trial's document had no such thing, and neither trial adapter draws it`, problem.subject)
+  const problem =
+    bill ?? invoice ?? problemIn(document.pageHeader, 'pageHeader') ?? problemIn(document.pageFooter, 'pageFooter') ?? problemIn(document.body, 'body')
+  if (problem !== undefined)
+    throw new RenderRefusal('unsupported', `${problem.message}; the trial's document had no such thing, and neither trial adapter draws it`, problem.subject)
 }
 
 interface Problem {

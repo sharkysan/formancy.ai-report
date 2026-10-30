@@ -234,7 +234,13 @@ describe('a column that prints a line', () => {
     const report = edited(eInvoiceSample(), (report) => {
       const table = report.regions.body[2]
       if (table?.kind !== 'table') throw new Error('the sample has moved its table')
-      table.columns.push({ id: 'share', header: 'Share', width: 40, align: 'right', value: { kind: 'expression', expression: { cel: 'divide(row.amount * dec("100"), invoice.taxBasisTotal, 1)' } } })
+      table.columns.push({
+        id: 'share',
+        header: 'Share',
+        width: 40,
+        align: 'right',
+        value: { kind: 'expression', expression: { cel: 'divide(row.amount * dec("100"), invoice.taxBasisTotal, 1)' } },
+      })
     })
     expect(diagnose(report)).toEqual([])
   })

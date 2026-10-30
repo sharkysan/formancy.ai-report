@@ -44,7 +44,7 @@ function expectUnchanged(session: ReportSession, before: ReportDefinition, revis
 describe('openReportSession', () => {
   // The session holds the validator's copy, frozen: the caller's object can
   // change afterwards without reaching the document or its history.
-  test('opens on a valid report, holding a frozen copy that is not the caller\'s', () => {
+  test("opens on a valid report, holding a frozen copy that is not the caller's", () => {
     const mine = sampleReport()
     const session = open(mine)
     expect(session.document()).toEqual(mine)
@@ -63,7 +63,7 @@ describe('openReportSession', () => {
     ['nothing at all', undefined, 'not-a-report'],
     ['a report of a later version', { ...sampleReport(), reportSpecVersion: '9' }, 'unsupported-version'],
     ['a report with an error', { ...sampleReport(), locale: 'deutsch' }, 'invalid-locale'],
-  ])('refuses %s with the validator\'s errors, without throwing', (_name, document, code) => {
+  ])("refuses %s with the validator's errors, without throwing", (_name, document, code) => {
     const opening = openReportSession(document)
     expect(opening.ok).toBe(false)
     expect(!opening.ok && opening.errors.map((error) => error.code)).toContain(code)
@@ -198,7 +198,7 @@ describe('apply', () => {
 
   // Optimistic concurrency (plan 17): an edit bound to a hash the document no
   // longer has was made against a document that is gone.
-  test('refuses an edit whose expected hash is not the document\'s', () => {
+  test("refuses an edit whose expected hash is not the document's", () => {
     const { session, notified } = watched()
     const stale = session.hash()
     accepted(session.apply((report) => setTitle(report, 'Orders')))
@@ -267,8 +267,12 @@ describe('replaceDocument', () => {
   // and a refusal changes nothing.
   test.each([
     ['a formancy form', { specVersion: '3' }, 'not-a-report'],
-    ['an invalid report', { ...sampleReport(), page: { size: 'A5', orientation: 'portrait', margins: { top: 0, right: 0, bottom: 0, left: 0 } } }, 'not-one-of'],
-  ])('refuses %s with the validator\'s errors', (_name, next, code) => {
+    [
+      'an invalid report',
+      { ...sampleReport(), page: { size: 'A5', orientation: 'portrait', margins: { top: 0, right: 0, bottom: 0, left: 0 } } },
+      'not-one-of',
+    ],
+  ])("refuses %s with the validator's errors", (_name, next, code) => {
     const { session, notified } = watched()
     const before = session.document()
     const refusal = refused(session.replaceDocument(next))

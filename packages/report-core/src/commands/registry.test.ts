@@ -48,7 +48,12 @@ const EXAMPLES: { readonly [N in CommandName]: { readonly descriptor: Extract<Co
   replaceDocument: { descriptor: { command: 'replaceDocument', args: [{ ...sampleReport(), title: 'Pasted', paymentPart: { ...BILL, language: 'it' } }] } },
   putStyle: { descriptor: { command: 'putStyle', args: ['airy', { size: 14 }] } },
   removeStyle: { descriptor: { command: 'removeStyle', args: ['spare'] } },
-  putDataset: { descriptor: { command: 'putDataset', args: ['header', { ...HEADER, fields: HEADER.fields.map((field) => (field.id === 'customer' ? { ...field, label: 'Client' } : field)) }] } },
+  putDataset: {
+    descriptor: {
+      command: 'putDataset',
+      args: ['header', { ...HEADER, fields: HEADER.fields.map((field) => (field.id === 'customer' ? { ...field, label: 'Client' } : field)) }],
+    },
+  },
   // The header's fields are printed and drawn, so the validator refuses a report without it.
   removeDataset: { descriptor: { command: 'removeDataset', args: ['header'] }, refusedAs: 'invalid-document' },
   putField: { descriptor: { command: 'putField', args: ['detail', 'note', { type: 'string', label: 'Note', nullable: true }] } },
@@ -61,19 +66,31 @@ const EXAMPLES: { readonly [N in CommandName]: { readonly descriptor: Extract<Co
   removeAsset: { descriptor: { command: 'removeAsset', args: ['spare'] } },
   putAggregate: { descriptor: { command: 'putAggregate', args: ['rows', { fn: 'count' }] } },
   removeAggregate: { descriptor: { command: 'removeAggregate', args: ['gross'] } },
-  insertComponent: { descriptor: { command: 'insertComponent', args: [{ region: 'body', parent: 'keep', index: 1 }, { id: 'added', kind: 'spacer', height: 4 }] } },
+  insertComponent: {
+    descriptor: {
+      command: 'insertComponent',
+      args: [
+        { region: 'body', parent: 'keep', index: 1 },
+        { id: 'added', kind: 'spacer', height: 4 },
+      ],
+    },
+  },
   removeComponent: { descriptor: { command: 'removeComponent', args: ['gap'] } },
   moveComponent: { descriptor: { command: 'moveComponent', args: ['gap', { region: 'reportHeader', parent: 'heading', column: 1, index: 0 }] } },
   // A removal travels as null: JSON has no undefined, and drops a key that holds one.
   updateComponent: { descriptor: { command: 'updateComponent', args: ['intro', 'text', { visibleWhen: null, keepWithNext: true }] } },
   duplicateComponent: { descriptor: { command: 'duplicateComponent', args: ['keep'] } },
-  insertColumn: { descriptor: { command: 'insertColumn', args: ['lines', 0, { id: 'first', header: 'First', width: 20, align: 'left', value: { kind: 'text', text: '-' } }] } },
+  insertColumn: {
+    descriptor: { command: 'insertColumn', args: ['lines', 0, { id: 'first', header: 'First', width: 20, align: 'left', value: { kind: 'text', text: '-' } }] },
+  },
   removeColumn: { descriptor: { command: 'removeColumn', args: ['lines', 'amount'] } },
   moveColumn: { descriptor: { command: 'moveColumn', args: ['lines', 'sku', 2] } },
   updateColumn: { descriptor: { command: 'updateColumn', args: ['lines', 'shipped-at', { visibleWhen: null, header: 'Sent' }] } },
   setGroup: { descriptor: { command: 'setGroup', args: ['lines', null] } },
   setSort: { descriptor: { command: 'setSort', args: ['lines', null] } },
-  insertFooterRow: { descriptor: { command: 'insertFooterRow', args: ['lines', 'totals', 0, { cells: [{ column: 'sku', value: { kind: 'text', text: 'Discount' } }] }] } },
+  insertFooterRow: {
+    descriptor: { command: 'insertFooterRow', args: ['lines', 'totals', 0, { cells: [{ column: 'sku', value: { kind: 'text', text: 'Discount' } }] }] },
+  },
   removeFooterRow: { descriptor: { command: 'removeFooterRow', args: ['lines', 'totals', 1] } },
   moveFooterRow: { descriptor: { command: 'moveFooterRow', args: ['lines', 'totals', 1, 0] } },
   updateFooterRow: { descriptor: { command: 'updateFooterRow', args: ['lines', 'totals', 1, { style: null }] } },
@@ -81,7 +98,9 @@ const EXAMPLES: { readonly [N in CommandName]: { readonly descriptor: Extract<Co
   removeFooterCell: { descriptor: { command: 'removeFooterCell', args: ['lines', 'groupFooter', 0, 'qty'] } },
   // The sample's bill with its headings in French, whole; then patched, its message removed and its account SIX's first example's; then taken away.
   putPaymentPart: { descriptor: { command: 'putPaymentPart', args: [{ ...BILL, language: 'fr' }] } },
-  updatePaymentPart: { descriptor: { command: 'updatePaymentPart', args: [{ message: null, account: [{ kind: 'text', text: 'CH64 3196 1000 0044 2155 7' }] }] } },
+  updatePaymentPart: {
+    descriptor: { command: 'updatePaymentPart', args: [{ message: null, account: [{ kind: 'text', text: 'CH64 3196 1000 0044 2155 7' }] }] },
+  },
   removePaymentPart: { descriptor: { command: 'removePaymentPart', args: [] } },
   // The e-invoice sample's e-invoice, put in whole; then patched, its terms
   // given and its paid amount removed; then taken away; and its account
@@ -96,13 +115,37 @@ const EXAMPLES: { readonly [N in CommandName]: { readonly descriptor: Extract<Co
   // The column whose style rule reads whether a line shipped goes with the field.
   removeFieldWithReaders: { descriptor: { command: 'removeFieldWithReaders', args: ['detail', 'shipped'] } },
   // A title and the bill's language as one edit: a batch may hold any command, the bill's own among them.
-  batch: { descriptor: { command: 'batch', args: [[{ command: 'setTitle', args: ['Batched'] }, { command: 'updatePaymentPart', args: [{ language: 'fr' }] }]] } },
+  batch: {
+    descriptor: {
+      command: 'batch',
+      args: [
+        [
+          { command: 'setTitle', args: ['Batched'] },
+          { command: 'updatePaymentPart', args: [{ language: 'fr' }] },
+        ],
+      ],
+    },
+  },
 }
 
 const DESCRIPTORS: readonly CommandDescriptor[] = Object.values(EXAMPLES).map(({ descriptor }) => descriptor)
 
 /** Values a descriptor read from JSON may hold where an argument should be: every JSON type, empty and not. */
-const JUNK: readonly unknown[] = [null, 0, -1, 1.5, '', 'x', true, [], [null], {}, { region: 'nowhere', index: 0 }, { region: 'body', parent: 7, index: 0 }, { region: 'body', column: 'x', index: 0 }]
+const JUNK: readonly unknown[] = [
+  null,
+  0,
+  -1,
+  1.5,
+  '',
+  'x',
+  true,
+  [],
+  [null],
+  {},
+  { region: 'nowhere', index: 0 },
+  { region: 'body', parent: 7, index: 0 },
+  { region: 'body', column: 'x', index: 0 },
+]
 
 describe('COMMANDS', () => {
   // A proposal names commands by name. A command added to a module and not
@@ -147,7 +190,9 @@ function billedEInvoice(): ReportDefinition {
   const report = eInvoiceSample()
   const invoice = report.eInvoice as NonNullable<ReportDefinition['eInvoice']>
   const account = said('CH93 0076 2011 6238 5295 7')
-  const summary = report.regions.summary.map((component) => (component.kind === 'epcQrCode' ? { ...component, iban: account, bic: said('POFICHBEXXX') } : component))
+  const summary = report.regions.summary.map((component) =>
+    component.kind === 'epcQrCode' ? { ...component, iban: account, bic: said('POFICHBEXXX') } : component,
+  )
   return {
     ...report,
     regions: { ...report.regions, summary },
@@ -171,12 +216,23 @@ const BILLED_BILL = BILLED.paymentPart as NonNullable<ReportDefinition['paymentP
  * two share, another Swiss account, are edits of it as they stand.
  */
 const ON_E_INVOICE: { readonly [N in CommandName]?: Extract<CommandDescriptor, { command: N }> } = {
-  replaceDocument: { command: 'replaceDocument', args: [{ ...BILLED, title: 'Pasted', eInvoice: { ...INVOICE, number: said('RE-2026') }, paymentPart: { ...BILLED_BILL, language: 'it' } }] },
+  replaceDocument: {
+    command: 'replaceDocument',
+    args: [{ ...BILLED, title: 'Pasted', eInvoice: { ...INVOICE, number: said('RE-2026') }, paymentPart: { ...BILLED_BILL, language: 'it' } }],
+  },
   putPaymentPart: { command: 'putPaymentPart', args: [{ ...BILLED_BILL, language: 'fr' }] },
   updatePaymentPart: { command: 'updatePaymentPart', args: [{ language: 'fr' }] },
   putEInvoice: { command: 'putEInvoice', args: [{ ...INVOICE, number: said('RE-2027') }] },
   // A batch that holds a replacement changes what the replacement does (0048).
-  batch: { command: 'batch', args: [[{ command: 'setTitle', args: ['Batched'] }, { command: 'replaceDocument', args: [{ ...BILLED, eInvoice: { ...INVOICE, number: said('RE-2028') } }] }]] },
+  batch: {
+    command: 'batch',
+    args: [
+      [
+        { command: 'setTitle', args: ['Batched'] },
+        { command: 'replaceDocument', args: [{ ...BILLED, eInvoice: { ...INVOICE, number: said('RE-2028') } }] },
+      ],
+    ],
+  },
 }
 
 /** Every example as it runs on the billed e-invoice. */
@@ -195,7 +251,9 @@ const REFUSED_ON_BILLED: { readonly [N in CommandName]?: RefusalCode } = {
  */
 function listedEdits(names: readonly CommandName[]): readonly { readonly descriptor: CommandDescriptor; readonly on: 'sample' | 'billed e-invoice' }[] {
   return DESCRIPTORS.filter((descriptor) => names.includes(descriptor.command)).map((descriptor) =>
-    EXAMPLES[descriptor.command].refusedAs === undefined ? { descriptor, on: 'sample' } : { descriptor: ON_E_INVOICE[descriptor.command] ?? descriptor, on: 'billed e-invoice' },
+    EXAMPLES[descriptor.command].refusedAs === undefined
+      ? { descriptor, on: 'sample' }
+      : { descriptor: ON_E_INVOICE[descriptor.command] ?? descriptor, on: 'billed e-invoice' },
   )
 }
 
@@ -331,7 +389,8 @@ describe('a descriptor read from JSON', () => {
   // command that wrote to it would throw too.
   test.each(DESCRIPTORS)('$command refuses arguments of the wrong number or shape, never throwing', (descriptor) => {
     const report = frozenSample()
-    const run = (args: readonly unknown[]): ReturnType<ReturnType<typeof describedCommand>> => describedCommand({ command: descriptor.command, args } as unknown as CommandDescriptor)(report)
+    const run = (args: readonly unknown[]): ReturnType<ReturnType<typeof describedCommand>> =>
+      describedCommand({ command: descriptor.command, args } as unknown as CommandDescriptor)(report)
     // A command that takes nothing after the report has no fewer to be given.
     if (descriptor.args.length > 0) expect(refused(run([])).code).toBe('invalid-arguments')
     expect(refused(run([...descriptor.args, 'extra'])).code).toBe('invalid-arguments')

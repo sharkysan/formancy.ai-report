@@ -39,13 +39,22 @@ const projectsOf = (kind) => planProjects(manifests()).filter((project) => proje
 const read = () => readGuide(guide, GUIDE_HOSTS)
 
 /** Every link a token and its children hold, in order. */
-const linksIn = (token) => [...(token.type === 'link' ? [token.href] : []), ...[...(token.items ?? []), ...(token.tokens ?? [])].flatMap((child) => linksIn(child))]
+const linksIn = (token) => [
+  ...(token.type === 'link' ? [token.href] : []),
+  ...[...(token.items ?? []), ...(token.tokens ?? [])].flatMap((child) => linksIn(child)),
+]
 
 /** The guide's relative links: everything but an address with a scheme. */
-const guideLinks = (markdown) => lexer(markdown).flatMap((token) => linksIn(token)).filter((href) => !/^[a-z][a-z0-9+.-]*:/i.test(href))
+const guideLinks = (markdown) =>
+  lexer(markdown)
+    .flatMap((token) => linksIn(token))
+    .filter((href) => !/^[a-z][a-z0-9+.-]*:/i.test(href))
 
 /** The relative modules a fixture runner imports, statically or with import(), by specifier. */
-const runnerImports = (runner) => [...readFileSync(join(fixture, runner), 'utf8').matchAll(/^import\s[^'"]*['"](\.[^'"]+)['"]|\bimport\(\s*['"](\.[^'"]+)['"]\s*\)/gm)].map((match) => match[1] ?? match[2])
+const runnerImports = (runner) =>
+  [...readFileSync(join(fixture, runner), 'utf8').matchAll(/^import\s[^'"]*['"](\.[^'"]+)['"]|\bimport\(\s*['"](\.[^'"]+)['"]\s*\)/gm)].map(
+    (match) => match[1] ?? match[2],
+  )
 
 describe('docs/getting-started.md', () => {
   // A block of code no host compiles reads as true and drifts from the
@@ -90,12 +99,21 @@ describe('docs/getting-started.md', () => {
       const tools = given.installs.filter((install) => install.dev)
       for (const project of projectsOf(kind)) {
         const has = new Set([...project.packages, ...Object.keys(project.framework)])
-        expect(application.filter((install) => !has.has(install.name)).map((install) => install.name), `${project.name} does not install`).toEqual([])
+        expect(
+          application.filter((install) => !has.has(install.name)).map((install) => install.name),
+          `${project.name} does not install`,
+        ).toEqual([])
         const pinned = application.filter((install) => install.version !== null)
-        expect(pinned.map((install) => `${install.name}@${install.version}`), project.name).toEqual(pinned.map((install) => `${install.name}@${project.framework[install.name]}`))
+        expect(
+          pinned.map((install) => `${install.name}@${install.version}`),
+          project.name,
+        ).toEqual(pinned.map((install) => `${install.name}@${project.framework[install.name]}`))
         // A tool the guide installs is one the gate builds with, at its range.
         const builds = HOSTS[project.host].tools ?? {}
-        expect(tools.map((install) => `${install.name}@${install.version}`), `${project.name} builds with`).toEqual(tools.map((install) => `${install.name}@${builds[install.name]}`))
+        expect(
+          tools.map((install) => `${install.name}@${install.version}`),
+          `${project.name} builds with`,
+        ).toEqual(tools.map((install) => `${install.name}@${builds[install.name]}`))
       }
     }
   })
@@ -106,12 +124,20 @@ describe('docs/getting-started.md', () => {
   // guide in a fresh `npm init -y` project, which is CommonJS, and the
   // program did not run until the type was set; a looser tsconfig hid an
   // error the gate's settings would have shown.
-  test('sets a reader\'s Node project up as the gate sets up its own', () => {
+  test("sets a reader's Node project up as the gate sets up its own", () => {
     const node = read().get('node')
     expect(node.settings).toEqual({ type: 'module' })
-    expect(node.installs.filter((install) => install.dev).map((install) => install.name).sort()).toEqual(Object.keys(HOSTS.node.tools).sort())
+    expect(
+      node.installs
+        .filter((install) => install.dev)
+        .map((install) => install.name)
+        .sort(),
+    ).toEqual(Object.keys(HOSTS.node.tools).sort())
     const tsconfig = fencedBlocks(guide).filter((block) => block.language === 'json' && block.lead.includes('`tsconfig.json`'))
-    expect(tsconfig.map((block) => block.line), 'one tsconfig.json block').toHaveLength(1)
+    expect(
+      tsconfig.map((block) => block.line),
+      'one tsconfig.json block',
+    ).toHaveLength(1)
     expect(JSON.parse(tsconfig[0].code).compilerOptions).toEqual(HOSTS.node.tsconfig.content.compilerOptions)
   })
 
@@ -144,7 +170,12 @@ describe('docs/getting-started.md', () => {
     const unnamed = fencedBlocks(guide)
       .filter((block) => ['ts', 'tsx'].includes(block.language) && block.attributes.has('guide'))
       .flatMap((block) => {
-        const files = new Set(block.attributes.get('guide').split(',').map((kind) => block.attributes.get('file') ?? entries.get(kind)))
+        const files = new Set(
+          block.attributes
+            .get('guide')
+            .split(',')
+            .map((kind) => block.attributes.get('file') ?? entries.get(kind)),
+        )
         return [...files].filter((file) => !block.lead.includes(`\`${file}\``)).map((file) => `line ${String(block.line)}: ${file}`)
       })
     expect(unnamed).toEqual([])
@@ -159,8 +190,14 @@ describe('docs/getting-started.md', () => {
       expect(host.tsconfig.content.include, kind).toContain('guide')
       expect(runnerImports(runner), kind).toContain(`./guide/${entry.replace(/\.tsx?$/, '.js')}`)
       const stem = runner.replace(/\.tsx?$/, '')
-      expect(host.steps.some((step) => step.command.some((arg) => arg.split('/').at(-1)?.startsWith(stem))), `${kind} has no step that runs ${runner}`).toBe(true)
-      const bundles = host.steps.some((step) => step.command[0] === 'node' && step.command[1] === 'build.mjs' && /(^|\/)guide$/.test(step.command[step.command.indexOf('--modules') + 1] ?? ''))
+      expect(
+        host.steps.some((step) => step.command.some((arg) => arg.split('/').at(-1)?.startsWith(stem))),
+        `${kind} has no step that runs ${runner}`,
+      ).toBe(true)
+      const bundles = host.steps.some(
+        (step) =>
+          step.command[0] === 'node' && step.command[1] === 'build.mjs' && /(^|\/)guide$/.test(step.command[step.command.indexOf('--modules') + 1] ?? ''),
+      )
       expect(bundles, `${kind} bundles the guide's modules`).toBe(bundled)
     }
   })
@@ -236,7 +273,11 @@ describe("the guide's reading", () => {
     ['a second module for a host that runs one and bundles none', fence('ts guide=node file=other.ts', 'const a = 1'), /node runs one module, guide.ts/],
     ['TypeScript without JSX in a page whose entry is .tsx', fence('ts guide=react', 'const a = 1'), /a ts block in guide.tsx/],
     ['a path where a file name belongs', fence('ts guide=react file=../escape.ts', 'const a = 1'), /is not a plain .ts or .tsx name/],
-    ['two files one import cannot tell apart', guideOf(fence('tsx guide=react', 'export const a = 1'), fence('ts guide=react file=guide.ts', 'const b = 2')), /guide.ts beside guide.tsx/],
+    [
+      'two files one import cannot tell apart',
+      guideOf(fence('tsx guide=react', 'export const a = 1'), fence('ts guide=react file=guide.ts', 'const b = 2')),
+      /guide.ts beside guide.tsx/,
+    ],
     ['output for a host whose run compares none', fence('text guide=react', 'ok'), /react's run compares no output/],
     ['an install block holding something else', fence('sh guide=node', 'npm i left-pad'), /is not an npm install line/],
     ['a tag on a block the gate neither compiles, compares nor installs', fence('json guide=node', '{}'), /guide= on a json block/],
@@ -250,7 +291,9 @@ describe("the guide's reading", () => {
     ['an untagged bash block', fence('bash', 'npm install pdfjs-dist'), /a bash block with no guide= tag/],
     ['an untagged output nothing compares', fence('text', 'wrote quotation.pdf'), /a text block with no guide= tag/],
   ])('refuses %s', (_, markdown, message) => {
-    expect(() => readGuide(guideOf(markdown, fence('ts guide=node', 'const z = 0'), fence('tsx guide=react', 'export const y = 0')), HOSTS_FIXTURE)).toThrow(message)
+    expect(() => readGuide(guideOf(markdown, fence('ts guide=node', 'const z = 0'), fence('tsx guide=react', 'export const y = 0')), HOSTS_FIXTURE)).toThrow(
+      message,
+    )
   })
 
   // A host given nothing to run would pass its runner's import only by
@@ -280,7 +323,9 @@ describe("the guide's reading", () => {
 
   // CRLF from a Windows checkout, and a tilde fence, are the same guide.
   test('reads fences as CommonMark does, line ends and tildes alike', () => {
-    expect(fencedBlocks('text\r\n~~~ts guide=node\r\nconst a = 1\r\n~~~\r\n').map(({ line, language, code }) => ({ line, language, code }))).toEqual([{ line: 2, language: 'ts', code: 'const a = 1' }])
+    expect(fencedBlocks('text\r\n~~~ts guide=node\r\nconst a = 1\r\n~~~\r\n').map(({ line, language, code }) => ({ line, language, code }))).toEqual([
+      { line: 2, language: 'ts', code: 'const a = 1' },
+    ])
   })
 })
 
@@ -298,6 +343,14 @@ describe('the packages a module imports', () => {
       "export { d } from 'react'",
       "const e = await import('@formancy/report-core')",
     ].join('\n')
-    expect(importedPackages(code)).toEqual(['@formancy/report-core', '@formancy/report-render-pdf', '@formancy/report-runtime', '@formancy/themes', 'node:', 'react', 'react-dom'])
+    expect(importedPackages(code)).toEqual([
+      '@formancy/report-core',
+      '@formancy/report-render-pdf',
+      '@formancy/report-runtime',
+      '@formancy/themes',
+      'node:',
+      'react',
+      'react-dom',
+    ])
   })
 })

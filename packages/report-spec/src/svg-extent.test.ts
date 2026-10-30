@@ -108,7 +108,9 @@ describe('the extent of a drawing', () => {
   // as much, which wrote a pattern matrix of 10^12 into an e-invoice's
   // PDF/A on 18 October 2026.
   test('of a gradient inside a group is measured from where the group began', () => {
-    const drawing = svg(`<defs>${GRADIENT}</defs><g transform="matrix(0.5 0 0 0.5 0 0)" opacity="0.5"><rect transform="matrix(4 0 0 4 0 0)" width="10" height="10" fill="url(#g)"/></g>`)
+    const drawing = svg(
+      `<defs>${GRADIENT}</defs><g transform="matrix(0.5 0 0 0.5 0 0)" opacity="0.5"><rect transform="matrix(4 0 0 4 0 0)" width="10" height="10" fill="url(#g)"/></g>`,
+    )
     expect(cleaned(drawing).extent).toEqual({ ...NOTHING, groups: { inverse: 2, origin: 0 }, local: 40, own: 10, nesting: 3 })
   })
 
@@ -183,7 +185,9 @@ describe('the extent of a drawing', () => {
   // the group's stream starts at the group, so the gradient's matrix there
   // is the shape's box, 10.
   test('is the same where it is checked', () => {
-    const drawing = cleaned(svg(`<defs>${GRADIENT}</defs><g transform="matrix(0.5 0 0 0.5 0 0)" opacity="0.5"><rect width="10" height="10" fill="url(#g)"/></g>`))
+    const drawing = cleaned(
+      svg(`<defs>${GRADIENT}</defs><g transform="matrix(0.5 0 0 0.5 0 0)" opacity="0.5"><rect width="10" height="10" fill="url(#g)"/></g>`),
+    )
     expect(checkSvg(drawing.bytes)).toMatchObject({ ok: true, extent: { ...NOTHING, groups: { inverse: 2, origin: 0 }, local: 10, own: 10, nesting: 3 } })
   })
 })

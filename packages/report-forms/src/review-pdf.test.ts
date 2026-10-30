@@ -1,6 +1,15 @@
 import { openReportSession } from '@formancy/report-core'
 import type { ReportSession } from '@formancy/report-core'
-import { expectation, readPdf, SITE_VISIT_STARTER, SITE_VISIT_SUBMISSION_V2, SITE_VISIT_SUBMISSION_V3, SITE_VISIT_V2, SITE_VISIT_V3, verify } from '@formancy/report-corpus'
+import {
+  expectation,
+  readPdf,
+  SITE_VISIT_STARTER,
+  SITE_VISIT_SUBMISSION_V2,
+  SITE_VISIT_SUBMISSION_V3,
+  SITE_VISIT_V2,
+  SITE_VISIT_V3,
+  verify,
+} from '@formancy/report-corpus'
 import { renderPdf } from '@formancy/report-render-pdf'
 import { resolveReport } from '@formancy/report-runtime'
 import type { ReportDefinition } from '@formancy/report-spec'
@@ -47,39 +56,63 @@ describe('a version that moved a printed field, reviewed', () => {
   // was computed for, the same visit prints the technician's name and
   // licence from their new paths, and its manifest names version 3. A
   // version-2 visit goes on printing its inspector.
-  test('refuses a version-3 visit, and prints it once the declared rename is followed', async () => {
-    const starter = SITE_VISIT_STARTER.report
-    const before = readSubmission(starter, { form: SITE_VISIT_V3, submission: SITE_VISIT_SUBMISSION_V3 })
-    expect(before.ok ? [] : before.errors.map((error) => `${error.code} ${error.path}`)).toEqual(['version-lacks-field /datasets/header/fields/5/form', 'version-lacks-field /datasets/header/fields/6/form'])
+  test(
+    'refuses a version-3 visit, and prints it once the declared rename is followed',
+    async () => {
+      const starter = SITE_VISIT_STARTER.report
+      const before = readSubmission(starter, { form: SITE_VISIT_V3, submission: SITE_VISIT_SUBMISSION_V3 })
+      expect(before.ok ? [] : before.errors.map((error) => `${error.code} ${error.path}`)).toEqual([
+        'version-lacks-field /datasets/header/fields/5/form',
+        'version-lacks-field /datasets/header/fields/6/form',
+      ])
 
-    const review = reviewOf(starter)
-    expect(review.status).toBe('blocked')
-    expect(review.items.map((item) => [item.field, item.change, item.blocks, item.resolutions[0]?.kind])).toEqual([
-      ['name', 'field.renamed', true, 'follow-rename'],
-      ['licence', 'field.renamed', true, 'follow-rename'],
-    ])
+      const review = reviewOf(starter)
+      expect(review.status).toBe('blocked')
+      expect(review.items.map((item) => [item.field, item.change, item.blocks, item.resolutions[0]?.kind])).toEqual([
+        ['name', 'field.renamed', true, 'follow-rename'],
+        ['licence', 'field.renamed', true, 'follow-rename'],
+      ])
 
-    const opening = openReportSession(starter)
-    if (!opening.ok) throw new Error('the starter did not open')
-    const { session } = opening
-    resolveFirst(session)
-    resolveFirst(session)
-    expect(reviewOf(session.document()).status).toBe('compatible')
-    const reviewed = session.document()
+      const opening = openReportSession(starter)
+      if (!opening.ok) throw new Error('the starter did not open')
+      const { session } = opening
+      resolveFirst(session)
+      resolveFirst(session)
+      expect(reviewOf(session.document()).status).toBe('compatible')
+      const reviewed = session.document()
 
-    const read = readSubmission(reviewed, { form: SITE_VISIT_V3, submission: SITE_VISIT_SUBMISSION_V3 })
-    if (!read.ok) throw new Error(`refused: ${JSON.stringify(read.errors)}`)
-    const resolution = resolveReport(reviewed, read.data, { mode: 'final', creationDate: '2026-10-22T08:00:00Z', timeZone: 'Europe/Zurich' })
-    if (!resolution.ok) throw new Error(`refused: ${JSON.stringify(resolution.errors)}`)
-    expect(resolution.manifest.source).toEqual({ provider: 'formancy-form', submissions: [{ id: SITE_VISIT_SUBMISSION_V3.id, form: 'site-visit', formHash: schemaHash(SITE_VISIT_V3) }] })
+      const read = readSubmission(reviewed, { form: SITE_VISIT_V3, submission: SITE_VISIT_SUBMISSION_V3 })
+      if (!read.ok) throw new Error(`refused: ${JSON.stringify(read.errors)}`)
+      const resolution = resolveReport(reviewed, read.data, { mode: 'final', creationDate: '2026-10-22T08:00:00Z', timeZone: 'Europe/Zurich' })
+      if (!resolution.ok) throw new Error(`refused: ${JSON.stringify(resolution.errors)}`)
+      expect(resolution.manifest.source).toEqual({
+        provider: 'formancy-form',
+        submissions: [{ id: SITE_VISIT_SUBMISSION_V3.id, form: 'site-visit', formHash: schemaHash(SITE_VISIT_V3) }],
+      })
 
-    const pdf = await readPdf(await renderPdf(resolution.document, { maxPages: 10 }))
-    const stated = { maxPagesExpected: 1, exactText: ['Objekt: Kramgasse 49, 3011 Bern', 'Name: Lea Gerber', 'Ausweis: BE-6203', 'Zusammenfassung: Keine dringenden Befunde.', '1 / 1'] }
-    expect(verify({ id: 'site-visit-v3-reviewed', title: 'A version-3 visit, after the rename was followed', document: resolution.document, maxPages: 10, expect: expectation(resolution.document, stated) }, pdf)).toEqual([])
-    const words = pdf.pages.flatMap((page) => page.items.map((item) => item.text.trim()))
-    expect(words.some((word) => word.includes('Marc Rüegg'))).toBe(false)
+      const pdf = await readPdf(await renderPdf(resolution.document, { maxPages: 10 }))
+      const stated = {
+        maxPagesExpected: 1,
+        exactText: ['Objekt: Kramgasse 49, 3011 Bern', 'Name: Lea Gerber', 'Ausweis: BE-6203', 'Zusammenfassung: Keine dringenden Befunde.', '1 / 1'],
+      }
+      expect(
+        verify(
+          {
+            id: 'site-visit-v3-reviewed',
+            title: 'A version-3 visit, after the rename was followed',
+            document: resolution.document,
+            maxPages: 10,
+            expect: expectation(resolution.document, stated),
+          },
+          pdf,
+        ),
+      ).toEqual([])
+      const words = pdf.pages.flatMap((page) => page.items.map((item) => item.text.trim()))
+      expect(words.some((word) => word.includes('Marc Rüegg'))).toBe(false)
 
-    const earlier = readSubmission(reviewed, { form: SITE_VISIT_V2, submission: SITE_VISIT_SUBMISSION_V2 })
-    expect(earlier.ok ? [earlier.data.header?.['name'], earlier.data.header?.['licence']] : earlier.errors).toEqual(['Marc Rüegg', 'BE-5120'])
-  }, TIMEOUT)
+      const earlier = readSubmission(reviewed, { form: SITE_VISIT_V2, submission: SITE_VISIT_SUBMISSION_V2 })
+      expect(earlier.ok ? [earlier.data.header?.['name'], earlier.data.header?.['licence']] : earlier.errors).toEqual(['Marc Rüegg', 'BE-5120'])
+    },
+    TIMEOUT,
+  )
 })

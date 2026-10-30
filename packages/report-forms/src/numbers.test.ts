@@ -34,7 +34,12 @@ function plain(negative: boolean, digits: bigint, exponent: number): string {
     power += 1
   }
   const text = mantissa.toString()
-  const body = power >= 0 ? `${text}${'0'.repeat(power)}` : text.length > -power ? `${text.slice(0, power)}.${text.slice(power)}` : `0.${'0'.repeat(-power - text.length)}${text}`
+  const body =
+    power >= 0
+      ? `${text}${'0'.repeat(power)}`
+      : text.length > -power
+        ? `${text.slice(0, power)}.${text.slice(power)}`
+        : `0.${'0'.repeat(-power - text.length)}${text}`
   return negative && mantissa !== 0n ? `-${body}` : body
 }
 
@@ -49,7 +54,8 @@ const decimals = (digits: number) =>
     .chain((decimal) => fc.integer({ min: -300, max: digits - decimal.digits.toString().length }).map((exponent) => ({ ...decimal, exponent })))
 
 /** Whether a double is a number a decimal field prints, by `toPrecision`, which is not how the rule finds its digits. */
-const exact = (value: number): boolean => Number.isSafeInteger(value) || (Math.abs(value) < SAFE && Math.abs(value) >= MIN_NORMAL && Number(value.toPrecision(FIFTEEN)) === value)
+const exact = (value: number): boolean =>
+  Number.isSafeInteger(value) || (Math.abs(value) < SAFE && Math.abs(value) >= MIN_NORMAL && Number(value.toPrecision(FIFTEEN)) === value)
 
 describe('the number rule', () => {
   // The bound is the one the property below proves, and no other: a bound
@@ -113,7 +119,7 @@ describe('the number rule', () => {
     expect(decimalDigits(1234567890.123456).ok).toBe(false)
     expect(decimalDigits(0.1 + 0.2).ok).toBe(false)
     expect(decimalDigits(1.5)).toEqual({ ok: true, digits: '1.5' })
-    expect(decimalDigits(1.5)).toEqual(decimalDigits(1.50))
+    expect(decimalDigits(1.5)).toEqual(decimalDigits(1.5))
     expect(decimalDigits(-0.05)).toEqual({ ok: true, digits: '-0.05' })
     expect(decimalDigits(1e-7)).toEqual({ ok: true, digits: '0.0000001' })
     expect(decimalDigits(-0)).toEqual({ ok: true, digits: '0' })

@@ -34,10 +34,45 @@ export function zipOf(entries) {
     const flags = entry.flags ?? 0x0800 | (entry.descriptor ? 0x0008 : 0)
     const crc = crc32(data)
     const [localCrc, localCompressed, localSize] = entry.descriptor ? [0, 0, 0] : [crc, stored.length, data.length]
-    const local = Buffer.concat([u32(0x04034b50), u16(20), u16(flags), u16(method), u16(0), u16(0), u32(localCrc), u32(localCompressed), u32(localSize), u16(name.length), u16(0), name, stored])
+    const local = Buffer.concat([
+      u32(0x04034b50),
+      u16(20),
+      u16(flags),
+      u16(method),
+      u16(0),
+      u16(0),
+      u32(localCrc),
+      u32(localCompressed),
+      u32(localSize),
+      u16(name.length),
+      u16(0),
+      name,
+      stored,
+    ])
     const descriptor = entry.descriptor ? Buffer.concat([u32(0x08074b50), u32(crc), u32(stored.length), u32(data.length)]) : Buffer.alloc(0)
     const mode = entry.mode ?? (entry.name.endsWith('/') ? 0o040755 : 0o100644)
-    centrals.push(Buffer.concat([u32(0x02014b50), u16(0x031e), u16(20), u16(flags), u16(method), u16(0), u16(0), u32(entry.crc ?? crc), u32(stored.length), u32(entry.size ?? data.length), u16(name.length), u16(0), u16(0), u16(0), u16(0), u32(mode * 0x10000), u32(offset), name]))
+    centrals.push(
+      Buffer.concat([
+        u32(0x02014b50),
+        u16(0x031e),
+        u16(20),
+        u16(flags),
+        u16(method),
+        u16(0),
+        u16(0),
+        u32(entry.crc ?? crc),
+        u32(stored.length),
+        u32(entry.size ?? data.length),
+        u16(name.length),
+        u16(0),
+        u16(0),
+        u16(0),
+        u16(0),
+        u32(mode * 0x10000),
+        u32(offset),
+        name,
+      ]),
+    )
     locals.push(local, descriptor)
     offset += local.length + descriptor.length
   }

@@ -60,7 +60,10 @@ interface Totalling {
 }
 
 /** Values as numbers of one kind: integers while every one is and decimals are not asked for, else decimals; undefined when one is not a number. */
-function numbers(values: readonly TypedValue[], decimals: boolean): { readonly integers: readonly bigint[] } | { readonly decimals: readonly Decimal[] } | undefined {
+function numbers(
+  values: readonly TypedValue[],
+  decimals: boolean,
+): { readonly integers: readonly bigint[] } | { readonly decimals: readonly Decimal[] } | undefined {
   if (!decimals && values.every((value) => value.type === 'integer')) return { integers: values.map((value) => value.value as bigint) }
   if (!values.every((value) => value.type === 'integer' || value.type === 'decimal')) return undefined
   return { decimals: values.map(asDecimal) }
@@ -97,7 +100,8 @@ function comparator(values: readonly TypedValue[], collator: Intl.Collator): ((a
 /** The least (`sign` -1) or greatest (1) value, the first of equals as written; null over none. */
 function extreme(values: readonly TypedValue[], sign: -1 | 1, totalling: Totalling): Total {
   const compare = comparator(values, totalling.collator)
-  if (compare === undefined) return { code: 'aggregate-value-type', message: 'takes the least or greatest of values of one kind, and the values it read are of several' }
+  if (compare === undefined)
+    return { code: 'aggregate-value-type', message: 'takes the least or greatest of values of one kind, and the values it read are of several' }
   const found = values.reduce<TypedValue | null>((kept, value) => (kept === null || Math.sign(compare(value, kept)) === sign ? value : kept), null)
   return found?.type === 'integer' && totalling.decimals ? decimal(asDecimal(found)) : found
 }
@@ -106,7 +110,10 @@ function extreme(values: readonly TypedValue[], sign: -1 | 1, totalling: Totalli
 function rounded(total: Total, rounding: Rounding | undefined): Total {
   if (rounding === undefined || total === null || isRefusal(total)) return total
   if (total.type === 'decimal') return decimal(roundDecimalAs(total.value, rounding))
-  return { code: 'rounding-not-decimal', message: `declares a rounding, and its total is ${total.type === 'integer' ? 'an integer' : `a ${total.type}`}, which has no places to round` }
+  return {
+    code: 'rounding-not-decimal',
+    message: `declares a rounding, and its total is ${total.type === 'integer' ? 'an integer' : `a ${total.type}`}, which has no places to round`,
+  }
 }
 
 /** The aggregate over the values read from some rows -- each null or typed -- or over `rows` rows when it reads nothing. */
@@ -141,7 +148,12 @@ export function computeTotals(render: Omit<Render, 'totals'>): Totals | undefine
   const totals = new Map<string, TypedValue | null>()
   const totallings = new Map<string, Totalling>()
   const refuse = (index: number, refusal: Refusal): void => {
-    problems.error({ stage: 'resolve', code: refusal.code, path: `/aggregates/${index}`, message: `aggregate ${report.aggregates[index]?.id} ${refusal.message}` })
+    problems.error({
+      stage: 'resolve',
+      code: refusal.code,
+      path: `/aggregates/${index}`,
+      message: `aggregate ${report.aggregates[index]?.id} ${refusal.message}`,
+    })
   }
   let computed = true
 
@@ -183,7 +195,14 @@ export function computeTotals(render: Omit<Render, 'totals'>): Totals | undefine
         // total took, of the kinds it took, totalled as the same kind and
         // rounded as it was. Every refusal `reduce` has is about the kinds
         // of values, and a share of values has no kind the whole lacks.
-        values.set(aggregate.id, reduce(totallings.get(aggregate.id) as Totalling, each && group.map((row) => each[row.index] as TypedValue | null), group.length) as TypedValue | null)
+        values.set(
+          aggregate.id,
+          reduce(
+            totallings.get(aggregate.id) as Totalling,
+            each && group.map((row) => each[row.index] as TypedValue | null),
+            group.length,
+          ) as TypedValue | null,
+        )
       }
       return values
     },

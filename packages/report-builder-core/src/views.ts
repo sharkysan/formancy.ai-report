@@ -38,9 +38,11 @@ const PANE_NAMES = { outline: 'pane.outline', properties: 'pane.properties', dia
  */
 export function hostViewOf(option: HostViewOptions | undefined): HostView | null {
   if (option === undefined) return null
-  if (typeof option.name !== 'string' || option.name.trim() === '') throw new RangeError('A host’s view needs a name: a builder names the region it draws the view in by it.')
+  if (typeof option.name !== 'string' || option.name.trim() === '')
+    throw new RangeError('A host’s view needs a name: a builder names the region it draws the view in by it.')
   const place = option.place ?? 'middle'
-  if (!(HOST_VIEW_PLACES as readonly string[]).includes(place)) throw new RangeError(`A host’s view stands in one of ${HOST_VIEW_PLACES.join(', ')}, not ${String(place)}.`)
+  if (!(HOST_VIEW_PLACES as readonly string[]).includes(place))
+    throw new RangeError(`A host’s view stands in one of ${HOST_VIEW_PLACES.join(', ')}, not ${String(place)}.`)
   return { name: option.name, shown: option.shown === true, place }
 }
 
@@ -84,7 +86,8 @@ export function viewActions(editing: ViewEditing, t: EditorText, locale: EditorL
   function showHostView(host: HostView): EditorOutcome {
     const next = hostAs(host, { shown: true })
     if (viewOf(next) !== 'host') setLocal({ host: next })
-    else if (next !== host || editing.local().panel !== 'canvas') setLocal({ host: next, panel: 'canvas', ...announce(t('status.hostViewShown', { view: host.name, pane: t('pane.canvas') })) })
+    else if (next !== host || editing.local().panel !== 'canvas')
+      setLocal({ host: next, panel: 'canvas', ...announce(t('status.hostViewShown', { view: host.name, pane: t('pane.canvas') })) })
     return DONE
   }
 

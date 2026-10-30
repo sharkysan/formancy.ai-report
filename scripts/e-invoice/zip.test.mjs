@@ -26,7 +26,11 @@ describe('reading an archive', () => {
   // Maven writes each entry's sizes after its data, so the local header
   // says nothing: the central directory is what says where an entry ends.
   test('lists the central directory and reads stored, deflated and descriptor-sized entries', () => {
-    const archive = zipOf([{ name: 'xslt/', method: 0 }, { name: 'xslt/a.xslt', data: '<a/>', descriptor: true }, { name: 'b.txt', data: 'plain', method: 0 }])
+    const archive = zipOf([
+      { name: 'xslt/', method: 0 },
+      { name: 'xslt/a.xslt', data: '<a/>', descriptor: true },
+      { name: 'b.txt', data: 'plain', method: 0 },
+    ])
     expect(zipEntries(archive).map((entry) => [entry.name, entry.size, entry.directory])).toEqual([
       ['xslt/', 0, true],
       ['xslt/a.xslt', 4, false],
@@ -50,8 +54,12 @@ describe('reading an archive', () => {
   // archives the register pins, so one is not those archives.
   test('refuses an encrypted entry, another method, a size past its bound and no archive at all', () => {
     expect(() => zipEntries(zipOf([{ name: 'a.txt', data: 'abc', flags: 0x0801 }]))).toThrow('a.txt: it is encrypted')
-    expect(() => zipEntries(zipOf([{ name: 'a.txt', data: 'abc', method: 12 }]))).toThrow('a.txt: its method is 12, and only stored (0) and deflated (8) are read')
-    expect(() => zipEntries(zipOf([{ name: 'a.txt', data: 'abc', size: MAX_UNPACKED + 1 }]))).toThrow(`a.txt: it says it is ${String(MAX_UNPACKED + 1)} bytes, past the ${String(MAX_UNPACKED)} an archive here may unpack to`)
+    expect(() => zipEntries(zipOf([{ name: 'a.txt', data: 'abc', method: 12 }]))).toThrow(
+      'a.txt: its method is 12, and only stored (0) and deflated (8) are read',
+    )
+    expect(() => zipEntries(zipOf([{ name: 'a.txt', data: 'abc', size: MAX_UNPACKED + 1 }]))).toThrow(
+      `a.txt: it says it is ${String(MAX_UNPACKED + 1)} bytes, past the ${String(MAX_UNPACKED)} an archive here may unpack to`,
+    )
     expect(() => zipEntries(Buffer.from('not a zip at all'))).toThrow('no end of central directory: not a ZIP archive')
   })
 })
@@ -61,7 +69,14 @@ describe('unzipping', () => {
   // destination, nothing else.
   test('writes every directory and file under the destination', () => {
     const directory = scratch()
-    const written = unzip(zipOf([{ name: 'resources/', method: 0 }, { name: 'resources/a.xsl', data: '<xsl/>' }, { name: 'scenarios.xml', data: '<s/>' }]), directory)
+    const written = unzip(
+      zipOf([
+        { name: 'resources/', method: 0 },
+        { name: 'resources/a.xsl', data: '<xsl/>' },
+        { name: 'scenarios.xml', data: '<s/>' },
+      ]),
+      directory,
+    )
     expect(written).toEqual(['resources/a.xsl', 'scenarios.xml'])
     expect(readFileSync(join(directory, 'resources', 'a.xsl'), 'utf8')).toBe('<xsl/>')
     expect(readdirSync(directory).sort()).toEqual(['resources', 'scenarios.xml'])
@@ -80,14 +95,38 @@ describe('unzipping', () => {
     ['resources//a.xsl', 'the name resources//a.xsl has an empty segment'],
   ])('refuses %s, and writes nothing', (name, message) => {
     const directory = scratch()
-    expect(() => unzip(zipOf([{ name: 'first.txt', data: 'x' }, { name, data: 'x' }]), directory)).toThrow(message)
+    expect(() =>
+      unzip(
+        zipOf([
+          { name: 'first.txt', data: 'x' },
+          { name, data: 'x' },
+        ]),
+        directory,
+      ),
+    ).toThrow(message)
     expect(readdirSync(directory)).toEqual([])
   })
 
   test('refuses a link and a name twice, and writes nothing', () => {
     const directory = scratch()
-    expect(() => unzip(zipOf([{ name: 'a.txt', data: 'x' }, { name: 'link', data: '/etc/passwd', mode: 0o120777 }]), directory)).toThrow('link: it is neither a file nor a directory')
-    expect(() => unzip(zipOf([{ name: 'a.txt', data: 'x' }, { name: 'A.TXT', data: 'y' }]), directory)).toThrow('A.TXT: the archive names it twice')
+    expect(() =>
+      unzip(
+        zipOf([
+          { name: 'a.txt', data: 'x' },
+          { name: 'link', data: '/etc/passwd', mode: 0o120777 },
+        ]),
+        directory,
+      ),
+    ).toThrow('link: it is neither a file nor a directory')
+    expect(() =>
+      unzip(
+        zipOf([
+          { name: 'a.txt', data: 'x' },
+          { name: 'A.TXT', data: 'y' },
+        ]),
+        directory,
+      ),
+    ).toThrow('A.TXT: the archive names it twice')
     expect(readdirSync(directory)).toEqual([])
     expect(existsSync(join(directory, 'a.txt'))).toBe(false)
   })

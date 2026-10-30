@@ -87,7 +87,9 @@ export const narrowestBreakpoint = (css, file) => Math.min(...breakpoints(css, f
  * page loads.
  */
 export function stylesheet(directory, entry) {
-  const text = readFileSync(join(directory, entry), 'utf8').replaceAll(/@import\s+'(\.\/[^']+\.css)';/g, (_, path) => readFileSync(join(directory, path), 'utf8'))
+  const text = readFileSync(join(directory, entry), 'utf8').replaceAll(/@import\s+'(\.\/[^']+\.css)';/g, (_, path) =>
+    readFileSync(join(directory, path), 'utf8'),
+  )
   if (/@import/.test(text.replaceAll(/\/\*[\s\S]*?\*\//g, ''))) throw new Error(`${entry} has an @import the camera does not inline`)
   return text
 }
@@ -149,7 +151,12 @@ export async function fonts(page, names, { within }) {
         const faces = [...document.fonts]
         const named = (status) => new Set(faces.filter((face) => face.status === status).map((face) => face.family.replaceAll('"', '')))
         const [loading, loaded, failed] = [named('loading'), named('loaded'), named('error')]
-        return { ready, loading: wanted.filter((family) => loading.has(family)), missing: wanted.filter((family) => !loaded.has(family)), failed: wanted.filter((family) => failed.has(family)) }
+        return {
+          ready,
+          loading: wanted.filter((family) => loading.has(family)),
+          missing: wanted.filter((family) => !loaded.has(family)),
+          failed: wanted.filter((family) => failed.has(family)),
+        }
       },
       { wanted: names, wait: Math.max(0, deadline - Date.now()) },
     )
@@ -334,7 +341,13 @@ function intruders({ clip, parts }) {
     return { left, top, right, bottom }
   }
   // At least 2 by 2 pixels and meeting the clip: a visually hidden element is one pixel, clipped.
-  const meets = (box) => box.right - box.left >= 2 && box.bottom - box.top >= 2 && box.right > clip.x && box.left < clip.x + clip.width && box.bottom > clip.y && box.top < clip.y + clip.height
+  const meets = (box) =>
+    box.right - box.left >= 2 &&
+    box.bottom - box.top >= 2 &&
+    box.right > clip.x &&
+    box.left < clip.x + clip.width &&
+    box.bottom > clip.y &&
+    box.top < clip.y + clip.height
   const shown = (element) => element.checkVisibility({ opacityProperty: true, visibilityProperty: true })
   const found = []
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
@@ -347,7 +360,8 @@ function intruders({ clip, parts }) {
   }
   for (const element of document.body.querySelectorAll('input, textarea, select, img, svg, canvas')) {
     if (inside(element) || (element instanceof HTMLInputElement && element.type === 'hidden') || !shown(element)) continue
-    if (meets(painted(element, element.getBoundingClientRect()))) found.push(`a ${element.tagName.toLowerCase()} "${(element.getAttribute('aria-label') ?? element.getAttribute('name') ?? '').slice(0, 40)}"`)
+    if (meets(painted(element, element.getBoundingClientRect())))
+      found.push(`a ${element.tagName.toLowerCase()} "${(element.getAttribute('aria-label') ?? element.getAttribute('name') ?? '').slice(0, 40)}"`)
   }
   return found
 }
@@ -363,7 +377,10 @@ export async function clip(page, parts, { scene } = {}) {
   const handles = await Promise.all(Object.values(parts).map((locator) => locator.elementHandle()))
   try {
     const stray = await page.evaluate(intruders, { clip: area, parts: handles })
-    if (stray.length > 0) throw new Error(`${scene === undefined ? '' : `${scene}: `}the clip of ${Object.keys(parts).join(', ')} shows what no part holds, so the record would not say it: ${stray.slice(0, 6).join('; ')}`)
+    if (stray.length > 0)
+      throw new Error(
+        `${scene === undefined ? '' : `${scene}: `}the clip of ${Object.keys(parts).join(', ')} shows what no part holds, so the record would not say it: ${stray.slice(0, 6).join('; ')}`,
+      )
   } finally {
     await Promise.all(handles.map((handle) => handle.dispose()))
   }
@@ -388,7 +405,9 @@ function watchChanges() {
         if (record.attributeName === 'style' && caretless(now) === caretless(record.oldValue)) continue
       }
       const element = record.target instanceof Element ? record.target : record.target.parentElement
-      seen.push(`${record.type === 'characterData' ? 'text' : record.type} of a ${element?.localName ?? 'node'}${record.type === 'attributes' ? `'s ${record.attributeName}` : ''}`)
+      seen.push(
+        `${record.type === 'characterData' ? 'text' : record.type} of a ${element?.localName ?? 'node'}${record.type === 'attributes' ? `'s ${record.attributeName}` : ''}`,
+      )
     }
   })
   observer.observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeOldValue: true })
@@ -454,7 +473,8 @@ export async function encode(browser, bytes, { from, to, quality }) {
       },
       { data: `data:${from};base64,${bytes.toString('base64')}`, type: to, q: quality },
     )
-    if (!url.startsWith(`data:${to};`)) throw new Error(`Chromium's canvas did not encode ${to}: it answered ${url.slice(5, url.indexOf(';'))}, as it does for a type it cannot encode`)
+    if (!url.startsWith(`data:${to};`))
+      throw new Error(`Chromium's canvas did not encode ${to}: it answered ${url.slice(5, url.indexOf(';'))}, as it does for a type it cannot encode`)
     return Buffer.from(url.slice(url.indexOf(',') + 1), 'base64')
   } finally {
     await page.context().close()
@@ -496,7 +516,8 @@ export async function take(page, parts, { scene, families: names, within, keepFo
   const { png, shots } = await shoot(page, area, { keepFocus })
   const said = await text(parts, { scene })
   const after = await measured(page, parts)
-  if (JSON.stringify(after) !== JSON.stringify(area)) throw new Error(`${scene}: the parts moved while the picture was taken, from ${JSON.stringify(area)} to ${JSON.stringify(after)}`)
+  if (JSON.stringify(after) !== JSON.stringify(area))
+    throw new Error(`${scene}: the parts moved while the picture was taken, from ${JSON.stringify(area)} to ${JSON.stringify(after)}`)
   return { png, shots, clip: area, text: said }
 }
 

@@ -32,14 +32,29 @@ function chunk(type: string, data: readonly number[], wrong = false): number[] {
 /** A PNG of `width` × `height` 8-bit RGB pixels, its header chunk's CRC wrong when `wrong`. */
 export function png(width: number, height: number, wrong = false): Uint8Array {
   const header = [...uint32(width), ...uint32(height), 8, 2, 0, 0, 0]
-  return Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...chunk('IHDR', header, wrong), ...chunk('IDAT', [0x78, 0x9c, 0x63, 0, 0, 0, 1, 0, 1]), ...chunk('IEND', [])])
+  return Uint8Array.from([
+    0x89,
+    0x50,
+    0x4e,
+    0x47,
+    0x0d,
+    0x0a,
+    0x1a,
+    0x0a,
+    ...chunk('IHDR', header, wrong),
+    ...chunk('IDAT', [0x78, 0x9c, 0x63, 0, 0, 0, 1, 0, 1]),
+    ...chunk('IEND', []),
+  ])
 }
 
 /** A baseline JPEG's segments for a frame of `width` × `height`, of three components (RGB) or as many as given -- four are CMYK -- and an Exif orientation when one is given. */
 export function jpeg(width: number, height: number, orientation?: number, components = 3): Uint8Array {
   const segment = (marker: number, data: readonly number[]): number[] => [0xff, marker, (data.length + 2) >>> 8, (data.length + 2) & 0xff, ...data]
   // Exif's TIFF header, big-endian, and one directory of one entry: the Orientation tag, a SHORT.
-  const exif = orientation === undefined ? [] : segment(0xe1, [...ascii('Exif'), 0, 0, ...ascii('MM'), 0, 42, ...uint32(8), 0, 1, 0x01, 0x12, 0, 3, ...uint32(1), 0, orientation, 0, 0, ...uint32(0)])
+  const exif =
+    orientation === undefined
+      ? []
+      : segment(0xe1, [...ascii('Exif'), 0, 0, ...ascii('MM'), 0, 42, ...uint32(8), 0, 1, 0x01, 0x12, 0, 3, ...uint32(1), 0, orientation, 0, 0, ...uint32(0)])
   const ids = Array.from({ length: components }, (_, index) => index + 1)
   const frame = segment(0xc0, [8, height >>> 8, height & 0xff, width >>> 8, width & 0xff, components, ...ids.flatMap((id) => [id, 0x11, 0])])
   const scan = segment(0xda, [components, ...ids.flatMap((id) => [id, 0x11]), 0, 63, 0])
@@ -63,13 +78,40 @@ export function eInvoiceReport(): ReportDefinition {
     datasets: {
       detail: {
         id: 'lines',
-        fields: [{ id: 'name', type: 'string', label: 'Name', nullable: false }, ...columns.slice(1).map((id) => ({ id, type: 'decimal' as const, label: id, nullable: false, scale: 2 }))],
+        fields: [
+          { id: 'name', type: 'string', label: 'Name', nullable: false },
+          ...columns.slice(1).map((id) => ({ id, type: 'decimal' as const, label: id, nullable: false, scale: 2 })),
+        ],
       },
     },
     regions: {
       ...base.regions,
-      body: [{ id: 'lines', kind: 'table', dataset: 'detail', columns: columns.map((id) => ({ id, header: id, width: 'fill' as const, align: 'left' as const, value: { kind: 'field' as const, field: line(id) } })), totals: [], emptyText: 'None.', repeatHeader: true }],
-      summary: [{ id: 'totals', kind: 'text', content: ['invoice.taxBasisTotal', 'vatBasis.standard', 'vatAmount.standard', 'invoice.taxTotal', 'invoice.grandTotal', 'invoice.duePayable'].map((cel) => ({ kind: 'expression' as const, expression: { cel } })) }],
+      body: [
+        {
+          id: 'lines',
+          kind: 'table',
+          dataset: 'detail',
+          columns: columns.map((id) => ({
+            id,
+            header: id,
+            width: 'fill' as const,
+            align: 'left' as const,
+            value: { kind: 'field' as const, field: line(id) },
+          })),
+          totals: [],
+          emptyText: 'None.',
+          repeatHeader: true,
+        },
+      ],
+      summary: [
+        {
+          id: 'totals',
+          kind: 'text',
+          content: ['invoice.taxBasisTotal', 'vatBasis.standard', 'vatAmount.standard', 'invoice.taxTotal', 'invoice.grandTotal', 'invoice.duePayable'].map(
+            (cel) => ({ kind: 'expression' as const, expression: { cel } }),
+          ),
+        },
+      ],
     },
     eInvoice: {
       kind: 'facturX',
@@ -78,11 +120,24 @@ export function eInvoiceReport(): ReportDefinition {
       currency: 'EUR',
       number: said('RE-1'),
       issued: { cel: 'date("2026-10-19")' },
-      seller: { name: said('Muster GmbH'), vatId: said('DE 123 456 789'), address: { line1: said('Industriestraße 7'), postalCode: said('50735'), city: said('Köln'), country: said('DE') } },
+      seller: {
+        name: said('Muster GmbH'),
+        vatId: said('DE 123 456 789'),
+        address: { line1: said('Industriestraße 7'), postalCode: said('50735'), city: said('Köln'), country: said('DE') },
+      },
       buyer: { name: said('Kunde AG'), address: { line1: said('Ring 1'), postalCode: said('1010'), city: said('Wien'), country: said('AT') } },
       delivered: { cel: 'date("2026-10-19")' },
       vat: [{ id: 'standard', code: 'S', rate: '19' }],
-      lines: { table: 'lines', id: { kind: 'field', field: line('name') }, name: 'name', quantity: 'quantity', netPrice: 'price', netAmount: 'amount', unit: { kind: 'expression', expression: { cel: '"H87"' } }, vat: { kind: 'expression', expression: { cel: '"standard"' } } },
+      lines: {
+        table: 'lines',
+        id: { kind: 'field', field: line('name') },
+        name: 'name',
+        quantity: 'quantity',
+        netPrice: 'price',
+        netAmount: 'amount',
+        unit: { kind: 'expression', expression: { cel: '"H87"' } },
+        vat: { kind: 'expression', expression: { cel: '"standard"' } },
+      },
     },
   }
   const outcome = validateReport(report)
@@ -105,7 +160,11 @@ export function xrechnungReport(): ReportDefinition {
     version: '3.0',
     businessProcess: said('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
     buyerReference: leitwegId,
-    seller: { ...terms.seller, electronicAddress: { id: said('rechnung@muster.example'), scheme: 'EM' }, contact: { name: said('Erika Mustermann'), telephone: said('+49 221 4710 820'), email: said('e.mustermann@muster.example') } },
+    seller: {
+      ...terms.seller,
+      electronicAddress: { id: said('rechnung@muster.example'), scheme: 'EM' },
+      contact: { name: said('Erika Mustermann'), telephone: said('+49 221 4710 820'), email: said('e.mustermann@muster.example') },
+    },
     buyer: { ...terms.buyer, electronicAddress: { id: leitwegId, scheme: '0204' } },
     payment: { means: '58', iban: said('DE83 0123 4567 0012 3456 78') },
   }
@@ -146,7 +205,10 @@ export function chosen(name: string, bytes: Uint8Array, size: number = bytes.len
 }
 
 /** A store that answers as `answer` says -- keeping everything when absent -- and lists what it was offered, and what it kept. */
-export function recordingStore(answer: (image: AddedImage) => KeptImage | Promise<KeptImage> = () => ({ ok: true }), accept?: ImageStore['accept']): ImageStore & { readonly offered: AddedImage[]; readonly kept: AddedImage[] } {
+export function recordingStore(
+  answer: (image: AddedImage) => KeptImage | Promise<KeptImage> = () => ({ ok: true }),
+  accept?: ImageStore['accept'],
+): ImageStore & { readonly offered: AddedImage[]; readonly kept: AddedImage[] } {
   const offered: AddedImage[] = []
   const kept: AddedImage[] = []
   return {

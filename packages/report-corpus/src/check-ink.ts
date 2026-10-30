@@ -41,7 +41,12 @@ export const INK_BAND = 2
  * pixels of ink and where the first is, or none.
  */
 export function inkAround(pixels: PagePixels, scale: number, box: PdfBox, band: number): string[] {
-  const inside = { left: Math.floor(box.x * scale), top: Math.floor(box.top * scale), right: Math.ceil((box.x + box.width) * scale), bottom: Math.ceil(box.bottom * scale) }
+  const inside = {
+    left: Math.floor(box.x * scale),
+    top: Math.floor(box.top * scale),
+    right: Math.ceil((box.x + box.width) * scale),
+    bottom: Math.ceil(box.bottom * scale),
+  }
   const reach = Math.ceil(band * scale)
   const [left, top] = [Math.max(0, inside.left - reach), Math.max(0, inside.top - reach)]
   const [right, bottom] = [Math.min(pixels.width, inside.right + reach), Math.min(pixels.height, inside.bottom + reach)]

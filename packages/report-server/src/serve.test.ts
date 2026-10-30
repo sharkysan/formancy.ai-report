@@ -17,7 +17,12 @@ import type { ServerSettings } from './settings.js'
  * SIGHUP (formancy.ai-data 0059). Every secret here is this test's own.
  */
 const SECRET = 'a-throwaway-test-secret-of-at-least-32-bytes'
-const base = { FORMANCY_REPORT_ISSUER: 'https://host.example', FORMANCY_REPORT_AUDIENCE: 'formancy-report', FORMANCY_REPORT_ATTRIBUTES: 'tenant=tid', FORMANCY_REPORT_AUTHOR_ROLES: 'report-authors' }
+const base = {
+  FORMANCY_REPORT_ISSUER: 'https://host.example',
+  FORMANCY_REPORT_AUDIENCE: 'formancy-report',
+  FORMANCY_REPORT_ATTRIBUTES: 'tenant=tid',
+  FORMANCY_REPORT_AUTHOR_ROLES: 'report-authors',
+}
 
 const settingsOf = (env: Record<string, string>): ServerSettings => {
   const read = readSettings(env)
@@ -35,7 +40,13 @@ const source = (env: Record<string, string>, files: Record<string, string> = {})
 })
 
 const sign = (key: Uint8Array, header: { alg: string; kid?: string } = { alg: 'HS256' }) =>
-  new SignJWT({ tid: 'acme', roles: ['report-authors'] }).setProtectedHeader(header).setIssuer('https://host.example').setAudience('formancy-report').setSubject('u-1').setExpirationTime('5m').sign(key)
+  new SignJWT({ tid: 'acme', roles: ['report-authors'] })
+    .setProtectedHeader(header)
+    .setIssuer('https://host.example')
+    .setAudience('formancy-report')
+    .setSubject('u-1')
+    .setExpirationTime('5m')
+    .sign(key)
 
 let opened: FastifyInstance[]
 let lines: string[]
@@ -80,10 +91,19 @@ describe('openReportServer', () => {
   // and not handed on, the verifier read `roles`: every person held no
   // capacity, and only a person asking whoami would see it.
   test('reads a token’s roles from the claim FORMANCY_REPORT_ROLES_CLAIM names', async () => {
-    const result = await open(settingsOf({ ...base, FORMANCY_REPORT_IDENTITY_SECRET: 'env:HOST_SECRET', FORMANCY_REPORT_ROLES_CLAIM: 'groups' }), source({ HOST_SECRET: SECRET }))
+    const result = await open(
+      settingsOf({ ...base, FORMANCY_REPORT_IDENTITY_SECRET: 'env:HOST_SECRET', FORMANCY_REPORT_ROLES_CLAIM: 'groups' }),
+      source({ HOST_SECRET: SECRET }),
+    )
     if (!result.ok) throw new Error(result.problem)
     const signedWith = (claims: Record<string, unknown>) =>
-      new SignJWT({ tid: 'acme', ...claims }).setProtectedHeader({ alg: 'HS256' }).setIssuer('https://host.example').setAudience('formancy-report').setSubject('u-1').setExpirationTime('5m').sign(new TextEncoder().encode(SECRET))
+      new SignJWT({ tid: 'acme', ...claims })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuer('https://host.example')
+        .setAudience('formancy-report')
+        .setSubject('u-1')
+        .setExpirationTime('5m')
+        .sign(new TextEncoder().encode(SECRET))
     const grouped = await whoami(result.app, await signedWith({ groups: ['report-authors'] }))
     expect(grouped.json()).toMatchObject({ roles: ['report-authors'], capacities: ['author'] })
     const inRoles = await whoami(result.app, await signedWith({ roles: ['report-authors'] }))
@@ -98,8 +118,16 @@ describe('openReportServer', () => {
       [{ ...base, FORMANCY_REPORT_IDENTITY_SECRET: 'env:HOST_SECRET' }, source({}), /HOST_SECRET/],
       [{ ...base, FORMANCY_REPORT_IDENTITY_SECRET: 'env:HOST_SECRET' }, source({ HOST_SECRET: 'too-short-to-trust' }), /at least 32 bytes/],
       [{ ...base, FORMANCY_REPORT_IDENTITY_SECRET: 'not-a-reference-but-the-secret-itself-pasted' }, source({}), /env:NAME or file:/],
-      [{ ...base, FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE: '/run/host.pem', FORMANCY_REPORT_IDENTITY_ALGORITHM: 'ES256' }, source({}), /^FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE cannot be read\.$/],
-      [{ ...base, FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE: '/run/host.pem', FORMANCY_REPORT_IDENTITY_ALGORITHM: 'ES256' }, source({}, { '/run/host.pem': 'not a pem at all' }), /./],
+      [
+        { ...base, FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE: '/run/host.pem', FORMANCY_REPORT_IDENTITY_ALGORITHM: 'ES256' },
+        source({}),
+        /^FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE cannot be read\.$/,
+      ],
+      [
+        { ...base, FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE: '/run/host.pem', FORMANCY_REPORT_IDENTITY_ALGORITHM: 'ES256' },
+        source({}, { '/run/host.pem': 'not a pem at all' }),
+        /./,
+      ],
       [{ ...base, FORMANCY_REPORT_IDENTITY_KEYS_FILE: join(directory, 'missing.json'), FORMANCY_REPORT_IDENTITY_ALGORITHM: 'HS256' }, source({}), /./],
     ] as const
     for (const [env, io, says] of cases) {
@@ -107,7 +135,8 @@ describe('openReportServer', () => {
       expect(result.ok).toBe(false)
       if (result.ok) continue
       expect(result.problem).toMatch(says)
-      for (const leaked of ['too-short-to-trust', 'not-a-reference-but-the-secret-itself-pasted', 'not a pem at all', '/run/host.pem']) expect(result.problem).not.toContain(leaked)
+      for (const leaked of ['too-short-to-trust', 'not-a-reference-but-the-secret-itself-pasted', 'not a pem at all', '/run/host.pem'])
+        expect(result.problem).not.toContain(leaked)
     }
   })
 
@@ -142,7 +171,9 @@ describe('the audit key (0046)', () => {
   test('is at least 32 bytes', async () => {
     const env = { ...base, FORMANCY_REPORT_IDENTITY_SECRET: 'env:HOST_SECRET', FORMANCY_REPORT_AUDIT_KEY: 'env:AUDIT_KEY' }
     const short = await opening(env, source({ HOST_SECRET: SECRET, AUDIT_KEY: 'k'.repeat(31) }))
-    expect(short).toBe('FORMANCY_REPORT_AUDIT_KEY is at least 32 bytes: the trail names who asked by it, and a shorter key is found by trying keys against one tenant the reader knows.')
+    expect(short).toBe(
+      'FORMANCY_REPORT_AUDIT_KEY is at least 32 bytes: the trail names who asked by it, and a shorter key is found by trying keys against one tenant the reader knows.',
+    )
     expect(await opening(env, source({ HOST_SECRET: SECRET, AUDIT_KEY: 'k'.repeat(32) }))).toBe('opened')
   })
 
@@ -155,17 +186,44 @@ describe('the audit key (0046)', () => {
     const pem = (await import('node:crypto')).generateKeyPairSync('ec', { namedCurve: 'P-256' }).publicKey.export({ type: 'spki', format: 'pem' }).toString()
     const setKey = 'a-shared-secret-of-a-key-set-of-at-least-32-bytes'
     const keysFile = join(directory, 'keys.json')
-    await writeFile(keysFile, JSON.stringify({ keys: [{ kty: 'oct', kid: 'k1', alg: 'HS256', k: Buffer.from(randomBytes(32)).toString('base64url') }, { kty: 'oct', kid: 'k2', alg: 'HS256', k: Buffer.from(setKey, 'utf8').toString('base64url') }] }))
+    await writeFile(
+      keysFile,
+      JSON.stringify({
+        keys: [
+          { kty: 'oct', kid: 'k1', alg: 'HS256', k: Buffer.from(randomBytes(32)).toString('base64url') },
+          { kty: 'oct', kid: 'k2', alg: 'HS256', k: Buffer.from(setKey, 'utf8').toString('base64url') },
+        ],
+      }),
+    )
     const cases = [
       [{ ...base, FORMANCY_REPORT_IDENTITY_SECRET: 'env:HOST_SECRET', FORMANCY_REPORT_AUDIT_KEY: 'env:HOST_SECRET' }, source({ HOST_SECRET: SECRET })],
-      [{ ...base, FORMANCY_REPORT_IDENTITY_SECRET: 'file:/run/secrets/host', FORMANCY_REPORT_AUDIT_KEY: 'file:/run/secrets/host' }, source({}, { '/run/secrets/host': `${SECRET}\n` })],
-      [{ ...base, FORMANCY_REPORT_IDENTITY_SECRET: 'env:HOST_SECRET', FORMANCY_REPORT_AUDIT_KEY: 'env:AUDIT_KEY' }, source({ HOST_SECRET: SECRET, AUDIT_KEY: SECRET })],
-      [{ ...base, FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE: '/run/host.pem', FORMANCY_REPORT_IDENTITY_ALGORITHM: 'ES256', FORMANCY_REPORT_AUDIT_KEY: 'file:/run/host.pem' }, source({}, { '/run/host.pem': pem })],
-      [{ ...base, FORMANCY_REPORT_IDENTITY_KEYS_FILE: keysFile, FORMANCY_REPORT_IDENTITY_ALGORITHM: 'HS256', FORMANCY_REPORT_AUDIT_KEY: 'env:AUDIT_KEY' }, source({ AUDIT_KEY: setKey })],
+      [
+        { ...base, FORMANCY_REPORT_IDENTITY_SECRET: 'file:/run/secrets/host', FORMANCY_REPORT_AUDIT_KEY: 'file:/run/secrets/host' },
+        source({}, { '/run/secrets/host': `${SECRET}\n` }),
+      ],
+      [
+        { ...base, FORMANCY_REPORT_IDENTITY_SECRET: 'env:HOST_SECRET', FORMANCY_REPORT_AUDIT_KEY: 'env:AUDIT_KEY' },
+        source({ HOST_SECRET: SECRET, AUDIT_KEY: SECRET }),
+      ],
+      [
+        {
+          ...base,
+          FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE: '/run/host.pem',
+          FORMANCY_REPORT_IDENTITY_ALGORITHM: 'ES256',
+          FORMANCY_REPORT_AUDIT_KEY: 'file:/run/host.pem',
+        },
+        source({}, { '/run/host.pem': pem }),
+      ],
+      [
+        { ...base, FORMANCY_REPORT_IDENTITY_KEYS_FILE: keysFile, FORMANCY_REPORT_IDENTITY_ALGORITHM: 'HS256', FORMANCY_REPORT_AUDIT_KEY: 'env:AUDIT_KEY' },
+        source({ AUDIT_KEY: setKey }),
+      ],
     ] as const
     for (const [env, io] of cases) {
       const problem = await opening(env, io)
-      expect(problem, env.FORMANCY_REPORT_AUDIT_KEY).toBe('FORMANCY_REPORT_AUDIT_KEY is the identity key: a secret one would let whoever is given the audit key to read the trail sign tokens, and a public one is no secret. Give the trail a key of its own.')
+      expect(problem, env.FORMANCY_REPORT_AUDIT_KEY).toBe(
+        'FORMANCY_REPORT_AUDIT_KEY is the identity key: a secret one would let whoever is given the audit key to read the trail sign tokens, and a public one is no secret. Give the trail a key of its own.',
+      )
       for (const leaked of [SECRET, setKey, 'BEGIN PUBLIC KEY']) expect(problem).not.toContain(leaked)
     }
     // A key of its own, beside each kind of identity key, a set of public
@@ -174,7 +232,12 @@ describe('the audit key (0046)', () => {
     const jwk = (await import('node:crypto')).generateKeyPairSync('ec', { namedCurve: 'P-256' }).publicKey.export({ format: 'jwk' })
     await writeFile(publicSet, JSON.stringify({ keys: [{ ...jwk, kid: 'p1', alg: 'ES256' }] }))
     for (const env of [
-      { ...base, FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE: '/run/host.pem', FORMANCY_REPORT_IDENTITY_ALGORITHM: 'ES256', FORMANCY_REPORT_AUDIT_KEY: 'env:AUDIT_KEY' },
+      {
+        ...base,
+        FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE: '/run/host.pem',
+        FORMANCY_REPORT_IDENTITY_ALGORITHM: 'ES256',
+        FORMANCY_REPORT_AUDIT_KEY: 'env:AUDIT_KEY',
+      },
       { ...base, FORMANCY_REPORT_IDENTITY_KEYS_FILE: keysFile, FORMANCY_REPORT_IDENTITY_ALGORITHM: 'HS256', FORMANCY_REPORT_AUDIT_KEY: 'env:AUDIT_KEY' },
       { ...base, FORMANCY_REPORT_IDENTITY_KEYS_FILE: publicSet, FORMANCY_REPORT_IDENTITY_ALGORITHM: 'ES256', FORMANCY_REPORT_AUDIT_KEY: 'env:AUDIT_KEY' },
     ]) {
@@ -184,7 +247,8 @@ describe('the audit key (0046)', () => {
 })
 
 describe('a key set file (formancy.ai-data 0059)', () => {
-  const jwks = (keys: Record<string, Uint8Array>) => JSON.stringify({ keys: Object.entries(keys).map(([kid, bytes]) => ({ kty: 'oct', kid, alg: 'HS256', k: Buffer.from(bytes).toString('base64url') })) })
+  const jwks = (keys: Record<string, Uint8Array>) =>
+    JSON.stringify({ keys: Object.entries(keys).map(([kid, bytes]) => ({ kty: 'oct', kid, alg: 'HS256', k: Buffer.from(bytes).toString('base64url') })) })
 
   // A key is rotated by writing the new set and sending SIGHUP: the set
   // read again replaces the one in force, the old key stops verifying, and

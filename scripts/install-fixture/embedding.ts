@@ -67,8 +67,12 @@ export function readEmbedding(pdf: Uint8Array): Embedding {
     return { dictionary, stream: /\/Filter\s*\/FlateDecode\b/.test(dictionary) ? new Uint8Array(inflateSync(raw)) : raw }
   }
   const ref = (dictionary: string, key: string): Ref | undefined => new RegExp(`${key}\\s+(\\d+ \\d+) R`).exec(dictionary)?.[1]
-  const refs = (dictionary: string, key: string): Ref[] => [...(new RegExp(`${key}\\s*\\[([^\\]]*)\\]`).exec(dictionary)?.[1] ?? '').matchAll(/(\d+ \d+) R/g)].map((match) => match[1] ?? '')
-  const name = (dictionary: string, key: string): string | undefined => new RegExp(`${key}\\s*/([^\\s/<>\\[\\]()]+)`).exec(dictionary)?.[1]?.replace(/#([0-9A-Fa-f]{2})/g, (_, hex: string) => String.fromCharCode(Number.parseInt(hex, 16)))
+  const refs = (dictionary: string, key: string): Ref[] =>
+    [...(new RegExp(`${key}\\s*\\[([^\\]]*)\\]`).exec(dictionary)?.[1] ?? '').matchAll(/(\d+ \d+) R/g)].map((match) => match[1] ?? '')
+  const name = (dictionary: string, key: string): string | undefined =>
+    new RegExp(`${key}\\s*/([^\\s/<>\\[\\]()]+)`)
+      .exec(dictionary)?.[1]
+      ?.replace(/#([0-9A-Fa-f]{2})/g, (_, hex: string) => String.fromCharCode(Number.parseInt(hex, 16)))
   const literal = (dictionary: string, key: string): string | undefined => new RegExp(`${key}\\s*\\(([^()\\\\]*)\\)`).exec(dictionary)?.[1]
 
   const trailer = text.slice(text.lastIndexOf('trailer'))

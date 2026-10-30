@@ -66,14 +66,25 @@ function codePoints(text: string): number {
  */
 export function qrSymbol(code: QrCode): QrSymbol {
   const { id, text, size, errorCorrection } = code
-  if (!LEVELS.has(errorCorrection)) throw new RenderRefusal('unsupported', `the QR code ${id} asks for the error correction level '${String(errorCorrection)}'; the levels are L, M, Q and H`, id)
+  if (!LEVELS.has(errorCorrection))
+    throw new RenderRefusal(
+      'unsupported',
+      `the QR code ${id} asks for the error correction level '${String(errorCorrection)}'; the levels are L, M, Q and H`,
+      id,
+    )
   if (typeof text !== 'string') throw new RenderRefusal('unsupported', `the QR code ${id} encodes something that is not text`, id)
   // With the u flag, a surrogate pair is one character and only a lone half is a surrogate.
   const lone = /\p{Cs}/u.exec(text)?.[0]
-  if (lone !== undefined) throw new RenderRefusal('unsupported', `the QR code ${id} holds ${codePoint(lone.charCodeAt(0))}, half of a surrogate pair without the other, which has no UTF-8`, id)
+  if (lone !== undefined)
+    throw new RenderRefusal(
+      'unsupported',
+      `the QR code ${id} holds ${codePoint(lone.charCodeAt(0))}, half of a surrogate pair without the other, which has no UTF-8`,
+      id,
+    )
   // No text has more code points than code units, so they are counted only past the cap.
   const characters = text.length > MAX_CHARACTERS ? codePoints(text) : text.length
-  if (characters > MAX_CHARACTERS) throw new RenderRefusal('content-too-large', `the QR code ${id} holds ${characters} characters; no QR code holds more than ${MAX_CHARACTERS}`, id)
+  if (characters > MAX_CHARACTERS)
+    throw new RenderRefusal('content-too-large', `the QR code ${id} holds ${characters} characters; no QR code holds more than ${MAX_CHARACTERS}`, id)
   const modules = encoded(text, errorCorrection, id)
   refuseFineModules({ modules }, size, `the QR code ${id}`, 'its text', id)
   return { modules }
@@ -102,7 +113,11 @@ function encoded(text: string, level: QrCode['errorCorrection'], id: string): bo
     return encode(text, { ecc: level, border: 0, boostEcc: false }).data
   } catch (error) {
     if (!(error instanceof RangeError && error.message === 'Data too long')) throw error
-    throw new RenderRefusal('content-too-large', `the QR code ${id} holds ${new TextEncoder().encode(text).length} bytes of text, more than a QR code at level ${level} holds`, id)
+    throw new RenderRefusal(
+      'content-too-large',
+      `the QR code ${id} holds ${new TextEncoder().encode(text).length} bytes of text, more than a QR code at level ${level} holds`,
+      id,
+    )
   }
 }
 
@@ -173,7 +188,8 @@ export const SWISS_CODE_SIZE = mm(46)
  * size is drawn, not the floor (0020's generic minimum does not apply).
  */
 export function swissSymbol(payload: unknown): QrSymbol {
-  const refuse = (code: 'unsupported' | 'content-too-large', what: string): RenderRefusal => new RenderRefusal(code, `the payment part's Swiss QR Code ${what}`, 'paymentPart')
+  const refuse = (code: 'unsupported' | 'content-too-large', what: string): RenderRefusal =>
+    new RenderRefusal(code, `the payment part's Swiss QR Code ${what}`, 'paymentPart')
   if (typeof payload !== 'string') throw refuse('unsupported', 'holds something that is not text')
   const lone = /\p{Cs}/u.exec(payload)?.[0]
   if (lone !== undefined) throw refuse('unsupported', `holds ${codePoint(lone.charCodeAt(0))}, half of a surrogate pair without the other, which has no UTF-8`)
@@ -183,7 +199,10 @@ export function swissSymbol(payload: unknown): QrSymbol {
     return { modules: encode(payload, { ecc: 'M', border: 0, boostEcc: false, maxVersion: SWISS_MAX_VERSION }).data }
   } catch (error) {
     if (!(error instanceof RangeError && error.message === 'Data too long')) throw error
-    throw refuse('content-too-large', `holds ${new TextEncoder().encode(payload).length} bytes, more than version ${SWISS_MAX_VERSION} holds at level M, the largest code SIX allows`)
+    throw refuse(
+      'content-too-large',
+      `holds ${new TextEncoder().encode(payload).length} bytes, more than version ${SWISS_MAX_VERSION} holds at level M, the largest code SIX allows`,
+    )
   }
 }
 
@@ -207,7 +226,8 @@ export function swissCodeContent(symbol: QrSymbol): ContentSvg {
   const across = symbol.modules.length
   const unit = across / 46
   const centre = across / 2
-  const square = (side: number, fill: string): string => `<rect x="${centre - (side * unit) / 2}" y="${centre - (side * unit) / 2}" width="${side * unit}" height="${side * unit}" fill="${fill}"/>`
+  const square = (side: number, fill: string): string =>
+    `<rect x="${centre - (side * unit) / 2}" y="${centre - (side * unit) / 2}" width="${side * unit}" height="${side * unit}" fill="${fill}"/>`
   const [arm, span] = [(CROSS.arm * unit) / 2, (CROSS.span * unit) / 2]
   const corners: readonly (readonly [number, number])[] = [
     [-arm, -span],

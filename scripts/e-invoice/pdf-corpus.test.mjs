@@ -3,7 +3,19 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 import { corpus } from './corpus.mjs'
-import { blocksDocument, boundDocument, embeddingProblems, patched, PDF_BASE, PDF_CONTROLS, PDF_VARIANTS, pdfCorpus, pdfPlan, svgDocument, variantProblems } from './pdf-corpus.mjs'
+import {
+  blocksDocument,
+  boundDocument,
+  embeddingProblems,
+  patched,
+  PDF_BASE,
+  PDF_CONTROLS,
+  PDF_VARIANTS,
+  pdfCorpus,
+  pdfPlan,
+  svgDocument,
+  variantProblems,
+} from './pdf-corpus.mjs'
 
 /**
  * The PDFs the e-invoice gate judges (0031): each sample's, drawn from the
@@ -59,10 +71,15 @@ describe('the PDF corpus as planned', () => {
       ...PDF_CONTROLS.map((each) => [each.file, 'pdf', 'e-invoice.pdf']),
     ])
     // An XRechnung's copy embeds nothing (0038): no PDF/A-3b of it is drawn.
-    for (const id of SAMPLES.map((sample) => sample.id).filter((id) => id !== 'e-invoice-xrechnung')) expect(plan.find((entry) => entry.file === `${id}.pdf`).embeds).toBe(xmlOf(`${id}.xml`))
+    for (const id of SAMPLES.map((sample) => sample.id).filter((id) => id !== 'e-invoice-xrechnung'))
+      expect(plan.find((entry) => entry.file === `${id}.pdf`).embeds).toBe(xmlOf(`${id}.xml`))
     expect(plan.some((entry) => entry.file === 'e-invoice-xrechnung.pdf')).toBe(false)
     expect(plan.filter((entry) => entry.variant !== undefined).every((entry) => entry.embeds === xmlOf('e-invoice.xml') && entry.why.length > 0)).toBe(true)
-    expect(plan.filter((entry) => entry.from !== undefined).map((entry) => [entry.file, entry.embeds === null ? null : xml.find((each) => each.xml === entry.embeds)?.file])).toEqual([
+    expect(
+      plan
+        .filter((entry) => entry.from !== undefined)
+        .map((entry) => [entry.file, entry.embeds === null ? null : xml.find((each) => each.xml === entry.embeds)?.file]),
+    ).toEqual([
       ['control-plain.pdf', null],
       ['control-pdfa.pdf', 'e-invoice.xml'],
       ['control-xmp.pdf', 'e-invoice.xml'],
@@ -71,14 +88,18 @@ describe('the PDF corpus as planned', () => {
       ['control-relationship.pdf', 'e-invoice.xml'],
       ['control-xml.pdf', 'control-br-co-14.xml'],
     ])
-    expect(plan.filter((entry) => entry.from === undefined).every((entry) => entry.expect.verapdf === 'accepted' && entry.expect.mustang === 'accepted')).toBe(true)
+    expect(plan.filter((entry) => entry.from === undefined).every((entry) => entry.expect.verapdf === 'accepted' && entry.expect.mustang === 'accepted')).toBe(
+      true,
+    )
   })
 
   // A control made from a sample the corpus no longer has, or embedding an
   // XML control that is gone, would be a file of nothing the gate judges.
   test('refuses a corpus without the sample its controls are made from, or without the XML a control embeds', () => {
     expect(() => pdfPlan(xml.filter((entry) => entry.sample !== PDF_BASE))).toThrow('the corpus has no e-invoice sample to draw its PDF controls from')
-    expect(() => pdfPlan(xml.filter((entry) => entry.file !== 'control-br-co-14.xml'))).toThrow('a PDF control embeds control-br-co-14.xml, which is no XML file of the corpus')
+    expect(() => pdfPlan(xml.filter((entry) => entry.file !== 'control-br-co-14.xml'))).toThrow(
+      'a PDF control embeds control-br-co-14.xml, which is no XML file of the corpus',
+    )
   })
 })
 
@@ -90,7 +111,9 @@ describe('the variants', () => {
   test('draw every starter of the corpus, and no other', () => {
     const starters = PDF_VARIANTS.flatMap((variant) => (variant.draws.starter === undefined ? [] : [variant.draws.starter]))
     expect(variantProblems(starters)).toEqual([])
-    expect(variantProblems([...starters, 'delivery-note'])).toEqual(['report-corpus’s starter delivery-note has no PDF variant, so no validator judges it as an e-invoice'])
+    expect(variantProblems([...starters, 'delivery-note'])).toEqual([
+      'report-corpus’s starter delivery-note has no PDF variant, so no validator judges it as an e-invoice',
+    ])
     expect(variantProblems(starters.filter((id) => id !== 'invoice'))).toEqual(['a PDF variant draws the starter invoice, which report-corpus does not have'])
   })
 
@@ -100,12 +123,30 @@ describe('the variants', () => {
   // leave the way PDFKit draws it unjudged.
   test('add every image kind, a QR code, a rectangle and a rule after a page break, and the logo in the page header', () => {
     const base = { info: { title: 'Rechnung' }, pageHeader: [{ kind: 'paragraph' }], pageFooter: [], body: [{ kind: 'paragraph' }], eInvoice: { xml: '<x/>' } }
-    const kinds = ['png-rgb', 'png-rgba', 'jpeg-grey'].map((id) => ({ id, mediaType: id.startsWith('png') ? 'image/png' : 'image/jpeg', bytes: new Uint8Array([1]) }))
+    const kinds = ['png-rgb', 'png-rgba', 'jpeg-grey'].map((id) => ({
+      id,
+      mediaType: id.startsWith('png') ? 'image/png' : 'image/jpeg',
+      bytes: new Uint8Array([1]),
+    }))
     const drawn = blocksDocument(base, kinds)
-    expect(drawn.body.map((block) => (block.kind === 'image' ? block.asset.id : block.kind))).toEqual(['paragraph', 'pageBreak', 'png-rgb', 'png-rgba', 'jpeg-grey', 'qrCode', 'rectangle', 'rule'])
+    expect(drawn.body.map((block) => (block.kind === 'image' ? block.asset.id : block.kind))).toEqual([
+      'paragraph',
+      'pageBreak',
+      'png-rgb',
+      'png-rgba',
+      'jpeg-grey',
+      'qrCode',
+      'rectangle',
+      'rule',
+    ])
     expect(drawn.pageHeader.map((block) => (block.kind === 'image' ? block.asset.id : block.kind))).toEqual(['paragraph', 'png-rgba'])
     expect([drawn.info, drawn.eInvoice, drawn.pageFooter]).toEqual([base.info, base.eInvoice, base.pageFooter])
-    expect(() => blocksDocument(base, kinds.filter((kind) => kind.id !== 'png-rgba'))).toThrow('report-corpus’s IMAGE_KINDS has no png-rgba, which variant-blocks.pdf puts in its page header')
+    expect(() =>
+      blocksDocument(
+        base,
+        kinds.filter((kind) => kind.id !== 'png-rgba'),
+      ),
+    ).toThrow('report-corpus’s IMAGE_KINDS has no png-rgba, which variant-blocks.pdf puts in its page header')
   })
 
   // The SVGs after the sample's page on a page of their own -- the mark, the
@@ -117,11 +158,22 @@ describe('the variants', () => {
     const base = { info: { title: 'Rechnung' }, pageHeader: [{ kind: 'paragraph' }], pageFooter: [], body: [{ kind: 'paragraph' }], eInvoice: { xml: '<x/>' } }
     const assets = ['svg-mark', 'svg-window', 'svg-translucent'].map((id) => ({ id, mediaType: 'image/svg+xml', bytes: new Uint8Array([60]) }))
     const drawn = svgDocument(base, assets)
-    expect(drawn.body.map((block) => (block.kind === 'image' ? `${block.asset.id} ${block.fit}` : block.kind))).toEqual(['paragraph', 'pageBreak', 'svg-mark contain', 'svg-window cover', 'svg-translucent contain'])
+    expect(drawn.body.map((block) => (block.kind === 'image' ? `${block.asset.id} ${block.fit}` : block.kind))).toEqual([
+      'paragraph',
+      'pageBreak',
+      'svg-mark contain',
+      'svg-window cover',
+      'svg-translucent contain',
+    ])
     expect(drawn.pageHeader.map((block) => (block.kind === 'image' ? block.asset.id : block.kind))).toEqual(['paragraph', 'svg-mark'])
     expect(drawn.body.filter((block) => block.kind === 'image').every((block) => block.asset.mediaType === 'image/svg+xml')).toBe(true)
     expect([drawn.info, drawn.eInvoice, drawn.pageFooter]).toEqual([base.info, base.eInvoice, base.pageFooter])
-    expect(() => svgDocument(base, assets.filter((asset) => asset.id !== 'svg-window'))).toThrow('variant-svg.pdf draws the SVG svg-window, which it was not given')
+    expect(() =>
+      svgDocument(
+        base,
+        assets.filter((asset) => asset.id !== 'svg-window'),
+      ),
+    ).toThrow('variant-svg.pdf draws the SVG svg-window, which it was not given')
   })
 
   // The drawing at the bound after the sample's page, alone and contained
@@ -157,7 +209,11 @@ describe('a patched PDF', () => {
     expect(changes('control-size.pdf')).toEqual(['8', '9'])
     expect(changes('control-relationship.pdf')).toEqual(['Alternative', 'Unspecified'])
     // A checksum that starts with 0 is changed to 1, and a size that ends in 9 to one that ends in 0, never left as it was.
-    expect(patched(Buffer.from('/CheckSum (0123456789abcdef0123456789abcdef)', 'latin1'), control('control-checksum.pdf').patch, 'control-checksum.pdf').toString('latin1')).toBe('/CheckSum (1123456789abcdef0123456789abcdef)')
+    expect(
+      patched(Buffer.from('/CheckSum (0123456789abcdef0123456789abcdef)', 'latin1'), control('control-checksum.pdf').patch, 'control-checksum.pdf').toString(
+        'latin1',
+      ),
+    ).toBe('/CheckSum (1123456789abcdef0123456789abcdef)')
     expect(patched(Buffer.from('/Size 12669\n>>', 'latin1'), control('control-size.pdf').patch, 'control-size.pdf').toString('latin1')).toBe('/Size 12660\n>>')
   })
 
@@ -165,10 +221,18 @@ describe('a patched PDF', () => {
   // control the sample itself or broken twice; a change of another length
   // would move every object after it.
   test('refuses a place written other than once, and a change of another length', () => {
-    expect(() => patched(Buffer.from('%PDF-1.7\n', 'latin1'), control('control-pdfa.pdf').patch, 'control-pdfa.pdf')).toThrow('control-pdfa.pdf: the catalog’s output intents is written 0 times in e-invoice.pdf, where the control changes it once')
-    expect(() => patched(fakePdf('<fx:ConformanceLevel>EN 16931</fx:ConformanceLevel>\n'), control('control-xmp.pdf').patch, 'control-xmp.pdf')).toThrow('control-xmp.pdf: fx:ConformanceLevel is written 2 times in e-invoice.pdf, where the control changes it once')
-    expect(() => patched(fakePdf('/Size 12\n>>\n'), control('control-size.pdf').patch, 'control-size.pdf')).toThrow('control-size.pdf: the embedded file’s /Size is written 2 times in e-invoice.pdf, where the control changes it once')
-    expect(() => patched(fakePdf(), { term: 'the output intents', pattern: /\/OutputIntents/g, replace: () => '/OI' }, 'control-x.pdf')).toThrow('control-x.pdf: the change of the output intents is not as long as what it replaces, so every offset after it would be wrong')
+    expect(() => patched(Buffer.from('%PDF-1.7\n', 'latin1'), control('control-pdfa.pdf').patch, 'control-pdfa.pdf')).toThrow(
+      'control-pdfa.pdf: the catalog’s output intents is written 0 times in e-invoice.pdf, where the control changes it once',
+    )
+    expect(() => patched(fakePdf('<fx:ConformanceLevel>EN 16931</fx:ConformanceLevel>\n'), control('control-xmp.pdf').patch, 'control-xmp.pdf')).toThrow(
+      'control-xmp.pdf: fx:ConformanceLevel is written 2 times in e-invoice.pdf, where the control changes it once',
+    )
+    expect(() => patched(fakePdf('/Size 12\n>>\n'), control('control-size.pdf').patch, 'control-size.pdf')).toThrow(
+      'control-size.pdf: the embedded file’s /Size is written 2 times in e-invoice.pdf, where the control changes it once',
+    )
+    expect(() => patched(fakePdf(), { term: 'the output intents', pattern: /\/OutputIntents/g, replace: () => '/OI' }, 'control-x.pdf')).toThrow(
+      'control-x.pdf: the change of the output intents is not as long as what it replaces, so every offset after it would be wrong',
+    )
   })
 })
 
@@ -214,14 +278,21 @@ describe('what a PDF embeds, read back', () => {
   /** What report-spec's FACTUR_X_PROFILES says, copied: the level and the relationship of an EN 16931 XML. */
   const PROFILES = { en16931: { guideline: 'urn:cen.eu:en16931:2017', conformanceLevel: 'EN 16931', relationship: 'Alternative' } }
   /** The XMP as the stand-in writes it: the fx properties' texts, as the gate's reader of the packet hands them over. */
-  const xmp = ({ documentFileName = ['factur-x.xml'], conformanceLevel = ['EN 16931'] } = {}) => ({ type: 'Metadata', subtype: 'XML', xmp: JSON.stringify({ documentFileName, conformanceLevel }) })
+  const xmp = ({ documentFileName = ['factur-x.xml'], conformanceLevel = ['EN 16931'] } = {}) => ({
+    type: 'Metadata',
+    subtype: 'XML',
+    xmp: JSON.stringify({ documentFileName, conformanceLevel }),
+  })
   /** pdf-lib's reading of a PDF that embeds `bytes`, as `factur-x.xml`, the one file of its /AF and its tree, with an XMP that states it. */
   const embedding = (bytes, change = {}) => {
     const specification = { f: 'factur-x.xml', uf: 'factur-x.xml', embedded: { bytes: new Uint8Array(Buffer.from(bytes, 'utf8')) } }
     return { metadata: xmp(), associatedFiles: [specification], embeddedFiles: [{ name: 'factur-x.xml', associated: 0, specification }], ...change }
   }
   const readObjects = (pdfs) => async (bytes) => pdfs[Buffer.from(bytes).toString()]
-  const own = () => Object.fromEntries(plan.map((entry) => [entry.file, entry.embeds === null ? { metadata: undefined, associatedFiles: [], embeddedFiles: [] } : embedding(entry.embeds)]))
+  const own = () =>
+    Object.fromEntries(
+      plan.map((entry) => [entry.file, entry.embeds === null ? { metadata: undefined, associatedFiles: [], embeddedFiles: [] } : embedding(entry.embeds)]),
+    )
   const options = (pdfs) => ({
     readObjects: readObjects(pdfs),
     fileName: 'factur-x.xml',
@@ -269,15 +340,17 @@ describe('what a PDF embeds, read back', () => {
     const read = own()
     read['e-invoice.pdf'] = embedding(xmlOf('e-invoice.xml'), { metadata: xmp({ conformanceLevel: ['BASIC WL'] }) })
     read['e-invoice-reverse-charge.pdf'] = embedding(xmlOf('e-invoice-reverse-charge.xml'), { metadata: xmp({ documentFileName: ['zugferd-invoice.xml'] }) })
-    read['e-invoice-exempt-paid.pdf'] = embedding(xmlOf('e-invoice-exempt-paid.xml'), { metadata: xmp({ conformanceLevel: ['EN 16931', 'EN 16931'], documentFileName: [] }) })
+    read['e-invoice-exempt-paid.pdf'] = embedding(xmlOf('e-invoice-exempt-paid.xml'), {
+      metadata: xmp({ conformanceLevel: ['EN 16931', 'EN 16931'], documentFileName: [] }),
+    })
     read['variant-blocks.pdf'] = embedding(xmlOf('e-invoice.xml'), { metadata: undefined })
     read['variant-fonts.pdf'] = embedding(xmlOf('e-invoice.xml'), { metadata: { xmp: 'not JSON, as a packet the reader refuses' } })
     read['control-xmp.pdf'] = embedding(xmlOf('e-invoice.xml'), { metadata: xmp({ conformanceLevel: ['EN-16931'] }) })
     expect(await embeddingProblems(plan, options(read))).toEqual([
-      'e-invoice.pdf’s XMP states the conformance level \'BASIC WL\', where the XML it embeds is of EN 16931',
-      'e-invoice-reverse-charge.pdf’s XMP states the file name \'zugferd-invoice.xml\', where it embeds factur-x.xml',
+      "e-invoice.pdf’s XMP states the conformance level 'BASIC WL', where the XML it embeds is of EN 16931",
+      "e-invoice-reverse-charge.pdf’s XMP states the file name 'zugferd-invoice.xml', where it embeds factur-x.xml",
       'e-invoice-exempt-paid.pdf’s XMP states the file name none, where it embeds factur-x.xml',
-      'e-invoice-exempt-paid.pdf’s XMP states the conformance level \'EN 16931\' and \'EN 16931\', where the XML it embeds is of EN 16931',
+      "e-invoice-exempt-paid.pdf’s XMP states the conformance level 'EN 16931' and 'EN 16931', where the XML it embeds is of EN 16931",
       'variant-blocks.pdf has no XMP to state what it embeds',
       expect.stringMatching(/^variant-fonts\.pdf’s XMP cannot be read: /),
     ])

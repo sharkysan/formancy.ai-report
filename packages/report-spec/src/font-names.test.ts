@@ -10,7 +10,8 @@ import { font, macintosh, name, nameBytes, tableAt, u16, windows, type NameEntry
  * PDF syntax the font chose.
  */
 
-const named = (entries: readonly NameEntry[], storage?: readonly number[]): ReturnType<typeof readFont> => readFont(font({ name: name(entries, storage === undefined ? {} : { storage }) }))
+const named = (entries: readonly NameEntry[], storage?: readonly number[]): ReturnType<typeof readFont> =>
+  readFont(font({ name: name(entries, storage === undefined ? {} : { storage }) }))
 
 function refused(entries: readonly NameEntry[]): FontRefusal {
   const read = named(entries)
@@ -34,7 +35,14 @@ describe('the names returned', () => {
   // Unicode platform's, then the Macintosh's.
   test.each([
     ['Windows English over another Windows language', [{ ...windows(1, 'Sonde'), language: 0x407 }, windows(1, 'Probe')], 'Probe'],
-    ['any Windows Unicode over the Unicode platform', [{ platform: 0, encoding: 3, language: 0, id: 1, text: 'Unicode' }, { ...windows(1, 'Windows'), language: 0x407 }], 'Windows'],
+    [
+      'any Windows Unicode over the Unicode platform',
+      [
+        { platform: 0, encoding: 3, language: 0, id: 1, text: 'Unicode' },
+        { ...windows(1, 'Windows'), language: 0x407 },
+      ],
+      'Windows',
+    ],
     ['the Unicode platform over the Macintosh', [macintosh(1, 'Mac'), { platform: 0, encoding: 4, language: 0, id: 1, text: 'Unicode' }], 'Unicode'],
     ['the Macintosh when nothing else names it', [macintosh(1, 'Mac')], 'Mac'],
     ['Windows full repertoire as Windows', [{ platform: 3, encoding: 10, language: 0x409, id: 1, text: 'Full' }], 'Full'],
@@ -44,7 +52,9 @@ describe('the names returned', () => {
 
   // UTF-16 beyond the BMP is a pair of code units; a lone one is no character, and is said as U+FFFD rather than handed on to break a page.
   test('decode UTF-16 surrogate pairs, and a lone surrogate as U+FFFD', () => {
-    const lone = name([{ ...windows(1, 'x'), text: 'x' }, windows(2, 'Regular'), windows(6, 'Probe')], { storage: [...u16(0xd83d), ...nameBytes(windows(2, 'Regular')), ...nameBytes(windows(6, 'Probe'))] })
+    const lone = name([{ ...windows(1, 'x'), text: 'x' }, windows(2, 'Regular'), windows(6, 'Probe')], {
+      storage: [...u16(0xd83d), ...nameBytes(windows(2, 'Regular')), ...nameBytes(windows(6, 'Probe'))],
+    })
     expect(readFont(font({ name: lone }))).toMatchObject({ ok: true, names: { family: '�' } })
     expect(named([windows(1, 'Probe 😀'), windows(2, 'Regular'), windows(6, 'Probe')])).toMatchObject({ ok: true, names: { family: 'Probe 😀' } })
   })
@@ -64,7 +74,10 @@ describe('the names returned', () => {
 
   // The licence is the customer's to read, quoted from the font whatever it says.
   test('hand back the licence description and its address as the font states them, judging neither', () => {
-    expect(named([...LEAST, windows(13, 'All rights reserved. No embedding.'), windows(14, 'javascript:alert(1)')])).toMatchObject({ ok: true, names: { licence: 'All rights reserved. No embedding.', licenceUrl: 'javascript:alert(1)' } })
+    expect(named([...LEAST, windows(13, 'All rights reserved. No embedding.'), windows(14, 'javascript:alert(1)')])).toMatchObject({
+      ok: true,
+      names: { licence: 'All rights reserved. No embedding.', licenceUrl: 'javascript:alert(1)' },
+    })
   })
 
   // A name the font does not hold is not there, never an empty string a builder would show as one.
@@ -103,7 +116,9 @@ describe('the PostScript name', () => {
   // nothing: refused before it is read.
   test('is at most 63 characters, the specification says, and one longer is refused unread', () => {
     expect(named([windows(1, 'Probe'), windows(2, 'Bold'), windows(6, 'P'.repeat(63))])).toMatchObject({ ok: true })
-    expect(refused([windows(1, 'Probe'), windows(2, 'Bold'), windows(6, 'P'.repeat(64))])).toMatchObject({ message: expect.stringContaining('has a PostScript name longer than 63 characters') as string })
+    expect(refused([windows(1, 'Probe'), windows(2, 'Bold'), windows(6, 'P'.repeat(64))])).toMatchObject({
+      message: expect.stringContaining('has a PostScript name longer than 63 characters') as string,
+    })
     expect(refused([windows(1, 'Probe'), windows(2, 'Bold'), macintosh(6, 'P'.repeat(64))]).code).toBe('malformed')
   })
 
@@ -111,7 +126,9 @@ describe('the PostScript name', () => {
   // CorbelLight, which fontkit returns: the records may differ, and the one
   // returned is the best, as every name's is.
   test("is the best record's where records differ", () => {
-    expect(named([{ platform: 0, encoding: 3, language: 0, id: 6, text: 'Probe-Light' }, windows(1, 'Probe'), windows(2, 'Light'), windows(6, 'ProbeLight')])).toMatchObject({ ok: true, names: { postScriptName: 'ProbeLight' } })
+    expect(
+      named([{ platform: 0, encoding: 3, language: 0, id: 6, text: 'Probe-Light' }, windows(1, 'Probe'), windows(2, 'Light'), windows(6, 'ProbeLight')]),
+    ).toMatchObject({ ok: true, names: { postScriptName: 'ProbeLight' } })
   })
 
   // PDFKit keeps a document's faces by the PostScript name fontkit returns
@@ -122,7 +139,13 @@ describe('the PostScript name', () => {
   // miss a face whose later record is another face's name. Every name a
   // record of ID 6 holds is handed back, once, in table order.
   test('is one of the names its records hold, each handed back once, in table order', () => {
-    const records = [{ platform: 0, encoding: 3, language: 0, id: 6, text: 'Probe-Light' }, windows(1, 'Probe'), windows(2, 'Light'), windows(6, 'ProbeLight'), macintosh(6, 'Probe-Light')] as const
+    const records = [
+      { platform: 0, encoding: 3, language: 0, id: 6, text: 'Probe-Light' },
+      windows(1, 'Probe'),
+      windows(2, 'Light'),
+      windows(6, 'ProbeLight'),
+      macintosh(6, 'Probe-Light'),
+    ] as const
     expect(named(records)).toMatchObject({ ok: true, names: { postScriptName: 'ProbeLight', postScriptNames: ['Probe-Light', 'ProbeLight'] } })
     expect(named(LEAST)).toMatchObject({ ok: true, names: { postScriptName: 'Probe-Bold', postScriptNames: ['Probe-Bold'] } })
   })
@@ -137,10 +160,26 @@ describe('the PostScript name', () => {
   test.each([
     ['no PostScript name', [windows(1, 'Probe'), windows(2, 'Bold')], 'has no PostScript name (name ID 6)'],
     ['an empty one', [windows(1, 'Probe'), windows(2, 'Bold'), windows(6, '')], 'has an empty PostScript name'],
-    ['one in an encoding this does not read', [windows(1, 'Probe'), windows(2, 'Bold'), { platform: 3, encoding: 2, language: 0x411, id: 6, text: 'Probe' }], 'has a PostScript name in an encoding this does not read'],
-    ['one in the symbol encoding, beside a Windows one', [windows(1, 'Probe'), windows(2, 'Bold'), windows(6, 'Probe'), { platform: 3, encoding: 0, language: 0x407, id: 6, text: 'Probe' }], 'has a PostScript name in an encoding this does not read'],
-    ['one of the Unicode platform past its encoding 6, which fontkit reads a byte at a time', [windows(1, 'Probe'), windows(2, 'Bold'), { platform: 0, encoding: 7, language: 0, id: 6, text: 'AxByCz' }], 'has a PostScript name in an encoding this does not read'],
-    ['one in Mac Roman in Icelandic, which fontkit decodes as Mac Icelandic, beside a Windows one', [windows(1, 'Probe'), windows(2, 'Bold'), { ...macintosh(6, 'Probe'), language: 15 }, windows(6, 'Probe')], 'has a PostScript name in an encoding this does not read'],
+    [
+      'one in an encoding this does not read',
+      [windows(1, 'Probe'), windows(2, 'Bold'), { platform: 3, encoding: 2, language: 0x411, id: 6, text: 'Probe' }],
+      'has a PostScript name in an encoding this does not read',
+    ],
+    [
+      'one in the symbol encoding, beside a Windows one',
+      [windows(1, 'Probe'), windows(2, 'Bold'), windows(6, 'Probe'), { platform: 3, encoding: 0, language: 0x407, id: 6, text: 'Probe' }],
+      'has a PostScript name in an encoding this does not read',
+    ],
+    [
+      'one of the Unicode platform past its encoding 6, which fontkit reads a byte at a time',
+      [windows(1, 'Probe'), windows(2, 'Bold'), { platform: 0, encoding: 7, language: 0, id: 6, text: 'AxByCz' }],
+      'has a PostScript name in an encoding this does not read',
+    ],
+    [
+      'one in Mac Roman in Icelandic, which fontkit decodes as Mac Icelandic, beside a Windows one',
+      [windows(1, 'Probe'), windows(2, 'Bold'), { ...macintosh(6, 'Probe'), language: 15 }, windows(6, 'Probe')],
+      'has a PostScript name in an encoding this does not read',
+    ],
   ] as const)('refuses %s', (_, entries, said) => {
     expect(refused(entries)).toMatchObject({ code: 'malformed', message: expect.stringContaining(said) as string })
   })
@@ -152,7 +191,11 @@ describe('the naming table', () => {
   test.each([
     ['no family', [windows(2, 'Bold'), windows(6, 'Probe')], 'has no family and subfamily name'],
     ['no subfamily', [windows(1, 'Probe'), windows(6, 'Probe')], 'has no family and subfamily name'],
-    ['a name in UTF-16 of an odd number of bytes', [{ ...windows(1, 'Probe') }, windows(2, 'Bold'), windows(6, 'Probe')], 'has a name in UTF-16 of an odd number of bytes'],
+    [
+      'a name in UTF-16 of an odd number of bytes',
+      [{ ...windows(1, 'Probe') }, windows(2, 'Bold'), windows(6, 'Probe')],
+      'has a name in UTF-16 of an odd number of bytes',
+    ],
   ] as const)('refuses %s', (_, entries, said) => {
     const table = name(entries)
     // The first record's length, made odd where the case says so.
@@ -166,10 +209,16 @@ describe('the naming table', () => {
   test('refuses a version past 1, and a string past the end of the file', () => {
     const later = name(LEAST)
     new DataView(later.buffer).setUint16(0, 2)
-    expect(readFont(font({ name: later }))).toMatchObject({ code: 'malformed', message: expect.stringContaining('has a naming table of a version the specification does not define') as string })
+    expect(readFont(font({ name: later }))).toMatchObject({
+      code: 'malformed',
+      message: expect.stringContaining('has a naming table of a version the specification does not define') as string,
+    })
     const far = name(LEAST)
     new DataView(far.buffer).setUint16(6 + 10, 0xff00)
-    expect(readFont(font({ name: far }))).toMatchObject({ code: 'malformed', message: expect.stringContaining('has its naming table (name) cut off') as string })
+    expect(readFont(font({ name: far }))).toMatchObject({
+      code: 'malformed',
+      message: expect.stringContaining('has its naming table (name) cut off') as string,
+    })
   })
 
   // fontkit decodes every record when PDFKit asks for the PostScript name.
@@ -184,14 +233,21 @@ describe('the naming table', () => {
     // Every repeated record points at the one sample string, after the three least names.
     const at = LEAST.flatMap(nameBytes).length
     for (let index = 0; index < repeated.length; index++) view.setUint16(6 + 12 * (LEAST.length + index) + 10, at)
-    expect(readFont(font({ name: table }))).toMatchObject({ code: 'malformed', message: expect.stringContaining('has name strings that add up to more bytes than the font holds') as string })
+    expect(readFont(font({ name: table }))).toMatchObject({
+      code: 'malformed',
+      message: expect.stringContaining('has name strings that add up to more bytes than the font holds') as string,
+    })
   })
 
   // fontkit decodes the four platforms the specification names for names,
   // and a record of any other -- 4 is custom, a character map's alone --
   // loses it the whole table: PDFKit names the font `undefined`.
   test.each([4, 7])('refuses a record of platform %i, whatever name it holds', (platform) => {
-    expect(named([...LEAST, { platform, encoding: 0, language: 0, id: 19, text: 'Sample' }])).toMatchObject({ ok: false, code: 'malformed', message: expect.stringContaining('has a name record of a platform other than Unicode, Macintosh, ISO and Windows') as string })
+    expect(named([...LEAST, { platform, encoding: 0, language: 0, id: 19, text: 'Sample' }])).toMatchObject({
+      ok: false,
+      code: 'malformed',
+      message: expect.stringContaining('has a name record of a platform other than Unicode, Macintosh, ISO and Windows') as string,
+    })
   })
 
   // The first record of the version 1 table below, the family, and where its language tag's record and string are.
@@ -211,7 +267,11 @@ describe('the naming table', () => {
   test('refuses a language tag past the end of the file', () => {
     const table = name(TAGGED, { tags: ['en-US'] })
     new DataView(table.buffer).setUint16(tagRecord + 2, 0xff00)
-    expect(readFont(font({ name: table }))).toMatchObject({ ok: false, code: 'malformed', message: expect.stringContaining('has its naming table (name) cut off') as string })
+    expect(readFont(font({ name: table }))).toMatchObject({
+      ok: false,
+      code: 'malformed',
+      message: expect.stringContaining('has its naming table (name) cut off') as string,
+    })
   })
 
   // A count of tags is held to the bytes it counts before one tag is read
@@ -221,11 +281,19 @@ describe('the naming table', () => {
     const table = name(TAGGED, { tags: ['en-US'] })
     new DataView(table.buffer).setUint16(tagRecord - 2, 0xffff)
     const bytes = font({ name: table, last: 'name' })
-    expect(readFont(bytes)).toMatchObject({ ok: false, code: 'malformed', message: expect.stringContaining(`has its naming table (name) cut off at byte ${tableAt(bytes, 'name').offset + tagRecord}`) as string })
+    expect(readFont(bytes)).toMatchObject({
+      ok: false,
+      code: 'malformed',
+      message: expect.stringContaining(`has its naming table (name) cut off at byte ${tableAt(bytes, 'name').offset + tagRecord}`) as string,
+    })
   })
 
   test('refuses a record that names a language tag the table does not hold', () => {
-    expect(readFont(font({ name: name([{ ...TAGGED[0]!, language: 0x8001 }, ...TAGGED.slice(1)], { tags: ['en-US'] }) }))).toMatchObject({ ok: false, code: 'malformed', message: expect.stringContaining('has a name record whose language tag the naming table does not hold') as string })
+    expect(readFont(font({ name: name([{ ...TAGGED[0]!, language: 0x8001 }, ...TAGGED.slice(1)], { tags: ['en-US'] }) }))).toMatchObject({
+      ok: false,
+      code: 'malformed',
+      message: expect.stringContaining('has a name record whose language tag the naming table does not hold') as string,
+    })
   })
 
   test("refuses language tags whose strings add up to more than the font's bytes", () => {
@@ -235,7 +303,11 @@ describe('the naming table', () => {
     const view = new DataView(table.buffer)
     // Every tag record points at the first tag's string.
     for (let index = 1; index < 40; index++) view.setUint16(tagRecord + 4 * index + 2, view.getUint16(tagRecord + 2))
-    expect(readFont(font({ name: table }))).toMatchObject({ ok: false, code: 'malformed', message: expect.stringContaining('has name strings that add up to more bytes than the font holds') as string })
+    expect(readFont(font({ name: table }))).toMatchObject({
+      ok: false,
+      code: 'malformed',
+      message: expect.stringContaining('has name strings that add up to more bytes than the font holds') as string,
+    })
   })
 
   // A version 0 table has no tags, and fontkit looks none up there: a language past 0x8000 is a language it has no name for, and refusing it would refuse a font PDFKit prints.

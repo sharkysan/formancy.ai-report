@@ -31,7 +31,11 @@ export function roundingDiagnostics(report: ReportDefinition, printed: readonly 
     const type = totals.get(aggregate.id)?.type
     if (aggregate.rounding === undefined || type === undefined || ROUNDED.has(type)) continue
     const what = type === 'int' ? 'an integer' : type === 'timestamp' ? 'an instant' : 'a date or a text'
-    found.push(diagnostic('rounding-not-decimal', `aggregate ${quote(aggregate.id)} declares a rounding, and computes ${what}, which has no places to round`, { path: `/aggregates/${index}/rounding` }))
+    found.push(
+      diagnostic('rounding-not-decimal', `aggregate ${quote(aggregate.id)} declares a rounding, and computes ${what}, which has no places to round`, {
+        path: `/aggregates/${index}/rounding`,
+      }),
+    )
   }
   for (const total of printed) {
     const kept = report.aggregates.find(({ id }) => id === total.aggregate)?.rounding?.scale

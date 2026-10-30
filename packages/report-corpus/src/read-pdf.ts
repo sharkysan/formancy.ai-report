@@ -206,7 +206,11 @@ function textBox(item: TextItem, viewport: PageViewport, font: string): PdfTextI
   const size = Math.hypot(c, d)
   const angle = Math.round((Math.atan2(b, a) * 18000) / Math.PI) / 100
   const [cos, sin] = [Math.cos((angle * Math.PI) / 180), Math.sin((angle * Math.PI) / 180)]
-  const corners = [0, item.width].flatMap((along) => [-DESCENT * size, (1 - DESCENT) * size].map((up) => viewport.convertToViewportPoint(e + along * cos - up * sin, f + along * sin + up * cos) as [number, number]))
+  const corners = [0, item.width].flatMap((along) =>
+    [-DESCENT * size, (1 - DESCENT) * size].map(
+      (up) => viewport.convertToViewportPoint(e + along * cos - up * sin, f + along * sin + up * cos) as [number, number],
+    ),
+  )
   const [x, top] = [Math.min(...corners.map(([across]) => across)), Math.min(...corners.map(([, down]) => down))]
   const [width, height] = [Math.abs(item.width * cos) + Math.abs(size * sin), Math.abs(item.width * sin) + Math.abs(size * cos)]
   return { text: item.str, x, top, bottom: top + height, width, height, angle, font }

@@ -39,7 +39,13 @@ function readRegions(c: Ctx, value: unknown, path: string): Regions | undefined 
 
 /** The report in `o`, a copy of the document's top level whose version has been checked. */
 function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | undefined {
-  strictKeys(c.f, o, '', ['reportSpecVersion', 'id', 'title', 'locale', 'page', 'styles', 'datasets', 'parameters', 'assets', 'aggregates', 'regions'], ['fonts', 'paymentPart', 'eInvoice', 'provenance'])
+  strictKeys(
+    c.f,
+    o,
+    '',
+    ['reportSpecVersion', 'id', 'title', 'locale', 'page', 'styles', 'datasets', 'parameters', 'assets', 'aggregates', 'regions'],
+    ['fonts', 'paymentPart', 'eInvoice', 'provenance'],
+  )
   const id = identifier(c.f, o.id, '/id')
   const title = text(c.f, o.title, '/title', MAX_LABEL_LENGTH)
   const locale = matches(c.f, o.locale, '/locale', LOCALE, 'invalid-locale', 'a BCP 47 language tag such as en, de-CH or zh-Hans-CN')
@@ -117,7 +123,10 @@ export function validateReport(document: unknown): ReportValidation {
   const top = readObject(c.f, document, '')
   const version = checkSpecVersion(top)
   if (!version.ok) {
-    return { valid: false, errors: [{ path: version.code === 'unsupported-version' ? '/reportSpecVersion' : '', code: version.code, message: version.message }] }
+    return {
+      valid: false,
+      errors: [{ path: version.code === 'unsupported-version' ? '/reportSpecVersion' : '', code: version.code, message: version.message }],
+    }
   }
   // checkSpecVersion reads a version only from an object, so `top` is one.
   const report = readReport(c, top as Record<string, unknown>)

@@ -44,7 +44,11 @@ const INVOICE: FacturXInvoice = {
   currency: 'EUR',
   number: said('RE-2026-0901'),
   issued: { cel: '"2026-10-22"' },
-  seller: { name: said('Muster Haustechnik GmbH'), vatId: said('DE 123 456 789'), address: { line1: said('Industriestraße 7'), postalCode: said('50735'), city: said('Köln'), country: said('DE') } },
+  seller: {
+    name: said('Muster Haustechnik GmbH'),
+    vatId: said('DE 123 456 789'),
+    address: { line1: said('Industriestraße 7'), postalCode: said('50735'), city: said('Köln'), country: said('DE') },
+  },
   buyer: { name: said('Kunde AG'), address: { line1: said('Ring 1'), postalCode: said('1010'), city: said('Wien'), country: said('AT') } },
   delivered: { cel: '"2026-10-20"' },
   vat: [
@@ -78,7 +82,16 @@ export function invoicedScenarioReport(): ReportDefinition {
     { id: 'price', header: 'Rate', width: 70.87, align: 'right', value: { kind: 'field', field: line('price'), format: euro } },
     { id: 'amount', header: 'Amount', width: 70.87, align: 'right', value: { kind: 'field', field: line('amount'), format: euro } },
   ] as const
-  const totals: Inline[] = ['invoice.taxBasisTotal', 'vatBasis.standard', 'vatAmount.standard', 'vatBasis.reduced', 'vatAmount.reduced', 'invoice.taxTotal', 'invoice.grandTotal', 'invoice.duePayable'].map(total)
+  const totals: Inline[] = [
+    'invoice.taxBasisTotal',
+    'vatBasis.standard',
+    'vatAmount.standard',
+    'vatBasis.reduced',
+    'vatAmount.reduced',
+    'invoice.taxTotal',
+    'invoice.grandTotal',
+    'invoice.duePayable',
+  ].map(total)
   const report: ReportDefinition = {
     ...base,
     title: 'Site visit invoice',
@@ -96,7 +109,10 @@ export function invoicedScenarioReport(): ReportDefinition {
     },
     regions: {
       ...base.regions,
-      body: [...base.regions.body, { id: 'lines', kind: 'table', dataset: 'detail', columns: [...columns], totals: [], emptyText: 'No lines.', repeatHeader: true }],
+      body: [
+        ...base.regions.body,
+        { id: 'lines', kind: 'table', dataset: 'detail', columns: [...columns], totals: [], emptyText: 'No lines.', repeatHeader: true },
+      ],
       summary: [{ id: 'totals', kind: 'text', content: totals }, CODE],
     },
     eInvoice: INVOICE,
@@ -104,7 +120,14 @@ export function invoicedScenarioReport(): ReportDefinition {
       kind: 'swissQrBill',
       language: 'en',
       account: said(SCENARIO_ACCOUNT),
-      creditor: { name: said('Muster Haustechnik GmbH'), street: said('Industriestrasse'), buildingNumber: said('7'), postalCode: said('3011'), town: said('Bern'), country: said('CH') },
+      creditor: {
+        name: said('Muster Haustechnik GmbH'),
+        street: said('Industriestrasse'),
+        buildingNumber: said('7'),
+        postalCode: said('3011'),
+        town: said('Bern'),
+        country: said('CH'),
+      },
       currency: 'EUR',
     },
   }
@@ -129,7 +152,11 @@ export function xrechnungScenarioReport(): ReportDefinition {
     version: '3.0',
     businessProcess: said('urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'),
     buyerReference: leitwegId,
-    seller: { ...terms.seller, electronicAddress: { id: said('rechnung@muster.example'), scheme: 'EM' }, contact: { name: said('Erika Mustermann'), telephone: said('+49 221 4710 820'), email: said('e.mustermann@muster.example') } },
+    seller: {
+      ...terms.seller,
+      electronicAddress: { id: said('rechnung@muster.example'), scheme: 'EM' },
+      contact: { name: said('Erika Mustermann'), telephone: said('+49 221 4710 820'), email: said('e.mustermann@muster.example') },
+    },
     buyer: { ...terms.buyer, electronicAddress: { id: leitwegId, scheme: '0204' } },
     payment: INVOICE.payment as NonNullable<FacturXInvoice['payment']>,
   }
@@ -166,7 +193,12 @@ export function eInvoiceScenarios(locale: EditorLocale): readonly BuilderScenari
   const iban = textbox(t('field.iban'))
   /** The live region: the one status with no name. */
   const said: ScenarioQuery = { role: 'status', name: '' }
-  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = invoicedScenarioReport): BuilderScenario => ({ name, locale, report, steps })
+  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = invoicedScenarioReport): BuilderScenario => ({
+    name,
+    locale,
+    report,
+    steps,
+  })
   const code = t('label.kindDetail', { kind: t('kind.epcQrCode'), detail: 'Muster Haustechnik GmbH' })
   const other = 'CH56 0483 5012 3456 7800 9'
 
@@ -212,7 +244,11 @@ export function eInvoiceScenarios(locale: EditorLocale): readonly BuilderScenari
       { expect: 'document', says: 'the new category is second', check: (report) => categories(report) === 'standard 19, category3 0, reduced 7' },
       { do: 'click', ...button(t('action.moveVatCategoryDown', { item: 1 })) },
       { expect: 'focused', ...button(t('action.moveVatCategoryDown', { item: 2 })) },
-      { expect: 'document', says: 'the standard category is second, the new one first', check: (report) => categories(report) === 'category3 0, standard 19, reduced 7' },
+      {
+        expect: 'document',
+        says: 'the standard category is second, the new one first',
+        check: (report) => categories(report) === 'category3 0, standard 19, reduced 7',
+      },
       { do: 'click', ...button(t('action.moveVatCategoryUp', { item: 1 })) },
       { expect: 'text', ...said, text: t('status.first', { name: t('group.vatCategory', { item: 1 }) }) },
       { do: 'click', ...button(t('action.removeVatCategory', { item: 1 })) },
@@ -263,14 +299,24 @@ export function eInvoiceScenarios(locale: EditorLocale): readonly BuilderScenari
     // report-spec's, refused where they are typed: a Leitweg-ID under 0204
     // whose check digits are wrong, and a buyer's reference, which an
     // XRechnung needs (BR-DE-15), emptied.
-    scenario('refuse an XRechnung’s Leitweg-ID and its buyer’s reference where they are typed', [
-      { do: 'focus', ...tree(row) },
-      { expect: 'present', role: 'group', name: t('group.xrechnung') },
-      { do: 'fill', ...textbox(t('field.buyerAddress')), text: '991-33333TEST-34' },
-      { expect: 'invalid', ...textbox(t('field.buyerAddress')) },
-      { do: 'fill', ...textbox(t('field.buyerReference')), text: '' },
-      { expect: 'invalid', ...textbox(t('field.buyerReference')) },
-      { expect: 'document', says: 'the buyer is reached by the Leitweg-ID it was', check: (report) => text(report.eInvoice?.buyer.electronicAddress?.id) === '991-33333TEST-33' && text(report.eInvoice?.buyerReference) === '991-33333TEST-33', unchanged: true },
-    ], xrechnungScenarioReport),
+    scenario(
+      'refuse an XRechnung’s Leitweg-ID and its buyer’s reference where they are typed',
+      [
+        { do: 'focus', ...tree(row) },
+        { expect: 'present', role: 'group', name: t('group.xrechnung') },
+        { do: 'fill', ...textbox(t('field.buyerAddress')), text: '991-33333TEST-34' },
+        { expect: 'invalid', ...textbox(t('field.buyerAddress')) },
+        { do: 'fill', ...textbox(t('field.buyerReference')), text: '' },
+        { expect: 'invalid', ...textbox(t('field.buyerReference')) },
+        {
+          expect: 'document',
+          says: 'the buyer is reached by the Leitweg-ID it was',
+          check: (report) =>
+            text(report.eInvoice?.buyer.electronicAddress?.id) === '991-33333TEST-33' && text(report.eInvoice?.buyerReference) === '991-33333TEST-33',
+          unchanged: true,
+        },
+      ],
+      xrechnungScenarioReport,
+    ),
   ]
 }

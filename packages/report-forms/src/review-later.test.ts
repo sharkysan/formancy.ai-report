@@ -35,7 +35,14 @@ function itemsOf(review: FormReview): { readonly status: string; readonly items:
   return review
 }
 
-const summary = (items: readonly ReviewItem[]) => items.map((item) => [item.dataset ?? null, item.field ?? item.formPath ?? null, item.change ?? null, item.blocks, item.resolutions.map((resolution) => resolution.kind)])
+const summary = (items: readonly ReviewItem[]) =>
+  items.map((item) => [
+    item.dataset ?? null,
+    item.field ?? item.formPath ?? null,
+    item.change ?? null,
+    item.blocks,
+    item.resolutions.map((resolution) => resolution.kind),
+  ])
 
 /** `report` with the resolution of `kind` the review offers for `field` applied, as a host applies it. */
 function resolved(review: FormReview, field: string | undefined, kind: string, report: ReportDefinition): ReportDefinition {
@@ -51,7 +58,8 @@ function resolved(review: FormReview, field: string | undefined, kind: string, r
 }
 
 /** The report once the second version's declared rename was followed, against the versions in `known`. */
-const followed = (known: readonly unknown[] = [V1]): ReportDefinition => resolved(reviewFormVersion(REPORT, { form: V2, versions: known }), 'site', 'follow-rename', REPORT)
+const followed = (known: readonly unknown[] = [V1]): ReportDefinition =>
+  resolved(reviewFormVersion(REPORT, { form: V2, versions: known }), 'site', 'follow-rename', REPORT)
 
 describe('a version after a followed rename', () => {
   // Following a rename for one version alone would leave every later
@@ -62,7 +70,10 @@ describe('a version after a followed rename', () => {
   // one, are named where they read it.
   test('prints without a review, its renamedFrom kept or dropped', () => {
     const report = followed()
-    expect(report.datasets.header?.fields[0]?.form).toEqual({ path: 'address', overrides: { [schemaHash(V1)]: { path: 'site' }, [schemaHash(V2)]: { path: 'address' } } })
+    expect(report.datasets.header?.fields[0]?.form).toEqual({
+      path: 'address',
+      overrides: { [schemaHash(V1)]: { path: 'site' }, [schemaHash(V2)]: { path: 'address' } },
+    })
     const kept = formOf([{ ...SITE, key: 'address', renamedFrom: 'site' }, COUNT, FINDINGS], { title: 'Site visit, revised' })
     const dropped = formOf([{ ...SITE, key: 'address' }, COUNT, FINDINGS], { title: 'Site visit, revised' })
     for (const later of [kept, dropped]) {
@@ -91,7 +102,11 @@ describe('a version after a followed rename', () => {
     const defects = { ...FINDINGS, key: 'defects', renamedFrom: 'findings' }
     const renamed = formOf([SITE, COUNT, defects])
     const report = resolved(reviewFormVersion(REPORT, { form: renamed, versions: [V1] }), undefined, 'follow-rename', REPORT)
-    expect(report.datasets.detail?.form).toEqual({ kind: 'repeater', repeater: 'defects', overrides: { [schemaHash(V1)]: { repeater: 'findings' }, [schemaHash(renamed)]: { repeater: 'defects' } } })
+    expect(report.datasets.detail?.form).toEqual({
+      kind: 'repeater',
+      repeater: 'defects',
+      overrides: { [schemaHash(V1)]: { repeater: 'findings' }, [schemaHash(renamed)]: { repeater: 'defects' } },
+    })
     const later = formOf([SITE, COUNT, { ...FINDINGS, key: 'defects' }], { title: 'Site visit, revised' })
     expect(readData(read(report, later, { site: 'Bern', defects: [{ _id: 'r1', area: 'Keller' }] })).detail).toEqual([{ area: 'Keller' }])
     expect(readData(read(report, V1, { site: 'Bern', findings: [{ _id: 'r1', area: 'Dach' }] })).detail).toEqual([{ area: 'Dach' }])
@@ -159,7 +174,9 @@ describe('a version a review did not know', () => {
     const report = resolved(reviewFormVersion(REPORT, { form: renamed, versions: [V1] }), undefined, 'follow-rename', REPORT)
     const review = reviewFormVersion(report, { form: BETWEEN, versions: [V1, renamed] })
     expect(summary(itemsOf(review).items)).toEqual([['detail', null, 'field.removed', true, ['follow-reviewed']]])
-    expect(readData(read(resolved(review, undefined, 'follow-reviewed', report), BETWEEN, { site: 'Bern', findings: [{ _id: 'r1', area: 'Dach' }] })).detail).toEqual([{ area: 'Dach' }])
+    expect(
+      readData(read(resolved(review, undefined, 'follow-reviewed', report), BETWEEN, { site: 'Bern', findings: [{ _id: 'r1', area: 'Dach' }] })).detail,
+    ).toEqual([{ area: 'Dach' }])
   })
 })
 
@@ -174,7 +191,9 @@ describe('a key a version removed, and a later version added again', () => {
     const removed = formOf([SITE, FINDINGS])
     const nothing = resolved(reviewFormVersion(REPORT, { form: removed, versions: [V1] }), 'count', 'print-nothing', REPORT)
     // Printing nothing names one version: a later one that lacks the count too is refused until reviewed in turn, the cost 0048 states.
-    expect(refusals(read(nothing, formOf([SITE, FINDINGS], { title: 'Site visit, revised' }), { site: 'Bern', findings: [] }))).toEqual(['version-lacks-field /datasets/header/fields/1/form'])
+    expect(refusals(read(nothing, formOf([SITE, FINDINGS], { title: 'Site visit, revised' }), { site: 'Bern', findings: [] }))).toEqual([
+      'version-lacks-field /datasets/header/fields/1/form',
+    ])
     const again = formOf([SITE, { key: 'count', type: 'text', label: 'Count of visitors' }, FINDINGS])
     expect(headerOf(read(nothing, again, { site: 'Bern', count: '12', findings: [] }))['count']).toBe('12')
     const review = itemsOf(reviewFormVersion(nothing, { form: again, versions: [V1, removed] }))

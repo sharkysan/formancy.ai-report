@@ -61,7 +61,16 @@ import { javaMajor, javaVersion } from './e-invoice/java.mjs'
 import { judgeKosit, kositArguments, readKositConsole, reportName } from './e-invoice/kosit.mjs'
 import { judgeMustang, mustangArguments, mustangOutputs } from './e-invoice/mustang.mjs'
 import { CODE_LISTS, oracleProblems, readCodedb, readSchematron, readVariables, scenarioSchematrons } from './e-invoice/oracle.mjs'
-import { blocksDocument, boundDocument, embeddingProblems, PDF_BASE, pdfCorpus, svgDocument, TRANSLUCENT_SVG, variantProblems } from './e-invoice/pdf-corpus.mjs'
+import {
+  blocksDocument,
+  boundDocument,
+  embeddingProblems,
+  PDF_BASE,
+  pdfCorpus,
+  svgDocument,
+  TRANSLUCENT_SVG,
+  variantProblems,
+} from './e-invoice/pdf-corpus.mjs'
 import { recordedConsole, recordedText, staleRecorded } from './e-invoice/record.mjs'
 import { acceptedProblems, readRegisters, toolOf, toolProblems } from './e-invoice/registers.mjs'
 import { bundledProblems, bundledVeraPdf, judgeVeraPdf, veraPdfArguments } from './e-invoice/verapdf.mjs'
@@ -99,7 +108,12 @@ function options(argv) {
     const at = argv.indexOf(name)
     return at === -1 ? undefined : argv[at + 1]
   }
-  return { java: value('--java') ?? 'java', cache: resolve(repo, value('--cache') ?? '.e-invoice-cache'), results: resolve(repo, value('--results') ?? RESULTS), record: argv.includes('--record') }
+  return {
+    java: value('--java') ?? 'java',
+    cache: resolve(repo, value('--cache') ?? '.e-invoice-cache'),
+    results: resolve(repo, value('--results') ?? RESULTS),
+    record: argv.includes('--record'),
+  }
 }
 
 const seconds = (since) => Math.round((performance.now() - since) / 100) / 10
@@ -111,7 +125,8 @@ const RUN = { encoding: 'utf8', input: '', maxBuffer: 64 * 1024 * 1024, windowsH
 
 /** A package as built: refused, saying how to build it, where it is not. */
 async function built(path) {
-  if (!existsSync(join(repo, path))) throw new Error(`${path} is missing: run pnpm build first, since the corpus is resolved and drawn by the packages as built`)
+  if (!existsSync(join(repo, path)))
+    throw new Error(`${path} is missing: run pnpm build first, since the corpus is resolved and drawn by the packages as built`)
   return import(pathToFileURL(join(repo, path)).href)
 }
 
@@ -122,7 +137,8 @@ function checkedJava(java, tools) {
   const text = `${said.stderr}${said.stdout}`
   const major = javaMajor(text)
   for (const tool of tools.filter((entry) => entry.java !== null)) {
-    if (major === undefined || major < tool.java) throw new Error(`${java} is Java ${String(major)}, and ${tool.name} ${tool.version} needs ${String(tool.java)} or later`)
+    if (major === undefined || major < tool.java)
+      throw new Error(`${java} is Java ${String(major)}, and ${tool.name} ${tool.version} needs ${String(tool.java)} or later`)
   }
   return { version: javaVersion(text), major }
 }
@@ -135,7 +151,8 @@ function checkedJava(java, tools) {
 async function prepareTools(register, cache) {
   const where = layout(cache)
   const fetched = []
-  for (const tool of register.tools) if (await fetchVerified({ url: tool.url, path: where.file(tool), sha256: tool.sha256 })) fetched.push(`${tool.id} ${tool.version}`)
+  for (const tool of register.tools)
+    if (await fetchVerified({ url: tool.url, path: where.file(tool), sha256: tool.sha256 })) fetched.push(`${tool.id} ${tool.version}`)
   const configuration = toolOf(register, 'xrechnung-configuration')
   const unpacked = where.unpacked(configuration)
   rmSync(unpacked, { recursive: true, force: true })
@@ -144,7 +161,9 @@ async function prepareTools(register, cache) {
   const mustang = toolOf(register, 'mustang')
   const mustangJar = readVerified(where.file(mustang), mustang.sha256)
   const bundled = bundledVeraPdf(mustangJar)
-  console.log(`e-invoice: ${register.tools.map((tool) => `${tool.id} ${tool.version}`).join(', ')} checked against their registered SHA-256; fetched ${fetched.length === 0 ? 'nothing' : fetched.join(', ')}; the configuration unpacked to ${String(files.length)} files; Mustang bundles veraPDF ${[...new Set(bundled.map((part) => part.version))].join(', ') || 'nowhere'}`)
+  console.log(
+    `e-invoice: ${register.tools.map((tool) => `${tool.id} ${tool.version}`).join(', ')} checked against their registered SHA-256; fetched ${fetched.length === 0 ? 'nothing' : fetched.join(', ')}; the configuration unpacked to ${String(files.length)} files; Mustang bundles veraPDF ${[...new Set(bundled.map((part) => part.version))].join(', ') || 'nowhere'}`,
+  )
   return { where, unpacked, mustang, mustangJar, bundled, kosit: toolOf(register, 'kosit'), verapdf: toolOf(register, 'verapdf'), configuration }
 }
 
@@ -166,12 +185,25 @@ function runMustang({ java, jar, entries, work }) {
 function runKosit({ java, major, tools, entries, work }) {
   const out = join(work, 'kosit')
   const started = performance.now()
-  const ran = spawnSync(java, kositArguments({ jar: tools.where.file(tools.kosit), scenarios: join(tools.unpacked, 'scenarios.xml'), repository: tools.unpacked, out, files: entries.map((entry) => join(work, 'corpus', entry.file)), java: major }), { ...RUN, cwd: work })
+  const ran = spawnSync(
+    java,
+    kositArguments({
+      jar: tools.where.file(tools.kosit),
+      scenarios: join(tools.unpacked, 'scenarios.xml'),
+      repository: tools.unpacked,
+      out,
+      files: entries.map((entry) => join(work, 'corpus', entry.file)),
+      java: major,
+    }),
+    { ...RUN, cwd: work },
+  )
   const took = seconds(started)
   const console_ = `${ran.stdout ?? ''}${ran.stderr ?? ''}`
   writeFileSync(join(out, 'console.log'), console_)
   const names = new Set(entries.map((entry) => reportName(entry.file)))
-  const reports = new Map(entries.map((entry) => [entry.file, existsSync(join(out, reportName(entry.file))) ? readFileSync(join(out, reportName(entry.file)), 'utf8') : undefined]))
+  const reports = new Map(
+    entries.map((entry) => [entry.file, existsSync(join(out, reportName(entry.file))) ? readFileSync(join(out, reportName(entry.file)), 'utf8') : undefined]),
+  )
   const others = readdirSync(out).filter((name) => name !== 'console.log' && !names.has(name))
   return { reports, others, status: ran.status, error: ran.error, console: console_, seconds: took }
 }
@@ -179,7 +211,10 @@ function runKosit({ java, major, tools, entries, work }) {
 /** veraPDF once over every PDF, run in the corpus's directory: its report and what it wrote on stderr, kept beside the others'. */
 function runVeraPdf({ java, tools, entries, work }) {
   const started = performance.now()
-  const ran = spawnSync(java, veraPdfArguments({ jar: tools.where.file(tools.verapdf), files: entries.map((entry) => entry.file) }), { ...RUN, cwd: join(work, 'corpus') })
+  const ran = spawnSync(java, veraPdfArguments({ jar: tools.where.file(tools.verapdf), files: entries.map((entry) => entry.file) }), {
+    ...RUN,
+    cwd: join(work, 'corpus'),
+  })
   writeFileSync(join(work, 'verapdf', 'report.json'), ran.stdout ?? '')
   writeFileSync(join(work, 'verapdf', 'verapdf.log'), ran.stderr ?? '')
   return { status: ran.status, stdout: ran.stdout ?? '', stderr: ran.stderr ?? '', error: ran.error, seconds: seconds(started) }
@@ -190,17 +225,30 @@ function pinnedSchematrons({ tools, mustangVerdict, kositVerdict, profile }) {
   const problems = []
   const located = kositVerdict.schematrons[SCENARIO] ?? []
   const compiled = mustangVerdict.compiled[profile] ?? []
-  if (located.length !== 1) problems.push(`KoSIT's reports on the samples name ${String(located.length)} schematrons for ${SCENARIO}, where the oracle reads one`)
-  if (compiled.length !== 1) problems.push(`Mustang's logs on the Factur-X samples name ${String(compiled.length)} schematrons it compiled, where the oracle reads one`)
+  if (located.length !== 1)
+    problems.push(`KoSIT's reports on the samples name ${String(located.length)} schematrons for ${SCENARIO}, where the oracle reads one`)
+  if (compiled.length !== 1)
+    problems.push(`Mustang's logs on the Factur-X samples name ${String(compiled.length)} schematrons it compiled, where the oracle reads one`)
   if (problems.length > 0) return { problems }
   const [location] = located
-  const cen = { name: `CEN’s schematron (${location} in KoSIT’s configuration ${tools.configuration.version})`, asserts: readSchematron(readFileSync(join(tools.unpacked, location), 'utf8')) }
+  const cen = {
+    name: `CEN’s schematron (${location} in KoSIT’s configuration ${tools.configuration.version})`,
+    asserts: readSchematron(readFileSync(join(tools.unpacked, location), 'utf8')),
+  }
   // XRechnung's is the one schematron its scenario runs that the samples' does not.
   const xrechnungAt = scenarioSchematrons(readFileSync(join(tools.unpacked, 'scenarios.xml'), 'utf8'), XRECHNUNG_SCENARIO).filter((each) => each !== location)
-  if (xrechnungAt.length !== 1) return { problems: [`KoSIT’s configuration has ${XRECHNUNG_SCENARIO} run ${String(xrechnungAt.length)} schematrons beside CEN’s, where the oracle reads one`] }
+  if (xrechnungAt.length !== 1)
+    return {
+      problems: [`KoSIT’s configuration has ${XRECHNUNG_SCENARIO} run ${String(xrechnungAt.length)} schematrons beside CEN’s, where the oracle reads one`],
+    }
   const xrechnungText = readFileSync(join(tools.unpacked, xrechnungAt[0]), 'utf8')
   // The release of XRechnung the register pins the configuration to, whose asset is fetched by it and verified by its SHA-256.
-  const xrechnung = { name: `XRechnung’s schematron (${xrechnungAt[0]} in KoSIT’s configuration ${tools.configuration.version})`, asserts: readSchematron(xrechnungText), variables: readVariables(xrechnungText), release: tools.configuration.xrechnung }
+  const xrechnung = {
+    name: `XRechnung’s schematron (${xrechnungAt[0]} in KoSIT’s configuration ${tools.configuration.version})`,
+    asserts: readSchematron(xrechnungText),
+    variables: readVariables(xrechnungText),
+    release: tools.configuration.xrechnung,
+  }
   const jar = tools.mustangJar
   const path = compiled[0].replace(/^\//, '')
   const asserts = readSchematron(entryNamed(jar, path).toString('utf8'))
@@ -246,7 +294,11 @@ function record({ work, entries, java, mustangRuns, kosit, verapdf, tools }) {
     machine: { platform: process.platform, arch: process.arch, node: process.version, zlib: process.versions.zlib, java: java.version },
     tools: Object.fromEntries([tools.mustang, tools.kosit, tools.configuration, tools.verapdf].map((tool) => [tool.id, tool.version])),
     samples: entries.filter((entry) => entry.format === 'xml' && entry.sample !== undefined).map((entry) => entry.sample),
-    kinds: Object.fromEntries(entries.filter((entry) => entry.format === 'xml' && entry.sample !== undefined).map((entry) => [entry.sample, { kind: entry.kind, guideline: entry.guideline }])),
+    kinds: Object.fromEntries(
+      entries
+        .filter((entry) => entry.format === 'xml' && entry.sample !== undefined)
+        .map((entry) => [entry.sample, { kind: entry.kind, guideline: entry.guideline }]),
+    ),
     mustang: Object.fromEntries(entries.map((entry) => [entry.file, mustangRuns.get(entry.file).status])),
     kosit: { status: kosit.status },
     verapdf: { status: verapdf.status },
@@ -271,7 +323,8 @@ function samplesOf({ spec, runtime, renderer, corpus }) {
   const documentOf = (sample) => {
     if (!documents.has(sample.id)) {
       const outcome = runtime.resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, images, creationDate: CREATED })
-      if (!outcome.ok) throw new Error(`the sample ${sample.id} does not resolve: ${outcome.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
+      if (!outcome.ok)
+        throw new Error(`the sample ${sample.id} does not resolve: ${outcome.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
       documents.set(sample.id, outcome.document)
     }
     return documents.get(sample.id)
@@ -298,7 +351,8 @@ function samplesOf({ spec, runtime, renderer, corpus }) {
   const svgAssets = () => {
     const translucent = new TextEncoder().encode(TRANSLUCENT_SVG)
     const cleaned = spec.cleanSvg(translucent)
-    if (!cleaned.ok || Buffer.compare(Buffer.from(cleaned.bytes), Buffer.from(translucent)) !== 0) throw new Error(`variant-svg.pdf’s translucent drawing is not in the form cleanSvg writes: ${cleaned.ok ? 'cleaning changes it' : cleaned.message}`)
+    if (!cleaned.ok || Buffer.compare(Buffer.from(cleaned.bytes), Buffer.from(translucent)) !== 0)
+      throw new Error(`variant-svg.pdf’s translucent drawing is not in the form cleanSvg writes: ${cleaned.ok ? 'cleaning changes it' : cleaned.message}`)
     const svg = (id, bytes) => ({ id, mediaType: 'image/svg+xml', bytes })
     return [svg('svg-mark', corpus.SVG_MARK), svg('svg-window', corpus.SVG_WINDOW), svg('svg-translucent', translucent)]
   }
@@ -334,10 +388,18 @@ async function main(argv) {
 
   const spec = await built(BUILT.spec)
   const corpusPackage = await built(BUILT.corpus)
-  const { documentOf, draw, drawVariant } = samplesOf({ spec, runtime: await built(BUILT.runtime), renderer: await built(BUILT.renderer), corpus: corpusPackage })
+  const { documentOf, draw, drawVariant } = samplesOf({
+    spec,
+    runtime: await built(BUILT.runtime),
+    renderer: await built(BUILT.renderer),
+    corpus: corpusPackage,
+  })
   const drawing = performance.now()
   // Each sample's BT-24 as report-spec names its kind's, which Mustang must read it as.
-  const GUIDELINES = { facturX: (invoice) => spec.FACTUR_X_PROFILES[invoice.profile].guideline, xrechnung: (invoice) => spec.XRECHNUNG[invoice.version].guideline }
+  const GUIDELINES = {
+    facturX: (invoice) => spec.FACTUR_X_PROFILES[invoice.profile].guideline,
+    xrechnung: (invoice) => spec.XRECHNUNG[invoice.version].guideline,
+  }
   const xmlEntries = buildCorpus({
     samples: [...corpusPackage.E_INVOICE_SAMPLES, ...corpusPackage.XRECHNUNG_SAMPLES],
     xmlOf: (sample) => documentOf(sample).eInvoice.xml,
@@ -354,12 +416,19 @@ async function main(argv) {
     const texts = (local) => corpusPackage.propertiesOf(read, spec.FACTUR_X.xmpNamespace, local).map((property) => property.text)
     return { documentFileName: texts('DocumentFileName'), conformanceLevel: texts('ConformanceLevel') }
   }
-  const guidelineOf = (xml) => corpusPackage.textAt(corpusPackage.readCii(xml), 'rsm:ExchangedDocumentContext/ram:GuidelineSpecifiedDocumentContextParameter/ram:ID')
+  const guidelineOf = (xml) =>
+    corpusPackage.textAt(corpusPackage.readCii(xml), 'rsm:ExchangedDocumentContext/ram:GuidelineSpecifiedDocumentContextParameter/ram:ID')
   const corpusWrong = [
     ...corpusProblems(entries),
     ...strayAccepted(accepted.accepted, entries),
     ...variantProblems(corpusPackage.STARTERS.map((starter) => starter.id)),
-    ...(await embeddingProblems(pdfEntries, { readObjects: corpusPackage.readPdfObjects, fileName: spec.FACTUR_X.fileName, fx, guidelineOf, profiles: spec.FACTUR_X_PROFILES })),
+    ...(await embeddingProblems(pdfEntries, {
+      readObjects: corpusPackage.readPdfObjects,
+      fileName: spec.FACTUR_X.fileName,
+      fx,
+      guidelineOf,
+      profiles: spec.FACTUR_X_PROFILES,
+    })),
   ]
   if (corpusWrong.length > 0) throw new Error(`the corpus does not hold:\n  - ${corpusWrong.join('\n  - ')}`)
   const work = join(repo, WORK)
@@ -377,7 +446,10 @@ async function main(argv) {
   const file = { fileName: spec.FACTUR_X.fileName, relationship: profile.relationship, mediaType: spec.FACTUR_X.mediaType, md5 }
   const veraVerdict = judgeVeraPdf({ entries: pdfEntries, ...verapdf, pinned: tools.verapdf.version, file })
   const schematrons = pinnedSchematrons({ tools, mustangVerdict, kositVerdict, profile: profile.guideline })
-  const oracle = schematrons.problems.length > 0 ? { checked: null, problems: schematrons.problems } : oracleProblems({ spec, lists: CODE_LISTS, cen: schematrons.cen, ferd: schematrons.ferd, xrechnung: schematrons.xrechnung })
+  const oracle =
+    schematrons.problems.length > 0
+      ? { checked: null, problems: schematrons.problems }
+      : oracleProblems({ spec, lists: CODE_LISTS, cen: schematrons.cen, ferd: schematrons.ferd, xrechnung: schematrons.xrechnung })
   const stale = recording ? [] : staleRecorded(entries, recordedCorpus(), new Map(Object.entries(recordedRun().pdfs ?? {})))
   const problems = [...mustangVerdict.problems, ...kositVerdict.problems, ...veraVerdict.problems, ...oracle.problems, ...stale]
   // The bytes each tool ran from, hashed once the runs are over: what the
@@ -391,12 +463,21 @@ async function main(argv) {
     finishedAt: new Date().toISOString(),
     java: jvm,
     tools: [
-      { ...(await ran(tools.mustang)), reported: [...new Set(mustangVerdict.rows.map((row) => row.validator).filter((version) => version !== null))], bundles: { verapdf: [...new Set(tools.bundled.map((part) => part.version))] } },
+      {
+        ...(await ran(tools.mustang)),
+        reported: [...new Set(mustangVerdict.rows.map((row) => row.validator).filter((version) => version !== null))],
+        bundles: { verapdf: [...new Set(tools.bundled.map((part) => part.version))] },
+      },
       { ...(await ran(tools.kosit)), reported: readKositConsole(kosit.console).version ?? null },
       await ran(tools.configuration),
       { ...(await ran(tools.verapdf)), reported: veraVerdict.reported },
     ],
-    corpus: entries.map(({ file: name, format, sample, variant, from, why, expect }) => ({ file: name, format, ...(sample !== undefined ? { sample } : variant !== undefined ? { variant, why } : { from, why }), expect })),
+    corpus: entries.map(({ file: name, format, sample, variant, from, why, expect }) => ({
+      file: name,
+      format,
+      ...(sample !== undefined ? { sample } : variant !== undefined ? { variant, why } : { from, why }),
+      expect,
+    })),
     mustang: mustangVerdict.rows,
     kosit: kositVerdict.rows,
     verapdf: veraVerdict.rows,
@@ -435,7 +516,10 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/e-invoice.mjs')) {
       // them finds a failure and not an absence.
       const { results } = options(argv)
       mkdirSync(dirname(results), { recursive: true })
-      writeFileSync(results, `${JSON.stringify({ gate: 'e-invoice', startedAt: new Date().toISOString(), problems: [error.message], passed: false }, null, 2)}\n`)
+      writeFileSync(
+        results,
+        `${JSON.stringify({ gate: 'e-invoice', startedAt: new Date().toISOString(), problems: [error.message], passed: false }, null, 2)}\n`,
+      )
       console.error(`E-invoice gate failed: ${error.message}`)
       process.exitCode = 1
     },

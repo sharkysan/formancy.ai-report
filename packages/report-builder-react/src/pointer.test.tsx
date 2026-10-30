@@ -20,20 +20,33 @@ import type { ReportDefinition } from '@formancy/report-spec'
 afterEach(cleanup)
 
 const t = editorText('en')
-const body = (mounted: Mounted): string => mounted.session.document().regions.body.map((component) => component.id).join()
+const body = (mounted: Mounted): string =>
+  mounted.session
+    .document()
+    .regions.body.map((component) => component.id)
+    .join()
 const canvas = (): HTMLElement => screen.getByRole('region', { name: t('canvas.label') })
 const centre = (box: Box): { clientX: number; clientY: number } => ({ clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 })
 
 /** Where the editor draws the target named `label`, while a drag is on. */
 function target(editor: ReportEditor, label: string): Box {
   const found = editor.state().dropTargets.find((candidate) => candidate.label === label)
-  if (found === undefined) throw new Error(`no target ${label} among ${editor.state().dropTargets.map((candidate) => candidate.label).join(' | ')}`)
+  if (found === undefined)
+    throw new Error(
+      `no target ${label} among ${editor
+        .state()
+        .dropTargets.map((candidate) => candidate.label)
+        .join(' | ')}`,
+    )
   return found.px
 }
 
 /** Presses on `element` and moves far enough onto the canvas for the press to become a drag. */
 async function pickUp(mounted: Mounted, element: HTMLElement): Promise<void> {
-  await mounted.user.pointer([{ keys: '[MouseLeft>]', target: element, coords: { clientX: 0, clientY: 0 } }, { target: canvas(), coords: { clientX: 1, clientY: 30 } }])
+  await mounted.user.pointer([
+    { keys: '[MouseLeft>]', target: element, coords: { clientX: 0, clientY: 0 } },
+    { target: canvas(), coords: { clientX: 1, clientY: 30 } },
+  ])
 }
 
 /** The scenario report with a table in its summary: a column named Article, whose box and row are a column's. */
@@ -44,7 +57,16 @@ function withTable(): ReportDefinition {
     datasets: { detail: { id: 'lines', fields: [{ id: 'sku', type: 'string', label: 'SKU', nullable: false }] } },
     regions: {
       ...report.regions,
-      summary: [{ id: 'lines', kind: 'table', dataset: 'detail', columns: [{ id: 'sku', header: 'Article', width: 'fill', align: 'left', value: { kind: 'field', field: { dataset: 'detail', field: 'sku' } } }], emptyText: 'None.', repeatHeader: true }],
+      summary: [
+        {
+          id: 'lines',
+          kind: 'table',
+          dataset: 'detail',
+          columns: [{ id: 'sku', header: 'Article', width: 'fill', align: 'left', value: { kind: 'field', field: { dataset: 'detail', field: 'sku' } } }],
+          emptyText: 'None.',
+          repeatHeader: true,
+        },
+      ],
     },
   }
 }
@@ -72,7 +94,10 @@ describe('a pointer drag', () => {
   test('moves a box on the canvas, or a row beside another row', async () => {
     const mounted = mount(scenarioReport())
     await pickUp(mounted, screen.getByRole('img', { name: 'Findings' }))
-    await mounted.user.pointer({ target: canvas(), coords: centre(target(mounted.editor, t('target.after', { where: t('region.body'), name: t('kind.spacer') }))) })
+    await mounted.user.pointer({
+      target: canvas(),
+      coords: centre(target(mounted.editor, t('target.after', { where: t('region.body'), name: t('kind.spacer') }))),
+    })
     await mounted.user.pointer({ keys: '[/MouseLeft]', target: canvas() })
     expect(body(mounted)).toBe('intro,notes,gap,findings')
 
@@ -122,7 +147,10 @@ describe('a pointer drag', () => {
     const mounted = mount(scenarioReport())
     const text = screen.getByRole('button', { name: t('kind.text') })
     await pickUp(mounted, text)
-    await mounted.user.pointer([{ target: text, coords: { clientX: 0, clientY: 0 } }, { keys: '[/MouseLeft]', target: text }])
+    await mounted.user.pointer([
+      { target: text, coords: { clientX: 0, clientY: 0 } },
+      { keys: '[/MouseLeft]', target: text },
+    ])
     expect(body(mounted)).toBe('findings,intro,notes,gap')
     expect(screen.getByRole('status', { name: '' }).textContent).toBe(t('status.notMoved'))
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -155,7 +183,10 @@ describe('a pointer drag', () => {
     await pickUp(mounted, screen.getByRole('img', { name: 'Findings' }))
     await mounted.user.keyboard('{Escape}')
     expect(mounted.editor.state().drag).toBeNull()
-    await mounted.user.pointer([{ target: canvas(), coords: { clientX: 5, clientY: 300 } }, { keys: '[/MouseLeft]', target: canvas() }])
+    await mounted.user.pointer([
+      { target: canvas(), coords: { clientX: 5, clientY: 300 } },
+      { keys: '[/MouseLeft]', target: canvas() },
+    ])
     expect(body(mounted)).toBe('findings,intro,notes,gap')
   })
 
@@ -206,11 +237,17 @@ describe('a pointer drag', () => {
     const findings = (): HTMLElement => screen.getByRole('treeitem', { name: 'Findings' })
     await pickUp(mounted, screen.getByRole('treeitem', { name: t('kind.spacer') }))
     // jsdom's rows are 0 pixels tall at 0, so above 0 is their upper half.
-    await mounted.user.pointer([{ target: findings(), coords: { clientX: 1, clientY: -1 } }, { keys: '[/MouseLeft]', target: findings() }])
+    await mounted.user.pointer([
+      { target: findings(), coords: { clientX: 1, clientY: -1 } },
+      { keys: '[/MouseLeft]', target: findings() },
+    ])
     expect(body(mounted)).toBe('gap,findings,intro,notes')
 
     await pickUp(mounted, findings())
-    await mounted.user.pointer([{ target: screen.getByRole('treeitem', { name: 'Article' }), coords: { clientX: 1, clientY: 1 } }, { keys: '[/MouseLeft]', target: canvas() }])
+    await mounted.user.pointer([
+      { target: screen.getByRole('treeitem', { name: 'Article' }), coords: { clientX: 1, clientY: 1 } },
+      { keys: '[/MouseLeft]', target: canvas() },
+    ])
     expect(body(mounted)).toBe('gap,findings,intro,notes')
     expect(screen.getByRole('status', { name: '' }).textContent).toBe(t('status.notMoved'))
   })
@@ -219,7 +256,10 @@ describe('a pointer drag', () => {
   // page; neither picks anything up.
   test('needs the primary button of a mouse or a pen', async () => {
     const mounted = mount(scenarioReport())
-    await mounted.user.pointer([{ keys: '[MouseRight>]', target: screen.getByRole('img', { name: 'Findings' }), coords: { clientX: 0, clientY: 0 } }, { target: canvas(), coords: { clientX: 1, clientY: 30 } }])
+    await mounted.user.pointer([
+      { keys: '[MouseRight>]', target: screen.getByRole('img', { name: 'Findings' }), coords: { clientX: 0, clientY: 0 } },
+      { target: canvas(), coords: { clientX: 1, clientY: 30 } },
+    ])
     expect(mounted.editor.state().drag).toBeNull()
     await mounted.user.pointer({ keys: '[/MouseRight]', target: canvas() })
 
@@ -236,7 +276,22 @@ describe('a pointer drag', () => {
   // and to a screen reader as its description.
   test('finds a box that overflows described as one', () => {
     const report = scenarioReport()
-    mount({ ...report, regions: { ...report.regions, body: [{ id: 'cols', kind: 'columns', columns: [{ width: 60, components: [{ id: 'wide', kind: 'rectangle', width: 200, height: 20 }] }, { width: 'fill', components: [] }] }] } })
+    mount({
+      ...report,
+      regions: {
+        ...report.regions,
+        body: [
+          {
+            id: 'cols',
+            kind: 'columns',
+            columns: [
+              { width: 60, components: [{ id: 'wide', kind: 'rectangle', width: 200, height: 20 }] },
+              { width: 'fill', components: [] },
+            ],
+          },
+        ],
+      },
+    })
     expect(computeAccessibleDescription(screen.getByRole('img', { name: t('kind.rectangle') }))).toBe(t('canvas.overflow'))
   })
 })

@@ -131,7 +131,12 @@ describe('resolveFonts', () => {
     const images = (): ImageBytes => ({ mediaType: 'font/ttf', bytes: new Uint8Array(MAX_FONT_BYTES + 1) })
     const outcome = resolveReport(report, sampleData(), { ...FINAL, images })
     expect(outcome.ok ? [] : outcome.errors).toEqual([
-      { stage: 'resolve', code: 'invalid-asset', path: '/fonts/sans/normal', message: `the approved font brand is ${MAX_FONT_BYTES + 1} bytes; a font may have ${MAX_FONT_BYTES}` },
+      {
+        stage: 'resolve',
+        code: 'invalid-asset',
+        path: '/fonts/sans/normal',
+        message: `the approved font brand is ${MAX_FONT_BYTES + 1} bytes; a font may have ${MAX_FONT_BYTES}`,
+      },
     ])
   })
 
@@ -175,7 +180,9 @@ describe('resolveFonts', () => {
   // structural, not a value a preview may lack and warn about.
   test('refuses a missing face in a preview too', () => {
     const { report, images } = mapped({ sans: { normal: 'brand' } }, {})
-    expect(refusals(report, { mode: 'preview', parameters: { from: '2026-01-01' }, creationDate: CREATED, images })).toContain('resolve missing-asset /fonts/sans/normal')
+    expect(refusals(report, { mode: 'preview', parameters: { from: '2026-01-01' }, creationDate: CREATED, images })).toContain(
+      'resolve missing-asset /fonts/sans/normal',
+    )
   })
 
   // One face asset shared by two faces or tokens is fetched once: a resolver

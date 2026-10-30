@@ -46,7 +46,9 @@ export function placeDrawings(pdf: ReadPdf, expected: Expectation): PlacedDrawin
   const vector = (images: readonly ExpectedImage[]): ExpectedImage[] => images.filter((image) => image.kind === 'vector')
   const [regions, body] = [vector(expected.pageRegionImages), vector(expected.images)]
   const boxes: PdfBox[][] = pdf.pages.map(() => [])
-  const clips: Clip[] = pdf.pages.flatMap((page) => page.clips.map((box, index) => ({ page: page.number, box, painted: page.paths.some((path) => path.clip === index), used: false })))
+  const clips: Clip[] = pdf.pages.flatMap((page) =>
+    page.clips.map((box, index) => ({ page: page.number, box, painted: page.paths.some((path) => path.clip === index), used: false })),
+  )
   const problems: string[] = []
   const take = (clip: Clip): void => {
     clip.used = true
@@ -87,7 +89,8 @@ function sized(box: PdfBox, { width, height }: ExpectedImage): boolean {
 function missing(what: string, image: ExpectedImage, clips: readonly Clip[]): string {
   const size = `${points(image.width)} × ${points(image.height)} pt`
   const empty = clips.find((clip) => !clip.used && sized(clip.box, image))
-  if (empty !== undefined) return `${what}, ${size}, has its clip at ${points(empty.box.x)}, ${points(empty.box.top)} on page ${empty.page}, and nothing painted inside it`
+  if (empty !== undefined)
+    return `${what}, ${size}, has its clip at ${points(empty.box.x)}, ${points(empty.box.top)} on page ${empty.page}, and nothing painted inside it`
   const others = clips.filter((clip) => !clip.used && clip.painted)
   const listed = others.slice(0, LISTED).map((clip) => `${points(clip.box.width)} × ${points(clip.box.height)} pt on page ${clip.page}`)
   const more = others.length > LISTED ? ` and ${plural(others.length - LISTED, 'other')}` : ''
@@ -115,7 +118,9 @@ const hundredth = (value: number): number => Math.round(value * 100) / 100
 
 /** A path as a drawing records it: how it is painted, in what, and its box to the hundredth. */
 function pathOf(path: PdfPath): string {
-  const paint = [path.fill === undefined ? undefined : `fill ${path.fill}`, path.stroke === undefined ? undefined : `stroke ${path.stroke}`].filter((part) => part !== undefined)
+  const paint = [path.fill === undefined ? undefined : `fill ${path.fill}`, path.stroke === undefined ? undefined : `stroke ${path.stroke}`].filter(
+    (part) => part !== undefined,
+  )
   return `${paint.join(' ')} [${[path.x, path.top, path.width, path.height].map(hundredth).join(', ')}]`
 }
 

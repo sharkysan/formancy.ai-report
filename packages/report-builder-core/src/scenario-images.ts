@@ -25,8 +25,9 @@ import type { EditorLocale } from './text.js'
  * 24.21's zlib at level 9, and its CRCs zlib's.
  */
 export const SCENARIO_PNG = Uint8Array.from([
-  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x7b, 0x40, 0xe8, 0xdd, 0x00, 0x00, 0x00,
-  0x0f, 0x49, 0x44, 0x41, 0x54, 0x78, 0xda, 0x63, 0x90, 0xf7, 0xab, 0xfc, 0xff, 0xff, 0x3f, 0x00, 0x0a, 0x25, 0x03, 0xe4, 0x43, 0x30, 0xb2, 0xcf, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02,
+  0x00, 0x00, 0x00, 0x7b, 0x40, 0xe8, 0xdd, 0x00, 0x00, 0x00, 0x0f, 0x49, 0x44, 0x41, 0x54, 0x78, 0xda, 0x63, 0x90, 0xf7, 0xab, 0xfc, 0xff, 0xff, 0x3f, 0x00,
+  0x0a, 0x25, 0x03, 0xe4, 0x43, 0x30, 0xb2, 0xcf, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
 ])
 
 /** Its SHA-256, by node:crypto, pinned rather than taken by the code a scenario checks: the first scenario holds `assetDigest` to it. */
@@ -87,9 +88,11 @@ function cleanedMark(bytes: Uint8Array): boolean {
 
 const ids = (report: ReportDefinition): string => report.assets.map((asset) => asset.id).join()
 
-const drawsLogo = (report: ReportDefinition): boolean => report.regions.reportHeader.some((component) => component.kind === 'image' && component.source.kind === 'asset' && component.source.asset === 'logo')
+const drawsLogo = (report: ReportDefinition): boolean =>
+  report.regions.reportHeader.some((component) => component.kind === 'image' && component.source.kind === 'asset' && component.source.asset === 'logo')
 
-const drawsNothing = (report: ReportDefinition): boolean => Object.values(report.regions).every((components) => components.every((component) => component.kind !== 'image'))
+const drawsNothing = (report: ReportDefinition): boolean =>
+  Object.values(report.regions).every((components) => components.every((component) => component.kind !== 'image'))
 
 /** The scenario report with two images, the scenario PNG as `logo`, drawn in the report header, and `unused`, which nothing draws. */
 function twoImages(): ReportDefinition {
@@ -98,7 +101,14 @@ function twoImages(): ReportDefinition {
     { id: 'logo', mediaType: 'image/png', digest: SCENARIO_PNG_DIGEST },
     { id: 'unused', mediaType: 'image/png', digest: `sha256:${'5e'.repeat(32)}` },
   ]
-  return { ...report, assets, regions: { ...report.regions, reportHeader: [{ id: 'logo-image', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 100, height: 40, fit: 'contain' }] } }
+  return {
+    ...report,
+    assets,
+    regions: {
+      ...report.regions,
+      reportHeader: [{ id: 'logo-image', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 100, height: 40, fit: 'contain' }],
+    },
+  }
 }
 
 /** The image scenarios, their names in `locale`. */
@@ -112,9 +122,19 @@ export function imageScenarios(locale: EditorLocale): readonly BuilderScenario[]
   const remove = (id: string): ScenarioQuery => button(t('images.removeOne', { id }))
   const drawn = t('label.kindDetail', { kind: t('kind.image'), detail: 'logo' })
   const refused = (name: string, reason: string): string => t('images.refused', { name, reason })
-  const nothingDeclared = { expect: 'document', says: 'the report declares no image', unchanged: true, check: (report: ReportDefinition) => report.assets.length === 0 } as const
+  const nothingDeclared = {
+    expect: 'document',
+    says: 'the report declares no image',
+    unchanged: true,
+    check: (report: ReportDefinition) => report.assets.length === 0,
+  } as const
   const keptNothing = { expect: 'kept', says: 'the host kept nothing', check: (kept: readonly AddedImage[]) => kept.length === 0 } as const
-  const scenario = (name: string, steps: readonly ScenarioStep[], store?: BuilderScenario['store'], report: () => ReportDefinition = scenarioReport): BuilderScenario => ({
+  const scenario = (
+    name: string,
+    steps: readonly ScenarioStep[],
+    store?: BuilderScenario['store'],
+    report: () => ReportDefinition = scenarioReport,
+  ): BuilderScenario => ({
     name,
     locale,
     report,
@@ -137,8 +157,16 @@ export function imageScenarios(locale: EditorLocale): readonly BuilderScenario[]
         { do: 'upload', ...add, file: PNG_FILE },
         { expect: 'focused', ...add },
         { expect: 'text', ...said, text: t('images.added', { id: 'logo', kind: t('kind.image') }) },
-        { expect: 'document', says: 'the report declares logo, by the PNG’s digest', check: (report) => JSON.stringify(report.assets) === JSON.stringify([{ id: 'logo', mediaType: 'image/png', digest: SCENARIO_PNG_DIGEST }]) },
-        { expect: 'kept', says: 'the host kept the PNG’s bytes as logo', check: (kept) => kept.length === 1 && kept[0]?.asset === 'logo' && sameBytes(kept[0].bytes, SCENARIO_PNG) },
+        {
+          expect: 'document',
+          says: 'the report declares logo, by the PNG’s digest',
+          check: (report) => JSON.stringify(report.assets) === JSON.stringify([{ id: 'logo', mediaType: 'image/png', digest: SCENARIO_PNG_DIGEST }]),
+        },
+        {
+          expect: 'kept',
+          says: 'the host kept the PNG’s bytes as logo',
+          check: (kept) => kept.length === 1 && kept[0]?.asset === 'logo' && sameBytes(kept[0].bytes, SCENARIO_PNG),
+        },
         { do: 'focus', ...remove('logo') },
         { do: 'press', key: 'z', modifiers: ['Control'] },
         { expect: 'absent', ...remove('logo') },
@@ -177,9 +205,23 @@ export function imageScenarios(locale: EditorLocale): readonly BuilderScenario[]
       'add an SVG, cleaned of what never draws',
       [
         { do: 'upload', ...add, file: SVG_FILE },
-        { expect: 'text', ...said, text: t('images.cleaned', { names: new Intl.ListFormat(locale, { type: 'conjunction' }).format([t('images.svgDeclaration'), t('images.svgComment'), 'metadata', 'script']) }) },
-        { expect: 'document', says: 'the report declares logo as an SVG', check: (report) => report.assets.length === 1 && report.assets[0]?.id === 'logo' && report.assets[0].mediaType === 'image/svg+xml' },
-        { expect: 'kept', says: 'the host kept the drawing, without what cleaning removed', check: (kept) => kept.length === 1 && kept[0] !== undefined && cleanedMark(kept[0].bytes) },
+        {
+          expect: 'text',
+          ...said,
+          text: t('images.cleaned', {
+            names: new Intl.ListFormat(locale, { type: 'conjunction' }).format([t('images.svgDeclaration'), t('images.svgComment'), 'metadata', 'script']),
+          }),
+        },
+        {
+          expect: 'document',
+          says: 'the report declares logo as an SVG',
+          check: (report) => report.assets.length === 1 && report.assets[0]?.id === 'logo' && report.assets[0].mediaType === 'image/svg+xml',
+        },
+        {
+          expect: 'kept',
+          says: 'the host kept the drawing, without what cleaning removed',
+          check: (kept) => kept.length === 1 && kept[0] !== undefined && cleanedMark(kept[0].bytes),
+        },
       ],
       'keeps',
     ),
@@ -187,7 +229,13 @@ export function imageScenarios(locale: EditorLocale): readonly BuilderScenario[]
     // as it was.
     scenario(
       'show the host’s refusal to keep an image, and change nothing',
-      [{ do: 'upload', ...add, file: PNG_FILE }, { expect: 'text', ...said, text: refused('logo.png', SCENARIO_REFUSAL) }, { expect: 'focused', ...add }, nothingDeclared, keptNothing],
+      [
+        { do: 'upload', ...add, file: PNG_FILE },
+        { expect: 'text', ...said, text: refused('logo.png', SCENARIO_REFUSAL) },
+        { expect: 'focused', ...add },
+        nothingDeclared,
+        keptNothing,
+      ],
       'refuses',
     ),
     // An image nothing draws is removed from the report's properties in one

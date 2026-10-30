@@ -1,5 +1,18 @@
 import { createHash } from 'node:crypto'
-import { decodePDFRawStream, PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFNumber, PDFRawStream, PDFRef, PDFString, type PDFContext, type PDFObject } from '@pdfme/pdf-lib'
+import {
+  decodePDFRawStream,
+  PDFArray,
+  PDFDict,
+  PDFDocument,
+  PDFHexString,
+  PDFName,
+  PDFNumber,
+  PDFRawStream,
+  PDFRef,
+  PDFString,
+  type PDFContext,
+  type PDFObject,
+} from '@pdfme/pdf-lib'
 
 /**
  * The objects a PDF/A-3 with an embedded invoice is proved on, read by a
@@ -123,7 +136,11 @@ export async function readPdfObjects(bytes: Uint8Array): Promise<PdfObjects> {
   const document = await PDFDocument.load(bytes, { updateMetadata: false, throwOnInvalidObject: true })
   const { context, catalog } = document
   const associated = dictionariesIn(catalog.lookupMaybe(key('AF'), PDFArray))
-  const embeddedFiles = namedSpecifications(catalog).map(({ name, specification }) => ({ name, associated: associated.indexOf(specification), specification: fileSpecification(specification) }))
+  const embeddedFiles = namedSpecifications(catalog).map(({ name, specification }) => ({
+    name,
+    associated: associated.indexOf(specification),
+    specification: fileSpecification(specification),
+  }))
   const trailerId = context.lookup(context.trailerInfo.ID)
   // pdf-lib gives the header back as it parsed it: `%PDF-1.7`, then a line of binary characters.
   const header = context.header.toString()
@@ -155,8 +172,14 @@ function imagesIn(context: PDFContext): PdfImage[] {
     .map(([ref, object]) => {
       const { dict } = object as PDFRawStream
       const mask = dict.get(key('SMask'))
-      if (mask !== undefined && !(mask instanceof PDFRef && isImage(context.lookup(mask)))) throw new Error(`the /SMask of image ${String(ref.objectNumber)} is not a reference to an image`)
-      return { object: ref.objectNumber, width: dict.lookup(key('Width'), PDFNumber).asNumber(), height: dict.lookup(key('Height'), PDFNumber).asNumber(), softMask: mask?.objectNumber }
+      if (mask !== undefined && !(mask instanceof PDFRef && isImage(context.lookup(mask))))
+        throw new Error(`the /SMask of image ${String(ref.objectNumber)} is not a reference to an image`)
+      return {
+        object: ref.objectNumber,
+        width: dict.lookup(key('Width'), PDFNumber).asNumber(),
+        height: dict.lookup(key('Height'), PDFNumber).asNumber(),
+        softMask: mask?.objectNumber,
+      }
     })
     .sort((a, b) => a.object - b.object)
 }
@@ -198,7 +221,11 @@ const inflated = (stream: PDFRawStream): Uint8Array => decodePDFRawStream(stream
 
 function metadataOf(stream: PDFRawStream | undefined): PdfMetadata | undefined {
   if (stream === undefined) return undefined
-  return { type: nameOf(stream.dict, 'Type'), subtype: nameOf(stream.dict, 'Subtype'), xmp: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(inflated(stream)) }
+  return {
+    type: nameOf(stream.dict, 'Type'),
+    subtype: nameOf(stream.dict, 'Subtype'),
+    xmp: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(inflated(stream)),
+  }
 }
 
 function fileSpecification(specification: PDFDict): PdfFileSpecification {
@@ -246,7 +273,8 @@ function namedSpecifications(catalog: PDFDict): { name: string; specification: P
   if (tree.has(key('Kids'))) throw new Error('the /EmbeddedFiles name tree has /Kids, which this reader does not walk')
   const names = tree.lookup(key('Names'), PDFArray)
   const named: { name: string; specification: PDFDict }[] = []
-  for (let index = 0; index < names.size(); index += 2) named.push({ name: names.lookup(index, PDFString, PDFHexString).decodeText(), specification: names.lookup(index + 1, PDFDict) })
+  for (let index = 0; index < names.size(); index += 2)
+    named.push({ name: names.lookup(index, PDFString, PDFHexString).decodeText(), specification: names.lookup(index + 1, PDFDict) })
   return named
 }
 
