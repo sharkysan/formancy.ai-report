@@ -7,7 +7,7 @@ import * as prettier from 'prettier'
 import { EXTENSIONS } from './code-style/code-style.mjs'
 
 /**
- * A merge across the format (0116): git's merge, with every TypeScript and
+ * A merge across the format (0050): git's merge, with every TypeScript and
  * JavaScript file both sides changed merged by a driver that formats each
  * of its three versions -- the common ancestor, ours and theirs -- in this
  * repository's style before `git merge-file` merges them. The format
@@ -30,6 +30,11 @@ import { EXTENSIONS } from './code-style/code-style.mjs'
  * the merge; and the driver merges a file with itself, so code main moved
  * to another file is carried across by hand. `prettier-merge.test.mjs`
  * holds both merges, and the fallback.
+ *
+ * The script is Formancy Data's (formancy.ai-data 0116), as is its test,
+ * each kept identical to Data's but for the record it cites and this
+ * paragraph, so that a change to either is made in both repositories. The
+ * formatting run `PASSES` cites below is Data's.
  */
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 

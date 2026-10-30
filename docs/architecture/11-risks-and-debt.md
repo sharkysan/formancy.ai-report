@@ -432,11 +432,26 @@ What stops a red gate from merging is a maintainer reading it
 [Verification](10-verification.md) reports; none can refuse a merge on
 its own.
 
+### The format is remembered by how one pull request merges
+
+`.git-blame-ignore-revs` names the commit that formatted the code by its
+SHA, so the pull request that brings it merges with a merge commit, which
+the repository allows beside a squash and a rebase and nothing makes it
+choose: either of the others leaves the file naming nothing on `main`, and
+blame then gives the format most lines. A branch begun before the format
+conflicts with it; [`prettier-merge.mjs`](../../scripts/prettier-merge.mjs),
+run from a checkout of `main`, merges `main` into it with each side
+formatted first, and what both sides changed, and code `main` moved to
+another file, are still the branch's to carry by hand. #60 is such a
+branch, and its `scripts/container.mjs`, formatted, passes the size budget,
+so whichever of the two merges second splits it ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
+
 ## 11.3 Known technical debt
 
 | Debt | Why it exists | What it costs |
 |---|---|---|
 | **Two workarounds for upstream's expression API** | `@formancy/expressions`, as 0009 read it at 0.5.0, declares no typed member and cannot say which functions an expression calls, so members are spliced into flat variables and the clock is found by renaming it ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) | Positions after an index read are lost; both rest on upstream behaviour that tests pin. Each goes when upstream offers the API (0002) |
+| **The lint and format rules, a copy** | formancy.ai has not released `@formancy/code-style`, and the maintainer chose not to wait, so [`code-style.mjs`](../../scripts/code-style/code-style.mjs) and its test are Formancy Health's, byte for byte, and `scripts/prettier-merge.mjs` and its test Formancy Data's but for the record they cite; [0002](../decisions/0002-depend-on-upstream-never-copy-it.md) is narrowed until the package is pinned ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)) | Nothing compares a copy with its original, so a rule changed in one repository reaches the others by hand alone. The swap pins the package exactly as a root devDependency, deletes `scripts/code-style/`, has [`eslint.config.mjs`](../../eslint.config.mjs) and [`prettier.config.mjs`](../../prettier.config.mjs) import it, and extends [`upstream-deps.mjs`](../../scripts/upstream-deps.mjs) to the root manifest, which holds no `@formancy/*` dependency until then |
 | **Each expression compiled twice per render** | The diagnostics do not hand back their compilation ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) | Time, unmeasured |
 | **admin.css's rules copied by hand** | formancy publishes the room's palette (`@formancy/themes/room.css`, which the Studio and the pages import, [0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) but no rule, so `builder.css` carries admin.css's rules for the workbench at e3c5967, and the Studio's other stylesheets its rules for the page, with the colours they type that the room does not carry ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)) | When admin.css's geometry or one of those colours moves upstream nothing here fails; review compares them by hand |
 | **The audit trail's actor, unlike Data's** | Report's trail names who asked by a keyed hash, because a subject is a claim's value; Formancy Data's names its actor plainly (formancy.ai-data 0023; [0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)) | An operator reading both trails reads them differently, and finds a person's Report events only by computing the reference with the audit key |

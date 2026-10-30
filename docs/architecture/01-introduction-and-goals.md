@@ -53,7 +53,9 @@ rendered PDF against them. [Building blocks](05-building-blocks.md) has each.
   develop and test, paid to run in production, and a separate agreement to
   redistribute ([0001](../decisions/0001-a-paid-module-in-its-own-repository.md)).
   The Apache-2.0 packages it builds on stay Apache-2.0, and none of their
-  code is here ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)).
+  code is in a package here ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md));
+  the lint rules, the one copy, are the repository's tooling until
+  formancy.ai releases them ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
 - **Not a form.** A report has pages, regions repeated on every page, a
   table that flows across pages, groups and declared totals, none of which a
   formancy form models. It is its own document with its own version line,

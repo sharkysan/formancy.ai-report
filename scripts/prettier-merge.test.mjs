@@ -9,7 +9,7 @@ import { prettierConfig } from './code-style/code-style.mjs'
 
 /**
  * The merge a branch begun before the format takes main through
- * (`scripts/prettier-merge.mjs`, 0116), run as CONTRIBUTING.md runs it, in a
+ * (`scripts/prettier-merge.mjs`, 0050), run as CONTRIBUTING.md runs it, in a
  * repository of its own written under the system's temporary directory:
  * `base` in the style before the format, `main` the format of it with what
  * main changed, and `feature` the branch's change in the style it was
@@ -19,6 +19,10 @@ import { prettierConfig } from './code-style/code-style.mjs'
  *
  * What it cannot see: whether Prettier itself formats a file well, which is
  * the format check's to hold, or the time a large merge takes.
+ *
+ * Formancy Data's test (formancy.ai-data 0116), as is the script, each kept
+ * identical to Data's but for the record it cites and this paragraph, so
+ * that a change to either is made in both repositories.
  */
 const script = join(dirname(fileURLToPath(import.meta.url)), 'prettier-merge.mjs')
 const FILE = 'order.ts'

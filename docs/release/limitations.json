@@ -19,7 +19,7 @@
       ]
     },
     "0002": {
-      "reviewed": "sha256:b90b94a94b228896bf4d783577b943e563323d5ab985d9f5363fbee8bf2579ed",
+      "reviewed": "sha256:b06dfb3d5006f8a6a515c2c923dacbcd42645b3c884e4a439e843007fb2c4ee1",
       "limitations": [
         {
           "area": "release",
@@ -2110,6 +2110,21 @@
         {
           "area": "server",
           "says": "The verifier tolerates 30 seconds of clock skew on exp and nbf, data-identity’s default, which the server does not change and nothing here measured."
+        }
+      ]
+    },
+    "0050": {
+      "reviewed": "sha256:b484f1abb23a8fe45e4d14c3e107733d34f290d0bd7e5cc4957c2a6622f502ce",
+      "limitations": [
+        {
+          "area": "editing",
+          "says": "An object written in place as a `ReportSession` whose `subscribe`, `document` or `hash` reads `this` no longer compiles, since those members are declared `this: void` for the store hooks that call them off the object; a class or a closure is unaffected.",
+          "heldBy": "packages/report-core/src/implementable.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "An object written in place as a `ReportEditor` whose `subscribe` or `state` reads `this` no longer compiles, since those members are declared `this: void` for the store hooks that call them off the object; a class or a closure is unaffected.",
+          "heldBy": "packages/report-builder-core/src/implementable.test.ts"
         }
       ]
     }
