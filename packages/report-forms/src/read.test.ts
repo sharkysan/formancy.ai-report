@@ -163,6 +163,22 @@ describe('readSubmission', () => {
     expect(resolved.ok ? 'resolved' : resolved.errors.map((error) => `${error.code} ${error.path}`)).toEqual(['unexpected-null /header/site'])
   })
 
+  // The rows a computed rule writes are stored with an `_id` from
+  // formancy 0.11.0 and without one before it (formancy.ai 0218), and a
+  // host keeps both. A bridge that keyed a row by its id would refuse
+  // every older submission of such a form, or print its rows as none; a
+  // row is read by its place and its fields, so both print, in order.
+  test('reads the rows a computed rule wrote, stored with their ids or without', () => {
+    const form = formOf([{ key: 'lines', type: 'repeater', fields: [{ key: 'ref', type: 'text' }] }], { logic: { rules: [{ target: 'lines', kind: 'computed', cel: "[{'ref': 'A'}, {'ref': 'B'}]" }] } })
+    const report = reportOf({ detail: rowsOf('lines', field('ref', 'string', 'ref')) })
+    const before = readData(read(report, form, { lines: [{ ref: 'A' }, { ref: 'B' }] }))
+    const after = readData(read(report, form, { lines: [{ _id: 'lines-0', ref: 'A' }, { _id: 'lines-1', ref: 'B' }] }))
+    expect([before.detail, after.detail]).toEqual([
+      [{ ref: 'A' }, { ref: 'B' }],
+      [{ ref: 'A' }, { ref: 'B' }],
+    ])
+  })
+
   // Every answer is held to its field's type by the runtime's own reading
   // of a value (0010), at the answer's path in the submission, so the
   // bridge and the runtime cannot read a value two ways: a decimal past
