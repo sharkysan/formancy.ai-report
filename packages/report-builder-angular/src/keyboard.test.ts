@@ -268,7 +268,7 @@ describe('the outline', () => {
     await settle()
     click(screen.getByRole('treeitem', { name: 'Introduction' }))
     await settle()
-    const text = screen.getByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement
+    const text = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Text' })
     text.focus()
     fireEvent.change(text, { target: { value: 'Introduction, revised' } })
     await settle()

@@ -229,7 +229,7 @@ describe('readSubmissions', () => {
   // a hole would be read as a submission that is missing, and a getter in
   // its place run to find out what it is.
   test('refuses a hole or a getter in the submissions where it stands, and never runs the getter', () => {
-    // eslint-disable-next-line no-sparse-arrays
+    // eslint-disable-next-line no-sparse-arrays -- a hole in the array is the input under test
     expect(refusals(readMany(VISITS, { forms: [SITE_VISIT_V1], submissions: [, SUBMISSIONS[0]], complete: true }))).toEqual(['not-data /submissions/0'])
     let calls = 0
     const getter = Object.defineProperty([] as unknown[], 0, {

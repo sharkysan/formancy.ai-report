@@ -201,7 +201,7 @@ describe('the audit trail', () => {
     const lines: string[] = []
     const logged = await createReportServer({ verifyIdentity, roles, logger: { stream: { write: (line) => void lines.push(line) } } })
     const sink = logAuditSink(logged.log)
-    sink({ at, operation: 'whoami', status: 200, outcome: 'ok', identified: true, tenant: null, actor: null })
+    await sink({ at, operation: 'whoami', status: 200, outcome: 'ok', identified: true, tenant: null, actor: null })
     await logged.close()
     const audited = lines.map((line) => JSON.parse(line) as { msg: string; audit?: unknown }).filter((line) => line.msg === 'audit')
     expect(audited).toEqual([

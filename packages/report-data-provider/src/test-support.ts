@@ -101,14 +101,14 @@ export function dataFixture(forms: Readonly<Record<string, FixtureForm>>, menu: 
   }
   const fetch = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     init?.signal?.throwIfAborted()
-    const path = new URL(String(input), 'http://data.invalid').pathname
+    const path = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://data.invalid').pathname
     const body: unknown = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
     const authorization = new Headers(init?.headers).get('authorization')
     requests.push({ method: init?.method ?? 'GET', path, body, authorization })
     return Promise.resolve(serve(init?.method ?? 'GET', path, body))
   }
   return {
-    client: createDataClient({ token: () => token, fetch: fetch }),
+    client: createDataClient({ token: () => token, fetch }),
     requests,
     answerNext: (suffix, status, body) => {
       refusals.push({ suffix, status, body })

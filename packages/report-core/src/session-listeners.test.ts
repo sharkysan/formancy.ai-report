@@ -148,3 +148,32 @@ describe('an edit from inside a listener', () => {
     expect(seen).toEqual(['Normalised', 'Normalised'])
   })
 })
+
+describe('a session handed to a store hook', () => {
+  // useSyncExternalStore and its kin take `subscribe` and `document` as bare
+  // functions, so a session whose two read `this` would break there, in
+  // the host's render, and not where it was written. `this: void` makes the
+  // type refuse such a literal at compile time (typecheck fails on an unused
+  // directive here if the declaration is lost), and the real session is shown
+  // to work with neither bound.
+  test('subscribes and reads with the two methods taken off it', () => {
+    const { subscribe, document } = open()
+    const listener = vi.fn()
+    const unsubscribe = subscribe(listener)
+    expect(document().title).toBe('Orders by site')
+    unsubscribe()
+    expect(listener).not.toHaveBeenCalled()
+  })
+
+  test('refuses, as a type, an implementation that reads this', () => {
+    const real = open()
+    const implementation: ReportSession = {
+      ...real,
+      // @ts-expect-error -- a `this` that the caller would not supply
+      subscribe(this: { shared: number }, listener: () => void) {
+        return real.subscribe(listener)
+      },
+    }
+    expect(implementation).toBeDefined()
+  })
+})

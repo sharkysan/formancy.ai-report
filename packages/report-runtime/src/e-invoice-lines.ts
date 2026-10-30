@@ -55,7 +55,6 @@ import type {
   EInvoiceLineTerm,
   EInvoiceTextTerm,
   En16931Rule,
-  FieldType,
   TableComponent,
   VatCategory,
 } from '@formancy/report-spec'

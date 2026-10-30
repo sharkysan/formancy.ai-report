@@ -106,10 +106,12 @@ function readsAs(lines: readonly string[], text: string): boolean {
 export function glyphs(pages: readonly Page[]): string[] {
   return pages.flatMap(({ page }) =>
     page.items.flatMap((item) => {
-      const codes = [...new Set(item.text.match(/[\u0000�]/g) ?? [])].map((code) => `U+${code.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`)
+      const codes = [...new Set([...item.text].filter((char) => char === '\u0000' || char === '\uFFFD'))].map(
+        (code) => `U+${code.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`,
+      )
       return codes.length === 0
         ? []
-        : [`page ${page.number}: ${quoted(item.text.replace(/\u0000/g, '␀'))} has ${codes.join(' and ')}, a character no glyph was drawn for`]
+        : [`page ${page.number}: ${quoted(item.text.replaceAll('\u0000', '␀'))} has ${codes.join(' and ')}, a character no glyph was drawn for`]
     }),
   )
 }

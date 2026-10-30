@@ -124,6 +124,7 @@ describe('the number rule', () => {
     expect(decimalDigits(1e-7)).toEqual({ ok: true, digits: '0.0000001' })
     expect(decimalDigits(-0)).toEqual({ ok: true, digits: '0' })
     expect(decimalDigits(SAFE - 1)).toEqual({ ok: true, digits: '9007199254740991' })
+    // eslint-disable-next-line no-loss-of-precision -- the literal is the subject: 10^16 + 1 is a number JavaScript has already rounded
     for (const past of [SAFE, 10000000000000001, 1e21, -(2 ** 60), 1e300]) expect(decimalDigits(past).ok, String(past)).toBe(false)
     expect(decimalDigits(123456789012345.6).ok).toBe(false)
     // What the rule cannot see, said here so that nobody reads more into it: formancy stored the 17 digits typed as the double 0.1.

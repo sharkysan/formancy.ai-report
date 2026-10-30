@@ -281,7 +281,8 @@ describe('release.yml', () => {
   test('signs the report and attaches it and its signatures to the GitHub release', () => {
     const publish = release.jobs.publish
     const sign = publish.steps.find((entry) => entry.id === 'sign-report')
-    for (const kind of ['md', 'json']) expect(sign.run).toContain(`release-report/release-report.\${kind}`)
+    expect(sign.run).toContain('for kind in md json')
+    expect(sign.run).toContain('release-report/release-report.${kind}')
     expect(sign.run).toContain('cosign sign-blob --yes')
     const step = publish.steps.find((entry) => entry.id === 'github-release')
     const files = step.with.files

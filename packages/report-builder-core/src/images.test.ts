@@ -319,8 +319,7 @@ describe('adding an image', () => {
   // its page -- declares nothing into a session someone else may now hold.
   test('declares nothing once disposed, before the read or while the host keeps it', async () => {
     const session = sessionOver(blank())
-    let editor: ReportEditor | undefined
-    editor = createReportEditor(session, { images: recordingStore(() => (editor?.dispose(), { ok: true })) })
+    const editor: ReportEditor = createReportEditor(session, { images: recordingStore(() => (editor.dispose(), { ok: true })) })
     expect(await editor.addImage(chosen('logo.png', PNG))).toEqual({ ok: false, code: 'disposed', message: t('status.disposed') })
     expect(session.document().assets).toEqual([])
     const file = chosen('logo.png', PNG)

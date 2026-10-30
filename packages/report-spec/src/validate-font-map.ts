@@ -19,9 +19,8 @@
  * needs.
  */
 import { isFontMediaType } from './assets.js'
-import type { Findings } from './check.js'
 import { optional, quote, reference, shape } from './check.js'
-import { FONT_FACE_KEYS, faceKey } from './font-map.js'
+import { faceKey } from './font-map.js'
 import type { FontFaceKey, FontFaces, FontMap } from './font-map.js'
 import { at } from './pointer.js'
 import { FONT_FAMILIES } from './styles.js'

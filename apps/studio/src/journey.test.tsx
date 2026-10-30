@@ -260,7 +260,7 @@ function unnamed(): string[] {
 async function walk(user: User, opened: Workspace, record: (state: string) => Promise<void>, images: Held): Promise<void> {
   const picker = screen.getByRole('combobox', { name: 'Starter' })
   let framework: Framework = 'React'
-  for (const option of within(picker).getAllByRole('option') as HTMLOptionElement[]) {
+  for (const option of within(picker).getAllByRole<HTMLOptionElement>('option')) {
     const { value: id, text: name } = option
     const previewed = previewStatus(id)
     await user.selectOptions(picker, option)

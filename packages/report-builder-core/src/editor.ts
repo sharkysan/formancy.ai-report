@@ -62,9 +62,9 @@ export interface ReportEditorOptions {
 
 export interface ReportEditor {
   /** The state to render: deeply frozen, and the same object until something changes. */
-  state(): EditorState
+  state(this: void): EditorState
   /** Calls `listener` after each change, synchronously, until the function returned is called. */
-  subscribe(listener: () => void): () => void
+  subscribe(this: void, listener: () => void): () => void
   /** Listeners subscribed now: what a test of a destroyed builder checks is back to none. */
   listenerCount(): number
   /**
@@ -382,7 +382,8 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     const outcome = commit(change.command, stepLabel({ do: 'change', field: spec.words }))
     if (!outcome.ok) {
       const path = `${target.path}${at}`
-      const message = pageRoomMessage(outcome, path, { spec, value: written.value, report }, t, number.format) ?? refusalMessage(outcome, path)
+      const message =
+        pageRoomMessage(outcome, path, { spec, value: written.value, report }, t, (value) => number.format(value)) ?? refusalMessage(outcome, path)
       setLocal(keep(message))
       return refuse('refused', t('status.invalid', { field: label, reason: message }), outcome)
     }

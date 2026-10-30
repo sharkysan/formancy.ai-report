@@ -255,7 +255,7 @@ describe('the euro invoice samples', () => {
       expect(new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2 }).format('1000.00' as Intl.StringNumericLiteral)).toContain(' ')
       const { pdf } = await print(sample)
       const items = pdf.pages.flatMap((page) => page.items.map((item) => item.text))
-      expect(items.filter((text) => /\d[  .,']\d{3}[,.]\d{2}/u.test(text))).toEqual([])
+      expect(items.filter((text) => /\d[\u202f\u00a0.,']\d{3}[,.]\d{2}/u.test(text))).toEqual([])
     },
     TIMEOUT,
   )

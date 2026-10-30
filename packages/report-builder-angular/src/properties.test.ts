@@ -120,7 +120,7 @@ describe('the properties pane', () => {
     new MutationObserver((records) => {
       for (const record of records) for (const node of record.addedNodes) said.push(node.textContent ?? '')
     }).observe(screen.getByRole('status', { name: '' }), { childList: true })
-    const title = screen.getByRole('textbox', { name: 'Title' }) as HTMLInputElement
+    const title = screen.getByRole<HTMLInputElement>('textbox', { name: 'Title' })
     const before = editor.state().revision
     title.focus()
     title.value = 'Site visit, Bern'
@@ -139,7 +139,7 @@ describe('the properties pane', () => {
   // the person moved on, whatever they meant by pressing Escape.
   test('gives back what the report holds on Escape, so leaving the field commits nothing', async () => {
     const { editor, settle } = await mountScenarioBuilder()
-    const title = screen.getByRole('textbox', { name: 'Title' }) as HTMLInputElement
+    const title = screen.getByRole<HTMLInputElement>('textbox', { name: 'Title' })
     title.focus()
     fireEvent.input(title, { target: { value: 'Changed' } })
     press('Escape')
@@ -157,11 +157,11 @@ describe('the properties pane', () => {
   test('is a form named by its heading, its required fields marked required', async () => {
     const { settle } = await mountScenarioBuilder()
     expect(screen.getByRole('form', { name: 'Report' })).toBeTruthy()
-    expect((screen.getByRole('textbox', { name: 'Title' }) as HTMLInputElement).required).toBe(true)
+    expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Title' }).required).toBe(true)
     click(screen.getByRole('treeitem', { name: 'Introduction' }))
     await settle()
     expect(screen.getByRole('form', { name: 'Text: Introduction' })).toBeTruthy()
-    expect((screen.getByRole('textbox', { name: 'Show only when' }) as HTMLInputElement).required).toBe(false)
+    expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Show only when' }).required).toBe(false)
   })
 
   // A checkbox is a choice made, not text being typed: it commits as it
@@ -185,7 +185,7 @@ describe('the properties pane', () => {
     await settle()
     fill(screen.getByRole('spinbutton', { name: 'Height (mm)' }), '400')
     await settle()
-    const height = screen.getByRole('spinbutton', { name: 'Height (mm)' }) as HTMLInputElement
+    const height = screen.getByRole<HTMLInputElement>('spinbutton', { name: 'Height (mm)' })
     const reason = editor.state().properties.fields.find((field) => field.label === 'Height (mm)')?.error ?? ''
     expect(reason).not.toBe('')
     expect(height.value).toBe('400')
@@ -201,11 +201,11 @@ describe('the properties pane', () => {
     const { settle } = await mountScenarioBuilder()
     click(screen.getByRole('treeitem', { name: 'Introduction' }))
     await settle()
-    const condition = screen.getByRole('textbox', { name: 'Show only when' }) as HTMLInputElement
+    const condition = screen.getByRole<HTMLInputElement>('textbox', { name: 'Show only when' })
     expect(condition.value).toBe('')
     condition.value = 'params.typed && never.committed'
     click(screen.getByRole('treeitem', { name: 'Note' }))
     await settle()
-    expect((screen.getByRole('textbox', { name: 'Show only when' }) as HTMLInputElement).value).toBe('')
+    expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Show only when' }).value).toBe('')
   })
 })

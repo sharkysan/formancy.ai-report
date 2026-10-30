@@ -78,8 +78,8 @@ describe('validLocations', () => {
   // and the summary and never inside columns or a keep-together block. The
   // destinations are exactly the places the validator accepts, so a
   // builder that offers them never offers a drop the session refuses.
-  test.each([
-    ['a new page counter', { id: 'counter', kind: 'text', content: [{ kind: 'pageNumber' }] } as Component],
+  test.each<[string, Component | string]>([
+    ['a new page counter', { id: 'counter', kind: 'text', content: [{ kind: 'pageNumber' }] }],
     ['a new spacer', spacer],
     ['the detail table, moved', 'lines'],
     ['a component inside a container, moved', 'note'],

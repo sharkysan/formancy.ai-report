@@ -1,5 +1,4 @@
 import { FIELD_TYPES as REPORT_TYPES } from '@formancy/report-spec'
-import type { FieldType } from '@formancy/report-spec'
 import { FIELD_TYPES as FORM_KINDS, schemaHash } from '@formancy/spec'
 import { describe, expect, test } from 'vitest'
 import readme from '../README.md?raw'
@@ -110,6 +109,7 @@ describe('the mapping', () => {
     })
     expect(headerOf(read(report, form, { parts: 3, hours: 1.25, free: 1234.5 }))).toEqual({ parts: '3', hours: '1.25', free: '1234.5' })
     expect(refusals(read(report, form, { free: 0.1 + 0.2 }))).toEqual(['inexact-number /submission/data/free'])
+    // eslint-disable-next-line no-loss-of-precision -- the literal is the subject: 10^16 + 1 is a number JavaScript has already rounded
     expect(refusals(read(report, form, { free: 10000000000000001 }))).toEqual(['inexact-number /submission/data/free'])
     expect(refusals(read(report, form, { parts: '3' }))).toEqual(['invalid-answer /submission/data/parts'])
     const counted = reportOf({ header: answers(field('hours', 'integer', 'hours')) })

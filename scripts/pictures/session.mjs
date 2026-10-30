@@ -285,7 +285,7 @@ async function walk(config, scenes, options, found) {
         reached = await act(page, scene)
       } catch (error) {
         // Named, since the scene that fails is the picture whose caption no longer holds.
-        throw new Error(`${id}: ${error instanceof Error ? error.message : String(error)}`)
+        throw new Error(`${id}: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
       }
       const { parts, keepFocus = false } = reached
       await quiet(page, parts, within)

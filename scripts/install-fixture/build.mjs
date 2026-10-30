@@ -131,6 +131,7 @@ try {
   const messages = error.errors ?? [{ text: String(error.message ?? error) }]
   throw new Error(
     `the ${options.platform} build failed:\n${messages.map(({ text, location }) => `${text}${location ? ` (${location.file}:${String(location.line)})` : ''}`).join('\n')}`,
+    { cause: error },
   )
 }
 if (options.link !== undefined && !linked.some((path) => path.replaceAll('\\', '/').includes(`/node_modules/${options.link}/`))) {

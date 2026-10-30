@@ -69,12 +69,10 @@ describe('a submission printed', () => {
       ).toEqual([])
 
       const items = pdf.pages.flatMap((page) => page.items.map((item) => ({ ...item, top: item.top + page.number * 10_000 })))
-      const findings = (SITE_VISIT_SUBMISSION_V1.data['findings'] as readonly { readonly ref: string; readonly severity: string }[]).map(
-        ({ ref, severity }) => {
-          const key = items.find((item) => item.text.trim() === ref)
-          return [ref, key === undefined ? [] : lineOf(items, key)] as const
-        },
-      )
+      const findings = (SITE_VISIT_SUBMISSION_V1.data['findings'] as readonly { readonly ref: string; readonly severity: string }[]).map(({ ref }) => {
+        const key = items.find((item) => item.text.trim() === ref)
+        return [ref, key === undefined ? [] : lineOf(items, key)] as const
+      })
       for (const [ref, line] of findings) {
         const severity = (SITE_VISIT_SUBMISSION_V1.data['findings'] as readonly { readonly ref: string; readonly severity: string }[]).find(
           (finding) => finding.ref === ref,

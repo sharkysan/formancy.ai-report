@@ -113,7 +113,7 @@ export function imagesOf(store: ImageStore | undefined, locale: EditorLocale, t:
   if (store === undefined) return { ...words, held: null }
   if (typeof store?.keep !== 'function') throw new RangeError('An image store needs a keep function: the editor hands it every image a person adds.')
   const accept: readonly string[] = store.accept ?? ASSET_MEDIA_TYPES
-  const unknown = Array.isArray(accept) ? accept.filter((type) => !(ASSET_MEDIA_TYPES as readonly string[]).includes(type)) : [String(accept)]
+  const unknown = Array.isArray(accept) ? accept.filter((type: string) => !(ASSET_MEDIA_TYPES as readonly string[]).includes(type)) : [String(accept)]
   if (unknown.length > 0 || accept.length === 0)
     throw new RangeError(`An image store keeps one or more of ${ASSET_MEDIA_TYPES.join(', ')}${unknown.length === 0 ? '' : `, not ${unknown.join(', ')}`}.`)
   const types = ASSET_MEDIA_TYPES.filter((type) => accept.includes(type))

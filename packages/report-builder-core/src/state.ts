@@ -16,7 +16,7 @@ import { layoutReport, MAX_ZOOM, MIN_ZOOM, pageGeometry, PX_PER_PT, rulerTicks, 
 import type { Layout } from './geometry.js'
 import { addRefusal, imageLibrary } from './images.js'
 import type { Images } from './images.js'
-import { columnKey, kindLabel, partLabel, regionLabel, reportLabels } from './labels.js'
+import { kindLabel, partLabel, regionLabel, reportLabels } from './labels.js'
 import type {
   Announcement,
   Availability,

@@ -35,9 +35,10 @@ export interface Measured {
 }
 
 /** Thrown out of pdfmake's layout with what was read; never seen outside `measure`. */
-class Measurement {
+class Measurement extends Error {
   readonly tops: ReadonlyMap<number, number>
   constructor(tops: ReadonlyMap<number, number>) {
+    super('pdfmake was stopped once it had measured')
     this.tops = tops
   }
 }

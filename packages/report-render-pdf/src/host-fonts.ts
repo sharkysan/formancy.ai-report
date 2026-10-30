@@ -76,7 +76,7 @@ export interface RenderFonts {
   face(token: FontFamily | undefined, bold: boolean, italic: boolean, subject: string): RenderFace
   /** Whether a style may name `token`: `sans` always (Roboto), `serif` and `mono` only where the report maps them. */
   usable(token: FontFamily): boolean
-  familyOf(token: FontFamily): string
+  readonly familyOf: (token: FontFamily) => string
   readonly defaultFamily: string
   readonly engine: HostFontFiles
 }

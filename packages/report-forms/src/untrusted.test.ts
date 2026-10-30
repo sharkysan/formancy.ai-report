@@ -96,7 +96,7 @@ describe('a form and a submission are read as data', () => {
         {},
         'not-data /form/model/fields/0',
       ],
-      // eslint-disable-next-line no-sparse-arrays
+      // eslint-disable-next-line no-sparse-arrays -- a hole in the array is the input under test
       [formOf([, { key: 'notes', type: 'textarea' }]), {}, 'not-data /form/model/fields/0'],
       [
         formOf([
@@ -219,7 +219,7 @@ describe('a form and a submission are read as data', () => {
   test('refuses a hole or a getter in a repeater’s rows where it stands, and never runs the getter', () => {
     const rows = reportOf({ detail: rowsOf('findings', field('ref', 'string', 'ref')) })
     const repeater = formOf([{ key: 'findings', type: 'repeater', fields: [{ key: 'ref', type: 'text' }] }])
-    // eslint-disable-next-line no-sparse-arrays
+    // eslint-disable-next-line no-sparse-arrays -- a hole in the array is the input under test
     expect(refusals(read(rows, repeater, { findings: [, { _id: 'r2', ref: 'F-02' }] }))).toEqual(['not-data /submission/data/findings/0'])
     let calls = 0
     const getter = Object.defineProperty([] as unknown[], 0, {
@@ -332,7 +332,7 @@ describe('a form and a submission are read as data', () => {
     expect(refusals(nested)).toEqual(['not-data /submission/data/site'])
     const got = read(report, form, { site: { anna_schaer: withGetter({}, 'born_1970', 'x').object } })
     expect(refusals(got)).toEqual(['not-data /submission/data/site'])
-    // eslint-disable-next-line no-sparse-arrays
+    // eslint-disable-next-line no-sparse-arrays -- a hole in the array is the input under test
     expect(refusals(read(report, form, { site: ['Bern', , 'Thun'] }))).toEqual(['not-data /submission/data/site'])
     for (const outcome of [listed, nested, got]) if (!outcome.ok) expect(JSON.stringify(outcome.errors)).not.toMatch(/anna|born/)
   })

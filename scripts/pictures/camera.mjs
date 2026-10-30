@@ -181,7 +181,7 @@ const CANVAS_QUIET_MS = 300
  * and the DOM watch in `shoot` cannot see it. Each read is a digest of every
  * eighth pixel, which a step that draws text or a rule changes.
  */
-export async function canvasesDrawn(page, parts, { within }) {
+export async function canvasesDrawn(_page, parts, { within }) {
   const deadline = Date.now() + within
   const read = () =>
     Promise.all(

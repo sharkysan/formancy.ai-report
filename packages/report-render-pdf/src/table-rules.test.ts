@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest'
 import { naturalLayout, type KeepBlock } from './breaks.js'
 import { newBuild, type Build, type RowKind, type TablePlan } from './build.js'
 import type { RenderFonts } from './host-fonts.js'
-import type { Cell, Row } from './table.js'
+import type { Row } from './table.js'
 import { tableRules } from './table-rules.js'
 
 /** The plan a table whose text this test never checks needs: every token prints in Roboto. */

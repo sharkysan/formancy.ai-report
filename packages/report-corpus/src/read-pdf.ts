@@ -1,4 +1,4 @@
-import { getDocument, OPS, VerbosityLevel, type PageViewport, type PDFDocumentProxy, type PDFPageProxy } from 'pdfjs-dist/legacy/build/pdf.mjs'
+import { getDocument, VerbosityLevel, type PageViewport, type PDFDocumentProxy, type PDFPageProxy } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import type { TextItem } from 'pdfjs-dist/types/src/display/api.js'
 import { drawnOn } from './operators.js'
 

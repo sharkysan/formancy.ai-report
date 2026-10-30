@@ -10,6 +10,19 @@ later.
 
 ## Unreleased
 
+**A session and an editor are handed to a store hook as bare functions, and
+their types now say so.** `ReportSession.subscribe` and `document`, and
+`ReportEditor.subscribe` and `state`, are declared `this: void`, because
+React's `useSyncExternalStore` and every hook like it takes them off the
+object and calls them alone; the linter's `unbound-method` found the
+builders doing exactly that. Both stay methods, so an implementation with
+a narrower parameter still compiles. What `this: void` refuses is an
+object literal written in place whose `subscribe`, `document` or `state`
+reads `this`; a class, a closure or an arrow function is unaffected, and
+nothing in this repository was. The case is
+`session-listeners.test.ts` and `editor-shared.test.ts`, whose
+`@ts-expect-error` fails typecheck when the declaration is lost.
+
 **Report has a server that knows who is asking, and answers nothing else**
 ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
 [0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).

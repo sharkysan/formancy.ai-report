@@ -15,7 +15,7 @@
  * one reads its account from the data, each field writes its own (0044).
  */
 import { setLocale, setPage, setPaymentAccount, setTitle, updateColumn, updateComponent, updateEInvoice, updatePaymentPart } from '@formancy/report-core'
-import type { Command, ComponentPatch, Diagnostic, EInvoicePatch, PagePatch, PaymentPartPatch, Refusal } from '@formancy/report-core'
+import type { Command, ComponentPatch, Diagnostic, PagePatch, Refusal } from '@formancy/report-core'
 import { printableArea, ptToMm, squareRoom } from '@formancy/report-spec'
 import type { Inline, ReportDefinition } from '@formancy/report-spec'
 import { invoiceFields } from './invoice-fields.js'

@@ -404,8 +404,8 @@ describe('the euro invoice samples', () => {
   // cannot pass. The PDF's text is read with its whitespace collapsed
   // (report-render-pdf's `normalise`), so this is read from the sample.
   test.each([
-    ['euro-invoice-fr', / [:;!?%€»]/u, / [:%€]/u],
-    ['euro-invoice-es', / %/u, / %/u],
+    ['euro-invoice-fr', / [:;!?%€»]/u, /\u00a0[:%€]/u],
+    ['euro-invoice-es', / %/u, /\u00a0%/u],
   ] as const)('%s sets a no-break space before every mark its language spaces', (id, plain, kept) => {
     const sample = EURO_INVOICE_SAMPLES.find((each) => each.id === id) as Starter
     const texts = [...printed(sample.report, sample.data)]

@@ -114,7 +114,7 @@ async function run(command, args, cwd, env = {}) {
     // Said once: the command, then what it printed, which is where tsc, ngc
     // and a failed check say what is wrong, without ngc's colours.
     const said = `${error.stdout ?? ''}${error.stderr ?? ''}`.replace(ANSI, '').trim()
-    throw new Error(`${[command, ...args].join(' ')} failed${said === '' ? `: ${error.message}` : `:\n${said.slice(0, 6000)}`}`)
+    throw new Error(`${[command, ...args].join(' ')} failed${said === '' ? `: ${error.message}` : `:\n${said.slice(0, 6000)}`}`, { cause: error })
   }
 }
 

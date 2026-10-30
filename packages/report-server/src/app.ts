@@ -86,7 +86,7 @@ function loggerProblem(logger: unknown): string | undefined {
 }
 
 /** A copy of an embedder's list, frozen, so a list changed after it was checked is never granted unchecked. */
-const frozen = <T>(list: readonly T[] | undefined): readonly T[] => Object.freeze(Array.isArray(list) ? [...list] : (list ?? []))
+const frozen = <T>(list: readonly T[] | undefined): readonly T[] => Object.freeze(Array.isArray(list) ? Array.from<T>(list) : (list ?? []))
 
 /**
  * A request as the log names it: its method and the route that answered,

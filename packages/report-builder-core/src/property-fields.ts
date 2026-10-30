@@ -320,20 +320,22 @@ function styleField(key: string, words: FieldWords, styles: readonly PrintStyle[
 const refToken = (ref: FieldRef): string => `field:${ref.dataset}:${ref.field}`
 
 /** The fields and parameters a run can be bound to where it stands: detail fields only in a row. */
-function bindings(context: FieldContext): (PropertyOption & { readonly stored: Inline })[] {
+type Binding = PropertyOption & { readonly stored: Inline }
+
+function bindings(context: FieldContext): Binding[] {
   const { report, t } = context
   const fields = (dataset: 'header' | 'detail') =>
     (report.datasets[dataset]?.fields ?? [])
       .filter((field) => field.type !== 'image')
-      .map((field) => ({
+      .map((field): Binding => ({
         value: refToken({ dataset, field: field.id }),
         label: field.label,
-        stored: { kind: 'field', field: { dataset, field: field.id } } as Inline,
+        stored: { kind: 'field', field: { dataset, field: field.id } },
       }))
-  const parameters = report.parameters.map((parameter) => ({
+  const parameters = report.parameters.map((parameter): Binding => ({
     value: `parameter:${parameter.id}`,
     label: t('option.parameter', { label: parameter.label }),
-    stored: { kind: 'parameter', parameter: parameter.id } as Inline,
+    stored: { kind: 'parameter', parameter: parameter.id },
   }))
   return [...(context.row ? fields('detail') : []), ...fields('header'), ...parameters]
 }

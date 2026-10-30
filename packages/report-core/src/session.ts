@@ -59,7 +59,7 @@ export interface EditOptions {
 
 export interface ReportSession {
   /** The current document: frozen, and the same object until the next change. */
-  document(): ReportDefinition
+  document(this: void): ReportDefinition
   /** Counts changes: one per committed edit, undo or redo. A refused edit, or one that changed nothing, is not one. */
   revision(): number
   /** `reportHash` of the current document, what a save or a proposal is bound to. */
@@ -70,7 +70,7 @@ export interface ReportSession {
    * once all have run, its error is thrown from the call that made the
    * change -- which has been made -- or an AggregateError when several threw.
    */
-  subscribe(listener: () => void): () => void
+  subscribe(this: void, listener: () => void): () => void
   /**
    * Runs a command against the document and commits the result if the
    * validator accepts it. A command returns the next report and never edits

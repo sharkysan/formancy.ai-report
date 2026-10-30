@@ -1,5 +1,5 @@
 import { componentAt, DATASET_ROLES } from '@formancy/report-spec'
-import type { Component, FieldContract, FieldType, ReportDefinition, TableComponent } from '@formancy/report-spec'
+import type { FieldContract, FieldType, ReportDefinition, TableComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { tryEdit } from '../draft.js'
 import { compileReport } from '../expressions/compile-report.js'
@@ -80,13 +80,13 @@ describe('removeFieldWithReaders', () => {
       { when: { cel: 'header.orderedOn != null' }, style: 'small' },
       { when: { cel: 'totals.lines > 1' }, style: 'strong' },
     ]
-    const styled = frozen({
+    const styled = frozen<ReportDefinition>({
       ...unbilled(),
       regions: {
         ...unbilled().regions,
         body: unbilled().regions.body.map((component) => (component.id === 'lines' ? { ...table(unbilled()), styleWhen: rules } : component)),
       },
-    } as ReportDefinition)
+    })
     const kept = removed(styled, 'header', 'orderedOn')
     expect(kept.removed).toEqual(['/regions/body/0', '/regions/body/2/styleWhen/0', '/datasets/header/fields/1'])
     expect(table(kept.report).styleWhen).toEqual([rules[1]])
@@ -95,7 +95,7 @@ describe('removeFieldWithReaders', () => {
       { when: { cel: 'totals.average > dec("1.0")' }, style: 'small' },
       { when: { cel: 'row.quantity > 1' }, style: 'strong' },
     ]
-    const sku = frozen({
+    const sku = frozen<ReportDefinition>({
       ...unbilled(),
       regions: {
         ...unbilled().regions,
@@ -105,7 +105,7 @@ describe('removeFieldWithReaders', () => {
             : component,
         ),
       },
-    } as ReportDefinition)
+    })
     const both = removed(sku, 'detail', 'quantity')
     expect(both.removed.slice(0, 2)).toEqual(['/regions/body/2/columns/0/styleWhen/0', '/regions/body/2/columns/0/styleWhen/1'])
     expect(table(both.report).columns[0]).not.toHaveProperty('styleWhen')
@@ -143,11 +143,11 @@ describe('removeFieldWithReaders', () => {
     const totals = (lines.totals ?? []).map((row, index) =>
       index === 1 ? { ...row, cells: row.cells.map((cell) => (cell.column === 'amount' ? { column: 'price', value: twice } : cell)) } : row,
     )
-    const chained = frozen({
+    const chained = frozen<ReportDefinition>({
       ...base,
       aggregates: [...base.aggregates, { id: 'doubled', fn: 'max', of: { kind: 'expression', expression: { cel: 'totals.subtotal * dec("2")' } } }],
       regions: { ...base.regions, body: base.regions.body.map((component) => (component.id === 'lines' ? { ...lines, totals } : component)) },
-    } as ReportDefinition)
+    })
     const { report, removed: gone } = removed(chained, 'detail', 'amount')
     expect(report.aggregates.map(({ id }) => id)).toEqual(['lines', 'average', 'latest'])
     expect(componentAt(report, 'payment-code')).toBeUndefined()
@@ -177,7 +177,7 @@ describe('removeFieldWithReaders', () => {
     const lines = table(unbilled())
     const group = lines.group as NonNullable<TableComponent['group']>
     const average = { kind: 'expression', expression: { cel: 'string(group.average)' } } as const
-    const emptied = frozen({
+    const emptied = frozen<ReportDefinition>({
       ...unbilled(),
       regions: {
         ...unbilled().regions,
@@ -191,7 +191,7 @@ describe('removeFieldWithReaders', () => {
             : component,
         ),
       },
-    } as ReportDefinition)
+    })
     const { report, removed: gone } = removed(emptied, 'detail', 'quantity')
     expect(gone).toEqual([
       '/regions/body/2/columns/1',
@@ -209,7 +209,7 @@ describe('removeFieldWithReaders', () => {
   // of which reads the field goes whole, rather than leave a table the
   // validator refuses, and the rest of the report stays.
   test('removes a table whole where every column of it goes', () => {
-    const narrow = frozen({
+    const narrow = frozen<ReportDefinition>({
       ...unbilled(),
       regions: {
         ...unbilled().regions,
@@ -217,7 +217,7 @@ describe('removeFieldWithReaders', () => {
           component.id === 'lines' ? { ...table(unbilled()), columns: table(unbilled()).columns.filter(({ id }) => id === 'shipped-at') } : component,
         ),
       },
-    } as ReportDefinition)
+    })
     const { report, removed: gone } = removed(narrow, 'detail', 'shippedAt')
     expect(gone).toEqual(['/regions/body/2', '/datasets/detail/fields/5'])
     expect(componentAt(report, 'lines')).toBeUndefined()
@@ -229,7 +229,7 @@ describe('removeFieldWithReaders', () => {
   // reads it too goes with it, once; and two cells of one totals row that
   // read it go, each named once, in their order.
   test("removes a table its own condition reads it in, and a group with its footer's cells once", () => {
-    const shown = frozen({
+    const shown = frozen<ReportDefinition>({
       ...unbilled(),
       regions: {
         ...unbilled().regions,
@@ -237,17 +237,17 @@ describe('removeFieldWithReaders', () => {
           component.id === 'lines' ? { ...table(unbilled()), visibleWhen: { cel: 'header.customer != ""' } } : component,
         ),
       },
-    } as ReportDefinition)
+    })
     expect(removed(shown, 'header', 'orderedOn').report.regions.body.map(({ id }) => id)).toContain('lines')
     const without = removed(
-      frozen({ ...shown, regions: { ...shown.regions, body: shown.regions.body.filter(({ id }) => id !== 'intro'), summary: [] } } as ReportDefinition),
+      frozen<ReportDefinition>({ ...shown, regions: { ...shown.regions, body: shown.regions.body.filter(({ id }) => id !== 'intro'), summary: [] } }),
       'header',
       'customer',
     )
     expect(without.removed).toEqual(['/regions/reportHeader/0/columns/1/components/0', '/regions/body/1', '/datasets/header/fields/0'])
     const customer = { kind: 'expression', expression: { cel: 'header.customer' } } as const
     const lines = table(unbilled())
-    const grouped = frozen({
+    const grouped = frozen<ReportDefinition>({
       ...unbilled(),
       regions: {
         ...unbilled().regions,
@@ -274,7 +274,7 @@ describe('removeFieldWithReaders', () => {
             : component,
         ),
       },
-    } as ReportDefinition)
+    })
     const { report, removed: gone } = removed(grouped, 'header', 'customer')
     expect(gone.filter((pointer) => pointer.startsWith('/regions/body/2'))).toEqual([
       '/regions/body/2/group',
@@ -303,7 +303,7 @@ describe('removeFieldWithReaders', () => {
     const { report, removed: gone } = removed(unbilled(), 'detail', 'sku')
     expect(gone).toEqual(['/regions/body/2/columns/0', '/regions/body/2/sort/0', '/datasets/detail/fields/1'])
     expect(table(report).sort).toBeUndefined()
-    const sorted = frozen({
+    const sorted = frozen<ReportDefinition>({
       ...unbilled(),
       regions: {
         ...unbilled().regions,
@@ -317,9 +317,9 @@ describe('removeFieldWithReaders', () => {
                 ],
               }
             : component,
-        ) as Component[],
+        ),
       },
-    } as ReportDefinition)
+    })
     expect(table(removed(sorted, 'detail', 'sku').report).sort).toEqual([{ field: { dataset: 'detail', field: 'site' }, direction: 'asc' }])
   })
 
@@ -330,10 +330,10 @@ describe('removeFieldWithReaders', () => {
   // (unused.ts), and stays, its own diagnostic saying why.
   test('finds a reader as the parser finds it, and none in an expression that does not parse', () => {
     const condition = (cel: string): ReportDefinition =>
-      frozen({
+      frozen<ReportDefinition>({
         ...unbilled(),
         regions: { ...unbilled().regions, body: [{ id: 'conditional', kind: 'spacer', height: 4, visibleWhen: { cel } }, ...unbilled().regions.body] },
-      } as ReportDefinition)
+      })
     for (const cel of ['header.orderedOn != null', 'header["orderedOn"] != null', 'size(header) > 0']) {
       expect(componentAt(removed(condition(cel), 'header', 'orderedOn').report, 'conditional'), cel).toBeUndefined()
     }
@@ -345,15 +345,15 @@ describe('removeFieldWithReaders', () => {
   // section a condition of which reads the field takes what it holds,
   // and a reader inside it is not removed a second time.
   test('removes a container once, with what it holds', () => {
-    const closing = frozen({
+    const closing = frozen<ReportDefinition>({
       ...unbilled(),
       regions: {
         ...unbilled().regions,
         summary: unbilled().regions.summary.map((component) =>
           component.id === 'closing' ? { ...component, visibleWhen: { cel: 'header.signature != null || totals.lines > 0' } } : component,
-        ) as Component[],
+        ),
       },
-    } as ReportDefinition)
+    })
     const { report, removed: gone } = removed(closing, 'header', 'signature')
     expect(gone).toEqual(['/regions/summary/0', '/datasets/header/fields/3'])
     expect(['closing', 'threshold', 'statistics', 'signature-image'].map((id) => componentAt(report, id))).toEqual([undefined, undefined, undefined, undefined])
@@ -404,13 +404,13 @@ describe('removeFieldWithReaders', () => {
       refused(removeFieldWithReaders(unbilled(), 'detail', 'customer')).path,
     ]).toEqual(['not-found', '/datasets/detail/fields'])
     const { datasets: _datasets, ...rest } = unbilled()
-    expect(refused(removeFieldWithReaders({ ...rest, datasets: {} } as ReportDefinition, 'header', 'customer')).code).toBe('not-found')
+    expect(refused(removeFieldWithReaders({ ...rest, datasets: {} }, 'header', 'customer')).code).toBe('not-found')
   })
 
   // A removal that took anything with a field nothing reads would lose
   // what nobody asked it to.
   test('of a field nothing reads, removes the field alone', () => {
-    const spare = frozen({
+    const spare = frozen<ReportDefinition>({
       ...unbilled(),
       datasets: {
         ...unbilled().datasets,
@@ -419,7 +419,7 @@ describe('removeFieldWithReaders', () => {
           fields: [...(unbilled().datasets.detail?.fields ?? []), { id: 'spare', type: 'string', label: 'Spare', nullable: true }],
         },
       },
-    } as ReportDefinition)
+    })
     expect(removed(spare, 'detail', 'spare').removed).toEqual(['/datasets/detail/fields/8'])
   })
 })

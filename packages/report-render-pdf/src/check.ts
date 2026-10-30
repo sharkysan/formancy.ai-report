@@ -269,7 +269,7 @@ function checkBlocks(blocks: readonly Block[], path: string, place: Place, walk:
 
 function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
   switch (block.kind) {
-    case 'paragraph':
+    case 'paragraph': {
       walk.paths.set(block, at)
       if (!place.region && block.runs.some((run) => 'field' in run)) {
         throw new RenderRefusal('unsupported', `${at} prints a page field; pdfmake knows the page number only in the page header and footer`, at)
@@ -286,12 +286,14 @@ function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
       // A line as tall as its tallest run's face lays it out (`bound.ts`): taller than the body, pdfmake drops the whole line without a word.
       tall(walk, place, paragraphLine(block, walk.fonts), `a line of ${at}`, at)
       return
-    case 'table':
+    }
+    case 'table': {
       if (place.column) throw new RenderRefusal('unsupported', `table ${block.id} stands inside a columns block; a table is part of the flow`, block.id)
       checkTable(block, place.width, walk.fonts)
       const under = checkTableCells(block, place, walk)
       if (!place.region && !place.kept) walk.measured.push({ block, at, width: place.width, inset: place.inset, under })
       return
+    }
     case 'image':
       checkImage(block, place, walk)
       walk.images.push({ image: block, region: place.region })

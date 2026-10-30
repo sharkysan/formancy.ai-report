@@ -276,7 +276,7 @@ describe('checkData', () => {
       },
     }
     const symbol = { ...sampleRow(), [Symbol('hidden')]: 1 }
-    // eslint-disable-next-line no-sparse-arrays
+    // eslint-disable-next-line no-sparse-arrays -- a hole in the array is the input under test
     const rows = [getter, , 'row', symbol] as Record<string, unknown>[]
     const refused = errors(checkData(sampleReport(), withData({ completeness: { complete: true, captured: 4 } }, rows), final))
     expect(where(refused)).toEqual(['not-data /detail/0/amount', 'not-data /detail/1', 'wrong-type /detail/2', 'not-data /detail/3'])
@@ -517,6 +517,7 @@ describe('checkData: where the data came from', () => {
     const hiddenId = Object.defineProperty({ form: 'site-visit', formHash: VERSION_1 }, 'id', getter(FIRST))
 
     const refused = errors(
+      // eslint-disable-next-line no-sparse-arrays -- a hole in the array is the input under test
       checkData(sampleReport(), withData({ source: formSource([hiddenId, , submission({ id: SECOND, formHash: VERSION_2 })]) }, rows(3)), final),
     )
     expect(where(refused)).toEqual(['not-data /source/submissions/0/id', 'not-data /source/submissions/1'])
