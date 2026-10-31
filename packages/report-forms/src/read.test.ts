@@ -461,6 +461,28 @@ describe('a submission of every spec version', () => {
     expect(refusals(read(report, form, { total: '1,50' }))).toEqual(['invalid-answer /submission/data/total'])
   })
 
+  // Every formancy server from 0.2.0 to 0.11.0 published a pattern that
+  // backtracks only as its engine runs it, with the `u` flag, such as
+  // `(\p{L}+)+`, and 0.12.0's refuses one only when the form is published
+  // again (formancy.ai 0226): until then a host keeps the version and its
+  // submissions. The bridge reads what the pinned validator reads (0004),
+  // which compiles a pattern as the engine does and never analyses it; a
+  // bridge that refused such a version would leave every submission of it
+  // unprintable. Nor does the bridge run a pattern: one that did would let
+  // that version hold a render as it held formancy's server, so an answer
+  // the pattern refuses, which formancy's engine never stores, prints. A
+  // pattern that does not compile with the `u` flag is no version.
+  test('reads a version whose pattern backtracks, never running it, and refuses one that does not compile', () => {
+    const report = reportOf({ header: answers(field('site', 'string', 'site')) })
+    const backtracking = formOf([{ key: 'site', type: 'text', pattern: '(\\p{L}+)+' }])
+    expect(headerOf(read(report, backtracking, { site: 'Bern' }))).toEqual({ site: 'Bern' })
+    expect(headerOf(read(report, backtracking, { site: 'Hauptstrasse 12' }))).toEqual({ site: 'Hauptstrasse 12' })
+    // A quantifier's brace with nothing to count is a literal without `u` and an error with it.
+    const broken = read(report, formOf([{ key: 'site', type: 'text', pattern: 'a{' }]), { site: 'Bern' })
+    expect(refusals(broken)).toEqual(['invalid-form /form/model/fields/0/pattern'])
+    if (!broken.ok) expect(broken.errors[0]?.message).toContain('pattern.invalid')
+  })
+
   // A form of a version upstream's pinned validator does not read is
   // refused whole, naming that version and the ones it reads (0004): a
   // field of spec 6 could be the one that hides a row.
