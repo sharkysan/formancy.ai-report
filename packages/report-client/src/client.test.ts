@@ -187,7 +187,10 @@ describe('against what is not report-server', () => {
   /** A fetch that answers `response` to every request, and records each URL and init it was given. */
   const answering = (response: () => Response) => {
     const asked: { url: string; init: RequestInit | undefined }[] = []
-    const fetch = async (url: string | URL | Request, init?: RequestInit) => (asked.push({ url: String(url), init }), response())
+    const fetch = async (url: string | URL | Request, init?: RequestInit) => (
+      asked.push({ url: typeof url === 'string' ? url : url instanceof URL ? url.href : url.url, init }),
+      response()
+    )
     return { fetch, asked }
   }
   const client = (fetch: ReportClientOptions['fetch']) =>
@@ -320,7 +323,9 @@ describe('against what is not report-server', () => {
         redirect: 'error',
       },
     ])
-    expect(JSON.parse(String(asked[0]?.init?.body))).toEqual(report())
+    const saved = asked[0]?.init?.body
+    expect(typeof saved).toBe('string')
+    expect(JSON.parse(saved as string)).toEqual(report())
     expect(asked[2]?.init?.body).toEqual(PNG)
   })
 

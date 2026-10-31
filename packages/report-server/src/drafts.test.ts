@@ -64,7 +64,7 @@ const keep = (app: FastifyInstance, hex: string, bytes: Uint8Array, contentType 
   app.inject({ method: 'PUT', url: `/v1/assets/${hex}`, headers: { authorization, 'content-type': contentType }, payload: Buffer.from(bytes) })
 
 /** A refusal as a client branches on it: the status and the code. */
-const refusal = (answer: LightMyRequestResponse) => ({ status: answer.statusCode, code: (answer.json() as { code: string }).code })
+const refusal = (answer: LightMyRequestResponse) => ({ status: answer.statusCode, code: answer.json<{ code: string }>().code })
 
 // Images made in code from their parts, as report-server-core's suite makes
 // them: the header reader inflates nothing, so a PNG's image data is any
@@ -282,7 +282,7 @@ describe('a draft', () => {
     await rm(join(cases.directory, 'tenants', sha256('acme'), 'templates', 'invoice', 'draft', '2.json'))
     const again = await save(app, 'invoice', report('invoice', 'Another two'), { 'if-match': String(first.headers.etag) })
     expect(again.statusCode).toBe(200)
-    expect((again.json() as { revision: number }).revision).toBe(2)
+    expect(again.json<{ revision: number }>().revision).toBe(2)
     const overwritten = await save(app, 'invoice', report('invoice', 'Over another two'), { 'if-match': stale })
     expect(overwritten.statusCode).toBe(412)
     expect(overwritten.json()).toEqual({ ...REFUSALS['draft-changed'], revision: 2 })
@@ -290,7 +290,7 @@ describe('a draft', () => {
     const newest = await read(app, draftUrl('invoice'))
     expect(newest.headers.etag).toBe(again.headers.etag)
     expect(newest.headers.etag).not.toBe(stale)
-    expect((newest.json() as { report: ReportDefinition }).report).toEqual(report('invoice', 'Another two'))
+    expect(newest.json<{ report: ReportDefinition }>().report).toEqual(report('invoice', 'Another two'))
     expect(await filesInStore()).toEqual([1, 2].map((revision) => `tenants/${sha256('acme')}/templates/invoice/draft/${String(revision)}.json`))
   })
 })
@@ -372,7 +372,7 @@ describe('the refusals', () => {
     // What a save carries: no report, another template's report, an image not kept.
     const invalid = await save(app, 'quote', { not: 'a report' }, { 'if-none-match': '*' })
     expect(refusal(invalid)).toEqual({ status: 422, code: 'report-invalid' })
-    expect((invalid.json() as { errors: unknown[] }).errors.length).toBeGreaterThan(0)
+    expect(invalid.json<{ errors: unknown[] }>().errors.length).toBeGreaterThan(0)
     expect(refusal(await save(app, 'quote', report('other'), { 'if-none-match': '*' }))).toEqual({ status: 422, code: 'template-id-mismatch' })
     const unkept = await save(
       app,
@@ -566,7 +566,7 @@ describe('the log and the trail', () => {
     const written = `${lines.join('')}${JSON.stringify(events)}`
     expect(written).toContain('"route":"/v1/templates/:template/draft"')
     // A draft's digest is the tenant's too, the SHA-256 of its report's text, in each tag a request sent and an answer gave.
-    const drafts = [created, replaced].map((answer) => (answer.json() as { digest: string }).digest.slice('sha256:'.length))
+    const drafts = [created, replaced].map((answer) => answer.json<{ digest: string }>().digest.slice('sha256:'.length))
     for (const part of [SUBJECT, TITLE, template, hex, hex.slice(0, 16), ...drafts, ...drafts.map((digest) => digest.slice(0, 16)), 'acme'])
       expect(written, part).not.toContain(part)
   })
