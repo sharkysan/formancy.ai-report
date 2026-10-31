@@ -163,6 +163,22 @@ describe('readSubmission', () => {
     expect(resolved.ok ? 'resolved' : resolved.errors.map((error) => `${error.code} ${error.path}`)).toEqual(['unexpected-null /header/site'])
   })
 
+  // The rows a computed rule writes are stored with an `_id` from
+  // formancy 0.11.0 and without one before it (formancy.ai 0218), and a
+  // host keeps both. A bridge that keyed a row by its id would refuse
+  // every older submission of such a form, or print its rows as none; a
+  // row is read by its place and its fields, so both print, in order.
+  test('reads the rows a computed rule wrote, stored with their ids or without', () => {
+    const form = formOf([{ key: 'lines', type: 'repeater', fields: [{ key: 'ref', type: 'text' }] }], { logic: { rules: [{ target: 'lines', kind: 'computed', cel: "[{'ref': 'A'}, {'ref': 'B'}]" }] } })
+    const report = reportOf({ detail: rowsOf('lines', field('ref', 'string', 'ref')) })
+    const before = readData(read(report, form, { lines: [{ ref: 'A' }, { ref: 'B' }] }))
+    const after = readData(read(report, form, { lines: [{ _id: 'lines-0', ref: 'A' }, { _id: 'lines-1', ref: 'B' }] }))
+    expect([before.detail, after.detail]).toEqual([
+      [{ ref: 'A' }, { ref: 'B' }],
+      [{ ref: 'A' }, { ref: 'B' }],
+    ])
+  })
+
   // Every answer is held to its field's type by the runtime's own reading
   // of a value (0010), at the answer's path in the submission, so the
   // bridge and the runtime cannot read a value two ways: a decimal past
@@ -232,6 +248,17 @@ describe('a submission of every spec version', () => {
     ['2', [{ key: 'first', type: 'page', fields: [{ key: 'site', type: 'text' }, { key: 'at', type: 'time' }] }, { key: 'second', type: 'page', fields: [{ key: 'seen', type: 'datetime' }, { key: 'notes', type: 'richtext' }, { key: 'checks', type: 'selectboxes', options: [{ value: 'roof', label: 'Roof' }] }] }]],
     ['3', [{ key: 'site', type: 'text' }, { key: 'signed', type: 'signature', box: [300, 100] }]],
     ['4', [{ key: 'site', type: 'text' }, { key: 'rating', type: 'matrix', rows: [{ value: 'taste', label: 'Taste' }], options: [{ value: 'good', label: 'Good' }, { value: 'poor', label: 'Poor' }] }]],
+    // Spec 5 adds properties alone, each for the person filling the form
+    // in (formancy.ai 0201): help text, an example, an autofill purpose, a
+    // default, a shuffled order and an option chosen on its own. An answer
+    // holds what it held at spec 4, so the bridge reads it as it reads 4.
+    [
+      '5',
+      [
+        { key: 'site', type: 'text', label: 'Site', description: 'As on the deed', placeholder: 'Hauptstrasse 12', autocomplete: 'street-address', default: 'Bern' },
+        { key: 'checks', type: 'selectboxes', shuffle: true, options: [{ value: 'roof', label: 'Roof' }, { value: 'none', label: 'None of these', exclusive: true, keepPlace: true }] },
+      ],
+    ],
   ])('reads a form at spec %s', (specVersion, fields) => {
     const form = formOf(fields, {}, specVersion)
     const report = reportOf({ header: answers(field('site', 'string', 'site')) })
@@ -268,11 +295,11 @@ describe('a submission of every spec version', () => {
 
   // A form of a version upstream's pinned validator does not read is
   // refused whole, naming that version and the ones it reads (0004): a
-  // field of spec 5 could be the one that hides a row.
+  // field of spec 6 could be the one that hides a row.
   test('refuses a spec the pinned validator does not read, naming both versions', () => {
-    const outcome = read(reportOf({ header: answers(field('site', 'string', 'site')) }), formOf([{ key: 'site', type: 'text' }], {}, '5'), { site: 'Bern' })
+    const outcome = read(reportOf({ header: answers(field('site', 'string', 'site')) }), formOf([{ key: 'site', type: 'text' }], {}, '6'), { site: 'Bern' })
     expect(refusals(outcome)).toEqual(['unsupported-spec-version /form/specVersion'])
-    if (!outcome.ok) expect(outcome.errors[0]?.message).toMatch(/"5".*"1", "2", "3", "4"/)
+    if (!outcome.ok) expect(outcome.errors[0]?.message).toMatch(/"6".*"1", "2", "3", "4", "5"\D/)
     // A version that is no string of digits may be anything a host stored, a name among it: said as what it is not.
     const named = read(reportOf({ header: answers(field('site', 'string', 'site')) }), formOf([{ key: 'site', type: 'text' }], {}, 'Erika Mustermann'), {})
     expect(refusals(named)).toEqual(['unsupported-spec-version /form/specVersion'])
