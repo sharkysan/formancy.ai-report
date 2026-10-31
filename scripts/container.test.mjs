@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, test, vi } from 'vitest'
-import { authorClaims, baseImage, CHECKS } from './container.mjs'
+import { baseImage, CHECKS } from './container.mjs'
+import { authorClaims } from './container/host.mjs'
 
 /**
  * The container gate (0046) without Docker: what it leaves behind when it
