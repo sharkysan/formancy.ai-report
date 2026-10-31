@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
 import { lockedPackages, releaseAgeExemptionProblems, releaseAgeExemptions, upstreamDependencyProblems, workspaceManifests } from './upstream-deps.mjs'
 
@@ -67,13 +70,32 @@ describe('releaseAgeExemptionProblems', () => {
   })
 })
 
+describe('workspaceManifests', () => {
+  // The root manifest holds the repository's tooling, @formancy/code-style
+  // among it (0050): a walk of packages/ and apps/ alone would let a range
+  // there move the lint rules under this repository without a commit saying so.
+  test('reads the root manifest beside every package and app', () => {
+    const repo = mkdtempSync(join(tmpdir(), 'upstream-deps-'))
+    try {
+      writeFileSync(join(repo, 'package.json'), JSON.stringify({ name: 'formancy-report', devDependencies: { '@formancy/code-style': '^0.12.0' } }))
+      mkdirSync(join(repo, 'packages', 'report-spec'), { recursive: true })
+      writeFileSync(join(repo, 'packages', 'report-spec', 'package.json'), JSON.stringify({ name: '@formancy/report-spec' }))
+      const manifests = workspaceManifests(repo)
+      expect(manifests.map((manifest) => manifest.name)).toEqual(['formancy-report', '@formancy/report-spec'])
+      expect(upstreamDependencyProblems(manifests)).toEqual(['formancy-report: devDependencies @formancy/code-style@^0.12.0 is not an exact released version'])
+    } finally {
+      rmSync(repo, { recursive: true, force: true })
+    }
+  })
+})
+
 describe('this workspace', () => {
   // The real tree, so the guard is a gate and not an example.
   test('depends on upstream only at exact released versions', () => {
     const manifests = workspaceManifests()
-    // report-spec today: a walk that found nothing has lost a directory, and
-    // would pass by checking nothing.
-    expect(manifests.map((manifest) => manifest.name)).toContain('@formancy/report-spec')
+    // The root and report-spec today: a walk that found neither has lost a
+    // directory, and would pass by checking nothing.
+    expect(manifests.map((manifest) => manifest.name)).toEqual(expect.arrayContaining(['formancy-report', '@formancy/report-spec']))
     expect(upstreamDependencyProblems(manifests)).toEqual([])
   })
 
