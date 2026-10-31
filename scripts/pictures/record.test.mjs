@@ -1,6 +1,23 @@
 import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
-import { announce, checkProblems, dated, digest, entry, lineDiff, misquotes, outsideRepository, pairingProblems, pictureOf, quotations, readScenes, REPO, serialize, stylesheetNotices, withEntry } from './record.mjs'
+import {
+  announce,
+  checkProblems,
+  dated,
+  digest,
+  entry,
+  lineDiff,
+  misquotes,
+  outsideRepository,
+  pairingProblems,
+  pictureOf,
+  quotations,
+  readScenes,
+  REPO,
+  serialize,
+  stylesheetNotices,
+  withEntry,
+} from './record.mjs'
 
 /**
  * What a capture may write into docs/images/readme/captured.json and what
@@ -8,16 +25,47 @@ import { announce, checkProblems, dated, digest, entry, lineDiff, misquotes, out
  * Pure, so held here without a browser; the browser half is the camera's.
  */
 
-const LOOK = { platform: 'win32-x64', playwright: '1.64.1', chromium: '156.0.8078.4', fonts: { Archivo: 'v25', 'IBM Plex Mono': 'v20', 'IBM Plex Sans': 'v23' } }
+const LOOK = {
+  platform: 'win32-x64',
+  playwright: '1.64.1',
+  chromium: '156.0.8078.4',
+  fonts: { Archivo: 'v25', 'IBM Plex Mono': 'v20', 'IBM Plex Sans': 'v23' },
+}
 const SETTINGS = { width: 1600, height: 900, deviceScaleFactor: 2, locale: 'en-US', timezoneId: 'UTC' }
 const SCENES = [
-  { id: 'studio-react', app: 'studio', placement: 'inline', title: 'React', caption: 'Down to “Total CHF 3’143.00”.', alt: 'The Studio.', quotes: { 'Total CHF 3’143.00': ['Preview'] } },
-  { id: 'studio-refusal', app: 'studio', placement: 'inline', title: 'Refused', caption: '“Select Book value”.', alt: 'The Preview.', quotes: { 'Select Book value': ['Preview'] } },
+  {
+    id: 'studio-react',
+    app: 'studio',
+    placement: 'inline',
+    title: 'React',
+    caption: 'Down to “Total CHF 3’143.00”.',
+    alt: 'The Studio.',
+    quotes: { 'Total CHF 3’143.00': ['Preview'] },
+  },
+  {
+    id: 'studio-refusal',
+    app: 'studio',
+    placement: 'inline',
+    title: 'Refused',
+    caption: '“Select Book value”.',
+    alt: 'The Preview.',
+    quotes: { 'Select Book value': ['Preview'] },
+  },
 ]
 const REACT = { Preview: '- region "Preview":\n  - group "Page 1 of 1": "Rundung CHF 0.00 Total CHF 3’143.00"' }
 const REFUSAL = { Preview: '- region "Preview":\n  - button "Select Book value"' }
 const PICTURES = { 'studio-react': Buffer.from('studio-react'), 'studio-refusal': Buffer.from('studio-refusal') }
-const taken = (id, text, look = LOOK) => entry(id, { captured: '2026-10-16', settings: SETTINGS, clip: { x: 0, y: 0, width: 1600, height: 900 }, picture: PICTURES[id] ?? Buffer.from(id), look, data: 'the starters', stylesheet: 'sha256 0', text })
+const taken = (id, text, look = LOOK) =>
+  entry(id, {
+    captured: '2026-10-16',
+    settings: SETTINGS,
+    clip: { x: 0, y: 0, width: 1600, height: 900 },
+    picture: PICTURES[id] ?? Buffer.from(id),
+    look,
+    data: 'the starters',
+    stylesheet: 'sha256 0',
+    text,
+  })
 
 describe('quotations', () => {
   // A mark opened and never closed, or closed twice, would quote a run nobody
@@ -35,9 +83,38 @@ describe('the record an app script writes', () => {
   // size taken from the viewport instead of the clip, would be a record
   // the README renders at the wrong width.
   test("is one entry per scene, with the clip as its CSS size and the picture's own bytes and digest", () => {
-    const written = entry('studio-react', { captured: '2026-10-16', settings: { ...SETTINGS, width: 390 }, clip: { x: 0, y: 0, width: 390, height: 2290 }, picture: PICTURES['studio-react'], look: LOOK, data: 'the starters', stylesheet: 'sha256 0', text: REACT })
-    expect(Object.keys(written)).toEqual(['file', 'captured', 'viewport', 'deviceScaleFactor', 'locale', 'timezone', 'css', 'bytes', 'sha256', 'look', 'data', 'stylesheet', 'text'])
-    expect(written).toMatchObject({ file: 'docs/images/readme/studio-react.webp', viewport: { width: 390, height: 900 }, css: { width: 390, height: 2290 }, bytes: 12, timezone: 'UTC' })
+    const written = entry('studio-react', {
+      captured: '2026-10-16',
+      settings: { ...SETTINGS, width: 390 },
+      clip: { x: 0, y: 0, width: 390, height: 2290 },
+      picture: PICTURES['studio-react'],
+      look: LOOK,
+      data: 'the starters',
+      stylesheet: 'sha256 0',
+      text: REACT,
+    })
+    expect(Object.keys(written)).toEqual([
+      'file',
+      'captured',
+      'viewport',
+      'deviceScaleFactor',
+      'locale',
+      'timezone',
+      'css',
+      'bytes',
+      'sha256',
+      'look',
+      'data',
+      'stylesheet',
+      'text',
+    ])
+    expect(written).toMatchObject({
+      file: 'docs/images/readme/studio-react.webp',
+      viewport: { width: 390, height: 900 },
+      css: { width: 390, height: 2290 },
+      bytes: 12,
+      timezone: 'UTC',
+    })
     expect(written.sha256).toBe(digest('studio-react'))
   })
 
@@ -47,7 +124,9 @@ describe('the record an app script writes', () => {
     expect(() => withEntry({}, SCENES, 'studio-react', taken('studio-react', { Preview: '- region "Preview":\n  - status: "Preview: printed."' }))).toThrow(
       /studio-react was not written, because its caption or alt would not be true of it:\n {2}studio-react: “Total CHF 3’143.00” is not inside one name or value of what the part Preview says/,
     )
-    expect(() => withEntry({}, SCENES, 'studio-react', taken('studio-react', { Preview: 'region "Preview"' }))).toThrow(/line 1 is not an accessibility snapshot line/)
+    expect(() => withEntry({}, SCENES, 'studio-react', taken('studio-react', { Preview: 'region "Preview"' }))).toThrow(
+      /line 1 is not an accessibility snapshot line/,
+    )
     expect(() => withEntry({}, SCENES, 'studio-gone', taken('studio-gone', REACT))).toThrow(/studio-gone is not a scene of scripts\/pictures\/scenes\.json/)
   })
 
@@ -99,7 +178,8 @@ describe('what --check fails with', () => {
   const record = { 'studio-react': taken('studio-react', REACT), 'studio-refusal': taken('studio-refusal', REFUSAL) }
   const all = { 'studio-react': REACT, 'studio-refusal': REFUSAL }
   const file = (path) => Object.entries(PICTURES).find(([id]) => pictureOf(id) === path)?.[1]
-  const check = (changes) => checkProblems({ app: 'studio', scenes: SCENES, record, actIds: Object.keys(all), running: all, playwright: '1.64.1', file, ...changes })
+  const check = (changes) =>
+    checkProblems({ app: 'studio', scenes: SCENES, record, actIds: Object.keys(all), running: all, playwright: '1.64.1', file, ...changes })
 
   // A guard on the guards below: the walk as recorded passes.
   test('is nothing when every part says what it said and every picture is its file', () => {
@@ -156,8 +236,10 @@ describe('what --check fails with', () => {
   // A picture deleted, or replaced by hand, with the page unchanged: the
   // text alone would pass, and the README would show nothing, or something
   // no capture took. Watched failing with the file reader returning nothing.
-  test('is a picture missing, and a picture that is not its record\'s', () => {
-    expect(check({ file: (path) => (path === pictureOf('studio-react') ? undefined : file(path)) })).toEqual(['docs/images/readme/studio-react.webp does not exist, and its record says it was taken'])
+  test("is a picture missing, and a picture that is not its record's", () => {
+    expect(check({ file: (path) => (path === pictureOf('studio-react') ? undefined : file(path)) })).toEqual([
+      'docs/images/readme/studio-react.webp does not exist, and its record says it was taken',
+    ])
     expect(check({ file: (path) => (path === pictureOf('studio-react') ? Buffer.from('another') : file(path)) })).toEqual([
       'docs/images/readme/studio-react.webp is not the picture its record describes: it was changed by hand, or the record was',
     ])
@@ -192,7 +274,11 @@ describe('the stylesheet notice', () => {
     expect(printed).toEqual(['notice: a notice, 100% true'])
     expect(appended).toEqual([])
     printed.length = 0
-    announce(['a notice, 100% true'], { env: { GITHUB_ACTIONS: 'true', GITHUB_STEP_SUMMARY: '/summary' }, print: (line) => printed.push(line), append: (...args) => appended.push(args) })
+    announce(['a notice, 100% true'], {
+      env: { GITHUB_ACTIONS: 'true', GITHUB_STEP_SUMMARY: '/summary' },
+      print: (line) => printed.push(line),
+      append: (...args) => appended.push(args),
+    })
     expect(printed).toEqual(['notice: a notice, 100% true', '::warning title=README pictures::a notice, 100%25 true'])
     expect(appended).toEqual([['/summary', '> **README pictures:** a notice, 100% true\n\n']])
   })

@@ -34,7 +34,22 @@ import type { Vector } from './assets.js'
  */
 
 /** The elements of a drawing in the form `cleanSvg` writes (0030), the renderer's own copy: it may refuse more than report-spec's tables, never less, and `svg-threats.test.ts` holds it to them. */
-export const DRAWN: ReadonlySet<string> = new Set(['svg', 'g', 'defs', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'linearGradient', 'radialGradient', 'stop', 'clipPath'])
+export const DRAWN: ReadonlySet<string> = new Set([
+  'svg',
+  'g',
+  'defs',
+  'path',
+  'rect',
+  'circle',
+  'ellipse',
+  'line',
+  'polyline',
+  'polygon',
+  'linearGradient',
+  'radialGradient',
+  'stop',
+  'clipPath',
+])
 
 /** A tag's name as a refusal may repeat it: short, and nothing but a name's characters. */
 const NAME = /^[A-Za-z][A-Za-z0-9:._-]{0,63}$/
@@ -78,7 +93,11 @@ export function converterOptions(id: string, fit: Image['fit']): ConverterOption
       throw new RenderRefusal('invalid-asset', `the image asset ${id} asks pdfmake's SVG converter to open an image, which the renderer never lets it do`, id)
     },
     warningCallback: () => {
-      throw new RenderRefusal('invalid-asset', `pdfmake's SVG converter could not draw the image asset ${id} as it was approved: it warned, and the renderer draws an SVG whole or not at all`, id)
+      throw new RenderRefusal(
+        'invalid-asset',
+        `pdfmake's SVG converter could not draw the image asset ${id} as it was approved: it warned, and the renderer draws an SVG whole or not at all`,
+        id,
+      )
     },
   }
 }
@@ -91,7 +110,8 @@ export function svgContent(image: Image, vector: Vector): ConvertedSvg {
   const { id } = image.asset
   if (!PASSED.has(vector)) {
     const foreign = foreignMarkup(vector.svg)
-    if (foreign !== undefined) throw new RenderRefusal('invalid-asset', `the image asset ${id} holds ${foreign}, which the renderer never hands pdfmake's SVG converter`, id)
+    if (foreign !== undefined)
+      throw new RenderRefusal('invalid-asset', `the image asset ${id} holds ${foreign}, which the renderer never hands pdfmake's SVG converter`, id)
     PASSED.add(vector)
   }
   return { svg: vector.svg, width: image.width, height: image.height, options: converterOptions(id, image.fit) }

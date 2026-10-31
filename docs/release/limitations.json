@@ -19,7 +19,7 @@
       ]
     },
     "0002": {
-      "reviewed": "sha256:b90b94a94b228896bf4d783577b943e563323d5ab985d9f5363fbee8bf2579ed",
+      "reviewed": "sha256:b06dfb3d5006f8a6a515c2c923dacbcd42645b3c884e4a439e843007fb2c4ee1",
       "limitations": [
         {
           "area": "release",
@@ -47,7 +47,7 @@
       ]
     },
     "0004": {
-      "reviewed": "sha256:b4babd099a9f78e8dc0e6887549b83c0ac250535befafd6e64aba8615c4f8f23",
+      "reviewed": "sha256:10d59327ff830044597b7c201ef0f1de062c41cae436812b19801f7dc86eefe9",
       "limitations": [
         {
           "area": "format",
@@ -1627,7 +1627,7 @@
       ]
     },
     "0042": {
-      "reviewed": "sha256:37beb87dc2a11178dbd34ea6e046d9f86e067332c5531047964c2c6a2d0c06eb",
+      "reviewed": "sha256:c4a0e6119e1cd9d67580e624cca27cc2cbf6e3f70b763716b9dcbc8bc2220b8d",
       "limitations": [
         {
           "area": "format",
@@ -1635,7 +1635,11 @@
         },
         {
           "area": "data",
-          "says": "The form bridge fetches nothing, so a host prints a submission against the version that collected it only if it kept that version's document, which formancy 0.7.0's server serves for its current version alone."
+          "says": "The form bridge fetches nothing, so a host prints a submission against the version that collected it only if it kept that version's document or fetches it from a formancy server of 0.8.0 or later, which serves each version's document by its number; 0.7.0's served its current version's alone."
+        },
+        {
+          "area": "data",
+          "says": "A default a spec 5 form gives a field, left alone by the person filling it in, is stored by formancy as their answer, indistinguishable from one they chose, and prints as one."
         },
         {
           "area": "data",
@@ -1683,7 +1687,7 @@
         },
         {
           "area": "data",
-          "says": "A select or a radio that offers no options in the document and names no source takes any value, as formancy's engine does, so its stored value prints unchecked with `read: 'value'`, and its label is refused.",
+          "says": "A select or a radio that offers no options in the document and names no source takes any non-empty string, as formancy's engine takes from 0.8.0, so its stored value prints unchecked with `read: 'value'`, its label is refused, and an empty string is refused as `invalid-answer`, as for any choice.",
           "heldBy": "packages/report-forms/src/kinds.test.ts"
         },
         {
@@ -2226,6 +2230,21 @@
         {
           "area": "testing",
           "says": "The getting-started guide’s draft host is type-checked and bundled by the install gate and never run against a server, so its Save, its conflict and its reload rest on review and on report-client’s own suite."
+        }
+      ]
+    },
+    "0050": {
+      "reviewed": "sha256:c9557882589c6865e92aa2cc80910b8158ca1b0e45d6b098cb2fedb6134b6156",
+      "limitations": [
+        {
+          "area": "editing",
+          "says": "An object written in place as a `ReportSession` whose `subscribe`, `document` or `hash` reads `this` no longer compiles, since those members are declared `this: void` for the store hooks that call them off the object; a class or a closure is unaffected.",
+          "heldBy": "packages/report-core/src/implementable.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "An object written in place as a `ReportEditor` whose `subscribe` or `state` reads `this` no longer compiles, since those members are declared `this: void` for the store hooks that call them off the object; a class or a closure is unaffected.",
+          "heldBy": "packages/report-builder-core/src/implementable.test.ts"
         }
       ]
     }

@@ -116,7 +116,7 @@ async function run(command, args, cwd, env = {}) {
     // Said once: the command, then what it printed, which is where tsc, ngc
     // and a failed check say what is wrong, without ngc's colours.
     const said = `${error.stdout ?? ''}${error.stderr ?? ''}`.replace(ANSI, '').trim()
-    throw new Error(`${[command, ...args].join(' ')} failed${said === '' ? `: ${error.message}` : `:\n${said.slice(0, 6000)}`}`)
+    throw new Error(`${[command, ...args].join(' ')} failed${said === '' ? `: ${error.message}` : `:\n${said.slice(0, 6000)}`}`, { cause: error })
   }
 }
 
@@ -216,11 +216,17 @@ async function check(project, entry, tarballs, runtime, guide) {
   // here and fail in a browser host. Keyed on what the project is for,
   // never on its own types, which install-hosts.test.mjs holds to the DOM's
   // alone for every browser's host.
-  if (project.browser && installed(dir, '@types/node') !== undefined) throw new Error(`${project.name} has @types/node installed, which a browser host's code is checked without`)
+  if (project.browser && installed(dir, '@types/node') !== undefined)
+    throw new Error(`${project.name} has @types/node installed, which a browser host's code is checked without`)
 
-  const framework = Object.entries(entry.installed).map(([name, version]) => `${name} ${String(version)}`).join(', ')
+  const framework = Object.entries(entry.installed)
+    .map(([name, version]) => `${name} ${String(version)}`)
+    .join(', ')
   const lines = [`\n${project.name}: ${project.consumer}${framework === '' ? '' : `, beside ${framework}`}`]
-  if (entry.guide !== null) lines.push(`  the guide's ${entry.guide.kind} blocks, from lines ${entry.guide.blocks.join(', ')} of docs/getting-started.md, in guide/${entry.guide.files.join(', guide/')}`)
+  if (entry.guide !== null)
+    lines.push(
+      `  the guide's ${entry.guide.kind} blocks, from lines ${entry.guide.blocks.join(', ')} of docs/getting-started.md, in guide/${entry.guide.files.join(', guide/')}`,
+    )
   for (const [at, step] of project.steps.entries()) {
     const said = (await inProject(step.command, dir, step.env)).trim()
     entry.steps[at].done = true
@@ -271,8 +277,20 @@ try {
   const manifests = new Map([...tarballs].map(([name, file]) => [name, manifestOf(file)]))
   const projects = planProjects(manifests)
   // The packed packages' own dependencies, which a clean install resolves afresh.
-  const runtime = [...new Set([...manifests.values()].flatMap((manifest) => Object.keys(manifest.dependencies ?? {})).filter((name) => !name.startsWith('@formancy/')))].sort()
-  record.consumers = projects.map(({ name, consumer, at, steps }) => ({ project: name, consumer, at, npmInstalled: false, installed: {}, tools: {}, resolved: [], guide: null, steps: steps.map((step) => ({ step: step.name, done: false, said: null })) }))
+  const runtime = [
+    ...new Set([...manifests.values()].flatMap((manifest) => Object.keys(manifest.dependencies ?? {})).filter((name) => !name.startsWith('@formancy/'))),
+  ].sort()
+  record.consumers = projects.map(({ name, consumer, at, steps }) => ({
+    project: name,
+    consumer,
+    at,
+    npmInstalled: false,
+    installed: {},
+    tools: {},
+    resolved: [],
+    guide: null,
+    steps: steps.map((step) => ({ step: step.name, done: false, said: null })),
+  }))
   console.log(`installing ${String(projects.length)} projects into plain npm projects, each with what its host has, and checking each…`)
 
   // At once: most of the time is npm's, waiting on the network.
@@ -294,7 +312,12 @@ try {
 } finally {
   rmSync(work, { recursive: true, force: true })
   mkdirSync(join(repo, 'test-results'), { recursive: true })
-  const result = { ...record, finishedAt: new Date().toISOString(), passed: failure === undefined, ...(failure === undefined ? {} : { error: String(failure?.message ?? failure) }) }
+  const result = {
+    ...record,
+    finishedAt: new Date().toISOString(),
+    passed: failure === undefined,
+    ...(failure === undefined ? {} : { error: String(failure?.message ?? failure) }),
+  }
   writeFileSync(join(repo, 'test-results', 'install.json'), json(result), 'utf8')
 }
 

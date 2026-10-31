@@ -78,7 +78,12 @@ const chunk = (type: string, data: readonly number[]): number[] => {
 /** A truecolour PNG of this size; two sizes are two images, with two digests. */
 function png(width = 8, height = 8): Uint8Array {
   const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
-  return Uint8Array.from([...signature, ...chunk('IHDR', [...u32(width), ...u32(height), 8, 2, 0, 0, 0]), ...chunk('IDAT', [0x78, 0x9c, 1, 2, 3, 4]), ...chunk('IEND', [])])
+  return Uint8Array.from([
+    ...signature,
+    ...chunk('IHDR', [...u32(width), ...u32(height), 8, 2, 0, 0, 0]),
+    ...chunk('IDAT', [0x78, 0x9c, 1, 2, 3, 4]),
+    ...chunk('IEND', []),
+  ])
 }
 
 const segment = (marker: number, body: readonly number[]): number[] => [0xff, marker, (body.length + 2) >> 8, (body.length + 2) & 0xff, ...body]
@@ -120,7 +125,10 @@ describe('keepImage', () => {
   // bytes are the cleaned drawing, which is the form a builder keeps.
   test('keeps a JPEG and a cleaned SVG under their own media types', async () => {
     const { store } = memoryStore()
-    for (const [bytes, mediaType] of [[jpeg(), 'image/jpeg'], [svg(), 'image/svg+xml']] as const) {
+    for (const [bytes, mediaType] of [
+      [jpeg(), 'image/jpeg'],
+      [svg(), 'image/svg+xml'],
+    ] as const) {
       expect((await keepImage(asking(store, AUTHOR), hexOf(bytes), mediaType, bytes)).status, mediaType).toBe(200)
       expect(await store.readImage('acme', assetDigest(bytes)), mediaType).toEqual({ mediaType, bytes })
     }
@@ -144,7 +152,11 @@ describe('keepImage', () => {
   test('refuses a publisher, an administrator and a token with no capacity as forbidden, before looking at anything else', async () => {
     const { store, asked } = memoryStore()
     for (const role of [PUBLISHER, ADMIN, undefined]) {
-      expect(await keepImage(asking(store, role), 'not a digest', 'text/plain', Uint8Array.of(0)), String(role)).toEqual({ ok: false, status: 403, body: REFUSALS.forbidden })
+      expect(await keepImage(asking(store, role), 'not a digest', 'text/plain', Uint8Array.of(0)), String(role)).toEqual({
+        ok: false,
+        status: 403,
+        body: REFUSALS.forbidden,
+      })
     }
     expect(asked).toEqual([])
   })
@@ -157,7 +169,11 @@ describe('keepImage', () => {
     const bytes = png()
     const hex = hexOf(bytes)
     for (const digest of [hex.toUpperCase(), `sha256:${hex}`, hex.slice(1), `${hex}0`, '', '../'.repeat(22).slice(0, 64), `${hex.slice(0, 63)}g`]) {
-      expect(await keepImage(asking(store, AUTHOR), digest, 'not a type', Uint8Array.of(0)), digest).toEqual({ ok: false, status: 400, body: REFUSALS['digest-invalid'] })
+      expect(await keepImage(asking(store, AUTHOR), digest, 'not a type', Uint8Array.of(0)), digest).toEqual({
+        ok: false,
+        status: 400,
+        body: REFUSALS['digest-invalid'],
+      })
     }
     expect(asked).toEqual([])
   })
@@ -169,7 +185,11 @@ describe('keepImage', () => {
   test('refuses bytes past MAX_ASSET_BYTES as image-too-large, and judges bytes of exactly that size by what they are', async () => {
     const { store, asked } = memoryStore()
     const digest = '0'.repeat(64)
-    expect(await keepImage(asking(store, AUTHOR), digest, 'image/png', new Uint8Array(MAX_ASSET_BYTES + 1))).toEqual({ ok: false, status: 413, body: REFUSALS['image-too-large'] })
+    expect(await keepImage(asking(store, AUTHOR), digest, 'image/png', new Uint8Array(MAX_ASSET_BYTES + 1))).toEqual({
+      ok: false,
+      status: 413,
+      body: REFUSALS['image-too-large'],
+    })
     expect(await keepImage(asking(store, AUTHOR), digest, 'image/png', new Uint8Array(MAX_ASSET_BYTES))).toEqual({
       ok: false,
       status: 422,
@@ -197,12 +217,16 @@ describe('keepImage', () => {
   // The request says what it sends and the bytes say what they are; a
   // disagreement is a client that is wrong about one of them, and a store
   // that kept it would serve PNG bytes as a JPEG.
-  test('refuses a type that is not the bytes\' own as unsupported-media-type', async () => {
+  test("refuses a type that is not the bytes' own as unsupported-media-type", async () => {
     const { store, snapshot } = memoryStore()
     const before = snapshot()
     const bytes = png()
     for (const contentType of ['image/jpeg', 'image/svg+xml', 'text/plain', 'application/octet-stream', 'image/png-ish', '']) {
-      expect(await keepImage(asking(store, AUTHOR), hexOf(bytes), contentType, bytes), contentType).toEqual({ ok: false, status: 415, body: REFUSALS['unsupported-media-type'] })
+      expect(await keepImage(asking(store, AUTHOR), hexOf(bytes), contentType, bytes), contentType).toEqual({
+        ok: false,
+        status: 415,
+        body: REFUSALS['unsupported-media-type'],
+      })
     }
     const drawing = svg()
     expect((await keepImage(asking(store, AUTHOR), hexOf(drawing), 'image/png', drawing)).status).toBe(415)
@@ -237,7 +261,11 @@ describe('keepImage', () => {
       ['a JPEG with no pixels', jpeg(8, 0), 'image/jpeg', 'no-pixels'],
     ]
     for (const [name, bytes, contentType, reason] of cases) {
-      expect(await keepImage(asking(store, AUTHOR), hexOf(bytes), contentType, bytes), name).toEqual({ ok: false, status: 422, body: { ...REFUSALS['image-refused'], reason } })
+      expect(await keepImage(asking(store, AUTHOR), hexOf(bytes), contentType, bytes), name).toEqual({
+        ok: false,
+        status: 422,
+        body: { ...REFUSALS['image-refused'], reason },
+      })
     }
     expect(snapshot()).toBe(before)
   })
@@ -261,7 +289,7 @@ describe('keepImage', () => {
 
   // Bytes that start like an SVG and are not a drawing are refused by the
   // same reader, with the code it gives.
-  test('refuses markup that is no SVG as image-refused with the reader\'s code', async () => {
+  test("refuses markup that is no SVG as image-refused with the reader's code", async () => {
     const { store } = memoryStore()
     const markup = ascii('<html><body>not a drawing</body></html>')
     const refusal = checkSvg(markup)
@@ -280,7 +308,11 @@ describe('keepImage', () => {
     const { store, asked } = memoryStore()
     const padded = (length: number): Uint8Array => Uint8Array.from({ length }, (_, at) => (at === 0 ? 0x3c : 0x20))
     const digest = '0'.repeat(64)
-    expect(await keepImage(asking(store, AUTHOR), digest, 'image/svg+xml', padded(MAX_SVG_BYTES + 1))).toEqual({ ok: false, status: 413, body: REFUSALS['image-too-large'] })
+    expect(await keepImage(asking(store, AUTHOR), digest, 'image/svg+xml', padded(MAX_SVG_BYTES + 1))).toEqual({
+      ok: false,
+      status: 413,
+      body: REFUSALS['image-too-large'],
+    })
     const atTheLimit = await keepImage(asking(store, AUTHOR), digest, 'image/svg+xml', padded(MAX_SVG_BYTES))
     expect(atTheLimit.ok).toBe(false)
     expect(atTheLimit.status).toBe(422)
@@ -290,7 +322,7 @@ describe('keepImage', () => {
   // The path names the bytes by their digest; bytes of another digest are
   // refused, so that a name in a report can never be given other bytes
   // than those it pinned.
-  test('refuses bytes whose digest is not the path\'s as digest-mismatch, keeping nothing', async () => {
+  test("refuses bytes whose digest is not the path's as digest-mismatch, keeping nothing", async () => {
     const { store, snapshot } = memoryStore()
     const before = snapshot()
     const sent = png(8, 8)
@@ -314,7 +346,12 @@ describe('keepImage', () => {
     ]
     for (const [name, who, digest, contentType, bytes, status, code] of steps) {
       const answered = await keepImage(who, digest, contentType, bytes)
-      expect({ name, ok: answered.ok, status: answered.status, code: answered.ok ? undefined : answered.body.code }, name).toEqual({ name, ok: false, status, code })
+      expect({ name, ok: answered.ok, status: answered.status, code: answered.ok ? undefined : answered.body.code }, name).toEqual({
+        name,
+        ok: false,
+        status,
+        code,
+      })
     }
   })
 })
@@ -323,7 +360,7 @@ describe('readImage', () => {
   // What was kept is what is read: the bytes and the type they were kept
   // as, 200, for an author, who builds with them, and a publisher, who
   // reads what authors wrote.
-  test('serves a kept image\'s bytes and media type to an author and a publisher', async () => {
+  test("serves a kept image's bytes and media type to an author and a publisher", async () => {
     const { store } = memoryStore()
     const bytes = png()
     await keepImage(asking(store, AUTHOR), hexOf(bytes), 'image/png', bytes)
@@ -355,7 +392,7 @@ describe('readImage', () => {
 
   // An image nobody kept, and one only another tenant kept, are both not
   // found: a 403 for the second would say it exists.
-  test('answers 404 no-asset for an image the asking tenant has not kept, another tenant\'s included', async () => {
+  test("answers 404 no-asset for an image the asking tenant has not kept, another tenant's included", async () => {
     const { store } = memoryStore()
     const bytes = png()
     await keepImage(asking(store, AUTHOR, { tenant: 'other' }), hexOf(bytes), 'image/png', bytes)
@@ -376,8 +413,20 @@ describe('the digest a path carries', () => {
   test('a keep and a read refuse a digest as digest-invalid exactly where report-spec’s isDigest refuses it with sha256: before it', async () => {
     const bytes = png()
     const hex = hexOf(bytes)
-    const refusedAsInvalid = (answered: { readonly ok: boolean; readonly body: unknown }): boolean => !answered.ok && (answered.body as { code?: unknown }).code === 'digest-invalid'
-    for (const digest of [hex, '0'.repeat(64), hex.toUpperCase(), `sha256:${hex}`, hex.slice(1), `${hex}0`, `${hex}\n`, `${hex.slice(0, 63)}g`, '../'.repeat(22).slice(0, 64), '']) {
+    const refusedAsInvalid = (answered: { readonly ok: boolean; readonly body: unknown }): boolean =>
+      !answered.ok && (answered.body as { code?: unknown }).code === 'digest-invalid'
+    for (const digest of [
+      hex,
+      '0'.repeat(64),
+      hex.toUpperCase(),
+      `sha256:${hex}`,
+      hex.slice(1),
+      `${hex}0`,
+      `${hex}\n`,
+      `${hex.slice(0, 63)}g`,
+      '../'.repeat(22).slice(0, 64),
+      '',
+    ]) {
       const { store } = memoryStore()
       const invalid = !isDigest(`sha256:${digest}`)
       const kept = await keepImage(asking(store, AUTHOR), digest, 'image/png', bytes)

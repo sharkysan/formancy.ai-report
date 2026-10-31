@@ -6,7 +6,7 @@ import { encodePng } from './png.js'
 function chunks(png: Uint8Array): { type: string; data: Uint8Array; crc: number }[] {
   const view = new DataView(png.buffer, png.byteOffset, png.byteLength)
   const found: { type: string; data: Uint8Array; crc: number }[] = []
-  for (let offset = 8; offset < png.length; ) {
+  for (let offset = 8; offset < png.length;) {
     const length = view.getUint32(offset)
     const type = String.fromCharCode(...png.subarray(offset + 4, offset + 8))
     found.push({ type, data: png.subarray(offset + 8, offset + 8 + length), crc: view.getUint32(offset + 8 + length) })

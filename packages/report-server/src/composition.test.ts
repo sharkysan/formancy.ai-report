@@ -33,8 +33,15 @@ const STORE = 'file-store.ts'
 function importsOf(name: string, source: string): string[] {
   const found: string[] = []
   const visit = (node: ts.Node): void => {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteralLike(node.moduleSpecifier)) found.push(node.moduleSpecifier.text)
-    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && node.arguments[0] !== undefined && ts.isStringLiteralLike(node.arguments[0])) found.push(node.arguments[0].text)
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteralLike(node.moduleSpecifier))
+      found.push(node.moduleSpecifier.text)
+    if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments[0] !== undefined &&
+      ts.isStringLiteralLike(node.arguments[0])
+    )
+      found.push(node.arguments[0].text)
     ts.forEachChild(node, visit)
   }
   visit(ts.createSourceFile(name, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS))
@@ -58,7 +65,11 @@ function waysIn(name: string, source: string): string[] {
   const visit = (node: ts.Node): void => {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) specifier(node.moduleSpecifier)
     if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) specifier(node.moduleReference.expression)
-    if (ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === 'require'))) specifier(node.arguments[0])
+    if (
+      ts.isCallExpression(node) &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === 'require'))
+    )
+      specifier(node.arguments[0])
     if (ts.isIdentifier(node) && node.text === 'process') found.push('process')
     if (ts.isStringLiteralLike(node) && node.text === 'process') found.push("'process'")
     ts.forEachChild(node, visit)
@@ -99,9 +110,14 @@ describe('the composition root', () => {
   // system, and the test helpers, into what is shipped.
   test('leaves the suites’ support to the suites', () => {
     expect(readdirSync(here)).toContain(SUPPORT)
-    const importers = modules.filter((name) => importsOf(name, readFileSync(join(here, name), 'utf8')).some((specifier) => specifier.replace(/\.js$/, '.ts') === `./${SUPPORT}`))
+    const importers = modules.filter((name) =>
+      importsOf(name, readFileSync(join(here, name), 'utf8')).some((specifier) => specifier.replace(/\.js$/, '.ts') === `./${SUPPORT}`),
+    )
     expect(importers).toEqual([])
-    expect(importsOf('way.ts', "import { eachCase } from './test-support.js'\nconst later = await import('./test-support.js')")).toEqual(['./test-support.js', './test-support.js'])
+    expect(importsOf('way.ts', "import { eachCase } from './test-support.js'\nconst later = await import('./test-support.js')")).toEqual([
+      './test-support.js',
+      './test-support.js',
+    ])
   })
 
   // A guard on the guard: each ordinary way in, which a regex over the text
@@ -121,7 +137,14 @@ describe('the composition root', () => {
       "const value = globalThis['process'].env.X",
     ]
     for (const way of ways) expect(waysIn('way.ts', way).length, way).toBeGreaterThan(0)
-    const harmless = ['// process.env is read by main.ts alone', '/** Tested without starting a process. */', "const said = 'the process answers'", 'await io.readFile(path)', "import { isIP } from 'node:net'", "import { createHash } from 'node:crypto'"]
+    const harmless = [
+      '// process.env is read by main.ts alone',
+      '/** Tested without starting a process. */',
+      "const said = 'the process answers'",
+      'await io.readFile(path)',
+      "import { isIP } from 'node:net'",
+      "import { createHash } from 'node:crypto'",
+    ]
     for (const text of harmless) expect(waysIn('harmless.ts', text), text).toEqual([])
   })
 })

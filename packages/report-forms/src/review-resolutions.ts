@@ -65,7 +65,8 @@ export function offering(report: ReportDefinition, hash: string): Offering {
 }
 
 /** Each expression diagnostic of `report` among `only`, by code and place. */
-const said = (report: ReportDefinition, only: ReadonlySet<string>): Set<string> => new Set(compileReport(report, only).diagnostics.map((diagnostic) => `${diagnostic.code} ${diagnostic.path ?? ''}`))
+const said = (report: ReportDefinition, only: ReadonlySet<string>): Set<string> =>
+  new Set(compileReport(report, only).diagnostics.map((diagnostic) => `${diagnostic.code} ${diagnostic.path ?? ''}`))
 
 /** What the compiler refuses of the report as it stands, `only` among it compiled where it was not yet. */
 function refusedOf(on: Offering, only: ReadonlySet<string>): ReadonlySet<string> {
@@ -87,7 +88,14 @@ export interface Typed {
  * whether it may be null, where the compiler refuses an expression that
  * change reaches that it did not refuse before.
  */
-export function offered(on: Offering, kind: ResolutionKind, message: string, descriptor: CommandDescriptor, more: Pick<Resolution, 'declared'> = {}, typed?: Typed): Resolution | undefined {
+export function offered(
+  on: Offering,
+  kind: ResolutionKind,
+  message: string,
+  descriptor: CommandDescriptor,
+  more: Pick<Resolution, 'declared'> = {},
+  typed?: Typed,
+): Resolution | undefined {
   const outcome = tryEdit(on.report, (draft) => draft.apply(descriptor))
   if (!outcome.ok) return undefined
   if (typed !== undefined) {
@@ -99,7 +107,11 @@ export function offered(on: Offering, kind: ResolutionKind, message: string, des
 }
 
 /** The field `field` of `role` put back with `change` made to it: one command. */
-function putField(role: DatasetRole, field: FieldContract, change: (body: Omit<FieldContract, 'id'>) => Omit<FieldContract, 'id'> = (body) => body): CommandDescriptor {
+function putField(
+  role: DatasetRole,
+  field: FieldContract,
+  change: (body: Omit<FieldContract, 'id'>) => Omit<FieldContract, 'id'> = (body) => body,
+): CommandDescriptor {
   const { id, ...body } = field
   return { command: 'putField', args: [role, id, change(body)] }
 }
@@ -111,7 +123,13 @@ export function withOverride(field: FieldContract, version: string, override: Fi
 }
 
 /** The field read, in the version of hash `version`, as `override` says, and declared nullable where `nullable` says. */
-export function overridden(role: DatasetRole, field: FieldContract, version: string, override: FieldFormOverride, nullable = field.nullable): CommandDescriptor {
+export function overridden(
+  role: DatasetRole,
+  field: FieldContract,
+  version: string,
+  override: FieldFormOverride,
+  nullable = field.nullable,
+): CommandDescriptor {
   return putField(role, withOverride(field, version, override), (body) => ({ ...body, nullable }))
 }
 
@@ -145,7 +163,10 @@ export function repeaterOverridden(contract: DatasetContract, version: string, r
 export function repeaterFollowed(contract: DatasetContract, version: string, to: string, kept: readonly string[]): CommandDescriptor {
   const form = contract.form as Extract<NonNullable<DatasetContract['form']>, { kind: 'repeater' }>
   const old = Object.fromEntries(kept.map((hash) => [hash, { repeater: form.repeater }]))
-  return { command: 'putDataset', args: ['detail', { ...contract, form: { ...form, repeater: to, overrides: { ...form.overrides, ...old, [version]: { repeater: to } } } }] }
+  return {
+    command: 'putDataset',
+    args: ['detail', { ...contract, form: { ...form, repeater: to, overrides: { ...form.overrides, ...old, [version]: { repeater: to } } } }],
+  }
 }
 
 /** The removal a review may offer of a field: the resolution, where the session would take it; and, where the field is read by the payment part or the e-invoice, which. */
@@ -163,9 +184,20 @@ export interface Removal {
  */
 export function removal(on: Offering, role: DatasetRole, field: FieldContract): Removal {
   const outcome = on.readers.removal(role, field.id)
-  if (!outcome.ok) return outcome.code === 'read-by-part' ? { part: outcome.path?.startsWith('/eInvoice') === true ? "the report's e-invoice" : "the report's payment part" } : {}
+  if (!outcome.ok)
+    return outcome.code === 'read-by-part'
+      ? { part: outcome.path?.startsWith('/eInvoice') === true ? "the report's e-invoice" : "the report's payment part" }
+      : {}
   if (!validateReport(outcome.report).valid) return {}
   const parts = outcome.removed.length - 1
   const message = `removes the field from the report, with everything that reads it: ${parts === 0 ? 'nothing reads it' : `${parts} ${parts === 1 ? 'part' : 'parts'}, listed by their pointers`}; no version is read for it any more`
-  return { resolution: { kind: 'remove', removes: outcome.removed, message, descriptor: { command: 'removeFieldWithReaders', args: [role, field.id] }, expectedHash: on.hash } }
+  return {
+    resolution: {
+      kind: 'remove',
+      removes: outcome.removed,
+      message,
+      descriptor: { command: 'removeFieldWithReaders', args: [role, field.id] },
+      expectedHash: on.hash,
+    },
+  }
 }

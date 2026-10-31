@@ -15,7 +15,18 @@
  * anywhere to move or a copy to make, and Delete takes either away (0039,
  * 0044).
  */
-import { duplicateComponent, insertColumn, locationOf, locations, moveColumn, moveComponent, removeColumn, removeComponent, removeEInvoice, removePaymentPart } from '@formancy/report-core'
+import {
+  duplicateComponent,
+  insertColumn,
+  locationOf,
+  locations,
+  moveColumn,
+  moveComponent,
+  removeColumn,
+  removeComponent,
+  removeEInvoice,
+  removePaymentPart,
+} from '@formancy/report-core'
 import type { Command, CommandOutcome } from '@formancy/report-core'
 import type { ReportDefinition, TableComponent } from '@formancy/report-spec'
 import type { Step } from './history.js'
@@ -75,7 +86,12 @@ export function moveBy(report: ReportDefinition, target: Selected, delta: -1 | 1
   const { component, location } = target
   const to = location.index + delta
   if (to < 0 || to >= siblingsAt(report, location).length) return { edge }
-  return { command: (r) => moveComponent(r, component.id, { ...location, index: to }), step: { do: 'move', kind: component.kind }, announce: 'status.moved', then }
+  return {
+    command: (r) => moveComponent(r, component.id, { ...location, index: to }),
+    step: { do: 'move', kind: component.kind },
+    announce: 'status.moved',
+    then,
+  }
 }
 
 /** Into the container just before the selection, at the end of what it holds -- its last column, for a columns block. */
@@ -87,9 +103,19 @@ export function indent(report: ReportDefinition, target: Selected): Planned {
   const before = siblingsAt(report, location)[location.index - 1]
   // The last place inside it, in reading order: report-core's places, so
   // which lists a container holds is report-core's to know, not this file's.
-  const into = before === undefined ? undefined : locations(report).filter((place) => place.parent === before).at(-1)
+  const into =
+    before === undefined
+      ? undefined
+      : locations(report)
+          .filter((place) => place.parent === before)
+          .at(-1)
   if (into === undefined) return { edge }
-  return { command: (r) => moveComponent(r, component.id, into), step: { do: 'indent', kind: component.kind }, announce: 'status.indented', then: () => selectionOf(target) }
+  return {
+    command: (r) => moveComponent(r, component.id, into),
+    step: { do: 'indent', kind: component.kind },
+    announce: 'status.indented',
+    then: () => selectionOf(target),
+  }
 }
 
 /** Out of the container the selection is in, to just after it. */

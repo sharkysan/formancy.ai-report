@@ -81,7 +81,10 @@ export const XRECHNUNG_SHAPES = {
 
 const ROOT_CONTEXT = '/rsm:CrossIndustryInvoice'
 const BUSINESS_PROCESS = { context: 'rsm:ExchangedDocumentContext', test: 'ram:BusinessProcessSpecifiedDocumentContextParameter/ram:ID' }
-const BUYER_REFERENCE = { context: ROOT_CONTEXT, test: 'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:BuyerReference[boolean(normalize-space(.))]' }
+const BUYER_REFERENCE = {
+  context: ROOT_CONTEXT,
+  test: 'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:BuyerReference[boolean(normalize-space(.))]',
+}
 const SELLER_ADDRESS = { context: 'ram:SellerTradeParty', test: 'ram:URIUniversalCommunication/ram:URIID' }
 const BUYER_ADDRESS = { context: 'ram:BuyerTradeParty', test: 'ram:URIUniversalCommunication/ram:URIID' }
 
@@ -155,7 +158,10 @@ export const XRECHNUNG_HELD_RULES = {
       ` or ((rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty/ram:SpecifiedTaxRegistration/ram:ID[normalize-space(@schemeID)='VA' or normalize-space(@schemeID)='FC'][boolean(normalize-space(.))], rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:SellerTaxRepresentativeTradeParty))`,
   },
   'BR-DE-17': { context: ROOT_CONTEXT, test: "normalize-space(rsm:ExchangedDocument/ram:TypeCode) = ('326', '380', '384', '389', '381', '875', '876', '877')" },
-  'BR-DE-19': { context: CREDIT_TRANSFER, test: "not(normalize-space(ram:TypeCode) = '58') or xr:checkIBAN(string(ram:PayeePartyCreditorFinancialAccount/ram:IBANID))" },
+  'BR-DE-19': {
+    context: CREDIT_TRANSFER,
+    test: "not(normalize-space(ram:TypeCode) = '58') or xr:checkIBAN(string(ram:PayeePartyCreditorFinancialAccount/ram:IBANID))",
+  },
   'BR-DE-21': {
     context: `${INVOICE}/rsm:ExchangedDocumentContext`,
     test: 'ram:GuidelineSpecifiedDocumentContextParameter/ram:ID = $XR-CIUS-ID or ram:GuidelineSpecifiedDocumentContextParameter/ram:ID = $XR-EXTENSION-ID or ram:GuidelineSpecifiedDocumentContextParameter/ram:ID = $XR-CVD-ID',
@@ -176,10 +182,25 @@ export const XRECHNUNG_HELD_RULES = {
  */
 export const CODE_LISTS = [
   { list: 'UNIT_CODES', term: 'BT-130', cen: ['BR-CL-23'], ferd: [{ path: `${LINE}/ram:SpecifiedLineTradeDelivery/ram:BilledQuantity`, select: '@unitCode' }] },
-  { list: 'COUNTRY_CODES', term: 'BT-40, BT-55', cen: ['BR-CL-14'], ferd: PARTIES.map((party) => ({ path: `${AGREEMENT}/${party}/ram:PostalTradeAddress/ram:CountryID`, select: '.' })) },
+  {
+    list: 'COUNTRY_CODES',
+    term: 'BT-40, BT-55',
+    cen: ['BR-CL-14'],
+    ferd: PARTIES.map((party) => ({ path: `${AGREEMENT}/${party}/ram:PostalTradeAddress/ram:CountryID`, select: '.' })),
+  },
   { list: 'VAT_PREFIXES', term: 'BT-31, BT-48', cen: ['BR-CO-09'], ferd: [{ rule: 'BR-CO-09' }] },
-  { list: 'SCHEME_IDS', term: 'BT-30-1, BT-47-1', cen: ['BR-CL-11'], ferd: PARTIES.map((party) => ({ path: `${AGREEMENT}/${party}/ram:SpecifiedLegalOrganization/ram:ID`, select: '@schemeID' })) },
-  { list: 'ADDRESS_SCHEMES', term: 'BT-34-1, BT-49-1', cen: ['BR-CL-25'], ferd: PARTIES.map((party) => ({ path: `${AGREEMENT}/${party}/ram:URIUniversalCommunication/ram:URIID`, select: '@schemeID' })) },
+  {
+    list: 'SCHEME_IDS',
+    term: 'BT-30-1, BT-47-1',
+    cen: ['BR-CL-11'],
+    ferd: PARTIES.map((party) => ({ path: `${AGREEMENT}/${party}/ram:SpecifiedLegalOrganization/ram:ID`, select: '@schemeID' })),
+  },
+  {
+    list: 'ADDRESS_SCHEMES',
+    term: 'BT-34-1, BT-49-1',
+    cen: ['BR-CL-25'],
+    ferd: PARTIES.map((party) => ({ path: `${AGREEMENT}/${party}/ram:URIUniversalCommunication/ram:URIID`, select: '@schemeID' })),
+  },
   {
     list: 'VAT_CATEGORY_CODES',
     term: 'BT-118, BT-151',
@@ -189,14 +210,22 @@ export const CODE_LISTS = [
       { path: `${LINE}/ram:SpecifiedLineTradeSettlement/ram:ApplicableTradeTax/ram:CategoryCode`, select: '.' },
     ],
   },
-  { list: 'PAYMENT_MEANS_CODES', term: 'BT-81', cen: ['BR-CL-16'], ferd: [{ path: `${SETTLEMENT}/ram:SpecifiedTradeSettlementPaymentMeans/ram:TypeCode`, select: '.' }] },
+  {
+    list: 'PAYMENT_MEANS_CODES',
+    term: 'BT-81',
+    cen: ['BR-CL-16'],
+    ferd: [{ path: `${SETTLEMENT}/ram:SpecifiedTradeSettlementPaymentMeans/ram:TypeCode`, select: '.' }],
+  },
   {
     list: 'E_INVOICE_CURRENCIES',
     term: 'BT-5',
     cen: ['BR-CL-04', 'BR-CL-03'],
     ferd: [
       { path: `${SETTLEMENT}/ram:InvoiceCurrencyCode`, select: '.' },
-      { path: `${SETTLEMENT}/ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:TaxTotalAmount[@currencyID=../../ram:InvoiceCurrencyCode]`, select: '@currencyID' },
+      {
+        path: `${SETTLEMENT}/ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:TaxTotalAmount[@currencyID=../../ram:InvoiceCurrencyCode]`,
+        select: '@currencyID',
+      },
     ],
   },
   { list: 'INVOICE_TYPE_CODES', term: 'BT-3', cen: ['BR-CL-01'], ferd: [{ path: `${INVOICE}/rsm:ExchangedDocument/ram:TypeCode`, select: '.' }] },
@@ -215,7 +244,9 @@ function property(assert, name) {
 export function readSchematron(text) {
   return descendantsWithAncestors(readXml(text), SVRL, 'failed-assert').map(({ element, ancestors }) => {
     const template = ancestors.findLast((above) => above.uri === XSL && above.local === 'template')
-    const variables = Object.fromEntries((template === undefined ? [] : descendants(template, XSL, 'variable')).map((variable) => [attribute(variable, 'name'), attribute(variable, 'select')]))
+    const variables = Object.fromEntries(
+      (template === undefined ? [] : descendants(template, XSL, 'variable')).map((variable) => [attribute(variable, 'name'), attribute(variable, 'select')]),
+    )
     return { id: property(element, 'id'), flag: property(element, 'flag'), test: property(element, 'test'), context: attribute(template, 'match'), variables }
   })
 }
@@ -239,7 +270,10 @@ export function readVariables(text) {
     const select = attribute(variable, 'select') ?? ''
     const parts = /^concat\((.*)\)$/s.exec(select.trim())?.[1].split(/,(?=(?:[^']*'[^']*')*[^']*$)/)
     const values = parts?.map((part) => (/^\s*\$[\w.-]+\s*$/.test(part) ? read.get(part.trim().slice(1)) : stringLiteral(part)))
-    read.set(attribute(variable, 'name'), values === undefined ? stringLiteral(select) : values.every((value) => value !== undefined) ? values.join('') : undefined)
+    read.set(
+      attribute(variable, 'name'),
+      values === undefined ? stringLiteral(select) : values.every((value) => value !== undefined) ? values.join('') : undefined,
+    )
   }
   return read
 }
@@ -249,7 +283,9 @@ const SCENARIOS = 'http://www.xoev.de/de/validator/framework/1/scenarios'
 /** The location of every schematron KoSIT's scenarios.xml has the scenario `name` run, in its order; none for a scenario it does not have. */
 export function scenarioSchematrons(text, name) {
   const scenario = childrenOf(readXml(text), SCENARIOS, 'scenario').find((each) => textOf(childOf(each, SCENARIOS, 'name'))?.trim() === name)
-  return childrenOf(scenario, SCENARIOS, 'validateWithSchematron').flatMap((step) => childrenOf(step, SCENARIOS, 'resource').map((resource) => textOf(childOf(resource, SCENARIOS, 'location'))?.trim()))
+  return childrenOf(scenario, SCENARIOS, 'validateWithSchematron').flatMap((step) =>
+    childrenOf(step, SCENARIOS, 'resource').map((resource) => textOf(childOf(resource, SCENARIOS, 'location'))?.trim()),
+  )
 }
 
 /** The codes of a code-list test: the space-separated list CEN's generator writes as one string, or undefined. */
@@ -260,7 +296,9 @@ export function codeList(test) {
 
 /** FeRD's code database: list id to its codes. */
 export function readCodedb(text) {
-  return new Map(childrenOf(readXml(text), '', 'cl').map((list) => [attribute(list, 'id'), childrenOf(list, '', 'enumeration').map((entry) => attribute(entry, 'value'))]))
+  return new Map(
+    childrenOf(readXml(text), '', 'cl').map((list) => [attribute(list, 'id'), childrenOf(list, '', 'enumeration').map((entry) => attribute(entry, 'value'))]),
+  )
 }
 
 /** The ids of the database lists FeRD checks `select` against where its context is `path`. */
@@ -302,7 +340,9 @@ function ferdListProblems(codes, places, ferd) {
     }
     const ids = codeListAt(ferd.asserts, place)
     if (ids.length !== 1) {
-      problems.push(`${ferd.name} checks ${place.select} at ${place.path} against ${ids.length === 0 ? 'no code list' : `code lists ${ids.join(' and ')}, where it is one`}`)
+      problems.push(
+        `${ferd.name} checks ${place.select} at ${place.path} against ${ids.length === 0 ? 'no code list' : `code lists ${ids.join(' and ')}, where it is one`}`,
+      )
       continue
     }
     const held = ferd.codedb.get(ids[0])
@@ -318,7 +358,8 @@ function ferdListProblems(codes, places, ferd) {
 }
 
 /** Whether `id` is a rule of `asserts` that refuses a file: SchXslt flags CEN's fatal; Mustang reads any flag but warning and information as an error. */
-const fatalIn = (asserts, id, kind) => asserts.some((assert) => assert.id === id && (kind === 'cen' ? assert.flag === 'fatal' : !['warning', 'information'].includes(assert.flag)))
+const fatalIn = (asserts, id, kind) =>
+  asserts.some((assert) => assert.id === id && (kind === 'cen' ? assert.flag === 'fatal' : !['warning', 'information'].includes(assert.flag)))
 
 /**
  * What is wrong with report-spec's XRechnung rules and shapes against
@@ -347,10 +388,12 @@ function xrechnungProblems(spec, xrechnung) {
     const [variable] = read
     const held = xrechnung.variables.get(variable)
     if (held === undefined) problems.push(`${xrechnung.name}’s ${rule} reads $${variable}, which it does not declare as a string`)
-    else if (held !== pattern) problems.push(`${xrechnung.name}’s ${rule} reads $${variable} as '${held}', where report-spec holds its ${shape} shape to '${pattern}'`)
+    else if (held !== pattern)
+      problems.push(`${xrechnung.name}’s ${rule} reads $${variable} as '${held}', where report-spec holds its ${shape} shape to '${pattern}'`)
     const test = `matches(normalize-space(${where.select}), $${variable})`
     for (const assert of asserts) {
-      if (assert.context !== where.context) problems.push(`${xrechnung.name}’s ${rule} holds ${assert.context}, where the runtime writes the seller’s contact at ${where.context}`)
+      if (assert.context !== where.context)
+        problems.push(`${xrechnung.name}’s ${rule} holds ${assert.context}, where the runtime writes the seller’s contact at ${where.context}`)
       if (assert.test !== test) problems.push(`${xrechnung.name}’s ${rule} tests '${assert.test}', where report-spec reads its ${shape} shape as '${test}'`)
     }
     patterns.push({ shape, rule, variable, context: where.context, test })
@@ -380,9 +423,12 @@ function xrechnungKindProblems(spec, xrechnung) {
     const asserts = xrechnung.asserts.filter((assert) => assert.id === rule)
     if (asserts.length === 0) continue
     for (const assert of asserts) {
-      if (assert.flag !== 'fatal') problems.push(`${xrechnung.name}’s ${rule} is ${String(assert.flag)}, where report-spec needs ${at} by it as by a fatal rule`)
-      if (spaced(assert.context) !== place.context) problems.push(`${xrechnung.name}’s ${rule} holds ${String(assert.context)}, where report-spec needs ${at} at ${place.context}`)
-      if (spaced(assert.test) !== place.test) problems.push(`${xrechnung.name}’s ${rule} tests '${spaced(assert.test)}', where report-spec needs ${at} as '${place.test}'`)
+      if (assert.flag !== 'fatal')
+        problems.push(`${xrechnung.name}’s ${rule} is ${String(assert.flag)}, where report-spec needs ${at} by it as by a fatal rule`)
+      if (spaced(assert.context) !== place.context)
+        problems.push(`${xrechnung.name}’s ${rule} holds ${String(assert.context)}, where report-spec needs ${at} at ${place.context}`)
+      if (spaced(assert.test) !== place.test)
+        problems.push(`${xrechnung.name}’s ${rule} tests '${spaced(assert.test)}', where report-spec needs ${at} as '${place.test}'`)
     }
     needs.push({ at, rule, context: place.context, test: place.test })
   }
@@ -393,14 +439,18 @@ function xrechnungKindProblems(spec, xrechnung) {
     else if (pinned === undefined) problems.push(`report-spec holds ${id} by the format, where the gate has pinned no test of it`)
     else {
       for (const assert of asserts) {
-        if (spaced(assert.context) !== pinned.context) problems.push(`${xrechnung.name}’s ${id} holds ${spaced(assert.context)}, where report-spec holds it by the format at ${pinned.context}`)
-        if (spaced(assert.test) !== pinned.test) problems.push(`${xrechnung.name}’s ${id} tests '${spaced(assert.test)}', where report-spec holds it by the format as testing '${pinned.test}'`)
+        if (spaced(assert.context) !== pinned.context)
+          problems.push(`${xrechnung.name}’s ${id} holds ${spaced(assert.context)}, where report-spec holds it by the format at ${pinned.context}`)
+        if (spaced(assert.test) !== pinned.test)
+          problems.push(`${xrechnung.name}’s ${id} tests '${spaced(assert.test)}', where report-spec holds it by the format as testing '${pinned.test}'`)
       }
     }
   }
   for (const assert of xrechnung.asserts.filter((each) => each.id === XRECHNUNG_SKONTO.rule)) {
     if (spaced(assert.context) !== XRECHNUNG_SKONTO.context || !spaced(assert.test).startsWith(spaced(XRECHNUNG_SKONTO.lines))) {
-      problems.push(`${xrechnung.name}’s ${XRECHNUNG_SKONTO.rule} reads other lines of the payment terms than report-spec refuses a Skonto line in: '${spaced(XRECHNUNG_SKONTO.lines)} …' at ${XRECHNUNG_SKONTO.context}`)
+      problems.push(
+        `${xrechnung.name}’s ${XRECHNUNG_SKONTO.rule} reads other lines of the payment terms than report-spec refuses a Skonto line in: '${spaced(XRECHNUNG_SKONTO.lines)} …' at ${XRECHNUNG_SKONTO.context}`,
+      )
     }
   }
   const [version, guideline] = [xrechnung.variables.get('XR-MAJOR-MINOR-VERSION'), xrechnung.variables.get('XR-CIUS-ID')]
@@ -410,8 +460,12 @@ function xrechnungKindProblems(spec, xrechnung) {
       continue
     }
     const terms = spec.XRECHNUNG[each]
-    if (terms?.guideline !== guideline) problems.push(`report-spec names XRechnung ${each} '${String(terms?.guideline)}', where ${xrechnung.name}’s XR-CIUS-ID is '${String(guideline)}'`)
-    if (terms?.release !== xrechnung.release) problems.push(`report-spec names XRechnung ${each} by release ${String(terms?.release)}, where the gate’s configuration is of XRechnung ${String(xrechnung.release)}`)
+    if (terms?.guideline !== guideline)
+      problems.push(`report-spec names XRechnung ${each} '${String(terms?.guideline)}', where ${xrechnung.name}’s XR-CIUS-ID is '${String(guideline)}'`)
+    if (terms?.release !== xrechnung.release)
+      problems.push(
+        `report-spec names XRechnung ${each} by release ${String(terms?.release)}, where the gate’s configuration is of XRechnung ${String(xrechnung.release)}`,
+      )
   }
   return { problems, needs }
 }
@@ -447,7 +501,13 @@ export function oracleProblems({ spec, lists, cen, ferd, xrechnung }) {
   const kind = xrechnungKindProblems(spec, xrechnung)
   problems.push(...xr.problems, ...kind.problems)
   return {
-    checked: { lists: checkedLists, rules: { cen: [...spec.EN16931_RULES], ferd: ferdRules, xrechnung: [...spec.XRECHNUNG_RULES], held: Object.keys(spec.XRECHNUNG_HELD) }, patterns: xr.patterns, needs: kind.needs, versions: [...spec.XRECHNUNG_VERSIONS] },
+    checked: {
+      lists: checkedLists,
+      rules: { cen: [...spec.EN16931_RULES], ferd: ferdRules, xrechnung: [...spec.XRECHNUNG_RULES], held: Object.keys(spec.XRECHNUNG_HELD) },
+      patterns: xr.patterns,
+      needs: kind.needs,
+      versions: [...spec.XRECHNUNG_VERSIONS],
+    },
     problems,
   }
 }

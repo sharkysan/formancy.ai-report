@@ -1,4 +1,25 @@
-import { MAX_FONT_SIZE, MAX_SVG_GROUPS, MAX_SVG_SEGMENTS, MIN_FONT_SIZE, refusedCharacter, RenderRefusal, type Block, type Columns, type EpcQrCode, type FacturXFile, type Image, type ImageAsset, type KeepTogether, type QrCode, type Rectangle, type ResolvedDocument, type Section, type Table, type TableRow, type TextStyle } from '@formancy/report-runtime'
+import {
+  MAX_FONT_SIZE,
+  MAX_SVG_GROUPS,
+  MAX_SVG_SEGMENTS,
+  MIN_FONT_SIZE,
+  refusedCharacter,
+  RenderRefusal,
+  type Block,
+  type Columns,
+  type EpcQrCode,
+  type FacturXFile,
+  type Image,
+  type ImageAsset,
+  type KeepTogether,
+  type QrCode,
+  type Rectangle,
+  type ResolvedDocument,
+  type Section,
+  type Table,
+  type TableRow,
+  type TextStyle,
+} from '@formancy/report-runtime'
 import { checkImageAsset, MAX_IMAGE_DATA, MAX_SVG_DRAWING, type CheckedImage, type Vector } from './assets.js'
 import { cellLine, paragraphLine } from './bound.js'
 import { frameOf, RULE_GAP, runFace } from './content.js'
@@ -124,7 +145,8 @@ interface Walk {
 
 export async function checkDocument(document: ResolvedDocument, fonts: RenderFonts, maxPages: number): Promise<Checked> {
   const creationDate = new Date(document.info.creationDate)
-  if (Number.isNaN(creationDate.getTime())) throw new RenderRefusal('unsupported', `the creation date '${document.info.creationDate}' is not a date`, 'info.creationDate')
+  if (Number.isNaN(creationDate.getTime()))
+    throw new RenderRefusal('unsupported', `the creation date '${document.info.creationDate}' is not a date`, 'info.creationDate')
   // The title goes into the PDF's metadata, never onto a page, so it is held to being text and not to the font.
   if (typeof document.info.title !== 'string') throw new RenderRefusal('unsupported', 'the title is not text', 'info.title')
   // An e-invoice it does not know is refused, never embedded as something else or drawn as a plain PDF (`e-invoice.ts`).
@@ -178,11 +200,16 @@ async function checkImages(images: Walk['images'], maxPages: number, eInvoice: b
     if (read === undefined) {
       read = await checkImageAsset(image.asset)
       if (eInvoice && read.kind === 'raster' && read.cmyk) {
-        throw new RenderRefusal('unsupported', `the image ${id} is a CMYK JPEG, which an e-invoice cannot hold: it is drawn as a PDF/A-3 whose output intent is sRGB, beside which no image may be CMYK`, id)
+        throw new RenderRefusal(
+          'unsupported',
+          `the image ${id} is a CMYK JPEG, which an e-invoice cannot hold: it is drawn as a PDF/A-3 whose output intent is sRGB, beside which no image may be CMYK`,
+          id,
+        )
       }
       assets.set(image.asset, read)
       total.data += read.kind === 'raster' ? read.data : 0
-      if (total.data > MAX_IMAGE_DATA) throw new RenderRefusal('content-too-large', `the images up to ${id} hold ${total.data} bytes of image data; a render may hold ${MAX_IMAGE_DATA}`, id)
+      if (total.data > MAX_IMAGE_DATA)
+        throw new RenderRefusal('content-too-large', `the images up to ${id} hold ${total.data} bytes of image data; a render may hold ${MAX_IMAGE_DATA}`, id)
     }
     if (eInvoice && read.kind === 'vector') checkSvgInEInvoice(read, image, page)
     if (read.kind === 'vector') addVector(total, read, region ? maxPages : 1, id)
@@ -196,18 +223,33 @@ function addVector(total: { units: number; segments: number; groups: number }, v
   total.segments += vector.segments
   total.groups += vector.groups
   if (total.units > MAX_SVG_DRAWING) {
-    throw new RenderRefusal('content-too-large', `the SVG images up to ${id} cost ${total.units} units to draw, each in a page region counted on every page the report may have; a render may draw ${MAX_SVG_DRAWING}`, id)
+    throw new RenderRefusal(
+      'content-too-large',
+      `the SVG images up to ${id} cost ${total.units} units to draw, each in a page region counted on every page the report may have; a render may draw ${MAX_SVG_DRAWING}`,
+      id,
+    )
   }
   const onePage = 'on one page, every SVG image of the body counted as though it fell there beside those of the page regions'
-  if (total.segments > MAX_SVG_SEGMENTS) throw new RenderRefusal('content-too-large', `the SVG images up to ${id} would cost a reader ${total.segments} weighted segments to paint ${onePage}; a page may cost ${MAX_SVG_SEGMENTS}`, id)
-  if (total.groups > MAX_SVG_GROUPS) throw new RenderRefusal('content-too-large', `the SVG images up to ${id} would make ${total.groups} units of page-sized transparency groups ${onePage}; a page may make ${MAX_SVG_GROUPS}`, id)
+  if (total.segments > MAX_SVG_SEGMENTS)
+    throw new RenderRefusal(
+      'content-too-large',
+      `the SVG images up to ${id} would cost a reader ${total.segments} weighted segments to paint ${onePage}; a page may cost ${MAX_SVG_SEGMENTS}`,
+      id,
+    )
+  if (total.groups > MAX_SVG_GROUPS)
+    throw new RenderRefusal(
+      'content-too-large',
+      `the SVG images up to ${id} would make ${total.groups} units of page-sized transparency groups ${onePage}; a page may make ${MAX_SVG_GROUPS}`,
+      id,
+    )
 }
 
 function pageOf(setup: ResolvedDocument['page']): Page {
   // Own sizes only: 'constructor' or 'toString' would find Object's, and crash pdfmake.
   const paper = Object.hasOwn(PAPER, setup.size) ? PAPER[setup.size] : undefined
   if (paper === undefined) throw new RenderRefusal('unsupported', `the page size '${String(setup.size)}' is not one the renderer knows`, 'page.size')
-  if (setup.orientation !== 'portrait' && setup.orientation !== 'landscape') throw new RenderRefusal('unsupported', `the orientation '${String(setup.orientation)}' is not one the renderer knows`, 'page.orientation')
+  if (setup.orientation !== 'portrait' && setup.orientation !== 'landscape')
+    throw new RenderRefusal('unsupported', `the orientation '${String(setup.orientation)}' is not one the renderer knows`, 'page.orientation')
   const [paperWidth, paperHeight] = setup.orientation === 'portrait' ? [paper.width, paper.height] : [paper.height, paper.width]
   const { margins } = setup
   if (![margins.top, margins.right, margins.bottom, margins.left].every((margin) => Number.isFinite(margin) && margin >= 0)) {
@@ -215,7 +257,8 @@ function pageOf(setup: ResolvedDocument['page']): Page {
   }
   const width = paperWidth - margins.left - margins.right
   const height = paperHeight - margins.top - margins.bottom
-  if (width <= 0 || height <= 0) throw new RenderRefusal('content-too-large', `the margins leave no printable area (${width.toFixed(2)} × ${height.toFixed(2)} pt)`, 'page.margins')
+  if (width <= 0 || height <= 0)
+    throw new RenderRefusal('content-too-large', `the margins leave no printable area (${width.toFixed(2)} × ${height.toFixed(2)} pt)`, 'page.margins')
   return { paperWidth, paperHeight, margins, width, height }
 }
 
@@ -226,13 +269,14 @@ function checkBlocks(blocks: readonly Block[], path: string, place: Place, walk:
 
 function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
   switch (block.kind) {
-    case 'paragraph':
+    case 'paragraph': {
       walk.paths.set(block, at)
       if (!place.region && block.runs.some((run) => 'field' in run)) {
         throw new RenderRefusal('unsupported', `${at} prints a page field; pdfmake knows the page number only in the page header and footer`, at)
       }
       checkStyle(block.style, at, walk.fonts)
-      if (block.runs.some((run) => !('text' in run) && run.field !== 'pageNumber' && run.field !== 'pageCount')) throw new RenderRefusal('unsupported', `${at} prints a field the renderer does not know`, at)
+      if (block.runs.some((run) => !('text' in run) && run.field !== 'pageNumber' && run.field !== 'pageCount'))
+        throw new RenderRefusal('unsupported', `${at} prints a field the renderer does not know`, at)
       for (const run of block.runs) {
         if ('text' in run) checkText(run.text, runFace(block.style, run), walk, at)
       }
@@ -242,12 +286,14 @@ function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
       // A line as tall as its tallest run's face lays it out (`bound.ts`): taller than the body, pdfmake drops the whole line without a word.
       tall(walk, place, paragraphLine(block, walk.fonts), `a line of ${at}`, at)
       return
-    case 'table':
+    }
+    case 'table': {
       if (place.column) throw new RenderRefusal('unsupported', `table ${block.id} stands inside a columns block; a table is part of the flow`, block.id)
       checkTable(block, place.width, walk.fonts)
       const under = checkTableCells(block, place, walk)
       if (!place.region && !place.kept) walk.measured.push({ block, at, width: place.width, inset: place.inset, under })
       return
+    }
     case 'image':
       checkImage(block, place, walk)
       walk.images.push({ image: block, region: place.region })
@@ -313,13 +359,27 @@ function checkText(text: unknown, wanted: FaceWanted, walk: Walk, at: string, su
   for (const character of text) {
     const point = character.codePointAt(0) as number
     const refused = refusedCharacter(point)
-    if (refused === 'script') throw new RenderRefusal('unsupported', `${at} prints ${codePoint(point)}, which is in no script the renderer prints: it prints Latin, Greek and Cyrillic, with the punctuation, symbols and marks written with them, and lays out no right-to-left text, no shaped script and no CJK`, subject)
-    if (refused === 'bidi-control') throw new RenderRefusal('unsupported', `${at} prints ${codePoint(point)}, a bidirectional control: pdfmake lays text out left to right alone, and would print it as a space`, subject)
+    if (refused === 'script')
+      throw new RenderRefusal(
+        'unsupported',
+        `${at} prints ${codePoint(point)}, which is in no script the renderer prints: it prints Latin, Greek and Cyrillic, with the punctuation, symbols and marks written with them, and lays out no right-to-left text, no shaped script and no CJK`,
+        subject,
+      )
+    if (refused === 'bidi-control')
+      throw new RenderRefusal(
+        'unsupported',
+        `${at} prints ${codePoint(point)}, a bidirectional control: pdfmake lays text out left to right alone, and would print it as a space`,
+        subject,
+      )
   }
   const face = walk.fonts.face(wanted.token, wanted.bold, wanted.italic, subject)
   const missing = missingGlyph(text, face.glyphs)
   if (missing !== undefined) {
-    throw new RenderRefusal('unsupported', `${at} prints ${codePoint(missing)}, which ${face.name} has no glyph for: it would print as an empty box, and as nothing in the PDF's text, and no other font is embedded`, subject)
+    throw new RenderRefusal(
+      'unsupported',
+      `${at} prints ${codePoint(missing)}, which ${face.name} has no glyph for: it would print as an empty box, and as nothing in the PDF's text, and no other font is embedded`,
+      subject,
+    )
   }
 }
 
@@ -350,7 +410,12 @@ function checkTableCells(table: Table, place: Place, walk: Walk): RowLine {
     let line = 0
     row.cells.forEach((text, column) => {
       const style = row.styles[column]!
-      const where = row.index !== undefined ? `${at}, row ${row.index}, column ${column + 1},` : row.kind === 'header' ? `${at}'s header, column ${column + 1},` : `${at}'s empty text`
+      const where =
+        row.index !== undefined
+          ? `${at}, row ${row.index}, column ${column + 1},`
+          : row.kind === 'header'
+            ? `${at}'s header, column ${column + 1},`
+            : `${at}'s empty text`
       checkText(text, cellFace(style, row.kind), walk, where, table.id)
       line = Math.max(line, cellLine(style, row.kind, walk.fonts))
     })
@@ -363,7 +428,12 @@ function checkTableCells(table: Table, place: Place, walk: Walk): RowLine {
 }
 
 /** A row of the document's in a person's words, by its kind. */
-const ROW_WORDS: Readonly<Record<TableRow['kind'], string>> = { detail: 'a detail row', groupHeader: 'a group header row', groupFooter: 'a group footer row', total: 'a total row' }
+const ROW_WORDS: Readonly<Record<TableRow['kind'], string>> = {
+  detail: 'a detail row',
+  groupHeader: 'a group header row',
+  groupFooter: 'a group footer row',
+  total: 'a total row',
+}
 
 /** A row under the header of `table`, for a refusal: the empty text, or where the row stands among the table's rows, `index`, and its kind. */
 function rowWords(table: Table, kind: Exclude<StyledRow['kind'], 'header'>, index: number | undefined): string {
@@ -374,37 +444,55 @@ function checkStyle(style: TextStyle | undefined, at: string, fonts: RenderFonts
   if (style === undefined) return
   // A font token the report maps, or sans, which is Roboto; serif and mono the report does not map are refused, as before a report could name a host font.
   if (style.font !== undefined && !((style.font === 'sans' || style.font === 'serif' || style.font === 'mono') && fonts.usable(style.font))) {
-    throw new RenderRefusal('unsupported', `${at} is set in the ${String(style.font)} font, which the report maps to no host font; the renderer embeds Roboto alone, as the sans font, and prints no other in its place`, at)
+    throw new RenderRefusal(
+      'unsupported',
+      `${at} is set in the ${String(style.font)} font, which the report maps to no host font; the renderer embeds Roboto alone, as the sans font, and prints no other in its place`,
+      at,
+    )
   }
   // The format's sizes, which a document the runtime resolved holds to: the page bound counts a line as its size, and 0.001 pt put 20,000 lines on one page.
-  if (style.size !== undefined && !(style.size >= MIN_FONT_SIZE && style.size <= MAX_FONT_SIZE)) throw new RenderRefusal('unsupported', `${at} is set at ${style.size} pt; a report's text is ${MIN_FONT_SIZE} to ${MAX_FONT_SIZE} pt`, at)
-  if (style.align !== undefined && style.align !== 'left' && style.align !== 'center' && style.align !== 'right') throw new RenderRefusal('unsupported', `${at} is aligned '${String(style.align)}'`, at)
+  if (style.size !== undefined && !(style.size >= MIN_FONT_SIZE && style.size <= MAX_FONT_SIZE))
+    throw new RenderRefusal('unsupported', `${at} is set at ${style.size} pt; a report's text is ${MIN_FONT_SIZE} to ${MAX_FONT_SIZE} pt`, at)
+  if (style.align !== undefined && style.align !== 'left' && style.align !== 'center' && style.align !== 'right')
+    throw new RenderRefusal('unsupported', `${at} is aligned '${String(style.align)}'`, at)
   checkColor(style.color, at)
 }
 
 function checkColor(color: string | undefined, at: string): void {
   // pdfmake prints a colour it cannot read as black, without a word.
-  if (color !== undefined && !COLOR.test(color)) throw new RenderRefusal('unsupported', `${at} names the colour '${color}', which is not #rrggbb in lower case`, at)
+  if (color !== undefined && !COLOR.test(color))
+    throw new RenderRefusal('unsupported', `${at} names the colour '${color}', which is not #rrggbb in lower case`, at)
 }
 
 function checkTable(table: Table, width: number, fonts: RenderFonts): void {
   const columns = table.columns.length
   if (columns === 0) throw new RenderRefusal('unsupported', `table ${table.id} has no columns`, table.id)
-  if (table.columns.some((column) => column.align !== 'left' && column.align !== 'center' && column.align !== 'right')) throw new RenderRefusal('unsupported', `table ${table.id} aligns a column in a way the renderer does not know`, table.id)
-  if (table.header.length !== columns) throw new RenderRefusal('unsupported', `the header of table ${table.id} has ${table.header.length} cells for ${columns} columns`, table.id)
+  if (table.columns.some((column) => column.align !== 'left' && column.align !== 'center' && column.align !== 'right'))
+    throw new RenderRefusal('unsupported', `table ${table.id} aligns a column in a way the renderer does not know`, table.id)
+  if (table.header.length !== columns)
+    throw new RenderRefusal('unsupported', `the header of table ${table.id} has ${table.header.length} cells for ${columns} columns`, table.id)
   table.rows.forEach((row, index) => {
     const cells = row.across === true ? 1 : columns
     if (row.cells.length !== cells) {
-      throw new RenderRefusal('unsupported', `row ${index} of table ${table.id} has ${row.cells.length} cells for ${row.across === true ? 'a row across the table, which has one' : `${columns} columns`}`, table.id)
+      throw new RenderRefusal(
+        'unsupported',
+        `row ${index} of table ${table.id} has ${row.cells.length} cells for ${row.across === true ? 'a row across the table, which has one' : `${columns} columns`}`,
+        table.id,
+      )
     }
     if (row.cellStyles !== undefined && row.cellStyles.length !== row.cells.length) {
-      throw new RenderRefusal('unsupported', `row ${index} of table ${table.id} has ${row.cellStyles.length} cell styles for ${row.cells.length} cells`, table.id)
+      throw new RenderRefusal(
+        'unsupported',
+        `row ${index} of table ${table.id} has ${row.cellStyles.length} cell styles for ${row.cells.length} cells`,
+        table.id,
+      )
     }
     for (const style of [row.style, ...(row.cellStyles ?? [])]) checkStyle(style ?? undefined, table.id, fonts)
   })
   checkStyle(table.headerStyle, table.id, fonts)
   const narrow = table.columns.find((column) => column.width !== 'fill' && !(column.width > 2 * PADDING_X && Number.isFinite(column.width)))
-  if (narrow !== undefined) throw new RenderRefusal('unsupported', `table ${table.id} has a column of ${String(narrow.width)} pt, no wider than its cell padding`, table.id)
+  if (narrow !== undefined)
+    throw new RenderRefusal('unsupported', `table ${table.id} has a column of ${String(narrow.width)} pt, no wider than its cell padding`, table.id)
   const widths = table.columns.map((column) => column.width)
   const fixed = widths.reduce<number>((sum, each) => sum + fixedWidth(each), 0)
   if (fixed > width || fillWidth(widths, width) <= 2 * PADDING_X) {
@@ -414,11 +502,13 @@ function checkTable(table: Table, width: number, fonts: RenderFonts): void {
 
 function checkImage(image: Image, place: Place, walk: Walk): void {
   const { id } = image.asset
-  if (image.fit !== 'contain' && image.fit !== 'cover') throw new RenderRefusal('unsupported', `the image ${id} is fitted '${String(image.fit)}', which the renderer does not know`, id)
+  if (image.fit !== 'contain' && image.fit !== 'cover')
+    throw new RenderRefusal('unsupported', `the image ${id} is fitted '${String(image.fit)}', which the renderer does not know`, id)
   if (!(image.width > 0 && image.height > 0 && Number.isFinite(image.width) && Number.isFinite(image.height))) {
     throw new RenderRefusal('unsupported', `the image ${id} is drawn ${image.width} × ${image.height} pt`, id)
   }
-  if (image.width > place.width) throw new RenderRefusal('content-too-large', `the image ${id} is ${image.width} pt wide; it stands ${place.width.toFixed(2)} pt wide`, id)
+  if (image.width > place.width)
+    throw new RenderRefusal('content-too-large', `the image ${id} is ${image.width} pt wide; it stands ${place.width.toFixed(2)} pt wide`, id)
   tall(walk, place, image.height, `the image ${id}`, id)
 }
 
@@ -435,7 +525,8 @@ function checkQrCode(code: QrCode, place: Place, walk: Walk): void {
 function checkEpcQrCode(code: EpcQrCode, place: Place, walk: Walk): void {
   const { id, size } = code
   if (!(size > 0 && Number.isFinite(size))) throw new RenderRefusal('unsupported', `the EPC QR code ${id} is drawn ${size} pt a side`, id)
-  if (size > place.width) throw new RenderRefusal('content-too-large', `the EPC QR code ${id} is ${size} pt wide; it stands ${place.width.toFixed(2)} pt wide`, id)
+  if (size > place.width)
+    throw new RenderRefusal('content-too-large', `the EPC QR code ${id} is ${size} pt wide; it stands ${place.width.toFixed(2)} pt wide`, id)
   walk.codes.set(code, epcSymbol(code))
   walk.captioned ||= code.caption !== undefined
   tall(walk, place, size, `the EPC QR code ${id}`, id)
@@ -447,17 +538,20 @@ function checkRectangle(rectangle: Rectangle, at: string, place: Place, walk: Wa
   }
   checkColor(rectangle.fill, at)
   checkColor(rectangle.stroke, at)
-  if (rectangle.width > place.width) throw new RenderRefusal('content-too-large', `${at} is a rectangle ${rectangle.width} pt wide; it stands ${place.width.toFixed(2)} pt wide`, at)
+  if (rectangle.width > place.width)
+    throw new RenderRefusal('content-too-large', `${at} is a rectangle ${rectangle.width} pt wide; it stands ${place.width.toFixed(2)} pt wide`, at)
   tall(walk, place, rectangle.height, `the rectangle ${at}`, at)
 }
 
 function checkColumns(columns: Columns, at: string, place: Place, walk: Walk): void {
   if (columns.columns.length === 0) throw new RenderRefusal('unsupported', `${at} is a columns block with no columns`, at)
   const widths = columns.columns.map((slot) => slot.width)
-  if (widths.some((width) => width !== 'fill' && !(width > 0 && Number.isFinite(width)))) throw new RenderRefusal('unsupported', `${at} has a column of no width`, at)
+  if (widths.some((width) => width !== 'fill' && !(width > 0 && Number.isFinite(width))))
+    throw new RenderRefusal('unsupported', `${at} has a column of no width`, at)
   const fixed = widths.reduce<number>((sum, each) => sum + fixedWidth(each), 0)
   const fill = fillWidth(widths, place.width)
-  if (fixed > place.width || fill <= 0) throw new RenderRefusal('content-too-large', `${at}'s fixed columns are ${fixed} pt wide; it stands ${place.width.toFixed(2)} pt wide`, at)
+  if (fixed > place.width || fill <= 0)
+    throw new RenderRefusal('content-too-large', `${at}'s fixed columns are ${fixed} pt wide; it stands ${place.width.toFixed(2)} pt wide`, at)
   columns.columns.forEach((slot, index) => {
     const width = slot.width === 'fill' ? fill : slot.width
     checkBlocks(slot.blocks, `${at}.columns[${index}].blocks`, { ...place, column: true, width, depth: place.depth + 1 }, walk)
@@ -466,11 +560,13 @@ function checkColumns(columns: Columns, at: string, place: Place, walk: Walk): v
 
 function checkSection(section: Section, at: string, place: Place, walk: Walk): void {
   if (section.border !== undefined) {
-    if (!(section.border.thickness > 0 && Number.isFinite(section.border.thickness))) throw new RenderRefusal('unsupported', `${at} has a border ${section.border.thickness} pt thick`, at)
+    if (!(section.border.thickness > 0 && Number.isFinite(section.border.thickness)))
+      throw new RenderRefusal('unsupported', `${at} has a border ${section.border.thickness} pt thick`, at)
     checkColor(section.border.color, at)
   }
   checkColor(section.fill, at)
-  if (section.padding !== undefined && !(section.padding >= 0 && Number.isFinite(section.padding))) throw new RenderRefusal('unsupported', `${at} has a padding of ${section.padding} pt`, at)
+  if (section.padding !== undefined && !(section.padding >= 0 && Number.isFinite(section.padding)))
+    throw new RenderRefusal('unsupported', `${at} has a padding of ${section.padding} pt`, at)
   const frame = frameOf(section)
   const width = place.width - 2 * frame
   if (width <= 0) throw new RenderRefusal('content-too-large', `${at}'s border and padding leave its blocks no width`, at)
@@ -487,7 +583,11 @@ function checkSection(section: Section, at: string, place: Place, walk: Walk): v
 export function refuseTall(tall: readonly Tall[], bodyHeight: number): void {
   for (const each of tall) {
     if (each.height > bodyHeight - each.inset) {
-      throw new RenderRefusal('content-too-large', `${each.what} is ${each.height.toFixed(2)} pt tall; the body is ${(bodyHeight - each.inset).toFixed(2)} pt where it stands`, each.subject)
+      throw new RenderRefusal(
+        'content-too-large',
+        `${each.what} is ${each.height.toFixed(2)} pt tall; the body is ${(bodyHeight - each.inset).toFixed(2)} pt where it stands`,
+        each.subject,
+      )
     }
   }
 }

@@ -48,7 +48,15 @@ function described(node: Pick<OutlineNode, 'problems'> & { readonly overflows?: 
 }
 
 /** A row's count of problems: drawn, and said as its description; inside the name it would make "Introduction" read "Introduction 1". */
-function Problems({ row, id, t }: { readonly row: Pick<OutlineNode, 'problems' | 'severity'>; readonly id: string; readonly t: EditorText }): ReactElement | null {
+function Problems({
+  row,
+  id,
+  t,
+}: {
+  readonly row: Pick<OutlineNode, 'problems' | 'severity'>
+  readonly id: string
+  readonly t: EditorText
+}): ReactElement | null {
   if (row.problems === 0) return null
   return (
     <>
@@ -68,7 +76,10 @@ function selection(node: OutlineNode): EditorAction {
 
 export function Outline({ state, t, ids, tree, drag, act }: OutlineProps): ReactElement {
   const regions = state.outline.map((region) => ({ region, rows: rows(region.nodes) }))
-  const all: readonly { readonly key: string; readonly selected: boolean }[] = [...regions.flatMap((region) => region.rows.map((row) => row.node)), ...state.outlineParts]
+  const all: readonly { readonly key: string; readonly selected: boolean }[] = [
+    ...regions.flatMap((region) => region.rows.map((row) => row.node)),
+    ...state.outlineParts,
+  ]
   // The tree's one tab stop: the selected row, else the first; the tree itself when it has none.
   const stop = all.find((row) => row.selected)?.key ?? all[0]?.key
   const empty = `${ids}-outline-empty`
@@ -155,7 +166,23 @@ export function Outline({ state, t, ids, tree, drag, act }: OutlineProps): React
  * focus or a click, as a component's row is, and dragged nowhere, since it
  * has one place.
  */
-function PartRow({ part, position, siblings, tabbable, ids, t, act }: { readonly part: OutlinePart; readonly position: number; readonly siblings: number; readonly tabbable: boolean; readonly ids: string; readonly t: EditorText; readonly act: (action: EditorAction) => void }): ReactElement {
+function PartRow({
+  part,
+  position,
+  siblings,
+  tabbable,
+  ids,
+  t,
+  act,
+}: {
+  readonly part: OutlinePart
+  readonly position: number
+  readonly siblings: number
+  readonly tabbable: boolean
+  readonly ids: string
+  readonly t: EditorText
+  readonly act: (action: EditorAction) => void
+}): ReactElement {
   const problems = `${ids}-problems-${part.key}`
   const select = (): void => act({ type: 'select', part: part.part })
   return (

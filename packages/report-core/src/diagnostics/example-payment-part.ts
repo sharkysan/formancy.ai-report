@@ -27,7 +27,7 @@ const ACCOUNTS: ReadonlySet<string> = new Set(QR_BILL_EXAMPLE_ACCOUNTS)
 
 /** The text `runs` write when every run is literal, what no data can change; undefined otherwise, or for no runs at all. */
 function written(runs: readonly Inline[] | undefined): string | undefined {
-  return runs?.every((run) => run.kind === 'text') === true ? runs.map((run) => (run as Extract<Inline, { kind: 'text' }>).text).join('') : undefined
+  return runs?.every((run) => run.kind === 'text') === true ? runs.map((run) => run.text).join('') : undefined
 }
 
 /** `text` as the code holds a reference, or undefined where it is none. */

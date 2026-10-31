@@ -112,7 +112,13 @@ export class Extent {
   }
 
   extent(): SvgExtent {
-    return { groups: { inverse: this.inverse, origin: this.reach }, patterns: { linear: this.linear, offset: this.offset }, local: this.local, own: this.own, nesting: this.nesting }
+    return {
+      groups: { inverse: this.inverse, origin: this.reach },
+      patterns: { linear: this.linear, offset: this.offset },
+      local: this.local,
+      own: this.own,
+      nesting: this.nesting,
+    }
   }
 }
 

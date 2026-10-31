@@ -75,19 +75,26 @@ describe('where the slip goes', () => {
   // and every page before it keeps its footer, counting the slip's page:
   // "Page 1 of 3" on an invoice of three pages. Nothing of the body is
   // printed into the slip or the instruction above it.
-  test('stands on the last page of a long report, whose footers count its page', async () => {
-    const { bytes, pdf } = await rendered(billDocument(EXAMPLE, [ledger('lines', details(1, 120))]))
-    const count = pdf.pages.length
-    expect(count).toBeGreaterThan(2)
-    expect(await pagesWithCodes(bytes, count)).toEqual([count])
-    pdf.pages.forEach((page, index) => {
-      const footers = pageLines(page).filter((line) => line.text.startsWith('Page '))
-      expect(footers.map((line) => line.text), `page ${page.number}`).toEqual(index + 1 < count ? [`Page ${index + 1} of ${count}`] : [])
-    })
-    const last = pageLines(pdf.pages[count - 1]!)
-    const body = last.filter((line) => line.text.startsWith('ROW-'))
-    for (const line of body) expect(line.bottom, line.text).toBeLessThanOrEqual(DRAWN_TOP)
-  }, TIMEOUT)
+  test(
+    'stands on the last page of a long report, whose footers count its page',
+    async () => {
+      const { bytes, pdf } = await rendered(billDocument(EXAMPLE, [ledger('lines', details(1, 120))]))
+      const count = pdf.pages.length
+      expect(count).toBeGreaterThan(2)
+      expect(await pagesWithCodes(bytes, count)).toEqual([count])
+      pdf.pages.forEach((page, index) => {
+        const footers = pageLines(page).filter((line) => line.text.startsWith('Page '))
+        expect(
+          footers.map((line) => line.text),
+          `page ${page.number}`,
+        ).toEqual(index + 1 < count ? [`Page ${index + 1} of ${count}`] : [])
+      })
+      const last = pageLines(pdf.pages[count - 1]!)
+      const body = last.filter((line) => line.text.startsWith('ROW-'))
+      for (const line of body) expect(line.bottom, line.text).toBeLessThanOrEqual(DRAWN_TOP)
+    },
+    TIMEOUT,
+  )
 
   // The body reserves the slip's room at its end, unbreakable: content
   // that ends above the instruction shares its page with the slip, and
@@ -138,7 +145,11 @@ describe('what the slip refuses', () => {
     ['a Letter page', { ...PAGE, size: 'Letter' as const }],
     ['an A4 page in landscape', { ...PAGE, orientation: 'landscape' as const }],
   ])('refuses a slip on %s', async (_, page) => {
-    expect(await refusal({ ...billDocument(EXAMPLE), page })).toMatchObject({ code: 'unsupported', subject: 'paymentPart', message: expect.stringContaining('A4') })
+    expect(await refusal({ ...billDocument(EXAMPLE), page })).toMatchObject({
+      code: 'unsupported',
+      subject: 'paymentPart',
+      message: expect.stringContaining('A4'),
+    })
   })
 
   // A payment part of a kind the renderer does not know is refused, never
@@ -175,7 +186,12 @@ describe('what the slip refuses', () => {
     ['an amount of nothing, which no QR-bill pays', { amount: '0.00' }, 'amount', ['0.00']],
     ['an amount past the largest a QR-bill pays', { amount: '1 000 000 000.00' }, 'amount', ['1 000 000 000']],
     ['a currency SIX does not have', { currency: 'USD' }, 'currency', ['USD']],
-    ['an address of more lines than a slip prints', { debtor: ['Simon Muster', 'c/o Sarah Beispiel', 'Musterstrasse 1', '8000 Seldwyla'] }, 'debtor', ['Simon', 'Sarah']],
+    [
+      'an address of more lines than a slip prints',
+      { debtor: ['Simon Muster', 'c/o Sarah Beispiel', 'Musterstrasse 1', '8000 Seldwyla'] },
+      'debtor',
+      ['Simon', 'Sarah'],
+    ],
     ['an address of fewer lines than a slip prints', { creditor: ['Max Muster & Söhne'] }, 'creditor', ['Muster']],
     // Two characters, which a check of the count alone would take for two lines.
     ['an address that is not lines of text', { creditor: 'Bo' }, 'creditor', ['Bo']],
@@ -226,7 +242,9 @@ describe('what the slip refuses', () => {
     expect(await refusal(at(534.01))).toMatchObject({
       code: 'content-too-large',
       subject: 'paymentPart',
-      message: expect.stringMatching(/^the top margin, with the page header and the instruction to separate printed above the slip, reaches 544\.26 pt down the page, past the top of the QR-bill's slip at 544\.25 pt/),
+      message: expect.stringMatching(
+        /^the top margin, with the page header and the instruction to separate printed above the slip, reaches 544\.26 pt down the page, past the top of the QR-bill's slip at 544\.25 pt/,
+      ),
     })
   })
 
@@ -261,7 +279,9 @@ describe('what the slip refuses', () => {
     const wide = 'W '.repeat(18).trim()
     const fits = { creditor: [wide, wide, '8000 Seldwyla'], debtor: [wide, wide, '8000 Seldwyla'] }
     const { pdf } = await rendered(billDocument({ ...EXAMPLE, ...fits }))
-    const last = pageLines({ ...pdf.pages[0]!, items: pdf.pages[0]!.items.filter((item) => item.x < mm(62)) }).filter((line) => line.text === '8000 Seldwyla').at(-1)!
+    const last = pageLines({ ...pdf.pages[0]!, items: pdf.pages[0]!.items.filter((item) => item.x < mm(62)) })
+      .filter((line) => line.text === '8000 Seldwyla')
+      .at(-1)!
     expect(last.bottom - 0.2 * 8).toBeLessThan(TOP + mm(68))
     const over = await refusal(billDocument({ ...EXAMPLE, creditor: fits.creditor, debtor: [wide, wide, wide] }))
     expect(over).toMatchObject({ code: 'content-too-large', subject: 'paymentPart', message: expect.stringContaining("the receipt's information") })

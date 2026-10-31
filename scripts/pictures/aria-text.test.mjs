@@ -18,7 +18,9 @@ describe('decode', () => {
   // A plain value is the text as written: decoding it must not touch it.
   test('reads a plain value as written', () => {
     // studio-refusal, part Builder.
-    expect(decode('    - textbox "Show only when" [invalid]: row.value > 1000')).toEqual([{ depth: 2, role: 'textbox', name: 'Show only when', value: 'row.value > 1000' }])
+    expect(decode('    - textbox "Show only when" [invalid]: row.value > 1000')).toEqual([
+      { depth: 2, role: 'textbox', name: 'Show only when', value: 'row.value > 1000' },
+    ])
   })
 
   // Playwright quotes a value that holds a colon before a space, a quotation
@@ -31,7 +33,9 @@ describe('decode', () => {
     // Made by hand: no pictured part has a straight quotation mark in a
     // quoted value, or a DEL character. The escaped backslash before "x41"
     // keeps that "x41" text, not an escape.
-    expect(decode('- paragraph: "The style \\"strong\\": unused"')).toEqual([{ depth: 0, role: 'paragraph', name: undefined, value: 'The style "strong": unused' }])
+    expect(decode('- paragraph: "The style \\"strong\\": unused"')).toEqual([
+      { depth: 0, role: 'paragraph', name: undefined, value: 'The style "strong": unused' },
+    ])
     expect(decode('- text: "a\\x7fb \\\\x41"')).toEqual([{ depth: 0, role: 'text', name: undefined, value: 'a\u007fb \\x41' }])
   })
 
@@ -57,7 +61,9 @@ describe('decode', () => {
   // is read, under its own key, rather than refused.
   test('reads a property line', () => {
     // studio-react, part Preview, as the camera records it.
-    expect(decode('    - /url: blob:http://studio.invalid/<uuid>')).toEqual([{ depth: 2, role: '/url', name: undefined, value: 'blob:http://studio.invalid/<uuid>' }])
+    expect(decode('    - /url: blob:http://studio.invalid/<uuid>')).toEqual([
+      { depth: 2, role: '/url', name: undefined, value: 'blob:http://studio.invalid/<uuid>' },
+    ])
   })
 
   // A line the format above does not describe would otherwise be skipped, and
@@ -131,7 +137,13 @@ describe('steadied', () => {
   // smoothed it would hold a change nobody saw -- another address, or text
   // that only looks like an object URL.
   test('leaves every other address and every text as printed', () => {
-    const other = ['- link "Skip to the builder":', '  - /url: "#studio-main"', '- link "Download":', '  - /url: https://studio.invalid/582ce280-e0a1-470b-85f7-489fefba9c25', '- paragraph: blob:http://studio.invalid/582ce280-e0a1-470b-85f7-489fefba9c25'].join('\n')
+    const other = [
+      '- link "Skip to the builder":',
+      '  - /url: "#studio-main"',
+      '- link "Download":',
+      '  - /url: https://studio.invalid/582ce280-e0a1-470b-85f7-489fefba9c25',
+      '- paragraph: blob:http://studio.invalid/582ce280-e0a1-470b-85f7-489fefba9c25',
+    ].join('\n')
     expect(steadied(other)).toBe(other)
   })
 })

@@ -89,7 +89,11 @@ export const DRAWINGS: { readonly [name: string]: string } = {
       '</g>' +
       '<g opacity="0.8"><rect x="80" y="80" width="15" height="15" fill="#000" transform="matrix(1 0 0 1 0 0)"/></g>',
   ),
-  'figma-like': svg('<path d="M10 50C10 27.9 27.9 10 50 10s40 17.9 40 40-17.9 40-40 40S10 72.1 10 50Z" stroke="#1F4E79" stroke-width="6"/><path d="M30 55l15 15 25-30" stroke="#1F4E79" stroke-width="6"/>', '0 0 100 100', ' width="100" height="100" fill="none"'),
+  'figma-like': svg(
+    '<path d="M10 50C10 27.9 27.9 10 50 10s40 17.9 40 40-17.9 40-40 40S10 72.1 10 50Z" stroke="#1F4E79" stroke-width="6"/><path d="M30 55l15 15 25-30" stroke="#1F4E79" stroke-width="6"/>',
+    '0 0 100 100',
+    ' width="100" height="100" fill="none"',
+  ),
   'affinity-like': svg(
     // Both rings run the same way round: only the root's even-odd rule leaves the hole in the middle.
     '<path d="M50 5A45 45 0 1 1 49.99 5ZM50 25A25 25 0 1 1 49.99 25Z" style="fill:rgb(31,78,121);"/>',
@@ -128,43 +132,110 @@ const XLINK = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
 const THREATS: readonly (Omit<SvgThreat, 'bytes'> & { readonly text: string | Uint8Array })[] = [
   // It opens an <image>'s file past pdfmake's local access policy, and embeds a data: image unchecked.
   { name: 'a local image', text: svg('<image href="C:/Windows/win.ini" width="10" height="10"/>'), outcome: 'raster', secrets: ['Windows', 'win.ini'] },
-  { name: 'a local image by xlink:href', text: svg(`<image ${XLINK} xlink:href="/etc/passwd" width="10" height="10"/>`), outcome: 'raster', secrets: ['passwd'] },
-  { name: 'an embedded image', text: svg('<image href="data:image/png;base64,iVBORw0KGgo=" width="10" height="10"/>'), outcome: 'raster', secrets: ['base64', 'iVBOR'] },
+  {
+    name: 'a local image by xlink:href',
+    text: svg(`<image ${XLINK} xlink:href="/etc/passwd" width="10" height="10"/>`),
+    outcome: 'raster',
+    secrets: ['passwd'],
+  },
+  {
+    name: 'an embedded image',
+    text: svg('<image href="data:image/png;base64,iVBORw0KGgo=" width="10" height="10"/>'),
+    outcome: 'raster',
+    secrets: ['base64', 'iVBOR'],
+  },
   // It draws text in a font pdfmake picks, past the glyph check.
   { name: 'text in CJK', text: svg('<text x="10" y="10">AB山田</text>'), outcome: 'text', secrets: ['AB', '山田'] },
   // It reads a style sheet, an import in it, and a style sheet named by a processing instruction.
-  { name: 'an imported style sheet', text: svg(`<style>@import url(https://example.invalid/steal.css);</style>${RECT}`), outcome: 'unsupported', secrets: ['example', 'steal'] },
-  { name: 'an external style sheet', text: `<?xml-stylesheet type="text/css" href="https://example.invalid/steal.css"?>${svg(RECT)}`, outcome: 'unsupported', secrets: ['example', 'steal'] },
+  {
+    name: 'an imported style sheet',
+    text: svg(`<style>@import url(https://example.invalid/steal.css);</style>${RECT}`),
+    outcome: 'unsupported',
+    secrets: ['example', 'steal'],
+  },
+  {
+    name: 'an external style sheet',
+    text: `<?xml-stylesheet type="text/css" href="https://example.invalid/steal.css"?>${svg(RECT)}`,
+    outcome: 'unsupported',
+    secrets: ['example', 'steal'],
+  },
   // Entities: an external one, and one nothing declares.
-  { name: 'a DOCTYPE declaring an entity', text: `<!DOCTYPE svg [<!ENTITY secret SYSTEM "file:///etc/passwd">]>${svg('<rect width="1" height="1" fill="&secret;"/>')}`, outcome: 'doctype', secrets: ['passwd', 'file:'] },
+  {
+    name: 'a DOCTYPE declaring an entity',
+    text: `<!DOCTYPE svg [<!ENTITY secret SYSTEM "file:///etc/passwd">]>${svg('<rect width="1" height="1" fill="&secret;"/>')}`,
+    outcome: 'doctype',
+    secrets: ['passwd', 'file:'],
+  },
   { name: 'an undeclared entity', text: svg('<rect width="1" height="1" fill="&ext;"/>'), outcome: 'doctype', secrets: ['ext;'] },
   // It follows a gradient cycle until its stack overflows, and fans `use` out until the process dies.
-  { name: 'a gradient cycle', text: svg('<linearGradient id="a" href="#b"/><linearGradient id="b" href="#a"/><rect width="1" height="1" fill="url(#a)"/>'), outcome: 'reference', secrets: [] },
+  {
+    name: 'a gradient cycle',
+    text: svg('<linearGradient id="a" href="#b"/><linearGradient id="b" href="#a"/><rect width="1" height="1" fill="url(#a)"/>'),
+    outcome: 'reference',
+    secrets: [],
+  },
   {
     name: 'a use fan-out',
-    text: svg(`<defs><rect id="r0" width="1" height="1"/>${Array.from({ length: 6 }, (_, i) => `<g id="r${i + 1}">${`<use href="#r${i}"/>`.repeat(10)}</g>`).join('')}</defs><use href="#r6"/>`),
+    text: svg(
+      `<defs><rect id="r0" width="1" height="1"/>${Array.from({ length: 6 }, (_, i) => `<g id="r${i + 1}">${`<use href="#r${i}"/>`.repeat(10)}</g>`).join('')}</defs><use href="#r6"/>`,
+    ),
     outcome: 'reference',
     secrets: [],
   },
   // PDFKit throws `unsupported number: 1e+30`, naming nothing.
   { name: 'a number PDFKit throws at', text: svg('<rect width="1e30" height="1"/>'), outcome: 'out-of-range', secrets: ['1e30', '1e+30'] },
   // A reference out of the file would need a document callback.
-  { name: 'a paint from an address', text: svg('<rect width="1" height="1" fill="url(https://example.invalid/a.svg#g)"/>'), outcome: 'reference', secrets: ['example', 'a.svg'] },
+  {
+    name: 'a paint from an address',
+    text: svg('<rect width="1" height="1" fill="url(https://example.invalid/a.svg#g)"/>'),
+    outcome: 'reference',
+    secrets: ['example', 'a.svg'],
+  },
   // What a browser draws and the converter does not.
-  { name: 'a foreign object', text: svg('<foreignObject width="10" height="10"><div xmlns="http://www.w3.org/1999/xhtml">secret</div></foreignObject>'), outcome: 'unsupported', secrets: ['secret'] },
-  { name: 'a filter', text: svg(`<filter id="f"><feGaussianBlur stdDeviation="2"/></filter><rect width="10" height="10" filter="url(#f)"/>`), outcome: 'unsupported', secrets: [] },
+  {
+    name: 'a foreign object',
+    text: svg('<foreignObject width="10" height="10"><div xmlns="http://www.w3.org/1999/xhtml">secret</div></foreignObject>'),
+    outcome: 'unsupported',
+    secrets: ['secret'],
+  },
+  {
+    name: 'a filter',
+    text: svg(`<filter id="f"><feGaussianBlur stdDeviation="2"/></filter><rect width="10" height="10" filter="url(#f)"/>`),
+    outcome: 'unsupported',
+    secrets: [],
+  },
   // Its reader and its drawing recurse; 5,000 levels overflowed the stack.
   { name: 'forty levels', text: svg(`${'<g>'.repeat(40)}${RECT}${'</g>'.repeat(40)}`), outcome: 'too-deep', secrets: [] },
   { name: 'five thousand levels', text: svg(`${'<g>'.repeat(5000)}${RECT}${'</g>'.repeat(5000)}`), outcome: 'too-deep', secrets: [] },
   // What is not an SVG at all, or not one in an encoding every reader reads alike.
   { name: 'HTML', text: '<html><body>secret</body></html>', outcome: 'not-svg', secrets: ['secret'] },
   { name: 'unclosed markup', text: `<svg xmlns="${SVG_NAMESPACE}" viewBox="0 0 10 10"><g>${RECT}</svg>`, outcome: 'not-well-formed', secrets: [] },
-  { name: 'UTF-16', text: Uint8Array.from([0xff, 0xfe, ...[...svg(RECT)].flatMap((character) => [character.charCodeAt(0), 0])]), outcome: 'encoding', secrets: [] },
+  {
+    name: 'UTF-16',
+    text: Uint8Array.from([0xff, 0xfe, ...[...svg(RECT)].flatMap((character) => [character.charCodeAt(0), 0])]),
+    outcome: 'encoding',
+    secrets: [],
+  },
   { name: 'a mebibyte and a byte', text: svg(`<!--${' '.repeat(1_048_576)}-->${RECT}`), outcome: 'too-large', secrets: [] },
   // Removed, not refused: what never draws, and a link, whose address the converter would write into the PDF as an annotation.
-  { name: 'a javascript link', text: svg(`<a href="javascript:app.alert('secret')">${RECT}</a>`), outcome: 'removed', secrets: ['javascript', 'alert', 'secret'] },
-  { name: 'a script and a handler', text: svg(`<script>alert('secret')</script><rect width="10" height="10" onclick="alert('secret')"/>`), outcome: 'removed', secrets: ['alert', 'secret'] },
-  { name: 'metadata, a title and a comment', text: `<?xml version="1.0"?><!-- secret -->${svg(`<title>secret</title><metadata>secret</metadata>${RECT}`)}`, outcome: 'removed', secrets: ['secret'] },
+  {
+    name: 'a javascript link',
+    text: svg(`<a href="javascript:app.alert('secret')">${RECT}</a>`),
+    outcome: 'removed',
+    secrets: ['javascript', 'alert', 'secret'],
+  },
+  {
+    name: 'a script and a handler',
+    text: svg(`<script>alert('secret')</script><rect width="10" height="10" onclick="alert('secret')"/>`),
+    outcome: 'removed',
+    secrets: ['alert', 'secret'],
+  },
+  {
+    name: 'metadata, a title and a comment',
+    text: `<?xml version="1.0"?><!-- secret -->${svg(`<title>secret</title><metadata>secret</metadata>${RECT}`)}`,
+    outcome: 'removed',
+    secrets: ['secret'],
+  },
 ]
 
 export const SVG_THREATS: readonly SvgThreat[] = THREATS.map(({ text, ...threat }) => ({ ...threat, bytes: typeof text === 'string' ? utf8(text) : text }))
@@ -215,7 +286,8 @@ function mutate(text: string, next: () => number): string {
     const all = [...text.matchAll(pattern)]
     return all.length === 0 ? undefined : pick(all)
   }
-  const replace = (match: RegExpExecArray | undefined, by: (found: string) => string): string => (match === undefined ? text : text.slice(0, match.index) + by(match[0]) + text.slice(match.index + match[0].length))
+  const replace = (match: RegExpExecArray | undefined, by: (found: string) => string): string =>
+    match === undefined ? text : text.slice(0, match.index) + by(match[0]) + text.slice(match.index + match[0].length)
   switch (Math.floor(next() * 3)) {
     case 0:
       return replace(at(/(?<=[\s,"(MLHVCSQTAZmlhvcsqtaz-])-?\d*\.?\d+(?:e-?\d+)?/gi), () => pick(EDGES))
@@ -238,7 +310,10 @@ export function mutations(count: number, seed: number): string[] {
 }
 
 /** The box, in points from the page's top left, of every pixel that is not white, or nothing on a page of white. */
-export function inkBox(pixels: PagePixels, scale: number): { readonly x: number; readonly top: number; readonly right: number; readonly bottom: number } | undefined {
+export function inkBox(
+  pixels: PagePixels,
+  scale: number,
+): { readonly x: number; readonly top: number; readonly right: number; readonly bottom: number } | undefined {
   let [left, top, right, bottom] = [Infinity, Infinity, -Infinity, -Infinity]
   for (let y = 0; y < pixels.height; y++) {
     for (let x = 0; x < pixels.width; x++) {

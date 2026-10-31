@@ -25,7 +25,16 @@ const withAggregates = (aggregates: readonly AggregateDef[]): ReportDefinition =
 const DATA: ExpressionValues = {
   params: { from: '2026-01-01', draft: false, threshold: null, currency: 'CHF', copies: '2' },
   header: { customer: 'ACME', orderedOn: '2026-01-05', currency: 'CHF' },
-  row: { site: 'Zürich', sku: 'A-1', quantity: '3', unit_price: '4.1250', amount: '12.38', shippedAt: null, recordedAt: '2026-01-05T10:00:00+01:00', shipped: true },
+  row: {
+    site: 'Zürich',
+    sku: 'A-1',
+    quantity: '3',
+    unit_price: '4.1250',
+    amount: '12.38',
+    shippedAt: null,
+    recordedAt: '2026-01-05T10:00:00+01:00',
+    shipped: true,
+  },
   totals: { subtotal: '12.38', lines: '1', gross: '13.38278', average: '3.0', latest: '2026-01-05T09:00:00Z' },
   group: { subtotal: '12.38', lines: '1', gross: '13.38278', average: '3.0', latest: '2026-01-05T09:00:00Z', key: 'Zürich' },
 }
@@ -51,7 +60,11 @@ describe('compileReport', () => {
     const report = frozenSample()
     const { expressions, diagnostics } = compileReport(report)
     expect(diagnostics).toEqual([])
-    expect([...expressions.keys()].sort()).toEqual(expressionSites(report).map(({ path }) => path).sort())
+    expect([...expressions.keys()].sort()).toEqual(
+      expressionSites(report)
+        .map(({ path }) => path)
+        .sort(),
+    )
   })
 
   // What a program reads is what the runtime binds: each member under the
@@ -72,7 +85,9 @@ describe('compileReport', () => {
   // from every aggregate's, which are compiled with them.
   test('compiles the expressions asked for alone, with every aggregate and what they read', () => {
     const report = frozenSample()
-    const aggregates = expressionSites(report).filter(({ path }) => path.startsWith('/aggregates/')).map(({ path }) => path)
+    const aggregates = expressionSites(report)
+      .filter(({ path }) => path.startsWith('/aggregates/'))
+      .map(({ path }) => path)
     expect([...compileReport(report, new Set()).expressions.keys()]).toEqual(aggregates)
     const only = compileReport(report, new Set([AMOUNT_VALUE, TOTAL_VALUE]))
     expect([...only.expressions.keys()]).toEqual([AMOUNT_VALUE, TOTAL_VALUE, ...aggregates])
@@ -99,7 +114,11 @@ describe('aggregateOrder', () => {
   // one the editor checked: each after every aggregate it reads, otherwise
   // as declared.
   test('puts each aggregate after the aggregates its expression reads', () => {
-    const share: AggregateDef = { id: 'share', fn: 'sum', of: { kind: 'expression', expression: { cel: 'divide(row.amount * dec("100"), totals.subtotal, 2)' } } }
+    const share: AggregateDef = {
+      id: 'share',
+      fn: 'sum',
+      of: { kind: 'expression', expression: { cel: 'divide(row.amount * dec("100"), totals.subtotal, 2)' } },
+    }
     const report = withAggregates([share, ...sampleReport().aggregates])
     expect(compileReport(report).aggregateOrder).toEqual(['subtotal', 'share', 'lines', 'gross', 'average', 'latest'])
     expect(compileReport(frozenSample()).aggregateOrder).toEqual(['subtotal', 'lines', 'gross', 'average', 'latest'])
@@ -111,7 +130,12 @@ describe('aggregateOrder', () => {
   // closes the circle.
   test('leaves out the aggregates that read themselves, and those that read them', () => {
     const circular = (id: string, cel: string): AggregateDef => ({ id, fn: 'sum', of: { kind: 'expression', expression: { cel } } })
-    const report = withAggregates([...sampleReport().aggregates, circular('net', 'row.amount + totals.tax'), circular('tax', 'totals.net * dec("0.081")'), circular('after', 'totals.net')])
+    const report = withAggregates([
+      ...sampleReport().aggregates,
+      circular('net', 'row.amount + totals.tax'),
+      circular('tax', 'totals.net * dec("0.081")'),
+      circular('after', 'totals.net'),
+    ])
     const { aggregateOrder, diagnostics, expressions } = compileReport(report)
     expect(aggregateOrder).toEqual(['subtotal', 'lines', 'gross', 'average', 'latest'])
     expect(diagnostics.map(({ code, path, position }) => `${code} ${path} ${position?.start}-${position?.end}`)).toEqual([
@@ -119,7 +143,9 @@ describe('aggregateOrder', () => {
       'aggregate-cycle /aggregates/6/of/expression/cel 0-10',
       'aggregate-cycle /aggregates/7/of/expression/cel 0-10',
     ])
-    expect(['/aggregates/5/of/expression/cel', '/aggregates/6/of/expression/cel', '/aggregates/7/of/expression/cel'].some((path) => expressions.has(path))).toBe(false)
+    expect(
+      ['/aggregates/5/of/expression/cel', '/aggregates/6/of/expression/cel', '/aggregates/7/of/expression/cel'].some((path) => expressions.has(path)),
+    ).toBe(false)
   })
 })
 
@@ -153,7 +179,9 @@ describe('expressionValues', () => {
   // A group header's key is bound as the value of the field grouped by, so
   // the header computes with the site its rows are for.
   test('binds the group key in a group header', () => {
-    const report = JSON.parse(JSON.stringify(sampleReport()).replace('\\" (\\" + string(group.lines)', '\\" \\" + group.key + \\" (\\" + string(group.lines)')) as ReportDefinition
+    const report = JSON.parse(
+      JSON.stringify(sampleReport()).replace('\\" (\\" + string(group.lines)', '\\" \\" + group.key + \\" (\\" + string(group.lines)'),
+    ) as ReportDefinition
     expect(valueAt(report, '/regions/body/2/group/header/2/expression/cel')).toBe(' Zürich (1)')
   })
 

@@ -14,7 +14,8 @@ function billed(changes: Partial<SwissQrBill>): ReportDefinition {
 const said = (text: string): readonly Inline[] => [{ kind: 'text', text }]
 
 /** A party of SIX's, in plain text, as a bill's address of literal runs. */
-const party = (parts: Readonly<Record<string, string>>): QrBillAddress => Object.fromEntries(Object.entries(parts).map(([part, text]) => [part, said(text)])) as unknown as QrBillAddress
+const party = (parts: Readonly<Record<string, string>>): QrBillAddress =>
+  Object.fromEntries(Object.entries(parts).map(([part, text]) => [part, said(text)])) as unknown as QrBillAddress
 
 /** The diagnostics of `report` about its bill. */
 const aboutBill = (report: ReportDefinition): string[] =>
@@ -66,11 +67,23 @@ describe('a bill that holds SIX’s examples', () => {
   // them, say what to do, and quote none of them: no value of a bill is in
   // a message (0022).
   test('is one warning naming each term that is an example, quoting none', () => {
-    const message = (changes: Partial<SwissQrBill>): string | undefined => diagnose(billed(changes)).find((diagnostic) => diagnostic.code === 'example-payment-part')?.message
-    expect(message({ account: said(QR_BILL_EXAMPLE.account) })).toBe("the payment part's account is SIX's example (IG 2.4, Annex A), no one's: replace it before the bill is sent")
-    const whole = { account: said(QR_BILL_EXAMPLE.account), creditor: party(QR_BILL_EXAMPLE.creditor), debtor: party(QR_BILL_EXAMPLE.debtor), reference: said(QR_BILL_EXAMPLE.reference) }
-    expect(message(whole)).toBe("the payment part's account, creditor, debtor and reference are SIX's examples (IG 2.4, Annex A), no one's: replace them before the bill is sent")
-    expect(message({ creditor: party(QR_BILL_EXAMPLE.creditor), reference: said(QR_BILL_EXAMPLE.reference) })).toMatch(/^the payment part's creditor and reference are /)
+    const message = (changes: Partial<SwissQrBill>): string | undefined =>
+      diagnose(billed(changes)).find((diagnostic) => diagnostic.code === 'example-payment-part')?.message
+    expect(message({ account: said(QR_BILL_EXAMPLE.account) })).toBe(
+      "the payment part's account is SIX's example (IG 2.4, Annex A), no one's: replace it before the bill is sent",
+    )
+    const whole = {
+      account: said(QR_BILL_EXAMPLE.account),
+      creditor: party(QR_BILL_EXAMPLE.creditor),
+      debtor: party(QR_BILL_EXAMPLE.debtor),
+      reference: said(QR_BILL_EXAMPLE.reference),
+    }
+    expect(message(whole)).toBe(
+      "the payment part's account, creditor, debtor and reference are SIX's examples (IG 2.4, Annex A), no one's: replace them before the bill is sent",
+    )
+    expect(message({ creditor: party(QR_BILL_EXAMPLE.creditor), reference: said(QR_BILL_EXAMPLE.reference) })).toMatch(
+      /^the payment part's creditor and reference are /,
+    )
     expect(diagnose(billed(whole)).filter((diagnostic) => diagnostic.code === 'example-payment-part')).toHaveLength(1)
     expect(message(whole)).not.toMatch(/CH\s?52|Muster|Bern|Seldwyla|00082/)
     expect(diagnose(billed(whole)).find((diagnostic) => diagnostic.code === 'example-payment-part')).not.toHaveProperty('componentId')

@@ -35,7 +35,8 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
   de: {
     meta: {
       title: 'Gesundheitswesen: Formulare und PDFs – Formancy Report',
-      description: 'Formulare mit formancy, dazu Zuweisungen, Arztberichte und Patientenrechnungen als paginierte PDFs aus Ihren Daten, selbst gehostet. FHIR-Export in Entwicklung.',
+      description:
+        'Formulare mit formancy, dazu Zuweisungen, Arztberichte und Patientenrechnungen als paginierte PDFs aus Ihren Daten, selbst gehostet. FHIR-Export in Entwicklung.',
       name: 'Gesundheitswesen',
     },
     teaser: {
@@ -51,7 +52,12 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
       cards: [
         {
           title: 'Formulare mit formancy',
-          text: <>formancy ist der visuelle Formular-Builder für Angular und React, unter der Lizenz Apache-2.0, auf {formancy}. Eintrittsfragebogen, Zuweisungsformulare und Einwilligungserklärungen lassen sich in seinem Editor erstellen und in Ihrer Anwendung darstellen.</>,
+          text: (
+            <>
+              formancy ist der visuelle Formular-Builder für Angular und React, unter der Lizenz Apache-2.0, auf {formancy}. Eintrittsfragebogen,
+              Zuweisungsformulare und Einwilligungserklärungen lassen sich in seinem Editor erstellen und in Ihrer Anwendung darstellen.
+            </>
+          ),
         },
         {
           title: 'Dokumente mit Formancy Report',
@@ -79,7 +85,8 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
   fr: {
     meta: {
       title: 'Santé : formulaires et documents PDF – Formancy Report',
-      description: "Formulaires avec formancy, et lettres d'adressage, rapports et factures aux patients en PDF paginés depuis vos données, chez vous. Export FHIR en cours.",
+      description:
+        "Formulaires avec formancy, et lettres d'adressage, rapports et factures aux patients en PDF paginés depuis vos données, chez vous. Export FHIR en cours.",
       name: 'Santé',
     },
     teaser: {
@@ -95,7 +102,12 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
       cards: [
         {
           title: 'Des formulaires avec formancy',
-          text: <>formancy est le builder visuel de formulaires pour Angular et React, sous licence Apache-2.0, sur {formancy}. Questionnaires d'admission, formulaires d'adressage et consentements peuvent se construire dans son éditeur et s'afficher dans votre application.</>,
+          text: (
+            <>
+              formancy est le builder visuel de formulaires pour Angular et React, sous licence Apache-2.0, sur {formancy}. Questionnaires d'admission,
+              formulaires d'adressage et consentements peuvent se construire dans son éditeur et s'afficher dans votre application.
+            </>
+          ),
         },
         {
           title: 'Des documents avec Formancy Report',
@@ -123,7 +135,8 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
   it: {
     meta: {
       title: 'Sanità: moduli e documenti PDF – Formancy Report',
-      description: 'Moduli con formancy, e lettere di invio, referti e fatture ai pazienti come PDF impaginati dai vostri dati, sui vostri server. Export FHIR in sviluppo.',
+      description:
+        'Moduli con formancy, e lettere di invio, referti e fatture ai pazienti come PDF impaginati dai vostri dati, sui vostri server. Export FHIR in sviluppo.',
       name: 'Sanità',
     },
     teaser: {
@@ -139,7 +152,12 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
       cards: [
         {
           title: 'Moduli con formancy',
-          text: <>formancy è il builder visuale di moduli per Angular e React, sotto licenza Apache-2.0, su {formancy}. Questionari d'ammissione, moduli di invio e consensi si possono creare nel suo editor e mostrare nella vostra applicazione.</>,
+          text: (
+            <>
+              formancy è il builder visuale di moduli per Angular e React, sotto licenza Apache-2.0, su {formancy}. Questionari d'ammissione, moduli di invio e
+              consensi si possono creare nel suo editor e mostrare nella vostra applicazione.
+            </>
+          ),
         },
         {
           title: 'Documenti con Formancy Report',
@@ -167,7 +185,8 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
   en: {
     meta: {
       title: 'Healthcare forms and PDF documents – Formancy Report',
-      description: 'Forms with formancy, and referral letters, reports and patient invoices as paginated PDFs from your own data, self-hosted. HL7 FHIR export in development.',
+      description:
+        'Forms with formancy, and referral letters, reports and patient invoices as paginated PDFs from your own data, self-hosted. HL7 FHIR export in development.',
       name: 'Healthcare',
     },
     teaser: {
@@ -183,7 +202,12 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
       cards: [
         {
           title: 'Forms with formancy',
-          text: <>formancy is the visual form builder for Angular and React, under the Apache-2.0 licence, at {formancy}. Admission questionnaires, referral forms and consent forms can be built in its editor and rendered in your application.</>,
+          text: (
+            <>
+              formancy is the visual form builder for Angular and React, under the Apache-2.0 licence, at {formancy}. Admission questionnaires, referral forms
+              and consent forms can be built in its editor and rendered in your application.
+            </>
+          ),
         },
         {
           title: 'Documents with Formancy Report',

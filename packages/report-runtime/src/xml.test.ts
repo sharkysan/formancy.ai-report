@@ -15,7 +15,11 @@ describe('an XML document', () => {
   // feed after every line and none of the machine's own line ends, two
   // spaces for each level, an element with nothing in it closed at once.
   test('is written one way: its declaration, two spaces a level, a line feed after each line', () => {
-    const tree = element('a:root', [element('a:empty', []), element('a:holds', [leaf('a:text', 'one'), undefined, leaf('a:none', '')])], [['xmlns:a', 'urn:example']])
+    const tree = element(
+      'a:root',
+      [element('a:empty', []), element('a:holds', [leaf('a:text', 'one'), undefined, leaf('a:none', '')])],
+      [['xmlns:a', 'urn:example']],
+    )
     const xml = xmlDocument(tree)
     expect(xml).toBe(
       [

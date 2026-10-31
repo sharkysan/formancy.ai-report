@@ -110,7 +110,8 @@ export const FR_CH: Catalogue = {
   'images.reason.tooLarge': 'il fait {size}; une image peut faire {limit}.',
   'images.reason.tooWide': 'il mesure {width} × {height} pixels; une image peut mesurer {side} par côté.',
   'images.reason.noPixels': 'il mesure {width} × {height} pixels, et n’en a aucun à imprimer.',
-  'images.reason.malformed': 'c’est un {type} endommagé, ou écrit d’une manière qu’un rapport ne peut pas imprimer; enregistrez-le à nouveau depuis le programme qui l’a créé.',
+  'images.reason.malformed':
+    'c’est un {type} endommagé, ou écrit d’une manière qu’un rapport ne peut pas imprimer; enregistrez-le à nouveau depuis le programme qui l’a créé.',
   'images.reason.notAccepted': 'les images de ce type ne sont pas conservées ici.',
   'images.reason.cmykEInvoice': 'c’est un JPEG CMJN, qu’une facture électronique ne peut pas contenir; enregistrez-le en RVB.',
   'images.reason.notKept': 'il n’a pas pu être conservé.',
@@ -121,7 +122,8 @@ export const FR_CH: Catalogue = {
   'images.reason.svgText': 'son texte doit d’abord être vectorisé.',
   'images.reason.svgRaster': 'il contient une image à lui; ajoutez-la en PNG ou en JPEG.',
   'images.reason.svgReference': 'il renvoie à quelque chose qu’il ne contient pas; enregistrez-le à nouveau avec un programme qui développe les références.',
-  'images.reason.svgUnsupported': 'un rapport ne peut pas le dessiner tel qu’il est écrit; enregistrez-le à nouveau en formes simples depuis le programme de dessin.',
+  'images.reason.svgUnsupported':
+    'un rapport ne peut pas le dessiner tel qu’il est écrit; enregistrez-le à nouveau en formes simples depuis le programme de dessin.',
   'images.reason.svgRange': 'une taille ou un nombre y est hors limites; donnez au dessin une taille ordinaire.',
   'images.reason.svgLarge': 'il est trop grand ou trop détaillé pour être imprimé; simplifiez le dessin.',
   'images.reason.svgDeep': 'ses groupes sont imbriqués trop profondément; aplatissez-les.',

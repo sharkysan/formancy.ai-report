@@ -36,8 +36,14 @@ const manifests = new Map([
   ['@formancy/report-builder-core', { dependencies: { '@formancy/report-core': '0.1.0', '@formancy/report-spec': '0.1.0' } }],
   ['@formancy/report-runtime', { dependencies: { '@formancy/report-core': '0.1.0', '@formancy/report-spec': '0.1.0', decimal: '1.0.0' } }],
   ['@formancy/report-render-pdf', { dependencies: { '@formancy/report-runtime': '0.1.0', pdfmake: '0.3.11' } }],
-  ['@formancy/report-builder-react', { dependencies: { '@formancy/report-builder-core': '0.1.0' }, peerDependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' } }],
-  ['@formancy/report-builder-angular', { dependencies: { '@formancy/report-builder-core': '0.1.0', tslib: '^2.8.0' }, peerDependencies: { '@angular/core': '^22.0.0' } }],
+  [
+    '@formancy/report-builder-react',
+    { dependencies: { '@formancy/report-builder-core': '0.1.0' }, peerDependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' } },
+  ],
+  [
+    '@formancy/report-builder-angular',
+    { dependencies: { '@formancy/report-builder-core': '0.1.0', tslib: '^2.8.0' }, peerDependencies: { '@angular/core': '^22.0.0' } },
+  ],
   ['@formancy/report-server-core', { dependencies: {} }],
   ['@formancy/report-server', { dependencies: { '@formancy/report-server-core': '0.1.0', fastify: '5.12.7' } }],
   ['@formancy/report-client', { dependencies: { '@formancy/report-server-core': '0.1.0', '@formancy/report-spec': '0.1.0' } }],
@@ -49,7 +55,7 @@ const themes = JSON.parse(readFileSync(new URL('../apps/studio/package.json', im
 describe('the projects the gate installs', () => {
   // A project for every host and both ends of each builder's range; one
   // missing is a host nobody checks.
-  test('are a Node host, the server\'s and the client\'s, and each builder at the newest release its peers admit and at their floor', () => {
+  test("are a Node host, the server's and the client's, and each builder at the newest release its peers admit and at their floor", () => {
     expect(planProjects(manifests).map(({ name, consumer }) => `${name}: ${consumer}`)).toEqual([
       'node: consume.ts',
       'server: server.ts',
@@ -67,9 +73,26 @@ describe('the projects the gate installs', () => {
   // one it never declared, and a host that installs only the builder does
   // not: the gate would pass a tarball that fails there.
   test('install a builder with only the packages it declares, transitively, and the Node host with the rest', () => {
-    expect(named('react')?.packages).toEqual(['@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-core', '@formancy/report-spec'])
-    expect(named('angular-floor')?.packages).toEqual(['@formancy/report-builder-angular', '@formancy/report-builder-core', '@formancy/report-core', '@formancy/report-spec'])
-    expect(named('node')?.packages).toEqual(['@formancy/report-builder-core', '@formancy/report-core', '@formancy/report-render-pdf', '@formancy/report-runtime', '@formancy/report-server-core', '@formancy/report-spec'])
+    expect(named('react')?.packages).toEqual([
+      '@formancy/report-builder-core',
+      '@formancy/report-builder-react',
+      '@formancy/report-core',
+      '@formancy/report-spec',
+    ])
+    expect(named('angular-floor')?.packages).toEqual([
+      '@formancy/report-builder-angular',
+      '@formancy/report-builder-core',
+      '@formancy/report-core',
+      '@formancy/report-spec',
+    ])
+    expect(named('node')?.packages).toEqual([
+      '@formancy/report-builder-core',
+      '@formancy/report-core',
+      '@formancy/report-render-pdf',
+      '@formancy/report-runtime',
+      '@formancy/report-server-core',
+      '@formancy/report-spec',
+    ])
   })
 
   // The server's host is a Node host with the server and what it declares
@@ -97,7 +120,10 @@ describe('the projects the gate installs', () => {
     expect(named('client')?.at).toBeNull()
     expect(named('client')?.browser).toBe(true)
     expect(named('client')?.tools).not.toHaveProperty(['@types/node'])
-    expect(named('client')?.steps.map((step) => step.command.join(' '))).toEqual(['tsc -p tsconfig.client.json', 'node build.mjs --platform browser --exports @formancy/report-client'])
+    expect(named('client')?.steps.map((step) => step.command.join(' '))).toEqual([
+      'tsc -p tsconfig.client.json',
+      'node build.mjs --platform browser --exports @formancy/report-client',
+    ])
     expect(named('node')?.packages).not.toContain('@formancy/report-client')
   })
 
@@ -110,7 +136,15 @@ describe('the projects the gate installs', () => {
   test("check each browser's host against the DOM's types alone, and every other host against Node's", () => {
     const projects = planProjects(manifests)
     const browsers = projects.filter((project) => project.browser)
-    expect(browsers.map((project) => project.name).sort()).toEqual(['angular', 'angular-floor', 'client', 'react', 'react-app', 'react-app-floor', 'react-floor'])
+    expect(browsers.map((project) => project.name).sort()).toEqual([
+      'angular',
+      'angular-floor',
+      'client',
+      'react',
+      'react-app',
+      'react-app-floor',
+      'react-floor',
+    ])
     for (const project of projects.filter((each) => each.builder !== null)) expect(project.browser, project.name).toBe(true)
     for (const project of browsers) {
       expect(project.tsconfig.content.compilerOptions.types, project.name).toEqual([])
@@ -125,7 +159,9 @@ describe('the projects the gate installs', () => {
   test('refuse to plan the server host without the server, or without the client', () => {
     const without = (name) => new Map([...manifests].filter(([each]) => each !== name))
     expect(() => planProjects(without('@formancy/report-server'))).toThrow(/@formancy\/report-server was not packed, so the server host has nothing to check/)
-    expect(() => planProjects(without('@formancy/report-client'))).toThrow(/@formancy\/report-client was not packed, so the server host would be checked without it/)
+    expect(() => planProjects(without('@formancy/report-client'))).toThrow(
+      /@formancy\/report-client was not packed, so the server host would be checked without it/,
+    )
   })
 
   // The guide's React page previews in the browser, so it installs the
@@ -137,8 +173,23 @@ describe('the projects the gate installs', () => {
   // not a stand-in; a page that kept its draft through a client the host
   // never installed would pass a guide a reader could not follow.
   test("install the guide's React page with the builder, the renderer and the Studio's workbench release, at both ends of React's range", () => {
-    expect(named('react-app')?.packages).toEqual(['@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-client', '@formancy/report-core', '@formancy/report-render-pdf', '@formancy/report-runtime', '@formancy/report-server-core', '@formancy/report-spec'])
-    expect(named('react-app-floor')?.framework).toEqual({ react: '19.0.0', 'react-dom': '19.0.0', '@types/react': '~19.0.0', '@types/react-dom': '~19.0.0', '@formancy/themes': themes })
+    expect(named('react-app')?.packages).toEqual([
+      '@formancy/report-builder-core',
+      '@formancy/report-builder-react',
+      '@formancy/report-client',
+      '@formancy/report-core',
+      '@formancy/report-render-pdf',
+      '@formancy/report-runtime',
+      '@formancy/report-server-core',
+      '@formancy/report-spec',
+    ])
+    expect(named('react-app-floor')?.framework).toEqual({
+      react: '19.0.0',
+      'react-dom': '19.0.0',
+      '@types/react': '~19.0.0',
+      '@types/react-dom': '~19.0.0',
+      '@formancy/themes': themes,
+    })
     expect(named('react')?.packages).not.toContain('@formancy/report-render-pdf')
     expect(named('react')?.framework).not.toHaveProperty(['@formancy/themes'])
     expect(named('react-app')?.guide?.kind).toBe('react')
@@ -194,7 +245,10 @@ describe('the projects the gate installs', () => {
   // the builder would be checked without it; and a builder with no peer on
   // its framework is checked against whatever version the host picks.
   test('refuse a builder whose peers are not its framework', () => {
-    const extra = new Map([...manifests, ['@formancy/report-builder-react', { peerDependencies: { react: '^19.0.0', 'react-dom': '^19.0.0', 'react-router': '^7.0.0' } }]])
+    const extra = new Map([
+      ...manifests,
+      ['@formancy/report-builder-react', { peerDependencies: { react: '^19.0.0', 'react-dom': '^19.0.0', 'react-router': '^7.0.0' } }],
+    ])
     expect(() => planProjects(extra)).toThrow(/react-router/)
     const none = new Map([...manifests, ['@formancy/report-builder-angular', { peerDependencies: {} }]])
     expect(() => planProjects(none)).toThrow(/@angular\/core/)

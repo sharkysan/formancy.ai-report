@@ -90,7 +90,12 @@ export interface RenderManifest {
 }
 
 export type Resolution =
-  | { readonly ok: true; readonly document: ResolvedDocument; readonly manifest: RenderManifest; /** What a preview lacks; empty in a final render, which refuses it. */ readonly warnings: readonly RuntimeError[] }
+  | {
+      readonly ok: true
+      readonly document: ResolvedDocument
+      readonly manifest: RenderManifest
+      /** What a preview lacks; empty in a final render, which refuses it. */ readonly warnings: readonly RuntimeError[]
+    }
   | { readonly ok: false; readonly errors: readonly RuntimeError[] }
 
 /** What every page of a preview that lacks data says, at the top of its page header. */
@@ -149,9 +154,11 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
   const timeZone = options.timeZone ?? 'UTC'
   const errors: RuntimeError[] = []
   const creationDate = canonicalInstant(String(options.creationDate))
-  if (creationDate === undefined) errors.push({ stage: 'resolve', code: 'invalid-creation-date', path: '', message: 'the creation date is an ISO 8601 instant with its zone' })
+  if (creationDate === undefined)
+    errors.push({ stage: 'resolve', code: 'invalid-creation-date', path: '', message: 'the creation date is an ISO 8601 instant with its zone' })
   const formatter = createFormatter({ locale: valid.locale, timeZone })
-  if (!formatter.ok) errors.push({ stage: 'format', code: formatter.code, path: formatter.code === 'unsupported-locale' ? '/locale' : '', message: formatter.message })
+  if (!formatter.ok)
+    errors.push({ stage: 'format', code: formatter.code, path: formatter.code === 'unsupported-locale' ? '/locale' : '', message: formatter.message })
   const parameters = checkParameters(valid, options.parameters ?? {})
   if (!parameters.ok) errors.push(...parameters.errors.map((error) => fromData('parameters', error)))
   const checkedData = checkData(valid, data, { mode: options.mode })
@@ -186,7 +193,15 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
   const { completeness, consistency, source } = checkedData.data
   const warnings = problems.warnings()
   const lacking = !completeness.complete || warnings.some(({ code }) => code !== 'e-invoice-preview')
-  const labelled = !preview ? (eInvoice?.kind === 'xrechnung' ? XRECHNUNG_COPY_LABEL : undefined) : lacking ? PREVIEW_LABEL : invoice === undefined ? undefined : E_INVOICE_PREVIEW_LABEL
+  const labelled = !preview
+    ? eInvoice?.kind === 'xrechnung'
+      ? XRECHNUNG_COPY_LABEL
+      : undefined
+    : lacking
+      ? PREVIEW_LABEL
+      : invoice === undefined
+        ? undefined
+        : E_INVOICE_PREVIEW_LABEL
   const document: ResolvedDocument = {
     info: { title: valid.title, creationDate },
     page: valid.page,

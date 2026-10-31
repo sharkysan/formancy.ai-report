@@ -30,7 +30,21 @@ import { LAUNCH_OPTIONS, launchedAs } from '../browsers.mjs'
 import { parse } from '../pictures.mjs'
 import { declaredFamilies, faceVersions, FONT_FILE } from '../web-fonts.mjs'
 import * as camera from './camera.mjs'
-import { announce, checkProblems, entry, IMAGES, lineDiff, pairingProblems, pictureOf, readRecord, readScenes, REPO, stylesheetNotices, withEntry, writeRecord } from './record.mjs'
+import {
+  announce,
+  checkProblems,
+  entry,
+  IMAGES,
+  lineDiff,
+  pairingProblems,
+  pictureOf,
+  readRecord,
+  readScenes,
+  REPO,
+  stylesheetNotices,
+  withEntry,
+  writeRecord,
+} from './record.mjs'
 
 /** The root runner's arguments, for one app: no --app, and no scene of another app. */
 export function appOptions(argv, scenes, app) {
@@ -84,7 +98,9 @@ export function notShot({ options, id, record, text }) {
 export function widthOf(scene, { width, narrowest }) {
   if (scene.width === undefined) return width
   if (!(Number.isInteger(scene.width) && scene.width > 0 && scene.width <= narrowest)) {
-    throw new Error(`${scene.id} names the width ${JSON.stringify(scene.width)}, and a scene names a width only to picture the narrowest layout, at or below ${String(narrowest)}px`)
+    throw new Error(
+      `${scene.id} names the width ${JSON.stringify(scene.width)}, and a scene names a width only to picture the narrowest layout, at or below ${String(narrowest)}px`,
+    )
   }
   return scene.width
 }
@@ -196,7 +212,16 @@ export async function pictures(config, argv = process.argv.slice(2)) {
     throw thrown
   } finally {
     const file = checkResultFile(config.app)
-    const result = checkResult({ app: config.app, playwright: config.playwright, startedAt, finishedAt: new Date().toISOString(), browser: found.browser, walked: found.walked, problems: found.problems, error })
+    const result = checkResult({
+      app: config.app,
+      playwright: config.playwright,
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      browser: found.browser,
+      walked: found.walked,
+      problems: found.problems,
+      error,
+    })
     mkdirSync(dirname(file), { recursive: true })
     writeFileSync(file, `${JSON.stringify(result, null, 2)}\n`, 'utf8')
   }
@@ -218,9 +243,18 @@ async function walk(config, scenes, options, found) {
   const stylesheet = `sha256 ${camera.digest(sheet)} of src/${css.entry} with its imports, and @formancy/themes ${themes}`
   // The faces the build serves (0023), and each one's version for the look.
   const families = declaredFamilies(dist)
-  if (families.length === 0) throw new Error(`no stylesheet of apps/${app}/dist declares a face, so there is nothing to wait for and a fallback face would be pictured unnoticed`)
+  if (families.length === 0)
+    throw new Error(`no stylesheet of apps/${app}/dist declares a face, so there is nothing to wait for and a fallback face would be pictured unnoticed`)
   const versions = faceVersions(join(REPO, 'apps', app), families)
-  const widths = Object.fromEntries(actIds.map((id) => [id, widthOf(scenes.find((scene) => scene.id === id), { width, narrowest })]))
+  const widths = Object.fromEntries(
+    actIds.map((id) => [
+      id,
+      widthOf(
+        scenes.find((scene) => scene.id === id),
+        { width, narrowest },
+      ),
+    ]),
+  )
 
   // As the browser gate launches it, so the two walk the build the report holds both to.
   const launch = { ...LAUNCH_OPTIONS }
@@ -251,7 +285,7 @@ async function walk(config, scenes, options, found) {
         reached = await act(page, scene)
       } catch (error) {
         // Named, since the scene that fails is the picture whose caption no longer holds.
-        throw new Error(`${id}: ${error instanceof Error ? error.message : String(error)}`)
+        throw new Error(`${id}: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
       }
       const { parts, keepFocus = false } = reached
       await quiet(page, parts, within)
@@ -277,9 +311,13 @@ async function walk(config, scenes, options, found) {
       if (JSON.stringify(shots[id].text) !== JSON.stringify(running[id])) {
         const changed = Object.keys(running[id]).filter((part) => shots[id].text[part] !== running[id][part])
         const diffs = changed.map((part) => `  ${part}:\n    ${lineDiff(running[id][part], shots[id].text[part]).join('\n    ')}`)
-        throw new Error(`${id}: ${changed.join(', ')} said something else after the picture was taken than before it, so the act does not wait for the state it pictures:\n${diffs.join('\n')}`)
+        throw new Error(
+          `${id}: ${changed.join(', ')} said something else after the picture was taken than before it, so the act does not wait for the state it pictures:\n${diffs.join('\n')}`,
+        )
       }
-      console.log(`  ${id}: shot (${reason}), ${String(shots[id].clip.width)}x${String(shots[id].clip.height)} CSS px, settled in ${String(shots[id].shots)} shots`)
+      console.log(
+        `  ${id}: shot (${reason}), ${String(shots[id].clip.width)}x${String(shots[id].clip.height)} CSS px, settled in ${String(shots[id].shots)} shots`,
+      )
     }
 
     if (options.check) {
@@ -289,7 +327,9 @@ async function walk(config, scenes, options, found) {
       found.compared = true
       if (problems.length > 0) throw new Error(`the ${app} pictures no longer show what the page shows:\n  ${problems.join('\n  ')}`)
       const count = Object.keys(running).length
-      console.log(`${app}: every part of ${String(count)} ${count === 1 ? 'scene' : 'scenes'} says what its picture was recorded saying, and every caption quotes only what its parts say`)
+      console.log(
+        `${app}: every part of ${String(count)} ${count === 1 ? 'scene' : 'scenes'} says what its picture was recorded saying, and every caption quotes only what its parts say`,
+      )
       return
     }
 

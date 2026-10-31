@@ -49,7 +49,16 @@ describe('a read takes time linear in what it is handed', () => {
 
   test('a group of many fields, answered in many rows', () => {
     const group = Array.from({ length: 10_000 }, (_, index) => ({ key: `f${index}`, type: 'text' }))
-    const form = formOf([{ key: 'rows', type: 'repeater', fields: [{ key: 'ref', type: 'text' }, { key: 'g', type: 'group', fields: group }] }])
+    const form = formOf([
+      {
+        key: 'rows',
+        type: 'repeater',
+        fields: [
+          { key: 'ref', type: 'text' },
+          { key: 'g', type: 'group', fields: group },
+        ],
+      },
+    ])
     const rows = Array.from({ length: 20_000 }, (_, index) => ({ _id: `r${index}`, ref: 'x', g: {} }))
     const { value, ms } = timed(() => read(reportOf({ detail: rowsOf('rows', field('ref', 'string', 'ref')) }), form, { rows }))
     expect(readData(value).detail).toHaveLength(20_000)

@@ -38,7 +38,8 @@ export interface StoredDraft {
  * the one the save started from. `revision` is then the newest draft's, or
  * `null` where the template has none.
  */
-export type SaveOutcome = { readonly saved: true; readonly revision: number; readonly digest: string } | { readonly saved: false; readonly revision: number | null }
+export type SaveOutcome =
+  { readonly saved: true; readonly revision: number; readonly digest: string } | { readonly saved: false; readonly revision: number | null }
 
 /** An image as a store holds it: the bytes and the kind they were sniffed as. */
 export interface StoredImage {

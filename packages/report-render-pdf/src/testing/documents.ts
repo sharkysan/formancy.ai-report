@@ -128,7 +128,9 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
   return {
     outcome: 'render',
     keys: keysOf(document.body, false),
-    tables: flatten(document.body).filter((block) => block.kind === 'table').map(expectedTable),
+    tables: flatten(document.body)
+      .filter((block) => block.kind === 'table')
+      .map(expectedTable),
     pageHeaderLines: plainLines(document.pageHeader),
     pageFooterLines: plainLines(document.pageFooter),
     ...(footerEveryPage === undefined ? {} : { footerEveryPage }),
@@ -190,7 +192,8 @@ function keysOf(blocks: readonly Block[], kept: boolean): string[] {
 }
 
 function expectedTable(table: Table): ExpectedTable {
-  const printed = (cells: readonly string[]): ExpectedCell[] => cells.map((cell, column) => ({ column, text: normalise(cell) })).filter((cell) => cell.text !== '')
+  const printed = (cells: readonly string[]): ExpectedCell[] =>
+    cells.map((cell, column) => ({ column, text: normalise(cell) })).filter((cell) => cell.text !== '')
   return {
     id: table.id,
     header: printed(table.header).map((cell) => cell.text),

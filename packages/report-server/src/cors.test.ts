@@ -21,7 +21,9 @@ describe('corsOriginsSetting', () => {
   // written and once; the space around an entry is the list's, never the
   // origin's, and a port or loopback's plain HTTP is part of the origin.
   test('reads origins exactly as a browser sends Origin, each once', () => {
-    expect(corsOriginsSetting(' https://app.example ,https://b.example:8443, http://localhost:5173,http://127.0.0.1:3000,http://[::1]:8080,https://app.example')).toEqual({
+    expect(
+      corsOriginsSetting(' https://app.example ,https://b.example:8443, http://localhost:5173,http://127.0.0.1:3000,http://[::1]:8080,https://app.example'),
+    ).toEqual({
       ok: true,
       origins: ['https://app.example', 'https://b.example:8443', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://[::1]:8080'],
     })
@@ -72,7 +74,10 @@ describe('corsOriginsSetting', () => {
 })
 
 /** Accepts the literal token `good`, of tenant acme. */
-const verifyIdentity: ReportVerifier = async (token) => (token === 'good' ? { ok: true, identity: { subject: 'u-1', tenant: 'acme', roles: ['report-authors'] } } : { ok: false, reason: 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' })
+const verifyIdentity: ReportVerifier = async (token) =>
+  token === 'good'
+    ? { ok: true, identity: { subject: 'u-1', tenant: 'acme', roles: ['report-authors'] } }
+    : { ok: false, reason: 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' }
 const roles = { author: ['report-authors'], publisher: [], admin: [] }
 
 /** The server is given a store whatever the case asks of it (0049): each case its own (test-support.ts). */
@@ -155,7 +160,11 @@ describe('the server across origins', () => {
   test('carries the listed origin back on every answer of the API, with Vary', async () => {
     const listed = await server({ origins: ['https://app.example'] })
     for (const authorization of ['Bearer good', 'Bearer bad']) {
-      const answer = await listed.inject({ method: 'GET', url: '/v1/whoami', headers: { origin: 'https://app.example', 'sec-fetch-site': 'cross-site', authorization } })
+      const answer = await listed.inject({
+        method: 'GET',
+        url: '/v1/whoami',
+        headers: { origin: 'https://app.example', 'sec-fetch-site': 'cross-site', authorization },
+      })
       expect(answer.headers['access-control-allow-origin']).toBe('https://app.example')
       expect(answer.headers.vary).toContain('Origin')
     }
@@ -170,10 +179,14 @@ describe('the server across origins', () => {
   // answers, and to nobody else.
   test('exposes ETag to a listed origin on the API’s answers, and to nobody else', async () => {
     const listed = await server({ origins: ['https://app.example'] })
-    const from = (origin: string, url = '/v1/whoami') => listed.inject({ method: 'GET', url, headers: { origin, 'sec-fetch-site': 'cross-site', authorization: 'Bearer good' } })
-    for (const url of ['/v1/whoami', '/v1/templates', '/v1/templates/invoice/draft']) expect((await from('https://app.example', url)).headers['access-control-expose-headers'], url).toBe('etag')
+    const from = (origin: string, url = '/v1/whoami') =>
+      listed.inject({ method: 'GET', url, headers: { origin, 'sec-fetch-site': 'cross-site', authorization: 'Bearer good' } })
+    for (const url of ['/v1/whoami', '/v1/templates', '/v1/templates/invoice/draft'])
+      expect((await from('https://app.example', url)).headers['access-control-expose-headers'], url).toBe('etag')
     expect((await from('https://evil.example')).headers['access-control-expose-headers']).toBeUndefined()
-    expect((await listed.inject({ method: 'GET', url: '/health', headers: { origin: 'https://app.example' } })).headers['access-control-expose-headers']).toBeUndefined()
+    expect(
+      (await listed.inject({ method: 'GET', url: '/health', headers: { origin: 'https://app.example' } })).headers['access-control-expose-headers'],
+    ).toBeUndefined()
   })
 
   // A browser that cached a grant keeps sending without asking again for
@@ -189,7 +202,11 @@ describe('the server across origins', () => {
     for (const origins of [[], ['https://app.example']]) {
       const refusing = await server({ origins, verifyIdentity: counting })
       for (const site of ['cross-site', 'same-site']) {
-        const answer = await refusing.inject({ method: 'GET', url: '/v1/whoami', headers: { origin: 'https://evil.example', 'sec-fetch-site': site, authorization: 'Bearer good' } })
+        const answer = await refusing.inject({
+          method: 'GET',
+          url: '/v1/whoami',
+          headers: { origin: 'https://evil.example', 'sec-fetch-site': site, authorization: 'Bearer good' },
+        })
         expect(answer.statusCode).toBe(403)
         expect(answer.json().code).toBe('cross-origin-refused')
       }
@@ -198,7 +215,9 @@ describe('the server across origins', () => {
     expect(asked).toEqual([])
     // The same request from the page's own origin, or with no Sec-Fetch-Site, is the server's to answer.
     const answering = await server({ verifyIdentity: counting })
-    expect((await answering.inject({ method: 'GET', url: '/v1/whoami', headers: { 'sec-fetch-site': 'same-origin', authorization: 'Bearer good' } })).statusCode).toBe(200)
+    expect(
+      (await answering.inject({ method: 'GET', url: '/v1/whoami', headers: { 'sec-fetch-site': 'same-origin', authorization: 'Bearer good' } })).statusCode,
+    ).toBe(200)
     expect((await answering.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: 'Bearer good' } })).statusCode).toBe(200)
   })
 
@@ -214,7 +233,11 @@ describe('the server across origins', () => {
   test('refuses a token-bearing cross-site request from a listed origin to a route the API does not offer', async () => {
     const lines: string[] = []
     const listed = await server({ origins: ['https://app.example'], logger: { stream: { write: (line) => void lines.push(line) } } })
-    const answer = await listed.inject({ method: 'GET', url: '/health', headers: { origin: 'https://app.example', 'sec-fetch-site': 'cross-site', authorization: 'Bearer good' } })
+    const answer = await listed.inject({
+      method: 'GET',
+      url: '/health',
+      headers: { origin: 'https://app.example', 'sec-fetch-site': 'cross-site', authorization: 'Bearer good' },
+    })
     expect(answer.statusCode).toBe(403)
     expect(answer.json().code).toBe('cross-origin-refused')
     const refused = lines.map((line) => JSON.parse(line) as { msg: string; reason?: string }).filter((line) => line.msg === 'cross-origin request refused')
@@ -243,7 +266,8 @@ describe('the log of a refusal across origins', () => {
   test('names an origin a browser sends, and nothing that is not one', async () => {
     const lines: string[] = []
     const logged = await server({ origins: ['https://app.example'], logger: { stream: { write: (line) => void lines.push(line) } } })
-    for (const origin of ['https://evil.example', 'not a url, but a secret', 'https://user:password@evil.example', `https://${'a'.repeat(300)}.example`]) await logged.inject(preflight(origin))
+    for (const origin of ['https://evil.example', 'not a url, but a secret', 'https://user:password@evil.example', `https://${'a'.repeat(300)}.example`])
+      await logged.inject(preflight(origin))
     const refused = lines.map((line) => JSON.parse(line) as { msg: string; origin?: string }).filter((line) => line.msg === 'preflight refused')
     expect(refused.map((line) => line.origin ?? null)).toEqual(['https://evil.example', null, null, null])
     expect(lines.join('')).not.toContain('secret')
@@ -265,7 +289,9 @@ describe('the log of a refusal across origins', () => {
       expect(answer.json().code).toBe('cross-origin-refused')
       expect(answer.headers['access-control-allow-origin']).toBeUndefined()
     }
-    const refused = lines.map((line) => JSON.parse(line) as { msg: string; reason?: string; origin?: string }).filter((line) => line.msg === 'preflight refused')
+    const refused = lines
+      .map((line) => JSON.parse(line) as { msg: string; reason?: string; origin?: string })
+      .filter((line) => line.msg === 'preflight refused')
     expect(refused.map(({ reason, origin }) => ({ reason, origin: origin ?? null }))).toEqual([
       { reason: 'not a preflight', origin: null },
       { reason: 'not a preflight', origin: 'https://app.example' },

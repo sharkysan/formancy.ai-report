@@ -105,7 +105,7 @@ describe('listTemplates', () => {
   // directory's, a table's -- so a use case that passed it on would give two
   // deployments two orders, and a client that rendered the list as it came
   // would shuffle it.
-  test('lists the tenant\'s templates by id, whatever order the store gives them in', async () => {
+  test("lists the tenant's templates by id, whatever order the store gives them in", async () => {
     const { store } = memoryStore()
     for (const id of ['zeta', 'alpha', 'mid']) await saveDraft(asking(store, AUTHOR), id, report(id), create)
     await saveDraft(asking(store, AUTHOR, { tenant: 'other' }), 'beta', report('beta'), create)
@@ -197,7 +197,7 @@ describe('readDraft', () => {
   // Tenants are separate by the identity alone: a template of another
   // tenant, and of one whose name differs only by case, is not found, and
   // is not forbidden either, which would say it exists.
-  test('reads only the asking tenant\'s drafts', async () => {
+  test("reads only the asking tenant's drafts", async () => {
     const { store } = memoryStore()
     await saveDraft(asking(store, AUTHOR, { tenant: 'acme' }), 'invoice', report(), create)
     for (const tenant of ['other', 'Acme', 'acme ']) {
@@ -211,10 +211,15 @@ describe('saveDraft', () => {
   // token's tenant and subject. A 200 would tell a client it replaced
   // something, and a savedBy taken from anywhere but the verified identity
   // would let a body say who wrote it.
-  test('creates a template at revision 1, saved by the token\'s subject', async () => {
+  test("creates a template at revision 1, saved by the token's subject", async () => {
     const { store } = memoryStore()
     const saved = await saveDraft(asking(store, AUTHOR, { subject: 'u-7' }), 'invoice', report(), create)
-    expect(saved).toEqual({ ok: true, status: 201, body: { template: 'invoice', revision: 1, digest: digestOf(report()) }, version: { revision: 1, digest: digestOf(report()) } })
+    expect(saved).toEqual({
+      ok: true,
+      status: 201,
+      body: { template: 'invoice', revision: 1, digest: digestOf(report()) },
+      version: { revision: 1, digest: digestOf(report()) },
+    })
     expect(await store.newest('acme', 'invoice')).toEqual({ revision: 1, digest: digestOf(report()), savedBy: 'u-7', report: report() })
   })
 
@@ -227,7 +232,12 @@ describe('saveDraft', () => {
     const created = await saveDraft(asking(store, AUTHOR), 'invoice', report(), create)
     const changed = { ...report(), title: 'Changed' }
     const saved = await saveDraft(asking(store, AUTHOR), 'invoice', changed, replace(versionOf(created)))
-    expect(saved).toEqual({ ok: true, status: 200, body: { template: 'invoice', revision: 2, digest: digestOf(changed) }, version: { revision: 2, digest: digestOf(changed) } })
+    expect(saved).toEqual({
+      ok: true,
+      status: 200,
+      body: { template: 'invoice', revision: 2, digest: digestOf(changed) },
+      version: { revision: 2, digest: digestOf(changed) },
+    })
     expect((await store.newest('acme', 'invoice'))?.report.title).toBe('Changed')
   })
 
@@ -273,7 +283,12 @@ describe('saveDraft', () => {
     const created = await saveDraft(asking(store, AUTHOR), 'invoice', report(), create)
     const before = snapshot()
     const askedBefore = asked.length
-    const other = await saveDraft(asking(store, AUTHOR), 'invoice', { ...report(), title: 'Over a draft never read' }, replace({ revision: versionOf(created).revision, digest: UNSAVED }))
+    const other = await saveDraft(
+      asking(store, AUTHOR),
+      'invoice',
+      { ...report(), title: 'Over a draft never read' },
+      replace({ revision: versionOf(created).revision, digest: UNSAVED }),
+    )
     expect(other).toStrictEqual({ ok: false, status: 412, body: { ...REFUSALS['draft-changed'], revision: 1 } })
     expect(snapshot()).toBe(before)
     expect(asked.slice(askedBefore)).toEqual(['newest'])
@@ -319,7 +334,11 @@ describe('saveDraft', () => {
   // the body is read, so a body that is no report is not told so first.
   test('refuses a save with no precondition as precondition-required, before it looks at the body', async () => {
     const { store, asked } = memoryStore()
-    expect(await saveDraft(asking(store, AUTHOR), 'invoice', { not: 'a report' }, none)).toEqual({ ok: false, status: 428, body: REFUSALS['precondition-required'] })
+    expect(await saveDraft(asking(store, AUTHOR), 'invoice', { not: 'a report' }, none)).toEqual({
+      ok: false,
+      status: 428,
+      body: REFUSALS['precondition-required'],
+    })
     expect(asked).toEqual([])
   })
 
@@ -363,7 +382,11 @@ describe('saveDraft', () => {
     const before = snapshot()
     const askedBefore = asked.length
     for (const role of [PUBLISHER, ADMIN, undefined]) {
-      expect(await saveDraft(asking(store, role), 'invoice', report(), replace({ revision: 1, digest: digestOf(report()) })), String(role)).toEqual({ ok: false, status: 403, body: REFUSALS.forbidden })
+      expect(await saveDraft(asking(store, role), 'invoice', report(), replace({ revision: 1, digest: digestOf(report()) })), String(role)).toEqual({
+        ok: false,
+        status: 403,
+        body: REFUSALS.forbidden,
+      })
     }
     expect(snapshot()).toBe(before)
     expect(asked.length).toBe(askedBefore)
@@ -381,13 +404,17 @@ describe('saveDraft', () => {
 
   // The format's own errors travel back to the requester under their own
   // token, where the builder can point at them; the draft is not stored.
-  test('refuses a report the format rejects as report-invalid, with report-spec\'s errors, and writes nothing', async () => {
+  test("refuses a report the format rejects as report-invalid, with report-spec's errors, and writes nothing", async () => {
     const { store, snapshot } = memoryStore()
     const bad = { ...report(), locale: 'english' }
     const outcome = validateReport(bad)
     if (outcome.valid) throw new Error('the fixture is meant to be invalid')
     const before = snapshot()
-    expect(await saveDraft(asking(store, AUTHOR), 'invoice', bad, create)).toEqual({ ok: false, status: 422, body: { ...REFUSALS['report-invalid'], errors: outcome.errors } })
+    expect(await saveDraft(asking(store, AUTHOR), 'invoice', bad, create)).toEqual({
+      ok: false,
+      status: 422,
+      body: { ...REFUSALS['report-invalid'], errors: outcome.errors },
+    })
     expect(outcome.errors.map((error) => error.path)).toContain('/locale')
     expect(snapshot()).toBe(before)
   })
@@ -406,9 +433,13 @@ describe('saveDraft', () => {
 
   // The path names the template and the report names itself; one saved
   // under the other's id would be listed under an id its own text denies.
-  test('refuses a report whose id is not the template\'s as template-id-mismatch, writing nothing', async () => {
+  test("refuses a report whose id is not the template's as template-id-mismatch, writing nothing", async () => {
     const { store } = memoryStore()
-    expect(await saveDraft(asking(store, AUTHOR), 'invoice', report('quote'), create)).toEqual({ ok: false, status: 422, body: REFUSALS['template-id-mismatch'] })
+    expect(await saveDraft(asking(store, AUTHOR), 'invoice', report('quote'), create)).toEqual({
+      ok: false,
+      status: 422,
+      body: REFUSALS['template-id-mismatch'],
+    })
     expect(await store.list('acme')).toEqual([])
   })
 
@@ -418,7 +449,11 @@ describe('saveDraft', () => {
   test('refuses a draft whose image is not kept, naming it by its id', async () => {
     const { store } = memoryStore()
     const draft = { ...report(), assets: [{ id: 'logo', mediaType: 'image/png' as const, digest: LOGO }] }
-    expect(await saveDraft(asking(store, AUTHOR), 'invoice', draft, create)).toEqual({ ok: false, status: 422, body: { ...REFUSALS['asset-not-kept'], assets: ['logo'] } })
+    expect(await saveDraft(asking(store, AUTHOR), 'invoice', draft, create)).toEqual({
+      ok: false,
+      status: 422,
+      body: { ...REFUSALS['asset-not-kept'], assets: ['logo'] },
+    })
     expect(await store.newest('acme', 'invoice')).toBeUndefined()
   })
 
@@ -436,7 +471,7 @@ describe('saveDraft', () => {
   // tenant removed it, and would show that it exists. The tenant that kept
   // it saves, so the question is asked of the token's tenant and not of a
   // fixed one.
-  test('takes an image from the asking tenant\'s own and not from another\'s', async () => {
+  test("takes an image from the asking tenant's own and not from another's", async () => {
     const { store } = memoryStore()
     await store.keepImage('other', LOGO, png)
     const draft = { ...report(), assets: [{ id: 'logo', mediaType: 'image/png' as const, digest: LOGO }] }
@@ -457,7 +492,11 @@ describe('saveDraft', () => {
     await store.keepImage('acme', LOGO, png)
     for (const mediaType of ['image/svg+xml', 'image/jpeg'] as const) {
       const draft = { ...report(), assets: [{ id: 'logo', mediaType, digest: LOGO }] }
-      expect(await saveDraft(asking(store, AUTHOR), 'invoice', draft, create), mediaType).toEqual({ ok: false, status: 422, body: { ...REFUSALS['asset-not-kept'], assets: ['logo'] } })
+      expect(await saveDraft(asking(store, AUTHOR), 'invoice', draft, create), mediaType).toEqual({
+        ok: false,
+        status: 422,
+        body: { ...REFUSALS['asset-not-kept'], assets: ['logo'] },
+      })
     }
     expect(await store.newest('acme', 'invoice')).toBeUndefined()
     const declared = { ...report(), assets: [{ id: 'logo', mediaType: 'image/png' as const, digest: LOGO }] }
@@ -529,7 +568,12 @@ describe('saveDraft', () => {
     ]
     for (const [name, who, template, body, precondition, status, code] of steps) {
       const answered = await saveDraft(who, template, body, precondition)
-      expect({ name, ok: answered.ok, status: answered.status, code: answered.ok ? undefined : answered.body.code }, name).toEqual({ name, ok: false, status, code })
+      expect({ name, ok: answered.ok, status: answered.status, code: answered.ok ? undefined : answered.body.code }, name).toEqual({
+        name,
+        ok: false,
+        status,
+        code,
+      })
     }
   })
 })

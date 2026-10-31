@@ -22,7 +22,11 @@ function socket(state: { destroyed?: boolean; writable?: boolean } = {}) {
   }
 }
 
-const error = (code: string) => Object.assign(new Error('a parser error, whose rawPacket would hold what the client sent'), { code, rawPacket: Buffer.from('Authorization: Bearer a-pasted-secret') })
+const error = (code: string) =>
+  Object.assign(new Error('a parser error, whose rawPacket would hold what the client sent'), {
+    code,
+    rawPacket: Buffer.from('Authorization: Bearer a-pasted-secret'),
+  })
 
 describe('answerClientError', () => {
   // Headers sent too slowly are Node's 408, which Fastify answered with its

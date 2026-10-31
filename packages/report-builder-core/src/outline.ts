@@ -64,7 +64,10 @@ export function buildOutline(report: ReportDefinition, inputs: OutlineInputs, t:
   for (const { component, region, path, depth } of walkComponents(report)) {
     const node = row(component.id, component.id, component.kind, depth)
     if (component.kind === 'table') {
-      node.children = component.columns.map((column) => ({ ...row(columnKey(component.id, column.id), component.id, 'tableColumn', depth + 1), column: column.id }))
+      node.children = component.columns.map((column) => ({
+        ...row(columnKey(component.id, column.id), component.id, 'tableColumn', depth + 1),
+        column: column.id,
+      }))
     }
     byPath.set(path, node)
     if (depth === 0) {

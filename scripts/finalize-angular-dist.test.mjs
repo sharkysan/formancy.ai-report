@@ -150,7 +150,10 @@ describe('finalizing an ng-packagr dist', () => {
   test('does its work when the build runs it', () => {
     const { pkg, dist } = fixture()
     // Run as the build runs it, it reads the siblings of this repository.
-    write(join(dist, 'package.json'), JSON.stringify({ ...NG_PACKAGR_MANIFEST, dependencies: { '@formancy/report-spec': 'workspace:*' }, peerDependencies: {} }))
+    write(
+      join(dist, 'package.json'),
+      JSON.stringify({ ...NG_PACKAGR_MANIFEST, dependencies: { '@formancy/report-spec': 'workspace:*' }, peerDependencies: {} }),
+    )
     const ran = spawnSync(process.execPath, [script, pkg], { encoding: 'utf8' })
     expect(ran.status, ran.stderr).toBe(0)
     expect(json(join(dist, 'package.json')).dependencies['@formancy/report-spec']).toBe(json(join(repo, 'packages', 'report-spec', 'package.json')).version)
@@ -179,7 +182,11 @@ describe.runIf(built || process.env.CI === 'true')('the Angular builder as built
     }
     return names
   }
-  const packageOf = (specifier) => specifier.split('/').slice(0, specifier.startsWith('@') ? 2 : 1).join('/')
+  const packageOf = (specifier) =>
+    specifier
+      .split('/')
+      .slice(0, specifier.startsWith('@') ? 2 : 1)
+      .join('/')
 
   // Editing a report in Angular must not bring React into an application
   // (plan 21): the published manifest and the published code name none of
@@ -207,7 +214,11 @@ describe.runIf(built || process.env.CI === 'true')('the Angular builder as built
     const { dependencies, peerDependencies, files, license } = manifest()
     expect(JSON.stringify({ dependencies, peerDependencies })).not.toContain('workspace:')
     expect(license).toBe(LICENSE_FIELD)
-    expect(files).toEqual(readdirSync(dist).filter((name) => name !== 'package.json').sort())
+    expect(files).toEqual(
+      readdirSync(dist)
+        .filter((name) => name !== 'package.json')
+        .sort(),
+    )
     for (const file of LICENSE_FILES) expect(files).toContain(file)
   })
 })

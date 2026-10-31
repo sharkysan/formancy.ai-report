@@ -73,7 +73,8 @@ export function passes() {
   const studio = breakpointsOf(inlined(join(app, 'src', 'studio.css')))
   // The entry with its parts inlined, as the build takes it: its breakpoints stand in the parts it imports.
   const builder = breakpointsOf(inlined(require.resolve('@formancy/report-builder-core/report-builder.css')))
-  if (studio.length === 0 || builder.length === 0) throw new Error('found no max-width breakpoint in src/studio.css or report-builder.css, so the widths below measure nothing')
+  if (studio.length === 0 || builder.length === 0)
+    throw new Error('found no max-width breakpoint in src/studio.css or report-builder.css, so the widths below measure nothing')
   const widest = Math.max(...studio)
   const narrowest = Math.min(...studio)
   // The builder's layout at a width: which of its max-width rules apply there.
@@ -85,7 +86,9 @@ export function passes() {
     // The same with the web fonts refused, whose fallback widths differ.
     { label: 'reflow, 320, web fonts refused', width: 320, height: 900, refuseFonts: true },
     { label: 'phone, 360', width: 360, height: 900 },
-    ...[...new Set([...studio, ...builder])].sort((a, b) => a - b).map((px) => ({ label: `one past the ${String(px)}px breakpoint`, width: px + 1, height: 900 })),
+    ...[...new Set([...studio, ...builder])]
+      .sort((a, b) => a - b)
+      .map((px) => ({ label: `one past the ${String(px)}px breakpoint`, width: px + 1, height: 900 })),
     { label: 'laptop, 1440', width: 1440, height: 900 },
     ...[
       [1366, 657],
@@ -180,7 +183,10 @@ export async function audit(page, target) {
       axe: window.axe.version,
       violations: results.violations.map((rule) => `${rule.id} (${String(rule.nodes.length)}): ${rule.nodes[0]?.html.slice(0, 90) ?? ''}`),
       measured: ['color-contrast', 'target-size'].filter((id) => nodes(results.passes, id).length > 0),
-      undecided: undecided.filter((node) => !hidden.includes(node) && !overThePdf.includes(node)).map((node) => `${node.html.slice(0, 60)} (${why(node)})`).slice(0, 4),
+      undecided: undecided
+        .filter((node) => !hidden.includes(node) && !overThePdf.includes(node))
+        .map((node) => `${node.html.slice(0, 60)} (${why(node)})`)
+        .slice(0, 4),
       hidden: hidden.length,
     }
   })
@@ -286,20 +292,34 @@ function rulesInside(page, { within, own = null, only = null, beside = null }) {
             mine += 1
             continue
           }
-          const always = selector.replace(/::[\w-]+(\([^)]*\))?/g, '').replace(/:(?:focus-visible|focus-within|focus|hover|active)(?![\w-])/g, '').trim() || '*'
+          const always =
+            selector
+              .replace(/::[\w-]+(\([^)]*\))?/g, '')
+              .replace(/:(?:focus-visible|focus-within|focus|hover|active)(?![\w-])/g, '')
+              .trim() || '*'
           try {
             if (others.some((element) => element.matches(always))) besideReached += 1
             const hit = elements.find((element) => element.matches(always))
             if (hit === undefined) continue
             const properties = declared(rule)
-            if (selector === inert && properties.length > 0 && properties.every((property) => property.startsWith('transition'))) kept.push(`${selector} { ${properties.join(', ')} }`)
+            if (selector === inert && properties.length > 0 && properties.every((property) => property.startsWith('transition')))
+              kept.push(`${selector} { ${properties.join(', ')} }`)
             else reached.push(`${selector} selects ${hit.outerHTML.slice(0, 60)}`)
           } catch {
             broken.push(selector)
           }
         }
       }
-      return { rules: rules.length, own: mine, tags: [...new Set(elements.map((element) => element.localName))], reached, inert: [...new Set(kept)], broken, unread, besideReached }
+      return {
+        rules: rules.length,
+        own: mine,
+        tags: [...new Set(elements.map((element) => element.localName))],
+        reached,
+        inert: [...new Set(kept)],
+        broken,
+        unread,
+        besideReached,
+      }
     },
     { within, own, only, beside, inert: INERT },
   )
@@ -321,7 +341,11 @@ export const rulesOnThePaper = (page) => rulesInside(page, { within: '.paper', o
  * builder's outline pane too, which the same rules must reach.
  */
 export const builderRulesInThePreview = (page) =>
-  rulesInside(page, { within: '[data-report-part="editor"] [data-report-part="view"]', only: NAMES_BUILDER, beside: '[data-report-part="editor"] [data-pane="outline"] *' })
+  rulesInside(page, {
+    within: '[data-report-part="editor"] [data-report-part="view"]',
+    only: NAMES_BUILDER,
+    beside: '[data-report-part="editor"] [data-pane="outline"] *',
+  })
 
 /**
  * Every control of the Preview -- a button, a link, a field -- whose box an
@@ -334,7 +358,9 @@ export const builderRulesInThePreview = (page) =>
  */
 export function cutControls(page) {
   return page.evaluate(() => {
-    const controls = [...document.querySelectorAll('.studio-preview :is(button, a[href], input, select, textarea)')].filter((control) => control.getClientRects().length > 0)
+    const controls = [...document.querySelectorAll('.studio-preview :is(button, a[href], input, select, textarea)')].filter(
+      (control) => control.getClientRects().length > 0,
+    )
     const cut = []
     let scrolled = 0
     for (const control of controls) {
@@ -342,7 +368,11 @@ export function cutControls(page) {
       let [left, top, right, bottom] = [own.left, own.top, own.right, own.bottom]
       let fault = null
       let scrolls = false
-      for (let ancestor = control.parentElement; ancestor !== null && ancestor !== document.documentElement && right > left && bottom > top; ancestor = ancestor.parentElement) {
+      for (
+        let ancestor = control.parentElement;
+        ancestor !== null && ancestor !== document.documentElement && right > left && bottom > top;
+        ancestor = ancestor.parentElement
+      ) {
         const style = getComputedStyle(ancestor)
         const box = ancestor.getBoundingClientRect()
         const across = style.overflowX !== 'visible' && (box.left > left + 0.5 || box.right < right - 0.5)
@@ -488,7 +518,8 @@ export async function paletteProblem(page) {
   const declared = Object.fromEntries([...block.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((match) => [match[1] ?? '', (match[2] ?? '').trim()]))
   const scheme = /(?<![\w-])color-scheme\s*:\s*([^;]+);/.exec(block)?.[1]?.trim()
   if (Object.keys(declared).length === 0 || scheme === undefined) return 'the installed room.css reads as no :root with variables and a colour scheme'
-  const resolved = (value, depth = 0) => (depth > 8 ? value : value.replaceAll(/var\(\s*(--[\w-]+)\s*\)/g, (_, name) => resolved(declared[name] ?? '', depth + 1)))
+  const resolved = (value, depth = 0) =>
+    depth > 8 ? value : value.replaceAll(/var\(\s*(--[\w-]+)\s*\)/g, (_, name) => resolved(declared[name] ?? '', depth + 1))
   const room = Object.entries(declared).map(([name, value]) => [name, resolved(value)])
   const wrong = await page.evaluate(
     ({ room, scheme }) => {
@@ -507,7 +538,9 @@ export async function paletteProblem(page) {
         if (one === null || other === null || one.property !== other.property) return false
         if (one.property !== 'color') return one.said === other.said
         const [a, b] = [one.channels, other.channels]
-        return a.length >= 3 && a.length === b.length && a.slice(0, 3).every((channel, at) => channel === b[at]) && Math.abs((a[3] ?? 1) - (b[3] ?? 1)) <= 1 / 255
+        return (
+          a.length >= 3 && a.length === b.length && a.slice(0, 3).every((channel, at) => channel === b[at]) && Math.abs((a[3] ?? 1) - (b[3] ?? 1)) <= 1 / 255
+        )
       }
       const root = getComputedStyle(document.documentElement)
       const wrong = room.flatMap(([name, value]) => {

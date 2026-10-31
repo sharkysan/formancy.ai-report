@@ -71,8 +71,17 @@ describe('the account', () => {
   // capitals as ISO 13616 writes one. A German IBAN, a short one or one in
   // lower case would reach a bank that refuses the payment.
   test('refuses another country, another length and lower case', () => {
-    for (const text of ['DE51 3704 0044 0532 0130 0', 'CH443199912300088901', 'CH44319991230008890123', 'ch4431999123000889012', 'CH44-3199-9123-0008-8901-2', '']) {
-      expect(broken(checkQrBillAccount(text)), text).toBe('is not an IBAN of Switzerland or Liechtenstein: CH or LI, two check digits and 17 digits or capitals, 21 characters without spaces')
+    for (const text of [
+      'DE51 3704 0044 0532 0130 0',
+      'CH443199912300088901',
+      'CH44319991230008890123',
+      'ch4431999123000889012',
+      'CH44-3199-9123-0008-8901-2',
+      '',
+    ]) {
+      expect(broken(checkQrBillAccount(text)), text).toBe(
+        'is not an IBAN of Switzerland or Liechtenstein: CH or LI, two check digits and 17 digits or capitals, 21 characters without spaces',
+      )
     }
   })
 
@@ -142,13 +151,17 @@ describe('the reference', () => {
   // SIX's own fourth example (IG 2.4, Table 20) is a creditor reference
   // whose remainder is 49, not 1: refused, as a bank would refuse it.
   test("refuses a creditor reference whose check digits do not match, SIX's fourth example among them", () => {
-    expect(broken(checkQrBillReference('RF720191230100405JSH0438'))).toBe('has check digits that do not match the rest of it (ISO 11649: the reference modulo 97 is 1)')
+    expect(broken(checkQrBillReference('RF720191230100405JSH0438'))).toBe(
+      'has check digits that do not match the rest of it (ISO 11649: the reference modulo 97 is 1)',
+    )
     expect(broken(checkQrBillReference('RF19539007547034'))).toBe('has check digits that do not match the rest of it (ISO 11649: the reference modulo 97 is 1)')
   })
 
   test('refuses what is neither', () => {
     for (const text of ['', 'INV-2026-0042', 'RF1', 'RF18 5390 0754 7034 !']) {
-      expect(broken(checkQrBillReference(text)), text).toBe('is neither a QR reference, 27 digits, nor a creditor reference, RF, two check digits and up to 21 letters or digits')
+      expect(broken(checkQrBillReference(text)), text).toBe(
+        'is neither a QR reference, 27 digits, nor a creditor reference, RF, two check digits and up to 21 letters or digits',
+      )
     }
   })
 })
@@ -180,7 +193,9 @@ describe('a text on the bill', () => {
   // in" (IG 4.3.1); the street and the building number may be empty. A
   // field of blanks is empty, and is not sent padded (IG 4.1.3).
   test('is required where SIX requires it, and is sent without blanks around it', () => {
-    const required = Object.entries(QR_BILL_ADDRESS_RULES).filter(([, rule]) => rule.required).map(([part]) => part)
+    const required = Object.entries(QR_BILL_ADDRESS_RULES)
+      .filter(([, rule]) => rule.required)
+      .map(([part]) => part)
     expect(required).toEqual(['name', 'postalCode', 'town', 'country'])
     for (const rule of Object.values(QR_BILL_ADDRESS_RULES)) {
       expect(broken(checkQrBillText('  ', rule))).toBe(rule.required ? 'is empty, and a QR-bill needs it' : undefined)
@@ -238,7 +253,9 @@ describe('a text on the bill', () => {
   // the two together past it.
   test('is a message and billing information of 140 characters together at most', () => {
     expect(checkQrBillAdditionalInformation('a'.repeat(70), `//${'b'.repeat(68)}`)).toBeUndefined()
-    expect(checkQrBillAdditionalInformation('a'.repeat(71), `//${'b'.repeat(68)}`)).toBe('the message and the billing information are 141 characters long together; SIX allows at most 140')
+    expect(checkQrBillAdditionalInformation('a'.repeat(71), `//${'b'.repeat(68)}`)).toBe(
+      'the message and the billing information are 141 characters long together; SIX allows at most 140',
+    )
   })
 })
 
@@ -253,7 +270,9 @@ describe('the account, the reference and the currency together', () => {
     expect(qrBillPairing('iban', 'SCOR', 'CHF')).toEqual([])
     expect(qrBillPairing('iban', 'NON', 'EUR')).toEqual([])
     expect(qrBillPairing('iban', 'SCOR', 'EUR')).toEqual([])
-    expect(qrBillPairing('qrIban', 'SCOR', 'CHF')).toEqual([{ field: 'reference', rule: 'a QR-IBAN is paid to with a QR reference, and this is a creditor reference' }])
+    expect(qrBillPairing('qrIban', 'SCOR', 'CHF')).toEqual([
+      { field: 'reference', rule: 'a QR-IBAN is paid to with a QR reference, and this is a creditor reference' },
+    ])
     expect(qrBillPairing('qrIban', 'NON', 'CHF')).toEqual([{ field: 'reference', rule: 'a QR-IBAN is paid to with a QR reference, and this bill has none' }])
     expect(qrBillPairing('iban', 'QRR', 'CHF')).toEqual([{ field: 'reference', rule: 'a QR reference is paid to a QR-IBAN, and the account is an IBAN' }])
     expect(qrBillPairing('qrIban', 'QRR', 'EUR')).toEqual([
@@ -311,7 +330,9 @@ describe('the amount', () => {
   // its first render rather than on the first total that is not whole cents.
   test('is refused with more than two decimals, rather than rounded', () => {
     for (const amount of ['1191.005', '1191.000', '0.001']) {
-      expect(broken(checkQrBillAmount(amount)), amount).toBe('has more than two decimals; a QR-bill pays whole cents, so the amount is rounded where it is computed')
+      expect(broken(checkQrBillAmount(amount)), amount).toBe(
+        'has more than two decimals; a QR-bill pays whole cents, so the amount is rounded where it is computed',
+      )
     }
   })
 
@@ -340,7 +361,11 @@ describe('the slip', () => {
 })
 
 describe('the page a slip is printed on', () => {
-  const page = (top: number, size: PageSettings['size'] = 'A4', orientation: PageSettings['orientation'] = 'portrait'): PageSettings => ({ size, orientation, margins: { top, right: 42.52, bottom: 56.69, left: 42.52 } })
+  const page = (top: number, size: PageSettings['size'] = 'A4', orientation: PageSettings['orientation'] = 'portrait'): PageSettings => ({
+    size,
+    orientation,
+    margins: { top, right: 42.52, bottom: 56.69, left: 42.52 },
+  })
 
   // SIX prints the slip across the foot of an A4 page in portrait (IG
   // 3.1): on Letter it would not span the paper, and in landscape it would
@@ -352,7 +377,10 @@ describe('the page a slip is printed on', () => {
       ['A4', 'landscape'],
       ['Letter', 'portrait'],
     ] as const) {
-      expect(qrBillPageBreak(page(56.69, size, orientation))).toEqual({ field: 'page', rule: `a QR-bill is printed across the foot of an A4 page in portrait, and this page is ${size} in ${orientation}` })
+      expect(qrBillPageBreak(page(56.69, size, orientation))).toEqual({
+        field: 'page',
+        rule: `a QR-bill is printed across the foot of an A4 page in portrait, and this page is ${size} in ${orientation}`,
+      })
     }
   })
 

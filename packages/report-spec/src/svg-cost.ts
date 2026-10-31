@@ -120,7 +120,8 @@ class Counter {
     const { segments, groups } = this
     if (!this.paints) refuse('unsupported', 'the drawing paints nothing', 'give what it draws a fill or a stroke')
     if (segments > MAX_SVG_SEGMENTS) refuse('too-large', `the drawing costs ${segments} weighted segments to paint; the limit is ${MAX_SVG_SEGMENTS}`)
-    if (groups > MAX_SVG_GROUPS) refuse('too-large', `the drawing makes ${groups} units of transparency groups; the limit is ${MAX_SVG_GROUPS}`, 'flatten its clips and its transparency')
+    if (groups > MAX_SVG_GROUPS)
+      refuse('too-large', `the drawing makes ${groups} units of transparency groups; the limit is ${MAX_SVG_GROUPS}`, 'flatten its clips and its transparency')
     return { segments, groups, drawn: { lines: this.lines, curves: this.curves, elements: this.reads, stops: this.stops }, extent: this.extent.extent() }
   }
 
@@ -204,7 +205,12 @@ function boxOf(node: Written): Box {
       if (!SHAPES.has(child.name) || child.drawn === undefined) continue
       const [a, b, c, d, e, f] = matrix
       const [left, top, right, bottom] = child.drawn.box
-      for (const [x, y] of [[left, top], [right, top], [right, bottom], [left, bottom]] as const) {
+      for (const [x, y] of [
+        [left, top],
+        [right, top],
+        [right, bottom],
+        [left, bottom],
+      ] as const) {
         const [u, v] = [a * x + c * y + e, b * x + d * y + f]
         box[0] = Math.min(box[0], u)
         box[1] = Math.min(box[1], v)

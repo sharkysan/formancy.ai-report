@@ -51,10 +51,20 @@ const audit: ReportServerOptions['audit'] = { sink: (event) => void events.push(
 // The store's directory is the host's to make, and the store never makes it (0049): this check's own, removed at the end.
 const storeDirectory = await mkdtemp(join(tmpdir(), 'formancy-report-install-'))
 
-const verifyIdentity = await createReportVerifier({ key: { kind: 'secret', secret: hostSecret }, issuer: 'https://login.example', audience: 'formancy-report', tenantClaim: 'tid' })
+const verifyIdentity = await createReportVerifier({
+  key: { kind: 'secret', secret: hostSecret },
+  issuer: 'https://login.example',
+  audience: 'formancy-report',
+  tenantClaim: 'tid',
+})
 const opened = await openFileTemplateStore(storeDirectory)
 if (!opened.ok) throw new Error(opened.problem)
-const server = await createReportServer({ verifyIdentity, roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] }, audit, store: opened.store })
+const server = await createReportServer({
+  verifyIdentity,
+  roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] },
+  audit,
+  store: opened.store,
+})
 await server.listen({ host: '127.0.0.1', port: 0 })
 
 try {
@@ -69,13 +79,17 @@ try {
     const refused = await fetch(`${at}/v1/whoami`, authorization === undefined ? {} : { headers: { authorization } })
     const body = (await refused.json()) as Refusal
     if (refused.status !== 401 || body.code !== REFUSALS.unauthenticated.code || refused.headers.get('www-authenticate') !== 'Bearer') {
-      throw new Error(`whoami ${authorization === undefined ? 'without a token' : 'with a bad token'} answered ${String(refused.status)} ${body.code}, not the one 401`)
+      throw new Error(
+        `whoami ${authorization === undefined ? 'without a token' : 'with a bad token'} answered ${String(refused.status)} ${body.code}, not the one 401`,
+      )
     }
   }
 
   const answered = await fetch(`${at}/v1/whoami`, { headers: { authorization: `Bearer ${token}` } })
   const me = (await answered.json()) as WhoAmI
-  const authors = Object.entries(ACTIONS).filter(([, capacities]) => (capacities as readonly string[]).includes('author')).map(([action]) => action)
+  const authors = Object.entries(ACTIONS)
+    .filter(([, capacities]) => (capacities as readonly string[]).includes('author'))
+    .map(([action]) => action)
   if (answered.status !== 200 || me.tenant !== 'acme' || me.subject !== 'u-1' || JSON.stringify(me.actions) !== JSON.stringify(authors)) {
     throw new Error(`whoami for the host's token answered ${String(answered.status)} ${JSON.stringify(me)}`)
   }
@@ -93,17 +107,25 @@ try {
   if (!saved.ok) throw new Error(`the first save was refused: ${saved.refusal.code}`)
   const opened = await reports.readDraft('invoice')
   if (!opened.ok) throw new Error(`the draft could not be read: ${opened.refusal.code}`)
-  if (opened.value.revision !== saved.value.revision || opened.value.digest !== saved.value.digest || opened.value.savedBy !== claims.sub || JSON.stringify(opened.value.report) !== JSON.stringify(emptyReport('invoice', 'Invoice', 'en'))) {
+  if (
+    opened.value.revision !== saved.value.revision ||
+    opened.value.digest !== saved.value.digest ||
+    opened.value.savedBy !== claims.sub ||
+    JSON.stringify(opened.value.report) !== JSON.stringify(emptyReport('invoice', 'Invoice', 'en'))
+  ) {
     throw new Error(`the draft saved at revision ${String(saved.value.revision)} was read back otherwise, at revision ${String(opened.value.revision)}`)
   }
   const theirs = await reports.saveDraft('invoice', emptyReport('invoice', 'Theirs', 'en'), opened.value)
   const mine = await reports.saveDraft('invoice', emptyReport('invoice', 'Mine', 'en'), opened.value)
   if (!theirs.ok || mine.ok || mine.refusal.code !== 'draft-changed' || mine.refusal.revision !== theirs.value.revision) {
-    throw new Error(`a save from revision ${String(opened.value.revision)} after another's was answered ${mine.ok ? 'as saved' : `${String(mine.status)} ${mine.refusal.code}`}, not draft-changed`)
+    throw new Error(
+      `a save from revision ${String(opened.value.revision)} after another's was answered ${mine.ok ? 'as saved' : `${String(mine.status)} ${mine.refusal.code}`}, not draft-changed`,
+    )
   }
   // One event for each of the client's requests, by its route and how it was answered, after whoami's five.
   const trail = events.slice(5).map((event) => `${event.operation} ${event.outcome}`)
-  if (JSON.stringify(trail) !== JSON.stringify(['draft.save ok', 'draft.read ok', 'draft.save ok', 'draft.save draft-changed'])) throw new Error(`the trail holds ${JSON.stringify(trail)} for the client's four requests`)
+  if (JSON.stringify(trail) !== JSON.stringify(['draft.save ok', 'draft.read ok', 'draft.save ok', 'draft.save draft-changed']))
+    throw new Error(`the trail holds ${JSON.stringify(trail)} for the client's four requests`)
 
   console.log(
     `ok: report-server listened on a socket of its own; /health answered, whoami refused no token, a tenantless one, a forgery and a malformed one with the one 401, and answered the host's token as tenant ${me.tenant} with ${String(me.actions.length)} actions; nothing else answered; through report-client a draft was saved at revision ${String(saved.value.revision)} and read back, and a save from it after revision ${String(theirs.value.revision)} was refused ${mine.refusal.code}; the trail held one event for each request the API answered`,

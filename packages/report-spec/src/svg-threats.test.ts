@@ -17,14 +17,34 @@ const XLINK = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
 const THREATS: ReadonlyArray<{ readonly name: string; readonly svg: string; readonly code: string; readonly secrets: readonly string[] }> = [
   // The converter opens an <image>'s file past pdfmake's local access policy.
   { name: 'a local image', svg: svg('<image href="C:/Windows/win.ini" width="1" height="1"/>'), code: 'raster', secrets: ['Windows', 'win.ini'] },
-  { name: 'a local image by xlink:href', svg: svg(`<image ${XLINK} xlink:href="/etc/passwd" width="1" height="1"/>`), code: 'raster', secrets: ['etc', 'passwd'] },
+  {
+    name: 'a local image by xlink:href',
+    svg: svg(`<image ${XLINK} xlink:href="/etc/passwd" width="1" height="1"/>`),
+    code: 'raster',
+    secrets: ['etc', 'passwd'],
+  },
   // ... and embeds a data: image with none of the asset checks.
-  { name: 'an embedded image', svg: svg('<image href="data:image/png;base64,iVBORw0KGgo=" width="1" height="1"/>'), code: 'raster', secrets: ['base64', 'iVBOR'] },
+  {
+    name: 'an embedded image',
+    svg: svg('<image href="data:image/png;base64,iVBORw0KGgo=" width="1" height="1"/>'),
+    code: 'raster',
+    secrets: ['base64', 'iVBOR'],
+  },
   // ... draws text in a font pdfmake picks, past the glyph check.
   { name: 'text in CJK', svg: svg('<text x="1" y="1">AB山田</text>'), code: 'text', secrets: ['AB', '山田'] },
   // ... parses <style> as CSS, an import included.
-  { name: 'an imported stylesheet', svg: svg(`<style>@import url(https://example.invalid/steal.css);</style>${RECT}`), code: 'unsupported', secrets: ['example', 'steal'] },
-  { name: 'an external stylesheet', svg: `<?xml-stylesheet type="text/css" href="https://example.invalid/steal.css"?>${svg(RECT)}`, code: 'unsupported', secrets: ['example', 'steal', 'text/css'] },
+  {
+    name: 'an imported stylesheet',
+    svg: svg(`<style>@import url(https://example.invalid/steal.css);</style>${RECT}`),
+    code: 'unsupported',
+    secrets: ['example', 'steal'],
+  },
+  {
+    name: 'an external stylesheet',
+    svg: `<?xml-stylesheet type="text/css" href="https://example.invalid/steal.css"?>${svg(RECT)}`,
+    code: 'unsupported',
+    secrets: ['example', 'steal', 'text/css'],
+  },
   // Entities: the billion laughs and the external entity.
   {
     name: 'a DOCTYPE declaring entities',
@@ -34,22 +54,49 @@ const THREATS: ReadonlyArray<{ readonly name: string; readonly svg: string; read
   },
   { name: 'an undeclared entity', svg: svg('<rect width="1" height="1" fill="&ext;"/>'), code: 'doctype', secrets: ['ext;'] },
   // The converter follows a gradient cycle until the stack overflows.
-  { name: 'a gradient cycle', svg: svg('<linearGradient id="a" href="#b"/><linearGradient id="b" href="#a"/><rect width="1" height="1" fill="url(#a)"/>'), code: 'reference', secrets: ['#a', '#b'] },
+  {
+    name: 'a gradient cycle',
+    svg: svg('<linearGradient id="a" href="#b"/><linearGradient id="b" href="#a"/><rect width="1" height="1" fill="url(#a)"/>'),
+    code: 'reference',
+    secrets: ['#a', '#b'],
+  },
   // A use fan-out of a kilobyte drew 10^5 rects in 4.8 s and 10^6 killed the process.
   {
     name: 'a use fan-out',
-    svg: svg(`<defs><rect id="r0" width="1" height="1"/>${Array.from({ length: 6 }, (_, i) => `<g id="r${i + 1}">${`<use href="#r${i}"/>`.repeat(10)}</g>`).join('')}</defs><use href="#r6"/>`),
+    svg: svg(
+      `<defs><rect id="r0" width="1" height="1"/>${Array.from({ length: 6 }, (_, i) => `<g id="r${i + 1}">${`<use href="#r${i}"/>`.repeat(10)}</g>`).join('')}</defs><use href="#r6"/>`,
+    ),
     code: 'reference',
     secrets: ['#r'],
   },
   // PDFKit throws `unsupported number: 1e+30`, naming no asset.
   { name: 'a number PDFKit throws at', svg: svg('<rect width="1e30" height="1"/>'), code: 'out-of-range', secrets: ['1e30', '1e+30'] },
   // References to anything outside the file would need documentCallback.
-  { name: 'a paint from an address', svg: svg('<rect width="1" height="1" fill="url(https://example.invalid/a.svg#g)"/>'), code: 'reference', secrets: ['example', 'a.svg'] },
-  { name: 'a paint from an address in CSS', svg: svg('<style>rect{fill:url(https://example.invalid/a.svg#g)}</style><rect width="1" height="1"/>'), code: 'reference', secrets: ['example', 'a.svg'] },
-  { name: 'a gradient from another file', svg: svg('<linearGradient id="a" href="https://example.invalid/a.svg#g"/><rect width="1" height="1" fill="url(#a)"/>'), code: 'reference', secrets: ['example', 'a.svg'] },
+  {
+    name: 'a paint from an address',
+    svg: svg('<rect width="1" height="1" fill="url(https://example.invalid/a.svg#g)"/>'),
+    code: 'reference',
+    secrets: ['example', 'a.svg'],
+  },
+  {
+    name: 'a paint from an address in CSS',
+    svg: svg('<style>rect{fill:url(https://example.invalid/a.svg#g)}</style><rect width="1" height="1"/>'),
+    code: 'reference',
+    secrets: ['example', 'a.svg'],
+  },
+  {
+    name: 'a gradient from another file',
+    svg: svg('<linearGradient id="a" href="https://example.invalid/a.svg#g"/><rect width="1" height="1" fill="url(#a)"/>'),
+    code: 'reference',
+    secrets: ['example', 'a.svg'],
+  },
   // Illustrator's editing data, and HTML a browser would draw and the converter would not.
-  { name: 'a foreign object', svg: svg('<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">secret</div></foreignObject>'), code: 'unsupported', secrets: ['secret', 'div'] },
+  {
+    name: 'a foreign object',
+    svg: svg('<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">secret</div></foreignObject>'),
+    code: 'unsupported',
+    secrets: ['secret', 'div'],
+  },
   // Recursion: 5,000 levels overflowed the converter's stack; the reader is iterative, the bound refuses first.
   { name: 'five thousand levels', svg: svg(`${'<g>'.repeat(5000)}${RECT}${'</g>'.repeat(5000)}`), code: 'too-deep', secrets: [] },
 ]
@@ -67,7 +114,9 @@ describe('the hazards of an SVG as it comes', () => {
   // of their text is written or listed.
   test('a link, a script, a handler and metadata are removed, none of their text written or listed', () => {
     const result = cleaned(
-      svg(`<metadata>secret-metadata</metadata><script>alert('secret-script')</script><a href="javascript:app.alert('secret-link')"><rect width="1" height="1" onclick="alert('secret-handler')"/></a>`),
+      svg(
+        `<metadata>secret-metadata</metadata><script>alert('secret-script')</script><a href="javascript:app.alert('secret-link')"><rect width="1" height="1" onclick="alert('secret-handler')"/></a>`,
+      ),
     )
     expect(result.text).not.toMatch(/secret|alert|javascript|href|onclick/)
     expect(JSON.stringify(result.removed)).not.toMatch(/secret|alert|javascript/)
@@ -84,11 +133,22 @@ describe('the hazards of an SVG as it comes', () => {
   // A refusal is returned, never thrown: a host's approval code gets a
   // code and a message for anything it hands over, whatever it is.
   test('a refusal is returned for anything, never thrown', () => {
-    for (const bytes of [new Uint8Array(0), utf8('<'), utf8('<svg'), utf8('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"'), Uint8Array.from([0xff, 0x00, 0x3c]), utf8(`${svg(RECT)}<!--`)]) {
+    for (const bytes of [
+      new Uint8Array(0),
+      utf8('<'),
+      utf8('<svg'),
+      utf8('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"'),
+      Uint8Array.from([0xff, 0x00, 0x3c]),
+      utf8(`${svg(RECT)}<!--`),
+    ]) {
       const result = cleanSvg(bytes)
       expect(result.ok, ascii(bytes)).toBe(false)
     }
-    expect(cleanSvg('not bytes' as unknown as Uint8Array)).toEqual({ ok: false, code: 'not-svg', message: 'the asset has no bytes; hand it the bytes of the file' })
+    expect(cleanSvg('not bytes' as unknown as Uint8Array)).toEqual({
+      ok: false,
+      code: 'not-svg',
+      message: 'the asset has no bytes; hand it the bytes of the file',
+    })
   })
 })
 
@@ -114,7 +174,7 @@ const SHAPES: ReadonlyArray<readonly [string, string]> = [
   ['the digits of an rgb() percentage', mebibyteOf(`${OPEN}<rect width="1" height="1" fill="rgb(`, '1', ')"/></svg>')],
   ["a number's trailing zeros", mebibyteOf(`${OPEN}<rect width="1" height="1" x="0.`, '0', '1"/></svg>')],
   ["a number's digits", mebibyteOf(`${OPEN}<path d="M0 0 L0.`, '1', ' 1"/></svg>')],
-  ["the spaces of a url() that holds no address", mebibyteOf(`${OPEN}<rect width="1" height="1" fill="url(`, ' ', 'x"/></svg>')],
+  ['the spaces of a url() that holds no address', mebibyteOf(`${OPEN}<rect width="1" height="1" fill="url(`, ' ', 'x"/></svg>')],
   ['an id that is not closed', mebibyteOf(`${OPEN}<rect width="1" height="1" fill="url(#`, 'a', '"/></svg>')],
   ['a dash array', mebibyteOf(`${OPEN}<rect width="1" height="1" stroke="red" stroke-dasharray="`, '1 ', '"/></svg>')],
   ['a transform list', mebibyteOf(`${OPEN}<rect width="1" height="1" transform="`, 'scale(1)', '"/></svg>')],

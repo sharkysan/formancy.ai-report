@@ -113,7 +113,13 @@ const TRIAL: Trial = {
   ],
   reader: { name: 'pdfjs-dist', version: '9.8.7', role: 'reads every PDF back' },
   results: [
-    { fixture: oneRow, outcomes: [{ kind: 'pass', pages: 1 }, { kind: 'pass', pages: 2 }] },
+    {
+      fixture: oneRow,
+      outcomes: [
+        { kind: 'pass', pages: 1 },
+        { kind: 'pass', pages: 2 },
+      ],
+    },
     {
       fixture: tallRow,
       outcomes: [
@@ -155,7 +161,10 @@ const TRIAL: Trial = {
       fixture: groupBoundary,
       engines: [
         { outcome: { kind: 'pass', pages: 4 }, milliseconds: [0.25] },
-        { outcome: { kind: 'fail', problems: ["page 2: the last table row is the group header 'Region R19'", 'a | b is split'], pages: 5 }, milliseconds: [12] },
+        {
+          outcome: { kind: 'fail', problems: ["page 2: the last table row is the group header 'Region R19'", 'a | b is split'], pages: 5 },
+          milliseconds: [12],
+        },
       ],
     },
   ],
@@ -205,7 +214,10 @@ describe('the trial document', () => {
       'pass, 11 pages',
       'refused as expected: `content-too-large` naming `lines`',
     ])
-    expect(row(markdown, '| `group-boundary`').slice(2)).toEqual(['pass, 4 pages', "**FAIL** (5 pages): page 2: the last table row is the group header 'Region R19' (and 1 more)"])
+    expect(row(markdown, '| `group-boundary`').slice(2)).toEqual([
+      'pass, 4 pages',
+      "**FAIL** (5 pages): page 2: the last table row is the group header 'Region R19' (and 1 more)",
+    ])
     // A failure with no PDF has no pages to give, and a fixture that only
     // allows a refusal says which, with its subject when it names one.
     expect(row(markdown, '| `image-invalid`').slice(1)).toEqual([
@@ -213,7 +225,11 @@ describe('the trial document', () => {
       'refused as expected: `invalid-asset` naming `logo-broken`',
       '**FAIL**: failed with Error: not a PNG; expected the refusal invalid-asset',
     ])
-    expect(row(markdown, '| `oversized`').slice(1)).toEqual(['refusal `too-many-pages`', 'refused as expected: `too-many-pages`', 'refused as expected: `too-many-pages`'])
+    expect(row(markdown, '| `oversized`').slice(1)).toEqual([
+      'refusal `too-many-pages`',
+      'refused as expected: `too-many-pages`',
+      'refused as expected: `too-many-pages`',
+    ])
   })
 
   // A failure reduced to its first problem would hide the rest of them, and
@@ -276,7 +292,15 @@ describe('the trial document', () => {
   // measured; the run count says how much the median rests on.
   test('gives each timing its outcome, run count, median, fastest and slowest', () => {
     expect(row(markdown, '| `long-table` | alpha')).toEqual(['`long-table`', 'alpha', 'pass, 7 pages', '5', '30 ms', '10 ms', '50 ms'])
-    expect(row(markdown, '| `long-table` | beta')).toEqual(['`long-table`', 'beta', '**FAIL** (7 pages): ROW-0002 is missing (and 1 more)', '3', '8 ms', '7 ms', '9 ms'])
+    expect(row(markdown, '| `long-table` | beta')).toEqual([
+      '`long-table`',
+      'beta',
+      '**FAIL** (7 pages): ROW-0002 is missing (and 1 more)',
+      '3',
+      '8 ms',
+      '7 ms',
+      '9 ms',
+    ])
     // Under a millisecond, a whole number would print a refusal's time as 0 ms.
     expect(row(markdown, '| `group-boundary` | alpha').slice(4)).toEqual(['0.25 ms', '0.25 ms', '0.25 ms'])
   })
@@ -285,7 +309,9 @@ describe('the trial document', () => {
   // derived from the results, the failures and the fastest engine included.
   test('reads the results without adding to them', () => {
     expect(markdown).toContain('- **alpha**, on 5 fixtures, rendered 3 that pass, refused 2 as their fixtures expect, and failed none.')
-    expect(markdown).toContain('- **beta**, on 5 fixtures, rendered 1 that pass, refused 2 as their fixtures expect, and failed 2: `group-boundary`, `image-invalid`.')
+    expect(markdown).toContain(
+      '- **beta**, on 5 fixtures, rendered 1 that pass, refused 2 as their fixtures expect, and failed 2: `group-boundary`, `image-invalid`.',
+    )
     expect(markdown).toContain('- `tall-row` allows a PDF or a refusal. alpha: pass, 11 pages; beta: refused as expected: `content-too-large` naming `lines`.')
     expect(markdown).toContain("- `long-table`, fastest first by median: beta 8 ms, then alpha 30 ms. beta's time is for a PDF that fails its checks.")
     expect(markdown).toContain("- `group-boundary`, fastest first by median: alpha 0.25 ms, then beta 12 ms. beta's time is for a PDF that fails its checks.")

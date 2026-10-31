@@ -31,7 +31,13 @@ export function Places({ state, drag, t, ids, act, choose, cancel }: PlacesProps
     // A floating pane of the workbench, so its buttons are the workbench's.
     // Named in the editor's words, as the header says, never after the
     // header, whose name a host's stylesheet could set in capitals.
-    <div role="dialog" aria-label={drag.title} aria-describedby={drag.nowhere === undefined ? undefined : nowhere} data-report-part="places" className="wb-pane">
+    <div
+      role="dialog"
+      aria-label={drag.title}
+      aria-describedby={drag.nowhere === undefined ? undefined : nowhere}
+      data-report-part="places"
+      className="wb-pane"
+    >
       <header>{drag.title}</header>
       {drag.nowhere === undefined ? null : (
         <p id={nowhere} className="wb-problem">

@@ -1,5 +1,16 @@
 import pdfmake from 'pdfmake'
-import { ALL_FIXTURES, E_INVOICE, pageDimensions, readPdf, starterImages, SVG_FIXTURES, verify, verifyInk, verifyRefusal, type Fixture } from '@formancy/report-corpus'
+import {
+  ALL_FIXTURES,
+  E_INVOICE,
+  pageDimensions,
+  readPdf,
+  starterImages,
+  SVG_FIXTURES,
+  verify,
+  verifyInk,
+  verifyRefusal,
+  type Fixture,
+} from '@formancy/report-corpus'
 import { RenderRefusal, resolveReport } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf } from './node.js'
@@ -44,9 +55,13 @@ describe('the renderer on the corpus', () => {
   // A fixture here that passes is one the renderer does not get wrong.
   for (const each of CORPUS) {
     const finding = CANNOT.get(each.id)
-    test(`${each.id}: ${finding === undefined ? each.title : `fails: ${finding.reason}`}`, async () => {
-      expect(await problems(each)).toEqual(finding?.problems ?? [])
-    }, TIMEOUT)
+    test(
+      `${each.id}: ${finding === undefined ? each.title : `fails: ${finding.reason}`}`,
+      async () => {
+        expect(await problems(each)).toEqual(finding?.problems ?? [])
+      },
+      TIMEOUT,
+    )
   }
 
   // A drawing is painted inside a clip of its box, and `cover` paints it
@@ -54,9 +69,13 @@ describe('the renderer on the corpus', () => {
   // the clip kept in, and the pixels can (0003). Each SVG fixture's every
   // page, drawn by PDF.js, shows nothing of a drawing past its box.
   for (const each of SVG_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render')) {
-    test(`${each.id}: shows nothing of a drawing past its box, by its pixels`, async () => {
-      expect(await verifyInk(each, await renderPdf(each.document, { maxPages: each.maxPages }))).toEqual([])
-    }, TIMEOUT)
+    test(
+      `${each.id}: shows nothing of a drawing past its box, by its pixels`,
+      async () => {
+        expect(await verifyInk(each, await renderPdf(each.document, { maxPages: each.maxPages }))).toEqual([])
+      },
+      TIMEOUT,
+    )
   }
 
   // An empty corpus would pass every case above, and so would a list of
@@ -72,12 +91,16 @@ describe('a render', () => {
   // A PDF that differs on every run cannot be reproduced from its inputs, nor
   // found again by its digest: the creation date is the document's own, and
   // nothing else in the file may vary.
-  test('renders the same document to the same bytes', async () => {
-    const { document, maxPages } = fixture('group-boundary')
-    const [first, second] = await Promise.all([renderPdf(document, { maxPages }), renderPdf(document, { maxPages })])
-    expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
-    expect(Buffer.from(first).toString('latin1')).toContain('(D:20260101000000Z)')
-  }, TIMEOUT)
+  test(
+    'renders the same document to the same bytes',
+    async () => {
+      const { document, maxPages } = fixture('group-boundary')
+      const [first, second] = await Promise.all([renderPdf(document, { maxPages }), renderPdf(document, { maxPages })])
+      expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
+      expect(Buffer.from(first).toString('latin1')).toContain('(D:20260101000000Z)')
+    },
+    TIMEOUT,
+  )
 
   // An e-invoice is found again by its digest, or by nothing. A PDF/A adds
   // what a plain PDF has not -- an embedded file and its dates, the XMP,
@@ -85,13 +108,26 @@ describe('a render', () => {
   // document's, the XMP holds no clock and no random id, and the profile
   // is a fixed file. The same document renders to the same bytes, its
   // creation date in the file's /Params as in the information dictionary.
-  test('renders the same e-invoice to the same bytes', async () => {
-    const outcome = resolveReport(E_INVOICE.report, E_INVOICE.data, { mode: 'final', parameters: E_INVOICE.parameters, images: starterImages, creationDate: '2026-10-16T08:00:00Z' })
-    if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
-    const [first, second] = await Promise.all([renderPdf(outcome.document, { maxPages: 5 }), renderPdf(outcome.document, { maxPages: 5 })])
-    expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
-    expect(Buffer.from(first).toString('latin1').match(/\(D:20261016080000Z\)/g)).toHaveLength(3)
-  }, TIMEOUT)
+  test(
+    'renders the same e-invoice to the same bytes',
+    async () => {
+      const outcome = resolveReport(E_INVOICE.report, E_INVOICE.data, {
+        mode: 'final',
+        parameters: E_INVOICE.parameters,
+        images: starterImages,
+        creationDate: '2026-10-16T08:00:00Z',
+      })
+      if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
+      const [first, second] = await Promise.all([renderPdf(outcome.document, { maxPages: 5 }), renderPdf(outcome.document, { maxPages: 5 })])
+      expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
+      expect(
+        Buffer.from(first)
+          .toString('latin1')
+          .match(/\(D:20261016080000Z\)/g),
+      ).toHaveLength(3)
+    },
+    TIMEOUT,
+  )
 
   // A cancelled job that still returns a PDF has not been cancelled.
   test('refuses a job whose signal is already aborted, before anything is laid out', async () => {
@@ -160,45 +196,53 @@ describe('the page limit', () => {
   // returns the first pages as though they were all of it. The renderer's
   // limit must refuse one page past it and allow exactly it, or a report one
   // page over the limit arrives looking complete.
-  test('allows a document of exactly the limit and refuses one page more', async () => {
-    const { document, maxPages } = fixture('long-table')
-    const pages = (await readPdf(await renderPdf(document, { maxPages }))).pages.length
-    expect(pages).toBeGreaterThan(1)
-    expect((await readPdf(await renderPdf(document, { maxPages: pages }))).pages).toHaveLength(pages)
-    await expect(renderPdf(document, { maxPages: pages - 1 })).rejects.toMatchObject({ code: 'too-many-pages' })
-  }, TIMEOUT)
+  test(
+    'allows a document of exactly the limit and refuses one page more',
+    async () => {
+      const { document, maxPages } = fixture('long-table')
+      const pages = (await readPdf(await renderPdf(document, { maxPages }))).pages.length
+      expect(pages).toBeGreaterThan(1)
+      expect((await readPdf(await renderPdf(document, { maxPages: pages }))).pages).toHaveLength(pages)
+      await expect(renderPdf(document, { maxPages: pages - 1 })).rejects.toMatchObject({ code: 'too-many-pages' })
+    },
+    TIMEOUT,
+  )
 
   // A refusal that comes only after laying out all six thousand rows costs
   // what rendering them would: the limit bounds the work, not just the
   // output. Watched on pdfmake itself, which still does the layout: each of
   // the renderer's passes is laid out until pdfmake begins a page past the
   // limit's worth of paper, and no further.
-  test('stops laying out an oversized job one page past the limit', async () => {
-    const oversized = fixture('oversized')
-    const laidOut: number[] = []
-    const createPdf = pdfmake.createPdf.bind(pdfmake)
-    const spy = vi.spyOn(pdfmake, 'createPdf').mockImplementation((definition, options) => {
-      const pass = laidOut.push(0) - 1
-      const background = definition.background
-      return createPdf(
-        {
-          ...definition,
-          background: (page, size) => {
-            // The height of the pages begun before this one.
-            laidOut[pass] = (page - 1) * size.height
-            return typeof background === 'function' ? background(page, size) : null
+  test(
+    'stops laying out an oversized job one page past the limit',
+    async () => {
+      const oversized = fixture('oversized')
+      const laidOut: number[] = []
+      const createPdf = pdfmake.createPdf.bind(pdfmake)
+      const spy = vi.spyOn(pdfmake, 'createPdf').mockImplementation((definition, options) => {
+        const pass = laidOut.push(0) - 1
+        const background = definition.background
+        return createPdf(
+          {
+            ...definition,
+            background: (page, size) => {
+              // The height of the pages begun before this one.
+              laidOut[pass] = (page - 1) * size.height
+              return typeof background === 'function' ? background(page, size) : null
+            },
           },
-        },
-        options,
-      )
-    })
-    try {
-      await expect(renderPdf(oversized.document, { maxPages: oversized.maxPages })).rejects.toMatchObject({ code: 'too-many-pages' })
-    } finally {
-      spy.mockRestore()
-    }
-    const { height } = pageDimensions(oversized.document.page)
-    expect(laidOut.length).toBeGreaterThan(0)
-    expect(Math.max(...laidOut)).toBeLessThanOrEqual((oversized.maxPages + 1) * height)
-  }, TIMEOUT)
+          options,
+        )
+      })
+      try {
+        await expect(renderPdf(oversized.document, { maxPages: oversized.maxPages })).rejects.toMatchObject({ code: 'too-many-pages' })
+      } finally {
+        spy.mockRestore()
+      }
+      const { height } = pageDimensions(oversized.document.page)
+      expect(laidOut.length).toBeGreaterThan(0)
+      expect(Math.max(...laidOut)).toBeLessThanOrEqual((oversized.maxPages + 1) * height)
+    },
+    TIMEOUT,
+  )
 })

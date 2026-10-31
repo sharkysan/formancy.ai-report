@@ -72,7 +72,13 @@ describe('aggregates against what they aggregate', () => {
   // which dates and instants have too ("last inspected per site"); a count
   // counts anything, photos and flags included.
   test('each function over every field type', () => {
-    const takes: Record<string, readonly string[] | 'any'> = { sum: NUMERIC, avg: NUMERIC, min: [...NUMERIC, ...TEMPORAL], max: [...NUMERIC, ...TEMPORAL], count: 'any' }
+    const takes: Record<string, readonly string[] | 'any'> = {
+      sum: NUMERIC,
+      avg: NUMERIC,
+      min: [...NUMERIC, ...TEMPORAL],
+      max: [...NUMERIC, ...TEMPORAL],
+      count: 'any',
+    }
     for (const [fn, types] of Object.entries(takes)) {
       for (const [type, field] of Object.entries(DETAIL_BY_TYPE)) {
         const aggregate = { id: 'probe', fn, of: { kind: 'field', field: detail(field) }, rounding: { scale: 2, mode: 'half-even' } }
@@ -109,8 +115,7 @@ describe('aggregates against what they aggregate', () => {
   // An increment is what Swiss cash rounding needs: 0.05. It is an exact
   // decimal more than 0, with no more places than the scale prints.
   test('a rounding increment is a positive decimal within the scale', () => {
-    const increment = (value: string, scale = 2) =>
-      edited((r) => setAt(r, '/aggregates/2/rounding', { scale, mode: 'half-away-from-zero', increment: value }))
+    const increment = (value: string, scale = 2) => edited((r) => setAt(r, '/aggregates/2/rounding', { scale, mode: 'half-away-from-zero', increment: value }))
     for (const value of ['0.05', '0.5', '1', '10', '0.01']) expect(refusals(increment(value)), value).toEqual([])
     for (const value of ['0', '0.00', '-0.05', '0.005']) expect(refusals(increment(value)), value).toEqual(['out-of-range /aggregates/2/rounding/increment'])
     expect(refusals(increment('0.005', 3))).toEqual([])

@@ -7,7 +7,18 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterAll, describe, expect, test } from 'vitest'
 import YAML from 'yaml'
-import { ALLOWED, closure, declaredLicence, EXCEPTIONS, fontLicence, FORMANCY_DATA, ICC_PROFILES, problems, spdxAllows, workspaceClosure } from './dependency-licences.mjs'
+import {
+  ALLOWED,
+  closure,
+  declaredLicence,
+  EXCEPTIONS,
+  fontLicence,
+  FORMANCY_DATA,
+  ICC_PROFILES,
+  problems,
+  spdxAllows,
+  workspaceClosure,
+} from './dependency-licences.mjs'
 
 /**
  * 0006: everything a published package needs in production, and every font
@@ -48,7 +59,17 @@ function tree(files, links = {}) {
 const manifest = (name, version, license, fields = {}) => ({ name, version, ...(license === undefined ? {} : { license }), ...fields })
 
 /** One entry of a closure, as `closure` returns it, for the cases that need no disk. */
-const entry = (name, version, licence, more = {}) => ({ name, version, licence, dir: `/x/${name}`, via: ['@formancy/report-x'], sibling: false, fonts: [], profiles: [], ...more })
+const entry = (name, version, licence, more = {}) => ({
+  name,
+  version,
+  licence,
+  dir: `/x/${name}`,
+  via: ['@formancy/report-x'],
+  sibling: false,
+  fonts: [],
+  profiles: [],
+  ...more,
+})
 
 /** The bytes of an OpenType font holding only a name table with these Windows-platform names. */
 function font(names) {
@@ -126,7 +147,16 @@ describe('spdxAllows', () => {
   // identifiers at all. An allow-list refuses them by not listing them; this
   // fails if somebody turns it into a deny-list that forgot one.
   test('refuses LGPL, SSPL, BUSL, a source-available pointer and UNLICENSED', () => {
-    for (const expression of ['LGPL-2.1-only', 'LGPL-3.0-or-later', 'SSPL-1.0', 'BUSL-1.1', 'CC-BY-NC-SA-4.0', 'GPL-2.0+', 'SEE LICENSE IN LICENSE.md', 'UNLICENSED']) {
+    for (const expression of [
+      'LGPL-2.1-only',
+      'LGPL-3.0-or-later',
+      'SSPL-1.0',
+      'BUSL-1.1',
+      'CC-BY-NC-SA-4.0',
+      'GPL-2.0+',
+      'SEE LICENSE IN LICENSE.md',
+      'UNLICENSED',
+    ]) {
       expect(spdxAllows(expression), expression).toBe(false)
     }
   })
@@ -166,7 +196,20 @@ describe('spdxAllows', () => {
   // A guard refuses what it cannot read (formancy.ai 0022). A parser that
   // skipped what it did not understand would pass '(MIT' and 'MIT OR' as MIT.
   test('refuses what is not an expression', () => {
-    for (const expression of ['', ' ', '(MIT', 'MIT)', 'MIT OR', 'OR MIT', 'MIT GPL-3.0-only', 'MIT AND', '()', 'MIT WITH', 'WITH MIT', 'DocumentRef-x:LicenseRef-y']) {
+    for (const expression of [
+      '',
+      ' ',
+      '(MIT',
+      'MIT)',
+      'MIT OR',
+      'OR MIT',
+      'MIT GPL-3.0-only',
+      'MIT AND',
+      '()',
+      'MIT WITH',
+      'WITH MIT',
+      'DocumentRef-x:LicenseRef-y',
+    ]) {
       expect(spdxAllows(expression), JSON.stringify(expression)).toBe(false)
     }
   })
@@ -186,7 +229,13 @@ describe('spdxAllows', () => {
   // the software, which is the source-available kind 0006 refuses, and a
   // LicenseRef can say anything.
   test('refuses a WITH whose exception is not one the policy has reviewed', () => {
-    for (const expression of ['Apache-2.0 WITH Commons-Clause', 'MIT WITH Commons-Clause', 'MIT with Commons-Clause', 'MIT WITH LicenseRef-NonCommercial', 'BSD-3-Clause WITH No-Production-Use']) {
+    for (const expression of [
+      'Apache-2.0 WITH Commons-Clause',
+      'MIT WITH Commons-Clause',
+      'MIT with Commons-Clause',
+      'MIT WITH LicenseRef-NonCommercial',
+      'BSD-3-Clause WITH No-Production-Use',
+    ]) {
       expect(spdxAllows(expression), expression).toBe(false)
     }
     // Still allowed on another branch, as any refused term is.
@@ -381,7 +430,10 @@ describe('closure', () => {
   test('walks the production dependencies through links to real directories', () => {
     const root = tree(
       {
-        'packages/report-x/package.json': manifest('@formancy/report-x', '0.1.0', 'SEE LICENSE IN LICENSE.md', { dependencies: { a: '1.0.0' }, devDependencies: { dev: '1.0.0' } }),
+        'packages/report-x/package.json': manifest('@formancy/report-x', '0.1.0', 'SEE LICENSE IN LICENSE.md', {
+          dependencies: { a: '1.0.0' },
+          devDependencies: { dev: '1.0.0' },
+        }),
         'node_modules/.pnpm/a@1.0.0/node_modules/a/package.json': manifest('a', '1.0.0', 'MIT', { dependencies: { b: '^1.0.0' } }),
         'node_modules/.pnpm/b@1.0.0/node_modules/b/package.json': manifest('b', '1.0.0', 'ISC'),
         'node_modules/.pnpm/dev@1.0.0/node_modules/dev/package.json': manifest('dev', '1.0.0', 'GPL-3.0-only'),
@@ -418,7 +470,13 @@ describe('closure', () => {
       'app/node_modules/host/package.json': manifest('host', '1.0.0', 'AGPL-3.0-only'),
     })
     const found = closure(join(root, 'app'))
-    expect(found.map((item) => (item.missing ? `missing ${item.name}` : `${item.name}@${item.version}`))).toEqual(['app@1.0.0', 'missing gone', 'binary@1.0.0', 'host@1.0.0', 'missing agpl-host'])
+    expect(found.map((item) => (item.missing ? `missing ${item.name}` : `${item.name}@${item.version}`))).toEqual([
+      'app@1.0.0',
+      'missing gone',
+      'binary@1.0.0',
+      'host@1.0.0',
+      'missing agpl-host',
+    ])
     expect(problems(found, {}, {}, {})).toEqual([
       'gone is a dependency of app and is not installed, so its licence cannot be read (app > gone)',
       'host@1.0.0 is AGPL-3.0-only by its package.json, which the policy refuses (app > host)',
@@ -432,7 +490,9 @@ describe('closure', () => {
   test('walks through a workspace sibling without judging its own licence', () => {
     const root = tree(
       {
-        'packages/report-x/package.json': manifest('@formancy/report-x', '0.1.0', 'SEE LICENSE IN LICENSE.md', { dependencies: { '@formancy/report-y': 'workspace:*' } }),
+        'packages/report-x/package.json': manifest('@formancy/report-x', '0.1.0', 'SEE LICENSE IN LICENSE.md', {
+          dependencies: { '@formancy/report-y': 'workspace:*' },
+        }),
         'packages/report-y/package.json': manifest('@formancy/report-y', '0.1.0', 'SEE LICENSE IN LICENSE.md', { dependencies: { copyleft: '1.0.0' } }),
         'packages/report-y/node_modules/copyleft/package.json': manifest('copyleft', '1.0.0', 'GPL-2.0-only'),
       },
@@ -451,7 +511,9 @@ describe('closure', () => {
   test("judges a workspace sibling that does not declare this repository's licence", () => {
     const root = tree(
       {
-        'packages/report-x/package.json': manifest('@formancy/report-x', '0.1.0', 'SEE LICENSE IN LICENSE.md', { dependencies: { '@formancy/vendored': 'workspace:*' } }),
+        'packages/report-x/package.json': manifest('@formancy/report-x', '0.1.0', 'SEE LICENSE IN LICENSE.md', {
+          dependencies: { '@formancy/vendored': 'workspace:*' },
+        }),
         'packages/vendored/package.json': manifest('@formancy/vendored', '0.1.0', 'GPL-3.0-only', { private: true }),
       },
       { 'packages/report-x/node_modules/@formancy/vendored': 'packages/vendored' },
@@ -504,7 +566,12 @@ describe('fonts', () => {
   // version beside it, are what a person checks by hand; read wrongly, Roboto
   // would be refused and every engine with it.
   test('reads the licence and version from an OpenType name table', () => {
-    expect(fontLicence(font({ 5: 'Version 3.014; 2025', 13: OFL }))).toEqual({ readable: true, version: 'Version 3.014; 2025', description: OFL, licence: 'OFL-1.1' })
+    expect(fontLicence(font({ 5: 'Version 3.014; 2025', 13: OFL }))).toEqual({
+      readable: true,
+      version: 'Version 3.014; 2025',
+      description: OFL,
+      licence: 'OFL-1.1',
+    })
     expect(fontLicence(font({ 13: 'Licensed under the Apache License, Version 2.0' })).licence).toBe('Apache-2.0')
   })
 
@@ -546,7 +613,9 @@ describe('fonts', () => {
       { path: 'fonts/Ok-Regular.ttf', licence: 'OFL-1.1' },
       { path: 'standard_fonts/Liberation-Regular.ttf', licence: undefined },
     ])
-    expect(problems(found, {}, {}, {})).toEqual([`app@1.0.0/standard_fonts/Liberation-Regular.ttf is a font whose name table names no licence the policy allows: "${LIBERATION}" (app)`])
+    expect(problems(found, {}, {}, {})).toEqual([
+      `app@1.0.0/standard_fonts/Liberation-Regular.ttf is a font whose name table names no licence the policy allows: "${LIBERATION}" (app)`,
+    ])
   })
 
   // A Type 1 font has no name table, and neither does a format this does not
@@ -558,8 +627,12 @@ describe('fonts', () => {
       'app/standard_fonts/FoxitSans.pfb': '%!PS-AdobeFont-1.0',
     })
     const found = closure(join(root, 'app'))
-    expect(problems(found, {}, {}, {})).toEqual(['app@1.0.0/standard_fonts/FoxitSans.pfb is a font this guard cannot read a licence from; review it and record an exception (app)'])
-    expect(problems(found, { 'app@1.0.0/standard_fonts/FoxitSans.pfb': { licence: 'BSD-3-Clause', evidence: 'standard_fonts/LICENSE_FOXIT' } }, {}, {})).toEqual([])
+    expect(problems(found, {}, {}, {})).toEqual([
+      'app@1.0.0/standard_fonts/FoxitSans.pfb is a font this guard cannot read a licence from; review it and record an exception (app)',
+    ])
+    expect(
+      problems(found, { 'app@1.0.0/standard_fonts/FoxitSans.pfb': { licence: 'BSD-3-Clause', evidence: 'standard_fonts/LICENSE_FOXIT' } }, {}, {}),
+    ).toEqual([])
     // A font's exception is held to the policy as a package's is.
     expect(problems(found, { 'app@1.0.0/standard_fonts/FoxitSans.pfb': { licence: 'GPL-2.0-only', evidence: 'LICENSE_LIBERATION' } }, {}, {})).toEqual([
       'app@1.0.0/standard_fonts/FoxitSans.pfb is GPL-2.0-only by its reviewed exception, which the policy refuses (app)',
@@ -580,8 +653,17 @@ describe('fonts', () => {
       'app/fonts/Old.eot': font({ 13: OFL }).subarray(4),
     })
     const found = closure(join(root, 'app'))
-    expect(found[0].fonts.map(({ path, licence }) => `${path} ${licence}`)).toEqual(['fonts/Family.ttc undefined', 'fonts/Ok.otf OFL-1.1', 'fonts/Old.eot undefined', 'fonts/Web.woff2 undefined'])
-    expect(problems(found, {}, {}, {}).map((problem) => problem.split(' is a font')[0])).toEqual(['app@1.0.0/fonts/Family.ttc', 'app@1.0.0/fonts/Old.eot', 'app@1.0.0/fonts/Web.woff2'])
+    expect(found[0].fonts.map(({ path, licence }) => `${path} ${licence}`)).toEqual([
+      'fonts/Family.ttc undefined',
+      'fonts/Ok.otf OFL-1.1',
+      'fonts/Old.eot undefined',
+      'fonts/Web.woff2 undefined',
+    ])
+    expect(problems(found, {}, {}, {}).map((problem) => problem.split(' is a font')[0])).toEqual([
+      'app@1.0.0/fonts/Family.ttc',
+      'app@1.0.0/fonts/Old.eot',
+      'app@1.0.0/fonts/Web.woff2',
+    ])
   })
 
   // A font is a font whatever it is called. Found by extension alone, the
@@ -600,7 +682,11 @@ describe('fonts', () => {
       'app/bin/flag': 'true, as the flag says\n',
       'app/lib/index.js': 'module.exports = true\n',
     })
-    expect(closure(join(root, 'app'))[0].fonts.map(({ path, readable }) => `${path} ${readable}`)).toEqual(['fonts/Gpl-Regular true', 'fonts/Gpl-Regular.font true', 'fonts/Type1.data false'])
+    expect(closure(join(root, 'app'))[0].fonts.map(({ path, readable }) => `${path} ${readable}`)).toEqual([
+      'fonts/Gpl-Regular true',
+      'fonts/Gpl-Regular.font true',
+      'fonts/Type1.data false',
+    ])
   })
 
   // A published package's own fonts are what it ships first. Passed over
@@ -673,7 +759,11 @@ describe('ICC profiles', () => {
   // as one, and is refused unreviewed rather than passed as no profile.
   test('finds a file called .icc or .icm whose header is no profile’s, and refuses it unreviewed', () => {
     const notAHeader = Buffer.from('a file called a profile, with no acsp where a header has it')
-    const root = tree({ 'app/package.json': manifest('app', '1.0.0', 'MIT'), 'app/c.icc': notAHeader, 'app/d.ICM': Buffer.concat([notAHeader, Buffer.from([1])]) })
+    const root = tree({
+      'app/package.json': manifest('app', '1.0.0', 'MIT'),
+      'app/c.icc': notAHeader,
+      'app/d.ICM': Buffer.concat([notAHeader, Buffer.from([1])]),
+    })
     const found = closure(join(root, 'app'))
     expect(found[0].profiles.map(({ path }) => path)).toEqual(['c.icc', 'd.ICM'])
     expect(problems(found, {}, {}, {})).toEqual([
@@ -685,7 +775,9 @@ describe('ICC profiles', () => {
   // A review left behind after its profile left reads as one still in
   // force; and a review that records no licence sentence is no review.
   test('refuses a reviewed profile nothing installs, and a review without its licence sentence', () => {
-    expect(problems([], {}, {}, reviewed(profile()))).toEqual([`reviewed ICC profile ${digest(profile())} names nothing a published package installs; remove it`])
+    expect(problems([], {}, {}, reviewed(profile()))).toEqual([
+      `reviewed ICC profile ${digest(profile())} names nothing a published package installs; remove it`,
+    ])
     const icc = profile()
     const root = tree({ 'app/package.json': manifest('app', '1.0.0', 'MIT'), 'app/sRGB.icc': icc })
     expect(problems(closure(join(root, 'app')), {}, {}, { [digest(icc)]: { profile: 'a profile', licence: ' ', evidence: 'nowhere' } })).toEqual([
@@ -785,7 +877,11 @@ describe('this workspace', { timeout: 30_000 }, () => {
     const { entries } = realTree()
     const unreviewed = problems(entries, EXCEPTIONS, FORMANCY_DATA, {}).filter((problem) => problem.includes('ICC profile'))
     expect(unreviewed).toHaveLength(1)
-    expect(unreviewed[0].startsWith('pdfkit@0.19.1/js/data/sRGB_IEC61966_2_1.icc is an ICC profile nobody has reviewed (sha256:384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a); ')).toBe(true)
+    expect(
+      unreviewed[0].startsWith(
+        'pdfkit@0.19.1/js/data/sRGB_IEC61966_2_1.icc is an ICC profile nobody has reviewed (sha256:384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a); ',
+      ),
+    ).toBe(true)
     // The renderer pins PDFKit itself (0036), so the walk reaches it there first.
     expect(unreviewed[0].endsWith(' (@formancy/report-render-pdf > pdfkit)')).toBe(true)
     const corpus = createRequire(join(repo, 'packages', 'report-corpus', 'package.json'))
@@ -877,7 +973,12 @@ describe('this workspace', { timeout: 30_000 }, () => {
     expect(found.map(({ name }) => name)).toEqual(expect.arrayContaining(['pdfmake', 'pdfkit', 'fontkit', 'png-js']))
     expect(problems(found, {}, {}, ICC_PROFILES)).toEqual(['png-js@1.1.0 declares no licence (pdfmake > pdfkit > png-js)'])
     const roboto = found[0].fonts.filter(({ path }) => path.startsWith('fonts/Roboto/'))
-    expect(roboto.map(({ path }) => path)).toEqual(['fonts/Roboto/Roboto-Italic.ttf', 'fonts/Roboto/Roboto-Medium.ttf', 'fonts/Roboto/Roboto-MediumItalic.ttf', 'fonts/Roboto/Roboto-Regular.ttf'])
+    expect(roboto.map(({ path }) => path)).toEqual([
+      'fonts/Roboto/Roboto-Italic.ttf',
+      'fonts/Roboto/Roboto-Medium.ttf',
+      'fonts/Roboto/Roboto-MediumItalic.ttf',
+      'fonts/Roboto/Roboto-Regular.ttf',
+    ])
     for (const face of roboto) expect(face, face.path).toMatchObject({ licence: 'OFL-1.1', version: 'Version 3.014; 2025' })
   })
 

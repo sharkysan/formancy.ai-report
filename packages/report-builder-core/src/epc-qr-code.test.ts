@@ -79,12 +79,14 @@ describe('a new EPC payment code', () => {
   // report-render-pdf's `epc-qr-code.test.ts` shows on the PDF.
   test('is a square in which every payload the EPC allows prints, with the frame or without', () => {
     const fresh = defaultComponent({ ...richReport(), locale: 'en' }, 'epcQrCode') as EpcQrCodeComponent
-    const prints = (size: number): readonly [boolean, boolean] => [epcModule(size, EPC_MAX_VERSION, undefined) >= mmToPt(0.4), epcCaptionBreak(size, EPC_MAX_VERSION) === undefined]
+    const prints = (size: number): readonly [boolean, boolean] => [
+      epcModule(size, EPC_MAX_VERSION, undefined) >= mmToPt(0.4),
+      epcCaptionBreak(size, EPC_MAX_VERSION) === undefined,
+    ]
     expect(prints(fresh.size)).toEqual([true, true])
     expect(prints(mmToPt(31))).toEqual([true, false])
     expect(prints(mmToPt(30))).toEqual([false, false])
   })
-
 })
 
 describe('an EPC payment code’s name', () => {
@@ -93,7 +95,12 @@ describe('an EPC payment code’s name', () => {
   // name. A name read from the data is named by its field, as a bound
   // run is.
   test('is its kind and its beneficiary, in each language', () => {
-    const labels = EDITOR_LOCALES.map((locale) => editorOver(richReport(), { locale }).editor.state().outline[4]?.nodes.find((node) => node.id === 'pay-code')?.label)
+    const labels = EDITOR_LOCALES.map(
+      (locale) =>
+        editorOver(richReport(), { locale })
+          .editor.state()
+          .outline[4]?.nodes.find((node) => node.id === 'pay-code')?.label,
+    )
     expect(labels).toEqual(['EPC payment code: Franz Mustermänn', 'EPC-Zahlcode: Franz Mustermänn', 'Code de paiement EPC : Franz Mustermänn'])
     const report = richReport()
     const bound = { ...code(report), beneficiary: [{ kind: 'field', field: { dataset: 'header', field: 'customer' } }] } as const
@@ -103,7 +110,12 @@ describe('an EPC payment code’s name', () => {
 
   // The palette offers it in the format's order, after the QR code.
   test('is the palette’s, in each language', () => {
-    const names = EDITOR_LOCALES.map((locale) => editorOver(richReport(), { locale }).editor.state().palette.find((entry) => entry.kind === 'epcQrCode')?.label)
+    const names = EDITOR_LOCALES.map(
+      (locale) =>
+        editorOver(richReport(), { locale })
+          .editor.state()
+          .palette.find((entry) => entry.kind === 'epcQrCode')?.label,
+    )
     expect(names).toEqual(['EPC payment code', 'EPC-Zahlcode', 'Code de paiement EPC'])
   })
 })
@@ -115,7 +127,14 @@ describe('an EPC payment code on the canvas', () => {
   test('is its square, and flagged where it is wider than its column', () => {
     const report = richReport()
     const narrow = { ...code(report), id: 'narrow', size: 80 }
-    const side = { id: 'side', kind: 'columns', columns: [{ width: 60, components: [narrow] }, { width: 'fill', components: [] }] } as const
+    const side = {
+      id: 'side',
+      kind: 'columns',
+      columns: [
+        { width: 60, components: [narrow] },
+        { width: 'fill', components: [] },
+      ],
+    } as const
     const { boxes } = editorOver({ ...report, regions: { ...report.regions, body: [...report.regions.body, side] } }).editor.state().canvas
     const box = (id: string) => boxes.find((candidate) => candidate.id === id)
     expect(box('pay-code')).toMatchObject({ pt: { width: 85.04, height: 85.04 }, overflows: false })
@@ -182,7 +201,10 @@ describe('an EPC payment code’s properties', () => {
     ])
     const { editor, session } = selected()
     ok(editor.dispatch({ type: 'setProperty', key: '/text/0/text', value: 'Invoice for ' }))
-    expect(code(session.document()).text).toEqual([{ kind: 'text', text: 'Invoice for ' }, { kind: 'field', field: { dataset: 'header', field: 'customer' } }])
+    expect(code(session.document()).text).toEqual([
+      { kind: 'text', text: 'Invoice for ' },
+      { kind: 'field', field: { dataset: 'header', field: 'customer' } },
+    ])
     expect(editor.state().history.undoLabel).toBe('Change Remittance text, part 1: Text')
     expect(createReportEditor(session, { locale: 'de-CH' }).state().history.undoLabel).toBe('Ändern: Verwendungszweck, Teil 1: Text')
   })

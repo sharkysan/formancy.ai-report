@@ -58,8 +58,17 @@ describe('against report-server', () => {
     directory = await mkdtemp(join(tmpdir(), 'formancy-report-client-'))
     const opened = await openFileTemplateStore(directory)
     if (!opened.ok) throw new Error(opened.problem)
-    const verifyIdentity = await createReportVerifier({ key: { kind: 'secret', secret: HOST.secret }, issuer: HOST.issuer, audience: HOST.audience, tenantClaim: 'tid' })
-    server = await createReportServer({ verifyIdentity, roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] }, store: opened.store })
+    const verifyIdentity = await createReportVerifier({
+      key: { kind: 'secret', secret: HOST.secret },
+      issuer: HOST.issuer,
+      audience: HOST.audience,
+      tenantClaim: 'tid',
+    })
+    server = await createReportServer({
+      verifyIdentity,
+      roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] },
+      store: opened.store,
+    })
     await server.listen({ host: '127.0.0.1', port: 0 })
     at = `http://127.0.0.1:${String((server.server.address() as AddressInfo).port)}`
   })
@@ -120,7 +129,11 @@ describe('against report-server', () => {
     const reports = client()
     const declaring = { ...report(), assets: [{ id: 'logo', mediaType: 'image/png' as const, digest: assetDigest(PNG) }] }
     expect(await reports.readImage(assetDigest(PNG))).toEqual({ ok: false, status: 404, refusal: REFUSALS['no-asset'] })
-    expect(await reports.saveDraft('invoice', declaring, null)).toEqual({ ok: false, status: 422, refusal: { ...REFUSALS['asset-not-kept'], assets: ['logo'] } })
+    expect(await reports.saveDraft('invoice', declaring, null)).toEqual({
+      ok: false,
+      status: 422,
+      refusal: { ...REFUSALS['asset-not-kept'], assets: ['logo'] },
+    })
     expect(await reports.keepImage(PNG, assetDigest(PNG), 'image/png')).toEqual({ ok: true, value: { digest: assetDigest(PNG) } })
     expect(await reports.readImage(assetDigest(PNG))).toEqual({ ok: true, value: { mediaType: 'image/png', bytes: PNG } })
     expect(valueOf(await reports.saveDraft('invoice', declaring, null))).toMatchObject({ template: 'invoice', revision: 1 })
@@ -177,7 +190,8 @@ describe('against what is not report-server', () => {
     const fetch = async (url: string | URL | Request, init?: RequestInit) => (asked.push({ url: String(url), init }), response())
     return { fetch, asked }
   }
-  const client = (fetch: ReportClientOptions['fetch']) => createReportClient({ server: 'https://reports.example', token: () => 'a-token', ...(fetch === undefined ? {} : { fetch }) })
+  const client = (fetch: ReportClientOptions['fetch']) =>
+    createReportClient({ server: 'https://reports.example', token: () => 'a-token', ...(fetch === undefined ? {} : { fetch }) })
 
   // A gateway in front of the server answers when the server cannot: a
   // 502 page, a body cut off. None is the API's answer, and none may be
@@ -230,7 +244,11 @@ describe('against what is not report-server', () => {
       await expect(client(fetch).saveDraft('invoice', report(), null), JSON.stringify(body)).rejects.toThrow(/422/)
     }
     const { fetch } = answering(() => Response.json({ ...REFUSALS['draft-changed'], revision: null }, { status: 412 }))
-    expect(await client(fetch).saveDraft('invoice', report(), { revision: 3, digest: assetDigest(PNG) })).toEqual({ ok: false, status: 412, refusal: { ...REFUSALS['draft-changed'], revision: null } })
+    expect(await client(fetch).saveDraft('invoice', report(), { revision: 3, digest: assetDigest(PNG) })).toEqual({
+      ok: false,
+      status: 412,
+      refusal: { ...REFUSALS['draft-changed'], revision: null },
+    })
   })
 
   // An image's answer is its bytes under its media type. One under any
@@ -283,9 +301,24 @@ describe('against what is not report-server', () => {
     const sent = asked.map(({ url, init }) => ({ url, method: init?.method, headers: init?.headers, redirect: init?.redirect }))
     const hex = assetDigest(PNG).slice('sha256:'.length)
     expect(sent).toEqual([
-      { url: 'https://reports.example/v1/templates/invoice/draft', method: 'PUT', headers: { authorization: 'Bearer a-token', 'content-type': 'application/json', 'if-none-match': '*' }, redirect: 'error' },
-      { url: 'https://reports.example/v1/templates/invoice/draft', method: 'PUT', headers: { authorization: 'Bearer a-token', 'content-type': 'application/json', 'if-match': `"12-${hex}"` }, redirect: 'error' },
-      { url: `https://reports.example/v1/assets/${hex}`, method: 'PUT', headers: { authorization: 'Bearer a-token', 'content-type': 'image/png' }, redirect: 'error' },
+      {
+        url: 'https://reports.example/v1/templates/invoice/draft',
+        method: 'PUT',
+        headers: { authorization: 'Bearer a-token', 'content-type': 'application/json', 'if-none-match': '*' },
+        redirect: 'error',
+      },
+      {
+        url: 'https://reports.example/v1/templates/invoice/draft',
+        method: 'PUT',
+        headers: { authorization: 'Bearer a-token', 'content-type': 'application/json', 'if-match': `"12-${hex}"` },
+        redirect: 'error',
+      },
+      {
+        url: `https://reports.example/v1/assets/${hex}`,
+        method: 'PUT',
+        headers: { authorization: 'Bearer a-token', 'content-type': 'image/png' },
+        redirect: 'error',
+      },
     ])
     expect(JSON.parse(String(asked[0]?.init?.body))).toEqual(report())
     expect(asked[2]?.init?.body).toEqual(PNG)
@@ -376,7 +409,18 @@ describe('against what is not report-server', () => {
   // made, naming the rule and never the URL, which may hold a password.
   test('refuses a base URL it could not put a route’s path after', () => {
     const object = new URL('https://reports.example') as unknown as string
-    for (const server of ['https://reports.example/', 'https://example.com/reports/', 'https://reports.example?', 'https://reports.example?tenant=a', 'https://reports.example#top', 'https://user:a-password@reports.example', 'ftp://reports.example', 'reports.example', '', object]) {
+    for (const server of [
+      'https://reports.example/',
+      'https://example.com/reports/',
+      'https://reports.example?',
+      'https://reports.example?tenant=a',
+      'https://reports.example#top',
+      'https://user:a-password@reports.example',
+      'ftp://reports.example',
+      'reports.example',
+      '',
+      object,
+    ]) {
       expect(() => createReportClient({ server, token: () => 'a-token' }), server).toThrow(/base URL/)
       try {
         createReportClient({ server, token: () => 'a-token' })
@@ -384,6 +428,7 @@ describe('against what is not report-server', () => {
         expect((error as Error).message).not.toContain('a-password')
       }
     }
-    for (const server of ['https://reports.example', 'https://example.com/reports', 'http://127.0.0.1:4392']) expect(() => createReportClient({ server, token: () => 'a-token' }), server).not.toThrow()
+    for (const server of ['https://reports.example', 'https://example.com/reports', 'http://127.0.0.1:4392'])
+      expect(() => createReportClient({ server, token: () => 'a-token' }), server).not.toThrow()
   })
 })

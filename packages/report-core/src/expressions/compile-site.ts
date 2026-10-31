@@ -2,7 +2,7 @@
  * One expression compiled where it stands, with every member it reads
  * checked as the type it is.
  *
- * `@formancy/expressions` 0.7.0, as 0.5.0 and 0.6.0, declares a variable only by its
+ * `@formancy/expressions` 0.11.0, as 0.5.0 to 0.7.0, declares a variable only by its
  * whole name: a declaration of `row.amount` is a variable with a dot in its
  * name, which an expression reading `row.amount` never finds. So each read of a member
  * is spliced, by upstream's own `rewritePath`, which verifies every splice
@@ -155,20 +155,29 @@ function readProblems(site: ExpressionSite, path: string, members: Members, imag
   if (refusal !== undefined && INVOICE_NAMES.includes(name)) return eachRead(site, name, 'expression-unknown-name', `${name} ${refusal}`)
   if (!names.includes(name)) {
     const scopes = VALUE_SCOPES.filter((scope) => EXPRESSION_NAMES[scope].includes(name))
-    if (scopes.length > 0) return eachRead(site, name, 'expression-out-of-scope', `${name} has a value only in ${scopes.map((scope) => WHERE[scope]).join(' and ')}`)
+    if (scopes.length > 0)
+      return eachRead(site, name, 'expression-out-of-scope', `${name} has a value only in ${scopes.map((scope) => WHERE[scope]).join(' and ')}`)
     return eachRead(site, name, 'expression-unknown-name', `${quote(name)} is not a name an expression reads; here it reads ${names.join(', ')}`)
   }
   // A whole read -- size(params) -- is found once every member read is
   // spliced, when what still reads the name reads it whole.
   if (rest === '' && member === undefined) return []
   const scoped = name as ScopeName
-  if (member === undefined) return eachRead(site, path, 'expression-unknown-name', `${name} has no member ${quote(rest)}: a ${MEMBERS_ARE[scoped]} is read by its id, as ${name}.<id>`)
+  if (member === undefined)
+    return eachRead(site, path, 'expression-unknown-name', `${name} has no member ${quote(rest)}: a ${MEMBERS_ARE[scoped]} is read by its id, as ${name}.<id>`)
   const held = members[scoped].get(member)
   if (held === undefined && images[scoped]?.has(member) === true) {
-    return eachRead(site, path, 'expression-unreadable-field', `${name}.${member} is an image field: an image component draws it, and nothing reads it as a value`)
+    return eachRead(
+      site,
+      path,
+      'expression-unreadable-field',
+      `${name}.${member} is an image field: an image component draws it, and nothing reads it as a value`,
+    )
   }
-  if (held === undefined) return eachRead(site, path, 'expression-unknown-name', `${name} has no member ${quote(member)}: no ${MEMBERS_ARE[scoped]} of the report has that id`)
-  if (rest !== '') return eachRead(site, path, 'expression-unknown-name', `${name}.${member} is a single value, and has no member ${quote(rest.replace(/^\./, ''))}`)
+  if (held === undefined)
+    return eachRead(site, path, 'expression-unknown-name', `${name} has no member ${quote(member)}: no ${MEMBERS_ARE[scoped]} of the report has that id`)
+  if (rest !== '')
+    return eachRead(site, path, 'expression-unknown-name', `${name}.${member} is a single value, and has no member ${quote(rest.replace(/^\./, ''))}`)
   return []
 }
 
@@ -203,7 +212,10 @@ function flattened(site: ExpressionSite, reads: readonly ExpressionRead[]): { re
 
 /** `text` with each variable written back as the read it stands for, so a message names what the author wrote. */
 function authored(text: string | undefined, reads: readonly ExpressionRead[]): string | undefined {
-  return reads.reduce<string | undefined>((said, read) => said?.replace(new RegExp(`(?<![A-Za-z0-9_])${read.variable}(?![A-Za-z0-9_])`, 'g'), `${read.name}.${read.member}`), text)
+  return reads.reduce<string | undefined>(
+    (said, read) => said?.replace(new RegExp(`(?<![A-Za-z0-9_])${read.variable}(?![A-Za-z0-9_])`, 'g'), `${read.name}.${read.member}`),
+    text,
+  )
 }
 
 /** The diagnostic for an error the compiler gave; its position kept only when the source it checked is the author's, character for character. */
@@ -224,7 +236,11 @@ function wholeReads(site: ExpressionSite, paths: readonly string[], source: stri
     .filter((path) => names.includes(path))
     .flatMap((name) =>
       readSpans(source, name).map((span) =>
-        diagnostic('expression-dynamic-read', `${name} is read whole; an expression reads each ${MEMBERS_ARE[name as ScopeName]} by its id, as ${name}.<id>`, at(site, exact ? span : undefined)),
+        diagnostic(
+          'expression-dynamic-read',
+          `${name} is read whole; an expression reads each ${MEMBERS_ARE[name as ScopeName]} by its id, as ${name}.<id>`,
+          at(site, exact ? span : undefined),
+        ),
       ),
     )
 }
@@ -254,18 +270,29 @@ export function compileSite(site: ExpressionSite, members: Members, images: Imag
   const exact = flat.source.length === site.cel.length
   const calls = unreproducibleCalls(flat.source, site.kind, variables)
   if (calls.length > 0) {
-    const message = (name: string): string => `${name}() differs from one render to the next, and a report prints the same from the same data; a date the report needs is a parameter`
+    const message = (name: string): string =>
+      `${name}() differs from one render to the next, and a report prints the same from the same data; a date the report needs is a parameter`
     return failed(calls.map(({ name, span }) => diagnostic('expression-not-reproducible', message(name), at(site, exact ? span : undefined))))
   }
   const inexact = [
-    ...inexactOperations(flat.source, site.kind, variables).map(({ kind, span }) => diagnostic('expression-inexact', INEXACT[kind].message, at(site, exact ? span : undefined, INEXACT[kind].hint))),
-    ...unboundedCalls(flat.source, site.kind, variables).map(({ name, span }) => diagnostic('expression-unbounded', UNBOUNDED(name), at(site, exact ? span : undefined))),
+    ...inexactOperations(flat.source, site.kind, variables).map(({ kind, span }) =>
+      diagnostic('expression-inexact', INEXACT[kind].message, at(site, exact ? span : undefined, INEXACT[kind].hint)),
+    ),
+    ...unboundedCalls(flat.source, site.kind, variables).map(({ name, span }) =>
+      diagnostic('expression-unbounded', UNBOUNDED(name), at(site, exact ? span : undefined)),
+    ),
   ].sort((a, b) => (a.position?.start ?? 0) - (b.position?.start ?? 0))
   if (inexact.length > 0) return failed(inexact)
   const type = compiled.program.resultType
   if (site.amount !== undefined && !AMOUNTS.has(type)) {
     const hint = type === 'int' || type === 'string' ? 'dec() makes a decimal of an integer, or of a string of digits' : undefined
-    return failed([diagnostic('expression-type', `${site.amount}'s amount is a decimal, or null to leave it for the payer, and this expression gives ${type}`, at(site, undefined, hint))])
+    return failed([
+      diagnostic(
+        'expression-type',
+        `${site.amount}'s amount is a decimal, or null to leave it for the payer, and this expression gives ${type}`,
+        at(site, undefined, hint),
+      ),
+    ])
   }
   const broken = termBreak(site, type)
   if (broken !== undefined) return failed([diagnostic('expression-type', broken.message, at(site, undefined, broken.hint))])

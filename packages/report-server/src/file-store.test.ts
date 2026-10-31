@@ -96,7 +96,9 @@ describe('a draft', () => {
   test('of 20 concurrent saves from 1, exactly one wins, and no temporary file remains', async () => {
     await store.save(TENANT, 'invoice', null, draft('u-0', report('invoice', 'Base')))
     const racers = await Promise.all(Array.from({ length: 20 }, () => opened(root)))
-    const outcomes = await Promise.all(racers.map((each, n) => each.save(TENANT, 'invoice', 1, draft(`u-${String(n + 1)}`, report('invoice', `Racer ${String(n + 1)}`)))))
+    const outcomes = await Promise.all(
+      racers.map((each, n) => each.save(TENANT, 'invoice', 1, draft(`u-${String(n + 1)}`, report('invoice', `Racer ${String(n + 1)}`)))),
+    )
     const winners = outcomes.flatMap((outcome, n) => (outcome.saved ? [n] : []))
     expect(winners).toHaveLength(1)
     expect(outcomes.filter((outcome) => !outcome.saved)).toEqual(Array.from({ length: 19 }, () => ({ saved: false, revision: 2 })))
@@ -252,7 +254,14 @@ describe('what names a file', () => {
       await expect(store.save(TENANT, template, null, draft('u-1', report('invoice', 'Out')))).rejects.toThrow(/not a report id/)
     }
     const kept = image('bytes')
-    for (const digest of ['', kept.digest.slice('sha256:'.length), kept.digest.toUpperCase(), `${kept.digest}0`, 'sha256:../../x', `sha512:${'a'.repeat(64)}`]) {
+    for (const digest of [
+      '',
+      kept.digest.slice('sha256:'.length),
+      kept.digest.toUpperCase(),
+      `${kept.digest}0`,
+      'sha256:../../x',
+      `sha512:${'a'.repeat(64)}`,
+    ]) {
       await expect(store.imageKind(TENANT, digest), digest).rejects.toThrow(/not a SHA-256/)
       await expect(store.readImage(TENANT, digest)).rejects.toThrow(/not a SHA-256/)
       await expect(store.keepImage(TENANT, digest, { mediaType: 'image/png', bytes: kept.bytes })).rejects.toThrow(/not a SHA-256/)
@@ -269,7 +278,20 @@ describe('what names a file', () => {
   test('a digest is refused exactly where report-spec’s isDigest refuses it, and read where it accepts it', async () => {
     const kept = image('bytes')
     const hex = kept.digest.slice('sha256:'.length)
-    for (const digest of [kept.digest, `sha256:${'0'.repeat(64)}`, hex, `sha256:${hex.toUpperCase()}`, kept.digest.toUpperCase(), `SHA256:${hex}`, `${kept.digest}0`, `${kept.digest}\n`, kept.digest.slice(0, -1), 'sha256:../../x', `sha512:${hex}`, '']) {
+    for (const digest of [
+      kept.digest,
+      `sha256:${'0'.repeat(64)}`,
+      hex,
+      `sha256:${hex.toUpperCase()}`,
+      kept.digest.toUpperCase(),
+      `SHA256:${hex}`,
+      `${kept.digest}0`,
+      `${kept.digest}\n`,
+      kept.digest.slice(0, -1),
+      'sha256:../../x',
+      `sha512:${hex}`,
+      '',
+    ]) {
       const read = await store.readImage(TENANT, digest).then(
         () => 'read',
         (error: unknown) => (error instanceof Error && /not a SHA-256/.test(error.message) ? 'refused' : String(error)),
@@ -310,7 +332,10 @@ describe('an image', () => {
     expect(await readdir(assetDirectory(TENANT))).toEqual([`${png.digest.slice('sha256:'.length)}.png`])
     expect(await store.imageKind(TENANT, png.digest)).toBe('image/png')
     expect(await store.readImage(TENANT, png.digest)).toEqual({ mediaType: 'image/png', bytes: Buffer.from(png.bytes) })
-    for (const [mediaType, extension] of [['image/jpeg', 'jpg'], ['image/svg+xml', 'svg']] as const) {
+    for (const [mediaType, extension] of [
+      ['image/jpeg', 'jpg'],
+      ['image/svg+xml', 'svg'],
+    ] as const) {
       const kept = image(`an image kept as ${mediaType}`)
       await store.keepImage(TENANT, kept.digest, { mediaType, bytes: kept.bytes })
       expect(await readdir(assetDirectory(TENANT))).toContain(`${kept.digest.slice('sha256:'.length)}.${extension}`)
@@ -486,7 +511,10 @@ describe('the root', () => {
     await writeFile(root, 'not a directory')
     try {
       await expect(store.list(TENANT)).rejects.toMatchObject({ code: 'ENOTDIR', operation: 'list', withinTenant: undefined })
-      await expect(store.keepImage(TENANT, image('bytes').digest, { mediaType: 'image/png', bytes: image('bytes').bytes })).rejects.toMatchObject({ code: 'ENOTDIR', operation: 'read' })
+      await expect(store.keepImage(TENANT, image('bytes').digest, { mediaType: 'image/png', bytes: image('bytes').bytes })).rejects.toMatchObject({
+        code: 'ENOTDIR',
+        operation: 'read',
+      })
     } finally {
       await rm(root)
       await mkdir(root)

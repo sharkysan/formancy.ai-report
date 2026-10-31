@@ -11,8 +11,12 @@ import { JUDGES } from '../e-invoice/registers.mjs'
 import { unwalked } from './results.mjs'
 
 const code = (text) => `\`${text}\``
-const cell = (text) => String(text ?? '').replaceAll('|', '\\|').replaceAll('\n', ' ')
-const table = (head, rows) => [`| ${head.join(' | ')} |`, `| ${head.map(() => '---').join(' | ')} |`, ...rows.map((row) => `| ${row.map(cell).join(' | ')} |`)].join('\n')
+const cell = (text) =>
+  String(text ?? '')
+    .replaceAll('|', '\\|')
+    .replaceAll('\n', ' ')
+const table = (head, rows) =>
+  [`| ${head.join(' | ')} |`, `| ${head.map(() => '---').join(' | ')} |`, ...rows.map((row) => `| ${row.map(cell).join(' | ')} |`)].join('\n')
 const prose = (items) => (items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`)
 const seconds = (ms) => (ms === null || ms === undefined || Number.isNaN(ms) ? '' : `${(ms / 1000).toFixed(1)} s`)
 const distinct = (values) => [...new Set(values)]
@@ -40,15 +44,23 @@ function peerSentences({ testedOn, results }) {
 }
 
 /** Every version a clean install resolved for a package, each with the hosts that resolved it when there is more than one: `0.3.11 (node); 0.3.12 (react-floor)`. */
-const freshCell = (fresh) => (fresh.length === 1 ? fresh[0].version : fresh.map((entry) => (entry.hosts.length === 0 ? entry.version : `${entry.version} (${entry.hosts.join(', ')})`)).join('; '))
+const freshCell = (fresh) =>
+  fresh.length === 1
+    ? fresh[0].version
+    : fresh.map((entry) => (entry.hosts.length === 0 ? entry.version : `${entry.version} (${entry.hosts.join(', ')})`)).join('; ')
 
 /** The limitations this run shows, each a fixed sentence with only its facts inserted. */
 export function derivedLimitations(report) {
   const { testedOn, results } = report
   const sentences = []
 
-  const declared = testedOn.node.declared.length === 0 ? 'no published package declares the Node versions it supports' : prose(testedOn.node.declared.map((entry) => `${code(entry.package)} declares Node ${code(entry.node)}`))
-  sentences.push(`The suites ran on Node ${prose(testedOn.node.ran) || 'that no job recorded'}${testedOn.node.install === null ? '' : `; the install gate ran on ${testedOn.node.install}`}; ${declared}.`)
+  const declared =
+    testedOn.node.declared.length === 0
+      ? 'no published package declares the Node versions it supports'
+      : prose(testedOn.node.declared.map((entry) => `${code(entry.package)} declares Node ${code(entry.node)}`))
+  sentences.push(
+    `The suites ran on Node ${prose(testedOn.node.ran) || 'that no job recorded'}${testedOn.node.install === null ? '' : `; the install gate ran on ${testedOn.node.install}`}; ${declared}.`,
+  )
 
   const ranged = testedOn.runtime.filter((entry) => !/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(String(entry.range)))
   sentences.push(
@@ -75,12 +87,16 @@ export function derivedLimitations(report) {
 
   // Which browsers the browser job launched, from what the gate and the
   // pictures recorded; without the job, that none ran at all.
-  if (!report.gateJobs.includes('browser')) sentences.push('No browser ran in this run: the builders’ suites ran in jsdom, and the install gate drew them on a server.')
-  else if (testedOn.browsers.length === 0) sentences.push('No browser was launched in this run: the builders’ suites ran in jsdom, and nothing measured what jsdom cannot see.')
+  if (!report.gateJobs.includes('browser'))
+    sentences.push('No browser ran in this run: the builders’ suites ran in jsdom, and the install gate drew them on a server.')
+  else if (testedOn.browsers.length === 0)
+    sentences.push('No browser was launched in this run: the builders’ suites ran in jsdom, and nothing measured what jsdom cannot see.')
   else {
     const launched = testedOn.browsers.map((entry) => `${browserName(entry.name)} ${entry.version}`)
     const by = distinct(testedOn.browsers.flatMap((entry) => entry.by))
-    sentences.push(`${prose(launched)} ${launched.length === 1 ? 'was the only browser' : 'were the only browsers'} launched in this run, by ${prose(by)}; what jsdom cannot see was measured in no other.`)
+    sentences.push(
+      `${prose(launched)} ${launched.length === 1 ? 'was the only browser' : 'were the only browsers'} launched in this run, by ${prose(by)}; what jsdom cannot see was measured in no other.`,
+    )
   }
 
   const identity = results.buildIdentity
@@ -89,15 +105,23 @@ export function derivedLimitations(report) {
     // Only the jobs that built every published package are named: a test
     // job builds what its package depends on, not the rest, and the table
     // says which built what.
-    const everywhere = identity.map((entry) => new Set(entry.builds.map((build) => build.job))).reduce((all, jobs) => new Set([...all].filter((job) => jobs.has(job))))
+    const everywhere = identity
+      .map((entry) => new Set(entry.builds.map((build) => build.job)))
+      .reduce((all, jobs) => new Set([...all].filter((job) => jobs.has(job))))
     const named = [...everywhere].sort()
     sentences.push(
       `Each package's own suites ran its source; the published dist/ was run by the install gate, and each package's is byte-identical to ${named.length === 0 ? 'the dist/ every job that built it built' : `its dist/ built in ${prose(named)}, and in every other job that built it`} (*Build identity* names them).`,
     )
-  } else sentences.push("Each package's own suites ran its source; the published dist/ was run by the install gate, and is not shown byte-identical to every job's build (see *Build identity*).")
+  } else
+    sentences.push(
+      "Each package's own suites ran its source; the published dist/ was run by the install gate, and is not shown byte-identical to every job's build (see *Build identity*).",
+    )
 
   for (const gate of report.gates ?? []) {
-    if (gate.state === 'open') sentences.push(`Release gate ${code(gate.gate)} is open: ${gate.open}${gate.evidence.some((item) => item.kind !== 'document') ? ' The evidence it has passed in this run.' : ''}`)
+    if (gate.state === 'open')
+      sentences.push(
+        `Release gate ${code(gate.gate)} is open: ${gate.open}${gate.evidence.some((item) => item.kind !== 'document') ? ' The evidence it has passed in this run.' : ''}`,
+      )
     if (gate.state === 'stated') sentences.push(`Release gate ${code(gate.gate)} is ${prose(gate.evidence.map(stated))}; not exercised by this run.`)
   }
   return sentences
@@ -119,7 +143,12 @@ function evidenceCell(item) {
   return `${what}: ${item.outcome === 'absent' ? `did not run${where}` : item.kind === 'job' && item.outcome === 'failed' ? `ended ${String(item.result)}` : item.outcome}`
 }
 
-const GATE_STATE = { passed: 'evidence passed in this run', failed: 'evidence did not pass in this run', stated: 'stated, not exercised by this run', open: 'open' }
+const GATE_STATE = {
+  passed: 'evidence passed in this run',
+  failed: 'evidence did not pass in this run',
+  stated: 'stated, not exercised by this run',
+  open: 'open',
+}
 
 /** Each release gate, as this run leaves it; never "met". */
 function gatesSection({ gates }) {
@@ -128,28 +157,53 @@ function gatesSection({ gates }) {
     '',
     'The delivery plan’s gates by id (`docs/release/gates.json`). A document is stated evidence, never passed in a run; a gate with a reason is open, whatever its evidence; and no gate is called met.',
     '',
-    table(['Gate', 'State', 'Evidence', 'Open because'], (gates ?? []).map((gate) => [gate.gate, GATE_STATE[gate.state], gate.evidence.map(evidenceCell).join('; ') || 'none', gate.open ?? ''])),
+    table(
+      ['Gate', 'State', 'Evidence', 'Open because'],
+      (gates ?? []).map((gate) => [gate.gate, GATE_STATE[gate.state], gate.evidence.map(evidenceCell).join('; ') || 'none', gate.open ?? '']),
+    ),
   ].join('\n')
 }
 
 /** Where each section comes from, one line each. */
 const METHOD = [
-  ['Subject', 'the GitHub run’s environment (`GITHUB_SHA`, `GITHUB_RUN_ID`), the report job’s `needs`, the root `package.json`’s version, and each job’s results file'],
+  [
+    'Subject',
+    'the GitHub run’s environment (`GITHUB_SHA`, `GITHUB_RUN_ID`), the report job’s `needs`, the root `package.json`’s version, and each job’s results file',
+  ],
   [
     'Tested on',
     '`scripts/release-report/tested-on.mjs` over the checkout -- the published manifests, what is installed, `pnpm-workspace.yaml`’s catalog, every workflow’s `setup-node`, and playwright-core’s `browsers.json` for the build Playwright pins -- the install gate’s `test-results/install.json` for what a clean install resolved and what each host installed, and each browser gate’s and pictures’ check’s own record of the browser it launched',
   ],
-  ['Results', 'each package’s `test-results/vitest.json` and `coverage/coverage-summary.json`, turbo’s run summary (`--summarize`), the repository guards’ `test-results/vitest.json`, and the install gate’s `test-results/install.json`'],
-  ['E-invoice gate', '`test-results/e-invoice.json`, which `scripts/e-invoice.mjs` writes however its run ends, held to the tools `docs/release/e-invoice-tools.json` pins'],
-  ['Container gate', '`test-results/container.json`, which `scripts/container.mjs` writes however its run ends, held to the checks that script plans and to the Node of the base `packages/report-server/Dockerfile` builds on'],
-  ['Browser', 'each app’s `test-results/browser-<browser>.json`, which its browser gate writes however it ends, for every browser of `scripts/browsers.mjs`, and its `test-results/pictures.json`, which its pictures’ check writes however it ends, held to the scenes `scripts/pictures/scenes.json` gives the app'],
+  [
+    'Results',
+    'each package’s `test-results/vitest.json` and `coverage/coverage-summary.json`, turbo’s run summary (`--summarize`), the repository guards’ `test-results/vitest.json`, and the install gate’s `test-results/install.json`',
+  ],
+  [
+    'E-invoice gate',
+    '`test-results/e-invoice.json`, which `scripts/e-invoice.mjs` writes however its run ends, held to the tools `docs/release/e-invoice-tools.json` pins',
+  ],
+  [
+    'Container gate',
+    '`test-results/container.json`, which `scripts/container.mjs` writes however its run ends, held to the checks that script plans and to the Node of the base `packages/report-server/Dockerfile` builds on',
+  ],
+  [
+    'Browser',
+    'each app’s `test-results/browser-<browser>.json`, which its browser gate writes however it ends, for every browser of `scripts/browsers.mjs`, and its `test-results/pictures.json`, which its pictures’ check writes however it ends, held to the scenes `scripts/pictures/scenes.json` gives the app',
+  ],
   ['Build identity', '`scripts/release/dist-hash.mjs` over every published package’s `dist/` in every job, and over each tarball’s built files'],
   ['Release gates', '`docs/release/gates.json`, the report job’s `needs`, and `git log` for a document’s last change'],
-  ['Known limitations', 'the fixed sentences of `scripts/release-report/render.mjs` with this run’s facts, then `docs/release/limitations.json`, held to the decision records by hash'],
-  ['Problems', '`scripts/release-report/problems.mjs`, `artefacts.mjs`, `gates.mjs` and `limitations.mjs`, and the release body from `scripts/release-notes.mjs`'],
+  [
+    'Known limitations',
+    'the fixed sentences of `scripts/release-report/render.mjs` with this run’s facts, then `docs/release/limitations.json`, held to the decision records by hash',
+  ],
+  [
+    'Problems',
+    '`scripts/release-report/problems.mjs`, `artefacts.mjs`, `gates.mjs` and `limitations.mjs`, and the release body from `scripts/release-notes.mjs`',
+  ],
 ]
 
-const versionsOf = (tool) => tool.versions.map((entry) => (tool.versions.length === 1 ? entry.version : `${entry.version} (${entry.from.join(', ')})`)).join('; ')
+const versionsOf = (tool) =>
+  tool.versions.map((entry) => (tool.versions.length === 1 ? entry.version : `${entry.version} (${entry.from.join(', ')})`)).join('; ')
 
 /** What the run was tested on: dependencies, peers, upstream, Node, pnpm and the tools. */
 function testedOnSection({ testedOn }) {
@@ -159,21 +213,43 @@ function testedOnSection({ testedOn }) {
     '',
     table(
       ['Dependency', 'Declared by', 'Published as', 'Loaded by the suites', 'A clean install'],
-      testedOn.runtime.map((entry) => [code(entry.name), entry.package, entry.range, entry.loaded, entry.fresh.length === 0 ? 'not reported' : freshCell(entry.fresh)]),
+      testedOn.runtime.map((entry) => [
+        code(entry.name),
+        entry.package,
+        entry.range,
+        entry.loaded,
+        entry.fresh.length === 0 ? 'not reported' : freshCell(entry.fresh),
+      ]),
     ),
     '',
     table(
       ['Peer', 'Of', 'Declared as', 'Loaded by the suites', 'Installed by the install gate'],
-      testedOn.peers.map((entry) => [code(entry.name), entry.package, entry.range, entry.loaded, entry.installed.map((host) => `${host.version} (${host.project})`).join(', ') || 'no host installed it']),
+      testedOn.peers.map((entry) => [
+        code(entry.name),
+        entry.package,
+        entry.range,
+        entry.loaded,
+        entry.installed.map((host) => `${host.version} (${host.project})`).join(', ') || 'no host installed it',
+      ]),
     ),
     '',
-    table(['Upstream', 'Declared as', 'Loaded', 'A clean install'], testedOn.upstream.map((entry) => [`${code(entry.name)}${entry.direct ? '' : ' (transitive)'}`, entry.declared ?? '', entry.version, entry.fresh.length === 0 ? 'not installed by a consumer' : freshCell(entry.fresh)])),
+    table(
+      ['Upstream', 'Declared as', 'Loaded', 'A clean install'],
+      testedOn.upstream.map((entry) => [
+        `${code(entry.name)}${entry.direct ? '' : ' (transitive)'}`,
+        entry.declared ?? '',
+        entry.version,
+        entry.fresh.length === 0 ? 'not installed by a consumer' : freshCell(entry.fresh),
+      ]),
+    ),
     '',
     `Node: the workspace declares ${testedOn.node.engines === null ? 'nothing' : code(testedOn.node.engines)}; CI sets up ${prose(ci) || 'nothing'}; this run's jobs ran ${prose(testedOn.node.ran) || 'nothing recorded'}${testedOn.node.install === null ? '' : `, and the install gate ran on ${testedOn.node.install} with npm ${String(testedOn.npm)}`}.`,
     '',
     `${testedOn.packageManager.name} ${testedOn.packageManager.version}, through corepack (${code(testedOn.packageManager.declared)}). Tools, as the workspace loads them: ${testedOn.tooling
       .map((tool) => `${tool.name} ${versionsOf(tool)}${tool.declared === null ? '' : ` (${code(tool.declared)})`}`)
-      .join(', ')}.${testedOn.hostTools.length === 0 ? '' : ` The install hosts checked their consumers with ${prose(testedOn.hostTools)}, \`skipLibCheck\` off.`}`,
+      .join(
+        ', ',
+      )}.${testedOn.hostTools.length === 0 ? '' : ` The install hosts checked their consumers with ${prose(testedOn.hostTools)}, \`skipLibCheck\` off.`}`,
     '',
     browsersLine(testedOn),
   ].join('\n')
@@ -182,12 +258,16 @@ function testedOnSection({ testedOn }) {
 /** Which browser builds Playwright pins for the gates, and which this run launched, each held to its pin. */
 function browsersLine({ browser, browsers, axe }) {
   const pins = prose(browser.pins.map((pin) => `${pin.name} ${pin.browserVersion} (revision ${pin.revision}) for ${browserName(pin.browser)}`))
-  const launched = browsers.map((entry) => `${browserName(entry.name)} ${entry.version}${entry.headless === false ? ' headed' : ''}${entry.pin === null ? ' (which no gate here runs)' : entry.version === entry.pin ? '' : ` (not the ${entry.pin} it pins)`}`)
+  const launched = browsers.map(
+    (entry) =>
+      `${browserName(entry.name)} ${entry.version}${entry.headless === false ? ' headed' : ''}${entry.pin === null ? ' (which no gate here runs)' : entry.version === entry.pin ? '' : ` (not the ${entry.pin} it pins)`}`,
+  )
   return `Browsers: Playwright ${browser.playwright} pins ${pins}; this run launched ${prose(launched) || 'none'}${axe.length === 0 ? '' : `, with axe-core ${prose(axe)} in the page`}.`
 }
 
 /** A launched browser as a cell: its name, version and how it was launched. */
-const launchedCell = (launched) => (launched === null ? 'none' : `${launched.name} ${launched.version}${launched.headless === undefined ? '' : launched.headless ? ', headless' : ', headed'}`)
+const launchedCell = (launched) =>
+  launched === null ? 'none' : `${launched.name} ${launched.version}${launched.headless === undefined ? '' : launched.headless ? ', headless' : ', headed'}`
 
 /**
  * What jsdom cannot see, measured in a browser: each browser gate in each
@@ -224,7 +304,15 @@ function browserSection({ results }) {
       ? "No pictures' check left results in this run."
       : table(
           ["Pictures' check", 'Launched', 'Playwright', 'Scenes walked of scenes.json’s', 'Not walked', 'Pictures no longer showing the page', 'Wall time'],
-          pictures.map((check) => [check.app, launchedCell(check.browser), check.playwright ?? 'not recorded', `${String(check.walked.length)} of ${String(check.planned.length)}`, unwalked(check).join(', ') || 'none', check.problems.length, seconds(check.wallMs)]),
+          pictures.map((check) => [
+            check.app,
+            launchedCell(check.browser),
+            check.playwright ?? 'not recorded',
+            `${String(check.walked.length)} of ${String(check.planned.length)}`,
+            unwalked(check).join(', ') || 'none',
+            check.problems.length,
+            seconds(check.wallMs),
+          ]),
         ),
   ].join('\n')
 }
@@ -278,41 +366,97 @@ function eInvoiceSection({ results }) {
 function containerSection({ results }) {
   const gate = results.container
   const image = gate?.image ?? null
-  const said = image === null
-    ? `The container gate ${gate?.passed ? 'passed' : 'failed'} on Docker ${String(gate?.docker ?? 'that it did not record')}, and recorded no image.`
-    : `The container gate ${gate.passed ? 'passed' : 'failed'} on Docker ${String(gate.docker ?? 'that it did not record')}, with the image it built from this checkout, ${code(image.tag)} (${code(image.id)}): Node ${String(image.node)}, as ${code(image.user)}, ${(image.size / 1e6).toFixed(1)} MB, built in ${seconds(gate.measured.buildMs) || 'a time it did not record'} and answering ${seconds(gate.measured.healthyMs) || 'at a time it did not record'} after it started. It is the gate’s image; no image is published from this run.`
+  const said =
+    image === null
+      ? `The container gate ${gate?.passed ? 'passed' : 'failed'} on Docker ${String(gate?.docker ?? 'that it did not record')}, and recorded no image.`
+      : `The container gate ${gate.passed ? 'passed' : 'failed'} on Docker ${String(gate.docker ?? 'that it did not record')}, with the image it built from this checkout, ${code(image.tag)} (${code(image.id)}): Node ${String(image.node)}, as ${code(image.user)}, ${(image.size / 1e6).toFixed(1)} MB, built in ${seconds(gate.measured.buildMs) || 'a time it did not record'} and answering ${seconds(gate.measured.healthyMs) || 'at a time it did not record'} after it started. It is the gate’s image; no image is published from this run.`
   return [
     '## Container gate',
     '',
     'The server’s image, built from this checkout on the runner’s Docker by `scripts/container.mjs`, and run: unconfigured, it must stop and name every setting it needs, and with a secret reference it cannot resolve stop with that one sentence and no stack trace; configured, answer `/health`, refuse every bad token with the one 401, answer whoami for a token the gate signed, answer nothing else, run as `node`, carry the repository’s licence, write its store directory and not its own code, run on a read-only root, keep its audit trail free of tokens, live through SIGHUP and stop on SIGTERM, name the kids of a key set file it is given and read the file again on SIGHUP; and read the rate limit, the trusted proxies and the origins it is given. A check it did not make, one `scripts/container.mjs` does not plan, or an image that runs another Node than the base `packages/report-server/Dockerfile` names, or as another user than `node`, fails the run.',
     '',
     gate === null ? 'The container gate left no results in this run.' : said,
-    ...(gate === null ? [] : ['', table(['Check', 'Passed', 'Said'], gate.checks.map((check) => [check.name, check.passed ? 'yes' : 'no', check.said ?? '']))]),
+    ...(gate === null
+      ? []
+      : [
+          '',
+          table(
+            ['Check', 'Passed', 'Said'],
+            gate.checks.map((check) => [check.name, check.passed ? 'yes' : 'no', check.said ?? '']),
+          ),
+        ]),
   ].join('\n')
 }
 
-const pct = (coverage) => (coverage === null ? '' : ['lines', 'branches', 'functions', 'statements'].map((metric) => (coverage[metric] === null ? '-' : String(coverage[metric]))).join(' / '))
+const pct = (coverage) =>
+  coverage === null
+    ? ''
+    : ['lines', 'branches', 'functions', 'statements'].map((metric) => (coverage[metric] === null ? '-' : String(coverage[metric]))).join(' / ')
 const yesNo = (value) => (value ? 'yes' : 'no')
 
 /** Results per package, the repository's guards and the install gate with its hosts. */
 function resultsSection({ results }) {
   const rows = results.packages.map((row) =>
     row.present
-      ? [row.package, yesNo(row.published), row.files, row.tests, row.passed, row.failed, row.skipped + row.todo, row.failedFiles.length, seconds(row.wallMs) || 'not measured', seconds(row.spanMs), pct(row.coverage) || 'not measured']
+      ? [
+          row.package,
+          yesNo(row.published),
+          row.files,
+          row.tests,
+          row.passed,
+          row.failed,
+          row.skipped + row.todo,
+          row.failedFiles.length,
+          seconds(row.wallMs) || 'not measured',
+          seconds(row.spanMs),
+          pct(row.coverage) || 'not measured',
+        ]
       : [row.package, yesNo(row.published), 'no results', '', '', '', '', '', '', '', ''],
   )
   const { repository, install } = results
   return [
     '## Results',
     '',
-    table(['Package', 'Published', 'Files', 'Tests', 'Passed', 'Failed', 'Skipped or todo', 'Failed files', "Task's wall time (turbo)", 'First test start to last test end (vitest)', 'Coverage, lines / branches / functions / statements (reported, never gated)'], rows),
+    table(
+      [
+        'Package',
+        'Published',
+        'Files',
+        'Tests',
+        'Passed',
+        'Failed',
+        'Skipped or todo',
+        'Failed files',
+        "Task's wall time (turbo)",
+        'First test start to last test end (vitest)',
+        'Coverage, lines / branches / functions / statements (reported, never gated)',
+      ],
+      rows,
+    ),
     '',
-    repository.present ? `The repository's guards (\`pnpm test:repo\`): ${String(repository.passed)} of ${String(repository.tests)} passed in ${String(repository.files)} files.` : "The repository's guards left no results.",
+    repository.present
+      ? `The repository's guards (\`pnpm test:repo\`): ${String(repository.passed)} of ${String(repository.tests)} passed in ${String(repository.files)} files.`
+      : "The repository's guards left no results.",
     '',
-    install === null ? 'The install gate left no results.' : `The install gate ${install.passed ? 'passed' : 'failed'} with npm ${String(install.npm)} on Node ${String(install.node)}, in a project per host:`,
+    install === null
+      ? 'The install gate left no results.'
+      : `The install gate ${install.passed ? 'passed' : 'failed'} with npm ${String(install.npm)} on Node ${String(install.node)}, in a project per host:`,
     ...(install === null
       ? []
-      : ['', table(['Install host', 'At', 'Installed beside', 'Every step passed'], install.hosts.map((host) => [host.project, host.at ?? '', Object.entries(host.installed).map(([name, version]) => `${name} ${String(version)}`).join(', ') || 'no framework', yesNo(host.passed)]))]),
+      : [
+          '',
+          table(
+            ['Install host', 'At', 'Installed beside', 'Every step passed'],
+            install.hosts.map((host) => [
+              host.project,
+              host.at ?? '',
+              Object.entries(host.installed)
+                .map(([name, version]) => `${name} ${String(version)}`)
+                .join(', ') || 'no framework',
+              yesNo(host.passed),
+            ]),
+          ),
+        ]),
   ].join('\n')
 }
 
@@ -323,7 +467,16 @@ function identitySection({ results }) {
     '',
     table(
       ['Package', 'Tarball', 'Tarball sha256', 'Its dist/', 'Jobs that built the same dist/'],
-      results.buildIdentity.map((entry) => [entry.package, entry.tarball?.file ?? 'none', entry.tarball?.sha256 ?? '', entry.tarball?.distHash ?? '', entry.builds.filter((build) => build.distHash === entry.tarball?.distHash).map((build) => build.job).join(', ')]),
+      results.buildIdentity.map((entry) => [
+        entry.package,
+        entry.tarball?.file ?? 'none',
+        entry.tarball?.sha256 ?? '',
+        entry.tarball?.distHash ?? '',
+        entry.builds
+          .filter((build) => build.distHash === entry.tarball?.distHash)
+          .map((build) => build.job)
+          .join(', '),
+      ]),
     ),
   ].join('\n')
 }
@@ -334,7 +487,10 @@ function closingSection(report) {
     '',
     `### ${group.area}`,
     '',
-    ...group.lines.map((line) => `- ${line.says} — stated by [${line.number} ${line.title}](${line.link}) (${line.status})${line.heldBy === undefined ? '' : `; held by ${code(line.heldBy)}, ${line.held === 'passed' ? 'passed in this run' : line.held === 'absent' ? 'which did not run' : 'which did not pass'}`}`),
+    ...group.lines.map(
+      (line) =>
+        `- ${line.says} — stated by [${line.number} ${line.title}](${line.link}) (${line.status})${line.heldBy === undefined ? '' : `; held by ${code(line.heldBy)}, ${line.held === 'passed' ? 'passed in this run' : line.held === 'absent' ? 'which did not run' : 'which did not pass'}`}`,
+    ),
   ])
   return [
     '## Known limitations',
@@ -358,7 +514,16 @@ function closingSection(report) {
 
 /** Every section after the subject. */
 export function renderContent(report) {
-  return [testedOnSection(report), resultsSection(report), browserSection(report), eInvoiceSection(report), containerSection(report), identitySection(report), gatesSection(report), closingSection(report)].join('\n\n')
+  return [
+    testedOnSection(report),
+    resultsSection(report),
+    browserSection(report),
+    eInvoiceSection(report),
+    containerSection(report),
+    identitySection(report),
+    gatesSection(report),
+    closingSection(report),
+  ].join('\n\n')
 }
 
 /** What is being released, as the subject's first line says it. */
@@ -369,13 +534,22 @@ function releaseName(subject) {
 
 /** Which version, release, commit and run this is, and each job's machine. */
 function subjectSection({ subject }) {
-  const run = subject.run === null ? '' : ` Run [${String(subject.run.id)}](${subject.run.url}) of ${subject.run.workflow ?? 'the gates workflow'}, attempt ${String(subject.run.attempt ?? '?')}.`
+  const run =
+    subject.run === null
+      ? ''
+      : ` Run [${String(subject.run.id)}](${subject.run.url}) of ${subject.run.workflow ?? 'the gates workflow'}, attempt ${String(subject.run.attempt ?? '?')}.`
   return [
     `Formancy Report ${subject.version}, ${releaseName(subject)}. Commit ${code(subject.commit)}${subject.dirty === true ? ', with uncommitted changes' : ''}.${run} Generated ${subject.generatedAt}.`,
     '',
     table(
       ['Job', 'Attempt', 'Runner image', 'Node', 'Platform'],
-      subject.jobs.map((entry) => [entry.key, entry.attempt ?? '', [entry.runner?.image, entry.runner?.imageVersion].filter((value) => value != null).join(' '), entry.runner?.node ?? '', entry.runner ? `${entry.runner.platform} ${entry.runner.arch}` : '']),
+      subject.jobs.map((entry) => [
+        entry.key,
+        entry.attempt ?? '',
+        [entry.runner?.image, entry.runner?.imageVersion].filter((value) => value != null).join(' '),
+        entry.runner?.node ?? '',
+        entry.runner ? `${entry.runner.platform} ${entry.runner.arch}` : '',
+      ]),
     ),
   ].join('\n')
 }

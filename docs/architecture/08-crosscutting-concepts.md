@@ -277,7 +277,7 @@ lines are read that way today:
 | Line | How it is read |
 |---|---|
 | `reportSpecVersion` | Read by report-spec's `version.ts` before anything else in a report; another version is refused, naming it and the one the package reads (`report-spec/src/version.test.ts`). It is `'0'`, a draft: nothing written under it is promised to a later release |
-| formancy's form spec | Read by report-forms, the one package that reads a form ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)): a `specVersion` the pinned `@formancy/spec` does not read is refused before the form is validated, naming it and the ones that release reads, 1 to 4; every other form goes through upstream's `validateSchema`, which the bridge adds no reading to (`report-forms/src/read.test.ts`, forms at every spec, one Formancy Data generated at spec 3 among them). A form handed to report-spec is still refused as not a report, its `specVersion` named |
+| formancy's form spec | Read by report-forms, the one package that reads a form ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)): a `specVersion` the pinned `@formancy/spec` does not read is refused before the form is validated, naming it and the ones that release reads, 1 to 5; every other form goes through upstream's `validateSchema`, which the bridge adds no reading to (`report-forms/src/read.test.ts`, forms at every spec, one Formancy Data generated at spec 3 among them). A form handed to report-spec is still refused as not a report, its `specVersion` named |
 | The server's API and records | Its API by its path: every route a token reaches is under `/v1` (report-server-core's `API_PREFIX` and `ROUTES`, `wire.test.ts`), a route nothing names is the one 404, and a shape a client could not read as before is a route under `/v2` beside it. Its records each carry a `format` from the record that introduces them, refused when unknown (0046). The first is a draft's, `DRAFT_FORMAT`, 1: the file store refuses a record of another number, naming it, and one that is no record, and serves neither (`report-server/src/file-store.test.ts`, [0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)). An image is kept as its bytes, under the kind they sniff as, and carries no format of its own |
 | Formancy Data's contract | The provider reads no version Data states, which is less than 0004 decided. It is built against 0.1.0 exactly, and a Data whose routes or replies change is refused by the client's checks of their shape, as `unexpected`, or by its server ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) |
 
@@ -551,3 +551,43 @@ The server's one answer to both questions
   line about the file system failing the store, each by the file's path
   inside the tenant's directory (0049) -- and never evidence: Data's
   limits, formancy.ai-data 0023.
+
+## 8.13 The code's own rules
+
+Every TypeScript and JavaScript file git holds is linted and formatted by
+the rules the four formancy repositories share, and `verify` fails a change
+that breaks either
+([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)):
+
+- **The rules.** `@eslint/js`'s recommended set and typescript-eslint's
+  type-aware one, every rule at error and none at `warn`; React's hooks
+  rules where a workspace declares React; a disable comment only with its
+  reason after `--`. A test is spared seven rules -- the `no-unsafe-*`
+  family, `unbound-method` and `no-explicit-any` -- and `require-await` is
+  off in every file; test support is held to every rule
+  ([formancy.ai-health 0017](https://github.com/sharkysan/formancy.ai-health/blob/main/docs/decisions/0017-every-typescript-and-javascript-file-is-linted-by-the-recommended-type-aware-rules-and-formatted-by-prettier.md)).
+- **Types where the typecheck has them.** A file is linted with the types
+  of the tsconfig `pnpm typecheck` checks it in, `tsconfig.tools.json` for
+  the vitest, Vite and tsdown configs; the install fixtures, which import
+  the packed tarballs, without types; and the scripts that drive
+  Playwright with a page's globals.
+- **A member handed off its object says so.** A member of a published
+  interface that a store hook calls off its object -- `ReportSession`'s
+  `subscribe`, `document` and `hash`, `ReportEditor`'s `subscribe` and
+  `state` -- is declared `this: void` and stays a method, so that an
+  implementation with a narrower parameter still compiles.
+- **The format.** Prettier, at 160 columns, without semicolons, in single
+  quotes, over TypeScript and JavaScript alone; every other file is as it
+  was written.
+- **A copy until it is released.** `scripts/code-style/` is Formancy
+  Health's module, byte for byte, which formancy.ai will release as
+  `@formancy/code-style`; `eslint.config.mjs` and `prettier.config.mjs`
+  call it with this repository's paths. A rule changes in the shared module
+  first and is copied here, and the copy goes when the package is pinned,
+  which narrows [0002](../decisions/0002-depend-on-upstream-never-copy-it.md)
+  until then.
+
+**What it costs.** A finding is fixed before a change merges, or disabled
+with a reason review reads; an `async` that awaits nothing passes, and so
+does an `any` a test reads; and nothing compares the copy with the module
+it came from ([§11](11-risks-and-debt.md#113-known-technical-debt)).

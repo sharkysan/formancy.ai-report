@@ -90,7 +90,12 @@ const UNSURE = 0.01
  * is false when a height came too close to the foot of a page to say, and
  * the breaks are then those before it.
  */
-export function plannedBreaks(pitches: readonly number[], blocks: readonly KeepBlock[], first: number, geometry: Geometry): { readonly breaks: readonly number[]; readonly sure: boolean } {
+export function plannedBreaks(
+  pitches: readonly number[],
+  blocks: readonly KeepBlock[],
+  first: number,
+  geometry: Geometry,
+): { readonly breaks: readonly number[]; readonly sure: boolean } {
   const { continued, bottom } = geometry
   const starts = new Map(blocks.map((block) => [block.first, block]))
   const breaks: number[] = []

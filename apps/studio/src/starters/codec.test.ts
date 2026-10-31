@@ -21,7 +21,14 @@ describe('the starters, from the corpus to the page', () => {
     expect(starters.map((starter) => starter.id)).toEqual(STARTERS.map((starter) => starter.id))
     for (const [index, starter] of starters.entries()) {
       const original = STARTERS[index]
-      expect(starter).toEqual({ id: original?.id, title: original?.title, proves: original?.proves, report: original?.report, data: original?.data, parameters: original?.parameters })
+      expect(starter).toEqual({
+        id: original?.id,
+        title: original?.title,
+        proves: original?.proves,
+        report: original?.report,
+        data: original?.data,
+        parameters: original?.parameters,
+      })
     }
   })
 
@@ -31,7 +38,9 @@ describe('the starters, from the corpus to the page', () => {
   // picture the starter does not have, or none.
   test("carry each image's bytes exactly", () => {
     const { images } = received()
-    expect(images.map(({ asset, digest, mediaType }) => ({ asset, digest, mediaType }))).toEqual(STARTER_IMAGES.map(({ asset, digest, mediaType }) => ({ asset, digest, mediaType })))
+    expect(images.map(({ asset, digest, mediaType }) => ({ asset, digest, mediaType }))).toEqual(
+      STARTER_IMAGES.map(({ asset, digest, mediaType }) => ({ asset, digest, mediaType })),
+    )
     for (const [index, image] of images.entries()) expect(image.bytes).toEqual(new Uint8Array(STARTER_IMAGES[index]?.bytes ?? []))
   })
 

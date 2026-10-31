@@ -41,7 +41,7 @@ describe('a packed tarball', () => {
 
   // A release report compares the dist/ of the tarball npm receives with the
   // dist/ every job built on disk. The same files must hash alike from either.
-  test("hashes its dist/ as the same files on disk hash", () => {
+  test('hashes its dist/ as the same files on disk hash', () => {
     const dir = mkdtempSync(join(tmpdir(), 'formancy-report-dist-'))
     dirs.push(dir)
     for (const [path, bytes] of FILES.filter(([path]) => path.startsWith('package/dist/'))) {
@@ -75,15 +75,24 @@ describe('a packed tarball', () => {
   // job built. That dist/ holds the manifest finalize-angular-dist.mjs
   // writes, which pnpm rewrites again when it packs, and the licence files:
   // hashed whole on disk, it would never equal the tarball's.
-  test("hashes a package packed from its dist/ alike from disk and from its tarball", () => {
+  test('hashes a package packed from its dist/ alike from disk and from its tarball', () => {
     const dir = mkdtempSync(join(tmpdir(), 'formancy-report-dist-'))
     dirs.push(dir)
     const built = { 'fesm2022/a.mjs': 'export const a = 1\n', 'types/a.d.ts': 'export declare const a: 1\n' }
-    for (const [path, text] of Object.entries({ ...built, 'package.json': '{"name":"x","version":"0.1.0"}', 'LICENSE.md': 'terms', NOTICE: 'notice', 'README.md': 'readme' })) {
+    for (const [path, text] of Object.entries({
+      ...built,
+      'package.json': '{"name":"x","version":"0.1.0"}',
+      'LICENSE.md': 'terms',
+      NOTICE: 'notice',
+      'README.md': 'readme',
+    })) {
       mkdirSync(dirname(join(dir, 'dist', path)), { recursive: true })
       writeFileSync(join(dir, 'dist', path), text)
     }
-    const packed = tgz([['package/package.json', Buffer.from('{"name":"x","version":"0.1.0","dependencies":{"y":"0.1.0"}}')], ...Object.entries(built).map(([path, text]) => [`package/${path}`, Buffer.from(text)])])
+    const packed = tgz([
+      ['package/package.json', Buffer.from('{"name":"x","version":"0.1.0","dependencies":{"y":"0.1.0"}}')],
+      ...Object.entries(built).map(([path, text]) => [`package/${path}`, Buffer.from(text)]),
+    ])
     const fromTarball = distHash(distOfTarball(readTarball(packed)))
     expect(distHash(distOfPackage(dir, { publishConfig: { directory: 'dist' } }))).toBe(fromTarball)
     // A package packed from its source directory keeps every file of dist/.

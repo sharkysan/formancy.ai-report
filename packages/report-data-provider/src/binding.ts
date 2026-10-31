@@ -81,8 +81,10 @@ export function bindingErrors(datasets: Datasets, binding: DataBinding): Provide
   for (const role of ROLES) {
     const declared = datasets[role] !== undefined
     const bound = binding[role] !== undefined
-    if (declared && !bound) errors.push({ path: `/${role}`, code: 'unbound-dataset', message: `the report reads a ${role} dataset and the binding names no form for it` })
-    if (bound && !declared) errors.push({ path: `/${role}`, code: 'undeclared-dataset', message: `the binding names a form for a ${role} dataset the report does not declare` })
+    if (declared && !bound)
+      errors.push({ path: `/${role}`, code: 'unbound-dataset', message: `the report reads a ${role} dataset and the binding names no form for it` })
+    if (bound && !declared)
+      errors.push({ path: `/${role}`, code: 'undeclared-dataset', message: `the binding names a form for a ${role} dataset the report does not declare` })
   }
   return errors
 }
@@ -130,9 +132,17 @@ export function planFields(role: DatasetRole, contract: DatasetContract, publish
     const path = `/${role}/${declared.id}`
     const field = fields.get(declared.id)
     if (declared.type === 'image') {
-      errors.push({ path, code: 'unsupported-field', message: `${declared.id} is an image field, and a Formancy Data 0.1.0 form holds no approved asset to print` })
+      errors.push({
+        path,
+        code: 'unsupported-field',
+        message: `${declared.id} is an image field, and a Formancy Data 0.1.0 form holds no approved asset to print`,
+      })
     } else if (field === undefined || !readable.has(declared.id)) {
-      errors.push({ path, code: 'unreadable-field', message: `the form gives this person no field ${declared.id} to read: the form does not have it, or its policy does not let them read it` })
+      errors.push({
+        path,
+        code: 'unreadable-field',
+        message: `the form gives this person no field ${declared.id} to read: the form does not have it, or its policy does not let them read it`,
+      })
     } else if (typeof field.optionsSource === 'string') {
       lookups.set(declared.id, field.optionsSource)
     } else if (declared.type === 'boolean' && isYesOrNo(field)) {

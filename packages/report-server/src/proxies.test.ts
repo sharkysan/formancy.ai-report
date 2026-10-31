@@ -87,7 +87,22 @@ function trustedWhole(list: readonly string[]): 'IPv4' | 'IPv6' | 'both' | undef
 const POOL = [
   ...['0.0.0.0/1', '128.0.0.0/1', '0.0.0.0/2', '64.0.0.0/2', '128.0.0.0/2', '192.0.0.0/2', '10.0.0.0/8', '127.0.0.1'],
   ...['::ffff:0:0/96', '::ffff:0.0.0.0/97', '::ffff:128.0.0.0/97', '::ffff:10.0.0.1', '::ffff:10.0.0.0/104'],
-  ...['::/1', '8000::/1', '::/2', '4000::/2', '8000::/2', 'c000::/2', '::/80', '::/81', '::8000:0:0/81', '::fffe:0:0/96', '::1:0:0:0/80', '2001:db8::/32', '::1', 'fe80::/10'],
+  ...[
+    '::/1',
+    '8000::/1',
+    '::/2',
+    '4000::/2',
+    '8000::/2',
+    'c000::/2',
+    '::/80',
+    '::/81',
+    '::8000:0:0/81',
+    '::fffe:0:0/96',
+    '::1:0:0:0/80',
+    '2001:db8::/32',
+    '::1',
+    'fe80::/10',
+  ],
 ]
 
 /** Every list of one, two or three of POOL's entries, and longer ones no three of them make. */
@@ -126,10 +141,19 @@ describe('as Fastify’s proxy-addr matches a peer', () => {
       const matcher = trustedWhole(list)
       seen.set(String(matcher), (seen.get(String(matcher)) ?? 0) + 1)
       const read = trustedProxiesSetting(list.join(', '))
-      const setting = read.ok ? undefined : (/^FORMANCY_REPORT_TRUSTED_PROXIES: its entries together trust every (IPv4 |IPv6 )?peer/.exec(read.problem)?.[1]?.trim() ?? (/every peer/.test(read.problem) ? 'both' : read.problem))
+      const setting = read.ok
+        ? undefined
+        : (/^FORMANCY_REPORT_TRUSTED_PROXIES: its entries together trust every (IPv4 |IPv6 )?peer/.exec(read.problem)?.[1]?.trim() ??
+          (/every peer/.test(read.problem) ? 'both' : read.problem))
       const embedded = trustedProxiesProblem(list)
-      const option = embedded === undefined ? undefined : (/^trustedProxies together trust every (IPv4 |IPv6 )?peer/.exec(embedded)?.[1]?.trim() ?? (/every peer/.test(embedded) ? 'both' : embedded))
-      if (setting !== matcher || option !== matcher) differ.push(`${list.length > 4 ? `${list.slice(0, 3).join(', ')}, … (${String(list.length)})` : list.join(', ')}: proxy-addr ${String(matcher)}, the setting ${String(setting)}, the option ${String(option)}`)
+      const option =
+        embedded === undefined
+          ? undefined
+          : (/^trustedProxies together trust every (IPv4 |IPv6 )?peer/.exec(embedded)?.[1]?.trim() ?? (/every peer/.test(embedded) ? 'both' : embedded))
+      if (setting !== matcher || option !== matcher)
+        differ.push(
+          `${list.length > 4 ? `${list.slice(0, 3).join(', ')}, … (${String(list.length)})` : list.join(', ')}: proxy-addr ${String(matcher)}, the setting ${String(setting)}, the option ${String(option)}`,
+        )
     }
     expect(differ.slice(0, 12), `${String(differ.length)} lists differ`).toEqual([])
     // A corpus whose every list came out alike would hold the rule to one answer only.
@@ -152,7 +176,10 @@ describe('trustedProxiesSetting', () => {
 
   // Addresses and ranges as Node's isIP reads an address, each kept once.
   test('reads addresses and CIDR ranges of both families', () => {
-    expect(trustedProxiesSetting(' 10.0.0.0/8, 192.168.1.10 ,::1, 2001:db8::/32, ::ffff:10.0.0.0/104, 10.0.0.0/8')).toEqual({ ok: true, trustedProxies: ['10.0.0.0/8', '192.168.1.10', '::1', '2001:db8::/32', '::ffff:10.0.0.0/104'] })
+    expect(trustedProxiesSetting(' 10.0.0.0/8, 192.168.1.10 ,::1, 2001:db8::/32, ::ffff:10.0.0.0/104, 10.0.0.0/8')).toEqual({
+      ok: true,
+      trustedProxies: ['10.0.0.0/8', '192.168.1.10', '::1', '2001:db8::/32', '::ffff:10.0.0.0/104'],
+    })
   })
 
   // Each of these would let any client name its own address in
@@ -203,9 +230,21 @@ describe('trustedProxiesSetting', () => {
       ['::/1, 8000::/1, ::ffff:0:0/96', ''],
       [aroundMapped().join(','), 'IPv6'],
     ] as const) {
-      expect(trustedProxiesSetting(text), text).toEqual({ ok: false, problem: `FORMANCY_REPORT_TRUSTED_PROXIES: its entries together trust every ${family === '' ? '' : `${family} `}peer, which lets any client name its own address in X-Forwarded-For and so choose its own rate-limit bucket and the address the log gives it: name each proxy by its address, or the range its addresses are in.` })
+      expect(trustedProxiesSetting(text), text).toEqual({
+        ok: false,
+        problem: `FORMANCY_REPORT_TRUSTED_PROXIES: its entries together trust every ${family === '' ? '' : `${family} `}peer, which lets any client name its own address in X-Forwarded-For and so choose its own rate-limit bucket and the address the log gives it: name each proxy by its address, or the range its addresses are in.`,
+      })
     }
-    for (const text of ['0.0.0.0/1', '0.0.0.0/2, 64.0.0.0/2, 128.0.0.0/2, 192.0.0.0/3', '::ffff:0:0/97', '8000::/1, 2001:db8::/32', '10.0.0.0/8, ::ffff:10.0.0.0/104, 2001:db8::/32, ::1', '::/1', '0.0.0.0/1, ::/1', '::/1, 8000::/2, ::ffff:0.0.0.0/97']) {
+    for (const text of [
+      '0.0.0.0/1',
+      '0.0.0.0/2, 64.0.0.0/2, 128.0.0.0/2, 192.0.0.0/3',
+      '::ffff:0:0/97',
+      '8000::/1, 2001:db8::/32',
+      '10.0.0.0/8, ::ffff:10.0.0.0/104, 2001:db8::/32, ::1',
+      '::/1',
+      '0.0.0.0/1, ::/1',
+      '::/1, 8000::/2, ::ffff:0.0.0.0/97',
+    ]) {
       expect(trustedProxiesSetting(text).ok, text).toBe(true)
     }
     expect(trustedProxiesProblem(['0.0.0.0/1', '128.0.0.0/1'])).toMatch(/^trustedProxies together trust every IPv4 peer/)
@@ -215,7 +254,11 @@ describe('trustedProxiesSetting', () => {
   // sentence names the entry by its place and never quotes it.
   test('names an entry by its place, never by its text', () => {
     const read = trustedProxiesSetting('10.0.0.1, my-secret-host')
-    expect(read).toEqual({ ok: false, problem: 'FORMANCY_REPORT_TRUSTED_PROXIES: entry 2 is not an IP address or a CIDR range -- an address, a slash and a prefix length: name each proxy by its address, or the range its addresses are in.' })
+    expect(read).toEqual({
+      ok: false,
+      problem:
+        'FORMANCY_REPORT_TRUSTED_PROXIES: entry 2 is not an IP address or a CIDR range -- an address, a slash and a prefix length: name each proxy by its address, or the range its addresses are in.',
+    })
   })
 })
 
@@ -240,9 +283,15 @@ describe('whom the server believes', () => {
   let app: FastifyInstance | undefined
   const statuses = async (options: Partial<ReportServerOptions>, forwarded: string[], remoteAddress = '127.0.0.1') => {
     await app?.close()
-    app = await cases.serve({ verifyIdentity: refuseAll, roles: { author: [], publisher: [], admin: [] }, rateLimit: { max: 2, timeWindowMs: 60_000 }, ...options })
+    app = await cases.serve({
+      verifyIdentity: refuseAll,
+      roles: { author: [], publisher: [], admin: [] },
+      rateLimit: { max: 2, timeWindowMs: 60_000 },
+      ...options,
+    })
     const seen = []
-    for (const address of forwarded) seen.push((await app.inject({ method: 'GET', url: '/v1/whoami', remoteAddress, headers: { 'x-forwarded-for': address } })).statusCode)
+    for (const address of forwarded)
+      seen.push((await app.inject({ method: 'GET', url: '/v1/whoami', remoteAddress, headers: { 'x-forwarded-for': address } })).statusCode)
     return seen
   }
 
@@ -264,7 +313,8 @@ describe('whom the server believes', () => {
   // names no address of its own, one bucket whatever it forwards, while a
   // peer inside ::/1 is believed, three buckets for three addresses.
   test('believes an IPv6 range holding the mapped one about no IPv4 peer', async () => {
-    for (const peer of ['127.0.0.1', '::ffff:127.0.0.1']) expect(await statuses({ trustedProxies: ['::/1'] }, ['198.51.100.7', '198.51.100.8', '198.51.100.9'], peer), peer).toEqual([401, 401, 429])
+    for (const peer of ['127.0.0.1', '::ffff:127.0.0.1'])
+      expect(await statuses({ trustedProxies: ['::/1'] }, ['198.51.100.7', '198.51.100.8', '198.51.100.9'], peer), peer).toEqual([401, 401, 429])
     expect(await statuses({ trustedProxies: ['::/1'] }, ['198.51.100.7', '198.51.100.8', '198.51.100.9'], '::1')).toEqual([401, 401, 401])
   })
 

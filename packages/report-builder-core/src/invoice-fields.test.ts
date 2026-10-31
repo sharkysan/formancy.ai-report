@@ -68,7 +68,16 @@ function fullXRechnung(): ReportDefinition {
   const full = fullFacturX().eInvoice as FacturXInvoice
   const invoice = report.eInvoice as XRechnungInvoice
   const { kind: _kind, profile: _profile, ...terms } = full
-  return withInvoice(report, { ...terms, kind: 'xrechnung', version: invoice.version, businessProcess: invoice.businessProcess, buyerReference: invoice.buyerReference, seller: { ...terms.seller, electronicAddress: invoice.seller.electronicAddress, contact: invoice.seller.contact }, buyer: { ...terms.buyer, electronicAddress: invoice.buyer.electronicAddress }, payment: invoice.payment })
+  return withInvoice(report, {
+    ...terms,
+    kind: 'xrechnung',
+    version: invoice.version,
+    businessProcess: invoice.businessProcess,
+    buyerReference: invoice.buyerReference,
+    seller: { ...terms.seller, electronicAddress: invoice.seller.electronicAddress, contact: invoice.seller.contact },
+    buyer: { ...terms.buyer, electronicAddress: invoice.buyer.electronicAddress },
+    payment: invoice.payment,
+  })
 }
 
 /** The scenario's Factur-X invoice with every term it may leave out left out, and no payment code to need an account. */
@@ -82,7 +91,16 @@ function bareFacturX(): ReportDefinition {
     currency: invoice.currency,
     number: invoice.number,
     issued: invoice.issued,
-    seller: { name: invoice.seller.name, vatId: said('DE 123 456 789'), address: { line1: invoice.seller.address.line1, postalCode: invoice.seller.address.postalCode, city: invoice.seller.address.city, country: invoice.seller.address.country } },
+    seller: {
+      name: invoice.seller.name,
+      vatId: said('DE 123 456 789'),
+      address: {
+        line1: invoice.seller.address.line1,
+        postalCode: invoice.seller.address.postalCode,
+        city: invoice.seller.address.city,
+        country: invoice.seller.address.country,
+      },
+    },
     buyer: { name: invoice.buyer.name, address: invoice.buyer.address },
     delivered: invoice.delivered as NonNullable<FacturXInvoice['delivered']>,
     vat: invoice.vat,
@@ -175,7 +193,8 @@ describe('an e-invoice’s fields', () => {
   // a Factur-X invoice's contact and payment instructions optional, an
   // XRechnung's part of it.
   test('stand in groups, each with the buttons its kind allows', () => {
-    const groupsOf = (state: EditorState) => state.properties.rows.flatMap((row) => ('group' in row ? [[row.group.label, row.group.actions.map((action) => action.label)] as const] : []))
+    const groupsOf = (state: EditorState) =>
+      state.properties.rows.flatMap((row) => ('group' in row ? [[row.group.label, row.group.actions.map((action) => action.label)] as const] : []))
     expect(groupsOf(selected(invoicedScenarioReport()))).toEqual([
       ['Seller', []],
       ['Seller’s contact', ['Add contact']],
@@ -197,7 +216,9 @@ describe('an e-invoice’s fields', () => {
       'Lines: 0',
       'Payment instructions: 0',
     ])
-    expect(selected(xrechnungScenarioReport()).properties.rows[0]).toMatchObject({ group: { fields: [{ label: 'Version' }, { label: 'Buyer’s reference' }, { label: 'Business process' }] } })
+    expect(selected(xrechnungScenarioReport()).properties.rows[0]).toMatchObject({
+      group: { fields: [{ label: 'Version' }, { label: 'Buyer’s reference' }, { label: 'Business process' }] },
+    })
   })
 
   // A move with nowhere to go is drawn unavailable and still sent, as a

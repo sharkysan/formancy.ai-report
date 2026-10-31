@@ -63,13 +63,20 @@ export function published(root = repo) {
 }
 
 /** A package that is no workspace sibling, no `workspace:` link and no upstream @formancy/* package: somebody else's. */
-const thirdParty = (local) => ([name, range]) => !local.has(name) && !String(range).startsWith('workspace:') && !name.startsWith('@formancy/')
+const thirdParty =
+  (local) =>
+  ([name, range]) =>
+    !local.has(name) && !String(range).startsWith('workspace:') && !name.startsWith('@formancy/')
 
 /** Every entry of `field` of every published package that is somebody else's: the range it is published with and the version its suites load. */
 function declaredBy(root, packages, local, field) {
   return [...packages]
     .sort((a, b) => a.manifest.name.localeCompare(b.manifest.name))
-    .flatMap(({ dir, manifest }) => Object.entries(manifest[field] ?? {}).filter(thirdParty(local)).map(([name, range]) => ({ package: manifest.name, name, range, loaded: mustBeInstalled(join(root, dir), name).version })))
+    .flatMap(({ dir, manifest }) =>
+      Object.entries(manifest[field] ?? {})
+        .filter(thirdParty(local))
+        .map(([name, range]) => ({ package: manifest.name, name, range, loaded: mustBeInstalled(join(root, dir), name).version })),
+    )
 }
 
 /**
@@ -102,7 +109,8 @@ function upstream(root, packages, local) {
   for (const { dir, manifest } of packages) {
     for (const field of FIELDS) {
       for (const [name, spec] of Object.entries(manifest[field] ?? {})) {
-        if (name.startsWith('@formancy/') && !local.has(name)) visit(join(root, dir), name, String(spec), true, field === 'dependencies' && publishing.has(manifest.name))
+        if (name.startsWith('@formancy/') && !local.has(name))
+          visit(join(root, dir), name, String(spec), true, field === 'dependencies' && publishing.has(manifest.name))
       }
     }
   }
@@ -113,7 +121,9 @@ function upstream(root, packages, local) {
 export function setupNodeVersions(root = repo) {
   const dir = join(root, '.github', 'workflows')
   const found = []
-  for (const file of readdirSync(dir).filter((name) => /\.ya?ml$/.test(name)).sort()) {
+  for (const file of readdirSync(dir)
+    .filter((name) => /\.ya?ml$/.test(name))
+    .sort()) {
     const workflow = YAML.parse(readFileSync(join(dir, file), 'utf8'))
     for (const [job, definition] of Object.entries(workflow?.jobs ?? {})) {
       for (const step of definition?.steps ?? []) {
@@ -163,12 +173,16 @@ function browser(root, packages) {
   if (apps.length === 0) throw new Error('no app has a test:browser script, so no Playwright drives a browser gate')
   const loaded = apps.map(({ dir }) => ({ dir, found: mustBeInstalled(join(root, dir), 'playwright') }))
   const versions = [...new Set(loaded.map((entry) => entry.found.version))]
-  if (versions.length > 1) throw new Error(`the browser gates load ${loaded.map((entry) => `Playwright ${entry.found.version} (${entry.dir})`).join(', ')}, and one Playwright pins one build of each browser`)
+  if (versions.length > 1)
+    throw new Error(
+      `the browser gates load ${loaded.map((entry) => `Playwright ${entry.found.version} (${entry.dir})`).join(', ')}, and one Playwright pins one build of each browser`,
+    )
   const core = mustBeInstalled(loaded[0].found.dir, 'playwright-core')
   const builds = JSON.parse(readFileSync(join(core.dir, 'browsers.json'), 'utf8')).browsers
   const pins = BROWSERS.map((name) => {
     const build = builds.find((entry) => entry.name === PINNED_AS[name])
-    if (build === undefined) throw new Error(`playwright-core ${core.version} pins no ${String(PINNED_AS[name])}, the build scripts/browsers.mjs says ${name} launches`)
+    if (build === undefined)
+      throw new Error(`playwright-core ${core.version} pins no ${String(PINNED_AS[name])}, the build scripts/browsers.mjs says ${name} launches`)
     return { browser: name, name: build.name, revision: build.revision, browserVersion: build.browserVersion, headless: LAUNCH_OPTIONS.headless }
   })
   return { playwright: versions[0], pins }

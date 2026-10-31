@@ -114,7 +114,8 @@ export class Findings {
 
   errors(): FormsError[] {
     const errors = [...this.#errors]
-    if (this.#overflowed) errors.push({ path: '', code: 'too-many-errors', message: `more than ${MAX_FORMS_ERRORS} errors were found; the first ${MAX_FORMS_ERRORS} are listed` })
+    if (this.#overflowed)
+      errors.push({ path: '', code: 'too-many-errors', message: `more than ${MAX_FORMS_ERRORS} errors were found; the first ${MAX_FORMS_ERRORS} are listed` })
     return errors
   }
 }

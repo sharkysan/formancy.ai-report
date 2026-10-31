@@ -76,7 +76,11 @@ function placeDetailField(c: Ctx, field: string, path: string, scope: InlineScop
   if (scope.reads === 'report') {
     c.f.report(path, 'misplaced-detail-field', 'a detail field has a current row only in the cells of the table over the detail dataset')
   } else if (scope.groupBy !== undefined && field !== scope.groupBy) {
-    c.f.report(path, 'misplaced-detail-field', `in a group header or footer, the one detail field with a single value is the one grouped by, ${quote(scope.groupBy)}`)
+    c.f.report(
+      path,
+      'misplaced-detail-field',
+      `in a group header or footer, the one detail field with a single value is the one grouped by, ${quote(scope.groupBy)}`,
+    )
   }
 }
 
@@ -200,7 +204,11 @@ function readCheckedFormat(c: Ctx, value: unknown, path: string, scope: InlineSc
  */
 function readCounter(c: Ctx, path: string, scope: InlineScope, kind: 'pageNumber' | 'pageCount'): Inline {
   if (scope.encoded !== undefined) {
-    c.f.report(path, 'misplaced-page-counter', `what ${scope.encoded} encodes is resolved once, before pages are counted, so a page number or count has no value in it`)
+    c.f.report(
+      path,
+      'misplaced-page-counter',
+      `what ${scope.encoded} encodes is resolved once, before pages are counted, so a page number or count has no value in it`,
+    )
   } else if (!PAGE_REGIONS.includes(scope.region)) {
     c.f.report(path, 'misplaced-page-counter', `page numbers and counts have a value only in the page header and footer, not in the ${scope.region}`)
   }
@@ -259,7 +267,11 @@ const INLINES: { readonly [K in InlineKind]: InlineRule } = {
       const type = resolve(c.f, c.declared.aggregates, aggregate, at(path, 'aggregate'), 'unknown-aggregate', 'aggregate')
       const over = oneOf(c.f, o.over, at(path, 'over'), AGGREGATE_SCOPES)
       if (over === 'group' && scope.reads !== 'group') {
-        c.f.report(at(path, 'over'), 'misplaced-group-aggregate', 'an aggregate over a group has a value only in that group\'s header and footer; over "report", it is taken over every row')
+        c.f.report(
+          at(path, 'over'),
+          'misplaced-group-aggregate',
+          'an aggregate over a group has a value only in that group\'s header and footer; over "report", it is taken over every row',
+        )
       }
       const format = readCheckedFormat(c, o.format, at(path, 'format'), scope, type)
       return aggregate === undefined || over === undefined ? undefined : { kind: 'aggregate', aggregate, over, ...optional('format', format) }

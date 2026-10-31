@@ -2,7 +2,17 @@ import { describe, expect, expectTypeOf, test } from 'vitest'
 import * as entry from './index.js'
 import type { ServerRefusal } from './index.js'
 import { ACTIONS } from './actions.js'
-import { API_PREFIX, CROSS_ORIGIN_REQUEST_HEADERS, CROSS_ORIGIN_RESPONSE_HEADERS, DRAFT_FORMAT, draftTag, draftVersionOf, isRevision, REFUSALS, ROUTES } from './wire.js'
+import {
+  API_PREFIX,
+  CROSS_ORIGIN_REQUEST_HEADERS,
+  CROSS_ORIGIN_RESPONSE_HEADERS,
+  DRAFT_FORMAT,
+  draftTag,
+  draftVersionOf,
+  isRevision,
+  REFUSALS,
+  ROUTES,
+} from './wire.js'
 
 /**
  * What a client compiles against (0046): the API's version line, the routes
@@ -145,7 +155,8 @@ describe('the wire', () => {
   // header the route accepted would be answered as no precondition.
   test('takes a positive safe integer, and nothing else, for a revision', () => {
     for (const revision of [1, 2, 10, Number.MAX_SAFE_INTEGER]) expect(isRevision(revision), String(revision)).toBe(true)
-    for (const value of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1, '1', null, undefined, 1n]) expect(isRevision(value), String(value)).toBe(false)
+    for (const value of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1, '1', null, undefined, 1n])
+      expect(isRevision(value), String(value)).toBe(false)
   })
 
   // The tag a read and a save answer is what the next save's If-Match
@@ -156,7 +167,9 @@ describe('the wire', () => {
   test('writes a draft’s version as a strong tag and reads it back as that version', () => {
     const digest = `sha256:${'0123456789abcdef'.repeat(4)}`
     expect(draftTag({ revision: 12, digest })).toBe(`"12-${'0123456789abcdef'.repeat(4)}"`)
-    for (const version of [1, 10, Number.MAX_SAFE_INTEGER].flatMap((revision) => [digest, `sha256:${'0'.repeat(64)}`].map((each) => ({ revision, digest: each })))) {
+    for (const version of [1, 10, Number.MAX_SAFE_INTEGER].flatMap((revision) =>
+      [digest, `sha256:${'0'.repeat(64)}`].map((each) => ({ revision, digest: each })),
+    )) {
       const tag = draftTag(version)
       expect(draftVersionOf(tag), tag).toStrictEqual(version)
     }

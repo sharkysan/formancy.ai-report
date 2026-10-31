@@ -1,0 +1,2 @@
+# The commit that formatted every TypeScript and JavaScript file with Prettier. GitHub blame and `git blame --ignore-revs-file` read this file to skip it; `git config blame.ignoreRevsFile .git-blame-ignore-revs` does the same locally.
+c61963ea5a25d43a8e5d541f32dff51ca810ead8

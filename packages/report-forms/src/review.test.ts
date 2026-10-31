@@ -4,7 +4,8 @@ import { E_INVOICE_EXEMPT_PAID } from '@formancy/report-corpus'
 import { MAX_DETAIL_ROWS } from '@formancy/report-runtime'
 import { reportHash, validateReport, walkComponents } from '@formancy/report-spec'
 import type { Component, DatasetContract, DatasetFormBinding, FieldContract, ReportDefinition } from '@formancy/report-spec'
-import { schemaHash } from '@formancy/spec'
+import { diffSchemas, schemaHash } from '@formancy/spec'
+import type { FormSchema } from '@formancy/spec'
 import { describe, expect, test } from 'vitest'
 import { reviewFormVersion } from './review.js'
 import type { FormReview, ReviewItem } from './review.js'
@@ -28,7 +29,15 @@ const FIELDS = [
   { key: 'site', type: 'text', label: 'Site', required: true },
   { key: 'inspector', type: 'group', label: 'Inspector', fields: [{ key: 'name', type: 'text', label: 'Name' }] },
   { key: 'count', type: 'text', label: 'Count' },
-  { key: 'findings', type: 'repeater', label: 'Findings', fields: [{ key: 'area', type: 'text', label: 'Area' }, { key: 'hours', type: 'number', label: 'Hours', min: 0, step: 0.25 }] },
+  {
+    key: 'findings',
+    type: 'repeater',
+    label: 'Findings',
+    fields: [
+      { key: 'area', type: 'text', label: 'Area' },
+      { key: 'hours', type: 'number', label: 'Hours', min: 0, step: 0.25 },
+    ],
+  },
 ] as const
 
 type Field = Readonly<Record<string, unknown>> & { readonly key: string; readonly fields?: readonly Field[] }
@@ -36,7 +45,8 @@ type Field = Readonly<Record<string, unknown>> & { readonly key: string; readonl
 const V1 = formOf([...FIELDS])
 
 /** A version of the form whose fields `edit` makes of the first's. */
-const version = (edit: (fields: readonly Field[]) => readonly Field[], more: Record<string, unknown> = {}): Record<string, unknown> => formOf([...edit(FIELDS as unknown as readonly Field[])], more)
+const version = (edit: (fields: readonly Field[]) => readonly Field[], more: Record<string, unknown> = {}): Record<string, unknown> =>
+  formOf([...edit(FIELDS)], more)
 
 /** `fields` with the field `key`, at the top or in a container, replaced by what `change` makes of it, or removed where it makes nothing. */
 function changed(fields: readonly Field[], key: string, change: (field: Field) => Field | undefined): Field[] {
@@ -53,7 +63,8 @@ function changed(fields: readonly Field[], key: string, change: (field: Field) =
 const REPORT: ReportDefinition = generatedFrom(generate(V1, { id: 'visit', locale: 'en', detail: { kind: 'repeater', repeater: 'findings' } })).report
 
 /** A review of `form` for `report`, handed the versions it names. */
-const reviewed = (form: unknown, report: ReportDefinition = REPORT, versions: readonly unknown[] = [V1]): FormReview => reviewFormVersion(report, { form, versions })
+const reviewed = (form: unknown, report: ReportDefinition = REPORT, versions: readonly unknown[] = [V1]): FormReview =>
+  reviewFormVersion(report, { form, versions })
 
 /** The review's status and items, failing the test where it was refused. */
 function itemsOf(review: FormReview): { readonly status: string; readonly items: readonly ReviewItem[] } {
@@ -62,7 +73,14 @@ function itemsOf(review: FormReview): { readonly status: string; readonly items:
 }
 
 /** Each item as its dataset, field, change, whether it blocks, and its resolutions' kinds. */
-const summary = (items: readonly ReviewItem[]) => items.map((item) => [item.dataset, item.field ?? item.formPath ?? null, item.change ?? null, item.blocks, item.resolutions.map((resolution) => resolution.kind)])
+const summary = (items: readonly ReviewItem[]) =>
+  items.map((item) => [
+    item.dataset,
+    item.field ?? item.formPath ?? null,
+    item.change ?? null,
+    item.blocks,
+    item.resolutions.map((resolution) => resolution.kind),
+  ])
 
 /** A session over `report`. */
 function sessionOf(report: ReportDefinition = REPORT): ReportSession {
@@ -84,10 +102,18 @@ function resolved(review: FormReview, field: string | undefined, kind: string, r
 
 /** Each text component of `report` as the text it prints, its runs' kinds in braces. */
 const texts = (report: ReportDefinition): string[] =>
-  walkComponents(report).flatMap(({ component }: { component: Component }) => (component.kind === 'text' ? [component.content.map((run) => (run.kind === 'text' ? run.text : `{${run.kind}}`)).join('')] : []))
+  walkComponents(report).flatMap(({ component }: { component: Component }) =>
+    component.kind === 'text' ? [component.content.map((run) => (run.kind === 'text' ? run.text : `{${run.kind}}`)).join('')] : [],
+  )
 
 /** A submission's answers to the first version, with what `more` adds. */
-const answered = (more: Record<string, unknown> = {}): Record<string, unknown> => ({ site: 'Hauptstrasse 12', inspector: { name: 'Anna' }, count: '3', findings: [{ _id: 'r1', area: 'Dach', hours: 1.25 }], ...more })
+const answered = (more: Record<string, unknown> = {}): Record<string, unknown> => ({
+  site: 'Hauptstrasse 12',
+  inspector: { name: 'Anna' },
+  count: '3',
+  findings: [{ _id: 'r1', area: 'Dach', hours: 1.25 }],
+  ...more,
+})
 
 /** The corpus's paid e-invoice, its header read from a form's answers and its lines from a repeater's rows, each field at its own key; and that form, which it names as made from. */
 function invoiceFromForm(): { readonly report: ReportDefinition; readonly form: Record<string, unknown> } {
@@ -95,8 +121,16 @@ function invoiceFromForm(): { readonly report: ReportDefinition; readonly form: 
   const kind = (field: FieldContract): string => (field.type === 'date' ? 'date' : 'text')
   const fields = (contract: DatasetContract | undefined) => (contract?.fields ?? []).map((field) => ({ key: field.id, type: kind(field), label: field.label }))
   const form = formOf([...fields(sample.datasets.header), { key: 'lines', type: 'repeater', label: 'Lines', fields: fields(sample.datasets.detail) }])
-  const bound = (contract: DatasetContract | undefined, binding: DatasetFormBinding): DatasetContract => ({ ...(contract as DatasetContract), form: binding, fields: (contract?.fields ?? []).map((field) => ({ ...field, form: { path: field.id } })) })
-  const report = validateReport({ ...sample, datasets: { header: bound(sample.datasets.header, { kind: 'submission' }), detail: bound(sample.datasets.detail, { kind: 'repeater', repeater: 'lines' }) }, provenance: { kind: 'form', form: 'site-visit', formHash: schemaHash(form) } })
+  const bound = (contract: DatasetContract | undefined, binding: DatasetFormBinding): DatasetContract => ({
+    ...(contract as DatasetContract),
+    form: binding,
+    fields: (contract?.fields ?? []).map((field) => ({ ...field, form: { path: field.id } })),
+  })
+  const report = validateReport({
+    ...sample,
+    datasets: { header: bound(sample.datasets.header, { kind: 'submission' }), detail: bound(sample.datasets.detail, { kind: 'repeater', repeater: 'lines' }) },
+    provenance: { kind: 'form', form: 'site-visit', formHash: schemaHash(form) },
+  })
   if (!report.valid) throw new Error(`the e-invoice bound to a form is no report: ${report.errors.map((error) => `${error.code} ${error.path}`).join('; ')}`)
   return { report: report.report, form }
 }
@@ -110,12 +144,53 @@ describe('reviewFormVersion, what prints', () => {
     expect(itemsOf(reviewed(V1))).toMatchObject({ status: 'compatible', items: [] })
   })
 
+  // A form's author who moves it to spec 5 to give a question help text,
+  // an example or a default changes nothing an answer holds (formancy.ai
+  // 0201), though formancy's diff calls each such field changed, by a rule
+  // it has none for. A review that blocked on that would stop every
+  // report of the form for words its submissions never hold; the version
+  // prints, and its submissions read as the first version's do.
+  test('a version that moves to spec 5 and adds only what helps a person fill it in is compatible', () => {
+    const helped = version(
+      (fields) =>
+        changed(
+          changed(
+            changed(fields, 'site', (field) => ({
+              ...field,
+              description: 'Street, number and town',
+              placeholder: 'Hauptstrasse 12',
+              autocomplete: 'street-address',
+              default: 'Bern',
+            })),
+            'name',
+            (field) => ({ ...field, autocomplete: 'name' }),
+          ),
+          'hours',
+          (field) => ({ ...field, placeholder: '1.25', default: 1 }),
+        ),
+      { specVersion: '5' },
+    )
+    const said = diffSchemas(V1 as unknown as FormSchema, helped as unknown as FormSchema).map((change) => `${change.kind} ${change.path}`)
+    expect(said).toEqual([
+      'field.changed model.fields.findings[].hours',
+      'field.changed model.fields.inspector.name',
+      'field.changed model.fields.site',
+      'specVersion.changed specVersion',
+    ])
+    expect(itemsOf(reviewed(helped))).toMatchObject({ status: 'compatible', items: [] })
+    expect(headerOf(read(REPORT, helped, answered()))).toEqual(headerOf(read(REPORT, V1, answered())))
+  })
+
   // "A harmless additional column does not automatically appear in an
   // existing report" (plan 12.3): a field the version added is said, in
   // the scope it stands in, and nothing adds it. It blocks nothing; a
   // static text, which a report prints nothing of, is not said.
   test('a field the version added is said and never added, and blocks nothing', () => {
-    const added = version((fields) => [...changed(fields, 'findings', (field) => ({ ...field, fields: [...(field.fields ?? []), { key: 'parts', type: 'number', label: 'Parts' }] })), { key: 'remarks', type: 'textarea', label: 'Remarks' }, { key: 'note', type: 'static', label: 'Thank you' }])
+    const added = version((fields) => [
+      ...changed(fields, 'findings', (field) => ({ ...field, fields: [...(field.fields ?? []), { key: 'parts', type: 'number', label: 'Parts' }] })),
+      { key: 'remarks', type: 'textarea', label: 'Remarks' },
+      { key: 'note', type: 'static', label: 'Thank you' },
+    ])
     const review = itemsOf(reviewed(added))
     expect(review.status).toBe('review')
     expect(summary(review.items)).toEqual([
@@ -141,7 +216,10 @@ describe('reviewFormVersion, a version that moves a field', () => {
     expect(refusals(read(REPORT, renamed, { address: 'Bahnhofplatz 1' }))).toEqual(['version-lacks-field /datasets/header/fields/0/form'])
     const followed = resolved(reviewed(renamed), 'site', 'follow-rename')
     // The binding reads the field where the version reviewed holds it now, and names each version it knows where it reads it (review-later.test.ts).
-    expect(followed.datasets.header?.fields[0]?.form).toEqual({ path: 'address', overrides: { [schemaHash(V1)]: { path: 'site' }, [schemaHash(renamed)]: { path: 'address' } } })
+    expect(followed.datasets.header?.fields[0]?.form).toEqual({
+      path: 'address',
+      overrides: { [schemaHash(V1)]: { path: 'site' }, [schemaHash(renamed)]: { path: 'address' } },
+    })
     expect(headerOf(read(followed, renamed, { address: 'Bahnhofplatz 1' }))['site']).toBe('Bahnhofplatz 1')
     // The version it was made from goes on reading the field where it was.
     expect(headerOf(read(followed, V1, answered()))['site']).toBe('Hauptstrasse 12')
@@ -150,7 +228,7 @@ describe('reviewFormVersion, a version that moves a field', () => {
 
   // A group renamed moves what it holds, though formancy reports the
   // group alone: the name under the inspector is the technician's now.
-  test("follows a renamed group to the field beneath it", () => {
+  test('follows a renamed group to the field beneath it', () => {
     const renamed = version((fields) => changed(fields, 'inspector', (field) => ({ ...field, key: 'technician', renamedFrom: 'inspector' })))
     expect(summary(itemsOf(reviewed(renamed)).items)).toEqual([['header', 'name', 'field.renamed', true, ['follow-rename', 'print-nothing', 'remove']]])
     const followed = resolved(reviewed(renamed), 'name', 'follow-rename')
@@ -174,8 +252,14 @@ describe('reviewFormVersion, a version that moves a field', () => {
     const renamed = version((fields) => changed(fields, 'findings', (field) => ({ ...field, key: 'defects', renamedFrom: 'findings' })))
     expect(summary(itemsOf(reviewed(renamed)).items)).toEqual([['detail', null, 'field.renamed', true, ['follow-rename']]])
     const followed = resolved(reviewed(renamed), undefined, 'follow-rename')
-    expect(followed.datasets.detail?.form).toEqual({ kind: 'repeater', repeater: 'defects', overrides: { [schemaHash(V1)]: { repeater: 'findings' }, [schemaHash(renamed)]: { repeater: 'defects' } } })
-    expect(readData(read(followed, renamed, { site: 'Bern', defects: [{ _id: 'r1', area: 'Keller', hours: 0.5 }] })).detail).toEqual([{ area: 'Keller', hours: '0.5' }])
+    expect(followed.datasets.detail?.form).toEqual({
+      kind: 'repeater',
+      repeater: 'defects',
+      overrides: { [schemaHash(V1)]: { repeater: 'findings' }, [schemaHash(renamed)]: { repeater: 'defects' } },
+    })
+    expect(readData(read(followed, renamed, { site: 'Bern', defects: [{ _id: 'r1', area: 'Keller', hours: 0.5 }] })).detail).toEqual([
+      { area: 'Keller', hours: '0.5' },
+    ])
   })
 
   // A report reviewed once reads the field from where the review put it
@@ -185,7 +269,9 @@ describe('reviewFormVersion, a version that moves a field', () => {
     const v2 = version((fields) => changed(fields, 'site', (field) => ({ ...field, key: 'address', renamedFrom: 'site' })))
     const v3 = version((fields) => changed(fields, 'site', (field) => ({ ...field, key: 'location', renamedFrom: 'address' })))
     const once = resolved(reviewed(v2), 'site', 'follow-rename')
-    expect(summary(itemsOf(reviewed(v3, once, [V1, v2])).items)).toEqual([['header', 'site', 'field.renamed', true, ['follow-rename', 'print-nothing', 'remove']]])
+    expect(summary(itemsOf(reviewed(v3, once, [V1, v2])).items)).toEqual([
+      ['header', 'site', 'field.renamed', true, ['follow-rename', 'print-nothing', 'remove']],
+    ])
     const twice = resolved(reviewed(v3, once, [V1, v2]), 'site', 'follow-rename', once)
     expect(headerOf(read(twice, v3, { location: 'Kramgasse 49' }))['site']).toBe('Kramgasse 49')
     expect(headerOf(read(twice, v2, { address: 'Bahnhofplatz 1' }))['site']).toBe('Bahnhofplatz 1')
@@ -221,7 +307,11 @@ describe('reviewFormVersion, a version that removes or retypes a field', () => {
     const nothing = itemsOf(reviewed(removed)).items[0]?.resolutions.find((resolution) => resolution.kind === 'print-nothing')
     expect(nothing?.message).toMatch(/nullable/)
     const applied = resolved(reviewed(removed), 'site', 'print-nothing')
-    expect(applied.datasets.header?.fields[0]).toMatchObject({ id: 'site', nullable: true, form: { path: 'site', overrides: { [schemaHash(removed)]: { omit: true } } } })
+    expect(applied.datasets.header?.fields[0]).toMatchObject({
+      id: 'site',
+      nullable: true,
+      form: { path: 'site', overrides: { [schemaHash(removed)]: { omit: true } } },
+    })
   })
 
   // Nothing is offered that the compiler would then refuse: a decimal
@@ -232,11 +322,21 @@ describe('reviewFormVersion, a version that removes or retypes a field', () => {
     const lines = REPORT.datasets.detail as NonNullable<ReportDefinition['datasets']['detail']>
     const strict: ReportDefinition = {
       ...REPORT,
-      datasets: { ...REPORT.datasets, detail: { ...lines, fields: lines.fields.map((field) => (field.id === 'hours' ? { ...field, nullable: false } : field)) } },
+      datasets: {
+        ...REPORT.datasets,
+        detail: { ...lines, fields: lines.fields.map((field) => (field.id === 'hours' ? { ...field, nullable: false } : field)) },
+      },
       regions: {
         ...REPORT.regions,
         body: REPORT.regions.body.map((component) =>
-          component.kind === 'table' ? { ...component, columns: component.columns.map((column, index) => (index === 0 ? { ...column, styleWhen: [{ when: { cel: 'row.hours == dec("1.00")' }, style: 'title' }] } : column)) } : component,
+          component.kind === 'table'
+            ? {
+                ...component,
+                columns: component.columns.map((column, index) =>
+                  index === 0 ? { ...column, styleWhen: [{ when: { cel: 'row.hours == dec("1.00")' }, style: 'title' }] } : column,
+                ),
+              }
+            : component,
         ),
       },
     }
@@ -263,7 +363,11 @@ describe('reviewFormVersion, a version that removes or retypes a field', () => {
     // text, and is refused as a number. The kind is all a review can see,
     // so the retype says what it costs.
     expect(refusals(read(counted, V1, answered({ count: 'about three' })))).toEqual(['invalid-answer /submission/data/count'])
-    expect(review.items[0]?.resolutions.filter((resolution) => resolution.kind === 'retype').every((resolution) => resolution.message.includes('invalid-answer') && resolution.message.includes(schemaHash(V1)))).toBe(true)
+    expect(
+      review.items[0]?.resolutions
+        .filter((resolution) => resolution.kind === 'retype')
+        .every((resolution) => resolution.message.includes('invalid-answer') && resolution.message.includes(schemaHash(V1))),
+    ).toBe(true)
   })
 
   // A type the compiler would refuse an expression of is no retype the
@@ -273,7 +377,14 @@ describe('reviewFormVersion, a version that removes or retypes a field', () => {
   test('offers no type an expression that reads the field would be refused at', () => {
     const appended: Component = { id: 'visits', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'header.count + " visits"' } }] }
     const header = REPORT.datasets.header as DatasetContract
-    const report: ReportDefinition = { ...REPORT, datasets: { ...REPORT.datasets, header: { ...header, fields: header.fields.map((field) => (field.id === 'count' ? { ...field, nullable: false } : field)) } }, regions: { ...REPORT.regions, summary: [appended] } }
+    const report: ReportDefinition = {
+      ...REPORT,
+      datasets: {
+        ...REPORT.datasets,
+        header: { ...header, fields: header.fields.map((field) => (field.id === 'count' ? { ...field, nullable: false } : field)) },
+      },
+      regions: { ...REPORT.regions, summary: [appended] },
+    }
     const retyped = version((fields) => changed(fields, 'count', (field) => ({ ...field, type: 'number', step: 1 })))
     expect(summary(itemsOf(reviewed(retyped, report)).items)).toEqual([['header', 'count', 'field.typeChanged', true, ['print-nothing', 'remove']]])
   })
@@ -294,7 +405,10 @@ describe('reviewFormVersion, a version that removes or retypes a field', () => {
   test("offers nothing but a declared rename for the detail's repeater, and says so", () => {
     const removed = version((fields) => changed(fields, 'findings', () => undefined))
     const grouped = version((fields) => changed(fields, 'findings', (field) => ({ ...field, type: 'group' })))
-    for (const [form, change] of [[removed, 'field.removed'], [grouped, 'field.typeChanged']] as const) {
+    for (const [form, change] of [
+      [removed, 'field.removed'],
+      [grouped, 'field.typeChanged'],
+    ] as const) {
       // A group's fields are the submission's own now, and said as added there.
       const review = itemsOf(reviewed(form))
       expect(summary(review.items.filter((item) => item.blocks))).toEqual([['detail', null, change, true, []]])
@@ -308,9 +422,44 @@ describe('reviewFormVersion, a version that removes or retypes a field', () => {
   // are refused per render: the item names what the diff says the version
   // did there, an option removed or the field changed.
   test('names the option or the row a version removed under a field it reads', () => {
-    const ticked = formOf([{ key: 'checks', type: 'selectboxes', label: 'Checked', options: [{ value: 'roof', label: 'Roof' }, { value: 'wiring', label: 'Wiring' }] }, { key: 'state', type: 'matrix', label: 'State', rows: [{ value: 'roof', label: 'Roof' }, { value: 'wall', label: 'Wall' }], options: [{ value: 'ok', label: 'OK' }, { value: 'bad', label: 'Bad' }] }])
+    const ticked = formOf([
+      {
+        key: 'checks',
+        type: 'selectboxes',
+        label: 'Checked',
+        options: [
+          { value: 'roof', label: 'Roof' },
+          { value: 'wiring', label: 'Wiring' },
+        ],
+      },
+      {
+        key: 'state',
+        type: 'matrix',
+        label: 'State',
+        rows: [
+          { value: 'roof', label: 'Roof' },
+          { value: 'wall', label: 'Wall' },
+        ],
+        options: [
+          { value: 'ok', label: 'OK' },
+          { value: 'bad', label: 'Bad' },
+        ],
+      },
+    ])
     const report = generatedFrom(generate(ticked, { id: 'checks', locale: 'en' })).report
-    const fewer = formOf([{ key: 'checks', type: 'selectboxes', label: 'Checked', options: [{ value: 'wiring', label: 'Wiring' }] }, { key: 'state', type: 'matrix', label: 'State', rows: [{ value: 'wall', label: 'Wall' }], options: [{ value: 'ok', label: 'OK' }, { value: 'bad', label: 'Bad' }] }])
+    const fewer = formOf([
+      { key: 'checks', type: 'selectboxes', label: 'Checked', options: [{ value: 'wiring', label: 'Wiring' }] },
+      {
+        key: 'state',
+        type: 'matrix',
+        label: 'State',
+        rows: [{ value: 'wall', label: 'Wall' }],
+        options: [
+          { value: 'ok', label: 'OK' },
+          { value: 'bad', label: 'Bad' },
+        ],
+      },
+    ])
     expect(summary(itemsOf(reviewFormVersion(report, { form: fewer, versions: [ticked] })).items)).toEqual([
       ['header', 'checks_roof', 'field.optionRemoved', true, ['print-nothing', 'remove']],
       ['header', 'state_roof', 'field.changed', true, ['print-nothing', 'remove']],
@@ -325,7 +474,9 @@ describe('reviewFormVersion, a version that removes or retypes a field', () => {
     const boxed = formOf([{ key: 'done', type: 'checkbox', label: 'Done' }])
     const report = generatedFrom(generate(boxed, { id: 'done', locale: 'en' })).report
     const texted = formOf([{ key: 'done', type: 'text', label: 'Done' }])
-    expect(summary(itemsOf(reviewFormVersion(report, { form: texted, versions: [boxed] })).items)).toEqual([['header', 'done', 'field.typeChanged', true, ['print-nothing', 'remove']]])
+    expect(summary(itemsOf(reviewFormVersion(report, { form: texted, versions: [boxed] })).items)).toEqual([
+      ['header', 'done', 'field.typeChanged', true, ['print-nothing', 'remove']],
+    ])
     const dated = version((fields) => changed(fields, 'count', (field) => ({ ...field, type: 'date' })))
     expect(summary(itemsOf(reviewed(dated)).items)).toEqual([['header', 'count', 'field.typeChanged', true, ['print-nothing', 'remove']]])
   })
@@ -354,10 +505,24 @@ describe('reviewFormVersion, a relabel', () => {
   test("relabels a column's heading over the field's value, and no other column's", () => {
     const relabelled = version((fields) => changed(fields, 'area', (field) => ({ ...field, label: 'Zone' })))
     const table = walkComponents(REPORT).find(({ component }) => component.kind === 'table')?.component as Extract<Component, { kind: 'table' }>
-    const other = { id: 'hours-again', header: 'Area', width: 60, align: 'right', value: { kind: 'field', field: { dataset: 'detail', field: 'hours' } } } as const
-    const report: ReportDefinition = { ...REPORT, regions: { ...REPORT.regions, body: REPORT.regions.body.map((component) => (component.id === table.id ? { ...table, columns: [...table.columns, other] } : component)) } }
+    const other = {
+      id: 'hours-again',
+      header: 'Area',
+      width: 60,
+      align: 'right',
+      value: { kind: 'field', field: { dataset: 'detail', field: 'hours' } },
+    } as const
+    const report: ReportDefinition = {
+      ...REPORT,
+      regions: {
+        ...REPORT.regions,
+        body: REPORT.regions.body.map((component) => (component.id === table.id ? { ...table, columns: [...table.columns, other] } : component)),
+      },
+    }
     const applied = resolved(reviewed(relabelled, report), 'area', 'relabel', report)
-    const headers = (walkComponents(applied).find(({ component }) => component.kind === 'table')?.component as Extract<Component, { kind: 'table' }>).columns.map(({ id, header }) => [id, header])
+    const headers = (
+      walkComponents(applied).find(({ component }) => component.kind === 'table')?.component as Extract<Component, { kind: 'table' }>
+    ).columns.map(({ id, header }) => [id, header])
     expect(headers.filter(([, header]) => header === 'Zone')).toHaveLength(1)
     expect(headers).toContainEqual(['hours-again', 'Area'])
   })
@@ -366,9 +531,12 @@ describe('reviewFormVersion, a relabel', () => {
   // field as one changed on the field does: the diff names it a text
   // changed, and the review says so.
   test('relabels a field whose label the catalogue changed', () => {
-    const catalogued = (label: string) => formOf([{ key: 'site', type: 'text', label: { $t: 'site' } }], { i18n: { defaultLocale: 'en', messages: { en: { site: label } } } })
+    const catalogued = (label: string) =>
+      formOf([{ key: 'site', type: 'text', label: { $t: 'site' } }], { i18n: { defaultLocale: 'en', messages: { en: { site: label } } } })
     const report = generatedFrom(generate(catalogued('Site'), { id: 'visit', locale: 'en' })).report
-    expect(summary(itemsOf(reviewFormVersion(report, { form: catalogued('Address'), versions: [catalogued('Site')] })).items)).toEqual([['header', 'site', 'text.changed', false, ['relabel']]])
+    expect(summary(itemsOf(reviewFormVersion(report, { form: catalogued('Address'), versions: [catalogued('Site')] })).items)).toEqual([
+      ['header', 'site', 'text.changed', false, ['relabel']],
+    ])
   })
 
   // A line says a field's label before the run that prints it: a text
@@ -376,7 +544,14 @@ describe('reviewFormVersion, a relabel', () => {
   // field, and is not touched.
   test("relabels only a text that says the label before the field's own value", () => {
     const relabelled = version((fields) => changed(fields, 'site', (field) => ({ ...field, label: 'Address' })))
-    const other: Component = { id: 'other', kind: 'text', content: [{ kind: 'text', text: 'Site: ' }, { kind: 'field', field: { dataset: 'header', field: 'count' } }] }
+    const other: Component = {
+      id: 'other',
+      kind: 'text',
+      content: [
+        { kind: 'text', text: 'Site: ' },
+        { kind: 'field', field: { dataset: 'header', field: 'count' } },
+      ],
+    }
     const report: ReportDefinition = { ...REPORT, regions: { ...REPORT.regions, summary: [other] } }
     const applied = resolved(reviewed(relabelled, report), 'site', 'relabel', report)
     expect(texts(applied)).toEqual(expect.arrayContaining(['Address: {field}', 'Site: {field}']))
@@ -391,15 +566,39 @@ describe('reviewFormVersion, a relabel', () => {
     expect(summary(itemsOf(reviewed(relabelled)).items)).toEqual([['header', 'site', 'field.relabelled', false, []]])
     // A label no font draws, or none at all, is no label to print: nothing is said of it.
     // A direction override would show the report's label in another order than it prints, in the builder that edits it.
-    for (const label of ['Ort\u0007', ' ', 'Ort\u202Elinks', 'Ort\u2028Zeile']) expect(itemsOf(reviewed(version((fields) => changed(fields, 'site', (field) => ({ ...field, label })))))).toMatchObject({ status: 'compatible', items: [] })
+    for (const label of ['Ort\u0007', ' ', 'Ort\u202Elinks', 'Ort\u2028Zeile'])
+      expect(itemsOf(reviewed(version((fields) => changed(fields, 'site', (field) => ({ ...field, label })))))).toMatchObject({
+        status: 'compatible',
+        items: [],
+      })
   })
 
   // A ticked option prints its option's label as its line's: that label,
   // relabelled, is the one offered, not the field's.
   test("relabels an option a field reads by the option's label", () => {
-    const ticked = formOf([{ key: 'checks', type: 'selectboxes', label: 'Checked', options: [{ value: 'roof', label: 'Roof' }, { value: 'wiring', label: 'Wiring' }] }])
+    const ticked = formOf([
+      {
+        key: 'checks',
+        type: 'selectboxes',
+        label: 'Checked',
+        options: [
+          { value: 'roof', label: 'Roof' },
+          { value: 'wiring', label: 'Wiring' },
+        ],
+      },
+    ])
     const report = generatedFrom(generate(ticked, { id: 'checks', locale: 'en' })).report
-    const relabelled = formOf([{ key: 'checks', type: 'selectboxes', label: 'Checked', options: [{ value: 'roof', label: 'Roof and gutters' }, { value: 'wiring', label: 'Wiring' }] }])
+    const relabelled = formOf([
+      {
+        key: 'checks',
+        type: 'selectboxes',
+        label: 'Checked',
+        options: [
+          { value: 'roof', label: 'Roof and gutters' },
+          { value: 'wiring', label: 'Wiring' },
+        ],
+      },
+    ])
     const review = reviewFormVersion(report, { form: relabelled, versions: [ticked] })
     expect(summary(itemsOf(review).items)).toEqual([['header', 'checks_roof', 'field.optionRelabelled', false, ['relabel']]])
     expect(texts(resolved(review, 'checks_roof', 'relabel', report))).toContain('Roof and gutters: {expression}')
@@ -416,7 +615,10 @@ describe('reviewFormVersion, a relabel', () => {
     const changedHeader = reworded.apply({ command: 'updateColumn', args: [table.id, column?.id as string, { header: 'Location' }] })
     if (!changedHeader.ok) throw new Error(changedHeader.message)
     const fields = (REPORT.datasets.detail?.fields ?? []).map((field) => (field.id === 'area' ? { ...field, label: 'Location' } : field))
-    const done = reworded.apply({ command: 'putDataset', args: ['detail', { ...(REPORT.datasets.detail as NonNullable<ReportDefinition['datasets']['detail']>), fields }] })
+    const done = reworded.apply({
+      command: 'putDataset',
+      args: ['detail', { ...(REPORT.datasets.detail as NonNullable<ReportDefinition['datasets']['detail']>), fields }],
+    })
     if (!done.ok) throw new Error(done.message)
     expect(itemsOf(reviewed(relabelled, reworded.document())).status).toBe('compatible')
     expect(summary(itemsOf(reviewed(relabelled)).items)).toEqual([['detail', 'area', 'field.relabelled', false, ['relabel']]])
@@ -440,7 +642,10 @@ describe('reviewFormVersion, other reports', () => {
   test('offers a report that names no version no rename, and names no change', () => {
     const { provenance: _provenance, ...rest } = REPORT
     const blank = { ...rest, provenance: { kind: 'blank' } } as ReportDefinition
-    const renamed = version((fields) => [...changed(fields, 'site', (field) => ({ ...field, key: 'address', renamedFrom: 'site' })), { key: 'remarks', type: 'text', label: 'Remarks' }])
+    const renamed = version((fields) => [
+      ...changed(fields, 'site', (field) => ({ ...field, key: 'address', renamedFrom: 'site' })),
+      { key: 'remarks', type: 'text', label: 'Remarks' },
+    ])
     expect(summary(itemsOf(reviewFormVersion(blank, { form: renamed })).items)).toEqual([['header', 'site', null, true, ['print-nothing', 'remove']]])
   })
 
@@ -459,7 +664,14 @@ describe('reviewFormVersion, other reports', () => {
         kind: 'swissQrBill',
         language: 'de',
         account: text('CH58 3000 0000 0000 0000 0'),
-        creditor: { name: text('Muster AG'), street: text('Musterstrasse'), buildingNumber: text('1'), postalCode: text('8000'), town: text('Zürich'), country: text('CH') },
+        creditor: {
+          name: text('Muster AG'),
+          street: text('Musterstrasse'),
+          buildingNumber: text('1'),
+          postalCode: text('8000'),
+          town: text('Zürich'),
+          country: text('CH'),
+        },
         currency: 'CHF',
         debtor: { name: [{ kind: 'field', field: { dataset: 'header', field: 'site' } }], postalCode: text('3011'), town: text('Bern'), country: text('CH') },
         reference: text('21 00000 00003 13947 14300 09017'),
@@ -491,7 +703,12 @@ describe('reviewFormVersion, other reports', () => {
   test('offers no removal the session would refuse', () => {
     const { report, form } = invoiceFromForm()
     const fields = (form.model as { fields: Field[] }).fields
-    const priceless = { ...form, model: { fields: fields.map((field) => (field.key === 'lines' ? { ...field, fields: (field.fields ?? []).filter(({ key }) => key !== 'unitPrice') } : field)) } }
+    const priceless = {
+      ...form,
+      model: {
+        fields: fields.map((field) => (field.key === 'lines' ? { ...field, fields: (field.fields ?? []).filter(({ key }) => key !== 'unitPrice') } : field)),
+      },
+    }
     const opening = openReportSession(report)
     if (!opening.ok) throw new Error('the report did not open')
     const refusal = opening.session.apply({ command: 'removeFieldWithReaders', args: ['detail', 'unitPrice'] })
@@ -505,9 +722,12 @@ describe('reviewFormVersion, other reports', () => {
   // report reads wherever they share a key. Nothing per render refuses it,
   // so the review blocks nothing, and says so rather than call it
   // compatible.
-  test("says a version names its form otherwise than the version the report was made from", () => {
+  test('says a version names its form otherwise than the version the report was made from', () => {
     const other = { ...V1, id: 'payroll-2027' }
-    expect(itemsOf(reviewed(other))).toMatchObject({ status: 'review', items: [{ path: '/provenance', change: 'document.identityChanged', blocks: false, resolutions: [] }] })
+    expect(itemsOf(reviewed(other))).toMatchObject({
+      status: 'review',
+      items: [{ path: '/provenance', change: 'document.identityChanged', blocks: false, resolutions: [] }],
+    })
     expect(itemsOf(reviewed(other)).items[0]).not.toHaveProperty('dataset')
   })
 
@@ -515,9 +735,21 @@ describe('reviewFormVersion, other reports', () => {
   // submissions are refused until the one is resolved, whatever the other
   // prints like.
   test('is blocked where one item blocks, whatever else prints', () => {
-    const both = version((fields) => changed(changed(fields, 'count', () => undefined), 'site', (field) => ({ ...field, label: 'Address' })))
+    const both = version((fields) =>
+      changed(
+        changed(fields, 'count', () => undefined),
+        'site',
+        (field) => ({ ...field, label: 'Address' }),
+      ),
+    )
     const review = itemsOf(reviewed(both))
-    expect([review.status, summary(review.items).map(([, field, , blocks]) => [field, blocks])]).toEqual(['blocked', [['site', false], ['count', true]]])
+    expect([review.status, summary(review.items).map(([, field, , blocks]) => [field, blocks])]).toEqual([
+      'blocked',
+      [
+        ['site', false],
+        ['count', true],
+      ],
+    ])
   })
 
   // A version an override of the detail's repeater names is one the
@@ -558,7 +790,10 @@ describe('reviewFormVersion, applying a resolution', () => {
     if (resolution === undefined) throw new Error('nothing offered')
     const tampered = JSON.parse(JSON.stringify(resolution.descriptor)) as { command: 'batch'; args: [unknown[]] }
     expect(tampered.command).toBe('batch')
-    tampered.args[0].push({ command: 'putField', args: ['header', 'site', { type: 'string', label: 'Address', nullable: false, form: { path: 'site', overrides: { v2: { path: 'x' } } } }] })
+    tampered.args[0].push({
+      command: 'putField',
+      args: ['header', 'site', { type: 'string', label: 'Address', nullable: false, form: { path: 'site', overrides: { v2: { path: 'x' } } } }],
+    })
     const session = sessionOf()
     const before = session.document()
     const outcome = session.apply(tampered as unknown as CommandDescriptor, { expectedHash: resolution.expectedHash })
@@ -604,29 +839,44 @@ describe('reviewFormVersion, what it is handed', () => {
   // the report the validator's.
   test('refuses what is no report, no version, or no binding to a form', () => {
     const errors = (outcome: FormReview) => (outcome.ok ? [] : outcome.errors.map((error) => `${error.code} ${error.path}`))
-    expect(errors(reviewFormVersion({ ...REPORT, locale: 'deutsch' } as ReportDefinition, { form: V1, versions: [V1] }))).toEqual(['invalid-report '])
+    expect(errors(reviewFormVersion({ ...REPORT, locale: 'deutsch' }, { form: V1, versions: [V1] }))).toEqual(['invalid-report '])
     expect(errors(reviewFormVersion(REPORT, { form: { specVersion: '4' }, versions: [V1] }))[0]).toMatch(/^invalid-form \/form/)
     expect(errors(reviewFormVersion(REPORT, { form: V1, formHash: '0'.repeat(64), versions: [V1] }))).toEqual(['hash-mismatch /formHash'])
     expect(errors(reviewFormVersion(REPORT, { form: V1, versions: [{ specVersion: '9' }] }))).toEqual(['unsupported-spec-version /versions/0/specVersion'])
     expect(errors(reviewFormVersion(REPORT, { form: V1, versions: [V1], also: true } as never))).toEqual(['invalid-input /also'])
     expect(errors(reviewFormVersion(REPORT, { form: V1, versions: V1 } as never))).toEqual(['invalid-input /versions'])
     const { datasets: _datasets, ...rest } = REPORT
-    expect(errors(reviewFormVersion({ ...rest, datasets: {}, regions: { ...REPORT.regions, body: [] } } as unknown as ReportDefinition, { form: V1, versions: [V1] }))).toEqual(['unbound-report /datasets'])
+    expect(errors(reviewFormVersion({ ...rest, datasets: {}, regions: { ...REPORT.regions, body: [] } }, { form: V1, versions: [V1] }))).toEqual([
+      'unbound-report /datasets',
+    ])
   })
 
   // What a review says ends up before a person and in a log: it names the
   // report's own fields, data paths of field keys and hashes, and never a
   // label or an answer of the form's, which may name a person.
   test('says no label of either version', () => {
-    const named = (label: string) => formOf([{ key: 'site', type: 'text', label: `${label} site` }, { key: 'inspector', type: 'group', label: `${label} group`, fields: [{ key: 'name', type: 'text', label: `${label} name` }] }, { key: 'count', type: 'text', label: `${label} count` }])
+    const named = (label: string) =>
+      formOf([
+        { key: 'site', type: 'text', label: `${label} site` },
+        { key: 'inspector', type: 'group', label: `${label} group`, fields: [{ key: 'name', type: 'text', label: `${label} name` }] },
+        { key: 'count', type: 'text', label: `${label} count` },
+      ])
     const before = named('Erika Mustermann')
     const report = generatedFrom(generate(before, { id: 'visit', locale: 'en' })).report
-    const after = { ...named('Hans Muster'), model: { fields: [{ key: 'address', type: 'text', label: 'Hans Muster site', renamedFrom: 'site' }, { key: 'inspector', type: 'group', label: 'Hans Muster group', fields: [{ key: 'name', type: 'text', label: 'Hans Muster name' }] }, { key: 'count', type: 'number', label: 'Hans Muster count' }] } }
+    const after = {
+      ...named('Hans Muster'),
+      model: {
+        fields: [
+          { key: 'address', type: 'text', label: 'Hans Muster site', renamedFrom: 'site' },
+          { key: 'inspector', type: 'group', label: 'Hans Muster group', fields: [{ key: 'name', type: 'text', label: 'Hans Muster name' }] },
+          { key: 'count', type: 'number', label: 'Hans Muster count' },
+        ],
+      },
+    }
     const review = itemsOf(reviewFormVersion(report, { form: after, versions: [before] }))
     // A rename, a relabel and a retype, each with what resolves it.
     expect(review.items.map((item) => item.resolutions[0]?.kind)).toEqual(['follow-rename', 'relabel', 'print-nothing'])
     const said = JSON.stringify(review.items.map((item) => [item.message, item.resolutions.map((resolution) => resolution.message)]))
     expect(said).not.toMatch(/Erika|Mustermann|Hans|Muster/)
   })
-
 })

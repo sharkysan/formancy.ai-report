@@ -214,7 +214,8 @@ function keysOf(blocks: readonly Block[], kept: boolean): string[] {
 }
 
 function expectedTable(table: Table): ExpectedTable {
-  const printed = (cells: readonly string[]): ExpectedCell[] => cells.map((cell, column) => ({ column, text: normalise(cell) })).filter((cell) => cell.text !== '')
+  const printed = (cells: readonly string[]): ExpectedCell[] =>
+    cells.map((cell, column) => ({ column, text: normalise(cell) })).filter((cell) => cell.text !== '')
   return {
     id: table.id,
     header: printed(table.header).map((cell) => cell.text),

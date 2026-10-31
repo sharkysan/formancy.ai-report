@@ -31,19 +31,49 @@ const cents = (text: string): bigint => BigInt(text.replace('.', ''))
 const halfAway = (numerator: bigint, denominator: bigint): bigint => (2n * numerator + denominator) / (2n * denominator)
 
 /** An amount in Swiss francs as Intl prints it for `locale`, handed the exact decimal string, with its spaces as a PDF line has them. */
-const francs = (locale: string, amount: bigint): string => normalise(new Intl.NumberFormat(locale, { style: 'currency', currency: 'CHF', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(decimal(amount) as Intl.StringNumericLiteral))
+const francs = (locale: string, amount: bigint): string =>
+  normalise(
+    new Intl.NumberFormat(locale, { style: 'currency', currency: 'CHF', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+      decimal(amount) as Intl.StringNumericLiteral,
+    ),
+  )
 
 /** A date of the data, `YYYY-MM-DD`, as Intl prints it for `locale` in `style`, in UTC as the runtime formats a date. */
-const day = (locale: string, date: string, style: 'medium' | 'long'): string => normalise(new Intl.DateTimeFormat(locale, { dateStyle: style, timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`)))
+const day = (locale: string, date: string, style: 'medium' | 'long'): string =>
+  normalise(new Intl.DateTimeFormat(locale, { dateStyle: style, timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`)))
 
 /** An amount as SIX's slip prints it in every language: a space between thousands, a point and two places (IG 3.5.3). */
 const slipAmount = (amount: bigint): string => decimal(amount).replace(/\B(?=(\d{3})+\.)/g, ' ')
 
 /** What each sample prints in its language: its locale, the totals' labels, the words before the due date, and the slip's two headings. */
 const SAYS = {
-  invoice: { locale: 'de-CH', subtotal: 'Zwischensumme', vat: 'MWST 8.1 %', total: 'Total', due: 'Zahlbar bis:', receipt: 'Empfangsschein', paymentPart: 'Zahlteil' },
-  'invoice-fr': { locale: 'fr-CH', subtotal: 'Sous-total', vat: 'TVA 8,1 %', total: 'Total', due: 'Payable jusqu’au :', receipt: 'Récépissé', paymentPart: 'Section paiement' },
-  'invoice-it': { locale: 'it-CH', subtotal: 'Subtotale', vat: 'IVA 8,1 %', total: 'Totale', due: 'Pagabile entro:', receipt: 'Ricevuta', paymentPart: 'Sezione pagamento' },
+  invoice: {
+    locale: 'de-CH',
+    subtotal: 'Zwischensumme',
+    vat: 'MWST 8.1 %',
+    total: 'Total',
+    due: 'Zahlbar bis:',
+    receipt: 'Empfangsschein',
+    paymentPart: 'Zahlteil',
+  },
+  'invoice-fr': {
+    locale: 'fr-CH',
+    subtotal: 'Sous-total',
+    vat: 'TVA 8,1 %',
+    total: 'Total',
+    due: 'Payable jusqu’au :',
+    receipt: 'Récépissé',
+    paymentPart: 'Section paiement',
+  },
+  'invoice-it': {
+    locale: 'it-CH',
+    subtotal: 'Subtotale',
+    vat: 'IVA 8,1 %',
+    total: 'Totale',
+    due: 'Pagabile entro:',
+    receipt: 'Ricevuta',
+    paymentPart: 'Sezione pagamento',
+  },
   'invoice-en': { locale: 'en-CH', subtotal: 'Subtotal', vat: 'VAT 8.1%', total: 'Total', due: 'Due date:', receipt: 'Receipt', paymentPart: 'Payment part' },
 } as const
 
@@ -71,39 +101,43 @@ describe('the invoice samples', () => {
   // printed its total in another locale's format, a slip in the wrong
   // language, or a code asking for another amount than the page states
   // would each be shown as what the product does.
-  test.each(INVOICE_SAMPLES.map((sample) => [sample.id, sample] as const))('%s prints one page, its totals in its locale, and a slip in its language for exactly the printed total', async (id, sample) => {
-    const says = SAYS[id as keyof typeof SAYS]
-    const { locale } = says
-    const chf = (amount: bigint): string => francs(locale, amount)
-    const lines = [...(sample.data.detail as Record<string, string>[])].sort((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1))
-    const subtotal = lines.reduce((sum, line) => sum + cents(line['amount'] as string), 0n)
-    const vat = halfAway(subtotal * 81n, 1000n)
-    const total = subtotal + vat
+  test.each(INVOICE_SAMPLES.map((sample) => [sample.id, sample] as const))(
+    '%s prints one page, its totals in its locale, and a slip in its language for exactly the printed total',
+    async (id, sample) => {
+      const says = SAYS[id as keyof typeof SAYS]
+      const { locale } = says
+      const chf = (amount: bigint): string => francs(locale, amount)
+      const lines = [...(sample.data.detail as Record<string, string>[])].sort((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1))
+      const subtotal = lines.reduce((sum, line) => sum + cents(line['amount'] as string), 0n)
+      const vat = halfAway(subtotal * 81n, 1000n)
+      const total = subtotal + vat
 
-    const document = resolved(sample)
-    const bytes = await renderPdf(document, { maxPages: 20 })
-    const pdf = await readPdf(bytes)
-    expect(pdf.pages).toHaveLength(1)
-    const found = lines.map((line) => startingWith(pdf, line['article'] as string))
-    expect(found.map((each) => each.length)).toEqual(lines.map(() => 1))
-    expect(found.map(([line], index) => line !== undefined && lineHas(line, chf(cents(lines[index]?.['amount'] as string))))).toEqual(lines.map(() => true))
-    expect(startingWith(pdf, says.subtotal).map((line) => line.text)).toEqual([`${says.subtotal} ${chf(subtotal)}`])
-    expect(startingWith(pdf, says.vat).map((line) => line.text)).toEqual([`${says.vat} ${chf(vat)}`])
-    expect(startingWith(pdf, says.total).map((line) => line.text)).toEqual([`${says.total} ${chf(total)}`])
-    expect(startingWith(pdf, says.due).map((line) => line.text)).toEqual([`${says.due} ${day(locale, sample.data.header?.['dueOn'] as string, 'medium')}`])
+      const document = resolved(sample)
+      const bytes = await renderPdf(document, { maxPages: 20 })
+      const pdf = await readPdf(bytes)
+      expect(pdf.pages).toHaveLength(1)
+      const found = lines.map((line) => startingWith(pdf, line['article'] as string))
+      expect(found.map((each) => each.length)).toEqual(lines.map(() => 1))
+      expect(found.map(([line], index) => line !== undefined && lineHas(line, chf(cents(lines[index]?.['amount'] as string))))).toEqual(lines.map(() => true))
+      expect(startingWith(pdf, says.subtotal).map((line) => line.text)).toEqual([`${says.subtotal} ${chf(subtotal)}`])
+      expect(startingWith(pdf, says.vat).map((line) => line.text)).toEqual([`${says.vat} ${chf(vat)}`])
+      expect(startingWith(pdf, says.total).map((line) => line.text)).toEqual([`${says.total} ${chf(total)}`])
+      expect(startingWith(pdf, says.due).map((line) => line.text)).toEqual([`${says.due} ${day(locale, sample.data.header?.['dueOn'] as string, 'medium')}`])
 
-    const codes = await readCodes(bytes, 1)
-    expect(codes.map((code) => code.text)).toEqual([document.paymentPart?.payload])
-    const [amount, currency] = codes[0]?.text.split('\n').slice(18, 20) ?? []
-    expect([amount, currency]).toEqual([decimal(total), 'CHF'])
-    // The total the page prints, in the locale's format, is the amount the code asks for.
-    expect(startingWith(pdf, says.total).map((line) => line.text)).toEqual([`${says.total} ${chf(cents(amount as string))}`])
-    expect(pdf.pages[0]?.items.filter((item) => item.text === slipAmount(total)).length).toBe(2)
-    const texts = new Set(pdf.pages[0]?.items.map((item) => item.text))
-    expect([says.receipt, says.paymentPart].filter((heading) => !texts.has(heading))).toEqual([])
-    const others = Object.values(SAYS).filter((other) => other !== says)
-    expect(others.flatMap((other) => [other.receipt, other.paymentPart]).filter((heading) => texts.has(heading))).toEqual([])
-  }, TIMEOUT)
+      const codes = await readCodes(bytes, 1)
+      expect(codes.map((code) => code.text)).toEqual([document.paymentPart?.payload])
+      const [amount, currency] = codes[0]?.text.split('\n').slice(18, 20) ?? []
+      expect([amount, currency]).toEqual([decimal(total), 'CHF'])
+      // The total the page prints, in the locale's format, is the amount the code asks for.
+      expect(startingWith(pdf, says.total).map((line) => line.text)).toEqual([`${says.total} ${chf(cents(amount as string))}`])
+      expect(pdf.pages[0]?.items.filter((item) => item.text === slipAmount(total)).length).toBe(2)
+      const texts = new Set(pdf.pages[0]?.items.map((item) => item.text))
+      expect([says.receipt, says.paymentPart].filter((heading) => !texts.has(heading))).toEqual([])
+      const others = Object.values(SAYS).filter((other) => other !== says)
+      expect(others.flatMap((other) => [other.receipt, other.paymentPart]).filter((heading) => texts.has(heading))).toEqual([])
+    },
+    TIMEOUT,
+  )
 
   // The firm's mark heads the page (0032), and pushes nothing off it: the
   // page is one, and its slip and its code are where the test above holds
@@ -113,21 +147,29 @@ describe('the invoice samples', () => {
   // 12 pt under it, the firm's line the first under it. A mark missing,
   // moved, scaled or recoloured, drawn twice, or crowding the line that
   // says whom the invoice is from would each show here.
-  test.each(INVOICE_SAMPLES.map((sample) => [sample.id, sample] as const))('%s prints the firm’s mark at the head of its page, above the line that says whom it is from', async (_id, sample) => {
-    const pdf = await readPdf(await renderPdf(resolved(sample), { maxPages: 20 }))
-    const [page] = pdf.pages as [PdfPage]
-    expect(marksOn(page)).toEqual([markAt(MARGIN)])
-    expect(page.images).toEqual([])
-    expect(crowding(page, markAt(MARGIN))).toEqual([])
-    expect(pageLines(page)[0]?.text).toMatch(/^Formancy /)
-  }, TIMEOUT)
+  test.each(INVOICE_SAMPLES.map((sample) => [sample.id, sample] as const))(
+    '%s prints the firm’s mark at the head of its page, above the line that says whom it is from',
+    async (_id, sample) => {
+      const pdf = await readPdf(await renderPdf(resolved(sample), { maxPages: 20 }))
+      const [page] = pdf.pages as [PdfPage]
+      expect(marksOn(page)).toEqual([markAt(MARGIN)])
+      expect(page.images).toEqual([])
+      expect(crowding(page, markAt(MARGIN))).toEqual([])
+      expect(pageLines(page)[0]?.text).toMatch(/^Formancy /)
+    },
+    TIMEOUT,
+  )
 
   // The operator list says the mark's paths stand inside a clip of its
   // box; that nothing of them shows past it is the pixels' to say (0030):
   // PDF.js draws the disc in its blue and the drop in white, and leaves the
   // paper white in a band 2 pt around the box, beside the slip's code.
-  test('draws the mark inside its box and nothing of it past it, by its pixels', async () => {
-    const bytes = await renderPdf(resolved(INVOICE), { maxPages: 20 })
-    expect(await markPixels(bytes, markAt(MARGIN))).toEqual({ disc: '#1f4e79', drop: '#ffffff', around: [] })
-  }, TIMEOUT)
+  test(
+    'draws the mark inside its box and nothing of it past it, by its pixels',
+    async () => {
+      const bytes = await renderPdf(resolved(INVOICE), { maxPages: 20 })
+      expect(await markPixels(bytes, markAt(MARGIN))).toEqual({ disc: '#1f4e79', drop: '#ffffff', around: [] })
+    },
+    TIMEOUT,
+  )
 })

@@ -76,7 +76,10 @@ export const REQUEST_TIMEOUT_MS = 300_000
 /** What is wrong with a role policy an embedder passes, or `undefined`. */
 function rolesProblem(roles: unknown): string | undefined {
   const given = roles as Record<string, unknown> | null
-  const lists = given !== null && typeof given === 'object' && CAPACITIES.every((capacity) => Array.isArray(given[capacity]) && (given[capacity] as unknown[]).every((role) => typeof role === 'string' && role !== ''))
+  const lists =
+    given !== null &&
+    typeof given === 'object' &&
+    CAPACITIES.every((capacity) => Array.isArray(given[capacity]) && (given[capacity] as unknown[]).every((role) => typeof role === 'string' && role !== ''))
   return lists ? undefined : 'roles is { author, publisher, admin }, each a list of the host’s roles.'
 }
 
@@ -87,14 +90,19 @@ function rolesProblem(roles: unknown): string | undefined {
  */
 function loggerProblem(logger: unknown): string | undefined {
   const stream = (logger as { stream?: { write?: unknown } | null } | null | undefined)?.stream
-  return logger === undefined || typeof stream?.write === 'function' ? undefined : 'logger is { stream } whose write(line) takes each log line; leave it out for no log.'
+  return logger === undefined || typeof stream?.write === 'function'
+    ? undefined
+    : 'logger is { stream } whose write(line) takes each log line; leave it out for no log.'
 }
 
 /**
  * The port's methods, each a key of `TemplateStore`, and every one of them:
  * a method the port gains fails to compile here until it is checked.
  */
-const STORE_METHODS = Object.keys({ list: true, newest: true, save: true, keepImage: true, readImage: true, imageKind: true } satisfies Record<keyof TemplateStore, true>)
+const STORE_METHODS = Object.keys({ list: true, newest: true, save: true, keepImage: true, readImage: true, imageKind: true } satisfies Record<
+  keyof TemplateStore,
+  true
+>)
 const STORE_PROBLEM = `store is a TemplateStore, whose ${STORE_METHODS.join(', ').replace(/, (?=[^,]*$)/, ' and ')} are each a function, as openFileTemplateStore answers one.`
 
 /**
@@ -110,7 +118,7 @@ function storeProblem(store: unknown): string | undefined {
 }
 
 /** A copy of an embedder's list, frozen, so a list changed after it was checked is never granted unchecked. */
-const frozen = <T>(list: readonly T[] | undefined): readonly T[] => Object.freeze(Array.isArray(list) ? [...list] : (list ?? []))
+const frozen = <T>(list: readonly T[] | undefined): readonly T[] => Object.freeze(Array.isArray(list) ? Array.from<T>(list) : (list ?? []))
 
 /**
  * A request as the log names it: its method and the route that answered,
@@ -144,12 +152,27 @@ export async function createReportServer(options: ReportServerOptions): Promise<
   const trustedProxies = frozen(options.trustedProxies)
   const limit = options.rateLimit ?? DEFAULT_RATE_LIMIT
   const auditKey = options.audit?.key
-  const auditKeyProblem = auditKey !== undefined && (typeof auditKey !== 'string' || shortAuditKey(auditKey)) ? `audit.key is at least ${String(AUDIT_KEY_MIN_BYTES)} bytes, as FORMANCY_REPORT_AUDIT_KEY is.` : undefined
-  for (const problem of [rolesProblem(options.roles), storeProblem(options.store), originsProblem(origins), trustedProxiesProblem(trustedProxies), rateLimitProblem(limit), auditKeyProblem, loggerProblem(options.logger)]) {
+  const auditKeyProblem =
+    auditKey !== undefined && (typeof auditKey !== 'string' || shortAuditKey(auditKey))
+      ? `audit.key is at least ${String(AUDIT_KEY_MIN_BYTES)} bytes, as FORMANCY_REPORT_AUDIT_KEY is.`
+      : undefined
+  for (const problem of [
+    rolesProblem(options.roles),
+    storeProblem(options.store),
+    originsProblem(origins),
+    trustedProxiesProblem(trustedProxies),
+    rateLimitProblem(limit),
+    auditKeyProblem,
+    loggerProblem(options.logger),
+  ]) {
     if (problem !== undefined) throw new Error(problem)
   }
   const store = options.store
-  const roles: RolePolicy = Object.freeze({ author: frozen(options.roles.author), publisher: frozen(options.roles.publisher), admin: frozen(options.roles.admin) })
+  const roles: RolePolicy = Object.freeze({
+    author: frozen(options.roles.author),
+    publisher: frozen(options.roles.publisher),
+    admin: frozen(options.roles.admin),
+  })
 
   const logger = options.logger
   const app = Fastify({
@@ -183,7 +206,12 @@ export async function createReportServer(options: ReportServerOptions): Promise<
   // Every route but /health is reachable by anybody holding a browser and
   // begins with a signature check. Counted by the address the log names,
   // an IPv6 client by its /64.
-  await app.register(rateLimit, { global: true, max: limit.max, timeWindow: limit.timeWindowMs, keyGenerator: (request) => normalizeIP(clientAddress(request)) })
+  await app.register(rateLimit, {
+    global: true,
+    max: limit.max,
+    timeWindow: limit.timeWindowMs,
+    keyGenerator: (request) => normalizeIP(clientAddress(request)),
+  })
 
   // Answered here, before any route's work and before a body is read:
   //  - a path a proxy could read otherwise than the router, which is not
@@ -218,8 +246,13 @@ export async function createReportServer(options: ReportServerOptions): Promise<
     // the identity hook.
     if (error instanceof StoredRecordError || error instanceof StoreFileSystemError) {
       const tenant = auditReference(auditKey, 'tenant', (request.identity as ReportIdentity).tenant)
-      if (error instanceof StoredRecordError) request.log.error({ why: error.why, file: error.withinTenant, tenant }, 'a stored record is not what the store wrote, and was not served')
-      else request.log.error({ code: error.code, operation: error.operation, file: error.withinTenant, tenant }, 'the store’s file system failed it, and nothing was answered from it')
+      if (error instanceof StoredRecordError)
+        request.log.error({ why: error.why, file: error.withinTenant, tenant }, 'a stored record is not what the store wrote, and was not served')
+      else
+        request.log.error(
+          { code: error.code, operation: error.operation, file: error.withinTenant, tenant },
+          'the store’s file system failed it, and nothing was answered from it',
+        )
       return reply.code(500).send(REFUSALS.internal)
     }
     const status = error.statusCode
@@ -281,7 +314,13 @@ export async function createReportServer(options: ReportServerOptions): Promise<
 
     api.get('/v1/whoami', async (request): Promise<WhoAmI> => {
       const identity = request.identity as ReportIdentity
-      return { subject: identity.subject, tenant: identity.tenant, roles: identity.roles, capacities: capacitiesOf(identity, roles), actions: actionsOf(identity, roles) }
+      return {
+        subject: identity.subject,
+        tenant: identity.tenant,
+        roles: identity.roles,
+        capacities: capacitiesOf(identity, roles),
+        actions: actionsOf(identity, roles),
+      }
     })
 
     registerDraftRoutes(api, { store, roles })

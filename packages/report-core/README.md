@@ -298,8 +298,8 @@ one.
   `QR_BILL_EXAMPLE` (`example-payment-part`, one warning on `/paymentPart`
   naming each term that is an example).
 
-Every member read is checked as its type. `@formancy/expressions` 0.7.0,
-as 0.5.0 and 0.6.0 before it, declares a variable only by its whole name, so each read of `row.amount` is
+Every member read is checked as its type. `@formancy/expressions` 0.11.0,
+as 0.5.0 to 0.7.0 before it, declares a variable only by its whole name, so each read of `row.amount` is
 spliced, by upstream's own `rewritePath`, into a read of `row_amount`, a
 variable declared as a decimal. An exact value is used as what it is,
 `row.amount * dec("1.081")`, and `dec(row.amount)` is a type error. A member

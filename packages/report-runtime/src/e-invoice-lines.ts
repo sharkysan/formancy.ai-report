@@ -35,8 +35,29 @@
  */
 import { compareDecimal, decimalFromString, decimalToString } from '@formancy/expressions'
 import type { Decimal } from '@formancy/expressions'
-import { checkEInvoiceDecimal, checkEInvoiceText, checkLineCategory, E_INVOICE_DECIMALS, E_INVOICE_LINE_CODES, E_INVOICE_LINE_COLUMNS, E_INVOICE_TEXTS, eInvoiceBlank, en16931Rule, walkComponents } from '@formancy/report-spec'
-import type { EInvoice, EInvoiceDecimalTerm, EInvoiceLineCode, EInvoiceLineColumn, EInvoiceLineTerm, EInvoiceTextTerm, En16931Rule, FieldType, TableComponent, VatCategory } from '@formancy/report-spec'
+import {
+  checkEInvoiceDecimal,
+  checkEInvoiceText,
+  checkLineCategory,
+  E_INVOICE_DECIMALS,
+  E_INVOICE_LINE_CODES,
+  E_INVOICE_LINE_COLUMNS,
+  E_INVOICE_TEXTS,
+  eInvoiceBlank,
+  en16931Rule,
+  walkComponents,
+} from '@formancy/report-spec'
+import type {
+  EInvoice,
+  EInvoiceDecimalTerm,
+  EInvoiceLineCode,
+  EInvoiceLineColumn,
+  EInvoiceLineTerm,
+  EInvoiceTextTerm,
+  En16931Rule,
+  TableComponent,
+  VatCategory,
+} from '@formancy/report-spec'
 import { roundDecimalAs } from './decimal.js'
 import { lineNetAmount } from './e-invoice-totals.js'
 import type { TypedValue } from './format.js'
@@ -69,7 +90,15 @@ export interface LineTerms {
 type LineKey = EInvoiceLineColumn | EInvoiceLineCode
 
 /** The key of each term of `LineTerms` the e-invoice names a column or a code by. */
-const TERM_OF: { readonly [K in LineKey]: keyof LineTerms } = { name: 'name', quantity: 'quantity', netPrice: 'netPrice', netAmount: 'netAmount', id: 'id', unit: 'unit', vat: 'category' }
+const TERM_OF: { readonly [K in LineKey]: keyof LineTerms } = {
+  name: 'name',
+  quantity: 'quantity',
+  netPrice: 'netPrice',
+  netAmount: 'netAmount',
+  id: 'id',
+  unit: 'unit',
+  vat: 'category',
+}
 
 /** A line as a render read it from its row: each term, null where a preview has no value for it, and the row's index in the data. */
 export type ReadLine = { readonly [K in keyof LineTerms]: LineTerms[K] | null } & { readonly row: number }
@@ -93,13 +122,20 @@ interface Place {
 }
 
 function refuse(render: Reading, place: Place, message: string): undefined {
-  render.problems.error({ stage: 'resolve', code: 'invalid-e-invoice', path: place.path, message: `${place.said}, detail row ${place.row}: ${message}`, ...placed(place) })
+  render.problems.error({
+    stage: 'resolve',
+    code: 'invalid-e-invoice',
+    path: place.path,
+    message: `${place.said}, detail row ${place.row}: ${message}`,
+    ...placed(place),
+  })
   return undefined
 }
 
 /** The rule a term with no value breaks: every line term is needed. */
 function required(term: EInvoiceLineTerm): string {
-  const rule = term.term in E_INVOICE_DECIMALS ? E_INVOICE_DECIMALS[term.term as EInvoiceDecimalTerm].required : E_INVOICE_TEXTS[term.term as EInvoiceTextTerm].required
+  const rule =
+    term.term in E_INVOICE_DECIMALS ? E_INVOICE_DECIMALS[term.term as EInvoiceDecimalTerm].required : E_INVOICE_TEXTS[term.term as EInvoiceTextTerm].required
   // Every term of a line has the rule of CEN's its absence breaks (`en16931.test.ts`).
   return en16931Rule(rule as En16931Rule, 'has no value, and every line of an e-invoice has one')
 }
@@ -118,9 +154,11 @@ function checked(render: Reading, term: EInvoiceLineTerm, value: TypedValue | nu
   if (value === null || (render.preview && value.type === 'string' && eInvoiceBlank(value.value))) {
     return render.preview ? null : refuse(render, place, `${term.what} ${required(term)}`)
   }
-  if (!term.types.includes(value.type as FieldType)) return refuse(render, place, `${term.what} is read from ${term.types.map(aType).join(' or ')}, and this gives ${aType(value.type)}`)
+  if (!term.types.includes(value.type))
+    return refuse(render, place, `${term.what} is read from ${term.types.map(aType).join(' or ')}, and this gives ${aType(value.type)}`)
   const text = written(value)
-  const outcome = term.term in E_INVOICE_DECIMALS ? checkEInvoiceDecimal(term.term as EInvoiceDecimalTerm, text) : checkEInvoiceText(term.term as EInvoiceTextTerm, text)
+  const outcome =
+    term.term in E_INVOICE_DECIMALS ? checkEInvoiceDecimal(term.term as EInvoiceDecimalTerm, text) : checkEInvoiceText(term.term as EInvoiceTextTerm, text)
   return outcome.ok ? outcome.value : refuse(render, place, `${term.what} ${outcome.rule}`)
 }
 
@@ -136,12 +174,21 @@ interface NamedColumn {
 /** The table the lines are the rows of, and the columns that print their terms. */
 function namedColumns(render: Reading, invoice: EInvoice): { readonly table: TableComponent; readonly columns: readonly NamedColumn[] } {
   // report-spec's validator holds the lines to this table, and each named column to it: shown, and a detail field or an expression.
-  const located = walkComponents(render.report).find(({ component }) => component.kind === 'table' && component.id === invoice.lines.table) as { readonly component: TableComponent; readonly path: string }
+  const located = walkComponents(render.report).find(({ component }) => component.kind === 'table' && component.id === invoice.lines.table) as {
+    readonly component: TableComponent
+    readonly path: string
+  }
   const table = located.component
   const columns = (Object.keys(E_INVOICE_LINE_COLUMNS) as EInvoiceLineColumn[]).map((key): NamedColumn => {
     const index = table.columns.findIndex((column) => column.id === invoice.lines[key])
     const column = table.columns[index] as TableComponent['columns'][number]
-    return { key, id: column.id, value: column.value as BoundInline, path: `${located.path}/columns/${index}/value`, printed: new Array<TypedValue | null>(render.data.detail.length).fill(null) }
+    return {
+      key,
+      id: column.id,
+      value: column.value as BoundInline,
+      path: `${located.path}/columns/${index}/value`,
+      printed: new Array<TypedValue | null>(render.data.detail.length).fill(null),
+    }
   })
   return { table, columns }
 }
@@ -171,7 +218,11 @@ function readColumn(render: Reading, scope: Scope, column: NamedColumn, place: P
   const text = checked(render, term, value, place)
   const places = typeof text === 'string' ? roundingPlaces(column, value as TypedValue) : undefined
   if (places === undefined) return text
-  return refuse(render, place, `${term.what} has more places than its column prints, ${places}, so the page would print another than the XML holds: the column prints the places the data gives`)
+  return refuse(
+    render,
+    place,
+    `${term.what} has more places than its column prints, ${places}, so the page would print another than the XML holds: the column prints the places the data gives`,
+  )
 }
 
 /** The line of `row`, every term read and held to its rule; undefined when a term is refused or could not be read, which is recorded. */
@@ -183,15 +234,34 @@ function readLine(render: Reading, invoice: EInvoice, table: TableComponent, col
     if (value === undefined) whole = false
     else terms[TERM_OF[key]] = value
   }
-  const placeOf = (column: NamedColumn): Place => ({ path: column.path, said: `component ${table.id}, column ${column.id}`, componentId: table.id, columnId: column.id, row: row.index })
+  const placeOf = (column: NamedColumn): Place => ({
+    path: column.path,
+    said: `component ${table.id}, column ${column.id}`,
+    componentId: table.id,
+    columnId: column.id,
+    row: row.index,
+  })
   for (const column of columns) {
     const text = readColumn(render, scope, column, placeOf(column))
     keep(column.key, column.key === 'netAmount' && typeof text === 'string' ? decimalFromString(text) : text)
   }
   const { quantity, netPrice, netAmount } = terms as Partial<Record<'quantity' | 'netPrice', string | null>> & { readonly netAmount?: Decimal | null }
-  if (typeof quantity === 'string' && typeof netPrice === 'string' && netAmount !== undefined && netAmount !== null && compareDecimal(lineNetAmount(quantity, netPrice), netAmount) !== 0) {
+  if (
+    typeof quantity === 'string' &&
+    typeof netPrice === 'string' &&
+    netAmount !== undefined &&
+    netAmount !== null &&
+    compareDecimal(lineNetAmount(quantity, netPrice), netAmount) !== 0
+  ) {
     const amount = columns.find(({ key }) => key === 'netAmount') as NamedColumn
-    keep('netAmount', refuse(render, placeOf(amount), `${E_INVOICE_LINE_COLUMNS.netAmount.what} is not ${E_INVOICE_LINE_COLUMNS.quantity.what} times ${E_INVOICE_LINE_COLUMNS.netPrice.what}, rounded once to the cent: a receiver that multiplies them reads another amount`))
+    keep(
+      'netAmount',
+      refuse(
+        render,
+        placeOf(amount),
+        `${E_INVOICE_LINE_COLUMNS.netAmount.what} is not ${E_INVOICE_LINE_COLUMNS.quantity.what} times ${E_INVOICE_LINE_COLUMNS.netPrice.what}, rounded once to the cent: a receiver that multiplies them reads another amount`,
+      ),
+    )
   }
   for (const key of Object.keys(E_INVOICE_LINE_CODES) as EInvoiceLineCode[]) {
     const code = invoice.lines[key]
@@ -229,7 +299,11 @@ export function readLines(render: Reading, invoice: EInvoice): ReadLines | undef
     if (line === undefined) whole = false
     else if (line.id !== null && ids.has(line.id)) {
       // BT-126 is the line's own (EN 16931, as XRechnung 3.0.2 gives its model): the later of two is refused.
-      refuse(render, { path: '/eInvoice/lines/id', said: 'the e-invoice', row: row.index }, `${E_INVOICE_LINE_CODES.id.what} is an earlier line's, and each line of an e-invoice has its own`)
+      refuse(
+        render,
+        { path: '/eInvoice/lines/id', said: 'the e-invoice', row: row.index },
+        `${E_INVOICE_LINE_CODES.id.what} is an earlier line's, and each line of an e-invoice has its own`,
+      )
       whole = false
     } else {
       if (line.id !== null) ids.add(line.id)

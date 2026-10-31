@@ -45,7 +45,11 @@ export const DATA = Uint8Array.from([0x78, 0x9c, 1, 2, 3, 4])
 
 /** An 8 × 8 truecolour PNG of `DATA`. */
 export function rgbPng(): Uint8Array {
-  return pngOf([['IHDR', ihdr(8, 8)], ['IDAT', DATA], ['IEND', NONE]])
+  return pngOf([
+    ['IHDR', ihdr(8, 8)],
+    ['IDAT', DATA],
+    ['IEND', NONE],
+  ])
 }
 
 const segment = (marker: number, body: readonly number[]): number[] => [0xff, marker, (body.length + 2) >> 8, (body.length + 2) & 0xff, ...body]
@@ -68,12 +72,22 @@ export function exifSegment(orientation: number): number[] {
  * of one code each, and a scan of those codes. `exif` and `segments` stand
  * after the start, `afterFrame` after the frame header.
  */
-export function jpegOf({ height = 8, width = 8, scan = true, end = true, exif = [] as readonly number[], components = 1, segments = [] as readonly number[], afterFrame = [] as readonly number[] } = {}): Uint8Array {
+export function jpegOf({
+  height = 8,
+  width = 8,
+  scan = true,
+  end = true,
+  exif = [] as readonly number[],
+  components = 1,
+  segments = [] as readonly number[],
+  afterFrame = [] as readonly number[],
+} = {}): Uint8Array {
   const oneCodeTable = (classAndId: number): number[] => [classAndId, 1, ...Array<number>(15).fill(0), 0]
   const ids = Array.from({ length: components }, (_, index) => index + 1)
   const bits = 2 * components
   return Uint8Array.from([
-    0xff, 0xd8, // start of image
+    0xff,
+    0xd8, // start of image
     ...exif,
     ...segments,
     ...segment(0xdb, [0, ...Array<number>(64).fill(1)]), // quantisation table 0
@@ -81,7 +95,12 @@ export function jpegOf({ height = 8, width = 8, scan = true, end = true, exif = 
     ...afterFrame,
     ...segment(0xc4, oneCodeTable(0x00)), // DC table 0
     ...segment(0xc4, oneCodeTable(0x10)), // AC table 0
-    ...(scan ? [...segment(0xda, [components, ...ids.flatMap((id) => [id, 0x00]), 0, 63, 0]), ...Array.from({ length: Math.ceil(bits / 8) }, (_, byte) => (0xff >> Math.min(8, bits - 8 * byte)) & 0xff)] : []),
+    ...(scan
+      ? [
+          ...segment(0xda, [components, ...ids.flatMap((id) => [id, 0x00]), 0, 63, 0]),
+          ...Array.from({ length: Math.ceil(bits / 8) }, (_, byte) => (0xff >> Math.min(8, bits - 8 * byte)) & 0xff),
+        ]
+      : []),
     ...(end ? [0xff, 0xd9] : []), // end of image
   ])
 }

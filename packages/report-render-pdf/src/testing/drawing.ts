@@ -62,7 +62,14 @@ type Matrix = readonly [number, number, number, number, number, number]
 
 /** `m` applied first, then `n`. */
 function multiply(m: Matrix, n: Matrix): Matrix {
-  return [m[0] * n[0] + m[1] * n[2], m[0] * n[1] + m[1] * n[3], m[2] * n[0] + m[3] * n[2], m[2] * n[1] + m[3] * n[3], m[4] * n[0] + m[5] * n[2] + n[4], m[4] * n[1] + m[5] * n[3] + n[5]]
+  return [
+    m[0] * n[0] + m[1] * n[2],
+    m[0] * n[1] + m[1] * n[3],
+    m[2] * n[0] + m[3] * n[2],
+    m[2] * n[1] + m[3] * n[3],
+    m[4] * n[0] + m[5] * n[2] + n[4],
+    m[4] * n[1] + m[5] * n[3] + n[5],
+  ]
 }
 
 function apply(m: Matrix, x: number, y: number): [number, number] {
@@ -90,7 +97,12 @@ export function readDrawing(bytes: Uint8Array): DrawnPage[] {
     const contents = object(/\/Contents (\d+) 0 R/.exec(page)![1]!)
     const stream = contents.slice(contents.indexOf('stream\n') + 7, contents.lastIndexOf('\nendstream'))
     const resources = object(/\/Resources (\d+) 0 R/.exec(page)![1]!)
-    const fonts = new Map([...(/\/Font <<([^>]*)>>/.exec(resources)?.[1] ?? '').matchAll(/\/(\S+) (\d+) 0 R/g)].map(([, name, ref]) => [name!, /\/BaseFont \/(?:[A-Z]{6}\+)?(\S+)/.exec(object(ref!))![1]!]))
+    const fonts = new Map(
+      [...(/\/Font <<([^>]*)>>/.exec(resources)?.[1] ?? '').matchAll(/\/(\S+) (\d+) 0 R/g)].map(([, name, ref]) => [
+        name!,
+        /\/BaseFont \/(?:[A-Z]{6}\+)?(\S+)/.exec(object(ref!))![1]!,
+      ]),
+    )
     return { number: index + 1, ...interpret(inflateSync(Buffer.from(stream, 'latin1')).toString('latin1'), height, fonts) }
   })
 }
@@ -121,10 +133,24 @@ function interpret(content: string, height: number, fonts: ReadonlyMap<string, s
     for (const each of path) {
       const xs = each.points.map(([x]) => x)
       const ys = each.points.map(([, y]) => height - y)
-      const box = { kind: each.kind, x: Math.min(...xs), top: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) }
+      const box = {
+        kind: each.kind,
+        x: Math.min(...xs),
+        top: Math.min(...ys),
+        width: Math.max(...xs) - Math.min(...xs),
+        height: Math.max(...ys) - Math.min(...ys),
+      }
       if (clip) clips.push(box)
       const points = each.points.map(([x, y]) => [x, height - y] as const)
-      if (fill || stroke) shapes.push({ ...box, ...(fill ? { fill: state.fill } : {}), ...(stroke ? { stroke: state.stroke } : {}), lineWidth: state.lineWidth, paint: paints, points })
+      if (fill || stroke)
+        shapes.push({
+          ...box,
+          ...(fill ? { fill: state.fill } : {}),
+          ...(stroke ? { stroke: state.stroke } : {}),
+          lineWidth: state.lineWidth,
+          paint: paints,
+          points,
+        })
     }
     if (fill || stroke) paints++
     path = []

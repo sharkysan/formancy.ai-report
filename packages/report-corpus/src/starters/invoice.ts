@@ -41,7 +41,8 @@ const CHF = { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 
 const text = (value: string) => [{ kind: 'text', text: value }] as const
 
 /** The line at the head of the invoice: the firm, its address, and its UID as the VAT number it is. */
-const sender = (firm: Party, vatNumber: string): string => `${firm.name} · ${firm.street} ${firm.buildingNumber} · ${firm.postalCode} ${firm.town} · CHE-123.456.789 ${vatNumber}`
+const sender = (firm: Party, vatNumber: string): string =>
+  `${firm.name} · ${firm.street} ${firm.buildingNumber} · ${firm.postalCode} ${firm.town} · CHE-123.456.789 ${vatNumber}`
 
 /** The invoice's report in the edition's words, its slip in the edition's language. */
 function report(edition: Edition): ReportDefinition {
@@ -89,7 +90,12 @@ function report(edition: Edition): ReportDefinition {
     assets: [LOGO_ASSET],
     aggregates: [
       { id: 'subtotal', fn: 'sum', of: { kind: 'field', field: detail('amount') } },
-      { id: 'total', fn: 'sum', of: { kind: 'expression', expression: { cel: 'row.amount * dec("1.081")' } }, rounding: { scale: 2, mode: 'half-away-from-zero' } },
+      {
+        id: 'total',
+        fn: 'sum',
+        of: { kind: 'expression', expression: { cel: 'row.amount * dec("1.081")' } },
+        rounding: { scale: 2, mode: 'half-away-from-zero' },
+      },
     ],
     regions: {
       pageHeader: [],
@@ -105,17 +111,56 @@ function report(edition: Edition): ReportDefinition {
               width: 'fill',
               components: [
                 { id: 'customer', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('customer') }] },
-                { id: 'street', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('street') }, { kind: 'text', text: ' ' }, { kind: 'field', field: header('buildingNumber') }] },
-                { id: 'city', kind: 'text', style: 'address', content: [{ kind: 'field', field: header('postcode') }, { kind: 'text', text: ' ' }, { kind: 'field', field: header('city') }] },
+                {
+                  id: 'street',
+                  kind: 'text',
+                  style: 'address',
+                  content: [
+                    { kind: 'field', field: header('street') },
+                    { kind: 'text', text: ' ' },
+                    { kind: 'field', field: header('buildingNumber') },
+                  ],
+                },
+                {
+                  id: 'city',
+                  kind: 'text',
+                  style: 'address',
+                  content: [
+                    { kind: 'field', field: header('postcode') },
+                    { kind: 'text', text: ' ' },
+                    { kind: 'field', field: header('city') },
+                  ],
+                },
               ],
             },
             {
               width: 190,
               components: [
                 { id: 'title', kind: 'text', style: 'title', content: text(edition.heading) },
-                { id: 'number', kind: 'text', content: [{ kind: 'text', text: edition.numberIs }, { kind: 'field', field: header('number') }] },
-                { id: 'issued-on', kind: 'text', content: [{ kind: 'text', text: edition.issuedOnIs }, { kind: 'field', field: header('issuedOn'), format: { kind: 'date', style: 'medium' } }] },
-                { id: 'due-on', kind: 'text', content: [{ kind: 'text', text: edition.dueOnIs }, { kind: 'field', field: header('dueOn'), format: { kind: 'date', style: 'medium' } }] },
+                {
+                  id: 'number',
+                  kind: 'text',
+                  content: [
+                    { kind: 'text', text: edition.numberIs },
+                    { kind: 'field', field: header('number') },
+                  ],
+                },
+                {
+                  id: 'issued-on',
+                  kind: 'text',
+                  content: [
+                    { kind: 'text', text: edition.issuedOnIs },
+                    { kind: 'field', field: header('issuedOn'), format: { kind: 'date', style: 'medium' } },
+                  ],
+                },
+                {
+                  id: 'due-on',
+                  kind: 'text',
+                  content: [
+                    { kind: 'text', text: edition.dueOnIs },
+                    { kind: 'field', field: header('dueOn'), format: { kind: 'date', style: 'medium' } },
+                  ],
+                },
               ],
             },
           ],
@@ -130,7 +175,13 @@ function report(edition: Edition): ReportDefinition {
           columns: [
             { id: 'article', header: columns[0], width: 82, align: 'left', value: { kind: 'field', field: detail('article') } },
             { id: 'description', header: columns[1], width: 'fill', align: 'left', value: { kind: 'field', field: detail('description') } },
-            { id: 'quantity', header: columns[2], width: 50, align: 'right', value: { kind: 'field', field: detail('quantity'), format: { kind: 'number', scale: 2, grouping: true } } },
+            {
+              id: 'quantity',
+              header: columns[2],
+              width: 50,
+              align: 'right',
+              value: { kind: 'field', field: detail('quantity'), format: { kind: 'number', scale: 2, grouping: true } },
+            },
             { id: 'unit', header: columns[3], width: 58, align: 'left', value: { kind: 'field', field: detail('unit') } },
             { id: 'unit-price', header: columns[4], width: 82, align: 'right', value: { kind: 'field', field: detail('unitPrice'), format: CHF } },
             { id: 'amount', header: columns[5], width: 92, align: 'right', value: { kind: 'field', field: detail('amount'), format: CHF } },
@@ -163,7 +214,15 @@ function report(edition: Edition): ReportDefinition {
       ],
       summary: [
         { id: 'summary-gap', kind: 'spacer', height: 12 },
-        { id: 'terms', kind: 'text', content: [{ kind: 'text', text: edition.terms[0] }, { kind: 'field', field: header('dueOn'), format: { kind: 'date', style: 'long' } }, { kind: 'text', text: edition.terms[1] }] },
+        {
+          id: 'terms',
+          kind: 'text',
+          content: [
+            { kind: 'text', text: edition.terms[0] },
+            { kind: 'field', field: header('dueOn'), format: { kind: 'date', style: 'long' } },
+            { kind: 'text', text: edition.terms[1] },
+          ],
+        },
       ],
       pageFooter: [],
     },
@@ -190,7 +249,10 @@ function report(edition: Edition): ReportDefinition {
         country: text('CH'),
       },
       reference: [{ kind: 'field', field: header('reference') }],
-      message: [{ kind: 'text', text: edition.message }, { kind: 'field', field: header('number') }],
+      message: [
+        { kind: 'text', text: edition.message },
+        { kind: 'field', field: header('number') },
+      ],
     },
     provenance: { kind: 'blank' },
   }
@@ -198,7 +260,16 @@ function report(edition: Edition): ReportDefinition {
 
 /** The edition's line items, its article numbers from 2001 up, given in the reverse of the order the report prints them in. */
 function lines(edition: Edition): Record<string, string>[] {
-  return edition.items.map(([description, unit, quantity, unitPrice], index) => ({ article: `${edition.articles}-${2001 + index}`, description, quantity, unit, unitPrice, amount: lineAmount(quantity, unitPrice) })).reverse()
+  return edition.items
+    .map(([description, unit, quantity, unitPrice], index) => ({
+      article: `${edition.articles}-${2001 + index}`,
+      description,
+      quantity,
+      unit,
+      unitPrice,
+      amount: lineAmount(quantity, unitPrice),
+    }))
+    .reverse()
 }
 
 /** The edition's data: its header, with its customer and its QR reference, and its line items. */
@@ -224,7 +295,14 @@ function data(edition: Edition): ReportData {
 }
 
 /** The invoice in the edition's language, with its data. */
-const invoice = (edition: Edition): Starter => ({ id: edition.id, title: edition.title, proves: edition.proves, report: report(edition), data: data(edition), parameters: {} })
+const invoice = (edition: Edition): Starter => ({
+  id: edition.id,
+  title: edition.title,
+  proves: edition.proves,
+  report: report(edition),
+  data: data(edition),
+  parameters: {},
+})
 
 /** The invoice's line items, `R-2001` up, given in the reverse of the order the report prints them in. */
 export function invoiceLines(): Record<string, string>[] {

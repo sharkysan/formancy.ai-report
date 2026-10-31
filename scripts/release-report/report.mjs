@@ -84,7 +84,8 @@ export function installPlanOf(manifests) {
  * gives it, by id, in the file's order. A check is held to these, as the
  * install gate to installPlanOf(), and not to its own list.
  */
-export const scenesOf = (scenes, apps) => Object.fromEntries(apps.map((app) => [app, scenes.filter((scene) => `apps/${scene.app}` === app).map((scene) => scene.id)]))
+export const scenesOf = (scenes, apps) =>
+  Object.fromEntries(apps.map((app) => [app, scenes.filter((scene) => `apps/${scene.app}` === app).map((scene) => scene.id)]))
 
 /**
  * The release body, and what is wrong with it: on a tag, the tag must be the
@@ -145,14 +146,32 @@ export function buildReport(inputs) {
     },
   }
   const { browserApps, pictureApps, browsers } = inputs
-  report.gates = evaluateGates(inputs.gatesRegister, { fileOutcome: outcome, browserGates: report.results.browserGates, browsers, needs: ci ? inputs.needs : null, documents: inputs.documents ?? {} })
+  report.gates = evaluateGates(inputs.gatesRegister, {
+    fileOutcome: outcome,
+    browserGates: report.results.browserGates,
+    browsers,
+    needs: ci ? inputs.needs : null,
+    documents: inputs.documents ?? {},
+  })
   const { problems: releaseProblems, ...release } = releaseOf(report, inputs)
   report.release = release
   report.problems = [
     ...(ci ? needsProblems(inputs.needs, inputs.jobs) : []),
     ...(ci ? artefactProblems(inputs.artefacts, { expected: inputs.expected, commit, runId: inputs.run.id }) : localResultsProblems(results)),
-    ...contentProblems(report, { published: inputs.published, installPlan: inputs.installPlan, eInvoiceTools: inputs.eInvoiceTools, container: { checks: inputs.containerChecks ?? [], base: inputs.containerBase ?? null }, browserApps, pictureApps, browsers, allowMissing, ci }),
-    ...gatesProblems(inputs.gatesRegister, { covered: covered.map((entry) => entry.path), browserApps, jobs: inputs.jobs, exists }).map((problem) => `docs/release/gates.json: ${problem}`),
+    ...contentProblems(report, {
+      published: inputs.published,
+      installPlan: inputs.installPlan,
+      eInvoiceTools: inputs.eInvoiceTools,
+      container: { checks: inputs.containerChecks ?? [], base: inputs.containerBase ?? null },
+      browserApps,
+      pictureApps,
+      browsers,
+      allowMissing,
+      ci,
+    }),
+    ...gatesProblems(inputs.gatesRegister, { covered: covered.map((entry) => entry.path), browserApps, jobs: inputs.jobs, exists }).map(
+      (problem) => `docs/release/gates.json: ${problem}`,
+    ),
     ...releaseGateProblems(report.gates, allowMissing),
     ...releaseProblems,
   ]
@@ -178,7 +197,10 @@ export function readResults(dir) {
 }
 
 /** `git+https://github.com/x/y.git` as the URL a link opens. */
-const browsable = (url) => String(url).replace(/^git\+/, '').replace(/\.git$/, '')
+const browsable = (url) =>
+  String(url)
+    .replace(/^git\+/, '')
+    .replace(/\.git$/, '')
 
 /** A document's last change and how many commits it is behind HEAD: what "stated" evidence is shown with. */
 function documentHistory(root, path) {
@@ -231,7 +253,10 @@ export function loadInputs(root, resultsDir, { ci = false, allowMissing = [], en
     return { ...common, mode: 'local', results, commit, release: '', allowMissing }
   }
   for (const name of ['NEEDS', 'GITHUB_SHA', 'GITHUB_RUN_ID']) {
-    if (env[name] === undefined || env[name] === '') throw new Error(`report.mjs reads a gates run, and ${name} is not set: in the report job NEEDS is toJSON(needs); on a machine, run collect.mjs --local and report.mjs --local`)
+    if (env[name] === undefined || env[name] === '')
+      throw new Error(
+        `report.mjs reads a gates run, and ${name} is not set: in the report job NEEDS is toJSON(needs); on a machine, run collect.mjs --local and report.mjs --local`,
+      )
   }
   return {
     ...common,
@@ -266,7 +291,11 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/release-report/repo
   const argv = process.argv.slice(2)
   const option = (name, fallback) => (argv.includes(name) ? argv[argv.indexOf(name) + 1] : fallback)
   const local = argv.includes('--local')
-  const allowMissing = local ? option('--allow-missing', '').split(',').filter((entry) => entry !== '') : []
+  const allowMissing = local
+    ? option('--allow-missing', '')
+        .split(',')
+        .filter((entry) => entry !== '')
+    : []
   const report = buildReport(loadInputs(repo, resolve(repo, option('--results', 'release-results')), { ci: !local, allowMissing }))
   const out = resolve(repo, option('--out', 'release-report'))
   const release = writeReport(report, out, { local, partial: allowMissing })

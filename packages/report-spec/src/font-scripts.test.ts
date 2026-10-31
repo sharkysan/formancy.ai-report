@@ -130,7 +130,8 @@ describe('PRINTED_BLOCKS', () => {
   // not listed.
   test('lists its blocks in code-point order, none overlapping another', () => {
     for (const entry of PRINTED_BLOCKS) expect(entry.from, entry.block).toBeLessThanOrEqual(entry.to)
-    for (let index = 1; index < PRINTED_BLOCKS.length; index += 1) expect(PRINTED_BLOCKS[index]!.from, PRINTED_BLOCKS[index]!.block).toBeGreaterThan(PRINTED_BLOCKS[index - 1]!.to)
+    for (let index = 1; index < PRINTED_BLOCKS.length; index += 1)
+      expect(PRINTED_BLOCKS[index]!.from, PRINTED_BLOCKS[index]!.block).toBeGreaterThan(PRINTED_BLOCKS[index - 1]!.to)
   })
 
   // Every bound holds: the first and the last code point of each entry

@@ -183,7 +183,11 @@ function readDataSource(errors: DataFindings, entries: ReadonlyMap<string, unkno
   }
   const unreadable = notData(errors, '/source/forms', read.problems, ROLES)
   if (read.entries.size === 0 && read.problems.length === 0) {
-    errors.report('/source/forms', 'invalid-source', 'a Formancy Data source names the form each dataset was read from, and data read from no form names no source')
+    errors.report(
+      '/source/forms',
+      'invalid-source',
+      'a Formancy Data source names the form each dataset was read from, and data read from no form names no source',
+    )
     return undefined
   }
   onlyKnown(errors, '/source/forms', read.entries, ROLES, 'forms is keyed by the datasets a report declares, header and detail')
@@ -193,7 +197,8 @@ function readDataSource(errors: DataFindings, entries: ReadonlyMap<string, unkno
     if (!read.entries.has(role)) {
       if (declared) errors.report('/source/forms', 'invalid-source', `the report declares a ${role} dataset, and the source names no form it was read from`)
     } else if (!declared) errors.report(at('/source/forms', role), 'invalid-source', `the report declares no ${role} dataset, so none was read from a form`)
-    else if (!isFormId(read.entries.get(role))) errors.report(at('/source/forms', role), 'invalid-source', `the published form the ${role} dataset was read from: ${FORM_ID}`)
+    else if (!isFormId(read.entries.get(role)))
+      errors.report(at('/source/forms', role), 'invalid-source', `the published form the ${role} dataset was read from: ${FORM_ID}`)
   }
   // In the datasets' order, whatever the host's: one source, one spelling.
   const forms = Object.fromEntries(ROLES.filter((role) => read.entries.has(role)).map((role) => [role, read.entries.get(role) as string]))

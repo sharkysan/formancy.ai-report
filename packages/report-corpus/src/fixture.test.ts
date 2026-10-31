@@ -10,7 +10,9 @@ describe('footerPattern', () => {
   // dot, a slash -- must match itself, not act as pattern syntax that
   // matches something else or fails to compile.
   test('matches the footer literally, each page field as a named number', () => {
-    const pattern = footerPattern([{ kind: 'paragraph', runs: [{ text: 'Seite ' }, { field: 'pageNumber' }, { text: ' / ' }, { field: 'pageCount' }, { text: ' (vertraulich.)' }] }])!
+    const pattern = footerPattern([
+      { kind: 'paragraph', runs: [{ text: 'Seite ' }, { field: 'pageNumber' }, { text: ' / ' }, { field: 'pageCount' }, { text: ' (vertraulich.)' }] },
+    ])!
     expect(pattern.exec('Seite 2 / 5 (vertraulich.)')?.groups).toEqual({ pageNumber: '2', pageCount: '5' })
     expect(pattern.test('Seite 2 / 5 (vertraulichX)')).toBe(false)
     expect(pattern.test('Seite 2 / 5 vertraulich.')).toBe(false)
@@ -61,7 +63,14 @@ describe('expectation', () => {
         blocks: [
           text('Summary'),
           { kind: 'paragraph', runs: [{ text: 'Printed on page ' }, { field: 'pageNumber' }] },
-          { kind: 'table', id: 'second', columns: [{ width: 'fill', align: 'left' }], header: ['Other'], rows: [{ kind: 'total', cells: ['B-total'] }], emptyText: ' Nothing  here ' },
+          {
+            kind: 'table',
+            id: 'second',
+            columns: [{ width: 'fill', align: 'left' }],
+            header: ['Other'],
+            rows: [{ kind: 'total', cells: ['B-total'] }],
+            emptyText: ' Nothing  here ',
+          },
           { kind: 'image', asset: { id: 'seal', mediaType: 'image/png', bytes: new Uint8Array() }, width: 10, height: 20, fit: 'contain' },
         ],
       },
@@ -82,7 +91,14 @@ describe('expectation', () => {
         header: ['Key', 'Amount'],
         rows: [
           { kind: 'groupHeader', key: 'Region A', cells: [{ column: 0, text: 'Region A' }] },
-          { kind: 'detail', key: 'A-1', cells: [{ column: 0, text: 'A-1' }, { column: 2, text: '12.50' }] },
+          {
+            kind: 'detail',
+            key: 'A-1',
+            cells: [
+              { column: 0, text: 'A-1' },
+              { column: 2, text: '12.50' },
+            ],
+          },
         ],
         emptyText: '',
       },
@@ -114,8 +130,19 @@ describe('expectation', () => {
   // itself would pass. A page region's image is drawn on every page, so it
   // is expected there and not once in the body.
   test("tells an SVG image from a PNG, and the page regions' images from the body's", () => {
-    const image = (id: string, mediaType: 'image/png' | 'image/svg+xml', width: number): Block => ({ kind: 'image', asset: { id, mediaType, bytes: new Uint8Array() }, width, height: 20, fit: 'contain' })
-    const regions = { ...document, pageHeader: [{ kind: 'keepTogether', blocks: [image('mark', 'image/svg+xml', 30)] }], pageFooter: [image('seal', 'image/png', 40)], body: [image('logo', 'image/svg+xml', 50)] } as const
+    const image = (id: string, mediaType: 'image/png' | 'image/svg+xml', width: number): Block => ({
+      kind: 'image',
+      asset: { id, mediaType, bytes: new Uint8Array() },
+      width,
+      height: 20,
+      fit: 'contain',
+    })
+    const regions = {
+      ...document,
+      pageHeader: [{ kind: 'keepTogether', blocks: [image('mark', 'image/svg+xml', 30)] }],
+      pageFooter: [image('seal', 'image/png', 40)],
+      body: [image('logo', 'image/svg+xml', 50)],
+    } as const
     const derived = expectation(regions, { maxPagesExpected: 2 })
     expect(derived.images).toEqual([{ kind: 'vector', width: 50, height: 20 }])
     expect(derived.pageRegionImages).toEqual([
@@ -130,8 +157,14 @@ describe('expectation', () => {
   // either is not, and one with neither is.
   test('expects no empty page unless the body has a spacer or a rule', () => {
     expect(expectation(document, { maxPagesExpected: 2 }).noEmptyPages).toBe(true)
-    for (const block of [{ kind: 'spacer', height: 10 }, { kind: 'rule', thickness: 0.5 }] as const) {
-      expect(expectation({ ...document, body: [...document.body, { kind: 'keepTogether', blocks: [block] }] }, { maxPagesExpected: 2 }).noEmptyPages, block.kind).toBe(false)
+    for (const block of [
+      { kind: 'spacer', height: 10 },
+      { kind: 'rule', thickness: 0.5 },
+    ] as const) {
+      expect(
+        expectation({ ...document, body: [...document.body, { kind: 'keepTogether', blocks: [block] }] }, { maxPagesExpected: 2 }).noEmptyPages,
+        block.kind,
+      ).toBe(false)
     }
   })
 
@@ -153,7 +186,13 @@ describe('epcCodes', () => {
   test('finds every EPC code, inside columns, sections and keep-together blocks, in document order', () => {
     const blocks: Block[] = [
       code('first'),
-      { kind: 'columns', columns: [{ width: 'fill', blocks: [text('details')] }, { width: 85.04, blocks: [code('in-column')] }] },
+      {
+        kind: 'columns',
+        columns: [
+          { width: 'fill', blocks: [text('details')] },
+          { width: 85.04, blocks: [code('in-column')] },
+        ],
+      },
       { kind: 'section', blocks: [{ kind: 'keepTogether', blocks: [text('heading'), code('kept-in-section')] }] },
       text('after'),
     ]

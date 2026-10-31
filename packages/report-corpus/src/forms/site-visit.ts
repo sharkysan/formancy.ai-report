@@ -114,7 +114,12 @@ function visitForm(messages: { readonly en: object; readonly 'de-CH': object }):
         { key: 'visitedOn', type: 'date', label: t('visitedOn'), required: true },
         { key: 'arrivedAt', type: 'datetime', label: t('arrivedAt') },
         { key: 'startedAt', type: 'time', label: t('startedAt') },
-        { key: 'outcome', type: 'radio', label: t('outcome'), options: [option('pass', 'outcome.pass'), option('repair', 'outcome.repair'), option('fail', 'outcome.fail')] },
+        {
+          key: 'outcome',
+          type: 'radio',
+          label: t('outcome'),
+          options: [option('pass', 'outcome.pass'), option('repair', 'outcome.repair'), option('fail', 'outcome.fail')],
+        },
         {
           key: 'inspector',
           type: 'group',
@@ -124,7 +129,12 @@ function visitForm(messages: { readonly en: object; readonly 'de-CH': object }):
             { key: 'licence', type: 'text', label: t('inspector.licence') },
           ],
         },
-        { key: 'checks', type: 'selectboxes', label: t('checks'), options: [option('roof', 'checks.roof'), option('wiring', 'checks.wiring'), option('boiler', 'checks.boiler')] },
+        {
+          key: 'checks',
+          type: 'selectboxes',
+          label: t('checks'),
+          options: [option('roof', 'checks.roof'), option('wiring', 'checks.wiring'), option('boiler', 'checks.boiler')],
+        },
         {
           key: 'condition',
           type: 'matrix',
@@ -167,7 +177,9 @@ export const SITE_VISIT_V2: Readonly<Record<string, unknown>> = visitForm({
 export const SITE_VISIT_V3: Readonly<Record<string, unknown>> = {
   ...SITE_VISIT_V2,
   model: {
-    fields: (SITE_VISIT_V2['model'] as { readonly fields: readonly { readonly key: string }[] }).fields.map((field) => (field.key === 'inspector' ? { ...field, key: 'technician', renamedFrom: 'inspector' } : field)),
+    fields: (SITE_VISIT_V2['model'] as { readonly fields: readonly { readonly key: string }[] }).fields.map((field) =>
+      field.key === 'inspector' ? { ...field, key: 'technician', renamedFrom: 'inspector' } : field,
+    ),
   },
 }
 
@@ -314,12 +326,29 @@ export const SITE_VISIT_REPORT: ReportDefinition = {
       {
         id: 'times',
         kind: 'text',
-        content: [text('Angekommen: '), { kind: 'field', field: header('arrivedAt'), format: { kind: 'date', style: 'medium' } }, text(', begonnen um '), { kind: 'field', field: header('startedAt') }],
+        content: [
+          text('Angekommen: '),
+          { kind: 'field', field: header('arrivedAt'), format: { kind: 'date', style: 'medium' } },
+          text(', begonnen um '),
+          { kind: 'field', field: header('startedAt') },
+        ],
       },
-      { id: 'inspector', kind: 'text', content: [text('Inspektor: '), { kind: 'field', field: header('inspector') }, text(', Ausweis '), { kind: 'field', field: header('licence') }] },
-      { id: 'outcome', kind: 'text', content: [text('Ergebnis: '), { kind: 'field', field: header('outcome') }, text(' ('), { kind: 'field', field: header('outcomeCode') }, text(')')] },
+      {
+        id: 'inspector',
+        kind: 'text',
+        content: [text('Inspektor: '), { kind: 'field', field: header('inspector') }, text(', Ausweis '), { kind: 'field', field: header('licence') }],
+      },
+      {
+        id: 'outcome',
+        kind: 'text',
+        content: [text('Ergebnis: '), { kind: 'field', field: header('outcome') }, text(' ('), { kind: 'field', field: header('outcomeCode') }, text(')')],
+      },
       { id: 'safety', kind: 'text', content: [text('Sicherheit: '), { kind: 'field', field: header('safety') }] },
-      { id: 'roof', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'header.roofChecked == true ? "Dach geprüft" : "Dach nicht geprüft"' } }] },
+      {
+        id: 'roof',
+        kind: 'text',
+        content: [{ kind: 'expression', expression: { cel: 'header.roofChecked == true ? "Dach geprüft" : "Dach nicht geprüft"' } }],
+      },
       { id: 'head-gap', kind: 'spacer', height: 12 },
     ],
     body: [

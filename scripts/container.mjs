@@ -229,7 +229,11 @@ async function stopped(name) {
     if (must(['inspect', '-f', '{{.State.Running}}', name]) === 'false') break
     await sleep(500)
   }
-  return { running: must(['inspect', '-f', '{{.State.Running}}', name]) === 'true', code: Number(must(['inspect', '-f', '{{.State.ExitCode}}', name])), output: docker(['logs', name]).output }
+  return {
+    running: must(['inspect', '-f', '{{.State.Running}}', name]) === 'true',
+    code: Number(must(['inspect', '-f', '{{.State.ExitCode}}', name])),
+    output: docker(['logs', name]).output,
+  }
 }
 
 /**
@@ -265,18 +269,33 @@ const DRAFT_HEX = createHash('sha256').update(JSON.stringify(DRAFT_REPORT)).dige
 
 /** Saves `DRAFT_REPORT` as the template `gate`, a create (`If-None-Match: *`); throws unless the server answers 201, revision 1 and its report's digest, in the body and in the ETag. */
 export async function saveFirstDraft(base, bearer) {
-  const answer = await request(`${base}/v1/templates/gate/draft`, { method: 'PUT', headers: { ...AUTHOR_HEADERS(bearer), 'content-type': 'application/json', 'if-none-match': '*' }, body: JSON.stringify(DRAFT_REPORT) })
+  const answer = await request(`${base}/v1/templates/gate/draft`, {
+    method: 'PUT',
+    headers: { ...AUTHOR_HEADERS(bearer), 'content-type': 'application/json', 'if-none-match': '*' },
+    body: JSON.stringify(DRAFT_REPORT),
+  })
   const body = await answer.text()
-  expect(answer.status === 201 && answer.headers.get('etag') === `"1-${DRAFT_HEX}"` && body === JSON.stringify({ template: 'gate', revision: 1, digest: `sha256:${DRAFT_HEX}` }), `a first save answered ${String(answer.status)} ${answer.headers.get('etag')} ${body}`)
+  expect(
+    answer.status === 201 &&
+      answer.headers.get('etag') === `"1-${DRAFT_HEX}"` &&
+      body === JSON.stringify({ template: 'gate', revision: 1, digest: `sha256:${DRAFT_HEX}` }),
+    `a first save answered ${String(answer.status)} ${answer.headers.get('etag')} ${body}`,
+  )
 }
 
 /** Reads the template `gate`'s draft; throws unless it is revision 1 under its report's digest, in the body and in the ETag, and its report is `DRAFT_REPORT`, as saved. */
 export async function expectFirstDraft(base, bearer) {
   const answer = await request(`${base}/v1/templates/gate/draft`, { headers: AUTHOR_HEADERS(bearer) })
   const text = await answer.text()
-  expect(answer.status === 200 && answer.headers.get('etag') === `"1-${DRAFT_HEX}"`, `reading the draft answered ${String(answer.status)} ${answer.headers.get('etag')} ${text.slice(0, 200)}`)
+  expect(
+    answer.status === 200 && answer.headers.get('etag') === `"1-${DRAFT_HEX}"`,
+    `reading the draft answered ${String(answer.status)} ${answer.headers.get('etag')} ${text.slice(0, 200)}`,
+  )
   const draft = JSON.parse(text)
-  expect(draft.template === 'gate' && draft.revision === 1 && draft.digest === `sha256:${DRAFT_HEX}`, `the draft read back was ${draft.template} at revision ${String(draft.revision)} under ${String(draft.digest)}`)
+  expect(
+    draft.template === 'gate' && draft.revision === 1 && draft.digest === `sha256:${DRAFT_HEX}`,
+    `the draft read back was ${draft.template} at revision ${String(draft.revision)} under ${String(draft.digest)}`,
+  )
   expect(isDeepStrictEqual(draft.report, DRAFT_REPORT), 'the report read back is not the report saved')
 }
 
@@ -288,11 +307,25 @@ export async function keepAndReadImage(base, bearer, bytes) {
   expect(kept.status === 200 && keptBody === JSON.stringify({ digest: `sha256:${hex}` }), `keeping an image answered ${String(kept.status)} ${keptBody}`)
   const answer = await request(`${base}/v1/assets/${hex}`, { headers: AUTHOR_HEADERS(bearer) })
   const back = Buffer.from(await answer.arrayBuffer())
-  expect(answer.status === 200 && answer.headers.get('content-type') === 'image/png', `reading the image answered ${String(answer.status)} ${answer.headers.get('content-type')}`)
+  expect(
+    answer.status === 200 && answer.headers.get('content-type') === 'image/png',
+    `reading the image answered ${String(answer.status)} ${answer.headers.get('content-type')}`,
+  )
   expect(back.equals(Buffer.from(bytes)), `the image read back is ${String(back.length)} bytes that are not the ${String(bytes.length)} kept`)
 }
 
-const record = { gate: 'container', startedAt: new Date().toISOString(), finishedAt: null, passed: false, error: null, docker: null, image: null, measured: {}, planned: [...CHECKS], checks: [] }
+const record = {
+  gate: 'container',
+  startedAt: new Date().toISOString(),
+  finishedAt: null,
+  passed: false,
+  error: null,
+  docker: null,
+  image: null,
+  measured: {},
+  planned: [...CHECKS],
+  checks: [],
+}
 
 /** Makes check `name`: passed when `body` returns, failed with what it threw. */
 async function check(name, body) {
@@ -333,7 +366,8 @@ async function gate() {
     const ran = docker(['run', '--rm', image])
     expect(!/ERR_MODULE_NOT_FOUND|Cannot find module/.test(ran.output), `the image is missing a module at run time: ${ran.output.trim()}`)
     expect(ran.status !== 0, 'an unconfigured server exited 0')
-    for (const setting of ['FORMANCY_REPORT_ISSUER', 'FORMANCY_REPORT_AUDIENCE', 'FORMANCY_REPORT_IDENTITY_SECRET', 'FORMANCY_REPORT_ATTRIBUTES']) expect(ran.output.includes(setting), `an unconfigured server did not name ${setting}: ${ran.output.trim()}`)
+    for (const setting of ['FORMANCY_REPORT_ISSUER', 'FORMANCY_REPORT_AUDIENCE', 'FORMANCY_REPORT_IDENTITY_SECRET', 'FORMANCY_REPORT_ATTRIBUTES'])
+      expect(ran.output.includes(setting), `an unconfigured server did not name ${setting}: ${ran.output.trim()}`)
     return `exit ${String(ran.status)}`
   })
 
@@ -371,12 +405,23 @@ async function gate() {
   const unauthenticated = '{"code":"unauthenticated","message":"A valid host token is required."}'
   await check('whoami without a token is the one 401', async () => {
     const answer = await ask('/v1/whoami')
-    expect(answer.status === 401 && answer.body === unauthenticated && answer.headers.get('www-authenticate') === 'Bearer', `whoami without a token answered ${String(answer.status)} ${answer.body}`)
+    expect(
+      answer.status === 401 && answer.body === unauthenticated && answer.headers.get('www-authenticate') === 'Bearer',
+      `whoami without a token answered ${String(answer.status)} ${answer.body}`,
+    )
   })
   await check('whoami answers a token the host signed, with its tenant and the actions its roles give', async () => {
     const answer = await ask('/v1/whoami', { authorization: `Bearer ${tokens.good}` })
     const me = JSON.parse(answer.body)
-    expect(answer.status === 200 && me.tenant === 'acme' && me.subject === 'u-1' && JSON.stringify(me.capacities) === '["author"]' && me.actions.includes('draft.save') && !me.actions.includes('version.publish'), `whoami answered ${String(answer.status)} ${answer.body}`)
+    expect(
+      answer.status === 200 &&
+        me.tenant === 'acme' &&
+        me.subject === 'u-1' &&
+        JSON.stringify(me.capacities) === '["author"]' &&
+        me.actions.includes('draft.save') &&
+        !me.actions.includes('version.publish'),
+      `whoami answered ${String(answer.status)} ${answer.body}`,
+    )
     return `${String(me.actions.length)} actions`
   })
   await check('a forgery and a token without its tenant are the same 401', async () => {
@@ -388,7 +433,10 @@ async function gate() {
   await check('nothing else answers, with a 404 that quotes nothing', async () => {
     for (const path of ['/v1/versions', '/v1/whoami/extra', '/v2/whoami']) {
       const answer = await ask(path, { authorization: `Bearer ${tokens.good}` })
-      expect(answer.status === 404 && answer.body === '{"code":"not-found","message":"Nothing answers this request."}', `${path} answered ${String(answer.status)} ${answer.body}`)
+      expect(
+        answer.status === 404 && answer.body === '{"code":"not-found","message":"Nothing answers this request."}',
+        `${path} answered ${String(answer.status)} ${answer.body}`,
+      )
     }
   })
   await check('every answer says Cache-Control: no-store', () => {
@@ -403,7 +451,9 @@ async function gate() {
   await check('it carries the repository’s LICENSE.md and NOTICE', () => {
     for (const file of ['LICENSE.md', 'NOTICE']) {
       const inside = must(['exec', name, 'sha256sum', `/app/${file}`]).split(/\s+/)[0]
-      const here = createHash('sha256').update(readFileSync(join(repo, file))).digest('hex')
+      const here = createHash('sha256')
+        .update(readFileSync(join(repo, file)))
+        .digest('hex')
       expect(inside === here, `/app/${file} is not the repository's ${file}`)
     }
   })
@@ -413,17 +463,29 @@ async function gate() {
   await check('it cannot write its own code', () => {
     // As the user the server runs as: every path of its tree it could write, asked of each with BusyBox's
     // `[ -w ]`, since its find has no -writable; and a file it could add beside main.mjs.
-    const writable = must(['exec', name, 'sh', '-c', 'find /app | while IFS= read -r path; do [ -w "$path" ] && echo "$path"; done | head -n 20; touch /app/dist/.gate 2>/dev/null && echo /app/dist/.gate; exit 0'])
+    const writable = must([
+      'exec',
+      name,
+      'sh',
+      '-c',
+      'find /app | while IFS= read -r path; do [ -w "$path" ] && echo "$path"; done | head -n 20; touch /app/dist/.gate 2>/dev/null && echo /app/dist/.gate; exit 0',
+    ])
     expect(writable === '', `the server can write its own code: ${writable.split('\n').slice(0, 5).join(', ')}`)
   })
   await check('its log holds one audit line per request whoami answered, and no token', () => {
-    const lines = docker(['logs', name]).output.split('\n').filter((line) => line.startsWith('{'))
+    const lines = docker(['logs', name])
+      .output.split('\n')
+      .filter((line) => line.startsWith('{'))
     const audited = lines.map((line) => JSON.parse(line)).filter((line) => line.msg === 'audit')
     const asked = 4 // whoami: no token, a good one, a forgery, no tenant
     expect(audited.length === asked, `the log holds ${String(audited.length)} audit lines for ${String(asked)} requests whoami answered`)
-    expect(audited.every((line) => line.audit.tenant === null && line.audit.actor === null), 'an audit line named who asked without an audit key')
+    expect(
+      audited.every((line) => line.audit.tenant === null && line.audit.actor === null),
+      'an audit line named who asked without an audit key',
+    )
     const log = lines.join('\n')
-    for (const presented of Object.values(tokens)) for (const part of [presented, ...presented.split('.')]) expect(!log.includes(part), 'a token, or a part of one, reached the log')
+    for (const presented of Object.values(tokens))
+      for (const part of [presented, ...presented.split('.')]) expect(!log.includes(part), 'a token, or a part of one, reached the log')
     expect(!log.includes('acme') && !log.includes('"u-1"'), 'a claim’s value reached the log')
     return `${String(audited.length)} audit lines`
   })
@@ -510,13 +572,21 @@ async function gate() {
       const inside = '/tmp/identity-keys.json'
       writeFileSync(file, set('gate-1'))
       const { FORMANCY_REPORT_IDENTITY_SECRET: _reference, HOST_SECRET: _secret, ...rest } = CONFIGURED
-      const keyed = start('key-set', { ...rest, FORMANCY_REPORT_IDENTITY_KEYS_FILE: inside, FORMANCY_REPORT_IDENTITY_ALGORITHM: 'HS256' }, { files: { [inside]: file } })
+      const keyed = start(
+        'key-set',
+        { ...rest, FORMANCY_REPORT_IDENTITY_KEYS_FILE: inside, FORMANCY_REPORT_IDENTITY_ALGORITHM: 'HS256' },
+        { files: { [inside]: file } },
+      )
       await healthy(keyed)
       const serving = logLines(keyed).find((line) => line.msg === 'serving')
-      expect(JSON.stringify(serving?.identityKeys) === '{"kids":["gate-1"],"leftOut":[]}', `the serving line named the key set as ${JSON.stringify(serving?.identityKeys ?? null)}`)
+      expect(
+        JSON.stringify(serving?.identityKeys) === '{"kids":["gate-1"],"leftOut":[]}',
+        `the serving line named the key set as ${JSON.stringify(serving?.identityKeys ?? null)}`,
+      )
       const asked = async () => {
         const statuses = []
-        for (const kid of ['gate-1', 'gate-2']) statuses.push((await request(`${at(keyed)}/v1/whoami`, { headers: { authorization: `Bearer ${sign(authorClaims(), keys[kid], kid)}` } })).status)
+        for (const kid of ['gate-1', 'gate-2'])
+          statuses.push((await request(`${at(keyed)}/v1/whoami`, { headers: { authorization: `Bearer ${sign(authorClaims(), keys[kid], kid)}` } })).status)
         return statuses.join(' ')
       }
       const before = await asked()
@@ -526,7 +596,10 @@ async function gate() {
       must(['kill', '--signal', 'SIGHUP', keyed])
       await sleep(1000) // a choice (above)
       const read = logLines(keyed).find((line) => line.msg === 'identity keys read again')
-      expect(JSON.stringify(read?.identityKeys?.added) === '["gate-2"]', `SIGHUP did not log the key set read again with gate-2 added: ${JSON.stringify(read ?? null)}`)
+      expect(
+        JSON.stringify(read?.identityKeys?.added) === '["gate-2"]',
+        `SIGHUP did not log the key set read again with gate-2 added: ${JSON.stringify(read ?? null)}`,
+      )
       const after = await asked()
       expect(after === '200 200', `after SIGHUP, tokens under gate-1 and gate-2 answered ${after}`)
       return 'gate-1, then gate-1 and gate-2'
@@ -549,30 +622,46 @@ async function gate() {
     expect(!ended.running && ended.code !== 0, `the server was still running after 30 s, or exited 0`)
     expect(ended.output.includes(says), `the server stopped without naming the setting: ${ended.output.trim().slice(0, 400)}`)
   }
-  await check('FORMANCY_REPORT_RATE_LIMIT=abc stops it, naming the setting', () => refusesSetting('rate-abc', { FORMANCY_REPORT_RATE_LIMIT: 'abc' }, 'FORMANCY_REPORT_RATE_LIMIT is a whole number'))
+  await check('FORMANCY_REPORT_RATE_LIMIT=abc stops it, naming the setting', () =>
+    refusesSetting('rate-abc', { FORMANCY_REPORT_RATE_LIMIT: 'abc' }, 'FORMANCY_REPORT_RATE_LIMIT is a whole number'),
+  )
   await check('FORMANCY_REPORT_TRUSTED_PROXIES splits the limit by the address a named proxy forwards', async () => {
     // Asked from inside the container, so the peer is 127.0.0.1 on every runner, whatever Docker's port forwarding makes of a request from the host.
     const proxied = start('proxied', { ...CONFIGURED, FORMANCY_REPORT_RATE_LIMIT: '2', FORMANCY_REPORT_TRUSTED_PROXIES: '127.0.0.1' })
     await healthy(proxied)
-    const script = "const from=['198.51.100.7','198.51.100.7','198.51.100.7','198.51.100.8'];const seen=[];for(const address of from)seen.push((await fetch('http://127.0.0.1:4392/v1/whoami',{headers:{'x-forwarded-for':address}})).status);console.log(seen.join(' '))"
+    const script =
+      "const from=['198.51.100.7','198.51.100.7','198.51.100.7','198.51.100.8'];const seen=[];for(const address of from)seen.push((await fetch('http://127.0.0.1:4392/v1/whoami',{headers:{'x-forwarded-for':address}})).status);console.log(seen.join(' '))"
     const statuses = must(['exec', proxied, 'node', '--input-type=module', '-e', script])
     expect(statuses === '401 401 429 401', `three requests forwarded for one address and one for another answered ${statuses}`)
   })
-  await check('FORMANCY_REPORT_TRUSTED_PROXIES=true stops it, naming the setting', () => refusesSetting('proxies-true', { FORMANCY_REPORT_TRUSTED_PROXIES: 'true' }, 'FORMANCY_REPORT_TRUSTED_PROXIES: entry 1 trusts every peer'))
+  await check('FORMANCY_REPORT_TRUSTED_PROXIES=true stops it, naming the setting', () =>
+    refusesSetting('proxies-true', { FORMANCY_REPORT_TRUSTED_PROXIES: 'true' }, 'FORMANCY_REPORT_TRUSTED_PROXIES: entry 1 trusts every peer'),
+  )
   await check('FORMANCY_REPORT_CORS_ORIGINS grants a listed origin’s preflight and refuses another', async () => {
     const crossing = start('origins', { ...CONFIGURED, FORMANCY_REPORT_CORS_ORIGINS: 'https://app.example' })
     await healthy(crossing)
-    const preflight = (origin) => request(`${at(crossing)}/v1/whoami`, { method: 'OPTIONS', headers: { origin, 'access-control-request-method': 'GET', 'access-control-request-headers': 'authorization' } })
+    const preflight = (origin) =>
+      request(`${at(crossing)}/v1/whoami`, {
+        method: 'OPTIONS',
+        headers: { origin, 'access-control-request-method': 'GET', 'access-control-request-headers': 'authorization' },
+      })
     const granted = await preflight('https://app.example')
     const refused = await preflight('https://evil.example')
-    expect(granted.status === 204 && granted.headers.get('access-control-allow-origin') === 'https://app.example', `a listed origin's preflight answered ${String(granted.status)}`)
-    expect(refused.status === 403 && refused.headers.get('access-control-allow-origin') === null, `another origin's preflight answered ${String(refused.status)}`)
+    expect(
+      granted.status === 204 && granted.headers.get('access-control-allow-origin') === 'https://app.example',
+      `a listed origin's preflight answered ${String(granted.status)}`,
+    )
+    expect(
+      refused.status === 403 && refused.headers.get('access-control-allow-origin') === null,
+      `another origin's preflight answered ${String(refused.status)}`,
+    )
   })
 
   const made = new Set(record.checks.map((entry) => entry.name))
   const unmade = CHECKS.filter((each) => !made.has(each))
   const failed = record.checks.filter((entry) => !entry.passed)
-  if (unmade.length > 0 || failed.length > 0) throw new Error([...failed.map((entry) => `${entry.name}: ${String(entry.said)}`), ...unmade.map((each) => `${each}: not made`)].join('\n'))
+  if (unmade.length > 0 || failed.length > 0)
+    throw new Error([...failed.map((entry) => `${entry.name}: ${String(entry.said)}`), ...unmade.map((each) => `${each}: not made`)].join('\n'))
 }
 
 // `node scripts/container.mjs …`; imported, it only names its checks and its base image.
@@ -581,7 +670,9 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/container.mjs')) {
   try {
     await gate()
     record.passed = true
-    console.log(`container gate passed: ${String(record.checks.length)} checks on ${image} (${String(record.image?.node)}, ${String(Math.round((record.image?.size ?? 0) / 1e6))} MB), built in ${String(Math.round((record.measured.buildMs ?? 0) / 1000))} s`)
+    console.log(
+      `container gate passed: ${String(record.checks.length)} checks on ${image} (${String(record.image?.node)}, ${String(Math.round((record.image?.size ?? 0) / 1e6))} MB), built in ${String(Math.round((record.measured.buildMs ?? 0) / 1000))} s`,
+    )
   } catch (error) {
     failure = error
     record.error = String(error?.message ?? error)

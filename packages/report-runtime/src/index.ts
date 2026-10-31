@@ -76,7 +76,17 @@ export type { QrBillPageBreak } from '@formancy/report-spec'
  * Austria's frame, caption and modules' widths, with the least version a
  * captioned code is drawn at and the rule a captioned code breaks.
  */
-export { EPC_CAPTION, EPC_CAPTION_MODULE, EPC_FRAME, EPC_MAX_BYTES, EPC_MAX_VERSION, epcCaptionBreak, epcLeastVersion, epcModule, qrSymbolModules } from '@formancy/report-spec'
+export {
+  EPC_CAPTION,
+  EPC_CAPTION_MODULE,
+  EPC_FRAME,
+  EPC_MAX_BYTES,
+  EPC_MAX_VERSION,
+  epcCaptionBreak,
+  epcLeastVersion,
+  epcModule,
+  qrSymbolModules,
+} from '@formancy/report-spec'
 export type { EpcCaption } from '@formancy/report-spec'
 /**
  * What report-spec decides of how an e-invoice is embedded, handed on as
@@ -115,7 +125,17 @@ export type { ImageRefusal, ImageRefusalCode, JpegHeader, PngHeader, RasterHeade
  * bound the matrices a drawing is composed of, from which an engine derives
  * how far its own arithmetic may stray from that extent.
  */
-export { checkSvg, cleanSvg, MAX_SVG_BYTES, MAX_SVG_COORDINATE, MAX_SVG_DEPTH, MAX_SVG_GROUPS, MAX_SVG_SEGMENTS, SVG_ELEMENTS, SVG_REFUSAL_CODES } from '@formancy/report-spec'
+export {
+  checkSvg,
+  cleanSvg,
+  MAX_SVG_BYTES,
+  MAX_SVG_COORDINATE,
+  MAX_SVG_DEPTH,
+  MAX_SVG_GROUPS,
+  MAX_SVG_SEGMENTS,
+  SVG_ELEMENTS,
+  SVG_REFUSAL_CODES,
+} from '@formancy/report-spec'
 export type { CheckedSvg, CleanSvg, SvgExtent, SvgRefusal, SvgRefusalCode, SvgRemoval, SvgRemovalKind, SvgViewBox } from '@formancy/report-spec'
 /**
  * What report-spec decides of a font's bytes, handed on as the QR-bill's
@@ -132,5 +152,45 @@ export type { CheckedSvg, CleanSvg, SvgExtent, SvgRefusal, SvgRefusalCode, SvgRe
  * and `refusedCharacter`, with the blocks and controls it reads, the
  * characters a report prints (0043).
  */
-export { BIDI_CONTROLS, characterMap, faceKey, FONT_EMBEDDING_REFUSALS, FONT_FACE_KEYS, FONT_FORMATS, FONT_MEDIA_TYPES, FONT_REFUSAL_CODES, isFontMediaType, MAX_FONT_BYTES, MAX_FONT_CHARACTERS, MAX_FONT_LINE, MAX_FONT_SIZE, MIN_FONT_LINE, MIN_FONT_SIZE, PRINTED_BLOCKS, readFont, refusedCharacter, UNICODE_VERSION } from '@formancy/report-spec'
-export type { AnyAssetMediaType, AssetMediaType, CharacterRefusal, Font, FontCharacters, FontEmbedding, FontEmbeddingRefusal, FontFaceKey, FontFaces, FontFamily, FontFormat, FontMap, FontMediaType, FontMetrics, FontNames, FontRefusal, FontRefusalCode, FontStyle, PrintedBlock } from '@formancy/report-spec'
+export {
+  BIDI_CONTROLS,
+  characterMap,
+  faceKey,
+  FONT_EMBEDDING_REFUSALS,
+  FONT_FACE_KEYS,
+  FONT_FORMATS,
+  FONT_MEDIA_TYPES,
+  FONT_REFUSAL_CODES,
+  isFontMediaType,
+  MAX_FONT_BYTES,
+  MAX_FONT_CHARACTERS,
+  MAX_FONT_LINE,
+  MAX_FONT_SIZE,
+  MIN_FONT_LINE,
+  MIN_FONT_SIZE,
+  PRINTED_BLOCKS,
+  readFont,
+  refusedCharacter,
+  UNICODE_VERSION,
+} from '@formancy/report-spec'
+export type {
+  AnyAssetMediaType,
+  AssetMediaType,
+  CharacterRefusal,
+  Font,
+  FontCharacters,
+  FontEmbedding,
+  FontEmbeddingRefusal,
+  FontFaceKey,
+  FontFaces,
+  FontFamily,
+  FontFormat,
+  FontMap,
+  FontMediaType,
+  FontMetrics,
+  FontNames,
+  FontRefusal,
+  FontRefusalCode,
+  FontStyle,
+  PrintedBlock,
+} from '@formancy/report-spec'

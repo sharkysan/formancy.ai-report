@@ -99,12 +99,20 @@ const DEFAULTS: { readonly [K in ComponentKind]: (report: ReportDefinition, word
     const room = printableArea(report.page)
     return { source, width: Math.min(BOX.image.width, room.width), height: Math.min(BOX.image.height, room.height), fit: 'contain' }
   },
-  qrCode: (report, words) => ({ content: [{ kind: 'text', text: words('default.qrCode') }], size: Math.min(QR_SIDE, squareRoom(printableArea(report.page)).length), errorCorrection: 'M' }),
+  qrCode: (report, words) => ({
+    content: [{ kind: 'text', text: words('default.qrCode') }],
+    size: Math.min(QR_SIDE, squareRoom(printableArea(report.page)).length),
+    errorCorrection: 'M',
+  }),
   // No amount, which the payer fills in, and no frame, which is Austria's to ask for.
   epcQrCode: (report, words) => {
     const account = paymentAccount(report)
     if (typeof account === 'string') return account
-    return { size: Math.min(EPC_SIDE, squareRoom(printableArea(report.page)).length), beneficiary: [{ kind: 'text', text: words('default.epcBeneficiary') }], ...account }
+    return {
+      size: Math.min(EPC_SIDE, squareRoom(printableArea(report.page)).length),
+      beneficiary: [{ kind: 'text', text: words('default.epcBeneficiary') }],
+      ...account,
+    }
   },
   line: () => ({ thickness: RULE }),
   rectangle: (report) => {
@@ -112,12 +120,23 @@ const DEFAULTS: { readonly [K in ComponentKind]: (report: ReportDefinition, word
     return { width: Math.min(BOX.rectangle.width, room.width), height: Math.min(BOX.rectangle.height, room.height) }
   },
   spacer: () => ({ height: GAP }),
-  columns: () => ({ columns: [{ width: 'fill', components: [] }, { width: 'fill', components: [] }] }),
+  columns: () => ({
+    columns: [
+      { width: 'fill', components: [] },
+      { width: 'fill', components: [] },
+    ],
+  }),
   section: () => ({ components: [] }),
   table: (report, words) => {
     const field = report.datasets.detail?.fields.find((candidate) => candidate.type !== 'image')
     if (field === undefined) return 'palette.needsDetail'
-    const column = { id: 'column-1', header: field.label, width: 'fill', align: ALIGN[field.type], value: { kind: 'field', field: { dataset: 'detail', field: field.id } } }
+    const column = {
+      id: 'column-1',
+      header: field.label,
+      width: 'fill',
+      align: ALIGN[field.type],
+      value: { kind: 'field', field: { dataset: 'detail', field: field.id } },
+    }
     return { dataset: 'detail', columns: [column], emptyText: words('default.emptyText'), repeatHeader: true }
   },
   pageBreak: () => ({}),

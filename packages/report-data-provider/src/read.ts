@@ -62,7 +62,12 @@ function pick(record: FormRecord, plan: FieldPlan): Answers {
 }
 
 /** The parent the detail rows are narrowed to: given, or the header record by the one field the person's menu names. */
-async function parentOf(client: DataClient, header: HeaderBinding | undefined, detail: DetailBinding, signal?: AbortSignal): Promise<Parent | undefined | ProviderError> {
+async function parentOf(
+  client: DataClient,
+  header: HeaderBinding | undefined,
+  detail: DetailBinding,
+  signal?: AbortSignal,
+): Promise<Parent | undefined | ProviderError> {
   if (detail.parent !== 'header') return detail.parent
   const unknown = (message: string): ProviderError => ({ path: '/detail/parent', code: 'unknown-parent', message })
   if (header === undefined) return unknown("parent 'header' reads the header record's children, and the binding names no header record")
@@ -80,13 +85,23 @@ async function parentOf(client: DataClient, header: HeaderBinding | undefined, d
 }
 
 /** Every detail row up to `cap`, a page at a time from offset 0, and whether Data said none follow. */
-async function readRows(client: DataClient, detail: DetailBinding, parent: Parent | undefined, cap: number, signal?: AbortSignal): Promise<{ rows: FormRecord[]; complete: boolean } | ProviderError> {
+async function readRows(
+  client: DataClient,
+  detail: DetailBinding,
+  parent: Parent | undefined,
+  cap: number,
+  signal?: AbortSignal,
+): Promise<{ rows: FormRecord[]; complete: boolean } | ProviderError> {
   const rows: FormRecord[] = []
   // The offset moves by the page asked for, Data's own arithmetic: a row it
   // cannot address is still in its place (formancy.ai-data 0044).
-  for (let offset = 0; offset < cap; ) {
+  for (let offset = 0; offset < cap;) {
     const limit = Math.min(LIST_PAGE_SIZE, cap - offset)
-    const page = await client.list(detail.form, { ...(detail.sort === undefined ? {} : { sort: [...detail.sort] }), ...(parent === undefined ? {} : { parent }), offset, limit }, signal)
+    const page = await client.list(
+      detail.form,
+      { ...(detail.sort === undefined ? {} : { sort: [...detail.sort] }), ...(parent === undefined ? {} : { parent }), offset, limit },
+      signal,
+    )
     if (!page.ok) return fromRefusal('/detail', page)
     rows.push(...page.value.rows.slice(0, limit))
     if (!page.value.hasMore) return { rows, complete: true }
@@ -101,7 +116,14 @@ async function readRows(client: DataClient, detail: DetailBinding, parent: Paren
  * token once. A token whose label Data did not give is an error naming the
  * field and where it first is, never the token.
  */
-async function labelled(client: DataClient, role: DatasetRole, form: string, plan: FieldPlan, records: Answers[], signal?: AbortSignal): Promise<ProviderError[]> {
+async function labelled(
+  client: DataClient,
+  role: DatasetRole,
+  form: string,
+  plan: FieldPlan,
+  records: Answers[],
+  signal?: AbortSignal,
+): Promise<ProviderError[]> {
   const errors: ProviderError[] = []
   for (const [field, source] of plan.lookups) {
     const tokens = [...new Set(records.map((record) => record[field]).filter((value): value is string => typeof value === 'string'))]
@@ -122,7 +144,10 @@ async function labelled(client: DataClient, role: DatasetRole, form: string, pla
     })
     if (unresolved > 0) {
       const path = role === 'header' ? `/header/${field}` : `/detail/${String(first)}/${field}`
-      const message = unresolved === 1 ? `one value of ${field} names a record whose label this person may not see` : `${String(unresolved)} values of ${field} name records whose label this person may not see`
+      const message =
+        unresolved === 1
+          ? `one value of ${field} names a record whose label this person may not see`
+          : `${String(unresolved)} values of ${field} name records whose label this person may not see`
       errors.push({ path, code: 'unresolved-label', message })
     }
   }
@@ -164,7 +189,13 @@ export async function readReportData(client: DataClient, report: ReportDefinitio
     // The source names this form, and the fields are planned from it: an
     // answer under another id is not the form the records are read from.
     if (published.value.form.id !== bound.form || !isFormId(bound.form)) {
-      return refused([{ path: `/${role}`, code: 'unexpected-form', message: `Data answered the ${role} form with a published form under another id, or one that is no formancy form id; Data 0.1.0 publishes a form only under its own` }])
+      return refused([
+        {
+          path: `/${role}`,
+          code: 'unexpected-form',
+          message: `Data answered the ${role} form with a published form under another id, or one that is no formancy form id; Data 0.1.0 publishes a form only under its own`,
+        },
+      ])
     }
     const { plan, errors: found } = planFields(role, contract, published.value)
     errors.push(...found)

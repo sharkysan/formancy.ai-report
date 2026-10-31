@@ -132,8 +132,13 @@ describe("the pages' stylesheet", () => {
       ...face('studio/node_modules', 'face', 'the-studios-copy'),
     })
     const read = []
-    const { css, fonts } = bundleStylesheet(join(root, 'pages', 'src', 'pages.css'), { read: (file) => read.push(file), packages: join(root, 'pages', 'node_modules') })
-    expect(css).toBe("@font-face {\n  font-family: 'Face';\n  src: url(fonts/face-latin-400-normal.woff2) format('woff2'), url(fonts/face-latin-400-normal.woff) format('woff');\n}\n.page { font-family: 'Face'; }\n")
+    const { css, fonts } = bundleStylesheet(join(root, 'pages', 'src', 'pages.css'), {
+      read: (file) => read.push(file),
+      packages: join(root, 'pages', 'node_modules'),
+    })
+    expect(css).toBe(
+      "@font-face {\n  font-family: 'Face';\n  src: url(fonts/face-latin-400-normal.woff2) format('woff2'), url(fonts/face-latin-400-normal.woff) format('woff');\n}\n.page { font-family: 'Face'; }\n",
+    )
     const relative = (file) => file.slice(root.length + 1).replaceAll('\\', '/')
     expect(fonts.map((font) => ({ href: font.href, from: relative(font.from) }))).toEqual([
       { href: 'fonts/face-latin-400-normal.woff2', from: 'pages/node_modules/face/files/face-latin-400-normal.woff2' },
@@ -199,14 +204,33 @@ describe('the inputs as the repository holds them', () => {
     // from the room the pages' own manifest resolves, as their build does;
     // typed here, it was the copy's, and a room that moves it would fail
     // this for being right.
-    const ground = /--ground\s*:\s*([^;]+);/.exec(readFileSync(createRequire(join(repo, 'apps', 'pages', 'package.json')).resolve('@formancy/themes/room.css'), 'utf8'))?.[1]?.trim()
+    const ground = /--ground\s*:\s*([^;]+);/
+      .exec(readFileSync(createRequire(join(repo, 'apps', 'pages', 'package.json')).resolve('@formancy/themes/room.css'), 'utf8'))?.[1]
+      ?.trim()
     expect(ground).toMatch(/^#[\da-f]{6}$/i)
     expect(inputs.ground).toBe(ground)
     expect(inputs.stylesheet).toContain(`--ground: ${String(ground)};`)
     expect(inputs.pictures).toEqual([
-      expect.objectContaining({ name: 'starter-quotation.png', from: 'docs/images/starter-quotation.png', width: 745, height: 1053, lines: expect.arrayContaining(["Total CHF 3'143.00"]) }),
+      expect.objectContaining({
+        name: 'starter-quotation.png',
+        from: 'docs/images/starter-quotation.png',
+        width: 745,
+        height: 1053,
+        lines: expect.arrayContaining(["Total CHF 3'143.00"]),
+      }),
     ])
-    expect(inputs.read).toEqual(expect.arrayContaining(['CHANGELOG.md', 'LICENSE.md', 'apps/studio/wrangler.json', 'apps/pages/node_modules/@formancy/themes/room.css', 'apps/studio/src/styles/room.css', 'apps/studio/src/styles/fonts.css', 'docs/images/pictures.json', 'docs/images/starter-quotation.png']))
+    expect(inputs.read).toEqual(
+      expect.arrayContaining([
+        'CHANGELOG.md',
+        'LICENSE.md',
+        'apps/studio/wrangler.json',
+        'apps/pages/node_modules/@formancy/themes/room.css',
+        'apps/studio/src/styles/room.css',
+        'apps/studio/src/styles/fonts.css',
+        'docs/images/pictures.json',
+        'docs/images/starter-quotation.png',
+      ]),
+    )
     expect(inputs.notices).toContain('@fontsource/ibm-plex-sans 5.3.0')
     // The room's text is served too, so its package's notice travels with it (0034).
     const themes = JSON.parse(readFileSync(join(repo, 'apps', 'pages', 'package.json'), 'utf8')).dependencies['@formancy/themes']
@@ -222,7 +246,13 @@ describe('the inputs as the repository holds them', () => {
   test("give a sample's picture the lines docs/images/samples.json records", () => {
     const inputs = readInputs(repo, { pictures: ['invoice-fr.png', 'starter-invoice.png'] })
     expect(inputs.pictures).toEqual([
-      expect.objectContaining({ name: 'invoice-fr.png', from: 'docs/images/invoice-fr.png', width: 745, height: 1053, lines: expect.arrayContaining(["Total 1'416.52 CHF", 'Récépissé Section paiement']) }),
+      expect.objectContaining({
+        name: 'invoice-fr.png',
+        from: 'docs/images/invoice-fr.png',
+        width: 745,
+        height: 1053,
+        lines: expect.arrayContaining(["Total 1'416.52 CHF", 'Récépissé Section paiement']),
+      }),
       expect.objectContaining({ name: 'starter-invoice.png', lines: expect.arrayContaining(["Total CHF 1'416.52", 'Empfangsschein Zahlteil']) }),
     ])
     expect(inputs.read).toEqual(expect.arrayContaining(['docs/images/pictures.json', 'docs/images/samples.json']))
@@ -249,7 +279,11 @@ describe("turbo's cache of the pages' build", () => {
   // 2026-10-17 on a Windows 11 workstation (i9-10900K): the case took 0.5
   // and 0.54 s, turbo's dry run with it; 60 s is that a hundred times over.
   test('hashes every file the build reads and every repository script it runs', { timeout: 60_000 }, () => {
-    const dry = spawnSync('pnpm', ['exec', 'turbo', 'run', 'build', '--dry=json', '--filter=@formancy/report-pages'], { cwd: repo, encoding: 'utf8', shell: process.platform === 'win32' })
+    const dry = spawnSync('pnpm', ['exec', 'turbo', 'run', 'build', '--dry=json', '--filter=@formancy/report-pages'], {
+      cwd: repo,
+      encoding: 'utf8',
+      shell: process.platform === 'win32',
+    })
     expect(dry.status).toBe(0)
     const task = JSON.parse(dry.stdout).tasks.find((each) => each.directory.replaceAll('\\', '/') === 'apps/pages' && each.task === 'build')
     const hashed = new Set(Object.keys(task?.inputs ?? {}).map((path) => posix.join('apps/pages', path)))

@@ -69,7 +69,8 @@ async function untilAccount(page, account) {
 }
 
 /** The keyboard on `element`, or where it is instead. */
-const onIt = async (page, element) => ((await element.evaluate((node) => node === document.activeElement)) ? null : `the keyboard is on ${await describeFocus(page)}`)
+const onIt = async (page, element) =>
+  (await element.evaluate((node) => node === document.activeElement)) ? null : `the keyboard is on ${await describeFocus(page)}`
 
 /** The checks, in the builder shown, which `framework` names. */
 export async function paymentPartChecks(gate, page, framework) {

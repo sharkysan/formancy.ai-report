@@ -74,7 +74,13 @@ export type RuntimeError =
   | ({ readonly stage: 'report'; readonly code: ReportErrorCode; readonly path: string; readonly message: string } & Place)
   | ({ readonly stage: 'expressions'; readonly code: DiagnosticCode; readonly path: string; readonly message: string } & Place)
   | { readonly stage: 'parameters' | 'data'; readonly code: DataErrorCode; readonly path: string; readonly message: string }
-  | ({ readonly stage: 'evaluation'; readonly code: EvaluationErrorCode; readonly path: string; readonly message: string; readonly aggregateId?: string } & Place)
+  | ({
+      readonly stage: 'evaluation'
+      readonly code: EvaluationErrorCode
+      readonly path: string
+      readonly message: string
+      readonly aggregateId?: string
+    } & Place)
   | ({ readonly stage: 'format'; readonly code: FormatErrorCode; readonly path: string; readonly message: string } & Place)
   | ({ readonly stage: 'resolve'; readonly code: ResolveErrorCode; readonly path: string; readonly message: string } & Place)
 
@@ -150,7 +156,13 @@ export class Problems {
 
   errors(): RuntimeError[] {
     const errors = [...this.#errors]
-    if (this.#overflowed) errors.push({ stage: 'resolve', code: 'too-many-errors', path: '', message: `more than ${MAX_DATA_ERRORS} errors were found; the first ${MAX_DATA_ERRORS} are listed` })
+    if (this.#overflowed)
+      errors.push({
+        stage: 'resolve',
+        code: 'too-many-errors',
+        path: '',
+        message: `more than ${MAX_DATA_ERRORS} errors were found; the first ${MAX_DATA_ERRORS} are listed`,
+      })
     return errors
   }
 

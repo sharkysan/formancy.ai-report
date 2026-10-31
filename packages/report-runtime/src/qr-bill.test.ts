@@ -13,7 +13,14 @@ import type { CheckedAddress, CheckedQrBill } from './qr-bill.js'
  * from its Annex A are in `lower-payment-part.test.ts`, through a render.
  */
 
-const SELDWYLA: CheckedAddress = { name: 'Max Muster & Söhne', street: 'Musterstrasse', buildingNumber: '123', postalCode: '8000', town: 'Seldwyla', country: 'CH' }
+const SELDWYLA: CheckedAddress = {
+  name: 'Max Muster & Söhne',
+  street: 'Musterstrasse',
+  buildingNumber: '123',
+  postalCode: '8000',
+  town: 'Seldwyla',
+  country: 'CH',
+}
 
 const BILL: CheckedQrBill = {
   language: 'en',
@@ -134,7 +141,8 @@ describe('the printed values', () => {
   // blocks of four, its last block shorter. A reader copies them by block.
   test('groups the account and the reference as SIX prints them', () => {
     expect(qrBillPart(BILL)).toMatchObject({ account: 'CH44 3199 9123 0008 8901 2', reference: '21 00000 00003 13947 14300 09017' })
-    const scor = (reference: string): string | null => qrBillPart({ ...BILL, account: { iban: 'CH5800791123000889012', qrIban: false }, reference: { type: 'SCOR', reference } }).reference
+    const scor = (reference: string): string | null =>
+      qrBillPart({ ...BILL, account: { iban: 'CH5800791123000889012', qrIban: false }, reference: { type: 'SCOR', reference } }).reference
     expect(scor('RF18539007547034')).toBe('RF18 5390 0754 7034')
     expect(scor('RF741')).toBe('RF74 1')
     expect(scor('RF95ABCDEFGHIJKLMNOPQRSTU')).toBe('RF95 ABCD EFGH IJKL MNOP QRST U')
@@ -161,7 +169,10 @@ describe('the printed values', () => {
   // 3.5.4), since whether it holds personal data, which must then be
   // printed, is not the runtime's to judge. Neither: no heading at all.
   test('prints the message and then the billing information, each that is there', () => {
-    expect(qrBillPart({ ...BILL, message: 'Order from 15.10.2020', billingInformation: '//S1/10/1234' }).additionalInformation).toEqual(['Order from 15.10.2020', '//S1/10/1234'])
+    expect(qrBillPart({ ...BILL, message: 'Order from 15.10.2020', billingInformation: '//S1/10/1234' }).additionalInformation).toEqual([
+      'Order from 15.10.2020',
+      '//S1/10/1234',
+    ])
     expect(qrBillPart({ ...BILL, message: 'Order from 15.10.2020' }).additionalInformation).toEqual(['Order from 15.10.2020'])
     expect(qrBillPart({ ...BILL, billingInformation: '//S1/10/1234' }).additionalInformation).toEqual(['//S1/10/1234'])
     expect(qrBillPart(BILL).additionalInformation).toEqual([])
@@ -179,7 +190,9 @@ describe('the payload', () => {
   // at its longest, is the longest any render can make; a check of the
   // limit at render time could never fail, and so is not written.
   test('is within the 997 characters SIX allows for the longest bill the rules accept', () => {
-    const longest = Object.fromEntries(Object.entries(QR_BILL_ADDRESS_RULES).map(([part, rule]) => [part, 'W'.repeat(rule.max)])) as { [P in keyof QrBillAddress]-?: string }
+    const longest = Object.fromEntries(Object.entries(QR_BILL_ADDRESS_RULES).map(([part, rule]) => [part, 'W'.repeat(rule.max)])) as {
+      [P in keyof QrBillAddress]-?: string
+    }
     const half = MAX_QR_BILL_ADDITIONAL_INFORMATION / 2
     const payload = qrBillPart({
       ...BILL,

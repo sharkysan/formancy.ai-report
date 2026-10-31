@@ -32,7 +32,15 @@ const MODIFIED = new Date('2026-10-16T09:30:00Z')
 const embed =
   (bytes: Uint8Array, name = 'factur-x.xml', hidden = false) =>
   (document: PdfKitDocument): void => {
-    document.file(exactBuffer(bytes), { name, type: 'text/xml', relationship: 'Alternative', description: 'invoice data', creationDate: CREATED, modifiedDate: MODIFIED, hidden })
+    document.file(exactBuffer(bytes), {
+      name,
+      type: 'text/xml',
+      relationship: 'Alternative',
+      description: 'invoice data',
+      creationDate: CREATED,
+      modifiedDate: MODIFIED,
+      hidden,
+    })
   }
 
 /** The file pdfkit reads its ICC profile from: its own `data` folder, beside the build Node loads (pdfkit.js 5265). */
@@ -73,7 +81,12 @@ describe('readPdfObjects', () => {
           type: 'EmbeddedFile',
           subtype: 'text/xml',
           // pdfkit writes the MD5 as 32 hexadecimal digits, where ISO 32000-1 asks for its 16 bytes (pdfkit.js 5205): read as the string holds it.
-          params: { creationDate: 'D:20261015080000Z', modDate: 'D:20261016093000Z', size: xml.byteLength, checkSum: new TextEncoder().encode(createHash('md5').update(xml).digest('hex')) },
+          params: {
+            creationDate: 'D:20261015080000Z',
+            modDate: 'D:20261016093000Z',
+            size: xml.byteLength,
+            checkSum: new TextEncoder().encode(createHash('md5').update(xml).digest('hex')),
+          },
           bytes: xml,
         },
       },
@@ -124,23 +137,44 @@ describe('readPdfObjects', () => {
     const document = await PDFDocument.create({ updateMetadata: false })
     document.addPage()
     const { context, catalog } = document
-    const elsewhere = context.register(context.obj({ Type: 'Filespec', AFRelationship: 'Alternative', F: PDFString.of('elsewhere.xml'), UF: PDFString.of('elsewhere.xml') }))
-    const bare = context.register(context.obj({ Type: 'Filespec', F: PDFString.of('bare.xml'), EF: { F: context.register(context.stream('<a/>', { Type: 'EmbeddedFile' })) } }))
+    const elsewhere = context.register(
+      context.obj({ Type: 'Filespec', AFRelationship: 'Alternative', F: PDFString.of('elsewhere.xml'), UF: PDFString.of('elsewhere.xml') }),
+    )
+    const bare = context.register(
+      context.obj({ Type: 'Filespec', F: PDFString.of('bare.xml'), EF: { F: context.register(context.stream('<a/>', { Type: 'EmbeddedFile' })) } }),
+    )
     catalog.set(PDFName.of('AF'), context.obj([elsewhere, bare]))
     const unlisted = context.register(context.obj({ Type: 'Filespec', F: PDFString.of('unlisted.xml') }))
-    catalog.set(PDFName.of('Names'), context.obj({ EmbeddedFiles: { Names: [PDFString.of('elsewhere.xml'), elsewhere, PDFString.of('unlisted.xml'), unlisted] } }))
-    catalog.set(PDFName.of('OutputIntents'), context.obj([{ Type: 'OutputIntent', S: 'GTS_PDFA1', OutputConditionIdentifier: PDFString.of('FOGRA39'), RegistryName: PDFString.of('http://www.color.org') }]))
+    catalog.set(
+      PDFName.of('Names'),
+      context.obj({ EmbeddedFiles: { Names: [PDFString.of('elsewhere.xml'), elsewhere, PDFString.of('unlisted.xml'), unlisted] } }),
+    )
+    catalog.set(
+      PDFName.of('OutputIntents'),
+      context.obj([
+        { Type: 'OutputIntent', S: 'GTS_PDFA1', OutputConditionIdentifier: PDFString.of('FOGRA39'), RegistryName: PDFString.of('http://www.color.org') },
+      ]),
+    )
     const bytes = await document.save()
     const objects = await readPdfObjects(bytes)
     expect(objects.associatedFiles).toEqual([
       { type: 'Filespec', relationship: 'Alternative', f: 'elsewhere.xml', uf: 'elsewhere.xml', description: undefined, embedded: undefined },
-      { type: 'Filespec', relationship: undefined, f: 'bare.xml', uf: undefined, description: undefined, embedded: { type: 'EmbeddedFile', subtype: undefined, params: undefined, bytes: new TextEncoder().encode('<a/>') } },
+      {
+        type: 'Filespec',
+        relationship: undefined,
+        f: 'bare.xml',
+        uf: undefined,
+        description: undefined,
+        embedded: { type: 'EmbeddedFile', subtype: undefined, params: undefined, bytes: new TextEncoder().encode('<a/>') },
+      },
     ])
     expect(objects.embeddedFiles.map(({ name, associated }) => [name, associated])).toEqual([
       ['elsewhere.xml', 0],
       ['unlisted.xml', -1],
     ])
-    expect(objects.outputIntents).toEqual([{ type: 'OutputIntent', s: 'GTS_PDFA1', outputConditionIdentifier: 'FOGRA39', info: undefined, registryName: 'http://www.color.org', profile: undefined }])
+    expect(objects.outputIntents).toEqual([
+      { type: 'OutputIntent', s: 'GTS_PDFA1', outputConditionIdentifier: 'FOGRA39', info: undefined, registryName: 'http://www.color.org', profile: undefined },
+    ])
     expect([objects.id, objects.info]).toEqual([undefined, {}])
     expect((await readPdf(bytes)).attachments).toEqual([
       { name: 'elsewhere.xml', description: '', bytes: undefined },
@@ -158,7 +192,14 @@ describe('readPdfObjects', () => {
   test('reads the output intent pdfkit writes, its profile byte for byte the file pdfkit read', async () => {
     const objects = await readPdfObjects(await pdfmakePdf(PDFA))
     expect(objects.outputIntents).toEqual([
-      { type: 'OutputIntent', s: 'GTS_PDFA1', outputConditionIdentifier: 'sRGB IEC61966-2.1', info: 'sRGB IEC61966-2.1', registryName: undefined, profile: { n: 3, bytes: pdfkitProfile() } },
+      {
+        type: 'OutputIntent',
+        s: 'GTS_PDFA1',
+        outputConditionIdentifier: 'sRGB IEC61966-2.1',
+        info: 'sRGB IEC61966-2.1',
+        registryName: undefined,
+        profile: { n: 3, bytes: pdfkitProfile() },
+      },
     ])
   })
 
@@ -235,10 +276,13 @@ describe('readPdfObjects', () => {
     }
     const metadata = await built(({ catalog, context }) => catalog.set(PDFName.of('Metadata'), context.obj({ Type: 'Metadata', Subtype: 'XML' })))
     await expect(readPdfObjects(metadata)).rejects.toThrow('/Metadata is not a stream')
-    const relationship = await built(({ catalog, context }) => catalog.set(PDFName.of('AF'), context.obj([context.obj({ Type: 'Filespec', AFRelationship: PDFString.of('Alternative') })])))
+    const relationship = await built(({ catalog, context }) =>
+      catalog.set(PDFName.of('AF'), context.obj([context.obj({ Type: 'Filespec', AFRelationship: PDFString.of('Alternative') })])),
+    )
     await expect(readPdfObjects(relationship)).rejects.toThrow(/PDFName/)
     // An image's /SMask is a stream, so a reference to one; a name there, or a reference to what is no image, names no mask.
-    const image = (document: PDFDocument, softMask: PDFObject): PDFRef => document.context.register(document.context.stream(new Uint8Array([0]), { Type: 'XObject', Subtype: 'Image', Width: 1, Height: 1, SMask: softMask }))
+    const image = (document: PDFDocument, softMask: PDFObject): PDFRef =>
+      document.context.register(document.context.stream(new Uint8Array([0]), { Type: 'XObject', Subtype: 'Image', Width: 1, Height: 1, SMask: softMask }))
     const named = await built((document) => image(document, PDFName.of('Mask')))
     await expect(readPdfObjects(named)).rejects.toThrow(/\/SMask of image \d+ is not a reference to an image/)
     const dictionary = await built((document) => image(document, document.context.register(document.context.obj({ Type: 'XObject' }))))
@@ -255,7 +299,12 @@ describe('readPdfObjects', () => {
     const document = await PDFDocument.create({ updateMetadata: false })
     document.addPage()
     const { context, catalog } = document
-    const packet = Uint8Array.from([...new TextEncoder().encode('<x:xmpmeta xmlns:x="adobe:ns:meta/">'), 0xff, 0xfe, ...new TextEncoder().encode('</x:xmpmeta>')])
+    const packet = Uint8Array.from([
+      ...new TextEncoder().encode('<x:xmpmeta xmlns:x="adobe:ns:meta/">'),
+      0xff,
+      0xfe,
+      ...new TextEncoder().encode('</x:xmpmeta>'),
+    ])
     catalog.set(PDFName.of('Metadata'), context.register(context.stream(packet, { Type: 'Metadata', Subtype: 'XML' })))
     await expect(readPdfObjects(await document.save())).rejects.toThrow(/utf-8/i)
   })
@@ -310,13 +359,19 @@ describe('readPdfObjects', () => {
  */
 describe('inflatedDigest', () => {
   /** A page of text that does not repeat itself, as a page's operators do not. */
-  const PAGE = Array.from({ length: 400 }, (_, line) => `BT /F1 9 Tf 40 ${String(800 - line * 2)} Td (Position ${String((line * 7919) % 1009)}: ${String(line * 31)},${String(line % 100).padStart(2, '0')} EUR) Tj ET`).join('\n')
+  const PAGE = Array.from(
+    { length: 400 },
+    (_, line) =>
+      `BT /F1 9 Tf 40 ${String(800 - line * 2)} Td (Position ${String((line * 7919) % 1009)}: ${String(line * 31)},${String(line % 100).padStart(2, '0')} EUR) Tj ET`,
+  ).join('\n')
 
   /** A one-page PDF whose page's stream is `text` deflated at `level`, with `extra` in its dictionary. */
-  async function pdf({ text = PAGE, level = 6, extra = {} as Record<string, string> } = {}): Promise<Uint8Array> {
+  async function pdf({ text = PAGE, level = 6, extra = {} } = {}): Promise<Uint8Array> {
     const document = await PDFDocument.create({ updateMetadata: false })
     const page = document.addPage([595, 842])
-    const contents = document.context.register(document.context.stream(deflateSync(Buffer.from(text, 'latin1'), { level }), { Filter: 'FlateDecode', ...extra }))
+    const contents = document.context.register(
+      document.context.stream(deflateSync(Buffer.from(text, 'latin1'), { level }), { Filter: 'FlateDecode', ...extra }),
+    )
     page.node.set(PDFName.of('Contents'), contents)
     return document.save({ useObjectStreams: false })
   }
@@ -339,7 +394,9 @@ describe('inflatedDigest', () => {
     const digest = await inflatedDigest(await pdf())
     expect(await inflatedDigest(await pdf({ text: PAGE.replace('Position', 'Pos1tion') }))).not.toBe(digest)
     expect(await inflatedDigest(await pdf({ extra: { Type: 'XObject' } }))).not.toBe(digest)
-    const older = Buffer.from(await pdf()).toString('latin1').replace(/^%PDF-1\.7/, '%PDF-1.4')
+    const older = Buffer.from(await pdf())
+      .toString('latin1')
+      .replace(/^%PDF-1\.7/, '%PDF-1.4')
     expect(older.startsWith('%PDF-1.4')).toBe(true)
     expect(await inflatedDigest(new Uint8Array(Buffer.from(older, 'latin1')))).not.toBe(digest)
     expect(digest).toMatch(/^[0-9a-f]{64}$/)
@@ -354,7 +411,9 @@ describe('inflatedDigest', () => {
     const withJpeg = async (byte: number): Promise<Uint8Array> => {
       const document = await PDFDocument.create({ updateMetadata: false })
       document.addPage([595, 842])
-      document.context.register(document.context.stream(new Uint8Array([0xff, 0xd8, byte, 0xff, 0xd9]), { Type: 'XObject', Subtype: 'Image', Filter: 'DCTDecode' }))
+      document.context.register(
+        document.context.stream(new Uint8Array([0xff, 0xd8, byte, 0xff, 0xd9]), { Type: 'XObject', Subtype: 'Image', Filter: 'DCTDecode' }),
+      )
       return document.save({ useObjectStreams: false })
     }
     const digest = await inflatedDigest(await withJpeg(1))

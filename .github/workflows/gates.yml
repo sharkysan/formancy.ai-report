@@ -10,10 +10,10 @@ name: Gates
 # its `problems` list (scripts/release-report/report.mjs).
 #
 # Six jobs leave results, because six things exist to prove: the build,
-# types, packaging, licences and the repository's guards (`verify`); each
-# package's suite on a runner of its own (`test`); the Studio in a real
-# browser, and the README's pictures of it held to the text they show
-# (`browser`); the packed tarballs in projects that are not this one
+# types, lint rules, format, packaging, licences and the repository's guards
+# (`verify`); each package's suite on a runner of its own (`test`); the
+# Studio in a real browser, and the README's pictures of it held to the text
+# they show (`browser`); the packed tarballs in projects that are not this one
 # (`install`), which also compiles and runs docs/getting-started.md's code
 # (0015); the e-invoice, the XML the runtime writes and the PDF/A-3b the
 # renderer draws of it, judged by the validators a receiver runs
@@ -47,8 +47,9 @@ permissions:
   contents: read
 
 jobs:
-  # Build, types, packaging, licences and the repository's own guards: the
-  # fast signal. The suites run in the `test` job below, one package per runner.
+  # Build, types, lint rules, format, packaging, licences and the
+  # repository's own guards: the fast signal. The suites run in the `test`
+  # job below, one package per runner.
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -85,6 +86,15 @@ jobs:
 
       - run: pnpm build
       - run: pnpm typecheck
+
+      # Every TypeScript and JavaScript file holds to the lint rules, the
+      # type-aware ones reading the declarations the build just wrote, and to
+      # Prettier's format, which the check only reads and never writes
+      # (0050). The rules and the style are scripts/code-style/, a copy of
+      # what formancy.ai will publish as @formancy/code-style for all four
+      # repositories, until this repository pins that package instead.
+      - run: pnpm lint
+      - run: pnpm format:check
 
       # Packaging correctness (publint + attw) is a release gate, not a nicety:
       # broken exports maps are the top cause of "doesn't work in my app".

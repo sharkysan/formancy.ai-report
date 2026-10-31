@@ -147,7 +147,11 @@ alone at a page's foot
 formancy's packages are dependencies at exact released versions, and none
 of their code is here: one engine decides what an expression and a decimal
 mean, in a form and in a report
-([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)). Every
+([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)). Two
+copies are tooling, in no package: the lint and format rules the four
+formancy repositories share, until formancy.ai releases them, and Formancy
+Data's merge across the format, `scripts/prettier-merge.mjs`, which no
+release replaces ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)). Every
 production dependency and every font file a published package ships is
 walked and held to an allow-list of permissive licences, the fonts read from
 their own name tables

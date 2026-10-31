@@ -21,7 +21,10 @@ const VISIT = { id: 'site-visit', locale: 'de-CH', detail: { kind: 'repeater', r
 
 /** Each component of `report`'s body as its id and kind, a container's after it, indented. */
 function outline(components: readonly Component[], depth = 0): string[] {
-  return components.flatMap((component) => [`${'  '.repeat(depth)}${component.id} ${component.kind}`, ...('components' in component ? outline(component.components, depth + 1) : [])])
+  return components.flatMap((component) => [
+    `${'  '.repeat(depth)}${component.id} ${component.kind}`,
+    ...('components' in component ? outline(component.components, depth + 1) : []),
+  ])
 }
 
 /** The text a text component prints when it holds only literal runs, or its runs' kinds. */
@@ -68,7 +71,9 @@ describe('generateReport, the site visit', () => {
       'table table',
       'line-13 text',
     ])
-    const lines = everything(report).filter((component) => component.kind === 'text' && component.id.startsWith('line-')).map(said)
+    const lines = everything(report)
+      .filter((component) => component.kind === 'text' && component.id.startsWith('line-'))
+      .map(said)
     expect(lines).toEqual([
       'Objekt: {field}',
       'Besucht am: {field}',
@@ -84,9 +89,20 @@ describe('generateReport, the site visit', () => {
       'Sauberkeit: {field}',
       'Zusammenfassung: {field}',
     ])
-    expect(everything(report).filter((component) => component.id.startsWith('heading-')).map(said)).toEqual(['Inspektor', 'Geprüft', 'Zustand', 'Befunde'])
+    expect(
+      everything(report)
+        .filter((component) => component.id.startsWith('heading-'))
+        .map(said),
+    ).toEqual(['Inspektor', 'Geprüft', 'Zustand', 'Befunde'])
     const table = everything(report).find((component) => component.kind === 'table')
-    expect(table?.kind === 'table' ? table.columns.map((column) => `${column.header} ${column.align}`) : []).toEqual(['Nr. left', 'Bereich left', 'Dringlichkeit left', 'Stunden right', 'Teile right', 'Vor Ort behoben left'])
+    expect(table?.kind === 'table' ? table.columns.map((column) => `${column.header} ${column.align}`) : []).toEqual([
+      'Nr. left',
+      'Bereich left',
+      'Dringlichkeit left',
+      'Stunden right',
+      'Teile right',
+      'Vor Ort behoben left',
+    ])
     expect(report.regions.pageFooter.map(said)).toEqual(['{pageNumber} / {pageCount}'])
     expect([report.regions.pageHeader, report.regions.summary]).toEqual([[], []])
   })
@@ -101,8 +117,18 @@ describe('generateReport, the site visit', () => {
   // its kind, and never null only where the version proves it answered.
   test('declares each answer the report prints, typed by the mapping and bound to its path in the version', () => {
     const { report } = generatedFrom(generate(SITE_VISIT_V2, VISIT))
-    const contract = (fields: readonly { readonly id: string; readonly type: string; readonly label: string; readonly nullable: boolean; readonly scale?: number; readonly form?: object }[] | undefined) =>
-      fields?.map(({ id, type, label, nullable, scale, form }) => [id, type, label, nullable, scale, form])
+    const contract = (
+      fields:
+        | readonly {
+            readonly id: string
+            readonly type: string
+            readonly label: string
+            readonly nullable: boolean
+            readonly scale?: number
+            readonly form?: object
+          }[]
+        | undefined,
+    ) => fields?.map(({ id, type, label, nullable, scale, form }) => [id, type, label, nullable, scale, form])
     expect(report.datasets.header?.form).toEqual({ kind: 'submission' })
     expect(contract(report.datasets.header?.fields)).toEqual([
       ['site', 'string', 'Objekt', false, undefined, { path: 'site' }],
@@ -180,7 +206,11 @@ describe('generateReport, the site visit', () => {
 function reversed(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(reversed)
   if (typeof value !== 'object' || value === null) return value
-  return Object.fromEntries(Object.entries(value).reverse().map(([key, inner]) => [key, reversed(inner)]))
+  return Object.fromEntries(
+    Object.entries(value)
+      .reverse()
+      .map(([key, inner]) => [key, reversed(inner)]),
+  )
 }
 
 describe('generateReport is deterministic', () => {
@@ -209,7 +239,57 @@ describe('generateReport is deterministic', () => {
     expect({ ...one.report, provenance: two.report.provenance }).toEqual(two.report)
     expect(one.notes).toEqual(two.notes)
   })
+
+  // Spec 5 adds what helps a person fill a form in, and nothing an answer
+  // holds (formancy.ai 0201). A draft that printed help text or an example
+  // would print the form's words as answers, and one that took a default
+  // or a rule's message as proof of an answer would declare a field never
+  // null that a person can leave empty. So version 2 at spec 5, with all
+  // of it, is the same report but for the version it names.
+  test('gives a version that adds only what spec 5 adds for filling it in the same report, naming that version', () => {
+    const two = generatedFrom(generate(SITE_VISIT_V2, VISIT))
+    const five = generatedFrom(generate(atSpec5(SITE_VISIT_V2), VISIT))
+    expect({ ...two.report, provenance: five.report.provenance }).toEqual(five.report)
+    expect(five.report.provenance).toEqual({ kind: 'form', form: 'site-visit', formHash: schemaHash(atSpec5(SITE_VISIT_V2)) })
+    expect(two.notes).toEqual(five.notes)
+  })
 })
+
+/** What spec 5 adds to the site visit's fields, by key: help text, an example, autofill, defaults and a shuffled order (formancy.ai 0194 to 0200). */
+const SPEC_5_FIELDS: Readonly<Record<string, Record<string, unknown>>> = {
+  site: { description: 'Street, number and town', placeholder: 'Hauptstrasse 12, 3011 Bern', autocomplete: 'street-address', default: 'Bern' },
+  outcome: { shuffle: true, default: 'pass' },
+  inspector: { description: 'Who visited' },
+  name: { autocomplete: 'name' },
+  checks: { shuffle: true, default: ['roof'] },
+  findings: { description: 'One row a finding' },
+  hours: { placeholder: '1.5', default: 1 },
+  fixed: { default: false },
+}
+
+/** `form` at spec 5, with what `SPEC_5_FIELDS` adds, the boiler an option chosen on its own and kept in place, and a rule that says its own message. */
+function atSpec5(form: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  type Def = Readonly<Record<string, unknown>> & {
+    readonly key: string
+    readonly fields?: readonly Def[]
+    readonly options?: readonly Readonly<Record<string, unknown>>[]
+  }
+  const added = (def: Def): Def => ({
+    ...def,
+    ...SPEC_5_FIELDS[def.key],
+    ...(def.fields === undefined ? {} : { fields: def.fields.map(added) }),
+    ...(def.key === 'checks' && def.options !== undefined
+      ? { options: def.options.map((option) => (option['value'] === 'boiler' ? { ...option, exclusive: true, keepPlace: true } : option)) }
+      : {}),
+  })
+  const model = form['model'] as { readonly fields: readonly Def[] }
+  return {
+    ...form,
+    specVersion: '5',
+    model: { fields: model.fields.map(added) },
+    logic: { rules: [{ target: 'findings[].hours', kind: 'validate', cel: 'value <= 24.0', code: 'longerThanADay', message: 'A visit lasts a day at most' }] },
+  }
+}
 
 describe('generateReport, its labels', () => {
   // Labels are the version's, in the language asked for, and in the
@@ -225,7 +305,9 @@ describe('generateReport, its labels', () => {
     expect(french.report.datasets.header?.fields.map((field) => field.label).slice(0, 3)).toEqual(['Site', 'Visited on', 'Arrived at'])
     expect(notesOf(french.notes)[0]).toBe('labels-default-locale /form/i18n')
     // The default locale is the form's own string, which formancy bounds by length alone: said as what it is, never quoted.
-    const named = formOf([{ key: 'a', type: 'text', label: { $t: 'a' } }], { i18n: { defaultLocale: 'Erika Mustermann', messages: { 'Erika Mustermann': { a: 'A' } } } })
+    const named = formOf([{ key: 'a', type: 'text', label: { $t: 'a' } }], {
+      i18n: { defaultLocale: 'Erika Mustermann', messages: { 'Erika Mustermann': { a: 'A' } } },
+    })
     const { notes } = generatedFrom(generate(named, { id: 'r', locale: 'en' }))
     expect(notesOf(notes)).toEqual(['labels-default-locale /form/i18n'])
     expect(JSON.stringify(notes)).not.toContain('Erika')
@@ -242,7 +324,9 @@ describe('generateReport, its labels', () => {
     expect(notesOf(blank.notes)[0]).toBe('untitled /form/title')
     const spaced = generatedFrom(generate(formOf([{ key: 'a', type: 'text' }], { title: 'Site\tvisit ' }), { id: 'r', locale: 'en' }))
     expect([spaced.report.title, spaced.report.regions.reportHeader.map(said)]).toEqual(['Site visit', ['Site visit']])
-    expect(generationRefusals(generate(formOf([{ key: 'a', type: 'text' }], { title: 'Site\u0000visit' }), { id: 'r', locale: 'en' }))).toEqual(['label-unprintable /form/title'])
+    expect(generationRefusals(generate(formOf([{ key: 'a', type: 'text' }], { title: 'Site\u0000visit' }), { id: 'r', locale: 'en' }))).toEqual([
+      'label-unprintable /form/title',
+    ])
   })
 
   // A layout the version names arranges the form for filling it in --
@@ -250,7 +334,23 @@ describe('generateReport, its labels', () => {
   // draft follows none of them: it is in model order, which is said, so a
   // reader who knows the form by its layout is not surprised.
   test('follows no layout the version names, and says so', () => {
-    const form = formOf([{ key: 'a', type: 'text', label: 'A' }, { key: 'b', type: 'text', label: 'B' }], { layouts: [{ name: 'print', nodes: [{ kind: 'field', path: 'b' }, { kind: 'field', path: 'a' }] }] })
+    const form = formOf(
+      [
+        { key: 'a', type: 'text', label: 'A' },
+        { key: 'b', type: 'text', label: 'B' },
+      ],
+      {
+        layouts: [
+          {
+            name: 'print',
+            nodes: [
+              { kind: 'field', path: 'b' },
+              { kind: 'field', path: 'a' },
+            ],
+          },
+        ],
+      },
+    )
     const { report, notes } = generatedFrom(generate(form, { id: 'r', locale: 'en' }))
     expect(report.regions.body.map(said)).toEqual(['A: {field}', 'B: {field}'])
     expect(notesOf(notes)).toEqual(['layouts-not-followed /form/layouts'])
@@ -261,7 +361,18 @@ describe('generateReport, its labels', () => {
   // labelled by its key, said, so the person knows the label is no word
   // the form chose.
   test('labels an unlabelled field by its key, and says so', () => {
-    const outcome = generatedFrom(generate(formOf([{ key: 'ref', type: 'text' }, { key: 'note', type: 'text', label: { $t: 'blank' } }], { i18n: { defaultLocale: 'en', messages: { en: { blank: ' ' } } } }), { id: 'r', locale: 'en' }))
+    const outcome = generatedFrom(
+      generate(
+        formOf(
+          [
+            { key: 'ref', type: 'text' },
+            { key: 'note', type: 'text', label: { $t: 'blank' } },
+          ],
+          { i18n: { defaultLocale: 'en', messages: { en: { blank: ' ' } } } },
+        ),
+        { id: 'r', locale: 'en' },
+      ),
+    )
     expect(outcome.report.datasets.header?.fields.map((field) => field.label)).toEqual(['ref', 'note'])
     expect(notesOf(outcome.notes)).toEqual(['unlabelled /form/model/fields/0', 'unlabelled /form/model/fields/1'])
   })
@@ -269,7 +380,16 @@ describe('generateReport, its labels', () => {
   // A colon after every label would print `Ort::` and `Dach dicht?:`:
   // after one that already ends in a colon or asks a question, a space.
   test('puts a colon after a label, unless it ends in one or in a question mark', () => {
-    const { report } = generatedFrom(generate(formOf([{ key: 'a', type: 'text', label: 'Ort:' }, { key: 'b', type: 'text', label: 'Dach dicht?' }, { key: 'c', type: 'text', label: 'Ort' }]), { id: 'r', locale: 'de-CH' }))
+    const { report } = generatedFrom(
+      generate(
+        formOf([
+          { key: 'a', type: 'text', label: 'Ort:' },
+          { key: 'b', type: 'text', label: 'Dach dicht?' },
+          { key: 'c', type: 'text', label: 'Ort' },
+        ]),
+        { id: 'r', locale: 'de-CH' },
+      ),
+    )
     expect(report.regions.body.map(said)).toEqual(['Ort: {field}', 'Dach dicht? {field}', 'Ort: {field}'])
   })
 })
@@ -298,8 +418,12 @@ describe('generateReport, its options', () => {
   // no repeater at, is refused as a read of that version would be, never
   // guessed from a name.
   test('refuses a detail the version holds no repeater at, as a read would', () => {
-    expect(generationRefusals(generate(SITE_VISIT_V2, { ...VISIT, detail: { kind: 'repeater', repeater: 'befunde' } }))).toEqual(['version-lacks-field /options/detail/repeater'])
-    expect(generationRefusals(generate(SITE_VISIT_V2, { ...VISIT, detail: { kind: 'repeater', repeater: 'inspector' } }))).toEqual(['version-retypes-field /options/detail/repeater'])
+    expect(generationRefusals(generate(SITE_VISIT_V2, { ...VISIT, detail: { kind: 'repeater', repeater: 'befunde' } }))).toEqual([
+      'version-lacks-field /options/detail/repeater',
+    ])
+    expect(generationRefusals(generate(SITE_VISIT_V2, { ...VISIT, detail: { kind: 'repeater', repeater: 'inspector' } }))).toEqual([
+      'version-retypes-field /options/detail/repeater',
+    ])
     // A generator's option is no report a review could lift a refusal of: the refusal names none (0048).
     const refusal = generate(SITE_VISIT_V2, { ...VISIT, detail: { kind: 'repeater', repeater: 'befunde' } })
     expect(refusal.ok ? '' : refusal.errors[0]?.message).not.toContain('reviewFormVersion')
@@ -308,8 +432,18 @@ describe('generateReport, its options', () => {
   // A form formancy's validator refuses is no version, and a report made
   // from it would print by rules formancy never accepted.
   test('refuses a form that is no version, as a read does', () => {
-    expect(generationRefusals(generate({ ...SITE_VISIT_V2, specVersion: '5' }, VISIT))).toEqual(['unsupported-spec-version /form/specVersion'])
-    expect(generationRefusals(generate(formOf([{ key: 'a', type: 'text' }, { key: 'a', type: 'text' }]), VISIT))).toEqual(['invalid-form /form/model/fields/1/key'])
+    expect(generationRefusals(generate({ ...SITE_VISIT_V2, specVersion: '6' }, VISIT))).toEqual(['unsupported-spec-version /form/specVersion'])
+    expect(
+      generationRefusals(
+        generate(
+          formOf([
+            { key: 'a', type: 'text' },
+            { key: 'a', type: 'text' },
+          ]),
+          VISIT,
+        ),
+      ),
+    ).toEqual(['invalid-form /form/model/fields/1/key'])
     expect(generationRefusals(generate(Object.defineProperty({}, 'id', { get: () => 'x', enumerable: true }), VISIT))).toEqual(['not-data /form/id'])
   })
 })
@@ -358,9 +492,17 @@ describe('generateReport, its notes', () => {
       { title: ' ', i18n: { defaultLocale: 'en', messages: { en: {} } }, layouts: [{ name: 'web', nodes: [{ kind: 'field', path: 'site' }] }] },
     )
     const first = generatedFrom(generate(form, { id: 'r', locale: 'fr-CH', detail: { kind: 'repeater', repeater: 'wide' } })).notes
-    expect(first.slice(0, 5).map((note) => note.code)).toEqual(['untitled', 'labels-default-locale', 'layouts-not-followed', 'pages-not-breaks', 'table-landscape'])
+    expect(first.slice(0, 5).map((note) => note.code)).toEqual([
+      'untitled',
+      'labels-default-locale',
+      'layouts-not-followed',
+      'pages-not-breaks',
+      'table-landscape',
+    ])
     // A catalogue in the report's language that lacks one message: that label alone is the default's.
-    const partly = formOf([{ key: 'a', type: 'text', label: { $t: 'a' } }], { i18n: { defaultLocale: 'en', messages: { en: { a: marked('A') }, 'fr-CH': {} } } })
+    const partly = formOf([{ key: 'a', type: 'text', label: { $t: 'a' } }], {
+      i18n: { defaultLocale: 'en', messages: { en: { a: marked('A') }, 'fr-CH': {} } },
+    })
     const second = generatedFrom(generate(partly, { id: 'r', locale: 'fr-CH' })).notes
     const notes = [...first, ...second]
     expect([...new Set(notes.map((note) => note.code))].sort()).toEqual([...NOTE_CODES].sort())

@@ -4,7 +4,7 @@ import path from 'node:path'
 import pdfmake from 'pdfmake'
 import vfs from 'pdfmake/build/vfs_fonts.js'
 import { readPdf } from '@formancy/report-corpus'
-import type { Block, ResolvedDocument } from '@formancy/report-runtime'
+import type { ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { fromBase64 } from './bytes.js'
 import { characterMap, codePoint, faceOf, missingGlyph } from './glyphs.js'
@@ -81,13 +81,17 @@ describe('the character maps', () => {
 describe('text without a glyph', () => {
   // pdfmake 0.3.11's own default, pinned: a character Roboto has no glyph
   // for comes back out of the PDF as U+0000, and the PDF is written.
-  test('is lost by pdfmake without a word', async () => {
-    pdfmake.setFonts({ Roboto: { normal: path.join(fonts, FILES.normal).split(path.sep).join('/') } })
-    pdfmake.setLocalAccessPolicy(() => true)
-    const bytes = await pdfmake.createPdf({ content: ['Kunde: 山田'], defaultStyle: { font: 'Roboto' } }).getBuffer()
-    const pdf = await readPdf(new Uint8Array(bytes))
-    expect(pdf.pages[0]?.items.map((item) => item.text).join('')).toContain('\u0000')
-  }, TIMEOUT)
+  test(
+    'is lost by pdfmake without a word',
+    async () => {
+      pdfmake.setFonts({ Roboto: { normal: path.join(fonts, FILES.normal).split(path.sep).join('/') } })
+      pdfmake.setLocalAccessPolicy(() => true)
+      const bytes = await pdfmake.createPdf({ content: ['Kunde: 山田'], defaultStyle: { font: 'Roboto' } }).getBuffer()
+      const pdf = await readPdf(new Uint8Array(bytes))
+      expect(pdf.pages[0]?.items.map((item) => item.text).join('')).toContain('\u0000')
+    },
+    TIMEOUT,
+  )
 
   // Each place text prints, refused naming the block or the table and the
   // character, whatever the face.
@@ -100,7 +104,7 @@ describe('text without a glyph', () => {
     ['in a section', [{ kind: 'section', padding: 4, blocks: [paragraph('ok'), paragraph('✓ ok')] }], 'body[0].blocks[1]', 'U+2713'],
     ['in a French amount', [paragraph('Total : 1 234,50 €')], 'body[0]', 'U+202F'],
   ] as const)('is refused %s', async (_, body, subject, point) => {
-    const outcome = await refusal(bareDocument('Glyphs', body as readonly Block[]))
+    const outcome = await refusal(bareDocument('Glyphs', body))
     expect(outcome).toMatchObject({ code: 'unsupported', subject, message: expect.stringContaining(point) as string })
   })
 
@@ -112,7 +116,11 @@ describe('text without a glyph', () => {
 
   // Line breaks print as breaks, and every character of the corpus's
   // languages as itself.
-  test('is never what Roboto draws', async () => {
-    expect(await refusal(bareDocument('Glyphs', [paragraph("Zürich, Genève\nŁódź · CHF 1'234.50 · 1’234,50 €")]))).toBe('rendered')
-  }, TIMEOUT)
+  test(
+    'is never what Roboto draws',
+    async () => {
+      expect(await refusal(bareDocument('Glyphs', [paragraph("Zürich, Genève\nŁódź · CHF 1'234.50 · 1’234,50 €")]))).toBe('rendered')
+    },
+    TIMEOUT,
+  )
 })

@@ -98,7 +98,18 @@ class DrawingBuilder {
     const children = this.children(root, transform.matrix, 'draw')
     const paint = this.drawable('g', rootStyled.written)
     const moved = paint.length > 0 || transform.written !== undefined
-    const group: Written = { name: 'g', source: root, geometry: [], transform: transform.written, properties: paint, children, styled: rootStyled, drawn: undefined, under: transform.matrix, id: undefined }
+    const group: Written = {
+      name: 'g',
+      source: root,
+      geometry: [],
+      transform: transform.written,
+      properties: paint,
+      children,
+      styled: rootStyled,
+      drawn: undefined,
+      under: transform.matrix,
+      id: undefined,
+    }
     const svg: Written = {
       name: 'svg',
       source: root,
@@ -117,7 +128,11 @@ class DrawingBuilder {
     const targets = new Map([...this.references(svg)].filter(([, target]) => kept.has(target)))
     for (const target of targets.values())
       if (target.name === 'clipPath' && target.children.length === 0)
-        refuse('unsupported', `${target.source.path} is a clip path with nothing in it, which hides what it clips`, 'put the shape it clips to inside it, or remove the clip')
+        refuse(
+          'unsupported',
+          `${target.source.path} is a clip path with nothing in it, which hides what it clips`,
+          'put the shape it clips to inside it, or remove the clip',
+        )
     this.unwrap(svg)
     this.name(svg, new Set(targets.values()))
     return { root: svg, viewBox, targets }
@@ -128,7 +143,8 @@ class DrawingBuilder {
     const { root, width, height } = this.document
     const written = root.attributes.get('viewBox')
     if (written === undefined) {
-      if (width === undefined || height === undefined) refuse('out-of-range', 'svg has no viewBox, and no width and height to take one from', 'give the svg a viewBox')
+      if (width === undefined || height === undefined)
+        refuse('out-of-range', 'svg has no viewBox, and no width and height to take one from', 'give the svg a viewBox')
       return this.box(0, 0, readLength(width.value, width.where, false).value, readLength(height.value, height.where, false).value, 'svg@width')
     }
     const numbers = readNumbers(written.value, written.where)
@@ -166,7 +182,8 @@ class DrawingBuilder {
       this.removals.add('element', element.link ? 'a' : element.name)
       return undefined
     }
-    if (styled.clip !== undefined && (context === 'clip' || element.name === 'clipPath')) refuse('unsupported', `${element.path} is clipped inside a clip path`, 'clip it once, with one clip path')
+    if (styled.clip !== undefined && (context === 'clip' || element.name === 'clipPath'))
+      refuse('unsupported', `${element.path} is clipped inside a clip path`, 'clip it once, with one clip path')
     const { matrix, written: transform } = this.transform(element, element.name === 'clipPath' ? IDENTITY : outer)
     const shape = SHAPES.has(element.name) ? readShape(element) : undefined
     if (SHAPES.has(element.name) && shape === undefined) {
@@ -188,7 +205,13 @@ class DrawingBuilder {
       geometry.push(['clipPathUnits', units.value])
     }
     const inner: Context = element.name === 'clipPath' ? 'clip' : element.name === 'defs' ? 'defs' : context
-    const written: Written = { ...base, geometry, children: this.children(element, matrix, inner), drawn: undefined, ...(element.name === 'g' ? { under: matrix } : {}) }
+    const written: Written = {
+      ...base,
+      geometry,
+      children: this.children(element, matrix, inner),
+      drawn: undefined,
+      ...(element.name === 'g' ? { under: matrix } : {}),
+    }
     if (element.name === 'clipPath') this.built.set(element, written)
     return written
   }
@@ -198,7 +221,17 @@ class DrawingBuilder {
     const styled = this.style(element)
     const offset = element.attributes.get('offset')
     const geometry: Array<readonly [string, string]> = offset === undefined ? [] : [['offset', writeNumber(readOpacity(offset.value, offset.where))]]
-    return { name: 'stop', source: element, geometry, transform: undefined, properties: this.drawable('stop', styled.written), children: [], styled, drawn: undefined, id: undefined }
+    return {
+      name: 'stop',
+      source: element,
+      geometry,
+      transform: undefined,
+      properties: this.drawable('stop', styled.written),
+      children: [],
+      styled,
+      drawn: undefined,
+      id: undefined,
+    }
   }
 
   /** `written` with only what draws on an element `name`, every other property removed and listed (`WRITTEN_ON`). */
@@ -223,9 +256,15 @@ class DrawingBuilder {
     const element = this.ids.get(id)
     if (element === undefined) refuse('reference', `${where} names nothing in the file`, 'put what it names into the file, or remove the reference')
     const kind = gradient ? GRADIENTS.has(element.name) : element.name === 'clipPath'
-    if (!kind) refuse('reference', `${where} names a ${element.link ? 'a' : element.name}, not a ${gradient ? 'gradient' : 'clip path'}`, `name a ${gradient ? 'gradient' : 'clip path'}`)
+    if (!kind)
+      refuse(
+        'reference',
+        `${where} names a ${element.link ? 'a' : element.name}, not a ${gradient ? 'gradient' : 'clip path'}`,
+        `name a ${gradient ? 'gradient' : 'clip path'}`,
+      )
     const written = this.built.get(element)
-    if (written === undefined) refuse('reference', `${where} names a ${gradient ? 'gradient' : 'clip path'} inside what is removed`, 'move what it names into defs')
+    if (written === undefined)
+      refuse('reference', `${where} names a ${gradient ? 'gradient' : 'clip path'} inside what is removed`, 'move what it names into defs')
     return written
   }
 

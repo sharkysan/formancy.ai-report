@@ -59,16 +59,54 @@ function workspace() {
   put(root, 'packages/report-spec/coverage/coverage-summary.json', { total: { lines: { pct: 100 } }, 'src/version.ts': {} })
   // Written as the suite ends, whatever this machine's clock says today.
   utimesSync(join(root, 'packages/report-spec/coverage/coverage-summary.json'), new Date(T0 + 3000), new Date(T0 + 3000))
-  put(root, 'packages/report-builder-angular/package.json', { name: '@formancy/report-builder-angular', publishConfig: { directory: 'dist' }, scripts: { 'test:coverage': 'vitest run --coverage' } })
+  put(root, 'packages/report-builder-angular/package.json', {
+    name: '@formancy/report-builder-angular',
+    publishConfig: { directory: 'dist' },
+    scripts: { 'test:coverage': 'vitest run --coverage' },
+  })
   put(root, 'packages/report-builder-angular/dist/fesm2022/a.mjs', 'export const a = 1\n')
   put(root, 'packages/report-builder-angular/dist/package.json', '{"name":"@formancy/report-builder-angular"}')
   put(root, 'packages/report-corpus/package.json', { name: '@formancy/report-corpus', private: true, scripts: { 'test:coverage': 'vitest run --coverage' } })
   put(root, 'packages/report-corpus/dist/index.mjs', 'export {}\n')
   put(root, 'test-results/vitest.json', vitest(root, 'scripts/check-cla.test.mjs'))
-  put(root, 'test-results/install.json', { startedAt: at(20), finishedAt: at(25), passed: true, node: 'v22.20.0', npm: '10.9.0', resolved: [], tarballs: [], consumers: [] })
-  put(root, 'test-results/e-invoice.json', { gate: 'e-invoice', startedAt: at(40), finishedAt: at(41), java: { version: '17.0.20.1', major: 17 }, tools: [], corpus: [], mustang: [], kosit: [], problems: [], passed: true })
-  put(root, 'test-results/container.json', { gate: 'container', startedAt: at(50), finishedAt: at(52), passed: true, error: null, docker: '28.3.3 linux/amd64', image: { tag: 'formancy/report-server:gate', id: 'sha256:e0', size: 192204806, node: 'v26.12.1', user: 'node' }, measured: {}, planned: ['it runs as node'], checks: [{ name: 'it runs as node', passed: true, said: null }] })
-  put(root, '.turbo/runs/one.json', { execution: { startTime: T0 - 5000 }, tasks: [{ taskId: '@formancy/report-spec#test:coverage', execution: { startTime: T0 - 4000, endTime: T0 + 9000 }, cache: { status: 'MISS' } }] })
+  put(root, 'test-results/install.json', {
+    startedAt: at(20),
+    finishedAt: at(25),
+    passed: true,
+    node: 'v22.20.0',
+    npm: '10.9.0',
+    resolved: [],
+    tarballs: [],
+    consumers: [],
+  })
+  put(root, 'test-results/e-invoice.json', {
+    gate: 'e-invoice',
+    startedAt: at(40),
+    finishedAt: at(41),
+    java: { version: '17.0.20.1', major: 17 },
+    tools: [],
+    corpus: [],
+    mustang: [],
+    kosit: [],
+    problems: [],
+    passed: true,
+  })
+  put(root, 'test-results/container.json', {
+    gate: 'container',
+    startedAt: at(50),
+    finishedAt: at(52),
+    passed: true,
+    error: null,
+    docker: '28.3.3 linux/amd64',
+    image: { tag: 'formancy/report-server:gate', id: 'sha256:e0', size: 192204806, node: 'v26.12.1', user: 'node' },
+    measured: {},
+    planned: ['it runs as node'],
+    checks: [{ name: 'it runs as node', passed: true, said: null }],
+  })
+  put(root, '.turbo/runs/one.json', {
+    execution: { startTime: T0 - 5000 },
+    tasks: [{ taskId: '@formancy/report-spec#test:coverage', execution: { startTime: T0 - 4000, endTime: T0 + 9000 }, cache: { status: 'MISS' } }],
+  })
   return root
 }
 
@@ -100,11 +138,27 @@ describe('a test job’s results', () => {
   test('keep the suite, its task and its coverage, and drop the coverage map and the meta', () => {
     const root = workspace()
     const result = collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine })
-    expect(result).toMatchObject({ schema: 1, job: 'test', key: 'test-report-spec', package: '@formancy/report-spec', commit: 'abc123', run: { id: '42', attempt: '1' }, missing: [] })
+    expect(result).toMatchObject({
+      schema: 1,
+      job: 'test',
+      key: 'test-report-spec',
+      package: '@formancy/report-spec',
+      commit: 'abc123',
+      run: { id: '42', attempt: '1' },
+      missing: [],
+    })
     expect(result.runner).toMatchObject({ image: 'ubuntu24', imageVersion: '20261012.1' })
     const [suite] = result.suites
     expect(suite).not.toHaveProperty('coverageMap')
-    expect(suite.files).toEqual([{ file: 'packages/report-spec/src/version.test.ts', status: 'passed', startTime: T0 + 1000, endTime: T0 + 2000, tests: [{ name: 'reads a report', status: 'passed', durationMs: 1000 }] }])
+    expect(suite.files).toEqual([
+      {
+        file: 'packages/report-spec/src/version.test.ts',
+        status: 'passed',
+        startTime: T0 + 1000,
+        endTime: T0 + 2000,
+        tests: [{ name: 'reads a report', status: 'passed', durationMs: 1000 }],
+      },
+    ])
     expect(suite.task).toEqual({ startTime: T0 - 4000, endTime: T0 + 9000, cache: 'MISS' })
     expect(suite.coverage).toEqual({ lines: { pct: 100 } })
   })
@@ -129,10 +183,17 @@ describe('a test job’s results', () => {
   // one without a summary has no wall time.
   test('list a task turbo replayed, and a run summary that is not there', () => {
     const root = workspace()
-    put(root, '.turbo/runs/one.json', { execution: { startTime: T0 }, tasks: [{ taskId: '@formancy/report-spec#test:coverage', execution: { startTime: T0, endTime: T0 + 10 }, cache: { status: 'HIT' } }] })
-    expect(collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine }).missing).toEqual(['a fresh run of @formancy/report-spec#test:coverage: turbo replayed it from its cache'])
+    put(root, '.turbo/runs/one.json', {
+      execution: { startTime: T0 },
+      tasks: [{ taskId: '@formancy/report-spec#test:coverage', execution: { startTime: T0, endTime: T0 + 10 }, cache: { status: 'HIT' } }],
+    })
+    expect(collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine }).missing).toEqual([
+      'a fresh run of @formancy/report-spec#test:coverage: turbo replayed it from its cache',
+    ])
     rmSync(join(root, '.turbo'), { recursive: true })
-    expect(collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine }).missing).toEqual(["turbo's run summary for @formancy/report-spec#test:coverage (run it with --summarize)"])
+    expect(collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine }).missing).toEqual([
+      "turbo's run summary for @formancy/report-spec#test:coverage (run it with --summarize)",
+    ])
   })
 
   // The report can only say a file did not run if it knows the file is
@@ -155,7 +216,10 @@ describe('a test job’s results', () => {
     ]
     for (const file of files.filter((entry) => !entry.includes('deleted'))) put(root, file, '')
     const git = (args) => (args[0] === 'ls-files' ? `${files.join('\0')}\0` : 'abc123\n')
-    expect(collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine, git }).suites[0].testFiles).toEqual(['packages/report-spec/src/page.test.tsx', 'packages/report-spec/src/version.test.ts'])
+    expect(collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine, git }).suites[0].testFiles).toEqual([
+      'packages/report-spec/src/page.test.tsx',
+      'packages/report-spec/src/version.test.ts',
+    ])
     expect(collect({ root, job: 'verify', ...machine, git }).suites[0].testFiles).toEqual(['docs/stray.test.mjs', 'scripts/check-cla.test.mjs'])
   })
 
@@ -166,7 +230,10 @@ describe('a test job’s results', () => {
   test('refuse a coverage summary or a turbo task from another run than its vitest.json', () => {
     const root = workspace()
     utimesSync(join(root, 'packages/report-spec/coverage/coverage-summary.json'), new Date(T0 - 1000), new Date(T0 - 1000))
-    put(root, '.turbo/runs/one.json', { execution: { startTime: T0 + 500 }, tasks: [{ taskId: '@formancy/report-spec#test:coverage', execution: { startTime: T0 + 500, endTime: T0 + 9000 }, cache: { status: 'MISS' } }] })
+    put(root, '.turbo/runs/one.json', {
+      execution: { startTime: T0 + 500 },
+      tasks: [{ taskId: '@formancy/report-spec#test:coverage', execution: { startTime: T0 + 500, endTime: T0 + 9000 }, cache: { status: 'MISS' } }],
+    })
     const result = collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine })
     expect(result.suites.map((suite) => [suite.task, suite.coverage])).toEqual([[null, null]])
     expect(result.missing).toEqual([
@@ -174,7 +241,10 @@ describe('a test job’s results', () => {
       `another run's: packages/report-spec/coverage/coverage-summary.json written ${new Date(T0 - 1000).toISOString()}, before its vitest.json started, ${at(0)}`,
     ])
     // A task that had ended before vitest started ran some other vitest.
-    put(root, '.turbo/runs/one.json', { execution: { startTime: T0 - 9000 }, tasks: [{ taskId: '@formancy/report-spec#test:coverage', execution: { startTime: T0 - 9000, endTime: T0 - 1000 }, cache: { status: 'MISS' } }] })
+    put(root, '.turbo/runs/one.json', {
+      execution: { startTime: T0 - 9000 },
+      tasks: [{ taskId: '@formancy/report-spec#test:coverage', execution: { startTime: T0 - 9000, endTime: T0 - 1000 }, cache: { status: 'MISS' } }],
+    })
     expect(collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine }).suites[0].task).toBeNull()
   })
 
@@ -184,7 +254,11 @@ describe('a test job’s results', () => {
   test('list a suite that left no results', () => {
     const root = workspace()
     rmSync(join(root, 'packages/report-spec/test-results'), { recursive: true })
-    expect(collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine })).toMatchObject({ suites: [], absent: [{ reader: 'test', file: 'packages/report-spec/test-results/vitest.json' }], missing: [] })
+    expect(collect({ root, job: 'test', pkg: '@formancy/report-spec', ...machine })).toMatchObject({
+      suites: [],
+      absent: [{ reader: 'test', file: 'packages/report-spec/test-results/vitest.json' }],
+      missing: [],
+    })
   })
 })
 
@@ -193,11 +267,17 @@ describe('the verify and install jobs’ results', () => {
   // install gate leaves its record and the tarballs it packed.
   test('keep the repository guards’ suite, and the install gate’s record', () => {
     const root = workspace()
-    expect(collect({ root, job: 'verify', ...machine }).suites.map((suite) => [suite.package, suite.path, suite.files[0].file])).toEqual([[null, '.', 'scripts/check-cla.test.mjs']])
+    expect(collect({ root, job: 'verify', ...machine }).suites.map((suite) => [suite.package, suite.path, suite.files[0].file])).toEqual([
+      [null, '.', 'scripts/check-cla.test.mjs'],
+    ])
     const install = collect({ root, job: 'install', ...machine })
     expect(install).toMatchObject({ key: 'install', suites: [], install: { passed: true, npm: '10.9.0' }, tarballs: [], absent: [], missing: [] })
     rmSync(join(root, 'test-results/install.json'))
-    expect(collect({ root, job: 'install', ...machine })).toMatchObject({ install: null, absent: [{ reader: 'install', file: 'test-results/install.json' }], missing: [] })
+    expect(collect({ root, job: 'install', ...machine })).toMatchObject({
+      install: null,
+      absent: [{ reader: 'install', file: 'test-results/install.json' }],
+      missing: [],
+    })
   })
 
   // A job gates.yml gains -- the getting-started guide's, one day -- needs a
@@ -218,9 +298,21 @@ describe('the e-invoice job’s results', () => {
   // than that there was nothing to judge.
   test('keep the gate’s record, and list it when it left none', () => {
     const root = workspace()
-    expect(collect({ root, job: 'e-invoice', ...machine })).toMatchObject({ key: 'e-invoice', job: 'e-invoice', suites: [], install: null, eInvoice: { passed: true, java: { major: 17 } }, absent: [], missing: [] })
+    expect(collect({ root, job: 'e-invoice', ...machine })).toMatchObject({
+      key: 'e-invoice',
+      job: 'e-invoice',
+      suites: [],
+      install: null,
+      eInvoice: { passed: true, java: { major: 17 } },
+      absent: [],
+      missing: [],
+    })
     rmSync(join(root, 'test-results/e-invoice.json'))
-    expect(collect({ root, job: 'e-invoice', ...machine })).toMatchObject({ eInvoice: null, absent: [{ reader: 'e-invoice', file: 'test-results/e-invoice.json' }], missing: [] })
+    expect(collect({ root, job: 'e-invoice', ...machine })).toMatchObject({
+      eInvoice: null,
+      absent: [{ reader: 'e-invoice', file: 'test-results/e-invoice.json' }],
+      missing: [],
+    })
   })
 
   // On a machine the file is whatever the gate's last run left.
@@ -240,9 +332,22 @@ describe('the container job’s results', () => {
   // missing rather than that there was nothing to judge (0046).
   test('keep the gate’s record, and list it when it left none', () => {
     const root = workspace()
-    expect(collect({ root, job: 'container', ...machine })).toMatchObject({ key: 'container', job: 'container', suites: [], install: null, eInvoice: null, container: { passed: true, image: { node: 'v26.12.1', user: 'node' } }, absent: [], missing: [] })
+    expect(collect({ root, job: 'container', ...machine })).toMatchObject({
+      key: 'container',
+      job: 'container',
+      suites: [],
+      install: null,
+      eInvoice: null,
+      container: { passed: true, image: { node: 'v26.12.1', user: 'node' } },
+      absent: [],
+      missing: [],
+    })
     rmSync(join(root, 'test-results/container.json'))
-    expect(collect({ root, job: 'container', ...machine })).toMatchObject({ container: null, absent: [{ reader: 'container', file: 'test-results/container.json' }], missing: [] })
+    expect(collect({ root, job: 'container', ...machine })).toMatchObject({
+      container: null,
+      absent: [{ reader: 'container', file: 'test-results/container.json' }],
+      missing: [],
+    })
   })
 
   // On a machine the file is whatever the gate's last run left.
@@ -256,10 +361,33 @@ describe('the container job’s results', () => {
 
 /** The Studio, with a browser gate and pictures, and the file each wrote: its gate in Chromium, and its pictures' check. */
 function withStudio(root) {
-  put(root, 'apps/studio/package.json', { name: '@formancy/report-studio', private: true, scripts: { 'test:browser': 'node scripts/browser-test.mjs', 'test:pictures': 'node scripts/pictures.mjs --check' } })
-  const gate = { gate: 'apps/studio', asked: 'chromium', startedAt: at(30), finishedAt: at(33), browser: { name: 'chromium', version: '156.0.8078.4', headless: true }, playwright: '1.64.1', planned: ['phone, 360'], passes: 1, made: [], checks: { ok: 3, failed: [] } }
+  put(root, 'apps/studio/package.json', {
+    name: '@formancy/report-studio',
+    private: true,
+    scripts: { 'test:browser': 'node scripts/browser-test.mjs', 'test:pictures': 'node scripts/pictures.mjs --check' },
+  })
+  const gate = {
+    gate: 'apps/studio',
+    asked: 'chromium',
+    startedAt: at(30),
+    finishedAt: at(33),
+    browser: { name: 'chromium', version: '156.0.8078.4', headless: true },
+    playwright: '1.64.1',
+    planned: ['phone, 360'],
+    passes: 1,
+    made: [],
+    checks: { ok: 3, failed: [] },
+  }
   put(root, 'apps/studio/test-results/browser-chromium.json', gate)
-  put(root, 'apps/studio/test-results/pictures.json', { check: 'pictures', app: 'apps/studio', startedAt: at(34), finishedAt: at(35), planned: ['studio-react'], walked: ['studio-react'], problems: [] })
+  put(root, 'apps/studio/test-results/pictures.json', {
+    check: 'pictures',
+    app: 'apps/studio',
+    startedAt: at(34),
+    finishedAt: at(35),
+    planned: ['studio-react'],
+    walked: ['studio-react'],
+    problems: [],
+  })
   return root
 }
 
@@ -270,7 +398,9 @@ describe('the browser job’s results', () => {
   test('keep each app’s gate in every browser the gates run in, and its pictures’ check', () => {
     const result = collect({ root: withStudio(workspace()), job: 'browser', ...machine })
     expect(result).toMatchObject({ key: 'browser', job: 'browser', suites: [], install: null, absent: [], missing: [] })
-    expect(result.browserGates.map((gate) => [gate.gate, gate.asked, gate.browser.version, gate.planned])).toEqual([['apps/studio', 'chromium', '156.0.8078.4', ['phone, 360']]])
+    expect(result.browserGates.map((gate) => [gate.gate, gate.asked, gate.browser.version, gate.planned])).toEqual([
+      ['apps/studio', 'chromium', '156.0.8078.4', ['phone, 360']],
+    ])
     expect(result.pictures.map((check) => [check.app, check.walked])).toEqual([['apps/studio', ['studio-react']]])
     // The job builds what the Studio imports, so its dist/ is held to every other job's.
     expect(result.dist.map((entry) => entry.package)).toEqual(['@formancy/report-builder-angular', '@formancy/report-spec'])
@@ -296,9 +426,15 @@ describe('the browser job’s results', () => {
     const root = withStudio(workspace())
     const file = 'apps/studio/test-results/browser-chromium.json'
     put(root, file, { gate: 'apps/studio', asked: 'firefox', startedAt: at(30), browser: null })
-    expect(collect({ root, job: 'browser', ...machine })).toMatchObject({ browserGates: [], missing: [`apps/studio’s gate asked for firefox in its chromium file: ${file}`] })
+    expect(collect({ root, job: 'browser', ...machine })).toMatchObject({
+      browserGates: [],
+      missing: [`apps/studio’s gate asked for firefox in its chromium file: ${file}`],
+    })
     put(root, file, { gate: 'apps/studio', asked: 'chromium', startedAt: at(30), browser: { name: 'webkit', version: '27.2' } })
-    expect(collect({ root, job: 'browser', ...machine })).toMatchObject({ browserGates: [], missing: [`apps/studio’s gate launched webkit in its chromium file: ${file}`] })
+    expect(collect({ root, job: 'browser', ...machine })).toMatchObject({
+      browserGates: [],
+      missing: [`apps/studio’s gate launched webkit in its chromium file: ${file}`],
+    })
   })
 
   // On a machine, the gate's file is whatever its last run left: yesterday's
@@ -320,8 +456,15 @@ describe('local results', () => {
     const result = collect({ root, local: true, since: at(10), ...machine, env: {} })
     expect(result.suites).toEqual([])
     expect(result.install).toMatchObject({ passed: true })
-    expect(result.missing).toEqual(expect.arrayContaining([`stale: packages/report-spec/test-results/vitest.json started ${at(0)}, before --since`, `stale: test-results/vitest.json started ${at(0)}, before --since`]))
-    expect(collect({ root, local: true, since: at(21), ...machine, env: {} }).missing).toEqual(expect.arrayContaining([`stale: test-results/install.json started ${at(20)}, before --since`]))
+    expect(result.missing).toEqual(
+      expect.arrayContaining([
+        `stale: packages/report-spec/test-results/vitest.json started ${at(0)}, before --since`,
+        `stale: test-results/vitest.json started ${at(0)}, before --since`,
+      ]),
+    )
+    expect(collect({ root, local: true, since: at(21), ...machine, env: {} }).missing).toEqual(
+      expect.arrayContaining([`stale: test-results/install.json started ${at(20)}, before --since`]),
+    )
   })
 
   // Every package with a suite is expected, so a suite not run is named.
@@ -342,7 +485,14 @@ describe('local results', () => {
   // A file of an allowed reader that is there but stale is still refused.
   test('file each file not found under the reader that expected it, and refuse a stale one however it is allowed', () => {
     const root = withStudio(workspace())
-    for (const file of ['test-results/vitest.json', 'test-results/install.json', 'test-results/container.json', 'apps/studio/test-results/browser-chromium.json', 'apps/studio/test-results/pictures.json']) rmSync(join(root, file))
+    for (const file of [
+      'test-results/vitest.json',
+      'test-results/install.json',
+      'test-results/container.json',
+      'apps/studio/test-results/browser-chromium.json',
+      'apps/studio/test-results/pictures.json',
+    ])
+      rmSync(join(root, file))
     const result = collect({ root, local: true, since: at(-1), ...machine, env: {} })
     expect(result.absent).toEqual([
       { reader: 'test', file: 'packages/report-builder-angular/test-results/vitest.json' },
@@ -367,7 +517,10 @@ describe('local results', () => {
   test('refuse a turbo summary or a coverage summary from before --since, and say so', () => {
     const root = workspace()
     const yesterday = T0 - 86_400_000
-    put(root, '.turbo/runs/one.json', { execution: { startTime: yesterday }, tasks: [{ taskId: '@formancy/report-spec#test:coverage', execution: { startTime: yesterday, endTime: yesterday + 600_000 }, cache: { status: 'MISS' } }] })
+    put(root, '.turbo/runs/one.json', {
+      execution: { startTime: yesterday },
+      tasks: [{ taskId: '@formancy/report-spec#test:coverage', execution: { startTime: yesterday, endTime: yesterday + 600_000 }, cache: { status: 'MISS' } }],
+    })
     utimesSync(join(root, 'packages/report-spec/coverage/coverage-summary.json'), new Date(yesterday), new Date(yesterday))
     const result = collect({ root, local: true, since: at(-1), ...machine, env: {} })
     expect(result.suites.filter((suite) => suite.path === 'packages/report-spec').map((suite) => [suite.task, suite.coverage])).toEqual([[null, null]])
@@ -383,7 +536,10 @@ describe('local results', () => {
   // HEAD alone would name code that did not run.
   test('record whether the tree had uncommitted changes', () => {
     const git = (status) => (args) => (args[0] === 'status' ? status : 'abc123\n')
-    expect(collect({ root: workspace(), local: true, since: at(-1), ...machine, env: {}, git: git(' M README.md\n') })).toMatchObject({ commit: 'abc123', dirty: true })
+    expect(collect({ root: workspace(), local: true, since: at(-1), ...machine, env: {}, git: git(' M README.md\n') })).toMatchObject({
+      commit: 'abc123',
+      dirty: true,
+    })
     expect(collect({ root: workspace(), local: true, since: at(-1), ...machine, env: {}, git: git('') })).toMatchObject({ commit: 'abc123', dirty: false })
   })
 
@@ -405,7 +561,11 @@ describe('the command line', () => {
     roots.push(out)
     // A step's outputs are the workflow's; this run is not a step of one.
     const { GITHUB_OUTPUT: _, ...env } = process.env
-    const printed = execFileSync(process.execPath, [join(repo, 'scripts', 'release-report', 'collect.mjs'), '--job', 'install', '--out', out], { cwd: repo, encoding: 'utf8', env })
+    const printed = execFileSync(process.execPath, [join(repo, 'scripts', 'release-report', 'collect.mjs'), '--job', 'install', '--out', out], {
+      cwd: repo,
+      encoding: 'utf8',
+      env,
+    })
     expect(existsSync(join(out, 'install.json'))).toBe(true)
     expect(existsSync(join(repo, out))).toBe(false)
     expect(printed.startsWith(`${relative(repo, join(out, 'install.json')).replaceAll('\\', '/')}: `)).toBe(true)

@@ -67,7 +67,12 @@ export function compiledSites(report: ReportDefinition, sites: readonly Expressi
   // What is compiled before the e-invoice's totals are known -- an
   // aggregate's expression, the paid amount -- cannot read them, and finds
   // them empty.
-  const base = { params: parametersOf(report), header: fieldsOf(report.datasets.header), row: fieldsOf(report.datasets.detail), ...invoiceMembers(undefined, undefined) }
+  const base = {
+    params: parametersOf(report),
+    header: fieldsOf(report.datasets.header),
+    row: fieldsOf(report.datasets.detail),
+    ...invoiceMembers(undefined, undefined),
+  }
   const outcomes = new Map<string, SiteOutcome>()
 
   /** What `aggregate` computes, its expression compiled against the totals before it; and why it cannot be computed, when it cannot. */

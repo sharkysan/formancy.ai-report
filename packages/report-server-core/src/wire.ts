@@ -174,7 +174,10 @@ export const REFUSALS = Object.freeze({
   unauthenticated: refusal('unauthenticated', 'A valid host token is required.'),
   'not-found': refusal('not-found', 'Nothing answers this request.'),
   'rate-limited': refusal('rate-limited', 'Too many requests came from this address; wait a minute and ask again.'),
-  'cross-origin-refused': refusal('cross-origin-refused', 'Across origins this server answers only its API, from an origin its operator lists, and this request is not one of those, so it was refused before any work.'),
+  'cross-origin-refused': refusal(
+    'cross-origin-refused',
+    'Across origins this server answers only its API, from an origin its operator lists, and this request is not one of those, so it was refused before any work.',
+  ),
   'bad-request': refusal('bad-request', 'The request could not be read.'),
   'path-not-plain': refusal(
     'path-not-plain',

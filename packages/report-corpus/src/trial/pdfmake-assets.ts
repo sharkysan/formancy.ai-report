@@ -85,7 +85,7 @@ function readPng(bytes: Uint8Array): Pixels | string {
   let header: PngHeader | undefined
   let palette = false
   const data: Uint8Array[] = []
-  for (let offset: number = PNG_SIGNATURE.length; ; ) {
+  for (let offset: number = PNG_SIGNATURE.length; ;) {
     // A chunk is its length, its type, its data and its CRC: 12 bytes and the data.
     if (offset + 12 > bytes.length || offset + 12 + view.getUint32(offset) > bytes.length) return `is cut off at byte ${offset}`
     const length = view.getUint32(offset)
@@ -129,8 +129,12 @@ function pngHeader(body: Uint8Array): PngHeader | string {
 /** Whether the image data inflates to exactly the scanlines the header promises, each starting with a filter type PNG defines. */
 function scanlineProblem(header: PngHeader, data: readonly Uint8Array[]): string | undefined {
   if (data.length === 0) return 'has no image data'
-  const passes = header.interlaced ? ADAM7.map(([x, y, dx, dy]) => [Math.ceil((header.width - x) / dx), Math.ceil((header.height - y) / dy)] as const) : [[header.width, header.height] as const]
-  const rows = passes.filter(([width, height]) => width > 0 && height > 0).map(([width, height]) => ({ bytes: 1 + Math.ceil((width * header.bitsPerPixel) / 8), count: height }))
+  const passes = header.interlaced
+    ? ADAM7.map(([x, y, dx, dy]) => [Math.ceil((header.width - x) / dx), Math.ceil((header.height - y) / dy)] as const)
+    : [[header.width, header.height] as const]
+  const rows = passes
+    .filter(([width, height]) => width > 0 && height > 0)
+    .map(([width, height]) => ({ bytes: 1 + Math.ceil((width * header.bitsPerPixel) / 8), count: height }))
   const expected = rows.reduce((total, row) => total + row.bytes * row.count, 0)
   let inflated: Uint8Array
   try {
@@ -162,7 +166,7 @@ const JPEG_FRAMES = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xc
 function readJpeg(bytes: Uint8Array): Pixels | string {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   let pixels: Pixels | undefined
-  for (let offset = 2; offset + 4 <= bytes.length; ) {
+  for (let offset = 2; offset + 4 <= bytes.length;) {
     const marker = bytes[offset + 1]!
     if (bytes[offset] !== 0xff || marker === 0xff) return `has a malformed segment at byte ${offset}`
     const length = view.getUint16(offset + 2)

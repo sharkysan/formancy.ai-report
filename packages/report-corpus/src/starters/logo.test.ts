@@ -62,11 +62,16 @@ function components(report: ReportDefinition): Component[] {
 }
 
 /** The drawing's elements as saxes reads them, each with its attributes, and every text node that is not whitespace. */
-function readDrawing(bytes: Uint8Array): { readonly elements: readonly { readonly name: string; readonly attributes: Readonly<Record<string, string>> }[]; readonly texts: readonly string[] } {
+function readDrawing(bytes: Uint8Array): {
+  readonly elements: readonly { readonly name: string; readonly attributes: Readonly<Record<string, string>> }[]
+  readonly texts: readonly string[]
+} {
   const elements: { name: string; attributes: Record<string, string> }[] = []
   const texts: string[] = []
   const parser = new SaxesParser({ xmlns: true })
-  parser.on('opentag', (tag) => elements.push({ name: tag.local, attributes: Object.fromEntries(Object.values(tag.attributes).map((attribute) => [attribute.local, attribute.value])) }))
+  parser.on('opentag', (tag) =>
+    elements.push({ name: tag.local, attributes: Object.fromEntries(Object.values(tag.attributes).map((attribute) => [attribute.local, attribute.value])) }),
+  )
   parser.on('text', (text) => {
     if (text.trim() !== '') texts.push(text)
   })
@@ -125,7 +130,9 @@ describe("the firm's mark", () => {
   test('is a disc and two paths in one deep colour on white, with no word in it', () => {
     const { elements, texts } = readDrawing(LOGO.bytes)
     expect([elements.map((element) => element.name), texts]).toEqual([['svg', 'circle', 'path', 'path'], []])
-    const paints = new Set(elements.flatMap((element) => [element.attributes['fill'], element.attributes['stroke']]).filter((paint) => paint !== undefined && paint !== 'none'))
+    const paints = new Set(
+      elements.flatMap((element) => [element.attributes['fill'], element.attributes['stroke']]).filter((paint) => paint !== undefined && paint !== 'none'),
+    )
     expect(paints).toEqual(new Set(['#1f4e79', '#ffffff']))
   })
 })
@@ -138,8 +145,16 @@ describe('the letterhead', () => {
   // which is stated above, and the list must name every report.
   test('is declared by the firm’s invoices and quotation, and by no other report', () => {
     const declaring = (report: ReportDefinition): boolean => report.assets.length > 0
-    expect(EVERY.filter((starter) => declaring(starter.report)).map((starter) => starter.id).sort()).toEqual([...MARKED].sort())
-    expect(EVERY.filter((starter) => !declaring(starter.report)).map((starter) => starter.id).sort()).toEqual([...UNMARKED].sort())
+    expect(
+      EVERY.filter((starter) => declaring(starter.report))
+        .map((starter) => starter.id)
+        .sort(),
+    ).toEqual([...MARKED].sort())
+    expect(
+      EVERY.filter((starter) => !declaring(starter.report))
+        .map((starter) => starter.id)
+        .sort(),
+    ).toEqual([...UNMARKED].sort())
   })
 
   // Each declares the one asset, the mark at its digest, and begins its
@@ -167,8 +182,14 @@ describe('the letterhead', () => {
   // it does by design (0039).
   test.each(MARKED)('%s draws the mark exactly once, with no diagnostic but its bill’s example account', (id) => {
     const { report } = EVERY.find((starter) => starter.id === id) as Starter
-    expect(components(report).filter((component) => component.kind === 'image').map((component) => component.id)).toEqual(['logo'])
-    expect(diagnose(report).map((diagnostic) => `${diagnostic.code} ${diagnostic.path}`)).toEqual(report.paymentPart === undefined ? [] : ['example-payment-part /paymentPart'])
+    expect(
+      components(report)
+        .filter((component) => component.kind === 'image')
+        .map((component) => component.id),
+    ).toEqual(['logo'])
+    expect(diagnose(report).map((diagnostic) => `${diagnostic.code} ${diagnostic.path}`)).toEqual(
+      report.paymentPart === undefined ? [] : ['example-payment-part /paymentPart'],
+    )
   })
 
   // A host that renders one of these starters hands over the mark's bytes,
@@ -180,6 +201,8 @@ describe('the letterhead', () => {
     const outcome = resolveReport(starter.report, starter.data, { ...options, images: starterImages })
     expect(outcome.ok ? outcome.warnings : outcome.errors.map((error) => `${error.code} ${error.path}`)).toEqual([])
     const without = resolveReport(starter.report, starter.data, { ...options, images: () => undefined })
-    expect(without.ok ? [] : without.errors.map((error) => [error.code, 'componentId' in error ? error.componentId : undefined])).toEqual([['missing-asset', 'logo']])
+    expect(without.ok ? [] : without.errors.map((error) => [error.code, 'componentId' in error ? error.componentId : undefined])).toEqual([
+      ['missing-asset', 'logo'],
+    ])
   })
 })

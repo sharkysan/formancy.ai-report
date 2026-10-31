@@ -87,7 +87,8 @@ export async function saveDraft(asking: Asking, template: string, body: unknown,
     // once for every store, with the version the save names; the swap after
     // it still decides between saves from the one that stands.
     const newest = await store.newest(identity.tenant, template)
-    if (newest === undefined || newest.revision !== from.revision || newest.digest !== from.digest) return refuse(412, { ...REFUSALS['draft-changed'], revision: newest?.revision ?? null })
+    if (newest === undefined || newest.revision !== from.revision || newest.digest !== from.digest)
+      return refuse(412, { ...REFUSALS['draft-changed'], revision: newest?.revision ?? null })
   }
   const saved = await store.save(identity.tenant, template, from === null ? null : from.revision, { savedBy: identity.subject, report })
   // The revision that stands, or none where the template has no draft.
@@ -133,7 +134,9 @@ function replaces(precondition: Precondition): DraftVersion | null | undefined {
  */
 async function notKept(asking: Asking, report: ReportDefinition): Promise<string[]> {
   const { identity, store } = asking
-  const held = await Promise.all(report.assets.map(async (asset) => !isFontMediaType(asset.mediaType) && (await store.imageKind(identity.tenant, asset.digest)) === asset.mediaType))
+  const held = await Promise.all(
+    report.assets.map(async (asset) => !isFontMediaType(asset.mediaType) && (await store.imageKind(identity.tenant, asset.digest)) === asset.mediaType),
+  )
   return report.assets
     .filter((_, at) => !held[at])
     .map((asset) => asset.id)

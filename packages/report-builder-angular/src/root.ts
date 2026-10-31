@@ -12,7 +12,17 @@
  */
 import { afterEveryRender, computed, Directive, ElementRef, inject, input } from '@angular/core'
 import { actionForKey, editorText } from '@formancy/report-builder-core'
-import type { DragSubject, DropTarget, EditorAction, EditorOutcome, EditorPanel, EditorText, HideablePanel, KeyScope, ReportEditor } from '@formancy/report-builder-core'
+import type {
+  DragSubject,
+  DropTarget,
+  EditorAction,
+  EditorOutcome,
+  EditorPanel,
+  EditorText,
+  HideablePanel,
+  KeyScope,
+  ReportEditor,
+} from '@formancy/report-builder-core'
 import { injectEditorState } from './editor-state'
 
 /** Where focus goes once what an action changed has rendered. */
@@ -140,7 +150,10 @@ export class ReportEditorRoot {
   /** Puts `subject` at `target`: an insert or a move, never a second copy of either. */
   place(subject: DragSubject, target: DropTarget): void {
     this.opener = null
-    this.dispatch('kind' in subject ? { type: 'insert', kind: subject.kind, target: target.location } : { type: 'move', id: subject.id, target: target.location }, { to: 'selection' })
+    this.dispatch(
+      'kind' in subject ? { type: 'insert', kind: subject.kind, target: target.location } : { type: 'move', id: subject.id, target: target.location },
+      { to: 'selection' },
+    )
   }
 
   /**
@@ -182,7 +195,8 @@ export class ReportEditorRoot {
   private placedFrom(): HTMLElement | null {
     const subject = this.state().drag?.subject
     const root = this.host.nativeElement
-    const entry = subject !== undefined && 'kind' in subject ? root.querySelector<HTMLElement>(`[data-report-part="palette-item"][data-kind="${subject.kind}"]`) : null
+    const entry =
+      subject !== undefined && 'kind' in subject ? root.querySelector<HTMLElement>(`[data-report-part="palette-item"][data-kind="${subject.kind}"]`) : null
     return entry ?? root.querySelector<HTMLElement>(SELECTION_FOCUS.join(', '))
   }
 
@@ -250,7 +264,8 @@ export class ReportEditorRoot {
     this.focusAfter = null
     const root = this.host.nativeElement
     // In the order the selectors are listed, not the order of the page: the selected row before the first one.
-    const first = (selectors: readonly string[]): HTMLElement | null => selectors.reduce<HTMLElement | null>((found, selector) => found ?? root.querySelector<HTMLElement>(selector), null)
+    const first = (selectors: readonly string[]): HTMLElement | null =>
+      selectors.reduce<HTMLElement | null>((found, selector) => found ?? root.querySelector<HTMLElement>(selector), null)
     const element =
       focus.to === 'element'
         ? focus.element
@@ -268,6 +283,8 @@ export class ReportEditorRoot {
     for (const row of this.state().properties.rows) if ('group' in row) groups.push(row.group.key)
     const element = this.host.nativeElement.querySelectorAll<HTMLElement>('[data-report-part="property-group"]')[groups.indexOf(key)]
     if (element === undefined) return null
-    return button === undefined ? element.querySelector<HTMLElement>('input, select, textarea') : (element.querySelectorAll<HTMLElement>(':scope > button')[button] ?? null)
+    return button === undefined
+      ? element.querySelector<HTMLElement>('input, select, textarea')
+      : (element.querySelectorAll<HTMLElement>(':scope > button')[button] ?? null)
   }
 }

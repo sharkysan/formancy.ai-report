@@ -61,7 +61,10 @@ describe('a report that maps no font', () => {
     for (const file of ['Roboto-Regular.ttf', 'Roboto-Medium.ttf', 'Roboto-Italic.ttf', 'Roboto-MediumItalic.ttf']) {
       const read = characterMap(new Uint8Array(readFileSync(path.join(fonts, file))))
       if (!read.ok) throw new Error(`${file}: ${read.message}`)
-      expect([...read.characters].filter((point) => refusedCharacter(point) !== undefined), file).toEqual([])
+      expect(
+        [...read.characters].filter((point) => refusedCharacter(point) !== undefined),
+        file,
+      ).toEqual([])
     }
   })
 })

@@ -42,7 +42,10 @@ declare module 'fastify' {
  * report-server-core's `draftVersionOf` and nothing else, the inverse of
  * the `draftTag` the answers are sent with.
  */
-export function parsePrecondition(headers: { readonly 'if-match'?: string | undefined; readonly 'if-none-match'?: string | undefined }): Precondition | 'malformed' {
+export function parsePrecondition(headers: {
+  readonly 'if-match'?: string | undefined
+  readonly 'if-none-match'?: string | undefined
+}): Precondition | 'malformed' {
   const match = headers['if-match']
   const noneMatch = headers['if-none-match']
   if (match === undefined) {
@@ -75,13 +78,19 @@ export function registerDraftRoutes(api: FastifyInstance, options: { store: Temp
 
     drafts.get('/v1/templates', async (request, reply) => send(reply, await listTemplates(asking(request))))
 
-    drafts.get<{ Params: { template: string } }>('/v1/templates/:template/draft', async (request, reply) => send(reply, await readDraft(asking(request), request.params.template)))
+    drafts.get<{ Params: { template: string } }>('/v1/templates/:template/draft', async (request, reply) =>
+      send(reply, await readDraft(asking(request), request.params.template)),
+    )
 
-    drafts.put<{ Params: { template: string } }>('/v1/templates/:template/draft', { bodyLimit: MAX_REPORT_BYTES, config: { tooLarge: 'report-too-large' } }, async (request, reply) => {
-      const precondition = parsePrecondition(request.headers)
-      if (precondition === 'malformed') return reply.code(400).send(REFUSALS['bad-request'])
-      return send(reply, await saveDraft(asking(request), request.params.template, request.body, precondition))
-    })
+    drafts.put<{ Params: { template: string } }>(
+      '/v1/templates/:template/draft',
+      { bodyLimit: MAX_REPORT_BYTES, config: { tooLarge: 'report-too-large' } },
+      async (request, reply) => {
+        const precondition = parsePrecondition(request.headers)
+        if (precondition === 'malformed') return reply.code(400).send(REFUSALS['bad-request'])
+        return send(reply, await saveDraft(asking(request), request.params.template, request.body, precondition))
+      },
+    )
   })
 
   void api.register(async (assets) => {
@@ -91,9 +100,12 @@ export function registerDraftRoutes(api: FastifyInstance, options: { store: Temp
       done(null, body)
     })
 
-    assets.put<{ Params: { digest: string }; Body: Buffer | undefined }>('/v1/assets/:digest', { bodyLimit: MAX_ASSET_BYTES, config: { tooLarge: 'image-too-large' } }, async (request, reply) =>
-      // A keep with no body has no media type and no bytes, which the use case refuses as no image.
-      send(reply, await keepImage(asking(request), request.params.digest, request.headers['content-type'] ?? '', request.body ?? new Uint8Array())),
+    assets.put<{ Params: { digest: string }; Body: Buffer | undefined }>(
+      '/v1/assets/:digest',
+      { bodyLimit: MAX_ASSET_BYTES, config: { tooLarge: 'image-too-large' } },
+      async (request, reply) =>
+        // A keep with no body has no media type and no bytes, which the use case refuses as no image.
+        send(reply, await keepImage(asking(request), request.params.digest, request.headers['content-type'] ?? '', request.body ?? new Uint8Array())),
     )
 
     assets.get<{ Params: { digest: string } }>('/v1/assets/:digest', async (request, reply) => {

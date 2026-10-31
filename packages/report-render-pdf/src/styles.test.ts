@@ -69,7 +69,11 @@ describe('the face text is drawn in', () => {
     ['a table header in mono', [{ ...ledger('codes', details(1, 2)), headerStyle: { font: 'mono' } }], 'codes'],
     ['a table cell in serif', [ledger('codes', [{ kind: 'detail', cells: ['A', 'B', 'C'], cellStyles: [null, { font: 'serif' }, null] }])], 'codes'],
   ] as const)('refuses %s', async (_, body, subject) => {
-    await expect(renderPdf(bareDocument('Font', body as readonly Block[]), { maxPages: 5 })).rejects.toMatchObject({ code: 'unsupported', subject, message: expect.stringContaining('Roboto') })
+    await expect(renderPdf(bareDocument('Font', body as readonly Block[]), { maxPages: 5 })).rejects.toMatchObject({
+      code: 'unsupported',
+      subject,
+      message: expect.stringContaining('Roboto'),
+    })
   })
 })
 
@@ -96,14 +100,28 @@ describe('a paragraph', () => {
 })
 
 describe('a table', () => {
-  const styled = (rows: readonly TableRow[], headerStyle?: TextStyle): Table => ({ ...ledger('styled', rows), ...(headerStyle === undefined ? {} : { headerStyle }) })
+  const styled = (rows: readonly TableRow[], headerStyle?: TextStyle): Table => ({
+    ...ledger('styled', rows),
+    ...(headerStyle === undefined ? {} : { headerStyle }),
+  })
 
   // The renderer's own style for each row: the header and every row but a
   // detail row in bold, all in black.
   test('prints its header and its group and total rows in bold, and its detail rows not', async () => {
-    const rows: TableRow[] = [{ kind: 'groupHeader', cells: ['Region', '', ''] }, ...details(1, 1), { kind: 'groupFooter', cells: ['Subtotal', '', '1.00'] }, { kind: 'total', cells: ['Total', '', '2.00'] }]
+    const rows: TableRow[] = [
+      { kind: 'groupHeader', cells: ['Region', '', ''] },
+      ...details(1, 1),
+      { kind: 'groupFooter', cells: ['Subtotal', '', '1.00'] },
+      { kind: 'total', cells: ['Total', '', '2.00'] },
+    ]
     const { pdf, drawing } = await rendered(bareDocument('Kinds', [styled(rows)]))
-    expect(['Key', 'Region', 'ROW-0001', 'Subtotal', 'Total'].map((text) => shown(pdf, drawing, text).font)).toEqual(['Roboto-Medium', 'Roboto-Medium', 'Roboto-Regular', 'Roboto-Medium', 'Roboto-Medium'])
+    expect(['Key', 'Region', 'ROW-0001', 'Subtotal', 'Total'].map((text) => shown(pdf, drawing, text).font)).toEqual([
+      'Roboto-Medium',
+      'Roboto-Medium',
+      'Roboto-Regular',
+      'Roboto-Medium',
+      'Roboto-Medium',
+    ])
   })
 
   // A style given to the header or a row replaces the renderer's for what
@@ -113,7 +131,12 @@ describe('a table', () => {
   test('prints its header, rows and cells in their own styles', async () => {
     const rows: TableRow[] = [
       { kind: 'detail', cells: ['ROW-0001', 'Strong row', '1.00'], style: { bold: true } },
-      { kind: 'detail', cells: ['ROW-0002', 'Cell of its own', '2.00'], style: { color: '#0000c0' }, cellStyles: [null, { color: '#c00000', italic: true }, null] },
+      {
+        kind: 'detail',
+        cells: ['ROW-0002', 'Cell of its own', '2.00'],
+        style: { color: '#0000c0' },
+        cellStyles: [null, { color: '#c00000', italic: true }, null],
+      },
       { kind: 'total', cells: ['Total', '', '3.00'], style: { color: '#008000' } },
     ]
     const { pdf, drawing } = await rendered(bareDocument('Styled rows', [styled(rows, { bold: false, color: '#606060', size: 8 })]))

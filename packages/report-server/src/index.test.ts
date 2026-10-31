@@ -9,6 +9,13 @@ describe('the entry', () => {
   // the container's, and a later release can change them without breaking
   // an embedder.
   test('exports the server, its verifier, the file store and its two errors, and the audit reference, and nothing else', () => {
-    expect(Object.keys(entry).sort()).toEqual(['StoreFileSystemError', 'StoredRecordError', 'auditReference', 'createReportServer', 'createReportVerifier', 'openFileTemplateStore'])
+    expect(Object.keys(entry).sort()).toEqual([
+      'StoreFileSystemError',
+      'StoredRecordError',
+      'auditReference',
+      'createReportServer',
+      'createReportVerifier',
+      'openFileTemplateStore',
+    ])
   })
 })

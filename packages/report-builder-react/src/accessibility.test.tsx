@@ -74,7 +74,20 @@ function everyKind(): ReportDefinition {
           kind: 'columns',
           columns: [
             { width: 120, components: [{ id: 'logo-image', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 100, height: 40, fit: 'contain' }] },
-            { width: 'fill', components: [{ id: 'title', kind: 'text', style: 'title', content: [{ kind: 'text', text: 'Orders for ' }, { kind: 'field', field: header('customer') }] }] },
+            {
+              width: 'fill',
+              components: [
+                {
+                  id: 'title',
+                  kind: 'text',
+                  style: 'title',
+                  content: [
+                    { kind: 'text', text: 'Orders for ' },
+                    { kind: 'field', field: header('customer') },
+                  ],
+                },
+              ],
+            },
           ],
         },
         { id: 'rule', kind: 'line', thickness: 0.5, color: '#999999' },
@@ -106,13 +119,32 @@ function everyKind(): ReportDefinition {
             { id: 'box', kind: 'rectangle', width: 200, height: 40, fill: '#eeeeee' },
           ],
         },
-        { id: 'keep', kind: 'keepTogether', components: [{ id: 'kept', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'header.customer' } }] }] },
+        {
+          id: 'keep',
+          kind: 'keepTogether',
+          components: [{ id: 'kept', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'header.customer' } }] }],
+        },
         { id: 'break', kind: 'pageBreak' },
       ],
-      pageFooter: [{ id: 'page-of', kind: 'text', content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }] }],
+      pageFooter: [
+        {
+          id: 'page-of',
+          kind: 'text',
+          content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }],
+        },
+      ],
       summary: [
         { id: 'signature-image', kind: 'image', source: { kind: 'field', field: header('signature') }, width: 150, height: 50, fit: 'contain' },
-        { id: 'order-code', kind: 'qrCode', content: [{ kind: 'text', text: 'Orders for ' }, { kind: 'field', field: header('customer') }], size: 85.04, errorCorrection: 'Q' },
+        {
+          id: 'order-code',
+          kind: 'qrCode',
+          content: [
+            { kind: 'text', text: 'Orders for ' },
+            { kind: 'field', field: header('customer') },
+          ],
+          size: 85.04,
+          errorCorrection: 'Q',
+        },
         {
           id: 'pay-code',
           kind: 'epcQrCode',
@@ -122,7 +154,10 @@ function everyKind(): ReportDefinition {
           bic: [{ kind: 'text', text: 'BHBLDEHHXXX' }],
           amount: { cel: 'totals.total' },
           purpose: 'GDDS',
-          text: [{ kind: 'text', text: 'Orders for ' }, { kind: 'field', field: header('customer') }],
+          text: [
+            { kind: 'text', text: 'Orders for ' },
+            { kind: 'field', field: header('customer') },
+          ],
           caption: 'zahlenMitCode',
         },
       ],
@@ -155,7 +190,12 @@ const ROWS = ((): readonly { readonly label: string; readonly kinds: readonly st
 const NAMED = ['button', 'textbox', 'spinbutton', 'combobox', 'checkbox', 'treeitem', 'tree', 'group', 'img', 'list', 'form', 'region', 'dialog']
 
 function unnamed(): string[] {
-  return NAMED.flatMap((role) => screen.queryAllByRole(role).filter((element) => computeAccessibleName(element).trim() === '').map((element) => `${role}: ${element.outerHTML.slice(0, 80)}`))
+  return NAMED.flatMap((role) =>
+    screen
+      .queryAllByRole(role)
+      .filter((element) => computeAccessibleName(element).trim() === '')
+      .map((element) => `${role}: ${element.outerHTML.slice(0, 80)}`),
+  )
 }
 
 describe('every part of the builder', () => {
@@ -194,7 +234,14 @@ describe('every part of the builder', () => {
   // description, so the keyboard learns it where it is.
   test('describes a row too wide for its place, as its canvas box is marked', () => {
     const report = everyKind()
-    const side = { id: 'side', kind: 'columns', columns: [{ width: 100, components: [{ id: 'wide', kind: 'rectangle', width: 150, height: 20 }] }, { width: 'fill', components: [] }] }
+    const side = {
+      id: 'side',
+      kind: 'columns',
+      columns: [
+        { width: 100, components: [{ id: 'wide', kind: 'rectangle', width: 150, height: 20 }] },
+        { width: 'fill', components: [] },
+      ],
+    }
     mount({ ...report, regions: { ...report.regions, body: [...report.regions.body, side] } } as ReportDefinition)
     const rectangles = screen.getAllByRole('treeitem').filter((row) => computeAccessibleDescription(row) === t('canvas.overflow'))
     expect(rectangles.map((row) => computeAccessibleName(row))).toEqual(['Rectangle (wide)'])
@@ -211,7 +258,13 @@ describe('every part of the builder', () => {
   // the same however they are given: this reads from the DOM how each is.
   test('names its groups, form, list, statuses and dialog in its own words, never by another element’s text', async () => {
     const report = everyKind()
-    const { editor, user } = mount({ ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)) } })
+    const { editor, user } = mount({
+      ...report,
+      regions: {
+        ...report.regions,
+        body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)),
+      },
+    })
     await user.click(screen.getByRole('treeitem', { name: 'Note' }))
     await user.click(screen.getByRole('button', { name: t('action.moveTo') }))
     const { outline, properties } = editor.state()
@@ -226,7 +279,12 @@ describe('every part of the builder', () => {
     const builder = screen.getByRole('region', { name: t('editor.label') })
     expect([...builder.querySelectorAll('[aria-labelledby]')].map((element) => element.outerHTML.slice(0, 80))).toEqual([])
     const tree = screen.getByRole('tree', { name: t('pane.outline') })
-    expect(outline.flatMap((region) => within(tree).queryAllByText(region.label)).filter((element) => !isInaccessible(element)).map((element) => element.outerHTML)).toEqual([])
+    expect(
+      outline
+        .flatMap((region) => within(tree).queryAllByText(region.label))
+        .filter((element) => !isInaccessible(element))
+        .map((element) => element.outerHTML),
+    ).toEqual([])
   })
 
   // A QR-bill's parties are groups of fields (0039), named as the outline's
@@ -244,7 +302,12 @@ describe('every part of the builder', () => {
     for (const group of groups) {
       const drawn = screen.getByRole('group', { name: group.label })
       expect(drawn.hasAttribute('aria-labelledby'), group.label).toBe(false)
-      expect(within(drawn).queryAllByText(group.label).filter((element) => !isInaccessible(element)), group.label).toEqual([])
+      expect(
+        within(drawn)
+          .queryAllByText(group.label)
+          .filter((element) => !isInaccessible(element)),
+        group.label,
+      ).toEqual([])
     }
     expect(within(screen.getByRole('group', { name: t('group.debtor') })).getByRole('button', { name: t('action.addDebtor') })).toBeTruthy()
     const row = screen.getByRole('treeitem', { name: t('canvas.paymentPart'), selected: true })
@@ -263,7 +326,14 @@ describe('every part of the builder', () => {
     const { editor, user } = mount(invoiced)
     await user.click(screen.getByRole('treeitem', { name: t('outline.eInvoice') }))
     const rows = [t('canvas.paymentPart'), t('outline.eInvoice')].map((name) => screen.getByRole('treeitem', { name }))
-    expect(rows.map((row) => [row.getAttribute('aria-level'), row.getAttribute('aria-posinset'), row.getAttribute('aria-setsize'), row.parentElement?.getAttribute('role')])).toEqual([
+    expect(
+      rows.map((row) => [
+        row.getAttribute('aria-level'),
+        row.getAttribute('aria-posinset'),
+        row.getAttribute('aria-setsize'),
+        row.parentElement?.getAttribute('role'),
+      ]),
+    ).toEqual([
       ['1', '1', '2', 'tree'],
       ['1', '2', '2', 'tree'],
     ])
@@ -272,8 +342,18 @@ describe('every part of the builder', () => {
     for (const group of groups) {
       const drawn = screen.getByRole('group', { name: group.label })
       expect(drawn.hasAttribute('aria-labelledby'), group.label).toBe(false)
-      expect(within(drawn).queryAllByText(group.label).filter((element) => !isInaccessible(element)), group.label).toEqual([])
-      expect(within(drawn).queryAllByRole('button').map((button) => [button.textContent, button.getAttribute('aria-disabled')]), group.label).toEqual(group.actions.map((action) => [action.label, action.available ? null : 'true']))
+      expect(
+        within(drawn)
+          .queryAllByText(group.label)
+          .filter((element) => !isInaccessible(element)),
+        group.label,
+      ).toEqual([])
+      expect(
+        within(drawn)
+          .queryAllByRole('button')
+          .map((button) => [button.textContent, button.getAttribute('aria-disabled')]),
+        group.label,
+      ).toEqual(group.actions.map((action) => [action.label, action.available ? null : 'true']))
     }
     const up = screen.getByRole('button', { name: t('action.moveVatCategoryUp', { item: 1 }) })
     up.focus()

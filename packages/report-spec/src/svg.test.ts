@@ -58,7 +58,10 @@ function onlyAllowedNames(text: string): void {
     expect(target, `${at} names ${id}, which the drawing does not write`).toBeDefined()
     expect(property === 'clip-path' ? target === 'clipPath' : GRADIENTS.has(target as KeptElement), `${at} names a ${target}`).toBe(true)
   }
-  expect([...ids.keys()].filter((id) => !references.some((reference) => reference.id === id)), 'ids nothing names').toEqual([])
+  expect(
+    [...ids.keys()].filter((id) => !references.some((reference) => reference.id === id)),
+    'ids nothing names',
+  ).toEqual([])
 }
 
 /** Cleaning `bytes` again gives the same bytes with nothing removed, and `checkSvg` accepts them. */
@@ -187,8 +190,14 @@ describe('the fixed point', () => {
         '<linearGradient id="a" clip-path="url(#nowhere)" fill="red" opacity="0.5"><stop offset="0" stop-color="#000" clip-path="url(#nowhere)" fill="url(#a)" stroke-width="3"/><stop offset="1" stop-color="#fff" stop-opacity="0.5"/></linearGradient><rect width="1" height="1" fill="url(#a)"/>',
       ),
     )
-    expect(result.text).toBe(svg('<linearGradient id="g1"><stop offset="0" stop-color="#000000"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.5"/></linearGradient><rect width="1" height="1" fill="url(#g1)"/>'))
-    expect(result.removed).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'property', name: 'clip-path' }), expect.objectContaining({ kind: 'property', name: 'fill' })]))
+    expect(result.text).toBe(
+      svg(
+        '<linearGradient id="g1"><stop offset="0" stop-color="#000000"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.5"/></linearGradient><rect width="1" height="1" fill="url(#g1)"/>',
+      ),
+    )
+    expect(result.removed).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: 'property', name: 'clip-path' }), expect.objectContaining({ kind: 'property', name: 'fill' })]),
+    )
     fixedPoint(result.bytes)
   })
 })
@@ -212,9 +221,18 @@ describe('the writer', () => {
   // then refused at every print (the converter check found one). It throws
   // instead, as a bug in the cleaner, and never writes it.
   test('refuses to write a reference to nothing it writes', () => {
-    const rect = { name: 'rect', geometry: [], transform: undefined, properties: [['fill', { reference: { id: 'gone', where: 'svg/rect@fill' }, fallback: undefined }]], children: [], id: undefined }
+    const rect = {
+      name: 'rect',
+      geometry: [],
+      transform: undefined,
+      properties: [['fill', { reference: { id: 'gone', where: 'svg/rect@fill' }, fallback: undefined }]],
+      children: [],
+      id: undefined,
+    }
     const root = { name: 'svg', geometry: [['viewBox', '0 0 1 1']], transform: undefined, properties: [], children: [rect], id: undefined }
-    expect(() => writeDrawing({ root, viewBox: { x: 0, y: 0, width: 1, height: 1 }, targets: new Map() } as unknown as Drawing)).toThrow('at svg/rect@fill; every reference kept names a target, so this is a bug in the cleaner')
+    expect(() => writeDrawing({ root, viewBox: { x: 0, y: 0, width: 1, height: 1 }, targets: new Map() } as unknown as Drawing)).toThrow(
+      'at svg/rect@fill; every reference kept names a target, so this is a bug in the cleaner',
+    )
   })
 })
 
@@ -224,7 +242,11 @@ describe('checkSvg', () => {
   // which would print something other than what was approved.
   test('refuses what cleaning would remove, naming it', () => {
     const raw = svg('<!-- x --><rect width="1" height="1"/>')
-    expect(checkSvg(utf8(raw))).toEqual({ ok: false, code: 'unsupported', message: 'the drawing holds a comment, which cleaning removes; clean it with cleanSvg first' })
+    expect(checkSvg(utf8(raw))).toEqual({
+      ok: false,
+      code: 'unsupported',
+      message: 'the drawing holds a comment, which cleaning removes; clean it with cleanSvg first',
+    })
     expect(checkSvg(utf8(svg('<rect width="1" height="1" data-x="y"/>')))).toMatchObject({ message: expect.stringContaining('the attribute data-x') })
   })
 
@@ -244,7 +266,13 @@ describe('checkSvg', () => {
   // would always be empty.
   test('returns the drawing and its costs for clean bytes', () => {
     const result = checkSvg(cleaned(svg('<rect width="1" height="1"/>')).bytes)
-    expect(result).toMatchObject({ ok: true, viewBox: { x: 0, y: 0, width: 100, height: 100 }, segments: 5, groups: 0, drawn: { lines: 5, curves: 0, elements: 2 } })
+    expect(result).toMatchObject({
+      ok: true,
+      viewBox: { x: 0, y: 0, width: 100, height: 100 },
+      segments: 5,
+      groups: 0,
+      drawn: { lines: 5, curves: 0, elements: 2 },
+    })
     expect(result).not.toHaveProperty('removed')
   })
 

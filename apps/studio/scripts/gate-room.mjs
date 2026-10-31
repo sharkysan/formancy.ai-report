@@ -40,7 +40,10 @@ export async function roomChecks(gate, page, framework) {
   // view, beside it and both side panes, holds a page at 100 % whole.
   if (where === 'beside') {
     const { width, cut } = await middlePane(page)
-    check(`${framework}: beside the Preview, the design view holds the page at 100 % whole`, cut <= 0 ? null : `the sheet is ${String(cut)}px wider than the ${String(Math.round(width))}px design view shows`)
+    check(
+      `${framework}: beside the Preview, the design view holds the page at 100 % whole`,
+      cut <= 0 ? null : `the sheet is ${String(cut)}px wider than the ${String(Math.round(width))}px design view shows`,
+    )
   }
 
   // The outline hidden from its header: gone, the middle pane no narrower,
@@ -55,10 +58,16 @@ export async function roomChecks(gate, page, framework) {
   )
   check(`${framework}: Hide Outline takes the outline away`, gone)
   const after = await middlePane(page)
-  check(`${framework}: and ${pane} is no narrower for it`, after.width >= before.width ? null : `it was ${String(Math.round(before.width))}px and is ${String(Math.round(after.width))}px`)
+  check(
+    `${framework}: and ${pane} is no narrower for it`,
+    after.width >= before.width ? null : `it was ${String(Math.round(before.width))}px and is ${String(Math.round(after.width))}px`,
+  )
   check(`${framework}: and the keyboard is in ${pane}`, (await keyboardInIt(page)) ? null : `the focus is on ${await describeFocus(page)}`)
   const { overflow, past } = await measureWidth(page)
-  check(`${framework}: and nothing is past either edge with it hidden`, overflow <= 0 && past.length === 0 ? null : `${String(overflow)}px of sideways scroll; ${past.join('; ')}`)
+  check(
+    `${framework}: and nothing is past either edge with it hidden`,
+    overflow <= 0 && past.length === 0 ? null : `${String(overflow)}px of sideways scroll; ${past.join('; ')}`,
+  )
   await editor.getByRole('toolbar', { name: 'Report tools', exact: true }).getByRole('button', { name: 'Outline', exact: true }).click()
   const back = await tree.waitFor({ timeout: 5_000 }).then(
     () => null,
@@ -71,18 +80,22 @@ export async function roomChecks(gate, page, framework) {
   // bar's first press only brings the Preview back into sight.
   await previewInView(page)
   await toggle.click()
-  const hidden = await previewOf(page).waitFor({ state: 'detached', timeout: 5_000 }).then(
-    () => null,
-    () => 'the Preview is still there',
-  )
+  const hidden = await previewOf(page)
+    .waitFor({ state: 'detached', timeout: 5_000 })
+    .then(
+      () => null,
+      () => 'the Preview is still there',
+    )
   check(`${framework}: the bar's Preview hides the Preview`, hidden)
   const pressed = await toggle.getAttribute('aria-pressed')
   check(`${framework}: and says it is off`, pressed === 'false' ? null : `aria-pressed is ${String(pressed)}`)
   if (middle) {
-    const taken = await designViewOf(page).waitFor({ timeout: 5_000 }).then(
-      () => null,
-      () => 'no design view is drawn',
-    )
+    const taken = await designViewOf(page)
+      .waitFor({ timeout: 5_000 })
+      .then(
+        () => null,
+        () => 'no design view is drawn',
+      )
     check(`${framework}: and the design view takes its place back`, taken)
   }
   await toggle.click()
@@ -91,5 +104,9 @@ export async function roomChecks(gate, page, framework) {
     (error) => error.message,
   )
   check(`${framework}: and shows it again, printed`, printed)
-  if (middle) check(`${framework}: in the design view's place`, (await editor.getByRole('region', { name: 'Preview', exact: true }).count()) === 1 ? null : 'it stands elsewhere')
+  if (middle)
+    check(
+      `${framework}: in the design view's place`,
+      (await editor.getByRole('region', { name: 'Preview', exact: true }).count()) === 1 ? null : 'it stands elsewhere',
+    )
 }

@@ -7,7 +7,24 @@
  * without an entry here does not compile.
  */
 import { isFontMediaType } from './assets.js'
-import { all, flag, identifier, kindOf, matches, oneOf, optional, points, quote, readArray, readList, readObject, reference, shape, strictKeys, width } from './check.js'
+import {
+  all,
+  flag,
+  identifier,
+  kindOf,
+  matches,
+  oneOf,
+  optional,
+  points,
+  quote,
+  readArray,
+  readList,
+  readObject,
+  reference,
+  shape,
+  strictKeys,
+  width,
+} from './check.js'
 import { COMPONENT_KINDS, IMAGE_FITS, IMAGE_SOURCE_KINDS, QR_ERROR_CORRECTION } from './components.js'
 import type { Border, ColumnSlot, Component, ComponentBase, ComponentKind, ImageSource, ImageSourceKind, Width } from './components.js'
 import type { RegionName } from './definition.js'
@@ -98,7 +115,8 @@ const SOURCES: { readonly [K in ImageSourceKind]: { readonly required: readonly 
       const asset = reference(c.f, o.asset, at(path, 'asset'))
       const mediaType = resolve(c.f, c.declared.assets, asset, at(path, 'asset'), 'unknown-asset', 'asset')
       // A font asset is not a picture: an image that drew one would print nothing, or fail at the first byte the renderer read.
-      if (mediaType !== undefined && isFontMediaType(mediaType)) c.f.report(at(path, 'asset'), 'asset-not-an-image', `the asset ${quote(asset as string)} is a font, which an image cannot draw`)
+      if (mediaType !== undefined && isFontMediaType(mediaType))
+        c.f.report(at(path, 'asset'), 'asset-not-an-image', `the asset ${quote(asset as string)} is a font, which an image cannot draw`)
       return asset === undefined ? undefined : { kind: 'asset', asset }
     },
   },
@@ -199,7 +217,12 @@ const KINDS: { readonly [K in ComponentKind]: KindRule<Extract<Component, { kind
     read: (c, o, path, scope, base) => {
       const where = at(path, 'columns')
       const read = readList(c.f, o.columns, where, MIN_COLUMNS, MAX_COLUMNS)?.map((item, index) => readSlot(c, item, at(where, index), scope))
-      if (read !== undefined) checkFixedWidths(c, read.map(({ width: slotWidth }) => slotWidth), where)
+      if (read !== undefined)
+        checkFixedWidths(
+          c,
+          read.map(({ width: slotWidth }) => slotWidth),
+          where,
+        )
       const columns = read && all(read.map(({ slot }) => slot))
       return base && columns && { ...base, kind: 'columns', columns }
     },
@@ -213,7 +236,10 @@ const KINDS: { readonly [K in ComponentKind]: KindRule<Extract<Component, { kind
       const border = readBorder(c, o.border, at(path, 'border'))
       const fill = matches(c.f, o.fill, at(path, 'fill'), COLOR, 'invalid-color', COLOR_RULE)
       const padding = points(c.f, o.padding, at(path, 'padding'), 'zero')
-      return base && components && { ...base, kind: 'section', components, ...optional('border', border), ...optional('fill', fill), ...optional('padding', padding) }
+      return (
+        base &&
+        components && { ...base, kind: 'section', components, ...optional('border', border), ...optional('fill', fill), ...optional('padding', padding) }
+      )
     },
   },
   table: {
@@ -245,7 +271,12 @@ function claim(c: Ctx, id: string, path: string): void {
   c.f.component(path, id)
   const first = c.componentIds.get(id)
   if (first === undefined) c.componentIds.set(id, path)
-  else c.f.report(at(path, 'id'), 'duplicate-component-id', `"${id}" is already the id of the component at ${first}; component ids are unique across the whole report`)
+  else
+    c.f.report(
+      at(path, 'id'),
+      'duplicate-component-id',
+      `"${id}" is already the id of the component at ${first}; component ids are unique across the whole report`,
+    )
 }
 
 /** Reports a component of `kind` standing where it may not. */

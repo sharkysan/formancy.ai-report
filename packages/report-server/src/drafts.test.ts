@@ -37,7 +37,12 @@ const SUBJECT = 'author-only-this-test-names'
 beforeAll(async () => {
   verifyIdentity = await hostVerifier()
   const bearer = async (role: string, tenant = 'acme') => `Bearer ${await signed({ tid: tenant, roles: [role] }, (jwt) => jwt.setSubject(SUBJECT))}`
-  ;[AUTHOR, PUBLISHER, ADMIN, GLOBEX] = await Promise.all([bearer('report-authors'), bearer('report-publishers'), bearer('report-admins'), bearer('report-authors', 'globex')])
+  ;[AUTHOR, PUBLISHER, ADMIN, GLOBEX] = await Promise.all([
+    bearer('report-authors'),
+    bearer('report-publishers'),
+    bearer('report-admins'),
+    bearer('report-authors', 'globex'),
+  ])
 })
 
 const serve = (overrides: Partial<ReportServerOptions> = {}) => cases.serve({ verifyIdentity, roles, ...overrides })
@@ -48,7 +53,12 @@ const draftUrl = (template: string) => `/v1/templates/${template}/draft`
 
 /** Saves `body` as `template`'s draft with `headers`, an author's token and a JSON body unless they say otherwise. */
 const save = (app: FastifyInstance, template: string, body: unknown, headers: Record<string, string> = {}) =>
-  app.inject({ method: 'PUT', url: draftUrl(template), headers: { authorization: AUTHOR, 'content-type': 'application/json', ...headers }, payload: typeof body === 'string' ? body : JSON.stringify(body) })
+  app.inject({
+    method: 'PUT',
+    url: draftUrl(template),
+    headers: { authorization: AUTHOR, 'content-type': 'application/json', ...headers },
+    payload: typeof body === 'string' ? body : JSON.stringify(body),
+  })
 const read = (app: FastifyInstance, url: string, authorization = AUTHOR) => app.inject({ method: 'GET', url, headers: { authorization } })
 const keep = (app: FastifyInstance, hex: string, bytes: Uint8Array, contentType = 'image/png', authorization = AUTHOR) =>
   app.inject({ method: 'PUT', url: `/v1/assets/${hex}`, headers: { authorization, 'content-type': contentType }, payload: Buffer.from(bytes) })
@@ -74,10 +84,23 @@ const chunk = (type: string, data: readonly number[]): number[] => {
 }
 /** A truecolour PNG of this size; two sizes are two images, with two digests. */
 const png = (width = 8, height = 8): Uint8Array =>
-  Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...chunk('IHDR', [...u32(width), ...u32(height), 8, 2, 0, 0, 0]), ...chunk('IDAT', [0x78, 0x9c, 1, 2, 3, 4]), ...chunk('IEND', [])])
+  Uint8Array.from([
+    0x89,
+    0x50,
+    0x4e,
+    0x47,
+    0x0d,
+    0x0a,
+    0x1a,
+    0x0a,
+    ...chunk('IHDR', [...u32(width), ...u32(height), 8, 2, 0, 0, 0]),
+    ...chunk('IDAT', [0x78, 0x9c, 1, 2, 3, 4]),
+    ...chunk('IEND', []),
+  ])
 const segment = (marker: number, body: readonly number[]): number[] => [0xff, marker, (body.length + 2) >> 8, (body.length + 2) & 0xff, ...body]
 /** A greyscale 8 by 8 JPEG, its scan header and its end marker. */
-const jpeg = (): Uint8Array => Uint8Array.from([0xff, 0xd8, ...segment(0xc0, [8, 0, 8, 0, 8, 1, 1, 0x11, 0]), ...segment(0xda, [1, 1, 0, 0, 63, 0]), 0xff, 0xd9])
+const jpeg = (): Uint8Array =>
+  Uint8Array.from([0xff, 0xd8, ...segment(0xc0, [8, 0, 8, 0, 8, 1, 1, 0x11, 0]), ...segment(0xda, [1, 1, 0, 0, 63, 0]), 0xff, 0xd9])
 /** The 64 hexadecimal digits a path carries a digest by. */
 const hexOf = (bytes: Uint8Array): string => assetDigest(bytes).slice('sha256:'.length)
 
@@ -90,7 +113,11 @@ const filesInStore = async (): Promise<string[]> =>
     .sort()
 /** The digest acme's `template` record of `revision` holds on disk, the 64 digits its tag carries: the SHA-256 of the report's text as the store wrote it. */
 const recordDigest = async (template: string, revision: number): Promise<string> =>
-  (JSON.parse(await readFile(join(cases.directory, 'tenants', sha256('acme'), 'templates', template, 'draft', `${String(revision)}.json`), 'utf8')) as { digest: string }).digest
+  (
+    JSON.parse(await readFile(join(cases.directory, 'tenants', sha256('acme'), 'templates', template, 'draft', `${String(revision)}.json`), 'utf8')) as {
+      digest: string
+    }
+  ).digest
 
 /** 64 hexadecimal digits, as a tag carries a digest. */
 const HEX = 'ab'.repeat(32)
@@ -163,7 +190,14 @@ describe('a draft', () => {
     expect(newest.statusCode).toBe(200)
     expect(newest.headers.etag).toBe(`"2-${second}"`)
     expect(newest.headers['cache-control']).toBe('no-store')
-    expect(newest.json()).toEqual({ format: 1, template: 'invoice', revision: 2, digest: `sha256:${second}`, savedBy: SUBJECT, report: report('invoice', 'Changed') })
+    expect(newest.json()).toEqual({
+      format: 1,
+      template: 'invoice',
+      revision: 2,
+      digest: `sha256:${second}`,
+      savedBy: SUBJECT,
+      report: report('invoice', 'Changed'),
+    })
     const listed = await read(app, '/v1/templates')
     expect(listed.statusCode).toBe(200)
     expect(listed.json()).toEqual({ templates: [{ template: 'invoice', revision: 2, title: 'Changed' }] })
@@ -183,7 +217,10 @@ describe('a draft', () => {
   test('is refused 415 in any other media type, and nothing written', async () => {
     const app = await serve()
     for (const contentType of ['text/plain', 'image/png', 'application/x-www-form-urlencoded']) {
-      expect(refusal(await save(app, 'invoice', report(), { 'if-none-match': '*', 'content-type': contentType })), contentType).toEqual({ status: 415, code: 'unsupported-media-type' })
+      expect(refusal(await save(app, 'invoice', report(), { 'if-none-match': '*', 'content-type': contentType })), contentType).toEqual({
+        status: 415,
+        code: 'unsupported-media-type',
+      })
     }
     expect(await filesInStore()).toEqual([])
   })
@@ -214,8 +251,17 @@ describe('a draft', () => {
   test('is refused 400 bad-request with a malformed precondition, the bare revision among them, and nothing written', async () => {
     const app = await serve()
     const tag = String((await save(app, 'invoice', report(), { 'if-none-match': '*' })).headers.etag)
-    for (const headers of [{ 'if-match': `W/${tag}` }, { 'if-match': `${tag}, ${tag}` }, { 'if-match': tag.slice(1, -1) }, { 'if-match': '"1"' }, { 'if-match': tag, 'if-none-match': '*' }]) {
-      expect(refusal(await save(app, 'invoice', report('invoice', 'Overwritten'), headers)), JSON.stringify(headers)).toEqual({ status: 400, code: 'bad-request' })
+    for (const headers of [
+      { 'if-match': `W/${tag}` },
+      { 'if-match': `${tag}, ${tag}` },
+      { 'if-match': tag.slice(1, -1) },
+      { 'if-match': '"1"' },
+      { 'if-match': tag, 'if-none-match': '*' },
+    ]) {
+      expect(refusal(await save(app, 'invoice', report('invoice', 'Overwritten'), headers)), JSON.stringify(headers)).toEqual({
+        status: 400,
+        code: 'bad-request',
+      })
     }
     expect(await filesInStore()).toEqual([`tenants/${sha256('acme')}/templates/invoice/draft/1.json`])
   })
@@ -276,7 +322,10 @@ describe('an image', () => {
     const app = await serve()
     const bytes = png()
     for (const contentType of ['application/json', 'text/plain', 'application/octet-stream']) {
-      expect(refusal(await keep(app, hexOf(bytes), contentType === 'application/json' ? new TextEncoder().encode('{}') : bytes, contentType)), contentType).toEqual({ status: 415, code: 'unsupported-media-type' })
+      expect(
+        refusal(await keep(app, hexOf(bytes), contentType === 'application/json' ? new TextEncoder().encode('{}') : bytes, contentType)),
+        contentType,
+      ).toEqual({ status: 415, code: 'unsupported-media-type' })
     }
     expect(await filesInStore()).toEqual([])
   })
@@ -325,7 +374,12 @@ describe('the refusals', () => {
     expect(refusal(invalid)).toEqual({ status: 422, code: 'report-invalid' })
     expect((invalid.json() as { errors: unknown[] }).errors.length).toBeGreaterThan(0)
     expect(refusal(await save(app, 'quote', report('other'), { 'if-none-match': '*' }))).toEqual({ status: 422, code: 'template-id-mismatch' })
-    const unkept = await save(app, 'quote', { ...report('quote'), assets: [{ id: 'logo', mediaType: 'image/png', digest: assetDigest(other) }] }, { 'if-none-match': '*' })
+    const unkept = await save(
+      app,
+      'quote',
+      { ...report('quote'), assets: [{ id: 'logo', mediaType: 'image/png', digest: assetDigest(other) }] },
+      { 'if-none-match': '*' },
+    )
     expect(unkept.statusCode).toBe(422)
     expect(unkept.json()).toEqual({ ...REFUSALS['asset-not-kept'], assets: ['logo'] })
 
@@ -351,7 +405,13 @@ describe('the refusals', () => {
   test('answer every route without a token with the one 401', async () => {
     const app = await serve()
     const hex = hexOf(png())
-    for (const [method, url] of [['GET', '/v1/templates'], ['GET', draftUrl('invoice')], ['PUT', draftUrl('invoice')], ['PUT', `/v1/assets/${hex}`], ['GET', `/v1/assets/${hex}`]] as const) {
+    for (const [method, url] of [
+      ['GET', '/v1/templates'],
+      ['GET', draftUrl('invoice')],
+      ['PUT', draftUrl('invoice')],
+      ['PUT', `/v1/assets/${hex}`],
+      ['GET', `/v1/assets/${hex}`],
+    ] as const) {
       const answer = await app.inject({ method, url })
       expect(refusal(answer), `${method} ${url}`).toEqual({ status: 401, code: 'unauthenticated' })
     }
@@ -374,7 +434,10 @@ describe('nothing is read before the identity', () => {
   test('answers an unauthenticated keep that declares 20,000,000 bytes and sends none 401 at once, and closes', async () => {
     expect(20_000_000).toBeLessThan(MAX_ASSET_BYTES)
     const { port } = await listening()
-    const { answer, closed } = await exchange(port, `PUT /v1/assets/${hexOf(png())} HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: image/png\r\nContent-Length: 20000000\r\n\r\n`)
+    const { answer, closed } = await exchange(
+      port,
+      `PUT /v1/assets/${hexOf(png())} HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: image/png\r\nContent-Length: 20000000\r\n\r\n`,
+    )
     expect(answer).toMatch(/^HTTP\/1\.1 401 /)
     expect(answer).toContain('{"code":"unauthenticated","message":"A valid host token is required."}')
     expect(answer.toLowerCase()).toContain('\r\nconnection: close\r\n')
@@ -401,7 +464,10 @@ describe('nothing is read before the identity', () => {
   // Node does not take the rest of it to keep the connection open.
   test('refuses a save in a media type the route does not read 415 at once, and closes', async () => {
     const { port } = await listening()
-    const { answer, closed } = await exchange(port, `PUT /v1/templates/invoice/draft HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: ${AUTHOR}\r\nIf-None-Match: *\r\nContent-Type: text/plain\r\nContent-Length: 100\r\n\r\n{`)
+    const { answer, closed } = await exchange(
+      port,
+      `PUT /v1/templates/invoice/draft HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: ${AUTHOR}\r\nIf-None-Match: *\r\nContent-Type: text/plain\r\nContent-Length: 100\r\n\r\n{`,
+    )
     expect(answer).toMatch(/^HTTP\/1\.1 415 /)
     expect(answer).toContain('"code":"unsupported-media-type"')
     expect(answer.toLowerCase()).toContain('\r\nconnection: close\r\n')
@@ -421,7 +487,10 @@ describe('nothing is read before the identity', () => {
   // before a byte of it is read, under the asset route's own code.
   test('refuses a keep that declares more than MAX_ASSET_BYTES 413 image-too-large at once, and closes', async () => {
     const { port } = await listening()
-    const { answer, closed } = await exchange(port, `PUT /v1/assets/${hexOf(png())} HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: ${AUTHOR}\r\nContent-Type: image/png\r\nContent-Length: ${String(MAX_ASSET_BYTES + 1)}\r\n\r\n`)
+    const { answer, closed } = await exchange(
+      port,
+      `PUT /v1/assets/${hexOf(png())} HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: ${AUTHOR}\r\nContent-Type: image/png\r\nContent-Length: ${String(MAX_ASSET_BYTES + 1)}\r\n\r\n`,
+    )
     expect(answer).toMatch(/^HTTP\/1\.1 413 /)
     expect(answer).toContain('"code":"image-too-large"')
     expect(closed).toBe(true)
@@ -475,7 +544,12 @@ describe('the log and the trail', () => {
     const hex = hexOf(bytes)
     const kept = await keep(app, hex, bytes)
     const readBack = await read(app, `/v1/assets/${hex}`)
-    const created = await save(app, template, { ...report(template), assets: [{ id: 'logo', mediaType: 'image/png', digest: assetDigest(bytes) }] }, { 'if-none-match': '*' })
+    const created = await save(
+      app,
+      template,
+      { ...report(template), assets: [{ id: 'logo', mediaType: 'image/png', digest: assetDigest(bytes) }] },
+      { 'if-none-match': '*' },
+    )
     const replaced = await save(app, template, report(template), { 'if-match': String(created.headers.etag) })
     const answered = [
       kept,
@@ -493,7 +567,8 @@ describe('the log and the trail', () => {
     expect(written).toContain('"route":"/v1/templates/:template/draft"')
     // A draft's digest is the tenant's too, the SHA-256 of its report's text, in each tag a request sent and an answer gave.
     const drafts = [created, replaced].map((answer) => (answer.json() as { digest: string }).digest.slice('sha256:'.length))
-    for (const part of [SUBJECT, TITLE, template, hex, hex.slice(0, 16), ...drafts, ...drafts.map((digest) => digest.slice(0, 16)), 'acme']) expect(written, part).not.toContain(part)
+    for (const part of [SUBJECT, TITLE, template, hex, hex.slice(0, 16), ...drafts, ...drafts.map((digest) => digest.slice(0, 16)), 'acme'])
+      expect(written, part).not.toContain(part)
   })
 
   // A stored record the store did not write is the server's fault, and the
@@ -507,7 +582,10 @@ describe('the log and the trail', () => {
   for (const key of [KEY, undefined]) {
     test(`names a record the store did not write by why, its file inside the tenant, and the tenant ${key === undefined ? 'not at all without an audit key' : 'by keyed hash'}, answering 500`, async () => {
       const lines: string[] = []
-      const app = await serve({ logger: { stream: { write: (line) => void lines.push(line) } }, audit: { sink: () => {}, ...(key === undefined ? {} : { key }) } })
+      const app = await serve({
+        logger: { stream: { write: (line) => void lines.push(line) } },
+        audit: { sink: () => {}, ...(key === undefined ? {} : { key }) },
+      })
       const bytes = png()
       await save(app, 'invoice', report(), { 'if-none-match': '*' })
       await keep(app, hexOf(bytes), bytes)
@@ -515,8 +593,11 @@ describe('the log and the trail', () => {
       const record = join(tenant, 'templates', 'invoice', 'draft', '1.json')
       await writeFile(record, (await readFile(record, 'utf8')).replace(TITLE, 'Edited by hand'))
       await writeFile(join(tenant, 'assets', `${hexOf(bytes)}.png`), png(9, 9))
-      for (const url of [draftUrl('invoice'), '/v1/templates', `/v1/assets/${hexOf(bytes)}`]) expect(refusal(await read(app, url)), url).toEqual({ status: 500, code: 'internal' })
-      const logged = lines.map((line) => JSON.parse(line) as { msg: string; why?: string; file?: string; tenant?: string | null }).filter((line) => line.msg === 'a stored record is not what the store wrote, and was not served')
+      for (const url of [draftUrl('invoice'), '/v1/templates', `/v1/assets/${hexOf(bytes)}`])
+        expect(refusal(await read(app, url)), url).toEqual({ status: 500, code: 'internal' })
+      const logged = lines
+        .map((line) => JSON.parse(line) as { msg: string; why?: string; file?: string; tenant?: string | null })
+        .filter((line) => line.msg === 'a stored record is not what the store wrote, and was not served')
       const reference = auditReference(key, 'tenant', 'acme')
       expect(logged.map(({ why, file, tenant: named }) => ({ why, file, tenant: named }))).toEqual([
         { why: 'digest', file: 'templates/invoice/draft/1.json', tenant: reference },
@@ -551,7 +632,9 @@ describe('the log and the trail', () => {
     }
     await rm(cases.directory, { recursive: true })
     expect(refusal(await read(app, '/v1/templates'))).toEqual({ status: 500, code: 'internal' })
-    const logged = lines.map((line) => JSON.parse(line) as Record<string, unknown>).filter((line) => line['msg'] === 'the store’s file system failed it, and nothing was answered from it')
+    const logged = lines
+      .map((line) => JSON.parse(line) as Record<string, unknown>)
+      .filter((line) => line['msg'] === 'the store’s file system failed it, and nothing was answered from it')
     const reference = auditReference(KEY, 'tenant', 'acme')
     expect(logged.map(({ code, operation, file, tenant: named }) => ({ code, operation, file, tenant: named }))).toEqual([
       { code: 'EACCES', operation: 'list', file: 'templates/invoice/draft', tenant: reference },
@@ -559,6 +642,7 @@ describe('the log and the trail', () => {
       { code: 'ENOENT', operation: 'list', file: undefined, tenant: reference },
     ])
     const all = lines.join('')
-    for (const part of [cases.directory, sha256('acme'), 'tenants/', 'permission denied', 'no such file', '"err"', '"stack"']) expect(all, part).not.toContain(part)
+    for (const part of [cases.directory, sha256('acme'), 'tenants/', 'permission denied', 'no such file', '"err"', '"stack"'])
+      expect(all, part).not.toContain(part)
   })
 })

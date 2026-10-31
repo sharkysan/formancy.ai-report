@@ -154,7 +154,8 @@ function fractionOf(fraction: string | undefined): string {
 
 function readString(raw: unknown): ValueRead<string> {
   if (typeof raw !== 'string') return wrongType('a string', raw)
-  if (raw.length > MAX_STRING_LENGTH) return refused('string-too-long', `a string of ${raw.length} characters, more than the ${MAX_STRING_LENGTH} a value may have`)
+  if (raw.length > MAX_STRING_LENGTH)
+    return refused('string-too-long', `a string of ${raw.length} characters, more than the ${MAX_STRING_LENGTH} a value may have`)
   if (LONE_SURROGATE.test(raw)) return refused('ill-formed-string', 'a string with half a surrogate pair is not text, and would print a character nobody wrote')
   return { ok: true, value: raw }
 }
@@ -182,7 +183,10 @@ function readDecimal(raw: unknown, scale: number | undefined): ValueRead<Decimal
   const allowed = scale ?? MAX_SCALE
   if (raw.includes('.') && places > allowed) {
     const whose = scale === undefined ? 'a decimal holds' : 'the field declares'
-    return refused('decimal-scale', `a decimal with ${places} places, more than the ${allowed} ${whose}; rounding it here would print another number than the source holds`)
+    return refused(
+      'decimal-scale',
+      `a decimal with ${places} places, more than the ${allowed} ${whose}; rounding it here would print another number than the source holds`,
+    )
   }
   return { ok: true, value: decimalFromString(raw) }
 }
@@ -203,7 +207,10 @@ function readDatetime(raw: unknown): ValueRead<string> {
   const match = DATETIME.exec(raw)
   const [year, month, day, hour, minute, second] = match === null ? [] : match.slice(1, 7).map(Number)
   if (match === null || !isCalendarDay(year as number, month as number, day as number) || !isClockTime(hour as number, minute as number, second as number)) {
-    return refused('invalid-datetime', 'a date and time without a zone is written YYYY-MM-DDTHH:mm:ss, with a fraction of a second of up to nine digits if it has one')
+    return refused(
+      'invalid-datetime',
+      'a date and time without a zone is written YYYY-MM-DDTHH:mm:ss, with a fraction of a second of up to nine digits if it has one',
+    )
   }
   return { ok: true, value: `${raw.slice(0, 19)}${fractionOf(match[7])}` }
 }
@@ -223,14 +230,21 @@ const pad = (value: number, width: number): string => String(value).padStart(wid
 export function canonicalInstant(text: string): string | undefined {
   const match = INSTANT.exec(text)
   if (match === null) return undefined
-  const [year, month, day, hour, minute, second = 0] = match.slice(1, 7).map((part) => (part === undefined ? undefined : Number(part))) as number[]
+  const [year, month, day, hour, minute, second = 0] = match.slice(1, 7).map((part) => (part === undefined ? undefined : Number(part))) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number | undefined,
+  ]
   const offsetHours = match[9] === undefined ? 0 : Number(match[9])
   const offsetMinutes = match[10] === undefined ? 0 : Number(match[10])
-  if (!isCalendarDay(year as number, month as number, day as number) || !isClockTime(hour as number, minute as number, second) || offsetHours > 23 || offsetMinutes > 59) return undefined
+  if (!isCalendarDay(year, month, day) || !isClockTime(hour, minute, second) || offsetHours > 23 || offsetMinutes > 59) return undefined
   // Date.UTC reads the years 0 to 99 as 1900 to 1999; setUTCFullYear does not.
   const moment = new Date(0)
-  moment.setUTCFullYear(year as number, (month as number) - 1, day as number)
-  moment.setUTCHours(hour as number, minute as number, second, 0)
+  moment.setUTCFullYear(year, month - 1, day)
+  moment.setUTCHours(hour, minute, second, 0)
   const offset = (match[8] === '-' ? -1 : 1) * (offsetHours * 60 + offsetMinutes)
   moment.setTime(moment.getTime() - offset * 60_000)
   const utcYear = moment.getUTCFullYear()

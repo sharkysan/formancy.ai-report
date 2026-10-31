@@ -47,7 +47,13 @@ interface Node {
   readonly label?: string
 }
 
-const LEAF: fc.Arbitrary<Node> = fc.constantFrom<Node>({ type: 'text' }, { type: 'number' }, { type: 'checkbox' }, { type: 'date' }, { type: 'static', label: 'Read me' })
+const LEAF: fc.Arbitrary<Node> = fc.constantFrom<Node>(
+  { type: 'text' },
+  { type: 'number' },
+  { type: 'checkbox' },
+  { type: 'date' },
+  { type: 'static', label: 'Read me' },
+)
 
 /** A field `depth` containers deep at most, as formancy nests them: a group anywhere, a repeater in no repeater. */
 function nodeOf(depth: number, inRows: boolean): fc.Arbitrary<Node> {
@@ -62,7 +68,13 @@ function nodeOf(depth: number, inRows: boolean): fc.Arbitrary<Node> {
 const fieldsOf = (depth: number, inRows: boolean): fc.Arbitrary<readonly Node[]> => fc.array(nodeOf(depth, inRows), { maxLength: 4 })
 
 /** A model's fields: any of those, and pages of them, a page at the top alone. */
-const MODELS = fc.array(fc.oneof(nodeOf(3, false), fieldsOf(2, false).map((fields): Node => ({ type: 'page', fields }))), { maxLength: 5 })
+const MODELS = fc.array(
+  fc.oneof(
+    nodeOf(3, false),
+    fieldsOf(2, false).map((fields): Node => ({ type: 'page', fields })),
+  ),
+  { maxLength: 5 },
+)
 
 /** `nodes` with a key each, unique in the form. */
 function keyed(nodes: readonly Node[], next = { key: 0 }): unknown[] {

@@ -48,12 +48,72 @@ const bytesOf = (directory: string, file: string): Uint8Array => new Uint8Array(
 
 /** What the reader is held to of each face, measured from the files with the probe the 0.3.0 plan used and read again on 21 October 2026. */
 const FACES = [
-  { directory: roboto, file: 'Roboto-Regular.ttf', family: 'Roboto', subfamily: 'Regular', postScriptName: 'Roboto-Regular', weight: 400, italic: false, bold: false, regular: true },
-  { directory: roboto, file: 'Roboto-Medium.ttf', family: 'Roboto', subfamily: 'Medium', postScriptName: 'Roboto-Medium', weight: 500, italic: false, bold: false, regular: true },
-  { directory: roboto, file: 'Roboto-Italic.ttf', family: 'Roboto', subfamily: 'Italic', postScriptName: 'Roboto-Italic', weight: 400, italic: true, bold: false, regular: false },
-  { directory: roboto, file: 'Roboto-MediumItalic.ttf', family: 'Roboto', subfamily: 'Medium Italic', postScriptName: 'Roboto-MediumItalic', weight: 500, italic: true, bold: false, regular: false },
-  { directory: liberation, file: 'LiberationSans-Regular.ttf', family: 'Liberation Sans', subfamily: 'Regular', postScriptName: 'LiberationSans', weight: 400, italic: false, bold: false, regular: true },
-  { directory: liberation, file: 'LiberationSans-Bold.ttf', family: 'Liberation Sans', subfamily: 'Bold', postScriptName: 'LiberationSans-Bold', weight: 700, italic: false, bold: true, regular: false },
+  {
+    directory: roboto,
+    file: 'Roboto-Regular.ttf',
+    family: 'Roboto',
+    subfamily: 'Regular',
+    postScriptName: 'Roboto-Regular',
+    weight: 400,
+    italic: false,
+    bold: false,
+    regular: true,
+  },
+  {
+    directory: roboto,
+    file: 'Roboto-Medium.ttf',
+    family: 'Roboto',
+    subfamily: 'Medium',
+    postScriptName: 'Roboto-Medium',
+    weight: 500,
+    italic: false,
+    bold: false,
+    regular: true,
+  },
+  {
+    directory: roboto,
+    file: 'Roboto-Italic.ttf',
+    family: 'Roboto',
+    subfamily: 'Italic',
+    postScriptName: 'Roboto-Italic',
+    weight: 400,
+    italic: true,
+    bold: false,
+    regular: false,
+  },
+  {
+    directory: roboto,
+    file: 'Roboto-MediumItalic.ttf',
+    family: 'Roboto',
+    subfamily: 'Medium Italic',
+    postScriptName: 'Roboto-MediumItalic',
+    weight: 500,
+    italic: true,
+    bold: false,
+    regular: false,
+  },
+  {
+    directory: liberation,
+    file: 'LiberationSans-Regular.ttf',
+    family: 'Liberation Sans',
+    subfamily: 'Regular',
+    postScriptName: 'LiberationSans',
+    weight: 400,
+    italic: false,
+    bold: false,
+    regular: true,
+  },
+  {
+    directory: liberation,
+    file: 'LiberationSans-Bold.ttf',
+    family: 'Liberation Sans',
+    subfamily: 'Bold',
+    postScriptName: 'LiberationSans-Bold',
+    weight: 700,
+    italic: false,
+    bold: true,
+    regular: false,
+  },
 ] as const
 
 const METRICS = {
@@ -72,8 +132,22 @@ const be32 = (value: number): number[] => [...be16(value >>> 16), ...be16(value)
 
 /** A format 4 subtable that maps `point` to glyph 1, and its final segment. */
 const format4Of = (point: number): number[] => [
-  ...be16(4), ...be16(32), ...be16(0), ...be16(4), ...be16(4), ...be16(1), ...be16(0),
-  ...be16(point), ...be16(0xffff), ...be16(0), ...be16(point), ...be16(0xffff), ...be16(1 - point), ...be16(1), ...be16(0), ...be16(0),
+  ...be16(4),
+  ...be16(32),
+  ...be16(0),
+  ...be16(4),
+  ...be16(4),
+  ...be16(1),
+  ...be16(0),
+  ...be16(point),
+  ...be16(0xffff),
+  ...be16(0),
+  ...be16(point),
+  ...be16(0xffff),
+  ...be16(1 - point),
+  ...be16(1),
+  ...be16(0),
+  ...be16(0),
 ]
 
 /** A format 12 subtable that maps `point` to glyph 1. */
@@ -88,7 +162,18 @@ function characterMapOnly(subtables: readonly (readonly [number, number, readonl
     return record
   })
   const table = [...be16(0), ...be16(subtables.length), ...records, ...subtables.flatMap(([, , subtable]) => subtable)]
-  return Uint8Array.from([...be32(0x00010000), ...be16(1), ...be16(16), ...be16(0), ...be16(0), ...[...'cmap'].map((character) => character.charCodeAt(0)), ...be32(0), ...be32(28), ...be32(table.length), ...table])
+  return Uint8Array.from([
+    ...be32(0x00010000),
+    ...be16(1),
+    ...be16(16),
+    ...be16(0),
+    ...be16(0),
+    ...[...'cmap'].map((character) => character.charCodeAt(0)),
+    ...be32(0),
+    ...be32(28),
+    ...be32(table.length),
+    ...table,
+  ])
 }
 
 describe("the renderer's faces, read by report-spec's reader", () => {
@@ -120,10 +205,21 @@ describe("the renderer's faces, read by report-spec's reader", () => {
   // table order and threw on a face with none in format 4, so a renderer
   // that kept a reader of its own would print by another map than PDFKit's.
   test("glyphs.ts reads a face's character map as the reader does, where the face's maps disagree", () => {
-    const full = characterMapOnly([[0, 3, format4Of(0x41)], [3, 1, format4Of(0x42)], [3, 10, format12Of(0x1f600)]])
+    const full = characterMapOnly([
+      [0, 3, format4Of(0x41)],
+      [3, 1, format4Of(0x42)],
+      [3, 10, format12Of(0x1f600)],
+    ])
     expect([...characterMap(full)]).toEqual([0x1f600])
     expect(readCharacterMap(full)).toEqual({ ok: true, characters: new Set([0x1f600]) })
-    expect([...characterMap(characterMapOnly([[0, 3, format4Of(0x41)], [3, 1, format4Of(0x42)]]))]).toEqual([0x42])
+    expect([
+      ...characterMap(
+        characterMapOnly([
+          [0, 3, format4Of(0x41)],
+          [3, 1, format4Of(0x42)],
+        ]),
+      ),
+    ]).toEqual([0x42])
   })
 
   // A host face of one of these faces' names and other bytes is refused,
@@ -137,7 +233,11 @@ describe("the renderer's faces, read by report-spec's reader", () => {
     expect(
       FACES.map((face) => {
         const bytes = bytesOf(face.directory, face.file)
-        return { postScriptName: fontkit.create(Buffer.from(bytes)).postscriptName, postScriptNames: read(bytes).names.postScriptNames, digest: assetDigest(bytes) }
+        return {
+          postScriptName: fontkit.create(Buffer.from(bytes)).postscriptName,
+          postScriptNames: read(bytes).names.postScriptNames,
+          digest: assetDigest(bytes),
+        }
       }),
     ).toEqual(OWN_FACES.map(({ postScriptName, digest }) => ({ postScriptName, postScriptNames: [postScriptName], digest })))
   })
@@ -202,7 +302,8 @@ describe('fontkit, which PDFKit draws with', () => {
     for (let index = 0; index < view.getUint16(4); index++) {
       const record = 12 + 16 * index
       const tag = String.fromCharCode(...bytes.subarray(record, record + 4))
-      if (['head', 'hhea', 'hmtx', 'maxp', 'OS/2', 'post', 'name', 'cmap', 'loca', 'glyf'].includes(tag)) found.push({ tag, record, offset: view.getUint32(record + 8), length: view.getUint32(record + 12) })
+      if (['head', 'hhea', 'hmtx', 'maxp', 'OS/2', 'post', 'name', 'cmap', 'loca', 'glyf'].includes(tag))
+        found.push({ tag, record, offset: view.getUint32(record + 8), length: view.getUint32(record + 12) })
     }
     return found
   }
@@ -262,7 +363,8 @@ describe('fontkit, which PDFKit draws with', () => {
       for (let round = 0; round < 80; round++) {
         const corrupted = Uint8Array.from(bytes)
         const region = regions[Math.floor(random() * regions.length)]!
-        for (let flips = 1 + Math.floor(random() * 3); flips > 0; flips--) corrupted[region.offset + Math.floor(random() * region.length)] = Math.floor(random() * 256)
+        for (let flips = 1 + Math.floor(random() * 3); flips > 0; flips--)
+          corrupted[region.offset + Math.floor(random() * region.length)] = Math.floor(random() * 256)
         const outcome = readFont(corrupted)
         if (!outcome.ok) continue
         accepted += 1

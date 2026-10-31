@@ -19,8 +19,15 @@ const copy = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..',
 // report declares them by: a mark copied wrong would print, from the packed
 // packages, a drawing nobody reviewed, or be refused as missing.
 test("the install gate's quotation is the quotation starter, with its mark", async () => {
-  const { quotation, quotationData, logo } = (await import(pathToFileURL(copy).href)) as { quotation: unknown; quotationData: unknown; logo: { digest: unknown; bytes: unknown } | undefined }
+  const { quotation, quotationData, logo } = (await import(pathToFileURL(copy).href)) as {
+    quotation: unknown
+    quotationData: unknown
+    logo: { digest: unknown; bytes: unknown } | undefined
+  }
   expect(quotation).toEqual(QUOTATION.report)
   expect(quotationData).toEqual(QUOTATION.data)
-  expect(logo === undefined ? undefined : { digest: logo.digest, bytes: [...(logo.bytes as Uint8Array)] }).toEqual({ digest: LOGO.digest, bytes: [...LOGO.bytes] })
+  expect(logo === undefined ? undefined : { digest: logo.digest, bytes: [...(logo.bytes as Uint8Array)] }).toEqual({
+    digest: LOGO.digest,
+    bytes: [...LOGO.bytes],
+  })
 })

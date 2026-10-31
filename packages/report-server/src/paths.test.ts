@@ -19,7 +19,23 @@ describe('plainPath', () => {
   // dot segment, an empty one, a backslash, a fragment, a character outside
   // ASCII, a target that is no path at all.
   test('refuses every target with anything in it to normalise', () => {
-    for (const target of ['/v1/%77hoami', '/v1/./whoami', '/v1/../whoami', '/v1/whoami/.', '/v1//whoami', '/v1/whoami/', '/', '', '*', 'v1/whoami', 'http://host.example/v1/whoami', '/v1\\whoami', '/v1/whoami#x', '/v1/whoämi', '/v1/who ami']) {
+    for (const target of [
+      '/v1/%77hoami',
+      '/v1/./whoami',
+      '/v1/../whoami',
+      '/v1/whoami/.',
+      '/v1//whoami',
+      '/v1/whoami/',
+      '/',
+      '',
+      '*',
+      'v1/whoami',
+      'http://host.example/v1/whoami',
+      '/v1\\whoami',
+      '/v1/whoami#x',
+      '/v1/whoämi',
+      '/v1/who ami',
+    ]) {
       expect(plainPath(target), target).toBe(false)
     }
   })

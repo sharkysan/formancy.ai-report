@@ -146,7 +146,12 @@ function datasetItems(review: Review, read: Read): ReviewItem[] {
   for (const [index, field] of read.contract.fields.entries()) {
     const f = new Findings()
     const plan = planField(f, version, scope.scope, field, `/datasets/${read.role}/fields/${index}/form`, undefined)
-    const item = plan === undefined ? blockedField(review, read, index, f.errors()[0] as FormsError, scope) : 'omitted' in plan ? undefined : (reusedField(review, read, index, scope) ?? relabelled(review, read, index, plan))
+    const item =
+      plan === undefined
+        ? blockedField(review, read, index, f.errors()[0] as FormsError, scope)
+        : 'omitted' in plan
+          ? undefined
+          : (reusedField(review, read, index, scope) ?? relabelled(review, read, index, plan))
     if (item !== undefined) items.push(item)
   }
   return items
@@ -174,7 +179,15 @@ function addedItems(review: Review, reads: readonly Read[]): ReviewItem[] {
       const def = own.includes('[]') ? undefined : fieldAt(review.version, scope.scope, own.split('.'))
       if (def === undefined || !('reads' in KINDS[def.type]) || printed.has(own)) continue
       said.add(path)
-      items.push({ dataset: read.role, path: `/datasets/${read.role}`, change: 'field.added', formPath: own, blocks: false, message: `the form version ${review.version.hash} holds a field at ${named(own)} the report does not print; a field is never added to a report by itself`, resolutions: [] })
+      items.push({
+        dataset: read.role,
+        path: `/datasets/${read.role}`,
+        change: 'field.added',
+        formPath: own,
+        blocks: false,
+        message: `the form version ${review.version.hash} holds a field at ${named(own)} the report does not print; a field is never added to a report by itself`,
+        resolutions: [],
+      })
     }
   }
   return items
@@ -213,19 +226,33 @@ export function reviewFormVersion(report: ReportDefinition, input: ReviewInput):
   const versions = readVersions(f, parts.get('versions'), parts.has('versions'))
   if (version === undefined || versions === undefined) return refused(f)
   if (parts.has('formHash') && parts.get('formHash') !== version.hash) {
-    f.report('/formHash', 'hash-mismatch', `the host names another hash, and the form it handed over hashes to ${version.hash}: its record of the version and the version disagree`)
+    f.report(
+      '/formHash',
+      'hash-mismatch',
+      `the host names another hash, and the form it handed over hashes to ${version.hash}: its record of the version and the version disagree`,
+    )
     return refused(f)
   }
   // Every version handed over, compared with the new one; the ones the report names are its baselines.
-  const handed = new Map([...versions.values()].filter((before) => before.hash !== version.hash).map((before): [string, Baseline] => {
-    const changes = diffSchemas(before.schema, version.schema)
-    return [before.hash, { version: before, changes, moves: declaredMoves(version.schema, changes) }]
-  }))
+  const handed = new Map(
+    [...versions.values()]
+      .filter((before) => before.hash !== version.hash)
+      .map((before): [string, Baseline] => {
+        const changes = diffSchemas(before.schema, version.schema)
+        return [before.hash, { version: before, changes, moves: declaredMoves(version.schema, changes) }]
+      }),
+  )
   const baselines: Baseline[] = []
   for (const hash of versionsNamed(checked.report)) {
     if (hash === version.hash) continue
     const before = handed.get(hash)
-    if (before === undefined) f.report('/versions', 'missing-version', `the report was made from or reviewed against the form version ${hash}, which was not handed over: a review compares the new version with each`, `missing-version ${hash}`)
+    if (before === undefined)
+      f.report(
+        '/versions',
+        'missing-version',
+        `the report was made from or reviewed against the form version ${hash}, which was not handed over: a review compares the new version with each`,
+        `missing-version ${hash}`,
+      )
     else baselines.push(before)
   }
   if (!f.empty) return refused(f)

@@ -42,6 +42,7 @@ export function removePaymentPart(report: ReportDefinition): CommandOutcome {
 export function updatePaymentPart(report: ReportDefinition, patch: PaymentPartPatch): CommandOutcome {
   const part = report.paymentPart
   if (part === undefined) return missing()
-  if (Object.hasOwn(patch, 'kind')) return refuse('immutable-property', "a payment part's kind never changes in place; put a new payment part instead", { path: `${PATH}/kind` })
+  if (Object.hasOwn(patch, 'kind'))
+    return refuse('immutable-property', "a payment part's kind never changes in place; put a new payment part instead", { path: `${PATH}/kind` })
   return { ok: true, report: { ...report, paymentPart: patched(part, patch as Patch<PaymentPart>) } }
 }

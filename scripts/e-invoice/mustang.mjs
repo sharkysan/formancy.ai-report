@@ -69,7 +69,13 @@ function messageOf(element, prefix = '') {
   const text = textOf(element).trim()
   const type = attribute(element, 'type')
   const id = /\[ID ([^\]\s]+)\]/.exec(text)?.[1]
-  return { severity: element.local, type, id, key: [...(prefix === '' ? [] : [prefix]), element.local, type ?? '-', ...(id === undefined ? [] : [id])].join(' '), text }
+  return {
+    severity: element.local,
+    type,
+    id,
+    key: [...(prefix === '' ? [] : [prefix]), element.local, type ?? '-', ...(id === undefined ? [] : [id])].join(' '),
+    text,
+  }
 }
 
 const messagesOf = (element, prefix) => (childOf(element, '', 'messages')?.children ?? []).map((child) => messageOf(child, prefix))
@@ -87,7 +93,11 @@ function veraPdfResultOf(text) {
   const result = /ValidationResult \[flavour=(\w+), totalAssertions=\d+, assertions=\[([\s\S]*)\], isCompliant=(true|false)\]/.exec(String(text))
   if (result === null) return null
   const [, flavour, assertions, compliant] = result
-  return { flavour, compliant: compliant === 'true', failed: [...new Set([...assertions.matchAll(FAILED)].map(([, clause, test]) => `pdfa ${flavour} ${clause}-${test}`))] }
+  return {
+    flavour,
+    compliant: compliant === 'true',
+    failed: [...new Set([...assertions.matchAll(FAILED)].map(([, clause, test]) => `pdfa ${flavour} ${clause}-${test}`))],
+  }
 }
 
 /**
@@ -106,7 +116,10 @@ export function readMustang(stdout) {
   const rules = childOf(info, '', 'rules')
   return {
     filename: attribute(root, 'filename'),
-    pdf: pdf === undefined ? null : { result: veraPdfResultOf(textOf(pdf)), messages: messagesOf(pdf, 'pdf'), status: attribute(childOf(pdf, '', 'summary'), 'status') },
+    pdf:
+      pdf === undefined
+        ? null
+        : { result: veraPdfResultOf(textOf(pdf)), messages: messagesOf(pdf, 'pdf'), status: attribute(childOf(pdf, '', 'summary'), 'status') },
     xml:
       part === undefined
         ? null
@@ -173,12 +186,14 @@ function sampleProblems(entry, report, { pinned, profile }) {
     if (report.pdf === null) problems.push(`Mustang’s report on ${file} has no <pdf> part, where ${file} is a PDF`)
     else if (report.pdf.result === null) problems.push(`Mustang’s report on ${file} has no veraPDF result in its <pdf> part`)
     else {
-      if (report.pdf.result.flavour !== '3b') problems.push(`Mustang validated ${file} as PDF/A-${report.pdf.result.flavour}, not as the PDF/A-3b it must declare itself`)
+      if (report.pdf.result.flavour !== '3b')
+        problems.push(`Mustang validated ${file} as PDF/A-${report.pdf.result.flavour}, not as the PDF/A-3b it must declare itself`)
       if (report.pdf.result.compliant !== true) problems.push(`Mustang’s veraPDF finds ${file} not compliant, where it must be`)
     }
   }
   if (report.xml === null) return [...problems, `Mustang’s report on ${file} has no <xml> part`]
-  if (report.xml.validator !== pinned) problems.push(`Mustang’s report on ${file} is by Mustang ${String(report.xml.validator)}, not by ${pinned}, which docs/release/e-invoice-tools.json pins`)
+  if (report.xml.validator !== pinned)
+    problems.push(`Mustang’s report on ${file} is by Mustang ${String(report.xml.validator)}, not by ${pinned}, which docs/release/e-invoice-tools.json pins`)
   if (report.xml.profile !== profile) problems.push(`Mustang read ${file} as the profile ${String(report.xml.profile)}, not as ${profile}`)
   if (!(report.xml.fired > 0)) problems.push(`Mustang fired no rule on ${file}, so it checked nothing`)
   // The outer summary first: in Mustang 2.26.0 it is the XML part's, whatever the PDF part says (#1293).
@@ -254,7 +269,10 @@ export function judgeMustang({ entries, runs, accepted, pinned, profile }) {
     } else {
       const pdfAlone = brokenInPdfPartAlone(expect.mustang)
       if (!pdfAlone && ran.status === 0) wrong.push(`Mustang exited 0 on ${file}, which is broken for ${entry.why}`)
-      if (pdfAlone && ran.status !== 0) wrong.push(`Mustang exited ${String(ran.status)} on ${file}, which is broken in its PDF part alone, where Mustang 2.26.0 exits 0 (its issue #1293): a release that fixed it is a new pin, and this rule goes with it`)
+      if (pdfAlone && ran.status !== 0)
+        wrong.push(
+          `Mustang exited ${String(ran.status)} on ${file}, which is broken in its PDF part alone, where Mustang 2.26.0 exits 0 (its issue #1293): a release that fixed it is a new pin, and this rule goes with it`,
+        )
       const wanted = new Set(expect.mustang)
       if (row.refusals.length === 0) wrong.push(`${file} is broken for ${entry.why}, and Mustang accepted it: nothing is watching that`)
       else {
@@ -267,7 +285,8 @@ export function judgeMustang({ entries, runs, accepted, pinned, profile }) {
     return row
   })
   for (const entry of mine) {
-    if (!entry.files.some((file) => raised.has(`${entry.message}\0${file}`))) problems.push(`the accepted message mustang ${entry.message} was raised in none of its files: remove it from scripts/e-invoice/accepted.json`)
+    if (!entry.files.some((file) => raised.has(`${entry.message}\0${file}`)))
+      problems.push(`the accepted message mustang ${entry.message} was raised in none of its files: remove it from scripts/e-invoice/accepted.json`)
   }
   return { rows, problems, compiled: Object.fromEntries(compiled) }
 }

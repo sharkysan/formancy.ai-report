@@ -41,7 +41,10 @@ interface Holding<C extends Component> {
 
 /** The one shape every container but a columns block has: one list, under `components`. */
 function oneList<C extends Extract<Component, { readonly components: readonly Component[] }>>(): Holding<C> {
-  return { lists: (component) => [{ list: component.components }], rebuild: (component, change) => ({ ...component, components: change(component.components) }) }
+  return {
+    lists: (component) => [{ list: component.components }],
+    rebuild: (component, change) => ({ ...component, components: change(component.components) }),
+  }
 }
 
 /**

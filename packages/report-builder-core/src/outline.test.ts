@@ -32,7 +32,10 @@ describe('the outline', () => {
   test('holds every component once, in the walk’s order, at its depth', () => {
     const report = richReport()
     const { editor } = editorOver(report)
-    const components = editor.state().outline.flatMap((region) => flat(region.nodes)).filter((node) => node.kind !== 'tableColumn')
+    const components = editor
+      .state()
+      .outline.flatMap((region) => flat(region.nodes))
+      .filter((node) => node.kind !== 'tableColumn')
     expect(components.map((node) => [node.id, node.depth])).toEqual(walkComponents(report).map(({ component, depth }) => [component.id, depth]))
   })
 
@@ -63,7 +66,12 @@ describe('the outline', () => {
   // kind and what it draws.
   test('labels each component by what it prints or draws', () => {
     const { editor } = editorOver()
-    const labels = Object.fromEntries(editor.state().outline.flatMap((region) => flat(region.nodes)).map((node) => [node.key, node.label]))
+    const labels = Object.fromEntries(
+      editor
+        .state()
+        .outline.flatMap((region) => flat(region.nodes))
+        .map((node) => [node.key, node.label]),
+    )
     expect(labels).toEqual({
       heading: 'Columns',
       'logo-image': 'Image: logo',
@@ -114,7 +122,14 @@ describe('the outline', () => {
   // A total in a text is named by the aggregate it prints.
   test('labels a printed total by its aggregate', () => {
     const report: ReportDefinition = richReport()
-    const total = { id: 'grand', kind: 'text', content: [{ kind: 'text', text: 'Total ' }, { kind: 'aggregate', aggregate: 'total', over: 'report' }] } as const
+    const total = {
+      id: 'grand',
+      kind: 'text',
+      content: [
+        { kind: 'text', text: 'Total ' },
+        { kind: 'aggregate', aggregate: 'total', over: 'report' },
+      ],
+    } as const
     const { editor } = editorOver({ ...report, regions: { ...report.regions, summary: [total] } })
     expect(editor.state().outline[4]?.nodes[0]?.label).toBe('Total [total]')
   })
@@ -134,18 +149,32 @@ describe('the outline', () => {
   // "QR code: ", a name that trails off.
   test('labels a QR code by its kind and what it encodes, or its kind alone', () => {
     const report: ReportDefinition = richReport()
-    const link = { id: 'link', kind: 'qrCode', content: [{ kind: 'text', text: 'https://example.com/a/' }, { kind: 'parameter', parameter: 'from' }], size: 60, errorCorrection: 'M' } as const
+    const link = {
+      id: 'link',
+      kind: 'qrCode',
+      content: [
+        { kind: 'text', text: 'https://example.com/a/' },
+        { kind: 'parameter', parameter: 'from' },
+      ],
+      size: 60,
+      errorCorrection: 'M',
+    } as const
     const blank = { id: 'blank', kind: 'qrCode', content: [{ kind: 'text', text: '' }], size: 60, errorCorrection: 'M' } as const
     const { editor } = editorOver({ ...report, regions: { ...report.regions, summary: [link, blank] } })
     expect(editor.state().outline[4]?.nodes.map((node) => node.label)).toEqual(['QR code: https://example.com/a/[From]', 'QR code'])
-    expect(editorOver({ ...report, regions: { ...report.regions, summary: [link] } }, { locale: 'fr-CH' }).editor.state().outline[4]?.nodes[0]?.label).toBe('Code QR : https://example.com/a/[From]')
+    expect(editorOver({ ...report, regions: { ...report.regions, summary: [link] } }, { locale: 'fr-CH' }).editor.state().outline[4]?.nodes[0]?.label).toBe(
+      'Code QR : https://example.com/a/[From]',
+    )
   })
 
   // The selected row is the one `aria-selected` marks and focus goes to.
   test('marks the selected row, a column included', () => {
     const { editor } = editorOver()
     ok(editor.dispatch({ type: 'select', id: 'lines', column: 'amount' }))
-    const selected = editor.state().outline.flatMap((region) => flat(region.nodes)).filter((node) => node.selected)
+    const selected = editor
+      .state()
+      .outline.flatMap((region) => flat(region.nodes))
+      .filter((node) => node.selected)
     expect(selected.map((node) => node.key)).toEqual(['lines/amount'])
   })
 
@@ -153,7 +182,13 @@ describe('the outline', () => {
   // is about carries a count.
   test('counts the diagnostics about each row', () => {
     const report = richReport()
-    const broken = { ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.nope' } } : component)) } }
+    const broken = {
+      ...report,
+      regions: {
+        ...report.regions,
+        body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.nope' } } : component)),
+      },
+    }
     const { editor } = editorOver(broken)
     const intro = editor.state().outline[2]?.nodes[0]
     expect(intro?.problems).toBe(1)
@@ -176,13 +211,24 @@ describe('the outline', () => {
         ...report.regions,
         body: report.regions.body.map((component) => {
           if (component.id === 'intro') return { ...component, content: [{ kind: 'text', text: '' }], visibleWhen: { cel: 'params.nope' } }
-          if (component.kind === 'table') return { ...component, columns: component.columns.map((column) => (column.id === 'sku' ? { ...column, value: { kind: 'expression', expression: { cel: 'params.nope' } } } : column)) }
+          if (component.kind === 'table')
+            return {
+              ...component,
+              columns: component.columns.map((column) =>
+                column.id === 'sku' ? { ...column, value: { kind: 'expression', expression: { cel: 'params.nope' } } } : column,
+              ),
+            }
           return component.id === 'gap' ? { id: 'blank', kind: 'text', content: [{ kind: 'text', text: '' }] } : component
         }),
       },
-    } as ReportDefinition
+    }
     const { editor } = editorOver(broken)
-    const rows = new Map(editor.state().outline.flatMap((region) => flat(region.nodes)).map((node) => [node.key, node]))
+    const rows = new Map(
+      editor
+        .state()
+        .outline.flatMap((region) => flat(region.nodes))
+        .map((node) => [node.key, node]),
+    )
     expect(rows.get('intro')).toMatchObject({ problems: 2, severity: 'error' })
     expect(rows.get('blank')).toMatchObject({ problems: 1, severity: 'warning' })
     expect(rows.get('note')?.severity).toBeUndefined()
@@ -200,10 +246,22 @@ describe('the outline', () => {
   // rests on a box, learns it too.
   test('says which rows are wider than the space they stand in, as the canvas does', () => {
     const report = richReport()
-    const side = { id: 'side', kind: 'columns', columns: [{ width: 100, components: [{ id: 'wide', kind: 'rectangle', width: 150, height: 20 }] }, { width: 'fill', components: [] }] }
+    const side = {
+      id: 'side',
+      kind: 'columns',
+      columns: [
+        { width: 100, components: [{ id: 'wide', kind: 'rectangle', width: 150, height: 20 }] },
+        { width: 'fill', components: [] },
+      ],
+    }
     const { editor } = editorOver({ ...report, regions: { ...report.regions, body: [...report.regions.body, side] } } as ReportDefinition)
     const rows = editor.state().outline.flatMap((region) => flat(region.nodes))
     expect(rows.filter((node) => node.overflows).map((node) => node.key)).toEqual(['wide'])
-    expect(editor.state().canvas.boxes.filter((box) => box.overflows).map((box) => box.key)).toEqual(['wide'])
+    expect(
+      editor
+        .state()
+        .canvas.boxes.filter((box) => box.overflows)
+        .map((box) => box.key),
+    ).toEqual(['wide'])
   })
 })

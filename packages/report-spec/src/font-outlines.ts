@@ -61,7 +61,8 @@ export function readOutlines(file: FontFile, glyphs: number, locFormat: 0 | 1): 
   const glyf = file.table('glyf')
   const size = locFormat === 0 ? 2 : 4
   file.need(loca.offset, size * (glyphs + 1), loca)
-  if (loca.length < size * (glyphs + 1)) refuse('malformed', `has an index to location table (loca) whose recorded length holds fewer offsets than its ${glyphs} glyphs need`)
+  if (loca.length < size * (glyphs + 1))
+    refuse('malformed', `has an index to location table (loca) whose recorded length holds fewer offsets than its ${glyphs} glyphs need`)
   const offsetOf = (glyph: number): number => (locFormat === 0 ? 2 * file.u16(loca.offset + 2 * glyph, loca) : file.u32(loca.offset + 4 * glyph, loca))
   let drawn = 0
   const tally: Tally = { points: 0, work: 0, components: 0 }
@@ -106,11 +107,26 @@ function simple(file: FontFile, glyf: TableRecord, from: number, end: number, co
   let at = from + 2 * contours
   inside(at + 2, end)
   const points = file.u16(at - 2, glyf) + 1
-  if (points * contours > MAX_FONT_GLYPH_WORK) refuse('too-large', `has a glyph of ${contours} contours and ${points} points, past the ${MAX_FONT_GLYPH_WORK} of the two multiplied that a glyph may be`, "simplify the glyph's outline in a font editor, or use another font")
+  if (points * contours > MAX_FONT_GLYPH_WORK)
+    refuse(
+      'too-large',
+      `has a glyph of ${contours} contours and ${points} points, past the ${MAX_FONT_GLYPH_WORK} of the two multiplied that a glyph may be`,
+      "simplify the glyph's outline in a font editor, or use another font",
+    )
   tally.points += points
   tally.work += points * contours
-  if (tally.points > MAX_FONT_POINTS) refuse('too-large', `has glyphs of more than ${MAX_FONT_POINTS} points together, the most a font's glyphs may have`, 'use a font file that holds fewer scripts')
-  if (tally.work > MAX_FONT_OUTLINE_WORK) refuse('too-large', `has glyphs whose points times contours come to more than ${MAX_FONT_OUTLINE_WORK} together, the most a font's glyphs may`, 'use a font file that holds fewer scripts')
+  if (tally.points > MAX_FONT_POINTS)
+    refuse(
+      'too-large',
+      `has glyphs of more than ${MAX_FONT_POINTS} points together, the most a font's glyphs may have`,
+      'use a font file that holds fewer scripts',
+    )
+  if (tally.work > MAX_FONT_OUTLINE_WORK)
+    refuse(
+      'too-large',
+      `has glyphs whose points times contours come to more than ${MAX_FONT_OUTLINE_WORK} together, the most a font's glyphs may`,
+      'use a font file that holds fewer scripts',
+    )
   const instructions = file.u16(at, glyf)
   at += 2 + instructions
   let flags = 0
@@ -140,7 +156,12 @@ function compound(file: FontFile, glyf: TableRecord, from: number, end: number, 
   let flags = MORE_COMPONENTS
   while ((flags & MORE_COMPONENTS) !== 0) {
     tally.components += 1
-    if (tally.components > MAX_FONT_COMPONENTS) refuse('too-large', `has composite glyphs of more than ${MAX_FONT_COMPONENTS} components together, the most a font's glyphs may have`, 'use a font file that holds fewer scripts')
+    if (tally.components > MAX_FONT_COMPONENTS)
+      refuse(
+        'too-large',
+        `has composite glyphs of more than ${MAX_FONT_COMPONENTS} components together, the most a font's glyphs may have`,
+        'use a font file that holds fewer scripts',
+      )
     inside(at + 4, end)
     flags = file.u16(at, glyf)
     if (file.u16(at + 2, glyf) >= glyphs) refuse('malformed', 'has a composite glyph made of a glyph the font does not have')

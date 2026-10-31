@@ -38,7 +38,11 @@ describe('the site the build writes to disk (0021)', () => {
   test('is every page of the site the suite checks, with the same HTML, and its sitemap', () => {
     const dist = scratch()
     writeSite(site, { repo, dist })
-    for (const page of site.pages) expect({ file: page.file, html: existsSync(join(dist, page.file)) && readFileSync(join(dist, page.file), 'utf8') === page.html }).toEqual({ file: page.file, html: true })
+    for (const page of site.pages)
+      expect({ file: page.file, html: existsSync(join(dist, page.file)) && readFileSync(join(dist, page.file), 'utf8') === page.html }).toEqual({
+        file: page.file,
+        html: true,
+      })
     const sitemap = site.files.find((file) => file.path === 'sitemap.xml')
     expect(sitemap !== undefined && 'text' in sitemap && readFileSync(join(dist, 'sitemap.xml'), 'utf8') === sitemap.text).toBe(true)
   })

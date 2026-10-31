@@ -138,6 +138,107 @@ other's work, so the draft comes first, kept by compare-and-swap.
   React install line now names `@formancy/report-client`; the validation
   section is now section 7.
 
+**CI fails a change that breaks the lint rules or the format**
+([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
+Style was held by habit, and a promise nobody awaits, an `any` from a
+parse, a method handed off its object or an object printed as "[object
+Object]" by nobody. `verify` now runs `pnpm lint`, ESLint 10 with
+`@eslint/js`'s recommended rules and typescript-eslint's type-aware ones,
+every one at error, and `pnpm format:check`, Prettier 3.9 over every
+TypeScript and JavaScript file, at 160 columns, without semicolons, in
+single quotes; `pnpm typecheck` now checks the vitest, Vite and tsdown
+configs too. The rules and the style are the four formancy repositories'
+shared ones, `scripts/code-style/`, a copy of Formancy Health's until
+formancy.ai releases them as `@formancy/code-style`; nothing a host
+installs carries them. Every file was formatted in one commit, which
+`.git-blame-ignore-revs` has blame skip, and every finding was fixed; no
+real bug was found, and the one change a host may meet is `this: void`,
+below. A branch begun before the format takes `main` through
+`scripts/prettier-merge.mjs`, Formancy Data's, which formats each side of
+a file before git merges it, so that only a line both sides changed is a
+conflict (`CONTRIBUTING.md`); and the pull request that brings the format
+merges with a merge commit, so that the commit blame skips is the one on
+`main`.
+
+**A session and an editor are handed to a store hook as bare functions, and
+their types now say so**
+([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
+`ReportSession.subscribe`, `document` and `hash` (the guide passes
+`session.hash` so), and `ReportEditor.subscribe` and `state`, are declared
+`this: void`, because React's `useSyncExternalStore` and every hook like it
+takes them off the object and calls them alone; the linter's
+`unbound-method` found the React builder and the Studio doing exactly that
+(the Angular builder passes nothing detached). Both stay methods, so an
+implementation with a narrower parameter still compiles. What `this: void`
+refuses is an object literal written in place whose `subscribe`,
+`document`, `hash` or `state` reads `this`; a class, a closure or an arrow
+function is unaffected, and nothing in this repository was. The cases are
+`implementable.test.ts` in report-core and in report-builder-core: the one
+whose implementation takes a narrower parameter fails the typecheck when
+the members are turned into function-typed properties, and an
+`@ts-expect-error` per member fails it when `this: void` is lost; the one
+with a class says that a class still implements them, and fails under
+neither.
+
+**Report takes formancy 0.11.0.** The upstream `@formancy/*` packages
+move from 0.7.0 to 0.11.0, exact, for what 0.7.0 was taken for:
+`@formancy/spec` for report-spec's report hash and for report-forms,
+which reads a formancy form; `@formancy/expressions` for report-core and
+report-runtime; `@formancy/themes` for the Studio, the pages and the
+getting-started guide's install lines. formancy's builder writes spec 5
+from 0.8.0
+([formancy.ai 0201](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0201-spec-5-freezes-with-the-batch-it-opened-for.md)),
+which every reader at 0.7.0 refuses, so a report pinned there could print
+none of the submissions of a form authored since.
+
+- **A report reads, drafts and reviews a form at spec 5**
+  ([0004](docs/decisions/0004-three-version-lines-each-refused-when-unknown.md),
+  [0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+  report-forms reads what its pinned validator reads, now spec 1 to 5,
+  and refuses a spec 6 form naming both. Spec 5 adds properties alone,
+  each for the person filling a form in -- help text, an example, an
+  autofill purpose, a default, a shuffled order, an option chosen on its
+  own, a rule's message -- and no answer holds anything spec 4 did not:
+  the draft of a spec 5 version is its spec 4 twin's but for the version
+  it names, and a version that moves to spec 5 for them prints, though
+  formancy's diff calls each field it touched changed. A default left alone is stored as the person's
+  answer, indistinguishable from one chosen
+  ([formancy.ai 0197](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0197-a-default-is-where-something-fresh-starts.md)),
+  and prints as one.
+- **A submission reads as it did.** From formancy 0.8.0 every answer has
+  the shape its type says
+  ([formancy.ai 0189](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0189-every-answer-has-the-shape-its-type-says.md)),
+  and report-forms already refused an answer of another JSON type for
+  each kind it prints. From 0.11.0 a computed repeater's rows carry an
+  `_id`
+  ([formancy.ai 0218](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0218-a-computed-repeater-is-the-rules-row-by-row.md)),
+  and a row is never keyed by its id, so rows stored with one and without
+  both print. A host whose formancy server is 0.8.0 or later need not
+  keep every version itself: the server serves each version's document
+  and hash by its number
+  ([formancy.ai 0207](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0207-a-versions-document-can-be-read.md)).
+  The bridge still fetches nothing.
+- **An empty string is refused as a choice's answer**, as
+  `invalid-answer`, whatever the choice offers. formancy's engine refuses
+  it from 0.8.0, a value no control writes, and an unanswered choice is
+  null or absent; report-forms printed it as the value of a choice that
+  offers no options, so a field declared never null printed blank where a
+  final render should refuse.
+- **A report's hash is the one it was.** `schemaHash`'s code is 0.7.0's:
+  `hash.test.ts`'s pinned digest held, and so did the site visit
+  starter, which names its form version by that hash.
+- **An expression evaluates as it did.** `@formancy/expressions`
+  0.11.0's code is 0.7.0's but for the comments its build no longer
+  keeps
+  ([formancy.ai 0208](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0208-the-published-javascript-carries-no-jsdoc.md)),
+  and its type declarations are the same.
+- **The Studio and the pages look as they did.** `@formancy/themes`
+  0.11.0's `room.css` is 0.7.0's, and its `workbench.css` gains one rule,
+  for a part of formancy's logic panel no builder here draws.
+- **A host that installs `@formancy/report-data-provider` still gets a
+  second `@formancy/spec`**, 0.5.0 through Formancy Data 0.1.0, until the
+  provider takes a Data release built against a newer one.
+
 **Report has a server that knows who is asking**
 ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
 [0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).

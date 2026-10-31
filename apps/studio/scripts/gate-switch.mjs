@@ -41,7 +41,13 @@ async function firstSettled(page) {
   const { text, href } = await handle.jsonValue()
   const bytes = href === null ? [] : await page.evaluate(async (address) => [...new Uint8Array(await (await fetch(address)).arrayBuffer())], href)
   const read = bytes.length === 0 ? { pages: [] } : await readPdf(new Uint8Array(bytes))
-  return { text, downloaded: read.pages.flatMap((each) => each.items.map((item) => item.text)).join(' ').replace(/\s+/g, ' ') }
+  return {
+    text,
+    downloaded: read.pages
+      .flatMap((each) => each.items.map((item) => item.text))
+      .join(' ')
+      .replace(/\s+/g, ' '),
+  }
 }
 
 /**
@@ -57,8 +63,14 @@ export async function frameworkSwitch(gate, page) {
   await selectRow(editor, PAYMENT)
   await setField(editor, 'Text', EDITED)
   const first = await firstSettled(page)
-  check('the edit: once the paper is no longer busy, its pages show the edit', first.text.includes(EDITED) ? null : `the text layer then held ${first.text.includes(PAYMENT) ? `the line before the edit, "${PAYMENT}"` : 'neither line'}`)
-  check('and Download PDF gives that PDF, read back with PDF.js', first.downloaded.includes(EDITED) ? null : `the download ${first.downloaded === '' ? 'was empty' : 'does not hold the edit'}`)
+  check(
+    'the edit: once the paper is no longer busy, its pages show the edit',
+    first.text.includes(EDITED) ? null : `the text layer then held ${first.text.includes(PAYMENT) ? `the line before the edit, "${PAYMENT}"` : 'neither line'}`,
+  )
+  check(
+    'and Download PDF gives that PDF, read back with PDF.js',
+    first.downloaded.includes(EDITED) ? null : `the download ${first.downloaded === '' ? 'was empty' : 'does not hold the edit'}`,
+  )
   await untilLine(page, EDITED)
   await builder(page, 'Angular')
   const angular = await editor.evaluate((element) => element.closest('report-builder') !== null)
@@ -66,7 +78,10 @@ export async function frameworkSwitch(gate, page) {
   const outline = () => showing(editor, 'Outline', editor.getByRole('tree', { name: 'Outline', exact: true }))
   check('and the edit made in React is in it', await present((await outline()).getByRole('treeitem', { name: EDITED, exact: true }), `outline row "${EDITED}"`))
   const undo = editor.getByRole('button', { name: 'Undo', exact: true })
-  check('and so is its history: Undo is offered', await present(editor.getByRole('button', { name: 'Undo', exact: true, disabled: false }), 'Undo that is not disabled'))
+  check(
+    'and so is its history: Undo is offered',
+    await present(editor.getByRole('button', { name: 'Undo', exact: true, disabled: false }), 'Undo that is not disabled'),
+  )
   await undo.click()
   await untilLine(page, PAYMENT).then(
     () => check('undone in Angular, the PDF prints the line as it was', null),
@@ -75,6 +90,12 @@ export async function frameworkSwitch(gate, page) {
   await builder(page, 'React')
   const back = await editor.evaluate((element) => element.closest('report-builder') === null)
   check('switched back, the builder shown is React’s', back ? null : 'the region "Report editor" is still inside <report-builder>')
-  check('and it shows the line as Angular left it', await present((await outline()).getByRole('treeitem', { name: PAYMENT, exact: true }), `outline row "${PAYMENT}"`))
-  check('and offers Redo of the edit made before the switch', await present(editor.getByRole('button', { name: 'Redo', exact: true, disabled: false }), 'Redo that is not disabled'))
+  check(
+    'and it shows the line as Angular left it',
+    await present((await outline()).getByRole('treeitem', { name: PAYMENT, exact: true }), `outline row "${PAYMENT}"`),
+  )
+  check(
+    'and offers Redo of the edit made before the switch',
+    await present(editor.getByRole('button', { name: 'Redo', exact: true, disabled: false }), 'Redo that is not disabled'),
+  )
 }

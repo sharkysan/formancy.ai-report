@@ -23,7 +23,15 @@
  * `validate-e-invoice-report.ts`'s.
  */
 import { fieldKey, kindOf, oneOf, optional, readArray, readObject, reference, shape, strictKeys } from './check.js'
-import { E_INVOICE_CURRENCIES, E_INVOICE_KINDS, E_INVOICE_PROFILES, INVOICE_TYPE_CODES, PAYMENT_MEANS_CODES, VAT_CATEGORY_CODES, XRECHNUNG_VERSIONS } from './e-invoice.js'
+import {
+  E_INVOICE_CURRENCIES,
+  E_INVOICE_KINDS,
+  E_INVOICE_PROFILES,
+  INVOICE_TYPE_CODES,
+  PAYMENT_MEANS_CODES,
+  VAT_CATEGORY_CODES,
+  XRECHNUNG_VERSIONS,
+} from './e-invoice.js'
 import type {
   AddressScheme,
   EInvoice,
@@ -63,12 +71,25 @@ import { XRECHNUNG_NEEDS, xrechnungRule } from './xrechnung.js'
 export const E_INVOICE_SCOPE: PaymentScope = { region: 'eInvoice', reads: 'report', encoded: 'an e-invoice' }
 
 /** A text of an e-invoice of `kind`, read as every payment code's is, and refused as `invalid-e-invoice` when its term's rule of that kind refuses it, or `check` where it is given. */
-function readTerm(c: Ctx, value: unknown, path: string, term: EInvoiceTextTerm, kind: EInvoiceKind, check = (text: string) => checkEInvoiceText(term, text, kind)): PaymentText<string> {
+function readTerm(
+  c: Ctx,
+  value: unknown,
+  path: string,
+  term: EInvoiceTextTerm,
+  kind: EInvoiceKind,
+  check = (text: string) => checkEInvoiceText(term, text, kind),
+): PaymentText<string> {
   return readPaymentText(c, value, path, E_INVOICE_SCOPE, 'invalid-e-invoice', E_INVOICE_KIND_TEXTS[kind][term].what, check)
 }
 
 /** A part of the e-invoice that holds others, read with exactly its properties: written as a string, it is refused unquoted, since it is a party's name, address or account. */
-function readPart(c: Ctx, value: unknown, path: string, required: readonly string[], optionalKeys: readonly string[] = []): Record<string, unknown> | undefined {
+function readPart(
+  c: Ctx,
+  value: unknown,
+  path: string,
+  required: readonly string[],
+  optionalKeys: readonly string[] = [],
+): Record<string, unknown> | undefined {
   return typeof value === 'string' ? unquoted(c, path, 'an object', E_INVOICE_SCOPE) : shape(c.f, value, path, required, optionalKeys)
 }
 
@@ -126,7 +147,9 @@ function readElectronicAddress(c: Ctx, value: unknown, path: string, party: Part
   if (checked?.ok === false) c.f.report(at(path, 'scheme'), 'invalid-e-invoice', `${ADDRESS_SCHEME_TERMS[party]} ${checked.rule}`)
   const scheme: AddressScheme | undefined = checked?.ok === true ? checked.value : undefined
   const term = E_INVOICE_TEXT_TERMS[party].electronicAddress
-  const id = readTerm(c, o.id, at(path, 'id'), term, kind, (text) => (scheme === undefined ? checkEInvoiceText(term, text, kind) : checkElectronicAddress(term, scheme, text, kind)))
+  const id = readTerm(c, o.id, at(path, 'id'), term, kind, (text) =>
+    scheme === undefined ? checkEInvoiceText(term, text, kind) : checkElectronicAddress(term, scheme, text, kind),
+  )
   return id.runs === undefined || scheme === undefined ? undefined : { id: id.runs, scheme }
 }
 
@@ -138,7 +161,9 @@ function readContact(c: Ctx, value: unknown, path: string, kind: EInvoiceKind): 
   const name = readTerm(c, o.name, at(path, 'name'), terms.name, kind)
   const telephone = readTerm(c, o.telephone, at(path, 'telephone'), terms.telephone, kind)
   const email = readTerm(c, o.email, at(path, 'email'), terms.email, kind)
-  return name.runs === undefined || telephone.runs === undefined || email.runs === undefined ? undefined : { name: name.runs, telephone: telephone.runs, email: email.runs }
+  return name.runs === undefined || telephone.runs === undefined || email.runs === undefined
+    ? undefined
+    : { name: name.runs, telephone: telephone.runs, email: email.runs }
 }
 
 /** The seller, its identifiers held to what the categories it declares need when those could be read. */
@@ -190,7 +215,14 @@ function readBuyer(c: Ctx, value: unknown, path: string, codes: readonly VatCate
   const address = readAddress(c, o.address, at(path, 'address'), 'buyer', kind)
   const broken = codes && buyerIdentificationBreak({ vatId: o.vatId !== undefined, legalId: o.legalId !== undefined }, codes)
   if (broken !== undefined) c.f.report(path, 'invalid-e-invoice', broken)
-  if (name.runs === undefined || address === undefined || !read(o, 'vatId', vatId.runs) || !read(o, 'legalId', legalId) || !read(o, 'electronicAddress', electronicAddress)) return undefined
+  if (
+    name.runs === undefined ||
+    address === undefined ||
+    !read(o, 'vatId', vatId.runs) ||
+    !read(o, 'legalId', legalId) ||
+    !read(o, 'electronicAddress', electronicAddress)
+  )
+    return undefined
   return { name: name.runs, ...optional('vatId', vatId.runs), ...optional('legalId', legalId), ...optional('electronicAddress', electronicAddress), address }
 }
 
@@ -227,10 +259,20 @@ const BREAKDOWN_FIELDS = { rate: "the VAT category's rate (BT-119)", code: 'the 
  * (`vatCategoryBreaks`); and their codes, when every one could be read, for
  * what the parties' identifiers must be.
  */
-function readVatCategories(c: Ctx, value: unknown, path: string, kind: EInvoiceKind): { categories: readonly VatCategory[] | undefined; codes: readonly VatCategoryCode[] | undefined } {
+function readVatCategories(
+  c: Ctx,
+  value: unknown,
+  path: string,
+  kind: EInvoiceKind,
+): { categories: readonly VatCategory[] | undefined; codes: readonly VatCategoryCode[] | undefined } {
   const items = readArray(c.f, value, path, MAX_VAT_CATEGORIES)
   if (items === undefined) return { categories: undefined, codes: undefined }
-  if (items.length === 0) c.f.report(path, 'invalid-e-invoice', en16931Rule('BR-CO-18', 'an e-invoice declares one VAT category at least, the VAT breakdown (BG-23) its lines are in'))
+  if (items.length === 0)
+    c.f.report(
+      path,
+      'invalid-e-invoice',
+      en16931Rule('BR-CO-18', 'an e-invoice declares one VAT category at least, the VAT breakdown (BG-23) its lines are in'),
+    )
   const read = items.map((item, index) => readVatCategory(c, item, at(path, index), kind))
   declare(
     c.f,
@@ -271,10 +313,23 @@ function readPayment(c: Ctx, value: unknown, path: string, kind: EInvoiceKind): 
   const bic = readTerm(c, o?.bic, at(path, 'bic'), terms.bic, kind)
   const accountName = readTerm(c, o?.accountName, at(path, 'accountName'), terms.accountName, kind)
   const remittance = readTerm(c, o?.remittance, at(path, 'remittance'), terms.remittance, kind)
-  if (o === undefined || means === undefined || iban.runs === undefined || !read(o, 'bic', bic.runs) || !read(o, 'accountName', accountName.runs) || !read(o, 'remittance', remittance.runs)) {
+  if (
+    o === undefined ||
+    means === undefined ||
+    iban.runs === undefined ||
+    !read(o, 'bic', bic.runs) ||
+    !read(o, 'accountName', accountName.runs) ||
+    !read(o, 'remittance', remittance.runs)
+  ) {
     return { payment: undefined, account: iban.checked }
   }
-  const payment = { means, iban: iban.runs, ...optional('bic', bic.runs), ...optional('accountName', accountName.runs), ...optional('remittance', remittance.runs) }
+  const payment = {
+    means,
+    iban: iban.runs,
+    ...optional('bic', bic.runs),
+    ...optional('accountName', accountName.runs),
+    ...optional('remittance', remittance.runs),
+  }
   return { payment, account: iban.checked }
 }
 
@@ -357,7 +412,8 @@ function readFacturX(c: Ctx, o: Record<string, unknown>, path: string, around: E
 }
 
 /** `value` where it is an object of properties, as a part of the format is; undefined where it is anything else, a list among it. */
-const partOf = (value: unknown): Record<string, unknown> | undefined => (typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined)
+const partOf = (value: unknown): Record<string, unknown> | undefined =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined
 
 /**
  * An XRechnung: EN 16931's terms held to its kind's rules, its version, and

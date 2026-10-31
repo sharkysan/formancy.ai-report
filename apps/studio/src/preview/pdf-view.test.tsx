@@ -172,12 +172,24 @@ describe('the PDF viewer', () => {
     })
     rerender(<PdfView pdf={NEWER} fileName="quotation.pdf" stale={false} />)
     await user.click(within(screen.getByRole('group', { name: 'Zoom' })).getByRole('button', { name: 'Zoom in' }))
-    await waitFor(() => expect(pdfjs.drawn.filter((each) => each.document === 1 && each.zoom === 1.25).map((each) => each.page).sort()).toEqual([1, 2, 3]))
+    await waitFor(() =>
+      expect(
+        pdfjs.drawn
+          .filter((each) => each.document === 1 && each.zoom === 1.25)
+          .map((each) => each.page)
+          .sort(),
+      ).toEqual([1, 2, 3]),
+    )
     expect(pdfjs.destroyed).toEqual([])
 
     await act(async () => release())
     await waitFor(() => expect(paper.getAttribute('aria-busy')).toBe('false'))
-    expect(pdfjs.drawn.filter((each) => each.document === 2).map((each) => each.page).sort()).toEqual([1, 2, 3])
+    expect(
+      pdfjs.drawn
+        .filter((each) => each.document === 2)
+        .map((each) => each.page)
+        .sort(),
+    ).toEqual([1, 2, 3])
     expect(pdfjs.destroyed).toEqual([1])
     unmount()
     expect(pdfjs.destroyed).toEqual([1, 2])

@@ -103,7 +103,11 @@ describe('the totals of an e-invoice', () => {
       ['250.00', exempt],
       ['-10.00', standard],
     ] as const
-    const totals = invoiceTotals(DECLARED, lines.map(([amount, category]) => line(amount, category)), decimalFromString('500.00'))
+    const totals = invoiceTotals(
+      DECLARED,
+      lines.map(([amount, category]) => line(amount, category)),
+      decimalFromString('500.00'),
+    )
     expect(asWritten(totals)).toEqual(reference(lines, DECLARED, '500.00'))
     // By hand: 1,259.99 at 19 % is 239.3981, so 239.40; 89.90 at 7 % is 6.293, so 6.29.
     expect(asWritten(totals)).toMatchObject({ lineTotal: '1599.89', taxTotal: '245.69', grandTotal: '1845.58', duePayable: '1345.58' })
@@ -149,7 +153,15 @@ describe('the totals of an e-invoice', () => {
   // there is no breakdown, so nothing reads a category's basis as 0.
   test('are 0.00 over no lines, at two places, with no breakdown', () => {
     const totals = invoiceTotals(DECLARED, [], null)
-    expect(asWritten(totals)).toEqual({ lineTotal: '0.00', taxBasisTotal: '0.00', taxTotal: '0.00', grandTotal: '0.00', paid: null, duePayable: '0.00', breakdown: [] })
+    expect(asWritten(totals)).toEqual({
+      lineTotal: '0.00',
+      taxBasisTotal: '0.00',
+      taxTotal: '0.00',
+      grandTotal: '0.00',
+      paid: null,
+      duePayable: '0.00',
+      breakdown: [],
+    })
   })
 
   // Rates of every kind a category may have -- whole, of one place and of
@@ -165,7 +177,11 @@ describe('the totals of an e-invoice', () => {
         return [amount, declared[below(next, declared.length)] as VatCategory] as const
       })
       const paid = below(next, 2) === 0 ? null : written(BigInt(below(next, 100_000)))
-      const totals = invoiceTotals(declared, lines.map(([amount, category]) => line(amount, category)), paid === null ? null : decimalFromString(paid))
+      const totals = invoiceTotals(
+        declared,
+        lines.map(([amount, category]) => line(amount, category)),
+        paid === null ? null : decimalFromString(paid),
+      )
       expect(asWritten(totals), `round ${round}`).toEqual(reference(lines, declared, paid))
     }
   })

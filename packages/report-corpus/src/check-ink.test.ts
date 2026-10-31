@@ -22,7 +22,9 @@ const group = (...operators: PDFOperator[]): PDFOperator[] => [pushGraphicsState
 /** A page whose drawing is a blue square 60 pt wide at 100, 700, inside a clip of that square, and `after`, drawn once the clip is restored. */
 async function page(...after: PDFOperator[]): Promise<Uint8Array> {
   const document = await PDFDocument.create()
-  document.addPage(A4).pushOperators(...group(rectangle(100, 700, 60, 60), clip(), endPath(), setFillingRgbColor(0.1, 0.3, 0.5), rectangle(90, 690, 80, 80), fill()), ...after)
+  document
+    .addPage(A4)
+    .pushOperators(...group(rectangle(100, 700, 60, 60), clip(), endPath(), setFillingRgbColor(0.1, 0.3, 0.5), rectangle(90, 690, 80, 80), fill()), ...after)
   return document.save()
 }
 
@@ -46,7 +48,9 @@ describe('inkAround', () => {
     const box = { x: 100, top: A4[1] - 760, bottom: A4[1] - 700, width: 60, height: 60 }
     expect(inkAround(await rasterPixels(await page(), 1, INK_SCALE), INK_SCALE, box, INK_BAND)).toEqual([])
     const beside = await rasterPixels(await page(setFillingRgbColor(0.1, 0.3, 0.5), rectangle(160, 700, 1, 60), fill()), 1, INK_SCALE)
-    expect(inkAround(beside, INK_SCALE, box, INK_BAND)).toEqual([expect.stringMatching(/^a drawing at 100, 81\.89 shows past its box: \d{3} pixels of ink within 2 pt of it, the first at 160, 81\.75$/)])
+    expect(inkAround(beside, INK_SCALE, box, INK_BAND)).toEqual([
+      expect.stringMatching(/^a drawing at 100, 81\.89 shows past its box: \d{3} pixels of ink within 2 pt of it, the first at 160, 81\.75$/),
+    ])
   })
 
   // A drawing at the paper's edge has no band past the edge to read: the
@@ -56,7 +60,9 @@ describe('inkAround', () => {
     document.addPage(A4).pushOperators(setFillingRgbColor(0, 0, 0), rectangle(0, A4[1] - 20, 20, 20), fill())
     const pixels = await rasterPixels(await document.save(), 1, INK_SCALE)
     expect(inkAround(pixels, INK_SCALE, { x: 0, top: 0, bottom: 20, width: 20, height: 20 }, INK_BAND)).toEqual([])
-    expect(inkAround(pixels, INK_SCALE, { x: 0, top: 0, bottom: 19, width: 19, height: 19 }, INK_BAND)).toEqual([expect.stringMatching(/^a drawing at 0, 0 shows past its box: \d+ pixels of ink within 2 pt of it, the first at 19, 0$/)])
+    expect(inkAround(pixels, INK_SCALE, { x: 0, top: 0, bottom: 19, width: 19, height: 19 }, INK_BAND)).toEqual([
+      expect.stringMatching(/^a drawing at 0, 0 shows past its box: \d+ pixels of ink within 2 pt of it, the first at 19, 0$/),
+    ])
   })
 })
 
@@ -68,7 +74,12 @@ describe('verifyInk', () => {
   test('finds nothing of a covering drawing past its box', async () => {
     const fixture = fixtureOf('cover')
     // The converter's options, which pdfmake hands it and its types do not name: the slice the renderer asks for to cover.
-    const covering: ContentSvg & { readonly options: { readonly preserveAspectRatio: string } } = { svg: new TextDecoder().decode(SVG_WINDOW), width: 60, height: 60, options: { preserveAspectRatio: 'xMidYMid slice' } }
+    const covering: ContentSvg & { readonly options: { readonly preserveAspectRatio: string } } = {
+      svg: new TextDecoder().decode(SVG_WINDOW),
+      width: 60,
+      height: 60,
+      options: { preserveAspectRatio: 'xMidYMid slice' },
+    }
     const bytes = await pdfmakePdf({ pageMargins: [40, 40, 40, 40], content: [covering] })
     const pdf = await readPdf(bytes)
     expect(pdf.pages[0]!.paths.some((path) => path.x < 40 || path.x + path.width > 100)).toBe(true)
@@ -83,8 +94,17 @@ describe('verifyInk', () => {
     const fixture = fixtureOf('contain')
     const document = await PDFDocument.create()
     const clipped = (x: number, y: number, ...inside: PDFOperator[]): PDFOperator[] => group(rectangle(x, y, 60, 60), clip(), endPath(), ...inside)
-    document.addPage(A4).pushOperators(...clipped(40, A4[1] - 100, setFillingRgbColor(0.1, 0.3, 0.5), rectangle(40, A4[1] - 100, 60, 60), fill()), setFillingRgbColor(0.1, 0.3, 0.5), rectangle(40, A4[1] - 102, 60, 2), fill())
+    document
+      .addPage(A4)
+      .pushOperators(
+        ...clipped(40, A4[1] - 100, setFillingRgbColor(0.1, 0.3, 0.5), rectangle(40, A4[1] - 100, 60, 60), fill()),
+        setFillingRgbColor(0.1, 0.3, 0.5),
+        rectangle(40, A4[1] - 102, 60, 2),
+        fill(),
+      )
     const bytes = await document.save()
-    expect(await verifyInk(fixture, bytes)).toEqual([expect.stringMatching(/^ink: page 1: a drawing at 40, 40 shows past its box: \d+ pixels of ink within 2 pt of it, the first at 40, 100$/)])
+    expect(await verifyInk(fixture, bytes)).toEqual([
+      expect.stringMatching(/^ink: page 1: a drawing at 40, 40 shows past its box: \d+ pixels of ink within 2 pt of it, the first at 40, 100$/),
+    ])
   })
 })

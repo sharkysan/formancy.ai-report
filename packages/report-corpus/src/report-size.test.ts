@@ -14,7 +14,9 @@ function serialisedBytes(report: ReportDefinition): number {
 
 /** Every report the corpus holds, once each: the starters and the samples that share their definitions, then the site visit's. */
 const REPORTS = new Map<string, ReportDefinition>([
-  ...[...STARTERS, ...INVOICE_SAMPLES, ...EURO_INVOICE_SAMPLES, ...E_INVOICE_SAMPLES, ...XRECHNUNG_SAMPLES].map((starter) => [starter.id, starter.report] as const),
+  ...[...STARTERS, ...INVOICE_SAMPLES, ...EURO_INVOICE_SAMPLES, ...E_INVOICE_SAMPLES, ...XRECHNUNG_SAMPLES].map(
+    (starter) => [starter.id, starter.report] as const,
+  ),
   ['site-visit-report', SITE_VISIT_REPORT],
 ])
 

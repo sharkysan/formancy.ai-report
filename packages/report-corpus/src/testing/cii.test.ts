@@ -17,7 +17,9 @@ describe('the CII reader', () => {
   test('knows an element by its namespace, under its own prefix', () => {
     const root = readCii(`<a:CrossIndustryInvoice xmlns:a="${rsm}" xmlns:b="${ram}"><b:ID>RE-1</b:ID></a:CrossIndustryInvoice>`)
     expect([root.name, textAt(root, 'ram:ID')]).toEqual(['rsm:CrossIndustryInvoice', 'RE-1'])
-    expect(() => readCii(`<rsm:CrossIndustryInvoice xmlns:rsm="${rsm}" xmlns:ram="urn:example:other"><ram:ID>RE-1</ram:ID></rsm:CrossIndustryInvoice>`)).toThrow('an element of the namespace urn:example:other')
+    expect(() =>
+      readCii(`<rsm:CrossIndustryInvoice xmlns:rsm="${rsm}" xmlns:ram="urn:example:other"><ram:ID>RE-1</ram:ID></rsm:CrossIndustryInvoice>`),
+    ).toThrow('an element of the namespace urn:example:other')
   })
 
   // A file a strict parser refuses is no e-invoice, whatever a lenient
@@ -34,7 +36,9 @@ describe('the CII reader', () => {
   // A term is read where the binding puts it, in document order, and a
   // term that should be there once and is there twice is not read as one.
   test('reads each element at a path, in order, and refuses two where one is asked for', () => {
-    const root = readCii(`<rsm:R xmlns:rsm="${rsm}" xmlns:ram="${ram}"><ram:L><ram:N unitCode="H87">1</ram:N></ram:L><ram:L><ram:N>2 &amp; 3</ram:N></ram:L></rsm:R>`)
+    const root = readCii(
+      `<rsm:R xmlns:rsm="${rsm}" xmlns:ram="${ram}"><ram:L><ram:N unitCode="H87">1</ram:N></ram:L><ram:L><ram:N>2 &amp; 3</ram:N></ram:L></rsm:R>`,
+    )
     expect(textsAt(root, 'ram:L/ram:N')).toEqual(['1', '2 & 3'])
     expect(elementsAt(root, 'ram:L/ram:N').map((element) => element.attributes['unitCode'])).toEqual(['H87', undefined])
     expect(textAt(root, 'ram:L/ram:M')).toBeUndefined()

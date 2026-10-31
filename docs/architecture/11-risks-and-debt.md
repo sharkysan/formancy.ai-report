@@ -221,13 +221,15 @@ The form bridge computes a version's hash and holds every answer to a data
 path of it, so a submission paired with a version whose paths it does not
 fit is refused. Two versions with the same paths and other labels are not
 told apart: the labels of the one handed over print, and the manifest
-names that one. formancy 0.7.0's server serves its current version's
-schema alone, so a host that did not keep a version's document cannot
-print its submissions against it. A number formancy computed, or one of
-more digits than a double keeps, is refused rather than printed, but one
-typed with more than 15 digits that a double stores as a short one
-prints as that one, a typed 0.10000000000000001 as 0.1; and a
-version that moved a field the report reads refuses its submissions until
+names that one. A host that did not keep a version's document prints its
+submissions against it only from a formancy server of 0.8.0 or later,
+which serves each version's document by its number
+([formancy.ai 0207](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0207-a-versions-document-can-be-read.md));
+0.7.0's served its current version's alone. A number formancy computed,
+or one of more digits than a double keeps, is refused rather than
+printed, but one typed with more than 15 digits that a double stores as
+a short one prints as that one, a typed 0.10000000000000001 as 0.1; and
+a version that moved a field the report reads refuses its submissions until
 a review's resolution is applied ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 The review needs every version the report names, and refuses without
 one; a followed rename keeps reading where it read only the versions it
@@ -466,11 +468,31 @@ What stops a red gate from merging is a maintainer reading it
 [Verification](10-verification.md) reports; none can refuse a merge on
 its own.
 
+### The format is remembered by how one pull request merges
+
+`.git-blame-ignore-revs` names the commit that formatted the code by its
+SHA, so the pull request that brings it merges with a merge commit, which
+the repository allows beside a squash and a rebase and nothing makes it
+choose: either of the others leaves the file naming nothing on `main`, and
+blame then gives the format most lines. Nor does anything hold the file to
+the format commit: a mistyped SHA passes every gate. A branch begun before
+the format conflicts with it; [`prettier-merge.mjs`](../../scripts/prettier-merge.mjs),
+run from a checkout of `main`, merges `main` into it with each side
+formatted first, and what both sides changed, and code `main` moved to
+another file, are still the branch's to carry by hand. #60 is such a
+branch, and whichever of the two merges second carries its whole cost:
+`scripts/container.mjs`, formatted, passes the size budget and is split;
+and its new report-client checks its suite as a program of its own,
+which lint reads through the glob for a package's test tsconfig that
+`project` already holds, so its code, the two `no-base-to-string`
+findings in its suite among it, meets the rules in that merge ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
+
 ## 11.3 Known technical debt
 
 | Debt | Why it exists | What it costs |
 |---|---|---|
 | **Two workarounds for upstream's expression API** | `@formancy/expressions`, as 0009 read it at 0.5.0, declares no typed member and cannot say which functions an expression calls, so members are spliced into flat variables and the clock is found by renaming it ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) | Positions after an index read are lost; both rest on upstream behaviour that tests pin. Each goes when upstream offers the API (0002) |
+| **The lint and format rules, a copy** | formancy.ai has not released `@formancy/code-style`, and the maintainer chose not to wait, so [`code-style.mjs`](../../scripts/code-style/code-style.mjs) and its test are Formancy Health's, byte for byte, and `scripts/prettier-merge.mjs` and its test Formancy Data's but for the record they cite; [0002](../decisions/0002-depend-on-upstream-never-copy-it.md) is narrowed until the package is pinned ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)) | Nothing compares a copy with its original, so a rule changed in one repository reaches the others by hand alone. The swap pins the package exactly as a root devDependency, deletes `scripts/code-style/`, has [`eslint.config.mjs`](../../eslint.config.mjs) and [`prettier.config.mjs`](../../prettier.config.mjs) import it, and extends [`upstream-deps.mjs`](../../scripts/upstream-deps.mjs) to the root manifest, which holds no `@formancy/*` dependency until then |
 | **Each expression compiled twice per render** | The diagnostics do not hand back their compilation ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) | Time, unmeasured |
 | **admin.css's rules copied by hand** | formancy publishes the room's palette (`@formancy/themes/room.css`, which the Studio and the pages import, [0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) but no rule, so `builder.css` carries admin.css's rules for the workbench at e3c5967, and the Studio's other stylesheets its rules for the page, with the colours they type that the room does not carry ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)) | When admin.css's geometry or one of those colours moves upstream nothing here fails; review compares them by hand |
 | **The audit trail's actor, unlike Data's** | Report's trail names who asked by a keyed hash, because a subject is a claim's value; Formancy Data's names its actor plainly (formancy.ai-data 0023; [0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)) | An operator reading both trails reads them differently, and finds a person's Report events only by computing the reference with the audit key |
@@ -479,7 +501,7 @@ its own.
 | **Every host writes the image cache** | report-runtime's `AssetResolver` is synchronous, so it cannot ask the server for an image while a preview prints, and a helper in report-client would make it depend on the runtime's types; the guide carries the code instead ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)) | Each host fetches every image a draft declares when it opens it, one request each, and keeps each one a person adds before `keep` resolves; a helper waits until hosts show it is wanted |
 | **Revisions never pruned** | The compare-and-swap needs the numbered files, and retention is a decision of its own (0049) | A template's directory grows by a file a save, and nothing measured how fast a tenant's store grows; an operator removes files by hand, never a draft's newest, whose number the next save would issue again, and nothing removes them for it |
 | **The list reads every newest draft** | No index until one is measured slow, since an index is a second write a crash can separate from the first (0049) | Listing a tenant's templates opens a file per template, unmeasured, and one record the store did not write fails the whole list |
-| **Two `@formancy/spec` under the Data provider** | report-spec takes 0.7.0, and Formancy Data 0.1.0's packages pin 0.5.0 exactly ([0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) | A consumer of the provider installs both until Data releases against a newer one; nothing of one reaches the other |
+| **Two `@formancy/spec` under the Data provider** | report-spec takes 0.11.0, and Formancy Data 0.1.0's packages pin 0.5.0 exactly ([0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) | A consumer of the provider installs both until Data releases against a newer one; nothing of one reaches the other |
 | **English where a person reads it** | The session's undo labels, the validator's and the diagnostics' sentences, and the preview's label are English ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) | A German or French builder shows an English sentence for a refusal the validator words, and an EPC payment code's square too small for its frame is refused in points, in a field edited in millimetres ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | **Properties without an editor** | A table's sort, its group and total rows and its footer cells, conditional styles, value formats, a run added to or removed from a text, a QR code's content or an EPC QR code's text (only an optional text that is absent, or one literal run, is typed in and emptied out), a column added to or removed from a columns block or added to a table, and the declarations, but for an image a person adds and the removal of one nothing draws (0033), have commands and no property kind to edit them ([`report-builder-core`'s README](../../packages/report-builder-core/README.md#what-it-does-not-do)) | Written in the definition instead |
 | **A QR-bill's texts are edited run by run** | Its fields are a payment code's: a run added or removed, a literal made a binding or a binding a literal, have no field ([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)) | A bill's bound debtor removed comes back as SIX's example in literal text, and is bound again only by undo or in the definition |

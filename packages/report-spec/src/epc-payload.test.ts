@@ -82,7 +82,8 @@ const REGISTRY_EXAMPLES = [
 ]
 
 const OUTSIDE_SEPA = 'is not the IBAN of an account in SEPA: its country is not one EPC409-09 lists'
-const QR_IBAN = "is a QR-IBAN, which SIX keeps for QR-bills in francs paid with a QR reference (SIX's QR-bill guidelines 2.8, 2.10), and a SEPA credit transfer in euro carries none"
+const QR_IBAN =
+  "is a QR-IBAN, which SIX keeps for QR-bills in francs paid with a QR reference (SIX's QR-bill guidelines 2.8, 2.10), and a SEPA credit transfer in euro carries none"
 const NOT_AN_IBAN = 'is not an IBAN: two letters for its country, two check digits, then letters or digits'
 
 describe('the IBAN', () => {
@@ -131,7 +132,16 @@ describe('the IBAN', () => {
   // made a capital, and would pass as Italy's example account if letters
   // were made capitals first.
   test('is an IBAN and nothing else', () => {
-    for (const text of ['', 'DE', '0123456789', '1234DE89370400440532013000', 'DE8937040044-0532013000', 'D189370400440532013000', 'ıT60X0542811101000000123456', 'ÄT611904300234573201']) {
+    for (const text of [
+      '',
+      'DE',
+      '0123456789',
+      '1234DE89370400440532013000',
+      'DE8937040044-0532013000',
+      'D189370400440532013000',
+      'ıT60X0542811101000000123456',
+      'ÄT611904300234573201',
+    ]) {
       expect(broken(checkEpcIban(text)), text).toBe(NOT_AN_IBAN)
     }
   })
@@ -168,7 +178,9 @@ describe('the BIC', () => {
   // anything else would reach the payer's bank as no bank it knows.
   test('refuses another length, lower case, spaces and a country of digits', () => {
     for (const text of ['', 'BHBLDEH', 'BHBLDEHHX', 'BHBLDEHHXX', 'BHBLDEHHXXXX', 'bhbldehhxxx', 'BHBL DE HH XXX', 'BHBL12HHXXX']) {
-      expect(broken(checkEpcBic(text)), text).toBe('is not a BIC: four letters or digits for the bank, two letters for its country, two letters or digits for its place, and three for a branch or none (ISO 9362)')
+      expect(broken(checkEpcBic(text)), text).toBe(
+        'is not a BIC: four letters or digits for the bank, two letters for its country, two letters or digits for its place, and three for a branch or none (ISO 9362)',
+      )
     }
   })
 
@@ -179,7 +191,8 @@ describe('the BIC', () => {
 })
 
 describe('the BIC and the IBAN together', () => {
-  const NON_EEA = "an account outside the EEA is paid to with its bank's BIC: EPC069-12 2.2 keeps the BIC mandatory where SCT scheme participants from non-EEA countries take part"
+  const NON_EEA =
+    "an account outside the EEA is paid to with its bank's BIC: EPC069-12 2.2 keeps the BIC mandatory where SCT scheme participants from non-EEA countries take part"
   const ELSEWHERE = "the BIC is of a bank in another country than the IBAN's account (EPC409-09 5 gives each country's BICs and IBANs)"
 
   // "The BIC will continue to be mandatory for SEPA payment transactions
@@ -236,7 +249,9 @@ describe('the reference', () => {
   // payee as text.
   test('is refused when it is any other reference', () => {
     for (const text of ['+++090/9337/55493+++', '090933755493', '210000000003139471430009017', 'INV-2026-0042']) {
-      expect(broken(checkEpcReference(text)), text).toBe('is not a creditor reference: RF, two check digits and up to 21 letters or digits (ISO 11649), the one structured reference this code holds')
+      expect(broken(checkEpcReference(text)), text).toBe(
+        'is not a creditor reference: RF, two check digits and up to 21 letters or digits (ISO 11649), the one structured reference this code holds',
+      )
     }
     expect(broken(checkEpcReference('RF19539007547034'))).toBe('has check digits that do not match the rest of it (ISO 11649: the reference modulo 97 is 1)')
   })
@@ -318,7 +333,8 @@ describe('the texts of a code', () => {
     for (const blank of ['', '   ', ' ', ' 　 ']) {
       expect(epcBlank(blank), JSON.stringify(blank)).toBe(true)
       for (const field of ['beneficiary', 'iban'] as const) expect(broken(checkEpcField(field, blank)), `${field} ${JSON.stringify(blank)}`).toBe(NEEDED)
-      for (const field of ['bic', 'reference', 'text', 'information'] as const) expect(broken(checkEpcField(field, blank)), `${field} ${JSON.stringify(blank)}`).toBe(LEFT_OUT)
+      for (const field of ['bic', 'reference', 'text', 'information'] as const)
+        expect(broken(checkEpcField(field, blank)), `${field} ${JSON.stringify(blank)}`).toBe(LEFT_OUT)
     }
     expect(epcBlank(' . ')).toBe(false)
   })
@@ -355,7 +371,15 @@ describe('the amount', () => {
   // exact decimal's digits.
   test("is written as short as it can be, as the PSA's valid amounts are", () => {
     const written = (decimal: string): string => accepted(checkEpcAmount(decimal))
-    expect(['0.01', '0.2', '0.97', '45', '184.6', '58723.01', '999999999.99'].map(written)).toEqual(['0.01', '0.2', '0.97', '45', '184.6', '58723.01', '999999999.99'])
+    expect(['0.01', '0.2', '0.97', '45', '184.6', '58723.01', '999999999.99'].map(written)).toEqual([
+      '0.01',
+      '0.2',
+      '0.97',
+      '45',
+      '184.6',
+      '58723.01',
+      '999999999.99',
+    ])
   })
 
   // An amount of a decimal field or a total comes with its scale: 45.00,
@@ -377,13 +401,16 @@ describe('the amount', () => {
   // among them, says the template computes cents it does not round.
   test('is refused with more than two decimals, rather than rounded', () => {
     for (const decimal of ['1191.005', '45.000', '0.001']) {
-      expect(broken(checkEpcAmount(decimal)), decimal).toBe('has more than two decimals; a SEPA credit transfer pays whole cents, so the amount is rounded where it is computed')
+      expect(broken(checkEpcAmount(decimal)), decimal).toBe(
+        'has more than two decimals; a SEPA credit transfer pays whole cents, so the amount is rounded where it is computed',
+      )
     }
   })
 
   // The PSA's invalid spellings that are no decimal at all, refused as such.
   test('is a decimal', () => {
-    for (const text of ['', '.01', '45.', '00045.0', '184,6', '999.999.999,99', '1e3', 'EUR45']) expect(broken(checkEpcAmount(text)), text).toBe('is not a decimal')
+    for (const text of ['', '.01', '45.', '00045.0', '184,6', '999.999.999,99', '1e3', 'EUR45'])
+      expect(broken(checkEpcAmount(text)), text).toBe('is not a decimal')
   })
 })
 
@@ -395,7 +422,14 @@ describe('the payload', () => {
   // reader of either version takes 001 is 0025's reading of the two, and
   // nothing here shows it.
   test("is the EPC's first sample, byte for byte, when it holds what that sample holds", () => {
-    const payload = epcPayload({ bic: 'BHBLDEHHXXX', beneficiary: 'Franz Mustermänn', iban: 'DE71110220330123456789', amount: '12.3', purpose: 'GDDS', reference: 'RF18539007547034' })
+    const payload = epcPayload({
+      bic: 'BHBLDEHHXXX',
+      beneficiary: 'Franz Mustermänn',
+      iban: 'DE71110220330123456789',
+      amount: '12.3',
+      purpose: 'GDDS',
+      reference: 'RF18539007547034',
+    })
     expect(payload).toBe('BCD\n001\n1\nSCT\nBHBLDEHHXXX\nFranz Mustermänn\nDE71110220330123456789\nEUR12.3\nGDDS\nRF18539007547034')
     expect([...payload]).toHaveLength(95)
     expect(utf8Length(payload)).toBe(96)
@@ -406,7 +440,12 @@ describe('the payload', () => {
   // code is always UTF-8, so it is the same 103 characters and, for its ç,
   // 104 bytes.
   test("is the EPC's second sample in UTF-8: its characters, one byte more", () => {
-    const payload = epcPayload({ beneficiary: "François D'Alsace S.A.", iban: 'FR1420041010050500013M02606', amount: '12.3', text: 'Client:Marie Louise La Lune' })
+    const payload = epcPayload({
+      beneficiary: "François D'Alsace S.A.",
+      iban: 'FR1420041010050500013M02606',
+      amount: '12.3',
+      text: 'Client:Marie Louise La Lune',
+    })
     expect(payload).toBe("BCD\n002\n1\nSCT\n\nFrançois D'Alsace S.A.\nFR1420041010050500013M02606\nEUR12.3\n\n\nClient:Marie Louise La Lune")
     expect([...payload]).toHaveLength(103)
     expect(utf8Length(payload)).toBe(104)
@@ -444,7 +483,9 @@ describe('the payload', () => {
     expect([utf8Length(full), [...full].length]).toEqual([331, 261])
     expect(accepted(checkEpcPayload(full))).toBe(full)
     const over = epcPayload({ ...fields, information: 'i'.repeat(49) })
-    expect(broken(checkEpcPayload(over))).toBe('is 332 bytes long in UTF-8; the EPC allows at most 331 (EPC069-12 2.2), what a version 13 code holds at level M')
+    expect(broken(checkEpcPayload(over))).toBe(
+      'is 332 bytes long in UTF-8; the EPC allows at most 331 (EPC069-12 2.2), what a version 13 code holds at level M',
+    )
   })
 })
 

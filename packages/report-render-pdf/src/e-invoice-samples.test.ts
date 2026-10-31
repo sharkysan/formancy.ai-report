@@ -1,5 +1,31 @@
-import { E_INVOICE, E_INVOICE_SAMPLES, elementsAt, LOGO, readCii, readCodes, readPdf, starterImages, textAt, verify, XRECHNUNG_SAMPLES, type CiiElement, type PdfCode, type PdfPage, type PdfTextItem, type ReadPdf, type Starter } from '@formancy/report-corpus'
-import { MAX_SVG_COORDINATE, resolveReport, XRECHNUNG, XRECHNUNG_COPY_LABEL, type ReportData, type ReportDefinition, type ResolvedDocument } from '@formancy/report-runtime'
+import {
+  E_INVOICE,
+  E_INVOICE_SAMPLES,
+  elementsAt,
+  LOGO,
+  readCii,
+  readCodes,
+  readPdf,
+  starterImages,
+  textAt,
+  verify,
+  XRECHNUNG_SAMPLES,
+  type CiiElement,
+  type PdfCode,
+  type PdfPage,
+  type PdfTextItem,
+  type ReadPdf,
+  type Starter,
+} from '@formancy/report-corpus'
+import {
+  MAX_SVG_COORDINATE,
+  resolveReport,
+  XRECHNUNG,
+  XRECHNUNG_COPY_LABEL,
+  type ReportData,
+  type ReportDefinition,
+  type ResolvedDocument,
+} from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { checkImageAsset, type Vector } from './assets.js'
 import { renderPdf } from './node.js'
@@ -76,7 +102,10 @@ const quantities = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, ma
 /** An amount the XML holds, as the template prints it, in euro for de-DE, handed the exact decimal string. */
 const euro = (amount: string | undefined): string => normalise(euros.format(amount as Intl.StringNumericLiteral))
 /** A date the XML holds, `YYYYMMDD` (format 102), as the template prints it for de-DE, in UTC as the runtime formats a date. */
-const day = (date: string | undefined): string => new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${date?.slice(0, 4)}-${date?.slice(4, 6)}-${date?.slice(6, 8)}T00:00:00Z`))
+const day = (date: string | undefined): string =>
+  new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeZone: 'UTC' }).format(
+    new Date(`${date?.slice(0, 4)}-${date?.slice(4, 6)}-${date?.slice(6, 8)}T00:00:00Z`),
+  )
 /** An IBAN as a person reads it: in groups of four. */
 const grouped = (code: string | undefined): string => (code ?? '').replace(/(.{4})(?=.)/g, '$1 ')
 /** An amount as the EPC code writes it (EPC069-12 v3.1 2.2): in euro, as short as it goes. */
@@ -148,7 +177,9 @@ function shownBy(pdf: ReadPdf, codes: readonly PdfCode[]): Shown {
     terms,
     details: rest.filter((run) => DETAIL.test(textOf(run))).map(textOf),
     codes: codes.map((code) => code.text.split('\n').slice(4, 8)),
-    unread: [...besideFirm, ...above.filter((run) => !buyer.includes(run) && !head.includes(run)), ...rest.filter((run) => !DETAIL.test(textOf(run)))].map(textOf),
+    unread: [...besideFirm, ...above.filter((run) => !buyer.includes(run) && !head.includes(run)), ...rest.filter((run) => !DETAIL.test(textOf(run)))].map(
+      textOf,
+    ),
   }
 }
 
@@ -160,7 +191,11 @@ function heldBy(root: CiiElement): Shown {
   const delivered = at(`${HTD}/ram:ActualDeliverySupplyChainEvent/ram:OccurrenceDateTime/${DATE}`)
   const start = at(`${HTS}/ram:BillingSpecifiedPeriod/ram:StartDateTime/${DATE}`)
   const means = `${HTS}/ram:SpecifiedTradeSettlementPaymentMeans`
-  const [account, iban, bic] = [at(`${means}/ram:PayeePartyCreditorFinancialAccount/ram:AccountName`), at(`${means}/ram:PayeePartyCreditorFinancialAccount/ram:IBANID`), at(`${means}/ram:PayeeSpecifiedCreditorFinancialInstitution/ram:BICID`)]
+  const [account, iban, bic] = [
+    at(`${means}/ram:PayeePartyCreditorFinancialAccount/ram:AccountName`),
+    at(`${means}/ram:PayeePartyCreditorFinancialAccount/ram:IBANID`),
+    at(`${means}/ram:PayeeSpecifiedCreditorFinancialInstitution/ram:BICID`),
+  ]
   const [due, paid] = [at(`${SUMMATION}/ram:DuePayableAmount`), at(`${SUMMATION}/ram:TotalPrepaidAmount`)]
   const reference = at(`${HTA}/ram:BuyerReference`)
   const xrechnung = at('rsm:ExchangedDocumentContext/ram:GuidelineSpecifiedDocumentContextParameter/ram:ID') === XRECHNUNG['3.0'].guideline
@@ -172,7 +207,12 @@ function heldBy(root: CiiElement): Shown {
   return {
     label: xrechnung ? XRECHNUNG_COPY_LABEL : undefined,
     firm: `${at(`${seller}/ram:Name`)} · ${at(`${seller}/ram:PostalTradeAddress/ram:LineOne`)} · ${at(`${seller}/ram:PostalTradeAddress/ram:PostcodeCode`)} ${at(`${seller}/ram:PostalTradeAddress/ram:CityName`)} · USt-IdNr. ${at(`${seller}/ram:SpecifiedTaxRegistration/ram:ID`)}`,
-    buyer: [at(`${buyer}/ram:Name`), at(`${buyer}/ram:PostalTradeAddress/ram:LineOne`), `${at(`${buyer}/ram:PostalTradeAddress/ram:PostcodeCode`)} ${at(`${buyer}/ram:PostalTradeAddress/ram:CityName`)}`, ...(buyerVatId === undefined ? [] : [`USt-IdNr.: ${buyerVatId}`])].map(String),
+    buyer: [
+      at(`${buyer}/ram:Name`),
+      at(`${buyer}/ram:PostalTradeAddress/ram:LineOne`),
+      `${at(`${buyer}/ram:PostalTradeAddress/ram:PostcodeCode`)} ${at(`${buyer}/ram:PostalTradeAddress/ram:CityName`)}`,
+      ...(buyerVatId === undefined ? [] : [`USt-IdNr.: ${buyerVatId}`]),
+    ].map(String),
     head: [
       'Rechnung',
       `Rechnungsnummer: ${at('rsm:ExchangedDocument/ram:ID')}`,
@@ -259,7 +299,8 @@ function cents(amount: string): bigint {
   return BigInt(amount.replace('.', ''))
 }
 /** `numerator / denominator`, the denominator positive, rounded half away from zero. */
-const halfAway = (numerator: bigint, denominator: bigint): bigint => (numerator < 0n ? -((-2n * numerator + denominator) / (2n * denominator)) : (2n * numerator + denominator) / (2n * denominator))
+const halfAway = (numerator: bigint, denominator: bigint): bigint =>
+  numerator < 0n ? -((-2n * numerator + denominator) / (2n * denominator)) : (2n * numerator + denominator) / (2n * denominator)
 /** Cents as the XML writes an amount: exactly two places, a minus where negative. */
 const written = (amount: bigint): string => {
   const whole = amount < 0n ? -amount : amount
@@ -269,7 +310,10 @@ const written = (amount: bigint): string => {
 /** What a sample's own data comes to, computed here: each line's amount, in the table's order; each category a line is in, in the order declared, its code, rate, basis and tax; and the totals. */
 function reference(data: ReportData) {
   const rows = (data.detail as Record<string, string>[]).toSorted((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1))
-  const lines = rows.map((row) => ({ amount: halfAway(cents(row['quantity'] as string) * cents(row['unitPrice'] as string), 100n), category: row['vat'] as keyof typeof CATEGORIES }))
+  const lines = rows.map((row) => ({
+    amount: halfAway(cents(row['quantity'] as string) * cents(row['unitPrice'] as string), 100n),
+    category: row['vat'] as keyof typeof CATEGORIES,
+  }))
   const breakdown = (Object.keys(CATEGORIES) as (keyof typeof CATEGORIES)[]).flatMap((category) => {
     const own = lines.filter((line) => line.category === category)
     const basis = own.reduce((sum, line) => sum + line.amount, 0n)
@@ -279,15 +323,23 @@ function reference(data: ReportData) {
   const net = lines.reduce((sum, line) => sum + line.amount, 0n)
   const tax = breakdown.reduce((sum, [, , , amount]) => sum + cents(amount as string), 0n)
   const paid = (data.header as Record<string, string | null>)['paid'] ?? null
-  return { lines: lines.map((line) => written(line.amount)), breakdown, totals: [written(net), written(tax), written(net + tax), paid ?? undefined, written(net + tax - (paid === null ? 0n : cents(paid)))] }
+  return {
+    lines: lines.map((line) => written(line.amount)),
+    breakdown,
+    totals: [written(net), written(tax), written(net + tax), paid ?? undefined, written(net + tax - (paid === null ? 0n : cents(paid)))],
+  }
 }
 
 /** The amounts `root` holds, in `reference`'s shape. */
 function amountsOf(root: CiiElement) {
   const at = (name: string): string | undefined => textAt(root, `${SUMMATION}/ram:${name}`)
   return {
-    lines: elementsAt(root, LINE).map((line) => textAt(line, 'ram:SpecifiedLineTradeSettlement/ram:SpecifiedTradeSettlementLineMonetarySummation/ram:LineTotalAmount')),
-    breakdown: elementsAt(root, `${HTS}/ram:ApplicableTradeTax`).map((tax) => ['CategoryCode', 'RateApplicablePercent', 'BasisAmount', 'CalculatedAmount'].map((name) => textAt(tax, `ram:${name}`))),
+    lines: elementsAt(root, LINE).map((line) =>
+      textAt(line, 'ram:SpecifiedLineTradeSettlement/ram:SpecifiedTradeSettlementLineMonetarySummation/ram:LineTotalAmount'),
+    ),
+    breakdown: elementsAt(root, `${HTS}/ram:ApplicableTradeTax`).map((tax) =>
+      ['CategoryCode', 'RateApplicablePercent', 'BasisAmount', 'CalculatedAmount'].map((name) => textAt(tax, `ram:${name}`)),
+    ),
     totals: [at('TaxBasisTotalAmount'), at('TaxTotalAmount'), at('GrandTotalAmount'), at('TotalPrepaidAmount'), at('DuePayableAmount')],
   }
 }
@@ -304,21 +356,29 @@ describe('an e-invoice sample, read back from its PDF', () => {
   // each category's tax its basis at its rate rounded once, half away from
   // zero, the totals their sums, and what was paid off the amount due -- so
   // that a page equal to its XML is a page equal to its data.
-  test.each(samples)("%s embeds the runtime's XML byte for byte, whose amounts are its data's in BigInt", async (_id, sample: Starter) => {
-    const { document, embedded, root } = await print(sample.id, sample.report, sample.data)
-    expect(Buffer.from(embedded!).equals(Buffer.from(new TextEncoder().encode(document.eInvoice!.xml)))).toBe(true)
-    expect(amountsOf(root)).toEqual(reference(sample.data))
-  }, TIMEOUT)
+  test.each(samples)(
+    "%s embeds the runtime's XML byte for byte, whose amounts are its data's in BigInt",
+    async (_id, sample: Starter) => {
+      const { document, embedded, root } = await print(sample.id, sample.report, sample.data)
+      expect(Buffer.from(embedded!).equals(Buffer.from(new TextEncoder().encode(document.eInvoice!.xml)))).toBe(true)
+      expect(amountsOf(root)).toEqual(reference(sample.data))
+    },
+    TIMEOUT,
+  )
 
   // An XRechnung's copy embeds nothing (0038): the invoice is its XML,
   // the resolved document's, which a host sends; the copy holds no file a
   // receiver could take for a second invoice. Its XML's amounts are its
   // data's, recomputed here as the samples' are.
-  test.each(XRECHNUNG_SAMPLES.map((sample) => [sample.id, sample] as const))("%s embeds nothing, and its XML's amounts are its data's in BigInt", async (_id, sample: Starter) => {
-    const { pdf, embedded, root } = await print(sample.id, sample.report, sample.data)
-    expect([embedded, pdf.attachments]).toEqual([undefined, []])
-    expect(amountsOf(root)).toEqual(reference(sample.data))
-  }, TIMEOUT)
+  test.each(XRECHNUNG_SAMPLES.map((sample) => [sample.id, sample] as const))(
+    "%s embeds nothing, and its XML's amounts are its data's in BigInt",
+    async (_id, sample: Starter) => {
+      const { pdf, embedded, root } = await print(sample.id, sample.report, sample.data)
+      expect([embedded, pdf.attachments]).toEqual([undefined, []])
+      expect(amountsOf(root)).toEqual(reference(sample.data))
+    },
+    TIMEOUT,
+  )
 
   // The page is the XML's invoice, all of it: the seller and the buyer, the
   // number and the dates, the delivery date or the period, every line --
@@ -332,11 +392,15 @@ describe('an e-invoice sample, read back from its PDF', () => {
   // past a margin and every font embedded (0003). Its table is this test's
   // to read, against the XML: the corpus's reads a cell word by word, and
   // takes the item pdfmake broke after "Gas-" for a word the cell lacks.
-  test.each(everySample)('%s prints what its XML holds, where a reader reads it, and nothing else', async (id, sample: Starter) => {
-    const { document, pdf, root, shown } = await print(sample.id, sample.report, sample.data)
-    expect(partings(shown, heldBy(root))).toEqual([])
-    expect(verify(fixtureOf(id, document, { maxPagesExpected: 1, tables: [] }), pdf)).toEqual([])
-  }, TIMEOUT)
+  test.each(everySample)(
+    '%s prints what its XML holds, where a reader reads it, and nothing else',
+    async (id, sample: Starter) => {
+      const { document, pdf, root, shown } = await print(sample.id, sample.report, sample.data)
+      expect(partings(shown, heldBy(root))).toEqual([])
+      expect(verify(fixtureOf(id, document, { maxPagesExpected: 1, tables: [] }), pdf)).toEqual([])
+    },
+    TIMEOUT,
+  )
 
   // The firm's e-invoices carry its mark as its other invoices do (0032):
   // drawn as vectors at the margins' corner, 15 mm square, in its blue and
@@ -344,12 +408,16 @@ describe('an e-invoice sample, read back from its PDF', () => {
   // so (0030) -- and no text beside it or in the 12 pt under it, the firm's
   // line the first under it. The XML says nothing of it, as the test above
   // holds by finding nothing on the page the XML does not.
-  test.each(samples)('%s prints the firm’s mark at the head of its page', async (_id, sample: Starter) => {
-    const { pdf } = await print(sample.id, sample.report, sample.data)
-    const [page] = pdf.pages as [PdfPage]
-    expect(marksOn(page)).toEqual([markAt(MARGIN)])
-    expect([page.images, crowding(page, markAt(MARGIN))]).toEqual([[], []])
-  }, TIMEOUT)
+  test.each(samples)(
+    '%s prints the firm’s mark at the head of its page',
+    async (_id, sample: Starter) => {
+      const { pdf } = await print(sample.id, sample.report, sample.data)
+      const [page] = pdf.pages as [PdfPage]
+      expect(marksOn(page)).toEqual([markAt(MARGIN)])
+      expect([page.images, crowding(page, markAt(MARGIN))]).toEqual([[], []])
+    },
+    TIMEOUT,
+  )
 
   // An SVG in an e-invoice is held to what a PDF/A-3 may hold: every
   // number the converter writes for it, bounded from above, under
@@ -376,7 +444,17 @@ function grandRow(id: string, label: string, cel: string, when?: string): Compon
     ...(when === undefined ? {} : { visibleWhen: { cel: when } }),
     columns: [
       { width: 'fill', components: [{ id: `${id}-label`, kind: 'text', style: 'grand', content: [{ kind: 'text', text: label }] }] },
-      { width: 84, components: [{ id: `${id}-amount`, kind: 'text', style: 'grand-figure', content: [{ kind: 'expression', expression: { cel }, format: { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } }] }] },
+      {
+        width: 84,
+        components: [
+          {
+            id: `${id}-amount`,
+            kind: 'text',
+            style: 'grand-figure',
+            content: [{ kind: 'expression', expression: { cel }, format: { kind: 'currency', currency: { kind: 'code', code: 'EUR' }, scale: 2 } }],
+          },
+        ],
+      },
     ],
   }
 }
@@ -398,22 +476,36 @@ describe('the comparison, watched failing', () => {
   // data its total is 871,62 €, where the XML says 871.63, since the VAT
   // at 7 % on 107.50 is 7.525, which half to even rounds down. The
   // comparison finds that cent, at that row, and nothing else.
-  test('a template printing a total of its own parts from its XML at that total, by a cent, and nowhere else', async () => {
-    const { report } = E_INVOICE
-    const own: ReportDefinition = {
-      ...report,
-      id: 'e-invoice-own-total',
-      aggregates: [...report.aggregates, { id: 'ownNet', fn: 'sum', of: { kind: 'field', field: { dataset: 'detail', field: 'amount' } } }, vatOf('ownStandardVat', 'standard', '0.19'), vatOf('ownReducedVat', 'reduced', '0.07')],
-      regions: {
-        ...report.regions,
-        summary: report.regions.summary.flatMap((component) =>
-          component.id === 'grand' ? [grandRow('grand', 'Rechnungsbetrag', 'totals.ownNet + totals.ownStandardVat + totals.ownReducedVat'), grandRow('grand-runtime', 'Rechnungsbetrag', 'invoice.grandTotal', 'false')] : [component],
-        ),
-      },
-    }
-    const { root, shown } = await print(own.id, own, E_INVOICE.data)
-    expect(partings(shown, heldBy(root))).toEqual(['/totals/4: the page prints "Rechnungsbetrag 871,62 €", the XML holds "Rechnungsbetrag 871,63 €"'])
-  }, TIMEOUT)
+  test(
+    'a template printing a total of its own parts from its XML at that total, by a cent, and nowhere else',
+    async () => {
+      const { report } = E_INVOICE
+      const own: ReportDefinition = {
+        ...report,
+        id: 'e-invoice-own-total',
+        aggregates: [
+          ...report.aggregates,
+          { id: 'ownNet', fn: 'sum', of: { kind: 'field', field: { dataset: 'detail', field: 'amount' } } },
+          vatOf('ownStandardVat', 'standard', '0.19'),
+          vatOf('ownReducedVat', 'reduced', '0.07'),
+        ],
+        regions: {
+          ...report.regions,
+          summary: report.regions.summary.flatMap((component) =>
+            component.id === 'grand'
+              ? [
+                  grandRow('grand', 'Rechnungsbetrag', 'totals.ownNet + totals.ownStandardVat + totals.ownReducedVat'),
+                  grandRow('grand-runtime', 'Rechnungsbetrag', 'invoice.grandTotal', 'false'),
+                ]
+              : [component],
+          ),
+        },
+      }
+      const { root, shown } = await print(own.id, own, E_INVOICE.data)
+      expect(partings(shown, heldBy(root))).toEqual(['/totals/4: the page prints "Rechnungsbetrag 871,62 €", the XML holds "Rechnungsbetrag 871,63 €"'])
+    },
+    TIMEOUT,
+  )
 
   // A template whose e-invoice names the article column as the item's
   // name (BT-153), where the table prints the item in the description
@@ -422,12 +514,18 @@ describe('the comparison, watched failing', () => {
   // item by its article number while the page describes it -- the BMF's
   // "andere Leistungsbeschreibung" -- and the comparison finds every
   // line's item, and nothing else: the amounts are the very columns'.
-  test("a template whose e-invoice names another column for the item than its table prints it in parts at every line's item, and nowhere else", async () => {
-    const { report } = E_INVOICE
-    const invoice = report.eInvoice!
-    const other: ReportDefinition = { ...report, id: 'e-invoice-other-field', eInvoice: { ...invoice, lines: { ...invoice.lines, name: 'article' } } }
-    const { root, shown } = await print(other.id, other, E_INVOICE.data)
-    const rows = (E_INVOICE.data.detail as Record<string, string>[]).toSorted((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1))
-    expect(partings(shown, heldBy(root))).toEqual(rows.map((row, index) => `/lines/${index}/0: the page prints ${JSON.stringify(row['description'])}, the XML holds ${JSON.stringify(row['article'])}`))
-  }, TIMEOUT)
+  test(
+    "a template whose e-invoice names another column for the item than its table prints it in parts at every line's item, and nowhere else",
+    async () => {
+      const { report } = E_INVOICE
+      const invoice = report.eInvoice!
+      const other: ReportDefinition = { ...report, id: 'e-invoice-other-field', eInvoice: { ...invoice, lines: { ...invoice.lines, name: 'article' } } }
+      const { root, shown } = await print(other.id, other, E_INVOICE.data)
+      const rows = (E_INVOICE.data.detail as Record<string, string>[]).toSorted((a, b) => ((a['article'] as string) < (b['article'] as string) ? -1 : 1))
+      expect(partings(shown, heldBy(root))).toEqual(
+        rows.map((row, index) => `/lines/${index}/0: the page prints ${JSON.stringify(row['description'])}, the XML holds ${JSON.stringify(row['article'])}`),
+      )
+    },
+    TIMEOUT,
+  )
 })

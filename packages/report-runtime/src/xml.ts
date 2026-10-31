@@ -56,9 +56,20 @@ function writable(text: string): string {
 
 const TEXT = /[&<>\r]/g
 const ATTRIBUTE = /[&<>"\t\n\r]/g
-const REFERENCES: { readonly [character: string]: string } = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\t': '&#9;', '\n': '&#10;', '\r': '&#13;' }
+const REFERENCES: { readonly [character: string]: string } = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  '\t': '&#9;',
+  '\n': '&#10;',
+  '\r': '&#13;',
+}
 
-const escaped = (pattern: RegExp) => (text: string): string => writable(text).replace(pattern, (character) => REFERENCES[character] as string)
+const escaped =
+  (pattern: RegExp) =>
+  (text: string): string =>
+    writable(text).replace(pattern, (character) => REFERENCES[character] as string)
 const text = escaped(TEXT)
 const attribute = escaped(ATTRIBUTE)
 

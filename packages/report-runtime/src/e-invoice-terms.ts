@@ -157,7 +157,13 @@ function refuse({ render }: Pick<Reader, 'render'>, path: string, message: strin
 type Read<T> = T | null | undefined
 
 /** The text of `term`, its runs at `path`, held to its rule of the reader's kind, or to `check` where it is given. */
-function text(reader: Reader, term: EInvoiceTextTerm, runs: readonly Inline[] | undefined, path: string, check = (written: string): PaymentCheck<string> => checkEInvoiceText(term, written, reader.kind)): Read<string> {
+function text(
+  reader: Reader,
+  term: EInvoiceTextTerm,
+  runs: readonly Inline[] | undefined,
+  path: string,
+  check = (written: string): PaymentCheck<string> => checkEInvoiceText(term, written, reader.kind),
+): Read<string> {
   if (runs === undefined) return null
   const read = readRuns(reader.render, reader.scope, runs, path, OWNER)
   if (read.refused) return undefined
@@ -165,7 +171,8 @@ function text(reader: Reader, term: EInvoiceTextTerm, runs: readonly Inline[] | 
   const blank = eInvoiceBlank(read.text)
   if (reader.render.preview && (blank || read.nulls.length > 0)) return null
   if (blank && rule.required === undefined) return null
-  if (!blank && read.nulls.length > 0) return refuse(reader, path, `${rule.what} has a run with no value, and written without it the e-invoice would hold less than its runs print`)
+  if (!blank && read.nulls.length > 0)
+    return refuse(reader, path, `${rule.what} has a run with no value, and written without it the e-invoice would hold less than its runs print`)
   const checked = check(read.text)
   return checked.ok ? checked.value : refuse(reader, path, `${rule.what} ${checked.rule}`)
 }
@@ -176,14 +183,18 @@ function date(reader: Reader, term: EInvoiceDateTerm, expression: Expression | u
   const value = valueOf(reader.render, reader.scope, `${path}/cel`)
   if (value === undefined) return undefined
   const rule = E_INVOICE_DATES[term]
-  if (value === null) return rule.required === undefined || reader.render.preview ? null : refuse(reader, path, `${rule.what} ${en16931Rule(rule.required, 'has no value, and an e-invoice needs it')}`)
+  if (value === null)
+    return rule.required === undefined || reader.render.preview
+      ? null
+      : refuse(reader, path, `${rule.what} ${en16931Rule(rule.required, 'has no value, and an e-invoice needs it')}`)
   if (value.type !== 'date' && value.type !== 'string') return refuse(reader, path, `${rule.what} is a date, and this gives ${aType(value.type)}`)
   const checked = checkEInvoiceDate(value.value)
   return checked.ok ? checked.value : refuse(reader, path, `${rule.what} ${checked.rule}`)
 }
 
 /** `value` under `key` where it is a value; nothing where it is none or was refused. */
-const term = <K extends string, V>(key: K, value: Read<V>): { [P in K]?: V } => (value === null || value === undefined ? {} : ({ [key]: value } as { [P in K]: V }))
+const term = <K extends string, V>(key: K, value: Read<V>): { [P in K]?: V } =>
+  value === null || value === undefined ? {} : ({ [key]: value } as { [P in K]: V })
 
 /** Whether every one of `values` was read and is there: what a term needs of each of its parts. */
 const all = (...values: readonly Read<unknown>[]): boolean => values.every((value) => value !== null && value !== undefined)
@@ -200,7 +211,12 @@ function address(reader: Reader, held: EInvoiceAddress, path: string, which: 'se
 }
 
 /** An electronic address: its identifier read, held to its scheme where that is 0204, with the scheme the template names; none where the data gives the identifier as nothing. */
-function electronicAddress(reader: Reader, held: ElectronicAddress | undefined, path: string, term: EInvoiceTextTerm): Read<{ readonly id: string; readonly scheme: AddressScheme }> {
+function electronicAddress(
+  reader: Reader,
+  held: ElectronicAddress | undefined,
+  path: string,
+  term: EInvoiceTextTerm,
+): Read<{ readonly id: string; readonly scheme: AddressScheme }> {
   if (held === undefined) return null
   const id = text(reader, term, held.id, `${path}/id`, (written) => checkElectronicAddress(term, held.scheme, written, reader.kind))
   return id === null || id === undefined ? id : { id, scheme: held.scheme }
@@ -226,7 +242,8 @@ function contact(reader: Reader, held: SellerContact | undefined, path: string):
   if (name !== null && telephone !== null && email !== null) return { name, telephone, email }
   if ((name === null && telephone === null && email === null) || reader.render.preview) return null
   for (const key of ['name', 'telephone', 'email'] as const) {
-    if (read[key] === null) refuse(reader, `${path}/${key}`, `${E_INVOICE_KIND_TEXTS[reader.kind][terms[key]].what} is empty, and a contact gives all three of its terms or none`)
+    if (read[key] === null)
+      refuse(reader, `${path}/${key}`, `${E_INVOICE_KIND_TEXTS[reader.kind][terms[key]].what} is empty, and a contact gives all three of its terms or none`)
   }
   return undefined
 }
@@ -249,11 +266,20 @@ function party(reader: Reader, held: EInvoiceSeller | EInvoiceBuyer, path: strin
   const contacted = which === 'seller' ? contact(reader, (held as EInvoiceSeller).contact, `${path}/contact`) : null
   const where = address(reader, held.address, `${path}/address`, which)
   const has = { vatId: vatId !== null, taxNumber: taxNumber !== null, legalId: legalId !== null }
-  if (vatId === undefined || taxNumber === undefined || legalId === undefined || reached === undefined || contacted === undefined || !all(name, where)) return { party: undefined, has }
+  if (vatId === undefined || taxNumber === undefined || legalId === undefined || reached === undefined || contacted === undefined || !all(name, where))
+    return { party: undefined, has }
   const scheme = held.legalId?.scheme
   const registration = legalId === null ? {} : { legalId: { id: legalId, ...(scheme === undefined ? {} : { scheme }) } }
   return {
-    party: { name: name as string, ...term('vatId', vatId), ...term('taxNumber', taxNumber), ...registration, ...term('electronicAddress', reached), ...term('contact', contacted), address: where as AddressTerms },
+    party: {
+      name: name as string,
+      ...term('vatId', vatId),
+      ...term('taxNumber', taxNumber),
+      ...registration,
+      ...term('electronicAddress', reached),
+      ...term('contact', contacted),
+      address: where as AddressTerms,
+    },
     has,
   }
 }
@@ -268,7 +294,10 @@ function payment(reader: Reader, invoice: EInvoice): { readonly payment: Read<Pa
   const remittance = text(reader, terms.remittance, held.remittance, '/eInvoice/payment/remittance')
   const known = account ?? undefined
   if (bic === undefined || accountName === undefined || remittance === undefined || !all(account)) return { payment: undefined, account: known }
-  return { payment: { means: held.means, account: account as string, ...term('bic', bic), ...term('accountName', accountName), ...term('remittance', remittance) }, account: known }
+  return {
+    payment: { means: held.means, account: account as string, ...term('bic', bic), ...term('accountName', accountName), ...term('remittance', remittance) },
+    account: known,
+  }
 }
 
 /** The paid amount (BT-113), read in the report's scope: a whole number of cents, at two places, or null where none is paid. */
@@ -306,7 +335,9 @@ export function readTerms(render: Omit<Render, 'invoice'>, invoice: EInvoice, us
   const delivered = date(reader, 'BT-72', invoice.delivered, '/eInvoice/delivered')
   const start = date(reader, 'BT-73', invoice.period?.start, '/eInvoice/period/start')
   const end = date(reader, 'BT-74', invoice.period?.end, '/eInvoice/period/end')
-  const reasons = used.map((category) => [category, text(reader, E_INVOICE_TEXT_TERMS.reason, category.reason, `/eInvoice/vat/${invoice.vat.indexOf(category)}/reason`)] as const)
+  const reasons = used.map(
+    (category) => [category, text(reader, E_INVOICE_TEXT_TERMS.reason, category.reason, `/eInvoice/vat/${invoice.vat.indexOf(category)}/reason`)] as const,
+  )
   const paying = payment(reader, invoice)
   const due = date(reader, 'BT-9', invoice.due, '/eInvoice/due')
   const terms = text(reader, E_INVOICE_TEXT_TERMS.terms, invoice.terms, '/eInvoice/terms')
@@ -325,8 +356,23 @@ export function readTerms(render: Omit<Render, 'invoice'>, invoice: EInvoice, us
       if (unreasoned !== undefined) refuse(reader, `/eInvoice/vat/${invoice.vat.indexOf(category)}/reason`, unreasoned)
     }
   }
-  const read = [number, issued, businessProcess, seller.party, buyer.party, buyerReference, delivered, start, end, paying.payment, due, terms, ...reasons.map(([, reason]) => reason)]
-  if (render.problems.failed || read.includes(undefined) || !all(number, issued, seller.party, buyer.party)) return { terms: undefined, account: paying.account }
+  const read = [
+    number,
+    issued,
+    businessProcess,
+    seller.party,
+    buyer.party,
+    buyerReference,
+    delivered,
+    start,
+    end,
+    paying.payment,
+    due,
+    terms,
+    ...reasons.map(([, reason]) => reason),
+  ]
+  if (render.problems.failed || read.includes(undefined) || !all(number, issued, seller.party, buyer.party))
+    return { terms: undefined, account: paying.account }
   return {
     terms: {
       number: number as string,

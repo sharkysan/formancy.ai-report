@@ -1,4 +1,15 @@
-import { checkSvg, imageHeader, MAX_ASSET_BYTES, MAX_ASSET_SIDE, RenderRefusal, sniffImage, type CheckedSvg, type ImageAsset, type PngHeader, type SvgExtent } from '@formancy/report-runtime'
+import {
+  checkSvg,
+  imageHeader,
+  MAX_ASSET_BYTES,
+  MAX_ASSET_SIDE,
+  RenderRefusal,
+  sniffImage,
+  type CheckedSvg,
+  type ImageAsset,
+  type PngHeader,
+  type SvgExtent,
+} from '@formancy/report-runtime'
 import { inflate } from './bytes.js'
 
 /**
@@ -152,7 +163,8 @@ const DRAWING_WEIGHT = { curve: 3, element: 12, stop: 6, group: 40, bytes: 32 } 
 /** What drawing an SVG once costs the renderer, in `MAX_SVG_DRAWING`'s units. */
 export function drawingUnits(checked: Pick<CheckedSvg, 'bytes' | 'drawn' | 'groups'>): number {
   const { lines, curves, elements, stops } = checked.drawn
-  const commands = lines + DRAWING_WEIGHT.curve * curves + DRAWING_WEIGHT.element * elements + DRAWING_WEIGHT.stop * stops + DRAWING_WEIGHT.group * checked.groups
+  const commands =
+    lines + DRAWING_WEIGHT.curve * curves + DRAWING_WEIGHT.element * elements + DRAWING_WEIGHT.stop * stops + DRAWING_WEIGHT.group * checked.groups
   return commands + Math.ceil(checked.bytes.length / DRAWING_WEIGHT.bytes)
 }
 
@@ -161,7 +173,18 @@ function readSvg(bytes: Uint8Array): Vector | string {
   const checked = checkSvg(bytes)
   if (!checked.ok) return `is not an SVG the renderer draws: ${checked.message}`
   const { viewBox, segments, groups, extent } = checked
-  return { kind: 'vector', x: viewBox.x, y: viewBox.y, width: viewBox.width, height: viewBox.height, svg: ascii(checked.bytes), segments, groups, units: drawingUnits(checked), extent }
+  return {
+    kind: 'vector',
+    x: viewBox.x,
+    y: viewBox.y,
+    width: viewBox.width,
+    height: viewBox.height,
+    svg: ascii(checked.bytes),
+    segments,
+    groups,
+    units: drawingUnits(checked),
+    extent,
+  }
 }
 
 /** ASCII bytes as text, a chunk at a time: a mebibyte is more than one call takes as arguments. */
@@ -179,7 +202,8 @@ function ascii(bytes: Uint8Array): string {
 async function readRaster(bytes: Uint8Array): Promise<Raster | string> {
   const header = imageHeader(bytes)
   if (!header.ok) return header.message
-  if (header.mediaType === 'image/jpeg') return { kind: 'raster', width: header.width, height: header.height, data: bytes.length, cmyk: header.components === 4 }
+  if (header.mediaType === 'image/jpeg')
+    return { kind: 'raster', width: header.width, height: header.height, data: bytes.length, cmyk: header.components === 4 }
   return (await scanlineProblem(header)) ?? { kind: 'raster', width: header.width, height: header.height, data: inflatedLength(header), cmyk: false }
 }
 
@@ -196,8 +220,12 @@ const ADAM7 = [
 
 /** The scanlines of each pass of the image: the bytes of one, its filter byte included, and how many there are. */
 function scanlines(header: PngHeader): { readonly bytes: number; readonly count: number }[] {
-  const passes = header.interlaced ? ADAM7.map(([x, y, dx, dy]) => [Math.ceil((header.width - x) / dx), Math.ceil((header.height - y) / dy)] as const) : [[header.width, header.height] as const]
-  return passes.filter(([width, height]) => width > 0 && height > 0).map(([width, height]) => ({ bytes: 1 + Math.ceil((width * header.bitsPerPixel) / 8), count: height }))
+  const passes = header.interlaced
+    ? ADAM7.map(([x, y, dx, dy]) => [Math.ceil((header.width - x) / dx), Math.ceil((header.height - y) / dy)] as const)
+    : [[header.width, header.height] as const]
+  return passes
+    .filter(([width, height]) => width > 0 && height > 0)
+    .map(([width, height]) => ({ bytes: 1 + Math.ceil((width * header.bitsPerPixel) / 8), count: height }))
 }
 
 /** The bytes the image data inflates to, as the header promises. */

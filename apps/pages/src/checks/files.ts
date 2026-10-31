@@ -19,17 +19,20 @@ export function fileProblems({ site, inputs }: Built): string[] {
   for (const file of site.files) {
     if (!file.path.endsWith('.css') || !('text' in file)) continue
     const css = file.text.replaceAll(/\/\*[\s\S]*?\*\//g, '')
-    for (const [rule] of css.matchAll(/@import[^;]*/g)) problems.push(`${file.path}: ${rule} is a stylesheet a reader's browser would fetch, from wherever it names`)
+    for (const [rule] of css.matchAll(/@import[^;]*/g))
+      problems.push(`${file.path}: ${rule} is a stylesheet a reader's browser would fetch, from wherever it names`)
     for (const [, , href = ''] of css.matchAll(/url\(\s*(['"]?)([^'")]*)\1\s*\)/g)) {
       if (href.startsWith('data:')) continue
       const at = new URL(href, `${inputs.site}${file.path}`).href
-      if (!at.startsWith(inputs.site)) problems.push(`${file.path}: url(${href}) is a file of another site, which a reader's browser would ask for, telling it who opened the page`)
+      if (!at.startsWith(inputs.site))
+        problems.push(`${file.path}: url(${href}) is a file of another site, which a reader's browser would ask for, telling it who opened the page`)
       else if (!paths.has(at.slice(inputs.site.length))) problems.push(`${file.path}: url(${href}) names no file of the site`)
       else named.add(at.slice(inputs.site.length))
     }
   }
   const notices = site.files.find((file) => file.path === NOTICES)
-  const listed = notices !== undefined && 'text' in notices ? new Set([...notices.text.matchAll(/^-{80}\n(\S+) \S+\n/gm)].map((match) => match[1])) : new Set<string>()
+  const listed =
+    notices !== undefined && 'text' in notices ? new Set([...notices.text.matchAll(/^-{80}\n(\S+) \S+\n/gm)].map((match) => match[1])) : new Set<string>()
   for (const file of site.files) {
     if (!('from' in file)) continue
     const copied = packageOf(file.from)

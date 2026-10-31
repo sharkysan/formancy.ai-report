@@ -48,7 +48,8 @@ export function headProblems(built: Built): string[] {
     const descriptions = metaOf(document, 'name', 'description')
     const description = descriptions[0] ?? ''
     if (descriptions.length !== 1) say(`${String(descriptions.length)} descriptions, not one`)
-    if (description.length < DESCRIPTION.min || description.length > DESCRIPTION.max) say(`the description is ${String(description.length)} characters, not ${String(DESCRIPTION.min)} to ${String(DESCRIPTION.max)}: "${description}"`)
+    if (description.length < DESCRIPTION.min || description.length > DESCRIPTION.max)
+      say(`the description is ${String(description.length)} characters, not ${String(DESCRIPTION.min)} to ${String(DESCRIPTION.max)}: "${description}"`)
     if (metaOf(document, 'name', 'robots').some((value) => /noindex|none/i.test(value))) say('asks not to be indexed')
 
     const canonical = [...document.querySelectorAll('link[rel="canonical"]')].map((link) => link.getAttribute('href'))
@@ -60,13 +61,15 @@ export function headProblems(built: Built): string[] {
     const alternates = alternatesIn(document)
     const wanted = [...LANGUAGES, 'x-default']
     const named = alternates.map(([language]) => language)
-    if (named.length !== wanted.length || wanted.some((language) => !named.includes(language))) say(`its alternates are ${named.join(', ')}, not ${wanted.join(', ')}`)
+    if (named.length !== wanted.length || wanted.some((language) => !named.includes(language)))
+      say(`its alternates are ${named.join(', ')}, not ${wanted.join(', ')}`)
     for (const [language, href] of alternates) {
       const target = byUrl.get(href)
       const as = language === 'x-default' ? DEFAULT_LANGUAGE : language
       if (target === undefined) say(`its ${language} alternate ${href} is no page of the site`)
       else if (target.group !== page.group || target.language !== as) say(`its ${language} alternate ${href} is ${target.group} in ${target.language}`)
-      else if (!alternatesIn(read(target).document).some(([back, address]) => back === page.language && address === page.url)) say(`its ${language} alternate ${href} does not name it back as ${page.language}`)
+      else if (!alternatesIn(read(target).document).some(([back, address]) => back === page.language && address === page.url))
+        say(`its ${language} alternate ${href} does not name it back as ${page.language}`)
     }
 
     const og = (property: string): string[] => metaOf(document, 'property', property)
@@ -88,8 +91,14 @@ export function headProblems(built: Built): string[] {
     for (const value of new Set(values)) if (values.filter((each) => each === value).length > 1) problems.push(`two pages share the ${what} "${value}"`)
   }
   const documents = site.pages.map((page) => read(page).document)
-  twice(documents.map((document) => textOf(document.querySelector('title'))), 'title')
-  twice(documents.map((document) => metaOf(document, 'name', 'description')[0] ?? ''), 'description')
+  twice(
+    documents.map((document) => textOf(document.querySelector('title'))),
+    'title',
+  )
+  twice(
+    documents.map((document) => metaOf(document, 'name', 'description')[0] ?? ''),
+    'description',
+  )
   return problems
 }
 
@@ -112,9 +121,14 @@ export function sitemapProblems({ site }: Built): string[] {
       continue
     }
     const entry = urls[listed.indexOf(page.url)]
-    const alternates = [...(entry?.getElementsByTagNameNS(XHTML, 'link') ?? [])].map((link) => `${link.getAttribute('hreflang') ?? ''} ${link.getAttribute('href') ?? ''}`).sort()
-    const head = alternatesIn(read(page).document).map(([language, href]) => `${language} ${href}`).sort()
-    if (JSON.stringify(alternates) !== JSON.stringify(head)) problems.push(`sitemap.xml gives ${page.url} the alternates ${alternates.join(', ')}, and its head ${head.join(', ')}`)
+    const alternates = [...(entry?.getElementsByTagNameNS(XHTML, 'link') ?? [])]
+      .map((link) => `${link.getAttribute('hreflang') ?? ''} ${link.getAttribute('href') ?? ''}`)
+      .sort()
+    const head = alternatesIn(read(page).document)
+      .map(([language, href]) => `${language} ${href}`)
+      .sort()
+    if (JSON.stringify(alternates) !== JSON.stringify(head))
+      problems.push(`sitemap.xml gives ${page.url} the alternates ${alternates.join(', ')}, and its head ${head.join(', ')}`)
   }
   for (const loc of listed) if (!site.pages.some((page) => page.url === loc)) problems.push(`sitemap.xml lists ${loc}, which is no page of the site`)
   return problems

@@ -157,7 +157,9 @@ const LONE_SURROGATE = /\p{Cs}/u
  * to; the root itself is never made, so a volume that is not there is
  * found here, at start.
  */
-export async function openFileTemplateStore(root: string): Promise<{ readonly ok: true; readonly store: TemplateStore } | { readonly ok: false; readonly problem: string }> {
+export async function openFileTemplateStore(
+  root: string,
+): Promise<{ readonly ok: true; readonly store: TemplateStore } | { readonly ok: false; readonly problem: string }> {
   const refused = (why: string) => ({ ok: false, problem: `The store's root ${why}` }) as const
   if (!isAbsolute(root)) return refused('is not an absolute path; the store is named from the root, so that the directory a process starts in cannot move it.')
   const found = await stat(root).catch(() => undefined)
@@ -338,18 +340,23 @@ function fileTemplateStore(root: string): TemplateStore {
  * not the audit key's HMAC, which a rotated key would move.
  */
 function tenantName(tenant: string): string {
-  if (LONE_SURROGATE.test(tenant)) throw new Error('The tenant claim holds a lone surrogate, so it has no UTF-8 form to name its directory by; it was not used.')
+  if (LONE_SURROGATE.test(tenant))
+    throw new Error('The tenant claim holds a lone surrogate, so it has no UTF-8 form to name its directory by; it was not used.')
   return sha256(tenant)
 }
 
 function templateName(template: string): string {
-  if (!isIdentifier(template)) throw new Error('The store was asked for a template whose id is not a report id the format allows; the use cases refuse one before the store is asked.')
+  if (!isIdentifier(template))
+    throw new Error('The store was asked for a template whose id is not a report id the format allows; the use cases refuse one before the store is asked.')
   return template
 }
 
 /** The name an image's file is kept under: its digest's 64 digits, once report-spec's `isDigest`, which the use cases judge by too, says it is one. */
 function digestName(digest: string): string {
-  if (!isDigest(digest)) throw new Error('The store was asked for an image by a digest that is not a SHA-256 as a report names one; the use cases refuse one before the store is asked.')
+  if (!isDigest(digest))
+    throw new Error(
+      'The store was asked for an image by a digest that is not a SHA-256 as a report names one; the use cases refuse one before the store is asked.',
+    )
   return digest.slice(DIGEST_PREFIX.length)
 }
 
@@ -374,7 +381,10 @@ function newestRevision(names: readonly string[]): number | null {
 function recordOf(savedBy: string, report: ReportDefinition): { readonly text: string; readonly digest: string } {
   const text = JSON.stringify(report)
   const hex = sha256(text)
-  return { text: `{"format":${String(DRAFT_FORMAT)},"digest":"${hex}","savedBy":${JSON.stringify(savedBy)},"report":${text}}\n`, digest: `${DIGEST_PREFIX}${hex}` }
+  return {
+    text: `{"format":${String(DRAFT_FORMAT)},"digest":"${hex}","savedBy":${JSON.stringify(savedBy)},"report":${text}}\n`,
+    digest: `${DIGEST_PREFIX}${hex}`,
+  }
 }
 
 /** The draft `text` holds, checked: it parses, it is this format's record, and its report is what its digest names, which it gives as `StoredDraft` holds one. */
@@ -385,8 +395,10 @@ function recordIn(where: StoredFile, text: string): Omit<StoredDraft, 'revision'
   } catch {
     throw new StoredRecordError(where, 'json')
   }
-  if (isRecord(record) && typeof record['format'] === 'number' && record['format'] !== DRAFT_FORMAT) throw new StoredRecordError(where, 'format', record['format'])
-  if (!isRecord(record) || record['format'] !== DRAFT_FORMAT || typeof record['savedBy'] !== 'string' || !isRecord(record['report'])) throw new StoredRecordError(where, 'format')
+  if (isRecord(record) && typeof record['format'] === 'number' && record['format'] !== DRAFT_FORMAT)
+    throw new StoredRecordError(where, 'format', record['format'])
+  if (!isRecord(record) || record['format'] !== DRAFT_FORMAT || typeof record['savedBy'] !== 'string' || !isRecord(record['report']))
+    throw new StoredRecordError(where, 'format')
   const hex = sha256(JSON.stringify(record['report']))
   if (record['digest'] !== hex) throw new StoredRecordError(where, 'digest')
   // Not validated again: the digest says it is the report the save validated (0049).

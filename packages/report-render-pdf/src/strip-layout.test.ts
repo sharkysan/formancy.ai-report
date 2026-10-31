@@ -86,22 +86,30 @@ describe('withoutLayoutTables', () => {
   // fontkit chooses its AAT state machine for it, and laying one 'A' out in
   // it does not end; stripped, fontkit chooses no engine, and fontkit and
   // PDFKit lay the 'A' out and embed it.
-  test('a morx that never advances hangs fontkit, and stripped is laid out and embedded', async () => {
-    expect(readFont(NEVER_ADVANCING).ok).toBe(true)
-    expect(fontkit.create(Buffer.from(NEVER_ADVANCING))._layoutEngine.engine?.morxProcessor).toBeDefined()
-    expect(await layOutInWorker(NEVER_ADVANCING, 'A', HANGS)).toBe('no answer')
-    const stripped = withoutLayoutTables(NEVER_ADVANCING)
-    expect(fontkit.create(Buffer.from(stripped))._layoutEngine.engine).toBeUndefined()
-    expect(await layOutInWorker(stripped, 'A', FINISHES)).toBe('laid out')
-  }, FINISHES + HANGS + 5_000)
+  test(
+    'a morx that never advances hangs fontkit, and stripped is laid out and embedded',
+    async () => {
+      expect(readFont(NEVER_ADVANCING).ok).toBe(true)
+      expect(fontkit.create(Buffer.from(NEVER_ADVANCING))._layoutEngine.engine?.morxProcessor).toBeDefined()
+      expect(await layOutInWorker(NEVER_ADVANCING, 'A', HANGS)).toBe('no answer')
+      const stripped = withoutLayoutTables(NEVER_ADVANCING)
+      expect(fontkit.create(Buffer.from(stripped))._layoutEngine.engine).toBeUndefined()
+      expect(await layOutInWorker(stripped, 'A', FINISHES)).toBe('laid out')
+    },
+    FINISHES + HANGS + 5_000,
+  )
 
   // A GSUB fontkit cannot read throws out of pdfmake as a plain error, not
   // a refusal; stripped, the same text is laid out, glyph for glyph.
-  test('a GSUB fontkit throws on is laid out once stripped', async () => {
-    expect(readFont(THROWING).ok).toBe(true)
-    expect(() => fontkit.create(Buffer.from(THROWING)).layout('Af')).toThrow(/Unknown version 10/)
-    const font = fontkit.create(Buffer.from(withoutLayoutTables(THROWING)))
-    expect(ids(font.layout('Af').glyphs)).toEqual(ids(font.glyphsForString('Af')))
-    expect(await layOutInWorker(withoutLayoutTables(THROWING), 'Af', FINISHES)).toBe('laid out')
-  }, FINISHES + 5_000)
+  test(
+    'a GSUB fontkit throws on is laid out once stripped',
+    async () => {
+      expect(readFont(THROWING).ok).toBe(true)
+      expect(() => fontkit.create(Buffer.from(THROWING)).layout('Af')).toThrow(/Unknown version 10/)
+      const font = fontkit.create(Buffer.from(withoutLayoutTables(THROWING)))
+      expect(ids(font.layout('Af').glyphs)).toEqual(ids(font.glyphsForString('Af')))
+      expect(await layOutInWorker(withoutLayoutTables(THROWING), 'Af', FINISHES)).toBe('laid out')
+    },
+    FINISHES + 5_000,
+  )
 })

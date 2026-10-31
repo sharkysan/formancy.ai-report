@@ -87,10 +87,15 @@ export function readVersion(f: Findings, raw: unknown, path: string): Version | 
     return undefined
   }
   const document = copy.value
-  const declared = typeof document === 'object' && document !== null && !Array.isArray(document) ? (document as Record<string, unknown>)['specVersion'] : undefined
+  const declared =
+    typeof document === 'object' && document !== null && !Array.isArray(document) ? (document as Record<string, unknown>)['specVersion'] : undefined
   if (typeof declared === 'string' && !(SPEC_VERSIONS as readonly string[]).includes(declared)) {
     const shown = /^\d{1,8}$/.test(declared) ? `"${declared}"` : 'a version that is no string of digits'
-    f.report(at(path, 'specVersion'), 'unsupported-spec-version', `specVersion ${shown} is not one this release reads: it reads formancy's spec versions ${VERSIONS}, as its @formancy/spec does, and a form of another is refused whole, never partly read`)
+    f.report(
+      at(path, 'specVersion'),
+      'unsupported-spec-version',
+      `specVersion ${shown} is not one this release reads: it reads formancy's spec versions ${VERSIONS}, as its @formancy/spec does, and a form of another is refused whole, never partly read`,
+    )
     return undefined
   }
   const validation = validateSchema(document)

@@ -70,7 +70,15 @@ export interface EuroWords {
   /** A sentence the invoice's law asks for under the terms, with the component's id: none for most. */
   readonly notice?: { readonly id: string; readonly text: string }
   /** The payment details printed beside the code: their heading, the words before each, and the sentence under them. */
-  readonly bank: { readonly heading: string; readonly paidTo: string; readonly iban: string; readonly bic: string; readonly amount: string; readonly reference: string; readonly scan: string }
+  readonly bank: {
+    readonly heading: string
+    readonly paidTo: string
+    readonly iban: string
+    readonly bic: string
+    readonly amount: string
+    readonly reference: string
+    readonly scan: string
+  }
   /** The code's text, before the invoice's number. */
   readonly information: string
   /** What the firm's VAT number is printed after. */
@@ -84,7 +92,8 @@ const NBSP = ' '
 /** Germany: the starter's own words. */
 const GERMAN: EuroWords = {
   title: 'Rechnung mit SEPA-Zahlcode',
-  proves: 'an EPC QR code: a SEPA credit transfer of the invoice’s exact total in euro, by a creditor reference read from the data, beside the payment details it holds, printed in plain text',
+  proves:
+    'an EPC QR code: a SEPA credit transfer of the invoice’s exact total in euro, by a creditor reference read from the data, beside the payment details it holds, printed in plain text',
   labels: {
     number: 'Rechnungsnummer',
     issuedOn: 'Rechnungsdatum',
@@ -114,8 +123,19 @@ const GERMAN: EuroWords = {
   total: 'Rechnungsbetrag',
   empty: 'Keine Positionen.',
   terms: ['Bitte überweisen Sie den Rechnungsbetrag bis zum ', ' auf das unten genannte Konto und geben Sie dabei die Referenz an.'],
-  notice: { id: 'retention', text: 'Sie sind gesetzlich verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige Unterlage zwei Jahre lang aufzubewahren (§ 14b Abs. 1 Satz 5 UStG).' },
-  bank: { heading: 'Bankverbindung', paidTo: 'Empfänger: ', iban: 'IBAN: ', bic: 'BIC: ', amount: 'Betrag: ', reference: 'Referenz: ', scan: 'Oder scannen Sie den Code links mit Ihrer Banking-App.' },
+  notice: {
+    id: 'retention',
+    text: 'Sie sind gesetzlich verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige Unterlage zwei Jahre lang aufzubewahren (§ 14b Abs. 1 Satz 5 UStG).',
+  },
+  bank: {
+    heading: 'Bankverbindung',
+    paidTo: 'Empfänger: ',
+    iban: 'IBAN: ',
+    bic: 'BIC: ',
+    amount: 'Betrag: ',
+    reference: 'Referenz: ',
+    scan: 'Oder scannen Sie den Code links mit Ihrer Banking-App.',
+  },
   information: 'Rechnung ',
   vatNumber: 'USt-IdNr.',
   items: [
@@ -132,7 +152,8 @@ const GERMAN: EuroWords = {
 /** Austria: German as Austria writes an invoice for goods -- "Lieferdatum", "UID-Nr.", "USt". Not reviewed by a native speaker. */
 const AUSTRIAN: EuroWords = {
   title: 'Rechnung mit EPC-QR-Code',
-  proves: 'the euro invoice from Austria: parts sold at Austria’s standard rate, amounts and dates as de-AT prints them, and its EPC QR code in the frame and with the caption Austria’s PSA gives it',
+  proves:
+    'the euro invoice from Austria: parts sold at Austria’s standard rate, amounts and dates as de-AT prints them, and its EPC QR code in the frame and with the caption Austria’s PSA gives it',
   labels: {
     number: 'Rechnungsnummer',
     issuedOn: 'Rechnungsdatum',
@@ -162,7 +183,15 @@ const AUSTRIAN: EuroWords = {
   total: 'Gesamtbetrag',
   empty: 'Keine Positionen.',
   terms: ['Bitte überweisen Sie den Gesamtbetrag bis ', ' auf das unten angeführte Konto und geben Sie dabei die Zahlungsreferenz an.'],
-  bank: { heading: 'Bankverbindung', paidTo: 'Empfänger: ', iban: 'IBAN: ', bic: 'BIC: ', amount: 'Betrag: ', reference: 'Zahlungsreferenz: ', scan: 'Oder scannen Sie den Code links mit Ihrer Banking-App.' },
+  bank: {
+    heading: 'Bankverbindung',
+    paidTo: 'Empfänger: ',
+    iban: 'IBAN: ',
+    bic: 'BIC: ',
+    amount: 'Betrag: ',
+    reference: 'Zahlungsreferenz: ',
+    scan: 'Oder scannen Sie den Code links mit Ihrer Banking-App.',
+  },
   information: 'Rechnung ',
   vatNumber: 'UID-Nr.',
   items: [
@@ -177,7 +206,8 @@ const AUSTRIAN: EuroWords = {
 /** France. Not reviewed by a native speaker. */
 const FRENCH: EuroWords = {
   title: 'Facture avec QR code SEPA',
-  proves: 'the euro invoice from France: parts sold at France’s standard rate, its own words, and its amounts and dates as fr-FR prints them, every amount under a thousand so that no narrow no-break space groups its digits',
+  proves:
+    'the euro invoice from France: parts sold at France’s standard rate, its own words, and its amounts and dates as fr-FR prints them, every amount under a thousand so that no narrow no-break space groups its digits',
   labels: {
     number: 'Numéro de facture',
     issuedOn: 'Date de facture',
@@ -242,7 +272,8 @@ const FRENCH: EuroWords = {
  */
 const ITALIAN: EuroWords = {
   title: 'Fattura con QR code SEPA',
-  proves: 'the euro invoice from Italy: parts sold at Italy’s standard rate, its own words, its amounts and dates as it-IT prints them, and a courtesy copy’s notice',
+  proves:
+    'the euro invoice from Italy: parts sold at Italy’s standard rate, its own words, its amounts and dates as it-IT prints them, and a courtesy copy’s notice',
   labels: {
     number: 'Numero fattura',
     issuedOn: 'Data fattura',
@@ -272,8 +303,19 @@ const ITALIAN: EuroWords = {
   total: 'Totale fattura',
   empty: 'Nessuna riga.',
   terms: ['Vi preghiamo di effettuare il bonifico entro il ', ' sul conto riportato qui sotto, indicando il riferimento.'],
-  notice: { id: 'courtesy-copy', text: 'Copia di cortesia: l’originale della fattura elettronica, trasmessa tramite il Sistema di Interscambio, è a vostra disposizione nell’area riservata del sito dell’Agenzia delle Entrate.' },
-  bank: { heading: 'Coordinate bancarie', paidTo: 'Beneficiario: ', iban: 'IBAN: ', bic: 'BIC: ', amount: 'Importo: ', reference: 'Riferimento: ', scan: 'Oppure inquadrate il codice a sinistra con la vostra app bancaria.' },
+  notice: {
+    id: 'courtesy-copy',
+    text: 'Copia di cortesia: l’originale della fattura elettronica, trasmessa tramite il Sistema di Interscambio, è a vostra disposizione nell’area riservata del sito dell’Agenzia delle Entrate.',
+  },
+  bank: {
+    heading: 'Coordinate bancarie',
+    paidTo: 'Beneficiario: ',
+    iban: 'IBAN: ',
+    bic: 'BIC: ',
+    amount: 'Importo: ',
+    reference: 'Riferimento: ',
+    scan: 'Oppure inquadrate il codice a sinistra con la vostra app bancaria.',
+  },
   information: 'Fattura ',
   vatNumber: 'P.IVA',
   items: [
@@ -318,7 +360,15 @@ const SPANISH: EuroWords = {
   total: 'Total factura',
   empty: 'Ninguna línea.',
   terms: ['Le rogamos que transfiera el importe a más tardar el ', ' a la cuenta que figura abajo, indicando la referencia.'],
-  bank: { heading: 'Datos bancarios', paidTo: 'Beneficiario: ', iban: 'IBAN: ', bic: 'BIC: ', amount: 'Importe: ', reference: 'Referencia: ', scan: 'O escanee el código de la izquierda con su app bancaria.' },
+  bank: {
+    heading: 'Datos bancarios',
+    paidTo: 'Beneficiario: ',
+    iban: 'IBAN: ',
+    bic: 'BIC: ',
+    amount: 'Importe: ',
+    reference: 'Referencia: ',
+    scan: 'O escanee el código de la izquierda con su app bancaria.',
+  },
   information: 'Factura ',
   vatNumber: 'NIF',
   items: [
@@ -363,7 +413,15 @@ const DUTCH: EuroWords = {
   total: 'Totaal incl. btw',
   empty: 'Geen regels.',
   terms: ['Wij verzoeken u het factuurbedrag uiterlijk ', ' over te maken op de onderstaande rekening, onder vermelding van het betalingskenmerk.'],
-  bank: { heading: 'Bankgegevens', paidTo: 'Begunstigde: ', iban: 'IBAN: ', bic: 'BIC: ', amount: 'Bedrag: ', reference: 'Betalingskenmerk: ', scan: 'Of scan de code links met uw bankapp.' },
+  bank: {
+    heading: 'Bankgegevens',
+    paidTo: 'Begunstigde: ',
+    iban: 'IBAN: ',
+    bic: 'BIC: ',
+    amount: 'Bedrag: ',
+    reference: 'Betalingskenmerk: ',
+    scan: 'Of scan de code links met uw bankapp.',
+  },
   information: 'Factuur ',
   vatNumber: 'btw-id',
   items: [
@@ -378,7 +436,8 @@ const DUTCH: EuroWords = {
 /** Ireland. Not reviewed by a native speaker. */
 const IRISH: EuroWords = {
   title: 'Invoice with an EPC QR code',
-  proves: 'the euro invoice from Ireland: parts sold at Ireland’s standard rate, its own words, an address in Ireland’s order, and its amounts and dates as en-IE prints them',
+  proves:
+    'the euro invoice from Ireland: parts sold at Ireland’s standard rate, its own words, an address in Ireland’s order, and its amounts and dates as en-IE prints them',
   labels: {
     number: 'Invoice number',
     issuedOn: 'Invoice date',
@@ -409,7 +468,15 @@ const IRISH: EuroWords = {
   total: 'Total due',
   empty: 'No items.',
   terms: ['Please pay the total due by ', ' to the account below, quoting the reference.'],
-  bank: { heading: 'Bank details', paidTo: 'Payee: ', iban: 'IBAN: ', bic: 'BIC: ', amount: 'Amount: ', reference: 'Reference: ', scan: 'Or scan the code on the left with your banking app.' },
+  bank: {
+    heading: 'Bank details',
+    paidTo: 'Payee: ',
+    iban: 'IBAN: ',
+    bic: 'BIC: ',
+    amount: 'Amount: ',
+    reference: 'Reference: ',
+    scan: 'Or scan the code on the left with your banking app.',
+  },
   information: 'Invoice ',
   vatNumber: 'VAT No.',
   items: [

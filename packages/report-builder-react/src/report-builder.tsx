@@ -28,7 +28,18 @@
 import { useCallback, useId, useLayoutEffect, useMemo, useRef } from 'react'
 import type { KeyboardEvent, ReactElement, ReactNode } from 'react'
 import { actionForKey, editorText } from '@formancy/report-builder-core'
-import type { ComponentSelection, DiagnosticEntry, DragSubject, DropTarget, EditorAction, EditorOutcome, EditorPanel, HideablePanel, PropertyAction, ReportEditor } from '@formancy/report-builder-core'
+import type {
+  ComponentSelection,
+  DiagnosticEntry,
+  DragSubject,
+  DropTarget,
+  EditorAction,
+  EditorOutcome,
+  EditorPanel,
+  HideablePanel,
+  PropertyAction,
+  ReportEditor,
+} from '@formancy/report-builder-core'
 import type { ComponentKind } from '@formancy/report-spec'
 import { Canvas } from './canvas.js'
 import { Diagnostics } from './diagnostics.js'
@@ -98,50 +109,59 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
   const closed = useRef<DragSubject | null>(null)
   const wanted = useRef<FocusAfter | null>(null)
 
-  const focus = useCallback((where: FocusAfter): void => {
-    const selectedRow = (): HTMLElement | null => tree.current?.querySelector<HTMLElement>('[role="treeitem"][aria-selected="true"]') ?? null
-    if (typeof where === 'object') {
-      // The groups stand in the form in the order of the state's rows: the one with the key, by its place among them.
-      const groups = editor.state().properties.rows.flatMap((row) => ('group' in row ? [row.group.key] : []))
-      const element = fields.current?.querySelectorAll<HTMLElement>('[data-report-part="property-group"]')[groups.indexOf(where.group)]
-      return (where.button === undefined ? element?.querySelector<HTMLElement>('input, select, textarea') : element?.querySelectorAll<HTMLElement>(':scope > button')[where.button])?.focus()
-    }
-    switch (where) {
-      // After an action that leaves nothing selected -- an undo of an
-      // insert -- the tree itself: a row given focus would select itself,
-      // and the next Delete would delete what nobody chose.
-      case 'selection':
-        return (selectedRow() ?? tree.current)?.focus()
-      // Shown from the toolbar: the tree's tab stop, as Tab would reach it.
-      case 'outline':
-        return (selectedRow() ?? tree.current?.querySelector<HTMLElement>('[role="treeitem"][tabindex="0"]') ?? tree.current)?.focus()
-      case 'places':
-        return root.current?.querySelector<HTMLElement>('[data-report-part="places"] button')?.focus()
-      // What opened the place dialog; when another builder opened it -- the
-      // drag outlived the builder that started it -- the palette entry of
-      // what is being placed, or what is being moved, which stay in the
-      // outline pane the dialog floated over.
-      case 'opener': {
-        const subject = closed.current
-        const from =
-          opener.current ??
-          (subject !== null && 'kind' in subject ? root.current?.querySelector<HTMLElement>(`[data-report-part="palette-item"][data-kind="${subject.kind}"]`) : null) ??
-          selectedRow() ??
-          tree.current
-        opener.current = null
-        closed.current = null
-        return from?.focus()
+  const focus = useCallback(
+    (where: FocusAfter): void => {
+      const selectedRow = (): HTMLElement | null => tree.current?.querySelector<HTMLElement>('[role="treeitem"][aria-selected="true"]') ?? null
+      if (typeof where === 'object') {
+        // The groups stand in the form in the order of the state's rows: the one with the key, by its place among them.
+        const groups = editor.state().properties.rows.flatMap((row) => ('group' in row ? [row.group.key] : []))
+        const element = fields.current?.querySelectorAll<HTMLElement>('[data-report-part="property-group"]')[groups.indexOf(where.group)]
+        return (
+          where.button === undefined
+            ? element?.querySelector<HTMLElement>('input, select, textarea')
+            : element?.querySelectorAll<HTMLElement>(':scope > button')[where.button]
+        )?.focus()
       }
-      // The design view, or the host's view standing in its place.
-      case 'canvas':
-        return (canvas.current ?? view.current)?.focus()
-      case 'properties':
-        return fields.current?.querySelector<HTMLElement>('input, select, textarea')?.focus()
-      case 'diagnostics':
-        // The list, not its first entry: what is said first is how many there are.
-        return problemList.current?.focus()
-    }
-  }, [editor])
+      switch (where) {
+        // After an action that leaves nothing selected -- an undo of an
+        // insert -- the tree itself: a row given focus would select itself,
+        // and the next Delete would delete what nobody chose.
+        case 'selection':
+          return (selectedRow() ?? tree.current)?.focus()
+        // Shown from the toolbar: the tree's tab stop, as Tab would reach it.
+        case 'outline':
+          return (selectedRow() ?? tree.current?.querySelector<HTMLElement>('[role="treeitem"][tabindex="0"]') ?? tree.current)?.focus()
+        case 'places':
+          return root.current?.querySelector<HTMLElement>('[data-report-part="places"] button')?.focus()
+        // What opened the place dialog; when another builder opened it -- the
+        // drag outlived the builder that started it -- the palette entry of
+        // what is being placed, or what is being moved, which stay in the
+        // outline pane the dialog floated over.
+        case 'opener': {
+          const subject = closed.current
+          const from =
+            opener.current ??
+            (subject !== null && 'kind' in subject
+              ? root.current?.querySelector<HTMLElement>(`[data-report-part="palette-item"][data-kind="${subject.kind}"]`)
+              : null) ??
+            selectedRow() ??
+            tree.current
+          opener.current = null
+          closed.current = null
+          return from?.focus()
+        }
+        // The design view, or the host's view standing in its place.
+        case 'canvas':
+          return (canvas.current ?? view.current)?.focus()
+        case 'properties':
+          return fields.current?.querySelector<HTMLElement>('input, select, textarea')?.focus()
+        case 'diagnostics':
+          // The list, not its first entry: what is said first is how many there are.
+          return problemList.current?.focus()
+      }
+    },
+    [editor],
+  )
 
   // After a render, the focus the action that caused it asked for: only now
   // is the row it selected, or the pane it opened, in the document.
@@ -232,7 +252,10 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
   }
 
   function choose(subject: DragSubject, target: DropTarget): void {
-    act('kind' in subject ? { type: 'insert', kind: subject.kind, target: target.location } : { type: 'move', id: subject.id, target: target.location }, 'selection')
+    act(
+      'kind' in subject ? { type: 'insert', kind: subject.kind, target: target.location } : { type: 'move', id: subject.id, target: target.location },
+      'selection',
+    )
   }
 
   function follow(entry: DiagnosticEntry): void {
@@ -248,7 +271,12 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
 
   /** A side pane's Hide, named after the pane; the design view takes its room and the keyboard. */
   const hide = (panel: HideablePanel, name: string): ReactElement => (
-    <button type="button" data-report-part="hide-pane" aria-label={t('action.hidePane', { pane: name })} onClick={() => act({ type: 'hidePanel', panel }, 'canvas')}>
+    <button
+      type="button"
+      data-report-part="hide-pane"
+      aria-label={t('action.hidePane', { pane: name })}
+      onClick={() => act({ type: 'hidePanel', panel }, 'canvas')}
+    >
       {t('action.hide')}
     </button>
   )
@@ -351,7 +379,11 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
                   ids={ids}
                   act={act}
                   press={(action) => act(action.action, action.then)}
-                  library={state.selection === null ? <ImageLibrary state={state} t={t} ids={ids} remove={(asset) => act({ type: 'removeImage', asset }, 'properties')} /> : null}
+                  library={
+                    state.selection === null ? (
+                      <ImageLibrary state={state} t={t} ids={ids} remove={(asset) => act({ type: 'removeImage', asset }, 'properties')} />
+                    ) : null
+                  }
                 />
               </div>
             </>

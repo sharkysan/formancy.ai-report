@@ -34,7 +34,7 @@ describe('a module', () => {
   // which the frame's right line runs through. Every part counted, they
   // are the square's side exactly; across, the frame is shorter than the
   // band is wide, so it stands inside the square both ways.
-  test("leaves the frame and the caption their room in the square, and no more", () => {
+  test('leaves the frame and the caption their room in the square, and no more', () => {
     for (const version of [1, 6, 13]) {
       const symbol = qrSymbolModules(version)
       const module = epcModule(85.04, version, 'zahlenMitCode')
@@ -88,7 +88,9 @@ describe('the room a code with the caption has', () => {
       `with the caption, this version 7 code's symbol is 51.35 pt tall in a square of 68.05 pt, shorter than the caption beside it, "Zahlen mit Code" at 7 pt, 51.36 pt long`,
     )
     // Modules of 15 to 20 mil, and still too short: version 5 in 70 pt has modules of 0.488 mm.
-    expect(epcCaptionBreak(70, 5)).toMatch(/^with the caption, this version 5 code's symbol is 51\.23 pt tall in a square of 70 pt, shorter than the caption beside it/)
+    expect(epcCaptionBreak(70, 5)).toMatch(
+      /^with the caption, this version 5 code's symbol is 51\.23 pt tall in a square of 70 pt, shorter than the caption beside it/,
+    )
     // Version 1, the smallest, has modules of exactly 15 mil in 38.86 pt, and a symbol of 22.68 pt.
     expect(epcCaptionBreak(38.86, 1)).toMatch(/this version 1 code's symbol is 22\.68 pt tall/)
   })
@@ -125,14 +127,20 @@ describe('the room a code with the caption has', () => {
   // refuse that version's modules, in the same words' measure: what is
   // refused is said to the thousandth past the bound, never as the bound.
   test("is refused for the version a render encodes, when that version's modules are outside the PSA's", () => {
-    expect(epcCaptionBreak(85.04, 6)).toBe('with the caption, this version 6 code has modules of 0.557 mm in a square of 85.04 pt; the PSA prints them from 0.381 to 0.508 mm (15 to 20 mil) wide')
-    expect(epcCaptionBreak(85.04, 13)).toBe('with the caption, this version 13 code has modules of 0.355 mm in a square of 85.04 pt; the PSA prints them from 0.381 to 0.508 mm (15 to 20 mil) wide')
+    expect(epcCaptionBreak(85.04, 6)).toBe(
+      'with the caption, this version 6 code has modules of 0.557 mm in a square of 85.04 pt; the PSA prints them from 0.381 to 0.508 mm (15 to 20 mil) wide',
+    )
+    expect(epcCaptionBreak(85.04, 13)).toBe(
+      'with the caption, this version 13 code has modules of 0.355 mm in a square of 85.04 pt; the PSA prints them from 0.381 to 0.508 mm (15 to 20 mil) wide',
+    )
     expect(epcCaptionBreak(85.04, 9)).toBeUndefined()
     // A version 8 code in 69.1 pt has modules of 0.381 mm exactly, which a
     // float computes as 0.38099999999999995: compared so, the bound itself
     // would be refused.
     expect(epcCaptionBreak(69.1, 8)).toBeUndefined()
-    expect(epcCaptionBreak(69.09, 8)).toBe('with the caption, this version 8 code has modules of 0.380 mm in a square of 69.09 pt; the PSA prints them from 0.381 to 0.508 mm (15 to 20 mil) wide')
+    expect(epcCaptionBreak(69.09, 8)).toBe(
+      'with the caption, this version 8 code has modules of 0.380 mm in a square of 69.09 pt; the PSA prints them from 0.381 to 0.508 mm (15 to 20 mil) wide',
+    )
     expect(epcCaptionBreak(38.86, 2)).toMatch(/this version 2 code has modules of 0\.335 mm in a square of 38\.86 pt/)
   })
 })

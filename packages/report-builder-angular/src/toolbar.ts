@@ -27,7 +27,12 @@ interface Tool {
 
 function tools(state: EditorState, t: EditorText): Tool[] {
   const { history, can } = state
-  const tool = (label: Parameters<EditorText>[0], use: Use, available: boolean, title: string | null = null): Tool => ({ label: t(label), use, available, title })
+  const tool = (label: Parameters<EditorText>[0], use: Use, available: boolean, title: string | null = null): Tool => ({
+    label: t(label),
+    use,
+    available,
+    title,
+  })
   const act = (action: EditorAction): Use => ({ action })
   return [
     tool('action.undo', act({ type: 'undo' }), history.canUndo, history.undoLabel === null ? null : t('action.undoWhat', { label: history.undoLabel })),

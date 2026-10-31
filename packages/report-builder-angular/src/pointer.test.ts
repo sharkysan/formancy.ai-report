@@ -33,7 +33,11 @@ const transfer = (): object => ({ effectAllowed: '', dropEffect: '', setData: ()
  * Testing Library's fallback drops clientX and clientY, so these are mouse
  * events carrying a DataTransfer, as formancy.ai's builders' tests make them.
  */
-function dragEvent(type: string, at: { readonly clientX: number; readonly clientY: number } = { clientX: 0, clientY: 0 }, dataTransfer: object | null = transfer()): Event {
+function dragEvent(
+  type: string,
+  at: { readonly clientX: number; readonly clientY: number } = { clientX: 0, clientY: 0 },
+  dataTransfer: object | null = transfer(),
+): Event {
   const event = new MouseEvent(type, { bubbles: true, cancelable: true, ...at })
   Object.defineProperty(event, 'dataTransfer', { value: dataTransfer })
   return event
@@ -81,7 +85,8 @@ describe('the design view', () => {
     Object.defineProperty(sheet, 'clientTop', { value: 1 })
     screen.getByRole('button', { name: 'Text' }).dispatchEvent(dragEvent('dragstart'))
     await settle()
-    const place = (label: string) => editor.state().dropTargets.find((candidate) => candidate.label === label) as NonNullable<ReturnType<typeof editor.state>['dropTargets'][number]>
+    const place = (label: string) =>
+      editor.state().dropTargets.find((candidate) => candidate.label === label) as NonNullable<ReturnType<typeof editor.state>['dropTargets'][number]>
     const before = place('Body, before Findings')
     const after = place('Body, after Findings')
     const middle = (before.px.y + before.px.height / 2 + after.px.y + after.px.height / 2) / 2
@@ -114,7 +119,11 @@ describe('the design view', () => {
     findings.dispatchEvent(dragEvent('dragend'))
     await settle()
     expect(editor.state().drag).toBeNull()
-    expect(within(screen.getByRole('group', { name: 'Body' })).getAllByRole('treeitem').map((row) => row.textContent)).toEqual(['Introduction', 'Findings', 'Section', 'Note', 'Spacer'])
+    expect(
+      within(screen.getByRole('group', { name: 'Body' }))
+        .getAllByRole('treeitem')
+        .map((row) => row.textContent),
+    ).toEqual(['Introduction', 'Findings', 'Section', 'Note', 'Spacer'])
     expect(document.activeElement).toBe(screen.getByRole('treeitem', { name: 'Findings', selected: true }))
 
     TestBed.resetTestingModule()
@@ -127,7 +136,14 @@ describe('the design view', () => {
   // renderer's to say.
   test('says why a box is marked as wider than the space it stands in', async () => {
     const report = scenarioReport()
-    const side = { id: 'side', kind: 'columns', columns: [{ width: 100, components: [{ id: 'wide', kind: 'rectangle', width: 150, height: 20 }] }, { width: 'fill', components: [] }] }
+    const side = {
+      id: 'side',
+      kind: 'columns',
+      columns: [
+        { width: 100, components: [{ id: 'wide', kind: 'rectangle', width: 150, height: 20 }] },
+        { width: 'fill', components: [] },
+      ],
+    }
     await mountBuilder(createReportEditor(sessionOver({ ...report, regions: { ...report.regions, body: [...report.regions.body, side] } })))
     expect(within(design()).getByTitle('Wider than the space it stands in')).toBe(box('Rectangle'))
   })
@@ -155,7 +171,11 @@ describe('the design view', () => {
     text.dispatchEvent(dragEvent('dragend'))
     await settle()
     expect(editor.state().drag).toBeNull()
-    expect(within(screen.getByRole('group', { name: 'Body' })).getAllByRole('treeitem').map((row) => row.textContent)).toEqual(['Findings', 'Introduction', 'Section', 'Note', 'Spacer', 'New text'])
+    expect(
+      within(screen.getByRole('group', { name: 'Body' }))
+        .getAllByRole('treeitem')
+        .map((row) => row.textContent),
+    ).toEqual(['Findings', 'Introduction', 'Section', 'Note', 'Spacer', 'New text'])
   })
 
   // Moving a box by dragging it is the same move the keyboard's Move to…
@@ -171,7 +191,11 @@ describe('the design view', () => {
     box('Note').dispatchEvent(dragEvent('drop', at))
     box('Findings').dispatchEvent(dragEvent('dragend'))
     await settle()
-    expect(within(screen.getByRole('group', { name: 'Body' })).getAllByRole('treeitem').map((row) => row.textContent)).toEqual(['Introduction', 'Section', 'Note', 'Findings', 'Spacer'])
+    expect(
+      within(screen.getByRole('group', { name: 'Body' }))
+        .getAllByRole('treeitem')
+        .map((row) => row.textContent),
+    ).toEqual(['Introduction', 'Section', 'Note', 'Findings', 'Spacer'])
   })
 
   // A drag let go of outside the sheet must not leave the editor

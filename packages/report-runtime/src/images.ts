@@ -92,7 +92,11 @@ export function imageBlock(render: Render, component: ImageComponent, path: stri
   let declared: AssetMediaType | undefined
   if (source.kind === 'asset') {
     // report-spec refuses an image of an asset the report does not declare.
-    const asset = render.report.assets.find(({ id }) => id === source.asset) as { readonly id: string; readonly mediaType: AssetMediaType; readonly digest: string }
+    const asset = render.report.assets.find(({ id }) => id === source.asset) as {
+      readonly id: string
+      readonly mediaType: AssetMediaType
+      readonly digest: string
+    }
     ref = { asset: asset.id, digest: asset.digest }
     declared = asset.mediaType
   } else {
@@ -102,7 +106,13 @@ export function imageBlock(render: Render, component: ImageComponent, path: stri
   }
   const asset = assetOf(render, ref, declared)
   if ('code' in asset) {
-    render.problems.error({ stage: 'resolve', code: asset.code, path: `${path}/source`, message: `component ${component.id}: ${asset.message}`, componentId: component.id })
+    render.problems.error({
+      stage: 'resolve',
+      code: asset.code,
+      path: `${path}/source`,
+      message: `component ${component.id}: ${asset.message}`,
+      componentId: component.id,
+    })
     return undefined
   }
   return { kind: 'image', asset, width: component.width, height: component.height, fit: component.fit }

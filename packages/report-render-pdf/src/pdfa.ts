@@ -72,7 +72,14 @@ export function embedEInvoice(file: FacturXFile, created: Date): Finish {
   const xml = exactBuffer(new TextEncoder().encode(file.xml))
   const description = `E-invoice XML, ${file.conformanceLevel}`
   return (document) => {
-    document.file(xml, { name: file.fileName, type: FACTUR_X.mediaType, description, relationship: file.relationship, creationDate: created, modifiedDate: created })
+    document.file(xml, {
+      name: file.fileName,
+      type: FACTUR_X.mediaType,
+      description,
+      relationship: file.relationship,
+      creationDate: created,
+      modifiedDate: created,
+    })
     document.appendXML(facturXmp(file))
   }
 }

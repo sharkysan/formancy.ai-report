@@ -137,7 +137,10 @@ export const HOSTS = {
     tools: { typescript: TYPESCRIPT, esbuild: ESBUILD },
     tsconfig: {
       file: 'tsconfig.client.json',
-      content: { compilerOptions: { ...STRICT, ...BROWSER, target: 'ES2023', module: 'preserve', moduleResolution: 'bundler', noEmit: true }, include: ['client.ts'] },
+      content: {
+        compilerOptions: { ...STRICT, ...BROWSER, target: 'ES2023', module: 'preserve', moduleResolution: 'bundler', noEmit: true },
+        include: ['client.ts'],
+      },
     },
     steps: [
       { name: 'type-check', command: ['tsc', '-p', 'tsconfig.client.json'] },
@@ -154,7 +157,10 @@ export const HOSTS = {
     // react.tsx to React.createElement, and it dies on "React is not defined".
     tsconfig: {
       file: 'tsconfig.react.json',
-      content: { compilerOptions: { ...STRICT, ...BROWSER, target: 'ES2023', module: 'NodeNext', moduleResolution: 'nodenext', jsx: 'react-jsx', noEmit: true }, include: ['react.tsx'] },
+      content: {
+        compilerOptions: { ...STRICT, ...BROWSER, target: 'ES2023', module: 'NodeNext', moduleResolution: 'nodenext', jsx: 'react-jsx', noEmit: true },
+        include: ['react.tsx'],
+      },
     },
     steps: [
       { name: 'type-check', command: ['tsc', '-p', 'tsconfig.react.json'] },
@@ -207,7 +213,9 @@ export const HOSTS = {
     peers: ['@angular/core'],
     // compiler-cli compiles the host and links the builder, which needs the
     // compiler; common and the two platforms draw it on a server.
-    follows: Object.fromEntries(['common', 'compiler', 'compiler-cli', 'platform-browser', 'platform-server'].map((name) => [`@angular/${name}`, ['@angular/core', together]])),
+    follows: Object.fromEntries(
+      ['common', 'compiler', 'compiler-cli', 'platform-browser', 'platform-server'].map((name) => [`@angular/${name}`, ['@angular/core', together]]),
+    ),
     // What @angular/core's declarations import, and the stylesheet the guide's page lists.
     fixed: { rxjs: '^7.8.1', '@formancy/themes': THEMES },
     tools: { typescript: TYPESCRIPT, esbuild: ESBUILD },
@@ -223,12 +231,46 @@ export const HOSTS = {
     },
     steps: [
       { name: 'compile ahead of time', command: ['ngc', '-p', 'tsconfig.angular.json'] },
-      { name: 'server build', command: ['node', 'build.mjs', '--platform', 'node', '--entry', 'out/angular.js', '--outfile', 'out/angular.server.mjs', '--link', '@formancy/report-builder-angular'] },
+      {
+        name: 'server build',
+        command: [
+          'node',
+          'build.mjs',
+          '--platform',
+          'node',
+          '--entry',
+          'out/angular.js',
+          '--outfile',
+          'out/angular.server.mjs',
+          '--link',
+          '@formancy/report-builder-angular',
+        ],
+      },
       { name: 'run', command: ['node', 'out/angular.server.mjs'] },
-      { name: 'browser build', command: ['node', 'build.mjs', '--platform', 'browser', '--exports', '@formancy/report-builder-angular', '--link', '@formancy/report-builder-angular'] },
-      { name: 'guide: server build', command: ['node', 'build.mjs', '--platform', 'node', '--entry', 'out/guide-angular.js', '--outfile', 'out/guide-angular.server.mjs', '--link', '@formancy/report-builder-angular'] },
+      {
+        name: 'browser build',
+        command: ['node', 'build.mjs', '--platform', 'browser', '--exports', '@formancy/report-builder-angular', '--link', '@formancy/report-builder-angular'],
+      },
+      {
+        name: 'guide: server build',
+        command: [
+          'node',
+          'build.mjs',
+          '--platform',
+          'node',
+          '--entry',
+          'out/guide-angular.js',
+          '--outfile',
+          'out/guide-angular.server.mjs',
+          '--link',
+          '@formancy/report-builder-angular',
+        ],
+      },
       { name: 'guide: run', command: ['node', 'out/guide-angular.server.mjs'] },
-      { name: 'guide: browser build', command: ['node', 'build.mjs', '--platform', 'browser', '--modules', 'out/guide', '--link', '@formancy/report-builder-angular'] },
+      {
+        name: 'guide: browser build',
+        command: ['node', 'build.mjs', '--platform', 'browser', '--modules', 'out/guide', '--link', '@formancy/report-builder-angular'],
+      },
     ],
   },
 }
@@ -298,7 +340,9 @@ function packagesOf(kind, host, main, manifests) {
 export function planProjects(manifests) {
   const builders = new Set(Object.values(HOSTS).flatMap((host) => (host.builder === undefined ? [] : [host.builder])))
   const served = new Set(Object.values(HOSTS).flatMap((host) => (host.serves === undefined ? [] : [host.serves])))
-  const orphans = [...manifests].filter(([name, manifest]) => !builders.has(name) && Object.keys(manifest.peerDependencies ?? {}).length > 0).map(([name]) => name)
+  const orphans = [...manifests]
+    .filter(([name, manifest]) => !builders.has(name) && Object.keys(manifest.peerDependencies ?? {}).length > 0)
+    .map(([name]) => name)
   if (orphans.length > 0) throw new Error(`no host installs ${orphans.join(', ')}, which declares peers; give it one in install-hosts.mjs`)
 
   return Object.entries(HOSTS).flatMap(([kind, host]) => {
@@ -317,11 +361,19 @@ export function planProjects(manifests) {
       return [{ name: kind, at: null, packages: packagesOf(kind, host, host.serves, manifests), framework: {}, ...common }]
     }
     if (host.builder === undefined) {
-      return [{ name: kind, at: null, packages: [...manifests.keys()].filter((name) => !builders.has(name) && !served.has(name)).sort(), framework: {}, ...common }]
+      return [
+        { name: kind, at: null, packages: [...manifests.keys()].filter((name) => !builders.has(name) && !served.has(name)).sort(), framework: {}, ...common },
+      ]
     }
     const manifest = manifests.get(host.builder)
     if (manifest === undefined) throw new Error(`${host.builder} was not packed, so its host has nothing to check`)
     const packages = packagesOf(kind, host, host.builder, manifests)
-    return ['newest', 'floor'].map((at) => ({ name: at === 'floor' ? `${kind}-floor` : kind, at, packages, framework: frameworkOf(host, manifest, at), ...common }))
+    return ['newest', 'floor'].map((at) => ({
+      name: at === 'floor' ? `${kind}-floor` : kind,
+      at,
+      packages,
+      framework: frameworkOf(host, manifest, at),
+      ...common,
+    }))
   })
 }

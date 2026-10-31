@@ -77,14 +77,22 @@ export function eachCase(prefix: string): EachCase {
 export const HOST = { secret: 'a-throwaway-test-secret-of-at-least-32-bytes', issuer: 'https://host.example', audience: 'formancy-report' } as const
 
 /** The verifier a deployment gives the server, over that host. */
-export const hostVerifier = (): Promise<ReportVerifier> => createReportVerifier({ key: { kind: 'secret', secret: HOST.secret }, issuer: HOST.issuer, audience: HOST.audience, tenantClaim: 'tid' })
+export const hostVerifier = (): Promise<ReportVerifier> =>
+  createReportVerifier({ key: { kind: 'secret', secret: HOST.secret }, issuer: HOST.issuer, audience: HOST.audience, tenantClaim: 'tid' })
 
 /**
  * An HS256 token as that host signs one: subject u-1 of tenant acme, an
  * author, for five minutes, unless `claims` or `change` say otherwise.
  */
 export const signed = (claims: Record<string, unknown> = {}, change: (jwt: SignJWT) => SignJWT = (jwt) => jwt): Promise<string> =>
-  change(new SignJWT({ tid: 'acme', roles: ['report-authors'], ...claims }).setProtectedHeader({ alg: 'HS256' }).setIssuer(HOST.issuer).setAudience(HOST.audience).setSubject('u-1').setExpirationTime('5m')).sign(new TextEncoder().encode(HOST.secret))
+  change(
+    new SignJWT({ tid: 'acme', roles: ['report-authors'], ...claims })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuer(HOST.issuer)
+      .setAudience(HOST.audience)
+      .setSubject('u-1')
+      .setExpirationTime('5m'),
+  ).sign(new TextEncoder().encode(HOST.secret))
 
 /**
  * Writes `text` to a server listening on `port`, as a client that may never

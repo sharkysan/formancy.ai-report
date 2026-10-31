@@ -33,7 +33,8 @@ const temporary = () => {
   return dir
 }
 
-const PAGE = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8" /><title>t</title></head><body><script type="module" src="/src/main.js"></script></body></html>\n'
+const PAGE =
+  '<!doctype html>\n<html lang="en"><head><meta charset="utf-8" /><title>t</title></head><body><script type="module" src="/src/main.js"></script></body></html>\n'
 
 /**
  * A project: `files` maps a path in it to its contents, `links` a path in it
@@ -68,7 +69,8 @@ const pkg = (name, version, files = {}, manifest = {}) => ({
 })
 
 /** A script that imports each package's function and calls it, so nothing is shaken out. */
-const uses = (...names) => `${names.map((name, index) => `import { name as n${String(index)} } from '${name}'`).join('\n')}\nconsole.log(${names.map((_, index) => `n${String(index)}()`).join(', ')})\n`
+const uses = (...names) =>
+  `${names.map((name, index) => `import { name as n${String(index)} } from '${name}'`).join('\n')}\nconsole.log(${names.map((_, index) => `n${String(index)}()`).join(', ')})\n`
 
 /**
  * The project built with the plugin, in memory: every chunk's modules,
@@ -122,7 +124,12 @@ describe('the notices a build writes', () => {
       // plain first, so the bundler meets the packages out of name order.
       'src/main.js': `import plain from 'plain'\nconsole.log(plain)\n${uses('formal')}import('./lazy.js').then((lazy) => console.log(lazy.more()))\n`,
       'src/lazy.js': "export { more } from 'formal/more.js'\n",
-      ...pkg('formal', '2.1.0', { 'LICENSE.txt': APACHE, NOTICE: FORMAL_NOTICE, 'README.md': 'Formal, the readme.\n', 'more.js': 'export function more() {\n  return 1\n}\n' }, { license: 'Apache-2.0' }),
+      ...pkg(
+        'formal',
+        '2.1.0',
+        { 'LICENSE.txt': APACHE, NOTICE: FORMAL_NOTICE, 'README.md': 'Formal, the readme.\n', 'more.js': 'export function more() {\n  return 1\n}\n' },
+        { license: 'Apache-2.0' },
+      ),
       // CommonJS, so the bundler writes its runtime helper into the chunk.
       'node_modules/plain/package.json': JSON.stringify({ name: 'plain', version: '1.0.0', main: 'index.js', license: 'MIT' }),
       'node_modules/plain/index.js': "module.exports = 'plain'\n",
@@ -186,7 +193,13 @@ describe('the notices a build writes', () => {
     const VENDOR_A = 'Vendor A License\n\nCopyright (c) 2026 A\n'
     const VENDOR_B = 'Vendor B License\n\nCopyright (c) 2026 B\n'
     const twin = (under) => ({
-      [`node_modules/${under}/node_modules/twin/package.json`]: JSON.stringify({ name: 'twin', version: '3.0.0', type: 'module', main: 'index.js', license: 'MIT' }),
+      [`node_modules/${under}/node_modules/twin/package.json`]: JSON.stringify({
+        name: 'twin',
+        version: '3.0.0',
+        type: 'module',
+        main: 'index.js',
+        license: 'MIT',
+      }),
       [`node_modules/${under}/node_modules/twin/index.js`]: 'export function name() {\n  return "twin"\n}\n',
       [`node_modules/${under}/node_modules/twin/LICENSE`]: MIT,
       [`node_modules/${under}/node_modules/twin/vendor-a/index.js`]: 'export function a() {\n  return "a"\n}\n',
@@ -196,17 +209,27 @@ describe('the notices a build writes', () => {
     })
     const root = project({
       'src/main.js': uses('left', 'right'),
-      ...pkg('left', '1.0.0', { LICENSE: MIT, 'index.js': "import { a } from 'twin/vendor-a/index.js'\nexport function name() {\n  return `left ${a()}`\n}\n" }, { license: 'MIT' }),
-      ...pkg('right', '1.0.0', { LICENSE: MIT, 'index.js': "import { b } from 'twin/vendor-b/index.js'\nexport function name() {\n  return `right ${b()}`\n}\n" }, { license: 'MIT' }),
+      ...pkg(
+        'left',
+        '1.0.0',
+        { LICENSE: MIT, 'index.js': "import { a } from 'twin/vendor-a/index.js'\nexport function name() {\n  return `left ${a()}`\n}\n" },
+        { license: 'MIT' },
+      ),
+      ...pkg(
+        'right',
+        '1.0.0',
+        { LICENSE: MIT, 'index.js': "import { b } from 'twin/vendor-b/index.js'\nexport function name() {\n  return `right ${b()}`\n}\n" },
+        { license: 'MIT' },
+      ),
       ...twin('left'),
       ...twin('right'),
     })
     const { modules, bytes } = await built(root)
     const text = bytes.toString('utf8')
     // A guard on the guard: the bundle holds both copies, each by one file.
-    expect(modules.filter((id) => /\/node_modules\/(left|right)\/node_modules\/twin\//.test(id)).map((id) => id.slice(id.indexOf('/node_modules/') + 14))).toEqual(
-      expect.arrayContaining(['left/node_modules/twin/vendor-a/index.js', 'right/node_modules/twin/vendor-b/index.js']),
-    )
+    expect(
+      modules.filter((id) => /\/node_modules\/(left|right)\/node_modules\/twin\//.test(id)).map((id) => id.slice(id.indexOf('/node_modules/') + 14)),
+    ).toEqual(expect.arrayContaining(['left/node_modules/twin/vendor-a/index.js', 'right/node_modules/twin/vendor-b/index.js']))
     expect(listed(text)).toEqual(['left 1.0.0', 'right 1.0.0', 'twin 3.0.0'])
     expect(times(text, VENDOR_A.trimEnd())).toBe(1)
     expect(times(text, VENDOR_B.trimEnd())).toBe(1)
@@ -222,7 +245,12 @@ describe('the notices a build writes', () => {
     const root = project({
       'src/main.js': "import 'themed/blueprint.css'\nimport('./lazy.js').then(() => console.log('lazy'))\n",
       'src/lazy.js': "import 'later/later.css'\n",
-      'node_modules/themed/package.json': JSON.stringify({ name: 'themed', version: '0.4.0', license: 'Apache-2.0', exports: { './blueprint.css': './blueprint.css' } }),
+      'node_modules/themed/package.json': JSON.stringify({
+        name: 'themed',
+        version: '0.4.0',
+        license: 'Apache-2.0',
+        exports: { './blueprint.css': './blueprint.css' },
+      }),
       'node_modules/themed/blueprint.css': '[data-formancy-part="field"] { color: #123456; }\n',
       'node_modules/themed/LICENSE': APACHE,
       'node_modules/themed/NOTICE': FORMAL_NOTICE,
@@ -515,7 +543,16 @@ describe("what the app's config says, reviewed", () => {
 
   /** A package whose build/fonts.js carries a font, as pdfmake's vfs_fonts.js does, with only its own MIT licence. */
   const carrier = () =>
-    pkg('carrier', '0.3.0', { LICENSE: MIT, 'build/fonts.js': 'export function fonts() {\n  return { "Example.ttf": "AAEAAA" }\n}\n', 'index.js': "export { fonts as name } from './build/fonts.js'\n" }, { license: 'MIT' })
+    pkg(
+      'carrier',
+      '0.3.0',
+      {
+        LICENSE: MIT,
+        'build/fonts.js': 'export function fonts() {\n  return { "Example.ttf": "AAEAAA" }\n}\n',
+        'index.js': "export { fonts as name } from './build/fonts.js'\n",
+      },
+      { license: 'MIT' },
+    )
 
   // pdfmake ships Roboto inside build/vfs_fonts.js and only its own MIT
   // licence beside it; the OFL that Roboto asks to travel with every copy
@@ -526,7 +563,9 @@ describe("what the app's config says, reviewed", () => {
     const notice = join(temporary(), 'example-ofl.txt')
     writeFileSync(notice, OFL)
     const root = project({ 'src/main.js': uses('carrier'), ...carrier() })
-    const text = (await built(root, { notices: { embedded: [{ package: 'carrier', file: 'build/fonts.js', name: 'Example, under the OFL 1.1', from: notice }] } })).bytes.toString('utf8')
+    const text = (
+      await built(root, { notices: { embedded: [{ package: 'carrier', file: 'build/fonts.js', name: 'Example, under the OFL 1.1', from: notice }] } })
+    ).bytes.toString('utf8')
     expect(listed(text)).toEqual(['carrier 0.3.0'])
     expect(text).toContain('Files: LICENSE, build/fonts.js: Example, under the OFL 1.1\n')
     expect(times(text, OFL.trimEnd())).toBe(1)
@@ -547,9 +586,16 @@ describe("what the app's config says, reviewed", () => {
     writeFileSync(notice, OFL)
     const own = (main) => ({
       'src/main.js': main,
-      'packages/own/package.json': JSON.stringify({ name: '@example/own', version: '1.2.0', type: 'module', main: 'dist/index.js', license: 'SEE LICENSE IN LICENSE.md' }),
+      'packages/own/package.json': JSON.stringify({
+        name: '@example/own',
+        version: '1.2.0',
+        type: 'module',
+        main: 'dist/index.js',
+        license: 'SEE LICENSE IN LICENSE.md',
+      }),
       'packages/own/LICENSE.md': "This repository's own licence\n",
-      'packages/own/dist/index.js': "export function own() {\n  return import('./fonts-a1B2_c3.js').then((fonts) => fonts.fonts())\n}\nexport function plain() {\n  return 'plain'\n}\n",
+      'packages/own/dist/index.js':
+        "export function own() {\n  return import('./fonts-a1B2_c3.js').then((fonts) => fonts.fonts())\n}\nexport function plain() {\n  return 'plain'\n}\n",
       'packages/own/dist/fonts-a1B2_c3.js': 'export function fonts() {\n  return { "Example.ttf": "AAEAAA" }\n}\n',
     })
     const links = { 'node_modules/@example/own': 'packages/own' }
@@ -558,13 +604,17 @@ describe("what the app's config says, reviewed", () => {
     expect(modules.some((id) => id.endsWith('/packages/own/dist/fonts-a1B2_c3.js'))).toBe(true)
     const text = bytes.toString('utf8')
     expect(listed(text)).toEqual(['@example/own 1.2.0'])
-    expect(text).toContain("@example/own 1.2.0\nThis repository's own package, listed for the work a file of it carries.\nFiles: dist/fonts-a1B2_c3.js: Example, under the OFL 1.1\n")
+    expect(text).toContain(
+      "@example/own 1.2.0\nThis repository's own package, listed for the work a file of it carries.\nFiles: dist/fonts-a1B2_c3.js: Example, under the OFL 1.1\n",
+    )
     expect(times(text, OFL.trimEnd())).toBe(1)
     expect(text).not.toContain("This repository's own licence")
     expect(text).not.toContain('SEE LICENSE IN LICENSE.md')
     expect(text).not.toContain('the-app')
     const unbundled = project(own("import { plain } from '@example/own'\nconsole.log(plain())\n"), links)
-    expect(await refusal(unbundled, { notices: { embedded } })).toContain("the notice for @example/own's /^dist\\/fonts-[\\w-]+\\.js$/ (Example, under the OFL 1.1) names a file this build does not bundle")
+    expect(await refusal(unbundled, { notices: { embedded } })).toContain(
+      "the notice for @example/own's /^dist\\/fonts-[\\w-]+\\.js$/ (Example, under the OFL 1.1) names a file this build does not bundle",
+    )
   })
 
   // A reviewed notice outlives what it was about the day the package stops
@@ -580,7 +630,9 @@ describe("what the app's config says, reviewed", () => {
     const latin = join(temporary(), 'latin.txt')
     writeFileSync(latin, Buffer.from('Copyright © 2026 Zoë\n', 'latin1'))
     const bundled = project({ 'src/main.js': uses('carrier'), ...carrier() })
-    expect(await refusal(bundled, { notices: { embedded: [{ package: 'carrier', file: 'build/fonts.js', name: 'Example', from: latin }] } })).toContain('latin.txt, cannot be read as UTF-8')
+    expect(await refusal(bundled, { notices: { embedded: [{ package: 'carrier', file: 'build/fonts.js', name: 'Example', from: latin }] } })).toContain(
+      'latin.txt, cannot be read as UTF-8',
+    )
   })
 })
 
@@ -593,7 +645,12 @@ describe('the notices for files copied rather than bundled', () => {
   // is named; one with no licence text stops the build, naming it.
   test('list each package once, with its licence files, and refuse one with none', () => {
     const root = project({
-      ...pkg('face', '5.3.0', { LICENSE: 'This Font Software is licensed under the SIL Open Font License, Version 1.1.\n', 'README.md': 'Face, the readme.\n' }, { license: 'OFL-1.1' }),
+      ...pkg(
+        'face',
+        '5.3.0',
+        { LICENSE: 'This Font Software is licensed under the SIL Open Font License, Version 1.1.\n', 'README.md': 'Face, the readme.\n' },
+        { license: 'OFL-1.1' },
+      ),
       ...pkg('another', '1.0.0', { 'LICENSE.txt': MIT }),
       ...pkg('bare', '1.0.0'),
     })
@@ -659,7 +716,11 @@ describe('the packages and apps this repository builds', () => {
       if ((config.plugins ?? []).flat(Infinity).some((plugin) => plugin?.name === thirdPartyNotices().name)) apps.push(name)
     }
     expect(apps).toEqual(['studio'])
-    const dry = spawnSync('pnpm', ['exec', 'turbo', 'run', 'build', '--dry=json', ...apps.map((name) => `--filter=./apps/${name}`)], { cwd: repo, encoding: 'utf8', shell: process.platform === 'win32' })
+    const dry = spawnSync('pnpm', ['exec', 'turbo', 'run', 'build', '--dry=json', ...apps.map((name) => `--filter=./apps/${name}`)], {
+      cwd: repo,
+      encoding: 'utf8',
+      shell: process.platform === 'win32',
+    })
     expect(dry.status).toBe(0)
     const tasks = JSON.parse(dry.stdout).tasks
     for (const name of apps) {

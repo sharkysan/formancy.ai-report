@@ -275,7 +275,12 @@ export const EUROS: Readonly<Record<EuroCountry, Figure>> = {
  * figures.test.ts holds each one's quotes to its picture, and the wording
  * check reads their quotes as the documents' own words.
  */
-export const FIGURES: readonly Figure[] = [STUDIO, ...STARTERS, ...LANGUAGES.map((language) => INVOICES[language]), ...EURO_COUNTRIES.map((country) => EUROS[country])]
+export const FIGURES: readonly Figure[] = [
+  STUDIO,
+  ...STARTERS,
+  ...LANGUAGES.map((language) => INVOICES[language]),
+  ...EURO_COUNTRIES.map((country) => EUROS[country]),
+]
 
 /** Every picture the site shows, each by its path under docs/images: what the build copies. */
 export const PICTURES: readonly string[] = FIGURES.map((figure) => figure.picture)
@@ -291,7 +296,14 @@ export function FigureView({ figure, page, first = false }: { readonly figure: F
   if (picture === undefined) throw new Error(`the site shows ${figure.picture}, and the inputs hold no such picture`)
   return (
     <figure className="figure">
-      <img src={page.href(picturePath(figure.picture))} alt={figure.alt[page.language]} width={picture.width} height={picture.height} loading={first ? 'eager' : 'lazy'} decoding="async" />
+      <img
+        src={page.href(picturePath(figure.picture))}
+        alt={figure.alt[page.language]}
+        width={picture.width}
+        height={picture.height}
+        loading={first ? 'eager' : 'lazy'}
+        decoding="async"
+      />
       <figcaption>{figure.caption[page.language]}</figcaption>
     </figure>
   )

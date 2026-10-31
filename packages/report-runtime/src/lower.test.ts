@@ -69,14 +69,21 @@ function refusals(regions: Partial<Regions>, options: Partial<ResolveOptions> = 
 }
 
 const body = (...components: Component[]): Partial<Regions> => ({ body: components })
-const words = (id: string, words: string, extra: Partial<Component> = {}): Component => ({ id, kind: 'text', content: [{ kind: 'text', text: words }], ...extra }) as Component
+const words = (id: string, words: string, extra: Partial<Component> = {}): Component =>
+  ({ id, kind: 'text', content: [{ kind: 'text', text: words }], ...extra }) as Component
 
 describe('conditions', () => {
   // A conditional section is the inspection report's defect block: when its
   // condition does not hold, nothing of it prints, not even an empty frame,
   // and what is inside it is not read.
   test('a component whose condition does not hold prints nothing, nor anything inside it', () => {
-    const hidden: Component = { id: 'defects', kind: 'section', visibleWhen: { cel: 'header.flagged == false' }, border: { thickness: 1, color: '#b00020' }, components: [words('inside', 'Defect')] }
+    const hidden: Component = {
+      id: 'defects',
+      kind: 'section',
+      visibleWhen: { cel: 'header.flagged == false' },
+      border: { thickness: 1, color: '#b00020' },
+      components: [words('inside', 'Defect')],
+    }
     const shown = words('shown', 'Flagged', { visibleWhen: { cel: 'header.flagged' } })
     expect(lowered(body(hidden, shown)).body).toEqual([{ kind: 'paragraph', runs: [{ text: 'Flagged' }] }])
     expect(lowered(body(hidden, shown), {}, data({ flagged: false })).body.map((block) => block.kind)).toEqual(['section'])
@@ -93,7 +100,11 @@ describe('conditions', () => {
   // not shown, and that is said; the final render refuses the data.
   test('shows nothing for a condition a preview cannot read, and says so', () => {
     const { flagged: _flagged, ...header } = data().header as Record<string, unknown>
-    const outcome = resolveReport(probe(body(words('shown', 'Flagged', { visibleWhen: { cel: 'header.flagged' } }))), { ...data(), header }, { ...OPTIONS, mode: 'preview' })
+    const outcome = resolveReport(
+      probe(body(words('shown', 'Flagged', { visibleWhen: { cel: 'header.flagged' } }))),
+      { ...data(), header },
+      { ...OPTIONS, mode: 'preview' },
+    )
     expect(outcome.ok && outcome.document.body).toEqual([])
     expect(outcome.ok && outcome.warnings.map((warning) => `${warning.stage} ${warning.code} ${warning.path}`)).toEqual([
       'data missing-field /header/flagged',
@@ -107,20 +118,26 @@ describe('text', () => {
   // its format, for the report's locale: a literal as written, a date in
   // words, an amount in its currency, a computed value, a total.
   test('prints each kind of run, formatted', () => {
-    const report = probe(body({
-      id: 'line',
-      kind: 'text',
-      content: [
-        { kind: 'text', text: 'Visit to ' },
-        { kind: 'field', field: header('customer'), format: { kind: 'text', transform: 'upper' } },
-        { kind: 'field', field: header('visitedOn'), format: { kind: 'date', style: 'long' } },
-        { kind: 'field', field: header('amount'), format: { kind: 'currency', currency: { kind: 'parameter', parameter: 'currency' }, scale: 2 } },
-        { kind: 'parameter', parameter: 'currency' },
-        { kind: 'expression', expression: { cel: 'string(header.amount * dec("2"))' } },
-        { kind: 'aggregate', aggregate: 'visits', over: 'report' },
-      ],
-    }))
-    const withCount: ReportDefinition = { ...report, aggregates: [{ id: 'visits', fn: 'count' }], datasets: { ...report.datasets, detail: { id: 'none', fields: [{ id: 'x', type: 'string', label: 'X', nullable: true }] } } }
+    const report = probe(
+      body({
+        id: 'line',
+        kind: 'text',
+        content: [
+          { kind: 'text', text: 'Visit to ' },
+          { kind: 'field', field: header('customer'), format: { kind: 'text', transform: 'upper' } },
+          { kind: 'field', field: header('visitedOn'), format: { kind: 'date', style: 'long' } },
+          { kind: 'field', field: header('amount'), format: { kind: 'currency', currency: { kind: 'parameter', parameter: 'currency' }, scale: 2 } },
+          { kind: 'parameter', parameter: 'currency' },
+          { kind: 'expression', expression: { cel: 'string(header.amount * dec("2"))' } },
+          { kind: 'aggregate', aggregate: 'visits', over: 'report' },
+        ],
+      }),
+    )
+    const withCount: ReportDefinition = {
+      ...report,
+      aggregates: [{ id: 'visits', fn: 'count' }],
+      datasets: { ...report.datasets, detail: { id: 'none', fields: [{ id: 'x', type: 'string', label: 'X', nullable: true }] } },
+    }
     const outcome = resolveReport(withCount, { ...data(), detail: [] }, OPTIONS)
     if (!outcome.ok) throw new Error(outcome.errors.map((error) => error.code).join())
     const chf = new Intl.NumberFormat('en', { style: 'currency', currency: 'CHF', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format('1234.50')
@@ -133,13 +150,21 @@ describe('text', () => {
   // Only the engine knows the page a line falls on, so a page counter stays
   // a field the renderer fills in.
   test('keeps a page counter a field, in the page footer', () => {
-    const footer: Component = { id: 'pages', kind: 'text', content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }] }
-    expect(lowered({ pageFooter: [footer] }).pageFooter).toEqual([{ kind: 'paragraph', runs: [{ text: 'Page ' }, { field: 'pageNumber' }, { text: ' of ' }, { field: 'pageCount' }] }])
+    const footer: Component = {
+      id: 'pages',
+      kind: 'text',
+      content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }],
+    }
+    expect(lowered({ pageFooter: [footer] }).pageFooter).toEqual([
+      { kind: 'paragraph', runs: [{ text: 'Page ' }, { field: 'pageNumber' }, { text: ' of ' }, { field: 'pageCount' }] },
+    ])
   })
 
   // A heading moves to the next page with what it heads.
   test('keeps a heading with what follows', () => {
-    expect(lowered(body(words('heading', 'Notes', { keepWithNext: true }))).body).toEqual([{ kind: 'paragraph', runs: [{ text: 'Notes' }], keepWithNext: true }])
+    expect(lowered(body(words('heading', 'Notes', { keepWithNext: true }))).body).toEqual([
+      { kind: 'paragraph', runs: [{ text: 'Notes' }], keepWithNext: true },
+    ])
   })
 })
 
@@ -178,7 +203,14 @@ describe('blocks', () => {
       { id: 'thin', kind: 'line', thickness: 0.5 },
       { id: 'box', kind: 'rectangle', width: 100, height: 20, fill: '#eeeeee', stroke: '#000000' },
       { id: 'gap', kind: 'spacer', height: 12 },
-      { id: 'side', kind: 'columns', columns: [{ width: 120, components: [words('left', 'Left')] }, { width: 'fill', components: [] }] },
+      {
+        id: 'side',
+        kind: 'columns',
+        columns: [
+          { width: 120, components: [words('left', 'Left')] },
+          { width: 'fill', components: [] },
+        ],
+      },
       { id: 'frame', kind: 'section', border: { thickness: 1, color: '#b00020' }, fill: '#fff0f0', padding: 6, components: [words('framed', 'Framed')] },
       { id: 'break', kind: 'pageBreak' },
       { id: 'kept', kind: 'keepTogether', components: [words('one', 'One'), words('two', 'Two')] },
@@ -190,7 +222,13 @@ describe('blocks', () => {
       { kind: 'rule', thickness: 0.5 },
       { kind: 'rectangle', width: 100, height: 20, fill: '#eeeeee', stroke: '#000000' },
       { kind: 'spacer', height: 12 },
-      { kind: 'columns', columns: [{ width: 120, blocks: [paragraph('Left')] }, { width: 'fill', blocks: [] }] },
+      {
+        kind: 'columns',
+        columns: [
+          { width: 120, blocks: [paragraph('Left')] },
+          { width: 'fill', blocks: [] },
+        ],
+      },
       { kind: 'section', blocks: [paragraph('Framed')], border: { thickness: 1, color: '#b00020' }, fill: '#fff0f0', padding: 6 },
       { kind: 'pageBreak' },
       { kind: 'keepTogether', blocks: [paragraph('One'), paragraph('Two')] },
@@ -201,7 +239,8 @@ describe('blocks', () => {
 
 describe('QR codes', () => {
   const qr = (id: string, content: readonly Inline[]): Component => ({ id, kind: 'qrCode', content, size: 85.04, errorCorrection: 'Q' })
-  const printed = (block: Block | undefined): string => (block?.kind === 'paragraph' ? block.runs.map((run) => ('text' in run ? run.text : '')).join('') : `<${block?.kind}>`)
+  const printed = (block: Block | undefined): string =>
+    block?.kind === 'paragraph' ? block.runs.map((run) => ('text' in run ? run.text : '')).join('') : `<${block?.kind}>`
 
   // A QR code is scanned to the text a paragraph with its content prints:
   // the same formats for the same locale, the same values from the same
@@ -220,7 +259,13 @@ describe('QR codes', () => {
     ]
     const [paragraph, code] = lowered(body({ id: 'line', kind: 'text', content }, qr('visit-code', content)), {}, data({ customer: 'Bäckerei Müller AG' })).body
     const chf = new Intl.NumberFormat('en', { style: 'currency', currency: 'CHF', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format('1234.50')
-    expect(code).toEqual({ kind: 'qrCode', id: 'visit-code', text: `Visit to Bäckerei Müller AG, October 15, 2026, ${chf}, 2469.00`, size: 85.04, errorCorrection: 'Q' })
+    expect(code).toEqual({
+      kind: 'qrCode',
+      id: 'visit-code',
+      text: `Visit to Bäckerei Müller AG, October 15, 2026, ${chf}, 2469.00`,
+      size: 85.04,
+      errorCorrection: 'Q',
+    })
     expect((code as QrCode).text).toBe(printed(paragraph))
   })
 
@@ -229,7 +274,11 @@ describe('QR codes', () => {
   // refuses the same data, so no code printed for real misses a value.
   test('encodes nothing for a value a preview lacks, says so, and is refused for it in a final render', () => {
     const { customer: _customer, ...lacking } = data().header as Record<string, unknown>
-    const code = qr('order-code', [{ kind: 'text', text: 'Order for ' }, { kind: 'field', field: header('customer') }, { kind: 'expression', expression: { cel: '" by " + header.customer' } }])
+    const code = qr('order-code', [
+      { kind: 'text', text: 'Order for ' },
+      { kind: 'field', field: header('customer') },
+      { kind: 'expression', expression: { cel: '" by " + header.customer' } },
+    ])
     const outcome = resolveReport(probe(body(code)), { ...data(), header: lacking }, { ...OPTIONS, mode: 'preview' })
     expect(outcome.ok && outcome.document.body).toEqual([{ kind: 'qrCode', id: 'order-code', text: 'Order for ', size: 85.04, errorCorrection: 'Q' }])
     expect(outcome.ok && outcome.warnings.map((warning) => `${warning.stage} ${warning.code} ${warning.path}`)).toEqual([
@@ -245,11 +294,20 @@ describe('QR codes', () => {
     const visit = report.datasets.header as NonNullable<ReportDefinition['datasets']['header']>
     return {
       ...report,
-      datasets: { ...report.datasets, header: { ...visit, fields: [...visit.fields, { id: 'reference', type: 'string', label: 'Reference', nullable: true }] } },
+      datasets: {
+        ...report.datasets,
+        header: { ...visit, fields: [...visit.fields, { id: 'reference', type: 'string', label: 'Reference', nullable: true }] },
+      },
       parameters: [...report.parameters, { id: 'branch', type: 'string', label: 'Branch', required: false }],
     }
   }
-  const reference = (id: string): Component => qr(id, [{ kind: 'text', text: 'REF-' }, { kind: 'field', field: header('reference') }, { kind: 'text', text: '/' }, { kind: 'parameter', parameter: 'branch' }])
+  const reference = (id: string): Component =>
+    qr(id, [
+      { kind: 'text', text: 'REF-' },
+      { kind: 'field', field: header('reference') },
+      { kind: 'text', text: '/' },
+      { kind: 'parameter', parameter: 'branch' },
+    ])
 
   // A paragraph prints a value that is null as nothing, and a reader sees
   // the gap. A code is scanned, not read: one that encoded less than its
@@ -274,9 +332,13 @@ describe('QR codes', () => {
   // that is the empty string, naming the code.
   test('is refused in a final render when its content prints nothing', () => {
     const empty = resolveReport(probe(body(qr('blank-code', [{ kind: 'text', text: '' }]))), data(), OPTIONS)
-    expect(empty.ok ? [] : empty.errors).toMatchObject([{ stage: 'resolve', code: 'empty-qr-code', path: '/regions/body/0/content', componentId: 'blank-code' }])
+    expect(empty.ok ? [] : empty.errors).toMatchObject([
+      { stage: 'resolve', code: 'empty-qr-code', path: '/regions/body/0/content', componentId: 'blank-code' },
+    ])
     const unnamed = resolveReport(probe(body(qr('customer-code', [{ kind: 'field', field: header('customer') }]))), data({ customer: '' }), OPTIONS)
-    expect(unnamed.ok ? [] : unnamed.errors).toMatchObject([{ stage: 'resolve', code: 'empty-qr-code', path: '/regions/body/0/content', componentId: 'customer-code' }])
+    expect(unnamed.ok ? [] : unnamed.errors).toMatchObject([
+      { stage: 'resolve', code: 'empty-qr-code', path: '/regions/body/0/content', componentId: 'customer-code' },
+    ])
   })
 
   // A preview is for looking at a report before its data is final. Refused
@@ -300,7 +362,15 @@ describe('QR codes', () => {
     const report = probe({ pageFooter: [qr('page-code', [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }])] })
     expect(validateReport(report)).toMatchObject({ valid: false, errors: [{ code: 'misplaced-page-counter', path: '/regions/pageFooter/0/content/1' }] })
     // Only what lowering a page footer of one code reads: the report, the header, the parameters, the totals and the styles.
-    const render = { report, data: { header: {} }, params: {}, totals: { report: new Map() }, styles: new Map(), problems: new Problems(), preview: false } as unknown as Render
+    const render = {
+      report,
+      data: { header: {} },
+      params: {},
+      totals: { report: new Map() },
+      styles: new Map(),
+      problems: new Problems(),
+      preview: false,
+    } as unknown as Render
     expect(() => lowerRegions(render)).toThrow('component page-code holds a pageNumber at /regions/pageFooter/0/content/1')
   })
 
@@ -308,10 +378,14 @@ describe('QR codes', () => {
   // reference: a value its format cannot show refuses the report, naming
   // the code and the run, as it does in a paragraph.
   test('refuses a value its content cannot format, naming the code', () => {
-    const code = qr('pay-code', [{ kind: 'field', field: header('amount'), format: { kind: 'currency', currency: { kind: 'parameter', parameter: 'currency' }, scale: 2 } }])
+    const code = qr('pay-code', [
+      { kind: 'field', field: header('amount'), format: { kind: 'currency', currency: { kind: 'parameter', parameter: 'currency' }, scale: 2 } },
+    ])
     const outcome = resolveReport(probe(body(code)), data(), { ...OPTIONS, parameters: { currency: 'chf' } })
     // An array matches only an array of its length: this is the one error.
-    expect(outcome.ok ? [] : outcome.errors).toMatchObject([{ stage: 'format', code: 'invalid-currency', path: '/regions/body/0/content/0', componentId: 'pay-code' }])
+    expect(outcome.ok ? [] : outcome.errors).toMatchObject([
+      { stage: 'format', code: 'invalid-currency', path: '/regions/body/0/content/0', componentId: 'pay-code' },
+    ])
   })
 })
 
@@ -415,7 +489,10 @@ describe('images', () => {
 
 describe('an SVG image', () => {
   const mark: Component = { id: 'mark-image', kind: 'image', source: { kind: 'asset', asset: 'mark' }, width: 42.52, height: 42.52, fit: 'contain' }
-  const withMark = (regions: Partial<Regions>): ReportDefinition => ({ ...probe(regions), assets: [{ id: 'mark', mediaType: 'image/svg+xml', digest: LOGO_DIGEST }] })
+  const withMark = (regions: Partial<Regions>): ReportDefinition => ({
+    ...probe(regions),
+    assets: [{ id: 'mark', mediaType: 'image/svg+xml', digest: LOGO_DIGEST }],
+  })
 
   /** Bytes whose every read but their length is counted: copying them reads them, and refusing them on their length does not. */
   function counted(length: number): { readonly bytes: Uint8Array; readonly reads: () => number } {
@@ -436,7 +513,9 @@ describe('an SVG image', () => {
   // renderer would read the drawing as a PNG and refuse it, or worse.
   test('resolves to an image whose asset is declared an SVG', () => {
     const outcome = resolveReport(withMark(body(mark)), data(), { ...OPTIONS, images: () => ({ mediaType: 'image/svg+xml', bytes: SVG }) })
-    expect(outcome.ok && (outcome.document.body as Image[]).map(({ asset }) => ({ id: asset.id, mediaType: asset.mediaType, bytes: [...asset.bytes] }))).toEqual([{ id: 'mark', mediaType: 'image/svg+xml', bytes: [...SVG] }])
+    expect(
+      outcome.ok && (outcome.document.body as Image[]).map(({ asset }) => ({ id: asset.id, mediaType: asset.mediaType, bytes: [...asset.bytes] })),
+    ).toEqual([{ id: 'mark', mediaType: 'image/svg+xml', bytes: [...SVG] }])
   })
 
   // A logo is kilobytes and an SVG asset may be a mebibyte (0030): a host
@@ -447,7 +526,11 @@ describe('an SVG image', () => {
     const over = counted(MAX_SVG_BYTES + 1)
     const outcome = resolveReport(withMark(body(mark)), data(), { ...OPTIONS, images: () => ({ mediaType: 'image/svg+xml', bytes: over.bytes }) })
     expect(outcome.ok ? [] : outcome.errors.map(({ code, path, message }) => ({ code, path, message }))).toEqual([
-      { code: 'invalid-asset', path: '/regions/body/0/source', message: `component mark-image: the host's answer for the approved asset mark is ${MAX_SVG_BYTES + 1} bytes; an SVG asset may have ${MAX_SVG_BYTES} (1 MiB)` },
+      {
+        code: 'invalid-asset',
+        path: '/regions/body/0/source',
+        message: `component mark-image: the host's answer for the approved asset mark is ${MAX_SVG_BYTES + 1} bytes; an SVG asset may have ${MAX_SVG_BYTES} (1 MiB)`,
+      },
     ])
     expect(over.reads()).toBe(0)
     const at = counted(MAX_SVG_BYTES)

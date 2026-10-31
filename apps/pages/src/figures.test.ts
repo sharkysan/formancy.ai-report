@@ -22,8 +22,17 @@ describe('the pictures (0021, 0024)', () => {
     for (const figure of FIGURES) {
       const lines = inputs.pictures.find((picture) => picture.name === figure.picture)?.lines ?? []
       for (const quote of figure.quotes) {
-        expect({ picture: figure.picture, quote, printed: lines.some((line) => line.includes(quote)) }).toEqual({ picture: figure.picture, quote, printed: true })
-        for (const language of LANGUAGES) expect({ picture: figure.picture, language, quotes: figure.alt[language].includes(quote) }).toEqual({ picture: figure.picture, language, quotes: true })
+        expect({ picture: figure.picture, quote, printed: lines.some((line) => line.includes(quote)) }).toEqual({
+          picture: figure.picture,
+          quote,
+          printed: true,
+        })
+        for (const language of LANGUAGES)
+          expect({ picture: figure.picture, language, quotes: figure.alt[language].includes(quote) }).toEqual({
+            picture: figure.picture,
+            language,
+            quotes: true,
+          })
       }
     }
     expect(FIGURES.filter((figure) => figure !== STUDIO).every((figure) => figure.quotes.length > 0)).toBe(true)
@@ -35,7 +44,11 @@ describe('the pictures (0021, 0024)', () => {
   // HTML, as a crawler finds them; that each is described as its figure
   // describes it is the wording check's (checks.test.ts).
   test('are every picture a page shows', () => {
-    const shown = new Set(site.pages.flatMap((page) => [...new DOMParser().parseFromString(page.html, 'text/html').querySelectorAll('img')].map((image) => image.getAttribute('src')?.split('/').pop())))
+    const shown = new Set(
+      site.pages.flatMap((page) =>
+        [...new DOMParser().parseFromString(page.html, 'text/html').querySelectorAll('img')].map((image) => image.getAttribute('src')?.split('/').pop()),
+      ),
+    )
     expect([...shown].sort()).toEqual(FIGURES.map((figure) => figure.picture.split('/').pop()).sort())
   })
 

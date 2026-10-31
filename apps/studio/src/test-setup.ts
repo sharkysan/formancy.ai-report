@@ -92,7 +92,7 @@ class StandInList extends EventTarget implements MediaQueryList {
 }
 
 if (typeof window !== 'undefined') {
-  window.matchMedia ??= (query: string): MediaQueryList => new StandInList(query)
+  if (typeof window.matchMedia !== 'function') window.matchMedia = (query: string): MediaQueryList => new StandInList(query)
   // Every test starts in jsdom's own window, 1024 pixels wide, whatever the one before it set.
   afterEach(() => {
     if (window.innerWidth !== JSDOM_WIDTH) setWidth(JSDOM_WIDTH)

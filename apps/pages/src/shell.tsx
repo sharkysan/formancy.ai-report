@@ -17,7 +17,8 @@ import type { PageContext } from './pages.js'
  * HL7's notice, word for word, as HL7 International asks it of a page that
  * names its marks. In English on every page, and said to be English.
  */
-export const HL7_NOTICE = 'HL7, FHIR and the FHIR [FLAME DESIGN] are the registered trademarks of Health Level Seven International and their use does not constitute endorsement by HL7.'
+export const HL7_NOTICE =
+  'HL7, FHIR and the FHIR [FLAME DESIGN] are the registered trademarks of Health Level Seven International and their use does not constitute endorsement by HL7.'
 
 interface ShellWords {
   readonly skip: string
@@ -41,7 +42,9 @@ const WORDS: Readonly<Record<Language, ShellWords>> = {
     breadcrumb: 'Navigationspfad',
     studio: 'Studio öffnen',
     source: 'Quellcode auf GitHub',
-    builtOn: (formancy) => <>Formancy Report baut auf {formancy} auf, dem visuellen Formular-Builder für Angular und React, dessen Pakete unter Apache-2.0 stehen.</>,
+    builtOn: (formancy) => (
+      <>Formancy Report baut auf {formancy} auf, dem visuellen Formular-Builder für Angular und React, dessen Pakete unter Apache-2.0 stehen.</>
+    ),
     licence: 'Lizenz (LICENSE.md, Englisch)',
     changelog: 'Changelog (Englisch)',
     legal: 'Impressum (Englisch)',
@@ -54,7 +57,9 @@ const WORDS: Readonly<Record<Language, ShellWords>> = {
     breadcrumb: "Fil d'Ariane",
     studio: 'Ouvrir le Studio',
     source: 'Code source sur GitHub',
-    builtOn: (formancy) => <>Formancy Report repose sur {formancy}, le builder visuel de formulaires pour Angular et React, dont les paquets sont sous Apache-2.0.</>,
+    builtOn: (formancy) => (
+      <>Formancy Report repose sur {formancy}, le builder visuel de formulaires pour Angular et React, dont les paquets sont sous Apache-2.0.</>
+    ),
     licence: 'Licence (LICENSE.md, en anglais)',
     changelog: 'Changelog (en anglais)',
     legal: 'Mentions légales (en anglais)',
@@ -109,13 +114,15 @@ export function Shell({ page, children }: { readonly page: PageContext; readonly
           </a>
           <nav className="site-nav" aria-label={words.pages}>
             <ul>
-              {page.groups.filter((group) => group !== root).map((group) => (
-                <li key={group.id}>
-                  <a className="quiet" href={page.pageHref(group.id)} aria-current={current(group.id === page.group.id)}>
-                    {group.meta[page.language].name}
-                  </a>
-                </li>
-              ))}
+              {page.groups
+                .filter((group) => group !== root)
+                .map((group) => (
+                  <li key={group.id}>
+                    <a className="quiet" href={page.pageHref(group.id)} aria-current={current(group.id === page.group.id)}>
+                      {group.meta[page.language].name}
+                    </a>
+                  </li>
+                ))}
               <li>
                 <a className="quiet" href={page.href('')}>
                   {words.studio}

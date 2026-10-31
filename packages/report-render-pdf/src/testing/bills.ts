@@ -33,7 +33,17 @@ const amount = (value: string): NonNullable<SwissQrBill['amount']> => ({ cel: `d
 /** SIX's examples (IG Annex A, Tables 17 to 22), but example 4, whose creditor reference has wrong check digits. */
 export const SIX_EXAMPLES = {
   /** A QR-IBAN and a QR reference. */
-  one: { kind: 'swissQrBill', language: 'en', account: text('CH6431961000004421557'), creditor: SAMPLE_COMPANY, currency: 'CHF', amount: amount('50.00'), debtor: SIMON, reference: text('000008207791225857421286694'), message: text('Payment of travel') },
+  one: {
+    kind: 'swissQrBill',
+    language: 'en',
+    account: text('CH6431961000004421557'),
+    creditor: SAMPLE_COMPANY,
+    currency: 'CHF',
+    amount: amount('50.00'),
+    debtor: SIMON,
+    reference: text('000008207791225857421286694'),
+    message: text('Payment of travel'),
+  },
   /** A QR reference with billing information, in Swico's syntax. */
   two: {
     kind: 'swissQrBill',
@@ -48,11 +58,35 @@ export const SIX_EXAMPLES = {
     billingInformation: text('//S1/10/1234/11/201021/30/102673386/32/7.7/40/0:30'),
   },
   /** No amount, no debtor and no reference: a donation slip, its blank fields for the payer's hand. */
-  three: { kind: 'swissQrBill', language: 'en', account: text('CH5204835012345671000'), creditor: address('Muster Stiftung', 'P.O. box', undefined, '3001', 'Bern', 'CH'), currency: 'CHF' },
+  three: {
+    kind: 'swissQrBill',
+    language: 'en',
+    account: text('CH5204835012345671000'),
+    creditor: address('Muster Stiftung', 'P.O. box', undefined, '3001', 'Bern', 'CH'),
+    currency: 'CHF',
+  },
   /** A creditor in Liechtenstein, and a creditor reference. */
-  five: { kind: 'swissQrBill', language: 'en', account: text('CH5800791123000889012'), creditor: address('Max Muster & Söhne', 'Musterstrasse', '123', '9490', 'Vaduz', 'LI'), currency: 'CHF', amount: amount('199.95'), debtor: address('Sarah Beispiel', 'Musterstrasse', '1', '8000', 'Seldwyla', 'CH'), reference: text('RF18539007547034') },
+  five: {
+    kind: 'swissQrBill',
+    language: 'en',
+    account: text('CH5800791123000889012'),
+    creditor: address('Max Muster & Söhne', 'Musterstrasse', '123', '9490', 'Vaduz', 'LI'),
+    currency: 'CHF',
+    amount: amount('199.95'),
+    debtor: address('Sarah Beispiel', 'Musterstrasse', '1', '8000', 'Seldwyla', 'CH'),
+    reference: text('RF18539007547034'),
+  },
   /** A debtor in Germany. */
-  six: { kind: 'swissQrBill', language: 'en', account: text('CH5800791123000889012'), creditor: SAMPLE_COMPANY, currency: 'CHF', amount: amount('199.95'), debtor: address('Sarah Beispiel', 'Musterstrasse', '1', '78462', 'Konstanz', 'DE'), reference: text('RF18539007547034') },
+  six: {
+    kind: 'swissQrBill',
+    language: 'en',
+    account: text('CH5800791123000889012'),
+    creditor: SAMPLE_COMPANY,
+    currency: 'CHF',
+    amount: amount('199.95'),
+    debtor: address('Sarah Beispiel', 'Musterstrasse', '1', '78462', 'Konstanz', 'DE'),
+    reference: text('RF18539007547034'),
+  },
 } as const satisfies Record<string, SwissQrBill>
 
 /** Example 2 in German, whose headings hold umlauts: "Währung", "Zusätzliche Informationen". */
@@ -79,7 +113,11 @@ function invoice(bill: SwissQrBill): ReportDefinition {
 
 /** `bill` as the runtime resolves it for a final render. */
 export function resolvedBill(bill: SwissQrBill): QrBill {
-  const outcome = resolveReport(invoice(bill), { completeness: { complete: true, captured: 0 }, consistency: 'host-captured' }, { mode: 'final', creationDate: '2026-10-17T08:00:00Z' })
+  const outcome = resolveReport(
+    invoice(bill),
+    { completeness: { complete: true, captured: 0 }, consistency: 'host-captured' },
+    { mode: 'final', creationDate: '2026-10-17T08:00:00Z' },
+  )
   if (!outcome.ok) throw new Error(`the bill was refused: ${outcome.errors.map((error) => `${error.code} ${error.path}`).join(', ')}`)
   if (outcome.document.paymentPart === undefined) throw new Error('the runtime resolved no payment part')
   return outcome.document.paymentPart

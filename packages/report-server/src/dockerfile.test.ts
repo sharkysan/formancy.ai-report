@@ -123,7 +123,9 @@ describe('the container build', () => {
   // directory the image gives that user is the store's.
   test('gives the user it runs as the store’s directory and nothing of its code', () => {
     expect(instructions.filter((line) => line.startsWith('COPY --from='))).toEqual(['COPY --from=build /app /app'])
-    expect(instructions.filter((line) => /\b(?:chown|chmod)\b|--chown|--chmod/.test(line))).toEqual(['RUN mkdir -p /var/lib/formancy-report && chown node:node /var/lib/formancy-report'])
+    expect(instructions.filter((line) => /\b(?:chown|chmod)\b|--chown|--chmod/.test(line))).toEqual([
+      'RUN mkdir -p /var/lib/formancy-report && chown node:node /var/lib/formancy-report',
+    ])
   })
 
   // Unprivileged: the store's volume, which the operator mounts, has its
@@ -159,7 +161,11 @@ describe('the container build', () => {
   test('exposes, sets and probes the settings’ default port', () => {
     expect(text).toContain(`PORT=${String(DEFAULT_PORT)}`)
     expect(instructions).toContain(`EXPOSE ${String(DEFAULT_PORT)}`)
-    expect(text).toMatch(new RegExp(`HEALTHCHECK [^\\n]*\\n\\s+CMD node -e "fetch\\('http://127\\.0\\.0\\.1:'\\+\\(process\\.env\\.PORT\\|\\|${String(DEFAULT_PORT)}\\)\\+'/health'\\)`))
+    expect(text).toMatch(
+      new RegExp(
+        `HEALTHCHECK [^\\n]*\\n\\s+CMD node -e "fetch\\('http://127\\.0\\.0\\.1:'\\+\\(process\\.env\\.PORT\\|\\|${String(DEFAULT_PORT)}\\)\\+'/health'\\)`,
+      ),
+    )
   })
 
   // The build context is the repository root; without these left out, a
@@ -167,7 +173,20 @@ describe('the container build', () => {
   // stage, and a stale local build could stand in for the one the image
   // makes.
   test('leaves a machine’s installs, builds and history out of the build context', () => {
-    const ignored = read('.dockerignore').split('\n').map((line) => line.trim())
-    for (const entry of ['**/node_modules', '**/dist', '**/coverage', '**/.turbo', '.git', '**/test-results', 'release-results', 'release-tarballs', '.e-invoice-cache']) expect(ignored, entry).toContain(entry)
+    const ignored = read('.dockerignore')
+      .split('\n')
+      .map((line) => line.trim())
+    for (const entry of [
+      '**/node_modules',
+      '**/dist',
+      '**/coverage',
+      '**/.turbo',
+      '.git',
+      '**/test-results',
+      'release-results',
+      'release-tarballs',
+      '.e-invoice-cache',
+    ])
+      expect(ignored, entry).toContain(entry)
   })
 })

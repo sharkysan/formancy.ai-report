@@ -29,7 +29,11 @@ describe('the bytes of an SVG', () => {
   // what is kept it is refused.
   test('a byte past ASCII is read past in a comment and a title and refused in a fill', () => {
     expect(cleaned(svg(`<!-- Größe --><title>Entwürfe</title>${RECT}`)).text).toBe(cleaned(svg(RECT)).text)
-    expect(refused(svg('<rect width="1" height="1" fill="grün"/>'))).toEqual({ ok: false, code: 'encoding', message: 'svg/rect@fill holds a byte past ASCII; write it in ASCII' })
+    expect(refused(svg('<rect width="1" height="1" fill="grün"/>'))).toEqual({
+      ok: false,
+      code: 'encoding',
+      message: 'svg/rect@fill holds a byte past ASCII; write it in ASCII',
+    })
     // A reference that names a character past ASCII is the same thing.
     expect(refused(svg('<rect width="1" height="1" fill="gr&#252;n"/>')).code).toBe('encoding')
   })
@@ -46,13 +50,20 @@ describe('the bytes of an SVG', () => {
 
   // XML 1.1 reads characters and line ends otherwise than 1.0 does.
   test('an XML version other than 1.0 is refused', () => {
-    expect(refused(`<?xml version="1.1"?>${svg(RECT)}`)).toEqual({ ok: false, code: 'unsupported', message: 'the file is XML 1.1, which this format does not read; save it as XML 1.0' })
+    expect(refused(`<?xml version="1.1"?>${svg(RECT)}`)).toEqual({
+      ok: false,
+      code: 'unsupported',
+      message: 'the file is XML 1.1, which this format does not read; save it as XML 1.0',
+    })
   })
 
   // A control character is not a character XML 1.0 allows, and readers
   // differ on what they do with one.
   test('a control character is refused as not well-formed', () => {
-    expect(refused(svg(`<rect width="1"\u0001 height="1"/>`))).toMatchObject({ code: 'not-well-formed', message: expect.stringContaining('a control character XML forbids') })
+    expect(refused(svg(`<rect width="1"\u0001 height="1"/>`))).toMatchObject({
+      code: 'not-well-formed',
+      message: expect.stringContaining('a control character XML forbids'),
+    })
   })
 })
 
@@ -63,7 +74,11 @@ describe('the markup of an SVG', () => {
     ['an unclosed element', svg(`<g>${RECT}`).replace('</svg>', ''), 'svg/g is not closed'],
     ['a mismatched end tag', svg('<g></defs>'), 'does not match'],
     ['an attribute given twice', svg('<rect width="1" width="2"/>'), 'an attribute given twice'],
-    ['the same attribute under two prefixes', svg('<linearGradient xmlns:a="http://www.w3.org/1999/xlink" xmlns:b="http://www.w3.org/1999/xlink" a:href="#x" b:href="#x"/>'), 'twice under two prefixes'],
+    [
+      'the same attribute under two prefixes',
+      svg('<linearGradient xmlns:a="http://www.w3.org/1999/xlink" xmlns:b="http://www.w3.org/1999/xlink" a:href="#x" b:href="#x"/>'),
+      'twice under two prefixes',
+    ],
     ['an unquoted value', svg('<rect width=1/>'), 'without quotes'],
     ['< in a value', svg('<rect width="<"/>'), '< in an attribute value'],
     ['& alone in a value', svg('<rect width="1 & 2"/>'), '& that does not start a reference'],
@@ -91,7 +106,9 @@ describe('the markup of an SVG', () => {
   // Comments and the declaration are removed and listed, a DOCTYPE with no
   // internal subset too: none draws, and none is in what is written.
   test('a comment, the declaration and a plain DOCTYPE are removed and listed', () => {
-    const result = cleaned(`<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><!-- a -->${svg(`<!-- b -->${RECT}`)}<!-- c -->`)
+    const result = cleaned(
+      `<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><!-- a -->${svg(`<!-- b -->${RECT}`)}<!-- c -->`,
+    )
     expect(result.removed).toEqual([
       { kind: 'declaration', name: 'declaration', count: 1 },
       { kind: 'doctype', name: 'doctype', count: 1 },
@@ -107,7 +124,10 @@ describe('the markup of an SVG', () => {
   test('an internal subset and a reference to an undeclared entity are refused as doctype', () => {
     const laughs = `<!DOCTYPE svg [<!ENTITY a "aaaaaaaaaa"><!ENTITY b "&a;&a;&a;&a;">]>${svg(`<rect width="1" height="1" fill="&b;"/>`)}`
     expect(refused(laughs).code).toBe('doctype')
-    expect(refused(svg('<rect width="1" height="1" fill="&ext;"/>'))).toMatchObject({ code: 'doctype', message: expect.stringContaining('an entity XML does not predefine') })
+    expect(refused(svg('<rect width="1" height="1" fill="&ext;"/>'))).toMatchObject({
+      code: 'doctype',
+      message: expect.stringContaining('an entity XML does not predefine'),
+    })
     // A quoted [ is a literal, not a subset.
     expect(cleaned(`<!DOCTYPE svg SYSTEM "a[b">${svg(RECT)}`).text).toBe(cleaned(svg(RECT)).text)
   })
@@ -153,7 +173,7 @@ describe('the markup of an SVG', () => {
   // element this format does not know may be named anything, and its name
   // in the path, past ASCII or a kilobyte long, would repeat the file's own
   // bytes to a log and grow with what the file holds (svg-refusal.ts).
-  test("an element path never repeats a name the message would not", () => {
+  test('an element path never repeats a name the message would not', () => {
     for (const name of ['y'.repeat(1000), 'grün'])
       expect(refused(svg(`<g><${name}/></g>`)).message).toBe(`svg/g/element is an element, which this format does not draw; ${SVG_ADVICE.unsupported}`)
   })
@@ -193,13 +213,17 @@ describe('the namespaces of an SVG', () => {
   // Unprefixed elements under another default namespace would be another
   // namespace's, which a browser draws none of.
   test('a default namespace other than SVG declared below the root is refused', () => {
-    expect(refused(svg('<s:g xmlns:s="http://www.w3.org/2000/svg" xmlns="urn:x"><rect/></s:g>')).message).toBe("svg/g declares another default namespace than SVG's; save it as plain SVG")
+    expect(refused(svg('<s:g xmlns:s="http://www.w3.org/2000/svg" xmlns="urn:x"><rect/></s:g>')).message).toBe(
+      "svg/g declares another default namespace than SVG's; save it as plain SVG",
+    )
     expect(cleaned(svg(`<g xmlns="http://www.w3.org/2000/svg">${RECT}</g>`)).text).toBe(cleaned(svg(RECT)).text)
   })
 
   // A style inside what is removed would still style the drawing in a
   // browser.
   test('a style inside what is removed is refused', () => {
-    expect(refused(svg(`<metadata><style>rect{fill:red}</style></metadata>${RECT}`)).message).toBe('svg holds a style inside what is removed, which a browser would still apply; move the style out of it, or delete the style')
+    expect(refused(svg(`<metadata><style>rect{fill:red}</style></metadata>${RECT}`)).message).toBe(
+      'svg holds a style inside what is removed, which a browser would still apply; move the style out of it, or delete the style',
+    )
   })
 })

@@ -62,7 +62,7 @@ function invoicedBill(): ReportDefinition {
     ...report,
     eInvoice: { ...(report.eInvoice as NonNullable<ReportDefinition['eInvoice']>), payment: { means: '58', iban: account } },
     paymentPart: { kind: 'swissQrBill', language: 'de', account, creditor: billOf(billedReport()).creditor, currency: 'EUR' },
-  } as ReportDefinition
+  }
 }
 
 describe('a report with a payment part, in the editor', () => {
@@ -202,7 +202,9 @@ describe('the payment part’s band', () => {
     expect(editor.state().canvas.paymentPart).toMatchObject({ selected: false, problems: 1, severity: 'warning' })
     ok(editor.dispatch({ type: 'select', part: 'paymentPart' }))
     expect(editor.state().canvas.paymentPart).toMatchObject({ selected: true, problems: 1, severity: 'warning' })
-    expect(editor.state().outlineParts).toEqual([{ part: 'paymentPart', key: 'paymentPart', label: 'Payment part', selected: true, problems: 1, severity: 'warning' }])
+    expect(editor.state().outlineParts).toEqual([
+      { part: 'paymentPart', key: 'paymentPart', label: 'Payment part', selected: true, problems: 1, severity: 'warning' },
+    ])
     expect(editor.state().canvas.boxes.some((box) => box.selected)).toBe(false)
   })
 })
@@ -213,7 +215,11 @@ describe('the payment part in the outline', () => {
   // the foot of the last page, named as the band is, in the editor's
   // language. A report with no bill has no such row.
   test('is a row after the regions, named as SIX names the part, in a report that has one', () => {
-    const rows = EDITOR_LOCALES.map((locale) => editorOver(billedReport(), { locale }).editor.state().outlineParts.map((row) => row.label))
+    const rows = EDITOR_LOCALES.map((locale) =>
+      editorOver(billedReport(), { locale })
+        .editor.state()
+        .outlineParts.map((row) => row.label),
+    )
     expect(rows).toEqual([['Payment part'], ['Zahlteil'], ['Section paiement']])
     expect(editorOver(richReport()).editor.state().outlineParts).toEqual([])
   })
@@ -252,7 +258,11 @@ describe('the payment part in the outline', () => {
     expect(editor.state().can).toMatchObject({ delete: true, duplicate: false, moveUp: false, moveDown: false, indent: false, outdent: false, moveTo: false })
     const before = session.document()
     for (const type of ['moveUp', 'moveDown', 'indent', 'outdent', 'duplicate'] as const) {
-      expect(editor.dispatch({ type }), type).toMatchObject({ ok: false, code: 'at-edge', message: 'Payment part prints at the foot of the last page, where SIX puts it: it is not moved or copied.' })
+      expect(editor.dispatch({ type }), type).toMatchObject({
+        ok: false,
+        code: 'at-edge',
+        message: 'Payment part prints at the foot of the last page, where SIX puts it: it is not moved or copied.',
+      })
     }
     expect(session.document()).toBe(before)
   })
@@ -319,7 +329,11 @@ describe('the payment part’s properties', () => {
     const keys = editor.state().properties.fields.map((each) => each.key)
     const groupKeys = editor.state().properties.rows.flatMap((row) => ('group' in row ? [row.group.key] : []))
     const terms = Object.keys({ ...billOf(billedReport()), debtor: null, billingInformation: null }).filter((term) => term !== 'kind')
-    for (const term of terms) expect([...keys, ...groupKeys].some((key) => key === `/${term}` || key.startsWith(`/${term}/`)), term).toBe(true)
+    for (const term of terms)
+      expect(
+        [...keys, ...groupKeys].some((key) => key === `/${term}` || key.startsWith(`/${term}/`)),
+        term,
+      ).toBe(true)
   })
 
   // The creditor and the debtor are drawn as groups, each named after its
@@ -390,7 +404,10 @@ describe('the payment part’s properties', () => {
     ok(editor.dispatch({ type: 'select', part: 'paymentPart' }))
     const before = session.document()
     ok(editor.dispatch({ type: 'setProperty', key: '/account/0/text', value: 'CH52 0483 5012 3456 7100 0' }))
-    expect([billOf(session.document()).account, session.document().eInvoice?.payment?.iban]).toEqual([said('CH52 0483 5012 3456 7100 0'), said('CH52 0483 5012 3456 7100 0')])
+    expect([billOf(session.document()).account, session.document().eInvoice?.payment?.iban]).toEqual([
+      said('CH52 0483 5012 3456 7100 0'),
+      said('CH52 0483 5012 3456 7100 0'),
+    ])
     expect(editor.state().history.undoLabel).toBe('Change IBAN')
     expect(editor.state().status.text).toBe('Changed IBAN. The e-invoice and every payment code printed with it pay the account typed.')
     ok(editor.dispatch({ type: 'undo' }))
@@ -421,8 +438,12 @@ describe('the payment part’s properties', () => {
     expect(field(editor.state(), 'Reference')).toEqual(expect.objectContaining({ value: '00 00082 07791 22585 74212 86694' }))
     expect(field(editor.state(), 'Reference')).not.toHaveProperty('error')
     expect(editor.state().history.undoLabel).toBe('Change IBAN')
-    expect(editor.state().status.text).toBe('Changed IBAN. A QR-IBAN is paid to with a QR reference, so the reference is SIX’s example until you give the creditor’s own.')
-    expect(editor.state().diagnostics.map((entry) => entry.message)).toEqual([expect.stringMatching(/^the payment part's creditor and reference are SIX's examples/)])
+    expect(editor.state().status.text).toBe(
+      'Changed IBAN. A QR-IBAN is paid to with a QR reference, so the reference is SIX’s example until you give the creditor’s own.',
+    )
+    expect(editor.state().diagnostics.map((entry) => entry.message)).toEqual([
+      expect.stringMatching(/^the payment part's creditor and reference are SIX's examples/),
+    ])
     ok(editor.dispatch({ type: 'setProperty', key: '/reference', value: '21 00000 00003 13947 14300 09017' }))
     const own = session.document()
     ok(editor.dispatch({ type: 'setProperty', key: '/account/0/text', value: 'CH93 0076 2011 6238 5295 7' }))
@@ -449,13 +470,19 @@ describe('the payment part’s properties', () => {
     ok(kept.editor.dispatch({ type: 'setProperty', key: '/account/0/text', value: 'CH58 3000 0000 0000 0000 0' }))
     expect(billOf(kept.session.document()).reference).toBe(reference)
     expect(kept.editor.state().status.text).toBe('Changed IBAN.')
-    const bound = { ...billedReport(), paymentPart: { ...billOf(billedReport()), reference: [{ kind: 'expression', expression: { cel: '"RF18 5390 0754 7034"' } }] } } as ReportDefinition
+    const bound = {
+      ...billedReport(),
+      paymentPart: { ...billOf(billedReport()), reference: [{ kind: 'expression', expression: { cel: '"RF18 5390 0754 7034"' } }] },
+    } as ReportDefinition
     const data = editorOver(bound)
     ok(data.editor.dispatch({ type: 'select', part: 'paymentPart' }))
     const read = billOf(data.session.document()).reference
     ok(data.editor.dispatch({ type: 'setProperty', key: '/account/0/text', value: 'CH93 0076 2011 6238 5295 7' }))
     expect(billOf(data.session.document()).reference).toBe(read)
-    const reckoned = { ...billedReport(), paymentPart: { ...billOf(billedReport()), account: [{ kind: 'expression', expression: { cel: '"CH44 3199 9123 0008 8901 2"' } }] } } as ReportDefinition
+    const reckoned = {
+      ...billedReport(),
+      paymentPart: { ...billOf(billedReport()), account: [{ kind: 'expression', expression: { cel: '"CH44 3199 9123 0008 8901 2"' } }] },
+    } as ReportDefinition
     const computed = editorOver(reckoned)
     ok(computed.editor.dispatch({ type: 'select', part: 'paymentPart' }))
     const its = billOf(computed.session.document()).reference
@@ -466,7 +493,10 @@ describe('the payment part’s properties', () => {
     ok(euro.editor.dispatch({ type: 'addPart', part: 'paymentPart' }))
     ok(euro.editor.dispatch({ type: 'setProperty', key: '/currency', value: 'EUR' }))
     const before = euro.session.document()
-    expect(euro.editor.dispatch({ type: 'setProperty', key: '/account/0/text', value: 'CH58 3000 0000 0000 0000 0' })).toMatchObject({ ok: false, code: 'refused' })
+    expect(euro.editor.dispatch({ type: 'setProperty', key: '/account/0/text', value: 'CH58 3000 0000 0000 0000 0' })).toMatchObject({
+      ok: false,
+      code: 'refused',
+    })
     expect(field(euro.editor.state(), 'IBAN').error).toMatch(/^a QR-IBAN and a QR reference are for invoices in CHF only/)
     expect(euro.session.document()).toBe(before)
   })
@@ -480,7 +510,12 @@ describe('the payment part’s properties', () => {
     expect(billOf(session.document()).debtor).toBeUndefined()
     expect(editor.state().history.undoLabel).toBe('Remove debtor')
     expect(editor.state().status.text).toBe('Removed Debtor.')
-    expect(groups(editor.state()).get('Debtor')).toEqual({ key: '/debtor', label: 'Debtor', fields: [], actions: [{ label: 'Add debtor', action: { type: 'addGroup', key: '/debtor' }, available: true }] })
+    expect(groups(editor.state()).get('Debtor')).toEqual({
+      key: '/debtor',
+      label: 'Debtor',
+      fields: [],
+      actions: [{ label: 'Add debtor', action: { type: 'addGroup', key: '/debtor' }, available: true }],
+    })
     ok(editor.dispatch({ type: 'addGroup', key: '/debtor' }))
     expect(billOf(session.document()).debtor).toEqual({
       name: [{ kind: 'text', text: 'Simon Muster' }],
@@ -515,7 +550,8 @@ describe('the payment part’s properties', () => {
   // Each of SIX's five languages is offered for the headings, by its name
   // in the editor's language, as the language itself names none here.
   test('offer SIX’s five languages for the headings, named in the editor’s language', () => {
-    const options = (locale: (typeof EDITOR_LOCALES)[number]) => field(selectedBill(locale).editor.state(), editorText(locale)('field.qrBillLanguage')).options?.map((option) => `${option.value} ${option.label}`)
+    const options = (locale: (typeof EDITOR_LOCALES)[number]) =>
+      field(selectedBill(locale).editor.state(), editorText(locale)('field.qrBillLanguage')).options?.map((option) => `${option.value} ${option.label}`)
     expect(options('en')).toEqual(['de German', 'fr French', 'it Italian', 'en English', 'rm Romansh'])
     expect(options('de-CH')).toEqual(['de Deutsch', 'fr Französisch', 'it Italienisch', 'en Englisch', 'rm Rätoromanisch'])
   })
@@ -534,7 +570,12 @@ describe('a QR-bill added from nothing', () => {
   test('is SIX’s example, selected, its example values warned of but not on the IBAN, in one undo step', () => {
     const { editor, session } = editorOver(richReport())
     const before = session.document()
-    expect(groups(editor.state()).get('Payment part')).toEqual({ key: '/paymentPart', label: 'Payment part', fields: [], actions: [{ label: 'Add QR-bill', action: { type: 'addPart', part: 'paymentPart' }, available: true }] })
+    expect(groups(editor.state()).get('Payment part')).toEqual({
+      key: '/paymentPart',
+      label: 'Payment part',
+      fields: [],
+      actions: [{ label: 'Add QR-bill', action: { type: 'addPart', part: 'paymentPart' }, available: true }],
+    })
     ok(editor.dispatch({ type: 'addPart', part: 'paymentPart' }))
     expect(billOf(session.document())).toEqual({
       kind: 'swissQrBill',
@@ -552,7 +593,9 @@ describe('a QR-bill added from nothing', () => {
     expect(QR_BILL_EXAMPLE_ACCOUNTS).toContain('CH5204835012345671000')
     expect(editor.state().selection).toEqual({ part: 'paymentPart' })
     expect(editor.state().status.text).toBe('Added a QR-bill with SIX’s example values. Give the creditor’s own account and address before it is sent.')
-    expect(editor.state().diagnostics.map((entry) => [entry.code, entry.severity, entry.label, entry.target])).toEqual([['example-payment-part', 'warning', 'Warning: Payment part', { part: 'paymentPart' }]])
+    expect(editor.state().diagnostics.map((entry) => [entry.code, entry.severity, entry.label, entry.target])).toEqual([
+      ['example-payment-part', 'warning', 'Warning: Payment part', { part: 'paymentPart' }],
+    ])
     expect(editor.state().diagnostics[0]?.message).toMatch(/^the payment part's account and creditor are SIX's examples/)
     expect(field(editor.state(), 'IBAN')).not.toHaveProperty('error')
     expect(field(editor.state(), 'Creditor’s name')).not.toHaveProperty('error')
@@ -584,8 +627,14 @@ describe('a QR-bill added from nothing', () => {
   // words, and a second add has nothing to do. None changes the report.
   test('is refused where the report cannot take it, and refused again once there is one', () => {
     for (const [report, words] of [
-      [{ ...richReport(), page: { ...richReport().page, size: 'Letter' } }, /^The QR-bill was not added: a QR-bill is printed across the foot of an A4 page in portrait, and this page is Letter in portrait/],
-      [{ ...richReport(), page: { ...richReport().page, orientation: 'landscape' } }, /^The QR-bill was not added: a QR-bill is printed across the foot of an A4 page in portrait, and this page is A4 in landscape/],
+      [
+        { ...richReport(), page: { ...richReport().page, size: 'Letter' } },
+        /^The QR-bill was not added: a QR-bill is printed across the foot of an A4 page in portrait, and this page is Letter in portrait/,
+      ],
+      [
+        { ...richReport(), page: { ...richReport().page, orientation: 'landscape' } },
+        /^The QR-bill was not added: a QR-bill is printed across the foot of an A4 page in portrait, and this page is A4 in landscape/,
+      ],
       [eInvoiceReport(), /^The QR-bill was not added: the QR-bill asks to be paid to an account, and the e-invoice names none/],
     ] as const) {
       const { editor, session } = editorOver(report)
@@ -595,7 +644,11 @@ describe('a QR-bill added from nothing', () => {
       expect(session.document()).toBe(before)
     }
     const { editor } = editorOver(billedReport())
-    expect(editor.dispatch({ type: 'addPart', part: 'paymentPart' })).toMatchObject({ ok: false, code: 'unavailable', message: 'The report has a QR-bill already.' })
+    expect(editor.dispatch({ type: 'addPart', part: 'paymentPart' })).toMatchObject({
+      ok: false,
+      code: 'unavailable',
+      message: 'The report has a QR-bill already.',
+    })
   })
 })
 

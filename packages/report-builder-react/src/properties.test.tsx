@@ -81,7 +81,11 @@ describe('the report’s own properties', () => {
   // component to select; following it shows the report's properties.
   test('are what a diagnostic about the whole report shows', async () => {
     const report = scenarioReport()
-    const { user } = mount({ ...report, styles: [], regions: { ...report.regions, body: [], summary: [{ id: 'end', kind: 'text', content: [{ kind: 'text', text: 'End' }] }] } })
+    const { user } = mount({
+      ...report,
+      styles: [],
+      regions: { ...report.regions, body: [], summary: [{ id: 'end', kind: 'text', content: [{ kind: 'text', text: 'End' }] }] },
+    })
     await user.click(screen.getByRole('treeitem', { name: 'End' }))
     await user.click(screen.getByRole('button', { name: t('problem.item', { severity: t('severity.warning'), where: t('problem.report') }) }))
     expect(screen.getByRole('form', { name: t('properties.report') })).toBeTruthy()
@@ -97,7 +101,10 @@ function twoImages(): ReportDefinition {
       { id: 'logo', mediaType: 'image/svg+xml', digest: `sha256:${'ab'.repeat(32)}` },
       { id: 'spare', mediaType: 'image/png', digest: `sha256:${'cd'.repeat(32)}` },
     ],
-    regions: { ...report.regions, reportHeader: [{ id: 'mark', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 40, height: 40, fit: 'contain' }] },
+    regions: {
+      ...report.regions,
+      reportHeader: [{ id: 'mark', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 40, height: 40, fit: 'contain' }],
+    },
   }
 }
 

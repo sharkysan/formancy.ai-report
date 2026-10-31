@@ -57,7 +57,11 @@ export interface ReportClient {
 }
 
 /** The `:name` parameters of a route's path. */
-type ParametersOf<Path extends string> = Path extends `${string}:${infer Name}/${infer Rest}` ? Name | ParametersOf<Rest> : Path extends `${string}:${infer Name}` ? Name : never
+type ParametersOf<Path extends string> = Path extends `${string}:${infer Name}/${infer Rest}`
+  ? Name | ParametersOf<Rest>
+  : Path extends `${string}:${infer Name}`
+    ? Name
+    : never
 
 /** What a request sends beside its method, its path and its token. */
 interface Sent {
@@ -65,7 +69,8 @@ interface Sent {
   readonly body?: BodyInit
 }
 
-const SERVER_RULE = 'server is the report server’s base URL: http: or https:, with no credentials, query, fragment or trailing slash, so that a route’s path can follow it.'
+const SERVER_RULE =
+  'server is the report server’s base URL: http: or https:, with no credentials, query, fragment or trailing slash, so that a route’s path can follow it.'
 
 /** Whether a route's path can follow `server` as written and reach it: the whole of the rule SERVER_RULE says. */
 function isBaseUrl(server: unknown): server is string {
@@ -98,7 +103,9 @@ function preconditionOf(from: { readonly revision: number; readonly digest: stri
   if (from === null) return { 'if-none-match': '*' }
   // From a JavaScript host `from` may be anything, a bare revision or undefined among it, which `?.` reads as no version.
   if (!isRevision(from?.revision) || !isDigest(from?.digest)) {
-    throw new Error('A save is from null, for a template not yet saved, or from the version of the draft it replaces, as a read or a save answered it: its revision, a positive safe integer, and its digest, sha256: and 64 lower-case hexadecimal digits.')
+    throw new Error(
+      'A save is from null, for a template not yet saved, or from the version of the draft it replaces, as a read or a save answered it: its revision, a positive safe integer, and its digest, sha256: and 64 lower-case hexadecimal digits.',
+    )
   }
   return { 'if-match': draftTag(from) }
 }
@@ -108,7 +115,8 @@ const DIGEST_PREFIX = 'sha256:'
 
 /** The part of `digest` a path carries, or thrown where `digest` does not begin with `sha256:`; the digits after it are the server's to judge. */
 function digitsOf(digest: string): string {
-  if (!digest.startsWith(DIGEST_PREFIX)) throw new Error(`A digest is given as a report names an image by one: ${DIGEST_PREFIX} and the hexadecimal digits of its bytes.`)
+  if (!digest.startsWith(DIGEST_PREFIX))
+    throw new Error(`A digest is given as a report names an image by one: ${DIGEST_PREFIX} and the hexadecimal digits of its bytes.`)
   return digest.slice(DIGEST_PREFIX.length)
 }
 
@@ -147,7 +155,8 @@ function refusalIn(body: Readonly<Record<string, unknown>> | undefined): ServerR
 }
 
 /** An answer that is no answer of the API's: named by the route's pattern and the status, never by a path that holds an id or a digest. */
-const unanswered = (route: Route, status: number, how: string) => new Error(`${route} was answered ${String(status)} ${how}, which is no answer of report-server’s API.`)
+const unanswered = (route: Route, status: number, how: string) =>
+  new Error(`${route} was answered ${String(status)} ${how}, which is no answer of report-server’s API.`)
 
 /** A refusal the API gave, answered; anything else not 2xx, thrown. */
 function refused(route: Route, response: Response, body: Readonly<Record<string, unknown>> | undefined): Answered<never> {
@@ -171,7 +180,10 @@ async function image(route: Route, response: Response): Promise<Answered<StoredI
   if (!response.ok) return refused(route, response, objectIn(await response.text()))
   const bytes = new Uint8Array(await response.arrayBuffer())
   // The type's essence, without its parameters, as the server's keep compares one.
-  const mediaType = (response.headers.get('content-type') ?? '').replace(/;[^]*$/, '').trim().toLowerCase()
+  const mediaType = (response.headers.get('content-type') ?? '')
+    .replace(/;[^]*$/, '')
+    .trim()
+    .toLowerCase()
   if (!isImageMediaType(mediaType)) throw unanswered(route, response.status, 'under a media type no image asset is')
   return { ok: true, value: { mediaType, bytes } }
 }
@@ -189,7 +201,12 @@ export function createReportClient(options: ReportClientOptions): ReportClient {
   const fetching = options.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => globalThis.fetch(input, init))
 
   /** Asks `route`, each of its parameters one segment of the path, with the host's current token, and reads what it answered with `read`. */
-  async function ask<R extends Route, T>(route: R, parameters: Record<ParametersOf<R>, string>, read: (route: Route, response: Response) => Promise<Answered<T>>, sent: Sent = {}): Promise<Answered<T>> {
+  async function ask<R extends Route, T>(
+    route: R,
+    parameters: Record<ParametersOf<R>, string>,
+    read: (route: Route, response: Response) => Promise<Answered<T>>,
+    sent: Sent = {},
+  ): Promise<Answered<T>> {
     const [method, pattern] = route.split(' ') as [string, string]
     // ParametersOf makes every `:name` of the route a key of `parameters`.
     const path = pattern.replace(/:([a-z]+)/g, (_, name: string) => encodeURIComponent((parameters as Record<string, string>)[name] as string))
@@ -203,9 +220,13 @@ export function createReportClient(options: ReportClientOptions): ReportClient {
     listTemplates: async () => ask('GET /v1/templates', {}, json<TemplateList>),
     readDraft: async (template) => ask('GET /v1/templates/:template/draft', { template }, json<Draft>),
     saveDraft: async (template, report, from) =>
-      ask('PUT /v1/templates/:template/draft', { template }, json<DraftSaved>, { headers: { 'content-type': 'application/json', ...preconditionOf(from) }, body: JSON.stringify(report) }),
+      ask('PUT /v1/templates/:template/draft', { template }, json<DraftSaved>, {
+        headers: { 'content-type': 'application/json', ...preconditionOf(from) },
+        body: JSON.stringify(report),
+      }),
     // A copy of the bytes is sent: fetch takes a view of an ArrayBuffer alone, and `bytes` may be a view of a shared one.
-    keepImage: async (bytes, digest, mediaType) => ask('PUT /v1/assets/:digest', { digest: digitsOf(digest) }, json<ImageKept>, { headers: { 'content-type': mediaType }, body: new Uint8Array(bytes) }),
+    keepImage: async (bytes, digest, mediaType) =>
+      ask('PUT /v1/assets/:digest', { digest: digitsOf(digest) }, json<ImageKept>, { headers: { 'content-type': mediaType }, body: new Uint8Array(bytes) }),
     readImage: async (digest) => ask('GET /v1/assets/:digest', { digest: digitsOf(digest) }, image),
   }
 }

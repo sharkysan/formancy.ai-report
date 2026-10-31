@@ -162,10 +162,20 @@ is an operational trail, not evidence (formancy.ai-data 0023's limits).
 
 ```ts
 import { createReportServer, createReportVerifier, openFileTemplateStore } from '@formancy/report-server'
-const verifyIdentity = await createReportVerifier({ key: { kind: 'secret', secret: hostSecret }, issuer: 'https://login.example', audience: 'formancy-report', tenantClaim: 'tid' })
+const verifyIdentity = await createReportVerifier({
+  key: { kind: 'secret', secret: hostSecret },
+  issuer: 'https://login.example',
+  audience: 'formancy-report',
+  tenantClaim: 'tid',
+})
 const opened = await openFileTemplateStore(storeDirectory)
 if (!opened.ok) throw new Error(opened.problem)
-const server = await createReportServer({ verifyIdentity, roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] }, audit, store: opened.store })
+const server = await createReportServer({
+  verifyIdentity,
+  roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] },
+  audit,
+  store: opened.store,
+})
 await server.listen({ host: '127.0.0.1', port: 0 })
 ```
 

@@ -36,7 +36,12 @@ const at = '2026-10-22T08:00:00.000Z'
 /** Audited into `events`, under `key`, or with no key for `null`. */
 async function server(overrides: Partial<ReportServerOptions> = {}, key: string | null = KEY) {
   events = []
-  return cases.serve({ verifyIdentity, roles, audit: { sink: (event) => void events.push(event), now: () => at, ...(key === null ? {} : { key }) }, ...overrides })
+  return cases.serve({
+    verifyIdentity,
+    roles,
+    audit: { sink: (event) => void events.push(event), now: () => at, ...(key === null ? {} : { key }) },
+    ...overrides,
+  })
 }
 
 describe('auditReference', () => {
@@ -77,7 +82,17 @@ describe('the audit trail', () => {
   // either's identifier.
   test('writes one event for an answered request, naming who by keyed hash', async () => {
     await (await server()).inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: 'Bearer good' } })
-    expect(events).toEqual([{ at, operation: 'whoami', status: 200, outcome: 'ok', identified: true, tenant: auditReference(KEY, 'tenant', 'acme'), actor: auditReference(KEY, 'actor', 'acme', 'u-1') }])
+    expect(events).toEqual([
+      {
+        at,
+        operation: 'whoami',
+        status: 200,
+        outcome: 'ok',
+        identified: true,
+        tenant: auditReference(KEY, 'tenant', 'acme'),
+        actor: auditReference(KEY, 'actor', 'acme', 'u-1'),
+      },
+    ])
   })
 
   // Each route of the draft slice is an operation of its own in the trail,
@@ -90,7 +105,12 @@ describe('the audit trail', () => {
     const good = { authorization: 'Bearer good' }
     await audited.inject({ method: 'GET', url: '/v1/templates', headers: good })
     await audited.inject({ method: 'PUT', url: '/v1/templates/invoice/draft', headers: good })
-    await audited.inject({ method: 'PUT', url: '/v1/templates/invoice/draft', headers: { ...good, 'if-none-match': '*', 'content-type': 'text/plain' }, payload: 'x' })
+    await audited.inject({
+      method: 'PUT',
+      url: '/v1/templates/invoice/draft',
+      headers: { ...good, 'if-none-match': '*', 'content-type': 'text/plain' },
+      payload: 'x',
+    })
     await audited.inject({ method: 'GET', url: '/v1/templates/invoice/draft', headers: good })
     await audited.inject({ method: 'PUT', url: `/v1/assets/${hex}`, headers: { ...good, 'content-type': 'image/png' }, payload: Buffer.from('no image') })
     await audited.inject({ method: 'GET', url: `/v1/assets/${hex}`, headers: good })
@@ -136,7 +156,11 @@ describe('the audit trail', () => {
   test('writes a refusal as its code, with nobody named', async () => {
     const audited = await server({ rateLimit: { max: 2, timeWindowMs: 60_000 }, origins: ['https://app.example'] })
     await audited.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: 'Bearer bad' } })
-    await audited.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: 'Bearer good', origin: 'https://evil.example', 'sec-fetch-site': 'cross-site' } })
+    await audited.inject({
+      method: 'GET',
+      url: '/v1/whoami',
+      headers: { authorization: 'Bearer good', origin: 'https://evil.example', 'sec-fetch-site': 'cross-site' },
+    })
     await audited.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: 'Bearer good' } })
     expect(events.map(({ status, outcome, identified, tenant, actor }) => ({ status, outcome, identified, tenant, actor }))).toEqual([
       { status: 401, outcome: 'unauthenticated', identified: false, tenant: null, actor: null },
@@ -181,7 +205,12 @@ describe('the audit trail', () => {
   // fails cannot change it, and refusing to answer would only hide it. The
   // failure is the log's.
   test('answers as it would when the sink throws or rejects, and logs that it could not write', async () => {
-    for (const sink of [() => { throw new Error('disk full') }, async () => Promise.reject(new Error('disk full'))]) {
+    for (const sink of [
+      () => {
+        throw new Error('disk full')
+      },
+      async () => Promise.reject(new Error('disk full')),
+    ]) {
       const lines: string[] = []
       const failing = await cases.serve({ verifyIdentity, roles, audit: { sink }, logger: { stream: { write: (line) => void lines.push(line) } } })
       const answer = await failing.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: 'Bearer good' } })
@@ -197,10 +226,12 @@ describe('the audit trail', () => {
     const lines: string[] = []
     const logged = await cases.serve({ verifyIdentity, roles, logger: { stream: { write: (line) => void lines.push(line) } } })
     const sink = logAuditSink(logged.log)
-    sink({ at, operation: 'whoami', status: 200, outcome: 'ok', identified: true, tenant: null, actor: null })
+    await sink({ at, operation: 'whoami', status: 200, outcome: 'ok', identified: true, tenant: null, actor: null })
     await logged.close()
     const audited = lines.map((line) => JSON.parse(line) as { msg: string; audit?: unknown }).filter((line) => line.msg === 'audit')
-    expect(audited).toEqual([expect.objectContaining({ audit: { at, operation: 'whoami', status: 200, outcome: 'ok', identified: true, tenant: null, actor: null } })])
+    expect(audited).toEqual([
+      expect.objectContaining({ audit: { at, operation: 'whoami', status: 200, outcome: 'ok', identified: true, tenant: null, actor: null } }),
+    ])
   })
 })
 

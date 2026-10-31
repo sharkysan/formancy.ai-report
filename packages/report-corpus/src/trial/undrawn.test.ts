@@ -51,10 +51,22 @@ const BILL: QrBill = {
 }
 
 /** An e-invoice as the runtime hands one on, its XML cut short: neither adapter reads it. */
-const E_INVOICE: EInvoiceFile = { kind: 'facturX', xml: '<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice/>\n', fileName: 'factur-x.xml', relationship: 'Alternative', conformanceLevel: 'EN 16931' }
+const E_INVOICE: EInvoiceFile = {
+  kind: 'facturX',
+  xml: '<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice/>\n',
+  fileName: 'factur-x.xml',
+  relationship: 'Alternative',
+  conformanceLevel: 'EN 16931',
+}
 
 /** An EPC QR code as the runtime resolves one: an account and its owner alone, framed and captioned as Austria's PSA asks. */
-const EPC: EpcQrCode = { kind: 'epcQrCode', id: 'pay-code', payload: ['BCD', '002', '1', 'SCT', '', 'Max Muster', 'DE89370400440532013000'].join('\n'), size: 85.04, caption: 'zahlenMitCode' }
+const EPC: EpcQrCode = {
+  kind: 'epcQrCode',
+  id: 'pay-code',
+  payload: ['BCD', '002', '1', 'SCT', '', 'Max Muster', 'DE89370400440532013000'].join('\n'),
+  size: 85.04,
+  caption: 'zahlenMitCode',
+}
 
 /** The corpus's ledger of three rows, with `patch` laid over it. */
 function table(patch: Partial<Table>): Table {
@@ -76,10 +88,26 @@ const UNDRAWN: readonly (readonly [string, ResolvedDocument, string])[] = [
     ]),
     'body[1]',
   ],
-  ['a section', documentOf('Section', [paragraph('Before'), { kind: 'section', blocks: [paragraph('Framed')], border: { thickness: 1, color: '#000000' } }]), 'body[1]'],
-  ['a rectangle in the page footer', { ...documentOf('Rectangle', [paragraph('Body')]), pageFooter: [paragraph('Footer'), { kind: 'rectangle', width: 40, height: 10, fill: '#cccccc' }] }, 'pageFooter[1]'],
-  ['a rectangle in a keep-together block', documentOf('Kept rectangle', [{ kind: 'keepTogether', blocks: [paragraph('Kept'), { kind: 'rectangle', width: 40, height: 10 }] }]), 'body[0].blocks[1]'],
-  ['a QR code', documentOf('QR code', [paragraph('Before'), { kind: 'qrCode', id: 'order-code', text: 'https://formancy.ai/report/', size: 85.04, errorCorrection: 'M' }]), 'body[1]'],
+  [
+    'a section',
+    documentOf('Section', [paragraph('Before'), { kind: 'section', blocks: [paragraph('Framed')], border: { thickness: 1, color: '#000000' } }]),
+    'body[1]',
+  ],
+  [
+    'a rectangle in the page footer',
+    { ...documentOf('Rectangle', [paragraph('Body')]), pageFooter: [paragraph('Footer'), { kind: 'rectangle', width: 40, height: 10, fill: '#cccccc' }] },
+    'pageFooter[1]',
+  ],
+  [
+    'a rectangle in a keep-together block',
+    documentOf('Kept rectangle', [{ kind: 'keepTogether', blocks: [paragraph('Kept'), { kind: 'rectangle', width: 40, height: 10 }] }]),
+    'body[0].blocks[1]',
+  ],
+  [
+    'a QR code',
+    documentOf('QR code', [paragraph('Before'), { kind: 'qrCode', id: 'order-code', text: 'https://formancy.ai/report/', size: 85.04, errorCorrection: 'M' }]),
+    'body[1]',
+  ],
   // A slip left out would print an invoice nobody can pay by, and say nothing.
   ['a payment part', { ...documentOf('Bill', [paragraph('Invoice')]), paymentPart: BILL }, 'paymentPart'],
   // An e-invoice left out would print a plain PDF of an invoice whose XML
@@ -89,8 +117,16 @@ const UNDRAWN: readonly (readonly [string, ResolvedDocument, string])[] = [
   // by, and say nothing; one drawn as a plain QR code would lose its frame
   // and the level and version a bank's app reads.
   ['an EPC QR code', documentOf('EPC QR code', [paragraph('Before'), EPC]), 'body[1]'],
-  ['an EPC QR code in a keep-together block', documentOf('Kept EPC QR code', [{ kind: 'keepTogether', blocks: [paragraph('Pay by code'), EPC] }]), 'body[0].blocks[1]'],
-  ['a QR code in the page header', { ...documentOf('Header code', [paragraph('Body')]), pageHeader: [{ kind: 'qrCode', id: 'header-code', text: 'A-1', size: 40, errorCorrection: 'L' }] }, 'pageHeader[0]'],
+  [
+    'an EPC QR code in a keep-together block',
+    documentOf('Kept EPC QR code', [{ kind: 'keepTogether', blocks: [paragraph('Pay by code'), EPC] }]),
+    'body[0].blocks[1]',
+  ],
+  [
+    'a QR code in the page header',
+    { ...documentOf('Header code', [paragraph('Body')]), pageHeader: [{ kind: 'qrCode', id: 'header-code', text: 'A-1', size: 40, errorCorrection: 'L' }] },
+    'pageHeader[0]',
+  ],
   // An SVG is a drawing, which both adapters read as a JPEG and refused as
   // a broken one: an invalid asset, where the asset is sound and the
   // adapter is what cannot draw it.
@@ -98,14 +134,26 @@ const UNDRAWN: readonly (readonly [string, ResolvedDocument, string])[] = [
   ['an SVG image in a keep-together block', documentOf('Kept SVG', [{ kind: 'keepTogether', blocks: [paragraph('Kept'), MARK] }]), 'body[0].blocks[1]'],
   ['an SVG image in the page header', { ...documentOf('Header SVG', [paragraph('Body')]), pageHeader: [MARK] }, 'pageHeader[0]'],
   ['a paragraph in the serif font', documentOf('Serif', [paragraph('Set in serif', { font: 'serif' })]), 'body[0]'],
-  ['a paragraph in the mono font, in the page header', { ...documentOf('Mono', [paragraph('Body')]), pageHeader: [paragraph('Set in mono', { font: 'mono' })] }, 'pageHeader[0]'],
+  [
+    'a paragraph in the mono font, in the page header',
+    { ...documentOf('Mono', [paragraph('Body')]), pageHeader: [paragraph('Set in mono', { font: 'mono' })] },
+    'pageHeader[0]',
+  ],
   ['a paragraph in colour', documentOf('Colour', [paragraph('Printed in red', { color: '#c00000' })]), 'body[0]'],
   ['a rule of another weight', documentOf('Heavy rule', [paragraph('Above'), { kind: 'rule', thickness: 2 }]), 'body[1]'],
   ['a rule in colour', documentOf('Grey rule', [paragraph('Above'), { kind: 'rule', thickness: 0.5, color: '#808080' }]), 'body[1]'],
   ['a table with a styled header', documentOf('Header style', [table({ headerStyle: { italic: true } })]), 'lines'],
   ['a table with a styled row', documentOf('Row style', [table({ rows: [...details(1, 2), { ...totalRow(details(1, 2)), style: { bold: true } }] })]), 'lines'],
-  ['a table with a styled cell', documentOf('Cell style', [table({ rows: [{ ...details(1, 1)[0]!, cellStyles: [null, null, { color: '#c00000' }] }] })]), 'lines'],
-  ['a group header across the table', documentOf('Across', [table({ rows: [{ kind: 'groupHeader', cells: ['Region A'], across: true }, ...details(1, 2)] })]), 'lines'],
+  [
+    'a table with a styled cell',
+    documentOf('Cell style', [table({ rows: [{ ...details(1, 1)[0]!, cellStyles: [null, null, { color: '#c00000' }] }] })]),
+    'lines',
+  ],
+  [
+    'a group header across the table',
+    documentOf('Across', [table({ rows: [{ kind: 'groupHeader', cells: ['Region A'], across: true }, ...details(1, 2)] })]),
+    'lines',
+  ],
   // Each adapter draws an image at exactly its box, which is what either fit
   // draws only for an image of the box's own proportions. Any other would be
   // stretched, which is neither.
@@ -126,7 +174,12 @@ describe.each(ADAPTERS)('the $name trial adapter', (adapter) => {
   // image of its box's proportions to either fit.
   test('draws the sans font, black text, a black half-point rule and an image of its own proportions to cover', async () => {
     const wide: Image = { ...squareIn('cover'), asset: { id: 'wide', mediaType: 'image/png', bytes: encodePng(16, 8, () => [0, 90, 0]) } }
-    const document = documentOf('Named', [paragraph('Sans in black', { font: 'sans', color: '#000000' }), { kind: 'rule', thickness: 0.5, color: '#000000' }, paragraph('Below the rule'), wide])
+    const document = documentOf('Named', [
+      paragraph('Sans in black', { font: 'sans', color: '#000000' }),
+      { kind: 'rule', thickness: 0.5, color: '#000000' },
+      paragraph('Below the rule'),
+      wide,
+    ])
     const pdf = await readPdf(await adapter.render(document, { maxPages: 5 }))
     const lines = pdf.pages.flatMap((page) => pageLines(page))
     expect(['Sans in black', 'Below the rule'].filter((text) => !lines.some((line) => lineHas(line, text)))).toEqual([])

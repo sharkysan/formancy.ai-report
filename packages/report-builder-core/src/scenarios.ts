@@ -38,7 +38,13 @@ import type { EditorLocale } from './text.js'
 /** The scenario report with the introduction shown only when a parameter nobody declared says so: an error the diagnostics link to it. */
 function brokenReport(): ReportDefinition {
   const report = scenarioReport()
-  return { ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)) } }
+  return {
+    ...report,
+    regions: {
+      ...report.regions,
+      body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)),
+    },
+  }
 }
 
 /** A report with nothing in any region: the outline has no row to be a tab stop. */
@@ -68,7 +74,12 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
   const error = (where: string): ScenarioQuery => button(t('problem.item', { severity: t('severity.error'), where }))
   // What a new text says is in the report's language, which prints, not the editor's.
   const newText = editorText(contentLocale(scenarioReport().locale))('default.text')
-  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = scenarioReport): BuilderScenario => ({ name, locale, report, steps })
+  const scenario = (name: string, steps: readonly ScenarioStep[], report: () => ReportDefinition = scenarioReport): BuilderScenario => ({
+    name,
+    locale,
+    report,
+    steps,
+  })
 
   // In the order the scenarios were written, which is the order every runner runs them in.
   return [
@@ -120,7 +131,12 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
       { do: 'click', ...tree(spacer) },
       { do: 'fill', role: PROPERTY_ROLES.length, name: height, text: '400' },
       { expect: 'invalid', role: PROPERTY_ROLES.length, name: height },
-      { expect: 'document', says: 'the spacer is as tall as it was', unchanged: true, check: (report) => report.regions.body.some((component) => component.id === 'gap' && component.kind === 'spacer' && component.height === 12) },
+      {
+        expect: 'document',
+        says: 'the spacer is as tall as it was',
+        unchanged: true,
+        check: (report) => report.regions.body.some((component) => component.id === 'gap' && component.kind === 'spacer' && component.height === 12),
+      },
     ]),
     scenario('move a component down and back up by keyboard', [
       { do: 'click', ...tree('Findings') },
@@ -182,14 +198,18 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
     // A tree with no row in it is still the outline's one tab stop, and says
     // it holds nothing; the regions' names, with no row under them, are no
     // tree's children (axe's aria-required-children: a tree owns rows).
-    scenario('an empty report’s outline is one tab stop, and says it is empty', [
-      { expect: 'present', ...outline },
-      { do: 'focus', ...outline },
-      { expect: 'focused', ...outline },
-      { do: 'press', key: 'ArrowDown' },
-      { expect: 'text', ...said, text: t('outline.empty') },
-      { expect: 'focused', ...outline },
-    ], blankReport),
+    scenario(
+      'an empty report’s outline is one tab stop, and says it is empty',
+      [
+        { expect: 'present', ...outline },
+        { do: 'focus', ...outline },
+        { expect: 'focused', ...outline },
+        { do: 'press', key: 'ArrowDown' },
+        { expect: 'text', ...said, text: t('outline.empty') },
+        { expect: 'focused', ...outline },
+      ],
+      blankReport,
+    ),
     scenario('undo and redo, from the toolbar and the keyboard', [
       { do: 'click', ...tree(spacer) },
       { do: 'press', key: 'Delete' },
@@ -265,7 +285,11 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
     scenario('choose a style from a picker', [
       { do: 'click', ...tree('Introduction') },
       { do: 'choose', role: PROPERTY_ROLES.style, name: t('field.style'), option: 'heading' },
-      { expect: 'document', says: 'the introduction has the heading style', check: (report) => report.regions.body.some((component) => component.id === 'intro' && component.style === 'heading') },
+      {
+        expect: 'document',
+        says: 'the introduction has the heading style',
+        check: (report) => report.regions.body.some((component) => component.id === 'intro' && component.style === 'heading'),
+      },
     ]),
     ...hostViewScenarios(locale),
     ...imageScenarios(locale),
