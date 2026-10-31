@@ -64,7 +64,9 @@ function printingRuns(report: ReportDefinition, sites: readonly ExpressionSite[]
     const parsed = parse(site.cel)
     // One that does not parse has its own diagnostic, and reads nothing it can be credited with.
     if (!parsed.ok) return []
-    const reads = referencedPaths(parsed.ast).map(pathParts).flatMap(({ name, member }) => (member === undefined ? [] : [`${name}.${member}`]))
+    const reads = referencedPaths(parsed.ast)
+      .map(pathParts)
+      .flatMap(({ name, member }) => (member === undefined ? [] : [`${name}.${member}`]))
     return [{ site, reads: [...new Set(reads)] }]
   })
 }
@@ -82,14 +84,22 @@ function unprintedTotals(invoice: EInvoice, runs: readonly PrintingRun[]): Diagn
           { what: INVOICE_TOTALS.duePayable, path: '/eInvoice', reads: ['invoice.duePayable'] },
         ]),
     ...invoice.vat.flatMap(({ id }, index) =>
-      (['vatBasis', 'vatAmount'] as const).map((name) => ({ what: `${VAT_BREAKDOWN[name]} of the category ${quote(id)}`, path: `/eInvoice/vat/${index}`, reads: [`${name}.${id}`] })),
+      (['vatBasis', 'vatAmount'] as const).map((name) => ({
+        what: `${VAT_BREAKDOWN[name]} of the category ${quote(id)}`,
+        path: `/eInvoice/vat/${index}`,
+        reads: [`${name}.${id}`],
+      })),
     ),
   ]
   const printed = new Set(runs.flatMap(({ reads }) => reads))
   return totals
     .filter(({ reads }) => !reads.some((read) => printed.has(read)))
     .map(({ what, path, reads }) =>
-      diagnostic('e-invoice-total-unprinted', `${what} is in the e-invoice's XML, and no text or table of the page prints it: print it as ${reads.join(' or ')}, so the page shows the invoice it carries`, { path }),
+      diagnostic(
+        'e-invoice-total-unprinted',
+        `${what} is in the e-invoice's XML, and no text or table of the page prints it: print it as ${reads.join(' or ')}, so the page shows the invoice it carries`,
+        { path },
+      ),
     )
 }
 
@@ -118,14 +128,24 @@ function formatsThatDiffer(report: ReportDefinition, invoice: EInvoice, runs: re
     const total = reads.find((read) => (E_INVOICE_NAMES as readonly string[]).includes(read.split('.')[0] as string))
     if (total === undefined) continue
     const broken = placesBreak(site.format, 'this run') ?? currencyBreak(site.format, invoice.currency, 'this run')
-    if (broken !== undefined) found.push(diagnostic('e-invoice-format-differs', `${total} ${broken}`, { path: site.path.replace(/\/expression\/cel$/, '/format'), componentId: site.componentId, columnId: site.columnId }))
+    if (broken !== undefined)
+      found.push(
+        diagnostic('e-invoice-format-differs', `${total} ${broken}`, {
+          path: site.path.replace(/\/expression\/cel$/, '/format'),
+          componentId: site.componentId,
+          columnId: site.columnId,
+        }),
+      )
   }
   // report-spec's validator holds the lines to this table, and each named column to it.
   const located = walkComponents(report).find(({ component }) => component.kind === 'table' && component.id === invoice.lines.table)
   if (located === undefined) return found
   const table = located.component as TableComponent
   const columnBreaks = {
-    name: (format: Format | undefined) => (format?.kind === 'text' && format.transform !== undefined ? `is written into the XML as the data gives it, and its column prints it in ${format.transform} case: print it without a transform` : undefined),
+    name: (format: Format | undefined) =>
+      format?.kind === 'text' && format.transform !== undefined
+        ? `is written into the XML as the data gives it, and its column prints it in ${format.transform} case: print it without a transform`
+        : undefined,
     netAmount: (format: Format | undefined) => placesBreak(format, 'its column') ?? currencyBreak(format, invoice.currency, 'its column'),
     netPrice: (format: Format | undefined) => currencyBreak(format, invoice.currency, 'its column'),
   } as const
@@ -134,7 +154,13 @@ function formatsThatDiffer(report: ReportDefinition, invoice: EInvoice, runs: re
     const column = table.columns[index]
     const said = column === undefined ? undefined : broken(formatOf(column.value))
     if (column !== undefined && said !== undefined) {
-      found.push(diagnostic('e-invoice-format-differs', `${E_INVOICE_LINE_COLUMNS[key].what} ${said}`, { path: `${located.path}/columns/${index}/value/format`, componentId: table.id, columnId: column.id }))
+      found.push(
+        diagnostic('e-invoice-format-differs', `${E_INVOICE_LINE_COLUMNS[key].what} ${said}`, {
+          path: `${located.path}/columns/${index}/value/format`,
+          componentId: table.id,
+          columnId: column.id,
+        }),
+      )
     }
   }
   return found

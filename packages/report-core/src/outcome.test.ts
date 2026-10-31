@@ -41,7 +41,13 @@ const CASES: { readonly [C in RefusalCode]: () => CommandOutcome } = {
   'stale-document': () => inSession((report) => removeComponent(report, 'gap'), '0'.repeat(64)),
   'read-from-data': () => {
     const report = eInvoiceSample()
-    const bound = { ...report, eInvoice: { ...(report.eInvoice as NonNullable<typeof report.eInvoice>), payment: { means: '58', iban: [{ kind: 'field', field: { dataset: 'header', field: 'customer' } }] } } } as typeof report
+    const bound = {
+      ...report,
+      eInvoice: {
+        ...(report.eInvoice as NonNullable<typeof report.eInvoice>),
+        payment: { means: '58', iban: [{ kind: 'field', field: { dataset: 'header', field: 'customer' } }] },
+      },
+    } as typeof report
     return setPaymentAccount(frozen(bound), 'DE89 3704 0044 0532 0130 00')
   },
   // The QR-bill's debtor is the customer: only the bill's own commands change what it reads.

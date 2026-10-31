@@ -59,7 +59,11 @@ export const COLOR = /^#[0-9a-f]{6}$/
  * (0043) -- and a style with no token prints in the document's default
  * family, which pdfmake inherits.
  */
-export function textProperties(style: TextStyle, defaults: { readonly size: number; readonly bold?: boolean; readonly italic?: boolean }, familyOf: (token: FontFamily) => string): Record<string, unknown> {
+export function textProperties(
+  style: TextStyle,
+  defaults: { readonly size: number; readonly bold?: boolean; readonly italic?: boolean },
+  familyOf: (token: FontFamily) => string,
+): Record<string, unknown> {
   const bold = style.bold ?? defaults.bold
   const italic = style.italic ?? defaults.italic
   return {

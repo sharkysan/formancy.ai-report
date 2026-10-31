@@ -19,7 +19,12 @@ export const inputs: SiteInputs = readInputs(repo, { pictures: PICTURES })
 export const site: Site = renderSite(inputs)
 
 /** `site` as the checks see it, with this checkout's files. */
-export const builtOf = (each: Site, using: SiteInputs = inputs): Built => ({ site: each, inputs: using, exists: (path) => existsSync(join(repo, path)), text: (path) => readFileSync(join(repo, path), 'utf8') })
+export const builtOf = (each: Site, using: SiteInputs = inputs): Built => ({
+  site: each,
+  inputs: using,
+  exists: (path) => existsSync(join(repo, path)),
+  text: (path) => readFileSync(join(repo, path), 'utf8'),
+})
 
 /**
  * `site` with the file at `path` -- a page or another text file -- edited

@@ -16,8 +16,23 @@ import { layoutReport, MAX_ZOOM, MIN_ZOOM, pageGeometry, PX_PER_PT, rulerTicks, 
 import type { Layout } from './geometry.js'
 import { addRefusal, imageLibrary } from './images.js'
 import type { Images } from './images.js'
-import { columnKey, kindLabel, partLabel, regionLabel, reportLabels } from './labels.js'
-import type { Announcement, Availability, DiagnosticEntry, DragState, DragSubject, DropTarget, EditorPanel, EditorState, HideablePanel, HistoryState, HostView, PaletteEntry, ReportLevelPart, Selection } from './model.js'
+import { kindLabel, partLabel, regionLabel, reportLabels } from './labels.js'
+import type {
+  Announcement,
+  Availability,
+  DiagnosticEntry,
+  DragState,
+  DragSubject,
+  DropTarget,
+  EditorPanel,
+  EditorState,
+  HideablePanel,
+  HistoryState,
+  HostView,
+  PaletteEntry,
+  ReportLevelPart,
+  Selection,
+} from './model.js'
 import type { Box, Canvas, CanvasPaymentPart } from './model-canvas.js'
 import { REPORT_LEVEL_PARTS } from './model.js'
 import { buildOutline, outlineOrder, outlineParts, selectionKey } from './outline.js'
@@ -130,7 +145,14 @@ function freeze<T>(value: T): T {
 function paymentBand(derived: Derived, box: Box, chosen: string | undefined, zoom: number, t: EditorText): CanvasPaymentPart {
   const key = selectionKey({ part: 'paymentPart' })
   const severity = derived.severities.get(key)
-  return { label: partLabel('paymentPart', t), selected: chosen === key, problems: derived.problems.get(key) ?? 0, ...(severity === undefined ? {} : { severity }), pt: box, px: toPx(box, zoom) }
+  return {
+    label: partLabel('paymentPart', t),
+    selected: chosen === key,
+    problems: derived.problems.get(key) ?? 0,
+    ...(severity === undefined ? {} : { severity }),
+    pt: box,
+    px: toPx(box, zoom),
+  }
 }
 
 function canvasOf(derived: Derived, local: Local, t: EditorText): Canvas {
@@ -185,7 +207,15 @@ function diagnosticEntries(derived: Derived, t: EditorText): DiagnosticEntry[] {
   return derived.diagnostics.map((diagnostic, at) => {
     const target = targetOf(diagnostic)
     const where = target === null ? t('problem.report') : (derived.labels.get(selectionKey(target)) ?? selectionKey(target))
-    return { key: keys[at] as string, severity: diagnostic.severity, code: diagnostic.code, message: diagnostic.message, where, label: t('problem.item', { severity: t(`severity.${diagnostic.severity}`), where }), target }
+    return {
+      key: keys[at] as string,
+      severity: diagnostic.severity,
+      code: diagnostic.code,
+      message: diagnostic.message,
+      where,
+      label: t('problem.item', { severity: t(`severity.${diagnostic.severity}`), where }),
+      target,
+    }
   })
 }
 
@@ -200,7 +230,12 @@ const REPORT = { kind: 'report', path: '' } as const
 function availability(report: ReportDefinition, local: Local, images: Images): Availability {
   const { selection, zoom } = local
   const design = viewOf(local.host) === 'design'
-  const zooms = { zoomIn: design && zoom < MAX_ZOOM, zoomOut: design && zoom > MIN_ZOOM, zoomReset: design && zoom !== 1, addImage: addRefusal(images, local.adding, report) === undefined }
+  const zooms = {
+    zoomIn: design && zoom < MAX_ZOOM,
+    zoomOut: design && zoom > MIN_ZOOM,
+    zoomReset: design && zoom !== 1,
+    addImage: addRefusal(images, local.adding, report) === undefined,
+  }
   const target = selection === null ? undefined : selected(report, selection)
   if (target === undefined) return { delete: false, duplicate: false, moveUp: false, moveDown: false, indent: false, outdent: false, moveTo: false, ...zooms }
   const goes = (planned: object): boolean => !('edge' in planned)
@@ -217,7 +252,12 @@ function availability(report: ReportDefinition, local: Local, images: Images): A
 }
 
 /** The drag as the state shows it, and where its subject may go. */
-function dragOf(derived: Derived, local: Local, t: EditorText, targets: () => readonly DropTarget[]): { readonly drag: DragState | null; readonly dropTargets: readonly DropTarget[] } {
+function dragOf(
+  derived: Derived,
+  local: Local,
+  t: EditorText,
+  targets: () => readonly DropTarget[],
+): { readonly drag: DragState | null; readonly dropTargets: readonly DropTarget[] } {
   if (local.drag === null) return { drag: null, dropTargets: [] }
   const { subject, via, over } = local.drag
   const name = 'id' in subject ? (derived.labels.get(subject.id) ?? subject.id) : kindLabel(subject.kind, t)
@@ -227,7 +267,15 @@ function dragOf(derived: Derived, local: Local, t: EditorText, targets: () => re
 }
 
 /** The whole state, frozen, from the document's derivations, the session's history and the editor's own. */
-export function buildState(derived: Derived, session: SessionView, local: Local, locale: EditorLocale, t: EditorText, targets: () => readonly DropTarget[], images: Images): EditorState {
+export function buildState(
+  derived: Derived,
+  session: SessionView,
+  local: Local,
+  locale: EditorLocale,
+  t: EditorText,
+  targets: () => readonly DropTarget[],
+  images: Images,
+): EditorState {
   const { report, labels, problems, severities, overflowing } = derived
   const inputs = { labels, selection: local.selection, problems, severities, overflowing }
   // The editor keeps its selection one the document has, so this finds it.
@@ -252,7 +300,14 @@ export function buildState(derived: Derived, session: SessionView, local: Local,
     outlineParts: outlineParts(report, inputs, t),
     palette: derived.palette,
     images: imageLibrary(images, derived, local.adding),
-    properties: propertyPanel(panelTarget, specsOf(panelTarget, report, t, locale), propertyHeading(panelTarget, labels, t), local.errors, derived.diagnostics, t),
+    properties: propertyPanel(
+      panelTarget,
+      specsOf(panelTarget, report, t, locale),
+      propertyHeading(panelTarget, labels, t),
+      local.errors,
+      derived.diagnostics,
+      t,
+    ),
     canvas: canvasOf(derived, local, t),
     diagnostics: diagnosticEntries(derived, t),
     history: session.history,

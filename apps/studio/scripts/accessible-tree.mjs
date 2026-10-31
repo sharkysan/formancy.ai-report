@@ -137,6 +137,8 @@ export function difference(left, right, { names = ['one', 'the other'], limit = 
     return `the same lines in another order, from line ${String(at + 1)}: ${names[0]} has ${shown(left[at])} where ${names[1]} has ${shown(right[at])}`
   }
   const say = (name, lines) =>
-    lines.length === 0 ? `${name} has no line the other lacks` : `${name} alone has ${lines.slice(0, limit).map(shown).join(' | ')}${lines.length > limit ? ` and ${String(lines.length - limit)} more` : ''}`
+    lines.length === 0
+      ? `${name} has no line the other lacks`
+      : `${name} alone has ${lines.slice(0, limit).map(shown).join(' | ')}${lines.length > limit ? ` and ${String(lines.length - limit)} more` : ''}`
   return `${say(names[0], mine)}; ${say(names[1], theirs)}`
 }

@@ -79,20 +79,32 @@ const UNKEYED = 'null'
 export function drawnAs(face: HostFace, others: readonly HostFace[]): OwnFace | undefined {
   const { id } = face.asset
   if (face.postScriptNames.some((name) => name === UNKEYED || name in Object.prototype)) {
-    throw new RenderRefusal('invalid-asset', `the font asset ${id} has a PostScript name PDFKit keeps fonts under before it reads one, and would draw it as another face or fail on it`, id)
+    throw new RenderRefusal(
+      'invalid-asset',
+      `the font asset ${id} has a PostScript name PDFKit keeps fonts under before it reads one, and would draw it as another face or fail on it`,
+      id,
+    )
   }
   let digest: string | undefined
   const digestOf = (): string => (digest ??= assetDigest(face.asset.bytes))
   const shares = (names: readonly string[]): boolean => names.some((name) => face.postScriptNames.includes(name))
   for (const other of others) {
     if (other.asset.id !== id && shares(other.postScriptNames) && assetDigest(other.asset.bytes) !== digestOf()) {
-      throw new RenderRefusal('invalid-asset', `the font asset ${id} has a PostScript name of the font asset ${other.asset.id}, with other bytes: PDFKit draws two faces of one PostScript name as whichever it opened first`, id)
+      throw new RenderRefusal(
+        'invalid-asset',
+        `the font asset ${id} has a PostScript name of the font asset ${other.asset.id}, with other bytes: PDFKit draws two faces of one PostScript name as whichever it opened first`,
+        id,
+      )
     }
   }
   const own = OWN_FACES.find((each) => shares([each.postScriptName]))
   if (own === undefined) return undefined
   if (digestOf() !== own.digest) {
-    throw new RenderRefusal('invalid-asset', `the font asset ${id} has the PostScript name of the renderer's own ${own.name}, with other bytes: PDFKit draws two faces of one PostScript name as whichever it opened first, and accepts only the renderer's own bytes under that name`, id)
+    throw new RenderRefusal(
+      'invalid-asset',
+      `the font asset ${id} has the PostScript name of the renderer's own ${own.name}, with other bytes: PDFKit draws two faces of one PostScript name as whichever it opened first, and accepts only the renderer's own bytes under that name`,
+      id,
+    )
   }
   return own
 }

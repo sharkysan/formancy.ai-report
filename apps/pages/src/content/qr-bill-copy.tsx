@@ -58,7 +58,8 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
   de: {
     meta: {
       title: 'QR-Rechnungen als PDF aus Ihren Daten – Formancy Report',
-      description: 'QR-Rechnungen als PDF aus Ihren eigenen Daten erstellen, in Ihrer Anwendung auf dem Server oder im Browser, nach den Regeln von SIX geprüft, selbst gehostet.',
+      description:
+        'QR-Rechnungen als PDF aus Ihren eigenen Daten erstellen, in Ihrer Anwendung auf dem Server oder im Browser, nach den Regeln von SIX geprüft, selbst gehostet.',
       name: 'QR-Rechnung',
     },
     teaser: {
@@ -102,7 +103,8 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     },
     samples: {
       heading: 'Beispiele: eine Rechnung auf Deutsch, Französisch, Italienisch und Englisch',
-      intro: 'Jedes Beispiel verrechnet dieselbe Arbeit, in den Worten seiner Sprache, mit Beträgen und Datumsangaben, wie die Laufzeit sie für seine Locale formatiert (de-CH, fr-CH, it-CH oder en-CH), und mit dem Zahlteil in seiner Sprache. Ein Skript hat jedes Bild aus dem PDF gezeichnet, das der Renderer erzeugt hat. Die Firmen und ihre Kundschaft sind erfunden, und das Konto ist die Beispiel-QR-IBAN von SIX, die keine Bank führt.',
+      intro:
+        'Jedes Beispiel verrechnet dieselbe Arbeit, in den Worten seiner Sprache, mit Beträgen und Datumsangaben, wie die Laufzeit sie für seine Locale formatiert (de-CH, fr-CH, it-CH oder en-CH), und mit dem Zahlteil in seiner Sprache. Ein Skript hat jedes Bild aus dem PDF gezeichnet, das der Renderer erzeugt hat. Die Firmen und ihre Kundschaft sind erfunden, und das Konto ist die Beispiel-QR-IBAN von SIX, die keine Bank führt.',
     },
     tryIt: {
       heading: 'Ausprobieren',
@@ -141,17 +143,18 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
   fr: {
     meta: {
       title: 'Factures QR en PDF à partir de vos données – Formancy Report',
-      description: 'Créez des factures QR en PDF à partir de vos données, récépissé et section paiement vérifiés selon les règles de SIX, dans votre application, sur vos serveurs.',
+      description:
+        'Créez des factures QR en PDF à partir de vos données, récépissé et section paiement vérifiés selon les règles de SIX, dans votre application, sur vos serveurs.',
       name: 'Facture QR',
     },
     teaser: {
       heading: 'Factures QR',
-      text: "Des factures avec section paiement QR, générées à partir de vos propres données : vérifiées selon les règles de SIX avant que le PDF soit produit, avec un montant calculé de manière exacte à partir des valeurs de la facture, et des exemples en allemand, en français, en italien et en anglais.",
+      text: 'Des factures avec section paiement QR, générées à partir de vos propres données : vérifiées selon les règles de SIX avant que le PDF soit produit, avec un montant calculé de manière exacte à partir des valeurs de la facture, et des exemples en allemand, en français, en italien et en anglais.',
       action: 'Les factures QR avec Formancy Report',
     },
     eyebrow: 'Formancy Report pour la QR-facture',
     h1: 'Des factures QR à partir de vos propres données, vérifiées selon les règles de SIX',
-    lead: "Formancy Report génère vos factures en PDF, avec le récépissé et la section paiement, souvent appelés bulletin de versement QR, au pied de la dernière page, comme SIX les définit. Votre application fournit les données ; avant que le PDF soit produit, le compte, la référence et chaque texte sont vérifiés selon les règles de SIX, et le montant est calculé de manière exacte à partir des valeurs de la facture, son total dans les exemples.",
+    lead: 'Formancy Report génère vos factures en PDF, avec le récépissé et la section paiement, souvent appelés bulletin de versement QR, au pied de la dernière page, comme SIX les définit. Votre application fournit les données ; avant que le PDF soit produit, le compte, la référence et chaque texte sont vérifiés selon les règles de SIX, et le montant est calculé de manière exacte à partir des valeurs de la facture, son total dans les exemples.',
     standing: 'La facture QR se découvre en ligne dans le Studio et figure dans la version la plus récente.',
     actions: { studio: "L'essayer dans le Studio (modèle de départ Invoice)", samples: 'Voir les exemples' },
     does: {
@@ -163,7 +166,7 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         },
         {
           title: 'Une faute de frappe repérée avant le PDF',
-          text: "Un IBAN mal saisi est refusé dès la validation du rapport, avant tout rendu, avec le champ et la règle enfreinte. Un texte qui vient des données est vérifié par le runtime selon les mêmes règles, avant que le PDF soit produit. Aucun message ne cite la valeur elle-même : jamais un nom, une adresse ou un compte.",
+          text: 'Un IBAN mal saisi est refusé dès la validation du rapport, avant tout rendu, avec le champ et la règle enfreinte. Un texte qui vient des données est vérifié par le runtime selon les mêmes règles, avant que le PDF soit produit. Aucun message ne cite la valeur elle-même : jamais un nom, une adresse ou un compte.',
         },
         {
           title: 'Le montant, exact au centime',
@@ -185,7 +188,8 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     },
     samples: {
       heading: 'Exemples : une facture en allemand, en français, en italien et en anglais',
-      intro: "Chaque exemple facture le même travail avec les mots de sa langue, ses montants et ses dates tels que le runtime les formate pour ses paramètres régionaux (de-CH, fr-CH, it-CH ou en-CH), et sa section paiement dans sa langue. Un script a dessiné chaque image à partir du PDF produit par le moteur de rendu. Les entreprises et leurs clients sont inventés, et le compte est le QR-IBAN d'exemple de SIX, qu'aucune banque ne tient.",
+      intro:
+        "Chaque exemple facture le même travail avec les mots de sa langue, ses montants et ses dates tels que le runtime les formate pour ses paramètres régionaux (de-CH, fr-CH, it-CH ou en-CH), et sa section paiement dans sa langue. Un script a dessiné chaque image à partir du PDF produit par le moteur de rendu. Les entreprises et leurs clients sont inventés, et le compte est le QR-IBAN d'exemple de SIX, qu'aucune banque ne tient.",
     },
     tryIt: {
       heading: "L'essayer",
@@ -224,7 +228,8 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
   it: {
     meta: {
       title: 'Fatture QR in PDF dai vostri dati – Formancy Report',
-      description: 'Generate fatture QR in PDF dai vostri dati, con ricevuta e sezione pagamento verificate secondo le regole di SIX, nella vostra applicazione, sui vostri server.',
+      description:
+        'Generate fatture QR in PDF dai vostri dati, con ricevuta e sezione pagamento verificate secondo le regole di SIX, nella vostra applicazione, sui vostri server.',
       name: 'Fattura QR',
     },
     teaser: {
@@ -268,7 +273,8 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     },
     samples: {
       heading: 'Esempi: una fattura in tedesco, francese, italiano e inglese',
-      intro: "Ogni esempio fattura lo stesso lavoro con le parole della sua lingua, con importi e date come il runtime li formatta per le sue impostazioni locali (de-CH, fr-CH, it-CH o en-CH), e con la sezione pagamento nella sua lingua. Uno script ha disegnato ogni immagine dal PDF prodotto dal renderer. Le aziende e i loro clienti sono inventati, e il conto è il QR-IBAN d'esempio di SIX, che nessuna banca gestisce.",
+      intro:
+        "Ogni esempio fattura lo stesso lavoro con le parole della sua lingua, con importi e date come il runtime li formatta per le sue impostazioni locali (de-CH, fr-CH, it-CH o en-CH), e con la sezione pagamento nella sua lingua. Uno script ha disegnato ogni immagine dal PDF prodotto dal renderer. Le aziende e i loro clienti sono inventati, e il conto è il QR-IBAN d'esempio di SIX, che nessuna banca gestisce.",
     },
     tryIt: {
       heading: 'Provarlo',
@@ -307,7 +313,8 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
   en: {
     meta: {
       title: 'Swiss QR-bill PDFs from your own data – Formancy Report',
-      description: "Create Swiss QR-bills as PDFs from your own data, in your own application, on the server or in the browser, checked against SIX's rules and self-hosted.",
+      description:
+        "Create Swiss QR-bills as PDFs from your own data, in your own application, on the server or in the browser, checked against SIX's rules and self-hosted.",
       name: 'Swiss QR-bill',
     },
     teaser: {
@@ -351,7 +358,8 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
     },
     samples: {
       heading: 'Samples: one invoice in German, French, Italian and English',
-      intro: "Each sample bills the same work in its own language's words, with its amounts and dates as the runtime formats them for its locale, de-CH, fr-CH, it-CH or en-CH, and its payment part in its language. A script drew each picture from the PDF the renderer produced. The firms and their customers are invented, and the account is SIX's example QR-IBAN, which no bank holds.",
+      intro:
+        "Each sample bills the same work in its own language's words, with its amounts and dates as the runtime formats them for its locale, de-CH, fr-CH, it-CH or en-CH, and its payment part in its language. A script drew each picture from the PDF the renderer produced. The firms and their customers are invented, and the account is SIX's example QR-IBAN, which no bank holds.",
     },
     tryIt: {
       heading: 'Try it',

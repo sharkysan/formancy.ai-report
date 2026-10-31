@@ -42,7 +42,10 @@ export interface WorkspaceOptions {
   readonly images?: ImageStore
 }
 
-export function createWorkspace(starters: readonly StudioStarter[], { locale = 'en', room = window.matchMedia(MIDDLE), images }: WorkspaceOptions = {}): Workspace {
+export function createWorkspace(
+  starters: readonly StudioStarter[],
+  { locale = 'en', room = window.matchMedia(MIDDLE), images }: WorkspaceOptions = {},
+): Workspace {
   const opened = new Map<string, Opened>()
   // Every editor is told, not only the one shown: a starter picked again
   // after the window crossed the width draws its Preview where there is
@@ -58,9 +61,14 @@ export function createWorkspace(starters: readonly StudioStarter[], { locale = '
       const starter = starters.find((each) => each.id === id)
       if (starter === undefined) throw new RangeError(`the Studio has no starter '${id}'`)
       const opening = openReportSession(starter.report)
-      if (!opening.ok) throw new Error(`the starter '${id}' is not a valid report: ${opening.errors.map((error) => `${error.path} ${error.message}`).join('; ')}`)
+      if (!opening.ok)
+        throw new Error(`the starter '${id}' is not a valid report: ${opening.errors.map((error) => `${error.path} ${error.message}`).join('; ')}`)
       // Each starter opens with its PDF in sight, where the window has room for it.
-      const editor = createReportEditor(opening.session, { locale, hostView: { name: PREVIEW_NAME, shown: true, place: placeIn(room) }, ...(images === undefined ? {} : { images }) })
+      const editor = createReportEditor(opening.session, {
+        locale,
+        hostView: { name: PREVIEW_NAME, shown: true, place: placeIn(room) },
+        ...(images === undefined ? {} : { images }),
+      })
       const made = { starter, session: opening.session, editor }
       opened.set(id, made)
       return made

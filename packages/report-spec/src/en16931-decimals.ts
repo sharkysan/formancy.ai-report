@@ -48,11 +48,14 @@ export function checkEInvoiceDecimal(term: EInvoiceDecimalTerm, decimal: string)
   if (!DECIMAL.test(decimal)) return no('is not a decimal')
   const rule = E_INVOICE_DECIMALS[term]
   const negative = decimal.startsWith('-')
-  if (negative && rule.least !== undefined) return no(en16931Rule(rule.least, 'is negative, and a net price never is: a discount is a line of negative quantity at a positive price'))
+  if (negative && rule.least !== undefined)
+    return no(en16931Rule(rule.least, 'is negative, and a net price never is: a discount is a line of negative quantity at a positive price'))
   if (rule.cents === undefined) return ok(decimal)
   const [whole = '', fraction = ''] = decimal.replace(/^-/, '').split('.')
   if (/[1-9]/.test(fraction.slice(2))) {
-    return no(en16931Rule(rule.cents, 'is not a whole number of cents, and the XML writes it with two decimals at most: it is rounded where the template computes it'))
+    return no(
+      en16931Rule(rule.cents, 'is not a whole number of cents, and the XML writes it with two decimals at most: it is rounded where the template computes it'),
+    )
   }
   return ok(`${negative ? '-' : ''}${whole}.${fraction.slice(0, 2).padEnd(2, '0')}`)
 }

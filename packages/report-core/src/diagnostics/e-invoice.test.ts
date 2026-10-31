@@ -35,7 +35,8 @@ const set =
 const unprint = (index: number): Edit => set(`${TOTALS}/content/${index}`, { kind: 'text', text: '-' })
 
 /** Each diagnostic as its code, its path and the member its message names. */
-const said = (report: ReportDefinition): string[] => diagnose(report).map(({ code, path, message }) => `${code} ${path} ${/(invoice|vatBasis|vatAmount)\.[A-Za-z]+/.exec(message)?.[0] ?? '-'}`)
+const said = (report: ReportDefinition): string[] =>
+  diagnose(report).map(({ code, path, message }) => `${code} ${path} ${/(invoice|vatBasis|vatAmount)\.[A-Za-z]+/.exec(message)?.[0] ?? '-'}`)
 
 describe('e-invoice-total-unprinted', () => {
   // The XML is the invoice, and a page that does not show one of its
@@ -125,7 +126,8 @@ describe('e-invoice-format-differs', () => {
   const LINES = '/regions/body/2/columns'
 
   /** Each diagnostic of the sample with `format` on the run at `pointer`, as its code, its path and its message. */
-  const formatted = (pointer: string, format: unknown): string[] => diagnose(edited(set(`${pointer}/format`, format))).map(({ code, path, message }) => `${code} ${path} ${message}`)
+  const formatted = (pointer: string, format: unknown): string[] =>
+    diagnose(edited(set(`${pointer}/format`, format))).map(({ code, path, message }) => `${code} ${path} ${message}`)
 
   // The page prints the totals the XML holds, from one computation, and a
   // format then shows each. At fewer than two places a total is rounded
@@ -136,10 +138,26 @@ describe('e-invoice-format-differs', () => {
   // diagnostic and resolved. Each is an error at the run's format, naming
   // what it reads, never a value.
   test.each([
-    ['at no places', { ...EUR, scale: 0 }, 'invoice.grandTotal is an amount the XML holds to the cent, and this run prints it at 0 places, rounding it again: print it at two places or more'],
-    ['at one place, as a number', { kind: 'number', scale: 1, grouping: true }, 'invoice.grandTotal is an amount the XML holds to the cent, and this run prints it at 1 places, rounding it again: print it at two places or more'],
-    ['in francs', { ...EUR, currency: { kind: 'code', code: 'CHF' } }, "invoice.grandTotal is an amount in the e-invoice's currency, EUR (BT-5), and this run prints it in CHF: name EUR as its currency"],
-    ['in a currency a parameter gives', { ...EUR, currency: { kind: 'parameter', parameter: 'currency' } }, "invoice.grandTotal is an amount in the e-invoice's currency, EUR (BT-5), and this run prints it in the currency a parameter gives: name EUR as its currency"],
+    [
+      'at no places',
+      { ...EUR, scale: 0 },
+      'invoice.grandTotal is an amount the XML holds to the cent, and this run prints it at 0 places, rounding it again: print it at two places or more',
+    ],
+    [
+      'at one place, as a number',
+      { kind: 'number', scale: 1, grouping: true },
+      'invoice.grandTotal is an amount the XML holds to the cent, and this run prints it at 1 places, rounding it again: print it at two places or more',
+    ],
+    [
+      'in francs',
+      { ...EUR, currency: { kind: 'code', code: 'CHF' } },
+      "invoice.grandTotal is an amount in the e-invoice's currency, EUR (BT-5), and this run prints it in CHF: name EUR as its currency",
+    ],
+    [
+      'in a currency a parameter gives',
+      { ...EUR, currency: { kind: 'parameter', parameter: 'currency' } },
+      "invoice.grandTotal is an amount in the e-invoice's currency, EUR (BT-5), and this run prints it in the currency a parameter gives: name EUR as its currency",
+    ],
   ])('is a total printed %s', (_how, format, message) => {
     expect(formatted(GRAND, format)).toEqual([`e-invoice-format-differs ${GRAND}/format ${message}`])
   })
@@ -161,7 +179,9 @@ describe('e-invoice-format-differs', () => {
   // all the same. A category's basis and amount are totals the XML holds
   // too.
   test('holds a run that reads a total among other names, and a category’s basis', () => {
-    expect(said(edited(set(`${TOTALS}/content/3`, { kind: 'expression', expression: { cel: 'vatBasis.standard + dec("0")' }, format: { ...EUR, scale: 0 } })))).toEqual([`e-invoice-format-differs ${TOTALS}/content/3/format vatBasis.standard`])
+    expect(
+      said(edited(set(`${TOTALS}/content/3`, { kind: 'expression', expression: { cel: 'vatBasis.standard + dec("0")' }, format: { ...EUR, scale: 0 } }))),
+    ).toEqual([`e-invoice-format-differs ${TOTALS}/content/3/format vatBasis.standard`])
   })
 
   // A line's name, amount and price are printed by the columns the XML is
@@ -170,19 +190,49 @@ describe('e-invoice-format-differs', () => {
   // price in francs another amount. A quantity's and a price's places are
   // the data's, held by the runtime row by row.
   test.each([
-    ['its name in upper case', `${LINES}/0/value`, { kind: 'text', transform: 'upper' }, 'the item name (BT-153) is written into the XML as the data gives it, and its column prints it in upper case: print it without a transform'],
-    ['its amount at no places', `${LINES}/3/value`, { ...EUR, scale: 0 }, 'the line net amount (BT-131) is an amount the XML holds to the cent, and its column prints it at 0 places, rounding it again: print it at two places or more'],
-    ['its amount in francs', `${LINES}/3/value`, { ...EUR, currency: { kind: 'code', code: 'CHF' } }, "the line net amount (BT-131) is an amount in the e-invoice's currency, EUR (BT-5), and its column prints it in CHF: name EUR as its currency"],
-    ['its price in a currency a field gives', `${LINES}/2/value`, { ...EUR, currency: { kind: 'field', field: { dataset: 'header', field: 'customer' } } }, "the item net price (BT-146) is an amount in the e-invoice's currency, EUR (BT-5), and its column prints it in the currency a field gives: name EUR as its currency"],
+    [
+      'its name in upper case',
+      `${LINES}/0/value`,
+      { kind: 'text', transform: 'upper' },
+      'the item name (BT-153) is written into the XML as the data gives it, and its column prints it in upper case: print it without a transform',
+    ],
+    [
+      'its amount at no places',
+      `${LINES}/3/value`,
+      { ...EUR, scale: 0 },
+      'the line net amount (BT-131) is an amount the XML holds to the cent, and its column prints it at 0 places, rounding it again: print it at two places or more',
+    ],
+    [
+      'its amount in francs',
+      `${LINES}/3/value`,
+      { ...EUR, currency: { kind: 'code', code: 'CHF' } },
+      "the line net amount (BT-131) is an amount in the e-invoice's currency, EUR (BT-5), and its column prints it in CHF: name EUR as its currency",
+    ],
+    [
+      'its price in a currency a field gives',
+      `${LINES}/2/value`,
+      { ...EUR, currency: { kind: 'field', field: { dataset: 'header', field: 'customer' } } },
+      "the item net price (BT-146) is an amount in the e-invoice's currency, EUR (BT-5), and its column prints it in the currency a field gives: name EUR as its currency",
+    ],
   ])('is a line printed with %s', (_how, pointer, format, message) => {
     const columnId = ['sku', 'qty', 'price', 'amount'][Number(/columns\/(\d)/.exec(pointer)?.[1])]
-    expect(diagnose(edited(set(`${pointer}/format`, format)))).toEqual([{ severity: 'error', code: 'e-invoice-format-differs', path: `${pointer}/format`, componentId: 'lines', columnId, message }])
+    expect(diagnose(edited(set(`${pointer}/format`, format)))).toEqual([
+      { severity: 'error', code: 'e-invoice-format-differs', path: `${pointer}/format`, componentId: 'lines', columnId, message },
+    ])
   })
 
   // What the runtime holds row by row is not said here, and a format that
   // shows a line as it is, is no error: a price at four places, a name in
   // its own case.
   test('leaves a quantity’s and a price’s places to the render', () => {
-    expect(said(edited(set(`${LINES}/1/value/format`, { kind: 'number', scale: 0, grouping: false }), set(`${LINES}/2/value/format`, { ...EUR, scale: 4 }), set(`${LINES}/0/value/format`, { kind: 'text' })))).toEqual([])
+    expect(
+      said(
+        edited(
+          set(`${LINES}/1/value/format`, { kind: 'number', scale: 0, grouping: false }),
+          set(`${LINES}/2/value/format`, { ...EUR, scale: 4 }),
+          set(`${LINES}/0/value/format`, { kind: 'text' }),
+        ),
+      ),
+    ).toEqual([])
   })
 })

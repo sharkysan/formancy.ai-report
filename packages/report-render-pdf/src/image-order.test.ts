@@ -31,7 +31,10 @@ import { invoiced } from './testing/e-invoice.js'
 
 const image = (of: ImageAsset): Image => ({ kind: 'image', asset: of, width: 120, height: 120, fit: 'contain' })
 const DRAWN = ['alpha', 'interlaced', 'paletted', 'small'] as const
-const DOCUMENT: ResolvedDocument = bareDocument('Images in order', DRAWN.map((kind) => image(DECODED[kind])))
+const DOCUMENT: ResolvedDocument = bareDocument(
+  'Images in order',
+  DRAWN.map((kind) => image(DECODED[kind])),
+)
 
 const ascending = (numbers: readonly number[]): number[] => [...numbers].sort((a, b) => a - b)
 
@@ -50,14 +53,18 @@ describe.each([
   // pdfmake opened them; their masks, numbered as the images are; and
   // each of both written in that order, the interlaced image, which has
   // no mask, among them.
-  test('are numbered, their masks numbered, and both written in the order pdfmake opened them, whichever decode finishes first', async () => {
-    const { widths, masks, drawnAt, masksAt } = await imageOrder(await render(DOCUMENT))
-    expect(widths).toEqual(DRAWN.map((kind) => SIDE[kind]))
-    expect(masks).toHaveLength(3)
-    expect(masks).toEqual(ascending(masks))
-    expect(drawnAt).toEqual(ascending(drawnAt))
-    expect(masksAt).toEqual(ascending(masksAt))
-  }, TIMEOUT)
+  test(
+    'are numbered, their masks numbered, and both written in the order pdfmake opened them, whichever decode finishes first',
+    async () => {
+      const { widths, masks, drawnAt, masksAt } = await imageOrder(await render(DOCUMENT))
+      expect(widths).toEqual(DRAWN.map((kind) => SIDE[kind]))
+      expect(masks).toHaveLength(3)
+      expect(masks).toEqual(ascending(masks))
+      expect(drawnAt).toEqual(ascending(drawnAt))
+      expect(masksAt).toEqual(ascending(masksAt))
+    },
+    TIMEOUT,
+  )
 })
 
 /** A stand-in for one of PDFKit's images in pdfmake's registry: `image` set while it decodes, and a `finalize` that records its name. */
@@ -74,7 +81,12 @@ describe('finalizeInOrder', () => {
   // alone.
   test('writes an image whose decode finished once every image opened before it is written', () => {
     const written: string[] = []
-    const registry = { image0: standIn('first', written), image1: standIn('jpeg', written, { decoding: false }), image2: standIn('second', written), image3: standIn('third', written) }
+    const registry = {
+      image0: standIn('first', written),
+      image1: standIn('jpeg', written, { decoding: false }),
+      image2: standIn('second', written),
+      image3: standIn('third', written),
+    }
     const jpeg = registry.image1.finalize
     finalizeInOrder({ _imageRegistry: registry })
     expect(registry.image1.finalize).toBe(jpeg)
@@ -108,22 +120,25 @@ describe('the cross-reference table the order is read from', () => {
   // table read wrong would make any order look like another. Every
   // object's offset is held to the object written there, and a table
   // that points elsewhere, leaves an object out or is not there is refused.
-  test('gives every object where it is written, and refuses a table that points elsewhere, leaves an object out or is not there', async () => {
-    const bytes = await renderInNode(bareDocument('One image', [image(DECODED.small)]), { maxPages: 1 })
-    const text = Buffer.from(bytes).toString('latin1')
-    const at = writtenAt(bytes)
-    expect(at.size).toBeGreaterThan(10)
-    for (const [object, offset] of at) expect(text.startsWith(`${String(object)} 0 obj\n`, offset)).toBe(true)
-    const pdf = (edited: string): Uint8Array => new Uint8Array(Buffer.from(edited, 'latin1'))
-    // Object 1's entry: ten digits of offset, the generation, and `n`.
-    const first = text.indexOf('0000000000 65535 f \n', text.lastIndexOf('xref\n0 ')) + '0000000000 65535 f \n'.length
-    const moved = `${text.slice(0, first)}${String(Number(text.slice(first, first + 10)) + 1).padStart(10, '0')}${text.slice(first + 10)}`
-    expect(() => writtenAt(pdf(moved))).toThrow('object 1 is not where the cross-reference table says')
-    const free = `${text.slice(0, first + 17)}f${text.slice(first + 18)}`
-    expect(() => writtenAt(pdf(free))).toThrow('the cross-reference table has no offset for object 1')
-    expect(() => writtenAt(pdf(text.replace(/startxref\n\d+\n/, 'startxref\n0\n')))).toThrow('startxref points at no cross-reference table')
-    expect(() => writtenAt(bytes.subarray(0, bytes.length - 1))).toThrow('the PDF does not end in startxref')
-    await expect(imageOrder(pdf(text.replace(/xref\n0 \d+\n/, 'xref\n0 2\n')))).rejects.toThrow(/^object \d+ has no offset in the cross-reference table$/)
-  }, TIMEOUT)
+  test(
+    'gives every object where it is written, and refuses a table that points elsewhere, leaves an object out or is not there',
+    async () => {
+      const bytes = await renderInNode(bareDocument('One image', [image(DECODED.small)]), { maxPages: 1 })
+      const text = Buffer.from(bytes).toString('latin1')
+      const at = writtenAt(bytes)
+      expect(at.size).toBeGreaterThan(10)
+      for (const [object, offset] of at) expect(text.startsWith(`${String(object)} 0 obj\n`, offset)).toBe(true)
+      const pdf = (edited: string): Uint8Array => new Uint8Array(Buffer.from(edited, 'latin1'))
+      // Object 1's entry: ten digits of offset, the generation, and `n`.
+      const first = text.indexOf('0000000000 65535 f \n', text.lastIndexOf('xref\n0 ')) + '0000000000 65535 f \n'.length
+      const moved = `${text.slice(0, first)}${String(Number(text.slice(first, first + 10)) + 1).padStart(10, '0')}${text.slice(first + 10)}`
+      expect(() => writtenAt(pdf(moved))).toThrow('object 1 is not where the cross-reference table says')
+      const free = `${text.slice(0, first + 17)}f${text.slice(first + 18)}`
+      expect(() => writtenAt(pdf(free))).toThrow('the cross-reference table has no offset for object 1')
+      expect(() => writtenAt(pdf(text.replace(/startxref\n\d+\n/, 'startxref\n0\n')))).toThrow('startxref points at no cross-reference table')
+      expect(() => writtenAt(bytes.subarray(0, bytes.length - 1))).toThrow('the PDF does not end in startxref')
+      await expect(imageOrder(pdf(text.replace(/xref\n0 \d+\n/, 'xref\n0 2\n')))).rejects.toThrow(/^object \d+ has no offset in the cross-reference table$/)
+    },
+    TIMEOUT,
+  )
 })
-

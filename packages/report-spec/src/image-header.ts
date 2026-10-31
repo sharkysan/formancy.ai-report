@@ -71,7 +71,11 @@ const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] as const
 
 /** A UTF-8 file's byte order mark; and UTF-16's, either way round, and big-endian UTF-32's, little-endian UTF-32's starting as UTF-16's does: the SVG cleaner refuses each as `encoding`. */
 const UTF8_MARK = [0xef, 0xbb, 0xbf] as const
-const WIDE_MARKS = [[0xfe, 0xff], [0xff, 0xfe], [0, 0, 0xfe, 0xff]] as const
+const WIDE_MARKS = [
+  [0xfe, 0xff],
+  [0xff, 0xfe],
+  [0, 0, 0xfe, 0xff],
+] as const
 
 /** XML's white space: space, tab, carriage return, line feed. */
 const XML_SPACE = new Set([0x20, 0x09, 0x0d, 0x0a])
@@ -108,7 +112,8 @@ function malformed(message: string): ImageRefusal {
 
 function sizeRefusal(width: number, height: number): ImageRefusal | undefined {
   if (width === 0 || height === 0) return { ok: false, code: 'no-pixels', message: `has no pixels (${width} × ${height})`, width, height }
-  if (width > MAX_ASSET_SIDE || height > MAX_ASSET_SIDE) return { ok: false, code: 'too-large', message: `is ${width} × ${height} pixels; the limit is ${MAX_ASSET_SIDE} pixels a side`, width, height }
+  if (width > MAX_ASSET_SIDE || height > MAX_ASSET_SIDE)
+    return { ok: false, code: 'too-large', message: `is ${width} × ${height} pixels; the limit is ${MAX_ASSET_SIDE} pixels a side`, width, height }
   return undefined
 }
 
@@ -161,13 +166,14 @@ function readPng(bytes: Uint8Array): PngHeader | ImageRefusal {
   let palette = false
   let chunks = 0
   let length = 0
-  for (let offset: number = PNG_SIGNATURE.length; ; ) {
+  for (let offset: number = PNG_SIGNATURE.length; ;) {
     // A chunk is its length, its type, its data and its CRC: 12 bytes and the data.
     if (offset + 12 > bytes.length || offset + 12 + view.getUint32(offset) > bytes.length) return malformed(`is cut off at byte ${offset}`)
     const size = view.getUint32(offset)
     const end = offset + 12 + size
     const type = view.getUint32(offset + 4)
-    if (crc32(bytes, offset + 4, offset + 8 + size) !== view.getUint32(offset + 8 + size)) return malformed(`has the wrong CRC on its ${String.fromCharCode(...bytes.subarray(offset + 4, offset + 8))} chunk`)
+    if (crc32(bytes, offset + 4, offset + 8 + size) !== view.getUint32(offset + 8 + size))
+      return malformed(`has the wrong CRC on its ${String.fromCharCode(...bytes.subarray(offset + 4, offset + 8))} chunk`)
     if (header === undefined) {
       if (type !== IHDR) return malformed('does not start with its header chunk')
       const parsed = pngHeader(bytes.subarray(offset + 8, offset + 8 + size))
@@ -193,7 +199,7 @@ function readPng(bytes: Uint8Array): PngHeader | ImageRefusal {
 /** The `length` bytes of a PNG's image data, every IDAT chunk's copied in order into one array, of a PNG whose chunks `readPng` has walked. */
 function imageData(bytes: Uint8Array, view: DataView, length: number): Uint8Array<ArrayBuffer> {
   const data = new Uint8Array(length)
-  for (let offset: number = PNG_SIGNATURE.length, at = 0; at < length; ) {
+  for (let offset: number = PNG_SIGNATURE.length, at = 0; at < length;) {
     const size = view.getUint32(offset)
     if (view.getUint32(offset + 4) === IDAT && size > 0) {
       data.set(bytes.subarray(offset + 8, offset + 8 + size), at)
@@ -253,13 +259,14 @@ function readJpeg(bytes: Uint8Array): JpegHeader | ImageRefusal {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   let frame: JpegHeader | undefined
   let orientation: number | undefined
-  for (let offset = 2; offset + 4 <= bytes.length; ) {
+  for (let offset = 2; offset + 4 <= bytes.length;) {
     const marker = bytes[offset + 1]!
     if (bytes[offset] !== 0xff || marker === 0xff) return malformed(`has a malformed segment at byte ${offset}`)
     const length = view.getUint16(offset + 2)
     if (length < 2 || offset + 2 + length > bytes.length) return malformed(`has a segment that runs past its end at byte ${offset}`)
     const readAs = READ_AS_FRAMES.get(marker)
-    if (frame === undefined && readAs !== undefined) return malformed(`has a ${readAs} segment (FF${marker.toString(16).toUpperCase()}) before its frame header, which PDFKit would read as the frame header`)
+    if (frame === undefined && readAs !== undefined)
+      return malformed(`has a ${readAs} segment (FF${marker.toString(16).toUpperCase()}) before its frame header, which PDFKit would read as the frame header`)
     if (JPEG_FRAMES.has(marker)) {
       if (frame !== undefined) return malformed('has two frame headers')
       if (length < 8) return malformed('has a frame header of the wrong length')
@@ -271,7 +278,8 @@ function readJpeg(bytes: Uint8Array): JpegHeader | ImageRefusal {
       if (!JPEG_COMPONENTS.has(components)) return malformed(`has a frame header of ${components} components, where PDFKit draws 1, 3 or 4`)
       frame = { ok: true, mediaType: 'image/jpeg', width, height, components: components as JpegHeader['components'] }
     }
-    if (marker === APP1 && orientation === undefined && startsWith(bytes.subarray(offset + 4), EXIF)) orientation = exifOrientation(bytes.subarray(offset + 4 + EXIF.length, offset + 2 + length))
+    if (marker === APP1 && orientation === undefined && startsWith(bytes.subarray(offset + 4), EXIF))
+      orientation = exifOrientation(bytes.subarray(offset + 4 + EXIF.length, offset + 2 + length))
     if (marker === 0xda) {
       if (frame === undefined) return malformed('has image data before its frame header')
       if (bytes[bytes.length - 2] !== 0xff || bytes[bytes.length - 1] !== 0xd9) return malformed('is cut off: it does not end with an end-of-image marker')

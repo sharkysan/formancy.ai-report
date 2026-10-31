@@ -32,7 +32,17 @@
  * deletes them after). Reading a face again costs a millisecond for a
  * typical font (0043).
  */
-import { assetDigest, faceKey, type FontAsset, type FontFaceKey, type FontFamily, readFont, RenderRefusal, type ResolvedFaces, type ResolvedFonts } from '@formancy/report-runtime'
+import {
+  assetDigest,
+  faceKey,
+  type FontAsset,
+  type FontFaceKey,
+  type FontFamily,
+  readFont,
+  RenderRefusal,
+  type ResolvedFaces,
+  type ResolvedFonts,
+} from '@formancy/report-runtime'
 import { drawnAs, type HostFace } from './face-identity.js'
 import { type Face, faceOf, type Glyphs } from './glyphs.js'
 import { withoutLayoutTables } from './strip-layout.js'
@@ -66,7 +76,7 @@ export interface RenderFonts {
   face(token: FontFamily | undefined, bold: boolean, italic: boolean, subject: string): RenderFace
   /** Whether a style may name `token`: `sans` always (Roboto), `serif` and `mono` only where the report maps them. */
   usable(token: FontFamily): boolean
-  familyOf(token: FontFamily): string
+  readonly familyOf: (token: FontFamily) => string
   readonly defaultFamily: string
   readonly engine: HostFontFiles
 }
@@ -113,7 +123,11 @@ export function planFonts(fonts: ResolvedFonts | undefined, roboto: Glyphs): Ren
     const known = read.get(asset.id)
     if (known !== undefined) {
       if (known.bytes !== asset.bytes && assetDigest(known.bytes) !== assetDigest(asset.bytes)) {
-        throw new RenderRefusal('invalid-asset', `the font asset ${asset.id} is handed to the renderer twice, in other bytes the second time: an asset is one font, read by its id`, asset.id)
+        throw new RenderRefusal(
+          'invalid-asset',
+          `the font asset ${asset.id} is handed to the renderer twice, in other bytes the second time: an asset is one font, read by its id`,
+          asset.id,
+        )
       }
       return known
     }
@@ -154,11 +168,20 @@ export function planFonts(fonts: ResolvedFonts | undefined, roboto: Glyphs): Ren
     const faces = mapped[effective]
     if (faces === undefined) {
       if (effective === 'sans') return { glyphs: roboto[faceOf(bold, italic)], lineFactor: LINE_FACTOR, name: 'Roboto' }
-      throw new RenderRefusal('unsupported', `${subject} is set in the ${token} font, which the report maps to no host font; the renderer embeds Roboto alone, as the sans font, and prints no other in its place`, subject)
+      throw new RenderRefusal(
+        'unsupported',
+        `${subject} is set in the ${token} font, which the report maps to no host font; the renderer embeds Roboto alone, as the sans font, and prints no other in its place`,
+        subject,
+      )
     }
     const key = faceKey(bold, italic)
     const planned = faces[key]
-    if (planned === undefined) throw new RenderRefusal('unsupported', `${subject} prints ${WEIGHT[key]} in the ${effective} font, which maps no ${key} face; the renderer never synthesises one`, subject)
+    if (planned === undefined)
+      throw new RenderRefusal(
+        'unsupported',
+        `${subject} prints ${WEIGHT[key]} in the ${effective} font, which maps no ${key} face; the renderer never synthesises one`,
+        subject,
+      )
     return planned
   }
 

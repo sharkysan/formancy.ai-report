@@ -32,13 +32,17 @@ describe('tarballProblems', () => {
   // A tag that says one version over a tarball of another would publish the
   // wrong bytes under the right name, which nothing can take back.
   test('refuses a tarball of another version', () => {
-    expect(tarballProblems(tarball(), '0.2.0')).toEqual(['release-tarballs/formancy-report-spec-0.1.0.tgz is @formancy/report-spec@0.1.0, not at the release version 0.2.0'])
+    expect(tarballProblems(tarball(), '0.2.0')).toEqual([
+      'release-tarballs/formancy-report-spec-0.1.0.tgz is @formancy/report-spec@0.1.0, not at the release version 0.2.0',
+    ])
   })
 
   // A package under the @formancy scope with no terms inside, or declaring
   // Apache-2.0, would be read as the scope's open-source packages are.
   test('refuses a tarball that declares other terms, or leaves the licence files out', () => {
-    expect(tarballProblems(tarball({ ...SPEC, license: 'Apache-2.0' }), '0.1.0')).toEqual([`release-tarballs/formancy-report-spec-0.1.0.tgz declares the licence Apache-2.0, not "${LICENSE_FIELD}"`])
+    expect(tarballProblems(tarball({ ...SPEC, license: 'Apache-2.0' }), '0.1.0')).toEqual([
+      `release-tarballs/formancy-report-spec-0.1.0.tgz declares the licence Apache-2.0, not "${LICENSE_FIELD}"`,
+    ])
     expect(tarballProblems(tarball(SPEC, { without: ['LICENSE.md', 'NOTICE'] }), '0.1.0')).toEqual([
       'release-tarballs/formancy-report-spec-0.1.0.tgz carries no LICENSE.md',
       'release-tarballs/formancy-report-spec-0.1.0.tgz carries no NOTICE',
@@ -65,7 +69,9 @@ describe('pinProblems', () => {
     const pinned = JSON.stringify(pinsOf(files))
     const swapped = [{ ...files[0], bytes: packageTarball({ ...SPEC, description: 'other' }) }, files[1]]
     expect(pinProblems(pinned, swapped)).toEqual(['release-tarballs/formancy-report-spec-0.1.0.tgz is not the file the check job checked'])
-    expect(pinProblems(pinned, [...files, { path: 'release-tarballs/extra-0.1.0.tgz', bytes: Buffer.from('x') }])).toEqual(['release-tarballs/extra-0.1.0.tgz was not checked by the check job'])
+    expect(pinProblems(pinned, [...files, { path: 'release-tarballs/extra-0.1.0.tgz', bytes: Buffer.from('x') }])).toEqual([
+      'release-tarballs/extra-0.1.0.tgz was not checked by the check job',
+    ])
     expect(pinProblems(pinned, [files[1]])).toEqual(['release-tarballs/formancy-report-spec-0.1.0.tgz was checked but did not arrive'])
     expect(pinProblems(pinned, [{ ...files[0], path: 'release-report/formancy-report-spec-0.1.0.tgz' }, files[1]])).toEqual([
       'release-report/formancy-report-spec-0.1.0.tgz was not checked by the check job',
@@ -106,7 +112,10 @@ describe('the command line, as the release runs it', () => {
     const report = {
       problems: [],
       subject: { version: '0.1.0', release: 'v0.1.0', commit: 'c0ffee', run: { id: '42' } },
-      results: { buildIdentity: [{ package: SPEC.name }], install: { tarballs: [{ name: SPEC.name, file: 'formancy-report-spec-0.1.0.tgz', sha256: createHash('sha256').update(bytes).digest('hex') }] } },
+      results: {
+        buildIdentity: [{ package: SPEC.name }],
+        install: { tarballs: [{ name: SPEC.name, file: 'formancy-report-spec-0.1.0.tgz', sha256: createHash('sha256').update(bytes).digest('hex') }] },
+      },
       testedOn: { runtime: [], upstream: [{ name: '@formancy/spec', version: '0.5.0', direct: true, shipped: true }] },
     }
     mkdirSync(join(dir, 'release-report'))
@@ -115,20 +124,42 @@ describe('the command line, as the release runs it', () => {
     writeFileSync(join(dir, 'release-report', 'release-report.md'), '# Release report\n')
     writeFileSync(join(dir, 'release-report', 'RELEASE_NOTES.md'), '## 0.1.0\n\nThe first.\n')
     writeFileSync(join(dir, 'release-tarballs', 'formancy-report-spec-0.1.0.tgz'), bytes)
-    writeFileSync(join(dir, 'sbom.cdx.json'), JSON.stringify({ bomFormat: 'CycloneDX', components: [{ purl: 'pkg:npm/%40formancy/report-spec@0.1.0' }, { purl: 'pkg:npm/%40formancy/spec@0.5.0' }] }))
+    writeFileSync(
+      join(dir, 'sbom.cdx.json'),
+      JSON.stringify({ bomFormat: 'CycloneDX', components: [{ purl: 'pkg:npm/%40formancy/report-spec@0.1.0' }, { purl: 'pkg:npm/%40formancy/spec@0.5.0' }] }),
+    )
     return dir
   }
   const RUN = { GITHUB_SHA: 'c0ffee', GITHUB_RUN_ID: '42' }
   const { GITHUB_OUTPUT: _, ...inherited } = process.env
   const run = (dir, args, env = {}) => spawnSync(process.execPath, [script, ...args], { cwd: dir, encoding: 'utf8', env: { ...inherited, ...RUN, ...env } })
-  const checked = (dir) => /^checked=(.+)$/m.exec(execFileSync(process.execPath, [script, 'check', '--release', 'v0.1.0', '--version', '0.1.0', '--report', 'release-report', 'release-tarballs'], { cwd: dir, encoding: 'utf8', env: { ...inherited, ...RUN } }))[1]
-  const sbomPin = (dir) => /^checked=(.+)$/m.exec(execFileSync(process.execPath, [script, 'sbom', '--report', 'release-report', 'sbom.cdx.json'], { cwd: dir, encoding: 'utf8', env: { ...inherited, ...RUN } }))[1]
+  const checked = (dir) =>
+    /^checked=(.+)$/m.exec(
+      execFileSync(process.execPath, [script, 'check', '--release', 'v0.1.0', '--version', '0.1.0', '--report', 'release-report', 'release-tarballs'], {
+        cwd: dir,
+        encoding: 'utf8',
+        env: { ...inherited, ...RUN },
+      }),
+    )[1]
+  const sbomPin = (dir) =>
+    /^checked=(.+)$/m.exec(
+      execFileSync(process.execPath, [script, 'sbom', '--report', 'release-report', 'sbom.cdx.json'], {
+        cwd: dir,
+        encoding: 'utf8',
+        env: { ...inherited, ...RUN },
+      }),
+    )[1]
 
   // check pins the report's directory and the tarballs, each by its path;
   // the SBOM stage pins the SBOM once it names what the report names.
   test('pins the report, the body and the tarballs, then the SBOM', () => {
     const dir = release()
-    expect(Object.keys(JSON.parse(checked(dir))).sort()).toEqual(['release-report/RELEASE_NOTES.md', 'release-report/release-report.json', 'release-report/release-report.md', 'release-tarballs/formancy-report-spec-0.1.0.tgz'])
+    expect(Object.keys(JSON.parse(checked(dir))).sort()).toEqual([
+      'release-report/RELEASE_NOTES.md',
+      'release-report/release-report.json',
+      'release-report/release-report.md',
+      'release-tarballs/formancy-report-spec-0.1.0.tgz',
+    ])
     expect(Object.keys(JSON.parse(sbomPin(dir)))).toEqual(['sbom.cdx.json'])
   })
 
@@ -144,7 +175,9 @@ describe('the command line, as the release runs it', () => {
     writeFileSync(join(dir, 'release-tarballs', 'formancy-report-spec-0.1.0.tgz'), packageTarball({ ...SPEC, description: 'not installed' }))
     const swapped = run(dir, ['check', '--release', 'v0.1.0', '--version', '0.1.0', '--report', 'release-report', 'release-tarballs'])
     expect(swapped.status).toBe(1)
-    expect(swapped.stderr).toMatch(/formancy-report-spec-0\.1\.0\.tgz has sha256 [0-9a-f]{64}, not that of the formancy-report-spec-0\.1\.0\.tgz the install gate installed and ran/)
+    expect(swapped.stderr).toMatch(
+      /formancy-report-spec-0\.1\.0\.tgz has sha256 [0-9a-f]{64}, not that of the formancy-report-spec-0\.1\.0\.tgz the install gate installed and ran/,
+    )
   })
 
   // publish refuses, before it signs anything, a download that is not what

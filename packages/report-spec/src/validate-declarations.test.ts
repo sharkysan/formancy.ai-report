@@ -12,7 +12,10 @@ describe('parameters', () => {
     const samples: Record<string, { valid: unknown[]; invalid: unknown[] }> = {
       string: { valid: ['', 'Zürich'], invalid: [true] },
       integer: { valid: ['0', '-12', '9007199254740993'], invalid: ['1.0', '01', '+1', '', '-0', 1] },
-      decimal: { valid: ['0', '0.0', '-0.5', '-0.05', '1.50', '99999999999999.9999'], invalid: ['1e3', '.5', '1.', '1,5', '-0', '-0.0', '-0.00', '-00.5', 1.5] },
+      decimal: {
+        valid: ['0', '0.0', '-0.5', '-0.05', '1.50', '99999999999999.9999'],
+        invalid: ['1e3', '.5', '1.', '1,5', '-0', '-0.0', '-0.00', '-00.5', 1.5],
+      },
       boolean: { valid: [true, false], invalid: ['true', 0] },
       date: {
         valid: ['2024-02-29', '2000-02-29', '1999-12-31', '2026-04-30', '0001-01-01'],
@@ -42,7 +45,10 @@ describe('ids and keys', () => {
     for (const pointer of positions) {
       // The fixture's own `unit_price`, `shippedAt` and `min_quantity` are field keys too.
       for (const key of ['unitPrice', 'net_amount', '_hidden', 'Total2', `a${'b'.repeat(63)}`]) {
-        expect(refusals(edited((r) => setAt(r, pointer, key))).filter((error) => !error.startsWith('unknown-')), `${pointer} ${key}`).toEqual([])
+        expect(
+          refusals(edited((r) => setAt(r, pointer, key))).filter((error) => !error.startsWith('unknown-')),
+          `${pointer} ${key}`,
+        ).toEqual([])
       }
       for (const key of ['unit-price', '2nd', '', 'a b', `a${'b'.repeat(64)}`]) {
         expect(refusals(edited((r) => setAt(r, pointer, key))), `${pointer} ${key}`).toEqual([`invalid-id ${pointer}`])
@@ -167,7 +173,11 @@ describe('the page and its lengths', () => {
       setAt(r, '/page/margins/top', 380)
       setAt(r, '/page/margins/bottom', 380)
     })
-    expect(refusals(tall)).toEqual(['exceeds-printable-area /regions/summary/1/height', 'exceeds-printable-area /regions/summary/2/size', 'exceeds-printable-area /regions/summary/3/size'])
+    expect(refusals(tall)).toEqual([
+      'exceeds-printable-area /regions/summary/1/height',
+      'exceeds-printable-area /regions/summary/2/size',
+      'exceeds-printable-area /regions/summary/3/size',
+    ])
     const wide = edited((r) => {
       removeAt(r, '/paymentPart')
       setAt(r, '/page/orientation', 'landscape')

@@ -157,7 +157,9 @@ function anchorOf(node: Anchor): Anchor | undefined {
 
 /** Whether a node with one of `ids`, among those pdfmake has on this page and the next, starts on `page`. */
 function startsOnPage(queries: NodeQueries, ids: ReadonlySet<string>, page: number): boolean {
-  return [...queries.getFollowingNodesOnPage(), ...queries.getNodesOnNextPage()].some((other) => other.id !== undefined && ids.has(other.id) && other.startPosition.pageNumber === page)
+  return [...queries.getFollowingNodesOnPage(), ...queries.getNodesOnNextPage()].some(
+    (other) => other.id !== undefined && ids.has(other.id) && other.startPosition.pageNumber === page,
+  )
 }
 
 /**
@@ -260,11 +262,17 @@ function tableContent(table: Table, build: Build, scope: Scope): Content {
   // A no-break space where a cell is empty while measuring: every cell then
   // lays out one line, as tall as a cell of text beside it, so each row has a
   // first cell to mark. The adapter refuses a row whose cells are not one a column.
-  const cell = (text: string, column: number, bold: boolean): Cell => ({ text: measuring && text === '' ? NO_BREAK_SPACE : text, bold, alignment: table.columns[column]!.align })
+  const cell = (text: string, column: number, bold: boolean): Cell => ({
+    text: measuring && text === '' ? NO_BREAK_SPACE : text,
+    bold,
+    alignment: table.columns[column]!.align,
+  })
   const empty = !table.rows.some((row) => row.kind === 'detail')
   const emptyRow: Row = {
     kind: 'empty',
-    cells: table.columns.map((_, column) => (column === 0 ? { ...cell(table.emptyText, 0, false), italics: true, colSpan: table.columns.length } : cell('', column, false))),
+    cells: table.columns.map((_, column) =>
+      column === 0 ? { ...cell(table.emptyText, 0, false), italics: true, colSpan: table.columns.length } : cell('', column, false),
+    ),
   }
   const rows: Row[] = [
     { kind: 'header', cells: table.header.map((text, column) => cell(text, column, true)) },
@@ -273,7 +281,10 @@ function tableContent(table: Table, build: Build, scope: Scope): Content {
   ]
   const plan = build.plans.get(table) ?? { dontBreakRows: false, keepWithHeaderRows: 0 }
   if (measuring) {
-    build.measuredRows.set(table, rows.map((row) => ({ kind: row.kind, mark: mark(row.cells[0]!, build) })))
+    build.measuredRows.set(
+      table,
+      rows.map((row) => ({ kind: row.kind, mark: mark(row.cells[0]!, build) })),
+    )
   } else if (!scope.kept) {
     groupHeaderRules(rows, plan, build)
   }

@@ -86,13 +86,32 @@ export interface Build {
 
 export function newBuild(
   mode: Build['mode'],
-  checked: { readonly assets: ReadonlyMap<ImageAsset, CheckedImage>; readonly codes: ReadonlyMap<QrCode | EpcQrCode, QrSymbol>; readonly paths: ReadonlyMap<Block, string> },
+  checked: {
+    readonly assets: ReadonlyMap<ImageAsset, CheckedImage>
+    readonly codes: ReadonlyMap<QrCode | EpcQrCode, QrSymbol>
+    readonly paths: ReadonlyMap<Block, string>
+  },
   fonts: RenderFonts,
   body: { readonly top: number; readonly bottom: number } = { top: 0, bottom: 0 },
   plans: ReadonlyMap<Table, TablePlan> = new Map(),
 ): Build {
   const { assets, codes, paths } = checked
-  return { mode, bodyTop: body.top, bodyBottom: body.bottom, plans, assets, codes, paths, familyOf: fonts.familyOf, imageKeys: new Map(), images: {}, rules: new Map(), measuredRows: new Map(), words: [], next: 1 }
+  return {
+    mode,
+    bodyTop: body.top,
+    bodyBottom: body.bottom,
+    plans,
+    assets,
+    codes,
+    paths,
+    familyOf: fonts.familyOf,
+    imageKeys: new Map(),
+    images: {},
+    rules: new Map(),
+    measuredRows: new Map(),
+    words: [],
+    next: 1,
+  }
 }
 
 /** Marks `node`, keeping a mark it already has, and returns the mark. */
@@ -102,7 +121,9 @@ export function mark(node: { headlineLevel?: number }, build: Build): number {
 
 /** Whether a node with one of `ids`, among those pdfmake has on this page and the next, starts on `page`. */
 export function startsOnPage(queries: NodeQueries, ids: ReadonlySet<string>, page: number): boolean {
-  return [...queries.getFollowingNodesOnPage(), ...queries.getNodesOnNextPage()].some((other) => other.id !== undefined && ids.has(other.id) && other.startPosition.pageNumber === page)
+  return [...queries.getFollowingNodesOnPage(), ...queries.getNodesOnNextPage()].some(
+    (other) => other.id !== undefined && ids.has(other.id) && other.startPosition.pageNumber === page,
+  )
 }
 
 /**

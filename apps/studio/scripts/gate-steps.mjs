@@ -65,7 +65,12 @@ export const designViewOf = (page) => editorOf(page).getByRole('region', { name:
  * the host's view standing in its place carries the design view's pane
  * hook too (0029).
  */
-export const PANES = { Outline: '[data-pane="outline"]', 'Design view': '[data-report-part="canvas"]', Properties: '[data-pane="properties"]', Problems: '[data-pane="diagnostics"]' }
+export const PANES = {
+  Outline: '[data-pane="outline"]',
+  'Design view': '[data-report-part="canvas"]',
+  Properties: '[data-pane="properties"]',
+  Problems: '[data-pane="diagnostics"]',
+}
 
 /**
  * The builder's pane that holds `probe`, shown: below report-builder.css's
@@ -155,7 +160,10 @@ export async function setField(editor, name, value) {
   const field = await showing(editor, 'Properties', editor.getByRole('textbox', { name, exact: true }))
   await field.fill(value)
   await field.press('Tab')
-  await editor.getByRole('status').filter({ hasText: `Changed ${name}.` }).waitFor()
+  await editor
+    .getByRole('status')
+    .filter({ hasText: `Changed ${name}.` })
+    .waitFor()
 }
 
 /** The starter whose corpus id is `id`, opened from the picker by its option's value. */

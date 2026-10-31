@@ -49,18 +49,29 @@ async function drag(page, source, target, position) {
   // A pixel either way for a layout in fractions of one: scrolled to the top, a box can stand a third of a pixel above it.
   const seen = (box) => box.x >= -1 && box.y >= -1 && box.x + box.width <= width + 1 && box.y + box.height <= height + 1
   const at = (box) => `${String(Math.round(box.x))},${String(Math.round(box.y))} ${String(Math.round(box.width))}x${String(Math.round(box.height))}`
-  if (!seen(from) || !seen(to)) throw new Error(`a drag needs both ends in view at once, and in ${String(width)}x${String(height)} the source is at ${at(from)} and the target at ${at(to)}`)
+  if (!seen(from) || !seen(to))
+    throw new Error(
+      `a drag needs both ends in view at once, and in ${String(width)}x${String(height)} the source is at ${at(from)} and the target at ${at(to)}`,
+    )
   const under = (x, y) =>
-    page.evaluate(([px, py]) => {
-      const element = document.elementFromPoint(px, py)
-      return element === null ? 'nothing' : `<${element.tagName.toLowerCase()}> "${(element.getAttribute('aria-label') ?? element.textContent ?? '').trim().slice(0, 40)}"`
-    }, [x, y])
+    page.evaluate(
+      ([px, py]) => {
+        const element = document.elementFromPoint(px, py)
+        return element === null
+          ? 'nothing'
+          : `<${element.tagName.toLowerCase()}> "${(element.getAttribute('aria-label') ?? element.textContent ?? '').trim().slice(0, 40)}"`
+      },
+      [x, y],
+    )
   const said = `pressed at ${at(from)} on ${await under(from.x + from.width / 2, from.y + from.height / 2)}, released at ${String(Math.round(to.x + position.x))},${String(Math.round(to.y + position.y))} on ${await under(to.x + position.x, to.y + position.y)}`
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
   await page.mouse.down()
   for (let step = 1; step <= 12; step += 1) {
     const share = step / 12
-    await page.mouse.move(from.x + from.width / 2 + (to.x + position.x - (from.x + from.width / 2)) * share, from.y + from.height / 2 + (to.y + position.y - (from.y + from.height / 2)) * share)
+    await page.mouse.move(
+      from.x + from.width / 2 + (to.x + position.x - (from.x + from.width / 2)) * share,
+      from.y + from.height / 2 + (to.y + position.y - (from.y + from.height / 2)) * share,
+    )
   }
   await page.mouse.move(to.x + position.x, to.y + position.y)
   await page.mouse.up()
@@ -117,7 +128,10 @@ export async function interactions(gate, page, framework) {
     () => 'the chooser is still open',
   )
   check(`${framework}: Escape closes it`, closed)
-  check(`${framework}: and puts the keyboard back on the palette entry`, (await text.evaluate((element) => element === document.activeElement)) ? null : `the focus is on ${await describeFocus(page)}`)
+  check(
+    `${framework}: and puts the keyboard back on the palette entry`,
+    (await text.evaluate((element) => element === document.activeElement)) ? null : `the focus is on ${await describeFocus(page)}`,
+  )
 
   // Final, and back: the switch reaches the runtime, and the status says which printed.
   await previewInView(page)
@@ -139,7 +153,10 @@ export async function interactions(gate, page, framework) {
   const zoomed = await drawnPages(page, { within: WITHIN })
   const larger = await firstPage.evaluate((sheet) => sheet.getBoundingClientRect().width)
   const drawnLarger = larger > before && zoomed.length > 0 && zoomed.every((sheet) => sheet.white > 0.5 && sheet.ink > 0.001)
-  check(`${framework}: the Preview's Zoom in draws every page larger, on white, with ink`, drawnLarger ? null : `page 1 was ${String(before)}px wide and is ${String(larger)}px, with ${String(zoomed.length)} pages drawn`)
+  check(
+    `${framework}: the Preview's Zoom in draws every page larger, on white, with ink`,
+    drawnLarger ? null : `page 1 was ${String(before)}px wide and is ${String(larger)}px, with ${String(zoomed.length)} pages drawn`,
+  )
   await previewOf(page).getByRole('button', { name: 'Fit width', exact: true }).click()
   await settled(page)
 

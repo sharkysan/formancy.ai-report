@@ -10,6 +10,48 @@ later.
 
 ## Unreleased
 
+**CI fails a change that breaks the lint rules or the format**
+([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
+Style was held by habit, and a promise nobody awaits, an `any` from a
+parse, a method handed off its object or an object printed as "[object
+Object]" by nobody. `verify` now runs `pnpm lint`, ESLint 10 with
+`@eslint/js`'s recommended rules and typescript-eslint's type-aware ones,
+every one at error, and `pnpm format:check`, Prettier 3.9 over every
+TypeScript and JavaScript file, at 160 columns, without semicolons, in
+single quotes; `pnpm typecheck` now checks the vitest, Vite and tsdown
+configs too. The rules and the style are the four formancy repositories'
+shared ones, `scripts/code-style/`, a copy of Formancy Health's until
+formancy.ai releases them as `@formancy/code-style`; nothing a host
+installs carries them. Every file was formatted in one commit, which
+`.git-blame-ignore-revs` has blame skip, and every finding was fixed; no
+real bug was found, and the one change a host may meet is `this: void`,
+below. A branch begun before the format takes `main` through
+`scripts/prettier-merge.mjs`, Formancy Data's, which formats each side of
+a file before git merges it, so that only a line both sides changed is a
+conflict (`CONTRIBUTING.md`); and the pull request that brings the format
+merges with a merge commit, so that the commit blame skips is the one on
+`main`.
+
+**A session and an editor are handed to a store hook as bare functions, and
+their types now say so**
+([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
+`ReportSession.subscribe`, `document` and `hash` (the guide passes
+`session.hash` so), and `ReportEditor.subscribe` and `state`, are declared
+`this: void`, because React's `useSyncExternalStore` and every hook like it
+takes them off the object and calls them alone; the linter's
+`unbound-method` found the React builder and the Studio doing exactly that
+(the Angular builder passes nothing detached). Both stay methods, so an
+implementation with a narrower parameter still compiles. What `this: void`
+refuses is an object literal written in place whose `subscribe`,
+`document`, `hash` or `state` reads `this`; a class, a closure or an arrow
+function is unaffected, and nothing in this repository was. The cases are
+`implementable.test.ts` in report-core and in report-builder-core: the one
+whose implementation takes a narrower parameter fails the typecheck when
+the members are turned into function-typed properties, and an
+`@ts-expect-error` per member fails it when `this: void` is lost; the one
+with a class says that a class still implements them, and fails under
+neither.
+
 **Report takes formancy 0.11.0.** The upstream `@formancy/*` packages
 move from 0.7.0 to 0.11.0, exact, for what 0.7.0 was taken for:
 `@formancy/spec` for report-spec's report hash and for report-forms,

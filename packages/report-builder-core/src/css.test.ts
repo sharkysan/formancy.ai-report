@@ -23,7 +23,21 @@ import { REPORT_ATTRIBUTES, REPORT_PARTS, WORKBENCH_CLASSES } from './parts.js'
  * formancy's logic panel no builder here draws. Typed here because
  * `@formancy/themes` is not a dependency of this package.
  */
-const WORKBENCH_VARIABLES = ['--wb-ink', '--wb-bench', '--wb-panel', '--wb-surface', '--wb-rule', '--wb-muted', '--wb-signal', '--wb-derived', '--wb-invalid', '--wb-ok', '--wb-caution', '--wb-sans', '--wb-mono']
+const WORKBENCH_VARIABLES = [
+  '--wb-ink',
+  '--wb-bench',
+  '--wb-panel',
+  '--wb-surface',
+  '--wb-rule',
+  '--wb-muted',
+  '--wb-signal',
+  '--wb-derived',
+  '--wb-invalid',
+  '--wb-ok',
+  '--wb-caution',
+  '--wb-sans',
+  '--wb-mono',
+]
 
 /** CSS's named colours (CSS Color 4), which are colour literals as much as `#fff` is. */
 const NAMED_COLOURS = `aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue
@@ -100,7 +114,12 @@ function colourLiterals(text: string): string[] {
  * vitest reads each as written (vitest.config.ts includes them); one the
  * directory does not hold is one a host's bundler would not find either.
  */
-const PARTS = new Map(Object.entries(import.meta.glob<string>('../styles/*.css', { query: '?raw', import: 'default', eager: true })).map(([path, text]) => [path.replace(/^\.\.\//, './'), text]))
+const PARTS = new Map(
+  Object.entries(import.meta.glob<string>('../styles/*.css', { query: '?raw', import: 'default', eager: true })).map(([path, text]) => [
+    path.replace(/^\.\.\//, './'),
+    text,
+  ]),
+)
 
 /** The relative paths `text` imports, in order: `@import './styles/editor.css';`. Refuses an import of anything else. */
 function importsOf(text: string): string[] {
@@ -161,7 +180,11 @@ describe('report-builder.css', () => {
   // The guard itself: it finds each shape of literal it claims to find,
   // and lets a fallback through.
   test('the guard finds every shape of colour literal, and allows a fallback', () => {
-    expect(colourLiterals(withoutFallbacks('a { color: #fff; background: rgb(0 0 0); border-color: rebeccapurple; }'))).toEqual(['#fff', 'rgb(', 'rebeccapurple'])
+    expect(colourLiterals(withoutFallbacks('a { color: #fff; background: rgb(0 0 0); border-color: rebeccapurple; }'))).toEqual([
+      '#fff',
+      'rgb(',
+      'rebeccapurple',
+    ])
     expect(colourLiterals(withoutFallbacks('a { color: var(--wb-ink, #17222e); outline-color: var(--wb-signal, rgb(1 2 3)); }'))).toEqual([])
     expect(colourLiterals(withoutFallbacks('[data-report-part="red"] { color: var(--wb-ink); }'))).toEqual([])
   })
@@ -225,7 +248,10 @@ describe('report-builder.css', () => {
   // not tell the colour behind either. Such a container draws no label of
   // its own, as a box shorter than its label draws none.
   test('draws no label of its own on a container no taller than two labels', () => {
-    const queries = [...RULES.matchAll(/@container\s*\(height < ([\d.]+)rem\)\s*\{([^@]*?)\}\s*\}/g)].map((match) => ({ height: Number(match[1]), body: match[2] ?? '' }))
+    const queries = [...RULES.matchAll(/@container\s*\(height < ([\d.]+)rem\)\s*\{([^@]*?)\}\s*\}/g)].map((match) => ({
+      height: Number(match[1]),
+      body: match[2] ?? '',
+    }))
     const containers = queries.filter((query) => query.height >= 1.75 && /\[data-kind='columns'\][^{]*>\s*\[data-report-part='box-label'\]/.test(query.body))
     expect(containers.length).toBe(1)
     expect(containers[0]?.body).toMatch(/display:\s*none/)
@@ -244,7 +270,9 @@ describe('report-builder.css', () => {
   test('draws a group’s unavailable button as an unavailable tool is drawn, hovered or not', () => {
     const DISABLED = "button[aria-disabled='true']"
     const lists = [...RULES.matchAll(/([^{}]+)\{/g)].map((match) => selectorsOf((match[1] ?? '').trim()))
-    const tools = lists.flatMap((list) => list.filter((selector) => selector.includes("[data-report-part='toolbar']") && selector.includes(DISABLED)).map((selector) => ({ selector, list })))
+    const tools = lists.flatMap((list) =>
+      list.filter((selector) => selector.includes("[data-report-part='toolbar']") && selector.includes(DISABLED)).map((selector) => ({ selector, list })),
+    )
     expect(tools.length).toBeGreaterThanOrEqual(2)
     for (const { selector, list } of tools) {
       const state = selector.slice(selector.indexOf(DISABLED) + DISABLED.length)

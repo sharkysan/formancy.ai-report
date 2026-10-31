@@ -77,7 +77,8 @@ export function registerProblems(register, records, { covered, exists }) {
     const listed = Array.isArray(entry.limitations) && entry.limitations.length > 0
     const none = typeof entry.none === 'string' && entry.none.trim() !== ''
     if (listed === none) problems.push(`${record.number} has ${listed ? 'both limitations and none' : 'neither limitations nor none'}; it needs exactly one`)
-    if (/^(superseded by|reversed)/.test(record.status) && listed) problems.push(`${record.number} is ${record.status.split(';')[0]}, so its limitations are a later record's: give it none`)
+    if (/^(superseded by|reversed)/.test(record.status) && listed)
+      problems.push(`${record.number} is ${record.status.split(';')[0]}, so its limitations are a later record's: give it none`)
   }
   for (const number of Object.keys(entries)) if (!numbers.has(number)) problems.push(`${number} is in the register and no record has that number`)
 
@@ -154,7 +155,9 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/release-report/limi
     writeFileSync(file, stamp(readFileSync(file, 'utf8'), record.number, record.hash), 'utf8')
     console.log(`${REGISTER}: ${record.number} stamped as read, ${record.hash}`)
   } else if (argv[0] === '--changed') {
-    for (const record of records) if (register.records[record.number] !== undefined && register.records[record.number].reviewed !== record.hash) console.log(`${record.number} ${record.file}`)
+    for (const record of records)
+      if (register.records[record.number] !== undefined && register.records[record.number].reviewed !== record.hash)
+        console.log(`${record.number} ${record.file}`)
   } else if (argv[0] === '--missing') {
     for (const record of records) if (register.records[record.number] === undefined) console.log(`${record.number} ${record.file}`)
   } else {

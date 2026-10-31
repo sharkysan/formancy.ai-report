@@ -56,7 +56,17 @@ import { studioStarters } from './starters/starters.js'
 const { starters } = decodeStarters(encodeStarters(STARTERS, STARTER_IMAGES))
 
 /** Attributes that point by id, or say the name again: what the name and the description already hold. */
-const RELATIONS = new Set(['aria-label', 'aria-labelledby', 'aria-describedby', 'aria-controls', 'aria-owns', 'aria-activedescendant', 'aria-details', 'aria-errormessage', 'aria-flowto'])
+const RELATIONS = new Set([
+  'aria-label',
+  'aria-labelledby',
+  'aria-describedby',
+  'aria-controls',
+  'aria-owns',
+  'aria-activedescendant',
+  'aria-details',
+  'aria-errormessage',
+  'aria-flowto',
+])
 /** Roles that say nothing of their own. */
 const ROLELESS = new Set(['generic', 'none', 'presentation'])
 /** What can give an element with no role of its own a name or a description; without one, it has neither, and nothing is computed. */
@@ -68,12 +78,14 @@ const NAMING = ['aria-label', 'aria-labelledby', 'aria-describedby', 'title']
  * jsdom for each element's computed style, as dom-accessibility-api's own
  * check does, made one comparison of the two trees take seconds.
  */
-const hidden = (element: Element): boolean => element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true' || ['script', 'style', 'template'].includes(element.localName)
+const hidden = (element: Element): boolean =>
+  element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true' || ['script', 'style', 'template'].includes(element.localName)
 
 /** A form control's value and checked state, as a person reads them. */
 function control(element: Element): string[] {
   if (element instanceof HTMLInputElement && element.type === 'checkbox') return [`checked=${String(element.checked)}`]
-  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) return [`value=${JSON.stringify(element.value)}`]
+  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement)
+    return [`value=${JSON.stringify(element.value)}`]
   return []
 }
 
@@ -112,10 +124,21 @@ function tree(root: Element): string[] {
     const description = said ? computeAccessibleDescription(node, options) : ''
     const kept = !roleless || name !== '' || description !== ''
     if (kept) {
-      const states = [...node.attributes].filter((attribute) => attribute.name.startsWith('aria-') && !RELATIONS.has(attribute.name)).map((attribute) => `${attribute.name}=${JSON.stringify(attribute.value)}`)
+      const states = [...node.attributes]
+        .filter((attribute) => attribute.name.startsWith('aria-') && !RELATIONS.has(attribute.name))
+        .map((attribute) => `${attribute.name}=${JSON.stringify(attribute.value)}`)
       const native = ['disabled', 'required'].filter((attribute) => node.hasAttribute(attribute))
       const focus = node instanceof HTMLElement && (node.tabIndex >= 0 || node.hasAttribute('tabindex')) ? [`tabindex=${String(node.tabIndex)}`] : []
-      lines.push([`${'  '.repeat(depth)}${role ?? node.localName} ${JSON.stringify(name)}`, ...(description === '' ? [] : [`description=${JSON.stringify(description)}`]), ...states, ...native, ...control(node), ...focus].join(' '))
+      lines.push(
+        [
+          `${'  '.repeat(depth)}${role ?? node.localName} ${JSON.stringify(name)}`,
+          ...(description === '' ? [] : [`description=${JSON.stringify(description)}`]),
+          ...states,
+          ...native,
+          ...control(node),
+          ...focus,
+        ].join(' '),
+      )
     }
     // A textarea's text is its default value, which the tree reads as its value, said above, and never as text: React writes it there and Angular does not.
     if (node instanceof HTMLTextAreaElement) return
@@ -157,8 +180,11 @@ async function mountBoth(report: unknown, locale: EditorLocale): Promise<Mounted
   const react = document.body.appendChild(document.createElement('div'))
   render(<ReportBuilder editor={editor} hostView={<button type="button">{STAND_IN}</button>} />, { container: react })
   const angular = document.body.appendChild(document.createElement('div'))
-  const lend = (slot: HTMLElement | null): void => slot?.replaceChildren(Object.assign(document.createElement('button'), { type: 'button', textContent: STAND_IN }))
-  const app = await createApplication({ providers: [provideZonelessChangeDetection(), { provide: STUDIO_EDITOR, useValue: editor }, { provide: STUDIO_SLOT, useValue: lend }] })
+  const lend = (slot: HTMLElement | null): void =>
+    slot?.replaceChildren(Object.assign(document.createElement('button'), { type: 'button', textContent: STAND_IN }))
+  const app = await createApplication({
+    providers: [provideZonelessChangeDetection(), { provide: STUDIO_EDITOR, useValue: editor }, { provide: STUDIO_SLOT, useValue: lend }],
+  })
   app.bootstrap(StudioAngularBuilder, angular.appendChild(document.createElement('report-studio-builder')))
   await app.whenStable()
   mounted = { editor, react, angular, app, release: () => answer() }
@@ -178,7 +204,12 @@ function rows(state: EditorState): OutlineNode[] {
   return all
 }
 
-const select = (node: OutlineNode | null): EditorAction => (node === null ? { type: 'select', id: null } : node.column === undefined ? { type: 'select', id: node.id } : { type: 'select', id: node.id, column: node.column })
+const select = (node: OutlineNode | null): EditorAction =>
+  node === null
+    ? { type: 'select', id: null }
+    : node.column === undefined
+      ? { type: 'select', id: node.id }
+      : { type: 'select', id: node.id, column: node.column }
 
 /**
  * Takes the editor through its states, comparing the two trees at each: as
@@ -226,7 +257,8 @@ async function walk({ editor, react, angular, app, release }: Mounted): Promise<
   // which is what a selection changes; a second row of a kind is the same
   // form over other values.
   const kinds = new Map<string, OutlineNode>()
-  for (const node of rows(editor.state())) if (!kinds.has(node.column === undefined ? node.kind : 'column')) kinds.set(node.column === undefined ? node.kind : 'column', node)
+  for (const node of rows(editor.state()))
+    if (!kinds.has(node.column === undefined ? node.kind : 'column')) kinds.set(node.column === undefined ? node.kind : 'column', node)
   for (const node of kinds.values()) await dispatch(select(node), `${node.label} selected`)
 
   const text = rows(editor.state()).find((node) => node.kind === 'text' && node.column === undefined)
@@ -306,13 +338,33 @@ describe('the two builders, side by side over one editor', () => {
         const states = await walk(await mountBoth(starter.report, locale))
         // The guard on the guard: a walk that stopped early compared fewer states than it names.
         expect(states).toEqual(
-          expect.arrayContaining(['opened, the Preview in the design view’s place', 'a condition naming no parameter', 'a margin the page cannot hold, refused', 'the QR-bill selected', 'the QR-bill deleted', 'an image being added', 'the image removed', 'zoomed in', 'the Preview hidden']),
+          expect.arrayContaining([
+            'opened, the Preview in the design view’s place',
+            'a condition naming no parameter',
+            'a margin the page cannot hold, refused',
+            'the QR-bill selected',
+            'the QR-bill deleted',
+            'an image being added',
+            'the image removed',
+            'zoomed in',
+            'the Preview hidden',
+          ]),
         )
         // The bill the walk selected is the one the starter has, or SIX's example added to it, and the e-invoice the one it has, edited:
         // an e-invoice in euro takes no bill of SIX's example, which asks for francs.
         const invoice = starter.report.eInvoice !== undefined
-        expect(mounted?.editor.state().outlineParts.map((row) => row.part)).toEqual(invoice ? [...(starter.report.paymentPart === undefined ? [] : ['paymentPart']), 'eInvoice'] : ['paymentPart'])
-        if (invoice) expect(states).toEqual(expect.arrayContaining(['the e-invoice selected', 'a VAT category moved first', 'the IBAN typed once, for every payment code', 'the e-invoice brought back']))
+        expect(mounted?.editor.state().outlineParts.map((row) => row.part)).toEqual(
+          invoice ? [...(starter.report.paymentPart === undefined ? [] : ['paymentPart']), 'eInvoice'] : ['paymentPart'],
+        )
+        if (invoice)
+          expect(states).toEqual(
+            expect.arrayContaining([
+              'the e-invoice selected',
+              'a VAT category moved first',
+              'the IBAN typed once, for every payment code',
+              'the e-invoice brought back',
+            ]),
+          )
       })
     }
   }
@@ -323,10 +375,22 @@ describe('the two builders, side by side over one editor', () => {
     const both = await mountBoth(studioStarters(starters)[0]?.report, 'en')
     const lines = tree(both.react)
     expect(lines[0]).toBe('region "Report editor"')
-    expect(lines).toEqual(expect.arrayContaining([expect.stringMatching(/^ +toolbar "Report tools"/), expect.stringMatching(/^ +tree "Outline"/), expect.stringMatching(/^ +button "Undo" aria-disabled="true"/)]))
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^ +toolbar "Report tools"/),
+        expect.stringMatching(/^ +tree "Outline"/),
+        expect.stringMatching(/^ +button "Undo" aria-disabled="true"/),
+      ]),
+    )
     // and the host's view, in both: a builder that drew the region and not
     // what the host gave it -- Angular's slot never filled -- fails here.
     await both.app.whenStable()
-    for (const drawn of [lines, tree(both.angular)]) expect(drawn).toEqual(expect.arrayContaining([expect.stringMatching(/^ +region "Preview" tabindex=-1$/), expect.stringMatching(new RegExp(`^ +button "${STAND_IN}" tabindex=0$`))]))
+    for (const drawn of [lines, tree(both.angular)])
+      expect(drawn).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/^ +region "Preview" tabindex=-1$/),
+          expect.stringMatching(new RegExp(`^ +button "${STAND_IN}" tabindex=0$`)),
+        ]),
+      )
   })
 })

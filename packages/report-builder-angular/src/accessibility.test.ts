@@ -40,7 +40,12 @@ afterEach(() => {
 const NAMED = ['button', 'textbox', 'spinbutton', 'combobox', 'checkbox', 'treeitem', 'tree', 'group', 'img', 'list', 'form', 'region', 'dialog']
 
 function unnamed(): string[] {
-  return NAMED.flatMap((role) => screen.queryAllByRole(role).filter((element) => computeAccessibleName(element).trim() === '').map((element) => `${role}: ${element.outerHTML.slice(0, 80)}`))
+  return NAMED.flatMap((role) =>
+    screen
+      .queryAllByRole(role)
+      .filter((element) => computeAccessibleName(element).trim() === '')
+      .map((element) => `${role}: ${element.outerHTML.slice(0, 80)}`),
+  )
 }
 
 /** axe's landmark rule: content outside every landmark is content a screen reader's landmark list cannot reach. */
@@ -67,15 +72,21 @@ describe('the accessible tree', () => {
   test('pictures each box and each place by its name', async () => {
     const { settle } = await mountScenarioBuilder()
     const design = screen.getByRole('region', { name: 'Design view, not the PDF' })
-    expect(within(design).getAllByRole('img').map((element) => computeAccessibleName(element))).toEqual(
-      expect.arrayContaining(['Findings', 'Introduction', 'Section', 'Note', 'Spacer', 'Horizontal ruler in millimetres']),
-    )
+    expect(
+      within(design)
+        .getAllByRole('img')
+        .map((element) => computeAccessibleName(element)),
+    ).toEqual(expect.arrayContaining(['Findings', 'Introduction', 'Section', 'Note', 'Spacer', 'Horizontal ruler in millimetres']))
     click(screen.getByRole('treeitem', { name: 'Note' }))
     await settle()
     click(screen.getByRole('button', { name: 'Move to…' }))
     await settle()
     const place = within(screen.getByRole('dialog', { name: 'Move Note: choose a place' })).getAllByRole('button')[0] as HTMLElement
-    expect(within(design).getByRole('img', { name: place.textContent ?? '' }).getAttribute('data-over')).toBe('true')
+    expect(
+      within(design)
+        .getByRole('img', { name: place.textContent ?? '' })
+        .getAttribute('data-over'),
+    ).toBe('true')
     expect(unnamed()).toEqual([])
     expect(await audit()).toEqual([])
     expect(await outsideLandmarks()).toEqual([])
@@ -113,7 +124,17 @@ describe('the accessible tree', () => {
   // is, with the place chooser, which was named after its header too, open.
   test('names its groups, form, list, statuses and dialog in its own words, never by another element’s text', async () => {
     const report = scenarioReport()
-    const { editor, settle } = await mountBuilder(createReportEditor(sessionOver({ ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)) } })))
+    const { editor, settle } = await mountBuilder(
+      createReportEditor(
+        sessionOver({
+          ...report,
+          regions: {
+            ...report.regions,
+            body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)),
+          },
+        }),
+      ),
+    )
     click(screen.getByRole('treeitem', { name: 'Note' }))
     await settle()
     click(screen.getByRole('button', { name: 'Move to…' }))
@@ -147,7 +168,12 @@ describe('the accessible tree', () => {
     for (const group of groups) {
       const drawn = screen.getByRole('group', { name: group.label })
       expect(drawn.hasAttribute('aria-labelledby'), group.label).toBe(false)
-      expect(within(drawn).queryAllByText(group.label).filter((element) => element.closest('[aria-hidden="true"]') === null), group.label).toEqual([])
+      expect(
+        within(drawn)
+          .queryAllByText(group.label)
+          .filter((element) => element.closest('[aria-hidden="true"]') === null),
+        group.label,
+      ).toEqual([])
     }
     expect(within(screen.getByRole('group', { name: 'Debtor' })).getByRole('button', { name: 'Add debtor' })).toBeTruthy()
     const row = screen.getByRole('treeitem', { name: 'Payment part', selected: true })
@@ -167,7 +193,14 @@ describe('the accessible tree', () => {
     click(screen.getByRole('treeitem', { name: 'E-invoice' }))
     await settle()
     const rows = ['Payment part', 'E-invoice'].map((name) => screen.getByRole('treeitem', { name }))
-    expect(rows.map((row) => [row.getAttribute('aria-level'), row.getAttribute('aria-posinset'), row.getAttribute('aria-setsize'), row.parentElement?.getAttribute('role')])).toEqual([
+    expect(
+      rows.map((row) => [
+        row.getAttribute('aria-level'),
+        row.getAttribute('aria-posinset'),
+        row.getAttribute('aria-setsize'),
+        row.parentElement?.getAttribute('role'),
+      ]),
+    ).toEqual([
       ['1', '1', '2', 'tree'],
       ['1', '2', '2', 'tree'],
     ])
@@ -176,8 +209,18 @@ describe('the accessible tree', () => {
     for (const group of groups) {
       const drawn = screen.getByRole('group', { name: group.label })
       expect(drawn.hasAttribute('aria-labelledby'), group.label).toBe(false)
-      expect(within(drawn).queryAllByText(group.label).filter((element) => element.closest('[aria-hidden="true"]') === null), group.label).toEqual([])
-      expect(within(drawn).queryAllByRole('button').map((button) => [button.textContent, button.getAttribute('aria-disabled')]), group.label).toEqual(group.actions.map((action) => [action.label, action.available ? null : 'true']))
+      expect(
+        within(drawn)
+          .queryAllByText(group.label)
+          .filter((element) => element.closest('[aria-hidden="true"]') === null),
+        group.label,
+      ).toEqual([])
+      expect(
+        within(drawn)
+          .queryAllByRole('button')
+          .map((button) => [button.textContent, button.getAttribute('aria-disabled')]),
+        group.label,
+      ).toEqual(group.actions.map((action) => [action.label, action.available ? null : 'true']))
     }
     const up = screen.getByRole('button', { name: 'Move VAT category 1 up' })
     up.focus()

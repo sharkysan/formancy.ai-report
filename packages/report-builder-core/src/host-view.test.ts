@@ -120,7 +120,10 @@ describe('showing and hiding it', () => {
     ok(editor.dispatch({ type: 'showHostView' }))
     expect(editor.state().panel).toBe('canvas')
     expect(editor.state().view).toBe('host')
-    expect(editor.state().status).toEqual({ text: editorText('en')('status.hostViewShown', { view: 'Preview', pane: 'Design view' }), sequence: before.sequence + 1 })
+    expect(editor.state().status).toEqual({
+      text: editorText('en')('status.hostViewShown', { view: 'Preview', pane: 'Design view' }),
+      sequence: before.sequence + 1,
+    })
     const shown = editor.state()
     ok(editor.dispatch({ type: 'showHostView' }))
     expect(editor.state()).toBe(shown)
@@ -201,7 +204,11 @@ describe('the zoom, with it in the design view’s place', () => {
       expect(editor.state().can, locale).toMatchObject({ zoomIn: false, zoomOut: false, zoomReset: false })
       const asks: EditorAction[] = [{ type: 'zoomIn' }, { type: 'zoomOut' }, { type: 'setZoom', zoom: 1 }]
       for (const action of asks) {
-        expect(editor.dispatch(action), `${locale} ${action.type}`).toMatchObject({ ok: false, code: 'unavailable', message: t('status.zoomHidden', { view: 'Preview', pane: t('pane.canvas') }) })
+        expect(editor.dispatch(action), `${locale} ${action.type}`).toMatchObject({
+          ok: false,
+          code: 'unavailable',
+          message: t('status.zoomHidden', { view: 'Preview', pane: t('pane.canvas') }),
+        })
         expect(editor.state().zoom, `${locale} ${action.type}`).toBe(1.5)
       }
     }

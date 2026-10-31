@@ -36,9 +36,17 @@ const require = createRequire(import.meta.url)
 const pdfmakeDirectory = path.dirname(require.resolve('pdfmake/package.json'))
 const roboto = (file: string): string => path.join(pdfmakeDirectory, 'fonts', 'Roboto', file).split(path.sep).join('/')
 /** One of this package's own fonts, in its `fonts` directory, which stands beside `dist` as beside `src`. */
-const own = (file: string): string => fileURLToPath(new URL(`../fonts/${file}`, import.meta.url)).split(path.sep).join('/')
+const own = (file: string): string =>
+  fileURLToPath(new URL(`../fonts/${file}`, import.meta.url))
+    .split(path.sep)
+    .join('/')
 const FONTS = {
-  Roboto: { normal: roboto('Roboto-Regular.ttf'), bold: roboto('Roboto-Medium.ttf'), italics: roboto('Roboto-Italic.ttf'), bolditalics: roboto('Roboto-MediumItalic.ttf') },
+  Roboto: {
+    normal: roboto('Roboto-Regular.ttf'),
+    bold: roboto('Roboto-Medium.ttf'),
+    italics: roboto('Roboto-Italic.ttf'),
+    bolditalics: roboto('Roboto-MediumItalic.ttf'),
+  },
   [LIBERATION_SANS]: { normal: own('LiberationSans-Regular.ttf'), bold: own('LiberationSans-Bold.ttf') },
 }
 const FONT_FILES: ReadonlySet<string> = new Set([...Object.values(FONTS.Roboto), ...Object.values(FONTS[LIBERATION_SANS])])

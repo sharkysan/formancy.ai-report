@@ -33,7 +33,11 @@ function waysIn(name: string, source: string): string[] {
   const visit = (node: ts.Node): void => {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) specifier(node.moduleSpecifier)
     if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) specifier(node.moduleReference.expression)
-    if (ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === 'require'))) specifier(node.arguments[0])
+    if (
+      ts.isCallExpression(node) &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === 'require'))
+    )
+      specifier(node.arguments[0])
     if (ts.isIdentifier(node) && node.text === 'process') found.push('process')
     if (ts.isStringLiteralLike(node) && node.text === 'process') found.push("'process'")
     ts.forEachChild(node, visit)
@@ -75,7 +79,14 @@ describe('the composition root', () => {
       "const value = globalThis['process'].env.X",
     ]
     for (const way of ways) expect(waysIn('way.ts', way).length, way).toBeGreaterThan(0)
-    const harmless = ['// process.env is read by main.ts alone', '/** Tested without starting a process. */', "const said = 'the process answers'", 'await io.readFile(path)', "import { isIP } from 'node:net'", "import { createHash } from 'node:crypto'"]
+    const harmless = [
+      '// process.env is read by main.ts alone',
+      '/** Tested without starting a process. */',
+      "const said = 'the process answers'",
+      'await io.readFile(path)',
+      "import { isIP } from 'node:net'",
+      "import { createHash } from 'node:crypto'",
+    ]
     for (const text of harmless) expect(waysIn('harmless.ts', text), text).toEqual([])
   })
 })

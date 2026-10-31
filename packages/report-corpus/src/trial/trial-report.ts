@@ -62,7 +62,7 @@ export function parseArguments(argv: readonly string[]): { readonly date: string
   const [flag, date, ...rest] = argv
   if (flag !== '--date' || date === undefined || rest.length > 0) throw new Error(USAGE)
   const [year, month, day] = date.split('-').map(Number)
-  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(Date.UTC(year!, month! - 1, day!)) : undefined
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(Date.UTC(year!, month! - 1, day)) : undefined
   if (parsed?.toISOString().slice(0, 10) !== date) throw new Error(`--date ${date} is not a calendar date written YYYY-MM-DD; ${USAGE}`)
   return { date }
 }
@@ -119,7 +119,15 @@ export interface Trial {
 
 /** `docs/renderer-trial.md` for `trial`. */
 export function trialReport(trial: Trial): string {
-  return [...introduction(trial), ...machine(trial.machine), ...engines(trial), ...corpus(trial), ...failures(trial), ...timings(trial), ...reading(trial)].join('\n')
+  return [
+    ...introduction(trial),
+    ...machine(trial.machine),
+    ...engines(trial),
+    ...corpus(trial),
+    ...failures(trial),
+    ...timings(trial),
+    ...reading(trial),
+  ].join('\n')
 }
 
 function introduction(trial: Trial): string[] {
@@ -163,7 +171,14 @@ function engines(trial: Trial): string[] {
     ...trial.engines.flatMap((engine) => engine.packages.map((installed) => [engine.name, `\`${installed.name}\``, installed.version, installed.role])),
     ['every check', `\`${trial.reader.name}\``, trial.reader.version, trial.reader.role],
   ]
-  return ['## Engines', '', "Each version is read from the package's installed `package.json` by the run.", '', ...table(['Adapter', 'Package', 'Version', 'What it does'], rows), '']
+  return [
+    '## Engines',
+    '',
+    "Each version is read from the package's installed `package.json` by the run.",
+    '',
+    ...table(['Adapter', 'Package', 'Version', 'What it does'], rows),
+    '',
+  ]
 }
 
 function corpus(trial: Trial): string[] {
@@ -187,7 +202,9 @@ function failures(trial: Trial): string[] {
   const inCorpus = new Set(trial.results.map(({ fixture }) => fixture.id))
   const judged = [
     ...trial.results,
-    ...trial.timings.filter(({ fixture }) => !inCorpus.has(fixture.id)).map(({ fixture, engines: measured }) => ({ fixture, outcomes: measured.map(({ outcome }) => outcome) })),
+    ...trial.timings
+      .filter(({ fixture }) => !inCorpus.has(fixture.id))
+      .map(({ fixture, engines: measured }) => ({ fixture, outcomes: measured.map(({ outcome }) => outcome) })),
   ]
   const failed = judged.flatMap(({ fixture, outcomes }) =>
     outcomes.flatMap((outcome, index) => (outcome.kind === 'fail' ? [{ fixture, engine: trial.engines[index]!, problems: outcome.problems }] : [])),
@@ -241,7 +258,10 @@ function reading(trial: Trial): string[] {
   })
   const either = trial.results
     .filter(({ fixture }) => fixture.expect.outcome === 'render-or-refuse')
-    .map(({ fixture, outcomes }) => `- \`${fixture.id}\` allows a PDF or a refusal. ${outcomes.map((outcome, index) => `${trial.engines[index]!.name}: ${cell(outcome)}`).join('; ')}.`)
+    .map(
+      ({ fixture, outcomes }) =>
+        `- \`${fixture.id}\` allows a PDF or a refusal. ${outcomes.map((outcome, index) => `${trial.engines[index]!.name}: ${cell(outcome)}`).join('; ')}.`,
+    )
   const fastest = trial.timings.map(({ fixture, engines: measured }) => {
     const ranked = measured
       .map((timing, index) => ({ name: trial.engines[index]!.name, time: median(timing.milliseconds), outcome: timing.outcome }))
@@ -299,7 +319,10 @@ function duration(milliseconds: number): string {
  * into a literal backslash, and the bar would end the cell after all.
  */
 export function markdownCell(text: string): string {
-  return text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\s*\n\s*/g, ' ')
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\s*\n\s*/g, ' ')
 }
 
 /** A Markdown table of cells written by `markdownCell`. */

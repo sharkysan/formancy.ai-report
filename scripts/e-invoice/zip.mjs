@@ -80,7 +80,8 @@ export function zipEntries(bytes) {
     if (compressedSize === 0xffffffff || unpacked === 0xffffffff || offset === 0xffffffff) throw new Error(`${name}: a ZIP64 entry, which this reader refuses`)
     if ((flags & 0x0001) !== 0) throw new Error(`${name}: it is encrypted`)
     if (method !== 0 && method !== 8) throw new Error(`${name}: its method is ${String(method)}, and only stored (0) and deflated (8) are read`)
-    if (unpacked > MAX_UNPACKED) throw new Error(`${name}: it says it is ${String(unpacked)} bytes, past the ${String(MAX_UNPACKED)} an archive here may unpack to`)
+    if (unpacked > MAX_UNPACKED)
+      throw new Error(`${name}: it says it is ${String(unpacked)} bytes, past the ${String(MAX_UNPACKED)} an archive here may unpack to`)
     // The file type is in the upper half of the external attributes where the archive was made on Unix (3).
     const mode = made === 3 ? (external >>> 16) & 0o170000 : 0
     entries.push({ name, method, size: unpacked, compressedSize, crc, offset, directory: name.endsWith('/'), mode })
@@ -96,7 +97,8 @@ export function readEntry(bytes, entry) {
   const stored = bytes.subarray(start, start + entry.compressedSize)
   if (stored.length !== entry.compressedSize) throw new Error(`${entry.name}: its data runs past the archive`)
   const data = entry.method === 8 ? inflateRawSync(stored, { maxOutputLength: MAX_UNPACKED }) : stored
-  if (data.length !== entry.size) throw new Error(`${entry.name}: it inflates to ${String(data.length)} bytes, not the ${String(entry.size)} its directory says`)
+  if (data.length !== entry.size)
+    throw new Error(`${entry.name}: it inflates to ${String(data.length)} bytes, not the ${String(entry.size)} its directory says`)
   if (crc32(data) !== entry.crc) throw new Error(`${entry.name}: its data is not what its CRC-32 was taken of`)
   return data
 }

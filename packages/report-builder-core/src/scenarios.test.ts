@@ -59,7 +59,11 @@ function nodes(state: EditorState): OutlineNode[] {
 /** Every row of the tree, by its name: the regions' rows, then the parts', each with what selecting it selects. */
 function rows(state: EditorState): { readonly label: string; readonly selected: boolean; readonly selection: Selection }[] {
   return [
-    ...nodes(state).map((node) => ({ label: node.label, selected: node.selected, selection: node.column === undefined ? { id: node.id } : { id: node.id, column: node.column } })),
+    ...nodes(state).map((node) => ({
+      label: node.label,
+      selected: node.selected,
+      selection: node.column === undefined ? { id: node.id } : { id: node.id, column: node.column },
+    })),
     ...state.outlineParts.map((row) => ({ label: row.label, selected: row.selected, selection: { part: row.part } })),
   ]
 }
@@ -93,7 +97,8 @@ function toolbar(t: EditorText, state: EditorState): Map<string, EditorAction | 
 }
 
 /** A side pane's name, as its tool in the toolbar and its Hide say it. */
-const paneName = (t: EditorText, panel: HideablePanel): string => t(panel === 'diagnostics' ? 'pane.problems' : panel === 'outline' ? 'pane.outline' : 'pane.properties')
+const paneName = (t: EditorText, panel: HideablePanel): string =>
+  t(panel === 'diagnostics' ? 'pane.problems' : panel === 'outline' ? 'pane.outline' : 'pane.properties')
 
 /** Whether the state draws the pane: every pane, but those hidden. */
 const shown = (state: EditorState, panel: HideablePanel): boolean => !state.hidden.includes(panel)
@@ -106,27 +111,33 @@ function buttons(t: EditorText, state: EditorState): Map<string, EditorAction | 
   if (choosing !== null) {
     for (const target of state.dropTargets) {
       const subject = choosing.subject
-      found.set(target.label, 'kind' in subject ? { type: 'insert', kind: subject.kind, target: target.location } : { type: 'move', id: subject.id, target: target.location })
+      found.set(
+        target.label,
+        'kind' in subject ? { type: 'insert', kind: subject.kind, target: target.location } : { type: 'move', id: subject.id, target: target.location },
+      )
     }
     found.set(t('places.cancel'), { type: 'cancelDrag' })
   } else if (shown(state, 'outline')) {
     for (const entry of state.palette) found.set(entry.label, { type: 'startDrag', subject: { kind: entry.kind }, via: 'keyboard' })
     if (state.images.store) found.set(t('images.add'), { type: 'chooseImage' })
   }
-  if (shown(state, 'diagnostics')) for (const entry of state.diagnostics) found.set(entry.label, entry.target === null ? { type: 'select', id: null } : { type: 'select', ...entry.target })
+  if (shown(state, 'diagnostics'))
+    for (const entry of state.diagnostics) found.set(entry.label, entry.target === null ? { type: 'select', id: null } : { type: 'select', ...entry.target })
   // Back to the report's own properties, shown while something else is selected.
   if (state.selection !== null && shown(state, 'properties')) found.set(t('properties.report'), { type: 'select', id: null })
   // A group's buttons: a party's Add or Remove, the report's Add of a QR-bill, a list's Add and each item's moves and Remove.
   if (shown(state, 'properties')) for (const group of propertyGroups(state)) for (const action of group.actions) found.set(action.label, action.action)
   // Under the report's own properties, a Remove for each of its images.
-  if (state.selection === null && shown(state, 'properties')) for (const image of state.images.assets) found.set(image.removeLabel, { type: 'removeImage', asset: image.id })
+  if (state.selection === null && shown(state, 'properties'))
+    for (const image of state.images.assets) found.set(image.removeLabel, { type: 'removeImage', asset: image.id })
   return found
 }
 
 /** What a status says: the zoom's readout, the problems' count, or -- the one with no name -- the live region. */
 function statusText(t: EditorText, state: EditorState, name: string): string | undefined {
   if (name === t('zoom.label')) return state.zoomLabel
-  if (name === t('pane.problems')) return !shown(state, 'diagnostics') ? undefined : state.diagnostics.length === 0 ? name : `${name} ${state.diagnostics.length}`
+  if (name === t('pane.problems'))
+    return !shown(state, 'diagnostics') ? undefined : state.diagnostics.length === 0 ? name : `${name} ${state.diagnostics.length}`
   return name === '' ? state.status.text : undefined
 }
 
@@ -198,7 +209,11 @@ class Driver {
     const { canvas } = this.state
     const box = canvas.boxes.find((candidate) => candidate.label === name)
     const action: EditorAction | undefined =
-      canvas.paymentPart?.label === name ? { type: 'select', part: 'paymentPart' } : box === undefined ? undefined : { type: 'select', id: box.id, ...(box.column === undefined ? {} : { column: box.column }) }
+      canvas.paymentPart?.label === name
+        ? { type: 'select', part: 'paymentPart' }
+        : box === undefined
+          ? undefined
+          : { type: 'select', id: box.id, ...(box.column === undefined ? {} : { column: box.column }) }
     this.dispatch(action, `the picture ${name}`)
     this.focusSelection()
   }
@@ -287,9 +302,14 @@ class Driver {
       case 'tree':
         return query.name === this.t('pane.outline') && shown(state, 'outline')
       case 'treeitem':
-        return shown(state, 'outline') && rows(state).some((row) => row.label === query.name && (query.selected === undefined || row.selected === query.selected))
+        return (
+          shown(state, 'outline') && rows(state).some((row) => row.label === query.name && (query.selected === undefined || row.selected === query.selected))
+        )
       case 'group':
-        return (shown(state, 'outline') && state.outline.some((region) => region.label === query.name)) || (shown(state, 'properties') && propertyGroups(state).some((group) => group.label === query.name))
+        return (
+          (shown(state, 'outline') && state.outline.some((region) => region.label === query.name)) ||
+          (shown(state, 'properties') && propertyGroups(state).some((group) => group.label === query.name))
+        )
       case 'region':
         return query.name === this.middle()
       case 'img':
@@ -321,7 +341,13 @@ class Driver {
           if (this.focused !== null && this.focused.role === 'button' && this.hostControl(this.focused.name)) return
           if (step.key === 'Enter' && this.focused !== null) return void this.activate(this.focused)
           const where = this.focused?.role === 'treeitem' || this.focused?.role === 'tree' ? 'outline' : 'editor'
-          const press = { key: step.key, altKey: modifiers.has('Alt'), ctrlKey: modifiers.has('Control'), metaKey: modifiers.has('Meta'), shiftKey: modifiers.has('Shift') }
+          const press = {
+            key: step.key,
+            altKey: modifiers.has('Alt'),
+            ctrlKey: modifiers.has('Control'),
+            metaKey: modifiers.has('Meta'),
+            shiftKey: modifiers.has('Shift'),
+          }
           const onRemove = this.focused?.role === 'button' && this.state.images.assets.some((image) => image.removeLabel === this.focused?.name)
           this.dispatch(actionForKey(press, where, this.state.drag !== null), `the key ${step.key}`)
           if (where === 'outline') this.focusSelection()
@@ -342,7 +368,8 @@ class Driver {
         case 'host': {
           const was = this.state.view
           const focused = this.focused
-          const inTheMiddle = focused !== null && ((focused.role === 'region' && focused.name === this.middle()) || (focused.role === 'button' && this.hostControl(focused.name)))
+          const inTheMiddle =
+            focused !== null && ((focused.role === 'region' && focused.name === this.middle()) || (focused.role === 'button' && this.hostControl(focused.name)))
           // What the host asks of its own view is meant to be done: one refused is a scenario that says what never happened.
           const outcome = this.editor.dispatch(step.action)
           if (!outcome.ok) throw new Error(`the host's ${step.action.type} was refused: ${outcome.message}`)
@@ -396,7 +423,8 @@ describe('the builder scenarios', () => {
   test('are the same scenarios in every language', () => {
     // A check is a function, so the lists are compared as the data they are.
     expect(JSON.stringify(BUILDER_SCENARIOS)).toBe(JSON.stringify(builderScenarios('en')))
-    const shape = (scenarios: readonly BuilderScenario[]) => scenarios.map((scenario) => [scenario.name, scenario.steps.map((step) => ('do' in step ? step.do : step.expect))])
+    const shape = (scenarios: readonly BuilderScenario[]) =>
+      scenarios.map((scenario) => [scenario.name, scenario.steps.map((step) => ('do' in step ? step.do : step.expect))])
     for (const locale of EDITOR_LOCALES) expect(shape(builderScenarios(locale)), locale).toEqual(shape(BUILDER_SCENARIOS))
   })
 
@@ -425,7 +453,10 @@ describe('the builder scenarios', () => {
   test('cover what plan 21 asks of every builder', () => {
     const names = BUILDER_SCENARIOS.map((scenario) => scenario.name)
     for (const required of ['insert', 'outline', 'title', 'invalid', 'move', 'delete', 'duplicate', 'undo', 'diagnostic', 'zoom']) {
-      expect(names.some((name) => name.includes(required)), required).toBe(true)
+      expect(
+        names.some((name) => name.includes(required)),
+        required,
+      ).toBe(true)
     }
   })
 

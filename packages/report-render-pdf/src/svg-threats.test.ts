@@ -57,7 +57,11 @@ describe('an SVG as it came', () => {
       (error: unknown) => error,
     )
     expect(refusal).toBeInstanceOf(RenderRefusal)
-    expect(refusal).toMatchObject({ code: 'invalid-asset', subject: 'threat', message: expect.stringMatching(/^the image asset threat is not an SVG the renderer draws: /) })
+    expect(refusal).toMatchObject({
+      code: 'invalid-asset',
+      subject: 'threat',
+      message: expect.stringMatching(/^the image asset threat is not an SVG the renderer draws: /),
+    })
     for (const secret of secrets) expect((refusal as RenderRefusal).message).not.toContain(secret)
     expect(created).not.toHaveBeenCalled()
   })
@@ -104,7 +108,9 @@ describe("the renderer's own list of elements", () => {
   ])('refuses %s, as it came, before pdfmake sees it', (name, found) => {
     const threat = SVG_THREATS.find((each) => each.name === name)!
     const text = new TextDecoder().decode(threat.bytes)
-    expect(() => svgContent(image(rawSvgAsset(threat.bytes, 'threat')), vector(text))).toThrow(new RenderRefusal('invalid-asset', `the image asset threat holds ${found}, which the renderer never hands pdfmake's SVG converter`, 'threat'))
+    expect(() => svgContent(image(rawSvgAsset(threat.bytes, 'threat')), vector(text))).toThrow(
+      new RenderRefusal('invalid-asset', `the image asset threat holds ${found}, which the renderer never hands pdfmake's SVG converter`, 'threat'),
+    )
   })
 
   // A list that refused everything would pass every case above: every
@@ -144,35 +150,62 @@ describe("the converter's callbacks", () => {
   // the file past pdfmake's local access policy (`pdfmake.test.ts`): its
   // image callback, which the converter asks before it opens anything,
   // refuses the asset instead, and nothing is read.
-  test('refuse an image, before its file is opened', async () => {
-    const directory = mkdtempSync(path.join(tmpdir(), 'report-render-pdf-'))
-    try {
-      const file = path.join(directory, 'secret.png').split(path.sep).join('/')
-      writeFileSync(file, encodePng(4, 4, () => [255, 0, 0]))
-      expect(await drawn(svg(`<image href="${file}" width="10" height="10"/>`))).toEqual(
-        new RenderRefusal('invalid-asset', "the image asset unguarded asks pdfmake's SVG converter to open an image, which the renderer never lets it do", 'unguarded'),
-      )
-    } finally {
-      rmSync(directory, { recursive: true, force: true })
-    }
-  }, TIMEOUT)
+  test(
+    'refuse an image, before its file is opened',
+    async () => {
+      const directory = mkdtempSync(path.join(tmpdir(), 'report-render-pdf-'))
+      try {
+        const file = path.join(directory, 'secret.png').split(path.sep).join('/')
+        writeFileSync(
+          file,
+          encodePng(4, 4, () => [255, 0, 0]),
+        )
+        expect(await drawn(svg(`<image href="${file}" width="10" height="10"/>`))).toEqual(
+          new RenderRefusal(
+            'invalid-asset',
+            "the image asset unguarded asks pdfmake's SVG converter to open an image, which the renderer never lets it do",
+            'unguarded',
+          ),
+        )
+      } finally {
+        rmSync(directory, { recursive: true, force: true })
+      }
+    },
+    TIMEOUT,
+  )
 
   // A drawing the converter cannot draw as written it draws otherwise,
   // saying so to the console alone (`pdfmake.test.ts`): its warning
   // refuses the asset instead, and repeats nothing the file held.
-  test('refuse a drawing the converter would warn about and draw on', async () => {
-    const loop = svg('<clipPath id="secret"><rect clip-path="url(#secret)" width="1" height="1"/></clipPath><rect width="10" height="10" clip-path="url(#secret)"/>')
-    const refusal = await drawn(loop)
-    expect(refusal).toEqual(new RenderRefusal('invalid-asset', "pdfmake's SVG converter could not draw the image asset unguarded as it was approved: it warned, and the renderer draws an SVG whole or not at all", 'unguarded'))
-    expect((refusal as Error).message).not.toContain('secret')
-  }, TIMEOUT)
+  test(
+    'refuse a drawing the converter would warn about and draw on',
+    async () => {
+      const loop = svg(
+        '<clipPath id="secret"><rect clip-path="url(#secret)" width="1" height="1"/></clipPath><rect width="10" height="10" clip-path="url(#secret)"/>',
+      )
+      const refusal = await drawn(loop)
+      expect(refusal).toEqual(
+        new RenderRefusal(
+          'invalid-asset',
+          "pdfmake's SVG converter could not draw the image asset unguarded as it was approved: it warned, and the renderer draws an SVG whole or not at all",
+          'unguarded',
+        ),
+      )
+      expect((refusal as Error).message).not.toContain('secret')
+    },
+    TIMEOUT,
+  )
 
   // The converter's option is the asset's own to say how it is fitted;
   // what the drawing says of itself on its root the cleaner never writes.
   test('fit the drawing as the image is fitted', () => {
     expect(converterOptions('a', 'contain').preserveAspectRatio).toBe('xMidYMid meet')
     expect(converterOptions('a', 'cover').preserveAspectRatio).toBe('xMidYMid slice')
-    expect(svgContent(image(svgAsset(DRAWINGS.mark!)), { ...VECTOR, width: 120, height: 120, svg: '<svg/>' })).toMatchObject({ svg: '<svg/>', width: 60, height: 60 })
+    expect(svgContent(image(svgAsset(DRAWINGS.mark!)), { ...VECTOR, width: 120, height: 120, svg: '<svg/>' })).toMatchObject({
+      svg: '<svg/>',
+      width: 60,
+      height: 60,
+    })
   })
 })
 
@@ -192,23 +225,34 @@ describe('a drawing shrunk to the bound', () => {
   // far as the bound allows draws, in a box of a point and in one the page's
   // width; the drawing shrunk past it, in the form the cleaner would have
   // written it, is refused at print as an invalid asset, naming it.
-  test('draws at the bound, and past it is refused as an invalid asset, never thrown', async () => {
-    const asset = svgAsset(shrunk('0.001'), 'shrunk')
-    for (const side of [1, 480]) {
-      const pdf = await renderPdf(bareDocument('Shrunk', [{ kind: 'image', asset, width: side, height: side, fit: 'contain' }]), { maxPages: 1 })
-      expect(await readAnnotations(pdf)).toEqual([])
-    }
-    // Four groups of a millionth, each written as the cleaner writes a group.
-    const millionth = '<g transform="matrix(0.000001 0 0 0.000001 0 0)">'
-    const past = new TextDecoder().decode(asset.bytes).replaceAll('<g transform="matrix(0.001 0 0 0.001 0 0)">', millionth.repeat(2)).replace('</svg>', '</g></g></svg>')
-    expect(past.split(millionth)).toHaveLength(5)
-    const refusal = await renderPdf(bareDocument('Past', [image(rawSvgAsset(past, 'shrunk'))]), { maxPages: 1 }).then(
-      () => undefined,
-      (error: unknown) => error,
-    )
-    expect(refusal).toBeInstanceOf(RenderRefusal)
-    expect(refusal).toMatchObject({ code: 'invalid-asset', subject: 'shrunk', message: expect.stringContaining('shrinks what it transforms, or flattens it') })
-  }, TIMEOUT)
+  test(
+    'draws at the bound, and past it is refused as an invalid asset, never thrown',
+    async () => {
+      const asset = svgAsset(shrunk('0.001'), 'shrunk')
+      for (const side of [1, 480]) {
+        const pdf = await renderPdf(bareDocument('Shrunk', [{ kind: 'image', asset, width: side, height: side, fit: 'contain' }]), { maxPages: 1 })
+        expect(await readAnnotations(pdf)).toEqual([])
+      }
+      // Four groups of a millionth, each written as the cleaner writes a group.
+      const millionth = '<g transform="matrix(0.000001 0 0 0.000001 0 0)">'
+      const past = new TextDecoder()
+        .decode(asset.bytes)
+        .replaceAll('<g transform="matrix(0.001 0 0 0.001 0 0)">', millionth.repeat(2))
+        .replace('</svg>', '</g></g></svg>')
+      expect(past.split(millionth)).toHaveLength(5)
+      const refusal = await renderPdf(bareDocument('Past', [image(rawSvgAsset(past, 'shrunk'))]), { maxPages: 1 }).then(
+        () => undefined,
+        (error: unknown) => error,
+      )
+      expect(refusal).toBeInstanceOf(RenderRefusal)
+      expect(refusal).toMatchObject({
+        code: 'invalid-asset',
+        subject: 'shrunk',
+        message: expect.stringContaining('shrinks what it transforms, or flattens it'),
+      })
+    },
+    TIMEOUT,
+  )
 
   /** A page of `body` on A4 turned to landscape, its margins narrow: the widest box an image may have. */
   const landscape = (body: ImageAsset): Parameters<typeof renderPdf>[0] => ({
@@ -224,16 +268,29 @@ describe('a drawing shrunk to the bound', () => {
   // could never print. A gradient composed to the bound draws in that box;
   // that drawing, in the form the cleaner would have written it, is
   // refused at print as an invalid asset.
-  test('a gradient composed to the bound draws, and one past it is refused as an invalid asset, never thrown', async () => {
-    const atBound = svgAsset(svg('<linearGradient id="g"><stop/><stop offset="1" stop-color="#e76f51"/></linearGradient><g transform="scale(1000)"><rect width="1000" height="1000" fill="url(#g)"/></g>', '0 0 1 1'), 'gradient')
-    expect(await readAnnotations(await renderPdf(landscape(atBound), { maxPages: 1 }))).toEqual([])
-    const turned = 'matrix(1000000 1000000 -1000000 1000000 0 0)'
-    const past = svg(`<linearGradient id="g1" gradientTransform="${turned}"><stop/><stop offset="1" stop-color="#ff0000"/></linearGradient><g transform="${turned}"><rect width="1000000" height="1000000" fill="url(#g1)"/></g>`, '0 0 1 1')
-    const refusal = await renderPdf(landscape(rawSvgAsset(past, 'gradient')), { maxPages: 1 }).then(
-      () => undefined,
-      (error: unknown) => error,
-    )
-    expect(refusal).toBeInstanceOf(RenderRefusal)
-    expect(refusal).toMatchObject({ code: 'invalid-asset', subject: 'gradient', message: expect.stringContaining('paints a gradient transformed past') })
-  }, TIMEOUT)
+  test(
+    'a gradient composed to the bound draws, and one past it is refused as an invalid asset, never thrown',
+    async () => {
+      const atBound = svgAsset(
+        svg(
+          '<linearGradient id="g"><stop/><stop offset="1" stop-color="#e76f51"/></linearGradient><g transform="scale(1000)"><rect width="1000" height="1000" fill="url(#g)"/></g>',
+          '0 0 1 1',
+        ),
+        'gradient',
+      )
+      expect(await readAnnotations(await renderPdf(landscape(atBound), { maxPages: 1 }))).toEqual([])
+      const turned = 'matrix(1000000 1000000 -1000000 1000000 0 0)'
+      const past = svg(
+        `<linearGradient id="g1" gradientTransform="${turned}"><stop/><stop offset="1" stop-color="#ff0000"/></linearGradient><g transform="${turned}"><rect width="1000000" height="1000000" fill="url(#g1)"/></g>`,
+        '0 0 1 1',
+      )
+      const refusal = await renderPdf(landscape(rawSvgAsset(past, 'gradient')), { maxPages: 1 }).then(
+        () => undefined,
+        (error: unknown) => error,
+      )
+      expect(refusal).toBeInstanceOf(RenderRefusal)
+      expect(refusal).toMatchObject({ code: 'invalid-asset', subject: 'gradient', message: expect.stringContaining('paints a gradient transformed past') })
+    },
+    TIMEOUT,
+  )
 })

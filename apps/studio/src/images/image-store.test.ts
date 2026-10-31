@@ -32,7 +32,8 @@ const logo = (): ImageFile => ({ name: 'logo.png', size: SCENARIO_PNG.length, ar
  * embedded as they stand, since nothing decodes a JPEG's scan.
  */
 const CMYK = Uint8Array.from([
-  0xff, 0xd8, 0xff, 0xc0, 0, 20, 8, 0, 16, 0, 16, 4, 1, 0x11, 0, 2, 0x11, 0, 3, 0x11, 0, 4, 0x11, 0, 0xff, 0xda, 0, 14, 4, 1, 0, 2, 0, 3, 0, 4, 0, 0, 63, 0, 1, 2, 3, 0xff, 0xd9,
+  0xff, 0xd8, 0xff, 0xc0, 0, 20, 8, 0, 16, 0, 16, 4, 1, 0x11, 0, 2, 0x11, 0, 3, 0x11, 0, 4, 0x11, 0, 0xff, 0xda, 0, 14, 4, 1, 0, 2, 0, 3, 0, 4, 0, 0, 63, 0, 1,
+  2, 3, 0xff, 0xd9,
 ])
 
 /** An editor over `report` -- a blank one when absent -- its images kept in `store`. */
@@ -112,10 +113,15 @@ describe('the Studio’s images', () => {
     const { session, editor } = editorOver(store)
     expect(await editor.addImage(logo())).toEqual({ ok: true })
     expect(editor.dispatch({ type: 'insert', kind: 'image', target: { region: 'reportHeader', index: 0 } })).toEqual({ ok: true })
-    const outcome = await preview({ report: session.document(), starter: BLANK, mode: 'final', images: resolve, creationDate: CREATED }, new AbortController().signal)
+    const outcome = await preview(
+      { report: session.document(), starter: BLANK, mode: 'final', images: resolve, creationDate: CREATED },
+      new AbortController().signal,
+    )
     if (outcome.kind !== 'printed') throw new Error(`the image was not printed: ${JSON.stringify(outcome)}`)
     const [first] = (await readPdf(outcome.pdf)).pages
-    expect(first?.images.map(({ x, top, width, height }) => [x, top, width, height].map((points) => Math.round(points * 100) / 100))).toEqual([[56.69, 56.69, 100, 50]])
+    expect(first?.images.map(({ x, top, width, height }) => [x, top, width, height].map((points) => Math.round(points * 100) / 100))).toEqual([
+      [56.69, 56.69, 100, 50],
+    ])
     editor.dispose()
   })
 
@@ -135,24 +141,35 @@ describe('the Studio’s images', () => {
     expect(invoice.session.canUndo()).toBe(false)
     // The same image declared and drawn without the editor: the final render refuses it.
     const digest = assetDigest(CMYK)
-    expect(await store.keep({ asset: 'druckerei', mediaType: 'image/jpeg', digest, bytes: CMYK, fileName: file.name, width: 16, height: 16 })).toEqual({ ok: true })
+    expect(await store.keep({ asset: 'druckerei', mediaType: 'image/jpeg', digest, bytes: CMYK, fileName: file.name, width: 16, height: 16 })).toEqual({
+      ok: true,
+    })
     expect(invoice.session.apply((report) => putAsset(report, 'druckerei', { mediaType: 'image/jpeg', digest }))).toMatchObject({ ok: true })
     expect(invoice.editor.dispatch({ type: 'insert', kind: 'image', target: { region: 'reportHeader', index: 0 } })).toEqual({ ok: true })
-    const refused = await preview({ report: invoice.session.document(), starter: E_INVOICE, mode: 'final', images: resolve, creationDate: CREATED }, new AbortController().signal)
+    const refused = await preview(
+      { report: invoice.session.document(), starter: E_INVOICE, mode: 'final', images: resolve, creationDate: CREATED },
+      new AbortController().signal,
+    )
     expect(refused).toMatchObject({ kind: 'not-drawn', refusal: { code: 'unsupported', subject: 'druckerei' } })
     invoice.editor.dispose()
     // In a report with no e-invoice, the editor takes it and the final render draws it.
     const blank = editorOver(store)
     expect(await blank.editor.addImage(file)).toEqual({ ok: true })
     expect(blank.editor.dispatch({ type: 'insert', kind: 'image', target: { region: 'reportHeader', index: 0 } })).toEqual({ ok: true })
-    const printed = await preview({ report: blank.session.document(), starter: BLANK, mode: 'final', images: resolve, creationDate: CREATED }, new AbortController().signal)
+    const printed = await preview(
+      { report: blank.session.document(), starter: BLANK, mode: 'final', images: resolve, creationDate: CREATED },
+      new AbortController().signal,
+    )
     expect(printed.kind).toBe('printed')
     blank.editor.dispose()
     // In an XRechnung, the editor takes it and the final render draws it in the copy, the sample's mark an SVG and no image of PDF.js's.
     const xrechnung = editorOver(store, XRECHNUNG_SAMPLE.report)
     expect(await xrechnung.editor.addImage(file)).toEqual({ ok: true })
     expect(xrechnung.editor.dispatch({ type: 'insert', kind: 'image', target: { region: 'reportHeader', index: 0 } })).toEqual({ ok: true })
-    const copy = await preview({ report: xrechnung.session.document(), starter: XRECHNUNG_SAMPLE, mode: 'final', images: resolve, creationDate: CREATED }, new AbortController().signal)
+    const copy = await preview(
+      { report: xrechnung.session.document(), starter: XRECHNUNG_SAMPLE, mode: 'final', images: resolve, creationDate: CREATED },
+      new AbortController().signal,
+    )
     if (copy.kind !== 'printed') throw new Error(`the XRechnung's copy was not printed: ${JSON.stringify(copy)}`)
     expect((await readPdf(copy.pdf)).pages.flatMap((page) => page.images)).toHaveLength(1)
     xrechnung.editor.dispose()

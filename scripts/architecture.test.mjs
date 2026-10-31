@@ -115,7 +115,8 @@ const fromRepo = (path) => relative(repo, path).replaceAll('\\', '/')
  */
 function expandWorkspace(patterns, listDirectories) {
   const one = (pattern) => {
-    if (/[*?[\]{}]/.test(pattern.replace(/\/\*$/, ''))) throw new Error(`pnpm-workspace.yaml: "${pattern}" is a glob this guard does not read; teach it, or name the directory`)
+    if (/[*?[\]{}]/.test(pattern.replace(/\/\*$/, '')))
+      throw new Error(`pnpm-workspace.yaml: "${pattern}" is a glob this guard does not read; teach it, or name the directory`)
     return pattern.endsWith('/*') ? listDirectories(pattern.slice(0, -2)).map((name) => `${pattern.slice(0, -2)}/${name}`) : [pattern]
   }
   const included = patterns.filter((pattern) => !pattern.startsWith('!')).flatMap(one)
@@ -149,7 +150,11 @@ function workspacePackages() {
  * results -- and a tracked file deleted from the disk too.
  */
 function checkoutFiles() {
-  const listed = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: repo, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+  const listed = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
+    cwd: repo,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  })
   return listed.split('\0').filter((path) => path !== '' && isFile(join(repo, path)))
 }
 
@@ -296,7 +301,10 @@ function expectedRow({ manifest }, names) {
 function buildingBlockProblems(markdown, packages) {
   const tables = [...tokensOf(lexer(markdown))].filter((token) => token.type === 'table')
   const located = tables
-    .map((table) => ({ table, column: Object.fromEntries(Object.entries(COLUMNS).map(([key, header]) => [key, table.header.findIndex((cell) => cell.text.trim() === header)])) }))
+    .map((table) => ({
+      table,
+      column: Object.fromEntries(Object.entries(COLUMNS).map(([key, header]) => [key, table.header.findIndex((cell) => cell.text.trim() === header)])),
+    }))
     .filter(({ column }) => Object.values(column).every((index) => index !== -1))
   if (located.length !== 1) return [`${String(located.length)} tables have the columns ${Object.values(COLUMNS).join(', ')}; the building blocks are one`]
   const [{ table, column }] = located
@@ -395,8 +403,34 @@ describe('the reading underneath the guard', () => {
   // version, a CSS variable -- would fail the documents for a word; a path
   // not read as one would pass renamed.
   test('reads as a path what names one, and nothing else', () => {
-    const paths = ['report-render-pdf/src/glyphs.test.ts', 'glyphs.test.ts', 'scripts/', '.github/workflows/gates.yml', '../getting-started.md', 'scripts/**/*.test.mjs', 'validate-*.ts', 'apps/studio', 'codecov.yml', 'report-builder.css']
-    const others = ['@formancy/themes/workbench.css', '@formancy/*', 'pnpm test:repo', '/report/', '.mjs', '--wb-*', 'v*', 'group.<id>', '3 / 2', 'SEE LICENSE IN LICENSE.md', 'NOTICE', 'node:', '~6.0.3', 'scenarios.test']
+    const paths = [
+      'report-render-pdf/src/glyphs.test.ts',
+      'glyphs.test.ts',
+      'scripts/',
+      '.github/workflows/gates.yml',
+      '../getting-started.md',
+      'scripts/**/*.test.mjs',
+      'validate-*.ts',
+      'apps/studio',
+      'codecov.yml',
+      'report-builder.css',
+    ]
+    const others = [
+      '@formancy/themes/workbench.css',
+      '@formancy/*',
+      'pnpm test:repo',
+      '/report/',
+      '.mjs',
+      '--wb-*',
+      'v*',
+      'group.<id>',
+      '3 / 2',
+      'SEE LICENSE IN LICENSE.md',
+      'NOTICE',
+      'node:',
+      '~6.0.3',
+      'scenarios.test',
+    ]
     expect(paths.filter((text) => !isPath(text))).toEqual([])
     expect(others.filter(isPath)).toEqual([])
   })
@@ -407,8 +441,23 @@ describe('the reading underneath the guard', () => {
   // path out of the checkout and half a file name, each refused.
   test('finds a path anywhere it ends, and refuses one that names nothing', () => {
     const from = join(repo, 'docs', 'architecture', 'x.md')
-    const files = ['packages/report-render-pdf/src/glyphs.test.ts', 'packages/report-spec/src/validate-input.ts', 'scripts/upstream-deps.test.mjs', 'docs/getting-started.md', 'apps/studio/src/styles/room.css']
-    const good = ['`report-render-pdf/src/glyphs.test.ts`', '`glyphs.test.ts`', '`styles/room.css`', '`apps/studio`', '`scripts/`', '`validate-*.ts`', '`scripts/**/*.test.mjs`', '`../getting-started.md`']
+    const files = [
+      'packages/report-render-pdf/src/glyphs.test.ts',
+      'packages/report-spec/src/validate-input.ts',
+      'scripts/upstream-deps.test.mjs',
+      'docs/getting-started.md',
+      'apps/studio/src/styles/room.css',
+    ]
+    const good = [
+      '`report-render-pdf/src/glyphs.test.ts`',
+      '`glyphs.test.ts`',
+      '`styles/room.css`',
+      '`apps/studio`',
+      '`scripts/`',
+      '`validate-*.ts`',
+      '`scripts/**/*.test.mjs`',
+      '`../getting-started.md`',
+    ]
     const bad = ['`report-render-pdf/src/glyphs-gone.test.ts`', '`dist/`', '`check-*.ts`', '`../../../outside.md`', '`lyphs.test.ts`', '`../README.md`']
     expect(pathProblems(from, good.join(' '), files).problems).toEqual([])
     const { problems } = pathProblems(from, bad.join(' '), files)
@@ -423,17 +472,25 @@ describe('the reading underneath the guard', () => {
   test('holds each row of the building blocks to its manifest', () => {
     const packages = [
       { dir: 'packages/a', name: '@x/a', manifest: { dependencies: { lib: '1.0.0' } } },
-      { dir: 'packages/b', name: '@x/b', manifest: { dependencies: { '@x/a': 'workspace:*', tslib: '^2' }, peerDependencies: { react: '^19' }, devDependencies: { vitest: '^5' } } },
+      {
+        dir: 'packages/b',
+        name: '@x/b',
+        manifest: { dependencies: { '@x/a': 'workspace:*', tslib: '^2' }, peerDependencies: { react: '^19' }, devDependencies: { vitest: '^5' } },
+      },
     ]
     const table = (rows) => ['| Package | Depends on, here | From elsewhere | Peers | Notes |', '|---|---|---|---|---|', ...rows].join('\n')
     expect(buildingBlockProblems(table(['| `@x/a` | — | `lib` | — | |', '| `packages/b` (`@x/b`) | `a` | `tslib` | `react` | |']), packages)).toEqual([])
     expect(buildingBlockProblems(table(['| `@x/a` | — | `lib` | — | |']), packages)).toEqual(['@x/b (packages/b) has no row'])
-    expect(buildingBlockProblems(table(['| `@x/a` | — | `lib` | — | |', '| `@x/b` | `a` | `tslib` | `react` | |', '| the rest | | | | |']), packages)).toEqual(['a row names 0 workspace packages as code where it names its package: the rest'])
+    expect(buildingBlockProblems(table(['| `@x/a` | — | `lib` | — | |', '| `@x/b` | `a` | `tslib` | `react` | |', '| the rest | | | | |']), packages)).toEqual([
+      'a row names 0 workspace packages as code where it names its package: the rest',
+    ])
     expect(buildingBlockProblems(table(['| `@x/a` | — | `lib` | — | |', '| `@x/b` | `a` | `tslib`, `react` | — | |']), packages)).toEqual([
       `@x/b's "From elsewhere" names react, which its manifest does not declare there`,
       `@x/b's "Peers" does not name react, which its manifest declares`,
     ])
-    expect(buildingBlockProblems('| Package | Notes |\n|---|---|\n| `@x/a` | |', packages)).toEqual(['0 tables have the columns Package, Depends on, here, From elsewhere, Peers; the building blocks are one'])
+    expect(buildingBlockProblems('| Package | Notes |\n|---|---|\n| `@x/a` | |', packages)).toEqual([
+      '0 tables have the columns Package, Depends on, here, From elsewhere, Peers; the building blocks are one',
+    ])
   })
 
   // A glob read too narrowly leaves a package out of the building-blocks
@@ -489,7 +546,11 @@ describe('docs/architecture', () => {
   // the design rather than in it: the index lists it, and nothing says
   // where it bears. Cited means linked, to the record's file.
   test('cites every decision record from a section', () => {
-    const cited = new Set(SECTIONS.map((name) => join(ARCHITECTURE, name)).filter(isFile).flatMap((file) => linkProblems(file, read(file), disk).reached))
+    const cited = new Set(
+      SECTIONS.map((name) => join(ARCHITECTURE, name))
+        .filter(isFile)
+        .flatMap((file) => linkProblems(file, read(file), disk).reached),
+    )
     const records = readdirSync(DECISIONS).filter((name) => RECORD.test(name))
     expect(records.filter((name) => !cited.has(join(DECISIONS, name)))).toEqual([])
   })

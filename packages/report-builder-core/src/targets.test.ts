@@ -112,7 +112,17 @@ describe('finding a target under the pointer', () => {
     const report = richReport()
     const flush: ReportDefinition = {
       ...report,
-      regions: { ...report.regions, body: [...report.regions.body, { id: 'outer', kind: 'section', components: [{ id: 'inner', kind: 'keepTogether', components: [{ id: 'deep', kind: 'text', content: [{ kind: 'text', text: 'Deep' }] }] }] }] },
+      regions: {
+        ...report.regions,
+        body: [
+          ...report.regions.body,
+          {
+            id: 'outer',
+            kind: 'section',
+            components: [{ id: 'inner', kind: 'keepTogether', components: [{ id: 'deep', kind: 'text', content: [{ kind: 'text', text: 'Deep' }] }] }],
+          },
+        ],
+      },
     }
     for (const zoom of [0.25, 1, 4]) {
       for (const subject of [{ kind: 'text' } as const, { id: 'intro' }, { id: 'gap' }]) {
@@ -120,7 +130,10 @@ describe('finding a target under the pointer', () => {
         ok(editor.dispatch({ type: 'startDrag', subject }))
         const { dropTargets } = editor.state()
         expect(dropTargets.length).toBeGreaterThan(10)
-        expect([...reachable(dropTargets)].sort((a, b) => a - b), `${JSON.stringify(subject)} at ${zoom}`).toEqual(dropTargets.map((target) => target.index))
+        expect(
+          [...reachable(dropTargets)].sort((a, b) => a - b),
+          `${JSON.stringify(subject)} at ${zoom}`,
+        ).toEqual(dropTargets.map((target) => target.index))
       }
     }
     const { editor } = editorOver(flush)
@@ -172,7 +185,12 @@ describe('dragging', () => {
     ok(editor.dispatch({ type: 'updateDrag', over: target.index }))
     expect(editor.state().drag?.over).toBe(target.index)
     ok(editor.dispatch({ type: 'drop' }))
-    expect(session.document().regions.body.map((component) => component.id).slice(0, 2)).toEqual(['intro', 'spacer'])
+    expect(
+      session
+        .document()
+        .regions.body.map((component) => component.id)
+        .slice(0, 2),
+    ).toEqual(['intro', 'spacer'])
     expect(editor.state().drag).toBeNull()
     expect(editor.state().dropTargets).toEqual([])
     expect(editor.state().selection).toEqual({ id: 'spacer' })
@@ -228,7 +246,14 @@ describe('dragging', () => {
 
   // A kind the report cannot hold yet cannot be picked up at all.
   test('refuses to pick up a kind the report cannot hold yet', () => {
-    const report: ReportDefinition = { ...richReport(), assets: [], datasets: {}, aggregates: [], parameters: [], regions: { reportHeader: [], pageHeader: [], body: [], pageFooter: [], summary: [] } }
+    const report: ReportDefinition = {
+      ...richReport(),
+      assets: [],
+      datasets: {},
+      aggregates: [],
+      parameters: [],
+      regions: { reportHeader: [], pageHeader: [], body: [], pageFooter: [], summary: [] },
+    }
     const { editor } = editorOver(report)
     const outcome = editor.dispatch({ type: 'startDrag', subject: { kind: 'image' } })
     expect(outcome).toMatchObject({ ok: false, code: 'unavailable' })

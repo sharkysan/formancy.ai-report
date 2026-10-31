@@ -97,10 +97,17 @@ export function readCharacterMap(file: FontFile): CharacterMap {
     const record = table.offset + 4 + 8 * index
     records.push({ platform: file.u16(record, table), encoding: file.u16(record + 2, table), at: table.offset + file.u32(record + 4, table) })
   }
-  const chosen = PREFERENCE.map(([platform, encoding]) => records.find((record) => record.platform === platform && record.encoding === encoding)).find((record) => record !== undefined)
+  const chosen = PREFERENCE.map(([platform, encoding]) => records.find((record) => record.platform === platform && record.encoding === encoding)).find(
+    (record) => record !== undefined,
+  )
   if (chosen === undefined) refuse('character-map', 'has no Unicode character map in format 4 or 12')
   const format = file.u16(chosen.at, table)
-  const read = format === 4 ? format4(file, table, chosen.at) : format === 12 ? format12(file, table, chosen.at) : refuse('character-map', `maps Unicode in a subtable of format ${format}, where formats 4 and 12 are read`)
+  const read =
+    format === 4
+      ? format4(file, table, chosen.at)
+      : format === 12
+        ? format12(file, table, chosen.at)
+        : refuse('character-map', `maps Unicode in a subtable of format ${format}, where formats 4 and 12 are read`)
   if (read.characters.size === 0) refuse('character-map', 'maps no character to a glyph')
   const sequences = records.find((record) => record.platform === 0 && record.encoding === 5)
   if (sequences === undefined) return read

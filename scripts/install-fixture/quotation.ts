@@ -84,7 +84,10 @@ export const quotation: ReportDefinition = {
         id: 'running-head',
         kind: 'text',
         style: 'small',
-        content: [{ kind: 'text', text: 'Offerte ' }, { kind: 'field', field: { dataset: 'header', field: 'number' } }],
+        content: [
+          { kind: 'text', text: 'Offerte ' },
+          { kind: 'field', field: { dataset: 'header', field: 'number' } },
+        ],
       },
     ],
     reportHeader: [
@@ -117,7 +120,10 @@ export const quotation: ReportDefinition = {
                 kind: 'text',
                 style: 'address',
                 visibleWhen: { cel: 'header.contact != null' },
-                content: [{ kind: 'text', text: 'z. Hd. ' }, { kind: 'field', field: { dataset: 'header', field: 'contact' } }],
+                content: [
+                  { kind: 'text', text: 'z. Hd. ' },
+                  { kind: 'field', field: { dataset: 'header', field: 'contact' } },
+                ],
               },
               { id: 'street', kind: 'text', style: 'address', content: [{ kind: 'field', field: { dataset: 'header', field: 'street' } }] },
               {
@@ -139,7 +145,10 @@ export const quotation: ReportDefinition = {
               {
                 id: 'number',
                 kind: 'text',
-                content: [{ kind: 'text', text: 'Nummer: ' }, { kind: 'field', field: { dataset: 'header', field: 'number' } }],
+                content: [
+                  { kind: 'text', text: 'Nummer: ' },
+                  { kind: 'field', field: { dataset: 'header', field: 'number' } },
+                ],
               },
               {
                 id: 'quoted-on',

@@ -50,7 +50,11 @@ function report(aggregates: readonly AggregateDef[] = AGGREGATES): ReportDefinit
     regions: {
       reportHeader: [],
       pageHeader: [],
-      body: aggregates.map(({ id }) => ({ id: `print-${id}`, kind: 'text' as const, content: [{ kind: 'aggregate' as const, aggregate: id, over: 'report' as const }] })),
+      body: aggregates.map(({ id }) => ({
+        id: `print-${id}`,
+        kind: 'text' as const,
+        content: [{ kind: 'aggregate' as const, aggregate: id, over: 'report' as const }],
+      })),
       pageFooter: [],
       summary: [],
     },
@@ -83,10 +87,17 @@ const line = (amount: string, extra: Partial<Line> = {}): Record<string, unknown
 type Outcome = { readonly ok: true; readonly printed: Readonly<Record<string, string>> } | { readonly ok: false; readonly errors: readonly RuntimeError[] }
 
 function totals(rows: readonly Record<string, unknown>[], definition: ReportDefinition = report()): Outcome {
-  const outcome = resolveReport(definition, { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' }, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
+  const outcome = resolveReport(
+    definition,
+    { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' },
+    { mode: 'final', creationDate: '2026-10-15T08:00:00Z' },
+  )
   if (!outcome.ok) return outcome
   const printed = Object.fromEntries(
-    outcome.document.body.map((block, index) => [definition.regions.body[index]?.id.replace('print-', ''), block.kind === 'paragraph' ? block.runs.map((run) => ('text' in run ? run.text : '')).join('') : '']),
+    outcome.document.body.map((block, index) => [
+      definition.regions.body[index]?.id.replace('print-', ''),
+      block.kind === 'paragraph' ? block.runs.map((run) => ('text' in run ? run.text : '')).join('') : '',
+    ]),
   )
   return { ok: true, printed }
 }
@@ -171,7 +182,13 @@ describe('totals', () => {
       line('9.50', { dueOn: '2026-01-31', shippedAt: '2026-01-01T10:00:00.5', recordedAt: '2026-01-01T09:30:00.5Z', label: 'Ä' }),
       line('-0.01', { dueOn: null, shippedAt: null, recordedAt: '2026-01-01T09:00:00Z', label: 'c' }),
     ])
-    expect([shown['least'], shown['earliest'], shown['latest'], shown['recorded'], shown['first']]).toEqual(['-0.01', '2026-01-31', '2026-01-01T10:00:00.5', '2026-01-01T09:30:00.5Z', 'Ä'])
+    expect([shown['least'], shown['earliest'], shown['latest'], shown['recorded'], shown['first']]).toEqual([
+      '-0.01',
+      '2026-01-31',
+      '2026-01-01T10:00:00.5',
+      '2026-01-01T09:30:00.5Z',
+      'Ä',
+    ])
   })
 
   // A share of the whole reads the whole: it is computed after the total
@@ -192,12 +209,17 @@ describe('totals', () => {
   // and refused, never silently ignored: by the editor's diagnostics, before
   // any data is read, where the compiler knows the total's type.
   test.each([
-    ['an integer', { id: 'quantities', fn: 'sum', of: { kind: 'field', field: detail('quantity') }, rounding: { scale: 0, mode: 'half-even', increment: '5' } }],
+    [
+      'an integer',
+      { id: 'quantities', fn: 'sum', of: { kind: 'field', field: detail('quantity') }, rounding: { scale: 0, mode: 'half-even', increment: '5' } },
+    ],
     ['a date', { id: 'earliest', fn: 'min', of: { kind: 'field', field: detail('dueOn') }, rounding: { scale: 0, mode: 'half-even' } }],
   ] as const)('refuse a declared rounding on a total that is %s', (_name, rounded) => {
     const outcome = totals([line('1.00', { dueOn: '2026-01-31' })], report([rounded]))
     expect(outcome.ok).toBe(false)
-    expect(!outcome.ok && outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path}`)).toEqual(['expressions rounding-not-decimal /aggregates/0/rounding'])
+    expect(!outcome.ok && outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path}`)).toEqual([
+      'expressions rounding-not-decimal /aggregates/0/rounding',
+    ])
   })
 
   // Where only the data says what the total is -- a date that may be null
@@ -252,7 +274,11 @@ describe('totals the compiler could not type', () => {
       },
     }
     const rows = [line('1.00', { label: 'a', rate: '0.500' }), line('1.00', { label: 'b', pieces: '2' }), line('1.00', { label: 'b', pieces: '3' })]
-    const outcome = resolveReport(grouped, { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' }, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
+    const outcome = resolveReport(
+      grouped,
+      { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' },
+      { mode: 'final', creationDate: '2026-10-15T08:00:00Z' },
+    )
     if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join('; '))
     const table = outcome.document.body[0] as Table
     expect(table.rows.filter((row) => row.kind !== 'detail').map((row) => row.cells[0])).toEqual(['0.500', '5.000', '5.500'])
@@ -272,7 +298,12 @@ function groupedTotals(aggregate: AggregateDef, rows: readonly Record<string, un
           kind: 'table',
           dataset: 'detail',
           columns: [{ id: 'amount', header: 'Amount', width: 'fill', align: 'right', value: { kind: 'field', field: detail('amount') } }],
-          group: { by: detail('label'), direction: 'asc', header: [{ kind: 'field', field: detail('label') }], footer: [{ cells: [{ column: 'amount', value: { kind: 'aggregate', aggregate: aggregate.id, over: 'group' } }] }] },
+          group: {
+            by: detail('label'),
+            direction: 'asc',
+            header: [{ kind: 'field', field: detail('label') }],
+            footer: [{ cells: [{ column: 'amount', value: { kind: 'aggregate', aggregate: aggregate.id, over: 'group' } }] }],
+          },
           totals: [{ cells: [{ column: 'amount', value: { kind: 'aggregate', aggregate: aggregate.id, over: 'report' } }] }],
           emptyText: 'None',
           repeatHeader: true,
@@ -280,10 +311,17 @@ function groupedTotals(aggregate: AggregateDef, rows: readonly Record<string, un
       ],
     },
   }
-  const outcome = resolveReport(grouped, { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' }, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
+  const outcome = resolveReport(
+    grouped,
+    { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' },
+    { mode: 'final', creationDate: '2026-10-15T08:00:00Z' },
+  )
   if (!outcome.ok) throw new Error(outcome.errors.map((error) => error.message).join('; '))
   const table = outcome.document.body[0] as Table
-  return { subtotals: table.rows.filter((row) => row.kind === 'groupFooter').map((row) => row.cells[0] as string), total: table.rows.at(-1)?.cells[0] as string }
+  return {
+    subtotals: table.rows.filter((row) => row.kind === 'groupFooter').map((row) => row.cells[0] as string),
+    total: table.rows.at(-1)?.cells[0] as string,
+  }
 }
 
 describe('group totals', () => {
@@ -293,7 +331,12 @@ describe('group totals', () => {
   // from the printed subtotals instead would print 0.00 for 0.04 of
   // amounts; the subtotals add up only when no rounding is declared.
   test('round each subtotal and the total once, from their exact sums', () => {
-    const cash: AggregateDef = { id: 'cash', fn: 'sum', of: { kind: 'field', field: detail('amount') }, rounding: { scale: 2, mode: 'half-away-from-zero', increment: '0.05' } }
+    const cash: AggregateDef = {
+      id: 'cash',
+      fn: 'sum',
+      of: { kind: 'field', field: detail('amount') },
+      rounding: { scale: 2, mode: 'half-away-from-zero', increment: '0.05' },
+    }
     expect(groupedTotals(cash, [line('0.02', { label: 'x' }), line('0.02', { label: 'y' })])).toEqual({ subtotals: ['0.00', '0.00'], total: '0.05' })
   })
 

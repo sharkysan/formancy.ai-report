@@ -76,7 +76,8 @@ function callsTo(name: string, source: string, kind: ExpressionKind, variables: 
 export function inexactOperations(source: string, kind: ExpressionKind, variables: VariableDeclarations): Found<InexactKind>[] {
   const found: Found<InexactKind>[] = callsTo('double', source, kind, variables).map((span) => ({ kind: 'double-call', span }))
   for (const literal of source.matchAll(FLOAT)) {
-    if (inCode(source, literal.index, literal[0].length)) found.push({ kind: 'double-literal', span: { start: literal.index, end: literal.index + literal[0].length } })
+    if (inCode(source, literal.index, literal[0].length))
+      found.push({ kind: 'double-literal', span: { start: literal.index, end: literal.index + literal[0].length } })
   }
   for (let at = source.indexOf('/'); at !== -1; at = source.indexOf('/', at + 1)) {
     // Two slashes start a comment, or stand in a string; never a division.
@@ -90,6 +91,12 @@ export function inexactOperations(source: string, kind: ExpressionKind, variable
 export const UNBOUNDED_FUNCTIONS = ['matches'] as const
 
 /** Each call in `source` to a function whose time no budget bounds, in the order written. */
-export function unboundedCalls(source: string, kind: ExpressionKind, variables: VariableDeclarations): { readonly name: (typeof UNBOUNDED_FUNCTIONS)[number]; readonly span: SourceSpan }[] {
-  return UNBOUNDED_FUNCTIONS.flatMap((name) => callsTo(name, source, kind, variables).map((span) => ({ name, span }))).sort((a, b) => a.span.start - b.span.start)
+export function unboundedCalls(
+  source: string,
+  kind: ExpressionKind,
+  variables: VariableDeclarations,
+): { readonly name: (typeof UNBOUNDED_FUNCTIONS)[number]; readonly span: SourceSpan }[] {
+  return UNBOUNDED_FUNCTIONS.flatMap((name) => callsTo(name, source, kind, variables).map((span) => ({ name, span }))).sort(
+    (a, b) => a.span.start - b.span.start,
+  )
 }

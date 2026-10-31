@@ -125,13 +125,20 @@ const acts = {
     await condition.press('Tab')
     // Somewhere else selected, so the button has somewhere to take the builder.
     await Builder.getByRole('treeitem', { name: 'Tag', exact: true }).click()
-    const select = Preview.getByRole('list', { name: 'Why the preview was not printed', exact: true }).getByRole('button', { name: 'Select Book value', exact: true })
+    const select = Preview.getByRole('list', { name: 'Why the preview was not printed', exact: true }).getByRole('button', {
+      name: 'Select Book value',
+      exact: true,
+    })
     await select.focus()
     await page.keyboard.press('Enter')
     // The caption: the keyboard is on the column's outline row, which is selected.
     const row = Builder.getByRole('treeitem', { name: 'Book value', exact: true, selected: true })
     await row.waitFor()
-    await page.waitForFunction(() => document.activeElement?.getAttribute('role') === 'treeitem' && document.activeElement.getAttribute('aria-selected') === 'true', undefined, { timeout: WITHIN })
+    await page.waitForFunction(
+      () => document.activeElement?.getAttribute('role') === 'treeitem' && document.activeElement.getAttribute('aria-selected') === 'true',
+      undefined,
+      { timeout: WITHIN },
+    )
     if (!(await row.evaluate((element) => element === document.activeElement))) throw new Error('the keyboard is not on the Book value row')
     const value = await Builder.getByRole('textbox', { name: 'Show only when', exact: true }).inputValue()
     if (value !== CONDITION) throw new Error(`the selected column's condition is ${JSON.stringify(value)}, not ${JSON.stringify(CONDITION)}`)

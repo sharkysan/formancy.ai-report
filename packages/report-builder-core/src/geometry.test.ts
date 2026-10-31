@@ -13,7 +13,12 @@ function ok(outcome: EditorOutcome): void {
 /** Whether `inner` lies within `outer`, to the hundredth of a point that rounding leaves. */
 function inside(inner: Box, outer: Box): boolean {
   const slack = 0.02
-  return inner.x >= outer.x - slack && inner.y >= outer.y - slack && inner.x + inner.width <= outer.x + outer.width + slack && inner.y + inner.height <= outer.y + outer.height + slack
+  return (
+    inner.x >= outer.x - slack &&
+    inner.y >= outer.y - slack &&
+    inner.x + inner.width <= outer.x + outer.width + slack &&
+    inner.y + inner.height <= outer.y + outer.height + slack
+  )
 }
 
 function boxOf(boxes: readonly CanvasBox[], key: string): CanvasBox {
@@ -184,7 +189,14 @@ describe('the canvas', () => {
   test('draws a QR code as its square, and flags one wider than its column', () => {
     const report = richReport()
     const code = { id: 'code', kind: 'qrCode', content: [{ kind: 'text', text: 'x' }], size: 80, errorCorrection: 'M' } as const
-    const side = { id: 'side', kind: 'columns', columns: [{ width: 60, components: [code] }, { width: 'fill', components: [] }] } as const
+    const side = {
+      id: 'side',
+      kind: 'columns',
+      columns: [
+        { width: 60, components: [code] },
+        { width: 'fill', components: [] },
+      ],
+    } as const
     const { editor } = editorOver({ ...report, regions: { ...report.regions, body: [...report.regions.body, side] } })
     const { boxes } = editor.state().canvas
     expect(boxOf(boxes, 'order-code')).toMatchObject({ pt: { width: 85.04, height: 85.04 }, overflows: false })
@@ -196,7 +208,12 @@ describe('the canvas', () => {
   // of thumb, but one that moves the right way.
   test('estimates a text taller for more words and a larger font', () => {
     const report = richReport()
-    const text = (id: string, words: number, style?: string) => ({ id, kind: 'text' as const, ...(style === undefined ? {} : { style }), content: [{ kind: 'text' as const, text: 'word '.repeat(words) }] })
+    const text = (id: string, words: number, style?: string) => ({
+      id,
+      kind: 'text' as const,
+      ...(style === undefined ? {} : { style }),
+      content: [{ kind: 'text' as const, text: 'word '.repeat(words) }],
+    })
     const { editor } = editorOver({ ...report, regions: { ...report.regions, body: [text('short', 2), text('long', 200), text('large', 2, 'title')] } })
     const { boxes } = editor.state().canvas
     expect(boxOf(boxes, 'long').pt.height).toBeGreaterThan(boxOf(boxes, 'short').pt.height)
@@ -220,7 +237,12 @@ describe('the canvas', () => {
   test('marks the selected box', () => {
     const { editor } = editorOver()
     ok(editor.dispatch({ type: 'select', id: 'gap' }))
-    expect(editor.state().canvas.boxes.filter((box) => box.selected).map((box) => box.key)).toEqual(['gap'])
+    expect(
+      editor
+        .state()
+        .canvas.boxes.filter((box) => box.selected)
+        .map((box) => box.key),
+    ).toEqual(['gap'])
   })
 
   // A ruler in millimetres, the unit the properties are edited in, with

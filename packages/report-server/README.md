@@ -130,8 +130,17 @@ is an operational trail, not evidence (formancy.ai-data 0023's limits).
 
 ```ts
 import { createReportServer, createReportVerifier } from '@formancy/report-server'
-const verifyIdentity = await createReportVerifier({ key: { kind: 'secret', secret: hostSecret }, issuer: 'https://login.example', audience: 'formancy-report', tenantClaim: 'tid' })
-const server = await createReportServer({ verifyIdentity, roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] }, audit })
+const verifyIdentity = await createReportVerifier({
+  key: { kind: 'secret', secret: hostSecret },
+  issuer: 'https://login.example',
+  audience: 'formancy-report',
+  tenantClaim: 'tid',
+})
+const server = await createReportServer({
+  verifyIdentity,
+  roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] },
+  audit,
+})
 await server.listen({ host: '127.0.0.1', port: 0 })
 ```
 

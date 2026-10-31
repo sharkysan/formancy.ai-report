@@ -31,7 +31,8 @@ export const SETTINGS = Object.freeze({
   FORMANCY_REPORT_AUDIENCE: 'required: the audience the host’s tokens name in aud',
   FORMANCY_REPORT_IDENTITY_SECRET: 'a secret reference, env:NAME or file:/absolute/path, to a shared secret of at least 32 bytes (HS256)',
   FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE: 'or the path of a PEM public key, with FORMANCY_REPORT_IDENTITY_ALGORITHM RS256, ES256 or EdDSA',
-  FORMANCY_REPORT_IDENTITY_KEYS_FILE: 'or the absolute path of a JSON Web Key Set, with FORMANCY_REPORT_IDENTITY_ALGORITHM RS256, ES256, EdDSA or HS256; read again on SIGHUP',
+  FORMANCY_REPORT_IDENTITY_KEYS_FILE:
+    'or the absolute path of a JSON Web Key Set, with FORMANCY_REPORT_IDENTITY_ALGORITHM RS256, ES256, EdDSA or HS256; read again on SIGHUP',
   FORMANCY_REPORT_IDENTITY_ALGORITHM: 'the algorithm a public key file or a key set verifies, pinned',
   FORMANCY_REPORT_ATTRIBUTES: 'required: tenant=<claim>, the claim every token names its tenant in',
   FORMANCY_REPORT_ROLES_CLAIM: 'the claim holding a token’s roles; unset, roles',
@@ -115,23 +116,33 @@ function keySource(value: (name: keyof typeof SETTINGS) => string | undefined, p
     return { kind: 'secret', reference }
   }
   if (publicKeyFile !== undefined) {
-    if (algorithm === undefined) return refuse('FORMANCY_REPORT_IDENTITY_ALGORITHM is required with FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE: RS256, ES256 or EdDSA.')
+    if (algorithm === undefined)
+      return refuse('FORMANCY_REPORT_IDENTITY_ALGORITHM is required with FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE: RS256, ES256 or EdDSA.')
     // A PEM's text taken as an HMAC secret verifies any token its reader signs with it.
     if (algorithm === 'HS256') return refuse('HS256 is a shared secret: it is FORMANCY_REPORT_IDENTITY_SECRET or a key set, never a public key file.')
-    if (algorithm !== 'RS256' && algorithm !== 'ES256' && algorithm !== 'EdDSA') return refuse('FORMANCY_REPORT_IDENTITY_ALGORITHM is RS256, ES256 or EdDSA for a public key file.')
+    if (algorithm !== 'RS256' && algorithm !== 'ES256' && algorithm !== 'EdDSA')
+      return refuse('FORMANCY_REPORT_IDENTITY_ALGORITHM is RS256, ES256 or EdDSA for a public key file.')
     return { kind: 'public-key', path: publicKeyFile, algorithm }
   }
   const path = keysFile as string
-  if (algorithm === undefined) return refuse('FORMANCY_REPORT_IDENTITY_ALGORITHM is required with FORMANCY_REPORT_IDENTITY_KEYS_FILE: RS256, ES256, EdDSA or HS256, for every key in the set.')
+  if (algorithm === undefined)
+    return refuse(
+      'FORMANCY_REPORT_IDENTITY_ALGORITHM is required with FORMANCY_REPORT_IDENTITY_KEYS_FILE: RS256, ES256, EdDSA or HS256, for every key in the set.',
+    )
   if (!isKeySetAlgorithm(algorithm)) return refuse('FORMANCY_REPORT_IDENTITY_ALGORITHM is RS256, ES256, EdDSA or HS256 for a key set.')
-  if (!isAbsolute(path)) return refuse('FORMANCY_REPORT_IDENTITY_KEYS_FILE is an absolute path: the file is read again, on SIGHUP, from wherever the server then runs.')
+  if (!isAbsolute(path))
+    return refuse('FORMANCY_REPORT_IDENTITY_KEYS_FILE is an absolute path: the file is read again, on SIGHUP, from wherever the server then runs.')
   return { kind: 'key-set', path, algorithm }
 }
 
 /** The tenant's claim from `tenant=<claim>`, the one attribute; `problems` gathers why not. */
 function tenantClaim(text: string | undefined, problems: string[]): string | undefined {
   let claim: string | undefined
-  for (const [index, pair] of (text ?? '').split(',').map((entry) => entry.trim()).filter((entry) => entry !== '').entries()) {
+  for (const [index, pair] of (text ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== '')
+    .entries()) {
     const [attribute, mapped, extra] = pair.split('=').map((part) => part.trim())
     if (attribute === undefined || mapped === undefined || extra !== undefined || attribute === '' || mapped === '') {
       problems.push(`FORMANCY_REPORT_ATTRIBUTES: entry ${String(index + 1)} is not attribute=claim.`)
@@ -139,7 +150,8 @@ function tenantClaim(text: string | undefined, problems: string[]): string | und
     }
     // An attribute the server reads nothing from is a setting that does nothing; Data's region=reg copied here says so.
     // Named by its place, never quoted: a secret pasted here with base64's `=` would be an attribute.
-    if (attribute !== 'tenant') problems.push(`FORMANCY_REPORT_ATTRIBUTES maps tenant alone: this server reads no other attribute, and entry ${String(index + 1)} names one.`)
+    if (attribute !== 'tenant')
+      problems.push(`FORMANCY_REPORT_ATTRIBUTES maps tenant alone: this server reads no other attribute, and entry ${String(index + 1)} names one.`)
     else if (claim !== undefined) {
       // Read silently, the last would win, and the operator who wrote the second would not know which the server reads.
       problems.push(`FORMANCY_REPORT_ATTRIBUTES maps tenant once: entry ${String(index + 1)} maps it again.`)
@@ -199,11 +211,23 @@ export function readSettings(env: Environment): SettingsReading {
 
   for (const name of Object.keys(env).sort()) {
     if (name.startsWith(PREFIX) && !Object.hasOwn(SETTINGS, name)) {
-      problems.push(`${name} is not a setting this server reads: its settings are listed in packages/report-server/README.md, and a variable a secret reference names is one outside ${PREFIX}, such as HOST_SECRET.`)
+      problems.push(
+        `${name} is not a setting this server reads: its settings are listed in packages/report-server/README.md, and a variable a secret reference names is one outside ${PREFIX}, such as HOST_SECRET.`,
+      )
     }
   }
 
-  if (problems.length > 0 || issuer === undefined || audience === undefined || key === undefined || tenant === undefined || !limit.ok || !proxies.ok || !origins.ok) return { ok: false, problems }
+  if (
+    problems.length > 0 ||
+    issuer === undefined ||
+    audience === undefined ||
+    key === undefined ||
+    tenant === undefined ||
+    !limit.ok ||
+    !proxies.ok ||
+    !origins.ok
+  )
+    return { ok: false, problems }
   return {
     ok: true,
     settings: {

@@ -36,4 +36,6 @@ if (printed !== shown) throw new Error(`docs/getting-started.md shows its Node p
 const pdf = readFileSync('quotation.pdf')
 if (pdf.subarray(0, 5).toString('latin1') !== '%PDF-') throw new Error('the guide wrote quotation.pdf, and it is not a PDF')
 
-console.log(`ok: the guide's Node program ran, wrote quotation.pdf, a ${String(pdf.length)}-byte PDF, and printed the ${String(said.length)} lines the guide shows it printing`)
+console.log(
+  `ok: the guide's Node program ran, wrote quotation.pdf, a ${String(pdf.length)}-byte PDF, and printed the ${String(said.length)} lines the guide shows it printing`,
+)

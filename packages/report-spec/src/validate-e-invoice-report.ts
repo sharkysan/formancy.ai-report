@@ -68,7 +68,16 @@ export function readLines(c: Ctx, value: unknown, path: string): { readonly line
   }
   const { table, name, quantity, netPrice, netAmount } = named
   const { id, unit, vat } = codes
-  if (table === undefined || name === undefined || quantity === undefined || netPrice === undefined || netAmount === undefined || id === undefined || unit === undefined || vat === undefined) {
+  if (
+    table === undefined ||
+    name === undefined ||
+    quantity === undefined ||
+    netPrice === undefined ||
+    netAmount === undefined ||
+    id === undefined ||
+    unit === undefined ||
+    vat === undefined
+  ) {
     return { lines: undefined, named }
   }
   return { lines: { table, name, quantity, netPrice, netAmount, id, unit, vat }, named }
@@ -92,21 +101,36 @@ function checkColumn(c: Ctx, table: TableComponent, key: EInvoiceLineColumn, id:
     return
   }
   const other = printedBy.get(id)
-  if (other !== undefined) c.f.report(path, 'invalid-e-invoice', `${what} is printed by the column that prints ${E_INVOICE_LINE_COLUMNS[other].what}: a column prints one term of a line`)
+  if (other !== undefined)
+    c.f.report(
+      path,
+      'invalid-e-invoice',
+      `${what} is printed by the column that prints ${E_INVOICE_LINE_COLUMNS[other].what}: a column prints one term of a line`,
+    )
   else printedBy.set(id, key)
-  if (column.visibleWhen !== undefined) c.f.report(path, 'invalid-e-invoice', `${what} is printed by a column that may be hidden, and every line the XML holds prints it`)
+  if (column.visibleWhen !== undefined)
+    c.f.report(path, 'invalid-e-invoice', `${what} is printed by a column that may be hidden, and every line the XML holds prints it`)
   const cell = column.value
   if (cell.kind === 'expression') return
   if (cell.kind !== 'field') {
-    c.f.report(path, 'invalid-e-invoice', `${what} is read from each row, and its column prints ${UNROWED[cell.kind]}: it prints a detail field or an expression`)
+    c.f.report(
+      path,
+      'invalid-e-invoice',
+      `${what} is read from each row, and its column prints ${UNROWED[cell.kind]}: it prints a detail field or an expression`,
+    )
     return
   }
   if (cell.field.dataset !== 'detail') {
-    c.f.report(path, 'invalid-e-invoice', `${what} is read from each row, and its column prints a header field, the same in every row: it prints a detail field or an expression`)
+    c.f.report(
+      path,
+      'invalid-e-invoice',
+      `${what} is read from each row, and its column prints a header field, the same in every row: it prints a detail field or an expression`,
+    )
     return
   }
   const type = c.declared.datasets?.get('detail')?.get(cell.field.field)
-  if (type !== undefined && !types.includes(type)) c.f.report(path, 'binding-type-mismatch', `${what} is a ${types.join(' or ')}, and its column prints a ${type} field`)
+  if (type !== undefined && !types.includes(type))
+    c.f.report(path, 'binding-type-mismatch', `${what} is a ${types.join(' or ')}, and its column prints a ${type} field`)
 }
 
 /**
@@ -120,17 +144,29 @@ function checkLines(c: Ctx, path: string, locations: readonly ComponentLocation[
   // second must find the table the lines name here instead.
   const found = locations.find(({ component }) => component.kind === 'table')
   if (found === undefined) {
-    c.f.report(at(path, 'table'), 'invalid-e-invoice', en16931Rule('BR-16', 'an e-invoice has one line at least, a row of the table over the detail dataset, and this report has no such table'))
+    c.f.report(
+      at(path, 'table'),
+      'invalid-e-invoice',
+      en16931Rule('BR-16', 'an e-invoice has one line at least, a row of the table over the detail dataset, and this report has no such table'),
+    )
     return
   }
   const table = found.component as TableComponent
   if (named.table !== undefined && named.table !== table.id) {
-    c.f.report(at(path, 'table'), 'invalid-e-invoice', `the lines are the rows of the table over the detail dataset, ${quote(table.id)}, and this names another`)
+    c.f.report(
+      at(path, 'table'),
+      'invalid-e-invoice',
+      `the lines are the rows of the table over the detail dataset, ${quote(table.id)}, and this names another`,
+    )
     return
   }
   // The table and every container it stands in: a condition on any hides the lines.
   if (locations.some(({ component, path: where }) => component.visibleWhen !== undefined && (where === found.path || found.path.startsWith(`${where}/`)))) {
-    c.f.report(at(path, 'table'), 'invalid-e-invoice', 'the lines are printed by a table that may be hidden, or that stands in a component that may be: every line the XML holds is printed')
+    c.f.report(
+      at(path, 'table'),
+      'invalid-e-invoice',
+      'the lines are printed by a table that may be hidden, or that stands in a component that may be: every line the XML holds is printed',
+    )
   }
   const printedBy = new Map<string, EInvoiceLineColumn>()
   for (const key of Object.keys(E_INVOICE_LINE_COLUMNS) as EInvoiceLineColumn[]) {
@@ -148,18 +184,36 @@ function checkLines(c: Ctx, path: string, locations: readonly ComponentLocation[
  */
 function checkAccount(c: Ctx, path: string, code: string, written: string | undefined, pays: boolean, account: string | undefined): void {
   if (!pays) {
-    c.f.report(path, 'invalid-e-invoice', `${code} asks to be paid to an account, and the e-invoice names none: its payment instructions (BG-16) give the account (BT-84)`)
+    c.f.report(
+      path,
+      'invalid-e-invoice',
+      `${code} asks to be paid to an account, and the e-invoice names none: its payment instructions (BG-16) give the account (BT-84)`,
+    )
   } else if (written !== undefined && account !== undefined && written !== account) {
-    c.f.report(path, 'invalid-e-invoice', `${code} asks to be paid to another account than the e-invoice's payment account (BT-84): a page and its XML name one account`)
+    c.f.report(
+      path,
+      'invalid-e-invoice',
+      `${code} asks to be paid to another account than the e-invoice's payment account (BT-84): a page and its XML name one account`,
+    )
   }
 }
 
 /** Every payment code the report prints, the QR-bill and each EPC QR code, held to the e-invoice's currency and account, shown or hidden. */
-function checkPaymentCodes(c: Ctx, around: EInvoiceSurroundings, locations: readonly ComponentLocation[] | undefined, pays: boolean, account: string | undefined): void {
+function checkPaymentCodes(
+  c: Ctx,
+  around: EInvoiceSurroundings,
+  locations: readonly ComponentLocation[] | undefined,
+  pays: boolean,
+  account: string | undefined,
+): void {
   const bill = around.paymentPart
   if (bill !== undefined) {
     if (!(E_INVOICE_CURRENCIES as readonly string[]).includes(bill.currency)) {
-      c.f.report('/paymentPart/currency', 'invalid-e-invoice', `a QR-bill printed with an e-invoice asks for the e-invoice's currency, ${E_INVOICE_CURRENCIES.join(', ')} (BT-5)`)
+      c.f.report(
+        '/paymentPart/currency',
+        'invalid-e-invoice',
+        `a QR-bill printed with an e-invoice asks for the e-invoice's currency, ${E_INVOICE_CURRENCIES.join(', ')} (BT-5)`,
+      )
     }
     const text = literal(bill.account)
     const checked = text === undefined ? undefined : checkQrBillAccount(text)
@@ -185,7 +239,9 @@ function checkPaymentCodes(c: Ctx, around: EInvoiceSurroundings, locations: read
 function titleBreak(title: string): string | undefined {
   const characters = xmlCharacterBreak(title)
   if (characters !== undefined) return `an e-invoice's title ${characters}`
-  return /[&<>]/.test(title) ? "an e-invoice's title is written into its PDF/A's metadata, where &, < and > cannot stand as written: this one holds one" : undefined
+  return /[&<>]/.test(title)
+    ? "an e-invoice's title is written into its PDF/A's metadata, where &, < and > cannot stand as written: this one holds one"
+    : undefined
 }
 
 /**
@@ -195,7 +251,12 @@ function titleBreak(title: string): string | undefined {
  * `account` is their account when it is literal and its rule took it, and
  * `kind` is the e-invoice's.
  */
-export function checkEInvoiceReport(c: Ctx, path: string, around: EInvoiceSurroundings, invoice: { readonly named: NamedColumns; readonly pays: boolean; readonly account: string | undefined; readonly kind: EInvoiceKind }): void {
+export function checkEInvoiceReport(
+  c: Ctx,
+  path: string,
+  around: EInvoiceSurroundings,
+  invoice: { readonly named: NamedColumns; readonly pays: boolean; readonly account: string | undefined; readonly kind: EInvoiceKind },
+): void {
   const broken = around.title === undefined || invoice.kind !== 'facturX' ? undefined : titleBreak(around.title)
   if (broken !== undefined) c.f.report('/title', 'invalid-e-invoice', broken)
   const locations = around.regions && walkRegions(around.regions)

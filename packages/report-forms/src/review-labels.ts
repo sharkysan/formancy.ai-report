@@ -47,7 +47,14 @@ function prints(inline: Inline | undefined, path: string, ref: FieldRef, compile
  * before a run that prints it, each column's heading over a value that
  * prints it. None where nothing says an old label any more.
  */
-export function relabelSteps(report: ReportDefinition, compiled: ReportCompilation, role: DatasetRole, id: string, was: ReadonlySet<string>, now: string): StepDescriptor[] {
+export function relabelSteps(
+  report: ReportDefinition,
+  compiled: ReportCompilation,
+  role: DatasetRole,
+  id: string,
+  was: ReadonlySet<string>,
+  now: string,
+): StepDescriptor[] {
   const ref: FieldRef = { dataset: role, field: id }
   const steps: StepDescriptor[] = []
   const field = report.datasets[role]?.fields.find((each) => each.id === id)
@@ -58,12 +65,18 @@ export function relabelSteps(report: ReportDefinition, compiled: ReportCompilati
   const lines = new Set([...was].map(labelled))
   for (const { component, path } of walkComponents(report)) {
     if (component.kind === 'text') {
-      const said = (run: Inline, index: number): boolean => run.kind === 'text' && lines.has(run.text) && prints(component.content[index + 1], `${path}/content/${index + 1}`, ref, compiled)
-      if (component.content.some(said)) steps.push({ command: 'updateComponent', args: [component.id, 'text', { content: component.content.map((run, index) => (said(run, index) ? { kind: 'text', text: labelled(now) } : run)) }] })
+      const said = (run: Inline, index: number): boolean =>
+        run.kind === 'text' && lines.has(run.text) && prints(component.content[index + 1], `${path}/content/${index + 1}`, ref, compiled)
+      if (component.content.some(said))
+        steps.push({
+          command: 'updateComponent',
+          args: [component.id, 'text', { content: component.content.map((run, index) => (said(run, index) ? { kind: 'text', text: labelled(now) } : run)) }],
+        })
     }
     if (component.kind !== 'table') continue
     for (const [index, column] of component.columns.entries()) {
-      if (was.has(column.header) && prints(column.value, `${path}/columns/${index}/value`, ref, compiled)) steps.push({ command: 'updateColumn', args: [component.id, column.id, { header: now }] })
+      if (was.has(column.header) && prints(column.value, `${path}/columns/${index}/value`, ref, compiled))
+        steps.push({ command: 'updateColumn', args: [component.id, column.id, { header: now }] })
     }
   }
   return steps

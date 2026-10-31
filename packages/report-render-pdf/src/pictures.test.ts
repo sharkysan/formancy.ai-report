@@ -48,7 +48,8 @@ interface Entry {
 }
 
 /** Each line with where it starts, so that a line moved fails as itself. */
-const placed = (lines: readonly string[], places: readonly Place[] | undefined): string[] => lines.map((line, index) => `${line} at ${places?.[index]?.join(', ') ?? 'no place recorded'}`)
+const placed = (lines: readonly string[], places: readonly Place[] | undefined): string[] =>
+  lines.map((line, index) => `${line} at ${places?.[index]?.join(', ') ?? 'no place recorded'}`)
 
 /** A PNG's width and height, from its header. */
 const size = (png: Uint8Array): [number, number] => {
@@ -89,22 +90,30 @@ describe("the README's pictures", () => {
   })
 
   const listed = (list: readonly PictureSpec[], manifest: readonly Entry[]) => list.map((spec) => [spec.file, spec, manifest] as const)
-  test.each([...listed(PICTURES, starters), ...listed(SAMPLE_PICTURES, samples)])('%s shows the page it was drawn from', async (file, spec, manifest) => {
-    const entry = manifest.find((each) => each.file === file) as Entry
-    // The PNG is the one the script wrote, not one edited by hand since.
-    expect(createHash('sha256').update(readFileSync(path.join(images, file))).digest('hex')).toBe(entry.sha256)
-    // The page prints and draws today what it did when the picture was drawn, where it did, and is drawn at the picture's size.
-    const drawn = await picture(spec)
-    expect(drawn.lines).toEqual(entry.lines)
-    expect(placed(drawn.lines, drawn.places)).toEqual(placed(entry.lines, entry.places))
-    expect(drawn.drawings).toEqual(entry.drawings)
-    expect(size(drawn.png)).toEqual(size(readFileSync(path.join(images, file))))
-    // The caption quotes what the page prints, and the README shows the picture under it.
-    expect(entry.caption).toBe(spec.caption)
-    for (const quoted of spec.shows) {
-      expect(spec.caption).toContain(quoted)
-      expect(entry.lines.some((line) => line.includes(quoted))).toBe(true)
-    }
-    expect(readme).toContain(`![${spec.caption}](docs/images/${file})`)
-  }, TIMEOUT)
+  test.each([...listed(PICTURES, starters), ...listed(SAMPLE_PICTURES, samples)])(
+    '%s shows the page it was drawn from',
+    async (file, spec, manifest) => {
+      const entry = manifest.find((each) => each.file === file) as Entry
+      // The PNG is the one the script wrote, not one edited by hand since.
+      expect(
+        createHash('sha256')
+          .update(readFileSync(path.join(images, file)))
+          .digest('hex'),
+      ).toBe(entry.sha256)
+      // The page prints and draws today what it did when the picture was drawn, where it did, and is drawn at the picture's size.
+      const drawn = await picture(spec)
+      expect(drawn.lines).toEqual(entry.lines)
+      expect(placed(drawn.lines, drawn.places)).toEqual(placed(entry.lines, entry.places))
+      expect(drawn.drawings).toEqual(entry.drawings)
+      expect(size(drawn.png)).toEqual(size(readFileSync(path.join(images, file))))
+      // The caption quotes what the page prints, and the README shows the picture under it.
+      expect(entry.caption).toBe(spec.caption)
+      for (const quoted of spec.shows) {
+        expect(spec.caption).toContain(quoted)
+        expect(entry.lines.some((line) => line.includes(quoted))).toBe(true)
+      }
+      expect(readme).toContain(`![${spec.caption}](docs/images/${file})`)
+    },
+    TIMEOUT,
+  )
 })

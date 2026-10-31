@@ -26,7 +26,17 @@ async function draw(specs: readonly PictureSpec[], name: string, of: 'starter' |
   for (const spec of specs) {
     const { png, lines, places, drawings } = await picture(spec)
     writeFileSync(path.join(images, spec.file), png)
-    manifest.push({ file: spec.file, [of]: spec.starter.id, page: spec.page, scale: SCALE, sha256: createHash('sha256').update(png).digest('hex'), caption: spec.caption, lines, places, drawings })
+    manifest.push({
+      file: spec.file,
+      [of]: spec.starter.id,
+      page: spec.page,
+      scale: SCALE,
+      sha256: createHash('sha256').update(png).digest('hex'),
+      caption: spec.caption,
+      lines,
+      places,
+      drawings,
+    })
     console.log(`${spec.file}: ${png.length} bytes, ${lines.length} lines, ${drawings.length} drawings`)
   }
   writeFileSync(path.join(images, name), `${JSON.stringify(manifest, null, 2)}\n`)

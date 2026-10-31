@@ -26,7 +26,15 @@ describe('the wire', () => {
       expect(refusal.message).toMatch(/^[A-Z][^{}<>]*\.$/)
       expect(Object.isFrozen(refusal)).toBe(true)
     }
-    expect(Object.keys(REFUSALS).sort()).toEqual(['bad-request', 'cross-origin-refused', 'internal', 'not-found', 'path-not-plain', 'rate-limited', 'unauthenticated'])
+    expect(Object.keys(REFUSALS).sort()).toEqual([
+      'bad-request',
+      'cross-origin-refused',
+      'internal',
+      'not-found',
+      'path-not-plain',
+      'rate-limited',
+      'unauthenticated',
+    ])
     expect(Object.isFrozen(REFUSALS)).toBe(true)
   })
 
@@ -43,6 +51,16 @@ describe('the entry', () => {
   // What a server, a store and a client import is this list; anything else
   // in the entry is surface a later release could not remove unnoticed.
   test('exports the actions table, the wire and nothing else', () => {
-    expect(Object.keys(entry).sort()).toEqual(['ACTIONS', 'API_PREFIX', 'CAPACITIES', 'CROSS_ORIGIN_REQUEST_HEADERS', 'REFUSALS', 'ROUTES', 'actionsOf', 'can', 'capacitiesOf'])
+    expect(Object.keys(entry).sort()).toEqual([
+      'ACTIONS',
+      'API_PREFIX',
+      'CAPACITIES',
+      'CROSS_ORIGIN_REQUEST_HEADERS',
+      'REFUSALS',
+      'ROUTES',
+      'actionsOf',
+      'can',
+      'capacitiesOf',
+    ])
   })
 })

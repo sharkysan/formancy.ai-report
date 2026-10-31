@@ -78,13 +78,19 @@ export function loadOnce<T>(load: () => Promise<T>): () => Promise<T> {
 }
 
 /** The glyphs of `faces`, from the bytes `read` reads for each. */
-export async function glyphsOf<F extends string>(faces: readonly F[], read: (face: F) => Promise<Uint8Array>): Promise<Readonly<Record<F, ReadonlySet<number>>>> {
+export async function glyphsOf<F extends string>(
+  faces: readonly F[],
+  read: (face: F) => Promise<Uint8Array>,
+): Promise<Readonly<Record<F, ReadonlySet<number>>>> {
   const maps = await Promise.all(faces.map(async (face) => [face, characterMap(await read(face))] as const))
   return Object.fromEntries(maps) as Record<F, ReadonlySet<number>>
 }
 
 /** The glyphs of `faces`, read by `read` the first time they are asked for and kept once every face has been read (`loadOnce`). */
-export function glyphsOnce<F extends string>(faces: readonly F[], read: (face: F) => Promise<Uint8Array>): () => Promise<Readonly<Record<F, ReadonlySet<number>>>> {
+export function glyphsOnce<F extends string>(
+  faces: readonly F[],
+  read: (face: F) => Promise<Uint8Array>,
+): () => Promise<Readonly<Record<F, ReadonlySet<number>>>> {
   return loadOnce(() => glyphsOf(faces, read))
 }
 

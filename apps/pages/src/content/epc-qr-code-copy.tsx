@@ -71,7 +71,8 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
   de: {
     meta: {
       title: 'EPC-QR-Codes (SEPA) auf PDF-Rechnungen – Formancy Report',
-      description: 'Rechnungen als PDF mit EPC-QR-Code für die SEPA-Überweisung, aus Ihren eigenen Daten erstellt, nach den Regeln des EPC geprüft und selbst gehostet.',
+      description:
+        'Rechnungen als PDF mit EPC-QR-Code für die SEPA-Überweisung, aus Ihren eigenen Daten erstellt, nach den Regeln des EPC geprüft und selbst gehostet.',
       name: 'EPC-QR-Code',
     },
     teaser: {
@@ -159,7 +160,8 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
   fr: {
     meta: {
       title: 'QR code SEPA (EPC) sur vos factures PDF – Formancy Report',
-      description: "Des factures PDF avec un QR code SEPA (EPC) pour le virement, générées à partir de vos données et vérifiées selon les règles de l'EPC, sur vos serveurs.",
+      description:
+        "Des factures PDF avec un QR code SEPA (EPC) pour le virement, générées à partir de vos données et vérifiées selon les règles de l'EPC, sur vos serveurs.",
       name: 'QR code SEPA',
     },
     teaser: {
@@ -247,7 +249,8 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
   it: {
     meta: {
       title: 'QR code SEPA (EPC) sulle fatture in PDF – Formancy Report',
-      description: "Fatture in PDF con un QR code SEPA (EPC) per il bonifico, generate dai vostri dati e verificate secondo le regole dell'EPC, sui vostri server.",
+      description:
+        "Fatture in PDF con un QR code SEPA (EPC) per il bonifico, generate dai vostri dati e verificate secondo le regole dell'EPC, sui vostri server.",
       name: 'QR code SEPA',
     },
     teaser: {
@@ -369,7 +372,7 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         },
         {
           title: "Austria's frame, where asked",
-          text: "Where asked, the code wears the frame the PSA sets out, with “Zahlen mit Code” up its right side, read from bottom to top, and modules of 0.381 to 0.508 mm, as the PSA asks. The Austrian sample wears it.",
+          text: 'Where asked, the code wears the frame the PSA sets out, with “Zahlen mit Code” up its right side, read from bottom to top, and modules of 0.381 to 0.508 mm, as the PSA asks. The Austrian sample wears it.',
         },
         {
           title: 'Proved on the PDF it produced',

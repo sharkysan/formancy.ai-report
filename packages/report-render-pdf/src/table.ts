@@ -77,7 +77,13 @@ export function styledRows(table: Table): StyledRow[] {
   const rows: StyledRow[] = [{ kind: 'header', index: undefined, cells: table.header, styles: table.header.map(() => header), across: false }]
   if (printsEmptyText(table)) rows.push({ kind: 'empty', index: undefined, cells: [table.emptyText], styles: [EMPTY_TEXT], across: true })
   table.rows.forEach((row, index) => {
-    rows.push({ kind: row.kind, index, cells: row.cells, styles: row.cells.map((_, column) => row.cellStyles?.[column] ?? row.style ?? UNSTYLED), across: row.across === true })
+    rows.push({
+      kind: row.kind,
+      index,
+      cells: row.cells,
+      styles: row.cells.map((_, column) => row.cellStyles?.[column] ?? row.style ?? UNSTYLED),
+      across: row.across === true,
+    })
   })
   return rows
 }
@@ -121,11 +127,18 @@ export interface Row {
  * as a number, a fill column as its share, never as `'*'`, which pdfmake
  * widens to its longest word (`widths.ts`).
  */
-export function tableContent(table: Table, build: Build, place: { readonly width: number; readonly kept: boolean; readonly record: boolean; readonly top: number }): Content {
+export function tableContent(
+  table: Table,
+  build: Build,
+  place: { readonly width: number; readonly kept: boolean; readonly record: boolean; readonly top: number },
+): Content {
   const { kept } = place
   const measuring = build.mode === 'measure'
   const columns = table.columns.length
-  const widths = columnWidths(table.columns.map((column) => column.width), place.width).map((width) => width - 2 * PADDING_X)
+  const widths = columnWidths(
+    table.columns.map((column) => column.width),
+    place.width,
+  ).map((width) => width - 2 * PADDING_X)
   const across = place.width - 2 * PADDING_X
   // A no-break space where a cell is empty while measuring: every cell then
   // lays out one line, as tall as a cell of text beside it, so each row has a
@@ -145,7 +158,10 @@ export function tableContent(table: Table, build: Build, place: { readonly width
   if (place.record) recordWords(table, rows, widths, across, build)
   const plan = build.plans.get(table) ?? UNPLANNED
   if (measuring) {
-    build.measuredRows.set(table, rows.map((row) => ({ kind: row.kind, mark: mark(row.cells[0]!, build) })))
+    build.measuredRows.set(
+      table,
+      rows.map((row) => ({ kind: row.kind, mark: mark(row.cells[0]!, build) })),
+    )
   } else if (!kept) {
     // In the body outside any frame, a page the table continues on starts under its top rule and repeated header.
     tableRules(rows, plan, build, place.top === build.bodyTop ? build.bodyTop + RULE + (plan.pitches[0] ?? 0) : undefined)
@@ -167,11 +183,18 @@ export function tableContent(table: Table, build: Build, place: { readonly width
 function recordWords(table: Table, rows: readonly Row[], widths: readonly number[], across: number, build: Build): void {
   let row = 0
   for (const { kind, cells } of rows) {
-    const which = kind === 'header' ? `the header of table ${table.id}` : kind === 'empty' ? `the empty text of table ${table.id}` : `row ${row++} of table ${table.id}`
+    const which =
+      kind === 'header' ? `the header of table ${table.id}` : kind === 'empty' ? `the empty text of table ${table.id}` : `row ${row++} of table ${table.id}`
     cells.forEach((cell, column) => {
       if (cell.text === '') return
       const spans = cell.colSpan !== undefined
-      build.words.push({ node: cell, width: spans ? across : widths[column]!, lines: 1, what: spans ? which : `${which}, column ${column + 1}`, subject: table.id })
+      build.words.push({
+        node: cell,
+        width: spans ? across : widths[column]!,
+        lines: 1,
+        what: spans ? which : `${which}, column ${column + 1}`,
+        subject: table.id,
+      })
     })
   }
 }

@@ -48,7 +48,12 @@ export interface DataFixture {
 const json = (status: number, body: unknown): Response => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 const notFound = (): Response => json(404, { code: 'not-found', message: 'No such form or record.' })
 
-type ListBody = { readonly parent?: { readonly field: string; readonly record: string }; readonly sort?: readonly { readonly field: string; readonly direction: 'asc' | 'desc' }[]; readonly offset?: number; readonly limit?: number }
+type ListBody = {
+  readonly parent?: { readonly field: string; readonly record: string }
+  readonly sort?: readonly { readonly field: string; readonly direction: 'asc' | 'desc' }[]
+  readonly offset?: number
+  readonly limit?: number
+}
 
 /** The page `list` answers: Data's defaults for what is left out, at most 50 rows, and whether more follow. */
 function page(form: FixtureForm, body: ListBody): Response {
@@ -86,7 +91,7 @@ export function dataFixture(forms: Readonly<Record<string, FixtureForm>>, menu: 
       const found = form.records.find((row) => row.record === request['record'])
       return found === undefined ? notFound() : json(200, found)
     }
-    if (kind === 'records' && name === 'list') return page(form, request as ListBody)
+    if (kind === 'records' && name === 'list') return page(form, request)
     if (kind === 'lookups' && action === 'resolve') {
       const labels = form.labels?.[name ?? ''] ?? {}
       const tokens = request['tokens'] as string[]
@@ -96,14 +101,14 @@ export function dataFixture(forms: Readonly<Record<string, FixtureForm>>, menu: 
   }
   const fetch = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     init?.signal?.throwIfAborted()
-    const path = new URL(String(input), 'http://data.invalid').pathname
+    const path = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://data.invalid').pathname
     const body: unknown = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
     const authorization = new Headers(init?.headers).get('authorization')
     requests.push({ method: init?.method ?? 'GET', path, body, authorization })
     return Promise.resolve(serve(init?.method ?? 'GET', path, body))
   }
   return {
-    client: createDataClient({ token: () => token, fetch: fetch as typeof globalThis.fetch }),
+    client: createDataClient({ token: () => token, fetch }),
     requests,
     answerNext: (suffix, status, body) => {
       refusals.push({ suffix, status, body })
@@ -111,22 +116,21 @@ export function dataFixture(forms: Readonly<Record<string, FixtureForm>>, menu: 
   }
 }
 
-const text = (key: string, more: Partial<Field> = {}): Field => ({ key, type: 'text', label: key, ...more }) as Field
-const lookup = (key: string, source: string): Field => ({ key, type: 'select', label: key, optionsSource: source }) as Field
-const yesOrNo = (key: string): Field =>
-  ({
-    key,
-    type: 'radio',
-    label: key,
-    options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' },
-    ],
-  }) as Field
+const text = (key: string, more: Partial<Field> = {}): Field => ({ key, type: 'text', label: key, ...more })
+const lookup = (key: string, source: string): Field => ({ key, type: 'select', label: key, optionsSource: source })
+const yesOrNo = (key: string): Field => ({
+  key,
+  type: 'radio',
+  label: key,
+  options: [
+    { value: 'true', label: 'Yes' },
+    { value: 'false', label: 'No' },
+  ],
+})
 
 function published(id: string, fields: readonly Field[], readable: readonly string[]): PublishedForm {
   return {
-    form: { specVersion: '3', id, title: id, model: { fields: [...fields] } } as PublishedForm['form'],
+    form: { specVersion: '3', id, title: id, model: { fields: [...fields] } },
     operations: ['read'],
     readable: [...readable],
     list: { searchable: [], sortable: [...readable] },
@@ -158,7 +162,14 @@ export function orderForms(count = 3): Record<string, FixtureForm> {
     order: {
       published: published(
         'order',
-        [text('number'), lookup('customer', 'customers'), { key: 'orderedOn', type: 'date', label: 'orderedOn' } as Field, text('total', { pattern: '^-?[0-9]{1,12}(\\.[0-9]{1,2})?$' }), yesOrNo('paid'), text('internal')],
+        [
+          text('number'),
+          lookup('customer', 'customers'),
+          { key: 'orderedOn', type: 'date', label: 'orderedOn' },
+          text('total', { pattern: '^-?[0-9]{1,12}(\\.[0-9]{1,2})?$' }),
+          yesOrNo('paid'),
+          text('internal'),
+        ],
         ['number', 'customer', 'orderedOn', 'total', 'paid'],
       ),
       records: [
@@ -170,7 +181,14 @@ export function orderForms(count = 3): Record<string, FixtureForm> {
     'order-line': {
       published: published(
         'order-line',
-        [lookup('order', 'orders'), text('article'), { key: 'quantity', type: 'number', label: 'quantity' } as Field, text('amount'), { key: 'shippedAt', type: 'datetime', label: 'shippedAt' } as Field, text('warehouse')],
+        [
+          lookup('order', 'orders'),
+          text('article'),
+          { key: 'quantity', type: 'number', label: 'quantity' },
+          text('amount'),
+          { key: 'shippedAt', type: 'datetime', label: 'shippedAt' },
+          text('warehouse'),
+        ],
         ['order', 'article', 'quantity', 'amount', 'shippedAt', 'warehouse'],
       ),
       records: [...lines, ...other],
@@ -228,7 +246,11 @@ export function orderReport(): ReportDefinition {
         {
           id: 'title',
           kind: 'text',
-          content: [{ kind: 'field', field: header('number') }, { kind: 'text', text: ' for ' }, { kind: 'field', field: header('customer') }],
+          content: [
+            { kind: 'field', field: header('number') },
+            { kind: 'text', text: ' for ' },
+            { kind: 'field', field: header('customer') },
+          ],
         },
       ],
       pageHeader: [],

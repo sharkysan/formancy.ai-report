@@ -89,7 +89,8 @@ export function checkBill(bill: QrBill, page: PageSetup, glyphs: BillGlyphs): Ch
   if (!(QR_BILL_CURRENCIES as readonly unknown[]).includes(bill.currency)) throw refuse(`currency is not one SIX allows: ${QR_BILL_CURRENCIES.join(' or ')}`)
   text(bill.currency, 'currency', 'normal')
   if (bill.amount !== null) {
-    if (typeof bill.amount !== 'string' || !AMOUNT.test(bill.amount)) throw refuse('amount is not written as the slip prints one: its thousands apart and two decimals')
+    if (typeof bill.amount !== 'string' || !AMOUNT.test(bill.amount))
+      throw refuse('amount is not written as the slip prints one: its thousands apart and two decimals')
     const paid = checkQrBillAmount(bill.amount.replaceAll(' ', ''))
     if (!paid.ok) throw refuse(`amount ${paid.rule}`)
     text(bill.amount, 'amount', 'normal')

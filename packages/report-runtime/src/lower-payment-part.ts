@@ -68,7 +68,13 @@ function refuse({ render }: Lowering, path: string, message: string): undefined 
  * refused it, which is recorded. Absent runs print nothing, which the rule
  * judges: an optional text, nothing; a required one, empty.
  */
-function checked<T>(lowering: Lowering, runs: readonly Inline[] | undefined, path: string, what: string, check: (text: string) => QrBillCheck<T>): T | undefined {
+function checked<T>(
+  lowering: Lowering,
+  runs: readonly Inline[] | undefined,
+  path: string,
+  what: string,
+  check: (text: string) => QrBillCheck<T>,
+): T | undefined {
   const joined = joinedText(lowering.render, lowering.scope, runs ?? [], path, PART)
   if (joined === undefined) return undefined
   const outcome = check(joined.text)
@@ -96,7 +102,8 @@ function amount(lowering: Lowering, expression: Expression | undefined): string 
   const path = `${PATH}/amount`
   const value = valueOf(lowering.render, lowering.scope, `${path}/cel`)
   if (value === undefined || value === null) return value
-  if (value.type !== 'decimal') return refuse(lowering, path, `the amount gives ${value.type}, and a QR-bill's amount is a decimal, or null to leave it for the payer`)
+  if (value.type !== 'decimal')
+    return refuse(lowering, path, `the amount gives ${value.type}, and a QR-bill's amount is a decimal, or null to leave it for the payer`)
   const outcome = checkQrBillAmount(decimalToString(value.value))
   return outcome.ok ? outcome.value : refuse(lowering, path, `the amount ${outcome.rule}`)
 }
@@ -109,7 +116,9 @@ function swissQrBill(lowering: Lowering, bill: SwissQrBill): QrBill | undefined 
   const debtor = bill.debtor === undefined ? null : address(lowering, bill.debtor, `${PATH}/debtor`, 'debtor')
   const reference = bill.reference === undefined ? null : checked(lowering, bill.reference, `${PATH}/reference`, 'the reference', checkQrBillReference)
   const message = checked(lowering, bill.message, `${PATH}/message`, 'the message', (text) => checkQrBillText(text, QR_BILL_MESSAGE_RULE))
-  const billing = checked(lowering, bill.billingInformation, `${PATH}/billingInformation`, 'the billing information', (text) => checkQrBillText(text, QR_BILL_BILLING_RULE))
+  const billing = checked(lowering, bill.billingInformation, `${PATH}/billingInformation`, 'the billing information', (text) =>
+    checkQrBillText(text, QR_BILL_BILLING_RULE),
+  )
   // What two texts break together, each already held to its own rules.
   const together = message === undefined || billing === undefined ? undefined : checkQrBillAdditionalInformation(message, billing)
   if (together !== undefined) refuse(lowering, `${PATH}/message`, together)
@@ -117,11 +126,31 @@ function swissQrBill(lowering: Lowering, bill: SwissQrBill): QrBill | undefined 
     const asked = { said: PART.said, code: 'the QR-bill', amountPath: `${PATH}/amount`, accountPath: `${PATH}/account` }
     checkPayable(lowering.render, asked, sum === null ? null : decimalFromString(sum), account.iban)
   }
-  const pairing = account === undefined || reference === undefined ? [] : qrBillPairing(account.qrIban ? 'qrIban' : 'iban', reference?.type ?? 'NON', bill.currency)
+  const pairing =
+    account === undefined || reference === undefined ? [] : qrBillPairing(account.qrIban ? 'qrIban' : 'iban', reference?.type ?? 'NON', bill.currency)
   for (const { field, rule } of pairing) refuse(lowering, `${PATH}/${field}`, rule)
   if (together !== undefined || pairing.length > 0) return undefined
-  if (account === undefined || creditor === undefined || sum === undefined || debtor === undefined || reference === undefined || message === undefined || billing === undefined) return undefined
-  return qrBillPart({ language: bill.language, account, creditor, currency: bill.currency, amount: sum, debtor, reference, message, billingInformation: billing })
+  if (
+    account === undefined ||
+    creditor === undefined ||
+    sum === undefined ||
+    debtor === undefined ||
+    reference === undefined ||
+    message === undefined ||
+    billing === undefined
+  )
+    return undefined
+  return qrBillPart({
+    language: bill.language,
+    account,
+    creditor,
+    currency: bill.currency,
+    amount: sum,
+    debtor,
+    reference,
+    message,
+    billingInformation: billing,
+  })
 }
 
 type PartLowerer<K extends PaymentPartKind> = (lowering: Lowering, part: Extract<PaymentPart, { kind: K }>) => QrBill | undefined

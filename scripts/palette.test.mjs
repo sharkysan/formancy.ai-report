@@ -89,7 +89,10 @@ const uncommented = (css) => css.replaceAll(/\/\*[\s\S]*?\*\//g, '')
 
 /** The custom properties `css` declares, anywhere in it, each by name with its value's whitespace collapsed. */
 function declared(css) {
-  return [...uncommented(css).matchAll(/(?<![\w-])(--[\w-]+)\s*:\s*([^;}]+)/g)].map(([, name, value]) => ({ name, value: String(value).replaceAll(/\s+/g, ' ').trim() }))
+  return [...uncommented(css).matchAll(/(?<![\w-])(--[\w-]+)\s*:\s*([^;}]+)/g)].map(([, name, value]) => ({
+    name,
+    value: String(value).replaceAll(/\s+/g, ' ').trim(),
+  }))
 }
 
 /** The custom properties of the first `:root` block of `css`, by name: what a palette sets. */
@@ -132,7 +135,8 @@ export function roomOrderProblems(sheets) {
 }
 
 /** What a browser reads as CSS of `file`'s text: a stylesheet whole, a page's `<style>` elements. */
-const cssOf = ({ path, text }) => (path.endsWith('.html') ? [...text.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((match) => match[1]).join('\n') : text)
+const cssOf = ({ path, text }) =>
+  path.endsWith('.html') ? [...text.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((match) => match[1]).join('\n') : text
 
 /** Every declaration of a stylesheet or a page that sets a variable of `names`, said as `path: --name: value`. */
 export function copiesOf(files, names) {
@@ -175,7 +179,10 @@ export function rgbaOf(literal) {
     const [red, green, blue, alpha = 'ff'] = pairs
     return { red: parseInt(red ?? '', 16), green: parseInt(green ?? '', 16), blue: parseInt(blue ?? '', 16), alpha: parseInt(alpha, 16) / 255 }
   }
-  const parts = /^rgba?\(([^()]*)\)$/i.exec(literal)?.[1]?.split(/[\s,/]+/).filter(Boolean)
+  const parts = /^rgba?\(([^()]*)\)$/i
+    .exec(literal)?.[1]
+    ?.split(/[\s,/]+/)
+    .filter(Boolean)
   if (parts === undefined || parts.length < 3 || parts.length > 4 || parts.some((part) => !/^[\d.]+%?$/.test(part))) return undefined
   const [red, green, blue] = parts.slice(0, 3).map((part) => Math.round(channel(part)))
   const alpha = parts[3] === undefined ? 1 : parts[3].endsWith('%') ? Number(parts[3].slice(0, -1)) / 100 : Number(parts[3])
@@ -279,8 +286,25 @@ describe("formancy's room, imported and never copied (0034)", () => {
   // room read as nothing -- an export renamed, a :root reader that found
   // no block -- they would pass forever.
   test("is read from the installed @formancy/themes, the admin's colours and the workbench's among it", () => {
-    expect(Object.keys(room)).toEqual(expect.arrayContaining(['--ground', '--glass', '--text', '--muted', '--edge', '--client', '--server', '--invalid', '--ok', '--warn', '--wb-panel', '--wb-signal']))
-    expect(relative(repo, roomFile).replaceAll('\\', '/')).toMatch(/^node_modules\/\.pnpm\/@formancy\+themes@[\d.]+\/node_modules\/@formancy\/themes\/room\.css$/)
+    expect(Object.keys(room)).toEqual(
+      expect.arrayContaining([
+        '--ground',
+        '--glass',
+        '--text',
+        '--muted',
+        '--edge',
+        '--client',
+        '--server',
+        '--invalid',
+        '--ok',
+        '--warn',
+        '--wb-panel',
+        '--wb-signal',
+      ]),
+    )
+    expect(relative(repo, roomFile).replaceAll('\\', '/')).toMatch(
+      /^node_modules\/\.pnpm\/@formancy\+themes@[\d.]+\/node_modules\/@formancy\/themes\/room\.css$/,
+    )
   })
 
   // The failure this prevents is the room becoming this repository's own
@@ -302,10 +326,44 @@ describe("formancy's room, imported and never copied (0034)", () => {
     // And every kind of stylesheet the build bundles is read, not the .css
     // alone: a tint.pcss that sets --muted, imported from main.tsx, is a
     // copy that wins in the build all the same.
-    const kinds = ['a.css', 'a.pcss', 'a.postcss', 'a.scss', 'a.sass', 'a.less', 'a.styl', 'a.stylus', 'a.sss', 'a.module.css', 'a.html', 'a.tsx', 'a.css.map', 'a.json']
-    expect(kinds.filter(readAsStylesheetOrPage)).toEqual(['a.css', 'a.pcss', 'a.postcss', 'a.scss', 'a.sass', 'a.less', 'a.styl', 'a.stylus', 'a.sss', 'a.module.css', 'a.html'])
+    const kinds = [
+      'a.css',
+      'a.pcss',
+      'a.postcss',
+      'a.scss',
+      'a.sass',
+      'a.less',
+      'a.styl',
+      'a.stylus',
+      'a.sss',
+      'a.module.css',
+      'a.html',
+      'a.tsx',
+      'a.css.map',
+      'a.json',
+    ]
+    expect(kinds.filter(readAsStylesheetOrPage)).toEqual([
+      'a.css',
+      'a.pcss',
+      'a.postcss',
+      'a.scss',
+      'a.sass',
+      'a.less',
+      'a.styl',
+      'a.stylus',
+      'a.sss',
+      'a.module.css',
+      'a.html',
+    ])
     const read = [...filesUnder(repo, readAsStylesheetOrPage)]
-    expect(read.map(({ path }) => path)).toEqual(expect.arrayContaining(['apps/studio/src/styles/room.css', 'apps/pages/src/pages.css', 'apps/studio/index.html', 'packages/report-builder-core/report-builder.css']))
+    expect(read.map(({ path }) => path)).toEqual(
+      expect.arrayContaining([
+        'apps/studio/src/styles/room.css',
+        'apps/pages/src/pages.css',
+        'apps/studio/index.html',
+        'packages/report-builder-core/report-builder.css',
+      ]),
+    )
     expect(copiesOf(read, names)).toEqual([])
   })
 
@@ -336,7 +394,10 @@ describe("formancy's room, imported and never copied (0034)", () => {
         path: 'a.css',
         text: `#add { color: ${hex(violet).toUpperCase()}; }\n.x:not(#abc) { background: rgb(${String(violet.red)} ${String(violet.green)} ${String(violet.blue)} / 15%), rgba(${String(teal.red)}, ${String(teal.green)}, ${String(teal.blue)}, .09); }\n.y { .z { border-color: ${hex(teal)}cc; } outline-color: rgb(${percent(violet.red)} ${percent(violet.green)} ${percent(violet.blue)}); }\n`,
       },
-      { path: 'b.css', text: `/* ${hex(violet)} said in a comment */\n.ok { background: rgb(255 255 255 / 3%); color: #fff; box-shadow: 0 0 0 1px color-mix(in srgb, var(--client) 15%, transparent); }\n` },
+      {
+        path: 'b.css',
+        text: `/* ${hex(violet)} said in a comment */\n.ok { background: rgb(255 255 255 / 3%); color: #fff; box-shadow: 0 0 0 1px color-mix(in srgb, var(--client) 15%, transparent); }\n`,
+      },
       { path: 'c.pcss', text: '.w { color: hsl(247 100% 74%); --tint: oklch(0.7 0.2 290); }\n' },
       { path: 'd.html', text: `<style>.v { color: ${hex(ground).toUpperCase()} }</style><p>${hex(violet)} said in the text</p>` },
     ]
@@ -361,7 +422,9 @@ describe("formancy's room, imported and never copied (0034)", () => {
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
     expect(Object.keys(ENTRIES).sort()).toEqual(apps.sort())
-    expect(readFileSync(join(repo, 'apps', 'studio', 'index.html'), 'utf8')).toContain(`<script type="module" src="/${ENTRIES.studio.slice('apps/studio/'.length)}"></script>`)
+    expect(readFileSync(join(repo, 'apps', 'studio', 'index.html'), 'utf8')).toContain(
+      `<script type="module" src="/${ENTRIES.studio.slice('apps/studio/'.length)}"></script>`,
+    )
   })
 
   // The failure this prevents is the room loaded before the workbench,
@@ -401,7 +464,8 @@ describe("formancy's room, imported and never copied (0034)", () => {
     expect(roomOrderProblems(stylesheetsOf(join(sample, 'twice.css')))).toEqual([`takes ${ROOM} 2 times`])
     expect(roomOrderProblems([WORKBENCH])).toEqual([`takes ${ROOM} nowhere`])
     expect(() => stylesheetsOf(join(sample, 'far.css'))).toThrow(/which this cannot follow/)
-    for (const [app, entry] of Object.entries(ENTRIES)) expect({ app, problems: roomOrderProblems(stylesheetsOf(join(repo, entry))) }).toEqual({ app, problems: [] })
+    for (const [app, entry] of Object.entries(ENTRIES))
+      expect({ app, problems: roomOrderProblems(stylesheetsOf(join(repo, entry))) }).toEqual({ app, problems: [] })
     // The Studio takes the workbench, so the order is held there and not vacuously.
     expect(stylesheetsOf(join(repo, ENTRIES.studio))).toContain(WORKBENCH)
   })
@@ -417,13 +481,22 @@ describe("formancy's room, imported and never copied (0034)", () => {
     // the file by name, and an import inside a comment are not.
     const sample = [
       { path: 'apps/x/src/main.tsx', text: "import '@formancy/themes/workbench.css'\nimport '@formancy/themes/room.css'\nimport './theme.js'\n" },
-      { path: 'apps/x/src/theme.js', text: "// import '@formancy/themes/workbench.css'\nimport '@formancy/themes/room.css'\nconst later = () => import('@formancy/themes/workbench.css')\n" },
+      {
+        path: 'apps/x/src/theme.js',
+        text: "// import '@formancy/themes/workbench.css'\nimport '@formancy/themes/room.css'\nconst later = () => import('@formancy/themes/workbench.css')\n",
+      },
       { path: 'apps/x/src/extra.css', text: "/* @import '@formancy/themes/room.css'; */\n@import '@formancy/themes/workbench.css';\n" },
       { path: 'apps/x/src/styles.test.tsx', text: "const sheet = exported('@formancy/themes/workbench.css')\nimport { x } from '@formancy/themes'\n" },
     ]
-    expect(themesTakenOutside(sample, ['apps/x/src/main.tsx'])).toEqual(['apps/x/src/theme.js: @formancy/themes/room.css', 'apps/x/src/theme.js: @formancy/themes/workbench.css', 'apps/x/src/extra.css: @formancy/themes/workbench.css'])
+    expect(themesTakenOutside(sample, ['apps/x/src/main.tsx'])).toEqual([
+      'apps/x/src/theme.js: @formancy/themes/room.css',
+      'apps/x/src/theme.js: @formancy/themes/workbench.css',
+      'apps/x/src/extra.css: @formancy/themes/workbench.css',
+    ])
     const read = filesUnder(join(repo, 'apps'), (name) => isScript(name) || isStylesheet(name))
-    expect(read.map(({ path }) => path)).toEqual(expect.arrayContaining([ENTRIES.studio, ENTRIES.pages, 'apps/studio/src/studio.tsx', 'apps/studio/src/styles/room.css']))
+    expect(read.map(({ path }) => path)).toEqual(
+      expect.arrayContaining([ENTRIES.studio, ENTRIES.pages, 'apps/studio/src/studio.tsx', 'apps/studio/src/styles/room.css']),
+    )
     expect(themesTakenOutside(read, Object.values(ENTRIES))).toEqual([])
   })
 
@@ -472,7 +545,9 @@ describe("formancy's room, imported and never copied (0034)", () => {
   test("leaves the text's stacks to the Studio, at the workbench's", () => {
     const own = rootOf(readFileSync(join(repo, 'apps', 'studio', 'src', 'styles', 'room.css'), 'utf8'))
     // A guard on the guard: both stacks are read, on both sides.
-    expect([own['--sans'], own['--mono'], workbench['--wb-sans'], workbench['--wb-mono']].every((stack) => typeof stack === 'string' && stack.length > 0)).toBe(true)
+    expect([own['--sans'], own['--mono'], workbench['--wb-sans'], workbench['--wb-mono']].every((stack) => typeof stack === 'string' && stack.length > 0)).toBe(
+      true,
+    )
     expect({ sans: own['--sans'], mono: own['--mono'] }).toEqual({ sans: workbench['--wb-sans'], mono: workbench['--wb-mono'] })
   })
 })

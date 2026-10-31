@@ -14,10 +14,7 @@ export function base64(bytes: Uint8Array): string {
     const [a = 0, b = 0, c = 0] = [bytes[offset], bytes[offset + 1], bytes[offset + 2]]
     const left = bytes.length - offset
     parts.push(
-      BASE64[a >> 2]! +
-        BASE64[((a & 3) << 4) | (b >> 4)]! +
-        (left > 1 ? BASE64[((b & 15) << 2) | (c >> 6)]! : '=') +
-        (left > 2 ? BASE64[c & 63]! : '='),
+      BASE64[a >> 2]! + BASE64[((a & 3) << 4) | (b >> 4)]! + (left > 1 ? BASE64[((b & 15) << 2) | (c >> 6)]! : '=') + (left > 2 ? BASE64[c & 63]! : '='),
     )
   }
   return parts.join('')

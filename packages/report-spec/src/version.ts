@@ -32,9 +32,7 @@ export const REPORT_FORMAT = 'formancy-report'
 export const REPORT_SPEC_VERSION = '0'
 
 /** Whether a document is a report of the version this package reads, and why not when it is not. */
-export type SpecVersionCheck =
-  | { readonly ok: true }
-  | { readonly ok: false; readonly code: 'not-a-report' | 'unsupported-version'; readonly message: string }
+export type SpecVersionCheck = { readonly ok: true } | { readonly ok: false; readonly code: 'not-a-report' | 'unsupported-version'; readonly message: string }
 
 /** The field that holds a value, when `value` is an object that has it. */
 function field(value: unknown, name: string): unknown {
@@ -61,7 +59,11 @@ export function checkSpecVersion(document: unknown): SpecVersionCheck {
     return { ok: false, code: 'not-a-report', message }
   }
   if (version !== REPORT_SPEC_VERSION) {
-    return { ok: false, code: 'unsupported-version', message: `reportSpecVersion ${quote(version)} is not one this package reads; it reads ${quote(REPORT_SPEC_VERSION)}` }
+    return {
+      ok: false,
+      code: 'unsupported-version',
+      message: `reportSpecVersion ${quote(version)} is not one this package reads; it reads ${quote(REPORT_SPEC_VERSION)}`,
+    }
   }
   return { ok: true }
 }

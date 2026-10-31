@@ -23,7 +23,10 @@ describe('headingAnchors', () => {
   // one read as "linkxmd"; the pages' kept "&amp;" as "amp". GitHub reads
   // the words a reader sees: the link's words, "&" dropped like any sign.
   test('reads a link as its words and an entity as its character', () => {
-    expect([...headingAnchors('## A [link](x.md) — and &amp; more\n\n## *Stressed, with a [link](x.md) inside*\n')]).toEqual(['a-link--and--more', 'stressed-with-a-link-inside'])
+    expect([...headingAnchors('## A [link](x.md) — and &amp; more\n\n## *Stressed, with a [link](x.md) inside*\n')]).toEqual([
+      'a-link--and--more',
+      'stressed-with-a-link-inside',
+    ])
   })
 
   // The guide's copy dropped combining marks, so a heading written with a

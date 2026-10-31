@@ -21,7 +21,14 @@ import { zipOf } from './zip-of.mjs'
 const here = dirname(fileURLToPath(import.meta.url))
 const recorded = (...path) => readFileSync(join(here, 'recorded', ...path), 'utf8')
 const run = JSON.parse(recorded('run.json'))
-const entries = pdfPlan(corpus({ samples: run.samples.map((id) => ({ id })), xmlOf: (sample) => recorded('corpus', `${sample.id}.xml`), kindOf: (sample) => run.kinds[sample.id].kind, guidelineOf: (sample) => run.kinds[sample.id].guideline }))
+const entries = pdfPlan(
+  corpus({
+    samples: run.samples.map((id) => ({ id })),
+    xmlOf: (sample) => recorded('corpus', `${sample.id}.xml`),
+    kindOf: (sample) => run.kinds[sample.id].kind,
+    guidelineOf: (sample) => run.kinds[sample.id].guideline,
+  }),
+)
 const { tools } = readRegisters()
 const md5 = (bytes) => createHash('md5').update(bytes).digest('hex')
 const FILE = { fileName: 'factur-x.xml', relationship: 'Alternative', mediaType: 'text/xml', md5 }
@@ -30,7 +37,15 @@ const FILE = { fileName: 'factur-x.xml', relationship: 'Alternative', mediaType:
 const report = () => JSON.parse(recorded('verapdf', 'report.json'))
 const job = (parsed, file) => parsed.report.jobs.find((each) => each.itemDetails.name.endsWith(`\\${file}`) || each.itemDetails.name.endsWith(`/${file}`))
 const judged = (change = () => {}, inputs = {}) => {
-  const given = { entries: structuredClone(entries), status: run.verapdf.status, stdout: recorded('verapdf', 'report.json'), stderr: recorded('verapdf', 'verapdf.log'), pinned: '1.30.3', file: FILE, ...inputs }
+  const given = {
+    entries: structuredClone(entries),
+    status: run.verapdf.status,
+    stdout: recorded('verapdf', 'report.json'),
+    stderr: recorded('verapdf', 'verapdf.log'),
+    pinned: '1.30.3',
+    file: FILE,
+    ...inputs,
+  }
   change(given)
   return judgeVeraPdf(given)
 }
@@ -48,7 +63,19 @@ describe('veraPDF’s command line', () => {
   // in JSON, which Node reads without a dependency, with the embedded
   // files' features, which tie the PDF to the XML the other tools judged.
   test('validates every PDF as PDF/A-3b in one run, its proxies at a dead port, with the embedded files’ features in JSON', () => {
-    expect(veraPdfArguments({ jar: 'cli.jar', files: ['a.pdf', 'b.pdf'] })).toEqual([...JVM_OPTIONS, '-jar', 'cli.jar', '--flavour', '3b', '--format', 'json', '-x', 'embeddedFile', 'a.pdf', 'b.pdf'])
+    expect(veraPdfArguments({ jar: 'cli.jar', files: ['a.pdf', 'b.pdf'] })).toEqual([
+      ...JVM_OPTIONS,
+      '-jar',
+      'cli.jar',
+      '--flavour',
+      '3b',
+      '--format',
+      'json',
+      '-x',
+      'embeddedFile',
+      'a.pdf',
+      'b.pdf',
+    ])
   })
 })
 
@@ -139,7 +166,9 @@ describe('veraPDF’s verdict', () => {
   // report does not say; a part of another version is another oracle.
   test('refuses a run that exited otherwise, wrote on stderr, or is of another version', () => {
     expect(judged((given) => (given.status = 0)).problems).toEqual(['veraPDF exited 0, where a control fails a rule and it exits 1'])
-    expect(judged((given) => (given.stderr = 'SEVERE: Exception parsing control-plain.pdf\n')).problems).toEqual(['veraPDF wrote on stderr, which it does not on a run that went as its report says: SEVERE: Exception parsing control-plain.pdf'])
+    expect(judged((given) => (given.stderr = 'SEVERE: Exception parsing control-plain.pdf\n')).problems).toEqual([
+      'veraPDF wrote on stderr, which it does not on a run that went as its report says: SEVERE: Exception parsing control-plain.pdf',
+    ])
     expect(judged(undefined, { pinned: '1.30.2' }).problems).toEqual([
       'veraPDF’s core is 1.30.3, not 1.30.2, which docs/release/e-invoice-tools.json pins',
       'veraPDF’s validation-model is 1.30.3, not 1.30.2, which docs/release/e-invoice-tools.json pins',
@@ -159,8 +188,14 @@ describe('veraPDF’s verdict', () => {
         parsed.report.jobs.push(structuredClone(parsed.report.jobs[0]))
         parsed.report.batchSummary.totalJobs = entries.length + 1
       }).problems,
-    ).toEqual([`veraPDF ran ${String(entries.length + 1)} jobs, where the corpus has ${String(entries.length)} PDFs`, 'veraPDF judged e-invoice.pdf more than once'])
-    expect(withReport((parsed) => (parsed.report.jobs[0].itemDetails.name = 'C:\\x\\invoice.pdf')).problems).toEqual(['veraPDF judged invoice.pdf, which is no PDF of the corpus', 'veraPDF has no job for e-invoice.pdf'])
+    ).toEqual([
+      `veraPDF ran ${String(entries.length + 1)} jobs, where the corpus has ${String(entries.length)} PDFs`,
+      'veraPDF judged e-invoice.pdf more than once',
+    ])
+    expect(withReport((parsed) => (parsed.report.jobs[0].itemDetails.name = 'C:\\x\\invoice.pdf')).problems).toEqual([
+      'veraPDF judged invoice.pdf, which is no PDF of the corpus',
+      'veraPDF has no job for e-invoice.pdf',
+    ])
     expect(withReport((parsed) => (parsed.report.batchSummary.failedParsingJobs = 1)).problems).toEqual(['veraPDF’s failedParsingJobs is 1, not 0'])
     expect(withReport((parsed) => (parsed.report.batchSummary.failedEncryptedJobs = 1)).problems).toEqual(['veraPDF’s failedEncryptedJobs is 1, not 0'])
     expect(withReport((parsed) => (parsed.report.batchSummary.veraExceptions = 1)).problems).toEqual(['veraPDF’s veraExceptions is 1, not 0'])
@@ -172,7 +207,8 @@ describe('veraPDF’s verdict', () => {
   // the profile, so a run of such controls among the samples exits 0, and
   // an exit 1 there is a file failing that nothing expects to fail.
   test('expects an exit of 0 where every control it refuses is refused by its embedded file’s fields alone', () => {
-    const byFields = (entry) => entry.from === undefined || (Array.isArray(entry.expect.verapdf) && entry.expect.verapdf.every((key) => key.startsWith('embedded ')))
+    const byFields = (entry) =>
+      entry.from === undefined || (Array.isArray(entry.expect.verapdf) && entry.expect.verapdf.every((key) => key.startsWith('embedded ')))
     const kept = new Set(entries.filter(byFields).map((entry) => entry.file))
     expect([...kept].filter((file) => file.startsWith('control-'))).toEqual(['control-checksum.pdf', 'control-size.pdf', 'control-relationship.pdf'])
     const only = (status) =>
@@ -192,11 +228,19 @@ describe('veraPDF’s verdict', () => {
   // passed rules: a job that stopped, or validated nothing, is no pass.
   test('refuses a sample that does not comply, was validated otherwise, or checked nothing', () => {
     const sample = (parsed) => job(parsed, 'e-invoice.pdf').validationResult[0]
-    expect(withReport((parsed) => (sample(parsed).compliant = false)).problems).toEqual(['veraPDF finds e-invoice.pdf not PDF/A-3b compliant, where it must be'])
-    expect(withReport((parsed) => (sample(parsed).profileName = 'PDF/A-2B validation profile')).problems).toEqual(['veraPDF validated e-invoice.pdf against PDF/A-2B validation profile, not the PDF/A-3b validation profile'])
+    expect(withReport((parsed) => (sample(parsed).compliant = false)).problems).toEqual([
+      'veraPDF finds e-invoice.pdf not PDF/A-3b compliant, where it must be',
+    ])
+    expect(withReport((parsed) => (sample(parsed).profileName = 'PDF/A-2B validation profile')).problems).toEqual([
+      'veraPDF validated e-invoice.pdf against PDF/A-2B validation profile, not the PDF/A-3b validation profile',
+    ])
     expect(withReport((parsed) => (sample(parsed).jobEndStatus = 'timeout')).problems).toEqual(['veraPDF’s job on e-invoice.pdf ended timeout, not normally'])
-    expect(withReport((parsed) => (sample(parsed).details.passedRules = 0)).problems).toEqual(['veraPDF passed no rule on e-invoice.pdf, so it checked nothing'])
-    expect(withReport((parsed) => job(parsed, 'e-invoice.pdf').validationResult.push(sample(parsed))).problems).toEqual(['veraPDF validated e-invoice.pdf against 2 profiles, where the gate asks for one'])
+    expect(withReport((parsed) => (sample(parsed).details.passedRules = 0)).problems).toEqual([
+      'veraPDF passed no rule on e-invoice.pdf, so it checked nothing',
+    ])
+    expect(withReport((parsed) => job(parsed, 'e-invoice.pdf').validationResult.push(sample(parsed))).problems).toEqual([
+      'veraPDF validated e-invoice.pdf against 2 profiles, where the gate asks for one',
+    ])
     expect(withReport((parsed) => (sample(parsed).details.failedRules = 1)).problems).toEqual(['veraPDF counts 1 rules e-invoice.pdf failed, and summarises 0'])
   })
 
@@ -205,14 +249,22 @@ describe('veraPDF’s verdict', () => {
   // file of several, under another key, and the judge reads that as more.
   test('refuses a sample whose embedded file veraPDF shows otherwise than the corpus’s XML, or more than one', () => {
     const shown = (parsed) => job(parsed, 'e-invoice.pdf').featuresReport.embeddedFiles
-    expect(withReport((parsed) => (shown(parsed).size = String(Number(shown(parsed).size) + 1))).problems).toEqual(['e-invoice.pdf is refused by veraPDF: embedded size'])
-    expect(withReport((parsed) => (shown(parsed).fileName = 'zugferd-invoice.xml')).problems).toEqual(['e-invoice.pdf is refused by veraPDF: embedded fileName'])
+    expect(withReport((parsed) => (shown(parsed).size = String(Number(shown(parsed).size) + 1))).problems).toEqual([
+      'e-invoice.pdf is refused by veraPDF: embedded size',
+    ])
+    expect(withReport((parsed) => (shown(parsed).fileName = 'zugferd-invoice.xml')).problems).toEqual([
+      'e-invoice.pdf is refused by veraPDF: embedded fileName',
+    ])
     expect(withReport((parsed) => (shown(parsed).afRelationship = 'Data')).problems).toEqual(['e-invoice.pdf is refused by veraPDF: embedded afRelationship'])
     expect(withReport((parsed) => (shown(parsed).subtype = 'application/xml')).problems).toEqual(['e-invoice.pdf is refused by veraPDF: embedded subtype'])
-    expect(withReport((parsed) => (job(parsed, 'e-invoice.pdf').featuresReport.embeddedFiles = { embeddedFile: shown(parsed) })).problems).toEqual(['e-invoice.pdf is refused by veraPDF: embedded files'])
+    expect(withReport((parsed) => (job(parsed, 'e-invoice.pdf').featuresReport.embeddedFiles = { embeddedFile: shown(parsed) })).problems).toEqual([
+      'e-invoice.pdf is refused by veraPDF: embedded files',
+    ])
     expect(withReport((parsed) => (job(parsed, 'e-invoice.pdf').featuresReport = {})).problems).toEqual(['e-invoice.pdf is refused by veraPDF: embedded files'])
     // A PDF the corpus says embeds nothing, with a file.
-    expect(withReport((parsed) => (job(parsed, 'control-plain.pdf').featuresReport = job(parsed, 'e-invoice.pdf').featuresReport)).problems).toEqual(['control-plain.pdf was refused by veraPDF for embedded files as well, which it is not broken for'])
+    expect(withReport((parsed) => (job(parsed, 'control-plain.pdf').featuresReport = job(parsed, 'e-invoice.pdf').featuresReport)).problems).toEqual([
+      'control-plain.pdf was refused by veraPDF for embedded files as well, which it is not broken for',
+    ])
   })
 
   // A control veraPDF accepted is a broken file nothing is watching; one
@@ -221,9 +273,15 @@ describe('veraPDF’s verdict', () => {
   test('refuses a control it accepted, or refused for anything but exactly what it breaks', () => {
     const like = (parsed, file, as) => Object.assign(job(parsed, file), { validationResult: structuredClone(job(parsed, as).validationResult) })
     const pdfa = entries.find((entry) => entry.file === 'control-pdfa.pdf')
-    expect(withReport((parsed) => like(parsed, 'control-pdfa.pdf', 'e-invoice.pdf')).problems).toEqual([`control-pdfa.pdf is broken for ${pdfa.why}, and veraPDF accepted it: nothing is watching that`])
-    expect(withReport((parsed) => like(parsed, 'control-pdfa.pdf', 'control-plain.pdf')).problems).toEqual(['control-pdfa.pdf was refused by veraPDF for 6.6.2.1-1 as well, which it is not broken for'])
-    expect(judged((given) => given.entries.find((entry) => entry.file === 'control-plain.pdf').expect.verapdf.push('6.6.4-1')).problems).toEqual(['control-plain.pdf was not refused by veraPDF for 6.6.4-1, which it is broken for'])
+    expect(withReport((parsed) => like(parsed, 'control-pdfa.pdf', 'e-invoice.pdf')).problems).toEqual([
+      `control-pdfa.pdf is broken for ${pdfa.why}, and veraPDF accepted it: nothing is watching that`,
+    ])
+    expect(withReport((parsed) => like(parsed, 'control-pdfa.pdf', 'control-plain.pdf')).problems).toEqual([
+      'control-pdfa.pdf was refused by veraPDF for 6.6.2.1-1 as well, which it is not broken for',
+    ])
+    expect(judged((given) => given.entries.find((entry) => entry.file === 'control-plain.pdf').expect.verapdf.push('6.6.4-1')).problems).toEqual([
+      'control-plain.pdf was not refused by veraPDF for 6.6.4-1, which it is broken for',
+    ])
   })
 
   // A run that did not start, or wrote no JSON, is no verdict on anything.
@@ -239,7 +297,10 @@ describe('the veraPDF inside Mustang', () => {
   // Maven writes into a JAR for each artefact it bundles.
   test('is read from its JAR’s pom.properties, and held to the floor', () => {
     const jar = zipOf([
-      { name: 'META-INF/maven/org.verapdf/validation-model-jakarta/pom.properties', data: 'artifactId=validation-model-jakarta\ngroupId=org.verapdf\nversion=1.30.2\n' },
+      {
+        name: 'META-INF/maven/org.verapdf/validation-model-jakarta/pom.properties',
+        data: 'artifactId=validation-model-jakarta\ngroupId=org.verapdf\nversion=1.30.2\n',
+      },
       { name: 'META-INF/maven/org.verapdf/parser/pom.properties', data: 'artifactId=parser\ngroupId=org.verapdf\nversion=1.30.1\n' },
       { name: 'META-INF/maven/org.mustangproject/core/pom.properties', data: 'version=2.26.0\n' },
       { name: 'org/verapdf/Some.class', data: 'x' },
@@ -249,9 +310,13 @@ describe('the veraPDF inside Mustang', () => {
       { artifact: 'validation-model-jakarta', version: '1.30.2' },
       { artifact: 'parser', version: '1.30.1' },
     ])
-    expect(bundledProblems(bundled, tools.veraPdfFloor, 'Mustang 2.26.0')).toEqual(['Mustang 2.26.0 bundles veraPDF’s parser 1.30.1, below the floor of 1.30.2 (GHSA-3jh7-wm29-q568, GHSA-36mm-w85j-3q2j)'])
+    expect(bundledProblems(bundled, tools.veraPdfFloor, 'Mustang 2.26.0')).toEqual([
+      'Mustang 2.26.0 bundles veraPDF’s parser 1.30.1, below the floor of 1.30.2 (GHSA-3jh7-wm29-q568, GHSA-36mm-w85j-3q2j)',
+    ])
     expect(bundledProblems(bundled.slice(0, 1), tools.veraPdfFloor, 'Mustang 2.26.0')).toEqual([])
     // A JAR that names no veraPDF is one whose PDF/A part nobody can hold to the floor.
-    expect(bundledProblems(bundledVeraPdf(zipOf([{ name: 'a.txt', data: 'a' }])), tools.veraPdfFloor, 'Mustang 2.26.0')).toEqual(['Mustang 2.26.0’s JAR names no veraPDF it bundles, where it validates PDF/A with one: the floor cannot be held'])
+    expect(bundledProblems(bundledVeraPdf(zipOf([{ name: 'a.txt', data: 'a' }])), tools.veraPdfFloor, 'Mustang 2.26.0')).toEqual([
+      'Mustang 2.26.0’s JAR names no veraPDF it bundles, where it validates PDF/A with one: the floor cannot be held',
+    ])
   })
 })

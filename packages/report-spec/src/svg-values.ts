@@ -16,9 +16,7 @@ import { refuse } from './svg-refusal.js'
 
 export type Colour = { readonly kind: 'colour'; readonly hex: string } | { readonly kind: 'current' }
 export type Paint =
-  | { readonly kind: 'none' }
-  | Colour
-  | { readonly kind: 'url'; readonly id: string; readonly fallback: Colour | { readonly kind: 'none' } | undefined }
+  { readonly kind: 'none' } | Colour | { readonly kind: 'url'; readonly id: string; readonly fallback: Colour | { readonly kind: 'none' } | undefined }
 
 /** A kept property's value, as its grammar read it. */
 export type Value =
@@ -143,7 +141,8 @@ export function readLength(text: string, where: string, percent: boolean): SvgNu
   const unit = trimmed.slice(end).toLowerCase()
   const n = numberAt(trimmed, 0, end, where)
   if (unit === '%') {
-    if (!percent) refuse('unsupported', `${where} is a percentage, which this format reads only for an offset, an opacity and a gradient in its box`, LENGTH_ADVICE)
+    if (!percent)
+      refuse('unsupported', `${where} is a percentage, which this format reads only for an offset, an opacity and a gradient in its box`, LENGTH_ADVICE)
     return hundredth(n)
   }
   if (RELATIVE_UNITS.has(unit)) refuse('unsupported', `${where} is in a unit relative to a font or a viewport, which a drawing has neither of`, LENGTH_ADVICE)
@@ -201,7 +200,8 @@ function readDashes(text: string, where: string): readonly SvgNumber[] | 'none' 
   const parts = text.split(/\s*,\s*|\s+/)
   if (parts.some((part) => part === '')) refuse('unsupported', `${where} is not a dash array`, NUMBERS_ADVICE)
   // Counted before a part is read, so that a mebibyte of dashes is not read to be refused.
-  if (parts.length * (parts.length % 2 === 1 ? 2 : 1) > MAX_SVG_DASHES) refuse('too-large', `${where} has more than ${MAX_SVG_DASHES} dashes`, `give it at most ${MAX_SVG_DASHES} entries`)
+  if (parts.length * (parts.length % 2 === 1 ? 2 : 1) > MAX_SVG_DASHES)
+    refuse('too-large', `${where} has more than ${MAX_SVG_DASHES} dashes`, `give it at most ${MAX_SVG_DASHES} entries`)
   const dashes = parts.map((part) => nonNegative(readLength(part, where, false), where))
   const doubled = dashes.length % 2 === 1 ? [...dashes, ...dashes] : dashes
   return doubled.every((dash) => dash.value === 0) ? 'none' : doubled
@@ -277,8 +277,13 @@ function readColour(text: string, where: string): Colour {
   const integers = RGB.exec(lower)
   if (integers !== null) return { kind: 'colour', hex: hexOf(integers.slice(1).map((channel) => Math.min(255, Number(channel)))) }
   const percentages = RGB_PERCENT.exec(lower)
-  if (percentages !== null) return { kind: 'colour', hex: hexOf(percentages.slice(1).map((channel) => Math.round((Math.min(100, Number(channel)) * 255) / 100))) }
-  return refuse('unsupported', `${where} is a colour this format does not read: one with an alpha, hsl(), transparent or a system colour`, 'write it as #rrggbb, with fill-opacity, stroke-opacity or stop-opacity for its alpha')
+  if (percentages !== null)
+    return { kind: 'colour', hex: hexOf(percentages.slice(1).map((channel) => Math.round((Math.min(100, Number(channel)) * 255) / 100))) }
+  return refuse(
+    'unsupported',
+    `${where} is a colour this format does not read: one with an alpha, hsl(), transparent or a system colour`,
+    'write it as #rrggbb, with fill-opacity, stroke-opacity or stop-opacity for its alpha',
+  )
 }
 
 function hexOf(channels: readonly number[]): string {

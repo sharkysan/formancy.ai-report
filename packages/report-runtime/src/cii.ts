@@ -91,7 +91,10 @@ function line(each: LineTerms, breakdown: VatBreakdown): XmlElement {
     element('ram:SpecifiedTradeProduct', [leaf('ram:Name', each.name)]),
     element('ram:SpecifiedLineTradeAgreement', [element('ram:NetPriceProductTradePrice', [leaf('ram:ChargeAmount', each.netPrice)])]),
     element('ram:SpecifiedLineTradeDelivery', [leaf('ram:BilledQuantity', each.quantity, [['unitCode', each.unit]])]),
-    element('ram:SpecifiedLineTradeSettlement', [tradeTax(breakdown), element('ram:SpecifiedTradeSettlementLineMonetarySummation', [amount('ram:LineTotalAmount', each.netAmount)])]),
+    element('ram:SpecifiedLineTradeSettlement', [
+      tradeTax(breakdown),
+      element('ram:SpecifiedTradeSettlementLineMonetarySummation', [amount('ram:LineTotalAmount', each.netAmount)]),
+    ]),
   ])
 }
 
@@ -104,10 +107,18 @@ function settlement(invoice: CiiInvoice): XmlElement {
     leaf('ram:InvoiceCurrencyCode', currency),
     terms.payment === undefined ? undefined : paymentMeans(terms.payment),
     ...totals.breakdown.map((breakdown) => tradeTax(breakdown, { reason: terms.reasons.get(breakdown.category.id) })),
-    period === undefined ? undefined : element('ram:BillingSpecifiedPeriod', [optional(period.start, (start) => dateTime('ram:StartDateTime', start)), optional(period.end, (end) => dateTime('ram:EndDateTime', end))]),
+    period === undefined
+      ? undefined
+      : element('ram:BillingSpecifiedPeriod', [
+          optional(period.start, (start) => dateTime('ram:StartDateTime', start)),
+          optional(period.end, (end) => dateTime('ram:EndDateTime', end)),
+        ]),
     terms.terms === undefined && terms.due === undefined
       ? undefined
-      : element('ram:SpecifiedTradePaymentTerms', [optional(terms.terms, (text) => leaf('ram:Description', text)), optional(terms.due, (due) => dateTime('ram:DueDateDateTime', due))]),
+      : element('ram:SpecifiedTradePaymentTerms', [
+          optional(terms.terms, (text) => leaf('ram:Description', text)),
+          optional(terms.due, (due) => dateTime('ram:DueDateDateTime', due)),
+        ]),
     element('ram:SpecifiedTradeSettlementHeaderMonetarySummation', [
       amount('ram:LineTotalAmount', totals.lineTotal),
       amount('ram:TaxBasisTotalAmount', totals.taxBasisTotal),
@@ -134,8 +145,14 @@ export function ciiXml(invoice: CiiInvoice): string {
       element('rsm:SupplyChainTradeTransaction', [
         // Every line's category has a breakdown: the totals are computed from these lines.
         ...invoice.lines.map((each) => line(each, breakdowns.get(each.category.id) as VatBreakdown)),
-        element('ram:ApplicableHeaderTradeAgreement', [optional(terms.buyerReference, (reference) => leaf('ram:BuyerReference', reference)), tradeParty('ram:SellerTradeParty', terms.seller), tradeParty('ram:BuyerTradeParty', terms.buyer)]),
-        element('ram:ApplicableHeaderTradeDelivery', [optional(terms.delivered, (delivered) => element('ram:ActualDeliverySupplyChainEvent', [dateTime('ram:OccurrenceDateTime', delivered)]))]),
+        element('ram:ApplicableHeaderTradeAgreement', [
+          optional(terms.buyerReference, (reference) => leaf('ram:BuyerReference', reference)),
+          tradeParty('ram:SellerTradeParty', terms.seller),
+          tradeParty('ram:BuyerTradeParty', terms.buyer),
+        ]),
+        element('ram:ApplicableHeaderTradeDelivery', [
+          optional(terms.delivered, (delivered) => element('ram:ActualDeliverySupplyChainEvent', [dateTime('ram:OccurrenceDateTime', delivered)])),
+        ]),
         settlement(invoice),
       ]),
     ],

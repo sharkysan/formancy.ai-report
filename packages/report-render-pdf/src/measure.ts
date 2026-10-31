@@ -35,9 +35,10 @@ export interface Measured {
 }
 
 /** Thrown out of pdfmake's layout with what was read; never seen outside `measure`. */
-class Measurement {
+class Measurement extends Error {
   readonly tops: ReadonlyMap<number, number>
   constructor(tops: ReadonlyMap<number, number>) {
+    super('pdfmake was stopped once it had measured')
     this.tops = tops
   }
 }
@@ -193,7 +194,10 @@ export function tablePlan(rows: readonly { readonly kind: RowKind; readonly pitc
   const under = (index: number): number => (body[index - 1]?.kind === 'groupHeader' ? body[index - 1]!.pitch : 0)
   const dontBreakRows = body.every((row, index) => under(index) + row.pitch <= room)
   const pitches = rows.map((row) => row.pitch)
-  const blocks = keepBlocks(rows.map((row) => row.kind), dontBreakRows)
+  const blocks = keepBlocks(
+    rows.map((row) => row.kind),
+    dontBreakRows,
+  )
   const first = body[0]?.kind === 'groupHeader' && body.length > 1 ? 2 : 1
   let lead = first
   for (const block of blocks) if (block.first <= lead) lead = Math.max(lead, block.last)

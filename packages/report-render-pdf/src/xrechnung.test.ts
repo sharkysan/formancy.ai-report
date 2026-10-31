@@ -17,7 +17,12 @@ import { TIMEOUT } from './testing/documents.js'
 const CREATED = '2026-10-16T08:00:00Z'
 
 function resolved(data: ReportData = XRECHNUNG_SAMPLE.data): ResolvedDocument {
-  const outcome = resolveReport(XRECHNUNG_SAMPLE.report, data, { mode: 'final', parameters: XRECHNUNG_SAMPLE.parameters, images: starterImages, creationDate: CREATED })
+  const outcome = resolveReport(XRECHNUNG_SAMPLE.report, data, {
+    mode: 'final',
+    parameters: XRECHNUNG_SAMPLE.parameters,
+    images: starterImages,
+    creationDate: CREATED,
+  })
   if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join('; ')}`)
   return outcome.document
 }
@@ -25,7 +30,9 @@ function resolved(data: ReportData = XRECHNUNG_SAMPLE.data): ResolvedDocument {
 /** The sample's data with its lines repeated `times` times, each at a position and an article of its own, so that its table runs onto a second page. */
 function longer(times: number): ReportData {
   const rows = XRECHNUNG_SAMPLE.data.detail as Record<string, string>[]
-  const detail = Array.from({ length: times }, (_, round) => rows.map((row, index) => ({ ...row, position: String(round * rows.length + index + 1), article: `H-${9000 + round * rows.length + index}` }))).flat()
+  const detail = Array.from({ length: times }, (_, round) =>
+    rows.map((row, index) => ({ ...row, position: String(round * rows.length + index + 1), article: `H-${9000 + round * rows.length + index}` })),
+  ).flat()
   return { ...XRECHNUNG_SAMPLE.data, detail, completeness: { complete: true, captured: detail.length } }
 }
 
@@ -35,36 +42,55 @@ describe("an XRechnung's copy", () => {
   // the copy is no PDF/A and no ZUGFeRD hybrid: no metadata, no output
   // intent, no associated file and nothing in the name tree, by pdf-lib;
   // no attachment, by PDF.js.
-  test('is a plain PDF that embeds nothing', async () => {
-    const document = resolved()
-    expect(document.eInvoice?.kind).toBe('xrechnung')
-    const bytes = await renderPdf(document, { maxPages: 5 })
-    const objects = await readPdfObjects(bytes)
-    expect(objects).toMatchObject({ version: '1.3', metadata: undefined, associatedFiles: [], embeddedFiles: [], outputIntents: [] })
-    expect((await readPdf(bytes)).attachments).toEqual([])
-    expect(objects.info['Title']).toBe('Rechnung (XRechnung)')
-  }, TIMEOUT)
+  test(
+    'is a plain PDF that embeds nothing',
+    async () => {
+      const document = resolved()
+      expect(document.eInvoice?.kind).toBe('xrechnung')
+      const bytes = await renderPdf(document, { maxPages: 5 })
+      const objects = await readPdfObjects(bytes)
+      expect(objects).toMatchObject({ version: '1.3', metadata: undefined, associatedFiles: [], embeddedFiles: [], outputIntents: [] })
+      expect((await readPdf(bytes)).attachments).toEqual([])
+      expect(objects.info['Title']).toBe('Rechnung (XRechnung)')
+    },
+    TIMEOUT,
+  )
 
   // Every page says it is the copy, as the first line at its top: a page
   // printed or passed on alone is never taken for the invoice. Held on a
   // copy of the sample whose table runs onto a second page.
-  test('says on every page, at its head, that it is the copy whose invoice is the XML', async () => {
-    const pdf = await readPdf(await renderPdf(resolved(longer(12)), { maxPages: 5 }))
-    expect(pdf.pages.length).toBeGreaterThanOrEqual(2)
-    for (const page of pdf.pages) {
-      const top = page.items.toSorted((a, b) => a.top - b.top || a.x - b.x)[0]
-      expect(top?.text, `page ${page.number}`).toBe(XRECHNUNG_COPY_LABEL)
-      expect(page.items.filter((item) => item.text === XRECHNUNG_COPY_LABEL), `page ${page.number}`).toHaveLength(1)
-    }
-  }, TIMEOUT)
+  test(
+    'says on every page, at its head, that it is the copy whose invoice is the XML',
+    async () => {
+      const pdf = await readPdf(await renderPdf(resolved(longer(12)), { maxPages: 5 }))
+      expect(pdf.pages.length).toBeGreaterThanOrEqual(2)
+      for (const page of pdf.pages) {
+        const top = page.items.toSorted((a, b) => a.top - b.top || a.x - b.x)[0]
+        expect(top?.text, `page ${page.number}`).toBe(XRECHNUNG_COPY_LABEL)
+        expect(
+          page.items.filter((item) => item.text === XRECHNUNG_COPY_LABEL),
+          `page ${page.number}`,
+        ).toHaveLength(1)
+      }
+    },
+    TIMEOUT,
+  )
 
   // The browser entry draws the very pages the Node entry does, and one
   // document is the same bytes every time, as every report's is.
-  test('is drawn alike by both entries, and the same bytes twice', async () => {
-    const document = resolved()
-    const [node, again, browser] = [await renderPdf(document, { maxPages: 5 }), await renderPdf(document, { maxPages: 5 }), await renderInBrowser(document, { maxPages: 5 })]
-    expect(Buffer.from(node).equals(Buffer.from(again))).toBe(true)
-    expect((await readPdf(browser)).pages).toEqual((await readPdf(node)).pages)
-    expect((await readPdfObjects(browser)).associatedFiles).toEqual([])
-  }, TIMEOUT)
+  test(
+    'is drawn alike by both entries, and the same bytes twice',
+    async () => {
+      const document = resolved()
+      const [node, again, browser] = [
+        await renderPdf(document, { maxPages: 5 }),
+        await renderPdf(document, { maxPages: 5 }),
+        await renderInBrowser(document, { maxPages: 5 }),
+      ]
+      expect(Buffer.from(node).equals(Buffer.from(again))).toBe(true)
+      expect((await readPdf(browser)).pages).toEqual((await readPdf(node)).pages)
+      expect((await readPdfObjects(browser)).associatedFiles).toEqual([])
+    },
+    TIMEOUT,
+  )
 })

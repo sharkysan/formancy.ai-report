@@ -35,13 +35,21 @@ function versions(tool) {
 export function readmeTable(facts) {
   const ci = [...new Set(facts.node.ci.map((entry) => entry.version))]
   const rows = [
-    ...facts.upstream.map((entry) => [`${code(entry.name)}${entry.direct ? '' : ' (transitive)'}`, entry.version, entry.declared === null ? '' : code(entry.declared)]),
+    ...facts.upstream.map((entry) => [
+      `${code(entry.name)}${entry.direct ? '' : ' (transitive)'}`,
+      entry.version,
+      entry.declared === null ? '' : code(entry.declared),
+    ]),
     ...facts.runtime.map((entry) => [`${code(entry.name)}, by ${code(entry.package)}`, entry.loaded, code(entry.range)]),
     ...facts.peers.map((entry) => [`${code(entry.name)}, a peer of ${code(entry.package)}`, `${entry.loaded}, in its suites`, code(entry.range)]),
     ['Node, the workspace', '', facts.node.engines === null ? 'nothing' : code(facts.node.engines)],
     ['Node, CI', ci.join(', '), ''],
     [facts.packageManager.name, `${facts.packageManager.version}, through corepack`, `${code(facts.packageManager.declared)}, the root's \`packageManager\``],
-    ...facts.browser.pins.map((pin) => [browserName(pin.browser), `${pin.browserVersion}, the ${pin.name} Playwright ${facts.browser.playwright} pins (revision ${pin.revision})`, '']),
+    ...facts.browser.pins.map((pin) => [
+      browserName(pin.browser),
+      `${pin.browserVersion}, the ${pin.name} Playwright ${facts.browser.playwright} pins (revision ${pin.revision})`,
+      '',
+    ]),
     ...facts.tooling.map((tool) => [code(tool.name), versions(tool), tool.declared === null ? '' : code(tool.declared)]),
   ]
   const launched = facts.browser.pins.length === 1 ? browserName(facts.browser.pins[0].browser) : 'each browser'

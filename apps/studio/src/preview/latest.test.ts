@@ -93,7 +93,12 @@ describe('the latest render, and only the latest', () => {
   // lost in an unhandled rejection with the pane waiting forever.
   test('reports a run that throws, when it is the latest', async () => {
     const failed: unknown[] = []
-    const renders = latest<string, string>({ delay: 0, run: (input) => (input === 'bad' ? Promise.reject(new Error('broke')) : Promise.resolve(input)), deliver: () => undefined, fail: (error) => failed.push(error) })
+    const renders = latest<string, string>({
+      delay: 0,
+      run: (input) => (input === 'bad' ? Promise.reject(new Error('broke')) : Promise.resolve(input)),
+      deliver: () => undefined,
+      fail: (error) => failed.push(error),
+    })
     renders.request('bad', { now: true })
     await vi.advanceTimersByTimeAsync(0)
     expect(failed).toEqual([new Error('broke')])

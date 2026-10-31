@@ -62,9 +62,9 @@ export interface ReportEditorOptions {
 
 export interface ReportEditor {
   /** The state to render: deeply frozen, and the same object until something changes. */
-  state(): EditorState
+  state(this: void): EditorState
   /** Calls `listener` after each change, synchronously, until the function returned is called. */
-  subscribe(listener: () => void): () => void
+  subscribe(this: void, listener: () => void): () => void
   /** Listeners subscribed now: what a test of a destroyed builder checks is back to none. */
   listenerCount(): number
   /**
@@ -252,7 +252,11 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
   }
 
   /** Applies an edit through the session, selects what it says, and announces it by `name` -- or says why the session refused, in the words of `refused`. */
-  function applyEdit(edit: Edit, name: () => string, refused: 'status.refused' | 'status.qrBillNotAdded' | 'status.addRefused' | 'status.removeRefused' = 'status.refused'): EditorOutcome {
+  function applyEdit(
+    edit: Edit,
+    name: () => string,
+    refused: 'status.refused' | 'status.qrBillNotAdded' | 'status.addRefused' | 'status.removeRefused' = 'status.refused',
+  ): EditorOutcome {
     const before = name()
     const outcome = commit(edit.command, stepLabel(edit.step))
     if (!outcome.ok) return refuse('refused', t(refused, { name: before, reason: refusalMessage(outcome, '') }), outcome)
@@ -307,7 +311,11 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
       const key = selectionKey(local.selection as Selection)
       const next = order[order.findIndex((row) => selectionKey(row) === key) + 1]
       const child = next === undefined ? undefined : selected(report, next)
-      const holds = target.kind === 'component' && child !== undefined && child.kind !== 'part' && (child.kind === 'column' ? child.table.id : child.location.parent) === target.component.id
+      const holds =
+        target.kind === 'component' &&
+        child !== undefined &&
+        child.kind !== 'part' &&
+        (child.kind === 'column' ? child.table.id : child.location.parent) === target.component.id
       return holds ? select(next as Selection) : refuse('at-edge', t('status.nothingInside', { name: labelOf(key) }))
     })
   }
@@ -318,7 +326,8 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
   }
 
   function select(selection: Selection | null): EditorOutcome {
-    if (selection !== null && selected(current().report, selection) === undefined) return refuse('not-found', t('status.notFound', { name: 'part' in selection ? partName(selection.part) : selection.id }))
+    if (selection !== null && selected(current().report, selection) === undefined)
+      return refuse('not-found', t('status.notFound', { name: 'part' in selection ? partName(selection.part) : selection.id }))
     const same = selection === null ? local.selection === null : local.selection !== null && selectionKey(selection) === selectionKey(local.selection)
     if (!same) setLocal({ selection, errors: new Map() })
     return DONE
@@ -328,14 +337,24 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     const entry = current().palette.find((candidate) => candidate.kind === kind)
     const component = entry?.component ?? null
     if (component === null) return refuse('unavailable', entry?.unavailable ?? t('status.notFound', { name: kind }))
-    const edit: Edit = { command: (r) => insertComponent(r, target, component), step: { do: 'insert', kind }, announce: 'status.inserted', then: () => ({ id: component.id }) }
+    const edit: Edit = {
+      command: (r) => insertComponent(r, target, component),
+      step: { do: 'insert', kind },
+      announce: 'status.inserted',
+      then: () => ({ id: component.id }),
+    }
     return applyEdit(edit, () => current().labels.get(component.id) ?? kindLabel(kind, t))
   }
 
   function move(id: string, target: Location): EditorOutcome {
     const found = componentAt(current().report, id)
     if (found === undefined) return refuse('not-found', t('status.notFound', { name: id }))
-    const edit: Edit = { command: (r) => moveComponent(r, id, target), step: { do: 'move', kind: found.component.kind }, announce: 'status.moved', then: () => ({ id }) }
+    const edit: Edit = {
+      command: (r) => moveComponent(r, id, target),
+      step: { do: 'move', kind: found.component.kind },
+      announce: 'status.moved',
+      then: () => ({ id }),
+    }
     return applyEdit(edit, () => labelOf(id))
   }
 
@@ -363,7 +382,8 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     const outcome = commit(change.command, stepLabel({ do: 'change', field: spec.words }))
     if (!outcome.ok) {
       const path = `${target.path}${at}`
-      const message = pageRoomMessage(outcome, path, { spec, value: written.value, report }, t, number.format) ?? refusalMessage(outcome, path)
+      const message =
+        pageRoomMessage(outcome, path, { spec, value: written.value, report }, t, (value) => number.format(value)) ?? refusalMessage(outcome, path)
       setLocal(keep(message))
       return refuse('refused', t('status.invalid', { field: label, reason: message }), outcome)
     }
@@ -386,7 +406,16 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
   const parts = partActions({ current, local: () => local, refuse, applyEdit }, t, locale)
 
   const handlers: Handlers = {
-    select: (action) => select('part' in action ? { part: action.part } : action.id === null ? null : action.column === undefined ? { id: action.id } : { id: action.id, column: action.column }),
+    select: (action) =>
+      select(
+        'part' in action
+          ? { part: action.part }
+          : action.id === null
+            ? null
+            : action.column === undefined
+              ? { id: action.id }
+              : { id: action.id, column: action.column },
+      ),
     selectNext: () => step(1, 'next'),
     selectPrevious: () => step(-1, 'previous'),
     selectFirst: () => step(1, 'first'),

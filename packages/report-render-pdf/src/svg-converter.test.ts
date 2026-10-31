@@ -56,19 +56,23 @@ describe('every drawing the cleaner accepts', () => {
   // drawing that failed is named. It found, first, a clip on a gradient
   // that the cleaner wrote as `url(#)` and then refused: approved, and
   // refused at every print.
-  test('draws through the converter’s throwing callbacks without a warning, an image or a link', async () => {
-    // A render leaves pdfmake configured with the renderer's fonts and policies.
-    await renderPdf(bareDocument('Configure', [paragraph('Configure')]), { maxPages: 1 })
-    const accepted = [...Object.values(DRAWINGS), ...mutations(1000, 0x5eed)].filter((text) => cleanSvg(utf8(text)).ok)
-    // A stream the cleaner refused nearly all of would test nothing.
-    expect(accepted.length).toBeGreaterThan(600)
-    for (let start = 0; start < accepted.length; start += 50) {
-      const batch = accepted.slice(start, start + 50)
-      const together = await drawnTogether(batch)
-      if (Array.isArray(together) && together.length === 0) continue
-      for (const text of batch) expect(await drawnTogether([text]), text).toEqual([])
-    }
-  }, TIMEOUT)
+  test(
+    'draws through the converter’s throwing callbacks without a warning, an image or a link',
+    async () => {
+      // A render leaves pdfmake configured with the renderer's fonts and policies.
+      await renderPdf(bareDocument('Configure', [paragraph('Configure')]), { maxPages: 1 })
+      const accepted = [...Object.values(DRAWINGS), ...mutations(1000, 0x5eed)].filter((text) => cleanSvg(utf8(text)).ok)
+      // A stream the cleaner refused nearly all of would test nothing.
+      expect(accepted.length).toBeGreaterThan(600)
+      for (let start = 0; start < accepted.length; start += 50) {
+        const batch = accepted.slice(start, start + 50)
+        const together = await drawnTogether(batch)
+        if (Array.isArray(together) && together.length === 0) continue
+        for (const text of batch) expect(await drawnTogether([text]), text).toEqual([])
+      }
+    },
+    TIMEOUT,
+  )
 })
 
 describe('the worst drawing the bounds accept', () => {
@@ -76,7 +80,9 @@ describe('the worst drawing the bounds accept', () => {
   const zigzag = (lines: number): string => `M0 0${Array.from({ length: lines }, (_, i) => `L${((i + 1) * 37) % 100} ${i % 2 === 0 ? 100 : 0}`).join('')}`
   /** Every group the bounds allow -- four clips of one clip path -- one of them over a zigzag of every segment they leave. */
   const clipped = (lines: number): string =>
-    svg(`<clipPath id="c"><rect x="5" y="5" width="90" height="90"/></clipPath><g clip-path="url(#c)"><path d="${zigzag(lines)}" fill="#264653"/></g>${[0, 1, 2].map((i) => `<rect x="${i * 30}" y="80" width="20" height="20" fill="#e76f51" clip-path="url(#c)"/>`).join('')}`)
+    svg(
+      `<clipPath id="c"><rect x="5" y="5" width="90" height="90"/></clipPath><g clip-path="url(#c)"><path d="${zigzag(lines)}" fill="#264653"/></g>${[0, 1, 2].map((i) => `<rect x="${i * 30}" y="80" width="20" height="20" fill="#e76f51" clip-path="url(#c)"/>`).join('')}`,
+    )
 
   /** The median of three rasters of a PDF's first page at scale 2, in milliseconds. */
   async function rasterised(pdf: Uint8Array): Promise<number> {
@@ -106,22 +112,36 @@ describe('the worst drawing the bounds accept', () => {
   // without the firm's mark it has carried since 0032, as it printed when
   // it was measured: a yardstick that held an SVG would slow with the
   // drawing, and hide the very slowing this test is here to catch.
-  test('rasterises page-wide, at scale 2, in under sixteen times a starter page', async () => {
-    const without = cleanSvg(utf8(clipped(1)))
-    if (!without.ok) throw new Error(without.message)
-    const text = clipped(1 + MAX_SVG_SEGMENTS - without.segments)
-    const cleaned = cleanSvg(utf8(text))
-    expect(cleaned.ok && [cleaned.segments, cleaned.groups]).toEqual([MAX_SVG_SEGMENTS, MAX_SVG_GROUPS])
-    if (!cleaned.ok) return
-    const pdf = await renderPdf(bareDocument('Worst', [{ kind: 'image', asset: { id: 'worst', mediaType: 'image/svg+xml', bytes: cleaned.bytes }, width: 480, height: 480, fit: 'contain' }]), { maxPages: 1 })
-    expect(await readAnnotations(pdf)).toEqual([])
-    const quotation = resolveReport(withoutMark(QUOTATION.report), quotationData(), { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z', images: () => undefined })
-    if (!quotation.ok) throw new Error(quotation.errors.map((error) => error.message).join('; '))
-    const starter = await renderPdf(quotation.document, { maxPages: 20 })
-    // PDF.js loads its fonts and its code on the first page it draws.
-    await rasterPixels(starter, 1, 2)
-    expect((await rasterised(pdf)) / (await rasterised(starter))).toBeLessThan(16)
-  }, TIMEOUT)
+  test(
+    'rasterises page-wide, at scale 2, in under sixteen times a starter page',
+    async () => {
+      const without = cleanSvg(utf8(clipped(1)))
+      if (!without.ok) throw new Error(without.message)
+      const text = clipped(1 + MAX_SVG_SEGMENTS - without.segments)
+      const cleaned = cleanSvg(utf8(text))
+      expect(cleaned.ok && [cleaned.segments, cleaned.groups]).toEqual([MAX_SVG_SEGMENTS, MAX_SVG_GROUPS])
+      if (!cleaned.ok) return
+      const pdf = await renderPdf(
+        bareDocument('Worst', [
+          { kind: 'image', asset: { id: 'worst', mediaType: 'image/svg+xml', bytes: cleaned.bytes }, width: 480, height: 480, fit: 'contain' },
+        ]),
+        { maxPages: 1 },
+      )
+      expect(await readAnnotations(pdf)).toEqual([])
+      const quotation = resolveReport(withoutMark(QUOTATION.report), quotationData(), {
+        mode: 'final',
+        parameters: {},
+        creationDate: '2026-10-15T08:00:00Z',
+        images: () => undefined,
+      })
+      if (!quotation.ok) throw new Error(quotation.errors.map((error) => error.message).join('; '))
+      const starter = await renderPdf(quotation.document, { maxPages: 20 })
+      // PDF.js loads its fonts and its code on the first page it draws.
+      await rasterPixels(starter, 1, 2)
+      expect((await rasterised(pdf)) / (await rasterised(starter))).toBeLessThan(16)
+    },
+    TIMEOUT,
+  )
 })
 
 describe("the converter's colour names", () => {

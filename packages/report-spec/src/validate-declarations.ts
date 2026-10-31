@@ -7,7 +7,25 @@
 import { ASSET_AND_FONT_MEDIA_TYPES } from './assets.js'
 import type { AnyAssetMediaType, AssetRef } from './assets.js'
 import type { Findings } from './check.js'
-import { all, describe, fieldKey, flag, fontSize, identifier, integer, kindOf, matches, oneOf, optional, points, readArray, readObject, shape, strictKeys, text } from './check.js'
+import {
+  all,
+  describe,
+  fieldKey,
+  flag,
+  fontSize,
+  identifier,
+  integer,
+  kindOf,
+  matches,
+  oneOf,
+  optional,
+  points,
+  readArray,
+  readObject,
+  shape,
+  strictKeys,
+  text,
+} from './check.js'
 import { DATASET_ROLES, FIELD_TYPES, PARAMETER_TYPES } from './data.js'
 import type { DatasetContract, DatasetRole, Datasets, FieldContract, FieldType, ParameterDef, ParameterType } from './data.js'
 import { PROVENANCE_KINDS } from './definition.js'
@@ -116,12 +134,19 @@ function readFieldContract(f: Findings, value: unknown, path: string): Read<Fiel
   const formed = o?.form !== undefined
   const form = formed ? readFieldForm(f, o?.form, at(path, 'form'), type, nullable) : undefined
   const entry = { id, path: at(path, 'id'), value: type }
-  if (id === undefined || type === undefined || label === undefined || nullable === undefined || (formed && form === undefined)) return { entry, item: undefined, formed }
+  if (id === undefined || type === undefined || label === undefined || nullable === undefined || (formed && form === undefined))
+    return { entry, item: undefined, formed }
   return { entry, item: { id, type, label, nullable, ...optional('scale', scale), ...optional('form', form) }, formed }
 }
 
 /** A dataset contract, recording its fields under its role, and what it says of a form. */
-function readDataset(c: Ctx, value: unknown, path: string, role: DatasetRole, declared: Map<string, Declarations<FieldType | undefined>>): { readonly contract: DatasetContract | undefined; readonly form: DatasetForm } {
+function readDataset(
+  c: Ctx,
+  value: unknown,
+  path: string,
+  role: DatasetRole,
+  declared: Map<string, Declarations<FieldType | undefined>>,
+): { readonly contract: DatasetContract | undefined; readonly form: DatasetForm } {
   const o = shape(c.f, value, path, ['id', 'fields'], ['form'])
   const id = identifier(c.f, o?.id, at(path, 'id'))
   const formed: boolean[] = []
@@ -134,7 +159,8 @@ function readDataset(c: Ctx, value: unknown, path: string, role: DatasetRole, de
   const read = o?.form !== undefined
   const { binding, kind } = read ? readDatasetForm(c.f, o?.form, at(path, 'form')) : { binding: undefined, kind: undefined }
   checkFieldsBound(c.f, path, read, formed)
-  const contract = id === undefined || fields.items === undefined || (read && binding === undefined) ? undefined : { id, fields: fields.items, ...optional('form', binding) }
+  const contract =
+    id === undefined || fields.items === undefined || (read && binding === undefined) ? undefined : { id, fields: fields.items, ...optional('form', binding) }
   return { contract, form: { read, kind } }
 }
 
@@ -146,7 +172,11 @@ export function readDatasets(c: Ctx, value: unknown, path: string): Datasets | u
   const header = o.header === undefined ? undefined : readDataset(c, o.header, at(path, 'header'), 'header', declared)
   const detail = o.detail === undefined ? undefined : readDataset(c, o.detail, at(path, 'detail'), 'detail', declared)
   if (header?.contract !== undefined && detail?.contract !== undefined && header.contract.id === detail.contract.id) {
-    c.f.report(at(at(path, 'detail'), 'id'), 'duplicate-id', `the header dataset is already "${detail.contract.id}"; each dataset is bound to a provider by its own id`)
+    c.f.report(
+      at(at(path, 'detail'), 'id'),
+      'duplicate-id',
+      `the header dataset is already "${detail.contract.id}"; each dataset is bound to a provider by its own id`,
+    )
   }
   checkDatasetForms(c.f, path, { ...optional('header', header?.form), ...optional('detail', detail?.form) })
   return { ...optional('header', header?.contract), ...optional('detail', detail?.contract) }
@@ -203,12 +233,24 @@ export function readAssets(c: Ctx, value: unknown, path: string): readonly Asset
 }
 
 /** Each kind of provenance: what it names, and how to read it. */
-const PROVENANCE: { readonly [K in ProvenanceKind]: { readonly required: readonly string[]; readonly read: (f: Findings, o: Record<string, unknown>, path: string) => Provenance | undefined } } = {
+const PROVENANCE: {
+  readonly [K in ProvenanceKind]: {
+    readonly required: readonly string[]
+    readonly read: (f: Findings, o: Record<string, unknown>, path: string) => Provenance | undefined
+  }
+} = {
   blank: { required: [], read: () => ({ kind: 'blank' }) },
   form: {
     required: ['form', 'formHash'],
     read: (f, o, path) => {
-      const form = matches(f, o.form, at(path, 'form'), FORM_ID, 'invalid-id', "a form's id as formancy writes one: letters, digits, '.', '_' and '-', starting with a letter or digit")
+      const form = matches(
+        f,
+        o.form,
+        at(path, 'form'),
+        FORM_ID,
+        'invalid-id',
+        "a form's id as formancy writes one: letters, digits, '.', '_' and '-', starting with a letter or digit",
+      )
       const formHash = matches(f, o.formHash, at(path, 'formHash'), SCHEMA_HASH, 'invalid-digest', "the form version's schemaHash: 64 lower-case hex digits")
       return form === undefined || formHash === undefined ? undefined : { kind: 'form', form, formHash }
     },

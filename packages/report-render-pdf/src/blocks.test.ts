@@ -41,8 +41,21 @@ describe('columns', () => {
   test('puts its columns side by side, each at its own width', async () => {
     const { pdf } = await rendered(
       bareDocument('Columns', [
-        { kind: 'columns', columns: [{ width: 'fill', blocks: [paragraph('Left of two')] }, { width: 100, blocks: [paragraph('Right of two')] }] },
-        { kind: 'columns', columns: [{ width: 120, blocks: [paragraph('First of three')] }, { width: 'fill', blocks: [paragraph('Second of three')] }, { width: 'fill', blocks: [paragraph('Third of three')] }] },
+        {
+          kind: 'columns',
+          columns: [
+            { width: 'fill', blocks: [paragraph('Left of two')] },
+            { width: 100, blocks: [paragraph('Right of two')] },
+          ],
+        },
+        {
+          kind: 'columns',
+          columns: [
+            { width: 120, blocks: [paragraph('First of three')] },
+            { width: 'fill', blocks: [paragraph('Second of three')] },
+            { width: 'fill', blocks: [paragraph('Third of three')] },
+          ],
+        },
       ]),
     )
     const [left, right] = [runOf(pdf, 'Left of two'), runOf(pdf, 'Right of two')]
@@ -55,25 +68,49 @@ describe('columns', () => {
 
   // A column taller than what is left of the page continues on the next
   // page, beside nothing, and loses no line at the break or below the footer.
-  test('continues a column taller than the page on the next one, losing nothing', async () => {
-    const lefts = Array.from({ length: 100 }, (_, index) => `Left line ${index + 1}`)
-    const document = documentOf('Long column', [{ kind: 'columns', columns: [{ width: 'fill', blocks: lefts.map((text) => paragraph(text)) }, { width: 'fill', blocks: [paragraph('Right line 1'), paragraph('Right line 2')] }] }])
-    const { pdf } = await rendered(document)
-    expect(verify(fixtureOf('long-column', document, { keys: lefts, exactText: ['Right line 1', 'Right line 2'], minPagesExpected: 2, maxPagesExpected: 2 }), pdf)).toEqual([])
-    expect(runOf(pdf, 'Right line 1').top).toBeCloseTo(runOf(pdf, 'Left line 1').top, 5)
-  }, TIMEOUT)
+  test(
+    'continues a column taller than the page on the next one, losing nothing',
+    async () => {
+      const lefts = Array.from({ length: 100 }, (_, index) => `Left line ${index + 1}`)
+      const document = documentOf('Long column', [
+        {
+          kind: 'columns',
+          columns: [
+            { width: 'fill', blocks: lefts.map((text) => paragraph(text)) },
+            { width: 'fill', blocks: [paragraph('Right line 1'), paragraph('Right line 2')] },
+          ],
+        },
+      ])
+      const { pdf } = await rendered(document)
+      expect(
+        verify(fixtureOf('long-column', document, { keys: lefts, exactText: ['Right line 1', 'Right line 2'], minPagesExpected: 2, maxPagesExpected: 2 }), pdf),
+      ).toEqual([])
+      expect(runOf(pdf, 'Right line 1').top).toBeCloseTo(runOf(pdf, 'Left line 1').top, 5)
+    },
+    TIMEOUT,
+  )
 
   // A keep-together block in a column still moves whole to the next page.
-  test('moves a keep-together block in a column to the next page whole', async () => {
-    const kept = Array.from({ length: 6 }, (_, index) => `Kept in a column ${index + 1}`)
-    const document = documentOf('Kept in a column', [
-      { kind: 'spacer', height: BODY_HEIGHT - 40 },
-      { kind: 'columns', columns: [{ width: 'fill', blocks: [paragraph('Beside the kept block')] }, { width: 'fill', blocks: [{ kind: 'keepTogether', blocks: kept.map((text) => paragraph(text)) }] }] },
-    ])
-    const { pdf } = await rendered(document)
-    expect(verify(fixtureOf('kept-in-a-column', document, { minPagesExpected: 2, maxPagesExpected: 2, noEmptyPages: false }), pdf)).toEqual([])
-    expect(kept.map((text) => lineOf(pdf, text).page)).toEqual(kept.map(() => 2))
-  }, TIMEOUT)
+  test(
+    'moves a keep-together block in a column to the next page whole',
+    async () => {
+      const kept = Array.from({ length: 6 }, (_, index) => `Kept in a column ${index + 1}`)
+      const document = documentOf('Kept in a column', [
+        { kind: 'spacer', height: BODY_HEIGHT - 40 },
+        {
+          kind: 'columns',
+          columns: [
+            { width: 'fill', blocks: [paragraph('Beside the kept block')] },
+            { width: 'fill', blocks: [{ kind: 'keepTogether', blocks: kept.map((text) => paragraph(text)) }] },
+          ],
+        },
+      ])
+      const { pdf } = await rendered(document)
+      expect(verify(fixtureOf('kept-in-a-column', document, { minPagesExpected: 2, maxPagesExpected: 2, noEmptyPages: false }), pdf)).toEqual([])
+      expect(kept.map((text) => lineOf(pdf, text).page)).toEqual(kept.map(() => 2))
+    },
+    TIMEOUT,
+  )
 })
 
 describe('rules', () => {
@@ -86,7 +123,13 @@ describe('rules', () => {
         paragraph('Above the rule'),
         { kind: 'rule', thickness: 2, color: '#c00000' },
         paragraph('Below the rule'),
-        { kind: 'columns', columns: [{ width: 'fill', blocks: [] }, { width: 100, blocks: [{ kind: 'rule', thickness: 1 }] }] },
+        {
+          kind: 'columns',
+          columns: [
+            { width: 'fill', blocks: [] },
+            { width: 100, blocks: [{ kind: 'rule', thickness: 1 }] },
+          ],
+        },
       ]),
     )
     const lines = drawing[0]!.shapes.filter((shape) => shape.kind === 'line')
@@ -106,7 +149,13 @@ describe('rectangles', () => {
   // the text after it; one whose outline is stroked on its edge spills half
   // the outline outside its box.
   test('fills and outlines exactly its box, and the text after it starts below it', async () => {
-    const { pdf, drawing } = await rendered(bareDocument('Rectangle', [paragraph('Above the box'), { kind: 'rectangle', width: 100, height: 40, fill: '#00c000', stroke: '#0000c0' }, paragraph('Below the box')]))
+    const { pdf, drawing } = await rendered(
+      bareDocument('Rectangle', [
+        paragraph('Above the box'),
+        { kind: 'rectangle', width: 100, height: 40, fill: '#00c000', stroke: '#0000c0' },
+        paragraph('Below the box'),
+      ]),
+    )
     const [box] = drawing[0]!.shapes
     expect(drawing[0]!.shapes).toHaveLength(1)
     expect(box).toMatchObject({ kind: 'rect', fill: '#00c000', stroke: '#0000c0', lineWidth: OUTLINE })
@@ -143,12 +192,19 @@ describe('sections', () => {
   // A frame drawn where the blocks are not, or blocks laid out over the
   // frame's border, print a box around nothing beside text over a line.
   test('frames its blocks with its border, its fill and its padding', async () => {
-    const { pdf, drawing } = await rendered(bareDocument('Frame', [{ kind: 'section', border: { thickness: 1, color: '#333333' }, fill: '#eeeeee', padding: 5, blocks: [paragraph('Framed text')] }]))
+    const { pdf, drawing } = await rendered(
+      bareDocument('Frame', [{ kind: 'section', border: { thickness: 1, color: '#333333' }, fill: '#eeeeee', padding: 5, blocks: [paragraph('Framed text')] }]),
+    )
     const { shapes } = drawing[0]!
     const borders = shapes.filter((shape) => shape.stroke !== undefined)
     expect(borders).toHaveLength(4)
     expect(borders.every((shape) => shape.stroke === '#333333' && shape.lineWidth === 1)).toBe(true)
-    const frame = borders.map(ink).reduce((all, each) => ({ x: Math.min(all.x, each.x), top: Math.min(all.top, each.top), right: Math.max(all.right, each.right), bottom: Math.max(all.bottom, each.bottom) }))
+    const frame = borders.map(ink).reduce((all, each) => ({
+      x: Math.min(all.x, each.x),
+      top: Math.min(all.top, each.top),
+      right: Math.max(all.right, each.right),
+      bottom: Math.max(all.bottom, each.bottom),
+    }))
     expect([frame.x, frame.right]).toEqual([expect.closeTo(LEFT, 5), expect.closeTo(RIGHT, 5)])
     const fill = shapes.find((shape) => shape.fill === '#eeeeee')!
     expect(fill.x).toBeGreaterThanOrEqual(frame.x)
@@ -179,32 +235,53 @@ describe('sections', () => {
 
   // A framed section longer than a page continues on the next, its frame
   // drawn around the part on each page, every line printed once inside it.
-  test('draws its frame around the part on each page, and loses nothing', async () => {
-    const lines = Array.from({ length: 90 }, (_, index) => `Framed line ${index + 1}`)
-    const document = documentOf('Long frame', [{ kind: 'section', border: { thickness: 2, color: '#000080' }, padding: 4, blocks: lines.map((text) => paragraph(text)) }])
-    const { pdf, drawing } = await rendered(document)
-    expect(verify(fixtureOf('long-frame', document, { keys: lines, minPagesExpected: 2, maxPagesExpected: 2 }), pdf)).toEqual([])
-    for (const page of drawing) {
-      const frame = page.shapes.filter((shape) => shape.stroke === '#000080')
-      expect(frame.filter((shape) => shape.height === 0), `page ${page.number}: a top and a bottom border`).toHaveLength(2)
-      expect(frame.filter((shape) => shape.width === 0), `page ${page.number}: a left and a right border`).toHaveLength(2)
-      const [top, bottom] = frame.filter((shape) => shape.height === 0).map((shape) => shape.top).sort((a, b) => a - b)
-      const body = pageLines(pdf.pages[page.number - 1]!).filter((line) => line.text.startsWith('Framed line'))
-      expect(body.length).toBeGreaterThan(0)
-      expect(body.every((line) => line.x === LEFT + 2 + 4 && line.top > top! && line.bottom < bottom!)).toBe(true)
-    }
-  }, TIMEOUT)
+  test(
+    'draws its frame around the part on each page, and loses nothing',
+    async () => {
+      const lines = Array.from({ length: 90 }, (_, index) => `Framed line ${index + 1}`)
+      const document = documentOf('Long frame', [
+        { kind: 'section', border: { thickness: 2, color: '#000080' }, padding: 4, blocks: lines.map((text) => paragraph(text)) },
+      ])
+      const { pdf, drawing } = await rendered(document)
+      expect(verify(fixtureOf('long-frame', document, { keys: lines, minPagesExpected: 2, maxPagesExpected: 2 }), pdf)).toEqual([])
+      for (const page of drawing) {
+        const frame = page.shapes.filter((shape) => shape.stroke === '#000080')
+        expect(
+          frame.filter((shape) => shape.height === 0),
+          `page ${page.number}: a top and a bottom border`,
+        ).toHaveLength(2)
+        expect(
+          frame.filter((shape) => shape.width === 0),
+          `page ${page.number}: a left and a right border`,
+        ).toHaveLength(2)
+        const [top, bottom] = frame
+          .filter((shape) => shape.height === 0)
+          .map((shape) => shape.top)
+          .sort((a, b) => a - b)
+        const body = pageLines(pdf.pages[page.number - 1]!).filter((line) => line.text.startsWith('Framed line'))
+        expect(body.length).toBeGreaterThan(0)
+        expect(body.every((line) => line.x === LEFT + 2 + 4 && line.top > top! && line.bottom < bottom!)).toBe(true)
+      }
+    },
+    TIMEOUT,
+  )
 
   // A table is part of the flow, and a section can hold one: inside a frame
   // its header still repeats on every page, its rows inside the frame.
-  test('holds a table whose header repeats on every page, inside the frame', async () => {
-    const document = documentOf('Table in a frame', [{ kind: 'section', border: { thickness: 1, color: '#000000' }, padding: 6, blocks: [ledger('framed', details(1, 120))] }])
-    const { pdf } = await rendered(document)
-    expect(verify(fixtureOf('table-in-a-frame', document, { minPagesExpected: 2, maxPagesExpected: 5 }), pdf)).toEqual([])
-    const keys = pdf.pages.map((page) => pageLines(page).find((line) => line.text.startsWith('Key'))!)
-    expect(keys.length).toBeGreaterThan(1)
-    expect(keys.every((line) => Math.abs(line.x - (LEFT + 1 + 6 + 4)) < 1e-6)).toBe(true)
-  }, TIMEOUT)
+  test(
+    'holds a table whose header repeats on every page, inside the frame',
+    async () => {
+      const document = documentOf('Table in a frame', [
+        { kind: 'section', border: { thickness: 1, color: '#000000' }, padding: 6, blocks: [ledger('framed', details(1, 120))] },
+      ])
+      const { pdf } = await rendered(document)
+      expect(verify(fixtureOf('table-in-a-frame', document, { minPagesExpected: 2, maxPagesExpected: 5 }), pdf)).toEqual([])
+      const keys = pdf.pages.map((page) => pageLines(page).find((line) => line.text.startsWith('Key'))!)
+      expect(keys.length).toBeGreaterThan(1)
+      expect(keys.every((line) => Math.abs(line.x - (LEFT + 1 + 6 + 4)) < 1e-6)).toBe(true)
+    },
+    TIMEOUT,
+  )
 })
 
 describe('images', () => {
@@ -218,7 +295,14 @@ describe('images', () => {
     const { pdf } = await rendered(bareDocument('Contain', [image, paragraph('Below')]))
     // The box is the first thing on the page: from the top margin, 100pt down.
     const boxTop = PAGE.margins.top
-    expect(pdf.pages[0]!.images).toEqual([expect.objectContaining({ x: expect.closeTo(LEFT, 5), top: expect.closeTo(boxTop + 25, 5), width: expect.closeTo(100, 5), height: expect.closeTo(50, 5) })])
+    expect(pdf.pages[0]!.images).toEqual([
+      expect.objectContaining({
+        x: expect.closeTo(LEFT, 5),
+        top: expect.closeTo(boxTop + 25, 5),
+        width: expect.closeTo(100, 5),
+        height: expect.closeTo(50, 5),
+      }),
+    ])
     // The line after it starts at the foot of the box: its text within the line's first 9pt.
     expect(lineOf(pdf, 'Below').top).toBeGreaterThan(boxTop + 100)
     expect(lineOf(pdf, 'Below').top).toBeLessThan(boxTop + 100 + 9)
@@ -232,7 +316,14 @@ describe('images', () => {
     const { pdf, drawing } = await rendered(bareDocument('Cover', [image]))
     const [drawn] = pdf.pages[0]!.images
     expect(drawn).toMatchObject({ x: expect.closeTo(LEFT - 50, 5), width: expect.closeTo(200, 5), height: expect.closeTo(100, 5) })
-    expect(drawing[0]!.clips).toEqual([expect.objectContaining({ x: expect.closeTo(LEFT, 5), top: expect.closeTo(drawn!.top, 5), width: expect.closeTo(100, 5), height: expect.closeTo(100, 5) })])
+    expect(drawing[0]!.clips).toEqual([
+      expect.objectContaining({
+        x: expect.closeTo(LEFT, 5),
+        top: expect.closeTo(drawn!.top, 5),
+        width: expect.closeTo(100, 5),
+        height: expect.closeTo(100, 5),
+      }),
+    ])
   })
 
   // A JPEG whose Exif orientation turns it a quarter turn is shown taller
@@ -241,6 +332,8 @@ describe('images', () => {
   test('fits a JPEG turned by its Exif orientation by the size it is shown at', async () => {
     const turned = { id: 'turned', mediaType: 'image/jpeg', bytes: jpegOf({ width: 16, height: 8, exif: exifSegment(6) }) } as const
     const { pdf } = await rendered(bareDocument('Turned', [{ kind: 'image', asset: turned, width: 80, height: 80, fit: 'contain' }]))
-    expect(pdf.pages[0]!.images).toEqual([expect.objectContaining({ x: expect.closeTo(LEFT + 20, 5), width: expect.closeTo(40, 5), height: expect.closeTo(80, 5) })])
+    expect(pdf.pages[0]!.images).toEqual([
+      expect.objectContaining({ x: expect.closeTo(LEFT + 20, 5), width: expect.closeTo(40, 5), height: expect.closeTo(80, 5) }),
+    ])
   })
 })

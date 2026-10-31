@@ -112,7 +112,11 @@ export interface CheckedData {
 }
 
 export type DataCheck =
-  | { readonly ok: true; readonly data: CheckedData; /** What a preview lacks; always empty in a final render, which refuses it. */ readonly warnings: readonly DataError[] }
+  | {
+      readonly ok: true
+      readonly data: CheckedData
+      /** What a preview lacks; always empty in a final render, which refuses it. */ readonly warnings: readonly DataError[]
+    }
   | { readonly ok: false; readonly errors: readonly DataError[] }
 
 export interface DataCheckOptions {
@@ -151,7 +155,14 @@ interface Missing {
 }
 
 /** One record held to `contract`, or undefined when it cannot be read at all. Fields it lacks are tallied in `missing`. */
-function checkRecord(c: Check, contract: DatasetContract, declared: ReadonlySet<string>, raw: unknown, path: string, missing: Map<string, Missing>): CheckedRecord | undefined {
+function checkRecord(
+  c: Check,
+  contract: DatasetContract,
+  declared: ReadonlySet<string>,
+  raw: unknown,
+  path: string,
+  missing: Map<string, Missing>,
+): CheckedRecord | undefined {
   const read = readRecord(raw)
   if (!read.ok) {
     c.errors.report(path, read.code, read.message)
@@ -164,7 +175,12 @@ function checkRecord(c: Check, contract: DatasetContract, declared: ReadonlySet<
     if (unreadable.has(field.id)) continue
     if (!read.entries.has(field.id)) {
       const tally = missing.get(field.id)
-      if (c.final) c.errors.report(where, 'missing-field', `${field.id}: the contract declares this field and the data lacks it; a missing field is not null, and a final render refuses it`)
+      if (c.final)
+        c.errors.report(
+          where,
+          'missing-field',
+          `${field.id}: the contract declares this field and the data lacks it; a missing field is not null, and a final render refuses it`,
+        )
       else if (tally === undefined) missing.set(field.id, { first: where, count: 1 })
       else tally.count++
       continue
@@ -226,7 +242,11 @@ function checkHeader(c: Check, contract: DatasetContract | undefined, entries: R
 }
 
 /** The detail rows checked, and how many were given when that could be counted. */
-function checkDetail(c: Check, contract: DatasetContract | undefined, entries: ReadonlyMap<string, unknown>): { readonly rows: CheckedRecord[]; readonly given: number | undefined } {
+function checkDetail(
+  c: Check,
+  contract: DatasetContract | undefined,
+  entries: ReadonlyMap<string, unknown>,
+): { readonly rows: CheckedRecord[]; readonly given: number | undefined } {
   const present = entries.has('detail')
   if (contract === undefined || !present) {
     if (contract === undefined && present) undeclaredDataset(c, 'detail')
@@ -276,12 +296,18 @@ function checkCompleteness(c: Check, raw: unknown, given: number | undefined): C
   if (cap !== undefined && !isCount(cap)) c.errors.report('/completeness/cap', 'invalid-completeness', 'cap is a count of rows: a whole number, 0 or more')
   if (!valid) return undefined
   if (given !== undefined && captured !== given) {
-    c.errors.report('/completeness/captured', 'completeness-mismatch', `the provider says it captured ${captured} rows and gave ${given}; rows lost or added on the way are never papered over`)
+    c.errors.report(
+      '/completeness/captured',
+      'completeness-mismatch',
+      `the provider says it captured ${captured} rows and gave ${given}; rows lost or added on the way are never papered over`,
+    )
   }
-  if (cap !== undefined && captured > cap) c.errors.report('/completeness/cap', 'completeness-mismatch', `the provider says it captured ${captured} rows, more than its cap of ${cap}`)
+  if (cap !== undefined && captured > cap)
+    c.errors.report('/completeness/cap', 'completeness-mismatch', `the provider says it captured ${captured} rows, more than its cap of ${cap}`)
   if (!complete) {
     const message = 'the provider says the data is incomplete'
-    if (c.final) c.errors.report('/completeness/complete', 'incomplete', `${message}; a final render prints every row or none, and never a silently truncated report`)
+    if (c.final)
+      c.errors.report('/completeness/complete', 'incomplete', `${message}; a final render prints every row or none, and never a silently truncated report`)
     else c.warnings.push({ path: '/completeness/complete', code: 'incomplete', message: `${message}; this preview shows only what was captured` })
   }
   return Object.freeze({ complete, captured, ...(cap === undefined ? {} : { cap }) })
@@ -304,7 +330,8 @@ export function checkData(report: ReportDefinition, data: ReportData, options: D
   if (!top.ok) return { ok: false, errors: [{ path: '', code: top.code, message: top.message }] }
   reportProblems(c, '', top.problems)
   for (const key of top.entries.keys()) {
-    if (!ENVELOPE.includes(key)) c.errors.report(keyAt('', key), 'unknown-property', `the data holds ${ENVELOPE.join(', ')}, and nothing the runtime does not know`)
+    if (!ENVELOPE.includes(key))
+      c.errors.report(keyAt('', key), 'unknown-property', `the data holds ${ENVELOPE.join(', ')}, and nothing the runtime does not know`)
   }
   const header = checkHeader(c, report.datasets.header, top.entries)
   const detail = checkDetail(c, report.datasets.detail, top.entries)

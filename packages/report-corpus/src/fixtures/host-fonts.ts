@@ -84,7 +84,13 @@ const RUNS: readonly { readonly marker: string; readonly paragraph: Paragraph; r
 ]
 
 // The corpus page, header and footer (Roboto, since the report maps sans to no host font), and the serif and mono body.
-const document: ResolvedDocument = { ...documentOf('Host fonts', RUNS.map((run) => run.paragraph)), fonts }
+const document: ResolvedDocument = {
+  ...documentOf(
+    'Host fonts',
+    RUNS.map((run) => run.paragraph),
+  ),
+  fonts,
+}
 
 export const hostFonts: Fixture = {
   id: 'host-fonts',

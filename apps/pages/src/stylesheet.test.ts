@@ -17,7 +17,9 @@ import { inputs, repo } from './test-site.js'
  * as the DOM recognises one.
  */
 const file = join(dirname(fileURLToPath(import.meta.url)), 'pages.css')
-const text = readFileSync(file, 'utf8').replaceAll('\r\n', '\n').replaceAll(/\/\*[\s\S]*?\*\//g, '')
+const text = readFileSync(file, 'utf8')
+  .replaceAll('\r\n', '\n')
+  .replaceAll(/\/\*[\s\S]*?\*\//g, '')
 
 /**
  * Every `@import` of pages.css: a file beside it as a path from the
@@ -40,7 +42,8 @@ const room = readFileSync(createRequire(join(dirname(file), '..', 'package.json'
 const roomDeclarations = [...(/:root\s*\{([^}]*)\}/.exec(room)?.[1] ?? '').matchAll(/(--[\w-]+\s*:[^;]+;)/g)].map((match) => match[1] ?? '')
 
 /** Every declaration of `css`: its property and its value. */
-const declarations = (css: string): [string, string][] => [...css.matchAll(/([\w-]+)\s*:\s*([^;{}]+);/g)].map((match) => [match[1] ?? '', (match[2] ?? '').trim()])
+const declarations = (css: string): [string, string][] =>
+  [...css.matchAll(/([\w-]+)\s*:\s*([^;{}]+);/g)].map((match) => [match[1] ?? '', (match[2] ?? '').trim()])
 
 /** Whether the DOM takes `word` as a colour: a named one, not a keyword every property takes. */
 function namesColour(word: string): boolean {
@@ -68,8 +71,19 @@ describe("the pages' stylesheet (0021)", () => {
   // A guard on the guard: the detector finds each way a colour is typed,
   // and passes what reads the room's variables.
   test('knows a typed colour from one read from the room', () => {
-    for (const typed of ['#fff', '#080a12', 'rgb(255 255 255 / 4%)', 'hsl(250 100% 70%)', 'white', 'rebeccapurple', '1px solid black']) expect({ typed, found: coloursIn(typed).length > 0 }).toEqual({ typed, found: true })
-    for (const read of ['var(--client)', 'color-mix(in srgb, var(--client) 70%, var(--text))', '1px solid var(--edge-strong)', 'transparent', 'inherit', 'auto', '0.5rem 1.25rem', "'/'"]) expect({ read, found: coloursIn(read) }).toEqual({ read, found: [] })
+    for (const typed of ['#fff', '#080a12', 'rgb(255 255 255 / 4%)', 'hsl(250 100% 70%)', 'white', 'rebeccapurple', '1px solid black'])
+      expect({ typed, found: coloursIn(typed).length > 0 }).toEqual({ typed, found: true })
+    for (const read of [
+      'var(--client)',
+      'color-mix(in srgb, var(--client) 70%, var(--text))',
+      '1px solid var(--edge-strong)',
+      'transparent',
+      'inherit',
+      'auto',
+      '0.5rem 1.25rem',
+      "'/'",
+    ])
+      expect({ read, found: coloursIn(read) }).toEqual({ read, found: [] })
   })
 
   // The failure this prevents is a second room: a colour typed here, or a

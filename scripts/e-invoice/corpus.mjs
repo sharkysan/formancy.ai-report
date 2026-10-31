@@ -102,7 +102,8 @@ function lowRateControl() {
     edits: [
       {
         term: 'BT-117',
-        pattern: /(<ram:CalculatedAmount>)([^<]*)(<\/ram:CalculatedAmount>\s*<ram:TypeCode>VAT<\/ram:TypeCode>\s*<ram:BasisAmount>)([^<]*)(<\/ram:BasisAmount>\s*<ram:CategoryCode>S<\/ram:CategoryCode>\s*<ram:RateApplicablePercent>7<\/ram:RateApplicablePercent>)/g,
+        pattern:
+          /(<ram:CalculatedAmount>)([^<]*)(<\/ram:CalculatedAmount>\s*<ram:TypeCode>VAT<\/ram:TypeCode>\s*<ram:BasisAmount>)([^<]*)(<\/ram:BasisAmount>\s*<ram:CategoryCode>S<\/ram:CategoryCode>\s*<ram:RateApplicablePercent>7<\/ram:RateApplicablePercent>)/g,
         at: 'once',
         replace: (_, open, tax, middle, basis, close) => {
           const lowered = taxAt(basis, LOW_RATE)
@@ -110,10 +111,30 @@ function lowRateControl() {
           return `${open}${lowered}${middle}${basis}${close}`
         },
       },
-      { term: 'BT-119 and BT-152', pattern: /(<ram:RateApplicablePercent>)7(<\/ram:RateApplicablePercent>)/g, at: 'all', replace: (_, open, close) => `${open}${LOW_RATE}${close}` },
-      { term: 'BT-110', pattern: /(<ram:TaxTotalAmount currencyID="EUR">)([^<]*)(<\/ram:TaxTotalAmount>)/g, at: 'once', replace: (_, open, amount, close) => `${open}${less(amount)}${close}` },
-      { term: 'BT-112', pattern: /(<ram:GrandTotalAmount>)([^<]*)(<\/ram:GrandTotalAmount>)/g, at: 'once', replace: (_, open, amount, close) => `${open}${less(amount)}${close}` },
-      { term: 'BT-115', pattern: /(<ram:DuePayableAmount>)([^<]*)(<\/ram:DuePayableAmount>)/g, at: 'once', replace: (_, open, amount, close) => `${open}${less(amount)}${close}` },
+      {
+        term: 'BT-119 and BT-152',
+        pattern: /(<ram:RateApplicablePercent>)7(<\/ram:RateApplicablePercent>)/g,
+        at: 'all',
+        replace: (_, open, close) => `${open}${LOW_RATE}${close}`,
+      },
+      {
+        term: 'BT-110',
+        pattern: /(<ram:TaxTotalAmount currencyID="EUR">)([^<]*)(<\/ram:TaxTotalAmount>)/g,
+        at: 'once',
+        replace: (_, open, amount, close) => `${open}${less(amount)}${close}`,
+      },
+      {
+        term: 'BT-112',
+        pattern: /(<ram:GrandTotalAmount>)([^<]*)(<\/ram:GrandTotalAmount>)/g,
+        at: 'once',
+        replace: (_, open, amount, close) => `${open}${less(amount)}${close}`,
+      },
+      {
+        term: 'BT-115',
+        pattern: /(<ram:DuePayableAmount>)([^<]*)(<\/ram:DuePayableAmount>)/g,
+        at: 'once',
+        replace: (_, open, amount, close) => `${open}${less(amount)}${close}`,
+      },
     ],
     expect: { mustang: ['error 4 BR-CO-17'], kosit: ['error val-sch.1 BR-CO-17'] },
   }
@@ -129,16 +150,33 @@ export const CONTROLS = [
   {
     file: 'control-schema.xml',
     why: 'an element the Factur-X EN 16931 XSD does not have, in the first line’s document reference',
-    edits: [{ term: 'BG-25', pattern: /<\/ram:LineID>/g, at: 'first', replace: (found) => `${found}\n        <ram:Unknown>a term no schema has</ram:Unknown>` }],
+    edits: [
+      { term: 'BG-25', pattern: /<\/ram:LineID>/g, at: 'first', replace: (found) => `${found}\n        <ram:Unknown>a term no schema has</ram:Unknown>` },
+    ],
     expect: { mustang: ['error 18'], kosit: ['error val-xsd cvc-complex-type.2.4.a'] },
   },
   {
     file: 'control-br-co-14.xml',
     why: 'BT-110 one cent above the sum of every BT-117, with BT-112 and BT-115 raised with it, so that of EN 16931’s rules BR-CO-14 alone is broken; Mustang’s own sums disagree as well',
     edits: [
-      { term: 'BT-110', pattern: /(<ram:TaxTotalAmount currencyID="EUR">)([^<]*)(<\/ram:TaxTotalAmount>)/g, at: 'once', replace: (_, open, amount, close) => `${open}${plusOneCent(amount)}${close}` },
-      { term: 'BT-112', pattern: /(<ram:GrandTotalAmount>)([^<]*)(<\/ram:GrandTotalAmount>)/g, at: 'once', replace: (_, open, amount, close) => `${open}${plusOneCent(amount)}${close}` },
-      { term: 'BT-115', pattern: /(<ram:DuePayableAmount>)([^<]*)(<\/ram:DuePayableAmount>)/g, at: 'once', replace: (_, open, amount, close) => `${open}${plusOneCent(amount)}${close}` },
+      {
+        term: 'BT-110',
+        pattern: /(<ram:TaxTotalAmount currencyID="EUR">)([^<]*)(<\/ram:TaxTotalAmount>)/g,
+        at: 'once',
+        replace: (_, open, amount, close) => `${open}${plusOneCent(amount)}${close}`,
+      },
+      {
+        term: 'BT-112',
+        pattern: /(<ram:GrandTotalAmount>)([^<]*)(<\/ram:GrandTotalAmount>)/g,
+        at: 'once',
+        replace: (_, open, amount, close) => `${open}${plusOneCent(amount)}${close}`,
+      },
+      {
+        term: 'BT-115',
+        pattern: /(<ram:DuePayableAmount>)([^<]*)(<\/ram:DuePayableAmount>)/g,
+        at: 'once',
+        replace: (_, open, amount, close) => `${open}${plusOneCent(amount)}${close}`,
+      },
     ],
     expect: { mustang: ['error 4 BR-CO-14', 'warning 10'], kosit: ['error val-sch.1 BR-CO-14'] },
   },
@@ -146,7 +184,14 @@ export const CONTROLS = [
   {
     file: 'control-br-27.xml',
     why: 'the first line’s net price (BT-146) made negative, which BR-27 refuses; Mustang’s own sums, which multiply each quantity by its price, disagree as well',
-    edits: [{ term: 'BT-146', pattern: /(<ram:ChargeAmount>)([^<]*)(<\/ram:ChargeAmount>)/g, at: 'first', replace: (_, open, amount, close) => `${open}-${amount}${close}` }],
+    edits: [
+      {
+        term: 'BT-146',
+        pattern: /(<ram:ChargeAmount>)([^<]*)(<\/ram:ChargeAmount>)/g,
+        at: 'first',
+        replace: (_, open, amount, close) => `${open}-${amount}${close}`,
+      },
+    ],
     expect: { mustang: ['error 4 BR-27', 'warning 10'], kosit: ['error val-sch.1 BR-27'] },
   },
   {
@@ -180,14 +225,28 @@ export const CONTROLS = [
     file: 'control-peppol-en16931-r020.xml',
     base: XRECHNUNG_BASE,
     why: 'the seller’s electronic address (BT-34) left out, which PEPPOL-EN16931-R020 of XRechnung’s schematron needs and EN 16931 does not',
-    edits: [{ term: 'BT-34', pattern: /\n\s*<ram:URIUniversalCommunication>\n\s*<ram:URIID schemeID="EM">[^<]*<\/ram:URIID>\n\s*<\/ram:URIUniversalCommunication>/g, at: 'once', replace: () => '' }],
+    edits: [
+      {
+        term: 'BT-34',
+        pattern: /\n\s*<ram:URIUniversalCommunication>\n\s*<ram:URIID schemeID="EM">[^<]*<\/ram:URIID>\n\s*<\/ram:URIUniversalCommunication>/g,
+        at: 'once',
+        replace: () => '',
+      },
+    ],
     expect: { mustang: ['error 27 PEPPOL-EN16931-R020'], kosit: ['error val-sch.2 PEPPOL-EN16931-R020'] },
   },
   {
     file: 'control-br-de-18.xml',
     base: XRECHNUNG_BASE,
     why: 'a line of the payment terms (BT-20) led by #, a Skonto line whose percentage has no two decimals, which XRechnung’s BR-DE-18 refuses: report-spec writes no such line in an XRechnung',
-    edits: [{ term: 'BT-20', pattern: /(<ram:Description>)([^<]*)(<\/ram:Description>)/g, at: 'once', replace: (_, open, terms, close) => `${open}${terms}\n#SKONTO#TAGE=14#PROZENT=2#\n${close}` }],
+    edits: [
+      {
+        term: 'BT-20',
+        pattern: /(<ram:Description>)([^<]*)(<\/ram:Description>)/g,
+        at: 'once',
+        replace: (_, open, terms, close) => `${open}${terms}\n#SKONTO#TAGE=14#PROZENT=2#\n${close}`,
+      },
+    ],
     expect: { mustang: ['error 27 BR-DE-18'], kosit: ['error val-sch.2 BR-DE-18'] },
   },
   {
@@ -228,14 +287,33 @@ export function corpus({ samples, xmlOf, kindOf, guidelineOf }) {
   const entries = samples.map((sample) => {
     const kind = kindOf(sample)
     if (!Object.hasOwn(KINDS, kind)) throw new Error(`the sample ${sample.id} is an e-invoice of the kind ${String(kind)}, which the gate does not judge`)
-    return { file: `${sample.id}.xml`, format: 'xml', sample: sample.id, kind, scenario: KINDS[kind].scenario, guideline: guidelineOf(sample), xml: xmlOf(sample), expect: Object.fromEntries(JUDGES.xml.map((tool) => [tool, 'accepted'])) }
+    return {
+      file: `${sample.id}.xml`,
+      format: 'xml',
+      sample: sample.id,
+      kind,
+      scenario: KINDS[kind].scenario,
+      guideline: guidelineOf(sample),
+      xml: xmlOf(sample),
+      expect: Object.fromEntries(JUDGES.xml.map((tool) => [tool, 'accepted'])),
+    }
   })
   for (const control of CONTROLS) {
     const id = control.base ?? CONTROL_BASE
     const base = entries.find((entry) => entry.sample === id)
     if (base === undefined) throw new Error(`the corpus has no ${id} sample to make ${control.file} from`)
     const xml = control.edits.reduce((text, edit) => edited(text, edit, control, id), base.xml)
-    entries.push({ file: control.file, format: 'xml', from: base.file, kind: base.kind, scenario: base.scenario, guideline: base.guideline, why: control.why, xml, expect: structuredClone(control.expect) })
+    entries.push({
+      file: control.file,
+      format: 'xml',
+      from: base.file,
+      kind: base.kind,
+      scenario: base.scenario,
+      guideline: base.guideline,
+      why: control.why,
+      xml,
+      expect: structuredClone(control.expect),
+    })
   }
   return entries
 }
@@ -243,7 +321,11 @@ export function corpus({ samples, xmlOf, kindOf, guidelineOf }) {
 /** Every file an accepted message names that is no file of the corpus, as sentences: the one place either judge's register is held to the corpus. */
 export function strayAccepted(accepted, entries) {
   const files = new Set(entries.map((entry) => entry.file))
-  return accepted.flatMap((entry) => entry.files.filter((file) => !files.has(file)).map((file) => `the accepted message ${entry.tool} ${entry.message} names ${file}, which is no file of the corpus`))
+  return accepted.flatMap((entry) =>
+    entry.files
+      .filter((file) => !files.has(file))
+      .map((file) => `the accepted message ${entry.tool} ${entry.message} names ${file}, which is no file of the corpus`),
+  )
 }
 
 /** Each format as a sentence names a file of it. */
@@ -271,24 +353,37 @@ export function corpusProblems(entries) {
   const seen = new Set()
   for (const entry of entries) {
     const judges = JUDGES[entry.format] ?? []
-    if (typeof entry.file !== 'string' || !/^[a-z0-9-]+\.(xml|pdf)$/.test(entry.file)) problems.push(`${String(entry.file)} is not a lowercase .xml or .pdf file name`)
-    else if (!entry.file.endsWith(`.${String(entry.format)}`)) problems.push(`${entry.file} is ${AS[entry.format] ?? `of the format ${String(entry.format)}`}, which its name does not say`)
+    if (typeof entry.file !== 'string' || !/^[a-z0-9-]+\.(xml|pdf)$/.test(entry.file))
+      problems.push(`${String(entry.file)} is not a lowercase .xml or .pdf file name`)
+    else if (!entry.file.endsWith(`.${String(entry.format)}`))
+      problems.push(`${entry.file} is ${AS[entry.format] ?? `of the format ${String(entry.format)}`}, which its name does not say`)
     if (seen.has(entry.file)) problems.push(`${entry.file} is in the corpus twice`)
     seen.add(entry.file)
     for (const tool of judges) {
       const expected = entry.expect?.[tool]
-      if (expected !== 'accepted' && (!Array.isArray(expected) || expected.length === 0 || expected.some((key) => typeof key !== 'string'))) problems.push(`${entry.file} expects of ${tool} neither acceptance nor any refusal`)
+      if (expected !== 'accepted' && (!Array.isArray(expected) || expected.length === 0 || expected.some((key) => typeof key !== 'string')))
+        problems.push(`${entry.file} expects of ${tool} neither acceptance nor any refusal`)
     }
-    for (const tool of Object.keys(entry.expect ?? {})) if (!judges.includes(tool)) problems.push(`${entry.file} expects something of ${tool}, which does not judge ${AS[entry.format] ?? 'its format'}`)
+    for (const tool of Object.keys(entry.expect ?? {}))
+      if (!judges.includes(tool)) problems.push(`${entry.file} expects something of ${tool}, which does not judge ${AS[entry.format] ?? 'its format'}`)
     if (entry.from === undefined) continue
     if (typeof entry.why !== 'string' || entry.why === '') problems.push(`${entry.file} is broken and does not say for what`)
-    if (sameFile(entry, entries.find((other) => other.file === entry.from))) problems.push(`${entry.file} is the sample it is made from, unbroken`)
-    if (judges.length > 0 && judges.every((tool) => entry.expect?.[tool] === 'accepted')) problems.push(`${entry.file} is broken for ${entry.why}, and no tool is to refuse it`)
+    if (
+      sameFile(
+        entry,
+        entries.find((other) => other.file === entry.from),
+      )
+    )
+      problems.push(`${entry.file} is the sample it is made from, unbroken`)
+    if (judges.length > 0 && judges.every((tool) => entry.expect?.[tool] === 'accepted'))
+      problems.push(`${entry.file} is broken for ${entry.why}, and no tool is to refuse it`)
   }
   for (const [format, judges] of Object.entries(JUDGES)) {
     const ofFormat = entries.filter((entry) => entry.format === format)
-    if (!ofFormat.some((entry) => entry.from === undefined && judges.every((tool) => entry.expect?.[tool] === 'accepted'))) problems.push(`the corpus has no ${format} sample both tools must accept`)
-    for (const tool of judges) if (!ofFormat.some((entry) => Array.isArray(entry.expect?.[tool]))) problems.push(`the corpus has no ${format} control ${tool} must refuse`)
+    if (!ofFormat.some((entry) => entry.from === undefined && judges.every((tool) => entry.expect?.[tool] === 'accepted')))
+      problems.push(`the corpus has no ${format} sample both tools must accept`)
+    for (const tool of judges)
+      if (!ofFormat.some((entry) => Array.isArray(entry.expect?.[tool]))) problems.push(`the corpus has no ${format} control ${tool} must refuse`)
   }
   return problems
 }

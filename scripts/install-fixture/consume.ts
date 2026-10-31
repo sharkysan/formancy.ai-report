@@ -6,10 +6,31 @@
  * is on trial is that the published entry points resolve, with the types that
  * shipped.
  */
-import { checkSpecVersion, emptyReport, QR_BILL_TOP, qrBillPageBreak, REPORT_FORMAT, REPORT_SPEC_VERSION, reportHash, validateReport, walkComponents } from '@formancy/report-spec'
+import {
+  checkSpecVersion,
+  emptyReport,
+  QR_BILL_TOP,
+  qrBillPageBreak,
+  REPORT_FORMAT,
+  REPORT_SPEC_VERSION,
+  reportHash,
+  validateReport,
+  walkComponents,
+} from '@formancy/report-spec'
 import { EPC_CAPTION, EPC_MAX_BYTES, epcCaptionBreak, epcLeastVersion } from '@formancy/report-spec'
 import { checkSvg, cleanSvg } from '@formancy/report-spec'
-import type { CleanSvg, EpcQrCodeComponent, ReportDefinition, ReportError, ReportValidation, SpecVersionCheck, SvgRefusal, SwissQrBill, TableComponent, TextComponent } from '@formancy/report-spec'
+import type {
+  CleanSvg,
+  EpcQrCodeComponent,
+  ReportDefinition,
+  ReportError,
+  ReportValidation,
+  SpecVersionCheck,
+  SvgRefusal,
+  SwissQrBill,
+  TableComponent,
+  TextComponent,
+} from '@formancy/report-spec'
 import { compileReport, diagnose, expressionValues, insertComponent, nextComponentId, openReportSession, validLocations } from '@formancy/report-core'
 import type { CommandDescriptor, CommandOutcome, CompiledExpression, Diagnostic, ReportCompilation, ReportSession, SessionOpening } from '@formancy/report-core'
 import { actionForKey, createReportEditor, editorText } from '@formancy/report-builder-core'
@@ -22,7 +43,12 @@ import { inflateSync } from 'node:zlib'
 import { resolveReport } from '@formancy/report-runtime'
 import type { ImageResolver } from '@formancy/report-runtime'
 import { QR_BILL_TOP as RUNTIME_QR_BILL_TOP, qrBillPageBreak as runtimeQrBillPageBreak } from '@formancy/report-runtime'
-import { EPC_CAPTION as RUNTIME_EPC_CAPTION, EPC_MAX_BYTES as RUNTIME_EPC_MAX_BYTES, epcCaptionBreak as runtimeEpcCaptionBreak, epcLeastVersion as runtimeEpcLeastVersion } from '@formancy/report-runtime'
+import {
+  EPC_CAPTION as RUNTIME_EPC_CAPTION,
+  EPC_MAX_BYTES as RUNTIME_EPC_MAX_BYTES,
+  epcCaptionBreak as runtimeEpcCaptionBreak,
+  epcLeastVersion as runtimeEpcLeastVersion,
+} from '@formancy/report-runtime'
 import { checkSvg as runtimeCheckSvg, cleanSvg as runtimeCleanSvg } from '@formancy/report-runtime'
 import type { DataSource, EpcQrCode, QrBill, ReportData, Resolution } from '@formancy/report-runtime'
 import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
@@ -117,13 +143,16 @@ const withNote = session.document()
 
 // A refused edit changes nothing: not the document object, not the revision.
 const outside: CommandOutcome = session.apply((draft) => insertComponent(draft, { region: 'body', index: 9 }, { ...note, id: 'late' }))
-if (outside.ok || outside.code !== 'index-out-of-range' || session.document() !== withNote || session.revision() !== 1) throw new Error('a refused edit changed the session')
+if (outside.ok || outside.code !== 'index-out-of-range' || session.document() !== withNote || session.revision() !== 1)
+  throw new Error('a refused edit changed the session')
 
 // An operation as a proposal carries it, read back from JSON: the text now
 // prints the clock, which a report may not, and the diagnostic says so where
 // it is. One whose arguments are not what its command takes is refused, not
 // thrown.
-const proposal = JSON.parse(JSON.stringify({ command: 'updateComponent', args: [note.id, 'text', { content: [{ kind: 'expression', expression: { cel: 'string(now())' } }] }] })) as CommandDescriptor
+const proposal = JSON.parse(
+  JSON.stringify({ command: 'updateComponent', args: [note.id, 'text', { content: [{ kind: 'expression', expression: { cel: 'string(now())' } }] }] }),
+) as CommandDescriptor
 const proposed: CommandOutcome = session.apply(proposal)
 const diagnostics: Diagnostic[] = diagnose(session.document())
 const [clock] = diagnostics
@@ -142,11 +171,18 @@ if ([...regions].sort().join() !== 'pageFooter,pageHeader') throw new Error(`a p
 
 // The compilation the runtime evaluates: a decimal total read as a decimal,
 // and the value bound as one from the exact string the data holds.
-const priced: ReportDefinition = { ...report, regions: { ...report.regions, summary: [{ id: 'doubled', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'string(totals.total * dec("2"))' } }] }] } }
+const priced: ReportDefinition = {
+  ...report,
+  regions: {
+    ...report.regions,
+    summary: [{ id: 'doubled', kind: 'text', content: [{ kind: 'expression', expression: { cel: 'string(totals.total * dec("2"))' } }] }],
+  },
+}
 const compilation: ReportCompilation = compileReport(priced)
 const compiled: CompiledExpression | undefined = compilation.expressions.get('/regions/summary/0/content/0/expression/cel')
 const bound = compiled === undefined ? undefined : expressionValues(compiled, { totals: { total: '12.50' } })
-if (compilation.diagnostics.length !== 0 || compiled?.reads[0]?.type !== 'decimal' || typeof bound?.totals_total !== 'object') throw new Error('a decimal total was not compiled and bound as a decimal')
+if (compilation.diagnostics.length !== 0 || compiled?.reads[0]?.type !== 'decimal' || typeof bound?.totals_total !== 'object')
+  throw new Error('a decimal total was not compiled and bound as a decimal')
 
 // The editor model both builders render, as a host drives it, under Node
 // with no DOM and no framework: report-builder-core ships with report-core
@@ -200,7 +236,8 @@ const stylesheet = entry.replace(/@import\s+'(\.\/[^']+\.css)';/g, (_, part: str
   if (!existsSync(file)) throw new Error(`report-builder.css imports ${part}, which the tarball does not hold`)
   return readFileSync(file, 'utf8')
 })
-if (parts.length === 0 || !stylesheet.includes("[data-report-part='canvas']") || !stylesheet.includes('var(--wb-')) throw new Error('report-builder.css is not the editor stylesheet')
+if (parts.length === 0 || !stylesheet.includes("[data-report-part='canvas']") || !stylesheet.includes('var(--wb-'))
+  throw new Error('report-builder.css is not the editor stylesheet')
 
 // The README's "Render a report", line for line, on the quotation starter:
 // the runtime resolves it from its data and the mark the host hands over
@@ -220,13 +257,19 @@ if (new TextDecoder().decode(rendered.subarray(0, 5)) !== '%PDF-') throw new Err
 // A refusal travels as the class a host catches, from the runtime's
 // declaration through the renderer's re-export: a customer's name in a
 // script the embedded font cannot draw is refused, never printed as boxes.
-const unprintable: Resolution = resolveReport(quotation, { ...quotationData, header: { ...quotationData.header, customer: '山田太郎' } }, { mode: 'final', images, creationDate: '2026-10-15T08:00:00Z' })
-if (!unprintable.ok) throw new Error(`the quotation with a Japanese customer was refused before rendering: ${unprintable.errors.map((error) => error.code).join(', ')}`)
+const unprintable: Resolution = resolveReport(
+  quotation,
+  { ...quotationData, header: { ...quotationData.header, customer: '山田太郎' } },
+  { mode: 'final', images, creationDate: '2026-10-15T08:00:00Z' },
+)
+if (!unprintable.ok)
+  throw new Error(`the quotation with a Japanese customer was refused before rendering: ${unprintable.errors.map((error) => error.code).join(', ')}`)
 const refusal: unknown = await renderPdf(unprintable.document, { maxPages: 50 }).then(
   () => undefined,
   (error: unknown) => error,
 )
-if (!(refusal instanceof RenderRefusal) || refusal.code !== 'unsupported') throw new Error(`a character without a glyph was not refused as unsupported: ${String(refusal)}`)
+if (!(refusal instanceof RenderRefusal) || refusal.code !== 'unsupported')
+  throw new Error(`a character without a glyph was not refused as unsupported: ${String(refusal)}`)
 
 // The quotation as a bill: a Swiss QR-bill for its total across the foot of
 // its last page, its account and reference SIX's own examples. The slip
@@ -241,7 +284,14 @@ const bill: SwissQrBill = {
   kind: 'swissQrBill',
   language: 'de',
   account: text('CH44 3199 9123 0008 8901 2'),
-  creditor: { name: text('Formancy Haustechnik AG'), street: text('Industriestrasse'), buildingNumber: text('7'), postalCode: text('3052'), town: text('Zollikofen'), country: text('CH') },
+  creditor: {
+    name: text('Formancy Haustechnik AG'),
+    street: text('Industriestrasse'),
+    buildingNumber: text('7'),
+    postalCode: text('3052'),
+    town: text('Zollikofen'),
+    country: text('CH'),
+  },
   currency: 'CHF',
   amount: { cel: 'totals.total' },
   debtor: { name: header('customer'), street: header('street'), postalCode: header('postcode'), town: header('city'), country: text('CH') },
@@ -249,21 +299,25 @@ const bill: SwissQrBill = {
 }
 const billed: ReportDefinition = { ...quotation, paymentPart: bill }
 const billedValidation: ReportValidation = validateReport(billed)
-if (!billedValidation.valid) throw new Error(`the quotation with a bill was refused: ${billedValidation.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
+if (!billedValidation.valid)
+  throw new Error(`the quotation with a bill was refused: ${billedValidation.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
 const billedResolution: Resolution = resolveReport(billed, quotationData, { mode: 'final', images, creationDate: '2026-10-15T08:00:00Z' })
-if (!billedResolution.ok) throw new Error(`the quotation with a bill did not resolve: ${billedResolution.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
+if (!billedResolution.ok)
+  throw new Error(`the quotation with a bill did not resolve: ${billedResolution.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
 const resolvedBill: QrBill | undefined = billedResolution.document.paymentPart
 if (resolvedBill?.payload.split('\n')[3] !== 'CH4431999123000889012') throw new Error("the bill's code does not hold its account")
 const billPdf = await renderPdf(billedResolution.document, { maxPages: 50 })
 const faces = new TextDecoder('latin1').decode(billPdf).match(/\/BaseFont \/[A-Z]{6}\+LiberationSans(?:-Bold)?\b/g) ?? []
-if (new Set(faces.map((face) => face.slice(face.indexOf('+') + 1))).size !== 2) throw new Error(`the bill did not print in both faces of Liberation Sans: ${faces.join(', ')}`)
+if (new Set(faces.map((face) => face.slice(face.indexOf('+') + 1))).size !== 2)
+  throw new Error(`the bill did not print in both faces of Liberation Sans: ${faces.join(', ')}`)
 
 // The slip's place and its page's rule reach the renderer through the
 // runtime as report-spec's own, so that the editor and a render refuse a
 // page by one rule: a top margin past the slip's top, in the same words. A
 // runtime whose dist carried a copy of report-spec would hand on a second
 // rule, which nothing in the workspace would see.
-if (runtimeQrBillPageBreak !== qrBillPageBreak || RUNTIME_QR_BILL_TOP !== QR_BILL_TOP) throw new Error("the runtime does not hand on report-spec's own QR-bill page rule")
+if (runtimeQrBillPageBreak !== qrBillPageBreak || RUNTIME_QR_BILL_TOP !== QR_BILL_TOP)
+  throw new Error("the runtime does not hand on report-spec's own QR-bill page rule")
 const crowded: ReportDefinition = { ...billed, page: { ...billed.page, margins: { ...billed.page.margins, top: QR_BILL_TOP + 1 } } }
 const crowdedValidation: ReportValidation = validateReport(crowded)
 const editorSays = crowdedValidation.valid ? undefined : crowdedValidation.errors.find((error: ReportError) => error.path === '/page/margins/top')?.message
@@ -271,7 +325,8 @@ const renderSays = await renderPdf({ ...billedResolution.document, page: crowded
   () => undefined,
   (error: unknown) => (error instanceof RenderRefusal ? error.message : String(error)),
 )
-if (editorSays === undefined || editorSays !== renderSays) throw new Error(`a top margin in the slip was refused differently: ${String(editorSays)}; ${String(renderSays)}`)
+if (editorSays === undefined || editorSays !== renderSays)
+  throw new Error(`a top margin in the slip was refused differently: ${String(editorSays)}; ${String(renderSays)}`)
 
 // A euro invoice paid by a SEPA credit transfer: an EPC QR code for its
 // total at the end of its summary, in Austria's frame with "Zahlen mit
@@ -297,16 +352,26 @@ const epcCode: EpcQrCodeComponent = {
   caption: 'zahlenMitCode',
 }
 const paid: ReportDefinition = { ...report, id: 'euro-invoice', title: 'Rechnung', locale: 'de-DE', regions: { ...report.regions, summary: [epcCode] } }
-const euroLines: ReportData = { detail: [{ amount: '951.63' }, { amount: '180.81' }], completeness: { complete: true, captured: 2 }, consistency: 'host-captured' }
+const euroLines: ReportData = {
+  detail: [{ amount: '951.63' }, { amount: '180.81' }],
+  completeness: { complete: true, captured: 2 },
+  consistency: 'host-captured',
+}
 const paidValidation: ReportValidation = validateReport(paid)
-if (!paidValidation.valid) throw new Error(`the euro invoice with an EPC QR code was refused: ${paidValidation.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
+if (!paidValidation.valid)
+  throw new Error(
+    `the euro invoice with an EPC QR code was refused: ${paidValidation.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`,
+  )
 const paidResolution: Resolution = resolveReport(paid, euroLines, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
-if (!paidResolution.ok) throw new Error(`the euro invoice with an EPC QR code did not resolve: ${paidResolution.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
+if (!paidResolution.ok)
+  throw new Error(`the euro invoice with an EPC QR code did not resolve: ${paidResolution.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
 const resolvedCode = paidResolution.document.body.find((block): block is EpcQrCode => block.kind === 'epcQrCode')
 const payload = ['BCD', '001', '1', 'SCT', 'FMNCDEF0XXX', 'Formancy Haustechnik GmbH', 'DE83012345670012345678', 'EUR1132.44', '', 'RF7220260815'].join('\n')
-if (resolvedCode?.payload !== payload || resolvedCode.caption !== 'zahlenMitCode') throw new Error(`the EPC QR code does not hold the euro invoice's payment: ${JSON.stringify(resolvedCode?.payload)}`)
+if (resolvedCode?.payload !== payload || resolvedCode.caption !== 'zahlenMitCode')
+  throw new Error(`the EPC QR code does not hold the euro invoice's payment: ${JSON.stringify(resolvedCode?.payload)}`)
 const paidPdf = await renderPdf(paidResolution.document, { maxPages: 50 })
-if (!/\/BaseFont \/[A-Z]{6}\+LiberationSans\b/.test(new TextDecoder('latin1').decode(paidPdf))) throw new Error("the EPC QR code's caption did not print in the package's Liberation Sans")
+if (!/\/BaseFont \/[A-Z]{6}\+LiberationSans\b/.test(new TextDecoder('latin1').decode(paidPdf)))
+  throw new Error("the EPC QR code's caption did not print in the package's Liberation Sans")
 
 // Where the data came from (0041): a host that captured the invoice's lines
 // from a formancy form's submission names the submission, the form's id
@@ -314,30 +379,45 @@ if (!/\/BaseFont \/[A-Z]{6}\+LiberationSans\b/.test(new TextDecoder('latin1').de
 // kept beside the PDF says so as given. A source holding a person's name,
 // with its space, where an id stands is refused.
 const versionHash = '767a65b36d4c02adf432d91ccdf7f8f285eebdbfc2987fb08fecd846b721dc42'
-const submitted: DataSource = { provider: 'formancy-form', submissions: [{ id: 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380', form: 'euro-invoice', formHash: versionHash }] }
+const submitted: DataSource = {
+  provider: 'formancy-form',
+  submissions: [{ id: 'b682a5ed-ed01-4f8c-8d80-cf53db4e8380', form: 'euro-invoice', formHash: versionHash }],
+}
 const submittedResolution: Resolution = resolveReport(paid, { ...euroLines, source: submitted }, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
 if (!submittedResolution.ok || JSON.stringify(submittedResolution.manifest.source) !== JSON.stringify(submitted)) {
-  throw new Error(`the manifest did not name the submission the data came from: ${submittedResolution.ok ? JSON.stringify(submittedResolution.manifest.source) : submittedResolution.errors.map((error) => error.code).join(', ')}`)
+  throw new Error(
+    `the manifest did not name the submission the data came from: ${submittedResolution.ok ? JSON.stringify(submittedResolution.manifest.source) : submittedResolution.errors.map((error) => error.code).join(', ')}`,
+  )
 }
 const answered: DataSource = { provider: 'formancy-form', submissions: [{ id: 'Erika Mustermann', form: 'euro-invoice', formHash: versionHash }] }
 const answeredResolution: Resolution = resolveReport(paid, { ...euroLines, source: answered }, { mode: 'final', creationDate: '2026-10-15T08:00:00Z' })
-if (answeredResolution.ok || answeredResolution.errors.map((error) => `${error.code} ${error.path}`).join() !== 'invalid-source /source/submissions/0/id') throw new Error('a source holding a name where a submission id stands was not refused')
+if (answeredResolution.ok || answeredResolution.errors.map((error) => `${error.code} ${error.path}`).join() !== 'invalid-source /source/submissions/0/id')
+  throw new Error('a source holding a name where a submission id stands was not refused')
 
 // The EPC's print rules reach the renderer through the runtime as
 // report-spec's own, as the QR-bill's do: a captioned square too small for
 // any version is refused by the validator and by the renderer in the same
 // words. A runtime whose dist carried a copy would hand on a second rule.
-if (runtimeEpcCaptionBreak !== epcCaptionBreak || runtimeEpcLeastVersion !== epcLeastVersion || RUNTIME_EPC_CAPTION !== EPC_CAPTION || RUNTIME_EPC_MAX_BYTES !== EPC_MAX_BYTES) {
+if (
+  runtimeEpcCaptionBreak !== epcCaptionBreak ||
+  runtimeEpcLeastVersion !== epcLeastVersion ||
+  RUNTIME_EPC_CAPTION !== EPC_CAPTION ||
+  RUNTIME_EPC_MAX_BYTES !== EPC_MAX_BYTES
+) {
   throw new Error("the runtime does not hand on report-spec's own EPC QR code print rules")
 }
 const cramped: ReportDefinition = { ...paid, regions: { ...paid.regions, summary: [{ ...epcCode, size: 68.05 }] } }
 const crampedValidation: ReportValidation = validateReport(cramped)
 const specSays = crampedValidation.valid ? undefined : crampedValidation.errors.find((error: ReportError) => error.path.endsWith('/size'))?.message
-const drawerSays = await renderPdf({ ...paidResolution.document, body: paidResolution.document.body.map((block) => (block.kind === 'epcQrCode' ? { ...block, size: 68.05 } : block)) }, { maxPages: 50 }).then(
+const drawerSays = await renderPdf(
+  { ...paidResolution.document, body: paidResolution.document.body.map((block) => (block.kind === 'epcQrCode' ? { ...block, size: 68.05 } : block)) },
+  { maxPages: 50 },
+).then(
   () => undefined,
   (error: unknown) => (error instanceof RenderRefusal ? error.message : String(error)),
 )
-if (specSays === undefined || drawerSays?.endsWith(specSays) !== true) throw new Error(`a captioned square too small was refused differently: ${String(specSays)}; ${String(drawerSays)}`)
+if (specSays === undefined || drawerSays?.endsWith(specSays) !== true)
+  throw new Error(`a captioned square too small was refused differently: ${String(specSays)}; ${String(drawerSays)}`)
 
 // An SVG logo (0030): a host approves a drawing as a person saved it by
 // report-spec's cleanSvg, keeps the bytes it writes, declares them by their
@@ -352,23 +432,34 @@ const saved = new TextEncoder().encode(
   '<?xml version="1.0" encoding="UTF-8"?>\n<!-- Saved by an invented editor -->\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="56" fill="#1F4E79"/><path d="M28 62l32-30 32 30" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/></svg>\n',
 )
 const approved: CleanSvg | SvgRefusal = cleanSvg(saved)
-if (!approved.ok || approved.removed.map((removal) => removal.kind).join() !== 'declaration,comment' || !checkSvg(approved.bytes).ok) throw new Error(`the saved drawing was not approved as a clean one: ${approved.ok ? JSON.stringify(approved.removed) : approved.message}`)
+if (!approved.ok || approved.removed.map((removal) => removal.kind).join() !== 'declaration,comment' || !checkSvg(approved.bytes).ok)
+  throw new Error(`the saved drawing was not approved as a clean one: ${approved.ok ? JSON.stringify(approved.removed) : approved.message}`)
 const logoDigest = `sha256:${createHash('sha256').update(approved.bytes).digest('hex')}`
 const logoed: ReportDefinition = {
   ...paid,
   id: 'logo-invoice',
   assets: [{ id: 'logo', mediaType: 'image/svg+xml', digest: logoDigest }],
-  regions: { ...paid.regions, reportHeader: [{ id: 'logo-image', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 42.52, height: 42.52, fit: 'contain' }] },
+  regions: {
+    ...paid.regions,
+    reportHeader: [{ id: 'logo-image', kind: 'image', source: { kind: 'asset', asset: 'logo' }, width: 42.52, height: 42.52, fit: 'contain' }],
+  },
 }
 const logoValidation: ReportValidation = validateReport(logoed)
-if (!logoValidation.valid) throw new Error(`the invoice with an SVG logo was refused: ${logoValidation.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
+if (!logoValidation.valid)
+  throw new Error(`the invoice with an SVG logo was refused: ${logoValidation.errors.map((error: ReportError) => `${error.code} ${error.path}`).join(', ')}`)
 const logoResolution = (bytes: Uint8Array): Resolution =>
-  resolveReport(logoed, euroLines, { mode: 'final', creationDate: '2026-10-15T08:00:00Z', images: (ref) => (ref.asset === 'logo' && ref.digest === logoDigest ? { mediaType: 'image/svg+xml', bytes } : undefined) })
+  resolveReport(logoed, euroLines, {
+    mode: 'final',
+    creationDate: '2026-10-15T08:00:00Z',
+    images: (ref) => (ref.asset === 'logo' && ref.digest === logoDigest ? { mediaType: 'image/svg+xml', bytes } : undefined),
+  })
 const logoResolved = logoResolution(approved.bytes)
-if (!logoResolved.ok) throw new Error(`the invoice with an SVG logo did not resolve: ${logoResolved.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
+if (!logoResolved.ok)
+  throw new Error(`the invoice with an SVG logo did not resolve: ${logoResolved.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
 const logoBytes = await renderPdf(logoResolved.document, { maxPages: 50 })
 const logoPdf = new TextDecoder('latin1').decode(logoBytes)
-if (logoPdf.includes('/Subtype /Image') || (logoPdf.match(/\/Type \/Page\b(?!s)/g) ?? []).length !== 1) throw new Error('the SVG logo was not drawn as vectors on one page')
+if (logoPdf.includes('/Subtype /Image') || (logoPdf.match(/\/Type \/Page\b(?!s)/g) ?? []).length !== 1)
+  throw new Error('the SVG logo was not drawn as vectors on one page')
 // No image and one page would hold of a PDF that drew no logo at all: the
 // logo is read from the page's own drawing instead -- every stream PDFKit
 // compressed, inflated -- as its disc's colour and the clip of its box,
@@ -389,12 +480,20 @@ const drawingOf = (pdf: Uint8Array): string => {
 const disc = `${[31, 78, 121].map((channel) => String(channel / 255)).join(' ')} scn`
 const logoBox = /0 0 m\s+42\.52 0 l\s+42\.52 42\.52 l\s+0 42\.52 l\s+h\s+W n/
 const [withLogo, withoutLogo] = [drawingOf(logoBytes), drawingOf(paidPdf)]
-if (!withLogo.includes(disc) || !logoBox.test(withLogo) || withoutLogo.includes(disc) || logoBox.test(withoutLogo)) throw new Error("the SVG logo's disc and the clip of its box were not drawn on the page, or the invoice without it drew them too")
+if (!withLogo.includes(disc) || !logoBox.test(withLogo) || withoutLogo.includes(disc) || logoBox.test(withoutLogo))
+  throw new Error("the SVG logo's disc and the clip of its box were not drawn on the page, or the invoice without it drew them too")
 const unapproved = logoResolution(saved)
-const savedSays = unapproved.ok ? await renderPdf(unapproved.document, { maxPages: 50 }).then(() => undefined, (error: unknown) => error) : undefined
-if (!(savedSays instanceof RenderRefusal) || savedSays.code !== 'invalid-asset' || savedSays.subject !== 'logo') throw new Error(`a drawing as saved, never approved, was not refused as an invalid asset: ${String(savedSays)}`)
+const savedSays = unapproved.ok
+  ? await renderPdf(unapproved.document, { maxPages: 50 }).then(
+      () => undefined,
+      (error: unknown) => error,
+    )
+  : undefined
+if (!(savedSays instanceof RenderRefusal) || savedSays.code !== 'invalid-asset' || savedSays.subject !== 'logo')
+  throw new Error(`a drawing as saved, never approved, was not refused as an invalid asset: ${String(savedSays)}`)
 // The quotation's own mark, printed through the README's lines: the first template asset a host prints from the packed packages, read as the logo's disc and box above.
-if (!drawingOf(rendered).includes(disc) || !logoBox.test(drawingOf(rendered))) throw new Error("the quotation printed through the README's lines did not draw its mark's disc in the clip of its box")
+if (!drawingOf(rendered).includes(disc) || !logoBox.test(drawingOf(rendered)))
+  throw new Error("the quotation printed through the README's lines did not draw its mark's disc in the clip of its box")
 
 // An e-invoice (0027, 0031), validated, written as its XML and drawn as a
 // PDF/A-3b that embeds it: e-invoice.ts, on this report's page.
@@ -412,7 +511,14 @@ const { header: quotationHeader = {}, detail: quotationLines = [] } = quotationD
 const dataServer = 'https://data.invalid'
 const quotationToken = 'q-1'
 const formOf = (id: string, keys: readonly string[]): PublishedForm => ({
-  form: { specVersion: '3', id, title: id, model: { fields: keys.map((key) => (key === 'quotation' ? { key, type: 'select', label: key, optionsSource: 'quotations' } : { key, type: 'text', label: key })) } },
+  form: {
+    specVersion: '3',
+    id,
+    title: id,
+    model: {
+      fields: keys.map((key) => (key === 'quotation' ? { key, type: 'select', label: key, optionsSource: 'quotations' } : { key, type: 'text', label: key })),
+    },
+  },
   operations: ['read'],
   readable: [...keys],
   list: { searchable: [], sortable: [...keys] },
@@ -424,13 +530,18 @@ const dataRoutes: Readonly<Record<string, unknown>> = {
   'GET /v1/forms/quotation': formOf('quotation', Object.keys(quotationHeader)),
   'GET /v1/forms/quotation-line': formOf('quotation-line', lineKeys),
   'POST /v1/forms/quotation/records/read': { record: quotationToken, version: '1', answers: quotationHeader },
-  'POST /v1/forms/quotation-line/records/list': { rows: quotationLines.map((line, index) => ({ record: `l-${String(index)}`, version: '1', answers: { quotation: quotationToken, ...line } })), hasMore: false },
+  'POST /v1/forms/quotation-line/records/list': {
+    rows: quotationLines.map((line, index) => ({ record: `l-${String(index)}`, version: '1', answers: { quotation: quotationToken, ...line } })),
+    hasMore: false,
+  },
 }
 Object.assign(globalThis, {
   fetch: (input: string, init: RequestInit): Promise<Response> => {
     const route = `${init.method ?? 'GET'} ${input.slice(dataServer.length)}`
     const body = Object.hasOwn(dataRoutes, route) ? dataRoutes[route] : { code: 'not-found', message: 'No such route.' }
-    return Promise.resolve(new Response(JSON.stringify(body), { status: Object.hasOwn(dataRoutes, route) ? 200 : 404, headers: { 'content-type': 'application/json' } }))
+    return Promise.resolve(
+      new Response(JSON.stringify(body), { status: Object.hasOwn(dataRoutes, route) ? 200 : 404, headers: { 'content-type': 'application/json' } }),
+    )
   },
 })
 const fromData = await (async () => {
@@ -442,12 +553,16 @@ const fromData = await (async () => {
   if (!provided.ok) throw new Error(provided.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
   const resolution = resolveReport(quotation, provided.data, { mode: 'final', images, creationDate: '2026-10-16T08:00:00Z' })
   if (!resolution.ok) throw new Error(resolution.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
-  if (JSON.stringify([provided.data.header, provided.data.detail]) !== JSON.stringify([quotationHeader, quotationLines]) || resolution.manifest.consistency !== 'best-effort') {
+  if (
+    JSON.stringify([provided.data.header, provided.data.detail]) !== JSON.stringify([quotationHeader, quotationLines]) ||
+    resolution.manifest.consistency !== 'best-effort'
+  ) {
     throw new Error("the quotation read from Data is not the quotation's own data, read best-effort")
   }
   // The manifest names the published form each dataset was read from (0041).
   const source: DataSource | undefined = resolution.manifest.source
-  if (source?.provider !== 'formancy-data' || JSON.stringify(source.forms) !== JSON.stringify({ header: 'quotation', detail: 'quotation-line' })) throw new Error(`the quotation read from Data has no manifest naming its forms: ${JSON.stringify(source)}`)
+  if (source?.provider !== 'formancy-data' || JSON.stringify(source.forms) !== JSON.stringify({ header: 'quotation', detail: 'quotation-line' }))
+    throw new Error(`the quotation read from Data has no manifest naming its forms: ${JSON.stringify(source)}`)
   return renderPdf(resolution.document, { maxPages: 50 })
 })()
 if (new TextDecoder().decode(fromData.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation read from Data did not render to a PDF')

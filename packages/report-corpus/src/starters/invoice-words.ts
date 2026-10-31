@@ -99,7 +99,8 @@ const WORK = [
 ] as const
 
 /** The edition's lines: each description and unit with the quantity and price of the same line of the work. */
-const billed = (lines: readonly (readonly [description: string, unit: string])[]): Item[] => lines.map(([description, unit], index) => [description, unit, ...(WORK[index] as readonly [string, string])])
+const billed = (lines: readonly (readonly [description: string, unit: string])[]): Item[] =>
+  lines.map(([description, unit], index) => [description, unit, ...(WORK[index] as readonly [string, string])])
 
 const NBSP = '\u00a0'
 
@@ -108,7 +109,8 @@ export const GERMAN: Edition = {
   locale: 'de-CH',
   language: 'de',
   title: 'Rechnung mit QR-Zahlteil',
-  proves: 'a Swiss QR-bill: the receipt and the payment part at the foot of the last page, paying the invoice’s exact total by a QR reference read from the data',
+  proves:
+    'a Swiss QR-bill: the receipt and the payment part at the foot of the last page, paying the invoice’s exact total by a QR reference read from the data',
   labels: {
     number: 'Nummer',
     issuedOn: 'Datum',

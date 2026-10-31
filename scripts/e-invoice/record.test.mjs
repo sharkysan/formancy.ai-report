@@ -36,8 +36,20 @@ describe('a recorded text', () => {
   // configuration and the counts -- which stand outside it.
   test("leaves KoSIT's results table out of its console, and nothing else", () => {
     const rule = '-'.repeat(40)
-    const console_ = ['KoSIT Validator version 1.6.3', 'Results:', rule, '|File |Schema|', '|/C:/Work/formancy.ai-repo|   Y  |', 'rt/.claude/x.xml', rule, 'Acceptable:  3  Rejected:  6', ''].join('\r\n')
-    expect(recordedConsole(console_, 'C:\\Work\\formancy.ai-report')).toBe(['KoSIT Validator version 1.6.3', 'Results:', TABLE_LEFT_OUT, 'Acceptable:  3  Rejected:  6', ''].join('\n'))
+    const console_ = [
+      'KoSIT Validator version 1.6.3',
+      'Results:',
+      rule,
+      '|File |Schema|',
+      '|/C:/Work/formancy.ai-repo|   Y  |',
+      'rt/.claude/x.xml',
+      rule,
+      'Acceptable:  3  Rejected:  6',
+      '',
+    ].join('\r\n')
+    expect(recordedConsole(console_, 'C:\\Work\\formancy.ai-report')).toBe(
+      ['KoSIT Validator version 1.6.3', 'Results:', TABLE_LEFT_OUT, 'Acceptable:  3  Rejected:  6', ''].join('\n'),
+    )
     expect(recordedConsole('KoSIT Validator version 1.6.3\nAcceptable:  0\n', 'C:\\r')).toBe('KoSIT Validator version 1.6.3\nAcceptable:  0\n')
     expect(() => recordedConsole(`Results:\n${rule}\n|row|\n`, 'C:\\r')).toThrow('KoSIT’s console has a results table that does not close')
   })
@@ -64,8 +76,24 @@ describe('the recorded corpus', () => {
   // gone -- leaves them testing files the gate does not judge, and the run
   // says so, naming how to record again.
   test('is the XML this run judged, file for file and byte for byte', () => {
-    expect(staleRecorded(entries, new Map([['a.xml', '<a/>'], ['b.xml', '<b/>']]))).toEqual([])
-    expect(staleRecorded(entries, new Map([['a.xml', '<a />'], ['c.xml', '<c/>']]))).toEqual([
+    expect(
+      staleRecorded(
+        entries,
+        new Map([
+          ['a.xml', '<a/>'],
+          ['b.xml', '<b/>'],
+        ]),
+      ),
+    ).toEqual([])
+    expect(
+      staleRecorded(
+        entries,
+        new Map([
+          ['a.xml', '<a />'],
+          ['c.xml', '<c/>'],
+        ]),
+      ),
+    ).toEqual([
       'scripts/e-invoice/recorded/corpus/a.xml is not the XML this run judged: run node scripts/e-invoice.mjs --record, and commit what it writes',
       'scripts/e-invoice/recorded/corpus/ holds no b.xml, which this run judged: run node scripts/e-invoice.mjs --record, and commit what it writes',
       'scripts/e-invoice/recorded/corpus/c.xml is no file this run judged: run node scripts/e-invoice.mjs --record, and commit what it writes',
@@ -80,13 +108,43 @@ describe('the recorded corpus', () => {
       { file: 'a.pdf', format: 'pdf', digest: 'aa' },
       { file: 'b.pdf', format: 'pdf', digest: 'bb' },
     ]
-    expect(staleRecorded(pdfs, new Map(), new Map([['a.pdf', 'aa'], ['b.pdf', 'bb']]))).toEqual([])
-    expect(staleRecorded(pdfs, new Map(), new Map([['a.pdf', 'ab'], ['c.pdf', 'cc']]))).toEqual([
+    expect(
+      staleRecorded(
+        pdfs,
+        new Map(),
+        new Map([
+          ['a.pdf', 'aa'],
+          ['b.pdf', 'bb'],
+        ]),
+      ),
+    ).toEqual([])
+    expect(
+      staleRecorded(
+        pdfs,
+        new Map(),
+        new Map([
+          ['a.pdf', 'ab'],
+          ['c.pdf', 'cc'],
+        ]),
+      ),
+    ).toEqual([
       'scripts/e-invoice/recorded/run.json records a.pdf as another PDF than this run drew, its objects inflated: run node scripts/e-invoice.mjs --record, and commit what it writes',
       'scripts/e-invoice/recorded/run.json records no b.pdf, which this run judged: run node scripts/e-invoice.mjs --record, and commit what it writes',
       'scripts/e-invoice/recorded/run.json records c.pdf, which this run did not judge: run node scripts/e-invoice.mjs --record, and commit what it writes',
     ])
     // A PDF is never held to an XML file of its name, nor an XML file to a digest.
-    expect(staleRecorded([...entries, ...pdfs], new Map([['a.xml', '<a/>'], ['b.xml', '<b/>']]), new Map([['a.pdf', 'aa'], ['b.pdf', 'bb']]))).toEqual([])
+    expect(
+      staleRecorded(
+        [...entries, ...pdfs],
+        new Map([
+          ['a.xml', '<a/>'],
+          ['b.xml', '<b/>'],
+        ]),
+        new Map([
+          ['a.pdf', 'aa'],
+          ['b.pdf', 'bb'],
+        ]),
+      ),
+    ).toEqual([])
   })
 })

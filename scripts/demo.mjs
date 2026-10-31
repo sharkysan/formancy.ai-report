@@ -104,21 +104,28 @@ export function configProblems(config) {
   if (config.preview_urls !== false) problems.push('preview_urls is not false: every version would answer on an address of its own')
   const routes = config.routes ?? []
   for (const route of routes) {
-    if (route.custom_domain !== undefined) problems.push(`the route ${String(route.pattern)} sets custom_domain: a Custom Domain takes a whole hostname, and the demo is one path of ${HOST}`)
+    if (route.custom_domain !== undefined)
+      problems.push(`the route ${String(route.pattern)} sets custom_domain: a Custom Domain takes a whole hostname, and the demo is one path of ${HOST}`)
     else if (route.zone_name !== HOST) problems.push(`the route ${String(route.pattern)} is on the zone ${String(route.zone_name)}, not ${HOST}`)
   }
   const base = demoBase(config)
   if (base === undefined) problems.push(`no route ${HOST}/<path>/*: nothing says which path of ${HOST} the demo is`)
-  else if (!/^\/[a-z][a-z0-9-]*\/$/.test(base)) problems.push(`the demo's path is ${base}: it is one path of ${HOST}, never its whole site, which is formancy.ai's own Worker's`)
+  else if (!/^\/[a-z][a-z0-9-]*\/$/.test(base))
+    problems.push(`the demo's path is ${base}: it is one path of ${HOST}, never its whole site, which is formancy.ai's own Worker's`)
   else {
     const bare = `${HOST}${base.slice(0, -1)}`
     const expected = [`${HOST}${base}*`, bare]
-    if (!routes.some((route) => route.pattern === bare)) problems.push(`no route ${bare}: the path without its slash would be answered by formancy.ai's 404 instead of being sent to ${base}`)
+    if (!routes.some((route) => route.pattern === bare))
+      problems.push(`no route ${bare}: the path without its slash would be answered by formancy.ai's 404 instead of being sent to ${base}`)
     const others = routes.filter((route) => !expected.includes(route.pattern))
     for (const route of others) problems.push(`the route ${String(route.pattern)} is not the demo's path: it would send the demo more of ${HOST} than ${base}`)
   }
-  if (config.assets?.directory !== STAGE) problems.push(`assets.directory is ${String(config.assets?.directory)}, not ${STAGE}: the deploy stages the build there, under the demo's path`)
-  if (config.assets?.html_handling !== 'auto-trailing-slash') problems.push(`assets.html_handling is ${String(config.assets?.html_handling)}, not auto-trailing-slash, which sends the path without its slash to the page and its relative files`)
+  if (config.assets?.directory !== STAGE)
+    problems.push(`assets.directory is ${String(config.assets?.directory)}, not ${STAGE}: the deploy stages the build there, under the demo's path`)
+  if (config.assets?.html_handling !== 'auto-trailing-slash')
+    problems.push(
+      `assets.html_handling is ${String(config.assets?.html_handling)}, not auto-trailing-slash, which sends the path without its slash to the page and its relative files`,
+    )
   return problems
 }
 
@@ -186,9 +193,11 @@ function main(args) {
   const problems = configProblems(config)
   if (problems.length > 0) throw new Error(`apps/studio/wrangler.json is not the demo's:\n  ${problems.join('\n  ')}`)
   const changed = run('git', ['status', '--porcelain'])
-  if (changed !== '' && !dryRun) throw new Error(`the checkout has changes, and the deployment would name a commit that does not hold them; commit them first:\n${changed}`)
+  if (changed !== '' && !dryRun)
+    throw new Error(`the checkout has changes, and the deployment would name a commit that does not hold them; commit them first:\n${changed}`)
   for (const { app: built, writes } of BUILDS) {
-    if (!existsSync(join(repo, built, 'dist', writes))) throw new Error(`${built}/dist/${writes} is not there: run \`pnpm build\` first, or \`pnpm demo:deploy\`, which does`)
+    if (!existsSync(join(repo, built, 'dist', writes)))
+      throw new Error(`${built}/dist/${writes} is not there: run \`pnpm build\` first, or \`pnpm demo:deploy\`, which does`)
   }
   const commit = run('git', ['rev-parse', 'HEAD'])
   const stage = join(app, STAGE)
@@ -199,12 +208,25 @@ function main(args) {
       BUILDS.map(({ app: built }) => join(repo, built, 'dist')),
       join(stage, base),
     )
-    const deploy = ['--yes', WRANGLER, 'deploy', '--config', 'apps/studio/wrangler.json', '--message', `formancy.ai-report@${commit}`, ...(dryRun ? ['--dry-run'] : [])]
+    const deploy = [
+      '--yes',
+      WRANGLER,
+      'deploy',
+      '--config',
+      'apps/studio/wrangler.json',
+      '--message',
+      `formancy.ai-report@${commit}`,
+      ...(dryRun ? ['--dry-run'] : []),
+    ]
     run('npx', deploy, { stdio: 'inherit' })
   } finally {
     rmSync(stage, { recursive: true, force: true })
   }
-  console.log(dryRun ? `\nchecked, and nothing uploaded: ${commit}${changed === '' ? '' : ', with uncommitted changes'} would be served at ${demoUrl(config)}` : `\n${commit} is served at ${demoUrl(config)}`)
+  console.log(
+    dryRun
+      ? `\nchecked, and nothing uploaded: ${commit}${changed === '' ? '' : ', with uncommitted changes'} would be served at ${demoUrl(config)}`
+      : `\n${commit} is served at ${demoUrl(config)}`,
+  )
 }
 
 if (process.argv[1]?.endsWith('demo.mjs')) {

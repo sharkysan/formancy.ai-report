@@ -85,7 +85,10 @@ if (root === undefined) throw new Error("the guide's page draws no <report-build
 wrong.push(...structureProblems(root, opened.editor.state()))
 expect(elementsIn(page).filter((element) => element.tag === 'button' && spokenText(element) === 'Save').length === 1, 'the page has not one Save button')
 expect(drawn === listening + 1, `the editor had ${String(listening)} listeners before the page was drawn and ${String(drawn)} once it was, not one more`)
-expect(opened.editor.listenerCount() === listening, `the editor had ${String(listening)} listeners before the page was drawn and ${String(opened.editor.listenerCount())} after the application was destroyed`)
+expect(
+  opened.editor.listenerCount() === listening,
+  `the editor had ${String(listening)} listeners before the page was drawn and ${String(opened.editor.listenerCount())} after the application was destroyed`,
+)
 
 opened.editor.dispose()
 if (wrong.length > 0) throw new Error(`the guide's Angular page, on Angular ${VERSION.full}:\n- ${wrong.join('\n- ')}`)

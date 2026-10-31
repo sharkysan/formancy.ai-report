@@ -57,7 +57,12 @@ const ADDED: { readonly [P in ReportLevelPart]: (report: ReportDefinition) => Ed
   paymentPart: (report) => {
     if (report.paymentPart !== undefined) return 'status.hasQrBill'
     const bill = newPaymentPart(report)
-    return { command: (r) => putPaymentPart(r, bill), step: { do: 'said', id: 'history.addQrBill' }, announce: 'status.qrBillAdded', then: () => ({ part: 'paymentPart' }) }
+    return {
+      command: (r) => putPaymentPart(r, bill),
+      step: { do: 'said', id: 'history.addQrBill' },
+      announce: 'status.qrBillAdded',
+      then: () => ({ part: 'paymentPart' }),
+    }
   },
   // An e-invoice is edited and never made from nothing (INV-Q9): a starter
   // gives one, and a report's tables, parties and categories are the
@@ -133,7 +138,9 @@ export function partActions(lent: PartLent, t: EditorText, locale: EditorLocale)
    * The list at `list` of the selection -- the pointer its own group names
    * -- and what the panel edits, or the refusal for a key that names none.
    */
-  function listAt(list: string): { readonly group: ListGroup; readonly items: readonly unknown[]; readonly target: PropertyTarget; readonly report: ReportDefinition } | EditorOutcome {
+  function listAt(
+    list: string,
+  ): { readonly group: ListGroup; readonly items: readonly unknown[]; readonly target: PropertyTarget; readonly report: ReportDefinition } | EditorOutcome {
     const { target, groups, report } = panel()
     const group = groups.find((spec): spec is ListGroup => spec.list?.key === list)
     if (group === undefined) return lent.refuse('not-found', t('status.notFound', { name: list }))
@@ -146,12 +153,20 @@ export function partActions(lent: PartLent, t: EditorText, locale: EditorLocale)
     const index = Number(key.slice(slash + 1))
     const found = listAt(key.slice(0, slash))
     if ('ok' in found) return found
-    if (!Number.isInteger(index) || index < 0 || index >= found.items.length || key.slice(slash + 1) !== String(index)) return lent.refuse('not-found', t('status.notFound', { name: key }))
+    if (!Number.isInteger(index) || index < 0 || index >= found.items.length || key.slice(slash + 1) !== String(index))
+      return lent.refuse('not-found', t('status.notFound', { name: key }))
     return { ...found, index }
   }
 
   /** An edit of the list as a whole: the list at its key put back as `next`, one undo step `step`, the selection kept. */
-  function listEdit(found: Exclude<ReturnType<typeof listAt>, EditorOutcome>, next: readonly unknown[], step: keyof ListSpec & ('added' | 'removed' | 'moved'), announce: Edit['announce'], name: string, n?: number): EditorOutcome {
+  function listEdit(
+    found: Exclude<ReturnType<typeof listAt>, EditorOutcome>,
+    next: readonly unknown[],
+    step: keyof ListSpec & ('added' | 'removed' | 'moved'),
+    announce: Edit['announce'],
+    name: string,
+    n?: number,
+  ): EditorOutcome {
     const selection = lent.local().selection
     const edit: Edit = {
       command: propertyChange(found.report, found.target, found.group.list.key, next).command,
@@ -185,14 +200,21 @@ export function partActions(lent: PartLent, t: EditorText, locale: EditorLocale)
       const found = unnamed(key) ?? itemAt(key)
       if ('ok' in found) return found
       const name = t(found.group.list.item, { item: found.index + 1 })
-      return listEdit(found, found.items.filter((_, at) => at !== found.index), 'removed', 'status.itemRemoved', name)
+      return listEdit(
+        found,
+        found.items.filter((_, at) => at !== found.index),
+        'removed',
+        'status.itemRemoved',
+        name,
+      )
     },
     moveItem(key, to) {
       const found = unnamed(key) ?? itemAt(key)
       if ('ok' in found) return found
       const name = t(found.group.list.item, { item: found.index + 1 })
       if (to === found.index) return lent.refuse('at-edge', t('status.notMoved'))
-      if (!Number.isInteger(to) || to < 0 || to >= found.items.length) return lent.refuse('at-edge', t(to < found.index ? 'status.first' : 'status.last', { name }))
+      if (!Number.isInteger(to) || to < 0 || to >= found.items.length)
+        return lent.refuse('at-edge', t(to < found.index ? 'status.first' : 'status.last', { name }))
       const moved = found.items.filter((_, at) => at !== found.index)
       moved.splice(to, 0, found.items[found.index])
       return listEdit(found, moved, 'moved', 'status.itemMoved', name, to + 1)

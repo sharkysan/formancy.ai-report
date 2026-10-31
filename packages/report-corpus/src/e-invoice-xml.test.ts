@@ -73,7 +73,17 @@ const REPORT = {
       {
         id: 'totals',
         kind: 'text',
-        content: ['invoice.taxBasisTotal', 'vatBasis.standard', 'vatAmount.standard', 'vatBasis.reduced', 'vatAmount.reduced', 'invoice.taxTotal', 'invoice.grandTotal', 'invoice.paid', 'invoice.duePayable'].map(printed),
+        content: [
+          'invoice.taxBasisTotal',
+          'vatBasis.standard',
+          'vatAmount.standard',
+          'vatBasis.reduced',
+          'vatAmount.reduced',
+          'invoice.taxTotal',
+          'invoice.grandTotal',
+          'invoice.paid',
+          'invoice.duePayable',
+        ].map(printed),
       },
     ],
   },
@@ -108,8 +118,23 @@ const REPORT = {
       { id: 'standard', code: 'S', rate: '19' },
       { id: 'reduced', code: 'S', rate: '7.00' },
     ],
-    lines: { table: 'lines', name: 'item', quantity: 'qty', netPrice: 'price', netAmount: 'amount', id: field('detail', 'position'), unit: field('detail', 'unit'), vat: field('detail', 'vat') },
-    payment: { means: '58', iban: said('DE83 0123 4567 0012 3456 78'), bic: said('COBADEFFXXX'), accountName: said('Muster & Söhne'), remittance: [{ kind: 'text', text: 'Rechnung ' }, field('header', 'number')] },
+    lines: {
+      table: 'lines',
+      name: 'item',
+      quantity: 'qty',
+      netPrice: 'price',
+      netAmount: 'amount',
+      id: field('detail', 'position'),
+      unit: field('detail', 'unit'),
+      vat: field('detail', 'vat'),
+    },
+    payment: {
+      means: '58',
+      iban: said('DE83 0123 4567 0012 3456 78'),
+      bic: said('COBADEFFXXX'),
+      accountName: said('Muster & Söhne'),
+      remittance: [{ kind: 'text', text: 'Rechnung ' }, field('header', 'number')],
+    },
     due: { cel: '"2026-10-31"' },
     terms: said('Zahlbar binnen 14 Tagen;\r\n2 % Skonto bis 24.10.2026'),
     paid: { cel: 'dec("10.00")' },
@@ -129,7 +154,11 @@ function asXRechnung(report: typeof REPORT): ReportDefinition {
 }
 
 function xmlOf(report: ReportDefinition = JSON.parse(JSON.stringify(REPORT)) as ReportDefinition): string {
-  const outcome = resolveReport(report, { header: { number: 'RE-2026-0042' }, detail: ROWS, completeness: { complete: true, captured: 3 }, consistency: 'host-captured' }, { mode: 'final', creationDate: '2026-10-17T08:00:00Z' })
+  const outcome = resolveReport(
+    report,
+    { header: { number: 'RE-2026-0042' }, detail: ROWS, completeness: { complete: true, captured: 3 }, consistency: 'host-captured' },
+    { mode: 'final', creationDate: '2026-10-17T08:00:00Z' },
+  )
   if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join('; '))
   return outcome.document.eInvoice?.xml ?? ''
 }
@@ -234,7 +263,9 @@ describe("the runtime's CII, read by another parser", () => {
     expect(parsed.attributes.get(`${SUMMATION}/ram:TaxTotalAmount/@currencyID`)).toEqual(['EUR'])
     const named = [...parsed.attributes.keys()].map((path) => path.split('/@')[1])
     expect(new Set(named)).toEqual(new Set(['unitCode', 'schemeID', 'currencyID', 'format']))
-    expect([...parsed.attributes.entries()].filter(([path]) => path.endsWith('/@format')).flatMap(([, values]) => values)).toEqual(Array.from({ length: 5 }, () => '102'))
+    expect([...parsed.attributes.entries()].filter(([path]) => path.endsWith('/@format')).flatMap(([, values]) => values)).toEqual(
+      Array.from({ length: 5 }, () => '102'),
+    )
   })
 
   // An XRechnung is written by the same writer (0038): the same report as

@@ -63,7 +63,9 @@ export function verifyRefusal(fixture: Fixture, error: unknown): string[] {
   const { outcome, refusal } = fixture.expect
   const problem = ((): string | undefined => {
     if (outcome === 'render') {
-      return error instanceof RenderRefusal ? `refused with ${error.code} (${error.message}); expected a PDF` : `failed with ${described(error)}; expected a PDF`
+      return error instanceof RenderRefusal
+        ? `refused with ${error.code} (${error.message}); expected a PDF`
+        : `failed with ${described(error)}; expected a PDF`
     }
     if (refusal === undefined) return 'the fixture allows a refusal but names no refusal code'
     if (!(error instanceof RenderRefusal)) return `failed with ${described(error)}; expected the refusal ${refusal.code}`

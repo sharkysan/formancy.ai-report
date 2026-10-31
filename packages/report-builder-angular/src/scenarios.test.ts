@@ -14,7 +14,15 @@
  * the store `scenarioStore` gives it.
  */
 import { TestBed } from '@angular/core/testing'
-import { BUILDER_SCENARIOS, builderScenarios, createReportEditor, EDITOR_LOCALES, SCENARIO_ACTIONS, SCENARIO_EXPECTATIONS, scenarioStore } from '@formancy/report-builder-core'
+import {
+  BUILDER_SCENARIOS,
+  builderScenarios,
+  createReportEditor,
+  EDITOR_LOCALES,
+  SCENARIO_ACTIONS,
+  SCENARIO_EXPECTATIONS,
+  scenarioStore,
+} from '@formancy/report-builder-core'
 import type { AddedImage, BuilderScenario, ReportEditor, ScenarioFile, ScenarioQuery, ScenarioStep } from '@formancy/report-builder-core'
 import type { ReportSession } from '@formancy/report-core'
 import { screen, waitFor } from '@testing-library/angular'
@@ -128,7 +136,11 @@ async function play(scenario: BuilderScenario): Promise<void> {
   const session = sessionOver(scenario.report())
   const { host } = scenario
   const images = scenarioStore(scenario)
-  const editor = createReportEditor(session, { locale: scenario.locale, ...(host === undefined ? {} : { hostView: host }), ...(images === undefined ? {} : { images: images.store }) })
+  const editor = createReportEditor(session, {
+    locale: scenario.locale,
+    ...(host === undefined ? {} : { hostView: host }),
+    ...(images === undefined ? {} : { images: images.store }),
+  })
   const mounted = host === undefined ? await mountBuilder(editor) : await mountWithHostView(editor, host.control)
   for (const step of scenario.steps) await run(step, mounted, session, images?.kept ?? [])
   expect(await audit()).toEqual([])

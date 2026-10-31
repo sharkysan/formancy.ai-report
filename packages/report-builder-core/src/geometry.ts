@@ -184,7 +184,15 @@ export function layoutReport(report: ReportDefinition): Layout {
         for (const [index, columnWidth] of shares(widths, width).entries()) {
           const column = component.columns[index]
           if (column !== undefined) {
-            parts.push({ key: columnKey(component.id, column.id), id: component.id, column: column.id, kind: 'tableColumn', depth: depth + 1, box: { x: left, y, width: columnWidth, height }, overflows: false })
+            parts.push({
+              key: columnKey(component.id, column.id),
+              id: component.id,
+              column: column.id,
+              kind: 'tableColumn',
+              depth: depth + 1,
+              box: { x: left, y, width: columnWidth, height },
+              overflows: false,
+            })
           }
           left += columnWidth
         }
@@ -221,7 +229,12 @@ export function layoutReport(report: ReportDefinition): Layout {
 
 function marginsPx(margins: Margins, zoom: number): Margins {
   const scale = zoom * PX_PER_PT
-  return { top: hundredths(margins.top * scale), right: hundredths(margins.right * scale), bottom: hundredths(margins.bottom * scale), left: hundredths(margins.left * scale) }
+  return {
+    top: hundredths(margins.top * scale),
+    right: hundredths(margins.right * scale),
+    bottom: hundredths(margins.bottom * scale),
+    left: hundredths(margins.left * scale),
+  }
 }
 
 /** The page in points, and in CSS pixels at `zoom`. */

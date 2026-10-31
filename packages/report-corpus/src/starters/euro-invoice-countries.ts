@@ -218,7 +218,12 @@ export const EURO_COUNTRIES: Readonly<Record<EuroCountry, EuroBilling>> = {
     // The legal form, its share capital and its SIREN, which a company's
     // invoice states in France (service-public.fr, F31808), the capital
     // under a thousand so that no grouping mark prints.
-    firm: { name: 'Formancy Chauffage SAS', address: ['7 rue de l’Industrie', '31200 Toulouse'], vatNumber: 'FR32123456789', legal: ['SAS au capital de 500 €', 'SIREN 123 456 789'] },
+    firm: {
+      name: 'Formancy Chauffage SAS',
+      address: ['7 rue de l’Industrie', '31200 Toulouse'],
+      vatNumber: 'FR32123456789',
+      legal: ['SAS au capital de 500 €', 'SIREN 123 456 789'],
+    },
     iban: 'FR76 0123 4000 1200 0123 4567 880',
     bic: 'FMNCFRP0XXX',
     address: { street: ['buildingNumber', 'street'], town: ['postcode', 'city'] },

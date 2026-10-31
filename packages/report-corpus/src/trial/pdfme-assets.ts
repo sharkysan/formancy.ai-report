@@ -99,7 +99,7 @@ function readPng(bytes: Uint8Array): Png | undefined {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const idat: Uint8Array[] = []
   let header: Omit<Png, 'idat'> | undefined
-  for (let offset = 8; offset + 12 <= bytes.length; ) {
+  for (let offset = 8; offset + 12 <= bytes.length;) {
     const length = view.getUint32(offset)
     const type = String.fromCharCode(...bytes.subarray(offset + 4, offset + 8))
     const data = offset + 12 + length <= bytes.length ? bytes.subarray(offset + 8, offset + 8 + length) : undefined
@@ -109,7 +109,13 @@ function readPng(bytes: Uint8Array): Png | undefined {
       const fields = new DataView(data.buffer, data.byteOffset, 13)
       // Compression and filter method 0 are the only ones the specification defines.
       if (fields.getUint8(10) !== 0 || fields.getUint8(11) !== 0 || fields.getUint8(12) > 1) return undefined
-      header = { width: fields.getUint32(0), height: fields.getUint32(4), bitDepth: fields.getUint8(8), colourType: fields.getUint8(9), interlaced: fields.getUint8(12) === 1 }
+      header = {
+        width: fields.getUint32(0),
+        height: fields.getUint32(4),
+        bitDepth: fields.getUint8(8),
+        colourType: fields.getUint8(9),
+        interlaced: fields.getUint8(12) === 1,
+      }
     } else if (type === 'IHDR') {
       return undefined
     }
@@ -139,7 +145,8 @@ function joined(parts: readonly Uint8Array[]): Uint8Array {
  */
 function pixelDataProblem(png: Png): string | undefined {
   const colour = COLOUR_TYPES.get(png.colourType)
-  if (colour === undefined || !colour.depths.includes(png.bitDepth)) return `has colour type ${png.colourType} at ${png.bitDepth} bits, which PNG does not allow`
+  if (colour === undefined || !colour.depths.includes(png.bitDepth))
+    return `has colour type ${png.colourType} at ${png.bitDepth} bits, which PNG does not allow`
   const passes = scanlines(png, colour.samples * png.bitDepth)
   const expected = passes.reduce((total, pass) => total + pass.rows * (1 + pass.rowBytes), 0)
   let inflated: Uint8Array
@@ -175,7 +182,9 @@ function scanlines(png: Png, bitsPerPixel: number): { rows: number; rowBytes: nu
   const pass = (rows: number, columns: number): { rows: number; rowBytes: number } => ({ rows, rowBytes: Math.ceil((columns * bitsPerPixel) / 8) })
   if (!png.interlaced) return [pass(png.height, png.width)]
   const count = (size: number, start: number, step: number): number => (size > start ? Math.ceil((size - start) / step) : 0)
-  return ADAM7.map((adam) => pass(count(png.height, adam.row, adam.rowStep), count(png.width, adam.column, adam.columnStep))).filter((scan) => scan.rows > 0 && scan.rowBytes > 0)
+  return ADAM7.map((adam) => pass(count(png.height, adam.row, adam.rowStep), count(png.width, adam.column, adam.columnStep))).filter(
+    (scan) => scan.rows > 0 && scan.rowBytes > 0,
+  )
 }
 
 /** Start-of-frame markers, the ones that carry a JPEG's size: every SOFn but the DHT, JPG and DAC markers that share their range. */

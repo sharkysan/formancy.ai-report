@@ -36,7 +36,8 @@ function refused(report: ReportDefinition, data: ReportData, options: ResolveOpt
 const text = (block: Block | undefined): string => (block?.kind === 'paragraph' ? block.runs.map((run) => ('text' in run ? run.text : '')).join('') : '')
 
 /** Every value of the element `name` in `xml`, in order. */
-const values = (xml: string, name: string): string[] => [...xml.matchAll(new RegExp(`<${name}(?: [^>]*)?>([^<]*)</${name}>`, 'g'))].map((match) => match[1] as string)
+const values = (xml: string, name: string): string[] =>
+  [...xml.matchAll(new RegExp(`<${name}(?: [^>]*)?>([^<]*)</${name}>`, 'g'))].map((match) => match[1] as string)
 
 const LINES = [invoiceRow(), invoiceRow({ position: '2', item: 'Brot', quantity: '3', unit: 'KGM', price: '2.99', amount: '8.97', vat: 'reduced' })]
 
@@ -48,7 +49,13 @@ describe("a final render's XRechnung", () => {
   // which would make a renderer draw a hybrid nobody asked for.
   test('is its XML, named by its syntax, guideline and version, for a host to take', () => {
     const file = resolved(xrechnungReport(), xrechnungData(LINES)).document.eInvoice
-    expect(file).toEqual({ kind: 'xrechnung', xml: expect.stringMatching(/^<\?xml version="1\.0" encoding="UTF-8"\?>\n<rsm:CrossIndustryInvoice /), syntax: 'cii', guideline: XRECHNUNG['3.0'].guideline, version: '3.0' })
+    expect(file).toEqual({
+      kind: 'xrechnung',
+      xml: expect.stringMatching(/^<\?xml version="1\.0" encoding="UTF-8"\?>\n<rsm:CrossIndustryInvoice /),
+      syntax: 'cii',
+      guideline: XRECHNUNG['3.0'].guideline,
+      version: '3.0',
+    })
     expect(values(file?.xml ?? '', 'ram:ID')[1]).toBe('urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0')
     expect(runtime.XRECHNUNG).toBe(XRECHNUNG)
     const facturX = resolved(invoiceReport(), invoiceData(LINES)).document.eInvoice
@@ -94,7 +101,8 @@ describe("a final render's XRechnung", () => {
     expect(first).toEqual(XRECHNUNG_COPY_PARAGRAPH)
     expect(XRECHNUNG_COPY_PARAGRAPH).toEqual({ kind: 'paragraph', runs: [{ text: XRECHNUNG_COPY_LABEL }], style: { size: 8, bold: true, color: '#b00020' } })
     expect(runtime.XRECHNUNG_COPY_PARAGRAPH).toBe(XRECHNUNG_COPY_PARAGRAPH)
-    for (const part of [XRECHNUNG_COPY_PARAGRAPH, XRECHNUNG_COPY_PARAGRAPH.runs, XRECHNUNG_COPY_PARAGRAPH.runs[0], XRECHNUNG_COPY_PARAGRAPH.style]) expect(Object.isFrozen(part)).toBe(true)
+    for (const part of [XRECHNUNG_COPY_PARAGRAPH, XRECHNUNG_COPY_PARAGRAPH.runs, XRECHNUNG_COPY_PARAGRAPH.runs[0], XRECHNUNG_COPY_PARAGRAPH.style])
+      expect(Object.isFrozen(part)).toBe(true)
     // The document's own paragraph is another object: a host may build on a resolved document as it likes.
     expect(first).not.toBe(XRECHNUNG_COPY_PARAGRAPH)
     // The preview's label is printed in the same style, from the same place.
@@ -132,7 +140,13 @@ describe('what an XRechnung needs, as the data gives it', () => {
     const report = xrechnungReport()
     const invoice = report.eInvoice as Extract<ReportDefinition['eInvoice'], { kind: 'xrechnung' }>
     const fromData = (field: string) => [{ kind: 'field', field: { dataset: 'header', field } }] as const
-    const contacted = { ...report, eInvoice: { ...invoice, seller: { ...invoice.seller, contact: { name: fromData('number'), telephone: fromData('buyerVatId'), email: fromData('street') } } } } as ReportDefinition
+    const contacted = {
+      ...report,
+      eInvoice: {
+        ...invoice,
+        seller: { ...invoice.seller, contact: { name: fromData('number'), telephone: fromData('buyerVatId'), email: fromData('street') } },
+      },
+    } as ReportDefinition
     expect(refused(contacted, xrechnungData(LINES, { number: null, buyerVatId: null, street: null })).filter((error) => error.includes('/contact/'))).toEqual([
       "invalid-e-invoice /eInvoice/seller/contact/name the e-invoice: the seller's contact point (BT-41) is empty, and an XRechnung needs it (XRechnung's BR-DE-5)",
       "invalid-e-invoice /eInvoice/seller/contact/telephone the e-invoice: the seller's contact telephone number (BT-42) is empty, and an XRechnung needs it (XRechnung's BR-DE-6)",
@@ -144,12 +158,24 @@ describe('what an XRechnung needs, as the data gives it', () => {
   // is: a Skonto line the data puts in an XRechnung's terms is refused,
   // and a Factur-X invoice's terms are free text.
   test('refuses payment terms the data gives a line led by #', () => {
-    const withTerms = (report: ReportDefinition): ReportDefinition => ({ ...report, eInvoice: { ...report.eInvoice, terms: [{ kind: 'text', text: 'Zahlbar binnen 14 Tagen.\n' }, { kind: 'field', field: { dataset: 'header', field: 'buyer' } }] } } as ReportDefinition)
+    const withTerms = (report: ReportDefinition): ReportDefinition =>
+      ({
+        ...report,
+        eInvoice: {
+          ...report.eInvoice,
+          terms: [
+            { kind: 'text', text: 'Zahlbar binnen 14 Tagen.\n' },
+            { kind: 'field', field: { dataset: 'header', field: 'buyer' } },
+          ],
+        },
+      }) as ReportDefinition
     const skonto = { buyer: '#SKONTO#TAGE=14#PROZENT=2.00#' }
     expect(refused(withTerms(xrechnungReport()), xrechnungData(LINES, skonto))).toEqual([
       "invalid-e-invoice /eInvoice/terms the e-invoice: the payment terms (BT-20) hold a line that begins with #, which XRechnung reads as a Skonto line of its own syntax, and this release writes none: a discount is said in words (XRechnung's BR-DE-18)",
     ])
-    expect(values(resolved(withTerms(invoiceReport()), invoiceData(LINES, skonto)).document.eInvoice?.xml ?? '', 'ram:Description')).toEqual(['Zahlbar binnen 14 Tagen.\n#SKONTO#TAGE=14#PROZENT=2.00#'])
+    expect(values(resolved(withTerms(invoiceReport()), invoiceData(LINES, skonto)).document.eInvoice?.xml ?? '', 'ram:Description')).toEqual([
+      'Zahlbar binnen 14 Tagen.\n#SKONTO#TAGE=14#PROZENT=2.00#',
+    ])
   })
 
   // An electronic address under 0204 is a Leitweg-ID, whatever the kind:
@@ -159,6 +185,8 @@ describe('what an XRechnung needs, as the data gives it', () => {
     expect(refused(xrechnungReport(), xrechnungData(LINES, { leitwegId: '991-33333TEST-34' }))).toEqual([
       "invalid-e-invoice /eInvoice/buyer/electronicAddress/id the e-invoice: the buyer's electronic address (BT-49) is under 0204, a Leitweg-ID, and has check digits that do not match the rest of it (the Leitweg-ID's check digits, ISO/IEC 7064 MOD 97-10)",
     ])
-    expect(resolved(xrechnungReport(), xrechnungData(LINES, { leitwegId: '04011000-12345-03' })).document.eInvoice?.xml).toContain('<ram:URIID schemeID="0204">04011000-12345-03</ram:URIID>')
+    expect(resolved(xrechnungReport(), xrechnungData(LINES, { leitwegId: '04011000-12345-03' })).document.eInvoice?.xml).toContain(
+      '<ram:URIID schemeID="0204">04011000-12345-03</ram:URIID>',
+    )
   })
 })

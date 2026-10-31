@@ -11,7 +11,8 @@ import { inputs, site } from './test-site.js'
  * starts, and the samples it shows, one per language. The checks every
  * page passes are site.test.ts's.
  */
-const pagesOf = (group: string) => site.pages.filter((page) => page.group === group).map((page) => ({ ...page, document: new DOMParser().parseFromString(page.html, 'text/html') }))
+const pagesOf = (group: string) =>
+  site.pages.filter((page) => page.group === group).map((page) => ({ ...page, document: new DOMParser().parseFromString(page.html, 'text/html') }))
 
 /** Text with its whitespace collapsed, a no-break space a space, as the French pages set theirs. */
 const collapsed = (text: string | null | undefined): string => (text ?? '').replaceAll(/\s+/g, ' ').trim()
@@ -41,12 +42,21 @@ describe('the QR-bill page (0024)', () => {
     for (const language of LANGUAGES) expect([language, collapsed(QR_BILL_COPY[language].standing).split(' ').length >= 4]).toEqual([language, true])
     for (const page of pagesOf('qr-bill')) {
       const { standing } = QR_BILL_COPY[page.language]
-      expect([page.language, collapsed(page.document.querySelector('section.hero')?.textContent)]).toEqual([page.language, expect.stringContaining(collapsed(standing))])
-      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="try"] p')?.textContent)]).toEqual([page.language, expect.stringContaining(inputs.release.version)])
+      expect([page.language, collapsed(page.document.querySelector('section.hero')?.textContent)]).toEqual([
+        page.language,
+        expect.stringContaining(collapsed(standing)),
+      ])
+      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="try"] p')?.textContent)]).toEqual([
+        page.language,
+        expect.stringContaining(inputs.release.version),
+      ])
     }
     for (const page of pagesOf('product')) {
       const { standing } = QR_BILL_COPY[page.language]
-      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="topic-qr-bill"]')?.textContent)]).toEqual([page.language, expect.stringContaining(collapsed(standing))])
+      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="topic-qr-bill"]')?.textContent)]).toEqual([
+        page.language,
+        expect.stringContaining(collapsed(standing)),
+      ])
     }
   })
 
@@ -57,7 +67,11 @@ describe('the QR-bill page (0024)', () => {
     const first = { de: 'starter-invoice.png', fr: 'invoice-fr.png', it: 'invoice-it.png', en: 'invoice-en.png' }
     for (const page of pagesOf('qr-bill')) {
       const shown = [...page.document.querySelectorAll('section[aria-labelledby="samples"] img')].map((image) => image.getAttribute('src')?.split('/').pop())
-      expect({ language: page.language, first: shown[0], all: [...shown].sort() }).toEqual({ language: page.language, first: first[page.language], all: Object.values(first).sort() })
+      expect({ language: page.language, first: shown[0], all: [...shown].sort() }).toEqual({
+        language: page.language,
+        first: first[page.language],
+        all: Object.values(first).sort(),
+      })
     }
     expect(pagesOf('qr-bill').map((page) => page.language)).toEqual([...LANGUAGES])
   })
@@ -69,7 +83,10 @@ describe('the QR-bill page (0024)', () => {
   test("is shared with its own language's sample's picture", () => {
     const own = { de: 'starter-invoice.png', fr: 'invoice-fr.png', it: 'invoice-it.png', en: 'invoice-en.png' }
     for (const page of pagesOf('qr-bill')) {
-      expect([page.language, page.document.querySelector('meta[property="og:image"]')?.getAttribute('content')]).toEqual([page.language, `${inputs.site}site/${own[page.language]}`])
+      expect([page.language, page.document.querySelector('meta[property="og:image"]')?.getAttribute('content')]).toEqual([
+        page.language,
+        `${inputs.site}site/${own[page.language]}`,
+      ])
     }
   })
 })

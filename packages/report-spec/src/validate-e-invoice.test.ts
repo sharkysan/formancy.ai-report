@@ -87,7 +87,8 @@ describe('an e-invoice', () => {
     for (const key of ['profile', 'type', 'currency', 'number', 'issued', 'seller', 'buyer', 'vat', 'lines']) {
       expect(refusals(invoice({ [`/${key}`]: undefined })), key).toEqual([`missing-property ${EI}/${key}`])
     }
-    for (const key of ['buyerReference', 'businessProcess', 'payment', 'due', 'terms', 'paid']) expect(refusals(invoice({ [`/${key}`]: undefined })), key).toEqual(key === 'payment' ? [`invalid-e-invoice ${EPC}/iban`] : [])
+    for (const key of ['buyerReference', 'businessProcess', 'payment', 'due', 'terms', 'paid'])
+      expect(refusals(invoice({ [`/${key}`]: undefined })), key).toEqual(key === 'payment' ? [`invalid-e-invoice ${EPC}/iban`] : [])
     expect(refusals(invoice({ '/delivered': undefined }))).toEqual([])
     expect(refusals(invoice({ '/period': undefined }))).toEqual([])
     expect(refusals(invoice({ '/allowances': [] }))).toEqual([`unknown-property ${EI}/allowances`])
@@ -107,7 +108,22 @@ describe('an e-invoice', () => {
   // with none would be a second spelling of its absence, with a hash of
   // its own; a required one with none would leave EN 16931's term empty.
   test('has one run at least in every text it holds', () => {
-    for (const pointer of ['/number', '/businessProcess', '/seller/name', '/seller/address/line2', '/seller/electronicAddress/id', '/seller/contact/name', '/seller/contact/telephone', '/seller/contact/email', '/buyer/legalId/id', '/buyer/electronicAddress/id', '/buyerReference', '/terms', '/vat/2/reason', '/payment/iban']) {
+    for (const pointer of [
+      '/number',
+      '/businessProcess',
+      '/seller/name',
+      '/seller/address/line2',
+      '/seller/electronicAddress/id',
+      '/seller/contact/name',
+      '/seller/contact/telephone',
+      '/seller/contact/email',
+      '/buyer/legalId/id',
+      '/buyer/electronicAddress/id',
+      '/buyerReference',
+      '/terms',
+      '/vat/2/reason',
+      '/payment/iban',
+    ]) {
       expect(refusals(invoice({ [pointer]: [] })), pointer).toEqual([`too-few ${EI}${pointer}`])
     }
   })
@@ -119,13 +135,19 @@ describe('an e-invoice', () => {
   // of them; and an image field is drawn, never written.
   test("reads what a paragraph in the report's scope reads, and never a page number or count", () => {
     expect(refusals(invoice({ '/terms/1': { kind: 'aggregate', aggregate: 'lines', over: 'report' } }))).toEqual([])
-    expect(refusals(invoice({ '/number/1': { kind: 'field', field: { dataset: 'detail', field: 'sku' } } }))).toEqual([`misplaced-detail-field ${EI}/number/1/field`])
-    expect(refusals(invoice({ '/terms/1': { kind: 'aggregate', aggregate: 'lines', over: 'group' } }))).toEqual([`misplaced-group-aggregate ${EI}/terms/1/over`])
+    expect(refusals(invoice({ '/number/1': { kind: 'field', field: { dataset: 'detail', field: 'sku' } } }))).toEqual([
+      `misplaced-detail-field ${EI}/number/1/field`,
+    ])
+    expect(refusals(invoice({ '/terms/1': { kind: 'aggregate', aggregate: 'lines', over: 'group' } }))).toEqual([
+      `misplaced-group-aggregate ${EI}/terms/1/over`,
+    ])
     expect(refusals(invoice({ '/buyer/name/0/field/field': 'signature' }))).toEqual([`binding-type-mismatch ${EI}/buyer/name/0/field`])
     for (const counter of [{ kind: 'pageNumber' }, { kind: 'pageCount' }]) {
       const document = invoice({ '/number/1': counter })
       expect(refusals(document), counter.kind).toEqual([`misplaced-page-counter ${EI}/number/1`])
-      expect(messages(document)[`${EI}/number/1`]).toBe('what an e-invoice encodes is resolved once, before pages are counted, so a page number or count has no value in it')
+      expect(messages(document)[`${EI}/number/1`]).toBe(
+        'what an e-invoice encodes is resolved once, before pages are counted, so a page number or count has no value in it',
+      )
     }
   })
 
@@ -154,7 +176,16 @@ describe('a literal text of the e-invoice', () => {
     // An account refused is not known, and no code is compared with it.
     expect(refusals(invoice({ '/payment/iban': literal('DE71 1102 2033 0123 4567 88') }))).toEqual([`invalid-e-invoice ${EI}/payment/iban`])
     // Literal runs are read as the text they make together.
-    expect(refusals(invoice({ '/seller/address/country': [{ kind: 'text', text: 'D' }, { kind: 'text', text: 'E' }] }))).toEqual([])
+    expect(
+      refusals(
+        invoice({
+          '/seller/address/country': [
+            { kind: 'text', text: 'D' },
+            { kind: 'text', text: 'E' },
+          ],
+        }),
+      ),
+    ).toEqual([])
   })
 
   // The message names the term, its BT and the rule, and never the text:
@@ -172,8 +203,10 @@ describe('a literal text of the e-invoice', () => {
     expect(said).toEqual({
       [`${EI}/seller/name`]: "the seller's name (BT-27) is empty, and an e-invoice needs it (BR-06)",
       [`${EI}/seller/address/line1`]: "the seller's address line (BT-35) holds a character at character 11 that XML 1.0 cannot write",
-      [`${EI}/seller/address/country`]: "the seller's country code (BT-40) is not a country code of those this release takes, a list narrower than ISO 3166-1's (BR-CL-14)",
-      [`${EI}/buyer/vatId`]: "the buyer's VAT identifier (BT-48) does not begin with a country code this release takes as a VAT prefix, then the number it gives (BR-CO-09)",
+      [`${EI}/seller/address/country`]:
+        "the seller's country code (BT-40) is not a country code of those this release takes, a list narrower than ISO 3166-1's (BR-CL-14)",
+      [`${EI}/buyer/vatId`]:
+        "the buyer's VAT identifier (BT-48) does not begin with a country code this release takes as a VAT prefix, then the number it gives (BR-CO-09)",
       [`${EI}/terms`]: 'the payment terms (BT-20) is blank: a term the e-invoice does not hold is left out of it',
     })
     for (const message of Object.values(said)) expect(message).not.toMatch(/UK|Rutschmann/)
@@ -187,9 +220,12 @@ describe('a literal text of the e-invoice', () => {
   test('is refused for what the UStG, the XSD and the EPC ask of it, saying which', () => {
     const said = messages(invoice({ '/seller/address/city': literal(' '), '/number': literal('RE-2026  0042'), '/payment/bic': literal('FMNCDEF') }))
     expect(said).toEqual({
-      [`${EI}/number`]: 'the invoice number (BT-1) holds white space the XML would not keep: its schema types the term as a token, read with each tab and line break as a space, two spaces as one, and none at either end',
-      [`${EI}/seller/address/city`]: "the seller's city (BT-37) is empty, and a German invoice gives the full address of the seller and the buyer (§ 14 Abs. 4 Satz 1 Nr. 1 UStG)",
-      [`${EI}/payment/bic`]: "the payment account's BIC (BT-86) is not a BIC: four letters or digits for the bank, two letters for its country, two letters or digits for its place, and three for a branch or none (ISO 9362)",
+      [`${EI}/number`]:
+        'the invoice number (BT-1) holds white space the XML would not keep: its schema types the term as a token, read with each tab and line break as a space, two spaces as one, and none at either end',
+      [`${EI}/seller/address/city`]:
+        "the seller's city (BT-37) is empty, and a German invoice gives the full address of the seller and the buyer (§ 14 Abs. 4 Satz 1 Nr. 1 UStG)",
+      [`${EI}/payment/bic`]:
+        "the payment account's BIC (BT-86) is not a BIC: four letters or digits for the bank, two letters for its country, two letters or digits for its place, and three for a branch or none (ISO 9362)",
     })
   })
 
@@ -198,7 +234,12 @@ describe('a literal text of the e-invoice', () => {
   // gives a string it finds: what is written there is a name, an address
   // or an account, which may be a person's.
   test('is refused unquoted when it is written as a string, not as runs', () => {
-    const document = invoice({ '/seller/name': 'Pia Rutschmann', '/buyer/address': 'Musterstrasse 1, 8000 Bern', '/payment': 'DE71 1102 2033 0123 4567 89', '/buyer/legalId': '4012345000009' })
+    const document = invoice({
+      '/seller/name': 'Pia Rutschmann',
+      '/buyer/address': 'Musterstrasse 1, 8000 Bern',
+      '/payment': 'DE71 1102 2033 0123 4567 89',
+      '/buyer/legalId': '4012345000009',
+    })
     expect(refusals(document).sort()).toEqual([
       `wrong-type ${EI}/buyer/address`,
       `wrong-type ${EI}/buyer/legalId`,
@@ -226,7 +267,9 @@ describe('a literal text of the e-invoice', () => {
     expect(refusals(invoice({ '/buyer/legalId/scheme': undefined }))).toEqual([])
     const document = invoice({ '/buyer/legalId/scheme': '0204' })
     expect(refusals(document)).toEqual([`invalid-e-invoice ${EI}/buyer/legalId/scheme`])
-    expect(messages(document)[`${EI}/buyer/legalId/scheme`]).toBe("the scheme of the buyer's legal registration identifier (BT-47-1) is not a scheme of those this release takes, a list narrower than ISO 6523's (BR-CL-11)")
+    expect(messages(document)[`${EI}/buyer/legalId/scheme`]).toBe(
+      "the scheme of the buyer's legal registration identifier (BT-47-1) is not a scheme of those this release takes, a list narrower than ISO 6523's (BR-CL-11)",
+    )
     expect(refusals(invoice({ '/seller/legalId/scheme': 88 }))).toEqual([`wrong-type ${EI}/seller/legalId/scheme`])
   })
 })
@@ -237,7 +280,11 @@ describe("the electronic addresses, the seller's contact and the business proces
   // asks for all of them, which is its own kind's to say. An invoice that
   // gives none is the e-invoice it was before they could be given.
   test('may each be left out, and each is read back whole where it is given', () => {
-    expect(refusals(invoice({ '/businessProcess': undefined, '/seller/electronicAddress': undefined, '/seller/contact': undefined, '/buyer/electronicAddress': undefined }))).toEqual([])
+    expect(
+      refusals(
+        invoice({ '/businessProcess': undefined, '/seller/electronicAddress': undefined, '/seller/contact': undefined, '/buyer/electronicAddress': undefined }),
+      ),
+    ).toEqual([])
     const outcome = validateReport(eInvoiceReport())
     const read = outcome.valid ? outcome.report.eInvoice : undefined
     expect([read?.businessProcess, read?.seller.electronicAddress, read?.seller.contact, read?.buyer.electronicAddress]).toEqual([
@@ -253,7 +300,14 @@ describe("the electronic addresses, the seller's contact and the business proces
   // three (BR-DE-5, -6, -7), and one shape for both kinds lets a contact
   // written for one be the other's.
   test('give an address its scheme and a contact its three terms', () => {
-    for (const pointer of ['/seller/electronicAddress/id', '/seller/electronicAddress/scheme', '/buyer/electronicAddress/scheme', '/seller/contact/name', '/seller/contact/telephone', '/seller/contact/email']) {
+    for (const pointer of [
+      '/seller/electronicAddress/id',
+      '/seller/electronicAddress/scheme',
+      '/buyer/electronicAddress/scheme',
+      '/seller/contact/name',
+      '/seller/contact/telephone',
+      '/seller/contact/email',
+    ]) {
       expect(refusals(invoice({ [pointer]: undefined })), pointer).toEqual([`missing-property ${EI}${pointer}`])
     }
   })
@@ -266,8 +320,10 @@ describe("the electronic addresses, the seller's contact and the business proces
     const document = invoice({ '/seller/electronicAddress/scheme': '0060', '/buyer/electronicAddress/scheme': 'em' })
     expect(refusals(document)).toEqual([`invalid-e-invoice ${EI}/seller/electronicAddress/scheme`, `invalid-e-invoice ${EI}/buyer/electronicAddress/scheme`])
     expect(messages(document)).toEqual({
-      [`${EI}/seller/electronicAddress/scheme`]: "the scheme of the seller's electronic address (BT-34-1) is not an electronic address scheme of those this release takes, a list narrower than the CEF's EAS code list (BR-CL-25)",
-      [`${EI}/buyer/electronicAddress/scheme`]: "the scheme of the buyer's electronic address (BT-49-1) is not an electronic address scheme of those this release takes, a list narrower than the CEF's EAS code list (BR-CL-25)",
+      [`${EI}/seller/electronicAddress/scheme`]:
+        "the scheme of the seller's electronic address (BT-34-1) is not an electronic address scheme of those this release takes, a list narrower than the CEF's EAS code list (BR-CL-25)",
+      [`${EI}/buyer/electronicAddress/scheme`]:
+        "the scheme of the buyer's electronic address (BT-49-1) is not an electronic address scheme of those this release takes, a list narrower than the CEF's EAS code list (BR-CL-25)",
     })
     expect(refusals(invoice({ '/seller/electronicAddress/scheme': 88 }))).toEqual([`wrong-type ${EI}/seller/electronicAddress/scheme`])
   })
@@ -277,11 +333,20 @@ describe("the electronic addresses, the seller's contact and the business proces
   // template writes earns that warning; the message names the term and
   // the rule, never the number or the address, which are a person's.
   test("hold a literal contact to XRechnung's shapes, naming the term and the rule and never the text", () => {
-    const said = messages(invoice({ '/seller/contact/telephone': literal('Durchwahl 82'), '/seller/contact/email': literal('erika.mustermann'), '/businessProcess': literal('urn:a  b') }))
+    const said = messages(
+      invoice({
+        '/seller/contact/telephone': literal('Durchwahl 82'),
+        '/seller/contact/email': literal('erika.mustermann'),
+        '/businessProcess': literal('urn:a  b'),
+      }),
+    )
     expect(said).toEqual({
-      [`${EI}/businessProcess`]: 'the business process (BT-23) holds white space the XML would not keep: its schema types the term as a token, read with each tab and line break as a space, two spaces as one, and none at either end',
-      [`${EI}/seller/contact/telephone`]: "the seller's contact telephone number (BT-42) has fewer than three digits, which a telephone number has at least (XRechnung's BR-DE-27)",
-      [`${EI}/seller/contact/email`]: "the seller's contact email address (BT-43) is not an email address of the shape XRechnung reads one in: no white space, one @ with something before it, and after it two names at least, each joined to the next by one dot (XRechnung's BR-DE-28)",
+      [`${EI}/businessProcess`]:
+        'the business process (BT-23) holds white space the XML would not keep: its schema types the term as a token, read with each tab and line break as a space, two spaces as one, and none at either end',
+      [`${EI}/seller/contact/telephone`]:
+        "the seller's contact telephone number (BT-42) has fewer than three digits, which a telephone number has at least (XRechnung's BR-DE-27)",
+      [`${EI}/seller/contact/email`]:
+        "the seller's contact email address (BT-43) is not an email address of the shape XRechnung reads one in: no white space, one @ with something before it, and after it two names at least, each joined to the next by one dot (XRechnung's BR-DE-28)",
     })
     for (const message of Object.values(said)) expect(message).not.toMatch(/Durchwahl|mustermann/)
   })
@@ -294,7 +359,11 @@ describe("the electronic addresses, the seller's contact and the business proces
     expect(refusals(document).sort()).toEqual([`wrong-type ${EI}/buyer/electronicAddress`, `wrong-type ${EI}/seller/contact`])
     for (const message of Object.values(messages(document))) expect(message).not.toMatch(/Mustermann|4710|gasthaus/)
     const region = [{ kind: 'parameter', parameter: 'region' }]
-    expect(refusals(invoice({ '/seller/contact/telephone': region, '/seller/contact/email': region, '/seller/electronicAddress/id': region, '/businessProcess': region }))).toEqual([])
+    expect(
+      refusals(
+        invoice({ '/seller/contact/telephone': region, '/seller/contact/email': region, '/seller/electronicAddress/id': region, '/businessProcess': region }),
+      ),
+    ).toEqual([])
   })
 })
 
@@ -333,7 +402,9 @@ describe('the parties and the time of supply', () => {
   test('hold the time of supply, and a period that is one', () => {
     const document = invoice({ '/delivered': undefined, '/period': undefined })
     expect(refusals(document)).toEqual([`invalid-e-invoice ${EI}/delivered`])
-    expect(messages(document)[`${EI}/delivered`]).toBe('a German invoice says when it was supplied: a delivery date (BT-72), an invoicing period (BG-14), or both (§ 14 Abs. 4 Satz 1 Nr. 6 UStG)')
+    expect(messages(document)[`${EI}/delivered`]).toBe(
+      'a German invoice says when it was supplied: a delivery date (BT-72), an invoicing period (BG-14), or both (§ 14 Abs. 4 Satz 1 Nr. 6 UStG)',
+    )
     expect(refusals(invoice({ '/period/start': undefined }))).toEqual([])
     expect(refusals(invoice({ '/period': {} }))).toEqual([`invalid-e-invoice ${EI}/period`])
     expect(refusals(invoice({ '/period/middle': { cel: 'params.from' } }))).toEqual([`unknown-property ${EI}/period/middle`])
@@ -376,7 +447,9 @@ describe('the VAT categories', () => {
     expect(refusals(invoice({ '/vat/3/rate': '19' }))).toEqual([`invalid-e-invoice ${EI}/vat/3/rate`])
     expect(refusals(invoice({ '/vat/0/rate': '100' }))).toEqual([`invalid-e-invoice ${EI}/vat/0/rate`])
     expect(refusals(invoice({ '/vat/0/rate': 19 }))).toEqual([`wrong-type ${EI}/vat/0/rate`])
-    expect(messages(invoice({ '/vat/0/rate': '0.00' }))[`${EI}/vat/0/rate`]).toBe("the VAT category's rate (BT-119) is 0, and a standard rated category's rate is more than 0 (BR-S-05)")
+    expect(messages(invoice({ '/vat/0/rate': '0.00' }))[`${EI}/vat/0/rate`]).toBe(
+      "the VAT category's rate (BT-119) is 0, and a standard rated category's rate is more than 0 (BR-S-05)",
+    )
     // BR-CO-17 rounds a rate below 0.5 to 0, and then wants a tax that rounds to 0.
     expect(refusals(invoice({ '/vat/1/rate': '0.4' }))).toEqual([`invalid-e-invoice ${EI}/vat/1/rate`])
     expect(messages(invoice({ '/vat/1/rate': '0.4' }))[`${EI}/vat/1/rate`]).toMatch(/^the VAT category's rate \(BT-119\) is below 0\.5, .* \(BR-CO-17\)$/)
@@ -396,7 +469,9 @@ describe('the VAT categories', () => {
   // rate. The later is refused, where it differs from its own.
   test('are one breakdown each', () => {
     expect(refusals(invoice({ '/vat/1/rate': '19.00' }))).toEqual([`invalid-e-invoice ${EI}/vat/1/rate`])
-    expect(refusals(invoice({ '/vat/4': { id: 'exempt2', code: 'E', rate: '0', reason: literal('Steuerfrei') } }))).toEqual([`invalid-e-invoice ${EI}/vat/4/code`])
+    expect(refusals(invoice({ '/vat/4': { id: 'exempt2', code: 'E', rate: '0', reason: literal('Steuerfrei') } }))).toEqual([
+      `invalid-e-invoice ${EI}/vat/4/code`,
+    ])
     expect(messages(invoice({ '/vat/1/rate': '19.00' }))[`${EI}/vat/1/rate`]).toBe(
       "the VAT category's rate (BT-119) is the rate of an earlier standard rated category, and the standard rated lines have one breakdown for each rate (BR-S-08)",
     )
@@ -412,10 +487,14 @@ describe('the lines', () => {
   // with no such table has no line to write (BR-16).
   test("are the rows of the report's table over the detail dataset", () => {
     expect(refusals(invoice({ '/lines/table': 'positions' }))).toEqual([`invalid-e-invoice ${EI}/lines/table`])
-    expect(messages(invoice({ '/lines/table': 'positions' }))[`${EI}/lines/table`]).toBe('the lines are the rows of the table over the detail dataset, "lines", and this names another')
+    expect(messages(invoice({ '/lines/table': 'positions' }))[`${EI}/lines/table`]).toBe(
+      'the lines are the rows of the table over the detail dataset, "lines", and this names another',
+    )
     const tableless = report({ '/regions/body/2': undefined })
     expect(refusals(tableless)).toEqual([`invalid-e-invoice ${EI}/lines/table`])
-    expect(messages(tableless)[`${EI}/lines/table`]).toBe('an e-invoice has one line at least, a row of the table over the detail dataset, and this report has no such table (BR-16)')
+    expect(messages(tableless)[`${EI}/lines/table`]).toBe(
+      'an e-invoice has one line at least, a row of the table over the detail dataset, and this report has no such table (BR-16)',
+    )
   })
 
   // The name, quantity, net price and net amount are the columns that
@@ -435,9 +514,13 @@ describe('the lines', () => {
     expect(refusals(report({ '/regions/body/2/columns/4/visibleWhen': undefined }))).toEqual([])
     expect(refusals(invoice({ '/lines/name': 'shipped-at' }))).toEqual([`invalid-e-invoice ${EI}/lines/name`, `binding-type-mismatch ${EI}/lines/name`])
     expect(refusals(report({ '/regions/body/2/visibleWhen': { cel: 'true' } }))).toEqual([`invalid-e-invoice ${EI}/lines/table`])
-    const sectioned = report({ '/regions/body/2': { id: 'framed', kind: 'section', visibleWhen: { cel: 'true' }, components: [getAt(eInvoiceReport(), '/regions/body/2')] } })
+    const sectioned = report({
+      '/regions/body/2': { id: 'framed', kind: 'section', visibleWhen: { cel: 'true' }, components: [getAt(eInvoiceReport(), '/regions/body/2')] },
+    })
     expect(refusals(sectioned)).toEqual([`invalid-e-invoice ${EI}/lines/table`])
-    expect(messages(sectioned)[`${EI}/lines/table`]).toBe('the lines are printed by a table that may be hidden, or that stands in a component that may be: every line the XML holds is printed')
+    expect(messages(sectioned)[`${EI}/lines/table`]).toBe(
+      'the lines are printed by a table that may be hidden, or that stands in a component that may be: every line the XML holds is printed',
+    )
   })
 
   // What each column prints is a detail field or an expression, read once
@@ -447,11 +530,21 @@ describe('the lines', () => {
   // the core's to check, where it is compiled.
   test('read each term from the row, of the type the term is', () => {
     expect(refusals(report({ '/regions/body/2/columns/0/value': { kind: 'text', text: 'Article' } }))).toEqual([`invalid-e-invoice ${EI}/lines/name`])
-    expect(refusals(report({ '/regions/body/2/columns/1/value': { kind: 'parameter', parameter: 'min_quantity' } }))).toEqual([`invalid-e-invoice ${EI}/lines/quantity`])
-    expect(refusals(report({ '/regions/body/2/columns/3/value': { kind: 'aggregate', aggregate: 'subtotal', over: 'report' } }))).toEqual([`invalid-e-invoice ${EI}/lines/netAmount`])
-    expect(refusals(report({ '/regions/body/2/columns/0/value': { kind: 'field', field: { dataset: 'header', field: 'customer' } } }))).toEqual([`invalid-e-invoice ${EI}/lines/name`])
-    expect(refusals(report({ '/regions/body/2/columns/0/value': { kind: 'field', field: { dataset: 'detail', field: 'quantity' } } }))).toEqual([`binding-type-mismatch ${EI}/lines/name`])
-    expect(refusals(report({ '/regions/body/2/columns/2/value': { kind: 'field', field: { dataset: 'detail', field: 'sku' } } }))).toEqual([`binding-type-mismatch ${EI}/lines/netPrice`])
+    expect(refusals(report({ '/regions/body/2/columns/1/value': { kind: 'parameter', parameter: 'min_quantity' } }))).toEqual([
+      `invalid-e-invoice ${EI}/lines/quantity`,
+    ])
+    expect(refusals(report({ '/regions/body/2/columns/3/value': { kind: 'aggregate', aggregate: 'subtotal', over: 'report' } }))).toEqual([
+      `invalid-e-invoice ${EI}/lines/netAmount`,
+    ])
+    expect(refusals(report({ '/regions/body/2/columns/0/value': { kind: 'field', field: { dataset: 'header', field: 'customer' } } }))).toEqual([
+      `invalid-e-invoice ${EI}/lines/name`,
+    ])
+    expect(refusals(report({ '/regions/body/2/columns/0/value': { kind: 'field', field: { dataset: 'detail', field: 'quantity' } } }))).toEqual([
+      `binding-type-mismatch ${EI}/lines/name`,
+    ])
+    expect(refusals(report({ '/regions/body/2/columns/2/value': { kind: 'field', field: { dataset: 'detail', field: 'sku' } } }))).toEqual([
+      `binding-type-mismatch ${EI}/lines/netPrice`,
+    ])
     expect(refusals(report({ '/regions/body/2/columns/0/value': { kind: 'expression', expression: { cel: 'row.sku' } } }))).toEqual([])
     expect(messages(report({ '/regions/body/2/columns/1/value': { kind: 'parameter', parameter: 'min_quantity' } }))[`${EI}/lines/quantity`]).toBe(
       'the invoiced quantity (BT-129) is read from each row, and its column prints a parameter: it prints a detail field or an expression',
@@ -462,11 +555,19 @@ describe('the lines', () => {
   // print, read from each row as an aggregate reads it: a detail field of
   // the code's type, or an expression.
   test('read their codes from each row', () => {
-    expect(refusals(invoice({ '/lines/unit': { kind: 'field', field: { dataset: 'detail', field: 'quantity' } } }))).toEqual([`binding-type-mismatch ${EI}/lines/unit/field`])
+    expect(refusals(invoice({ '/lines/unit': { kind: 'field', field: { dataset: 'detail', field: 'quantity' } } }))).toEqual([
+      `binding-type-mismatch ${EI}/lines/unit/field`,
+    ])
     expect(refusals(invoice({ '/lines/id': { kind: 'field', field: { dataset: 'detail', field: 'quantity' } } }))).toEqual([])
-    expect(refusals(invoice({ '/lines/id': { kind: 'field', field: { dataset: 'detail', field: 'amount' } } }))).toEqual([`binding-type-mismatch ${EI}/lines/id/field`])
-    expect(refusals(invoice({ '/lines/vat': { kind: 'field', field: { dataset: 'detail', field: 'category' } } }))).toEqual([`unknown-field ${EI}/lines/vat/field/field`])
-    expect(refusals(invoice({ '/lines/vat': { kind: 'field', field: { dataset: 'header', field: 'customer' } } }))).toEqual([`not-one-of ${EI}/lines/vat/field/dataset`])
+    expect(refusals(invoice({ '/lines/id': { kind: 'field', field: { dataset: 'detail', field: 'amount' } } }))).toEqual([
+      `binding-type-mismatch ${EI}/lines/id/field`,
+    ])
+    expect(refusals(invoice({ '/lines/vat': { kind: 'field', field: { dataset: 'detail', field: 'category' } } }))).toEqual([
+      `unknown-field ${EI}/lines/vat/field/field`,
+    ])
+    expect(refusals(invoice({ '/lines/vat': { kind: 'field', field: { dataset: 'header', field: 'customer' } } }))).toEqual([
+      `not-one-of ${EI}/lines/vat/field/dataset`,
+    ])
   })
 })
 
@@ -497,11 +598,15 @@ describe('a payment code printed with an e-invoice', () => {
   test('asks to be paid to the account the e-invoice names', () => {
     expect(refusals(report({ [`${EPC}/iban`]: literal('DE89 3704 0044 0532 0130 00'), [`${EPC}/bic`]: undefined }))).toEqual([`invalid-e-invoice ${EPC}/iban`])
     const document = report({ [`${EPC}/iban`]: literal('DE89 3704 0044 0532 0130 00'), [`${EPC}/bic`]: undefined })
-    expect(messages(document)[`${EPC}/iban`]).toBe("the EPC QR code asks to be paid to another account than the e-invoice's payment account (BT-84): a page and its XML name one account")
+    expect(messages(document)[`${EPC}/iban`]).toBe(
+      "the EPC QR code asks to be paid to another account than the e-invoice's payment account (BT-84): a page and its XML name one account",
+    )
     // Spaces and case are the reader's: the account is one.
     expect(refusals(report({ [`${EPC}/iban`]: literal('de7111022033 01234567 89') }))).toEqual([])
     const missing = invoice({ '/payment': undefined })
-    expect(messages(missing)[`${EPC}/iban`]).toBe('the EPC QR code asks to be paid to an account, and the e-invoice names none: its payment instructions (BG-16) give the account (BT-84)')
+    expect(messages(missing)[`${EPC}/iban`]).toBe(
+      'the EPC QR code asks to be paid to an account, and the e-invoice names none: its payment instructions (BG-16) give the account (BT-84)',
+    )
   })
 
   // A code read from data on either side is not known until a render,
@@ -515,7 +620,9 @@ describe('a payment code printed with an e-invoice', () => {
   // A hidden code is still printed by some render: it is held whatever
   // its condition says.
   test('is held whether or not it is shown', () => {
-    expect(refusals(report({ [`${EPC}/visibleWhen`]: { cel: 'false' }, [`${EPC}/iban`]: literal('DE89 3704 0044 0532 0130 00'), [`${EPC}/bic`]: undefined }))).toEqual([`invalid-e-invoice ${EPC}/iban`])
+    expect(
+      refusals(report({ [`${EPC}/visibleWhen`]: { cel: 'false' }, [`${EPC}/iban`]: literal('DE89 3704 0044 0532 0130 00'), [`${EPC}/bic`]: undefined })),
+    ).toEqual([`invalid-e-invoice ${EPC}/iban`])
   })
 
   // A QR-bill asks for the e-invoice's currency, EUR, and its account: a
@@ -523,10 +630,13 @@ describe('a payment code printed with an e-invoice', () => {
   test('is a QR-bill in euro to the e-invoice account', () => {
     const iban = literal('CH52 0483 5012 3456 7100 0')
     const bill = { ...richReport().paymentPart, currency: 'EUR', account: iban, reference: literal('RF18 5390 0754 7034') }
-    const withBill = (edits: Readonly<Record<string, unknown>>): Record<string, unknown> => report({ '/paymentPart': bill, [EPC]: undefined, [`${EI}/payment/iban`]: iban, ...edits })
+    const withBill = (edits: Readonly<Record<string, unknown>>): Record<string, unknown> =>
+      report({ '/paymentPart': bill, [EPC]: undefined, [`${EI}/payment/iban`]: iban, ...edits })
     expect(refusals(withBill({}))).toEqual([])
     expect(refusals(withBill({ '/paymentPart/currency': 'CHF' }))).toEqual([`invalid-e-invoice /paymentPart/currency`])
-    expect(messages(withBill({ '/paymentPart/currency': 'CHF' }))['/paymentPart/currency']).toBe("a QR-bill printed with an e-invoice asks for the e-invoice's currency, EUR (BT-5)")
+    expect(messages(withBill({ '/paymentPart/currency': 'CHF' }))['/paymentPart/currency']).toBe(
+      "a QR-bill printed with an e-invoice asks for the e-invoice's currency, EUR (BT-5)",
+    )
     expect(refusals(withBill({ '/paymentPart/account': literal('CH93 0076 2011 6238 5295 7') }))).toEqual([`invalid-e-invoice /paymentPart/account`])
     expect(refusals(withBill({ [`${EI}/payment`]: undefined }))).toEqual([`invalid-e-invoice /paymentPart/account`])
   })
@@ -539,7 +649,8 @@ describe('what the e-invoice is held against, when it could not be read', () => 
   test('is reported once, where it is, and not again by the e-invoice', () => {
     const iban = literal('CH52 0483 5012 3456 7100 0')
     const bill = { ...richReport().paymentPart, currency: 'EUR', account: iban, reference: literal('RF18 5390 0754 7034') }
-    const withBill = (edits: Readonly<Record<string, unknown>>): Record<string, unknown> => report({ '/paymentPart': bill, [EPC]: undefined, [`${EI}/payment/iban`]: iban, ...edits })
+    const withBill = (edits: Readonly<Record<string, unknown>>): Record<string, unknown> =>
+      report({ '/paymentPart': bill, [EPC]: undefined, [`${EI}/payment/iban`]: iban, ...edits })
     expect(refusals(withBill({ '/paymentPart/account': [{ kind: 'parameter', parameter: 'region' }] }))).toEqual([])
     expect(refusals(withBill({ '/paymentPart/account': literal('CH52 0483 5012 3456 7100 1') }))).toEqual(['invalid-qr-bill /paymentPart/account'])
     // A component refused leaves the regions unread: the lines' table and
@@ -561,7 +672,9 @@ describe('the title of an e-invoice', () => {
       expect(refusals(document), title).toEqual(['invalid-e-invoice /title'])
       expect(refusals(report({ '/title': title, [EI]: undefined })), title).toEqual([])
     }
-    expect(messages(report({ '/title': 'Müller & Söhne' }))['/title']).toBe("an e-invoice's title is written into its PDF/A's metadata, where &, < and > cannot stand as written: this one holds one")
+    expect(messages(report({ '/title': 'Müller & Söhne' }))['/title']).toBe(
+      "an e-invoice's title is written into its PDF/A's metadata, where &, < and > cannot stand as written: this one holds one",
+    )
     expect(refusals(report({ '/title': 'Müller + Söhne "AG"' }))).toEqual([])
   })
 })
@@ -575,6 +688,7 @@ describe('the rules the validator names', () => {
   test('are ids of the lists the gate reads', () => {
     expect(heard.length).toBeGreaterThan(10)
     const listed: readonly string[] = [...EN16931_RULES, ...XRECHNUNG_RULES]
-    for (const message of heard) for (const [id] of message.matchAll(/\b(?:BR-(?:[A-Z]+-)?\d+(?:-[a-z])?|PEPPOL-EN16931-R\d+)\b/g)) expect(listed, `${id} in "${message}"`).toContain(id)
+    for (const message of heard)
+      for (const [id] of message.matchAll(/\b(?:BR-(?:[A-Z]+-)?\d+(?:-[a-z])?|PEPPOL-EN16931-R\d+)\b/g)) expect(listed, `${id} in "${message}"`).toContain(id)
   })
 })

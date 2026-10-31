@@ -37,8 +37,18 @@ function tools(state: EditorState, t: EditorText): { readonly before: readonly T
   const act = (action: EditorAction): Use => ({ action })
   return {
     before: [
-      { name: t('action.undo'), use: act({ type: 'undo' }), available: history.canUndo, ...(history.undoLabel === null ? {} : { title: t('action.undoWhat', { label: history.undoLabel }) }) },
-      { name: t('action.redo'), use: act({ type: 'redo' }), available: history.canRedo, ...(history.redoLabel === null ? {} : { title: t('action.redoWhat', { label: history.redoLabel }) }) },
+      {
+        name: t('action.undo'),
+        use: act({ type: 'undo' }),
+        available: history.canUndo,
+        ...(history.undoLabel === null ? {} : { title: t('action.undoWhat', { label: history.undoLabel }) }),
+      },
+      {
+        name: t('action.redo'),
+        use: act({ type: 'redo' }),
+        available: history.canRedo,
+        ...(history.redoLabel === null ? {} : { title: t('action.redoWhat', { label: history.redoLabel }) }),
+      },
       { name: t('action.moveUp'), use: act({ type: 'moveUp' }), available: can.moveUp },
       { name: t('action.moveDown'), use: act({ type: 'moveDown' }), available: can.moveDown },
       { name: t('action.indent'), use: act({ type: 'indent' }), available: can.indent },

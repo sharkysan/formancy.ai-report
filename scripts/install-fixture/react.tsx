@@ -34,7 +34,10 @@ import { editorToDraw, editorWithBill, editorWithEInvoice, editorWithHostView, e
  * because this is a browser host's code; a host's bundler replaces the same
  * expression.
  */
-const build = (globalThis as { readonly process?: { readonly env?: Readonly<Record<string, string | undefined>> } }).process?.env?.['NODE_ENV'] === 'production' ? 'production' : 'development'
+const build =
+  (globalThis as { readonly process?: { readonly env?: Readonly<Record<string, string | undefined>> } }).process?.env?.['NODE_ENV'] === 'production'
+    ? 'production'
+    : 'development'
 
 /**
  * `element` drawn to a string, failing on anything React says while drawing
@@ -74,7 +77,8 @@ const expect = (holds: boolean, what: string): void => {
 
 // The builder draws one element and no wrapper: the editor's own <section>.
 const [root] = page.children
-if (page.children.length !== 1 || root === undefined || typeof root === 'string' || root.tag !== 'section') throw new Error('the markup is not one editor root, a <section>')
+if (page.children.length !== 1 || root === undefined || typeof root === 'string' || root.tag !== 'section')
+  throw new Error('the markup is not one editor root, a <section>')
 wrong.push(...structureProblems(root, state))
 
 // Drawing changed nothing, and subscribed to nothing. The server renderer
@@ -84,7 +88,10 @@ wrong.push(...structureProblems(root, state))
 // which would leave a listener behind on every server render, since nothing
 // unmounts there. It does not show that unmounting unsubscribes.
 expect(editor.state() === state, 'drawing the builder changed the editor state')
-expect(editor.listenerCount() === listening, `the editor had ${String(listening)} listeners before the builder was drawn and ${String(editor.listenerCount())} after`)
+expect(
+  editor.listenerCount() === listening,
+  `the editor had ${String(listening)} listeners before the builder was drawn and ${String(editor.listenerCount())} after`,
+)
 
 // Drawn again with a host's view shown in the design view's place (0029):
 // the region the builder lends it, holding what the host gave as
@@ -92,7 +99,8 @@ expect(editor.listenerCount() === listening, `the editor had ${String(listening)
 const viewing = editorWithHostView()
 const viewed = readMarkup(render(<ReportBuilder editor={viewing} hostView={<p>{HOST_VIEW.text}</p>} />))
 const [viewRoot] = viewed.children
-if (viewed.children.length !== 1 || viewRoot === undefined || typeof viewRoot === 'string') throw new Error('the markup with a host’s view is not one editor root')
+if (viewed.children.length !== 1 || viewRoot === undefined || typeof viewRoot === 'string')
+  throw new Error('the markup with a host’s view is not one editor root')
 wrong.push(...structureProblems(viewRoot, viewing.state()).map((problem) => `with a host's view: ${problem}`))
 viewing.dispose()
 
@@ -111,7 +119,8 @@ imaging.dispose()
 const billing = editorWithBill()
 const billed = readMarkup(render(<ReportBuilder editor={billing} />))
 const [billedRoot] = billed.children
-if (billed.children.length !== 1 || billedRoot === undefined || typeof billedRoot === 'string') throw new Error('the markup with a QR-bill is not one editor root')
+if (billed.children.length !== 1 || billedRoot === undefined || typeof billedRoot === 'string')
+  throw new Error('the markup with a QR-bill is not one editor root')
 wrong.push(...structureProblems(billedRoot, billing.state()).map((problem) => `with a QR-bill: ${problem}`))
 billing.dispose()
 
@@ -120,7 +129,8 @@ billing.dispose()
 const invoicing = editorWithEInvoice()
 const invoiced = readMarkup(render(<ReportBuilder editor={invoicing} />))
 const [invoicedRoot] = invoiced.children
-if (invoiced.children.length !== 1 || invoicedRoot === undefined || typeof invoicedRoot === 'string') throw new Error('the markup with an e-invoice is not one editor root')
+if (invoiced.children.length !== 1 || invoicedRoot === undefined || typeof invoicedRoot === 'string')
+  throw new Error('the markup with an e-invoice is not one editor root')
 wrong.push(...structureProblems(invoicedRoot, invoicing.state()).map((problem) => `with an e-invoice: ${problem}`))
 invoicing.dispose()
 

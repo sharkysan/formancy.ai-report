@@ -136,8 +136,13 @@ export function readAgainOnSignal(signals: SignalSource, file: KeySetFile | unde
       return
     }
     void file.readAgain().then((outcome) => {
-      if (!outcome.read) log.error({ identityKeys: { kids: outcome.kids, problem: outcome.problem } }, 'identity keys not read again; the set in force is unchanged')
-      else if (outcome.changed) log.info({ identityKeys: { kids: outcome.kids, added: outcome.added, removed: outcome.removed, replaced: outcome.replaced, leftOut: outcome.leftOut } }, 'identity keys read again')
+      if (!outcome.read)
+        log.error({ identityKeys: { kids: outcome.kids, problem: outcome.problem } }, 'identity keys not read again; the set in force is unchanged')
+      else if (outcome.changed)
+        log.info(
+          { identityKeys: { kids: outcome.kids, added: outcome.added, removed: outcome.removed, replaced: outcome.replaced, leftOut: outcome.leftOut } },
+          'identity keys read again',
+        )
       else log.info({ identityKeys: { kids: outcome.kids, leftOut: outcome.leftOut } }, 'identity keys read again; nothing changed')
     })
   })

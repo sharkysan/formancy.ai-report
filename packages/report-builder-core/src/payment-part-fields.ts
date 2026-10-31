@@ -56,7 +56,9 @@ function addressFields(party: Party, address: QrBillAddress, context: FieldConte
     const key = `/${party}/${part}`
     const words = ADDRESS_WORDS[party][part]
     const runs = address[part]
-    return QR_BILL_ADDRESS_RULES[part].required && runs !== undefined ? codeTextFields(runs, key, words, context) : optionalCodeTextFields(runs, key, words, context)
+    return QR_BILL_ADDRESS_RULES[part].required && runs !== undefined
+      ? codeTextFields(runs, key, words, context)
+      : optionalCodeTextFields(runs, key, words, context)
   })
 }
 
@@ -74,10 +76,22 @@ type TermFields = (bill: SwissQrBill, context: FieldContext) => readonly PanelSp
 /** Each term's fields, in the order the panel shows them. */
 const TERMS: { readonly [K in Exclude<keyof SwissQrBill, 'kind'>]-?: TermFields } = {
   account: (bill, context) => codeTextFields(bill.account, '/account', 'field.iban', context),
-  creditor: (bill, context): GroupSpec[] => [{ key: '/creditor', words: 'group.creditor', fields: addressFields('creditor', bill.creditor, context), buttons: [] }],
+  creditor: (bill, context): GroupSpec[] => [
+    { key: '/creditor', words: 'group.creditor', fields: addressFields('creditor', bill.creditor, context), buttons: [] },
+  ],
   amount: (bill) => [expressionField('/amount', { id: 'field.amount' }, bill.amount?.cel, false)],
-  currency: (bill) => [choiceField('/currency', { id: 'field.currency' }, 'select', QR_BILL_CURRENCIES.map((code) => ({ value: code, label: code, stored: code })), bill.currency)],
-  debtor: (bill, context) => [optionalGroup('/debtor', 'group.debtor', bill.debtor === undefined ? undefined : addressFields('debtor', bill.debtor, context), EXAMPLE_DEBTOR, DEBTOR)],
+  currency: (bill) => [
+    choiceField(
+      '/currency',
+      { id: 'field.currency' },
+      'select',
+      QR_BILL_CURRENCIES.map((code) => ({ value: code, label: code, stored: code })),
+      bill.currency,
+    ),
+  ],
+  debtor: (bill, context) => [
+    optionalGroup('/debtor', 'group.debtor', bill.debtor === undefined ? undefined : addressFields('debtor', bill.debtor, context), EXAMPLE_DEBTOR, DEBTOR),
+  ],
   reference: (bill, context) => optionalCodeTextFields(bill.reference, '/reference', 'field.paymentReference', context),
   message: (bill, context) => optionalCodeTextFields(bill.message, '/message', 'field.message', context),
   billingInformation: (bill, context) => optionalCodeTextFields(bill.billingInformation, '/billingInformation', 'field.billingInformation', context),

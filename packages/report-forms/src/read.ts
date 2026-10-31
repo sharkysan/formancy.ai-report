@@ -129,13 +129,20 @@ export function readSubmission(report: ReportDefinition, input: SubmissionInput,
   if (version === undefined) return refused(f)
   if (parts.has('formHash') && parts.get('formHash') !== version.hash) {
     const given = isSchemaHash(parts.get('formHash')) ? 'the hash of another version' : 'no schemaHash'
-    f.report('/formHash', 'hash-mismatch', `the host names ${given}, and the form it handed over hashes to ${version.hash}: its record of the version and the version disagree`)
+    f.report(
+      '/formHash',
+      'hash-mismatch',
+      `the host names ${given}, and the form it handed over hashes to ${version.hash}: its record of the version and the version disagree`,
+    )
     return refused(f)
   }
   const header = datasets.header === undefined ? undefined : planFields(f, version, version.answers, datasets.header, 'header')
   const repeaterPath = datasets.detail?.form?.kind === 'repeater' ? repeaterIn(datasets.detail.form, version) : undefined
   const repeater = repeaterPath === undefined ? undefined : planRepeater(f, version, repeaterPath, '/datasets/detail/form/repeater')
-  const detail = datasets.detail !== undefined && repeaterPath !== undefined && repeater !== undefined ? planFields(f, version, repeater.rows, datasets.detail, 'detail', repeaterPath) : undefined
+  const detail =
+    datasets.detail !== undefined && repeaterPath !== undefined && repeater !== undefined
+      ? planFields(f, version, repeater.rows, datasets.detail, 'detail', repeaterPath)
+      : undefined
   if (!f.empty) return refused(f)
   const answers = readAnswers(f, version, version.answers, submission.get('data'), '/submission/data')
   if (answers === undefined) return refused(f)
@@ -168,14 +175,24 @@ function readVersions(f: Findings, forms: readonly unknown[]): ReadonlyMap<strin
 }
 
 /** One listed submission paired with its version, or undefined after reporting why not. */
-function readListed(f: Findings, raw: unknown, path: string, versions: ReadonlyMap<string, Version>, seen: Set<string>): { readonly id: string; readonly version: Version; readonly data: unknown } | undefined {
+function readListed(
+  f: Findings,
+  raw: unknown,
+  path: string,
+  versions: ReadonlyMap<string, Version>,
+  seen: Set<string>,
+): { readonly id: string; readonly version: Version; readonly data: unknown } | undefined {
   const parts = readParts(f, raw, path, ['id', 'formHash', 'data'])
   if (parts === undefined) return undefined
   if (parts.has('id')) checkId(f, parts.get('id'), at(path, 'id'), seen)
   const hash = parts.get('formHash')
   const version = typeof hash === 'string' ? versions.get(hash) : undefined
   if (parts.has('formHash') && version === undefined) {
-    f.report(at(path, 'formHash'), 'hash-mismatch', 'the submission names a version none of the forms handed over hashes to: each is read against the version that collected it, and this one has none')
+    f.report(
+      at(path, 'formHash'),
+      'hash-mismatch',
+      'the submission names a version none of the forms handed over hashes to: each is read against the version that collected it, and this one has none',
+    )
   }
   return version === undefined ? undefined : { id: parts.get('id') as string, version, data: parts.get('data') }
 }
@@ -192,21 +209,32 @@ export function readSubmissions(report: ReportDefinition, input: SubmissionsInpu
   const { datasets, locale } = checked.report
   const contract = datasets.detail
   if (contract?.form?.kind !== 'submissions') {
-    f.report('/datasets/detail', 'unbound-report', 'readSubmissions reads a report whose detail is one row per submission; a report of one submission is read by readSubmission')
+    f.report(
+      '/datasets/detail',
+      'unbound-report',
+      'readSubmissions reads a report whose detail is one row per submission; a report of one submission is read by readSubmission',
+    )
     return refused(f)
   }
   const parts = readParts(f, input, '', ['forms', 'submissions', 'complete'])
   if (parts === undefined) return refused(f)
   const complete = parts.get('complete')
-  if (parts.has('complete') && typeof complete !== 'boolean') f.report('/complete', 'invalid-input', 'complete is true or false: whether these are every submission the report is of')
+  if (parts.has('complete') && typeof complete !== 'boolean')
+    f.report('/complete', 'invalid-input', 'complete is true or false: whether these are every submission the report is of')
   const lists = (['forms', 'submissions'] as const).map((name) => {
     const list = parts.has(name) ? readList(parts.get(name), `/${name}`, MAX_DETAIL_ROWS) : undefined
-    if (list !== undefined && !list.ok) f.report(list.path, list.tooMany === true ? 'too-many-rows' : list.wrongType === true ? 'invalid-input' : 'not-data', list.message)
+    if (list !== undefined && !list.ok)
+      f.report(list.path, list.tooMany === true ? 'too-many-rows' : list.wrongType === true ? 'invalid-input' : 'not-data', list.message)
     return list?.ok === true ? list.value : undefined
   })
   const [forms, listed] = lists
   // A source names at least one submission (0041): data of none is refused here, where the host handed the list over, and not by the runtime at a path the host never wrote.
-  if (listed?.length === 0) f.report('/submissions', 'invalid-input', 'a report of one row per submission reads at least one: its source names each submission it was read from, and a list of none names nothing (0041)')
+  if (listed?.length === 0)
+    f.report(
+      '/submissions',
+      'invalid-input',
+      'a report of one row per submission reads at least one: its source names each submission it was read from, and a list of none names nothing (0041)',
+    )
   if (!f.empty || forms === undefined || listed === undefined) return refused(f)
   const versions = readVersions(f, forms)
   if (versions === undefined) return refused(f)
@@ -228,6 +256,11 @@ export function readSubmissions(report: ReportDefinition, input: SubmissionsInpu
   const named: FormSubmission[] = submissions.map(({ id, version }) => ({ id, form: version.id, formHash: version.hash }))
   return {
     ok: true,
-    data: { detail: rows, completeness: { complete: complete as boolean, captured: rows.length }, consistency: 'host-captured', source: { provider: 'formancy-form', submissions: named } },
+    data: {
+      detail: rows,
+      completeness: { complete: complete as boolean, captured: rows.length },
+      consistency: 'host-captured',
+      source: { provider: 'formancy-form', submissions: named },
+    },
   }
 }

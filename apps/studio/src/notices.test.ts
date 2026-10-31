@@ -36,7 +36,12 @@ function names(bytes: Buffer): Map<number, string> {
       const id = bytes.readUInt16BE(name + 6)
       if (bytes.readUInt16BE(name) !== 3 || found.has(id)) continue
       const start = storage + bytes.readUInt16BE(name + 10)
-      found.set(id, Buffer.from(bytes.subarray(start, start + bytes.readUInt16BE(name + 8))).swap16().toString('utf16le'))
+      found.set(
+        id,
+        Buffer.from(bytes.subarray(start, start + bytes.readUInt16BE(name + 8)))
+          .swap16()
+          .toString('utf16le'),
+      )
     }
   }
   return found
@@ -109,7 +114,8 @@ describe("the notice for report-render-pdf's embedded Liberation Sans", () => {
     for (const file of LIBERATION) {
       const own = names(readFileSync(join(renderPdf, 'fonts', file)))
       // A line of the name table's copyright, without its full stop, as the licence file writes it.
-      for (const line of (own.get(0) ?? '(none)').split('\n').map((each) => each.trim().replace(/\.$/, ''))) expect({ file, line, held: notice.includes(line) }).toEqual({ file, line, held: true })
+      for (const line of (own.get(0) ?? '(none)').split('\n').map((each) => each.trim().replace(/\.$/, '')))
+        expect({ file, line, held: notice.includes(line) }).toEqual({ file, line, held: true })
       expect({ file, licence: own.get(13) }).toEqual({ file, licence: 'Licensed under the SIL Open Font License, Version 1.1' })
       const version = /^Version (\d+\.\d+\.\d+)$/.exec(own.get(5) ?? '')?.[1]
       expect({ file, name: entry.name }).toEqual({ file, name: `Liberation Sans ${version ?? '(none)'}, under the SIL Open Font License 1.1` })
@@ -126,6 +132,10 @@ describe("the notice for report-render-pdf's embedded Liberation Sans", () => {
   test("names the one chunk report-render-pdf's build writes the fonts into", () => {
     const file = entry?.file
     if (!(file instanceof RegExp)) throw new Error('the notice for report-render-pdf names no pattern')
-    expect(readdirSync(join(renderPdf, 'dist')).map((name) => `dist/${name}`).filter((name) => file.test(name))).toEqual([expect.stringMatching(/^dist\/bill-fonts-/)])
+    expect(
+      readdirSync(join(renderPdf, 'dist'))
+        .map((name) => `dist/${name}`)
+        .filter((name) => file.test(name)),
+    ).toEqual([expect.stringMatching(/^dist\/bill-fonts-/)])
   })
 })

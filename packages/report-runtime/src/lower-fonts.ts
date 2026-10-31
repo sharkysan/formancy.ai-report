@@ -81,7 +81,8 @@ function fetchFace(render: Render, id: string, path: string): FontAsset | undefi
   if (typeof found !== 'object' || !(found.bytes instanceof Uint8Array) || !isFontMediaType(found.mediaType)) {
     return error('invalid-asset', `the host's answer for the approved font ${id} is not bytes of ${declared.mediaType}`)
   }
-  if (found.bytes.length > MAX_FONT_BYTES) return error('invalid-asset', `the approved font ${id} is ${found.bytes.length} bytes; a font may have ${MAX_FONT_BYTES}`)
+  if (found.bytes.length > MAX_FONT_BYTES)
+    return error('invalid-asset', `the approved font ${id} is ${found.bytes.length} bytes; a font may have ${MAX_FONT_BYTES}`)
   const bytes = new Uint8Array(found.bytes)
   const read = readFont(bytes)
   if (!read.ok) return error('invalid-asset', `the approved font ${id}: the font ${read.message}`)

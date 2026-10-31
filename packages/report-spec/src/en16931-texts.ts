@@ -11,7 +11,18 @@
  */
 import { checkEpcBic, checkEpcIban } from './epc-payload.js'
 import { ADDRESS_SCHEMES, COUNTRY_CODES, SCHEME_IDS, UNIT_CODES, VAT_PREFIXES } from './e-invoice.js'
-import type { AddressScheme, CountryCode, EInvoiceAddress, EInvoiceBuyer, EInvoiceKind, EInvoiceSeller, PaymentInstructions, SchemeId, SellerContact, UnitCode } from './e-invoice.js'
+import type {
+  AddressScheme,
+  CountryCode,
+  EInvoiceAddress,
+  EInvoiceBuyer,
+  EInvoiceKind,
+  EInvoiceSeller,
+  PaymentInstructions,
+  SchemeId,
+  SellerContact,
+  UnitCode,
+} from './e-invoice.js'
 import { en16931Rule, FULL_ADDRESS, neededBy } from './en16931.js'
 import type { EInvoiceNeed } from './en16931.js'
 import { no, ok, withoutSpaces } from './payment-reference.js'
@@ -255,7 +266,10 @@ export interface EInvoiceTextTerms {
   readonly businessProcess: EInvoiceTextTerm
   readonly buyerReference: EInvoiceTextTerm
   readonly terms: EInvoiceTextTerm
-  readonly seller: { readonly [K in Exclude<keyof EInvoiceSeller, 'address' | 'contact'>]-?: EInvoiceTextTerm } & { readonly contact: ContactTerms; readonly address: AddressTerms }
+  readonly seller: { readonly [K in Exclude<keyof EInvoiceSeller, 'address' | 'contact'>]-?: EInvoiceTextTerm } & {
+    readonly contact: ContactTerms
+    readonly address: AddressTerms
+  }
   readonly buyer: { readonly [K in Exclude<keyof EInvoiceBuyer, 'address'>]-?: EInvoiceTextTerm } & { readonly address: AddressTerms }
   /** A VAT category's exemption reason. */
   readonly reason: EInvoiceTextTerm
@@ -283,7 +297,13 @@ export const E_INVOICE_TEXT_TERMS: EInvoiceTextTerms = {
     contact: { name: 'BT-41', telephone: 'BT-42', email: 'BT-43' },
     address: { line1: 'BT-35', line2: 'BT-36', postalCode: 'BT-38', city: 'BT-37', country: 'BT-40' },
   },
-  buyer: { name: 'BT-44', vatId: 'BT-48', legalId: 'BT-47', electronicAddress: 'BT-49', address: { line1: 'BT-50', line2: 'BT-51', postalCode: 'BT-53', city: 'BT-52', country: 'BT-55' } },
+  buyer: {
+    name: 'BT-44',
+    vatId: 'BT-48',
+    legalId: 'BT-47',
+    electronicAddress: 'BT-49',
+    address: { line1: 'BT-50', line2: 'BT-51', postalCode: 'BT-53', city: 'BT-52', country: 'BT-55' },
+  },
   reason: 'BT-120',
   payment: { iban: 'BT-84', bic: 'BT-86', accountName: 'BT-85', remittance: 'BT-83' },
 }
@@ -305,11 +325,14 @@ function collapsed(text: string): boolean {
  */
 export function checkEInvoiceText(term: EInvoiceTextTerm, text: string, kind: EInvoiceKind = 'facturX'): PaymentCheck<string> {
   const rule = E_INVOICE_KIND_TEXTS[kind][term]
-  if (eInvoiceBlank(text)) return no(rule.required === undefined ? 'is blank: a term the e-invoice does not hold is left out of it' : neededBy(rule.required, 'is empty'))
+  if (eInvoiceBlank(text))
+    return no(rule.required === undefined ? 'is blank: a term the e-invoice does not hold is left out of it' : neededBy(rule.required, 'is empty'))
   const characters = xmlCharacterBreak(text)
   if (characters !== undefined) return no(characters)
   if (rule.token === true && !collapsed(text)) {
-    return no('holds white space the XML would not keep: its schema types the term as a token, read with each tab and line break as a space, two spaces as one, and none at either end')
+    return no(
+      'holds white space the XML would not keep: its schema types the term as a token, read with each tab and line break as a space, two spaces as one, and none at either end',
+    )
   }
   return rule.check === undefined ? ok(text) : rule.check(text)
 }

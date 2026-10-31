@@ -41,7 +41,13 @@ describe('an EPC QR code', () => {
   // pass for the wrong reason.
   test("is the fixture's EPC sample, literal where the cases expect it", () => {
     const report = editable(richReport())
-    expect(getAt(report, CODE)).toMatchObject({ kind: 'epcQrCode', iban: literal('DE71 1102 2033 0123 4567 89'), bic: literal('BHBLDEHHXXX'), purpose: 'GDDS', caption: 'zahlenMitCode' })
+    expect(getAt(report, CODE)).toMatchObject({
+      kind: 'epcQrCode',
+      iban: literal('DE71 1102 2033 0123 4567 89'),
+      bic: literal('BHBLDEHHXXX'),
+      purpose: 'GDDS',
+      caption: 'zahlenMitCode',
+    })
     expect(refusals(report)).toEqual([])
   })
 
@@ -68,7 +74,8 @@ describe('an EPC QR code', () => {
   // A text present holds one run at least; one the code leaves empty is
   // absent, so that one code has one spelling and one hash.
   test('holds one run at least in each text it has', () => {
-    for (const key of ['beneficiary', 'iban', 'bic', 'reference', 'information']) expect(refusals(code({ [`/${key}`]: [] })), key).toEqual([`too-few ${CODE}/${key}`])
+    for (const key of ['beneficiary', 'iban', 'bic', 'reference', 'information'])
+      expect(refusals(code({ [`/${key}`]: [] })), key).toEqual([`too-few ${CODE}/${key}`])
   })
 
   // The same for a run: an optional text written as an empty or blank
@@ -128,7 +135,9 @@ describe('an EPC QR code', () => {
   // counter would be encoded as nothing.
   test('reads what a paragraph in its place reads, and never a page number or count', () => {
     expect(refusals(code({ '/beneficiary': customer, '/information/1': { kind: 'parameter', parameter: 'region' } }))).toEqual([])
-    expect(refusals(code({ '/text': [{ kind: 'field', field: { dataset: 'detail', field: 'site' } }], '/reference': undefined }))).toEqual([`misplaced-detail-field ${CODE}/text/0/field`])
+    expect(refusals(code({ '/text': [{ kind: 'field', field: { dataset: 'detail', field: 'site' } }], '/reference': undefined }))).toEqual([
+      `misplaced-detail-field ${CODE}/text/0/field`,
+    ])
     for (const region of REGION_NAMES) {
       for (const key of ['beneficiary', 'information']) {
         const report = editable(richReport())
@@ -151,7 +160,16 @@ describe('the texts of an EPC QR code', () => {
     expect(refusals(code({ '/reference': undefined, '/text': literal('Rechnung\n2026-0042') }))).toEqual([`invalid-epc-qr-code ${CODE}/text`])
     expect(refusals(code({ '/information': literal('i'.repeat(71)) }))).toEqual([`invalid-epc-qr-code ${CODE}/information`])
     // Literal runs are read as the text they make together.
-    expect(refusals(code({ '/iban': [{ kind: 'text', text: 'DE71 1102 2033 ' }, { kind: 'text', text: '0123 4567 89' }] }))).toEqual([])
+    expect(
+      refusals(
+        code({
+          '/iban': [
+            { kind: 'text', text: 'DE71 1102 2033 ' },
+            { kind: 'text', text: '0123 4567 89' },
+          ],
+        }),
+      ),
+    ).toEqual([])
   })
 
   // The message says which field broke which rule, and never quotes the
@@ -168,7 +186,8 @@ describe('the texts of an EPC QR code', () => {
     )
     expect(said).toEqual({
       [`${CODE}/iban`]: 'the IBAN has check digits that do not match the rest of it (ISO 13616: the IBAN modulo 97 is 1)',
-      [`${CODE}/bic`]: 'the BIC is not a BIC: four letters or digits for the bank, two letters for its country, two letters or digits for its place, and three for a branch or none (ISO 9362)',
+      [`${CODE}/bic`]:
+        'the BIC is not a BIC: four letters or digits for the bank, two letters for its country, two letters or digits for its place, and three for a branch or none (ISO 9362)',
       [`${CODE}/beneficiary`]: "the beneficiary's name is 87 characters long; the EPC allows at most 70",
       [`${CODE}/reference`]: 'the reference has check digits that do not match the rest of it (ISO 11649: the reference modulo 97 is 1)',
       [`${CODE}/information`]: 'the information holds a control character or a line break at character 7, which would end its line of the code early',
@@ -188,7 +207,16 @@ describe('the texts of an EPC QR code', () => {
   // a render, and is the runtime's to check with the same rules.
   test('are checked only when literal: one read from the data is left to the render', () => {
     expect(refusals(code({ '/iban': customer, '/bic': customer, '/beneficiary': customer, '/reference': customer }))).toEqual([])
-    expect(refusals(code({ '/iban': [{ kind: 'text', text: 'DE71 ' }, { kind: 'parameter', parameter: 'region' }] }))).toEqual([])
+    expect(
+      refusals(
+        code({
+          '/iban': [
+            { kind: 'text', text: 'DE71 ' },
+            { kind: 'parameter', parameter: 'region' },
+          ],
+        }),
+      ),
+    ).toEqual([])
   })
 
   // "Only one of the elements may be populated" (EPC069-12 2.2, {Or}): a
@@ -223,7 +251,12 @@ describe('the texts of an EPC QR code', () => {
   // IBAN and purpose, a text of 140 characters and information of 70, the
   // code is 408 bytes before its amount, each text within its own length.
   test('are refused when the literal texts alone pass 331 bytes', () => {
-    const full = { '/beneficiary': literal('ä'.repeat(70)), '/reference': undefined, '/text': literal('t'.repeat(140)), '/information': literal('i'.repeat(70)) }
+    const full = {
+      '/beneficiary': literal('ä'.repeat(70)),
+      '/reference': undefined,
+      '/text': literal('t'.repeat(140)),
+      '/information': literal('i'.repeat(70)),
+    }
     expect(refusals(code(full))).toEqual([`invalid-epc-qr-code ${CODE}`])
     expect(messages(code(full))[CODE]).toBe(
       'its literal texts alone make a payload that is 408 bytes long in UTF-8; the EPC allows at most 331 (EPC069-12 2.2), what a version 13 code holds at level M',
@@ -274,6 +307,8 @@ describe("an EPC QR code's caption", () => {
     expect(refusals(code({ '/size': 118.6 }))).toEqual([])
     expect(refusals(code({ '/size': 68.05, '/caption': undefined }))).toEqual([])
     expect(refusals(code({ '/size': 118.61, '/caption': undefined }))).toEqual([])
-    expect(messages(code({ '/size': 38.86 }))[`${CODE}/size`]).toMatch(/^with the caption, a code needs a square of at least 68\.06 pt, and this one is 38\.86 pt/)
+    expect(messages(code({ '/size': 38.86 }))[`${CODE}/size`]).toMatch(
+      /^with the caption, a code needs a square of at least 68\.06 pt, and this one is 38\.86 pt/,
+    )
   })
 })

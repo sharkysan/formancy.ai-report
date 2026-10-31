@@ -89,7 +89,17 @@ const CAPTION = EPC_CAPTION.advance * EPC_CAPTION.size
 const DRAWN = 3
 
 /** The square, the frame, the symbol and the caption of the one captioned code on the first page. */
-async function captioned(size: number, payload = V1): Promise<{ bytes: Uint8Array; square: Shape; frame: Shape; symbol: { x: number; top: number; side: number; module: number }; caption: PdfTextItem; pdf: ReadPdf }> {
+async function captioned(
+  size: number,
+  payload = V1,
+): Promise<{
+  bytes: Uint8Array
+  square: Shape
+  frame: Shape
+  symbol: { x: number; top: number; side: number; module: number }
+  caption: PdfTextItem
+  pdf: ReadPdf
+}> {
   const { bytes, pdf, drawing } = await rendered(bareDocument('Zahlen mit Code', [epc(payload, size, 'zahlenMitCode')]))
   const shapes = drawing[0]!.shapes
   const [square] = shapes.filter((shape) => shape.fill === '#ffffff')
@@ -186,7 +196,12 @@ describe('how an EPC QR code is drawn with the caption', () => {
     const size = 85.04
     const { square, frame, symbol } = await captioned(size)
     const module = symbol.module
-    expect(square).toMatchObject({ x: expect.closeTo(PAGE.margins.left, DRAWN), top: expect.closeTo(PAGE.margins.top, DRAWN), width: expect.closeTo(size, DRAWN), height: expect.closeTo(size, DRAWN) })
+    expect(square).toMatchObject({
+      x: expect.closeTo(PAGE.margins.left, DRAWN),
+      top: expect.closeTo(PAGE.margins.top, DRAWN),
+      width: expect.closeTo(size, DRAWN),
+      height: expect.closeTo(size, DRAWN),
+    })
     expect(frame.lineWidth).toBeCloseTo(EPC_FRAME.line * module, DRAWN)
     expect(frame.lineWidth).toBeLessThanOrEqual(0.8 * module)
     // The frame's outer edge is the square's on the left and on the right.
@@ -322,22 +337,30 @@ describe('how an EPC QR code is drawn with the caption', () => {
 describe('an EPC QR code in the document', () => {
   // pdfmake lays a page footer out anew for every page; a code there is
   // drawn, captioned, on each, and encoded once.
-  test('prints a captioned code in the page footer on every page, encoded once', async () => {
-    const document = { ...documentOf('Footer code', [ledger('lines', details(1, 120))]), pageFooter: [epc(V1, 85.04, 'zahlenMitCode', 'footer-code')] }
-    const { bytes, pdf } = await rendered(document)
-    expect(pdf.pages.length).toBeGreaterThan(1)
-    for (const page of pdf.pages) {
-      expect((await onlyCode(bytes, page.number)).text).toBe(V1)
-      expect(page.items.filter((item) => item.angle === 90).map((item) => item.text)).toEqual(['Zahlen mit Code'])
-    }
-    expect(encode).toHaveBeenCalledTimes(1)
-  }, TIMEOUT)
+  test(
+    'prints a captioned code in the page footer on every page, encoded once',
+    async () => {
+      const document = { ...documentOf('Footer code', [ledger('lines', details(1, 120))]), pageFooter: [epc(V1, 85.04, 'zahlenMitCode', 'footer-code')] }
+      const { bytes, pdf } = await rendered(document)
+      expect(pdf.pages.length).toBeGreaterThan(1)
+      for (const page of pdf.pages) {
+        expect((await onlyCode(bytes, page.number)).text).toBe(V1)
+        expect(page.items.filter((item) => item.angle === 90).map((item) => item.text)).toEqual(['Zahlen mit Code'])
+      }
+      expect(encode).toHaveBeenCalledTimes(1)
+    },
+    TIMEOUT,
+  )
 
   // "Bitte mit dem Code bezahlen" left at the foot of one page, the
   // code on the next, is a heading over nothing: a heading is kept with
   // the code after it, as with a QR code.
   test('keeps a heading with the code after it', async () => {
-    const document = documentOf('Kept with a code', [{ kind: 'spacer', height: BODY_HEIGHT - 60 }, heading('Bitte mit dem Code bezahlen'), epc(V1, 85.04, 'zahlenMitCode')])
+    const document = documentOf('Kept with a code', [
+      { kind: 'spacer', height: BODY_HEIGHT - 60 },
+      heading('Bitte mit dem Code bezahlen'),
+      epc(V1, 85.04, 'zahlenMitCode'),
+    ])
     const { bytes, pdf } = await rendered(document)
     expect(pdf.pages).toHaveLength(2)
     expect(await readCodes(bytes, 1)).toEqual([])
@@ -412,7 +435,19 @@ describe('what an EPC QR code refuses', () => {
   // the margin; taller than the body, past its foot.
   test.each([
     ['wider than the page', [epc(V1, PRINTABLE_WIDTH + 1)], PAGE],
-    ['wider than its column', [{ kind: 'columns', columns: [{ width: 80, blocks: [epc(V1, 85.04, 'zahlenMitCode')] }, { width: 'fill', blocks: [] }] }], PAGE],
+    [
+      'wider than its column',
+      [
+        {
+          kind: 'columns',
+          columns: [
+            { width: 80, blocks: [epc(V1, 85.04, 'zahlenMitCode')] },
+            { width: 'fill', blocks: [] },
+          ],
+        },
+      ],
+      PAGE,
+    ],
     ['taller than the body of a landscape page', [epc(V1, 500)], { ...PAGE, orientation: 'landscape' }],
   ] as const)('refuses a code %s', async (_, body, page) => {
     expect(await refusal({ ...documentOf('Too large', body as readonly Block[]), page })).toMatchObject({ code: 'content-too-large', subject: 'pay-code' })
@@ -440,7 +475,11 @@ describe('what an EPC QR code refuses', () => {
   // report. Here the font table names a Liberation Sans that is not there.
   test('fails the render, rather than drawing the caption in another face, when the converter cannot open Liberation Sans', async () => {
     const setFonts = pdfmake.setFonts.bind(pdfmake)
-    const spy = vi.spyOn(pdfmake, 'setFonts').mockImplementation((fonts) => setFonts({ ...fonts, LiberationSans: { normal: 'missing/LiberationSans-Regular.ttf', bold: 'missing/LiberationSans-Bold.ttf' } }))
+    const spy = vi
+      .spyOn(pdfmake, 'setFonts')
+      .mockImplementation((fonts) =>
+        setFonts({ ...fonts, LiberationSans: { normal: 'missing/LiberationSans-Regular.ttf', bold: 'missing/LiberationSans-Bold.ttf' } }),
+      )
     try {
       const error = await refusal(bareDocument('No face', [epc(V1, 85.04, 'zahlenMitCode')]))
       expect(error).toBeInstanceOf(Error)

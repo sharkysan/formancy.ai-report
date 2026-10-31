@@ -69,7 +69,18 @@ export const PDF_CONTROLS = [
     // which it fails on seven more rules.
     expect: {
       verapdf: ['6.2.4.3-2', '6.6.2.1-1'],
-      mustang: ['pdf error 17', 'pdf error 23', 'pdfa 1b 6.2.3.3-1', 'pdfa 1b 6.3.5-3', 'pdfa 1b 6.7.2-1', 'pdfa 1b 6.7.3-1', 'pdfa 1b 6.7.3-2', 'pdfa 1b 6.7.3-6', 'pdfa 1b 6.7.3-7', 'exception 17'],
+      mustang: [
+        'pdf error 17',
+        'pdf error 23',
+        'pdfa 1b 6.2.3.3-1',
+        'pdfa 1b 6.3.5-3',
+        'pdfa 1b 6.7.2-1',
+        'pdfa 1b 6.7.3-1',
+        'pdfa 1b 6.7.3-2',
+        'pdfa 1b 6.7.3-6',
+        'pdfa 1b 6.7.3-7',
+        'exception 17',
+      ],
     },
   },
   {
@@ -82,14 +93,22 @@ export const PDF_CONTROLS = [
   {
     file: 'control-xmp.pdf',
     why: 'the XMP’s fx:ConformanceLevel written EN-16931, which is no conformance level of Factur-X: veraPDF holds the extension schema to its form and reads no value of it',
-    patch: { term: 'fx:ConformanceLevel', pattern: /<fx:ConformanceLevel>EN 16931<\/fx:ConformanceLevel>/g, replace: () => '<fx:ConformanceLevel>EN-16931</fx:ConformanceLevel>' },
+    patch: {
+      term: 'fx:ConformanceLevel',
+      pattern: /<fx:ConformanceLevel>EN 16931<\/fx:ConformanceLevel>/g,
+      replace: () => '<fx:ConformanceLevel>EN-16931</fx:ConformanceLevel>',
+    },
     embeds: 'base',
     expect: { verapdf: 'accepted', mustang: ['pdf error 12'] },
   },
   {
     file: 'control-checksum.pdf',
     why: 'the embedded file’s /Params /CheckSum one hexadecimal digit off its bytes’ MD5, which neither veraPDF nor Mustang compares with the bytes: veraPDF’s feature report gives the checksum as the file declares it, and the gate holds it to the XML',
-    patch: { term: 'the embedded file’s /CheckSum', pattern: /\/CheckSum \(([0-9a-f])([0-9a-f]{31})\)/g, replace: (_, first, rest) => `/CheckSum (${otherDigit(first)}${rest})` },
+    patch: {
+      term: 'the embedded file’s /CheckSum',
+      pattern: /\/CheckSum \(([0-9a-f])([0-9a-f]{31})\)/g,
+      replace: (_, first, rest) => `/CheckSum (${otherDigit(first)}${rest})`,
+    },
     embeds: 'base',
     expect: { verapdf: ['embedded checkSum'], mustang: 'accepted' },
   },
@@ -142,15 +161,43 @@ export const PDF_VARIANTS = [
     why: 'the sample’s page, a page break, and report-corpus’s SVG_BOUND in the smallest box the renderer draws it in an e-invoice, SVG_BOUND_SIDE square: its page-sized groups’ boxes and the matrix of its gradient inside a group come within the renderer’s margin of the largest integer a PDF/A-3 holds, and it nests the graphics state as deep as one may (0030)',
     draws: { bound: true },
   },
-  { file: 'variant-fonts.pdf', why: 'the corpus’s fonts fixture: German, French, Swiss, euro and Polish text, in the regular and the bold face, in paragraphs and a table', draws: { fixture: 'fonts' } },
-  { file: 'variant-host-fonts.pdf', why: 'the corpus’s host-fonts fixture: Latin, Greek and Cyrillic in fonts a host supplied -- Liberation Serif and Mono -- embedded beside Roboto, so a PDF/A-3b that carries an e-invoice holds a host’s faces too (0043)', draws: { fixture: 'host-fonts' } },
-  { file: 'variant-service-inspection.pdf', why: 'the service inspection starter: a photo from the data, a rule, and page regions over its pages', draws: { starter: 'service-inspection' } },
+  {
+    file: 'variant-fonts.pdf',
+    why: 'the corpus’s fonts fixture: German, French, Swiss, euro and Polish text, in the regular and the bold face, in paragraphs and a table',
+    draws: { fixture: 'fonts' },
+  },
+  {
+    file: 'variant-host-fonts.pdf',
+    why: 'the corpus’s host-fonts fixture: Latin, Greek and Cyrillic in fonts a host supplied -- Liberation Serif and Mono -- embedded beside Roboto, so a PDF/A-3b that carries an e-invoice holds a host’s faces too (0043)',
+    draws: { fixture: 'host-fonts' },
+  },
+  {
+    file: 'variant-service-inspection.pdf',
+    why: 'the service inspection starter: a photo from the data, a rule, and page regions over its pages',
+    draws: { starter: 'service-inspection' },
+  },
   { file: 'variant-quotation.pdf', why: 'the quotation starter: page regions, a table and its totals', draws: { starter: 'quotation' } },
-  { file: 'variant-grouped-equipment.pdf', why: 'the grouped equipment starter: groups with their subtotals, under a running head, over its pages', draws: { starter: 'grouped-equipment' } },
+  {
+    file: 'variant-grouped-equipment.pdf',
+    why: 'the grouped equipment starter: groups with their subtotals, under a running head, over its pages',
+    draws: { starter: 'grouped-equipment' },
+  },
   { file: 'variant-invoice.pdf', why: 'the invoice starter: a Swiss QR-bill, drawn in Liberation Sans', draws: { starter: 'invoice' } },
-  { file: 'variant-euro-invoice.pdf', why: 'the euro invoice starter: an EPC QR code with Austria’s caption, drawn in Liberation Sans', draws: { starter: 'euro-invoice' } },
-  { file: 'variant-e-invoice.pdf', why: 'the e-invoice starter, the base sample opened as the Studio opens it, from its own data, where a person edits it in either builder (0044)', draws: { starter: 'e-invoice' } },
-  { file: 'variant-site-visit.pdf', why: 'the site visit starter, generated from a formancy form: lines of label and value, sections, boxes drawn as text, and a table of its findings (0045)', draws: { starter: 'site-visit' } },
+  {
+    file: 'variant-euro-invoice.pdf',
+    why: 'the euro invoice starter: an EPC QR code with Austria’s caption, drawn in Liberation Sans',
+    draws: { starter: 'euro-invoice' },
+  },
+  {
+    file: 'variant-e-invoice.pdf',
+    why: 'the e-invoice starter, the base sample opened as the Studio opens it, from its own data, where a person edits it in either builder (0044)',
+    draws: { starter: 'e-invoice' },
+  },
+  {
+    file: 'variant-site-visit.pdf',
+    why: 'the site visit starter, generated from a formancy form: lines of label and value, sections, boxes drawn as text, and a table of its findings (0045)',
+    draws: { starter: 'site-visit' },
+  },
 ]
 
 /** The image of `IMAGE_KINDS` that `blocksDocument` puts in the page header: the one with an alpha channel, as a logo comes. */
@@ -259,8 +306,21 @@ export function pdfPlan(entries) {
     return found.xml
   }
   return [
-    ...samples.map((entry) => ({ file: `${entry.sample}.pdf`, format: 'pdf', sample: entry.sample, embeds: entry.xml, expect: { verapdf: 'accepted', mustang: 'accepted' } })),
-    ...PDF_VARIANTS.map((variant) => ({ file: variant.file, format: 'pdf', variant: structuredClone(variant.draws), why: variant.why, embeds: base.xml, expect: { verapdf: 'accepted', mustang: 'accepted' } })),
+    ...samples.map((entry) => ({
+      file: `${entry.sample}.pdf`,
+      format: 'pdf',
+      sample: entry.sample,
+      embeds: entry.xml,
+      expect: { verapdf: 'accepted', mustang: 'accepted' },
+    })),
+    ...PDF_VARIANTS.map((variant) => ({
+      file: variant.file,
+      format: 'pdf',
+      variant: structuredClone(variant.draws),
+      why: variant.why,
+      embeds: base.xml,
+      expect: { verapdf: 'accepted', mustang: 'accepted' },
+    })),
     ...PDF_CONTROLS.map((control) => ({
       file: control.file,
       format: 'pdf',
@@ -278,7 +338,8 @@ export function patched(bytes, patch, file) {
   const found = text.match(patch.pattern)?.length ?? 0
   if (found !== 1) throw new Error(`${file}: ${patch.term} is written ${String(found)} times in ${PDF_BASE}.pdf, where the control changes it once`)
   const changed = text.replace(patch.pattern, patch.replace)
-  if (changed.length !== text.length) throw new Error(`${file}: the change of ${patch.term} is not as long as what it replaces, so every offset after it would be wrong`)
+  if (changed.length !== text.length)
+    throw new Error(`${file}: the change of ${patch.term} is not as long as what it replaces, so every offset after it would be wrong`)
   return Buffer.from(changed, 'latin1')
 }
 
@@ -334,15 +395,19 @@ export async function embeddingProblems(entries, { readObjects, fileName, fx, gu
     const objects = await readObjects(new Uint8Array(entry.pdf))
     const wanted = entry.embeds === null ? 0 : 1
     if (objects.associatedFiles.length !== wanted || objects.embeddedFiles.length !== wanted) {
-      problems.push(`${entry.file} associates ${String(objects.associatedFiles.length)} files with the document and names ${String(objects.embeddedFiles.length)}, where the corpus says it embeds ${String(wanted)}`)
+      problems.push(
+        `${entry.file} associates ${String(objects.associatedFiles.length)} files with the document and names ${String(objects.embeddedFiles.length)}, where the corpus says it embeds ${String(wanted)}`,
+      )
       continue
     }
     if (wanted === 0) continue
     const [associated] = objects.associatedFiles
     const [named] = objects.embeddedFiles
-    if (named.name !== fileName || associated.uf !== fileName || associated.f !== fileName || named.associated !== 0) problems.push(`${entry.file} embeds its file under another name than ${fileName}, or not as the one file of its /AF`)
+    if (named.name !== fileName || associated.uf !== fileName || associated.f !== fileName || named.associated !== 0)
+      problems.push(`${entry.file} embeds its file under another name than ${fileName}, or not as the one file of its /AF`)
     const bytes = associated.embedded?.bytes
-    if (bytes === undefined || Buffer.compare(Buffer.from(bytes), Buffer.from(entry.embeds, 'utf8')) !== 0) problems.push(`${entry.file} embeds other bytes than the XML the corpus says it embeds`)
+    if (bytes === undefined || Buffer.compare(Buffer.from(bytes), Buffer.from(entry.embeds, 'utf8')) !== 0)
+      problems.push(`${entry.file} embeds other bytes than the XML the corpus says it embeds`)
     if (entry.from === undefined) problems.push(...statedProblems(entry, objects, { fileName, fx, guidelineOf, profiles }))
   }
   return problems
@@ -358,10 +423,17 @@ function statedProblems(entry, objects, { fileName, fx, guidelineOf, profiles })
     return [`${entry.file}’s XMP cannot be read: ${error.message}`]
   }
   const problems = []
-  if (stated.documentFileName.length !== 1 || stated.documentFileName[0] !== fileName) problems.push(`${entry.file}’s XMP states the file name ${said(stated.documentFileName)}, where it embeds ${fileName}`)
+  if (stated.documentFileName.length !== 1 || stated.documentFileName[0] !== fileName)
+    problems.push(`${entry.file}’s XMP states the file name ${said(stated.documentFileName)}, where it embeds ${fileName}`)
   const guideline = guidelineOf(entry.embeds)
   const levels = Object.values(profiles).filter((profile) => profile.guideline === guideline)
-  if (levels.length !== 1) problems.push(`${entry.file} embeds an XML of the guideline ${String(guideline)}, which ${levels.length === 0 ? 'no profile' : 'more than one profile'} of report-spec’s names`)
-  else if (stated.conformanceLevel.length !== 1 || stated.conformanceLevel[0] !== levels[0].conformanceLevel) problems.push(`${entry.file}’s XMP states the conformance level ${said(stated.conformanceLevel)}, where the XML it embeds is of ${levels[0].conformanceLevel}`)
+  if (levels.length !== 1)
+    problems.push(
+      `${entry.file} embeds an XML of the guideline ${String(guideline)}, which ${levels.length === 0 ? 'no profile' : 'more than one profile'} of report-spec’s names`,
+    )
+  else if (stated.conformanceLevel.length !== 1 || stated.conformanceLevel[0] !== levels[0].conformanceLevel)
+    problems.push(
+      `${entry.file}’s XMP states the conformance level ${said(stated.conformanceLevel)}, where the XML it embeds is of ${levels[0].conformanceLevel}`,
+    )
   return problems
 }

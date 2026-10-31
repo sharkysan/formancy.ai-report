@@ -314,7 +314,19 @@ corepack enable pnpm
 pnpm install
 pnpm build
 pnpm test
+pnpm lint        # after pnpm build: the type-aware rules read the built declarations
+pnpm format      # Prettier, over every TypeScript and JavaScript file, twice before committing: it is not idempotent on some member chains
 ```
+
+CI fails a TypeScript or JavaScript file that breaks a lint rule or that
+Prettier would write otherwise; the rules and the style are the four
+formancy repositories' shared ones, a copy until formancy.ai releases
+them
+([0050](./docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
+A branch begun before the format takes `main` through
+`scripts/prettier-merge.mjs`, as
+[`CONTRIBUTING.md`](./CONTRIBUTING.md#a-branch-begun-before-the-format)
+says.
 
 While working on the Studio, `pnpm --filter @formancy/report-studio dev`
 serves it on port 4394, once `pnpm build` has built the packages it

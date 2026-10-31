@@ -23,7 +23,11 @@ const TIMEOUT = 120_000
 const VISIT = { id: 'site-visit', locale: 'de-CH', detail: { kind: 'repeater', repeater: 'findings' } } as const
 
 /** The items printed on the line of `item`, on its page: their tops within half a point. */
-const lineOf = (items: readonly PdfTextItem[], item: PdfTextItem): string => items.filter((other) => Math.abs(other.top - item.top) < 0.5).map((other) => other.text.trim()).join(' ')
+const lineOf = (items: readonly PdfTextItem[], item: PdfTextItem): string =>
+  items
+    .filter((other) => Math.abs(other.top - item.top) < 0.5)
+    .map((other) => other.text.trim())
+    .join(' ')
 
 describe('a generated report reads its version’s submissions', () => {
   // A draft whose bindings the bridge read otherwise than it wrote them
@@ -34,25 +38,64 @@ describe('a generated report reads its version’s submissions', () => {
   // findings one a row with version 2's labels, the hours to the places
   // their step has, and the pages counted; the manifest names the version
   // by the hash the bridge computed.
-  test('prints a version-2 visit read into the draft made from version 2', async () => {
-    const { report } = generatedFrom(generate(SITE_VISIT_V2, VISIT))
-    const data = readData(readOne(report, { form: SITE_VISIT_V2, submission: SITE_VISIT_SUBMISSION_V2 }))
-    const resolution = resolveReport(report, data, { mode: 'final', creationDate: '2026-10-22T08:00:00Z', timeZone: 'Europe/Zurich' })
-    if (!resolution.ok) throw new Error(`refused: ${JSON.stringify(resolution.errors)}`)
-    expect(resolution.manifest.source).toEqual({ provider: 'formancy-form', submissions: [{ id: SITE_VISIT_SUBMISSION_V2.id, form: 'site-visit', formHash: schemaHash(SITE_VISIT_V2) }] })
+  test(
+    'prints a version-2 visit read into the draft made from version 2',
+    async () => {
+      const { report } = generatedFrom(generate(SITE_VISIT_V2, VISIT))
+      const data = readData(readOne(report, { form: SITE_VISIT_V2, submission: SITE_VISIT_SUBMISSION_V2 }))
+      const resolution = resolveReport(report, data, { mode: 'final', creationDate: '2026-10-22T08:00:00Z', timeZone: 'Europe/Zurich' })
+      if (!resolution.ok) throw new Error(`refused: ${JSON.stringify(resolution.errors)}`)
+      expect(resolution.manifest.source).toEqual({
+        provider: 'formancy-form',
+        submissions: [{ id: SITE_VISIT_SUBMISSION_V2.id, form: 'site-visit', formHash: schemaHash(SITE_VISIT_V2) }],
+      })
 
-    const pdf = await readPdf(await renderPdf(resolution.document, { maxPages: 10 }))
-    const stated = {
-      maxPagesExpected: 1,
-      exactText: ['Site visit', 'Objekt: Bahnhofplatz 1, 3011 Bern', 'Besucht am: 21.10.2026', 'Ergebnis: Nicht bestanden', 'Name: Marc Rüegg', 'Ausweis: BE-5120', 'Dach: [ ]', 'Elektrik: [x]', 'Heizkessel: [ ]', 'Sicherheit: Schlecht', 'Zusammenfassung: Die Elektrik ist sofort zu prüfen.', '1 / 1'],
-    }
-    expect(verify({ id: 'site-visit-generated', title: 'A version-2 visit in the draft made from version 2', document: resolution.document, maxPages: 10, expect: expectation(resolution.document, stated) }, pdf)).toEqual([])
-    const items = pdf.pages.flatMap((page) => page.items)
-    const rows = ['F-01', 'F-02', 'F-03'].map((ref) => lineOf(items, items.find((item) => item.text.trim() === ref) as PdfTextItem))
-    expect(rows).toEqual([`F-01 Dachrinne Nord ${SITE_VISIT_HIGH.v2} 1.50 0 [x]`, 'F-02 Heizraum Niedrig 0.25 1 [ ]', `F-03 Treppenhaus ${SITE_VISIT_HIGH.v2} 2.00 2 [ ]`])
-    // An answer the visit left out prints nothing after its label.
-    for (const label of ['Begonnen um:', 'Sauberkeit:']) expect(items.some((item) => item.text.trim() === label), label).toBe(true)
-  }, TIMEOUT)
+      const pdf = await readPdf(await renderPdf(resolution.document, { maxPages: 10 }))
+      const stated = {
+        maxPagesExpected: 1,
+        exactText: [
+          'Site visit',
+          'Objekt: Bahnhofplatz 1, 3011 Bern',
+          'Besucht am: 21.10.2026',
+          'Ergebnis: Nicht bestanden',
+          'Name: Marc Rüegg',
+          'Ausweis: BE-5120',
+          'Dach: [ ]',
+          'Elektrik: [x]',
+          'Heizkessel: [ ]',
+          'Sicherheit: Schlecht',
+          'Zusammenfassung: Die Elektrik ist sofort zu prüfen.',
+          '1 / 1',
+        ],
+      }
+      expect(
+        verify(
+          {
+            id: 'site-visit-generated',
+            title: 'A version-2 visit in the draft made from version 2',
+            document: resolution.document,
+            maxPages: 10,
+            expect: expectation(resolution.document, stated),
+          },
+          pdf,
+        ),
+      ).toEqual([])
+      const items = pdf.pages.flatMap((page) => page.items)
+      const rows = ['F-01', 'F-02', 'F-03'].map((ref) => lineOf(items, items.find((item) => item.text.trim() === ref) as PdfTextItem))
+      expect(rows).toEqual([
+        `F-01 Dachrinne Nord ${SITE_VISIT_HIGH.v2} 1.50 0 [x]`,
+        'F-02 Heizraum Niedrig 0.25 1 [ ]',
+        `F-03 Treppenhaus ${SITE_VISIT_HIGH.v2} 2.00 2 [ ]`,
+      ])
+      // An answer the visit left out prints nothing after its label.
+      for (const label of ['Begonnen um:', 'Sauberkeit:'])
+        expect(
+          items.some((item) => item.text.trim() === label),
+          label,
+        ).toBe(true)
+    },
+    TIMEOUT,
+  )
 })
 
 /** A field of the model, before its key is given. */
@@ -95,7 +138,14 @@ const SHAPES: readonly { readonly node: Node; readonly answer?: unknown }[] = [
 ]
 
 /** The answer a visit gives a leaf of `type` and these options, or none for a leaf that holds none. */
-const answerOf = (node: Node): unknown => SHAPES.find(({ node: shape }) => shape.type === node.type && shape['step'] === node['step'] && shape['optionsSource'] === node['optionsSource'] && (shape.type !== 'number' || shape['min'] === node['min']))?.answer
+const answerOf = (node: Node): unknown =>
+  SHAPES.find(
+    ({ node: shape }) =>
+      shape.type === node.type &&
+      shape['step'] === node['step'] &&
+      shape['optionsSource'] === node['optionsSource'] &&
+      (shape.type !== 'number' || shape['min'] === node['min']),
+  )?.answer
 
 const LEAF: fc.Arbitrary<Node> = fc
   .tuple(fc.constantFrom(...SHAPES.map(({ node }) => node)), fc.boolean())
@@ -114,7 +164,13 @@ function nodeOf(depth: number, inRows: boolean): fc.Arbitrary<Node> {
 const fieldsOf = (depth: number, inRows: boolean): fc.Arbitrary<readonly Node[]> => fc.array(nodeOf(depth, inRows), { maxLength: 5 })
 
 /** A model's fields: any of those, and pages of them, a page at the top alone, each labelled. */
-const MODELS = fc.array(fc.oneof(nodeOf(3, false), fieldsOf(2, false).map((fields): Node => ({ type: 'page', fields }))), { maxLength: 6 })
+const MODELS = fc.array(
+  fc.oneof(
+    nodeOf(3, false),
+    fieldsOf(2, false).map((fields): Node => ({ type: 'page', fields })),
+  ),
+  { maxLength: 6 },
+)
 
 /** `nodes` with a key each, unique in the form, and the paths of the repeaters among them, through groups. */
 function keyed(nodes: readonly Node[], next = { key: 0 }, prefix = '', repeaters: string[] = []): { readonly fields: unknown[]; readonly repeaters: string[] } {
@@ -122,7 +178,11 @@ function keyed(nodes: readonly Node[], next = { key: 0 }, prefix = '', repeaters
     const key = `k${next.key++}`
     const path = node.type === 'page' ? prefix : `${prefix}${key}`
     if (node.type === 'repeater') repeaters.push(path)
-    const inner = node.fields === undefined ? undefined : keyed(node.fields, next, node.type === 'group' ? `${path}.` : node.type === 'page' ? prefix : '\u0000', node.type === 'repeater' ? [] : repeaters).fields
+    const inner =
+      node.fields === undefined
+        ? undefined
+        : keyed(node.fields, next, node.type === 'group' ? `${path}.` : node.type === 'page' ? prefix : '\u0000', node.type === 'repeater' ? [] : repeaters)
+            .fields
     return { ...node, key, ...(inner === undefined ? {} : { fields: inner }) }
   })
   return { fields, repeaters }
@@ -144,7 +204,16 @@ function answered(fields: readonly unknown[]): Record<string, unknown> {
 const regions = (): string => 'Nord'
 
 /** The codes a generation may refuse a valid form with: what the format, or the page, cannot hold. */
-const FORMAT_REFUSALS = ['too-many-fields', 'too-many-columns', 'too-many-components', 'label-too-long', 'path-too-long', 'id-too-long', 'colliding-ids', 'nothing-to-print'] as const
+const FORMAT_REFUSALS = [
+  'too-many-fields',
+  'too-many-columns',
+  'too-many-components',
+  'label-too-long',
+  'path-too-long',
+  'id-too-long',
+  'colliding-ids',
+  'nothing-to-print',
+] as const
 
 /** One draft in this many is rendered: enough to meet every shape over a run, few enough that the run stays a few seconds. */
 const RENDER_EVERY = 20
@@ -162,43 +231,53 @@ describe('any form formancy accepts', () => {
   // final render and, one draft in RENDER_EVERY, rendered and read back.
   // No note quotes a label of the form, and a refusal is only ever for
   // what the format cannot hold.
-  test('gives a draft its version’s submissions read into and that prints, or a refusal of what the format cannot hold', async () => {
-    expect(FORMAT_REFUSALS.filter((code) => !(FORMS_ERROR_CODES as readonly string[]).includes(code))).toEqual([])
-    let drafts = 0
-    let printed = 0
-    await fc.assert(
-      fc.asyncProperty(MODELS, fc.nat(), fc.constantFrom('en', 'de-CH'), async (nodes, choice, locale) => {
-        const { fields, repeaters } = keyed(nodes)
-        const form = formOf(fields, { i18n: { defaultLocale: 'en', messages: { en: {} } } })
-        const details = [undefined, { kind: 'submissions' }, ...repeaters.map((repeater) => ({ kind: 'repeater', repeater }))]
-        const detail = details[choice % details.length]
-        const options = { id: 'draft', locale, ...(detail === undefined ? {} : { detail }) }
-        const outcome = generate(form, options)
-        if (!outcome.ok) {
-          expect(outcome.errors.map((error) => error.code).filter((code) => !(FORMAT_REFUSALS as readonly string[]).includes(code))).toEqual([])
-          return
-        }
-        drafts += 1
-        expect(generate(form, options)).toEqual(outcome)
-        expect(outcome.notes.filter((note) => note.message.includes(MARK))).toEqual([])
-        const perSubmission = outcome.report.datasets.detail?.form?.kind === 'submissions'
-        const readOf = (data: unknown) =>
-          perSubmission ? readMany(outcome.report, { forms: [form], submissions: [{ id: SUBMISSION, formHash: schemaHash(form), data }], complete: true }, { labels: regions }) : readOne(outcome.report, { form, submission: { id: SUBMISSION, data } }, { labels: regions })
-        const empty = readOf({})
-        expect(empty.ok ? [] : empty.errors).toEqual([])
-        const full = readOf(answered(fields))
-        if (!full.ok) throw new Error(`a visit that answered every field was refused: ${JSON.stringify(full.errors)}`)
-        const resolution = resolveReport(outcome.report, full.data, { mode: 'final', creationDate: '2026-10-22T08:00:00Z', timeZone: 'Europe/Zurich' })
-        if (!resolution.ok) throw new Error(`a visit that answered every field did not resolve: ${JSON.stringify(resolution.errors)}`)
-        if (drafts % RENDER_EVERY !== 1) return
-        const pdf = await readPdf(await renderPdf(resolution.document, { maxPages: 50 }))
-        expect(pdf.pages.flatMap((page) => page.items).some((item) => item.text.includes('Site visit'))).toBe(true)
-        printed += 1
-      }),
-      { numRuns: 400 },
-    )
-    // Most such forms are drafts, not refusals: a generator that refused them all would pass the rest unread.
-    expect(drafts).toBeGreaterThan(200)
-    expect(printed).toBeGreaterThan(5)
-  }, TIMEOUT)
+  test(
+    'gives a draft its version’s submissions read into and that prints, or a refusal of what the format cannot hold',
+    async () => {
+      expect(FORMAT_REFUSALS.filter((code) => !(FORMS_ERROR_CODES as readonly string[]).includes(code))).toEqual([])
+      let drafts = 0
+      let printed = 0
+      await fc.assert(
+        fc.asyncProperty(MODELS, fc.nat(), fc.constantFrom('en', 'de-CH'), async (nodes, choice, locale) => {
+          const { fields, repeaters } = keyed(nodes)
+          const form = formOf(fields, { i18n: { defaultLocale: 'en', messages: { en: {} } } })
+          const details = [undefined, { kind: 'submissions' }, ...repeaters.map((repeater) => ({ kind: 'repeater', repeater }))]
+          const detail = details[choice % details.length]
+          const options = { id: 'draft', locale, ...(detail === undefined ? {} : { detail }) }
+          const outcome = generate(form, options)
+          if (!outcome.ok) {
+            expect(outcome.errors.map((error) => error.code).filter((code) => !(FORMAT_REFUSALS as readonly string[]).includes(code))).toEqual([])
+            return
+          }
+          drafts += 1
+          expect(generate(form, options)).toEqual(outcome)
+          expect(outcome.notes.filter((note) => note.message.includes(MARK))).toEqual([])
+          const perSubmission = outcome.report.datasets.detail?.form?.kind === 'submissions'
+          const readOf = (data: unknown) =>
+            perSubmission
+              ? readMany(
+                  outcome.report,
+                  { forms: [form], submissions: [{ id: SUBMISSION, formHash: schemaHash(form), data }], complete: true },
+                  { labels: regions },
+                )
+              : readOne(outcome.report, { form, submission: { id: SUBMISSION, data } }, { labels: regions })
+          const empty = readOf({})
+          expect(empty.ok ? [] : empty.errors).toEqual([])
+          const full = readOf(answered(fields))
+          if (!full.ok) throw new Error(`a visit that answered every field was refused: ${JSON.stringify(full.errors)}`)
+          const resolution = resolveReport(outcome.report, full.data, { mode: 'final', creationDate: '2026-10-22T08:00:00Z', timeZone: 'Europe/Zurich' })
+          if (!resolution.ok) throw new Error(`a visit that answered every field did not resolve: ${JSON.stringify(resolution.errors)}`)
+          if (drafts % RENDER_EVERY !== 1) return
+          const pdf = await readPdf(await renderPdf(resolution.document, { maxPages: 50 }))
+          expect(pdf.pages.flatMap((page) => page.items).some((item) => item.text.includes('Site visit'))).toBe(true)
+          printed += 1
+        }),
+        { numRuns: 400 },
+      )
+      // Most such forms are drafts, not refusals: a generator that refused them all would pass the rest unread.
+      expect(drafts).toBeGreaterThan(200)
+      expect(printed).toBeGreaterThan(5)
+    },
+    TIMEOUT,
+  )
 })

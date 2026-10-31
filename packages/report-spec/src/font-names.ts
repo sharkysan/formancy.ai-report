@@ -88,8 +88,7 @@ interface NameRecord {
 }
 
 /** Mac Roman's upper half, 0x80 to 0xFF, as Apple's mapping to Unicode gives it; the lower half is ASCII. */
-const MAC_ROMAN =
-  'ÄÅÇÉÑÖÜáàâäãåçéèêëíìîïñóòôöõúùûü†°¢£§•¶ß®©™´¨≠ÆØ∞±≤≥¥µ∂∑∏π∫ªºΩæø¿¡¬√ƒ≈∆«»… ÀÃÕŒœ–—“”‘’÷◊ÿŸ⁄€‹›ﬁﬂ‡·‚„‰ÂÊÁËÈÍÎÏÌÓÔÒÚÛÙıˆ˜¯˘˙˚¸˝˛ˇ'
+const MAC_ROMAN = 'ÄÅÇÉÑÖÜáàâäãåçéèêëíìîïñóòôöõúùûü†°¢£§•¶ß®©™´¨≠ÆØ∞±≤≥¥µ∂∑∏π∫ªºΩæø¿¡¬√ƒ≈∆«»… ÀÃÕŒœ–—“”‘’÷◊ÿŸ⁄€‹›ﬁﬂ‡·‚„‰ÂÊÁËÈÍÎÏÌÓÔÒÚÛÙıˆ˜¯˘˙˚¸˝˛ˇ'
 
 /** The characters a PostScript name may not hold among printable ASCII: the specification's ten, and the number sign, which starts an escape in a PDF name. */
 const NOT_IN_POSTSCRIPT_NAMES = new Set([...'[](){}<>/%#'].map((character) => character.charCodeAt(0)))
@@ -154,7 +153,8 @@ function records(file: FontFile, table: TableRecord): NameRecord[] {
       decoded += length
     }
     // fontkit looks a language from 0x8000 up among the tags, and loses the table where it is not there.
-    if (found.some((record) => record.language >= FIRST_LANGUAGE_TAG && record.language - FIRST_LANGUAGE_TAG >= tagCount)) refuse('malformed', 'has a name record whose language tag the naming table does not hold')
+    if (found.some((record) => record.language >= FIRST_LANGUAGE_TAG && record.language - FIRST_LANGUAGE_TAG >= tagCount))
+      refuse('malformed', 'has a name record whose language tag the naming table does not hold')
   }
   if (decoded > file.length) refuse('malformed', 'has name strings that add up to more bytes than the font holds')
   return found
@@ -188,11 +188,16 @@ function postScriptNames(file: FontFile, all: readonly NameRecord[]): { readonly
     if (record.id !== 6) continue
     if (rank(record) === undefined) refuse('malformed', 'has a PostScript name in an encoding this does not read')
     // Read no further than the longest name allowed: a record of 65,535 bytes is refused unread.
-    if (record.length > (encodingOf(record) === 'utf-16' ? 2 : 1) * POSTSCRIPT_NAME_LENGTH) refuse('malformed', `has a PostScript name longer than ${POSTSCRIPT_NAME_LENGTH} characters`)
+    if (record.length > (encodingOf(record) === 'utf-16' ? 2 : 1) * POSTSCRIPT_NAME_LENGTH)
+      refuse('malformed', `has a PostScript name longer than ${POSTSCRIPT_NAME_LENGTH} characters`)
     const text = decode(file, record)
     for (const character of text) {
       const point = character.codePointAt(0)!
-      if (point !== 0x20 && (point < 33 || point > 126 || NOT_IN_POSTSCRIPT_NAMES.has(point))) refuse('malformed', 'has a PostScript name with a character PDFKit would write into the PDF as syntax: a delimiter, a number sign, or one outside printable ASCII')
+      if (point !== 0x20 && (point < 33 || point > 126 || NOT_IN_POSTSCRIPT_NAMES.has(point)))
+        refuse(
+          'malformed',
+          'has a PostScript name with a character PDFKit would write into the PDF as syntax: a delimiter, a number sign, or one outside printable ASCII',
+        )
     }
     if (text.trim().length === 0) refuse('malformed', 'has an empty PostScript name')
     names.add(text)

@@ -42,9 +42,39 @@ describe('readCodes', () => {
     // whole points a module, so a version 1 code fitted to 80 pt is 21
     // modules of 3 pt, 63 pt, and a version 2 one fitted to 100 pt is 25 of 4.
     expect(codes).toEqual([
-      { text: 'HELLO corpus', bytes: new TextEncoder().encode('HELLO corpus'), ecLevel: 'Q', version: 2, x: expect.closeTo(100, 0), top: expect.closeTo(100, 0), width: expect.closeTo(100, 0), height: expect.closeTo(100, 0), bottom: expect.closeTo(200, 0) },
-      { text: 'second', bytes: new TextEncoder().encode('second'), ecLevel: 'H', version: 1, x: expect.closeTo(100, 0), top: expect.closeTo(400, 0), width: expect.closeTo(63, 0), height: expect.closeTo(63, 0), bottom: expect.closeTo(463, 0) },
-      { text: 'third', bytes: new TextEncoder().encode('third'), ecLevel: 'H', version: 1, x: expect.closeTo(300, 0), top: expect.closeTo(400, 0), width: expect.closeTo(63, 0), height: expect.closeTo(63, 0), bottom: expect.closeTo(463, 0) },
+      {
+        text: 'HELLO corpus',
+        bytes: new TextEncoder().encode('HELLO corpus'),
+        ecLevel: 'Q',
+        version: 2,
+        x: expect.closeTo(100, 0),
+        top: expect.closeTo(100, 0),
+        width: expect.closeTo(100, 0),
+        height: expect.closeTo(100, 0),
+        bottom: expect.closeTo(200, 0),
+      },
+      {
+        text: 'second',
+        bytes: new TextEncoder().encode('second'),
+        ecLevel: 'H',
+        version: 1,
+        x: expect.closeTo(100, 0),
+        top: expect.closeTo(400, 0),
+        width: expect.closeTo(63, 0),
+        height: expect.closeTo(63, 0),
+        bottom: expect.closeTo(463, 0),
+      },
+      {
+        text: 'third',
+        bytes: new TextEncoder().encode('third'),
+        ecLevel: 'H',
+        version: 1,
+        x: expect.closeTo(300, 0),
+        top: expect.closeTo(400, 0),
+        width: expect.closeTo(63, 0),
+        height: expect.closeTo(63, 0),
+        bottom: expect.closeTo(463, 0),
+      },
     ])
   })
 

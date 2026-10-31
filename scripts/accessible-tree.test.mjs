@@ -90,11 +90,20 @@ describe('treeLines', () => {
   test('passes through a wrapper with no role and nothing said of it, and keeps one that says something', () => {
     const list = node('4', 'list', 'Problems')
     const react = [node('1', 'region', 'Report editor', { children: ['4'] }), list]
-    const angular = [node('1', 'region', 'Report editor', { children: ['3'] }), node('3', 'generic', undefined, { children: ['5'] }), node('5', 'none', '', { children: ['4'] }), list]
+    const angular = [
+      node('1', 'region', 'Report editor', { children: ['3'] }),
+      node('3', 'generic', undefined, { children: ['5'] }),
+      node('5', 'none', '', { children: ['4'] }),
+      list,
+    ]
     expect(treeLines(angular, REGION)).toEqual(treeLines(react, REGION))
     const named = [node('1', 'region', 'Report editor', { children: ['3'] }), node('3', 'generic', 'Problems', { children: ['4'] }), list]
     expect(treeLines(named, REGION)).toEqual(['region "Report editor"', '  generic "Problems"', '    list "Problems"'])
-    const described = [node('1', 'region', 'Report editor', { children: ['3'] }), node('3', 'generic', '', { description: computed('Two problems.'), children: ['4'] }), list]
+    const described = [
+      node('1', 'region', 'Report editor', { children: ['3'] }),
+      node('3', 'generic', '', { description: computed('Two problems.'), children: ['4'] }),
+      list,
+    ]
     expect(treeLines(described, REGION)).toEqual(['region "Report editor"', '  generic "" description="Two problems."', '    list "Problems"'])
   })
 
@@ -162,7 +171,13 @@ describe('pruned', () => {
       '  - tree "Outline":',
       '    - treeitem "Body"',
     ]
-    expect(pruned(snapshot, { role: 'region', name: 'Preview' })).toEqual(['- region "Report editor":', '  - toolbar "Report tools"', '  - region "Preview":', '  - tree "Outline":', '    - treeitem "Body"'])
+    expect(pruned(snapshot, { role: 'region', name: 'Preview' })).toEqual([
+      '- region "Report editor":',
+      '  - toolbar "Report tools"',
+      '  - region "Preview":',
+      '  - tree "Outline":',
+      '    - treeitem "Body"',
+    ])
     // Only that role and that name: a heading named Preview, or a region named otherwise, is kept with what is under it.
     expect(pruned(snapshot, { role: 'heading', name: 'Report tools' })).toEqual(snapshot)
     expect(pruned(snapshot, { role: 'region', name: 'Previews' })).toEqual(snapshot)
@@ -174,9 +189,9 @@ describe('difference', () => {
   // a person can act on: the lines one builder alone has, at their depth.
   test('is null for the same lines, and otherwise names the lines each alone has, at their depth', () => {
     expect(difference(['a', '  b'], ['a', '  b'])).toBeNull()
-    expect(difference(['region "Report editor"', '  group "REPORT HEADER"'], ['region "Report editor"', '  group "Report header"'], { names: ['React', 'Angular'] })).toBe(
-      'React alone has (1) group "REPORT HEADER"; Angular alone has (1) group "Report header"',
-    )
+    expect(
+      difference(['region "Report editor"', '  group "REPORT HEADER"'], ['region "Report editor"', '  group "Report header"'], { names: ['React', 'Angular'] }),
+    ).toBe('React alone has (1) group "REPORT HEADER"; Angular alone has (1) group "Report header"')
     expect(difference(['a', 'b'], ['a'], { names: ['React', 'Angular'] })).toBe('React alone has (0) b; Angular has no line the other lacks')
     expect(difference(['a', 'b', 'c', 'd'], [], { limit: 2 })).toBe('one alone has (0) a | (0) b and 2 more; the other has no line the other lacks')
   })
@@ -184,6 +199,8 @@ describe('difference', () => {
   // The same controls in another order are another tab order and another
   // reading order: a difference, said where it starts.
   test('says where the same lines stand in another order', () => {
-    expect(difference(['a', '  b', '  c'], ['a', '  c', '  b'], { names: ['React', 'Angular'] })).toBe('the same lines in another order, from line 2: React has (1) b where Angular has (1) c')
+    expect(difference(['a', '  b', '  c'], ['a', '  c', '  b'], { names: ['React', 'Angular'] })).toBe(
+      'the same lines in another order, from line 2: React has (1) b where Angular has (1) c',
+    )
   })
 })

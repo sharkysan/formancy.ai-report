@@ -295,10 +295,7 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
   // always empty.
   'unknown-parameter': {
     refuse: set('/regions/pageHeader/0/content/0/parameter', 'to'),
-    accept: both(
-      set('/parameters/6', { id: 'to', type: 'date', label: 'To', required: false }),
-      set('/regions/pageHeader/0/content/0/parameter', 'to'),
-    ),
+    accept: both(set('/parameters/6', { id: 'to', type: 'date', label: 'To', required: false }), set('/regions/pageHeader/0/content/0/parameter', 'to')),
     at: ['/regions/pageHeader/0/content/0/parameter'],
   },
   // An image of an asset the template does not name could only be resolved

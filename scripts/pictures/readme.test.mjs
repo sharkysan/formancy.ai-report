@@ -88,17 +88,63 @@ describe("the repository's README pictures", () => {
  * it, of one app, and one of another. Its snapshot lines are written by hand
  * in the shapes Playwright prints.
  */
-const LOOK = { platform: 'win32-x64', playwright: '1.64.1', chromium: '156.0.8078.4', fonts: { Archivo: 'v25', 'IBM Plex Mono': 'v20', 'IBM Plex Sans': 'v23' } }
+const LOOK = {
+  platform: 'win32-x64',
+  playwright: '1.64.1',
+  chromium: '156.0.8078.4',
+  fonts: { Archivo: 'v25', 'IBM Plex Mono': 'v20', 'IBM Plex Sans': 'v23' },
+}
 const SETTINGS = { width: 1600, height: 900, deviceScaleFactor: 2, locale: 'en-US', timezoneId: 'UTC' }
 const LINK = './docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md'
 
 function scenes() {
   return [
-    { id: 'studio-react', app: 'studio', placement: 'hero', title: 'React', caption: `Down to “Total CHF 3'143.00” ([0010](${LINK})).`, alt: 'The Studio, “Preview: printed.”', quotes: { "Total CHF 3'143.00": ['Preview'], 'Preview: printed.': ['Preview'] } },
-    { id: 'studio-refusal', app: 'studio', placement: 'inline', title: 'Refused', caption: 'Its button, “Select Book value”.', alt: 'The Preview.', quotes: { 'Select Book value': ['Preview'] } },
-    { id: 'studio-narrow', app: 'studio', placement: 'more', title: 'Narrow', width: 390, caption: '“Page 1 of 2” and the next.', alt: 'The Studio, narrow.', quotes: { 'Page 1 of 2': ['Preview'] } },
-    { id: 'studio-blank', app: 'studio', placement: 'more', title: 'Blank', caption: '“the body holds nothing”.', alt: 'The builder.', quotes: { 'the body holds nothing': ['Builder'] } },
-    { id: 'viewer-page', app: 'viewer', placement: 'inline', title: 'A viewer', caption: '“Page 1 of 1”.', alt: 'A page.', quotes: { 'Page 1 of 1': ['Viewer'] } },
+    {
+      id: 'studio-react',
+      app: 'studio',
+      placement: 'hero',
+      title: 'React',
+      caption: `Down to “Total CHF 3'143.00” ([0010](${LINK})).`,
+      alt: 'The Studio, “Preview: printed.”',
+      quotes: { "Total CHF 3'143.00": ['Preview'], 'Preview: printed.': ['Preview'] },
+    },
+    {
+      id: 'studio-refusal',
+      app: 'studio',
+      placement: 'inline',
+      title: 'Refused',
+      caption: 'Its button, “Select Book value”.',
+      alt: 'The Preview.',
+      quotes: { 'Select Book value': ['Preview'] },
+    },
+    {
+      id: 'studio-narrow',
+      app: 'studio',
+      placement: 'more',
+      title: 'Narrow',
+      width: 390,
+      caption: '“Page 1 of 2” and the next.',
+      alt: 'The Studio, narrow.',
+      quotes: { 'Page 1 of 2': ['Preview'] },
+    },
+    {
+      id: 'studio-blank',
+      app: 'studio',
+      placement: 'more',
+      title: 'Blank',
+      caption: '“the body holds nothing”.',
+      alt: 'The builder.',
+      quotes: { 'the body holds nothing': ['Builder'] },
+    },
+    {
+      id: 'viewer-page',
+      app: 'viewer',
+      placement: 'inline',
+      title: 'A viewer',
+      caption: '“Page 1 of 1”.',
+      alt: 'A page.',
+      quotes: { 'Page 1 of 1': ['Viewer'] },
+    },
   ]
 }
 
@@ -119,9 +165,36 @@ function fixture() {
     const picture = Buffer.from(`the picture of ${scene.id}`)
     files.set(pictureOf(scene.id), picture)
     const width = scene.width ?? 1600
-    record[scene.id] = entry(scene.id, { captured: '2026-10-16', settings: { ...SETTINGS, width }, clip: { x: 0, y: 0, width, height: 400 }, picture, look: structuredClone(LOOK), data: 'the starters', stylesheet: 'sha256 0', text: TEXT[scene.id] })
+    record[scene.id] = entry(scene.id, {
+      captured: '2026-10-16',
+      settings: { ...SETTINGS, width },
+      clip: { x: 0, y: 0, width, height: 400 },
+      picture,
+      look: structuredClone(LOOK),
+      data: 'the starters',
+      stylesheet: 'sha256 0',
+      text: TEXT[scene.id],
+    })
   }
-  const skeleton = ['# Formancy Report', '', 'Intro.', '', START('hero'), END, '', '## The Studio', '', START('studio'), END, '', '## A viewer', '', START('viewer'), END, ''].join('\n')
+  const skeleton = [
+    '# Formancy Report',
+    '',
+    'Intro.',
+    '',
+    START('hero'),
+    END,
+    '',
+    '## The Studio',
+    '',
+    START('studio'),
+    END,
+    '',
+    '## A viewer',
+    '',
+    START('viewer'),
+    END,
+    '',
+  ].join('\n')
   return {
     scenes: list,
     record,
@@ -203,7 +276,14 @@ describe('each check, on a small repository', () => {
     const headings = readFileSync(join(REPO, 'README.md'), 'utf8')
       .split(/\r?\n/)
       .filter((line) => line.startsWith('## '))
-      .map((line) => line.slice(3).trim().toLowerCase().replaceAll(/[^a-z0-9 -]/g, '').replaceAll(' ', '-'))
+      .map((line) =>
+        line
+          .slice(3)
+          .trim()
+          .toLowerCase()
+          .replaceAll(/[^a-z0-9 -]/g, '')
+          .replaceAll(' ', '-'),
+      )
     expect(headings).toContain('the-studio')
   })
 
@@ -228,7 +308,9 @@ describe('each check, on a small repository', () => {
   test('regions: a caption edited without writing the README', () => {
     const state = fixture()
     state.scenes[1].caption = 'Its button, “Select Book value”, said differently.'
-    expect(regionProblems(state)).toEqual(['README.md\'s pictures region "studio" is not what scenes.json and captured.json render: run `node scripts/pictures/readme.mjs --write`'])
+    expect(regionProblems(state)).toEqual([
+      'README.md\'s pictures region "studio" is not what scenes.json and captured.json render: run `node scripts/pictures/readme.mjs --write`',
+    ])
   })
 
   // Watched failing with: the studio region's markers deleted from README.md.
@@ -267,7 +349,9 @@ describe('each check, on a small repository', () => {
     expect(integrityProblems(missing)).toEqual(['studio-react has no record: `node scripts/pictures.mjs --scene studio-react` takes it'])
     const crlf = fixture()
     crlf.recordText = crlf.recordText.replaceAll('\n', '\r\n')
-    expect(integrityProblems(crlf)).toEqual(['docs/images/readme/captured.json is not as the camera writes it: pretty-printed, keyed in scenes.json order, LF only'])
+    expect(integrityProblems(crlf)).toEqual([
+      'docs/images/readme/captured.json is not as the camera writes it: pretty-printed, keyed in scenes.json order, LF only',
+    ])
   })
 
   // Watched failing with: a stray picture in the directory; separately, a record with no scene.
@@ -284,9 +368,14 @@ describe('each check, on a small repository', () => {
   test('quotes: a caption quoting what its part does not say', () => {
     const state = fixture()
     state.scenes[1].caption = 'Its button, “Select Tag”.'
-    expect(quoteProblems(state)).toEqual(['studio-refusal: “Select Tag” is quoted in its caption or alt and is not a key of its quotes, so nothing holds it to the picture', 'studio-refusal: “Select Book value” is a key of its quotes and is quoted in neither its caption nor its alt'])
+    expect(quoteProblems(state)).toEqual([
+      'studio-refusal: “Select Tag” is quoted in its caption or alt and is not a key of its quotes, so nothing holds it to the picture',
+      'studio-refusal: “Select Book value” is a key of its quotes and is quoted in neither its caption nor its alt',
+    ])
     state.scenes[1].quotes = { 'Select Tag': ['Preview'] }
-    expect(quoteProblems(state)).toEqual(['studio-refusal: “Select Tag” is not inside one name or value of what the part Preview says, so the caption quotes what its picture does not show'])
+    expect(quoteProblems(state)).toEqual([
+      'studio-refusal: “Select Tag” is not inside one name or value of what the part Preview says, so the caption quotes what its picture does not show',
+    ])
   })
 
   // Watched failing with: the total scoped to a part the picture does not have.
@@ -296,14 +385,22 @@ describe('each check, on a small repository', () => {
     expect(quoteProblems(part)).toEqual(["studio-react: “Total CHF 3'143.00” must occur in the part Builder, which the picture does not have"])
     const line = fixture()
     line.record['studio-refusal'].text.Preview += '\nbutton: unread'
-    expect(quoteProblems(line)).toEqual(expect.arrayContaining(['studio-refusal, part Preview: line 3 is not an accessibility snapshot line: it does not start with "- " at an even indentation']))
+    expect(quoteProblems(line)).toEqual(
+      expect.arrayContaining([
+        'studio-refusal, part Preview: line 3 is not an accessibility snapshot line: it does not start with "- " at an even indentation',
+      ]),
+    )
   })
 
   // Watched failing with: one record's chromium edited.
   test('one look: one record taken on another Chromium', () => {
     const state = fixture()
     state.record['studio-narrow'].look.chromium = '157.0.0.0'
-    expect(lookProblems(state)).toEqual([expect.stringMatching(/^the pictures were taken on 2 looks, and every one must be taken on one: .*Chromium 156\.0\.8078\.4.*; .*Chromium 157\.0\.0\.0.*`node scripts\/pictures\.mjs --all` retakes every picture$/)])
+    expect(lookProblems(state)).toEqual([
+      expect.stringMatching(
+        /^the pictures were taken on 2 looks, and every one must be taken on one: .*Chromium 156\.0\.8078\.4.*; .*Chromium 157\.0\.0\.0.*`node scripts\/pictures\.mjs --all` retakes every picture$/,
+      ),
+    ])
   })
 
   // Watched failing with: a caption linking a decision record that does not exist.
@@ -319,7 +416,9 @@ describe('each check, on a small repository', () => {
   test('links: a region showing a picture that does not exist', () => {
     const state = fixture()
     state.files.delete(pictureOf('studio-blank'))
-    expect(linkProblems(state)).toEqual(['README.md\'s pictures region "studio" links ./docs/images/readme/studio-blank.webp, which is no file of the repository'])
+    expect(linkProblems(state)).toEqual([
+      'README.md\'s pictures region "studio" links ./docs/images/readme/studio-blank.webp, which is no file of the repository',
+    ])
   })
 
   // Watched failing with: a scene's app set to `studios`.
@@ -367,7 +466,9 @@ describe('each check, on a small repository', () => {
   test('shape: a title with a comma in it', () => {
     const state = fixture()
     state.scenes[3].title = 'Blank, with its warning'
-    expect(shapeProblems(state)).toEqual(["studio-blank's title has a comma in it, and a <details> summary joins titles with commas, so it would read as two scenes"])
+    expect(shapeProblems(state)).toEqual([
+      "studio-blank's title has a comma in it, and a <details> summary joins titles with commas, so it would read as two scenes",
+    ])
   })
 
   // Watched failing with: the viewer's scene removed from scenes.json.
@@ -375,7 +476,10 @@ describe('each check, on a small repository', () => {
     const state = fixture()
     state.scenes.splice(4, 1)
     expect(guardProblems(state)).toEqual(['apps/viewer/scripts/pictures.mjs takes no scene of scenes.json, so its check would compare nothing'])
-    expect(shapeProblems({ ...state, scenes: [] })).toEqual(['scenes.json has no scene, so the README shows no picture and nothing is checked', 'scenes.json must have exactly one hero scene, the picture README.md opens with; it has 0'])
+    expect(shapeProblems({ ...state, scenes: [] })).toEqual([
+      'scenes.json has no scene, so the README shows no picture and nothing is checked',
+      'scenes.json must have exactly one hero scene, the picture README.md opens with; it has 0',
+    ])
   })
 
   // A render that drew no picture would be written into README.md and then
@@ -384,6 +488,8 @@ describe('each check, on a small repository', () => {
     const state = fixture()
     const rendered = render(state.scenes, state.record)
     expect(guardProblems(state, { ...rendered, viewer: '*“Page 1 of 1”.*' })).toEqual(['the pictures region "viewer" renders no picture'])
-    expect(guardProblems({ ...state, record: {} })).toEqual([expect.stringMatching(/^the regions could not be rendered, so none drew a picture: studio-react has no record/)])
+    expect(guardProblems({ ...state, record: {} })).toEqual([
+      expect.stringMatching(/^the regions could not be rendered, so none drew a picture: studio-react has no record/),
+    ])
   })
 })

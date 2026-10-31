@@ -40,7 +40,8 @@ function rowOf(nodes: readonly OutlineNode[], id: string, column: string | undef
 /** The outline row of `id`'s `column`, else of `id`; null when the outline has neither. */
 export function targetOf(outline: readonly OutlineRegion[], id: string | undefined, column?: string): ProblemTarget | null {
   if (id === undefined) return null
-  const find = (wanted: string | undefined): OutlineNode | undefined => outline.map((region) => rowOf(region.nodes, id, wanted)).find((found) => found !== undefined)
+  const find = (wanted: string | undefined): OutlineNode | undefined =>
+    outline.map((region) => rowOf(region.nodes, id, wanted)).find((found) => found !== undefined)
   const inColumn = column === undefined ? undefined : find(column)
   if (inColumn !== undefined) return { id, column: column as string, label: inColumn.label }
   const component = find(undefined)
@@ -58,5 +59,11 @@ export function runtimeProblems(errors: readonly RuntimeError[], severity: Previ
 }
 
 export function renderProblem(refusal: NotDrawn, outline: readonly OutlineRegion[]): PreviewProblem {
-  return { key: `render ${refusal.code}`, severity: 'error', code: `render ${refusal.code}`, message: refusal.message, target: targetOf(outline, refusal.subject) }
+  return {
+    key: `render ${refusal.code}`,
+    severity: 'error',
+    code: `render ${refusal.code}`,
+    message: refusal.message,
+    target: targetOf(outline, refusal.subject),
+  }
 }

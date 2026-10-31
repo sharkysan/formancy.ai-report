@@ -135,7 +135,15 @@ describe('the panes', () => {
   test('are shown and entered from the toolbar', async () => {
     const report = scenarioReport()
     const { settle } = await mountBuilder(
-      createReportEditor(sessionOver({ ...report, regions: { ...report.regions, body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)) } })),
+      createReportEditor(
+        sessionOver({
+          ...report,
+          regions: {
+            ...report.regions,
+            body: report.regions.body.map((component) => (component.id === 'intro' ? { ...component, visibleWhen: { cel: 'params.missing' } } : component)),
+          },
+        }),
+      ),
     )
     const editor = screen.getByRole('region', { name: 'Report editor' })
     expect(editor.getAttribute('data-panel')).toBe('outline')
@@ -213,7 +221,9 @@ describe('the outline', () => {
   // given focus would select itself, which no key asked for.
   test('keeps focus in an emptied tree, where Ctrl+Z still undoes', async () => {
     const report = scenarioReport()
-    const { settle } = await mountBuilder(createReportEditor(sessionOver({ ...report, styles: [], regions: { ...report.regions, body: [{ id: 'gap', kind: 'spacer', height: 12 }] } })))
+    const { settle } = await mountBuilder(
+      createReportEditor(sessionOver({ ...report, styles: [], regions: { ...report.regions, body: [{ id: 'gap', kind: 'spacer', height: 12 }] } })),
+    )
     click(screen.getByRole('treeitem', { name: 'Spacer' }))
     await settle()
     press('Delete')
@@ -258,7 +268,7 @@ describe('the outline', () => {
     await settle()
     click(screen.getByRole('treeitem', { name: 'Introduction' }))
     await settle()
-    const text = screen.getByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement
+    const text = screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Text' })
     text.focus()
     fireEvent.change(text, { target: { value: 'Introduction, revised' } })
     await settle()
@@ -271,7 +281,11 @@ describe('the outline', () => {
   test('groups the rows by region, an empty region included', async () => {
     await mountScenarioBuilder()
     const body = screen.getByRole('group', { name: 'Body' })
-    expect(within(body).getAllByRole('treeitem').map((row) => row.textContent)).toEqual(['Findings', 'Introduction', 'Section', 'Note', 'Spacer'])
+    expect(
+      within(body)
+        .getAllByRole('treeitem')
+        .map((row) => row.textContent),
+    ).toEqual(['Findings', 'Introduction', 'Section', 'Note', 'Spacer'])
     expect(within(screen.getByRole('group', { name: 'Summary' })).queryAllByRole('treeitem')).toEqual([])
   })
 })

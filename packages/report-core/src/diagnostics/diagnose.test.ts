@@ -56,13 +56,22 @@ const CASES: { readonly [C in DiagnosticCode]: Case } = {
   },
   // An integer parameter plus a string has no meaning in CEL: the member is
   // checked as the integer it is, not as an unknown.
-  'expression-type': { edit: set(CLOSING_WHEN, 'params.copies + "x" == "1x"'), expected: { path: CLOSING_WHEN, componentId: 'closing', position: { start: 0, end: 19 } } },
+  'expression-type': {
+    edit: set(CLOSING_WHEN, 'params.copies + "x" == "1x"'),
+    expected: { path: CLOSING_WHEN, componentId: 'closing', position: { start: 0, end: 19 } },
+  },
   // A condition must be a boolean, and an integer parameter is not one.
   'expression-policy': { edit: set(INTRO_WHEN, 'params.copies'), expected: { path: INTRO_WHEN, componentId: 'intro', position: { start: 0, end: 13 } } },
   // A parameter nobody declared reads as nothing at run time.
-  'expression-unknown-name': { edit: set(INTRO_WHEN, 'params.nope == false'), expected: { path: INTRO_WHEN, componentId: 'intro', position: { start: 0, end: 11 } } },
+  'expression-unknown-name': {
+    edit: set(INTRO_WHEN, 'params.nope == false'),
+    expected: { path: INTRO_WHEN, componentId: 'intro', position: { start: 0, end: 11 } },
+  },
   // There is no current row outside a table's cells.
-  'expression-out-of-scope': { edit: set(INTRO_WHEN, 'row.shipped == true'), expected: { path: INTRO_WHEN, componentId: 'intro', position: { start: 0, end: 3 } } },
+  'expression-out-of-scope': {
+    edit: set(INTRO_WHEN, 'row.shipped == true'),
+    expected: { path: INTRO_WHEN, componentId: 'intro', position: { start: 0, end: 3 } },
+  },
   // An image field's value is an asset id: drawn, never computed with.
   'expression-unreadable-field': {
     edit: set(INTRO_VALUE, 'string(header.signature) + string(params.copies)'),
@@ -74,22 +83,37 @@ const CASES: { readonly [C in DiagnosticCode]: Case } = {
     expected: { path: INTRO_WHEN, componentId: 'intro', position: { start: 25, end: 32 } },
   },
   // int(double) printed 4.35 as 434 cents, as though it were exact.
-  'expression-inexact': { edit: set(TOTAL_VALUE, 'dec(string(int(double(string(totals.gross)))))'), expected: { path: TOTAL_VALUE, componentId: 'lines', position: { start: 15, end: 43 }, hint: expect.stringContaining('dec(') as string } },
+  'expression-inexact': {
+    edit: set(TOTAL_VALUE, 'dec(string(int(double(string(totals.gross)))))'),
+    expected: { path: TOTAL_VALUE, componentId: 'lines', position: { start: 15, end: 43 }, hint: expect.stringContaining('dec(') as string },
+  },
   // A backtracking pattern can take minutes inside one step of the budget.
-  'expression-unbounded': { edit: set(INTRO_WHEN, 'header.customer.matches("^a+$")'), expected: { path: INTRO_WHEN, componentId: 'intro', position: { start: 0, end: 31 } } },
+  'expression-unbounded': {
+    edit: set(INTRO_WHEN, 'header.customer.matches("^a+$")'),
+    expected: { path: INTRO_WHEN, componentId: 'intro', position: { start: 0, end: 31 } },
+  },
   // Which parameter size(params) counts depends on nothing the editor can
   // check, and the runtime binds a parameter by its id, never the whole set.
-  'expression-dynamic-read': { edit: set(CLOSING_WHEN, 'size(params) > 0 && totals.lines > 0'), expected: { path: CLOSING_WHEN, componentId: 'closing', position: { start: 5, end: 11 } } },
+  'expression-dynamic-read': {
+    edit: set(CLOSING_WHEN, 'size(params) > 0 && totals.lines > 0'),
+    expected: { path: CLOSING_WHEN, componentId: 'closing', position: { start: 5, end: 11 } },
+  },
   // A sum of strings has no value: a sum takes integers and decimals.
   'expression-aggregate-type': { edit: set(GROSS, 'row.sku'), expected: { path: GROSS } },
   // A total that reads itself can never be computed.
   'aggregate-cycle': { edit: set(GROSS, 'row.amount * dec("1.081") + totals.gross'), expected: { path: GROSS, position: { start: 28, end: 40 } } },
   // A total rounded half-even to one place, then printed whole, is rounded
   // twice: 2.45 became 2.5 and then 3, where once it is 2.
-  'format-rounds-again': { edit: set(`${STATISTICS}/format`, { kind: 'number', scale: 0, grouping: false }), expected: { path: `${STATISTICS}/format`, componentId: 'statistics' } },
+  'format-rounds-again': {
+    edit: set(`${STATISTICS}/format`, { kind: 'number', scale: 0, grouping: false }),
+    expected: { path: `${STATISTICS}/format`, componentId: 'statistics' },
+  },
   // A count has no places: every render refused its rounding, which the
   // editor said nothing about.
-  'rounding-not-decimal': { edit: set('/aggregates/1/rounding', { scale: 0, mode: 'half-even', increment: '5' }), expected: { path: '/aggregates/1/rounding' } },
+  'rounding-not-decimal': {
+    edit: set('/aggregates/1/rounding', { scale: 0, mode: 'half-even', increment: '5' }),
+    expected: { path: '/aggregates/1/rounding' },
+  },
   // A total the XML holds and the page does not print: the page shows
   // another invoice than the one it carries. The sample made the e-invoice
   // sample, its reduced rate's amount printed by nothing.
@@ -113,8 +137,14 @@ const CASES: { readonly [C in DiagnosticCode]: Case } = {
     expected: { path: '/regions/summary/4/content/9/format', componentId: 'invoice-totals' },
   },
   'unused-style': { edit: (report) => report.styles.push({ id: 'spare', bold: true }), expected: { path: '/styles/5' } },
-  'unused-asset': { edit: (report) => report.assets.push({ id: 'spare', mediaType: 'image/png', digest: `sha256:${'12'.repeat(32)}` }), expected: { path: '/assets/2' } },
-  'unused-parameter': { edit: (report) => report.parameters.push({ id: 'spare', type: 'string', label: 'Spare', required: false }), expected: { path: '/parameters/5' } },
+  'unused-asset': {
+    edit: (report) => report.assets.push({ id: 'spare', mediaType: 'image/png', digest: `sha256:${'12'.repeat(32)}` }),
+    expected: { path: '/assets/2' },
+  },
+  'unused-parameter': {
+    edit: (report) => report.parameters.push({ id: 'spare', type: 'string', label: 'Spare', required: false }),
+    expected: { path: '/parameters/5' },
+  },
   'unused-field': {
     edit: (report) => report.datasets.detail?.fields.push({ id: 'spare', type: 'string', label: 'Spare', nullable: true }),
     expected: { path: '/datasets/detail/fields/8' },
@@ -173,7 +203,9 @@ describe('expression diagnostics', () => {
 
   // A name that is no scope's at all is unknown, not out of scope.
   test('calls a name no scope binds unknown, at its position', () => {
-    expect(at(INTRO_WHEN, 'foo == 1 && params.draft == false')).toEqual([expect.objectContaining({ code: 'expression-unknown-name', position: { start: 0, end: 3 } })])
+    expect(at(INTRO_WHEN, 'foo == 1 && params.draft == false')).toEqual([
+      expect.objectContaining({ code: 'expression-unknown-name', position: { start: 0, end: 3 } }),
+    ])
   })
 
   // group has a value only in a group's header and footer; the table's
@@ -237,7 +269,14 @@ describe('expression diagnostics', () => {
   // Each read of a member nothing declares is reported where it is, so
   // the underline does not run across the text between two of them.
   test('reports each read of an unknown member at its own position, with the column it is in', () => {
-    expect(at(AMOUNT_WHEN, 'row.nope > dec("1") && row.sku == "a" && row.nope < dec("3")').map(({ code, position, componentId, columnId }) => [code, position, componentId, columnId])).toEqual([
+    expect(
+      at(AMOUNT_WHEN, 'row.nope > dec("1") && row.sku == "a" && row.nope < dec("3")').map(({ code, position, componentId, columnId }) => [
+        code,
+        position,
+        componentId,
+        columnId,
+      ]),
+    ).toEqual([
       ['expression-unknown-name', { start: 0, end: 8 }, 'lines', 'amount'],
       ['expression-unknown-name', { start: 41, end: 49 }, 'lines', 'amount'],
     ])
@@ -258,7 +297,10 @@ describe('expression diagnostics', () => {
   // reads no member; it is refused where it is, and credits no member as
   // read.
   test('refuses a read by a key that is no identifier, crediting nothing', () => {
-    const report = edited((r) => r.parameters.push({ id: 'spare', type: 'string', label: 'Spare', required: false }), set(CLOSING_WHEN, 'params["a b"] == "x" && totals.lines > 0'))
+    const report = edited(
+      (r) => r.parameters.push({ id: 'spare', type: 'string', label: 'Spare', required: false }),
+      set(CLOSING_WHEN, 'params["a b"] == "x" && totals.lines > 0'),
+    )
     expect(diagnose(report).map(({ code, position }) => [code, position])).toEqual([
       ['expression-unknown-name', { start: 0, end: 13 }],
       ['unused-parameter', undefined],
@@ -276,7 +318,9 @@ describe('expression diagnostics', () => {
   // the author's, and a position past it is not given rather than given
   // wrong: so for a whole read, and for a call to the clock.
   test('gives no position past a read written as an index', () => {
-    expect(at(CLOSING_WHEN, 'size(params) > 0 && params["copies"] > 0').map(({ code, position }) => [code, position])).toEqual([['expression-dynamic-read', undefined]])
+    expect(at(CLOSING_WHEN, 'size(params) > 0 && params["copies"] > 0').map(({ code, position }) => [code, position])).toEqual([
+      ['expression-dynamic-read', undefined],
+    ])
     expect(at(AMOUNT_WHEN, 'row["amount"] < dec("0") || now() > timestamp("2026-01-01T00:00:00Z")').map(({ code, position }) => [code, position])).toEqual([
       ['expression-not-reproducible', undefined],
     ])
@@ -314,9 +358,18 @@ describe('expression diagnostics', () => {
     ['count', '[row.amount]', []],
   ] as const)('checks what %s of %s takes', (fn, cel, codes) => {
     const report = edited((r) => {
-      r.aggregates[2] = { id: 'gross', fn, of: { kind: 'expression', expression: { cel } }, ...(fn === 'avg' ? { rounding: { scale: 2, mode: 'half-even' } } : {}) }
+      r.aggregates[2] = {
+        id: 'gross',
+        fn,
+        of: { kind: 'expression', expression: { cel } },
+        ...(fn === 'avg' ? { rounding: { scale: 2, mode: 'half-even' } } : {}),
+      }
     })
-    expect(diagnose(report).filter(({ path }) => path === GROSS).map(({ code }) => code)).toEqual(codes)
+    expect(
+      diagnose(report)
+        .filter(({ path }) => path === GROSS)
+        .map(({ code }) => code),
+    ).toEqual(codes)
   })
 
   // Every reproducibility problem is reported, each where it is.
@@ -332,13 +385,31 @@ describe('expression diagnostics', () => {
   // with no diagnostic. Integer division printed 3 / 2 as 1. Each is
   // refused where it is written, with what keeps the number exact.
   test.each([
-    ['a double through int()', TOTAL_VALUE, 'string(int(double(string(totals.gross)) * 100.0))', [['double-call', 11], ['double-literal', 42]]],
-    ['a double in a condition', AMOUNT_WHEN, 'double(string(row.amount)) > 1.5', [['double-call', 0], ['double-literal', 29]]],
+    [
+      'a double through int()',
+      TOTAL_VALUE,
+      'string(int(double(string(totals.gross)) * 100.0))',
+      [
+        ['double-call', 11],
+        ['double-literal', 42],
+      ],
+    ],
+    [
+      'a double in a condition',
+      AMOUNT_WHEN,
+      'double(string(row.amount)) > 1.5',
+      [
+        ['double-call', 0],
+        ['double-literal', 29],
+      ],
+    ],
     ['integer division', INTRO_VALUE, 'string(params.copies / 2)', [['integer-division', 21]]],
   ])('refuses %s, where it is written', (_name, pointer, cel, found) => {
     const diagnostics = at(pointer, cel)
     expect(diagnostics.map(({ code, position }) => [code, position?.start])).toEqual(found.map(([, start]) => ['expression-inexact', start]))
-    expect(diagnostics.map(({ hint }) => hint)).toEqual(found.map(([kind]) => expect.stringContaining(kind === 'integer-division' ? 'divide(dec(' : 'dec("') as string))
+    expect(diagnostics.map(({ hint }) => hint)).toEqual(
+      found.map(([kind]) => expect.stringContaining(kind === 'integer-division' ? 'divide(dec(' : 'dec("') as string),
+    )
   })
 
   // Exact division, and a remainder, which drops nothing, are what an author
@@ -350,7 +421,9 @@ describe('expression diagnostics', () => {
   // "^(a+)+$" over 29 letters and a b took 39 seconds in one resolve: a
   // backtracking pattern is one call of a few steps to the budget.
   test('refuses matches(), whose time no budget bounds', () => {
-    expect(at(INTRO_WHEN, 'header.customer.matches("^(a+)+$")').map(({ code, position }) => [code, position])).toEqual([['expression-unbounded', { start: 0, end: 34 }]])
+    expect(at(INTRO_WHEN, 'header.customer.matches("^(a+)+$")').map(({ code, position }) => [code, position])).toEqual([
+      ['expression-unbounded', { start: 0, end: 34 }],
+    ])
   })
 
   // What upstream suggests travels with the error: here, how to write a
@@ -458,7 +531,12 @@ describe('rounding', () => {
     ['to 0.05 at two places', { scale: 2, mode: 'half-away-from-zero', increment: '0.05' }, chf(2), []],
     ['with no rounding declared, at no places', undefined, chf(0), []],
     ['at fewer places than the rounding keeps', { scale: 2, mode: 'half-even' }, chf(1), [`format-rounds-again ${GROUP_SUBTOTAL}/format`]],
-    ['to 0.05, at one place', { scale: 2, mode: 'half-away-from-zero', increment: '0.05' }, { kind: 'number', scale: 1, grouping: true }, [`format-rounds-again ${GROUP_SUBTOTAL}/format`]],
+    [
+      'to 0.05, at one place',
+      { scale: 2, mode: 'half-away-from-zero', increment: '0.05' },
+      { kind: 'number', scale: 1, grouping: true },
+      [`format-rounds-again ${GROUP_SUBTOTAL}/format`],
+    ],
   ])('allows or refuses a total printed %s', (_name, rounding, format, codes) => {
     expect(printed(rounding, format)).toEqual(codes)
   })
@@ -481,7 +559,10 @@ describe('unused declarations', () => {
   // is an error of its own, and may read any member, so none of them is
   // also called unused.
   test('counts a whole read of a name as a read of every member', () => {
-    const report = edited((r) => r.parameters.push({ id: 'spare', type: 'string', label: 'Spare', required: false }), set(CLOSING_WHEN, 'size(params) > 0 && totals.lines > 0'))
+    const report = edited(
+      (r) => r.parameters.push({ id: 'spare', type: 'string', label: 'Spare', required: false }),
+      set(CLOSING_WHEN, 'size(params) > 0 && totals.lines > 0'),
+    )
     expect(diagnose(report).map(({ code }) => code)).toEqual(['expression-dynamic-read'])
   })
 
@@ -491,9 +572,11 @@ describe('unused declarations', () => {
   test('counts reads in expressions, and reports an unread header field', () => {
     const report = edited((r) => r.datasets.header?.fields.push({ id: 'spare', type: 'string', label: 'Spare', nullable: true }))
     expect(diagnose(report)).toEqual([expect.objectContaining({ code: 'unused-field', path: '/datasets/header/fields/4' })])
-    expect(diagnose(edited(set(INTRO_VALUE, 'header.spare'), (r) => r.datasets.header?.fields.push({ id: 'spare', type: 'string', label: 'Spare', nullable: true })))).toEqual([
-      expect.objectContaining({ code: 'unused-parameter', path: '/parameters/4' }),
-    ])
+    expect(
+      diagnose(
+        edited(set(INTRO_VALUE, 'header.spare'), (r) => r.datasets.header?.fields.push({ id: 'spare', type: 'string', label: 'Spare', nullable: true })),
+      ),
+    ).toEqual([expect.objectContaining({ code: 'unused-parameter', path: '/parameters/4' })])
   })
 })
 
@@ -519,9 +602,19 @@ describe('content', () => {
   // Spaces print nothing a reader sees; a bound value prints whatever the
   // data holds, so it is not empty.
   test('calls a text of blank literal runs empty, and one with a value not', () => {
-    const blank = edited(set('/regions/body/3/components/1/content', [{ kind: 'text', text: '  ' }, { kind: 'text', text: '' }]))
+    const blank = edited(
+      set('/regions/body/3/components/1/content', [
+        { kind: 'text', text: '  ' },
+        { kind: 'text', text: '' },
+      ]),
+    )
     expect(diagnose(blank).map(({ code }) => code)).toEqual(['empty-text'])
-    const bound = edited(set('/regions/body/3/components/1/content', [{ kind: 'text', text: '' }, { kind: 'parameter', parameter: 'from' }]))
+    const bound = edited(
+      set('/regions/body/3/components/1/content', [
+        { kind: 'text', text: '' },
+        { kind: 'parameter', parameter: 'from' },
+      ]),
+    )
     expect(diagnose(bound)).toEqual([])
   })
 })

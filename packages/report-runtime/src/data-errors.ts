@@ -82,7 +82,8 @@ export class DataFindings {
   /** The errors in the order found, and a last one when more were found than listed. */
   errors(): DataError[] {
     const errors = [...this.#errors]
-    if (this.#overflowed) errors.push({ path: '', code: 'too-many-errors', message: `more than ${MAX_DATA_ERRORS} errors were found; the first ${MAX_DATA_ERRORS} are listed` })
+    if (this.#overflowed)
+      errors.push({ path: '', code: 'too-many-errors', message: `more than ${MAX_DATA_ERRORS} errors were found; the first ${MAX_DATA_ERRORS} are listed` })
     return errors
   }
 }

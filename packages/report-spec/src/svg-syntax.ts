@@ -68,7 +68,14 @@ export function latin1(bytes: Uint8Array, start: number, end: number): string {
 
 /** Whether a code point is a character XML 1.0 allows (production 2), which a numeric reference must name. */
 function isXmlChar(code: number): boolean {
-  return code === 0x9 || code === 0xa || code === 0xd || (code >= 0x20 && code <= 0xd7ff) || (code >= 0xe000 && code <= 0xfffd) || (code >= 0x10000 && code <= 0x10ffff)
+  return (
+    code === 0x9 ||
+    code === 0xa ||
+    code === 0xd ||
+    (code >= 0x20 && code <= 0xd7ff) ||
+    (code >= 0xe000 && code <= 0xfffd) ||
+    (code >= 0x10000 && code <= 0x10ffff)
+  )
 }
 
 const PREDEFINED: { readonly [name: string]: string } = { lt: '<', gt: '>', amp: '&', quot: '"', apos: "'" }
@@ -192,7 +199,11 @@ export class XmlReader {
         if (byte === quote) quote = undefined
       } else if (byte === QUOTE || byte === APOSTROPHE) quote = byte
       else if (byte === 0x5b)
-        refuse('doctype', 'the DOCTYPE declares entities in an internal subset, which this format does not expand', "save it without Illustrator's editing capabilities, or as plain SVG")
+        refuse(
+          'doctype',
+          'the DOCTYPE declares entities in an internal subset, which this format does not expand',
+          "save it without Illustrator's editing capabilities, or as plain SVG",
+        )
       else if (byte === GT) {
         this.at = i + 1
         return { kind: 'doctype' }
@@ -273,7 +284,7 @@ export class XmlReader {
   decode(start: number, end: number, value: boolean): string {
     let text = ''
     let from = start
-    for (let i = this.index(AMP, start, end); i >= 0; ) {
+    for (let i = this.index(AMP, start, end); i >= 0;) {
       text += latin1(this.bytes, from, i)
       const { text: replaced, next } = this.reference(i, end)
       text += replaced

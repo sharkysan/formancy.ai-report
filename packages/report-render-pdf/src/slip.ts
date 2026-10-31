@@ -177,10 +177,26 @@ function corners(width: number, height: number): ContentCanvas['canvas'] {
   })
   const [left, top, right, bottom] = [inset, inset, width - inset, height - inset]
   return [
-    corner([[left, arm], [left, top], [arm, top]]),
-    corner([[width - arm, top], [right, top], [right, arm]]),
-    corner([[right, height - arm], [right, bottom], [width - arm, bottom]]),
-    corner([[arm, bottom], [left, bottom], [left, height - arm]]),
+    corner([
+      [left, arm],
+      [left, top],
+      [arm, top],
+    ]),
+    corner([
+      [width - arm, top],
+      [right, top],
+      [right, arm],
+    ]),
+    corner([
+      [right, height - arm],
+      [right, bottom],
+      [width - arm, bottom],
+    ]),
+    corner([
+      [arm, bottom],
+      [left, bottom],
+      [left, height - arm],
+    ]),
   ]
 }
 
@@ -193,7 +209,9 @@ function blocks(bill: QrBill, part: Part): Block[] {
   return [
     { heading: headings.account, values: [bill.account, ...bill.creditor] },
     ...(bill.reference === null ? [] : [{ heading: headings.reference, values: [bill.reference] }]),
-    ...(part.additionalInformation && bill.additionalInformation.length > 0 ? [{ heading: headings.additionalInformation, values: bill.additionalInformation }] : []),
+    ...(part.additionalInformation && bill.additionalInformation.length > 0
+      ? [{ heading: headings.additionalInformation, values: bill.additionalInformation }]
+      : []),
     bill.debtor === null ? { heading: headings.payableBy, field: part.debtorField } : { heading: headings.payableBy, values: bill.debtor },
   ]
 }
@@ -210,7 +228,10 @@ export function informationContent(bill: QrBill, part: Part): Content[] {
   const { heading, value, pitch } = part.lettering
   const shift = ascender(value) - ascender(heading)
   return blocks(bill, part).flatMap((block, index): Content[] => {
-    const title: ContentText = { ...line(block.heading, heading, true, (pitch - shift) / (LIBERATION_LINE * heading)), margin: [0, index === 0 ? 0 : pitch + shift, 0, 0] }
+    const title: ContentText = {
+      ...line(block.heading, heading, true, (pitch - shift) / (LIBERATION_LINE * heading)),
+      margin: [0, index === 0 ? 0 : pitch + shift, 0, 0],
+    }
     if ('field' in block) return [title, { canvas: corners(block.field.width, block.field.height), margin: [0, FIELD_GAP, 0, CORNER.weight / 2] }]
     return [title, ...block.values.map((text) => line(text, value, false, pitch / (LIBERATION_LINE * value)))]
   })
@@ -254,7 +275,15 @@ function partContent(bill: QrBill, part: Part, top: number, origin: number, pape
  * content it lays out.
  */
 export function slipContent({ bill, symbol }: CheckedBill, top: number, origin: number, paperWidth: number): Content[] {
-  const down = (from: number, to: number): ContentCanvas['canvas'][number] => ({ type: 'line', x1: RECEIPT_WIDTH, y1: from, x2: RECEIPT_WIDTH, y2: to, lineWidth: SEPARATION, lineColor: '#000000' })
+  const down = (from: number, to: number): ContentCanvas['canvas'][number] => ({
+    type: 'line',
+    x1: RECEIPT_WIDTH,
+    y1: from,
+    x2: RECEIPT_WIDTH,
+    y2: to,
+    lineWidth: SEPARATION,
+    lineColor: '#000000',
+  })
   const separation: ContentCanvas = {
     canvas: [
       { type: 'line', x1: 0, y1: 0, x2: QR_BILL_SIZE.width, y2: 0, lineWidth: SEPARATION, lineColor: '#000000' },

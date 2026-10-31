@@ -67,8 +67,15 @@ describe('a request for a font file', () => {
   // files: a stylesheet or a script refused with them would measure a page
   // that is not the Studio, and a face let through would measure the faces.
   test('is known by its extension, with a query or not', () => {
-    for (const url of ['http://localhost:4394/report/assets/ibm-plex-sans-latin-400-normal-Bx1.woff2', 'http://studio.invalid/assets/a.woff', 'http://x/a.ttf?v=2', 'http://x/a.OTF#x']) expect({ url, font: FONT_FILE.test(url) }).toEqual({ url, font: true })
-    for (const url of ['http://localhost:4394/report/assets/index-B.css', 'http://x/a.js', 'http://x/woff2/index.html', 'http://x/a.woff2.map']) expect({ url, font: FONT_FILE.test(url) }).toEqual({ url, font: false })
+    for (const url of [
+      'http://localhost:4394/report/assets/ibm-plex-sans-latin-400-normal-Bx1.woff2',
+      'http://studio.invalid/assets/a.woff',
+      'http://x/a.ttf?v=2',
+      'http://x/a.OTF#x',
+    ])
+      expect({ url, font: FONT_FILE.test(url) }).toEqual({ url, font: true })
+    for (const url of ['http://localhost:4394/report/assets/index-B.css', 'http://x/a.js', 'http://x/woff2/index.html', 'http://x/a.woff2.map'])
+      expect({ url, font: FONT_FILE.test(url) }).toEqual({ url, font: false })
   })
 })
 
@@ -81,14 +88,20 @@ describe("the faces' versions", () => {
   // same fonts are the same look.
   test("are each family's release, from the Studio's Fontsource packages", () => {
     const studio = join(repo, 'apps', 'studio')
-    expect(faceVersions(studio, ['Archivo Variable', 'IBM Plex Mono', 'IBM Plex Sans'])).toEqual({ Archivo: 'v25', 'IBM Plex Mono': 'v20', 'IBM Plex Sans': 'v23' })
+    expect(faceVersions(studio, ['Archivo Variable', 'IBM Plex Mono', 'IBM Plex Sans'])).toEqual({
+      Archivo: 'v25',
+      'IBM Plex Mono': 'v20',
+      'IBM Plex Sans': 'v23',
+    })
   })
 
   // A family no package ships -- a face from somewhere else, or a package
   // dropped -- has no version to record, and a record that named none
   // would say nothing of what was pictured.
   test('refuse a family no Fontsource package of the app ships', () => {
-    expect(() => faceVersions(join(repo, 'apps', 'studio'), ['IBM Plex Sans', 'Inter'])).toThrow("no Fontsource package of apps/studio declares the family Inter, so its version cannot be recorded")
+    expect(() => faceVersions(join(repo, 'apps', 'studio'), ['IBM Plex Sans', 'Inter'])).toThrow(
+      'no Fontsource package of apps/studio declares the family Inter, so its version cannot be recorded',
+    )
   })
 })
 
@@ -112,7 +125,11 @@ describe('the faces the apps serve (0006, 0023)', () => {
     ])
     for (const face of faces) {
       const licence = readFileSync(join(face.directory, 'LICENSE'), 'utf8')
-      expect({ face: face.name, declared: face.licence, text: licence.includes('SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007') }).toEqual({ face: face.name, declared: 'OFL-1.1', text: true })
+      expect({ face: face.name, declared: face.licence, text: licence.includes('SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007') }).toEqual({
+        face: face.name,
+        declared: 'OFL-1.1',
+        text: true,
+      })
     }
   })
 })

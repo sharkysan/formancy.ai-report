@@ -44,7 +44,12 @@ export function click(element: Element): void {
 
 export function press(key: string, modifiers: readonly Modifier[] = []): void {
   const target = focused()
-  const held = { altKey: modifiers.includes('Alt'), ctrlKey: modifiers.includes('Control'), metaKey: modifiers.includes('Meta'), shiftKey: modifiers.includes('Shift') }
+  const held = {
+    altKey: modifiers.includes('Alt'),
+    ctrlKey: modifiers.includes('Control'),
+    metaKey: modifiers.includes('Meta'),
+    shiftKey: modifiers.includes('Shift'),
+  }
   const unprevented = fireEvent.keyDown(target, { key, ...held })
   if (unprevented && key === 'Enter' && target instanceof HTMLButtonElement) fireEvent.click(target)
   fireEvent.keyUp(focused(), { key, ...held })

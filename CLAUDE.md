@@ -26,6 +26,16 @@ Three things follow, and each has a guard:
   and nothing else depends on Data.
   A generic improvement goes upstream through that
   repository's own contribution rules, not into a patched copy here.
+  Two copies are carried, both tooling that no package carries
+  ([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
+  The lint and format rules, `scripts/code-style/`, are Formancy Health's
+  byte for byte, which is what formancy.ai will release as
+  `@formancy/code-style`, called with this repository's paths by
+  `eslint.config.mjs`: a rule changes in the shared module first and is
+  copied here, never changed here alone, and the copy goes when this
+  repository pins the package. The merge across the format,
+  `scripts/prettier-merge.mjs` and its test, is Formancy Data's, which no
+  release replaces: a change to it is made in both repositories.
 - **Every package declares the source-available licence**, never Apache-2.0.
   `scripts/verify-licenses.mjs` refuses a manifest that says otherwise and a
   tarball without `LICENSE.md` and `NOTICE`. The realistic mistake is a
@@ -342,8 +352,14 @@ and the document says what. Three shapes, in order of preference:
    fails on a missing arc42 section, a package or app without its row in the
    building blocks or a row whose dependencies are not its manifest's, a
    decision record no section links, and a link or a path written as code in
-   the architecture that lands nowhere. All of them run as `pnpm test:repo`,
-   and CI runs that — **a guard that is not a gate is a comment.**
+   the architecture that lands nowhere; `scripts/lint.test.mjs` fails when
+   a TypeScript or JavaScript file git holds is not linted, has a rule at
+   `warn` or a recommended rule off beyond the shared relaxations, is in no
+   program lint types it with but for the install fixtures, or resolves to
+   another style, and when the format check stops naming a misformatted
+   file of an extension git holds (0050). All of them run as
+   `pnpm test:repo`, and CI runs that — **a guard that is not a gate is a
+   comment.**
 3. **Measure it.** Below.
 
 Counts written into prose go stale. **Prefer wording without a number.** Where a
@@ -553,6 +569,21 @@ Not a generated name: the branch is what a reviewer sees first.
 No stacked pull requests. Branch from `main`, target `main`, and where a branch
 replaces another say "supersedes #N" in the description rather than stacking.
 
+**A commit is formatted.** Run `pnpm format` twice before committing:
+Prettier is not idempotent on a member chain whose last argument is an
+object literal or a `satisfies`, and `pnpm format:check` holds what the
+second pass writes. A branch begun before 0050's format conflicts with it
+nearly everywhere it changed a line: take `main` into it with
+`node "$MAIN/scripts/prettier-merge.mjs" origin/main` in the branch's
+worktree, `$MAIN` a checkout of `main` at least as new as the
+`origin/main` it merges, with `pnpm install` run there, as
+`CONTRIBUTING.md` shows. Each side is formatted before git merges a file,
+and only what both sides changed, and code `main` moved to another file,
+are left to carry across by hand. A pull request that brings a commit
+`.git-blame-ignore-revs` names -- a format, or a Prettier release's
+reformat -- merges with a merge commit, never a squash or a rebase, which
+would leave the file naming nothing on `main`.
+
 **A merged branch is deleted by the merge.** GitHub deletes the head branch
 when the pull request merges, a repository setting that nothing here can
 check (formancy.ai-data 0036; `.github/REPO-METADATA.md`). Never delete a
@@ -628,7 +659,14 @@ pnpm exec turbo run test --filter=@formancy/report-spec                    # dep
 pnpm --filter @formancy/report-spec test                                   # that suite, against dist/ as it stands
 pnpm --filter @formancy/report-spec exec vitest run src/version.test.ts    # one file
 pnpm --filter @formancy/report-spec exec vitest run -t "a test's name"     # one case
+pnpm lint                                                                  # every file, after pnpm build: the typed rules read dist/
+pnpm format                                                                # Prettier writes every file, before a commit
 ```
+
+`verify` fails a TypeScript or JavaScript file that breaks a lint rule or
+that Prettier would write otherwise (0050). A finding is fixed, not
+disabled; a disable comment is for a finding that is deliberate, and says
+why after `--`.
 
 ## Checks before pushing
 
@@ -636,9 +674,9 @@ The gates are `.github/workflows/gates.yml`, which `ci.yml` calls on every
 pull request and `release.yml` calls before it publishes, so a release passes
 exactly what CI does:
 
-- **`verify`** runs `pnpm build`, `pnpm typecheck`, `pnpm check:pkg`,
-  `node scripts/verify-licenses.mjs`, `node scripts/dependency-licences.mjs`
-  and `pnpm test:repo` in one job.
+- **`verify`** runs `pnpm build`, `pnpm typecheck`, `pnpm lint`,
+  `pnpm format:check`, `pnpm check:pkg`, `node scripts/verify-licenses.mjs`,
+  `node scripts/dependency-licences.mjs` and `pnpm test:repo` in one job.
 - **`test`** runs each package's `test:coverage` in a job of its own.
   `scripts/ci-test-jobs.test.mjs` fails when that list and the workspace
   disagree.
@@ -730,6 +768,8 @@ exactly what CI does:
 - a release restores no cache;
 - every gates job collects and uploads under its own key, and the report
   waits for all of them;
+- `verify` runs `pnpm lint` and `pnpm format:check` after the build and
+  the typecheck and before the guards;
 - `release.yml` checks the report before it pins, publishes only what its
   `check` job pinned, and signs and attaches the report beside the SBOM;
 - `check` makes the SBOM from the tarballs it pinned, installed by npm

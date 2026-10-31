@@ -87,12 +87,15 @@ export function readXmp(text: string): Xmp {
   const named = (element: XmlElement, uri: string, local: string): boolean => element.uri === uri && element.local === local
   if (!named(root, XMP_NAMESPACES.x, 'xmpmeta')) throw new Error(`the packet's element is ${clark(root)}, where it is x:xmpmeta`)
   const rdf = root.children.filter((child) => named(child, XMP_NAMESPACES.rdf, 'RDF'))
-  if (rdf.length !== 1 || root.children.length !== 1) throw new Error(`x:xmpmeta holds ${String(rdf.length)} rdf:RDF and ${String(root.children.length - rdf.length)} other elements, where it holds one rdf:RDF`)
+  if (rdf.length !== 1 || root.children.length !== 1)
+    throw new Error(`x:xmpmeta holds ${String(rdf.length)} rdf:RDF and ${String(root.children.length - rdf.length)} other elements, where it holds one rdf:RDF`)
   const descriptions = rdf[0]!.children
   const other = descriptions.find((child) => !named(child, XMP_NAMESPACES.rdf, 'Description'))
   if (other !== undefined) throw new Error(`rdf:RDF holds ${clark(other)}, where it holds only rdf:Description`)
   const properties = descriptions.flatMap((description) => [
-    ...description.attributes.filter(({ uri }) => uri !== XMP_NAMESPACES.rdf && uri !== XMP_NAMESPACES.xml && uri !== '').map(({ uri, prefix, local, value }) => ({ uri, prefix, local, attributes: [], children: [], text: value })),
+    ...description.attributes
+      .filter(({ uri }) => uri !== XMP_NAMESPACES.rdf && uri !== XMP_NAMESPACES.xml && uri !== '')
+      .map(({ uri, prefix, local, value }) => ({ uri, prefix, local, attributes: [], children: [], text: value })),
     ...description.children,
   ])
   return { packet: { header: xpacket(before.at(0)), trailer: xpacket(after.at(-1)) }, root, properties }
@@ -105,13 +108,17 @@ export function propertiesOf(xmp: Xmp, uri: string, local: string): XmlElement[]
 
 /** Every element below `from` at the path `steps`, each a namespace URI and a local name, in document order. */
 export function childrenOf(from: XmlElement, ...steps: readonly (readonly [uri: string, local: string])[]): XmlElement[] {
-  return steps.reduce<XmlElement[]>((found, [uri, local]) => found.flatMap((element) => element.children.filter((child) => child.uri === uri && child.local === local)), [from])
+  return steps.reduce<XmlElement[]>(
+    (found, [uri, local]) => found.flatMap((element) => element.children.filter((child) => child.uri === uri && child.local === local)),
+    [from],
+  )
 }
 
 /** An element's name in Clark's notation, `{namespace}local`, which no prefix can make ambiguous. */
 const clark = ({ uri, local }: XmlElement): string => `{${uri}}${local}`
 
-const xpacket = (instruction: { readonly target: string; readonly body: string } | undefined): string | undefined => (instruction?.target === 'xpacket' ? instruction.body : undefined)
+const xpacket = (instruction: { readonly target: string; readonly body: string } | undefined): string | undefined =>
+  instruction?.target === 'xpacket' ? instruction.body : undefined
 
 interface Parsed {
   readonly root: XmlElement

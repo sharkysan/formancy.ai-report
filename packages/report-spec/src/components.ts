@@ -128,7 +128,20 @@ export interface KeepTogetherComponent extends ComponentBase {
   readonly components: readonly Component[]
 }
 
-export const COMPONENT_KINDS = ['text', 'image', 'qrCode', 'epcQrCode', 'line', 'rectangle', 'spacer', 'columns', 'section', 'table', 'pageBreak', 'keepTogether'] as const
+export const COMPONENT_KINDS = [
+  'text',
+  'image',
+  'qrCode',
+  'epcQrCode',
+  'line',
+  'rectangle',
+  'spacer',
+  'columns',
+  'section',
+  'table',
+  'pageBreak',
+  'keepTogether',
+] as const
 export type ComponentKind = (typeof COMPONENT_KINDS)[number]
 
 export type Component =

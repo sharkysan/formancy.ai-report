@@ -51,12 +51,18 @@ const BOX = { width: 100, height: 50 }
 
 const PNG = { name: 'stamp.png', mimeType: 'image/png', buffer: Buffer.from(SCENARIO_PNG) }
 /** An SVG whose words are text, which a report draws only as outlines (0030). */
-const WORDS = { name: 'wordmark.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 20"><text x="0" y="15">Firm</text></svg>') }
+const WORDS = {
+  name: 'wordmark.svg',
+  mimeType: 'image/svg+xml',
+  buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 20"><text x="0" y="15">Firm</text></svg>'),
+}
 /** A mark with what cleaning removes and says: metadata and a script. */
 const MARK = {
   name: 'seal.svg',
   mimeType: 'image/svg+xml',
-  buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><metadata>An invented seal</metadata><script>alert(1)</script><circle cx="20" cy="20" r="18" fill="#1f4e79"/></svg>'),
+  buffer: Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><metadata>An invented seal</metadata><script>alert(1)</script><circle cx="20" cy="20" r="18" fill="#1f4e79"/></svg>',
+  ),
 }
 
 /** Null once the live region announces `text`, within the gate's wait, or what it says instead. */
@@ -180,7 +186,8 @@ function sendsNothing(method, address, studio, built) {
 }
 
 /** The keyboard on `element`, or where it is instead. */
-const onIt = async (page, element) => ((await element.evaluate((node) => node === document.activeElement)) ? null : `the keyboard is on ${await describeFocus(page)}`)
+const onIt = async (page, element) =>
+  (await element.evaluate((node) => node === document.activeElement)) ? null : `the keyboard is on ${await describeFocus(page)}`
 
 /** The checks, in the builder shown, which `framework` names. */
 export async function imageChecks(gate, page, framework) {
@@ -214,7 +221,10 @@ export async function imageChecks(gate, page, framework) {
       const input = button.parentElement?.querySelector('input[type="file"]')
       return input instanceof HTMLInputElement ? { value: input.value, files: input.files?.length ?? 0 } : null
     })
-    check(`${framework}: and its file input empty again, so the same file chosen again is a change`, left !== null && left.value === '' && left.files === 0 ? null : `the input holds ${JSON.stringify(left)}`)
+    check(
+      `${framework}: and its file input empty again, so the same file chosen again is a change`,
+      left !== null && left.value === '' && left.files === 0 ? null : `the input holds ${JSON.stringify(left)}`,
+    )
 
     // The same file again, with Space: a change only because the input was cleared.
     check(`${framework}: Space on it opens the chooser again`, await files.choose(() => page.keyboard.press(' '), PNG))
@@ -222,7 +232,8 @@ export async function imageChecks(gate, page, framework) {
     // Nothing added is nothing to place: Image would place the quotation's own mark. What
     // the second choice added is taken back, so the next builder starts from the quotation as it was.
     if (added !== null) {
-      if ((await editor.locator('[data-report-part="status"]').innerText()).startsWith(said('images.added', { id: 'stamp', kind: said('kind.image') }))) await press(editor, said('action.undo'), 1)
+      if ((await editor.locator('[data-report-part="status"]').innerText()).startsWith(said('images.added', { id: 'stamp', kind: said('kind.image') })))
+        await press(editor, said('action.undo'), 1)
       return
     }
 
@@ -238,7 +249,10 @@ export async function imageChecks(gate, page, framework) {
     const [box] = printed.images ?? []
     const at = box === undefined ? null : [box.x, box.width, box.height].map((points) => Math.round(points * 100) / 100)
     check(`${framework}: placed with ${said('kind.image')}, the Download PDF draws it on its first page`, printed.problem ?? null)
-    check(`${framework}: at the left margin, ${String(BOX.width)} by ${String(BOX.height)} pt`, JSON.stringify(at) === JSON.stringify([MARGIN, BOX.width, BOX.height]) ? null : `it is at ${JSON.stringify(at)}`)
+    check(
+      `${framework}: at the left margin, ${String(BOX.width)} by ${String(BOX.height)} pt`,
+      JSON.stringify(at) === JSON.stringify([MARGIN, BOX.width, BOX.height]) ? null : `it is at ${JSON.stringify(at)}`,
+    )
 
     // Undone, and the PDF without it; redone, and the PDF with it, from the bytes the page kept.
     await press(editor, said('action.undo'), 2)
@@ -251,7 +265,10 @@ export async function imageChecks(gate, page, framework) {
     // An SVG that holds text is refused, saying what to do; one with a script is added, cleaned, and taken back.
     await showing(editor, 'Outline', add)
     check(`${framework}: an SVG chosen`, await files.choose(() => add.click(), WORDS))
-    check(`${framework}: an SVG of text is refused with what to do`, await announced(editor, said('images.refused', { name: WORDS.name, reason: said('images.reason.svgText') })))
+    check(
+      `${framework}: an SVG of text is refused with what to do`,
+      await announced(editor, said('images.refused', { name: WORDS.name, reason: said('images.reason.svgText') })),
+    )
     check(`${framework}: another SVG chosen`, await files.choose(() => add.click(), MARK))
     const sealed = await announced(editor, said('images.added', { id: 'seal', kind: said('kind.image') }))
     check(`${framework}: an SVG with a script and metadata is added, and what cleaning removed is said`, sealed)
@@ -263,5 +280,8 @@ export async function imageChecks(gate, page, framework) {
     page.off('request', listen)
     page.off('websocket', socket)
   }
-  check(`${framework}: adding and printing the images sent nothing: no request but blob: and data: addresses and GETs without a query of the files the build wrote, and no WebSocket`, asked.length === 0 ? null : asked.slice(0, 4).join(', '))
+  check(
+    `${framework}: adding and printing the images sent nothing: no request but blob: and data: addresses and GETs without a query of the files the build wrote, and no WebSocket`,
+    asked.length === 0 ? null : asked.slice(0, 4).join(', '),
+  )
 }

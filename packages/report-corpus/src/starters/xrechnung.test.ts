@@ -19,7 +19,12 @@ import { XRECHNUNG_SAMPLE, XRECHNUNG_SAMPLES } from './xrechnung.js'
 const CREATED = '2026-10-16T08:00:00Z'
 
 function resolved(): ResolvedDocument {
-  const outcome = resolveReport(XRECHNUNG_SAMPLE.report, XRECHNUNG_SAMPLE.data, { mode: 'final', parameters: XRECHNUNG_SAMPLE.parameters, images: starterImages, creationDate: CREATED })
+  const outcome = resolveReport(XRECHNUNG_SAMPLE.report, XRECHNUNG_SAMPLE.data, {
+    mode: 'final',
+    parameters: XRECHNUNG_SAMPLE.parameters,
+    images: starterImages,
+    creationDate: CREATED,
+  })
   if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join('; '))
   expect(outcome.warnings).toEqual([])
   return outcome.document
@@ -41,7 +46,12 @@ describe('the XRechnung sample', () => {
   // starter: neither builder edits an e-invoice yet (0027).
   test('is one, in German, no starter and no Factur-X sample', () => {
     expect(XRECHNUNG_SAMPLES).toEqual([XRECHNUNG_SAMPLE])
-    expect([XRECHNUNG_SAMPLE.id, XRECHNUNG_SAMPLE.title, XRECHNUNG_SAMPLE.report.locale, XRECHNUNG_SAMPLE.report.eInvoice?.kind]).toEqual(['e-invoice-xrechnung', 'Rechnung (XRechnung)', 'de-DE', 'xrechnung'])
+    expect([XRECHNUNG_SAMPLE.id, XRECHNUNG_SAMPLE.title, XRECHNUNG_SAMPLE.report.locale, XRECHNUNG_SAMPLE.report.eInvoice?.kind]).toEqual([
+      'e-invoice-xrechnung',
+      'Rechnung (XRechnung)',
+      'de-DE',
+      'xrechnung',
+    ])
     expect(STARTERS).not.toContain(XRECHNUNG_SAMPLE)
     expect(E_INVOICE_SAMPLES).not.toContain(XRECHNUNG_SAMPLE)
   })
@@ -70,7 +80,11 @@ describe('the XRechnung sample', () => {
       '/title',
     ])
     const [addressed, xrechnung] = [E_INVOICE_ADDRESSED.report.eInvoice, XRECHNUNG_SAMPLE.report.eInvoice]
-    expect([xrechnung?.businessProcess, xrechnung?.seller.contact, xrechnung?.seller.electronicAddress]).toEqual([addressed?.businessProcess, addressed?.seller.contact, addressed?.seller.electronicAddress])
+    expect([xrechnung?.businessProcess, xrechnung?.seller.contact, xrechnung?.seller.electronicAddress]).toEqual([
+      addressed?.businessProcess,
+      addressed?.seller.contact,
+      addressed?.seller.electronicAddress,
+    ])
   })
 
   // A sample the validator refuses, or whose expressions the editor marks,
@@ -78,7 +92,9 @@ describe('the XRechnung sample', () => {
   test('validates, with no diagnostic at all', () => {
     const outcome = checkReport(XRECHNUNG_SAMPLE.report)
     expect(outcome.ok ? [] : outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`)).toEqual([])
-    expect(diagnose(XRECHNUNG_SAMPLE.report).map((diagnostic) => `${diagnostic.severity} ${diagnostic.code} ${diagnostic.path}: ${diagnostic.message}`)).toEqual([])
+    expect(
+      diagnose(XRECHNUNG_SAMPLE.report).map((diagnostic) => `${diagnostic.severity} ${diagnostic.code} ${diagnostic.path}: ${diagnostic.message}`),
+    ).toEqual([])
   })
 
   // Its own data in a final render resolves to the XML a host takes, named
@@ -86,7 +102,13 @@ describe('the XRechnung sample', () => {
   // is the copy.
   test('resolves its own data to its XML, and a document labelled as the copy', () => {
     const document = resolved()
-    expect(document.eInvoice).toEqual({ kind: 'xrechnung', xml: expect.stringMatching(/^<\?xml version="1\.0" encoding="UTF-8"\?>\n<rsm:CrossIndustryInvoice /), syntax: 'cii', guideline: XRECHNUNG['3.0'].guideline, version: '3.0' })
+    expect(document.eInvoice).toEqual({
+      kind: 'xrechnung',
+      xml: expect.stringMatching(/^<\?xml version="1\.0" encoding="UTF-8"\?>\n<rsm:CrossIndustryInvoice /),
+      syntax: 'cii',
+      guideline: XRECHNUNG['3.0'].guideline,
+      version: '3.0',
+    })
     const label = document.pageHeader[0] as Block
     expect(label.kind === 'paragraph' && label.runs.map((run) => ('text' in run ? run.text : '')).join('')).toBe(XRECHNUNG_COPY_LABEL)
   })
@@ -100,7 +122,8 @@ describe('the XRechnung sample', () => {
   // portal: a real authority's would route the invoice to it.
   test('takes the path it is there for', () => {
     const root = readCii(resolved().eInvoice?.xml ?? '')
-    const addressed = (party: string) => elementsAt(root, `${HTA}/ram:${party}/ram:URIUniversalCommunication/ram:URIID`).map((element) => `${element.attributes['schemeID']}:${element.text}`)
+    const addressed = (party: string) =>
+      elementsAt(root, `${HTA}/ram:${party}/ram:URIUniversalCommunication/ram:URIID`).map((element) => `${element.attributes['schemeID']}:${element.text}`)
     const contact = `${HTA}/ram:SellerTradeParty/ram:DefinedTradeContact`
     expect({
       guideline: textAt(root, 'rsm:ExchangedDocumentContext/ram:GuidelineSpecifiedDocumentContextParameter/ram:ID'),
@@ -108,7 +131,9 @@ describe('the XRechnung sample', () => {
       reference: textsAt(root, `${HTA}/ram:BuyerReference`),
       seller: addressed('SellerTradeParty'),
       buyer: addressed('BuyerTradeParty'),
-      contact: ['ram:PersonName', 'ram:TelephoneUniversalCommunication/ram:CompleteNumber', 'ram:EmailURIUniversalCommunication/ram:URIID'].map((at) => textAt(root, `${contact}/${at}`)),
+      contact: ['ram:PersonName', 'ram:TelephoneUniversalCommunication/ram:CompleteNumber', 'ram:EmailURIUniversalCommunication/ram:URIID'].map((at) =>
+        textAt(root, `${contact}/${at}`),
+      ),
       buyerName: textAt(root, `${HTA}/ram:BuyerTradeParty/ram:Name`),
     }).toEqual({
       guideline: 'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0',

@@ -22,7 +22,10 @@ const register = (overrides = {}) => ({
     '0002': { reviewed: HASH('2'), none: 'Superseded by 0003, which states what remains.' },
     '0003': {
       reviewed: HASH('3'),
-      limitations: [line('A refused edit changes nothing.', { area: 'editing', heldBy: 'packages/report-core/src/session.test.ts' }), line('Upstream is exact.', { area: 'release', heldBy: 'scripts/upstream-deps.test.mjs' })],
+      limitations: [
+        line('A refused edit changes nothing.', { area: 'editing', heldBy: 'packages/report-core/src/session.test.ts' }),
+        line('Upstream is exact.', { area: 'release', heldBy: 'scripts/upstream-deps.test.mjs' }),
+      ],
     },
     ...overrides,
   },
@@ -48,21 +51,36 @@ describe('the register against the records', () => {
   // answered; the line must be read again, not matched by wording.
   test('refuses an entry read before its record last changed, naming the command that stamps it', () => {
     const changed = RECORDS.map((record) => (record.number === '0003' ? { ...record, hash: HASH('4') } : record))
-    expect(registerProblems(register(), changed, OPTIONS)).toEqual(['0003 changed since it was read: read it again, then run node scripts/release-report/limitations.mjs --stamp 0003'])
+    expect(registerProblems(register(), changed, OPTIONS)).toEqual([
+      '0003 changed since it was read: read it again, then run node scripts/release-report/limitations.mjs --stamp 0003',
+    ])
   })
 
   // Each rule, broken once.
   test('refuses each way an entry can be malformed', () => {
     const problems = (overrides) => registerProblems(register(overrides), RECORDS, OPTIONS)
-    expect(problems({ '0001': { reviewed: HASH('1'), limitations: [line('Once.')], none: 'and none' } })).toEqual(['0001 has both limitations and none; it needs exactly one'])
+    expect(problems({ '0001': { reviewed: HASH('1'), limitations: [line('Once.')], none: 'and none' } })).toEqual([
+      '0001 has both limitations and none; it needs exactly one',
+    ])
     expect(problems({ '0001': { reviewed: HASH('1'), limitations: [] } })).toEqual(['0001 has neither limitations nor none; it needs exactly one'])
-    expect(problems({ '0002': { reviewed: HASH('2'), limitations: [line('Still costs.')] } })).toEqual(["0002 is superseded by 0003, so its limitations are a later record's: give it none"])
+    expect(problems({ '0002': { reviewed: HASH('2'), limitations: [line('Still costs.')] } })).toEqual([
+      "0002 is superseded by 0003, so its limitations are a later record's: give it none",
+    ])
     expect(problems({ '0001': { reviewed: HASH('1'), limitations: [line('Wrong place.', { area: 'databases' })] } })).toEqual([
       "0001's limitation 1 has the area databases, which is not one of licence, format, editing, builders, runtime, rendering, data, server, release, testing",
     ])
-    expect(problems({ '0001': { reviewed: HASH('1'), limitations: [line('No full stop')] } })).toEqual(["0001's limitation 1 must say one sentence, ending with a full stop"])
-    expect(problems({ '0001': { reviewed: HASH('1'), limitations: [line('A refused edit changes nothing.')] } })).toEqual(["0003's limitation 1 says what another line already says"])
-    for (const heldBy of ['packages/report-spec/src/page.ts', 'packages/report-core/src/gone.test.ts', 'apps/studio/src/a.test.ts', 'scripts/release/notes.mjs']) {
+    expect(problems({ '0001': { reviewed: HASH('1'), limitations: [line('No full stop')] } })).toEqual([
+      "0001's limitation 1 must say one sentence, ending with a full stop",
+    ])
+    expect(problems({ '0001': { reviewed: HASH('1'), limitations: [line('A refused edit changes nothing.')] } })).toEqual([
+      "0003's limitation 1 says what another line already says",
+    ])
+    for (const heldBy of [
+      'packages/report-spec/src/page.ts',
+      'packages/report-core/src/gone.test.ts',
+      'apps/studio/src/a.test.ts',
+      'scripts/release/notes.mjs',
+    ]) {
       expect(problems({ '0001': { reviewed: HASH('1'), limitations: [line('Held.', { heldBy })] } })).toEqual([
         `0001's limitation 1 is held by ${heldBy}, which is not a test file of a package with a suite or of the repository's guards`,
       ])

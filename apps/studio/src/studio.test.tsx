@@ -39,7 +39,11 @@ import type { Workspace } from './workspace.js'
  */
 
 /** A report's QR-bill's account as written, its runs joined: what the Preview is asked to print it to. */
-const accountOf = vi.hoisted(() => (report: { readonly paymentPart?: { readonly account: readonly { readonly kind: string; readonly text?: string }[] } }): string | undefined => report.paymentPart?.account.map((run) => run.text ?? `[${run.kind}]`).join(''))
+const accountOf = vi.hoisted(
+  () =>
+    (report: { readonly paymentPart?: { readonly account: readonly { readonly kind: string; readonly text?: string }[] } }): string | undefined =>
+      report.paymentPart?.account.map((run) => run.text ?? `[${run.kind}]`).join(''),
+)
 
 const seen = vi.hoisted(() => ({
   /** Every preview the pane asked for, in order. */
@@ -57,7 +61,12 @@ vi.mock('./preview/pipeline.js', async (importOriginal) => {
     preview: async (request: PreviewRequest, signal: AbortSignal, options?: { readonly maxPages?: number }): Promise<PreviewOutcome> => {
       seen.requests.push({ id: request.starter.id, mode: request.mode, title: request.report.title, account: accountOf(request.report) })
       const outcome = await pipeline.preview(request, signal, options)
-      const kind = outcome.kind === 'printed' ? 'printed' : outcome.kind === 'refused' ? `refused: ${outcome.errors.map((error) => error.code).join()}` : `not drawn: ${outcome.refusal.code}`
+      const kind =
+        outcome.kind === 'printed'
+          ? 'printed'
+          : outcome.kind === 'refused'
+            ? `refused: ${outcome.errors.map((error) => error.code).join()}`
+            : `not drawn: ${outcome.refusal.code}`
       seen.outcomes.push({ assets: request.report.assets.map((asset) => asset.id), kind })
       return outcome
     },
@@ -99,7 +108,11 @@ vi.mock('@formancy/report-core', async (importOriginal) => {
 
 vi.mock('./preview/pdf-document.js', () => ({
   loadPdf: () => ({
-    promise: Promise.resolve({ pageCount: 1, pageSize: () => Promise.resolve({ width: 595.28, height: 841.89 }), drawPage: () => ({ done: Promise.resolve(), cancel: () => undefined }) }),
+    promise: Promise.resolve({
+      pageCount: 1,
+      pageSize: () => Promise.resolve({ width: 595.28, height: 841.89 }),
+      drawPage: () => ({ done: Promise.resolve(), cancel: () => undefined }),
+    }),
     destroy: () => undefined,
   }),
 }))
@@ -151,7 +164,8 @@ const toggle = (pressed?: boolean): HTMLElement => screen.getByRole('button', { 
 /** The toolbar's button for a pane. */
 const paneButton = (name: string): HTMLElement => within(within(editor()).getByRole('toolbar', { name: 'Report tools' })).getByRole('button', { name })
 /** The editor's Undo or Redo; with `description`, only one that says what it would take back in those words. */
-const tool = (name: 'Undo' | 'Redo', description?: string): HTMLElement => within(editor()).getByRole('button', { name, ...(description === undefined ? {} : { description }) })
+const tool = (name: 'Undo' | 'Redo', description?: string): HTMLElement =>
+  within(editor()).getByRole('button', { name, ...(description === undefined ? {} : { description }) })
 const available = (button: HTMLElement): boolean => button.getAttribute('aria-disabled') !== 'true'
 const picker = (): HTMLElement => screen.getByRole('combobox', { name: 'Starter' })
 const subscriptions = (session: ReportSession): number | undefined => seen.subscriptions.get(session)
@@ -242,7 +256,8 @@ describe('the Studio', () => {
   // missing-asset.
   test('adds an image in Angular, undoes it in React and redoes it in Angular, printing it wherever it stands', async () => {
     /** Each preview that neither printed nor gave way to a later one: a render the scheduler cancelled for the next edit is neither. */
-    const unprinted = (): string[] => seen.outcomes.filter(({ kind }) => kind !== 'printed' && kind !== 'not drawn: cancelled').map(({ assets, kind }) => `${kind} (${assets.join()})`)
+    const unprinted = (): string[] =>
+      seen.outcomes.filter(({ kind }) => kind !== 'printed' && kind !== 'not drawn: cancelled').map(({ assets, kind }) => `${kind} (${assets.join()})`)
     const { user } = mount()
     await user.selectOptions(picker(), 'blank')
     await screen.findByText('Preview: printed.')
@@ -262,7 +277,12 @@ describe('the Studio', () => {
     await show(user, 'React')
     // Back at the report's properties, the image is listed, drawn by the image just inserted.
     await user.click(within(editor()).getByRole('button', { name: t('properties.report') }))
-    expect(within(editor()).getByRole('button', { name: t('images.removeOne', { id: 'logo' }), description: t('images.inUse', { names: t('label.kindDetail', { kind: t('kind.image'), detail: 'logo' }) }) })).toBeTruthy()
+    expect(
+      within(editor()).getByRole('button', {
+        name: t('images.removeOne', { id: 'logo' }),
+        description: t('images.inUse', { names: t('label.kindDetail', { kind: t('kind.image'), detail: 'logo' }) }),
+      }),
+    ).toBeTruthy()
     await user.click(tool('Undo'))
     await user.click(tool('Undo'))
     await waitFor(() => expect(seen.outcomes.at(-1)).toEqual({ assets: [], kind: 'printed' }))
@@ -340,7 +360,11 @@ describe('the Studio', () => {
     expect(subscriptions(left.session)).toBe(1)
     await user.selectOptions(picker(), 'Service inspection')
     await waitFor(() => expect(title().value).toBe('Kept'))
-    expect(within(picker()).getAllByRole('option').map((option) => option.textContent)).toEqual(['Service inspection', 'Quotation', 'Grouped equipment', 'Invoice', 'Euro invoice', 'E-invoice', 'Site visit', 'Blank'])
+    expect(
+      within(picker())
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Service inspection', 'Quotation', 'Grouped equipment', 'Invoice', 'Euro invoice', 'E-invoice', 'Site visit', 'Blank'])
   })
 
   // Final runs a final render, which refuses what a preview shows with a

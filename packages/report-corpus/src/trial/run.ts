@@ -14,7 +14,18 @@ import { longTable } from '../fixtures/long-table.js'
 import { oversized } from '../fixtures/oversized.js'
 import { pdfmakeAdapter } from './pdfmake.js'
 import { pdfme } from './pdfme.js'
-import { judge, parseArguments, trialReport, type Engine, type EngineTiming, type FixtureResult, type Installed, type Machine, type Outcome, type Timing } from './trial-report.js'
+import {
+  judge,
+  parseArguments,
+  trialReport,
+  type Engine,
+  type EngineTiming,
+  type FixtureResult,
+  type Installed,
+  type Machine,
+  type Outcome,
+  type Timing,
+} from './trial-report.js'
 
 /**
  * The renderer trial, as a command: every corpus fixture rendered by each

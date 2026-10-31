@@ -50,7 +50,9 @@ export function regions(pages: readonly Page[], expected: Expectation): string[]
     const headerFoot = Math.max(...header.map((line) => line.bottom))
     const highest = body[0]
     if (highest !== undefined && highest.top < headerFoot - OVERLAP) {
-      problems.push(`page ${page.number}: ${quoted(highest.text)} starts at ${points(highest.top)} pt, above the foot of the page header at ${points(headerFoot)}`)
+      problems.push(
+        `page ${page.number}: ${quoted(highest.text)} starts at ${points(highest.top)} pt, above the foot of the page header at ${points(headerFoot)}`,
+      )
     }
     const footerTop = Math.min(...footer.map((line) => line.top))
     const lowest = body.reduce<Line | undefined>((low, line) => (low === undefined || line.bottom > low.bottom ? line : low), undefined)
@@ -89,7 +91,9 @@ export function footers(pages: readonly Page[], pattern: RegExp): string[] {
 
 /** A page with nothing between its page header and footer: an accidental page break, or a table that left only its regions behind. */
 export function emptyPages(pages: readonly Page[]): string[] {
-  return pages.filter((each) => each.body.length === 0 && pictures(each).length === 0).map(({ page }) => `page ${page.number} prints nothing between its page header and footer`)
+  return pages
+    .filter((each) => each.body.length === 0 && pictures(each).length === 0)
+    .map(({ page }) => `page ${page.number} prints nothing between its page header and footer`)
 }
 
 /** Where a kept-together group is: the one page all its lines are on, and its first line there. */
@@ -103,7 +107,8 @@ export function keptTogether(pages: readonly Page[], group: readonly string[]): 
   if (placed(pages, group) !== undefined) return []
   const where = group.map((text) => pages.filter(({ lines }) => lines.some((line) => lineHas(line, text))).map(({ page }) => page.number))
   const absent = group.filter((_, index) => where[index]!.length === 0)
-  if (absent.length > 0) return absent.map((text) => `${quoted(text)}, which must be kept together with ${plural(group.length - 1, 'other line')}, is not on any page`)
+  if (absent.length > 0)
+    return absent.map((text) => `${quoted(text)}, which must be kept together with ${plural(group.length - 1, 'other line')}, is not on any page`)
   return [`${group.map((text) => quoted(text)).join(', ')} are split across pages ${[...new Set(where.flat())].sort((a, b) => a - b).join(', ')}`]
 }
 
@@ -128,7 +133,9 @@ export function keptByRoom(pages: readonly Page[], groups: readonly (readonly st
   const stayed = found.slice(firstMoved).find((group) => !group.moved)
   if (stayed === undefined) return []
   const moved = found[firstMoved]!
-  return [`${quoted(stayed.text)} fits under what precedes it on page ${stayed.page}, though ${quoted(moved.text)}, which had more room, moved to page ${moved.page}`]
+  return [
+    `${quoted(stayed.text)} fits under what precedes it on page ${stayed.page}, though ${quoted(moved.text)}, which had more room, moved to page ${moved.page}`,
+  ]
 }
 
 export function outsidePrintable(pages: readonly Page[], setup: PageSetup): string[] {
@@ -156,7 +163,7 @@ export function outsidePrintable(pages: readonly Page[], setup: PageSetup): stri
 export function overlaps(pages: readonly Page[]): string[] {
   return pages.flatMap((each) => {
     const { page } = each
-    const boxes = [...page.items.map((item) => ({ label: quoted(item.text), box: item as PdfBox })), ...pictures(each)].sort((a, b) => a.box.top - b.box.top)
+    const boxes = [...page.items.map((item) => ({ label: quoted(item.text), box: item })), ...pictures(each)].sort((a, b) => a.box.top - b.box.top)
     const found: string[] = []
     boxes.forEach(({ label, box }, index) => {
       for (const other of boxes.slice(index + 1)) {
@@ -195,7 +202,9 @@ export function images(pages: readonly Page[], expected: Expectation): string[] 
     ...problems,
     ...drawn.flatMap(({ image, page }, index) => {
       const { width, height } = body[index]!
-      return sized(image, body[index]!) ? [] : [`page ${page}: ${imageLabel(image)} is drawn ${points(image.width)} × ${points(image.height)} pt; the document draws it ${width} × ${height}`]
+      return sized(image, body[index]!)
+        ? []
+        : [`page ${page}: ${imageLabel(image)} is drawn ${points(image.width)} × ${points(image.height)} pt; the document draws it ${width} × ${height}`]
     }),
   ]
 }

@@ -166,7 +166,9 @@ describe('where values may stand', () => {
     expect(refusals(edited((r) => setAt(r, '/regions/body/2/group/footer/0/cells/0/value', sku)))).toEqual([
       'misplaced-detail-field /regions/body/2/group/footer/0/cells/0/value/field',
     ])
-    expect(refusals(edited((r) => setAt(r, '/regions/body/2/totals/0/cells/0/value', site)))).toEqual(['misplaced-detail-field /regions/body/2/totals/0/cells/0/value/field'])
+    expect(refusals(edited((r) => setAt(r, '/regions/body/2/totals/0/cells/0/value', site)))).toEqual([
+      'misplaced-detail-field /regions/body/2/totals/0/cells/0/value/field',
+    ])
     const headerInGroup = edited((r) => setAt(r, '/regions/body/2/group/header/2', { kind: 'field', field: { dataset: 'header', field: 'customer' } }))
     expect(refusals(headerInGroup)).toEqual([])
   })
@@ -178,9 +180,7 @@ describe('where values may stand', () => {
     const rowCurrency = { kind: 'field', field: { dataset: 'detail', field: 'site' } }
     const inCell = edited((r) => setAt(r, '/regions/body/2/columns/2/value/format/currency', rowCurrency))
     expect(refusals(inCell)).toEqual([])
-    const underTable = edited((r) =>
-      setAt(r, '/regions/body/2/totals/0/cells/2/value/format', { kind: 'currency', currency: rowCurrency, scale: 2 }),
-    )
+    const underTable = edited((r) => setAt(r, '/regions/body/2/totals/0/cells/2/value/format', { kind: 'currency', currency: rowCurrency, scale: 2 }))
     expect(refusals(underTable)).toEqual(['misplaced-detail-field /regions/body/2/totals/0/cells/2/value/format/currency/field'])
     const photo = edited((r) => setAt(r, '/regions/summary/0/components/2/source/field', { dataset: 'detail', field: 'photo' }))
     expect(refusals(photo)).toEqual(['misplaced-detail-field /regions/summary/0/components/2/source/field'])

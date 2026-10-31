@@ -147,7 +147,9 @@ describe('a QR code', () => {
           setAt(r, `${CODE}/size`, size)
         })
       expect(refusals(sized(room.length)), `${orientation} ${room.length}`).toEqual([])
-      expect(refusals(sized(Math.round((room.length + 0.01) * 100) / 100)), `${orientation} past ${room.length}`).toEqual([`exceeds-printable-area ${CODE}/size`])
+      expect(refusals(sized(Math.round((room.length + 0.01) * 100) / 100)), `${orientation} past ${room.length}`).toEqual([
+        `exceeds-printable-area ${CODE}/size`,
+      ])
     }
   })
 })

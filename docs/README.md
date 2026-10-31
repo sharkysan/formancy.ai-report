@@ -37,7 +37,7 @@ told.
 | [5. Building blocks](architecture/05-building-blocks.md) | Every package and app, what each may import, and what is inside each |
 | [6. Runtime view](architecture/06-runtime-view.md) | An edit, a render, a read from Formancy Data, switching frameworks over one session, the Studio's preview, a QR-bill, an EPC QR code, an e-invoice, an SVG from the file a person saved to the page, an image from the file a person chooses, a QR-bill's IBAN from its field, a read from a formancy form's submission, a report started from a form version, an e-invoice's account typed once, a review of a form's new version, a request to the server |
 | [7. Deployment view](architecture/07-deployment-view.md) | What is published and where, how a release gets there, the server's image, and what a host needs |
-| [8. Cross-cutting concepts](architecture/08-crosscutting-concepts.md) | Exact values, refusals, final and preview, untrusted input, determinism, version lines, licences, languages, accessibility, the room, who is asking |
+| [8. Cross-cutting concepts](architecture/08-crosscutting-concepts.md) | Exact values, refusals, final and preview, untrusted input, determinism, version lines, licences, languages, accessibility, the room, who is asking, the code's own rules |
 | [9. Quality requirements](architecture/09-quality-requirements.md) | Scenarios stated so that each can fail, and the bounds with how each was chosen |
 | [10. Verification](architecture/10-verification.md) | The gates, what each proves, and what none of them sees |
 | [11. Risks and technical debt](architecture/11-risks-and-debt.md) | The larger accepted risks with their records, and where the full register is |

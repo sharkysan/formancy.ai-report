@@ -75,7 +75,8 @@ export const KINDS: { readonly [K in FormKind]: KindRule } = {
 const LIFTED = 'reviewFormVersion, a review of that version, offers what lifts this, where anything does'
 
 /** What lifts the detail's: a review of it offers to read the rows elsewhere and nothing more, so the refusal says so. */
-const LIFTED_ROWS = 'reviewFormVersion, a review of that version, offers nothing but a rename of the repeater: one its author declared, or the repeater a version the report names reads the rows from'
+const LIFTED_ROWS =
+  'reviewFormVersion, a review of that version, offers nothing but a rename of the repeater: one its author declared, or the repeater a version the report names reads the rows from'
 
 /** How one field a report reads is read in one version: as `ReadPlan` says, or not at all, where a review decided nothing of it prints from that version. */
 export type FieldPlan = ReadPlan | { readonly field: FieldContract; readonly omitted: true }
@@ -118,12 +119,24 @@ function optionsOf(def: FieldDef): ReadonlyMap<string, FieldOption> {
 }
 
 /** Why a member does not fit, or undefined when it does: what a matrix's rows or an option list hold, and what each field must name. */
-function memberRefusal(rule: Extract<KindRule, { reads: unknown }>, def: FieldDef, member: string | undefined): { readonly code: 'version-lacks-field' | 'version-retypes-field' | 'unsupported-field'; readonly why: string } | undefined {
-  if (rule.member === undefined) return member === undefined ? undefined : { code: 'version-retypes-field', why: `names a member, and a ${def.type} field has none` }
+function memberRefusal(
+  rule: Extract<KindRule, { reads: unknown }>,
+  def: FieldDef,
+  member: string | undefined,
+): { readonly code: 'version-lacks-field' | 'version-retypes-field' | 'unsupported-field'; readonly why: string } | undefined {
+  if (rule.member === undefined)
+    return member === undefined ? undefined : { code: 'version-retypes-field', why: `names a member, and a ${def.type} field has none` }
   const what = rule.member === 'row' ? 'row' : 'option'
-  if (member === undefined) return { code: 'version-retypes-field', why: `is a ${def.type} field, which a report reads one ${what} at a time, and the field names no ${what} as its member` }
+  if (member === undefined)
+    return {
+      code: 'version-retypes-field',
+      why: `is a ${def.type} field, which a report reads one ${what} at a time, and the field names no ${what} as its member`,
+    }
   if (rule.member === 'option' && typeof def.optionsSource === 'string') {
-    return { code: 'unsupported-field', why: 'is ticked boxes whose options a deployment resolves, which are not in the document, so which one the field names cannot be checked' }
+    return {
+      code: 'unsupported-field',
+      why: 'is ticked boxes whose options a deployment resolves, which are not in the document, so which one the field names cannot be checked',
+    }
   }
   const values = (rule.member === 'row' ? def.rows : def.options) ?? []
   return values.some((each) => each.value === member) ? undefined : { code: 'version-lacks-field', why: `has no ${what} ${quoted(member)}` }
@@ -152,16 +165,27 @@ export function planField(f: Findings, version: Version, scope: Scope, field: Fi
   const rule = KINDS[def.type]
   if ('unsupported' in rule) return refuse('unsupported-field', `holds a ${def.type} field there: ${rule.unsupported}`)
   if ('none' in rule) return refuse('version-retypes-field', `holds a ${def.type} there: ${rule.none}`)
-  if (!rule.reads.includes(field.type)) return refuse('version-retypes-field', `holds a ${def.type} field there, read as ${rule.reads.join(' or ')}, and the report declares a ${field.type}`)
+  if (!rule.reads.includes(field.type))
+    return refuse('version-retypes-field', `holds a ${def.type} field there, read as ${rule.reads.join(' or ')}, and the report declares a ${field.type}`)
   const fractional = (value: number | undefined): boolean => value !== undefined && !Number.isInteger(value)
   if (rule.as === 'number' && field.type === 'integer' && def.step !== undefined && (fractional(def.step) || fractional(def.min))) {
     return refuse('version-retypes-field', 'steps through fractions there, so it holds numbers an integer field does not print')
   }
   const member = memberRefusal(rule, def, binding.member)
   if (member !== undefined) return refuse(member.code, `${member.why} there`)
-  if (binding.read !== undefined && rule.choice !== true) return refuse('version-retypes-field', `holds a ${def.type} field there, which is no choice, and the field says how a choice prints`)
+  if (binding.read !== undefined && rule.choice !== true)
+    return refuse('version-retypes-field', `holds a ${def.type} field there, which is no choice, and the field says how a choice prints`)
   const rows = new Set((def.rows ?? []).map((row) => row.value))
-  return { field, keys, def, as: rule.as, ...(binding.member === undefined ? {} : { member: binding.member }), label: rule.choice === true && binding.read !== 'value', options: optionsOf(def), rows }
+  return {
+    field,
+    keys,
+    def,
+    as: rule.as,
+    ...(binding.member === undefined ? {} : { member: binding.member }),
+    label: rule.choice === true && binding.read !== 'value',
+    options: optionsOf(def),
+    rows,
+  }
 }
 
 /** The override a binding's `overrides` hold for `version`, by its hash: its own, never one an object inherits. */
@@ -180,16 +204,30 @@ export function repeaterIn(binding: Extract<DatasetFormBinding, { kind: 'repeate
  * whether a review lifts the refusal: a report's detail's, which one does,
  * and not a generator's option.
  */
-export function planRepeater(f: Findings, version: Version, repeater: string, where: string, review = true): { readonly def: FieldDef; readonly keys: readonly string[]; readonly rows: Scope } | undefined {
+export function planRepeater(
+  f: Findings,
+  version: Version,
+  repeater: string,
+  where: string,
+  review = true,
+): { readonly def: FieldDef; readonly keys: readonly string[]; readonly rows: Scope } | undefined {
   const keys = repeater.split('.')
   const def = fieldAt(version, version.answers, keys)
   const lifted = review ? `: ${LIFTED_ROWS}` : ''
   if (def === undefined) {
-    f.report(where, 'version-lacks-field', `the detail reads the rows of ${named(repeater)}, and the form version ${version.hash} has no repeater there; a path is never guessed from a name${lifted}`)
+    f.report(
+      where,
+      'version-lacks-field',
+      `the detail reads the rows of ${named(repeater)}, and the form version ${version.hash} has no repeater there; a path is never guessed from a name${lifted}`,
+    )
     return undefined
   }
   if (def.type !== 'repeater') {
-    f.report(where, 'version-retypes-field', `the detail reads the rows of ${named(repeater)}, and the form version ${version.hash} holds a ${def.type} there, which has no rows${lifted}`)
+    f.report(
+      where,
+      'version-retypes-field',
+      `the detail reads the rows of ${named(repeater)}, and the form version ${version.hash} holds a ${def.type} there, which has no rows${lifted}`,
+    )
     return undefined
   }
   return { def, keys, rows: version.within.get(def) as Scope }

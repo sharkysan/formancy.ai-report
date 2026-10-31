@@ -7,7 +7,17 @@ import { image, line, table, text } from '@pdfme/schemas'
 import { getDynamicLayoutForSchema } from '@pdfme/schemas/dynamicLayout'
 import type { CellStyle, ImageSchema, LineSchema, TableSchema, TextSchema } from '@pdfme/schemas/types'
 import { escapeInlineMarkdown, measureTextHeight } from '@pdfme/schemas/utils'
-import { pageDimensions, RenderRefusal, type Block, type EngineAdapter, type Image, type Paragraph, type RenderOptions, type ResolvedDocument, type Table } from '../document.js'
+import {
+  pageDimensions,
+  RenderRefusal,
+  type Block,
+  type EngineAdapter,
+  type Image,
+  type Paragraph,
+  type RenderOptions,
+  type ResolvedDocument,
+  type Table,
+} from '../document.js'
 import { checkedImages, type Pixels } from './pdfme-assets.js'
 import { isUndrawn, refuseUndrawn } from './undrawn.js'
 
@@ -113,7 +123,10 @@ function robotoFonts(): Font {
   if (roboto !== undefined) return roboto
   const directory = path.join(path.dirname(createRequire(import.meta.url).resolve('pdfmake/package.json')), 'fonts', 'Roboto')
   roboto = Object.fromEntries(
-    Object.entries(ROBOTO_FILES).map(([name, file]) => [name, { data: new Uint8Array(readFileSync(path.join(directory, file))), fallback: name === ROBOTO.regular, subset: true }]),
+    Object.entries(ROBOTO_FILES).map(([name, file]) => [
+      name,
+      { data: new Uint8Array(readFileSync(path.join(directory, file))), fallback: name === ROBOTO.regular, subset: true },
+    ]),
   )
   return roboto
 }
@@ -139,7 +152,13 @@ async function render(document: ResolvedDocument, options: RenderOptions): Promi
   // the same template, to the same pages -- so that a document too long for
   // its page limit, or with a box taller than a page, is refused before a
   // page is drawn. The page-limit test holds the two to one page count.
-  const laidOut = await getDynamicTemplate({ template: built.template, input: built.input, options: { font }, _cache: new Map(), getDynamicHeights: getDynamicLayoutForSchema })
+  const laidOut = await getDynamicTemplate({
+    template: built.template,
+    input: built.input,
+    options: { font },
+    _cache: new Map(),
+    getDynamicHeights: getDynamicLayoutForSchema,
+  })
   stopIfCancelled(options.signal)
   if (laidOut.schemas.length > options.maxPages) {
     throw new RenderRefusal('too-many-pages', `the document needs ${laidOut.schemas.length} pages; at most ${options.maxPages} are allowed`)
@@ -217,7 +236,12 @@ interface Placed {
  * measures. A table, a keep-together block or a page break has no place in
  * one.
  */
-async function region(blocks: readonly Block[], where: 'pageHeader' | 'pageFooter', columns: Columns, context: Context): Promise<{ schemas: Schema[]; height: number }> {
+async function region(
+  blocks: readonly Block[],
+  where: 'pageHeader' | 'pageFooter',
+  columns: Columns,
+  context: Context,
+): Promise<{ schemas: Schema[]; height: number }> {
   const schemas: Schema[] = []
   let y = 0
   for (const [index, block] of blocks.entries()) {
@@ -273,7 +297,13 @@ async function bodyPages(blocks: readonly Block[], top: number, columns: Columns
  * by line; a table starts with no height and grows row by row; pdfme pushes
  * the boxes below each down by what it grew.
  */
-async function flowingBox(block: Exclude<Block, { kind: 'pageBreak' | 'spacer' }>, subject: string, y: number, columns: Columns, context: Context): Promise<Placed | undefined> {
+async function flowingBox(
+  block: Exclude<Block, { kind: 'pageBreak' | 'spacer' }>,
+  subject: string,
+  y: number,
+  columns: Columns,
+  context: Context,
+): Promise<Placed | undefined> {
   switch (block.kind) {
     case 'paragraph':
       return textBox([block], subject, y, columns, { flowing: true, static: false }, context)
@@ -281,7 +311,11 @@ async function flowingBox(block: Exclude<Block, { kind: 'pageBreak' | 'spacer' }
       if (block.blocks.length === 0) return undefined
       const paragraphs = block.blocks.filter((inner) => inner.kind === 'paragraph')
       if (paragraphs.length !== block.blocks.length) {
-        throw new RenderRefusal('unsupported', 'pdfme keeps lines together only inside one text box; this keep-together block holds more than paragraphs', subject)
+        throw new RenderRefusal(
+          'unsupported',
+          'pdfme keeps lines together only inside one text box; this keep-together block holds more than paragraphs',
+          subject,
+        )
       }
       // One text box, not dynamic: pdfme places it whole, on the next page when it does not fit on this one.
       return textBox(paragraphs, subject, y, columns, { flowing: false, static: false }, context)
@@ -317,7 +351,14 @@ function named(subject: string, context: Context): string {
 /** An image or a rule, drawn at its own size. */
 function fixedBox(block: Image | { kind: 'rule' }, subject: string, y: number, columns: Columns, placement: { static: boolean }, context: Context): Placed {
   if (block.kind === 'rule') {
-    const schema: LineSchema = { name: named(subject, context), type: 'line', position: { x: columns.left, y }, width: columns.width, height: mm(RULE_WEIGHT), color: '#000000' }
+    const schema: LineSchema = {
+      name: named(subject, context),
+      type: 'line',
+      position: { x: columns.left, y },
+      width: columns.width,
+      height: mm(RULE_WEIGHT),
+      color: '#000000',
+    }
     return { schema, height: schema.height }
   }
   const { asset } = block
@@ -328,10 +369,23 @@ function fixedBox(block: Image | { kind: 'rule' }, subject: string, y: number, c
   // pdfme fits an image inside its box at the image's own proportions ("contain"); it cannot stretch one.
   const scale = Math.min(block.width / pixels.width, block.height / pixels.height)
   if (Math.abs(pixels.width * scale - block.width) > SIZE_TOLERANCE || Math.abs(pixels.height * scale - block.height) > SIZE_TOLERANCE) {
-    throw new RenderRefusal('unsupported', `pdfme draws an image only at its own proportions; '${asset.id}' is ${pixels.width} × ${pixels.height} pixels, drawn at ${block.width} × ${block.height}pt`, asset.id)
+    throw new RenderRefusal(
+      'unsupported',
+      `pdfme draws an image only at its own proportions; '${asset.id}' is ${pixels.width} × ${pixels.height} pixels, drawn at ${block.width} × ${block.height}pt`,
+      asset.id,
+    )
   }
-  const schema: ImageSchema = { name: named(asset.id, context), type: 'image', position: { x: columns.left, y }, width: mm(block.width), height: mm(block.height) }
-  return { schema: withValue(schema, `data:${asset.mediaType};base64,${Buffer.from(asset.bytes).toString('base64')}`, placement, context), height: schema.height }
+  const schema: ImageSchema = {
+    name: named(asset.id, context),
+    type: 'image',
+    position: { x: columns.left, y },
+    width: mm(block.width),
+    height: mm(block.height),
+  }
+  return {
+    schema: withValue(schema, `data:${asset.mediaType};base64,${Buffer.from(asset.bytes).toString('base64')}`, placement, context),
+    height: schema.height,
+  }
 }
 
 interface TextPlacement {
@@ -348,7 +402,14 @@ interface TextPlacement {
  * expression, and has no way to escape a brace, so a template whose text has
  * one is refused rather than printed as something else.
  */
-async function textBox(paragraphs: readonly Paragraph[], subject: string, y: number, columns: Columns, placement: TextPlacement, context: Context): Promise<Placed> {
+async function textBox(
+  paragraphs: readonly Paragraph[],
+  subject: string,
+  y: number,
+  columns: Columns,
+  placement: TextPlacement,
+  context: Context,
+): Promise<Placed> {
   const style = uniformStyle(paragraphs, subject)
   const runs = paragraphs.flatMap((paragraph) => paragraph.runs.map((run) => ('field' in run ? undefined : (run.bold ?? paragraph.style?.bold ?? false))))
   const weights = new Set(runs.filter((bold) => bold !== undefined))
@@ -356,7 +417,9 @@ async function textBox(paragraphs: readonly Paragraph[], subject: string, y: num
   if (template && paragraphs.some((paragraph) => paragraph.runs.some((run) => 'text' in run && /[{}]/.test(run.text)))) {
     throw new RenderRefusal('unsupported', 'pdfme would evaluate the braces in this text as an expression, and has no way to escape them', subject)
   }
-  const value = paragraphs.map((paragraph) => (template ? markdown(paragraph) : paragraph.runs.map((run) => ('text' in run ? run.text : '')).join(''))).join('\n')
+  const value = paragraphs
+    .map((paragraph) => (template ? markdown(paragraph) : paragraph.runs.map((run) => ('text' in run ? run.text : '')).join('')))
+    .join('\n')
   const base: TextSchema = {
     name: named(subject, context),
     type: 'text',
@@ -374,7 +437,13 @@ async function textBox(paragraphs: readonly Paragraph[], subject: string, y: num
     padding: { top: 0, right: 0, bottom: mm(ROBOTO_DESCENDER * style.size), left: 0 },
     ...(placement.flowing ? { overflow: 'expand' as const } : {}),
     ...(template
-      ? { readOnly: true, content: value, textFormat: 'inline-markdown' as const, fontVariants: { bold: fontFor(true, style.italic) }, fontVariantFallback: 'error' as const }
+      ? {
+          readOnly: true,
+          content: value,
+          textFormat: 'inline-markdown' as const,
+          fontVariants: { bold: fontFor(true, style.italic) },
+          fontVariantFallback: 'error' as const,
+        }
       : {}),
   }
   const measure = (sample: string): Promise<number> => measureTextHeight({ value: sample, schema: base, font: context.font, _cache: context.cache })
@@ -424,7 +493,11 @@ function tableBox(block: Table, y: number, columns: Columns, context: Context): 
   const fills = block.columns.filter((column) => column.width === 'fill').length
   const share = fills === 0 ? 0 : (printable - fixed) / fills
   if (fixed > printable + SIZE_TOLERANCE || (fills > 0 && share <= 0)) {
-    throw new RenderRefusal('content-too-large', `the table '${block.id}' has ${fixed}pt of fixed columns; the printable area is ${printable.toFixed(2)}pt wide`, block.id)
+    throw new RenderRefusal(
+      'content-too-large',
+      `the table '${block.id}' has ${fixed}pt of fixed columns; the printable area is ${printable.toFixed(2)}pt wide`,
+      block.id,
+    )
   }
   const cells = [block.header, ...block.rows.map((row) => row.cells)]
   if (cells.some((row) => row.length !== block.columns.length)) {

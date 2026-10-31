@@ -51,7 +51,9 @@ export interface GenerateOptions {
   readonly detail?: { readonly kind: 'repeater'; readonly repeater: string } | { readonly kind: 'submissions' }
 }
 
-export type Generated = { readonly ok: true; readonly report: ReportDefinition; readonly notes: readonly GenerateNote[] } | { readonly ok: false; readonly errors: readonly FormsError[] }
+export type Generated =
+  | { readonly ok: true; readonly report: ReportDefinition; readonly notes: readonly GenerateNote[] }
+  | { readonly ok: false; readonly errors: readonly FormsError[] }
 
 const refused = (f: Findings): Generated => ({ ok: false, errors: f.errors() })
 
@@ -84,7 +86,8 @@ function readOptions(f: Findings, raw: unknown): { readonly id: string; readonly
   // report-spec is the judge of an id and a locale, as it is of every report's.
   const checked = validateReport(skeleton(parts.get('id'), parts.get('locale'), 'Report', pageOf('portrait')))
   if (!checked.valid) {
-    for (const key of ['id', 'locale']) if (parts.has(key) && checked.errors.some((error) => error.path === `/${key}`)) f.report(`/options/${key}`, 'invalid-input', RULES[key] as string)
+    for (const key of ['id', 'locale'])
+      if (parts.has(key) && checked.errors.some((error) => error.path === `/${key}`)) f.report(`/options/${key}`, 'invalid-input', RULES[key] as string)
   }
   const detail = parts.has('detail') ? readDetail(f, parts.get('detail')) : undefined
   return f.empty ? { id: parts.get('id') as string, locale: parts.get('locale') as string, detail } : undefined
@@ -97,12 +100,20 @@ function readDetail(f: Findings, raw: unknown): GenerateOptions['detail'] {
   const kind = parts.get('kind')
   if (kind === 'submissions' && !parts.has('repeater')) return { kind }
   if (kind !== 'repeater') {
-    f.report('/options/detail/kind', 'invalid-input', 'the detail is { kind: "repeater", repeater }, the rows of the repeater at that data path, or { kind: "submissions" }, one row per submission')
+    f.report(
+      '/options/detail/kind',
+      'invalid-input',
+      'the detail is { kind: "repeater", repeater }, the rows of the repeater at that data path, or { kind: "submissions" }, one row per submission',
+    )
     return undefined
   }
   const repeater = parts.get('repeater')
   if (isFormPath(repeater)) return { kind, repeater }
-  f.report('/options/detail/repeater', 'invalid-input', "the repeater's data path in the submission's scope: field keys joined by dots, as formancy writes a group's child")
+  f.report(
+    '/options/detail/repeater',
+    'invalid-input',
+    "the repeater's data path in the submission's scope: field keys joined by dots, as formancy writes a group's child",
+  )
   return undefined
 }
 
@@ -112,9 +123,21 @@ function versionNotes(draft: Draft): void {
   if (schema.i18n !== undefined && resolvedLocale(schema, draft.locale) !== draft.locale) {
     note(draft, 'labels-default-locale', '/form/i18n', `the form version has no catalogue in ${draft.locale}, so its labels are its default locale's`)
   }
-  if ((schema.layouts ?? []).length > 0) note(draft, 'layouts-not-followed', '/form/layouts', 'the form version names layouts, arrangements for filling it in: the report follows none, and is in model order')
+  if ((schema.layouts ?? []).length > 0)
+    note(
+      draft,
+      'layouts-not-followed',
+      '/form/layouts',
+      'the form version names layouts, arrangements for filling it in: the report follows none, and is in model order',
+    )
   const page = schema.model.fields.findIndex((field) => field.type === 'page')
-  if (page >= 0) note(draft, 'pages-not-breaks', at('/form/model/fields', page), 'the form has pages, steps of filling it in: their fields print where they stand, and no page break is made of one')
+  if (page >= 0)
+    note(
+      draft,
+      'pages-not-breaks',
+      at('/form/model/fields', page),
+      'the form has pages, steps of filling it in: their fields print where they stand, and no page break is made of one',
+    )
 }
 
 /** A dataset of `fields`, read as `form` says, or none where it has none. */
@@ -124,7 +147,12 @@ function datasetOf(id: string, form: NonNullable<DatasetContract['form']>, field
 
 /** Reports, at `where`, `fields` past the `most` of them the format holds as `what`. */
 function bounded(f: Findings, fields: readonly Planned[], where: string, most: number, what: string): void {
-  if (fields.length > most) f.report(where, 'too-many-fields', `the form gives the report ${fields.length} ${what}, and the format holds ${most}: it is refused, never cut to the first of them`)
+  if (fields.length > most)
+    f.report(
+      where,
+      'too-many-fields',
+      `the form gives the report ${fields.length} ${what}, and the format holds ${most}: it is refused, never cut to the first of them`,
+    )
 }
 
 /**
@@ -136,10 +164,18 @@ function orientationFor(draft: Draft, columns: number, where: string, mark: numb
   const [portrait, landscape] = [columnsOn('portrait'), columnsOn('landscape')]
   if (columns <= portrait) return 'portrait'
   if (columns <= landscape) {
-    draft.notes.splice(mark, 0, { code: 'table-landscape', path: where, message: `the table has ${columns} columns, more than the ${portrait} a portrait page gives ${MIN_COLUMN_WIDTH} pt each for the words of their headings, so the page is landscape` })
+    draft.notes.splice(mark, 0, {
+      code: 'table-landscape',
+      path: where,
+      message: `the table has ${columns} columns, more than the ${portrait} a portrait page gives ${MIN_COLUMN_WIDTH} pt each for the words of their headings, so the page is landscape`,
+    })
     return 'landscape'
   }
-  draft.f.report(where, 'too-many-columns', `the table would have ${columns} columns, and a landscape A4 page gives ${landscape} the ${MIN_COLUMN_WIDTH} pt each a word of a heading needs, which the renderer breaks in no cell: it is refused, never cut to the first of them`)
+  draft.f.report(
+    where,
+    'too-many-columns',
+    `the table would have ${columns} columns, and a landscape A4 page gives ${landscape} the ${MIN_COLUMN_WIDTH} pt each a word of a heading needs, which the renderer breaks in no cell: it is refused, never cut to the first of them`,
+  )
   return undefined
 }
 
@@ -155,7 +191,8 @@ export function generateReport(form: unknown, options: GenerateOptions): Generat
   if (version === undefined) return refused(f)
   const repeater = asked.detail?.kind === 'repeater' ? planRepeater(f, version, asked.detail.repeater, '/options/detail/repeater', false) : undefined
   if (!f.empty) return refused(f)
-  const detail: DetailOf = asked.detail?.kind === 'submissions' ? asked.detail : repeater === undefined ? undefined : { kind: 'repeater', repeater: repeater.def }
+  const detail: DetailOf =
+    asked.detail?.kind === 'submissions' ? asked.detail : repeater === undefined ? undefined : { kind: 'repeater', repeater: repeater.def }
   const rules = version.schema.logic?.rules ?? []
   const draft: Draft = {
     f,
@@ -175,20 +212,45 @@ export function generateReport(form: unknown, options: GenerateOptions): Generat
   let orientation: Orientation | undefined = 'portrait'
   if (outline.columnsAt !== undefined) {
     orientation = orientationFor(draft, outline.detail.length, outline.columnsAt, said)
-    if (outline.detail.length === 0) f.report(outline.columnsAt, 'nothing-to-print', 'the rows hold no field a report prints, so the table would have no column')
-  } else if (outline.header.length === 0) f.report('/form/model/fields', 'nothing-to-print', 'the form version holds no field a report prints, so the report would print nothing but its title')
+    if (outline.detail.length === 0)
+      f.report(outline.columnsAt, 'nothing-to-print', 'the rows hold no field a report prints, so the table would have no column')
+  } else if (outline.header.length === 0)
+    f.report('/form/model/fields', 'nothing-to-print', 'the form version holds no field a report prints, so the report would print nothing but its title')
   if (!f.empty || orientation === undefined) return refused(f)
   const { regions, styles } = laidOut(title, outline.blocks, outline.detail)
   if (counted(regions.body) > MAX_REGION_COMPONENTS) {
-    f.report('/form/model/fields', 'too-many-components', `the report's body would hold ${counted(regions.body)} components, its sections and their headings among them, and a region holds ${MAX_REGION_COMPONENTS}`)
+    f.report(
+      '/form/model/fields',
+      'too-many-components',
+      `the report's body would hold ${counted(regions.body)} components, its sections and their headings among them, and a region holds ${MAX_REGION_COMPONENTS}`,
+    )
     return refused(f)
   }
   const header = datasetOf('answers', { kind: 'submission' }, outline.header)
-  const rows = asked.detail?.kind === 'repeater' ? datasetOf('rows', { kind: 'repeater', repeater: asked.detail.repeater }, outline.detail) : datasetOf('submissions', { kind: 'submissions' }, outline.detail)
+  const rows =
+    asked.detail?.kind === 'repeater'
+      ? datasetOf('rows', { kind: 'repeater', repeater: asked.detail.repeater }, outline.detail)
+      : datasetOf('submissions', { kind: 'submissions' }, outline.detail)
   const datasets: Datasets = { ...(header === undefined ? {} : { header }), ...(rows === undefined ? {} : { detail: rows }) }
-  const report = { ...skeleton(asked.id, asked.locale, title, pageOf(orientation)), styles, datasets, regions, provenance: { kind: 'form', form: version.id, formHash: version.hash } }
+  const report = {
+    ...skeleton(asked.id, asked.locale, title, pageOf(orientation)),
+    styles,
+    datasets,
+    regions,
+    provenance: { kind: 'form', form: version.id, formHash: version.hash },
+  }
   const checked = validateReport(report)
   // Valid by construction, every bound of the format checked above; a report the validator refuses is the generator's defect, refused rather than handed over.
-  if (!checked.valid) return { ok: false, errors: [{ path: '', code: 'invalid-report', message: `the report generated from this version is one report-spec refuses, a defect of the generator and not the form's: ${checked.errors.map((error) => error.code).join(', ')}` }] }
+  if (!checked.valid)
+    return {
+      ok: false,
+      errors: [
+        {
+          path: '',
+          code: 'invalid-report',
+          message: `the report generated from this version is one report-spec refuses, a defect of the generator and not the form's: ${checked.errors.map((error) => error.code).join(', ')}`,
+        },
+      ],
+    }
   return { ok: true, report: checked.report, notes: draft.notes }
 }

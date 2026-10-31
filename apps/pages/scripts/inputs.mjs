@@ -31,7 +31,11 @@ const RELEASE = /^## (\d+\.\d+\.\d+) — (\d{4}-\d{2}-\d{2})$/m
  * (scripts/heading-anchors.mjs) and would bring a parser into the build; the
  * pages' link check holds the link made from this to that rule.
  */
-const anchorOf = (heading) => heading.toLowerCase().replaceAll(/[^\p{L}\p{N}\s-]/gu, '').replaceAll(' ', '-')
+const anchorOf = (heading) =>
+  heading
+    .toLowerCase()
+    .replaceAll(/[^\p{L}\p{N}\s-]/gu, '')
+    .replaceAll(' ', '-')
 
 /** The newest release CHANGELOG.md records: its version, its date, and the anchor of its heading. */
 export function releaseOf(changelog) {
@@ -53,7 +57,12 @@ export function licenceTermsOf(licence) {
   const rows = section
     .split('\n')
     .filter((line) => line.startsWith('|'))
-    .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
+    .map((line) =>
+      line
+        .split('|')
+        .slice(1, -1)
+        .map((cell) => cell.trim()),
+    )
   const body = rows.slice(2)
   if (rows.length < 3 || body.some((row) => row.length !== 2)) throw new Error('LICENSE.md\'s "The terms in one table" is not a table of uses and their terms')
   return body.map(([use, terms]) => [use, terms])
@@ -119,7 +128,11 @@ export function bundleStylesheet(file, { read = () => {}, packages } = {}) {
   const fonts = new Map()
   const inlined = new Set()
   const css = inline(file, { read, packages, fonts, inlined }, undefined)
-  return { css: css.replaceAll(/\n{3,}/g, '\n\n'), fonts: [...fonts.values()].map(({ href, from, directory }) => ({ href, from, directory })), packages: [...inlined] }
+  return {
+    css: css.replaceAll(/\n{3,}/g, '\n\n'),
+    fonts: [...fonts.values()].map(({ href, from, directory }) => ({ href, from, directory })),
+    packages: [...inlined],
+  }
 }
 
 /** `file` inlined for bundleStylesheet; `owner` is the package it belongs to, when it is a package's. */
@@ -136,7 +149,8 @@ function inline(file, context, owner) {
     if (found === null) return whole
     const [, name, inside] = found
     const directory = context.packages === undefined ? undefined : join(context.packages, name)
-    if (directory === undefined || !existsSync(join(directory, 'package.json'))) throw new Error(`${file} imports ${path}, and ${name} is not a package the pages depend on`)
+    if (directory === undefined || !existsSync(join(directory, 'package.json')))
+      throw new Error(`${file} imports ${path}, and ${name} is not a package the pages depend on`)
     context.inlined.add(directory)
     return inline(join(directory, inside), context, { name, directory })
   })
@@ -148,10 +162,12 @@ function inline(file, context, owner) {
 function copiedFonts(text, file, owner, fonts) {
   return text.replaceAll(/url\((['"]?)([^'")]+)\1\)/g, (_, quote, href) => {
     const from = resolve(dirname(file), href)
-    if (!from.startsWith(`${owner.directory}${sep}`) || !existsSync(from) || !statSync(from).isFile()) throw new Error(`${file} names ${href}, which ${owner.name} does not ship`)
+    if (!from.startsWith(`${owner.directory}${sep}`) || !existsSync(from) || !statSync(from).isFile())
+      throw new Error(`${file} names ${href}, which ${owner.name} does not ship`)
     const name = basename(from)
     const known = fonts.get(name)
-    if (known !== undefined && known.from !== from) throw new Error(`${name} is shipped by ${known.package} and by ${owner.name}, and the pages would copy one over the other`)
+    if (known !== undefined && known.from !== from)
+      throw new Error(`${name} is shipped by ${known.package} and by ${owner.name}, and the pages would copy one over the other`)
     fonts.set(name, { href: `${FONTS}${name}`, from, directory: owner.directory, package: owner.name })
     return `url(${quote}${FONTS}${name}${quote})`
   })
@@ -176,7 +192,8 @@ function published(repo, read) {
     })
     .filter((manifest) => manifest.private !== true)
   const homepages = [...new Set(manifests.map((manifest) => manifest.homepage))]
-  if (homepages.length !== 1 || typeof homepages[0] !== 'string') throw new Error(`the published packages name ${String(homepages.length)} homepages, and the pages link one repository`)
+  if (homepages.length !== 1 || typeof homepages[0] !== 'string')
+    throw new Error(`the published packages name ${String(homepages.length)} homepages, and the pages link one repository`)
   return { packages: manifests.map((manifest) => manifest.name), repository: homepages[0] }
 }
 
@@ -205,10 +222,14 @@ export function readInputs(repo, { pictures = [] } = {}) {
 
   note(join(repo, 'apps', 'studio', 'wrangler.json'))
   const site = demoUrl(readDemoConfig())
-  if (site === undefined) throw new Error("apps/studio/wrangler.json routes no path of formancy.ai, so the pages have no address")
+  if (site === undefined) throw new Error('apps/studio/wrangler.json routes no path of formancy.ai, so the pages have no address')
   const licenceText = text('LICENSE.md')
   const licence = readLicence(licenceText)
-  const { css: stylesheet, fonts, packages: served } = bundleStylesheet(join(repo, 'apps', 'pages', 'src', 'pages.css'), { read: note, packages: join(repo, 'apps', 'pages', 'node_modules') })
+  const {
+    css: stylesheet,
+    fonts,
+    packages: served,
+  } = bundleStylesheet(join(repo, 'apps', 'pages', 'src', 'pages.css'), { read: note, packages: join(repo, 'apps', 'pages', 'node_modules') })
   // The lines each picture's page prints, as report-render-pdf's
   // pictures.test.ts holds them to the PDF: the starters' in pictures.json,
   // the invoice samples' in samples.json, which the Studio's browser gate

@@ -13,7 +13,9 @@ import { pdfmakePdf } from './testing/pdfmake.js'
 /** Every image object of `bytes` that is no other's soft mask, in the order PDFKit wrote them, as what it says of itself. */
 async function imagesIn(bytes: Uint8Array): Promise<string[]> {
   const { context } = await PDFDocument.load(bytes, { updateMetadata: false })
-  const images = context.enumerateIndirectObjects().filter(([, object]) => object instanceof PDFRawStream && object.dict.get(PDFName.of('Subtype')) === PDFName.of('Image'))
+  const images = context
+    .enumerateIndirectObjects()
+    .filter(([, object]) => object instanceof PDFRawStream && object.dict.get(PDFName.of('Subtype')) === PDFName.of('Image'))
   const masks = new Set(images.map(([, object]) => (object as PDFRawStream).dict.get(PDFName.of('SMask'))).filter((ref) => ref instanceof PDFRef))
   return images
     .filter(([ref]) => !masks.has(ref))
@@ -21,7 +23,8 @@ async function imagesIn(bytes: Uint8Array): Promise<string[]> {
     .map(([, object]) => {
       const dict = (object as PDFRawStream).dict
       const space = dict.lookup(PDFName.of('ColorSpace'))
-      const colours = space instanceof PDFArray ? `${space.lookup(0, PDFName).decodeText()} over ${space.lookup(1, PDFName).decodeText()}` : (space as PDFName).decodeText()
+      const colours =
+        space instanceof PDFArray ? `${space.lookup(0, PDFName).decodeText()} over ${space.lookup(1, PDFName).decodeText()}` : (space as PDFName).decodeText()
       const predictor = dict.lookupMaybe(PDFName.of('DecodeParms'), PDFDict)?.lookupMaybe(PDFName.of('Predictor'), PDFNumber)?.asNumber()
       const key = dict.lookupMaybe(PDFName.of('Mask'), PDFArray)
       return [
@@ -29,7 +32,14 @@ async function imagesIn(bytes: Uint8Array): Promise<string[]> {
         dict.lookup(PDFName.of('Filter'), PDFName).decodeText(),
         ...(predictor === undefined ? [] : [`predictor ${String(predictor)}`]),
         ...(dict.has(PDFName.of('SMask')) ? ['a soft mask'] : []),
-        ...(key === undefined ? [] : [`a colour key ${key.asArray().map((entry) => String((entry as PDFNumber).asNumber())).join(' ')}`]),
+        ...(key === undefined
+          ? []
+          : [
+              `a colour key ${key
+                .asArray()
+                .map((entry) => String((entry as PDFNumber).asNumber()))
+                .join(' ')}`,
+            ]),
       ].join(', ')
     })
 }

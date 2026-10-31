@@ -16,7 +16,12 @@
  *   offers Add image… only with a store.
  */
 import { assetDigest, emptyReport, imageHeader, MAX_ASSET_BYTES, MAX_ASSET_SIDE, sniffImage } from '@formancy/report-spec'
-import { imageHeader as runtimeImageHeader, MAX_ASSET_BYTES as RUNTIME_MAX_ASSET_BYTES, MAX_ASSET_SIDE as RUNTIME_MAX_ASSET_SIDE, sniffImage as runtimeSniffImage } from '@formancy/report-runtime'
+import {
+  imageHeader as runtimeImageHeader,
+  MAX_ASSET_BYTES as RUNTIME_MAX_ASSET_BYTES,
+  MAX_ASSET_SIDE as RUNTIME_MAX_ASSET_SIDE,
+  sniffImage as runtimeSniffImage,
+} from '@formancy/report-runtime'
 import { openReportSession } from '@formancy/report-core'
 import type { ReportSession } from '@formancy/report-core'
 import { createReportEditor, SCENARIO_PNG, SCENARIO_PNG_DIGEST } from '@formancy/report-builder-core'
@@ -43,13 +48,20 @@ export async function addedImages(): Promise<string> {
     ['the scenarios’ PNG', SCENARIO_PNG, SCENARIO_PNG_DIGEST],
     ['no bytes', new Uint8Array(0), sha256(new Uint8Array(0))],
   ] as const) {
-    if (assetDigest(bytes) !== sha256(bytes) || assetDigest(bytes) !== expected) throw new Error(`report-spec's assetDigest of ${what} is not node:crypto's SHA-256`)
+    if (assetDigest(bytes) !== sha256(bytes) || assetDigest(bytes) !== expected)
+      throw new Error(`report-spec's assetDigest of ${what} is not node:crypto's SHA-256`)
   }
-  if (runtimeSniffImage !== sniffImage || runtimeImageHeader !== imageHeader || RUNTIME_MAX_ASSET_BYTES !== MAX_ASSET_BYTES || RUNTIME_MAX_ASSET_SIDE !== MAX_ASSET_SIDE) {
+  if (
+    runtimeSniffImage !== sniffImage ||
+    runtimeImageHeader !== imageHeader ||
+    RUNTIME_MAX_ASSET_BYTES !== MAX_ASSET_BYTES ||
+    RUNTIME_MAX_ASSET_SIDE !== MAX_ASSET_SIDE
+  ) {
     throw new Error("the runtime's image readers and limits are not report-spec's own")
   }
   const header = imageHeader(SCENARIO_PNG)
-  if (sniffImage(SCENARIO_PNG) !== 'image/png' || !header.ok || header.width !== 2 || header.height !== 1) throw new Error('the scenarios’ PNG was not read as a PNG of 2 by 1 pixels')
+  if (sniffImage(SCENARIO_PNG) !== 'image/png' || !header.ok || header.width !== 2 || header.height !== 1)
+    throw new Error('the scenarios’ PNG was not read as a PNG of 2 by 1 pixels')
 
   const session = letter()
   const offered: AddedImage[] = []
@@ -63,13 +75,25 @@ export async function addedImages(): Promise<string> {
     },
   }
   const editor = createReportEditor(session, { locale: 'de-CH', images: store })
-  if (!editor.state().images.store || editor.state().images.accept !== 'image/png,.png') throw new Error('an editor made with a store does not offer Add image… for what the store keeps')
+  if (!editor.state().images.store || editor.state().images.accept !== 'image/png,.png')
+    throw new Error('an editor made with a store does not offer Add image… for what the store keeps')
   const gif: EditorOutcome = await editor.addImage(chosen('logo.png', Uint8Array.from([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 1, 0, 1, 0, 0, 0, 0, 0x3b])))
   if (gif.ok || gif.code !== 'not-an-image' || offered.length > 0) throw new Error('a GIF named as a PNG was not refused before the store heard of it')
   const added = await editor.addImage(chosen('Logo Müller AG.png', SCENARIO_PNG))
   const [kept] = offered
-  if (!added.ok || offered.length !== 1 || kept?.asset !== 'logo-muller-ag' || kept.digest !== SCENARIO_PNG_DIGEST || sha256(kept.bytes) !== SCENARIO_PNG_DIGEST) throw new Error('the PNG was not handed to the store by its id, its digest and its bytes')
-  if (JSON.stringify(session.document().assets) !== JSON.stringify([{ id: 'logo-muller-ag', mediaType: 'image/png', digest: SCENARIO_PNG_DIGEST }]) || session.undoLabel() === undefined) throw new Error('the PNG kept was not declared, in one step')
+  if (
+    !added.ok ||
+    offered.length !== 1 ||
+    kept?.asset !== 'logo-muller-ag' ||
+    kept.digest !== SCENARIO_PNG_DIGEST ||
+    sha256(kept.bytes) !== SCENARIO_PNG_DIGEST
+  )
+    throw new Error('the PNG was not handed to the store by its id, its digest and its bytes')
+  if (
+    JSON.stringify(session.document().assets) !== JSON.stringify([{ id: 'logo-muller-ag', mediaType: 'image/png', digest: SCENARIO_PNG_DIGEST }]) ||
+    session.undoLabel() === undefined
+  )
+    throw new Error('the PNG kept was not declared, in one step')
   editor.dispatch({ type: 'undo' })
   if (session.document().assets.length !== 0 || offered.length !== 1) throw new Error('an undo did not take the declaration back alone')
   editor.dispose()

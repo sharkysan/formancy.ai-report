@@ -127,7 +127,10 @@ describe('datasets', () => {
   test('refuse a field edit, or a remove, where no dataset of that role is declared', () => {
     const report = frozen(accepted(removeDataset(frozenSample(), 'header')))
     expect(refused(removeDataset(report, 'header'))).toMatchObject({ code: 'not-found', path: '/datasets/header' })
-    expect(refused(putField(report, 'header', 'site', { type: 'string', label: 'Site', nullable: false }))).toMatchObject({ code: 'not-found', path: '/datasets/header' })
+    expect(refused(putField(report, 'header', 'site', { type: 'string', label: 'Site', nullable: false }))).toMatchObject({
+      code: 'not-found',
+      path: '/datasets/header',
+    })
     expect(refused(removeField(report, 'header', 'customer'))).toMatchObject({ code: 'not-found', path: '/datasets/header' })
   })
 })
@@ -230,7 +233,11 @@ describe('addAsset', () => {
   // swap that image for this one, unseen, so an add is refused instead.
   test('refuses an id the report already declares, and replaces nothing', () => {
     const report = frozenSample()
-    expect(refused(addAsset(report, 'logo', STAMP))).toMatchObject({ code: 'already-declared', path: '/assets', message: 'an asset is already declared as "logo"; an add never replaces one' })
+    expect(refused(addAsset(report, 'logo', STAMP))).toMatchObject({
+      code: 'already-declared',
+      path: '/assets',
+      message: 'an asset is already declared as "logo"; an add never replaces one',
+    })
     expect(report).toEqual(sampleReport())
   })
 })
@@ -277,7 +284,14 @@ describe('an asset added or removed in a session', () => {
   // builder can say what draws it.
   test.each([
     ['an add under an id already declared', (report: ReportDefinition) => addAsset(report, 'seal', STAMP), { code: 'already-declared' }],
-    ['a remove of an asset an image draws', (report: ReportDefinition) => removeAsset(report, 'seal'), { code: 'invalid-document', errors: expect.arrayContaining([expect.objectContaining({ code: 'unknown-asset', path: expect.stringMatching(/\/source\/asset$/) })]) }],
+    [
+      'a remove of an asset an image draws',
+      (report: ReportDefinition) => removeAsset(report, 'seal'),
+      {
+        code: 'invalid-document',
+        errors: expect.arrayContaining([expect.objectContaining({ code: 'unknown-asset', path: expect.stringMatching(/\/source\/asset$/) })]),
+      },
+    ],
   ])('%s changes nothing', (_, command, refusal) => {
     const session = open()
     expect(session.apply((report) => insertComponent(report, { region: 'body', index: 0 }, { id: 'gap-2', kind: 'spacer', height: 4 })).ok).toBe(true)

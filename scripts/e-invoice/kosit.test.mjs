@@ -18,7 +18,12 @@ import { readRegisters } from './registers.mjs'
 const here = dirname(fileURLToPath(import.meta.url))
 const recorded = (...path) => readFileSync(join(here, 'recorded', ...path), 'utf8')
 const run = JSON.parse(recorded('run.json'))
-const entries = corpus({ samples: run.samples.map((id) => ({ id })), xmlOf: (sample) => recorded('corpus', `${sample.id}.xml`), kindOf: (sample) => run.kinds[sample.id].kind, guidelineOf: (sample) => run.kinds[sample.id].guideline })
+const entries = corpus({
+  samples: run.samples.map((id) => ({ id })),
+  xmlOf: (sample) => recorded('corpus', `${sample.id}.xml`),
+  kindOf: (sample) => run.kinds[sample.id].kind,
+  guidelineOf: (sample) => run.kinds[sample.id].guideline,
+})
 const { accepted } = readRegisters()
 const hash = (text) => createHash('sha256').update(text).digest('base64')
 
@@ -48,8 +53,33 @@ describe('KoSIT’s command line', () => {
   // where there is a warning to silence.
   test('validates every file at once, and silences Java 24’s native-access warning only from Java 24', () => {
     const given = { jar: '/c/K.jar', scenarios: '/c/cfg/scenarios.xml', repository: '/c/cfg', out: '/c/out', files: ['/c/a.xml', '/c/b.xml'] }
-    expect(kositArguments({ ...given, java: 17 })).toEqual([...JVM_OPTIONS, '-jar', '/c/K.jar', '-s', '/c/cfg/scenarios.xml', '-r', '/c/cfg', '-o', '/c/out', '/c/a.xml', '/c/b.xml'])
-    expect(kositArguments({ ...given, java: 25 })).toEqual([...JVM_OPTIONS, '--enable-native-access=ALL-UNNAMED', '-jar', '/c/K.jar', '-s', '/c/cfg/scenarios.xml', '-r', '/c/cfg', '-o', '/c/out', '/c/a.xml', '/c/b.xml'])
+    expect(kositArguments({ ...given, java: 17 })).toEqual([
+      ...JVM_OPTIONS,
+      '-jar',
+      '/c/K.jar',
+      '-s',
+      '/c/cfg/scenarios.xml',
+      '-r',
+      '/c/cfg',
+      '-o',
+      '/c/out',
+      '/c/a.xml',
+      '/c/b.xml',
+    ])
+    expect(kositArguments({ ...given, java: 25 })).toEqual([
+      ...JVM_OPTIONS,
+      '--enable-native-access=ALL-UNNAMED',
+      '-jar',
+      '/c/K.jar',
+      '-s',
+      '/c/cfg/scenarios.xml',
+      '-r',
+      '/c/cfg',
+      '-o',
+      '/c/out',
+      '/c/a.xml',
+      '/c/b.xml',
+    ])
     expect(reportName('control-br-27.xml')).toBe('control-br-27-report.xml')
   })
 })
@@ -59,16 +89,31 @@ describe('reading KoSIT', () => {
   // assessment, and which bytes it judged, by their hash.
   test('reads a report: its engine, the bytes it judged, its scenario, every step’s messages and its assessment', () => {
     const report = readKositReport(recorded('kosit', 'control-br-co-14-report.xml'))
-    expect(report).toMatchObject({ valid: false, engine: 'KoSIT Validator 1.6.3', scenario: 'EN16931 (CII)', assessment: 'reject', schematrons: ['resources/cii/16b/xsl/EN16931-CII-validation.xsl'] })
+    expect(report).toMatchObject({
+      valid: false,
+      engine: 'KoSIT Validator 1.6.3',
+      scenario: 'EN16931 (CII)',
+      assessment: 'reject',
+      schematrons: ['resources/cii/16b/xsl/EN16931-CII-validation.xsl'],
+    })
     expect(report.hash).toEqual({ algorithm: 'SHA-256', value: hash(entries.find((entry) => entry.file === 'control-br-co-14.xml').xml) })
     expect(report.steps.flatMap((step) => step.messages.map((message) => message.key))).toEqual(['error val-sch.1 BR-CO-14'])
     // A file it could not parse matches no scenario, and says so in its own step.
-    expect(readKositReport(recorded('kosit', 'control-malformed-report.xml'))).toMatchObject({ scenario: null, assessment: 'reject', steps: [{ id: 'val-xml', valid: false }] })
+    expect(readKositReport(recorded('kosit', 'control-malformed-report.xml'))).toMatchObject({
+      scenario: null,
+      assessment: 'reject',
+      steps: [{ id: 'val-xml', valid: false }],
+    })
   })
 
   // What only the console says: which validator and which configuration ran.
   test('reads the console: the version, the configuration and the counts', () => {
-    expect(readKositConsole(recorded('kosit', 'console.log'))).toMatchObject({ version: '1.6.3', configuration: 'Validator Configuration XRechnung 3.0.2', acceptable: 5, rejected: 11 })
+    expect(readKositConsole(recorded('kosit', 'console.log'))).toMatchObject({
+      version: '1.6.3',
+      configuration: 'Validator Configuration XRechnung 3.0.2',
+      acceptable: 5,
+      rejected: 11,
+    })
     expect(() => readKositReport('<?xml version="1.0"?><report/>')).toThrow('KoSIT wrote a report whose root is report, not rep:report')
   })
 })
@@ -79,17 +124,28 @@ describe('KoSIT’s verdict', () => {
     expect(problems).toEqual([])
     expect(rows.map((row) => [row.file, row.verdict])).toEqual(entries.map((entry) => [entry.file, 'as expected']))
     // What each scenario a sample matched ran first: CEN's schematron in both, XRechnung's beside it in the XRechnung's (scenarios.xml, which the oracle reads).
-    expect(schematrons).toEqual({ 'EN16931 (CII)': ['resources/cii/16b/xsl/EN16931-CII-validation.xsl'], 'EN16931 XRechnung (CII)': ['resources/cii/16b/xsl/EN16931-CII-validation.xsl'] })
-    expect(rows.find((row) => row.file === 'e-invoice-xrechnung.xml')).toMatchObject({ scenario: 'EN16931 XRechnung (CII)', assessment: 'accept', refusals: [] })
+    expect(schematrons).toEqual({
+      'EN16931 (CII)': ['resources/cii/16b/xsl/EN16931-CII-validation.xsl'],
+      'EN16931 XRechnung (CII)': ['resources/cii/16b/xsl/EN16931-CII-validation.xsl'],
+    })
+    expect(rows.find((row) => row.file === 'e-invoice-xrechnung.xml')).toMatchObject({
+      scenario: 'EN16931 XRechnung (CII)',
+      assessment: 'accept',
+      refusals: [],
+    })
   })
 
   // A report is tied to the corpus by the hash of the bytes KoSIT read: a
   // report on another file under this one's name -- a corpus written since,
   // a stale output directory -- is refused, as is one missing.
   test('refuses a report on other bytes, a report missing, and a report on a file the corpus does not have', () => {
-    expect(judged((given) => given.hashes.set('e-invoice.xml', hash('other'))).problems).toEqual(['KoSIT’s report on e-invoice.xml is of other bytes than the corpus wrote'])
+    expect(judged((given) => given.hashes.set('e-invoice.xml', hash('other'))).problems).toEqual([
+      'KoSIT’s report on e-invoice.xml is of other bytes than the corpus wrote',
+    ])
     expect(judged((given) => given.reports.set('e-invoice.xml', undefined)).problems).toEqual(['KoSIT wrote no report on e-invoice.xml'])
-    expect(judged((given) => given.others.push('invoice-report.xml')).problems).toEqual(['KoSIT wrote invoice-report.xml, which is the report of no file of the corpus'])
+    expect(judged((given) => given.others.push('invoice-report.xml')).problems).toEqual([
+      'KoSIT wrote invoice-report.xml, which is the report of no file of the corpus',
+    ])
   })
 
   // KoSIT's exit status is the number of files it rejected, so it must be
@@ -97,7 +153,12 @@ describe('KoSIT’s verdict', () => {
   // whatever its reports say.
   test('refuses an exit status that is not the number of controls, and another KoSIT', () => {
     expect(judged(undefined, { status: 4 }).problems).toEqual(['KoSIT exited 4, where it rejects one file per control and the corpus has 11'])
-    expect(judged(undefined, { pinned: '1.6.4' }).problems).toEqual(expect.arrayContaining(['KoSIT says it is 1.6.3, not 1.6.4, which docs/release/e-invoice-tools.json pins', 'KoSIT’s report on e-invoice.xml is by KoSIT Validator 1.6.3, not by KoSIT Validator 1.6.4']))
+    expect(judged(undefined, { pinned: '1.6.4' }).problems).toEqual(
+      expect.arrayContaining([
+        'KoSIT says it is 1.6.3, not 1.6.4, which docs/release/e-invoice-tools.json pins',
+        'KoSIT’s report on e-invoice.xml is by KoSIT Validator 1.6.3, not by KoSIT Validator 1.6.4',
+      ]),
+    )
     expect(judged(undefined, { error: new Error('spawn java ENOENT') }).problems).toEqual(['KoSIT did not run: spawn java ENOENT'])
   })
 
@@ -109,15 +170,20 @@ describe('KoSIT’s verdict', () => {
       for (const entry of given.entries) entry.scenario = entry.scenario === 'EN16931 (CII)' ? 'EN16931 XRechnung (CII)' : 'EN16931 (CII)'
     }
     expect(judged(swapped).problems.filter((problem) => problem.startsWith('KoSIT matched'))).toEqual([
-      ...['e-invoice.xml', 'e-invoice-reverse-charge.xml', 'e-invoice-exempt-paid.xml', 'e-invoice-addressed.xml'].map((file) => `KoSIT matched ${file} to EN16931 (CII), not to EN16931 XRechnung (CII)`),
+      ...['e-invoice.xml', 'e-invoice-reverse-charge.xml', 'e-invoice-exempt-paid.xml', 'e-invoice-addressed.xml'].map(
+        (file) => `KoSIT matched ${file} to EN16931 (CII), not to EN16931 XRechnung (CII)`,
+      ),
       'KoSIT matched e-invoice-xrechnung.xml to EN16931 XRechnung (CII), not to EN16931 (CII)',
     ])
     // A sample that names no scenario of its own is held to the one the judge is given.
     const unnamed = (given) => {
       for (const entry of given.entries) delete entry.scenario
     }
-    expect(judged(unnamed).problems.filter((problem) => problem.startsWith('KoSIT matched'))).toEqual(['KoSIT matched e-invoice-xrechnung.xml to EN16931 XRechnung (CII), not to EN16931 (CII)'])
-    const rejected = (given) => given.reports.set('e-invoice.xml', given.reports.get('e-invoice.xml').replace('<rep:accept>', '<rep:reject>').replace('</rep:accept>', '</rep:reject>'))
+    expect(judged(unnamed).problems.filter((problem) => problem.startsWith('KoSIT matched'))).toEqual([
+      'KoSIT matched e-invoice-xrechnung.xml to EN16931 XRechnung (CII), not to EN16931 (CII)',
+    ])
+    const rejected = (given) =>
+      given.reports.set('e-invoice.xml', given.reports.get('e-invoice.xml').replace('<rep:accept>', '<rep:reject>').replace('</rep:accept>', '</rep:reject>'))
     expect(judged(rejected).problems).toEqual(['KoSIT rejected e-invoice.xml, which it must accept'])
   })
 
@@ -125,20 +191,36 @@ describe('KoSIT’s verdict', () => {
   // unless the register accepts it there; the recorded run raised none, so
   // its report is given one, as KoSIT writes a message.
   test('refuses a warning the register does not accept, and accepts one it does', () => {
-    const warned = (given) => given.reports.set('e-invoice.xml', given.reports.get('e-invoice.xml').replace('<rep:validationStepResult id="val-sch.1" valid="true">', '<rep:validationStepResult id="val-sch.1" valid="true"><rep:message id="val-sch.1.1" level="warning" code="CII-SR-005">[CII-SR-005] - should not be present</rep:message>'))
+    const warned = (given) =>
+      given.reports.set(
+        'e-invoice.xml',
+        given.reports
+          .get('e-invoice.xml')
+          .replace(
+            '<rep:validationStepResult id="val-sch.1" valid="true">',
+            '<rep:validationStepResult id="val-sch.1" valid="true"><rep:message id="val-sch.1.1" level="warning" code="CII-SR-005">[CII-SR-005] - should not be present</rep:message>',
+          ),
+      )
     expect(judged(warned).problems).toEqual(['e-invoice.xml is refused by KoSIT: warning val-sch.1 CII-SR-005: [CII-SR-005] - should not be present'])
-    expect(judged((given) => {
-      warned(given)
-      given.accepted.push({ tool: 'kosit', message: 'warning val-sch.1 CII-SR-005', files: ['e-invoice.xml'], reason: 'r' })
-    }).problems).toEqual([])
-    expect(judged((given) => given.accepted.push({ tool: 'kosit', message: 'warning val-sch.1 CII-SR-005', files: ['e-invoice.xml'], reason: 'r' })).problems).toEqual(['the accepted message kosit warning val-sch.1 CII-SR-005 was raised in none of its files: remove it from scripts/e-invoice/accepted.json'])
+    expect(
+      judged((given) => {
+        warned(given)
+        given.accepted.push({ tool: 'kosit', message: 'warning val-sch.1 CII-SR-005', files: ['e-invoice.xml'], reason: 'r' })
+      }).problems,
+    ).toEqual([])
+    expect(
+      judged((given) => given.accepted.push({ tool: 'kosit', message: 'warning val-sch.1 CII-SR-005', files: ['e-invoice.xml'], reason: 'r' })).problems,
+    ).toEqual(['the accepted message kosit warning val-sch.1 CII-SR-005 was raised in none of its files: remove it from scripts/e-invoice/accepted.json'])
   })
 
   // A control KoSIT accepted is nothing watching what it breaks; one
   // refused for another rule is not the file its name says.
   test('refuses a control it accepted, or refused for anything but exactly what it breaks', () => {
     const swapped = (given) => given.reports.set('control-br-27.xml', given.reports.get('e-invoice.xml'))
-    expect(judged(swapped, { hashes: new Map(entries.map((entry) => [entry.file, hash(entry.file === 'control-br-27.xml' ? entries[0].xml : entry.xml)])) }).problems).toEqual([
+    expect(
+      judged(swapped, { hashes: new Map(entries.map((entry) => [entry.file, hash(entry.file === 'control-br-27.xml' ? entries[0].xml : entry.xml)])) })
+        .problems,
+    ).toEqual([
       'KoSIT accepted control-br-27.xml, which is broken for the first line’s net price (BT-146) made negative, which BR-27 refuses; Mustang’s own sums, which multiply each quantity by its price, disagree as well',
       'control-br-27.xml is broken for the first line’s net price (BT-146) made negative, which BR-27 refuses; Mustang’s own sums, which multiply each quantity by its price, disagree as well, and KoSIT accepted it: nothing is watching that',
     ])

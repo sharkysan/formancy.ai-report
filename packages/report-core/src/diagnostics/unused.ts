@@ -20,7 +20,13 @@ import type { ReportParts } from './parts.js'
 export function unusedDiagnostics(report: ReportDefinition, parts: ReportParts): Diagnostic[] {
   const reads = expressionReads(parts.expressions.map(({ cel }) => cel))
   const found: Diagnostic[] = []
-  const check = (declared: readonly { readonly id: string }[], used: (id: string) => boolean, code: DiagnosticCode, list: string, message: (id: string) => string): void => {
+  const check = (
+    declared: readonly { readonly id: string }[],
+    used: (id: string) => boolean,
+    code: DiagnosticCode,
+    list: string,
+    message: (id: string) => string,
+  ): void => {
     for (const [index, { id }] of declared.entries()) if (!used(id)) found.push(diagnostic(code, message(quote(id)), { path: `${list}/${index}` }))
   }
   const styles = new Set(parts.styles)
@@ -30,11 +36,21 @@ export function unusedDiagnostics(report: ReportDefinition, parts: ReportParts):
   // A font asset is used when a font token maps one of its faces to it, where an image asset is used when an image draws it (0043).
   const mappedFaces = new Set<string>()
   for (const faces of Object.values(report.fonts ?? {})) for (const key of FONT_FACE_KEYS) if (faces[key] !== undefined) mappedFaces.add(faces[key])
-  check(report.styles, (id) => styles.has(id), 'unused-style', '/styles', (id) => `style ${id} is used by no component, column or row`)
+  check(
+    report.styles,
+    (id) => styles.has(id),
+    'unused-style',
+    '/styles',
+    (id) => `style ${id} is used by no component, column or row`,
+  )
   report.assets.forEach((asset, index) => {
     const font = isFontMediaType(asset.mediaType)
     if (font ? mappedFaces.has(asset.id) : assets.has(asset.id)) return
-    found.push(diagnostic('unused-asset', font ? `font ${quote(asset.id)} is mapped to no font token` : `asset ${quote(asset.id)} is drawn by no image`, { path: `/assets/${index}` }))
+    found.push(
+      diagnostic('unused-asset', font ? `font ${quote(asset.id)} is mapped to no font token` : `asset ${quote(asset.id)} is drawn by no image`, {
+        path: `/assets/${index}`,
+      }),
+    )
   })
   check(
     report.parameters,

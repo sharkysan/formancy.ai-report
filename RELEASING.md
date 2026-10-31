@@ -41,6 +41,7 @@ node scripts/bump.mjs 0.1.0
 
 # 3. Verify locally — the workflow runs these again, but finding out here is cheaper
 pnpm build && pnpm typecheck && pnpm test:coverage && pnpm check:pkg && pnpm test:repo
+pnpm lint && pnpm format:check
 node scripts/verify-licenses.mjs && node scripts/dependency-licences.mjs
 node scripts/e-invoice.mjs --java <path>   # on a Java the register names
 pnpm test:e2e:install
@@ -78,15 +79,16 @@ anything that cannot be taken back:
    writes. A missing or refused token is red while the gates are still
    running, not after them.
 3. **`gates`: the gates CI runs, from
-   [`gates.yml`](.github/workflows/gates.yml)** — build, types, packaging,
-   licences and the repository guards; each package's suite on a runner of
-   its own; and the install gate, which packs, installs and runs the tarballs
-   and keeps them. Every job collects what it found, and the last, `report`,
-   builds the release report of this run and the release body -- the
-   version's changelog section and the report's summary -- and fails the run
-   on the report's problems, on a tag that is not the manifests' version, on
-   a version with no section, and on a body over the 125,000 characters
-   GitHub accepts ([`docs/release/`](docs/release/README.md)). Unlike CI, a
+   [`gates.yml`](.github/workflows/gates.yml)** — build, types, lint rules,
+   format, packaging, licences and the repository guards; each package's
+   suite on a runner of its own; and the install gate, which packs, installs
+   and runs the tarballs and keeps them. Every job collects what it found,
+   and the last, `report`, builds the release report of this run and the
+   release body -- the version's changelog section and the report's
+   summary -- and fails the run on the report's problems, on a tag that is
+   not the manifests' version, on a version with no section, and on a body
+   over the 125,000 characters GitHub accepts
+   ([`docs/release/`](docs/release/README.md)). Unlike CI, a
    release restores no Actions cache: a tag's run may restore one a
    main-branch run saved, and every job installs from the registry against
    the lockfile instead.
