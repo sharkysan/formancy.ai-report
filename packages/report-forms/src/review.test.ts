@@ -4,7 +4,8 @@ import { E_INVOICE_EXEMPT_PAID } from '@formancy/report-corpus'
 import { MAX_DETAIL_ROWS } from '@formancy/report-runtime'
 import { reportHash, validateReport, walkComponents } from '@formancy/report-spec'
 import type { Component, DatasetContract, DatasetFormBinding, FieldContract, ReportDefinition } from '@formancy/report-spec'
-import { schemaHash } from '@formancy/spec'
+import { diffSchemas, schemaHash } from '@formancy/spec'
+import type { FormSchema } from '@formancy/spec'
 import { describe, expect, test } from 'vitest'
 import { reviewFormVersion } from './review.js'
 import type { FormReview, ReviewItem } from './review.js'
@@ -141,6 +142,43 @@ describe('reviewFormVersion, what prints', () => {
   test('a version that changed nothing the report prints is compatible', () => {
     expect(itemsOf(reviewed(version((fields) => fields, { title: 'Site visit, revised' })))).toMatchObject({ status: 'compatible', items: [] })
     expect(itemsOf(reviewed(V1))).toMatchObject({ status: 'compatible', items: [] })
+  })
+
+  // A form's author who moves it to spec 5 to give a question help text,
+  // an example or a default changes nothing an answer holds (formancy.ai
+  // 0201), though formancy's diff calls each such field changed, by a rule
+  // it has none for. A review that blocked on that would stop every
+  // report of the form for words its submissions never hold; the version
+  // prints, and its submissions read as the first version's do.
+  test('a version that moves to spec 5 and adds only what helps a person fill it in is compatible', () => {
+    const helped = version(
+      (fields) =>
+        changed(
+          changed(
+            changed(fields, 'site', (field) => ({
+              ...field,
+              description: 'Street, number and town',
+              placeholder: 'Hauptstrasse 12',
+              autocomplete: 'street-address',
+              default: 'Bern',
+            })),
+            'name',
+            (field) => ({ ...field, autocomplete: 'name' }),
+          ),
+          'hours',
+          (field) => ({ ...field, placeholder: '1.25', default: 1 }),
+        ),
+      { specVersion: '5' },
+    )
+    const said = diffSchemas(V1 as unknown as FormSchema, helped as unknown as FormSchema).map((change) => `${change.kind} ${change.path}`)
+    expect(said).toEqual([
+      'field.changed model.fields.findings[].hours',
+      'field.changed model.fields.inspector.name',
+      'field.changed model.fields.site',
+      'specVersion.changed specVersion',
+    ])
+    expect(itemsOf(reviewed(helped))).toMatchObject({ status: 'compatible', items: [] })
+    expect(headerOf(read(REPORT, helped, answered()))).toEqual(headerOf(read(REPORT, V1, answered())))
   })
 
   // "A harmless additional column does not automatically appear in an

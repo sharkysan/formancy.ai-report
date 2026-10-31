@@ -24,8 +24,8 @@
     and a version-2 visit, each with its own version's labels; the hash
     computed and a differing one refused; an answer the version has no
     path for refused by its path and never its value; a field the version
-    lacks, moved or retyped; forms at spec 1, 2, 3 and 4 and one Formancy
-    Data generated at spec 3; a spec 5 form refused naming both versions;
+    lacks, moved or retyped; forms at spec 1, 2, 3, 4 and 5 and one Formancy
+    Data generated at spec 3; a spec 6 form refused naming both versions;
     getters never run, an own `__proto__`, keys called `constructor`, the
     row bound, the depth bound and the error bound. `kinds.test.ts` also
     reads every formancy kind at every report type and holds what is read
@@ -348,12 +348,53 @@ repeater says that the review offers nothing but a rename of it
 since a review's resolutions are its commands and the compiler judges
 them; it still fetches nothing and reaches no network.
 
+**Added 2026-10-30: formancy 0.11.0.** The repository moved
+`@formancy/spec` from 0.7.0 to 0.11.0. Nothing this record decides
+changed; what reached the bridge:
+- **Spec 5 is read**, by [0004](0004-three-version-lines-each-refused-when-unknown.md)'s
+  rule, a version of it read, drafted and reviewed as its spec 4 twin. A
+  default left alone is stored as the person's answer, indistinguishable
+  from one chosen
+  ([formancy.ai 0197](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0197-a-default-is-where-something-fresh-starts.md)),
+  and prints as one.
+- **An answer has the shape its type says** from formancy 0.8.0, whose
+  engine refuses any other before it stores one
+  ([formancy.ai 0189](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0189-every-answer-has-the-shape-its-type-says.md)).
+  The bridge already refused, for each kind it prints, an answer of
+  another JSON type than the kind stores (`kinds.test.ts`), so nothing
+  0.8.0 stores reads otherwise. A submission stored before, which
+  formancy does not examine again, reads as it did: a group, a repeater,
+  ticked boxes or a matrix held as null among it, where 0.8.0 stores an
+  object or a list, read as unanswered (`kinds.test.ts`). But for one
+  shape: an empty string is no choice, which 0.8.0's engine refuses and
+  an unanswered choice never was, so the bridge refuses it as
+  `invalid-answer` for every choice, where one that offers no options
+  printed it as its value and a field declared never null printed blank
+  (`kinds.test.ts`).
+- **A computed repeater's rows carry an `_id`** from 0.11.0, and did not
+  before
+  ([formancy.ai 0218](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0218-a-computed-repeater-is-the-rules-row-by-row.md)).
+  A row is read by its place and never keyed by its id, so both print
+  (`read.test.ts`).
+- **"The host keeps every version" holds only beside a formancy server
+  before 0.8.0.** From 0.8.0, `GET /f/:path/versions/:version` answers a
+  version's document and hash by its number
+  ([formancy.ai 0207](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0207-a-versions-document-can-be-read.md)),
+  which a host can hand over. The bridge still fetches nothing.
+- **A version's hash is the one it was.** `schemaHash`'s code is 0.7.0's,
+  and the starter that names the corpus's version 2 by its hash still
+  names it (`starter.test.ts`).
+
 ## Alternatives considered
 
 **Read formancy's server with a client of Report's own.** Rejected (FB-Q2):
 the API has no route for one submission or an old version's schema, lists
 submissions without their hash, and publishes no client; one written here
-would be a second reading of formancy's rules (0002).
+would be a second reading of formancy's rules (0002). From formancy 0.8.0
+an old version's schema has a route (formancy.ai 0207); the rest still
+stands at 0.11.0 -- no route for one submission, a listing without
+hashes, no published client -- and nothing in a package here reaches the
+network.
 
 **Trust the hash the host passes.** Rejected: the host's record and its
 document can disagree, and either could be wrong; computed here, the hash

@@ -239,7 +239,57 @@ describe('generateReport is deterministic', () => {
     expect({ ...one.report, provenance: two.report.provenance }).toEqual(two.report)
     expect(one.notes).toEqual(two.notes)
   })
+
+  // Spec 5 adds what helps a person fill a form in, and nothing an answer
+  // holds (formancy.ai 0201). A draft that printed help text or an example
+  // would print the form's words as answers, and one that took a default
+  // or a rule's message as proof of an answer would declare a field never
+  // null that a person can leave empty. So version 2 at spec 5, with all
+  // of it, is the same report but for the version it names.
+  test('gives a version that adds only what spec 5 adds for filling it in the same report, naming that version', () => {
+    const two = generatedFrom(generate(SITE_VISIT_V2, VISIT))
+    const five = generatedFrom(generate(atSpec5(SITE_VISIT_V2), VISIT))
+    expect({ ...two.report, provenance: five.report.provenance }).toEqual(five.report)
+    expect(five.report.provenance).toEqual({ kind: 'form', form: 'site-visit', formHash: schemaHash(atSpec5(SITE_VISIT_V2)) })
+    expect(two.notes).toEqual(five.notes)
+  })
 })
+
+/** What spec 5 adds to the site visit's fields, by key: help text, an example, autofill, defaults and a shuffled order (formancy.ai 0194 to 0200). */
+const SPEC_5_FIELDS: Readonly<Record<string, Record<string, unknown>>> = {
+  site: { description: 'Street, number and town', placeholder: 'Hauptstrasse 12, 3011 Bern', autocomplete: 'street-address', default: 'Bern' },
+  outcome: { shuffle: true, default: 'pass' },
+  inspector: { description: 'Who visited' },
+  name: { autocomplete: 'name' },
+  checks: { shuffle: true, default: ['roof'] },
+  findings: { description: 'One row a finding' },
+  hours: { placeholder: '1.5', default: 1 },
+  fixed: { default: false },
+}
+
+/** `form` at spec 5, with what `SPEC_5_FIELDS` adds, the boiler an option chosen on its own and kept in place, and a rule that says its own message. */
+function atSpec5(form: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  type Def = Readonly<Record<string, unknown>> & {
+    readonly key: string
+    readonly fields?: readonly Def[]
+    readonly options?: readonly Readonly<Record<string, unknown>>[]
+  }
+  const added = (def: Def): Def => ({
+    ...def,
+    ...SPEC_5_FIELDS[def.key],
+    ...(def.fields === undefined ? {} : { fields: def.fields.map(added) }),
+    ...(def.key === 'checks' && def.options !== undefined
+      ? { options: def.options.map((option) => (option['value'] === 'boiler' ? { ...option, exclusive: true, keepPlace: true } : option)) }
+      : {}),
+  })
+  const model = form['model'] as { readonly fields: readonly Def[] }
+  return {
+    ...form,
+    specVersion: '5',
+    model: { fields: model.fields.map(added) },
+    logic: { rules: [{ target: 'findings[].hours', kind: 'validate', cel: 'value <= 24.0', code: 'longerThanADay', message: 'A visit lasts a day at most' }] },
+  }
+}
 
 describe('generateReport, its labels', () => {
   // Labels are the version's, in the language asked for, and in the
@@ -382,7 +432,7 @@ describe('generateReport, its options', () => {
   // A form formancy's validator refuses is no version, and a report made
   // from it would print by rules formancy never accepted.
   test('refuses a form that is no version, as a read does', () => {
-    expect(generationRefusals(generate({ ...SITE_VISIT_V2, specVersion: '5' }, VISIT))).toEqual(['unsupported-spec-version /form/specVersion'])
+    expect(generationRefusals(generate({ ...SITE_VISIT_V2, specVersion: '6' }, VISIT))).toEqual(['unsupported-spec-version /form/specVersion'])
     expect(
       generationRefusals(
         generate(

@@ -257,8 +257,8 @@ importers:
         specifier: 5.3.0
         version: 5.3.0
       '@formancy/themes':
-        specifier: 0.7.0
-        version: 0.7.0
+        specifier: 0.11.0
+        version: 0.11.0
       react:
         specifier: ^19.3.0
         version: 19.3.1
@@ -339,8 +339,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/report-spec
       '@formancy/themes':
-        specifier: 0.7.0
-        version: 0.7.0
+        specifier: 0.11.0
+        version: 0.11.0
       pdfjs-dist:
         specifier: 6.4.299
         version: 6.4.299
@@ -576,8 +576,8 @@ importers:
   packages/report-core:
     dependencies:
       '@formancy/expressions':
-        specifier: 0.7.0
-        version: 0.7.0
+        specifier: 0.11.0
+        version: 0.11.0
       '@formancy/report-spec':
         specifier: workspace:*
         version: link:../report-spec
@@ -705,8 +705,8 @@ importers:
         specifier: workspace:*
         version: link:../report-spec
       '@formancy/spec':
-        specifier: 0.7.0
-        version: 0.7.0
+        specifier: 0.11.0
+        version: 0.11.0
     devDependencies:
       '@arethetypeswrong/cli':
         specifier: 'catalog:'
@@ -788,8 +788,8 @@ importers:
   packages/report-runtime:
     dependencies:
       '@formancy/expressions':
-        specifier: 0.7.0
-        version: 0.7.0
+        specifier: 0.11.0
+        version: 0.11.0
       '@formancy/report-core':
         specifier: workspace:*
         version: link:../report-core
@@ -889,8 +889,8 @@ importers:
   packages/report-spec:
     dependencies:
       '@formancy/spec':
-        specifier: 0.7.0
-        version: 0.7.0
+        specifier: 0.11.0
+        version: 0.11.0
       '@noble/hashes':
         specifier: 2.4.0
         version: 2.4.0
@@ -1547,17 +1547,17 @@ packages:
   '@formancy/data-identity@0.3.0':
     resolution: {integrity: sha512-LcZZwwMuD1vTXV+QDiN5UoTdXDfLm4R3nKE77FP3ApiwYyh5PKOYHBGQtb4kCoswRRMSAjIsh+9WSbmybgbLzg==}
 
-  '@formancy/expressions@0.7.0':
-    resolution: {integrity: sha512-DRgK0JHHoH0USs6WeR1+rlmZWnnxRL+iX7uiEvHBYksjLySEASTu3LQn/bhbKv5umDIyOY2feF+rPATf+YArMQ==}
+  '@formancy/expressions@0.11.0':
+    resolution: {integrity: sha512-pw9NHOKUGAvncxVjfEmlRE3tkjPmGrBnhkrBJInVBd1ZmCRvRlra+0ddp4mvHZSjfjJARId6gzM9hRvXdxSLLA==}
+
+  '@formancy/spec@0.11.0':
+    resolution: {integrity: sha512-4/kBdAHmkVJilS7HOF0bCnklRw1s+3bKO+YEPm2qyapMyF/MVRUG+hoo/+lJMVz6ZglcFAPCrbedYUWWoWbs+w==}
 
   '@formancy/spec@0.5.0':
     resolution: {integrity: sha512-XBI1vrDBwX/kKHYTR6YxXbWEGq1zwBEj007wa8sWVXEEQ6yLZuZvDlMuT+697YoKI2K9ysD4iq0ZxgXpVvx0xw==}
 
-  '@formancy/spec@0.7.0':
-    resolution: {integrity: sha512-jkhsgn03RCSsVIOMVeM60912FuBzLBmUdqDJ6ZAUjtyBZXwDGOo48Ox7VRppm79tDJOpOlTDR5hnKabTFAwDWQ==}
-
-  '@formancy/themes@0.7.0':
-    resolution: {integrity: sha512-NVcQf+EAPq5UQNPegjk4OuLQ97+DXEbLtor87X1cw7chLxXweIi6CRTgFbpViAXD9u/R4tUye/y+RwyhhlXNSA==}
+  '@formancy/themes@0.11.0':
+    resolution: {integrity: sha512-1q30ZUMkemp5b0hSugf3azftMx9hiuzZ7UuCr7krGXWe8C7X0PWSopYTVqwP+D8ZMbPOex8bFrR46+Qe/txNqw==}
 
   '@harperfast/extended-iterable@1.0.3':
     resolution: {integrity: sha512-sSAYhQca3rDWtQUHSAPeO7axFIUJOI6hn1gjRC5APVE1a90tuyT8f5WIgRsFhhWA7htNkju2veB9eWL6YHi/Lw==}
@@ -5552,21 +5552,21 @@ snapshots:
     dependencies:
       jose: 6.2.13
 
-  '@formancy/expressions@0.7.0':
+  '@formancy/expressions@0.11.0':
     dependencies:
       '@marcbachmann/cel-js': 8.0.0
+
+  '@formancy/spec@0.11.0':
+    dependencies:
+      '@noble/hashes': 2.4.0
+      ajv: 8.20.0
 
   '@formancy/spec@0.5.0':
     dependencies:
       '@noble/hashes': 2.4.0
       ajv: 8.20.0
 
-  '@formancy/spec@0.7.0':
-    dependencies:
-      '@noble/hashes': 2.4.0
-      ajv: 8.20.0
-
-  '@formancy/themes@0.7.0': {}
+  '@formancy/themes@0.11.0': {}
 
   '@harperfast/extended-iterable@1.0.3':
     optional: true

@@ -14,8 +14,8 @@
   installs are exempt from pnpm's minimum release age. Each is proved on
   fixtures, then on the real tree. `packages/report-forms/src/read.test.ts`
   proves that a form is read through the pinned `@formancy/spec`'s
-  validator ([0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)): forms at spec 1 to 4 are read, one Formancy
-  Data generated at spec 3 among them, a spec 5 form is refused with both
+  validator ([0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)): forms at spec 1 to 5 are read, one Formancy
+  Data generated at spec 3 among them, a spec 6 form is refused with both
   versions named, and a form the validator refuses is refused by its code.
 
   **Not mechanically enforced:**
@@ -161,6 +161,21 @@ as a report of an unknown `reportSpecVersion` is refused here. This
 release's server answers `/v1/whoami` alone and stores nothing, so no
 record has a format yet. `report-server-core/src/wire.test.ts` holds every
 route under `/v1`; arc42 8.6's table gained the row.
+
+**Added 2026-10-30: spec 5 read.** The repository pins formancy 0.11.0,
+whose validator reads spec versions 1 to 5, and the bridge reads what it
+reads, as above: a spec 5 form is read and a spec 6 one refused, naming
+the versions 0.11.0 reads. Spec 5 adds properties alone, each for the
+person filling a form in -- help text, an example, an autofill purpose,
+a default, a shuffled order, an option chosen on its own and a rule's
+own message
+([formancy.ai 0201](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0201-spec-5-freezes-with-the-batch-it-opened-for.md))
+-- so no answer holds anything spec 4 did not. `read.test.ts` reads a
+spec 5 form; `generate.test.ts` drafts version 2 of the corpus's visit at
+spec 5, with every one of them, into the report version 2 drafts, but for
+the version it names; and `review.test.ts` reviews a version that moves
+to spec 5 for them as one that prints. Each failed at 0.7.0, which
+refused the form. arc42 8.6's row for the form spec changed with it.
 
 ## Alternatives considered
 

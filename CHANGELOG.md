@@ -52,6 +52,65 @@ the members are turned into function-typed properties, and an
 with a class says that a class still implements them, and fails under
 neither.
 
+**Report takes formancy 0.11.0.** The upstream `@formancy/*` packages
+move from 0.7.0 to 0.11.0, exact, for what 0.7.0 was taken for:
+`@formancy/spec` for report-spec's report hash and for report-forms,
+which reads a formancy form; `@formancy/expressions` for report-core and
+report-runtime; `@formancy/themes` for the Studio, the pages and the
+getting-started guide's install lines. formancy's builder writes spec 5
+from 0.8.0
+([formancy.ai 0201](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0201-spec-5-freezes-with-the-batch-it-opened-for.md)),
+which every reader at 0.7.0 refuses, so a report pinned there could print
+none of the submissions of a form authored since.
+
+- **A report reads, drafts and reviews a form at spec 5**
+  ([0004](docs/decisions/0004-three-version-lines-each-refused-when-unknown.md),
+  [0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+  report-forms reads what its pinned validator reads, now spec 1 to 5,
+  and refuses a spec 6 form naming both. Spec 5 adds properties alone,
+  each for the person filling a form in -- help text, an example, an
+  autofill purpose, a default, a shuffled order, an option chosen on its
+  own, a rule's message -- and no answer holds anything spec 4 did not:
+  the draft of a spec 5 version is its spec 4 twin's but for the version
+  it names, and a version that moves to spec 5 for them prints, though
+  formancy's diff calls each field it touched changed. A default left alone is stored as the person's
+  answer, indistinguishable from one chosen
+  ([formancy.ai 0197](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0197-a-default-is-where-something-fresh-starts.md)),
+  and prints as one.
+- **A submission reads as it did.** From formancy 0.8.0 every answer has
+  the shape its type says
+  ([formancy.ai 0189](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0189-every-answer-has-the-shape-its-type-says.md)),
+  and report-forms already refused an answer of another JSON type for
+  each kind it prints. From 0.11.0 a computed repeater's rows carry an
+  `_id`
+  ([formancy.ai 0218](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0218-a-computed-repeater-is-the-rules-row-by-row.md)),
+  and a row is never keyed by its id, so rows stored with one and without
+  both print. A host whose formancy server is 0.8.0 or later need not
+  keep every version itself: the server serves each version's document
+  and hash by its number
+  ([formancy.ai 0207](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0207-a-versions-document-can-be-read.md)).
+  The bridge still fetches nothing.
+- **An empty string is refused as a choice's answer**, as
+  `invalid-answer`, whatever the choice offers. formancy's engine refuses
+  it from 0.8.0, a value no control writes, and an unanswered choice is
+  null or absent; report-forms printed it as the value of a choice that
+  offers no options, so a field declared never null printed blank where a
+  final render should refuse.
+- **A report's hash is the one it was.** `schemaHash`'s code is 0.7.0's:
+  `hash.test.ts`'s pinned digest held, and so did the site visit
+  starter, which names its form version by that hash.
+- **An expression evaluates as it did.** `@formancy/expressions`
+  0.11.0's code is 0.7.0's but for the comments its build no longer
+  keeps
+  ([formancy.ai 0208](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0208-the-published-javascript-carries-no-jsdoc.md)),
+  and its type declarations are the same.
+- **The Studio and the pages look as they did.** `@formancy/themes`
+  0.11.0's `room.css` is 0.7.0's, and its `workbench.css` gains one rule,
+  for a part of formancy's logic panel no builder here draws.
+- **A host that installs `@formancy/report-data-provider` still gets a
+  second `@formancy/spec`**, 0.5.0 through Formancy Data 0.1.0, until the
+  provider takes a Data release built against a newer one.
+
 **Report has a server that knows who is asking, and answers nothing else**
 ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
 [0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).

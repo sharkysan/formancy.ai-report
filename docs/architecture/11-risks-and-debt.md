@@ -221,13 +221,15 @@ The form bridge computes a version's hash and holds every answer to a data
 path of it, so a submission paired with a version whose paths it does not
 fit is refused. Two versions with the same paths and other labels are not
 told apart: the labels of the one handed over print, and the manifest
-names that one. formancy 0.7.0's server serves its current version's
-schema alone, so a host that did not keep a version's document cannot
-print its submissions against it. A number formancy computed, or one of
-more digits than a double keeps, is refused rather than printed, but one
-typed with more than 15 digits that a double stores as a short one
-prints as that one, a typed 0.10000000000000001 as 0.1; and a
-version that moved a field the report reads refuses its submissions until
+names that one. A host that did not keep a version's document prints its
+submissions against it only from a formancy server of 0.8.0 or later,
+which serves each version's document by its number
+([formancy.ai 0207](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0207-a-versions-document-can-be-read.md));
+0.7.0's served its current version's alone. A number formancy computed,
+or one of more digits than a double keeps, is refused rather than
+printed, but one typed with more than 15 digits that a double stores as
+a short one prints as that one, a typed 0.10000000000000001 as 0.1; and
+a version that moved a field the report reads refuses its submissions until
 a review's resolution is applied ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 The review needs every version the report names, and refuses without
 one; a followed rename keeps reading where it read only the versions it
@@ -462,7 +464,7 @@ findings in its suite among it, meets the rules in that merge ([0050](../decisio
 | **The audit trail's actor, unlike Data's** | Report's trail names who asked by a keyed hash, because a subject is a claim's value; Formancy Data's names its actor plainly (formancy.ai-data 0023; [0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)) | An operator reading both trails reads them differently, and finds a person's Report events only by computing the reference with the audit key |
 | **Data's rate limit and preflight lifetime, not measured here** | The server takes Formancy Data's 600 requests a minute and its 600-second preflight, so a host behind both servers meets one rule (0046) | Neither number was measured on Report's routes; a host whose people make more requests a minute raises the setting |
 | **Node's request timeout and Data's health check, not measured here** | The server takes Node's own 300 s for a request to arrive, which Fastify turns off, and the image Data's health-check intervals (0046) | Neither was measured on Report's routes; a route that reads a body larger than a slow link sends in 300 s needs a record of its own |
-| **Two `@formancy/spec` under the Data provider** | report-spec takes 0.7.0, and Formancy Data 0.1.0's packages pin 0.5.0 exactly ([0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) | A consumer of the provider installs both until Data releases against a newer one; nothing of one reaches the other |
+| **Two `@formancy/spec` under the Data provider** | report-spec takes 0.11.0, and Formancy Data 0.1.0's packages pin 0.5.0 exactly ([0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) | A consumer of the provider installs both until Data releases against a newer one; nothing of one reaches the other |
 | **English where a person reads it** | The session's undo labels, the validator's and the diagnostics' sentences, and the preview's label are English ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) | A German or French builder shows an English sentence for a refusal the validator words, and an EPC payment code's square too small for its frame is refused in points, in a field edited in millimetres ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | **Properties without an editor** | A table's sort, its group and total rows and its footer cells, conditional styles, value formats, a run added to or removed from a text, a QR code's content or an EPC QR code's text (only an optional text that is absent, or one literal run, is typed in and emptied out), a column added to or removed from a columns block or added to a table, and the declarations, but for an image a person adds and the removal of one nothing draws (0033), have commands and no property kind to edit them ([`report-builder-core`'s README](../../packages/report-builder-core/README.md#what-it-does-not-do)) | Written in the definition instead |
 | **A QR-bill's texts are edited run by run** | Its fields are a payment code's: a run added or removed, a literal made a binding or a binding a literal, have no field ([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)) | A bill's bound debtor removed comes back as SIX's example in literal text, and is bound again only by undo or in the definition |

@@ -27,7 +27,7 @@
     "@formancy/report-core": "workspace:*",
     "@formancy/report-runtime": "workspace:*",
     "@formancy/report-spec": "workspace:*",
-    "@formancy/spec": "0.7.0"
+    "@formancy/spec": "0.11.0"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
