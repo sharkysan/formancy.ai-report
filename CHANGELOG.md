@@ -10,6 +10,57 @@ later.
 
 ## Unreleased
 
+**Report takes formancy 0.12.0.** The upstream `@formancy/*` packages
+move from 0.11.0 to 0.12.0, exact, for what 0.11.0 was taken for:
+`@formancy/spec` for report-spec's report hash and for report-forms,
+which reads a formancy form; `@formancy/expressions` for report-core and
+report-runtime; `@formancy/themes` for the Studio, the pages and the
+getting-started guide's install lines. Report keeps to the newest
+formancy, and 0.12.0 fixes a denial of service every release from 0.2.0
+shipped: a field's `pattern` that backtracks only with the `u` flag
+formancy's engine runs it with, such as `(\p{L}+)+`, was published, and
+one answer to it could hold formancy's server
+([formancy.ai 0226](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0226-a-pattern-is-analysed-as-it-runs.md)).
+
+- **A form version whose pattern backtracks still prints**
+  ([0004](docs/decisions/0004-three-version-lines-each-refused-when-unknown.md),
+  [0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+  formancy's server refuses such a pattern at publish from 0.12.0, but
+  analyses a version stored before only when its form is published
+  again. The validator report-forms reads a form with compiles a pattern
+  with the `u` it always passed and analyses none, so it refuses exactly
+  what 0.11.0's refused: a version with `(\p{L}+)+` is read, drafted and
+  printed, and one with `a{`, which does not compile with `u`, refused by
+  formancy's code, as before. report-forms runs no pattern, so such a
+  version costs a render nothing, and an answer its pattern refuses,
+  which formancy's engine never stores, prints. **What a host does** is
+  what formancy asks: publish every form with a pattern again. A version
+  that comes of it with the pattern rewritten, a tightened constraint in
+  formancy's diff, reviews as compatible with a report drafted from the
+  version before it, and prints as any other version does.
+- **An expression evaluates as it did.** `@formancy/expressions`
+  0.12.0's code is 0.11.0's but for two lines: a record whose `seconds`
+  and `nanos` are numbers is handed back as the record, where 0.11.0
+  took it for one of CEL's durations and handed back the string
+  "[object Object]". A report writes such a record only with doubles,
+  which report-core refuses before anything is evaluated, and one of
+  integers was a map at both releases, refused as `unprintable-value`; so
+  no report printed it, and none prints it now. Its type declarations are
+  the same.
+- **A report's hash is the one it was.** `schemaHash`'s code is 0.11.0's:
+  `hash.test.ts`'s pinned digest held, and so did the site visit
+  starter, which names its form version by that hash.
+- **The Studio and the pages look as they did.** `@formancy/themes`
+  0.12.0's stylesheets are 0.11.0's, byte for byte.
+- **Nothing here implements an interface formancy changed.** The
+  interfaces whose functions now declare `this: void`
+  ([formancy.ai 0225](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0225-the-four-repositories-lint-and-format-by-one-set-of-rules-published-here.md))
+  are in formancy's renderers, core, server-core and builder, none of
+  which Report depends on.
+- **A host that installs `@formancy/report-data-provider` still gets a
+  second `@formancy/spec`**, 0.5.0 through Formancy Data 0.1.0, until the
+  provider takes a Data release built against a newer one.
+
 **Report's server keeps a template's draft and the images it declares**
 ([0049](docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 Publication, versions and render jobs all start from a draft the server

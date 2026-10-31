@@ -26,6 +26,8 @@
     path for refused by its path and never its value; a field the version
     lacks, moved or retyped; forms at spec 1, 2, 3, 4 and 5 and one Formancy
     Data generated at spec 3; a spec 6 form refused naming both versions;
+    a version whose pattern backtracks read, its pattern never run, and one
+    that does not compile with the `u` flag refused;
     getters never run, an own `__proto__`, keys called `constructor`, the
     row bound, the depth bound and the error bound. `kinds.test.ts` also
     reads every formancy kind at every report type and holds what is read
@@ -385,6 +387,35 @@ changed; what reached the bridge:
   and the starter that names the corpus's version 2 by its hash still
   names it (`starter.test.ts`).
 
+**Added 2026-10-31: formancy 0.12.0.** The repository moved
+`@formancy/spec` from 0.11.0 to 0.12.0. Nothing this record decides
+changed; what reached the bridge:
+- **A version whose pattern backtracks is read.** formancy published a
+  `pattern` that backtracks only with the `u` flag its engine runs it
+  with, such as `(\p{L}+)+`, from 0.2.0 to 0.11.0. 0.12.0's server
+  refuses one at publish, but analyses a stored version again only when
+  its form is published again, and tells a host to publish every form
+  with a pattern again
+  ([formancy.ai 0226](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0226-a-pattern-is-analysed-as-it-runs.md)).
+  The validator analyses no pattern, at 0.12.0 as at 0.11.0, so such a
+  version is read by [0004](0004-three-version-lines-each-refused-when-unknown.md)'s
+  rule: its submissions print (`read.test.ts`), a report drafts from it,
+  and the version that rewrites its pattern, a tightened constraint in
+  formancy's diff, reviews as compatible with that report
+  (`review.test.ts`).
+- **The bridge runs no pattern.** It holds an answer to the JSON type
+  and the shape its field's kind stores, and never to the field's
+  `pattern`, so a version whose pattern backtracks costs a render
+  nothing, and an answer the pattern refuses, which formancy's engine
+  never stores, prints (`read.test.ts`; it failed with the bridge made to
+  match a text answer against its pattern). A reading that did match one
+  would compile it as `@formancy/spec` now says a pattern runs,
+  `anchoredPattern` with `PATTERN_FLAGS`, and would meet on every version
+  published before 0.12.0 the backtracking formancy's server refuses only
+  at publish.
+- **A version's hash is the one it was.** `schemaHash`'s code is 0.11.0's,
+  and the starter still names version 2 by its hash (`starter.test.ts`).
+
 ## Alternatives considered
 
 **Read formancy's server with a client of Report's own.** Rejected (FB-Q2):
@@ -392,7 +423,7 @@ the API has no route for one submission or an old version's schema, lists
 submissions without their hash, and publishes no client; one written here
 would be a second reading of formancy's rules (0002). From formancy 0.8.0
 an old version's schema has a route (formancy.ai 0207); the rest still
-stands at 0.11.0 -- no route for one submission, a listing without
+stands at 0.12.0 -- no route for one submission, a listing without
 hashes, no published client -- and nothing in a package here reaches the
 network.
 
