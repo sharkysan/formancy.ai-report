@@ -10,6 +10,134 @@ later.
 
 ## Unreleased
 
+**Report's server keeps a template's draft and the images it declares**
+([0049](docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
+Publication, versions and render jobs all start from a draft the server
+holds, and two authors saving one template must never silently lose each
+other's work, so the draft comes first, kept by compare-and-swap.
+- **Five routes**, each taking the action of its name in the actions
+  table: `GET /v1/templates`, the tenant's templates with each newest
+  draft's revision and title; `GET` and `PUT
+  /v1/templates/{template}/draft`; and `PUT` and `GET /v1/assets/{digest}`.
+  A template is named by its report's own `id`, so there is one id and it
+  is already lower case, and comes into being with its first save. One
+  draft per template of a tenant, shared by its authors.
+- **A save names the draft it replaces, by its revision and the digest
+  of its report**, with HTTP's own preconditions: `If-None-Match: *`
+  creates; `If-Match` replaces, holding the `ETag` a read or a save
+  answered, `"<revision>-<64 hex>"`, the revision and the stored
+  record's own digest; neither is 428; and a save from a draft another
+  author has saved over since is 412 `draft-changed`, nothing written,
+  with the revision that stands and no `ETag`. The digest is there
+  because a revision is the number of a template's newest file, which a
+  restore, a file removed by hand or a power cut has the store give
+  again: a page that named the number alone would save over the draft
+  given it since, unseen. So the bare revision is refused 400, and a 412
+  sends no tag, since a tag comes only with the draft it names. The file
+  store decides the swap by a hard link, as Formancy Data's versions, so
+  of any saves from one revision exactly one wins without a lock, and
+  the save compares the newest draft's digest just before it. Every
+  revision stays on disk, and nothing prunes or deletes one.
+- **A draft is checked on the way in and served as it was saved.** A save
+  is held to report-spec's `validateReport`, its errors returned to the
+  author alone; every image it declares must be kept for the tenant as
+  the kind it declares, and a draft that declares a font is refused, since
+  the server keeps no fonts yet: a draft it kept could otherwise never
+  print in its face, nor print an image the runtime would refuse as
+  another kind than its bytes. A read
+  checks the record's format and the digest of its report's text and does
+  not validate again, so a stricter report-spec later never locks a draft
+  away. Each revision keeps `savedBy`, the token's subject, because the
+  audit trail cannot say who saved and publication will need to: **a
+  claim's value is now kept at rest in the store** and in its backups,
+  never in a log, an audit event or a refusal.
+- **Images are the tenant's, by digest.** A keep is read as the renderer
+  reads it -- what the bytes are, the media type claimed, a PNG's or a
+  JPEG's header, an SVG in `cleanSvg`'s form alone -- and kept only under
+  the SHA-256 of its bytes, so a host can wire the builder's `ImageStore`
+  to the server.
+- **No body is read before the token is.** The identity and cross-origin
+  checks run before parsing, so an unauthenticated upload is refused at
+  once, and a refusal of a request that carries a body closes its
+  connection. A page on a listed origin may now send `content-type`,
+  `if-match` and `if-none-match` beside the token, the headers the routes
+  read, and read `ETag`.
+- **`@formancy/report-spec`'s `MAX_REPORT_BYTES`**, 256 KiB of a report's
+  JSON, the draft's body limit: the least power of two at least sixteen
+  times the largest report the corpus holds, measured, and a quarter of the
+  mebibyte Fastify reads by default,
+  because 0046 left the draft's limit to the format, which knows what a
+  report is.
+- **`@formancy/report-spec`'s `isDigest`**, whether a value is an asset's
+  digest as a report declares one, `sha256:` and 64 lower-case hex digits.
+  The server judges the digits a path carries by it, and its store names a
+  file by it, because two patterns of their own beside report-spec's could
+  drift apart, and a save that declared a digest the store's reading
+  refused would be answered 500 rather than refused.
+- **`@formancy/report-server-core`** gains the draft slice's wire types,
+  `draftTag` and `draftVersionOf`, which write and read a draft's
+  version as its `ETag`, its refusals and `ServerRefusal`, the four that
+  carry a field; the use cases that decide a save, a read, a list, a
+  keep and an image's read over a store's port, `TemplateStore`; and a
+  dependency on report-spec, whose rules those use cases judge by, so
+  that a route, a second store or a second server cannot judge
+  otherwise. It depended on nothing before.
+- **`FORMANCY_REPORT_STORE_DIR` is required.** The server keeps its store
+  in that absolute directory, which must exist and be writable, and stops
+  at start, naming the setting, where it is unset or does not open: **an
+  upgrade that runs the server outside the image and does not set it
+  stops.** The image sets it to `/var/lib/formancy-report`, the directory
+  it already gave `node`, so that the drafts live where an operator mounts
+  a volume; without one they go with the container, and under `--read-only`
+  the directory must be one. The container gate saves a draft, restarts on
+  the same volume and reads it back, keeps an image and reads it back, and
+  saves on a read-only root. `openFileTemplateStore`, `StoredRecordError`
+  and `StoreFileSystemError` are exported for an embedder, and the server's
+  log names a stored file by its path inside the tenant's directory, never
+  its absolute path, whose tenant directory is the unkeyed hash of the
+  tenant claim.
+- **Restore a store with the server stopped, and never remove a
+  draft's newest file while it runs.** A revision is the number of a
+  template's newest file, so a backup restored from before the newest
+  save, that file removed by hand, or its name lost on power loss has
+  the next save issue the number again. A page still holding the draft
+  that went is refused `draft-changed` by its digest, unless the draft
+  given its number since holds the same report to the byte, whose save
+  goes through. Nobody needs to reload for that, but what the restore
+  or the power cut took away is gone. And the digest is compared just
+  before the store's swap, which is by revision alone, so a draft's
+  newest file removed while the server runs can let a racing save win
+  over a draft its author never saw.
+- **`@formancy/report-client`**, a new package, as 0046 said would come
+  with the draft's route:
+  `createReportClient({ server, token, fetch? })` with `listTemplates`,
+  `readDraft`, `saveDraft`, `keepImage` and `readImage`, each answering
+  a value or the server's refusal, never throwing one. A save is from
+  `null` or from a draft's version, `{ revision, digest }`, which the
+  `Draft` a read answers and the `DraftSaved` a save answers are as they
+  come, so a host passes back what it was given and never writes a
+  precondition itself. No framework and no Node, depending on
+  report-server-core and report-spec alone, so a host's page compiles
+  against the server's own wire types. It follows no redirect, and
+  throws before sending a token no bearer header can carry, because
+  fetch would quote it in its error. The install gate checks it in a
+  browser's host of its own, and runs it against the packed server.
+- **The getting-started guide keeps a report's draft on the server.** A
+  new section 6 shows a React host saving from the version it opened,
+  creating a template with its first save from a blank it opens where
+  the server has no draft, saying so when someone saved since, reloading
+  into a new session -- never into the old one, whose undo would bring the
+  stale text back -- and keeping the images the preview resolves from in a
+  cache the builder's store fills, because the runtime's resolver cannot
+  ask a server while a preview prints. The host draws Save, not the
+  builders. Section 4's page now waits for its save, and its `save`
+  answers whether the server took the report, by the status it answered,
+  because a page that marked the document saved before the answer would
+  offer nothing to save after a save the server refused. The install gate
+  compiles and bundles it with the rest of the React page, so the guide's
+  React install line now names `@formancy/report-client`; the validation
+  section is now section 7.
+
 **CI fails a change that breaks the lint rules or the format**
 ([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
 Style was held by habit, and a promise nobody awaits, an `any` from a
@@ -111,7 +239,7 @@ none of the submissions of a form authored since.
   second `@formancy/spec`**, 0.5.0 through Formancy Data 0.1.0, until the
   provider takes a Data release built against a newer one.
 
-**Report has a server that knows who is asking, and answers nothing else**
+**Report has a server that knows who is asking**
 ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
 [0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
 The 0.3.0 server slice -- drafts, publication, render jobs, artifacts --

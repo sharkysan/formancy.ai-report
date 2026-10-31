@@ -38,7 +38,7 @@ export const ACTIONS = Object.freeze({
   'template.list': row('author', 'publisher', 'admin'),
   /** Read a template's draft. */
   'draft.read': row('author', 'publisher'),
-  /** Save a draft from the revision it was made against. */
+  /** Save a draft from the version it was made against. */
   'draft.save': row('author'),
   /** Keep an image a builder adds, named by its digest. */
   'asset.keep': row('author'),

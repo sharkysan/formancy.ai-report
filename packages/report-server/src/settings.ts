@@ -43,8 +43,19 @@ export const SETTINGS = Object.freeze({
   FORMANCY_REPORT_TRUSTED_PROXIES: 'the proxies whose X-Forwarded-For names the client address, IP addresses and CIDR ranges; unset, none',
   FORMANCY_REPORT_CORS_ORIGINS: 'the origins whose pages may call the API, each exactly as a browser sends Origin; unset, none',
   FORMANCY_REPORT_AUDIT_KEY: 'a secret reference to the key the audit trail names who asked by; unset, nobody is named',
+  FORMANCY_REPORT_STORE_DIR:
+    'required: the absolute path of the directory the server keeps its templates’ drafts and images in; the image sets /var/lib/formancy-report',
   PORT: 'the port the server listens on; unset, 4392',
 })
+
+/**
+ * The setting that names the store's directory, checked to be one of
+ * SETTINGS' keys: serve.ts begins the sentence a store that does not open
+ * gives with it, so that sentence follows the name if it is changed there,
+ * and the file store, which is opened from code too, names no setting of
+ * its own (0049).
+ */
+export const STORE_DIR_SETTING = 'FORMANCY_REPORT_STORE_DIR' satisfies keyof typeof SETTINGS
 
 /**
  * The port, unless the operator says otherwise: beside formancy's 4380 and
@@ -75,6 +86,8 @@ export interface ServerSettings {
   origins: string[]
   /** A secret reference, resolved by serve.ts; undefined, nobody is named in the trail. */
   auditKey: string | undefined
+  /** An absolute path, opened by serve.ts as the template store (0049): never made, never resolved here. */
+  storeDir: string
   port: number
 }
 
@@ -205,6 +218,15 @@ export function readSettings(env: Environment): SettingsReading {
   const auditReference = referenceProblem('FORMANCY_REPORT_AUDIT_KEY', auditKey)
   if (auditReference !== undefined) problems.push(auditReference)
 
+  const storeDir = value(STORE_DIR_SETTING)
+  // Required, and no default: a server that chose where to keep a person's drafts would keep them where nobody looked.
+  if (storeDir === undefined)
+    problems.push(`${STORE_DIR_SETTING} is required: the absolute path of the directory the server keeps its templates’ drafts and images in (0049).`)
+  else if (!isAbsolute(storeDir))
+    problems.push(
+      `${STORE_DIR_SETTING} is an absolute path: the store is named from it, so that the directory the server starts in cannot move where the drafts are kept.`,
+    )
+
   const portText = value('PORT')
   const port = portText === undefined ? DEFAULT_PORT : /^[1-9][0-9]{0,4}$/.test(portText) ? Number(portText) : Number.NaN
   if (!(port >= 1 && port <= 65_535)) problems.push('PORT is a whole number from 1 to 65535.')
@@ -223,6 +245,7 @@ export function readSettings(env: Environment): SettingsReading {
     audience === undefined ||
     key === undefined ||
     tenant === undefined ||
+    storeDir === undefined ||
     !limit.ok ||
     !proxies.ok ||
     !origins.ok
@@ -241,6 +264,7 @@ export function readSettings(env: Environment): SettingsReading {
       trustedProxies: proxies.trustedProxies,
       origins: origins.origins,
       auditKey,
+      storeDir,
       port,
     },
   }

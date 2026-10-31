@@ -20,7 +20,9 @@ Formancy Report
 │   ├── an unknown version, kind or property refused whole
 │   ├── input read without running anything, and bounded
 │   ├── an SVG drawn only in the form it was approved in
-│   └── nothing reaches the network but the provider, through the host's client
+│   ├── nothing reaches the network but the provider and the client, through
+│   │   what the host gives them
+│   └── a draft saved over only from the version it was read at
 ├── Accessibility
 │   ├── every control reachable by keyboard, role and name
 │   └── axe clean; contrast and target size measured in Chromium
@@ -86,6 +88,11 @@ Formancy Report
 | Q48 | The server is started with no issuer, no key, a tenant attribute missing or mapped twice, a misspelt `FORMANCY_REPORT_` variable, a secret named by one of its own variables, an audit key of 31 bytes or the identity secret's, a rate limit of `abc`, the proxies `true` or two halves of IPv4, or the origins `*` | It does not start: one line for each problem, each naming its setting and none its value, exit 1; in the image too for no setting at all, the rate limit `abc` and the proxies `true` | `report-server/src/settings.test.ts`, `serve.test.ts`, `proxies.test.ts`; the container gate for those three (0046) |
 | Q49 | A client leaves while whoami waits on its verifier, or an audit sink throws | One audit event for the request, written when its answer goes nowhere; the answer unchanged by the sink, which the log says failed | `report-server/src/audit.test.ts` over a real socket (0046) |
 | Q50 | A client sends broken JSON, a body past Fastify's limit, or a body a byte at a time, to a path nothing answers, or a preflight with a body | Each answered at once, before its body is read: the 404 counted by the rate limit, the preflight refused 400, and the connection closed | `report-server/src/app.test.ts`, over a real socket for the slow bodies (0046) |
+| Q51 | Twenty saves of one template race from the same revision | Exactly one written, the next revision; the other nineteen told the revision that stands, nothing of theirs written, and no temporary file left | `report-server/src/file-store.test.ts`, on a real directory ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)) |
+| Q52 | An author saves from a revision another has saved over since, creates a template that exists, or saves from a revision whose newest file was removed and whose number another save was given since | 412 `draft-changed`, nothing written, the revision that stands in the refusal and no `ETag`; the draft saved under the number given again kept; through the packed client, the refusal answered and not thrown | `report-server-core/src/drafts.test.ts`, `report-server/src/drafts.test.ts`, `report-client/src/client.test.ts`, the install gate's `server` host (0049) |
+| Q53 | One tenant's token asks for another's draft or image, or saves a draft declaring another's image; or tenant claims differ only by case or Unicode normalisation; or a template id or a digest would name a path outside the tenant's directory | Answered as though the other's did not exist: `no-draft`, `no-asset`, or the image taken as not kept; four tenants that cannot see each other; the id or digest refused before any file operation | `report-server-core/src/drafts.test.ts`, `images.test.ts`, `report-server/src/file-store.test.ts` (0049) |
+| Q54 | An unauthenticated keep declares 20,000,000 bytes and sends none; a save is one byte past `MAX_REPORT_BYTES`, or chunked past it; a keep declares more than `MAX_ASSET_BYTES` | The 401 at once, before any body, and its connection closed; 413 `report-too-large` or `image-too-large`, by the length declared before a byte is read, or once read past the limit where none is declared | `report-server/src/drafts.test.ts`, over a real socket (0049) |
+| Q55 | A stored record's report is edited by hand, the record is of another format or not JSON, or an image's bytes on the volume are not its digest's | Never served, where a `savedBy` edited alone, which the record's digest does not cover, is served as edited: 500 `internal`, the log naming why, the file inside the tenant's directory and the tenant by keyed hash, never the absolute path or the claim | `report-server/src/file-store.test.ts`, `drafts.test.ts` (0049) |
 
 ## 9.3 Bounds, and how each was chosen
 
@@ -105,7 +112,9 @@ repeating the number. A measured figure is dated and names its machine.
 | How long a browser keeps a granted preflight | `PREFLIGHT_MAX_AGE_SECONDS`, `report-server/src/cors.ts` | Derived, not measured: 600 seconds, WebKit's cap and so the longest every engine honours, as Formancy Data read the engines' sources on 2026-10-13 (formancy.ai-data 0060) |
 | The clock skew a token's `exp` and `nbf` may have | data-identity's `clockToleranceSeconds`, which report-server does not set | Data's default, 30 seconds, not measured here ([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)) |
 | The server's port | `DEFAULT_PORT`, `report-server/src/settings.ts` | Chosen, not measured: 4392, beside formancy's 4380 and Data's 4390 and off the Studio's 4394 (0046) |
-| A request body | Fastify's default, a mebibyte | Not chosen: no route reads a body, and the draft's route sets its own from report-spec's limits (0046) |
+| A request body | Fastify's default, a mebibyte, on every route that sets none | Not chosen: whoami and the reads take no body, and each route that reads one sets its own from report-spec's limits (0046) |
+| A draft's body | `MAX_REPORT_BYTES`, `report-spec/src/limits.ts`, which the draft's route reads | Derived from a measurement: the least power of two at least sixteen times the largest report the corpus holds, the factor chosen; that report, the XRechnung sample, measured on 28 October 2026 on an Apple M2 under Node 22.23.3, and `report-corpus/src/report-size.test.ts` holding every report there to the limit and the limit to the factor ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)) |
+| An image's body on the server | `MAX_ASSET_BYTES`, and `MAX_SVG_BYTES` for an SVG, `report-spec/src/limits.ts`, which the asset's route and the keep read | The format's own, the renderer trial's and 0030's, not chosen for an upload: nothing measured what a keep of that size costs the server (0049) |
 | An image's bytes | `MAX_ASSET_BYTES`, `report-spec/src/limits.ts`, which the runtime and the renderer read too | The renderer trial's limit, as its comment says; nothing measured behind it ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | An image's pixels, and image data per render | `MAX_ASSET_SIDE`, `report-spec/src/limits.ts`; `MAX_IMAGE_DATA`, `report-render-pdf/src/assets.ts` | Two of the largest images an asset may be, once inflated; what PDFKit took to embed one, two and four of them is measured beside the constant, on 15 October 2026, on that machine ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
 | A definition's arrays, strings and numbers | `report-spec/src/limits.ts`, each with its reason | Chosen, not measured: lowering one later refuses reports that were valid ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
@@ -203,15 +212,18 @@ render that becomes slower fails nothing.
 Stated because an unstated non-goal reads as an oversight:
 
 - **Collaborative editing.** Snapshots do not merge; two people editing one
-  draft conflict, and the second save is refused by its hash
-  ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)).
+  draft conflict, and the second save is refused: by its hash in the
+  session ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)),
+  and by its version on the server, where the second author reloads and
+  carries their edits over by hand (0049).
 - **A consistent read from Formancy Data.** Best-effort until Data has a
   snapshot export ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
 - **Stopping a render mid-pass.** It needs a worker that can be killed, and
   none is built ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 - **A server that scales out.** One instance; its rate limit is in its
-  memory, and the store that arrives next is files on one volume
-  ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)).
+  memory, and its template store is files on one volume, a save decided
+  by a hard link
+  ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), 0049).
 - **Text Roboto has no glyphs for** — CJK, Hebrew, Arabic, Thai, emoji.
   Refused until fallback fonts the licence policy allows are embedded and
   tested

@@ -25,6 +25,7 @@ describe('codecov.yml', () => {
       'report-builder-angular',
       'report-builder-core',
       'report-builder-react',
+      'report-client',
       'report-core',
       'report-corpus',
       'report-data-provider',

@@ -573,6 +573,43 @@ importers:
         specifier: 'catalog:'
         version: 5.0.4(@types/node@22.20.5)(@vitest/coverage-v8@5.0.4)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(less@4.9.1(supports-color@8.1.1))(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
 
+  packages/report-client:
+    dependencies:
+      '@formancy/report-server-core':
+        specifier: workspace:*
+        version: link:../report-server-core
+      '@formancy/report-spec':
+        specifier: workspace:*
+        version: link:../report-spec
+    devDependencies:
+      '@arethetypeswrong/cli':
+        specifier: 'catalog:'
+        version: 0.18.5
+      '@formancy/report-server':
+        specifier: workspace:*
+        version: link:../report-server
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.5
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 5.0.4(vitest@5.0.4)
+      publint:
+        specifier: 'catalog:'
+        version: 0.3.25
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.1(@arethetypeswrong/core@0.18.5)(publint@0.3.25)(typescript@6.0.3)(unrun@0.3.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      unrun:
+        specifier: ^0.3.1
+        version: 0.3.1
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.4(@types/node@22.20.5)(@vitest/coverage-v8@5.0.4)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(less@4.9.1(supports-color@8.1.1))(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
+
   packages/report-core:
     dependencies:
       '@formancy/expressions':
@@ -625,6 +662,9 @@ importers:
       '@formancy/report-core':
         specifier: workspace:*
         version: link:../report-core
+      '@formancy/report-spec':
+        specifier: workspace:*
+        version: link:../report-spec
       '@pdfme/common':
         specifier: 6.2.4
         version: 6.2.4
@@ -830,6 +870,9 @@ importers:
       '@formancy/report-server-core':
         specifier: workspace:*
         version: link:../report-server-core
+      '@formancy/report-spec':
+        specifier: workspace:*
+        version: link:../report-spec
       fastify:
         specifier: 5.12.7
         version: 5.12.7
@@ -863,6 +906,10 @@ importers:
         version: 5.0.4(@types/node@22.20.5)(@vitest/coverage-v8@5.0.4)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(less@4.9.1(supports-color@8.1.1))(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
 
   packages/report-server-core:
+    dependencies:
+      '@formancy/report-spec':
+        specifier: workspace:*
+        version: link:../report-spec
     devDependencies:
       '@arethetypeswrong/cli':
         specifier: 'catalog:'

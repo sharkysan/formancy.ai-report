@@ -726,6 +726,7 @@ describe('the install plan', () => {
     expect(plan.hosts.map((host) => [host.project, host.at])).toEqual([
       ['node', null],
       ['server', null],
+      ['client', null],
       ['react', 'newest'],
       ['react-floor', 'floor'],
       ['react-app', 'newest'],

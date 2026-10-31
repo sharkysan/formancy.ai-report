@@ -20,17 +20,23 @@ formancy form's versions and their submissions, which a host hands the form
 bridge from its own store. The report server takes a person's identity and
 tenant from the host's token alone, verified offline with Formancy Data's
 verifier, and what a person may do is one table of actions, which every
-route that takes an action is to ask; in this release no route takes one,
-and whoami lists what the table gives
+route that takes an action asks, and whoami lists what the table gives
 ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
 [0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
+The server keeps a tenant's template drafts and the images they declare in
+files on one volume, and each revision of a draft keeps `savedBy`, the
+subject of the token that saved it: a claim's value, at rest in the store
+and in its backups, and never in a log line, an audit event or a refusal
+([0049](docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 The areas we consider highest risk, and are most interested in reports
 about, follow from that:
 
 - **Cross-tenant exposure**: a dataset, a rendered PDF, a cached artefact or a
   preview reaching a person the host's authorisation did not admit, including
   through a cache key that leaves out the tenant, the principal or the policy
-  version.
+  version. On the server: a draft or an image of one tenant read, listed or
+  saved over under another's token, or a template id, a digest or a tenant
+  claim that makes the store touch a path outside that tenant's directory.
 - **Authorisation bypass** on preview, render or download: a decision taken
   from something the browser supplied -- a tenant, a role, a hidden field --
   rather than from the host's verified identity, or a published report used to
@@ -40,7 +46,13 @@ about, follow from that:
   answers outside that table.
 - **Disclosure in the server's log or answers**: a token, a secret, a
   claim's value or what a request carried reaching a log line, the audit
-  trail, an error or a refusal's sentence.
+  trail, an error or a refusal's sentence -- a template's content, an
+  image's bytes, `savedBy`, or an absolute path in the store, whose
+  tenant's directory is the unkeyed hash of the tenant's claim, among them.
+- **A save lost unseen**: two saves from one revision of a draft both
+  written, a save written over a draft its author never read, or a
+  stored draft or image served that is not what was saved -- an integrity
+  failure, and in scope.
 - **Derived disclosure**: a value the person may not read revealed through a
   total, a group label, a sort order, a row count, a validation message or the
   metadata given to an AI model.
@@ -61,6 +73,9 @@ about, follow from that:
 - **Silent wrong output**: a production PDF that drops rows, truncates content
   or rounds a total without saying so -- an integrity failure, and in scope.
 
-Nothing in the packages is meant to fetch a URL. A report that found a way to
-make Report reach the network on an outsider's instruction is in scope and
-serious.
+Nothing in the packages is meant to fetch a URL but the two clients, each
+through what the host gives it: the Data provider, through the Data client
+the host made, and `@formancy/report-client`, through the host's `fetch`,
+to the report server the host names, following no redirect. A report that
+found a way to make Report reach the network on an outsider's instruction
+is in scope and serious.

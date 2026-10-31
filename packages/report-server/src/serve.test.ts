@@ -8,7 +8,7 @@ import { SignJWT } from 'jose'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { openReportServer, readAgainOnSignal } from './serve.js'
 import { readSettings } from './settings.js'
-import type { ServerSettings } from './settings.js'
+import type { ServerSettings, SETTINGS } from './settings.js'
 
 /**
  * From settings to a server (serve.ts): the identity key and the audit key
@@ -24,8 +24,9 @@ const base = {
   FORMANCY_REPORT_AUTHOR_ROLES: 'report-authors',
 }
 
+/** The settings `env` reads as, beside the store directory this case made unless `env` gives another. */
 const settingsOf = (env: Record<string, string>): ServerSettings => {
-  const read = readSettings(env)
+  const read = readSettings({ FORMANCY_REPORT_STORE_DIR: storeDirectory, ...env })
   if (!read.ok) throw new Error(read.problems.join('\n'))
   return read.settings
 }
@@ -51,14 +52,17 @@ const sign = (key: Uint8Array, header: { alg: string; kid?: string } = { alg: 'H
 let opened: FastifyInstance[]
 let lines: string[]
 let directory: string
+let storeDirectory: string
 beforeEach(async () => {
   opened = []
   lines = []
   directory = await mkdtemp(join(tmpdir(), 'formancy-report-serve-'))
+  storeDirectory = await mkdtemp(join(tmpdir(), 'formancy-report-serve-store-'))
 })
 afterEach(async () => {
   for (const app of opened) await app.close()
   await rm(directory, { recursive: true, force: true })
+  await rm(storeDirectory, { recursive: true, force: true })
 })
 const logger = { stream: { write: (line: string) => void lines.push(line) } }
 
@@ -154,6 +158,36 @@ describe('openReportServer', () => {
     expect(lines.join('')).not.toContain('u-1')
     const missing = await open(settingsOf(env), source({ HOST_SECRET: SECRET }))
     expect(missing.ok).toBe(false)
+  })
+})
+
+describe('the store (0049)', () => {
+  const env = { ...base, FORMANCY_REPORT_IDENTITY_SECRET: 'env:HOST_SECRET' }
+
+  // The setting the root comes from is serve.ts's to name, since the store
+  // is opened from code as well as from a container and says only what is
+  // wrong with a root: a server that stopped with "names nothing this
+  // process can find" would not say which setting to look at. The key is
+  // typed as one of SETTINGS', so a setting renamed there fails to compile
+  // here; and the sentence is the only thing printed, never the path, which
+  // the operator set and can read.
+  test('stops the server with one sentence that begins with the setting, where the root is a file or is not there', async () => {
+    const file = join(directory, 'a-file-not-a-directory')
+    await writeFile(file, 'x')
+    const setting: keyof typeof SETTINGS = 'FORMANCY_REPORT_STORE_DIR'
+    const cases = [
+      [file, /not a directory/],
+      [join(directory, 'a-directory-not-made'), /names nothing/],
+    ] as const
+    for (const [root, why] of cases) {
+      const result = await open(settingsOf({ ...env, FORMANCY_REPORT_STORE_DIR: root }), source({ HOST_SECRET: SECRET }))
+      expect(result.ok, root).toBe(false)
+      if (result.ok) continue
+      expect(result.problem.startsWith(`${setting}: `), result.problem).toBe(true)
+      expect(result.problem).toMatch(why)
+      expect(result.problem).not.toContain(root)
+      expect(result.problem.split('\n')).toHaveLength(1)
+    }
   })
 })
 

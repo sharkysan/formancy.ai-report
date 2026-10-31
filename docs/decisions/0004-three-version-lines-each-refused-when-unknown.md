@@ -1,6 +1,6 @@
 # 0004 — Three version lines, each refused when unknown
 
-- **Status:** accepted; the tuple a release was tested with is derived from the run that gated it, by [0014](0014-a-release-report-is-derived-from-the-run-that-gated-it.md); its form line read since [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), which reads a form through the pinned validator; extended by [0046](0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md) with a fourth line, the server's API and its records
+- **Status:** accepted; the tuple a release was tested with is derived from the run that gated it, by [0014](0014-a-release-report-is-derived-from-the-run-that-gated-it.md); its form line read since [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), which reads a form through the pinned validator; extended by [0046](0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md) with a fourth line, the server's API and its records, whose first record, the draft, is [0049](0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)'s
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `packages/report-spec/src/version.test.ts`, which proves

@@ -1,10 +1,10 @@
 import { createRequire } from 'node:module'
 import type { FastifyInstance } from 'fastify'
-import { afterEach, describe, expect, test } from 'vitest'
-import { createReportServer } from './app.js'
+import { describe, expect, test } from 'vitest'
 import type { ReportServerOptions } from './app.js'
 import type { ReportVerifier } from './identity.js'
 import { trustedProxiesProblem, trustedProxiesSetting } from './proxies.js'
+import { eachCase } from './test-support.js'
 
 /**
  * `FORMANCY_REPORT_TRUSTED_PROXIES`, by formancy.ai-data 0071's rule: the
@@ -278,14 +278,12 @@ describe('trustedProxiesProblem', () => {
 const refuseAll: ReportVerifier = async () => ({ ok: false, reason: 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' })
 
 describe('whom the server believes', () => {
+  /** The server is given a store whatever the case asks of it (0049): each case its own (test-support.ts). */
+  const cases = eachCase('formancy-report-proxies-')
   let app: FastifyInstance | undefined
-  afterEach(async () => {
-    await app?.close()
-    app = undefined
-  })
   const statuses = async (options: Partial<ReportServerOptions>, forwarded: string[], remoteAddress = '127.0.0.1') => {
     await app?.close()
-    app = await createReportServer({
+    app = await cases.serve({
       verifyIdentity: refuseAll,
       roles: { author: [], publisher: [], admin: [] },
       rateLimit: { max: 2, timeWindowMs: 60_000 },

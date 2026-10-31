@@ -3,7 +3,8 @@
  *
  * The server has a Node host of its own, holding it and what it declares
  * and nothing else, beside the Node program's, which holds every other
- * package that is no builder (0046).
+ * package that is no builder (0046); the client is installed beside it,
+ * to be asked of it, and in a browser's host of its own (0049).
  *
  * Each kind of host gets a project of its own, holding what that host would
  * hold and nothing else, because one shared project lets a package resolve
@@ -66,9 +67,11 @@ const REACT_TYPES = { '@types/react': ['react', typesOf], '@types/react-dom': ['
  * The hosts, in the order the gate reports them. `node` takes every
  * package that is no host's builder and no host `serves`. Each builder's host lists the peers
  * its builder must declare, what follows them, and what it runs, in order;
- * `with` names packages it installs beside the builder, each with what it
- * declares. A command whose program is not `node` is a binary installed in
- * the project.
+ * `with` names packages a host installs beside its builder or what it
+ * serves, each with what it declares. A host is a browser's -- checked
+ * against the DOM's types and none of Node's, and refused @types/node --
+ * when it has a builder or says `browser`. A command whose program is not
+ * `node` is a binary installed in the project.
  *
  * `guide` is the part of docs/getting-started.md a host builds: the `kind`
  * a block's `guide=` names, the `entry` module its blocks go to unless they
@@ -101,9 +104,11 @@ export const HOSTS = {
   // that imported a package it never declared -- the runtime, the renderer
   // -- fails here, where the Node host, which installs them all, would pass
   // it. `serves` is the package it is apart for, as a builder's host is for
-  // its builder.
+  // its builder. The client is beside it, with what it declares, and
+  // server.ts asks the server through it over a socket (0049).
   server: {
     serves: '@formancy/report-server',
+    with: ['@formancy/report-client'],
     consumer: 'server.ts',
     tools: { '@types/node': '^22.10.0', typescript: TYPESCRIPT, tsx: TSX },
     tsconfig: {
@@ -116,6 +121,30 @@ export const HOSTS = {
     steps: [
       { name: 'type-check', command: ['tsc', '-p', 'tsconfig.server.json'] },
       { name: 'run', command: ['tsx', '--tsconfig', 'tsconfig.server.json', 'server.ts'] },
+    ],
+  },
+  // A page that keeps a report's draft on Report's server (0049): the
+  // client and what it declares, the DOM's types and none of Node's, and
+  // the module resolution a bundler has, so a client that imported a
+  // `node:` module, or whose declarations named a Node type, fails here,
+  // where the server's host, which has Node's types, would pass it. What
+  // it exports is bundled for a browser, as a builder's is; it is run
+  // against the server in the server's host.
+  client: {
+    serves: '@formancy/report-client',
+    browser: true,
+    consumer: 'client.ts',
+    tools: { typescript: TYPESCRIPT, esbuild: ESBUILD },
+    tsconfig: {
+      file: 'tsconfig.client.json',
+      content: {
+        compilerOptions: { ...STRICT, ...BROWSER, target: 'ES2023', module: 'preserve', moduleResolution: 'bundler', noEmit: true },
+        include: ['client.ts'],
+      },
+    },
+    steps: [
+      { name: 'type-check', command: ['tsc', '-p', 'tsconfig.client.json'] },
+      { name: 'browser build', command: ['node', 'build.mjs', '--platform', 'browser', '--exports', '@formancy/report-client'] },
     ],
   },
   react: {
@@ -144,7 +173,8 @@ export const HOSTS = {
     ],
   },
   // The guide's React page: the builder, and the renderer's browser entry
-  // its preview prints with, each with what it declares, and the
+  // its preview prints with, and the client its draft is kept on the server
+  // with (0049), each with what it declares, and the
   // workbench's stylesheet -- what the guide's install lines name -- beside
   // React. Apart from `react`, which holds only what the builder declares,
   // so that a builder importing the renderer without declaring it still
@@ -153,7 +183,7 @@ export const HOSTS = {
   // import what a bundler's client types say.
   'react-app': {
     builder: '@formancy/report-builder-react',
-    with: ['@formancy/report-render-pdf'],
+    with: ['@formancy/report-render-pdf', '@formancy/report-client'],
     consumer: 'guide-react.tsx',
     guide: { kind: 'react', entry: 'report-page.tsx', runner: 'guide-react.tsx', prints: false, bundled: true },
     peers: ['react', 'react-dom'],
@@ -289,9 +319,22 @@ function frameworkOf(host, manifest, at) {
 }
 
 /**
+ * `main` -- a host's builder, or what it serves -- and what it installs
+ * beside it (`with`), each with every package it declares, transitively;
+ * refused where one beside it was not packed.
+ */
+function packagesOf(kind, host, main, manifests) {
+  const beside = host.with ?? []
+  const unpacked = beside.filter((name) => !manifests.has(name))
+  if (unpacked.length > 0) throw new Error(`${unpacked.join(', ')} was not packed, so the ${kind} host would be checked without it`)
+  return [...new Set([main, ...beside].flatMap((name) => closureOf(name, manifests)))].sort()
+}
+
+/**
  * The projects to install, from the packed manifests (`name` to manifest):
  * the Node host with every package that is no host's own, the server's
- * host with the server and what it declares, and each builder's host at
+ * host with the server and the client and what they declare, the client's
+ * host with the client and what it declares, and each builder's host at
  * the newest release its peers admit and at their floor.
  */
 export function planProjects(manifests) {
@@ -306,6 +349,7 @@ export function planProjects(manifests) {
     const common = {
       host: kind,
       builder: host.builder ?? null,
+      browser: host.builder !== undefined || host.browser === true,
       consumer: host.consumer,
       guide: host.guide ?? null,
       tools: host.tools,
@@ -314,7 +358,7 @@ export function planProjects(manifests) {
     }
     if (host.serves !== undefined) {
       if (!manifests.has(host.serves)) throw new Error(`${host.serves} was not packed, so the ${kind} host has nothing to check`)
-      return [{ name: kind, at: null, packages: closureOf(host.serves, manifests), framework: {}, ...common }]
+      return [{ name: kind, at: null, packages: packagesOf(kind, host, host.serves, manifests), framework: {}, ...common }]
     }
     if (host.builder === undefined) {
       return [
@@ -323,10 +367,7 @@ export function planProjects(manifests) {
     }
     const manifest = manifests.get(host.builder)
     if (manifest === undefined) throw new Error(`${host.builder} was not packed, so its host has nothing to check`)
-    const beside = host.with ?? []
-    const unpacked = beside.filter((name) => !manifests.has(name))
-    if (unpacked.length > 0) throw new Error(`${unpacked.join(', ')} was not packed, so the ${kind} host would be checked without it`)
-    const packages = [...new Set([host.builder, ...beside].flatMap((name) => closureOf(name, manifests)))].sort()
+    const packages = packagesOf(kind, host, host.builder, manifests)
     return ['newest', 'floor'].map((at) => ({
       name: at === 'floor' ? `${kind}-floor` : kind,
       at,

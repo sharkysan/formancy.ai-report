@@ -153,7 +153,7 @@ jobs:
       # Every suite reports, rather than the first failure cancelling the rest.
       fail-fast: false
       matrix:
-        package: ['@formancy/report-spec', '@formancy/report-core', '@formancy/report-runtime', '@formancy/report-data-provider', '@formancy/report-forms', '@formancy/report-server-core', '@formancy/report-server', '@formancy/report-render-pdf', '@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-builder-angular', '@formancy/report-corpus', '@formancy/report-studio', '@formancy/report-pages']
+        package: ['@formancy/report-spec', '@formancy/report-core', '@formancy/report-runtime', '@formancy/report-data-provider', '@formancy/report-forms', '@formancy/report-server-core', '@formancy/report-server', '@formancy/report-client', '@formancy/report-render-pdf', '@formancy/report-builder-core', '@formancy/report-builder-react', '@formancy/report-builder-angular', '@formancy/report-corpus', '@formancy/report-studio', '@formancy/report-pages']
     steps:
       - uses: actions/checkout@v4
 

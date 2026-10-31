@@ -5,12 +5,11 @@ import { connect } from 'node:net'
 import type { AddressInfo, Socket } from 'node:net'
 import type { AuditEvent } from '@formancy/report-server-core'
 import Fastify from 'fastify'
-import type { FastifyInstance } from 'fastify'
-import { afterEach, describe, expect, test } from 'vitest'
-import { createReportServer } from './app.js'
+import { describe, expect, test } from 'vitest'
 import type { ReportServerOptions } from './app.js'
 import { auditReference, auditRequests, logAuditSink } from './audit.js'
 import type { ReportVerifier } from './identity.js'
+import { eachCase } from './test-support.js'
 
 /**
  * The audit trail (0046, after formancy.ai-data 0023): one event per
@@ -28,24 +27,21 @@ const verifyIdentity: ReportVerifier = async (token) => {
   return { ok: false, reason: 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' }
 }
 
-let app: FastifyInstance | undefined
 let events: AuditEvent[]
-afterEach(async () => {
-  await app?.close()
-  app = undefined
-})
+
+/** The server is given a store whatever the case asks of it (0049): each case its own (test-support.ts). */
+const cases = eachCase('formancy-report-audit-')
 
 const at = '2026-10-22T08:00:00.000Z'
 /** Audited into `events`, under `key`, or with no key for `null`. */
 async function server(overrides: Partial<ReportServerOptions> = {}, key: string | null = KEY) {
   events = []
-  app = await createReportServer({
+  return cases.serve({
     verifyIdentity,
     roles,
     audit: { sink: (event) => void events.push(event), now: () => at, ...(key === null ? {} : { key }) },
     ...overrides,
   })
-  return app
 }
 
 describe('auditReference', () => {
@@ -96,6 +92,35 @@ describe('the audit trail', () => {
         tenant: auditReference(KEY, 'tenant', 'acme'),
         actor: auditReference(KEY, 'actor', 'acme', 'u-1'),
       },
+    ])
+  })
+
+  // Each route of the draft slice is an operation of its own in the trail,
+  // answered or refused, a refusal Fastify gives before the route's
+  // handler among them: under one name, or none, an operator could not
+  // count saves apart from reads, nor see the refusals a client met.
+  test('writes one event for each request of the draft slice, under its operation', async () => {
+    const audited = await server()
+    const hex = 'ab'.repeat(32)
+    const good = { authorization: 'Bearer good' }
+    await audited.inject({ method: 'GET', url: '/v1/templates', headers: good })
+    await audited.inject({ method: 'PUT', url: '/v1/templates/invoice/draft', headers: good })
+    await audited.inject({
+      method: 'PUT',
+      url: '/v1/templates/invoice/draft',
+      headers: { ...good, 'if-none-match': '*', 'content-type': 'text/plain' },
+      payload: 'x',
+    })
+    await audited.inject({ method: 'GET', url: '/v1/templates/invoice/draft', headers: good })
+    await audited.inject({ method: 'PUT', url: `/v1/assets/${hex}`, headers: { ...good, 'content-type': 'image/png' }, payload: Buffer.from('no image') })
+    await audited.inject({ method: 'GET', url: `/v1/assets/${hex}`, headers: good })
+    expect(events.map(({ operation, status, outcome, identified }) => ({ operation, status, outcome, identified }))).toEqual([
+      { operation: 'template.list', status: 200, outcome: 'ok', identified: true },
+      { operation: 'draft.save', status: 428, outcome: 'precondition-required', identified: true },
+      { operation: 'draft.save', status: 415, outcome: 'unsupported-media-type', identified: true },
+      { operation: 'draft.read', status: 404, outcome: 'no-draft', identified: true },
+      { operation: 'asset.keep', status: 422, outcome: 'image-refused', identified: true },
+      { operation: 'asset.read', status: 404, outcome: 'no-asset', identified: true },
     ])
   })
 
@@ -187,7 +212,7 @@ describe('the audit trail', () => {
       async () => Promise.reject(new Error('disk full')),
     ]) {
       const lines: string[] = []
-      const failing = await createReportServer({ verifyIdentity, roles, audit: { sink }, logger: { stream: { write: (line) => void lines.push(line) } } })
+      const failing = await cases.serve({ verifyIdentity, roles, audit: { sink }, logger: { stream: { write: (line) => void lines.push(line) } } })
       const answer = await failing.inject({ method: 'GET', url: '/v1/whoami', headers: { authorization: 'Bearer good' } })
       await failing.close()
       expect(answer.statusCode).toBe(200)
@@ -199,7 +224,7 @@ describe('the audit trail', () => {
   // a collector reads the trail out of the server's own log.
   test('writes one log line per event with the server’s own sink', async () => {
     const lines: string[] = []
-    const logged = await createReportServer({ verifyIdentity, roles, logger: { stream: { write: (line) => void lines.push(line) } } })
+    const logged = await cases.serve({ verifyIdentity, roles, logger: { stream: { write: (line) => void lines.push(line) } } })
     const sink = logAuditSink(logged.log)
     await sink({ at, operation: 'whoami', status: 200, outcome: 'ok', identified: true, tenant: null, actor: null })
     await logged.close()
@@ -251,15 +276,17 @@ describe('two requests waiting on one connection', () => {
   // their events again.
   test('write an event each, and leave no listener on the connection', async () => {
     const audited = await server()
-    const connections: Socket[] = []
-    audited.server.on('connection', (connection: Socket) => void connections.push(connection))
+    // The server's side of the connection, awaited rather than read when the
+    // client connects: on macOS the client's connect comes before the
+    // server's connection event, and the connection was not there yet.
+    const accepted = new Promise<Socket>((resolve) => audited.server.once('connection', resolve))
     await audited.listen({ host: '127.0.0.1', port: 0 })
     const { port } = audited.server.address() as AddressInfo
     const socket = connect(port, '127.0.0.1')
     socket.on('error', () => {})
     await new Promise((resolve) => socket.once('connect', resolve))
-    const [connection] = connections
-    const before = connection?.listenerCount('close') ?? -1
+    const connection = await accepted
+    const before = connection.listenerCount('close')
     let answered = ''
     socket.on('data', (chunk: Buffer) => void (answered += chunk.toString('utf8')))
     const ask = (token: string) => `GET /v1/whoami HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer ${token}\r\n\r\n`
@@ -267,7 +294,7 @@ describe('two requests waiting on one connection', () => {
     for (let wait = 0; wait < 40 && (answered.match(/HTTP\/1\.1 200/g) ?? []).length < 2; wait += 1) await new Promise((resolve) => setTimeout(resolve, 25))
     for (let wait = 0; wait < 40 && events.length < 2; wait += 1) await new Promise((resolve) => setTimeout(resolve, 25))
     expect(events.map((event) => event.status)).toEqual([200, 200])
-    expect(connection?.listenerCount('close')).toBe(before)
+    expect(connection.listenerCount('close')).toBe(before)
     socket.destroy()
     await new Promise((resolve) => setTimeout(resolve, 100))
     expect(events).toHaveLength(2)

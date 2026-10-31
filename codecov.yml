@@ -58,6 +58,10 @@ component_management:
       name: packages/report-builder-react
       paths:
         - packages/report-builder-react/**
+    - component_id: report-client
+      name: packages/report-client
+      paths:
+        - packages/report-client/**
     - component_id: report-core
       name: packages/report-core
       paths:

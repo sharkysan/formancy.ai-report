@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // A browser's globals, fetch among them, and no @types/node: a host runs
+    // the client in a page or in Node, which declares the same fetch. A
+    // `node:` import in src is a compile error rather than a review finding.
+    "lib": ["ES2023", "DOM"],
+    "types": []
+  },
+  "include": ["src/**/*.ts"],
+  // The suite runs a real server in Node, and is checked by tsconfig.test.json.
+  "exclude": ["src/**/*.test.ts"]
+}

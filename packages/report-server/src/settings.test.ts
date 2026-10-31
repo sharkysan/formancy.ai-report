@@ -17,6 +17,7 @@ const configured = {
   FORMANCY_REPORT_AUDIENCE: 'formancy-report',
   FORMANCY_REPORT_IDENTITY_SECRET: 'env:HOST_SECRET',
   FORMANCY_REPORT_ATTRIBUTES: 'tenant=tid',
+  FORMANCY_REPORT_STORE_DIR: '/var/lib/formancy-report',
 }
 
 /** The settings `env` reads as, or the test fails with the problems it gave. */
@@ -43,12 +44,15 @@ describe('readSettings', () => {
       'FORMANCY_REPORT_AUDIENCE is required: the audience the host’s tokens name in aud.',
       'Set exactly one of FORMANCY_REPORT_IDENTITY_SECRET, FORMANCY_REPORT_IDENTITY_PUBLIC_KEY_FILE and FORMANCY_REPORT_IDENTITY_KEYS_FILE.',
       'FORMANCY_REPORT_ATTRIBUTES is required, as tenant=<claim>: the claim every token names its tenant in (0046).',
+      'FORMANCY_REPORT_STORE_DIR is required: the absolute path of the directory the server keeps its templates’ drafts and images in (0049).',
     ])
   })
 
   // What a configured server runs on, every default named: the roles
   // claim data-identity reads by default, nobody in any capacity, Data's
   // rate limit, no proxy and no origin trusted, no audit key, the port.
+  // The store's directory has none: a server that chose where to keep a
+  // person's drafts would keep them where nobody looked.
   test('reads a configured server, with every default', () => {
     expect(settings(configured)).toEqual({
       issuer: 'https://host.example',
@@ -61,6 +65,7 @@ describe('readSettings', () => {
       trustedProxies: [],
       origins: [],
       auditKey: undefined,
+      storeDir: '/var/lib/formancy-report',
       port: DEFAULT_PORT,
     })
     expect(DEFAULT_PORT).toBe(4392)
@@ -71,6 +76,9 @@ describe('readSettings', () => {
   // is refused where it is required and is the default where it is not.
   test('reads an empty setting as an unset one', () => {
     expect(problems({ ...configured, FORMANCY_REPORT_ISSUER: '' })).toEqual(['FORMANCY_REPORT_ISSUER is required: the issuer the host’s tokens name in iss.'])
+    expect(problems({ ...configured, FORMANCY_REPORT_STORE_DIR: '' })).toEqual([
+      'FORMANCY_REPORT_STORE_DIR is required: the absolute path of the directory the server keeps its templates’ drafts and images in (0049).',
+    ])
     expect(settings({ ...configured, FORMANCY_REPORT_AUTHOR_ROLES: '', FORMANCY_REPORT_RATE_LIMIT: '', PORT: '' })).toMatchObject({
       roles: { author: [] },
       rateLimit: DEFAULT_RATE_LIMIT,
@@ -83,9 +91,9 @@ describe('readSettings', () => {
   // say why. Every FORMANCY_REPORT_ variable is one this server reads, or
   // it does not start; other variables are the platform's.
   test('refuses a FORMANCY_REPORT_ variable it does not read, and leaves every other variable alone', () => {
-    expect(problems({ ...configured, FORMANCY_REPORT_AUTHOR_ROLE: 'report-authors', FORMANCY_REPORT_STORE_DIR: '/var/lib/formancy-report' })).toEqual([
+    expect(problems({ ...configured, FORMANCY_REPORT_AUTHOR_ROLE: 'report-authors', FORMANCY_REPORT_STORE_PATH: '/var/lib/formancy-report' })).toEqual([
       'FORMANCY_REPORT_AUTHOR_ROLE is not a setting this server reads: its settings are listed in packages/report-server/README.md, and a variable a secret reference names is one outside FORMANCY_REPORT_, such as HOST_SECRET.',
-      'FORMANCY_REPORT_STORE_DIR is not a setting this server reads: its settings are listed in packages/report-server/README.md, and a variable a secret reference names is one outside FORMANCY_REPORT_, such as HOST_SECRET.',
+      'FORMANCY_REPORT_STORE_PATH is not a setting this server reads: its settings are listed in packages/report-server/README.md, and a variable a secret reference names is one outside FORMANCY_REPORT_, such as HOST_SECRET.',
     ])
     expect(settings({ ...configured, HOST_SECRET: 'x', PATH: '/usr/bin', NODE_ENV: 'production', FORMANCY_DATA_ISSUER: 'y' }).issuer).toBe(
       'https://host.example',
@@ -94,7 +102,12 @@ describe('readSettings', () => {
 })
 
 describe('the identity key (formancy.ai-data 0014, 0059)', () => {
-  const without = { FORMANCY_REPORT_ISSUER: 'https://host.example', FORMANCY_REPORT_AUDIENCE: 'formancy-report', FORMANCY_REPORT_ATTRIBUTES: 'tenant=tid' }
+  const without = {
+    FORMANCY_REPORT_ISSUER: 'https://host.example',
+    FORMANCY_REPORT_AUDIENCE: 'formancy-report',
+    FORMANCY_REPORT_ATTRIBUTES: 'tenant=tid',
+    FORMANCY_REPORT_STORE_DIR: '/var/lib/formancy-report',
+  }
 
   // One key, named one way: two would leave which one verifies to the
   // order the code reads them in.
@@ -239,6 +252,38 @@ describe('the tenant and the roles (0046)', () => {
     expect(problems({ ...configured, FORMANCY_REPORT_PUBLISHER_ROLES: 'report-publishers,,editors' })).toEqual([
       'FORMANCY_REPORT_PUBLISHER_ROLES: entry 2 is empty, which is where a role written into the list went missing.',
     ])
+  })
+})
+
+describe('the store (0049)', () => {
+  // The drafts a person saves are kept where the operator says and nowhere
+  // else: a server that fell back to a directory of its own would keep them
+  // inside the container, where the next deployment removes them. The
+  // directory is required, as the issuer is.
+  test('is required, by the setting’s name', () => {
+    const { FORMANCY_REPORT_STORE_DIR: _unset, ...unset } = configured
+    expect(problems(unset)).toEqual([
+      'FORMANCY_REPORT_STORE_DIR is required: the absolute path of the directory the server keeps its templates’ drafts and images in (0049).',
+    ])
+  })
+
+  // A relative path is read from the directory the process starts in, which
+  // an orchestrator, not the operator, chooses: the drafts would be in one
+  // place for one start and in another for the next. The sentence names the
+  // setting and repeats nothing of what was set.
+  test('is an absolute path, and the sentence repeats nothing of the value', () => {
+    const relative = 'the-drafts-directory-set-by-mistake'
+    const found = problems({ ...configured, FORMANCY_REPORT_STORE_DIR: relative })
+    expect(found).toEqual([
+      'FORMANCY_REPORT_STORE_DIR is an absolute path: the store is named from it, so that the directory the server starts in cannot move where the drafts are kept.',
+    ])
+    expect(found.join('')).not.toContain(relative)
+  })
+
+  // The server serves the directory the operator named, unchanged: not
+  // resolved, trimmed or made, since opening it is serve.ts's.
+  test('is read as it is given', () => {
+    expect(settings({ ...configured, FORMANCY_REPORT_STORE_DIR: '/srv/formancy report/store' }).storeDir).toBe('/srv/formancy report/store')
   })
 })
 

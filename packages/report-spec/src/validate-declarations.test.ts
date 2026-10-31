@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { MAX_AGGREGATES, MAX_DATASET_FIELDS, MAX_FOOTER_ROWS, MAX_STYLE_RULES, MAX_STYLES } from './limits.js'
-import { isFormId, isSchemaHash } from './syntax.js'
+import { isDigest, isFormId, isSchemaHash } from './syntax.js'
 import { edited, getAt, refusals, removeAt, setAt } from './test-support.js'
 
 describe('parameters', () => {
@@ -213,5 +213,30 @@ describe('assets', () => {
     for (const mediaType of ['image/gif', 'image/svg', 'image/svg+xml; charset=utf-8', 'IMAGE/SVG+XML']) {
       expect(refusals(edited((r) => setAt(r, '/assets/0/mediaType', mediaType))), mediaType).toEqual(['not-one-of /assets/0/mediaType'])
     }
+  })
+
+  // The report server judges a digest by `isDigest` where it is asked for an
+  // image and where its store names a file by one (0049). Were it another
+  // reading than a declaration's, a report the validator accepts could
+  // declare a digest the store's own assertion throws on, and its save
+  // would be answered 500 rather than asset-not-kept.
+  test('isDigest accepts what an asset declaration accepts, and nothing else', () => {
+    const hex = 'ab'.repeat(32)
+    for (const digest of [
+      `sha256:${hex}`,
+      `sha256:${'0123456789abcdef'.repeat(4)}`,
+      hex,
+      `sha256:${hex.toUpperCase()}`,
+      `SHA256:${hex}`,
+      `sha256:${hex.slice(1)}`,
+      `sha256:${hex}0`,
+      `sha256:${hex}\n`,
+      `sha512:${hex}`,
+      'sha256:../../x',
+      '',
+    ]) {
+      expect(isDigest(digest), JSON.stringify(digest)).toBe(refusals(edited((r) => setAt(r, '/assets/0/digest', digest))).length === 0)
+    }
+    expect([isDigest(undefined), isDigest(7), isDigest([`sha256:${hex}`])]).toEqual([false, false, false])
   })
 })

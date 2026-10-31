@@ -4,7 +4,10 @@
   [0038](0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md),
   under which the CMYK JPEG this record refuses is refused in a report
   whose e-invoice is a Factur-X invoice alone, an XRechnung's PDF being a
-  plain copy that holds one
+  plain copy that holds one; extended by
+  [0049](0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md),
+  under which a host may wire its `ImageStore` to the report server, which
+  keeps an image for the tenant by its digest once report-spec has read it
 - **Date:** 2026-10-19
 - **Deciders:** Daniel Bacher
 - **Verified by:**

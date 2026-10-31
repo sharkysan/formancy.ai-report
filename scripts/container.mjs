@@ -24,7 +24,9 @@
  * run on a read-only root file system; write one audit line per request
  * whoami answered, holding no token; live through SIGHUP and stop on
  * SIGTERM; and, given a key set file, name its kids when it starts and
- * read it again on SIGHUP. And each public setting it reads -- the rate limit, the trusted
+ * read it again on SIGHUP; keep an author's draft and image in its store
+ * across a restart on the same volume, and save a draft on a read-only
+ * root. And each public setting it reads -- the rate limit, the trusted
  * proxies, the origins -- must change what it does, or stop it, naming the
  * setting, when it is not one.
  *
@@ -39,7 +41,8 @@
  * made, and how long the build and the start took. Which base the image is
  * built on is the Dockerfile's to say, by a digest Docker verifies when it
  * pulls, and dockerfile.test.ts holds the pin; the record does not repeat
- * it. Node's built-ins only.
+ * it. The host's side -- the tokens a host signs and the requests an
+ * author's host sends -- is container/host.mjs. Node's built-ins only.
  *
  * Its waits are choices, not measurements: 30 s for a container to answer
  * or to stop, some forty times the 0.65 to 0.78 s to healthy it measured on
@@ -53,12 +56,25 @@
  * 120 s for any one check, each on a timer that keeps Node running and
  * fails what it waits for, by name.
  */
-import { createHash, createHmac, randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+  AUDIENCE,
+  authorClaims,
+  expect,
+  expectFirstDraft,
+  ISSUER,
+  keepAndReadImage,
+  request,
+  saveFirstDraft,
+  secret,
+  sign,
+  whoamiTokens,
+} from './container/host.mjs'
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -94,6 +110,9 @@ export const CHECKS = [
   'SIGHUP leaves a server with one key running',
   'SIGTERM stops it, exit 0',
   'it runs on a read-only root file system',
+  'a draft an author saves is read back after the container restarts on the same volume',
+  'an image an author keeps is read back by its digest',
+  'on a read-only root, it saves a draft into its store',
   'with a key set file, it names the kids it serves under, and SIGHUP reads the file again',
   'FORMANCY_REPORT_RATE_LIMIT=2 answers 401 401 429',
   'FORMANCY_REPORT_RATE_LIMIT=abc stops it, naming the setting',
@@ -118,34 +137,8 @@ function must(args) {
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms))
 
-/** `fetch(url, init)`, failed by its own deadline, `ms`, naming the request, where no answer ever comes. */
-async function request(url, init = {}, ms = 10_000) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(new Error(`${init.method ?? 'GET'} ${url} had no answer within ${String(ms / 1000)} s`)), ms)
-  try {
-    return await fetch(url, { ...init, signal: controller.signal })
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
 /** How long any one check may take, a choice (above). */
 const CHECK_MS = 120_000
-
-const secret = randomBytes(32).toString('base64url')
-const ISSUER = 'https://host.example'
-const AUDIENCE = 'formancy-report'
-const base64url = (text) => Buffer.from(text).toString('base64url')
-/** An HS256 token, as a host signs one with nothing but its secret, or a key set's key under its `kid`. */
-function sign(claims, key = secret, kid = undefined) {
-  const body = `${base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT', ...(kid === undefined ? {} : { kid }) }))}.${base64url(JSON.stringify(claims))}`
-  return `${body}.${createHmac('sha256', key).update(body).digest('base64url')}`
-}
-const now = Math.floor(Date.now() / 1000)
-const claims = { iss: ISSUER, aud: AUDIENCE, sub: 'u-1', tid: 'acme', roles: ['report-authors'], iat: now, exp: now + 600 }
-const token = sign(claims)
-const { tid: _tenant, ...tenantless } = claims
-const tokens = { good: token, tenantless: sign(tenantless), forged: sign(claims, randomBytes(32).toString('base64url')) }
 
 /** The settings every configured container starts from. */
 const CONFIGURED = {
@@ -159,6 +152,7 @@ const CONFIGURED = {
 const envArgs = (env) => Object.entries(env).flatMap(([name, value]) => ['-e', `${name}=${value}`])
 
 const started = []
+const volumes = []
 const run = String(process.pid)
 /**
  * A container of the image, started detached, its port published on
@@ -171,6 +165,14 @@ function start(label, env, { publish = true, flags = [], files = {} } = {}) {
   must(['create', '--name', name, ...flags, ...(publish ? ['-p', '127.0.0.1::4392'] : []), ...envArgs(env), image])
   for (const [inside, from] of Object.entries(files)) must(['cp', from, `${name}:${inside}`])
   must(['start', name])
+  return name
+}
+
+/** A named volume, made here and removed with the containers, however the gate ends; its name. */
+function volume(label) {
+  const name = `formancy-report-gate-${run}-${String(volumes.length)}-${label}`
+  volumes.push(name)
+  must(['volume', 'create', name])
   return name
 }
 
@@ -241,10 +243,6 @@ async function check(name, body) {
   }
 }
 
-const expect = (truth, otherwise) => {
-  if (!truth) throw new Error(otherwise)
-}
-
 async function gate() {
   record.docker = must(['version', '--format', '{{.Server.Version}} {{.Server.Os}}/{{.Server.Arch}}'])
   const building = Date.now()
@@ -282,6 +280,8 @@ async function gate() {
 
   const name = start('configured', CONFIGURED)
   record.measured.healthyMs = await healthy(name)
+  // Signed as the configured container's checks start, after the build.
+  const tokens = whoamiTokens()
   const url = at(name)
   const answers = []
   const ask = async (path, headers = {}) => {
@@ -325,7 +325,7 @@ async function gate() {
     }
   })
   await check('nothing else answers, with a 404 that quotes nothing', async () => {
-    for (const path of ['/v1/templates', '/v1/whoami/extra', '/v2/whoami']) {
+    for (const path of ['/v1/versions', '/v1/whoami/extra', '/v2/whoami']) {
       const answer = await ask(path, { authorization: `Bearer ${tokens.good}` })
       expect(
         answer.status === 404 && answer.body === '{"code":"not-found","message":"Nothing answers this request."}',
@@ -400,12 +400,57 @@ async function gate() {
   })
 
   // Nothing it runs writes its root file system: an operator may run it
-  // with --read-only, and mount the store's directory as a volume.
+  // with --read-only, and mount the store's directory as a volume. The
+  // server requires that directory to be writable at start (0049), so under
+  // --read-only it is the volume that lets it start: an anonymous one,
+  // which Docker fills from the image's directory, owner included, and
+  // which `rm -v` removes with the container.
   await check('it runs on a read-only root file system', async () => {
-    const sealed = start('read-only', CONFIGURED, { flags: ['--read-only'] })
+    const sealed = start('read-only', CONFIGURED, { flags: ['--read-only', '-v', '/var/lib/formancy-report'] })
     await healthy(sealed)
-    const answer = await request(`${at(sealed)}/v1/whoami`, { headers: { authorization: `Bearer ${tokens.good}` } })
+    const answer = await request(`${at(sealed)}/v1/whoami`, { headers: { authorization: `Bearer ${sign(authorClaims())}` } })
     expect(answer.status === 200, `whoami on a read-only root answered ${String(answer.status)}`)
+    expect(docker(['exec', sealed, 'touch', '/app/.gate']).status !== 0, 'the root file system was writable under --read-only')
+  })
+
+  // The draft slice's store is the volume (0049): a draft is the operator's
+  // data, which a restart, an upgrade of the image or a new container on the
+  // same volume must not lose. A named volume, made empty, filled by Docker
+  // from the image's directory and its owner as the server's start needs;
+  // the first container is stopped before the second starts, so that one
+  // holds the store at a time.
+  await check('a draft an author saves is read back after the container restarts on the same volume', async () => {
+    const bearer = sign(authorClaims())
+    const store = volume('draft')
+    const first = start('draft-first', CONFIGURED, { flags: ['-v', `${store}:/var/lib/formancy-report`] })
+    await healthy(first)
+    await saveFirstDraft(at(first), bearer)
+    must(['stop', '--time', '10', first]) // Docker's own default (above)
+    const second = start('draft-second', CONFIGURED, { flags: ['-v', `${store}:/var/lib/formancy-report`] })
+    await healthy(second)
+    await expectFirstDraft(at(second), bearer)
+  })
+
+  // An image is kept by the digest of its bytes and read by it; compared
+  // byte for byte, since a store that kept a length's worth of something
+  // else would pass a size.
+  await check('an image an author keeps is read back by its digest', async () => {
+    const png = readFileSync(join(repo, 'docs', 'images', 'starter-site-visit.png'))
+    const kept = start('image', CONFIGURED, { flags: ['-v', `${volume('image')}:/var/lib/formancy-report`] })
+    await healthy(kept)
+    await keepAndReadImage(at(kept), sign(authorClaims()), png)
+    return `${String(png.length)} bytes`
+  })
+
+  // What the read-only check above leaves unsaid: that the store's volume
+  // is where a draft goes when nothing else on the root is writable, and it
+  // is read back from it.
+  await check('on a read-only root, it saves a draft into its store', async () => {
+    const bearer = sign(authorClaims())
+    const sealed = start('read-only-save', CONFIGURED, { flags: ['--read-only', '-v', '/var/lib/formancy-report'] })
+    await healthy(sealed)
+    await saveFirstDraft(at(sealed), bearer)
+    await expectFirstDraft(at(sealed), bearer)
     expect(docker(['exec', sealed, 'touch', '/app/.gate']).status !== 0, 'the root file system was writable under --read-only')
   })
 
@@ -435,7 +480,7 @@ async function gate() {
       const asked = async () => {
         const statuses = []
         for (const kid of ['gate-1', 'gate-2'])
-          statuses.push((await request(`${at(keyed)}/v1/whoami`, { headers: { authorization: `Bearer ${sign(claims, keys[kid], kid)}` } })).status)
+          statuses.push((await request(`${at(keyed)}/v1/whoami`, { headers: { authorization: `Bearer ${sign(authorClaims(), keys[kid], kid)}` } })).status)
         return statuses.join(' ')
       }
       const before = await asked()
@@ -527,7 +572,8 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/container.mjs')) {
     record.error = String(error?.message ?? error)
     console.error(`container gate FAILED\n${record.error}`)
   } finally {
-    for (const name of started) docker(['rm', '-f', name])
+    for (const name of started) docker(['rm', '-f', '-v', name])
+    for (const name of volumes) docker(['volume', 'rm', '-f', name])
     if (removeImage) docker(['image', 'rm', '-f', image])
     record.finishedAt = new Date().toISOString()
     mkdirSync(dirname(out), { recursive: true })

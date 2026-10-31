@@ -15,7 +15,8 @@
  *
  * The bounds of an SVG asset and of a font, at the end, are the
  * exception: each but `MAX_SVG_REMOVED_NAMES` was measured, and says how,
- * on what and when (0030, 0040).
+ * on what and when (0030, 0040). `MAX_REPORT_BYTES` is a multiple of a
+ * measured size and says so.
  */
 
 /**
@@ -79,6 +80,31 @@ export const MAX_ASSETS = 64
  * `MAX_SVG_BYTES` besides.
  */
 export const MAX_ASSET_BYTES = 20 * 1024 * 1024
+
+/**
+ * The most bytes a report may have as a draft: the UTF-8 length of its
+ * JSON, which is what a client sends and a server can count before it
+ * parses anything, so a route can bound its body by this one constant.
+ * 256 KiB, the least power of two that is at least sixteen times the
+ * largest report definition the corpus exports, starters, samples and the
+ * site visit's report among them. That is the XRechnung sample, 16,254
+ * bytes, an e-invoice being the report with the most terms to state; the
+ * next is 16,027 and the smallest 3,956 (measured on 2026-10-28 on an
+ * Apple M2 under Node 22.23.3, as
+ * `new TextEncoder().encode(JSON.stringify(report)).byteLength`). A
+ * report sixteen times the richest one is a document that should be
+ * several, and the limit is a quarter of the mebibyte Fastify reads by
+ * default, which a draft's request should not need to exceed.
+ *
+ * The factor is chosen, and the bounds above allow far more: one region of
+ * `MAX_REGION_COMPONENTS` text components that each hold `MAX_TEXT_LENGTH`
+ * characters holds five million characters. A report of that kind
+ * validates and is not kept as a draft. Raising the limit is safe;
+ * lowering it refuses reports that were kept. The corpus's
+ * `report-size.test.ts` holds every report there to the limit, and the
+ * limit to this factor.
+ */
+export const MAX_REPORT_BYTES = 262_144
 
 /**
  * Pixels a side of a PNG or a JPEG asset: the renderer trial's limit too,

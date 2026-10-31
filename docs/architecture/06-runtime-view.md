@@ -539,6 +539,10 @@ inflated and a JPEG's scan not decoded until it prints (6.2). Remove, under
 the report's own properties, takes back the declaration of an image nothing
 draws, in one step, and leaves the bytes where the host keeps them
 ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
+Where the host keeps its images on the report server, `keep` is
+report-client's `keepImage`, and the host puts the bytes in the cache its
+lookup reads before `keep` resolves, since the lookup cannot ask the server
+while the Preview prints (6.17, [0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 
 ## 6.11 A QR-bill's IBAN, from the field to the slip's code
 
@@ -775,7 +779,8 @@ read by itself.
 
 ```
 a host's backend, or its page on an origin the operator lists
-   │  GET /v1/whoami   Authorization: Bearer <the host's JWT>
+   │  GET /v1/whoami, or a route of the draft slice (6.17)
+   │  Authorization: Bearer <the host's JWT>
    ▼
 Node's parser: a request it cannot read ──▶ 400, 408 or 431 bad-request, no-store
    ▼
@@ -786,14 +791,21 @@ report-server (createReportServer)
    │    a route ROUTES names? ── no ──▶ 404 not-found, connection closed, no event
    ├─ onRequest: the rate limit, by the client address (a named proxy's X-Forwarded-For)
    │       over it ──▶ 429 rate-limited
-   ├─ preHandler: a token-bearing request a browser marks cross-site, from an
-   │  origin not listed? ──▶ 403 cross-origin-refused, the token not read
-   ├─ preHandler: one Bearer token, verified by data-identity -- the algorithm the
+   ├─ preParsing, before any body is read: a token-bearing request a browser
+   │  marks cross-site, from an origin not listed? ──▶ 403 cross-origin-refused,
+   │  the token not read
+   ├─ preParsing: one Bearer token, verified by data-identity -- the algorithm the
    │  key's kind pins, iss, aud, exp and sub -- and the tenant claim present
    │       any no ──▶ 401 unauthenticated, the verifier's reason in the log
+   │  (either refusal of a request that carries a body closes its connection)
+   ├─ a route that reads a body: a length declared past its limit ──▶ 413
+   │  report-too-large or image-too-large, unread; a body that declares no
+   │  length ──▶ the same 413 once it is read past the limit; a media type
+   │  it does not read ──▶ 415, unread, closing as the refusals above
    ▼
 whoami: the subject, the tenant, the roles, and what the actions table gives
-those roles under the operator's policy (can, capacitiesOf, actionsOf)
+those roles under the operator's policy (can, capacitiesOf, actionsOf);
+or a route of the draft slice, sending what its use case answers
    ▼
 onSend: Cache-Control no-store; the listed origin carried back
    ▼
@@ -816,3 +828,78 @@ on SIGHUP, by data-identity's own read
 At start, before any of this, `main.ts` reads the settings once; one it
 needs and lacks, or one it would refuse, stops it with a sentence naming
 it.
+
+## 6.17 A draft saved, a swap lost, and a reload
+
+```
+a host's page: a session opened from GET /v1/templates/invoice/draft,
+revision 3 under its digest, ETag "3-…", every image it declares read into
+the host's cache
+   │  Save: report-client's saveDraft('invoice', report, draft), the Draft it read
+   ▼
+PUT /v1/templates/invoice/draft   If-Match: "3-…"   Content-Type: application/json
+   │  6.16's hooks: the path, the rate limit, the origin, the token -- before
+   │  any body is read; JSON alone, up to MAX_REPORT_BYTES
+   ▼
+the route (report-server's drafts.ts)
+   ├─ If-Match and If-None-Match parsed: one strong tag draftVersionOf reads
+   │  as a version, or * alone ── anything else, the bare "3" among it ──▶ 400
+   │  bad-request, before the use case
+   ▼
+saveDraft (report-server-core), in this order, nothing written until the last:
+   ├─ can(identity, 'draft.save', policy) ── no ──▶ 403 forbidden
+   ├─ invoice is report-spec's identifier ── no ──▶ 400 template-id-invalid
+   ├─ a precondition ── none ──▶ 428 precondition-required
+   ├─ validateReport(body) ── no ──▶ 422 report-invalid, with its errors
+   ├─ the report's id is invoice ── no ──▶ 422 template-id-mismatch
+   ├─ every image it declares kept for the tenant as that kind, no font ──▶ 422 asset-not-kept
+   ├─ store.newest is revision 3 under the digest the tag names ── no ──▶ 412
+   ▼
+store.save(tenant, 'invoice', 3, { savedBy: the token's sub, report })
+   │  file store: tenants/<sha256 of the claim>/templates/invoice/draft/
+   ├─ newest is not 3 ─────────────────────────────▶ not written: 412
+   ▼
+4.json written to a temporary name, flushed, then link(temporary, 4.json)
+   ├─ EEXIST: another save from 3 linked first ────▶ not written: 412
+   ▼
+200 { template, revision: 4, digest }, ETag "4-…"; the page's next save is from it
+
+412 draft-changed { revision: 4 }, no ETag, nothing written
+   ▼
+the host says someone saved since, and offers a reload: GET the draft again,
+read its images, open a NEW session from revision 4 and dispose of the old
+editor -- never replaceDocument in the old session, whose undo would bring
+the stale text back as an edit and let a save from 4 overwrite the other
+author's work
+```
+
+The use case decides everything but the swap, and the store decides the
+swap alone: two saves from the draft at revision 3 both pass every
+check, the comparison of its digest included, and the link lets exactly
+one of them name revision 4's file. The loser is told the revision that
+stands, in the refusal's body and with no `ETag`, since a tag comes only
+with the draft it names, and the host reads that one before anything
+else is saved. A page that still holds a draft at revision 3 that a
+restore or a power cut took away, where another save has been given the
+number 3 since, names the digest of the draft it read, so the comparison
+refuses it before the swap, which compares revisions alone and would let
+it through, unless the two hold the same report to the byte, whose save
+goes through; only a draft's newest file removed while the server runs,
+by hand or by a restore, between one save's comparison and its swap,
+lets a save win over a draft its author never saw. Every revision stays
+on disk; a read serves the newest, its record's digest checked and the
+report served as it was saved, never validated again
+([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
+A read of a record that is not JSON, not this format's, or whose report
+its digest does not name is 500 `internal`, logged by its path inside
+the tenant's directory and the tenant's keyed reference; the digest
+covers the report and not `savedBy`, so a record whose `savedBy` alone
+was edited is served as edited.
+
+An image is kept the same way, by `PUT /v1/assets/{digest}`: the capacity,
+the digest's form, the size, what the bytes sniff as and the media type
+claimed, the header or the SVG's form, and the digest of the bytes, then
+the store links `<64 hex>.<png|jpg|svg>` unless it is there already. The
+host keeps the bytes in its cache before `keep` resolves (6.10), and a
+save that declares an image the tenant has not kept, or kept as another
+kind than it declares, is refused, naming it.

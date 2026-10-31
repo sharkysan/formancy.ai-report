@@ -1,9 +1,10 @@
 /**
  * From the settings to a server (0046): the identity key opened as the
- * settings name it, the audit key resolved, and the server made with the
- * server's own log as the audit trail's sink. Out of main.ts, which reads
- * the environment and the signals, so that every refusal at start and the
- * key set read again on SIGHUP are tested without starting a process.
+ * settings name it, the audit key resolved, the store opened on its
+ * directory, and the server made over it with the server's own log as the
+ * audit trail's sink. Out of main.ts, which reads the environment and the
+ * signals, so that every refusal at start and the key set read again on
+ * SIGHUP are tested without starting a process.
  *
  * Nothing here reads configuration: the environment and the files a secret
  * reference names are reached through the `SecretSource` main.ts hands over
@@ -16,7 +17,9 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import { createReportServer } from './app.js'
 import type { ReportServerOptions } from './app.js'
 import { AUDIT_KEY_MIN_BYTES, logAuditSink, shortAuditKey } from './audit.js'
+import { openFileTemplateStore } from './file-store.js'
 import { createReportVerifier } from './identity.js'
+import { STORE_DIR_SETTING } from './settings.js'
 import type { IdentityKeySource, ServerSettings } from './settings.js'
 
 export type OpenedServer = { ok: true; app: FastifyInstance; keyFile: KeySetFile | undefined } | { ok: false; problem: string }
@@ -70,10 +73,13 @@ function auditKeyProblem(auditKey: string, key: IdentityOptions['key']): string 
  * The server `settings` describe, or the one sentence main.ts prints before
  * it exits 1: a secret or a file that cannot be read, a secret under 32
  * bytes, a public key that does not import, a key set refused, an audit key
- * that cannot be resolved, is under 32 bytes or is the identity key. Each
- * sentence is data-identity's or this file's, and none repeats a key, a
- * secret or a file's text. `logger` is where the log goes: main.ts gives
- * standard output.
+ * that cannot be resolved, is under 32 bytes or is the identity key, or a
+ * store directory that does not open, whose sentence begins with the
+ * setting (the file store says what is wrong with a root and names no
+ * setting, being opened from code too). Each sentence is data-identity's,
+ * the file store's or this file's, and none repeats a key, a secret, a
+ * file's text or the store's path. `logger` is where the log goes: main.ts
+ * gives standard output.
  */
 export async function openReportServer(settings: ServerSettings, io: SecretSource, logger: NonNullable<ReportServerOptions['logger']>): Promise<OpenedServer> {
   try {
@@ -95,12 +101,17 @@ export async function openReportServer(settings: ServerSettings, io: SecretSourc
     const auditKey = settings.auditKey === undefined ? undefined : await resolveSecret(settings.auditKey, io)
     const auditRefused = auditKey === undefined ? undefined : auditKeyProblem(auditKey, key)
     if (auditRefused !== undefined) return { ok: false, problem: auditRefused }
+    // Before the server is made, so that a volume that is not there stops
+    // the process here, with its sentence, rather than at the first save.
+    const store = await openFileTemplateStore(settings.storeDir)
+    if (!store.ok) return { ok: false, problem: `${STORE_DIR_SETTING}: ${store.problem}` }
     // The server's own log is the trail, looked up when an event fires: the
     // server does not exist yet while its options are built, and an event
     // fires only for a request it answered, so never before `app` is.
     const app: FastifyInstance = await createReportServer({
       verifyIdentity,
       roles: settings.roles,
+      store: store.store,
       audit: { sink: (event) => logAuditSink(app.log)(event), ...(auditKey === undefined ? {} : { key: auditKey }) },
       logger,
       rateLimit: settings.rateLimit,

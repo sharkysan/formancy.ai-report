@@ -45,7 +45,7 @@
     },
     {
       "gate": "G5",
-      "open": "A later release: the report server verifies who is asking and answers nothing else (0046); no draft, publication, job or artifact exists yet, so none of what the gate tests does."
+      "open": "A later release: the report server verifies who is asking (0046) and keeps a template's draft and the images it declares (0049), but no publication, render job or artifact exists yet, so the gate's tests of those have nothing to run against."
     },
     {
       "gate": "G6",

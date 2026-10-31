@@ -8,8 +8,8 @@ saves. It is written for the 0.2.0 developer preview, but for the
 XRechnung, which needs the release after it (section 2): the packages are
 the ones
 [README.md](../README.md#packages) lists, the report format is version 0, a
-draft, and there is no server package yet, so where a page needs a server
--- to store a report, or to hand it data -- the server is yours.
+draft, and where a page needs a server -- to store a report, or to hand it
+data -- the server is yours, or the one section 6 keeps a draft on.
 
 Formancy Report is source-available, not open source: evaluating and
 developing with it, as this guide does, is free, and running it in
@@ -24,10 +24,10 @@ by the install gate, `pnpm test:e2e:install`, against the packages as
 one; CI runs the gate on every pull request and before every release
 ([0015](./decisions/0015-the-getting-started-guide-is-compiled-and-run-by-the-install-gate.md)):
 
-- the Node blocks of sections 2 and 6 are one program, checked against
+- the Node blocks of sections 2 and 7 are one program, checked against
   Node's types and run: it must write a PDF and print exactly the lines this
   guide shows it printing;
-- the blocks of sections 3 and 4 are one React page, checked against the
+- the blocks of sections 3, 4 and 6 are one React page, checked against the
   DOM's types and not Node's, at the newest and the oldest React the React
   builder's peer range admits: its component is drawn by React's server
   renderer, its preview is run under Node against the browser entry of the
@@ -56,7 +56,7 @@ To render a PDF, in Node or in a browser:
 npm install @formancy/report-runtime @formancy/report-render-pdf
 ```
 
-To validate and diagnose a report your application stores (section 6):
+To validate and diagnose a report your application stores (section 7):
 
 ```sh guide=node
 npm install @formancy/report-spec @formancy/report-core
@@ -66,6 +66,13 @@ To embed the editor in a React page, in a React application:
 
 ```sh guide=react
 npm install @formancy/report-core @formancy/report-builder-core @formancy/report-builder-react @formancy/themes@0.11.0
+```
+
+To keep the draft on Report's server from that page (section 6), beside the
+install line above:
+
+```sh guide=react
+npm install @formancy/report-client
 ```
 
 To embed it in an Angular page, in an Angular application:
@@ -553,18 +560,18 @@ The same two, in `editor.ts`, open a report for the Angular page in section
 import { openReportSession } from '@formancy/report-core'
 import type { ReportSession } from '@formancy/report-core'
 import { createReportEditor } from '@formancy/report-builder-core'
-import type { ReportEditor } from '@formancy/report-builder-core'
+import type { ImageStore, ReportEditor } from '@formancy/report-builder-core'
 
 export interface OpenedEditor {
   readonly session: ReportSession
   readonly editor: ReportEditor
 }
 
-/** A session over a stored report and an editor over the session, in English; a report the validator refuses is not opened. */
-export function openEditor(stored: unknown): OpenedEditor {
+/** A session over a stored report and an editor over the session, in English; a report the validator refuses is not opened. Given an image store, the builder offers Add image…. */
+export function openEditor(stored: unknown, images?: ImageStore): OpenedEditor {
   const opening = openReportSession(stored)
   if (!opening.ok) throw new Error(opening.errors.map((error) => `${error.code} at ${error.path}`).join('; '))
-  return { session: opening.session, editor: createReportEditor(opening.session, { locale: 'en' }) }
+  return { session: opening.session, editor: createReportEditor(opening.session, { locale: 'en', ...(images === undefined ? {} : { images }) }) }
 }
 ```
 
@@ -618,7 +625,11 @@ The page draws the builder, a Save button and the preview.
 `<ReportBuilder editor={editor} />` needs no prop but the editor and fills
 its container, so the page gives `.report-page` a height. The session's `hash()` names the
 document and stays the same until an edit, and the same again once that
-edit is undone, so Save is offered only when there is something to save;
+edit is undone, so Save is offered only when there is something to save,
+and not while a save is in flight, so a second press cannot go out from the
+revision the first is about to replace; the page marks the document saved
+only when `save` answers `true`, so a save that was refused leaves Save
+offered;
 `exportDocument()` is a deep copy of the document, safe to hand to anything.
 Undo and redo are the builder's -- its toolbar, and Ctrl+Z and Ctrl+Y -- and
 act on the session's history, which outlives the builder; a control of the
@@ -638,23 +649,32 @@ export interface ReportPageProps {
   readonly opened: OpenedEditor
   /** The same function on every render: a new one starts the preview again. */
   readonly print: Print
-  readonly save: (report: ReportDefinition) => void
+  /** Answers whether the report was saved; the page marks it saved only on `true`. An answer of `false` is the host's to show. */
+  readonly save: (report: ReportDefinition) => boolean | Promise<boolean>
 }
 
 export function ReportPage({ opened: { session, editor }, print, save }: ReportPageProps): ReactElement {
   const hash = useSyncExternalStore(session.subscribe, session.hash, session.hash)
   const [saved, setSaved] = useState(hash)
+  const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState<Preview>()
   useEffect(() => keepPreviewing(session, print, setPreview), [session, print])
 
   const onSave = (): void => {
-    save(session.exportDocument())
-    setSaved(hash)
+    const sent = hash
+    setSaving(true)
+    void Promise.resolve(save(session.exportDocument())).then(
+      (answer) => {
+        setSaving(false)
+        if (answer) setSaved(sent)
+      },
+      () => setSaving(false),
+    )
   }
   return (
     <div className="report-page">
       <ReportBuilder editor={editor} />
-      <button type="button" disabled={hash === saved} onClick={onSave}>
+      <button type="button" disabled={hash === saved || saving} onClick={onSave}>
         Save
       </button>
       {preview === undefined ? null : 'pdf' in preview ? <PdfFrame pdf={preview.pdf} /> : <p role="alert">{preview.refused}</p>}
@@ -676,7 +696,10 @@ is stored, the sample it previews against, and the assets approved for the
 report, each with the digest it was approved by and its bytes as base64.
 The lookup hands an asset over only at the digest the report declares, so
 a report that names one the server did not send is refused in the preview
-as `missing-asset`, naming it. In `main.tsx`:
+as `missing-asset`, naming it. Its `save` answers whether your server took
+the report, by the status it answered, so the page marks the document
+saved only once the server has; a refusal leaves Save offered, and so does
+a request that fails, whose promise rejects. In `main.tsx`:
 
 ```tsx guide=react file=main.tsx
 import '@formancy/themes/workbench.css'
@@ -704,9 +727,8 @@ const approved = sent.map((each) => ({ ...each, bytes: Uint8Array.from(atob(each
 const opened = openEditor(stored)
 const images: ImageResolver = (ref) => approved.find((each) => each.asset === ref.asset && each.digest === ref.digest)
 const print: Print = (report, signal) => printPreview(report, sample, images, signal)
-const save = (report: ReportDefinition): void => {
-  void fetch('/reports/quotation', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(report) })
-}
+const save = async (report: ReportDefinition): Promise<boolean> =>
+  (await fetch('/reports/quotation', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(report) })).ok
 
 const root = document.getElementById('report')
 if (root === null) throw new Error('the page has no element with the id report')
@@ -722,7 +744,7 @@ above are error TS2882. A bundler's client types declare `*.css` -- Vite's
 The page made the editor, so the page disposes of it, with
 `editor.dispose()`, once no builder shows it; the builder only listens. A
 report the page saves is untrusted when it comes back to your server:
-section 6 reads one before anything prints it.
+section 7 reads one before anything prints it.
 
 What it costs: every committed edit diagnoses the whole report again, and
 the preview prints the whole report after every pause; neither is measured
@@ -822,7 +844,268 @@ The preview of section 4 is not Angular's yet in this guide:
 in an `effect` and stop it in the effect's cleanup, but no block here does,
 so nothing has run it in Angular.
 
-## 6. Validate and diagnose a stored report
+## 6. Keep the draft on Report's server
+
+Section 4's page saves to routes that are yours. `@formancy/report-server`
+keeps a template's draft and the images it declares for you, and
+`@formancy/report-client` is what a page calls it with
+([its README](../packages/report-client/README.md#save-and-reopen-a-draft)).
+The code below is a React host's browser code, written for a server whose
+address and token your page is given; the install gate type-checks it
+against the DOM's types and bundles it, and starts no server, so what
+follows is checked to compile and not run.
+
+A draft is saved **from the version it replaces**, `{ revision, digest }`:
+the one the page opened, or the one its last save answered, or `null` for
+a template not yet saved, whose first save creates it. A save from a draft
+that is no longer the newest -- another revision, or its own revision
+saved again since under another digest, as after a restore of the server's
+store from a backup older than it -- is refused `draft-changed`, with the
+revision that stands, and writes nothing, so two authors do not overwrite
+each other unseen, short of an operator removing a draft's newest file by
+hand while the server runs (0049). The client answers a refusal and never
+throws it; what it throws is what no request could carry as it means it,
+such as a token no bearer header carries.
+
+**The images.** The runtime's `AssetResolver` is synchronous, so it cannot
+ask the server for a PNG while a preview prints. The page keeps a cache the
+resolver reads from, in `images.ts`, and fills it from both ends: opening a
+draft reads every image it declares, and an image a person adds is kept on
+the server, then put in the cache, before `keep` resolves, which is when
+the builder declares the asset and the preview renders (0033). It does not
+read the fonts a report may declare, which the client's `readImage` does
+not answer for; a report that prints in a font of its own is refused in the
+preview as `missing-asset` until your page resolves it as section 4's
+lookup does.
+
+```ts guide=react file=images.ts
+import type { ReportClient } from '@formancy/report-client'
+import type { ImageStore } from '@formancy/report-builder-core'
+import type { AssetResolver, ImageBytes, ReportDefinition } from '@formancy/report-runtime'
+
+export interface ImageCache {
+  /** What the preview resolves from, answering for an image only at the digest the report declares. */
+  readonly resolve: AssetResolver
+  /** What the editor keeps an added image through. */
+  readonly store: ImageStore
+  /** Reads every image `report` declares that the cache does not hold; throws when the server will not give one. */
+  load(report: ReportDefinition): Promise<void>
+}
+
+export function createImageCache(reports: ReportClient): ImageCache {
+  const held = new Map<string, ImageBytes>()
+  return {
+    resolve: (ref) => held.get(ref.digest),
+    store: {
+      async keep(image) {
+        const kept = await reports.keepImage(image.bytes, image.digest, image.mediaType)
+        if (!kept.ok) return { ok: false, message: kept.refusal.message }
+        held.set(image.digest, { mediaType: image.mediaType, bytes: image.bytes })
+        return { ok: true }
+      },
+    },
+    async load(report) {
+      for (const asset of report.assets) {
+        if (!asset.mediaType.startsWith('image/') || held.has(asset.digest)) continue
+        const read = await reports.readImage(asset.digest)
+        if (!read.ok) throw new Error(`the image ${asset.id} was not read: ${read.refusal.code}`)
+        held.set(asset.digest, read.value)
+      }
+    },
+  }
+}
+```
+
+**The draft.** `openDraft`, in `drafts.ts`, reads the newest draft, fills the
+cache, and opens it with section 4's `openEditor`, given the cache's store
+so that the builder offers Add image…. The `KeptDraft` it answers holds the
+version it saves from, the draft's revision and digest, in a closure, so a
+save that succeeds moves it and the next save is from there; a save the
+server refused leaves it where it was.
+
+```ts guide=react file=drafts.ts
+import type { ReportClient } from '@formancy/report-client'
+import type { ReportDefinition } from '@formancy/report-runtime'
+import { openEditor } from './editor.js'
+import type { OpenedEditor } from './editor.js'
+import type { ImageCache } from './images.js'
+
+/** What a save came to: the revision it wrote, someone else's save in between, or a refusal the author is told of. */
+export type SaveOutcome =
+  | { readonly kind: 'saved'; readonly revision: number }
+  | { readonly kind: 'changed'; readonly message: string }
+  | { readonly kind: 'refused'; readonly message: string }
+
+export interface KeptDraft {
+  readonly opened: OpenedEditor
+  /** Saves the session's document from the version this draft was opened at, or last saved at; from `null` while the template has no draft. */
+  save(): Promise<SaveOutcome>
+}
+
+/** The template's newest draft, its images read, opened in a new session; `blank` where the template has none yet, whose first save creates it. Call it again to reload; it never touches a session that is open. */
+export async function openDraft(reports: ReportClient, images: ImageCache, template: string, blank: ReportDefinition): Promise<KeptDraft> {
+  const read = await reports.readDraft(template)
+  if (!read.ok && read.refusal.code !== 'no-draft') throw new Error(`the draft was not read: ${read.refusal.code}`)
+  const report = read.ok ? read.value.report : blank
+  await images.load(report)
+  const opened = openEditor(report, images.store)
+  // The version the next save names: null until the template's first save, which creates it.
+  let from: { readonly revision: number; readonly digest: string } | null = read.ok ? { revision: read.value.revision, digest: read.value.digest } : null
+  return {
+    opened,
+    async save() {
+      const answer = await reports.saveDraft(template, opened.session.exportDocument(), from)
+      if (answer.ok) {
+        const { revision, digest } = answer.value
+        from = { revision, digest }
+        return { kind: 'saved', revision }
+      }
+      if (answer.refusal.code === 'draft-changed') return { kind: 'changed', message: 'Someone saved this template since you opened it. Reload to read their draft; yours is not saved.' }
+      return { kind: 'refused', message: answer.refusal.message }
+    },
+  }
+}
+```
+
+A template comes into being with its first save, so until then reading its
+draft is refused `no-draft`. `openDraft` then opens the report the host
+hands it as `blank` -- a starter of your own, or report-spec's
+`emptyReport(template, title, locale)` where your page installs
+report-spec -- whose `id` is the template's, or its save is refused
+`template-id-mismatch`; and the version is `null`, so the first Save goes
+out from `null`, as `If-None-Match: *`, and creates the template. Section
+4's page offers Save once the author has changed something, so a blank
+opened and left as it is creates nothing. Two authors who open a template
+not yet saved both save from `null`, and the second is told `changed`, as
+for any save from a draft that is no longer the newest.
+
+**A conflict, and a reload.** On `changed`, show the message and offer a
+reload, which is `openDraft` again and the new `KeptDraft`'s `opened` in
+the page's place: dispose of the old editor with `editor.dispose()` once no
+builder shows it, as section 4 says. A reload opens a **new session**; it
+never replaces the document of the old one, because the old session's undo
+history would still be there, and an undo would bring back the text the
+reload had just replaced, as an edit the author made. A new session has
+no history, so there is nothing to undo past what the server holds. What
+the reload costs is the author's unsaved edits, which the message says; the
+page can keep `exportDocument()` of the old session aside first if it
+means to offer them back.
+
+**The page that composes them.** `draft-host.tsx` makes the client from the
+server's address and the token function your page is given, opens the
+draft, or the `blank` it is given where the template has none, and
+renders section 4's `ReportPage` with the draft's `save` and the cache's
+`resolve`, which the preview prints with. Save answers `true` only when
+the server wrote the revision. For `changed` and `refused` it answers
+`false`, which leaves Save offered, and the host shows the outcome's
+message in an alert; it always offers Reload, which is `openDraft`
+again, the new `KeptDraft` taking the old one's place and the old editor
+disposed of. Nothing uses the old `KeptDraft` after that. A save that
+throws, such as a token no bearer header carries, is not an answer: the
+page leaves Save offered and shows nothing, so a host whose `token` can
+fail catches it in its own `save`.
+
+```tsx guide=react file=draft-host.tsx
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactElement } from 'react'
+import { createReportClient } from '@formancy/report-client'
+import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
+import { openDraft } from './drafts.js'
+import type { KeptDraft } from './drafts.js'
+import { createImageCache } from './images.js'
+import type { Print } from './preview.js'
+import { printPreview } from './print.js'
+import { ReportPage } from './report-page.js'
+
+export interface DraftHostProps {
+  /** The report server's base URL. */
+  readonly server: string
+  /** The host's current token, asked before every request. A new function on every render is fine: the latest one is asked, and nothing is opened again for it. */
+  readonly token: () => string | Promise<string>
+  readonly template: string
+  /** What the template opens as while it has no draft, its `id` the template's. Read when the draft opens, so a new one on every render is fine too. */
+  readonly blank: ReportDefinition
+  /** The data the preview prints against, as in section 3. */
+  readonly sample: ReportData
+}
+
+export function DraftHost({ server, token, template, blank, sample }: DraftHostProps): ReactElement {
+  // The latest token and blank, written after each render, since React forbids writing a ref while it renders, by an effect declared before the one that opens the draft, so that each open and each request reads the current ones.
+  const latest = useRef({ token, blank })
+  useEffect(() => {
+    latest.current = { token, blank }
+  })
+  // Once per server: a client made again would open the draft again, and dispose the editor that holds the author's unsaved edits.
+  const { reports, images } = useMemo(() => {
+    const client = createReportClient({ server, token: () => latest.current.token() })
+    return { reports: client, images: createImageCache(client) }
+  }, [server])
+  const opens = useRef(0)
+  const [kept, setKept] = useState<{ readonly draft: KeptDraft; readonly open: number }>()
+  const [notice, setNotice] = useState<string>()
+  const [reloads, setReloads] = useState(0)
+  const print = useMemo<Print>(() => (report, signal) => printPreview(report, sample, images.resolve, signal), [images, sample])
+
+  // Opens the draft, and again when Reload bumps `reloads`; each open is a new session.
+  useEffect(() => {
+    let current = true
+    openDraft(reports, images, template, latest.current.blank).then(
+      (next) => {
+        if (!current) return next.opened.editor.dispose()
+        opens.current += 1
+        setKept({ draft: next, open: opens.current })
+        setNotice(undefined)
+      },
+      (error: unknown) => {
+        if (current) setNotice(error instanceof Error ? error.message : String(error))
+      },
+    )
+    return () => {
+      current = false
+    }
+  }, [reports, images, template, reloads])
+  // The editor the page made is the page's to dispose of, once no builder shows it.
+  useEffect(() => (kept === undefined ? undefined : () => kept.draft.opened.editor.dispose()), [kept])
+
+  if (kept === undefined) return notice === undefined ? <p>Opening the draft</p> : <p role="alert">{notice}</p>
+  const save = async (_report: ReportDefinition): Promise<boolean> => {
+    const outcome = await kept.draft.save()
+    if (outcome.kind === 'saved') {
+      setNotice(undefined)
+      return true
+    }
+    setNotice(outcome.message)
+    return false
+  }
+  return (
+    <>
+      {/* Keyed to the open: the page seeds what it has saved from the session it is given, once. */}
+      <ReportPage key={kept.open} opened={kept.draft.opened} print={print} save={save} />
+      {notice === undefined ? null : <p role="alert">{notice}</p>}
+      <button type="button" onClick={() => setReloads(reloads + 1)}>
+        Reload
+      </button>
+    </>
+  )
+}
+```
+
+`ReportPage` is keyed to each open, because it seeds what it has saved from
+the session it is first given: without the key, a reload would leave Save
+offered over a document the server already holds. The client and the cache
+are made once per `server`, and the token and the blank are read through a
+ref, which an effect writes after each render -- React forbids writing one
+while it renders -- declared before the effect that opens the draft, so
+that an open reads the current ones. A `token` or a `blank` written inline
+in a parent's render is the latest one read and never reopens the draft,
+which would dispose the editor that holds unsaved edits.
+
+The `save` of the page is given the report it exports and ignores it, since
+the `KeptDraft` exports the session's document itself, at the moment it
+sends. Reload is always offered here, and it costs the author's unsaved
+edits, as above.
+
+## 7. Validate and diagnose a stored report
 
 A report that comes back from storage, or from the editor's Save, is
 untrusted until it is read. `validateReport` takes anything and never
