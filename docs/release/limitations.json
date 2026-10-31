@@ -19,7 +19,7 @@
       ]
     },
     "0002": {
-      "reviewed": "sha256:b06dfb3d5006f8a6a515c2c923dacbcd42645b3c884e4a439e843007fb2c4ee1",
+      "reviewed": "sha256:a5c7e1953422a1b63d423f6aeeb6d8de5327082e17d75bf4c3bc8f069668cc36",
       "limitations": [
         {
           "area": "release",
@@ -2234,7 +2234,7 @@
       ]
     },
     "0050": {
-      "reviewed": "sha256:c9557882589c6865e92aa2cc80910b8158ca1b0e45d6b098cb2fedb6134b6156",
+      "reviewed": "sha256:39d6e0aae49a63f4f60b50108c70c3fc0fe4ab0efc9474854e3fe6a544865dd6",
       "limitations": [
         {
           "area": "editing",

@@ -10,6 +10,18 @@ later.
 
 ## Unreleased
 
+**The lint and format rules are `@formancy/code-style` 0.12.0, pinned, and
+no longer a copy**
+([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
+formancy.ai published the four repositories' shared rules as a package
+with formancy 0.12.0, and its module is byte for byte the copy
+`scripts/code-style/` held, so no rule changed and no file is formatted
+otherwise. The root takes it at an exact version, as 0002 has it take
+every upstream package, and the copy is gone: a rule now changes in
+formancy.ai and arrives with a pin moved. A contributor installs it with
+the other devDependencies. `scripts/upstream-deps.mjs` holds the root
+manifest to exact `@formancy/*` versions too, which it did not read.
+
 **Report's server keeps a template's draft and the images it declares**
 ([0049](docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 Publication, versions and render jobs all start from a draft the server
