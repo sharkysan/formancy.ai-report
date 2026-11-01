@@ -4,6 +4,7 @@
  * totals change for reasons of their own, is `table.ts`'s; the EPC QR code
  * is `epc-qr-code.ts`'s.
  */
+import type { ChartComponent } from './chart.js'
 import type { FieldRef } from './data.js'
 import type { EpcQrCodeComponent } from './epc-qr-code.js'
 import type { StyleRule } from './styles.js'
@@ -139,6 +140,7 @@ export const COMPONENT_KINDS = [
   'columns',
   'section',
   'table',
+  'chart',
   'pageBreak',
   'keepTogether',
 ] as const
@@ -155,5 +157,6 @@ export type Component =
   | ColumnsComponent
   | SectionComponent
   | TableComponent
+  | ChartComponent
   | PageBreakComponent
   | KeepTogetherComponent

@@ -167,7 +167,7 @@ const FORMATS: { readonly [K in FormatKind]: FormatReader } = {
   },
 }
 
-function readFormat(c: Ctx, value: unknown, path: string, scope: InlineScope): Format | undefined {
+export function readFormat(c: Ctx, value: unknown, path: string, scope: InlineScope): Format | undefined {
   const o = readObject(c.f, value, path)
   const kind = o && kindOf(c.f, o, path, FORMAT_KINDS)
   return o && kind && FORMATS[kind](c, o, path, scope)
@@ -186,7 +186,7 @@ const FORMATTED: { readonly [K in FormatKind]: readonly FieldType[] | 'any' } = 
  * of `type`. An expression's type is known only when the runtime compiles
  * it, so its format is not checked here: `type` is then undefined.
  */
-function readCheckedFormat(c: Ctx, value: unknown, path: string, scope: InlineScope, type: FieldType | undefined): Format | undefined {
+export function readCheckedFormat(c: Ctx, value: unknown, path: string, scope: InlineScope, type: FieldType | undefined): Format | undefined {
   const format = readFormat(c, value, path, scope)
   const formatted = format && FORMATTED[format.kind]
   if (format !== undefined && type !== undefined && formatted !== 'any' && formatted?.includes(type) === false) {

@@ -75,6 +75,14 @@ export const REPORT_ERROR_CODES = [
    * otherwise than the e-invoice says; or a title its PDF/A cannot hold.
    */
   'invalid-e-invoice',
+  /**
+   * A chart that says what no reader could use: a series label or empty
+   * text that is blank; a palette that names a colour twice; a pie of
+   * more than one series, of a function outside `PIE_FUNCTIONS`, or with
+   * an axis title; or a line chart with value labels over more than one
+   * series.
+   */
+  'invalid-chart',
 
   // Declarations.
   /** Margins that leave less than MIN_PRINTABLE_PT either way. */

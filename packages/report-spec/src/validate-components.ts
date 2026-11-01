@@ -36,6 +36,7 @@ import { resolve, withinPage } from './validate-context.js'
 import { EPC_QR_CODE_OPTIONAL, EPC_QR_CODE_REQUIRED, readEpcQrCode } from './validate-epc-qr-code.js'
 import type { Ctx } from './validate-context.js'
 import { readExpression, readFieldRef, readInlines, readStyleRef, readStyleRules } from './validate-inline.js'
+import { CHART_OPTIONAL, CHART_REQUIRED, readChart } from './validate-chart.js'
 import { checkFixedWidths, readTable, TABLE_OPTIONAL, TABLE_REQUIRED } from './validate-table.js'
 
 export interface ComponentScope {
@@ -248,6 +249,12 @@ const KINDS: { readonly [K in ComponentKind]: KindRule<Extract<Component, { kind
     flowOnly: true,
     inFlow: true,
     read: (c, o, path, scope, base) => readTable(c, o, path, scope.region, base),
+  },
+  chart: {
+    required: CHART_REQUIRED,
+    optional: CHART_OPTIONAL,
+    flowOnly: true,
+    read: (c, o, path, scope, base) => readChart(c, o, path, scope.region, base),
   },
   pageBreak: {
     required: [],

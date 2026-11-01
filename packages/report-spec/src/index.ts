@@ -87,6 +87,8 @@ export type {
   TextComponent,
   Width,
 } from './components.js'
+export { CHART_CATEGORY_TYPES, CHART_KINDS, CHART_ORDERS, CHART_PALETTE, PIE_FUNCTIONS } from './chart.js'
+export type { ChartCategory, ChartComponent, ChartKind, ChartOrder, ChartSeries } from './chart.js'
 export { SORT_DIRECTIONS } from './table.js'
 export type { SortDirection, SortKey, TableColumn, TableComponent, TableFooterCell, TableFooterRow, TableGroup } from './table.js'
 export { PROVENANCE_KINDS, REGION_NAMES } from './definition.js'
@@ -237,6 +239,7 @@ export {
   MAX_ASSET_BYTES,
   MAX_ASSET_SIDE,
   MAX_ASSETS,
+  MAX_CHART_SERIES,
   MAX_COLUMNS,
   MAX_DATASET_FIELDS,
   MAX_ERRORS,
@@ -279,6 +282,7 @@ export {
   MAX_TABLE_COLUMNS,
   MAX_TEXT_LENGTH,
   MAX_VAT_CATEGORIES,
+  MIN_CHART_SIDE,
   MIN_COLUMNS,
   MIN_FONT_LINE,
   MIN_FONT_SIZE,

@@ -156,6 +156,7 @@ function readDataset(
     return read
   })
   declared.set(role, fields.declared)
+  if (fields.items !== undefined) c.declared.nullable.set(role, new Set(fields.items.filter(({ nullable }) => nullable).map(({ id }) => id)))
   const read = o?.form !== undefined
   const { binding, kind } = read ? readDatasetForm(c.f, o?.form, at(path, 'form')) : { binding: undefined, kind: undefined }
   checkFieldsBound(c.f, path, read, formed)

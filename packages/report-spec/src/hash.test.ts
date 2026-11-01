@@ -125,7 +125,7 @@ describe('reportHash', () => {
     if (table?.kind !== 'table') throw new Error('the fixture has its table third in the body')
     const twoTables: ReportDefinition = { ...report, regions: { ...report.regions, summary: [...report.regions.summary, { ...table, id: 'again' }] } }
     expect(() => reportHash(twoTables)).toThrow(RangeError)
-    expect(() => reportHash(twoTables)).toThrow(/second-detail-table \/regions\/summary\/4/)
+    expect(() => reportHash(twoTables)).toThrow(/second-detail-table \/regions\/summary\/5/)
   })
 
   // Upstream's canonicalisation builds each object by assignment, so an own
