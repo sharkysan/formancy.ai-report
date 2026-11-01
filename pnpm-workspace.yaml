@@ -61,8 +61,10 @@ catalog:
 # 2026-10-16, for report-data-provider (0016). formancy 0.12.0, published on
 # 2026-10-31, for the packages and the Studio's and the pages' room. Formancy
 # Data 0.3.0's @formancy/data-identity, published on 2026-10-21, for
-# report-server's identity verifier.
+# report-server's identity verifier. formancy 0.12.0's @formancy/code-style,
+# published on 2026-10-31, for the lint and format rules (0050).
 minimumReleaseAgeExclude:
+  - '@formancy/code-style@0.12.0'
   - '@formancy/data-client@0.1.0'
   - '@formancy/data-core@0.1.0'
   - '@formancy/data-identity@0.3.0'

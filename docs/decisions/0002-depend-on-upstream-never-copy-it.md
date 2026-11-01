@@ -1,12 +1,13 @@
 # 0002 — Depend on released upstream packages at exact versions; never copy them
 
-- **Status:** accepted; narrowed by [0050](0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md): its wait for a release, for the lint and format rules, a byte-for-byte copy of Formancy Health's until formancy.ai releases them as `@formancy/code-style`, deleted when this repository pins it
+- **Status:** accepted; narrowed by [0050](0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md): its wait for a release, for the lint and format rules, a byte-for-byte copy of Formancy Health's until formancy.ai releases them as `@formancy/code-style`, deleted when this repository pins it; the narrowing ended on 2026-10-31, when it pinned `@formancy/code-style` 0.12.0
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `scripts/upstream-deps.mjs`, through
   `scripts/upstream-deps.test.mjs` in `pnpm test:repo`, which CI runs on every
-  pull request. It refuses any `@formancy/*` dependency that is not a
-  workspace sibling and is not an exact released version. A range, a
+  pull request. It refuses any `@formancy/*` dependency, in the root
+  manifest or a workspace's, that is not a workspace sibling and is not an
+  exact released version. A range, a
   `workspace:` link, or a `link:`, `file:` or git specifier each fail, and the
   test proves each on a fixture before checking the real tree. The same rule
   applies to Formancy Data's packages, which share the scope, so a
