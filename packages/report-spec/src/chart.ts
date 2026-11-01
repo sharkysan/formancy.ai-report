@@ -15,7 +15,7 @@ import type { CurrencyFormat, Format, NumberFormat } from './values.js'
 export const CHART_KINDS = ['bar', 'line', 'pie'] as const
 export type ChartKind = (typeof CHART_KINDS)[number]
 
-/** The order a chart lists its categories in: as the rows first have them, or by the first series' total, least or greatest first. */
+/** The order a chart lists its categories in: as the rows first have them, or sorted by the category, least or greatest first. */
 export const CHART_ORDERS = ['data', 'asc', 'desc'] as const
 export type ChartOrder = (typeof CHART_ORDERS)[number]
 

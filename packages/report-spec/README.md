@@ -53,6 +53,11 @@ if (!outcome.valid) {
   dataset prints; a QR-bill or an EPC QR code that asks to be paid to
   another account, or a QR-bill in another currency; or a title holding
   `&`, `<` or `>`;
+- a chart that is no chart of the detail rows -- a category that is not a
+  detail field of text, a date or a number, or that may be null and has no
+  label for its rows without one, and a series that totals what is not a
+  number -- or that would draw what no reader could use (`invalid-chart`):
+  see [A chart](#a-chart);
 - a dataset read from a formancy form's submissions
   ([0042](../../docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md))
   that is not read whole -- a field of it that says nowhere it is read, or
@@ -402,6 +407,74 @@ What it does not do:
   anything EN 16931's terms here do not hold.
 - That a Leitweg-ID belongs to a buyer, or that a portal takes the file.
 
+## A chart
+
+A component, `chart`, is a bar, line or pie chart of the detail rows
+([0051](../../docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+Its categories are the values of one detail field, and each of its series
+a total of one detail field for each category, by a function an aggregate
+takes. Its types and lists are `chart.ts`'s, and `validate-chart.ts` holds
+a chart to them where it is written.
+
+```ts
+import { CHART_PALETTE, MAX_CHART_SERIES, MIN_CHART_SIDE, PIE_FUNCTIONS } from '@formancy/report-spec'
+
+// In the body, over a detail dataset whose `area` is a string that may be null and whose `hours` is a decimal:
+const chart = {
+  id: 'hours-by-area', kind: 'chart', chart: 'bar', dataset: 'detail', width: 400, height: 200,
+  category: { field: { dataset: 'detail', field: 'area' }, order: 'data', nullLabel: 'No area' },
+  series: [
+    { id: 'hours', label: 'Hours', fn: 'sum', of: { dataset: 'detail', field: 'hours' } },
+    { id: 'findings', label: 'Findings', fn: 'count' },
+  ],
+  valueFormat: { kind: 'number', scale: 2, grouping: true },
+  emptyText: 'No findings.',
+} as const
+// Without `nullLabel`: missing-property at /category/nullLabel. As a pie of two series: invalid-chart at /series.
+CHART_PALETTE[1] // '#d95f02': the second series' colour, unless the chart names a palette of its own
+MAX_CHART_SERIES // 8: a series a colour of the palette
+MIN_CHART_SIDE // 72: an inch, the least a side may be
+PIE_FUNCTIONS // ['sum', 'count']: a pie is the shares of one total
+```
+
+- **Its kind of chart is a property**, `chart`, of `CHART_KINDS`, so a bar
+  chart becomes a line chart in place.
+- **Its box** is `width` and `height` in points, each at least
+  `MIN_CHART_SIDE` and within the printable area, as an image's. It
+  stands in the body and the summary, and in a section, a columns block or
+  a keep-together block there.
+- **Its category** is a detail field of `CHART_CATEGORY_TYPES` -- text, a
+  date, an integer or a decimal -- in the order the data first gives each
+  (`data`) or sorted by it (`asc`, `desc`), and printed in a format that
+  displays its type. A field that may be null asks for `nullLabel`, the
+  label its rows without one print under.
+- **Its series**, one to `MAX_CHART_SERIES`, each with an id unique in the
+  chart, are `{ id, label, fn, of?, rounding? }`: one of the aggregates'
+  functions over a detail field, a count of rows where `of` is left out,
+  a sum, an average, a minimum or a maximum of an integer or a decimal,
+  and an average with its rounding. A series is no reference to a
+  declared aggregate.
+- **Its values** print in one number or currency format, `valueFormat`,
+  read where the report is: a currency is a literal or a header field,
+  never a detail field.
+- **Its colours** are `CHART_PALETTE`'s, a series' at its place and a
+  pie's slice at its category's: eight, each at least 3:1 against white
+  paper, which `chart.test.ts` computes. A chart's own `palette` of one to
+  eight colours replaces it, read the same way.
+- **`invalid-chart`** refuses a blank series label or `emptyText`, a
+  palette that names a colour twice, a pie of more than one series, of a
+  function outside `PIE_FUNCTIONS` or with an axis title, and value labels
+  on a line chart of several series.
+
+What they do not check:
+
+- that a chart's own palette has a colour for each series it colours: a
+  bar or line chart of more series than its palette has colours is valid;
+- whether a chart's categories fit its box, or how many a pie has, which
+  only the data says;
+- what a chart prints. No release resolves one yet: the runtime refuses a
+  report that holds one.
+
 ## An SVG asset
 
 An image asset may be `image/svg+xml`, held to one form: what `cleanSvg`
@@ -683,6 +756,7 @@ componentAt(blank, 'title') // where a component is, by id: the path its errors 
 to be read by a later release. Nor by an earlier one: a kind the draft gains
 is refused as `unknown-kind` by a release that predates it, never skipped. A
 report with a `qrCode` or an `epcQrCode` is refused so by 0.1.0, and one
-with a `paymentPart` or an `eInvoice` as `unknown-property`.
+with a `paymentPart` or an `eInvoice` as `unknown-property`; a report with
+a `chart` is refused so by 0.2.0.
 
 Source-available, not open source: see [`LICENSE.md`](../../LICENSE.md).

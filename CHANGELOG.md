@@ -10,6 +10,67 @@ later.
 
 ## Unreleased
 
+**A report may hold a bar, line or pie chart of its detail rows, which no
+release prints yet**
+([0051](docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+Reports are often read for a shape -- which month was up, which category
+is most of the total -- and Report could print numbers only in tables. A
+chart arrives a stage at a time, the format and the editing core first,
+and a stage that does not handle one yet refuses it rather than print the
+report without it: **the runtime refuses every render of a report that
+holds a chart, as `chart-not-resolved`**, naming the chart, until it
+resolves charts.
+- **report-spec's `chart` component.** `chart` is `bar`, `line` or `pie`
+  (`CHART_KINDS`), a property, so a bar chart becomes a line chart in
+  place; `dataset` is `'detail'`; `width` and `height` are a box of at
+  least `MIN_CHART_SIDE`, an inch, within the printable area. Its
+  `category` is a detail field of text, a date or a number
+  (`CHART_CATEGORY_TYPES`), in the data's order or sorted by it
+  (`CHART_ORDERS`), and a field that may be null asks for the `nullLabel`
+  its rows print under, so that no row is drawn under no word. Each of its
+  one to `MAX_CHART_SERIES` series is a function an aggregate takes over a
+  detail field of its own, `{ id, label, fn, of?, rounding? }`, an average
+  declaring its rounding, rather than a declared aggregate, which neither
+  builder can make. Every value prints in one number or currency format,
+  `valueFormat`, read in the report's scope; `emptyText` is what a chart
+  with nothing to draw prints; a title, axis titles and value labels are
+  optional. It stands in the body and the summary, and in a section, a
+  columns block or a keep-together block there.
+- **Colours by place.** A series is drawn in `CHART_PALETTE`'s colour at
+  its place, and a pie's slice at its category's: eight colours, each at
+  least 3:1 against white paper, so that the eight series a chart may
+  have are each told apart, or a chart's own `palette` of one to eight,
+  which nothing yet holds to the number of its series. **Removing a series from the middle shifts the colour of every series
+  after it.**
+- **`invalid-chart`**, a new error code, refuses what no reader could use:
+  a blank series label or `emptyText`, a palette that names a colour
+  twice, a pie of more than one series, of a function other than a sum or
+  a count (`PIE_FUNCTIONS`), or with an axis title, and value labels on a
+  line chart of several series, which could only print over one another.
+- **report-core names what a chart reads**, so a field only a chart reads
+  is not warned of as unused, and `fieldReaders`,
+  `removeFieldWithReaders` and a form review find it. A removed field
+  takes the series that totals it, alone, and a chart goes whole where the
+  field is its category or every series goes. `format-rounds-again` now
+  says of a series too that it is printed at fewer places than its
+  rounding keeps. A chart changes through `updateComponent`, with no
+  command of its own.
+- **`chart-not-resolved`**, a new code of the runtime's, is the refusal
+  above. It goes when the runtime resolves charts.
+- **Both builders' palettes offer Chart**: a bar chart of the detail rows
+  over their first field of text, a date or a number, summing the first
+  other number or counting the rows where there is none, or, where the
+  detail has no such field, a word on what to declare first. Its
+  properties are those every component has until the builders edit a
+  chart's own, so its kind, category, series and words are a host's or a
+  proposal's to write in the JSON for now.
+- **A form version that removes a field a chart totals** blocks the
+  report's submissions of it until reviewed, and the review's removal
+  takes that series alone; `generateReport` draws no chart, since a first
+  draft would guess a total the form never asked for.
+- **0.2.0 refuses a report with a chart** as `unknown-kind`, never skipping
+  it: the format is still the draft, version "0".
+
 **Report's server keeps a template's draft and the images it declares**
 ([0049](docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 Publication, versions and render jobs all start from a draft the server

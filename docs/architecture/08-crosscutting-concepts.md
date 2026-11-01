@@ -49,7 +49,9 @@ version
 [0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
 [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
-[0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
+[0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)),
+and 0.2.0 one with a chart
+([0051](../decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
 An SVG construct the cleaner's tables do not name is refused, named, never
 dropped: a construct nobody decided about is one a browser may draw and
 the converter not (0030).
@@ -60,6 +62,20 @@ that its PDF/A-3b cannot hold, a CMYK JPEG or a title its XMP cannot
 write, rather than draw a PDF that says it is a PDF/A and is not one
 ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md));
 an XRechnung's plain PDF it draws only as its copy, labelled so (0038).
+
+**A stage that does not handle something yet refuses it.** A chart arrives
+a stage at a time, and each stage merges on its own. The format holds a
+chart where it is written to what a reader could use -- a category of
+text, a date or a number with a label for its rows without one, series
+that total numbers or count rows, a pie the shares of one sum or count --
+and refuses the rest as `invalid-chart`, or by the code every component's
+fields are refused by; the editing core names what it reads, so a removed
+field takes its series. The runtime does not resolve one yet, and refuses
+a report that holds one as `chart-not-resolved`, naming it, in a preview
+as in a final render, rather than resolve the report without it (0051).
+What only the data can say -- whether the categories fit the box, how
+many slices a pie has -- is left to the stages that resolve and draw a
+chart, to be refused there, never cut to fit.
 
 **A code is read from a closed list.** An e-invoice's units, countries, VAT
 prefixes and schemes are lists someone chose (`UNIT_CODES`,
@@ -101,6 +117,10 @@ where the shared readers quote what they find (`validate-payment-text.ts`).
 An e-invoice holds names, addresses, accounts and VAT identifiers, so
 `invalid-e-invoice` names the business term and the rule, never the value,
 and the renderer's refusals of an e-invoice never quote its XML (0027).
+A chart's own refusals and its diagnostic name it, and a series, by id,
+and say what is wrong by a size, a type, a function or a colour, never
+quoting a label, a title or the empty text, which may be a customer's
+words (0051).
 An SVG's refusal names the element path and the construct, and what
 cleaning removed a kind, a name and a count: a link's address, a script's
 text and a style's content are never repeated, and a name is repeated

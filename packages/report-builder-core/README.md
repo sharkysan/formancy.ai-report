@@ -141,9 +141,17 @@ const editor = createReportEditor(opening.session, {
   its account, it pays the e-invoice's account instead, as written, with
   its BIC where it names one, and is unavailable until the e-invoice gives
   payment instructions (0044). It has no amount, which the payer fills in,
-  and no frame, which is Austria's option. Where the report lacks what a kind needs (an image
-  with nothing to draw, a table with no detail dataset), the entry says
-  what to declare first.
+  and no frame, which is Austria's option. A new chart is a bar chart of
+  the detail rows, its box held to the printable area: its category the
+  first detail field of text, a date or a number, in the order the data
+  gives, labelled for its rows without one where the field may be null
+  ("None", in the report's language), and its one series the first other
+  number summed, or the rows counted where there is none. Its properties
+  are those every component has, until the builders edit a chart's own
+  ([0051](../../docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+  Where the report lacks what a kind needs (an image with nothing to
+  draw, a table with no detail dataset, a chart with no detail field of
+  text, a date or a number), the entry says what to declare first.
 - **`images`**: whether the host gave a store (`store`), so a builder
   draws Add image…; the file chooser's `accept`, each type the store keeps
   and its usual extensions; the name of the file being added, from the

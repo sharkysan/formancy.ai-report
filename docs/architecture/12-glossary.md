@@ -110,6 +110,14 @@ payload written into one is not an EPC QR code, and nothing says so
 ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md),
 [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
 
+**"Palette"** is three things. The builders' palette is the list of kinds a
+person inserts from, each with its default; the room's palette is the
+colours formancy's `room.css` sets, which `scripts/palette.test.mjs`
+guards; and a chart's palette is the colours its series and a pie's
+slices are drawn in by place, report-spec's `CHART_PALETTE` or the chart's
+own `palette`
+([0051](../decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+
 **"Refused"** is said of a validation error, a command's refusal, a runtime
 error and a `RenderRefusal` alike. Each layer's kind is in
 [§8.2](08-crosscutting-concepts.md#82-refusals).

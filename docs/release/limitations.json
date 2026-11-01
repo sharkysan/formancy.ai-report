@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:b273c1a17c98fbb5afb5b1500636a85f26911195614d9c8d11b903accfebdc69",
+      "reviewed": "sha256:749f75cf22f884ac6d3ed87045a56538313c09b9e750bc52a8ac1d2dd77f8b41",
       "limitations": [
         {
           "area": "format",
@@ -2245,6 +2245,38 @@
           "area": "builders",
           "says": "An object written in place as a `ReportEditor` whose `subscribe` or `state` reads `this` no longer compiles, since those members are declared `this: void` for the store hooks that call them off the object; a class or a closure is unaffected.",
           "heldBy": "packages/report-builder-core/src/implementable.test.ts"
+        }
+      ]
+    },
+    "0051": {
+      "reviewed": "sha256:6b1896d7b96ba9d6c4b01ceb1b23e1aebd95a0de0b5fc976072020ec7e48b3fe",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A chart reads the detail dataset alone, one field as its categories and each series a total of one field per category; a chart of an expression, of the header or of another dataset is not drawn.",
+          "heldBy": "packages/report-spec/src/validate-chart.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A chart draws at most eight series, and a pie one series of a sum or a count.",
+          "heldBy": "packages/report-spec/src/validate-chart.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A series is drawn in the palette’s colour at its place, and a pie’s slice in the colour at its category’s, so removing a series from the middle shifts the colour of every series after it, and no series keeps a colour of its own."
+        },
+        {
+          "area": "format",
+          "says": "A report that holds a chart is refused whole by 0.2.0, which does not know the kind, so a report saved with one opens only in a release that has it."
+        },
+        {
+          "area": "runtime",
+          "says": "Until the runtime resolves charts, a report holding one is refused.",
+          "heldBy": "packages/report-runtime/src/lower.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Until the builders edit a chart’s own properties, its kind, category, series, words and palette are written in the report’s JSON by a host or a proposal; a builder inserts a bar chart of the first detail field of text, a date or a number, summing the first other number, and moves and removes it."
         }
       ]
     }

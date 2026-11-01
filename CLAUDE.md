@@ -174,6 +174,18 @@ the one walk that lays them out (`styledRows`), and refuses a face the
 family does not map and a character the face lacks, a page field's digits
 included; the QR-bill's slip and the EPC caption keep Liberation Sans
 ([0043](docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
+A chart, a component, runs through report-spec and report-core alone so
+far: its rules are report-spec's `chart.ts`, the palette `CHART_PALETTE`
+and the lists beside it, and `validate-chart.ts`, which holds its category
+and each series to the detail fields' types and the kinds' own rules as
+`invalid-chart`, its bounds `MAX_CHART_SERIES`, derived from the palette,
+and `MIN_CHART_SIDE` in `limits.ts`; the core names what it reads in
+`parts.ts`'s `READERS.chart`, takes a series alone where a removed field is
+what it totals (`readers.ts`), and says of a series rounded twice
+(`diagnostics/chart.ts`); the runtime refuses a report that holds one as
+`chart-not-resolved` until it resolves charts, and both builders' palettes
+offer one, its properties those every component has
+([0051](docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
