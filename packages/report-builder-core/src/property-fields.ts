@@ -548,6 +548,7 @@ const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { 
     textField('/emptyText', { id: 'field.emptyText' }, 'text', () => component.emptyText),
     styleField('/headerStyle', { id: 'field.headerStyle' }, report.styles, component.headerStyle, t),
   ],
+  chart: () => [], // R10: only the fields every component has, until the builders edit a chart's own
   pageBreak: () => [],
   keepTogether: () => [],
 }

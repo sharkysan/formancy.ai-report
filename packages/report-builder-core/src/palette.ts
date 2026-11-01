@@ -12,15 +12,15 @@
  * palette's own labels are in the editor's.
  */
 import { nextComponentId } from '@formancy/report-core'
-import { COMPONENT_KINDS, mmToPt, printableArea, squareRoom } from '@formancy/report-spec'
-import type { Alignment, Component, ComponentKind, FieldType, ImageSource, ReportDefinition } from '@formancy/report-spec'
+import { CHART_CATEGORY_TYPES, COMPONENT_KINDS, mmToPt, printableArea, squareRoom } from '@formancy/report-spec'
+import type { Alignment, Component, ComponentKind, FieldRef, FieldType, ImageSource, ReportDefinition } from '@formancy/report-spec'
 import { kindLabel } from './labels.js'
 import type { PaletteEntry } from './model.js'
 import { contentLocale, editorText } from './text.js'
 import type { EditorText, MessageId } from './text.js'
 
 /** A new image's or rectangle's box, in points, when the printable area has room for it. */
-const BOX = { image: { width: 100, height: 50 }, rectangle: { width: 100, height: 40 } } as const
+const BOX = { image: { width: 100, height: 50 }, rectangle: { width: 100, height: 40 }, chart: { width: 300, height: 180 } } as const
 /** A new QR code's side, its quiet zone included, in points, when the printable area has room for it both ways: 30 mm. */
 const QR_SIDE = mmToPt(30)
 /**
@@ -138,6 +138,31 @@ const DEFAULTS: { readonly [K in ComponentKind]: (report: ReportDefinition, word
       value: { kind: 'field', field: { dataset: 'detail', field: field.id } },
     }
     return { dataset: 'detail', columns: [column], emptyText: words('default.emptyText'), repeatHeader: true }
+  },
+  // A bar chart of the detail rows: by the first field that can name a category, the first number summed or, with none, the rows counted.
+  chart: (report, words) => {
+    const fields = report.datasets.detail?.fields ?? []
+    const category = fields.find((candidate) => CHART_CATEGORY_TYPES.includes(candidate.type))
+    if (category === undefined) return 'palette.needsChartData'
+    const number = fields.find((candidate) => candidate !== category && (candidate.type === 'integer' || candidate.type === 'decimal'))
+    const room = printableArea(report.page)
+    const of: FieldRef = { dataset: 'detail', field: number?.id ?? '' }
+    return {
+      chart: 'bar',
+      dataset: 'detail',
+      width: Math.min(BOX.chart.width, room.width),
+      height: Math.min(BOX.chart.height, room.height),
+      category: {
+        field: { dataset: 'detail', field: category.id },
+        order: 'data',
+        ...(category.nullable ? { nullLabel: words('default.chartNoCategory') } : {}),
+      },
+      series: [
+        number === undefined ? { id: 'series-1', label: words('default.chartCount'), fn: 'count' } : { id: 'series-1', label: number.label, fn: 'sum', of },
+      ],
+      valueFormat: { kind: 'number', scale: number?.scale ?? 0, grouping: true },
+      emptyText: words('default.chartEmpty'),
+    }
   },
   pageBreak: () => ({}),
   keepTogether: () => ({ components: [] }),

@@ -53,6 +53,7 @@ export const EN = {
   'kind.columns': 'Columns',
   'kind.section': 'Section',
   'kind.table': 'Table',
+  'kind.chart': 'Chart',
   'kind.pageBreak': 'Page break',
   'kind.keepTogether': 'Keep together',
   'kind.tableColumn': 'Column',
@@ -90,12 +91,16 @@ export const EN = {
   // The palette, and what a new component starts with.
   'palette.needsImage': 'Declare an image asset, or an image field of the header data, first.',
   'palette.needsDetail': 'Declare a detail dataset with a field to show first.',
+  'palette.needsChartData': 'Declare a detail dataset with a text, date or number field first.',
   'palette.needsPayment': 'Add the e-invoice’s payment instructions first: a payment code printed with it is paid to their account.',
   'palette.addImageFirst': 'Add an image first, with “{add}”.',
   'default.text': 'New text',
   'default.qrCode': 'https://formancy.ai/report/',
   'default.epcBeneficiary': 'Name of the beneficiary',
   'default.emptyText': 'No rows.',
+  'default.chartEmpty': 'No data.',
+  'default.chartCount': 'Count',
+  'default.chartNoCategory': 'None',
 
   // The images a person adds, and the report's own, listed in its
   // properties (0033). A reason follows `images.refused`'s colon.

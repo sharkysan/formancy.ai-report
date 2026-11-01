@@ -232,8 +232,8 @@ describe('subscribe and dispose', () => {
   test('refuses an action or a kind it does not have', () => {
     const { editor, session } = editorOver()
     expect(editor.dispatch({ type: 'explode' } as never)).toMatchObject({ ok: false, code: 'not-found' })
-    expect(editor.dispatch({ type: 'insert', kind: 'chart', target: { region: 'body', index: 0 } } as never)).toMatchObject({ ok: false, code: 'unavailable' })
-    expect(editor.dispatch({ type: 'startDrag', subject: { kind: 'chart' } } as never)).toMatchObject({ ok: false, code: 'unavailable' })
+    expect(editor.dispatch({ type: 'insert', kind: 'gauge', target: { region: 'body', index: 0 } } as never)).toMatchObject({ ok: false, code: 'unavailable' })
+    expect(editor.dispatch({ type: 'startDrag', subject: { kind: 'gauge' } } as never)).toMatchObject({ ok: false, code: 'unavailable' })
     expect(editor.dispatch({ type: 'openPanel', panel: 'settings' } as never)).toMatchObject({ ok: false, code: 'invalid-value' })
     expect(editor.dispatch({ type: 'hidePanel', panel: 'settings' } as never)).toMatchObject({ ok: false, code: 'invalid-value' })
     expect(session.revision()).toBe(0)
@@ -487,10 +487,10 @@ describe('moving by keyboard', () => {
     const { editor, session } = editorOver()
     ok(editor.dispatch({ type: 'select', id: 'gap' }))
     ok(editor.dispatch({ type: 'moveUp' }))
-    expect(bodyIds(session.document())).toEqual(['gap', 'intro', 'lines', 'notes', 'keep', 'break'])
+    expect(bodyIds(session.document())).toEqual(['gap', 'intro', 'lines', 'sales', 'notes', 'keep', 'break'])
     ok(editor.dispatch({ type: 'moveDown' }))
     ok(editor.dispatch({ type: 'moveDown' }))
-    expect(bodyIds(session.document())).toEqual(['intro', 'lines', 'gap', 'notes', 'keep', 'break'])
+    expect(bodyIds(session.document())).toEqual(['intro', 'lines', 'gap', 'sales', 'notes', 'keep', 'break'])
     expect(editor.state().selection).toEqual({ id: 'gap' })
     expect(editor.state().status.text).toBe('Moved Spacer.')
   })
@@ -526,7 +526,7 @@ describe('moving by keyboard', () => {
     const notes = componentAt(session.document(), 'notes')?.component as Extract<Component, { kind: 'section' }>
     expect(notes.components.map((component) => component.id)).toEqual(['note', 'box', 'keep'])
     ok(editor.dispatch({ type: 'outdent' }))
-    expect(bodyIds(session.document())).toEqual(['intro', 'gap', 'lines', 'notes', 'keep', 'break'])
+    expect(bodyIds(session.document())).toEqual(['intro', 'gap', 'lines', 'sales', 'notes', 'keep', 'break'])
     expect(editor.state().selection).toEqual({ id: 'keep' })
   })
 

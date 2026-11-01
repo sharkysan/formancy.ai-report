@@ -90,6 +90,18 @@ const RICH: ReportDefinition = {
         repeatHeader: true,
       },
       {
+        id: 'sales',
+        kind: 'chart',
+        chart: 'bar',
+        dataset: 'detail',
+        width: 300,
+        height: 180,
+        category: { field: detail('site'), order: 'data' },
+        series: [{ id: 'series-1', label: 'Amount', fn: 'sum', of: detail('amount') }],
+        valueFormat: { kind: 'number', scale: 2, grouping: true },
+        emptyText: 'No data.',
+      },
+      {
         id: 'notes',
         kind: 'section',
         padding: 6,
@@ -194,7 +206,9 @@ export function richBill(): PaymentPart {
 export function billedReport(): ReportDefinition {
   const rich = richReport()
   const summary = rich.regions.summary.filter((component) => component.kind !== 'epcQrCode')
-  const report = { ...rich, regions: { ...rich.regions, summary }, paymentPart: richBill() }
+  // The slip's room is the foot of the page; the chart, like the EPC code, would take it from the body above.
+  const body = rich.regions.body.filter((component) => component.kind !== 'chart')
+  const report = { ...rich, regions: { ...rich.regions, body, summary }, paymentPart: richBill() }
   const outcome = validateReport(report)
   if (!outcome.valid) throw new Error(`the billed report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path}`).join(', ')}`)
   return report

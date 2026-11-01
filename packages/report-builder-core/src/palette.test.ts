@@ -26,6 +26,7 @@ describe('the palette', () => {
       'Spalten',
       'Abschnitt',
       'Tabelle',
+      'Diagramm',
       'Seitenumbruch',
       'Zusammenhalten',
     ])
@@ -98,6 +99,48 @@ describe('the palette', () => {
       .palette.find((entry) => entry.kind === 'table')
     expect(table?.component).toMatchObject({ emptyText: editorText('fr-CH')('default.emptyText') })
     expect(table?.label).toBe('Tabelle')
+  })
+
+  // A default the validator refuses would make Insert's Chart a button that fails every time.
+  test('inserts a chart the validator takes, over the detail rows, summing their first number', () => {
+    const report = richReport()
+    const de = editorText('de-CH')
+    const chart = defaultComponent(report, 'chart')
+    expect(chart).toMatchObject({
+      kind: 'chart',
+      chart: 'bar',
+      dataset: 'detail',
+      category: { field: { dataset: 'detail', field: 'site' }, order: 'data' },
+      series: [{ id: 'series-1', label: 'Amount', fn: 'sum', of: { dataset: 'detail', field: 'amount' } }],
+      valueFormat: { kind: 'number', scale: 2, grouping: true },
+      emptyText: de('default.chartEmpty'),
+    })
+    const { editor, session } = editorOver(report)
+    expect(editor.dispatch({ type: 'insert', kind: 'chart', target: { region: 'summary', index: 0 } })).toMatchObject({ ok: true })
+    expect(session.document().regions.summary[0]).toMatchObject({ kind: 'chart' })
+  })
+
+  // A report with no number to sum charts how many rows there are; without that the default would hold a series of nothing.
+  test('counts the rows where the detail has no number', () => {
+    const report = richReport()
+    const detail = report.datasets.detail
+    if (detail === undefined) throw new Error('the rich report has a detail dataset')
+    const texts: ReportDefinition = {
+      ...report,
+      datasets: { ...report.datasets, detail: { ...detail, fields: detail.fields.filter((field) => field.type === 'string') } },
+    }
+    expect(defaultComponent(texts, 'chart')).toMatchObject({
+      series: [{ id: 'series-1', label: editorText('de-CH')('default.chartCount'), fn: 'count' }],
+      valueFormat: { scale: 0 },
+    })
+  })
+
+  // Without a detail dataset there is nothing to chart; saying so beats a refusal after the click.
+  test('says what a report needs before it can hold a chart', () => {
+    const { editor } = editorOver(emptyReport('blank', 'Blank', 'de-CH'), { locale: 'de-CH' })
+    const de = editorText('de-CH')
+    expect(editor.state().palette.find((entry) => entry.kind === 'chart')).toMatchObject({ component: null, unavailable: de('palette.needsChartData') })
+    expect(de('palette.needsChartData')).toContain('Erfassen Sie zuerst')
   })
 
   // The report's language picks the words: its own tag, else one of its

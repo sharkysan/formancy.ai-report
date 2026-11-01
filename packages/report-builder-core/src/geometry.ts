@@ -149,6 +149,7 @@ export function layoutReport(report: ReportDefinition): Layout {
         return record(lines * size * LINE_HEIGHT)
       }
       case 'image':
+      case 'chart':
       case 'rectangle':
         return record(component.height, component.width, component.width > width)
       case 'qrCode':
