@@ -135,8 +135,12 @@ function invoiceFromForm(): { readonly report: ReportDefinition; readonly form: 
   return { report: report.report, form }
 }
 
-/** `base` with a bar chart of the findings after its table: hours totalled and rows counted for each area. */
-function chartedReport(base: ReportDefinition = REPORT): { readonly report: ReportDefinition; readonly path: string } {
+/**
+ * `base` with a bar chart of the findings after its table: hours totalled
+ * and rows counted for each area, its rows without an area labelled, as a
+ * builder's chart labels them, unless `labelled` is false.
+ */
+function chartedReport(base: ReportDefinition = REPORT, labelled = true): { readonly report: ReportDefinition; readonly path: string } {
   const chart: Component = {
     id: 'hours-by-area',
     kind: 'chart',
@@ -144,7 +148,7 @@ function chartedReport(base: ReportDefinition = REPORT): { readonly report: Repo
     dataset: 'detail',
     width: 400,
     height: 200,
-    category: { field: { dataset: 'detail', field: 'area' }, order: 'data', nullLabel: 'No area' },
+    category: { field: { dataset: 'detail', field: 'area' }, order: 'data', ...(labelled ? { nullLabel: 'No area' } : {}) },
     series: [
       { id: 'hours', label: 'Hours', fn: 'sum', of: { dataset: 'detail', field: 'hours' } },
       { id: 'rows', label: 'Findings', fn: 'count' },
@@ -800,6 +804,22 @@ describe('reviewFormVersion, a chart', () => {
     const gone = resolved(reviewed(removed, report), 'hours', 'remove', report)
     const chart = walkComponents(gone).find(({ component }) => component.id === 'hours-by-area')?.component
     expect(chart?.kind === 'chart' ? chart.series.map(({ id }) => id) : null).toEqual(['rows'])
+  })
+
+  // Printing nothing of a removed field declares it nullable, and a chart
+  // whose category may be null labels its rows without one, or the
+  // validator refuses it. A builder's chart always has that label, so a
+  // version that removes its category, a field the version proved
+  // answered, is offered print-nothing; a chart written without the label
+  // is offered the removal alone.
+  test('offers to print nothing of a removed category where the chart labels its rows without one', () => {
+    const required = formOf([...changed(FIELDS, 'area', (field) => ({ ...field, required: true }))])
+    const base = generatedFrom(generate(required, { id: 'visit', locale: 'en', detail: { kind: 'repeater', repeater: 'findings' } })).report
+    expect(base.datasets.detail?.fields.find(({ id }) => id === 'area')?.nullable).toBe(false)
+    const removed = version((fields) => changed(fields, 'area', () => undefined))
+    const offered = (labelled: boolean) => summary(itemsOf(reviewed(removed, chartedReport(base, labelled).report, [required])).items)
+    expect(offered(true)).toEqual([['detail', 'area', 'field.removed', true, ['print-nothing', 'remove']]])
+    expect(offered(false)).toEqual([['detail', 'area', 'field.removed', true, ['remove']]])
   })
 
   // A retype the chart could not total would be applied and every render

@@ -84,6 +84,7 @@ export const DE_CH: Catalogue = {
   'default.emptyText': 'Keine Zeilen.',
   'default.chartEmpty': 'Keine Daten.',
   'default.chartCount': 'Anzahl',
+  'default.chartSum': 'Summe',
   'default.chartNoCategory': 'Keine',
   'images.add': 'Bild hinzufügen…',
   'images.heading': 'Bilder',

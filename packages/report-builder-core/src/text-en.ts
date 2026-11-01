@@ -100,6 +100,7 @@ export const EN = {
   'default.emptyText': 'No rows.',
   'default.chartEmpty': 'No data.',
   'default.chartCount': 'Count',
+  'default.chartSum': 'Sum',
   'default.chartNoCategory': 'None',
 
   // The images a person adds, and the report's own, listed in its
