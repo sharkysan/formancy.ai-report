@@ -215,6 +215,17 @@ describe('evaluate', () => {
     ])
   })
 
+  // formancy's evaluation before 0.12.0 took a record whose seconds and
+  // nanos are JavaScript numbers for one of CEL's durations and handed it
+  // back as the string "[object Object]", which a text would print. A
+  // report writes such a record only with doubles, refused before anything
+  // is evaluated; one of integers holds BigInts, a map at every release.
+  test('never prints a record of seconds and nanos', () => {
+    const doubles = prepareExpressions(reportOf('{"seconds": 1.0, "nanos": 2.0}'))
+    expect(!doubles.ok && doubles.diagnostics.map(({ code }) => code)).toEqual(['expression-inexact', 'expression-inexact'])
+    expect(prepared(reportOf('{"seconds": 1, "nanos": 2}')).evaluate(at(0), {})).toMatchObject({ ok: false, error: { code: 'unprintable-value' } })
+  })
+
   // Should a number that is not a whole one ever come back, it is refused,
   // never printed as an integer it is not.
   test('refuses a number that is not a safe integer', () => {

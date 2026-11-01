@@ -65,7 +65,7 @@ npm install @formancy/report-spec @formancy/report-core
 To embed the editor in a React page, in a React application:
 
 ```sh guide=react
-npm install @formancy/report-core @formancy/report-builder-core @formancy/report-builder-react @formancy/themes@0.11.0
+npm install @formancy/report-core @formancy/report-builder-core @formancy/report-builder-react @formancy/themes@0.12.0
 ```
 
 To keep the draft on Report's server from that page (section 6), beside the
@@ -78,7 +78,7 @@ npm install @formancy/report-client
 To embed it in an Angular page, in an Angular application:
 
 ```sh guide=angular
-npm install @formancy/report-spec @formancy/report-core @formancy/report-builder-core @formancy/report-builder-angular @formancy/themes@0.11.0
+npm install @formancy/report-spec @formancy/report-core @formancy/report-builder-core @formancy/report-builder-angular @formancy/themes@0.12.0
 ```
 
 `@formancy/themes` is formancy's, under Apache-2.0, at the release the
