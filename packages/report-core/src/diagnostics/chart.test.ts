@@ -24,6 +24,27 @@ describe('chartDiagnostics', () => {
     ])
   })
 
+  // A count, and a sum, a least or a greatest of integers, is an integer,
+  // which has no places to round: the runtime refuses its rounding, as an
+  // aggregate's, so the editor says so before a render does. An average of
+  // integers is a decimal, and so is a sum of decimals.
+  test('says a series that declares a rounding and totals an integer has no places to round', () => {
+    const rounding = { scale: 2, mode: 'half-even' } as const
+    const quantity = { dataset: 'detail', field: 'quantity' } as const
+    const at = (series: ChartComponent['series'][number]): string[] =>
+      chartDiagnostics(charted([series], 2)).map(({ code, path, componentId }) => `${code} ${path} ${String(componentId)}`)
+    const refused = ['rounding-not-decimal /regions/summary/0/components/3/series/0/rounding site-chart']
+    expect(at({ id: 'lines', label: 'Lines', fn: 'count', rounding })).toEqual(refused)
+    expect(at({ id: 'units', label: 'Units', fn: 'sum', of: quantity, rounding })).toEqual(refused)
+    expect(at({ id: 'most', label: 'Most', fn: 'max', of: quantity, rounding })).toEqual(refused)
+    expect(at({ id: 'mean', label: 'Mean', fn: 'avg', of: quantity, rounding })).toEqual([])
+    expect(at({ ...AVERAGE, fn: 'sum' })).toEqual([])
+    // Named by ids alone: a label is the author's words.
+    expect(chartDiagnostics(charted([{ id: 'lines', label: 'Lines', fn: 'count', rounding }], 2))[0]?.message).toBe(
+      'series "lines" of chart "site-chart" declares a rounding, and computes an integer, which has no places to round',
+    )
+  })
+
   // A format that keeps every place the rounding does rounds nothing again;
   // a diagnostic here would be a false alarm on every correct chart.
   test('says nothing of a series printed at the places it keeps, or of one that declares no rounding', () => {

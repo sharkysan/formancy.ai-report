@@ -16,7 +16,7 @@ import { unusedDiagnostics } from './unused.js'
 /**
  * Every diagnostic for `report`, a report the validator accepts -- a
  * session's document is one. Expressions first, in document order, the
- * aggregates' last, then roundings, then a chart's series rounded twice, then the e-invoice's unprinted totals,
+ * aggregates' last, then roundings, then a chart's series' roundings, then the e-invoice's unprinted totals,
  * then content, then a bill that holds SIX's examples, then unused
  * declarations in the order they are declared. The expressions' are `compileReport`'s,
  * so the editor reports exactly what the runtime refuses.

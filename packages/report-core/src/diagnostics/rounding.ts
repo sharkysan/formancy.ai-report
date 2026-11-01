@@ -25,12 +25,17 @@ import type { PrintedTotal } from './parts.js'
 /** The types a rounding has places in. */
 const ROUNDED = new Set(['decimal', 'dyn'])
 
+/** What a total of `type` is, said, where a rounding has no places in it; undefined where it has, or where the type is not known. A chart's series is held to it too (`chart.ts`). */
+export function unrounded(type: string | undefined): string | undefined {
+  if (type === undefined || ROUNDED.has(type)) return undefined
+  return type === 'int' ? 'an integer' : type === 'timestamp' ? 'an instant' : 'a date or a text'
+}
+
 export function roundingDiagnostics(report: ReportDefinition, printed: readonly PrintedTotal[], totals: ReadonlyMap<string, ExpressionMember>): Diagnostic[] {
   const found: Diagnostic[] = []
   for (const [index, aggregate] of report.aggregates.entries()) {
-    const type = totals.get(aggregate.id)?.type
-    if (aggregate.rounding === undefined || type === undefined || ROUNDED.has(type)) continue
-    const what = type === 'int' ? 'an integer' : type === 'timestamp' ? 'an instant' : 'a date or a text'
+    const what = unrounded(totals.get(aggregate.id)?.type)
+    if (aggregate.rounding === undefined || what === undefined) continue
     found.push(
       diagnostic('rounding-not-decimal', `aggregate ${quote(aggregate.id)} declares a rounding, and computes ${what}, which has no places to round`, {
         path: `/aggregates/${index}/rounding`,

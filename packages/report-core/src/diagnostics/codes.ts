@@ -40,7 +40,7 @@ export const DIAGNOSTIC_SEVERITIES = {
   'aggregate-cycle': 'error',
   /** A number or currency format that prints a total at fewer places than its declared rounding keeps -- an aggregate's, or a chart's series' -- so the total is rounded twice and the second rounding ignores the declared mode. */
   'format-rounds-again': 'error',
-  /** A rounding declared on an aggregate that computes an integer, a date or an instant, which have no places to round: the runtime refuses it. */
+  /** A rounding declared on an aggregate that computes an integer, a date or an instant, or on a chart's series that totals an integer, which have no places to round: the runtime refuses it. */
   'rounding-not-decimal': 'error',
   /** A total an e-invoice's XML holds -- a document total, or a declared VAT category's basis or amount -- that no text or table of the page prints: the page would show another invoice than the one it carries. */
   'e-invoice-total-unprinted': 'error',
