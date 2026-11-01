@@ -26,16 +26,15 @@ Three things follow, and each has a guard:
   and nothing else depends on Data.
   A generic improvement goes upstream through that
   repository's own contribution rules, not into a patched copy here.
-  Two copies are carried, both tooling that no package carries
+  The lint and format rules are formancy.ai's `@formancy/code-style`,
+  pinned exactly as a root devDependency and called with this
+  repository's paths by `eslint.config.mjs`: a rule changes there, never
+  here
   ([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
-  The lint and format rules, `scripts/code-style/`, are Formancy Health's
-  byte for byte, which is what formancy.ai will release as
-  `@formancy/code-style`, called with this repository's paths by
-  `eslint.config.mjs`: a rule changes in the shared module first and is
-  copied here, never changed here alone, and the copy goes when this
-  repository pins the package. The merge across the format,
-  `scripts/prettier-merge.mjs` and its test, is Formancy Data's, which no
-  release replaces: a change to it is made in both repositories.
+  One copy is carried, tooling that no package carries: the merge across
+  the format, `scripts/prettier-merge.mjs` and its test, is Formancy
+  Data's, which no release replaces, so a change to it is made in both
+  repositories.
 - **Every package declares the source-available licence**, never Apache-2.0.
   `scripts/verify-licenses.mjs` refuses a manifest that says otherwise and a
   tarball without `LICENSE.md` and `NOTICE`. The realistic mistake is a

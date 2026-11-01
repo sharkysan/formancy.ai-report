@@ -1,18 +1,17 @@
-import { eslintConfig } from './scripts/code-style/code-style.mjs'
+import { eslintConfig } from '@formancy/code-style'
 
 /**
  * The repository's lint rules: the four formancy repositories' shared ones,
- * `scripts/code-style/code-style.mjs`, a copy of what formancy.ai will
- * publish as `@formancy/code-style` until this repository pins it, given
- * Formancy Report's paths. `scripts/lint.test.mjs` holds what is passed here.
+ * `@formancy/code-style`, which formancy.ai publishes and this repository
+ * pins exactly (0050), given Formancy Report's paths. `scripts/lint.test.mjs`
+ * holds what is passed here.
  */
 export default eslintConfig({
   root: import.meta.dirname,
   // The tsconfigs `pnpm typecheck` runs, by glob, so that a new package or
   // app is linted with types without an edit here. A package whose tests
   // are a program of their own, beside its source's, runs it as
-  // tsconfig.test.json: none does on main yet, and #60's report-client
-  // will. The Angular builder's specs and the Studio's Angular plugin have
+  // tsconfig.test.json, as report-client does. The Angular builder's specs and the Studio's Angular plugin have
   // a tsconfig of their own that `typecheck` does not run, and no file of
   // theirs is in them alone; tsconfig.tools.json brings the vitest, Vite
   // and tsdown configs into the typecheck, with the renderer's font plugin,
