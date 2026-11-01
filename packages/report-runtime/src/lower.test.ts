@@ -554,3 +554,30 @@ describe("what an engine reads of report-spec's image decisions", () => {
     expect(runtime.MAX_ASSET_BYTES).toBe(spec.MAX_ASSET_BYTES)
   })
 })
+
+describe('a chart, which this release of the runtime does not resolve', () => {
+  // A chart lowered to nothing would print the report without it, and nothing would say so.
+  test('refuses a report holding a chart, which it cannot resolve yet', () => {
+    const chart: Component = {
+      id: 'by-kind',
+      kind: 'chart',
+      chart: 'bar',
+      dataset: 'detail',
+      width: 300,
+      height: 200,
+      category: { field: { dataset: 'detail', field: 'kind' }, order: 'data' },
+      series: [{ id: 'rows', label: 'Rows', fn: 'count' }],
+      valueFormat: { kind: 'number', scale: 0, grouping: false },
+      emptyText: 'No data',
+    }
+    const report = probe(body(chart))
+    const withDetail: ReportDefinition = {
+      ...report,
+      datasets: { ...report.datasets, detail: { id: 'rows', fields: [{ id: 'kind', type: 'string', label: 'Kind', nullable: false }] } },
+    }
+    const outcome = resolveReport(withDetail, { ...data(), detail: [{ kind: 'a' }], completeness: { complete: true, captured: 1 } }, OPTIONS)
+    expect(outcome.ok ? [] : outcome.errors.map(({ stage, code, path, message }) => ({ stage, code, path, message }))).toEqual([
+      { stage: 'resolve', code: 'chart-not-resolved', path: '/regions/body/0', message: 'chart by-kind is not resolved by this release of the runtime' },
+    ])
+  })
+})
