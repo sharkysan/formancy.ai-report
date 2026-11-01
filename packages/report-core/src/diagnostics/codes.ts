@@ -38,7 +38,7 @@ export const DIAGNOSTIC_SEVERITIES = {
   'expression-aggregate-type': 'error',
   /** An aggregate whose expression reads its own total, directly or through other aggregates, or reads one that does: none of them can be computed. */
   'aggregate-cycle': 'error',
-  /** A number or currency format that prints a total at fewer places than its declared rounding keeps, so the total is rounded twice and the second rounding ignores the declared mode. */
+  /** A number or currency format that prints a total at fewer places than its declared rounding keeps -- an aggregate's, or a chart's series' -- so the total is rounded twice and the second rounding ignores the declared mode. */
   'format-rounds-again': 'error',
   /** A rounding declared on an aggregate that computes an integer, a date or an instant, which have no places to round: the runtime refuses it. */
   'rounding-not-decimal': 'error',

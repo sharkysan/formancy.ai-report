@@ -66,6 +66,7 @@ const CONTAINERS: { readonly [K in ComponentKind]: Holding<Extract<Component, { 
   },
   section: oneList(),
   table: undefined,
+  chart: undefined,
   pageBreak: undefined,
   keepTogether: oneList(),
 }

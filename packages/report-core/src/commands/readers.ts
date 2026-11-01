@@ -14,7 +14,8 @@
  * what; a footer cell, and its row where no cell of it is left; a sort
  * key, and the sort with its last; the group, for its key or its header;
  * an aggregate, and then every reader of that aggregate in turn, to the
- * end of the chain. A table whose every column goes, goes whole, and
+ * end of the chain; a chart's series, alone. A table whose every column
+ * goes, and a chart whose every series goes, goes whole, and
  * whatever stands inside a component that goes goes with it, once.
  *
  * The payment part and the e-invoice change by their own commands alone
@@ -29,7 +30,7 @@
  * aggregate or as the group's key -- which a review compiles alone.
  */
 import { GROUP_KEY, walkComponents } from '@formancy/report-spec'
-import type { Component, DatasetRole, ReportDefinition, SortKey, StyleRule, TableComponent, TableFooterRow } from '@formancy/report-spec'
+import type { ChartComponent, Component, DatasetRole, ReportDefinition, SortKey, StyleRule, TableComponent, TableFooterRow } from '@formancy/report-spec'
 import { reportParts } from '../diagnostics/parts.js'
 import type { ExpressionSite, NamedUse } from '../diagnostics/parts.js'
 import { expressionReads, READ_AS, readsMember } from '../expressions/reads.js'
@@ -57,12 +58,23 @@ type Holder =
   | { readonly kind: 'cell'; readonly table: string; readonly footer: FooterRows; readonly row: number; readonly column: string }
   | { readonly kind: 'sort'; readonly table: string; readonly index: number }
   | { readonly kind: 'group'; readonly table: string }
+  | { readonly kind: 'series'; readonly chart: string; readonly series: string }
 
 const PART = /^\/(paymentPart|eInvoice)(?:\/|$)/
 const AGGREGATE = /^\/aggregates\/(\d+)\//
 const RULE = /\/styleWhen\/(\d+)\/when\/cel$/
 const CELL = /^\/(totals|group\/footer)\/(\d+)\/cells\/(\d+)\//
 const SORT = /^\/sort\/(\d+)$/
+const SERIES = /^\/series\/(\d+)\/of$/
+
+/** What holds a read of a chart at `rest`, its pointer inside the chart: the series that totals the field, and the chart itself for anything else. */
+function chartHolder(chart: ChartComponent, rest: string): Holder {
+  const series = SERIES.exec(rest)
+  // The walk named a series of the chart.
+  return series === null
+    ? { kind: 'component', id: chart.id }
+    : { kind: 'series', chart: chart.id, series: (chart.series[Number(series[1])] as { readonly id: string }).id }
+}
 
 /** What holds a read of a table at `rest`, its pointer inside the table. */
 function tableHolder(table: TableComponent, rest: string, columnId: string | undefined): Holder {
@@ -91,6 +103,7 @@ function holderOf(placed: Placed, place: Place): Holder {
   const rule = RULE.exec(place.path)
   if (rule !== null)
     return { kind: 'rule', component: found.component.id, ...(place.columnId === undefined ? {} : { column: place.columnId }), index: Number(rule[1]) }
+  if (found.component.kind === 'chart') return chartHolder(found.component, place.path.slice(found.path.length))
   if (found.component.kind !== 'table') return { kind: 'component', id: found.component.id }
   return tableHolder(found.component, place.path.slice(found.path.length), place.columnId)
 }
@@ -140,6 +153,7 @@ function gathered(holders: readonly Exclude<Holder, { kind: 'part' }>[]) {
   const rules = new Map<string, Set<number>>()
   const tables = new Map<string, TableParts>()
   const aggregates = new Set<number>()
+  const charts = new Map<string, Set<string>>()
   const of = (table: string): TableParts =>
     tables.get(table) ?? (tables.set(table, { columns: new Set(), cells: new Map(), sort: new Set(), group: false }).get(table) as TableParts)
   for (const holder of holders) {
@@ -150,10 +164,11 @@ function gathered(holders: readonly Exclude<Holder, { kind: 'part' }>[]) {
       rules.set(key, (rules.get(key) ?? new Set()).add(holder.index))
     } else if (holder.kind === 'column') of(holder.table).columns.add(holder.column)
     else if (holder.kind === 'cell') of(holder.table).cells.set(`${holder.footer} ${holder.row} ${holder.column}`, holder)
+    else if (holder.kind === 'series') charts.set(holder.chart, (charts.get(holder.chart) ?? new Set()).add(holder.series))
     else if (holder.kind === 'sort') of(holder.table).sort.add(holder.index)
     else of(holder.table).group = true
   }
-  return { components, rules, tables, aggregates }
+  return { components, rules, tables, aggregates, charts }
 }
 
 /** The key the style rules of a component, or of a column of a table, are gathered by. */
@@ -259,6 +274,14 @@ function tableRemoval(
   return { pointers, edits: [...edits, ...later] }
 }
 
+/** What goes of `chart`, at `path`, once the series at `gone` are known not to be all of them: those series, as pointers and as the one command that keeps the rest. */
+function chartRemoval(chart: ChartComponent, path: string, gone: ReadonlySet<string> | undefined): { readonly pointers: string[]; readonly edits: Edit[] } {
+  if (gone === undefined) return { pointers: [], edits: [] }
+  const pointers = chart.series.flatMap((series, index) => (gone.has(series.id) ? [`${path}/series/${index}`] : []))
+  const kept = chart.series.filter((series) => !gone.has(series.id))
+  return { pointers, edits: [(working) => updateComponent(working, chart.id, 'chart', { series: kept })] }
+}
+
 /** The removal of `fieldId` of `slot` from the report `walk` walked, with its readers, as `removeFieldWithReaders` gives it. */
 function removal(walk: Walk, slot: DatasetRole, fieldId: string): CommandOutcome<{ readonly removed: readonly string[] }> {
   const { report, walked, placed } = walk
@@ -276,10 +299,12 @@ function removal(walk: Walk, slot: DatasetRole, fieldId: string): CommandOutcome
       { path: part.path },
     )
   }
-  const { components, rules, tables, aggregates } = gathered(holders as Exclude<Holder, { kind: 'part' }>[])
+  const { components, rules, tables, aggregates, charts } = gathered(holders as Exclude<Holder, { kind: 'part' }>[])
   // A table that loses every column holds nothing to print, and goes whole.
   for (const [id, parts] of tables)
     if ((placed.get(id)?.component as TableComponent).columns.every((column) => parts.columns.has(column.id))) components.add(id)
+  // A chart that loses every series draws nothing it could say, and goes whole.
+  for (const [id, series] of charts) if ((placed.get(id)?.component as ChartComponent).series.every((each) => series.has(each.id))) components.add(id)
   const removed: string[] = []
   const gone: string[] = []
   const edits: Edit[] = []
@@ -298,8 +323,9 @@ function removal(walk: Walk, slot: DatasetRole, fieldId: string): CommandOutcome
       component.styleWhen,
     )
     const table = component.kind === 'table' ? tableRemoval(component, path, tables.get(component.id), rules) : { pointers: [], edits: [] }
-    removed.push(...own.pointers, ...table.pointers)
-    edits.push(...own.edits, ...table.edits)
+    const series = component.kind === 'chart' ? chartRemoval(component, path, charts.get(component.id)) : { pointers: [], edits: [] }
+    removed.push(...own.pointers, ...table.pointers, ...series.pointers)
+    edits.push(...own.edits, ...table.edits, ...series.edits)
   }
   for (const at of [...aggregates].sort((a, b) => a - b)) {
     removed.push(`/aggregates/${at}`)
