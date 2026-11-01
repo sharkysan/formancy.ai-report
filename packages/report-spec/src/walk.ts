@@ -38,6 +38,7 @@ const CHILDREN: { readonly [K in ComponentKind]: (component: Extract<Component, 
   columns: (component) => component.columns.map((column, index) => [`/columns/${index}/components`, column.components] as const),
   section: (component) => [['/components', component.components]],
   table: () => NONE,
+  chart: () => NONE,
   pageBreak: () => NONE,
   keepTogether: (component) => [['/components', component.components]],
 }

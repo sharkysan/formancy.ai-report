@@ -72,7 +72,9 @@ clamps when what it names is not there:
   already; a base that ends in a number is numbered as it stands, since
   it is a file's name (`img-4711` taken gives `img-4711-2`);
 - **components:** `insertComponent`, `removeComponent`, `moveComponent`,
-  `updateComponent` (a patch typed per kind; the id and kind never change),
+  `updateComponent` (a patch typed per kind; the id and kind never change.
+  A chart's kind of chart is a property, so a bar chart becomes a line
+  chart through it, and its list of series changes through it too),
   `duplicateComponent` (fresh ids for the copy and all it holds), and
   `nextComponentId`, which also names a new component after its kind:
   `pageBreak` gives `page-break`, `qrCode` gives `qr-code`, `epcQrCode`
@@ -102,9 +104,11 @@ clamps when what it names is not there:
   removes the field and every component, column, footer cell, sort key,
   group and aggregate that reads it, and every reader of such an
   aggregate in turn; a style rule that reads it goes alone, what it
-  styled kept; a footer row left with no cell goes whole, and so does a
-  table every column of which goes, and what stands in a component that
-  goes goes with it, once. What reads a
+  styled kept, and so does a chart's series that totals it, the chart's
+  other series kept; a footer row left with no cell goes whole, and so
+  does a table every column of which goes, a chart every series of which
+  goes and a chart whose category it is, and what stands in a component
+  that goes goes with it, once. What reads a
   field is what the diagnostics find, from one walk, and in an
   expression what the parser the compiler asks says it reads (an
   expression that does not parse reads nothing). The outcome lists what
@@ -230,6 +234,15 @@ decimal or null, by one rule for both. One that may be null is checked as
 `dyn`, which may be either, and the render checks what it holds. An integer
 or a string is a type error, with `dec()` as the hint.
 
+A chart holds no expression
+([0051](../../docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)):
+its category and each of its series read a detail field, whose type the
+validator holds, and its formats may read a currency from a header field.
+Each is named after the chart, as a field a text binds is, so a field only
+a chart reads is not unused, and `fieldReaders` and a review find it.
+Nothing of a chart is compiled but its `visibleWhen` and `styleWhen`, as
+of every component.
+
 An e-invoice ([0027](../../docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) is read as a payment part is: its texts in the
 report's scope, named by their paths alone. Its dates and its paid amount
 are values there, and the codes of each line -- its identifier, its unit
@@ -274,12 +287,16 @@ one.
   `/`, which on integers drops the remainder (`divide(dec(a), dec(b), places)`
   is the exact one), and a call to `matches()`, whose pattern no step budget
   bounds. Each comes with the component, the table column where it is in
-  one, and the position in its source. Two more are about totals: a rounding
-  declared on an aggregate that computes an integer, a date or an instant,
-  and a number format that prints a rounded total at fewer places than its
-  rounding keeps, which would round it twice. And one is about an
-  e-invoice: a total its XML holds that no text or table of the page
-  prints (`e-invoice-total-unprinted`). Each of these is held: the total
+  one, and the position in its source. Two more are about totals, an
+  aggregate's or a chart's series': a rounding declared on one that
+  computes an integer, a date or an instant -- a series' count, or its
+  sum, least or greatest of integers -- and a number format that prints a
+  rounded total at fewer places than its rounding keeps, which would round
+  it twice, a series' printed in its chart's `valueFormat`. A series is
+  typed as the compiler types an aggregate of its function over its
+  field. And one is about an e-invoice: a total its XML holds that no text or
+  table of the page prints (`e-invoice-total-unprinted`). Each of these is
+  held: the total
   without VAT, `invoice.taxBasisTotal` or `invoice.lineTotal`; the VAT
   total; the total with VAT; and each declared category's basis and amount.
   The paid amount and the amount due are held too where a paid amount is

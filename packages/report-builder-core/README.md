@@ -120,8 +120,8 @@ const editor = createReportEditor(opening.session, {
 - **`selection`**: a component, one column of a table, or a part of the
   report's own level, `{ part: 'paymentPart' }` or `{ part: 'eInvoice' }`
   (`REPORT_LEVEL_PARTS`).
-- **`palette`**: every kind the format has, with the default component
-  inserting it would put in. A new image draws the report's newest asset,
+- **`palette`**: every kind the format has but a chart, with the default
+  component inserting it would put in. A new image draws the report's newest asset,
   so the image a person just added is the one Image inserts, else the
   header's image field; with neither, the entry says to add an image with
   Add image… where the host keeps images, and to declare one where it
@@ -141,9 +141,17 @@ const editor = createReportEditor(opening.session, {
   its account, it pays the e-invoice's account instead, as written, with
   its BIC where it names one, and is unavailable until the e-invoice gives
   payment instructions (0044). It has no amount, which the payer fills in,
-  and no frame, which is Austria's option. Where the report lacks what a kind needs (an image
-  with nothing to draw, a table with no detail dataset), the entry says
-  what to declare first.
+  and no frame, which is Austria's option. The palette withholds a chart
+  until the builders edit a chart's own properties: inserted now, it would
+  be a box whose kind, category and series no builder edits, in a report
+  the runtime refuses to render. An insert or a drag of one is refused as
+  `unavailable`, as of a kind the palette does not have. A chart a report
+  holds is drawn, moved and removed as any component, with the properties
+  every component has
+  ([0051](../../docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+  Where the report lacks what a kind needs (an image with nothing to
+  draw, a table with no detail dataset), the entry says what to declare
+  first.
 - **`images`**: whether the host gave a store (`store`), so a builder
   draws Add image…; the file chooser's `accept`, each type the store keeps
   and its usual extensions; the name of the file being added, from the

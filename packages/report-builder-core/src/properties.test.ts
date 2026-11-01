@@ -29,6 +29,7 @@ const OF_KIND: { readonly [K in ComponentKind]: string } = {
   columns: 'heading',
   section: 'notes',
   table: 'lines',
+  chart: 'sales',
   pageBreak: 'break',
   keepTogether: 'keep',
 }

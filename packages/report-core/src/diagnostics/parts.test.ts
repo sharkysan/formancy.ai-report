@@ -1,7 +1,7 @@
 import { COMPONENT_KINDS, QR_BILL_ADDRESS_RULES, walkComponents } from '@formancy/report-spec'
 import type { EpcQrCodeComponent, Expression, FacturXInvoice, Inline, ReportDefinition, SwissQrBill, TextComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
-import { eInvoiceSample, frozenSample, sampleReport, xrechnungSample } from '../test-support.js'
+import { eInvoiceSample, frozenSample, sampleReport, withChart, xrechnungSample } from '../test-support.js'
 import { expressionSites, reportParts } from './parts.js'
 import type { ExpressionSite } from './parts.js'
 
@@ -112,6 +112,36 @@ describe('reportParts', () => {
   })
 })
 
+describe('a chart', () => {
+  const chartPath = '/regions/summary/0/components/3'
+
+  // A field only a chart reads would be warned of as fetched for nothing,
+  // and removed by a review without the chart; a count of rows names none.
+  test('names the fields a chart reads, where it reads them', () => {
+    const detail = (field: string) => ({ dataset: 'detail', field })
+    expect(
+      reportParts(sampleReport())
+        .named.filter((use) => use.componentId === 'site-chart')
+        .map(({ kind, path, ...rest }) => [kind === 'field' ? (rest as { field: unknown }).field : null, path]),
+    ).toEqual([
+      [detail('site'), `${chartPath}/category/field`],
+      [detail('amount'), `${chartPath}/series/0/of`],
+    ])
+  })
+
+  // A currency read from a field is read like a table's: a chart that
+  // prints in it would be fetched without the field being named.
+  test('names the field a format takes its currency from', () => {
+    const currency = { dataset: 'header' as const, field: 'currency' }
+    const parts = reportParts(
+      withChart(sampleReport(), (chart) => ({ ...chart, valueFormat: { kind: 'currency', currency: { kind: 'field', field: currency }, scale: 2 } })),
+    )
+    expect(parts.named.filter((use) => use.path === `${chartPath}/valueFormat/currency`)).toEqual([
+      { kind: 'field', field: { dataset: 'header', field: 'currency' }, path: `${chartPath}/valueFormat/currency`, componentId: 'site-chart' },
+    ])
+  })
+})
+
 describe('a QR code', () => {
   // A QR code encodes what its content prints, read as a paragraph in its
   // place is read: the fields, parameters and aggregates it names are used,
@@ -122,7 +152,7 @@ describe('a QR code', () => {
   test('is read as a text with the same content in its place is', () => {
     const report = sampleReport()
     const code = report.regions.summary[2]
-    if (code?.kind !== 'qrCode') throw new Error('the sample has no QR code at the end of its summary')
+    if (code?.kind !== 'qrCode') throw new Error('the sample has no QR code at the end of its closing section')
     const { size: _size, errorCorrection: _errorCorrection, ...shared } = code
     const asText: TextComponent = { ...shared, kind: 'text' }
     const swapped = { ...report, regions: { ...report.regions, summary: [...report.regions.summary.slice(0, 2), asText, ...report.regions.summary.slice(3)] } }
@@ -143,7 +173,7 @@ describe('an EPC QR code', () => {
   function withCode(change: (code: EpcQrCodeComponent) => EpcQrCodeComponent): ReportDefinition {
     const report = sampleReport()
     const code = report.regions.summary[3]
-    if (code?.kind !== 'epcQrCode') throw new Error('the sample has no EPC QR code at the end of its summary')
+    if (code?.kind !== 'epcQrCode') throw new Error('the sample has no EPC QR code at the end of its closing section')
     return { ...report, regions: { ...report.regions, summary: [...report.regions.summary.slice(0, 3), change(code)] } }
   }
 

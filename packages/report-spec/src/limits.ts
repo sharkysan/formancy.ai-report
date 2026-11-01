@@ -18,6 +18,7 @@
  * on what and when (0030, 0040). `MAX_REPORT_BYTES` is a multiple of a
  * measured size and says so.
  */
+import { CHART_PALETTE } from './chart.js'
 
 /**
  * Errors listed per validation. Past it, one `too-many-errors` entry says
@@ -114,6 +115,12 @@ export const MAX_REPORT_BYTES = 262_144
  * one and where it prints.
  */
 export const MAX_ASSET_SIDE = 4096
+
+/** Series in a chart: a colour each from the palette, so that the legend tells every one apart. Derived, not chosen. */
+export const MAX_CHART_SERIES = CHART_PALETTE.length
+
+/** The least a chart's side: under an inch (72 points) holds no plot beneath its title and its labels. Chosen, not measured. */
+export const MIN_CHART_SIDE = 72
 
 /** Aggregates: each is a pass over the detail rows, per group and once overall. */
 export const MAX_AGGREGATES = 32

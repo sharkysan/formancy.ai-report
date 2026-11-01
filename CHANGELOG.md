@@ -10,6 +10,77 @@ later.
 
 ## Unreleased
 
+**A report may hold a bar, line or pie chart of its detail rows, which no
+release prints yet**
+([0051](docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+Reports are often read for a shape -- which month was up, which category
+is most of the total -- and Report could print numbers only in tables. A
+chart arrives a stage at a time, the format and the editing core first,
+and a stage that does not handle one yet refuses it rather than print the
+report without it: **the runtime refuses a report that would print a
+chart, a preview as a final render, as `chart-not-resolved`**, naming the
+chart, until it resolves charts; and **neither builder offers one yet**.
+- **report-spec's `chart` component.** `chart` is `bar`, `line` or `pie`
+  (`CHART_KINDS`), a property, so a bar chart becomes a line chart in
+  place; `dataset` is `'detail'`; `width` and `height` are a box of at
+  least `MIN_CHART_SIDE`, an inch, within the printable area. Its
+  `category` is a detail field of text, a date or a number
+  (`CHART_CATEGORY_TYPES`), in the data's order or sorted by it
+  (`CHART_ORDERS`), and a field that may be null asks for the `nullLabel`
+  its rows print under, never blank, so that no row is drawn under no
+  word. Each of its one to `MAX_CHART_SERIES` series is a function an
+  aggregate takes over a detail field of its own,
+  `{ id, label, fn, of?, rounding? }`, an average declaring its rounding,
+  rather than a declared aggregate, which neither builder can make. Every
+  value prints in one number or currency format, `valueFormat`, read in
+  the report's scope; `emptyText` is what a chart with nothing to draw
+  prints; a title, axis titles and value labels are optional. It stands
+  in the body and the summary, and in a section, a columns block or a
+  keep-together block there.
+- **Colours by place.** A series is drawn in `CHART_PALETTE`'s colour at
+  its place, and a pie's slice at its category's: eight colours, each at
+  least 3:1 against white paper, so that the eight series a chart may
+  have are each told apart, or a chart's own `palette` of one to eight,
+  which in a bar or a line chart has a colour for each series. **Removing
+  a series from the middle shifts the colour of every series after it.**
+- **`invalid-chart`**, a new error code, refuses what no reader could use:
+  a blank series label, `emptyText` or `nullLabel`, a palette that names a
+  colour twice or, in a bar or a line chart, has fewer colours than the
+  chart has series, a pie of more than one series, of a function other
+  than a sum or a count (`PIE_FUNCTIONS`), or with an axis title, and
+  value labels on a line chart of several series, which could only print
+  over one another.
+- **report-core names what a chart reads**, so a field only a chart reads
+  is not warned of as unused, and `fieldReaders`,
+  `removeFieldWithReaders` and a form review find it. A removed field
+  takes the series that totals it, alone, and a chart goes whole where the
+  field is its category or every series goes. `format-rounds-again` now
+  says of a series too that it is printed at fewer places than its
+  rounding keeps, and `rounding-not-decimal` that it declares a rounding
+  of an integer -- a count, or a sum, a least or a greatest of integers --
+  which the runtime will refuse. A chart changes through
+  `updateComponent`, with no command of its own.
+- **`chart-not-resolved`**, a new code of the runtime's, is the refusal
+  above. A chart its condition hides prints nothing, so its report is not
+  refused. The code goes when the runtime resolves charts.
+- **Neither builder's palette offers Chart yet**, and an insert or a drag
+  of one is refused as `unavailable`: until the builders edit a chart's
+  own properties, a chart inserted from the palette would be a box nobody
+  could edit, in a report the runtime refuses to render. A chart a report
+  holds is drawn in the design view as a box of its size, moved and
+  removed, with the properties every component has, so a chart is a
+  host's or a proposal's to write in the JSON for now.
+- **A form version that removes a field a chart totals** blocks the
+  report's submissions of it until reviewed, and the review's removal
+  takes that series alone. One that removes the field a chart groups by
+  is offered printing nothing of it only where the chart labels its rows
+  without a category, since that makes the field nullable; a chart
+  without `nullLabel` is offered the removal alone. `generateReport`
+  draws no chart, since a first draft would guess a total the form never
+  asked for.
+- **0.2.0 refuses a report with a chart** as `unknown-kind`, never skipping
+  it: the format is still the draft, version "0".
+
 **The lint and format rules are `@formancy/code-style` 0.12.0, pinned, and
 no longer a copy**
 ([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).

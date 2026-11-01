@@ -1,20 +1,40 @@
 import { nextComponentId, validLocations } from '@formancy/report-core'
-import { COMPONENT_KINDS, emptyReport, mmToPt } from '@formancy/report-spec'
-import type { ReportDefinition } from '@formancy/report-spec'
+import { COMPONENT_KINDS, emptyReport, mmToPt, validateReport } from '@formancy/report-spec'
+import type { Component, FieldContract, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { recordingStore } from './image-test-support.js'
 import { defaultComponent } from './palette.js'
 import { editorOver, richReport } from './test-support.js'
 import { contentLocale, EDITOR_LOCALES, editorText } from './text.js'
 
+/** The errors `report` is refused with once `component` stands first in its summary; none where the validator takes it. */
+function refusalsWith(report: ReportDefinition, component: Component | string): string[] {
+  if (typeof component === 'string') return [component]
+  const outcome = validateReport({ ...report, regions: { ...report.regions, summary: [component, ...report.regions.summary] } })
+  return outcome.valid ? [] : outcome.errors.map((error) => `${error.code} ${error.path}`)
+}
+
+/** `report` with its detail fields replaced by what `change` makes of each. */
+function withDetail(report: ReportDefinition, change: (field: FieldContract) => FieldContract): ReportDefinition {
+  const detail = report.datasets.detail
+  if (detail === undefined) throw new Error('the rich report has a detail dataset')
+  return { ...report, datasets: { ...report.datasets, detail: { ...detail, fields: detail.fields.map(change) } } }
+}
+
+/** A blank report in `locale` whose detail rows have `fields`, and nothing that reads them. */
+function detailOf(fields: readonly FieldContract[], locale = 'de-CH'): ReportDefinition {
+  const blank = emptyReport('charted', 'Charted', locale)
+  return { ...blank, datasets: { ...blank.datasets, detail: { id: 'rows', fields: [...fields] } } }
+}
+
 describe('the palette', () => {
-  // Every kind the format has is offered, in the format's order, named in
-  // the person's language: a kind missing from it is one nobody can add
-  // without editing JSON.
-  test('offers every kind, in the format’s order, in the editor’s language', () => {
+  // Every kind the format has but a chart is offered, in the format's
+  // order, named in the person's language: a kind missing from it is one
+  // nobody can add without editing JSON.
+  test('offers every kind but a chart, in the format’s order, in the editor’s language', () => {
     const { editor } = editorOver(richReport(), { locale: 'de-CH' })
     const { palette } = editor.state()
-    expect(palette.map((entry) => entry.kind)).toEqual([...COMPONENT_KINDS])
+    expect(palette.map((entry) => entry.kind)).toEqual(COMPONENT_KINDS.filter((kind) => kind !== 'chart'))
     expect(palette.map((entry) => entry.label)).toEqual([
       'Text',
       'Bild',
@@ -29,6 +49,19 @@ describe('the palette', () => {
       'Seitenumbruch',
       'Zusammenhalten',
     ])
+  })
+
+  // A chart inserted now would be a box whose own properties no builder
+  // edits, in a report the runtime refuses to render (0051): offered, it
+  // would be a button that makes a report nobody can print. Sent anyway, an
+  // insert or a drag of one is refused as of a kind the palette does not
+  // have.
+  test('offers no chart yet, and refuses one inserted or dragged', () => {
+    const { editor, session } = editorOver(richReport())
+    expect(editor.state().palette.some((entry) => entry.kind === 'chart')).toBe(false)
+    expect(editor.dispatch({ type: 'insert', kind: 'chart', target: { region: 'summary', index: 0 } })).toMatchObject({ ok: false, code: 'unavailable' })
+    expect(editor.dispatch({ type: 'startDrag', subject: { kind: 'chart' } })).toMatchObject({ ok: false, code: 'unavailable' })
+    expect(session.revision()).toBe(0)
   })
 
   // A new component's id is report-core's, so two builders inserting the
@@ -98,6 +131,92 @@ describe('the palette', () => {
       .palette.find((entry) => entry.kind === 'table')
     expect(table?.component).toMatchObject({ emptyText: editorText('fr-CH')('default.emptyText') })
     expect(table?.label).toBe('Tabelle')
+  })
+
+  // The palette offers no chart yet, but its default is the one the
+  // builders will insert: a default the validator refuses would make
+  // Insert's Chart a button that fails every time.
+  test('makes a default chart the validator takes, over the detail rows, summing their first number', () => {
+    const report = richReport()
+    const de = editorText('de-CH')
+    const chart = defaultComponent(report, 'chart')
+    expect(chart).toMatchObject({
+      id: 'chart',
+      kind: 'chart',
+      chart: 'bar',
+      dataset: 'detail',
+      category: { field: { dataset: 'detail', field: 'site' }, order: 'data', nullLabel: de('default.chartNoCategory') },
+      series: [{ id: 'series-1', label: 'Amount', fn: 'sum', of: { dataset: 'detail', field: 'amount' } }],
+      valueFormat: { kind: 'number', scale: 2, grouping: true },
+      emptyText: de('default.chartEmpty'),
+    })
+    expect(refusalsWith(report, chart)).toEqual([])
+  })
+
+  // A category that may be null asks for the word its rows without one
+  // print under, or the validator refuses the chart; and one that may not
+  // has it too, so that a form version that removes the field can be
+  // reviewed into printing nothing of it, which declares the field
+  // nullable (0048). The word prints, so it is the report's language.
+  test('labels the rows without a category, in the report’s language, whether or not the field may be null', () => {
+    const site = { id: 'site', type: 'string', label: 'Site' } as const
+    const amount = { id: 'amount', type: 'decimal', label: 'Amount', nullable: false, scale: 2 } as const
+    for (const nullable of [false, true]) {
+      const report = detailOf([{ ...site, nullable }, amount], 'fr-CH')
+      const chart = defaultComponent(report, 'chart')
+      expect(chart, String(nullable)).toMatchObject({
+        category: { field: { dataset: 'detail', field: 'site' }, nullLabel: editorText('fr-CH')('default.chartNoCategory') },
+      })
+      expect(refusalsWith(report, chart), String(nullable)).toEqual([])
+    }
+    // A date names a category too, and an integer is summed at no places.
+    const dated = detailOf([
+      { id: 'shippedOn', type: 'date', label: 'Shipped on', nullable: true },
+      { id: 'quantity', type: 'integer', label: 'Quantity', nullable: false },
+    ])
+    const chart = defaultComponent(dated, 'chart')
+    expect(chart).toMatchObject({
+      category: { field: { dataset: 'detail', field: 'shippedOn' } },
+      series: [{ fn: 'sum', of: { dataset: 'detail', field: 'quantity' } }],
+      valueFormat: { scale: 0 },
+    })
+    expect(refusalsWith(dated, chart)).toEqual([])
+  })
+
+  // A report with no number to sum charts how many rows there are; without that the default would hold a series of nothing.
+  test('counts the rows where the detail has no number', () => {
+    const texts = detailOf([
+      { id: 'site', type: 'string', label: 'Site', nullable: false },
+      { id: 'sku', type: 'string', label: 'SKU', nullable: false },
+    ])
+    const chart = defaultComponent(texts, 'chart')
+    expect(chart).toMatchObject({
+      series: [{ id: 'series-1', label: editorText('de-CH')('default.chartCount'), fn: 'count' }],
+      valueFormat: { scale: 0 },
+    })
+    expect(refusalsWith(texts, chart)).toEqual([])
+  })
+
+  // A field's label may be blank, and a series' label is its legend entry,
+  // which may not be: a default that took a blank label would be refused
+  // on every insert. It says what the series is instead, in the report's
+  // language.
+  test('names a series of a number with a blank label after its function', () => {
+    for (const blank of ['', '  ']) {
+      const unlabelled = withDetail(richReport(), (field) => (field.id === 'amount' ? { ...field, label: blank } : field))
+      const chart = defaultComponent(unlabelled, 'chart')
+      expect(chart).toMatchObject({ series: [{ label: editorText('de-CH')('default.chartSum'), fn: 'sum' }] })
+      expect(refusalsWith(unlabelled, chart)).toEqual([])
+    }
+  })
+
+  // Without a detail field to group by there is nothing to chart; saying so
+  // beats a refusal after the click.
+  test('says what a report needs before it can hold a chart', () => {
+    const de = editorText('de-CH')
+    expect(defaultComponent(emptyReport('blank', 'Blank', 'de-CH'), 'chart')).toBe('palette.needsChartData')
+    expect(defaultComponent(detailOf([{ id: 'shipped', type: 'boolean', label: 'Shipped', nullable: false }]), 'chart')).toBe('palette.needsChartData')
+    expect(de('palette.needsChartData')).toContain('Erfassen Sie zuerst')
   })
 
   // The report's language picks the words: its own tag, else one of its

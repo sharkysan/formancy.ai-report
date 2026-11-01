@@ -12,7 +12,7 @@
  * palette's own labels are in the editor's.
  */
 import { nextComponentId } from '@formancy/report-core'
-import { COMPONENT_KINDS, mmToPt, printableArea, squareRoom } from '@formancy/report-spec'
+import { CHART_CATEGORY_TYPES, COMPONENT_KINDS, mmToPt, printableArea, squareRoom } from '@formancy/report-spec'
 import type { Alignment, Component, ComponentKind, FieldType, ImageSource, ReportDefinition } from '@formancy/report-spec'
 import { kindLabel } from './labels.js'
 import type { PaletteEntry } from './model.js'
@@ -20,7 +20,7 @@ import { contentLocale, editorText } from './text.js'
 import type { EditorText, MessageId } from './text.js'
 
 /** A new image's or rectangle's box, in points, when the printable area has room for it. */
-const BOX = { image: { width: 100, height: 50 }, rectangle: { width: 100, height: 40 } } as const
+const BOX = { image: { width: 100, height: 50 }, rectangle: { width: 100, height: 40 }, chart: { width: 300, height: 180 } } as const
 /** A new QR code's side, its quiet zone included, in points, when the printable area has room for it both ways: 30 mm. */
 const QR_SIDE = mmToPt(30)
 /**
@@ -42,6 +42,16 @@ const EPC_SIDE = mmToPt(32)
  * (`paymentAccount`).
  */
 export const NO_ACCOUNT = 'DE36 0000 0000 0000 0000 00'
+/**
+ * The kinds the format has that the palette does not offer yet. A chart,
+ * until the builders edit a chart's own properties and a render draws one:
+ * inserted now, it would be a box whose kind, category and series no
+ * builder edits, in a report the runtime refuses to render (0051). An
+ * insert or a drag of one is refused as of a kind the palette does not
+ * have. Its default stands below, held to the validator, for the builders
+ * that offer it; the list goes with them.
+ */
+const NOT_OFFERED: readonly ComponentKind[] = ['chart']
 /** A new rule's thickness, in points: a hairline that prints. */
 const RULE = 0.5
 /** A new spacer's height, in points: about a line of body text. */
@@ -139,6 +149,40 @@ const DEFAULTS: { readonly [K in ComponentKind]: (report: ReportDefinition, word
     }
     return { dataset: 'detail', columns: [column], emptyText: words('default.emptyText'), repeatHeader: true }
   },
+  /*
+   * A bar chart of the detail rows, by the first field that can name a
+   * category: its rows without one labelled whether or not the field may be
+   * null, so that a form version that removes the field can be reviewed
+   * into printing nothing of it, which declares it nullable (0048). Its
+   * series the first other number summed, named as the field is or, where
+   * that is blank, after its function; with no number, the rows counted.
+   */
+  chart: (report, words) => {
+    const fields = report.datasets.detail?.fields ?? []
+    const category = fields.find((candidate) => CHART_CATEGORY_TYPES.includes(candidate.type))
+    if (category === undefined) return 'palette.needsChartData'
+    const number = fields.find((candidate) => candidate !== category && (candidate.type === 'integer' || candidate.type === 'decimal'))
+    const room = printableArea(report.page)
+    const series =
+      number === undefined
+        ? { id: 'series-1', label: words('default.chartCount'), fn: 'count' }
+        : {
+            id: 'series-1',
+            label: number.label.trim() === '' ? words('default.chartSum') : number.label,
+            fn: 'sum',
+            of: { dataset: 'detail', field: number.id },
+          }
+    return {
+      chart: 'bar',
+      dataset: 'detail',
+      width: Math.min(BOX.chart.width, room.width),
+      height: Math.min(BOX.chart.height, room.height),
+      category: { field: { dataset: 'detail', field: category.id }, order: 'data', nullLabel: words('default.chartNoCategory') },
+      series: [series],
+      valueFormat: { kind: 'number', scale: number?.scale ?? 0, grouping: true },
+      emptyText: words('default.chartEmpty'),
+    }
+  },
   pageBreak: () => ({}),
   keepTogether: () => ({ components: [] }),
 }
@@ -151,7 +195,7 @@ export function defaultComponent(report: ReportDefinition, kind: ComponentKind, 
 }
 
 export function paletteEntries(report: ReportDefinition, t: EditorText, stored = false): PaletteEntry[] {
-  return COMPONENT_KINDS.map((kind) => {
+  return COMPONENT_KINDS.filter((kind) => !NOT_OFFERED.includes(kind)).map((kind) => {
     const component = defaultComponent(report, kind, stored)
     const label = kindLabel(kind, t)
     return typeof component === 'string' ? { kind, label, component: null, unavailable: t(component, { add: t('images.add') }) } : { kind, label, component }

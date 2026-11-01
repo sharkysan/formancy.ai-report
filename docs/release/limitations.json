@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:b273c1a17c98fbb5afb5b1500636a85f26911195614d9c8d11b903accfebdc69",
+      "reviewed": "sha256:749f75cf22f884ac6d3ed87045a56538313c09b9e750bc52a8ac1d2dd77f8b41",
       "limitations": [
         {
           "area": "format",
@@ -2245,6 +2245,48 @@
           "area": "builders",
           "says": "An object written in place as a `ReportEditor` whose `subscribe` or `state` reads `this` no longer compiles, since those members are declared `this: void` for the store hooks that call them off the object; a class or a closure is unaffected.",
           "heldBy": "packages/report-builder-core/src/implementable.test.ts"
+        }
+      ]
+    },
+    "0051": {
+      "reviewed": "sha256:8fee03e7665ed77510fb878ddbabb5fb4b3a6665845577fa108212e7fedf9bcb",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A chart reads the detail dataset alone, one field as its categories and each series a total of one field per category; a chart of an expression, of the header or of another dataset is not drawn.",
+          "heldBy": "packages/report-spec/src/validate-chart.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A chart holds at most eight series, and a pie one series of a sum or a count.",
+          "heldBy": "packages/report-spec/src/validate-chart.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A series is drawn in the palette’s colour at its place, and a pie’s slice in the colour at its category’s, so removing a series from the middle shifts the colour of every series after it, and no series keeps a colour of its own."
+        },
+        {
+          "area": "format",
+          "says": "A report that holds a chart is refused whole by 0.2.0, which does not know the kind, so a report saved with one opens only in a release that has it."
+        },
+        {
+          "area": "format",
+          "says": "A pie’s own palette is not held to its slices, which only the data counts: what a slice past its end is drawn in is undecided until the runtime resolves charts."
+        },
+        {
+          "area": "runtime",
+          "says": "Until the runtime resolves charts, a report that would print one is refused, a preview as a final render; one whose chart its condition hides prints.",
+          "heldBy": "packages/report-runtime/src/lower.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Until the builders offer a chart and edit its own properties, neither palette has Chart, and a chart is written in the report’s JSON by a host or a proposal; a builder shows one a report holds, moves it and removes it.",
+          "heldBy": "packages/report-builder-core/src/palette.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A form version that removes the field a chart groups by is offered printing nothing of it only where the chart labels its rows without a category; a chart written without that label, over a field that may not be null, is offered the removal alone, which takes the chart.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
         }
       ]
     }
