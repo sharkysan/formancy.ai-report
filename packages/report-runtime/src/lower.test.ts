@@ -556,28 +556,47 @@ describe("what an engine reads of report-spec's image decisions", () => {
 })
 
 describe('a chart, which this release of the runtime does not resolve', () => {
-  // A chart lowered to nothing would print the report without it, and nothing would say so.
-  test('refuses a report holding a chart, which it cannot resolve yet', () => {
-    const chart: Component = {
-      id: 'by-kind',
-      kind: 'chart',
-      chart: 'bar',
-      dataset: 'detail',
-      width: 300,
-      height: 200,
-      category: { field: { dataset: 'detail', field: 'kind' }, order: 'data' },
-      series: [{ id: 'rows', label: 'Rows', fn: 'count' }],
-      valueFormat: { kind: 'number', scale: 0, grouping: false },
-      emptyText: 'No data',
-    }
-    const report = probe(body(chart))
+  const chart: Component = {
+    id: 'by-kind',
+    kind: 'chart',
+    chart: 'bar',
+    dataset: 'detail',
+    width: 300,
+    height: 200,
+    category: { field: { dataset: 'detail', field: 'kind' }, order: 'data' },
+    series: [{ id: 'rows', label: 'Rows', fn: 'count' }],
+    valueFormat: { kind: 'number', scale: 0, grouping: false },
+    emptyText: 'No data',
+  }
+
+  /** The outcome of resolving a report of `components` over one detail row, as `mode` renders. */
+  function resolved(components: readonly Component[], mode: ResolveOptions['mode']) {
+    const report = probe(body(...components))
     const withDetail: ReportDefinition = {
       ...report,
       datasets: { ...report.datasets, detail: { id: 'rows', fields: [{ id: 'kind', type: 'string', label: 'Kind', nullable: false }] } },
     }
-    const outcome = resolveReport(withDetail, { ...data(), detail: [{ kind: 'a' }], completeness: { complete: true, captured: 1 } }, OPTIONS)
-    expect(outcome.ok ? [] : outcome.errors.map(({ stage, code, path, message }) => ({ stage, code, path, message }))).toEqual([
-      { stage: 'resolve', code: 'chart-not-resolved', path: '/regions/body/0', message: 'chart by-kind is not resolved by this release of the runtime' },
-    ])
+    return resolveReport(withDetail, { ...data(), detail: [{ kind: 'a' }], completeness: { complete: true, captured: 1 } }, { ...OPTIONS, mode })
+  }
+
+  // A chart lowered to nothing would print the report without it, and
+  // nothing would say so; a preview that did would show a person a report
+  // that no final render prints.
+  test('refuses a report holding a chart, which it cannot resolve yet, in a final render and a preview', () => {
+    for (const mode of ['final', 'preview'] as const) {
+      const outcome = resolved([chart], mode)
+      expect(outcome.ok ? [] : outcome.errors.map(({ stage, code, path, message }) => ({ stage, code, path, message })), mode).toEqual([
+        { stage: 'resolve', code: 'chart-not-resolved', path: '/regions/body/0', message: 'chart by-kind is not resolved by this release of the runtime' },
+      ])
+    }
+  })
+
+  // A chart its condition hides prints nothing, as any component would, so
+  // its report has nothing to refuse; a refusal there would refuse a report
+  // that prints whole.
+  test('prints a report whose chart its condition hides', () => {
+    const hidden = { ...chart, visibleWhen: { cel: 'header.flagged == false' } } as Component
+    const outcome = resolved([words('intro', 'Visit'), hidden], 'final')
+    expect(outcome.ok ? outcome.document.body.map((block) => block.kind) : outcome.errors.map(({ code }) => code)).toEqual(['paragraph'])
   })
 })
