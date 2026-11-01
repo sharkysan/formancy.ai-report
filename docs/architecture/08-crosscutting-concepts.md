@@ -579,15 +579,15 @@ that breaks either
 - **The format.** Prettier, at 160 columns, without semicolons, in single
   quotes, over TypeScript and JavaScript alone; every other file is as it
   was written.
-- **A copy until it is released.** `scripts/code-style/` is Formancy
-  Health's module, byte for byte, which formancy.ai will release as
-  `@formancy/code-style`; `eslint.config.mjs` and `prettier.config.mjs`
-  call it with this repository's paths. A rule changes in the shared module
-  first and is copied here, and the copy goes when the package is pinned,
-  which narrows [0002](../decisions/0002-depend-on-upstream-never-copy-it.md)
-  until then.
+- **Released, and pinned.** The rules and the style are formancy.ai's
+  `@formancy/code-style`, a root devDependency at an exact version, as
+  [0002](../decisions/0002-depend-on-upstream-never-copy-it.md) has every
+  upstream package; `eslint.config.mjs` and `prettier.config.mjs` call it
+  with this repository's paths. A rule changes in the package and arrives
+  here with a pin moved. Until formancy 0.12.0 published it, on 31 October
+  2026, the repository's scripts carried Formancy Health's copy of it.
 
 **What it costs.** A finding is fixed before a change merges, or disabled
 with a reason review reads; an `async` that awaits nothing passes, and so
-does an `any` a test reads; and nothing compares the copy with the module
-it came from ([§11](11-risks-and-debt.md#113-known-technical-debt)).
+does an `any` a test reads; and nothing compares the merge driver with
+Formancy Data's, which it copies ([§11](11-risks-and-debt.md#113-known-technical-debt)).

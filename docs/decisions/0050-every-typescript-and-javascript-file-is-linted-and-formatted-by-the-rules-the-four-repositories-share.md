@@ -1,6 +1,6 @@
 # 0050 — Every TypeScript and JavaScript file is linted and formatted by the rules the four formancy repositories share, a copy of Formancy Health's with this repository's paths until formancy.ai releases them as `@formancy/code-style`, and `verify` fails a change that breaks either; every finding fixed, a member a store hook detaches declared `this: void`; a branch from before the format merges main through Formancy Data's `scripts/prettier-merge.mjs`; the change merges with a merge commit, so that blame skips the format; warnings, sparse arrays allowed in every test, rules of this repository's own, function-typed properties, a split ahead of #60, a merge driver of its own, a squash or a rebase, and waiting for the release lost
 
-- **Status:** accepted; numbered while 0049 was held by a branch not yet merged; narrows [0002](0002-depend-on-upstream-never-copy-it.md): its wait for a release, for the lint and format rules, which are a byte-for-byte copy of Formancy Health's until formancy.ai releases them as `@formancy/code-style`, and go when this repository pins it
+- **Status:** accepted; numbered while 0049 was held by a branch not yet merged; narrows [0002](0002-depend-on-upstream-never-copy-it.md): its wait for a release, for the lint and format rules, which are a byte-for-byte copy of Formancy Health's until formancy.ai releases them as `@formancy/code-style`, and go when this repository pins it; the narrowing ended on 2026-10-31, when it pinned `@formancy/code-style` 0.12.0 and deleted the copy
 - **Date:** 2026-10-30
 - **Deciders:** Daniel Bacher
 - **Verified by:** the guards and `verify`'s two steps, on 30 October 2026,
@@ -12,7 +12,8 @@
     Copied with the module from Formancy Health's `0935874`, byte for
     byte, where each case was watched failing
     ([formancy.ai-health 0017](https://github.com/sharkysan/formancy.ai-health/blob/main/docs/decisions/0017-every-typescript-and-javascript-file-is-linted-by-the-recommended-type-aware-rules-and-formatted-by-prettier.md)
-    says how).
+    says how). Since 31 October 2026 it runs in formancy.ai, beside the
+    module this repository pins, as `packages/code-style/src/code-style.test.mjs`.
   - **`scripts/lint.test.mjs`** (`pnpm test:repo`) -- this repository's
     wiring, derived from the files git holds: every TypeScript and
     JavaScript file linted by `pnpm lint` as `eslint .`, by the rules its
@@ -281,7 +282,8 @@ repositories.
 - **A copy that can drift.** Until the swap, nothing compares
   `scripts/code-style/` with Formancy Health's or with formancy.ai's
   package, or `scripts/prettier-merge.mjs` with Formancy Data's, and a
-  change to one reaches the others by hand alone.
+  change to one reaches the others by hand alone. The rules' copy went on
+  31 October 2026 (below); the driver's stays.
 - **Typed lint's time**, inside `verify`'s 15 minutes: 21.7 s on the Mac
   above, not measured on CI's runner.
 - **`require-await` is off everywhere**, and **the relaxations hide an
@@ -314,6 +316,25 @@ repositories.
 **What it forecloses.** A rule at `warn`; a style decided file by file;
 a rule changed in this repository alone; and, for the pull request that
 brings this, a squash or a rebase.
+
+**Added 2026-10-31: the package pinned.** formancy 0.12.0 published
+`@formancy/code-style` on 31 October 2026 (formancy.ai 0225), its module
+byte for byte the one `scripts/code-style/` held, so no rule changed. The
+root takes it at exactly 0.12.0 as a devDependency, admitted on its first
+day by `minimumReleaseAgeExclude` as formancy.ai-data 0055 admits a
+release; `eslint.config.mjs`, `prettier.config.mjs`,
+`scripts/lint.test.mjs` and `scripts/prettier-merge.mjs` and its test
+import it, and `scripts/code-style/` is deleted, its test running in the
+package's own suite in formancy.ai. `scripts/upstream-deps.mjs` reads the
+root manifest, which it did not: a case that writes a root taking the
+package at `^0.12.0` was watched failing before the walk read it. ESLint's
+comments plugin, React's hooks plugin and `globals`, which only the module
+imported, left the root's devDependencies for the package's own;
+`@eslint/js` and `typescript-eslint` stay, because `lint.test.mjs` reads
+the recommended sets from them. A rule now changes in formancy.ai's
+package and arrives here with a pin moved in a diff, as any upstream
+release does. `scripts/prettier-merge.mjs` stays Formancy Data's copy,
+which no release carries.
 
 ## Alternatives considered
 
@@ -369,4 +390,6 @@ exact version, and copy none of it; this record narrows its wait for a
 release, for the lint and format rules alone, and the copy goes when the
 package is pinned. It was read again and stamped
 (`node scripts/release-report/limitations.mjs --stamp 0002`), its Status
-line naming this record.
+line naming this record. The narrowing ended on 31 October 2026 with the
+pin (above), and 0002 was read and stamped again, its Status line saying
+so.
