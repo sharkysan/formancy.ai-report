@@ -15,7 +15,7 @@ import { AGGREGATE_FUNCTIONS } from './aggregates.js'
 import type { AggregateFunction, Rounding } from './aggregates.js'
 import { all, flag, identifier, matches, oneOf, optional, points, readList, shape, text } from './check.js'
 import { CHART_CATEGORY_TYPES, CHART_KINDS, CHART_ORDERS, CHART_PALETTE, PIE_FUNCTIONS } from './chart.js'
-import type { ChartCategory, ChartComponent, ChartSeries } from './chart.js'
+import type { ChartCategory, ChartComponent, ChartKind, ChartSeries } from './chart.js'
 import type { ComponentBase } from './components.js'
 import type { FieldType } from './data.js'
 import type { RegionName } from './definition.js'
@@ -27,7 +27,6 @@ import { declare, withinPage } from './validate-context.js'
 import type { Ctx } from './validate-context.js'
 import { readCheckedFormat, readFieldRef, readFormat } from './validate-inline.js'
 import type { InlineScope } from './validate-inline.js'
-import type { CurrencyFormat, NumberFormat } from './values.js'
 
 export const CHART_REQUIRED = ['chart', 'dataset', 'width', 'height', 'category', 'series', 'valueFormat', 'emptyText']
 export const CHART_OPTIONAL = ['title', 'categoryTitle', 'valueTitle', 'valueLabels', 'palette']
@@ -63,7 +62,7 @@ function readCategory(c: Ctx, value: unknown, path: string, scope: InlineScope):
     c.f.report(at(path, 'field'), 'binding-type-mismatch', `a chart groups by ${CHART_CATEGORY_TYPES.join(', ')} values, and this field is a ${field.type}`)
   }
   const format = readCheckedFormat(c, o.format, at(path, 'format'), scope, field?.type)
-  const nullLabel = text(c.f, o.nullLabel, at(path, 'nullLabel'), MAX_LABEL_LENGTH)
+  const nullLabel = words(c, o.nullLabel, at(path, 'nullLabel'), 'the label of the rows without a category')
   // Rows without a category would be drawn under no word, or dropped.
   if (field !== undefined && !Object.hasOwn(o, 'nullLabel') && c.declared.nullable.get(field.ref.dataset)?.has(field.ref.field) === true) {
     c.f.report(at(path, 'nullLabel'), 'missing-property', 'this field may be null, so the chart says what its rows without a value are called')
@@ -95,13 +94,59 @@ function readSeries(c: Ctx, value: unknown, path: string): { series: ChartSeries
 
 function readPalette(c: Ctx, value: unknown, path: string): readonly string[] | undefined {
   const items = readList(c.f, value, path, 1, CHART_PALETTE.length)
-  if (items === undefined) return undefined
+  // A palette of nothing is refused as too few, and is no palette to hold to the series.
+  if (items === undefined || items.length === 0) return undefined
   const colors = items.map((item, index) => matches(c.f, item, at(path, index), COLOR, 'invalid-color', 'a colour written #rrggbb in lower case'))
   // Two series of one colour are told apart by nothing.
   colors.forEach((color, index) => {
     if (color !== undefined && colors.indexOf(color) < index) c.f.report(at(path, index), 'invalid-chart', `the palette already has ${color}`)
   })
   return all(colors)
+}
+
+/**
+ * What each kind of chart refuses, as `invalid-chart`, once its series and
+ * its palette are read: a pie is the shares of one sum or count and has no
+ * axis; a line of several series has no value labels; a bar or a line has
+ * a colour for each series. A pie's colours go to its categories, which
+ * only the data counts.
+ */
+function kindRules(
+  c: Ctx,
+  o: Record<string, unknown>,
+  path: string,
+  chart: ChartKind | undefined,
+  fns: readonly (AggregateFunction | undefined)[] | undefined,
+  palette: readonly string[] | undefined,
+): void {
+  if (chart === 'pie') {
+    for (const key of ['categoryTitle', 'valueTitle'] as const) {
+      if (o[key] !== undefined) c.f.report(at(path, key), 'invalid-chart', `a pie has no axis to title`)
+    }
+  }
+  if (chart === undefined || fns === undefined) return
+  const where = at(path, 'series')
+  if (chart === 'pie') {
+    if (fns.length > 1) c.f.report(where, 'invalid-chart', `a pie is the shares of one series, and this chart has ${fns.length}`)
+    for (const [index, fn] of fns.entries()) {
+      if (fn !== undefined && !PIE_FUNCTIONS.includes(fn)) {
+        c.f.report(
+          at(at(where, index), 'fn'),
+          'invalid-chart',
+          `a pie shows shares of a whole, which only ${PIE_FUNCTIONS.join(' or ')} give; a ${fn} is no share`,
+        )
+      }
+    }
+    return
+  }
+  if (chart === 'line' && o.valueLabels === true && fns.length > 1) {
+    c.f.report(at(path, 'valueLabels'), 'invalid-chart', 'value labels on a line of several series would be printed over one another at a category')
+  }
+  // A series past the palette's end would be drawn in a colour nobody chose, or in none.
+  if (palette !== undefined && palette.length < fns.length) {
+    const said = `this chart has ${fns.length} series, and its palette colours ${palette.length} of them; each series is drawn in a colour of its own`
+    c.f.report(at(path, 'palette'), 'invalid-chart', said)
+  }
 }
 
 export function readChart(c: Ctx, o: Record<string, unknown>, path: string, region: RegionName, base: ComponentBase | undefined): ChartComponent | undefined {
@@ -140,34 +185,14 @@ export function readChart(c: Ctx, o: Record<string, unknown>, path: string, regi
   const valueTitle = text(c.f, o.valueTitle, at(path, 'valueTitle'), MAX_LABEL_LENGTH)
   const valueLabels = flag(c.f, o.valueLabels, at(path, 'valueLabels'))
   const palette = readPalette(c, o.palette, at(path, 'palette'))
-
   // The kinds' own rules last: each needs the series read.
-  if (chart === 'pie' && read !== undefined) {
-    if (read.length > 1) c.f.report(where, 'invalid-chart', 'a pie is the shares of one series, and this chart has more')
-    for (const [index, { fn }] of read.entries()) {
-      if (fn !== undefined && !PIE_FUNCTIONS.includes(fn)) {
-        c.f.report(
-          at(at(where, index), 'fn'),
-          'invalid-chart',
-          `a pie shows shares of a whole, which only ${PIE_FUNCTIONS.join(' or ')} give; a ${fn} is no share`,
-        )
-      }
-    }
-  }
-  if (chart === 'pie') {
-    for (const key of ['categoryTitle', 'valueTitle'] as const) {
-      if (o[key] !== undefined) c.f.report(at(path, key), 'invalid-chart', `a pie has no axis to title`)
-    }
-  }
-  if (chart === 'line' && valueLabels === true && read !== undefined && read.length > 1) {
-    c.f.report(at(path, 'valueLabels'), 'invalid-chart', 'value labels on a line of several series would be printed over one another at a category')
-  }
+  const fns = read?.map(({ fn }) => fn)
+  kindRules(c, o, path, chart, fns, palette)
 
   if (base === undefined || chart === undefined || dataset === undefined || chartWidth === undefined || height === undefined) return undefined
   if (category === undefined || series === undefined || valueFormat === undefined || emptyText === undefined) return undefined
   if (valueFormat.kind !== 'number' && valueFormat.kind !== 'currency') return undefined
   if (o.palette !== undefined && palette === undefined) return undefined
-  const typedFormat: NumberFormat | CurrencyFormat = valueFormat
   return {
     ...base,
     kind: 'chart',
@@ -177,7 +202,7 @@ export function readChart(c: Ctx, o: Record<string, unknown>, path: string, regi
     height,
     category,
     series,
-    valueFormat: typedFormat,
+    valueFormat,
     emptyText,
     ...optional('title', title),
     ...optional('categoryTitle', categoryTitle),

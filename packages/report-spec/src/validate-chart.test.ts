@@ -52,8 +52,9 @@ describe('a chart', () => {
     expect(reportHash(chart({ '/series/0/label': 'Total' }) as unknown as ReportDefinition)).not.toBe(reportHash(richReport()))
   })
 
-  // A chart in the page footer would be drawn on every page; one in a
-  // table cell has no box. The spec puts it in the flow.
+  // A chart in the page footer would be drawn on every page, and one in the
+  // report header above the flow it charts; one in a table cell has no box.
+  // The spec puts it in the flow.
   test('stands in the body and the summary, in columns and keep-together blocks, and nowhere else', () => {
     const block = getAt(richReport(), CH)
     const columns = {
@@ -67,6 +68,9 @@ describe('a chart', () => {
     expect(refusals(report({ '/regions/body/4': columns }))).toEqual([])
     expect(refusals(report({ '/regions/body/3/components/1': { ...(block as object), id: 'in-keep' } }))).toEqual([])
     expect(refusals(report({ '/regions/body/0': { ...(block as object), id: 'in-body' } }))).toEqual([])
+    expect(refusals(report({ '/regions/reportHeader/0': { ...(block as object), id: 'in-report-header' } }))).toEqual([
+      'misplaced-flow-component /regions/reportHeader/0',
+    ])
     expect(refusals(report({ '/regions/pageHeader/0': { ...(block as object), id: 'in-header' } }))).toEqual(['misplaced-flow-component /regions/pageHeader/0'])
     expect(refusals(report({ '/regions/pageFooter/0': { ...(block as object), id: 'in-footer' } }))).toEqual(['misplaced-flow-component /regions/pageFooter/0'])
   })
@@ -209,6 +213,22 @@ describe('the palette of a chart', () => {
   test('names no colour twice', () => {
     expect(refusals(chart({ '/palette': ['#1f77b4', '#1f77b4'] }))).toEqual([`invalid-chart ${CH}/palette/1`])
   })
+
+  // A series past the end of its chart's palette would be drawn in a colour
+  // nobody chose, or in none. A pie's slices are its categories, which only
+  // the data counts, so its palette is held to them where the data is.
+  test('has a colour for each series of a bar or a line chart', () => {
+    expect(refusals(chart({ '/palette': ['#1f77b4'] }))).toEqual([`invalid-chart ${CH}/palette`])
+    expect(refusals(chart({ '/chart': 'line', '/valueLabels': undefined, '/palette': ['#1f77b4'] }))).toEqual([`invalid-chart ${CH}/palette`])
+    expect(refusals(chart({ '/palette': ['#1f77b4', '#d95f02'] }))).toEqual([])
+    expect(refusals(chart({ '/palette': [...CHART_PALETTE] }))).toEqual([])
+    expect(refusals(chart({ ...PIE, '/palette': ['#1f77b4'] }))).toEqual([])
+    // Said by counts alone: a colour is the author's, and the message needs none.
+    const outcome = validateReport(chart({ '/palette': ['#1f77b4'] }))
+    expect(outcome.valid ? [] : outcome.errors.map(({ message }) => message)).toEqual([
+      expect.stringMatching(/has 2 series, and its palette colours 1 of them/),
+    ])
+  })
 })
 
 describe('the words of a chart', () => {
@@ -228,11 +248,14 @@ describe('the words of a chart', () => {
     expect(refusals(chart({ '/title': 'x'.repeat(MAX_LABEL_LENGTH) }))).toEqual([])
   })
 
-  // A legend entry of nothing names no series, and a chart with nothing to
-  // draw would print a blank where it says why.
+  // A legend entry of nothing names no series, a chart with nothing to
+  // draw would print a blank where it says why, and the rows without a
+  // category would be drawn under a category of no word.
   test('are not blank where a reader needs them', () => {
     expect(refusals(chart({ '/series/0/label': '' }))).toEqual([`invalid-chart ${CH}/series/0/label`])
     expect(refusals(chart({ '/emptyText': ' \t' }))).toEqual([`invalid-chart ${CH}/emptyText`])
+    expect(refusals(chart({ '/category/nullLabel': '' }))).toEqual([`invalid-chart ${CH}/category/nullLabel`])
+    expect(refusals(chart({ '/category/nullLabel': ' ' }))).toEqual([`invalid-chart ${CH}/category/nullLabel`])
     // A title is optional, and a chart without one is a chart.
     expect(refusals(chart({ '/title': undefined }))).toEqual([])
   })
@@ -244,6 +267,9 @@ describe('the kind of a chart', () => {
     expect(refusals(chart(PIE))).toEqual([])
     expect(refusals(chart({ ...PIE, '/series/0/fn': 'count', '/series/0/of': undefined }))).toEqual([])
     expect(refusals(chart({ '/chart': 'pie', '/categoryTitle': undefined, '/valueTitle': undefined }))).toEqual([`invalid-chart ${CH}/series`])
+    // Said by its count: how many series the pie has is what is wrong.
+    const two = validateReport(chart({ '/chart': 'pie', '/categoryTitle': undefined, '/valueTitle': undefined }))
+    expect(two.valid ? [] : two.errors.map(({ message }) => message)).toEqual([expect.stringContaining('this chart has 2')])
     const average = { '/series/0/fn': 'avg', '/series/0/rounding': { scale: 2, mode: 'half-even' } }
     expect(refusals(chart({ ...PIE, ...average }))).toEqual([`invalid-chart ${CH}/series/0/fn`])
     expect(refusals(chart({ ...PIE, '/series/0/fn': 'max', '/series/0/of/field': 'quantity' }))).toEqual([`invalid-chart ${CH}/series/0/fn`])

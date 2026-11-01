@@ -39,7 +39,7 @@ export interface ChartCategory {
   readonly order: ChartOrder
   /** How the category prints; it must display the field's type. */
   readonly format?: Format
-  /** The label of the rows whose category is null; asked of a field that may be null. */
+  /** The label of the rows whose category is null, never blank; asked of a field that may be null. */
   readonly nullLabel?: string
 }
 
@@ -72,6 +72,6 @@ export interface ChartComponent extends ComponentBase {
   readonly categoryTitle?: string
   readonly valueTitle?: string
   readonly valueLabels?: boolean
-  /** Replaces `CHART_PALETTE`: one to eight distinct colours. */
+  /** Replaces `CHART_PALETTE`: one to eight distinct colours, and in a bar or a line chart at least one for each series. */
   readonly palette?: readonly string[]
 }

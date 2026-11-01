@@ -32,11 +32,11 @@ import { MAX_COLUMNS, MAX_NESTING_DEPTH, MAX_REGION_COMPONENTS, MIN_COLUMNS } fr
 import { squareRoom } from './page.js'
 import { at } from './pointer.js'
 import { COLOR } from './syntax.js'
+import { CHART_OPTIONAL, CHART_REQUIRED, readChart } from './validate-chart.js'
 import { resolve, withinPage } from './validate-context.js'
 import { EPC_QR_CODE_OPTIONAL, EPC_QR_CODE_REQUIRED, readEpcQrCode } from './validate-epc-qr-code.js'
 import type { Ctx } from './validate-context.js'
 import { readExpression, readFieldRef, readInlines, readStyleRef, readStyleRules } from './validate-inline.js'
-import { CHART_OPTIONAL, CHART_REQUIRED, readChart } from './validate-chart.js'
 import { checkFixedWidths, readTable, TABLE_OPTIONAL, TABLE_REQUIRED } from './validate-table.js'
 
 export interface ComponentScope {

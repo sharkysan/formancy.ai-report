@@ -76,11 +76,12 @@ export const REPORT_ERROR_CODES = [
    */
   'invalid-e-invoice',
   /**
-   * A chart that says what no reader could use: a series label or empty
-   * text that is blank; a palette that names a colour twice; a pie of
-   * more than one series, of a function outside `PIE_FUNCTIONS`, or with
-   * an axis title; or a line chart with value labels over more than one
-   * series.
+   * A chart that says what no reader could use: a series label, an empty
+   * text or a label for the rows without a category that is blank; a
+   * palette that names a colour twice, or that has fewer colours than a
+   * bar or a line chart has series; a pie of more than one series, of a
+   * function outside `PIE_FUNCTIONS`, or with an axis title; or a line
+   * chart with value labels over more than one series.
    */
   'invalid-chart',
 
