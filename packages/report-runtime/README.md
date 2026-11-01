@@ -60,10 +60,11 @@ if (resolution.ok) {
   term, a table of no rows in a final render, or a payment code that asks
   for another amount or account than the e-invoice names, each named by
   where it stands, its business term and its rule, never by the value;
-- a report that holds a chart (`resolve`, `chart-not-resolved`), naming
-  the chart by its id, in a preview as in a final render: this release
-  does not resolve charts, and would otherwise print the report without
-  the chart
+- a report that would print a chart (`resolve`, `chart-not-resolved`),
+  naming the chart by its id, in a preview as in a final render: this
+  release does not resolve charts, and would otherwise print the report
+  without the chart. A chart its condition hides prints nothing, as any
+  component, and is not refused
   ([0051](../../docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
 
 It never returns part of a document.

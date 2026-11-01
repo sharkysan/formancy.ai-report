@@ -71,8 +71,10 @@ that total numbers or count rows, a pie the shares of one sum or count --
 and refuses the rest as `invalid-chart`, or by the code every component's
 fields are refused by; the editing core names what it reads, so a removed
 field takes its series. The runtime does not resolve one yet, and refuses
-a report that holds one as `chart-not-resolved`, naming it, in a preview
-as in a final render, rather than resolve the report without it (0051).
+a report that would print one as `chart-not-resolved`, naming it, in a
+preview as in a final render, rather than resolve the report without it;
+and the builders' palettes do not offer one until the builders edit a
+chart's own properties (0051).
 What only the data can say -- whether the categories fit the box, how
 many slices a pie has -- is left to the stages that resolve and draw a
 chart, to be refused there, never cut to fit.
@@ -117,10 +119,11 @@ where the shared readers quote what they find (`validate-payment-text.ts`).
 An e-invoice holds names, addresses, accounts and VAT identifiers, so
 `invalid-e-invoice` names the business term and the rule, never the value,
 and the renderer's refusals of an e-invoice never quote its XML (0027).
-A chart's own refusals and its diagnostic name it, and a series, by id,
-and say what is wrong by a size, a type, a function or a colour, never
-quoting a label, a title or the empty text, which may be a customer's
-words (0051).
+The validator's refusals of a chart are located by their path, and say
+"this chart" where they name it at all; the core's diagnostics and the
+runtime's refusal name the chart, and a series, by id. Each says what is
+wrong by a count, a size, a type, a function or a colour, never quoting a
+label, a title or the empty text, which may be a customer's words (0051).
 An SVG's refusal names the element path and the construct, and what
 cleaning removed a kind, a name and a count: a link's address, a script's
 text and a style's content are never repeated, and a name is repeated

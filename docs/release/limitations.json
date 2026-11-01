@@ -2249,7 +2249,7 @@
       ]
     },
     "0051": {
-      "reviewed": "sha256:6b1896d7b96ba9d6c4b01ceb1b23e1aebd95a0de0b5fc976072020ec7e48b3fe",
+      "reviewed": "sha256:8fee03e7665ed77510fb878ddbabb5fb4b3a6665845577fa108212e7fedf9bcb",
       "limitations": [
         {
           "area": "format",
@@ -2258,7 +2258,7 @@
         },
         {
           "area": "format",
-          "says": "A chart draws at most eight series, and a pie one series of a sum or a count.",
+          "says": "A chart holds at most eight series, and a pie one series of a sum or a count.",
           "heldBy": "packages/report-spec/src/validate-chart.test.ts"
         },
         {
@@ -2270,13 +2270,23 @@
           "says": "A report that holds a chart is refused whole by 0.2.0, which does not know the kind, so a report saved with one opens only in a release that has it."
         },
         {
+          "area": "format",
+          "says": "A pie’s own palette is not held to its slices, which only the data counts: what a slice past its end is drawn in is undecided until the runtime resolves charts."
+        },
+        {
           "area": "runtime",
-          "says": "Until the runtime resolves charts, a report holding one is refused.",
+          "says": "Until the runtime resolves charts, a report that would print one is refused, a preview as a final render; one whose chart its condition hides prints.",
           "heldBy": "packages/report-runtime/src/lower.test.ts"
         },
         {
           "area": "builders",
-          "says": "Until the builders edit a chart’s own properties, its kind, category, series, words and palette are written in the report’s JSON by a host or a proposal; a builder inserts a bar chart of the first detail field of text, a date or a number, summing the first other number, and moves and removes it."
+          "says": "Until the builders offer a chart and edit its own properties, neither palette has Chart, and a chart is written in the report’s JSON by a host or a proposal; a builder shows one a report holds, moves it and removes it.",
+          "heldBy": "packages/report-builder-core/src/palette.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A form version that removes the field a chart groups by is offered printing nothing of it only where the chart labels its rows without a category; a chart written without that label, over a field that may not be null, is offered the removal alone, which takes the chart.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
         }
       ]
     }

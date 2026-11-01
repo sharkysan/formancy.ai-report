@@ -447,7 +447,7 @@ PIE_FUNCTIONS // ['sum', 'count']: a pie is the shares of one total
   date, an integer or a decimal -- in the order the data first gives each
   (`data`) or sorted by it (`asc`, `desc`), and printed in a format that
   displays its type. A field that may be null asks for `nullLabel`, the
-  label its rows without one print under.
+  label its rows without one print under, never blank.
 - **Its series**, one to `MAX_CHART_SERIES`, each with an id unique in the
   chart, are `{ id, label, fn, of?, rounding? }`: one of the aggregates'
   functions over a detail field, a count of rows where `of` is left out,
@@ -460,20 +460,22 @@ PIE_FUNCTIONS // ['sum', 'count']: a pie is the shares of one total
 - **Its colours** are `CHART_PALETTE`'s, a series' at its place and a
   pie's slice at its category's: eight, each at least 3:1 against white
   paper, which `chart.test.ts` computes. A chart's own `palette` of one to
-  eight colours replaces it, read the same way.
-- **`invalid-chart`** refuses a blank series label or `emptyText`, a
-  palette that names a colour twice, a pie of more than one series, of a
-  function outside `PIE_FUNCTIONS` or with an axis title, and value labels
-  on a line chart of several series.
+  eight colours replaces it, read the same way; a bar or a line chart's
+  has a colour for each series.
+- **`invalid-chart`** refuses a blank series label, `emptyText` or
+  `nullLabel`, a palette that names a colour twice or, in a bar or a line
+  chart, has fewer colours than the chart has series, a pie of more than
+  one series, of a function outside `PIE_FUNCTIONS` or with an axis title,
+  and value labels on a line chart of several series. Its messages never
+  quote a label, a title or a value.
 
 What they do not check:
 
-- that a chart's own palette has a colour for each series it colours: a
-  bar or line chart of more series than its palette has colours is valid;
-- whether a chart's categories fit its box, or how many a pie has, which
-  only the data says;
+- whether a chart's categories fit its box, or how many a pie has, and
+  so whether a pie's own palette has a colour for each slice, which only
+  the data says;
 - what a chart prints. No release resolves one yet: the runtime refuses a
-  report that holds one.
+  report that would print one.
 
 ## An SVG asset
 

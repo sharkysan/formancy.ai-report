@@ -287,12 +287,14 @@ one.
   `/`, which on integers drops the remainder (`divide(dec(a), dec(b), places)`
   is the exact one), and a call to `matches()`, whose pattern no step budget
   bounds. Each comes with the component, the table column where it is in
-  one, and the position in its source. Two more are about totals: a rounding
-  declared on an aggregate that computes an integer, a date or an instant,
-  and a number format that prints a rounded total at fewer places than its
-  rounding keeps, which would round it twice: an aggregate's, or a chart's
-  series' that declares a rounding, printed in the chart's `valueFormat`.
-  And one is about an e-invoice: a total its XML holds that no text or
+  one, and the position in its source. Two more are about totals, an
+  aggregate's or a chart's series': a rounding declared on one that
+  computes an integer, a date or an instant -- a series' count, or its
+  sum, least or greatest of integers -- and a number format that prints a
+  rounded total at fewer places than its rounding keeps, which would round
+  it twice, a series' printed in its chart's `valueFormat`. A series is
+  typed as the compiler types an aggregate of its function over its
+  field. And one is about an e-invoice: a total its XML holds that no text or
   table of the page prints (`e-invoice-total-unprinted`). Each of these is
   held: the total
   without VAT, `invoice.taxBasisTotal` or `invoice.lineTotal`; the VAT

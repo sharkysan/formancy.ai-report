@@ -8,22 +8,26 @@
     rule where it is written:
     - a chart read back whole, and part of what the hash names;
     - in the body and the summary, in columns and keep-together blocks,
-      and refused in the page header and the page footer;
+      and refused in the report header, the page header and the page
+      footer;
     - a property it does not know refused, and one it lacks;
     - a side under `MIN_CHART_SIDE`, and one past the printable area;
     - a category that is a detail field, of text, a date or a number,
       printed in a format that displays its type, and asked for the label
-      of its rows without one where the field may be null;
+      of its rows without one where the field may be null, never blank;
     - one to `MAX_CHART_SERIES` series, their ids unique in the chart,
       each reading a field unless it counts, totalling numbers alone, an
       average declaring its rounding;
     - values in a number or a currency format, never in a currency read
       from a row;
-    - a palette of one to `CHART_PALETTE.length` colours, none twice;
+    - a palette of one to `CHART_PALETTE.length` colours, none twice, and
+      in a bar or a line chart a colour for each series, said by counts
+      alone, where a pie's is held to no count;
     - words of at most `MAX_LABEL_LENGTH` characters, not blank where a
       reader needs them;
-    - a pie of one series that sums or counts, with no axis title, and no
-      value labels on a line chart of several series.
+    - a pie of one series that sums or counts, refused with its count of
+      series, with no axis title, and no value labels on a line chart of
+      several series.
 
     `src/validate.test.ts`'s `invalid-chart` case refuses a blank series
     label beside one that is valid, and its `unknown-kind` case now names
@@ -39,25 +43,36 @@
     removes a chart whose category, or whose last series, the field is.
     `src/diagnostics/chart.test.ts` says that a series printed at fewer
     places than its rounding keeps is rounded again, and says nothing of
-    one printed at those places or of one that declares no rounding.
+    one printed at those places or of one that declares no rounding; and
+    that a count, or a sum or a greatest of integers, that declares a
+    rounding has no places to round, where an average of integers and a
+    sum of decimals have. `src/diagnostics/diagnose.test.ts` says both of
+    a chart's series through `diagnose()`, the editor's list.
   - **A form review.** report-forms' `src/review.test.ts` blocks a version
     that removes a field a chart totals, its removal naming that series,
-    and once applied the chart keeps its count. It offers no retype
+    and once applied the chart keeps its count. A version that removes
+    the field a chart groups by, a field it proved answered, is offered
+    printing nothing of it where the chart labels its rows without one,
+    and the removal alone where it does not. It offers no retype
     of a field a chart sums to a type it cannot total, where the same
     report without the chart is offered one; that case is held by the
     validator, which refuses a sum of text, and not by what the core
     names. `src/generate.test.ts` holds a generated report to no chart, a
     guard nothing here could make fail today.
   - **The interim refusal.** report-runtime's `src/lower.test.ts` refuses a
-    report holding a chart, in a final render, as `chart-not-resolved` at
-    the chart's path, naming it by its id.
-  - **The palette.** report-builder-core's `src/palette.test.ts` inserts the
-    default chart into a session, which validates it, summing the first
-    number or counting the rows where there is none, and says what a report
-    needs before it can hold one. The label the default gives a category
-    that may be null is a branch of `palette.ts` that no test reaches.
-    React's `src/accessibility.test.tsx` and Angular's
-    `src/properties.test.ts` hold a chart in their reports of every kind.
+    report holding a chart, in a final render and in a preview, as
+    `chart-not-resolved` at the chart's path, naming it by its id, and
+    prints one whose chart its condition hides.
+  - **The palette.** report-builder-core's `src/palette.test.ts` offers
+    every kind but a chart, and refuses a chart inserted or dragged. It
+    holds the default chart to the validator: summing the first number,
+    named after its function where the field's label is blank, or
+    counting the rows where there is none; over a category of text that
+    may be null and one that may not, each labelled for its rows without
+    one in the report's language, and over a date; and it says what a
+    report needs before it can hold one. React's
+    `src/accessibility.test.tsx` and Angular's `src/properties.test.ts`
+    hold a chart in their reports of every kind.
   - **Seen failing, on 1 November 2026.** Each case was run before the code
     it holds, or with that code disabled in the working tree and restored:
     - the format's cases failed whole before `readChart` existed. Unlike
@@ -71,7 +86,16 @@
       palette's before it had a default;
     - report-forms' blocking case failed with `READERS.chart` stubbed, and
       again with every read of a chart held as the whole chart. Its retype
-      case and the generator's do not fail under either, as said above.
+      case and the generator's do not fail under either, as said above;
+    - the review's fixes, on the same day: the short palette, the blank
+      label of the rows without a category, the pie's count, the series
+      that rounds an integer and the palette's withheld chart, its default
+      labelled and named, each failed before its code; the report header's
+      case with the chart's flow rule removed; `diagnose()`'s case with
+      `chartDiagnostics` left out of it; the runtime's preview case with a
+      preview that skipped a chart, and its hidden chart's with a hidden
+      chart lowered; and the forms' category case with a nullable category
+      no longer asked for its label.
 
 ## Context
 
@@ -147,8 +171,9 @@ to them where it is written.
 - **Printed in a format that displays it.** `category.format`, optional,
   is held to the field's type (`format-type-mismatch`).
 - **Rows without a category are a category.** A field that may be null
-  asks for `category.nullLabel` (`missing-property`), and its rows are one
-  category under that label, never dropped.
+  asks for `category.nullLabel` (`missing-property`), never blank
+  (`invalid-chart`), and its rows are one category under that label,
+  never dropped.
 
 **Its series.**
 - **One to `MAX_CHART_SERIES`**, each with an id unique in the chart
@@ -177,17 +202,16 @@ to them where it is written.
   draw prints, in the report's words; `title`, `categoryTitle` and
   `valueTitle` are optional, and `valueLabels` asks for each value printed
   at its mark. Each text is at most `MAX_LABEL_LENGTH` characters
-  (`too-long`), and a series' label, its legend entry, and `emptyText` are
-  never blank (`invalid-chart`).
+  (`too-long`), and a series' label, its legend entry, `emptyText` and
+  `category.nullLabel` are never blank (`invalid-chart`).
 - **Colours by place.** A series is drawn in the colour at its place in
   `CHART_PALETTE`, and a pie's slice in the colour at its category's
   place. The palette is eight colours, each at least 3:1 against white
   paper (WCAG 2.2, 1.4.11), the least `#1b9e77` at 3.39 by WCAG's
-  relative luminance. A chart's own
-  `palette`, one to eight colours written `#rrggbb` in lower case, none
-  twice (`invalid-color`, `invalid-chart`), replaces it and is read the
-  same way. The colours of the grid and the axes are the renderer's, as a
-  table's rules are.
+  relative luminance. A chart's own `palette`, one to eight colours
+  written `#rrggbb` in lower case, none twice (`invalid-color`,
+  `invalid-chart`), replaces it and is read the same way. The colours of
+  the grid and the axes are the renderer's, as a table's rules are.
 
 **What each kind refuses**, as `invalid-chart`:
 - **A pie is the shares of one total.** It has one series, whose function
@@ -196,6 +220,11 @@ to them where it is written.
   `categoryTitle` or `valueTitle`.
 - **A line chart of several series has no value labels.** Two series'
   labels at one category could only be printed over one another.
+- **A bar or a line chart has a colour for each series.** Its own
+  palette has at least as many colours as it has series: a series past
+  its end would be drawn in a colour nobody chose. A pie's colours go to
+  its categories, which only the data counts, so its palette is held to
+  them where the data is.
 
 **What the editing core knows of it.**
 - **What it reads.** A chart holds no expression. report-core's
@@ -212,9 +241,13 @@ to them where it is written.
   that keeps the rest (`commands/readers.ts`); a chart whose category the
   field is, or whose every series goes, goes whole, as a table whose every
   column goes.
-- **Rounded twice is an error.** A series whose rounding keeps more places
-  than `valueFormat` prints is `format-rounds-again`, as an aggregate's is
-  (`diagnostics/chart.ts`).
+- **Its rounding is an aggregate's.** A series that declares a rounding
+  and totals an integer -- a count, or a sum, a least or a greatest of
+  integers, typed by the table the compiler types an aggregate by -- has
+  no places to round, `rounding-not-decimal`; and one whose rounding keeps
+  more places than `valueFormat` prints is rounded twice,
+  `format-rounds-again`, as an aggregate's is (`diagnostics/chart.ts`).
+  `diagnose()` lists both.
 - **No command of its own.** A chart, its series included, changes through
   `updateComponent`, its id and its kind never.
 
@@ -222,18 +255,29 @@ to them where it is written.
 not handle a chart yet refuses one rather than drop it: the runtime refuses
 a report holding a chart as `chart-not-resolved`, at the chart's path,
 naming it by its id. It is an error, so a preview is refused as a final
-render is. The code goes when the runtime resolves charts. What a chart
-prints -- its categories in their order, its rows without a category under
-their label, each series' totals -- is decided here and resolved there.
+render is. A chart its condition hides prints nothing, as any component,
+so a report whose every chart is hidden prints. The code goes when the
+runtime resolves charts. What a chart prints -- its categories in their
+order, its rows without a category under their label, each series' totals
+-- is decided here and resolved there.
 
-**The builders offer one.** Both builders' palettes have Chart: a bar
-chart of the detail rows, its category the first detail field of text, a
-date or a number, in the data's order, with a label for its rows without
-one where the field may be null; its series the first other number summed,
-or the rows counted where there is none; held to the printable area. Where
-the detail dataset has no such field, the entry says what to declare
-first. The design view draws it as a box of its size, and its properties
-are those every component has until the builders edit a chart's own.
+**The builders do not offer one yet.** Neither palette has Chart until the
+builders edit a chart's own properties: one inserted now would be a box
+whose kind, category and series no builder edits, in a report the runtime
+refuses to render. builder-core's palette withholds it (`NOT_OFFERED`, in
+`palette.ts`), so an insert or a drag of one is refused as `unavailable`,
+as of a kind the palette does not have. The default those builders will
+insert is builder-core's already, held to the validator: a bar chart of
+the detail rows, its category the first detail field of text, a date or a
+number, in the data's order, labelled for its rows without one whether or
+not the field may be null, so that a form version that removes it can be
+reviewed into printing nothing of it (0048); its series the first other
+number summed, named after its function where the field's label is blank,
+or the rows counted where there is none; held to the printable area.
+Where the detail dataset has no such field, it says what to declare first.
+A chart a report already holds is drawn in the design view as a box of
+its size, moved and removed as any component, and its properties are
+those every component has.
 `generateReport` draws no chart: a first draft would guess a total the
 form never asked for
 ([0045](0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).
@@ -250,18 +294,20 @@ them, refuses a report that holds one as `unknown-kind`, never skipping it.
   the chart has one series of a sum or a count: a diagnostic, a review or
   a proposal that named the chart still names it.
 - **Nothing a reader could not use gets past the editor.** A legend entry
-  of nothing, a palette that names a colour twice, a pie of averages, a
-  line's value labels printed over each other: each is refused where it
-  is written, by the validator every layer asks.
+  of nothing, a palette that names a colour twice or is shorter than its
+  series, a pie of averages, a line's value labels printed over each
+  other: each is refused where it is written, by the validator every
+  layer asks.
 - **One rule for every total.** A series is totalled by an aggregate's
   function and its rounding diagnosed by an aggregate's rule, so a chart
   and a table that print the same total are held to one decision.
 - **A form's changes reach it.** A form version that removes a field a
   chart totals blocks the report's submissions of it until reviewed, and
   the review's removal takes that series and nothing else (0048).
-- **Fail closed, a stage at a time.** A report with a chart is refused by
-  the runtime that cannot resolve it, and by a release that does not know
-  it, never printed without it.
+- **Fail closed, a stage at a time.** A report that would print a chart is
+  refused by the runtime that cannot resolve it, and one that holds a
+  chart by a release that does not know the kind, never printed without
+  it.
 
 **What it costs.**
 - **No expression.** A chart reads fields as the data gives them. A
@@ -284,22 +330,32 @@ them, refuses a report that holds one as `unknown-kind`, never skipping it.
   prints by colour can be misled. A series cannot keep a colour of its
   own. A pie's slices follow its categories the same way, so where the
   data gives other categories, one category may print in another colour.
-- **A palette is not held to what it colours.** The validator holds a
-  chart's own palette to one to eight distinct colours, and not to the
-  series it colours: a bar or line chart of more series than its palette
-  has colours is valid, and what the series past the palette are drawn in
-  is undecided until the runtime resolves charts. How many slices a pie
-  has is the data's, so only a render can hold a pie to its colours.
+- **A pie's palette is not held to its slices.** How many slices a pie
+  has is the data's, so the validator holds a pie's own palette to one to
+  eight distinct colours and to nothing else, and what a slice past its
+  end is drawn in is undecided until the runtime resolves charts. A bar
+  or a line chart's palette has a colour for each series.
 - **No rotated label is promised.** Nothing here decides how a category's
   label that does not fit its room is drawn. The renderer's record does,
   under 0003's rule: refused rather than cut or drawn over another.
-- **Every render of a report with a chart is refused, for now.** Until the
-  runtime resolves charts, a person who inserts one in either builder has
-  a report the runtime refuses, a preview as a final render, naming the
-  chart. The runtime's case holds a final render.
-- **Edited as JSON, for now.** Until the builders edit a chart's own
-  properties, its kind, category, series, words and palette are written by
-  a host or a proposal, or by the palette's default alone.
+- **A report that would print a chart is refused, for now.** Until the
+  runtime resolves charts, such a report is refused, a preview as a final
+  render, naming the chart; one whose chart its condition hides prints.
+  The runtime's cases hold both.
+- **Written as JSON, for now.** Until the builders offer a chart and edit
+  its own properties, a chart is written into the report by a host or a
+  proposal; a builder shows one a report holds, moves it and removes it.
+- **The README's pictures are retaken when the builders offer one.** The
+  palette those pictures record, and the browser gate reads, is the one
+  without Chart; the change that offers it retakes them with
+  `node scripts/pictures.mjs`, as a change to what a picture shows is.
+- **A hand-written chart without `nullLabel` keeps no category a form
+  version removes.** Printing nothing of a removed field declares it
+  nullable, and a category that may be null needs its label, so a review
+  offers to print nothing of a chart's category only where the chart
+  labels its rows without one; a chart written without that label, over
+  a field that may not be null, is offered the removal alone, which takes
+  the chart. The builders' default always writes the label.
 - **0.2.0 refuses a report with a chart.** It refuses the whole report as
   `unknown-kind`: a report saved with one opens only in a release that has
   the kind.
