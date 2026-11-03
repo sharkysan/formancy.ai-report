@@ -19,8 +19,9 @@ import { caught, refuse, type DocumentRefusal } from './refusals.js'
  * multiple of their input, so each is refused before it is decoded where
  * that multiple passes the budget, then decoded by pdf-lib's port of
  * PDF.js and charged what it wrote. Nothing else is decoded: LZW, Crypt and
- * an image's filters -- which the reader passes on to the viewer and never
- * decodes -- are refused where a stream must be decoded.
+ * an image's own filters are refused where a stream must be decoded. An
+ * image's own filter last in an image XObject's chain is passed on to the
+ * viewer as it is written, the filters before it decoded and charged.
  */
 
 /**
@@ -175,12 +176,26 @@ function parmsOf(dict: PdfDict, count: number): readonly (PdfDict | undefined)[]
   })
 }
 
-/** `stream`'s bytes decoded through its filters, each stage taken from `budget`; throws the refusal. */
-export function decodedBytes(stream: PdfStream, budget: InflateBudget): Uint8Array {
+/**
+ * An image's own filters, which a viewer decodes and the reader never does:
+ * what they write is bounded by the image's size, not by their input, and
+ * written in a form only an image decoder reads.
+ */
+const IMAGE_FILTERS: ReadonlySet<string> = new Set(['DCTDecode', 'JPXDecode', 'CCITTFaxDecode', 'JBIG2Decode'])
+
+/**
+ * `stream`'s bytes decoded through its filters, each stage taken from
+ * `budget`; throws the refusal. Of an `image` -- an image XObject -- a last
+ * filter that is an image's own is left to the viewer, and the bytes are
+ * what that filter reads.
+ */
+export function decodedBytes(stream: PdfStream, budget: InflateBudget, image = false): Uint8Array {
   const filters = filtersOf(stream.dict)
   const parms = parmsOf(stream.dict, filters.length)
+  const last = filters.at(-1)
+  const decoding = image && last !== undefined && IMAGE_FILTERS.has(last) ? filters.slice(0, -1) : filters
   let data = stream.bytes
-  for (const [i, filter] of filters.entries()) {
+  for (const [i, filter] of decoding.entries()) {
     // A Map, not an object's keys: /constructor or /__proto__ would find what an object's prototype holds.
     const ratio = RATIO.get(filter)
     if (filter === 'FlateDecode') data = unpredicted(inflated(data, budget), parms[i])

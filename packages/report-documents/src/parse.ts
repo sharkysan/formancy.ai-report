@@ -33,6 +33,14 @@ export interface ParsedDocument {
   readonly catalog: PdfDict
   /** The object numbers of its pages, in the order they print. */
   readonly pages: readonly number[]
+  /**
+   * What the parse left of `MAX_DOCUMENT_INFLATED` after its object and
+   * cross-reference streams: the pages' content and the closure's streams
+   * are decoded from it, so that a document decodes `MAX_DOCUMENT_INFLATED`
+   * once, every stream of it together. Each read of the pages, or of a
+   * closure, takes from it again.
+   */
+  readonly budget: InflateBudget
 }
 
 const OBJ = keyword('obj')
@@ -151,7 +159,7 @@ class Loop {
     const root = trailer.entries.get('Root')
     const catalog = isRef(root) ? objects.get(root.object) : undefined
     if (!isDict(catalog) || !isName(catalog.entries.get('Type'), 'Catalog')) refuse('no-catalog')
-    return { objects, trailer, catalog, pages: pageTree(objects, catalog) }
+    return { objects, trailer, catalog, pages: pageTree(objects, catalog), budget: this.budget }
   }
 
   /** `N G obj`, its value, `endobj`; a cross-reference stream read as a section, an object stream's members as definitions of their own. */

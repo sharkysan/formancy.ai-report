@@ -5,9 +5,10 @@
  *
  * A refusal names what was found, in the reader's own words, never a byte
  * of the file: no name, no string, no offset and no object number. Every
- * message is one of `FINDINGS`, then its code's advice, so a message can
- * hold nothing the file chose; the page a later refusal names travels as a
- * number beside it (`page`), never inside it.
+ * message is one of `FINDINGS`, then the page where what was found belongs
+ * to one, then its code's advice, so a message can hold nothing the file
+ * chose: the page is the reader's own count, from 1, said in the message
+ * and given beside it (`page`), never a number the file wrote.
  */
 
 /** Why a PDF is refused, each the first thing found that is wrong with it. */
@@ -22,7 +23,7 @@ export const DOCUMENT_REFUSAL_CODES = [
   'malformed',
   /** Arrays and dictionaries nested past `MAX_DOCUMENT_DEPTH`. */
   'too-deep',
-  /** More objects than `MAX_DOCUMENT_OBJECTS`, written or claimed by a cross-reference; more cross-reference entries than `MAX_DOCUMENT_XREF_ENTRIES` or sections than `MAX_DOCUMENT_XREF_SECTIONS`, every section together; more values than `MAX_DOCUMENT_VALUES`; names past `MAX_DOCUMENT_NAME_BYTES`. */
+  /** More objects than `MAX_DOCUMENT_OBJECTS`, written, claimed by a cross-reference or reached by its pages; more cross-reference entries than `MAX_DOCUMENT_XREF_ENTRIES` or sections than `MAX_DOCUMENT_XREF_SECTIONS`, every section together; more values than `MAX_DOCUMENT_VALUES`; names past `MAX_DOCUMENT_NAME_BYTES`. */
   'too-many-objects',
   /** Streams that decode past `MAX_DOCUMENT_INFLATED`, every stage of every stream together. */
   'inflates-too-far',
@@ -30,7 +31,7 @@ export const DOCUMENT_REFUSAL_CODES = [
   'unsupported-filter',
   /** The cross-reference and the objects disagree: an earlier definition named than the last one written, a place where no object is, an object it does not list, a generation no object has. */
   'xref-disagrees',
-  /** A page tree that is not a tree: a node reached twice, a parent that is not the node holding it, a count that is not its pages. */
+  /** A page tree that is not a tree -- a node reached twice, a parent that is not the node holding it, a count that is not its pages -- or a tree of no pages, which prints nothing. */
   'page-tree',
   /** More pages than `MAX_DOCUMENT_PAGES`. */
   'too-many-pages',
@@ -156,33 +157,59 @@ export const FINDINGS = {
   'pages-twice': ['page-tree', 'its page tree reaches one node twice'],
   'pages-parent': ['page-tree', 'a page or a node of its page tree names another parent than the node that holds it'],
   'pages-count': ['page-tree', 'a node of its page tree counts other than the pages under it'],
+  'no-pages': ['page-tree', 'it has no pages'],
   pages: ['too-many-pages', 'it has more pages than a document may'],
+  box: ['malformed', 'it gives no box of four numbers'],
+  'user-unit': ['malformed', 'it gives a user unit that is not a positive number'],
+  contents: ['malformed', 'it names content that is not one or more streams'],
+  resources: ['malformed', 'it gives resources that are not a dictionary'],
+  group: ['malformed', 'it gives a transparency group that is not a dictionary'],
+  reached: ['too-many-objects', 'its pages reach more objects than a document may hold'],
+  rotation: ['unsupported-rotation', 'it is turned by other than a quarter turn'],
+  area: ['no-area', 'it gives a box of no area'],
+  layers: ['optional-content', 'it holds layers a viewer may hide'],
+  'resource-page': ['resource-names-a-page', 'what its pages draw with reaches a page'],
 } as const satisfies Record<string, readonly [DocumentRefusalCode, string]>
 export type Finding = keyof typeof FINDINGS
 
-/** The refusal for what was found. */
-export function refusal(finding: Finding): DocumentRefusal {
+/** The refusal for what was found, on `page`, counted from 1, where it belongs to one. */
+export function refusal(finding: Finding, page?: number): DocumentRefusal {
   const [code, found] = FINDINGS[finding]
-  return { ok: false, code, message: `${found}; ${DOCUMENT_ADVICE[code]}` }
+  if (page === undefined) return { ok: false, code, message: `${found}; ${DOCUMENT_ADVICE[code]}` }
+  return { ok: false, code, message: `${found}, on page ${page}; ${DOCUMENT_ADVICE[code]}`, page }
 }
 
 /**
  * A refusal on its way out of the reader. It is thrown where the fault is
  * found, deep in a token or a cross-reference, and caught once, at the
  * reader's edge (`caught`), so that nothing partly read is ever returned.
+ * It keeps what was found, so that the page it belongs to can be named on
+ * its way out of that page (`onPage`).
  */
 export class DocumentRefused extends Error {
+  readonly finding: Finding
   readonly refusal: DocumentRefusal
 
-  constructor(refusal: DocumentRefusal) {
-    super(refusal.message)
-    this.refusal = refusal
+  constructor(finding: Finding, page?: number) {
+    const refused = refusal(finding, page)
+    super(refused.message)
+    this.finding = finding
+    this.refusal = refused
   }
 }
 
 /** Refused for what was found. */
 export function refuse(finding: Finding): never {
-  throw new DocumentRefused(refusal(finding))
+  throw new DocumentRefused(finding)
+}
+
+/** What `read` returns; whatever it refuses, wherever it is found, refused on `page`, counted from 1. */
+export function onPage<T>(page: number, read: () => T): T {
+  try {
+    return read()
+  } catch (error) {
+    throw error instanceof DocumentRefused ? new DocumentRefused(error.finding, page) : error
+  }
 }
 
 /**

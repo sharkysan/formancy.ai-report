@@ -9,7 +9,8 @@ import { refuse } from './refusals.js'
  * reads /Count; here every kid's /Parent is the node whose /Kids holds it,
  * the root has none, every /Count is the pages counted under its node, and
  * the page past `MAX_DOCUMENT_PAGES` is refused the moment the walk reaches
- * it. Once it is walked, a climb up any page's /Parent ends at the root.
+ * it. A tree of no pages, which prints nothing, is refused where the walk
+ * ends. Once it is walked, a climb up any page's /Parent ends at the root.
  */
 
 interface Node {
@@ -60,5 +61,6 @@ export function pageTree(objects: PdfObjects, catalog: PdfDict): readonly number
       if (pages.length > MAX_DOCUMENT_PAGES) refuse('pages')
     } else refuse('pages-kid')
   }
+  if (pages.length === 0) refuse('no-pages')
   return pages
 }

@@ -41,12 +41,6 @@ describe('the page tree reads', () => {
     expect(parsed(file).pages).toEqual([11, 13, 3, 12])
   })
 
-  // A document of no pages prints nothing; the reader reports none, and
-  // what is done with that is the caller's.
-  test('a tree of no pages, as an empty list', () => {
-    expect(parsed(tree({ 2: '<</Type/Pages/Kids[]/Count 0>>' })).pages).toEqual([])
-  })
-
   // The bound refuses the page past it, not the page at it: a document of
   // exactly MAX_DOCUMENT_PAGES pages prints whole.
   test(`${MAX_DOCUMENT_PAGES} pages, the bound`, () => {
@@ -91,6 +85,14 @@ describe('the page tree is refused', () => {
   test('a page or a node whose /Parent is not the node that holds it', () => {
     expectRefused(tree({ 2: '<</Type/Pages/Kids[3 0 R]/Count 1>>', 3: page(1) }), 'page-tree', 'pages-parent')
     expectRefused(tree({ 2: '<</Type/Pages/Kids[3 0 R]/Count 1>>', 3: '<</Type/Page/Contents 4 0 R>>' }), 'page-tree', 'pages-parent')
+  })
+
+  // A document of no pages prints nothing the author saw: read as one, a
+  // report would carry it as no pages and say nothing of it. Refused where
+  // the walk ends, whether the root has no kids or only nodes of none.
+  test('a tree of no pages', () => {
+    expectRefused(tree({ 2: '<</Type/Pages/Kids[]/Count 0>>' }), 'page-tree', 'no-pages')
+    expectRefused(tree({ 2: '<</Type/Pages/Kids[5 0 R]/Count 0>>', 5: '<</Type/Pages/Parent 2 0 R/Kids[]/Count 0>>' }), 'page-tree', 'no-pages')
   })
 
   // One page named twice by the tree would print twice.
