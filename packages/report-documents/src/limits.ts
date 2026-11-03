@@ -47,6 +47,17 @@ export const MAX_DOCUMENT_OBJECTS = 100_000
 export const MAX_DOCUMENT_XREF_ENTRIES = 2 * MAX_DOCUMENT_OBJECTS
 
 /**
+ * Cross-reference sections a file may hold, chained or not, each counted as
+ * the loop meets it, before it is read or kept: a section that claims no
+ * entry still costs what it is held as, and a file of twenty megabytes of
+ * `xref trailer<</Size 0>>` held 427 MiB (the parse's re-review). A file's
+ * revisions each add one, a hybrid two; the spike's sample held at most
+ * three. A thousand is a ruling, not yet measured against the sample's
+ * largest.
+ */
+export const MAX_DOCUMENT_XREF_SECTIONS = 1_000
+
+/**
  * Values the parse makes -- each number, string, name, array, dictionary,
  * reference and keyword, and each dictionary key, a name that is a value
  * counted twice -- which is what its time and heap grow with. Set by a

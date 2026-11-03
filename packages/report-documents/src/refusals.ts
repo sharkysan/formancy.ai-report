@@ -136,6 +136,7 @@ export const FINDINGS = {
   stack: ['too-deep', 'it nests deeper than the reader can follow'],
   objects: ['too-many-objects', 'it holds more objects than a document may'],
   'xref-claim': ['too-many-objects', 'its cross-reference claims more objects than a document may hold'],
+  'xref-sections': ['too-many-objects', 'it holds more cross-reference sections than a document may'],
   values: ['too-many-objects', 'it holds more values than a document may'],
   'name-bytes': ['too-many-objects', "its names, together, are longer than a document's may be"],
   inflated: ['inflates-too-far', 'its compressed streams expand past what a document may hold'],

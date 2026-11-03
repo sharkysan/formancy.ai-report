@@ -1,8 +1,8 @@
 import { deflate } from 'pako'
 import { describe, expect, test } from 'vitest'
-import { MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_XREF_ENTRIES } from './limits.js'
+import { MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_XREF_ENTRIES, MAX_DOCUMENT_XREF_SECTIONS } from './limits.js'
 import { expectRefused, parsed } from './parse-test-support.js'
-import { claimingXrefStream, unchainedStreams, unchainedTables } from './test-hostile.js'
+import { claimingXrefStream, emptySections, unchainedStreams, unchainedTables } from './test-hostile.js'
 import { basic, concat, CONTENT, latin1, MIB, onePage, PdfWriter, repeated, type XrefEntry } from './test-pdf.js'
 
 /**
@@ -404,6 +404,19 @@ describe('what a cross-reference may claim', () => {
   })
 })
 
+describe('how many cross-reference sections a file may hold', () => {
+  // The parse's re-review: a section that claims no entry costs nothing
+  // against the entries bound, and is read and kept like any other; a file
+  // of twenty megabytes of `xref trailer<</Size 0>>`, nothing chaining it,
+  // held 427 MiB and ran a 384 MiB heap out. Sections are counted as they
+  // are met, before one is read.
+  test('more sections than MAX_DOCUMENT_XREF_SECTIONS are refused as they are met, and as many are read', () => {
+    // The file's own section is one of them.
+    expect(parsed(emptySections(MAX_DOCUMENT_XREF_SECTIONS - 1)).pages).toEqual([3])
+    expectRefused(emptySections(MAX_DOCUMENT_XREF_SECTIONS), 'too-many-objects', 'xref-sections')
+  })
+})
+
 describe('an object stream holds its members one after another', () => {
   // The parse's review: forty members of an object stream at one offset,
   // before 30 MiB of white space, took 2.1 s, and a thousand of them 107 s,
@@ -460,19 +473,54 @@ describe('an object stream holds its members one after another', () => {
     expectRefused(membered(forty, concat([repeated(' ', MIB), latin1('null')])), 'malformed', 'object-stream-order')
   })
 
-  // A number's read looks past it for a generation and an R, and comes back:
-  // a member that ends where the next begins is read, and its neighbour too.
-  test('members that each end where the next begins are read', () => {
-    const objects = parsed(
-      membered(
+  // A number's read looks past it for a generation and an R, and a
+  // dictionary's for `stream`, and each comes back to where its last token
+  // ended: a member ends there, so one whose offset is the white space
+  // before it is read, as 4e95b8e and viewers read it. A member whose last
+  // token runs into the next one's first byte is still refused.
+  test('members that each end where the next begins are read, the white space between them either one', () => {
+    const at = (pairs: readonly (readonly [number, number])[], body: string): readonly unknown[] => {
+      const objects = parsed(membered(pairs, body)).objects
+      return pairs.map(([num]) => objects.get(num))
+    }
+    expect(
+      at(
         [
           [7, 0],
           [8, 2],
         ],
         '1 2',
       ),
-    ).objects
-    expect([objects.get(7), objects.get(8)]).toEqual([1, 2])
+    ).toEqual([1, 2])
+    expect(
+      at(
+        [
+          [7, 0],
+          [8, 1],
+        ],
+        '1 <</A 1>>',
+      ),
+    ).toEqual([1, { entries: new Map([['A', 1]]) }])
+    expect(
+      at(
+        [
+          [7, 0],
+          [8, 8],
+        ],
+        '<</A 1>> <</B 2>>',
+      ),
+    ).toEqual([{ entries: new Map([['A', 1]]) }, { entries: new Map([['B', 2]]) }])
+    expectRefused(
+      membered(
+        [
+          [7, 0],
+          [8, 1],
+        ],
+        '12 3',
+      ),
+      'malformed',
+      'object-stream-order',
+    )
   })
 
   // The parse's review: an update writes object stream 5 again as a

@@ -1,7 +1,7 @@
 import { isDigit, keyword } from './bytes.js'
 import type { Grammar } from './grammar.js'
 import { decodedBytes, type InflateBudget } from './inflate.js'
-import { MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_XREF_ENTRIES } from './limits.js'
+import { MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_XREF_ENTRIES, MAX_DOCUMENT_XREF_SECTIONS } from './limits.js'
 import { isArray, isCount, type PdfDict, type PdfStream } from './model.js'
 import { refuse } from './refusals.js'
 
@@ -10,7 +10,8 @@ import { refuse } from './refusals.js'
  * classic table and its trailer, or a cross-reference stream -- every claim
  * it makes held, before an entry is read, to `MAX_DOCUMENT_OBJECTS` within
  * the section and to `MAX_DOCUMENT_XREF_ENTRIES` with every other section
- * the file holds, chained or not; every subsection held below its /Size;
+ * the file holds, chained or not, and the sections themselves to
+ * `MAX_DOCUMENT_XREF_SECTIONS`; every subsection held below its /Size;
  * and the sections chained from the last `startxref` through /Prev and a
  * hybrid file's /XRefStm, newest first. pdf-lib reads the sections and
  * throws them away; its row reader trusts /Size, /W and /Index, so the
@@ -38,12 +39,19 @@ const IN_USE = 0x6e
 const FREED = 0x66
 
 /**
- * The entries every section of a file claims, together: each section is
- * read and kept as the loop meets it, chained or not, so a file of sections
- * nothing chains is held here, each claim before its rows are read.
+ * What every section of a file claims, together: each section is read and
+ * kept as the loop meets it, chained or not, so a file of sections nothing
+ * chains is held here -- the sections as each is met, before it is read,
+ * and their entries as each claim is, before its rows are.
  */
 export class Claims {
+  private sections = 0
   private entries = 0
+
+  section(): void {
+    this.sections += 1
+    if (this.sections > MAX_DOCUMENT_XREF_SECTIONS) refuse('xref-sections')
+  }
 
   claim(count: number): void {
     this.entries += count
@@ -73,6 +81,7 @@ function offsetIn(trailer: PdfDict, key: string): number | undefined {
 
 /** A classic section, the grammar just past its `xref`: subsections of `first count` and their entries, then its trailer. */
 export function table(grammar: Grammar, claims: Claims): Section {
+  claims.section()
   const entries = new Map<number, Entry>()
   const subsections: (readonly [number, number])[] = []
   let claimed = 0
@@ -125,6 +134,7 @@ function field(rows: Uint8Array, at: number, width: number): number {
  * 32000-1 7.5.8.3).
  */
 export function xrefStream(stream: PdfStream, budget: InflateBudget, claims: Claims): Section {
+  claims.section()
   const trailer = checked(stream.dict)
   const size = trailer.entries.get('Size')
   const widths = trailer.entries.get('W')

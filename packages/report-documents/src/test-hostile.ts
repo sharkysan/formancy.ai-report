@@ -146,6 +146,14 @@ export function unchainedTables(counts: readonly number[]): Uint8Array {
   return w.end(w.xref('/Root 1 0 R'))
 }
 
+/** The parse's re-review: `count` classic sections that claim no entry, nothing chaining them, before the file's own. */
+export function emptySections(count: number): Uint8Array {
+  const w = new PdfWriter()
+  basic(w)
+  w.raw(repeated('xref\ntrailer\n<</Size 0>>\n', count))
+  return w.end(w.xref('/Root 1 0 R'))
+}
+
 /** H6: `size` bytes of runs of `run` digits (0 to 9 over and over), each followed by a space, between objects 3 and 4. */
 export function junkBetween(size: number, run: number): Uint8Array {
   const w = new PdfWriter()

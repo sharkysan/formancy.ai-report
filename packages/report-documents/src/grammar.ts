@@ -253,12 +253,17 @@ export class Grammar extends PDFObjectParser {
 
   /**
    * pdf-lib's own -- a number, or two and an R -- but a reference is made
-   * by the reading, and never goes into pdf-lib's process-lifetime pool.
+   * by the reading, and never goes into pdf-lib's process-lifetime pool;
+   * and a number ends where its digits do, not where the look for a
+   * generation and an R stopped, so that a member of an object stream ends
+   * where its last token does (`parse.ts`). What the look read -- white
+   * space and comments, a number -- the read after it reads again, so no
+   * byte is read more than three times.
    */
   protected override parseNumberOrRef(): PDFNumber | PDFRef {
     const first = this.parseRawNumber()
+    const end = this.at
     this.skipWhitespaceAndComments()
-    const lookahead = this.at
     if (isDigit(this.peek())) {
       const second = this.parseRawNumber()
       this.skipWhitespaceAndComments()
@@ -267,7 +272,7 @@ export class Grammar extends PDFObjectParser {
         return this.reading.ref(first, second) as unknown as PDFRef
       }
     }
-    this.moveTo(lookahead)
+    this.moveTo(end)
     return PDFNumber.of(first)
   }
 
@@ -405,12 +410,21 @@ export class Grammar extends PDFObjectParser {
     return dict
   }
 
-  /** pdf-lib's, without its search: a stream stands only as an indirect object's whole value, and its data ends where its /Length says. */
+  /**
+   * pdf-lib's, without its search: a stream stands only as an indirect
+   * object's whole value, and its data ends where its /Length says. A
+   * dictionary that is no stream ends at its `>>`, not where the look for
+   * `stream` stopped.
+   */
   protected override parseDictOrStream(ref?: PDFRef): PDFDict | PDFStream {
     const nested = this.depth > 0 || this.inObjectStream
     const dict = this.parseDict(ref)
+    const end = this.at
     this.skipWhitespaceAndComments()
-    if (!STREAM.some((word) => this.matchKeyword(word))) return dict
+    if (!STREAM.some((word) => this.matchKeyword(word))) {
+      this.moveTo(end)
+      return dict
+    }
     if (nested) refuse('stream-inside')
     return this.streamOf(this.dictOf(dict)) as unknown as PDFStream
   }
