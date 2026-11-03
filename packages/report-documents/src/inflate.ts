@@ -29,16 +29,11 @@ import { caught, refuse, type DocumentRefusal } from './refusals.js'
  * from `left` as it is written: Flate's a chunk at a time, a fixed-ratio
  * filter's at most its ratio of its input before it is decoded and then
  * what it wrote. A predictor's output is not charged: it is never larger
- * than the inflated rows it is undone from, which were.
+ * than the inflated rows it is undone from, which were. The pages take
+ * from it too, for each copy of their content they hold again (pages.ts).
  */
 export interface InflateBudget {
   left: number
-}
-
-/** `bytes` taken from `budget`, refused once every stage of every stream, and every copy a reader holds of one, passes it. */
-export function spend(budget: InflateBudget, bytes: number): void {
-  budget.left -= bytes
-  if (budget.left < 0) refuse('inflated')
 }
 
 /** The private sentinel `onData` throws once the budget is spent, which pako lets through its `push`. */

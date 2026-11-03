@@ -56,15 +56,16 @@ describe('a page is turned', () => {
   // report's body box without turning it further, which the rules forbid;
   // a fraction of a degree, or a /Rotate that is no number, is read by one
   // viewer as one angle and by another as none, and a turn past what a
-  // double holds exactly -- 2^52 times 90 is a multiple of 90 only as a
-  // double rounds it -- is no turn any two readers agree on. Named by the
-  // reader's own count of the page, so that the person can find it.
+  // double holds exactly -- 405323966463344641, which a double rounds onto
+  // 2^52 times 90, a multiple of 90 it is not -- is no turn any two readers
+  // agree on. Named by the reader's own count of the page, so that the
+  // person can find it.
   test('/Rotate 45 is refused as unsupported-rotation, naming the page', () => {
     expectPrintRefused(pagesFile([letter(), letter('/Rotate 45')]), 'unsupported-rotation', 'rotation', 2)
     expectPrintRefused(pagesFile([letter('/Rotate 90.5')]), 'unsupported-rotation', 'rotation', 1)
     expectPrintRefused(pagesFile([letter('/Rotate/Ninety')]), 'unsupported-rotation', 'rotation', 1)
     expectPrintRefused(pagesFile([letter('/Rotate 9007199254740992')]), 'unsupported-rotation', 'rotation', 1)
-    expectPrintRefused(pagesFile([letter('/Rotate 405323966463344640')]), 'unsupported-rotation', 'rotation', 1)
+    expectPrintRefused(pagesFile([letter('/Rotate 405323966463344641')]), 'unsupported-rotation', 'rotation', 1)
   })
 })
 
@@ -235,12 +236,12 @@ describe('a page draws its content', () => {
     const eight = deflatedZeros(8 * MIB)
     const list = { 3: '[4 0 R 5 0 R]', 4: { dict: '/Filter/FlateDecode', data: eight }, 5: { dict: '/Filter/FlateDecode', data: eight } }
     expect(pagesRead(pagesFile([drawn('3 0 R')], list))).toHaveLength(1)
-    expectPrintRefused(pagesFile([drawn('3 0 R'), drawn('3 0 R')], list), 'inflates-too-far', 'inflated', 2)
+    expectPrintRefused(pagesFile([drawn('3 0 R'), drawn('3 0 R')], list), 'inflates-too-far', 'repeated', 2)
 
     const repeats = 100_000
     const document = parsed(pagesFile([drawn('3 0 R')], { 3: `[${'4 0 R '.repeat(repeats)}]`, 4: { dict: '', data: new Uint8Array(1024) } }))
     const counted = new Counted(document.objects, repeats)
-    expect(outcome(pagesOf({ ...document, objects: counted }))).toEqual(refusal('inflated', 1))
+    expect(outcome(pagesOf({ ...document, objects: counted }))).toEqual(refusal('repeated', 1))
     expect(counted.gets).toBeLessThan(counted.limit)
 
     const seven = { dict: '/Filter/FlateDecode', data: deflatedZeros(7 * MIB) }
@@ -257,7 +258,7 @@ describe('a page draws its content', () => {
     const pages = Array.from({ length: MAX_DOCUMENT_PAGES }, () => drawn('3 0 R'))
     const document = parsed(pagesFile(pages, { 3: `[${'4 0 R '.repeat(refs)}]`, 4: { dict: '', data: new Uint8Array(0) } }))
     const counted = new Counted(document.objects, 2 * refs)
-    expect(outcome(pagesOf({ ...document, objects: counted }))).toEqual(refusal('inflated', Math.floor(MAX_DOCUMENT_INFLATED / (refs - 1)) + 1))
+    expect(outcome(pagesOf({ ...document, objects: counted }))).toEqual(refusal('repeated', Math.floor(MAX_DOCUMENT_INFLATED / (refs - 1)) + 1))
     expect(counted.gets).toBeLessThan(counted.limit)
     const few = pagesRead(pagesFile([drawn('3 0 R'), drawn('3 0 R')], { 3: '[4 0 R 4 0 R]' }))
     expect(few[0]?.content).toBe(few[1]?.content)

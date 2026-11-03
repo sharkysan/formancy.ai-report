@@ -124,6 +124,37 @@ describe('the closure follows every name a page draws with', () => {
     expectPrintRefused(pagesFile([letter('', { resources: '<</XObject<</X 30 0 R>>>>' })], nested), 'resource-names-a-page', 'resource-page')
   })
 
+  // A DeviceN colour space names its colorants, its solidities and its dot
+  // gains, and a type 5 halftone its screens, by the names of the inks the
+  // file prints with, and a spot colour may be named /P as well as /X:
+  // skipped as a structure's key, its tint function, its dot gain or its
+  // screen was left out of the closure, and a filter the reader does not
+  // decode with it. Every map keyed by colorant names is followed as a
+  // resource map is -- a halftone's /Default and /Type read as the values
+  // they are -- and a colorant named /OC is a name there, not a layer.
+  test('a colorant named as a structure names its keys is followed as any other', () => {
+    const lzw = { dict: '/FunctionType 0/Domain[0 1]/Range[0 1 0 1 0 1 0 1]/Size[2]/BitsPerSample 8/Filter/LZWDecode', data: latin1('x') }
+    const tint = '<</FunctionType 2/Domain[0 1]/C0[0 0 0 0]/C1[0 0 0 1]/N 1>>'
+    const screen = '<</HalftoneType 1/Frequency 60/Angle 45/SpotFunction/Round>>'
+    const deviceN = (attributes: string, objects: Readonly<Record<number, Body>>): Uint8Array =>
+      pagesFile([letter('', { resources: `<</ColorSpace<</CS0[/DeviceN[/X]/DeviceCMYK 80 0 R ${attributes}]>>>>` })], { 80: tint, ...objects })
+    const halftone = (entries: string, objects: Readonly<Record<number, Body>>): Uint8Array =>
+      pagesFile([letter('', { resources: `<</ExtGState<</G0<</HT<</Type/Halftone/Default 90 0 R${entries}>>>>>>>>` })], { 90: screen, ...objects })
+    const threshold = { dict: '/HalftoneType 6/Width 1/Height 1/Filter/LZWDecode', data: latin1('x') }
+    for (const name of ['X', 'P', 'Parent', 'Metadata', 'PieceInfo']) {
+      expectPrintRefused(deviceN(`<</Colorants<</${name}[/Separation/${name}/DeviceCMYK 81 0 R]>>>>`, { 81: lzw }), 'unsupported-filter', 'filter')
+      expectPrintRefused(deviceN(`<</MixingHints<</DotGain<</${name} 81 0 R>>>>>>`, { 81: lzw }), 'unsupported-filter', 'filter')
+      expectPrintRefused(halftone(`/HalftoneType 5/${name} 91 0 R`, { 91: threshold }), 'unsupported-filter', 'filter')
+    }
+    expectPrintRefused(halftone('/HalftoneType 92 0 R/P 91 0 R', { 91: threshold, 92: '5' }), 'unsupported-filter', 'filter')
+    const inks = deviceN('<</Colorants<</OC[/Separation/OC/DeviceCMYK 81 0 R]>>/MixingHints<</Solidities<</OC 1>>/DotGain<</OC 82 0 R>>>>>>', {
+      81: tint,
+      82: tint,
+    })
+    expect([...printedWhole(inks).closure.keys()].sort((a, b) => a - b)).toEqual([80, 81, 82])
+    expect([...printedWhole(halftone('/HalftoneType 5/OC 91 0 R', { 91: screen })).closure.keys()].sort((a, b) => a - b)).toEqual([90, 91])
+  })
+
   // A Type 3 font draws each glyph with a procedure its /CharProcs names
   // by the glyph's name, and a chart's capital P is named /P: skipped as a
   // structure's key, the procedure that draws it was not in the closure,

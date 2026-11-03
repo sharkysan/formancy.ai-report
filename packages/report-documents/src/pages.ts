@@ -1,4 +1,4 @@
-import { decodedBytes, spend, type InflateBudget } from './inflate.js'
+import { decodedBytes, type InflateBudget } from './inflate.js'
 import { isArray, isDict, isRef, isStream, resolved, type PdfDict, type PdfObjects, type PdfStream, type PdfValue } from './model.js'
 import type { ParsedDocument } from './parse.js'
 import { caught, onPage, refuse, type DocumentRefusal } from './refusals.js'
@@ -142,6 +142,12 @@ function kept(stream: PdfStream): PdfStream {
     if (value !== undefined) entries.set(key, value)
   }
   return { dict: { entries }, bytes: stream.bytes }
+}
+
+/** `bytes` of content the pages hold again taken from `budget`, refused in words of their own once it is spent. */
+function spend(budget: InflateBudget, bytes: number): void {
+  budget.left -= bytes
+  if (budget.left < 0) refuse('repeated')
 }
 
 /** The content of a page that draws nothing. */

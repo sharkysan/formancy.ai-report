@@ -43,18 +43,37 @@ const NAME_MAPS: ReadonlySet<string> = new Set(['ExtGState', 'ColorSpace', 'Patt
  * XMP for a program that catalogues the file, and private data for the
  * program that wrote it. A reference under one of them names an object the
  * closure does not hold, as a reference that names no object does. In a
- * name map -- each map of a /Resources dictionary, and a Type 3 font's
- * /CharProcs -- they are names the content chose, like /OC there, and
- * every value is followed: a form named /P is held to every guard a form
- * named /X is, and a glyph named /P is drawn.
+ * name map -- each map of a /Resources dictionary, a Type 3 font's
+ * /CharProcs, a DeviceN's /Colorants and its mixing hints' /Solidities and
+ * /DotGain, and a type 5 halftone, each keyed by names the file chose --
+ * they are names, like /OC there, and every value is followed: a form
+ * named /P is held to every guard a form named /X is, a glyph named /P is
+ * drawn, and a spot colour named /P keeps its tint function.
  */
 const NOT_FOLLOWED: ReadonlySet<string> = new Set(['Parent', 'P', 'Metadata', 'PieceInfo'])
+
+/**
+ * Keys whose value is a name map wherever they stand: a Type 3 font's
+ * /CharProcs, keyed by glyph names, and a DeviceN attributes dictionary's
+ * /Colorants and its mixing hints' /Solidities and /DotGain, keyed by
+ * colorant names.
+ */
+const NAMED_BY_KEY: ReadonlySet<string> = new Set(['CharProcs', 'Colorants', 'Solidities', 'DotGain'])
 
 /** How the value under `key`, in a dictionary read as `reading`, is read. */
 function under(reading: Reading, key: string): Reading {
   if (key === 'Resources') return RESOURCES
-  if (key === 'CharProcs') return NAMES
+  if (NAMED_BY_KEY.has(key)) return NAMES
   return reading === RESOURCES && NAME_MAPS.has(key) ? NAMES : VALUE
+}
+
+/**
+ * Whether `dict` is a halftone of type 5, keyed by the colorants it
+ * screens besides its /Type and /Default: a name map, whose /Type and
+ * /Default read as the values they are.
+ */
+function screensByColorant(parsed: ParsedDocument, dict: PdfDict): boolean {
+  return resolved(parsed.objects, dict.entries.get('HalftoneType')) === 5
 }
 
 /**
@@ -94,7 +113,7 @@ export function closureOf(parsed: ParsedDocument, roots: readonly PdfValue[]): R
       if (walked[reading].has(value)) continue
       walked[reading].add(value)
       if (isArray(value)) for (const item of value) reach(item, VALUE)
-      else if (reading === NAMES) for (const item of value.entries.values()) reach(item, VALUE)
+      else if (reading === NAMES || screensByColorant(parsed, value)) for (const item of value.entries.values()) reach(item, VALUE)
       else {
         if (layered(parsed, value)) refuse('layers')
         for (const [key, item] of value.entries) if (!NOT_FOLLOWED.has(key)) reach(item, under(reading, key))
