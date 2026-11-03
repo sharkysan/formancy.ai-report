@@ -119,8 +119,10 @@ export const FINDINGS = {
   'length-chain': ['malformed', 'the length of a stream in it is a reference to another reference'],
   'xref-stream': ['malformed', 'its cross-reference stream does not say how its rows are laid out'],
   'xref-stream-rows': ['malformed', 'its cross-reference stream holds fewer rows than it says'],
+  'xref-size': ['malformed', 'its cross-reference lists an object past the number of objects it says it holds'],
   'object-stream': ['malformed', 'an object stream in it does not say how its objects are laid out'],
   'object-stream-offset': ['malformed', 'an object stream in it places an object past its end'],
+  'object-stream-order': ['malformed', 'an object stream in it does not hold its objects one after another'],
   'prev-cycle': ['malformed', 'its cross-references name one another in a cycle'],
   'no-startxref': ['malformed', 'it does not say where its cross-reference is'],
   'no-catalog': ['malformed', 'its trailer names no catalog'],
@@ -187,8 +189,11 @@ export function refuse(finding: Finding): never {
  * pdf-lib's own exceptions for bytes its grammar cannot follow, and any
  * fault of the reader's -- is a stable refusal too, never the exception's
  * class or message, which may quote the file: running out of stack is
- * `too-deep` (V8 and JavaScriptCore say so as a RangeError whose message
- * names the call stack), everything else `malformed`.
+ * `too-deep`, everything else `malformed`. V8 and JavaScriptCore say a
+ * stack ran out by a RangeError whose message names the call stack,
+ * SpiderMonkey by an InternalError of "too much recursion". The depth bound
+ * and the iterative walks keep a file from running the stack out; a host
+ * that calls the reader deep in its own stack still may.
  */
 export function caught<T>(read: () => T): T | DocumentRefusal {
   try {
@@ -196,6 +201,7 @@ export function caught<T>(read: () => T): T | DocumentRefusal {
   } catch (error) {
     if (error instanceof DocumentRefused) return error.refusal
     if (error instanceof RangeError && /call stack/i.test(error.message)) return refusal('stack')
+    if (error instanceof Error && error.name === 'InternalError' && /too much recursion/i.test(error.message)) return refusal('stack')
     return refusal('unreadable')
   }
 }

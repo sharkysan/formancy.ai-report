@@ -6,7 +6,7 @@ import { isArray, isCount, isDict, isName, isRef, isStream, type PdfDict, type P
 import { pageTree } from './page-tree.js'
 import { caught, refuse, type DocumentRefusal } from './refusals.js'
 import { isPdf } from './sniff.js'
-import { chained, table, xrefStream, type Entry, type Section } from './xref.js'
+import { chained, Claims, table, xrefStream, type Entry, type Section } from './xref.js'
 
 /**
  * The strict parse: a PDF's bytes read into the neutral model, every
@@ -44,8 +44,14 @@ const EOF = keyword('%%EOF')
 /** Acrobat looks for %%EOF in a file's last 1,024 bytes (ISO 32000-1, Annex H). */
 const EOF_WITHIN = 1024
 
-/** Where the loop read a definition: at an offset of the file, or at an index of an object stream. */
-type Where = { readonly kind: 'at'; readonly offset: number; readonly gen: number } | { readonly kind: 'in'; readonly stream: number; readonly index: number }
+/**
+ * Where the loop read a definition: at an offset of the file, or at an
+ * index of an object stream -- the definition of that stream it was read
+ * from named by its offset, since an update may write the stream again.
+ */
+type Where =
+  | { readonly kind: 'at'; readonly offset: number; readonly gen: number }
+  | { readonly kind: 'in'; readonly stream: number; readonly index: number; readonly from: number }
 
 interface Definition {
   /** Each place the number was defined, in the order the loop read them. */
@@ -109,6 +115,7 @@ class Loop {
   private readonly budget: InflateBudget = { left: MAX_DOCUMENT_INFLATED }
   private readonly definitions = new Map<number, Definition>()
   private readonly sections = new Map<number, Section>()
+  private readonly claims = new Claims()
   private count = 0
   private startxref: number | undefined
 
@@ -130,7 +137,7 @@ class Loop {
     for (grammar.space(); !grammar.done(); grammar.space()) {
       const at = grammar.at
       if (isDigit(grammar.peek())) this.object(at)
-      else if (grammar.match(XREF)) this.sections.set(at, table(grammar))
+      else if (grammar.match(XREF)) this.sections.set(at, table(grammar, this.claims))
       else if (grammar.match(STARTXREF)) {
         grammar.space()
         this.startxref = grammar.int('no-startxref')
@@ -162,8 +169,8 @@ class Loop {
     const where: Where = { kind: 'at', offset: at, gen }
     const type = isStream(read.value) ? read.value.dict.entries.get('Type') : undefined
     this.define(num, where, read, isName(type, 'XRef'))
-    if (isStream(read.value) && isName(type, 'XRef')) this.sections.set(at, xrefStream(read.value, this.budget))
-    if (isStream(read.value) && isName(type, 'ObjStm')) this.objectStream(num, read.value)
+    if (isStream(read.value) && isName(type, 'XRef')) this.sections.set(at, xrefStream(read.value, this.budget, this.claims))
+    if (isStream(read.value) && isName(type, 'ObjStm')) this.objectStream(num, read.value, at)
   }
 
   private define(num: number, where: Where, read: Indirect, xrefStream: boolean): void {
@@ -178,8 +185,14 @@ class Loop {
     }
   }
 
-  /** An object stream's members, its /N held to the bound before it is inflated against the budget, each read by the same grammar. */
-  private objectStream(container: number, stream: PdfStream): void {
+  /**
+   * An object stream's members, its /N held to the bound before it is
+   * inflated against the budget, each read by the same grammar, in order:
+   * the header, then each member from its offset, each read ending where
+   * the next member begins, so that every byte of the stream is read once.
+   * `from` is the offset of the stream's definition, which its members name.
+   */
+  private objectStream(container: number, stream: PdfStream, from: number): void {
     const n = stream.dict.entries.get('N')
     const first = stream.dict.entries.get('First')
     if (!isCount(n) || !isCount(first)) refuse('object-stream')
@@ -195,9 +208,12 @@ class Loop {
     }
     for (const [index, [num, offset]] of header.entries()) {
       if (num < 1) refuse('object-stream')
+      // What was read before -- the header, or the member before -- ends where this member begins. A read takes at
+      // least a byte, so the offsets increase, as ISO 32000-1 7.5.7 has them, and no byte is read twice.
+      if (grammar.at > first + offset) refuse('object-stream-order')
       if (first + offset >= data.length) refuse('object-stream-offset')
       grammar.moveTo(first + offset)
-      this.define(num, { kind: 'in', stream: container, index }, grammar.indirect(), false)
+      this.define(num, { kind: 'in', stream: container, index, from }, grammar.indirect(), false)
     }
   }
 
@@ -215,8 +231,13 @@ class Loop {
       if (entry === undefined || entry.kind === 'free') continue
       const last = definition.wheres.at(-1) as Where
       if (!names(entry, last)) refuse(definition.wheres.some((where) => names(entry, where)) ? 'shadow' : 'misplaced')
-      // A member of an object stream that is not itself where the chain places it is found by no viewer.
-      if (entry.kind === 'in' && entries.get(entry.stream)?.kind !== 'at') refuse('missing')
+      // A member of an object stream that is not itself where the chain places it is found by no viewer; one read from
+      // another definition of the stream than the one the chain places is H11's shadow, by way of its container.
+      if (last.kind === 'in') {
+        const container = entries.get(last.stream)
+        if (container?.kind !== 'at') refuse('missing')
+        if (container.offset !== last.from) refuse('shadow')
+      }
       objects.set(num, definition.read.value)
     }
     // An entry in use that names no definition is nothing where no object can stand -- at offset 0, the header, as

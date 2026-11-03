@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import { MAX_DOCUMENT_PAGES } from './limits.js'
 import { expectRefused, parsed } from './parse-test-support.js'
-import { CONTENT, manyPages, PdfWriter } from './test-pdf.js'
+import { manyPages } from './test-hostile.js'
+import { CONTENT, PdfWriter } from './test-pdf.js'
 
 /**
  * The page tree, walked from the catalog by its /Kids, each node once:
@@ -46,6 +47,8 @@ describe('the page tree reads', () => {
     expect(parsed(tree({ 2: '<</Type/Pages/Kids[]/Count 0>>' })).pages).toEqual([])
   })
 
+  // The bound refuses the page past it, not the page at it: a document of
+  // exactly MAX_DOCUMENT_PAGES pages prints whole.
   test(`${MAX_DOCUMENT_PAGES} pages, the bound`, () => {
     expect(parsed(manyPages(MAX_DOCUMENT_PAGES)).pages).toHaveLength(MAX_DOCUMENT_PAGES)
   })
@@ -58,12 +61,17 @@ describe('the page tree is refused', () => {
     expectRefused(manyPages(MAX_DOCUMENT_PAGES + 1), 'too-many-pages', 'pages')
   })
 
+  // A catalog whose /Pages is written in place, names a page, or names
+  // nothing has no tree to walk: read as one, it would print nothing, or
+  // one page as if it were all of them.
   test('a catalog that names no page tree, or names a page as one', () => {
     expectRefused(tree({ 2: '<</Type/Pages/Kids[3 0 R]/Count 1>>', 3: page(2) }, '<<>>'), 'page-tree', 'pages-root')
     expectRefused(tree({ 2: '<</Type/Pages/Kids[3 0 R]/Count 1>>', 3: page(2) }, '3 0 R'), 'page-tree', 'pages-root')
     expectRefused(tree({ 2: '<</Type/Pages/Kids[3 0 R]/Count 1>>', 3: page(2) }, '9 0 R'), 'page-tree', 'pages-root')
   })
 
+  // Kids named by a reference to an object that is no array, or to no object,
+  // are no list a walk can follow.
   test('a node whose kids are not an array', () => {
     expectRefused(tree({ 2: '<</Type/Pages/Kids 3 0 R/Count 1>>', 3: page(2) }), 'page-tree', 'pages-kids')
     expectRefused(tree({ 2: '<</Type/Pages/Kids 9 0 R/Count 1>>', 3: page(2) }), 'page-tree', 'pages-kids')

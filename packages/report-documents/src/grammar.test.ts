@@ -60,6 +60,10 @@ describe('a value reads', () => {
     })
   })
 
+  // A number read past its digits, a keyword taken for another, or a reference
+  // read as two numbers would give a page another box, another flag or another
+  // object; a number past 2^53, as Apple's ENERGY STAR.pdf writes, reads as
+  // JavaScript reads it, never refused nor logged.
   test('numbers, booleans, null, comments, and references by their object number', () => {
     expect(object5('[1 -2 +3 .5 -.25 4. true false null % a comment\n 3 0 R 18446744073243310784]')).toEqual([
       1,
@@ -102,6 +106,9 @@ describe('a value reads', () => {
 })
 
 describe('a value is refused', () => {
+  // Each token is measured before it is copied: one byte past its bound, in
+  // a literal string's escapes or a hexadecimal string's digits too, is
+  // refused rather than read whole.
   test('a name, a string or a number past its bound', () => {
     expectRefused(withObject5(`/${'A'.repeat(MAX_DOCUMENT_NAME_LENGTH + 1)}`), 'malformed', 'name-length')
     expectRefused(withObject5(`(${'A'.repeat(MAX_DOCUMENT_STRING_LENGTH + 1)})`), 'malformed', 'string-length')
@@ -168,6 +175,9 @@ describe('a value is refused', () => {
     for (const body of ['[-1 0 R]', '[1.5 0 R]', '[0 0 R]', '[1 65536 R]', '[1 0.5 R]']) expectRefused(withObject5(body), 'malformed', 'reference')
   })
 
+  // What pdf-lib's grammar throws on, a key that is no name or a brace, is a
+  // stable refusal in the reader's words, never pdf-lib's message, which
+  // quotes the bytes it met.
   test('bytes the grammar cannot follow', () => {
     expectRefused(withObject5('<</A 1 /B> >>'), 'malformed', 'unreadable')
     expectRefused(withObject5('{1}'), 'malformed', 'unreadable')
@@ -211,6 +221,8 @@ describe('a stream is refused', () => {
     expectRefused(endless, 'malformed', 'stream-end')
   })
 
+  // A length written later that runs past the `endstream` after the data
+  // would take that keyword and what follows as the stream's bytes.
   test('whose length is longer than the data before `endstream`', () => {
     const file = onePage({}, (w) => {
       w.offsets.set(6, w.raw('6 0 obj\n<</Length 7 0 R>>\nstream\nshort\nendstream\nendobj\n'))

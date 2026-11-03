@@ -1,18 +1,21 @@
 import { isDigit, keyword } from './bytes.js'
 import type { Grammar } from './grammar.js'
 import { decodedBytes, type InflateBudget } from './inflate.js'
-import { MAX_DOCUMENT_OBJECTS } from './limits.js'
+import { MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_XREF_ENTRIES } from './limits.js'
 import { isArray, isCount, type PdfDict, type PdfStream } from './model.js'
 import { refuse } from './refusals.js'
 
 /**
  * A PDF's cross-reference: each section read as the loop meets it -- a
  * classic table and its trailer, or a cross-reference stream -- every claim
- * it makes held to `MAX_DOCUMENT_OBJECTS` before an entry is read, and the
- * sections chained from the last `startxref` through /Prev and a hybrid
- * file's /XRefStm, newest first. pdf-lib reads the sections and throws them
- * away; its row reader trusts /Size, /W and /Index, so the reader reads a
- * stream's rows itself, after holding them to what they claim.
+ * it makes held, before an entry is read, to `MAX_DOCUMENT_OBJECTS` within
+ * the section and to `MAX_DOCUMENT_XREF_ENTRIES` with every other section
+ * the file holds, chained or not; every subsection held below its /Size;
+ * and the sections chained from the last `startxref` through /Prev and a
+ * hybrid file's /XRefStm, newest first. pdf-lib reads the sections and
+ * throws them away; its row reader trusts /Size, /W and /Index, so the
+ * reader reads a stream's rows itself, after holding them to what they
+ * claim.
  */
 
 /** Where a cross-reference places an object: at an offset of the file, in an object stream, or nowhere. */
@@ -34,6 +37,25 @@ const TRAILER = keyword('trailer')
 const IN_USE = 0x6e
 const FREED = 0x66
 
+/**
+ * The entries every section of a file claims, together: each section is
+ * read and kept as the loop meets it, chained or not, so a file of sections
+ * nothing chains is held here, each claim before its rows are read.
+ */
+export class Claims {
+  private entries = 0
+
+  claim(count: number): void {
+    this.entries += count
+    if (this.entries > MAX_DOCUMENT_XREF_ENTRIES) refuse('xref-claim')
+  }
+}
+
+/** Every object number is below /Size: a subsection from `first` of `count` entries names none at or past it. */
+function belowSize(first: number, count: number, size: number): void {
+  if (first + count > size) refuse('xref-size')
+}
+
 /** What every section's trailer is held to: no encryption, and a /Size within the bound, besides the free head of the list. */
 function checked(trailer: PdfDict): PdfDict {
   if (trailer.entries.has('Encrypt')) refuse('encrypted')
@@ -50,8 +72,9 @@ function offsetIn(trailer: PdfDict, key: string): number | undefined {
 }
 
 /** A classic section, the grammar just past its `xref`: subsections of `first count` and their entries, then its trailer. */
-export function table(grammar: Grammar): Section {
+export function table(grammar: Grammar, claims: Claims): Section {
   const entries = new Map<number, Entry>()
+  const subsections: (readonly [number, number])[] = []
   let claimed = 0
   grammar.space()
   while (isDigit(grammar.peek())) {
@@ -60,7 +83,11 @@ export function table(grammar: Grammar): Section {
     const count = grammar.int('xref-entry')
     claimed += count
     if (claimed > MAX_DOCUMENT_OBJECTS + 1) refuse('xref-claim')
-    for (let num = first; num < first + count; num += 1) {
+    claims.claim(count)
+    subsections.push([first, count])
+    // The rows are counted, not the object numbers: past 2^53 a number plus one is the same number.
+    for (let row = 0; row < count; row += 1) {
+      const num = first + row
       grammar.space()
       const offset = grammar.int('xref-entry')
       grammar.space()
@@ -76,6 +103,10 @@ export function table(grammar: Grammar): Section {
   if (!grammar.match(TRAILER)) refuse('xref-trailer')
   grammar.space()
   const trailer = checked(grammar.dictionary())
+  // A table's /Size follows its rows, so its subsections are held to it once it is read; ISO 32000 requires one.
+  const size = trailer.entries.get('Size')
+  if (!isCount(size)) refuse('xref-size')
+  for (const [first, count] of subsections) belowSize(first, count, size)
   return { entries, trailer, prev: offsetIn(trailer, 'Prev'), xrefStm: offsetIn(trailer, 'XRefStm') }
 }
 
@@ -93,7 +124,7 @@ function field(rows: Uint8Array, at: number, width: number): number {
  * an object stream; 0, and any type PDF does not define, frees it (ISO
  * 32000-1 7.5.8.3).
  */
-export function xrefStream(stream: PdfStream, budget: InflateBudget): Section {
+export function xrefStream(stream: PdfStream, budget: InflateBudget, claims: Claims): Section {
   const trailer = checked(stream.dict)
   const size = trailer.entries.get('Size')
   const widths = trailer.entries.get('W')
@@ -104,6 +135,8 @@ export function xrefStream(stream: PdfStream, budget: InflateBudget): Section {
   const counts = index.filter((_, i) => i % 2 === 1) as readonly number[]
   const claimed = counts.reduce((sum, count) => sum + count, 0)
   if (claimed > MAX_DOCUMENT_OBJECTS + 1) refuse('xref-claim')
+  for (let i = 0; i < index.length; i += 2) belowSize(index[i] as number, index[i + 1] as number, size)
+  claims.claim(claimed)
   const width = typeWidth + offsetWidth + thirdWidth
   const rows = decodedBytes(stream, budget)
   if (rows.length < claimed * width) refuse('xref-stream-rows')
@@ -111,7 +144,8 @@ export function xrefStream(stream: PdfStream, budget: InflateBudget): Section {
   let at = 0
   for (let i = 0; i < index.length; i += 2) {
     const first = index[i] as number
-    for (let num = first; num < first + (index[i + 1] as number); num += 1) {
+    for (let row = 0; row < (index[i + 1] as number); row += 1) {
+      const num = first + row
       const type = typeWidth === 0 ? 1 : field(rows, at, typeWidth)
       const second = field(rows, at + typeWidth, offsetWidth)
       const third = field(rows, at + typeWidth + offsetWidth, thirdWidth)

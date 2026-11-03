@@ -6,10 +6,10 @@ import {
   PDFNull,
   PDFNumber,
   PDFObjectParser,
-  PDFRef,
   type PDFHexString,
   type PDFName,
   type PDFObject,
+  type PDFRef,
   type PDFStream,
   type PDFString,
 } from '@pdfme/pdf-lib'
@@ -38,10 +38,9 @@ import { refuse, type Finding } from './refusals.js'
  * pdf-lib's own name reading pools every name it meets for the life of the
  * process, a character at a time (the parser spike's table 9: about 28
  * bytes a character, never freed); here a name is read flat and held once
- * per document. Its references still go through pdf-lib's pool, which
- * keeps each distinct one for good: the spike measured 124 MiB after a file
- * of 900,000, which is a host's to contain by reading untrusted PDFs in a
- * worker it discards.
+ * per document. A reference is made by the reading too, never by pdf-lib's
+ * `PDFRef.of`, whose pool keeps each distinct one for the life of the
+ * process: the spike measured 124 MiB kept after a file of 900,000.
  */
 
 type ByteStream = ConstructorParameters<typeof PDFObjectParser>[0]
@@ -66,6 +65,7 @@ const GREATER = 0x3e
 const CR = 0x0d
 const LF = 0x0a
 const POINT = 0x2e
+const R = 0x52
 const ENDSTREAM = keyword('endstream')
 /** `stream` and its end of line, which pdf-lib lets be a carriage return alone or a space before CRLF. */
 const STREAM = [keyword('stream \r\n'), keyword('stream\r\n'), keyword('stream\r'), keyword('stream\n')]
@@ -84,6 +84,14 @@ class Name implements PdfName {
 
   constructor(name: string) {
     this.name = name
+  }
+}
+
+class Reference implements PdfRef {
+  readonly object: number
+
+  constructor(object: number) {
+    this.object = object
   }
 }
 
@@ -132,8 +140,8 @@ export class Reading {
   private nameBytes = 0
   private readonly names = new Map<string, Name>()
   /** References by object number, where they name generation 0, as almost every reference does; by number and generation where not. */
-  private readonly refs = new Map<number, PdfRef>()
-  private readonly otherRefs = new Map<string, PdfRef>()
+  private readonly refs = new Map<number, Reference>()
+  private readonly otherRefs = new Map<string, Reference>()
   /** The generation a reference names, where it is not 0; every other reference names 0. */
   readonly generations = new Map<PdfRef, number>()
 
@@ -154,11 +162,11 @@ export class Reading {
   }
 
   /** The document's one reference to an object at a generation: an object number from 1, a generation from 0 to 65,535. */
-  ref(object: number, generation: number): PdfRef {
+  ref(object: number, generation: number): Reference {
     if (!Number.isSafeInteger(object) || object < 1 || !Number.isInteger(generation) || generation < 0 || generation > 65_535) refuse('reference')
     const known = generation === 0 ? this.refs.get(object) : this.otherRefs.get(`${object} ${generation}`)
     if (known !== undefined) return known
-    const made: PdfRef = { object }
+    const made = new Reference(object)
     if (generation === 0) this.refs.set(object, made)
     else {
       this.otherRefs.set(`${object} ${generation}`, made)
@@ -241,6 +249,26 @@ export class Grammar extends PDFObjectParser {
   override parseObject(ref?: PDFRef): PDFObject {
     this.reading.counted()
     return super.parseObject(ref)
+  }
+
+  /**
+   * pdf-lib's own -- a number, or two and an R -- but a reference is made
+   * by the reading, and never goes into pdf-lib's process-lifetime pool.
+   */
+  protected override parseNumberOrRef(): PDFNumber | PDFRef {
+    const first = this.parseRawNumber()
+    this.skipWhitespaceAndComments()
+    const lookahead = this.at
+    if (isDigit(this.peek())) {
+      const second = this.parseRawNumber()
+      this.skipWhitespaceAndComments()
+      if (this.peek() === R) {
+        this.moveTo(this.at + 1)
+        return this.reading.ref(first, second) as unknown as PDFRef
+      }
+    }
+    this.moveTo(lookahead)
+    return PDFNumber.of(first)
   }
 
   /** pdf-lib's number grammar -- a sign, digits and a point up to the first point, then digits -- measured first, and never NaN. */
@@ -412,9 +440,8 @@ export class Grammar extends PDFObjectParser {
 
   /** What pdf-lib's grammar made, in the model. */
   private neutral(object: PDFObject): PdfValue {
-    if (object instanceof Name || object instanceof Bytes) return object
+    if (object instanceof Name || object instanceof Bytes || object instanceof Reference) return object
     if (object instanceof PDFNumber) return object.asNumber()
-    if (object instanceof PDFRef) return this.reading.ref(object.objectNumber, object.generationNumber)
     if (object instanceof PDFArray) return object.asArray().map((item) => this.neutral(item))
     if (object instanceof PDFDict) return this.dictOf(object)
     if (object instanceof PDFBool) return object.asBoolean()

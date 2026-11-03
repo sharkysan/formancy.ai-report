@@ -1,4 +1,5 @@
-import { describe, expect, test, vi } from 'vitest'
+import { PDFRef } from '@pdfme/pdf-lib'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 import { byteStreamOf, Grammar } from './grammar.js'
 import { decoded } from './inflate.js'
 import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_DEPTH, MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_OBJECTS } from './limits.js'
@@ -7,43 +8,33 @@ import { parseDocument, type ParsedDocument } from './parse.js'
 import { AT_A_BOUND, expectRefused, parsed } from './parse-test-support.js'
 import { refusal } from './refusals.js'
 import {
-  CONTENT,
   claimingXrefStream,
-  concat,
   claimingXrefTable,
   contentBomb,
   countLie,
-  deflatedZeros,
   doubleBomb,
   encryptedAesv3,
   encryptedObjectStream,
   encryptedRc4,
   encryptionDictionary,
-  exactly,
   hugeXrefTable,
   incrementalUpdate,
   junkBetween,
   kidsCycle,
-  latin1,
   lengthChain,
   lengthPastEnd,
   manyPages,
-  MIB,
   nestedArrays,
   nestedDicts,
   objectsFilling,
   objectStreamBomb,
-  ofBytes,
-  onePage,
-  onePageUnderXrefStream,
   parentCycle,
-  repeated,
   shadow,
   threePages,
   UPDATED_CONTENT,
-  withObject5,
   xrefStreamBomb,
-} from './test-pdf.js'
+} from './test-hostile.js'
+import { CONTENT, concat, deflatedZeros, exactly, latin1, MIB, ofBytes, onePage, onePageUnderXrefStream, repeated, withObject5 } from './test-pdf.js'
 
 /**
  * The strict parse (the documents plan's Task 4), held to the hostile
@@ -54,6 +45,10 @@ import {
  * and loads H2 cut short; the reader refuses each before the work that
  * would cost it.
  */
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 /** One byte under the byte bound: the files that are to be refused by a bound of their own, not by that one. */
 const UNDER_BYTES = MAX_DOCUMENT_BYTES - 1
@@ -191,6 +186,9 @@ describe('parseDocument refuses', () => {
     expect(overflow).toBeInstanceOf(RangeError)
     for (const [thrown, finding] of [
       [overflow, 'stack'],
+      // SpiderMonkey's, in Firefox: no RangeError, an InternalError.
+      [Object.assign(new Error('too much recursion'), { name: 'InternalError' }), 'stack'],
+      [Object.assign(new Error('something else'), { name: 'InternalError' }), 'unreadable'],
       [new RangeError('Invalid typed array length: 12345'), 'unreadable'],
       [new TypeError('Cannot read properties of undefined'), 'unreadable'],
     ] as const) {
@@ -213,7 +211,9 @@ describe('parseDocument refuses', () => {
     expectRefused(claimingXrefStream('2147483647', [4, 8, 4], '0 2147483647'), 'too-many-objects', 'xref-claim')
     expectRefused(claimingXrefStream('6', [1, 2, 1], '0 2147483647'), 'too-many-objects', 'xref-claim')
     expectRefused(claimingXrefStream('6', [4, 8, 4], '0 6'), 'malformed', 'xref-stream')
-    expectRefused(claimingXrefStream('6', [1, 2, 1], '0 100000'), 'malformed', 'xref-stream-rows')
+    // The spike's H5-xrefstm-short claims within the bound but past its own /Size; within both, its rows are short.
+    expectRefused(claimingXrefStream('6', [1, 2, 1], '0 100000'), 'malformed', 'xref-size')
+    expectRefused(claimingXrefStream('100000', [1, 2, 1], '0 100000'), 'malformed', 'xref-stream-rows')
   })
 
   // H6: pdf-lib skips junk a byte at a time, trying an object at each, and
@@ -260,6 +260,9 @@ describe('parseDocument refuses', () => {
     expectRefused(objectsFilling(UNDER_BYTES), 'too-many-objects', 'objects')
   })
 
+  // H8's other file: a hundred thousand pages, each an object of its own,
+  // reach the objects bound while they are read, before a tree of them is
+  // walked or a page of them laid out.
   test('a hundred thousand pages are refused as too many objects, before the tree is walked', AT_A_BOUND, () => {
     expectRefused(manyPages(100_000), 'too-many-objects', 'objects')
   })
@@ -304,6 +307,8 @@ describe('parseDocument refuses', () => {
     expectRefused(shadow(), 'xref-disagrees', 'shadow')
   })
 
+  // The byte bound is held before anything is read: one byte past it is
+  // refused whatever the bytes are, and a file at it is read.
   test('a file past MAX_DOCUMENT_BYTES is refused before a byte is parsed', AT_A_BOUND, () => {
     parsed(ofBytes(MAX_DOCUMENT_BYTES))
     const past = ofBytes(MAX_DOCUMENT_BYTES + 1)
@@ -322,6 +327,18 @@ describe('parseDocument refuses', () => {
 })
 
 describe('what the parse reaches into pdf-lib for', () => {
+  // pdf-lib's PDFRef.of keeps every reference it makes in a module-level
+  // pool for the life of the process: the spike measured 124 MiB kept after
+  // a file of 900,000 distinct ones. The reader makes its references
+  // itself. The pool is not exported, so the test reads the one way into
+  // it, pdf-lib's static PDFRef.of, which must not be called.
+  test("no reference a file holds reaches pdf-lib's pool, which keeps them for the life of the process", () => {
+    const of = vi.spyOn(PDFRef, 'of')
+    const document = parsed(withObject5(`[${Array.from({ length: 100 }, (_, i) => `${i + 10} 0 R`).join(' ')}]`))
+    expect(document.objects.get(5)).toHaveLength(100)
+    expect(of).not.toHaveBeenCalled()
+  })
+
   // pdf-lib does not export the ByteStream its grammar reads through; the
   // reader takes the one a parser holds in the protected field `bytes`.
   // Renamed or reshaped by an update of pdf-lib, the reader would read

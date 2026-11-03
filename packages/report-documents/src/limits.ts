@@ -35,6 +35,18 @@ export const MAX_DOCUMENT_BYTES = 20 * MIB
 export const MAX_DOCUMENT_OBJECTS = 100_000
 
 /**
+ * Entries every cross-reference section the file holds may claim together,
+ * chained or not, each section's claim held to it before a row is read: a
+ * section is read and kept as the loop meets it, so without a bound across
+ * them a file of sections nothing chains -- twenty cross-reference streams
+ * whose rows take no byte, or tables of four-byte entries -- held hundreds of
+ * mebibytes (the parse's review measured 187 MiB and 436 MiB). Twice
+ * `MAX_DOCUMENT_OBJECTS`, a ruling: a hybrid file lists its objects twice,
+ * and updates list a few again. Not yet measured at the bound.
+ */
+export const MAX_DOCUMENT_XREF_ENTRIES = 2 * MAX_DOCUMENT_OBJECTS
+
+/**
  * Values the parse makes -- each number, string, name, array, dictionary,
  * reference and keyword, and each dictionary key, a name that is a value
  * counted twice -- which is what its time and heap grow with. Set by a

@@ -166,7 +166,20 @@ describe('decoded admits', () => {
   // encryption; an image's filters are the viewer's to decode, never the
   // reader's; a name PDF does not define is no filter at all.
   test('a filter outside the admitted list is unsupported-filter', () => {
-    for (const filter of ['LZWDecode', 'Crypt', 'DCTDecode', 'JPXDecode', 'CCITTFaxDecode', 'JBIG2Decode', 'Fl', 'Unknown']) {
+    // Names an object's prototype holds are no filters either: looked up as keys of a plain object, they were found.
+    for (const filter of [
+      'LZWDecode',
+      'Crypt',
+      'DCTDecode',
+      'JPXDecode',
+      'CCITTFaxDecode',
+      'JBIG2Decode',
+      'Fl',
+      'Unknown',
+      'constructor',
+      'toString',
+      '__proto__',
+    ]) {
       expect(decoded(streamOf(TEXT, { Filter: name(filter) }), { left: MIB })).toEqual(refusal('filter'))
       expect(decoded(flate(TEXT, { Filter: [name('FlateDecode'), name(filter)] }), { left: MIB })).toEqual(refusal('filter'))
     }

@@ -23,7 +23,13 @@ import { caught, refuse, type DocumentRefusal } from './refusals.js'
  * decodes -- are refused where a stream must be decoded.
  */
 
-/** What a document may still decode: every decode stage's output, of every stream, is taken from `left`. */
+/**
+ * What a document may still decode. Every decode stage's output is taken
+ * from `left` as it is written: Flate's a chunk at a time, a fixed-ratio
+ * filter's at most its ratio of its input before it is decoded and then
+ * what it wrote. A predictor's output is not charged: it is never larger
+ * than the inflated rows it is undone from, which were.
+ */
 export interface InflateBudget {
   left: number
 }
@@ -78,7 +84,11 @@ function inflated(data: Uint8Array, budget: InflateBudget): Uint8Array {
 }
 
 /** The most each fixed-ratio filter writes for a byte it reads: ASCIIHex half; ASCII85 four, for `z`; RunLength 64, a two-byte run of 128. */
-const RATIO: Readonly<Record<string, number>> = { ASCIIHexDecode: 0.5, ASCII85Decode: 4, RunLengthDecode: 64 }
+const RATIO: ReadonlyMap<string, number> = new Map([
+  ['ASCIIHexDecode', 0.5],
+  ['ASCII85Decode', 4],
+  ['RunLengthDecode', 64],
+])
 
 /** One context for the one-filter dictionaries pdf-lib's decoders read their filter from; it holds no object. */
 const CONTEXT = PDFContext.create()
@@ -171,7 +181,8 @@ export function decodedBytes(stream: PdfStream, budget: InflateBudget): Uint8Arr
   const parms = parmsOf(stream.dict, filters.length)
   let data = stream.bytes
   for (const [i, filter] of filters.entries()) {
-    const ratio = RATIO[filter]
+    // A Map, not an object's keys: /constructor or /__proto__ would find what an object's prototype holds.
+    const ratio = RATIO.get(filter)
     if (filter === 'FlateDecode') data = unpredicted(inflated(data, budget), parms[i])
     else if (ratio !== undefined) data = fixedRatio(filter, ratio, data, budget)
     else refuse('filter')
