@@ -161,7 +161,7 @@ export const FINDINGS = {
   pages: ['too-many-pages', 'it has more pages than a document may'],
   box: ['malformed', 'it gives no box of four numbers'],
   'user-unit': ['malformed', 'it gives a user unit that is not a positive number'],
-  contents: ['malformed', 'it names content that is not one or more streams'],
+  contents: ['malformed', 'it names content that is not a stream or a list of streams'],
   resources: ['malformed', 'it gives resources that are not a dictionary'],
   group: ['malformed', 'it gives a transparency group that is not a dictionary'],
   reached: ['too-many-objects', 'its pages reach more objects than a document may hold'],

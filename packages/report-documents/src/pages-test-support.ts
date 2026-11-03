@@ -31,19 +31,32 @@ export function fileOf(objects: Readonly<Record<number, Body>>): Uint8Array {
 /** A page under node `parent` holding `entries` and nothing else it could inherit. */
 export const leaf = (entries: string, parent = 2): string => `<</Type/Page/Parent ${parent} 0 R${entries}>>`
 
-/** A US Letter page under the root, drawing content 4 with `resources`, `entries` after. */
-export const letter = (entries = '', resources = '<<>>'): string => leaf(`/MediaBox[0 0 612 792]/Resources ${resources}/Contents 4 0 R${entries}`)
+/** What a page `letter` writes holds in place of US Letter and no resources. */
+export interface LetterOptions {
+  readonly box?: string
+  readonly resources?: string
+}
+
+/** A page under the root drawing content 4, its box US Letter and its resources none unless `options` says otherwise, `entries` after. */
+export const letter = (entries = '', { box = '[0 0 612 792]', resources = '<<>>' }: LetterOptions = {}): string =>
+  leaf(`/MediaBox${box}/Resources ${resources}/Contents 4 0 R${entries}`)
+
+/** What `pagesFile` writes into its catalog and into its tree's root, besides their own entries. */
+export interface FileOptions {
+  readonly catalog?: string
+  readonly root?: string
+}
 
 /**
  * A file of catalog 1, the page tree 2 of `pages` -- objects 10, 11, … in
  * order -- content 4, a line with no text, and `objects` as written, which
- * may write any of them again; `catalog` is written into the catalog.
+ * may write any of them again.
  */
-export function pagesFile(pages: readonly string[], objects: Readonly<Record<number, Body>> = {}, catalog = ''): Uint8Array {
+export function pagesFile(pages: readonly string[], objects: Readonly<Record<number, Body>> = {}, { catalog = '', root = '' }: FileOptions = {}): Uint8Array {
   const kids = pages.map((_, i) => `${10 + i} 0 R`).join(' ')
   return fileOf({
     1: `<</Type/Catalog/Pages 2 0 R${catalog}>>`,
-    2: `<</Type/Pages/Kids[${kids}]/Count ${pages.length}>>`,
+    2: `<</Type/Pages/Kids[${kids}]/Count ${pages.length}${root}>>`,
     4: { dict: '', data: CONTENT },
     ...Object.fromEntries(pages.map((body, i) => [10 + i, body])),
     ...objects,
@@ -83,6 +96,13 @@ export function printedWhole(bytes: Uint8Array): Printed {
 export const pagesRead = (bytes: Uint8Array): readonly PrintablePage[] => printedWhole(bytes).pages
 
 /**
+ * A refusal as it is, and anything read as only that it read: a failing
+ * assertion's diff would print a document's every stream, and a document
+ * of a few hundred mebibytes ran a test's worker out of heap.
+ */
+export const outcome = (result: object): unknown => ('ok' in result ? result : 'read whole')
+
+/**
  * That `bytes` are refused as `code`, for what `finding` says, on `page`
  * where one is given: the finding's words, then where `page` is given the
  * reader's own count of the page, then the code's advice, and nothing of
@@ -90,11 +110,28 @@ export const pagesRead = (bytes: Uint8Array): readonly PrintablePage[] => printe
  */
 export function expectPrintRefused(bytes: Uint8Array, code: DocumentRefusalCode, finding: Finding, page?: number): void {
   const result = printed(bytes)
-  expect(result).toEqual(refusal(finding, page))
+  expect(outcome(result)).toEqual(refusal(finding, page))
   expect(result).toMatchObject({ ok: false, code })
   const message = (result as DocumentRefusal).message
   if (page !== undefined) expect(message).toContain(`, on page ${page};`)
   expect(message.replace(`, on page ${page};`, ';')).toMatch(/^[A-Za-z ,;'-]+$/)
+}
+
+/** The objects of a document, counting every look-up and throwing past `limit`, so that a read that does more work than it should stops rather than spins. */
+export class Counted extends Map<number, PdfValue | PdfStream> {
+  gets = 0
+  readonly limit: number
+
+  constructor(objects: ReadonlyMap<number, PdfValue | PdfStream>, limit: number) {
+    super(objects)
+    this.limit = limit
+  }
+
+  override get(key: number): PdfValue | PdfStream | undefined {
+    this.gets += 1
+    if (this.gets > this.limit) throw new Error('read past the count')
+    return super.get(key)
+  }
 }
 
 /**

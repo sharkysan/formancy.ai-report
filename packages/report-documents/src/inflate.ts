@@ -35,6 +35,12 @@ export interface InflateBudget {
   left: number
 }
 
+/** `bytes` taken from `budget`, refused once every stage of every stream, and every copy a reader holds of one, passes it. */
+export function spend(budget: InflateBudget, bytes: number): void {
+  budget.left -= bytes
+  if (budget.left < 0) refuse('inflated')
+}
+
 /** The private sentinel `onData` throws once the budget is spent, which pako lets through its `push`. */
 const PAST_THE_BUDGET = new Error('past the budget')
 

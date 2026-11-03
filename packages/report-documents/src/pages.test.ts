@@ -1,10 +1,22 @@
 import { deflate } from 'pako'
 import { describe, expect, test } from 'vitest'
 import { MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_PAGES } from './limits.js'
-import { isName, type PdfStream, type PdfValue } from './model.js'
+import { isName } from './model.js'
 import { pagesOf } from './pages.js'
 import { AT_A_BOUND, parsed } from './parse-test-support.js'
-import { expectPrintRefused, leaf, letter, pagesFile, pagesRead, printed, printedWhole, spentByObjectStream, underAChain } from './pages-test-support.js'
+import {
+  Counted,
+  expectPrintRefused,
+  leaf,
+  outcome,
+  letter,
+  pagesFile,
+  pagesRead,
+  printed,
+  printedWhole,
+  spentByObjectStream,
+  underAChain,
+} from './pages-test-support.js'
 import { refusal } from './refusals.js'
 import { contentBomb, manyPages } from './test-hostile.js'
 import { CONTENT, deflatedZeros, latin1, MIB } from './test-pdf.js'
@@ -17,6 +29,9 @@ import { CONTENT, deflatedZeros, latin1, MIB } from './test-pdf.js'
 
 /** A file of one page under the root, `entries` its own beside content 4. */
 const onePage = (entries: string): Uint8Array => pagesFile([leaf(`/Contents 4 0 R${entries}`)])
+
+/** A US Letter page whose /Contents is `value`. */
+const drawn = (value: string): string => letter().replace('/Contents 4 0 R', `/Contents ${value}`)
 
 describe('a page is turned', () => {
   // A page turned by more than a turn, or backwards, is shown by every
@@ -40,13 +55,16 @@ describe('a page is turned', () => {
   // A page at an angle between quarter turns cannot be placed upright in a
   // report's body box without turning it further, which the rules forbid;
   // a fraction of a degree, or a /Rotate that is no number, is read by one
-  // viewer as one angle and by another as none. Named by the reader's own
-  // count of the page, so that the person can find it.
+  // viewer as one angle and by another as none, and a turn past what a
+  // double holds exactly -- 2^52 times 90 is a multiple of 90 only as a
+  // double rounds it -- is no turn any two readers agree on. Named by the
+  // reader's own count of the page, so that the person can find it.
   test('/Rotate 45 is refused as unsupported-rotation, naming the page', () => {
     expectPrintRefused(pagesFile([letter(), letter('/Rotate 45')]), 'unsupported-rotation', 'rotation', 2)
     expectPrintRefused(pagesFile([letter('/Rotate 90.5')]), 'unsupported-rotation', 'rotation', 1)
     expectPrintRefused(pagesFile([letter('/Rotate/Ninety')]), 'unsupported-rotation', 'rotation', 1)
     expectPrintRefused(pagesFile([letter('/Rotate 9007199254740992')]), 'unsupported-rotation', 'rotation', 1)
+    expectPrintRefused(pagesFile([letter('/Rotate 405323966463344640')]), 'unsupported-rotation', 'rotation', 1)
   })
 })
 
@@ -75,7 +93,9 @@ describe('a page shows a box', () => {
   // to bottom, or below the origin is the same rectangle to every viewer,
   // and a size taken from its corners as written would be negative.
   test('a box written with its corners reversed or below zero reads ordered', () => {
-    const pages = pagesRead(pagesFile([letter('/MediaBox[612 792 0 0]'), letter('/MediaBox[-100 -200 -50 -20]'), letter('/MediaBox[100 -20 -200 50]')]))
+    const pages = pagesRead(
+      pagesFile([letter('', { box: '[612 792 0 0]' }), letter('', { box: '[-100 -200 -50 -20]' }), letter('', { box: '[100 -20 -200 50]' })]),
+    )
     expect(pages.map((page) => page.box)).toEqual([
       [0, 0, 612, 792],
       [-100, -200, -50, -20],
@@ -92,8 +112,8 @@ describe('a page shows a box', () => {
   // body box would divide by its width: refused, whether the media has no
   // area, or the crop has none, or the crop lies past the media.
   test('a box of no area is refused as no-area', () => {
-    expectPrintRefused(pagesFile([letter('/MediaBox[0 0 0 792]')]), 'no-area', 'area', 1)
-    expectPrintRefused(pagesFile([letter('/MediaBox[10 10 10 10]')]), 'no-area', 'area', 1)
+    expectPrintRefused(pagesFile([letter('', { box: '[0 0 0 792]' })]), 'no-area', 'area', 1)
+    expectPrintRefused(pagesFile([letter('', { box: '[10 10 10 10]' })]), 'no-area', 'area', 1)
     expectPrintRefused(pagesFile([letter('/CropBox[0 300 612 300]')]), 'no-area', 'area', 1)
     expectPrintRefused(pagesFile([letter(), letter('/CropBox[700 0 800 100]')]), 'no-area', 'area', 2)
     expectPrintRefused(pagesFile([letter('/CropBox[612 0 700 100]')]), 'no-area', 'area', 1)
@@ -147,7 +167,7 @@ describe('a page draws its content', () => {
   // next -- `Tj` and `ET` -- never run together into one.
   test('two content streams that split BT … ET between them are joined into one, with a newline between', () => {
     const first = latin1('BT /F1 12 Tf 72 712 Td (Hello) Tj')
-    const file = pagesFile([letter('', '<</Font<</F1 22 0 R>>>>').replace('/Contents 4 0 R', '/Contents[20 0 R 21 0 R]')], {
+    const file = pagesFile([letter('', { resources: '<</Font<</F1 22 0 R>>>>' }).replace('/Contents 4 0 R', '/Contents[20 0 R 21 0 R]')], {
       20: { dict: '/Filter/FlateDecode', data: deflate(first) },
       21: { dict: '', data: latin1('ET') },
       22: '<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>',
@@ -164,41 +184,83 @@ describe('a page draws its content', () => {
   // rather than in a viewer of the report.
   test('a single content stream is kept as encoded, its filter with it', () => {
     const deflated = deflate(CONTENT)
-    const pages = [letter(), letter().replace('/Contents 4 0 R', '/Contents[4 0 R]')]
-    const whole = printedWhole(pagesFile(pages, { 4: { dict: '/Filter/FlateDecode/DecodeParms<</Predictor 1>>', data: deflated } }))
+    const whole = printedWhole(pagesFile([letter(), drawn('[4 0 R]')], { 4: { dict: '/Filter/FlateDecode/DecodeParms<</Predictor 1>>', data: deflated } }))
     for (const page of whole.pages) {
       expect(page.content.bytes).toEqual(deflated)
       expect(isName(page.content.dict.entries.get('Filter'), 'FlateDecode')).toBe(true)
       expect([...page.content.dict.entries.keys()]).toEqual(['Filter', 'DecodeParms'])
     }
-    // Shared by both pages, it was inflated once.
-    expect(whole.parsed.budget.left).toBe(MAX_DOCUMENT_INFLATED - CONTENT.length)
+    // Shared by both pages, it was inflated once, and the second page holds it again.
+    expect(whole.parsed.budget.left).toBe(MAX_DOCUMENT_INFLATED - CONTENT.length - deflated.length)
   })
 
-  // A page with no content is empty (ISO 32000-1 7.7.3.3), as a blank page
-  // a writer adds is; read as a refusal, a document with a blank page
-  // between its chapters would not print.
-  test('a page with no /Contents draws nothing', () => {
-    const [page] = pagesRead(pagesFile([leaf('/MediaBox[0 0 612 792]')]))
-    expect(page?.content.bytes).toEqual(new Uint8Array(0))
-    expect([...(page?.content.dict.entries.keys() ?? [])]).toEqual([])
+  // A page with no content, or a list of none, is empty (ISO 32000-1
+  // 7.7.3.3), as a blank page a writer adds is; read as a refusal, a
+  // document with a blank page between its chapters would not print.
+  test('a page with no /Contents, or a list of none, draws nothing', () => {
+    const pages = pagesRead(pagesFile([leaf('/MediaBox[0 0 612 792]'), drawn('[]'), drawn('20 0 R')], { 20: '[]' }))
+    expect(pages).toHaveLength(3)
+    for (const page of pages) {
+      expect(page.content.bytes).toEqual(new Uint8Array(0))
+      expect([...page.content.dict.entries.keys()]).toEqual([])
+    }
   })
 
-  // Content named as no stream, or as a list of none, is content no viewer
-  // agrees on: one draws nothing, another stops at the page.
-  test('content that is not one or more streams is refused as malformed', () => {
-    const contents = (value: string): string => letter().replace('/Contents 4 0 R', `/Contents ${value}`)
-    expectPrintRefused(pagesFile([contents('[]')]), 'malformed', 'contents', 1)
-    expectPrintRefused(pagesFile([contents('20 0 R')], { 20: '[]' }), 'malformed', 'contents', 1)
-    expectPrintRefused(pagesFile([contents('[4 0 R 20 0 R]')], { 20: '<<>>' }), 'malformed', 'contents', 1)
-    expectPrintRefused(pagesFile([contents('[4 0 R 99 0 R]')]), 'malformed', 'contents', 1)
-    expectPrintRefused(pagesFile([contents('[4 0 R (stream)]')]), 'malformed', 'contents', 1)
-    expectPrintRefused(pagesFile([contents('20 0 R')], { 20: '<</Length 2>>' }), 'malformed', 'contents', 1)
-    expectPrintRefused(pagesFile([contents('99 0 R')]), 'malformed', 'contents', 1)
+  // Content named as no stream, or as a list that holds something else,
+  // is content no viewer agrees on: one draws nothing, another stops at
+  // the page.
+  test('content that is not a stream or a list of streams is refused as malformed', () => {
+    expectPrintRefused(pagesFile([drawn('[4 0 R 20 0 R]')], { 20: '<<>>' }), 'malformed', 'contents', 1)
+    expectPrintRefused(pagesFile([drawn('[4 0 R 99 0 R]')]), 'malformed', 'contents', 1)
+    expectPrintRefused(pagesFile([drawn('[4 0 R (stream)]')]), 'malformed', 'contents', 1)
+    expectPrintRefused(pagesFile([drawn('20 0 R')], { 20: '<</Length 2>>' }), 'malformed', 'contents', 1)
+    expectPrintRefused(pagesFile([drawn('99 0 R')]), 'malformed', 'contents', 1)
+    expectPrintRefused(pagesFile([drawn('/Drawing')]), 'malformed', 'contents', 1)
     // A list written as an object of its own is a list like any other.
-    expect(pagesRead(pagesFile([contents('20 0 R')], { 20: '[4 0 R 4 0 R]' }))[0]?.content.bytes).toEqual(
+    expect(pagesRead(pagesFile([drawn('20 0 R')], { 20: '[4 0 R 4 0 R]' }))[0]?.content.bytes).toEqual(
       latin1(`${String.fromCharCode(...CONTENT)}\n${String.fromCharCode(...CONTENT)}`),
     )
+  })
+
+  // The content a page holds is the reader's to bound, not only what it
+  // decodes: a list of two 8 MiB streams forty pages share was decoded
+  // once and held forty times, 640 MiB from a file of 77 KB, and a list
+  // that names one stream a hundred thousand times held a copy of it for
+  // each. Every page that holds a content, and every repeat of a stream in
+  // a list, takes its length from the budget again, each as it is met, so
+  // that a list past the budget stops where the budget ends -- which the
+  // objects map counts. Pages each with content of their own are charged
+  // it once.
+  test('the content the pages hold is charged, all of it together', () => {
+    const eight = deflatedZeros(8 * MIB)
+    const list = { 3: '[4 0 R 5 0 R]', 4: { dict: '/Filter/FlateDecode', data: eight }, 5: { dict: '/Filter/FlateDecode', data: eight } }
+    expect(pagesRead(pagesFile([drawn('3 0 R')], list))).toHaveLength(1)
+    expectPrintRefused(pagesFile([drawn('3 0 R'), drawn('3 0 R')], list), 'inflates-too-far', 'inflated', 2)
+
+    const repeats = 100_000
+    const document = parsed(pagesFile([drawn('3 0 R')], { 3: `[${'4 0 R '.repeat(repeats)}]`, 4: { dict: '', data: new Uint8Array(1024) } }))
+    const counted = new Counted(document.objects, repeats)
+    expect(outcome(pagesOf({ ...document, objects: counted }))).toEqual(refusal('inflated', 1))
+    expect(counted.gets).toBeLessThan(counted.limit)
+
+    const seven = { dict: '/Filter/FlateDecode', data: deflatedZeros(7 * MIB) }
+    const own = printedWhole(pagesFile([drawn('[20 0 R 21 0 R]'), drawn('[22 0 R 23 0 R]')], { 20: seven, 21: seven, 22: seven, 23: seven }))
+    expect(own.parsed.budget.left).toBe(MAX_DOCUMENT_INFLATED - 4 * 7 * MIB - 2)
+  })
+
+  // A list a thousand pages share is one content: joined again for each
+  // page, a list of a hundred thousand references cost a hundred thousand
+  // steps a page before the budget stopped it. It is built once, and each
+  // page charged what it holds, which the objects map counts.
+  test('a list the pages share is built once', AT_A_BOUND, () => {
+    const refs = 100_000
+    const pages = Array.from({ length: MAX_DOCUMENT_PAGES }, () => drawn('3 0 R'))
+    const document = parsed(pagesFile(pages, { 3: `[${'4 0 R '.repeat(refs)}]`, 4: { dict: '', data: new Uint8Array(0) } }))
+    const counted = new Counted(document.objects, 2 * refs)
+    expect(outcome(pagesOf({ ...document, objects: counted }))).toEqual(refusal('inflated', Math.floor(MAX_DOCUMENT_INFLATED / (refs - 1)) + 1))
+    expect(counted.gets).toBeLessThan(counted.limit)
+    const few = pagesRead(pagesFile([drawn('3 0 R'), drawn('3 0 R')], { 3: '[4 0 R 4 0 R]' }))
+    expect(few[0]?.content).toBe(few[1]?.content)
   })
 
   // A page's content decoded past the budget, damaged, or under a filter
@@ -232,8 +294,8 @@ describe('a page draws with', () => {
   // viewers draw alike.
   test('its resources, none where no node gives any, and refused where they are no dictionary', () => {
     expect([...(pagesRead(pagesFile([leaf('/MediaBox[0 0 612 792]/Contents 4 0 R')]))[0]?.resources.entries ?? [])]).toEqual([])
-    expectPrintRefused(pagesFile([letter('', '[]')]), 'malformed', 'resources', 1)
-    expectPrintRefused(pagesFile([letter('', '99 0 R')]), 'malformed', 'resources', 1)
+    expectPrintRefused(pagesFile([letter('', { resources: '[]' })]), 'malformed', 'resources', 1)
+    expectPrintRefused(pagesFile([letter('', { resources: '99 0 R' })]), 'malformed', 'resources', 1)
   })
 
   // A page's transparency group says how its content composes; dropped, a
@@ -258,16 +320,17 @@ describe('a document', () => {
   // a renderer that copies the page's content as it is: a person would see
   // what they never saw on screen. Refused where the catalog says the
   // document has layers, and where anything a page draws with is marked as
-  // belonging to one, however deep.
+  // belonging to one, however deep, whatever the mark names.
   test('a document with optional content is refused as optional-content', () => {
-    expectPrintRefused(pagesFile([letter()], {}, '/OCProperties<</OCGs[30 0 R]/D<</Order[]>>>>'), 'optional-content', 'layers')
+    expectPrintRefused(pagesFile([letter()], {}, { catalog: '/OCProperties<</OCGs[30 0 R]/D<</Order[]>>>>' }), 'optional-content', 'layers')
     const layered = (oc: string): Uint8Array =>
-      pagesFile([letter('', '<</XObject<</X 20 0 R>>>>')], {
+      pagesFile([letter('', { resources: '<</XObject<</X 20 0 R>>>>' })], {
         20: { dict: '/Type/XObject/Subtype/Form/BBox[0 0 10 10]/Resources<</XObject<</Y 21 0 R>>>>', data: latin1('/Y Do') },
         21: { dict: `/Type/XObject/Subtype/Form/BBox[0 0 10 10]${oc}`, data: CONTENT },
         30: '<</Type/OCG/Name(Layer)>>',
       })
     expectPrintRefused(layered('/OC 30 0 R'), 'optional-content', 'layers')
+    expectPrintRefused(layered('/OC 99 0 R'), 'optional-content', 'layers')
     expect(pagesRead(layered(''))).toHaveLength(1)
   })
 
@@ -301,20 +364,3 @@ describe('a document', () => {
     expect(pagesOf({ ...document, objects: new Counted(document.objects, 0) })).toEqual(refusal('unreadable'))
   })
 })
-
-/** The objects of a document, counting every look-up and throwing past `limit`, so that a quadratic read stops rather than spins. */
-class Counted extends Map<number, PdfValue | PdfStream> {
-  gets = 0
-  readonly limit: number
-
-  constructor(objects: ReadonlyMap<number, PdfValue | PdfStream>, limit: number) {
-    super(objects)
-    this.limit = limit
-  }
-
-  override get(key: number): PdfValue | PdfStream | undefined {
-    this.gets += 1
-    if (this.gets > this.limit) throw new Error('read past the count')
-    return super.get(key)
-  }
-}

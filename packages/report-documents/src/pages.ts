@@ -1,4 +1,4 @@
-import { decodedBytes, type InflateBudget } from './inflate.js'
+import { decodedBytes, spend, type InflateBudget } from './inflate.js'
 import { isArray, isDict, isRef, isStream, resolved, type PdfDict, type PdfObjects, type PdfStream, type PdfValue } from './model.js'
 import type { ParsedDocument } from './parse.js'
 import { caught, onPage, refuse, type DocumentRefusal } from './refusals.js'
@@ -144,6 +144,9 @@ function kept(stream: PdfStream): PdfStream {
   return { dict: { entries }, bytes: stream.bytes }
 }
 
+/** The content of a page that draws nothing. */
+const empty = (): PdfStream => ({ dict: { entries: new Map() }, bytes: new Uint8Array(0) })
+
 /** Streams' bytes, a newline between each and the next, so that the last token of one never runs into the first of the next. */
 function joined(parts: readonly Uint8Array[]): Uint8Array {
   const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, parts.length - 1))
@@ -156,12 +159,26 @@ function joined(parts: readonly Uint8Array[]): Uint8Array {
   return out
 }
 
-/** The pages of one document, read in order: what they inherit, and their content streams decoded once each from the document's budget. */
+/**
+ * The pages of one document, read in order: what they inherit, and their
+ * content, held to the document's budget all of it together. Each content
+ * stream is decoded once and charged what its filters write -- nothing for
+ * a stream the file holds unfiltered, whose bytes are the file's own; each
+ * later hold of its bytes -- by another page, or again in one list -- and
+ * each newline that joins them is charged again as it is met, so that what
+ * the pages hold passes `MAX_DOCUMENT_INFLATED` by no more than the file's
+ * unfiltered content once, and a list past it stops where the budget ends.
+ */
 class Pages {
   private readonly objects: PdfObjects
   private readonly budget: InflateBudget
   private readonly inheritance: Inheritance
+  /** Each content stream decoded, by its number. */
   private readonly decoded = new Map<number, Uint8Array>()
+  /** The content streams a page holds already, whose next hold is charged. */
+  private readonly held = new Set<number>()
+  /** Each content built, by what a /Contents names: the same stream or list is the same content, built once. */
+  private readonly contents = new Map<PdfStream | readonly PdfValue[], PdfStream>()
 
   constructor(parsed: ParsedDocument) {
     this.objects = parsed.objects
@@ -169,6 +186,13 @@ class Pages {
     this.inheritance = new Inheritance(parsed.objects)
   }
 
+  /**
+   * A page's own keys refuse a reference that names no object, which ISO
+   * 32000-1 7.3.10 reads as null and the closure passes over: a box, a turn,
+   * a unit, content, resources or a group that names nothing is a damaged
+   * page, where a reference deep in a resource that names nothing draws
+   * nothing.
+   */
   page(num: number): PrintablePage {
     const objects = this.objects
     const dict = objects.get(num) as PdfDict
@@ -196,23 +220,59 @@ class Pages {
     }
   }
 
-  /** A page's content: one stream as encoded, several decoded and joined, none an empty page (ISO 32000-1 7.7.3.3). */
+  /** A page's content, built once for what its /Contents names and charged again for every page that holds it. */
   private content(value: PdfValue | undefined): PdfStream {
-    if (value === undefined) return { dict: { entries: new Map() }, bytes: new Uint8Array(0) }
-    // One stream, or a list of them; anything else, or a list of none, is content no two viewers draw alike.
+    if (value === undefined) return empty()
+    // One stream, or a list of them; anything else is content no two viewers draw alike.
     const target = resolved(this.objects, value)
-    const named = isStream(target) ? [value] : isArray(target) ? target : []
-    if (named.length === 0) refuse('contents')
-    const streams = named.map((item): readonly [number, PdfStream] => {
-      if (!isRef(item)) refuse('contents')
-      const stream = this.objects.get(item.object)
-      return isStream(stream) ? [item.object, stream] : refuse('contents')
-    })
-    // Each decoded, a lone stream too: so that what it inflates to is held to the budget here, not in a viewer of the report.
-    const decoded = streams.map(([num, stream]) => this.decode(num, stream))
-    if (streams.length > 1) return { dict: { entries: new Map() }, bytes: joined(decoded) }
-    const [[, only]] = streams as [readonly [number, PdfStream]]
-    return kept(only)
+    if (!isStream(target) && !isArray(target)) refuse('contents')
+    const known = this.contents.get(target)
+    if (known !== undefined) {
+      spend(this.budget, known.bytes.length)
+      return known
+    }
+    const content = this.built(isStream(target) ? [value] : target)
+    this.contents.set(target, content)
+    return content
+  }
+
+  /**
+   * A content from the streams a page lists: none an empty page (ISO
+   * 32000-1 7.7.3.3), one kept as encoded, several decoded and joined. A
+   * lone stream is decoded too, so that what it inflates to is held to the
+   * budget here, not in a viewer of the report.
+   */
+  private built(list: readonly PdfValue[]): PdfStream {
+    const [first] = list
+    if (list.length === 0) return empty()
+    if (list.length === 1) {
+      const [num, stream] = this.stream(first)
+      this.decode(num, stream)
+      this.hold(num, stream.bytes.length)
+      return kept(stream)
+    }
+    const parts: Uint8Array[] = []
+    for (const item of list) {
+      const [num, stream] = this.stream(item)
+      if (parts.length > 0) spend(this.budget, 1)
+      const bytes = this.decode(num, stream)
+      this.hold(num, bytes.length)
+      parts.push(bytes)
+    }
+    return { dict: { entries: new Map() }, bytes: joined(parts) }
+  }
+
+  /** The content stream a list names by reference, and its number. */
+  private stream(item: PdfValue | undefined): readonly [number, PdfStream] {
+    if (!isRef(item)) refuse('contents')
+    const stream = this.objects.get(item.object)
+    return isStream(stream) ? [item.object, stream] : refuse('contents')
+  }
+
+  /** A stream's bytes held by a page: the first hold is what its decode charged, every later one is charged again. */
+  private hold(num: number, length: number): void {
+    if (this.held.has(num)) spend(this.budget, length)
+    else this.held.add(num)
   }
 
   private decode(num: number, stream: PdfStream): Uint8Array {
