@@ -22,7 +22,7 @@ export const DOCUMENT_REFUSAL_CODES = [
   'malformed',
   /** Arrays and dictionaries nested past `MAX_DOCUMENT_DEPTH`. */
   'too-deep',
-  /** More objects than `MAX_DOCUMENT_OBJECTS`, written or claimed by a cross-reference; more values than `MAX_DOCUMENT_VALUES`; names past `MAX_DOCUMENT_NAME_BYTES`. */
+  /** More objects than `MAX_DOCUMENT_OBJECTS`, written or claimed by a cross-reference; more cross-reference entries than `MAX_DOCUMENT_XREF_ENTRIES` or sections than `MAX_DOCUMENT_XREF_SECTIONS`, every section together; more values than `MAX_DOCUMENT_VALUES`; names past `MAX_DOCUMENT_NAME_BYTES`. */
   'too-many-objects',
   /** Streams that decode past `MAX_DOCUMENT_INFLATED`, every stage of every stream together. */
   'inflates-too-far',
