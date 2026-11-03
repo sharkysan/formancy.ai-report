@@ -1,5 +1,7 @@
+import { Annotations, needsAppearances } from './annotations.js'
 import { decodedBytes, type InflateBudget } from './inflate.js'
 import { isArray, isDict, isRef, isStream, resolved, type PdfDict, type PdfObjects, type PdfStream, type PdfValue } from './model.js'
+import { Tally } from './notices.js'
 import type { ParsedDocument } from './parse.js'
 import { caught, onPage, refuse, type DocumentRefusal } from './refusals.js'
 
@@ -7,12 +9,14 @@ import { caught, onPage, refuse, type DocumentRefusal } from './refusals.js'
  * Each page of a document as a viewer shows it (ISO 32000-1 7.7.3.3): the
  * box it shows -- its CropBox within its MediaBox, corners ordered --
  * turned by its /Rotate, at the size its /UserUnit gives, drawing its
- * content with its resources. The tree is the parse's, walked once and
- * checked there (page-tree.ts): its pages are read here in its order and
- * it is never walked again. A document whose catalog says it has layers is
- * refused here; anything a page draws with that is marked as a layer is
- * the closure's to refuse (closure.ts). A refusal found while a page is
- * read names the page.
+ * content with its resources, and its annotations' appearances over it as
+ * a print draws them (annotations.ts). The tree is the parse's, walked once
+ * and checked there (page-tree.ts): its pages are read here in its order
+ * and it is never walked again. A document whose catalog says it has
+ * layers, or whose form asks the viewer to draw its fields, is refused
+ * here; anything a page draws with that is marked as a layer is the
+ * closure's to refuse (closure.ts). A refusal found while a page is read
+ * names the page.
  */
 
 /** A page's turn, clockwise, as a viewer shows it. */
@@ -42,7 +46,7 @@ export interface PrintablePage {
   readonly resources: PdfDict
   /** Its /Group, a transparency group's attributes, where it has one. */
   readonly group?: PdfDict
-  /** Its annotations' appearances, flattened into what prints: none until the annotations are read. */
+  /** What its annotations print, in its /Annots' order, each drawn over its content: what the print rule leaves out draws none (annotations.ts). */
   readonly appearances: readonly FlattenedAppearance[]
 }
 
@@ -179,6 +183,7 @@ class Pages {
   private readonly objects: PdfObjects
   private readonly budget: InflateBudget
   private readonly inheritance: Inheritance
+  private readonly annotations: Annotations
   /** Each content stream decoded, by its number. */
   private readonly decoded = new Map<number, Uint8Array>()
   /** The content streams a page holds already, whose next hold is charged. */
@@ -186,10 +191,11 @@ class Pages {
   /** Each content built, by what a /Contents names: the same stream or list is the same content, built once. */
   private readonly contents = new Map<PdfStream | readonly PdfValue[], PdfStream>()
 
-  constructor(parsed: ParsedDocument) {
+  constructor(parsed: ParsedDocument, tally: Tally) {
     this.objects = parsed.objects
     this.budget = parsed.budget
     this.inheritance = new Inheritance(parsed.objects)
+    this.annotations = new Annotations(parsed, tally)
   }
 
   /**
@@ -222,7 +228,7 @@ class Pages {
       content,
       resources,
       ...(group === undefined ? {} : { group }),
-      appearances: [],
+      appearances: this.annotations.of(dict, rotate),
     }
   }
 
@@ -290,11 +296,12 @@ class Pages {
   }
 }
 
-/** Internal: every page in order, or why not. */
-export function pagesOf(parsed: ParsedDocument): readonly PrintablePage[] | DocumentRefusal {
+/** Internal: every page in order, what does not survive printing counted into `tally`, or why not. */
+export function pagesOf(parsed: ParsedDocument, tally = new Tally()): readonly PrintablePage[] | DocumentRefusal {
   return caught(() => {
     if (parsed.catalog.entries.has('OCProperties')) refuse('layers')
-    const pages = new Pages(parsed)
+    if (needsAppearances(parsed)) refuse('need-appearances')
+    const pages = new Pages(parsed, tally)
     return parsed.pages.map((num, i) => onPage(i + 1, () => pages.page(num)))
   })
 }

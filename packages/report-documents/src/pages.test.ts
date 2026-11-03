@@ -315,9 +315,10 @@ describe('a page draws with', () => {
     expectPrintRefused(pagesFile([letter('/Group/Transparency')]), 'malformed', 'group', 1)
   })
 
-  // Task 6 fills them; until then no page carries an appearance.
-  test('no appearances yet', () => {
-    expect(pagesRead(pagesFile([letter()]))[0]?.appearances).toEqual([])
+  // A page that lists no annotations, or an empty list, draws nothing
+  // over its content; what a page's annotations draw is annotations.ts's.
+  test('no appearances where it lists no annotations', () => {
+    expect(pagesRead(pagesFile([letter(), letter('/Annots[]')])).map((page) => page.appearances)).toEqual([[], []])
   })
 })
 

@@ -5,11 +5,16 @@
  *
  * A refusal names what was found, in the reader's own words, never a byte
  * of the file: no name, no string, no offset and no object number. Every
- * message is one of `FINDINGS`, then the page where what was found belongs
- * to one, then its code's advice, so a message can hold nothing the file
- * chose: the page is the reader's own count, from 1, said in the message
- * and given beside it (`page`), never a number the file wrote.
+ * message is one of `FINDINGS`, then the annotation and the page where what
+ * was found belongs to one, then its code's advice, so a message can hold
+ * nothing the file chose: the page is the reader's own count, from 1, and
+ * the annotation its place in the page's /Annots, from 1, each said in the
+ * message and given beside it (`page`, `annotation`), never a number the
+ * file wrote; an annotation's subtype is said only where it is one ISO
+ * 32000 defines, in the reader's own spelling (`ANNOTATION_SUBTYPES`).
  */
+
+import type { AnnotationSubtype } from './annotations.js'
 
 /** Why a PDF is refused, each the first thing found that is wrong with it. */
 export const DOCUMENT_REFUSAL_CODES = [
@@ -23,7 +28,7 @@ export const DOCUMENT_REFUSAL_CODES = [
   'malformed',
   /** Arrays and dictionaries nested past `MAX_DOCUMENT_DEPTH`. */
   'too-deep',
-  /** More objects than `MAX_DOCUMENT_OBJECTS`, written, claimed by a cross-reference or reached by its pages; more cross-reference entries than `MAX_DOCUMENT_XREF_ENTRIES` or sections than `MAX_DOCUMENT_XREF_SECTIONS`, every section together; more values than `MAX_DOCUMENT_VALUES`; names past `MAX_DOCUMENT_NAME_BYTES`. */
+  /** More objects than `MAX_DOCUMENT_OBJECTS`, written, claimed by a cross-reference or reached by its pages; more cross-reference entries than `MAX_DOCUMENT_XREF_ENTRIES` or sections than `MAX_DOCUMENT_XREF_SECTIONS`, every section together; more values than `MAX_DOCUMENT_VALUES`, or annotations listed by its pages, every page together; names past `MAX_DOCUMENT_NAME_BYTES`. */
   'too-many-objects',
   /** Streams that decode past `MAX_DOCUMENT_INFLATED`, every stage of every stream together. */
   'inflates-too-far',
@@ -39,19 +44,19 @@ export const DOCUMENT_REFUSAL_CODES = [
   'unsupported-rotation',
   /** A page whose box has no area. */
   'no-area',
-  /** Optional content: layers a viewer may hide and a print would show. */
+  /** Optional content: layers a viewer may hide and a print would show, on what a page draws with or on an annotation. */
   'optional-content',
   /** A resource of a page that reaches a page object. */
   'resource-names-a-page',
-  /** A form that asks the viewer to draw its fields, which a print cannot do. */
+  /** A form that asks the viewer to draw its fields (/NeedAppearances), which a print cannot do. */
   'needs-appearances',
-  /** An annotation that prints and holds no appearance to print. */
+  /** An annotation that prints, over an area, and holds no appearance to print, or one that is not a form. */
   'annotation-without-appearance',
-  /** An annotation whose appearance state names no appearance it holds. */
+  /** An annotation whose appearances are kept by state, and that names no state, or one it does not hold. */
   'appearance-state-missing',
-  /** An annotation that stays upright on a turned page. */
+  /** An annotation that draws and stays upright (NoRotate) on a turned page. */
   'annotation-turned',
-  /** A link without an appearance whose border a viewer would draw. */
+  /** A link that prints without an appearance, whose border a viewer would draw. */
   'link-border',
 ] as const
 export type DocumentRefusalCode = (typeof DOCUMENT_REFUSAL_CODES)[number]
@@ -63,6 +68,14 @@ export interface DocumentRefusal {
   readonly message: string
   /** The page, counted from 1, where what was found belongs to one. */
   readonly page?: number
+  /** The annotation, counted from 1 in its page's /Annots, where what was found belongs to one. */
+  readonly annotation?: number
+}
+
+/** An annotation's place: where it stands in its page's /Annots, from 1, and its subtype where it is one ISO 32000 defines. */
+export interface AnnotationPlace {
+  readonly index: number
+  readonly subtype: AnnotationSubtype | undefined
 }
 
 const SAVE_AGAIN = 'save it again as a PDF from the program that made it'
@@ -170,14 +183,36 @@ export const FINDINGS = {
   area: ['no-area', 'it gives a box of no area'],
   layers: ['optional-content', 'it holds layers a viewer may hide'],
   'resource-page': ['resource-names-a-page', 'what its pages draw with reaches a page'],
+  annots: ['malformed', 'it lists its annotations in other than an array'],
+  annotations: ['too-many-objects', 'its pages list more annotations than a document may'],
+  annotation: ['malformed', 'it lists an annotation that is not a dictionary'],
+  flags: ['malformed', 'an annotation in it gives flags that are not a whole number'],
+  rect: ['malformed', 'an annotation in it gives no rectangle of four numbers'],
+  bbox: ['malformed', 'an appearance in it gives no bounding box of four numbers'],
+  matrix: ['malformed', 'an appearance in it gives a matrix that is not six numbers'],
+  fields: ['malformed', 'its form fields name their parents in a cycle'],
+  'need-appearances': ['needs-appearances', 'its form asks the viewer to draw its fields'],
+  'no-appearance': ['annotation-without-appearance', 'an annotation in it prints and holds no appearance to print'],
+  'appearance-state': ['appearance-state-missing', 'an annotation in it names no appearance state it holds'],
+  upright: ['annotation-turned', 'an annotation in it stays upright on a turned page'],
+  'link-border': ['link-border', 'a link in it holds no appearance and a viewer draws its border'],
 } as const satisfies Record<string, readonly [DocumentRefusalCode, string]>
 export type Finding = keyof typeof FINDINGS
 
-/** The refusal for what was found, on `page`, counted from 1, where it belongs to one. */
-export function refusal(finding: Finding, page?: number): DocumentRefusal {
+/** The words that say where an annotation stands: its place, and its subtype where the reader knows it. */
+const said = ({ index, subtype }: AnnotationPlace): string => (subtype === undefined ? `annotation ${index}` : `annotation ${index} (${subtype})`)
+
+/** The refusal for what was found, at `annotation` of `page`, counted from 1, where it belongs to one. */
+export function refusal(finding: Finding, page?: number, annotation?: AnnotationPlace): DocumentRefusal {
   const [code, found] = FINDINGS[finding]
-  if (page === undefined) return { ok: false, code, message: `${found}; ${DOCUMENT_ADVICE[code]}` }
-  return { ok: false, code, message: `${found}, on page ${page}; ${DOCUMENT_ADVICE[code]}`, page }
+  const where = [...(annotation === undefined ? [] : [said(annotation)]), ...(page === undefined ? [] : [`on page ${page}`])]
+  return {
+    ok: false,
+    code,
+    message: `${[found, ...where].join(', ')}; ${DOCUMENT_ADVICE[code]}`,
+    ...(page === undefined ? {} : { page }),
+    ...(annotation === undefined ? {} : { annotation: annotation.index }),
+  }
 }
 
 /**
@@ -189,12 +224,14 @@ export function refusal(finding: Finding, page?: number): DocumentRefusal {
  */
 export class DocumentRefused extends Error {
   readonly finding: Finding
+  readonly annotation: AnnotationPlace | undefined
   readonly refusal: DocumentRefusal
 
-  constructor(finding: Finding, page?: number) {
-    const refused = refusal(finding, page)
+  constructor(finding: Finding, page?: number, annotation?: AnnotationPlace) {
+    const refused = refusal(finding, page, annotation)
     super(refused.message)
     this.finding = finding
+    this.annotation = annotation
     this.refusal = refused
   }
 }
@@ -209,7 +246,21 @@ export function onPage<T>(page: number, read: () => T): T {
   try {
     return read()
   } catch (error) {
-    throw error instanceof DocumentRefused ? new DocumentRefused(error.finding, page) : error
+    throw error instanceof DocumentRefused ? new DocumentRefused(error.finding, page, error.annotation) : error
+  }
+}
+
+/**
+ * What `read` returns; whatever it refuses, refused at annotation `index`
+ * of its page's /Annots, counted from 1, of the subtype `subtype` reads --
+ * read only once a refusal names it, so that an annotation listed a million
+ * times costs no more than its listing until one is refused.
+ */
+export function onAnnotation<T>(index: number, subtype: () => AnnotationSubtype | undefined, read: () => T): T {
+  try {
+    return read()
+  } catch (error) {
+    throw error instanceof DocumentRefused ? new DocumentRefused(error.finding, undefined, { index, subtype: subtype() }) : error
   }
 }
 
