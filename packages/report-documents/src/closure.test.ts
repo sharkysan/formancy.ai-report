@@ -130,8 +130,9 @@ describe('the closure follows every name a page draws with', () => {
   // skipped as a structure's key, its tint function, its dot gain or its
   // screen was left out of the closure, and a filter the reader does not
   // decode with it. Every map keyed by colorant names is followed as a
-  // resource map is -- a halftone's /Default and /Type read as the values
-  // they are -- and a colorant named /OC is a name there, not a layer.
+  // resource map is -- a halftone under /HT of any type follows every key,
+  // its /Default and /Type read as the values they are -- and a colorant
+  // named /OC is a name there, not a layer.
   test('a colorant named as a structure names its keys is followed as any other', () => {
     const lzw = { dict: '/FunctionType 0/Domain[0 1]/Range[0 1 0 1 0 1 0 1]/Size[2]/BitsPerSample 8/Filter/LZWDecode', data: latin1('x') }
     const tint = '<</FunctionType 2/Domain[0 1]/C0[0 0 0 0]/C1[0 0 0 1]/N 1>>'
@@ -146,13 +147,45 @@ describe('the closure follows every name a page draws with', () => {
       expectPrintRefused(deviceN(`<</MixingHints<</DotGain<</${name} 81 0 R>>>>>>`, { 81: lzw }), 'unsupported-filter', 'filter')
       expectPrintRefused(halftone(`/HalftoneType 5/${name} 91 0 R`, { 91: threshold }), 'unsupported-filter', 'filter')
     }
-    expectPrintRefused(halftone('/HalftoneType 92 0 R/P 91 0 R', { 91: threshold, 92: '5' }), 'unsupported-filter', 'filter')
+    expectPrintRefused(halftone('/HalftoneType 1/P 91 0 R', { 91: threshold }), 'unsupported-filter', 'filter')
     const inks = deviceN('<</Colorants<</OC[/Separation/OC/DeviceCMYK 81 0 R]>>/MixingHints<</Solidities<</OC 1>>/DotGain<</OC 82 0 R>>>>>>', {
       81: tint,
       82: tint,
     })
     expect([...printedWhole(inks).closure.keys()].sort((a, b) => a - b)).toEqual([80, 81, 82])
     expect([...printedWhole(halftone('/HalftoneType 5/OC 91 0 R', { 91: screen })).closure.keys()].sort((a, b) => a - b)).toEqual([90, 91])
+  })
+
+  // A halftone is keyed by colorant names where it stands, under an
+  // ExtGState's /HT, and nowhere else: a page's resources, a form or a
+  // font that wrote /HalftoneType 5 of itself -- a key every viewer ignores
+  // there -- and was read as a name map for it, stopped reading its own
+  // /Resources as resources and its own /OC as a layer, and let a form
+  // named /P past every guard and glyph P out of the closure. Each is held
+  // here to what its control, the same without the key, is held to.
+  test('/HalftoneType 5 where no halftone stands changes nothing', () => {
+    const layer = { 31: form(CONTENT, '/OC 32 0 R'), 32: '<<>>' }
+    const bomb = form(deflatedZeros(17 * MIB), '/Filter/FlateDecode')
+    const drawing = (resources: string, objects: Readonly<Record<number, Body>>): Uint8Array =>
+      pagesFile([letter('', { resources: `<<${resources}>>` })], { 95: '5', ...objects })
+    for (const type of ['', '/HalftoneType 5', '/HalftoneType 95 0 R']) {
+      expectPrintRefused(drawing(`${type}/XObject<</P 31 0 R>>`, layer), 'optional-content', 'layers')
+      expectPrintRefused(drawing(`${type}/XObject<</P 10 0 R>>`, {}), 'resource-names-a-page', 'resource-page')
+      expectPrintRefused(drawing(`${type}/XObject<</P 31 0 R>>`, { 31: form(latin1('x'), '/Filter/LZWDecode') }), 'unsupported-filter', 'filter')
+      expectPrintRefused(drawing(`${type}/XObject<</Y 33 0 R/P 34 0 R>>`, { 33: bomb, 34: bomb }), 'inflates-too-far', 'inflated')
+      expectPrintRefused(
+        drawing('/XObject<</X 30 0 R>>', { 30: form(CONTENT, `${type}/Resources<</XObject<</P 31 0 R>>>>`), ...layer }),
+        'optional-content',
+        'layers',
+      )
+      expectPrintRefused(drawing('/XObject<</X 30 0 R>>', { 30: form(CONTENT, `${type}/OC 32 0 R`), 32: '<<>>' }), 'optional-content', 'layers')
+      const glyphs = drawing('/Font<</F1 20 0 R>>', {
+        20: `<</Type/Font/Subtype/Type3${type}/FontBBox[0 0 1 1]/FontMatrix[1 0 0 1 0 0]/CharProcs<</A 40 0 R/P 41 0 R>>/FirstChar 65/LastChar 65/Widths[1]>>`,
+        40: { dict: '', data: latin1('1000 0 d0') },
+        41: { dict: '', data: latin1('1000 0 d0') },
+      })
+      expect(printedWhole(glyphs).closure.has(41)).toBe(true)
+    }
   })
 
   // A Type 3 font draws each glyph with a procedure its /CharProcs names

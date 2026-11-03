@@ -244,6 +244,11 @@ describe('a page draws its content', () => {
     expect(outcome(pagesOf({ ...document, objects: counted }))).toEqual(refusal('repeated', 1))
     expect(counted.gets).toBeLessThan(counted.limit)
 
+    // The newline that joins two streams is held content too: the first inflating to the whole budget, nothing repeats,
+    // and the page is refused where the newline passes it.
+    const whole = { dict: '/Filter/FlateDecode', data: deflatedZeros(MAX_DOCUMENT_INFLATED) }
+    expectPrintRefused(pagesFile([drawn('[20 0 R 21 0 R]')], { 20: whole, 21: { dict: '', data: CONTENT } }), 'inflates-too-far', 'repeated', 1)
+
     const seven = { dict: '/Filter/FlateDecode', data: deflatedZeros(7 * MIB) }
     const own = printedWhole(pagesFile([drawn('[20 0 R 21 0 R]'), drawn('[22 0 R 23 0 R]')], { 20: seven, 21: seven, 22: seven, 23: seven }))
     expect(own.parsed.budget.left).toBe(MAX_DOCUMENT_INFLATED - 4 * 7 * MIB - 2)

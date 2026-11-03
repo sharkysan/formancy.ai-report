@@ -144,7 +144,7 @@ function kept(stream: PdfStream): PdfStream {
   return { dict: { entries }, bytes: stream.bytes }
 }
 
-/** `bytes` of content the pages hold again taken from `budget`, refused in words of their own once it is spent. */
+/** `bytes` of content the pages hold -- again, or joining two streams -- taken from `budget`, refused in words of their own once it is spent. */
 function spend(budget: InflateBudget, bytes: number): void {
   budget.left -= bytes
   if (budget.left < 0) refuse('repeated')

@@ -141,7 +141,7 @@ export const FINDINGS = {
   values: ['too-many-objects', 'it holds more values than a document may'],
   'name-bytes': ['too-many-objects', "its names, together, are longer than a document's may be"],
   inflated: ['inflates-too-far', 'its compressed streams expand past what a document may hold'],
-  repeated: ['inflates-too-far', 'its pages repeat their content past what a document may hold'],
+  repeated: ['inflates-too-far', 'its pages hold more content than a document may'],
   filter: ['unsupported-filter', 'a stream in it is compressed in a way the reader does not decode'],
   startxref: ['xref-disagrees', 'it says its cross-reference is where none is'],
   prev: ['xref-disagrees', 'its cross-reference names an earlier one where none is'],
