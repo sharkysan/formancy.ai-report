@@ -365,6 +365,8 @@ gate proves and what it does not.
 | `@formancy/spec` (transitive) | 0.5.0 |  |
 | `@formancy/themes` | 0.11.0 | `0.11.0` |
 | `tslib`, by `@formancy/report-builder-angular` | 2.8.1 | `^2.8.0` |
+| `@pdfme/pdf-lib`, by `@formancy/report-documents` | 6.2.4 | `6.2.4` |
+| `pako`, by `@formancy/report-documents` | 3.0.2 | `3.0.2` |
 | `pdfkit`, by `@formancy/report-render-pdf` | 0.19.1 | `0.19.1` |
 | `pdfmake`, by `@formancy/report-render-pdf` | 0.3.11 | `0.3.11` |
 | `uqr`, by `@formancy/report-render-pdf` | 0.1.3 | `0.1.3` |

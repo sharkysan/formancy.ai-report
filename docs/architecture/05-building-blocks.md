@@ -28,7 +28,9 @@ L2     report-runtime          every value decided once        no framework, no 
 ────────────────────────────────────────────────────────────────────────────────────────────
 L1     report-core             commands · session · compileReport · @formancy/expressions
 ────────────────────────────────────────────────────────────────────────────────────────────
-L0     report-spec             the format · validation · hash · @formancy/spec
+L0     report-documents        the one PDF reader: what bytes are a PDF · the parser, pako
+                               no framework, no DOM, no Node, no network
+       report-spec             the format · validation · hash · @formancy/spec
                                the payment codes' rules: SIX's and the EPC's;
                                EN 16931's, for an e-invoice; an SVG asset's
 
@@ -49,6 +51,7 @@ the upstream packages' and the peers' ranges.
 
 | Package | Depends on, here | From elsewhere | Peers | What it may import, and what holds it |
 |---|---|---|---|---|
+| `@formancy/report-documents` | — | `@pdfme/pdf-lib`, the parser; `pako` | — | No framework, no DOM, no Node, no network: ES2023's library and no `@types/node`, so a `node:` import, a `fetch` or a `DecompressionStream` does not compile. The one PDF reader: the runtime, the renderer, the server and the builders read a PDF through it and through no other code, and the corpus proves pages with PDF.js, which shares none of it. It knows so far whether bytes are a PDF, by `isPdf`, and depends on no other package of this repository. The parser is `@pdfme/pdf-lib` at exactly 6.2.4 and `pako` at exactly 3.0.2, both permissive, which `scripts/dependency-licences.mjs` holds |
 | `@formancy/report-spec` | — | `@formancy/spec`, for the hash; `@noble/hashes`, for an asset's SHA-256 where it is added | — | No framework, no PDF engine, no Node: the format names no engine ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)). ES2023's library and no `@types/node`, so a DOM or Node global does not compile |
 | `@formancy/report-core` | `report-spec` | `@formancy/expressions` | — | Those two and nothing else, with the same compile-time rule ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [formancy.ai 0008](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0008-layered-packages.md)) |
 | `@formancy/report-runtime` | `report-core`, `report-spec` | `@formancy/expressions` | — | No framework, no PDF engine, no Node, by the same rule; report-core for the one compilation it shares with the editor ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
