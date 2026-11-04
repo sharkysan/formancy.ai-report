@@ -16,9 +16,9 @@ work planned next, so a team weighing Report against the report
 designers it already knows could not tell whether a barcode, a crosstab,
 an Excel export or a tagged PDF was coming or turned down. The page lists
 what a report can hold, what a render can be, the editor, the server and
-AI, each in order, and the four things Report does not mean to do --
-connect to a database, fetch by address, drill down, run code -- with
-the reason for each. It promises nothing: an item is built when its
+AI, each in order, code a report carries run in a sandbox among them,
+and the three things Report does not mean to do -- connect to a
+database, fetch by address, drill down -- with the reason for each. It promises nothing: an item is built when its
 record is written, and that record may narrow it or turn it down.
 
 **The lint and format rules are `@formancy/code-style` 0.12.0, pinned, and

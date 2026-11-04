@@ -60,6 +60,17 @@ that lands it.
     fallback fonts the renderer's plan names
     ([0011](decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
     Until then a report refuses them, as it does now.
+12. **Code in a report**: a script the template carries for what an
+    expression cannot say -- a function of its own, a value carried from
+    row to row, a step as a page or a group begins -- run in a sandbox
+    with no network, no files, no clock and no randomness, held to a
+    bound of time and memory, so the same report and the same data print
+    the same PDF; and functions the host registers by name and type, which
+    a report may call. A record decides the language and the sandbox, and
+    how it stands beside the rule that an expression runs no code
+    ([0009](decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)):
+    a script is untrusted as a template is, and a report that holds one is
+    refused where the sandbox is not there to run it.
 
 ## What a render can be
 
@@ -128,6 +139,3 @@ built on:
   the host approved, named by its digest.
 - **Drill-down and other interaction inside a report.** A report is a
   paginated PDF, printed as it reads.
-- **Code in a report.** An expression is typed and bounded and runs no
-  code
-  ([0009](decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
