@@ -1,7 +1,21 @@
+import { isAnnotationSubtype, type AnnotationSubtype } from './annotation-subtypes.js'
 import { decodedBytes, type InflateBudget } from './inflate.js'
 import { MAX_DOCUMENT_VALUES } from './limits.js'
-import { isArray, isCount, isDict, isName, isRef, isStream, resolved, type PdfDict, type PdfObjects, type PdfStream, type PdfValue } from './model.js'
-import type { DocumentNoticeCode, Tally } from './notices.js'
+import {
+  isArray,
+  isCount,
+  isDict,
+  isName,
+  isRef,
+  isStream,
+  resolved,
+  type PdfDict,
+  type PdfName,
+  type PdfObjects,
+  type PdfStream,
+  type PdfValue,
+} from './model.js'
+import { actionOf, actionsIn, type DocumentNoticeCode, type Tally } from './notices.js'
 import type { FlattenedAppearance, Matrix, Rotation } from './pages.js'
 import type { ParsedDocument } from './parse.js'
 import { onAnnotation, refuse, type Finding } from './refusals.js'
@@ -9,18 +23,20 @@ import { onAnnotation, refuse, type Finding } from './refusals.js'
 /**
  * A page's annotations, flattened into what prints by the print rule (ISO
  * 32000-1 12.5.3): an annotation prints where its Print flag is set and
- * its Hidden flag clear, as the appearance its file holds -- the form its
+ * its Hidden flag clear -- and, of a subtype ISO does not define, its
+ * Invisible flag clear -- as the appearance its file holds -- the form its
  * /AP /N names, or the one of its states /AS names -- placed over its
  * /Rect as ISO 32000-1 12.5.5 places it. What a print cannot draw as a
  * viewer shows it is refused: an annotation that prints over an area and
  * holds no appearance, or names a state it does not hold; one that stays
  * upright on a turned page; a link whose border a viewer draws; and one in
- * a layer. A form that asks the viewer to draw its fields is refused before
- * any is read (`needsAppearances`). What does not survive printing is
- * counted in the notices (notices.ts) and never named: each link, form
- * field, signature and attachment as what it is, printed or not, and each
- * other annotation the print rule leaves out. A Popup is never drawn by
- * itself, and never counted.
+ * a layer. A form a viewer draws -- from XFA, or its fields afresh -- is
+ * refused before any is read (`formAsks`). What does not survive printing
+ * is counted in the notices (notices.ts) and never named: each link, form
+ * field, signature and attachment as what it is, printed or not, each
+ * other annotation the print rule leaves out, and every action an
+ * annotation or a field holds. A Popup is never drawn by itself, and never
+ * counted.
  *
  * Bounded by what the pages list, every page together: each listing is
  * read at a constant cost -- an annotation listed many times is read once
@@ -28,41 +44,8 @@ import { onAnnotation, refuse, type Finding } from './refusals.js'
  * is decoded once, from the document's one budget.
  */
 
-/** The annotation subtypes ISO 32000 defines (ISO 32000-1 Table 169, with ISO 32000-2's Projection and RichMedia): the only ones a refusal names. */
-const ANNOTATION_SUBTYPES = [
-  'Text',
-  'Link',
-  'FreeText',
-  'Line',
-  'Square',
-  'Circle',
-  'Polygon',
-  'PolyLine',
-  'Highlight',
-  'Underline',
-  'Squiggly',
-  'StrikeOut',
-  'Stamp',
-  'Caret',
-  'Ink',
-  'Popup',
-  'FileAttachment',
-  'Sound',
-  'Movie',
-  'Widget',
-  'Screen',
-  'PrinterMark',
-  'TrapNet',
-  'Watermark',
-  '3D',
-  'Redact',
-  'Projection',
-  'RichMedia',
-] as const
-export type AnnotationSubtype = (typeof ANNOTATION_SUBTYPES)[number]
-const SUBTYPES: ReadonlySet<string> = new Set(ANNOTATION_SUBTYPES)
-
 /** The flags the print rule reads (ISO 32000-1 Table 165). */
+const INVISIBLE = 1
 const HIDDEN = 2
 const PRINT = 4
 const NO_ROTATE = 16
@@ -135,29 +118,58 @@ function flagsOf(value: PdfValue | PdfStream | undefined): number {
   return isCount(value) ? value : refuse('flags')
 }
 
+/** Whether `subtype` is a name ISO 32000 defines for an annotation. */
+const defined = (subtype: PdfValue | PdfStream | undefined): subtype is PdfName => isName(subtype) && isAnnotationSubtype(subtype.name)
+
+/** Whether the print rule draws an annotation (ISO 32000-1 Table 165): Print set and Hidden clear, and, of a subtype ISO does not define, Invisible clear. */
+function printed(flags: number, subtype: PdfValue | PdfStream | undefined): boolean {
+  if ((flags & HIDDEN) !== 0 || (flags & PRINT) === 0) return false
+  return (flags & INVISIBLE) === 0 || defined(subtype)
+}
+
 /**
  * Whether a viewer draws a link's border where it has no appearance (ISO
  * 32000-1 12.5.4, Table 164): its /BS's width where it has a /BS, else
  * /Border's third number, a point where it gives neither. Anything but a
- * width of 0 is a border.
+ * width of 0 is a border, unless it has no colour -- /C an empty list,
+ * transparent -- which draws nothing whatever its width.
  */
 function borderDrawn(objects: PdfObjects, link: PdfDict): boolean {
+  const colour = entry(objects, link, 'C')
+  if (isArray(colour) && colour.length === 0) return false
   const style = entry(objects, link, 'BS')
   if (style !== undefined) return !isDict(style) || entry(objects, style, 'W') !== 0
   const border = entry(objects, link, 'Border')
   return !isArray(border) || resolved(objects, border[2]) !== 0
 }
 
+/** What the actions an annotation holds count as: its /A -- but a link's, which is the link, counted as one -- and each its /AA holds. */
+function actionsOf(objects: PdfObjects, annot: PdfDict, subtype: PdfValue | PdfStream | undefined): DocumentNoticeCode[] {
+  const own = isName(subtype, 'Link') ? undefined : actionOf(objects, annot.entries.get('A'))
+  return [...(own === undefined ? [] : [own]), ...actionsIn(objects, annot.entries.get('AA'))]
+}
+
 /** The subtype a refusal names: one ISO 32000 defines, and nothing the file chose. */
 function subtypeOf(objects: PdfObjects, annot: PdfValue | PdfStream | undefined): AnnotationSubtype | undefined {
   const subtype = isDict(annot) ? entry(objects, annot, 'Subtype') : undefined
-  return isName(subtype) && SUBTYPES.has(subtype.name) ? (subtype.name as AnnotationSubtype) : undefined
+  return defined(subtype) ? (subtype.name as AnnotationSubtype) : undefined
 }
 
-/** Whether the document's form asks the viewer to draw its fields (/NeedAppearances, ISO 32000-1 12.7.2), which a print of what they hold cannot. */
-export function needsAppearances(parsed: ParsedDocument): boolean {
-  const form = resolved(parsed.objects, parsed.catalog.entries.get('AcroForm'))
-  return isDict(form) && resolved(parsed.objects, form.entries.get('NeedAppearances')) === true
+/**
+ * What the document's form asks a viewer to do that a print of what its
+ * fields hold cannot, if anything: draw the form from XFA -- packets under
+ * its /AcroForm's /XFA, a list or a stream, or the catalog's
+ * /NeedsRendering (ISO 32000-1 12.7.8) -- which Report does not draw, and
+ * which is asked first; or draw its fields afresh (/NeedAppearances, ISO
+ * 32000-1 12.7.2).
+ */
+export function formAsks(parsed: ParsedDocument): 'xfa' | 'need-appearances' | undefined {
+  const { objects, catalog } = parsed
+  const form = resolved(objects, catalog.entries.get('AcroForm'))
+  const said = (key: string): PdfValue | PdfStream | undefined => (isDict(form) ? resolved(objects, form.entries.get(key)) : undefined)
+  const xfa = said('XFA')
+  if (isArray(xfa) || isStream(xfa) || resolved(objects, catalog.entries.get('NeedsRendering')) === true) return 'xfa'
+  return said('NeedAppearances') === true ? 'need-appearances' : undefined
 }
 
 /** What a field says of itself, or the nearest field above it that says it (ISO 32000-1 12.7.3.1): its type, and whether it holds a value. */
@@ -176,16 +188,20 @@ function within(objects: PdfObjects, node: PdfDict, above: Field): Field {
  * The fields above widgets, each read once: a widget's climb up its
  * /Parent stops at the first field an earlier climb read, as a page's up
  * its tree does (pages.ts), so that a thousand widgets under a chain of ten
- * thousand fields cost ten thousand steps and not ten million. A climb
- * that reaches a field it climbed already would never end, and is
- * refused; a /Parent that names no dictionary ends it.
+ * thousand fields cost ten thousand steps and not ten million, and each
+ * field's /AA -- calculate, format, validate -- is counted once, as the
+ * field is first read, however many widgets it has. A climb that reaches a
+ * field it climbed already would never end, and is refused; a /Parent that
+ * names no dictionary ends it.
  */
 class Fields {
   private readonly objects: PdfObjects
+  private readonly tally: Tally
   private readonly fields = new Map<number, Field>()
 
-  constructor(objects: PdfObjects) {
+  constructor(objects: PdfObjects, tally: Tally) {
     this.objects = objects
+    this.tally = tally
   }
 
   /** What a widget is counted as: a signature where its field is a signature field that holds a value, a form field otherwise. */
@@ -210,6 +226,7 @@ class Fields {
     for (const [num, node] of climbed.reverse()) {
       above = within(this.objects, node, above)
       this.fields.set(num, above)
+      for (const code of actionsIn(this.objects, node.entries.get('AA'))) this.tally.add(code)
     }
     const field = within(this.objects, widget, above)
     return isName(field.type, 'Sig') && field.valued ? 'signatures' : 'form-fields'
@@ -242,20 +259,21 @@ export class Annotations {
     this.objects = parsed.objects
     this.budget = parsed.budget
     this.tally = tally
-    this.fields = new Fields(parsed.objects)
+    this.fields = new Fields(parsed.objects, tally)
   }
 
   /**
    * What a page's annotations print, in its /Annots' order, each counted
-   * where it does not survive printing, and the page's own /AA. A page's
-   * own key refuses a reference that names no object, as its others do
-   * (pages.ts); in its list, one is null, and no annotation. What the
-   * pages list is held to `MAX_DOCUMENT_VALUES`, every page together: the
-   * most a file that lists each annotation once could list, so that one
-   * list a thousand pages share is not walked into a billion.
+   * where it does not survive printing, and the actions of the page's own
+   * /AA counted too. A page's own key refuses a reference that names no
+   * object, as its others do (pages.ts); in its list, one is null, and no
+   * annotation. What the pages list is held to `MAX_DOCUMENT_VALUES`,
+   * every page together: the most a file that lists each annotation once
+   * could list, so that one list a thousand pages share is not walked into
+   * a billion.
    */
   of(page: PdfDict, rotate: Rotation): readonly FlattenedAppearance[] {
-    if (page.entries.has('AA')) this.tally.add('actions')
+    for (const code of actionsIn(this.objects, page.entries.get('AA'))) this.tally.add(code)
     const listing = page.entries.get('Annots')
     if (listing === undefined) return []
     const annots = resolved(this.objects, listing)
@@ -293,11 +311,11 @@ export class Annotations {
    * What an annotation comes to, by the print rule. It is counted as what
    * it is -- a link, a form field, a signature, an attachment -- whether it
    * prints or not, and otherwise, where the print rule leaves it out, as
-   * an annotation that is not printed; each /AA it holds is an action. One
-   * that prints over no area paints nothing whatever it holds, and needs
-   * no appearance (ISO 32000-2 Table 166); one over an area prints its
-   * appearance, or, a link that holds none, nothing where its border is
-   * not drawn.
+   * an annotation that is not printed; each action it holds is counted
+   * too, a script as a script (`actionsOf`). One that prints over no area
+   * paints nothing whatever it holds, and needs no appearance (ISO 32000-2
+   * Table 166); one over an area prints its appearance, or, a link that
+   * holds none, nothing where its border is not drawn.
    */
   private read(annot: PdfDict): Outcome {
     const objects = this.objects
@@ -305,9 +323,9 @@ export class Annotations {
     const subtype = entry(objects, annot, 'Subtype')
     if (isName(subtype, 'Popup')) return NOTHING
     const kind = this.kindOf(annot, subtype)
-    const actions: readonly DocumentNoticeCode[] = annot.entries.has('AA') ? ['actions'] : []
+    const actions = actionsOf(objects, annot, subtype)
     const flags = flagsOf(entry(objects, annot, 'F'))
-    if ((flags & HIDDEN) !== 0 || (flags & PRINT) === 0) return { counted: [kind ?? 'unprinted-annotations', ...actions], upright: false }
+    if (!printed(flags, subtype)) return { counted: [kind ?? 'unprinted-annotations', ...actions], upright: false }
     const counted = kind === undefined ? actions : [kind, ...actions]
     const rect = rectOf(objects, annot)
     if (!hasArea(rect)) return { counted, upright: false }

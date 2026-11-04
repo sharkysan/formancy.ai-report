@@ -143,6 +143,29 @@ describe('an annotation prints the appearance its file holds', () => {
       subtype: 'Widget',
     })
   })
+
+  // A form drawn from XFA is drawn by a viewer that reads the XFA, which
+  // Report does not, and its pages may hold nothing but a line asking the
+  // reader to wait: printed as they are, they would show that line, or
+  // fields as stale as NeedAppearances says. Refused, whether the XFA is
+  // a list of packets or one stream, or the catalog says it must be
+  // rendered, before NeedAppearances and before any annotation is read; a
+  // form of fields alone reads.
+  test('an XFA form is refused as needs-appearances before any annotation is read', () => {
+    const packet = { dict: '', data: latin1('<xdp:xdp/>') }
+    const file = (catalog: string, objects = {}): Uint8Array =>
+      annotated([widget('/FT/Tx/V(x)/Rect[0 0 10 10]')], { catalog, objects: { 30: packet, 31: 'true', ...objects } })
+    expectPrintRefused(file('/AcroForm<</Fields[20 0 R]/XFA[(template) 30 0 R]>>'), 'needs-appearances', 'xfa')
+    expectPrintRefused(file('/AcroForm<</Fields[20 0 R]/XFA 30 0 R/NeedAppearances true>>'), 'needs-appearances', 'xfa')
+    expectPrintRefused(file('/AcroForm<</Fields[20 0 R]/XFA 32 0 R>>', { 32: '[(template) 30 0 R]' }), 'needs-appearances', 'xfa')
+    expectPrintRefused(file('/NeedsRendering true'), 'needs-appearances', 'xfa')
+    expectPrintRefused(file('/NeedsRendering 31 0 R'), 'needs-appearances', 'xfa')
+    const fields = annotated([widget('/FT/Tx/V(x)/Rect[0 0 10 10]/AP<</N 40 0 R>>')], {
+      catalog: '/AcroForm<</Fields[20 0 R]>>/NeedsRendering false',
+      objects: { 40: form('[0 0 10 10]') },
+    })
+    expect(pagesRead(fields)[0]?.appearances).toHaveLength(1)
+  })
 })
 
 describe('an annotation the print rule leaves out', () => {
@@ -168,6 +191,23 @@ describe('an annotation the print rule leaves out', () => {
     const whole = printedWhole(annotated([stamp(6), stamp(2)], { objects: { 40: form('[0 0 100 50]') } }))
     expect(whole.pages[0]?.appearances).toEqual([])
     expect(whole.notices).toEqual([{ code: 'unprinted-annotations', count: 2 }])
+  })
+
+  // An annotation of a subtype ISO 32000 does not define, marked
+  // Invisible, is shown by no viewer that has no handler for it, and so
+  // printed by none (ISO 32000-1 Table 165): drawn here, the report would
+  // print what the person never saw. A subtype ISO defines is shown
+  // whatever the flag says, and so is one that is not marked.
+  test('an annotation of a subtype ISO does not define, marked Invisible, is not drawn and is counted', () => {
+    const objects = { 40: form('[0 0 10 10]') }
+    const unknown = (flags: number): string => annotation('Foo', '/Rect[0 0 10 10]/AP<</N 40 0 R>>', flags)
+    const unnamed = '<</Type/Annot/F 5/Rect[0 0 10 10]/AP<</N 40 0 R>>>>'
+    const hidden = printedWhole(annotated([unknown(5), unnamed], { objects }))
+    expect(hidden.pages[0]?.appearances).toEqual([])
+    expect(hidden.notices).toEqual([{ code: 'unprinted-annotations', count: 2 }])
+    const shown = printedWhole(annotated([annotation('Stamp', '/Rect[0 0 10 10]/AP<</N 40 0 R>>', 5), unknown(4)], { objects }))
+    expect(shown.pages[0]?.appearances).toHaveLength(2)
+    expect(shown.notices).toEqual([])
   })
 
   // A link, a field or an attachment the print leaves out is still a link,
@@ -240,21 +280,34 @@ describe('a link', () => {
   // where it has no appearance and no border: it prints nothing, and is
   // counted, so that the author knows the document's links will not
   // follow. /BS's width decides over /Border's where both are given (ISO
-  // 32000-1 12.5.4), and either may be written by reference.
+  // 32000-1 12.5.4), and either may be written by reference. A border of
+  // no colour -- /C an empty list -- is transparent (Table 164), and draws
+  // nothing whatever its width.
   test('a Link with no appearance and no border is counted as a link and draws nothing', () => {
     const link = (border: string): string => annotation('Link', `/Rect[72 700 172 712]${border}`)
-    const borders = ['/BS<</W 0>>', '/Border[0 0 0]', '/BS<</W 0>>/Border[0 0 1]', '/Border 30 0 R', '/BS<</W 31 0 R>>']
-    const whole = printedWhole(annotated(borders.map(link), { objects: { 30: '[0 0 0]', 31: '0' } }))
+    const borders = [
+      '/BS<</W 0>>',
+      '/Border[0 0 0]',
+      '/BS<</W 0>>/Border[0 0 1]',
+      '/Border 30 0 R',
+      '/BS<</W 31 0 R>>',
+      '/C[]',
+      '/C[]/Border[0 0 2]',
+      '/C 32 0 R',
+    ]
+    const whole = printedWhole(annotated(borders.map(link), { objects: { 30: '[0 0 0]', 31: '0', 32: '[]' } }))
     expect(whole.pages[0]?.appearances).toEqual([])
     expect(whole.notices).toEqual([{ code: 'links', count: borders.length }])
   })
 
   // A link with no appearance whose border a viewer draws -- by default, a
   // solid line a point wide (ISO 32000-1 Table 164) -- would print without
-  // it: refused, rather than printed otherwise than the viewer shows it.
-  // A link with an appearance prints that, border or none.
+  // it: refused, rather than printed otherwise than the viewer shows it,
+  // in whatever colour it is drawn -- grey, RGB or CMYK. A link with an
+  // appearance prints that, border or none.
   test('a Link with no appearance and a drawn border is refused as link-border', () => {
-    for (const border of ['', '/Border[0 0 1]', '/Border[0 0]', '/BS<<>>', '/BS<</W 1>>/Border[0 0 0]', '/BS/Solid']) {
+    const drawn = ['', '/Border[0 0 1]', '/Border[0 0]', '/BS<<>>', '/BS<</W 1>>/Border[0 0 0]', '/BS/Solid', '/C[0]', '/C[1 0 0]', '/C[0 0 0 1]/Border[0 0 2]']
+    for (const border of drawn) {
       expectAnnotationRefused(annotated([annotation('Link', `/Rect[72 700 172 712]${border}`)]), 'link-border', 'link-border', 1, { index: 1, subtype: 'Link' })
     }
     const whole = printedWhole(annotated([annotation('Link', '/Rect[72 700 172 712]/AP<</N 40 0 R>>')], { objects: { 40: form('[0 0 100 12]') } }))
@@ -370,7 +423,7 @@ describe('a signed field', () => {
     ] as const) {
       const cycled = parsed(annotated([widget(`/Parent ${parent} 0 R/Rect[0 0 0 0]`)], { objects }))
       const climbs = new Counted(cycled.objects, 100)
-      expect(outcome(pagesOf({ ...cycled, objects: climbs }))).toEqual(refusal('fields', 1, { index: 1, subtype: 'Widget' }))
+      expect(outcome(pagesOf({ ...cycled, objects: climbs }, new Tally()))).toEqual(refusal('fields', 1, { index: 1, subtype: 'Widget' }))
     }
     const ended = printedWhole(annotated([widget('/Parent 99 0 R/Rect[0 0 0 0]'), widget('/Parent 30 0 R/Rect[0 0 0 0]')], { objects: { 30: '[]' } }))
     expect(ended.notices).toEqual([{ code: 'form-fields', count: 2 }])
@@ -477,7 +530,7 @@ describe('a fault of the reader', () => {
   test('an exception that is not a refusal, thrown while an annotation is read, is a refusal of its own words', () => {
     const document = parsed(annotated([annotation('Stamp', '/Rect[0 0 10 10]/AP<</N 40 0 R>>')], { objects: { 40: form('[0 0 10 10]') } }))
     const all = new Counted(document.objects, Number.MAX_SAFE_INTEGER)
-    expect(outcome(pagesOf({ ...document, objects: all }))).toBe('read whole')
-    expect(pagesOf({ ...document, objects: new Counted(document.objects, all.gets - 1) })).toEqual(refusal('unreadable'))
+    expect(outcome(pagesOf({ ...document, objects: all }, new Tally()))).toBe('read whole')
+    expect(pagesOf({ ...document, objects: new Counted(document.objects, all.gets - 1) }, new Tally())).toEqual(refusal('unreadable'))
   })
 })

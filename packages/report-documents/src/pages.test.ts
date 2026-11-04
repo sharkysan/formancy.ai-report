@@ -1,7 +1,8 @@
 import { deflate } from 'pako'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, expectTypeOf, test } from 'vitest'
 import { MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_PAGES } from './limits.js'
 import { isName } from './model.js'
+import { Tally } from './notices.js'
 import { pagesOf } from './pages.js'
 import { AT_A_BOUND, parsed } from './parse-test-support.js'
 import {
@@ -241,7 +242,7 @@ describe('a page draws its content', () => {
     const repeats = 100_000
     const document = parsed(pagesFile([drawn('3 0 R')], { 3: `[${'4 0 R '.repeat(repeats)}]`, 4: { dict: '', data: new Uint8Array(1024) } }))
     const counted = new Counted(document.objects, repeats)
-    expect(outcome(pagesOf({ ...document, objects: counted }))).toEqual(refusal('repeated', 1))
+    expect(outcome(pagesOf({ ...document, objects: counted }, new Tally()))).toEqual(refusal('repeated', 1))
     expect(counted.gets).toBeLessThan(counted.limit)
 
     // The newline that joins two streams is held content too: the first inflating to the whole budget, nothing repeats,
@@ -263,7 +264,7 @@ describe('a page draws its content', () => {
     const pages = Array.from({ length: MAX_DOCUMENT_PAGES }, () => drawn('3 0 R'))
     const document = parsed(pagesFile(pages, { 3: `[${'4 0 R '.repeat(refs)}]`, 4: { dict: '', data: new Uint8Array(0) } }))
     const counted = new Counted(document.objects, 2 * refs)
-    expect(outcome(pagesOf({ ...document, objects: counted }))).toEqual(refusal('repeated', Math.floor(MAX_DOCUMENT_INFLATED / (refs - 1)) + 1))
+    expect(outcome(pagesOf({ ...document, objects: counted }, new Tally()))).toEqual(refusal('repeated', Math.floor(MAX_DOCUMENT_INFLATED / (refs - 1)) + 1))
     expect(counted.gets).toBeLessThan(counted.limit)
     const few = pagesRead(pagesFile([drawn('3 0 R'), drawn('3 0 R')], { 3: '[4 0 R 4 0 R]' }))
     expect(few[0]?.content).toBe(few[1]?.content)
@@ -346,7 +347,7 @@ describe('a document', () => {
   // at it has every page read.
   test('more pages than MAX_DOCUMENT_PAGES are refused before the page past it is read', () => {
     expect(printed(manyPages(MAX_DOCUMENT_PAGES + 1))).toEqual(refusal('pages'))
-    expect(pagesOf(parsed(manyPages(MAX_DOCUMENT_PAGES)))).toHaveLength(MAX_DOCUMENT_PAGES)
+    expect(pagesOf(parsed(manyPages(MAX_DOCUMENT_PAGES)), new Tally())).toHaveLength(MAX_DOCUMENT_PAGES)
   })
 
   // A thousand pages under a chain of nodes that holds what they inherit
@@ -357,7 +358,7 @@ describe('a document', () => {
     const pages = MAX_DOCUMENT_PAGES
     const document = parsed(underAChain(MAX_DOCUMENT_OBJECTS - pages - 3, pages))
     const counted = new Counted(document.objects, 2 * document.objects.size)
-    const read = pagesOf({ ...document, objects: counted })
+    const read = pagesOf({ ...document, objects: counted }, new Tally())
     expect(counted.gets).toBeLessThan(counted.limit)
     expect(read).toHaveLength(pages)
     expect(read).toMatchObject(Array.from({ length: pages }, () => ({ box: [0, 0, 612, 792] })))
@@ -368,6 +369,14 @@ describe('a document', () => {
   // exception's, which may quote the file.
   test('an exception that is not a refusal is a refusal of its own words', () => {
     const document = parsed(pagesFile([letter()]))
-    expect(pagesOf({ ...document, objects: new Counted(document.objects, 0) })).toEqual(refusal('unreadable'))
+    expect(pagesOf({ ...document, objects: new Counted(document.objects, 0) }, new Tally())).toEqual(refusal('unreadable'))
+  })
+
+  // A read that dropped what its pages counted -- their links, fields and
+  // signatures -- would lose every notice of them without a word, and a
+  // caller that forgot the tally would not be told: it is no optional
+  // argument. Held by the typecheck, which reads this file.
+  test('a read of the pages is handed the tally its notices are counted into', () => {
+    expectTypeOf(pagesOf).parameter(1).toEqualTypeOf<Tally>()
   })
 })

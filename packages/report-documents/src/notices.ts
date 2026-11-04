@@ -10,13 +10,23 @@ import type { ParsedDocument } from './parse.js'
  * name, a file's name or a field's value may be a person's data.
  */
 
-/** What a document holds that does not survive printing, each counted where the pages list it, every time they list it. */
+/**
+ * What a document holds that does not survive printing. An annotation is
+ * counted each time a page lists it, a form field once; `javascript`,
+ * `actions` and `attachments` are counted from the catalog as well.
+ */
 export const DOCUMENT_NOTICE_CODES = [
-  /** Each Link annotation, printed or not: it prints as the appearance it holds, where it holds one, and follows nowhere. */
+  /** Each Link annotation, printed or not: it prints as the appearance it holds, where it holds one, and follows nowhere; its /A is the link, counted as one. */
   'links',
-  /** Each script the catalog names (/Names /JavaScript), and an /OpenAction that runs one. */
+  /** Each script the catalog names (/Names /JavaScript), and each action that runs JavaScript (/S /JavaScript) wherever `actions` would count it. */
   'javascript',
-  /** Each /AA -- the catalog's, a page's, an annotation's -- and an /OpenAction of any other kind; a destination it opens at is none. */
+  /**
+   * Each other action: each an /AA holds under a trigger ISO 32000-1
+   * defines -- the catalog's, a page's, an annotation's, a form field's,
+   * once a field -- an annotation's /A but a link's, and an /OpenAction
+   * other than one that opens a view, a destination or a GoTo. An
+   * action's /Next is not followed.
+   */
   'actions',
   /** Each file the catalog embeds (/Names /EmbeddedFiles), and each FileAttachment annotation. */
   'attachments',
@@ -24,7 +34,7 @@ export const DOCUMENT_NOTICE_CODES = [
   'signatures',
   /** Each other widget: printed as the appearance it holds, and filled in no more. */
   'form-fields',
-  /** Each other annotation the print rule leaves out -- Hidden, or without Print -- that a viewer may show; a Popup is none. */
+  /** Each other annotation the print rule does not draw -- Hidden, without Print, or Invisible and of a subtype ISO does not define -- a Popup aside. */
   'unprinted-annotations',
 ] as const
 export type DocumentNoticeCode = (typeof DOCUMENT_NOTICE_CODES)[number]
@@ -55,6 +65,29 @@ export class Tally {
       return count === undefined ? [] : [{ code, count }]
     })
   }
+}
+
+/**
+ * The triggers of an additional-actions dictionary ISO 32000-1 defines: an
+ * annotation's (Table 194), a page's (Table 195), a form field's (Table
+ * 196) and the document's (Table 197). An /AA is read under these alone,
+ * looked up by name and never walked: a key no viewer runs is no action,
+ * and an /AA of a million keys costs no more than one of twenty.
+ */
+const TRIGGERS = ['E', 'X', 'D', 'U', 'Fo', 'Bl', 'PO', 'PC', 'PV', 'PI', 'O', 'C', 'K', 'F', 'V', 'WC', 'WS', 'DS', 'WP', 'DP'] as const
+
+/** Internal: what an action counts as (ISO 32000-1 12.6): a script where it runs JavaScript, an action otherwise, and nothing where it is no action dictionary. */
+export function actionOf(objects: PdfObjects, value: PdfValue | undefined): DocumentNoticeCode | undefined {
+  const action = resolved(objects, value)
+  if (!isDict(action)) return undefined
+  return isName(resolved(objects, action.entries.get('S')), 'JavaScript') ? 'javascript' : 'actions'
+}
+
+/** Internal: what each action of an additional-actions dictionary counts as, under the triggers ISO defines; none where it is no dictionary. */
+export function actionsIn(objects: PdfObjects, value: PdfValue | undefined): DocumentNoticeCode[] {
+  const triggers = resolved(objects, value)
+  if (!isDict(triggers)) return []
+  return TRIGGERS.flatMap((trigger) => actionOf(objects, triggers.entries.get(trigger)) ?? [])
 }
 
 /**
@@ -94,8 +127,11 @@ export function noticesOf(parsed: ParsedDocument, tally: Tally): readonly Docume
     tally.add('javascript', entriesOf(objects, names.entries.get('JavaScript')))
     tally.add('attachments', entriesOf(objects, names.entries.get('EmbeddedFiles')))
   }
+  // An open action that opens a view -- a destination, or a GoTo to one -- is lost in nothing a print shows.
   const opened = resolved(objects, catalog.entries.get('OpenAction'))
-  if (isDict(opened)) tally.add(isName(resolved(objects, opened.entries.get('S')), 'JavaScript') ? 'javascript' : 'actions')
-  if (catalog.entries.has('AA')) tally.add('actions')
+  const view = isDict(opened) && isName(resolved(objects, opened.entries.get('S')), 'GoTo')
+  const action = view ? undefined : actionOf(objects, catalog.entries.get('OpenAction'))
+  if (action !== undefined) tally.add(action)
+  for (const code of actionsIn(objects, catalog.entries.get('AA'))) tally.add(code)
   return tally.notices()
 }

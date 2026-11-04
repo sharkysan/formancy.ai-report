@@ -71,33 +71,92 @@ describe('a notice', () => {
           annotation('FileAttachment', '/Rect[0 0 0 0]'),
           annotation('Link', '/Rect[0 0 10 10]/Border[0 0 0]'),
         ],
-        { catalog: '/AA<</WC 31 0 R>>/Names<</JavaScript<</Names[(a) 31 0 R]>>>>', objects: { 30: '<</Type/Sig>>', 31: '<</S/JavaScript/JS(1)>>' } },
+        {
+          catalog: '/AA<</WC 32 0 R>>/Names<</JavaScript<</Names[(a) 31 0 R]>>>>',
+          objects: { 30: '<</Type/Sig>>', 31: '<</S/JavaScript/JS(1)>>', 32: '<</S/Named/N/Print>>' },
+        },
       ),
     )
     expect(every.map((notice) => notice.code)).toEqual([...DOCUMENT_NOTICE_CODES])
     expect(every.every((notice) => notice.count === 1)).toBe(true)
   })
 
-  // Every /AA -- the document's, a page's, an annotation's -- runs an action
-  // on an event a print never raises, and is counted, printed or not; so is
-  // an open action that is not a script, and one that is, however its kind
-  // is written, is a script. A destination the document opens at is a
-  // view, not an action, and an /OpenAction that names nothing is none.
-  test('every /AA is an action, and so is an open action that is not a script', () => {
+  // Each action an /AA holds -- the document's, a page's, an annotation's,
+  // printed or not -- runs on an event a print never raises, and is
+  // counted: a script as a script, any other as an action. An /AA is read
+  // under the triggers ISO 32000-1 defines (Tables 194 to 197), looked up
+  // by name and never walked, so that a key no viewer runs is no action and
+  // an /AA of a million keys costs what one of twenty does; an entry that
+  // is no action, or an /AA that is no dictionary, is none.
+  test('every action an /AA holds is counted under the triggers ISO defines, a script as javascript', () => {
     const notices = noticed(
-      annotated([annotation('Stamp', '/AA<</E 30 0 R>>/Rect[0 0 10 10]/AP<</N 40 0 R>>'), annotation('Text', '/AA<</E 30 0 R>>/Rect[0 0 10 10]', 0)], {
-        catalog: '/AA<</WC 30 0 R>>/OpenAction 31 0 R',
-        page: '/AA<</O 30 0 R>>',
-        objects: { 30: '<</S/JavaScript/JS(1)>>', 31: '<</S/Named/N/Print>>', 40: form('[0 0 10 10]') },
-      }),
+      annotated(
+        [
+          annotation('Stamp', '/AA<</E 30 0 R/X 31 0 R/Zz 31 0 R>>/Rect[0 0 10 10]/AP<</N 40 0 R>>'),
+          annotation('Text', '/AA<</PO 31 0 R>>/Rect[0 0 10 10]', 0),
+        ],
+        {
+          catalog: '/AA<</WC 31 0 R/WS 30 0 R/DP 32 0 R>>',
+          page: '/AA<</O 31 0 R/C 30 0 R>>',
+          objects: { 30: '<</S/JavaScript/JS(1)>>', 31: '<</S/Named/N/Print>>', 32: '[1 2]', 40: form('[0 0 10 10]') },
+        },
+      ),
     )
     expect(notices).toEqual([
-      { code: 'actions', count: 5 },
+      { code: 'javascript', count: 3 },
+      { code: 'actions', count: 4 },
       { code: 'unprinted-annotations', count: 1 },
     ])
-    expect(noticed(annotated([], { catalog: '/OpenAction[10 0 R/Fit]' }))).toEqual([])
-    expect(noticed(annotated([], { catalog: '/OpenAction 99 0 R' }))).toEqual([])
-    expect(noticed(annotated([], { catalog: '/OpenAction<</S 30 0 R/JS(1)>>', objects: { 30: '/JavaScript' } }))).toEqual([{ code: 'javascript', count: 1 }])
+    expect(noticed(annotated([annotation('Square', '/AA 99 0 R/Rect[0 0 0 0]')], { catalog: '/AA 5' }))).toEqual([])
+  })
+
+  // An annotation's own action, a widget's among them -- a button that
+  // submits the form, runs a script, opens a page -- does not survive
+  // printing either, and is counted; a link's is the link, counted as one.
+  // A field's /AA -- calculate, format, validate, keystroke -- is the
+  // field's, wherever it stands up its widget's /Parent, and counted once
+  // for the field, however many widgets it has. An action's /Next is not
+  // followed.
+  test('every action an annotation or a field holds is counted, a field once however many widgets it has', () => {
+    const notices = noticed(
+      annotated(
+        [
+          widget('/FT/Btn/Rect[0 0 10 10]/A 33 0 R/AP<</N 40 0 R>>'),
+          widget('/FT/Tx/Rect[0 0 0 0]/AA<</K 33 0 R/F 34 0 R>>'),
+          widget('/Parent 30 0 R/Rect[0 0 0 0]'),
+          widget('/Parent 30 0 R/Rect[0 0 0 0]'),
+          annotation('Square', '/Rect[0 0 0 0]/A 34 0 R'),
+          annotation('Link', '/Rect[0 0 10 10]/Border[0 0 0]/A 34 0 R'),
+        ],
+        {
+          objects: {
+            30: '<</FT/Tx/T(total)/Parent 35 0 R/Kids[22 0 R 23 0 R]/AA<</C 33 0 R/V 34 0 R>>>>',
+            35: '<</T(form)/Kids[30 0 R]/AA<</K 34 0 R>>>>',
+            33: '<</S/JavaScript/JS(1)/Next<</S/JavaScript/JS(2)>>>>',
+            34: '<</S/URI/URI(https://example.com)>>',
+            40: form('[0 0 10 10]'),
+          },
+        },
+      ),
+    )
+    expect(notices).toEqual([
+      { code: 'links', count: 1 },
+      { code: 'javascript', count: 3 },
+      { code: 'actions', count: 4 },
+      { code: 'form-fields', count: 4 },
+    ])
+  })
+
+  // An open action that opens the document at a view -- a destination, or
+  // a GoTo to one -- is lost in nothing a print shows; any other is an
+  // action that does not survive printing, and a script, however its kind
+  // is written, is a script. An /OpenAction that names nothing is none.
+  test('an open action that opens a view is none, and any other is counted, a script as javascript', () => {
+    const opened = (action: string): readonly DocumentNotice[] =>
+      noticed(annotated([], { catalog: `/OpenAction ${action}`, objects: { 30: '/GoTo', 31: '/JavaScript' } }))
+    for (const view of ['[10 0 R/Fit]', '<</S/GoTo/D[10 0 R/Fit]>>', '<</S 30 0 R/D[10 0 R/Fit]>>', '99 0 R']) expect(opened(view)).toEqual([])
+    expect(opened('<</S/Named/N/Print>>')).toEqual([{ code: 'actions', count: 1 }])
+    expect(opened('<</S 31 0 R/JS(1)>>')).toEqual([{ code: 'javascript', count: 1 }])
   })
 
   // A name tree's kids may name one another, or one list of kids many

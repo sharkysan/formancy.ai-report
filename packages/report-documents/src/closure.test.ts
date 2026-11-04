@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 import { closureOf } from './closure.js'
 import { MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_PAGES } from './limits.js'
 import type { PdfDict, PdfValue } from './model.js'
+import { Tally } from './notices.js'
 import type { ParsedDocument } from './parse.js'
 import { pagesOf, type PrintablePage } from './pages.js'
 import { AT_A_BOUND, parsed } from './parse-test-support.js'
@@ -228,7 +229,7 @@ describe('the closure follows every name a page draws with', () => {
     const refs = 100_000
     const pages = Array.from({ length: MAX_DOCUMENT_PAGES }, () => leaf('/MediaBox[0 0 612 792]/Contents 4 0 R'))
     const document = parsed(pagesFile(pages, {}, { root: `/Resources<</Junk[${'99999 0 R '.repeat(refs)}]>>` }))
-    const read = pagesOf(document) as readonly PrintablePage[]
+    const read = pagesOf(document, new Tally()) as readonly PrintablePage[]
     const counted = new Counted(document.objects, 2 * refs)
     expect(closureOf({ ...document, objects: counted }, rootsOf(read))).toHaveProperty('size', 0)
     expect(counted.gets).toBeLessThan(counted.limit)

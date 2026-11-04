@@ -14,7 +14,7 @@
  * 32000 defines, in the reader's own spelling (`ANNOTATION_SUBTYPES`).
  */
 
-import type { AnnotationSubtype } from './annotations.js'
+import type { AnnotationSubtype } from './annotation-subtypes.js'
 
 /** Why a PDF is refused, each the first thing found that is wrong with it. */
 export const DOCUMENT_REFUSAL_CODES = [
@@ -48,7 +48,7 @@ export const DOCUMENT_REFUSAL_CODES = [
   'optional-content',
   /** A resource of a page that reaches a page object. */
   'resource-names-a-page',
-  /** A form that asks the viewer to draw its fields (/NeedAppearances), which a print cannot do. */
+  /** A form a viewer draws and a print of what its fields hold cannot: one drawn from XFA, or one that asks the viewer to draw its fields (/NeedAppearances). */
   'needs-appearances',
   /** An annotation that prints, over an area, and holds no appearance to print, or one that is not a form. */
   'annotation-without-appearance',
@@ -192,6 +192,7 @@ export const FINDINGS = {
   matrix: ['malformed', 'an appearance in it gives a matrix that is not six numbers'],
   fields: ['malformed', 'its form fields name their parents in a cycle'],
   'need-appearances': ['needs-appearances', 'its form asks the viewer to draw its fields'],
+  xfa: ['needs-appearances', 'its form is drawn by XFA, which Report does not draw'],
   'no-appearance': ['annotation-without-appearance', 'an annotation in it prints and holds no appearance to print'],
   'appearance-state': ['appearance-state-missing', 'an annotation in it names no appearance state it holds'],
   upright: ['annotation-turned', 'an annotation in it stays upright on a turned page'],

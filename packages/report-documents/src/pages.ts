@@ -1,7 +1,7 @@
-import { Annotations, needsAppearances } from './annotations.js'
+import { Annotations, formAsks } from './annotations.js'
 import { decodedBytes, type InflateBudget } from './inflate.js'
 import { isArray, isDict, isRef, isStream, resolved, type PdfDict, type PdfObjects, type PdfStream, type PdfValue } from './model.js'
-import { Tally } from './notices.js'
+import type { Tally } from './notices.js'
 import type { ParsedDocument } from './parse.js'
 import { caught, onPage, refuse, type DocumentRefusal } from './refusals.js'
 
@@ -13,10 +13,10 @@ import { caught, onPage, refuse, type DocumentRefusal } from './refusals.js'
  * a print draws them (annotations.ts). The tree is the parse's, walked once
  * and checked there (page-tree.ts): its pages are read here in its order
  * and it is never walked again. A document whose catalog says it has
- * layers, or whose form asks the viewer to draw its fields, is refused
- * here; anything a page draws with that is marked as a layer is the
- * closure's to refuse (closure.ts). A refusal found while a page is read
- * names the page.
+ * layers, or whose form a viewer draws -- from XFA, or its fields afresh --
+ * is refused here; anything a page draws with that is marked as a layer is
+ * the closure's to refuse (closure.ts). A refusal found while a page is
+ * read names the page.
  */
 
 /** A page's turn, clockwise, as a viewer shows it. */
@@ -296,11 +296,16 @@ class Pages {
   }
 }
 
-/** Internal: every page in order, what does not survive printing counted into `tally`, or why not. */
-export function pagesOf(parsed: ParsedDocument, tally = new Tally()): readonly PrintablePage[] | DocumentRefusal {
+/**
+ * Internal: every page in order, or why not; what does not survive
+ * printing counted into `tally`, which the notices are taken from
+ * (notices.ts) -- no optional argument, so that no read loses them.
+ */
+export function pagesOf(parsed: ParsedDocument, tally: Tally): readonly PrintablePage[] | DocumentRefusal {
   return caught(() => {
     if (parsed.catalog.entries.has('OCProperties')) refuse('layers')
-    if (needsAppearances(parsed)) refuse('need-appearances')
+    const asked = formAsks(parsed)
+    if (asked !== undefined) refuse(asked)
     const pages = new Pages(parsed, tally)
     return parsed.pages.map((num, i) => onPage(i + 1, () => pages.page(num)))
   })
