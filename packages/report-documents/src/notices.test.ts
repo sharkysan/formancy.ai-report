@@ -150,13 +150,18 @@ describe('a notice', () => {
   // An open action that opens the document at a view -- a destination, or
   // a GoTo to one -- is lost in nothing a print shows; any other is an
   // action that does not survive printing, and a script, however its kind
-  // is written, is a script. An /OpenAction that names nothing is none.
+  // is written, is a script. An /OpenAction that names nothing is none. A
+  // GoTo with a /Next is a view no longer: /Next is not followed, so what
+  // runs after it -- a script, as like as not -- is counted as an action,
+  // or the file would open running a script that no notice mentions.
   test('an open action that opens a view is none, and any other is counted, a script as javascript', () => {
     const opened = (action: string): readonly DocumentNotice[] =>
       noticed(annotated([], { catalog: `/OpenAction ${action}`, objects: { 30: '/GoTo', 31: '/JavaScript' } }))
     for (const view of ['[10 0 R/Fit]', '<</S/GoTo/D[10 0 R/Fit]>>', '<</S 30 0 R/D[10 0 R/Fit]>>', '99 0 R']) expect(opened(view)).toEqual([])
     expect(opened('<</S/Named/N/Print>>')).toEqual([{ code: 'actions', count: 1 }])
     expect(opened('<</S 31 0 R/JS(1)>>')).toEqual([{ code: 'javascript', count: 1 }])
+    for (const next of ['<</S/JavaScript/JS(1)>>', '[<</S/JavaScript/JS(1)>>]'])
+      expect(opened(`<</S/GoTo/D[10 0 R/Fit]/Next ${next}>>`)).toEqual([{ code: 'actions', count: 1 }])
   })
 
   // A name tree's kids may name one another, or one list of kids many

@@ -12,7 +12,7 @@ import type { ParsedDocument } from './parse.js'
 
 /**
  * What a document holds that does not survive printing. An annotation is
- * counted each time a page lists it, a form field once; `javascript`,
+ * counted each time a page lists it, a field's actions once; `javascript`,
  * `actions` and `attachments` are counted from the catalog as well.
  */
 export const DOCUMENT_NOTICE_CODES = [
@@ -127,9 +127,10 @@ export function noticesOf(parsed: ParsedDocument, tally: Tally): readonly Docume
     tally.add('javascript', entriesOf(objects, names.entries.get('JavaScript')))
     tally.add('attachments', entriesOf(objects, names.entries.get('EmbeddedFiles')))
   }
-  // An open action that opens a view -- a destination, or a GoTo to one -- is lost in nothing a print shows.
+  // An open action that opens a view -- a destination, or a GoTo to one -- is lost in nothing a print shows;
+  // a GoTo with a /Next runs what follows it, which is not followed, and so is counted as an action.
   const opened = resolved(objects, catalog.entries.get('OpenAction'))
-  const view = isDict(opened) && isName(resolved(objects, opened.entries.get('S')), 'GoTo')
+  const view = isDict(opened) && isName(resolved(objects, opened.entries.get('S')), 'GoTo') && !opened.entries.has('Next')
   const action = view ? undefined : actionOf(objects, catalog.entries.get('OpenAction'))
   if (action !== undefined) tally.add(action)
   for (const code of actionsIn(objects, catalog.entries.get('AA'))) tally.add(code)
