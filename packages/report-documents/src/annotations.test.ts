@@ -435,7 +435,7 @@ describe('an appearance is decoded', () => {
   // page's is: decoded here, once however many annotations draw it, from
   // the document's one budget, and refused where it would pass it or
   // cannot be decoded, naming the annotation and the page.
-  test("an appearance is decoded once against the document's budget, and refused where it cannot be", () => {
+  test("an appearance is decoded once against the document's budget, and refused where it cannot be", AT_A_BOUND, () => {
     const stamp = annotation('Stamp', '/Rect[0 0 10 10]/AP<</N 40 0 R>>')
     const flate = { dict: '/Type/XObject/Subtype/Form/BBox[0 0 10 10]/Filter/FlateDecode', data: deflate(CONTENT) }
     const whole = printedWhole(pagesFile([letter('/Annots[20 0 R 21 0 R]'), letter('/Annots[20 0 R]')], { 20: stamp, 21: stamp, 40: flate }))

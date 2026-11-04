@@ -9,11 +9,16 @@ import { refusal, type DocumentRefusal, type DocumentRefusalCode, type Finding }
  */
 
 /**
- * For a test that reads a file at a bound, which is the reader's own work
- * and not a hang: the costliest, a hundred thousand pages, took 0.9 s, and
- * 2.6 s under coverage, in Node 22.23.3 on an Apple M2 on 3 November 2026,
- * so that a runner several times slower still passes. Time is not what any
- * of them asserts; each asserts its refusal.
+ * For a test that reads a file at a bound or one past it, or that inflates
+ * megabytes against `MAX_DOCUMENT_INFLATED`, which is the reader's own work
+ * and not a hang: the costliest file at a bound, a hundred thousand pages,
+ * took 0.9 s, and 2.6 s under coverage, in Node 22.23.3 on an Apple M2 on
+ * 3 November 2026; the costliest that inflates, the pages' content charged
+ * all of it together, took 1.0 s alone, and 8.3 s under coverage with
+ * every file of the suite at once, at a load average near 4, on 4 November
+ * 2026 -- past vitest's 5 s default. Thirty seconds, so that a runner
+ * several times slower still passes. Time is not what any of them asserts;
+ * each asserts its refusal or its read.
  */
 export const AT_A_BOUND = { timeout: 30_000 }
 

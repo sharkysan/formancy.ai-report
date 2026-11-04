@@ -233,7 +233,7 @@ describe('a page draws its content', () => {
   // that a list past the budget stops where the budget ends -- which the
   // objects map counts. Pages each with content of their own are charged
   // it once.
-  test('the content the pages hold is charged, all of it together', () => {
+  test('the content the pages hold is charged, all of it together', AT_A_BOUND, () => {
     const eight = deflatedZeros(8 * MIB)
     const list = { 3: '[4 0 R 5 0 R]', 4: { dict: '/Filter/FlateDecode', data: eight }, 5: { dict: '/Filter/FlateDecode', data: eight } }
     expect(pagesRead(pagesFile([drawn('3 0 R')], list))).toHaveLength(1)
@@ -273,7 +273,7 @@ describe('a page draws its content', () => {
   // A page's content decoded past the budget, damaged, or under a filter
   // the reader does not decode is refused as what was found, and the page
   // it belongs to named, so that a person knows which page to look at.
-  test("a refusal found in a page's content names the page", () => {
+  test("a refusal found in a page's content names the page", AT_A_BOUND, () => {
     expectPrintRefused(contentBomb(deflatedZeros(MAX_DOCUMENT_INFLATED + 1)), 'inflates-too-far', 'inflated', 1)
     const damaged = { dict: '/Filter/FlateDecode', data: latin1('not compressed') }
     expectPrintRefused(pagesFile([letter(), letter()], { 4: damaged }), 'malformed', 'flate-header', 1)
@@ -288,7 +288,7 @@ describe('a page draws its content', () => {
   // The parse decodes object and cross-reference streams from the
   // document's budget; a page's content that drew on a fresh one could
   // decode MAX_DOCUMENT_INFLATED again, and a document of both twice.
-  test('the content draws on what the parse left of MAX_DOCUMENT_INFLATED', () => {
+  test('the content draws on what the parse left of MAX_DOCUMENT_INFLATED', AT_A_BOUND, () => {
     const content = deflatedZeros(13 * MIB)
     expect(pagesRead(contentBomb(content))).toHaveLength(1)
     expectPrintRefused(spentByObjectStream(20, content), 'inflates-too-far', 'inflated', 1)
@@ -345,7 +345,7 @@ describe('a document', () => {
   // The bound is the parse's, held where the page tree is walked
   // (page-tree.test.ts): a file past it never reaches the pages, and one
   // at it has every page read.
-  test('more pages than MAX_DOCUMENT_PAGES are refused before the page past it is read', () => {
+  test('more pages than MAX_DOCUMENT_PAGES are refused before the page past it is read', AT_A_BOUND, () => {
     expect(printed(manyPages(MAX_DOCUMENT_PAGES + 1))).toEqual(refusal('pages'))
     expect(pagesOf(parsed(manyPages(MAX_DOCUMENT_PAGES)), new Tally())).toHaveLength(MAX_DOCUMENT_PAGES)
   })

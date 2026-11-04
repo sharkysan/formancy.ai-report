@@ -104,7 +104,7 @@ describe('the closure follows every name a page draws with', () => {
   // does not decode each read where the same form named /X is refused. In a
   // name map every value is followed and no key means anything, in every
   // map of every /Resources the walk meets.
-  test('a resource named as a structure names its keys is held to every guard', () => {
+  test('a resource named as a structure names its keys is held to every guard', AT_A_BOUND, () => {
     const zeros = deflatedZeros(17 * MIB)
     const layer = { 30: form(CONTENT, '/OC 31 0 R'), 31: '<<>>' }
     for (const name of ['X', 'P', 'Parent', 'Metadata', 'PieceInfo', 'OC']) {
@@ -164,7 +164,7 @@ describe('the closure follows every name a page draws with', () => {
   // /Resources as resources and its own /OC as a layer, and let a form
   // named /P past every guard and glyph P out of the closure. Each is held
   // here to what its control, the same without the key, is held to.
-  test('/HalftoneType 5 where no halftone stands changes nothing', () => {
+  test('/HalftoneType 5 where no halftone stands changes nothing', AT_A_BOUND, () => {
     const layer = { 31: form(CONTENT, '/OC 32 0 R'), 32: '<<>>' }
     const bomb = form(deflatedZeros(17 * MIB), '/Filter/FlateDecode')
     const drawing = (resources: string, objects: Readonly<Record<number, Body>>): Uint8Array =>
@@ -259,7 +259,7 @@ describe('the closure is refused', () => {
   // closure counts each as it is reached, before it is kept, and refuses
   // the one past it. A chain of the bound's length is walked without
   // recursion.
-  test('the closure counts against MAX_DOCUMENT_OBJECTS', () => {
+  test('the closure counts against MAX_DOCUMENT_OBJECTS', AT_A_BOUND, () => {
     expect(closureOf(chain(MAX_DOCUMENT_OBJECTS), [{ object: 1 }])).toHaveProperty('size', MAX_DOCUMENT_OBJECTS)
     expect(closureOf(chain(MAX_DOCUMENT_OBJECTS + 1), [{ object: 1 }])).toEqual(refusal('reached'))
   })
@@ -270,7 +270,7 @@ describe('the closure is refused', () => {
   // a document could decode MAX_DOCUMENT_INFLATED in its content and as
   // much again in its forms, and decoded not at all, a bomb would reach the
   // report's PDF and the first viewer to open it.
-  test('every Flate stream the closure holds is inflated once against MAX_DOCUMENT_INFLATED, all of them together', () => {
+  test('every Flate stream the closure holds is inflated once against MAX_DOCUMENT_INFLATED, all of them together', AT_A_BOUND, () => {
     const zeros = deflatedZeros(17 * MIB)
     const shared = printedWhole(pagesFile([drawing(30), drawing(30)], { ...FONT, 30: form(zeros, '/Filter/FlateDecode') }))
     expect(shared.parsed.budget.left).toBe(MAX_DOCUMENT_INFLATED - 17 * MIB - 'a font file of no glyphs'.length - CONTENT.length)

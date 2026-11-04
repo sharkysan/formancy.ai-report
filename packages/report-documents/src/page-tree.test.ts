@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { MAX_DOCUMENT_PAGES } from './limits.js'
-import { expectRefused, parsed } from './parse-test-support.js'
+import { AT_A_BOUND, expectRefused, parsed } from './parse-test-support.js'
 import { manyPages } from './test-hostile.js'
 import { CONTENT, PdfWriter } from './test-pdf.js'
 
@@ -43,7 +43,7 @@ describe('the page tree reads', () => {
 
   // The bound refuses the page past it, not the page at it: a document of
   // exactly MAX_DOCUMENT_PAGES pages prints whole.
-  test(`${MAX_DOCUMENT_PAGES} pages, the bound`, () => {
+  test(`${MAX_DOCUMENT_PAGES} pages, the bound`, AT_A_BOUND, () => {
     expect(parsed(manyPages(MAX_DOCUMENT_PAGES)).pages).toHaveLength(MAX_DOCUMENT_PAGES)
   })
 })
@@ -51,7 +51,7 @@ describe('the page tree reads', () => {
 describe('the page tree is refused', () => {
   // Each page past the bound would be laid out, and each one counted in a
   // report's page numbers: refused the moment the walk reaches it.
-  test('more pages than MAX_DOCUMENT_PAGES', () => {
+  test('more pages than MAX_DOCUMENT_PAGES', AT_A_BOUND, () => {
     expectRefused(manyPages(MAX_DOCUMENT_PAGES + 1), 'too-many-pages', 'pages')
   })
 

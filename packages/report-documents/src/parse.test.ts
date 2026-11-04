@@ -117,7 +117,7 @@ describe('parseDocument reads', () => {
   // Nesting is bounded, not forbidden: a structure tree or an annotation's
   // appearance nests a few levels, and a bound that refused what it admits
   // would refuse real files.
-  test('nesting at MAX_DOCUMENT_DEPTH parses', () => {
+  test('nesting at MAX_DOCUMENT_DEPTH parses', AT_A_BOUND, () => {
     parsed(withObject5(nestedArrays(MAX_DOCUMENT_DEPTH)))
     parsed(withObject5(nestedDicts(MAX_DOCUMENT_DEPTH)))
   })
@@ -167,7 +167,7 @@ describe('parseDocument refuses', () => {
   // H4: pdf-lib recurses into nested arrays until V8's stack ends; the
   // reader counts its depth and refuses past the bound, however deep the
   // file goes, before the stack is in question.
-  test('nesting past MAX_DOCUMENT_DEPTH is refused as too-deep and nesting at it parses', () => {
+  test('nesting past MAX_DOCUMENT_DEPTH is refused as too-deep and nesting at it parses', AT_A_BOUND, () => {
     parsed(withObject5(nestedArrays(MAX_DOCUMENT_DEPTH)))
     for (const depth of [MAX_DOCUMENT_DEPTH + 1, 1e3, 1e4, 1e5, 1e6]) {
       expectRefused(withObject5(nestedArrays(depth)), 'too-deep', 'depth')

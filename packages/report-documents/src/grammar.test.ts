@@ -82,7 +82,7 @@ describe('a value reads', () => {
 
   // At each token's bound the file reads: a bound that refused what it
   // admits would refuse real files a byte early.
-  test('a name, a string and a number at their bounds', () => {
+  test('a name, a string and a number at their bounds', AT_A_BOUND, () => {
     expect(object5(`/${'A'.repeat(MAX_DOCUMENT_NAME_LENGTH)}`)).toEqual({ name: 'A'.repeat(MAX_DOCUMENT_NAME_LENGTH) })
     expect(object5(`(${'A'.repeat(MAX_DOCUMENT_STRING_LENGTH)})`)).toEqual({ bytes: latin1('A'.repeat(MAX_DOCUMENT_STRING_LENGTH)) })
     expect(object5(`<${'41'.repeat(MAX_DOCUMENT_STRING_LENGTH)}>`)).toEqual({ bytes: latin1('A'.repeat(MAX_DOCUMENT_STRING_LENGTH)) })
@@ -109,7 +109,7 @@ describe('a value is refused', () => {
   // Each token is measured before it is copied: one byte past its bound, in
   // a literal string's escapes or a hexadecimal string's digits too, is
   // refused rather than read whole.
-  test('a name, a string or a number past its bound', () => {
+  test('a name, a string or a number past its bound', AT_A_BOUND, () => {
     expectRefused(withObject5(`/${'A'.repeat(MAX_DOCUMENT_NAME_LENGTH + 1)}`), 'malformed', 'name-length')
     expectRefused(withObject5(`(${'A'.repeat(MAX_DOCUMENT_STRING_LENGTH + 1)})`), 'malformed', 'string-length')
     expectRefused(withObject5(`(${'\\101'.repeat(MAX_DOCUMENT_STRING_LENGTH + 1)})`), 'malformed', 'string-length')
@@ -129,7 +129,7 @@ describe('a value is refused', () => {
   // A name costs its bytes for as long as the document is held; a file of
   // long distinct names within every other bound held half a gigabyte of
   // them in the spike.
-  test('distinct names past MAX_DOCUMENT_NAME_BYTES are refused as too-many-objects', () => {
+  test('distinct names past MAX_DOCUMENT_NAME_BYTES are refused as too-many-objects', AT_A_BOUND, () => {
     const keys = Math.ceil(MAX_DOCUMENT_NAME_BYTES / 36) + 1
     expectRefused(withObject5(`<<${Array.from({ length: keys }, (_, i) => `/K${String(i).padStart(35, '0')} 0`).join('')}>>`), 'too-many-objects', 'name-bytes')
     // The same name a thousand times is one name's bytes.

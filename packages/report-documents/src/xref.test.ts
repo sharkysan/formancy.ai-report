@@ -1,7 +1,7 @@
 import { deflate } from 'pako'
 import { describe, expect, test } from 'vitest'
 import { MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_XREF_ENTRIES, MAX_DOCUMENT_XREF_SECTIONS } from './limits.js'
-import { expectRefused, parsed } from './parse-test-support.js'
+import { AT_A_BOUND, expectRefused, parsed } from './parse-test-support.js'
 import { claimingXrefStream, emptySections, unchainedStreams, unchainedTables } from './test-hostile.js'
 import { basic, concat, CONTENT, latin1, MIB, onePage, PdfWriter, repeated, type XrefEntry } from './test-pdf.js'
 
@@ -394,7 +394,7 @@ describe('what a cross-reference may claim', () => {
   // tables of four-byte entries 436 MiB in 2.1 s, each file within every
   // other bound. Every section's entries are counted together before its
   // rows are read.
-  test('entries past MAX_DOCUMENT_XREF_ENTRIES across every section, chained or not, are refused before they are read', () => {
+  test('entries past MAX_DOCUMENT_XREF_ENTRIES across every section, chained or not, are refused before they are read', AT_A_BOUND, () => {
     // The file's own table lists seven entries, the unchained streams the rest.
     parsed(unchainedStreams([100_000, MAX_DOCUMENT_XREF_ENTRIES - 100_000 - 7]))
     expectRefused(unchainedStreams([100_000, MAX_DOCUMENT_XREF_ENTRIES - 100_000 - 6]), 'too-many-objects', 'xref-claim')
@@ -410,7 +410,7 @@ describe('how many cross-reference sections a file may hold', () => {
   // of twenty megabytes of `xref trailer<</Size 0>>`, nothing chaining it,
   // held 427 MiB and ran a 384 MiB heap out. Sections are counted as they
   // are met, before one is read.
-  test('more sections than MAX_DOCUMENT_XREF_SECTIONS are refused as they are met, and as many are read', () => {
+  test('more sections than MAX_DOCUMENT_XREF_SECTIONS are refused as they are met, and as many are read', AT_A_BOUND, () => {
     // The file's own section is one of them.
     expect(parsed(emptySections(MAX_DOCUMENT_XREF_SECTIONS - 1)).pages).toEqual([3])
     expectRefused(emptySections(MAX_DOCUMENT_XREF_SECTIONS), 'too-many-objects', 'xref-sections')
