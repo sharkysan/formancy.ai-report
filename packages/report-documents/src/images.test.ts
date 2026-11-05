@@ -161,6 +161,32 @@ describe('an image is held to the pixels it declares', () => {
     expectPrintRefused(shared, 'inflates-too-far', 'image-pixels')
   })
 
+  // A viewer that prints by the standard prints the alternate an image
+  // marks /DefaultForPrinting (ISO 32000-1 8.9.5.4), and Report prints:
+  // read as data, an alternate's declared size was never held, and one of
+  // a few bytes of Flate passed every bound. Each alternate's /Image is an
+  // image where it stands, whatever it says of itself, the list and its
+  // entries written by reference or not: held to its pixels and passed on
+  // undecoded.
+  test("an image's alternates are images, held to their pixels", () => {
+    const alternated = (alternate: Body, alternates = '[<</Image 31 0 R/DefaultForPrinting true>>]', objects = {}): Uint8Array =>
+      drawing(image(`${grey(1, 1)}/Alternates ${alternates}`), { 31: alternate, ...objects })
+    expect(printedWhole(alternated(image(grey(MAX, 1)))).closure.has(31)).toBe(true)
+    expectPrintRefused(alternated(image(grey(MAX + 1, 1))), 'inflates-too-far', 'image-pixels')
+    expectPrintRefused(alternated({ dict: grey(MAX + 1, 1), data: new Uint8Array(1) }), 'inflates-too-far', 'image-pixels')
+    expectPrintRefused(alternated(image(grey(MAX + 1, 1)), '32 0 R', { 32: '[33 0 R]', 33: '<</Image 31 0 R>>' }), 'inflates-too-far', 'image-pixels')
+    // An alternate the closure meets first as any value -- under a key after /Alternates -- is read as an alternate all the same.
+    const probed = drawing(image(`${grey(1, 1)}/Alternates[33 0 R]/Probe 33 0 R`), { 31: image(grey(MAX + 1, 1)), 33: '<</Image 31 0 R>>' })
+    expectPrintRefused(probed, 'inflates-too-far', 'image-pixels')
+    // /Image anywhere else is no image: decoded as any stream is.
+    expectPrintRefused(
+      drawing(image(`${grey(1, 1)}/Probe<</Image 31 0 R>>`), { 31: { dict: '/Filter/FlateDecode', data: NOT_FLATE } }),
+      'malformed',
+      'flate-header',
+    )
+    expect(printedWhole(alternated(image(`${grey(1, 1)}/Filter/FlateDecode`, NOT_FLATE))).parsed.budget.left).toBe(MAX_DOCUMENT_INFLATED)
+  })
+
   // An image's data is passed on as it is written, so one that keeps it in
   // another file (/F) is one whose bytes the reader would pass on as data a
   // viewer reads elsewhere -- or decodes through the filters PDF.js reads

@@ -102,6 +102,21 @@ export function componentsOf(objects: PdfObjects, dict: PdfDict, resources: PdfD
   return spaceComponents(objects, declared(objects, dict, 'CS', 'ColorSpace', 'image-space'), resources)
 }
 
+/**
+ * Internal: the name the image `dict` describes names its colour space by,
+ * where it is one resources map -- no family's, and no mask's -- which an
+ * unfiltered inline image's rows depend on the resources it is drawn with
+ * for.
+ */
+export function namedSpace(objects: PdfObjects, dict: PdfDict): string | undefined {
+  if (declared(objects, dict, 'IM', 'ImageMask', 'image-space') === true) return undefined
+  const space = declared(objects, dict, 'CS', 'ColorSpace', 'image-space')
+  return isName(space) && !FAMILIES.has(space.name) ? space.name : undefined
+}
+
+/** Internal: the components of the colour space `resources` map `name` to; refused where they cannot be counted. Throws the refusal. */
+export const namedComponents = (objects: PdfObjects, name: string, resources: PdfDict): number => spaceComponents(objects, { name }, resources)
+
 /** Internal: the size the image `dict` describes declares, held to `MAX_DOCUMENT_IMAGE_PIXELS`. Throws the refusal. */
 export function declaredSize(objects: PdfObjects, dict: PdfDict): ImageSize {
   const width = extent(declared(objects, dict, 'W', 'Width', 'image-size'))

@@ -2,7 +2,7 @@ import { deflate } from 'pako'
 import { describe, expect, test } from 'vitest'
 import { annotated, annotation, expectAnnotationRefused } from './annotations-test-support.js'
 import { checkInlineImages } from './inline-images.js'
-import { MAX_DOCUMENT_IMAGE_PIXELS, MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_VALUES } from './limits.js'
+import { MAX_DOCUMENT_IMAGE_PIXELS, MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_PAGES, MAX_DOCUMENT_VALUES } from './limits.js'
 import { AT_A_BOUND, parsed } from './parse-test-support.js'
 import { expectPrintRefused, letter, pagesFile, pagesRead, printedWhole, type Body } from './pages-test-support.js'
 import { refusal } from './refusals.js'
@@ -122,6 +122,7 @@ describe('an inline image is delimited', () => {
     const named = [
       '/N3[/ICCBased 40 0 R]/N4[/ICCBased 41 0 R]/N0[/ICCBased 43 0 R]/Half[/ICCBased 44 0 R]/Bare[/ICCBased 42 0 R]',
       '/Ink[/DeviceN[/Cyan/Magenta/Spot]/DeviceCMYK 42 0 R]/Spot[/Separation/Spot/DeviceCMYK 42 0 R]',
+      '/Unnamed[/DeviceN/Spot/DeviceCMYK 42 0 R]/None[/DeviceN[]/DeviceCMYK 42 0 R]',
       '/Gray[/CalGray<</WhitePoint[1 1 1]>>]/Cal[/CalRGB<</WhitePoint[1 1 1]>>]/Lab[/Lab<</WhitePoint[1 1 1]>>]',
       '/Ref 45 0 R/Self/Self',
     ].join('')
@@ -166,8 +167,8 @@ describe('an inline image is delimited', () => {
       '/CS[]/BPC 8',
       '/CS[5]/BPC 8',
       '/CS[/Unknown]/BPC 8',
-      '/CS[/DeviceN/Spot/DeviceCMYK 42 0 R]/BPC 8',
-      '/CS[/DeviceN[]/DeviceCMYK 42 0 R]/BPC 8',
+      '/CS/Unnamed/BPC 8',
+      '/CS/None/BPC 8',
       '/CS/G/ColorSpace/DeviceRGB/BPC 8',
       '/IM true/ImageMask true',
     ]) {
@@ -239,18 +240,119 @@ describe('an inline image is found where an operator stands', () => {
     expectPrintRefused(drawing(`[(a)] TJ <<>> BDC <41> Tj ${PAST}`), 'inflates-too-far', 'image-pixels', 1)
   })
 
-  // PDF.js splits a run of regular bytes into the operators it knows --
-  // "qBI" is q and then BI -- and ends a number where its digits end, so an
-  // inline image glued to what stands before it is drawn by PDF.js: found
-  // only as a token of its own, it would pass every bound. A "BI" anywhere
-  // in a run outside a name, a string, a comment and a hexadecimal string
-  // begins one, inside an array or a dictionary too, where PDF.js reads one.
-  test('an inline image glued to the operator or the number before it is one', () => {
-    expectPrintRefused(drawing(`q${PAST}`), 'inflates-too-far', 'image-pixels', 1)
-    expectPrintRefused(drawing(`1${PAST}`), 'inflates-too-far', 'image-pixels', 1)
+  // PDF.js 6.4.299 splits a run of regular bytes only after an operator it
+  // knows -- "qBI" is q and BI, but "ABI", or "EBI" after a number written
+  // "1E", is one operator and no inline image (Lexer.getObj) -- and drops a
+  // BI that stands where a dictionary's key does (Parser.getObj). Read as
+  // an inline image where PDF.js reads none, its dictionary and its data
+  // would be skipped by the reader and read by PDF.js as operators, an
+  // image among them never held. A BI glued to what stands before it, or
+  // inside a dictionary, is refused; after one closes, and inside an array,
+  // where PDF.js reads one, it is an inline image.
+  test('an inline image glued to what stands before it, or inside a dictionary, is refused', () => {
+    for (const content of [
+      `q${PAST}`,
+      `1${PAST}`,
+      `A${PAST}`,
+      `1E${PAST}`,
+      `BBI${PAST.slice(2)}`,
+      `/Span<</K ${PAST}>> BDC`,
+      `<</K[${PAST}]>> BDC`,
+      `>> /Span<</K ${PAST}>> BDC`,
+    ]) {
+      expectPrintRefused(drawing(content), 'malformed', 'inline-place', 1)
+    }
     expectPrintRefused(drawing(`[${PAST}] TJ`), 'inflates-too-far', 'image-pixels', 1)
-    expectPrintRefused(drawing(`/Span<</K ${PAST}>> BDC`), 'inflates-too-far', 'image-pixels', 1)
-    expect(pagesRead(drawing('qBI/IM true/W 1/H 1 ID \0\nEI Q'))).toHaveLength(1)
+    expectPrintRefused(drawing(`/Span<</K 1>> BDC ${PAST}`), 'inflates-too-far', 'image-pixels', 1)
+    expect(pagesRead(drawing('/Span<</K<<>>>> BDC BI/IM true/W 1/H 1 ID \0\nEI EMC'))).toHaveLength(1)
+  })
+})
+
+describe('an inline image ends where a viewer ends it', () => {
+  // PDF.js 6.4.299 ends unfiltered and Flate data where it finds "EI" and
+  // SPACE, LF or CR, and accepts it only where the 15 bytes after look like
+  // text and, within 75, an operator it knows follows the operands it takes
+  // (findDefaultInlineStreamEnd, pdf.worker.mjs:16875); anywhere else it
+  // searches on, and takes what the reader read as operators for image
+  // data. After ASCIIHex and ASCII85 it swallows the byte after EI whatever
+  // it is (inlineStreamSkipEI, :17095). An EI PDF.js would not end the
+  // image at is refused; a real one, followed by Q, reads.
+  test('an inline image ends only where PDF.js ends it', () => {
+    const unfiltered = (after: string): string => `q 10 0 0 10 0 0 cm BI /W 2/H 2/CS/G/BPC 8 ID \0\xff\0\xff\nEI${after}`
+    for (const after of [
+      '',
+      '\n',
+      ' Q',
+      '\nQ\n',
+      '\r1 0 0 1 0 0 cm Q',
+      ' (a) Tj',
+      ' /F1 12 Tf',
+      ' 0.5 g Q',
+      ' 1 2 Q q',
+      ' Q \0 q',
+      ' BI/IM true/W 1/H 1 ID \0\nEI',
+      ' <41> Tj',
+      ' (a\\)) Tj',
+      ' %c\nQ',
+      ' null Tj',
+      ' /GS0 gs',
+      ' 0.5 sc',
+      ' (a(b)c) Tj',
+    ]) {
+      expect(pagesRead(drawing(unfiltered(after)))).toHaveLength(1)
+    }
+    for (const after of [
+      '\tQ',
+      '\fQ',
+      '\0Q',
+      '(a) Tj',
+      '%c\nQ',
+      '<41> Tj',
+      ' \tQ',
+      ' Q\x80',
+      ' Q\0\0',
+      ' [(a)] TJ',
+      ' foo Q',
+      ' 1 2 Q',
+      ` ${'1 '.repeat(40)}Q`,
+      ` ${' '.repeat(80)}Q`,
+      ' (a',
+      ' <41',
+      ' true Q',
+      ' 1 2 3 4 5 sc',
+      ' [ Tj',
+      // Past the 15 bytes PDF.js tests for text, a byte it would not admit, before the operator it accepts: refused, as the ruling reads its test.
+      ' (aaaaaaaaaaaaaaaaaaaa\x80) Tj',
+    ]) {
+      expectPrintRefused(drawing(unfiltered(after)), 'malformed', 'inline-end', 1)
+    }
+    const flate = (after: string): Uint8Array => concat([latin1('BI /W 2/H 1/CS/G/BPC 8/F/Fl ID '), deflate(latin1('ab')), latin1(`\nEI${after}`)])
+    expect(pagesRead(drawing(flate(' Q')))).toHaveLength(1)
+    expectPrintRefused(drawing(flate(' [(a)] TJ')), 'malformed', 'inline-end', 1)
+    for (const marked of ['/F/AHx ID 00>', '/F/A85 ID z~>']) {
+      for (const after of ['', ' (a) Tj', '\n[(a)] TJ', '\r%c']) {
+        expect(pagesRead(drawing(`BI /W 1/H 1/CS/G/BPC 8${marked}\nEI${after}`))).toHaveLength(1)
+      }
+      for (const after of ['(a) Tj', '\t(a) Tj', '<41> Tj', '%c']) {
+        expectPrintRefused(drawing(`BI /W 1/H 1/CS/G/BPC 8${marked}\nEI${after}`), 'malformed', 'inline-end', 1)
+      }
+    }
+  })
+})
+
+describe('an inline image holds nothing but itself', () => {
+  // PDF.js resolves every reference an inline image's dictionary holds: its
+  // /SMask and /Mask as images of their own size, an ICC profile, a palette
+  // or a tint function under /CS (PDFImage.buildImage, pdf.worker.mjs:39072)
+  // -- and no closure holds what it names, so a soft mask of any size would
+  // pass the bound, and a renderer would write a reference to an object it
+  // never copied. A content's operands are direct; a reference in one is
+  // refused, however deep it stands.
+  test('an inline image whose dictionary holds a reference is refused', () => {
+    for (const entries of ['/CS/G/SMask 30 0 R', '/CS 31 0 R', '/CS[/ICCBased 32 0 R]', '/CS/G/DP<</JBIG2Globals 30 0 R>>', '/CS/G/D[0 30 0 R]']) {
+      expectPrintRefused(drawing(inline(`/W 1/H 1/BPC 8${entries}`, 'x')), 'malformed', 'inline-reference', 1)
+    }
+    expect(pagesRead(drawing(inline('/W 1/H 1/BPC 8/CS/G/D[0 30 0]', 'x')))).toHaveLength(1)
   })
 })
 
@@ -319,6 +421,7 @@ describe('an inline image is refused', () => {
     ]) {
       expectPrintRefused(drawing(written), 'malformed', 'inline-image', 1)
     }
+    expect(pagesRead(drawing('BI /W 1/H 1/CS/G/BPC 8/D null ID x\nEI'))).toHaveLength(1)
     expectPrintRefused(drawing('BI /W 1/Width 1/H 1/CS/G/BPC 8 ID x\nEI'), 'malformed', 'image-size', 1)
     expectPrintRefused(drawing('BI /H 1/CS/G/BPC 8 ID x\nEI'), 'malformed', 'image-size', 1)
   })
@@ -426,13 +529,13 @@ describe('every content an inline image may stand in is read for one', () => {
     expectPrintRefused(formed(''), 'malformed', 'image-space')
   })
 
-  // Two pages that share a content and its resources draw the same inline
-  // images: read again for the second, a Flate image would be decoded and
-  // charged twice for what the reader read once. Drawn with other
-  // resources, the content is read again, an unfiltered image's colour
-  // space counted in those, and refused on the page whose resources make
-  // its rows longer than its data.
-  test('a content the pages share is read once for each resources it is drawn with', () => {
+  // Pages that share a content draw the same inline images: read again for
+  // each, a Flate image would be decoded and charged again for what the
+  // reader read once, whatever resources each page draws with. Only an
+  // unfiltered image's colour space, named by name, depends on them: it is
+  // counted again in each page's resources, and refused on the page whose
+  // resources make its rows longer than its data.
+  test('a content the pages share is read once, its colour-space names counted for each resources it is drawn with', () => {
     const content = concat([latin1('BI /W 2/H 1/F/Fl ID '), deflate(latin1('ab')), latin1('\nEI BI /W 2/H 1/CS/CS0/BPC 8 ID ab\nEI')])
     const two = (second: string): Uint8Array =>
       pagesFile([letter('', { resources: '5 0 R' }), letter('', { resources: second })], {
@@ -442,7 +545,7 @@ describe('every content an inline image may stand in is read for one', () => {
         7: '<</ColorSpace<</CS0/DeviceRGB>>>>',
       })
     expect(printedWhole(two('5 0 R')).parsed.budget.left).toBe(MAX_DOCUMENT_INFLATED - 2 - content.length)
-    expect(printedWhole(two('6 0 R')).parsed.budget.left).toBe(MAX_DOCUMENT_INFLATED - 4 - content.length)
+    expect(printedWhole(two('6 0 R')).parsed.budget.left).toBe(MAX_DOCUMENT_INFLATED - 2 - content.length)
     expectPrintRefused(two('7 0 R'), 'malformed', 'inline-end', 2)
   })
 })
@@ -460,6 +563,34 @@ describe('the inline images of a document are bounded together', () => {
     expect(pagesRead(pagesFile([letter()], { 4: images }))).toHaveLength(1)
     const two = pagesFile([letter(), letter().replace('/Contents 4 0 R', '/Contents 5 0 R')], { 4: images, 5: images })
     expectPrintRefused(two, 'too-many-objects', 'values', 2)
+  })
+})
+
+describe('the colour-space names a shared content counts are bounded', () => {
+  // A content the pages share is lexed once, and only the colour-space
+  // names its unfiltered inline images count are counted again for each
+  // page's resources -- each a value read, against MAX_DOCUMENT_VALUES, so
+  // that a thousand pages, each with its own resources, cannot have a
+  // content's thousands of names counted a thousand times unbounded. Pages
+  // that share the resources too, as a template's do, count them once.
+  test('the colour-space names counted for each page are counted against MAX_DOCUMENT_VALUES, and once for shared resources', AT_A_BOUND, () => {
+    const names = 2_100
+    const images = Array.from({ length: names }, (_, i) => `BI/W 1/H 1/CS/C${i}/BPC 8 ID x\nEI\n`).join('')
+    const spaces = `<<${Array.from({ length: names }, (_, i) => `/C${i}/DeviceGray`).join('')}>>`
+    const file = (resources: (page: number) => string): Uint8Array =>
+      pagesFile(
+        Array.from({ length: MAX_DOCUMENT_PAGES }, (_, i) => letter('', { resources: resources(i) })),
+        { 4: { dict: '/Filter/FlateDecode', data: deflate(latin1(images)) }, 5: `<</ColorSpace 6 0 R>>`, 6: spaces },
+      )
+    expect(pagesRead(file(() => '5 0 R'))).toHaveLength(MAX_DOCUMENT_PAGES)
+    // Thirteen values each image's dictionary reads on the first page, a key counted as a value and as a name; one a name on each page after.
+    const page = Math.floor((MAX_DOCUMENT_VALUES - 13 * names) / names) + 2
+    expectPrintRefused(
+      file((i) => `<</ColorSpace 6 0 R/Probe ${i}>>`),
+      'too-many-objects',
+      'values',
+      page,
+    )
   })
 })
 

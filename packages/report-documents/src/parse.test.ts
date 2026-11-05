@@ -1,4 +1,5 @@
 import { PDFRef } from '@pdfme/pdf-lib'
+import { deflate } from 'pako'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { byteStreamOf, Grammar } from './grammar.js'
 import { decoded } from './inflate.js'
@@ -34,7 +35,22 @@ import {
   UPDATED_CONTENT,
   xrefStreamBomb,
 } from './test-hostile.js'
-import { CONTENT, concat, deflatedZeros, exactly, latin1, MIB, ofBytes, onePage, onePageUnderXrefStream, repeated, withObject5 } from './test-pdf.js'
+import {
+  basic,
+  CONTENT,
+  concat,
+  deflatedZeros,
+  exactly,
+  latin1,
+  MIB,
+  ofBytes,
+  onePage,
+  onePageUnderXrefStream,
+  PdfWriter,
+  repeated,
+  withObject5,
+  type XrefEntry,
+} from './test-pdf.js'
 
 /**
  * The strict parse (the documents plan's Task 4), held to the hostile
@@ -162,6 +178,24 @@ describe('parseDocument refuses', () => {
       const document = parsed(file)
       expect(decoded(contentOf(document), { left: MAX_DOCUMENT_INFLATED })).toEqual(refusal('inflated'))
     }
+  })
+
+  // An object stream or a cross-reference stream that names a file (/F)
+  // keeps its data there (ISO 32000-1 7.3.8.2), and PDF.js reads /F as
+  // /Filter: read as its own bytes, the objects or the rows it lists would
+  // be ones no viewer reads. Each is refused before its data is read, as
+  // every stream the reader decodes is.
+  test('an object stream or a cross-reference stream that keeps its data in another file is refused', () => {
+    const w = new PdfWriter()
+    basic(w, { page: '/Probe 5 0 R' })
+    w.stream(6, '/Type/ObjStm/N 1/First 4/F(objects.bin)/Filter/FlateDecode', deflate(latin1('5 0\n<</A 1>>')))
+    const entries = new Map<number, XrefEntry>([...w.offsets].map(([num, offset]) => [num, { kind: 'at', offset }]))
+    entries.set(5, { kind: 'in', stream: 6, index: 0 })
+    expectRefused(w.end(w.xrefStream(7, '/Root 1 0 R', entries)), 'unsupported-filter', 'external')
+    const x = new PdfWriter()
+    basic(x)
+    const rows = new Map<number, XrefEntry>([...x.offsets].map(([num, offset]) => [num, { kind: 'at', offset }]))
+    expectRefused(x.end(x.xrefStream(5, '/Root 1 0 R/F(rows.bin)', rows)), 'unsupported-filter', 'external')
   })
 
   // H4: pdf-lib recurses into nested arrays until V8's stack ends; the

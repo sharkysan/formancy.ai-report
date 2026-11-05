@@ -1,6 +1,6 @@
 import { Annotations, formAsks } from './annotations.js'
 import { decodedBytes, type InflateBudget } from './inflate.js'
-import { heldInlineImages } from './inline-images.js'
+import { heldInlineImages, heldWithResources, type NamedSpaces } from './inline-images.js'
 import { isArray, isDict, isRef, isStream, resolved, type PdfDict, type PdfObjects, type PdfStream, type PdfValue } from './model.js'
 import type { Tally } from './notices.js'
 import type { ParsedDocument } from './parse.js'
@@ -202,8 +202,12 @@ class Pages {
   private readonly held = new Set<number>()
   /** Each content built, by what a /Contents names: the same stream or list is the same content, built once. */
   private readonly contents = new Map<PdfStream | readonly PdfValue[], Held>()
-  /** The resources each content's inline images were read with, by its decoded bytes: read again only with others. */
-  private readonly imagesRead = new Map<Uint8Array, Set<PdfDict>>()
+  /**
+   * Each content's inline images, by its decoded bytes, read once: the
+   * colour-space names they count, and the resources they were read with
+   * or counted in since.
+   */
+  private readonly imagesRead = new Map<Uint8Array, { readonly named: NamedSpaces; readonly resources: Set<PdfDict> }>()
 
   constructor(parsed: ParsedDocument, tally: Tally) {
     this.parsed = parsed
@@ -265,20 +269,22 @@ class Pages {
   }
 
   /**
-   * The inline images a page's content holds, read with the page's
-   * resources, which name their colour spaces: once for each resources a
-   * content is drawn with, so that pages that share a content and its
-   * resources -- a template's -- read and decode its images once.
+   * The inline images a page's content holds, read once with the first
+   * page's resources, which name their colour spaces; for a page that draws
+   * the same content with other resources, only the names its unfiltered
+   * images count are counted again, in those. Lexed again for each page's
+   * resources, a content of megabytes a thousand pages share would be read a
+   * thousand times for the few bytes of budget each later page is charged.
    */
   private inlineImages(decoded: Uint8Array, resources: PdfDict): void {
-    let read = this.imagesRead.get(decoded)
+    const read = this.imagesRead.get(decoded)
     if (read === undefined) {
-      read = new Set()
-      this.imagesRead.set(decoded, read)
+      this.imagesRead.set(decoded, { named: heldInlineImages(this.parsed, decoded, resources, this.budget), resources: new Set([resources]) })
+      return
     }
-    if (read.has(resources)) return
-    read.add(resources)
-    heldInlineImages(this.parsed, decoded, resources, this.budget)
+    if (read.resources.has(resources)) return
+    read.resources.add(resources)
+    heldWithResources(this.parsed, read.named, resources)
   }
 
   /**

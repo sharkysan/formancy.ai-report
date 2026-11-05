@@ -19,8 +19,9 @@ import { caught, refuse, type DocumentRefusal } from './refusals.js'
  * Each object is counted against `MAX_DOCUMENT_OBJECTS` as it is reached,
  * before it is kept. Each stream is read as a viewer of the report will
  * read it where it stands, and none is kept decoded: an image -- an
- * XObject that says it is one, a soft mask, a stencil mask -- is held to
- * the pixels it declares and passed on undecoded, charged nothing
+ * XObject that says it is one, a soft mask, a stencil mask, an alternate
+ * a printing viewer may print in its place -- is held to the pixels it
+ * declares and passed on undecoded, charged nothing
  * (images.ts); content -- a form's, a tiling pattern's, a Type 3 glyph's,
  * a soft mask's group's -- is decoded once, from the document's one
  * budget, and its inline images held as a page's are (inline-images.ts);
@@ -38,21 +39,25 @@ import { caught, refuse, type DocumentRefusal } from './refusals.js'
  * whose maps of names it reads as name maps; as a name map, whose keys are
  * names a content stream or an encoding chose; as a Type 3 font's glyphs,
  * or a resources' XObjects, name maps whose every value is drawn as content
- * or as an XObject; and, where a stream stands, as content a viewer draws
- * whatever the stream says of itself, as an XObject, which its /Subtype
- * makes an image or a form as Do reads it, or as an image -- a mask -- a
- * viewer decodes whatever it says. Any other value in one of those three
- * places is read as any value.
+ * or as an XObject; as an image's alternates, a list of alternate image
+ * dictionaries, each read as any value but for its /Image; and, where a
+ * stream stands, as content a viewer draws whatever the stream says of
+ * itself, as an XObject, which its /Subtype makes an image or a form as
+ * Do reads it, or as an image -- a mask, an alternate's /Image -- a viewer
+ * decodes whatever it says. Any other value in one of those three places
+ * is read as any value.
  */
 const VALUE = 0
 const RESOURCES = 1
 const NAMES = 2
 const GLYPHS = 3
 const XOBJECTS = 4
-const CONTENT = 5
-const XOBJECT = 6
-const IMAGE = 7
-type Walked = typeof VALUE | typeof RESOURCES | typeof NAMES | typeof GLYPHS | typeof XOBJECTS
+const ALTERNATES = 5
+const ALTERNATE = 6
+const CONTENT = 7
+const XOBJECT = 8
+const IMAGE = 9
+type Walked = typeof VALUE | typeof RESOURCES | typeof NAMES | typeof GLYPHS | typeof XOBJECTS | typeof ALTERNATES | typeof ALTERNATE
 /** The readings of where a stream stands: a container there is read as any value. */
 type Reading = Walked | typeof CONTENT | typeof XOBJECT | typeof IMAGE
 
@@ -93,13 +98,17 @@ const NAMED_BY_KEY: ReadonlySet<string> = new Set(['Colorants', 'Solidities', 'D
  * soft mask's group, under /G, is drawn as content wherever it stands, as
  * PDF.js draws it whatever its /Subtype says; an image's soft mask and its
  * stencil mask, under /SMask and /Mask, are images a viewer decodes; each
- * fails closed elsewhere.
+ * fails closed elsewhere. An alternate's /Image is the image a viewer that
+ * prints by the standard prints where the alternate says it is for
+ * printing (ISO 32000-1 8.9.5.4), and Report prints.
  */
 function under(reading: Walked, key: string): Reading {
   if (key === 'Resources') return RESOURCES
   if (key === 'CharProcs') return GLYPHS
   if (key === 'G') return CONTENT
   if (key === 'SMask' || key === 'Mask') return IMAGE
+  if (key === 'Alternates') return ALTERNATES
+  if (key === 'Image' && reading === ALTERNATE) return IMAGE
   if (NAMED_BY_KEY.has(key)) return NAMES
   if (reading !== RESOURCES || !NAME_MAPS.has(key)) return VALUE
   return key === 'XObject' ? XOBJECTS : NAMES
@@ -173,7 +182,7 @@ export function closureOf(parsed: ParsedDocument, roots: readonly PdfValue[]): R
     const pages = new Set(parsed.pages)
     const closure = new Map<number, PdfValue | PdfStream>()
     const streams = new Streams(parsed)
-    const walked = [new Set<object>(), new Set<object>(), new Set<object>(), new Set<object>(), new Set<object>()] as const
+    const walked = Array.from({ length: ALTERNATE + 1 }, () => new Set<object>())
     const values: PdfValue[] = []
     const readings: Reading[] = []
     const reach = (value: PdfValue, reading: Reading): void => {
@@ -199,10 +208,11 @@ export function closureOf(parsed: ParsedDocument, roots: readonly PdfValue[]): R
         continue
       }
       if (!isArray(value) && !isDict(value)) continue
-      if (walked[read].has(value)) continue
-      walked[read].add(value)
+      const seen = walked[read] as Set<object>
+      if (seen.has(value)) continue
+      seen.add(value)
       const entries = ENTRIES.get(read)
-      if (isArray(value)) for (const item of value) reach(item, VALUE)
+      if (isArray(value)) for (const item of value) reach(item, read === ALTERNATES ? ALTERNATE : VALUE)
       else if (entries !== undefined) for (const item of value.entries.values()) reach(item, entries)
       else {
         if (layered(parsed, value)) refuse('layers')

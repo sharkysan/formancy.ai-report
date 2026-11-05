@@ -202,6 +202,8 @@ export const FINDINGS = {
   'image-pixels': ['inflates-too-far', 'an image in it is larger than a document may hold'],
   'inline-image': ['malformed', 'an inline image in it is not written as one'],
   'inline-end': ['malformed', 'an inline image in it does not end where its data ends'],
+  'inline-place': ['malformed', 'an inline image in it begins where a viewer reads none'],
+  'inline-reference': ['malformed', 'an inline image in it names an object outside its content'],
   'inline-filter': ['unsupported-filter', 'an inline image in it is compressed in a way whose end the reader cannot find'],
   external: ['unsupported-filter', 'a stream in it keeps its data in another file'],
 } as const satisfies Record<string, readonly [DocumentRefusalCode, string]>
