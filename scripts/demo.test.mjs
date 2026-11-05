@@ -1,9 +1,11 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, test } from 'vitest'
-import { BUILDS, configProblems, demoBase, demoUrl, indexProblems, readDemoConfig, stageDemo, WRANGLER } from './demo.mjs'
+import { FILES } from '../apps/pages/src/pages.ts'
+import { ASSETS, headersFor, SITE } from './demo-headers.mjs'
+import { BUILDS, configProblems, demoBase, demoUrl, headersFile, indexProblems, readDemoConfig, stageDemo, WRANGLER } from './demo.mjs'
 
 /**
  * README.md's "Try it": the commands that run the Studio as a demo, held to
@@ -27,9 +29,9 @@ function section(title) {
   return readme.slice(start, end === -1 ? undefined : end)
 }
 
-/** The port the config gives `server` or `preview`, which strictPort keeps from wandering. */
+/** The port the config gives `server` or `preview`, which strictPort keeps from wandering, whatever else the block holds. */
 function port(block) {
-  const match = new RegExp(`${block}: \\{ port: (\\d+), strictPort: true \\}`).exec(config)
+  const match = new RegExp(`${block}: \\{ port: (\\d+), strictPort: true[ ,]`).exec(config)
   return match === null ? undefined : Number(match[1])
 }
 
@@ -182,10 +184,108 @@ describe('the demo on formancy.ai (0018)', () => {
   // The gate measuring the Studio at the root of its origin would pass a
   // build that is a blank page under /report/; served under the demo's
   // path, every check of it is a check of the demo as formancy.ai serves it.
-  test('the browser gate serves the built Studio under the path the demo is served at', () => {
+  test('the browser gate serves the built Studio under the path the demo is served at, with the headers the deploy writes for it', () => {
     const gate = readFileSync(join(repo, 'apps', 'studio', 'scripts', 'browser-test.mjs'), 'utf8')
     expect(gate).toMatch(/import \{[^}]*\bdemoBase\b[^}]*\} from '\.\.\/\.\.\/\.\.\/scripts\/demo\.mjs'/)
-    expect(gate).toContain('await preview({ root: app, base: demoBase(readDemoConfig())')
+    expect(gate).toMatch(/import \{[^}]*\bheadersFor\b[^}]*\} from '\.\.\/\.\.\/\.\.\/scripts\/demo-headers\.mjs'/)
+    expect(gate).toContain('const base = demoBase(readDemoConfig())')
+    expect(gate).toContain('await preview({ root: app, base, preview: { headers: headersFor(served) }')
+  })
+
+  // `pnpm demo` is the Studio as the gate measures it, its headers too, for
+  // the address it is opened at: the preview's own port, at its root.
+  test("pnpm demo serves the Studio with the deploy's headers, for the address it is opened at", () => {
+    expect(config).toMatch(/import \{ headersFor \} from '\.\.\/\.\.\/scripts\/demo-headers\.mjs'/)
+    expect(config).toContain(`headers: headersFor('http://localhost:${String(port('preview'))}/')`)
+  })
+})
+
+describe("the demo's headers (0051)", () => {
+  const page = 'https://formancy.ai/report/'
+  /** The policy for `address`, each directive's name to its sources. */
+  const policy = (address = page) => {
+    const { 'Content-Security-Policy': written } = headersFor(address)
+    return new Map(
+      written.split('; ').map((directive) => {
+        const [name = '', ...sources] = directive.split(' ')
+        return [name, sources]
+      }),
+    )
+  }
+
+  // `'self'` admits whatever the origin serves, Cloudflare's /cdn-cgi/
+  // scripts among them; the builds' own directories admit their files.
+  test("admits scripts, styles, faces and the worker from the builds' own directories alone, never the whole origin", () => {
+    const directives = policy()
+    expect(directives.get('default-src')).toEqual(["'none'"])
+    expect(directives.get('script-src')).toEqual([`${page}assets/`])
+    expect(directives.get('worker-src')).toEqual([`${page}assets/`])
+    expect(directives.get('style-src')).toEqual([`${page}assets/`, `${page}site/`])
+    expect(directives.get('font-src')).toEqual([`${page}assets/`, `${page}site/`])
+    expect(directives.get('img-src')).toEqual(['data:', `${page}site/`])
+    for (const sources of directives.values()) {
+      for (const source of sources) expect(["'self'", "'unsafe-inline'", "'unsafe-eval'", 'blob:', '*', 'https:']).not.toContain(source)
+    }
+  })
+
+  // What a person writes into the Studio is sent nowhere: no request, no
+  // form posted, no page framing it, no base that moves its files.
+  test('refuses every connection, form, frame, base, object and manifest', () => {
+    const directives = policy()
+    for (const name of ['connect-src', 'form-action', 'base-uri', 'frame-ancestors', 'object-src', 'manifest-src'])
+      expect(directives.get(name), name).toEqual(["'none'"])
+  })
+
+  // A string handed to a sink that parses markup or loads code is refused,
+  // and the one policy that may be made is the default one, which lets
+  // PDF.js's worker through (apps/studio/src/preview/pdf-document.ts).
+  test('requires Trusted Types, and allows the default policy and no other', () => {
+    const directives = policy()
+    expect(directives.get('require-trusted-types-for')).toEqual(["'script'"])
+    expect(directives.get('trusted-types')).toEqual(['default'])
+  })
+
+  // The directories the policy names are where the builds write: Vite's
+  // default assets directory, which the Studio's config leaves alone, and
+  // the pages' own. Renamed in either build and not here, the demo would
+  // load with none of that build's styles or scripts.
+  test("names the Studio's assets directory and the pages' own, as their builds write them", () => {
+    expect(ASSETS).toBe('assets/')
+    expect(config).not.toMatch(/assetsDir/)
+    expect(SITE).toBe(FILES)
+  })
+
+  // The gate's, `pnpm demo`'s and the deploy's policies are one function of
+  // the address, and differ in it alone: whatever the gate measures under
+  // its address is what formancy.ai serves under its own.
+  test('is the same for every address but for the address', () => {
+    const local = 'http://localhost:4394/report/'
+    const swapped = Object.fromEntries(Object.entries(headersFor(local)).map(([name, value]) => [name, value.replaceAll(local, page)]))
+    expect(swapped).toEqual(headersFor(page))
+  })
+
+  // An address that is not a directory's, or carries a query, a fragment or
+  // a user, would put into the policy a source nobody meant.
+  test.each([
+    'https://formancy.ai/report',
+    'https://formancy.ai/report/index.html',
+    'https://formancy.ai/report/?a=1',
+    'https://formancy.ai/report/#a',
+    'https://someone@formancy.ai/report/',
+    'ftp://formancy.ai/report/',
+    '/report/',
+    'https://FORMANCY.ai/report/',
+  ])('refuses %s, which is not the address of a directory as a browser writes it', (address) => {
+    expect(() => headersFor(address)).toThrow(/the demo's headers are for the address of the directory/)
+  })
+
+  // Cloudflare joins a header two matching rules set into one value, so the
+  // file is one rule; a line it cannot read as written is refused.
+  test('are written as one rule every file takes, and a header the file cannot carry is refused', () => {
+    expect(headersFile({ 'X-A': '1', 'X-B': 'two words' })).toBe('/*\n  X-A: 1\n  X-B: two words\n')
+    expect(() => headersFile({ '! X-A': '1' })).toThrow(/not letters, digits and hyphens/)
+    expect(() => headersFile({ 'X-A': 'one\ntwo' })).toThrow(/breaks a line/)
+    expect(() => headersFile({ 'X-A': 'a'.repeat(2000) })).toThrow(/past the 2000/)
   })
 })
 
@@ -221,10 +321,39 @@ describe('what the deploy stages (0018, 0021)', () => {
   // demo's path, where 0018 put it, and the pages beside it under their
   // languages. A deploy that staged the Studio alone would serve every
   // page as formancy.ai's 404.
+  const page = 'https://formancy.ai/report/'
+
   test("puts the Studio's build and the pages' build under the demo's path, the Studio's page at its root", () => {
     const into = tree({})
-    stageDemo([studio(), pages()], join(into, 'report'))
-    expect(listed(into)).toEqual(['report/assets/index-a.js', 'report/en/index.html', 'report/index.html', 'report/site/pages.css', 'report/sitemap.xml'])
+    stageDemo([studio(), pages()], into, page)
+    expect(listed(into)).toEqual([
+      '_headers',
+      'report/assets/index-a.js',
+      'report/en/index.html',
+      'report/index.html',
+      'report/site/pages.css',
+      'report/sitemap.xml',
+    ])
+  })
+
+  // Cloudflare reads `_headers` at the root of the assets directory, never
+  // under the demo's path, and serves it to nobody: the headers the demo's
+  // address takes, for every file of both builds (0051).
+  test("writes the demo's headers, for its address, at the root Cloudflare reads them from", () => {
+    const into = tree({})
+    stageDemo([studio(), pages()], into, page)
+    expect(readFileSync(join(into, '_headers'), 'utf8')).toBe(headersFile(headersFor(page)))
+    expect(readFileSync(join(into, '_headers'), 'utf8')).toContain(`script-src ${page}assets/;`)
+  })
+
+  // A build's own `_headers` or `_redirects` would be served at
+  // /report/_headers, and read as rules by nobody, or, if a build ever
+  // wrote one at the root, beside the deploy's: refused, so the headers
+  // are decided in one place.
+  test.each(['_headers', '_redirects', 'de/_headers'])('refuses a build holding a %s of its own, and stages nothing', (file) => {
+    const into = tree({})
+    expect(() => stageDemo([studio(), pages({ [file]: '/*\n  X-A: 1\n' })], into, page)).toThrow(/a file Cloudflare reads as rules/)
+    expect(listed(into)).toEqual([])
   })
 
   // A path both builds write would be served from whichever was copied
@@ -232,8 +361,8 @@ describe('what the deploy stages (0018, 0021)', () => {
   // other's. Refused before anything is staged, naming the path.
   test('refuses a path both builds hold, naming it, and stages nothing', () => {
     const into = tree({})
-    expect(() => stageDemo([studio(), pages({ 'index.html': '<title>a page</title>' })], join(into, 'report'))).toThrow(/index\.html is in both/)
-    expect(existsSync(join(into, 'report'))).toBe(false)
+    expect(() => stageDemo([studio(), pages({ 'index.html': '<title>a page</title>' })], into, page)).toThrow(/index\.html is in both/)
+    expect(listed(into)).toEqual([])
   })
 
   // Every page of either build, not only the Studio's: under the demo's
@@ -241,10 +370,10 @@ describe('what the deploy stages (0018, 0021)', () => {
   // own site, and loads without its stylesheet.
   test('refuses a page of either build that asks for a file by an absolute path', () => {
     const into = tree({})
-    expect(() => stageDemo([studio(), pages({ 'de/index.html': '<link rel="stylesheet" href="/site/pages.css">' })], join(into, 'report'))).toThrow(
+    expect(() => stageDemo([studio(), pages({ 'de/index.html': '<link rel="stylesheet" href="/site/pages.css">' })], into, page)).toThrow(
       /de\/index\.html asks for a file by an absolute path: href="\/site\/pages\.css"/,
     )
-    expect(existsSync(join(into, 'report'))).toBe(false)
+    expect(listed(into)).toEqual([])
   })
 
   // The deploy stages exactly the two apps' builds, each from where its own

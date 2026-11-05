@@ -264,6 +264,24 @@ async function readings(page, cdp) {
 const frames = (page) => page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))))
 
 /**
+ * Every text-transform on the page switched off, until the returned handle
+ * is let go of: a constructed stylesheet, which the demo's policy does not
+ * govern, where a `<style>` added to the page is refused by it (0051) and
+ * would switch nothing off. A rule that did not take throws, rather than
+ * comparing the tree as styled with itself.
+ */
+async function untransformed(page) {
+  return page.evaluateHandle(() => {
+    const sheet = new CSSStyleSheet()
+    sheet.replaceSync('*, *::before, *::after { text-transform: none !important; }')
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet]
+    const still = [...document.querySelectorAll('*')].find((element) => getComputedStyle(element).textTransform !== 'none')
+    if (still !== undefined) throw new Error(`text-transform is still ${getComputedStyle(still).textTransform} on a ${still.localName} with it switched off`)
+    return sheet
+  })
+}
+
+/**
  * The readings once two in a row, 100 ms apart, are the same, within
  * SETTLE; then Chromium's tree again with every text-transform on the page
  * switched off, which a builder's names must not notice. A state that never
@@ -276,12 +294,14 @@ async function settled(page, cdp) {
     await page.waitForTimeout(100)
     const now = await readings(page, cdp)
     if (JSON.stringify(now) === JSON.stringify(before) || Date.now() > deadline) {
-      const sheet = await page.addStyleTag({ content: '*, *::before, *::after { text-transform: none !important; }' })
+      const sheet = await untransformed(page)
       try {
         await frames(page)
         return { ...now, untransformed: await chromiumTree(cdp) }
       } finally {
-        await sheet.evaluate((element) => element.remove())
+        await sheet.evaluate((added) => {
+          document.adoptedStyleSheets = document.adoptedStyleSheets.filter((each) => each !== added)
+        })
         await frames(page)
       }
     }

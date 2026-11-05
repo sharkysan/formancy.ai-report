@@ -26,7 +26,12 @@
 // whichever was copied last. Static assets are found by the request's
 // whole path, so both builds are staged under that path in
 // apps/studio/.cloudflare, the directory the config names, and the staging
-// is removed afterwards.
+// is removed afterwards. At the root of that directory, where Cloudflare
+// reads it and never serves it, goes `_headers`: the headers
+// scripts/demo-headers.mjs decides for the demo's address on formancy.ai
+// (0051), the function `vite preview` serves `pnpm demo` with for its own,
+// as one rule every file takes. A build that holds a `_headers` or
+// `_redirects` of its own is refused: the headers are decided in one place.
 //
 // Cloudflare's Workers Builds runs this on every push to main, as the
 // deploy command after `pnpm build` (.github/REPO-METADATA.md), with the
@@ -38,9 +43,10 @@
 // run it.
 
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, readdirSync, readFileSync, rmSync } from 'node:fs'
-import { dirname, join, relative } from 'node:path'
+import { cpSync, existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { basename, dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { headersFor } from './demo-headers.mjs'
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..')
 const app = join(repo, 'apps', 'studio')
@@ -68,6 +74,19 @@ export const BUILDS = [
  * the registry calls newest on the day someone deploys.
  */
 export const WRANGLER = 'wrangler@4.146.0'
+
+/**
+ * What Cloudflare reads of `_headers` (developers.cloudflare.com,
+ * workers/static-assets/headers, as formancy.ai-health's deploy read it on
+ * 2026-10-18): "Each line in the `_headers` file has a 2,000 character
+ * limit", and a name the file's syntax reads otherwise -- `! Name` detaches
+ * a header -- is not a header.
+ */
+const HEADER_LINE_LIMIT = 2000
+const HEADER_NAME = /^[A-Za-z0-9-]+$/
+
+/** The files Cloudflare's static assets read rather than serve, which the deploy alone writes. */
+const CLOUDFLARE_FILES = new Set(['_headers', '_redirects'])
 
 /** apps/studio/wrangler.json, as Wrangler reads it. */
 export function readDemoConfig() {
@@ -147,25 +166,56 @@ function filesOf(directory) {
 }
 
 /**
- * `builds`, directories, copied into `into`, which the demo's path names:
- * after refusing, all at once and before anything is copied, a path two of
- * them hold and a page of any of them that asks for a file by an absolute
- * path (indexProblems).
+ * The `_headers` file of `headers`: one rule, `/*`, which every file the
+ * Worker serves takes, and every header under it in order. One rule,
+ * because Cloudflare joins a header two matching rules set into one value
+ * with a comma, which for `Cache-Control` or the policy is a value nobody
+ * wrote. A header the file cannot carry as it is -- a name its syntax reads
+ * otherwise, a line break in a value, a line past Cloudflare's limit -- is
+ * refused, rather than served otherwise than `vite preview` and the browser
+ * gate serve it.
  */
-export function stageDemo(builds, into) {
+export function headersFile(headers) {
+  const problems = []
+  const lines = Object.entries(headers).map(([name, value]) => {
+    const line = `  ${name}: ${String(value)}`
+    if (!HEADER_NAME.test(name)) problems.push(`the header name ${JSON.stringify(name)} is not letters, digits and hyphens`)
+    if (/[\r\n]/.test(String(value))) problems.push(`${name}'s value breaks a line, which _headers reads as another line`)
+    if (line.length > HEADER_LINE_LIMIT)
+      problems.push(`${name}'s line is ${String(line.length)} characters, past the ${String(HEADER_LINE_LIMIT)} a line of _headers may hold`)
+    return line
+  })
+  if (problems.length > 0) throw new Error(`the headers cannot be written as _headers:\n  ${problems.join('\n  ')}`)
+  return `/*\n${lines.join('\n')}\n`
+}
+
+/**
+ * `builds`, directories, copied into `stage` under the path of `page`, the
+ * demo's address, and `_headers` for that address written at the stage's
+ * root: after refusing, all at once and before anything is written, a path
+ * two of them hold, a page of any of them that asks for a file by an
+ * absolute path (indexProblems) and a file of a build's own that
+ * Cloudflare would read as its rules.
+ */
+export function stageDemo(builds, stage, page) {
   const problems = []
   const held = new Set()
   for (const build of builds) {
     for (const file of filesOf(build)) {
       if (held.has(file)) problems.push(`${file} is in both builds, and would be served from whichever was staged last`)
       held.add(file)
+      if (CLOUDFLARE_FILES.has(basename(file)))
+        problems.push(`${file} is a file Cloudflare reads as rules, and the demo's headers are scripts/demo-headers.mjs's alone`)
       if (!file.endsWith('.html')) continue
       const absolute = indexProblems(readFileSync(join(build, file), 'utf8'))
       if (absolute.length > 0) problems.push(`${file} asks for a file by an absolute path: ${absolute.join(', ')}, which formancy.ai answers from its own site`)
     }
   }
   if (problems.length > 0) throw new Error(`the builds cannot be staged together:\n  ${problems.join('\n  ')}`)
+  const headers = headersFile(headersFor(page))
+  const into = join(stage, new URL(page).pathname)
   for (const build of builds) cpSync(build, into, { recursive: true, force: false, errorOnExist: true })
+  writeFileSync(join(stage, '_headers'), headers)
 }
 
 /**
@@ -201,12 +251,12 @@ function main(args) {
   }
   const commit = run('git', ['rev-parse', 'HEAD'])
   const stage = join(app, STAGE)
-  const base = demoBase(config)
   rmSync(stage, { recursive: true, force: true })
   try {
     stageDemo(
       BUILDS.map(({ app: built }) => join(repo, built, 'dist')),
-      join(stage, base),
+      stage,
+      demoUrl(config),
     )
     const deploy = [
       '--yes',

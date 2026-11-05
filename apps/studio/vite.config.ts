@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url'
 import angular from '@analogjs/vite-plugin-angular'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { headersFor } from '../../scripts/demo-headers.mjs'
 import { thirdPartyNotices } from '../../scripts/third-party-notices.mjs'
 import { EMBEDDED_NOTICES } from './src/embedded-notices.ts'
 import { starters, STARTERS_MODULE } from './src/starters/plugin.ts'
@@ -54,9 +55,15 @@ export default defineConfig({
   optimizeDeps: { include: ['@formancy/report-builder-angular'] },
   // Fail rather than wander to the next free port: an address nobody was
   // told about is worse than an error. 4390 to 4393 are formancy.ai-data's
-  // server and apps, on a machine that runs both repositories.
+  // server and apps, on a machine that runs both repositories. `pnpm demo`
+  // is served with the headers the deploy writes for formancy.ai/report/,
+  // for its own address (scripts/demo-headers.mjs, 0051): its policy names
+  // that address alone, so the page opened at another name of the same
+  // machine -- 127.0.0.1 -- runs no script. The dev server gets none: its
+  // client is an inline script that opens a WebSocket, which the policy
+  // refuses.
   server: { port: 4394, strictPort: true },
-  preview: { port: 4394, strictPort: true },
+  preview: { port: 4394, strictPort: true, headers: headersFor('http://localhost:4394/') },
   // Measured with `vite build` (Vite 8.3.4) on 2026-10-17: the renderer's
   // chunk is 1,922.2 kB minified, 848.8 kB gzipped -- pdfmake's browser
   // build, and Roboto's four fonts in it as base64 -- and loads with the
