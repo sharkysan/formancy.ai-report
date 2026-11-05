@@ -20,14 +20,14 @@
 // from the invoice as it was.
 //
 // Found by role and accessible name, but for three things read from the
-// DOM: the Download PDF's bytes, which the gate fetches as the page offers
+// DOM: the Download PDF's bytes, which the gate downloads as the page offers
 // them; whether the IBAN's field is invalid, `aria-invalid`, which
 // Playwright's role queries have no option for; and whether the toolbar's
 // Undo is unavailable, `aria-disabled`, read of the button found by role
 // and name, which a builder keeps in the tree and focusable.
 
 import { readCodes, readPdf } from '@formancy/report-corpus'
-import { describeFocus } from './gate-page.mjs'
+import { describeFocus, pdfBytes } from './gate-page.mjs'
 import { designViewOf, editorOf, open, previewInView, previewOf, said, settled, showing, WITHIN } from './gate-steps.mjs'
 
 /** The invoice starter's account, SIX's example QR-IBAN, as its code holds it. */
@@ -53,7 +53,7 @@ async function untilAccount(page, account) {
     const href = (await link.count()) === 1 ? await link.evaluate((anchor) => anchor.href) : null
     if (href !== null && href !== read) {
       read = href
-      const bytes = new Uint8Array(await page.evaluate(async (address) => [...new Uint8Array(await (await fetch(address)).arrayBuffer())], href))
+      const bytes = await pdfBytes(page, href)
       const pages = (await readPdf(bytes)).pages.length
       const codes = []
       for (let number = 1; number <= pages; number += 1) codes.push(...(await readCodes(bytes, number)))

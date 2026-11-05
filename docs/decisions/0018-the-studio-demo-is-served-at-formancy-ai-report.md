@@ -1,6 +1,6 @@
 # 0018 — The Studio's demo is served at formancy.ai/report/, by a Worker of its own that Cloudflare deploys from main
 
-- **Status:** accepted; extended by [0021](0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md), whose pages its Worker serves beside the Studio; its gate's exception for the web fonts is gone since [0023](0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md), which serves them from the build
+- **Status:** accepted; extended by [0021](0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md), whose pages its Worker serves beside the Studio; its gate's exception for the web fonts is gone since [0023](0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md), which serves them from the build; extended by [0051](0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md), whose headers the deploy writes and the gate serves the Studio under
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**

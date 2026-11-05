@@ -184,10 +184,12 @@ the one Mustang bundles
 ```
 push to main ──▶ Cloudflare Workers Builds: pnpm build, then node scripts/demo.mjs
                      │  refuses a checkout with uncommitted changes, a page that asks
-                     │  for a file by an absolute path, a path both builds hold
+                     │  for a file by an absolute path, a path both builds hold, a
+                     │  _headers or _redirects of a build's own; writes _headers
                      ▼
                  Worker formancy-report-studio: static assets, no code
                  routed at formancy.ai/report and formancy.ai/report/*
+                     ├─ _headers             read by Cloudflare, served to nobody
                      ├─ report/              the Studio
                      ├─ report/<lang>/…      the product's pages
                      └─ report/sitemap.xml
@@ -204,6 +206,17 @@ release; a push deploys without waiting for that commit's CI; the build
 settings live in Cloudflare's dashboard, recorded by hand in
 `.github/REPO-METADATA.md`; and nothing in this repository checks that a
 deploy happened or what the address serves.
+
+Every file the Worker serves carries the headers `scripts/demo-headers.mjs`
+states for the demo's address, written by the deploy as one `_headers` rule:
+a content security policy that admits scripts, styles, faces and PDF.js's
+worker from the Studio's assets directory and the pages' own, its `ASSETS`
+and `SITE`, alone, refuses
+every connection, and requires Trusted Types, its one policy the default one
+the Studio makes for PDF.js's worker; and no referrer, no sniffing, no
+device and no transformation by Cloudflare. `pnpm demo` and the browser gate
+serve the Studio under the same function of their own address
+([0051](../decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)).
 
 ## What a host needs
 
