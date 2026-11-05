@@ -10,6 +10,7 @@
 // because the tree has no geometry, no pixels, no stylesheets and no fonts.
 
 import { readFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -18,6 +19,8 @@ import { declaredFamilies } from '../../../scripts/web-fonts.mjs'
 
 export const app = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
+// Evaluated through the DevTools protocol, which the demo's policy does not
+// govern: added as a `<script>`, the page's policy refuses it (0051).
 const AXE = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8')
 
 /** `entry` with each of its `@import './…css';` replaced by the file it names: what Vite builds. Refuses an import it does not understand. */
@@ -153,7 +156,7 @@ export function measureWidth(page) {
  * measured, and fails.
  */
 export async function audit(page, target) {
-  if (!(await page.evaluate(() => 'axe' in window))) await page.addScriptTag({ content: AXE })
+  if (!(await page.evaluate(() => 'axe' in window))) await page.evaluate(AXE)
   const subject = target ?? (await page.evaluateHandle(() => document))
   return subject.evaluate(async (context) => {
     const results = await window.axe.run(context, { rules: { 'target-size': { enabled: true } } })
@@ -460,8 +463,27 @@ export async function drawnPages(page, { within }) {
 }
 
 /**
- * The PDF at `href`, which Download PDF points at, fetched in the page and
- * read back with PDF.js in Node: its first five characters, which say
+ * The bytes of the PDF at `href`, a Download PDF link's, as a person
+ * downloading it gets them: the link clicked in the page and the download
+ * read. Not fetched from its `blob:` address in the page, which the demo's
+ * `connect-src 'none'` refuses (0051); clicked by the element's own
+ * `click()`, which moves no focus a check after it measures.
+ */
+export async function pdfBytes(page, href) {
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.evaluate((address) => {
+      const link = [...document.querySelectorAll('a[download]')].find((anchor) => anchor.href === address)
+      if (link === undefined) throw new Error(`no link downloads ${address}`)
+      link.click()
+    }, href),
+  ])
+  return new Uint8Array(await readFile(await download.path()))
+}
+
+/**
+ * The PDF at `href`, which Download PDF points at, downloaded from the page
+ * (pdfBytes) and read back with PDF.js in Node: its first five characters, which say
  * whether it is a PDF at all, and the drawings of its page `number`, read
  * by report-corpus's `drawingsOn`, the reader report-render-pdf's
  * pictures.json is written with (0030, 0032) -- each clip a painted path
@@ -470,7 +492,7 @@ export async function drawnPages(page, { within }) {
  * the Node entry drew for the picture.
  */
 export async function downloaded(page, href, number) {
-  const bytes = new Uint8Array(await page.evaluate(async (address) => [...new Uint8Array(await (await fetch(address)).arrayBuffer())], href))
+  const bytes = await pdfBytes(page, href)
   const head = new TextDecoder().decode(bytes.subarray(0, 5))
   const sheet = head === '%PDF-' ? (await readPdf(bytes)).pages[number - 1] : undefined
   return { head, drawings: sheet === undefined ? [] : drawingsOn(sheet) }

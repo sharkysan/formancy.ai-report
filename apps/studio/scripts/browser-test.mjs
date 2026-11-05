@@ -77,13 +77,17 @@
 //     in each state the same steps bring each builder to, as Playwright's
 //     snapshot reads them and as Chromium's own tree does, once in each
 //     layout the builder is drawn in; and no name in either changes with
-//     the page's text-transform (gate-parity.mjs).
+//     the page's text-transform (gate-parity.mjs);
+//   - in every pass, the demo's content security policy refuses the page
+//     nothing, and wherever the journey prints, PDF.js prints in its
+//     worker, the build's own file, and not on the page's thread (0051).
 //
 // Against the page `vite build` writes, served by `vite preview` on the port
 // vite.config.ts fixes, which fails rather than wander when the port is
-// taken, and under the path the demo on formancy.ai is served at
-// (scripts/demo.mjs, 0018). Asserted as numbers and computed results, never
-// screenshots.
+// taken, under the path the demo on formancy.ai is served at (scripts/demo.mjs,
+// 0018) and with the headers the deploy writes for it, for this address
+// (scripts/demo-headers.mjs, 0051). Asserted as numbers and computed results,
+// never screenshots.
 // Chromium only, the browser installed for this repository's gates: Data's
 // gate also runs Firefox and WebKit, and nothing here has.
 //
@@ -97,8 +101,9 @@ import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { STARTERS } from '@formancy/report-corpus'
 import { chromium } from 'playwright'
-import { build, preview } from 'vite'
+import { build, preview, resolveConfig } from 'vite'
 import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
+import { headersFor } from '../../../scripts/demo-headers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
 import { interactions } from './gate-interactions.mjs'
@@ -416,6 +421,20 @@ async function pass(gate, browser, url, entry) {
     const address = request.url()
     if (!address.startsWith(url) && !/^(blob|data):/.test(address)) elsewhere.add(address)
   })
+  // Whatever the demo's policy refuses the page, by directive, what it
+  // refused and where from: listened for before any script of the page
+  // runs, by a script the policy does not govern (0051).
+  await page.addInitScript(() => {
+    const refused = []
+    Object.defineProperty(window, '__refused', { value: refused })
+    document.addEventListener('securitypolicyviolation', (event) =>
+      refused.push(`${event.effectiveDirective} refused ${event.blockedURI} at ${event.sourceFile}:${String(event.lineNumber)}`),
+    )
+  })
+  // Every worker the page starts, by its address: PDF.js's, where the
+  // policy lets it start one.
+  const workers = new Set()
+  page.on('worker', (worker) => workers.add(worker.url()))
   // The fallback stack's pass: every font file refused, wherever it is from.
   if (refuseFonts) await page.route(FONT_FILE, (route) => route.abort())
   let starters = []
@@ -442,6 +461,20 @@ async function pass(gate, browser, url, entry) {
       'the page fetched nothing and hinted no connection outside the built Studio, its faces included: the PDFs were printed in it',
       elsewhere.size === 0 ? null : [...elsewhere].slice(0, 4).join(', '),
     )
+    const refused = await page.evaluate(() => window.__refused)
+    gate.check(
+      "the demo's content security policy refused the page nothing: no script, style, face, picture, worker or request of the Studio's is outside it",
+      refused.length === 0 ? null : [...new Set(refused)].slice(0, 4).join('; '),
+    )
+    // Refused its worker, PDF.js does not fail: it runs the worker's code on
+    // the page's thread, and every check above would pass all the same.
+    if (!light)
+      gate.check(
+        "PDF.js printed in its worker, the build's own file, which the policy lets it start: not on the page's own thread",
+        [...workers].some((address) => address.startsWith(`${url}assets/pdf.worker`))
+          ? null
+          : `the page started ${workers.size === 0 ? 'no worker' : [...workers].join(', ')}`,
+      )
   } finally {
     await page.close()
   }
@@ -460,13 +493,18 @@ async function main() {
     gate.plan(list)
     await build({ root: app, logLevel: 'warn' })
     if (!existsSync(join(dist, 'index.html'))) throw new Error('vite build wrote no apps/studio/dist/index.html')
-    // Under the path formancy.ai serves the demo at (0018), so every check
+    // Under the path formancy.ai serves the demo at (0018), with the headers
+    // the deploy writes for it, for this address (0051), so every check
     // below is of the build as the demo is served: a file asked for by an
     // absolute path is outside it, and the check on what the page fetched
-    // names it.
-    server = await preview({ root: app, base: demoBase(readDemoConfig()), logLevel: 'warn' })
+    // names it; whatever the policy refuses, the check on what it refused
+    // names.
+    const base = demoBase(readDemoConfig())
+    const { port } = (await resolveConfig({ root: app, logLevel: 'error' }, 'serve', 'production', 'production', true)).preview
+    const served = `http://localhost:${String(port)}${base}`
+    server = await preview({ root: app, base, preview: { headers: headersFor(served) }, logLevel: 'warn' })
     const [url] = server.resolvedUrls?.local ?? []
-    if (url === undefined) throw new Error('vite preview gave no local address')
+    if (url !== served) throw new Error(`vite preview serves the Studio at ${String(url)}, not ${served}, the address its headers were written for`)
     console.log(`the built Studio, served by vite preview at ${url}`)
     const options = { ...LAUNCH_OPTIONS }
     browser = await chromium.launch(options)

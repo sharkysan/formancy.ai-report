@@ -11,8 +11,11 @@ it rests on for Formancy Report.
   and its script uses no browser storage and holds no analytics, Zaraz or Turnstile script.
 - **What a visitor types.** It is sent nowhere. The page's code requests only its own files, and
   `apps/studio/scripts/browser-test.mjs` holds that the Studio fetches nothing, and hints no
-  connection, outside its own build. Unlike the demonstrations of Data and Health, it is served with
-  no content security policy, read from its response the same day.
+  connection, outside its own build. On 4 November 2026 its response carried no content security
+  policy, unlike the demonstrations of Data and Health. Since
+  [0051](docs/decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)
+  the deploy writes one, which refuses the page every connection, and the browser gate serves the
+  Studio under it; the live response is to be read again once that deploy has run.
 - **Cloudflare.** It delivers the demonstration as it delivers the rest of formancy.ai; the privacy
   notice says what it processes and names the safeguards it states for transfers.
 - **Consent.** Nothing optional is set or read, so there is nothing to ask consent for.
