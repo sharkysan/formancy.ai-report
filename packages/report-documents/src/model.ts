@@ -50,7 +50,12 @@ export function isName(value: unknown, name?: string): value is PdfName {
   return isObject(value) && 'name' in value && (name === undefined || value.name === name)
 }
 
-/** The value a reference names, null where no object has its number; any other value as it is. */
+/**
+ * The value a reference names, null where no object has its number; any
+ * other value as it is. One look-up is the whole of it: the parse refuses an
+ * object that is nothing but a reference, so what a reference names is never
+ * another.
+ */
 export function resolved(objects: PdfObjects, value: PdfValue | undefined): PdfValue | PdfStream | undefined {
   return isRef(value) ? (objects.get(value.object) ?? null) : value
 }

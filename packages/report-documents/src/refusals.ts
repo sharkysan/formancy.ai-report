@@ -130,7 +130,7 @@ export const FINDINGS = {
   'stream-length': ['malformed', 'a stream in it does not give its length as a number'],
   'stream-past-end': ['malformed', 'a stream in it runs past the end of the file'],
   'stream-end': ['malformed', 'a stream in it does not end where its length says'],
-  'length-chain': ['malformed', 'the length of a stream in it is a reference to another reference'],
+  'bare-reference': ['malformed', 'an object in it is nothing but a reference to another'],
   'xref-stream': ['malformed', 'its cross-reference stream does not say how its rows are laid out'],
   'xref-stream-rows': ['malformed', 'its cross-reference stream holds fewer rows than it says'],
   'xref-size': ['malformed', 'its cross-reference lists an object past the number of objects it says it holds'],

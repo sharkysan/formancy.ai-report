@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { MAX_DOCUMENT_NAME_BYTES, MAX_DOCUMENT_NAME_LENGTH, MAX_DOCUMENT_NUMBER_LENGTH, MAX_DOCUMENT_STRING_LENGTH, MAX_DOCUMENT_VALUES } from './limits.js'
-import { isStream, type PdfValue } from './model.js'
+import { isRef, isStream, resolved, type PdfValue } from './model.js'
 import { AT_A_BOUND, expectRefused, parsed } from './parse-test-support.js'
 import { basic, concat, CONTENT, latin1, onePage, PdfWriter, repeated, withObject5, type XrefEntry } from './test-pdf.js'
 
@@ -168,11 +168,25 @@ describe('a value is refused', () => {
     for (const body of ['[--5]', '[+]', '[.]', '[-]']) expectRefused(withObject5(body), 'malformed', 'number')
   })
 
-  // An object number is a positive integer and a generation one of 0 to
-  // 65,535: anything else names no object, and a reader that rounded it
-  // would name one.
+  // A fraction of an object number, or a generation past 65,535, names an
+  // object only to a reader that rounds it, and it would name one: refused.
   test('a reference that names no object a PDF can hold', () => {
-    for (const body of ['[-1 0 R]', '[1.5 0 R]', '[0 0 R]', '[1 65536 R]', '[1 0.5 R]']) expectRefused(withObject5(body), 'malformed', 'reference')
+    for (const body of ['[1.5 0 R]', '[1 65536 R]', '[1 0.5 R]']) expectRefused(withObject5(body), 'malformed', 'reference')
+  })
+
+  // The spike's sample: Apple's ENERGY STAR guide gives fifteen structure
+  // elements a /Pg of 18446744073386460000 0 R, a negative object number
+  // written through 2^64, and was refused for it. A whole number below 1 or
+  // past what a number holds exactly is no object a file can define --
+  // every object is listed below /Size, itself within the bound -- and a
+  // viewer reads a reference to an object that does not exist as null
+  // (ISO 32000-1 7.3.10), as PDF.js does these. Read so, as one reference
+  // to nothing, however many numbers name it.
+  test('a reference to a whole object number no file can define names no object', () => {
+    const document = parsed(withObject5('[-1 0 R 0 0 R 18446744073386460000 0 R 9007199254740993 0 R 18446744073386460001 1 R]'))
+    const refs = document.objects.get(5) as readonly PdfValue[]
+    expect(refs.map((ref) => isRef(ref) && resolved(document.objects, ref))).toEqual([null, null, null, null, null])
+    expect(new Set(refs).size).toBe(1)
   })
 
   // What pdf-lib's grammar throws on, a key that is no name or a brace, is a

@@ -236,6 +236,9 @@ class Loop {
       // Unlisted, the definition is one a viewer may find or not; freed by an update, it is nothing to every viewer.
       if (entry === undefined && !definition.xrefStream) refuse('unlisted')
       if (entry === undefined || entry.kind === 'free') continue
+      // An object that is nothing but a reference makes a look-up a chain; every value a reference names is the object
+      // itself, one look-up away, as everything that resolves one reads it.
+      if (isRef(definition.read.value)) refuse('bare-reference')
       const last = definition.wheres.at(-1) as Where
       if (!names(entry, last)) refuse(definition.wheres.some((where) => names(entry, where)) ? 'shadow' : 'misplaced')
       // A member of an object stream that is not itself where the chain places it is found by no viewer; one read from
@@ -287,7 +290,6 @@ class Loop {
       const pending: PendingLength | undefined = definition.read.pending
       if (pending === undefined || !objects.has(num)) continue
       const length = objects.get(pending.length) ?? null
-      if (isRef(length)) refuse('length-chain')
       if (!isCount(length)) refuse('stream-length')
       if (pending.start + length > pending.end) refuse('stream-end')
       for (let at = pending.start + length; at < pending.end; at += 1) if (!isWhite(this.bytes[at])) refuse('stream-end')

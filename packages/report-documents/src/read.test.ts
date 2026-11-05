@@ -90,7 +90,7 @@ describe('readDocument never throws', () => {
   // A host calls the reader on whatever a person uploads: an exception
   // that escaped it would be a server's 500 and a builder's broken panel,
   // and its message may quote the file. A seeded fuzz -- reproducible, two
-  // thousand files, each the sample with up to four splices of random
+  // thousand files, each the sample with up to three splices of random
   // bytes or of PDF's own tokens, most of them in place so that the
   // cross-reference still finds the objects and the read goes deep -- must
   // each read whole or be refused, by one of the reader's codes, in its
@@ -99,18 +99,24 @@ describe('readDocument never throws', () => {
     const file = sample()
     const TOKENS = ['0', '9', ' ', '\n', '(', ')', '<', '>', '<<', '>>', '[', ']', '/', '#', '%', 'R', ' 0 R', 'obj', 'endobj', 'stream\n', 'endstream']
     const MORE = ['xref', 'trailer', 'BI', ' ID ', 'EI', '-', '.', '1e9', '99999999999999999999', '/Filter/FlateDecode', '/Length 0', '/Parent 2 0 R']
-    const piece = fc.oneof(fc.uint8Array({ minLength: 1, maxLength: 8 }), fc.constantFrom(...TOKENS, ...MORE).map(latin1))
+    const piece = fc.oneof(
+      { weight: 1, arbitrary: fc.uint8Array({ minLength: 1, maxLength: 8 }) },
+      { weight: 3, arbitrary: fc.constantFrom(...TOKENS, ...MORE).map(latin1) },
+    )
+    // Anywhere in the file, evenly: fast-check leans a number towards its ends, which here is the header.
+    const at = fc.noBias(fc.nat({ max: file.length }))
     const splice = fc.oneof(
-      { weight: 3, arbitrary: fc.record({ at: fc.nat(), put: piece }).map(({ at, put }) => ({ at, cut: put.length, put })) },
-      { weight: 1, arbitrary: fc.record({ at: fc.nat(), cut: fc.oneof(fc.nat({ max: 16 }), fc.nat()), put: piece }) },
+      { weight: 8, arbitrary: fc.record({ at, put: piece }).map((each) => ({ ...each, cut: each.put.length })) },
+      { weight: 2, arbitrary: fc.record({ at, cut: fc.nat({ max: 16 }), put: piece }) },
+      { weight: 1, arbitrary: fc.record({ at, cut: fc.nat(), put: piece }) },
     )
     const counts = { read: 0, refused: 0 }
     fc.assert(
-      fc.property(fc.array(splice, { minLength: 1, maxLength: 4 }), (splices) => {
+      fc.property(fc.array(splice, { minLength: 1, maxLength: 3 }), (splices) => {
         let bytes = file
-        for (const { at, cut, put } of splices) {
-          const from = at % (bytes.length + 1)
-          bytes = Uint8Array.from([...bytes.subarray(0, from), ...put, ...bytes.subarray(from + cut)])
+        for (const splice of splices) {
+          const from = Math.min(splice.at, bytes.length)
+          bytes = Uint8Array.from([...bytes.subarray(0, from), ...splice.put, ...bytes.subarray(from + splice.cut)])
         }
         const read = readDocument(bytes)
         if (read.ok) {

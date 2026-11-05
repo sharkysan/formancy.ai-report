@@ -326,11 +326,37 @@ describe('parseDocument refuses', () => {
 
   // H10: pdf-lib searches for `endstream` wherever a /Length is wrong, and
   // follows a /Length through any chain of references: a stream that is
-  // not where it says is read as some other bytes.
+  // not where it says is read as some other bytes. The chain's first link
+  // is an object that is nothing but a reference, refused as one.
   test('a /Length past the file, or one behind a chain of references, is refused as malformed', () => {
     expectRefused(lengthPastEnd(), 'malformed', 'stream-past-end')
-    expectRefused(lengthChain(10_000), 'malformed', 'length-chain')
+    expectRefused(lengthChain(10_000), 'malformed', 'bare-reference')
     expect(contentOf(parsed(lengthChain(0))).bytes).toEqual(CONTENT)
+  })
+
+  // An object whose whole value is a reference to another makes every
+  // look-up a chain: the reader resolves a reference one level, as it
+  // resolves a box, a filter or an action, and would read the reference
+  // where the object it names belongs -- a box of no numbers, a page with
+  // no content -- where a viewer follows it. None of the spike's 1,484
+  // files holds one, at the top level or in an object stream, so the file
+  // is refused, wherever the object stands; a definition the
+  // cross-reference does not name -- freed by an update -- is nothing to
+  // every viewer, and is not refused for what it held.
+  test('an object that is nothing but a reference to another is refused, at the top level and in an object stream', () => {
+    expectRefused(withObject5('6 0 R'), 'malformed', 'bare-reference')
+    const w = new PdfWriter()
+    basic(w, { page: '/Probe 5 0 R' })
+    const entries = new Map<number, XrefEntry>([...w.offsets].map(([num, offset]) => [num, { kind: 'at', offset }]))
+    for (const [num, entry] of w.objectStream(6, [[5, '1 0 R']])) entries.set(num, entry)
+    entries.set(6, { kind: 'at', offset: w.offsets.get(6) ?? 0 })
+    expectRefused(w.end(w.xrefStream(7, '/Root 1 0 R', entries)), 'malformed', 'bare-reference')
+    const v = new PdfWriter()
+    basic(v)
+    v.object(5, '6 0 R')
+    const first = v.xref('/Root 1 0 R')
+    v.raw(`startxref\n${first}\n%%EOF\n`)
+    expect(parsed(v.end(v.xref(`/Root 1 0 R/Prev ${first}`, new Map([[5, 'free']]), 6))).objects.has(5)).toBe(false)
   })
 
   // H11, Review Focus 2: pdf-lib keeps the last definition written whatever

@@ -142,6 +142,8 @@ export class Reading {
   /** References by object number, where they name generation 0, as almost every reference does; by number and generation where not. */
   private readonly refs = new Map<number, Reference>()
   private readonly otherRefs = new Map<string, Reference>()
+  /** The reference to object 0, which no definition is (`parse.ts` refuses one): what a number no object can have names. */
+  private readonly nowhere = new Reference(0)
   /** The generation a reference names, where it is not 0; every other reference names 0. */
   readonly generations = new Map<PdfRef, number>()
 
@@ -161,9 +163,19 @@ export class Reading {
     return made
   }
 
-  /** The document's one reference to an object at a generation: an object number from 1, a generation from 0 to 65,535. */
+  /**
+   * The document's one reference to an object at a generation: a whole
+   * object number, a generation from 0 to 65,535. An object number no file
+   * can define -- below 1, or past what a number holds exactly, as a writer
+   * that wraps a negative one through 2^64 writes it -- names no object, as
+   * a reference to any object a file does not hold names none (ISO 32000-1
+   * 7.3.10): the one reference to object 0, which no definition is, however
+   * many such numbers the file writes. A fraction would name an object to a
+   * reader that rounded it, and is refused.
+   */
   ref(object: number, generation: number): Reference {
-    if (!Number.isSafeInteger(object) || object < 1 || !Number.isInteger(generation) || generation < 0 || generation > 65_535) refuse('reference')
+    if (!Number.isInteger(object) || !Number.isInteger(generation) || generation < 0 || generation > 65_535) refuse('reference')
+    if (object < 1 || !Number.isSafeInteger(object)) return this.nowhere
     const known = generation === 0 ? this.refs.get(object) : this.otherRefs.get(`${object} ${generation}`)
     if (known !== undefined) return known
     const made = new Reference(object)
