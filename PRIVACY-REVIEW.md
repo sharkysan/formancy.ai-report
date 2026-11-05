@@ -1,6 +1,7 @@
 # Privacy review
 
-Reviewed on 4 November 2026, against the live deployment. The notice that covers this product's
+Reviewed on 4 November 2026, against the live deployment, and its content security policy on
+5 November 2026, once the deploy that writes it had run. The notice that covers this product's
 demonstration is formancy.ai's [privacy notice](https://formancy.ai/privacy/), and this file is what
 it rests on for Formancy Report.
 
@@ -15,7 +16,10 @@ it rests on for Formancy Report.
   policy, unlike the demonstrations of Data and Health. Since
   [0051](docs/decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)
   the deploy writes one, which refuses the page every connection, and the browser gate serves the
-  Studio under it; the live response is to be read again once that deploy has run.
+  Studio under it. Read from the live responses on 5 November 2026: the Studio's page, a product
+  page and a script of the build each carried the policy `scripts/demo-headers.mjs` states for
+  https://formancy.ai/report/, and in Chromium the Studio printed a preview with PDF.js's worker
+  started, nothing refused by the policy and nothing requested outside `/report/`.
 - **Cloudflare.** It delivers the demonstration as it delivers the rest of formancy.ai; the privacy
   notice says what it processes and names the safeguards it states for transfers.
 - **Consent.** Nothing optional is set or read, so there is nothing to ask consent for.
