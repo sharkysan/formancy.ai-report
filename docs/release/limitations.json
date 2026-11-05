@@ -47,7 +47,7 @@
       ]
     },
     "0004": {
-      "reviewed": "sha256:10d59327ff830044597b7c201ef0f1de062c41cae436812b19801f7dc86eefe9",
+      "reviewed": "sha256:03108506e98563fc27b66830102a1b45e77d6a3c82317331b3e2e81e2d60661b",
       "limitations": [
         {
           "area": "format",
@@ -1627,7 +1627,7 @@
       ]
     },
     "0042": {
-      "reviewed": "sha256:c4a0e6119e1cd9d67580e624cca27cc2cbf6e3f70b763716b9dcbc8bc2220b8d",
+      "reviewed": "sha256:ceb2357d0b57c15c26f56e1d35e94d30c6af8c318fb58dafa3962afa87d78271",
       "limitations": [
         {
           "area": "format",
@@ -1640,6 +1640,11 @@
         {
           "area": "data",
           "says": "A default a spec 5 form gives a field, left alone by the person filling it in, is stored by formancy as their answer, indistinguishable from one they chose, and prints as one."
+        },
+        {
+          "area": "data",
+          "says": "The form bridge never matches an answer against its field's `pattern`, so an answer the pattern refuses, in a submission formancy's engine never stored, prints; and a version whose pattern can be made to backtrack, which formancy published before 0.12.0, is read and printed like any other.",
+          "heldBy": "packages/report-forms/src/read.test.ts"
         },
         {
           "area": "data",

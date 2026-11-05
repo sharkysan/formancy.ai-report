@@ -181,6 +181,26 @@ describe('reviewFormVersion, what prints', () => {
     expect(headerOf(read(REPORT, helped, answered()))).toEqual(headerOf(read(REPORT, V1, answered())))
   })
 
+  // formancy 0.12.0 refuses at publish a pattern that backtracks as its
+  // engine runs it, with the `u` flag, which every release before it
+  // published (formancy.ai 0226), and asks a host to publish every form
+  // with a pattern again: one it refuses goes out with the pattern
+  // rewritten. A review that blocked on that would stop every report of
+  // the form for a rule its answers met when they were stored. The draft
+  // of the version that held the old pattern is the first version's but
+  // for the version it names, and the version that rewrote it, a
+  // constraint tightened in formancy's diff, prints.
+  test('a version that rewrites a pattern formancy refuses from 0.12.0 is compatible with the report drafted from the one before', () => {
+    const backtracking = version((fields) => changed(fields, 'name', (field) => ({ ...field, pattern: '(\\p{L}+)+' })))
+    const rewritten = version((fields) => changed(fields, 'name', (field) => ({ ...field, pattern: '\\p{L}+' })))
+    const drafted = generatedFrom(generate(backtracking, { id: 'visit', locale: 'en', detail: { kind: 'repeater', repeater: 'findings' } })).report
+    expect({ ...drafted, provenance: REPORT.provenance }).toEqual(REPORT)
+    const said = diffSchemas(backtracking as unknown as FormSchema, rewritten as unknown as FormSchema).map((change) => `${change.kind} ${change.path}`)
+    expect(said).toEqual(['field.constraintTightened model.fields.inspector.name'])
+    expect(itemsOf(reviewed(rewritten, drafted, [backtracking]))).toMatchObject({ status: 'compatible', items: [] })
+    expect(headerOf(read(drafted, rewritten, answered()))).toEqual(headerOf(read(REPORT, V1, answered())))
+  })
+
   // "A harmless additional column does not automatically appear in an
   // existing report" (plan 12.3): a field the version added is said, in
   // the scope it stands in, and nothing adds it. It blocks nothing; a
