@@ -41,7 +41,7 @@ artifacts, fonts kept beside its images, a Save in the builders themselves,
 and its published image; reviewed AI changes, a published PDF viewer, and
 a consistent read from Formancy Data.
 
-> **Status, 28 October 2026: 0.2.0, a developer preview, is released.**
+> **Status, 31 October 2026: 0.2.0, a developer preview, is released.**
 > Its eight packages are on npm, with provenance, and
 > [the GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.2.0)
 > carries the signed SBOM and release report of the run that published
