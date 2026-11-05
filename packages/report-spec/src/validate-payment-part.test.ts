@@ -154,6 +154,8 @@ describe('the page of a report with a payment part', () => {
     const report = edited((r) => {
       setAt(r, '/page/size', 'Letter')
       setAt(r, '/page/margins/top', 560)
+      // The chart's 200 points would not fit what the margin leaves either; the page is what is under test.
+      removeAt(r, '/regions/summary/4')
     })
     expect(refusals(report)).toEqual(['payment-part-page /page'])
   })
@@ -168,6 +170,8 @@ describe('the page of a report with a payment part', () => {
       const report = edited((r) => {
         setAt(r, pointer, value)
         removeAt(r, PART)
+        // The chart's 200 points would not fit the margin of 600; the page is what is under test.
+        removeAt(r, '/regions/summary/4')
       })
       expect(refusals(report), pointer).toEqual([])
     }

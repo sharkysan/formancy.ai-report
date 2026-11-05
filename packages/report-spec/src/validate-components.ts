@@ -32,6 +32,7 @@ import { MAX_COLUMNS, MAX_NESTING_DEPTH, MAX_REGION_COMPONENTS, MIN_COLUMNS } fr
 import { squareRoom } from './page.js'
 import { at } from './pointer.js'
 import { COLOR } from './syntax.js'
+import { CHART_OPTIONAL, CHART_REQUIRED, readChart } from './validate-chart.js'
 import { resolve, withinPage } from './validate-context.js'
 import { EPC_QR_CODE_OPTIONAL, EPC_QR_CODE_REQUIRED, readEpcQrCode } from './validate-epc-qr-code.js'
 import type { Ctx } from './validate-context.js'
@@ -248,6 +249,12 @@ const KINDS: { readonly [K in ComponentKind]: KindRule<Extract<Component, { kind
     flowOnly: true,
     inFlow: true,
     read: (c, o, path, scope, base) => readTable(c, o, path, scope.region, base),
+  },
+  chart: {
+    required: CHART_REQUIRED,
+    optional: CHART_OPTIONAL,
+    flowOnly: true,
+    read: (c, o, path, scope, base) => readChart(c, o, path, scope.region, base),
   },
   pageBreak: {
     required: [],

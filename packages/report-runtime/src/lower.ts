@@ -76,6 +76,17 @@ const LOWER: { readonly [K in ComponentKind]: Lowerer<K> } = {
     ...optional('padding', section.padding),
   }),
   table: (table, { render, path, style }) => tableBlock(render, table, path, style),
+  // Interim (the charts plan, R10): a chart lowered to nothing would print the report without it, and nothing would say so.
+  chart: (chart, { render, path }) => {
+    render.problems.error({
+      stage: 'resolve',
+      code: 'chart-not-resolved',
+      path,
+      message: `chart ${chart.id} is not resolved by this release of the runtime`,
+      componentId: chart.id,
+    })
+    return undefined
+  },
   pageBreak: () => ({ kind: 'pageBreak' }),
   keepTogether: (kept, { render, path, style }) => ({ kind: 'keepTogether', blocks: blocksOf(render, kept.components, `${path}/components`, style) }),
 }
