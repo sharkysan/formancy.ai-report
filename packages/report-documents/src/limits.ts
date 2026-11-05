@@ -41,10 +41,13 @@ export const MAX_DOCUMENT_OBJECTS = 100_000
  * them a file of sections nothing chains -- twenty cross-reference streams
  * whose rows take no byte, or tables of four-byte entries -- held hundreds of
  * mebibytes (the parse's review measured 187 MiB and 436 MiB). Twice
- * `MAX_DOCUMENT_OBJECTS`, a ruling: a hybrid file lists its objects twice,
- * and updates list a few again. Not yet measured at the bound.
+ * `MAX_DOCUMENT_OBJECTS` and the free head of each list, a ruling: a
+ * hybrid file lists every object twice, in its table and in the stream its
+ * /XRefStm names, each from object 0, so that a hybrid file of
+ * `MAX_DOCUMENT_OBJECTS` objects reads; an update that lists one again
+ * past that is refused. Not yet measured at the bound.
  */
-export const MAX_DOCUMENT_XREF_ENTRIES = 2 * MAX_DOCUMENT_OBJECTS
+export const MAX_DOCUMENT_XREF_ENTRIES = 2 * (MAX_DOCUMENT_OBJECTS + 1)
 
 /**
  * Cross-reference sections a file may hold, chained or not, each counted as

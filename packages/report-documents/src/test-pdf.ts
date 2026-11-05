@@ -215,6 +215,44 @@ export function onePageUnderXrefStream(predicted = false): Uint8Array {
 /** Objects 1 to 4 and object 5, `body`, which the page names, so that every reader parses it. */
 export const withObject5 = (body: string | Uint8Array): Uint8Array => onePage({ page: '/Probe 5 0 R' }, (w) => w.object(5, body))
 
+/** One-number objects from 5 to `last`, written at the writer's end a line at a time, their offsets kept: what fills a file to an objects bound. */
+function numbered(w: PdfWriter, last: number): void {
+  const lines: string[] = []
+  let at = w.length
+  for (let num = 5; num <= last; num += 1) {
+    const line = `${num} 0 obj 1 endobj\n`
+    w.offsets.set(num, at)
+    at += line.length
+    lines.push(line)
+  }
+  w.raw(lines.join(''))
+}
+
+/** A one-page file of exactly `count` objects, every one listed by its classic cross-reference: objects 1 to 4, then one-number objects. */
+export function objectsListed(count: number): Uint8Array {
+  const w = new PdfWriter()
+  basic(w)
+  numbered(w, count)
+  return w.end(w.xref('/Root 1 0 R'))
+}
+
+/**
+ * A hybrid file of `count` objects, as Acrobat writes one for readers old
+ * and new: objects 1 to 4, one-number objects, and object `count` the
+ * cross-reference stream its classic table's /XRefStm names, the table and
+ * the stream each listing every object and the free head of the list --
+ * `count + 1` entries each, `2 * (count + 1)` together. `aside` is written
+ * before them, where nothing chains it.
+ */
+export function hybridOf(count: number, aside = ''): Uint8Array {
+  const w = new PdfWriter()
+  basic(w)
+  numbered(w, count - 1)
+  w.raw(aside)
+  const stream = w.xrefStream(count, '', new Map<number, XrefEntry>([...w.offsets].map(([num, offset]) => [num, { kind: 'at', offset }])))
+  return w.end(w.xref(`/Root 1 0 R/XRefStm ${stream}`))
+}
+
 /** A file of exactly `n` bytes, `make`'s, whose argument is what the generator fills: found by measuring and correcting. */
 export function exactly(n: number, make: (fill: number) => Uint8Array): Uint8Array {
   let fill = Math.max(0, n - make(0).length)

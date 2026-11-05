@@ -1,17 +1,17 @@
 import { Deflate } from 'pako'
 import { expect } from 'vitest'
-import { closureOf } from './closure.js'
 import type { PdfStream, PdfValue } from './model.js'
-import { noticesOf, Tally, type DocumentNotice } from './notices.js'
-import { pagesOf, type PrintablePage } from './pages.js'
-import { parseDocument, type ParsedDocument } from './parse.js'
+import type { DocumentNotice } from './notices.js'
+import type { PrintablePage } from './pages.js'
+import type { ParsedDocument } from './parse.js'
+import { readWhole } from './read.js'
 import { refusal, type DocumentRefusal, type DocumentRefusalCode, type Finding } from './refusals.js'
 import { basic, CONTENT, latin1, MIB, PdfWriter, type XrefEntry } from './test-pdf.js'
 
 /**
  * What the pages', the closure's, the annotations' and the notices' tests
  * write and assert, once: files of pages written object by object, and a
- * file printed as `readDocument` will print it -- parsed, its pages read
+ * file printed as `readDocument` prints it -- parsed, its pages read
  * with their annotations' appearances, the closure of what they draw with,
  * and the notices of what does not survive printing -- or refused, naming
  * the page where the refusal belongs to one. Never published: nothing in
@@ -66,7 +66,7 @@ export function pagesFile(pages: readonly string[], objects: Readonly<Record<num
   })
 }
 
-/** A file read as `readDocument` will read it: parsed, its pages, the closure of what every page draws with, and its notices. */
+/** A file read as `readDocument` reads it: parsed, its pages, the closure of what every page draws with, and its notices. */
 export interface Printed {
   readonly parsed: ParsedDocument
   readonly pages: readonly PrintablePage[]
@@ -74,25 +74,12 @@ export interface Printed {
   readonly notices: readonly DocumentNotice[]
 }
 
-/**
- * What a page draws with, which the closure is taken from: its resources,
- * its transparency group where it has one, and the dictionary of each
- * appearance's form -- not the form, a stream, which is no value the
- * closure walks, and whose bytes the annotations decoded already.
- */
-export const rootsOf = (pages: readonly PrintablePage[]): PdfValue[] =>
-  pages.flatMap((page) => [page.resources, ...(page.group === undefined ? [] : [page.group]), ...page.appearances.map((drawn) => drawn.form.dict)])
-
-/** `bytes` parsed, their pages read, the closure of every page's resources, group and appearances taken, and the notices counted; or the first refusal. */
+/** `bytes` read as `readDocument` reads them (`readWhole`), with the parse they were read from; or the first refusal. */
 export function printed(bytes: Uint8Array): Printed | DocumentRefusal {
-  const parsed = parseDocument(bytes)
-  if ('ok' in parsed) return parsed
-  const tally = new Tally()
-  const pages = pagesOf(parsed, tally)
-  if ('ok' in pages) return pages
-  const closure = closureOf(parsed, rootsOf(pages))
-  if ('ok' in closure) return closure
-  return { parsed, pages, closure, notices: noticesOf(parsed, tally) }
+  const read = readWhole(bytes)
+  if ('ok' in read) return read
+  const { parsed, pages, objects, notices } = read
+  return { parsed, pages, closure: objects, notices }
 }
 
 /** What `bytes` print, failing the test where they are refused. */

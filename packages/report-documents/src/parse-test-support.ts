@@ -18,7 +18,10 @@ import { refusal, type DocumentRefusal, type DocumentRefusalCode, type Finding }
  * every file of the suite at once, at a load average near 4, on 4 November
  * 2026 -- past vitest's 5 s default. Thirty seconds, so that a runner
  * several times slower still passes. Time is not what any of them asserts;
- * each asserts its refusal or its read.
+ * each asserts its refusal or its read. The fuzz `readDocument` never
+ * throws under reads two thousand small files, which is the reader's own
+ * work too: 2.8 s under coverage with every file of the suite at once, at
+ * a load average near 4, on 5 November 2026.
  */
 export const AT_A_BOUND = { timeout: 30_000 }
 

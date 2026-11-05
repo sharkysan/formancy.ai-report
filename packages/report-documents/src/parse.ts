@@ -134,7 +134,6 @@ class Loop {
 
   read(): ParsedDocument {
     const bytes = this.bytes
-    if (bytes.length > MAX_DOCUMENT_BYTES) refuse('bytes')
     if (!isPdf(bytes)) refuse('header')
     const eof = findLast(bytes, EOF)
     if (eof < 0) refuse('no-eof')
@@ -297,7 +296,18 @@ class Loop {
   }
 }
 
-/** Internal: the file parsed, or why not. Synchronous; never throws. */
+/**
+ * Internal: the file parsed, or why not. Synchronous; never throws. The
+ * bytes are held to their bound, then copied, before one is read: every
+ * stream the parse keeps is a view of its own copy, so that a caller who
+ * reuses its buffer, or another thread that writes the SharedArrayBuffer
+ * under it while the parse runs, changes nothing that was read or checked.
+ * Copied by construction, never by `slice`, which Node's Buffer makes a
+ * view.
+ */
 export function parseDocument(bytes: Uint8Array): ParsedDocument | DocumentRefusal {
-  return caught(() => new Loop(bytes).read())
+  return caught(() => {
+    if (bytes.length > MAX_DOCUMENT_BYTES) refuse('bytes')
+    return new Loop(new Uint8Array(bytes)).read()
+  })
 }

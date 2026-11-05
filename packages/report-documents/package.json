@@ -30,6 +30,7 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "fast-check": "catalog:",
     "publint": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
