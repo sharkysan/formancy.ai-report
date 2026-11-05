@@ -1,7 +1,7 @@
 import { isRegular, isWhite } from './bytes.js'
 
 /**
- * Where PDF.js 6.4.299 -- the viewer the corpus pins, and the Studio's --
+ * Where PDF.js 6.4.299 (`MIRRORED_PDFJS`) -- the viewer the corpus pins, and the Studio's --
  * ends an inline image whose data it finds the end of by searching:
  * unfiltered and Flate (`Parser.findDefaultInlineStreamEnd`,
  * pdf.worker.mjs:16875). It takes an `EI` followed by SPACE, LF or CR as
