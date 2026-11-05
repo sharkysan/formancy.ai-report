@@ -116,7 +116,7 @@ colours formancy's `room.css` sets, which `scripts/palette.test.mjs`
 guards; and a chart's palette is the colours its series and a pie's
 slices are drawn in by place, report-spec's `CHART_PALETTE` or the chart's
 own `palette`
-([0051](../decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+([0052](../decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
 
 **"Refused"** is said of a validation error, a command's refusal, a runtime
 error and a `RenderRefusal` alike. Each layer's kind is in

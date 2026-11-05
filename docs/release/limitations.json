@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:749f75cf22f884ac6d3ed87045a56538313c09b9e750bc52a8ac1d2dd77f8b41",
+      "reviewed": "sha256:6e36b3e78c78f8e66734806c1fbfce16c2be1286dd782b547dfa8c0a37174931",
       "limitations": [
         {
           "area": "format",
@@ -405,7 +405,7 @@
       ]
     },
     "0018": {
-      "reviewed": "sha256:7fcafe0647cd5c1e6da27afa0caa35ca1e142dc36b4310992e8e7fb0b76a5e1e",
+      "reviewed": "sha256:017cc0a43db29a26e8d152a0f116c39c18561c6a195f4aa61c6fba0c3d1affb0",
       "limitations": [
         {
           "area": "release",
@@ -2249,7 +2249,20 @@
       ]
     },
     "0051": {
-      "reviewed": "sha256:8fee03e7665ed77510fb878ddbabb5fb4b3a6665845577fa108212e7fedf9bcb",
+      "reviewed": "sha256:7a2e8d8fac71014d3055c3e9a9b95e747cad4657143cdd8ef8875542387786fb",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "The demo's headers are written by the deploy and measured by the browser gate under one function of the address, but nothing in this repository reads them from formancy.ai/report/, so a Cloudflare setting that drops or rewrites one goes unnoticed until somebody reads the response."
+        },
+        {
+          "area": "testing",
+          "says": "The browser gate hears what the demo's policy refuses in the page, and in Chromium alone: a refusal inside PDF.js's worker, or in Firefox or WebKit, is heard by nobody, though a worker that does not start fails the gate."
+        }
+      ]
+    },
+    "0052": {
+      "reviewed": "sha256:568c43ad88b1f944eb2f00fe172641a3bd3d1b07fd4feb68571a26ea814165e6",
       "limitations": [
         {
           "area": "format",

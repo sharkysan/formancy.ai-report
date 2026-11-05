@@ -51,7 +51,7 @@ version
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
 [0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)),
 and 0.2.0 one with a chart
-([0051](../decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+([0052](../decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
 An SVG construct the cleaner's tables do not name is refused, named, never
 dropped: a construct nobody decided about is one a browser may draw and
 the converter not (0030).
@@ -74,7 +74,7 @@ field takes its series. The runtime does not resolve one yet, and refuses
 a report that would print one as `chart-not-resolved`, naming it, in a
 preview as in a final render, rather than resolve the report without it;
 and the builders' palettes do not offer one until the builders edit a
-chart's own properties (0051).
+chart's own properties (0052).
 What only the data can say -- whether the categories fit the box, how
 many slices a pie has -- is left to the stages that resolve and draw a
 chart, to be refused there, never cut to fit.
@@ -123,7 +123,7 @@ The validator's refusals of a chart are located by their path, and say
 "this chart" where they name it at all; the core's diagnostics and the
 runtime's refusal name the chart, and a series, by id. Each says what is
 wrong by a count, a size, a type, a function or a colour, never quoting a
-label, a title or the empty text, which may be a customer's words (0051).
+label, a title or the empty text, which may be a customer's words (0052).
 An SVG's refusal names the element path and the construct, and what
 cleaning removed a kind, a name and a count: a link's address, a script's
 text and a style's content are never repeated, and a name is repeated

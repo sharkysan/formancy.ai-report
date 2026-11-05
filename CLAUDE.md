@@ -188,7 +188,7 @@ that would print one as `chart-not-resolved` until it resolves charts; and
 builder-core's palette withholds it (`NOT_OFFERED`) until the builders
 edit a chart's own properties, its default, which labels the rows without
 a category, held to the validator meanwhile
-([0051](docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+([0052](docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort

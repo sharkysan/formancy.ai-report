@@ -235,7 +235,7 @@ decimal or null, by one rule for both. One that may be null is checked as
 or a string is a type error, with `dec()` as the hint.
 
 A chart holds no expression
-([0051](../../docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)):
+([0052](../../docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)):
 its category and each of its series read a detail field, whose type the
 validator holds, and its formats may read a currency from a header field.
 Each is named after the chart, as a field a text binds is, so a field only

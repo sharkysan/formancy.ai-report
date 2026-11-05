@@ -52,7 +52,7 @@ describe('the palette', () => {
   })
 
   // A chart inserted now would be a box whose own properties no builder
-  // edits, in a report the runtime refuses to render (0051): offered, it
+  // edits, in a report the runtime refuses to render (0052): offered, it
   // would be a button that makes a report nobody can print. Sent anyway, an
   // insert or a drag of one is refused as of a kind the palette does not
   // have.

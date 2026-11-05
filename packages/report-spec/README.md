@@ -410,7 +410,7 @@ What it does not do:
 ## A chart
 
 A component, `chart`, is a bar, line or pie chart of the detail rows
-([0051](../../docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+([0052](../../docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
 Its categories are the values of one detail field, and each of its series
 a total of one detail field for each category, by a function an aggregate
 takes. Its types and lists are `chart.ts`'s, and `validate-chart.ts` holds

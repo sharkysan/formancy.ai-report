@@ -148,7 +148,7 @@ const editor = createReportEditor(opening.session, {
   `unavailable`, as of a kind the palette does not have. A chart a report
   holds is drawn, moved and removed as any component, with the properties
   every component has
-  ([0051](../../docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+  ([0052](../../docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
   Where the report lacks what a kind needs (an image with nothing to
   draw, a table with no detail dataset), the entry says what to declare
   first.

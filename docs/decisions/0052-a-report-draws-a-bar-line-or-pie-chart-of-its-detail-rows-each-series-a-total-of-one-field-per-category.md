@@ -1,4 +1,4 @@
-# 0051 — A report draws a bar, line or pie chart of its detail rows, each series a total of one field per category
+# 0052 — A report draws a bar, line or pie chart of its detail rows, each series a total of one field per category
 
 - **Status:** accepted; extends [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose components gain the chart
 - **Date:** 2026-11-01

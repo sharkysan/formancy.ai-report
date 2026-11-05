@@ -46,7 +46,7 @@ export const NO_ACCOUNT = 'DE36 0000 0000 0000 0000 00'
  * The kinds the format has that the palette does not offer yet. A chart,
  * until the builders edit a chart's own properties and a render draws one:
  * inserted now, it would be a box whose kind, category and series no
- * builder edits, in a report the runtime refuses to render (0051). An
+ * builder edits, in a report the runtime refuses to render (0052). An
  * insert or a drag of one is refused as of a kind the palette does not
  * have. Its default stands below, held to the validator, for the builders
  * that offer it; the list goes with them.

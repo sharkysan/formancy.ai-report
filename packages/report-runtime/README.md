@@ -65,7 +65,7 @@ if (resolution.ok) {
   release does not resolve charts, and would otherwise print the report
   without the chart. A chart its condition hides prints nothing, as any
   component, and is not refused
-  ([0051](../../docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+  ([0052](../../docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
 
 It never returns part of a document.
 

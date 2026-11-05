@@ -10,9 +10,30 @@ later.
 
 ## Unreleased
 
+**The demo at `/report/` is served under a content security policy that admits its own files
+alone**
+([0051](docs/decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)).
+It was served with none, unlike the demonstrations of Data and Health. The page already sent
+nothing anywhere, which the browser gate held by listening; now the browser refuses it too. Every
+connection is refused, scripts, styles, faces and PDF.js's worker come only from the Studio's and
+the pages' own directories, and Trusted Types are required. The deploy writes the headers, and
+`pnpm demo` and the browser gate serve the Studio under the same headers for their own address.
+Measured under the policy, the Studio broke it twice, and both are fixed. The Angular builder's
+`display: contents` was a style attribute, which is refused, and is now a style binding. PDF.js
+started its worker from a string, which Trusted Types refuse; refused, it would have printed every
+preview on the page's own thread. The Studio now makes the one policy the demo allows, which lets
+only that worker's address through. The gate reads the Download PDF by downloading it, not by a
+fetch the policy refuses.
+
+**The legal notice and the privacy review are answered, and are no longer drafts.** The operator
+has no commercial register entry or VAT number, and the privacy review says what was read from the
+live demonstration at `/report/` on 2026-11-04: no cookie, no browser storage, no analytics, and
+nothing sent anywhere. formancy.ai's legal and privacy notices, which these point at, were finished
+the same day (formancy.ai 0232).
+
 **A report may hold a bar, line or pie chart of its detail rows, which no
 release prints yet**
-([0051](docs/decisions/0051-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+([0052](docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
 Reports are often read for a shape -- which month was up, which category
 is most of the total -- and Report could print numbers only in tables. A
 chart arrives a stage at a time, the format and the editing core first,
