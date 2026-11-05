@@ -28,11 +28,11 @@ export const DOCUMENT_REFUSAL_CODES = [
   'malformed',
   /** Arrays and dictionaries nested past `MAX_DOCUMENT_DEPTH`. */
   'too-deep',
-  /** More objects than `MAX_DOCUMENT_OBJECTS`, written, claimed by a cross-reference or reached by its pages; more cross-reference entries than `MAX_DOCUMENT_XREF_ENTRIES` or sections than `MAX_DOCUMENT_XREF_SECTIONS`, every section together; more values than `MAX_DOCUMENT_VALUES`, or annotations listed by its pages, every page together; names past `MAX_DOCUMENT_NAME_BYTES`. */
+  /** More objects than `MAX_DOCUMENT_OBJECTS`, written, claimed by a cross-reference or reached by its pages; more cross-reference entries than `MAX_DOCUMENT_XREF_ENTRIES` or sections than `MAX_DOCUMENT_XREF_SECTIONS`, every section together; more values than `MAX_DOCUMENT_VALUES`, in the file or in its inline images' dictionaries, or annotations listed by its pages, every page together; names past `MAX_DOCUMENT_NAME_BYTES`. */
   'too-many-objects',
-  /** Streams that decode past `MAX_DOCUMENT_INFLATED`, every stage of every stream together. */
+  /** Streams that decode past `MAX_DOCUMENT_INFLATED`, every stage of every stream together; an image that declares more pixels than `MAX_DOCUMENT_IMAGE_PIXELS`, which a viewer decodes it to. */
   'inflates-too-far',
-  /** A filter the reader does not decode where it has to: LZW, Crypt, a TIFF predictor, an image's own filter, or a name PDF does not define. */
+  /** A filter the reader does not decode where it has to, or does not pass on: LZW, Crypt, a TIFF predictor, an image's own filter anywhere but last on an image, or a name PDF does not define; a stream whose data is in another file; an inline image whose end the reader cannot find. */
   'unsupported-filter',
   /** The cross-reference and the objects disagree: an earlier definition named than the last one written, a place where no object is, an object it does not list, a generation no object has. */
   'xref-disagrees',
@@ -197,6 +197,13 @@ export const FINDINGS = {
   'appearance-state': ['appearance-state-missing', 'an annotation in it names no appearance state it holds'],
   upright: ['annotation-turned', 'an annotation in it stays upright on a turned page'],
   'link-border': ['link-border', 'a link in it holds no appearance and a viewer draws its border'],
+  'image-size': ['malformed', 'an image in it does not give its width and height as whole numbers'],
+  'image-space': ['malformed', 'an inline image in it is drawn in colours the reader cannot count'],
+  'image-pixels': ['inflates-too-far', 'an image in it is larger than a document may hold'],
+  'inline-image': ['malformed', 'an inline image in it is not written as one'],
+  'inline-end': ['malformed', 'an inline image in it does not end where its data ends'],
+  'inline-filter': ['unsupported-filter', 'an inline image in it is compressed in a way whose end the reader cannot find'],
+  external: ['unsupported-filter', 'a stream in it keeps its data in another file'],
 } as const satisfies Record<string, readonly [DocumentRefusalCode, string]>
 export type Finding = keyof typeof FINDINGS
 

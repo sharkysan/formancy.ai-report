@@ -110,3 +110,20 @@ export const MAX_DOCUMENT_STRING_LENGTH = 65_535
 
 /** A number's characters. Chosen; the sample's longest was 20. */
 export const MAX_DOCUMENT_NUMBER_LENGTH = 32
+
+/**
+ * Pixels one image declares -- its width times its height -- which is what
+ * a viewer of the report decodes it to: an image is never decoded by the
+ * reader and never taken from `MAX_DOCUMENT_INFLATED`, so that a lossless
+ * scan is held to its size and not to what its data inflates to. Each
+ * image alone: an XObject, its masks, or one inline in a content stream.
+ * Chosen, a ruling: the parser spike's value and its meaning, so that a
+ * 48-megapixel photograph (8,000 by 6,000), which a site visit's uploads
+ * hold, passes; the largest image of the spike's sample of 1,484 PDFs was
+ * 4,665,600 pixels. Pixels, not samples: a viewer may decode an image at
+ * the bound to 200,000,000 bytes of CMYK, twice that at 16 bits a sample.
+ * The spike read a file of one image at the bound in 2.1 ms and refused one
+ * a pixel past it in 2.1 ms, on 3 November 2026, never decoding either; not
+ * measured here.
+ */
+export const MAX_DOCUMENT_IMAGE_PIXELS = 50_000_000

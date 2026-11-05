@@ -1,5 +1,6 @@
 import { isAnnotationSubtype, type AnnotationSubtype } from './annotation-subtypes.js'
 import { decodedBytes, type InflateBudget } from './inflate.js'
+import { heldInlineImages, ownResources } from './inline-images.js'
 import { MAX_DOCUMENT_VALUES } from './limits.js'
 import {
   isArray,
@@ -41,7 +42,8 @@ import { onAnnotation, refuse, type Finding } from './refusals.js'
  * Bounded by what the pages list, every page together: each listing is
  * read at a constant cost -- an annotation listed many times is read once
  * -- every field above a widget is read once, and each appearance's form
- * is decoded once, from the document's one budget.
+ * is decoded once, from the document's one budget, and its inline images
+ * held with its own resources (inline-images.ts).
  */
 
 /** The flags the print rule reads (ISO 32000-1 Table 165). */
@@ -244,6 +246,7 @@ const NOTHING: Outcome = { counted: [], upright: false }
 
 /** Internal: the annotations of a document's pages, read page by page, what does not survive printing counted into a tally. */
 export class Annotations {
+  private readonly parsed: ParsedDocument
   private readonly objects: PdfObjects
   private readonly budget: InflateBudget
   private readonly tally: Tally
@@ -252,10 +255,11 @@ export class Annotations {
   private listed = 0
   /** What each annotation comes to, read once however many times the pages list it. */
   private readonly outcomes = new Map<PdfDict, Outcome>()
-  /** The forms decoded already, each charged once however many annotations draw it. */
+  /** The forms decoded and read for inline images already, each charged once however many annotations draw it. */
   private readonly decoded = new Set<PdfStream>()
 
   constructor(parsed: ParsedDocument, tally: Tally) {
+    this.parsed = parsed
     this.objects = parsed.objects
     this.budget = parsed.budget
     this.tally = tally
@@ -338,7 +342,7 @@ export class Annotations {
     const covered = coveredBy(objects, form)
     if (!hasArea(covered)) return { counted, upright: false }
     if (!this.decoded.has(form)) {
-      decodedBytes(form, this.budget)
+      heldInlineImages(this.parsed, decodedBytes(form, this.budget), ownResources(objects, form), this.budget)
       this.decoded.add(form)
     }
     return { counted, drawn: { form, matrix: placed(rect, covered) }, upright: (flags & NO_ROTATE) !== 0 }

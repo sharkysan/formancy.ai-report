@@ -195,6 +195,22 @@ describe('decoded admits', () => {
     expect(decoded(flate(TEXT, { DecodeParms: { object: 7 } }), { left: MIB })).toEqual(refusal('filter-name'))
     expect(decoded(flate(TEXT, { DecodeParms: [{ object: 7 }] }), { left: MIB })).toEqual(refusal('filter-name'))
   })
+
+  // A stream whose dictionary names a file (/F) keeps its data there, and
+  // its filters for it under /FFilter and /FDecodeParms (ISO 32000-1
+  // 7.3.8.2): read as its own bytes, unfiltered, it would be what no viewer
+  // reads -- and PDF.js reads /F as /Filter, so a bomb named /F
+  // /FlateDecode would pass the reader as data it never inflated and
+  // inflate in PDF.js. Refused before a byte of it is read, nothing taken
+  // from the budget; Report never fetches by address.
+  test('a stream that keeps its data in another file is refused before its data is read', () => {
+    const budget = { left: MIB }
+    for (const entries of [{ F: { bytes: latin1('data.bin') } }, { F: name('FlateDecode') }, { FFilter: name('FlateDecode') }, { FDecodeParms: dictOf({}) }]) {
+      expect(decoded(streamOf(deflate(new Uint8Array(2 * MIB)), entries), budget)).toEqual(refusal('external'))
+      expect(decoded(flate(TEXT, entries), budget)).toEqual(refusal('external'))
+    }
+    expect(budget.left).toBe(MIB)
+  })
 })
 
 describe('what decoding reaches into pako for', () => {

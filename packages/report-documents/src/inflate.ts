@@ -20,8 +20,10 @@ import { caught, refuse, type DocumentRefusal } from './refusals.js'
  * that multiple passes the budget, then decoded by pdf-lib's port of
  * PDF.js and charged what it wrote. Nothing else is decoded: LZW, Crypt and
  * an image's own filters are refused where a stream must be decoded. An
- * image's own filter last in an image XObject's chain is passed on to the
- * viewer as it is written, the filters before it decoded and charged.
+ * image is never decoded: its filters are checked and it is passed on to
+ * the viewer as it is written (`passedOn`), held to the pixels it declares
+ * instead (images.ts). A stream that keeps its data in another file is
+ * refused before a byte of it is read (`filtersOf`).
  */
 
 /**
@@ -65,7 +67,8 @@ export class BoundedInflate extends Inflate {
   }
 }
 
-function inflated(data: Uint8Array, budget: InflateBudget): Uint8Array {
+/** What a zlib stream at the start of `data` inflates to, taken from `budget`, and where it ends: after its deflate data, the four bytes of its checksum. */
+function inflate(data: Uint8Array, budget: InflateBudget): { readonly bytes: Uint8Array; readonly end: number } {
   if (data.length < 2) refuse('flate-header')
   const cmf = data[0] as number
   const flg = data[1] as number
@@ -80,9 +83,23 @@ function inflated(data: Uint8Array, budget: InflateBudget): Uint8Array {
   }
   // Pushed as the last input, the data ends the inflate either way: done, or cut short or damaged.
   if (inflater.err !== 0) refuse('flate-data')
-  // After the deflate data: its four-byte checksum, then nothing but white space, the end of line a writer may count in /Length.
-  for (let at = data.length - inflater.after + 4; at < data.length; at += 1) if (!isWhite(data[at])) refuse('flate-after')
-  return inflater.result
+  return { bytes: inflater.result, end: data.length - inflater.after + 4 }
+}
+
+function inflated(data: Uint8Array, budget: InflateBudget): Uint8Array {
+  const { bytes, end } = inflate(data, budget)
+  // After the checksum, nothing but white space, the end of line a writer may count in /Length.
+  for (let at = end; at < data.length; at += 1) if (!isWhite(data[at])) refuse('flate-after')
+  return bytes
+}
+
+/**
+ * Internal: where Flate data that `data` begins with ends, its checksum
+ * counted -- what an inline image's data is delimited by -- inflated
+ * against `budget` to find it; throws the refusal.
+ */
+export function inflatedEnd(data: Uint8Array, budget: InflateBudget): number {
+  return inflate(data, budget).end
 }
 
 /** The most each fixed-ratio filter writes for a byte it reads: ASCIIHex half; ASCII85 four, for `z`; RunLength 64, a two-byte run of 128. */
@@ -162,8 +179,18 @@ function unpredicted(data: Uint8Array, parms: PdfDict | undefined): Uint8Array {
 /** A value that may be one of a list or the list itself, as a list; none where absent. */
 const listed = (value: PdfValue | undefined): readonly PdfValue[] => (value === undefined ? [] : isArray(value) ? value : [value])
 
-/** The filters a stream names, in order: a name, an array of names, or none. */
-function filtersOf(dict: PdfDict): readonly string[] {
+/**
+ * The entries that say a stream's data is in another file (ISO 32000-1
+ * 7.3.8.2): read as written, the stream's own bytes would be taken for its
+ * data where a viewer reads another file's, or -- PDF.js reads /F as
+ * /Filter -- where a viewer decodes them through filters the reader never
+ * saw.
+ */
+const EXTERNAL = ['F', 'FFilter', 'FDecodeParms'] as const
+
+/** Internal: the filters a stream names, in order: a name, an array of names, or none; refused, before its data is read, where its data is in another file. */
+export function filtersOf(dict: PdfDict): readonly string[] {
+  if (EXTERNAL.some((key) => dict.entries.has(key))) refuse('external')
   return listed(dict.entries.get('Filter')).map((item) => (isName(item) ? item.name : refuse('filter-name')))
 }
 
@@ -185,18 +212,25 @@ function parmsOf(dict: PdfDict, count: number): readonly (PdfDict | undefined)[]
 const IMAGE_FILTERS: ReadonlySet<string> = new Set(['DCTDecode', 'JPXDecode', 'CCITTFaxDecode', 'JBIG2Decode'])
 
 /**
- * `stream`'s bytes decoded through its filters, each stage taken from
- * `budget`; throws the refusal. Of an `image` -- an image XObject -- a last
- * filter that is an image's own is left to the viewer, and the bytes are
- * what that filter reads.
+ * Internal: refused where one of an image's filters, in order, is not one
+ * a viewer decodes it through and the reader passes on as it is written --
+ * Flate and the fixed-ratio filters anywhere, an image's own only last. An
+ * image is never decoded, and a filter the reader does not know is no more
+ * admitted on one than where it decodes.
  */
-export function decodedBytes(stream: PdfStream, budget: InflateBudget, image = false): Uint8Array {
+export function passedOn(filters: readonly string[]): void {
+  for (const [i, filter] of filters.entries()) {
+    const own = IMAGE_FILTERS.has(filter) && i === filters.length - 1
+    if (!own && filter !== 'FlateDecode' && !RATIO.has(filter)) refuse('filter')
+  }
+}
+
+/** `stream`'s bytes decoded through its filters, each stage taken from `budget`; throws the refusal. */
+export function decodedBytes(stream: PdfStream, budget: InflateBudget): Uint8Array {
   const filters = filtersOf(stream.dict)
   const parms = parmsOf(stream.dict, filters.length)
-  const last = filters.at(-1)
-  const decoding = image && last !== undefined && IMAGE_FILTERS.has(last) ? filters.slice(0, -1) : filters
   let data = stream.bytes
-  for (const [i, filter] of decoding.entries()) {
+  for (const [i, filter] of filters.entries()) {
     // A Map, not an object's keys: /constructor or /__proto__ would find what an object's prototype holds.
     const ratio = RATIO.get(filter)
     if (filter === 'FlateDecode') data = unpredicted(inflated(data, budget), parms[i])

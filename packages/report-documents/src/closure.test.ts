@@ -75,23 +75,23 @@ describe('the closure holds', () => {
   // A file's images arrive in the filters a camera or a scanner wrote:
   // JPEG, JPEG 2000, fax, JBIG2. A viewer decodes those into an image of
   // the size it declares, and the reader never does; refused, every scanned
-  // document would be. What comes before such a filter is decoded and
-  // charged like any stream's, and anywhere else -- not last, not on an
-  // image, or LZW on anything -- it is a filter the reader cannot hold to
-  // the budget.
+  // document would be. An image is passed on in its filters as they are
+  // written, never decoded (images.test.ts), each a filter the reader
+  // knows; anywhere else -- not last, not on an image, or LZW on anything
+  // -- such a filter is one the reader cannot hold to the budget.
   test("an image's own filter, last on an image, is left to the viewer, and refused anywhere else", () => {
     const image = (filter: string, data = latin1('JFIF')): Uint8Array =>
       pagesFile([letter('', { resources: '<</XObject<</I 30 0 R>>>>' })], {
         30: { dict: `/Type/XObject/Subtype/Image/Width 1/Height 1/ColorSpace/DeviceGray/BitsPerComponent 8/Filter${filter}`, data },
       })
-    for (const filter of ['/DCTDecode', '/JPXDecode', '/CCITTFaxDecode', '/JBIG2Decode']) {
+    for (const filter of ['/DCTDecode', '/JPXDecode', '/CCITTFaxDecode', '/JBIG2Decode', '[/FlateDecode/DCTDecode]', '[/ASCII85Decode/RunLengthDecode]']) {
       expect(printedWhole(image(filter)).parsed.budget.left).toBe(MAX_DOCUMENT_INFLATED)
     }
-    const deflated = printedWhole(image('[/FlateDecode/DCTDecode]', deflate(latin1('JFIF'))))
-    expect(deflated.parsed.budget.left).toBe(MAX_DOCUMENT_INFLATED - 4)
-    expectPrintRefused(image('[/FlateDecode/DCTDecode]'), 'malformed', 'flate-header')
     expectPrintRefused(image('[/DCTDecode/FlateDecode]'), 'unsupported-filter', 'filter')
+    expectPrintRefused(image('[/DCTDecode/JPXDecode]'), 'unsupported-filter', 'filter')
     expectPrintRefused(image('/LZWDecode'), 'unsupported-filter', 'filter')
+    expectPrintRefused(image('/Crypt'), 'unsupported-filter', 'filter')
+    expectPrintRefused(image('[/FlateDecode 5]'), 'malformed', 'filter-name')
     expectPrintRefused(pagesFile([drawing(30)], { ...FONT, 30: form(latin1('JFIF'), '/Filter/DCTDecode') }), 'unsupported-filter', 'filter')
   })
 })
@@ -282,6 +282,13 @@ describe('the closure is refused', () => {
       30: form(zeros, '/Filter/FlateDecode'),
     })
     expectPrintRefused(afterContent, 'inflates-too-far', 'inflated')
+    // One font file two fonts' descriptors name is one stream, decoded once however often it is reached.
+    const files = pagesFile([letter('', { resources: '<</Font<</F1 20 0 R/F2 23 0 R>>>>' })], {
+      ...FONT,
+      23: '<</Type/Font/Subtype/TrueType/BaseFont/Other/FontDescriptor 24 0 R>>',
+      24: '<</Type/FontDescriptor/FontName/Other/FontFile2 22 0 R>>',
+    })
+    expect(printedWhole(files).parsed.budget.left).toBe(MAX_DOCUMENT_INFLATED - 'a font file of no glyphs'.length)
   })
 })
 

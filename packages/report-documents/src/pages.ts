@@ -1,5 +1,6 @@
 import { Annotations, formAsks } from './annotations.js'
 import { decodedBytes, type InflateBudget } from './inflate.js'
+import { heldInlineImages } from './inline-images.js'
 import { isArray, isDict, isRef, isStream, resolved, type PdfDict, type PdfObjects, type PdfStream, type PdfValue } from './model.js'
 import type { Tally } from './notices.js'
 import type { ParsedDocument } from './parse.js'
@@ -15,8 +16,9 @@ import { caught, onPage, refuse, type DocumentRefusal } from './refusals.js'
  * and it is never walked again. A document whose catalog says it has
  * layers, or whose form a viewer draws -- from XFA, or its fields afresh --
  * is refused here; anything a page draws with that is marked as a layer is
- * the closure's to refuse (closure.ts). A refusal found while a page is
- * read names the page.
+ * the closure's to refuse (closure.ts). Its content's inline images are
+ * held as an image XObject is (inline-images.ts). A refusal found while a
+ * page is read names the page.
  */
 
 /** A page's turn, clockwise, as a viewer shows it. */
@@ -154,8 +156,17 @@ function spend(budget: InflateBudget, bytes: number): void {
   if (budget.left < 0) refuse('repeated')
 }
 
+/** A content as the pages hold it, and its bytes decoded, which its inline images are read from. */
+interface Held {
+  readonly content: PdfStream
+  readonly decoded: Uint8Array
+}
+
 /** The content of a page that draws nothing. */
-const empty = (): PdfStream => ({ dict: { entries: new Map() }, bytes: new Uint8Array(0) })
+function empty(): Held {
+  const bytes = new Uint8Array(0)
+  return { content: { dict: { entries: new Map() }, bytes }, decoded: bytes }
+}
 
 /** Streams' bytes, a newline between each and the next, so that the last token of one never runs into the first of the next. */
 function joined(parts: readonly Uint8Array[]): Uint8Array {
@@ -180,6 +191,7 @@ function joined(parts: readonly Uint8Array[]): Uint8Array {
  * unfiltered content once, and a list past it stops where the budget ends.
  */
 class Pages {
+  private readonly parsed: ParsedDocument
   private readonly objects: PdfObjects
   private readonly budget: InflateBudget
   private readonly inheritance: Inheritance
@@ -189,9 +201,12 @@ class Pages {
   /** The content streams a page holds already, whose next hold is charged. */
   private readonly held = new Set<number>()
   /** Each content built, by what a /Contents names: the same stream or list is the same content, built once. */
-  private readonly contents = new Map<PdfStream | readonly PdfValue[], PdfStream>()
+  private readonly contents = new Map<PdfStream | readonly PdfValue[], Held>()
+  /** The resources each content's inline images were read with, by its decoded bytes: read again only with others. */
+  private readonly imagesRead = new Map<Uint8Array, Set<PdfDict>>()
 
   constructor(parsed: ParsedDocument, tally: Tally) {
+    this.parsed = parsed
     this.objects = parsed.objects
     this.budget = parsed.budget
     this.inheritance = new Inheritance(parsed.objects)
@@ -213,10 +228,11 @@ class Pages {
     const rotate = rotationOf(resolved(objects, inherited.Rotate))
     const userUnit = unitOf(resolved(objects, dict.entries.get('UserUnit')))
     const turned = rotate === 90 || rotate === 270
-    const content = this.content(dict.entries.get('Contents'))
+    const { content, decoded } = this.content(dict.entries.get('Contents'))
     // None anywhere above the page: it draws with none, as every viewer reads it.
     const resources = inherited.Resources === undefined ? { entries: new Map() } : resolved(objects, inherited.Resources)
     if (!isDict(resources)) refuse('resources')
+    this.inlineImages(decoded, resources)
     const group = resolved(objects, dict.entries.get('Group'))
     if (group !== undefined && !isDict(group)) refuse('group')
     return {
@@ -233,19 +249,36 @@ class Pages {
   }
 
   /** A page's content, built once for what its /Contents names and charged again for every page that holds it. */
-  private content(value: PdfValue | undefined): PdfStream {
+  private content(value: PdfValue | undefined): Held {
     if (value === undefined) return empty()
     // One stream, or a list of them; anything else is content no two viewers draw alike.
     const target = resolved(this.objects, value)
     if (!isStream(target) && !isArray(target)) refuse('contents')
     const known = this.contents.get(target)
     if (known !== undefined) {
-      spend(this.budget, known.bytes.length)
+      spend(this.budget, known.content.bytes.length)
       return known
     }
-    const content = this.built(isStream(target) ? [value] : target)
-    this.contents.set(target, content)
-    return content
+    const held = this.built(isStream(target) ? [value] : target)
+    this.contents.set(target, held)
+    return held
+  }
+
+  /**
+   * The inline images a page's content holds, read with the page's
+   * resources, which name their colour spaces: once for each resources a
+   * content is drawn with, so that pages that share a content and its
+   * resources -- a template's -- read and decode its images once.
+   */
+  private inlineImages(decoded: Uint8Array, resources: PdfDict): void {
+    let read = this.imagesRead.get(decoded)
+    if (read === undefined) {
+      read = new Set()
+      this.imagesRead.set(decoded, read)
+    }
+    if (read.has(resources)) return
+    read.add(resources)
+    heldInlineImages(this.parsed, decoded, resources, this.budget)
   }
 
   /**
@@ -254,14 +287,14 @@ class Pages {
    * lone stream is decoded too, so that what it inflates to is held to the
    * budget here, not in a viewer of the report.
    */
-  private built(list: readonly PdfValue[]): PdfStream {
+  private built(list: readonly PdfValue[]): Held {
     const [first] = list
     if (list.length === 0) return empty()
     if (list.length === 1) {
       const [num, stream] = this.stream(first)
-      this.decode(num, stream)
+      const decoded = this.decode(num, stream)
       this.hold(num, stream.bytes.length)
-      return kept(stream)
+      return { content: kept(stream), decoded }
     }
     const parts: Uint8Array[] = []
     for (const item of list) {
@@ -271,7 +304,8 @@ class Pages {
       this.hold(num, bytes.length)
       parts.push(bytes)
     }
-    return { dict: { entries: new Map() }, bytes: joined(parts) }
+    const bytes = joined(parts)
+    return { content: { dict: { entries: new Map() }, bytes }, decoded: bytes }
   }
 
   /** The content stream a list names by reference, and its number. */
