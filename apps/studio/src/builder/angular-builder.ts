@@ -16,6 +16,10 @@
  * `display: contents` on the host and on that element, so the builder's
  * root is laid out by the Studio's pane as the React builder's root is,
  * and the Preview fills the box the builder lends it as it does in React's.
+ * Set by a style binding, which Angular writes through the CSSOM, never as
+ * a static `style`, which it writes as an attribute: the demo's policy
+ * refuses a style attribute, and the host and the slot would be boxes of
+ * their own (0051, as formancy.ai 0079 found of its renderer).
  *
  * **This file holds the component and nothing else**, for the reason in
  * angular-editor.ts.
@@ -29,10 +33,10 @@ import { STUDIO_EDITOR, STUDIO_SLOT } from './angular-editor.js'
   selector: 'report-studio-builder',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReportBuilder, ReportHostView],
-  host: { style: 'display: contents' },
+  host: { '[style.display]': "'contents'" },
   template: `
     <report-builder [editor]="editor">
-      <ng-template reportHostView><div #slot style="display: contents"></div></ng-template>
+      <ng-template reportHostView><div #slot [style.display]="'contents'"></div></ng-template>
     </report-builder>
   `,
 })

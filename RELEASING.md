@@ -288,14 +288,22 @@ they name a release from the moment its commit reaches `main`, before step
 - a Worker config in `apps/studio/wrangler.json` that is not the demo's;
 - a missing build, the Studio's or the pages';
 - a path both builds hold;
-- a built page of either that asks for a file by an absolute path.
+- a built page of either that asks for a file by an absolute path;
+- a file of either build that Cloudflare reads as rules, a `_headers` or a
+  `_redirects`, and a header `_headers` cannot carry as
+  `scripts/demo-headers.mjs` states it.
 
-Then it deploys with the pinned Wrangler, with the commit in the
+Then it writes `_headers` from `scripts/demo-headers.mjs`, for
+https://formancy.ai/report/: the content security policy and the other
+headers every file of the demo is served with
+([0051](docs/decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)).
+And it deploys with the pinned Wrangler, with the commit in the
 deployment's message. A failed build leaves the last deployment serving.
 Its log is on the Worker's page in Cloudflare's dashboard, and nothing in
 this repository reads it. After a deploy, open the address and see a
 starter print, and open https://formancy.ai/report/en/ and its language
-switcher.
+switcher; `curl -sI https://formancy.ai/report/` shows the headers it is
+served with.
 
 By hand, from a clean checkout, with a Cloudflare login that can edit
 Workers on formancy.ai's zone:

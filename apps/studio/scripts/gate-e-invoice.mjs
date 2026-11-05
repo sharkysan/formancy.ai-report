@@ -29,11 +29,11 @@
 // the shared account is held by the builder scenarios, in both builders.
 //
 // Found by role and accessible name, but for the Download PDF's bytes,
-// which the gate fetches as the page offers them, and whether the
+// which the gate downloads as the page offers them, and whether the
 // toolbar's Undo is unavailable, `aria-disabled`.
 
 import { elementsAt, readCii, readCodes, readPdf, readPdfObjects, textAt } from '@formancy/report-corpus'
-import { describeFocus } from './gate-page.mjs'
+import { describeFocus, pdfBytes } from './gate-page.mjs'
 import { editorOf, open, previewInView, previewOf, said, settled, showing, WITHIN } from './gate-steps.mjs'
 
 const STT = 'rsm:SupplyChainTradeTransaction'
@@ -71,7 +71,7 @@ async function readInvoice(page, read) {
   const href = (await link.count()) === 1 ? await link.evaluate((anchor) => anchor.href) : null
   if (href === null || href === read.href) return null
   read.href = href
-  const bytes = new Uint8Array(await page.evaluate(async (address) => [...new Uint8Array(await (await fetch(address)).arrayBuffer())], href))
+  const bytes = await pdfBytes(page, href)
   const embedded = (await readPdfObjects(bytes)).associatedFiles.find((file) => file.f === 'factur-x.xml')?.embedded
   const pdf = await readPdf(bytes)
   const lines = pdf.pages.flatMap((sheet) => sheet.items.map((item) => item.text))

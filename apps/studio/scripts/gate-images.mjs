@@ -33,7 +33,7 @@
 // the quotation as it was.
 //
 // Found by role and accessible name, but for the Download PDF's bytes,
-// which the gate fetches as the page offers them, and the requests, which
+// which the gate downloads as the page offers them, and the requests, which
 // are the browser's to report.
 
 import { readdirSync } from 'node:fs'
@@ -41,7 +41,7 @@ import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SCENARIO_PNG } from '@formancy/report-builder-core'
 import { readPdf } from '@formancy/report-corpus'
-import { describeFocus } from './gate-page.mjs'
+import { describeFocus, pdfBytes } from './gate-page.mjs'
 import { editorOf, open, previewInView, previewOf, said, settled, showing, WITHIN } from './gate-steps.mjs'
 
 /** The quotation's left margin, where an image placed first in its report header starts: 20 mm, in points. */
@@ -138,7 +138,7 @@ async function untilImages(page, count) {
     // Each PDF the Preview offers has an address of its own: one read already is not read again.
     if (href !== null && href !== read) {
       read = href
-      const bytes = new Uint8Array(await page.evaluate(async (address) => [...new Uint8Array(await (await fetch(address)).arrayBuffer())], href))
+      const bytes = await pdfBytes(page, href)
       const images = (await readPdf(bytes)).pages[0]?.images ?? []
       if (images.length === count) return { images }
       seen = `${String(images.length)} images`
