@@ -1,5 +1,5 @@
 import { deflate } from 'pako'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { annotated, annotation, expectAnnotationRefused, form, widget } from './annotations-test-support.js'
 import { MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_PAGES, MAX_DOCUMENT_VALUES } from './limits.js'
 import { Tally } from './notices.js'
@@ -477,6 +477,27 @@ describe('a page of many annotations', () => {
     const drawn = (pages as readonly PrintablePage[])[0]?.appearances ?? []
     expect(drawn).toHaveLength(count)
     expect(drawn.every((one) => one === drawn[0])).toBe(true)
+  })
+
+  // Measured on this reader: two million listings of one printed Stamp
+  // holding /A and an /AA of all twenty triggers took 1.5 s, past the
+  // second a document may take, against 0.5 s for the Stamp without them:
+  // each listing added its twenty-one codes one at a time. What an
+  // annotation is counted as is a count of each kind, worked out once, so
+  // that a listing costs as many additions as the kinds it holds, however
+  // many actions -- here one -- and the notices are the same.
+  test("an annotation's actions are counted as one count each listing, however many it holds", () => {
+    const triggers = ['E', 'X', 'D', 'U', 'Fo', 'Bl', 'PO', 'PC', 'PV', 'PI', 'O', 'C', 'K', 'F', 'V', 'WC', 'WS', 'DS', 'WP', 'DP']
+    const acted = `/A<</S/URI/URI(x)>>/AA<<${triggers.map((trigger) => `/${trigger}<</S/Named/N/NextPage>>`).join('')}>>`
+    const listings = 1_000
+    const file = pagesFile([letter(`/Annots[${'20 0 R '.repeat(listings)}]`)], {
+      20: annotation('Stamp', `/Rect[0 0 10 10]/AP<</N 21 0 R>>${acted}`),
+      21: form('[0 0 10 10]'),
+    })
+    const added = vi.spyOn(Tally.prototype, 'add')
+    expect(printedWhole(file).notices).toEqual([{ code: 'actions', count: 21 * listings }])
+    expect(added).toHaveBeenCalledTimes(listings)
+    added.mockRestore()
   })
 
   // One /Annots a thousand pages share is walked a thousand times, and a

@@ -1,7 +1,10 @@
-import { describe, expect, test } from 'vitest'
+import { PDFArray, PDFDict, PDFNumber } from '@pdfme/pdf-lib'
+import { afterEach, describe, expect, test, vi } from 'vitest'
+import { Grammar } from './grammar.js'
 import { MAX_DOCUMENT_NAME_BYTES, MAX_DOCUMENT_NAME_LENGTH, MAX_DOCUMENT_NUMBER_LENGTH, MAX_DOCUMENT_STRING_LENGTH, MAX_DOCUMENT_VALUES } from './limits.js'
-import { isRef, isStream, resolved, type PdfValue } from './model.js'
+import { isRef, isStream, resolved, type PdfDict, type PdfString, type PdfValue } from './model.js'
 import { AT_A_BOUND, expectRefused, parsed } from './parse-test-support.js'
+import { Reading } from './reading.js'
 import { basic, concat, CONTENT, latin1, onePage, PdfWriter, repeated, withObject5, type XrefEntry } from './test-pdf.js'
 
 /**
@@ -28,6 +31,10 @@ const object5 = (body: string | Uint8Array): PdfValue | undefined => {
   if (isStream(value)) throw new Error('object 5 is a stream')
   return value
 }
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('a value reads', () => {
   // ISO 32000-1 7.3.4.2: what a literal string's escapes and its ends of
@@ -58,6 +65,11 @@ describe('a value reads', () => {
         ['', 2],
       ]),
     })
+    // In the place it was first written, as pdf-lib's map keeps it, a null between them or not: a Map compares unordered.
+    expect([...(object5('<</A 1/B 2/A null/A 3/C null>>') as PdfDict).entries]).toEqual([
+      ['A', 3],
+      ['B', 2],
+    ])
   })
 
   // A number read past its digits, a keyword taken for another, or a reference
@@ -195,6 +207,74 @@ describe('a value is refused', () => {
   test('bytes the grammar cannot follow', () => {
     expectRefused(withObject5('<</A 1 /B> >>'), 'malformed', 'unreadable')
     expectRefused(withObject5('{1}'), 'malformed', 'unreadable')
+  })
+})
+
+describe('what a value costs', () => {
+  // The values bound, measured on this reader: a file of two million
+  // numbers took 1.75 s, past the second a document may take, two thirds
+  // of it in its numbers -- each read twice, the second time as the look
+  // for a reference's generation, and each made a pdf-lib PDFNumber, whose
+  // constructor writes the number's string form. Each number a file
+  // writes, a generation among them, is read once, and is a number of the
+  // model from the first.
+  test('each number is read once, and no pdf-lib number is made of it', () => {
+    const raw = vi.spyOn(Grammar.prototype as unknown as { parseRawNumber: () => number }, 'parseRawNumber')
+    const made = vi.spyOn(PDFNumber, 'of')
+    const { value } = new Grammar(latin1('[1 2 3 4 5 0 R -2.5 0.5 +7 123456789012345678 6 7 8]'), new Reading()).indirect()
+    expect(value).toEqual([1, 2, 3, 4, { object: 5 }, -2.5, 0.5, 7, 123456789012345680, 6, 7, 8])
+    expect(raw).toHaveBeenCalledTimes(13)
+    expect(made).not.toHaveBeenCalled()
+  })
+
+  // The `worst` file of the spike, two million values in dictionaries
+  // shaped as a page's, beside content that inflates to the budget, took
+  // 1.0 s on this reader: every array and dictionary made first as pdf-lib's
+  // own, its /Type looked up in pdf-lib's pool of names, then walked again
+  // into the model. The grammar makes the model's as it reads.
+  test("no pdf-lib array or dictionary is made of a file's containers", () => {
+    const arrays = vi.spyOn(PDFArray, 'withContext')
+    const dicts = vi.spyOn(PDFDict, 'fromMapWithContext')
+    const { value } = new Grammar(latin1('<</Type/Page/Kids[1 0 R [2] <</A null>>]/B<<>>>>'), new Reading()).indirect()
+    expect(value).toEqual({
+      entries: new Map<string, PdfValue>([
+        ['Type', { name: 'Page' }],
+        ['Kids', [{ object: 1 }, [2], { entries: new Map() }]],
+        ['B', { entries: new Map() }],
+      ]),
+    })
+    expect(arrays).not.toHaveBeenCalled()
+    expect(dicts).not.toHaveBeenCalled()
+  })
+
+  // X4, measured on this reader: ten million empty strings, refused at the
+  // values bound, held 445 MiB first -- each string a typed array of its
+  // own over a buffer of its own, 248 bytes of heap however short (a view
+  // is 136, a shared empty one 40, measured over two million in Node
+  // 22.23.3 on 6 November 2026). A string the file writes as it reads is a
+  // view of the parse's own copy of the file; one escaped or hexadecimal,
+  // a view of the bytes the document's strings are decoded into together;
+  // an empty one, the one empty array, which holds nothing to change.
+  test("a string holds a view of the file's bytes, or of its document's decoded strings, and an empty one none of its own", () => {
+    const [ab, cd, escaped, hex, empty, none] = object5('[(ab) (cd) (e\\nf) <4142> () <>]') as readonly PdfString[] as readonly { bytes: Uint8Array }[]
+    expect([ab, cd, escaped, hex].map((each) => String.fromCharCode(...(each?.bytes ?? [])))).toEqual(['ab', 'cd', 'e\nf', 'AB'])
+    expect(ab?.bytes.buffer).toBe(cd?.bytes.buffer)
+    expect(escaped?.bytes.buffer).toBe(hex?.bytes.buffer)
+    expect(escaped?.bytes.buffer).not.toBe(ab?.bytes.buffer)
+    expect(empty?.bytes).toBe(none?.bytes)
+    expect(empty?.bytes).toHaveLength(0)
+  })
+
+  // A string is counted twice against MAX_DOCUMENT_VALUES -- the value, and
+  // the view its bytes are held in, which costs what several values do --
+  // so that a file of short strings is refused at half as many as a file
+  // of numbers. The sample's 1,484 files hold at most 298 strings, a
+  // 1,000-page tagged report one.
+  test('a string is counted twice against MAX_DOCUMENT_VALUES', AT_A_BOUND, () => {
+    const half = MAX_DOCUMENT_VALUES / 2
+    parsed(withObject5(concat([latin1('['), repeated('1 ', half), latin1(']')])))
+    expectRefused(withObject5(concat([latin1('['), repeated('() ', half), latin1(']')])), 'too-many-objects', 'values')
+    expectRefused(withObject5(concat([latin1('['), repeated('<> ', half), latin1(']')])), 'too-many-objects', 'values')
   })
 })
 

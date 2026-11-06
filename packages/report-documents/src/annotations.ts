@@ -235,11 +235,28 @@ class Fields {
   }
 }
 
+/** A code, and how many of it one listing of an annotation counts. */
+type Counted = readonly [code: DocumentNoticeCode, count: number]
+
 /** What one annotation comes to, wherever a page lists it: what it is counted as, what it draws, and whether that stays upright on a turned page. */
 interface Outcome {
-  readonly counted: readonly DocumentNoticeCode[]
+  readonly counted: readonly Counted[]
   readonly drawn?: FlattenedAppearance
   readonly upright: boolean
+}
+
+/**
+ * `codes` as a count of each, in the order they are first met: what each
+ * listing of an annotation adds, so that a listing costs as many additions
+ * as the kinds it is counted as -- at most three -- and not one for each of
+ * the twenty-two actions it may hold. Two million listings of an annotation
+ * of twenty-one actions took 1.5 s, one a code, against 0.5 s without them
+ * (measured on 6 November 2026).
+ */
+function folded(codes: readonly DocumentNoticeCode[]): readonly Counted[] {
+  const counts = new Map<DocumentNoticeCode, number>()
+  for (const code of codes) counts.set(code, (counts.get(code) ?? 0) + 1)
+  return [...counts]
 }
 
 const NOTHING: Outcome = { counted: [], upright: false }
@@ -306,7 +323,7 @@ export class Annotations {
       outcome = this.read(annot)
       this.outcomes.set(annot, outcome)
     }
-    for (const code of outcome.counted) this.tally.add(code)
+    for (const [code, count] of outcome.counted) this.tally.add(code, count)
     if (outcome.upright && rotate !== 0) refuse('upright')
     return outcome
   }
@@ -329,8 +346,8 @@ export class Annotations {
     const kind = this.kindOf(annot, subtype)
     const actions = actionsOf(objects, annot, subtype)
     const flags = flagsOf(entry(objects, annot, 'F'))
-    if (!printed(flags, subtype)) return { counted: [kind ?? 'unprinted-annotations', ...actions], upright: false }
-    const counted = kind === undefined ? actions : [kind, ...actions]
+    if (!printed(flags, subtype)) return { counted: folded([kind ?? 'unprinted-annotations', ...actions]), upright: false }
+    const counted = folded(kind === undefined ? actions : [kind, ...actions])
     const rect = rectOf(objects, annot)
     if (!hasArea(rect)) return { counted, upright: false }
     const form = this.appearance(annot)

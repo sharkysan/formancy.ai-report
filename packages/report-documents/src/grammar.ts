@@ -1,28 +1,22 @@
 import {
-  PDFArray,
   PDFBool,
   PDFContext,
-  PDFDict,
   PDFNull,
-  PDFNumber,
   PDFObjectParser,
+  type PDFArray,
+  type PDFDict,
   type PDFHexString,
   type PDFName,
+  type PDFNumber,
   type PDFObject,
   type PDFRef,
   type PDFStream,
   type PDFString,
 } from '@pdfme/pdf-lib'
 import { find, hexValue, isDelimiter, isDigit, isNumeric, isRegular, isWhite, keyword } from './bytes.js'
-import {
-  MAX_DOCUMENT_DEPTH,
-  MAX_DOCUMENT_NAME_BYTES,
-  MAX_DOCUMENT_NAME_LENGTH,
-  MAX_DOCUMENT_NUMBER_LENGTH,
-  MAX_DOCUMENT_STRING_LENGTH,
-  MAX_DOCUMENT_VALUES,
-} from './limits.js'
-import { isRef, type PdfDict, type PdfName, type PdfRef, type PdfStream, type PdfString, type PdfValue } from './model.js'
+import { MAX_DOCUMENT_DEPTH, MAX_DOCUMENT_NAME_LENGTH, MAX_DOCUMENT_NUMBER_LENGTH, MAX_DOCUMENT_STRING_LENGTH } from './limits.js'
+import { isRef, type PdfDict, type PdfStream, type PdfValue } from './model.js'
+import { Bytes, Dict, Name, Reading, Reference } from './reading.js'
 import { refuse, type Finding } from './refusals.js'
 
 /**
@@ -62,6 +56,9 @@ const LEFT = 0x28
 const RIGHT = 0x29
 const BACKSLASH = 0x5c
 const GREATER = 0x3e
+const LESS = 0x3c
+const LEFT_BRACKET = 0x5b
+const RIGHT_BRACKET = 0x5d
 const CR = 0x0d
 const LF = 0x0a
 const POINT = 0x2e
@@ -79,28 +76,37 @@ const NAMED = Array.from({ length: 256 }, (_, byte) =>
 
 const isOctal = (byte: number | undefined): boolean => byte !== undefined && byte >= 0x30 && byte <= 0x37
 
-class Name implements PdfName {
-  readonly name: string
-
-  constructor(name: string) {
-    this.name = name
-  }
+/**
+ * The bytes from `start` to `end` as a string of a character a byte, flat
+ * as V8 holds a name the reading keeps once: built a character at a time up
+ * to twelve, which V8 keeps flat -- it makes a rope only of thirteen or
+ * more -- and five times faster than one call over a view (measured over
+ * two million names in Node 22.23.3 on 6 November 2026); past twelve, in
+ * one call over a view, which is flat.
+ */
+function flat(data: Uint8Array, start: number, end: number): string {
+  if (end - start > 12) return String.fromCharCode(...data.subarray(start, end))
+  let text = ''
+  for (let at = start; at < end; at += 1) text += String.fromCharCode(data[at] as number)
+  return text
 }
 
-class Reference implements PdfRef {
-  readonly object: number
-
-  constructor(object: number) {
-    this.object = object
+/**
+ * The number `data` writes from `start` to `end`: a run of up to fifteen
+ * digits summed as it is read, which is exact below 10^15 and allocates
+ * nothing; anything else -- a sign, a point, more digits -- by JavaScript's
+ * own reading of its text, which rounds it as a viewer does.
+ */
+function numberOf(data: Uint8Array, start: number, end: number): number {
+  if (end > start && end - start <= 15) {
+    let value = 0
+    let at = start
+    for (; at < end && isDigit(data[at]); at += 1) value = value * 10 + (data[at] as number) - 0x30
+    if (at === end) return value
   }
-}
-
-class Bytes implements PdfString {
-  readonly bytes: Uint8Array
-
-  constructor(bytes: Uint8Array) {
-    this.bytes = bytes
-  }
+  let text = ''
+  for (let at = start; at < end; at += 1) text += String.fromCharCode(data[at] as number)
+  return Number(text)
 }
 
 /** A stream whose /Length is a reference: its data ends where that object says, which the parse checks once the object is read. */
@@ -129,70 +135,13 @@ class StreamValue implements Indirect {
   }
 }
 
-/**
- * What one document's parse has made so far, which every grammar over its
- * bytes and its object streams shares: its counts, its names, and its
- * references, each held once.
- */
-export class Reading {
-  readonly context = PDFContext.create()
-  private values = 0
-  private nameBytes = 0
-  private readonly names = new Map<string, Name>()
-  /** References by object number, where they name generation 0, as almost every reference does; by number and generation where not. */
-  private readonly refs = new Map<number, Reference>()
-  private readonly otherRefs = new Map<string, Reference>()
-  /** The reference to object 0, which no definition is (`parse.ts` refuses one): what a number no object can have names. */
-  private readonly nowhere = new Reference(0)
-  /** The generation a reference names, where it is not 0; every other reference names 0. */
-  readonly generations = new Map<PdfRef, number>()
-
-  counted(): void {
-    this.values += 1
-    if (this.values > MAX_DOCUMENT_VALUES) refuse('values')
-  }
-
-  /** The document's one name of this written form, its decoded bytes counted the first time it is met. */
-  name(written: string, length: number): Name {
-    const known = this.names.get(written)
-    if (known !== undefined) return known
-    this.nameBytes += length
-    if (this.nameBytes > MAX_DOCUMENT_NAME_BYTES) refuse('name-bytes')
-    const made = new Name(written)
-    this.names.set(written, made)
-    return made
-  }
-
-  /**
-   * The document's one reference to an object at a generation: a whole
-   * object number, a generation from 0 to 65,535. An object number no file
-   * can define -- below 1, or past what a number holds exactly, as a writer
-   * that wraps a negative one through 2^64 writes it -- names no object, as
-   * a reference to any object a file does not hold names none (ISO 32000-1
-   * 7.3.10): the one reference to object 0, which no definition is, however
-   * many such numbers the file writes. A fraction would name an object to a
-   * reader that rounded it, and is refused.
-   */
-  ref(object: number, generation: number): Reference {
-    if (!Number.isInteger(object) || !Number.isInteger(generation) || generation < 0 || generation > 65_535) refuse('reference')
-    if (object < 1 || !Number.isSafeInteger(object)) return this.nowhere
-    const known = generation === 0 ? this.refs.get(object) : this.otherRefs.get(`${object} ${generation}`)
-    if (known !== undefined) return known
-    const made = new Reference(object)
-    if (generation === 0) this.refs.set(object, made)
-    else {
-      this.otherRefs.set(`${object} ${generation}`, made)
-      this.generations.set(made, generation)
-    }
-    return made
-  }
-}
-
 export class Grammar extends PDFObjectParser {
   private readonly data: Uint8Array
   private readonly reading: Reading
   private readonly inObjectStream: boolean
   private depth = 0
+  /** Where the last escape `escape` read ends. */
+  private escapeEnd = 0
 
   constructor(data: Uint8Array, reading: Reading, inObjectStream = false) {
     super(byteStreamOf(data), reading.context)
@@ -232,7 +181,7 @@ export class Grammar extends PDFObjectParser {
     const start = this.at
     const end = this.run(isDigit, MAX_DOCUMENT_NUMBER_LENGTH, 'number-length')
     if (end === start) refuse(otherwise)
-    const value = Number(String.fromCharCode(...this.data.subarray(start, end)))
+    const value = numberOf(this.data, start, end)
     if (!Number.isSafeInteger(value)) refuse('number')
     this.moveTo(end)
     return value
@@ -246,7 +195,7 @@ export class Grammar extends PDFObjectParser {
 
   /** A trailer: a dictionary, in the model. */
   dictionary(): PdfDict {
-    return this.dictOf(this.parseDict())
+    return this.parseDict() as unknown as PdfDict
   }
 
   /** Where the run of bytes `inside` admits from here ends, refused as `finding` past `limit` bytes, never read further than one past it. */
@@ -265,42 +214,54 @@ export class Grammar extends PDFObjectParser {
 
   /**
    * pdf-lib's own -- a number, or two and an R -- but a reference is made
-   * by the reading, and never goes into pdf-lib's process-lifetime pool;
-   * and a number ends where its digits do, not where the look for a
-   * generation and an R stopped, so that a member of an object stream ends
-   * where its last token does (`parse.ts`). What the look read -- white
-   * space and comments, a number -- the read after it reads again, so no
-   * byte is read more than three times.
+   * by the reading, and never goes into pdf-lib's process-lifetime pool; a
+   * number is the model's from the first, never a pdf-lib PDFNumber, whose
+   * constructor writes its string form; and a number ends where its digits
+   * do, not where the look for a generation and an R stopped, so that a
+   * member of an object stream ends where its last token does
+   * (`parse.ts`). The look measures the number after it without reading
+   * it, and reads it only as the generation of a reference: each number is
+   * read once, and no byte is measured more than twice.
    */
   protected override parseNumberOrRef(): PDFNumber | PDFRef {
     const first = this.parseRawNumber()
     const end = this.at
     this.skipWhitespaceAndComments()
     if (isDigit(this.peek())) {
-      const second = this.parseRawNumber()
+      const second = this.at
+      this.moveTo(this.numberEnd())
       this.skipWhitespaceAndComments()
       if (this.peek() === R) {
-        this.moveTo(this.at + 1)
-        return this.reading.ref(first, second) as unknown as PDFRef
+        const after = this.at + 1
+        this.moveTo(second)
+        const generation = this.parseRawNumber()
+        this.moveTo(after)
+        return this.reading.ref(first, generation) as unknown as PDFRef
       }
     }
     this.moveTo(end)
-    return PDFNumber.of(first)
+    return first as unknown as PDFNumber
   }
 
-  /** pdf-lib's number grammar -- a sign, digits and a point up to the first point, then digits -- measured first, and never NaN. */
-  protected override parseRawNumber(): number {
+  /** Where pdf-lib's number grammar from here ends -- a sign, digits and a point up to the first point, then digits -- refused past the bound. */
+  private numberEnd(): number {
     const data = this.data
-    const start = this.at
-    const bound = start + MAX_DOCUMENT_NUMBER_LENGTH
-    let end = start
+    const bound = this.at + MAX_DOCUMENT_NUMBER_LENGTH
+    let end = this.at
     while (end <= bound && isNumeric(data[end])) {
       end += 1
       if (data[end - 1] === POINT) break
     }
     while (end <= bound && isDigit(data[end])) end += 1
     if (end > bound) refuse('number-length')
-    const value = Number(String.fromCharCode(...data.subarray(start, end)))
+    return end
+  }
+
+  /** pdf-lib's number grammar, measured first, and never NaN. */
+  protected override parseRawNumber(): number {
+    const start = this.at
+    const end = this.numberEnd()
+    const value = numberOf(this.data, start, end)
     if (!Number.isFinite(value)) refuse('number')
     this.moveTo(end)
     return value
@@ -313,10 +274,10 @@ export class Grammar extends PDFObjectParser {
     const start = this.at
     const end = this.run(isRegular, MAX_DOCUMENT_NAME_LENGTH, 'name-length')
     this.moveTo(end)
-    // Most names are written as they are named: read in one call, as one flat string.
+    // Most names are written as they are named: read as one flat string.
     let plain = true
     for (let at = start; at < end && plain; at += 1) plain = NAMED[this.data[at] as number]?.length === 1
-    if (plain) return this.reading.name(String.fromCharCode(...this.data.subarray(start, end)), end - start) as unknown as PDFName
+    if (plain) return this.reading.name(flat(this.data, start, end), end - start) as unknown as PDFName
     const decoded: number[] = []
     for (let at = start; at < end;) {
       if (this.data[at] !== HASH) {
@@ -333,33 +294,49 @@ export class Grammar extends PDFObjectParser {
     return this.reading.name(decoded.map((byte) => NAMED[byte]).join(''), decoded.length) as unknown as PDFName
   }
 
-  /** A literal string as its bytes, its escapes and ends of line read as ISO 32000-1 7.3.4.2 reads them. */
+  /**
+   * A literal string as its bytes, its escapes and ends of line read as ISO
+   * 32000-1 7.3.4.2 reads them: a view of the file's own bytes where it
+   * reads as written, of its document's decoded strings where not (`Reading`
+   * `decoded`). Counted again, beside the value `parseObject` counts: the
+   * view its bytes are held in costs what several values do.
+   */
   protected override parseString(): PDFString {
+    this.reading.counted()
     const data = this.data
-    const bytes: number[] = []
-    let at = this.at + 1
+    const out = this.reading.scratch
+    const start = this.at + 1
+    let length = 0
+    let plain = true
+    let at = start
     for (let depth = 1; ;) {
       if (at >= data.length) refuse('string-end')
       const byte = data[at] as number
       at += 1
-      if (byte === BACKSLASH) at = this.escaped(at, bytes)
-      else if (byte === CR) {
-        bytes.push(LF)
+      if (byte === BACKSLASH) {
+        plain = false
+        const escaped = this.escape(at)
+        at = this.escapeEnd
+        if (escaped >= 0) out[length++] = escaped
+      } else if (byte === CR) {
+        plain = false
+        out[length++] = LF
         if (data[at] === LF) at += 1
       } else {
         if (byte === LEFT) depth += 1
         if (byte === RIGHT) depth -= 1
         if (depth === 0) break
-        bytes.push(byte)
+        out[length++] = byte
       }
-      if (bytes.length > MAX_DOCUMENT_STRING_LENGTH) refuse('string-length')
+      if (length > MAX_DOCUMENT_STRING_LENGTH) refuse('string-length')
     }
     this.moveTo(at)
-    return new Bytes(Uint8Array.from(bytes)) as unknown as PDFString
+    const bytes = length > 0 && plain ? data.subarray(start, start + length) : this.reading.decoded(length)
+    return new Bytes(bytes) as unknown as PDFString
   }
 
-  /** The escape after a backslash at `at`, its byte pushed to `bytes`; where the string goes on. */
-  private escaped(at: number, bytes: number[]): number {
+  /** The byte the escape after a backslash at `at` stands for, or -1 where it continues the string on the next line; where it ends in `escapeEnd`. */
+  private escape(at: number): number {
     const data = this.data
     const byte = data[at]
     if (byte === undefined) refuse('string-end')
@@ -367,20 +344,28 @@ export class Grammar extends PDFObjectParser {
       let value = byte - 0x30
       let next = at + 1
       for (; next < at + 3 && isOctal(data[next]); next += 1) value = value * 8 + (data[next] as number) - 0x30
-      bytes.push(value & 0xff)
-      return next
+      this.escapeEnd = next
+      return value & 0xff
     }
     // A backslash and an end of line continue the string on the next line.
-    if (byte === CR) return data[at + 1] === LF ? at + 2 : at + 1
-    if (byte === LF) return at + 1
-    bytes.push(ESCAPES[byte] ?? byte)
-    return at + 1
+    if (byte === CR) {
+      this.escapeEnd = data[at + 1] === LF ? at + 2 : at + 1
+      return -1
+    }
+    this.escapeEnd = at + 1
+    return byte === LF ? -1 : (ESCAPES[byte] ?? byte)
   }
 
-  /** A hexadecimal string as its bytes: pairs of digits, white space between them, an odd last digit followed by 0 (7.3.4.3). */
+  /**
+   * A hexadecimal string as its bytes: pairs of digits, white space between
+   * them, an odd last digit followed by 0 (7.3.4.3); held with the
+   * document's decoded strings, and counted again, as a literal one is.
+   */
   protected override parseHexString(): PDFHexString {
+    this.reading.counted()
     const data = this.data
-    const bytes: number[] = []
+    const out = this.reading.scratch
+    let length = 0
     let high = -1
     let at = this.at + 1
     for (;;) {
@@ -392,15 +377,15 @@ export class Grammar extends PDFObjectParser {
       if (digit < 0) refuse('hex-string')
       if (high < 0) high = digit
       else {
-        bytes.push(high * 16 + digit)
+        out[length++] = high * 16 + digit
         high = -1
       }
-      if (bytes.length > MAX_DOCUMENT_STRING_LENGTH) refuse('string-length')
+      if (length > MAX_DOCUMENT_STRING_LENGTH) refuse('string-length')
     }
-    if (high >= 0) bytes.push(high * 16)
-    if (bytes.length > MAX_DOCUMENT_STRING_LENGTH) refuse('string-length')
+    if (high >= 0) out[length++] = high * 16
+    if (length > MAX_DOCUMENT_STRING_LENGTH) refuse('string-length')
     this.moveTo(at)
-    return new Bytes(Uint8Array.from(bytes)) as unknown as PDFHexString
+    return new Bytes(this.reading.decoded(length)) as unknown as PDFHexString
   }
 
   private enter(): void {
@@ -408,18 +393,53 @@ export class Grammar extends PDFObjectParser {
     if (this.depth > MAX_DOCUMENT_DEPTH) refuse('depth')
   }
 
-  protected override parseArray(ref?: PDFRef): PDFArray {
+  /**
+   * pdf-lib's loop, each item in the model as it is read: no PDFArray is
+   * made and walked again, which cost a file of values a third of its read.
+   */
+  protected override parseArray(): PDFArray {
     this.enter()
-    const array = super.parseArray(ref)
+    this.bytes.assertNext(LEFT_BRACKET)
+    this.skipWhitespaceAndComments()
+    const items: PdfValue[] = []
+    while (this.bytes.peek() !== RIGHT_BRACKET) {
+      items.push(this.neutral(this.parseObject()))
+      this.skipWhitespaceAndComments()
+    }
+    this.bytes.assertNext(RIGHT_BRACKET)
     this.depth -= 1
-    return array
+    return items as unknown as PDFArray
   }
 
-  protected override parseDict(ref?: PDFRef): PDFDict {
+  /**
+   * pdf-lib's loop, keyed by its names' written forms, each value in the
+   * model as it is read, and no PDFDict made, nor its /Type looked up in
+   * pdf-lib's pool of names. A key written twice keeps the place it was
+   * first written and the value it was last, as pdf-lib's map does; an
+   * entry of null is none (ISO 32000-1 7.3.7), taken out once the
+   * dictionary ends, so that a key written again after a null keeps its
+   * first place too.
+   */
+  protected override parseDict(): PDFDict {
     this.enter()
-    const dict = super.parseDict(ref)
+    this.bytes.assertNext(LESS)
+    this.bytes.assertNext(LESS)
+    this.skipWhitespaceAndComments()
+    let entries = new Map<string, PdfValue>()
+    let nulls = false
+    while (!this.bytes.done() && this.bytes.peek() !== GREATER && this.bytes.peekAhead(1) !== GREATER) {
+      const key = (this.parseName() as unknown as Name).name
+      const value = this.neutral(this.parseObject())
+      entries.set(key, value)
+      nulls ||= value === null
+      this.skipWhitespaceAndComments()
+    }
+    this.skipWhitespaceAndComments()
+    this.bytes.assertNext(GREATER)
+    this.bytes.assertNext(GREATER)
+    if (nulls) entries = new Map([...entries].filter(([, value]) => value !== null))
     this.depth -= 1
-    return dict
+    return new Dict(entries) as unknown as PDFDict
   }
 
   /**
@@ -428,9 +448,9 @@ export class Grammar extends PDFObjectParser {
    * dictionary that is no stream ends at its `>>`, not where the look for
    * `stream` stopped.
    */
-  protected override parseDictOrStream(ref?: PDFRef): PDFDict | PDFStream {
+  protected override parseDictOrStream(): PDFDict | PDFStream {
     const nested = this.depth > 0 || this.inObjectStream
-    const dict = this.parseDict(ref)
+    const dict = this.parseDict()
     const end = this.at
     this.skipWhitespaceAndComments()
     if (!STREAM.some((word) => this.matchKeyword(word))) {
@@ -438,7 +458,7 @@ export class Grammar extends PDFObjectParser {
       return dict
     }
     if (nested) refuse('stream-inside')
-    return this.streamOf(this.dictOf(dict)) as unknown as PDFStream
+    return this.streamOf(dict as unknown as PdfDict) as unknown as PDFStream
   }
 
   private streamOf(dict: PdfDict): StreamValue {
@@ -464,25 +484,13 @@ export class Grammar extends PDFObjectParser {
     return new StreamValue({ dict, bytes: this.data.subarray(start, start + length) })
   }
 
-  /** What pdf-lib's grammar made, in the model. */
+  /** What the grammar made, in the model: every container is the model's as it is read, and pdf-lib makes only booleans and null. */
   private neutral(object: PDFObject): PdfValue {
-    if (object instanceof Name || object instanceof Bytes || object instanceof Reference) return object
-    if (object instanceof PDFNumber) return object.asNumber()
-    if (object instanceof PDFArray) return object.asArray().map((item) => this.neutral(item))
-    if (object instanceof PDFDict) return this.dictOf(object)
+    if (object instanceof Name || object instanceof Bytes || object instanceof Reference || object instanceof Dict) return object
+    if (typeof object === 'number' || Array.isArray(object)) return object as PdfValue
     if (object instanceof PDFBool) return object.asBoolean()
     if (object === PDFNull) return null
-    // Every other kind pdf-lib makes is read by the reader's own code above, and a stream within a value is refused.
+    // A stream within a value is refused where it is read, and the grammar reads every other kind itself.
     return refuse('unreadable')
-  }
-
-  /** A dictionary in the model, keyed by its names' written forms; an entry of null is none (ISO 32000-1 7.3.7). */
-  private dictOf(dict: PDFDict): PdfDict {
-    const entries = new Map<string, PdfValue>()
-    for (const [key, value] of dict.entries()) {
-      const neutral = this.neutral(value)
-      if (neutral !== null) entries.set((key as unknown as Name).name, neutral)
-    }
-    return { entries }
   }
 }
