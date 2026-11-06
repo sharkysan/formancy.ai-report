@@ -2,6 +2,7 @@ import { deflate, Inflate, type ZStream } from 'pako'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { BoundedInflate, decoded } from './inflate.js'
 import type { PdfDict, PdfStream, PdfValue } from './model.js'
+import { AT_A_BOUND } from './parse-test-support.js'
 import { refusal } from './refusals.js'
 import { concat, latin1, MIB } from './test-pdf.js'
 
@@ -203,10 +204,11 @@ describe('decoded admits', () => {
   // /FlateDecode would pass the reader as data it never inflated and
   // inflate in PDF.js. Refused before a byte of it is read, nothing taken
   // from the budget; Report never fetches by address.
-  test('a stream that keeps its data in another file is refused before its data is read', () => {
+  test('a stream that keeps its data in another file is refused before its data is read', AT_A_BOUND, () => {
     const budget = { left: MIB }
+    const bomb = deflate(new Uint8Array(2 * MIB))
     for (const entries of [{ F: { bytes: latin1('data.bin') } }, { F: name('FlateDecode') }, { FFilter: name('FlateDecode') }, { FDecodeParms: dictOf({}) }]) {
-      expect(decoded(streamOf(deflate(new Uint8Array(2 * MIB)), entries), budget)).toEqual(refusal('external'))
+      expect(decoded(streamOf(bomb, entries), budget)).toEqual(refusal('external'))
       expect(decoded(flate(TEXT, entries), budget)).toEqual(refusal('external'))
     }
     expect(budget.left).toBe(MIB)

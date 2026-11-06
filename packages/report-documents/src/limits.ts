@@ -7,20 +7,27 @@
  * output chunk by chunk as it is inflated. What passes one is refused,
  * never read in part.
  *
- * Each value is the one the parser spike proposed, measured at the bound
- * and one past it on 3 November 2026 in Node 22.23.3 on an Apple M2 (8
- * cores, 16 GiB) under a load of 6 to 30, five runs each, the median time
- * and the largest heap, against the strict loop this package's `parse.ts`
- * writes again; none was measured in a browser. Those that say "chosen"
- * are not set by a measurement, and say why they are what they are.
+ * Each was measured through `readDocument`, at the bound and one past it,
+ * on 6 November 2026 in Node 22.23.3 on an Apple M2 (8 cores, 16 GiB),
+ * under a load average of 4 to 10 while other work ran: each run in a fresh
+ * worker, the median time of five runs and the largest heap of them, the
+ * memory outside the heap -- buffers: the reader's copy of the file, what
+ * it inflates -- said beside it. The costliest legitimate files and shapes
+ * were also read in Chromium (Headless Shell 156), as each says; the
+ * others were not. Those that say "chosen" are not set by a measurement,
+ * and say why they are what they are.
  */
 
 const MIB = 1024 * 1024
 
 /**
- * Bytes in a PDF, refused before a byte is parsed: 20 MiB, chosen to be
- * report-spec's `MAX_ASSET_BYTES`, which a host already holds an asset to.
- * A file of 20 MiB was read in 73 ms; one byte more refused in 0.4 ms.
+ * Bytes in a PDF, refused before a byte is parsed or copied: 20 MiB,
+ * chosen to be report-spec's `MAX_ASSET_BYTES`, which a host already holds
+ * an asset to. This package depends on neither report-spec nor anything
+ * that does, so nothing here holds the two equal: the test that does
+ * belongs to a package that depends on both, and is not written yet. A
+ * file of exactly 20 MiB read in 74 ms, with 20 MiB outside the heap, the
+ * reader's own copy; one byte more was refused in 0.2 ms.
  */
 export const MAX_DOCUMENT_BYTES = 20 * MIB
 
@@ -28,9 +35,14 @@ export const MAX_DOCUMENT_BYTES = 20 * MIB
  * Objects a PDF defines, at the top level and in object streams, and what
  * a cross-reference may claim (its `/Size`, a section's count, an xref
  * stream's `/Index`) besides the free head of the list. Chosen: a
- * 1,000-page tagged report of 97,020 objects comes within 3 % of it; what a
- * definition costs is held by `MAX_DOCUMENT_VALUES`. At it, 238 ms and
- * 42 MiB; one past it refused in 124 ms.
+ * 1,000-page tagged report of 97,020 objects comes within 3 % of it, and
+ * one shaped as the median of the tagged documents in the spike's sample
+ * of 1,484 PDFs (81 structure elements a page) holds 84,022; one shaped as
+ * their densest (138 a page) holds 141,022 and is refused, in 358 ms. What
+ * a definition costs is held by `MAX_DOCUMENT_VALUES`. At it, 188 ms and
+ * 52 MiB; one past it, refused in 93 ms. The densest shape at it, 709
+ * pages, read in 628 ms with 94 MiB (380 ms in Chromium); one object past
+ * it was refused in 373 ms.
  */
 export const MAX_DOCUMENT_OBJECTS = 100_000
 
@@ -44,8 +56,8 @@ export const MAX_DOCUMENT_OBJECTS = 100_000
  * `MAX_DOCUMENT_OBJECTS` and the free head of each list, a ruling: a
  * hybrid file lists every object twice, in its table and in the stream its
  * /XRefStm names, each from object 0, so that a hybrid file of
- * `MAX_DOCUMENT_OBJECTS` objects reads; an update that lists one again
- * past that is refused. Not yet measured at the bound.
+ * `MAX_DOCUMENT_OBJECTS` objects reads, in 287 ms with 64 MiB; one entry
+ * more, in a section nothing chains, was refused in 154 ms.
  */
 export const MAX_DOCUMENT_XREF_ENTRIES = 2 * (MAX_DOCUMENT_OBJECTS + 1)
 
@@ -55,20 +67,29 @@ export const MAX_DOCUMENT_XREF_ENTRIES = 2 * (MAX_DOCUMENT_OBJECTS + 1)
  * entry still costs what it is held as, and a file of twenty megabytes of
  * `xref trailer<</Size 0>>` held 427 MiB (the parse's re-review). A file's
  * revisions each add one, a hybrid two; the spike's sample held at most
- * three. A thousand is a ruling, not yet measured against the sample's
- * largest.
+ * three. A thousand, a ruling: a file of as many read in 13 ms, one more
+ * was refused in 11 ms.
  */
 export const MAX_DOCUMENT_XREF_SECTIONS = 1_000
 
 /**
- * Values the parse makes -- each number, string, name, array, dictionary,
- * reference and keyword, and each dictionary key, a name that is a value
- * counted twice -- which is what its time and heap grow with. Set by a
- * 1,000-page tagged report, which holds 1,468,102; at the bound a file of
- * small values read in 618 ms with 115 MiB; past it, files of nothing but
- * numbers, arrays, strings, references or names are refused in 195-607 ms
- * within 42-173 MiB, where without it one of empty arrays filled a 512 MiB
- * heap.
+ * Values the parse makes -- each number, name, array, dictionary,
+ * reference and keyword; each dictionary key, a name that is a value,
+ * counted twice; each string counted twice, for the view its bytes are
+ * held in, which costs what several values do -- which is what its time
+ * and heap grow with. Set by a 1,000-page tagged report, which holds
+ * 1,468,102; the spike's sample held at most 298 strings a file. At it, a
+ * file of numbers read in 306 ms with 53 MiB; one past it, refused in
+ * 286 ms. The dearest values within it: ten million empty arrays (X3)
+ * refused in 456 ms within 107 MiB; one-byte strings, literal, escaped or
+ * hexadecimal, in 284-382 ms within 142 MiB; 2,000,000 listings of one
+ * annotation, which the pages are held to as well, read in 607 ms with
+ * 140 MiB (358 ms in Chromium); 153,846 inline images' dictionaries in
+ * 378 ms; every bound at once -- the values in dictionaries shaped as a
+ * page's, beside content that inflates to `MAX_DOCUMENT_INFLATED` -- in
+ * 548 ms with 75 MiB (385 ms in Chromium). Not within a second: 117,647
+ * inline images compressed by Flate, a pako inflater each, read in 1.3 s
+ * (1.0 s in Chromium).
  */
 export const MAX_DOCUMENT_VALUES = 2_000_000
 
@@ -76,42 +97,53 @@ export const MAX_DOCUMENT_VALUES = 2_000_000
  * The bytes of a PDF's distinct names, decoded, together. Chosen: 78 times
  * the most a sample of 1,484 PDFs held (3,351 bytes), and it keeps a file
  * of hundreds of thousands of long distinct names, which every other bound
- * admits, from holding hundreds of megabytes of them: refused at it in
- * 20-24 ms within 8 MiB.
+ * admits, from holding hundreds of megabytes of them. At it, distinct
+ * 37-byte keys read in 43 ms and 29-byte keys each valued by a distinct
+ * name in 155 ms, within 7 MiB; one byte past it, each was refused in
+ * 59-61 ms.
  */
 export const MAX_DOCUMENT_NAME_BYTES = 256 * 1024
 
 /**
- * Pages in a PDF. Chosen: the parse's cost per page is in its values; a
- * tree of 1,000 pages was walked in 20 ms.
+ * Pages in a PDF. Chosen: the parse's cost per page is in its values. A
+ * tree of 1,000 pages read in 66 ms, one more refused in 36 ms; a
+ * 1,000-page tagged report read in 605 ms with 89 MiB, and written in
+ * object streams in 634 ms (424 ms and 446 ms in Chromium).
  */
 export const MAX_DOCUMENT_PAGES = 1_000
 
 /**
  * Bytes the streams the reader decodes may decode to, every stage of every
  * stream together. Set by a 1,000-page tagged report whose object streams
- * and content inflate to 24.5 MiB; at the bound, 78 ms with 32 MiB outside
- * the heap, one byte past it refused in 84 ms. A stream of nothing that
- * inflates within it is read, as a file of 20 MiB of zeros was in 45-103
- * ms.
+ * and content inflate to 24.5 MiB. At it, 120 ms with 64 MiB outside the
+ * heap; one byte past it, refused in 103 ms. A stream of nothing that
+ * inflates within it is read, as a file of 20 MiB of zeros was in 97-154
+ * ms, and one of a gibibyte is refused in 121 ms. Not within a second:
+ * 99,990 streams of one byte compressed by Flate, every one reached, a
+ * pako inflater each, read in 1.1 s (1.0 s in Chromium).
  */
 export const MAX_DOCUMENT_INFLATED = 32 * MIB
 
 /**
  * Arrays and dictionaries nested in one object. Chosen: four times the
  * deepest of the sample (8); nesting costs nothing until the stack runs
- * out, near 10,000 arrays in pdf-lib's own grammar. Refused past it in
- * 1.5 ms however deep the file goes.
+ * out, near 10,000 arrays in pdf-lib's own grammar. At it, 4.2 ms; refused
+ * past it in 2.2-2.6 ms, however deep the file goes, a million levels
+ * among them.
  */
 export const MAX_DOCUMENT_DEPTH = 32
 
-/** A name's bytes as written: ISO 32000-1's Annex C limit, 127; the sample's longest was 115. */
+/** A name's bytes as written: ISO 32000-1's Annex C limit, 127; the sample's longest was 115. At it 3.8 ms, refused past it in 2.1 ms. */
 export const MAX_DOCUMENT_NAME_LENGTH = 127
 
-/** A string's bytes, escapes decoded. Chosen: twice Annex C's 32,767, room for a signature's /Contents; the sample's longest was 1,566. */
+/**
+ * A string's bytes, escapes decoded. Chosen: twice Annex C's 32,767, room
+ * for a signature's /Contents; the sample's longest was 1,566. At it
+ * 6.3 ms, refused past it in 4.6 ms.
+ */
 export const MAX_DOCUMENT_STRING_LENGTH = 65_535
 
-/** A number's characters. Chosen; the sample's longest was 20. */
+/** A number's characters. Chosen; the sample's longest was 20. At it 4.3 ms, refused past it in 2.2 ms. */
 export const MAX_DOCUMENT_NUMBER_LENGTH = 32
 
 /**
@@ -125,8 +157,7 @@ export const MAX_DOCUMENT_NUMBER_LENGTH = 32
  * hold, passes; the largest image of the spike's sample of 1,484 PDFs was
  * 4,665,600 pixels. Pixels, not samples: a viewer may decode an image at
  * the bound to 200,000,000 bytes of CMYK, twice that at 16 bits a sample.
- * The spike read a file of one image at the bound in 2.1 ms and refused one
- * a pixel past it in 2.1 ms, on 3 November 2026, never decoding either; not
- * measured here.
+ * A file of one image at it read in 4.8 ms, one a pixel past it refused in
+ * 3.9 ms, neither decoded.
  */
 export const MAX_DOCUMENT_IMAGE_PIXELS = 50_000_000
