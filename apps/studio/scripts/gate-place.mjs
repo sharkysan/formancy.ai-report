@@ -38,7 +38,8 @@
 // tree has no word for -- a pane's box, a scroll, what is painted on top --
 // is read from the DOM, by the builders' own hooks.
 
-import { builderRulesInThePreview, describeFocus, drawnPages } from './gate-page.mjs'
+import { describeFocus } from './gate-measure.mjs'
+import { builderRulesInThePreview, drawnPages } from './gate-page.mjs'
 import { designViewOf, editorOf, previewOf, printed, said, setField, standing, toggleOf, WITHIN } from './gate-steps.mjs'
 
 const tools = (editor) => editor.getByRole('toolbar', { name: 'Report tools', exact: true })

@@ -107,20 +107,8 @@ import { headersFor } from '../../../scripts/demo-headers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
 import { interactions } from './gate-interactions.mjs'
-import {
-  app,
-  audit,
-  cutControls,
-  describeFocus,
-  downloaded,
-  drawnPages,
-  fontProblem,
-  fromTheTop,
-  measureWidth,
-  paletteProblem,
-  passes,
-  rulesOnThePaper,
-} from './gate-page.mjs'
+import { audit, describeFocus, fontProblem, fromTheTop, measureWidth, paletteProblem } from './gate-measure.mjs'
+import { app, cutControls, downloaded, drawnPages, passes, rulesOnThePaper } from './gate-page.mjs'
 import { builderParity } from './gate-parity.mjs'
 import { placeChecks } from './gate-place.mjs'
 import { gateRecorder } from './gate-results.mjs'

@@ -27,7 +27,8 @@
 // and name, which a builder keeps in the tree and focusable.
 
 import { readCodes, readPdf } from '@formancy/report-corpus'
-import { describeFocus, pdfBytes } from './gate-page.mjs'
+import { describeFocus } from './gate-measure.mjs'
+import { pdfBytes } from './gate-page.mjs'
 import { designViewOf, editorOf, open, previewInView, previewOf, said, settled, showing, WITHIN } from './gate-steps.mjs'
 
 /** The invoice starter's account, SIX's example QR-IBAN, as its code holds it. */
