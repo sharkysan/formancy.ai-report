@@ -41,13 +41,25 @@ export interface InflateBudget {
 /** The private sentinel `onData` throws once the budget is spent, which pako lets through its `push`. */
 const PAST_THE_BUDGET = new Error('past the budget')
 
-/** pako's Inflate, raw, charging each chunk to `budget` as pako writes it; on success, pako joins what it kept into `result`. */
+/**
+ * The size of the chunks pako writes `input` bytes of deflate data into:
+ * four times the input, from 1 KiB, never more than pako's own 64 KiB.
+ * pako allocates a first chunk of its size however short the stream:
+ * 99,990 streams of one byte each, every one reached, took 1.1 s, most of
+ * it collecting chunks that held a byte each. A chunk of 1 KiB costs an
+ * inflate of one byte 2.3 µs, one of 64 KiB 3.2 µs (over 117,647 inflates,
+ * Node 22.23.3, 6 November 2026); a stream that inflates further takes more
+ * chunks, each charged to the budget as it is written.
+ */
+const chunkFor = (input: number): number => Math.min(64 * 1024, Math.max(1024, 4 * input))
+
+/** pako's Inflate, raw, into chunks sized to its input (`chunkFor`), charging each chunk to `budget` as pako writes it; on success, pako joins what it kept into `result`. */
 export class BoundedInflate extends Inflate {
   private readonly budget: InflateBudget
   private stream: ZStream | undefined
 
-  constructor(budget: InflateBudget) {
-    super({ raw: true })
+  constructor(budget: InflateBudget, input: number) {
+    super({ raw: true, chunkSize: chunkFor(input) })
     this.budget = budget
   }
 
@@ -74,7 +86,7 @@ function inflate(data: Uint8Array, budget: InflateBudget): { readonly bytes: Uin
   const flg = data[1] as number
   // Deflate, a header check that holds, no preset dictionary: what PDF.js holds a Flate stream's header to.
   if ((cmf & 0x0f) !== 8 || ((cmf << 8) | flg) % 31 !== 0 || (flg & 0x20) !== 0) refuse('flate-header')
-  const inflater = new BoundedInflate(budget)
+  const inflater = new BoundedInflate(budget, data.length - 2)
   try {
     inflater.push(data.subarray(2), true)
   } catch (error) {

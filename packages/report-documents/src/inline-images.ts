@@ -2,6 +2,7 @@ import { find, isRegular, isWhite, keyword, startsAt } from './bytes.js'
 import { Grammar } from './grammar.js'
 import { componentsOf, declared, declaredSize, namedComponents, namedSpace, type ImageSize } from './images.js'
 import { inflatedEnd, passedOn, type InflateBudget } from './inflate.js'
+import { INFLATER_VALUES } from './limits.js'
 import { viewerEndsAt } from './inline-end.js'
 import { isArray, isDict, isName, isRef, resolved, type PdfDict, type PdfObjects, type PdfStream, type PdfValue } from './model.js'
 import type { ParsedDocument } from './parse.js'
@@ -316,7 +317,11 @@ class InlineImages {
   /** Where an inline image's data, from `data`, ends, by the filter it begins in or by its rows where it has none. */
   private dataEnd(data: number, first: string | undefined, dict: PdfDict, size: ImageSize): number {
     const content = this.content
-    if (first === 'FlateDecode') return data + inflatedEnd(content.subarray(data), this.budget)
+    if (first === 'FlateDecode') {
+      // Its inflater counted before it is made: the dearest part of an inline image to read (limits.ts).
+      readingOf(this.parsed).counted(INFLATER_VALUES)
+      return data + inflatedEnd(content.subarray(data), this.budget)
+    }
     if (first === 'ASCIIHexDecode') {
       const marker = find(content, [GREATER], data)
       return marker < 0 ? refuse('inline-end') : marker + 1

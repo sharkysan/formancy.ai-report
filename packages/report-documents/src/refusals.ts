@@ -28,7 +28,7 @@ export const DOCUMENT_REFUSAL_CODES = [
   'malformed',
   /** Arrays and dictionaries nested past `MAX_DOCUMENT_DEPTH`. */
   'too-deep',
-  /** More objects than `MAX_DOCUMENT_OBJECTS`, written, claimed by a cross-reference or reached by its pages; more cross-reference entries than `MAX_DOCUMENT_XREF_ENTRIES` or sections than `MAX_DOCUMENT_XREF_SECTIONS`, every section together; more values than `MAX_DOCUMENT_VALUES`, in the file or in its inline images' dictionaries, or annotations listed by its pages, every page together; names past `MAX_DOCUMENT_NAME_BYTES`. */
+  /** More objects than `MAX_DOCUMENT_OBJECTS`, written, claimed by a cross-reference or reached by its pages; more cross-reference entries than `MAX_DOCUMENT_XREF_ENTRIES` or sections than `MAX_DOCUMENT_XREF_SECTIONS`, every section together; more values than `MAX_DOCUMENT_VALUES`, in the file or in its inline images' dictionaries and their inflaters, or annotations listed by its pages, every page together; names past `MAX_DOCUMENT_NAME_BYTES`. */
   'too-many-objects',
   /** Streams that decode past `MAX_DOCUMENT_INFLATED`, every stage of every stream together; an image that declares more pixels than `MAX_DOCUMENT_IMAGE_PIXELS`, which a viewer decodes it to. */
   'inflates-too-far',

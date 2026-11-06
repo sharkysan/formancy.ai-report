@@ -32,8 +32,38 @@ describe('decoded inflates', () => {
     const onData = vi.spyOn(BoundedInflate.prototype, 'onData')
     const limit = 100_000
     expect(decoded(flate(new Uint8Array(MIB)), { left: limit })).toEqual(refusal('inflated'))
-    // pako's chunks are 64 KiB: the second passes the limit, and none follows it.
-    expect(onData.mock.calls.map(([chunk]) => chunk.length)).toEqual([65_536, 65_536])
+    // Every chunk is whole until the one that passes the limit, and none follows it.
+    const lengths = onData.mock.calls.map(([chunk]) => chunk.length)
+    const before = lengths.slice(0, -1).reduce((sum, length) => sum + length, 0)
+    expect(before).toBeLessThanOrEqual(limit)
+    expect(before + (lengths.at(-1) ?? 0)).toBeGreaterThan(limit)
+    expect(new Set(lengths).size).toBe(1)
+  })
+
+  // pako writes a stream into chunks of one size, 64 KiB unless it is told
+  // otherwise, and allocates the first however short the stream: a hundred
+  // thousand streams of a byte each cost 6.1 GiB of chunks that held a byte
+  // each, and the collection of them took most of a read past a second. A
+  // stream is written into chunks four times its input, from 1 KiB, and
+  // never more than pako's 64 KiB.
+  test('a stream is inflated into chunks sized to its input, from 1 KiB, never past 64 KiB', () => {
+    const started = vi.spyOn(BoundedInflate.prototype, 'onStart')
+    const chunkOf = (stream: PdfStream): number => {
+      started.mockClear()
+      decoded(stream, { left: 64 * MIB })
+      return (started.mock.calls[0]?.[0] as ZStream).output.length
+    }
+    expect(chunkOf(flate(TEXT))).toBe(1024)
+    const middling = deflate(
+      Uint8Array.from({ length: 6 * 1024 }, (_, at) => (at * 2_654_435_761) >>> 24),
+      { level: 0 },
+    )
+    expect(chunkOf(streamOf(middling, { Filter: name('FlateDecode') }))).toBe(4 * (middling.length - 2))
+    const large = deflate(
+      Uint8Array.from({ length: 64 * 1024 }, (_, at) => (at * 2_654_435_761) >>> 24),
+      { level: 0 },
+    )
+    expect(chunkOf(streamOf(large, { Filter: name('FlateDecode') }))).toBe(65_536)
   })
 
   // The bound is the document's, not each stream's: two streams that each
@@ -230,5 +260,22 @@ describe('what decoding reaches into pako for', () => {
     expect(inflater.err).toBe(0)
     expect(inflater.ended).toBe(true)
     expect(stream?.avail_in).toBe(4 + 'after'.length)
+  })
+
+  // The reader sizes the chunks pako writes into by the option pako reads
+  // them from: if an update of pako ignored `chunkSize`, or allocated its
+  // output elsewhere, every stream would again cost a 64 KiB chunk, and the
+  // test above would see the size pako used, not the size it was asked for.
+  test('pako allocates its output as `chunkSize` asks, on the stream it hands onStart', () => {
+    for (const chunkSize of [1024, 65_536]) {
+      let stream: ZStream | undefined
+      const inflater = new Inflate({ raw: true, chunkSize })
+      inflater.onStart = (strm: ZStream): void => {
+        stream = strm
+      }
+      inflater.push(deflate(TEXT).subarray(2), true)
+      expect(inflater.err).toBe(0)
+      expect(stream?.output.length).toBe(chunkSize)
+    }
   })
 })

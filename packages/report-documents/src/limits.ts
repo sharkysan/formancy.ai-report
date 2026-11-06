@@ -37,12 +37,15 @@ export const MAX_DOCUMENT_BYTES = 20 * MIB
  * stream's `/Index`) besides the free head of the list. Chosen: a
  * 1,000-page tagged report of 97,020 objects comes within 3 % of it, and
  * one shaped as the median of the tagged documents in the spike's sample
- * of 1,484 PDFs (81 structure elements a page) holds 84,022; one shaped as
- * their densest (138 a page) holds 141,022 and is refused, in 358 ms. What
- * a definition costs is held by `MAX_DOCUMENT_VALUES`. At it, 188 ms and
- * 52 MiB; one past it, refused in 93 ms. The densest shape at it, 709
- * pages, read in 628 ms with 94 MiB (380 ms in Chromium); one object past
- * it was refused in 373 ms.
+ * of 1,484 PDFs (81 structure elements a page) holds 84,022. What a
+ * definition costs is held by `MAX_DOCUMENT_VALUES`. At it, 188 ms and
+ * 52 MiB; one past it, refused in 93 ms. A report shaped as the sample's
+ * densest tagged document (138 structure elements a page) fits it to 709
+ * pages, which read in 579 ms with 93 MiB (389 ms in Chromium), one object
+ * more refused in 368 ms; its 1,000 pages hold 141,022 objects, refused in
+ * 362 ms. So a tagged report that dense, past about 700 pages, is refused
+ * and is to be added in parts: a ruling, which a raise would have had to
+ * rest on an estimate at the edge of the second a read may take.
  */
 export const MAX_DOCUMENT_OBJECTS = 100_000
 
@@ -87,11 +90,27 @@ export const MAX_DOCUMENT_XREF_SECTIONS = 1_000
  * 140 MiB (358 ms in Chromium); 153,846 inline images' dictionaries in
  * 378 ms; every bound at once -- the values in dictionaries shaped as a
  * page's, beside content that inflates to `MAX_DOCUMENT_INFLATED` -- in
- * 548 ms with 75 MiB (385 ms in Chromium). Not within a second: 117,647
- * inline images compressed by Flate, a pako inflater each, read in 1.3 s
- * (1.0 s in Chromium).
+ * 548 ms with 75 MiB (385 ms in Chromium); inline images compressed by
+ * Flate, each counted for its inflater too (`INFLATER_VALUES`), 60,606 at
+ * the bound, in 598 ms (540 ms in Chromium).
  */
 export const MAX_DOCUMENT_VALUES = 2_000_000
+
+/**
+ * What an inline image compressed by Flate is counted as against
+ * `MAX_DOCUMENT_VALUES`, besides its dictionary's values, for the pako
+ * inflater it takes, which costs what its dictionary does several times
+ * over. Chosen by measurement, median of five cold runs in Node 22.23.3 on
+ * 6 November 2026: one-pixel Flate inline images of seventeen values a
+ * dictionary, as many as the values bound admits, read in 1.3 s
+ * uncharged (117,647 of them, a load of 4.6), 1.1 s at a charge of 8
+ * (80,000, a load of 5.4) and 0.6 s at 16 (60,606, a load of 5.3): sixteen,
+ * the smallest that holds them within a second. At it they read in 598 ms
+ * (540 ms in Chromium), one more refused in 625 ms (540 ms). An inline
+ * image unfiltered, or ending at an ASCII filter's marker, takes no
+ * inflater and is not charged.
+ */
+export const INFLATER_VALUES = 16
 
 /**
  * The bytes of a PDF's distinct names, decoded, together. Chosen: 78 times
@@ -107,8 +126,8 @@ export const MAX_DOCUMENT_NAME_BYTES = 256 * 1024
 /**
  * Pages in a PDF. Chosen: the parse's cost per page is in its values. A
  * tree of 1,000 pages read in 66 ms, one more refused in 36 ms; a
- * 1,000-page tagged report read in 605 ms with 89 MiB, and written in
- * object streams in 634 ms (424 ms and 446 ms in Chromium).
+ * 1,000-page tagged report read in 600 ms with 92 MiB, and written in
+ * object streams in 652 ms (436 ms and 453 ms in Chromium).
  */
 export const MAX_DOCUMENT_PAGES = 1_000
 
@@ -118,9 +137,11 @@ export const MAX_DOCUMENT_PAGES = 1_000
  * and content inflate to 24.5 MiB. At it, 120 ms with 64 MiB outside the
  * heap; one byte past it, refused in 103 ms. A stream of nothing that
  * inflates within it is read, as a file of 20 MiB of zeros was in 97-154
- * ms, and one of a gibibyte is refused in 121 ms. Not within a second:
- * 99,990 streams of one byte compressed by Flate, every one reached, a
- * pako inflater each, read in 1.1 s (1.0 s in Chromium).
+ * ms, and one of a gibibyte is refused in 121 ms. 99,995 streams of one
+ * byte compressed by Flate, every one reached, a pako inflater each written
+ * into a chunk sized to its input (inflate.ts), read in 887 ms with
+ * 106 MiB (715 ms in Chromium); one stream more passes the objects bound,
+ * refused in 371 ms (195 ms).
  */
 export const MAX_DOCUMENT_INFLATED = 32 * MIB
 

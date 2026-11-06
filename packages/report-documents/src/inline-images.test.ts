@@ -2,7 +2,7 @@ import { deflate } from 'pako'
 import { describe, expect, test } from 'vitest'
 import { annotated, annotation, expectAnnotationRefused } from './annotations-test-support.js'
 import { checkInlineImages } from './inline-images.js'
-import { MAX_DOCUMENT_IMAGE_PIXELS, MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_PAGES, MAX_DOCUMENT_VALUES } from './limits.js'
+import { INFLATER_VALUES, MAX_DOCUMENT_IMAGE_PIXELS, MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_PAGES, MAX_DOCUMENT_VALUES } from './limits.js'
 import { AT_A_BOUND, parsed } from './parse-test-support.js'
 import { expectPrintRefused, letter, pagesFile, pagesRead, printedWhole, type Body } from './pages-test-support.js'
 import { refusal } from './refusals.js'
@@ -563,6 +563,22 @@ describe('the inline images of a document are bounded together', () => {
     expect(pagesRead(pagesFile([letter()], { 4: images }))).toHaveLength(1)
     const two = pagesFile([letter(), letter().replace('/Contents 4 0 R', '/Contents 5 0 R')], { 4: images, 5: images })
     expectPrintRefused(two, 'too-many-objects', 'values', 2)
+  })
+
+  // An inline image compressed by Flate is inflated by a pako inflater of
+  // its own, which costs what its dictionary's values cost several times
+  // over: 117,647 of them, as many as the values bound let their
+  // dictionaries count, took 1.3 s. Each is counted for its inflater too,
+  // INFLATER_VALUES more, before it is inflated: here seventeen values a
+  // dictionary and the inflater's, the images at the bound read and one
+  // more refused, where as many images unfiltered read.
+  test('a Flate inline image is counted for its inflater against MAX_DOCUMENT_VALUES too', AT_A_BOUND, () => {
+    const flate = concat([latin1('q BI /W 1/H 1/CS/G/BPC 8/F/Fl ID '), deflate(latin1('x')), latin1('\nEI Q\n')])
+    const plain = latin1('q BI /W 1/H 1/CS/G/BPC 8 ID x\nEI Q\n')
+    const atBound = Math.floor(MAX_DOCUMENT_VALUES / (17 + INFLATER_VALUES))
+    expect(pagesRead(drawing(repeated(flate, atBound)))).toHaveLength(1)
+    expectPrintRefused(drawing(repeated(flate, atBound + 1)), 'too-many-objects', 'values', 1)
+    expect(pagesRead(drawing(repeated(plain, atBound + 1)))).toHaveLength(1)
   })
 })
 

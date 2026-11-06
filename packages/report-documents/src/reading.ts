@@ -71,8 +71,9 @@ export class Reading {
   private chunk = EMPTY
   private used = 0
 
-  counted(): void {
-    this.values += 1
+  /** `values` more counted against `MAX_DOCUMENT_VALUES`: a value, or what a costlier read is counted as. */
+  counted(values = 1): void {
+    this.values += values
     if (this.values > MAX_DOCUMENT_VALUES) refuse('values')
   }
 
