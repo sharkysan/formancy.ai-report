@@ -18,8 +18,8 @@
 //     contrast and target size were measured, over something, and the
 //     contrast of every text in view was decided;
 //   - the keyboard path: from the top of the page as it loads, the first
-//     Tab reaches the skip link, on screen, where axe finds nothing on it,
-//     and Enter on it puts the keyboard on <main>;
+//     Tab reaches the skip link, on screen, where axe finds nothing on it
+//     and measured its contrast, and Enter on it puts the keyboard on <main>;
 //   - and in each pass, over every page: the page wears the released room,
 //     every variable and the colour scheme of @formancy/themes/room.css as
 //     it has them (0034); every web font the built stylesheet declares
@@ -27,7 +27,8 @@
 //     fetched, nor a connection hinted, outside the built pages but a
 //     `data:` address, so a page tells no other site who opened it (0023);
 //     and the demo's content security policy refused no page anything
-//     (0051).
+//     (0051). Each of these fails in a pass where no page answered as
+//     itself, rather than saying ok of nothing.
 //
 // The DOM is read where the accessibility tree cannot answer: a page's
 // canonical address and its preconnect hints are in its head, which the
@@ -106,8 +107,9 @@ async function measured(gate, page, path) {
  * From the top of the page as it loads, where a person arriving at it
  * starts: nothing has the focus, and sequential navigation starts at the
  * document's start. Then the skip link, on screen and as axe finds it
- * shown, and <main>. Called before anything moves the focus: the page has
- * only been read.
+ * shown, and <main>, each a check of its own: a first Tab that went
+ * elsewhere fails the first alone. Called before anything moves the focus:
+ * the page has only been read.
  *
  * Not the Studio's `fromTheTop`, whose click at (1, 1) lands in `.site`'s
  * padding wherever `.site` reaches the window's corner, and Chromium starts
@@ -120,16 +122,35 @@ async function measured(gate, page, path) {
  */
 async function keyboard(gate, page, path) {
   const { check } = gate
-  await page.keyboard.press('Tab')
   const skip = page.locator('a.skip')
-  const shown = await skip.evaluate((link) => {
+  const links = await skip.count()
+  await page.keyboard.press('Tab')
+  if (links !== 1) {
+    check(`${path}: the first Tab reaches the skip link`, `the page has ${String(links)} a.skip, where it has one skip link`)
+    return
+  }
+  const focused = await skip.evaluate((link) => link === document.activeElement)
+  check(`${path}: the first Tab reaches the skip link`, focused ? null : `focus went to ${await describeFocus(page)} first`)
+  // What follows is of the skip link itself. Where the first Tab went
+  // elsewhere, the link is given the focus, so that Enter is pressed on it
+  // and never on whatever had the focus: a link there would take the page
+  // away from every check after it.
+  if (!focused) await skip.focus()
+  const onScreen = await skip.evaluate((link) => {
     const box = link.getBoundingClientRect()
-    return { focused: link === document.activeElement, onScreen: box.top >= 0 && box.left >= 0 && box.right <= document.documentElement.clientWidth }
+    return box.top >= 0 && box.left >= 0 && box.right <= document.documentElement.clientWidth
   })
-  check(`${path}: the first Tab reaches the skip link`, shown.focused ? null : `focus went to ${await describeFocus(page)} first`)
-  check(`${path}: which is on screen while it has focus`, shown.onScreen ? null : 'it stayed off screen')
+  check(`${path}: which is on screen while it has focus`, onScreen ? null : 'it stayed off screen')
+  // Off screen, axe leaves the link's contrast out, so shown is where it is measured, or by nobody.
   const skipAudit = await audit(page, skip)
-  check(`${path}: the skip link, shown: axe finds nothing`, skipAudit.violations.length === 0 ? null : skipAudit.violations.join('; '))
+  check(
+    `${path}: the skip link, shown: axe finds nothing, and measured its contrast`,
+    skipAudit.violations.length > 0
+      ? skipAudit.violations.join('; ')
+      : skipAudit.measured.includes('color-contrast')
+        ? null
+        : 'axe measured no contrast on it, so its colours were read by nobody',
+  )
   await page.keyboard.press('Enter')
   check(
     `${path}: Enter on it puts the keyboard on <main>`,
@@ -140,7 +161,9 @@ async function keyboard(gate, page, path) {
 /**
  * One pass at one viewport: every page of the sitemap opened in turn in one
  * browser page, each checked under its path, and what is said once a pass
- * gathered from all of them, each under the path it was found on.
+ * gathered from all of them, each under the path it was found on. A pass in
+ * which no page answered as itself read nothing those four could be said
+ * of, and each says so rather than ok.
  */
 async function pass(gate, browser, { served, site, pages }, entry) {
   const { label, width, height, refuseFonts = false } = entry
@@ -169,6 +192,10 @@ async function pass(gate, browser, { served, site, pages }, entry) {
   const unroomed = []
   const unfaced = []
   const refused = []
+  let read = 0
+  /** What a pass-wide check found, over the pages read: null for nothing found, and never over no page. */
+  const gathered = (found) =>
+    read === 0 ? 'no page of the pass answered as itself, so this was read on none' : found.length === 0 ? null : found.slice(0, 4).join('; ')
   try {
     for (const address of pages) {
       const path = address.slice(served.length)
@@ -178,6 +205,7 @@ async function pass(gate, browser, { served, site, pages }, entry) {
       gate.check(`${path}: answered as itself`, problem)
       // Another page, or none, measured under this one's name would pass for it.
       if (problem !== null) continue
+      read += 1
       // The faces before anything is measured: a box measured before a late face swapped in would measure the fallback.
       const faces = await fontProblem(page, { dist, refused: refuseFonts })
       if (faces !== null) unfaced.push(`${path}: ${faces}`)
@@ -196,21 +224,15 @@ async function pass(gate, browser, { served, site, pages }, entry) {
       for (const hint of hinted) if (!hint.startsWith(served)) elsewhere.add(`${hint} (a hint, on ${path})`)
       for (const each of await page.evaluate(() => window.__refused)) refused.push(`${path}: ${each}`)
     }
-    gate.check(
-      'every page wears the released room, every variable and the colour scheme of the installed room.css as it has them',
-      unroomed.length === 0 ? null : unroomed.slice(0, 4).join('; '),
-    )
+    gate.check('every page wears the released room, every variable and the colour scheme of the installed room.css as it has them', gathered(unroomed))
     gate.check(
       refuseFonts ? 'with the web fonts refused, no page loaded one' : 'on every page, every web font the built stylesheet declares loaded',
-      unfaced.length === 0 ? null : unfaced.slice(0, 4).join('; '),
+      gathered(unfaced),
     )
-    gate.check(
-      'no page fetched anything or hinted a connection outside the built pages, their faces and pictures included',
-      elsewhere.size === 0 ? null : [...elsewhere].slice(0, 4).join(', '),
-    )
+    gate.check('no page fetched anything or hinted a connection outside the built pages, their faces and pictures included', gathered([...elsewhere]))
     gate.check(
       "the demo's content security policy refused no page anything: no style, face or picture of the pages is outside it",
-      refused.length === 0 ? null : [...new Set(refused)].slice(0, 4).join('; '),
+      gathered([...new Set(refused)]),
     )
   } finally {
     await page.close()
