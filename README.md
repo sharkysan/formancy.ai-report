@@ -38,10 +38,14 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **The Studio**, a playground with both builders and the PDF they print, beside them or in the design view's place, online at https://formancy.ai/report/ ([Try it](#try-it), [0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
 
 Planned and not here: charts resolved and drawn, and offered and edited in
-the builders; the server's publication, render jobs and artifacts, fonts
-kept beside its images, a Save in the builders themselves, and its
-published image; reviewed AI changes, a published PDF viewer, and a
-consistent read from Formancy Data.
+the builders, and documents, which are being built; the server's
+publication, render jobs and artifacts, fonts kept beside its images, a
+Save in the builders themselves, and its published image; reviewed AI
+changes, a published PDF viewer, and a consistent read from Formancy Data.
+[The roadmap](./docs/roadmap.md) says what comes after them, in order --
+barcodes, nested groups, more datasets, running totals, crosstabs, PDF/A
+and accessible PDFs, Excel, copy and paste in the editor, among the rest --
+and what is not planned at all.
 
 > **Status, 1 November 2026: 0.2.0, a developer preview, is released.**
 > Its eight packages are on npm, with provenance, and

@@ -82,6 +82,17 @@ one answer to it could hold formancy's server
   second `@formancy/spec`**, 0.5.0 through Formancy Data 0.1.0, until the
   provider takes a Data release built against a newer one.
 
+**A roadmap says what comes next, in order, and what is not planned at
+all** ([`docs/roadmap.md`](docs/roadmap.md)). The README named only the
+work planned next, so a team weighing Report against the report
+designers it already knows could not tell whether a barcode, a crosstab,
+an Excel export or a tagged PDF was coming or turned down. The page lists
+what a report can hold, what a render can be, the editor, the server and
+AI, each in order, code a report carries run in a sandbox among them,
+and the three things Report does not mean to do -- connect to a
+database, fetch by address, drill down -- with the reason for each. It promises nothing: an item is built when its
+record is written, and that record may narrow it or turn it down.
+
 **A report may hold a bar, line or pie chart of its detail rows, which no
 release prints yet**
 ([0052](docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
